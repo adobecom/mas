@@ -1,17 +1,9 @@
 import { LitElement, html, css } from 'lit';
-import './ost-country-picker.js';
-import './ost-search.js';
-import './ost-filter-bar.js';
-import './ost-product-list.js';
-import './ost-product-detail.js';
-import './ost-placeholder-panel.js';
-import './ost-promo-tag.js';
-import './ost-welcome-screen.js';
-import './ost-selection-list.js';
+import './ost-entitlements-tab.js';
+import './ost-offer-tab.js';
 import './ost-help-banner.js';
-import './ost-offer-detail-focused.js';
 import { store } from '../store/ost-store.js';
-import { getOfferSelector, resolveOfferSelector } from '../utils/aos-client.js';
+import { getOfferSelector } from '../utils/aos-client.js';
 
 const ADOBE_FONTS_URL = 'https://use.typekit.net/pps7abe.css';
 const PRODUCTS_ENDPOINT = 'https://14257-masstudio.adobeioruntime.net/api/v1/web/MerchAtScaleStudio/ost-products-read';
@@ -80,7 +72,10 @@ export class OstApp extends LitElement {
             display: flex;
             flex-direction: column;
             width: min(1100px, 90vw);
+            min-width: min(1100px, 90vw);
             height: 85vh;
+            min-height: 640px;
+            max-height: 95vh;
             background: var(--spectrum-white, #fff);
             border-radius: 12px;
             overflow: hidden;
@@ -129,69 +124,31 @@ export class OstApp extends LitElement {
 
         .ost-container {
             display: flex;
+            flex-direction: column;
             flex: 1;
             min-height: 0;
             overflow: hidden;
         }
 
-        .ost-left-panel {
-            width: 340px;
-            min-width: 340px;
+        .ost-tabs {
             display: flex;
-            flex-direction: column;
-            border-right: 1px solid var(--spectrum-gray-200);
-            background: var(--spectrum-gray-75);
+            justify-content: center;
+            padding-top: 10px;
+            flex-shrink: 0;
+            background: var(--spectrum-gray-100);
+        }
+
+        .ost-tab-body {
+            display: flex;
+            flex: 1;
+            min-height: 0;
             overflow: hidden;
         }
 
-        .ost-left-header {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            padding: 16px;
+        .ost-help-banner-wrapper {
+            padding: 0 24px;
+            background: var(--spectrum-gray-100);
             flex-shrink: 0;
-            border-bottom: 1px solid var(--spectrum-gray-200);
-        }
-
-        .ost-left-products-label {
-            font-size: 11px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            color: var(--spectrum-gray-600);
-            padding: 8px 16px 0;
-            flex-shrink: 0;
-        }
-
-        .ost-left-panel ost-product-list {
-            flex: 1;
-            overflow-y: auto;
-            overscroll-behavior: contain;
-            padding: 0 12px 16px;
-        }
-
-        .ost-left-panel-error {
-            margin: 0 16px 12px;
-            padding: 10px 12px;
-            border: 1px solid var(--spectrum-red-300, #f5c2c7);
-            border-radius: 8px;
-            background: var(--spectrum-red-75, #fff1f1);
-            color: var(--spectrum-red-900, #c9252d);
-            font-size: 12px;
-            line-height: 1.4;
-        }
-
-        .ost-right-panel {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-            padding: 24px;
-            overflow-y: auto;
-            overscroll-behavior: contain;
-            min-width: 0;
-            min-height: 0;
-            background: var(--spectrum-white, #fff);
         }
 
         .ost-close-btn {
@@ -273,8 +230,10 @@ export class OstApp extends LitElement {
         const osiId = this.config?.searchOfferSelectorId;
         const offerId = store.deepLink.offerId;
         const hasDeepLinkIntent = osiId || offerId || store.deepLink.type || store.aosParams.arrangementCode;
-        if (hasDeepLinkIntent && !store.flowChosen) {
-            store.flowChosen = true;
+        if (hasDeepLinkIntent && store.wizardStep !== 'offer') {
+            // A deep-linked open (RTE double-click on an existing CTA, chat OSI
+            // attach) already has its target chosen — land directly on Tab 2.
+            store.wizardStep = 'offer';
             store.notify();
         }
         if (osiId || offerId) {
@@ -298,8 +257,12 @@ export class OstApp extends LitElement {
         };
         if (tryResolve()) return;
         const handler = () => {
-            if (store.allProducts.length > 0 && tryResolve()) {
+            if (store.allProducts.length > 0) {
+                // Detach BEFORE calling setProduct — setProduct synchronously
+                // fires state-changed, which would re-enter this handler and
+                // recurse infinitely on a "Maximum call stack size" error.
                 store.removeEventListener('state-changed', handler);
+                tryResolve();
             }
         };
         store.addEventListener('state-changed', handler);
@@ -487,72 +450,16 @@ export class OstApp extends LitElement {
         }
     }
 
-    get rightPanel() {
-        const state = store.viewState;
-        if (state === 'welcome') {
-            return html`<ost-welcome-screen></ost-welcome-screen>`;
-        }
-        if (state === 'configure') {
-            return html`
-                <ost-product-detail summary></ost-product-detail>
-                <ost-placeholder-panel></ost-placeholder-panel>
-                <ost-promo-tag></ost-promo-tag>
-            `;
-        }
-        return html` <ost-product-detail></ost-product-detail> `;
-    }
-
-    get content() {
-        const showSelectionList = store.authoringFlow === 'tryBuy' || store.authoringFlow === 'bundle';
-        // Hide the product picker only while the deep-linked user is in
-        // the configure view. The moment they click "Change" (selectedOffer
-        // clears → viewState becomes 'offers'), bring the picker back so
-        // they can browse other offers for the same product OR pick a
-        // different product entirely. This gives a clean configure layout
-        // for the common case without trapping users when they want to
-        // change their mind.
-        const hideProductList = this.wasDeepLinked && store.authoringFlow === 'single' && store.viewState === 'configure';
-        return html`
-            ${showSelectionList ? html`<ost-selection-list></ost-selection-list>` : ''}
-            <div class="ost-container">
-                ${hideProductList
-                    ? ''
-                    : html`
-                          <div class="ost-left-panel">
-                              <div class="ost-left-header">
-                                  <ost-search></ost-search>
-                                  <ost-filter-bar></ost-filter-bar>
-                              </div>
-                              ${this.productsError ? html`<div class="ost-left-panel-error">${this.productsError}</div>` : ''}
-                              <div class="ost-left-products-label">Products</div>
-                              <ost-product-list></ost-product-list>
-                          </div>
-                      `}
-                <div class="ost-right-panel">
-                    <ost-help-banner></ost-help-banner>
-                    ${this.rightPanel}
-                </div>
-            </div>
-        `;
-    }
-
     handleBack() {
-        // Step back one level: from the configure view to the product list.
-        // Clear the chosen offer AND the chosen product so the user can pick
-        // a different product; preserve flowChosen so we don't bounce back
-        // to the welcome screen. (For deep-linked opens — e.g. RTE
-        // double-click on an existing CTA — the Back button is hidden in
-        // render since there's no product list to return to.)
-        store.selectedOffer = undefined;
-        store.selectedOsi = undefined;
-        store.selectedProduct = undefined;
-        store.notify();
+        // Tab-2 "Back": for single/consult, step back to Tab 1 (preserving the
+        // chosen product). The consult focused-detail view has its own Back
+        // (handleFocusedBack) that stays on Tab 2.
+        store.goToEntitlements();
     }
 
     get wasDeepLinked() {
         // True when the OST was opened with a target offer already chosen
-        // (RTE double-click, chat OSI attach). In that case the user has no
-        // product list to return to and "Back" would be a confusing no-op.
+        // (RTE double-click, chat OSI attach).
         return !!(this.config?.searchOfferSelectorId || store.deepLink?.offerId);
     }
 
@@ -570,7 +477,10 @@ export class OstApp extends LitElement {
             this.cancel();
             return;
         }
-        const panel = this.shadowRoot.querySelector('ost-placeholder-panel');
+        // The placeholder panel now lives inside ost-offer-tab; reach its
+        // code-output through the tab's shadow root.
+        const tab = this.shadowRoot.querySelector('ost-offer-tab');
+        const panel = tab?.shadowRoot?.querySelector('ost-placeholder-panel');
         const codeOutput = panel?.shadowRoot?.querySelector('ost-code-output');
         if (codeOutput) {
             codeOutput.handleUse();
@@ -595,9 +505,34 @@ export class OstApp extends LitElement {
         }
     }
 
+    // Tab footers dispatch intent events; ost-app owns the handlers so the
+    // event/callback contracts (consumed by Studio's RTE + chat) stay here.
+    onTabUse() {
+        if (store.authoringFlow === 'consult' && store.selectedOffer) {
+            this.handleFocusedUse();
+            return;
+        }
+        this.handleFooterUse();
+    }
+
+    onTabBack() {
+        if (store.authoringFlow === 'consult' && store.selectedOffer) {
+            this.handleFocusedBack();
+            return;
+        }
+        this.handleBack();
+    }
+
+    handleTabChange(e) {
+        const next = e.target.selected;
+        if (next === 'offer') {
+            store.goToOffer();
+        } else {
+            store.goToEntitlements();
+        }
+    }
+
     render() {
-        const isWelcome = store.viewState === 'welcome';
-        const isFocused = store.viewState === 'offer-detail-focused';
         const closeButton = this.dialog
             ? html`<button
                   class="ost-close-btn"
@@ -609,112 +544,54 @@ export class OstApp extends LitElement {
               </button>`
             : '';
 
-        const headerBar =
-            isWelcome || isFocused
-                ? html`
-                      <div class="ost-header-bar">
-                          <span class="ost-title">Offer Selector Tool</span>
-                          <div class="ost-header-controls">${closeButton}</div>
-                      </div>
-                  `
-                : html`
-                      <div class="ost-header-bar">
-                          <span class="ost-title">Offer Selector Tool</span>
-                          <div class="ost-header-controls">
-                              <ost-country-picker></ost-country-picker>
-                              <sp-picker
-                                  size="s"
-                                  label="Authoring mode"
-                                  value=${store.authoringFlow}
-                                  @change=${(e) => store.setAuthoringFlow(e.target.value)}
-                              >
-                                  <sp-menu-item value="single">Single Offer</sp-menu-item>
-                                  <sp-menu-item value="tryBuy">Try / Buy</sp-menu-item>
-                                  <sp-menu-item value="bundle">Soft Bundle</sp-menu-item>
-                                  <sp-menu-item value="consult">Consult</sp-menu-item>
-                              </sp-picker>
-                              <sp-action-button
-                                  quiet
-                                  size="s"
-                                  class="ost-help-toggle"
-                                  ?selected=${store.helpMode}
-                                  @click=${() => store.toggleHelp()}
-                              >
-                                  <sp-icon-info slot="icon"></sp-icon-info>
-                                  Help
-                              </sp-action-button>
-                              ${closeButton}
-                          </div>
-                      </div>
-                  `;
-
-        const flow = store.authoringFlow;
-        let useLabel = 'Use';
-        let useDisabled = true;
-
-        if (flow === 'single') {
-            useDisabled = store.viewState !== 'configure';
-        } else if (flow === 'tryBuy') {
-            useDisabled = !store.canConfirm;
-            useLabel = store.selectedTrialOsi ? 'Use both offers' : 'Use base offer only';
-        } else if (flow === 'bundle') {
-            useDisabled = !store.canConfirm;
-            useLabel = `Use bundle (${store.selectedOffers.length} offers)`;
-        } else if (flow === 'consult') {
-            useLabel = 'Close';
-            useDisabled = false;
-        }
-
-        const footerBar = html`
-            <div class="ost-footer-bar">
-                ${flow === 'single' && store.viewState === 'configure'
-                    ? html`<sp-button
-                          data-testid="ost-back-button"
-                          variant="secondary"
-                          size="m"
-                          @click=${() => this.handleBack()}
-                          >Back</sp-button
-                      >`
-                    : ''}
-                <sp-button
-                    data-testid="ost-footer-use-button"
-                    variant="${flow === 'consult' ? 'secondary' : 'accent'}"
-                    size="m"
-                    ?disabled=${useDisabled}
-                    @click=${() => this.handleFooterUse()}
-                    >${useLabel}</sp-button
-                >
+        const headerBar = html`
+            <div class="ost-header-bar">
+                <span class="ost-title">Offer Selector Tool</span>
+                <div class="ost-header-controls">
+                    <sp-action-button
+                        quiet
+                        size="s"
+                        class="ost-help-toggle"
+                        ?selected=${store.helpMode}
+                        @click=${() => store.toggleHelp()}
+                    >
+                        <sp-icon-info slot="icon"></sp-icon-info>
+                        Help
+                    </sp-action-button>
+                    ${closeButton}
+                </div>
             </div>
         `;
 
-        const focusedFooterBar = html`
-            <div class="ost-footer-bar">
-                <sp-button data-testid="ost-back-button" variant="secondary" size="m" @click=${() => this.handleFocusedBack()}
-                    >Back</sp-button
-                >
-                <sp-button
-                    data-testid="ost-footer-use-button"
-                    variant="accent"
-                    size="m"
-                    ?disabled=${this.usingFocusedOffer}
-                    @click=${() => this.handleFocusedUse()}
-                    >${this.usingFocusedOffer ? 'Resolving…' : 'Use'}</sp-button
-                >
+        const tabBody =
+            store.wizardStep === 'offer'
+                ? html`<ost-offer-tab
+                      @ost-tab-use=${() => this.onTabUse()}
+                      @ost-tab-back=${() => this.onTabBack()}
+                      @ost-tab-cancel=${() => this.cancel()}
+                  ></ost-offer-tab>`
+                : html`<ost-entitlements-tab
+                      .productsError=${this.productsError}
+                      @ost-tab-cancel=${() => this.cancel()}
+                  ></ost-entitlements-tab>`;
+
+        const content = html`
+            ${headerBar}
+            <div class="ost-container">
+                <div class="ost-tabs">
+                    <sp-tabs size="m" selected=${store.wizardStep} @change=${(e) => this.handleTabChange(e)}>
+                        <sp-tab label="Select your product and entitlements" value="entitlements"></sp-tab>
+                        <sp-tab
+                            label="Select your offer"
+                            value="offer"
+                            ?disabled=${!store.canAdvance && store.wizardStep !== 'offer'}
+                        ></sp-tab>
+                    </sp-tabs>
+                </div>
+                ${store.helpMode ? html`<div class="ost-help-banner-wrapper"><ost-help-banner></ost-help-banner></div>` : ''}
+                <div class="ost-tab-body">${tabBody}</div>
             </div>
         `;
-
-        const content = isWelcome
-            ? html`
-                  ${headerBar}
-                  <ost-welcome-screen></ost-welcome-screen>
-              `
-            : isFocused
-              ? html`
-                    ${headerBar}
-                    <ost-offer-detail-focused></ost-offer-detail-focused>
-                    ${focusedFooterBar}
-                `
-              : html` ${headerBar} ${this.content} ${footerBar} `;
 
         return html`
             <sp-theme system="spectrum-two" color="light" scale="medium">

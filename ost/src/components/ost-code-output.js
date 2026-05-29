@@ -13,6 +13,7 @@ export class OstCodeOutput extends LitElement {
         :host {
             font-family: inherit;
             display: block;
+            min-width: 0;
         }
 
         .code-card {
@@ -26,10 +27,12 @@ export class OstCodeOutput extends LitElement {
 
         code {
             flex: 1;
+            min-width: 0;
             font-family: inherit;
             font-size: 12px;
             color: var(--spectrum-green-400, #2d9d78);
-            overflow-wrap: break-word;
+            overflow-wrap: anywhere;
+            word-break: break-word;
             white-space: pre-wrap;
         }
     `;
@@ -140,7 +143,11 @@ export class OstCodeOutput extends LitElement {
             if (checkoutCtrl.upgrade) {
                 options.upgrade = true;
             }
-            options.ctaText = checkoutCtrl.ctaText;
+            // Fall back to the UI's displayed default; ctaText may be '' if
+            // the user opened the checkout config but didn't pick from the
+            // dropdown — Studio looks up CTA_TEXTS[options.ctaText] and would
+            // skip the text attribute entirely on an empty string.
+            options.ctaText = checkoutCtrl.ctaText || checkoutCtrl.defaultCtaText;
         }
 
         options.workflow = 'UCv3';

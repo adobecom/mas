@@ -1,6 +1,7 @@
 import { LitElement, html, css } from 'lit';
 import { store } from '../store/ost-store.js';
 import { resolveOfferSelector } from '../utils/aos-client.js';
+import { PLAN_TYPE_COLORS } from '../data/plan-type-colors.js';
 
 function isFreeOffer(offer) {
     if (offer?.price_point === 'FREE') return true;
@@ -34,14 +35,6 @@ function formatPeriod(offer) {
     if (commitment === 'MONTH' || term === 'MONTHLY') return '/mo';
     return '';
 }
-
-const PLAN_BADGE_VARIANT = {
-    ABM: 'positive',
-    PUF: 'informative',
-    M2M: 'yellow',
-    PERPETUAL: 'seafoam',
-    P3Y: 'fuchsia',
-};
 
 export class OstOfferDetailFocused extends LitElement {
     static properties = {
@@ -253,7 +246,7 @@ export class OstOfferDetailFocused extends LitElement {
         const price = formatPrice(offer);
         const period = formatPeriod(offer);
         const planType = offer.planType;
-        const planVariant = PLAN_BADGE_VARIANT[planType] || 'neutral';
+        const planVariant = PLAN_TYPE_COLORS[planType] || 'neutral';
         const marketSegments = Array.isArray(offer.market_segments) ? offer.market_segments : [];
 
         return html`

@@ -1,14 +1,7 @@
 import { LitElement, html, css } from 'lit';
 import { store } from '../store/ost-store.js';
 import { resolveOfferSelector } from '../utils/aos-client.js';
-
-const PLAN_TYPE_COLORS = {
-    ABM: 'positive',
-    PUF: 'informative',
-    M2M: 'yellow',
-    PERPETUAL: 'seafoam',
-    P3Y: 'fuchsia',
-};
+import { PLAN_TYPE_COLORS } from '../data/plan-type-colors.js';
 
 function getTrialDays(offer) {
     if (offer.offer_type !== 'TRIAL') return null;
@@ -57,6 +50,11 @@ export class OstOfferCard extends LitElement {
     static properties = {
         offer: { type: Object },
         selected: { type: Boolean, reflect: true },
+        lastSelected: { type: Boolean, reflect: true, attribute: 'last-selected' },
+        // `card` switches the host from the compact table-row layout (used in
+        // the product-detail offers table) to the legacy bordered card layout
+        // (used in the offer tab's left column).
+        card: { type: Boolean, reflect: true },
         resolving: { type: Boolean, state: true },
         copied: { type: Boolean, state: true },
     };
@@ -74,6 +72,15 @@ export class OstOfferCard extends LitElement {
 
         :host([selected]) {
             background: var(--spectrum-blue-50);
+        }
+
+        :host([last-selected]:not([selected])) {
+            background: var(--spectrum-gray-75, #fafafa);
+            box-shadow: inset 3px 0 0 var(--spectrum-blue-700, #1473e6);
+        }
+
+        :host([last-selected]:not([selected])):hover {
+            background: var(--spectrum-gray-100);
         }
 
         .cell {
@@ -124,12 +131,111 @@ export class OstOfferCard extends LitElement {
             font-weight: 600;
             color: var(--spectrum-positive-visual-color, #12805c);
         }
+
+        /* Legacy bordered-card layout (offer tab left column). */
+        :host([card]) {
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        :host([card]:hover) {
+            background: transparent;
+        }
+
+        .offer-card {
+            border: 1px solid var(--spectrum-gray-200);
+            border-radius: var(--spectrum-corner-radius-100, 4px);
+            background: var(--spectrum-gray-50);
+            padding: 8px;
+        }
+
+        .offer-card:hover {
+            background: var(--spectrum-gray-100);
+        }
+
+        :host([card][selected]) .offer-card {
+            background: var(--spectrum-gray-200);
+        }
+
+        .offer-card-grid {
+            display: grid;
+            grid-template-columns: repeat(10, auto);
+            align-items: center;
+            gap: 4px 8px;
+        }
+
+        .offer-card-icon {
+            width: 48px;
+            height: 48px;
+            grid-column: 1 / span 1;
+            border-radius: var(--spectrum-corner-radius-100, 4px);
+        }
+
+        .offer-card-name {
+            grid-column: 2 / span 9;
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--spectrum-gray-900);
+            margin: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .offer-card-divider {
+            grid-column: 1 / span 10;
+            border: none;
+            border-top: 1px solid var(--spectrum-gray-200);
+            margin: 6px 0;
+            width: 100%;
+        }
+
+        .offer-card-label {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--spectrum-gray-700);
+            margin: 0;
+        }
+
+        .label-2 {
+            grid-column: span 2;
+        }
+
+        .label-4 {
+            grid-column: span 4;
+        }
+
+        .value-2 {
+            grid-column: span 2;
+            font-size: 13px;
+            color: var(--spectrum-gray-800);
+        }
+
+        .value-4 {
+            grid-column: span 4;
+            font-size: 13px;
+            color: var(--spectrum-gray-800);
+        }
+
+        .value-8 {
+            grid-column: span 8;
+            font-size: 13px;
+            color: var(--spectrum-gray-800);
+            word-break: break-all;
+        }
+
+        .offer-card-price {
+            font-weight: 700;
+            color: var(--spectrum-gray-900);
+        }
     `;
 
     constructor() {
         super();
         this.offer = undefined;
         this.selected = false;
+        this.lastSelected = false;
+        this.card = false;
         this.resolving = false;
         this.copied = false;
     }
@@ -168,8 +274,42 @@ export class OstOfferCard extends LitElement {
         this.resolving = false;
     }
 
+    renderCard() {
+        const offer = this.offer;
+        const price = formatPrice(offer);
+        const period = formatPeriod(offer);
+        const offerId = offer.offer_id || '';
+
+        return html`
+            <div class="offer-card" @click=${this.handleClick}>
+                <div class="offer-card-grid">
+                    ${offer.icon ? html`<img class="offer-card-icon" src="${offer.icon}" alt="" />` : html`<span></span>`}
+                    <h4 class="offer-card-name">${offer.name}</h4>
+                    <hr class="offer-card-divider" />
+
+                    <span class="offer-card-label label-2">Offer ID</span>
+                    <span class="value-8">${offerId}</span>
+
+                    <span class="offer-card-label label-2">Price Point</span>
+                    <span class="value-8">${offer.price_point || ''}</span>
+
+                    <span class="offer-card-label label-2">Plan Type</span>
+                    <span class="offer-card-label label-2">Offer type</span>
+                    <span class="offer-card-label label-2">Language</span>
+                    <span class="offer-card-label label-4">Price</span>
+
+                    <span class="value-2">${offer.planType || ''}</span>
+                    <span class="value-2">${offer.offer_type || ''}</span>
+                    <span class="value-2">${offer.language || ''}</span>
+                    <span class="value-4 offer-card-price">${price}${period}</span>
+                </div>
+            </div>
+        `;
+    }
+
     render() {
         if (!this.offer) return html``;
+        if (this.card) return this.renderCard();
 
         const offer = this.offer;
         const price = formatPrice(offer);
@@ -189,12 +329,12 @@ export class OstOfferCard extends LitElement {
                               ? html`<span class="trial-days">${getTrialDays(offer)}d</span>`
                               : ''}`
                     : ''}
-                ${offer.__landscape
+                ${offer.landscapeSource
                     ? html`<sp-badge
                           size="s"
-                          variant="${offer.__landscape === 'DRAFT' ? 'yellow' : 'informative'}"
+                          variant="${offer.landscapeSource === 'DRAFT' ? 'yellow' : 'informative'}"
                           style="margin-left:4px;"
-                          >${offer.__landscape}</sp-badge
+                          >${offer.landscapeSource}</sp-badge
                       >`
                     : ''}
             </span>

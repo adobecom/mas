@@ -160,59 +160,43 @@ describe('OstStore', () => {
             store.selectedOffers = [{ offer: {}, osi: 'test' }];
             store.init({});
             expect(store.authoringFlow).to.equal('single');
-            expect(store.flowChosen).to.be.false;
             expect(store.selectedOffers).to.deep.equal([]);
         });
 
-        it('defaults to single + flowChosen=false on empty init (welcome screen still shows)', () => {
-            // Empty init = fresh open with no deep-link. flowChosen stays
-            // false so the welcome screen renders (per viewState gate); the
-            // default flow only takes effect once a product is selected.
+        it('resets wizardStep to entitlements on init', () => {
+            store.wizardStep = 'offer';
             store.init({});
-            expect(store.authoringFlow).to.equal('single');
-            expect(store.flowChosen).to.be.false;
+            expect(store.wizardStep).to.equal('entitlements');
         });
 
         it('sets authoringFlow to tryBuy when multiSelect config is true', () => {
             store.init({ multiSelect: true });
             expect(store.authoringFlow).to.equal('tryBuy');
-            expect(store.flowChosen).to.be.true;
         });
 
         it('sets authoringFlow to bundle when bundleSelect config is true', () => {
             store.init({ bundleSelect: true });
             expect(store.authoringFlow).to.equal('bundle');
-            expect(store.flowChosen).to.be.true;
         });
 
         it('sets authoringFlow directly from config', () => {
             store.init({ authoringFlow: 'tryBuy' });
             expect(store.authoringFlow).to.equal('tryBuy');
-            expect(store.flowChosen).to.be.true;
         });
 
         it('sets authoringFlow to bundle from config', () => {
             store.init({ authoringFlow: 'bundle' });
             expect(store.authoringFlow).to.equal('bundle');
-            expect(store.flowChosen).to.be.true;
         });
 
         it('sets authoringFlow to consult from config', () => {
             store.init({ authoringFlow: 'consult' });
             expect(store.authoringFlow).to.equal('consult');
-            expect(store.flowChosen).to.be.true;
         });
 
         it('ignores invalid authoringFlow value from config (falls back to single default)', () => {
             store.init({ authoringFlow: 'bogus' });
             expect(store.authoringFlow).to.equal('single');
-            expect(store.flowChosen).to.be.false;
-        });
-
-        it('resets flowChosen to false on init without flow config', () => {
-            store.flowChosen = true;
-            store.init({});
-            expect(store.flowChosen).to.be.false;
         });
     });
 
@@ -233,14 +217,12 @@ describe('OstStore', () => {
             const params = new URLSearchParams('bundleSelect=true');
             store.applySearchParams(params);
             expect(store.authoringFlow).to.equal('bundle');
-            expect(store.flowChosen).to.be.true;
         });
 
         it('sets authoringFlow from authoringFlow param', () => {
             const params = new URLSearchParams('authoringFlow=tryBuy');
             store.applySearchParams(params);
             expect(store.authoringFlow).to.equal('tryBuy');
-            expect(store.flowChosen).to.be.true;
         });
 
         it('sets bundle from authoringFlow param', () => {
@@ -259,7 +241,6 @@ describe('OstStore', () => {
             const params = new URLSearchParams('authoringFlow=bogus');
             store.applySearchParams(params);
             expect(store.authoringFlow).to.equal('single');
-            expect(store.flowChosen).to.be.false;
         });
     });
 
@@ -286,8 +267,8 @@ describe('OstStore', () => {
     });
 
     describe('viewState', () => {
-        it("returns 'welcome' when no product selected and flow not chosen", () => {
-            expect(store.viewState).to.equal('welcome');
+        it("returns 'offers' before any offer is selected", () => {
+            expect(store.viewState).to.equal('offers');
         });
 
         it("returns 'offers' when product selected but no offer", () => {
@@ -329,9 +310,11 @@ describe('OstStore', () => {
             expect(store.viewState).to.equal('offers');
         });
 
-        it("returns 'welcome' for consult flow without product and flow not chosen", () => {
+        it("returns 'offer-detail-focused' for consult flow once an offer is selected", () => {
             store.authoringFlow = 'consult';
-            expect(store.viewState).to.equal('welcome');
+            store.setProduct({ name: 'Photoshop' });
+            store.selectedOffer = { offer_id: 'ABC123' };
+            expect(store.viewState).to.equal('offer-detail-focused');
         });
 
         it("returns 'offers' when flow is chosen via deep-link and no product selected", () => {
@@ -347,6 +330,86 @@ describe('OstStore', () => {
         it("returns 'offers' for consult deep-link without product", () => {
             store.init({ authoringFlow: 'consult' });
             expect(store.viewState).to.equal('offers');
+        });
+    });
+
+    describe('wizardStep', () => {
+        it('defaults to entitlements', () => {
+            expect(store.wizardStep).to.equal('entitlements');
+        });
+
+        it('canAdvance is false in single flow without a product', () => {
+            store.authoringFlow = 'single';
+            expect(store.canAdvance).to.be.false;
+        });
+
+        it('canAdvance is true in single flow once a product is selected', () => {
+            store.authoringFlow = 'single';
+            store.setProduct({ name: 'Photoshop' });
+            expect(store.canAdvance).to.be.true;
+        });
+
+        it('canAdvance is true for tryBuy/bundle without a product', () => {
+            store.authoringFlow = 'tryBuy';
+            expect(store.canAdvance).to.be.true;
+            store.authoringFlow = 'bundle';
+            expect(store.canAdvance).to.be.true;
+        });
+
+        it('goToOffer advances when canAdvance is true', () => {
+            store.setProduct({ name: 'Photoshop' });
+            store.goToOffer();
+            expect(store.wizardStep).to.equal('offer');
+        });
+
+        it('goToOffer is a no-op when canAdvance is false', () => {
+            store.authoringFlow = 'single';
+            store.goToOffer();
+            expect(store.wizardStep).to.equal('entitlements');
+        });
+
+        it('goToEntitlements returns to Tab 1, preserves product, clears offer', () => {
+            store.setProduct({ name: 'Photoshop' });
+            store.setOffer({ offer_id: 'ABC123' });
+            store.setOsi('osi-1');
+            store.goToOffer();
+            store.goToEntitlements();
+            expect(store.wizardStep).to.equal('entitlements');
+            expect(store.selectedProduct.name).to.equal('Photoshop');
+            expect(store.selectedOffer).to.be.undefined;
+            expect(store.selectedOsi).to.be.undefined;
+        });
+
+        it('goToEntitlements records lastSelectedOfferId', () => {
+            store.setProduct({ name: 'Photoshop' });
+            store.setOffer({ offer_id: 'ABC123' });
+            store.goToEntitlements();
+            expect(store.lastSelectedOfferId).to.equal('ABC123');
+        });
+    });
+
+    describe('chooseAuthoringFlow', () => {
+        it('switches flow and clears selections immediately (no pending switch)', () => {
+            store.authoringFlow = 'bundle';
+            store.selectedOffers = [{ offer: {}, osi: 'a' }];
+            store.chooseAuthoringFlow('single');
+            expect(store.authoringFlow).to.equal('single');
+            expect(store.selectedOffers).to.deep.equal([]);
+            expect(store.pendingFlowSwitch).to.be.null;
+        });
+
+        it('ignores invalid flow', () => {
+            store.chooseAuthoringFlow('bogus');
+            expect(store.authoringFlow).to.equal('single');
+        });
+
+        it('ignores switch to the current flow', () => {
+            let notified = false;
+            store.subscribe(() => {
+                notified = true;
+            });
+            store.chooseAuthoringFlow('single');
+            expect(notified).to.be.false;
         });
     });
 

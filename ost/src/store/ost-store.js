@@ -1,3 +1,4 @@
+import { ReactiveStore } from '../reactivity/reactive-store.js';
 import { languageMappings } from '../data/language-mappings.js';
 
 const DEFAULT_AOS_PARAMS = {
@@ -32,56 +33,149 @@ const DEFAULT_PLACEHOLDER_OPTIONS = {
 
 const VALID_FLOWS = ['single', 'tryBuy', 'bundle', 'consult'];
 
+// Slice definitions — name + initial value. Each becomes a ReactiveStore on
+// `store.stores.<name>` (for StoreController/ReactiveController consumers)
+// and is exposed as an ergonomic `store.<name>` getter/setter that proxies
+// to the underlying ReactiveStore so existing call sites keep working.
+const SLICES = [
+    ['env', 'PRODUCTION'],
+    ['environment', undefined],
+    ['landscape', 'PUBLISHED'],
+    ['apiKey', ''],
+    ['accessToken', ''],
+    ['wcsApiKey', ''],
+    ['checkoutClientId', 'mas-commerce-service'],
+    ['zIndex', 20000],
+    ['aosParams', { ...DEFAULT_AOS_PARAMS }],
+    ['country', 'US'],
+    ['language', 'en'],
+    ['searchQuery', ''],
+    ['searchType', ''],
+    ['allProducts', []],
+    ['productsLoading', false],
+    ['selectedProduct', undefined],
+    ['offers', []],
+    ['selectedOffer', undefined],
+    ['selectedOsi', undefined],
+    // Tracks the offer the user had selected before clicking Back/Change so the
+    // offer-card render can highlight it as a "previously used" choice.
+    ['lastSelectedOfferId', undefined],
+    ['authoringFlow', 'single'],
+    // 'entitlements' (Tab 1: product + filters) | 'offer' (Tab 2: offer + config).
+    // Orthogonal to viewState: viewState describes the Tab-2 sub-view, wizardStep
+    // describes which wizard tab is showing. Picking a product readies the offers
+    // but does not advance the step — the Next button (goToOffer) does, matching
+    // the legacy OST's Next gate.
+    ['wizardStep', 'entitlements'],
+    ['selectedOffers', []],
+    ['currentSlot', 'base'],
+    ['pendingFlowSwitch', null],
+    ['promotionCode', undefined],
+    ['storedPromoOverride', undefined],
+    ['masCommerceService', null],
+    ['placeholderTypes', [...DEFAULT_PLACEHOLDER_TYPES]],
+    ['defaultPlaceholderOptions', { ...DEFAULT_PLACEHOLDER_OPTIONS }],
+    ['offerSelectorPlaceholderOptions', {}],
+    ['deepLink', {}],
+    ['ctaTextOption', null],
+    ['helpMode', false],
+    ['pendingArrangementCode', null],
+];
+
 export class OstStore extends EventTarget {
-    env = 'PRODUCTION';
-    environment = undefined;
-    landscape = 'PUBLISHED';
-    apiKey = '';
-    accessToken = '';
-    wcsApiKey = '';
-    checkoutClientId = 'mas-commerce-service';
+    stores = {};
+    #batchDepth = 0;
+    #batchedDuringRun = false;
+
+    // Callback slots set once during init() — held as plain fields because
+    // ReactiveStore.set(fn) treats `fn` as an updater function and would invoke
+    // it with the current value, mangling the stored callback.
     onSelect = null;
     onCancel = null;
     onMultiSelect = null;
     onBundleSelect = null;
-    zIndex = 20000;
 
-    aosParams = { ...DEFAULT_AOS_PARAMS };
-    country = 'US';
-    language = 'en';
-    searchQuery = '';
-    searchType = '';
-    allProducts = [];
-    productsLoading = false;
-    selectedProduct = undefined;
-    offers = [];
-    selectedOffer = undefined;
-    selectedOsi = undefined;
-    authoringFlow = 'single';
-    flowChosen = false;
-    selectedOffers = [];
-    currentSlot = 'base';
-    pendingFlowSwitch = null;
-    promotionCode = undefined;
-    storedPromoOverride = undefined;
-    masCommerceService = null;
-    placeholderTypes = [...DEFAULT_PLACEHOLDER_TYPES];
-    defaultPlaceholderOptions = { ...DEFAULT_PLACEHOLDER_OPTIONS };
-    offerSelectorPlaceholderOptions = {};
-    deepLink = {};
-    ctaTextOption = null;
-    helpMode = false;
+    constructor() {
+        super();
+        for (const [name, initial] of SLICES) {
+            const slice = new ReactiveStore(initial);
+            this.stores[name] = slice;
+            Object.defineProperty(this, name, {
+                get: () => slice.get(),
+                set: (value) => slice.set(value),
+                enumerable: true,
+                configurable: true,
+            });
+        }
+        // Bridge per-slice updates back to the legacy coarse `state-changed`
+        // event so existing `store.subscribe(handler)` consumers keep working.
+        // Once every consumer uses StoreController/ReactiveController (tracked
+        // alongside MWPW-195989), this bridge and the EventTarget base class
+        // can be removed.
+        const bridge = () => {
+            if (this.#batchDepth > 0) {
+                this.#batchedDuringRun = true;
+                return;
+            }
+            this.dispatchEvent(new Event('state-changed'));
+        };
+        for (const slice of Object.values(this.stores)) {
+            slice.subscribe(bridge);
+        }
+    }
 
+    // Coalesce multiple slice mutations inside `fn` into a single
+    // `state-changed` event so legacy subscribers see one update instead of N.
+    // Per-slice subscribers (via ReactiveStore.subscribe / StoreController)
+    // still fire per mutation; batching only affects the back-compat bridge.
+    #batch(fn) {
+        this.#batchDepth++;
+        try {
+            fn();
+        } finally {
+            this.#batchDepth--;
+            if (this.#batchDepth === 0 && this.#batchedDuringRun) {
+                this.#batchedDuringRun = false;
+                this.dispatchEvent(new Event('state-changed'));
+            }
+        }
+    }
+
+    // Describes the Tab-2 (offer) sub-view. The wizard tab itself is tracked
+    // separately by `wizardStep`; this getter only matters once the user is on
+    // the 'offer' step.
     get viewState() {
-        if (!this.selectedProduct && !this.flowChosen) return 'welcome';
         if (this.authoringFlow === 'consult') {
             // Consult surface-mode used by AI chat: picking an offer swaps the
-            // whole dialog to a focused detail view with a Use CTA.
+            // offer tab to a focused detail view with a Use CTA.
             return this.selectedOffer ? 'offer-detail-focused' : 'offers';
         }
         if (this.authoringFlow === 'tryBuy' || this.authoringFlow === 'bundle') return 'offers';
         if (!this.selectedOffer) return 'offers';
         return 'configure';
+    }
+
+    // Tab 1 → Tab 2 is gated: single/consult need a product, tryBuy/bundle can
+    // advance immediately (the user picks offers on Tab 2).
+    get canAdvance() {
+        if (this.authoringFlow === 'tryBuy' || this.authoringFlow === 'bundle') return true;
+        return !!this.selectedProduct;
+    }
+
+    goToOffer() {
+        if (!this.canAdvance) return;
+        this.wizardStep = 'offer';
+    }
+
+    goToEntitlements() {
+        this.#batch(() => {
+            // Preserve selectedProduct so the user can re-advance without
+            // re-picking; clear the offer so Tab 2 reopens to the offer list.
+            this.lastSelectedOfferId = this.selectedOffer?.offer_id;
+            this.selectedOffer = undefined;
+            this.selectedOsi = undefined;
+            this.wizardStep = 'entitlements';
+        });
     }
 
     get canConfirm() {
@@ -141,25 +235,30 @@ export class OstStore extends EventTarget {
 
     setEnv(env) {
         if (this.env === env) return;
-        this.env = env;
-        // Offers were fetched at the old env; force re-resolution at the new one.
-        // Selected product/offer/OSI/flow context are intentionally preserved so
-        // the user does not get bounced back to the welcome screen on stage toggle.
-        this.offers = [];
-        this.notify();
+        this.#batch(() => {
+            this.env = env;
+            // Offers were fetched at the old env; force re-resolution at the new
+            // one. Selected product/offer/OSI/flow context are intentionally
+            // preserved so the user does not get bounced back to the welcome
+            // screen on stage toggle.
+            this.offers = [];
+        });
     }
 
     init(config) {
+        this.#batch(() => this.#init(config));
+    }
+
+    #init(config) {
         this.aosParams = { ...DEFAULT_AOS_PARAMS };
         this.selectedProduct = undefined;
         this.selectedOffer = undefined;
         this.selectedOsi = undefined;
         // 'single' is the safe default: it matches the most common caller
-        // (RTE double-click on an existing CTA), keeps the welcome screen
-        // for fresh opens (gated on flowChosen=false), and is overridden
-        // below for multiSelect / bundleSelect / explicit authoringFlow.
+        // (RTE double-click on an existing CTA) and is overridden below for
+        // multiSelect / bundleSelect / explicit authoringFlow.
         this.authoringFlow = 'single';
-        this.flowChosen = false;
+        this.wizardStep = 'entitlements';
         this.selectedOffers = [];
         this.currentSlot = 'base';
         this.pendingFlowSwitch = null;
@@ -172,19 +271,20 @@ export class OstStore extends EventTarget {
 
         if (config.multiSelect === true) {
             this.authoringFlow = 'tryBuy';
-            this.flowChosen = true;
         }
         if (config.bundleSelect === true) {
             this.authoringFlow = 'bundle';
-            this.flowChosen = true;
         }
         if (config.authoringFlow && VALID_FLOWS.includes(config.authoringFlow)) {
             this.authoringFlow = config.authoringFlow;
-            this.flowChosen = true;
         }
+        const CALLBACK_KEYS = ['onSelect', 'onCancel', 'onMultiSelect', 'onBundleSelect'];
         Object.keys(config).forEach((key) => {
             if (key === 'multiSelect' || key === 'bundleSelect' || key === 'authoringFlow') return;
-            if (key in this && config[key] !== undefined) {
+            if (config[key] === undefined) return;
+            if (key in this.stores) {
+                this[key] = config[key];
+            } else if (CALLBACK_KEYS.includes(key)) {
                 this[key] = config[key];
             }
         });
@@ -202,56 +302,55 @@ export class OstStore extends EventTarget {
                 this.promotionCode = incomingPromotionCode;
             }
         }
-        this.notify();
     }
 
     setAosParams(params) {
         this.aosParams = { ...this.aosParams, ...params };
-        this.notify();
     }
 
     setSearch(query, type) {
-        this.searchQuery = query;
-        this.searchType = type;
-        this.notify();
+        this.#batch(() => {
+            this.searchQuery = query;
+            this.searchType = type;
+        });
     }
 
     setCountry(country) {
-        this.country = country;
-        this.language = languageMappings[country] || 'en';
-        this.notify();
+        this.#batch(() => {
+            this.country = country;
+            this.language = languageMappings[country] || 'en';
+        });
     }
 
     setProducts(products) {
-        this.allProducts = products;
-        if (this.pendingArrangementCode) {
-            const code = this.pendingArrangementCode;
-            this.pendingArrangementCode = null;
-            this.autoSelectProductByArrangementCode(code);
-        }
-        this.notify();
+        this.#batch(() => {
+            this.allProducts = products;
+            if (this.pendingArrangementCode) {
+                const code = this.pendingArrangementCode;
+                this.pendingArrangementCode = null;
+                this.autoSelectProductByArrangementCode(code);
+            }
+        });
     }
 
     setProduct(product) {
-        this.selectedProduct = product;
-        this.selectedOffer = undefined;
-        this.selectedOsi = undefined;
-        this.notify();
+        this.#batch(() => {
+            this.selectedProduct = product;
+            this.selectedOffer = undefined;
+            this.selectedOsi = undefined;
+        });
     }
 
     setOffers(offers) {
         this.offers = offers;
-        this.notify();
     }
 
     setOffer(offer) {
         this.selectedOffer = offer;
-        this.notify();
     }
 
     setOsi(osi) {
         this.selectedOsi = osi;
-        this.notify();
     }
 
     setAuthoringFlow(flow, keepSelections = false) {
@@ -261,17 +360,25 @@ export class OstStore extends EventTarget {
         const hasSelections = this.selectedOffers.length > 0 || !!this.selectedOffer;
         if (!keepSelections && hasSelections) {
             this.pendingFlowSwitch = flow;
-            this.notify();
             return;
         }
 
         this.applyFlowSwitch(flow, keepSelections);
     }
 
+    // Tab-1 mode picker: switch authoring flow and discard any in-progress
+    // offer selections immediately (no pendingFlowSwitch confirm bar, which
+    // lives on Tab 2 and would be invisible from Tab 1). Switching mode is a
+    // deliberate restart of the authoring intent.
+    chooseAuthoringFlow(flow) {
+        if (!VALID_FLOWS.includes(flow)) return;
+        if (flow === this.authoringFlow) return;
+        this.applyFlowSwitch(flow, false);
+    }
+
     setCurrentSlot(slot) {
         if (slot !== 'base' && slot !== 'trial') return;
         this.currentSlot = slot;
-        this.notify();
     }
 
     confirmFlowSwitch(keep) {
@@ -283,18 +390,20 @@ export class OstStore extends EventTarget {
 
     cancelFlowSwitch() {
         this.pendingFlowSwitch = null;
-        this.notify();
     }
 
     applyFlowSwitch(flow, keepSelections) {
+        this.#batch(() => this.#applyFlowSwitch(flow, keepSelections));
+    }
+
+    #applyFlowSwitch(flow, keepSelections) {
         let previousOffers = keepSelections ? [...this.selectedOffers] : [];
         if (keepSelections && previousOffers.length === 0 && this.selectedOffer) {
             previousOffers = [{ offer: this.selectedOffer, osi: this.selectedOsi }];
         }
         this.authoringFlow = flow;
-        this.flowChosen = true;
         this.currentSlot = 'base';
-        this.selectedOffers = [];
+        let nextSelected = [];
 
         if (keepSelections && previousOffers.length > 0) {
             if (flow === 'single') {
@@ -303,75 +412,76 @@ export class OstStore extends EventTarget {
                 this.selectedOsi = first.osi;
             } else if (flow === 'tryBuy') {
                 const first = previousOffers[0];
-                this.selectedOffers = [{ offer: first.offer, osi: first.osi, role: 'base' }];
+                nextSelected = [{ offer: first.offer, osi: first.osi, role: 'base' }];
                 if (previousOffers[1]) {
-                    this.selectedOffers.push({ offer: previousOffers[1].offer, osi: previousOffers[1].osi, role: 'trial' });
+                    nextSelected.push({ offer: previousOffers[1].offer, osi: previousOffers[1].osi, role: 'trial' });
                 }
             } else if (flow === 'bundle') {
-                this.selectedOffers = previousOffers.map((o) => ({ offer: o.offer, osi: o.osi }));
+                nextSelected = previousOffers.map((o) => ({ offer: o.offer, osi: o.osi }));
             }
         }
+        this.selectedOffers = nextSelected;
 
         if (flow !== 'single') {
             this.selectedOffer = undefined;
             this.selectedOsi = undefined;
         }
-
-        this.notify();
     }
 
     addOffer(offer, osi, role) {
+        this.#batch(() => this.#addOffer(offer, osi, role));
+    }
+
+    #addOffer(offer, osi, role) {
         if (this.authoringFlow === 'consult') return;
 
         if (this.authoringFlow === 'single') {
             this.selectedOffer = offer;
             this.selectedOsi = osi;
-            this.notify();
             return;
         }
 
         if (this.authoringFlow === 'tryBuy') {
             const targetRole = role || this.currentSlot;
-            this.selectedOffers = this.selectedOffers.filter((o) => o.role !== targetRole);
-            this.selectedOffers.push({ offer, osi, role: targetRole });
+            const next = this.selectedOffers.filter((o) => o.role !== targetRole);
+            next.push({ offer, osi, role: targetRole });
+            this.selectedOffers = next;
             if (targetRole === 'base' && this.currentSlot === 'base') {
                 this.currentSlot = 'trial';
             }
-            this.notify();
             return;
         }
 
         if (this.authoringFlow === 'bundle') {
             const existing = this.selectedOffers.findIndex((o) => o.offer === offer || o.osi === osi);
+            const next = [...this.selectedOffers];
             if (existing >= 0) {
-                this.selectedOffers.splice(existing, 1);
+                next.splice(existing, 1);
             } else {
-                this.selectedOffers.push({ offer, osi });
+                next.push({ offer, osi });
             }
-            this.selectedOffers = [...this.selectedOffers];
-            this.notify();
-            return;
+            this.selectedOffers = next;
         }
     }
 
     removeOffer(index) {
         if (index >= 0 && index < this.selectedOffers.length) {
-            this.selectedOffers.splice(index, 1);
-            this.selectedOffers = [...this.selectedOffers];
-            this.notify();
+            const next = [...this.selectedOffers];
+            next.splice(index, 1);
+            this.selectedOffers = next;
         }
     }
 
     removeOfferByRole(role) {
         this.selectedOffers = this.selectedOffers.filter((o) => o.role !== role);
-        this.notify();
     }
 
     clearOffers() {
-        this.selectedOffers = [];
-        this.selectedOffer = undefined;
-        this.selectedOsi = undefined;
-        this.notify();
+        this.#batch(() => {
+            this.selectedOffers = [];
+            this.selectedOffer = undefined;
+            this.selectedOsi = undefined;
+        });
     }
 
     isOfferSelected(offer) {
@@ -381,30 +491,33 @@ export class OstStore extends EventTarget {
 
     setPromoCode(code) {
         this.storedPromoOverride = code;
-        this.notify();
     }
 
     toggleMultiSelect() {
-        if (this.authoringFlow === 'tryBuy') {
-            this.applyFlowSwitch('single', false);
-        } else {
-            const keepSelections = !!this.selectedOffer;
-            if (keepSelections) {
-                this.selectedOffers = [{ offer: this.selectedOffer, osi: this.selectedOsi, role: 'base' }];
+        this.#batch(() => {
+            if (this.authoringFlow === 'tryBuy') {
+                this.applyFlowSwitch('single', false);
+            } else {
+                const keepSelections = !!this.selectedOffer;
+                if (keepSelections) {
+                    this.selectedOffers = [{ offer: this.selectedOffer, osi: this.selectedOsi, role: 'base' }];
+                }
+                this.authoringFlow = 'tryBuy';
+                this.selectedOffer = undefined;
+                this.selectedOsi = undefined;
             }
-            this.authoringFlow = 'tryBuy';
-            this.selectedOffer = undefined;
-            this.selectedOsi = undefined;
-            this.notify();
-        }
+        });
     }
 
     toggleHelp() {
         this.helpMode = !this.helpMode;
-        this.notify();
     }
 
     applySearchParams(searchParameters) {
+        this.#batch(() => this.#applySearchParams(searchParameters));
+    }
+
+    #applySearchParams(searchParameters) {
         if (!searchParameters) return;
         const get = (key) => searchParameters.get(key);
 
@@ -416,16 +529,13 @@ export class OstStore extends EventTarget {
         }
         if (get('multiSelect') === 'true') {
             this.authoringFlow = 'tryBuy';
-            this.flowChosen = true;
         }
         if (get('bundleSelect') === 'true') {
             this.authoringFlow = 'bundle';
-            this.flowChosen = true;
         }
         const flow = get('authoringFlow');
         if (flow && VALID_FLOWS.includes(flow)) {
             this.authoringFlow = flow;
-            this.flowChosen = true;
         }
 
         const deepLink = {};
@@ -457,8 +567,6 @@ export class OstStore extends EventTarget {
             return;
         }
         if (arrangementCode) this.autoSelectProductByArrangementCode(arrangementCode);
-
-        this.notify();
     }
 
     autoSelectProductByArrangementCode(arrangementCode) {

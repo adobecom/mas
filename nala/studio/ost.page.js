@@ -1,6 +1,6 @@
 export default class OSTPage {
     constructor(page) {
-        // The OST is a Lit web component (mas-ost-app) with shadow DOM.
+        // The OST is a Lit web component (ost-app) with shadow DOM.
         // Playwright pierces shadow DOM with CSS selectors but NOT with XPath,
         // so every selector below is CSS-based and targets a stable data-testid.
         this.rootPage = page;
@@ -18,13 +18,8 @@ export default class OSTPage {
         this.customerSegment = this.page.locator('[data-testid="ost-filter-customer-segment"]');
         this.marketSegment = this.page.locator('[data-testid="ost-filter-market-segment"]');
 
-        // Navigation buttons.
-        // The new Lit-based OST is a single-screen flow — there's no Next button.
-        // Selecting a product from the list automatically advances to the configure view.
-        // We map nextButton to the first product card so existing tests keep working:
-        // tests call `searchField.fill(osi) → nextButton.click()`, where the OSI deep-link
-        // resolves to a single matching product. Clicking the first card selects it.
-        this.nextButton = this.page.locator('[data-testid="ost-product-card"]').first();
+        // Navigation buttons (two-tab wizard: entitlements → offer).
+        this.nextButton = this.page.locator('[data-testid="ost-footer-next-button"]');
         this.backButton = this.page.locator('[data-testid="ost-back-button"]');
 
         // Placeholder type chips (new model: chips replace the old offer/entitlements tabs).
@@ -49,12 +44,10 @@ export default class OSTPage {
         this.taxInlcusivityCheckbox = this.page.locator('[data-testid="ost-option-forceTaxExclusive"]');
         this.oldPriceCheckbox = this.page.locator('[data-testid="ost-option-displayOldPrice"]');
 
-        // The new OST has a single "Use" button (in mas-ost-code-output) shared by every
-        // placeholder type. To "use" a different template the user clicks the chip first.
-        // We expose the same locator for every priceXxxUse / legalDisclaimerUse alias so
-        // existing tests keep working — selecting the chip is the responsibility of the
-        // test (chip selectors are exposed below).
-        const useButton = this.page.locator('[data-testid="ost-use-button"]');
+        // The wizard's single footer "Use" button is shared across placeholder types.
+        // To "use" a different template the user clicks the chip first; the per-type
+        // aliases below all resolve to the same footer button.
+        const useButton = this.page.locator('[data-testid="ost-footer-use-button"]');
         this.priceUse = useButton;
         this.priceOpticalUse = useButton;
         this.priceStrikethroughUse = useButton;

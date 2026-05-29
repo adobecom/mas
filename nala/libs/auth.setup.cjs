@@ -46,9 +46,14 @@ setup('authenticate, @mas-studio', async ({ page, baseURL, browserName }) => {
     }
 
     const escapedBaseURL = baseURL.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const welcomeUrlPattern = new RegExp(`^${escapedBaseURL}/studio\\.html#page=welcome`);
-    await page.waitForURL(welcomeUrlPattern);
-    await expect(page).toHaveURL(welcomeUrlPattern);
+    // Case-insensitive: branch baseURLs carry the uppercase ticket id
+    // (e.g. MWPW-195919--mas--adobecom.aem.live), but the browser normalizes
+    // the host to lowercase, so an anchored case-sensitive pattern never matches.
+    const welcomeUrlPattern = new RegExp(`^${escapedBaseURL}/studio\\.html#page=welcome`, 'i');
+    // toHaveURL polls the URL string; safer than waitForURL because the
+    // hash-only updates that IMS produces don't fire a 'load' event, which
+    // waitForURL waits for by default.
+    await expect(page).toHaveURL(welcomeUrlPattern, { timeout: 45000 });
 
     await expect(async () => {
         const response = await page.request.get(`${baseURL}/studio.html`);

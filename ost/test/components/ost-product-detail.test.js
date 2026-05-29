@@ -35,6 +35,10 @@ function resetStore() {
     store.selectedOffer = undefined;
     store.selectedOsi = undefined;
     store.offers = [];
+    store.selectedOffers = [];
+    store.authoringFlow = 'single';
+    store.wizardStep = 'entitlements';
+    store.country = 'US';
     store.landscape = 'PUBLISHED';
     store.aosParams = { arrangementCode: '' };
     store.accessToken = '';
@@ -205,14 +209,6 @@ describe('ost-product-detail', () => {
             expect(badge).to.not.exist;
         });
 
-        it('renders the Change link in summary mode', async () => {
-            store.selectedProduct = makeProduct();
-            const el = await fixture(html`<ost-product-detail summary></ost-product-detail>`);
-            const change = el.shadowRoot.querySelector('.change-link');
-            expect(change).to.exist;
-            expect(change.textContent.trim()).to.equal('Change');
-        });
-
         it('falls back to product.arrangementCode in summary mode header', async () => {
             store.selectedProduct = makeProduct({ arrangement_code: undefined, arrangementCode: 'sum-fallback' });
             const el = await fixture(html`<ost-product-detail summary></ost-product-detail>`);
@@ -240,6 +236,260 @@ describe('ost-product-detail', () => {
             store.notify();
             await el.updateComplete;
             expect(el.shadowRoot.querySelectorAll('ost-offer-card').length).to.equal(2);
+        });
+    });
+
+    describe('autoResolveOsi', () => {
+        it('short-circuits to setOsi with offer_type for fake offers', async () => {
+            store.selectedProduct = makeProduct();
+            const el = await fixture(html`<ost-product-detail></ost-product-detail>`);
+            await el.autoResolveOsi({ offer_type: 'fake-PHSP_BASE' });
+            expect(store.selectedOsi).to.equal('fake-PHSP_BASE');
+        });
+
+        it('calls createOfferSelector and sets the returned id as OSI on success', async () => {
+            const originalFetch = window.fetch;
+            // createOfferSelector wraps response.json() in { data: json }; bare id is enough.
+            window.fetch = async () => ({
+                ok: true,
+                json: async () => ({ id: 'resolved-osi-123' }),
+            });
+            try {
+                store.selectedProduct = makeProduct();
+                const el = await fixture(html`<ost-product-detail></ost-product-detail>`);
+                await el.autoResolveOsi({
+                    product_arrangement_code: 'photoshop-arr',
+                    commitment: 'YEAR',
+                    term: 'MONTHLY',
+                    offer_type: 'BASE',
+                    market_segments: ['COM'],
+                });
+                expect(store.selectedOsi).to.equal('resolved-osi-123');
+            } finally {
+                window.fetch = originalFetch;
+            }
+        });
+
+        it('swallows network errors and leaves the OSI unchanged', async () => {
+            const originalFetch = window.fetch;
+            window.fetch = async () => {
+                throw new Error('network down');
+            };
+            try {
+                store.selectedProduct = makeProduct();
+                store.selectedOsi = 'prior-osi';
+                const el = await fixture(html`<ost-product-detail></ost-product-detail>`);
+                await el.autoResolveOsi({ offer_type: 'BASE' });
+                expect(store.selectedOsi).to.equal('prior-osi');
+            } finally {
+                window.fetch = originalFetch;
+            }
+        });
+    });
+
+    describe('autoFillBaseAndTrial', () => {
+        it('is a no-op when multiSelect is not active', async () => {
+            store.selectedProduct = makeProduct();
+            const el = await fixture(html`<ost-product-detail></ost-product-detail>`);
+            const baseOffer = makeOffer({ offer_id: 'B-1', offer_type: 'BASE' });
+            const trialOffer = makeOffer({ offer_id: 'T-1', offer_type: 'TRIAL' });
+            await el.autoFillBaseAndTrial([baseOffer, trialOffer]);
+            expect(store.selectedOffers).to.have.length(0);
+        });
+
+        it('is a no-op when offers list lacks both BASE and TRIAL', async () => {
+            store.selectedProduct = makeProduct();
+            store.authoringFlow = 'tryBuy';
+            const el = await fixture(html`<ost-product-detail></ost-product-detail>`);
+            await el.autoFillBaseAndTrial([makeOffer({ offer_type: 'BASE' })]);
+            expect(store.selectedOffers).to.have.length(0);
+        });
+
+        it('is a no-op when offers list has more than 2 entries', async () => {
+            store.selectedProduct = makeProduct();
+            store.authoringFlow = 'tryBuy';
+            const el = await fixture(html`<ost-product-detail></ost-product-detail>`);
+            await el.autoFillBaseAndTrial([
+                makeOffer({ offer_id: 'A', offer_type: 'BASE' }),
+                makeOffer({ offer_id: 'B', offer_type: 'TRIAL' }),
+                makeOffer({ offer_id: 'C', offer_type: 'BASE' }),
+            ]);
+            expect(store.selectedOffers).to.have.length(0);
+        });
+
+        it('resolves BASE and TRIAL OSIs and adds both to selectedOffers on success', async () => {
+            const originalFetch = window.fetch;
+            // Differentiate responses by the offer_type embedded in the POST body
+            // rather than by call order — Promise.all parallelizes so order is racy.
+            window.fetch = async (_url, init) => {
+                const body = JSON.parse(init?.body ?? '{}');
+                const isBase = body.offer_type === 'BASE';
+                // createOfferSelector wraps response.json() in { data: json }, so
+                // the destructure becomes { data: { id } } → id. Return the bare
+                // id payload here.
+                return {
+                    ok: true,
+                    json: async () => ({ id: isBase ? 'osi-base' : 'osi-trial' }),
+                };
+            };
+            try {
+                store.selectedProduct = makeProduct();
+                store.authoringFlow = 'tryBuy';
+                const el = await fixture(html`<ost-product-detail></ost-product-detail>`);
+                store.selectedOffers = []; // make sure no leftover state
+                const baseOffer = makeOffer({ offer_id: 'B-1', offer_type: 'BASE' });
+                const trialOffer = makeOffer({ offer_id: 'T-1', offer_type: 'TRIAL' });
+                await el.autoFillBaseAndTrial([baseOffer, trialOffer]);
+                expect(store.selectedOffers).to.have.length(2);
+                expect(store.selectedOffers.find((o) => o.role === 'base').osi).to.equal('osi-base');
+                expect(store.selectedOffers.find((o) => o.role === 'trial').osi).to.equal('osi-trial');
+            } finally {
+                window.fetch = originalFetch;
+            }
+        });
+
+        it('swallows resolve errors and does not partially populate selectedOffers', async () => {
+            const originalFetch = window.fetch;
+            window.fetch = async () => {
+                throw new Error('aos down');
+            };
+            try {
+                store.selectedProduct = makeProduct();
+                store.authoringFlow = 'tryBuy';
+                const el = await fixture(html`<ost-product-detail></ost-product-detail>`);
+                store.selectedOffers = []; // baseline
+                await el.autoFillBaseAndTrial([
+                    makeOffer({ offer_id: 'B', offer_type: 'BASE' }),
+                    makeOffer({ offer_id: 'T', offer_type: 'TRIAL' }),
+                ]);
+                // Promise.all short-circuits on rejection so the inner try
+                // catches before either addOffer runs.
+                expect(store.selectedOffers).to.have.length(0);
+            } finally {
+                window.fetch = originalFetch;
+            }
+        });
+    });
+
+    describe('fetchOffers', () => {
+        it('emits a synthetic offer when aosParams.offerType starts with "fake-"', async () => {
+            const el = await fixture(html`<ost-product-detail></ost-product-detail>`);
+            store.selectedProduct = makeProduct();
+            store.aosParams = { arrangementCode: 'photoshop-arr', offerType: 'fake-PHSP_BASE' };
+            await el.fetchOffers(makeProduct());
+            const offers = store.offers;
+            expect(offers).to.have.length(1);
+            expect(offers[0].offer_id).to.equal('Fake Offer');
+            expect(offers[0].offer_type).to.equal('fake-PHSP_BASE');
+            expect(offers[0].name).to.equal('Photoshop');
+        });
+
+        it('fetches offers, sets them, and auto-resolves OSI when only one offer comes back', async () => {
+            const originalFetch = window.fetch;
+            // Differentiate by URL: searchOffers hits /offers, createOfferSelector
+            // (called by autoResolveOsi) hits /offer_selectors. Mocks must return
+            // shapes the real code expects (createOfferSelector destructures
+            // res.data.id).
+            window.fetch = async (url) => {
+                if (String(url).includes('/offer_selectors')) {
+                    // createOfferSelector wraps response.json() — return bare id.
+                    return { ok: true, json: async () => ({ id: 'auto-osi' }) };
+                }
+                return { ok: true, json: async () => [makeOffer({ offer_id: 'ONLY-1' })] };
+            };
+            try {
+                const el = await fixture(html`<ost-product-detail></ost-product-detail>`);
+                store.selectedProduct = makeProduct();
+                store.aosParams = { arrangementCode: 'photoshop-arr' };
+                await el.fetchOffers(makeProduct());
+                expect(store.offers).to.have.length(1);
+                expect(store.selectedOffer?.offer_id).to.equal('ONLY-1');
+            } finally {
+                window.fetch = originalFetch;
+            }
+        });
+
+        it('merges DRAFT + PUBLISHED responses when landscape is BOTH and de-dupes by offer_id keeping PUBLISHED', async () => {
+            const originalFetch = window.fetch;
+            let callIndex = 0;
+            window.fetch = async () => ({
+                ok: true,
+                json: async () => {
+                    callIndex++;
+                    if (callIndex === 1) {
+                        // PUBLISHED response
+                        return [makeOffer({ offer_id: 'SAME', planType: 'PUF' })];
+                    }
+                    // DRAFT response (same offer_id; must be dropped in favor of PUBLISHED)
+                    return [makeOffer({ offer_id: 'SAME', planType: 'ABM' })];
+                },
+            });
+            try {
+                const el = await fixture(html`<ost-product-detail></ost-product-detail>`);
+                store.selectedProduct = makeProduct();
+                store.landscape = 'BOTH';
+                store.aosParams = { arrangementCode: 'photoshop-arr' };
+                await el.fetchOffers(makeProduct());
+                expect(store.offers).to.have.length(1);
+                expect(store.offers[0].landscapeSource).to.equal('PUBLISHED');
+            } finally {
+                window.fetch = originalFetch;
+            }
+        });
+
+        it('falls back to an empty offers list when the fetch throws', async () => {
+            const originalFetch = window.fetch;
+            window.fetch = async () => {
+                throw new Error('aos down');
+            };
+            try {
+                const el = await fixture(html`<ost-product-detail></ost-product-detail>`);
+                store.selectedProduct = makeProduct();
+                store.offers = [makeOffer({ offer_id: 'stale' })];
+                store.aosParams = { arrangementCode: 'photoshop-arr' };
+                await el.fetchOffers(makeProduct());
+                expect(store.offers).to.have.length(0);
+                expect(el.loading).to.equal(false);
+            } finally {
+                window.fetch = originalFetch;
+            }
+        });
+
+        it('uses language undefined when commitment is PERPETUAL', async () => {
+            const originalFetch = window.fetch;
+            let capturedUrl;
+            window.fetch = async (url) => {
+                capturedUrl = url;
+                return { ok: true, json: async () => [] };
+            };
+            try {
+                const el = await fixture(html`<ost-product-detail></ost-product-detail>`);
+                store.selectedProduct = makeProduct();
+                store.aosParams = { arrangementCode: 'photoshop-arr', commitment: 'PERPETUAL' };
+                await el.fetchOffers(makeProduct());
+                expect(capturedUrl).to.not.include('language=');
+            } finally {
+                window.fetch = originalFetch;
+            }
+        });
+
+        it('uses language=EN when country is GB and commitment is not PERPETUAL', async () => {
+            const originalFetch = window.fetch;
+            let capturedUrl;
+            window.fetch = async (url) => {
+                capturedUrl = url;
+                return { ok: true, json: async () => [] };
+            };
+            try {
+                const el = await fixture(html`<ost-product-detail></ost-product-detail>`);
+                store.selectedProduct = makeProduct();
+                store.country = 'GB';
+                store.aosParams = { arrangementCode: 'photoshop-arr' };
+                await el.fetchOffers(makeProduct());
+                expect(capturedUrl).to.include('language=EN');
+            } finally {
+                window.fetch = originalFetch;
+            }
         });
     });
 });

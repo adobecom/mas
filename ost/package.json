@@ -14,7 +14,7 @@
     ],
     "scripts": {
         "dev": "vite",
-        "build": "vite build --mode global && cp dist/ost.iife.js ../studio/ost/index.js",
+        "build": "vite build --mode global && cp dist/ost.iife.js ../studio/ost/ost-new.js",
         "build:esm": "vite build",
         "test": "web-test-runner",
         "test:ci": "web-test-runner",
@@ -46,12 +46,6 @@
         "@spectrum-web-components/help-text": "^1.0.0",
         "@spectrum-web-components/popover": "^1.0.0",
         "@spectrum-web-components/switch": "^1.0.0"
-    },
-    "optionalDependencies": {
-        "@pandora/data-source-aos": "0.6.4",
-        "@pandora/data-models-odm": "0.5.4",
-        "@pandora/data-source-utils": "0.3.1",
-        "@pandora/commerce-checkout-url-builder": "1.5.2"
     },
     "devDependencies": {
         "vite": "^5.0.0",

@@ -58,9 +58,8 @@ function openOfferSelectorTool(options) {
     const app = document.createElement('ost-app');
     // Mirror flow-selection options into app.config so the lifecycle re-init in
     // ost-app.updated() preserves them (otherwise `store.init(this.config)`
-    // resets authoringFlow/flowChosen and the welcome screen re-appears even
-    // when the caller requested a specific flow — e.g. chat OSI-attach which
-    // deeplinks into 'consult').
+    // resets authoringFlow back to 'single' even when the caller requested a
+    // specific flow — e.g. chat OSI-attach which deeplinks into 'consult').
     app.config = {
         searchParameters,
         searchOfferSelectorId,

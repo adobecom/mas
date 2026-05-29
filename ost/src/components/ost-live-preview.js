@@ -1,4 +1,4 @@
-import { LitElement, html, css } from 'lit';
+import { LitElement, html, css, nothing } from 'lit';
 import { store } from '../store/ost-store.js';
 
 export class OstLivePreview extends LitElement {
@@ -6,6 +6,9 @@ export class OstLivePreview extends LitElement {
         placeholderType: { type: String },
         referenceOsi: { type: String },
     };
+
+    #placeholderNode = null;
+    #showDiscountHint = false;
 
     static styles = css`
         :host {
@@ -105,8 +108,10 @@ export class OstLivePreview extends LitElement {
         store.unsubscribe(this.handleStoreChange);
     }
 
-    updated() {
-        this.renderPreview();
+    willUpdate() {
+        const built = this.#buildPlaceholder();
+        this.#placeholderNode = built?.node ?? null;
+        this.#showDiscountHint = built?.showHint ?? false;
     }
 
     getPanel() {
@@ -161,45 +166,32 @@ export class OstLivePreview extends LitElement {
         return { type, placeholderOptions, service };
     }
 
-    renderPreview() {
-        const container = this.shadowRoot?.querySelector('.placeholder-container');
-        if (!container) return;
-
-        while (container.firstChild) {
-            container.removeChild(container.firstChild);
-        }
-
+    #buildPlaceholder() {
         const result = this.buildPlaceholderOptions();
-        if (!result) return;
+        if (!result) return null;
 
         const { type, placeholderOptions, service } = result;
 
-        let placeholder;
+        let node;
         if (type === 'checkoutUrl') {
             const ctaLabel = placeholderOptions.ctaText || 'Buy now';
             if (typeof service.createCheckoutButton === 'function') {
-                placeholder = service.createCheckoutButton(placeholderOptions, ctaLabel);
+                node = service.createCheckoutButton(placeholderOptions, ctaLabel);
             } else {
-                placeholder = service.createCheckoutLink(placeholderOptions, ctaLabel);
+                node = service.createCheckoutLink(placeholderOptions, ctaLabel);
             }
         } else {
-            placeholder = service.createInlinePrice(placeholderOptions);
+            node = service.createInlinePrice(placeholderOptions);
         }
 
-        if (placeholder) {
-            if (type && type !== 'price') {
-                placeholder.dataset.template = type;
-            }
-            container.appendChild(placeholder);
+        if (node && type && type !== 'price') {
+            node.dataset.template = type;
         }
 
         const isPromo = store.selectedOffer?.offer_type === 'PROMOTION';
-        if (type === 'discount' && !this.referenceOsi && !isPromo) {
-            const hint = document.createElement('span');
-            hint.className = 'discount-hint';
-            hint.textContent = 'Enter a reference offer OSI to calculate the discount percentage.';
-            container.appendChild(hint);
-        }
+        const showHint = type === 'discount' && !this.referenceOsi && !isPromo;
+
+        return { node, showHint };
     }
 
     getTypeName() {
@@ -213,8 +205,15 @@ export class OstLivePreview extends LitElement {
         const typeName = this.getTypeName();
         return html`
             <div class="preview-card" data-testid="ost-live-preview">
-                <div class="label">Live Preview ${typeName ? html`<span class="type-badge">${typeName}</span>` : ''}</div>
-                <div class="placeholder-container" data-testid="ost-preview-container"></div>
+                <div class="label">Live Preview ${typeName ? html`<span class="type-badge">${typeName}</span>` : nothing}</div>
+                <div class="placeholder-container" data-testid="ost-preview-container">
+                    ${this.#placeholderNode ?? nothing}
+                    ${this.#showDiscountHint
+                        ? html`<span class="discount-hint"
+                              >Enter a reference offer OSI to calculate the discount percentage.</span
+                          >`
+                        : nothing}
+                </div>
             </div>
         `;
     }

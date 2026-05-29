@@ -179,7 +179,8 @@ class MasTopNav extends LitElement {
         if (this.isFragmentEditorPage) {
             const fragmentId = this.inEdit.get()?.get()?.id;
             if (this.editorContext.isGroupedVariationByPath) {
-                return Store.localeOrRegion();
+                const locale = Store.filters.value.locale;
+                return getDefaultLocaleCode(Store.surface(), locale) || locale;
             }
             if (this.editorContext.isVariation(fragmentId) && this.editorContext.localeDefaultFragment?.path) {
                 return extractLocaleFromPath(this.editorContext.localeDefaultFragment.path);
@@ -241,7 +242,9 @@ class MasTopNav extends LitElement {
                     const translatedLocales = Store.fragmentEditor.translatedLocales.get();
                     const enUsTranslation = translatedLocales?.find((t) => t.locale === 'en_US');
                     const enUsFragmentId = enUsTranslation?.id || currentFragment?.id;
-                    router.navigateToFragmentEditor(enUsFragmentId);
+                    if (enUsFragmentId && enUsFragmentId !== currentFragment?.id) {
+                        router.navigateToFragmentEditor(enUsFragmentId);
+                    }
                 }
             }
             return;

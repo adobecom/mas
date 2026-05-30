@@ -66,8 +66,7 @@ describe('BizProPlans.adjustAddon', () => {
         };
         const layout = makeLayout({
             addon,
-            querySelector: (sel) =>
-                sel.includes('heading-m') ? price : null,
+            querySelector: (sel) => (sel.includes('heading-m') ? price : null),
         });
         await layout.adjustAddon();
         expect(addon.setAttribute.calledWith('custom-checkbox', '')).to.be.true;
@@ -121,9 +120,12 @@ describe('plans-bizpro add-on theming', () => {
         );
         const wrapper = card.shadowRoot.querySelector('.add-on');
         expect(wrapper).to.exist;
-        // #8d88f2 === rgb(141, 136, 242)
-        expect(getComputedStyle(wrapper).borderTopColor).to.equal(
-            'rgb(141, 136, 242)',
-        );
+        const styles = getComputedStyle(wrapper);
+        // Gradient border (Figma 1098:33812): the 1px border is transparent and
+        // the purple→red AI gradient is painted on border-box behind a white
+        // padding-box fill. #8d88f2 === rgb(141, 136, 242), #eb1000 === rgb(235, 16, 0).
+        expect(styles.borderTopColor).to.equal('rgba(0, 0, 0, 0)');
+        expect(styles.backgroundImage).to.contain('rgb(141, 136, 242)');
+        expect(styles.backgroundImage).to.contain('rgb(235, 16, 0)');
     });
 });

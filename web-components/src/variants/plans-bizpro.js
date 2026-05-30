@@ -454,7 +454,7 @@ export class BizProPlans extends VariantLayout {
             font-weight: 700;
             font-size: 16px;
             line-height: 20px;
-            letter-spacing: 0.16px;
+            letter-spacing: var(--s2a-typography-letter-spacing-eyebrow, 0);
             color: var(
                 --consonant-merch-card-plans-bizpro-subtitle-color,
                 var(--s2a-color-content-subtle, #000000a3)
@@ -726,8 +726,7 @@ export class BizProPlans extends VariantLayout {
             letter-spacing: 0;
         }
 
-        :host([variant='plans-bizpro'])
-            .license-select-trigger:focus-visible {
+        :host([variant='plans-bizpro']) .license-select-trigger:focus-visible {
             outline: 2px solid #1473e6;
             outline-offset: 1px;
         }
@@ -844,8 +843,18 @@ export class BizProPlans extends VariantLayout {
             align-items: center;
             gap: var(--s2a-spacing-xs, 8px);
             padding: var(--s2a-spacing-md, 16px) var(--s2a-spacing-sm, 12px);
-            background: var(--s2a-color-background-default, #fff);
-            border: 1px solid #8d88f2;
+            /* Gradient border (Figma 1098:33812) — same purple→red AI gradient
+               as the trailing sparkle. Paint the white fill on padding-box and
+               the gradient on border-box so only the 1px border shows it. */
+            background:
+                linear-gradient(
+                        var(--s2a-color-background-default, #fff),
+                        var(--s2a-color-background-default, #fff)
+                    )
+                    padding-box,
+                linear-gradient(45deg, #8d88f2 0%, #8d88f2 48.8%, #eb1000 100%)
+                    border-box;
+            border: 1px solid transparent;
             border-radius: var(--s2a-border-radius-sm, 8px);
             box-sizing: border-box;
         }
@@ -855,7 +864,11 @@ export class BizProPlans extends VariantLayout {
             width: 16px;
             height: 16px;
             flex: 0 0 auto;
-            background: linear-gradient(135deg, #8d88f2 0%, #eb1000 100%);
+            /* Sparkle gradient is the raw 2-stop Linear Gradient (not the
+               48.8%-stop AI Gradient): vertical, red top → purple bottom — the
+               Figma asset is purple→red top-to-bottom inside a -scale-y-100
+               flip, so as displayed it reads red on top. */
+            background: linear-gradient(180deg, #eb1000 0%, #8d88f2 100%);
             mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M7.498 15.61C6.369 11.154 4.842 9.627 .39 8.502c-.52-.133-.52-.871 0-1.004C4.846 6.37 6.373 4.842 7.498 .39c.133-.52.871-.52 1.004 0C9.63 4.846 11.158 6.373 15.61 7.498c.52.133.52.871 0 1.004C11.154 9.63 9.627 11.158 8.502 15.61c-.133.52-.871.52-1.004 0Z'/%3E%3C/svg%3E")
                 center / contain no-repeat;
             -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M7.498 15.61C6.369 11.154 4.842 9.627 .39 8.502c-.52-.133-.52-.871 0-1.004C4.846 6.37 6.373 4.842 7.498 .39c.133-.52.871-.52 1.004 0C9.63 4.846 11.158 6.373 15.61 7.498c.52.133.52.871 0 1.004C11.154 9.63 9.627 11.158 8.502 15.61c-.133.52-.871.52-1.004 0Z'/%3E%3C/svg%3E")

@@ -1,4 +1,6 @@
-//utitilies to transform payload from old schema to new schema
+// utilities to transform payload from old schema to new schema
+
+import { isExplicitEmptySentinel } from './explicit-empty.js';
 
 const CF_REFERENCE_FIELDS = ['cards', 'collections', 'entries', 'variations'];
 const REFERENCE_FIELDS = [...CF_REFERENCE_FIELDS, 'tags'];
@@ -28,10 +30,12 @@ function transformFields(fields, pathToIdMap) {
         } else if (mimeType === 'text/html') {
             result[name] = {
                 mimeType,
-                value: values[0],
+                value: isExplicitEmptySentinel(values[0]) ? '' : values[0],
             };
+        } else if (multiple) {
+            result[name] = values.map((value) => (isExplicitEmptySentinel(value) ? '' : value));
         } else {
-            result[name] = multiple ? values : values[0];
+            result[name] = isExplicitEmptySentinel(values[0]) ? '' : values[0];
         }
         return result;
     }, {});

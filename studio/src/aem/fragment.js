@@ -2,6 +2,47 @@ import { PATH_TOKENS, PZN_FOLDER, TAG_PROMOTION_PREFIX, MAS_PRODUCT_CODE_PREFIX 
 import { getCachedTagTitle } from './tag-cache.js';
 import { formatProductCodeNestedTitle, normalizeTagId } from './tag-id-utils.js';
 import { isVariationPathInParentLocaleFamily } from '../../../io/www/src/fragment/locales.js';
+import {
+    fieldValuesArePersistedExplicitEmpty,
+    isExplicitEmptySentinel,
+    toPersistedExplicitEmptyValues,
+} from '../../../io/www/src/fragment/utils/explicit-empty.js';
+
+export function parentValuesHaveContent(parentValues) {
+    return (parentValues || []).some((value) => value !== null && value !== undefined && String(value).trim() !== '');
+}
+
+/**
+ * Whether a variation field stores an intentional empty override (persisted `explicit_empty`).
+ * @param {Array} ownValues
+ * @param {Array} parentValues
+ * @param {boolean} isMultipleField
+ * @returns {boolean}
+ */
+function isExplicitEmptyVariationValue(ownValues, parentValues, isMultipleField) {
+    if (!fieldValuesArePersistedExplicitEmpty(ownValues)) {
+        return false;
+    }
+    if (isMultipleField) {
+        return true;
+    }
+    return parentValuesHaveContent(parentValues);
+}
+
+/**
+ * Maps UI empty input (`['']`) to persisted sentinel when clearing inherited variation content.
+ * @param {Array} encodedValues
+ * @param {Fragment|null} parentFragment
+ * @param {Array} parentValues
+ * @returns {Array}
+ */
+function resolveVariationStoredValues(encodedValues, parentFragment, parentValues) {
+    const isSingleEmptyString = encodedValues.length === 1 && encodedValues[0] === '';
+    if (!parentFragment || !isSingleEmptyString || !parentValuesHaveContent(parentValues)) {
+        return encodedValues;
+    }
+    return toPersistedExplicitEmptyValues();
+}
 
 export class Fragment {
     path = '';
@@ -141,16 +182,16 @@ export class Fragment {
      * @returns {boolean|'reset'} - true if updated, false if no change, 'reset' if reset to parent
      */
     updateField(fieldName, value, parentFragment = null) {
-        const encodedValues = value.map((v) => (typeof v === 'string' ? v.normalize('NFC') : v));
         const existingField = this.getField(fieldName);
         const isTags = fieldName === 'tags';
         const parentField = parentFragment?.getField(fieldName);
-
-        // [''] is the explicit clear sentinel for multi-value fields
-        const isSingleEmptyString = encodedValues.length === 1 && encodedValues[0] === '';
-
-        // Determine if this is a multi-value field based on the .multiple property
         const isMultiple = parentField?.multiple === true || existingField?.multiple === true;
+        const parentValues = parentField?.values || [];
+
+        let encodedValues = value.map((entry) => (typeof entry === 'string' ? entry.normalize('NFC') : entry));
+        encodedValues = resolveVariationStoredValues(encodedValues, parentFragment, parentValues);
+
+        const isSingleEmptyString = encodedValues.length === 1 && encodedValues[0] === '';
 
         // For variations: if values match parent exactly, reset to inherited state
         if (parentFragment) {
@@ -167,9 +208,8 @@ export class Fragment {
 
         if (existingField) {
             const { values } = existingField;
-            // Skip [] to [''] on single-value fields (RTE initialization sends [''] for empty fields).
-            // For multiple:true fields, [''] is an explicit "clear" sentinel.
-            if (values.length === 0 && isSingleEmptyString && !isMultiple) {
+            const allowPersistedEmptyClear = fieldValuesArePersistedExplicitEmpty(encodedValues);
+            if (values.length === 0 && isSingleEmptyString && !isMultiple && !allowPersistedEmptyClear) {
                 return false;
             }
             // No change if values are identical
@@ -185,8 +225,10 @@ export class Fragment {
         } else {
             // Only create new field if there's meaningful content
             // Exception: [''] is allowed as explicit clear sentinel for multi-value fields
-            const hasContent = encodedValues.length && encodedValues.some((v) => v?.trim?.());
-            if (!hasContent && !(isSingleEmptyString && isMultiple)) {
+            const hasContent =
+                encodedValues.length && encodedValues.some((entry) => !isExplicitEmptySentinel(entry) && entry?.trim?.());
+            const allowPersistedEmptyClear = fieldValuesArePersistedExplicitEmpty(encodedValues);
+            if (!hasContent && !allowPersistedEmptyClear) {
                 if (isTags) this.newTags = value;
                 return false;
             }
@@ -202,7 +244,18 @@ export class Fragment {
     }
 
     getEffectiveFieldValue(fieldName, parentFragment, isVariation, index = 0) {
+        const ownField = this.getField(fieldName);
+        const ownValues = ownField?.values || [];
+        const parentValues = parentFragment?.getFieldValues(fieldName) || [];
+        const isMultipleField = ownField?.multiple === true || parentFragment?.getField(fieldName)?.multiple === true;
+
+        if (isVariation && parentFragment && isExplicitEmptyVariationValue(ownValues, parentValues, isMultipleField)) {
+            return '';
+        }
         const ownValue = this.getFieldValue(fieldName, index);
+        if (isExplicitEmptySentinel(ownValue)) {
+            return '';
+        }
         if (ownValue !== undefined && ownValue !== null && ownValue !== '') {
             return ownValue;
         }
@@ -228,14 +281,19 @@ export class Fragment {
         // For [""] (single empty string):
         // - For multi-value fields (multiple: true): explicit clear sentinel → return empty array
         // - For single-value fields (multiple: false): AEM initializes empty fields this way → inherit from parent
-        const isSingleEmptyString = ownValues.length === 1 && ownValues[0] === '';
-        if (isSingleEmptyString) {
+        if (fieldValuesArePersistedExplicitEmpty(ownValues)) {
             const isMultipleField = ownField?.multiple === true;
-            if (isMultipleField) {
-                // Explicit clear for multi-value fields
+            if (isMultipleField || !parentFragment || !isVariation) {
                 return [];
             }
-            // Single-value field with [""] - inherit from parent if variation
+            const parentValues = parentFragment.getFieldValues(fieldName) || [];
+            return isExplicitEmptyVariationValue(ownValues, parentValues, false)
+                ? ['']
+                : parentFragment.getField(fieldName)?.values || [];
+        }
+
+        const isSingleEmptyString = ownValues.length === 1 && ownValues[0] === '';
+        if (isSingleEmptyString) {
             if (!parentFragment || !isVariation) {
                 return [];
             }
@@ -260,16 +318,17 @@ export class Fragment {
             return 'inherited';
         }
 
-        // For [""] (single empty string):
-        // - For multi-value fields (multiple: true): this is explicit clear sentinel → overridden
-        // - For single-value fields (multiple: false): AEM initializes empty fields this way → inherited
+        if (fieldValuesArePersistedExplicitEmpty(ownValues)) {
+            const isMultipleField = ownField?.multiple === true;
+            if (isMultipleField) {
+                return 'overridden';
+            }
+            return isExplicitEmptyVariationValue(ownValues, parentValues, false) ? 'overridden' : 'inherited';
+        }
+
         const isSingleEmptyString = ownValues.length === 1 && ownValues[0] === '';
         if (isSingleEmptyString) {
-            const isMultipleField = ownField?.multiple === true;
-            if (!isMultipleField) {
-                return 'inherited';
-            }
-            // For multiple fields, [""] is explicit clear - fall through to comparison
+            return 'inherited';
         }
 
         // Has actual values - compare with parent

@@ -16,6 +16,7 @@ import {
     EVENT_AEM_LOAD,
     EVENT_AEM_ERROR,
 } from '../src/constants.js';
+import { EXPLICIT_EMPTY_SENTINEL } from '../src/explicit-empty.js';
 
 chai.use(chaiAsPromised);
 
@@ -159,6 +160,34 @@ runTests(async () => {
         });
 
         describe('aem-fragment with merch-card', () => {
+            it('maps explicit_empty to empty string in author mode for hydrate', async () => {
+                cache.add({
+                    id: 'explicit-empty-card',
+                    fields: [
+                        {
+                            name: 'variant',
+                            values: ['segment'],
+                            multiple: false,
+                        },
+                        {
+                            name: 'badge',
+                            values: [EXPLICIT_EMPTY_SENTINEL],
+                            multiple: false,
+                        },
+                    ],
+                });
+
+                const aemFragment = document.createElement('aem-fragment');
+                aemFragment.setAttribute('fragment', 'explicit-empty-card');
+                aemFragment.setAttribute('author', '');
+                document.body.appendChild(aemFragment);
+
+                const loadEvent = await oneEvent(aemFragment, EVENT_AEM_LOAD);
+                expect(loadEvent.detail.fields.badge).to.equal('');
+
+                aemFragment.remove();
+            });
+
             it('renders a merch card from cache', async () => {
                 cache.add(cc);
                 expect(aemMock.count).to.equal(0);

@@ -3,6 +3,9 @@ import { getCachedTagTitle } from './tag-cache.js';
 import { formatProductCodeNestedTitle, normalizeTagId } from './tag-id-utils.js';
 import { isVariationPathInParentLocaleFamily } from '../../../io/www/src/fragment/locales.js';
 import {
+    coerceValuesWithoutExplicitEmpty,
+    FIELDS_DISALLOWING_EXPLICIT_EMPTY,
+    fieldAllowsExplicitEmpty,
     fieldValuesArePersistedExplicitEmpty,
     isExplicitEmptySentinel,
     toPersistedExplicitEmptyValues,
@@ -36,9 +39,12 @@ function isExplicitEmptyVariationValue(ownValues, parentValues, isMultipleField)
  * @param {Array} parentValues
  * @returns {Array}
  */
-function resolveVariationStoredValues(encodedValues, parentFragment, parentValues) {
+function resolveVariationStoredValues(encodedValues, parentFragment, parentValues, fieldName, isMultiple) {
     const isSingleEmptyString = encodedValues.length === 1 && encodedValues[0] === '';
     if (!parentFragment || !isSingleEmptyString || !parentValuesHaveContent(parentValues)) {
+        return encodedValues;
+    }
+    if (!fieldAllowsExplicitEmpty(fieldName) || isMultiple) {
         return encodedValues;
     }
     return toPersistedExplicitEmptyValues();
@@ -189,9 +195,12 @@ export class Fragment {
         const parentValues = parentField?.values || [];
 
         let encodedValues = value.map((entry) => (typeof entry === 'string' ? entry.normalize('NFC') : entry));
-        encodedValues = resolveVariationStoredValues(encodedValues, parentFragment, parentValues);
+        encodedValues = resolveVariationStoredValues(encodedValues, parentFragment, parentValues, fieldName, isMultiple);
+        encodedValues = coerceValuesWithoutExplicitEmpty(fieldName, encodedValues, { multiple: isMultiple });
 
         const isSingleEmptyString = encodedValues.length === 1 && encodedValues[0] === '';
+        const allowVariationInheritEmptyWrite =
+            parentFragment && isSingleEmptyString && !isMultiple && parentValuesHaveContent(parentValues);
 
         // For variations: if values match parent exactly, reset to inherited state
         if (parentFragment) {
@@ -209,7 +218,13 @@ export class Fragment {
         if (existingField) {
             const { values } = existingField;
             const allowPersistedEmptyClear = fieldValuesArePersistedExplicitEmpty(encodedValues);
-            if (values.length === 0 && isSingleEmptyString && !isMultiple && !allowPersistedEmptyClear) {
+            if (
+                values.length === 0 &&
+                isSingleEmptyString &&
+                !isMultiple &&
+                !allowPersistedEmptyClear &&
+                !allowVariationInheritEmptyWrite
+            ) {
                 return false;
             }
             // No change if values are identical
@@ -228,7 +243,7 @@ export class Fragment {
             const hasContent =
                 encodedValues.length && encodedValues.some((entry) => !isExplicitEmptySentinel(entry) && entry?.trim?.());
             const allowPersistedEmptyClear = fieldValuesArePersistedExplicitEmpty(encodedValues);
-            if (!hasContent && !allowPersistedEmptyClear) {
+            if (!hasContent && !allowPersistedEmptyClear && !allowVariationInheritEmptyWrite) {
                 if (isTags) this.newTags = value;
                 return false;
             }
@@ -367,11 +382,13 @@ export class Fragment {
         // Create a new Fragment instance from this fragment's data (constructor handles cloning)
         const prepared = new Fragment(this);
 
-        // Fields that should never be reset (they're fragment-specific, not inherited)
-        const excludeFields = ['variations', 'tags', 'originalId', 'locReady', 'compatVersion'];
-
         for (const field of prepared.fields) {
-            if (excludeFields.includes(field.name)) continue;
+            if (FIELDS_DISALLOWING_EXPLICIT_EMPTY.includes(field.name)) {
+                field.values = coerceValuesWithoutExplicitEmpty(field.name, field.values, {
+                    multiple: field.multiple === true,
+                });
+                continue;
+            }
 
             const fieldState = this.getFieldState(field.name, parentFragment, true);
 

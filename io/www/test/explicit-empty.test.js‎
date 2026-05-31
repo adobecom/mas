@@ -1,6 +1,8 @@
 import { expect } from 'chai';
 import {
+    coerceValuesWithoutExplicitEmpty,
     EXPLICIT_EMPTY_SENTINEL,
+    fieldAllowsExplicitEmpty,
     fieldValuesArePersistedExplicitEmpty,
     isExplicitEmptySentinel,
     normalizeExplicitEmptyInAuthorFields,
@@ -14,6 +16,25 @@ describe('explicit-empty sentinel', () => {
     it('identifies persisted sentinel values', () => {
         expect(isExplicitEmptySentinel(EXPLICIT_EMPTY_SENTINEL)).to.be.true;
         expect(fieldValuesArePersistedExplicitEmpty(toPersistedExplicitEmptyValues())).to.be.true;
+    });
+
+    it('disallows explicit_empty on structural metadata fields', () => {
+        expect(fieldAllowsExplicitEmpty('badge')).to.be.true;
+        expect(fieldAllowsExplicitEmpty('compatVersion')).to.be.false;
+        expect(coerceValuesWithoutExplicitEmpty('compatVersion', toPersistedExplicitEmptyValues())).to.deep.equal([
+            '',
+        ]);
+        expect(coerceValuesWithoutExplicitEmpty('tags', toPersistedExplicitEmptyValues(), { multiple: true })).to.deep
+            .equal([]);
+    });
+
+    it('normalizeExplicitEmptyInAuthorFields strips sentinel from disallowed fields', () => {
+        const fields = normalizeExplicitEmptyInAuthorFields([
+            { name: 'compatVersion', values: [EXPLICIT_EMPTY_SENTINEL], multiple: false },
+            { name: 'badge', values: [EXPLICIT_EMPTY_SENTINEL], multiple: false },
+        ]);
+        expect(fields.find((field) => field.name === 'compatVersion').values).to.deep.equal(['']);
+        expect(fields.find((field) => field.name === 'badge').values).to.deep.equal(['']);
     });
 
     it('normalizes flat fields for publish', () => {

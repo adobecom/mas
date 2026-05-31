@@ -5,6 +5,45 @@
 export const EXPLICIT_EMPTY_SENTINEL = 'explicit_empty';
 
 /**
+ * Fragment fields that must never store the explicit_empty sentinel (metadata / structural).
+ */
+export const FIELDS_DISALLOWING_EXPLICIT_EMPTY = Object.freeze([
+    'variations',
+    'tags',
+    'originalId',
+    'locReady',
+    'compatVersion',
+]);
+
+/**
+ * @param {string} fieldName
+ * @returns {boolean}
+ */
+export function fieldAllowsExplicitEmpty(fieldName) {
+    return !FIELDS_DISALLOWING_EXPLICIT_EMPTY.includes(fieldName);
+}
+
+/**
+ * Removes explicit_empty from values for fields that cannot persist the sentinel.
+ * @param {string} fieldName
+ * @param {Array|undefined} values
+ * @param {{ multiple?: boolean }} [options]
+ * @returns {Array|undefined}
+ */
+export function coerceValuesWithoutExplicitEmpty(fieldName, values, { multiple = false } = {}) {
+    if (!Array.isArray(values) || fieldAllowsExplicitEmpty(fieldName)) {
+        return values;
+    }
+    if (fieldValuesArePersistedExplicitEmpty(values)) {
+        return multiple ? [] : [''];
+    }
+    if (values.some(isExplicitEmptySentinel)) {
+        return values.map((value) => (isExplicitEmptySentinel(value) ? '' : value));
+    }
+    return values;
+}
+
+/**
  * @param {*} value
  * @returns {boolean}
  */
@@ -38,6 +77,17 @@ export function normalizeExplicitEmptyInFields(fields) {
     }
 
     for (const [fieldName, fieldValue] of Object.entries(fields)) {
+        if (!fieldAllowsExplicitEmpty(fieldName)) {
+            if (Array.isArray(fieldValue) && fieldValuesArePersistedExplicitEmpty(fieldValue)) {
+                fields[fieldName] = [];
+            } else if (isExplicitEmptySentinel(fieldValue)) {
+                fields[fieldName] = '';
+            } else if (fieldValue && typeof fieldValue === 'object' && isExplicitEmptySentinel(fieldValue.value)) {
+                fields[fieldName] = { ...fieldValue, value: '' };
+            }
+            continue;
+        }
+
         if (Array.isArray(fieldValue)) {
             if (fieldValuesArePersistedExplicitEmpty(fieldValue)) {
                 fields[fieldName] = [];
@@ -74,6 +124,15 @@ export function normalizeExplicitEmptyInAuthorFields(fields) {
 
     return fields.map((field) => {
         const values = field.values ?? [];
+
+        if (!fieldAllowsExplicitEmpty(field.name)) {
+            return {
+                ...field,
+                values: coerceValuesWithoutExplicitEmpty(field.name, values, {
+                    multiple: field.multiple === true,
+                }),
+            };
+        }
 
         if (fieldValuesArePersistedExplicitEmpty(values)) {
             const emptyValues = field.multiple === true ? [] : [''];

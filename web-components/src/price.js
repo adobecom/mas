@@ -112,13 +112,19 @@ export function Price({ literals, providers, settings }) {
                     options.displayAnnual &&
                     offers[0].planType === 'ABM'
                 ) {
-                    method = options.promotionCode
-                        ? pricePromoWithAnnual
-                        : priceWithAnnual;
+                    // gate on the offer's own promotion: a card-level promotionCode
+                    // may be in scope for an unrelated offer (e.g. an addon).
+                    method =
+                        options.promotionCode && offers[0].promotion
+                            ? pricePromoWithAnnual
+                            : priceWithAnnual;
                 } else if (options.alternativePrice) {
                     method = priceAlternative;
                 } else {
-                    method = options.promotionCode ? pricePromo : price;
+                    method =
+                        options.promotionCode && offers[0].promotion
+                            ? pricePromo
+                            : price;
                 }
         }
 

@@ -57,15 +57,15 @@ describe('mas-bulk-publish-editor', () => {
             {
                 title: 'x',
                 urls: '',
-                items: JSON.stringify([
-                    { url: 'a', path: '/x', status: 'valid', alreadyPublished: true },
-                    { url: 'b', path: '/y', status: 'valid', alreadyPublished: true },
-                ]),
                 locales: ['de_AT', 'fr_CA'],
                 status: BULK_PUBLISH_STATUS.DRAFT,
             },
             { id: 'placeholder-project-id' },
         );
+        el.localItems = [
+            { url: 'a', path: '/x', status: 'valid', alreadyPublished: true },
+            { url: 'b', path: '/y', status: 'valid', alreadyPublished: true },
+        ];
         await el.updateComplete;
         const quick = el.shadowRoot.querySelector('mas-quick-actions');
         expect(quick.disabled.has(QUICK_ACTION.PUBLISH)).to.equal(false);
@@ -79,12 +79,12 @@ describe('mas-bulk-publish-editor', () => {
             {
                 title: 'x',
                 urls: '',
-                items: JSON.stringify([{ url: 'a', path: '/x', status: 'valid', alreadyPublished: true }]),
                 locales: [],
                 status: BULK_PUBLISH_STATUS.DRAFT,
             },
             { id: 'no-locales-project-id' },
         );
+        el.localItems = [{ url: 'a', path: '/x', status: 'valid', alreadyPublished: true }];
         await el.updateComplete;
         const quick = el.shadowRoot.querySelector('mas-quick-actions');
         expect(quick.disabled.has(QUICK_ACTION.PUBLISH)).to.equal(true);

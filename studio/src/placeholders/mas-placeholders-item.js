@@ -120,7 +120,7 @@ class MasPlaceholdersItem extends LitElement {
         if (this.placeholder.status === STATUS_PUBLISHED) return;
         this.toggleDropdown(this.placeholder.key, event);
         showToast('Publishing placeholder...');
-        await this.repository.publishFragment(this.placeholder);
+        await this.repository.publishPlaceholder(this.placeholder);
         const updatedPlaceholder = {
             ...this.placeholder,
             status: STATUS_PUBLISHED,

@@ -433,6 +433,78 @@ describe('MasRepository dictionary helpers', () => {
         });
     });
 
+    describe('publishPlaceholder', () => {
+        const placeholderPath = `${dictPath('acom')}/save-today`;
+        const expectedIndexPath = `${dictPath('acom')}/index`;
+
+        it('publishes the placeholder then republishes the index with no references', async () => {
+            const repository = createRepository();
+            const placeholder = createFragment({ id: 'ph-id', path: placeholderPath });
+            const indexFragment = createFragment({ id: 'index-id', path: expectedIndexPath });
+
+            repository.publishFragment = sandbox.stub().resolves(true);
+            sandbox.stub(repository, 'getIndexFragment').resolves(indexFragment);
+
+            const result = await repository.publishPlaceholder(placeholder);
+
+            expect(result).to.be.true;
+            expect(repository.getIndexFragment.calledOnceWith(expectedIndexPath)).to.be.true;
+            expect(repository.publishFragment.callCount).to.equal(2);
+            expect(repository.publishFragment.firstCall.args).to.deep.equal([placeholder]);
+            expect(repository.publishFragment.secondCall.args).to.deep.equal([indexFragment, [], false]);
+        });
+
+        it('bails out and skips the index publish when the placeholder publish fails', async () => {
+            const repository = createRepository();
+            const placeholder = createFragment({ id: 'ph-id', path: placeholderPath });
+
+            repository.publishFragment = sandbox.stub().resolves(false);
+            const getIndexStub = sandbox.stub(repository, 'getIndexFragment');
+
+            const result = await repository.publishPlaceholder(placeholder);
+
+            expect(result).to.be.false;
+            expect(repository.publishFragment.calledOnce).to.be.true;
+            expect(getIndexStub.called).to.be.false;
+        });
+
+        it('returns false when the index publish fails', async () => {
+            const repository = createRepository();
+            const placeholder = createFragment({ id: 'ph-id', path: placeholderPath });
+            const indexFragment = createFragment({ id: 'index-id', path: expectedIndexPath });
+
+            repository.publishFragment = sandbox.stub();
+            repository.publishFragment.onFirstCall().resolves(true);
+            repository.publishFragment.onSecondCall().resolves(false);
+            sandbox.stub(repository, 'getIndexFragment').resolves(indexFragment);
+
+            const result = await repository.publishPlaceholder(placeholder);
+
+            expect(result).to.be.false;
+            expect(repository.publishFragment.callCount).to.equal(2);
+        });
+
+        it('fails with an explicit error when the dictionary index is missing', async () => {
+            const repository = createRepository();
+            const placeholder = createFragment({ id: 'ph-id', path: placeholderPath });
+
+            repository.publishFragment = sandbox.stub().resolves(true);
+            sandbox.stub(repository, 'getIndexFragment').resolves(null);
+            const processErrorStub = sandbox.stub(repository, 'processError');
+
+            const result = await repository.publishPlaceholder(placeholder);
+
+            expect(result).to.be.false;
+            expect(repository.publishFragment.calledOnce).to.be.true;
+            expect(repository.publishFragment.firstCall.args).to.deep.equal([placeholder]);
+            expect(processErrorStub.calledOnce).to.be.true;
+            const [reportedError, userMessage] = processErrorStub.firstCall.args;
+            expect(reportedError).to.be.an.instanceOf(Error);
+            expect(reportedError.message).to.include(expectedIndexPath);
+            expect(userMessage).to.equal('Dictionary index is missing, please report to administrator.');
+        });
+    });
+
     describe('loadFolders', () => {
         it('should filter out images, promotions and bulk-publish-projects by default', async () => {
             const repository = createRepository();

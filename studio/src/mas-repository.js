@@ -1714,6 +1714,32 @@ export class MasRepository extends LitElement {
     }
 
     /**
+     * Publishes a placeholder and then re-publishes the dictionary index so
+     * AEM/Odin refreshes the hydrated `entries` snapshot. Without the index
+     * republish the live page keeps serving the previous published version
+     * of the placeholder. See MWPW-196632 / MWPW-195674.
+     *
+     * @param {Fragment} placeholder
+     * @returns {Promise<boolean>}
+     */
+    async publishPlaceholder(placeholder) {
+        if (!(await this.publishFragment(placeholder))) return false;
+
+        const parentPath = this.getParentPath(placeholder);
+        const indexPath = `${parentPath}/index`;
+        const indexFragment = await this.getIndexFragment(indexPath);
+        if (!indexFragment) {
+            this.processError(
+                new Error(`Dictionary index fragment not found at ${indexPath}`),
+                'Dictionary index is missing, please report to administrator.',
+            );
+            return false;
+        }
+
+        return this.publishFragment(indexFragment, [], false);
+    }
+
+    /**
      * @param {Fragment} fragment Fragment to unpublish
      * @param {boolean} [withToast=true]
      * @returns {Promise<boolean>}

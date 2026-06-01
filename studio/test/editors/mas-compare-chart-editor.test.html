@@ -40,7 +40,6 @@
             ).then((response) => response.json());
 
             const fixtureHost = () => document.querySelector('sp-theme');
-            const nextFrame = () => new Promise((resolve) => requestAnimationFrame(resolve));
             const withWebComponentsMocks = (mock) => (originalFetch) =>
                 mock((resource, options) => {
                     const path = String(resource);
@@ -162,7 +161,6 @@
                         );
                         for (let i = 0; i < 10; i += 1) {
                             await el.updateComplete;
-                            await nextFrame();
                             if (el.shadowRoot.querySelectorAll('.compchart-card-row').length === 3) break;
                         }
 
@@ -187,7 +185,6 @@
                         let variationPanel;
                         for (let i = 0; i < 10; i += 1) {
                             await el.updateComplete;
-                            await nextFrame();
                             variationPanel = el.shadowRoot.querySelector('.compchart-card-variation-panel');
                             if (variationPanel?.textContent.includes('€24.99/mo')) break;
                         }
@@ -198,7 +195,6 @@
                         expect(variationPanel.textContent).to.include('€24.99/mo');
                         el.shadowRoot.querySelector('.compchart-card-variation-row').click();
                         await el.updateComplete;
-                        await nextFrame();
                         expect(el.effectiveColumns[0].path).to.equal(visibleVariationPath);
 
                         el.shadowRoot.querySelector('.compchart-chevron').click();
@@ -212,7 +208,6 @@
                         await el.updateComplete;
                         let chart;
                         for (let i = 0; i < 10; i += 1) {
-                            await nextFrame();
                             chart = el.querySelector('[slot="compare-chart-preview"] mas-compare-chart');
                             if (chart?.querySelector(':scope > aem-fragment')) break;
                         }
@@ -227,7 +222,6 @@
                         expect(chart.querySelector(':scope > aem-fragment'), 'preview aem fragment').to.exist;
                         for (let i = 0; i < 20; i += 1) {
                             await chart.updateComplete;
-                            await nextFrame();
                             const previewText = chart.shadowRoot?.textContent.replace(/\s+/g, ' ').trim() || '';
                             if (
                                 chart.querySelectorAll(

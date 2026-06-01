@@ -9,9 +9,21 @@ import ReactiveController from '../../reactivity/reactive-controller.js';
 import { AEM } from '../../aem/aem.js';
 import { getNamespaceCache, setNamespaceCache } from '../../aem/tag-cache.js';
 import { toAttribute } from '../../aem/tag-path-utils.js';
+import { isPznCountryTagPath } from '../utils/personalization-utils.js';
 
 const MAS_TAG_NAMESPACE = '/content/cq:tags/mas';
-const CUSTOM_TAG_ROOT = `${MAS_TAG_NAMESPACE}/custom/`;
+
+// Tag-based filters sourced from the AEM taxonomy (not loaded fragments), matching the content page.
+// `root` is the segment under mas/; `exclude` optionally drops paths (e.g. pzn country tags).
+const TAXONOMY_FILTERS = [
+    { optionsProp: 'marketSegmentOptions', root: 'market_segments' },
+    { optionsProp: 'customerSegmentOptions', root: 'customer_segment' },
+    { optionsProp: 'productOptions', root: 'product_code' },
+    { optionsProp: 'offerTypeOptions', root: 'offer_type' },
+    { optionsProp: 'planTypeOptions', root: 'plan_type' },
+    { optionsProp: 'pznOptions', root: 'pzn', exclude: isPznCountryTagPath },
+    { optionsProp: 'tagOptions', root: 'custom' },
+];
 
 class MasSearchAndFilters extends LitElement {
     static styles = styles;
@@ -81,9 +93,6 @@ class MasSearchAndFilters extends LitElement {
             ...(this.type !== TABLE_TYPE.PLACEHOLDERS ? [Store.fragments.list.firstPageLoaded] : []),
         ]);
         const dataCallback = () => {
-            if (!this.searchOnly) {
-                this.#extractFilterOptions();
-            }
             this.#applyFilters();
             this.requestUpdate();
         };
@@ -92,7 +101,11 @@ class MasSearchAndFilters extends LitElement {
             unsubscribe: () => selectionStore[`all${this.typeUppercased}`].unsubscribe(dataCallback),
         };
         if (!this.searchOnly && this.type !== TABLE_TYPE.PLACEHOLDERS) {
-            this.#loadCustomTagOptions();
+            this.templateOptions = VARIANTS.filter((variant) => variant.label.toLowerCase() !== 'all').map((variant) => ({
+                id: variant.value,
+                title: variant.label,
+            }));
+            this.#loadTaxonomyFilterOptions();
         }
     }
 
@@ -173,47 +186,7 @@ class MasSearchAndFilters extends LitElement {
         return filters;
     }
 
-    #extractFilterOptions() {
-        const marketSegments = new Map();
-        const customerSegments = new Map();
-        const products = new Map();
-        const offerTypes = new Map();
-        const planTypes = new Map();
-        const pzns = new Map();
-        for (const fragment of getItemsSelectionStore()[`all${this.typeUppercased}`].value) {
-            if (!fragment.tags) continue;
-
-            for (const tag of fragment.tags) {
-                const tagId = tag.id || '';
-                const tagTitle = tag.title || tagId.split('/').pop() || '';
-                if (tagId.startsWith('mas:market_segment/') || tagId.startsWith('mas:market_segments/')) {
-                    marketSegments.set(tagId, { id: tagId, title: tagTitle });
-                } else if (tagId.startsWith('mas:customer_segment/')) {
-                    customerSegments.set(tagId, { id: tagId, title: tagTitle });
-                } else if (tagId.startsWith('mas:product_code/')) {
-                    products.set(tagId, { id: tagId, title: tagTitle });
-                } else if (tagId.startsWith('mas:offer_type/')) {
-                    offerTypes.set(tagId, { id: tagId, title: tagTitle });
-                } else if (tagId.startsWith('mas:plan_type/')) {
-                    planTypes.set(tagId, { id: tagId, title: tagTitle });
-                } else if (tagId.startsWith('mas:pzn/')) {
-                    pzns.set(tagId, { id: tagId, title: tagTitle });
-                }
-            }
-        }
-        this.templateOptions = VARIANTS.filter((variant) => variant.label.toLowerCase() !== 'all').map((variant) => ({
-            id: variant.value,
-            title: variant.label,
-        }));
-        this.marketSegmentOptions = Array.from(marketSegments.values()).sort((a, b) => a.title.localeCompare(b.title));
-        this.customerSegmentOptions = Array.from(customerSegments.values()).sort((a, b) => a.title.localeCompare(b.title));
-        this.productOptions = Array.from(products.values()).sort((a, b) => a.title.localeCompare(b.title));
-        this.offerTypeOptions = Array.from(offerTypes.values()).sort((a, b) => a.title.localeCompare(b.title));
-        this.planTypeOptions = Array.from(planTypes.values()).sort((a, b) => a.title.localeCompare(b.title));
-        this.pznOptions = Array.from(pzns.values()).sort((a, b) => a.title.localeCompare(b.title));
-    }
-
-    async #loadCustomTagOptions() {
+    async #loadTaxonomyFilterOptions() {
         let data = getNamespaceCache(MAS_TAG_NAMESPACE);
         if (!data) {
             const aem = new AEM(null, document.querySelector('meta[name="aem-base-url"]')?.content);
@@ -233,10 +206,14 @@ class MasSearchAndFilters extends LitElement {
             data = getNamespaceCache(MAS_TAG_NAMESPACE);
         }
         if (!data || data instanceof Promise) return;
-        this.tagOptions = [...data.values()]
-            .filter((tag) => tag.path.startsWith(CUSTOM_TAG_ROOT) && tag.path !== CUSTOM_TAG_ROOT.slice(0, -1))
-            .map((tag) => ({ id: toAttribute([tag.path]), title: tag.title || tag.name || tag.path.split('/').pop() }))
-            .sort((a, b) => a.title.localeCompare(b.title));
+        const tags = [...data.values()];
+        for (const { optionsProp, root, exclude } of TAXONOMY_FILTERS) {
+            const rootPath = `${MAS_TAG_NAMESPACE}/${root}/`;
+            this[optionsProp] = tags
+                .filter((tag) => tag.path.startsWith(rootPath) && !(exclude && exclude(tag.path)))
+                .map((tag) => ({ id: toAttribute([tag.path]), title: tag.title || tag.name || tag.path.split('/').pop() }))
+                .sort((a, b) => a.title.localeCompare(b.title));
+        }
     }
 
     willUpdate(changed) {

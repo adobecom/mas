@@ -254,6 +254,8 @@ export const QUICK_ACTION = {
     LOC: 'loc',
     VALIDATE: 'validate',
     LINK: 'link',
+    REVERT: 'revert',
+    CHECK_MODIFICATIONS: 'check-modifications',
 };
 
 export const FILTER_TYPE = {
@@ -287,6 +289,8 @@ export const BULK_PUBLISH_STATUS = {
     PUBLISHING: 'Publishing',
     PUBLISHED: 'Published',
     LOCKED: 'Locked',
+    REVERTING: 'Reverting',
+    REVERTED: 'Reverted',
 };
 
 export const BULK_PUBLISH_PARENT_PATH = '/content/dam/mas/bulk-publish-projects';

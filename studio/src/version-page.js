@@ -654,7 +654,10 @@ class VersionPage extends LitElement {
                             ${version.title
                                 ? html`<div class="version-description"><strong>${version.title}</strong></div>`
                                 : nothing}
-                            ${version.comment ? html`<div class="version-description">${version.comment}</div>` : nothing}
+                            ${version.label ? html`<div class="version-description">${version.label}</div>` : nothing}
+                            ${version.comment
+                                ? html`<div class="version-description"><small>${version.comment}</small></div>`
+                                : nothing}
                         </div>
                         ${!isCurrent
                             ? html`

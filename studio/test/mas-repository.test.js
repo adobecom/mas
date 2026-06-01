@@ -1880,6 +1880,60 @@ describe('MasRepository dictionary helpers', () => {
             }
         });
 
+        it('excludes promo variation fragments from CONTENT list', async () => {
+            const repository = createFullRepository();
+            repository.page = { value: PAGE_NAMES.CONTENT };
+            repository.search = { value: { path: 'acom', query: '' } };
+            repository.filters = {
+                value: {
+                    locale: 'en_US',
+                    tags: '',
+                    personalizationFilterEnabled: false,
+                },
+            };
+            const promoVariation = createFragment({
+                id: 'promo-var-1',
+                path: `${ROOT_PATH}/acom/en_US/promotions/back-to-school/cards/a`,
+                tags: [{ id: 'mas:promotion/back-to-school' }],
+                fields: [],
+            });
+            const plainFragment = createFragment({
+                id: 'plain-2',
+                path: `${ROOT_PATH}/acom/en_US/cards/b`,
+                tags: [{ id: 'mas:product/x' }],
+                fields: [],
+            });
+            const mockCursor = createMockCursor([[promoVariation, plainFragment]]);
+            const searchStub = sandbox.stub().resolves(mockCursor);
+            repository.aem = createAemMock({
+                fragments: {
+                    search: searchStub,
+                },
+            });
+            const { default: Store } = await import('../src/store.js');
+            const originalProfile = Store.profile.value;
+            Store.profile.set({ name: 'test-user' });
+            Store.createdByUsers.set([]);
+            const mockDataStore = {
+                get: sandbox.stub().returns([]),
+                getMeta: sandbox.stub().returns(null),
+                set: sandbox.stub(),
+                setMeta: sandbox.stub(),
+            };
+            const originalData = Store.fragments.list.data;
+            Store.fragments.list.data = mockDataStore;
+            try {
+                await repository.searchFragments();
+                expect(mockDataStore.set.called).to.be.true;
+                const passedStores = mockDataStore.set.lastCall.args[0];
+                expect(passedStores).to.have.lengthOf(1);
+                expect(passedStores[0].get().id).to.equal('plain-2');
+            } finally {
+                Store.profile.set(originalProfile);
+                Store.fragments.list.data = originalData;
+            }
+        });
+
         it('handles published tag filter by setting status', async () => {
             const repository = createFullRepository();
             repository.page = { value: PAGE_NAMES.CONTENT };
@@ -3549,6 +3603,151 @@ describe('MasRepository dictionary helpers', () => {
             } catch (error) {
                 expect(error.message).to.equal('Failed to resolve parent fragment for grouped variation');
             }
+        });
+    });
+
+    describe('createPromoVariation', () => {
+        const parentFragment = {
+            id: 'parent-promo-1',
+            path: '/content/dam/mas/sandbox/en_US/my-card',
+            title: 'Card title',
+            description: 'Card description',
+            model: { id: 'model-1' },
+            fields: [
+                { name: 'title', values: ['Hello'] },
+                { name: 'variations', values: [] },
+            ],
+            tags: [{ id: 'mas:product_code/cc' }],
+        };
+        const promoTag = 'mas:promotion/black-friday';
+        const targetPath = '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card';
+
+        it('creates promo variation and updates the parent variations field', async () => {
+            const repository = createRepository();
+            const createdDraft = { id: 'new-promo-var-id' };
+            const createdFragment = { id: 'new-promo-var-id', path: targetPath };
+
+            repository.aem = {
+                ...createAemMock({
+                    fragments: {
+                        getById: sandbox.stub().resolves(parentFragment),
+                        getByPath: sandbox.stub().resolves(null),
+                        ensureFolderExists: sandbox.stub().resolves(),
+                        pollCreatedFragment: sandbox.stub().resolves(createdFragment),
+                    },
+                }),
+                getCsrfToken: sandbox.stub().resolves('csrf-token'),
+                createFragmentCopy: sandbox.stub().resolves(createdDraft),
+                wait: sandbox.stub().resolves(),
+                saveTags: sandbox.stub().resolves(),
+            };
+            sandbox.stub(repository, 'updateParentVariations').resolves(parentFragment);
+            sandbox.stub(repository, 'refreshFragment').resolves();
+            sandbox.stub(Store.fragments.list.data, 'get').returns([{ get: () => ({ id: parentFragment.id }) }]);
+
+            const result = await repository.createPromoVariation(parentFragment.id, promoTag);
+
+            expect(repository.aem.createFragmentCopy.calledOnce).to.be.true;
+            expect(repository.aem.saveTags.calledOnce).to.be.true;
+            const saveTagsArg = repository.aem.saveTags.firstCall.args[0];
+            expect(saveTagsArg.newTags).to.include('mas:promotion/black-friday');
+            expect(repository.updateParentVariations.calledWith(parentFragment, targetPath)).to.be.true;
+            expect(result).to.deep.equal(createdFragment);
+        });
+
+        it('throws when promo variation already exists', async () => {
+            const repository = createRepository();
+            repository.aem = createAemMock({
+                fragments: {
+                    getById: sandbox.stub().resolves(parentFragment),
+                    getByPath: sandbox.stub().resolves({ id: 'existing', path: targetPath }),
+                },
+            });
+
+            try {
+                await repository.createPromoVariation(parentFragment.id, promoTag);
+                expect.fail('Should have thrown');
+            } catch (error) {
+                expect(error.message).to.include('Promo variation already exists');
+            }
+        });
+    });
+
+    describe('getUnpublishedAttachedPromoVariations', () => {
+        it('returns unpublished promo variations attached to project items', async () => {
+            const repository = createRepository();
+            const parentPath = '/content/dam/mas/sandbox/en_US/my-card';
+            const promoVariationPath = '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card';
+            const promotionFragment = {
+                getFieldValues: sandbox.stub(),
+                tags: [{ id: 'mas:promotion/black-friday' }],
+            };
+            promotionFragment.getFieldValues.withArgs('fragments').returns([parentPath]);
+            promotionFragment.getFieldValues.withArgs('tags').returns(['mas:promotion/black-friday']);
+
+            repository.aem = createAemMock({
+                fragments: {
+                    getByPath: sandbox.stub().callsFake(async (path) => {
+                        if (path === parentPath) {
+                            return {
+                                path: parentPath,
+                                fields: [{ name: 'variations', values: [promoVariationPath] }],
+                            };
+                        }
+                        if (path === promoVariationPath) {
+                            return {
+                                path: promoVariationPath,
+                                status: 'DRAFT',
+                                title: 'Black Friday Variation',
+                            };
+                        }
+                        return null;
+                    }),
+                },
+            });
+
+            const result = await repository.getUnpublishedAttachedPromoVariations(promotionFragment);
+
+            expect(result).to.have.lengthOf(1);
+            expect(result[0].path).to.equal(promoVariationPath);
+            expect(result[0].status).to.equal('DRAFT');
+            expect(result[0].parentPath).to.equal(parentPath);
+        });
+
+        it('skips promo variations that are already published or modified', async () => {
+            const repository = createRepository();
+            const parentPath = '/content/dam/mas/sandbox/en_US/my-card';
+            const promoVariationPath = '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card';
+            const promotionFragment = {
+                getFieldValues: sandbox.stub(),
+                tags: [{ id: 'mas:promotion/black-friday' }],
+            };
+            promotionFragment.getFieldValues.withArgs('fragments').returns([parentPath]);
+            promotionFragment.getFieldValues.withArgs('tags').returns(['mas:promotion/black-friday']);
+
+            repository.aem = createAemMock({
+                fragments: {
+                    getByPath: sandbox.stub().callsFake(async (path) => {
+                        if (path === parentPath) {
+                            return {
+                                path: parentPath,
+                                fields: [{ name: 'variations', values: [promoVariationPath] }],
+                            };
+                        }
+                        if (path === promoVariationPath) {
+                            return {
+                                path: promoVariationPath,
+                                status: 'PUBLISHED',
+                                title: 'Black Friday Variation',
+                            };
+                        }
+                        return null;
+                    }),
+                },
+            });
+
+            const result = await repository.getUnpublishedAttachedPromoVariations(promotionFragment);
+            expect(result).to.deep.equal([]);
         });
     });
 

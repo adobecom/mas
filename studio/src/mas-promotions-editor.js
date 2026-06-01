@@ -295,6 +295,17 @@ class MasPromotionsEditor extends LitElement {
         }
     }
 
+    async #confirmPublishWithUnpublishedPromoVariations() {
+        const unpublished = await this.repository.getUnpublishedAttachedPromoVariations(this.fragment);
+        if (!unpublished.length) return true;
+        const confirmMessage = `This project has ${unpublished.length} attached promo variation(s) that are not published. Publish the project anyway?`;
+        return this.#showDialog('Unpublished promo variations', confirmMessage, {
+            confirmText: 'Publish anyway',
+            cancelText: 'Cancel',
+            variant: 'confirmation',
+        });
+    }
+
     #handlePublishPromotion = async () => {
         if (!this.fragment?.id || this.isNewPromotion) return;
         if (this.fragment.hasChanges || this.#itemsSelectionDirty) {
@@ -308,6 +319,8 @@ class MasPromotionsEditor extends LitElement {
         if (this.fragment.isPromotionPublished && !this.fragment.isPromotionModified) {
             return;
         }
+        const canPublish = await this.#confirmPublishWithUnpublishedPromoVariations();
+        if (!canPublish) return;
         this.promotionPublish = true;
         try {
             const ok = await this.repository.publishFragment(this.fragment, ['DRAFT', 'UNPUBLISHED'], true);

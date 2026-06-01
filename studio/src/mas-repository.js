@@ -19,6 +19,7 @@ import {
 import {
     OPERATIONS,
     STATUS_PUBLISHED,
+    STATUS_MODIFIED,
     TAG_STATUS_PUBLISHED,
     ROOT_PATH,
     PAGE_NAMES,
@@ -35,7 +36,17 @@ import {
     PZN_FOLDER,
     SURFACES,
     ODIN_PREVIEW_FRAGMENTS_URL,
+    TAG_PROMOTION_PREFIX,
 } from './constants.js';
+import { normalizeTagId } from './aem/tag-id-utils.js';
+import {
+    buildPromoVariationPath,
+    fragmentIsPromoVariation,
+    getPromoNameFromTag,
+    getPromotionTagFromFragment,
+    isPromoVariationPath,
+    resolveDefaultPathFromPromoVariation,
+} from './promotions/promo-variation-utils.js';
 import { fragmentHasPersonalizationTag, isPznCountryTagId, PZN_TAG_ID_PREFIX } from './common/utils/personalization-utils.js';
 import { Placeholder } from './aem/placeholder.js';
 import { getFragmentName } from './translation/translation-utils.js';
@@ -159,6 +170,15 @@ export class MasRepository extends LitElement {
         return fragmentStores.filter((fs) => {
             const fragment = fs.get?.() ?? fs.value;
             return !fragmentHasPersonalizationTag(fragment);
+        });
+    }
+
+    #applyFragmentListFilters(fragmentStores) {
+        const filteredByPersonalization = this.#filterStoresByPersonalizationEnabled(fragmentStores);
+        if (this.page.value !== PAGE_NAMES.CONTENT) return filteredByPersonalization;
+        return filteredByPersonalization.filter((fs) => {
+            const fragment = fs.get?.() ?? fs.value;
+            return !fragmentIsPromoVariation(fragment);
         });
     }
 
@@ -495,7 +515,7 @@ export class MasRepository extends LitElement {
                 const fragmentPath = fragmentStore?.get?.()?.path;
                 return !Fragment.isGroupedVariationPath(fragmentPath);
             });
-            filteredData = this.#filterStoresByPersonalizationEnabled(filteredData);
+            filteredData = this.#applyFragmentListFilters(filteredData);
             if (filteredData.length !== currentData.length) {
                 dataStore.set(filteredData);
             }
@@ -635,7 +655,7 @@ export class MasRepository extends LitElement {
                     applyCorrectorToFragment(fragmentData, fragmentSurface);
                     const fragment = await this.#addToCache(fragmentData);
                     const sourceStore = generateFragmentStore(fragment, null, { lazy: true });
-                    dataStore.set(this.#filterStoresByPersonalizationEnabled([sourceStore]));
+                    dataStore.set(this.#applyFragmentListFilters([sourceStore]));
 
                     if (fragmentSurface) {
                         Store.search.setMeta('uuid-query', query);
@@ -690,7 +710,7 @@ export class MasRepository extends LitElement {
                     Store.fragments.list.loading.set(false);
                     return;
                 }
-                Store.fragments.list.data.set([...this.#filterStoresByPersonalizationEnabled(fragmentStores)]);
+                Store.fragments.list.data.set([...this.#applyFragmentListFilters(fragmentStores)]);
                 Store.fragments.list.firstPageLoaded.set(true);
                 const cursorState = done ? null : { cursor, variants, surface, fragmentStores, lowerClientQuery };
                 this.#searchCursor = cursorState;
@@ -739,7 +759,7 @@ export class MasRepository extends LitElement {
     static MAX_EAGER_PZN_PAGES = 20;
     /**
      * Visible-row threshold for the post-filter refill loop in #refillBelowThreshold.
-     * When a cursor page, after #filterStoresByPersonalizationEnabled has been
+     * When a cursor page, after #applyFragmentListFilters has been
      * applied, has fewer than this many visible items AND the cursor is not
      * exhausted, the loop fetches additional cursor pages until the threshold is
      * met or the cursor runs out. Prevents the narrow-filter UX where a user sees
@@ -789,7 +809,7 @@ export class MasRepository extends LitElement {
                 );
                 pagesLoaded++;
                 if (this.#searchCursor !== cursorSnapshot) return;
-                Store.fragments.list.data.set([...this.#filterStoresByPersonalizationEnabled(fragmentStores)]);
+                Store.fragments.list.data.set([...this.#applyFragmentListFilters(fragmentStores)]);
                 if (done) {
                     this.#searchCursor = null;
                     return;
@@ -809,7 +829,7 @@ export class MasRepository extends LitElement {
         Store.fragments.list.loading.set(true);
         try {
             while (this.#searchCursor === cursorSnapshot) {
-                const filtered = this.#filterStoresByPersonalizationEnabled(fragmentStores);
+                const filtered = this.#applyFragmentListFilters(fragmentStores);
                 if (filtered.length >= MasRepository.MIN_FILTERED_PAGE_RESULTS) return;
                 if (rounds >= MasRepository.MAX_REFILL_ROUNDS) {
                     Store.fragments.list.hasMore.set(true);
@@ -830,7 +850,7 @@ export class MasRepository extends LitElement {
                     Store.fragments.list.hasMore.set(true);
                     return;
                 }
-                Store.fragments.list.data.set([...this.#filterStoresByPersonalizationEnabled(fragmentStores)]);
+                Store.fragments.list.data.set([...this.#applyFragmentListFilters(fragmentStores)]);
                 if (done) {
                     this.#searchCursor = null;
                     Store.fragments.list.hasMore.set(false);
@@ -865,7 +885,7 @@ export class MasRepository extends LitElement {
                 this.#abortControllers.search?.signal,
             );
             if (this.#searchCursor !== cursorSnapshot) return;
-            Store.fragments.list.data.set([...this.#filterStoresByPersonalizationEnabled(fragmentStores)]);
+            Store.fragments.list.data.set([...this.#applyFragmentListFilters(fragmentStores)]);
             if (done) {
                 this.#searchCursor = null;
                 Store.fragments.list.hasMore.set(false);
@@ -2280,6 +2300,121 @@ export class MasRepository extends LitElement {
         }
 
         return createdFragment;
+    }
+
+    /**
+     * Creates a promo variation for a default fragment under promotions/{promoName}/.
+     * @param {string} sourceFragmentId - Default fragment ID to copy from
+     * @param {string} promoTagId - mas:promotion/{promoName} tag from the promotion project
+     * @returns {Promise<Object>} The created promo variation fragment
+     */
+    async createPromoVariation(sourceFragmentId, promoTagId) {
+        const promoName = getPromoNameFromTag(promoTagId);
+        if (!promoName) {
+            throw new UserFriendlyError('Invalid promotion tag');
+        }
+
+        const sourceFragment = await this.aem.sites.cf.fragments.getById(sourceFragmentId);
+        if (!sourceFragment) {
+            throw new Error('Failed to fetch source fragment');
+        }
+        if (isPromoVariationPath(sourceFragment.path)) {
+            throw new UserFriendlyError('Cannot create a promo variation from a promo variation');
+        }
+
+        const targetPath = buildPromoVariationPath(sourceFragment.path, promoName);
+        if (!targetPath) {
+            throw new UserFriendlyError('Could not determine promo variation path from fragment path');
+        }
+
+        const existingFragment = await this.aem.sites.cf.fragments.getByPath(targetPath).catch(() => null);
+        if (existingFragment) {
+            throw new UserFriendlyError('Promo variation already exists for this fragment in this promotion project.');
+        }
+
+        const parentFolder = targetPath.split('/').slice(0, -1).join('/');
+        const fragmentName = targetPath.split('/').pop();
+        await this.aem.sites.cf.fragments.ensureFolderExists(parentFolder);
+
+        const csrfToken = await this.aem.getCsrfToken();
+        const createdDraft = await this.aem.createFragmentCopy(sourceFragment, parentFolder, fragmentName, csrfToken);
+        await this.aem.wait(1000);
+
+        const parentTags = (sourceFragment.tags || [])
+            .map((tag) => tag.id || tag)
+            .filter((id) => id && !normalizeTagId(id).startsWith(TAG_PROMOTION_PREFIX));
+        const variationTags = [...parentTags, normalizeTagId(promoTagId)];
+        await this.aem.saveTags({ ...createdDraft, newTags: variationTags });
+
+        const createdFragment = await this.aem.sites.cf.fragments.pollCreatedFragment(createdDraft);
+        if (!createdFragment) {
+            throw new Error('Failed to create promo variation');
+        }
+
+        await this.updateParentVariations(sourceFragment, createdFragment.path);
+        const parentStore = Store.fragments.list.data.get().find((store) => store.get()?.id === sourceFragment.id);
+        if (parentStore) {
+            await this.refreshFragment(parentStore);
+        }
+
+        return createdFragment;
+    }
+
+    /**
+     * Resolves the default fragment for a promo variation path.
+     * @param {string} promoVariationPath
+     * @param {string} [promoVariationId]
+     * @returns {Promise<Object|null>}
+     */
+    async resolveDefaultFragmentForPromoVariation(promoVariationPath, promoVariationId) {
+        let promoTag = null;
+        if (promoVariationId) {
+            const variation = await this.aem.sites.cf.fragments.getById(promoVariationId);
+            promoTag = getPromotionTagFromFragment(variation);
+        }
+        const promoName = promoTag ? getPromoNameFromTag(promoTag) : null;
+        if (!promoName) return null;
+        const parentPath = resolveDefaultPathFromPromoVariation(promoVariationPath, promoName);
+        if (!parentPath) return null;
+        return this.aem.sites.cf.fragments.getByPath(parentPath).catch(() => null);
+    }
+
+    async getUnpublishedAttachedPromoVariations(promotionFragment) {
+        const promotionTagId = getPromotionTagFromFragment(promotionFragment);
+        const promoName = getPromoNameFromTag(promotionTagId);
+        if (!promoName) return [];
+
+        const attachedPaths = Array.from(new Set(promotionFragment?.getFieldValues?.('fragments') || []));
+        if (!attachedPaths.length) return [];
+
+        const parentResults = await Promise.all(
+            attachedPaths.map(async (parentPath) => {
+                const parent = await this.aem.sites.cf.fragments.getByPath(parentPath).catch(() => null);
+                const variationPaths = parent?.fields?.find((field) => field.name === 'variations')?.values || [];
+                const promoVariationPaths = variationPaths.filter(
+                    (variationPath) => resolveDefaultPathFromPromoVariation(variationPath, promoName) === parentPath,
+                );
+                return { parentPath, promoVariationPaths };
+            }),
+        );
+
+        const variationResults = await Promise.all(
+            parentResults.flatMap(({ parentPath, promoVariationPaths }) =>
+                promoVariationPaths.map(async (variationPath) => {
+                    const variation = await this.aem.sites.cf.fragments.getByPath(variationPath).catch(() => null);
+                    if (!variation) return null;
+                    if (variation.status === STATUS_PUBLISHED || variation.status === STATUS_MODIFIED) return null;
+                    return {
+                        path: variationPath,
+                        status: variation.status,
+                        title: variation.title,
+                        parentPath,
+                    };
+                }),
+            ),
+        );
+
+        return variationResults.filter(Boolean);
     }
 
     /**

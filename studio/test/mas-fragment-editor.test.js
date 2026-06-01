@@ -9,7 +9,7 @@ import { PAGE_NAMES, CARD_MODEL_PATH, COLLECTION_MODEL_PATH, ODIN_PREVIEW_ORIGIN
 import router from '../src/router.js';
 import Events from '../src/events.js';
 import { extractLocaleFromPath } from '../src/utils.js';
-import { nothing } from 'lit';
+import { nothing, render } from 'lit';
 
 describe('MasFragmentEditor', () => {
     let sandbox;
@@ -23,10 +23,15 @@ describe('MasFragmentEditor', () => {
         sandbox.restore();
     });
 
-    function createEditor({ resolveHydratedParentFragment, getLocaleDefaultFragmentAsync } = {}) {
+    function createEditor({
+        resolveHydratedParentFragment,
+        resolveDefaultFragmentForPromoVariation,
+        getLocaleDefaultFragmentAsync,
+    } = {}) {
         const editor = new MasFragmentEditor();
         const repository = {
             resolveHydratedParentFragment: resolveHydratedParentFragment || sandbox.stub().resolves(null),
+            resolveDefaultFragmentForPromoVariation: resolveDefaultFragmentForPromoVariation || sandbox.stub().resolves(null),
         };
 
         sandbox.stub(editor, 'repository').get(() => repository);
@@ -50,6 +55,25 @@ describe('MasFragmentEditor', () => {
     }
 
     describe('grouped variation parent resolution', () => {
+        it('resolves parent through promo variation resolver for promo paths', async () => {
+            const promoPath = '/content/dam/mas/sandbox/en_US/promotions/back-to-school/my-card';
+            const parentData = { id: 'default-id', path: '/content/dam/mas/sandbox/en_US/my-card' };
+            const resolvePromoParentStub = sandbox.stub().resolves(parentData);
+            const resolveGroupedStub = sandbox.stub().resolves(null);
+            const { editor, repository } = createEditor({
+                resolveHydratedParentFragment: resolveGroupedStub,
+                resolveDefaultFragmentForPromoVariation: resolvePromoParentStub,
+            });
+            editor.inEdit.value = { get: () => ({ id: 'promo-var-id' }) };
+
+            const result = await editor.resolveVariationParentFragment(promoPath);
+
+            expect(result).to.deep.equal(parentData);
+            expect(repository.resolveDefaultFragmentForPromoVariation.calledOnceWith(promoPath, 'promo-var-id')).to.be.true;
+            expect(resolveGroupedStub.called).to.be.false;
+            expect(editor.editorContextStore.defaultLocaleId).to.equal('default-id');
+        });
+
         it('polls grouped references every second for up to 15 seconds', async () => {
             const clock = sandbox.useFakeTimers();
             const resolveHydratedParentFragment = sandbox.stub().resolves(null);
@@ -1213,6 +1237,92 @@ describe('MasFragmentEditor', () => {
             sandbox.stub(el.editorContextStore, 'isVariation').returns(true);
             const header = el.localeVariationHeader;
             expect(header).to.not.equal(nothing);
+        });
+
+        it('renders promo variation header in preview for promo paths', () => {
+            const promoPath = '/content/dam/mas/sandbox/en_US/promotions/back-to-school/my-card';
+            const fragment = new Fragment({
+                id: 'promo-var-id',
+                path: promoPath,
+                model: { path: CARD_MODEL_PATH },
+                tags: [],
+                fields: [],
+            });
+            el.inEdit.value = { get: () => fragment };
+            sandbox.stub(el.editorContextStore, 'isVariation').returns(false);
+
+            const leftContainer = document.createElement('div');
+            render(el.localeVariationHeader, leftContainer);
+            expect(leftContainer.textContent).to.not.include('Promo variation');
+
+            const previewContainer = document.createElement('div');
+            render(el.previewVariationHeader, previewContainer);
+            expect(previewContainer.textContent).to.include('Promo variation:');
+            expect(previewContainer.textContent).to.include('Back To School');
+            expect(previewContainer.textContent).to.not.include('Regional variation');
+        });
+
+        it('renders promo variation preview header from path when mas:promotion tag is missing', () => {
+            const promoPath = '/content/dam/mas/sandbox/en_US/promotions/back-to-school/my-card';
+            const fragment = new Fragment({
+                id: 'promo-var-id',
+                path: promoPath,
+                model: { path: CARD_MODEL_PATH },
+                tags: [{ id: 'mas:status/draft' }],
+                fields: [],
+            });
+            el.inEdit.value = { get: () => fragment };
+            sandbox.stub(el.editorContextStore, 'isVariation').returns(false);
+
+            const leftContainer = document.createElement('div');
+            render(el.localeVariationHeader, leftContainer);
+            expect(leftContainer.textContent).to.not.include('Promo variation');
+
+            const previewContainer = document.createElement('div');
+            render(el.previewVariationHeader, previewContainer);
+            expect(previewContainer.textContent).to.include('Promo variation:');
+            expect(previewContainer.textContent).to.include('Back To School');
+        });
+
+        it('does not render promo variation preview header on default fragment opened from promotion project', () => {
+            const defaultPath = '/content/dam/mas/sandbox/en_US/my-card';
+            const fragment = new Fragment({
+                id: 'default-card-id',
+                path: defaultPath,
+                model: { path: CARD_MODEL_PATH },
+                fields: [],
+                tags: [],
+            });
+            el.inEdit.value = { get: () => fragment };
+            el.editorContextStore.localeDefaultFragment = null;
+            sandbox.stub(el.editorContextStore, 'isVariation').returns(false);
+            Store.promotions.promotionId.set('promo-project-id');
+
+            const leftContainer = document.createElement('div');
+            render(el.localeVariationHeader, leftContainer);
+            expect(leftContainer.textContent).to.not.include('Promo variation');
+
+            const previewContainer = document.createElement('div');
+            render(el.previewVariationHeader, previewContainer);
+            expect(previewContainer.textContent).to.not.include('Promo variation');
+            Store.promotions.promotionId.set(null);
+        });
+
+        it('renders regional variation header for non-promo locale variations', () => {
+            const fragment = new Fragment({
+                id: 'locale-var-id',
+                path: '/content/dam/mas/sandbox/en_QA/my-card',
+                model: { path: CARD_MODEL_PATH },
+                fields: [],
+                tags: [],
+            });
+            el.inEdit.value = { get: () => fragment };
+            sandbox.stub(el.editorContextStore, 'isVariation').returns(true);
+
+            const container = document.createElement('div');
+            render(el.localeVariationHeader, container);
+            expect(container.textContent).to.include('Regional variation:');
+            expect(container.textContent).to.not.include('Promo variation');
         });
 
         it('renders derived from container', async () => {

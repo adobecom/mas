@@ -644,6 +644,10 @@ sp-table-cell {
         &.published-cell .status-dot {
             background-color: var(--spectrum-green-700);
         }
+
+        &.unpublished-cell .status-dot {
+            background-color: var(--spectrum-blue-800);
+        }
     }
 
     &.actions {

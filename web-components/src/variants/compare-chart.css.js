@@ -1,5 +1,5 @@
 export const CSS = `
-    merch-card[variant='compare-chart'] {
+    merch-card[variant='compare-chart-column'] {
         --compare-chart-cell-border-color: var(--spectrum-gray-300, #d3d3d3) !important;
         --compare-chart-cell-bg: #fff !important;
         --compare-chart-cell-bg-alt: var(--color-gray-100, #f8f8f8) !important;
@@ -9,8 +9,8 @@ export const CSS = `
         display: block !important;
     }
 
-    merch-card[variant='compare-chart'] p,
-    merch-card[variant='compare-chart'] a,
+    merch-card[variant='compare-chart-column'] p,
+    merch-card[variant='compare-chart-column'] a,
     mas-compare-chart [data-compare-chart-slot] p,
     mas-compare-chart [data-compare-chart-slot] a {
         margin: 0 !important;

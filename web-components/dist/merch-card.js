@@ -7571,7 +7571,7 @@ merch-card[variant="mini"] span.renewal-text {
             border: 1px solid var(--consonant-merch-card-border-color, #dadada);
         }
     `);import{html as Gi,css as ji}from"./lit-all.min.js";var xa=`
-    merch-card[variant='compare-chart'] {
+    merch-card[variant='compare-chart-column'] {
         --compare-chart-cell-border-color: var(--spectrum-gray-300, #d3d3d3) !important;
         --compare-chart-cell-bg: #fff !important;
         --compare-chart-cell-bg-alt: var(--color-gray-100, #f8f8f8) !important;
@@ -7581,8 +7581,8 @@ merch-card[variant="mini"] span.renewal-text {
         display: block !important;
     }
 
-    merch-card[variant='compare-chart'] p,
-    merch-card[variant='compare-chart'] a,
+    merch-card[variant='compare-chart-column'] p,
+    merch-card[variant='compare-chart-column'] a,
     mas-compare-chart [data-compare-chart-slot] p,
     mas-compare-chart [data-compare-chart-slot] a {
         margin: 0 !important;
@@ -7622,7 +7622,7 @@ merch-card[variant="mini"] span.renewal-text {
             </div>
             <slot></slot>
         `}};zt=new WeakSet,ba=function(){if(this.card.getBoundingClientRect().width===0)return;let e=this.card.shadowRoot;Vi.forEach(({key:r,selector:i})=>this.updateCardElementMinHeight(e.querySelector(i),r))},h(Be,"variantStyle",ji`
-        :host([variant='compare-chart']) {
+        :host([variant='compare-chart-column']) {
             --compare-chart-card-padding: 12px;
             --compare-chart-seg-radius: 4px;
             --compare-chart-seg-border-color: var(--spectrum-gray-300, #d3d3d3);
@@ -7642,7 +7642,7 @@ merch-card[variant="mini"] span.renewal-text {
             box-sizing: border-box;
         }
 
-        :host([variant='compare-chart']) .card {
+        :host([variant='compare-chart-column']) .card {
             display: flex;
             flex-direction: column;
             gap: 8px;
@@ -7651,8 +7651,8 @@ merch-card[variant="mini"] span.renewal-text {
         }
 
         /* Bordered chips: header + price */
-        :host([variant='compare-chart']) .seg-header,
-        :host([variant='compare-chart']) .seg-price {
+        :host([variant='compare-chart-column']) .seg-header,
+        :host([variant='compare-chart-column']) .seg-price {
             border: 1px solid var(--compare-chart-seg-border-color);
             border-radius: var(--compare-chart-seg-radius);
             padding: var(--compare-chart-card-padding);
@@ -7661,17 +7661,17 @@ merch-card[variant="mini"] span.renewal-text {
         }
         /* Zebra (Figma: Cell color = default | grey). Driven by --col stamped
            on the host at hydration: even columns get the grey background. */
-        :host([variant='compare-chart']) {
+        :host([variant='compare-chart-column']) {
             --compare-chart-cell-bg: #fff;
         }
-        :host([variant='compare-chart'][data-cell-color='grey']) {
+        :host([variant='compare-chart-column'][data-cell-color='grey']) {
             --compare-chart-cell-bg: var(--color-gray-100, #f8f8f8);
         }
 
         /* Header CTA cell (Figma: M button, up to 2 actions) — apply
            medium-button defaults so plain anchors look right by default. */
-        :host([variant='compare-chart']) ::slotted([slot='cta']) a,
-        :host([variant='compare-chart']) ::slotted([slot='cta']) button {
+        :host([variant='compare-chart-column']) ::slotted([slot='cta']) a,
+        :host([variant='compare-chart-column']) ::slotted([slot='cta']) button {
             display: inline-flex;
             align-items: center;
             justify-content: center;
@@ -7684,29 +7684,29 @@ merch-card[variant="mini"] span.renewal-text {
             text-decoration: none;
         }
 
-        :host([variant='compare-chart']) .seg-detail {
+        :host([variant='compare-chart-column']) .seg-detail {
             text-align: center;
             font: var(--type-body-xs, 14px/20px 'Adobe Clean', sans-serif);
             padding: 0 var(--compare-chart-card-padding);
         }
-        :host([variant='compare-chart']) ::slotted([slot='detail']) a {
+        :host([variant='compare-chart-column']) ::slotted([slot='detail']) a {
             color: var(--hover-border-color, #357beb);
             text-decoration: underline;
         }
-        :host([variant='compare-chart']) ::slotted(p),
-        :host([variant='compare-chart']) ::slotted(a) {
+        :host([variant='compare-chart-column']) ::slotted(p),
+        :host([variant='compare-chart-column']) ::slotted(a) {
             margin: 0 !important;
         }
 
-        :host([variant='compare-chart']) .seg-cta {
+        :host([variant='compare-chart-column']) .seg-cta {
             padding: 0;
             display: flex;
             flex-direction: column;
             gap: 8px;
             box-sizing: border-box;
         }
-        :host([variant='compare-chart']) slot[name='cta'],
-        :host([variant='compare-chart']) ::slotted([slot='cta']) {
+        :host([variant='compare-chart-column']) slot[name='cta'],
+        :host([variant='compare-chart-column']) ::slotted([slot='cta']) {
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -7714,32 +7714,32 @@ merch-card[variant="mini"] span.renewal-text {
         }
 
         /* Inner stacking inside header */
-        :host([variant='compare-chart']) .seg-header {
+        :host([variant='compare-chart-column']) .seg-header {
             display: flex;
             flex-direction: column;
             gap: 6px;
         }
 
         /* display:block so slotted blocks participate in normal flow. */
-        :host([variant='compare-chart']) slot[name='header'],
-        :host([variant='compare-chart']) slot[name='price'],
-        :host([variant='compare-chart']) slot[name='detail'],
-        :host([variant='compare-chart']) slot[name='icons'],
-        :host([variant='compare-chart']) slot[name='badge'] {
+        :host([variant='compare-chart-column']) slot[name='header'],
+        :host([variant='compare-chart-column']) slot[name='price'],
+        :host([variant='compare-chart-column']) slot[name='detail'],
+        :host([variant='compare-chart-column']) slot[name='icons'],
+        :host([variant='compare-chart-column']) slot[name='badge'] {
             display: block;
         }
         /* Equal chip / row heights — vars stamped on <mas-compare-chart>
            from measured .seg-* wrappers (see #adjustSlotHeights). */
-        :host([variant='compare-chart']) .seg-header {
+        :host([variant='compare-chart-column']) .seg-header {
             min-height: var(--consonant-merch-card-compare-chart-header-height);
         }
-        :host([variant='compare-chart']) .seg-price {
+        :host([variant='compare-chart-column']) .seg-price {
             min-height: var(--consonant-merch-card-compare-chart-price-height);
         }
-        :host([variant='compare-chart']) .seg-detail {
+        :host([variant='compare-chart-column']) .seg-detail {
             min-height: var(--consonant-merch-card-compare-chart-detail-height);
         }
-        :host([variant='compare-chart']) .seg-cta {
+        :host([variant='compare-chart-column']) .seg-cta {
             min-height: var(--consonant-merch-card-compare-chart-cta-height);
         }
     `);import{html as Wi,css as Yi}from"./lit-all.min.js";var ya=`
@@ -8032,7 +8032,7 @@ merch-card[variant="mini"] span.renewal-text {
                 --gradient-firefly-spectrum
             );
         }
-    `);var _t=new Map,wa=new WeakMap,Ea=new Map,k=(a,t,e=null,r=null,i)=>{_t.set(a,{class:t,fragmentMapping:e,style:r,collectionOptions:i})};k("catalog",ze,Br,ze.variantStyle);k("image",he);k("inline-heading",St);k("mini-compare-chart",_e,Wr,_e.variantStyle);k("mini-compare-chart-mweb",Pe,Qr,Pe.variantStyle);k("plans",R,Tt,R.variantStyle,R.collectionOptions);k("plans-students",R,Jr,R.variantStyle,R.collectionOptions);k("plans-education",R,Zr,R.variantStyle,R.collectionOptions);k("plans-v2",ae,ra,ae.variantStyle,ae.collectionOptions);k("product",Me,ia,Me.variantStyle);k("segment",Re,oa,Re.variantStyle);k("media",Oe,sa,Oe.variantStyle);k("headless",Ie,ua,Ie.variantStyle);k("special-offers",De,da,De.variantStyle);k("simplified-pricing-express",Ne,Qt,Ne.variantStyle);k("full-pricing-express",Fe,Xt,Fe.variantStyle);k("mini",$e,va,$e.variantStyle);k("image",he,qr,he.variantStyle);k("compare-chart",Be,Jt,Be.variantStyle);k("fries",He,er,He.variantStyle);var Ki=(a,t,e)=>{try{let r=Ea.get(a.variant);if(r||(r=new CSSStyleSheet,r.replaceSync(t.cssText),Ea.set(a.variant,r)),e?.styleSheet&&e.styleSheet!==r){let i=a.shadowRoot.adoptedStyleSheets.indexOf(e.styleSheet);i!==-1&&a.shadowRoot.adoptedStyleSheets.splice(i,1)}return a.shadowRoot.adoptedStyleSheets.includes(r)||a.shadowRoot.adoptedStyleSheets.push(r),{styleSheet:r}}catch{let i=document.createElement("style");i.textContent=t.cssText,i.setAttribute("data-variant-style",a.variant);let n=e?.styleElement||a.shadowRoot.querySelector("[data-variant-style]");return n&&n.remove(),a.shadowRoot.appendChild(i),{styleElement:i}}},tr=a=>{let t=_t.get(a.variant);if(!t)return;let{class:e,style:r}=t,i=wa.get(a);if(i?.appliedVariant===a.variant)return new e(a);let n=r?Ki(a,r,i):{};return wa.set(a,{appliedVariant:a.variant,...n}),new e(a)};function kt(a){return _t.get(a)?.fragmentMapping}function ka(a){return _t.get(a)?.collectionOptions}var Sa=document.createElement("style");Sa.innerHTML=`
+    `);var _t=new Map,wa=new WeakMap,Ea=new Map,k=(a,t,e=null,r=null,i)=>{_t.set(a,{class:t,fragmentMapping:e,style:r,collectionOptions:i})};k("catalog",ze,Br,ze.variantStyle);k("image",he);k("inline-heading",St);k("mini-compare-chart",_e,Wr,_e.variantStyle);k("mini-compare-chart-mweb",Pe,Qr,Pe.variantStyle);k("plans",R,Tt,R.variantStyle,R.collectionOptions);k("plans-students",R,Jr,R.variantStyle,R.collectionOptions);k("plans-education",R,Zr,R.variantStyle,R.collectionOptions);k("plans-v2",ae,ra,ae.variantStyle,ae.collectionOptions);k("product",Me,ia,Me.variantStyle);k("segment",Re,oa,Re.variantStyle);k("media",Oe,sa,Oe.variantStyle);k("headless",Ie,ua,Ie.variantStyle);k("special-offers",De,da,De.variantStyle);k("simplified-pricing-express",Ne,Qt,Ne.variantStyle);k("full-pricing-express",Fe,Xt,Fe.variantStyle);k("mini",$e,va,$e.variantStyle);k("image",he,qr,he.variantStyle);k("compare-chart-column",Be,Jt,Be.variantStyle);k("fries",He,er,He.variantStyle);var Ki=(a,t,e)=>{try{let r=Ea.get(a.variant);if(r||(r=new CSSStyleSheet,r.replaceSync(t.cssText),Ea.set(a.variant,r)),e?.styleSheet&&e.styleSheet!==r){let i=a.shadowRoot.adoptedStyleSheets.indexOf(e.styleSheet);i!==-1&&a.shadowRoot.adoptedStyleSheets.splice(i,1)}return a.shadowRoot.adoptedStyleSheets.includes(r)||a.shadowRoot.adoptedStyleSheets.push(r),{styleSheet:r}}catch{let i=document.createElement("style");i.textContent=t.cssText,i.setAttribute("data-variant-style",a.variant);let n=e?.styleElement||a.shadowRoot.querySelector("[data-variant-style]");return n&&n.remove(),a.shadowRoot.appendChild(i),{styleElement:i}}},tr=a=>{let t=_t.get(a.variant);if(!t)return;let{class:e,style:r}=t,i=wa.get(a);if(i?.appliedVariant===a.variant)return new e(a);let n=r?Ki(a,r,i):{};return wa.set(a,{appliedVariant:a.variant,...n}),new e(a)};function kt(a){return _t.get(a)?.fragmentMapping}function ka(a){return _t.get(a)?.collectionOptions}var Sa=document.createElement("style");Sa.innerHTML=`
 :root {
     --consonant-merch-card-detail-font-size: 12px;
     --consonant-merch-card-detail-font-weight: 500;

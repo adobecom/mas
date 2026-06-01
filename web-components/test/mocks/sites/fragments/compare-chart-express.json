@@ -35,7 +35,7 @@
                     "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ"
                 },
                 "fields": {
-                    "variant": "compare-chart",
+                    "variant": "compare-chart-column",
                     "osi": "Iddp6yEOwCAU2QYDNZOOt0PD3iao4vXSV_sykYck7XQ",
                     "mnemonicIcon": [
                         "https://www.adobe.com/cc-shared/assets/img/product-icons/svg/cc-express.svg"
@@ -268,7 +268,7 @@
                     "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ"
                 },
                 "fields": {
-                    "variant": "compare-chart",
+                    "variant": "compare-chart-column",
                     "osi": "ffr4mpgRgMO3gEGiULe2iSHN61Rt5lVkKE0tihE9RjM",
                     "mnemonicIcon": [
                         "https://www.adobe.com/cc-shared/assets/img/product-icons/svg/cc-express.svg"
@@ -448,7 +448,7 @@
                     "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ"
                 },
                 "fields": {
-                    "variant": "compare-chart",
+                    "variant": "compare-chart-column",
                     "osi": "F-WCwWOvQUv9kuFxnb9Zh2fN0Zh_oi_yVUxAQ4_Z0gY",
                     "mnemonicIcon": [
                         "https://www.adobe.com/cc-shared/assets/img/product-icons/svg/firefly.svg"

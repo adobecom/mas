@@ -2,7 +2,7 @@ import { html, css } from 'lit';
 import { VariantLayout } from './variant-layout.js';
 import { CSS } from './compare-chart.css.js';
 
-export const COMPARE_CHART_AEM_FRAGMENT_MAPPING = {
+export const COMPARE_CHART_COLUMN_AEM_FRAGMENT_MAPPING = {
     mnemonics: { size: 'l' },
     title: { tag: 'h3', slot: 'header', maxCount: 100 },
     prices: { tag: 'p', slot: 'price' },
@@ -22,7 +22,7 @@ const HEIGHT_SYNC_TARGETS = [
     { key: 'cta', selector: '.seg-cta' },
 ];
 
-export class CompareChart extends VariantLayout {
+export class CompareChartColumn extends VariantLayout {
     constructor(card) {
         super(card);
         this.postCardUpdateHook = this.postCardUpdateHook.bind(this);
@@ -33,7 +33,7 @@ export class CompareChart extends VariantLayout {
     }
 
     get aemFragmentMapping() {
-        return COMPARE_CHART_AEM_FRAGMENT_MAPPING;
+        return COMPARE_CHART_COLUMN_AEM_FRAGMENT_MAPPING;
     }
 
     /** Comparison table host for stamping shared min-height custom properties
@@ -89,7 +89,7 @@ export class CompareChart extends VariantLayout {
     }
 
     static variantStyle = css`
-        :host([variant='compare-chart']) {
+        :host([variant='compare-chart-column']) {
             --compare-chart-card-padding: 12px;
             --compare-chart-seg-radius: 4px;
             --compare-chart-seg-border-color: var(--spectrum-gray-300, #d3d3d3);
@@ -109,7 +109,7 @@ export class CompareChart extends VariantLayout {
             box-sizing: border-box;
         }
 
-        :host([variant='compare-chart']) .card {
+        :host([variant='compare-chart-column']) .card {
             display: flex;
             flex-direction: column;
             gap: 8px;
@@ -118,8 +118,8 @@ export class CompareChart extends VariantLayout {
         }
 
         /* Bordered chips: header + price */
-        :host([variant='compare-chart']) .seg-header,
-        :host([variant='compare-chart']) .seg-price {
+        :host([variant='compare-chart-column']) .seg-header,
+        :host([variant='compare-chart-column']) .seg-price {
             border: 1px solid var(--compare-chart-seg-border-color);
             border-radius: var(--compare-chart-seg-radius);
             padding: var(--compare-chart-card-padding);
@@ -128,17 +128,17 @@ export class CompareChart extends VariantLayout {
         }
         /* Zebra (Figma: Cell color = default | grey). Driven by --col stamped
            on the host at hydration: even columns get the grey background. */
-        :host([variant='compare-chart']) {
+        :host([variant='compare-chart-column']) {
             --compare-chart-cell-bg: #fff;
         }
-        :host([variant='compare-chart'][data-cell-color='grey']) {
+        :host([variant='compare-chart-column'][data-cell-color='grey']) {
             --compare-chart-cell-bg: var(--color-gray-100, #f8f8f8);
         }
 
         /* Header CTA cell (Figma: M button, up to 2 actions) — apply
            medium-button defaults so plain anchors look right by default. */
-        :host([variant='compare-chart']) ::slotted([slot='cta']) a,
-        :host([variant='compare-chart']) ::slotted([slot='cta']) button {
+        :host([variant='compare-chart-column']) ::slotted([slot='cta']) a,
+        :host([variant='compare-chart-column']) ::slotted([slot='cta']) button {
             display: inline-flex;
             align-items: center;
             justify-content: center;
@@ -151,29 +151,29 @@ export class CompareChart extends VariantLayout {
             text-decoration: none;
         }
 
-        :host([variant='compare-chart']) .seg-detail {
+        :host([variant='compare-chart-column']) .seg-detail {
             text-align: center;
             font: var(--type-body-xs, 14px/20px 'Adobe Clean', sans-serif);
             padding: 0 var(--compare-chart-card-padding);
         }
-        :host([variant='compare-chart']) ::slotted([slot='detail']) a {
+        :host([variant='compare-chart-column']) ::slotted([slot='detail']) a {
             color: var(--hover-border-color, #357beb);
             text-decoration: underline;
         }
-        :host([variant='compare-chart']) ::slotted(p),
-        :host([variant='compare-chart']) ::slotted(a) {
+        :host([variant='compare-chart-column']) ::slotted(p),
+        :host([variant='compare-chart-column']) ::slotted(a) {
             margin: 0 !important;
         }
 
-        :host([variant='compare-chart']) .seg-cta {
+        :host([variant='compare-chart-column']) .seg-cta {
             padding: 0;
             display: flex;
             flex-direction: column;
             gap: 8px;
             box-sizing: border-box;
         }
-        :host([variant='compare-chart']) slot[name='cta'],
-        :host([variant='compare-chart']) ::slotted([slot='cta']) {
+        :host([variant='compare-chart-column']) slot[name='cta'],
+        :host([variant='compare-chart-column']) ::slotted([slot='cta']) {
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -181,32 +181,32 @@ export class CompareChart extends VariantLayout {
         }
 
         /* Inner stacking inside header */
-        :host([variant='compare-chart']) .seg-header {
+        :host([variant='compare-chart-column']) .seg-header {
             display: flex;
             flex-direction: column;
             gap: 6px;
         }
 
         /* display:block so slotted blocks participate in normal flow. */
-        :host([variant='compare-chart']) slot[name='header'],
-        :host([variant='compare-chart']) slot[name='price'],
-        :host([variant='compare-chart']) slot[name='detail'],
-        :host([variant='compare-chart']) slot[name='icons'],
-        :host([variant='compare-chart']) slot[name='badge'] {
+        :host([variant='compare-chart-column']) slot[name='header'],
+        :host([variant='compare-chart-column']) slot[name='price'],
+        :host([variant='compare-chart-column']) slot[name='detail'],
+        :host([variant='compare-chart-column']) slot[name='icons'],
+        :host([variant='compare-chart-column']) slot[name='badge'] {
             display: block;
         }
         /* Equal chip / row heights — vars stamped on <mas-compare-chart>
            from measured .seg-* wrappers (see #adjustSlotHeights). */
-        :host([variant='compare-chart']) .seg-header {
+        :host([variant='compare-chart-column']) .seg-header {
             min-height: var(--consonant-merch-card-compare-chart-header-height);
         }
-        :host([variant='compare-chart']) .seg-price {
+        :host([variant='compare-chart-column']) .seg-price {
             min-height: var(--consonant-merch-card-compare-chart-price-height);
         }
-        :host([variant='compare-chart']) .seg-detail {
+        :host([variant='compare-chart-column']) .seg-detail {
             min-height: var(--consonant-merch-card-compare-chart-detail-height);
         }
-        :host([variant='compare-chart']) .seg-cta {
+        :host([variant='compare-chart-column']) .seg-cta {
             min-height: var(--consonant-merch-card-compare-chart-cta-height);
         }
     `;

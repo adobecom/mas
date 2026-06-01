@@ -87,7 +87,7 @@ describe('customize collections', function () {
     it('should preserve parent features when compare-chart variation omits features', function () {
         const parent = {
             fields: {
-                variant: 'compare-chart',
+                variant: 'compare-chart-column',
                 features: { value: ['<p name="group-a@parent-only">Parent only</p>'] },
             },
         };
@@ -103,7 +103,7 @@ describe('customize collections', function () {
             id: 'compare-chart-card',
             title: 'Compare chart card',
             fields: {
-                variant: 'compare-chart',
+                variant: 'compare-chart-column',
                 features: {
                     value: ['<p name="group-a@parent-only">Parent only</p>', '<p name="group-a@override">Parent value</p>'],
                 },

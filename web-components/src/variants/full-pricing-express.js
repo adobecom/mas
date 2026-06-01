@@ -70,8 +70,6 @@ export const FULL_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING = {
 };
 
 export class FullPricingExpress extends VariantLayout {
-    static SYNCED_DESCRIPTION_ROWS = 12;
-
     static SYNCED_SECTIONS = [
         'header',
         'short-description',
@@ -117,12 +115,26 @@ export class FullPricingExpress extends VariantLayout {
                     card.shadowRoot?.querySelector(`.${name}`),
             }),
         );
+        const container = this.getContainer();
+        const cards = container
+            ? container.querySelectorAll(
+                  `merch-card[variant="${this.card.variant}"]`,
+              )
+            : [this.card];
+        const descriptionRowSelector = '[slot="body-s"] > *';
+        const descriptionRows = Math.max(
+            0,
+            ...Array.from(
+                cards,
+                (card) => card.querySelectorAll(descriptionRowSelector).length,
+            ),
+        );
         const rowEntries = Array.from(
-            { length: FullPricingExpress.SYNCED_DESCRIPTION_ROWS },
+            { length: descriptionRows },
             (_, index) => ({
                 name: `description-row-${index}`,
                 getElement: (card) =>
-                    card.querySelectorAll('[slot="body-s"] > *')[index],
+                    card.querySelectorAll(descriptionRowSelector)[index],
             }),
         );
         this.syncRowHeights([...sectionEntries, ...rowEntries]);

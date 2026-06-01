@@ -6,6 +6,12 @@ import Store from '../../store.js';
 import { getItemsSelectionStore } from '../items-selection-store.js';
 import { FILTER_TYPE, TABLE_TYPE } from '../../constants.js';
 import ReactiveController from '../../reactivity/reactive-controller.js';
+import { AEM } from '../../aem/aem.js';
+import { getNamespaceCache, setNamespaceCache } from '../../aem/tag-cache.js';
+import { toAttribute } from '../../aem/tag-path-utils.js';
+
+const MAS_TAG_NAMESPACE = '/content/cq:tags/mas';
+const CUSTOM_TAG_ROOT = `${MAS_TAG_NAMESPACE}/custom/`;
 
 class MasSearchAndFilters extends LitElement {
     static styles = styles;
@@ -85,6 +91,9 @@ class MasSearchAndFilters extends LitElement {
         this.dataSubscription = {
             unsubscribe: () => selectionStore[`all${this.typeUppercased}`].unsubscribe(dataCallback),
         };
+        if (!this.searchOnly && this.type !== TABLE_TYPE.PLACEHOLDERS) {
+            this.#loadCustomTagOptions();
+        }
     }
 
     disconnectedCallback() {
@@ -171,7 +180,6 @@ class MasSearchAndFilters extends LitElement {
         const offerTypes = new Map();
         const planTypes = new Map();
         const pzns = new Map();
-        const tags = new Map();
         for (const fragment of getItemsSelectionStore()[`all${this.typeUppercased}`].value) {
             if (!fragment.tags) continue;
 
@@ -190,8 +198,6 @@ class MasSearchAndFilters extends LitElement {
                     planTypes.set(tagId, { id: tagId, title: tagTitle });
                 } else if (tagId.startsWith('mas:pzn/')) {
                     pzns.set(tagId, { id: tagId, title: tagTitle });
-                } else if (tagId.startsWith('mas:custom/')) {
-                    tags.set(tagId, { id: tagId, title: tagTitle });
                 }
             }
         }
@@ -205,7 +211,32 @@ class MasSearchAndFilters extends LitElement {
         this.offerTypeOptions = Array.from(offerTypes.values()).sort((a, b) => a.title.localeCompare(b.title));
         this.planTypeOptions = Array.from(planTypes.values()).sort((a, b) => a.title.localeCompare(b.title));
         this.pznOptions = Array.from(pzns.values()).sort((a, b) => a.title.localeCompare(b.title));
-        this.tagOptions = Array.from(tags.values()).sort((a, b) => a.title.localeCompare(b.title));
+    }
+
+    async #loadCustomTagOptions() {
+        let data = getNamespaceCache(MAS_TAG_NAMESPACE);
+        if (!data) {
+            const aem = new AEM(null, document.querySelector('meta[name="aem-base-url"]')?.content);
+            let resolveNamespace;
+            setNamespaceCache(MAS_TAG_NAMESPACE, new Promise((resolve) => (resolveNamespace = resolve)));
+            try {
+                const rawTags = await aem.tags.list(MAS_TAG_NAMESPACE);
+                data = new Map(rawTags.hits.map((tag) => [tag.path, tag]));
+                setNamespaceCache(MAS_TAG_NAMESPACE, data);
+            } catch {
+                setNamespaceCache(MAS_TAG_NAMESPACE, undefined);
+                return;
+            }
+            resolveNamespace();
+        } else if (data instanceof Promise) {
+            await data;
+            data = getNamespaceCache(MAS_TAG_NAMESPACE);
+        }
+        if (!data || data instanceof Promise) return;
+        this.tagOptions = [...data.values()]
+            .filter((tag) => tag.path.startsWith(CUSTOM_TAG_ROOT) && tag.path !== CUSTOM_TAG_ROOT.slice(0, -1))
+            .map((tag) => ({ id: toAttribute([tag.path]), title: tag.title || tag.name || tag.path.split('/').pop() }))
+            .sort((a, b) => a.title.localeCompare(b.title));
     }
 
     willUpdate(changed) {

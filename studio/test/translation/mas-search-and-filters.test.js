@@ -5,8 +5,19 @@ import sinon from 'sinon';
 import Store from '../../src/store.js';
 import { setItemsSelectionStore } from '../../src/common/items-selection-store.js';
 import { TABLE_TYPE, FILTER_TYPE } from '../../src/constants.js';
+import { setNamespaceCache } from '../../src/aem/tag-cache.js';
 import '../../src/swc.js';
 import '../../src/common/components/mas-search-and-filters.js';
+
+const MAS_TAG_NAMESPACE = '/content/cq:tags/mas';
+const seedCustomTagTaxonomy = (titles = ['Accordion', 'Marquee', 'Test']) => {
+    const entries = titles.map((title) => {
+        const slug = title.toLowerCase().replace(/\s+/g, '-');
+        const path = `/content/cq:tags/mas/custom/${slug}`;
+        return [path, { path, title, name: slug }];
+    });
+    setNamespaceCache(MAS_TAG_NAMESPACE, new Map(entries));
+};
 
 describe('MasSearchAndFilters', () => {
     let sandbox;
@@ -29,6 +40,7 @@ describe('MasSearchAndFilters', () => {
     beforeEach(() => {
         sandbox = sinon.createSandbox();
         setItemsSelectionStore(Store.translationProjects);
+        setNamespaceCache(MAS_TAG_NAMESPACE, new Map());
         Store.translationProjects.allCards.set([]);
         Store.translationProjects.displayCards.set([]);
         Store.translationProjects.allCollections.set([]);
@@ -44,6 +56,7 @@ describe('MasSearchAndFilters', () => {
     afterEach(() => {
         fixtureCleanup();
         sandbox.restore();
+        setNamespaceCache(MAS_TAG_NAMESPACE, undefined);
         Store.translationProjects.allCards.set([]);
         Store.translationProjects.displayCards.set([]);
         Store.translationProjects.allCollections.set([]);
@@ -249,6 +262,7 @@ describe('MasSearchAndFilters', () => {
             });
 
         it('should render all eight filter triggers when every bucket has options', async () => {
+            seedCustomTagTaxonomy(['Featured']);
             Store.translationProjects.allCards.set([fragmentWithEveryFilterTag()]);
             const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${false}></mas-search-and-filters>`);
             await el.updateComplete;
@@ -293,6 +307,7 @@ describe('MasSearchAndFilters', () => {
         });
 
         it('should render Tag filter', async () => {
+            seedCustomTagTaxonomy(['Featured']);
             Store.translationProjects.allCards.set([fragmentWithEveryFilterTag()]);
             const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${false}></mas-search-and-filters>`);
             await el.updateComplete;
@@ -1193,17 +1208,48 @@ describe('MasSearchAndFilters', () => {
             expect(el.tagFilter).to.deep.equal([]);
         });
 
-        it('extracts mas:custom tag options from fragment tags', async () => {
-            Store.translationProjects.allCards.set([
-                fragmentWithTags(['mas:custom/featured']),
-                fragmentWithTags(['mas:custom/seasonal']),
-            ]);
-            const el = await fixture(html`<mas-search-and-filters type="cards"></mas-search-and-filters>`);
+        it('populates tag options from the AEM taxonomy, not loaded fragments', async () => {
+            seedCustomTagTaxonomy(['Accordion', 'Marquee']);
+            Store.translationProjects.allCards.set([createMockFragment({ tags: [] })]);
+            const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${false}></mas-search-and-filters>`);
             await el.updateComplete;
-            expect(el.tagOptions.map((o) => o.id).sort()).to.deep.equal(['mas:custom/featured', 'mas:custom/seasonal']);
+            expect(el.tagOptions.map((o) => o.id).sort()).to.deep.equal(['mas:custom/accordion', 'mas:custom/marquee']);
+        });
+
+        it('keeps parent tags alongside their children (matches the content page)', async () => {
+            setNamespaceCache(
+                MAS_TAG_NAMESPACE,
+                new Map([
+                    [
+                        '/content/cq:tags/mas/custom/milo-blocks',
+                        { path: '/content/cq:tags/mas/custom/milo-blocks', title: 'Milo Blocks' },
+                    ],
+                    [
+                        '/content/cq:tags/mas/custom/milo-blocks/marquee',
+                        { path: '/content/cq:tags/mas/custom/milo-blocks/marquee', title: 'Marquee' },
+                    ],
+                    ['/content/cq:tags/mas/custom/test', { path: '/content/cq:tags/mas/custom/test', title: 'Test' }],
+                ]),
+            );
+            const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${false}></mas-search-and-filters>`);
+            await el.updateComplete;
+            const ids = el.tagOptions.map((o) => o.id);
+            expect(ids).to.include('mas:custom/milo-blocks');
+            expect(ids).to.include('mas:custom/milo-blocks/marquee');
+            expect(ids).to.include('mas:custom/test');
+        });
+
+        it('renders the Tag filter even when no loaded fragment carries a custom tag', async () => {
+            seedCustomTagTaxonomy(['Accordion']);
+            Store.translationProjects.allCards.set([createMockFragment({ tags: [{ id: 'mas:product_code/photoshop' }] })]);
+            const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${false}></mas-search-and-filters>`);
+            await el.updateComplete;
+            const filters = el.shadowRoot.querySelector('.filters');
+            expect(filters.textContent).to.include('Tag');
         });
 
         it('filters cards by custom tag', async () => {
+            seedCustomTagTaxonomy(['Featured', 'Seasonal']);
             const a = fragmentWithTags(['mas:custom/featured'], { title: 'a' });
             const b = fragmentWithTags(['mas:custom/seasonal'], { title: 'b' });
             Store.translationProjects.allCards.set([a, b]);
@@ -1216,6 +1262,7 @@ describe('MasSearchAndFilters', () => {
         });
 
         it('renders applied-filters chip for the Tag filter type', async () => {
+            seedCustomTagTaxonomy(['Featured']);
             Store.translationProjects.allCards.set([fragmentWithTags(['mas:custom/featured'])]);
             const el = await fixture(html`<mas-search-and-filters type="cards"></mas-search-and-filters>`);
             await el.updateComplete;

@@ -105,7 +105,12 @@ export class BizProPlans extends VariantLayout {
     }
 
     async postCardUpdateHook() {
-        this.adjustAddon();
+        await this.adjustAddon();
+        await super.postCardUpdateHook();
+    }
+
+    disconnectedCallbackHook() {
+        this.#removeLicenseDocListener();
     }
 
     get hasLegalText() {
@@ -176,6 +181,15 @@ export class BizProPlans extends VariantLayout {
         this.card.requestUpdate();
     };
 
+    #removeLicenseDocListener() {
+        if (!this.#licenseDocListenerBound) return;
+        document.removeEventListener(
+            'mousedown',
+            this.#licenseDocListenerBound,
+        );
+        this.#licenseDocListenerBound = null;
+    }
+
     toggleLicensePopover = (e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -185,23 +199,15 @@ export class BizProPlans extends VariantLayout {
                 if (!evt.composedPath().includes(this.card)) {
                     this.licenseOpen = false;
                     this.card.requestUpdate();
-                    document.removeEventListener(
-                        'mousedown',
-                        this.#licenseDocListenerBound,
-                    );
-                    this.#licenseDocListenerBound = null;
+                    this.#removeLicenseDocListener();
                 }
             };
             document.addEventListener(
                 'mousedown',
                 this.#licenseDocListenerBound,
             );
-        } else if (this.#licenseDocListenerBound) {
-            document.removeEventListener(
-                'mousedown',
-                this.#licenseDocListenerBound,
-            );
-            this.#licenseDocListenerBound = null;
+        } else {
+            this.#removeLicenseDocListener();
         }
         this.card.requestUpdate();
     };
@@ -209,13 +215,7 @@ export class BizProPlans extends VariantLayout {
     selectLicenseQty = (value) => {
         this.licenseQty = value;
         this.licenseOpen = false;
-        if (this.#licenseDocListenerBound) {
-            document.removeEventListener(
-                'mousedown',
-                this.#licenseDocListenerBound,
-            );
-            this.#licenseDocListenerBound = null;
-        }
+        this.#removeLicenseDocListener();
         // Route the selection through the authored quantity selector so the
         // existing merch-card → checkout-link quantity wiring stays intact.
         const qs = this.quantitySelectEl;

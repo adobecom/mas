@@ -27,6 +27,7 @@ const VARIANT_SPECTRUM = {
     [VARIANT_NAMES.PLANS_EDUCATION]: 'spectrum',
     [VARIANT_NAMES.PLANS_STUDENTS]: 'spectrum',
     [VARIANT_NAMES.PLANS_V2]: 'spectrum',
+    [VARIANT_NAMES.BIZPRO_PLANS]: 'spectrum',
     [VARIANT_NAMES.SPECIAL_OFFERS]: 'spectrum',
     [VARIANT_NAMES.SEGMENT]: 'spectrum',
     [VARIANT_NAMES.CATALOG]: 'spectrum',

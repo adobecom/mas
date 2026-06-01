@@ -10,7 +10,7 @@ function patchProjectStore(project, fields) {
     project.refreshFrom(snapshot);
 }
 
-export async function startPublishing({ project, token, ioBaseUrl, repository }) {
+export async function startPublishing({ project, token, ioBaseUrl, repository, includeVariations = false, includeCards = false }) {
     const { publishBulk } = await import('./bulk-publish-client.js');
     const profile = await window.adobeIMS?.getProfile?.().catch(() => null);
     const publishedBy = profile?.email ?? '';
@@ -20,7 +20,7 @@ export async function startPublishing({ project, token, ioBaseUrl, repository })
         [project.id]: true,
     });
     try {
-        const result = await publishBulk({ ioBaseUrl, projectId: project.id, publishedBy, token });
+        const result = await publishBulk({ ioBaseUrl, projectId: project.id, publishedBy, token, includeVariations, includeCards });
         patchProjectStore(project, {
             status: result.status,
             publishedAt: result.publishedAt,

@@ -98,12 +98,15 @@ async function run(params) {
             return errorResponse(400, `Resolved ${resolved.length} paths exceeds maximum of ${MAX_RESOLVED}`, logger);
         }
 
+        const includeRefs = params.includeVariations || params.includeCards;
+        const filterReferencesByStatus = includeRefs ? ['DRAFT', 'MODIFIED', 'UNPUBLISHED'] : [];
+
         const chunks = groupAndChunk(resolved, MAX_CHUNK_SIZE);
         logger.info(JSON.stringify({ event: 'resolved', total: resolved.length, chunks: chunks.length }));
 
         const details = [];
         for (const chunk of chunks) {
-            const chunkResults = await publishOneChunk(chunk, odinEndpoint, authToken);
+            const chunkResults = await publishOneChunk(chunk, odinEndpoint, authToken, filterReferencesByStatus);
             details.push(...chunkResults);
         }
 
@@ -120,9 +123,9 @@ async function run(params) {
     }
 }
 
-async function publishOneChunk({ locale, paths }, odinEndpoint, authToken) {
+async function publishOneChunk({ locale, paths }, odinEndpoint, authToken, filterReferencesByStatus) {
     logger.info(JSON.stringify({ event: 'chunk-start', locale, size: paths.length }));
-    const results = await publishChunk({ chunk: paths, odinEndpoint, authToken, logger });
+    const results = await publishChunk({ chunk: paths, odinEndpoint, authToken, logger, filterReferencesByStatus });
     const counts = results.reduce(
         (acc, r) => {
             if (r.status === STATUS.PUBLISHED) acc.published += 1;

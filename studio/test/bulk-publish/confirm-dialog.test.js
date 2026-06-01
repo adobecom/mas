@@ -133,4 +133,33 @@ describe('mas-bulk-publish-confirm-dialog', () => {
         const ev = await oneEvent(el, 'publish-cancelled');
         expect(ev).to.exist;
     });
+
+    it('cascade 옵션 체크박스 2개 렌더링', async () => {
+        const el = await fixture(html`
+            <mas-bulk-publish-confirm-dialog
+                .projectTitle=${'Test'}
+                .validCount=${5}
+                .skippedCount=${0}
+                .open=${true}
+            ></mas-bulk-publish-confirm-dialog>
+        `);
+        await el.updateComplete;
+        const checkboxes = el.shadowRoot.querySelectorAll('sp-checkbox');
+        expect(checkboxes.length).to.equal(2);
+    });
+
+    it('publish-confirmed에 includeVariations/includeCards 기본값 false', async () => {
+        const el = await fixture(html`
+            <mas-bulk-publish-confirm-dialog
+                .projectTitle=${'Test'}
+                .validCount=${3}
+                .skippedCount=${0}
+                .open=${true}
+            ></mas-bulk-publish-confirm-dialog>
+        `);
+        await el.updateComplete;
+        setTimeout(() => el.confirm());
+        const ev = await oneEvent(el, 'publish-confirmed');
+        expect(ev.detail).to.deep.equal({ includeVariations: false, includeCards: false });
+    });
 });

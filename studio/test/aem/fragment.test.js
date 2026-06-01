@@ -628,4 +628,76 @@ describe('Fragment', () => {
             expect(fragment.getCurrentTagTitle('mas:product_code/')).to.equal('My Custom Code');
         });
     });
+
+    describe('getPublishableReferences', () => {
+        it('references가 없으면 빈 객체 반환', () => {
+            const fragment = new Fragment(createFragmentConfig({ references: [] }));
+            expect(fragment.getPublishableReferences()).to.deep.equal({ variations: [], cards: [] });
+        });
+
+        it('DRAFT variation과 UNPUBLISHED card를 분리해서 반환', () => {
+            const fragment = new Fragment(
+                createFragmentConfig({
+                    path: '/content/dam/mas/sandbox/en_US/my-fragment',
+                    references: [
+                        { id: 'var-1', path: '/content/dam/mas/sandbox/en_GB/my-fragment', status: 'DRAFT' },
+                        { id: 'card-1', path: '/content/dam/mas/sandbox/en_US/some-card', status: 'UNPUBLISHED' },
+                        { id: 'pub-1', path: '/content/dam/mas/sandbox/en_AU/my-fragment', status: 'PUBLISHED' },
+                    ],
+                    fields: [
+                        {
+                            name: 'variations',
+                            values: [
+                                '/content/dam/mas/sandbox/en_GB/my-fragment',
+                                '/content/dam/mas/sandbox/en_AU/my-fragment',
+                            ],
+                        },
+                        { name: 'cards', values: ['/content/dam/mas/sandbox/en_US/some-card'] },
+                    ],
+                }),
+            );
+            const result = fragment.getPublishableReferences();
+            expect(result.variations).to.have.length(1);
+            expect(result.variations[0].id).to.equal('var-1');
+            expect(result.cards).to.have.length(1);
+            expect(result.cards[0].id).to.equal('card-1');
+        });
+
+        it('MODIFIED variation도 포함해서 반환', () => {
+            const fragment = new Fragment(
+                createFragmentConfig({
+                    path: '/content/dam/mas/sandbox/en_US/my-fragment',
+                    references: [
+                        { id: 'var-1', path: '/content/dam/mas/sandbox/en_GB/my-fragment', status: 'MODIFIED' },
+                        { id: 'pub-1', path: '/content/dam/mas/sandbox/en_AU/my-fragment', status: 'PUBLISHED' },
+                    ],
+                    fields: [
+                        {
+                            name: 'variations',
+                            values: [
+                                '/content/dam/mas/sandbox/en_GB/my-fragment',
+                                '/content/dam/mas/sandbox/en_AU/my-fragment',
+                            ],
+                        },
+                    ],
+                }),
+            );
+            const result = fragment.getPublishableReferences();
+            expect(result.variations).to.have.length(1);
+            expect(result.variations[0].id).to.equal('var-1');
+        });
+
+        it('이미 PUBLISHED인 reference는 제외', () => {
+            const fragment = new Fragment(
+                createFragmentConfig({
+                    path: '/content/dam/mas/sandbox/en_US/my-fragment',
+                    references: [{ id: 'var-1', path: '/content/dam/mas/sandbox/en_GB/my-fragment', status: 'PUBLISHED' }],
+                    fields: [{ name: 'variations', values: ['/content/dam/mas/sandbox/en_GB/my-fragment'] }],
+                }),
+            );
+            const result = fragment.getPublishableReferences();
+            expect(result.variations).to.have.length(0);
+            expect(result.cards).to.have.length(0);
+        });
+    });
 });

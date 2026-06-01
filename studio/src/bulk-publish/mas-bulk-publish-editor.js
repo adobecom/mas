@@ -333,9 +333,9 @@ class MasBulkPublishEditor extends LitElement {
         this.confirmOpen = false;
     }
 
-    handleConfirmPublish() {
+    handleConfirmPublish(e) {
         this.confirmOpen = false;
-        this.publish();
+        this.publish({ includeVariations: e.detail.includeVariations, includeCards: e.detail.includeCards });
     }
 
     setProjectField(name, value) {
@@ -694,7 +694,7 @@ class MasBulkPublishEditor extends LitElement {
         }
     }
 
-    async publish() {
+    async publish({ includeVariations = false, includeCards = false } = {}) {
         try {
             await this.#withPendingAction(QUICK_ACTION.PUBLISH, async () => {
                 const { startPublishing } = await import('./bulk-publish-store.js');
@@ -703,6 +703,8 @@ class MasBulkPublishEditor extends LitElement {
                     token: this.token,
                     ioBaseUrl: this.ioBaseUrl,
                     repository: this.repository,
+                    includeVariations,
+                    includeCards,
                 });
             });
             this.requestUpdate();

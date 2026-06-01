@@ -144,6 +144,26 @@ describe('bulk-publish/index.js', () => {
         });
     });
 
+    describe('filterReferencesByStatus passthrough', () => {
+        it('sends filterReferencesByStatus=[] when neither includeVariations nor includeCards', async () => {
+            await action.main({ ...baseParams });
+            const body = JSON.parse(fetchOdinStub.firstCall.args[3].body);
+            expect(body.filterReferencesByStatus).to.deep.equal([]);
+        });
+
+        it('sends filterReferencesByStatus=[DRAFT,MODIFIED,UNPUBLISHED] when includeVariations=true', async () => {
+            await action.main({ ...baseParams, includeVariations: true });
+            const body = JSON.parse(fetchOdinStub.firstCall.args[3].body);
+            expect(body.filterReferencesByStatus).to.deep.equal(['DRAFT', 'MODIFIED', 'UNPUBLISHED']);
+        });
+
+        it('sends filterReferencesByStatus=[DRAFT,MODIFIED,UNPUBLISHED] when includeCards=true', async () => {
+            await action.main({ ...baseParams, includeCards: true });
+            const body = JSON.parse(fetchOdinStub.firstCall.args[3].body);
+            expect(body.filterReferencesByStatus).to.deep.equal(['DRAFT', 'MODIFIED', 'UNPUBLISHED']);
+        });
+    });
+
     describe('429 retry scenario', () => {
         it('retries the whole chunk on 429 and succeeds on the second attempt', async () => {
             fetchOdinStub.reset();

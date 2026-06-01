@@ -1360,12 +1360,29 @@ export default class MasFragmentEditor extends LitElement {
     }
 
     async publishFragment() {
-        try {
-            await this.repository.publishFragment(this.fragment);
-        } catch (error) {
-            console.error('Failed to publish fragment:', error);
-            showToast(`Failed to publish fragment: ${error.message}`, 'negative');
-            throw error;
+        const refs = this.fragment?.getPublishableReferences?.() ?? { variations: [], cards: [] };
+        if (refs.variations.length || refs.cards.length) {
+            const { MasPublishDialog } = await import('./publish/mas-publish-dialog.js');
+            const result = await MasPublishDialog.show(refs);
+            if (!result.confirmed) return;
+            try {
+                await this.repository.publishFragment(this.fragment, {
+                    selectedRefIds: result.selectedIds,
+                    allSelected: result.allSelected,
+                });
+            } catch (error) {
+                console.error('Failed to publish fragment:', error);
+                showToast(`Failed to publish fragment: ${error.message}`, 'negative');
+                throw error;
+            }
+        } else {
+            try {
+                await this.repository.publishFragment(this.fragment);
+            } catch (error) {
+                console.error('Failed to publish fragment:', error);
+                showToast(`Failed to publish fragment: ${error.message}`, 'negative');
+                throw error;
+            }
         }
     }
 

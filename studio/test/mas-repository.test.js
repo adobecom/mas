@@ -3942,3 +3942,65 @@ describe('MasRepository dictionary helpers', () => {
         });
     });
 });
+
+describe('MasRepository publishFragment', () => {
+    let sandbox;
+
+    beforeEach(() => {
+        sandbox = sinon.createSandbox();
+    });
+
+    afterEach(() => {
+        sandbox.restore();
+    });
+
+    const makeRepo = () => {
+        const repo = new MasRepository();
+        repo.operation = { set: sandbox.stub() };
+        repo.aem = {
+            sites: {
+                cf: {
+                    fragments: {
+                        publish: sandbox.stub().resolves(),
+                        publishFragments: sandbox.stub().resolves(),
+                        getWithEtag: sandbox.stub().resolves({ id: 'ref-1', etag: 'abc' }),
+                    },
+                },
+            },
+        };
+        // Silence processError to avoid noisy output in tests
+        sandbox.stub(repo, 'processError');
+        return repo;
+    };
+
+    const fragment = { id: 'frag-1', path: '/content/dam/mas/sandbox/en_US/card' };
+
+    it('옵션 없으면 빈 filterReferencesByStatus로 publish', async () => {
+        const repo = makeRepo();
+        await repo.publishFragment(fragment);
+        expect(repo.aem.sites.cf.fragments.publish.calledWith(fragment, [])).to.be.true;
+        expect(repo.aem.sites.cf.fragments.publishFragments.called).to.be.false;
+    });
+
+    it('allSelected: true면 DRAFT/MODIFIED/UNPUBLISHED filter 사용하는 단일 call', async () => {
+        const repo = makeRepo();
+        await repo.publishFragment(fragment, { allSelected: true });
+        expect(repo.aem.sites.cf.fragments.publish.calledWith(fragment, ['DRAFT', 'MODIFIED', 'UNPUBLISHED'])).to.be.true;
+        expect(repo.aem.sites.cf.fragments.publishFragments.called).to.be.false;
+    });
+
+    it('selectedRefIds가 있으면 parent [] publish 후 ref 별도 publish', async () => {
+        const repo = makeRepo();
+        await repo.publishFragment(fragment, { selectedRefIds: ['ref-1'] });
+        expect(repo.aem.sites.cf.fragments.publish.calledWith(fragment, [])).to.be.true;
+        expect(repo.aem.sites.cf.fragments.getWithEtag.calledWith('ref-1')).to.be.true;
+        expect(repo.aem.sites.cf.fragments.publishFragments.called).to.be.true;
+    });
+
+    it('selectedRefIds 없으면 ref publish 건너뜀', async () => {
+        const repo = makeRepo();
+        await repo.publishFragment(fragment, {});
+        expect(repo.aem.sites.cf.fragments.publish.calledWith(fragment, [])).to.be.true;
+        expect(repo.aem.sites.cf.fragments.publishFragments.called).to.be.false;
+    });
+});

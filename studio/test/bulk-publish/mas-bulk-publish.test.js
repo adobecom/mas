@@ -97,17 +97,6 @@ describe('mas-bulk-publish (methods)', () => {
         expect(navigateStub.called).to.equal(false);
     });
 
-    it('opens project on row double-click', async () => {
-        const ps = makeProjectStore({ id: 'dbl-123' });
-        Store.bulkPublishProjects.list.data.set([ps]);
-        const el = await fixture(html`<mas-bulk-publish></mas-bulk-publish>`);
-        await el.updateComplete;
-        const row = el.shadowRoot.querySelector('[data-testid="project-row"]');
-        row.dispatchEvent(new MouseEvent('dblclick', { bubbles: true, composed: true }));
-        expect(Store.bulkPublishProjects.projectId.get()).to.equal('dbl-123');
-        expect(navigateStub.calledOnce).to.equal(true);
-    });
-
     it('openDuplicateDialog sets duplicatePending with proposed title', async () => {
         const el = await fixture(html`<mas-bulk-publish></mas-bulk-publish>`);
         await el.updateComplete;

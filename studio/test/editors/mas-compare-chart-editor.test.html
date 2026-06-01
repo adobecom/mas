@@ -40,18 +40,23 @@
             const withWebComponentsMocks = (mock) => (originalFetch) =>
                 mock((resource, options) => {
                     const path = String(resource);
-                    if (/querybuilder\.json\?path=\/content\/cq:tags\/mas/.test(path)) {
-                        return originalFetch('/test/mocks/tags.json', options);
-                    }
                     if (path.startsWith('/test/mocks/offers.json') || path.startsWith('/test/mocks/sites/')) {
                         return originalFetch(`/__wds-outside-root__/1/web-components${path}`, options);
                     }
                     return originalFetch(resource, options);
                 });
 
+            const withTags = (originalFetch) => async ({ pathname, searchParams }) => {
+                if (!pathname.endsWith('/bin/querybuilder.json')) return false;
+                const queryPath = searchParams.get('path');
+                if (queryPath === '/content/cq:tags/mas') return originalFetch('/test/mocks/tags.json');
+                if (queryPath?.startsWith('/content/dam/mas')) return originalFetch('/test/mocks/folders.json');
+                return false;
+            };
+
             mockIms();
             mockLana();
-            await mockFetch(withWebComponentsMocks(withWcs), withWebComponentsMocks(withAem));
+            await mockFetch(withTags, withWebComponentsMocks(withWcs), withWebComponentsMocks(withAem));
 
             const compareChartExpressSource = await fetch(
                 '/__wds-outside-root__/1/web-components/test/mocks/sites/fragments/compare-chart-express.json',

@@ -84,7 +84,7 @@ describe('customize collections', function () {
         expect(result.fields.variant).to.equal('');
     });
 
-    it('should preserve parent features when compare-chart variation omits features', function () {
+    it('should preserve parent features when compare-chart-column template omits features', function () {
         const parent = {
             fields: {
                 variant: 'compare-chart-column',
@@ -97,7 +97,23 @@ describe('customize collections', function () {
         expect(result.fields.title).to.equal('Regional title');
     });
 
-    it('should append child features to parent features for compare-chart variants', async function () {
+    it('should append child features to parent features for compare-chart-column template', async function () {
+        const childOnlyResult = deepMerge(
+            {
+                fields: {
+                    variant: 'compare-chart-column',
+                    title: 'Parent title',
+                },
+            },
+            {
+                fields: {
+                    features: { value: ['<p name="group-a@child-only">Child only</p>'] },
+                },
+            },
+        );
+        expect(childOnlyResult.fields.features.value).to.deep.equal(['<p name="group-a@child-only">Child only</p>']);
+        expect(childOnlyResult.fields.title).to.equal('Parent title');
+
         const body = {
             path: '/content/dam/mas/sandbox/en_US/compare-chart-card',
             id: 'compare-chart-card',

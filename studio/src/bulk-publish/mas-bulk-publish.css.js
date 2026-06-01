@@ -1,8 +1,11 @@
 import { css } from 'lit';
 import { skeletonStyles } from '../common/skeleton-styles.css.js';
+import { tableHeaderBaseStyles, tableBodyBaseStyles } from '../common/styles/table-styles.css.js';
 
 export const styles = [
     skeletonStyles,
+    tableHeaderBaseStyles,
+    tableBodyBaseStyles,
     css`
         :host {
             display: block;
@@ -59,11 +62,6 @@ export const styles = [
 
         sp-table-row {
             cursor: pointer;
-        }
-
-        sp-table-cell {
-            display: flex;
-            align-items: center;
         }
 
         sp-table-row.disabled {

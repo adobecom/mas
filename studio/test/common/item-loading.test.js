@@ -176,6 +176,34 @@ describe('common/utils/item-loading', () => {
         expect(variations[0].offerData).to.deep.equal({ offerId: 'test-offer-id' });
     });
 
+    it('loadGroupedVariations passes parent OSI as fallbackWcsOsi when variation has no osi', async () => {
+        const getDisplayName = sandbox.stub().returns('Variation Name');
+        const getOfferData = sandbox.stub().resolves({ offerId: 'parent-offer-id' });
+        const variationPath = '/content/dam/mas/acom/en_US/cards/card1/pzn/v1';
+        const card = new Fragment({
+            path: '/content/dam/mas/acom/en_US/cards/card1',
+            title: 'Card 1',
+            model: { path: CARD_MODEL_PATH },
+            fields: [
+                { name: 'osi', values: ['parent-osi'] },
+                { name: 'variations', values: [variationPath] },
+            ],
+            references: [{ path: variationPath }],
+        });
+        const getByPath = sandbox.stub().resolves({
+            path: variationPath,
+            fieldTags: [{ id: 'tag-1' }],
+            fields: [],
+        });
+
+        const variations = await loadGroupedVariations(card, { getByPath, getOfferData, getDisplayName });
+
+        expect(variations).to.have.lengthOf(1);
+        expect(getOfferData.calledOnce).to.be.true;
+        expect(getOfferData.firstCall.args[1]).to.include({ fallbackWcsOsi: 'parent-osi' });
+        expect(variations[0].offerData).to.deep.equal({ offerId: 'parent-offer-id' });
+    });
+
     it('fetchVariationDataByPath resolves and enriches grouped variations', async () => {
         const getDisplayName = sandbox.stub().returns('Variation Name');
         const getOfferData = sandbox.stub().resolves({ offerId: 'test-offer-id' });

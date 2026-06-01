@@ -77,11 +77,25 @@ describe('customize collections', function () {
         expect(result.fields.title).to.equal('Regional');
     });
 
-    it('should erase variant when right has empty string', function () {
+    it('should inherit parent variant when right has empty string (variant is structural)', function () {
         const left = { fields: { variant: 'regional-variant' } };
         const right = { fields: { variant: '' } };
         const result = deepMerge(left, right);
-        expect(result.fields.variant).to.equal('');
+        expect(result.fields.variant).to.equal('regional-variant');
+    });
+
+    it('should inherit parent variant when right has explicit_empty sentinel', function () {
+        const left = { fields: { variant: 'regional-variant' } };
+        const right = { fields: { variant: 'explicit_empty' } };
+        const result = deepMerge(left, right);
+        expect(result.fields.variant).to.equal('regional-variant');
+    });
+
+    it('should still overwrite a non-structural field with empty string', function () {
+        const left = { fields: { badge: 'parent badge' } };
+        const right = { fields: { badge: '' } };
+        const result = deepMerge(left, right);
+        expect(result.fields.badge).to.equal('');
     });
 
     it('should customize subcollections and sub fragments', async function () {
@@ -181,6 +195,49 @@ describe('customize collections', function () {
 
         expect(result.status).to.equal(200);
         expect(result.body.fields.badge).to.equal('Kuwait PZN badge');
+    });
+
+    it('should inherit parent variant when the matched pzn variation has an empty variant', async function () {
+        const pznVariationId = 'pzn-var-empty-variant';
+        const bodyWithPzn = {
+            path: '/content/dam/mas/sandbox/en_US/pzn-test-fragment',
+            id: 'root-fragment',
+            title: 'Root',
+            fields: {
+                variant: 'plans',
+                badge: 'default badge',
+                variations: [pznVariationId],
+            },
+            references: {
+                [pznVariationId]: {
+                    type: 'content-fragment',
+                    value: {
+                        path: '/content/dam/mas/sandbox/en_KW/PA-123/pzn/intro',
+                        id: pznVariationId,
+                        title: 'Intro pricing',
+                        fields: {
+                            // grouped variations store no own variant; Odin returns it as an empty value
+                            variant: '',
+                            pznTags: ['/content/cq:tags/mas/locale/en_KW'],
+                            badge: 'Kuwait PZN badge',
+                        },
+                    },
+                },
+            },
+            referencesTree: [],
+        };
+
+        const result = await process({
+            ...FAKE_CONTEXT,
+            fragmentPath: 'pzn-test-fragment',
+            locale: 'en_KW',
+            parsedLocale: 'en_US',
+            body: bodyWithPzn,
+        });
+
+        expect(result.status).to.equal(200);
+        expect(result.body.fields.badge).to.equal('Kuwait PZN badge');
+        expect(result.body.fields.variant, 'variant must be inherited from parent, never blanked').to.equal('plans');
     });
 
     it('should merge personalization when pznTags end with pzn/country/<country>', async function () {

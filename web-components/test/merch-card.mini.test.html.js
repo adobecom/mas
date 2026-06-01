@@ -160,7 +160,7 @@ runTests(async () => {
                         href: 'https://www.stage.adobe.com/offers/promo-terms.html?locale=en_US&country=US&offer_id=632B3ADD940A7FBB7864AA5AD19B8D28&promotion_code=CCI2AAUSQ22440CD',
                     },
                     renewalText:
-                        'Renews automatically until cancelled. Renews at $54.99/mo after 12 months. Test ST labels US$59.99/mo per license excl. tax US$35.99/mo per license excl. tax',
+                        'Renews automatically until cancelled. Renews at $54.99/mo after 12 months. Test ST labels US$59.99/mo US$35.99/mo per license excl. tax',
                     promoDurationText: 'First year only, Ends Mar 3.',
                     ctas: 2,
                     planTypeText: 'Annual, paid monthly.',
@@ -181,49 +181,40 @@ runTests(async () => {
                     '.renewal-text [data-wcs-osi]',
                 );
                 await priceElement.onceSettled();
-
                 expect(
-                    window.getComputedStyle(
-                        priceElement.querySelector(
+                    priceElement
+                        .querySelector('.price-strikethrough .price-recurrence')
+                        .classList.contains('disabled'),
+                ).to.be.false;
+                expect(
+                    priceElement
+                        .querySelector('.price-strikethrough .price-unit-type')
+                        .classList.contains('disabled'),
+                ).to.be.true;
+                expect(
+                    priceElement
+                        .querySelector(
                             '.price-strikethrough .price-tax-inclusivity',
-                        ),
-                    ).display,
-                ).to.equal('none');
+                        )
+                        .classList.contains('disabled'),
+                ).to.be.true;
                 expect(
-                    window.getComputedStyle(
-                        priceElement.querySelector(
-                            '.price-strikethrough .price-unit-type',
-                        ),
-                    ).display,
-                ).to.equal('none');
+                    priceElement
+                        .querySelector('.price-alternative .price-recurrence')
+                        .classList.contains('disabled'),
+                ).to.be.false;
                 expect(
-                    window.getComputedStyle(
-                        priceElement.querySelector(
-                            '.price-strikethrough .price-recurrence',
-                        ),
-                    ).display,
-                ).to.equal('inline');
+                    priceElement
+                        .querySelector('.price-alternative .price-unit-type')
+                        .classList.contains('disabled'),
+                ).to.be.false;
                 expect(
-                    window.getComputedStyle(
-                        priceElement.querySelector(
+                    priceElement
+                        .querySelector(
                             '.price-alternative .price-tax-inclusivity',
-                        ),
-                    ).display,
-                ).to.equal('inline');
-                expect(
-                    window.getComputedStyle(
-                        priceElement.querySelector(
-                            '.price-alternative .price-unit-type',
-                        ),
-                    ).display,
-                ).to.equal('inline');
-                expect(
-                    window.getComputedStyle(
-                        priceElement.querySelector(
-                            '.price-alternative .price-recurrence',
-                        ),
-                    ).display,
-                ).to.equal('inline');
+                        )
+                        .classList.contains('disabled'),
+                ).to.be.false;
             });
             it('should render US standard with secondary cta as regular link', async () => {
                 const [card] = getTemplateContent('template-mini-photo-link');

@@ -451,7 +451,16 @@ const createPromoPriceTemplate = () => (context, value, attributes) => {
         shouldDisplayOldPrice
             ? `${createPriceTemplate({
                   displayStrikethrough: true,
-              })({ isPromoApplied, ...context }, value, attributes)}&nbsp;`
+              })(
+                  {
+                      isPromoApplied,
+                      ...context,
+                      displayPerUnit: false,
+                      displayTax: false,
+                  },
+                  value,
+                  attributes,
+              )}&nbsp;`
             : ''
     }${createPriceTemplate({ isAlternativePrice: shouldDisplayOldPrice })({ isPromoApplied, ...context }, value, attributes)}`;
 };

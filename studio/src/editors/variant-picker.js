@@ -118,7 +118,7 @@ export const VARIANTS = [
     {
         label: 'Compare Chart Column',
         value: VARIANT_NAMES.COMPARE_CHART_COLUMN,
-        surfaces: [SURFACES.ACOM_CC],
+        surfaces: [SURFACES.ACOM_CC, SURFACES.ACOM_DC, SURFACES.ACOM, SURFACES.EXPRESS],
     },
 ];
 

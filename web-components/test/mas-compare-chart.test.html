@@ -149,7 +149,36 @@
                         local.remove();
                     });
 
-                    it('honors sticky-top attribute', async () => {
+                    it('defaults sticky-offset to 64px', async () => {
+                        const local =
+                            document.createElement('mas-compare-chart');
+                        local.innerHTML = '<div name="g"><h4>G</h4></div>';
+                        main.append(local);
+                        await local.updateComplete;
+                        expect(
+                            local.style.getPropertyValue(
+                                '--compare-chart-sticky-offset',
+                            ),
+                        ).to.equal('64px');
+                        local.remove();
+                    });
+
+                    it('honors sticky-offset attribute', async () => {
+                        const local =
+                            document.createElement('mas-compare-chart');
+                        local.setAttribute('sticky-offset', '48');
+                        local.innerHTML = '<div name="g"><h4>G</h4></div>';
+                        main.append(local);
+                        await local.updateComplete;
+                        expect(
+                            local.style.getPropertyValue(
+                                '--compare-chart-sticky-offset',
+                            ),
+                        ).to.equal('48px');
+                        local.remove();
+                    });
+
+                    it('honors legacy sticky-top attribute', async () => {
                         const local =
                             document.createElement('mas-compare-chart');
                         local.setAttribute('sticky-top', '40');
@@ -158,7 +187,7 @@
                         await local.updateComplete;
                         expect(
                             local.style.getPropertyValue(
-                                '--compare-chart-sticky-gap',
+                                '--compare-chart-sticky-offset',
                             ),
                         ).to.equal('40px');
                         local.remove();

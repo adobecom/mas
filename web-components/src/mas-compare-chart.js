@@ -16,6 +16,7 @@ const MAS_COMPARE_CHART_LOAD_TIMEOUT = 30000;
 const MAX_COMPARE_CHART_CARDS = 4;
 /** Below this width: 2-up layout; with 3+ columns, each column gets a card picker (tablet + phone). */
 const MOBILE_BREAKPOINT = 900; // px — host inline-size (matches container max-width for desktop grid)
+const DEFAULT_STICKY_OFFSET = 64; // px — default viewport offset for sticky header
 const CARD_SOURCE_SLOTS = [
     'icons',
     'header',
@@ -54,6 +55,10 @@ export class MasCompareChart extends LitElement {
         },
         consonant: { type: Boolean, attribute: 'consonant' },
         spectrum: { type: String, attribute: 'spectrum' },
+        /** Viewport offset (px) from the top edge to the sticky header. */
+        stickyOffset: { type: String, attribute: 'sticky-offset' },
+        /** @deprecated Use `sticky-offset`. */
+        stickyTop: { type: String, attribute: 'sticky-top' },
         // Map of locale-aware aria-label strings used by `placeholder()`.
         // Assigned by the host page; falls back to English defaults when unset.
         placeholders: { type: Object },
@@ -125,6 +130,10 @@ export class MasCompareChart extends LitElement {
         if (changed.has('expandedGroups')) this.#parseExpanded();
         if (changed.has('consonant') || changed.has('spectrum')) {
             this.#propagateCardDisplayProperties();
+        }
+        if (changed.has('stickyOffset') || changed.has('stickyTop')) {
+            this.#applyStickyOffset();
+            this.#scheduleStickyHeaderSync();
         }
     }
 
@@ -832,19 +841,33 @@ export class MasCompareChart extends LitElement {
             this.style.setProperty('--compare-chart-sticky-top', '0px');
             return;
         }
-        // Page owns the top offset; consumers set --compare-chart-sticky-top
-        // (or the `sticky-top` attribute) to account for their global nav.
+        // Page may also set --compare-chart-sticky-top for additional global nav offset.
+    }
+
+    #resolveStickyOffsetRaw() {
+        return (
+            this.stickyOffset ??
+            this.getAttribute('sticky-offset') ??
+            this.stickyTop ??
+            this.getAttribute('sticky-top')
+        );
+    }
+
+    #applyStickyOffset() {
+        const raw = this.#resolveStickyOffsetRaw();
+        const offset =
+            raw != null && String(raw).trim() !== ''
+                ? /^\d+$/.test(String(raw).trim())
+                    ? `${String(raw).trim()}px`
+                    : String(raw).trim()
+                : `${DEFAULT_STICKY_OFFSET}px`;
+        this.style.setProperty('--compare-chart-sticky-offset', offset);
     }
 
     #setupSticky() {
         this.#teardownStickyHeader();
-        // Offset for `position: sticky` top — global nav + optional gap.
         this.#setStickyTopOffset();
-        const gapAttr = this.getAttribute('sticky-top');
-        if (gapAttr) {
-            const gap = /^\d+$/.test(gapAttr.trim()) ? `${gapAttr}px` : gapAttr;
-            this.style.setProperty('--compare-chart-sticky-gap', gap);
-        }
+        this.#applyStickyOffset();
         window.addEventListener('scroll', this.#boundSyncStickyHeader, true);
         window.addEventListener('resize', this.#boundSyncStickyHeader);
         this.#scheduleStickyHeaderSync();
@@ -874,19 +897,22 @@ export class MasCompareChart extends LitElement {
             return;
         }
         const top = parseFloat(getComputedStyle(headerContent).top) || 0;
-        const scrollY = window.scrollY || window.pageYOffset;
         const hostRect = this.getBoundingClientRect();
-        const headerHeight = headerContent.getBoundingClientRect().height;
-        const stickyStart = scrollY + hostRect.top - top;
-        const releaseOffset = this.#isMobile ? 24 : 1;
+        const headerRect = headerContent.getBoundingClientRect();
         const isStuck = this.#isStickyHeaderActive;
+        const headerHeight = headerRect.height;
+        const releaseOffset = this.#isMobile ? 24 : 1;
+        // Match native `position: sticky` — host has scrolled past the header anchor.
+        const isAtStickyPosition =
+            headerRect.top <= top + 1 && hostRect.top < headerRect.top - 1;
         const shouldActivate =
             !isStuck &&
-            scrollY >= stickyStart &&
+            isAtStickyPosition &&
             hostRect.bottom > top + headerHeight;
         const shouldRelease =
             isStuck &&
-            (scrollY < stickyStart - releaseOffset || hostRect.bottom <= top);
+            (hostRect.top > top + releaseOffset ||
+                hostRect.bottom <= top + headerHeight);
         if (shouldActivate) {
             this.#setStickyHeaderActive(true);
         } else if (shouldRelease) {
@@ -951,10 +977,12 @@ export class MasCompareChart extends LitElement {
         const cs = getComputedStyle(this);
         const stickyTop =
             parseFloat(cs.getPropertyValue('--compare-chart-sticky-top')) || 0;
-        const gapRaw = cs.getPropertyValue('--compare-chart-sticky-gap').trim();
-        const stickyGap = gapRaw ? parseFloat(gapRaw) || 0 : 0;
+        const offsetRaw = cs
+            .getPropertyValue('--compare-chart-sticky-offset')
+            .trim();
+        const stickyOffset = offsetRaw ? parseFloat(offsetRaw) || 0 : 0;
         const headerH = headerBand?.getBoundingClientRect().height ?? 0;
-        const margin = stickyTop + stickyGap + headerH;
+        const margin = stickyTop + stickyOffset + headerH;
 
         const prevMargin = container.style.scrollMarginTop;
         container.style.scrollMarginTop = `${margin}px`;

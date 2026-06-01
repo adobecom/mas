@@ -1955,10 +1955,16 @@ class MasCompareChartEditor extends LitElement {
         this.#previewCacheIds.clear();
     }
 
+    #stickyOffsetAttribute() {
+        const { table } = this.#getDocument();
+        return table?.getAttribute('sticky-offset')?.trim() || table?.getAttribute('sticky-top')?.trim() || '';
+    }
+
     #renderPreviewChart(previewFragmentId) {
         const expandedGroups = this.#expandedGroupsAttribute();
+        const stickyOffset = this.#stickyOffsetAttribute();
         return html`
-            <mas-compare-chart consonant expanded-groups=${expandedGroups || nothing}>
+            <mas-compare-chart consonant expanded-groups=${expandedGroups || nothing} sticky-offset=${stickyOffset || nothing}>
                 <aem-fragment author loading="cache" fragment=${previewFragmentId}></aem-fragment>
             </mas-compare-chart>
         `;

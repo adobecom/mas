@@ -21,6 +21,7 @@ export const styles = css`
             minmax(100px, 1fr)
         );
         --compare-chart-sticky-inline-inset: 0px;
+        --compare-chart-sticky-offset: 64px;
 
         /* Local fallbacks for Milo/Spectrum typography tokens. */
         --type-heading-xs: 700 18px/22px 'Adobe Clean', sans-serif;
@@ -71,7 +72,7 @@ export const styles = css`
         position: sticky;
         top: calc(
             var(--compare-chart-sticky-top, 0px) +
-                var(--compare-chart-sticky-gap, 0px)
+                var(--compare-chart-sticky-offset, 64px)
         );
         z-index: 9;
         background: var(--spectrum-gray-50, #fff);
@@ -113,7 +114,6 @@ export const styles = css`
         backface-visibility: hidden;
         -webkit-backface-visibility: hidden;
         opacity: 1;
-        padding-top: 64px;
     }
     slot[name='cards'] {
         display: none;
@@ -717,7 +717,7 @@ export const styles = css`
             inset-inline: 0;
             width: auto;
             margin-inline: 0;
-            top: 0;
+            top: var(--compare-chart-sticky-offset, 64px);
         }
         .header-leading {
             display: none;
@@ -784,7 +784,7 @@ export const styles = css`
             inset-inline: 0;
             width: auto;
             margin-inline: 0;
-            top: 0;
+            top: var(--compare-chart-sticky-offset, 64px);
         }
         .table-container {
             max-width: calc(100% - 130px);

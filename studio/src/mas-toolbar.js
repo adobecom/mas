@@ -82,44 +82,120 @@ class MasToolbar extends LitElement {
             white-space: nowrap;
         }
 
-        .filters-button {
-            border: none;
-            font-weight: bold;
-            cursor: default;
-        }
-
-        .filters-button:not(.shown) {
-            background-color: #fff;
-            color: var(--spectrum-gray-700);
-        }
-
-        .filters-button.shown {
-            background-color: var(--spectrum-blue-100);
-            color: var(--spectrum-accent-color-1000);
-        }
-
-        .filters-button.shown:hover {
-            background-color: var(--spectrum-blue-200);
-        }
-
-        .filters-button:not(.shown):hover {
-            background-color: var(--spectrum-actionbutton-background-color-hover);
-        }
-
-        .filters-badge {
-            width: 18px;
-            height: 18px;
-            display: flex;
+        /* Create — Figma "Button (M, Accent)" spec.
+           95px × 32px accent button, 16px radius, #3B63FB bg, Bold 14px / 18px,
+           white content. Padding handled by Spectrum's defaults to avoid layout collapse. */
+        .create-button {
+            box-sizing: border-box;
+            width: 95px;
+            min-width: 72px;
+            height: 32px;
             align-items: center;
-            justify-content: center;
-            background-color: var(--spectrum-accent-color-1000);
-            color: var(--spectrum-white);
-            border-radius: 2px;
+            --mod-button-align-items: center;
+            line-height: 32px;
+            --mod-button-border-radius: 16px;
+            --mod-button-background-color-default: #3b63fb;
+            --mod-button-background-color-hover: #355abf;
+            --mod-button-background-color-down: #2f4fae;
+            --mod-button-border-color-default: transparent;
+            --mod-button-border-color-hover: transparent;
+            --mod-button-border-color-down: transparent;
+            --mod-button-border-width: 0;
+            --mod-button-content-color-default: #ffffff;
+            --mod-button-content-color-hover: #ffffff;
+            --mod-button-content-color-down: #ffffff;
+            --mod-button-font-weight: 700;
+            font-weight: 700;
         }
 
+        /* Select — Figma "Button (M, Secondary)" spec.
+           92px × 32px outline button, 2px #DADADA border, 16px radius, Bold 14px / 18px,
+           content color #292929. Padding handled by Spectrum's defaults. */
+        .select-button {
+            box-sizing: border-box;
+            width: 92px;
+            min-width: 72px;
+            height: 32px;
+            align-items: center;
+            --mod-button-align-items: center;
+            line-height: 32px;
+        }
+
+        /* Push slotted icon and label of both buttons onto the centre line. */
+        .create-button > *,
+        .select-button > * {
+            align-self: center;
+        }
+
+        .create-button::part(label),
+        .select-button::part(label) {
+            align-self: center;
+            --mod-button-border-width: 2px;
+            --mod-button-border-color-default: #dadada;
+            --mod-button-border-color-hover: #dadada;
+            --mod-button-border-color-down: #dadada;
+            --mod-button-border-color-key-focus: #dadada;
+            --mod-button-border-color-focus: #dadada;
+            --mod-button-border-radius: 16px;
+            --mod-button-background-color-default: transparent;
+            --mod-button-background-color-hover: #f3f3f3;
+            --mod-button-background-color-down: #e1e1e1;
+            --mod-button-content-color-default: #292929;
+            --mod-button-content-color-hover: #131313;
+            --mod-button-content-color-down: #131313;
+            --mod-button-font-weight: 700;
+            font-weight: 700;
+        }
+
+        /* Search — Figma "Search field (M)" spec.
+           390px max-width, 32px tall, 16px pill radius, 2px #DADADA border, white bg.
+           Icon #717171, text 14px / 18px Adobe Clean Spectrum VF Regular #292929.
+           Value padding 7px top + 7px bottom (centred), 14px left, 16px right. */
         sp-search {
             flex-grow: 1;
-            max-width: 400px;
+            max-width: 390px;
+            min-width: 112px;
+            height: 32px;
+            --mod-search-height: 32px;
+            --mod-search-border-radius: 16px;
+            --mod-search-border-width: 2px;
+            --mod-search-border-color: var(--spectrum-gray-300, #dadada);
+            --mod-search-border-color-default: var(--spectrum-gray-300, #dadada);
+            --mod-search-border-color-hover: var(--spectrum-gray-300, #dadada);
+            --mod-search-border-color-focus: var(--spectrum-gray-300, #dadada);
+            --mod-search-background-color: #ffffff;
+            --mod-search-background-color-default: #ffffff;
+            --mod-search-content-color: #292929;
+            --mod-search-content-color-default: #292929;
+            --mod-search-icon-color: #717171;
+            /* Symmetric vertical padding so the input text centres on the 32px line. */
+            --mod-search-padding-block: 7px;
+            --mod-search-padding-block-start: 7px;
+            --mod-search-padding-block-end: 7px;
+            --mod-search-padding-top: 7px;
+            --mod-search-padding-bottom: 7px;
+            --mod-search-padding-inline-start: 14px;
+            --mod-search-padding-inline-end: 16px;
+            --mod-search-font-family: 'Adobe Clean Spectrum VF', 'Adobe Clean', sans-serif;
+            --mod-search-font-size: 14px;
+            --mod-search-line-height: 18px;
+            --mod-search-font-weight: 400;
+            font-family: 'Adobe Clean Spectrum VF', 'Adobe Clean', sans-serif;
+            font-size: 14px;
+            line-height: 18px;
+            font-weight: 400;
+        }
+
+        /* Force the inner <input> inside sp-search's shadow DOM to use the
+           Figma typography and symmetric vertical padding. */
+        sp-search::part(input) {
+            font-family: 'Adobe Clean Spectrum VF', 'Adobe Clean', sans-serif;
+            font-size: 14px;
+            line-height: 18px;
+            font-weight: 400;
+            color: #292929;
+            padding-block: 7px;
+            padding-inline: 0 16px;
         }
 
         #search-results-label {
@@ -167,6 +243,35 @@ class MasToolbar extends LitElement {
         }
     }
 
+    // Spectrum sp-button's shadow DOM puts the label inside <span id="label">
+    // with align-self: start, and sp-search's inner <input> has asymmetric
+    // 4px-top / 7px-bottom padding. ::part() isn't exposed, so reach in directly.
+    async updated() {
+        await this.updateComplete;
+        ['.create-button', '.select-button'].forEach(async (sel) => {
+            const btn = this.shadowRoot?.querySelector(sel);
+            if (!btn) return;
+            await btn.updateComplete;
+            const label = btn.shadowRoot?.querySelector('#label');
+            if (label && label.style.alignSelf !== 'center') label.style.alignSelf = 'center';
+        });
+        const search = this.shadowRoot?.querySelector('sp-search');
+        if (search) {
+            await search.updateComplete;
+            const input = search.shadowRoot?.querySelector('input.input, input');
+            if (input) {
+                if (input.style.paddingTop !== '7px') input.style.paddingTop = '7px';
+                if (input.style.paddingBottom !== '7px') input.style.paddingBottom = '7px';
+                if (input.style.fontFamily !== "'Adobe Clean Spectrum VF', 'Adobe Clean', sans-serif") {
+                    input.style.fontFamily = "'Adobe Clean Spectrum VF', 'Adobe Clean', sans-serif";
+                }
+                if (input.style.fontSize !== '14px') input.style.fontSize = '14px';
+                if (input.style.lineHeight !== '18px') input.style.lineHeight = '18px';
+                if (input.style.fontWeight !== '400') input.style.fontWeight = '400';
+            }
+        }
+    }
+
     update() {
         super.update();
     }
@@ -193,6 +298,12 @@ class MasToolbar extends LitElement {
     handleRenderModeChange(ev) {
         localStorage.setItem('mas-render-mode', ev.target.value);
         Store.renderMode.set(ev.target.value);
+    }
+
+    toggleRenderMode() {
+        const next = this.renderMode.value === 'table' ? 'render' : 'table';
+        localStorage.setItem('mas-render-mode', next);
+        Store.renderMode.set(next);
     }
 
     clearUuidResolutionState() {
@@ -235,12 +346,6 @@ class MasToolbar extends LitElement {
 
     get searchAndFilterControls() {
         return html`<div id="read">
-            <sp-action-button toggles label="Filter" class="filters-button ${this.filterCount > 0 ? 'shown' : ''}">
-                ${!this.filterCount > 0
-                    ? html`<sp-icon-filter slot="icon"></sp-icon-filter>`
-                    : html`<div slot="icon" class="filters-badge">${this.filterCount}</div>`}
-                Filter</sp-action-button
-            >
             <sp-search
                 label="Search"
                 placeholder="Search"
@@ -254,9 +359,9 @@ class MasToolbar extends LitElement {
 
     get createButton() {
         return html`<overlay-trigger id="trigger" placement="bottom" offset="6">
-            <sp-button variant="accent" slot="trigger">
+            <sp-button class="create-button" variant="accent" slot="trigger">
                 <sp-icon-add slot="icon"></sp-icon-add>
-                Create
+                <span style="align-self: center;">Create</span>
             </sp-button>
             <sp-popover slot="click-content" direction="bottom" tip>
                 <sp-menu>
@@ -277,21 +382,19 @@ class MasToolbar extends LitElement {
         if (this.selecting.value) return nothing;
         return html`<div id="write">
             ${this.createButton}
-            <sp-button @click=${() => Store.selecting.set(true)}>
+            <sp-button class="select-button" variant="secondary" treatment="outline" @click=${() => Store.selecting.set(true)}>
                 <sp-icon-select-multi slot="icon"></sp-icon-select-multi>
                 Select
             </sp-button>
-            <sp-action-menu
-                selects="single"
-                value="${this.renderMode.value}"
-                placement="bottom"
-                @change=${this.handleRenderModeChange}
-            >
-                ${renderModes.map(
-                    ({ value, label, icon }) => html`<sp-menu-item value="${value}">${icon} ${label}</sp-menu-item>`,
-                )}
-            </sp-action-menu>
+            ${this.renderViewToggle}
         </div>`;
+    }
+
+    get renderViewToggle() {
+        const target = this.renderMode.value === 'table' ? renderModes[0] : renderModes[1];
+        return html`<sp-action-button quiet @click=${() => this.toggleRenderMode()} title="Switch to ${target.label}">
+            ${target.icon}
+        </sp-action-button>`;
     }
 
     get filtersPanel() {

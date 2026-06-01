@@ -19,9 +19,11 @@ export default class StudioPage {
         this.filterPanel = page.locator('mas-filter-panel');
         this.createdByTag = this.filterPanel.locator('sp-tag sp-icon-user');
         this.folderPicker = page.locator('mas-nav-folder-picker sp-action-menu');
-        this.previewMenu = page.locator('#actions sp-action-menu[value="render"]');
-        this.renderViewOption = this.previewMenu.locator('sp-menu-item[value="render"]');
-        this.tableViewOption = this.previewMenu.locator('sp-menu-item[value="table"]');
+        // Render-mode toggle button. Replaces the old sp-action-menu — a single
+        // icon button whose tooltip and icon show the OPPOSITE view.
+        this.viewToggleButton = page.locator('#actions #write sp-action-button[title^="Switch to"]');
+        this.switchToTableButton = page.locator('#actions #write sp-action-button[title="Switch to Table view"]');
+        this.switchToRenderButton = page.locator('#actions #write sp-action-button[title="Switch to Render view"]');
         this.renderView = page.locator('#render:not(.next-page-skeletons)');
         this.tableView = page.locator('sp-table');
         this.contentTableBody = page.locator('#content sp-table-body');
@@ -613,13 +615,10 @@ export default class StudioPage {
             return;
         }
 
-        // Switch to table view
-        await expect(this.previewMenu).toBeVisible({ timeout: 10000 });
-        await this.previewMenu.scrollIntoViewIfNeeded();
-        await this.previewMenu.click();
-        await this.page.waitForTimeout(500);
-        await expect(this.tableViewOption).toBeVisible({ timeout: 10000 });
-        await this.tableViewOption.click();
+        // Click the single toggle button (its title currently reads "Switch to Table view").
+        await expect(this.switchToTableButton).toBeVisible({ timeout: 10000 });
+        await this.switchToTableButton.scrollIntoViewIfNeeded();
+        await this.switchToTableButton.click();
         await this.page.waitForTimeout(2000);
         await expect(this.tableView).toBeVisible({ timeout: 15000 });
     }

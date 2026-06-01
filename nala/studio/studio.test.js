@@ -226,12 +226,10 @@ test.describe('M@S Studio feature test suite', () => {
         });
 
         await test.step('step-2: Change to the table view', async () => {
-            await expect(await studio.previewMenu).toBeVisible();
-            await expect(await studio.previewMenu).toHaveAttribute('value', 'render');
-            await studio.previewMenu.click();
-            await expect(await studio.renderViewOption).toBeVisible();
-            await expect(await studio.tableViewOption).toBeVisible();
-            await studio.tableViewOption.click();
+            // Currently in render view → toggle button offers "Switch to Table view".
+            await expect(studio.viewToggleButton).toBeVisible();
+            await expect(studio.switchToTableButton).toBeVisible();
+            await studio.switchToTableButton.click();
             await page.waitForTimeout(2000);
         });
 

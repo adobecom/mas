@@ -243,7 +243,10 @@ export class Fragment {
             const hasContent =
                 encodedValues.length && encodedValues.some((entry) => !isExplicitEmptySentinel(entry) && entry?.trim?.());
             const allowPersistedEmptyClear = fieldValuesArePersistedExplicitEmpty(encodedValues);
-            if (!hasContent && !allowPersistedEmptyClear && !allowVariationInheritEmptyWrite) {
+            // For a single-value field, [''] means 'inherit', and ['explicit_empty'] means 'overwritten' (intentionally cleared, don't inherit).
+            // For a multi-value field [] (an empty list) means 'inherit', and [''] means 'overwritten'
+            const allowMultiEmptyClear = isMultiple && isSingleEmptyString;
+            if (!hasContent && !allowPersistedEmptyClear && !allowVariationInheritEmptyWrite && !allowMultiEmptyClear) {
                 if (isTags) this.newTags = value;
                 return false;
             }
@@ -309,6 +312,10 @@ export class Fragment {
 
         const isSingleEmptyString = ownValues.length === 1 && ownValues[0] === '';
         if (isSingleEmptyString) {
+            // Multi-value fields use [''] as an explicit clear sentinel → resolve to empty.
+            if (ownField?.multiple === true) {
+                return [];
+            }
             if (!parentFragment || !isVariation) {
                 return [];
             }
@@ -343,7 +350,8 @@ export class Fragment {
 
         const isSingleEmptyString = ownValues.length === 1 && ownValues[0] === '';
         if (isSingleEmptyString) {
-            return 'inherited';
+            // Multi-value fields use [''] as an explicit clear sentinel → treated as an override.
+            return ownField?.multiple === true ? 'overridden' : 'inherited';
         }
 
         // Has actual values - compare with parent

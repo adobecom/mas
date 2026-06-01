@@ -13,7 +13,7 @@ import {
     EVENT_AEM_LOAD,
     SORT_ORDER,
 } from './constants.js';
-import { getService, getSlotText } from './utils.js';
+import { getService, getSlotText, debounce } from './utils.js';
 import { getFragmentMapping } from './variants/variants.js';
 import { normalizeVariant } from './hydrate.js';
 import './mas-commerce-service';
@@ -135,6 +135,15 @@ export class MerchCardCollection extends LitElement {
         this.hydrationReady = null;
         this.literalsHandlerAttached = false;
         this.onUnmount = [];
+        this.resizeHandlerDebounced = debounce(
+            this.resizeHandler.bind(this),
+            500,
+        );
+        this.resizeHandler = this.resizeHandler.bind(this);
+    }
+
+    resizeHandler(firstPaint) {
+        this.firstChild?.variantLayout?.resizeHandler?.();
     }
 
     render() {
@@ -250,6 +259,7 @@ export class MerchCardCollection extends LitElement {
         this.#merchCardElement = customElements.get('merch-card');
         this.buildOverrideMap();
         this.init();
+        window.addEventListener('resize', this.resizeHandlerDebounced);
     }
 
     async init() {
@@ -268,6 +278,7 @@ export class MerchCardCollection extends LitElement {
         super.disconnectedCallback();
         this.stopDeeplink?.();
         for (const callback of this.onUnmount) callback();
+        window.removeEventListener('resize', this.resizeHandlerDebounced);
     }
 
     initializeHeader() {

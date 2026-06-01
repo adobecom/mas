@@ -248,6 +248,8 @@ export const QUICK_ACTION = {
     LOC: 'loc',
     VALIDATE: 'validate',
     LINK: 'link',
+    REVERT: 'revert',
+    CHECK_MODIFICATIONS: 'check-modifications',
 };
 
 export const FILTER_TYPE = {
@@ -255,6 +257,10 @@ export const FILTER_TYPE = {
     MARKET_SEGMENT: 'marketSegment',
     CUSTOMER_SEGMENT: 'customerSegment',
     PRODUCT: 'product',
+    OFFER_TYPE: 'offerType',
+    PLAN_TYPE: 'planType',
+    PZN: 'pzn',
+    TAG: 'tag',
 };
 
 export const FRAGMENT_STATUS = {
@@ -281,6 +287,8 @@ export const BULK_PUBLISH_STATUS = {
     PUBLISHING: 'Publishing',
     PUBLISHED: 'Published',
     LOCKED: 'Locked',
+    REVERTING: 'Reverting',
+    REVERTED: 'Reverted',
 };
 
 export const BULK_PUBLISH_PARENT_PATH = '/content/dam/mas/bulk-publish-projects';

@@ -27,7 +27,7 @@ function decompress(response) {
 }
 
 async function getFragment(params) {
-    return decompress(await action(params));
+    return decompress(await action({ api_key: 'wcms-commerce-ims-ro-user-milo', ...params }));
 }
 
 const EXPECTED_HEADERS = {
@@ -85,6 +85,11 @@ function setupFragmentMocks(fetchStub, { id, path, fields = {} }, preview = fals
     fetchStub
         .withArgs(`${odinDomain}${odinUriRoot}/?path=/content/dam/mas/promotions`)
         .returns(createResponse(200, { items: [] }));
+
+    // WCS prefill — hardcoded prod config is always merged in; return empty offers
+    fetchStub
+        .withArgs(sinon.match((url) => typeof url === 'string' && url.includes('web_commerce_artifact')))
+        .returns(createResponse(200, { resolvedOffers: [] }));
 }
 
 const EXPECTED_BODY = {
@@ -92,7 +97,7 @@ const EXPECTED_BODY = {
     path: '/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app',
 };
 // EXPECTED BODY SHA256 hash (includes settings/priceLiterals from mocked settings)
-const EXPECTED_BODY_HASH = 'e40a8c822bb0e6fd5ef462ee327d1e9240aa74219ec67d8da63ca15aa7250de9';
+const EXPECTED_BODY_HASH = 'c18ffd8f69c63d3313c3dfa3dcb71126717e83be7085acda810f4e5d1b572125';
 
 const RANDOM_OLD_DATE = 'Thu, 27 Jul 1978 09:00:00 GMT';
 
@@ -192,6 +197,7 @@ describe('pipeline corner cases', () => {
         await state.put('configuration', `{"networkConfig":{"mainTimeout":10,"retries": 1}}`);
 
         const result = await action({
+            api_key: 'wcms-commerce-ims-ro-user-milo',
             id: 'some-en-us-fragment',
             state,
             locale: 'fr_FR',
@@ -214,6 +220,75 @@ describe('pipeline corner cases', () => {
         expect(result.statusCode).to.equal(400);
         expect(result.message).to.equal('Preview mode is not supported in this pipeline');
         expect(fetchStub.called).to.be.false;
+    });
+
+    it('should 400 when api_key param is missing', async () => {
+        const result = await action({
+            id: 'some-en-us-fragment',
+            locale: 'en_US',
+            state: new MockState(),
+        });
+        expect(result.statusCode).to.equal(400);
+        expect(result.message).to.equal('missing api_key');
+        expect(fetchStub.called).to.be.false;
+    });
+
+    it('should 401 when api_key is not in the accepted list', async () => {
+        const result = await getFragment({
+            id: 'some-en-us-fragment',
+            locale: 'en_US',
+            api_key: 'not-a-real-client',
+            state: new MockState(),
+        });
+        expect(result.statusCode).to.equal(401);
+        expect(result.message).to.equal('unauthorized api_key');
+        expect(fetchStub.called).to.be.false;
+    });
+
+    it('should 200 when api_key matches a hardcoded CreativeCloud version regex', async () => {
+        setupFragmentMocks(fetchStub, {
+            id: 'some-en-us-fragment',
+            path: 'someFragment',
+        });
+        const result = await getFragment({
+            id: 'some-en-us-fragment',
+            state: new MockState(),
+            locale: 'fr_FR',
+            api_key: 'CreativeCloud_v42_99',
+        });
+        expect(result.statusCode).to.equal(200);
+    });
+
+    it('should accept a state-supplied literal api_key', async () => {
+        setupFragmentMocks(fetchStub, {
+            id: 'some-en-us-fragment',
+            path: 'someFragment',
+        });
+        const state = new MockState();
+        await state.put('configuration', JSON.stringify({ apiKeys: ['my-test-key'] }));
+        const result = await getFragment({
+            id: 'some-en-us-fragment',
+            state,
+            locale: 'fr_FR',
+            api_key: 'my-test-key',
+        });
+        expect(result.statusCode).to.equal(200);
+    });
+
+    it('should accept a state-supplied slash-wrapped regex pattern', async () => {
+        setupFragmentMocks(fetchStub, {
+            id: 'some-en-us-fragment',
+            path: 'someFragment',
+        });
+        const state = new MockState();
+        await state.put('configuration', JSON.stringify({ apiKeys: ['/^my_v\\d+$/'] }));
+        const result = await getFragment({
+            id: 'some-en-us-fragment',
+            state,
+            locale: 'fr_FR',
+            api_key: 'my_v3',
+        });
+        expect(result.statusCode).to.equal(200);
     });
 
     it('no arguments should return 400', async () => {

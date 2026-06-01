@@ -498,14 +498,16 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await expect(await ost.unitCheckbox).toBeVisible();
             await ost.unitCheckbox.click();
             await expect(await ost.price).toContainText(data.price.updated);
-            await expect(await ost.price).toContainText(data.strikethroughPrice.updated);
+            await expect(await ost.price).toContainText(data.strikethroughPrice.original);
+            await expect(await ost.price).not.toContainText(data.strikethroughPrice.updated);
             await expect(await ost.pricePromoStrikethrough).toHaveCSS('text-decoration-line', 'line-through');
             await ost.priceUse.click();
         });
 
         await test.step('step-3: Validate edited price in Editor panel', async () => {
             await expect(await editor.prices).toContainText(data.price.updated);
-            await expect(await editor.prices).toContainText(data.strikethroughPrice.updated);
+            await expect(await editor.prices).toContainText(data.strikethroughPrice.original);
+            await expect(await editor.prices).not.toContainText(data.strikethroughPrice.updated);
             await expect(await editor.prices.locator(editor.promoStrikethroughPrice)).toHaveCSS(
                 'text-decoration-line',
                 'line-through',

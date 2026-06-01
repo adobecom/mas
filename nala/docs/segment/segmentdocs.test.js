@@ -2,10 +2,8 @@ import { expect, test } from '@playwright/test';
 import { features } from './segmentdocs.spec.js';
 import MasSegment from './segment.page.js';
 import { createWorkerPageSetup, DOCS_GALLERY_PATH } from '../../utils/commerce.js';
-import WebUtil from '../../libs/webutil.js';
 
 let galleryPage;
-let webUtil;
 
 test.skip(({ browserName }) => browserName !== 'chromium', 'Not supported to run on multiple browsers.');
 
@@ -90,7 +88,6 @@ test.describe('Segment gallery feature test suite', () => {
         await test.step('step-1: Go to Segment gallery page', async () => {
             const page = workerSetup.getPage('US');
             galleryPage = new MasSegment(page);
-            webUtil = new WebUtil(page);
 
             await workerSetup.verifyPageURL('US', DOCS_GALLERY_PATH.SEGMENT, expect);
         });
@@ -99,12 +96,12 @@ test.describe('Segment gallery feature test suite', () => {
             await expect(galleryPage.getCard(data.id)).toBeVisible();
             await expect(galleryPage.getCard(data.id)).toHaveAttribute('variant', data.variant);
             await expect(galleryPage.getCard(data.id).locator('[slot="callout-content"] [data-wcs-osi]')).toContainText(data.calloutPriceText);
-            expect(await webUtil.verifyCSS(await galleryPage.getCard(data.id).locator('[slot="callout-content"] [data-wcs-osi] .price-strikethrough .price-unit-type'), galleryPage.cssProp.hiddenLabel)).toBeTruthy();
-            expect(await webUtil.verifyCSS(await galleryPage.getCard(data.id).locator('[slot="callout-content"] [data-wcs-osi] .price-strikethrough .price-tax-inclusivity'), galleryPage.cssProp.hiddenLabel)).toBeTruthy();
-            expect(await webUtil.verifyCSS(await galleryPage.getCard(data.id).locator('[slot="callout-content"] [data-wcs-osi] .price-strikethrough .price-recurrence'), galleryPage.cssProp.visibleLabel)).toBeTruthy();
-            expect(await webUtil.verifyCSS(await galleryPage.getCard(data.id).locator('[slot="callout-content"] [data-wcs-osi] .price-alternative .price-unit-type'), galleryPage.cssProp.visibleLabel)).toBeTruthy();
-            expect(await webUtil.verifyCSS(await galleryPage.getCard(data.id).locator('[slot="callout-content"] [data-wcs-osi] .price-alternative .price-tax-inclusivity'), galleryPage.cssProp.visibleLabel)).toBeTruthy();
-            expect(await webUtil.verifyCSS(await galleryPage.getCard(data.id).locator('[slot="callout-content"] [data-wcs-osi] .price-alternative .price-recurrence'), galleryPage.cssProp.visibleLabel)).toBeTruthy();
+            await expect(galleryPage.getCard(data.id).locator('[slot="callout-content"] [data-wcs-osi] .price-strikethrough .price-recurrence')).toHaveAttribute('class', /price-recurrence/);
+            await expect(galleryPage.getCard(data.id).locator('[slot="callout-content"] [data-wcs-osi] .price-strikethrough .price-unit-type')).toHaveAttribute('class', /price-unit-type disabled/);
+            await expect(galleryPage.getCard(data.id).locator('[slot="callout-content"] [data-wcs-osi] .price-strikethrough .price-tax-inclusivity')).toHaveAttribute('class', /price-tax-inclusivity disabled/);
+            await expect(galleryPage.getCard(data.id).locator('[slot="callout-content"] [data-wcs-osi] .price-alternative .price-recurrence')).toHaveAttribute('class', /price-recurrence/);
+            await expect(galleryPage.getCard(data.id).locator('[slot="callout-content"] [data-wcs-osi] .price-alternative .price-unit-type')).toHaveAttribute('class', /price-unit-type/);
+            await expect(galleryPage.getCard(data.id).locator('[slot="callout-content"] [data-wcs-osi] .price-alternative .price-tax-inclusivity')).toHaveAttribute('class', /price-tax-inclusivity/);
         });
     });    
 });

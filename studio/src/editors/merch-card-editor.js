@@ -19,7 +19,11 @@ import Events from '../events.js';
 import { VARIANT_NAMES } from './variant-picker.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 import { getItemFieldStateByIndex } from '../utils/field-state.js';
-import { Fragment } from '../aem/fragment.js';
+import { Fragment, parentValuesHaveContent } from '../aem/fragment.js';
+import {
+    fieldValuesArePersistedExplicitEmpty,
+    toPersistedExplicitEmptyValues,
+} from '../../../io/www/src/fragment/utils/explicit-empty.js';
 import { toAttribute } from '../aem/tag-path-utils.js';
 import { getGlobalSettingsDefaults } from '../settings/settings-store.js';
 import { fieldStatusStyles } from '../common/fields/field-status.css.js';
@@ -297,8 +301,7 @@ class MerchCardEditor extends LitElement {
 
     async resetMnemonicsToParent() {
         for (const fieldName of MerchCardEditor.MNEMONIC_FIELDS) {
-            const parentValues = this.localeDefaultFragment?.getField(fieldName)?.values || [];
-            this.fragmentStore.resetFieldToParent(fieldName, parentValues);
+            this.fragmentStore.resetFieldToParent(fieldName);
         }
         showToast('Visuals restored to parent value', 'positive');
     }
@@ -310,8 +313,7 @@ class MerchCardEditor extends LitElement {
     }
 
     async resetFieldToParent(fieldName) {
-        const parentValues = this.localeDefaultFragment?.getField(fieldName)?.values || [];
-        const success = this.fragmentStore.resetFieldToParent(fieldName, parentValues);
+        const success = this.fragmentStore.resetFieldToParent(fieldName);
         if (success) {
             showToast('Field restored to parent value', 'positive');
         }
@@ -454,8 +456,7 @@ class MerchCardEditor extends LitElement {
     resetSettingToDefault(fieldName, silent = false) {
         let restored = false;
         if (this.effectiveIsVariation) {
-            const parentValues = this.localeDefaultFragment?.getField(fieldName)?.values || [];
-            restored = this.fragmentStore.resetFieldToParent(fieldName, parentValues);
+            restored = this.fragmentStore.resetFieldToParent(fieldName);
         } else {
             restored = this.fragmentStore.updateField(fieldName, ['']) !== false;
         }
@@ -1881,32 +1882,36 @@ class MerchCardEditor extends LitElement {
         const isExplicitClear = mnemonicIcon.length === 0 && this.effectiveIsVariation;
         const parent = this.effectiveIsVariation ? this.localeDefaultFragment : null;
 
+        const emptyMnemonicValues = toPersistedExplicitEmptyValues();
         const values = {
-            mnemonicIcon: isExplicitClear ? [''] : mnemonicIcon,
-            mnemonicAlt: isExplicitClear ? [''] : mnemonicAlt,
-            mnemonicLink: isExplicitClear ? [''] : mnemonicLink,
-            mnemonicTooltipText: isExplicitClear ? [''] : mnemonicTooltipText,
-            mnemonicTooltipPlacement: isExplicitClear ? [''] : mnemonicTooltipPlacement,
+            mnemonicIcon: isExplicitClear ? emptyMnemonicValues : mnemonicIcon,
+            mnemonicAlt: isExplicitClear ? emptyMnemonicValues : mnemonicAlt,
+            mnemonicLink: isExplicitClear ? emptyMnemonicValues : mnemonicLink,
+            mnemonicTooltipText: isExplicitClear ? emptyMnemonicValues : mnemonicTooltipText,
+            mnemonicTooltipPlacement: isExplicitClear ? emptyMnemonicValues : mnemonicTooltipPlacement,
         };
 
         // For variations: check if ALL mnemonic values match parent before resetting
         if (parent) {
+            // Blank rows are an explicit clear (variation should have no visuals), not revert to parent.
+            // Cancel-add-visual removes the placeholder row via delete-field before this runs.
             if (hadOnlyBlankPlaceholderRows) {
                 for (const fieldName of MerchCardEditor.MNEMONIC_FIELDS) {
                     this.fragment.resetFieldToParent(fieldName);
                 }
-                this.fragmentStore.notify();
-                this.fragmentStore.refreshAemFragment();
                 this.requestUpdate();
                 return;
             }
 
             // Compare against effective parent values (what would be inherited)
-            // For fields that don't exist on parent, treat default values as matching
             const allMatchParent = MerchCardEditor.MNEMONIC_FIELDS.every((fieldName) => {
                 const newValues = values[fieldName] || [];
                 const parentField = parent.getField(fieldName);
                 const parentValues = parentField?.values || [];
+
+                if (fieldValuesArePersistedExplicitEmpty(newValues) && parentValues.length > 0) {
+                    return false;
+                }
 
                 // If parent has the field, compare directly
                 if (parentField && parentValues.length > 0) {
@@ -2270,7 +2275,10 @@ class MerchCardEditor extends LitElement {
     }
 
     #createBadgeElement(text, bgColor, borderColor, icon) {
-        if (!text) return;
+        const hasText = Boolean(text?.trim?.());
+        if (!hasText && !icon && !bgColor && !borderColor && !this.effectiveIsVariation) {
+            return;
+        }
 
         const element = document.createElement('merch-badge');
         if (bgColor) {
@@ -2285,7 +2293,9 @@ class MerchCardEditor extends LitElement {
             element.setAttribute('icon', icon);
         }
         element.setAttribute('variant', this.getEffectiveFieldValue('variant'));
-        element.innerHTML = text;
+        if (hasText) {
+            element.innerHTML = text;
+        }
         return element;
     }
 
@@ -2321,11 +2331,30 @@ class MerchCardEditor extends LitElement {
     }
 
     #updateBadge = (text, bgColor, borderColor, icon) => {
+        if (
+            !String(text ?? '').trim() &&
+            this.effectiveIsVariation &&
+            this.localeDefaultFragment &&
+            parentValuesHaveContent(this.localeDefaultFragment.getFieldValues('badge'))
+        ) {
+            this.fragmentStore.updateField('badge', ['']);
+            return;
+        }
         const element = this.#createBadgeElement(text, bgColor, borderColor, icon);
         this.fragmentStore.updateField('badge', [element?.outerHTML || '']);
     };
 
     #updateTrialBadge = (text, bgColor, borderColor) => {
+        if (
+            !String(text ?? '').trim() &&
+            this.effectiveIsVariation &&
+            this.localeDefaultFragment &&
+            parentValuesHaveContent(this.localeDefaultFragment.getFieldValues('trialBadge'))
+        ) {
+            this.fragmentStore.updateField('trialBadge', ['']);
+            return;
+        }
+
         const element = this.#createBadgeElement(text, bgColor, borderColor);
         this.fragmentStore.updateField('trialBadge', [element?.outerHTML || '']);
     };

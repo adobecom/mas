@@ -1522,7 +1522,7 @@ export default class MasFragmentEditor extends LitElement {
         }
     }
 
-    displayRegionalVarationInfo(clazz) {
+    displayRegionalVariationInfo(clazz) {
         const localeCode = extractLocaleFromPath(this.fragment.path);
         if (!localeCode) return nothing;
         const [lang, country] = localeCode.split('_');
@@ -1601,7 +1601,7 @@ export default class MasFragmentEditor extends LitElement {
         if (Fragment.isGroupedVariationPath(this.fragment.path)) {
             return this.displayGroupedVariationInfo('locale-variation-header');
         }
-        return this.displayRegionalVarationInfo('locale-variation-header');
+        return this.displayRegionalVariationInfo('locale-variation-header');
     }
 
     get localeDefaultLocaleLabel() {
@@ -1850,7 +1850,7 @@ export default class MasFragmentEditor extends LitElement {
                     ${this.editorContextStore.isVariation(this.fragment.id)
                         ? Fragment.isGroupedVariationPath(this.fragment.path)
                             ? this.displayGroupedVariationInfo('preview-header')
-                            : this.displayRegionalVarationInfo('preview-header')
+                            : this.displayRegionalVariationInfo('preview-header')
                         : nothing}
                     <div class="preview-content columns mas-fragment">
                         <sp-theme color="light" scale="medium" system="${getSpectrumVersion(attrs.variant)}">

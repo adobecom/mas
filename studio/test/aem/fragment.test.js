@@ -1,4 +1,5 @@
 import { expect } from '@open-wc/testing';
+import { EXPLICIT_EMPTY_SENTINEL } from '../../../io/www/src/fragment/utils/explicit-empty.js';
 import { Fragment } from '../../src/aem/fragment.js';
 import { TAG_PROMOTION_PREFIX } from '../../src/constants.js';
 import generateFragmentStore from '../../src/reactivity/source-fragment-store.js';
@@ -339,6 +340,66 @@ describe('Fragment', () => {
                 expect(variation.getFieldValues('mnemonicIcon')).to.deep.equal(['']);
                 expect(variation.getField('mnemonicIcon').multiple).to.be.true;
             });
+
+            it('does not persist explicit_empty when clearing compatVersion on a variation', () => {
+                const parent = new Fragment(
+                    createFragmentConfig({
+                        fields: [{ name: 'compatVersion', type: 'number', values: [1] }],
+                    }),
+                );
+                const variation = new Fragment(createFragmentConfig({ fields: [] }));
+
+                expect(variation.updateField('compatVersion', [''], parent)).to.be.true;
+                expect(variation.getFieldValues('compatVersion')).to.deep.equal(['']);
+                expect(variation.getFieldValues('compatVersion')[0]).to.not.equal(EXPLICIT_EMPTY_SENTINEL);
+            });
+
+            it('strips explicit_empty from compatVersion when preparing variation for save', () => {
+                const parent = new Fragment(
+                    createFragmentConfig({
+                        fields: [{ name: 'compatVersion', type: 'number', values: [1] }],
+                    }),
+                );
+                const variation = new Fragment(
+                    createFragmentConfig({
+                        fields: [{ name: 'compatVersion', type: 'number', values: [EXPLICIT_EMPTY_SENTINEL] }],
+                    }),
+                );
+
+                const prepared = variation.prepareVariationForSave(parent);
+                expect(prepared.getFieldValues('compatVersion')).to.deep.equal(['']);
+            });
+
+            for (const booleanField of ['showSecureLabel', 'showPlanType']) {
+                it(`does not persist explicit_empty when clearing ${booleanField} on a variation`, () => {
+                    const parent = new Fragment(
+                        createFragmentConfig({
+                            fields: [{ name: booleanField, type: 'boolean', values: ['true'] }],
+                        }),
+                    );
+                    const variation = new Fragment(createFragmentConfig({ fields: [] }));
+
+                    expect(variation.updateField(booleanField, [''], parent)).to.be.true;
+                    expect(variation.getFieldValues(booleanField)).to.deep.equal(['']);
+                    expect(variation.getFieldValues(booleanField)[0]).to.not.equal(EXPLICIT_EMPTY_SENTINEL);
+                });
+
+                it(`strips explicit_empty from ${booleanField} when preparing variation for save`, () => {
+                    const parent = new Fragment(
+                        createFragmentConfig({
+                            fields: [{ name: booleanField, type: 'boolean', values: ['true'] }],
+                        }),
+                    );
+                    const variation = new Fragment(
+                        createFragmentConfig({
+                            fields: [{ name: booleanField, type: 'boolean', values: [EXPLICIT_EMPTY_SENTINEL] }],
+                        }),
+                    );
+
+                    const prepared = variation.prepareVariationForSave(parent);
+                    expect(prepared.getFieldValues(booleanField)).to.deep.equal(['']);
+                });
+            }
         });
 
         describe('new field creation', () => {

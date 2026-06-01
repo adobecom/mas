@@ -1,6 +1,11 @@
 import { PATH_TOKENS } from '../utils/paths.js';
 import { getRequestInfos, matchesGeo } from '../utils/common.js';
 import { logDebug } from '../utils/log.js';
+import {
+    FIELDS_DISALLOWING_EXPLICIT_EMPTY,
+    isExplicitEmptySentinel,
+    normalizeExplicitEmptyInFields,
+} from '../utils/explicit-empty.js';
 
 const PZN_FOLDER = '/pzn/';
 
@@ -36,10 +41,19 @@ function deepMerge(...objects) {
                 result[key] = deepMerge(result[key] || {}, obj[key]);
             } else {
                 if (!Array.isArray(obj[key]) || obj[key].length > 0) {
-                    // Preserve left value when right is undefined; only overwrite for '' (explicit clear) or other defined values
-                    if (obj[key] !== undefined || result[key] === undefined) {
+                    // Structural fields (e.g. `variant`) are inherited from the parent: a grouped/locale
+                    // variation stores no own value, so an empty override must never blank a populated parent.
+                    const overrideIsEmpty = obj[key] === '' || isExplicitEmptySentinel(obj[key]);
+                    const parentHasContent =
+                        result[key] !== undefined && result[key] !== '' && !isExplicitEmptySentinel(result[key]);
+                    const inheritsFromParent =
+                        FIELDS_DISALLOWING_EXPLICIT_EMPTY.includes(key) && overrideIsEmpty && parentHasContent;
+                    // Preserve left value when right is undefined; only overwrite for '' / 'explicit_empty' sentinel or other defined values
+                    if (!inheritsFromParent && (obj[key] !== undefined || result[key] === undefined)) {
                         result[key] = obj[key];
                     }
+                } else if (Array.isArray(obj[key]) && obj[key].some(isExplicitEmptySentinel)) {
+                    result[key] = obj[key];
                 }
             }
         }
@@ -257,6 +271,7 @@ function adaptReferencesTree(referencesTree, customizedRoot) {
 function customizeTree(root, referencesTree = [], customizeContext) {
     //start by merging current fragment with its regional variation, and promos if any
     const customizedRoot = mergeVariations(root, customizeContext);
+    normalizeExplicitEmptyInFields(customizedRoot.fields);
     if (customizeContext.promos?.fragmentPaths.has(PATH_TOKENS.exec(root.path)?.groups.fragmentPath)) {
         applyPromoCode(customizedRoot, customizeContext.promos.promoMap, customizeContext);
     }

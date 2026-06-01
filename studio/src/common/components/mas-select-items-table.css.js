@@ -27,8 +27,11 @@ export const styles = [
 
         sp-table {
             flex: 1;
+            height: 100%;
             min-height: 0;
-            overflow: auto;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
             border: 1px solid var(--spectrum-gray-300);
             border-radius: 12px;
         }
@@ -45,6 +48,7 @@ export const styles = [
 
         .fragments-table {
             sp-table-head {
+                flex-shrink: 0;
                 position: sticky;
                 top: -1px;
                 z-index: 10;
@@ -69,6 +73,12 @@ export const styles = [
             sp-table-body > mas-collapsible-table-row + mas-collapsible-table-row {
                 border-top: 1px solid var(--spectrum-gray-300);
             }
+        }
+
+        .fragments-table sp-table-body {
+            flex: 1;
+            max-height: 50vh;
+            overflow: auto;
         }
 
         .fragments-table[selects='multiple'] {

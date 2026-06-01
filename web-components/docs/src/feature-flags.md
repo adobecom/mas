@@ -29,16 +29,16 @@ e.g `<meta name="mas-ff-defaults" content="on">`
 | Country/Locale | INDIVIDUAL | TEAM |
 | --- | --- | --- |
 | **Europe** |     |     |
-| AT_de (Austria) | inkl. MwSt | exkl. MwSt |
+| AT_de (Austria) | inkl. MwSt. | exkl. MwSt. |
 | BE_en (Belgium) | incl. VAT | excl. VAT |
 | BE_fr (Belgium) | TTC | HT  |
 | BE_nl (Belgium) | incl. btw | excl. btw |
 | BG_bg (Bulgaria) | вкл. ДДС | без ДДС |
-| CH_de (Switzerland) | inkl. MwSt | exkl. MwSt |
+| CH_de (Switzerland) | inkl. MwSt. | exkl. MwSt. |
 | CH_fr (Switzerland) | TTC | HT  |
 | CH_it (Switzerland) | incl. IVA | escl. IVA. |
 | CZ_cs (Czech Republic) | včetně DPH | bez DPH |
-| DE_de (Germany) | inkl. MwSt | exkl. MwSt |
+| DE_de (Germany) | inkl. MwSt. | exkl. MwSt. |
 | DK_da (Denmark) | inkl. moms | ekskl. moms |
 | EE_et (Estonia) | käibemaksuga | käibemaksuta |
 | ES_es (Spain) | IVA incluido | sin IVA |
@@ -51,7 +51,7 @@ e.g `<meta name="mas-ff-defaults" content="on">`
 | IE_en (Ireland) | incl. VAT | excl. VAT |
 | IT_it (Italy) | incl. IVA | escl. IVA. |
 | LT_lt (Lithuania) | su PVM | be PVM |
-| LU_de (Luxembourg) | inkl. MwSt | exkl. MwSt |
+| LU_de (Luxembourg) | inkl. MwSt. | exkl. MwSt. |
 | LU_en (Luxembourg) | incl. VAT | excl. VAT |
 | LU_fr (Luxembourg) | TTC | HT  |
 | LV_lv (Latvia) | ar PVN | bez PVN |

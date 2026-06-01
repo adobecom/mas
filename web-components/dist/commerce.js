@@ -63,8 +63,8 @@ window.masPriceLiterals = {
             "perUnitAriaLabel": "{perUnit, select, LICENSE {pro Lizenz} other {}}",
             "freeLabel": "Kostenlos",
             "freeAriaLabel": "Kostenlos",
-            "taxExclusiveLabel": "{taxTerm, select, GST {zzgl. GST} VAT {exkl. MwSt} TAX {zzgl. Steuern} IVA {zzgl. IVA} SST {zzgl. SST} KDV {zzgl. KDV} other {}}",
-            "taxInclusiveLabel": "{taxTerm, select, GST {inkl. GST} VAT {inkl. MwSt} TAX {inkl. Steuern} IVA {inkl. IVA} SST {inkl. SST} KDV {inkl. KDV} other {}}",
+            "taxExclusiveLabel": "{taxTerm, select, GST {zzgl. GST} VAT {exkl. MwSt.} TAX {zzgl. Steuern} IVA {zzgl. IVA} SST {zzgl. SST} KDV {zzgl. KDV} other {}}",
+            "taxInclusiveLabel": "{taxTerm, select, GST {inkl. GST} VAT {inkl. MwSt.} TAX {inkl. Steuern} IVA {inkl. IVA} SST {inkl. SST} KDV {inkl. KDV} other {}}",
             "alternativePriceAriaLabel": "Alternativ: {alternativePrice}",
             "strikethroughAriaLabel": "Regulär: {strikethroughPrice}"
         },

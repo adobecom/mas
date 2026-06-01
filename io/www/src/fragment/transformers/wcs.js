@@ -60,17 +60,10 @@ async function computeCache(tokens, wcsContext) {
     return cache;
 }
 
-async function getWcsConfigurations(context) {
-    if (context.wcsConfiguration) {
-        return context.wcsConfiguration.filter((config) => config.api_keys?.includes(context.api_key));
-    }
-    return null;
-}
-
 async function wcs(context) {
-    const wcsConfigs = await getWcsConfigurations(context);
+    const wcsConfigs = context.wcsConfiguration;
     if (!wcsConfigs || wcsConfigs.length === 0) {
-        log(`No WCS configurations found for API key ${context.api_key}`, context);
+        log('No WCS configurations available', context);
         return context;
     }
     const { body } = context;

@@ -4,10 +4,13 @@ import { fixture, fixtureCleanup } from '@open-wc/testing-helpers/pure';
 import sinon from 'sinon';
 import Store from '../../src/store.js';
 import { setItemsSelectionStore } from '../../src/common/items-selection-store.js';
+import { setNamespaceCache } from '../../src/aem/tag-cache.js';
 import { TABLE_TYPE } from '../../src/constants.js';
 import '../../src/swc.js';
 import '../../src/common/components/mas-items-selector.js';
 import { TABS } from '../../src/common/components/mas-items-selector.js';
+
+const MAS_TAG_NAMESPACE = '/content/cq:tags/mas';
 
 describe('MasItemsSelector', () => {
     let sandbox;
@@ -15,6 +18,7 @@ describe('MasItemsSelector', () => {
     beforeEach(() => {
         sandbox = sinon.createSandbox();
         setItemsSelectionStore(Store.translationProjects);
+        setNamespaceCache(MAS_TAG_NAMESPACE, new Map());
         Store.translationProjects.inEdit.set(null);
         Store.translationProjects.showSelected.set(false);
         Store.translationProjects.selectedCards.set([]);
@@ -31,6 +35,7 @@ describe('MasItemsSelector', () => {
         Store.translationProjects.selectedCollections.set([]);
         Store.translationProjects.selectedPlaceholders.set([]);
         setItemsSelectionStore(null);
+        setNamespaceCache(MAS_TAG_NAMESPACE, undefined);
     });
 
     describe('TABS constant', () => {

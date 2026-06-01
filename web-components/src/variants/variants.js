@@ -33,6 +33,10 @@ import {
 } from './full-pricing-express.js';
 import { Headless, HEADLESS_AEM_FRAGMENT_MAPPING } from './headless.js';
 import { Mini, MINI_AEM_FRAGMENT_MAPPING } from './mini.js';
+import {
+    CompareChartColumn,
+    COMPARE_CHART_COLUMN_AEM_FRAGMENT_MAPPING,
+} from './compare-chart-column.js';
 import { FriesCard, FRIES_AEM_FRAGMENT_MAPPING } from './fries.js';
 
 // Registry for dynamic variants
@@ -147,6 +151,12 @@ registerVariant(
 );
 registerVariant('mini', Mini, MINI_AEM_FRAGMENT_MAPPING, Mini.variantStyle);
 registerVariant('image', Image, IMAGE_AEM_FRAGMENT_MAPPING, Image.variantStyle);
+registerVariant(
+    'compare-chart-column',
+    CompareChartColumn,
+    COMPARE_CHART_COLUMN_AEM_FRAGMENT_MAPPING,
+    CompareChartColumn.variantStyle,
+);
 registerVariant(
     'fries',
     FriesCard,

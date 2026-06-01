@@ -2,7 +2,7 @@ import { expect } from '@esm-bundle/chai';
 import sinon from 'sinon';
 import { Router, promoHashIsSearchSync, orderHashParamEntries } from '../src/router.js';
 import Store from '../src/store.js';
-import { PAGE_NAMES, COLLECTION_MODEL_PATH } from '../src/constants.js';
+import { PAGE_NAMES, COLLECTION_MODEL_PATH, COMPARE_CHART_FIELD } from '../src/constants.js';
 import { FragmentStore } from '../src/reactivity/fragment-store.js';
 import { ReactiveStore } from '../src/reactivity/reactive-store.js';
 import { Fragment } from '../src/aem/fragment.js';
@@ -14,6 +14,7 @@ describe('Router', () => {
     let mockLocation;
     let originalPageValue;
     let originalFragmentsInEdit;
+    let originalFragmentsList;
     let originalTranslationProjectsInEdit;
     let originalSelectedCards;
     let originalSelectedCollections;
@@ -90,6 +91,7 @@ describe('Router', () => {
         router = new Router(mockLocation);
         originalPageValue = Store.page.value;
         originalFragmentsInEdit = Store.fragments.inEdit.get();
+        originalFragmentsList = Store.fragments.list.data.get();
         originalTranslationProjectsInEdit = Store.translationProjects.inEdit.get();
         originalSelectedCards = Store.translationProjects.selectedCards.value;
         originalSelectedCollections = Store.translationProjects.selectedCollections.value;
@@ -118,6 +120,7 @@ describe('Router', () => {
         sandbox.restore();
         Store.page.value = originalPageValue;
         Store.fragments.inEdit.set(originalFragmentsInEdit);
+        Store.fragments.list.data.set(originalFragmentsList);
         Store.translationProjects.inEdit.set(originalTranslationProjectsInEdit);
         Store.translationProjects.selectedCards.set(originalSelectedCards);
         Store.translationProjects.selectedCollections.set(originalSelectedCollections);
@@ -693,6 +696,21 @@ describe('Router', () => {
             Store.filters.value = { locale: 'en_US' };
             await router.navigateToFragmentEditor('test-id', { locale: 'fr_FR' });
             expect(Store.search.get().region).to.equal('fr_FR');
+        });
+
+        it('should navigate compare chart collections to the full-page fragment editor', async () => {
+            const fragment = new Fragment({
+                id: 'compare-chart-id',
+                model: { path: COLLECTION_MODEL_PATH },
+                fields: [{ name: COMPARE_CHART_FIELD, values: ['<mas-compare-chart></mas-compare-chart>'] }],
+            });
+            Store.fragments.list.data.set([new FragmentStore(fragment)]);
+
+            await router.navigateToFragmentEditor('compare-chart-id');
+
+            expect(Store.fragmentEditor.fragmentId.get()).to.equal('compare-chart-id');
+            expect(Store.page.get()).to.equal(PAGE_NAMES.FRAGMENT_EDITOR);
+            expect(Store.viewMode.get()).to.equal('editing');
         });
 
         it('should use editor-panel for a provided collection fragment store', async () => {

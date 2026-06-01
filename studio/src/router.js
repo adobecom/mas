@@ -1,4 +1,4 @@
-import { PAGE_NAMES, SORT_COLUMNS, WCS_LANDSCAPE_PUBLISHED, COLLECTION_MODEL_PATH } from './constants.js';
+import { PAGE_NAMES, SORT_COLUMNS, WCS_LANDSCAPE_PUBLISHED, COLLECTION_MODEL_PATH, COMPARE_CHART_FIELD } from './constants.js';
 import Store from './store.js';
 import { isPromotionItemSelectionDirty } from './promotions/promotion-editor-utils.js';
 import { debounce } from './utils.js';
@@ -329,7 +329,9 @@ export class Router extends EventTarget {
             const fragmentList = Store.fragments.list.data.get();
             const fragmentStore = providedFragmentStore ?? fragmentList?.find((f) => f.get()?.id === fragmentId);
 
-            if (!viewPage && fragmentStore?.get()?.model?.path === COLLECTION_MODEL_PATH) {
+            const fragment = fragmentStore?.get();
+            const isCompareChart = !!fragment?.getField?.(COMPARE_CHART_FIELD);
+            if (!viewPage && fragment?.model?.path === COLLECTION_MODEL_PATH && !isCompareChart) {
                 // Use editor-panel for collections
                 const editorPanel = document.querySelector('editor-panel');
                 if (editorPanel) {

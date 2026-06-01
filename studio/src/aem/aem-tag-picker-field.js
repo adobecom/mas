@@ -1,7 +1,12 @@
 import { LitElement, html, css, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import { AEM } from './aem.js';
-import { AEM_TAG_PATH_PRODUCT_CODE_ROOT, EVENT_OST_OFFER_SELECT } from '../constants.js';
+import {
+    AEM_TAG_PATH_PRODUCT_CODE_ROOT,
+    COMPARE_CHART_CREATE_TYPE,
+    EVENT_OST_OFFER_SELECT,
+    TAG_COMPARE_CHART_PATH,
+} from '../constants.js';
 import { isPznCountryTagPath } from '../common/utils/personalization-utils.js';
 import { VARIANTS } from '../editors/variant-picker.js';
 import { getItemFieldState } from '../utils/field-state.js';
@@ -346,7 +351,10 @@ class AemTagPickerField extends LitElement {
     }
 
     get selectedTags() {
-        return this.#asValueArray().map((path) => this.#data.get(path));
+        if (!this.ready) return [];
+        return this.#asValueArray()
+            .map((path) => this.#data.get(path))
+            .filter(Boolean);
     }
 
     clear() {
@@ -368,6 +376,16 @@ class AemTagPickerField extends LitElement {
         });
     }
 
+    addContentTypeTags() {
+        if (this.top !== 'studio/content-type') return;
+        // AEM may not have the compare-chart content-type tag yet, but Studio can create and filter it.
+        this.#data.set(TAG_COMPARE_CHART_PATH, {
+            name: COMPARE_CHART_CREATE_TYPE,
+            title: 'Compare chart',
+            path: TAG_COMPARE_CHART_PATH,
+        });
+    }
+
     async loadTags() {
         if (!this.#data) {
             let resolveNamespace;
@@ -385,6 +403,8 @@ class AemTagPickerField extends LitElement {
             // If still loading, wait
             await this.#data;
         }
+
+        this.addContentTypeTags();
 
         let allTags = [...this.#data.values()].filter((tag) => this.#tagRoots.some((root) => tag.path.startsWith(root)));
         if (this.top === 'pzn') {

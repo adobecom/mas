@@ -19,16 +19,16 @@ describe('render-utils', () => {
         it('renders published status with green class', () => {
             const container = document.createElement('div');
             render(renderFragmentStatusCell(FRAGMENT_STATUS.PUBLISHED), container);
-            const dot = container.querySelector('.status-dot');
-            expect(dot?.classList.contains('green')).to.be.true;
+            const statusLight = container.querySelector('sp-status-light');
+            expect(statusLight?.getAttribute('variant')).to.equal('positive');
             expect(container.textContent).to.include('Published');
         });
 
         it('renders modified status with blue class', () => {
             const container = document.createElement('div');
             render(renderFragmentStatusCell(FRAGMENT_STATUS.MODIFIED), container);
-            const dot = container.querySelector('.status-dot');
-            expect(dot?.classList.contains('blue')).to.be.true;
+            const statusLight = container.querySelector('sp-status-light');
+            expect(statusLight?.getAttribute('variant')).to.equal('yellow');
             expect(container.textContent).to.include('Modified');
         });
     });

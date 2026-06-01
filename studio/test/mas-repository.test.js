@@ -3,7 +3,18 @@ import sinon from 'sinon';
 import { Fragment } from '../src/aem/fragment.js';
 import { FragmentStore } from '../src/reactivity/fragment-store.js';
 import { MasRepository } from '../src/mas-repository.js';
-import { ROOT_PATH, SURFACES, PAGE_NAMES, EDITABLE_FRAGMENT_MODEL_IDS, COLLECTION_MODEL_PATH } from '../src/constants.js';
+import {
+    CARD_MODEL_PATH,
+    COLLECTION_MODEL_PATH,
+    ROOT_PATH,
+    SURFACES,
+    PAGE_NAMES,
+    EDITABLE_FRAGMENT_MODEL_IDS,
+    TAG_COMPARE_CHART,
+    TAG_MERCH_CARD,
+    TAG_MERCH_CARD_COLLECTION,
+    TAG_MODEL_ID_MAPPING,
+} from '../src/constants.js';
 import Events from '../src/events.js';
 import Store from '../src/store.js';
 
@@ -90,6 +101,41 @@ describe('MasRepository dictionary helpers', () => {
             const repository = createRepository();
 
             expect(repository.parseDictionaryPath('/not/the/root')).to.deep.equal({});
+        });
+    });
+
+    describe('saveFragment', () => {
+        it('initializes fragment cache before replacing the saved fragment', async () => {
+            const repository = createRepository();
+            const savedFragment = createFragment({
+                id: 'compchart-card-id',
+                model: { path: CARD_MODEL_PATH },
+                fields: [
+                    { name: 'variant', values: ['compchart'] },
+                    { name: 'osi', values: ['offer-id'] },
+                    { name: 'tags', values: [] },
+                ],
+            });
+            const sourceFragment = {
+                ...savedFragment,
+                getField: (name) => savedFragment.fields.find((field) => field.name === name),
+                getFieldValue: (name, index = 0) => savedFragment.fields.find((field) => field.name === name)?.values?.[index],
+            };
+            const fragmentStore = {
+                get: sandbox.stub().returns(sourceFragment),
+                refreshFrom: sandbox.stub(),
+            };
+            const removeSpy = sandbox.spy(mockFragmentCache, 'remove');
+            const addSpy = sandbox.spy(mockFragmentCache, 'add');
+
+            repository.aem = createAemMock({ fragments: { save: sandbox.stub().resolves(savedFragment) } });
+            repository.operation = { set: sandbox.stub() };
+
+            const result = await repository.saveFragment(fragmentStore, false);
+
+            expect(result).to.equal(savedFragment);
+            expect(removeSpy.calledWith('compchart-card-id')).to.be.true;
+            expect(addSpy.calledOnce).to.be.true;
         });
     });
 
@@ -1680,6 +1726,169 @@ describe('MasRepository dictionary helpers', () => {
             }
         });
 
+        const createContentTypeFragment = ({ id, modelPath, compareChart }) =>
+            createFragment({
+                id,
+                path: `${ROOT_PATH}/acom/en_US/${id}`,
+                model: { path: modelPath },
+                fields:
+                    compareChart === undefined
+                        ? []
+                        : [
+                              {
+                                  name: 'compareChart',
+                                  values: [compareChart],
+                              },
+                          ],
+            });
+
+        const searchByContentType = async (tags, fragments) => {
+            const repository = createFullRepository();
+            repository.page = { value: PAGE_NAMES.CONTENT };
+            repository.search = { value: { path: 'acom', query: '' } };
+            repository.filters = { value: { locale: 'en_US', tags } };
+            const mockCursor = createMockCursor([fragments]);
+            const searchStub = sandbox.stub().resolves(mockCursor);
+            repository.aem = createAemMock({ fragments: { search: searchStub } });
+            const { default: Store } = await import('../src/store.js');
+            const originalProfile = Store.profile.value;
+            Store.profile.set({ name: 'test-user' });
+            Store.createdByUsers.set([]);
+            const mockDataStore = {
+                get: sandbox.stub().returns([]),
+                getMeta: sandbox.stub().returns(null),
+                set: sandbox.stub(),
+                setMeta: sandbox.stub(),
+            };
+            const originalData = Store.fragments.list.data;
+            Store.fragments.list.data = mockDataStore;
+            try {
+                await repository.searchFragments();
+                return {
+                    searchOptions: searchStub.firstCall.args[0],
+                    ids: mockDataStore.set.lastCall.args[0].map((store) => store.get().id),
+                };
+            } finally {
+                Store.profile.set(originalProfile);
+                Store.fragments.list.data = originalData;
+            }
+        };
+
+        it('filters Compare chart content type to collections with non-empty compareChart', async () => {
+            const compareCharts = Array.from({ length: MasRepository.MIN_FILTERED_PAGE_RESULTS }, (_, i) =>
+                createContentTypeFragment({
+                    id: `compare-${i}`,
+                    modelPath: COLLECTION_MODEL_PATH,
+                    compareChart: i === 0 ? '  <table></table>  ' : '<table></table>',
+                }),
+            );
+            const regularCollection = createContentTypeFragment({
+                id: 'regular-collection',
+                modelPath: COLLECTION_MODEL_PATH,
+            });
+            const emptyCompareChart = createContentTypeFragment({
+                id: 'empty-compare-chart',
+                modelPath: COLLECTION_MODEL_PATH,
+                compareChart: '   ',
+            });
+
+            const { searchOptions, ids } = await searchByContentType(TAG_COMPARE_CHART, [
+                ...compareCharts,
+                regularCollection,
+                emptyCompareChart,
+            ]);
+
+            expect(searchOptions.modelIds).to.deep.equal([TAG_MODEL_ID_MAPPING[TAG_MERCH_CARD_COLLECTION]]);
+            expect(searchOptions.tags).to.deep.equal([TAG_COMPARE_CHART]);
+            expect(ids).to.have.lengthOf(MasRepository.MIN_FILTERED_PAGE_RESULTS);
+            expect(ids).to.include('compare-0');
+            expect(ids).to.not.include('regular-collection');
+            expect(ids).to.not.include('empty-compare-chart');
+        });
+
+        it('filters Merch Card Collection content type to non-compare collections', async () => {
+            const collections = Array.from({ length: MasRepository.MIN_FILTERED_PAGE_RESULTS }, (_, i) =>
+                createContentTypeFragment({
+                    id: `collection-${i}`,
+                    modelPath: COLLECTION_MODEL_PATH,
+                }),
+            );
+            const compareChart = createContentTypeFragment({
+                id: 'compare-chart',
+                modelPath: COLLECTION_MODEL_PATH,
+                compareChart: '<table></table>',
+            });
+
+            const { ids } = await searchByContentType(TAG_MERCH_CARD_COLLECTION, [...collections, compareChart]);
+
+            expect(ids).to.have.lengthOf(MasRepository.MIN_FILTERED_PAGE_RESULTS);
+            expect(ids).to.include('collection-0');
+            expect(ids).to.not.include('compare-chart');
+        });
+
+        it('includes both regular collections and compare charts when both collection-like content types are selected', async () => {
+            const collections = Array.from({ length: 13 }, (_, i) =>
+                createContentTypeFragment({
+                    id: `collection-${i}`,
+                    modelPath: COLLECTION_MODEL_PATH,
+                }),
+            );
+            const compareCharts = Array.from({ length: 12 }, (_, i) =>
+                createContentTypeFragment({
+                    id: `compare-${i}`,
+                    modelPath: COLLECTION_MODEL_PATH,
+                    compareChart: '<table></table>',
+                }),
+            );
+
+            const { searchOptions, ids } = await searchByContentType(`${TAG_MERCH_CARD_COLLECTION},${TAG_COMPARE_CHART}`, [
+                ...collections,
+                ...compareCharts,
+            ]);
+
+            expect(searchOptions.modelIds).to.deep.equal([TAG_MODEL_ID_MAPPING[TAG_MERCH_CARD_COLLECTION]]);
+            expect(searchOptions.tags).to.deep.equal([]);
+            expect(ids).to.have.lengthOf(MasRepository.MIN_FILTERED_PAGE_RESULTS);
+            expect(ids).to.include('collection-0');
+            expect(ids).to.include('compare-0');
+        });
+
+        it('includes merch cards and compare charts while excluding regular collections when both are selected', async () => {
+            const cards = Array.from({ length: 12 }, (_, i) =>
+                createContentTypeFragment({
+                    id: `card-${i}`,
+                    modelPath: CARD_MODEL_PATH,
+                }),
+            );
+            const compareCharts = Array.from({ length: 13 }, (_, i) =>
+                createContentTypeFragment({
+                    id: `compare-${i}`,
+                    modelPath: COLLECTION_MODEL_PATH,
+                    compareChart: '<table></table>',
+                }),
+            );
+            const regularCollection = createContentTypeFragment({
+                id: 'regular-collection',
+                modelPath: COLLECTION_MODEL_PATH,
+            });
+
+            const { searchOptions, ids } = await searchByContentType(`${TAG_MERCH_CARD},${TAG_COMPARE_CHART}`, [
+                ...cards,
+                ...compareCharts,
+                regularCollection,
+            ]);
+
+            expect(searchOptions.modelIds).to.have.members([
+                TAG_MODEL_ID_MAPPING[TAG_MERCH_CARD],
+                TAG_MODEL_ID_MAPPING[TAG_MERCH_CARD_COLLECTION],
+            ]);
+            expect(searchOptions.tags).to.deep.equal([]);
+            expect(ids).to.have.lengthOf(MasRepository.MIN_FILTERED_PAGE_RESULTS);
+            expect(ids).to.include('card-0');
+            expect(ids).to.include('compare-0');
+            expect(ids).to.not.include('regular-collection');
+        });
+
         it('keeps mas:pzn/country tags when personalization filter is off', async () => {
             const repository = createFullRepository();
             repository.page = { value: PAGE_NAMES.CONTENT };
@@ -2649,6 +2858,39 @@ describe('MasRepository dictionary helpers', () => {
                 const finalSet = mockDataStore.set.lastCall.args[0];
                 expect(finalSet).to.have.lengthOf(1);
                 expect(finalSet[0].get().id).to.equal('firefly-plans');
+            } finally {
+                Store.profile.set(originalProfile);
+                Store.fragments.list.data = originalData;
+            }
+        });
+
+        it('force-routes single variant via fullText.EDGES from FRAGMENT_EDITOR', async () => {
+            const repository = createFullRepository();
+            repository.page = { value: PAGE_NAMES.FRAGMENT_EDITOR };
+            repository.search = { value: { path: 'sandbox', query: '' } };
+            repository.filters = { value: { locale: 'en_US', tags: 'mas:variant/compare-chart' } };
+            const searchStub = sandbox.stub().resolves(createMockCursorFromPages([[]]));
+            repository.aem = createAemMock({
+                fragments: { search: searchStub },
+            });
+            const { default: Store } = await import('../src/store.js');
+            const originalProfile = Store.profile.value;
+            Store.profile.set({ name: 'test-user' });
+            const mockDataStore = {
+                get: sandbox.stub().returns([]),
+                getMeta: sandbox.stub().returns(null),
+                set: sandbox.stub(),
+                setMeta: sandbox.stub(),
+            };
+            const originalData = Store.fragments.list.data;
+            Store.fragments.list.data = mockDataStore;
+            try {
+                await repository.searchFragments({ force: true });
+                expect(searchStub.calledOnce).to.be.true;
+                const callArg = searchStub.firstCall.args[0];
+                expect(callArg.query).to.equal('compare-chart');
+                expect(callArg.tags).to.deep.equal([]);
+                expect(callArg.modelIds).to.deep.equal(EDITABLE_FRAGMENT_MODEL_IDS);
             } finally {
                 Store.profile.set(originalProfile);
                 Store.fragments.list.data = originalData;

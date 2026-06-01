@@ -1,6 +1,7 @@
 import {
     CARD_MODEL_PATH,
     COLLECTION_MODEL_PATH,
+    COMPARE_CHART_FIELD,
     MAS_PRODUCT_CODE_PREFIX,
     TAG_PROMOTION_PREFIX,
     STATUS_PUBLISHED,
@@ -199,6 +200,13 @@ export const MODEL_WEB_COMPONENT_MAPPING = {
     [COLLECTION_MODEL_PATH]: 'merch-card-collection',
 };
 
+function getWebComponentName(fragment) {
+    if (fragment?.model?.path === COLLECTION_MODEL_PATH && fragment?.getField?.(COMPARE_CHART_FIELD)) {
+        return 'mas-compare-chart';
+    }
+    return MODEL_WEB_COMPONENT_MAPPING[fragment?.model?.path];
+}
+
 export function getFragmentPartsToUse(fragment, path) {
     let fragmentParts = '';
     let title = '';
@@ -238,7 +246,7 @@ export function getFragmentPartsToUse(fragment, path) {
 
 export function generateCodeToUse(fragment, path, page, failMessage) {
     const { fragmentParts, title } = getFragmentPartsToUse(fragment, path);
-    const webComponentName = MODEL_WEB_COMPONENT_MAPPING[fragment?.model?.path];
+    const webComponentName = getWebComponentName(fragment);
     if (!webComponentName) {
         if (failMessage)
             Events.toast.emit({
@@ -327,7 +335,7 @@ export function generateFieldLink(fragment, path, page, fieldName) {
     const resolvedFieldName = fieldName ?? page;
     const resolvedPage = fieldName ? page : 'content';
     const { fragmentParts } = getFragmentPartsToUse(fragment, path);
-    const webComponentName = MODEL_WEB_COMPONENT_MAPPING[fragment?.model?.path];
+    const webComponentName = getWebComponentName(fragment);
     if (!webComponentName) return null;
     const displayText = `mas-field: ${fragmentParts} → ${resolvedFieldName}`;
     const href = buildStudioFragmentHref({
@@ -343,7 +351,7 @@ export function generateFieldLink(fragment, path, page, fieldName) {
 
 export function generateJsonLdLink(fragment, path, page) {
     const { fragmentParts } = getFragmentPartsToUse(fragment, path);
-    const webComponentName = MODEL_WEB_COMPONENT_MAPPING[fragment?.model?.path];
+    const webComponentName = getWebComponentName(fragment);
     if (!webComponentName) return null;
     const displayText = `mas-field: ${fragmentParts} → jsonLdSchema`;
     const baseHref = buildStudioFragmentHref({

@@ -251,10 +251,7 @@ class MasPromotionsItemsSelector extends LitElement {
                                       ></mas-select-items-table>`}
                                 ${this.viewOnly
                                     ? nothing
-                                    : html`<mas-selected-items
-                                          .getDisplayName=${this.getDisplayName}
-                                          .disableRemoveWhileFragmentsLoading=${false}
-                                      ></mas-selected-items>`}
+                                    : html`<mas-selected-items .getDisplayName=${this.getDisplayName}></mas-selected-items>`}
                             </div>
                             <sp-toast timeout="6000" @close=${(event) => event.stopPropagation()}></sp-toast>
                         </sp-tab-panel>

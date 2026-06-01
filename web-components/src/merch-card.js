@@ -648,7 +648,7 @@ export class MerchCard extends LitElement {
                             this.#resolveHydration = resolve;
                         });
                     }
-                    hydrate(fragment, this);
+                    await hydrate(fragment, this);
                 } catch (e) {
                     this.#fail(`hydration has failed: ${e.message}`);
                 } finally {
@@ -722,9 +722,11 @@ export class MerchCard extends LitElement {
         }
         const masElements = [...this.querySelectorAll(SELECTOR_MAS_ELEMENT)];
         const successPromise = Promise.all(
-            masElements.map((element) =>
-                element.onceSettled().catch(() => element),
-            ),
+            masElements.map((element) => {
+                const settled = element.onceSettled?.();
+                if (!settled) return Promise.resolve(element);
+                return settled.catch(() => element);
+            }),
         ).then((elements) =>
             elements.every((el) =>
                 el.classList.contains('placeholder-resolved'),

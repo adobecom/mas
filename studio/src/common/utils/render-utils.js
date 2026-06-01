@@ -9,14 +9,14 @@ import { Fragment } from '../../aem/fragment.js';
  */
 export function renderFragmentStatusCell(status) {
     if (!status) return nothing;
-    let statusClass = '';
-    if (status === FRAGMENT_STATUS.PUBLISHED) {
-        statusClass = 'green';
-    } else if (status === FRAGMENT_STATUS.MODIFIED) {
-        statusClass = 'blue';
-    }
+    const statusVariant =
+        {
+            [FRAGMENT_STATUS.PUBLISHED]: 'positive',
+            [FRAGMENT_STATUS.MODIFIED]: 'yellow',
+            [FRAGMENT_STATUS.DRAFT]: 'info',
+        }[status] || 'neutral';
     return html`<sp-table-cell class="status-cell">
-        <div class="status-dot ${statusClass}"></div>
+        <sp-status-light size="s" variant=${statusVariant}></sp-status-light>
         ${status.charAt(0).toUpperCase()}${status.slice(1).toLowerCase()}
     </sp-table-cell>`;
 }

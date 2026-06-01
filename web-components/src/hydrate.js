@@ -397,11 +397,79 @@ function processMnemonicElements(htmlContent) {
     return htmlContent;
 }
 
+function unwrapSingleParagraph(htmlContent) {
+    if (!htmlContent || typeof htmlContent !== 'string') return htmlContent;
+    const template = document.createElement('template');
+    template.innerHTML = htmlContent.trim();
+    const children = Array.from(template.content.children);
+    if (children.length !== 1 || children[0].tagName !== 'P') {
+        return htmlContent;
+    }
+    return children[0].innerHTML;
+}
+
 export function processPrices(fields, merchCard, mapping) {
     if (fields.prices) {
-        fields.prices = processMnemonicElements(fields.prices);
+        fields.prices = unwrapSingleParagraph(
+            processMnemonicElements(fields.prices),
+        );
     }
     appendSlot('prices', fields, merchCard, mapping);
+}
+
+/**
+ * Flattens `fields.features` from MAS IO / author payloads into HTML strings.
+ * Handles strings, arrays, `{ value }` / `{ value: string[] }`, and richtext
+ * `{ content }` / `{ html }` wrappers.
+ */
+function coerceMultivalueFeatureField(raw) {
+    if (raw == null || raw === '') return [];
+    if (typeof raw === 'string') return raw.trim() ? [raw] : [];
+    if (Array.isArray(raw)) return raw.flatMap(coerceMultivalueFeatureField);
+    if (typeof raw === 'object') {
+        if (typeof raw.value === 'string') {
+            return raw.value.trim() ? [raw.value] : [];
+        }
+        if (Array.isArray(raw.value)) {
+            return raw.value.flatMap(coerceMultivalueFeatureField);
+        }
+        if (typeof raw.content === 'string') {
+            return raw.content.trim() ? [raw.content] : [];
+        }
+        if (typeof raw.html === 'string') {
+            return raw.html.trim() ? [raw.html] : [];
+        }
+    }
+    return [];
+}
+
+export function processFeatures(fields, merchCard, mapping) {
+    const values = coerceMultivalueFeatureField(fields.features).filter(
+        (html) => html.trim(),
+    );
+    if (!values.length) return;
+    const container = createTag('div', {
+        slot: mapping?.features?.slot ?? 'features',
+        hidden: '',
+        'data-compare-chart-features': '',
+    });
+    values.forEach((value) => {
+        let doc;
+        try {
+            doc = new DOMParser().parseFromString(value, 'text/html');
+        } catch {
+            return;
+        }
+        const p = doc.body.querySelector('p[name]');
+        if (p) {
+            container.append(p);
+            return;
+        }
+        // Trust boundary: features payload originates from AEM-authored
+        // fragments via IMS-gated write path. Do not call with untrusted input.
+        container.insertAdjacentHTML('beforeend', value);
+    });
+    if (container.children.length) merchCard.append(container);
 }
 
 function transformLinkToButton(linkElement, merchCard, aemFragmentMapping) {
@@ -839,15 +907,36 @@ export function processAnalytics(fields, merchCard) {
     });
 }
 
+function replaceAnchorWithSpLink(link, className, variant) {
+    const attrs = {};
+    const classes = [...link.classList].filter((c) => c !== className);
+    for (const attr of link.attributes) {
+        if (attr.name === 'class') continue;
+        attrs[attr.name] = attr.value;
+    }
+    if (classes.length) attrs.class = classes.join(' ');
+    if (variant === 'secondary') attrs.variant = 'secondary';
+    link.replaceWith(createTag('sp-link', attrs, link.innerHTML));
+}
+
 export function updateLinksCSS(merchCard) {
-    if (merchCard.spectrum !== 'css') return;
+    if (merchCard.consonant) return;
+    const { spectrum } = merchCard;
+    if (spectrum !== 'css' && spectrum !== 'swc') return;
     [
         ['primary-link', 'primary'],
         ['secondary-link', 'secondary'],
     ].forEach(([className, variant]) => {
         merchCard.querySelectorAll(`a.${className}`).forEach((link) => {
-            link.classList.remove(className);
-            link.classList.add('spectrum-Link', `spectrum-Link--${variant}`);
+            if (spectrum === 'swc') {
+                replaceAnchorWithSpLink(link, className, variant);
+            } else {
+                link.classList.remove(className);
+                link.classList.add(
+                    'spectrum-Link',
+                    `spectrum-Link--${variant}`,
+                );
+            }
         });
     });
 }
@@ -938,6 +1027,7 @@ export async function hydrate(fragment, merchCard) {
     );
     processBorderColor(fields, merchCard, mapping);
     processDescription(fields, merchCard, mapping, settings);
+    processFeatures(fields, merchCard, mapping);
     processWhatsIncludedDividerColor(fields, merchCard, mapping);
     processAddon(fields, merchCard, mapping, settings);
     processAddonConfirmation(fields, merchCard, mapping);

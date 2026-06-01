@@ -35,14 +35,20 @@ const Store = {
     },
     operation: new ReactiveStore(),
     editor: {
+        referencedFragmentStoresHaveChanges: new ReactiveStore(false),
         resetChanges() {
             const fragmentData = Store.fragments.inEdit.get()?.get();
             if (fragmentData) {
                 fragmentData.hasChanges = false;
             }
+            Store.editor.referencedFragmentStoresHaveChanges.set(false);
         },
         get hasChanges() {
-            return Store.fragments.inEdit.get()?.get()?.hasChanges || false;
+            return (
+                Store.fragments.inEdit.get()?.get()?.hasChanges ||
+                Store.editor.referencedFragmentStoresHaveChanges.get() ||
+                false
+            );
         },
     },
     folders: {

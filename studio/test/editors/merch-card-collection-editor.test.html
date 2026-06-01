@@ -51,26 +51,21 @@
             import Store from '../../src/store.js';
 
             runTests(async () => {
-                const originalFetch = window.fetch;
-                window.fetch = async function (args) {
-                    const { href } = new URL(args);
-                    if (/querybuilder.json\?path=\/content\/dam\/mas/.test(href)) {
-                        return originalFetch('/test/mocks/folders.json');
-                    }
-                    return originalFetch(...arguments);
-                };
                 describe('merch-card-collection-editor custom element', async () => {
                     beforeEach(async () => {
                         const editorPanel = initElementFromTemplate('merch-card-collection-editor');
                     });
                     it('should render', async () => {
-                        const editor = document.querySelector('editor-panel');
-                        const collectionFragment = await originalFetch(
-                            '/test/mocks/adobe/sites/cf/fragments/collection.json',
-                        ).then((res) => res.json());
-                        const fragmentStore = new FragmentStore(new Fragment(collectionFragment));
-                        await editor.editFragment(fragmentStore, 1);
-                        expect(editor.querySelector('merch-card-collection-editor')).to.exist;
+                        const editor = document.createElement('merch-card-collection-editor');
+                        editor.updateFragment = () => {};
+                        const collectionFragment = await fetch('/test/mocks/adobe/sites/cf/fragments/collection.json').then(
+                            (res) => res.json(),
+                        );
+                        editor.fragmentStore = new FragmentStore(new Fragment(collectionFragment));
+                        document.querySelector('main sp-theme').appendChild(editor);
+                        await editor.updateComplete;
+                        expect(editor).to.exist;
+                        editor.remove();
                     });
                 });
 

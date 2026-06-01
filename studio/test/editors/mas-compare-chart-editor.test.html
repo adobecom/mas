@@ -16,6 +16,7 @@
         <script type="module">
             import { runTests } from '@web/test-runner-mocha';
             import { expect } from '@esm-bundle/chai';
+            import sinon from 'sinon';
             import { html } from 'lit';
             import { fixture } from '@open-wc/testing-helpers/pure';
 
@@ -25,9 +26,6 @@
             import '../../../web-components/src/aem-fragment.js';
             import '../../../web-components/src/mas-commerce-service.js';
             import '../../../web-components/src/mas-compare-chart.js';
-            import { mockIms } from '../../../web-components/test/mocks/ims.js';
-            import { mockLana } from '../../../web-components/test/mocks/lana.js';
-            import { mockFetch } from '../../../web-components/test/mocks/fetch.js';
             import { withAem } from '../../../web-components/test/mocks/aem.js';
             import { withWcs } from '../../../web-components/test/mocks/wcs.js';
             import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, COMPARE_CHART_FIELD } from '../../src/constants.js';
@@ -56,10 +54,6 @@
                         return originalFetch('/test/mocks/tags.json');
                     }
                 };
-
-            mockIms();
-            mockLana();
-            await mockFetch(withTags, withWebComponentsMocks(withWcs), withWebComponentsMocks(withAem));
 
             const getField = (fragment, fieldName) => fragment.fields.find((field) => field.name === fieldName);
             const getFieldValues = (fragment, fieldName) => getField(fragment, fieldName)?.values || [];
@@ -153,6 +147,50 @@
 
             runTests(async () => {
                 describe('mas-compare-chart-editor', () => {
+                    let sandbox;
+                    const originalAdobeIms = window.adobeIMS;
+                    const originalLana = window.lana;
+                    const originalFetch = window.fetch;
+
+                    beforeEach(async () => {
+                        sandbox = sinon.createSandbox();
+
+                        window.adobeIMS = {
+                            initialized: true,
+                            isSignedInUser: () => false,
+                            getProfile: sandbox.stub().resolves({}),
+                        };
+                        window.lana = { log: sandbox.spy() };
+
+                        const mocks = await Promise.all(
+                            [withTags, withWebComponentsMocks(withWcs), withWebComponentsMocks(withAem)].map((stub) =>
+                                stub(originalFetch),
+                            ),
+                        );
+                        mocks.forEach((mock) => {
+                            mock.count = 0;
+                        });
+                        sandbox.stub(window, 'fetch').callsFake(async (...args) => {
+                            const { href, pathname, searchParams } = new URL(String(args[0]), window.location);
+                            const headers = args[1]?.headers || {};
+                            let found = false;
+                            for await (const mock of mocks) {
+                                found = await mock({ href, pathname, searchParams, headers });
+                                if (found === false) continue;
+                                mock.count += 1;
+                                break;
+                            }
+                            if (found === false) return originalFetch(...args);
+                            return found;
+                        });
+                    });
+
+                    afterEach(() => {
+                        sandbox.restore();
+                        window.adobeIMS = originalAdobeIms;
+                        window.lana = originalLana;
+                    });
+
                     it('renders three cards, sections, features, and authored feature tooltips', async () => {
                         const fragmentStore = generateFragmentStore(structuredClone(compareChartSeed));
                         const el = await fixture(

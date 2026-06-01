@@ -811,11 +811,6 @@ merch-badge[background-color="spectrum-green-900-special-offers"] {
   color: #FFFFFF;
 }
 
-merch-card[id]:not(:is([variant^="ccd-"],[variant^="ah-"],[variant$="-pricing-express"],[variant="fries"])) [data-template="price"] .price-strikethrough span:is(.price-tax-inclusivity, .price-unit-type),
-merch-card[id]:not(:is([variant^="ccd-"],[variant^="ah-"],[variant$="-pricing-express"],[variant="fries"])) [data-template="strikethrough"]:has(+ [data-template="price"]) span:is(.price-tax-inclusivity, .price-unit-type) {
-    display: none;
-}
-
 /* Badge border-radius with RTL support */
 merch-badge {
   --merch-badge-border-radius: 4px 0 0 4px; /* LTR default */

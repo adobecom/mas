@@ -1,4 +1,5 @@
 import { test, expect, studio, miloLibs, setTestPage } from '../../../libs/mas-test.js';
+import BulkActionsPage from '../page/bulk_actions.page.js';
 import BulkActionsSpec from '../specs/bulk_actions.spec.js';
 
 const { features } = BulkActionsSpec;
@@ -88,4 +89,49 @@ test.describe('M@S Studio Bulk Actions Test Suite', () => {
             await expect(studio.toastPositive).toContainText('Code copied');
         });
     });
+
+    const runSelectAllTest = (featureIndex, label) => {
+        test(`${features[featureIndex].name},${features[featureIndex].tags}`, async ({ page, baseURL }) => {
+            const { data } = features[featureIndex];
+            const bulkActions = new BulkActionsPage(page);
+
+            await test.step(`step-1: Navigate to Bulk Publish list (${label})`, async () => {
+                await bulkActions.navigateToBulkPublishList(baseURL, miloLibs);
+            });
+
+            await test.step('step-2: Create a new bulk publish project', async () => {
+                await bulkActions.createNewProject();
+            });
+
+            await test.step(`step-3: Open Add by search dialog and switch to the ${data.tab} tab`, async () => {
+                await bulkActions.openBulkPublishAddBySearch();
+                await bulkActions.switchToTab(data.tab);
+            });
+
+            await test.step(`step-4: Search for ${data.searchQuery} and wait for results`, async () => {
+                await bulkActions.searchFor(data.searchQuery);
+                await expect(bulkActions.tableRowCheckboxes.first()).toBeVisible();
+            });
+
+            await test.step('step-5: Click the header Select All checkbox', async () => {
+                await bulkActions.clickSelectAll();
+            });
+
+            await test.step('step-6: Verify every visible row checkbox is checked', async () => {
+                const count = await bulkActions.tableRowCheckboxes.count();
+                expect(count).toBeGreaterThan(0);
+                for (let i = 0; i < count; i += 1) {
+                    await expect(bulkActions.tableRowCheckboxes.nth(i)).toHaveJSProperty('checked', true);
+                }
+            });
+
+            await test.step('step-7: Verify the Add selected items button is enabled', async () => {
+                await expect(bulkActions.addSelectedButton).toBeEnabled();
+            });
+        });
+    };
+
+    runSelectAllTest(2, 'Fragments');
+    runSelectAllTest(3, 'Collections');
+    runSelectAllTest(4, 'Placeholders');
 });

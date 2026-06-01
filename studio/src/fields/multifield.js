@@ -10,6 +10,7 @@ class MasMultifield extends LitElement {
             draggingIndex: { type: Number, state: true },
             buttonLabel: { type: String, attribute: 'button-label' },
             fieldState: { type: String, attribute: 'data-field-state', reflect: true },
+            variant: { type: String, reflect: true },
         };
     }
 
@@ -263,6 +264,9 @@ class MasMultifield extends LitElement {
             fieldEl.setAttribute('data-field-state', fieldState);
         } else {
             fieldEl.removeAttribute('data-field-state');
+        }
+        if (this.variant) {
+            fieldEl.setAttribute('variant', this.variant);
         }
 
         return html`

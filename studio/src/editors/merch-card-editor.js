@@ -24,6 +24,10 @@ import { toAttribute } from '../aem/tag-path-utils.js';
 import { getGlobalSettingsDefaults } from '../settings/settings-store.js';
 import { fieldStatusStyles } from '../common/fields/field-status.css.js';
 import { getLocaleByCode } from '../../../io/www/src/fragment/locales.js';
+import {
+    parseBizProPlansWhatsIncluded,
+    serializeBizProPlansWhatsIncluded,
+} from '../utils/plans-bizpro-whats-included.js';
 
 const QUANTITY_MODEL = 'quantitySelect';
 const WHAT_IS_INCLUDED = 'whatsIncluded';
@@ -716,7 +720,22 @@ class MerchCardEditor extends LitElement {
         return { icon: '', alt: altForVariant, link };
     }
 
+    /**
+     * plans-bizpro authors its "What's included" as a list of titled sections
+     * (`<div class="section"><h4>icon + title</h4><ul><li>row</li></ul></div>`),
+     * not as `<merch-whats-included>`. Each editor "bullet" maps to one section:
+     * the icon is the section icon, and the rich-text Description holds the bold
+     * title (first paragraph) followed by one paragraph per bullet row. Gated to
+     * this variant so every other card keeps the shared merch-whats-included path.
+     */
+    get #isBizProPlansWhatsIncluded() {
+        return this.getEffectiveFieldValue('variant') === VARIANT_NAMES.BIZPRO_PLANS;
+    }
+
     get whatsIncluded() {
+        if (this.#isBizProPlansWhatsIncluded) {
+            return parseBizProPlansWhatsIncluded(this.getEffectiveFieldValue(WHAT_IS_INCLUDED, 0) || '');
+        }
         const label = this.whatsIncludedElement?.querySelector('[slot="heading"]')?.textContent || '';
         const values = [];
         this.whatsIncludedElement?.querySelectorAll('[slot="content"] merch-mnemonic-list').forEach((listEl) => {
@@ -1335,6 +1354,7 @@ class MerchCardEditor extends LitElement {
                     <mas-multifield
                         button-label="Add bullet"
                         data-field-state="bullet"
+                        variant="${this.getEffectiveFieldValue('variant')}"
                         .value="${this.whatsIncluded.bullets}"
                         @change="${(e) => this.#updateWhatsIncluded(e, true)}"
                         @input="${(e) => this.#updateWhatsIncluded(e, true)}"
@@ -1772,6 +1792,14 @@ class MerchCardEditor extends LitElement {
     }
 
     #updateWhatsIncluded(event, isBullet) {
+        if (this.#isBizProPlansWhatsIncluded) {
+            // Only the bullet multifield drives plans-bizpro sections; ignore
+            // label/application edits so the section markup stays canonical.
+            const bullets = Array.isArray(event.target.value) ? event.target.value : this.whatsIncluded.bullets;
+            const html = serializeBizProPlansWhatsIncluded(bullets);
+            this.fragmentStore.updateField(WHAT_IS_INCLUDED, [html]);
+            return;
+        }
         let label = '';
         let values = [];
         let bullets = [];

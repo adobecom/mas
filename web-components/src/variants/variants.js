@@ -16,6 +16,10 @@ import {
     PLANS_STUDENTS_AEM_FRAGMENT_MAPPING,
 } from './plans.js';
 import { PlansV2, PLANS_V2_AEM_FRAGMENT_MAPPING } from './plans-v2.js';
+import {
+    BizProPlans,
+    BIZPRO_PLANS_AEM_FRAGMENT_MAPPING,
+} from './plans-bizpro.js';
 import { Product, PRODUCT_AEM_FRAGMENT_MAPPING } from './product.js';
 import { Segment, SEGMENT_AEM_FRAGMENT_MAPPING } from './segment.js';
 import { Media, MEDIA_AEM_FRAGMENT_MAPPING } from './media.js';
@@ -107,6 +111,12 @@ registerVariant(
     PLANS_V2_AEM_FRAGMENT_MAPPING,
     PlansV2.variantStyle,
     PlansV2.collectionOptions,
+);
+registerVariant(
+    'plans-bizpro',
+    BizProPlans,
+    BIZPRO_PLANS_AEM_FRAGMENT_MAPPING,
+    BizProPlans.variantStyle,
 );
 registerVariant(
     'product',

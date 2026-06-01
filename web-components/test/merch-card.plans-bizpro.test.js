@@ -1,0 +1,131 @@
+import { expect } from '@esm-bundle/chai';
+import sinon from 'sinon';
+// mas.js first to break the circular dep between variant-layout and variants
+import '../src/mas.js';
+
+let BizProPlans;
+
+before(async () => {
+    // merch-card's connectedCallback needs a commerce service in the DOM,
+    // mirroring the setup in hydrate.test.js.
+    if (!document.querySelector('mas-commerce-service')) {
+        document.head.appendChild(
+            document.createElement('mas-commerce-service'),
+        );
+    }
+    await customElements.whenDefined('merch-card');
+    ({ BizProPlans } = await import('../src/variants/plans-bizpro.js'));
+});
+
+async function renderCard(innerHTML) {
+    const card = document.createElement('merch-card');
+    card.setAttribute('variant', 'plans-bizpro');
+    card.innerHTML = innerHTML;
+    document.body.appendChild(card);
+    await card.updateComplete;
+    return card;
+}
+
+describe('plans-bizpro add-on slot', () => {
+    let card;
+    afterEach(() => card?.remove());
+
+    it('detects an add-on at slot="addon" and projects it', async () => {
+        card = await renderCard(
+            '<merch-addon slot="addon"><p>Add AI</p></merch-addon>',
+        );
+        expect(card.variantLayout.hasAddOn).to.be.true;
+        expect(card.shadowRoot.querySelector('slot[name="addon"]')).to.exist;
+        expect(card.shadowRoot.querySelector('slot[name="add-on"]')).to.not
+            .exist;
+    });
+});
+
+describe('BizProPlans.adjustAddon', () => {
+    function makeLayout(cardOverrides = {}) {
+        const layout = Object.create(BizProPlans.prototype);
+        layout.card = {
+            updateComplete: Promise.resolve(),
+            querySelector: () => null,
+            addon: null,
+            ...cardOverrides,
+        };
+        return layout;
+    }
+
+    it('does nothing when there is no add-on', async () => {
+        const layout = makeLayout({ addon: null });
+        await layout.adjustAddon(); // must not throw
+    });
+
+    it('sets custom-checkbox and planType from the settled main price', async () => {
+        const addon = { setAttribute: sinon.spy() };
+        const price = {
+            onceSettled: () => Promise.resolve(),
+            value: [{ planType: 'PUF' }],
+        };
+        const layout = makeLayout({
+            addon,
+            querySelector: (sel) => (sel.includes('heading-m') ? price : null),
+        });
+        await layout.adjustAddon();
+        expect(addon.setAttribute.calledWith('custom-checkbox', '')).to.be.true;
+        expect(addon.planType).to.equal('PUF');
+    });
+
+    it('sets custom-checkbox but skips planType when no price', async () => {
+        const addon = { setAttribute: sinon.spy() };
+        const layout = makeLayout({ addon, querySelector: () => null });
+        await layout.adjustAddon();
+        expect(addon.setAttribute.calledWith('custom-checkbox', '')).to.be.true;
+        expect(addon.planType).to.be.undefined;
+    });
+});
+
+describe('plans-bizpro license-zone gating', () => {
+    let card;
+    afterEach(() => card?.remove());
+
+    it('does not render the license-zone for an unconfigured quantity-select with no callout', async () => {
+        // "Show quantity selector" off authors the empty sentinel
+        // <merch-quantity-select/>, which hydrate still wraps in a slot div.
+        card = await renderCard(
+            '<div slot="quantity-select"><merch-quantity-select></merch-quantity-select></div>',
+        );
+        expect(card.variantLayout.hasQuantitySelect).to.be.false;
+        expect(card.shadowRoot.querySelector('.license-zone')).to.not.exist;
+    });
+
+    it('renders the license-zone for a configured quantity-select', async () => {
+        card = await renderCard(
+            '<div slot="quantity-select"><merch-quantity-select title="License" min="1" max="10" step="1"></merch-quantity-select></div>',
+        );
+        expect(card.variantLayout.hasQuantitySelect).to.be.true;
+        expect(card.shadowRoot.querySelector('.license-zone')).to.exist;
+    });
+
+    it('renders the license-zone for a callout even without a quantity-select', async () => {
+        card = await renderCard('<div slot="callout-content">Save 20%</div>');
+        expect(card.shadowRoot.querySelector('.license-zone')).to.exist;
+    });
+});
+
+describe('plans-bizpro add-on theming', () => {
+    let card;
+    afterEach(() => card?.remove());
+
+    it('renders the bordered add-on wrapper around the slotted merch-addon', async () => {
+        card = await renderCard(
+            '<merch-addon slot="addon"><p>Add AI</p></merch-addon>',
+        );
+        const wrapper = card.shadowRoot.querySelector('.add-on');
+        expect(wrapper).to.exist;
+        const styles = getComputedStyle(wrapper);
+        // Gradient border (Figma 1098:33812): the 1px border is transparent and
+        // the purple→red AI gradient is painted on border-box behind a white
+        // padding-box fill. #8d88f2 === rgb(141, 136, 242), #eb1000 === rgb(235, 16, 0).
+        expect(styles.borderTopColor).to.equal('rgba(0, 0, 0, 0)');
+        expect(styles.backgroundImage).to.contain('rgb(141, 136, 242)');
+        expect(styles.backgroundImage).to.contain('rgb(235, 16, 0)');
+    });
+});

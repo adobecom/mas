@@ -101,6 +101,10 @@ import '@spectrum-web-components/icons-workflow/icons/sp-icon-select-rectangle.j
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-settings.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-shopping-cart.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-social-network.js';
+import '@spectrum-web-components/icons-workflow/icons/sp-icon-document.js';
+import '@spectrum-web-components/icons-workflow/icons/sp-icon-pen-brush.js';
+import '@spectrum-web-components/icons-workflow/icons/sp-icon-magic-wand.js';
+import '@spectrum-web-components/icons-workflow/icons/sp-icon-lock.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-star.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-stroke-solid.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-table.js';

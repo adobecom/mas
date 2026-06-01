@@ -302,6 +302,53 @@ describe('mas-bulk-publish (pure methods)', () => {
     });
 });
 
+describe('mas-bulk-publish (··· menu for PUBLISHED projects)', () => {
+    afterEach(() => {
+        Store.bulkPublishProjects.list.data.set([]);
+        Store.bulkPublishProjects.list.loading.set(false);
+    });
+
+    it('"Revert" appears in ··· popover for PUBLISHED projects', async () => {
+        Store.bulkPublishProjects.list.data.set([makeProjectStore({ status: BULK_PUBLISH_STATUS.PUBLISHED })]);
+        const el = await fixture(html`<mas-bulk-publish></mas-bulk-publish>`);
+        await el.updateComplete;
+        const row = el.shadowRoot.querySelector('[data-testid="project-row"]');
+        const menuItems = [...row.querySelectorAll('sp-menu-item')];
+        const labels = menuItems.map((m) => m.textContent.trim());
+        expect(labels.some((l) => l.includes('Revert'))).to.equal(true);
+    });
+
+    it('"Edit" is present for PUBLISHED projects', async () => {
+        Store.bulkPublishProjects.list.data.set([makeProjectStore({ status: BULK_PUBLISH_STATUS.PUBLISHED })]);
+        const el = await fixture(html`<mas-bulk-publish></mas-bulk-publish>`);
+        await el.updateComplete;
+        const row = el.shadowRoot.querySelector('[data-testid="project-row"]');
+        const menuItems = [...row.querySelectorAll('sp-menu-item')];
+        const labels = menuItems.map((m) => m.textContent.trim());
+        expect(labels.some((l) => l.includes('Edit'))).to.equal(true);
+    });
+
+    it('"Publish" is absent for PUBLISHED projects', async () => {
+        Store.bulkPublishProjects.list.data.set([makeProjectStore({ status: BULK_PUBLISH_STATUS.PUBLISHED })]);
+        const el = await fixture(html`<mas-bulk-publish></mas-bulk-publish>`);
+        await el.updateComplete;
+        const row = el.shadowRoot.querySelector('[data-testid="project-row"]');
+        const menuItems = [...row.querySelectorAll('sp-menu-item')];
+        const labels = menuItems.map((m) => m.textContent.trim());
+        expect(labels.some((l) => l.includes('Publish'))).to.equal(false);
+    });
+
+    it('"Revert" is absent for DRAFT projects', async () => {
+        Store.bulkPublishProjects.list.data.set([makeProjectStore({ status: BULK_PUBLISH_STATUS.DRAFT })]);
+        const el = await fixture(html`<mas-bulk-publish></mas-bulk-publish>`);
+        await el.updateComplete;
+        const row = el.shadowRoot.querySelector('[data-testid="project-row"]');
+        const menuItems = [...row.querySelectorAll('sp-menu-item')];
+        const labels = menuItems.map((m) => m.textContent.trim());
+        expect(labels.some((l) => l.includes('Revert'))).to.equal(false);
+    });
+});
+
 describe('mas-bulk-publish (render)', () => {
     afterEach(() => {
         Store.bulkPublishProjects.list.data.set([]);
@@ -313,7 +360,7 @@ describe('mas-bulk-publish (render)', () => {
         Store.bulkPublishProjects.list.data.set([makeProjectStore()]);
         const el = await fixture(html`<mas-bulk-publish></mas-bulk-publish>`);
         await el.updateComplete;
-        const skeletons = el.shadowRoot.querySelectorAll('.skeleton-row');
+        const skeletons = el.shadowRoot.querySelectorAll('sp-table-body sp-table-row');
         expect(skeletons.length).to.be.greaterThan(0);
     });
 

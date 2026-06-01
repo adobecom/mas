@@ -10,7 +10,7 @@ describe('bulk-publish/index.js', () => {
     let action;
     let fetchOdinStub;
     let fetchFragmentByPathStub;
-    let imsValidateStub;
+    let isAllowedStub;
     let loggerStub;
 
     const baseParams = {
@@ -35,7 +35,7 @@ describe('bulk-publish/index.js', () => {
             return Promise.resolve(successResponseFor(body.paths));
         });
         fetchFragmentByPathStub = sinon.stub();
-        imsValidateStub = sinon.stub().resolves({ valid: true });
+        isAllowedStub = sinon.stub().resolves(true);
         loggerStub = {
             info: sinon.stub(),
             warn: sinon.stub(),
@@ -51,18 +51,20 @@ describe('bulk-publish/index.js', () => {
             },
         });
 
+        const realUtils = require('../../utils.js');
         action = proxyquire('../../src/bulk-publish/index.js', {
             '@adobe/aio-sdk': { Core: { Logger: () => loggerStub } },
-            '@adobe/aio-lib-ims': {
-                Ims: class {
-                    validateTokenAllowList(...args) {
-                        return imsValidateStub(...args);
-                    }
-                },
-            },
             './resolver.js': { resolvePaths },
             './publisher.js': publisher,
-            '../../utils.js': require('../../utils.js'),
+            './snapshot.js': { createSnapshot: sinon.stub().resolves([]) },
+            './project.js': {
+                readProjectFragment: sinon.stub().resolves({ fragment: { fields: [] }, etag: '"e"' }),
+                updateProjectFragment: sinon.stub().resolves(),
+                getProjectPaths: sinon.stub().returns([]),
+                getProjectLocales: sinon.stub().returns([]),
+                getProjectTitle: sinon.stub().returns(''),
+            },
+            '../../utils.js': { ...realUtils, isAllowed: isAllowedStub },
         });
     });
 
@@ -71,6 +73,17 @@ describe('bulk-publish/index.js', () => {
     it('returns 400 when paths is missing', async () => {
         const result = await action.main({ ...baseParams, paths: undefined });
         expect(result.error.statusCode).to.equal(400);
+    });
+
+    it('validates token against allowedClientId from params', async () => {
+        await action.main({ ...baseParams });
+        expect(isAllowedStub).to.have.been.calledWith(sinon.match.string, 'mas-studio');
+    });
+
+    it('returns 401 when IMS validation fails regardless of params', async () => {
+        isAllowedStub.resolves(false);
+        const result = await action.main({ ...baseParams, allowedClientId: 'attacker-id' });
+        expect(result.error.statusCode).to.equal(401);
     });
 
     it('returns 400 when neither aemOdinEndpoint nor odinEndpoint is provided', async () => {
@@ -112,12 +125,6 @@ describe('bulk-publish/index.js', () => {
         expect(result.error.body.error).to.include('50');
     });
 
-    it('returns 401 when IMS validation fails', async () => {
-        imsValidateStub.resolves({ valid: false });
-        const result = await action.main({ ...baseParams });
-        expect(result.error.statusCode).to.equal(401);
-    });
-
     it('never calls fetchFragmentByPath (skip-check removed)', async () => {
         await action.main({ ...baseParams });
         expect(fetchFragmentByPathStub).to.not.have.been.called;
@@ -144,16 +151,16 @@ describe('bulk-publish/index.js', () => {
             expect(body.filterReferencesByStatus).to.deep.equal([]);
         });
 
-        it('sends filterReferencesByStatus=[DRAFT,UNPUBLISHED] when includeVariations=true', async () => {
+        it('sends filterReferencesByStatus=[DRAFT,MODIFIED,UNPUBLISHED] when includeVariations=true', async () => {
             await action.main({ ...baseParams, includeVariations: true });
             const body = JSON.parse(fetchOdinStub.firstCall.args[3].body);
-            expect(body.filterReferencesByStatus).to.deep.equal(['DRAFT', 'UNPUBLISHED']);
+            expect(body.filterReferencesByStatus).to.deep.equal(['DRAFT', 'MODIFIED', 'UNPUBLISHED']);
         });
 
-        it('sends filterReferencesByStatus=[DRAFT,UNPUBLISHED] when includeCards=true', async () => {
+        it('sends filterReferencesByStatus=[DRAFT,MODIFIED,UNPUBLISHED] when includeCards=true', async () => {
             await action.main({ ...baseParams, includeCards: true });
             const body = JSON.parse(fetchOdinStub.firstCall.args[3].body);
-            expect(body.filterReferencesByStatus).to.deep.equal(['DRAFT', 'UNPUBLISHED']);
+            expect(body.filterReferencesByStatus).to.deep.equal(['DRAFT', 'MODIFIED', 'UNPUBLISHED']);
         });
     });
 
@@ -266,6 +273,156 @@ describe('bulk-publish/index.js', () => {
             const bodies = fetchOdinStub.getCalls().map((call) => JSON.parse(call.args[3].body).paths);
             const sizes = bodies.map((p) => p.length).sort((a, b) => b - a);
             expect(sizes).to.deep.equal([2, 1]);
+        });
+    });
+
+    describe('project-orchestration mode (projectId)', () => {
+        const paths = ['/content/dam/mas/acom/en_US/card1', '/content/dam/mas/acom/en_US/card2'];
+        const locales = [];
+        const projectFragment = {
+            id: 'proj-uuid',
+            title: 'My Project',
+            description: '',
+            fields: [
+                { name: 'title', values: ['My Project'] },
+                { name: 'fragments', values: paths },
+                { name: 'locales', values: locales },
+                { name: 'status', values: ['Draft'] },
+            ],
+        };
+
+        let getFragmentWithEtagStub;
+        let putToOdinStub;
+        let createSnapshotStub;
+        let projectAction;
+
+        beforeEach(() => {
+            getFragmentWithEtagStub = sinon.stub().resolves({ fragment: projectFragment, etag: '"etag-1"' });
+            putToOdinStub = sinon.stub().resolves({ success: true });
+            createSnapshotStub = sinon
+                .stub()
+                .resolves([
+                    '{"fragmentId":"frag-1","versionId":"v1","wasPublished":true,"createdAt":"2025-01-01T00:00:00.000Z"}',
+                ]);
+
+            const { resolvePaths } = require('../../src/bulk-publish/resolver.js');
+            const publisher = proxyquire('../../src/bulk-publish/publisher.js', {
+                '../common.js': { fetchOdin: fetchOdinStub, fetchFragmentByPath: fetchFragmentByPathStub },
+            });
+            const realUtils = require('../../utils.js');
+
+            projectAction = proxyquire('../../src/bulk-publish/index.js', {
+                '@adobe/aio-sdk': { Core: { Logger: () => loggerStub } },
+                './resolver.js': { resolvePaths },
+                './publisher.js': publisher,
+                './snapshot.js': { createSnapshot: createSnapshotStub },
+                './project.js': {
+                    readProjectFragment: getFragmentWithEtagStub,
+                    updateProjectFragment: putToOdinStub,
+                    getProjectPaths: () => paths,
+                    getProjectLocales: () => locales,
+                    getProjectTitle: () => 'My Project',
+                    getProjectSnapshots: () => [],
+                },
+                '../../utils.js': { ...realUtils, isAllowed: isAllowedStub },
+            });
+        });
+
+        it('returns 401 when auth fails', async () => {
+            isAllowedStub.resolves(false);
+            const result = await projectAction.main({ ...baseParams, paths: undefined, projectId: 'proj-uuid' });
+            expect(result.error.statusCode).to.equal(401);
+        });
+
+        it('sets status PUBLISHING then PUBLISHED on full success', async () => {
+            const result = await projectAction.main({
+                ...baseParams,
+                paths: undefined,
+                projectId: 'proj-uuid',
+                publishedBy: 'user@example.com',
+            });
+
+            expect(result.statusCode).to.equal(200);
+            expect(result.body.status).to.equal('Published');
+            expect(result.body.publishedBy).to.equal('user@example.com');
+
+            const firstPatch = putToOdinStub.firstCall.args[3];
+            expect(firstPatch).to.include({ status: 'Publishing', lastError: '' });
+        });
+
+        it('sets status DRAFT with lastError when createSnapshot fails', async () => {
+            createSnapshotStub.rejects(new Error('snapshot failed'));
+
+            const result = await projectAction.main({ ...baseParams, paths: undefined, projectId: 'proj-uuid' });
+
+            expect(result.statusCode).to.equal(200);
+            expect(result.body.status).to.equal('Draft');
+            expect(result.body.lastError).to.equal('snapshot failed');
+        });
+
+        it('calls createSnapshot with paths and projectId from project fragment', async () => {
+            await projectAction.main({ ...baseParams, paths: undefined, projectId: 'proj-uuid' });
+
+            expect(createSnapshotStub.calledOnce).to.be.true;
+            const snapshotArgs = createSnapshotStub.firstCall.args[0];
+            expect(snapshotArgs.paths).to.deep.equal(paths);
+            expect(snapshotArgs.projectId).to.equal('proj-uuid');
+        });
+
+        it('includes snapshots in final project update', async () => {
+            await projectAction.main({ ...baseParams, paths: undefined, projectId: 'proj-uuid' });
+
+            const lastPatch = putToOdinStub.lastCall.args[3];
+            expect(lastPatch.snapshots).to.be.an('array').with.length(1);
+        });
+
+        it('returns 500 when setting status to Publishing fails', async () => {
+            putToOdinStub.onFirstCall().rejects(new Error('patch failed'));
+
+            const result = await projectAction.main({ ...baseParams, paths: undefined, projectId: 'proj-uuid' });
+
+            expect(result.error.statusCode).to.equal(500);
+            expect(result.error.body.error).to.include('Failed to update project status');
+        });
+
+        it('sets status DRAFT when no paths resolve after locale expansion', async () => {
+            const { resolvePaths: _real, ...restResolver } = require('../../src/bulk-publish/resolver.js');
+            const realUtils = require('../../utils.js');
+            const publisher = proxyquire('../../src/bulk-publish/publisher.js', {
+                '../common.js': { fetchOdin: fetchOdinStub, fetchFragmentByPath: fetchFragmentByPathStub },
+            });
+
+            const emptyResolveAction = proxyquire('../../src/bulk-publish/index.js', {
+                '@adobe/aio-sdk': { Core: { Logger: () => loggerStub } },
+                './resolver.js': { resolvePaths: sinon.stub().returns([]) },
+                './publisher.js': publisher,
+                './snapshot.js': { createSnapshot: createSnapshotStub },
+                './project.js': {
+                    readProjectFragment: getFragmentWithEtagStub,
+                    updateProjectFragment: putToOdinStub,
+                    getProjectPaths: () => paths,
+                    getProjectLocales: () => [],
+                    getProjectTitle: () => 'My Project',
+                    getProjectSnapshots: () => [],
+                },
+                '../../utils.js': { ...realUtils, isAllowed: isAllowedStub },
+            });
+
+            const result = await emptyResolveAction.main({ ...baseParams, paths: undefined, projectId: 'proj-uuid' });
+
+            expect(result.statusCode).to.equal(200);
+            expect(result.body.status).to.equal('Draft');
+            expect(result.body.lastError).to.equal('No valid paths after locale resolution');
+        });
+
+        it('returns 500 with actionable message when final project patch fails', async () => {
+            putToOdinStub.onSecondCall().rejects(new Error('final patch failed'));
+
+            const result = await projectAction.main({ ...baseParams, paths: undefined, projectId: 'proj-uuid' });
+
+            expect(result.error.statusCode).to.equal(500);
+            expect(result.error.body.error).to.include('Content was published but project state could not be saved');
+            expect(loggerStub.error).to.have.been.calledWithMatch(sinon.match(/project-final-patch-error/));
         });
     });
 });

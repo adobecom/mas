@@ -8,6 +8,17 @@
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="aem-base-url" />
         <meta name="io-base-url" />
+        <script>
+            // Relay check - redirect back to origin port if relayPort param + token in hash
+            const relayPort = new URLSearchParams(window.location.search).get('relayPort');
+            if (relayPort && window.location.hash.length > 1) {
+                const url = new URL(window.location.href);
+                url.hostname = 'localhost';
+                url.port = relayPort;
+                url.searchParams.delete('relayPort');
+                window.location.replace(url.toString());
+            }
+        </script>
         <script type="importmap">
             {
                 "imports": {
@@ -42,7 +53,8 @@
             let bucket;
             let baseUrl;
             if (isLocal) {
-                baseUrl = 'http://localhost:8080';
+                const proxyPort = params.get('proxy.port') || 8080;
+                baseUrl = `http://localhost:${proxyPort}`;
             } else {
                 bucket = envOverride && BUCKETS[envOverride] ? BUCKETS[envOverride] : BUCKETS.prod;
                 baseUrl = `https://author-p22655-${bucket}.adobeaemcloud.com`;
@@ -59,10 +71,27 @@
         <script src="../web-components/dist/mas.js" type="module"></script>
         <script src="studio/libs/swc.js" type="module"></script>
 
-        <!-- OST -->
-        <script src="studio/ost/index.js"></script>
+        <!-- OST: load the legacy tacocat bundle by default (from main's deployed copy).
+             ?ost=new or #ost=new opts into the new Spectrum 2 Lit build at studio/ost/ost-new.js.
+             Cross-branch load for the default is intentional: it pins to main's known-good legacy build,
+             so the new bundle on this branch can ship alongside it without touching studio/ost/index.js.
+             CORS on the AEM-Live CDN is *, so the cross-origin script + link work without crossorigin attrs. -->
+        <script>
+            (function () {
+                const search = new URLSearchParams(location.search).get('ost');
+                const hash = (location.hash.match(/(?:^#|&)ost=([^&]+)/) || [])[1];
+                const useNew = (search || hash) === 'new';
+                const newJs = 'studio/ost/ost-new.js';
+                const newCss = './studio/ost/index.css';
+                const legacyJs = 'https://main--mas--adobecom.aem.live/studio/ost/index.js';
+                const legacyCss = 'https://main--mas--adobecom.aem.live/studio/ost/index.css';
+                const js = useNew ? newJs : legacyJs;
+                const css = useNew ? newCss : legacyCss;
+                document.write(`<script src="${js}" defer><\/script>`);
+                document.write(`<link rel="stylesheet" href="${css}" />`);
+            })();
+        </script>
         <link rel="stylesheet" href="studio/libs/spectrum.css" />
-        <link rel="stylesheet" href="./studio/ost/index.css" />
         <link rel="stylesheet" href="./studio/style.css" />
         <link rel="stylesheet" href="./studio/merch-card.css" />
         <link rel="stylesheet" href="./studio/con-button.css" />
@@ -86,7 +115,10 @@
                 client_id: 'mas-studio',
                 environment: 'prod',
                 locale: 'en_US',
-                redirect_uri: location.href.substring(0, location.href.length - location.hash.length),
+                redirect_uri:
+                    location.port && location.port !== '3000'
+                        ? `http://localhost:3000/studio.html?relayPort=${location.port}`
+                        : location.href.substring(0, location.href.length - location.hash.length),
                 response_type: 'id_token',
                 scope: 'additional_info,additional_info.projectedProductContext,additional_info.roles,AdobeID,openid,read_organizations,read_members',
                 useLocalStorage: true,

@@ -49,7 +49,7 @@ describe('bulk-publish/snapshot.js', () => {
         it('returns serialized entries with fragmentId, versionId, wasPublished, createdAt', async () => {
             fetchOdinStub.callsFake((endpoint, uri) => {
                 if (uri.includes('/adobe/sites/cf/fragments?path=')) {
-                    return fetchResponse({ items: [{ id: 'frag-1', path: '/content/dam/a', status: 'Published' }] });
+                    return fetchResponse({ items: [{ id: 'frag-1', path: '/content/dam/a', status: 'PUBLISHED' }] });
                 }
                 if (uri.includes('/versions')) {
                     return fetchResponse({}, { location: '/versions/ver-abc' });
@@ -76,7 +76,7 @@ describe('bulk-publish/snapshot.js', () => {
         it('sets wasPublished: true for Published status', async () => {
             fetchOdinStub.callsFake((endpoint, uri) => {
                 if (uri.includes('/adobe/sites/cf/fragments?path=')) {
-                    return fetchResponse({ items: [{ id: 'frag-pub', path: '/content/dam/pub', status: 'Published' }] });
+                    return fetchResponse({ items: [{ id: 'frag-pub', path: '/content/dam/pub', status: 'PUBLISHED' }] });
                 }
                 return fetchResponse({}, { location: '/versions/ver-1' });
             });
@@ -95,7 +95,7 @@ describe('bulk-publish/snapshot.js', () => {
         it('sets wasPublished: true for Modified status', async () => {
             fetchOdinStub.callsFake((endpoint, uri) => {
                 if (uri.includes('/adobe/sites/cf/fragments?path=')) {
-                    return fetchResponse({ items: [{ id: 'frag-mod', path: '/content/dam/mod', status: 'Modified' }] });
+                    return fetchResponse({ items: [{ id: 'frag-mod', path: '/content/dam/mod', status: 'MODIFIED' }] });
                 }
                 return fetchResponse({}, { location: '/versions/ver-2' });
             });
@@ -114,7 +114,7 @@ describe('bulk-publish/snapshot.js', () => {
         it('sets wasPublished: false for Draft status', async () => {
             fetchOdinStub.callsFake((endpoint, uri) => {
                 if (uri.includes('/adobe/sites/cf/fragments?path=')) {
-                    return fetchResponse({ items: [{ id: 'frag-draft', path: '/content/dam/draft', status: 'Draft' }] });
+                    return fetchResponse({ items: [{ id: 'frag-draft', path: '/content/dam/draft', status: 'DRAFT' }] });
                 }
                 return fetchResponse({}, { location: '/versions/ver-3' });
             });
@@ -157,7 +157,7 @@ describe('bulk-publish/snapshot.js', () => {
         it('throws if createVersion returns no versionId (empty Location header)', async () => {
             fetchOdinStub.callsFake((endpoint, uri) => {
                 if (uri.includes('/adobe/sites/cf/fragments?path=')) {
-                    return fetchResponse({ items: [{ id: 'frag-nv', path: '/content/dam/nv', status: 'Draft' }] });
+                    return fetchResponse({ items: [{ id: 'frag-nv', path: '/content/dam/nv', status: 'DRAFT' }] });
                 }
                 // versions endpoint returns no Location header
                 return fetchResponse({}, { location: null });
@@ -184,7 +184,7 @@ describe('bulk-publish/snapshot.js', () => {
                 if (uri.includes('/adobe/sites/cf/fragments?path=')) {
                     const path = decodeURIComponent(uri.split('path=')[1]);
                     const idx = path.endsWith('b') ? 'b' : 'a';
-                    return fetchResponse({ items: [{ id: `frag-${idx}`, path, status: 'Published' }] });
+                    return fetchResponse({ items: [{ id: `frag-${idx}`, path, status: 'PUBLISHED' }] });
                 }
                 if (uri.includes('/versions')) {
                     const fragId = uri.split('/fragments/')[1].split('/')[0];
@@ -228,17 +228,14 @@ describe('bulk-publish/snapshot.js', () => {
             expect(result.skipped).to.deep.equal([]);
         });
 
-        it('calls unpublish workflow with correct type/fragmentIds when wasPublished: false', async () => {
+        it('calls unpublish endpoint with correct path when wasPublished: false', async () => {
             const entries = makeEntries([{ fragmentId: 'frag-2', versionId: 'v1', wasPublished: false }]);
 
-            fetchOdinStub.callsFake((endpoint, uri, token, opts) => {
+            fetchOdinStub.callsFake((endpoint, uri) => {
                 if (uri === `/adobe/sites/cf/fragments/frag-2`) {
                     return fetchResponse({ id: 'frag-2', path: '/content/dam/b' });
                 }
                 if (uri.includes('/restore/')) {
-                    return fetchResponse({});
-                }
-                if (uri === '/adobe/sites/cf/workflows') {
                     return fetchResponse({});
                 }
                 return fetchResponse({});
@@ -246,14 +243,14 @@ describe('bulk-publish/snapshot.js', () => {
 
             await snapshot.revertSnapshot({ entries, odinEndpoint, authToken });
 
-            const workflowCall = fetchOdinStub.args.find(([, uri]) => uri === '/adobe/sites/cf/workflows');
-            expect(workflowCall).to.exist;
-            const body = JSON.parse(workflowCall[3].body);
-            expect(body.type).to.equal('unpublish-fragments');
-            expect(body.payload.fragmentIds).to.deep.equal(['frag-2']);
+            const unpublishCall = fetchOdinStub.args.find(([, uri]) => uri === '/adobe/sites/cf/fragments/publish');
+            expect(unpublishCall).to.exist;
+            const body = JSON.parse(unpublishCall[3].body);
+            expect(body.paths).to.deep.equal(['/content/dam/b']);
+            expect(body.workflowModelId).to.equal('/var/workflow/models/scheduled_deactivation');
         });
 
-        it('does NOT call /workflows when wasPublished: true', async () => {
+        it('does NOT call unpublish endpoint when wasPublished: true', async () => {
             const entries = makeEntries([{ fragmentId: 'frag-3', versionId: 'v1', wasPublished: true }]);
 
             fetchOdinStub.callsFake((endpoint, uri) => {
@@ -265,8 +262,8 @@ describe('bulk-publish/snapshot.js', () => {
 
             await snapshot.revertSnapshot({ entries, odinEndpoint, authToken });
 
-            const workflowCall = fetchOdinStub.args.find(([, uri]) => uri === '/adobe/sites/cf/workflows');
-            expect(workflowCall).to.not.exist;
+            const unpublishCall = fetchOdinStub.args.find(([, uri]) => uri === '/adobe/sites/cf/fragments/publish');
+            expect(unpublishCall).to.not.exist;
         });
 
         it('returns skipped: [fragmentId] when getFragmentById responds with 404', async () => {

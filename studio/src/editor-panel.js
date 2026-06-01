@@ -17,6 +17,7 @@ import {
 import Events from './events.js';
 import { VARIANTS } from './editors/variant-picker.js';
 import { generateCodeToUse, showToast, extractLocaleFromPath, previewFragmentOnPage } from './utils.js';
+import { getCountryName } from './locales.js';
 import './rte/osi-field.js';
 import './aem/aem-tag-picker-field.js';
 import router from './router.js';
@@ -123,6 +124,20 @@ export default class EditorPanel extends LitElement {
             margin: 8px 0;
             font-size: 14px;
             color: var(--spectrum-gray-700);
+        }
+
+        .locale-variation-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: var(--spectrum-font-size-100);
+            color: var(--spectrum-gray-700);
+            margin: 0 0 12px 0;
+        }
+
+        .locale-variation-header strong {
+            font-weight: 700;
+            color: var(--spectrum-gray-900);
         }
     `;
 
@@ -438,15 +453,21 @@ export default class EditorPanel extends LitElement {
         this.localeDefaultFragmentLoading = false;
 
         try {
-            await this.editorContextStore.loadFragmentContext(fragmentId);
+            await this.editorContextStore.loadFragmentContext(fragmentId, this.fragment?.path);
             if (this.editorContextStore.isVariation(fragmentId)) {
                 await this.fetchLocaleDefaultFragment();
                 const fragmentLocale = extractLocaleFromPath(this.fragment?.path);
-                if (fragmentLocale && fragmentLocale !== Store.filters.value.locale) {
+                const isCollection = this.fragment?.model?.path === COLLECTION_MODEL_PATH;
+                if (!isCollection && fragmentLocale && fragmentLocale !== Store.filters.value.locale) {
                     Store.filters.set((prev) => ({ ...prev, locale: fragmentLocale }));
                     void this.repository.loadPreviewPlaceholders();
                     this.fragmentStore?.resolvePreviewFragment?.();
                 }
+            }
+
+            if (!this.localeDefaultFragment && this.fragmentStore?.parentFragment) {
+                const parent = this.fragmentStore.parentFragment;
+                this.localeDefaultFragment = parent instanceof Fragment ? parent : new Fragment(parent);
             }
         } catch (error) {
             console.error('Failed to load fragment context:', error);
@@ -582,11 +603,30 @@ export default class EditorPanel extends LitElement {
     async confirmDelete() {
         this.showDeleteDialog = false;
         try {
-            await this.repository.deleteFragment(this.fragment);
-            await this.closeEditor();
+            if (this.editorContextStore.isVariation(this.fragment.id)) {
+                let parent = this.localeDefaultFragment;
+                if (!parent) {
+                    parent = await this.editorContextStore.getLocaleDefaultFragmentAsync();
+                }
+                if (parent) {
+                    await this.repository.removeFromParentVariations(parent, this.fragment.path);
+                }
+                await this.repository.deleteFragment(this.fragment, { force: true, startToast: false, endToast: false });
+                showToast('Fragment successfully deleted.', 'positive');
+            } else {
+                await this.repository.deleteFragment(this.fragment);
+            }
+            this.#closeEditorAfterDelete();
         } catch (error) {
             console.error('Error deleting fragment:', error);
         }
+    }
+
+    #closeEditorAfterDelete() {
+        Store.editor.resetChanges();
+        this.unmaskOtherFragments();
+        this.inEdit.set(null);
+        this.reactiveController.updateStores([this.inEdit, this.operation]);
     }
 
     async confirmClone() {
@@ -1015,12 +1055,54 @@ export default class EditorPanel extends LitElement {
 
     get authorPath() {
         if (!this.fragment) return nothing;
-        const { fragmentParts } = getFragmentPartsToUse(Store, this.fragment);
+        let { fragmentParts } = getFragmentPartsToUse(Store, this.fragment);
+        if (
+            this.fragment.model.path === COLLECTION_MODEL_PATH &&
+            Fragment.isGroupedVariationPath(this.fragment.path) &&
+            this.localeDefaultFragment
+        ) {
+            const search = Store.search.get();
+            const surface = search?.path ? String(search.path).toUpperCase() : '';
+            fragmentParts = surface ? `${surface} / ${this.localeDefaultFragment.title}` : this.localeDefaultFragment.title;
+        }
         if (!fragmentParts) return nothing;
         const modelName = MODEL_WEB_COMPONENT_MAPPING[this.fragment.model.path] || 'fragment';
+
+        const isGroupedVariation = Fragment.isGroupedVariationPath(this.fragment.path);
+        const pathVariation = this.editorContextStore.detectVariationFromPath(this.fragment.path)?.isVariation;
+        const isCollectionVariation =
+            this.fragment.model.path === COLLECTION_MODEL_PATH &&
+            (isGroupedVariation || this.editorContextStore.isVariation(this.fragment.id) || pathVariation);
+
+        let groupedSubline = nothing;
+        if (isCollectionVariation && isGroupedVariation) {
+            const pznTags = this.fragment.getFieldValues('pznTags') || [];
+            if (pznTags.length) {
+                const localeCodes = pznTags.map((tag) => {
+                    const parts = tag.split('/');
+                    return parts[parts.length - 1];
+                });
+                groupedSubline = html`<p class="locale-variation-header">
+                    <span>Grouped variation: <strong>${localeCodes.join(', ')}</strong></span>
+                </p>`;
+            }
+        }
+
+        let regionalVariationInfo = nothing;
+        if (isCollectionVariation && !isGroupedVariation) {
+            const localeCode = extractLocaleFromPath(this.fragment.path);
+            const [lang, country] = localeCode?.split('_') || [];
+            if (lang && country) {
+                regionalVariationInfo = html`<p class="locale-variation-header">
+                    <span>Regional variation: <strong>${getCountryName(country)} (${lang.toUpperCase()})</strong></span>
+                </p>`;
+            }
+        }
+
         return html`
             <div>
                 <p id="author-path">${modelName}: ${fragmentParts}</p>
+                ${groupedSubline} ${regionalVariationInfo}
             </div>
         `;
     }
@@ -1044,6 +1126,7 @@ export default class EditorPanel extends LitElement {
                         .fragmentStore=${this.fragmentStore}
                         .updateFragment=${this.updateFragment}
                         .localeDefaultFragment=${this.localeDefaultFragment}
+                        .isVariation=${this.editorContextStore.isVariation(this.fragment?.id)}
                     ></merch-card-collection-editor>`;
                     break;
             }

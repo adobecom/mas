@@ -202,42 +202,12 @@ export class PlansV2 extends VariantLayout {
             await this.adjustLegal();
         }
 
-        // Wait for card and prices to be ready
-        await this.card.updateComplete;
-        if (this.card.prices?.length > 0) {
-            await Promise.all(
-                this.card.prices.map(
-                    (price) => price.onceSettled?.() || Promise.resolve(),
-                ),
-            );
-        }
+        await super.postCardUpdateHook();
 
-        // Sync heights after all adjustments complete (desktop only)
         if (window.matchMedia('(min-width: 768px)').matches) {
-            const container = this.getContainer();
-            if (!container) return;
-
-            const prefix = `--consonant-merch-card-${this.card.variant}`;
-            const hasExistingVars = container.style.getPropertyValue(
-                `${prefix}-body-height`,
-            );
-
-            if (!hasExistingVars) {
-                // First card: sync all cards in container
-                requestAnimationFrame(() => {
-                    const cards = container.querySelectorAll(
-                        `merch-card[variant="${this.card.variant}"]`,
-                    );
-                    cards.forEach((card) =>
-                        card.variantLayout?.syncHeights?.(),
-                    );
-                });
-            } else {
-                // Subsequent cards: sync only this card
-                requestAnimationFrame(() => {
-                    this.syncHeights();
-                });
-            }
+            requestAnimationFrame(() => {
+                this.syncHeights();
+            });
         }
     }
 
@@ -249,21 +219,21 @@ export class PlansV2 extends VariantLayout {
 
     syncHeights() {
         if (this.card.getBoundingClientRect().width <= 2) return;
-
-        const body = this.card.shadowRoot?.querySelector('.body');
-        if (body) this.updateCardElementMinHeight(body, 'body');
-
-        const footer = this.card.shadowRoot?.querySelector('footer');
-        if (footer) this.updateCardElementMinHeight(footer, 'footer');
-
-        const shortDescription = this.card.querySelector(
-            '[slot="short-description"]',
-        );
-        if (shortDescription)
-            this.updateCardElementMinHeight(
-                shortDescription,
-                'short-description',
-            );
+        this.syncRowHeights([
+            {
+                name: 'body',
+                getElement: (card) => card.shadowRoot?.querySelector('.body'),
+            },
+            {
+                name: 'footer',
+                getElement: (card) => card.shadowRoot?.querySelector('footer'),
+            },
+            {
+                name: 'short-description',
+                getElement: (card) =>
+                    card.querySelector('[slot="short-description"]'),
+            },
+        ]);
     }
 
     async adjustLegal() {
@@ -434,7 +404,6 @@ export class PlansV2 extends VariantLayout {
             this.updateShortDescriptionVisibility();
             this.card.requestUpdate();
 
-            // Sync heights on media change for tablet and up
             if (window.matchMedia('(min-width: 768px)').matches) {
                 requestAnimationFrame(() => {
                     this.syncHeights();
@@ -448,20 +417,27 @@ export class PlansV2 extends VariantLayout {
             this.handleMediaChange,
         );
 
-        // Observe card visibility to trigger height sync when tab becomes visible
+        this.handleResize = () => {
+            if (this._resizeFrame) cancelAnimationFrame(this._resizeFrame);
+            this._resizeFrame = requestAnimationFrame(() => {
+                this._resizeFrame = null;
+                if (window.matchMedia('(min-width: 768px)').matches) {
+                    this.syncHeights();
+                }
+            });
+        };
+        window.addEventListener('resize', this.handleResize);
+
         this.visibilityObserver = new IntersectionObserver(([entry]) => {
-            // Only sync when card has real dimensions (not hidden in tab)
             if (entry.boundingClientRect.height === 0) return;
             if (!entry.isIntersecting) return;
 
-            // Card is now visible, trigger height sync on desktop
             if (window.matchMedia('(min-width: 768px)').matches) {
                 requestAnimationFrame(() => {
                     this.syncHeights();
                 });
             }
 
-            // Only need to observe once
             this.visibilityObserver.disconnect();
         });
 
@@ -474,6 +450,14 @@ export class PlansV2 extends VariantLayout {
             'change',
             this.handleMediaChange,
         );
+        if (this.handleResize) {
+            window.removeEventListener('resize', this.handleResize);
+            this.handleResize = null;
+        }
+        if (this._resizeFrame) {
+            cancelAnimationFrame(this._resizeFrame);
+            this._resizeFrame = null;
+        }
         this.visibilityObserver?.disconnect();
     }
 

@@ -1,5 +1,6 @@
-import { createTimeoutPromise, mark, measureTiming, getJsonFromState } from './utils/common.js';
+import { createTimeoutPromise, mark, measureTiming } from './utils/common.js';
 import { getRequestMetadata, storeRequestMetadata, extractContextFromMetadata } from './utils/cache.js';
+import { loadConfiguration, resetCache, validateApiKey } from './utils/configuration.js';
 import { log, logError, logDebug } from './utils/log.js';
 import crypto from 'crypto';
 import zlib from 'zlib';
@@ -13,10 +14,7 @@ import { transformer as promotions } from './transformers/promotions.js';
 import { transformer as settings } from './transformers/settings.js';
 import { transformer as customize } from './transformers/customize.js';
 import { transformer as wcs } from './transformers/wcs.js';
-
-let cachedConfiguration = null;
-let configurationTimestamp = null;
-const CONFIG_CACHE_TTL = 5 * 60 * 1000;
+import { isKnownLocale } from './locales.js';
 
 function calculateHash(body) {
     return crypto.createHash('sha256').update(JSON.stringify(body)).digest('hex');
@@ -33,16 +31,14 @@ const RESPONSE_HEADERS = {
 async function main(params) {
     const requestId = params.__ow_headers?.['x-request-id'] || `mas-${performance.now()}`;
     const region = process.env.__OW_REGION || 'unknown';
-    const api_key = params.api_key || 'n/a';
     const DEFAULT_HEADERS = {
         Accept: 'application/json, */*',
         'Accept-Encoding': 'gzip, deflate',
         'User-Agent': 'Mozilla/5.0 (compatible; mas-io-Pipeline/1.0)',
-        'X-Request-ID': requestId,
+        'X-Correlation-ID': requestId,
     };
     let context = {
         ...params,
-        api_key,
         requestId,
         loggedTransformer: 'pipeline',
         DEFAULT_HEADERS,
@@ -52,57 +48,34 @@ async function main(params) {
     let returnValue;
     let cacheControl;
     log(`starting request pipeline for ${JSON.stringify(context)}`, context);
+    if (context.preview) {
+        logError('Preview mode is not supported in this pipeline', context);
+        return {
+            statusCode: 400,
+            headers: RESPONSE_HEADERS,
+            message: 'Preview mode is not supported in this pipeline',
+        };
+    }
     /* c8 ignore next 3*/
     if (!context.state) {
         context.state = await stateLib.init();
     }
     try {
         const now = mark(context, 'config-check');
-        const cacheExpired = !configurationTimestamp || now - configurationTimestamp > CONFIG_CACHE_TTL;
-        let configuration;
-        if (!cachedConfiguration) {
-            const result = await getJsonFromState('configuration', context);
-            configuration = result.json;
-            if (configuration) {
-                cachedConfiguration = configuration;
-                configurationTimestamp = now;
-            }
-            logDebug(() => 'Configuration cache empty, fetched from state', context);
-        } else if (cacheExpired) {
-            try {
-                const configTimeout = cachedConfiguration.networkConfig?.configTimeout || 200;
-                const result = await Promise.race([
-                    getJsonFromState('configuration', context),
-                    createTimeoutPromise(configTimeout, () => {}),
-                ]);
-                configuration = result.json;
-                if (configuration) {
-                    cachedConfiguration = configuration;
-                    configurationTimestamp = now;
-                    logDebug(() => 'Configuration cache expired, refreshed from state', context);
-                } else {
-                    configuration = cachedConfiguration;
-                    logDebug(() => 'Configuration refresh returned null, using stale cache', context);
-                }
-            } catch (error) {
-                if (error.isTimeout) {
-                    configuration = cachedConfiguration;
-                    logDebug(() => 'Configuration refresh timed out, using stale cache', context);
-                }
-            }
-        } else {
-            configuration = cachedConfiguration;
-            logDebug(() => 'Using cached configuration', context);
-        }
-        context = configuration ? { ...context, ...configuration } : context;
+        context = await loadConfiguration(context, now);
         const maxAge = context.networkConfig?.cacheMaxAge || 300;
         const staleWhileRevalidate = context.networkConfig?.cacheStaleWhileRevalidate || 86400;
         cacheControl = `public, max-age=${maxAge}, stale-while-revalidate=${staleWhileRevalidate}`;
 
-        const initTime = measureTiming(context, 'init', 'start').duration;
-        let timeout = context.networkConfig?.mainTimeout || 5000;
-        timeout = Math.max(timeout - initTime, 0);
-        returnValue = await Promise.race([mainProcess(context), createTimeoutPromise(timeout)]);
+        const validationResponse = validateApiKey(context);
+        if (validationResponse.statusCode !== 200) {
+            returnValue = validationResponse;
+        } else {
+            const initTime = measureTiming(context, 'init', 'start').duration;
+            let timeout = context.networkConfig?.mainTimeout || 5000;
+            timeout = Math.max(timeout - initTime, 0);
+            returnValue = await Promise.race([mainProcess(context), createTimeoutPromise(timeout)]);
+        }
     } catch (error) {
         logError(`Error occurred while processing request: ${error.message} ${error.stack}`, context);
         if (error.isTimeout) {
@@ -144,6 +117,15 @@ async function main(params) {
 }
 
 async function mainProcess(context) {
+    if (!context.id || !context.locale) {
+        return { statusCode: 400, body: JSON.stringify({ message: 'requested parameters id & locale are not present' }) };
+    }
+    if (!isKnownLocale(context.locale)) {
+        return {
+            statusCode: 400,
+            body: JSON.stringify({ message: `unknown locale '${context.locale}'` }),
+        };
+    }
     const cachedMetadata = await getRequestMetadata(context);
     const metadataContext = extractContextFromMetadata(cachedMetadata);
     context = { ...context, ...metadataContext };
@@ -211,9 +193,4 @@ async function mainProcess(context) {
     return returnValue;
 }
 
-export function resetCache() {
-    cachedConfiguration = null;
-    configurationTimestamp = null;
-}
-
-export { main };
+export { main, resetCache };

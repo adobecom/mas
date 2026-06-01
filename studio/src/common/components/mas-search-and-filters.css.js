@@ -5,7 +5,22 @@ export const styles = css`
         display: block;
     }
 
+    :host([hidden]) {
+        display: none;
+    }
+
+    :host([searchonly]) {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 8px;
+        flex-wrap: wrap;
+    }
+
     .result-count {
+        display: flex;
+        align-items: center;
+        gap: 6px;
         color: var(--spectrum-gray-700);
         font-size: 14px;
         white-space: nowrap;

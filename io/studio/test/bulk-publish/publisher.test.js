@@ -52,7 +52,7 @@ describe('bulk-publish/publisher.js', () => {
         const body = JSON.parse(opts.body);
         expect(body.paths).to.deep.equal(chunk);
         expect(body.workflowModelId).to.equal('/var/workflow/models/scheduled_activation_with_references');
-        expect(body.filterReferencesByStatus).to.deep.equal(['DRAFT', 'UNPUBLISHED']);
+        expect(body.filterReferencesByStatus).to.deep.equal(['DRAFT', 'MODIFIED', 'UNPUBLISHED']);
     });
 
     it('sends empty filterReferencesByStatus when explicitly passed []', async () => {

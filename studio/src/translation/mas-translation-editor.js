@@ -85,7 +85,7 @@ class MasTranslationEditor extends LitElement {
 
         // Check for pre-fill data from store (e.g., from missing-variation-panel)
         const prefill = Store.translationProjects.prefill.get();
-        const { targetLocale, fragmentPath } = prefill || {};
+        const { targetLocale, fragmentPath, isCollection } = prefill || {};
         // Clear prefill state after consumption to prevent stale data
         if (prefill) {
             Store.translationProjects.prefill.set(null);
@@ -97,7 +97,7 @@ class MasTranslationEditor extends LitElement {
             this.showLangSelectedEmptyState = this.targetLocalesCount === 0;
             this.#updateDisabledActions({ remove: [QUICK_ACTION.DELETE, QUICK_ACTION.LOC] });
         } else {
-            this.#initializeNewTranslationProject(fragmentPath, targetLocale);
+            this.#initializeNewTranslationProject(fragmentPath, targetLocale, Boolean(isCollection));
         }
         this.storeController = new StoreController(this, Store.translationProjects.inEdit);
         this.selectedController = new ReactiveController(this, [
@@ -187,16 +187,18 @@ class MasTranslationEditor extends LitElement {
         }
     }
 
-    #initializeNewTranslationProject(fragmentPath, targetLocale) {
+    #initializeNewTranslationProject(fragmentPath, targetLocale, isCollection = false) {
+        const prefilledCardPaths = fragmentPath && !isCollection ? [fragmentPath] : [];
+        const prefilledCollectionPaths = fragmentPath && isCollection ? [fragmentPath] : [];
         const newProject = new Fragment({
             id: null,
             title: '',
             fields: [
                 { name: 'title', type: 'text', multiple: false, values: [] },
                 { name: 'status', type: 'text', multiple: false, values: [] },
-                { name: 'fragments', type: 'content-fragment', multiple: true, values: fragmentPath ? [fragmentPath] : [] },
+                { name: 'fragments', type: 'content-fragment', multiple: true, values: prefilledCardPaths },
                 { name: 'placeholders', type: 'content-fragment', multiple: true, values: [] },
-                { name: 'collections', type: 'content-fragment', multiple: true, values: [] },
+                { name: 'collections', type: 'content-fragment', multiple: true, values: prefilledCollectionPaths },
                 { name: 'targetLocales', type: 'text', multiple: true, values: targetLocale ? [targetLocale] : [] },
                 { name: 'submissionDate', type: 'date-time', multiple: false, values: [] },
                 { name: 'projectType', type: 'enumeration', multiple: false, values: ['translation'] },
@@ -206,7 +208,13 @@ class MasTranslationEditor extends LitElement {
         this.translationProjectStore = new FragmentStore(newProject);
 
         if (fragmentPath) {
-            Store.translationProjects.selectedCards.set([fragmentPath]);
+            if (isCollection) {
+                Store.translationProjects.selectedCards.set([]);
+                Store.translationProjects.selectedCollections.set([fragmentPath]);
+            } else {
+                Store.translationProjects.selectedCards.set([fragmentPath]);
+                Store.translationProjects.selectedCollections.set([]);
+            }
         }
         if (targetLocale) {
             Store.translationProjects.targetLocales.set([targetLocale]);
@@ -516,9 +524,11 @@ class MasTranslationEditor extends LitElement {
                 searchAndFilters.productFilter = [];
             }
         }
-        Store.translationProjects.displayCards.set(Store.translationProjects.allCards.get());
-        Store.translationProjects.displayCollections.set(Store.translationProjects.allCollections.get());
-        Store.translationProjects.displayPlaceholders.set(Store.translationProjects.allPlaceholders.get());
+        Store.translationProjects.allCards.set([]);
+        Store.translationProjects.displayCards.set([]);
+        if (this.repository?.searchFragments) this.repository.searchFragments();
+        if (this.repository?.loadPlaceholders) this.repository.loadPlaceholders();
+        if (this.repository?.loadAllCollections) this.repository.loadAllCollections();
     }
 
     #openAddLanguagesOverlay() {

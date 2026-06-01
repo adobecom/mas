@@ -130,9 +130,35 @@ function errorResponse(statusCode, message, logger) {
     };
 }
 
+const { Ims } = require('@adobe/aio-lib-ims');
+
+async function isAllowed(token, allowedClientId, ims = new Ims('prod')) {
+    if (!token || !allowedClientId) return false;
+    const imsValidation = await ims.validateTokenAllowList(token, [allowedClientId]);
+    return !!(imsValidation && imsValidation.valid);
+}
+
+function parseOwBody(params) {
+    if (!params.__ow_body) return params;
+    try {
+        let bodyStr = params.__ow_body;
+        if (typeof bodyStr === 'string') {
+            try {
+                bodyStr = Buffer.from(bodyStr, 'base64').toString();
+            } catch {}
+        }
+        const body = typeof bodyStr === 'object' ? bodyStr : JSON.parse(bodyStr);
+        return { ...params, ...body };
+    } catch {
+        return params;
+    }
+}
+
 module.exports = {
     errorResponse,
     getBearerToken,
+    isAllowed,
+    parseOwBody,
     stringParameters,
     checkMissingRequestInputs,
 };

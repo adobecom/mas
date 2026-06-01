@@ -361,7 +361,7 @@ class AEM {
             method: 'POST',
             headers: {
                 ...this.headers,
-                'csrf-token': csrfToken,
+                'CSRF-Token': csrfToken,
             },
             body: formData,
         }).catch((err) => {
@@ -438,7 +438,7 @@ class AEM {
      * @param {Object} fragment
      * @returns {Promise<void>}
      */
-    async publishFragment(fragment, publishReferencesWithStatus = ['DRAFT', 'UNPUBLISHED']) {
+    async publishFragment(fragment, publishReferencesWithStatus = ['DRAFT', 'MODIFIED', 'UNPUBLISHED']) {
         const response = await fetch(this.cfPublishUrl, {
             method: 'POST',
             headers: {
@@ -1185,7 +1185,31 @@ class AEM {
             throw new Error(`Failed to create fragment version: ${response.status} ${response.statusText}`);
         }
 
-        return await response.json();
+        const location = response.headers.get('Location') ?? '';
+        return location.split('/').pop();
+    }
+
+    /**
+     * Restore a fragment to a previously saved version
+     * @param {string} fragmentId - Fragment ID
+     * @param {string} versionId - Version ID to restore
+     * @returns {Promise<void>}
+     */
+    async restoreFragmentVersion(fragmentId, versionId) {
+        if (!fragmentId || !versionId) {
+            throw new Error('Fragment ID and Version ID are required');
+        }
+
+        const response = await fetch(`${this.cfFragmentsUrl}/${fragmentId}/versions/restore/${versionId}`, {
+            method: 'POST',
+            headers: this.headers,
+        }).catch((err) => {
+            throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
+        });
+
+        if (!response.ok) {
+            throw new Error(`Failed to restore fragment version: ${response.status} ${response.statusText}`);
+        }
     }
 
     /**
@@ -1339,6 +1363,10 @@ class AEM {
                  * @see AEM#createFragmentVersion
                  */
                 createVersion: this.createFragmentVersion.bind(this),
+                /**
+                 * @see AEM#restoreFragmentVersion
+                 */
+                restoreVersion: this.restoreFragmentVersion.bind(this),
                 /**
                  * @see AEM#updateFragmentVersion
                  */

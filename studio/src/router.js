@@ -1,10 +1,52 @@
 import { PAGE_NAMES, SORT_COLUMNS, WCS_LANDSCAPE_PUBLISHED, COLLECTION_MODEL_PATH } from './constants.js';
 import Store from './store.js';
+import { isPromotionItemSelectionDirty } from './promotions/promotion-editor-utils.js';
 import { debounce } from './utils.js';
 import { canAccessSettings } from './groups.js';
+import { getDefaultLocaleCode } from '../../io/www/src/fragment/locales.js';
 
-const STORE_SEARCH_HASH_KEYS = ['path', 'query'];
+const STORE_SEARCH_HASH_KEYS = ['path', 'query', 'region'];
 const STORE_SEARCH_HASH_DEFAULT = {};
+
+/**
+ * True when the URL hash change only adjusts search-linked params while staying on the promotions editor.
+ * @param {string} previousHash
+ * @param {string} nextHash
+ * @returns {boolean}
+ */
+export function promoHashIsSearchSync(previousHash, nextHash) {
+    const toParams = (h) => new URLSearchParams(h?.startsWith('#') ? h.slice(1) : h || '');
+    const prev = toParams(previousHash);
+    const next = toParams(nextHash);
+    if (next.get('page') !== PAGE_NAMES.PROMOTIONS_EDITOR) return false;
+    if (prev.get('page') && prev.get('page') !== PAGE_NAMES.PROMOTIONS_EDITOR) return false;
+    if (prev.get('promotionId') !== next.get('promotionId')) return false;
+    const ignorable = new Set(['query', 'path']);
+    const keys = new Set([...prev.keys(), ...next.keys()]);
+    for (const key of keys) {
+        if (ignorable.has(key)) continue;
+        if (prev.get(key) !== next.get(key)) return false;
+    }
+    return true;
+}
+
+/**
+ * Alphabetical hash order, but places `region` immediately after `locale`.
+ * @param {[string, string][]} entries
+ * @returns {[string, string][]}
+ */
+export function orderHashParamEntries(entries) {
+    const sorted = [...entries].sort(([keyA], [keyB]) => keyA.localeCompare(keyB));
+    const localeIndex = sorted.findIndex(([key]) => key === 'locale');
+    const regionIndex = sorted.findIndex(([key]) => key === 'region');
+    if (localeIndex === -1 || regionIndex === -1) {
+        return sorted;
+    }
+    const [regionEntry] = sorted.splice(regionIndex, 1);
+    const localeIndexAfter = sorted.findIndex(([key]) => key === 'locale');
+    sorted.splice(localeIndexAfter + 1, 0, regionEntry);
+    return sorted;
+}
 
 export class Router extends EventTarget {
     #settingsAccessRouteWatcher = () => {
@@ -26,9 +68,9 @@ export class Router extends EventTarget {
     updateHistory() {
         // Sort the parameters by name
         const sortedParams = new URLSearchParams();
-        Array.from(this.currentParams.entries())
-            .sort(([keyA], [keyB]) => keyA.localeCompare(keyB))
-            .forEach(([key, value]) => sortedParams.append(key, value));
+        orderHashParamEntries(Array.from(this.currentParams.entries())).forEach(([key, value]) =>
+            sortedParams.append(key, value),
+        );
         const newHash = sortedParams.toString();
         if (newHash !== this.location.hash) {
             this.location.hash = newHash;
@@ -75,6 +117,19 @@ export class Router extends EventTarget {
         return false;
     }
 
+    promotionsEditorHasUnsavedChanges() {
+        const inEdit = Store.promotions.inEdit?.get()?.get();
+        if (!inEdit) return false;
+        if (inEdit.hasChanges) return true;
+
+        return isPromotionItemSelectionDirty(
+            inEdit,
+            Store.promotions.selectedCards.value,
+            Store.promotions.selectedCollections.value,
+            Store.promotions.itemHydrateUnreachablePaths.value,
+        );
+    }
+
     /**
      * Gets the active editor element and its hasChanges state based on the current page
      * @returns {{ editor: Element|null, hasChanges: boolean }}
@@ -100,6 +155,24 @@ export class Router extends EventTarget {
                     shouldCheckUnsavedChanges: editor && !editor.isLoading && hasUnsavedChanges,
                 };
             }
+            case PAGE_NAMES.PROMOTIONS_EDITOR: {
+                const editor = document.querySelector('mas-promotions-editor');
+                const hasUnsavedChanges = this.promotionsEditorHasUnsavedChanges();
+                return {
+                    editor,
+                    hasChanges: editor && hasUnsavedChanges,
+                    shouldCheckUnsavedChanges: editor && !editor.loadingPromotion && hasUnsavedChanges,
+                };
+            }
+            case PAGE_NAMES.BULK_PUBLISH_EDITOR: {
+                const editor = document.querySelector('mas-bulk-publish-editor');
+                const hasUnsavedChanges = editor && editor.hasChanges;
+                return {
+                    editor,
+                    hasChanges: hasUnsavedChanges,
+                    shouldCheckUnsavedChanges: hasUnsavedChanges,
+                };
+            }
             case PAGE_NAMES.SETTINGS:
             case PAGE_NAMES.SETTINGS_EDITOR: {
                 const editor = document.querySelector('mas-settings');
@@ -118,9 +191,12 @@ export class Router extends EventTarget {
     /**
      * Navigation function to change the current page
      * @param {string} value - The page to navigate to
+     * @param {object} [options] - Optional state to set on navigation
+     * @param {string} [options.bulkPublishProjectId] - Project ID for bulk publish editor
+     * @param {string} [options.translationProjectId] - Project ID for translation editor
      * @returns {Function} A function that when called will navigate to the page
      */
-    navigateToPage(value) {
+    navigateToPage(value, options = {}) {
         return async () => {
             const targetPage = this.#getAuthorizedPage(value);
             if (Store.page.value === targetPage) return;
@@ -145,6 +221,14 @@ export class Router extends EventTarget {
                         Store.translationProjects.inEdit.set(null);
                         Store.translationProjects.showSelected.set(false);
                     }
+                    if (Store.page.value === PAGE_NAMES.PROMOTIONS_EDITOR && targetPage !== PAGE_NAMES.PROMOTIONS_EDITOR) {
+                        Store.promotions.promotionId.set(null);
+                        Store.promotions.inEdit.set(null);
+                        Store.promotions.showSelected.set(false);
+                        Store.promotions.selectedCards.set([]);
+                        Store.promotions.selectedCollections.set([]);
+                        Store.promotions.selectedPlaceholders.set([]);
+                    }
                     if (targetPage === PAGE_NAMES.TRANSLATIONS && Store.page.value !== PAGE_NAMES.TRANSLATIONS) {
                         Store.filters.set((prev) => ({ ...prev, locale: 'en_US' }));
                     }
@@ -161,7 +245,19 @@ export class Router extends EventTarget {
                         Store.settings.creating.set(false);
                         Store.settings.fragmentId.set(null);
                     }
+                    if (options.bulkPublishProjectId !== undefined) {
+                        Store.bulkPublishProjects.projectId.set(options.bulkPublishProjectId);
+                    }
+                    if (options.translationProjectId !== undefined) {
+                        Store.translationProjects.translationProjectId.set(options.translationProjectId);
+                    }
                     Store.viewMode.set('default');
+                    if (
+                        targetPage === PAGE_NAMES.CONTENT &&
+                        (Store.page.value === PAGE_NAMES.FRAGMENT_EDITOR || Store.page.value === PAGE_NAMES.VERSION)
+                    ) {
+                        this.#snapContentLocaleToParentDefault();
+                    }
                     Store.page.set(targetPage);
                 }
             } finally {
@@ -188,6 +284,9 @@ export class Router extends EventTarget {
 
             if (!confirmed) return;
 
+            const leavingFragmentEditor =
+                Store.page.value === PAGE_NAMES.FRAGMENT_EDITOR || Store.page.value === PAGE_NAMES.VERSION;
+
             // Set the fragment ID to be expanded
             Store.fragments.expandedId.set(fragmentId);
 
@@ -199,6 +298,9 @@ export class Router extends EventTarget {
             // Navigate to content page in table view
             Store.viewMode.set('default');
             Store.renderMode.set('table');
+            if (leavingFragmentEditor) {
+                this.#snapContentLocaleToParentDefault();
+            }
             Store.page.set(PAGE_NAMES.CONTENT);
         } finally {
             this.isNavigating = false;
@@ -210,6 +312,8 @@ export class Router extends EventTarget {
      * @param {string} fragmentId - The fragment ID to edit
      * @param {Object} options - Navigation options
      * @param {string} options.locale - Optional locale to set before navigation
+     * @param {import('./reactivity/fragment-store.js').FragmentStore} [options.fragmentStore] - Optional pre-resolved fragment store
+     * @param {boolean} [options.viewPage] - View page instead of editing
      */
     async navigateToFragmentEditor(fragmentId, options = {}) {
         if (!fragmentId) {
@@ -217,20 +321,15 @@ export class Router extends EventTarget {
             return;
         }
 
-        const { locale } = options;
+        const { locale, fragmentStore: providedFragmentStore, viewPage } = options;
 
         this.isNavigating = true;
         try {
-            // Set locale BEFORE setting page to include it in the first URL change
-            if (locale && locale !== Store.filters.value.locale) {
-                Store.search.set((prev) => ({ ...prev, region: locale }));
-            }
-
             // Check if this is a collection to use editor-panel instead
             const fragmentList = Store.fragments.list.data.get();
-            const fragmentStore = fragmentList?.find((f) => f.get()?.id === fragmentId);
+            const fragmentStore = providedFragmentStore ?? fragmentList?.find((f) => f.get()?.id === fragmentId);
 
-            if (fragmentStore?.get()?.model?.path === COLLECTION_MODEL_PATH) {
+            if (!viewPage && fragmentStore?.get()?.model?.path === COLLECTION_MODEL_PATH) {
                 // Use editor-panel for collections
                 const editorPanel = document.querySelector('editor-panel');
                 if (editorPanel) {
@@ -245,6 +344,10 @@ export class Router extends EventTarget {
             }
 
             // Default: use full-page fragment editor for regular cards
+            if (locale && locale !== Store.filters.value.locale) {
+                Store.search.set((prev) => ({ ...prev, region: locale }));
+            }
+
             if (Store.editor.hasChanges) {
                 const fragmentEditor = document.querySelector('mas-fragment-editor');
                 const confirmed = fragmentEditor ? await fragmentEditor.promptDiscardChanges() : true;
@@ -266,9 +369,10 @@ export class Router extends EventTarget {
      * @param {Object} options - Navigation options
      * @param {string} options.targetLocale - Optional target locale to pre-fill
      * @param {string} options.fragmentPath - Optional fragment path to pre-fill
+     * @param {boolean} [options.isCollection] - When true, prefill targets the collections field
      */
     async navigateToTranslationEditor(options = {}) {
-        const { targetLocale, fragmentPath } = options;
+        const { targetLocale, fragmentPath, isCollection } = options;
 
         this.isNavigating = true;
         try {
@@ -289,7 +393,11 @@ export class Router extends EventTarget {
 
             // Store pre-fill data for the translation editor to consume
             if (targetLocale || fragmentPath) {
-                Store.translationProjects.prefill.set({ targetLocale, fragmentPath });
+                Store.translationProjects.prefill.set({
+                    targetLocale,
+                    fragmentPath,
+                    isCollection: Boolean(isCollection),
+                });
             }
 
             // Set the page - the store subscription will update the URL
@@ -430,9 +538,11 @@ export class Router extends EventTarget {
         this.linkStoreToHash(Store.fragmentEditor.fragmentId, 'fragmentId');
         this.linkStoreToHash(Store.promotions.promotionId, 'promotionId');
         this.linkStoreToHash(Store.translationProjects.translationProjectId, 'translationProjectId');
+        this.linkStoreToHash(Store.bulkPublishProjects.projectId, 'bulkPublishProjectId');
         this.linkStoreToHash(Store.settings.fragmentId, 'fragmentId');
         const redirectedOnStart = this.#enforceSettingsAccessFromParams();
-        if (normalizedOnStart || redirectedOnStart) {
+        const normalizedLocaleRegionOnStart = this.#normalizeLocaleRegionFromHash();
+        if (normalizedOnStart || redirectedOnStart || normalizedLocaleRegionOnStart) {
             this.updateHistory();
         }
         if (Store.search.value.query) {
@@ -453,8 +563,10 @@ export class Router extends EventTarget {
         window.addEventListener('hashchange', async (event) => {
             if (!this.isNavigating) {
                 const { editor, shouldCheckUnsavedChanges } = this.getActiveEditor();
+                const skipDiscardForSearchHash =
+                    shouldCheckUnsavedChanges && promoHashIsSearchSync(this.previousHash, this.location.hash);
 
-                if (shouldCheckUnsavedChanges) {
+                if (shouldCheckUnsavedChanges && !skipDiscardForSearchHash) {
                     const confirmed = editor ? await editor.promptDiscardChanges() : true;
                     if (!confirmed) {
                         event.preventDefault();
@@ -466,7 +578,9 @@ export class Router extends EventTarget {
 
             /* fix hash when missing params(e.g: manual edit) */
             this.currentParams = new URLSearchParams(this.#hashValue());
-            if (this.currentParams.has('query') && !this.currentParams.has('fragmentId')) {
+            const currentPage = this.currentParams.get('page') || Store.page.value;
+            const isContentPage = !currentPage || currentPage === PAGE_NAMES.CONTENT || currentPage === PAGE_NAMES.WELCOME;
+            if (this.currentParams.has('query') && !this.currentParams.has('fragmentId') && isContentPage) {
                 Store.page.set(PAGE_NAMES.CONTENT);
             }
             const page = this.currentParams.get('page');
@@ -499,7 +613,7 @@ export class Router extends EventTarget {
                 }
             }
 
-            Store.removeRegionOverride();
+            const normalizedLocaleRegion = this.#normalizeLocaleRegionFromHash();
 
             // Sync all linked stores from the current hash
             this.linkedStores.forEach(({ store, keysArray, defaultValue }) => {
@@ -507,6 +621,13 @@ export class Router extends EventTarget {
                 const isObject = typeof currentValue === 'object' && currentValue !== null;
                 this.syncStoreFromHash(store, currentValue, isObject, keysArray, defaultValue);
             });
+
+            this.#clearRedundantRegionOverride();
+            this.#snapLocaleWhenLeavingFragmentEditorForContent(this.previousHash);
+
+            if (normalizedLocaleRegion) {
+                this.updateHistory();
+            }
 
             this.previousHash = this.location.hash;
         });
@@ -518,6 +639,56 @@ export class Router extends EventTarget {
                 return '';
             }
         });
+    }
+
+    /**
+     * Legacy URLs put a regional locale (e.g. en_BE) in `locale`; move it to `region` and set catalog locale.
+     * @returns {boolean} true when hash params were adjusted
+     */
+    #normalizeLocaleRegionFromHash() {
+        const surface = this.currentParams.get('path') || Store.search.value?.path;
+        const hashLocale = this.currentParams.get('locale');
+        if (!surface || !hashLocale) return false;
+
+        const catalogLocale = getDefaultLocaleCode(surface, hashLocale);
+        if (!catalogLocale || catalogLocale === hashLocale) return false;
+
+        this.currentParams.set('locale', catalogLocale);
+        this.currentParams.set('region', hashLocale);
+        Store.filters.set((prev) => ({ ...prev, locale: catalogLocale }));
+        Store.search.set((prev) => ({ ...prev, region: hashLocale }));
+        return true;
+    }
+
+    #clearRedundantRegionOverride() {
+        const region = Store.search.value.region;
+        if (!region) return;
+        const surface = Store.surface();
+        const catalogLocale =
+            (surface && getDefaultLocaleCode(surface, Store.filters.value.locale)) || Store.filters.value.locale;
+        if (region !== catalogLocale && region !== Store.filters.value.locale) return;
+        Store.search.set((prev) => ({ ...prev, region: null }));
+        this.currentParams?.delete('region');
+    }
+
+    #snapContentLocaleToParentDefault() {
+        const surface = Store.surface();
+        if (!surface) return;
+        Store.removeRegionOverride();
+        const current = Store.filters.value.locale;
+        const parent = getDefaultLocaleCode(surface, current);
+        if (!parent || parent === current) return;
+        Store.filters.set((prev) => ({ ...prev, locale: parent }));
+    }
+
+    #snapLocaleWhenLeavingFragmentEditorForContent(previousHash) {
+        const raw = previousHash?.startsWith('#') ? previousHash.slice(1) : previousHash || '';
+        const prev = new URLSearchParams(raw);
+        const prevPage = prev.get('page');
+        const wasEditor = prevPage === PAGE_NAMES.FRAGMENT_EDITOR || prevPage === PAGE_NAMES.VERSION;
+        if (!wasEditor) return;
+        if (Store.page.value !== PAGE_NAMES.CONTENT) return;
+        this.#snapContentLocaleToParentDefault();
     }
 
     #isSettingsPage(page) {

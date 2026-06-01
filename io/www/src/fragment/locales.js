@@ -17,6 +17,8 @@ const COUNTRY_DATA = {
     CZ: { name: 'Czech Republic', flag: '🇨🇿' },
     DE: { name: 'Germany', flag: '🇩🇪' },
     DK: { name: 'Denmark', flag: '🇩🇰' },
+    DO: { name: 'Dominican Republic', flag: '🇩🇴' },
+    DZ: { name: 'Algeria', flag: '🇩🇿' },
     EC: { name: 'Ecuador', flag: '🇪🇨' },
     EE: { name: 'Estonia', flag: '🇪🇪' },
     EG: { name: 'Egypt', flag: '🇪🇬' },
@@ -61,6 +63,7 @@ const COUNTRY_DATA = {
     SI: { name: 'Slovenia', flag: '🇸🇮' },
     SK: { name: 'Slovakia', flag: '🇸🇰' },
     TH: { name: 'Thailand', flag: '🇹🇭' },
+    TM: { name: 'Turkmenistan', flag: '🇹🇲' },
     TR: { name: 'Türkiye', flag: '🇹🇷' },
     TW: { name: 'Taiwan', flag: '🇹🇼' },
     UA: { name: 'Ukraine', flag: '🇺🇦' },
@@ -70,7 +73,7 @@ const COUNTRY_DATA = {
 };
 
 const ACOM = [
-    { lang: 'ar', country: 'SA', regions: ['AE', 'EG', 'KW', 'QA'] },
+    { lang: 'ar', country: 'SA', regions: ['AE', 'EG', 'KW', 'QA', 'DZ'] },
     { lang: 'bg', country: 'BG' },
     { lang: 'cs', country: 'CZ' },
     { lang: 'da', country: 'DK' },
@@ -91,6 +94,7 @@ const ACOM = [
             'IL',
             'KW',
             'LU',
+            'MU',
             'MY',
             'NG',
             'NZ',
@@ -98,10 +102,11 @@ const ACOM = [
             'QA',
             'SA',
             'SG',
+            'TM',
             'TH',
             'VN',
             'ZA',
-            'MU',
+            'DZ',
         ],
     },
     { lang: 'en', country: 'GB', regions: ['AU', 'IN'] },
@@ -125,10 +130,10 @@ const ACOM = [
     { lang: 'pt', country: 'BR' },
     { lang: 'pt', country: 'PT' },
     { lang: 'ro', country: 'RO' },
-    { lang: 'ru', country: 'RU' },
+    { lang: 'ru', country: 'RU', regions: ['TM'] },
     { lang: 'sk', country: 'SK' },
     { lang: 'sl', country: 'SI' },
-    { lang: 'es', country: 'ES', regions: ['AR', 'CL', 'CO', 'CR', 'EC', 'GT', 'MX', 'PE', 'PR'] },
+    { lang: 'es', country: 'ES', regions: ['AR', 'CL', 'CO', 'CR', 'EC', 'GT', 'MX', 'PE', 'PR', 'DO'] },
     { lang: 'sv', country: 'SE' },
     { lang: 'th', country: 'TH' },
     { lang: 'tr', country: 'TR' },
@@ -404,6 +409,36 @@ const LANG_TO_LANGUAGE = {
 };
 
 const regionLocalesCache = {};
+
+const ALL_KNOWN_LOCALES = new Set(
+    Object.values(DEFAULT_LOCALES).flatMap((entries) =>
+        entries.flatMap(({ lang, country, regions = [] }) => [`${lang}_${country}`, ...regions.map((r) => `${lang}_${r}`)]),
+    ),
+);
+
+/**
+ * Whether `locale` is a known locale code across any surface (e.g. `fr_FR`, `en_AU`).
+ * Used to short-circuit obviously bogus requests before any Odin call.
+ */
+export function isKnownLocale(locale) {
+    return Boolean(locale) && ALL_KNOWN_LOCALES.has(locale);
+}
+
+/**
+ * Geo segment of the request cache key. Intentionally dumb: it does not attempt to
+ * resolve `(locale, country)` into a regional locale — that requires surface-specific
+ * knowledge and happens later in `computeRegionLocale`. It only drops the country
+ * segment when it is redundant (matches the locale's own country), so requests like
+ * `fr_FR` and `fr_FR + country=FR` share a cache bucket.
+ *
+ * @returns {{locale: string, country: string|null}}
+ */
+export function geoCacheKey(locale, country) {
+    const normalizedCountry = country?.toUpperCase() || null;
+    const localeCountry = locale?.split('_')[1]?.toUpperCase() || null;
+    const keyCountry = normalizedCountry && normalizedCountry !== localeCountry ? normalizedCountry : null;
+    return { locale, country: keyCountry };
+}
 
 export const parseLocaleCode = (localeCode) => localeCode?.split('_') ?? [];
 

@@ -3,7 +3,7 @@ import { EVENT_KEYDOWN, PAGE_NAMES } from './constants.js';
 import Events from './events.js';
 import ReactiveController from './reactivity/reactive-controller.js';
 import Store from './store.js';
-import { MODEL_WEB_COMPONENT_MAPPING } from './utils.js';
+import { generateCodeToUse } from './utils.js';
 
 class MasSelectionPanel extends LitElement {
     static styles = css`
@@ -24,6 +24,7 @@ class MasSelectionPanel extends LitElement {
         onPublish: { type: Function, attribute: false },
         onUnpublish: { type: Function, attribute: false },
         onCopyToFolder: { type: Function, attribute: false },
+        onCopyStudioLinks: { type: Function, attribute: false },
     };
 
     constructor() {
@@ -37,6 +38,7 @@ class MasSelectionPanel extends LitElement {
         this.onPublish = null;
         this.onUnpublish = null;
         this.onCopyToFolder = null;
+        this.onCopyStudioLinks = null;
 
         this.close = this.close.bind(this);
     }
@@ -152,6 +154,10 @@ class MasSelectionPanel extends LitElement {
         this.onUnpublish(this.selection, event);
     }
 
+    handleCopyStudioLinks(event) {
+        this.onCopyStudioLinks?.(this.selection, event);
+    }
+
     async handleCopyFragmentUrls() {
         const selection = this.selection;
         if (!selection || selection.length === 0) return;
@@ -171,26 +177,28 @@ class MasSelectionPanel extends LitElement {
             })
             .filter(Boolean);
 
-        const urls = fragments.map((fragment) => {
-            const webComponentName = MODEL_WEB_COMPONENT_MAPPING[fragment?.model?.path];
-            const params = new URLSearchParams();
-            if (webComponentName) params.set('content-type', webComponentName);
-            params.set('page', PAGE_NAMES.CONTENT);
-            if (path) params.set('path', path);
-            if (fragment.id) params.set('query', fragment.id);
-            return `https://mas.adobe.com/studio.html#${params.toString()}`;
-        });
+        const results = fragments
+            .map((fragment) => generateCodeToUse(fragment, path, PAGE_NAMES.CONTENT))
+            .filter((result) => result?.code && result?.richText && result?.href);
 
-        if (urls.length === 0) return;
+        if (results.length === 0) return;
+
+        const plainText = results.map(({ href }) => href).join('\n');
+        const htmlText = results.map(({ richText }) => richText).join('<br>');
 
         try {
-            await navigator.clipboard.writeText(urls.join('\n'));
+            await navigator.clipboard.write([
+                new ClipboardItem({
+                    'text/plain': new Blob([plainText], { type: 'text/plain' }),
+                    'text/html': new Blob([htmlText], { type: 'text/html' }),
+                }),
+            ]);
             Events.toast.emit({
                 variant: 'positive',
-                content: `Copied ${urls.length} fragment URL${urls.length > 1 ? 's' : ''} to clipboard`,
+                content: `Copied ${results.length} code snippet${results.length > 1 ? 's' : ''} to clipboard`,
             });
         } catch {
-            Events.toast.emit({ variant: 'negative', content: 'Failed to copy fragment URLs' });
+            Events.toast.emit({ variant: 'negative', content: 'Failed to copy code to clipboard' });
         }
     }
 
@@ -224,6 +232,12 @@ class MasSelectionPanel extends LitElement {
                 ? html`<sp-action-button slot="buttons" label="Delete" ?disabled=${!this.onDelete} @click=${this.handleDelete}>
                       <sp-icon-delete slot="icon"></sp-icon-delete>
                       <sp-tooltip self-managed placement="top">Delete</sp-tooltip>
+                  </sp-action-button>`
+                : nothing}
+            ${count > 0 && this.onCopyStudioLinks
+                ? html`<sp-action-button slot="buttons" label="Copy cards links" @click=${this.handleCopyStudioLinks}>
+                      <sp-icon-copy slot="icon"></sp-icon-copy>
+                      <sp-tooltip self-managed placement="top">Copy links</sp-tooltip>
                   </sp-action-button>`
                 : nothing}
             ${count > 0

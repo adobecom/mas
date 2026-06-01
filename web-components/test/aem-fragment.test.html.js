@@ -534,6 +534,104 @@ runTests(async () => {
                     aemFragment?.remove();
                 }
             });
+
+            async function runPreviewWithInstant(instantValue, attributeValue) {
+                cache.clear();
+                const existing = document.querySelector('mas-commerce-service');
+                const previewService = document.createElement(
+                    'mas-commerce-service',
+                );
+                for (const attr of existing.attributes) {
+                    previewService.setAttribute(attr.name, attr.value);
+                }
+                previewService.setAttribute('preview', 'on');
+                if (attributeValue != null) {
+                    previewService.setAttribute('instant', attributeValue);
+                }
+                document.body.insertBefore(previewService, existing);
+
+                const moduleCode = `
+                    export const previewFragment = (id, options) => {
+                        window.__capturedPreviewArgs = { id, options };
+                        return Promise.resolve({
+                            status: 200,
+                            body: {
+                                id,
+                                fields: { variant: 'ccd-slice' },
+                            },
+                        });
+                    };
+                `;
+                const blobUrl = URL.createObjectURL(
+                    new Blob([moduleCode], {
+                        type: 'application/javascript',
+                    }),
+                );
+
+                const AemFragment = customElements.get('aem-fragment');
+                const urlStub = sinon
+                    .stub(AemFragment.prototype, 'getFragmentClientUrl')
+                    .returns(blobUrl);
+
+                const originalUrl = window.location.href;
+                const url = new URL(window.location.href);
+                if (instantValue != null) {
+                    url.searchParams.set('instant', instantValue);
+                } else {
+                    url.searchParams.delete('instant');
+                }
+                history.replaceState(null, '', url.toString());
+
+                let aemFragment;
+                let captured;
+                try {
+                    aemFragment = addFragment('fragment-cc-all-apps');
+                    await oneEvent(aemFragment, EVENT_AEM_LOAD);
+                    captured = window.__capturedPreviewArgs;
+                } finally {
+                    urlStub.restore();
+                    previewService.remove();
+                    aemFragment?.remove();
+                    URL.revokeObjectURL(blobUrl);
+                    delete window.__capturedPreviewArgs;
+                    history.replaceState(null, '', originalUrl);
+                }
+                return captured;
+            }
+
+            it('passes instant option to previewFragment when present in URL', async () => {
+                const captured = await runPreviewWithInstant('snapshot-abc');
+                expect(captured).to.exist;
+                expect(captured.id).to.equal('fragment-cc-all-apps');
+                expect(captured.options).to.have.property(
+                    'instant',
+                    'snapshot-abc',
+                );
+                expect(captured.options).to.have.property('fullContext', true);
+                expect(captured.options).to.have.property('locale');
+                expect(captured.options).to.have.property('apiKey');
+            });
+
+            it('omits instant option from previewFragment when absent from URL', async () => {
+                const captured = await runPreviewWithInstant(null);
+                expect(captured).to.exist;
+                expect(captured.options).to.not.have.property('instant');
+                expect(captured.options).to.have.property('fullContext', true);
+                expect(captured.options).to.have.property('locale');
+                expect(captured.options).to.have.property('apiKey');
+            });
+
+            it('passes instant option from mas-commerce-service[instant] attribute when URL param absent', async () => {
+                const captured = await runPreviewWithInstant(
+                    null,
+                    'attr-instant-xyz',
+                );
+                expect(captured).to.exist;
+                expect(captured.options).to.have.property(
+                    'instant',
+                    'attr-instant-xyz',
+                );
+            });
         });
 
         describe('mas-field wrapper', () => {

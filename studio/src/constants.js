@@ -126,6 +126,9 @@ export const PAGE_NAMES = {
     PROMOTIONS_EDITOR: 'promotions-editor',
     TRANSLATIONS: 'translations',
     TRANSLATION_EDITOR: 'translation-editor',
+    BULK_PUBLISH: 'bulkPublish',
+    BULK_PUBLISH_EDITOR: 'bulkPublishEditor',
+    ADVANCED_TOOLS: 'advanced-tools',
 };
 
 export const TAG_STATUS_PUBLISHED = 'mas:status/published';
@@ -243,6 +246,10 @@ export const QUICK_ACTION = {
     DISCARD: 'discard',
     DELETE: 'delete',
     LOC: 'loc',
+    VALIDATE: 'validate',
+    LINK: 'link',
+    REVERT: 'revert',
+    CHECK_MODIFICATIONS: 'check-modifications',
 };
 
 export const FILTER_TYPE = {
@@ -250,6 +257,10 @@ export const FILTER_TYPE = {
     MARKET_SEGMENT: 'marketSegment',
     CUSTOMER_SEGMENT: 'customerSegment',
     PRODUCT: 'product',
+    OFFER_TYPE: 'offerType',
+    PLAN_TYPE: 'planType',
+    PZN: 'pzn',
+    TAG: 'tag',
 };
 
 export const FRAGMENT_STATUS = {
@@ -264,11 +275,23 @@ export const TABLE_TYPE = {
     PLACEHOLDERS: 'placeholders',
 };
 
-export const TRANSLATIONS_ALLOWED_SURFACES = ['acom', 'acom-cc', 'acom-dc', 'express', 'sandbox', 'nala'];
 export const PLACEHOLDER_CTA_SURFACES = ['acom', 'acom-cc', 'acom-dc', 'express', 'sandbox', 'nala'];
 
 /** Plain preview origin — use for direct `.json` lookups (e.g. fil_PH placeholder fallback). */
 export const ODIN_PREVIEW_ORIGIN = 'https://odinpreview.corp.adobe.com';
+
+export const BULK_PUBLISH_PROJECT_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2J1bGstcHVibGlzaC1wcm9qZWN0';
+
+export const BULK_PUBLISH_STATUS = {
+    DRAFT: 'Draft',
+    PUBLISHING: 'Publishing',
+    PUBLISHED: 'Published',
+    LOCKED: 'Locked',
+    REVERTING: 'Reverting',
+    REVERTED: 'Reverted',
+};
+
+export const BULK_PUBLISH_PARENT_PATH = '/content/dam/mas/bulk-publish-projects';
 
 /**
  * Compat version of the card.

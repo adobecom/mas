@@ -1,5 +1,5 @@
 import { odinUrl, odinReferences } from '../utils/paths.js';
-import { fetch, getFragmentId, getRequestInfos } from '../utils/common.js';
+import { fetch, getFragmentId, getRegionalLocale, getRequestInfos } from '../utils/common.js';
 import { logDebug } from '../utils/log.js';
 
 const SETTINGS_ID_PATH = 'settings/index';
@@ -164,31 +164,33 @@ async function init(initContext) {
 
 export function resolveSettingEntry(fragment, locale, setting) {
     const defaultEntry = setting.default;
-    const template = fragment.fields?.variant;
     if (!defaultEntry) return null;
+    const template = fragment.fields?.variant;
     if (defaultEntry.templates?.length > 0 && !defaultEntry.templates.includes(template)) return null;
-    const filteredLocale = setting.override.filter(
-        (overrideSetting) =>
-            !overrideSetting.locales || overrideSetting.locales.length === 0 || overrideSetting.locales.includes(locale),
-    );
-    if (filteredLocale.length == 0) return defaultEntry;
-    // Find all overrides matching the locale; now select best by tags
+    const fragmentTags = fragment.fields?.tags ?? [];
+    const filtered = setting.override.filter((overrideSetting) => {
+        const localeOk =
+            !overrideSetting.locales || overrideSetting.locales.length === 0 || overrideSetting.locales.includes(locale);
+        const tagsOk =
+            !overrideSetting.tags ||
+            overrideSetting.tags.length === 0 ||
+            overrideSetting.tags.some((tag) => fragmentTags.includes(tag));
+        return localeOk && tagsOk;
+    });
+    if (filtered.length === 0) return defaultEntry;
     let bestMatch = defaultEntry;
     let maxTagMatches = -1;
-    const tags = fragment.fields?.tags;
-    if (filteredLocale.length > 1 && tags?.length > 0) {
-        for (const overrideSetting of filteredLocale) {
-            const tagMatches = overrideSetting.tags.filter((tag) => tags.includes(tag)).length;
+    if (filtered.length > 1 && fragmentTags.length > 0) {
+        for (const overrideSetting of filtered) {
+            const tagMatches = overrideSetting.tags?.filter((tag) => fragmentTags.includes(tag)).length ?? 0;
             if (tagMatches > maxTagMatches) {
                 maxTagMatches = tagMatches;
                 bestMatch = overrideSetting;
             }
         }
-    } else if (filteredLocale.length === 1) {
-        // No tags or no fragment tags; just return the first matching override
-        bestMatch = filteredLocale[0];
+    } else if (filtered.length === 1) {
+        bestMatch = filtered[0];
     }
-
     return { ...defaultEntry, ...bestMatch };
 }
 
@@ -281,7 +283,8 @@ async function settings(context) {
 
     logDebug(() => `Settings transformer: fetched settings ${JSON.stringify(settings)}`, context);
 
-    const { body, locale } = context;
+    const { body } = context;
+    const locale = getRegionalLocale(context);
 
     if (settings) {
         if (body?.model?.id === COLLECTION_MODEL_ID) {

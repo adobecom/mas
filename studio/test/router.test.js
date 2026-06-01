@@ -1,11 +1,12 @@
 import { expect } from '@esm-bundle/chai';
 import sinon from 'sinon';
-import { Router } from '../src/router.js';
+import { Router, promoHashIsSearchSync, orderHashParamEntries } from '../src/router.js';
 import Store from '../src/store.js';
 import { PAGE_NAMES, COLLECTION_MODEL_PATH } from '../src/constants.js';
 import { FragmentStore } from '../src/reactivity/fragment-store.js';
 import { ReactiveStore } from '../src/reactivity/reactive-store.js';
 import { Fragment } from '../src/aem/fragment.js';
+import { Promotion } from '../src/aem/promotion.js';
 
 describe('Router', () => {
     let sandbox;
@@ -49,6 +50,36 @@ describe('Router', () => {
         fragment.hasChanges = hasChanges;
         const store = new FragmentStore(fragment);
         return store;
+    };
+
+    const createPromotionInEditStore = ({ hasChanges = false, fragments = [], collectionsValues } = {}) => {
+        const fields = [
+            { name: 'title', type: 'text', values: ['T'] },
+            { name: 'promoCode', type: 'text', values: ['X'] },
+            { name: 'startDate', type: 'date-time', values: ['2024-01-01T00:00:00.000Z'] },
+            { name: 'endDate', type: 'date-time', values: ['2024-12-31T23:59:59.999Z'] },
+            { name: 'tags', type: 'tag', values: [] },
+            { name: 'surfaces', type: 'text', values: [] },
+            { name: 'fragments', type: 'text', values: fragments },
+        ];
+        if (collectionsValues !== undefined) {
+            fields.push({ name: 'collections', type: 'text', values: collectionsValues });
+        }
+        const promotion = new Promotion({
+            id: 'promo-router',
+            etag: 'e',
+            model: { id: 'promotion-model' },
+            path: '/content/dam/mas/promotions/router',
+            title: 'T',
+            description: '',
+            status: 'DRAFT',
+            created: { by: 'u', fullName: 'U', at: '2024-01-01T00:00:00.000Z' },
+            modified: { by: 'u', fullName: 'U', at: '2024-01-02T00:00:00.000Z' },
+            fields,
+            tags: [],
+        });
+        promotion.hasChanges = hasChanges;
+        return new FragmentStore(promotion);
     };
 
     beforeEach(() => {
@@ -102,7 +133,9 @@ describe('Router', () => {
         Store.profile.set(originalProfile);
         Store.users.set(originalUsers);
         Store.users.setMeta('loaded', originalUsersLoadedMeta);
-        document.querySelectorAll('mas-fragment-editor, mas-translation-editor, mas-settings').forEach((el) => el.remove());
+        document
+            .querySelectorAll('mas-fragment-editor, mas-translation-editor, mas-settings, mas-promotions-editor')
+            .forEach((el) => el.remove());
     });
 
     describe('getActiveEditor', () => {
@@ -215,6 +248,56 @@ describe('Router', () => {
             expect(result.editor).to.be.null;
             expect(result.hasChanges).to.be.null;
             expect(result.shouldCheckUnsavedChanges).to.be.null;
+        });
+
+        describe('promotions editor page', () => {
+            let originalPromotionsInEdit;
+            let originalPromotionsSelectedCards;
+            let originalPromotionsSelectedCollections;
+
+            beforeEach(() => {
+                Store.page.value = PAGE_NAMES.PROMOTIONS_EDITOR;
+                originalPromotionsInEdit = Store.promotions.inEdit.get();
+                originalPromotionsSelectedCards = [...(Store.promotions.selectedCards.value || [])];
+                originalPromotionsSelectedCollections = [...(Store.promotions.selectedCollections.value || [])];
+            });
+
+            afterEach(() => {
+                Store.promotions.inEdit.set(originalPromotionsInEdit);
+                Store.promotions.selectedCards.set(originalPromotionsSelectedCards);
+                Store.promotions.selectedCollections.set(originalPromotionsSelectedCollections);
+                document.querySelectorAll('mas-promotions-editor').forEach((el) => el.remove());
+            });
+
+            it('returns promotions editor metadata when dirty and not loadingPromotion', () => {
+                const editor = document.createElement('mas-promotions-editor');
+                editor.loadingPromotion = false;
+                document.body.appendChild(editor);
+                Store.promotions.inEdit.set(createPromotionInEditStore({ hasChanges: true }));
+                const result = router.getActiveEditor();
+                expect(result.editor).to.equal(editor);
+                expect(result.hasChanges).to.be.true;
+                expect(result.shouldCheckUnsavedChanges).to.be.true;
+            });
+
+            it('returns shouldCheckUnsavedChanges false while loadingPromotion even if dirty', () => {
+                const editor = document.createElement('mas-promotions-editor');
+                editor.loadingPromotion = true;
+                document.body.appendChild(editor);
+                Store.promotions.inEdit.set(createPromotionInEditStore({ hasChanges: true }));
+                const result = router.getActiveEditor();
+                expect(result.editor).to.equal(editor);
+                expect(result.hasChanges).to.be.true;
+                expect(result.shouldCheckUnsavedChanges).to.be.false;
+            });
+
+            it('returns null hasChanges when editor element is missing', () => {
+                Store.promotions.inEdit.set(createPromotionInEditStore({ hasChanges: true }));
+                const result = router.getActiveEditor();
+                expect(result.editor).to.be.null;
+                expect(result.hasChanges).to.be.null;
+                expect(result.shouldCheckUnsavedChanges).to.be.null;
+            });
         });
     });
 
@@ -439,6 +522,15 @@ describe('Router', () => {
             expect(Store.fragmentEditor.fragmentId.get()).to.be.null;
         });
 
+        it('should reset regional variation locale to parent default when leaving fragment editor for content', async () => {
+            Store.page.value = PAGE_NAMES.FRAGMENT_EDITOR;
+            Store.fragments.inEdit.set(null);
+            Store.search.set({ ...Store.search.get(), path: 'sandbox' });
+            Store.filters.set((prev) => ({ ...prev, locale: 'en_BE' }));
+            await router.navigateToPage(PAGE_NAMES.CONTENT)();
+            expect(Store.filters.value.locale).to.equal('en_US');
+        });
+
         it('should clear translation project data when leaving translation editor', async () => {
             Store.page.value = PAGE_NAMES.TRANSLATION_EDITOR;
             Store.translationProjects.translationProjectId.set('test-id');
@@ -446,6 +538,30 @@ describe('Router', () => {
             await router.navigateToPage(PAGE_NAMES.CONTENT)();
             expect(Store.translationProjects.translationProjectId.get()).to.be.null;
             expect(Store.translationProjects.inEdit.get()).to.be.null;
+        });
+
+        it('clears promotion editor state when navigating away from promotions editor', async () => {
+            Store.page.value = PAGE_NAMES.PROMOTIONS_EDITOR;
+            Store.promotions.promotionId.set('promo-1');
+            Store.promotions.inEdit.set(createPromotionInEditStore({ hasChanges: true }));
+            Store.promotions.showSelected.set(true);
+            Store.promotions.selectedCards.set(['/a']);
+            Store.promotions.selectedCollections.set(['/b']);
+            Store.promotions.selectedPlaceholders.set(['/p']);
+            const mockEditor = {
+                loadingPromotion: false,
+                promptDiscardChanges: sandbox.stub().resolves(true),
+            };
+            sandbox.stub(document, 'querySelector').withArgs('mas-promotions-editor').returns(mockEditor);
+            await router.navigateToPage(PAGE_NAMES.CONTENT)();
+            expect(mockEditor.promptDiscardChanges.calledOnce).to.be.true;
+            expect(Store.promotions.promotionId.get()).to.equal(null);
+            expect(Store.promotions.inEdit.get()).to.equal(null);
+            expect(Store.promotions.showSelected.get()).to.equal(false);
+            expect(Store.promotions.selectedCards.value).to.deep.equal([]);
+            expect(Store.promotions.selectedCollections.value).to.deep.equal([]);
+            expect(Store.promotions.selectedPlaceholders.value).to.deep.equal([]);
+            expect(Store.page.value).to.equal(PAGE_NAMES.CONTENT);
         });
     });
 
@@ -493,6 +609,63 @@ describe('Router', () => {
         });
     });
 
+    describe('locale and region hash params', () => {
+        it('should sync region from store to hash', async () => {
+            mockLocation.hash = '#page=fragment-editor&path=sandbox';
+            router.start();
+            Store.search.set((prev) => ({ ...prev, path: 'sandbox', region: 'en_BE' }));
+            Store.filters.set((prev) => ({ ...prev, locale: 'en_US' }));
+            await new Promise((resolve) => setTimeout(resolve, 100));
+            expect(mockLocation.hash).to.include('region=en_BE');
+        });
+
+        it('should remove region from hash when cleared', async () => {
+            mockLocation.hash = '#page=fragment-editor&path=sandbox&region=en_BE';
+            router.start();
+            Store.search.set((prev) => ({ ...prev, path: 'sandbox', region: null }));
+            await new Promise((resolve) => setTimeout(resolve, 100));
+            expect(mockLocation.hash).to.not.include('region=');
+        });
+
+        it('should move regional locale from locale param to region on start', async () => {
+            mockLocation.hash = '#fragmentId=test-id&locale=en_BE&page=fragment-editor&path=sandbox';
+            router.start();
+            expect(Store.filters.value.locale).to.equal('en_US');
+            expect(Store.search.value.region).to.equal('en_BE');
+            await new Promise((resolve) => setTimeout(resolve, 100));
+            expect(mockLocation.hash).to.include('region=en_BE');
+            expect(mockLocation.hash).to.not.include('locale=en_BE');
+        });
+
+        it('should sync locale to hash when not default', async () => {
+            mockLocation.hash = '#fragmentId=test-id&page=fragment-editor&path=sandbox';
+            router.start();
+            Store.filters.set((prev) => ({ ...prev, locale: 'fr_FR' }));
+            await new Promise((resolve) => setTimeout(resolve, 100));
+            expect(mockLocation.hash).to.include('locale=fr_FR');
+        });
+
+        it('should keep locale and region together for grouped preview', async () => {
+            mockLocation.hash = '#fragmentId=test-id&page=fragment-editor&path=sandbox';
+            router.start();
+            Store.filters.set((prev) => ({ ...prev, locale: 'fr_FR' }));
+            Store.search.set((prev) => ({ ...prev, path: 'sandbox', region: 'fr_CA' }));
+            await new Promise((resolve) => setTimeout(resolve, 100));
+            expect(mockLocation.hash).to.match(/locale=fr_FR&region=fr_CA/);
+        });
+
+        it('should place region after locale without moving locale from alphabetical position', () => {
+            const keys = orderHashParamEntries([
+                ['fragmentId', 'test-id'],
+                ['page', 'fragment-editor'],
+                ['path', 'sandbox'],
+                ['locale', 'fr_FR'],
+                ['region', 'fr_CA'],
+            ]).map(([key]) => key);
+            expect(keys).to.deep.equal(['fragmentId', 'locale', 'region', 'page', 'path']);
+        });
+    });
+
     describe('navigateToVariationsTable', () => {
         it('should navigate to variations table', async () => {
             await router.navigateToVariationsTable('test-id');
@@ -521,6 +694,53 @@ describe('Router', () => {
             await router.navigateToFragmentEditor('test-id', { locale: 'fr_FR' });
             expect(Store.search.get().region).to.equal('fr_FR');
         });
+
+        it('should use editor-panel for a provided collection fragment store', async () => {
+            Store.page.set(PAGE_NAMES.CONTENT);
+            const collectionStore = new FragmentStore(
+                new Fragment({
+                    id: 'collection-variation-id',
+                    model: { path: COLLECTION_MODEL_PATH },
+                    fields: [],
+                }),
+            );
+            const mockEditorPanel = {
+                editFragment: sandbox.stub().resolves(),
+            };
+            sandbox.stub(document, 'querySelector').withArgs('editor-panel').returns(mockEditorPanel);
+
+            await router.navigateToFragmentEditor('collection-variation-id', { fragmentStore: collectionStore });
+
+            expect(mockEditorPanel.editFragment.calledOnceWith(collectionStore)).to.be.true;
+            expect(Store.page.get()).to.equal(PAGE_NAMES.CONTENT);
+            expect(Store.viewMode.get()).to.equal('editing');
+        });
+
+        it('should open full-page editor for collection when viewPage is true', async () => {
+            Store.page.set(PAGE_NAMES.CONTENT);
+            const collectionStore = new FragmentStore(
+                new Fragment({
+                    id: 'new-collection-variation-id',
+                    model: { path: COLLECTION_MODEL_PATH },
+                    fields: [],
+                }),
+            );
+            const mockEditorPanel = {
+                editFragment: sandbox.stub().resolves(),
+            };
+            sandbox.stub(document, 'querySelector').withArgs('editor-panel').returns(mockEditorPanel);
+
+            await router.navigateToFragmentEditor('new-collection-variation-id', {
+                fragmentStore: collectionStore,
+                locale: 'fr_FR',
+                viewPage: true,
+            });
+
+            expect(mockEditorPanel.editFragment.called).to.be.false;
+            expect(Store.fragmentEditor.fragmentId.get()).to.equal('new-collection-variation-id');
+            expect(Store.page.get()).to.equal(PAGE_NAMES.FRAGMENT_EDITOR);
+            expect(Store.search.get().region).to.equal('fr_FR');
+        });
     });
 
     describe('navigateToTranslationEditor', () => {
@@ -534,6 +754,20 @@ describe('Router', () => {
             expect(Store.translationProjects.prefill.get()).to.deep.equal({
                 targetLocale: 'de_DE',
                 fragmentPath: '/path',
+                isCollection: false,
+            });
+        });
+
+        it('should set isCollection in prefill when true', async () => {
+            await router.navigateToTranslationEditor({
+                targetLocale: 'de_DE',
+                fragmentPath: '/path',
+                isCollection: true,
+            });
+            expect(Store.translationProjects.prefill.get()).to.deep.equal({
+                targetLocale: 'de_DE',
+                fragmentPath: '/path',
+                isCollection: true,
             });
         });
     });
@@ -635,6 +869,104 @@ describe('Router', () => {
             expect(Store.page.get()).to.equal(PAGE_NAMES.WELCOME);
             expect(Store.settings.creating.get()).to.equal(false);
             expect(Store.settings.fragmentId.get()).to.equal(null);
+        });
+    });
+
+    describe('promoHashIsSearchSync', () => {
+        it('returns true when only query is added on promotions-editor', () => {
+            const prev = '#page=promotions-editor&path=sandbox';
+            const next = '#page=promotions-editor&path=sandbox&query=a1b2c3d4-e5f6-7890-abcd-ef1234567890';
+            expect(promoHashIsSearchSync(prev, next)).to.be.true;
+        });
+
+        it('returns true when path and query change but page and promotionId stay', () => {
+            const prev = '#page=promotions-editor&path=sandbox';
+            const next = '#page=promotions-editor&path=nala&query=uuid';
+            expect(promoHashIsSearchSync(prev, next)).to.be.true;
+        });
+
+        it('returns false when leaving promotions-editor', () => {
+            const prev = '#page=promotions-editor&path=sandbox';
+            const next = '#page=content&path=sandbox';
+            expect(promoHashIsSearchSync(prev, next)).to.be.false;
+        });
+
+        it('returns false when promotionId changes', () => {
+            const prev = '#page=promotions-editor&promotionId=a&path=sandbox';
+            const next = '#page=promotions-editor&promotionId=b&path=sandbox&query=x';
+            expect(promoHashIsSearchSync(prev, next)).to.be.false;
+        });
+    });
+
+    describe('promotionsEditorHasUnsavedChanges', () => {
+        let originalPromotionsInEdit;
+        let originalPromotionsSelectedCards;
+        let originalPromotionsSelectedCollections;
+        let originalItemHydrateUnreachablePaths;
+
+        beforeEach(() => {
+            originalPromotionsInEdit = Store.promotions.inEdit.get();
+            originalPromotionsSelectedCards = [...(Store.promotions.selectedCards.value || [])];
+            originalPromotionsSelectedCollections = [...(Store.promotions.selectedCollections.value || [])];
+            originalItemHydrateUnreachablePaths = [...(Store.promotions.itemHydrateUnreachablePaths.value || [])];
+            Store.promotions.inEdit.set(null);
+            Store.promotions.selectedCards.set([]);
+            Store.promotions.selectedCollections.set([]);
+            Store.promotions.itemHydrateUnreachablePaths.set([]);
+        });
+
+        afterEach(() => {
+            Store.promotions.inEdit.set(originalPromotionsInEdit);
+            Store.promotions.selectedCards.set(originalPromotionsSelectedCards);
+            Store.promotions.selectedCollections.set(originalPromotionsSelectedCollections);
+            Store.promotions.itemHydrateUnreachablePaths.set(originalItemHydrateUnreachablePaths);
+        });
+
+        it('returns false when there is no promotion in edit', () => {
+            expect(router.promotionsEditorHasUnsavedChanges()).to.be.false;
+        });
+
+        it('returns true when promotion hasChanges is true', () => {
+            Store.promotions.inEdit.set(createPromotionInEditStore({ hasChanges: true }));
+            expect(router.promotionsEditorHasUnsavedChanges()).to.be.true;
+        });
+
+        it('returns false when merged card and collection selection matches saved fragments only', () => {
+            Store.promotions.inEdit.set(createPromotionInEditStore({ fragments: ['/a', '/b'], hasChanges: false }));
+            Store.promotions.selectedCards.set(['/a']);
+            Store.promotions.selectedCollections.set(['/b']);
+            expect(router.promotionsEditorHasUnsavedChanges()).to.be.false;
+        });
+
+        it('returns true when current selection has paths not in saved merged set', () => {
+            Store.promotions.inEdit.set(createPromotionInEditStore({ fragments: ['/a'], hasChanges: false }));
+            Store.promotions.selectedCards.set(['/a', '/extra']);
+            Store.promotions.selectedCollections.set([]);
+            expect(router.promotionsEditorHasUnsavedChanges()).to.be.true;
+        });
+
+        it('returns false when legacy collections field merges with fragments for comparison', () => {
+            Store.promotions.inEdit.set(
+                createPromotionInEditStore({
+                    fragments: ['/a'],
+                    collectionsValues: ['/c'],
+                    hasChanges: false,
+                }),
+            );
+            Store.promotions.selectedCards.set(['/a']);
+            Store.promotions.selectedCollections.set(['/c']);
+            expect(router.promotionsEditorHasUnsavedChanges()).to.be.false;
+        });
+
+        it('returns false when saved paths missing from selection are hydrate-unreachable', () => {
+            const resolved = '/content/dam/mas/promotions/test-items/resolved-card-fragment';
+            const fetchFailed = '/content/dam/mas/promotions/test-items/fetch-failed-card-fragment';
+
+            Store.promotions.inEdit.set(createPromotionInEditStore({ fragments: [resolved, fetchFailed], hasChanges: false }));
+            Store.promotions.selectedCards.set([resolved]);
+            Store.promotions.selectedCollections.set([]);
+            Store.promotions.itemHydrateUnreachablePaths.set([fetchFailed]);
+            expect(router.promotionsEditorHasUnsavedChanges()).to.be.false;
         });
     });
 });

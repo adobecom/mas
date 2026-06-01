@@ -29,7 +29,12 @@ export class ReactiveStore {
         newValue = this.validate(newValue);
         // If primitive and equal, no need to update; 'notify' can be used instead if needed
         if (this.value !== Object(this.value) && this.value === newValue) return;
-        const oldValue = structuredClone(this.value);
+        let oldValue;
+        try {
+            oldValue = structuredClone(this.value);
+        } catch {
+            oldValue = this.value;
+        }
         this.value = newValue;
         this.notify(oldValue);
     }

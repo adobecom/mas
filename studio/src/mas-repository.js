@@ -29,6 +29,7 @@ import {
     DICTIONARY_ENTRY_MODEL_ID,
     TAG_STATUS_DRAFT,
     CARD_MODEL_PATH,
+    COLLECTION_MODEL_PATH,
     COMPAT_VERSION,
     MAS_PRODUCT_CODE_PREFIX,
     PZN_FOLDER,
@@ -38,6 +39,7 @@ import {
 import { fragmentHasPersonalizationTag, isPznCountryTagId, PZN_TAG_ID_PREFIX } from './common/utils/personalization-utils.js';
 import { Placeholder } from './aem/placeholder.js';
 import { getFragmentName } from './translation/translation-utils.js';
+import { getItemsSelectionStore } from './common/items-selection-store.js';
 import generateFragmentStore from './reactivity/source-fragment-store.js';
 import { getDefaultLocaleCode } from '../../io/www/src/fragment/locales.js';
 import { getDictionary } from '../libs/fragment-client.js';
@@ -121,14 +123,17 @@ export class MasRepository extends LitElement {
             promotions: null,
             translations: null,
             collections: null,
+            bulkPublish: null,
         };
         this.dictionaryCache = new Map();
         this.inflightDictionaryByKey = new Map();
         this.saveFragment = this.saveFragment.bind(this);
         this.copyFragment = this.copyFragment.bind(this);
         this.publishFragment = this.publishFragment.bind(this);
+        this.unpublishFragment = this.unpublishFragment.bind(this);
         this.deleteFragment = this.deleteFragment.bind(this);
         this.search = new StoreController(this, Store.search);
+        this.promotionsItemPickerSurface = new StoreController(this, Store.promotions.itemPickerSurface);
         this.filters = new StoreController(this, Store.filters);
         this.page = new StoreController(this, Store.page);
         this.foldersLoaded = new StoreController(this, Store.folders.loaded);
@@ -165,19 +170,8 @@ export class MasRepository extends LitElement {
         if (!(this.bucket || this.baseUrl)) throw new Error('Either the bucket or baseUrl attribute is required.');
         this.aem = new AEM(this.bucket, this.baseUrl);
 
-        // Invalidate dictionary cache when filters or search path change
-        Store.filters.subscribe(() => {
-            this.dictionaryCache.clear();
-            Store.placeholders.previewByLocale.set({});
-            if (this.page.value === PAGE_NAMES.CONTENT) {
-                this.#searchCursor = null;
-            }
-        });
-        Store.search.subscribe(() => {
-            this.dictionaryCache.clear();
-            Store.placeholders.previewByLocale.set({});
-            this.#searchCursor = null;
-        });
+        Store.filters.subscribe(this.#onFiltersChange);
+        Store.search.subscribe(this.#onSearchChange);
 
         Events.fragmentAdded.subscribe(this.#stampLastEdit);
         Events.fragmentDeleted.subscribe(this.#stampLastEdit);
@@ -189,12 +183,28 @@ export class MasRepository extends LitElement {
 
     disconnectedCallback() {
         super.disconnectedCallback();
+        Store.filters.unsubscribe(this.#onFiltersChange);
+        Store.search.unsubscribe(this.#onSearchChange);
         Events.fragmentAdded.unsubscribe(this.#stampLastEdit);
         Events.fragmentDeleted.unsubscribe(this.#stampLastEdit);
         Events.fragmentSaved.unsubscribe(this.#stampLastEdit);
     }
 
     #stampLastEdit = () => Store.fragments.list.data.setMeta('lastEdit', Date.now());
+
+    #onFiltersChange = () => {
+        this.dictionaryCache.clear();
+        Store.placeholders.previewByLocale.set({});
+        if (this.page.value === PAGE_NAMES.CONTENT) {
+            this.#searchCursor = null;
+        }
+    };
+
+    #onSearchChange = () => {
+        this.dictionaryCache.clear();
+        Store.placeholders.previewByLocale.set({});
+        this.#searchCursor = null;
+    };
 
     /**
      * @param {Error} error
@@ -244,13 +254,21 @@ export class MasRepository extends LitElement {
             case PAGE_NAMES.TRANSLATIONS:
                 this.loadTranslationProjects();
                 break;
+            case PAGE_NAMES.BULK_PUBLISH:
+                this.loadBulkPublishProjects();
+                break;
+            case PAGE_NAMES.TRANSLATION_EDITOR:
+            case PAGE_NAMES.BULK_PUBLISH_EDITOR:
+            case PAGE_NAMES.PROMOTIONS_EDITOR:
+                this.searchFragments();
+                break;
         }
     }
 
     async loadFolders() {
         try {
             const { children } = await this.aem.folders.list(ROOT_PATH);
-            const ignore = window.localStorage.getItem('ignore_folders') || ['images', 'promotions'];
+            const ignore = window.localStorage.getItem('ignore_folders') || ['images', 'promotions', 'bulk-publish-projects'];
             const folders = children.map((folder) => folder.name).filter((child) => !ignore.includes(child));
 
             Store.folders.loaded.set(true);
@@ -371,11 +389,41 @@ export class MasRepository extends LitElement {
         });
     }
 
+    /** Fragment list surface on promotions editor item picker (no top-nav fallback). */
+    #promotionsItemPickerSurfaceOrNavPath() {
+        const override = Store.promotions.itemPickerSurface.get();
+        if (override != null && override !== '') return override;
+        return null;
+    }
+
     async searchFragments() {
-        if (!(this.page.value === PAGE_NAMES.CONTENT || this.page.value === PAGE_NAMES.TRANSLATION_EDITOR)) return;
+        if (
+            !(
+                this.page.value === PAGE_NAMES.CONTENT ||
+                this.page.value === PAGE_NAMES.TRANSLATION_EDITOR ||
+                this.page.value === PAGE_NAMES.BULK_PUBLISH_EDITOR ||
+                this.page.value === PAGE_NAMES.PROMOTIONS_EDITOR
+            )
+        )
+            return;
         if (!Store.profile.value) return;
 
-        const path = this.search.value.path;
+        const path =
+            this.page.value === PAGE_NAMES.PROMOTIONS_EDITOR
+                ? this.#promotionsItemPickerSurfaceOrNavPath()
+                : this.search.value.path;
+
+        if (this.page.value === PAGE_NAMES.PROMOTIONS_EDITOR && !path) {
+            const dataStore = Store.fragments.list.data;
+            if (dataStore.get().length > 0) dataStore.set([]);
+            dataStore.setMeta('path', null);
+            dataStore.setMeta('promotionPickerSurface', null);
+            Store.fragments.list.loading.set(false);
+            Store.fragments.list.firstPageLoaded.set(true);
+            Store.fragments.list.hasMore.set(false);
+            return;
+        }
+
         const dataStore = Store.fragments.list.data;
         const query = this.search.value.query;
 
@@ -425,7 +473,15 @@ export class MasRepository extends LitElement {
 
         const tracing = typeof localStorage !== 'undefined' && localStorage.getItem('mas-perf-trace');
 
+        const promotionPickerSurfaceMark =
+            this.page.value === PAGE_NAMES.PROMOTIONS_EDITOR ? Store.promotions.itemPickerSurface.get() : undefined;
+        const currentPromotionPickerMark = dataStore.getMeta('promotionPickerSurface');
+        const promotionPickerMatches =
+            this.page.value !== PAGE_NAMES.PROMOTIONS_EDITOR ||
+            (promotionPickerSurfaceMark ?? null) === (currentPromotionPickerMark ?? null);
+
         const sameSurface =
+            promotionPickerMatches &&
             currentData?.length > 0 &&
             currentPath === path &&
             currentLocale === locale &&
@@ -483,6 +539,7 @@ export class MasRepository extends LitElement {
 
         Store.fragments.list.loading.set(true);
         Store.fragments.list.firstPageLoaded.set(false);
+        if (Store.fragments.list.hasMore.get()) Store.fragments.list.hasMore.set(false);
         if (dataStore.get().length > 0) {
             dataStore.set([]);
         }
@@ -591,7 +648,16 @@ export class MasRepository extends LitElement {
                     }
 
                     // Backfill the surface for pathless UUID deep-links so the picker and URL normalize.
-                    if (canSyncSurface && fragmentSurface && Store.search.value.path !== fragmentSurface) {
+                    if (
+                        canSyncSurface &&
+                        fragmentSurface &&
+                        Store.search.value.path !== fragmentSurface &&
+                        !(
+                            this.page.value === PAGE_NAMES.PROMOTIONS_EDITOR &&
+                            Store.promotions.itemPickerSurface.get() != null &&
+                            Store.promotions.itemPickerSurface.get() !== ''
+                        )
+                    ) {
                         Store.search.set((prev) => ({
                             ...prev,
                             query: prev.query ?? query,
@@ -647,6 +713,9 @@ export class MasRepository extends LitElement {
             dataStore.setMeta('tags', this.filters.value.tags || '');
             dataStore.setMeta('createdBy', createdByString);
             dataStore.setMeta('personalizationFilterEnabled', personalizationOn);
+            if (this.page.value === PAGE_NAMES.PROMOTIONS_EDITOR) {
+                dataStore.setMeta('promotionPickerSurface', Store.promotions.itemPickerSurface.get());
+            }
             dataStore.setMeta('lastLoad', Date.now());
         } catch (error) {
             if (error.name !== 'AbortError') {
@@ -861,7 +930,11 @@ export class MasRepository extends LitElement {
     async loadPlaceholders() {
         try {
             /* If surface is not set yet, skip loading placeholders */
-            if (!this.search.value.path) return;
+            const surfaceKey =
+                this.page.value === PAGE_NAMES.PROMOTIONS_EDITOR
+                    ? this.#promotionsItemPickerSurfaceOrNavPath()
+                    : this.search.value.path;
+            if (!surfaceKey) return;
 
             const dictionaryPath = this.getDictionaryPath();
             try {
@@ -899,12 +972,16 @@ export class MasRepository extends LitElement {
     }
 
     async loadAllCollections() {
-        if (!this.search.value.path) return;
+        const surfaceKey =
+            this.page.value === PAGE_NAMES.PROMOTIONS_EDITOR
+                ? this.#promotionsItemPickerSurfaceOrNavPath()
+                : this.search.value.path;
+        if (!surfaceKey) return;
         try {
             if (this.#abortControllers.collections) this.#abortControllers.collections.abort();
             this.#abortControllers.collections = new AbortController();
 
-            const damPath = getDamPath(this.search.value.path);
+            const damPath = getDamPath(surfaceKey);
             const locale = this.filters.value.locale;
             const searchOptions = {
                 path: `${damPath}/${locale}`,
@@ -916,14 +993,24 @@ export class MasRepository extends LitElement {
             const collections = [];
             const collectionsByPath = new Map();
             for (const fragment of fragments) {
-                const collection = { ...fragment, studioPath: getFragmentName(fragment) };
+                let studioPath;
+                if (this.page.value === PAGE_NAMES.PROMOTIONS_EDITOR) {
+                    const surface = (extractSurfaceFromPath(fragment.path) ?? this.search.value.path)?.toUpperCase();
+                    studioPath = `merch-card-collection: ${surface} / ${fragment.title || ''}`;
+                } else {
+                    studioPath = getFragmentName(fragment);
+                }
+                const collection = { ...fragment, studioPath };
                 collections.push(collection);
                 collectionsByPath.set(fragment.path, collection);
             }
 
-            Store.translationProjects.allCollections.set(collections);
-            Store.translationProjects.displayCollections.set(collections);
-            Store.translationProjects.collectionsByPaths.set(collectionsByPath);
+            const s = getItemsSelectionStore({ allowUnset: true });
+            if (!s) return;
+            s.allCollections.setMeta('loaded', true);
+            s.allCollections.set(collections);
+            s.displayCollections.set(collections);
+            s.collectionsByPaths.set(collectionsByPath);
         } catch (error) {
             if (error.name === 'AbortError') return;
             this.processError(error, 'Could not load collections.');
@@ -1043,12 +1130,32 @@ export class MasRepository extends LitElement {
             const fragments = await this.searchFragmentList(searchOptions, 50, this.#abortControllers.promotions);
 
             const promotions = fragments.map((fragment) => new FragmentStore(new Promotion(fragment)));
+            const signal = this.#abortControllers.promotions.signal;
+            const expiredPublished = promotions.filter((store) => {
+                const p = store.get();
+                return p?.promotionStatus === 'expired' && p.isPromotionPublished;
+            });
 
             Store.promotions.list.data.set(promotions);
+
+            if (expiredPublished.length) {
+                void this.#unpublishExpiredPromotions(expiredPublished, signal);
+            }
         } catch (error) {
             this.processError(error, 'Could not load promotions.');
         } finally {
             Store.promotions.list.loading.set(false);
+        }
+    }
+
+    async #unpublishExpiredPromotions(stores, signal) {
+        for (const store of stores) {
+            if (signal.aborted) break;
+            const p = store.get();
+            const ok = await this.unpublishFragment(p, false);
+            if (!ok || signal.aborted) continue;
+            const fresh = await this.aem.sites.cf.fragments.getById(p.id);
+            if (fresh) store.set(new Promotion(fresh));
         }
     }
 
@@ -1057,7 +1164,9 @@ export class MasRepository extends LitElement {
     }
 
     getDictionaryPath() {
-        return `${ROOT_PATH}/${Store.surface()}/${Store.localeOrRegion()}/dictionary`;
+        const surfaceKey =
+            this.page.value === PAGE_NAMES.PROMOTIONS_EDITOR ? this.#promotionsItemPickerSurfaceOrNavPath() : Store.surface();
+        return `${ROOT_PATH}/${surfaceKey}/${Store.localeOrRegion()}/dictionary`;
     }
 
     parseDictionaryPath(dictionaryPath) {
@@ -1318,6 +1427,37 @@ export class MasRepository extends LitElement {
             Store.translationProjects.list.loading.set(false);
         }
     }
+
+    getBulkPublishProjectsPath() {
+        const surface = this.search.value.path?.split('/').filter(Boolean)[0]?.toLowerCase() ?? 'sandbox';
+        return `/content/dam/mas/bulk-publish-projects/${surface}`;
+    }
+
+    async loadBulkPublishProjects() {
+        const path = this.getBulkPublishProjectsPath();
+        if (!path) return;
+        try {
+            if (this.#abortControllers.bulkPublish) this.#abortControllers.bulkPublish.abort();
+            this.#abortControllers.bulkPublish = new AbortController();
+            Store.bulkPublishProjects.list.loading.set(true);
+            const fragments = await this.searchFragmentList(
+                { path, sort: [{ on: 'modifiedOrCreated', order: 'DESC' }] },
+                50,
+                this.#abortControllers.bulkPublish,
+            );
+            const projects = fragments.map((fragment) => new FragmentStore(new Fragment(fragment)));
+            Store.bulkPublishProjects.list.data.set(projects);
+        } catch (error) {
+            this.processError(error, 'Could not load bulk publish projects.');
+        } finally {
+            Store.bulkPublishProjects.list.loading.set(false);
+        }
+    }
+
+    getFragmentById(id) {
+        return this.aem.sites.cf.fragments.getById(id);
+    }
+
     /**
      * Helper method to create fragment fields from data object
      * @param {Object} data - The data object containing field values
@@ -1474,7 +1614,11 @@ export class MasRepository extends LitElement {
             const fragment = store?.get?.();
             if (!fragment) return false;
             if (parentId && fragment.id === parentId) return true;
-            return fragment.references?.some((reference) => reference.id === variationId || reference.path === variationPath);
+            if (fragment.references?.some((reference) => reference.id === variationId || reference.path === variationPath)) {
+                return true;
+            }
+            const variationPaths = fragment.getVariations?.() || [];
+            return Boolean(variationPath && variationPaths.includes(variationPath));
         });
 
         if (!storesToRefresh.length) return;
@@ -1556,7 +1700,7 @@ export class MasRepository extends LitElement {
             this.operation.set(OPERATIONS.PUBLISH);
 
             if (allSelected) {
-                await this.aem.sites.cf.fragments.publish(fragment, ['DRAFT', 'UNPUBLISHED']);
+                await this.aem.sites.cf.fragments.publish(fragment, ['DRAFT', 'MODIFIED', 'UNPUBLISHED']);
             } else {
                 await this.aem.sites.cf.fragments.publish(fragment, []);
                 if (selectedRefIds?.length) {
@@ -1564,7 +1708,11 @@ export class MasRepository extends LitElement {
                 }
             }
 
-            if (withToast) showToast('Fragment successfully published.', 'positive');
+            if (withToast) {
+                const message =
+                    fragment instanceof Promotion ? 'Project successfully published.' : 'Fragment successfully published.';
+                showToast(message, 'positive');
+            }
 
             return true;
         } catch (error) {
@@ -1582,6 +1730,25 @@ export class MasRepository extends LitElement {
         const valid = refFragments.filter(Boolean);
         if (valid.length === 0) return;
         await this.aem.sites.cf.fragments.publishFragments(valid, []);
+    }
+
+    /**
+     * @param {Fragment} fragment Fragment to unpublish
+     * @param {boolean} [withToast=true]
+     * @returns {Promise<boolean>}
+     */
+    async unpublishFragment(fragment, withToast = true) {
+        try {
+            this.operation.set(OPERATIONS.UNPUBLISH);
+            await this.aem.sites.cf.fragments.unpublish(fragment);
+            if (withToast) showToast('Fragment successfully unpublished.', 'positive');
+            return true;
+        } catch (error) {
+            this.processError(error, 'Failed to unpublish fragment.');
+            return false;
+        } finally {
+            this.operation.set(null);
+        }
     }
 
     /**
@@ -1617,7 +1784,7 @@ export class MasRepository extends LitElement {
             }
 
             if (allSelected) {
-                await this.aem.sites.cf.fragments.publishFragments(fragments, ['DRAFT', 'UNPUBLISHED']);
+                await this.aem.sites.cf.fragments.publishFragments(fragments, ['DRAFT', 'MODIFIED', 'UNPUBLISHED']);
             } else {
                 await this.aem.sites.cf.fragments.publishFragments(fragments, []);
                 if (selectedRefIds?.length) {
@@ -2094,6 +2261,22 @@ export class MasRepository extends LitElement {
         if (pznTags?.length) {
             groupedFields.push({ name: 'pznTags', type: 'tag', multiple: true, values: pznTags });
         }
+
+        // Snapshot parent list fields so grouped collection variations do not inherit live parent edits.
+        if (parentFragment.model?.path === COLLECTION_MODEL_PATH) {
+            for (const name of ['cards', 'collections']) {
+                const field = (parentFragment.fields || []).find((f) => f.name === name);
+                if (field?.values?.length) {
+                    groupedFields.push({
+                        name,
+                        type: field.type || 'content-reference',
+                        multiple: field.multiple !== false,
+                        values: [...field.values],
+                    });
+                }
+            }
+        }
+
         ensureCompatVersionOnMerchCardFieldList(parentFragment.model?.path, groupedFields);
 
         const newFragment = await this.aem.sites.cf.fragments.create({

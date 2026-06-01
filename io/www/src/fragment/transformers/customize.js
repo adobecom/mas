@@ -1,4 +1,5 @@
-import { getRequestInfos } from '../utils/common.js';
+import { PATH_TOKENS } from '../utils/paths.js';
+import { getRequestInfos, matchesGeo } from '../utils/common.js';
 import { logDebug } from '../utils/log.js';
 
 const PZN_FOLDER = '/pzn/';
@@ -96,16 +97,11 @@ function personalizationMatchScore(pznTags, { regionLocale, country, pzn }) {
     }
     const tokens = parsePznTokens(pzn);
     const matchedTokens = countMatchedPznTokens(tags, tokens);
-    const regionMatch = Boolean(regionLocale && tags.some((tag) => tag.includes(regionLocale)));
-    const effectiveCountry = country || regionLocale?.split('_')[1];
-    const countryMatch = Boolean(
-        effectiveCountry &&
-            tags.some((tag) => tag.toLowerCase().endsWith(`pzn/country/${String(effectiveCountry).toLowerCase()}`)),
-    );
-    if (matchedTokens === 0 && !regionMatch && !countryMatch) {
+    const geo = matchesGeo(tags, { regionLocale, country });
+    if (matchedTokens === 0 && !geo) {
         return 0;
     }
-    return matchedTokens * 100 + (regionMatch ? 20 : 0) + (countryMatch ? 10 : 0);
+    return matchedTokens * 100 + (geo?.region ? 20 : 0) + (geo?.country ? 10 : 0);
 }
 
 function findPersonalizationVariation(variations, customizeContext) {
@@ -138,8 +134,32 @@ function findPersonalizationVariation(variations, customizeContext) {
     return null;
 }
 
+function findPromoVariation(root, customizeContext) {
+    if (!customizeContext.promos) return null;
+    const match = PATH_TOKENS.exec(root.path);
+    if (!match) return null;
+    const { fragmentPath } = match.groups;
+    const { activeProject } = customizeContext.promos;
+    const defaultVar = activeProject.defaultVariations?.[fragmentPath];
+    const regionVar = activeProject.regionVariations?.[fragmentPath];
+    if (!defaultVar && !regionVar) return null;
+    if (!defaultVar) return regionVar;
+    if (!regionVar) return defaultVar;
+    return deepMerge(defaultVar, regionVar);
+}
+
 function mergeVariations(root, customizeContext) {
     const { isRegionLocale } = customizeContext;
+    // Promo variation takes priority, independent of fields.variations
+    const promoVariation = findPromoVariation(root, customizeContext);
+    if (promoVariation) {
+        logDebug(() => `Merging promo variation ${promoVariation.id} for fragment ${root.id}`, customizeContext);
+        const merged = deepMerge(root, promoVariation);
+        merged.id = root.id;
+        merged.path = root.path;
+        merged.variationId = promoVariation.id;
+        return merged;
+    }
     const variations = root?.fields?.variations;
     if (!variations?.length) {
         logDebug(() => `No variations to merge for fragment ${root.id}`, customizeContext);
@@ -168,6 +188,23 @@ function mergeVariations(root, customizeContext) {
         return merged;
     }
     return root;
+}
+
+function applyPromoCode(fragment, promoMap, context) {
+    const fragOsi = fragment.fields?.osi;
+    if (!fragOsi) return;
+    const osis = Array.isArray(fragOsi) ? fragOsi : [fragOsi];
+    let promoCode = promoMap['*'];
+    for (const osi of osis) {
+        if (promoMap[osi]) {
+            promoCode = promoMap[osi];
+            break;
+        }
+    }
+    if (promoCode) {
+        logDebug(() => `Setting promoCode ${promoCode} on fragment ${fragment.id}`, context);
+        fragment.fields.promoCode = promoCode;
+    }
 }
 
 /**
@@ -220,20 +257,32 @@ function adaptReferencesTree(referencesTree, customizedRoot) {
 function customizeTree(root, referencesTree = [], customizeContext) {
     //start by merging current fragment with its regional variation, and promos if any
     const customizedRoot = mergeVariations(root, customizeContext);
+    if (customizeContext.promos?.fragmentPaths.has(PATH_TOKENS.exec(root.path)?.groups.fragmentPath)) {
+        applyPromoCode(customizedRoot, customizeContext.promos.promoMap, customizeContext);
+    }
 
     //adapt referencesTree to match the customized root's cards/collections
     const adaptedTree = adaptReferencesTree(referencesTree, customizedRoot);
 
     //now we look into referenced fragments to customize them as well
-    for (const reference of adaptedTree) {
+    for (let i = 0; i < adaptedTree.length; i++) {
+        const reference = adaptedTree[i];
         //customize each card/collection
         if (reference.fieldName === 'cards' || reference.fieldName === 'collections') {
             const child = customizeContext.references[reference.identifier]?.value;
             if (child) {
                 //start customization of the child fragment
-                const { references: customizedReferences } = customizeTree(child, reference.referencesTree, customizeContext);
+                const { references: customizedReferences, referencesTree: childAdaptedTree } = customizeTree(
+                    child,
+                    reference.referencesTree,
+                    customizeContext,
+                );
                 //we collect update references and merge in current references
                 customizeContext.references = { ...customizeContext.references, ...customizedReferences };
+                //propagate adapted child tree up so the parent's tree stays in sync with the customized child fields
+                if (childAdaptedTree !== reference.referencesTree) {
+                    adaptedTree[i] = { ...reference, referencesTree: childAdaptedTree };
+                }
             }
         }
     }
@@ -260,7 +309,11 @@ async function customize(context) {
     const { surface } = requestInfos;
     const fragmentInit = await resolveFragmentInit(context, requestInfos);
     const { body, defaultLocale, status, message, regionLocale: regionLocaleFromInit } = fragmentInit;
-    const promos = await context.promises?.promotions;
+    const promosResult = await context.promises?.promotions;
+    const activeProject = promosResult?.activeProject;
+    const promos = activeProject
+        ? { activeProject, promoMap: context.promoMap ?? {}, fragmentPaths: context.promoFragmentPaths ?? new Set() }
+        : null;
 
     if (status != 200) {
         return { ...context, status, message };
@@ -289,7 +342,6 @@ async function customize(context) {
         ...context,
         status: 200,
         body: customizedFragment,
-        locale: regionLocale,
         defaultLocale,
     };
 }

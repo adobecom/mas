@@ -16,18 +16,95 @@ import {
 import router from './router.js';
 import { VARIANTS } from './editors/variant-picker.js';
 import { getActiveMerchCardEditor } from './editors/merch-card-editor.js';
-import { extractLocaleFromPath, generateCodeToUse, getFragmentMapping, replaceLocaleInPath, showToast } from './utils.js';
+import {
+    extractLocaleFromPath,
+    extractSurfaceFromPath,
+    generateCodeToUse,
+    getFragmentMapping,
+    replaceLocaleInPath,
+    showToast,
+} from './utils.js';
 import { getSpectrumVersion } from './constants/icon-library.js';
+import { getFragmentPartsToUse } from './editor-panel.js';
 import './editors/merch-card-editor.js';
 import './editors/merch-card-collection-editor.js';
 import './mas-variation-dialog.js';
-import { getCountryName, getLocaleByCode } from '../../io/www/src/fragment/locales.js';
+import { getCountryName, getDefaultLocaleCode, getLocaleByCode } from '../../io/www/src/fragment/locales.js';
 import { branch2Icon } from './icons.js';
 
 const MODEL_WEB_COMPONENT_MAPPING = {
     [CARD_MODEL_PATH]: 'merch-card',
     [COLLECTION_MODEL_PATH]: 'merch-card-collection',
 };
+
+// Returns locale codes extracted from the fragment's pznTags field.
+export function getGroupedPreviewLocaleCodes(fragment) {
+    const tags = fragment?.getFieldValues('pznTags') || [];
+    return [...new Set(tags.map((tag) => tag?.split('/').pop()?.trim()).filter((code) => code && getLocaleByCode(code)))];
+}
+
+/**
+ * Sets {@link Store.search.region} and grouped preview locale
+ * @param {import('./aem/fragment.js').Fragment} fragment
+ * @param {string} parentLocale locale of the parent (catalog) fragment
+ * @returns {boolean} true when region or preview override changed
+ */
+export function syncGroupedVariationRegion(fragment, parentLocale) {
+    if (!fragment?.path || !Fragment.isGroupedVariationPath(fragment.path) || !parentLocale) return false;
+
+    const surface = Store.surface();
+    const catalogLocale = (surface && getDefaultLocaleCode(surface, parentLocale)) || parentLocale;
+    const codes = getGroupedPreviewLocaleCodes(fragment);
+    if (!codes.length) return false;
+
+    let region = Store.search.value.region;
+    if (region && !codes.includes(region)) {
+        region = null;
+    }
+    if (!region) {
+        region = codes.find((code) => code !== catalogLocale) || null;
+    }
+    const nextRegion = region && region !== catalogLocale ? region : null;
+    const previewLocale = nextRegion || catalogLocale;
+
+    let changed = false;
+    if ((Store.search.value.region || null) !== nextRegion) {
+        Store.search.set((prev) => ({ ...prev, region: nextRegion }));
+        changed = true;
+    }
+
+    const editor = getActiveMerchCardEditor();
+    if (editor && editor.previewLocaleOverride !== previewLocale) {
+        editor.previewLocaleOverride = previewLocale;
+        changed = true;
+    }
+
+    return changed;
+}
+
+export function snapFilterToPathDefault(fragmentPath) {
+    const pathLocale = extractLocaleFromPath(fragmentPath);
+    if (!pathLocale) return false;
+    const surface = extractSurfaceFromPath(fragmentPath) || Store.surface();
+    if (!surface) return false;
+    const pathCatalog = getDefaultLocaleCode(surface, pathLocale);
+    const filterLocale = Store.filters.value?.locale;
+    if (!pathCatalog || !filterLocale) return false;
+    const filterCatalog = getDefaultLocaleCode(surface, filterLocale);
+    if (!filterCatalog) return false;
+    if (pathCatalog === filterCatalog) {
+        if (pathLocale === pathCatalog) return false;
+        const needsFilterUpdate = filterLocale !== pathCatalog;
+        const needsRegionUpdate = Store.search.value.region !== pathLocale;
+        if (!needsFilterUpdate && !needsRegionUpdate) return false;
+        Store.filters.set((prev) => ({ ...prev, locale: pathCatalog }));
+        Store.search.set((prev) => ({ ...prev, region: pathLocale }));
+        return true;
+    }
+    Store.search.set((prev) => ({ ...prev, region: null }));
+    Store.filters.set((prev) => ({ ...prev, locale: pathCatalog }));
+    return true;
+}
 
 function getWhatsIncludedDividerColorFromMarkup(fragment) {
     if (!fragment) return '';
@@ -157,17 +234,13 @@ export default class MasFragmentEditor extends LitElement {
             gap: 8px;
         }
 
-        .cta-error-message {
-            display: none;
+        .preview-error-item {
+            display: flex;
             align-items: center;
             gap: 8px;
             padding: 8px 0;
             font-size: 14px;
             color: var(--merch-color-error);
-        }
-
-        .preview-content:has(a[is='checkout-link'].placeholder-failed) .cta-error-message {
-            display: flex;
         }
 
         .section {
@@ -420,6 +493,7 @@ export default class MasFragmentEditor extends LitElement {
         cloneInProgress: { type: Boolean, state: true },
         localeDefaultFragment: { type: Object, state: true },
         previewResolved: { type: Boolean, state: true },
+        previewError: { type: String, state: true },
         variationsToDelete: { type: Array, state: true },
         initState: { type: String, state: true },
         groupedVariationOrphanMessage: { type: String, state: true },
@@ -466,6 +540,7 @@ export default class MasFragmentEditor extends LitElement {
         this.showCreateVariationDialog = false;
         this.cloneInProgress = false;
         this.previewResolved = false;
+        this.previewError = null;
         this.discardPromiseResolver = null;
         this.variationsToDelete = [];
         this.initState = MasFragmentEditor.INIT_STATE.IDLE;
@@ -756,29 +831,31 @@ export default class MasFragmentEditor extends LitElement {
             void this.repository.loadPreviewPlaceholders(Store.localeOrRegion());
         }
         const fragmentPath = existingStore.get().path;
+        snapFilterToPathDefault(fragmentPath);
 
         const fragmentLocale = extractLocaleFromPath(fragmentPath);
         const pathDetection = this.editorContextStore.detectVariationFromPath(fragmentPath);
-        if (pathDetection.isVariation && fragmentLocale) {
+        if (pathDetection.isVariation && fragmentLocale && !Fragment.isGroupedVariationPath(fragmentPath)) {
             Store.search.set((prev) => ({ ...prev, region: fragmentLocale }));
         }
 
         this.#updateLocaleIfNeeded(fragmentPath);
         await this.editorContextStore.loadFragmentContext(fragmentId, fragmentPath);
         const isVariationAfterContext = this.editorContextStore.isVariation(fragmentId);
+        const isGroupedVariation = this.editorContextStore.isGroupedVariationByPath;
 
         const skipVariation = existingStore.skipVariationDetection;
         if (skipVariation) existingStore.skipVariationDetection = false;
 
         if (isVariationAfterContext && !skipVariation) {
             const localeChanged = fragmentLocale && fragmentLocale !== Store.localeOrRegion();
-            if (localeChanged) {
+            if (localeChanged && !isGroupedVariation) {
                 Store.search.set((prev) => ({ ...prev, region: fragmentLocale }));
                 void this.repository.loadPreviewPlaceholders();
                 existingStore.resolvePreviewFragment();
             }
             await this.#attachParentToCachedVariation(existingStore, fragmentPath);
-            if (fragmentLocale && fragmentLocale !== Store.localeOrRegion()) {
+            if (fragmentLocale && fragmentLocale !== Store.localeOrRegion() && !isGroupedVariation) {
                 Store.search.set((prev) => ({ ...prev, region: fragmentLocale }));
                 void this.repository.loadPreviewPlaceholders();
                 existingStore.resolvePreviewFragment();
@@ -787,7 +864,7 @@ export default class MasFragmentEditor extends LitElement {
             this.localeDefaultFragment = existingStore.parentFragment;
         }
 
-        this.updateTranslatedLocalesStore(isVariationAfterContext, fragmentPath);
+        this.updateTranslatedLocalesStore(fragmentPath);
 
         if (existingStore.previewStore) {
             existingStore.previewStore.resolved = false;
@@ -795,6 +872,17 @@ export default class MasFragmentEditor extends LitElement {
         this.repository.refreshFragment(existingStore).then(() => {
             this.dispatchFragmentLoaded();
         });
+
+        if (isGroupedVariation) {
+            const parentLocale =
+                extractLocaleFromPath(this.localeDefaultFragment?.path) ||
+                getDefaultLocaleCode(Store.surface(), Store.filters.value.locale) ||
+                Store.filters.value.locale;
+            if (syncGroupedVariationRegion(existingStore.get(), parentLocale)) {
+                void this.repository.loadPreviewPlaceholders(Store.localeOrRegion());
+                existingStore.resolvePreviewFragment();
+            }
+        }
 
         this.#activateEditorStore(existingStore, { resetChanges: true });
         this.#markInitReady();
@@ -838,14 +926,30 @@ export default class MasFragmentEditor extends LitElement {
             const fragmentData = await this.repository.aem.sites.cf.fragments.getById(fragmentId);
             const fragment = new Fragment(fragmentData);
 
+            snapFilterToPathDefault(fragment.path);
+
             this.#updateLocaleIfNeeded(fragment.path);
             await this.editorContextStore.loadFragmentContext(fragmentId, fragment.path);
 
             const isVariationAfterContext = this.editorContextStore.isVariation(fragmentId);
-            const parentFragment = await this.#resolveParentForFetchedVariation(fragmentId, fragment, isVariationAfterContext);
+            let parentFragment = await this.#resolveParentForFetchedVariation(fragmentId, fragment, isVariationAfterContext);
+            if (parentFragment?.path && fragment.model?.path === COLLECTION_MODEL_PATH) {
+                try {
+                    const hydrated = await this.repository.aem.sites.cf.fragments.getByPath(parentFragment.path, {
+                        references: 'direct-hydrated',
+                    });
+                    if (Store.fragmentEditor.fragmentId.get() === fragmentId) {
+                        parentFragment = new Fragment(hydrated);
+                        this.localeDefaultFragment = parentFragment;
+                    }
+                } catch (e) {
+                    console.debug('Hydrated collection parent fetch failed', e);
+                }
+            }
             const isVariationForStore = isVariationAfterContext || !!parentFragment;
 
-            if (isVariationForStore) {
+            const isGroupedVariation = this.editorContextStore.isGroupedVariationByPath;
+            if (isVariationForStore && !isGroupedVariation) {
                 const fragmentLocale = extractLocaleFromPath(fragment.path);
                 if (fragmentLocale && fragmentLocale !== Store.localeOrRegion()) {
                     Store.search.set((prev) => ({ ...prev, region: fragmentLocale }));
@@ -862,11 +966,22 @@ export default class MasFragmentEditor extends LitElement {
                 Store.fragments.list.data.set((prev) => [fragmentStore, ...prev]);
             }
 
+            if (isGroupedVariation) {
+                const parentLocale =
+                    extractLocaleFromPath(this.localeDefaultFragment?.path) ||
+                    getDefaultLocaleCode(Store.surface(), Store.filters.value.locale) ||
+                    Store.filters.value.locale;
+                if (syncGroupedVariationRegion(fragment, parentLocale)) {
+                    void this.repository.loadPreviewPlaceholders(Store.localeOrRegion());
+                    fragmentStore.resolvePreviewFragment();
+                }
+            }
+
             this.#activateEditorStore(fragmentStore);
             this.dispatchFragmentLoaded();
 
             // Handle locale-specific placeholder reload for variations
-            if (isVariationForStore) {
+            if (isVariationForStore && !isGroupedVariation) {
                 const fragmentLocale = extractLocaleFromPath(fragment.path);
                 if (fragmentLocale) {
                     const localeChanged = fragmentLocale !== Store.localeOrRegion();
@@ -879,7 +994,7 @@ export default class MasFragmentEditor extends LitElement {
             }
 
             Store.editor.resetChanges();
-            this.updateTranslatedLocalesStore(isVariationForStore, fragment.path); // no need to await
+            this.updateTranslatedLocalesStore(fragment.path); // no need to await
             this.#markInitReady();
         } catch (error) {
             console.error('Failed to fetch fragment:', error);
@@ -901,12 +1016,14 @@ export default class MasFragmentEditor extends LitElement {
 
         if (existingStore) {
             this.groupedVariationOrphanMessage = null;
+            this.previewError = null;
             await this.#initializeFromCachedStore(fragmentId, existingStore);
             return;
         }
 
         this.groupedVariationOrphanMessage = null;
         this.previewResolved = false;
+        this.previewError = null;
         this.initState = MasFragmentEditor.INIT_STATE.LOADING;
         Store.fragmentEditor.loading.set(true);
 
@@ -962,9 +1079,8 @@ export default class MasFragmentEditor extends LitElement {
         return null;
     }
 
-    async updateTranslatedLocalesStore(isVariation, fragmentPath) {
-        // Only fetch translations for default fragments, not variations
-        if (isVariation) {
+    async updateTranslatedLocalesStore(fragmentPath) {
+        if (!this.editorContextStore.isFragmentTranslatable) {
             Store.fragmentEditor.translatedLocales.set(null);
             return;
         }
@@ -1043,7 +1159,7 @@ export default class MasFragmentEditor extends LitElement {
             }
 
             // Ignore stale responses when fragment/context changes while request is in flight.
-            if (Store.fragmentEditor.fragmentId.get() !== fragmentId || this.editorContextStore.isVariation(fragmentId)) {
+            if (Store.fragmentEditor.fragmentId.get() !== fragmentId || !this.editorContextStore.isFragmentTranslatable) {
                 return;
             }
 
@@ -1418,7 +1534,8 @@ export default class MasFragmentEditor extends LitElement {
             if (AemFragment?.cache) {
                 AemFragment.cache.add(copiedFragment);
             }
-            router.navigateToFragmentEditor(copiedFragment.id);
+            const viewPage = this.fragment?.model?.path === COLLECTION_MODEL_PATH;
+            router.navigateToFragmentEditor(copiedFragment.id, { viewPage });
         }
     }
 
@@ -1449,7 +1566,19 @@ export default class MasFragmentEditor extends LitElement {
     #handleGroupedPreviewLocaleChange = (event) => {
         const editor = getActiveMerchCardEditor();
         if (!editor) return;
-        editor.previewLocaleOverride = event.target.value || null;
+        const previewLocale = event.target.value || null;
+        editor.previewLocaleOverride = previewLocale;
+        const parentLocale =
+            extractLocaleFromPath(this.localeDefaultFragment?.path) ||
+            getDefaultLocaleCode(Store.surface(), Store.filters.value.locale) ||
+            Store.filters.value.locale;
+        const catalogLocale = (Store.surface() && getDefaultLocaleCode(Store.surface(), parentLocale)) || parentLocale;
+        const nextRegion = previewLocale && previewLocale !== catalogLocale ? previewLocale : null;
+        if ((Store.search.value.region || null) !== nextRegion) {
+            Store.search.set((prev) => ({ ...prev, region: nextRegion }));
+            void this.repository?.loadPreviewPlaceholders(Store.localeOrRegion());
+            this.fragmentStore?.resolvePreviewFragment();
+        }
     };
 
     #handlePreviewLocaleChange = (event) => {
@@ -1621,6 +1750,23 @@ export default class MasFragmentEditor extends LitElement {
         if (!this.fragment) return nothing;
         const modelName = MODEL_WEB_COMPONENT_MAPPING[this.fragment.model.path] || 'fragment';
 
+        if (this.fragment.model.path === COLLECTION_MODEL_PATH) {
+            let fragmentParts = '';
+            if (Fragment.isGroupedVariationPath(this.fragment.path) && this.localeDefaultFragment) {
+                const pathParts = this.fragment.path?.split('/') || [];
+                const masIndex = pathParts.indexOf('mas');
+                const surfaceFromPath = masIndex >= 0 && pathParts[masIndex + 1] ? pathParts[masIndex + 1].toUpperCase() : '';
+                const search = Store.search.get();
+                const searchSurface = search?.path ? String(search.path).toUpperCase() : '';
+                const surface = searchSurface || surfaceFromPath;
+                fragmentParts = surface ? `${surface} / ${this.localeDefaultFragment.title}` : this.localeDefaultFragment.title;
+            } else {
+                fragmentParts = getFragmentPartsToUse(Store, this.fragment).fragmentParts || '';
+            }
+            if (!fragmentParts) return nothing;
+            return html`<p id="author-path">${modelName}: ${fragmentParts}</p>`;
+        }
+
         const pathParts = this.fragment.path?.split('/') || [];
         const masIndex = pathParts.indexOf('mas');
         const surface = masIndex >= 0 && pathParts[masIndex + 1] ? pathParts[masIndex + 1].toUpperCase() : '';
@@ -1676,8 +1822,31 @@ export default class MasFragmentEditor extends LitElement {
         `;
     }
 
+    #handlePreviewError = (e) => {
+        this.previewError = e.detail?.message ?? 'Card failed to load';
+    };
+
+    #clearPreviewError = () => {
+        this.previewError = null;
+    };
+
+    get previewErrorMessages() {
+        if (!this.previewError) return nothing;
+        return html`<div class="preview-error-item">
+            <sp-icon-alert class="price-error-icon"></sp-icon-alert>
+            <span>${this.previewError}</span>
+        </div>`;
+    }
+
     get previewColumn() {
-        if (!this.fragment || this.fragment.model.path !== CARD_MODEL_PATH) return nothing;
+        if (!this.fragment) return nothing;
+        if (this.fragment.model.path === COLLECTION_MODEL_PATH) {
+            const isGroupedVariation =
+                this.editorContextStore.isVariation(this.fragment.id) && Fragment.isGroupedVariationPath(this.fragment.path);
+            if (!isGroupedVariation) return nothing;
+            return html`<div id="preview-column">${this.relatedVariationsSection}</div>`;
+        }
+        if (this.fragment.model.path !== CARD_MODEL_PATH) return nothing;
 
         if (!this.previewResolved) {
             return this.previewSkeleton;
@@ -1716,14 +1885,13 @@ export default class MasFragmentEditor extends LitElement {
                                 ?gradient-border=${borderAttrs.gradientBorder}
                                 .heightSync=${false}
                                 style=${cssProps || nothing}
+                                @mas:error=${this.#handlePreviewError}
+                                @aem:load=${this.#clearPreviewError}
                             >
                                 <aem-fragment ?author=${true} loading="cache" fragment="${this.fragment.id}"></aem-fragment>
                             </merch-card>
                         </sp-theme>
-                        <div class="cta-error-message">
-                            <sp-icon-alert class="price-error-icon"></sp-icon-alert>
-                            <span>CTA has an invalid offer</span>
-                        </div>
+                        ${this.previewErrorMessages}
                     </div>
                 </div>
                 ${this.relatedVariationsSection}
@@ -1733,58 +1901,74 @@ export default class MasFragmentEditor extends LitElement {
 
     get missingVariationState() {
         if (this.fragmentId && this.fragment?.id !== this.fragmentId) return null;
+
+        if (this.editorContextStore.isGroupedVariationByPath && this.fragment) {
+            const groupedLocales = getGroupedPreviewLocaleCodes(this.fragment);
+            const previewLocale = Store.search.value.region || Store.filters.value.locale;
+            if (groupedLocales.includes(previewLocale)) {
+                return null;
+            }
+        }
+
         const currentLocale = Store.localeOrRegion();
         const fragmentLocale = extractLocaleFromPath(this.fragment?.path);
 
         if (fragmentLocale && currentLocale !== fragmentLocale) {
-            const isVariation = this.editorContextStore.isVariation(this.fragment.id);
-            const sourceFragment = isVariation ? this.localeDefaultFragment : this.fragment;
+            if (!this.editorContextStore.isFragmentTranslatable) return null;
 
-            if (sourceFragment) {
-                const variations = sourceFragment.listLocaleVariations() || [];
-                const hasVariation = variations.some((v) => extractLocaleFromPath(v.path) === currentLocale);
+            let hasVariation = false;
+            if (this.editorContextStore.isGroupedVariationByPath) {
+                const translatedLocales = Store.fragmentEditor.translatedLocales.get();
+                if (!translatedLocales) return null;
+                hasVariation = translatedLocales.some((t) => t.locale === currentLocale);
+            } else {
+                const variations = this.fragment?.listLocaleVariations() || [];
+                hasVariation = variations.some((v) => extractLocaleFromPath(v.path) === currentLocale);
+            }
 
-                if (!hasVariation) {
-                    const targetLocale = getLocaleByCode(currentLocale);
-                    const targetCountryName = getCountryName(targetLocale.country);
+            if (!hasVariation) {
+                const targetLocale = getLocaleByCode(currentLocale);
+                const targetCountryName = getCountryName(targetLocale.country);
 
-                    return html`
-                        <div id="missing-variation-panel" class="empty-state">
-                            <sp-icon-translate class="translation-icon"></sp-icon-translate>
-                            <h2>
-                                This card hasn't been translated into ${targetCountryName} (${targetLocale.lang.toUpperCase()})
-                                yet.
-                            </h2>
-                            <p class="empty-state-subtitle">
-                                Create a new translation project or view the United States (EN) version.
-                            </p>
-                            <div class="empty-state-actions">
-                                <sp-button id="view-source-fragment" variant="secondary" @click="${this.viewSourceFragment}">
-                                    View United States (EN) version
-                                </sp-button>
-                                <sp-button
-                                    id="create-translation-project"
-                                    variant="accent"
-                                    @click="${this.goToTranslationEditor}"
-                                >
-                                    Create translation project
-                                </sp-button>
-                            </div>
+                return html`
+                    <div id="missing-variation-panel" class="empty-state">
+                        <sp-icon-translate class="translation-icon"></sp-icon-translate>
+                        <h2>
+                            This card hasn't been translated into ${targetCountryName} (${targetLocale.lang.toUpperCase()}) yet.
+                        </h2>
+                        <p class="empty-state-subtitle">
+                            Create a new translation project or view the United States (EN) version.
+                        </p>
+                        <div class="empty-state-actions">
+                            <sp-button id="view-source-fragment" variant="secondary" @click="${this.viewSourceFragment}">
+                                View United States (EN) version
+                            </sp-button>
+                            <sp-button id="create-translation-project" variant="accent" @click="${this.goToTranslationEditor}">
+                                Create translation project
+                            </sp-button>
                         </div>
-                    `;
-                }
+                    </div>
+                `;
             }
         }
         return null;
     }
 
-    viewSourceFragment() {
-        // Reset hasChanges to avoid discard dialog
+    async viewSourceFragment() {
         Store.editor.resetChanges();
-        // Clear the region override
         Store.search.set((prev) => ({ ...prev, region: null }));
-        // Update locale filter to default (en_US) to update URL
-        Store.filters.set((prev) => ({ ...prev, locale: 'en_US' }));
+        if (this.editorContextStore.isGroupedVariationByPath) {
+            const translatedLocales = Store.fragmentEditor.translatedLocales.get();
+            const enUsTranslation = translatedLocales?.find((t) => t.locale === 'en_US');
+            const enUsFragmentId = enUsTranslation?.id;
+            if (enUsFragmentId && enUsFragmentId !== this.fragment?.id) {
+                Store.filters.set((prev) => ({ ...prev, locale: 'en_US' }));
+                await router.navigateToFragmentEditor(enUsFragmentId);
+                return;
+            }
+        }
+        const fragmentLocale = extractLocaleFromPath(this.fragment?.path) ?? 'en_US';
+        Store.filters.set((prev) => ({ ...prev, locale: fragmentLocale }));
     }
 
     async goToTranslationEditor() {
@@ -1793,7 +1977,11 @@ export default class MasFragmentEditor extends LitElement {
         const translatedLocales = Store.fragmentEditor.translatedLocales.get();
         const enUsTranslation = translatedLocales?.find((t) => t.locale === 'en_US');
         const fragmentPath = enUsTranslation?.path;
-        await router.navigateToTranslationEditor({ targetLocale, fragmentPath });
+        await router.navigateToTranslationEditor({
+            targetLocale,
+            fragmentPath,
+            isCollection: this.fragment?.model?.path === COLLECTION_MODEL_PATH,
+        });
     }
 
     render() {

@@ -1,53 +1,165 @@
-import { expect, fixture, html } from '@open-wc/testing';
+import { fixture, html, expect, oneEvent } from '@open-wc/testing';
 import '../../src/bulk-publish/mas-bulk-publish-confirm-dialog.js';
 
-describe('MasBulkPublishConfirmDialog', () => {
+describe('mas-bulk-publish-confirm-dialog', () => {
+    it('renders project title and item counts', async () => {
+        const el = await fixture(html`
+            <mas-bulk-publish-confirm-dialog
+                .projectTitle=${'Back to School'}
+                .validCount=${14}
+                .skippedCount=${1}
+                .open=${true}
+            ></mas-bulk-publish-confirm-dialog>
+        `);
+        await el.updateComplete;
+        const text = el.shadowRoot.textContent;
+        expect(text).to.include('Back to School');
+        expect(text).to.include('14 of 15');
+    });
+
+    it('shows skipped warning when skippedCount > 0', async () => {
+        const el = await fixture(html`
+            <mas-bulk-publish-confirm-dialog
+                .projectTitle=${'Test'}
+                .validCount=${14}
+                .skippedCount=${1}
+                .open=${true}
+            ></mas-bulk-publish-confirm-dialog>
+        `);
+        await el.updateComplete;
+        const warning = el.shadowRoot.querySelector('.warning');
+        expect(warning).to.exist;
+        expect(warning.textContent).to.include('1');
+        expect(warning.textContent).to.include('14');
+    });
+
+    it('renders alert SVG icon inside the heading when skippedCount > 0', async () => {
+        const el = await fixture(html`
+            <mas-bulk-publish-confirm-dialog
+                .projectTitle=${'Test'}
+                .validCount=${2}
+                .skippedCount=${1}
+                .open=${true}
+            ></mas-bulk-publish-confirm-dialog>
+        `);
+        await el.updateComplete;
+        const svg = el.shadowRoot.querySelector('.heading svg');
+        expect(svg).to.exist;
+        const computed = getComputedStyle(svg).color;
+        expect(computed.replace(/\s/g, '')).to.equal('rgb(212,91,0)');
+    });
+
+    it('positions the alert SVG before the heading text', async () => {
+        const el = await fixture(html`
+            <mas-bulk-publish-confirm-dialog
+                .projectTitle=${'Test'}
+                .validCount=${2}
+                .skippedCount=${1}
+                .open=${true}
+            ></mas-bulk-publish-confirm-dialog>
+        `);
+        await el.updateComplete;
+        const heading = el.shadowRoot.querySelector('.heading');
+        expect(heading.firstElementChild.tagName.toLowerCase()).to.equal('svg');
+    });
+
+    it('does not render alert SVG when skippedCount === 0', async () => {
+        const el = await fixture(html`
+            <mas-bulk-publish-confirm-dialog
+                .projectTitle=${'Test'}
+                .validCount=${3}
+                .skippedCount=${0}
+                .open=${true}
+            ></mas-bulk-publish-confirm-dialog>
+        `);
+        await el.updateComplete;
+        expect(el.shadowRoot.querySelector('.heading svg')).to.not.exist;
+    });
+
+    it('renders Scheduled: Now row', async () => {
+        const el = await fixture(html`
+            <mas-bulk-publish-confirm-dialog
+                .projectTitle=${'Test'}
+                .validCount=${2}
+                .skippedCount=${0}
+                .open=${true}
+            ></mas-bulk-publish-confirm-dialog>
+        `);
+        await el.updateComplete;
+        const text = el.shadowRoot.textContent;
+        expect(text).to.include('Scheduled');
+        expect(text).to.include('Now');
+    });
+
+    it('hides skipped warning when all items are valid', async () => {
+        const el = await fixture(html`
+            <mas-bulk-publish-confirm-dialog
+                .projectTitle=${'Test'}
+                .validCount=${15}
+                .skippedCount=${0}
+                .open=${true}
+            ></mas-bulk-publish-confirm-dialog>
+        `);
+        await el.updateComplete;
+        expect(el.shadowRoot.querySelector('.warning')).to.not.exist;
+    });
+
+    it('dispatches publish-confirmed when confirm() is called', async () => {
+        const el = await fixture(html`
+            <mas-bulk-publish-confirm-dialog
+                .projectTitle=${'X'}
+                .validCount=${1}
+                .skippedCount=${0}
+                .open=${true}
+            ></mas-bulk-publish-confirm-dialog>
+        `);
+        await el.updateComplete;
+        setTimeout(() => el.confirm());
+        const ev = await oneEvent(el, 'publish-confirmed');
+        expect(ev).to.exist;
+    });
+
+    it('dispatches publish-cancelled when cancel() is called', async () => {
+        const el = await fixture(html`
+            <mas-bulk-publish-confirm-dialog
+                .projectTitle=${'X'}
+                .validCount=${1}
+                .skippedCount=${0}
+                .open=${true}
+            ></mas-bulk-publish-confirm-dialog>
+        `);
+        await el.updateComplete;
+        setTimeout(() => el.cancel());
+        const ev = await oneEvent(el, 'publish-cancelled');
+        expect(ev).to.exist;
+    });
+
     it('cascade 옵션 체크박스 2개 렌더링', async () => {
         const el = await fixture(html`
-            <mas-bulk-publish-confirm-dialog open project-title="Test" valid-count="5" skipped-count="0">
-            </mas-bulk-publish-confirm-dialog>
+            <mas-bulk-publish-confirm-dialog
+                .projectTitle=${'Test'}
+                .validCount=${5}
+                .skippedCount=${0}
+                .open=${true}
+            ></mas-bulk-publish-confirm-dialog>
         `);
+        await el.updateComplete;
         const checkboxes = el.shadowRoot.querySelectorAll('sp-checkbox');
         expect(checkboxes.length).to.equal(2);
     });
 
-    it('기본값으로 두 체크박스 모두 미체크', async () => {
+    it('publish-confirmed에 includeVariations/includeCards 기본값 false', async () => {
         const el = await fixture(html`
-            <mas-bulk-publish-confirm-dialog open project-title="Test" valid-count="3"> </mas-bulk-publish-confirm-dialog>
+            <mas-bulk-publish-confirm-dialog
+                .projectTitle=${'Test'}
+                .validCount=${3}
+                .skippedCount=${0}
+                .open=${true}
+            ></mas-bulk-publish-confirm-dialog>
         `);
-        const checkboxes = el.shadowRoot.querySelectorAll('sp-checkbox');
-        checkboxes.forEach((cb) => expect(!!cb.checked).to.be.false);
-    });
-
-    it('publish-confirmed에 includeVariations: false, includeCards: false 기본값', async () => {
-        const el = await fixture(html`
-            <mas-bulk-publish-confirm-dialog open project-title="Test" valid-count="3"> </mas-bulk-publish-confirm-dialog>
-        `);
-        let event;
-        el.addEventListener('publish-confirmed', (e) => {
-            event = e;
-        });
-        el.shadowRoot.querySelector('sp-dialog-wrapper').dispatchEvent(new Event('confirm'));
-        expect(event).to.exist;
-        expect(event.detail).to.deep.equal({ includeVariations: false, includeCards: false });
-    });
-
-    it('open이 false면 렌더링 없음', async () => {
-        const el = await fixture(html`
-            <mas-bulk-publish-confirm-dialog project-title="Test" valid-count="3"> </mas-bulk-publish-confirm-dialog>
-        `);
-        expect(el.shadowRoot.querySelector('sp-dialog-wrapper')).to.be.null;
-    });
-
-    it('cancel 시 publish-cancelled 발생', async () => {
-        const el = await fixture(html`
-            <mas-bulk-publish-confirm-dialog open project-title="Test" valid-count="3"> </mas-bulk-publish-confirm-dialog>
-        `);
-        let cancelled = false;
-        el.addEventListener('publish-cancelled', () => {
-            cancelled = true;
-        });
-        el.shadowRoot.querySelector('sp-dialog-wrapper').dispatchEvent(new Event('cancel'));
-        expect(cancelled).to.be.true;
+        await el.updateComplete;
+        setTimeout(() => el.confirm());
+        const ev = await oneEvent(el, 'publish-confirmed');
+        expect(ev.detail).to.deep.equal({ includeVariations: false, includeCards: false });
     });
 });

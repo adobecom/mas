@@ -70,10 +70,6 @@ export class BizProPlans extends VariantLayout {
         );
     }
 
-    get hasPerUnitLabel() {
-        return !!this.card.querySelector('[slot="per-unit-label"]');
-    }
-
     get hasPriceOriginal() {
         return !!this.card.querySelector('[slot="price-original"]');
     }
@@ -122,15 +118,8 @@ export class BizProPlans extends VariantLayout {
     }
 
     get licenseOptions() {
-        const raw = this.card.getAttribute('license-options');
-        if (raw) {
-            return raw
-                .split(',')
-                .map((s) => s.trim())
-                .filter(Boolean);
-        }
-        // Derive options from the authored quantity selector (min→max by step)
-        // so the styled dropdown is driven by the "Show quantity selector" toggle.
+        // Options are driven by the authored quantity selector (min→max by step)
+        // so the styled dropdown follows the "Show quantity selector" toggle.
         const qs = this.quantitySelectEl;
         if (!qs) return null;
         const min = parseInt(qs.getAttribute('min'), 10);
@@ -143,18 +132,15 @@ export class BizProPlans extends VariantLayout {
     }
 
     get licenseLabel() {
-        return (
-            this.card.getAttribute('license-label') ||
-            this.quantitySelectEl?.getAttribute('title') ||
-            'License'
-        );
+        // TODO(MWPW-192902): 'License' fallback is English-only; source it from
+        // a placeholder/literal once the add-on copy is authored in AEM.
+        return this.quantitySelectEl?.getAttribute('title') || 'License';
     }
 
     get licenseLabelPlural() {
-        return (
-            this.card.getAttribute('license-label-plural') ??
-            `${this.licenseLabel}s`
-        );
+        // TODO(MWPW-192902): naive English pluralization; replace with a
+        // localized plural form when the copy is authored in AEM.
+        return `${this.licenseLabel}s`;
     }
 
     get hasLicenseSelector() {
@@ -362,6 +348,8 @@ export class BizProPlans extends VariantLayout {
                           aria-controls="features-zone"
                           @click=${this.toggleExpanded}
                       >
+                          <!-- TODO(MWPW-192902): English-only; source from a
+                               placeholder/literal once copy is authored in AEM. -->
                           <span class="whats-included-toggle-label">
                               See what's included:
                           </span>

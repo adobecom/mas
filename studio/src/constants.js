@@ -260,6 +260,7 @@ export const FILTER_TYPE = {
     OFFER_TYPE: 'offerType',
     PLAN_TYPE: 'planType',
     PZN: 'pzn',
+    TAG: 'tag',
 };
 
 export const FRAGMENT_STATUS = {

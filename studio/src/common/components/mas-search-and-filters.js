@@ -23,6 +23,7 @@ class MasSearchAndFilters extends LitElement {
         offerTypeFilter: { type: Array, state: true },
         planTypeFilter: { type: Array, state: true },
         pznFilter: { type: Array, state: true },
+        tagFilter: { type: Array, state: true },
         templateOptions: { type: Array },
         marketSegmentOptions: { type: Array },
         customerSegmentOptions: { type: Array },
@@ -30,6 +31,7 @@ class MasSearchAndFilters extends LitElement {
         offerTypeOptions: { type: Array },
         planTypeOptions: { type: Array },
         pznOptions: { type: Array },
+        tagOptions: { type: Array },
         searchOnly: { type: Boolean, reflect: true },
         promotionSurfaceOptions: { type: Array },
         promotionSurface: { type: String },
@@ -45,6 +47,7 @@ class MasSearchAndFilters extends LitElement {
         this.offerTypeFilter = [];
         this.planTypeFilter = [];
         this.pznFilter = [];
+        this.tagFilter = [];
         this.templateOptions = [];
         this.marketSegmentOptions = [];
         this.customerSegmentOptions = [];
@@ -52,6 +55,7 @@ class MasSearchAndFilters extends LitElement {
         this.offerTypeOptions = [];
         this.planTypeOptions = [];
         this.pznOptions = [];
+        this.tagOptions = [];
         this.dataSubscription = null;
         this.promotionSurfaceOptions = [];
         this.promotionSurface = '';
@@ -123,6 +127,7 @@ class MasSearchAndFilters extends LitElement {
         const offerTypeMap = new Map(this.offerTypeOptions.map((opt) => [opt.id || opt.value, opt]));
         const planTypeMap = new Map(this.planTypeOptions.map((opt) => [opt.id || opt.value, opt]));
         const pznMap = new Map(this.pznOptions.map((opt) => [opt.id || opt.value, opt]));
+        const tagMap = new Map(this.tagOptions.map((opt) => [opt.id || opt.value, opt]));
 
         for (const id of this.templateFilter) {
             const option = templateMap.get(id);
@@ -152,6 +157,10 @@ class MasSearchAndFilters extends LitElement {
             const option = pznMap.get(id);
             if (option) filters.push({ type: FILTER_TYPE.PZN, id, label: option.title || option.label });
         }
+        for (const id of this.tagFilter) {
+            const option = tagMap.get(id);
+            if (option) filters.push({ type: FILTER_TYPE.TAG, id, label: option.title || option.label });
+        }
         return filters;
     }
 
@@ -162,6 +171,7 @@ class MasSearchAndFilters extends LitElement {
         const offerTypes = new Map();
         const planTypes = new Map();
         const pzns = new Map();
+        const tags = new Map();
         for (const fragment of getItemsSelectionStore()[`all${this.typeUppercased}`].value) {
             if (!fragment.tags) continue;
 
@@ -180,6 +190,8 @@ class MasSearchAndFilters extends LitElement {
                     planTypes.set(tagId, { id: tagId, title: tagTitle });
                 } else if (tagId.startsWith('mas:pzn/')) {
                     pzns.set(tagId, { id: tagId, title: tagTitle });
+                } else if (tagId.startsWith('mas:custom/')) {
+                    tags.set(tagId, { id: tagId, title: tagTitle });
                 }
             }
         }
@@ -193,6 +205,7 @@ class MasSearchAndFilters extends LitElement {
         this.offerTypeOptions = Array.from(offerTypes.values()).sort((a, b) => a.title.localeCompare(b.title));
         this.planTypeOptions = Array.from(planTypes.values()).sort((a, b) => a.title.localeCompare(b.title));
         this.pznOptions = Array.from(pzns.values()).sort((a, b) => a.title.localeCompare(b.title));
+        this.tagOptions = Array.from(tags.values()).sort((a, b) => a.title.localeCompare(b.title));
     }
 
     willUpdate(changed) {
@@ -204,7 +217,8 @@ class MasSearchAndFilters extends LitElement {
             changed.has('productFilter') ||
             changed.has('offerTypeFilter') ||
             changed.has('planTypeFilter') ||
-            changed.has('pznFilter')
+            changed.has('pznFilter') ||
+            changed.has('tagFilter')
         ) {
             this.#applyFilters();
         }
@@ -234,6 +248,9 @@ class MasSearchAndFilters extends LitElement {
                 break;
             case FILTER_TYPE.PZN:
                 currentValues = [...this.pznFilter];
+                break;
+            case FILTER_TYPE.TAG:
+                currentValues = [...this.tagFilter];
                 break;
             default:
                 currentValues = [];
@@ -269,6 +286,9 @@ class MasSearchAndFilters extends LitElement {
             case FILTER_TYPE.PZN:
                 this.pznFilter = currentValues;
                 break;
+            case FILTER_TYPE.TAG:
+                this.tagFilter = currentValues;
+                break;
         }
     }
 
@@ -299,6 +319,9 @@ class MasSearchAndFilters extends LitElement {
             case FILTER_TYPE.PZN:
                 this.pznFilter = this.pznFilter.filter((filterId) => filterId !== id);
                 break;
+            case FILTER_TYPE.TAG:
+                this.tagFilter = this.tagFilter.filter((filterId) => filterId !== id);
+                break;
         }
     }
 
@@ -310,6 +333,7 @@ class MasSearchAndFilters extends LitElement {
         this.offerTypeFilter = [];
         this.planTypeFilter = [];
         this.pznFilter = [];
+        this.tagFilter = [];
     }
 
     resetFilters() {
@@ -343,6 +367,7 @@ class MasSearchAndFilters extends LitElement {
     }
 
     #renderFilterPicker(label, options, selectedValues, filterType) {
+        if (!options.length) return nothing;
         const selectedCount = selectedValues.length;
         const displayLabel = selectedCount > 0 ? `${label} (${selectedCount})` : label;
 
@@ -424,6 +449,7 @@ class MasSearchAndFilters extends LitElement {
         const hasOfferType = this.offerTypeFilter?.length > 0;
         const hasPlanType = this.planTypeFilter?.length > 0;
         const hasPzn = this.pznFilter?.length > 0;
+        const hasTag = this.tagFilter?.length > 0;
 
         const result = source.filter((fragment) => {
             if (query) {
@@ -473,6 +499,9 @@ class MasSearchAndFilters extends LitElement {
             if (hasPzn) {
                 if (!fragment.tags?.some((tag) => this.pznFilter.includes(tag.id))) return false;
             }
+            if (hasTag) {
+                if (!fragment.tags?.some((tag) => this.tagFilter.includes(tag.id))) return false;
+            }
             return true;
         });
 
@@ -515,6 +544,7 @@ class MasSearchAndFilters extends LitElement {
                     FILTER_TYPE.CUSTOMER_SEGMENT,
                 )}
                 ${this.#renderFilterPicker('Product', this.productOptions, this.productFilter, FILTER_TYPE.PRODUCT)}
+                ${this.#renderFilterPicker('Tag', this.tagOptions, this.tagFilter, FILTER_TYPE.TAG)}
                 ${this.#renderFilterPicker('Personalization', this.pznOptions, this.pznFilter, FILTER_TYPE.PZN)}
                 ${surfacePicker}
             </div>

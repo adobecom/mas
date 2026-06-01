@@ -8,9 +8,9 @@ import {
     normalizeExplicitEmptyInAuthorFields,
     normalizeExplicitEmptyInFields,
     toPersistedExplicitEmptyValues,
-} from '../../src/fragment/utils/explicit-empty.js';
-import { deepMerge } from '../../src/fragment/transformers/customize.js';
-import { transformBody } from '../../src/fragment/utils/odinSchemaTransform.js';
+} from '../src/fragment/utils/explicit-empty.js';
+import { deepMerge } from '../src/fragment/transformers/customize.js';
+import { transformBody } from '../src/fragment/utils/odinSchemaTransform.js';
 
 describe('explicit-empty sentinel', () => {
     it('identifies persisted sentinel values', () => {
@@ -21,11 +21,17 @@ describe('explicit-empty sentinel', () => {
     it('disallows explicit_empty on structural metadata fields', () => {
         expect(fieldAllowsExplicitEmpty('badge')).to.be.true;
         expect(fieldAllowsExplicitEmpty('compatVersion')).to.be.false;
-        expect(coerceValuesWithoutExplicitEmpty('compatVersion', toPersistedExplicitEmptyValues())).to.deep.equal([
-            '',
-        ]);
-        expect(coerceValuesWithoutExplicitEmpty('tags', toPersistedExplicitEmptyValues(), { multiple: true })).to.deep
-            .equal([]);
+        expect(coerceValuesWithoutExplicitEmpty('compatVersion', toPersistedExplicitEmptyValues())).to.deep.equal(['']);
+        expect(coerceValuesWithoutExplicitEmpty('tags', toPersistedExplicitEmptyValues(), { multiple: true })).to.deep.equal(
+            [],
+        );
+    });
+
+    it('disallows explicit_empty on boolean fields', () => {
+        for (const booleanField of ['locReady', 'showSecureLabel', 'showPlanType']) {
+            expect(fieldAllowsExplicitEmpty(booleanField)).to.be.false;
+            expect(coerceValuesWithoutExplicitEmpty(booleanField, toPersistedExplicitEmptyValues())).to.deep.equal(['']);
+        }
     });
 
     it('normalizeExplicitEmptyInAuthorFields strips sentinel from disallowed fields', () => {

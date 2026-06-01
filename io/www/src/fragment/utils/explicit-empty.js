@@ -12,7 +12,10 @@ export const FIELDS_DISALLOWING_EXPLICIT_EMPTY = Object.freeze([
     'tags',
     'originalId',
     'locReady',
+    'showSecureLabel',
+    'showPlanType',
     'compatVersion',
+    'variant',
 ]);
 
 /**

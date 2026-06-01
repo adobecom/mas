@@ -72,17 +72,19 @@ const DISPLAY_ALL_TAX_COUNTRIES = [
     'MX_es',
     'CL_es',
     'PE_es',
-    'AR_es',
     'PH_en',
     'PH_fil',
+    'VN_vi',
+    'VN_en',
+    'TW_zh',
 ];
 
 // countries where tax is displayed by default for some segments only
 const DISPLAY_TAX_MAP = {
     [INDIVIDUAL]: [],
-    [BUSINESS]: ['VN_vi', 'VN_en', 'TW_zh'],
+    [BUSINESS]: [],
     [STUDENT]: [],
-    [UNIVERSITY]: ['VN_vi', 'VN_en', 'TW_zh'],
+    [UNIVERSITY]: [],
 };
 
 // For most countries where tax label is displayed the tax is included for Individuals and Students

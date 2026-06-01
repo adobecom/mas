@@ -986,28 +986,28 @@ describe('class "InlinePrice"', () => {
             {
                 locale: 'VN_en',
                 expected: [
-                    [false, false],
+                    [true, false],
                     [true, true],
-                    [false, false],
+                    [true, false],
                     [true, true],
                 ],
             },
             {
                 locale: 'VN_vi',
                 expected: [
-                    [false, false],
+                    [true, false],
                     [true, true],
-                    [false, false],
+                    [true, false],
                     [true, true],
                 ],
             },
             {
                 locale: 'AR_es',
                 expected: [
-                    [true, false],
-                    [true, true],
-                    [true, false],
-                    [true, true],
+                    [false, false],
+                    [false, false],
+                    [false, false],
+                    [false, false],
                 ],
             },
             {

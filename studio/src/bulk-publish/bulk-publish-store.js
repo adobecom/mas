@@ -1,43 +1,46 @@
 import Store from '../store.js';
-import { BULK_PUBLISH_STATUS } from '../constants.js';
 
-function setField(project, name, value) {
-    if (typeof project.updateField === 'function') {
-        project.updateField(name, [value]);
-    } else {
-        project.setFieldValue(name, value);
+function patchProjectStore(project, fields) {
+    const snapshot = structuredClone(project.get());
+    for (const [name, val] of Object.entries(fields)) {
+        if (val === undefined) continue;
+        const field = snapshot.fields?.find((f) => f.name === name);
+        if (field) field.values = [val];
     }
+    project.refreshFrom(snapshot);
 }
 
-export async function startPublishing({ project, paths, locales, token, ioBaseUrl, publishFn, repository }) {
-    setField(project, 'status', BULK_PUBLISH_STATUS.PUBLISHING);
-    setField(project, 'lastError', '');
-    await repository.saveFragment(project, false);
+export async function startPublishing({ project, token, ioBaseUrl, repository }) {
+    const { publishBulk } = await import('./bulk-publish-client.js');
+    const profile = await window.adobeIMS?.getProfile?.().catch(() => null);
+    const publishedBy = profile?.email ?? '';
 
-    const promise = publishFn({ ioBaseUrl, paths, locales, token });
-    const profilePromise = window.adobeIMS?.getProfile?.().catch(() => null);
     Store.bulkPublishProjects.publishing.set({
         ...Store.bulkPublishProjects.publishing.get(),
         [project.id]: true,
     });
-
     try {
-        const [result, profile] = await Promise.all([promise, profilePromise]);
-        const userEmail = profile?.email ?? '';
-        setField(project, 'lastResult', JSON.stringify(result));
-        setField(project, 'status', BULK_PUBLISH_STATUS.PUBLISHED);
-        setField(project, 'publishedAt', new Date().toISOString());
-        if (userEmail) setField(project, 'publishedBy', userEmail);
-        await repository.saveFragment(project, false);
+        const result = await publishBulk({ ioBaseUrl, projectId: project.id, publishedBy, token });
+        patchProjectStore(project, {
+            status: result.status,
+            publishedAt: result.publishedAt,
+            publishedBy: result.publishedBy,
+        });
+        repository.refreshFragment(project).catch(() => {});
         return result;
-    } catch (err) {
-        setField(project, 'lastError', err.message);
-        setField(project, 'status', BULK_PUBLISH_STATUS.DRAFT);
-        await repository.saveFragment(project, false);
-        throw err;
     } finally {
         const current = { ...Store.bulkPublishProjects.publishing.get() };
         delete current[project.id];
         Store.bulkPublishProjects.publishing.set(current);
     }
+}
+
+export async function startReverting({ project, token, ioBaseUrl, repository }) {
+    const { revertAction } = await import('./bulk-publish-client.js');
+    const result = await revertAction({ ioBaseUrl, projectId: project.id, token });
+    patchProjectStore(project, { status: result.status });
+    repository.refreshFragment(project).catch(() => {});
+    const current = Store.bulkPublishProjects.list.data.get() ?? [];
+    Store.bulkPublishProjects.list.data.set([...current]);
+    return result;
 }

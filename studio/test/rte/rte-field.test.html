@@ -33,8 +33,10 @@
                 height: 80vh;
             }
         </style>
-        <!-- OST -->
-        <script src="../../ost/index.js"></script>
+        <!-- OST: load the new Lit bundle (ost-new.js) — this test asserts the
+             new OST's <ost-app> element + data-testid="ost-close-button". The
+             legacy bundle at studio/ost/index.js does not define these. -->
+        <script src="../../ost/ost-new.js"></script>
         <link rel="stylesheet" href="../../ost/index.css" />
     </head>
     <body>
@@ -314,9 +316,11 @@
 
                         rte.offerSelectorToolButtonElement.click();
                         await delay(100);
-                        const cancelButton = document.querySelector('[data-testid="productsTab/cancelButton"]');
-                        expect(cancelButton).to.exist;
-                        cancelButton.click();
+                        const ostApp = document.querySelector('ost-app');
+                        expect(ostApp, 'OST dialog should be mounted').to.exist;
+                        const closeButton = ostApp.shadowRoot.querySelector('[data-testid="ost-close-button"]');
+                        expect(closeButton, 'OST close button should be present').to.exist;
+                        closeButton.click();
                     });
 
                     it('should allow to author extra checkout parameters', async function () {
@@ -362,6 +366,92 @@
 
                     it.skip('dev', async function () {
                         const rte = await createFromTemplate('rte-dev', this.test.title);
+                    });
+
+                    describe('OST insertion', () => {
+                        // Helper: drive the same code path #handleOstEvent walks for
+                        // EVENT_OST_SELECT, after seeding ostRteFieldSource via the
+                        // public handleOpenOfferSelector entry point.
+                        const dispatchOstSelect = (attributes) => {
+                            document.dispatchEvent(
+                                new CustomEvent('ost-select', { detail: attributes, bubbles: true, composed: true }),
+                            );
+                        };
+
+                        it('inserts a sibling link when the cursor is inside an existing link, without leaving a phantom <a></a>', async function () {
+                            const rte = await createFromTemplate('rte-link', this.test.title);
+                            await delay(50);
+                            const view = rte.editorView;
+                            // Empty cursor mid-link: position 3 sits inside the <a>Adobe</a>
+                            // (positions: 0=<p>, 1=<a>, 2='A', 3='d', ...). Use the same
+                            // TextSelection class ProseMirror exports via its state module.
+                            const SelCtor = view.state.selection.constructor;
+                            const tr = view.state.tr.setSelection(SelCtor.create(view.state.doc, 3, 3));
+                            view.dispatch(tr);
+                            await delay(20);
+
+                            rte.handleOpenOfferSelector(new Event('click'));
+                            dispatchOstSelect({
+                                is: 'checkout-link',
+                                href: '#',
+                                'data-wcs-osi': 'osi-from-ost',
+                                class: 'accent',
+                                text: 'Buy now',
+                            });
+                            await delay(50);
+
+                            const html = rte.value;
+                            // New link landed as a sibling with content.
+                            expect(html).to.include('data-wcs-osi="osi-from-ost"');
+                            expect(html).to.include('>Buy now<');
+                            // Original "Adobe" link is preserved (not split).
+                            expect(html).to.include('>Adobe<');
+                            // No phantom <a></a> from a mid-link insertion.
+                            expect(html).to.not.match(/<a[^>]*>\s*<\/a>/);
+                        });
+
+                        it('inserts at the current cursor when the cursor is NOT inside a link', async function () {
+                            const rte = await createFromTemplate('rte', this.test.title);
+                            await delay(50);
+                            const view = rte.editorView;
+                            const SelCtor = view.state.selection.constructor;
+                            // Empty cursor inside "Text only" — position 1 is start of the text node.
+                            const tr = view.state.tr.setSelection(SelCtor.create(view.state.doc, 1, 1));
+                            view.dispatch(tr);
+                            await delay(20);
+
+                            rte.handleOpenOfferSelector(new Event('click'));
+                            dispatchOstSelect({
+                                is: 'checkout-link',
+                                href: '#',
+                                'data-wcs-osi': 'osi-plain',
+                                text: 'Use',
+                            });
+                            await delay(50);
+
+                            const html = rte.value;
+                            expect(html).to.include('data-wcs-osi="osi-plain"');
+                            expect(html).to.include('>Use<');
+                            expect(html).to.not.match(/<a[^>]*>\s*<\/a>/);
+                        });
+
+                        it('is a no-op when ostRteFieldSource does not match the current RTE instance', async function () {
+                            const rteA = await createFromTemplate('rte', this.test.title + '-A');
+                            const rteB = await createFromTemplate('rte', this.test.title + '-B');
+                            await delay(50);
+                            // Only rteA opened the offer selector; rteB should ignore the event.
+                            rteA.handleOpenOfferSelector(new Event('click'));
+                            const beforeB = rteB.value;
+                            dispatchOstSelect({
+                                is: 'checkout-link',
+                                href: '#',
+                                'data-wcs-osi': 'osi-stray',
+                                text: 'Should not appear',
+                            });
+                            await delay(50);
+                            // rteB content is unchanged by the cross-instance event.
+                            expect(rteB.value).to.equal(beforeB);
+                        });
                     });
                 });
             });

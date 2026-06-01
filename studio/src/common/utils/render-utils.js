@@ -21,6 +21,35 @@ export function renderFragmentStatusCell(status) {
     </sp-table-cell>`;
 }
 
+const PROMOTION_STATUS_LABEL = {
+    draft: 'DRAFT',
+    active: 'ACTIVE',
+    scheduled: 'SCHEDULED',
+    expired: 'EXPIRED',
+    modified: 'MODIFIED',
+    unknown: 'UNKNOWN',
+};
+
+/**
+ * Status cell for promotion list (draft / active / scheduled / expired / unknown).
+ * @param {string} [promotionStatus]
+ * @returns {import('lit').TemplateResult|typeof nothing}
+ */
+export function renderPromotionStatusCell(promotionStatus) {
+    if (!promotionStatus) return nothing;
+    const key = promotionStatus.toLowerCase();
+    let statusClass = '';
+    if (key === 'active') statusClass = 'green';
+    else if (key === 'draft') statusClass = 'blue';
+    else if (key === 'scheduled') statusClass = 'yellow';
+    else if (key === 'modified') statusClass = 'yellow';
+    const label = PROMOTION_STATUS_LABEL[key] ?? key.toUpperCase();
+    return html`<sp-table-cell class="status-cell">
+        <div class="status-dot ${statusClass}"></div>
+        ${label}
+    </sp-table-cell>`;
+}
+
 /**
  * Returns a human-readable item type label.
  * @param {Object} item

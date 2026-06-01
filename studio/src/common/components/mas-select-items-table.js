@@ -26,6 +26,7 @@ class MasSelectItemsTable extends LitElement {
         maxSelectedCards: { type: Number },
         getDisplayName: { type: Function },
         renderFragmentStatusCell: { type: Function },
+        disableCardExpansion: { type: Boolean },
     };
 
     hasMore = new StoreController(this, Store.fragments.list.hasMore);
@@ -51,6 +52,7 @@ class MasSelectItemsTable extends LitElement {
         this.maxSelectedCards = Infinity;
         this.getDisplayName = (fragmentData) => fragmentData?.path ?? '';
         this.renderFragmentStatusCell = () => nothing;
+        this.disableCardExpansion = false;
     }
 
     connectedCallback() {
@@ -152,7 +154,8 @@ class MasSelectItemsTable extends LitElement {
         this.processAbortController?.abort();
         this.processAbortController = null;
         if (this.#collectionsReadyUnsub) {
-            getItemsSelectionStore().allCollections.unsubscribe(this.#collectionsReadyUnsub);
+            const selectionStore = getItemsSelectionStore({ allowUnset: true });
+            selectionStore?.allCollections.unsubscribe(this.#collectionsReadyUnsub);
             this.#collectionsReadyUnsub = null;
         }
     }
@@ -276,6 +279,7 @@ class MasSelectItemsTable extends LitElement {
                             .topLevelCard=${fragment}
                             .viewOnly=${this.viewOnly}
                             .maxSelectedCards=${this.maxSelectedCards}
+                            .disableCardExpansion=${this.disableCardExpansion}
                             .getDisplayName=${this.getDisplayName}
                             .renderFragmentStatusCell=${this.renderFragmentStatusCell}
                         ></mas-collapsible-table-row>`,

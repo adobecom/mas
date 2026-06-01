@@ -268,7 +268,7 @@ class MasBulkPublish extends LitElement {
             <sp-table-row
                 data-testid="project-row"
                 class=${isDisabled ? 'disabled' : ''}
-                @click=${() => this.openProject(projectStore)}
+                @dblclick=${() => this.openProject(projectStore)}
             >
                 <sp-table-cell class="project-name">${title || 'Untitled project'}</sp-table-cell>
                 <sp-table-cell class="center">${counts.fragment}</sp-table-cell>

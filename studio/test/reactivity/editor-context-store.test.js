@@ -185,19 +185,14 @@ describe('Reactivity Stores', () => {
                 expect(store.defaultLocaleId).to.equal('parent-id');
             });
 
-            it('should fetch promo variation parent by promo tag and path', async () => {
+            it('should fetch promo variation parent from path without getById', async () => {
                 store = new EditorContextStore(null);
                 const promoFragmentPath = '/content/dam/mas/sandbox/en_US/promotions/back-to-school/cards/my-card';
-                const promoFragment = {
-                    id: 'promo-var-id',
-                    path: promoFragmentPath,
-                    tags: [{ id: 'mas:promotion/back-to-school' }],
-                };
                 const parentData = {
                     id: 'default-id',
                     path: '/content/dam/mas/sandbox/en_US/cards/my-card',
                 };
-                const getByIdStub = sandbox.stub().resolves(promoFragment);
+                const getByIdStub = sandbox.stub();
                 const getByPathStub = sandbox.stub().resolves(parentData);
                 const promoAem = { sites: { cf: { fragments: { getById: getByIdStub, getByPath: getByPathStub } } } };
 
@@ -206,10 +201,10 @@ describe('Reactivity Stores', () => {
                     return originalQuerySelector.call(document, selector);
                 };
 
-                store.fetchParentForPromoVariation('promo-var-id', promoFragmentPath);
+                store.fetchParentForPromoVariation(promoFragmentPath);
                 const result = await store.getLocaleDefaultFragmentAsync();
 
-                expect(getByIdStub.calledOnceWith('promo-var-id')).to.be.true;
+                expect(getByIdStub.called).to.be.false;
                 expect(getByPathStub.calledOnceWith('/content/dam/mas/sandbox/en_US/cards/my-card')).to.be.true;
                 expect(result).to.deep.equal(parentData);
                 expect(store.defaultLocaleId).to.equal('default-id');

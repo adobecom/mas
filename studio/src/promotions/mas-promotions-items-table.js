@@ -236,6 +236,10 @@ const localStyles = css`
         max-width: 6rem;
         white-space: nowrap;
     }
+
+    sp-dialog-wrapper {
+        z-index: 11;
+    }
 `;
 
 const PROMO_VARIATION_EXISTS_MESSAGE =

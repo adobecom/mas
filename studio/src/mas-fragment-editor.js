@@ -1209,6 +1209,7 @@ export default class MasFragmentEditor extends LitElement {
         const parentLocale = extractLocaleFromPath(this.localeDefaultFragment.path);
         // Reset changes to avoid discard dialog since we're navigating to the parent
         Store.editor.resetChanges();
+        Store.promotions.promotionId.set(null);
         if (parentLocale) {
             Store.removeRegionOverride();
             // Also update the locale filter to match the parent fragment's locale
@@ -1703,16 +1704,6 @@ export default class MasFragmentEditor extends LitElement {
         `;
     }
 
-    get localeVariationHeader() {
-        if (!this.fragment || !this.editorContextStore.isVariation(this.fragment.id)) {
-            return nothing;
-        }
-        if (Fragment.isGroupedVariationPath(this.fragment.path)) {
-            return this.displayGroupedVariationInfo('locale-variation-header');
-        }
-        return this.displayRegionalVarationInfo('locale-variation-header');
-    }
-
     get localeDefaultLocaleLabel() {
         if (!this.localeDefaultFragment) return '';
         const localeCode = extractLocaleFromPath(this.localeDefaultFragment.path);
@@ -1955,12 +1946,7 @@ export default class MasFragmentEditor extends LitElement {
         return html`
             <div id="preview-column">
                 <div id="preview-wrapper">
-                    ${this.groupedPreviewLocaleSelector}
-                    ${this.editorContextStore.isVariation(this.fragment.id)
-                        ? Fragment.isGroupedVariationPath(this.fragment.path)
-                            ? this.displayGroupedVariationInfo('preview-header')
-                            : this.displayRegionalVarationInfo('preview-header')
-                        : nothing}
+                    ${this.groupedPreviewLocaleSelector} ${this.previewVariationHeader}
                     <div class="preview-content columns mas-fragment">
                         <sp-theme color="light" scale="medium" system="${getSpectrumVersion(attrs.variant)}">
                             <merch-card

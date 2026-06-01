@@ -6,8 +6,7 @@ import { Fragment } from '../aem/fragment.js';
 import { extractSurfaceFromPath, extractLocaleFromPath } from '../utils.js';
 import { ODIN_PREVIEW_FRAGMENTS_URL } from '../constants.js';
 import {
-    getPromoNameFromTag,
-    getPromotionTagFromFragment,
+    getPromoNameFromPromoVariationPath,
     resolveDefaultPathFromPromoVariation,
 } from '../promotions/promo-variation-utils.js';
 
@@ -109,7 +108,7 @@ export class EditorContextStore extends ReactiveStore {
 
             if (fragmentPath) {
                 if (this.isPromoVariationByPath) {
-                    this.fetchParentForPromoVariation(fragmentId, fragmentPath);
+                    this.fetchParentForPromoVariation(fragmentPath);
                     if (!notified) {
                         this.notify();
                         notified = true;
@@ -120,12 +119,6 @@ export class EditorContextStore extends ReactiveStore {
                         this.isVariationByPath = true;
                         this.expectedDefaultLocale = pathDetection.defaultLocale;
                         this.fetchParentByPath(fragmentPath, pathDetection.defaultLocale, pathDetection.pathLocale);
-                        if (!notified) {
-                            this.notify();
-                            notified = true;
-                        }
-                    } else {
-                        this.fetchParentForPromoVariation(fragmentId, fragmentPath);
                         if (!notified) {
                             this.notify();
                             notified = true;
@@ -152,21 +145,15 @@ export class EditorContextStore extends ReactiveStore {
         }
     }
 
-    fetchParentForPromoVariation(fragmentId, fragmentPath) {
+    fetchParentForPromoVariation(fragmentPath) {
         const aem = document.querySelector('mas-repository')?.aem;
-        if (!aem) return;
+        if (!aem || !fragmentPath) return;
+        const promoName = getPromoNameFromPromoVariationPath(fragmentPath);
+        if (!promoName) return;
+        const parentPath = resolveDefaultPathFromPromoVariation(fragmentPath, promoName);
+        if (!parentPath) return;
         this.parentFetchPromise = aem.sites.cf.fragments
-            .getById(fragmentId)
-            .then(async (fragment) => {
-                const promoTag = getPromotionTagFromFragment(fragment);
-                if (!promoTag) return null;
-                this.isPromoVariationByPath = true;
-                const promoName = getPromoNameFromTag(promoTag);
-                if (!promoName) return null;
-                const parentPath = resolveDefaultPathFromPromoVariation(fragmentPath, promoName);
-                if (!parentPath) return null;
-                return aem.sites.cf.fragments.getByPath(parentPath);
-            })
+            .getByPath(parentPath)
             .then((data) => {
                 if (data) {
                     this.localeDefaultFragment = data;
@@ -175,10 +162,7 @@ export class EditorContextStore extends ReactiveStore {
                 }
                 return data;
             })
-            .catch(() => {
-                console.debug('Default fragment not found for promo variation:', fragmentPath);
-                return null;
-            });
+            .catch(() => null);
     }
 
     fetchParentByPath(fragmentPath, defaultLocale, pathLocale) {

@@ -415,7 +415,7 @@
             "freeLabel": "Miễn phí",
             "freeAriaLabel": "Miễn phí",
             "taxExclusiveLabel": "{taxTerm, select, GST {chưa bao gồm thuế hàng hóa và dịch vụ} VAT {chưa bao gồm VAT} TAX {chưa bao gồm thuế} IVA {chưa bao gồm IVA} SST {chưa bao gồm SST} KDV {chưa bao gồm KDV} other {}}",
-            "taxInclusiveLabel": "{taxTerm, select, GST {(đã bao gồm thuế hàng hóa và dịch vụ)} VAT {Gồm VAT} TAX {(đã bao gồm thuế)} IVA {(đã bao gồm IVA)} SST {(đã bao gồm SST)} KDV {(đã bao gồm KDV)} other {}}",
+            "taxInclusiveLabel": "{taxTerm, select, GST {(đã bao gồm thuế hàng hóa và dịch vụ)} VAT {gồm VAT} TAX {(đã bao gồm thuế)} IVA {(đã bao gồm IVA)} SST {(đã bao gồm SST)} KDV {(đã bao gồm KDV)} other {}}",
             "alternativePriceAriaLabel": "Giá ưu đãi {alternativePrice}",
             "strikethroughAriaLabel": "Giá thông thường {strikethroughPrice}"
         },

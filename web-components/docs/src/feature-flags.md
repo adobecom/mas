@@ -79,7 +79,7 @@ e.g `<meta name="mas-ff-defaults" content="on">`
 | SG_en (Singapore) | incl. GST | excl. GST |
 | TH_en (Thailand) | incl. VAT | incl. VAT |
 | TH_th (Thailand) | รวม VAT | รวม VAT |
-| TW_zh (Taiwan) | 含 VAT | 不含 VAT |
+| TW_zh (Taiwan) | 含稅 | 不含稅 |
 | VN_en (Vietnam) | incl. VAT | excl. VAT |
 | VN_vi (Vietnam) | gồm VAT | chưa bao gồm VAT |
 | PH_en (Philippines) | incl. VAT | excl. VAT |

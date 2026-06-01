@@ -46,13 +46,15 @@
                     return originalFetch(resource, options);
                 });
 
-            const withTags = (originalFetch) => async ({ pathname, searchParams }) => {
-                if (!pathname.endsWith('/bin/querybuilder.json')) return false;
-                const queryPath = searchParams.get('path');
-                if (queryPath === '/content/cq:tags/mas') return originalFetch('/test/mocks/tags.json');
-                if (queryPath?.startsWith('/content/dam/mas')) return originalFetch('/test/mocks/folders.json');
-                return false;
-            };
+            const withTags =
+                (originalFetch) =>
+                async ({ pathname, searchParams }) => {
+                    if (!pathname.endsWith('/bin/querybuilder.json')) return false;
+                    const queryPath = searchParams.get('path');
+                    if (queryPath === '/content/cq:tags/mas') return originalFetch('/test/mocks/tags.json');
+                    if (queryPath?.startsWith('/content/dam/mas')) return originalFetch('/test/mocks/folders.json');
+                    return false;
+                };
 
             mockIms();
             mockLana();

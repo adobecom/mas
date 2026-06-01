@@ -335,7 +335,8 @@ class MasBulkPublishEditor extends LitElement {
 
     handleConfirmPublish(e) {
         this.confirmOpen = false;
-        this.publish({ includeVariations: e.detail.includeVariations, includeCards: e.detail.includeCards });
+        const { includeVariations = false, includeCards = false } = e?.detail ?? {};
+        this.publish({ includeVariations, includeCards });
     }
 
     setProjectField(name, value) {

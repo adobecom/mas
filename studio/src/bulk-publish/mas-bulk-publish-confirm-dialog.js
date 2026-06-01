@@ -122,21 +122,21 @@ class MasBulkPublishConfirmDialog extends LitElement {
                     <dt>Items:</dt>
                     <dd>${this.validCount} of ${total}</dd>
                 </dl>
-                <p class="cascade-note">Variations and cards referenced by collections are not included by default.</p>
+                <p class="cascade-note">Only top-level fragments are published by default.</p>
                 <div class="cascade-options">
-                    <sp-checkbox
-                        .checked=${this._includeVariations}
-                        @change=${(e) => {
-                            this._includeVariations = e.target.checked;
-                        }}
-                        >Include variations</sp-checkbox
-                    >
                     <sp-checkbox
                         .checked=${this._includeCards}
                         @change=${(e) => {
                             this._includeCards = e.target.checked;
                         }}
-                        >Include cards in collections</sp-checkbox
+                        >Include sub-collections &amp; cards</sp-checkbox
+                    >
+                    <sp-checkbox
+                        .checked=${this._includeVariations}
+                        @change=${(e) => {
+                            this._includeVariations = e.target.checked;
+                        }}
+                        >Include variations (incl. nested items)</sp-checkbox
                     >
                 </div>
             </sp-dialog-wrapper>

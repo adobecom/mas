@@ -172,7 +172,9 @@ function buildSummary(details) {
 }
 
 async function runWithProject(params, odinEndpoint, authToken) {
-    const { projectId, publishedBy = '' } = params;
+    const { projectId, publishedBy = '', includeVariations = false, includeCards = false } = params;
+    const includeRefs = includeVariations || includeCards;
+    const filterReferencesByStatus = includeRefs ? ['DRAFT', 'MODIFIED', 'UNPUBLISHED'] : [];
     logger.info(JSON.stringify({ event: 'project-publish-start', projectId }));
 
     let fragment;
@@ -209,7 +211,7 @@ async function runWithProject(params, odinEndpoint, authToken) {
     } else {
         let freshEntries;
         try {
-            freshEntries = await createSnapshot({ paths, projectId, projectTitle: title, odinEndpoint, authToken });
+            freshEntries = await createSnapshot({ paths, projectId, projectTitle: title, odinEndpoint, authToken, includeCards, includeVariations });
         } catch (err) {
             logger.error(JSON.stringify({ event: 'snapshot-error', projectId, error: err.message }));
             await updateProjectFragment(odinEndpoint, projectId, authToken, {
@@ -242,7 +244,7 @@ async function runWithProject(params, odinEndpoint, authToken) {
     const chunks = groupAndChunk(resolved, MAX_CHUNK_SIZE);
     const details = [];
     for (const chunk of chunks) {
-        const results = await publishOneChunk(chunk, odinEndpoint, authToken);
+        const results = await publishOneChunk(chunk, odinEndpoint, authToken, filterReferencesByStatus);
         details.push(...results);
     }
 

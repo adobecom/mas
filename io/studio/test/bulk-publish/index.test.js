@@ -369,6 +369,28 @@ describe('bulk-publish/index.js', () => {
             expect(snapshotArgs.projectId).to.equal('proj-uuid');
         });
 
+        it('calls createSnapshot with includeCards: false, includeVariations: false by default', async () => {
+            await projectAction.main({ ...baseParams, paths: undefined, projectId: 'proj-uuid' });
+
+            const snapshotArgs = createSnapshotStub.firstCall.args[0];
+            expect(snapshotArgs.includeCards).to.be.false;
+            expect(snapshotArgs.includeVariations).to.be.false;
+        });
+
+        it('calls createSnapshot with includeVariations: true when includeVariations param is set', async () => {
+            await projectAction.main({ ...baseParams, paths: undefined, projectId: 'proj-uuid', includeVariations: true });
+
+            const snapshotArgs = createSnapshotStub.firstCall.args[0];
+            expect(snapshotArgs.includeVariations).to.be.true;
+        });
+
+        it('calls createSnapshot with includeCards: true when includeCards param is set', async () => {
+            await projectAction.main({ ...baseParams, paths: undefined, projectId: 'proj-uuid', includeCards: true });
+
+            const snapshotArgs = createSnapshotStub.firstCall.args[0];
+            expect(snapshotArgs.includeCards).to.be.true;
+        });
+
         it('includes snapshots in final project update', async () => {
             await projectAction.main({ ...baseParams, paths: undefined, projectId: 'proj-uuid' });
 

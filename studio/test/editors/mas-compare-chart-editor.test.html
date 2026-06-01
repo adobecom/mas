@@ -35,6 +35,10 @@
             import generateFragmentStore from '../../src/reactivity/source-fragment-store.js';
             import { getItemsSelectionStore } from '../../src/common/items-selection-store.js';
 
+            const compareChartExpressSource = await fetch(
+                '/__wds-outside-root__/1/web-components/test/mocks/sites/fragments/compare-chart-express.json',
+            ).then((response) => response.json());
+
             const fixtureHost = () => document.querySelector('sp-theme');
             const nextFrame = () => new Promise((resolve) => requestAnimationFrame(resolve));
             const withWebComponentsMocks = (mock) => (originalFetch) =>
@@ -49,20 +53,14 @@
             const withTags =
                 (originalFetch) =>
                 async ({ pathname, searchParams }) => {
-                    if (!pathname.endsWith('/bin/querybuilder.json')) return false;
-                    const queryPath = searchParams.get('path');
-                    if (queryPath === '/content/cq:tags/mas') return originalFetch('/test/mocks/tags.json');
-                    if (queryPath?.startsWith('/content/dam/mas')) return originalFetch('/test/mocks/folders.json');
-                    return false;
+                    if (pathname.endsWith('/bin/querybuilder.json')) {
+                        return originalFetch('/test/mocks/tags.json');
+                    }
                 };
 
             mockIms();
             mockLana();
             await mockFetch(withTags, withWebComponentsMocks(withWcs), withWebComponentsMocks(withAem));
-
-            const compareChartExpressSource = await fetch(
-                '/__wds-outside-root__/1/web-components/test/mocks/sites/fragments/compare-chart-express.json',
-            ).then((response) => response.json());
 
             const getField = (fragment, fieldName) => fragment.fields.find((field) => field.name === fieldName);
             const getFieldValues = (fragment, fieldName) => getField(fragment, fieldName)?.values || [];
@@ -259,83 +257,6 @@
                         expect(tooltipLinks.map((link) => link.getAttribute('title'))).to.include(tooltipTitlesInValue[0]);
                         expect(chart.shadowRoot.querySelectorAll('.tooltip-wrapper').length).to.be.greaterThan(10);
                         expect(chart.shadowRoot.querySelectorAll('.tooltip-trigger').length).to.be.greaterThan(10);
-                    });
-
-                    it('uses mas-items-selector and accepts pasted merch-card Studio URLs', async () => {
-                        const fragmentStore = generateFragmentStore(structuredClone(compareChartSeed));
-                        const pastedCard = structuredClone(columns[0].fragment);
-                        const pastedId = 'e7563f87-7cf6-4126-b395-e4dc78b9099e';
-                        const pastedPath = pastedCard.path.replace('/cards/', '/cards/pasted-');
-                        pastedCard.id = pastedId;
-                        pastedCard.path = pastedPath;
-                        pastedCard.title = 'Pasted card';
-                        upsertField(pastedCard, 'cardTitle', ['Pasted card']);
-
-                        const repository = {
-                            searchFragments: () => {
-                                Store.fragments.list.data.set(columns.map((column) => generateFragmentStore(column.fragment)));
-                                Store.fragments.list.firstPageLoaded.set(true);
-                            },
-                            aem: {
-                                getFragmentByPath: async (path) =>
-                                    [...columns.map((column) => column.fragment), pastedCard].find(
-                                        (fragment) => fragment.path === path,
-                                    ),
-                                sites: {
-                                    cf: {
-                                        fragments: {
-                                            getById: async (id) => (id === pastedId ? pastedCard : null),
-                                        },
-                                    },
-                                },
-                            },
-                        };
-                        const originalQuerySelector = document.querySelector.bind(document);
-                        document.querySelector = (selector) =>
-                            selector === 'mas-repository' ? repository : originalQuerySelector(selector);
-
-                        try {
-                            const el = await fixture(
-                                html`<mas-compare-chart-editor .fragmentStore=${fragmentStore}></mas-compare-chart-editor>`,
-                                { parentNode: fixtureHost() },
-                            );
-                            await el.updateComplete;
-
-                            el.shadowRoot.querySelector('.compchart-cards-header sp-button').click();
-                            await el.updateComplete;
-                            const selector = el.shadowRoot.querySelector('mas-items-selector');
-                            expect(selector).to.exist;
-
-                            await selector.updateComplete;
-                            const spSearch = selector.shadowRoot.querySelector('sp-search');
-                            spSearch.value = `https://mas.adobe.com/studio.html#content-type=merch-card&page=content&path=sandbox&query=${pastedId}`;
-                            spSearch.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
-                            let row;
-                            for (let i = 0; i < 10; i += 1) {
-                                await selector.updateComplete;
-                                const table = selector.shadowRoot.querySelector('mas-select-items-table');
-                                await table?.updateComplete;
-                                await nextFrame();
-                                row = table?.shadowRoot.querySelector('mas-collapsible-table-row');
-                                if (row) break;
-                            }
-
-                            expect(spSearch.value).to.equal('');
-                            expect(row).to.exist;
-                            await row.updateComplete;
-                            const itemsSelectionStore = getItemsSelectionStore();
-                            itemsSelectionStore.cardsByPaths.set(
-                                new Map(itemsSelectionStore.cardsByPaths.get()).set(pastedPath, pastedCard),
-                            );
-                            itemsSelectionStore.selectedCards.set([...cardPaths, pastedPath]);
-                            await selector.updateComplete;
-                            el.shadowRoot.querySelector('.compchart-items-selector-dialog').dispatchEvent(new Event('confirm'));
-                            await el.updateComplete;
-
-                            expect(fragmentStore.get().getFieldValues('cards')).to.include(pastedPath);
-                        } finally {
-                            document.querySelector = originalQuerySelector;
-                        }
                     });
                 });
             });

@@ -194,6 +194,42 @@ class MasSelectItemsTable extends LitElement {
         return new Set(getItemsSelectionStore()[`selected${this.typeUppercased}`].value);
     }
 
+    get loadedPaths() {
+        return this.itemsToDisplay.map((item) => item.path);
+    }
+
+    get selectAllDisabled() {
+        return this.viewOnly || this.isLoading || this.itemsToDisplay.length === 0;
+    }
+
+    get selectAllChecked() {
+        if (this.selectAllDisabled) return false;
+        const selected = this.selectedInTable;
+        return this.loadedPaths.every((p) => selected.has(p));
+    }
+
+    get selectAllIndeterminate() {
+        if (this.selectAllDisabled || this.selectAllChecked) return false;
+        const selected = this.selectedInTable;
+        return this.loadedPaths.some((p) => selected.has(p));
+    }
+
+    #toggleSelectAll(e) {
+        e.stopPropagation();
+        const store = getItemsSelectionStore()[`selected${this.typeUppercased}`];
+        const current = new Set(store.value);
+        if (this.selectAllChecked) {
+            this.loadedPaths.forEach((p) => current.delete(p));
+        } else {
+            this.loadedPaths.forEach((p) => current.add(p));
+        }
+        store.set([...current]);
+    }
+
+    __test_toggleSelectAll(e) {
+        return this.#toggleSelectAll(e);
+    }
+
     get tableColumns() {
         const TABLE_COLUMNS = {
             cards: {
@@ -373,9 +409,19 @@ class MasSelectItemsTable extends LitElement {
                               this.tableColumns,
                               (column) => column.key,
                               (column) =>
-                                  html`<sp-table-head-cell class=${column.class ? column.class : ''}>
-                                      ${column.label}
-                                  </sp-table-head-cell>`,
+                                  column.key === 'checkbox' && !this.viewOnly
+                                      ? html`<sp-table-head-cell class=${column.class ?? ''}>
+                                            <sp-checkbox
+                                                ?checked=${this.selectAllChecked}
+                                                ?indeterminate=${this.selectAllIndeterminate}
+                                                ?disabled=${this.selectAllDisabled}
+                                                @change=${(e) => this.#toggleSelectAll(e)}
+                                                aria-label="Select all loaded items"
+                                            ></sp-checkbox>
+                                        </sp-table-head-cell>`
+                                      : html`<sp-table-head-cell class=${column.class ?? ''}>
+                                            ${column.label}
+                                        </sp-table-head-cell>`,
                           )}
                       </sp-table-head>
                       <sp-table-body>${showSkeleton ? this.#renderSkeletonRows() : this.#renderTableBody()}</sp-table-body>

@@ -54,6 +54,7 @@ export const styles = [
         sp-table-head-cell.center,
         sp-table-cell.center {
             text-align: center;
+            justify-content: center;
         }
 
         sp-table-row {

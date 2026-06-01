@@ -5,8 +5,19 @@ import sinon from 'sinon';
 import Store from '../../src/store.js';
 import { setItemsSelectionStore } from '../../src/common/items-selection-store.js';
 import { TABLE_TYPE, FILTER_TYPE } from '../../src/constants.js';
+import { setNamespaceCache } from '../../src/aem/tag-cache.js';
 import '../../src/swc.js';
 import '../../src/common/components/mas-search-and-filters.js';
+
+const MAS_TAG_NAMESPACE = '/content/cq:tags/mas';
+const seedCustomTagTaxonomy = (titles = ['Accordion', 'Marquee', 'Test']) => {
+    const entries = titles.map((title) => {
+        const slug = title.toLowerCase().replace(/\s+/g, '-');
+        const path = `/content/cq:tags/mas/custom/${slug}`;
+        return [path, { path, title, name: slug }];
+    });
+    setNamespaceCache(MAS_TAG_NAMESPACE, new Map(entries));
+};
 
 describe('MasSearchAndFilters', () => {
     let sandbox;
@@ -29,6 +40,7 @@ describe('MasSearchAndFilters', () => {
     beforeEach(() => {
         sandbox = sinon.createSandbox();
         setItemsSelectionStore(Store.translationProjects);
+        setNamespaceCache(MAS_TAG_NAMESPACE, new Map());
         Store.translationProjects.allCards.set([]);
         Store.translationProjects.displayCards.set([]);
         Store.translationProjects.allCollections.set([]);
@@ -44,6 +56,7 @@ describe('MasSearchAndFilters', () => {
     afterEach(() => {
         fixtureCleanup();
         sandbox.restore();
+        setNamespaceCache(MAS_TAG_NAMESPACE, undefined);
         Store.translationProjects.allCards.set([]);
         Store.translationProjects.displayCards.set([]);
         Store.translationProjects.allCollections.set([]);
@@ -235,10 +248,32 @@ describe('MasSearchAndFilters', () => {
             expect(filters).to.be.null;
         });
 
-        it('should render four filter triggers', async () => {
+        const fragmentWithEveryFilterTag = () =>
+            createMockFragment({
+                tags: [
+                    { id: 'mas:market_segment/com', title: 'Commercial' },
+                    { id: 'mas:customer_segment/individual', title: 'Individual' },
+                    { id: 'mas:product_code/photoshop', title: 'Photoshop' },
+                    { id: 'mas:offer_type/base', title: 'Base' },
+                    { id: 'mas:plan_type/abm', title: 'ABM' },
+                    { id: 'mas:custom/featured', title: 'Featured' },
+                    { id: 'mas:pzn/country/us', title: 'US' },
+                ],
+            });
+
+        it('should render all eight filter triggers when every bucket has options', async () => {
+            seedCustomTagTaxonomy(['Featured']);
+            Store.translationProjects.allCards.set([fragmentWithEveryFilterTag()]);
             const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${false}></mas-search-and-filters>`);
+            await el.updateComplete;
             const filterTriggers = el.shadowRoot.querySelectorAll('.filter-trigger');
-            expect(filterTriggers.length).to.equal(4);
+            expect(filterTriggers.length).to.equal(8);
+        });
+
+        it('should not render a filter trigger when its bucket has no options', async () => {
+            const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${false}></mas-search-and-filters>`);
+            const filters = el.shadowRoot.querySelector('.filters');
+            expect(filters.textContent).to.not.include('Personalization');
         });
 
         it('should render Template filter', async () => {
@@ -248,21 +283,36 @@ describe('MasSearchAndFilters', () => {
         });
 
         it('should render Market Segment filter', async () => {
+            Store.translationProjects.allCards.set([fragmentWithEveryFilterTag()]);
             const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${false}></mas-search-and-filters>`);
+            await el.updateComplete;
             const filters = el.shadowRoot.querySelector('.filters');
             expect(filters.textContent).to.include('Market Segment');
         });
 
         it('should render Customer Segment filter', async () => {
+            Store.translationProjects.allCards.set([fragmentWithEveryFilterTag()]);
             const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${false}></mas-search-and-filters>`);
+            await el.updateComplete;
             const filters = el.shadowRoot.querySelector('.filters');
             expect(filters.textContent).to.include('Customer Segment');
         });
 
         it('should render Product filter', async () => {
+            Store.translationProjects.allCards.set([fragmentWithEveryFilterTag()]);
             const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${false}></mas-search-and-filters>`);
+            await el.updateComplete;
             const filters = el.shadowRoot.querySelector('.filters');
             expect(filters.textContent).to.include('Product');
+        });
+
+        it('should render Tag filter', async () => {
+            seedCustomTagTaxonomy(['Featured']);
+            Store.translationProjects.allCards.set([fragmentWithEveryFilterTag()]);
+            const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${false}></mas-search-and-filters>`);
+            await el.updateComplete;
+            const filters = el.shadowRoot.querySelector('.filters');
+            expect(filters.textContent).to.include('Tag');
         });
 
         it('should show filter count in label when filters are selected', async () => {
@@ -1005,6 +1055,243 @@ describe('MasSearchAndFilters', () => {
             expect(el.marketSegmentFilter).to.deep.equal([]);
             expect(el.customerSegmentFilter).to.deep.equal([]);
             expect(el.productFilter).to.deep.equal([]);
+        });
+    });
+
+    describe('offer_type / plan_type / pzn tag filters', () => {
+        const fragmentWithTags = (tags, extras = {}) =>
+            createMockFragment({ tags: tags.map((id) => ({ id, title: id.split('/').pop() })), ...extras });
+
+        it('initializes new filter arrays as empty', async () => {
+            const el = await fixture(html`<mas-search-and-filters type="cards"></mas-search-and-filters>`);
+            expect(el.offerTypeFilter).to.deep.equal([]);
+            expect(el.planTypeFilter).to.deep.equal([]);
+            expect(el.pznFilter).to.deep.equal([]);
+        });
+
+        it('extracts offer_type / plan_type / pzn options from fragment tags', async () => {
+            Store.translationProjects.allCards.set([
+                fragmentWithTags(['mas:offer_type/base', 'mas:plan_type/abm', 'mas:pzn/country/us']),
+                fragmentWithTags(['mas:offer_type/trial', 'mas:plan_type/puf']),
+            ]);
+            const el = await fixture(html`<mas-search-and-filters type="cards"></mas-search-and-filters>`);
+            await el.updateComplete;
+            expect(el.offerTypeOptions.map((o) => o.id).sort()).to.deep.equal(['mas:offer_type/base', 'mas:offer_type/trial']);
+            expect(el.planTypeOptions.map((o) => o.id).sort()).to.deep.equal(['mas:plan_type/abm', 'mas:plan_type/puf']);
+            expect(el.pznOptions.map((o) => o.id)).to.deep.equal(['mas:pzn/country/us']);
+        });
+
+        it('filters cards by offer_type', async () => {
+            const a = fragmentWithTags(['mas:offer_type/base'], { title: 'a' });
+            const b = fragmentWithTags(['mas:offer_type/trial'], { title: 'b' });
+            Store.translationProjects.allCards.set([a, b]);
+            const el = await fixture(html`<mas-search-and-filters type="cards"></mas-search-and-filters>`);
+            await el.updateComplete;
+            el.offerTypeFilter = ['mas:offer_type/base'];
+            await el.updateComplete;
+            const display = Store.translationProjects.displayCards.get();
+            expect(display.map((f) => f.title)).to.deep.equal(['a']);
+        });
+
+        it('filters cards by plan_type', async () => {
+            const a = fragmentWithTags(['mas:plan_type/abm'], { title: 'a' });
+            const b = fragmentWithTags(['mas:plan_type/puf'], { title: 'b' });
+            Store.translationProjects.allCards.set([a, b]);
+            const el = await fixture(html`<mas-search-and-filters type="cards"></mas-search-and-filters>`);
+            await el.updateComplete;
+            el.planTypeFilter = ['mas:plan_type/puf'];
+            await el.updateComplete;
+            const display = Store.translationProjects.displayCards.get();
+            expect(display.map((f) => f.title)).to.deep.equal(['b']);
+        });
+
+        it('filters cards by pzn', async () => {
+            const a = fragmentWithTags(['mas:pzn/country/us'], { title: 'a' });
+            const b = fragmentWithTags(['mas:pzn/country/de'], { title: 'b' });
+            Store.translationProjects.allCards.set([a, b]);
+            const el = await fixture(html`<mas-search-and-filters type="cards"></mas-search-and-filters>`);
+            await el.updateComplete;
+            el.pznFilter = ['mas:pzn/country/us'];
+            await el.updateComplete;
+            const display = Store.translationProjects.displayCards.get();
+            expect(display.map((f) => f.title)).to.deep.equal(['a']);
+        });
+
+        it('combines new filters with existing market segment filter (intersection)', async () => {
+            const a = fragmentWithTags(['mas:offer_type/base', 'mas:market_segment/com'], { title: 'a' });
+            const b = fragmentWithTags(['mas:offer_type/base', 'mas:market_segment/edu'], { title: 'b' });
+            const c = fragmentWithTags(['mas:offer_type/trial', 'mas:market_segment/com'], { title: 'c' });
+            Store.translationProjects.allCards.set([a, b, c]);
+            const el = await fixture(html`<mas-search-and-filters type="cards"></mas-search-and-filters>`);
+            await el.updateComplete;
+            el.offerTypeFilter = ['mas:offer_type/base'];
+            el.marketSegmentFilter = ['mas:market_segment/com'];
+            await el.updateComplete;
+            const display = Store.translationProjects.displayCards.get();
+            expect(display.map((f) => f.title)).to.deep.equal(['a']);
+        });
+
+        it('renders applied-filters chips for new filter types', async () => {
+            Store.translationProjects.allCards.set([
+                fragmentWithTags(['mas:offer_type/base', 'mas:plan_type/abm', 'mas:pzn/country/us']),
+            ]);
+            const el = await fixture(html`<mas-search-and-filters type="cards"></mas-search-and-filters>`);
+            await el.updateComplete;
+            el.offerTypeFilter = ['mas:offer_type/base'];
+            el.planTypeFilter = ['mas:plan_type/abm'];
+            el.pznFilter = ['mas:pzn/country/us'];
+            await el.updateComplete;
+            const types = el.appliedFilters.map((f) => f.type).sort();
+            expect(types).to.deep.equal([FILTER_TYPE.OFFER_TYPE, FILTER_TYPE.PLAN_TYPE, FILTER_TYPE.PZN].sort());
+        });
+
+        it('clearAllFilters resets the new filter arrays', async () => {
+            const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${false}></mas-search-and-filters>`);
+            el.offerTypeOptions = [{ id: 'mas:offer_type/base', title: 'Base' }];
+            el.planTypeOptions = [{ id: 'mas:plan_type/abm', title: 'ABM' }];
+            el.pznOptions = [{ id: 'mas:pzn/country/us', title: 'US' }];
+            el.offerTypeFilter = ['mas:offer_type/base'];
+            el.planTypeFilter = ['mas:plan_type/abm'];
+            el.pznFilter = ['mas:pzn/country/us'];
+            await el.updateComplete;
+            const clearButton = el.shadowRoot.querySelector('.applied-filters sp-action-button');
+            clearButton.click();
+            await el.updateComplete;
+            expect(el.offerTypeFilter).to.deep.equal([]);
+            expect(el.planTypeFilter).to.deep.equal([]);
+            expect(el.pznFilter).to.deep.equal([]);
+        });
+
+        it('removes offer_type chip on sp-tag delete', async () => {
+            const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${false}></mas-search-and-filters>`);
+            el.offerTypeOptions = [{ id: 'mas:offer_type/base', title: 'Base' }];
+            el.offerTypeFilter = ['mas:offer_type/base'];
+            await el.updateComplete;
+            const tag = el.shadowRoot.querySelector('sp-tag');
+            tag.value = { type: FILTER_TYPE.OFFER_TYPE, id: 'mas:offer_type/base' };
+            tag.dispatchEvent(new CustomEvent('delete', { bubbles: true }));
+            await el.updateComplete;
+            expect(el.offerTypeFilter).to.not.include('mas:offer_type/base');
+        });
+
+        it('removes plan_type chip on sp-tag delete', async () => {
+            const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${false}></mas-search-and-filters>`);
+            el.planTypeOptions = [{ id: 'mas:plan_type/abm', title: 'ABM' }];
+            el.planTypeFilter = ['mas:plan_type/abm'];
+            await el.updateComplete;
+            const tag = el.shadowRoot.querySelector('sp-tag');
+            tag.value = { type: FILTER_TYPE.PLAN_TYPE, id: 'mas:plan_type/abm' };
+            tag.dispatchEvent(new CustomEvent('delete', { bubbles: true }));
+            await el.updateComplete;
+            expect(el.planTypeFilter).to.not.include('mas:plan_type/abm');
+        });
+
+        it('removes pzn chip on sp-tag delete', async () => {
+            const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${false}></mas-search-and-filters>`);
+            el.pznOptions = [{ id: 'mas:pzn/country/us', title: 'US' }];
+            el.pznFilter = ['mas:pzn/country/us'];
+            await el.updateComplete;
+            const tag = el.shadowRoot.querySelector('sp-tag');
+            tag.value = { type: FILTER_TYPE.PZN, id: 'mas:pzn/country/us' };
+            tag.dispatchEvent(new CustomEvent('delete', { bubbles: true }));
+            await el.updateComplete;
+            expect(el.pznFilter).to.not.include('mas:pzn/country/us');
+        });
+    });
+
+    describe('custom Tag filter', () => {
+        const fragmentWithTags = (tags, extras = {}) =>
+            createMockFragment({ tags: tags.map((id) => ({ id, title: id.split('/').pop() })), ...extras });
+
+        it('initializes tagFilter as empty', async () => {
+            const el = await fixture(html`<mas-search-and-filters type="cards"></mas-search-and-filters>`);
+            expect(el.tagFilter).to.deep.equal([]);
+        });
+
+        it('populates tag options from the AEM taxonomy, not loaded fragments', async () => {
+            seedCustomTagTaxonomy(['Accordion', 'Marquee']);
+            Store.translationProjects.allCards.set([createMockFragment({ tags: [] })]);
+            const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${false}></mas-search-and-filters>`);
+            await el.updateComplete;
+            expect(el.tagOptions.map((o) => o.id).sort()).to.deep.equal(['mas:custom/accordion', 'mas:custom/marquee']);
+        });
+
+        it('keeps parent tags alongside their children (matches the content page)', async () => {
+            setNamespaceCache(
+                MAS_TAG_NAMESPACE,
+                new Map([
+                    [
+                        '/content/cq:tags/mas/custom/milo-blocks',
+                        { path: '/content/cq:tags/mas/custom/milo-blocks', title: 'Milo Blocks' },
+                    ],
+                    [
+                        '/content/cq:tags/mas/custom/milo-blocks/marquee',
+                        { path: '/content/cq:tags/mas/custom/milo-blocks/marquee', title: 'Marquee' },
+                    ],
+                    ['/content/cq:tags/mas/custom/test', { path: '/content/cq:tags/mas/custom/test', title: 'Test' }],
+                ]),
+            );
+            const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${false}></mas-search-and-filters>`);
+            await el.updateComplete;
+            const ids = el.tagOptions.map((o) => o.id);
+            expect(ids).to.include('mas:custom/milo-blocks');
+            expect(ids).to.include('mas:custom/milo-blocks/marquee');
+            expect(ids).to.include('mas:custom/test');
+        });
+
+        it('renders the Tag filter even when no loaded fragment carries a custom tag', async () => {
+            seedCustomTagTaxonomy(['Accordion']);
+            Store.translationProjects.allCards.set([createMockFragment({ tags: [{ id: 'mas:product_code/photoshop' }] })]);
+            const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${false}></mas-search-and-filters>`);
+            await el.updateComplete;
+            const filters = el.shadowRoot.querySelector('.filters');
+            expect(filters.textContent).to.include('Tag');
+        });
+
+        it('filters cards by custom tag', async () => {
+            seedCustomTagTaxonomy(['Featured', 'Seasonal']);
+            const a = fragmentWithTags(['mas:custom/featured'], { title: 'a' });
+            const b = fragmentWithTags(['mas:custom/seasonal'], { title: 'b' });
+            Store.translationProjects.allCards.set([a, b]);
+            const el = await fixture(html`<mas-search-and-filters type="cards"></mas-search-and-filters>`);
+            await el.updateComplete;
+            el.tagFilter = ['mas:custom/featured'];
+            await el.updateComplete;
+            const display = Store.translationProjects.displayCards.get();
+            expect(display.map((f) => f.title)).to.deep.equal(['a']);
+        });
+
+        it('renders applied-filters chip for the Tag filter type', async () => {
+            seedCustomTagTaxonomy(['Featured']);
+            Store.translationProjects.allCards.set([fragmentWithTags(['mas:custom/featured'])]);
+            const el = await fixture(html`<mas-search-and-filters type="cards"></mas-search-and-filters>`);
+            await el.updateComplete;
+            el.tagFilter = ['mas:custom/featured'];
+            await el.updateComplete;
+            expect(el.appliedFilters.map((f) => f.type)).to.deep.equal([FILTER_TYPE.TAG]);
+        });
+
+        it('clearAllFilters resets tagFilter', async () => {
+            const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${false}></mas-search-and-filters>`);
+            el.tagOptions = [{ id: 'mas:custom/featured', title: 'Featured' }];
+            el.tagFilter = ['mas:custom/featured'];
+            await el.updateComplete;
+            const clearButton = el.shadowRoot.querySelector('.applied-filters sp-action-button');
+            clearButton.click();
+            await el.updateComplete;
+            expect(el.tagFilter).to.deep.equal([]);
+        });
+
+        it('removes Tag chip on sp-tag delete', async () => {
+            const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${false}></mas-search-and-filters>`);
+            el.tagOptions = [{ id: 'mas:custom/featured', title: 'Featured' }];
+            el.tagFilter = ['mas:custom/featured'];
+            await el.updateComplete;
+            const tag = el.shadowRoot.querySelector('sp-tag');
+            tag.value = { type: FILTER_TYPE.TAG, id: 'mas:custom/featured' };
+            tag.dispatchEvent(new CustomEvent('delete', { bubbles: true }));
+            await el.updateComplete;
+            expect(el.tagFilter).to.not.include('mas:custom/featured');
         });
     });
 });

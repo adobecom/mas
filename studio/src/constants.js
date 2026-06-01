@@ -257,6 +257,10 @@ export const FILTER_TYPE = {
     MARKET_SEGMENT: 'marketSegment',
     CUSTOMER_SEGMENT: 'customerSegment',
     PRODUCT: 'product',
+    OFFER_TYPE: 'offerType',
+    PLAN_TYPE: 'planType',
+    PZN: 'pzn',
+    TAG: 'tag',
 };
 
 export const FRAGMENT_STATUS = {

@@ -78,10 +78,10 @@ describe('VariantPicker', () => {
             expect(mccMweb.label).to.equal('Mini Compare Chart Mweb');
         });
 
-        it('should include compchart variant', () => {
-            const compchart = VARIANTS.find((v) => v.value === VARIANT_NAMES.COMPARE_CHART);
+        it('should include compare-chart-column variant', () => {
+            const compchart = VARIANTS.find((v) => v.value === VARIANT_NAMES.COMPARE_CHART_COLUMN);
             expect(compchart).to.exist;
-            expect(compchart.label).to.equal('Compare Chart');
+            expect(compchart.label).to.equal('Compare Chart Column');
         });
 
         it('should include the "all" variant', () => {

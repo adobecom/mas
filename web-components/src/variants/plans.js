@@ -270,7 +270,7 @@ export class Plans extends VariantLayout {
                     this.syncHeights();
                 });
             }
-        }        
+        }
     }
 
     get headingM() {

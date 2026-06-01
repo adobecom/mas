@@ -111,6 +111,7 @@ var at=Object.defineProperty;var Ee=p=>{throw TypeError(p)};var it=(p,h,e)=>h in
         backface-visibility: hidden;
         -webkit-backface-visibility: hidden;
         opacity: 1;
+        padding-top: 64px;
     }
     slot[name='cards'] {
         display: none;

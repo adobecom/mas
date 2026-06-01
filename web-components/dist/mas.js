@@ -10121,6 +10121,7 @@ merch-card[border-color="spectrum-red-700-plans"] {
         backface-visibility: hidden;
         -webkit-backface-visibility: hidden;
         opacity: 1;
+        padding-top: 64px;
     }
     slot[name='cards'] {
         display: none;

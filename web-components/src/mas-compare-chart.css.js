@@ -113,6 +113,7 @@ export const styles = css`
         backface-visibility: hidden;
         -webkit-backface-visibility: hidden;
         opacity: 1;
+        padding-top: 64px;
     }
     slot[name='cards'] {
         display: none;

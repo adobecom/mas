@@ -70,6 +70,15 @@ export const FULL_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING = {
 };
 
 export class FullPricingExpress extends VariantLayout {
+    static SYNCED_DESCRIPTION_ROWS = 12;
+
+    static SYNCED_SECTIONS = [
+        'header',
+        'short-description',
+        'price-container',
+        'cta',
+    ];
+
     getGlobalCSS() {
         return CSS;
     }
@@ -97,27 +106,26 @@ export class FullPricingExpress extends VariantLayout {
         `;
     }
 
-    syncHeights() {
+    async syncHeights() {
+        await document.fonts.ready;
+        await new Promise((resolve) => requestAnimationFrame(resolve));
         if (this.card.getBoundingClientRect().width <= 2) return;
-
-        const shadow = this.card.shadowRoot;
-        if (!shadow) return;
-
-        ['header', 'short-description', 'price-container', 'cta'].forEach(
-            (className) =>
-                this.updateCardElementMinHeight(
-                    shadow.querySelector(`.${className}`),
-                    className,
-                ),
+        const sectionEntries = FullPricingExpress.SYNCED_SECTIONS.map(
+            (name) => ({
+                name,
+                getElement: (card) =>
+                    card.shadowRoot?.querySelector(`.${name}`),
+            }),
         );
-    }
-
-    resyncSiblings() {
-        const container = this.getContainer();
-        if (!container) return;
-        container
-            .querySelectorAll(`merch-card[variant="${this.card.variant}"]`)
-            .forEach((card) => card.variantLayout?.syncHeights?.());
+        const rowEntries = Array.from(
+            { length: FullPricingExpress.SYNCED_DESCRIPTION_ROWS },
+            (_, index) => ({
+                name: `description-row-${index}`,
+                getElement: (card) =>
+                    card.querySelectorAll('[slot="body-s"] > *')[index],
+            }),
+        );
+        this.syncRowHeights([...sectionEntries, ...rowEntries]);
     }
 
     async postCardUpdateHook() {
@@ -145,25 +153,8 @@ export class FullPricingExpress extends VariantLayout {
         }
 
         if (window.matchMedia('(min-width: 768px)').matches) {
-            this.resyncSiblings();
+            this.syncHeights();
         }
-    }
-
-    connectedCallbackHook() {
-        if (!this.card || typeof ResizeObserver === 'undefined') return;
-        this.lastSyncedWidth = 0;
-        this.sizeObserver = new ResizeObserver(() => {
-            const width = this.card.getBoundingClientRect().width;
-            if (width <= 2 || width === this.lastSyncedWidth) return;
-            this.lastSyncedWidth = width;
-            this.resyncSiblings();
-        });
-        this.sizeObserver.observe(this.card);
-    }
-
-    disconnectedCallbackHook() {
-        this.sizeObserver?.disconnect();
-        this.sizeObserver = null;
     }
 
     renderLayout() {

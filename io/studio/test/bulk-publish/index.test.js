@@ -327,9 +327,7 @@ describe('bulk-publish/index.js', () => {
         });
 
         it('returns 500 when an unexpected error is thrown during publish', async () => {
-            const a = makeActionWithResolvePaths(
-                sinon.stub().throws(new Error('unexpected internal error')),
-            );
+            const a = makeActionWithResolvePaths(sinon.stub().throws(new Error('unexpected internal error')));
             const result = await a.main({ ...baseParams });
             expect(result.error.statusCode).to.equal(500);
             expect(result.error.body.error).to.equal('Internal server error');

@@ -1,7 +1,7 @@
 import { LitElement, html, nothing } from 'lit';
 import Store, { toggleSelection } from './store.js';
 import './mas-fragment-status.js';
-import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, COMPARE_CHART_FIELD } from './constants.js';
+import { CARD_MODEL_PATH } from './constants.js';
 import { getSpectrumVersion } from './constants/icon-library.js';
 import ReactiveController from './reactivity/reactive-controller.js';
 import { cardSkeleton } from './mas-content.js';
@@ -119,16 +119,6 @@ class MasFragmentRender extends LitElement {
         </merch-card>`;
     }
 
-    get compareChart() {
-        return html`<mas-compare-chart>
-            <aem-fragment author fragment="${this.fragment.id}"></aem-fragment>
-        </mas-compare-chart>`;
-    }
-
-    get isCompareChart() {
-        return this.fragment.model.path === COLLECTION_MODEL_PATH && !!this.fragment.getField?.(COMPARE_CHART_FIELD);
-    }
-
     get placeholder() {
         return cardSkeleton();
     }
@@ -162,11 +152,7 @@ class MasFragmentRender extends LitElement {
             >
                 <sp-theme color="light" scale="medium" system="${getSpectrumVersion(this.fragment?.variant)}">
                     <overlay-trigger placement="top">
-                        ${this.fragment.model.path === CARD_MODEL_PATH
-                            ? this.merchCard
-                            : this.isCompareChart
-                              ? this.compareChart
-                              : this.unknown}
+                        ${this.fragment.model.path === CARD_MODEL_PATH ? this.merchCard : this.unknown}
 
                         <sp-tooltip slot="hover-content" placement="top">Double click the card to start editing.</sp-tooltip>
                     </overlay-trigger>

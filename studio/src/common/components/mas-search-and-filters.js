@@ -683,7 +683,7 @@ class MasSearchAndFilters extends LitElement {
 
         return html`
             <overlay-trigger placement="bottom-start" ?disabled=${locked} @sp-closed=${(e) => e.stopPropagation()}>
-                <sp-action-button quiet slot="trigger" .disabled=${this.isLoading || locked}>
+                <sp-action-button dir="ltr" quiet slot="trigger" .disabled=${this.isLoading || locked}>
                     ${displayLabel}
                     <sp-icon-chevron-down slot="icon"></sp-icon-chevron-down>
                 </sp-action-button>

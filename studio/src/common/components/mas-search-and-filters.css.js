@@ -34,6 +34,11 @@ export const styles = css`
         flex-wrap: wrap;
     }
 
+    sp-action-button {
+        display: flex;
+        flex-direction: row-reverse;
+    }
+
     .filter-popover {
         padding: 12px;
     }

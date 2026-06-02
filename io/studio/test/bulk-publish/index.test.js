@@ -461,10 +461,20 @@ describe('bulk-publish/index.js', () => {
         });
 
         it('uses snapshot paths as publish targets when snapshot entries contain path', async () => {
-            const snapshotPaths = ['/content/dam/mas/acom/en_US/card1', '/content/dam/mas/acom/en_US/card2', '/content/dam/mas/acom/en_US/card3'];
+            const snapshotPaths = [
+                '/content/dam/mas/acom/en_US/card1',
+                '/content/dam/mas/acom/en_US/card2',
+                '/content/dam/mas/acom/en_US/card3',
+            ];
             createSnapshotStub.resolves(
                 snapshotPaths.map((path, i) =>
-                    JSON.stringify({ fragmentId: `frag-${i}`, path, versionId: `v${i}`, wasPublished: false, createdAt: '2025-01-01T00:00:00.000Z' }),
+                    JSON.stringify({
+                        fragmentId: `frag-${i}`,
+                        path,
+                        versionId: `v${i}`,
+                        wasPublished: false,
+                        createdAt: '2025-01-01T00:00:00.000Z',
+                    }),
                 ),
             );
 

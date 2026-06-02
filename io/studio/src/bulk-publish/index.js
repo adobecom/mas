@@ -181,11 +181,7 @@ function buildSummary(details) {
 
 async function runWithProject(params, odinEndpoint, authToken) {
     const { projectId, publishedBy = '', includeVariations = false, includeCards = false } = params;
-    // Snapshot explicitly tracks every path that should be published (via cards/variations traversal).
-    // Cascade (filterReferencesByStatus) must be disabled so Odin does not follow fragment references
-    // beyond the snapshot set — otherwise sub-collections and cards get pulled in even when the
-    // corresponding checkbox is unchecked, and those extras are never reverted.
-    const filterReferencesByStatus = [];
+    const filterReferencesByStatus = []; // snapshot controls traversal scope; cascade must not overshoot
     logger.info(JSON.stringify({ event: 'project-publish-start', projectId }));
 
     let fragment;
@@ -208,8 +204,6 @@ async function runWithProject(params, odinEndpoint, authToken) {
     const existingEntries = getProjectSnapshots(fragment);
     let snapshotEntries;
 
-    // Only reuse a pending snapshot if it contains path info (new format).
-    // Old-format entries (created before path was serialized) fall through to create a fresh snapshot.
     if (hasPendingSnapshot(existingEntries) && getSnapshotPaths(existingEntries).length > 0) {
         logger.info(JSON.stringify({ event: 'reuse-pending-snapshot', projectId }));
         snapshotEntries = existingEntries;
@@ -224,7 +218,15 @@ async function runWithProject(params, odinEndpoint, authToken) {
     } else {
         let freshEntries;
         try {
-            freshEntries = await createSnapshot({ paths, projectId, projectTitle: title, odinEndpoint, authToken, includeCards, includeVariations });
+            freshEntries = await createSnapshot({
+                paths,
+                projectId,
+                projectTitle: title,
+                odinEndpoint,
+                authToken,
+                includeCards,
+                includeVariations,
+            });
         } catch (err) {
             logger.error(JSON.stringify({ event: 'snapshot-error', projectId, error: err.message }));
             await updateProjectFragment(odinEndpoint, projectId, authToken, {
@@ -245,9 +247,6 @@ async function runWithProject(params, odinEndpoint, authToken) {
         snapshotEntries = freshEntries;
     }
 
-    // Use snapshot paths when available so that NEW-status fragments (not yet published)
-    // are included as explicit publish targets rather than relying on cascade status filter.
-    // Fall back to locale-expanded project paths for older snapshots without path field.
     const snapshotPathList = getSnapshotPaths(snapshotEntries);
     const resolved = snapshotPathList.length > 0 ? snapshotPathList : resolvePaths(paths, locales);
     if (resolved.length === 0) {

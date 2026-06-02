@@ -447,20 +447,14 @@ describe('bulk-publish/index.js', () => {
             expect(loggerStub.error).to.have.been.calledWithMatch(sinon.match(/project-final-patch-error/));
         });
 
-        it('sends filterReferencesByStatus=[DRAFT,MODIFIED,UNPUBLISHED] when includeCards is true', async () => {
+        it('always sends filterReferencesByStatus=[] in project mode (snapshot handles traversal, cascade must not overshoot)', async () => {
             await projectAction.main({
                 ...baseParams,
                 paths: undefined,
                 projectId: 'proj-uuid',
                 includeCards: true,
+                includeVariations: true,
             });
-
-            const publishBody = JSON.parse(fetchOdinStub.firstCall.args[3].body);
-            expect(publishBody.filterReferencesByStatus).to.deep.equal(['DRAFT', 'MODIFIED', 'UNPUBLISHED']);
-        });
-
-        it('sends filterReferencesByStatus=[] when neither cascade option is set', async () => {
-            await projectAction.main({ ...baseParams, paths: undefined, projectId: 'proj-uuid' });
 
             const publishBody = JSON.parse(fetchOdinStub.firstCall.args[3].body);
             expect(publishBody.filterReferencesByStatus).to.deep.equal([]);

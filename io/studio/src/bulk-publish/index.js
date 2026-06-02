@@ -181,8 +181,11 @@ function buildSummary(details) {
 
 async function runWithProject(params, odinEndpoint, authToken) {
     const { projectId, publishedBy = '', includeVariations = false, includeCards = false } = params;
-    const includeRefs = includeVariations || includeCards;
-    const filterReferencesByStatus = includeRefs ? ['DRAFT', 'MODIFIED', 'UNPUBLISHED'] : [];
+    // Snapshot explicitly tracks every path that should be published (via cards/variations traversal).
+    // Cascade (filterReferencesByStatus) must be disabled so Odin does not follow fragment references
+    // beyond the snapshot set — otherwise sub-collections and cards get pulled in even when the
+    // corresponding checkbox is unchecked, and those extras are never reverted.
+    const filterReferencesByStatus = [];
     logger.info(JSON.stringify({ event: 'project-publish-start', projectId }));
 
     let fragment;

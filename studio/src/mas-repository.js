@@ -47,6 +47,7 @@ import {
     isPromoVariationPath,
     resolveDefaultPathFromPromoVariation,
 } from './promotions/promo-variation-utils.js';
+import { processConcurrently, VARIATIONS_CONCURRENCY_LIMIT } from './common/utils/item-loading.js';
 import { fragmentHasPersonalizationTag, isPznCountryTagId, PZN_TAG_ID_PREFIX } from './common/utils/personalization-utils.js';
 import { Placeholder } from './aem/placeholder.js';
 import { getFragmentName } from './translation/translation-utils.js';
@@ -2387,31 +2388,37 @@ export class MasRepository extends LitElement {
         const attachedPaths = Array.from(new Set(promotionFragment?.getFieldValues?.('fragments') || []));
         if (!attachedPaths.length) return [];
 
-        const parentResults = await Promise.all(
-            attachedPaths.map(async (parentPath) => {
+        const parentResults = await processConcurrently(
+            attachedPaths,
+            async (parentPath) => {
                 const parent = await this.aem.sites.cf.fragments.getByPath(parentPath).catch(() => null);
                 const variationPaths = parent?.fields?.find((field) => field.name === 'variations')?.values || [];
                 const promoVariationPaths = variationPaths.filter(
                     (variationPath) => resolveDefaultPathFromPromoVariation(variationPath, promoName) === parentPath,
                 );
                 return { parentPath, promoVariationPaths };
-            }),
+            },
+            VARIATIONS_CONCURRENCY_LIMIT,
         );
 
-        const variationResults = await Promise.all(
-            parentResults.flatMap(({ parentPath, promoVariationPaths }) =>
-                promoVariationPaths.map(async (variationPath) => {
-                    const variation = await this.aem.sites.cf.fragments.getByPath(variationPath).catch(() => null);
-                    if (!variation) return null;
-                    if (variation.status === STATUS_PUBLISHED || variation.status === STATUS_MODIFIED) return null;
-                    return {
-                        path: variationPath,
-                        status: variation.status,
-                        title: variation.title,
-                        parentPath,
-                    };
-                }),
-            ),
+        const variationTasks = parentResults.flatMap(({ parentPath, promoVariationPaths }) =>
+            promoVariationPaths.map((variationPath) => ({ parentPath, variationPath })),
+        );
+
+        const variationResults = await processConcurrently(
+            variationTasks,
+            async ({ parentPath, variationPath }) => {
+                const variation = await this.aem.sites.cf.fragments.getByPath(variationPath).catch(() => null);
+                if (!variation) return null;
+                if (variation.status === STATUS_PUBLISHED || variation.status === STATUS_MODIFIED) return null;
+                return {
+                    path: variationPath,
+                    status: variation.status,
+                    title: variation.title,
+                    parentPath,
+                };
+            },
+            VARIATIONS_CONCURRENCY_LIMIT,
         );
 
         return variationResults.filter(Boolean);

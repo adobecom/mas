@@ -31,6 +31,7 @@ import {
     getPromoNameFromTag,
     buildPromoVariationPathForTag,
     getPromoNameFromPromoVariationPath,
+    isPromoVariationPath,
 } from './promotions/promo-variation-utils.js';
 import { splitPromotionTagsFieldValues } from './promotions/promotion-editor-utils.js';
 import { normalizeTagId } from './aem/tag-id-utils.js';
@@ -1048,17 +1049,19 @@ export default class MasFragmentEditor extends LitElement {
             return parentData;
         }
 
-        if (Fragment.isPromoVariationPath(fragmentPath)) {
+        if (isPromoVariationPath(fragmentPath)) {
             parentData = await this.repository.resolveDefaultFragmentForPromoVariation(fragmentPath, this.fragment?.id);
             if (parentData) {
                 this.editorContextStore?.setParent(parentData);
                 this.groupedVariationOrphanMessage = null;
                 return parentData;
             }
+            this.groupedVariationOrphanMessage = null;
             return null;
         }
 
         if (!Fragment.isGroupedVariationPath(fragmentPath)) {
+            this.groupedVariationOrphanMessage = null;
             return null;
         }
 
@@ -1570,7 +1573,7 @@ export default class MasFragmentEditor extends LitElement {
 
     isPromoVariationFragment() {
         if (!this.fragment) return false;
-        if (Fragment.isPromoVariationPath(this.fragment.path)) return true;
+        if (isPromoVariationPath(this.fragment.path)) return true;
         if (this.editorContextStore?.isPromoVariationByPath) return true;
         if (getPromotionTagFromFragment(this.fragment)) return true;
         return this.#matchesActivePromoVariationPath();
@@ -1591,7 +1594,7 @@ export default class MasFragmentEditor extends LitElement {
         if (parent?.path && buildPromoVariationPathForTag(parent.path, promoTag) === this.fragment.path) {
             return true;
         }
-        return Fragment.isPromoVariationPath(this.fragment.path);
+        return isPromoVariationPath(this.fragment.path);
     }
 
     #formatPromoLabel(rawName) {
@@ -1603,10 +1606,6 @@ export default class MasFragmentEditor extends LitElement {
             .filter(Boolean)
             .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
             .join(' ');
-    }
-
-    #shouldShowPromoVariationHeader() {
-        return this.isPromoVariationFragment();
     }
 
     displayPromoVariationInfo(clazz) {
@@ -1627,7 +1626,7 @@ export default class MasFragmentEditor extends LitElement {
         if (Fragment.isGroupedVariationPath(this.fragment.path)) {
             return this.displayGroupedVariationInfo(clazz);
         }
-        if (this.#shouldShowPromoVariationHeader()) {
+        if (this.isPromoVariationFragment()) {
             return this.displayPromoVariationInfo(clazz);
         }
         return this.displayRegionalVarationInfo(clazz);
@@ -1635,7 +1634,7 @@ export default class MasFragmentEditor extends LitElement {
 
     showsPreviewVariationTypeHeader() {
         if (!this.fragment) return false;
-        if (this.#shouldShowPromoVariationHeader()) return true;
+        if (this.isPromoVariationFragment()) return true;
         return this.editorContextStore.isVariation(this.fragment.id);
     }
 
@@ -1647,7 +1646,7 @@ export default class MasFragmentEditor extends LitElement {
     }
 
     get localeVariationHeader() {
-        if (!this.fragment || this.#shouldShowPromoVariationHeader()) {
+        if (!this.fragment || this.isPromoVariationFragment()) {
             return nothing;
         }
         if (!this.editorContextStore.isVariation(this.fragment.id)) {

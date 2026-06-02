@@ -10,10 +10,9 @@ import router from '../router.js';
 import { extractLocaleFromPath, showToast } from '../utils.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 import Store from '../store.js';
-import { Fragment } from '../aem/fragment.js';
 import { normalizeTagId } from '../aem/tag-id-utils.js';
 import { splitPromotionTagsFieldValues } from './promotion-editor-utils.js';
-import { buildPromoVariationPathForTag } from './promo-variation-utils.js';
+import { buildPromoVariationPathForTag, isPromoVariationPath } from './promo-variation-utils.js';
 
 const localStyles = css`
     :host {
@@ -258,12 +257,12 @@ class MasPromotionsItemsTable extends LitElement {
         viewOnlyFragments: { type: Array, state: true },
         confirmDialogConfig: { type: Object, state: true },
         createPromoVariationLoading: { type: Boolean, state: true },
+        existingPromoVariationDefaultPaths: { type: Object, state: true },
     };
 
     #loadedPathsKey = null;
     #processAbortController = null;
     #selectionController = null;
-    #existingPromoVariationDefaultPaths = new Set();
 
     constructor() {
         super();
@@ -271,6 +270,7 @@ class MasPromotionsItemsTable extends LitElement {
         this.viewOnlyFragments = [];
         this.confirmDialogConfig = null;
         this.createPromoVariationLoading = false;
+        this.existingPromoVariationDefaultPaths = new Set();
         this.getDisplayName = (fragmentData) => fragmentData?.path ?? '';
         this.renderFragmentStatusCell = () => nothing;
     }
@@ -287,7 +287,10 @@ class MasPromotionsItemsTable extends LitElement {
     connectedCallback() {
         super.connectedCallback();
         const upper = this.typeUppercased;
-        this.#selectionController = new ReactiveController(this, [getItemsSelectionStore()[`selected${upper}`]]);
+        this.#selectionController = new ReactiveController(this, [
+            getItemsSelectionStore()[`selected${upper}`],
+            Store.promotions.inEdit,
+        ]);
     }
 
     disconnectedCallback() {
@@ -356,7 +359,7 @@ class MasPromotionsItemsTable extends LitElement {
             onItems: (items) => {
                 if (!signal.aborted) {
                     this.viewOnlyFragments = items;
-                    this.#syncExistingPromoVariations(items);
+                    this.#syncExistingPromoVariations(items, signal);
                 }
             },
             getDisplayName: this.getDisplayName,
@@ -365,23 +368,26 @@ class MasPromotionsItemsTable extends LitElement {
         });
     }
 
-    async #syncExistingPromoVariations(items) {
+    async #syncExistingPromoVariations(items, signal) {
+        if (signal.aborted) return;
         const promoTag = this.#promotionTagId;
         if (!promoTag || !this.repository?.aem?.sites?.cf?.fragments?.getByPath) {
-            this.#existingPromoVariationDefaultPaths = new Set();
+            if (signal.aborted) return;
+            this.existingPromoVariationDefaultPaths = new Set();
             return;
         }
         const existing = new Set();
         await Promise.all(
             items.map(async (item) => {
+                if (signal.aborted) return;
                 const targetPath = buildPromoVariationPathForTag(item.path, promoTag);
                 if (!targetPath) return;
                 const variation = await this.repository.aem.sites.cf.fragments.getByPath(targetPath).catch(() => null);
                 if (variation?.id) existing.add(item.path);
             }),
         );
-        this.#existingPromoVariationDefaultPaths = existing;
-        this.requestUpdate();
+        if (signal.aborted) return;
+        this.existingPromoVariationDefaultPaths = existing;
     }
 
     #showToast(text, variant) {
@@ -455,15 +461,15 @@ class MasPromotionsItemsTable extends LitElement {
 
     #canCreatePromoVariation(item) {
         if (!item?.id || !item?.path || !this.#promotionTagId) return false;
-        if (Fragment.isPromoVariationPath(item.path)) return false;
-        if (this.#existingPromoVariationDefaultPaths.has(item.path)) return false;
+        if (isPromoVariationPath(item.path)) return false;
+        if (this.existingPromoVariationDefaultPaths.has(item.path)) return false;
         return true;
     }
 
     #hasPromoVariationForItem(item) {
         if (!item?.path || !this.#promotionTagId) return false;
-        if (Fragment.isPromoVariationPath(item.path)) return false;
-        return this.#existingPromoVariationDefaultPaths.has(item.path);
+        if (isPromoVariationPath(item.path)) return false;
+        return this.existingPromoVariationDefaultPaths.has(item.path);
     }
 
     async #viewPromoVariation(e, item) {
@@ -475,8 +481,9 @@ class MasPromotionsItemsTable extends LitElement {
         const variation = await this.repository?.aem?.sites?.cf?.fragments?.getByPath(targetPath).catch(() => null);
         if (!variation?.id) {
             showToast(PROMO_VARIATION_MISSING_MESSAGE, 'negative');
-            this.#existingPromoVariationDefaultPaths.delete(item.path);
-            this.requestUpdate();
+            this.existingPromoVariationDefaultPaths = new Set(
+                [...this.existingPromoVariationDefaultPaths].filter((path) => path !== item.path),
+            );
             return;
         }
 
@@ -524,7 +531,7 @@ class MasPromotionsItemsTable extends LitElement {
             showToast('Creating promo variation...');
             const created = await this.repository.createPromoVariation(item.id, promoTag);
             showToast('Promo variation created', 'positive');
-            this.#existingPromoVariationDefaultPaths = new Set([...this.#existingPromoVariationDefaultPaths, item.path]);
+            this.existingPromoVariationDefaultPaths = new Set([...this.existingPromoVariationDefaultPaths, item.path]);
             await this.#navigateToFragmentEditorFromProject(created.id, created.path);
         } catch (err) {
             showToast(err.message || 'Failed to create promo variation', 'negative');

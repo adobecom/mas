@@ -21,6 +21,11 @@ import {
     serializePromotionSurfacesForAem,
     splitPromotionTagsFieldValues,
 } from './promotions/promotion-editor-utils.js';
+import {
+    confirmPublishDespiteUnpublishedPromoVariations,
+    isPromotionExpiredForPublish,
+    PROMOTION_EXPIRED_PUBLISH_MESSAGE,
+} from './promotions/promotion-publish-utils.js';
 import { renderFragmentStatusCell } from './common/utils/render-utils.js';
 
 function getPromotionPickerFragmentLabel(data) {
@@ -296,14 +301,9 @@ class MasPromotionsEditor extends LitElement {
     }
 
     async #confirmPublishWithUnpublishedPromoVariations() {
-        const unpublished = await this.repository.getUnpublishedAttachedPromoVariations(this.fragment);
-        if (!unpublished.length) return true;
-        const confirmMessage = `This project has ${unpublished.length} attached promo variation(s) that are not published. Publish the project anyway?`;
-        return this.#showDialog('Unpublished promo variations', confirmMessage, {
-            confirmText: 'Publish anyway',
-            cancelText: 'Cancel',
-            variant: 'confirmation',
-        });
+        return confirmPublishDespiteUnpublishedPromoVariations(this.repository, this.fragment, (title, message, options) =>
+            this.#showDialog(title, message, options),
+        );
     }
 
     #handlePublishPromotion = async () => {
@@ -312,8 +312,8 @@ class MasPromotionsEditor extends LitElement {
             showToast('Save your changes before publishing.', 'info');
             return;
         }
-        if (this.fragment.promotionStatus === 'expired') {
-            showToast('This promotion has ended. Update the dates to publish again.', 'info');
+        if (isPromotionExpiredForPublish(this.fragment)) {
+            showToast(PROMOTION_EXPIRED_PUBLISH_MESSAGE, 'info');
             return;
         }
         if (this.fragment.isPromotionPublished && !this.fragment.isPromotionModified) {

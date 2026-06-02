@@ -1,5 +1,4 @@
 import { expect } from '@esm-bundle/chai';
-import { Fragment } from '../../src/aem/fragment.js';
 import {
     buildPromoVariationPath,
     buildPromoVariationPathForTag,
@@ -21,7 +20,6 @@ describe('promo-variation-utils', () => {
         it('returns true for paths under promotions folder', () => {
             expect(isPromoVariationPath(promoVariationPath)).to.be.true;
             expect(isPromoVariationPath(nestedPromo)).to.be.true;
-            expect(Fragment.isPromoVariationPath(promoVariationPath)).to.be.true;
         });
 
         it('returns false for default fragment paths', () => {

@@ -7,6 +7,7 @@ import { extractSurfaceFromPath, extractLocaleFromPath } from '../utils.js';
 import { ODIN_PREVIEW_FRAGMENTS_URL } from '../constants.js';
 import {
     getPromoNameFromPromoVariationPath,
+    isPromoVariationPath,
     resolveDefaultPathFromPromoVariation,
 } from '../promotions/promo-variation-utils.js';
 
@@ -47,7 +48,7 @@ export class EditorContextStore extends ReactiveStore {
         if (Fragment.isGroupedVariationPath(fragmentPath)) {
             this.isGroupedVariationByPath = true;
         }
-        if (Fragment.isPromoVariationPath(fragmentPath)) {
+        if (isPromoVariationPath(fragmentPath)) {
             this.isPromoVariationByPath = true;
         }
 

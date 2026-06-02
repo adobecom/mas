@@ -1,5 +1,4 @@
 import { PATH_TOKENS, PZN_FOLDER, TAG_PROMOTION_PREFIX, MAS_PRODUCT_CODE_PREFIX } from '../constants.js';
-import { isPromoVariationPath } from '../promotions/promo-variation-utils.js';
 import { getCachedTagTitle } from './tag-cache.js';
 import { formatProductCodeNestedTitle, normalizeTagId } from './tag-id-utils.js';
 import { isVariationPathInParentLocaleFamily } from '../../../io/www/src/fragment/locales.js';
@@ -344,15 +343,6 @@ export class Fragment {
      */
     static isGroupedVariationPath(path) {
         return path?.includes(`/${PZN_FOLDER}/`) ?? false;
-    }
-
-    /**
-     * Checks whether a path is a promo variation under promotions/{promoName}/.
-     * @param {string} path
-     * @returns {boolean}
-     */
-    static isPromoVariationPath(path) {
-        return isPromoVariationPath(path);
     }
 
     /**

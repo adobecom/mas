@@ -7,6 +7,11 @@ import { PAGE_NAMES } from './constants.js';
 import ReactiveController from './reactivity/reactive-controller.js';
 import { showToast } from './utils.js';
 import { renderPromotionStatusCell } from './common/utils/render-utils.js';
+import {
+    confirmPublishDespiteUnpublishedPromoVariations,
+    isPromotionExpiredForPublish,
+    PROMOTION_EXPIRED_PUBLISH_MESSAGE,
+} from './promotions/promotion-publish-utils.js';
 
 class MasPromotions extends LitElement {
     static styles = styles;
@@ -387,20 +392,16 @@ class MasPromotions extends LitElement {
         if (fragment.isPromotionPublished && !fragment.isPromotionModified) {
             return;
         }
-        if (fragment.promotionStatus === 'expired') {
-            showToast('This promotion has ended. Update the dates to publish again.', 'info');
+        if (isPromotionExpiredForPublish(fragment)) {
+            showToast(PROMOTION_EXPIRED_PUBLISH_MESSAGE, 'info');
             return;
         }
-        const unpublished = await this.repository.getUnpublishedAttachedPromoVariations(fragment);
-        if (unpublished.length) {
-            const confirmMessage = `This project has ${unpublished.length} attached promo variation(s) that are not published. Publish the project anyway?`;
-            const confirmed = await this.#showDialog('Unpublished promo variations', confirmMessage, {
-                confirmText: 'Publish anyway',
-                cancelText: 'Cancel',
-                variant: 'confirmation',
-            });
-            if (!confirmed) return;
-        }
+        const canPublish = await confirmPublishDespiteUnpublishedPromoVariations(
+            this.repository,
+            fragment,
+            (title, message, options) => this.#showDialog(title, message, options),
+        );
+        if (!canPublish) return;
         try {
             this.loading = true;
             const ok = await this.repository.publishFragment(fragment, ['DRAFT', 'UNPUBLISHED'], true);

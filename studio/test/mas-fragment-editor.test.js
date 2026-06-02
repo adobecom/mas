@@ -119,6 +119,18 @@ describe('MasFragmentEditor', () => {
             );
         });
 
+        it('clears orphan message when resolving a locale variation path', async () => {
+            const localePath = '/content/dam/mas/sandbox/de_DE/my-card';
+            const { editor } = createEditor();
+            editor.groupedVariationOrphanMessage =
+                'No default-locale fragment currently references this grouped variation. Inheritance cannot be resolved, and this fragment may be orphaned.';
+
+            const result = await editor.resolveVariationParentFragment(localePath);
+
+            expect(result).to.be.null;
+            expect(editor.groupedVariationOrphanMessage).to.be.null;
+        });
+
         it('renders orphan grouped-variation state as a panel', () => {
             const { editor } = createEditor();
             editor.groupedVariationOrphanMessage =

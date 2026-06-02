@@ -149,5 +149,33 @@ describe('project.js', () => {
             const publishedAtField = fields.find((f) => f.name === 'publishedAt');
             expect(publishedAtField.values).to.deep.equal(['2025-01-01T00:00:00.000Z']);
         });
+
+        it('retries on 412 with fresh ETag and succeeds', async () => {
+            const fragment = makeFragment([{ name: 'status', type: 'text', values: ['Draft'] }]);
+            getFragmentWithEtagStub.resolves({ fragment, etag: '"etag-fresh"' });
+            putToOdinStub.onFirstCall().rejects(new Error('PUT /fragments/proj-1 failed with status 412: Precondition Failed'));
+            putToOdinStub.onSecondCall().resolves({ success: true });
+
+            await mod.updateProjectFragment('https://odin.example', 'proj-1', 'token', { status: 'Published' });
+
+            expect(putToOdinStub.calledTwice).to.be.true;
+            expect(getFragmentWithEtagStub.calledTwice).to.be.true;
+        });
+
+        it('throws immediately on non-412/500 errors without retry', async () => {
+            const fragment = makeFragment([{ name: 'status', type: 'text', values: ['Draft'] }]);
+            getFragmentWithEtagStub.resolves({ fragment, etag: '"e"' });
+            putToOdinStub.rejects(new Error('PUT /fragments/proj-1 failed with status 400: Bad Request'));
+
+            let threw = false;
+            try {
+                await mod.updateProjectFragment('https://odin.example', 'proj-1', 'token', { status: 'Published' });
+            } catch (err) {
+                threw = true;
+                expect(err.message).to.include('400');
+            }
+            expect(threw).to.be.true;
+            expect(putToOdinStub.calledOnce).to.be.true;
+        });
     });
 });

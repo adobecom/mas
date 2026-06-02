@@ -12,26 +12,38 @@ async function readProjectFragment(odinEndpoint, projectId, authToken) {
     return getFragmentWithEtag(odinEndpoint, projectId, authToken);
 }
 
-async function updateProjectFragment(odinEndpoint, projectId, authToken, fieldUpdates) {
-    const { fragment, etag } = await getFragmentWithEtag(odinEndpoint, projectId, authToken);
-    const fields = fragment.fields.map((field) => {
-        if (field.name in fieldUpdates) {
-            const v = fieldUpdates[field.name];
-            return { ...field, values: Array.isArray(v) ? v : [v] };
+async function updateProjectFragment(odinEndpoint, projectId, authToken, fieldUpdates, maxRetries = 2) {
+    let lastError;
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        const { fragment, etag } = await getFragmentWithEtag(odinEndpoint, projectId, authToken);
+        const fields = fragment.fields.map((field) => {
+            if (field.name in fieldUpdates) {
+                const v = fieldUpdates[field.name];
+                return { ...field, values: Array.isArray(v) ? v : [v] };
+            }
+            return field;
+        });
+        for (const [name, v] of Object.entries(fieldUpdates)) {
+            if (!fields.find((f) => f.name === name)) {
+                fields.push({ name, values: Array.isArray(v) ? v : [v] });
+            }
         }
-        return field;
-    });
-    for (const [name, v] of Object.entries(fieldUpdates)) {
-        if (!fields.find((f) => f.name === name)) {
-            fields.push({ name, values: Array.isArray(v) ? v : [v] });
+        try {
+            await putToOdin(odinEndpoint, projectId, authToken, {
+                title: fragment.title ?? '',
+                description: fragment.description ?? '',
+                fields,
+                etag,
+            });
+            return;
+        } catch (err) {
+            lastError = err;
+            const status = err.message.match(/status (\d{3})/)?.[1];
+            if (status !== '412' && status !== '500') throw err;
+            if (attempt < maxRetries) await new Promise((r) => setTimeout(r, 500 * attempt));
         }
     }
-    await putToOdin(odinEndpoint, projectId, authToken, {
-        title: fragment.title ?? '',
-        description: fragment.description ?? '',
-        fields,
-        etag,
-    });
+    throw lastError;
 }
 
 function getProjectPaths(fragment) {

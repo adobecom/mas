@@ -270,14 +270,17 @@ class MasBulkPublishEditor extends LitElement {
             ]);
         }
         if (this.isPublishing) {
-            return new Set([
+            const disabled = new Set([
                 QUICK_ACTION.SAVE,
                 QUICK_ACTION.DUPLICATE,
                 QUICK_ACTION.PUBLISH,
-                QUICK_ACTION.REVERT,
                 QUICK_ACTION.LOCK,
                 QUICK_ACTION.DELETE,
             ]);
+            if (!this.getFields('snapshots').length) {
+                disabled.add(QUICK_ACTION.REVERT);
+            }
+            return disabled;
         }
         if (this.isPublished) {
             return new Set([QUICK_ACTION.SAVE, QUICK_ACTION.PUBLISH]);

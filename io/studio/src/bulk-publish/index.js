@@ -42,6 +42,14 @@ function removePendingMarker(entries) {
     });
 }
 
+function getSnapshotPaths(entries) {
+    try {
+        return entries.map((e) => JSON.parse(e).path).filter(Boolean);
+    } catch {
+        return [];
+    }
+}
+
 async function main(params) {
     if (!params.projectId && !params.paths) params = parseOwBody(params);
     return run(params);
@@ -99,7 +107,7 @@ async function run(params) {
         }
 
         const includeRefs = params.includeVariations || params.includeCards;
-        const filterReferencesByStatus = includeRefs ? ['NEW', 'DRAFT', 'MODIFIED', 'UNPUBLISHED'] : [];
+        const filterReferencesByStatus = includeRefs ? ['DRAFT', 'MODIFIED', 'UNPUBLISHED'] : [];
 
         const chunks = groupAndChunk(resolved, MAX_CHUNK_SIZE);
         logger.info(JSON.stringify({ event: 'resolved', total: resolved.length, chunks: chunks.length }));
@@ -174,7 +182,7 @@ function buildSummary(details) {
 async function runWithProject(params, odinEndpoint, authToken) {
     const { projectId, publishedBy = '', includeVariations = false, includeCards = false } = params;
     const includeRefs = includeVariations || includeCards;
-    const filterReferencesByStatus = includeRefs ? ['NEW', 'DRAFT', 'MODIFIED', 'UNPUBLISHED'] : [];
+    const filterReferencesByStatus = includeRefs ? ['DRAFT', 'MODIFIED', 'UNPUBLISHED'] : [];
     logger.info(JSON.stringify({ event: 'project-publish-start', projectId }));
 
     let fragment;
@@ -197,7 +205,9 @@ async function runWithProject(params, odinEndpoint, authToken) {
     const existingEntries = getProjectSnapshots(fragment);
     let snapshotEntries;
 
-    if (hasPendingSnapshot(existingEntries)) {
+    // Only reuse a pending snapshot if it contains path info (new format).
+    // Old-format entries (created before path was serialized) fall through to create a fresh snapshot.
+    if (hasPendingSnapshot(existingEntries) && getSnapshotPaths(existingEntries).length > 0) {
         logger.info(JSON.stringify({ event: 'reuse-pending-snapshot', projectId }));
         snapshotEntries = existingEntries;
         try {
@@ -232,7 +242,11 @@ async function runWithProject(params, odinEndpoint, authToken) {
         snapshotEntries = freshEntries;
     }
 
-    const resolved = resolvePaths(paths, locales);
+    // Use snapshot paths when available so that NEW-status fragments (not yet published)
+    // are included as explicit publish targets rather than relying on cascade status filter.
+    // Fall back to locale-expanded project paths for older snapshots without path field.
+    const snapshotPathList = getSnapshotPaths(snapshotEntries);
+    const resolved = snapshotPathList.length > 0 ? snapshotPathList : resolvePaths(paths, locales);
     if (resolved.length === 0) {
         await updateProjectFragment(odinEndpoint, projectId, authToken, {
             status: PROJECT_STATUS.DRAFT,
@@ -261,7 +275,6 @@ async function runWithProject(params, odinEndpoint, authToken) {
             snapshots: finalSnapshots,
             publishedAt,
             publishedBy,
-            lastResult: JSON.stringify({ summary, details }),
             lastError,
         });
     } catch (err) {

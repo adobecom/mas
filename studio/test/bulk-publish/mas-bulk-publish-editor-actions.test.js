@@ -134,6 +134,23 @@ describe('mas-bulk-publish-editor (computed getters)', () => {
         expect(el.disabledActions.has(QUICK_ACTION.PUBLISH)).to.equal(true);
     });
 
+    it('disabledActions disables REVERT when Publishing and no snapshots exist', async () => {
+        const el = await makeEditor();
+        Store.bulkPublishProjects.inEdit.set(makeFragmentStore({ status: BULK_PUBLISH_STATUS.PUBLISHING }));
+        await el.updateComplete;
+        expect(el.disabledActions.has(QUICK_ACTION.REVERT)).to.equal(true);
+    });
+
+    it('disabledActions enables REVERT when Publishing but snapshots exist (escape hatch)', async () => {
+        const el = await makeEditor();
+        const snapshotEntry = JSON.stringify({ fragmentId: 'f1', versionId: 'v1', wasPublished: false });
+        Store.bulkPublishProjects.inEdit.set(
+            makeFragmentStore({ status: BULK_PUBLISH_STATUS.PUBLISHING, snapshots: [snapshotEntry] }),
+        );
+        await el.updateComplete;
+        expect(el.disabledActions.has(QUICK_ACTION.REVERT)).to.equal(false);
+    });
+
     it('disabledActions enables PUBLISH when published (status resets to DRAFT on save)', async () => {
         const el = await makeEditor();
         Store.bulkPublishProjects.inEdit.set(

@@ -68,6 +68,7 @@ function serializeEntries(snapshot) {
     return Object.entries(snapshot.fragments).map(([fragmentId, entry]) =>
         JSON.stringify({
             fragmentId,
+            path: entry.path,
             versionId: entry.versionId,
             wasPublished: entry.wasPublished,
             createdAt: snapshot.createdAt,

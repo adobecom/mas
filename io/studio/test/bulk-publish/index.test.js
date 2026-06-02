@@ -151,16 +151,16 @@ describe('bulk-publish/index.js', () => {
             expect(body.filterReferencesByStatus).to.deep.equal([]);
         });
 
-        it('sends filterReferencesByStatus=[NEW,DRAFT,MODIFIED,UNPUBLISHED] when includeVariations=true', async () => {
+        it('sends filterReferencesByStatus=[DRAFT,MODIFIED,UNPUBLISHED] when includeVariations=true', async () => {
             await action.main({ ...baseParams, includeVariations: true });
             const body = JSON.parse(fetchOdinStub.firstCall.args[3].body);
-            expect(body.filterReferencesByStatus).to.deep.equal(['NEW', 'DRAFT', 'MODIFIED', 'UNPUBLISHED']);
+            expect(body.filterReferencesByStatus).to.deep.equal(['DRAFT', 'MODIFIED', 'UNPUBLISHED']);
         });
 
-        it('sends filterReferencesByStatus=[NEW,DRAFT,MODIFIED,UNPUBLISHED] when includeCards=true', async () => {
+        it('sends filterReferencesByStatus=[DRAFT,MODIFIED,UNPUBLISHED] when includeCards=true', async () => {
             await action.main({ ...baseParams, includeCards: true });
             const body = JSON.parse(fetchOdinStub.firstCall.args[3].body);
-            expect(body.filterReferencesByStatus).to.deep.equal(['NEW', 'DRAFT', 'MODIFIED', 'UNPUBLISHED']);
+            expect(body.filterReferencesByStatus).to.deep.equal(['DRAFT', 'MODIFIED', 'UNPUBLISHED']);
         });
     });
 
@@ -447,7 +447,7 @@ describe('bulk-publish/index.js', () => {
             expect(loggerStub.error).to.have.been.calledWithMatch(sinon.match(/project-final-patch-error/));
         });
 
-        it('includes NEW status in filterReferencesByStatus when includeCards is true', async () => {
+        it('sends filterReferencesByStatus=[DRAFT,MODIFIED,UNPUBLISHED] when includeCards is true', async () => {
             await projectAction.main({
                 ...baseParams,
                 paths: undefined,
@@ -456,16 +456,28 @@ describe('bulk-publish/index.js', () => {
             });
 
             const publishBody = JSON.parse(fetchOdinStub.firstCall.args[3].body);
-            expect(publishBody.filterReferencesByStatus).to.include('NEW');
-            expect(publishBody.filterReferencesByStatus).to.include('DRAFT');
-            expect(publishBody.filterReferencesByStatus).to.include('UNPUBLISHED');
+            expect(publishBody.filterReferencesByStatus).to.deep.equal(['DRAFT', 'MODIFIED', 'UNPUBLISHED']);
         });
 
-        it('excludes NEW status from filterReferencesByStatus when neither cascade option is set', async () => {
+        it('sends filterReferencesByStatus=[] when neither cascade option is set', async () => {
             await projectAction.main({ ...baseParams, paths: undefined, projectId: 'proj-uuid' });
 
             const publishBody = JSON.parse(fetchOdinStub.firstCall.args[3].body);
             expect(publishBody.filterReferencesByStatus).to.deep.equal([]);
+        });
+
+        it('uses snapshot paths as publish targets when snapshot entries contain path', async () => {
+            const snapshotPaths = ['/content/dam/mas/acom/en_US/card1', '/content/dam/mas/acom/en_US/card2', '/content/dam/mas/acom/en_US/card3'];
+            createSnapshotStub.resolves(
+                snapshotPaths.map((path, i) =>
+                    JSON.stringify({ fragmentId: `frag-${i}`, path, versionId: `v${i}`, wasPublished: false, createdAt: '2025-01-01T00:00:00.000Z' }),
+                ),
+            );
+
+            await projectAction.main({ ...baseParams, paths: undefined, projectId: 'proj-uuid' });
+
+            const publishBody = JSON.parse(fetchOdinStub.firstCall.args[3].body);
+            expect(publishBody.paths).to.deep.equal(snapshotPaths);
         });
     });
 });

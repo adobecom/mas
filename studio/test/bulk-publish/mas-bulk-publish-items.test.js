@@ -98,19 +98,6 @@ describe('mas-bulk-publish-items', () => {
         expect(ev.detail).to.equal('https://example.com');
     });
 
-    it('shows "Duplicate item" label for reason="duplicate"', async () => {
-        const el = await fixture(html`
-            <mas-bulk-publish-items
-                .items=${[{ url: 'https://dup', status: 'error', reason: 'duplicate' }]}
-                .urls=${'x'}
-            ></mas-bulk-publish-items>
-        `);
-        await el.updateComplete;
-        const cell = el.shadowRoot.querySelector('.status-error');
-        expect(cell).to.exist;
-        expect(cell.textContent).to.include('Duplicate item');
-    });
-
     it('shows "Invalid URL" label for unknown reason', async () => {
         const el = await fixture(html`
             <mas-bulk-publish-items

@@ -1,5 +1,5 @@
 import { EVENT_AEM_LOAD, FF_DEFAULTS } from './constants.js';
-import { getService } from './utils.js';
+import { getService, shouldHideStPriceLabels } from './utils.js';
 
 const MAS_FIELD_TAG = 'mas-field';
 const CHECKOUT_STYLE_PATTERN = /(accent|primary|secondary)(-(outline|link))?/;
@@ -14,6 +14,11 @@ const CHECKOUT_STYLE_PATTERN = /(accent|primary|secondary)(-(outline|link))?/;
 export function priceOptionsProvider(element, options) {
     if (!element?.closest?.(MAS_FIELD_TAG)) return options;
     options[FF_DEFAULTS] = true;
+
+    if (shouldHideStPriceLabels(element)) {
+        options.displayPerUnit = false;
+        options.displayTax = false;
+    }
 }
 
 function registerPriceOptionsProvider(service) {

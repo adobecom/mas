@@ -6,6 +6,12 @@ import Store from '../../store.js';
 import { getItemsSelectionStore } from '../items-selection-store.js';
 import { FILTER_TYPE, TABLE_TYPE } from '../../constants.js';
 import ReactiveController from '../../reactivity/reactive-controller.js';
+import { AEM } from '../../aem/aem.js';
+import { getNamespaceCache, setNamespaceCache } from '../../aem/tag-cache.js';
+import { toAttribute } from '../../aem/tag-path-utils.js';
+
+const MAS_TAG_NAMESPACE = '/content/cq:tags/mas';
+const CUSTOM_TAG_ROOT = `${MAS_TAG_NAMESPACE}/custom/`;
 
 class MasSearchAndFilters extends LitElement {
     static styles = styles;
@@ -20,11 +26,21 @@ class MasSearchAndFilters extends LitElement {
         marketSegmentFilter: { type: Array, state: true },
         customerSegmentFilter: { type: Array, state: true },
         productFilter: { type: Array, state: true },
+        offerTypeFilter: { type: Array, state: true },
+        planTypeFilter: { type: Array, state: true },
+        pznFilter: { type: Array, state: true },
+        tagFilter: { type: Array, state: true },
         templateOptions: { type: Array },
         marketSegmentOptions: { type: Array },
         customerSegmentOptions: { type: Array },
         productOptions: { type: Array },
-        searchOnly: { type: Boolean },
+        offerTypeOptions: { type: Array },
+        planTypeOptions: { type: Array },
+        pznOptions: { type: Array },
+        tagOptions: { type: Array },
+        searchOnly: { type: Boolean, reflect: true },
+        promotionSurfaceOptions: { type: Array },
+        promotionSurface: { type: String },
     };
 
     constructor() {
@@ -34,11 +50,21 @@ class MasSearchAndFilters extends LitElement {
         this.marketSegmentFilter = [];
         this.customerSegmentFilter = [];
         this.productFilter = [];
+        this.offerTypeFilter = [];
+        this.planTypeFilter = [];
+        this.pznFilter = [];
+        this.tagFilter = [];
         this.templateOptions = [];
         this.marketSegmentOptions = [];
         this.customerSegmentOptions = [];
         this.productOptions = [];
+        this.offerTypeOptions = [];
+        this.planTypeOptions = [];
+        this.pznOptions = [];
+        this.tagOptions = [];
         this.dataSubscription = null;
+        this.promotionSurfaceOptions = [];
+        this.promotionSurface = '';
     }
 
     connectedCallback() {
@@ -47,9 +73,10 @@ class MasSearchAndFilters extends LitElement {
             this.#savedSearch = Store.search.get();
             this.#savedFilters = Store.filters.get();
         }
+        const selectionStore = getItemsSelectionStore();
         this.commonDataController = new ReactiveController(this, [
-            getItemsSelectionStore()[`all${this.typeUppercased}`],
-            getItemsSelectionStore()[`display${this.typeUppercased}`],
+            selectionStore[`all${this.typeUppercased}`],
+            selectionStore[`display${this.typeUppercased}`],
             Store[this.type === TABLE_TYPE.PLACEHOLDERS ? 'placeholders' : 'fragments'].list.loading,
             ...(this.type !== TABLE_TYPE.PLACEHOLDERS ? [Store.fragments.list.firstPageLoaded] : []),
         ]);
@@ -60,17 +87,21 @@ class MasSearchAndFilters extends LitElement {
             this.#applyFilters();
             this.requestUpdate();
         };
-        getItemsSelectionStore()[`all${this.typeUppercased}`].subscribe(dataCallback);
+        selectionStore[`all${this.typeUppercased}`].subscribe(dataCallback);
         this.dataSubscription = {
-            unsubscribe: () => getItemsSelectionStore()[`all${this.typeUppercased}`].unsubscribe(dataCallback),
+            unsubscribe: () => selectionStore[`all${this.typeUppercased}`].unsubscribe(dataCallback),
         };
+        if (!this.searchOnly && this.type !== TABLE_TYPE.PLACEHOLDERS) {
+            this.#loadCustomTagOptions();
+        }
     }
 
     disconnectedCallback() {
         super.disconnectedCallback();
-        getItemsSelectionStore()[`display${this.typeUppercased}`].set(
-            getItemsSelectionStore()[`all${this.typeUppercased}`].value,
-        );
+        const selectionStore = getItemsSelectionStore({ allowUnset: true });
+        if (selectionStore) {
+            selectionStore[`display${this.typeUppercased}`].set(selectionStore[`all${this.typeUppercased}`].value);
+        }
         this.dataSubscription?.unsubscribe();
         if (this.type === TABLE_TYPE.CARDS) {
             if (this.#savedSearch !== null) {
@@ -102,6 +133,10 @@ class MasSearchAndFilters extends LitElement {
         const marketSegmentMap = new Map(this.marketSegmentOptions.map((opt) => [opt.id || opt.value, opt]));
         const customerSegmentMap = new Map(this.customerSegmentOptions.map((opt) => [opt.id || opt.value, opt]));
         const productMap = new Map(this.productOptions.map((opt) => [opt.id || opt.value, opt]));
+        const offerTypeMap = new Map(this.offerTypeOptions.map((opt) => [opt.id || opt.value, opt]));
+        const planTypeMap = new Map(this.planTypeOptions.map((opt) => [opt.id || opt.value, opt]));
+        const pznMap = new Map(this.pznOptions.map((opt) => [opt.id || opt.value, opt]));
+        const tagMap = new Map(this.tagOptions.map((opt) => [opt.id || opt.value, opt]));
 
         for (const id of this.templateFilter) {
             const option = templateMap.get(id);
@@ -119,6 +154,22 @@ class MasSearchAndFilters extends LitElement {
             const option = productMap.get(id);
             if (option) filters.push({ type: FILTER_TYPE.PRODUCT, id, label: option.title || option.label });
         }
+        for (const id of this.offerTypeFilter) {
+            const option = offerTypeMap.get(id);
+            if (option) filters.push({ type: FILTER_TYPE.OFFER_TYPE, id, label: option.title || option.label });
+        }
+        for (const id of this.planTypeFilter) {
+            const option = planTypeMap.get(id);
+            if (option) filters.push({ type: FILTER_TYPE.PLAN_TYPE, id, label: option.title || option.label });
+        }
+        for (const id of this.pznFilter) {
+            const option = pznMap.get(id);
+            if (option) filters.push({ type: FILTER_TYPE.PZN, id, label: option.title || option.label });
+        }
+        for (const id of this.tagFilter) {
+            const option = tagMap.get(id);
+            if (option) filters.push({ type: FILTER_TYPE.TAG, id, label: option.title || option.label });
+        }
         return filters;
     }
 
@@ -126,6 +177,9 @@ class MasSearchAndFilters extends LitElement {
         const marketSegments = new Map();
         const customerSegments = new Map();
         const products = new Map();
+        const offerTypes = new Map();
+        const planTypes = new Map();
+        const pzns = new Map();
         for (const fragment of getItemsSelectionStore()[`all${this.typeUppercased}`].value) {
             if (!fragment.tags) continue;
 
@@ -138,6 +192,12 @@ class MasSearchAndFilters extends LitElement {
                     customerSegments.set(tagId, { id: tagId, title: tagTitle });
                 } else if (tagId.startsWith('mas:product_code/')) {
                     products.set(tagId, { id: tagId, title: tagTitle });
+                } else if (tagId.startsWith('mas:offer_type/')) {
+                    offerTypes.set(tagId, { id: tagId, title: tagTitle });
+                } else if (tagId.startsWith('mas:plan_type/')) {
+                    planTypes.set(tagId, { id: tagId, title: tagTitle });
+                } else if (tagId.startsWith('mas:pzn/')) {
+                    pzns.set(tagId, { id: tagId, title: tagTitle });
                 }
             }
         }
@@ -148,6 +208,35 @@ class MasSearchAndFilters extends LitElement {
         this.marketSegmentOptions = Array.from(marketSegments.values()).sort((a, b) => a.title.localeCompare(b.title));
         this.customerSegmentOptions = Array.from(customerSegments.values()).sort((a, b) => a.title.localeCompare(b.title));
         this.productOptions = Array.from(products.values()).sort((a, b) => a.title.localeCompare(b.title));
+        this.offerTypeOptions = Array.from(offerTypes.values()).sort((a, b) => a.title.localeCompare(b.title));
+        this.planTypeOptions = Array.from(planTypes.values()).sort((a, b) => a.title.localeCompare(b.title));
+        this.pznOptions = Array.from(pzns.values()).sort((a, b) => a.title.localeCompare(b.title));
+    }
+
+    async #loadCustomTagOptions() {
+        let data = getNamespaceCache(MAS_TAG_NAMESPACE);
+        if (!data) {
+            const aem = new AEM(null, document.querySelector('meta[name="aem-base-url"]')?.content);
+            let resolveNamespace;
+            setNamespaceCache(MAS_TAG_NAMESPACE, new Promise((resolve) => (resolveNamespace = resolve)));
+            try {
+                const rawTags = await aem.tags.list(MAS_TAG_NAMESPACE);
+                data = new Map(rawTags.hits.map((tag) => [tag.path, tag]));
+                setNamespaceCache(MAS_TAG_NAMESPACE, data);
+            } catch {
+                setNamespaceCache(MAS_TAG_NAMESPACE, undefined);
+                return;
+            }
+            resolveNamespace();
+        } else if (data instanceof Promise) {
+            await data;
+            data = getNamespaceCache(MAS_TAG_NAMESPACE);
+        }
+        if (!data || data instanceof Promise) return;
+        this.tagOptions = [...data.values()]
+            .filter((tag) => tag.path.startsWith(CUSTOM_TAG_ROOT) && tag.path !== CUSTOM_TAG_ROOT.slice(0, -1))
+            .map((tag) => ({ id: toAttribute([tag.path]), title: tag.title || tag.name || tag.path.split('/').pop() }))
+            .sort((a, b) => a.title.localeCompare(b.title));
     }
 
     willUpdate(changed) {
@@ -156,7 +245,11 @@ class MasSearchAndFilters extends LitElement {
             changed.has('templateFilter') ||
             changed.has('marketSegmentFilter') ||
             changed.has('customerSegmentFilter') ||
-            changed.has('productFilter')
+            changed.has('productFilter') ||
+            changed.has('offerTypeFilter') ||
+            changed.has('planTypeFilter') ||
+            changed.has('pznFilter') ||
+            changed.has('tagFilter')
         ) {
             this.#applyFilters();
         }
@@ -177,6 +270,18 @@ class MasSearchAndFilters extends LitElement {
                 break;
             case FILTER_TYPE.PRODUCT:
                 currentValues = [...this.productFilter];
+                break;
+            case FILTER_TYPE.OFFER_TYPE:
+                currentValues = [...this.offerTypeFilter];
+                break;
+            case FILTER_TYPE.PLAN_TYPE:
+                currentValues = [...this.planTypeFilter];
+                break;
+            case FILTER_TYPE.PZN:
+                currentValues = [...this.pznFilter];
+                break;
+            case FILTER_TYPE.TAG:
+                currentValues = [...this.tagFilter];
                 break;
             default:
                 currentValues = [];
@@ -203,6 +308,18 @@ class MasSearchAndFilters extends LitElement {
             case FILTER_TYPE.PRODUCT:
                 this.productFilter = currentValues;
                 break;
+            case FILTER_TYPE.OFFER_TYPE:
+                this.offerTypeFilter = currentValues;
+                break;
+            case FILTER_TYPE.PLAN_TYPE:
+                this.planTypeFilter = currentValues;
+                break;
+            case FILTER_TYPE.PZN:
+                this.pznFilter = currentValues;
+                break;
+            case FILTER_TYPE.TAG:
+                this.tagFilter = currentValues;
+                break;
         }
     }
 
@@ -224,6 +341,18 @@ class MasSearchAndFilters extends LitElement {
             case FILTER_TYPE.PRODUCT:
                 this.productFilter = this.productFilter.filter((filterId) => filterId !== id);
                 break;
+            case FILTER_TYPE.OFFER_TYPE:
+                this.offerTypeFilter = this.offerTypeFilter.filter((filterId) => filterId !== id);
+                break;
+            case FILTER_TYPE.PLAN_TYPE:
+                this.planTypeFilter = this.planTypeFilter.filter((filterId) => filterId !== id);
+                break;
+            case FILTER_TYPE.PZN:
+                this.pznFilter = this.pznFilter.filter((filterId) => filterId !== id);
+                break;
+            case FILTER_TYPE.TAG:
+                this.tagFilter = this.tagFilter.filter((filterId) => filterId !== id);
+                break;
         }
     }
 
@@ -232,6 +361,14 @@ class MasSearchAndFilters extends LitElement {
         this.marketSegmentFilter = [];
         this.customerSegmentFilter = [];
         this.productFilter = [];
+        this.offerTypeFilter = [];
+        this.planTypeFilter = [];
+        this.pznFilter = [];
+        this.tagFilter = [];
+    }
+
+    resetFilters() {
+        this.#clearAllFilters();
     }
 
     #renderAppliedFilters() {
@@ -261,6 +398,7 @@ class MasSearchAndFilters extends LitElement {
     }
 
     #renderFilterPicker(label, options, selectedValues, filterType) {
+        if (!options.length) return nothing;
         const selectedCount = selectedValues.length;
         const displayLabel = selectedCount > 0 ? `${label} (${selectedCount})` : label;
 
@@ -291,6 +429,47 @@ class MasSearchAndFilters extends LitElement {
         `;
     }
 
+    #renderPromotionSurfacePicker() {
+        if (!this.promotionSurfaceOptions?.length || this.promotionSurfaceOptions.length <= 1) {
+            return nothing;
+        }
+        const displayLabel = 'Surface';
+
+        return html`
+            <overlay-trigger placement="bottom-start" @sp-closed=${(e) => e.stopPropagation()}>
+                <sp-action-button slot="trigger" class="filter-trigger" quiet .disabled=${this.isLoading}>
+                    ${displayLabel}
+                    <sp-icon-chevron-down slot="icon"></sp-icon-chevron-down>
+                </sp-action-button>
+                <sp-popover slot="click-content" class="filter-popover">
+                    <sp-menu>
+                        ${this.promotionSurfaceOptions.map(
+                            (opt) => html`
+                                <sp-menu-item
+                                    value=${opt.id}
+                                    ?selected=${opt.id === this.promotionSurface}
+                                    @click=${(e) => {
+                                        e.stopPropagation();
+                                        if (opt.id === this.promotionSurface) return;
+                                        this.dispatchEvent(
+                                            new CustomEvent('promotion-surface-change', {
+                                                detail: { value: opt.id },
+                                                bubbles: true,
+                                                composed: true,
+                                            }),
+                                        );
+                                    }}
+                                >
+                                    ${opt.title}
+                                </sp-menu-item>
+                            `,
+                        )}
+                    </sp-menu>
+                </sp-popover>
+            </overlay-trigger>
+        `;
+    }
+
     #applyFilters() {
         const source = getItemsSelectionStore()[`all${this.typeUppercased}`].value || [];
         const query = this.searchQuery?.toLowerCase();
@@ -298,6 +477,10 @@ class MasSearchAndFilters extends LitElement {
         const hasMarket = this.marketSegmentFilter?.length > 0;
         const hasCustomer = this.customerSegmentFilter?.length > 0;
         const hasProduct = this.productFilter?.length > 0;
+        const hasOfferType = this.offerTypeFilter?.length > 0;
+        const hasPlanType = this.planTypeFilter?.length > 0;
+        const hasPzn = this.pznFilter?.length > 0;
+        const hasTag = this.tagFilter?.length > 0;
 
         const result = source.filter((fragment) => {
             if (query) {
@@ -309,12 +492,14 @@ class MasSearchAndFilters extends LitElement {
                     const title = (fragment.title || '').toLowerCase();
                     const studioPath = (fragment.studioPath || '').toLowerCase();
                     const path = (fragment.path || '').toLowerCase();
+                    const fragmentId = (fragment.id || '').toLowerCase();
                     const productTag = fragment.tags?.find(({ id }) => id?.startsWith('mas:product_code/'))?.title || '';
                     const offerId = fragment.offerData?.offerId || '';
                     if (
                         !title.includes(query) &&
                         !studioPath.includes(query) &&
                         !path.includes(query) &&
+                        !(fragmentId && fragmentId === query) &&
                         !productTag.toLowerCase().includes(query) &&
                         !offerId.toLowerCase().includes(query)
                     ) {
@@ -336,6 +521,18 @@ class MasSearchAndFilters extends LitElement {
             if (hasProduct) {
                 if (!fragment.tags?.some((tag) => this.productFilter.includes(tag.id))) return false;
             }
+            if (hasOfferType) {
+                if (!fragment.tags?.some((tag) => this.offerTypeFilter.includes(tag.id))) return false;
+            }
+            if (hasPlanType) {
+                if (!fragment.tags?.some((tag) => this.planTypeFilter.includes(tag.id))) return false;
+            }
+            if (hasPzn) {
+                if (!fragment.tags?.some((tag) => this.pznFilter.includes(tag.id))) return false;
+            }
+            if (hasTag) {
+                if (!fragment.tags?.some((tag) => this.tagFilter.includes(tag.id))) return false;
+            }
             return true;
         });
 
@@ -355,13 +552,16 @@ class MasSearchAndFilters extends LitElement {
     }
 
     render() {
+        const surfacePicker = this.#renderPromotionSurfacePicker();
         if (this.searchOnly) {
-            return html`${this.renderCount()}`;
+            return html`${this.renderCount()} ${surfacePicker}`;
         }
         return html`
             <div class="filters">
                 ${this.renderCount()}
                 ${this.#renderFilterPicker('Template', this.templateOptions, this.templateFilter, FILTER_TYPE.TEMPLATE)}
+                ${this.#renderFilterPicker('Offer Type', this.offerTypeOptions, this.offerTypeFilter, FILTER_TYPE.OFFER_TYPE)}
+                ${this.#renderFilterPicker('Plan Type', this.planTypeOptions, this.planTypeFilter, FILTER_TYPE.PLAN_TYPE)}
                 ${this.#renderFilterPicker(
                     'Market Segment',
                     this.marketSegmentOptions,
@@ -375,6 +575,9 @@ class MasSearchAndFilters extends LitElement {
                     FILTER_TYPE.CUSTOMER_SEGMENT,
                 )}
                 ${this.#renderFilterPicker('Product', this.productOptions, this.productFilter, FILTER_TYPE.PRODUCT)}
+                ${this.#renderFilterPicker('Tag', this.tagOptions, this.tagFilter, FILTER_TYPE.TAG)}
+                ${this.#renderFilterPicker('Personalization', this.pznOptions, this.pznFilter, FILTER_TYPE.PZN)}
+                ${surfacePicker}
             </div>
             ${this.#renderAppliedFilters()}
         `;

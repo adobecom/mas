@@ -4,9 +4,8 @@ import { MAS_ELEMENT_REGEXP, transformer as wcs } from '../../src/fragment/trans
 import { createResponse } from './mocks/MockFetch.js';
 import FRAGMENT from './mocks/fragment.json' with { type: 'json' };
 
-const CONFIGURATION = (keys = ['foo', 'testing_wcs', 'bar']) => [
+const CONFIGURATION = () => [
     {
-        api_keys: keys,
         wcsURL: 'https://www.adobe.com/web_commerce_artifact',
         env: 'prod',
     },
@@ -191,21 +190,9 @@ describe('wcs corner cases', function () {
         expect(context.body?.wcs).to.be.undefined;
     });
 
-    it('should not do much if bad configuration is is found', async function () {
-        context.wcsConfiguration = 'unexpected string';
-        context = wcs.process(context);
-        expect(context.body?.wcs).to.be.undefined;
-    });
-
     it('should not do much if no wcs placeholder is found', async function () {
         context.body = { content: '<p>no wcs placeholder here</p>' };
         context.wcsConfiguration = CONFIGURATION();
-        context = wcs.process(context);
-        expect(context.body?.wcs).to.be.undefined;
-    });
-
-    it('should not do much if no api key is found', async function () {
-        context.wcsConfiguration = CONFIGURATION(['some-other-key']);
         context = wcs.process(context);
         expect(context.body?.wcs).to.be.undefined;
     });

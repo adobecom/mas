@@ -35,7 +35,7 @@ import {
 } from './constants.js';
 import { VariantLayout } from './variants/variant-layout.js';
 import { hydrate, ANALYTICS_SECTION_ATTR } from './hydrate.js';
-import { getService, printMeasure } from './utils.js';
+import { getService, printMeasure, shouldHideStPriceLabels } from './utils.js';
 import { COMPAT_VERSION_GLOBAL_PROMO_CODE } from './compat-version.js';
 
 const MERCH_CARD = 'merch-card';
@@ -56,6 +56,12 @@ function priceOptionsProvider(element, options) {
         options.literals ??= {};
         Object.assign(options.literals, card.priceLiterals);
     }
+
+    if (shouldHideStPriceLabels(element)) {
+        options.displayPerUnit = false;
+        options.displayTax = false;
+    }
+
     if (
         !options.promotionCode &&
         card.compatVersion >= COMPAT_VERSION_GLOBAL_PROMO_CODE

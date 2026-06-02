@@ -1,0 +1,364 @@
+{
+    "path": "/content/dam/mas/sandbox/en_US/edu-two-cards-coll",
+    "name": "edu-two-cards-coll",
+    "title": "Edu two cards coll",
+    "id": "e87821c3-e35e-4a4c-b35f-e958d87168c3",
+    "description": "",
+    "model": {
+        "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24"
+    },
+    "fields": {
+        "cards": [
+            "c4be1257-acb8-430e-834c-d2bde2e34e07",
+            "bfc2a7ef-670f-4e3a-a0c4-0819393b7f5f"
+        ],
+        "collections": [],
+        "variations": [],
+        "tagFilters": [],
+        "pznTags": [],
+        "compareChart": {
+            "mimeType": "text/plain"
+        }
+    },
+    "references": {
+        "c4be1257-acb8-430e-834c-d2bde2e34e07": {
+            "type": "content-fragment",
+            "value": {
+                "path": "/content/dam/mas/sandbox/en_US/plans-uni11",
+                "name": "plans-uni11",
+                "title": "plans-uni",
+                "id": "c4be1257-acb8-430e-834c-d2bde2e34e07",
+                "description": "",
+                "model": {
+                    "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ"
+                },
+                "fields": {
+                    "variant": "plans-education",
+                    "osi": "Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ",
+                    "mnemonicIcon": [],
+                    "mnemonicAlt": [],
+                    "mnemonicLink": [],
+                    "badge": {
+                        "mimeType": "text/html"
+                    },
+                    "trialBadge": {
+                        "mimeType": "text/html"
+                    },
+                    "cardTitle": "Per Named-user License",
+                    "subtitle": "For small workgroups and departments",
+                    "prices": {
+                        "mimeType": "text/html"
+                    },
+                    "shortDescription": {
+                        "mimeType": "text/html"
+                    },
+                    "description": {
+                        "value": "<p><span class=\"text-l\">For pricing call <a class=\"secondary-link\" href=\"tel:888-649-2990\" target=\"_self\"><strong>888-649-2990</strong></a></span></p><p><strong>Includes:</strong></p><ul><li><p>100GB of cloud storage, per license</p></li><li><p>Advanced 24/7 tech support, plus 1:1 access to product experts</p></li></ul>",
+                        "mimeType": "text/html"
+                    },
+                    "callout": {
+                        "mimeType": "text/html"
+                    },
+                    "ctas": {
+                        "value": "<a class=\"accent\" href=\"https://example.com\" target=\"_self\">Select your plans</a>",
+                        "mimeType": "text/html"
+                    },
+                    "variations": [],
+                    "tags": [
+                        "mas:offer_type/base",
+                        "mas:plan_type/abm",
+                        "mas:customer_segment/individual",
+                        "mas:product_code/cces",
+                        "mas:market_segments/com"
+                    ],
+                    "pznTags": [],
+                    "features": {
+                        "value": []
+                    }
+                },
+                "settings": {
+                    "displayAnnual": false,
+                    "displayPlanType": true,
+                    "secureLabel": "Secure transaction"
+                }
+            }
+        },
+        "mas:offer_type/base": {
+            "type": "tag",
+            "value": {
+                "path": "/content/cq:tags/mas/offer_type/base",
+                "name": "base",
+                "title": "Base",
+                "id": "mas:offer_type/base",
+                "i18n": [],
+                "titlePath": "Merch at Scale : Offer type / Base",
+                "description": null
+            }
+        },
+        "mas:plan_type/abm": {
+            "type": "tag",
+            "value": {
+                "path": "/content/cq:tags/mas/plan_type/abm",
+                "name": "abm",
+                "title": "ABM",
+                "id": "mas:plan_type/abm",
+                "i18n": [],
+                "titlePath": "Merch at Scale : Plan type / ABM",
+                "description": ""
+            }
+        },
+        "mas:customer_segment/individual": {
+            "type": "tag",
+            "value": {
+                "path": "/content/cq:tags/mas/customer_segment/individual",
+                "name": "individual",
+                "title": "Individual",
+                "id": "mas:customer_segment/individual",
+                "i18n": [],
+                "titlePath": "Merch at Scale : Customer segment / Individual",
+                "description": null
+            }
+        },
+        "mas:product_code/cces": {
+            "type": "tag",
+            "value": {
+                "path": "/content/cq:tags/mas/product_code/cces",
+                "name": "cces",
+                "title": "Creative Cloud Individual Extra Storage",
+                "id": "mas:product_code/cces",
+                "i18n": [],
+                "titlePath": "Merch at Scale : Product code / Creative Cloud Individual Extra Storage",
+                "description": ""
+            }
+        },
+        "mas:market_segments/com": {
+            "type": "tag",
+            "value": {
+                "path": "/content/cq:tags/mas/market_segments/com",
+                "name": "com",
+                "title": "COM",
+                "id": "mas:market_segments/com",
+                "i18n": [],
+                "titlePath": "Merch at Scale : Market segments / COM",
+                "description": ""
+            }
+        },
+        "bfc2a7ef-670f-4e3a-a0c4-0819393b7f5f": {
+            "type": "content-fragment",
+            "value": {
+                "path": "/content/dam/mas/sandbox/en_US/plans-uni1",
+                "name": "plans-uni1",
+                "title": "plans-uni",
+                "id": "bfc2a7ef-670f-4e3a-a0c4-0819393b7f5f",
+                "description": "",
+                "model": {
+                    "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ"
+                },
+                "fields": {
+                    "variant": "plans-education",
+                    "osi": "Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ",
+                    "mnemonicIcon": [],
+                    "mnemonicAlt": [],
+                    "mnemonicLink": [],
+                    "badge": {
+                        "mimeType": "text/html"
+                    },
+                    "trialBadge": {
+                        "mimeType": "text/html"
+                    },
+                    "cardTitle": "Per Named-user License",
+                    "subtitle": "For small workgroups and departments",
+                    "prices": {
+                        "mimeType": "text/html"
+                    },
+                    "shortDescription": {
+                        "mimeType": "text/html"
+                    },
+                    "description": {
+                        "value": "<p><span class=\"heading-xs\" role=\"heading\" aria-level=\"4\"><span is=\"inline-price\" data-template=\"price\" data-wcs-osi=\"Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ\"></span> </span><span is=\"inline-price\" data-template=\"legal\" data-wcs-osi=\"Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ\"></span></p><p><strong>Includes:</strong></p><ul><li><p>100GB of cloud storage, per license &amp; some extra stuff to break line</p></li><li><p>Advanced 24/7 tech support, plus 1:1 access to product experts</p></li></ul><p>Requires <a class=\"primary-link\" href=\"https://main--cc--adobecom.aem.page/cc-shared/fragments/modals/ste/institutional-eligibility#modal-institutional-eligibility\" target=\"_self\">institutional affiliation</a>.</p>",
+                        "mimeType": "text/html"
+                    },
+                    "callout": {
+                        "mimeType": "text/html"
+                    },
+                    "ctas": {
+                        "value": "<a class=\"accent\" href=\"https://example.com\" target=\"_self\">Select your plans</a>",
+                        "mimeType": "text/html"
+                    },
+                    "variations": [],
+                    "tags": [
+                        "mas:offer_type/base",
+                        "mas:plan_type/abm",
+                        "mas:customer_segment/individual",
+                        "mas:product_code/cces",
+                        "mas:market_segments/com"
+                    ],
+                    "pznTags": [],
+                    "features": {
+                        "value": []
+                    }
+                },
+                "settings": {
+                    "displayAnnual": false,
+                    "displayPlanType": true,
+                    "secureLabel": "Secure transaction"
+                }
+            }
+        }
+    },
+    "referencesTree": [
+        {
+            "fieldName": "cards",
+            "identifier": "c4be1257-acb8-430e-834c-d2bde2e34e07",
+            "referencesTree": [
+                {
+                    "fieldName": "tags",
+                    "identifier": "mas:offer_type/base",
+                    "referencesTree": []
+                },
+                {
+                    "fieldName": "tags",
+                    "identifier": "mas:plan_type/abm",
+                    "referencesTree": []
+                },
+                {
+                    "fieldName": "tags",
+                    "identifier": "mas:customer_segment/individual",
+                    "referencesTree": []
+                },
+                {
+                    "fieldName": "tags",
+                    "identifier": "mas:product_code/cces",
+                    "referencesTree": []
+                },
+                {
+                    "fieldName": "tags",
+                    "identifier": "mas:market_segments/com",
+                    "referencesTree": []
+                }
+            ]
+        },
+        {
+            "fieldName": "cards",
+            "identifier": "bfc2a7ef-670f-4e3a-a0c4-0819393b7f5f",
+            "referencesTree": [
+                {
+                    "fieldName": "tags",
+                    "identifier": "mas:offer_type/base",
+                    "referencesTree": []
+                },
+                {
+                    "fieldName": "tags",
+                    "identifier": "mas:plan_type/abm",
+                    "referencesTree": []
+                },
+                {
+                    "fieldName": "tags",
+                    "identifier": "mas:customer_segment/individual",
+                    "referencesTree": []
+                },
+                {
+                    "fieldName": "tags",
+                    "identifier": "mas:product_code/cces",
+                    "referencesTree": []
+                },
+                {
+                    "fieldName": "tags",
+                    "identifier": "mas:market_segments/com",
+                    "referencesTree": []
+                }
+            ]
+        }
+    ],
+    "priceLiterals": {
+        "recurrenceLabel": "{recurrenceTerm, select, MONTH {/MONTH!} YEAR {/YEAR!} other {}}",
+        "strikethroughAriaLabel": "Regularly at {strikethroughPrice}",
+        "planTypeLabel": "{planType, select, ABM {Annual, billed monthly} M2M {Monthly} PUF {Annual, prepaid} other {}}"
+    },
+    "placeholders": {
+        "searchText": "",
+        "filtersText": "Filters",
+        "sortText": "Sort",
+        "popularityText": "Popularity",
+        "alphabeticallyText": "Alphabetically",
+        "noResultsText": "coll-no-results-text",
+        "plansSidenavTitle": "Categories",
+        "catalogSidenavTitle": "REFINE YOUR RESULTS",
+        "catalogSidenavClose": "Close",
+        "catalogSpecialOffersAlt": "Special Offers - opens in a new window",
+        "sidenavFilterCategories": "filter by category",
+        "sidenavResources": "RESOURCES",
+        "resultText": "<p>1&nbsp;result in&nbsp;<strong><span data-placeholder=\"filter\"></span></strong></p>",
+        "resultsText": "<p><span data-placeholder=\"resultCount\"></span>&nbsp;results in&nbsp;<strong><span data-placeholder=\"filter\"></span></strong></p>",
+        "resultMobileText": "<p>coll-search-results-mobile-text</p>",
+        "resultsMobileText": "<p><span data-placeholder=\"resultCount\"></span>&nbsp;results in&nbsp;<strong><span data-placeholder=\"filter\"></span></strong></p>",
+        "searchResultText": "<p>1 result in&nbsp;<strong><span data-placeholder=\"searchTerm\"></span></strong></p>",
+        "searchResultsText": "<p><span data-placeholder=\"resultCount\"></span>&nbsp;results for&nbsp;<strong><span data-placeholder=\"searchTerm\"></span></strong></p>",
+        "searchResultMobileText": "<p>1 result in&nbsp;<strong><span data-placeholder=\"searchTerm\"></span></strong></p>",
+        "searchResultsMobileText": "<p><span data-placeholder=\"resultCount\"></span>&nbsp;results in&nbsp;<strong><span data-placeholder=\"searchTerm\"></span></strong></p>",
+        "noSearchResultsText": "<p>Your search for  <strong><span data-placeholder=\"searchTerm\"></span></strong> did not yield any results</p>",
+        "noSearchResultsMobileText": "<p>Your search for <strong><span data-placeholder=\"searchTerm\"></span></strong> did not yield any results. Try a different search term.</p>",
+        "showMoreText": "Show more"
+    },
+    "settings": {
+        "tagLabels": {
+            "desktop": "Desktop",
+            "mobile": "Mobile",
+            "web": "Web"
+        }
+    },
+    "wcs": {
+        "prod": {
+            "Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ-us-mult": [
+                {
+                    "offerSelectorIds": [
+                        "Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ"
+                    ],
+                    "offerId": "01A09572A72A7D7F848721DE4D3C73FA",
+                    "startDate": "2017-10-18T15:00:00.000Z",
+                    "priceDetails": {
+                        "price": 89.99,
+                        "priceWithoutTax": 89.99,
+                        "annualized": {
+                            "annualizedPrice": 1079.88,
+                            "annualizedPriceWithoutTax": 1079.88
+                        },
+                        "usePrecision": true,
+                        "formatString": "'US$'#,##0.00",
+                        "taxDisplay": "TAX_EXCLUSIVE",
+                        "taxTerm": "TAX"
+                    },
+                    "priceInfo": {
+                        "price": "US$89.99",
+                        "priceWithoutTax": "US$89.99",
+                        "annualized": {
+                            "annualizedPrice": "US$1,079.88",
+                            "annualizedPriceWithoutTax": "US$1,079.88"
+                        },
+                        "usePrecision": true,
+                        "taxDisplay": "TAX_EXCLUSIVE",
+                        "taxTerm": "TAX"
+                    },
+                    "analytics": "{\"offerId\":\"01A09572A72A7D7F848721DE4D3C73FA\",\"label\":\"creative_cloud_all_apps_with_2tb_cloud_services_individual\",\"price\":\"89.99\",\"amountWithoutTax\":\"89.99\",\"commitmentType\":\"YEAR\",\"billingFrequency\":\"MONTHLY\",\"currencyCode\":\"USD\"}",
+                    "productArrangementCode": "creative_cloud_all_apps_with_2tb_cloud_services_individual",
+                    "productArrangement": {
+                        "productFamily": "CC_ALL_APPS",
+                        "productCode": "CCES"
+                    },
+                    "buyingProgram": "RETAIL",
+                    "commitment": "YEAR",
+                    "term": "MONTHLY",
+                    "customerSegment": "INDIVIDUAL",
+                    "marketSegments": [
+                        "COM"
+                    ],
+                    "salesChannel": "DIRECT",
+                    "offerType": "BASE",
+                    "pricePoint": "INDIV_CCES_COM_2TB",
+                    "language": "MULT",
+                    "merchant": "ADOBE"
+                }
+            ]
+        }
+    }
+}

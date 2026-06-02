@@ -687,6 +687,27 @@ describe('Fragment', () => {
             expect(result.variations[0].id).to.equal('var-1');
         });
 
+        it('NEW status card와 variation도 포함해서 반환', () => {
+            const fragment = new Fragment(
+                createFragmentConfig({
+                    path: '/content/dam/mas/sandbox/en_US/my-fragment',
+                    references: [
+                        { id: 'var-1', path: '/content/dam/mas/sandbox/en_GB/my-fragment', status: 'NEW' },
+                        { id: 'card-1', path: '/content/dam/mas/sandbox/en_US/some-card', status: 'NEW' },
+                    ],
+                    fields: [
+                        { name: 'variations', values: ['/content/dam/mas/sandbox/en_GB/my-fragment'] },
+                        { name: 'cards', values: ['/content/dam/mas/sandbox/en_US/some-card'] },
+                    ],
+                }),
+            );
+            const result = fragment.getPublishableReferences();
+            expect(result.variations).to.have.length(1);
+            expect(result.variations[0].id).to.equal('var-1');
+            expect(result.cards).to.have.length(1);
+            expect(result.cards[0].id).to.equal('card-1');
+        });
+
         it('이미 PUBLISHED인 reference는 제외', () => {
             const fragment = new Fragment(
                 createFragmentConfig({

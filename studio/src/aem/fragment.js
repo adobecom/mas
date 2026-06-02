@@ -135,7 +135,7 @@ export class Fragment {
     getPublishableReferences() {
         if (!this.references?.length) return { variations: [], cards: [] };
 
-        const publishableStatuses = new Set(['DRAFT', 'MODIFIED', 'UNPUBLISHED']);
+        const publishableStatuses = new Set(['NEW', 'DRAFT', 'MODIFIED', 'UNPUBLISHED']);
         const variationPaths = new Set(this.getFieldValues('variations'));
         const cardPaths = new Set(this.getFieldValues('cards'));
 

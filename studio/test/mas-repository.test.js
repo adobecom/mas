@@ -4003,4 +4003,33 @@ describe('MasRepository publishFragment', () => {
         expect(repo.aem.sites.cf.fragments.publish.calledWith(fragment, [])).to.be.true;
         expect(repo.aem.sites.cf.fragments.publishFragments.called).to.be.false;
     });
+
+    it('allSelected: true이고 NEW ref가 있으면 cascade 후 NEW ref 별도 publish', async () => {
+        const repo = makeRepo();
+        const fragWithNew = {
+            ...fragment,
+            getPublishableReferences: () => ({
+                variations: [],
+                cards: [{ id: 'new-card-1', status: 'NEW' }],
+            }),
+        };
+        await repo.publishFragment(fragWithNew, { allSelected: true });
+        expect(repo.aem.sites.cf.fragments.publish.calledWith(fragWithNew, ['DRAFT', 'MODIFIED', 'UNPUBLISHED'])).to.be.true;
+        expect(repo.aem.sites.cf.fragments.getWithEtag.calledWith('new-card-1')).to.be.true;
+        expect(repo.aem.sites.cf.fragments.publishFragments.called).to.be.true;
+    });
+
+    it('allSelected: true이고 NEW ref가 없으면 별도 publish 없음', async () => {
+        const repo = makeRepo();
+        const fragNoNew = {
+            ...fragment,
+            getPublishableReferences: () => ({
+                variations: [{ id: 'var-1', status: 'DRAFT' }],
+                cards: [],
+            }),
+        };
+        await repo.publishFragment(fragNoNew, { allSelected: true });
+        expect(repo.aem.sites.cf.fragments.publish.calledWith(fragNoNew, ['DRAFT', 'MODIFIED', 'UNPUBLISHED'])).to.be.true;
+        expect(repo.aem.sites.cf.fragments.publishFragments.called).to.be.false;
+    });
 });

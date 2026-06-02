@@ -1,7 +1,7 @@
 const { Core } = require('@adobe/aio-sdk');
 const { buildSiblingActionName, invokeAsyncAction } = require('../common.js');
 const { acquireQueueLock, releaseQueueLock, peekNextJob } = require('./queue.js');
-const { getVersioningLock, isLockExpired } = require('./versioning-lock.js');
+const { getActiveSlots, DEFAULT_CAPACITY } = require('./worker-slots.js');
 const { getJobPayload, patchProjectSummary } = require('./state.js');
 
 const logger = Core.Logger('translation-dispatcher', { level: 'info' });
@@ -39,11 +39,11 @@ async function dispatchNextQueuedJob(params = {}, deps = {}) {
     const acquireLock = deps.acquireQueueLock || acquireQueueLock;
     const releaseLock = deps.releaseQueueLock || releaseQueueLock;
     const peekJob = deps.peekNextJob || peekNextJob;
-    const getLock = deps.getVersioningLock || getVersioningLock;
-    const isExpired = deps.isLockExpired || isLockExpired;
+    const readActiveSlots = deps.getActiveSlots || getActiveSlots;
     const getPayload = deps.getJobPayload || getJobPayload;
     const patchSummary = deps.patchProjectSummary || patchProjectSummary;
     const invokeWorker = deps.invokeWorker;
+    const capacity = Number(params.workerConcurrency) || DEFAULT_CAPACITY;
 
     if (typeof invokeWorker !== 'function') {
         throw new Error('Dispatcher worker invoker is not configured');
@@ -67,14 +67,16 @@ async function dispatchNextQueuedJob(params = {}, deps = {}) {
             };
         }
 
-        const versioningLock = await getLock();
-        if (versioningLock && !isExpired(versioningLock, { now })) {
-            logger.info(`Versioning is busy for project ${versioningLock.projectId}, leaving job ${nextJobId} queued`);
+        const activeSlots = await readActiveSlots({ now });
+        if (activeSlots.length >= capacity) {
+            logger.info(
+                `All ${capacity} worker slots are taken, leaving job ${nextJobId} queued`,
+            );
             return {
                 dispatched: false,
-                reason: 'versioning_busy',
+                reason: 'no_slots_available',
                 jobId: nextJobId,
-                versioningLock,
+                activeSlots,
             };
         }
 

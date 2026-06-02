@@ -20,7 +20,6 @@ describe('Translation project-start dispatcher', () => {
         const acquireQueueLock = sinon.stub().resolves({ acquired: true });
         const releaseQueueLock = sinon.stub().resolves({ released: true });
         const peekNextJob = sinon.stub().resolves('job-1');
-        const getVersioningLock = sinon.stub().resolves(null);
         const getJobPayload = sinon.stub().resolves({
             jobId: 'job-1',
             projectId: 'project-1',
@@ -33,9 +32,9 @@ describe('Translation project-start dispatcher', () => {
                 releaseQueueLock,
                 peekNextJob,
             },
-            './versioning-lock.js': {
-                getVersioningLock,
-                isLockExpired: sinon.stub().returns(false),
+            './worker-slots.js': {
+                getActiveSlots: sinon.stub().resolves([]),
+                DEFAULT_CAPACITY: 2,
             },
             './state.js': {
                 getJobPayload,
@@ -98,9 +97,9 @@ describe('Translation project-start dispatcher', () => {
                 releaseQueueLock: sinon.stub(),
                 peekNextJob: sinon.stub(),
             },
-            './versioning-lock.js': {
-                getVersioningLock: sinon.stub(),
-                isLockExpired: sinon.stub(),
+            './worker-slots.js': {
+                getActiveSlots: sinon.stub().resolves([]),
+                DEFAULT_CAPACITY: 2,
             },
             './state.js': {
                 getJobPayload: sinon.stub(),
@@ -169,40 +168,37 @@ describe('Translation project-start dispatcher', () => {
         expect(releaseQueueLock).to.have.been.calledOnce;
     });
 
-    it('should leave the job queued when versioning is busy', async () => {
+    it('should leave the job queued when all worker slots are taken', async () => {
         const invokeWorker = sinon.stub();
         const releaseQueueLock = sinon.stub().resolves({ released: true });
+        const activeSlots = [
+            { jobId: 'a', projectId: 'pa', leaseUntil: '2026-03-24T10:01:00.000Z' },
+            { jobId: 'b', projectId: 'pb', leaseUntil: '2026-03-24T10:01:00.000Z' },
+        ];
 
         const result = await dispatchNextQueuedJob(
-            {},
+            { workerConcurrency: 2 },
             {
                 now: () => new Date('2026-03-24T10:00:00Z'),
                 acquireQueueLock: sinon.stub().resolves({ acquired: true }),
                 releaseQueueLock,
                 peekNextJob: sinon.stub().resolves('job-1'),
-                getVersioningLock: sinon.stub().resolves({
-                    projectId: 'project-busy',
-                    leaseUntil: '2026-03-24T10:01:00.000Z',
-                }),
-                isLockExpired: sinon.stub().returns(false),
+                getActiveSlots: sinon.stub().resolves(activeSlots),
                 invokeWorker,
             },
         );
 
         expect(result).to.deep.equal({
             dispatched: false,
-            reason: 'versioning_busy',
+            reason: 'no_slots_available',
             jobId: 'job-1',
-            versioningLock: {
-                projectId: 'project-busy',
-                leaseUntil: '2026-03-24T10:01:00.000Z',
-            },
+            activeSlots,
         });
         expect(invokeWorker).to.not.have.been.called;
         expect(releaseQueueLock).to.have.been.calledOnce;
     });
 
-    it('should dispatch the next queued job when versioning is free', async () => {
+    it('should dispatch the next queued job when at least one slot is free', async () => {
         const patchProjectSummary = sinon.stub().resolves();
         const invokeWorker = sinon.stub().resolves({
             activationId: 'activation-1',
@@ -210,13 +206,15 @@ describe('Translation project-start dispatcher', () => {
         const releaseQueueLock = sinon.stub().resolves({ released: true });
 
         const result = await dispatchNextQueuedJob(
-            {},
+            { workerConcurrency: 2 },
             {
                 now: () => new Date('2026-03-24T10:00:00Z'),
                 acquireQueueLock: sinon.stub().resolves({ acquired: true }),
                 releaseQueueLock,
                 peekNextJob: sinon.stub().resolves('job-1'),
-                getVersioningLock: sinon.stub().resolves(null),
+                getActiveSlots: sinon.stub().resolves([
+                    { jobId: 'busy', projectId: 'pb', leaseUntil: '2026-03-24T10:01:00.000Z' },
+                ]),
                 getJobPayload: sinon.stub().resolves({
                     jobId: 'job-1',
                     projectId: 'project-1',
@@ -226,7 +224,7 @@ describe('Translation project-start dispatcher', () => {
             },
         );
 
-        expect(invokeWorker).to.have.been.calledOnceWith('job-1', {});
+        expect(invokeWorker).to.have.been.calledOnceWith('job-1', { workerConcurrency: 2 });
         expect(patchProjectSummary.firstCall).to.have.been.calledWith('project-1', {
             queue: {
                 state: 'STARTING',
@@ -261,13 +259,13 @@ describe('Translation project-start dispatcher', () => {
 
         try {
             await dispatchNextQueuedJob(
-                {},
+                { workerConcurrency: 2 },
                 {
                     now: () => new Date('2026-03-24T10:00:00Z'),
                     acquireQueueLock: sinon.stub().resolves({ acquired: true }),
                     releaseQueueLock,
                     peekNextJob: sinon.stub().resolves('job-1'),
-                    getVersioningLock: sinon.stub().resolves(null),
+                    getActiveSlots: sinon.stub().resolves([]),
                     getJobPayload: sinon.stub().resolves({
                         jobId: 'job-1',
                         projectId: 'project-1',

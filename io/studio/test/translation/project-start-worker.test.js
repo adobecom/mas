@@ -14,16 +14,12 @@ describe('Translation project-start worker', function () {
     let getJobPayload;
     let deleteJobPayload;
     let patchProjectSummary;
-    let enqueueJob;
     let removeJob;
-    let acquireVersioningLock;
-    let renewVersioningLock;
-    let releaseVersioningLock;
+    let acquireWorkerSlot;
+    let renewWorkerSlot;
+    let releaseWorkerSlot;
     let prepareProjectStart;
-    let runVersioningStage;
-    let runPostVersioningStage;
-    let getVersioningItemCount;
-    let createProjectStartError;
+    let runSyncAndLocStage;
     let isProjectStartError;
     let updateProjectStatus;
     let buildSiblingActionName;
@@ -39,17 +35,12 @@ describe('Translation project-start worker', function () {
         getJobPayload = sinon.stub();
         deleteJobPayload = sinon.stub().resolves();
         patchProjectSummary = sinon.stub().resolves();
-        enqueueJob = sinon.stub().resolves();
         removeJob = sinon.stub().resolves();
-        acquireVersioningLock = sinon.stub();
-        renewVersioningLock = sinon.stub().resolves({ renewed: true });
-        releaseVersioningLock = sinon.stub().resolves({ released: true });
+        acquireWorkerSlot = sinon.stub();
+        renewWorkerSlot = sinon.stub().resolves({ renewed: true });
+        releaseWorkerSlot = sinon.stub().resolves({ released: true });
         prepareProjectStart = sinon.stub();
-        runVersioningStage = sinon.stub();
-        runPostVersioningStage = sinon.stub();
-        getVersioningItemCount = sinon.stub();
-        createProjectStartError = (statusCode, message, options = {}) =>
-            Object.assign(new Error(message), { statusCode }, options);
+        runSyncAndLocStage = sinon.stub();
         isProjectStartError = sinon.stub().returns(false);
         updateProjectStatus = sinon.stub().resolves({ success: true });
         buildSiblingActionName = sinon.stub().returns('/ns/MerchAtScaleStudio/translation-project-dispatcher');
@@ -67,20 +58,17 @@ describe('Translation project-start worker', function () {
                 patchProjectSummary,
             },
             './queue.js': {
-                enqueueJob,
                 removeJob,
             },
-            './versioning-lock.js': {
-                acquireVersioningLock,
-                renewVersioningLock,
-                releaseVersioningLock,
+            './worker-slots.js': {
+                acquireWorkerSlot,
+                renewWorkerSlot,
+                releaseWorkerSlot,
+                DEFAULT_CAPACITY: 2,
             },
             './project-start-service.js': {
                 prepareProjectStart,
-                runVersioningStage,
-                runPostVersioningStage,
-                getVersioningItemCount,
-                createProjectStartError,
+                runSyncAndLocStage,
                 isProjectStartError,
                 updateProjectStatus,
             },
@@ -122,7 +110,7 @@ describe('Translation project-start worker', function () {
         });
     });
 
-    it('should run the worker stages, release the lock, and trigger the dispatcher', async () => {
+    it('should acquire a slot, run sync+loc, release the slot, and trigger the dispatcher on success', async () => {
         getJobPayload.resolves({
             projectId: 'project-1',
             authToken: 'token-1',
@@ -135,234 +123,94 @@ describe('Translation project-start worker', function () {
                 itemsToSync: [],
                 locales: ['de_DE'],
             },
-            batchSize: 7,
+            batchSize: 5,
             responseMessage: 'ok',
         });
-        getVersioningItemCount.returns(5);
-        acquireVersioningLock.resolves({
-            acquired: true,
-        });
-        runVersioningStage.callsFake(async (context, options = {}) => {
-            if (options.onBatchCompleted) {
-                await options.onBatchCompleted({
-                    completedItemCount: 3,
-                    failedItemCount: 0,
-                });
-                await options.onBatchCompleted({
-                    completedItemCount: 5,
-                    failedItemCount: 0,
-                });
-            }
-            return {
-                success: true,
-                itemCount: 5,
-                completedItemCount: 5,
-                failedItemCount: 0,
-            };
-        });
-        runPostVersioningStage.resolves({
-            message: 'ok',
-        });
+        acquireWorkerSlot.resolves({ acquired: true });
+        updateProjectStatus.onFirstCall().resolves({ etag: '"running-etag"' });
+        updateProjectStatus.onSecondCall().resolves({ success: true });
+        runSyncAndLocStage.resolves({ message: 'ok' });
 
         const result = await worker.main({
             jobId: 'job-1',
             __ow_activation_id: 'activation-1',
             allowedClientId: 'mas-studio',
             odinEndpoint: 'https://odin.example.com',
-            batchSize: 7,
+            workerConcurrency: 2,
         });
 
-        expect(acquireVersioningLock).to.have.been.calledOnceWith({
-            jobId: 'job-1',
-            projectId: 'project-1',
-            activationId: 'activation-1',
-        });
-        expect(prepareProjectStart).to.have.been.calledOnce;
-        expect(removeJob).to.have.been.calledOnceWith('job-1');
-        expect(prepareProjectStart.firstCall.args[0]).to.deep.equal({
-            jobId: 'job-1',
-            __ow_activation_id: 'activation-1',
-            allowedClientId: 'mas-studio',
-            odinEndpoint: 'https://odin.example.com',
-            projectId: 'project-1',
-            authToken: 'token-1',
-            surface: 'acom',
-            batchSize: 7,
-            translationFlow: 'transcreation',
-            skipSubmissionDateUpdate: true,
-            __ow_headers: {
-                authorization: 'Bearer token-1',
+        expect(acquireWorkerSlot).to.have.been.calledOnceWith(
+            {
+                jobId: 'job-1',
+                projectId: 'project-1',
+                activationId: 'activation-1',
             },
-        });
-        expect(runVersioningStage).to.have.been.calledOnce;
-        expect(runPostVersioningStage).to.have.been.calledOnce;
+            { capacity: 2 },
+        );
+        expect(removeJob).to.have.been.calledOnceWith('job-1');
+        expect(prepareProjectStart).to.have.been.calledOnce;
+        expect(runSyncAndLocStage).to.have.been.calledOnce;
         expect(updateProjectStatus.firstCall).to.have.been.calledWith(
             'project-1',
             'RUNNING',
             'token-1',
             sinon.match({
-                jobId: 'job-1',
                 odinEndpoint: 'https://odin.example.com',
                 projectId: 'project-1',
                 authToken: 'token-1',
             }),
-        );
-        expect(releaseVersioningLock).to.have.been.calledOnceWith({
-            jobId: 'job-1',
-            projectId: 'project-1',
-            activationId: 'activation-1',
-        });
-        expect(buildSiblingActionName).to.have.been.calledOnceWith(
-            {
-                jobId: 'job-1',
-                __ow_activation_id: 'activation-1',
-                allowedClientId: 'mas-studio',
-                odinEndpoint: 'https://odin.example.com',
-                batchSize: 7,
-            },
-            'translation-project-dispatcher',
-            {
-                overrideParamName: 'translationProjectStartDispatcherActionName',
-            },
-        );
-        expect(invokeAsyncAction).to.have.been.calledOnceWith(
-            '/ns/MerchAtScaleStudio/translation-project-dispatcher',
-            {},
-            {
-                jobId: 'job-1',
-                __ow_activation_id: 'activation-1',
-                allowedClientId: 'mas-studio',
-                odinEndpoint: 'https://odin.example.com',
-                batchSize: 7,
-            },
-        );
-        expect(patchProjectSummary.firstCall).to.have.been.calledWith(
-            'project-1',
-            sinon.match({
-                worker: sinon.match({
-                    startedAt: sinon.match.string,
-                }),
-            }),
-        );
-        expect(patchProjectSummary.secondCall).to.have.been.calledWith(
-            'project-1',
-            sinon.match({
-                status: 'RUNNING',
-                worker: sinon.match({
-                    startedAt: sinon.match.string,
-                }),
-                versioning: sinon.match({
-                    itemCount: 5,
-                    completedItemCount: 0,
-                    failedItemCount: 0,
-                    batchSize: 7,
-                }),
-            }),
-        );
-        expect(patchProjectSummary.getCall(2)).to.have.been.calledWith(
-            'project-1',
-            sinon.match({
-                status: 'RUNNING',
-                versioning: sinon.match({
-                    completedItemCount: 3,
-                    failedItemCount: 0,
-                    batchSize: 7,
-                }),
-            }),
-        );
-        expect(patchProjectSummary.getCall(3)).to.have.been.calledWith(
-            'project-1',
-            sinon.match({
-                status: 'RUNNING',
-                versioning: sinon.match({
-                    completedItemCount: 5,
-                    failedItemCount: 0,
-                    batchSize: 7,
-                }),
-            }),
-        );
-        expect(patchProjectSummary.getCall(4)).to.have.been.calledWith(
-            'project-1',
-            sinon.match({
-                status: 'RUNNING',
-                versioning: sinon.match({
-                    itemCount: 5,
-                    completedItemCount: 5,
-                    failedItemCount: 0,
-                    batchSize: 7,
-                }),
-            }),
-        );
-        expect(patchProjectSummary.getCall(5)).to.have.been.calledWith(
-            'project-1',
-            sinon.match({
-                status: 'ASYNC_PROCESSING',
-                lastError: null,
-            }),
+            null,
         );
         expect(updateProjectStatus.secondCall).to.have.been.calledWith(
             'project-1',
             'ASYNC_PROCESSING',
             'token-1',
             sinon.match({
-                jobId: 'job-1',
                 odinEndpoint: 'https://odin.example.com',
                 projectId: 'project-1',
                 authToken: 'token-1',
             }),
+            '"running-etag"',
+        );
+        expect(releaseWorkerSlot).to.have.been.calledOnceWith({
+            jobId: 'job-1',
+            projectId: 'project-1',
+            activationId: 'activation-1',
+        });
+        expect(invokeAsyncAction).to.have.been.calledOnceWith(
+            '/ns/MerchAtScaleStudio/translation-project-dispatcher',
+            {},
+            sinon.match.any,
         );
         expect(deleteJobPayload).to.have.been.calledOnceWith('job-1');
         expect(result).to.deep.equal({
             statusCode: 200,
-            body: {
-                message: 'ok',
-            },
+            body: { message: 'ok' },
         });
     });
 
-    it('should requeue the job when the versioning lock is held by another worker', async () => {
+    it('should leave the job queued when no worker slot is available', async () => {
         getJobPayload.resolves({
             projectId: 'project-1',
             authToken: 'token-1',
         });
-        prepareProjectStart.resolves({
-            translationData: {
-                itemsToTranslate: [],
-                itemsToSync: [],
-                locales: [],
-            },
-            batchSize: 10,
-        });
-        getVersioningItemCount.returns(0);
-        acquireVersioningLock.resolves({
+        acquireWorkerSlot.resolves({
             acquired: false,
-            reason: 'locked',
+            reason: 'no_slots_available',
         });
 
         const result = await worker.main({
             jobId: 'job-1',
+            workerConcurrency: 2,
         });
 
-        expect(runVersioningStage).to.not.have.been.called;
-        expect(releaseVersioningLock).to.not.have.been.called;
+        expect(prepareProjectStart).to.not.have.been.called;
+        expect(runSyncAndLocStage).to.not.have.been.called;
+        expect(releaseWorkerSlot).to.not.have.been.called;
         expect(updateProjectStatus).to.not.have.been.called;
         expect(deleteJobPayload).to.not.have.been.called;
-        expect(removeJob).to.have.been.calledOnceWith('job-1');
-        expect(enqueueJob).to.have.been.calledOnceWith('job-1');
-        expect(patchProjectSummary.firstCall).to.have.been.calledWith(
-            'project-1',
-            sinon.match({
-                worker: sinon.match({
-                    startedAt: sinon.match.string,
-                }),
-            }),
-            {
-                params: {
-                    jobId: 'job-1',
-                },
-            },
-        );
-        expect(patchProjectSummary.secondCall).to.have.been.calledWith(
+        expect(removeJob).to.not.have.been.called;
+        expect(patchProjectSummary.lastCall).to.have.been.calledWith(
             'project-1',
             {
                 status: 'QUEUED',
@@ -372,16 +220,12 @@ describe('Translation project-start worker', function () {
                 },
                 lastError: null,
             },
-            {
-                params: {
-                    jobId: 'job-1',
-                },
-            },
+            { params: sinon.match.any },
         );
         expect(result).to.deep.equal({
             statusCode: 202,
             body: {
-                message: 'Versioning lock is already held, job requeued',
+                message: 'No worker slot available, job left queued',
                 jobId: 'job-1',
                 projectId: 'project-1',
                 queued: true,
@@ -389,115 +233,72 @@ describe('Translation project-start worker', function () {
         });
     });
 
-    it('should preserve RUNNING status and record progress when versioning has failed items', async () => {
+    it('should mark FAILED, release slot, trigger dispatcher, and clean up when prepareProjectStart fails', async () => {
         getJobPayload.resolves({
             projectId: 'project-1',
             authToken: 'token-1',
         });
-        prepareProjectStart.resolves({
-            translationData: {
-                itemsToTranslate: [],
-                itemsToSync: [],
-                locales: [],
-            },
-            batchSize: 10,
-        });
-        getVersioningItemCount.returns(0);
-        acquireVersioningLock.resolves({
-            acquired: true,
-        });
-        isProjectStartError.callsFake((error) => Number.isInteger(error?.statusCode));
-        runVersioningStage.callsFake(async (context, options = {}) => {
-            if (options.onBatchCompleted) {
-                await options.onBatchCompleted({
-                    completedItemCount: 8,
-                    failedItemCount: 2,
-                });
-            }
-            return {
-                success: false,
-                itemCount: 10,
-                completedItemCount: 8,
-                failedItemCount: 2,
-            };
-        });
-
-        const result = await worker.main({
-            jobId: 'job-1',
-        });
-
-        expect(removeJob).to.have.been.calledOnceWith('job-1');
-        expect(releaseVersioningLock).to.have.been.calledOnce;
-        expect(runPostVersioningStage).to.not.have.been.called;
-        expect(patchProjectSummary).to.have.been.calledWith(
-            'project-1',
-            sinon.match({
-                versioning: sinon.match({
-                    completedItemCount: 8,
-                    failedItemCount: 2,
-                }),
-            }),
-        );
-        expect(patchProjectSummary.lastCall).to.have.been.calledWith(
-            'project-1',
-            sinon.match({
-                lastError: 'Failed to version target fragments',
-            }),
-            {
-                params: {
-                    jobId: 'job-1',
-                },
-            },
-        );
-        expect(updateProjectStatus).to.not.have.been.called;
-        expect(deleteJobPayload).to.have.been.calledOnceWith('job-1');
-        expect(result).to.deep.equal({
-            statusCode: 500,
-            body: {
-                error: 'Failed to version target fragments',
-            },
-        });
-    });
-
-    it('should continue cleanup and return a generic error when prepareProjectStart fails after the worker starts', async () => {
-        getJobPayload.resolves({
-            projectId: 'project-1',
-            authToken: 'token-1',
-        });
+        acquireWorkerSlot.resolves({ acquired: true });
         prepareProjectStart.rejects(new Error('prepare failed'));
 
         const result = await worker.main({
             jobId: 'job-1',
+            odinEndpoint: 'https://odin.example.com',
         });
 
-        expect(removeJob).to.have.been.calledOnceWith('job-1');
-        expect(patchProjectSummary.firstCall).to.have.been.calledWith(
-            'project-1',
-            sinon.match({
-                worker: sinon.match({
-                    startedAt: sinon.match.string,
-                }),
-            }),
-        );
-        expect(patchProjectSummary.secondCall).to.have.been.calledWith(
+        expect(releaseWorkerSlot).to.have.been.calledOnce;
+        expect(invokeAsyncAction).to.have.been.calledOnce;
+        expect(patchProjectSummary.lastCall).to.have.been.calledWith(
             'project-1',
             {
                 status: 'FAILED',
                 lastError: 'prepare failed',
             },
-            {
-                params: {
-                    jobId: 'job-1',
-                },
-            },
+            { params: sinon.match.any },
+        );
+        expect(updateProjectStatus).to.have.been.calledOnceWith(
+            'project-1',
+            'FAILED',
+            'token-1',
+            sinon.match.any,
+        );
+        expect(deleteJobPayload).to.have.been.calledOnceWith('job-1');
+        expect(result).to.deep.equal({
+            statusCode: 500,
+            body: { error: 'prepare failed' },
+        });
+    });
+
+    it('should preserve status and record lastError when an error carries preserveStatus', async () => {
+        getJobPayload.resolves({
+            projectId: 'project-1',
+            authToken: 'token-1',
+        });
+        acquireWorkerSlot.resolves({ acquired: true });
+        prepareProjectStart.resolves({
+            translationData: { itemsToTranslate: [], itemsToSync: [], locales: [] },
+            batchSize: 5,
+            responseMessage: 'ok',
+        });
+        isProjectStartError.callsFake((error) => Number.isInteger(error?.statusCode));
+        const preservedError = Object.assign(new Error('Failed to sync: 1 request(s) failed'), {
+            statusCode: 500,
+            preserveStatus: true,
+        });
+        runSyncAndLocStage.rejects(preservedError);
+
+        const result = await worker.main({ jobId: 'job-1' });
+
+        expect(patchProjectSummary.lastCall).to.have.been.calledWith(
+            'project-1',
+            { lastError: 'Failed to sync: 1 request(s) failed' },
+            { params: sinon.match.any },
         );
         expect(updateProjectStatus).to.not.have.been.called;
         expect(deleteJobPayload).to.have.been.calledOnceWith('job-1');
         expect(result).to.deep.equal({
             statusCode: 500,
-            body: {
-                error: 'prepare failed',
-            },
+            body: { error: 'Failed to sync: 1 request(s) failed' },
         });
     });
 
@@ -512,13 +313,13 @@ describe('Translation project-start worker', function () {
         expect(mockLogger.warn).to.have.been.calledOnce;
     });
 
-    it('should warn when releasing the versioning lock fails', async () => {
-        releaseVersioningLock.resolves({
+    it('should warn when releasing the worker slot fails', async () => {
+        releaseWorkerSlot.resolves({
             released: false,
-            reason: 'not_owner',
+            reason: 'missing',
         });
 
-        await worker.releaseVersioningLockOrWarn(
+        await worker.releaseWorkerSlotOrWarn(
             {
                 jobId: 'job-1',
                 projectId: 'project-1',
@@ -527,7 +328,7 @@ describe('Translation project-start worker', function () {
             'job-1',
         );
 
-        expect(mockLogger.warn).to.have.been.calledOnceWith('Failed to release versioning lock for job job-1: not_owner');
+        expect(mockLogger.warn).to.have.been.calledOnceWith('Failed to release worker slot for job job-1: missing');
     });
 
     it('should warn when deleting the job payload fails', async () => {
@@ -561,33 +362,27 @@ describe('Translation project-start worker', function () {
             message: 'structured failure',
         });
         const generic = worker.toWorkerErrorResponse({
-            body: {
-                message: 'generic body message',
-            },
+            body: { message: 'generic body message' },
         });
 
         expect(structured).to.deep.equal({
             statusCode: 409,
-            body: {
-                error: 'structured failure',
-            },
+            body: { error: 'structured failure' },
         });
         expect(generic).to.deep.equal({
             statusCode: 500,
-            body: {
-                error: 'generic body message',
-            },
+            body: { error: 'generic body message' },
         });
     });
 
-    it('should stop the heartbeat with a renewal error when the lock can no longer be renewed', async () => {
+    it('should stop the heartbeat with a renewal error when the slot can no longer be renewed', async () => {
         const clock = sinon.useFakeTimers();
-        renewVersioningLock.resolves({
+        renewWorkerSlot.resolves({
             renewed: false,
             reason: 'expired',
         });
 
-        const heartbeat = worker.startVersioningLockHeartbeat(
+        const heartbeat = worker.startWorkerSlotHeartbeat(
             {
                 jobId: 'job-1',
                 projectId: 'project-1',
@@ -595,7 +390,7 @@ describe('Translation project-start worker', function () {
             },
             {
                 intervalMs: 10,
-                renewVersioningLock,
+                renewWorkerSlot,
             },
         );
 
@@ -603,7 +398,7 @@ describe('Translation project-start worker', function () {
         const error = await heartbeat.stop();
 
         expect(error).to.be.an('error');
-        expect(error.message).to.equal('Failed to renew versioning lock: expired');
+        expect(error.message).to.equal('Failed to renew worker slot: expired');
         clock.restore();
     });
 });

@@ -1,14 +1,16 @@
 const { Core } = require('@adobe/aio-sdk');
 const { buildSiblingActionName, invokeAsyncAction } = require('../common.js');
 const { getJobPayload, deleteJobPayload, patchProjectSummary } = require('./state.js');
-const { enqueueJob, removeJob } = require('./queue.js');
-const { acquireVersioningLock, renewVersioningLock, releaseVersioningLock } = require('./versioning-lock.js');
+const { removeJob } = require('./queue.js');
+const {
+    acquireWorkerSlot,
+    renewWorkerSlot,
+    releaseWorkerSlot,
+    DEFAULT_CAPACITY,
+} = require('./worker-slots.js');
 const {
     prepareProjectStart,
-    runVersioningStage,
-    runPostVersioningStage,
-    getVersioningItemCount,
-    createProjectStartError,
+    runSyncAndLocStage,
     isProjectStartError,
     updateProjectStatus,
 } = require('./project-start-service.js');
@@ -19,11 +21,11 @@ const ASYNC_PROCESSING_STATUS = 'ASYNC_PROCESSING';
 const QUEUED_STATUS = 'QUEUED';
 const FAILED_STATUS = 'FAILED';
 const DISPATCHER_ACTION_NAME = 'translation-project-dispatcher';
-const DEFAULT_LOCK_RENEW_INTERVAL_MS = 30 * 1000;
+const DEFAULT_SLOT_RENEW_INTERVAL_MS = 30 * 1000;
 
 async function main(params) {
-    let lockOwner;
-    let lockHeld = false;
+    let slotOwner;
+    let slotHeld = false;
     let heartbeat;
     let shouldTriggerDispatcher = false;
     let shouldDeleteJobPayload = false;
@@ -51,81 +53,44 @@ async function main(params) {
         shouldDeleteJobPayload = true;
 
         await patchWorkerStartedSummary(payload.projectId, params);
-        await removeJobFromQueueOrWarn(params.jobId);
         const workerParams = createWorkerParams(params, payload);
-        const context = await prepareProjectStart(workerParams);
-        const versioningItemCount = getVersioningItemCount(context.translationData);
-        lockOwner = createLockOwner(params, payload);
-        const lockResult = await acquireVersioningLock(lockOwner);
-        if (!lockResult.acquired) {
+        slotOwner = createSlotOwner(params, payload);
+        const capacity = Number(params.workerConcurrency) || DEFAULT_CAPACITY;
+        const slotResult = await acquireWorkerSlot(slotOwner, { capacity });
+        if (!slotResult.acquired) {
             shouldDeleteJobPayload = false;
-            await requeueJobForVersioningRetry(params.jobId, payload.projectId, params);
+            await markProjectQueued(payload.projectId, params);
             return {
                 statusCode: 202,
                 body: {
-                    message: 'Versioning lock is already held, job requeued',
+                    message: 'No worker slot available, job left queued',
                     jobId: params.jobId,
                     projectId: payload.projectId,
                     queued: true,
                 },
             };
         }
-        lockHeld = true;
+        slotHeld = true;
         shouldTriggerDispatcher = true;
+        await removeJobFromQueueOrWarn(params.jobId);
 
-        const versioningStartedAt = new Date().toISOString();
-        await patchRunningSummary(payload.projectId, {
-            params,
-            updatedAt: versioningStartedAt,
-            versioningStartedAt,
-            versioningItemCount,
-            batchSize: context.batchSize,
-        });
+        heartbeat = startWorkerSlotHeartbeat(slotOwner);
+
+        const context = await prepareProjectStart(workerParams);
+
+        const startedAt = new Date().toISOString();
+        await patchRunningSummary(payload.projectId, { params, updatedAt: startedAt });
         const { etag: runningStatusEtag } =
             (await syncProjectFragmentStatus(payload.projectId, RUNNING_STATUS, workerParams.authToken, workerParams)) ?? {};
 
-        heartbeat = startVersioningLockHeartbeat(lockOwner);
-        const versioningResult = await runVersioningStage(context, {
-            onBatchCompleted: async ({ completedItemCount, failedItemCount }) => {
-                await patchVersioningProgress(payload.projectId, {
-                    params,
-                    completedItemCount,
-                    failedItemCount,
-                    batchSize: context.batchSize,
-                });
-            },
-        });
+        const dispatchResult = await runSyncAndLocStage(context);
+
         const heartbeatError = await stopHeartbeat(heartbeat);
         heartbeat = null;
-
-        const versioningCompletedAt = new Date().toISOString();
-        await patchVersioningCompletion(payload.projectId, {
-            params,
-            updatedAt: versioningCompletedAt,
-            versioningStartedAt,
-            versioningCompletedAt,
-            versioningItemCount: versioningResult.itemCount,
-            completedItemCount: versioningResult.completedItemCount,
-            failedItemCount: versioningResult.failedItemCount,
-            batchSize: context.batchSize,
-        });
-
         if (heartbeatError) {
             throw heartbeatError;
         }
 
-        if (!versioningResult.success) {
-            throw createProjectStartError(500, 'Failed to version target fragments', {
-                preserveStatus: true,
-            });
-        }
-
-        await releaseVersioningLockOrWarn(lockOwner, params.jobId);
-        lockHeld = false;
-        await triggerDispatcher(params);
-        shouldTriggerDispatcher = false;
-
-        const dispatchResult = await runPostVersioningStage(context);
         await patchAsyncProcessingSummary(payload.projectId, params);
         await syncProjectFragmentStatus(
             payload.projectId,
@@ -166,10 +131,10 @@ async function main(params) {
     } finally {
         const heartbeatError = await stopHeartbeat(heartbeat);
         if (heartbeatError) {
-            logger.warn(`Versioning lock heartbeat failed for job ${params.jobId}: ${heartbeatError.message}`);
+            logger.warn(`Worker slot heartbeat failed for job ${params.jobId}: ${heartbeatError.message}`);
         }
-        if (lockHeld && lockOwner) {
-            await releaseVersioningLockOrWarn(lockOwner, params.jobId);
+        if (slotHeld && slotOwner) {
+            await releaseWorkerSlotOrWarn(slotOwner, params.jobId);
         }
         if (shouldTriggerDispatcher) {
             await triggerDispatcher(params);
@@ -194,7 +159,7 @@ function createWorkerParams(params, payload) {
     };
 }
 
-function createLockOwner(params, payload) {
+function createSlotOwner(params, payload) {
     return {
         jobId: params.jobId,
         projectId: payload.projectId,
@@ -218,9 +183,9 @@ async function triggerDispatcher(params = {}) {
     }
 }
 
-function startVersioningLockHeartbeat(owner, options = {}) {
-    const intervalMs = options.intervalMs ?? DEFAULT_LOCK_RENEW_INTERVAL_MS;
-    const renewLock = options.renewVersioningLock || renewVersioningLock;
+function startWorkerSlotHeartbeat(owner, options = {}) {
+    const intervalMs = options.intervalMs ?? DEFAULT_SLOT_RENEW_INTERVAL_MS;
+    const renewSlot = options.renewWorkerSlot || renewWorkerSlot;
     let timer = null;
     let stopped = false;
     let renewalError = null;
@@ -234,9 +199,9 @@ function startVersioningLockHeartbeat(owner, options = {}) {
                 return;
             }
             try {
-                const result = await renewLock(owner, options.lockOptions);
+                const result = await renewSlot(owner, options.slotOptions);
                 if (!result.renewed) {
-                    renewalError = new Error(`Failed to renew versioning lock: ${result.reason}`);
+                    renewalError = new Error(`Failed to renew worker slot: ${result.reason}`);
                     return;
                 }
                 scheduleNext();
@@ -326,20 +291,13 @@ function getErrorMessage(response) {
     return 'Unknown error';
 }
 
-async function patchRunningSummary(projectId, { params, updatedAt, versioningStartedAt, versioningItemCount, batchSize }) {
+async function patchRunningSummary(projectId, { params, updatedAt }) {
     return patchProjectSummary(
         projectId,
         {
             status: RUNNING_STATUS,
             worker: {
                 startedAt: updatedAt,
-            },
-            versioning: {
-                startedAt: versioningStartedAt,
-                itemCount: versioningItemCount,
-                completedItemCount: 0,
-                failedItemCount: 0,
-                batchSize,
             },
             lastError: null,
         },
@@ -359,51 +317,6 @@ async function patchWorkerStartedSummary(projectId, params = {}) {
     );
 }
 
-async function patchVersioningCompletion(
-    projectId,
-    {
-        params,
-        updatedAt,
-        versioningStartedAt,
-        versioningCompletedAt,
-        versioningItemCount,
-        completedItemCount,
-        failedItemCount,
-        batchSize,
-    },
-) {
-    return patchProjectSummary(
-        projectId,
-        {
-            status: RUNNING_STATUS,
-            versioning: {
-                completedAt: versioningCompletedAt,
-                durationMs: new Date(versioningCompletedAt).getTime() - new Date(versioningStartedAt).getTime(),
-                itemCount: versioningItemCount,
-                completedItemCount,
-                failedItemCount,
-                batchSize,
-            },
-        },
-        { params, updatedAt },
-    );
-}
-
-async function patchVersioningProgress(projectId, { params, completedItemCount, failedItemCount, batchSize }) {
-    return patchProjectSummary(
-        projectId,
-        {
-            status: RUNNING_STATUS,
-            versioning: {
-                completedItemCount,
-                failedItemCount,
-                batchSize,
-            },
-        },
-        { params },
-    );
-}
-
 async function patchAsyncProcessingSummary(projectId, params = {}) {
     return patchProjectSummary(
         projectId,
@@ -415,8 +328,7 @@ async function patchAsyncProcessingSummary(projectId, params = {}) {
     );
 }
 
-async function requeueJobForVersioningRetry(jobId, projectId, params = {}) {
-    await enqueueJob(jobId);
+async function markProjectQueued(projectId, params = {}) {
     return patchProjectSummary(
         projectId,
         {
@@ -431,10 +343,10 @@ async function requeueJobForVersioningRetry(jobId, projectId, params = {}) {
     );
 }
 
-async function releaseVersioningLockOrWarn(lockOwner, jobId) {
-    const released = await releaseVersioningLock(lockOwner);
+async function releaseWorkerSlotOrWarn(slotOwner, jobId) {
+    const released = await releaseWorkerSlot(slotOwner);
     if (!released.released) {
-        logger.warn(`Failed to release versioning lock for job ${jobId}: ${released.reason}`);
+        logger.warn(`Failed to release worker slot for job ${jobId}: ${released.reason}`);
     }
 }
 
@@ -457,21 +369,19 @@ async function removeJobFromQueueOrWarn(jobId) {
 module.exports = {
     main,
     createWorkerParams,
-    createLockOwner,
+    createSlotOwner,
     buildDispatcherActionName,
     triggerDispatcher,
-    startVersioningLockHeartbeat,
+    startWorkerSlotHeartbeat,
     markProjectFailed,
     toWorkerErrorResponse,
     getErrorMessage,
     syncProjectFragmentStatus,
     patchWorkerStartedSummary,
     patchRunningSummary,
-    patchVersioningProgress,
-    patchVersioningCompletion,
     patchAsyncProcessingSummary,
-    requeueJobForVersioningRetry,
-    releaseVersioningLockOrWarn,
+    markProjectQueued,
+    releaseWorkerSlotOrWarn,
     deleteJobPayloadOrWarn,
     removeJobFromQueueOrWarn,
     DISPATCHER_ACTION_NAME,
@@ -479,5 +389,5 @@ module.exports = {
     RUNNING_STATUS,
     ASYNC_PROCESSING_STATUS,
     FAILED_STATUS,
-    DEFAULT_LOCK_RENEW_INTERVAL_MS,
+    DEFAULT_SLOT_RENEW_INTERVAL_MS,
 };

@@ -213,6 +213,14 @@ describe('MasSearchAndFilters', () => {
             ]);
         });
 
+        it('should return status filters with correct format', async () => {
+            const el = await fixture(html`<mas-search-and-filters type="cards"></mas-search-and-filters>`);
+            el.statusOptions = [{ id: 'PUBLISHED', title: 'Published' }];
+            el.statusFilter = ['PUBLISHED'];
+            await el.updateComplete;
+            expect(el.appliedFilters).to.deep.equal([{ type: FILTER_TYPE.STATUS, id: 'PUBLISHED', label: 'Published' }]);
+        });
+
         it('should return combined filters from all types', async () => {
             const el = await fixture(html`<mas-search-and-filters type="cards"></mas-search-and-filters>`);
             el.templateOptions = [{ id: 'plans', title: 'Plans' }];
@@ -613,6 +621,12 @@ describe('MasSearchAndFilters', () => {
             await el.updateComplete;
             expect(el.statusOptions.map((o) => o.id)).to.have.members(['PUBLISHED', 'DRAFT', 'MODIFIED']);
             expect(el.statusOptions.map((o) => o.title)).to.have.members(['Published', 'Draft', 'Modified']);
+        });
+
+        it('does not populate Status options when searchOnly is true', async () => {
+            const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${true}></mas-search-and-filters>`);
+            await el.updateComplete;
+            expect(el.statusOptions.length).to.equal(0);
         });
     });
 
@@ -1287,6 +1301,18 @@ describe('MasSearchAndFilters', () => {
             tag.dispatchEvent(new CustomEvent('delete', { bubbles: true }));
             await el.updateComplete;
             expect(el.pznFilter).to.not.include('mas:pzn/country/us');
+        });
+
+        it('removes status chip on sp-tag delete', async () => {
+            const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${false}></mas-search-and-filters>`);
+            el.statusOptions = [{ id: 'PUBLISHED', title: 'Published' }];
+            el.statusFilter = ['PUBLISHED'];
+            await el.updateComplete;
+            const tag = el.shadowRoot.querySelector('sp-tag');
+            tag.value = { type: FILTER_TYPE.STATUS, id: 'PUBLISHED' };
+            tag.dispatchEvent(new CustomEvent('delete', { bubbles: true }));
+            await el.updateComplete;
+            expect(el.statusFilter).to.not.include('PUBLISHED');
         });
     });
 

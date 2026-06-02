@@ -32,7 +32,12 @@ const headers = {
 
 function getParentReference(localeName) {
     const defaultLocaleCode = getDefaultLocaleCode(surface, localeName);
-    if (!defaultLocaleCode || defaultLocaleCode === localeName) return null;
+    if (!defaultLocaleCode || defaultLocaleCode === localeName) {
+        if (surface !== 'acom') {
+            return `${ROOT_PATH}/acom/${localeName}/dictionary/index`;
+        }
+        return null;
+    }
     return `${ROOT_PATH}/${surface}/${defaultLocaleCode}/dictionary/index`;
 }
 

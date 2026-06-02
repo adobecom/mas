@@ -29,16 +29,16 @@ e.g `<meta name="mas-ff-defaults" content="on">`
 | Country/Locale | INDIVIDUAL | TEAM |
 | --- | --- | --- |
 | **Europe** |     |     |
-| AT_de (Austria) | inkl. MwSt | exkl. MwSt |
+| AT_de (Austria) | inkl. MwSt. | exkl. MwSt. |
 | BE_en (Belgium) | incl. VAT | excl. VAT |
 | BE_fr (Belgium) | TTC | HT  |
 | BE_nl (Belgium) | incl. btw | excl. btw |
 | BG_bg (Bulgaria) | вкл. ДДС | без ДДС |
-| CH_de (Switzerland) | inkl. MwSt | exkl. MwSt |
+| CH_de (Switzerland) | inkl. MwSt. | exkl. MwSt. |
 | CH_fr (Switzerland) | TTC | HT  |
 | CH_it (Switzerland) | incl. IVA | escl. IVA. |
 | CZ_cs (Czech Republic) | včetně DPH | bez DPH |
-| DE_de (Germany) | inkl. MwSt | exkl. MwSt |
+| DE_de (Germany) | inkl. MwSt. | exkl. MwSt. |
 | DK_da (Denmark) | inkl. moms | ekskl. moms |
 | EE_et (Estonia) | käibemaksuga | käibemaksuta |
 | ES_es (Spain) | IVA incluido | sin IVA |
@@ -51,7 +51,7 @@ e.g `<meta name="mas-ff-defaults" content="on">`
 | IE_en (Ireland) | incl. VAT | excl. VAT |
 | IT_it (Italy) | incl. IVA | escl. IVA. |
 | LT_lt (Lithuania) | su PVM | be PVM |
-| LU_de (Luxembourg) | inkl. MwSt | exkl. MwSt |
+| LU_de (Luxembourg) | inkl. MwSt. | exkl. MwSt. |
 | LU_en (Luxembourg) | incl. VAT | excl. VAT |
 | LU_fr (Luxembourg) | TTC | HT  |
 | LV_lv (Latvia) | ar PVN | bez PVN |
@@ -79,8 +79,9 @@ e.g `<meta name="mas-ff-defaults" content="on">`
 | SG_en (Singapore) | incl. GST | excl. GST |
 | TH_en (Thailand) | incl. VAT | incl. VAT |
 | TH_th (Thailand) | รวม VAT | รวม VAT |
-| VN_en (Vietnam) | \-  | excl. VAT |
-| VN_vi (Vietnam) | \-  | chưa bao gồm VAT |
+| TW_zh (Taiwan) | 含稅 | 不含稅 |
+| VN_en (Vietnam) | incl. VAT | excl. VAT |
+| VN_vi (Vietnam) | gồm VAT | chưa bao gồm VAT |
 | PH_en (Philippines) | incl. VAT | excl. VAT |
 | PH_fil (Philippines) | kasama ang VAT | hindi kasama ang VAT |
 | **Middle East & Africa** |     |     |
@@ -94,7 +95,6 @@ e.g `<meta name="mas-ff-defaults" content="on">`
 | **Latin America** |     |     |
 | CO_es (Colombia) | IVA incluido | sin IVA |
 | PE_es (Peru) | IVA incluido | IVA incluido |
-| AR_es (Argentina) | impuestos incluidos | sin impuestos |
 | MX_es (Mexico) | sin IVA | sin IVA |
 | CL_es (Chile) | sin IVA | sin IVA |
 

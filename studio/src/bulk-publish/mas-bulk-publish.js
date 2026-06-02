@@ -268,7 +268,7 @@ class MasBulkPublish extends LitElement {
             <sp-table-row
                 data-testid="project-row"
                 class=${isDisabled ? 'disabled' : ''}
-                @click=${() => this.openProject(projectStore)}
+                @dblclick=${() => this.openProject(projectStore)}
             >
                 <sp-table-cell class="project-name">${title || 'Untitled project'}</sp-table-cell>
                 <sp-table-cell class="center">${counts.fragment}</sp-table-cell>
@@ -331,7 +331,7 @@ class MasBulkPublish extends LitElement {
             ${showEmpty
                 ? html`<p class="empty" data-testid="empty">No bulk publish projects yet.</p>`
                 : html`
-                      <sp-table>
+                      <sp-table emphasized class="item-table">
                           <sp-table-head>
                               <sp-table-head-cell>Project</sp-table-head-cell>
                               <sp-table-head-cell class="center">Fragment</sp-table-head-cell>

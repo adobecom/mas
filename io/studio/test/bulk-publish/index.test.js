@@ -125,6 +125,18 @@ describe('bulk-publish/index.js', () => {
         expect(result.error.body.error).to.include('50');
     });
 
+    it('returns 400 when paths is an empty array', async () => {
+        const result = await action.main({ ...baseParams, paths: [] });
+        expect(result.error.statusCode).to.equal(400);
+        expect(result.error.body.error).to.include('non-empty array');
+    });
+
+    it('returns 400 when locales is a string instead of an array', async () => {
+        const result = await action.main({ ...baseParams, locales: 'en_US' });
+        expect(result.error.statusCode).to.equal(400);
+        expect(result.error.body.error).to.include('locales must be an array');
+    });
+
     it('never calls fetchFragmentByPath (skip-check removed)', async () => {
         await action.main({ ...baseParams });
         expect(fetchFragmentByPathStub).to.not.have.been.called;
@@ -276,6 +288,54 @@ describe('bulk-publish/index.js', () => {
         });
     });
 
+    describe('resolve edge cases (direct paths mode)', () => {
+        function makeActionWithResolvePaths(resolvePathsStub) {
+            const realUtils = require('../../utils.js');
+            const publisher = proxyquire('../../src/bulk-publish/publisher.js', {
+                '../common.js': { fetchOdin: fetchOdinStub, fetchFragmentByPath: fetchFragmentByPathStub },
+            });
+            return proxyquire('../../src/bulk-publish/index.js', {
+                '@adobe/aio-sdk': { Core: { Logger: () => loggerStub } },
+                './resolver.js': { resolvePaths: resolvePathsStub },
+                './publisher.js': publisher,
+                './snapshot.js': { createSnapshot: sinon.stub() },
+                './project.js': {
+                    readProjectFragment: sinon.stub(),
+                    updateProjectFragment: sinon.stub(),
+                    getProjectPaths: () => [],
+                    getProjectLocales: () => [],
+                    getProjectTitle: () => '',
+                    getProjectSnapshots: () => [],
+                },
+                '../../utils.js': { ...realUtils, isAllowed: isAllowedStub },
+            });
+        }
+
+        it('returns 400 when resolvePaths produces no valid paths', async () => {
+            const a = makeActionWithResolvePaths(sinon.stub().returns([]));
+            const result = await a.main({ ...baseParams });
+            expect(result.error.statusCode).to.equal(400);
+            expect(result.error.body.error).to.include('No valid paths after resolution');
+        });
+
+        it('returns 400 when resolved paths exceed MAX_RESOLVED (5000)', async () => {
+            const manyPaths = Array.from({ length: 5001 }, (_, i) => `/content/dam/mas/acom/en_US/frag-${i}`);
+            const a = makeActionWithResolvePaths(sinon.stub().returns(manyPaths));
+            const result = await a.main({ ...baseParams });
+            expect(result.error.statusCode).to.equal(400);
+            expect(result.error.body.error).to.include('exceeds maximum');
+        });
+
+        it('returns 500 when an unexpected error is thrown during publish', async () => {
+            const a = makeActionWithResolvePaths(
+                sinon.stub().throws(new Error('unexpected internal error')),
+            );
+            const result = await a.main({ ...baseParams });
+            expect(result.error.statusCode).to.equal(500);
+            expect(result.error.body.error).to.equal('Internal server error');
+        });
+    });
+
     describe('project-orchestration mode (projectId)', () => {
         const paths = ['/content/dam/mas/acom/en_US/card1', '/content/dam/mas/acom/en_US/card2'];
         const locales = [];
@@ -332,6 +392,105 @@ describe('bulk-publish/index.js', () => {
             isAllowedStub.resolves(false);
             const result = await projectAction.main({ ...baseParams, paths: undefined, projectId: 'proj-uuid' });
             expect(result.error.statusCode).to.equal(401);
+        });
+
+        it('returns 500 when readProjectFragment throws', async () => {
+            getFragmentWithEtagStub.rejects(new Error('network error'));
+            const result = await projectAction.main({ ...baseParams, paths: undefined, projectId: 'proj-uuid' });
+            expect(result.error.statusCode).to.equal(500);
+            expect(result.error.body.error).to.include('Failed to read project fragment');
+        });
+
+        it('returns 400 when project has no fragment paths', async () => {
+            const realUtils = require('../../utils.js');
+            const publisher = proxyquire('../../src/bulk-publish/publisher.js', {
+                '../common.js': { fetchOdin: fetchOdinStub, fetchFragmentByPath: fetchFragmentByPathStub },
+            });
+            const noPathsAction = proxyquire('../../src/bulk-publish/index.js', {
+                '@adobe/aio-sdk': { Core: { Logger: () => loggerStub } },
+                './resolver.js': { resolvePaths: require('../../src/bulk-publish/resolver.js').resolvePaths },
+                './publisher.js': publisher,
+                './snapshot.js': { createSnapshot: createSnapshotStub },
+                './project.js': {
+                    readProjectFragment: getFragmentWithEtagStub,
+                    updateProjectFragment: putToOdinStub,
+                    getProjectPaths: () => [],
+                    getProjectLocales: () => [],
+                    getProjectTitle: () => 'My Project',
+                    getProjectSnapshots: () => [],
+                },
+                '../../utils.js': { ...realUtils, isAllowed: isAllowedStub },
+            });
+            const result = await noPathsAction.main({ ...baseParams, paths: undefined, projectId: 'proj-uuid' });
+            expect(result.error.statusCode).to.equal(400);
+            expect(result.error.body.error).to.equal('Project has no fragments');
+        });
+
+        it('reuses a pending snapshot when it contains path info (skips createSnapshot)', async () => {
+            const pendingEntry = JSON.stringify({
+                fragmentId: 'frag-1',
+                path: '/content/dam/mas/acom/en_US/card1',
+                versionId: 'v1',
+                wasPublished: false,
+                publishComplete: false,
+                createdAt: '2025-01-01T00:00:00.000Z',
+            });
+            const realUtils = require('../../utils.js');
+            const publisher = proxyquire('../../src/bulk-publish/publisher.js', {
+                '../common.js': { fetchOdin: fetchOdinStub, fetchFragmentByPath: fetchFragmentByPathStub },
+            });
+            const reuseAction = proxyquire('../../src/bulk-publish/index.js', {
+                '@adobe/aio-sdk': { Core: { Logger: () => loggerStub } },
+                './resolver.js': { resolvePaths: require('../../src/bulk-publish/resolver.js').resolvePaths },
+                './publisher.js': publisher,
+                './snapshot.js': { createSnapshot: createSnapshotStub },
+                './project.js': {
+                    readProjectFragment: getFragmentWithEtagStub,
+                    updateProjectFragment: putToOdinStub,
+                    getProjectPaths: () => paths,
+                    getProjectLocales: () => locales,
+                    getProjectTitle: () => 'My Project',
+                    getProjectSnapshots: () => [pendingEntry],
+                },
+                '../../utils.js': { ...realUtils, isAllowed: isAllowedStub },
+            });
+            const result = await reuseAction.main({ ...baseParams, paths: undefined, projectId: 'proj-uuid' });
+            expect(result.statusCode).to.equal(200);
+            expect(createSnapshotStub.called).to.be.false;
+        });
+
+        it('returns 500 when updateProjectFragment fails during pending snapshot reuse', async () => {
+            const pendingEntry = JSON.stringify({
+                fragmentId: 'frag-1',
+                path: '/content/dam/mas/acom/en_US/card1',
+                versionId: 'v1',
+                wasPublished: false,
+                publishComplete: false,
+                createdAt: '2025-01-01T00:00:00.000Z',
+            });
+            putToOdinStub.onFirstCall().rejects(new Error('update failed'));
+            const realUtils = require('../../utils.js');
+            const publisher = proxyquire('../../src/bulk-publish/publisher.js', {
+                '../common.js': { fetchOdin: fetchOdinStub, fetchFragmentByPath: fetchFragmentByPathStub },
+            });
+            const reuseAction = proxyquire('../../src/bulk-publish/index.js', {
+                '@adobe/aio-sdk': { Core: { Logger: () => loggerStub } },
+                './resolver.js': { resolvePaths: require('../../src/bulk-publish/resolver.js').resolvePaths },
+                './publisher.js': publisher,
+                './snapshot.js': { createSnapshot: createSnapshotStub },
+                './project.js': {
+                    readProjectFragment: getFragmentWithEtagStub,
+                    updateProjectFragment: putToOdinStub,
+                    getProjectPaths: () => paths,
+                    getProjectLocales: () => locales,
+                    getProjectTitle: () => 'My Project',
+                    getProjectSnapshots: () => [pendingEntry],
+                },
+                '../../utils.js': { ...realUtils, isAllowed: isAllowedStub },
+            });
+            const result = await reuseAction.main({ ...baseParams, paths: undefined, projectId: 'proj-uuid' });
+            expect(result.error.statusCode).to.equal(500);
+            expect(result.error.body.error).to.include('Failed to update project status');
         });
 
         it('sets status PUBLISHING then PUBLISHED on full success', async () => {

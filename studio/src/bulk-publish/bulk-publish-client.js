@@ -40,7 +40,14 @@ async function callAction(ioBaseUrl, endpoint, payload, token) {
     return body;
 }
 
-export async function publishBulk({ ioBaseUrl, projectId, publishedBy = '', token, includeVariations = false, includeCards = false }) {
+export async function publishBulk({
+    ioBaseUrl,
+    projectId,
+    publishedBy = '',
+    token,
+    includeVariations = false,
+    includeCards = false,
+}) {
     if (!projectId) throw new BulkPublishError('projectId is required');
     return callAction(ioBaseUrl, ENDPOINT, { projectId, publishedBy, includeVariations, includeCards }, token);
 }

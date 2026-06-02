@@ -86,7 +86,15 @@ function deserializeEntries(entries) {
     };
 }
 
-async function createSnapshot({ paths, projectId, projectTitle, odinEndpoint, authToken, includeCards = false, includeVariations = false }) {
+async function createSnapshot({
+    paths,
+    projectId,
+    projectTitle,
+    odinEndpoint,
+    authToken,
+    includeCards = false,
+    includeVariations = false,
+}) {
     const timestamp = Date.now();
     const snapshotId = `snap-${projectId}-${timestamp}`;
     const label = `Pre-publish - ${projectTitle}`;

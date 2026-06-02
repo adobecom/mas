@@ -179,6 +179,48 @@ describe('bulk-publish/snapshot.js', () => {
             expect(err.message).to.match(/Failed to create version/);
         });
 
+        it('silently skips a sub-fragment when createVersion returns no versionId (required=false)', async () => {
+            fetchOdinStub.callsFake((endpoint, uri) => {
+                if (uri.includes('/adobe/sites/cf/fragments?path=')) {
+                    const path = decodeURIComponent(uri.split('path=')[1]);
+                    if (path === '/content/dam/coll') {
+                        return fetchResponse({
+                            items: [
+                                {
+                                    id: 'frag-coll',
+                                    path,
+                                    status: 'DRAFT',
+                                    fields: [{ name: 'cards', values: ['/content/dam/card'] }],
+                                },
+                            ],
+                        });
+                    }
+                    if (path === '/content/dam/card') {
+                        return fetchResponse({ items: [{ id: 'frag-card', path, status: 'DRAFT', fields: [] }] });
+                    }
+                }
+                if (uri.includes('/versions')) {
+                    const fragId = uri.split('/fragments/')[1].split('/')[0];
+                    if (fragId === 'frag-card') return fetchResponse({}, { location: null });
+                    return fetchResponse({}, { location: `/versions/ver-${fragId}` });
+                }
+                return fetchResponse({});
+            });
+
+            const results = await snapshot.createSnapshot({
+                paths: ['/content/dam/coll'],
+                projectId: 'p1',
+                projectTitle: 'T',
+                odinEndpoint,
+                authToken,
+                includeCards: true,
+            });
+
+            const fragmentIds = results.map((r) => JSON.parse(r).fragmentId);
+            expect(fragmentIds).to.include('frag-coll');
+            expect(fragmentIds).to.not.include('frag-card');
+        });
+
         it('includeCards: true snapshots cards and collections fields (not variations)', async () => {
             fetchOdinStub.callsFake((endpoint, uri) => {
                 if (uri.includes('/adobe/sites/cf/fragments?path=')) {
@@ -273,8 +315,16 @@ describe('bulk-publish/snapshot.js', () => {
                 if (uri.includes('/adobe/sites/cf/fragments?path=')) {
                     const path = decodeURIComponent(uri.split('path=')[1]);
                     const fragments = {
-                        '/content/dam/coll': { id: 'frag-coll', status: 'PUBLISHED', fields: [{ name: 'cards', values: ['/content/dam/card-1'] }] },
-                        '/content/dam/card-1': { id: 'frag-card', status: 'PUBLISHED', fields: [{ name: 'variations', values: ['/content/dam/var-1'] }] },
+                        '/content/dam/coll': {
+                            id: 'frag-coll',
+                            status: 'PUBLISHED',
+                            fields: [{ name: 'cards', values: ['/content/dam/card-1'] }],
+                        },
+                        '/content/dam/card-1': {
+                            id: 'frag-card',
+                            status: 'PUBLISHED',
+                            fields: [{ name: 'variations', values: ['/content/dam/var-1'] }],
+                        },
                         '/content/dam/var-1': { id: 'frag-var', status: 'DRAFT', fields: [] },
                     };
                     const f = fragments[path];
@@ -306,8 +356,16 @@ describe('bulk-publish/snapshot.js', () => {
                 if (uri.includes('/adobe/sites/cf/fragments?path=')) {
                     const path = decodeURIComponent(uri.split('path=')[1]);
                     const fragments = {
-                        '/content/dam/coll': { id: 'frag-coll', status: 'PUBLISHED', fields: [{ name: 'collections', values: ['/content/dam/sub-coll'] }] },
-                        '/content/dam/sub-coll': { id: 'frag-sub-coll', status: 'PUBLISHED', fields: [{ name: 'cards', values: ['/content/dam/card-1'] }] },
+                        '/content/dam/coll': {
+                            id: 'frag-coll',
+                            status: 'PUBLISHED',
+                            fields: [{ name: 'collections', values: ['/content/dam/sub-coll'] }],
+                        },
+                        '/content/dam/sub-coll': {
+                            id: 'frag-sub-coll',
+                            status: 'PUBLISHED',
+                            fields: [{ name: 'cards', values: ['/content/dam/card-1'] }],
+                        },
                         '/content/dam/card-1': { id: 'frag-card', status: 'PUBLISHED', fields: [] },
                     };
                     const f = fragments[path];
@@ -339,8 +397,16 @@ describe('bulk-publish/snapshot.js', () => {
                 if (uri.includes('/adobe/sites/cf/fragments?path=')) {
                     const path = decodeURIComponent(uri.split('path=')[1]);
                     const fragments = {
-                        '/content/dam/coll-a': { id: 'frag-a', status: 'PUBLISHED', fields: [{ name: 'cards', values: [sharedCard] }] },
-                        '/content/dam/coll-b': { id: 'frag-b', status: 'PUBLISHED', fields: [{ name: 'cards', values: [sharedCard] }] },
+                        '/content/dam/coll-a': {
+                            id: 'frag-a',
+                            status: 'PUBLISHED',
+                            fields: [{ name: 'cards', values: [sharedCard] }],
+                        },
+                        '/content/dam/coll-b': {
+                            id: 'frag-b',
+                            status: 'PUBLISHED',
+                            fields: [{ name: 'cards', values: [sharedCard] }],
+                        },
                         [sharedCard]: { id: 'frag-shared', status: 'PUBLISHED', fields: [] },
                     };
                     const f = fragments[path];
@@ -372,7 +438,16 @@ describe('bulk-publish/snapshot.js', () => {
                 if (uri.includes('/adobe/sites/cf/fragments?path=')) {
                     const path = decodeURIComponent(uri.split('path=')[1]);
                     if (path === '/content/dam/coll') {
-                        return fetchResponse({ items: [{ id: 'frag-coll', path, status: 'PUBLISHED', fields: [{ name: 'cards', values: ['/content/dam/missing'] }] }] });
+                        return fetchResponse({
+                            items: [
+                                {
+                                    id: 'frag-coll',
+                                    path,
+                                    status: 'PUBLISHED',
+                                    fields: [{ name: 'cards', values: ['/content/dam/missing'] }],
+                                },
+                            ],
+                        });
                     }
                     return fetchResponse({ items: [] });
                 }
@@ -399,7 +474,14 @@ describe('bulk-publish/snapshot.js', () => {
             fetchOdinStub.callsFake((endpoint, uri) => {
                 if (uri.includes('/adobe/sites/cf/fragments?path=')) {
                     return fetchResponse({
-                        items: [{ id: 'frag-a', path: '/content/dam/a', status: 'PUBLISHED', fields: [{ name: 'cards', values: ['/content/dam/a'] }] }],
+                        items: [
+                            {
+                                id: 'frag-a',
+                                path: '/content/dam/a',
+                                status: 'PUBLISHED',
+                                fields: [{ name: 'cards', values: ['/content/dam/a'] }],
+                            },
+                        ],
                     });
                 }
                 if (uri.includes('/versions')) {

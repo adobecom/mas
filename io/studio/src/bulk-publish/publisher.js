@@ -12,7 +12,14 @@ const WORKFLOW_STATUS_MAP = {
     ERROR_INVALID: { status: 'failed', reason: 'error-invalid' },
 };
 
-async function publishChunk({ chunk, odinEndpoint, authToken, logger, maxRetries = DEFAULT_MAX_RETRIES, filterReferencesByStatus = ['DRAFT', 'MODIFIED', 'UNPUBLISHED'] }) {
+async function publishChunk({
+    chunk,
+    odinEndpoint,
+    authToken,
+    logger,
+    maxRetries = DEFAULT_MAX_RETRIES,
+    filterReferencesByStatus = ['DRAFT', 'MODIFIED', 'UNPUBLISHED'],
+}) {
     try {
         return await doPublishChunk({ chunk, odinEndpoint, authToken, logger, maxRetries, filterReferencesByStatus });
     } catch (error) {

@@ -5,17 +5,14 @@ export const features = [
     {
         tcid: '0',
         name: '@MAS-Promotions-Card-in-Collection',
-        path: [DOCS_GALLERY_PATH.PLANS_COLLECTION.US, DOCS_GALLERY_PATH.PLANS_COLLECTION.ES_ES],
+        path: DOCS_GALLERY_PATH.PLANS_COLLECTION.US,
         data: {
             id: 'da3194c1-ccd0-47cc-b27c-a4c35a32034a',
-            variation_id: 'e9d52954-25f6-41cb-8d38-7508370f30a2',
-            badgeText: {
-                US: 'Great -44%',
-                ES: 'Excelente -44%',
-            },
+            variation_id: 'cac48f1e-453d-482e-90d7-e21488baf25a',
+            badgeText: 'Great -44%',
             badgeColor: 'rgb(245, 199, 0)', // Yellow 300
-            price: PRICE_PATTERN.FAKE.promo,
-            strikeThroughPrice: PRICE_PATTERN.FAKE.regular,
+            promoPrice: PRICE_PATTERN.FAKE.promo,
+            price: PRICE_PATTERN.FAKE.regular,
         },
         browserParams: '?mas.preview=on',
         tags: '@mas-docs @mas-acom @mas-promotions @commerce @smoke @regression @milo',
@@ -31,28 +28,26 @@ export const features = [
             badgeColor: 'rgb(80, 80, 80)', // Grey 700
             badgeBorderColor: 'rgb(5, 131, 78)', // Green 900
             borderColor: 'rgb(5, 131, 78)', // Green 900
-            price: PRICE_PATTERN.FAKE.promo,
-            strikeThroughPrice: PRICE_PATTERN.FAKE.regular,
+            promoPrice: PRICE_PATTERN.FAKE.promo,
+            price: PRICE_PATTERN.FAKE.regular,
         },
-        browserParams: '?mas.preview=on',
+        browserParams: ['?mas.preview=on', 'instant=2026-04-15'],
         tags: '@mas-docs @mas-acom @mas-promotions @commerce @smoke @regression @milo',
     },
-    // {
-    //     tcid: '2',
-    //     name: '@MAS-Promotions-Grouped-Variation-Card-in-Collection',
-    //     path: [DOCS_GALLERY_PATH.PLANS_COLLECTION.GR_co, DOCS_GALLERY_PATH.PLANS_COLLECTION.GR_EN],
-    //     data: {
-    //         id: '',
-    //         variation_id: '',
-    //         badgeText: '',
-    //         badgeColor: '', //
-    //         badgeBorderColor: '', //
-    //         borderColor: '', //
-    //         subtitle: '',
-    //         price: PRICE_PATTERN.FAKE.promo,
-    //         strikeThroughPrice: PRICE_PATTERN.FAKE.regular,
-    //     },
-    //     browserParams: '?mas.preview=on',
-    //     tags: '@mas-docs @mas-acom @mas-promotions @commerce @smoke @regression @milo',
-    // },
+    {
+        tcid: '2',
+        name: '@MAS-Promotions-Grouped-Variation-Card-in-Collection',
+        path: [DOCS_GALLERY_PATH.PLANS_COLLECTION.GR_co, DOCS_GALLERY_PATH.PLANS_COLLECTION.GR_EN],
+        data: {
+            id: 'da3194c1-ccd0-47cc-b27c-a4c35a32034a',
+            variation_id: '77bf5cf9-e625-4dfb-ad26-fafe3ac4c32c',
+            badgeText: 'en_GR grouped promo',
+            badgeColor: 'rgb(218, 218, 218)', // light grey
+            badgeBorderColor: 'rgb(218, 218, 218)', // light grey
+            promoPrice: PRICE_PATTERN.FAKE.promo,
+            price: PRICE_PATTERN.FAKE.regular,
+        },
+        browserParams: ['?mas.preview=on', 'instant=2026-04-15'],
+        tags: '@mas-docs @mas-acom @mas-promotions @commerce @smoke @regression @milo',
+    },
 ];

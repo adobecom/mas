@@ -122,18 +122,17 @@ export const features = [
         },
         tags: '@mas-docs @mas-acom @mas-variations @commerce @smoke @regression @milo',
     },
-    // once issue with AR is fixed, add this test
-    // {
-    //     tcid: '8',
-    //     name: '@MAS-Translated-Card-Regional-Variation-in-Translated-Collection-Grouped-Variation',
-    //     path: [DOCS_GALLERY_PATH.PLANS_COLLECTION.AR_ES_co, DOCS_GALLERY_PATH.PLANS_COLLECTION.AR_ES],
-    //     data: {
-    //         cardid: '',
-    //         variation_card_id: '',
-    //         collection_id: '',
-    //         variation_collection_id: '',
-    //         subtitle: '',
-    //     },
-    //     tags: '@mas-docs @mas-acom @mas-variations @commerce @smoke @regression @milo',
-    // },
+    {
+        tcid: '8',
+        name: '@MAS-Translated-Card-Regional-Variation-in-Translated-Collection-Grouped-Variation',
+        path: [DOCS_GALLERY_PATH.PLANS_COLLECTION.AR_ES_co, DOCS_GALLERY_PATH.PLANS_COLLECTION.AR_ES],
+        data: {
+            cardid: 'f2c5dea9-6d4b-48ba-b42f-609830d22820',
+            variation_card_id: 'b4034b7e-bad6-4d86-930f-9f6d7ea20fba',
+            collection_id: 'b5486c6e-34c6-40a4-aa31-37eca4edf35d',
+            variation_collection_id: '22b9ba86-07d5-4fdf-a0bf-b81ae9bdd6d6',
+            subtitle: 'AR regional variation of ES',
+        },
+        tags: '@mas-docs @mas-acom @mas-variations @commerce @smoke @regression @milo',
+    },
 ];

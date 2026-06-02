@@ -6,8 +6,8 @@ const MAS_IO_URL = process.env.MAS_IO_URL || '';
 
 const PRICE_PATTERN = {
     FAKE: {
-        promo: 'US$55.55/mo',
-        regular: 'US$99.99/mo',
+        promo: 'US$55.50/mo',
+        regular: 'US$99.90/mo',
     },
     US: {
         mo: /US\$\d+\.\d\d\/mo/,

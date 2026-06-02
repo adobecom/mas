@@ -339,7 +339,7 @@ runTests(async () => {
             await merchCards.checkReady();
             const coll = document.querySelector('.merch-card-collection');
             expect(coll.classList.contains('two-merch-cards')).to.be.true;
-        });        
+        });
     });
 
     describe('merch-card-collection override feature', () => {

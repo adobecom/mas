@@ -349,9 +349,7 @@
                     "commitment": "YEAR",
                     "term": "MONTHLY",
                     "customerSegment": "INDIVIDUAL",
-                    "marketSegments": [
-                        "COM"
-                    ],
+                    "marketSegments": ["COM"],
                     "salesChannel": "DIRECT",
                     "offerType": "BASE",
                     "pricePoint": "INDIV_CCES_COM_2TB",

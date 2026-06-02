@@ -422,6 +422,7 @@ export class AemFragment extends HTMLElement {
     }
 
     transformPublishData() {
+        if (!this.#rawData) return;
         const {
             fields,
             id,

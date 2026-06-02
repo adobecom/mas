@@ -18,6 +18,8 @@ export class MasCollapsibleTableRow extends LitElement {
         isTopLevelExpanded: { type: Boolean },
         expandedVariationsPaths: { type: Set, state: true },
         isLoadingVariations: { type: Boolean, state: true },
+        isLoadingReferences: { type: Boolean, state: true },
+        refreshedCard: { type: Object, state: true },
         repository: { type: Object, state: true },
         getDisplayName: { type: Function },
         renderFragmentStatusCell: { type: Function },
@@ -38,6 +40,8 @@ export class MasCollapsibleTableRow extends LitElement {
         }
         this.selectedTabKey = 'locale';
         this.isTopLevelExpanded = false;
+        this.isLoadingReferences = false;
+        this.refreshedCard = null;
         this.expandedVariationsPaths = new Set();
         this.variationsController = new ReactiveController(this, [getItemsSelectionStore().groupedVariationsByParent]);
         this.selectedCardsController = new ReactiveController(this, [getItemsSelectionStore().selectedCards]);
@@ -169,7 +173,12 @@ export class MasCollapsibleTableRow extends LitElement {
     }
 
     get localeTabTemplate() {
-        const localeVariations = new Fragment(this.topLevelCard).listLocaleVariations();
+        if (this.isLoadingReferences) {
+            return html` <div class="loading-container--flex">
+                <sp-progress-circle label="Loading variations" indeterminate size="l"></sp-progress-circle>
+            </div>`;
+        }
+        const localeVariations = new Fragment(this.refreshedCard || this.topLevelCard).listLocaleVariations();
         if (!localeVariations.length) {
             return html`<div class="empty-grouped-variations">No locale variations found</div>`;
         }
@@ -320,6 +329,7 @@ export class MasCollapsibleTableRow extends LitElement {
     #toggleExpandTopLevel(e) {
         e.stopPropagation();
         this.isTopLevelExpanded = !this.isTopLevelExpanded;
+        if (this.isTopLevelExpanded) this.#loadReferences();
         if (this.isGroupedVariation) {
             if (getItemsSelectionStore().groupedVariationsData.value?.get(this.topLevelCard.path)) return;
             this.isLoadingVariations = true;
@@ -340,6 +350,23 @@ export class MasCollapsibleTableRow extends LitElement {
             }).finally(() => {
                 this.isLoadingVariations = false;
             });
+        }
+    }
+
+    // Search results don't carry hydrated `references`, so locale variations can't be derived
+    // from the card alone. Fetch the fragment by id (references=direct-hydrated) on first expand.
+    async #loadReferences() {
+        if (this.refreshedCard || this.topLevelCard?.references?.length) return;
+        const fragments = this.repository?.aem?.sites?.cf?.fragments;
+        const id = this.topLevelCard?.id;
+        if (!fragments?.getById || !id) return;
+        this.isLoadingReferences = true;
+        try {
+            this.refreshedCard = await fragments.getById(id);
+        } catch (err) {
+            console.warn(`Failed to load locale variations for ${this.topLevelCard?.path}:`, err.message);
+        } finally {
+            this.isLoadingReferences = false;
         }
     }
 

@@ -63,8 +63,8 @@
             "perUnitAriaLabel": "{perUnit, select, LICENSE {pro Lizenz} other {}}",
             "freeLabel": "Kostenlos",
             "freeAriaLabel": "Kostenlos",
-            "taxExclusiveLabel": "{taxTerm, select, GST {zzgl. GST} VAT {exkl. MwSt} TAX {zzgl. Steuern} IVA {zzgl. IVA} SST {zzgl. SST} KDV {zzgl. KDV} other {}}",
-            "taxInclusiveLabel": "{taxTerm, select, GST {inkl. GST} VAT {inkl. MwSt} TAX {inkl. Steuern} IVA {inkl. IVA} SST {inkl. SST} KDV {inkl. KDV} other {}}",
+            "taxExclusiveLabel": "{taxTerm, select, GST {zzgl. GST} VAT {exkl. MwSt.} TAX {zzgl. Steuern} IVA {zzgl. IVA} SST {zzgl. SST} KDV {zzgl. KDV} other {}}",
+            "taxInclusiveLabel": "{taxTerm, select, GST {inkl. GST} VAT {inkl. MwSt.} TAX {inkl. Steuern} IVA {inkl. IVA} SST {inkl. SST} KDV {inkl. KDV} other {}}",
             "alternativePriceAriaLabel": "Alternativ: {alternativePrice}",
             "strikethroughAriaLabel": "Regulär: {strikethroughPrice}"
         },
@@ -375,8 +375,8 @@
             "perUnitAriaLabel": "{perUnit, select, LICENSE {每個授權} other {}}",
             "freeLabel": "免費",
             "freeAriaLabel": "免費",
-            "taxExclusiveLabel": "{taxTerm, select, GST {不含 GST} VAT {不含 VAT} TAX {不含稅} IVA {不含 IVA} SST {不含 SST} KDV {不含 KDV} other {}}",
-            "taxInclusiveLabel": "{taxTerm, select, GST {含 GST} VAT {含 VAT} TAX {含稅} IVA {含 IVA} SST {含 SST} KDV {含 KDV} other {}}",
+            "taxExclusiveLabel": "{taxTerm, select, GST {不含 GST} VAT {不含稅} TAX {不含稅} IVA {不含 IVA} SST {不含 SST} KDV {不含 KDV} other {}}",
+            "taxInclusiveLabel": "{taxTerm, select, GST {含 GST} VAT {含稅} TAX {含稅} IVA {含 IVA} SST {含 SST} KDV {含 KDV} other {}}",
             "alternativePriceAriaLabel": "或者在 {alternativePrice}",
             "strikethroughAriaLabel": "標準價格為 {strikethroughPrice}"
         },
@@ -415,7 +415,7 @@
             "freeLabel": "Miễn phí",
             "freeAriaLabel": "Miễn phí",
             "taxExclusiveLabel": "{taxTerm, select, GST {chưa bao gồm thuế hàng hóa và dịch vụ} VAT {chưa bao gồm VAT} TAX {chưa bao gồm thuế} IVA {chưa bao gồm IVA} SST {chưa bao gồm SST} KDV {chưa bao gồm KDV} other {}}",
-            "taxInclusiveLabel": "{taxTerm, select, GST {(đã bao gồm thuế hàng hóa và dịch vụ)} VAT {(đã bao gồm thuế GTGT)} TAX {(đã bao gồm thuế)} IVA {(đã bao gồm IVA)} SST {(đã bao gồm SST)} KDV {(đã bao gồm KDV)} other {}}",
+            "taxInclusiveLabel": "{taxTerm, select, GST {(đã bao gồm thuế hàng hóa và dịch vụ)} VAT {gồm VAT} TAX {(đã bao gồm thuế)} IVA {(đã bao gồm IVA)} SST {(đã bao gồm SST)} KDV {(đã bao gồm KDV)} other {}}",
             "alternativePriceAriaLabel": "Giá ưu đãi {alternativePrice}",
             "strikethroughAriaLabel": "Giá thông thường {strikethroughPrice}"
         },

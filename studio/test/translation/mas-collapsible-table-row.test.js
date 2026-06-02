@@ -620,6 +620,49 @@ describe('MasCollapsibleTableRow', () => {
         });
     });
 
+    describe('locale variations tab', () => {
+        it('should show empty message when the card has no locale variations', async () => {
+            const topLevelCard = createMockTopLevelCard();
+            const el = await fixture(
+                html`<mas-collapsible-table-row
+                    .topLevelCard=${topLevelCard}
+                    .isTopLevelExpanded=${true}
+                ></mas-collapsible-table-row>`,
+            );
+            await el.updateComplete;
+            const localePanel = el.shadowRoot.querySelector('sp-tab-panel[value="locale"]');
+            const emptyMsg = localePanel?.querySelector('.empty-grouped-variations');
+            expect(emptyMsg).to.exist;
+            expect(emptyMsg.textContent).to.include('No locale variations found');
+        });
+
+        it('should show a loading state in the locale tab while references load', async () => {
+            const topLevelCard = createMockTopLevelCard();
+            const el = await fixture(
+                html`<mas-collapsible-table-row
+                    .topLevelCard=${topLevelCard}
+                    .isTopLevelExpanded=${true}
+                    .isLoadingReferences=${true}
+                ></mas-collapsible-table-row>`,
+            );
+            await el.updateComplete;
+            const localePanel = el.shadowRoot.querySelector('sp-tab-panel[value="locale"]');
+            expect(localePanel.querySelector('sp-progress-circle')).to.exist;
+        });
+
+        it('should fetch hydrated references on first expand to populate locale variations', async () => {
+            const topLevelCard = { ...createMockTopLevelCard(), id: 'frag-1' };
+            const el = await fixture(
+                html`<mas-collapsible-table-row .topLevelCard=${topLevelCard}></mas-collapsible-table-row>`,
+            );
+            const getById = sandbox.stub().resolves({ ...topLevelCard, references: [] });
+            el.repository = { aem: { sites: { cf: { fragments: { getById } } } } };
+            el.shadowRoot.querySelector('.expand-button').click();
+            await el.updateComplete;
+            expect(getById.calledOnceWith('frag-1')).to.be.true;
+        });
+    });
+
     describe('variation expand toggle', () => {
         it('should expand variation row when expand button is clicked', async () => {
             const varPath = '/content/dam/mas/acom/en_US/cards/parent/pzn/var1';

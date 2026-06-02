@@ -43,13 +43,23 @@ class MasSearchAndFilters extends LitElement {
         marketSegmentFilter: { type: Array, state: true },
         customerSegmentFilter: { type: Array, state: true },
         productFilter: { type: Array, state: true },
+        offerTypeFilter: { type: Array, state: true },
+        planTypeFilter: { type: Array, state: true },
+        pznFilter: { type: Array, state: true },
+        tagFilter: { type: Array, state: true },
         templateOptions: { type: Array },
         marketSegmentOptions: { type: Array },
         customerSegmentOptions: { type: Array },
         productOptions: { type: Array },
+        offerTypeOptions: { type: Array },
+        planTypeOptions: { type: Array },
+        pznOptions: { type: Array },
+        tagOptions: { type: Array },
         searchOnly: { type: Boolean, reflect: true },
         /** When set, preselects this template variant and prevents changing the Template filter. */
         lockedTemplateFilter: { type: String, attribute: 'locked-template-filter' },
+        /** When set, preselects this template variant initially while still allowing it to be changed. */
+        defaultTemplateFilter: { type: String, attribute: 'default-template-filter' },
         promotionSurfaceOptions: { type: Array },
         promotionSurface: { type: String },
     };
@@ -61,12 +71,21 @@ class MasSearchAndFilters extends LitElement {
         this.marketSegmentFilter = [];
         this.customerSegmentFilter = [];
         this.productFilter = [];
+        this.offerTypeFilter = [];
+        this.planTypeFilter = [];
+        this.pznFilter = [];
+        this.tagFilter = [];
         this.templateOptions = [];
         this.marketSegmentOptions = [];
         this.customerSegmentOptions = [];
         this.productOptions = [];
+        this.offerTypeOptions = [];
+        this.planTypeOptions = [];
+        this.pznOptions = [];
+        this.tagOptions = [];
         this.dataSubscription = null;
         this.lockedTemplateFilter = '';
+        this.defaultTemplateFilter = '';
         this.promotionSurfaceOptions = [];
         this.promotionSurface = '';
     }
@@ -79,6 +98,12 @@ class MasSearchAndFilters extends LitElement {
         if (!this.#isTemplateFilterLocked) return;
         if (this.templateFilter.length === 1 && this.templateFilter[0] === this.lockedTemplateFilter) return;
         this.templateFilter = [this.lockedTemplateFilter];
+    }
+
+    #applyDefaultTemplateFilter() {
+        if (this.#isTemplateFilterLocked || !this.defaultTemplateFilter) return;
+        if (this.templateFilter.length) return;
+        this.templateFilter = [this.defaultTemplateFilter];
     }
 
     #tagsList(tags) {
@@ -225,6 +250,7 @@ class MasSearchAndFilters extends LitElement {
             this.#savedFilters = Store.filters.get();
             this.#syncFiltersFromStore();
             this.#syncLockedTemplateFilter();
+            this.#applyDefaultTemplateFilter();
             this.#syncRepositorySearch();
             if (!this.searchOnly) this.#loadTagOptions();
         } else {
@@ -287,6 +313,10 @@ class MasSearchAndFilters extends LitElement {
         const marketSegmentMap = new Map(this.marketSegmentOptions.map((opt) => [opt.id || opt.value, opt]));
         const customerSegmentMap = new Map(this.customerSegmentOptions.map((opt) => [opt.id || opt.value, opt]));
         const productMap = new Map(this.productOptions.map((opt) => [opt.id || opt.value, opt]));
+        const offerTypeMap = new Map(this.offerTypeOptions.map((opt) => [opt.id || opt.value, opt]));
+        const planTypeMap = new Map(this.planTypeOptions.map((opt) => [opt.id || opt.value, opt]));
+        const pznMap = new Map(this.pznOptions.map((opt) => [opt.id || opt.value, opt]));
+        const tagMap = new Map(this.tagOptions.map((opt) => [opt.id || opt.value, opt]));
 
         for (const id of this.templateFilter) {
             const option = templateMap.get(id);
@@ -303,6 +333,22 @@ class MasSearchAndFilters extends LitElement {
         for (const id of this.productFilter) {
             const option = productMap.get(id);
             if (option) filters.push({ type: FILTER_TYPE.PRODUCT, id, label: option.title || option.label });
+        }
+        for (const id of this.offerTypeFilter) {
+            const option = offerTypeMap.get(id);
+            if (option) filters.push({ type: FILTER_TYPE.OFFER_TYPE, id, label: option.title || option.label });
+        }
+        for (const id of this.planTypeFilter) {
+            const option = planTypeMap.get(id);
+            if (option) filters.push({ type: FILTER_TYPE.PLAN_TYPE, id, label: option.title || option.label });
+        }
+        for (const id of this.pznFilter) {
+            const option = pznMap.get(id);
+            if (option) filters.push({ type: FILTER_TYPE.PZN, id, label: option.title || option.label });
+        }
+        for (const id of this.tagFilter) {
+            const option = tagMap.get(id);
+            if (option) filters.push({ type: FILTER_TYPE.TAG, id, label: option.title || option.label });
         }
         return filters;
     }
@@ -332,25 +378,39 @@ class MasSearchAndFilters extends LitElement {
         return product ? `${type}/${product}` : tagId;
     }
 
-    #setOptionFromTagId({ marketSegments, customerSegments, products }, tagId, title) {
+    #setOptionFromTagId(maps, tagId, title) {
         if (tagId.startsWith('mas:market_segment/') || tagId.startsWith('mas:market_segments/')) {
-            this.#setOption(marketSegments, tagId, title);
+            this.#setOption(maps.marketSegments, tagId, title);
         } else if (tagId.startsWith('mas:customer_segment/')) {
-            this.#setOption(customerSegments, tagId, title);
+            this.#setOption(maps.customerSegments, tagId, title);
         } else if (tagId.startsWith('mas:product_code/')) {
             const productTagId = this.#productParentTagId(tagId);
             const cachedTitle = getNamespaceCache(MAS_TAG_NAMESPACE)?.get?.(this.#tagIdToPath(productTagId))?.title;
-            this.#setOption(products, productTagId, cachedTitle || (productTagId === tagId ? title : ''));
+            this.#setOption(maps.products, productTagId, cachedTitle || (productTagId === tagId ? title : ''));
+        } else if (tagId.startsWith('mas:offer_type/')) {
+            this.#setOption(maps.offerTypes, tagId, title);
+        } else if (tagId.startsWith('mas:plan_type/')) {
+            this.#setOption(maps.planTypes, tagId, title);
+        } else if (tagId.startsWith('mas:pzn/')) {
+            this.#setOption(maps.pzns, tagId, title);
+        } else if (tagId.startsWith('mas:custom/')) {
+            this.#setOption(maps.customs, tagId, title);
         }
     }
 
     #addSelectedFilterOptions(optionMaps) {
-        [...(this.marketSegmentFilter || []), ...(this.customerSegmentFilter || []), ...(this.productFilter || [])].forEach(
-            (tagId) => {
-                const cachedTag = getNamespaceCache(MAS_TAG_NAMESPACE)?.get?.(this.#tagIdToPath(tagId));
-                this.#setOptionFromTagId(optionMaps, tagId, cachedTag?.title);
-            },
-        );
+        [
+            ...(this.marketSegmentFilter || []),
+            ...(this.customerSegmentFilter || []),
+            ...(this.productFilter || []),
+            ...(this.offerTypeFilter || []),
+            ...(this.planTypeFilter || []),
+            ...(this.pznFilter || []),
+            ...(this.tagFilter || []),
+        ].forEach((tagId) => {
+            const cachedTag = getNamespaceCache(MAS_TAG_NAMESPACE)?.get?.(this.#tagIdToPath(tagId));
+            this.#setOptionFromTagId(optionMaps, tagId, cachedTag?.title);
+        });
     }
 
     #addCachedFilterOptions(optionMaps) {
@@ -376,6 +436,10 @@ class MasSearchAndFilters extends LitElement {
             marketSegments: new Map(),
             customerSegments: new Map(),
             products: new Map(),
+            offerTypes: new Map(),
+            planTypes: new Map(),
+            pzns: new Map(),
+            customs: new Map(),
         };
         this.#addSelectedFilterOptions(optionMaps);
         for (const fragment of getItemsSelectionStore()[`all${this.typeUppercased}`].value) {
@@ -389,17 +453,18 @@ class MasSearchAndFilters extends LitElement {
         }
         this.#addCachedFilterOptions(optionMaps);
 
+        const toSortedOptions = (map) => Array.from(map.values()).sort((a, b) => a.title.localeCompare(b.title));
         this.templateOptions = VARIANTS.filter((variant) => variant.label.toLowerCase() !== 'all').map((variant) => ({
             id: variant.value,
             title: variant.label,
         }));
-        this.marketSegmentOptions = Array.from(optionMaps.marketSegments.values()).sort((a, b) =>
-            a.title.localeCompare(b.title),
-        );
-        this.customerSegmentOptions = Array.from(optionMaps.customerSegments.values()).sort((a, b) =>
-            a.title.localeCompare(b.title),
-        );
-        this.productOptions = Array.from(optionMaps.products.values()).sort((a, b) => a.title.localeCompare(b.title));
+        this.marketSegmentOptions = toSortedOptions(optionMaps.marketSegments);
+        this.customerSegmentOptions = toSortedOptions(optionMaps.customerSegments);
+        this.productOptions = toSortedOptions(optionMaps.products);
+        this.offerTypeOptions = toSortedOptions(optionMaps.offerTypes);
+        this.planTypeOptions = toSortedOptions(optionMaps.planTypes);
+        this.pznOptions = toSortedOptions(optionMaps.pzns);
+        this.tagOptions = toSortedOptions(optionMaps.customs);
     }
 
     willUpdate(changed) {
@@ -411,7 +476,11 @@ class MasSearchAndFilters extends LitElement {
             changed.has('templateFilter') ||
             changed.has('marketSegmentFilter') ||
             changed.has('customerSegmentFilter') ||
-            changed.has('productFilter')
+            changed.has('productFilter') ||
+            changed.has('offerTypeFilter') ||
+            changed.has('planTypeFilter') ||
+            changed.has('pznFilter') ||
+            changed.has('tagFilter')
         ) {
             if (
                 changed.has('searchQuery') ||
@@ -444,6 +513,18 @@ class MasSearchAndFilters extends LitElement {
             case FILTER_TYPE.PRODUCT:
                 currentValues = [...this.productFilter];
                 break;
+            case FILTER_TYPE.OFFER_TYPE:
+                currentValues = [...this.offerTypeFilter];
+                break;
+            case FILTER_TYPE.PLAN_TYPE:
+                currentValues = [...this.planTypeFilter];
+                break;
+            case FILTER_TYPE.PZN:
+                currentValues = [...this.pznFilter];
+                break;
+            case FILTER_TYPE.TAG:
+                currentValues = [...this.tagFilter];
+                break;
             default:
                 currentValues = [];
         }
@@ -469,6 +550,18 @@ class MasSearchAndFilters extends LitElement {
             case FILTER_TYPE.PRODUCT:
                 this.productFilter = currentValues;
                 break;
+            case FILTER_TYPE.OFFER_TYPE:
+                this.offerTypeFilter = currentValues;
+                break;
+            case FILTER_TYPE.PLAN_TYPE:
+                this.planTypeFilter = currentValues;
+                break;
+            case FILTER_TYPE.PZN:
+                this.pznFilter = currentValues;
+                break;
+            case FILTER_TYPE.TAG:
+                this.tagFilter = currentValues;
+                break;
         }
     }
 
@@ -488,6 +581,18 @@ class MasSearchAndFilters extends LitElement {
                 break;
             case FILTER_TYPE.PRODUCT:
                 this.productFilter = selectedTagIds.map((tagId) => this.#productParentTagId(tagId));
+                break;
+            case FILTER_TYPE.OFFER_TYPE:
+                this.offerTypeFilter = selectedTagIds;
+                break;
+            case FILTER_TYPE.PLAN_TYPE:
+                this.planTypeFilter = selectedTagIds;
+                break;
+            case FILTER_TYPE.PZN:
+                this.pznFilter = selectedTagIds;
+                break;
+            case FILTER_TYPE.TAG:
+                this.tagFilter = selectedTagIds;
                 break;
         }
     }
@@ -511,6 +616,18 @@ class MasSearchAndFilters extends LitElement {
             case FILTER_TYPE.PRODUCT:
                 this.productFilter = this.productFilter.filter((filterId) => filterId !== id);
                 break;
+            case FILTER_TYPE.OFFER_TYPE:
+                this.offerTypeFilter = this.offerTypeFilter.filter((filterId) => filterId !== id);
+                break;
+            case FILTER_TYPE.PLAN_TYPE:
+                this.planTypeFilter = this.planTypeFilter.filter((filterId) => filterId !== id);
+                break;
+            case FILTER_TYPE.PZN:
+                this.pznFilter = this.pznFilter.filter((filterId) => filterId !== id);
+                break;
+            case FILTER_TYPE.TAG:
+                this.tagFilter = this.tagFilter.filter((filterId) => filterId !== id);
+                break;
         }
     }
 
@@ -523,6 +640,10 @@ class MasSearchAndFilters extends LitElement {
         this.marketSegmentFilter = [];
         this.customerSegmentFilter = [];
         this.productFilter = [];
+        this.offerTypeFilter = [];
+        this.planTypeFilter = [];
+        this.pznFilter = [];
+        this.tagFilter = [];
     }
 
     resetFilters() {
@@ -556,12 +677,13 @@ class MasSearchAndFilters extends LitElement {
     }
 
     #renderFilterPicker(label, options, selectedValues, filterType, { locked = false } = {}) {
+        if (!options.length) return nothing;
         const selectedCount = selectedValues.length;
         const displayLabel = selectedCount > 0 ? `${label} (${selectedCount})` : label;
 
         return html`
             <overlay-trigger placement="bottom-start" ?disabled=${locked} @sp-closed=${(e) => e.stopPropagation()}>
-                <sp-action-button slot="trigger" class="filter-trigger" quiet .disabled=${this.isLoading || locked}>
+                <sp-action-button quiet slot="trigger" .disabled=${this.isLoading || locked}>
                     ${displayLabel}
                     <sp-icon-chevron-down slot="icon"></sp-icon-chevron-down>
                 </sp-action-button>
@@ -610,7 +732,7 @@ class MasSearchAndFilters extends LitElement {
 
         return html`
             <overlay-trigger placement="bottom-start" @sp-closed=${(e) => e.stopPropagation()}>
-                <sp-action-button slot="trigger" class="filter-trigger" quiet .disabled=${this.isLoading}>
+                <sp-action-button quiet slot="trigger" .disabled=${this.isLoading}>
                     ${displayLabel}
                     <sp-icon-chevron-down slot="icon"></sp-icon-chevron-down>
                 </sp-action-button>
@@ -650,6 +772,10 @@ class MasSearchAndFilters extends LitElement {
         const hasMarket = this.marketSegmentFilter?.length > 0;
         const hasCustomer = this.customerSegmentFilter?.length > 0;
         const hasProduct = this.productFilter?.length > 0;
+        const hasOfferType = this.offerTypeFilter?.length > 0;
+        const hasPlanType = this.planTypeFilter?.length > 0;
+        const hasPzn = this.pznFilter?.length > 0;
+        const hasTag = this.tagFilter?.length > 0;
 
         const result = source.filter((fragment) => {
             if (query) {
@@ -698,6 +824,18 @@ class MasSearchAndFilters extends LitElement {
                     return false;
                 }
             }
+            if (hasOfferType) {
+                if (!fragment.tags?.some((tag) => this.offerTypeFilter.includes(tag.id))) return false;
+            }
+            if (hasPlanType) {
+                if (!fragment.tags?.some((tag) => this.planTypeFilter.includes(tag.id))) return false;
+            }
+            if (hasPzn) {
+                if (!fragment.tags?.some((tag) => this.pznFilter.includes(tag.id))) return false;
+            }
+            if (hasTag) {
+                if (!fragment.tags?.some((tag) => this.tagFilter.includes(tag.id))) return false;
+            }
             return true;
         });
 
@@ -727,6 +865,8 @@ class MasSearchAndFilters extends LitElement {
                 ${this.#renderFilterPicker('Template', this.templateOptions, this.templateFilter, FILTER_TYPE.TEMPLATE, {
                     locked: this.#isTemplateFilterLocked,
                 })}
+                ${this.#renderTagPicker('Offer Type', 'offer_type', this.offerTypeFilter, FILTER_TYPE.OFFER_TYPE)}
+                ${this.#renderTagPicker('Plan Type', 'plan_type', this.planTypeFilter, FILTER_TYPE.PLAN_TYPE)}
                 ${this.#renderTagPicker(
                     'Market Segment',
                     'market_segment,market_segments',
@@ -740,7 +880,8 @@ class MasSearchAndFilters extends LitElement {
                     FILTER_TYPE.CUSTOMER_SEGMENT,
                 )}
                 ${this.#renderTagPicker('Product Code', 'product_code', this.productFilter, FILTER_TYPE.PRODUCT)}
-                ${surfacePicker}
+                ${this.#renderTagPicker('Tag', 'custom', this.tagFilter, FILTER_TYPE.TAG)}
+                ${this.#renderTagPicker('Personalization', 'pzn', this.pznFilter, FILTER_TYPE.PZN)} ${surfacePicker}
             </div>
             ${this.#renderAppliedFilters()}
         `;

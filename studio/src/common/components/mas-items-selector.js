@@ -29,6 +29,7 @@ class MasItemsSelector extends LitElement {
         allowedTypes: { type: Array, attribute: false },
         maxSelectedCards: { type: Number, attribute: 'max-selected-cards' },
         lockedTemplateFilter: { type: String, attribute: 'locked-template-filter' },
+        defaultTemplateFilter: { type: String, attribute: 'default-template-filter' },
         /** @type {(fragmentData: object) => string} */
         getDisplayName: { type: Function },
         renderFragmentStatusCell: { type: Function },
@@ -43,6 +44,7 @@ class MasItemsSelector extends LitElement {
         this.allowedTypes = TABS.map((tab) => tab.value);
         this.maxSelectedCards = Infinity;
         this.lockedTemplateFilter = '';
+        this.defaultTemplateFilter = '';
         this.getDisplayName = (fragmentData) => fragmentData?.path ?? '';
         this.renderFragmentStatusCell = renderFragmentStatusCell;
     }
@@ -233,6 +235,9 @@ class MasItemsSelector extends LitElement {
                                           .searchOnly=${[TABLE_TYPE.PLACEHOLDERS, TABLE_TYPE.COLLECTIONS].includes(tab.value)}
                                           .lockedTemplateFilter=${tab.value === TABLE_TYPE.CARDS
                                               ? this.lockedTemplateFilter
+                                              : ''}
+                                          .defaultTemplateFilter=${tab.value === TABLE_TYPE.CARDS
+                                              ? this.defaultTemplateFilter
                                               : ''}
                                       ></mas-search-and-filters>
                                   `}

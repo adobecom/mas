@@ -34,15 +34,6 @@ export const styles = css`
         flex-wrap: wrap;
     }
 
-    .filter-trigger {
-        border: 1px solid var(--spectrum-gray-300);
-        border-radius: 12px;
-        justify-content: start;
-        sp-icon-chevron-down {
-            order: 2;
-        }
-    }
-
     .filter-popover {
         padding: 12px;
     }

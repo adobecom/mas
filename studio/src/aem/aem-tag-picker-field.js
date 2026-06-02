@@ -68,7 +68,6 @@ class AemTagPickerField extends LitElement {
             display: flex;
             align-items: center;
             flex-direction: column;
-            min-height: 40px;
         }
 
         :host([selection='checkbox']) {
@@ -115,10 +114,6 @@ class AemTagPickerField extends LitElement {
         sp-action-button {
             display: flex;
             flex-direction: row-reverse;
-        }
-
-        sp-action-button[slot='trigger'] {
-            --mod-actionbutton-border-radius: 16px;
         }
 
         sp-popover.checkbox-popover {

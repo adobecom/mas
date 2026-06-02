@@ -1649,7 +1649,7 @@ class MasCompareChartEditor extends LitElement {
         );
         repository?.searchFragments?.({
             force: true,
-            tags: [TAG_MERCH_CARD, ...tags, `${VARIANT_TAG_PREFIX}${VARIANT_NAMES.COMPARE_CHART}`],
+            tags: [TAG_MERCH_CARD, ...tags, `${VARIANT_TAG_PREFIX}${VARIANT_NAMES.COMPARE_CHART_COLUMN}`],
         });
         this.pickerOpen = true;
         this.requestUpdate();
@@ -2433,7 +2433,7 @@ class MasCompareChartEditor extends LitElement {
                       <mas-items-selector
                           .allowedTypes=${[TABLE_TYPE.CARDS]}
                           .maxSelectedCards=${MAX_COMPARE_CHART_CARDS}
-                          .lockedTemplateFilter=${VARIANT_NAMES.COMPARE_CHART}
+                          .defaultTemplateFilter=${VARIANT_NAMES.COMPARE_CHART_COLUMN}
                           hide-selected-toggle
                       ></mas-items-selector>
                   </sp-dialog-wrapper>`

@@ -15,8 +15,8 @@ const {
 
 const ODIN_PATH = (surface, locale, fragmentPath) => `/content/dam/mas/${surface}/${locale}/${fragmentPath}`;
 const logger = Core.Logger('translation', { level: 'info' });
-const DEFAULT_BATCH_SIZE = 5;
-const DEFAULT_RPS_LIMIT = 5;
+const DEFAULT_BATCH_SIZE = 2;
+const DEFAULT_RPS_LIMIT = 2;
 const ODIN_LOC_TASK_NAME_MAX_LENGTH = 255;
 
 function getOdinLocTaskNameValidationError(value) {

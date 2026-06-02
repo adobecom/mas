@@ -256,12 +256,7 @@ describe('Translation project-start worker', function () {
             },
             { params: sinon.match.any },
         );
-        expect(updateProjectStatus).to.have.been.calledOnceWith(
-            'project-1',
-            'FAILED',
-            'token-1',
-            sinon.match.any,
-        );
+        expect(updateProjectStatus).to.have.been.calledOnceWith('project-1', 'FAILED', 'token-1', sinon.match.any);
         expect(deleteJobPayload).to.have.been.calledOnceWith('job-1');
         expect(result).to.deep.equal({
             statusCode: 500,

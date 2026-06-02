@@ -212,9 +212,9 @@ describe('Translation project-start dispatcher', () => {
                 acquireQueueLock: sinon.stub().resolves({ acquired: true }),
                 releaseQueueLock,
                 peekNextJob: sinon.stub().resolves('job-1'),
-                getActiveSlots: sinon.stub().resolves([
-                    { jobId: 'busy', projectId: 'pb', leaseUntil: '2026-03-24T10:01:00.000Z' },
-                ]),
+                getActiveSlots: sinon
+                    .stub()
+                    .resolves([{ jobId: 'busy', projectId: 'pb', leaseUntil: '2026-03-24T10:01:00.000Z' }]),
                 getJobPayload: sinon.stub().resolves({
                     jobId: 'job-1',
                     projectId: 'project-1',

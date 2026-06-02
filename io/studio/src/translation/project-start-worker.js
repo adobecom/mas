@@ -2,12 +2,7 @@ const { Core } = require('@adobe/aio-sdk');
 const { buildSiblingActionName, invokeAsyncAction } = require('../common.js');
 const { getJobPayload, deleteJobPayload, patchProjectSummary } = require('./state.js');
 const { removeJob } = require('./queue.js');
-const {
-    acquireWorkerSlot,
-    renewWorkerSlot,
-    releaseWorkerSlot,
-    DEFAULT_CAPACITY,
-} = require('./worker-slots.js');
+const { acquireWorkerSlot, renewWorkerSlot, releaseWorkerSlot, DEFAULT_CAPACITY } = require('./worker-slots.js');
 const {
     prepareProjectStart,
     runSyncAndLocStage,

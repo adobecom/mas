@@ -69,9 +69,7 @@ async function dispatchNextQueuedJob(params = {}, deps = {}) {
 
         const activeSlots = await readActiveSlots({ now });
         if (activeSlots.length >= capacity) {
-            logger.info(
-                `All ${capacity} worker slots are taken, leaving job ${nextJobId} queued`,
-            );
+            logger.info(`All ${capacity} worker slots are taken, leaving job ${nextJobId} queued`);
             return {
                 dispatched: false,
                 reason: 'no_slots_available',

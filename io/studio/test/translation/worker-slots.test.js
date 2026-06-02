@@ -61,11 +61,9 @@ describe('Translation worker slots', () => {
             renewedAt: '2026-03-24T10:00:00.000Z',
             leaseUntil: '2026-03-24T10:01:00.000Z',
         });
-        expect(mockState.put).to.have.been.calledWith(
-            workerSlots.WORKER_SLOTS_KEY,
-            JSON.stringify({ slots: [result.slot] }),
-            { ttl: 60 },
-        );
+        expect(mockState.put).to.have.been.calledWith(workerSlots.WORKER_SLOTS_KEY, JSON.stringify({ slots: [result.slot] }), {
+            ttl: 60,
+        });
     });
 
     it('should acquire a second slot when capacity is 2 and one slot is taken', async () => {

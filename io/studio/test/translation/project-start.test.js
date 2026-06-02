@@ -617,7 +617,6 @@ describe('Translation project-start', () => {
             expect(result.statusCode).to.equal(200);
             expect(callCounts['/bin/sendToLocalisationAsync']).to.equal(3);
         });
-
     });
 
     describe('Localization request payload', () => {

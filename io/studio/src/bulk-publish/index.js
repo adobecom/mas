@@ -99,7 +99,7 @@ async function run(params) {
         }
 
         const includeRefs = params.includeVariations || params.includeCards;
-        const filterReferencesByStatus = includeRefs ? ['DRAFT', 'MODIFIED', 'UNPUBLISHED'] : [];
+        const filterReferencesByStatus = includeRefs ? ['NEW', 'DRAFT', 'MODIFIED', 'UNPUBLISHED'] : [];
 
         const chunks = groupAndChunk(resolved, MAX_CHUNK_SIZE);
         logger.info(JSON.stringify({ event: 'resolved', total: resolved.length, chunks: chunks.length }));
@@ -174,7 +174,7 @@ function buildSummary(details) {
 async function runWithProject(params, odinEndpoint, authToken) {
     const { projectId, publishedBy = '', includeVariations = false, includeCards = false } = params;
     const includeRefs = includeVariations || includeCards;
-    const filterReferencesByStatus = includeRefs ? ['DRAFT', 'MODIFIED', 'UNPUBLISHED'] : [];
+    const filterReferencesByStatus = includeRefs ? ['NEW', 'DRAFT', 'MODIFIED', 'UNPUBLISHED'] : [];
     logger.info(JSON.stringify({ event: 'project-publish-start', projectId }));
 
     let fragment;

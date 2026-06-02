@@ -151,16 +151,16 @@ describe('bulk-publish/index.js', () => {
             expect(body.filterReferencesByStatus).to.deep.equal([]);
         });
 
-        it('sends filterReferencesByStatus=[DRAFT,MODIFIED,UNPUBLISHED] when includeVariations=true', async () => {
+        it('sends filterReferencesByStatus=[NEW,DRAFT,MODIFIED,UNPUBLISHED] when includeVariations=true', async () => {
             await action.main({ ...baseParams, includeVariations: true });
             const body = JSON.parse(fetchOdinStub.firstCall.args[3].body);
-            expect(body.filterReferencesByStatus).to.deep.equal(['DRAFT', 'MODIFIED', 'UNPUBLISHED']);
+            expect(body.filterReferencesByStatus).to.deep.equal(['NEW', 'DRAFT', 'MODIFIED', 'UNPUBLISHED']);
         });
 
-        it('sends filterReferencesByStatus=[DRAFT,MODIFIED,UNPUBLISHED] when includeCards=true', async () => {
+        it('sends filterReferencesByStatus=[NEW,DRAFT,MODIFIED,UNPUBLISHED] when includeCards=true', async () => {
             await action.main({ ...baseParams, includeCards: true });
             const body = JSON.parse(fetchOdinStub.firstCall.args[3].body);
-            expect(body.filterReferencesByStatus).to.deep.equal(['DRAFT', 'MODIFIED', 'UNPUBLISHED']);
+            expect(body.filterReferencesByStatus).to.deep.equal(['NEW', 'DRAFT', 'MODIFIED', 'UNPUBLISHED']);
         });
     });
 
@@ -445,6 +445,27 @@ describe('bulk-publish/index.js', () => {
             expect(result.error.statusCode).to.equal(500);
             expect(result.error.body.error).to.include('Content was published but project state could not be saved');
             expect(loggerStub.error).to.have.been.calledWithMatch(sinon.match(/project-final-patch-error/));
+        });
+
+        it('includes NEW status in filterReferencesByStatus when includeCards is true', async () => {
+            await projectAction.main({
+                ...baseParams,
+                paths: undefined,
+                projectId: 'proj-uuid',
+                includeCards: true,
+            });
+
+            const publishBody = JSON.parse(fetchOdinStub.firstCall.args[3].body);
+            expect(publishBody.filterReferencesByStatus).to.include('NEW');
+            expect(publishBody.filterReferencesByStatus).to.include('DRAFT');
+            expect(publishBody.filterReferencesByStatus).to.include('UNPUBLISHED');
+        });
+
+        it('excludes NEW status from filterReferencesByStatus when neither cascade option is set', async () => {
+            await projectAction.main({ ...baseParams, paths: undefined, projectId: 'proj-uuid' });
+
+            const publishBody = JSON.parse(fetchOdinStub.firstCall.args[3].body);
+            expect(publishBody.filterReferencesByStatus).to.deep.equal([]);
         });
     });
 });

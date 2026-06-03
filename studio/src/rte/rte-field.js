@@ -813,7 +813,7 @@ class RteField extends LitElement {
                                 alt: domNode.getAttribute('alt'),
                                 size: domNode.getAttribute('size') || 'xs',
                                 class: 'mnemonic',
-                                mnemonicText: domNode.getAttribute('mnemonic-text'),
+                                mnemonicText: domNode.textContent?.trim() || domNode.getAttribute('mnemonic-text'),
                                 mnemonicPlacement: domNode.getAttribute('mnemonic-placement') || 'top',
                             };
                         },
@@ -915,8 +915,8 @@ class RteField extends LitElement {
                     };
                     if (alt) attrs.alt = alt;
                     if (mnemonicText && mnemonicText.trim() !== '') {
-                        attrs['mnemonic-text'] = mnemonicText.trim();
                         attrs['mnemonic-placement'] = mnemonicPlacement || 'top';
+                        return ['mas-mnemonic', attrs, mnemonicText.trim()];
                     }
                     return ['mas-mnemonic', attrs];
                 },

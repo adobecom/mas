@@ -75,6 +75,33 @@ describe('ost-live-preview', () => {
         expect(hint).to.equal(null);
     });
 
+    it('shows the reference-OSI hint for a discount on a NON-PROMOTION offer without reference OSI', async () => {
+        store.selectedOffer = { offer_id: 'BASE1', offer_type: 'BASE' };
+        const preview = await getPreview();
+        preview.placeholderType = 'discount';
+        preview.referenceOsi = '';
+        await preview.updateComplete;
+        const hint = preview.shadowRoot.querySelector('.discount-hint');
+        expect(hint).to.exist;
+    });
+
+    it('passes [promo, reference] OSIs for a discount when referenceOsi is set', async () => {
+        store.selectedOffer = { offer_id: 'PROMO1', offer_type: 'PROMOTION' };
+        const preview = await getPreview();
+        preview.placeholderType = 'discount';
+        preview.referenceOsi = 'ref-osi-123';
+        const result = preview.buildPlaceholderOptions();
+        expect(result.placeholderOptions.wcsOsi).to.deep.equal(['test-osi', 'ref-osi-123']);
+    });
+
+    it('builds options for a placeholder type that has no overrides (|| {} branch)', async () => {
+        const preview = await getPreview();
+        preview.placeholderType = 'price';
+        const result = preview.buildPlaceholderOptions();
+        expect(result.placeholderOptions).to.exist;
+        expect(result.placeholderOptions.template).to.equal('price');
+    });
+
     it('sets the legal template and its displayPlanType override for the legal type', async () => {
         const preview = await getPreview();
         preview.placeholderType = 'legal';
@@ -107,5 +134,29 @@ describe('ost-live-preview', () => {
         expect(getComputedStyle(recurrence).display).to.equal('none');
         expect(getComputedStyle(tax).display).to.equal('none');
         expect(getComputedStyle(integer).display).to.not.equal('none');
+    });
+
+    it('keeps the strikethrough price number visible while hiding recurrence/tax labels', async () => {
+        store.masCommerceService = {
+            createInlinePrice: () => {
+                const node = document.createElement('span');
+                node.className = 'price price-strikethrough';
+                node.innerHTML =
+                    '<span class="price-integer">9</span>' +
+                    '<span class="price-recurrence">/mo</span>' +
+                    '<span class="price-tax-inclusivity">excl. VAT</span>';
+                return node;
+            },
+        };
+        const preview = await getPreview();
+        preview.placeholderType = 'strikethrough';
+        await preview.updateComplete;
+
+        const container = preview.shadowRoot.querySelector('.placeholder-container');
+        const integer = container.querySelector('span.price-integer');
+        const recurrence = container.querySelector('span.price-recurrence');
+
+        expect(getComputedStyle(integer).display).to.not.equal('none');
+        expect(getComputedStyle(recurrence).display).to.equal('none');
     });
 });

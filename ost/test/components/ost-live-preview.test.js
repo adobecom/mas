@@ -17,6 +17,8 @@ describe('ost-live-preview', () => {
         store.masCommerceService = null;
         store.promotionCode = undefined;
         store.storedPromoOverride = undefined;
+        store.country = 'US';
+        store.landscape = 'PUBLISHED';
     });
 
     async function getPreview() {
@@ -38,5 +40,19 @@ describe('ost-live-preview', () => {
         const preview = await getPreview();
         const result = preview.buildPlaceholderOptions();
         expect(result.placeholderOptions.promotionCode).to.equal('MANUAL10');
+    });
+
+    it('passes the store country into placeholderOptions', async () => {
+        store.country = 'GB';
+        const preview = await getPreview();
+        const result = preview.buildPlaceholderOptions();
+        expect(result.placeholderOptions.country).to.equal('GB');
+    });
+
+    it('passes the store landscape into placeholderOptions', async () => {
+        store.landscape = 'DRAFT';
+        const preview = await getPreview();
+        const result = preview.buildPlaceholderOptions();
+        expect(result.placeholderOptions.landscape).to.equal('DRAFT');
     });
 });

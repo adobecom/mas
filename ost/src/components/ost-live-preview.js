@@ -141,6 +141,8 @@ export class OstLivePreview extends LitElement {
             wcsOsi,
             template: type,
             clientId: store.checkoutClientId,
+            country: store.country,
+            landscape: store.landscape,
         };
 
         if (checkoutCtrl) {

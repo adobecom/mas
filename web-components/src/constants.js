@@ -175,6 +175,8 @@ export const TEMPLATE_PRICE_LEGAL = 'legal';
 export const FF_DEFAULTS = 'mas-ff-defaults';
 export const FF_ANNUAL_PRICE = 'mas-ff-annual-price';
 
+export const PROMO_SAVED_AMOUNT = '[[promo-saved-amount]]';
+
 export const SORT_ORDER = {
     alphabetical: 'alphabetical',
     authored: 'authored',

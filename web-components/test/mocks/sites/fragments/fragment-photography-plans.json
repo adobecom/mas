@@ -23,7 +23,7 @@
         },
         "cardTitle": "Photography  (1TB)",
         "prices": {
-            "value": "<span is=\"inline-price\" data-template=\"price\" data-wcs-osi=\"abm\" data-display-tax=\"true\"></span>",
+            "value": "<span is=\"inline-price\" data-template=\"strikethrough\" data-wcs-osi=\"m2m\" data-display-tax=\"false\"></span> <span is=\"inline-price\" data-template=\"price\" data-wcs-osi=\"abm\" data-display-tax=\"true\"></span>",
             "mimeType": "text/html"
         },
         "shortDescription": {
@@ -31,7 +31,7 @@
         },
         "promoText": "Save over 30% with an annual plan.",
         "description": {
-            "value": "<p>Edit and organize photos for Fred. Save&nbsp;25% for the first 6 months.&nbsp;Ends Feb 26.&nbsp;<a href=\"https://www.adobe.com/offer-terms/ccpp-1tb-terms.html\" target=\"_blank\" rel=\"noopener\">See terms.</a><br><a href=\"https://www.adobe.com/creativecloud/photography/compare-plans.html\">Compare photography plans</a><br><a class=\"modal-Link\" href=\"https://www.adobe.com/plans-fragments/modals/individual/modals-content-rich/photography1tb/master.html\" target=\"_blank\" rel=\"noopener\">See all plans &amp; pricing details</a></p>",
+            "value": "<p>Save [[promo-saved-amount]] during promo period.</p><p>Edit and organize photos for Fred. Save&nbsp;25% for the first 6 months.&nbsp;Ends Feb 26.&nbsp;<a href=\"https://www.adobe.com/offer-terms/ccpp-1tb-terms.html\" target=\"_blank\" rel=\"noopener\">See terms.</a><br><a href=\"https://www.adobe.com/creativecloud/photography/compare-plans.html\">Compare photography plans</a><br><a class=\"modal-Link\" href=\"https://www.adobe.com/plans-fragments/modals/individual/modals-content-rich/photography1tb/master.html\" target=\"_blank\" rel=\"noopener\">See all plans &amp; pricing details</a></p>",
             "mimeType": "text/html"
         },
         "callout": {

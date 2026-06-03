@@ -260,6 +260,18 @@
                             ),
                         ).to.exist;
                     });
+                    it('should display saved amount for promo', async () => {
+                        const [masCommerceService, ccAllApps] =
+                            getTemplateContent('fragment-photography-plans');
+                        container.append(masCommerceService, ccAllApps);
+                        await oneEvent(ccAllApps, 'mas:ready');
+                        await delay(50);
+                        expect(
+                            ccAllApps
+                                .querySelector('div[slot="body-xs"] p')
+                                .textContent.trim(),
+                        ).to.equal('Save US$27.50/mo during promo period.');
+                    });
                     it('should render addon checkbox', () => {
                         const [masCommerceService, photoshopWithAddon] =
                             getTemplateContent('photoshop-with-addon');

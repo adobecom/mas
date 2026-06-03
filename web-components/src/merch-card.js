@@ -32,6 +32,7 @@ import {
     FF_DEFAULTS,
     MERCH_CARD_LOAD_TIMEOUT,
     TEMPLATE_PRICE_LEGAL,
+    PROMO_SAVED_AMOUNT,
 } from './constants.js';
 import { VariantLayout } from './variants/variant-layout.js';
 import { hydrate, ANALYTICS_SECTION_ATTR } from './hydrate.js';
@@ -49,6 +50,66 @@ const VARIANTS_WITH_HEIGHT_SYNC = [
 
 const VARIANTS_WITH_WIDTH_BADGE_SYNC = ['segment', 'product'];
 
+function replaceDiscount(node, discount, placeholder) {
+    for (const child of node.childNodes) {
+        if (
+            child.nodeType === Node.TEXT_NODE &&
+            child.textContent.includes(placeholder)
+        ) {
+            child.textContent = child.textContent.replaceAll(
+                placeholder,
+                discount,
+            );
+        } else {
+            replaceDiscount(child, discount, placeholder);
+        }
+    }
+}
+
+function getPriceAmount(el) {
+    return parseFloat(
+        `${el.querySelector('.price-integer').textContent}.${el.querySelector('.price-decimals').textContent}`,
+    );
+}
+
+function addSavedAmountOnPromo(cardEl, priceEl) {
+    if (!cardEl.textContent.includes(PROMO_SAVED_AMOUNT)) return;
+
+    const pricesMapping = cardEl?.variantLayout?.aemFragmentMapping?.prices;
+    if (!pricesMapping) return;
+    const priceSlot = priceEl.closest(
+        `${pricesMapping.tag}[slot="${pricesMapping.slot}"]`,
+    );
+    if (!priceSlot) return;
+
+    priceEl.onceSettled().then(() => {
+        const priceSt = priceSlot.querySelector('.price-strikethrough');
+        const pricePromo = priceSlot.querySelector('.price-alternative');
+        if (!priceSt || !pricePromo) return;
+
+        const delimiter = priceSt
+            .querySelector('.price-decimals-delimiter')
+            .textContent.trim();
+        const stAriaLabel = priceSt.querySelector(
+            '.strikethrough-aria-label',
+        ).textContent;
+        const amountSt = getPriceAmount(priceSt);
+        const amountPromo = getPriceAmount(pricePromo);
+        const amountDiscount = (amountSt - amountPromo).toFixed(2).toString();
+        const discountText = amountDiscount.endsWith('.00')
+            ? amountDiscount.split('.')[0]
+            : amountDiscount;
+
+        const discount = priceSt.textContent
+            .replace(stAriaLabel, '')
+            .replace(
+                amountSt.toString().replace('.', delimiter),
+                discountText.replace('.', delimiter),
+            );
+        replaceDiscount(cardEl, discount.trim(), PROMO_SAVED_AMOUNT);
+    });
+}
+
 function priceOptionsProvider(element, options) {
     const card = element.closest(MERCH_CARD);
     if (!card) return options;
@@ -61,6 +122,7 @@ function priceOptionsProvider(element, options) {
         options.displayPerUnit = false;
         options.displayTax = false;
     }
+    addSavedAmountOnPromo(card, element);
 
     if (
         !options.promotionCode &&

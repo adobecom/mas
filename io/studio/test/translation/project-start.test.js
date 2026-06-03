@@ -1324,9 +1324,7 @@ describe('Translation project-start', () => {
             expect(deSyncOptions.method).to.equal('PUT');
             const deSyncBody = JSON.parse(deSyncOptions.body);
             const variationsField = deSyncBody.fields.find((f) => f.name === 'variations');
-            expect(variationsField.values).to.deep.equal([
-                '/content/dam/mas/foo/de_DE/productCode/pzn/grouped-variation',
-            ]);
+            expect(variationsField.values).to.deep.equal(['/content/dam/mas/foo/de_DE/productCode/pzn/grouped-variation']);
         });
     });
 });

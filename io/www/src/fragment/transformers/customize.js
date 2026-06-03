@@ -30,15 +30,6 @@ async function resolveFragmentInit(context, requestInfos) {
 }
 
 function deepMerge(...objects) {
-    // variation template is empty
-    if (objects?.[0]?.fields?.variant === COMPARE_CHART_TEMPLATE) {
-        const [parent, child] = objects;
-        const parentFeatures = parent?.fields?.features?.value || [];
-        const childFeatures = child?.fields?.features?.value || [];
-        if (child?.fields?.features && (parentFeatures.length || childFeatures.length)) {
-            child.fields.features.value = [...parentFeatures, ...childFeatures];
-        }
-    }
     const result = {};
     for (const obj of objects) {
         for (const key in obj) {
@@ -52,6 +43,15 @@ function deepMerge(...objects) {
                     }
                 }
             }
+        }
+    }
+    // Compare-chart column variations carry a partial `features` set; concatenate parent + child
+    // into the freshly-built result instead of mutating `child` (a shared reference reused by sibling merges).
+    if (objects?.[0]?.fields?.variant === COMPARE_CHART_TEMPLATE) {
+        const parentFeatures = objects[0]?.fields?.features?.value || [];
+        const childFeatures = objects[1]?.fields?.features?.value || [];
+        if (result.fields?.features && (parentFeatures.length || childFeatures.length)) {
+            result.fields.features.value = [...parentFeatures, ...childFeatures];
         }
     }
     return result;

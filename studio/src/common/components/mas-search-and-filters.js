@@ -15,7 +15,6 @@ const VARIANT_TAG_PREFIX = 'mas:variant/';
 const EMPTY_TAGS_BY_TYPE = {
     offer_type: [],
     plan_type: [],
-    market_segment: [],
     market_segments: [],
     customer_segment: [],
     product_code: [],
@@ -25,7 +24,7 @@ const EMPTY_TAGS_BY_TYPE = {
     'studio/content-type': [],
     custom: [],
 };
-const SELECTOR_FILTER_TYPES = ['market_segment', 'market_segments', 'customer_segment', 'product_code', 'variant'];
+const SELECTOR_FILTER_TYPES = ['market_segments', 'customer_segment', 'product_code', 'variant'];
 const STRIPPED_FILTER_TYPES = [...SELECTOR_FILTER_TYPES, 'studio/content-type'];
 
 class MasSearchAndFilters extends LitElement {
@@ -153,7 +152,7 @@ class MasSearchAndFilters extends LitElement {
                 tagsByType.variant.map((tag) => tag.replace(VARIANT_TAG_PREFIX, '')),
             );
         }
-        this.#setFilterIfChanged('marketSegmentFilter', [...tagsByType.market_segment, ...tagsByType.market_segments]);
+        this.#setFilterIfChanged('marketSegmentFilter', tagsByType.market_segments);
         this.#setFilterIfChanged('customerSegmentFilter', tagsByType.customer_segment);
         this.#setFilterIfChanged('productFilter', tagsByType.product_code);
     }
@@ -379,7 +378,7 @@ class MasSearchAndFilters extends LitElement {
     }
 
     #setOptionFromTagId(maps, tagId, title) {
-        if (tagId.startsWith('mas:market_segment/') || tagId.startsWith('mas:market_segments/')) {
+        if (tagId.startsWith('mas:market_segments/')) {
             this.#setOption(maps.marketSegments, tagId, title);
         } else if (tagId.startsWith('mas:customer_segment/')) {
             this.#setOption(maps.customerSegments, tagId, title);
@@ -869,7 +868,7 @@ class MasSearchAndFilters extends LitElement {
                 ${this.#renderTagPicker('Plan Type', 'plan_type', this.planTypeFilter, FILTER_TYPE.PLAN_TYPE)}
                 ${this.#renderTagPicker(
                     'Market Segment',
-                    'market_segment,market_segments',
+                    'market_segments',
                     this.marketSegmentFilter,
                     FILTER_TYPE.MARKET_SEGMENT,
                 )}

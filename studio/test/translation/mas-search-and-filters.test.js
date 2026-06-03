@@ -158,7 +158,7 @@ describe('MasSearchAndFilters', () => {
         it('should let lockedTemplateFilter override Store.filters variant tags', async () => {
             Store.filters.set({
                 locale: 'en_US',
-                tags: 'mas:market_segment/com,mas:variant/catalog',
+                tags: 'mas:market_segments/com,mas:variant/catalog',
                 personalizationFilterEnabled: false,
             });
             const el = await fixture(
@@ -169,8 +169,8 @@ describe('MasSearchAndFilters', () => {
                 ></mas-search-and-filters>`,
             );
             expect(el.templateFilter).to.deep.equal(['compare-chart']);
-            expect(el.marketSegmentFilter).to.deep.equal(['mas:market_segment/com']);
-            expect(Store.filters.get().tags).to.equal('mas:market_segment/com,mas:variant/compare-chart');
+            expect(el.marketSegmentFilter).to.deep.equal(['mas:market_segments/com']);
+            expect(Store.filters.get().tags).to.equal('mas:market_segments/com,mas:variant/compare-chart');
         });
 
         it('should preselect defaultTemplateFilter when no template is selected', async () => {
@@ -274,11 +274,11 @@ describe('MasSearchAndFilters', () => {
 
         it('should return market segment filters with correct format', async () => {
             const el = await fixture(html`<mas-search-and-filters type="cards"></mas-search-and-filters>`);
-            el.marketSegmentOptions = [{ id: 'mas:market_segment/com', title: 'Commercial' }];
-            el.marketSegmentFilter = ['mas:market_segment/com'];
+            el.marketSegmentOptions = [{ id: 'mas:market_segments/com', title: 'Commercial' }];
+            el.marketSegmentFilter = ['mas:market_segments/com'];
             await el.updateComplete;
             expect(el.appliedFilters).to.deep.equal([
-                { type: FILTER_TYPE.MARKET_SEGMENT, id: 'mas:market_segment/com', label: 'Commercial' },
+                { type: FILTER_TYPE.MARKET_SEGMENT, id: 'mas:market_segments/com', label: 'Commercial' },
             ]);
         });
 
@@ -305,9 +305,9 @@ describe('MasSearchAndFilters', () => {
         it('should return combined filters from all types', async () => {
             const el = await fixture(html`<mas-search-and-filters type="cards"></mas-search-and-filters>`);
             el.templateOptions = [{ id: 'plans', title: 'Plans' }];
-            el.marketSegmentOptions = [{ id: 'mas:market_segment/com', title: 'Commercial' }];
+            el.marketSegmentOptions = [{ id: 'mas:market_segments/com', title: 'Commercial' }];
             el.templateFilter = ['plans'];
-            el.marketSegmentFilter = ['mas:market_segment/com'];
+            el.marketSegmentFilter = ['mas:market_segments/com'];
             await el.updateComplete;
             expect(el.appliedFilters.length).to.equal(2);
         });
@@ -360,7 +360,7 @@ describe('MasSearchAndFilters', () => {
         const fragmentWithEveryFilterTag = () =>
             createMockFragment({
                 tags: [
-                    { id: 'mas:market_segment/com', title: 'Commercial' },
+                    { id: 'mas:market_segments/com', title: 'Commercial' },
                     { id: 'mas:customer_segment/individual', title: 'Individual' },
                     { id: 'mas:product_code/photoshop', title: 'Photoshop' },
                     { id: 'mas:offer_type/base', title: 'Base' },
@@ -390,7 +390,7 @@ describe('MasSearchAndFilters', () => {
             expect(tops).to.deep.equal([
                 'offer_type',
                 'plan_type',
-                'market_segment,market_segments',
+                'market_segments',
                 'customer_segment',
                 'product_code',
                 'custom',
@@ -409,7 +409,7 @@ describe('MasSearchAndFilters', () => {
             const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${false}></mas-search-and-filters>`);
             const picker = el.shadowRoot.querySelector('aem-tag-picker-field[label="Market Segment"]');
             expect(picker).to.exist;
-            expect(picker.top).to.equal('market_segment,market_segments');
+            expect(picker.top).to.equal('market_segments');
         });
 
         it('should render Customer Segment filter', async () => {
@@ -656,10 +656,10 @@ describe('MasSearchAndFilters', () => {
         it('should extract market segment options from fragments', async () => {
             Store.translationProjects.allCards.set([
                 createMockFragment({
-                    tags: [{ id: 'mas:market_segment/com', title: 'Commercial' }],
+                    tags: [{ id: 'mas:market_segments/com', title: 'Commercial' }],
                 }),
                 createMockFragment({
-                    tags: [{ id: 'mas:market_segment/edu', title: 'Education' }],
+                    tags: [{ id: 'mas:market_segments/edu', title: 'Education' }],
                 }),
             ]);
             const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${false}></mas-search-and-filters>`);
@@ -753,10 +753,10 @@ describe('MasSearchAndFilters', () => {
         it('should deduplicate options', async () => {
             Store.translationProjects.allCards.set([
                 createMockFragment({
-                    tags: [{ id: 'mas:market_segment/com', title: 'Commercial' }],
+                    tags: [{ id: 'mas:market_segments/com', title: 'Commercial' }],
                 }),
                 createMockFragment({
-                    tags: [{ id: 'mas:market_segment/com', title: 'Commercial' }],
+                    tags: [{ id: 'mas:market_segments/com', title: 'Commercial' }],
                 }),
             ]);
             const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${false}></mas-search-and-filters>`);
@@ -767,10 +767,10 @@ describe('MasSearchAndFilters', () => {
         it('should sort options alphabetically', async () => {
             Store.translationProjects.allCards.set([
                 createMockFragment({
-                    tags: [{ id: 'mas:market_segment/zebra', title: 'Zebra' }],
+                    tags: [{ id: 'mas:market_segments/zebra', title: 'Zebra' }],
                 }),
                 createMockFragment({
-                    tags: [{ id: 'mas:market_segment/alpha', title: 'Alpha' }],
+                    tags: [{ id: 'mas:market_segments/alpha', title: 'Alpha' }],
                 }),
             ]);
             const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${false}></mas-search-and-filters>`);
@@ -784,7 +784,7 @@ describe('MasSearchAndFilters', () => {
                 createMockFragment({ tags: null }),
                 createMockFragment({ tags: undefined }),
                 createMockFragment({
-                    tags: [{ id: 'mas:market_segment/com', title: 'Commercial' }],
+                    tags: [{ id: 'mas:market_segments/com', title: 'Commercial' }],
                 }),
             ]);
             const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${false}></mas-search-and-filters>`);
@@ -795,7 +795,7 @@ describe('MasSearchAndFilters', () => {
         it('should extract title from tag id when title is missing', async () => {
             Store.translationProjects.allCards.set([
                 createMockFragment({
-                    tags: [{ id: 'mas:market_segment/commercial' }],
+                    tags: [{ id: 'mas:market_segments/commercial' }],
                 }),
             ]);
             const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${false}></mas-search-and-filters>`);
@@ -806,7 +806,7 @@ describe('MasSearchAndFilters', () => {
         it('should not extract filter options when searchOnly is true', async () => {
             Store.translationProjects.allCards.set([
                 createMockFragment({
-                    tags: [{ id: 'mas:market_segment/com', title: 'Commercial' }],
+                    tags: [{ id: 'mas:market_segments/com', title: 'Commercial' }],
                 }),
             ]);
             const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${true}></mas-search-and-filters>`);
@@ -826,7 +826,7 @@ describe('MasSearchAndFilters', () => {
         it('should preserve unrelated tags and replace stale variant tags', async () => {
             Store.filters.set({
                 locale: 'en_US',
-                tags: 'mas:studio/content-type/compare-chart,mas:market_segment/com,mas:variant/catalog,mas:product_code/photoshop',
+                tags: 'mas:studio/content-type/compare-chart,mas:market_segments/com,mas:variant/catalog,mas:product_code/photoshop',
                 personalizationFilterEnabled: true,
             });
             const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${false}></mas-search-and-filters>`);
@@ -834,7 +834,7 @@ describe('MasSearchAndFilters', () => {
             await el.updateComplete;
             expect(Store.filters.get()).to.deep.equal({
                 locale: 'en_US',
-                tags: 'mas:market_segment/com,mas:product_code/photoshop,mas:variant/plans',
+                tags: 'mas:market_segments/com,mas:product_code/photoshop,mas:variant/plans',
                 personalizationFilterEnabled: true,
             });
         });
@@ -897,11 +897,11 @@ describe('MasSearchAndFilters', () => {
 
         it('should filter by market segment tag', async () => {
             Store.translationProjects.allCards.set([
-                createMockFragment({ tags: [{ id: 'mas:market_segment/com', title: 'Commercial' }] }),
-                createMockFragment({ tags: [{ id: 'mas:market_segment/edu', title: 'Education' }] }),
+                createMockFragment({ tags: [{ id: 'mas:market_segments/com', title: 'Commercial' }] }),
+                createMockFragment({ tags: [{ id: 'mas:market_segments/edu', title: 'Education' }] }),
             ]);
             const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${false}></mas-search-and-filters>`);
-            el.marketSegmentFilter = ['mas:market_segment/com'];
+            el.marketSegmentFilter = ['mas:market_segments/com'];
             await el.updateComplete;
             expect(Store.translationProjects.displayCards.get().length).to.equal(1);
         });
@@ -932,14 +932,14 @@ describe('MasSearchAndFilters', () => {
             Store.translationProjects.allCards.set([
                 createMockFragment({
                     tags: [
-                        { id: 'mas:market_segment/com', title: 'Commercial' },
+                        { id: 'mas:market_segments/com', title: 'Commercial' },
                         { id: 'mas:product_code/photoshop', title: 'Photoshop' },
                     ],
                 }),
-                createMockFragment({ tags: [{ id: 'mas:market_segment/com', title: 'Commercial' }] }),
+                createMockFragment({ tags: [{ id: 'mas:market_segments/com', title: 'Commercial' }] }),
             ]);
             const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${false}></mas-search-and-filters>`);
-            el.marketSegmentFilter = ['mas:market_segment/com'];
+            el.marketSegmentFilter = ['mas:market_segments/com'];
             el.productFilter = ['mas:product_code/photoshop'];
             await el.updateComplete;
             expect(Store.translationProjects.displayCards.get().length).to.equal(1);
@@ -1026,14 +1026,14 @@ describe('MasSearchAndFilters', () => {
 
         it('should remove market segment filter on tag delete', async () => {
             const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${false}></mas-search-and-filters>`);
-            el.marketSegmentOptions = [{ id: 'mas:market_segment/com', title: 'Commercial' }];
-            el.marketSegmentFilter = ['mas:market_segment/com'];
+            el.marketSegmentOptions = [{ id: 'mas:market_segments/com', title: 'Commercial' }];
+            el.marketSegmentFilter = ['mas:market_segments/com'];
             await el.updateComplete;
             const tag = el.shadowRoot.querySelector('sp-tag');
-            tag.value = { type: FILTER_TYPE.MARKET_SEGMENT, id: 'mas:market_segment/com' };
+            tag.value = { type: FILTER_TYPE.MARKET_SEGMENT, id: 'mas:market_segments/com' };
             tag.dispatchEvent(new CustomEvent('delete', { bubbles: true }));
             await el.updateComplete;
-            expect(el.marketSegmentFilter).to.not.include('mas:market_segment/com');
+            expect(el.marketSegmentFilter).to.not.include('mas:market_segments/com');
         });
 
         it('should remove customer segment filter on tag delete', async () => {
@@ -1065,12 +1065,12 @@ describe('MasSearchAndFilters', () => {
         it('should clear all filters when clear button is clicked', async () => {
             Store.filters.set({
                 locale: 'en_US',
-                tags: 'mas:status/published,mas:market_segment/com,mas:variant/plans,mas:product_code/photoshop',
+                tags: 'mas:status/published,mas:market_segments/com,mas:variant/plans,mas:product_code/photoshop',
                 personalizationFilterEnabled: false,
             });
             const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${false}></mas-search-and-filters>`);
             el.templateOptions = [{ id: 'plans', title: 'Plans' }];
-            el.marketSegmentOptions = [{ id: 'mas:market_segment/com', title: 'Commercial' }];
+            el.marketSegmentOptions = [{ id: 'mas:market_segments/com', title: 'Commercial' }];
             el.customerSegmentFilter = ['mas:customer_segment/individual'];
             await el.updateComplete;
             const clearButton = el.shadowRoot.querySelector('.applied-filters sp-action-button');
@@ -1146,7 +1146,7 @@ describe('MasSearchAndFilters', () => {
             const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${false}></mas-search-and-filters>`);
             Store.translationProjects.allCards.set([
                 createMockFragment({
-                    tags: [{ id: 'mas:market_segment/com', title: 'Commercial' }],
+                    tags: [{ id: 'mas:market_segments/com', title: 'Commercial' }],
                 }),
             ]);
             await el.updateComplete;
@@ -1159,7 +1159,7 @@ describe('MasSearchAndFilters', () => {
             );
             Store.translationProjects.allCollections.set([
                 createMockFragment({
-                    tags: [{ id: 'mas:market_segment/com', title: 'Commercial' }],
+                    tags: [{ id: 'mas:market_segments/com', title: 'Commercial' }],
                 }),
             ]);
             await el.updateComplete;
@@ -1411,14 +1411,14 @@ describe('MasSearchAndFilters', () => {
         });
 
         it('combines new filters with existing market segment filter (intersection)', async () => {
-            const a = fragmentWithTags(['mas:offer_type/base', 'mas:market_segment/com'], { title: 'a' });
-            const b = fragmentWithTags(['mas:offer_type/base', 'mas:market_segment/edu'], { title: 'b' });
-            const c = fragmentWithTags(['mas:offer_type/trial', 'mas:market_segment/com'], { title: 'c' });
+            const a = fragmentWithTags(['mas:offer_type/base', 'mas:market_segments/com'], { title: 'a' });
+            const b = fragmentWithTags(['mas:offer_type/base', 'mas:market_segments/edu'], { title: 'b' });
+            const c = fragmentWithTags(['mas:offer_type/trial', 'mas:market_segments/com'], { title: 'c' });
             Store.translationProjects.allCards.set([a, b, c]);
             const el = await fixture(html`<mas-search-and-filters type="cards"></mas-search-and-filters>`);
             await el.updateComplete;
             el.offerTypeFilter = ['mas:offer_type/base'];
-            el.marketSegmentFilter = ['mas:market_segment/com'];
+            el.marketSegmentFilter = ['mas:market_segments/com'];
             await el.updateComplete;
             const display = Store.translationProjects.displayCards.get();
             expect(display.map((f) => f.title)).to.deep.equal(['a']);

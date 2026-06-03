@@ -118,7 +118,11 @@ class MasItemsSelector extends LitElement {
         if (!fragment?.path) return;
         const store = getItemsSelectionStore();
         const selectedCards = store.selectedCards.value || [];
-        if (selectedCards.includes(fragment.path) || selectedCards.length >= this.maxSelectedCards) return;
+        if (selectedCards.includes(fragment.path)) return;
+        if (selectedCards.length >= this.maxSelectedCards) {
+            this.#openToast(`You can select up to ${this.maxSelectedCards} cards.`, 'negative');
+            return;
+        }
         store.selectedCards.set([...selectedCards, fragment.path]);
     }
 
@@ -167,13 +171,17 @@ class MasItemsSelector extends LitElement {
         return tab.label;
     }
 
-    #showToast({ detail: { text, variant } }) {
+    #openToast(text, variant = 'info') {
         const toast = this.shadowRoot.querySelector('sp-toast');
         if (toast) {
             toast.textContent = text;
             toast.variant = variant;
             toast.open = true;
         }
+    }
+
+    #showToast({ detail: { text, variant } }) {
+        this.#openToast(text, variant);
     }
 
     #renderItemsTable(type) {

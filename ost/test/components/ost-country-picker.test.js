@@ -13,14 +13,22 @@ describe('ost-country-picker', () => {
 
     afterEach(() => {
         globalThis.fetch = originalFetch;
+        store.country = 'US';
+        store.env = 'PRODUCTION';
     });
 
-    it('renders country textfield with placeholder', async () => {
+    it('renders the country control as an sp-picker, not a textfield', async () => {
         globalThis.fetch = () => Promise.reject(new Error('network'));
         const el = await fixture(html`<ost-country-picker></ost-country-picker>`);
-        const input = el.shadowRoot.querySelector('sp-textfield.country-input');
-        expect(input).to.exist;
-        expect(input.getAttribute('placeholder')).to.equal('US');
+        expect(el.shadowRoot.querySelector('sp-picker.country-input')).to.exist;
+        expect(el.shadowRoot.querySelector('sp-textfield')).to.be.null;
+    });
+
+    it('reflects the current store country as the picker value', async () => {
+        globalThis.fetch = () => Promise.reject(new Error('network'));
+        const el = await fixture(html`<ost-country-picker></ost-country-picker>`);
+        const picker = el.shadowRoot.querySelector('sp-picker.country-input');
+        expect(picker.getAttribute('value')).to.equal('US');
     });
 
     it('renders sp-switch for env toggle', async () => {
@@ -31,30 +39,29 @@ describe('ost-country-picker', () => {
         expect(toggle.textContent.trim()).to.equal('Stage');
     });
 
-    it('fetches countries from API and populates dropdown', async () => {
+    it('populates menu items from fetched countries', async () => {
         globalThis.fetch = () =>
             Promise.resolve({
+                ok: true,
                 json: () => Promise.resolve([{ 'iso2-code': 'DE' }, { 'iso2-code': 'US' }, { 'iso2-code': 'FR' }]),
             });
         const el = await fixture(html`<ost-country-picker></ost-country-picker>`);
         await el.updateComplete;
         await new Promise((r) => setTimeout(r, 50));
-        el.showDropdown = true;
         await el.updateComplete;
-        const items = el.shadowRoot.querySelectorAll('.country-option');
+        const items = el.shadowRoot.querySelectorAll('sp-picker.country-input sp-menu-item');
         expect(items.length).to.be.greaterThan(0);
     });
 
     it('falls back to static countries on fetch failure', async () => {
         globalThis.fetch = () => Promise.reject(new Error('network'));
         const el = await fixture(html`<ost-country-picker></ost-country-picker>`);
-        el.showDropdown = true;
         await el.updateComplete;
-        const items = el.shadowRoot.querySelectorAll('.country-option');
+        const items = el.shadowRoot.querySelectorAll('sp-picker.country-input sp-menu-item');
         expect(items.length).to.be.greaterThan(10);
     });
 
-    it('calls store.setCountry when a country option is clicked', async () => {
+    it('calls store.setCountry when the picker value changes', async () => {
         globalThis.fetch = () => Promise.reject(new Error('network'));
         const calls = [];
         const origSetCountry = store.setCountry.bind(store);
@@ -63,11 +70,10 @@ describe('ost-country-picker', () => {
             origSetCountry(val);
         };
         const el = await fixture(html`<ost-country-picker></ost-country-picker>`);
-        el.showDropdown = true;
         await el.updateComplete;
-        const option = [...el.shadowRoot.querySelectorAll('.country-option')].find((o) => o.textContent.trim() === 'DE');
-        expect(option, 'DE option should be in static fallback list').to.exist;
-        option.click();
+        const picker = el.shadowRoot.querySelector('sp-picker.country-input');
+        picker.value = 'DE';
+        picker.dispatchEvent(new Event('change'));
         expect(calls).to.include('DE');
         store.setCountry = origSetCountry;
     });

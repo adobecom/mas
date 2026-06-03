@@ -13,7 +13,7 @@ export const features = [
             regularPrice: PRICE_PATTERN.FAKE.regular,
             nonPromoPrice: PRICE_PATTERN.US.mo,
         },
-        tags: '@mas-docs @mas-acom @mas-promotions-context @commerce @smoke @regression',
+        tags: '@mas-docs @mas-acom @mas-promotions @mas-promotions-context @commerce @smoke @regression',
     },
     {
         tcid: '1',
@@ -27,7 +27,7 @@ export const features = [
             regularPrice: PRICE_PATTERN.FAKE.regular,
             nonPromoPrice: PRICE_PATTERN.US.mo,
         },
-        tags: '@mas-docs @mas-acom @mas-promotions-context @commerce @smoke @regression',
+        tags: '@mas-docs @mas-acom @mas-promotions @mas-promotions-context @commerce @smoke @regression',
     },
     {
         tcid: '2',
@@ -41,7 +41,7 @@ export const features = [
             regularPrice: PRICE_PATTERN.FAKE.regular,
             nonPromoPrice: PRICE_PATTERN.US.mo,
         },
-        tags: '@mas-docs @mas-acom @mas-promotions-context @commerce @smoke @regression',
+        tags: '@mas-docs @mas-acom @mas-promotions @mas-promotions-context @commerce @smoke @regression',
     },
     {
         tcid: '3',
@@ -54,6 +54,6 @@ export const features = [
             regularPrice: PRICE_PATTERN.FAKE.regular,
             nonPromoPrice: PRICE_PATTERN.US.mo,
         },
-        tags: '@mas-docs @mas-acom @mas-promotions-context @commerce @smoke @regression',
+        tags: '@mas-docs @mas-acom @mas-promotions @mas-promotions-context @commerce @smoke @regression',
     },
 ];

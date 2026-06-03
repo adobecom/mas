@@ -32,7 +32,7 @@ import {
     buildPromoVariationPathForTag,
     getPromoNameFromPromoVariationPath,
     isPromoVariationPath,
-} from './promotions/promo-variation-utils.js';
+} from './promotions/promotion-model.js';
 import { splitPromotionTagsFieldValues } from './promotions/promotion-editor-utils.js';
 import { normalizeTagId } from './aem/tag-id-utils.js';
 import './editors/merch-card-editor.js';
@@ -935,7 +935,8 @@ export default class MasFragmentEditor extends LitElement {
             if (this.repository.search.value.path) {
                 void this.repository.loadPreviewPlaceholders(Store.localeOrRegion());
             }
-            const fragmentData = await this.repository.aem.sites.cf.fragments.getById(fragmentId);
+            let fragmentData = await this.repository.aem.sites.cf.fragments.getById(fragmentId);
+            fragmentData = await this.repository.mergePromoReferencesIntoFragmentData(fragmentData);
             const fragment = new Fragment(fragmentData);
 
             snapFilterToPathDefault(fragment.path);
@@ -1613,7 +1614,7 @@ export default class MasFragmentEditor extends LitElement {
         const promotionName =
             this.fragment.getCurrentTagTitle(TAG_PROMOTION_PREFIX) ||
             (promotionTagId ? this.#formatPromoLabel(getPromoNameFromTag(promotionTagId)) : '') ||
-            this.#formatPromoLabel(getPromoNameFromPromoVariationPath(this.fragment.path, promotionTagId)) ||
+            this.#formatPromoLabel(getPromoNameFromPromoVariationPath(this.fragment.path)) ||
             Store.promotions.inEdit.get()?.get?.()?.title ||
             'Promotion';
         return html`<div class="${clazz}">

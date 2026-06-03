@@ -324,6 +324,7 @@ describe('MasFragmentEditor', () => {
             mockRepo = {
                 refreshFragment: sandbox.stub().resolves(),
                 loadPreviewPlaceholders: sandbox.stub().resolves(),
+                mergePromoReferencesIntoFragmentData: sandbox.stub().callsFake(async (data) => data),
                 search: { value: { path: 'sandbox' } },
                 aem: {
                     sites: {

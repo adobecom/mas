@@ -19,7 +19,6 @@ import {
 import {
     OPERATIONS,
     STATUS_PUBLISHED,
-    STATUS_MODIFIED,
     TAG_STATUS_PUBLISHED,
     ROOT_PATH,
     PAGE_NAMES,
@@ -36,18 +35,9 @@ import {
     PZN_FOLDER,
     SURFACES,
     ODIN_PREVIEW_FRAGMENTS_URL,
-    TAG_PROMOTION_PREFIX,
 } from './constants.js';
-import { normalizeTagId } from './aem/tag-id-utils.js';
-import {
-    buildPromoVariationPath,
-    fragmentIsPromoVariation,
-    getPromoNameFromTag,
-    getPromotionTagFromFragment,
-    isPromoVariationPath,
-    resolveDefaultPathFromPromoVariation,
-} from './promotions/promo-variation-utils.js';
-import { processConcurrently, VARIATIONS_CONCURRENCY_LIMIT } from './common/utils/item-loading.js';
+import { applyFragmentListFilters } from './fragments/fragment-list-filters.js';
+import * as promotionVariations from './promotions/promotion-variations.js';
 import { fragmentHasPersonalizationTag, isPznCountryTagId, PZN_TAG_ID_PREFIX } from './common/utils/personalization-utils.js';
 import { Placeholder } from './aem/placeholder.js';
 import { getFragmentName } from './translation/translation-utils.js';
@@ -161,25 +151,10 @@ export class MasRepository extends LitElement {
     #previewDictionaryAbortByKey = new Map();
     #previewDictionaryLoadingDepth = 0;
 
-    /**
-     * When personalization is off, exclude fragments that carry mas:pzn/… tags except mas:pzn/country/….
-     * When on, search omits non-country pzn tags from the API; narrowing by those tags happens in mas-content.
-     * @param {import('./reactivity/fragment-store.js').FragmentStore[]} fragmentStores
-     */
-    #filterStoresByPersonalizationEnabled(fragmentStores) {
-        if (this.filters.value.personalizationFilterEnabled === true) return fragmentStores;
-        return fragmentStores.filter((fs) => {
-            const fragment = fs.get?.() ?? fs.value;
-            return !fragmentHasPersonalizationTag(fragment);
-        });
-    }
-
     #applyFragmentListFilters(fragmentStores) {
-        const filteredByPersonalization = this.#filterStoresByPersonalizationEnabled(fragmentStores);
-        if (this.page.value !== PAGE_NAMES.CONTENT) return filteredByPersonalization;
-        return filteredByPersonalization.filter((fs) => {
-            const fragment = fs.get?.() ?? fs.value;
-            return !fragmentIsPromoVariation(fragment);
+        return applyFragmentListFilters(fragmentStores, {
+            page: this.page.value,
+            personalizationFilterEnabled: this.filters.value.personalizationFilterEnabled,
         });
     }
 
@@ -254,6 +229,7 @@ export class MasRepository extends LitElement {
             case PAGE_NAMES.CONTENT:
                 this.searchFragments();
                 this.loadPreviewPlaceholders();
+                void this.loadPromotions();
                 break;
             case PAGE_NAMES.WELCOME:
                 this.loadRecentlyUpdatedFragments();
@@ -2310,55 +2286,39 @@ export class MasRepository extends LitElement {
      * @returns {Promise<Object>} The created promo variation fragment
      */
     async createPromoVariation(sourceFragmentId, promoTagId) {
-        const promoName = getPromoNameFromTag(promoTagId);
-        if (!promoName) {
-            throw new UserFriendlyError('Invalid promotion tag');
-        }
-
-        const sourceFragment = await this.aem.sites.cf.fragments.getById(sourceFragmentId);
-        if (!sourceFragment) {
-            throw new Error('Failed to fetch source fragment');
-        }
-        if (isPromoVariationPath(sourceFragment.path)) {
-            throw new UserFriendlyError('Cannot create a promo variation from a promo variation');
-        }
-
-        const targetPath = buildPromoVariationPath(sourceFragment.path, promoName);
-        if (!targetPath) {
-            throw new UserFriendlyError('Could not determine promo variation path from fragment path');
-        }
-
-        const existingFragment = await this.aem.sites.cf.fragments.getByPath(targetPath).catch(() => null);
-        if (existingFragment) {
-            throw new UserFriendlyError('Promo variation already exists for this fragment in this promotion project.');
-        }
-
-        const parentFolder = targetPath.split('/').slice(0, -1).join('/');
-        const fragmentName = targetPath.split('/').pop();
-        await this.aem.sites.cf.fragments.ensureFolderExists(parentFolder);
-
-        const csrfToken = await this.aem.getCsrfToken();
-        const createdDraft = await this.aem.createFragmentCopy(sourceFragment, parentFolder, fragmentName, csrfToken);
-        await this.aem.wait(1000);
-
-        const parentTags = (sourceFragment.tags || [])
-            .map((tag) => tag.id || tag)
-            .filter((id) => id && !normalizeTagId(id).startsWith(TAG_PROMOTION_PREFIX));
-        const variationTags = [...parentTags, normalizeTagId(promoTagId)];
-        await this.aem.saveTags({ ...createdDraft, newTags: variationTags });
-
-        const createdFragment = await this.aem.sites.cf.fragments.pollCreatedFragment(createdDraft);
-        if (!createdFragment) {
-            throw new Error('Failed to create promo variation');
-        }
-
-        await this.updateParentVariations(sourceFragment, createdFragment.path);
-        const parentStore = Store.fragments.list.data.get().find((store) => store.get()?.id === sourceFragment.id);
+        const createdFragment = await promotionVariations.createPromoVariation(this.aem, sourceFragmentId, promoTagId);
+        const parentStore = Store.fragments.list.data.get().find((store) => store.get()?.id === sourceFragmentId);
         if (parentStore) {
             await this.refreshFragment(parentStore);
+            const parent = parentStore.get();
+            if (parent) {
+                const enriched = promotionVariations.mergePromoVariationReferences(parent, [createdFragment]);
+                parentStore.refreshFrom(enriched);
+                this.#addToCache(parentStore.get());
+            }
         }
-
         return createdFragment;
+    }
+
+    #getPromotionProjectsForProbe() {
+        return (
+            Store.promotions.list.data
+                .get()
+                ?.map((store) => store.get())
+                .filter(Boolean) || []
+        );
+    }
+
+    async mergePromoReferencesIntoFragmentData(fragmentData) {
+        return this.#mergePromoReferencesIntoFragmentData(fragmentData);
+    }
+
+    async #mergePromoReferencesIntoFragmentData(fragmentData) {
+        return promotionVariations.mergePromoReferencesForDefaultFragment(
+            this.aem,
+            fragmentData,
+            this.#getPromotionProjectsForProbe(),
+        );
     }
 
     /**
@@ -2368,60 +2328,17 @@ export class MasRepository extends LitElement {
      * @returns {Promise<Object|null>}
      */
     async resolveDefaultFragmentForPromoVariation(promoVariationPath, promoVariationId) {
-        let promoTag = null;
-        if (promoVariationId) {
-            const variation = await this.aem.sites.cf.fragments.getById(promoVariationId);
-            promoTag = getPromotionTagFromFragment(variation);
-        }
-        const promoName = promoTag ? getPromoNameFromTag(promoTag) : null;
-        if (!promoName) return null;
-        const parentPath = resolveDefaultPathFromPromoVariation(promoVariationPath, promoName);
-        if (!parentPath) return null;
-        return this.aem.sites.cf.fragments.getByPath(parentPath).catch(() => null);
+        const parent = await promotionVariations.resolveDefaultFragmentForPromoVariation(
+            this.aem,
+            promoVariationPath,
+            promoVariationId,
+        );
+        if (!parent) return null;
+        return this.#mergePromoReferencesIntoFragmentData(parent);
     }
 
     async getUnpublishedAttachedPromoVariations(promotionFragment) {
-        const promotionTagId = getPromotionTagFromFragment(promotionFragment);
-        const promoName = getPromoNameFromTag(promotionTagId);
-        if (!promoName) return [];
-
-        const attachedPaths = Array.from(new Set(promotionFragment?.getFieldValues?.('fragments') || []));
-        if (!attachedPaths.length) return [];
-
-        const parentResults = await processConcurrently(
-            attachedPaths,
-            async (parentPath) => {
-                const parent = await this.aem.sites.cf.fragments.getByPath(parentPath).catch(() => null);
-                const variationPaths = parent?.fields?.find((field) => field.name === 'variations')?.values || [];
-                const promoVariationPaths = variationPaths.filter(
-                    (variationPath) => resolveDefaultPathFromPromoVariation(variationPath, promoName) === parentPath,
-                );
-                return { parentPath, promoVariationPaths };
-            },
-            VARIATIONS_CONCURRENCY_LIMIT,
-        );
-
-        const variationTasks = parentResults.flatMap(({ parentPath, promoVariationPaths }) =>
-            promoVariationPaths.map((variationPath) => ({ parentPath, variationPath })),
-        );
-
-        const variationResults = await processConcurrently(
-            variationTasks,
-            async ({ parentPath, variationPath }) => {
-                const variation = await this.aem.sites.cf.fragments.getByPath(variationPath).catch(() => null);
-                if (!variation) return null;
-                if (variation.status === STATUS_PUBLISHED || variation.status === STATUS_MODIFIED) return null;
-                return {
-                    path: variationPath,
-                    status: variation.status,
-                    title: variation.title,
-                    parentPath,
-                };
-            },
-            VARIATIONS_CONCURRENCY_LIMIT,
-        );
-
-        return variationResults.filter(Boolean);
+        return promotionVariations.getUnpublishedAttachedPromoVariations(this.aem, promotionFragment);
     }
 
     /**
@@ -2646,7 +2563,8 @@ export class MasRepository extends LitElement {
     async refreshFragment(store) {
         store.setLoading(true);
         const id = store.get().id;
-        const latest = await this.aem.sites.cf.fragments.getById(id);
+        let latest = await this.aem.sites.cf.fragments.getById(id);
+        latest = await this.#mergePromoReferencesIntoFragmentData(latest);
 
         // Apply corrector transformer before refreshing
         const surface = this.search.value.path?.split('/').filter(Boolean)[0]?.toLowerCase();

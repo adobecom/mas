@@ -1,7 +1,5 @@
-import { PATH_TOKENS, ROOT_PATH, TAG_PROMOTION_PREFIX } from '../constants.js';
+import { PATH_TOKENS, PROMOTIONS_PATH_PREFIX, ROOT_PATH, TAG_PROMOTION_PREFIX } from '../constants.js';
 import { normalizeTagId } from '../aem/tag-id-utils.js';
-
-const PROMOTIONS_PATH_PREFIX = 'promotions/';
 
 /**
  * True when the DAM path is a promo variation under a surface/locale promotions folder.
@@ -88,14 +86,12 @@ export function getPromotionTagFromFragment(fragment) {
 }
 
 /**
- * Extracts promo name from a promo variation path using its mas:promotion/ tag when available.
+ * Extracts promo folder name from a promo variation DAM path (first segment under promotions/).
+ * When a mas:promotion/ tag is available, callers should use getPromoNameFromTag instead.
  * @param {string} promoPath
- * @param {string} [promoTagId]
  * @returns {string|null}
  */
-export function getPromoNameFromPromoVariationPath(promoPath, promoTagId) {
-    const fromTag = promoTagId ? getPromoNameFromTag(promoTagId) : null;
-    if (fromTag) return fromTag;
+export function getPromoNameFromPromoVariationPath(promoPath) {
     const match = PATH_TOKENS.exec(promoPath);
     if (!match?.groups?.fragmentPath?.startsWith(PROMOTIONS_PATH_PREFIX)) return null;
     const rest = match.groups.fragmentPath.slice(PROMOTIONS_PATH_PREFIX.length);

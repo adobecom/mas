@@ -1,17 +1,18 @@
 import { LitElement, html, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
-import Store from './store.js';
-import { MasRepository } from './mas-repository.js';
+import Store from '../store.js';
+import { MasRepository } from '../mas-repository.js';
 import styles from './mas-promotions-css.js';
-import { PAGE_NAMES } from './constants.js';
-import ReactiveController from './reactivity/reactive-controller.js';
-import { showToast } from './utils.js';
-import { renderPromotionStatusCell } from './common/utils/render-utils.js';
+import { PAGE_NAMES } from '../constants.js';
+import ReactiveController from '../reactivity/reactive-controller.js';
+import { showToast } from '../utils.js';
+import { renderPromotionStatusCell } from '../common/utils/render-utils.js';
 import {
     confirmPublishDespiteUnpublishedPromoVariations,
     isPromotionExpiredForPublish,
+    publishPromotionProject,
     PROMOTION_EXPIRED_PUBLISH_MESSAGE,
-} from './promotions/promotion-publish-utils.js';
+} from './promotion-publish-utils.js';
 
 class MasPromotions extends LitElement {
     static styles = styles;
@@ -396,15 +397,15 @@ class MasPromotions extends LitElement {
             showToast(PROMOTION_EXPIRED_PUBLISH_MESSAGE, 'info');
             return;
         }
-        const canPublish = await confirmPublishDespiteUnpublishedPromoVariations(
+        const { confirmed, variationPaths } = await confirmPublishDespiteUnpublishedPromoVariations(
             this.repository,
             fragment,
             (title, message, options) => this.#showDialog(title, message, options),
         );
-        if (!canPublish) return;
+        if (!confirmed) return;
         try {
             this.loading = true;
-            const ok = await this.repository.publishFragment(fragment, ['DRAFT', 'UNPUBLISHED'], true);
+            const ok = await publishPromotionProject(this.repository, fragment, variationPaths);
             if (ok) await this.loadPromotions();
         } finally {
             this.loading = false;

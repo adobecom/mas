@@ -1,18 +1,18 @@
 import { LitElement, html, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
-import { MasRepository } from './mas-repository.js';
-import './aem/aem-tag-picker-field.js';
-import Store from './store.js';
-import StoreController from './reactivity/store-controller.js';
-import ReactiveController from './reactivity/reactive-controller.js';
-import { FragmentStore } from './reactivity/fragment-store.js';
+import { MasRepository } from '../mas-repository.js';
+import '../aem/aem-tag-picker-field.js';
+import Store from '../store.js';
+import StoreController from '../reactivity/store-controller.js';
+import ReactiveController from '../reactivity/reactive-controller.js';
+import { FragmentStore } from '../reactivity/fragment-store.js';
 import styles from './mas-promotions-editor-css.js';
-import { SURFACES, PAGE_NAMES, PROMOTION_MODEL_ID, TABLE_TYPE } from './constants.js';
-import { normalizeKey, showToast, extractSurfaceFromPath } from './utils.js';
-import { getFragmentPartsToUse, MODEL_WEB_COMPONENT_MAPPING } from './editor-panel.js';
-import { Promotion } from './aem/promotion.js';
-import './promotions/mas-promotions-items-selector.js';
-import { getItemsSelectionStore, setItemsSelectionStore } from './common/items-selection-store.js';
+import { SURFACES, PAGE_NAMES, PROMOTION_MODEL_ID, TABLE_TYPE } from '../constants.js';
+import { normalizeKey, showToast, extractSurfaceFromPath } from '../utils.js';
+import { getFragmentPartsToUse, MODEL_WEB_COMPONENT_MAPPING } from '../editor-panel.js';
+import { Promotion } from '../aem/promotion.js';
+import './mas-promotions-items-selector.js';
+import { getItemsSelectionStore, setItemsSelectionStore } from '../common/items-selection-store.js';
 import {
     classifyPromotionPathsForSelection,
     isPromotionItemSelectionDirty,
@@ -20,13 +20,14 @@ import {
     parsePromotionSurfacesFieldValues,
     serializePromotionSurfacesForAem,
     splitPromotionTagsFieldValues,
-} from './promotions/promotion-editor-utils.js';
+} from './promotion-editor-utils.js';
 import {
     confirmPublishDespiteUnpublishedPromoVariations,
     isPromotionExpiredForPublish,
+    publishPromotionProject,
     PROMOTION_EXPIRED_PUBLISH_MESSAGE,
-} from './promotions/promotion-publish-utils.js';
-import { renderFragmentStatusCell } from './common/utils/render-utils.js';
+} from './promotion-publish-utils.js';
+import { renderFragmentStatusCell } from '../common/utils/render-utils.js';
 
 function getPromotionPickerFragmentLabel(data) {
     const webComponentName = MODEL_WEB_COMPONENT_MAPPING[data?.model?.path];
@@ -319,11 +320,11 @@ class MasPromotionsEditor extends LitElement {
         if (this.fragment.isPromotionPublished && !this.fragment.isPromotionModified) {
             return;
         }
-        const canPublish = await this.#confirmPublishWithUnpublishedPromoVariations();
-        if (!canPublish) return;
+        const { confirmed, variationPaths } = await this.#confirmPublishWithUnpublishedPromoVariations();
+        if (!confirmed) return;
         this.promotionPublish = true;
         try {
-            const ok = await this.repository.publishFragment(this.fragment, ['DRAFT', 'UNPUBLISHED'], true);
+            const ok = await publishPromotionProject(this.repository, this.fragment, variationPaths);
             if (ok) await this.#reloadPromotionFromServer();
         } finally {
             this.promotionPublish = false;

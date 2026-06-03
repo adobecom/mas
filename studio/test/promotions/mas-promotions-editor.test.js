@@ -2,7 +2,7 @@ import { expect } from '@esm-bundle/chai';
 import sinon from 'sinon';
 import Store from '../../src/store.js';
 import { setItemsSelectionStore } from '../../src/common/items-selection-store.js';
-import MasPromotionsEditor from '../../src/mas-promotions-editor.js';
+import MasPromotionsEditor from '../../src/promotions/mas-promotions-editor.js';
 import { Promotion } from '../../src/aem/promotion.js';
 
 function makeFragmentData(overrides = {}) {
@@ -91,8 +91,20 @@ describe('MasPromotionsEditor', () => {
             unpublishFragment: sandbox.stub().resolves(true),
             searchFragments: sandbox.stub(),
             loadAllCollections: sandbox.stub(),
+            operation: { set: sandbox.stub() },
+            processError: sandbox.stub(),
             aem: {
-                sites: { cf: { fragments: { getById: sandbox.stub().resolves(null) } } },
+                sites: {
+                    cf: {
+                        fragments: {
+                            getById: sandbox.stub().resolves(null),
+                            publish: sandbox.stub().resolves(),
+                            publishFragments: sandbox.stub().resolves(),
+                            getWithEtag: sandbox.stub(),
+                            getByPath: sandbox.stub().resolves(null),
+                        },
+                    },
+                },
                 getFragmentByPath: null,
             },
             ...overrides,
@@ -338,9 +350,8 @@ describe('MasPromotionsEditor', () => {
                 status: 'MODIFIED',
             });
             Store.promotions.inEdit.set(new FragmentStore(promotion));
-            const publishFragment = sandbox.stub().resolves(true);
+            const publish = sandbox.stub().resolves();
             const { el } = await mountEditorWithRepo({
-                publishFragment,
                 aem: {
                     sites: {
                         cf: {
@@ -354,6 +365,7 @@ describe('MasPromotionsEditor', () => {
                                         status: 'PUBLISHED',
                                     }),
                                 ),
+                                publish,
                             },
                         },
                     },
@@ -363,7 +375,7 @@ describe('MasPromotionsEditor', () => {
             await el.updateComplete;
             clickPromotionsFormButton(el, 'Publish');
             await new Promise((resolve) => setTimeout(resolve, 0));
-            expect(publishFragment.calledOnce).to.be.true;
+            expect(publish.calledOnce).to.be.true;
         });
 
         it('shows Unpublish only when promotion is published', async () => {
@@ -634,7 +646,8 @@ describe('MasPromotionsEditor', () => {
             await el.updateComplete;
 
             expect(repo.getUnpublishedAttachedPromoVariations.calledOnce).to.be.true;
-            expect(repo.publishFragment.called).to.be.false;
+            expect(repo.aem.sites.cf.fragments.publish.called).to.be.false;
+            expect(repo.aem.sites.cf.fragments.publishFragments.called).to.be.false;
         });
     });
 

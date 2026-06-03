@@ -9,8 +9,7 @@ import {
     getPromoNameFromPromoVariationPath,
     isPromoVariationPath,
     resolveDefaultPathFromPromoVariation,
-} from '../promotions/promo-variation-utils.js';
-
+} from '../promotions/promotion-model.js';
 export class EditorContextStore extends ReactiveStore {
     loading = false;
     localeDefaultFragment = null;
@@ -159,7 +158,7 @@ export class EditorContextStore extends ReactiveStore {
                 if (data) {
                     this.localeDefaultFragment = data;
                     this.defaultLocaleId = data.id;
-                    this.notify();
+                this.notify();
                 }
                 return data;
             })

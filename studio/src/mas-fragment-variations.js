@@ -7,7 +7,7 @@ import { styles } from './mas-fragment-variations.css.js';
 import { extractLocaleFromPath, showToast } from './utils.js';
 import router from './router.js';
 import './aem/aem-tag-picker-field.js';
-import { getPromoNameFromTag, getPromotionTagFromFragment } from './promotions/promo-variation-utils.js';
+import { getPromoNameFromTag, getPromotionTagFromFragment } from './promotions/promotion-model.js';
 
 const styleElement = document.createElement('style');
 styleElement.textContent = styles;

@@ -12,7 +12,7 @@ import ReactiveController from '../reactivity/reactive-controller.js';
 import Store from '../store.js';
 import { normalizeTagId } from '../aem/tag-id-utils.js';
 import { splitPromotionTagsFieldValues } from './promotion-editor-utils.js';
-import { buildPromoVariationPathForTag, isPromoVariationPath } from './promo-variation-utils.js';
+import { buildPromoVariationPathForTag, isPromoVariationPath } from './promotion-model.js';
 
 const localStyles = css`
     :host {

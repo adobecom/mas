@@ -8,9 +8,9 @@ import {
     getPromotionTagFromFragment,
     isPromoVariationPath,
     resolveDefaultPathFromPromoVariation,
-} from '../../src/promotions/promo-variation-utils.js';
+} from '../../src/promotions/promotion-model.js';
 
-describe('promo-variation-utils', () => {
+describe('promotion-model', () => {
     const defaultPath = '/content/dam/mas/sandbox/en_US/my-card';
     const promoVariationPath = '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card';
     const nestedDefault = '/content/dam/mas/sandbox/en_US/cards/my-card';
@@ -97,10 +97,12 @@ describe('promo-variation-utils', () => {
     });
 
     describe('getPromoNameFromPromoVariationPath', () => {
-        it('prefers tag id over path parsing', () => {
-            expect(getPromoNameFromPromoVariationPath(promoVariationPath, 'mas:promotion/black-friday')).to.equal(
-                'black-friday',
-            );
+        it('parses promo name from variation path', () => {
+            expect(getPromoNameFromPromoVariationPath(promoVariationPath)).to.equal('black-friday');
+        });
+
+        it('returns null for non-promo variation paths', () => {
+            expect(getPromoNameFromPromoVariationPath(defaultPath)).to.be.null;
         });
     });
 });

@@ -19,6 +19,8 @@ describe('bulk-publish constants + store', () => {
             PUBLISHING: 'Publishing',
             PUBLISHED: 'Published',
             LOCKED: 'Locked',
+            REVERTING: 'Reverting',
+            REVERTED: 'Reverted',
         });
     });
 

@@ -221,7 +221,7 @@ export class OstApp extends LitElement {
         if (store.wizardStep !== 'offer') return;
         if (store.selectedOffer || !store.initialOsi) return;
         this.reapplyingDeepLink = true;
-        Promise.resolve(this.resolveDeepLinkOffer(store.initialOsi)).finally(() => {
+        this.resolveDeepLinkOffer(store.initialOsi).finally(() => {
             this.reapplyingDeepLink = false;
         });
     }

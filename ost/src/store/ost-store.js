@@ -500,11 +500,7 @@ export class OstStore extends EventTarget {
     }
 
     get effectivePromoCode() {
-        const override = this.storedPromoOverride;
-        if (!override) {
-            return this.promotionCode ?? '';
-        }
-        return override;
+        return this.storedPromoOverride || this.promotionCode || '';
     }
 
     toggleMultiSelect() {

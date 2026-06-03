@@ -26,6 +26,7 @@ export default class MasMnemonic extends LitElement {
         // Support studio's mnemonic attribute names
         mnemonicText: { type: String, attribute: 'mnemonic-text' },
         mnemonicPlacement: { type: String, attribute: 'mnemonic-placement' },
+        alt: { type: String },
         // Opt-in viewport-aware JS positioning (used by fries cards)
         smartPlacement: { type: Boolean, attribute: 'smart-placement' },
         // Tooltip visibility state
@@ -358,7 +359,14 @@ export default class MasMnemonic extends LitElement {
     }
 
     get effectiveContent() {
-        return this.tooltipText || this.mnemonicText || this.content || '';
+        return (
+            this.tooltipText ||
+            this.mnemonicText ||
+            this.content ||
+            this.textContent?.trim() ||
+            this.alt ||
+            ''
+        );
     }
 
     get effectivePlacement() {

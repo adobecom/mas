@@ -131,7 +131,8 @@ export class OstLivePreview extends LitElement {
         const ctrl = panel.placeholderCtrl;
         const checkoutCtrl = panel.shadowRoot?.querySelector('ost-checkout-options')?.checkout;
         const type = this.placeholderType || ctrl.selectedType;
-        const options = ctrl.getEffectiveOptions();
+        const typeOverrides = store.placeholderTypes.find((t) => t.type === type)?.overrides || {};
+        const options = { ...ctrl.getEffectiveOptions(), ...typeOverrides };
 
         const wcsOsi = type === 'discount' && this.referenceOsi ? [osi, this.referenceOsi] : [osi];
 

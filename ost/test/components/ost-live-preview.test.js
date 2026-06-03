@@ -74,4 +74,12 @@ describe('ost-live-preview', () => {
         const hint = preview.shadowRoot.querySelector('.discount-hint');
         expect(hint).to.equal(null);
     });
+
+    it('sets the legal template and its displayPlanType override for the legal type', async () => {
+        const preview = await getPreview();
+        preview.placeholderType = 'legal';
+        const result = preview.buildPlaceholderOptions();
+        expect(result.placeholderOptions.template).to.equal('legal');
+        expect(result.placeholderOptions.displayPlanType).to.equal(true);
+    });
 });

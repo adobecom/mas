@@ -158,7 +158,7 @@ export class EditorContextStore extends ReactiveStore {
                 if (data) {
                     this.localeDefaultFragment = data;
                     this.defaultLocaleId = data.id;
-                this.notify();
+                    this.notify();
                 }
                 return data;
             })

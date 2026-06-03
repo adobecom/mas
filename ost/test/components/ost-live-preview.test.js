@@ -55,4 +55,23 @@ describe('ost-live-preview', () => {
         const result = preview.buildPlaceholderOptions();
         expect(result.placeholderOptions.landscape).to.equal('DRAFT');
     });
+
+    it('passes the single promo OSI for a discount on a PROMOTION offer without reference OSI', async () => {
+        store.selectedOffer = { offer_id: 'PROMO1', offer_type: 'PROMOTION' };
+        const preview = await getPreview();
+        preview.placeholderType = 'discount';
+        preview.referenceOsi = '';
+        const result = preview.buildPlaceholderOptions();
+        expect(result.placeholderOptions.wcsOsi).to.deep.equal(['test-osi']);
+    });
+
+    it('does not show the reference-OSI hint for a discount on a PROMOTION offer', async () => {
+        store.selectedOffer = { offer_id: 'PROMO1', offer_type: 'PROMOTION' };
+        const preview = await getPreview();
+        preview.placeholderType = 'discount';
+        preview.referenceOsi = '';
+        await preview.updateComplete;
+        const hint = preview.shadowRoot.querySelector('.discount-hint');
+        expect(hint).to.equal(null);
+    });
 });

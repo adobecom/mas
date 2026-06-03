@@ -71,9 +71,20 @@
         <script src="../web-components/dist/mas.js" type="module"></script>
         <script src="studio/libs/swc.js" type="module"></script>
 
-        <!-- OST -->
-        <script src="studio/ost/ost-new.js" defer></script>
-        <link rel="stylesheet" href="./studio/ost/index.css" />
+        <!-- OST: new Lit bundle by default; ?ost=legacy (or #ost=legacy) loads the legacy tacocat bundle from main's CDN. -->
+        <script>
+            (function () {
+                const search = new URLSearchParams(location.search).get('ost');
+                const hash = (location.hash.match(/(?:^#|&)ost=([^&]+)/) || [])[1];
+                const useLegacy = (search || hash) === 'legacy';
+                const newJs = 'studio/ost/ost-new.js';
+                const newCss = './studio/ost/index.css';
+                const legacyJs = 'https://main--mas--adobecom.aem.live/studio/ost/index.js';
+                const legacyCss = 'https://main--mas--adobecom.aem.live/studio/ost/index.css';
+                document.write(`<script src="${useLegacy ? legacyJs : newJs}" defer><\/script>`);
+                document.write(`<link rel="stylesheet" href="${useLegacy ? legacyCss : newCss}" />`);
+            })();
+        </script>
         <link rel="stylesheet" href="studio/libs/spectrum.css" />
         <link rel="stylesheet" href="./studio/style.css" />
         <link rel="stylesheet" href="./studio/merch-card.css" />

@@ -61,6 +61,11 @@ export class OstLivePreview extends LitElement {
             text-decoration: line-through;
         }
 
+        .placeholder-container span.price-strikethrough span.price-recurrence,
+        .placeholder-container span.price-strikethrough span.price-tax-inclusivity {
+            display: none;
+        }
+
         .placeholder-container span.placeholder-resolved[data-template='optical'],
         .placeholder-container span.price.price-optical {
             font-weight: 700;

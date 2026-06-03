@@ -82,4 +82,30 @@ describe('ost-live-preview', () => {
         expect(result.placeholderOptions.template).to.equal('legal');
         expect(result.placeholderOptions.displayPlanType).to.equal(true);
     });
+
+    it('hides the recurrence and tax-inclusivity labels in a strikethrough preview', async () => {
+        store.masCommerceService = {
+            createInlinePrice: () => {
+                const node = document.createElement('span');
+                node.className = 'price price-strikethrough';
+                node.innerHTML =
+                    '<span class="price-integer">9</span>' +
+                    '<span class="price-recurrence">/mo</span>' +
+                    '<span class="price-tax-inclusivity">excl. VAT</span>';
+                return node;
+            },
+        };
+        const preview = await getPreview();
+        preview.placeholderType = 'strikethrough';
+        await preview.updateComplete;
+
+        const container = preview.shadowRoot.querySelector('.placeholder-container');
+        const recurrence = container.querySelector('span.price-recurrence');
+        const tax = container.querySelector('span.price-tax-inclusivity');
+        const integer = container.querySelector('span.price-integer');
+
+        expect(getComputedStyle(recurrence).display).to.equal('none');
+        expect(getComputedStyle(tax).display).to.equal('none');
+        expect(getComputedStyle(integer).display).to.not.equal('none');
+    });
 });

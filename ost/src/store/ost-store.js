@@ -57,6 +57,9 @@ const SLICES = [
     ['offers', []],
     ['selectedOffer', undefined],
     ['selectedOsi', undefined],
+    // OSI the OST was deep-link opened with; preserved across Back so the offer
+    // step can re-resolve it. Cleared on init and on manual offer selection.
+    ['initialOsi', undefined],
     // Tracks the offer the user had selected before clicking Back/Change so the
     // offer-card render can highlight it as a "previously used" choice.
     ['lastSelectedOfferId', undefined],
@@ -254,6 +257,7 @@ export class OstStore extends EventTarget {
         this.selectedProduct = undefined;
         this.selectedOffer = undefined;
         this.selectedOsi = undefined;
+        this.initialOsi = undefined;
         // 'single' is the safe default: it matches the most common caller
         // (RTE double-click on an existing CTA) and is overridden below for
         // multiSelect / bundleSelect / explicit authoringFlow.
@@ -434,6 +438,8 @@ export class OstStore extends EventTarget {
 
     #addOffer(offer, osi, role) {
         if (this.authoringFlow === 'consult') return;
+
+        this.initialOsi = undefined;
 
         if (this.authoringFlow === 'single') {
             this.selectedOffer = offer;

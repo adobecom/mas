@@ -544,5 +544,56 @@ describe('ost-app', () => {
                 window.fetch = originalFetch;
             }
         });
+
+        it('persists the deep-link OSI on store.initialOsi', async () => {
+            const originalFetch = window.fetch;
+            window.fetch = async () => {
+                throw new Error('aos down');
+            };
+            try {
+                const el = await fixture(html`<ost-app></ost-app>`);
+                await el.resolveDeepLinkOffer('osi-persist');
+                expect(store.initialOsi).to.equal('osi-persist');
+            } finally {
+                window.fetch = originalFetch;
+                store.initialOsi = undefined;
+            }
+        });
+    });
+
+    describe('deep-link re-resolution on Back then return to offer', () => {
+        afterEach(() => {
+            store.initialOsi = undefined;
+            store.selectedOffer = undefined;
+            store.wizardStep = 'entitlements';
+        });
+
+        it('re-resolves the deep-linked offer when re-entering the offer step', async () => {
+            const el = await fixture(html`<ost-app></ost-app>`);
+            const calls = [];
+            el.resolveDeepLinkOffer = (id) => {
+                calls.push(id);
+                return Promise.resolve();
+            };
+            store.initialOsi = 'osi-back';
+            store.selectedOffer = undefined;
+            store.wizardStep = 'offer';
+            store.notify();
+            expect(calls).to.deep.equal(['osi-back']);
+        });
+
+        it('does not re-resolve when an offer is already selected', async () => {
+            const el = await fixture(html`<ost-app></ost-app>`);
+            const calls = [];
+            el.resolveDeepLinkOffer = (id) => {
+                calls.push(id);
+                return Promise.resolve();
+            };
+            store.initialOsi = 'osi-back';
+            store.selectedOffer = { offer_id: 'already' };
+            store.wizardStep = 'offer';
+            store.notify();
+            expect(calls).to.deep.equal([]);
+        });
     });
 });

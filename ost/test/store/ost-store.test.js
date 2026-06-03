@@ -386,6 +386,16 @@ describe('OstStore', () => {
             store.goToEntitlements();
             expect(store.lastSelectedOfferId).to.equal('ABC123');
         });
+
+        it('goToEntitlements preserves initialOsi so Back keeps the deep link', () => {
+            store.initialOsi = 'DEEP';
+            store.setOffer({ offer_id: 'ABC123' });
+            store.setOsi('DEEP');
+            store.goToEntitlements();
+            expect(store.selectedOffer).to.be.undefined;
+            expect(store.selectedOsi).to.be.undefined;
+            expect(store.initialOsi).to.equal('DEEP');
+        });
     });
 
     describe('chooseAuthoringFlow', () => {
@@ -508,6 +518,13 @@ describe('OstStore', () => {
             store.addOffer({ offerId: 'test' }, 'osi');
             expect(store.selectedOffers).to.have.length(0);
             expect(store.selectedOffer).to.be.undefined;
+        });
+
+        it('clears initialOsi when the user manually picks an offer', () => {
+            store.authoringFlow = 'single';
+            store.initialOsi = 'DEEP';
+            store.addOffer({ offerId: 'test' }, 'osi-1');
+            expect(store.initialOsi).to.be.undefined;
         });
     });
 

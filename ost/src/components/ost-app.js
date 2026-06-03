@@ -183,6 +183,7 @@ export class OstApp extends LitElement {
         super();
         this.dialog = false;
         this.productsError = '';
+        this.reapplyingDeepLink = false;
         this.handleStoreChange = this.handleStoreChange.bind(this);
     }
 
@@ -211,7 +212,18 @@ export class OstApp extends LitElement {
     }
 
     handleStoreChange() {
+        this.maybeReapplyDeepLink();
         this.requestUpdate();
+    }
+
+    maybeReapplyDeepLink() {
+        if (this.reapplyingDeepLink) return;
+        if (store.wizardStep !== 'offer') return;
+        if (store.selectedOffer || !store.initialOsi) return;
+        this.reapplyingDeepLink = true;
+        Promise.resolve(this.resolveDeepLinkOffer(store.initialOsi)).finally(() => {
+            this.reapplyingDeepLink = false;
+        });
     }
 
     updated(changed) {
@@ -269,6 +281,7 @@ export class OstApp extends LitElement {
     }
 
     async resolveDeepLinkOffer(id) {
+        store.initialOsi = id;
         try {
             const config = {
                 accessToken: store.accessToken,

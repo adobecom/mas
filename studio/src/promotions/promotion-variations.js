@@ -96,16 +96,18 @@ export function mergePromoVariationReferences(fragmentData, discovered) {
 export async function probePromoVariationReferences(aem, defaultPath, promotionProjects = []) {
     if (!aem || !defaultPath || isPromoVariationPath(defaultPath) || !promotionProjects.length) return [];
 
-    const refs = [];
-    for (const project of promotionProjects) {
-        const tagId = getPromotionTagFromFragment(project);
-        const targetPath = tagId ? buildPromoVariationPathForTag(defaultPath, tagId) : null;
-        if (!targetPath) continue;
-        const variation = await aem.sites.cf.fragments.getByPath(targetPath).catch(() => null);
-        if (!variation?.id || !variation?.path) continue;
-        refs.push(variation);
-    }
-    return refs;
+    const refs = await processConcurrently(
+        promotionProjects,
+        async (project) => {
+            const tagId = getPromotionTagFromFragment(project);
+            const targetPath = tagId ? buildPromoVariationPathForTag(defaultPath, tagId) : null;
+            if (!targetPath) return null;
+            const variation = await aem.sites.cf.fragments.getByPath(targetPath).catch(() => null);
+            return variation?.id && variation?.path ? variation : null;
+        },
+        VARIATIONS_CONCURRENCY_LIMIT,
+    );
+    return refs.filter(Boolean);
 }
 
 /**

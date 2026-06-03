@@ -670,7 +670,7 @@ class MasPromotionsEditor extends LitElement {
         slotDiv.style.justifyContent = 'flex-end';
     };
 
-    renderAddItemsDialog() {
+    get addItemsDialog() {
         const footerContent = html`
             <sp-button-group>
                 <sp-button variant="secondary" treatment="outline" @click=${() => this.#dispatchDialogEvent('cancel')}
@@ -714,7 +714,7 @@ class MasPromotionsEditor extends LitElement {
         const updateDisabled = !(this.fragment?.hasChanges || this.#itemsSelectionDirty);
         const canOpenItemPicker = this.promotionPickerSurfaces.length > 0;
         return html`
-            ${this.renderConfirmDialog()}
+            ${this.confirmDialog}
             <div class="promotions-form-container">
                 <div class="promotions-form-header">
                     <h1>${this.isNewPromotion ? 'Create new promotion project' : 'Edit promotion project'}</h1>
@@ -783,7 +783,7 @@ class MasPromotionsEditor extends LitElement {
                                 ></aem-tag-picker-field>
                             </sp-field-group>
                         </div>
-                        <sp-divider size="m" style="align-self: stretch; height: auto;" vertical></sp-divider>
+                        <sp-divider size="m" class="promotions-form-panel-divider" vertical></sp-divider>
                         <div class="promotions-form-surfaces">
                             <sp-field-label required>Surfaces</sp-field-label>
                             <div class="promotions-form-surfaces-panel">
@@ -792,7 +792,7 @@ class MasPromotionsEditor extends LitElement {
                                           <div class="surfaces-empty-state">
                                               <div class="icon">
                                                   <overlay-trigger type="modal" id="add-surfaces-overlay">
-                                                      ${this.renderAddSurfacesDialog()}
+                                                      ${this.addSurfacesDialog}
                                                       <sp-button slot="trigger" variant="secondary">
                                                           <sp-icon-add size="xxl"></sp-icon-add>
                                                       </sp-button>
@@ -826,7 +826,7 @@ class MasPromotionsEditor extends LitElement {
                                                       },
                                                   )}
                                                   <overlay-trigger type="modal" id="add-surfaces-overlay">
-                                                      ${this.renderAddSurfacesDialog()}
+                                                      ${this.addSurfacesDialog}
                                                       <sp-button slot="trigger" variant="secondary" icon-only>
                                                           <sp-icon-add slot="icon" size="m"></sp-icon-add>
                                                       </sp-button>
@@ -851,7 +851,7 @@ class MasPromotionsEditor extends LitElement {
                                               triggered-by="click"
                                               @sp-opened=${this.#openAddItemsOverlay}
                                           >
-                                              ${this.renderAddItemsDialog()}
+                                              ${this.addItemsDialog}
                                               <sp-button
                                                   slot="trigger"
                                                   variant="secondary"
@@ -880,7 +880,7 @@ class MasPromotionsEditor extends LitElement {
                                   </h2>
                                   <div>
                                       <overlay-trigger type="modal" id="add-promotion-items-overlay" triggered-by="click">
-                                          ${this.renderAddItemsDialog()}
+                                          ${this.addItemsDialog}
                                           <sp-action-button
                                               slot="trigger"
                                               quiet
@@ -940,7 +940,7 @@ class MasPromotionsEditor extends LitElement {
         `;
     }
 
-    renderAddSurfacesDialog() {
+    get addSurfacesDialog() {
         const surfaces = this.fragment?.fields.find((field) => field.name === 'surfaces')?.values || [];
         return html`
             <sp-dialog-wrapper
@@ -974,7 +974,7 @@ class MasPromotionsEditor extends LitElement {
         `;
     }
 
-    renderConfirmDialog() {
+    get confirmDialog() {
         if (!this.confirmDialogConfig) return nothing;
 
         const { title, message, onConfirm, onCancel, confirmText, cancelText, variant } = this.confirmDialogConfig;

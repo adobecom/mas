@@ -242,7 +242,7 @@ const localStyles = css`
 `;
 
 const PROMO_VARIATION_EXISTS_MESSAGE =
-    'A promo variation already exists for this fragment in this promotion project. Use Edit fragment to open it.';
+    'A promo variation already exists for this fragment in this promotion project. Use View promo variation to open it.';
 const PROMO_VARIATION_MISSING_MESSAGE =
     'The promo variation for this fragment could not be found. It may have been removed. Use Create promo variation to add it again.';
 
@@ -417,24 +417,6 @@ class MasPromotionsItemsTable extends LitElement {
         openPreview(fragmentId, { left: 'min(300px, 15%)' });
     }
 
-    async #resolvePromoProjectEditTarget(item) {
-        const defaultId = item?.id;
-        const defaultPath = item?.path;
-        if (!defaultId || !defaultPath) return null;
-
-        const promoTag = this.#promotionTagId;
-        const targetPath = promoTag ? buildPromoVariationPathForTag(defaultPath, promoTag) : null;
-        if (!targetPath) {
-            return { id: defaultId, path: defaultPath };
-        }
-
-        const variation = await this.repository?.aem?.sites?.cf?.fragments?.getByPath(targetPath).catch(() => null);
-        if (variation?.id) {
-            return { id: variation.id, path: variation.path };
-        }
-        return { id: defaultId, path: defaultPath };
-    }
-
     #getPromotionProjectId() {
         return Store.promotions.inEdit.get()?.get?.()?.id || Store.promotions.promotionId.get() || null;
     }
@@ -453,10 +435,10 @@ class MasPromotionsItemsTable extends LitElement {
 
     async #editFragment(e, item) {
         e.stopPropagation();
-        if (!item?.id) return;
-        const target = await this.#resolvePromoProjectEditTarget(item);
-        if (!target?.id) return;
-        await this.#navigateToFragmentEditorFromProject(target.id, target.path);
+        if (!item?.id || !item?.path) return;
+        Store.promotions.promotionId.set(null);
+        const locale = extractLocaleFromPath(item.path);
+        await router.navigateToFragmentEditor(item.id, { locale });
     }
 
     #canCreatePromoVariation(item) {

@@ -50,6 +50,11 @@ export const styles = [
             flex: 1;
         }
 
+        .promotions-form-panel-divider {
+            align-self: stretch;
+            height: auto;
+        }
+
         .promotions-form-fields sp-field-label {
             padding-top: 12px;
         }

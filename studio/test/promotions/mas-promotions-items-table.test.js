@@ -314,16 +314,15 @@ describe('MasPromotionsItemsTable', () => {
         expect(editItem).to.not.be.null;
         editItem.dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
         await new Promise((r) => setTimeout(r, 10));
-        expect(Store.promotions.promotionId.get()).to.equal('promo-to-clear');
+        expect(Store.promotions.promotionId.get()).to.be.null;
         expect(navStub.calledOnce).to.be.true;
         expect(navStub.firstCall.args[0]).to.equal('nav-id');
     });
 
-    it('opens promo variation editor when Edit fragment is clicked and variation exists for the project', async () => {
+    it('opens default fragment editor on Edit fragment even when a promo variation exists', async () => {
         const router = (await import('../../src/router.js')).default;
         const navStub = sandbox.stub(router, 'navigateToFragmentEditor').resolves();
         const defaultPath = '/content/dam/mas/sandbox/en_US/my-card';
-        const promoVariationPath = '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card';
         const promotion = new Fragment({
             path: '/content/dam/mas/promotions/black-friday',
             fields: [{ name: 'tags', values: ['mas:promotion/black-friday'], multiple: true }],
@@ -331,66 +330,7 @@ describe('MasPromotionsItemsTable', () => {
         Store.promotions.inEdit.set(new FragmentStore(promotion));
 
         const el = await fixture(html`<mas-promotions-items-table .type=${TABLE_TYPE.CARDS}></mas-promotions-items-table>`);
-        sandbox.stub(el, 'repository').get(() => ({
-            aem: {
-                sites: {
-                    cf: {
-                        fragments: {
-                            getByPath: sandbox.stub().withArgs(promoVariationPath).resolves({
-                                id: 'promo-var-id',
-                                path: promoVariationPath,
-                            }),
-                        },
-                    },
-                },
-            },
-        }));
-        el.viewOnlyFragments = [
-            {
-                path: defaultPath,
-                id: 'default-card-id',
-                title: 'Default Card',
-                studioPath: defaultPath,
-                status: 'PUBLISHED',
-                model: { path: CARD_MODEL_PATH },
-                fields: [],
-                tags: [],
-            },
-        ];
-        await el.updateComplete;
-        const editItem = Array.from(el.shadowRoot.querySelectorAll('sp-menu-item')).find((item) =>
-            item.textContent.trim().includes('Edit fragment'),
-        );
-        editItem.dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
-        await new Promise((r) => setTimeout(r, 10));
-        expect(navStub.calledOnce).to.be.true;
-        expect(navStub.firstCall.args[0]).to.equal('promo-var-id');
-        Store.promotions.inEdit.set(null);
-    });
-
-    it('opens default fragment editor when no promo variation exists for the project', async () => {
-        const router = (await import('../../src/router.js')).default;
-        const navStub = sandbox.stub(router, 'navigateToFragmentEditor').resolves();
-        const defaultPath = '/content/dam/mas/sandbox/en_US/my-card';
-        const promoVariationPath = '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card';
-        const promotion = new Fragment({
-            path: '/content/dam/mas/promotions/black-friday',
-            fields: [{ name: 'tags', values: ['mas:promotion/black-friday'], multiple: true }],
-        });
-        Store.promotions.inEdit.set(new FragmentStore(promotion));
-
-        const el = await fixture(html`<mas-promotions-items-table .type=${TABLE_TYPE.CARDS}></mas-promotions-items-table>`);
-        sandbox.stub(el, 'repository').get(() => ({
-            aem: {
-                sites: {
-                    cf: {
-                        fragments: {
-                            getByPath: sandbox.stub().withArgs(promoVariationPath).resolves(null),
-                        },
-                    },
-                },
-            },
-        }));
+        el.existingPromoVariationDefaultPaths = new Set([defaultPath]);
         el.viewOnlyFragments = [
             {
                 path: defaultPath,
@@ -411,6 +351,7 @@ describe('MasPromotionsItemsTable', () => {
         await new Promise((r) => setTimeout(r, 10));
         expect(navStub.calledOnce).to.be.true;
         expect(navStub.firstCall.args[0]).to.equal('default-card-id');
+        expect(Store.promotions.promotionId.get()).to.be.null;
         Store.promotions.inEdit.set(null);
     });
 

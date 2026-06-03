@@ -691,7 +691,7 @@ describe('MasPromotionsEditor', () => {
         });
     });
 
-    describe('renderConfirmDialog', () => {
+    describe('confirmDialog', () => {
         it('renders nothing when confirmDialogConfig is null', async () => {
             const el = await mountEditor();
             const overlay = el.renderRoot.querySelector('.confirm-dialog-overlay');

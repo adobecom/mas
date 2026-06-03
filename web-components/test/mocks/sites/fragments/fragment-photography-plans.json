@@ -13,12 +13,16 @@
             "http://localhost:2023/test/img/lightroom.svg",
             "http://localhost:2023/test/mocks/img/photoshop.svg"
         ],
-        "mnemonicAlt": ["Lightroom", "Illustrator"],
+        "mnemonicAlt": [
+            "Lightroom",
+            "Illustrator"
+        ],
         "mnemonicLink": [
             "https://www.adobe.com/products/catalog.html",
             "https://www.adobe.com"
         ],
         "badge": {
+            "value": "Save [[promo-saved-amount]] today",
             "mimeType": "text/html"
         },
         "cardTitle": "Photography  (1TB)",

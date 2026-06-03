@@ -64,6 +64,8 @@ function replaceDiscount(node, discount, placeholder) {
             replaceDiscount(child, discount, placeholder);
         }
     }
+    if (node.shadowRoot)
+        replaceDiscount(node.shadowRoot, discount, placeholder);
 }
 
 function getPriceAmount(el) {
@@ -73,7 +75,12 @@ function getPriceAmount(el) {
 }
 
 function addSavedAmountOnPromo(cardEl, priceEl) {
-    if (!cardEl.textContent.includes(PROMO_SAVED_AMOUNT)) return;
+    const badge = cardEl.querySelector('merch-badge');
+    if (
+        !cardEl.textContent.includes(PROMO_SAVED_AMOUNT) &&
+        !badge?.shadowRoot.textContent.includes(PROMO_SAVED_AMOUNT)
+    )
+        return;
 
     const pricesMapping = cardEl?.variantLayout?.aemFragmentMapping?.prices;
     if (!pricesMapping) return;

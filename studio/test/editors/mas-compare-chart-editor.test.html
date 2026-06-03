@@ -255,6 +255,7 @@
                         expect(el.shadowRoot.querySelector('.compchart-grid')).to.not.exist;
                         expect(preview, 'preview container').to.exist;
                         expect(chart, 'preview chart').to.exist;
+                        expect(chart.classList.contains('compchart-preview-chart')).to.be.true;
                         expect(chart.hasAttribute('consonant')).to.be.true;
                         expect(preview.querySelector('mas-compare-chart')).to.not.exist;
                         expect(chart.querySelector(':scope > aem-fragment'), 'preview aem fragment').to.exist;

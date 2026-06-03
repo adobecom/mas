@@ -388,6 +388,24 @@ export const styles = css`
     .accessibility-header-row + .table-container {
         margin-top: 0;
     }
+    :host(.compchart-preview-chart[data-sticky-header]) .sticky-header-spacer {
+        display: none;
+        height: 0;
+    }
+    :host(.compchart-preview-chart) .header-content,
+    :host(.compchart-preview-chart) .sticky-header.is-stuck {
+        position: static;
+        inset-inline: auto;
+        width: auto;
+        margin-inline: 0;
+        top: auto;
+        padding-top: var(--spectrum-spacing-500, 24px);
+        box-shadow: none;
+        transform: none;
+    }
+    :host(.compchart-preview-chart) .accessibility-header-row + .table-container {
+        margin-top: var(--spectrum-spacing-400, 16px);
+    }
 
     .table-column-header {
         all: unset;

@@ -1964,7 +1964,12 @@ class MasCompareChartEditor extends LitElement {
         const expandedGroups = this.#expandedGroupsAttribute();
         const stickyOffset = this.#stickyOffsetAttribute();
         return html`
-            <mas-compare-chart consonant expanded-groups=${expandedGroups || nothing} sticky-offset=${stickyOffset || nothing}>
+            <mas-compare-chart
+                class="compchart-preview-chart"
+                consonant
+                expanded-groups=${expandedGroups || nothing}
+                sticky-offset=${stickyOffset || nothing}
+            >
                 <aem-fragment author loading="cache" fragment=${previewFragmentId}></aem-fragment>
             </mas-compare-chart>
         `;

@@ -193,6 +193,32 @@
                         local.remove();
                     });
 
+                    it('uses non-sticky header styling for studio preview charts', async () => {
+                        const local =
+                            document.createElement('mas-compare-chart');
+                        local.classList.add('compchart-preview-chart');
+                        local.innerHTML = '<div name="g"><h4>G</h4></div>';
+                        main.append(local);
+                        await local.updateComplete;
+                        await local.updateComplete;
+
+                        const header =
+                            local.shadowRoot.querySelector('.header-content');
+                        const firstTable = local.shadowRoot.querySelector(
+                            '.accessibility-header-row + .table-container',
+                        );
+                        expect(getComputedStyle(header).position).to.equal(
+                            'static',
+                        );
+                        expect(getComputedStyle(header).paddingTop).to.equal(
+                            '24px',
+                        );
+                        expect(getComputedStyle(firstTable).marginTop).to.equal(
+                            '16px',
+                        );
+                        local.remove();
+                    });
+
                     it('sets data-child-count from rendered cards', async () => {
                         const local =
                             document.createElement('mas-compare-chart');

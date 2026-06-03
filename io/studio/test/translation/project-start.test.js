@@ -756,32 +756,23 @@ describe('Translation project-start', () => {
     });
 
     describe('Localization request payload', () => {
-        it('should send correct payload with target locales and machineTranslation flag', async () => {
+        async function getLocPayload(flowValue, targetLocales = ['de_DE', 'fr_FR']) {
             const mockProjectCF = setProjectFields(createMockProjectCF(), {
                 fragments: ['/content/dam/mas/foo/en_US/fragment1'],
-                targetLocales: ['de_DE', 'fr_FR', 'it_IT'],
+                targetLocales,
             });
-
             const { stub } = setupFetchStub({
                 '/adobe/sites/cf/fragments/test-project-id': responses.ok(mockProjectCF, '"test-etag"'),
                 '/adobe/sites/cf/fragments?path=': responses.notFound(),
                 '/bin/sendToLocalisationAsync': { ok: true },
             });
+            await executeProjectStart(projectStartService, { ...baseParams, translationMapping: { acom: flowValue } });
+            const locCall = stub.getCalls().find((call) => call.args[0].includes('/bin/sendToLocalisationAsync'));
+            return { requestBody: JSON.parse(locCall.args[1].body), locCall };
+        }
 
-            const params = {
-                ...baseParams,
-                translationMapping: { acom: 'transcreation' },
-            };
-
-            await executeProjectStart(projectStartService, params);
-
-            // Find the loc request call
-            const locRequestCall = stub.getCalls().find((call) => call.args[0].includes('/bin/sendToLocalisationAsync'));
-
-            expect(locRequestCall).to.exist;
-            expect(locRequestCall.args[0]).to.include('/bin/sendToLocalisationAsync');
-
-            const requestBody = JSON.parse(locRequestCall.args[1].body);
+        it('should send correct payload with transcreation flag', async () => {
+            const { requestBody, locCall } = await getLocPayload('transcreation', ['de_DE', 'fr_FR', 'it_IT']);
             expect(requestBody).to.deep.equal({
                 includeNestedCFs: false,
                 syncNestedCFs: false,
@@ -790,11 +781,36 @@ describe('Translation project-start', () => {
                 cfPaths: ['/content/dam/mas/foo/en_US/fragment1'],
                 taskName: 'Test-Project',
             });
-
-            expect(locRequestCall.args[1].headers).to.deep.include({
+            expect(locCall.args[1].headers).to.deep.include({
                 Authorization: 'Bearer token',
                 'Content-Type': 'application/json',
             });
+        });
+
+        it('should send correct payload with machineTranslation flag', async () => {
+            const { requestBody } = await getLocPayload('machineTranslation');
+            expect(requestBody).to.deep.equal({
+                includeNestedCFs: false,
+                syncNestedCFs: false,
+                targetLocales: ['de_DE', 'fr_FR'],
+                machineTranslation: true,
+                cfPaths: ['/content/dam/mas/foo/en_US/fragment1'],
+                taskName: 'Test-Project',
+            });
+        });
+
+        it('should send correct payload without translation flags for humanTranslation flow', async () => {
+            const { requestBody } = await getLocPayload('humanTranslation');
+            expect(requestBody).to.deep.equal({
+                includeNestedCFs: false,
+                syncNestedCFs: false,
+                targetLocales: ['de_DE', 'fr_FR'],
+                cfPaths: ['/content/dam/mas/foo/en_US/fragment1'],
+                taskName: 'Test-Project',
+            });
+            expect(requestBody).to.not.have.property('machineTranslation');
+            expect(requestBody).to.not.have.property('transcreation');
+            expect(requestBody).to.not.have.property('humanTranslation');
         });
     });
 

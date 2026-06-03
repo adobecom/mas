@@ -3,7 +3,11 @@ import { getRequestInfos, matchesGeo } from '../utils/common.js';
 import { logDebug } from '../utils/log.js';
 
 const PZN_FOLDER = '/pzn/';
-const COMPARE_CHART_TEMPLATE = 'compare-chart-column';
+
+// Per-variant fields whose array values must be concatenated (parent + child) rather than overwritten.
+const MERGE_CONFIG = {
+    'compare-chart-column': { arraysToMerge: ['features'] },
+};
 
 function skimFragmentFromReferences(fragment) {
     const skimmedFragment = structuredClone(fragment);
@@ -45,15 +49,17 @@ function deepMerge(...objects) {
             }
         }
     }
-    // Compare-chart column variations carry a partial `features` set; concatenate parent + child
-    // into the freshly-built result instead of mutating `child` (a shared reference reused by sibling merges).
-    if (objects?.[0]?.fields?.variant === COMPARE_CHART_TEMPLATE) {
-        const parentFeatures = objects[0]?.fields?.features?.value || [];
-        const childFeatures = objects[1]?.fields?.features?.value || [];
-        if (result.fields?.features && (parentFeatures.length || childFeatures.length)) {
-            result.fields.features.value = [...parentFeatures, ...childFeatures];
+    // Some variants carry partial array fields across variations (e.g. compare-chart `features`);
+    // concatenate parent + child into the freshly-built result instead of mutating `child`
+    // (a shared reference reused by sibling merges).
+    const arraysToMerge = MERGE_CONFIG[objects?.[0]?.fields?.variant]?.arraysToMerge;
+    arraysToMerge?.forEach((field) => {
+        const parentValues = objects[0]?.fields?.[field]?.value || [];
+        const childValues = objects[1]?.fields?.[field]?.value || [];
+        if (result.fields?.[field] && (parentValues.length || childValues.length)) {
+            result.fields[field].value = [...parentValues, ...childValues];
         }
-    }
+    });
     return result;
 }
 

@@ -59,6 +59,8 @@ export class MasCompareChart extends LitElement {
         stickyOffset: { type: String, attribute: 'sticky-offset' },
         /** @deprecated Use `sticky-offset`. */
         stickyTop: { type: String, attribute: 'sticky-top' },
+        /** Disables the sticky-header behavior entirely (used by the Studio editor preview). */
+        nonSticky: { type: Boolean, attribute: 'non-sticky' },
         // Map of locale-aware aria-label strings used by `placeholder()`.
         // Assigned by the host page; falls back to English defaults when unset.
         placeholders: { type: Object },
@@ -84,8 +86,10 @@ export class MasCompareChart extends LitElement {
     #hydrationReady = null;
     #resolveHydrationReady = null;
     #isStickyHeaderActive = false;
-    #stickyFrame = 0;
-    #boundSyncStickyHeader = () => this.#scheduleStickyHeaderSync();
+    #stickyTopObserver = null;
+    #stickyBottomObserver = null;
+    #stickyPastTop = false;
+    #stickyBeforeBottom = false;
 
     constructor() {
         super();
@@ -109,8 +113,8 @@ export class MasCompareChart extends LitElement {
             this.#applyResponsive(),
         );
         this.#resizeObserver.observe(this);
-        // Idempotent (teardown-first); survives detach + reattach.
-        this.#setupSticky();
+        this.#setStickyTopOffset();
+        this.#applyStickyOffset();
     }
 
     disconnectedCallback() {
@@ -119,11 +123,12 @@ export class MasCompareChart extends LitElement {
         this.removeEventListener(EVENT_AEM_ERROR, this.#handleAemError);
         this.removeEventListener(EVENT_MAS_READY, this.#handleNestedCardReady);
         this.#resizeObserver?.disconnect();
-        this.#teardownStickyHeader();
+        this.#teardownStickyObservers();
     }
 
     firstUpdated() {
         this.#hydrate();
+        this.#refreshStickyObservers();
     }
 
     updated(changed) {
@@ -131,9 +136,14 @@ export class MasCompareChart extends LitElement {
         if (changed.has('consonant') || changed.has('spectrum')) {
             this.#propagateCardDisplayProperties();
         }
-        if (changed.has('stickyOffset') || changed.has('stickyTop')) {
+        if (
+            changed.has('stickyOffset') ||
+            changed.has('stickyTop') ||
+            changed.has('collapsed') ||
+            changed.has('nonSticky')
+        ) {
             this.#applyStickyOffset();
-            this.#scheduleStickyHeaderSync();
+            this.#refreshStickyObservers();
         }
     }
 
@@ -777,6 +787,7 @@ export class MasCompareChart extends LitElement {
         if (isMobile) this.#enterMobile();
         else this.#exitMobile();
         this.#setStickyTopOffset();
+        this.#refreshStickyObservers();
         if (changed) this.requestUpdate();
     }
 
@@ -864,60 +875,62 @@ export class MasCompareChart extends LitElement {
         this.style.setProperty('--compare-chart-sticky-offset', offset);
     }
 
-    #setupSticky() {
-        this.#teardownStickyHeader();
-        this.#setStickyTopOffset();
-        this.#applyStickyOffset();
-        window.addEventListener('scroll', this.#boundSyncStickyHeader, true);
-        window.addEventListener('resize', this.#boundSyncStickyHeader);
-        this.#scheduleStickyHeaderSync();
-    }
+    // Sticky-header detection via IntersectionObserver instead of a scroll
+    // handler: two zero-height sentinels (top of host, bottom of host) drive
+    // the stuck state off the main thread, so scrolling does no per-frame
+    // layout work. The scroll container is always the viewport (the Studio
+    // editor preview opts out via `non-sticky`), so `root` stays null.
+    #refreshStickyObservers() {
+        this.#teardownStickyObservers();
+        if (this.nonSticky || this.collapsed || !this.isConnected) return;
+        const sr = this.shadowRoot;
+        const headerContent = sr?.querySelector('.header-content');
+        const topSentinel = sr?.querySelector('.sticky-sentinel-top');
+        const bottomSentinel = sr?.querySelector('.sticky-sentinel-bottom');
+        if (!headerContent || !topSentinel || !bottomSentinel) return;
 
-    #teardownStickyHeader() {
-        window.removeEventListener('scroll', this.#boundSyncStickyHeader, true);
-        window.removeEventListener('resize', this.#boundSyncStickyHeader);
-        if (this.#stickyFrame) {
-            cancelAnimationFrame(this.#stickyFrame);
-            this.#stickyFrame = 0;
-        }
-    }
-
-    #scheduleStickyHeaderSync() {
-        if (this.#stickyFrame) return;
-        this.#stickyFrame = requestAnimationFrame(() => {
-            this.#stickyFrame = 0;
-            this.#syncStickyHeaderState();
-        });
-    }
-
-    #syncStickyHeaderState() {
-        const headerContent = this.shadowRoot?.querySelector('.header-content');
-        if (this.collapsed || !headerContent) {
-            this.#setStickyHeaderActive(false);
-            return;
-        }
+        // Pin line (viewport offset where the header sticks) and header height.
+        // Read once here — never on the scroll path.
         const top = parseFloat(getComputedStyle(headerContent).top) || 0;
-        const hostRect = this.getBoundingClientRect();
-        const headerRect = headerContent.getBoundingClientRect();
-        const isStuck = this.#isStickyHeaderActive;
-        const headerHeight = headerRect.height;
-        const releaseOffset = this.#isMobile ? 24 : 1;
-        // Match native `position: sticky` — host has scrolled past the header anchor.
-        const isAtStickyPosition =
-            headerRect.top <= top + 1 && hostRect.top < headerRect.top - 1;
-        const shouldActivate =
-            !isStuck &&
-            isAtStickyPosition &&
-            hostRect.bottom > top + headerHeight;
-        const shouldRelease =
-            isStuck &&
-            (hostRect.top > top + releaseOffset ||
-                hostRect.bottom <= top + headerHeight);
-        if (shouldActivate) {
-            this.#setStickyHeaderActive(true);
-        } else if (shouldRelease) {
-            this.#setStickyHeaderActive(false);
-        }
+        const headerHeight = headerContent.getBoundingClientRect().height;
+
+        // Pinned once the top sentinel has scrolled above the pin line.
+        this.#stickyTopObserver = new IntersectionObserver(
+            ([entry]) => {
+                this.#stickyPastTop = entry.boundingClientRect.bottom <= top;
+                this.#updateStuckState();
+            },
+            { threshold: [0], rootMargin: `${-top}px 0px 0px 0px` },
+        );
+        this.#stickyTopObserver.observe(topSentinel);
+
+        // Released in the final slice: once the bottom sentinel (host bottom)
+        // rises above `top + headerHeight`, the chart body is nearly gone.
+        this.#stickyBottomObserver = new IntersectionObserver(
+            ([entry]) => {
+                this.#stickyBeforeBottom =
+                    entry.boundingClientRect.top > top + headerHeight;
+                this.#updateStuckState();
+            },
+            {
+                threshold: [0],
+                rootMargin: `${-(top + headerHeight)}px 0px 0px 0px`,
+            },
+        );
+        this.#stickyBottomObserver.observe(bottomSentinel);
+    }
+
+    #teardownStickyObservers() {
+        this.#stickyTopObserver?.disconnect();
+        this.#stickyBottomObserver?.disconnect();
+        this.#stickyTopObserver = null;
+        this.#stickyBottomObserver = null;
+    }
+
+    #updateStuckState() {
+        this.#setStickyHeaderActive(
+            this.#stickyPastTop && this.#stickyBeforeBottom,
+        );
     }
 
     #setStickyHeaderActive(active) {
@@ -999,6 +1012,10 @@ export class MasCompareChart extends LitElement {
             return nothing;
         }
         return html`
+            <div
+                class="sticky-sentinel sticky-sentinel-top"
+                aria-hidden="true"
+            ></div>
             <div class="sticky-header-spacer" aria-hidden="true"></div>
             <div class="header-content sticky-header">
                 <div class="sticky-header-wrapper">
@@ -1020,6 +1037,10 @@ export class MasCompareChart extends LitElement {
                 (g, i) => `${g.groupIndex}:${i}`,
                 (g) => this.#renderGroup(g),
             )}
+            <div
+                class="sticky-sentinel sticky-sentinel-bottom"
+                aria-hidden="true"
+            ></div>
         `;
     }
 

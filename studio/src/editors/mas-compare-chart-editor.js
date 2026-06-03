@@ -1966,6 +1966,7 @@ class MasCompareChartEditor extends LitElement {
         return html`
             <mas-compare-chart
                 class="compchart-preview-chart"
+                non-sticky
                 consonant
                 expanded-groups=${expandedGroups || nothing}
                 sticky-offset=${stickyOffset || nothing}

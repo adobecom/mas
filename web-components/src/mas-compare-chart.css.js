@@ -59,6 +59,16 @@ export const styles = css`
         background: #1e1e1e;
     }
 
+    .sticky-sentinel {
+        height: 0;
+        margin: 0;
+        padding: 0;
+        pointer-events: none;
+        visibility: hidden;
+    }
+    :host([non-sticky]) .header-content {
+        position: static;
+    }
     .sticky-header-spacer {
         display: none;
         height: 0;

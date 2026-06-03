@@ -117,7 +117,7 @@ jobs:
         if: |
             github.event.action == 'opened' ||
             contains(github.event.pull_request.labels.*.name, 'run nala')
-        runs-on: ubuntu-latest
+        runs-on: [self-hosted, Linux, X64]
         timeout-minutes: 20 # Prevent hanging jobs
         strategy:
             matrix:

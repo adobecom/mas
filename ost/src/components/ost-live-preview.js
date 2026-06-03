@@ -132,14 +132,12 @@ export class OstLivePreview extends LitElement {
         const checkoutCtrl = panel.shadowRoot?.querySelector('ost-checkout-options')?.checkout;
         const type = this.placeholderType || ctrl.selectedType;
         const options = ctrl.getEffectiveOptions();
-        const promoStatus = store.storedPromoOverride;
-        const promotionCode = store.promotionCode;
 
         const wcsOsi = type === 'discount' && this.referenceOsi ? [osi, this.referenceOsi] : [osi];
 
         const placeholderOptions = {
             ...options,
-            promotionCode: promoStatus || promotionCode,
+            promotionCode: store.effectivePromoCode,
             wcsOsi,
             template: type,
             clientId: store.checkoutClientId,

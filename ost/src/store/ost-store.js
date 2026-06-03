@@ -493,6 +493,14 @@ export class OstStore extends EventTarget {
         this.storedPromoOverride = code;
     }
 
+    get effectivePromoCode() {
+        const override = this.storedPromoOverride;
+        if (!override) {
+            return this.promotionCode ?? '';
+        }
+        return override;
+    }
+
     toggleMultiSelect() {
         this.#batch(() => {
             if (this.authoringFlow === 'tryBuy') {

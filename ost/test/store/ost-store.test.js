@@ -657,4 +657,22 @@ describe('OstStore', () => {
             expect(store.canConfirmMultiSelect).to.be.true;
         });
     });
+
+    describe('effectivePromoCode', () => {
+        it('prefers override, falls back to context promotionCode', () => {
+            store.promotionCode = 'CONTEXT30';
+            store.storedPromoOverride = undefined;
+            expect(store.effectivePromoCode).to.equal('CONTEXT30');
+            store.setPromoCode('MANUAL10');
+            expect(store.effectivePromoCode).to.equal('MANUAL10');
+            store.setPromoCode('');
+            expect(store.effectivePromoCode).to.equal('CONTEXT30');
+        });
+
+        it('returns empty string when neither override nor context is set', () => {
+            store.promotionCode = undefined;
+            store.storedPromoOverride = undefined;
+            expect(store.effectivePromoCode).to.equal('');
+        });
+    });
 });

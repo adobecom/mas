@@ -34,12 +34,12 @@ import {
     getVariationTabItems,
     hasAnyVariationTabItems,
     VARIATION_TABS,
-} from './variation-utils.js';
+} from '../editors/variation-utils.js';
 import { getLocaleByCode } from '../../../io/www/src/fragment/locales.js';
 import { normalizeCompareChartKey, parseCompareChartTables } from '../../../web-components/src/compare-chart-table-parser.js';
 import { EVENT_COMPARE_CHART_REHYDRATE } from '../../../web-components/src/constants.js';
 import { dragHandleIcon } from '../icons.js';
-import { VARIANT_NAMES } from './variant-picker.js';
+import { VARIANT_NAMES } from '../editors/variant-picker.js';
 import { styles } from './mas-compare-chart-editor.css.js';
 
 export const DEFAULT_COMPARE_CHART_HTML =
@@ -580,14 +580,38 @@ class MasCompareChartEditor extends LitElement {
         if (nextExpanded) await this.#loadVariationReferences(path);
     }
 
+    /** True when every variation the card declares already has a hydrated reference (matched by path). */
+    #variationsHydrated(fragment) {
+        const variationPaths = fragment?.getVariations?.() || [];
+        if (!variationPaths.length) return true;
+        const refPaths = new Set((fragment.references || []).map((ref) => ref.path));
+        return variationPaths.every((variationPath) => refPaths.has(variationPath));
+    }
+
     async #loadVariationReferences(path) {
-        const store = this.#getColumnStore(path);
+        if (this.loadingVariationPaths.has(path)) return;
+        let store = this.#getColumnStore(path);
         const fragment = store?.get?.();
-        if (!store || !fragment?.id || fragment.references?.length || this.loadingVariationPaths.has(path)) return;
+        // Already hydrated — nothing to fetch. A non-empty `references` is NOT enough on its own:
+        // the card must have a reference for every path in its `variations` field.
+        if (store && this.#variationsHydrated(fragment)) return;
+        // The card id lives in the column store, or in the compare-chart's reference to it.
+        const reference =
+            this.fragment?.references?.find((ref) => ref.path === path) ||
+            this.localeDefaultFragment?.references?.find((ref) => ref.path === path);
+        if (!fragment?.id && !reference?.id) return;
         const repository = document.querySelector('mas-repository');
         if (!repository?.refreshFragment) return;
         this.loadingVariationPaths = new Set(this.loadingVariationPaths).add(path);
         try {
+            // No column store yet (card arrived as an un-hydrated stub): seed one from the reference
+            // so refreshFragment can fetch it by id with ?references=direct-hydrated.
+            if (!store) {
+                const seed = this.#normalizeFragment(reference);
+                if (!seed) return;
+                store = generateFragmentStore(seed);
+                this.#fragmentReferencesMap.set(path, store);
+            }
             await repository.refreshFragment(store);
             const refreshedFragment = store.get?.();
             const stores = [this.fragmentStore];
@@ -1353,7 +1377,10 @@ class MasCompareChartEditor extends LitElement {
     #updateCardsField(values) {
         if (!this.fragmentStore) return;
         const nextValues = values.slice(0, MAX_COMPARE_CHART_CARDS);
-        this.fragmentStore.updateField('cards', nextValues);
+        // An empty array means "inherit from parent" for variation fields, so removing every
+        // card would revert to the parent's cards. Use the explicit multi-value clear sentinel
+        // ([''])  so clearing actually persists as empty.
+        this.fragmentStore.updateField('cards', nextValues.length ? nextValues : ['']);
         this.requestUpdate();
     }
 

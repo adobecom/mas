@@ -29,7 +29,7 @@ import { getSpectrumVersion } from './constants/icon-library.js';
 import { getFragmentPartsToUse } from './editor-panel.js';
 import './editors/merch-card-editor.js';
 import './editors/merch-card-collection-editor.js';
-import './editors/mas-compare-chart-editor.js';
+import './compare-chart/mas-compare-chart-editor.js';
 import './mas-variation-dialog.js';
 import { getCountryName, getDefaultLocaleCode, getLocaleByCode } from '../../io/www/src/fragment/locales.js';
 import { branch2Icon } from './icons.js';

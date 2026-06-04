@@ -37,10 +37,9 @@ import {
     ODIN_PREVIEW_FRAGMENTS_URL,
     COMPARE_CHART_FIELD,
     TAG_COMPARE_CHART,
-    TAG_MERCH_CARD,
-    TAG_MERCH_CARD_COLLECTION,
 } from './constants.js';
 import { fragmentHasPersonalizationTag, isPznCountryTagId, PZN_TAG_ID_PREFIX } from './common/utils/personalization-utils.js';
+import { matchesContentTypeFilter, resolveContentTypeFilters } from './compare-chart/content-type-utils.js';
 import { Placeholder } from './aem/placeholder.js';
 import { getFragmentName } from './translation/translation-utils.js';
 import { getItemsSelectionStore } from './common/items-selection-store.js';
@@ -342,43 +341,6 @@ export class MasRepository extends LitElement {
         return !this.#queryHaystack(item).includes(query);
     }
 
-    #hasNonEmptyCompareChart(item) {
-        const values =
-            item?.getFieldValues?.(COMPARE_CHART_FIELD) ||
-            item?.getField?.(COMPARE_CHART_FIELD)?.values ||
-            item?.fields?.find((field) => field.name === COMPARE_CHART_FIELD)?.values ||
-            [];
-        return values.some((value) => {
-            if (typeof value === 'string') return value.trim() !== '';
-            return value !== null && value !== undefined && value !== '';
-        });
-    }
-
-    #matchesContentTypeFilter(contentTypes, item) {
-        if (!contentTypes.length) return true;
-        const modelPath = item?.model?.path;
-        if (modelPath === CARD_MODEL_PATH) return contentTypes.includes(TAG_MERCH_CARD);
-        if (modelPath === COLLECTION_MODEL_PATH) {
-            const isCompareChart = this.#hasNonEmptyCompareChart(item);
-            return isCompareChart ? contentTypes.includes(TAG_COMPARE_CHART) : contentTypes.includes(TAG_MERCH_CARD_COLLECTION);
-        }
-        return false;
-    }
-
-    #resolveContentTypeFilters(tags) {
-        const contentTypes = tags.filter((tag) => tag.startsWith(TAG_STUDIO_CONTENT_TYPE));
-        const modelIds = [
-            ...new Set(
-                contentTypes
-                    .map((tag) =>
-                        tag === TAG_COMPARE_CHART ? TAG_MODEL_ID_MAPPING[TAG_MERCH_CARD_COLLECTION] : TAG_MODEL_ID_MAPPING[tag],
-                    )
-                    .filter(Boolean),
-            ),
-        ];
-        return { contentTypes, modelIds };
-    }
-
     /**
      * Returns true when every dimension of `next` is "same or narrower" than `prev`.
      * Caller has already established the two filter sets are not identical, so any "same or narrower"
@@ -425,7 +387,7 @@ export class MasRepository extends LitElement {
             if (!item) return false;
             if (Fragment.isGroupedVariationPath(item.path)) return false;
             if (this.#skipVariant(variants, item)) return false;
-            if (!this.#matchesContentTypeFilter(contentTypes, item)) return false;
+            if (!matchesContentTypeFilter(contentTypes, item)) return false;
             if (!tagPredicate(item)) return false;
             if (createdByLc.length) {
                 const itemCreatedBy = (item.created?.by || '').toLowerCase();
@@ -512,7 +474,7 @@ export class MasRepository extends LitElement {
             return isPznCountryTagId(tag);
         });
 
-        const { contentTypes, modelIds: contentTypeModelIds } = this.#resolveContentTypeFilters(tags);
+        const { contentTypes, modelIds: contentTypeModelIds } = resolveContentTypeFilters(tags);
         let modelIds = contentTypeModelIds;
 
         if (modelIds.length === 0) modelIds = EDITABLE_FRAGMENT_MODEL_IDS;
@@ -690,7 +652,7 @@ export class MasRepository extends LitElement {
                     fragmentData &&
                     (canSyncSurface || matchesSurface) &&
                     (canSyncLocale || matchesLocale) &&
-                    this.#matchesContentTypeFilter(contentTypes, fragmentData) &&
+                    matchesContentTypeFilter(contentTypes, fragmentData) &&
                     !Fragment.isGroupedVariationPath(fragmentData.path)
                 ) {
                     resolvedLocale = canSyncLocale ? fragmentLocale || locale : locale;
@@ -826,7 +788,7 @@ export class MasRepository extends LitElement {
         if (page.done) return true;
         for await (const item of page.value) {
             if (this.#skipVariant(variants, item)) continue;
-            if (!this.#matchesContentTypeFilter(contentTypes, item)) continue;
+            if (!matchesContentTypeFilter(contentTypes, item)) continue;
             if (this.#skipQuery(lowerClientQuery, item)) continue;
             applyCorrectorToFragment(item, surface);
             const fragment = await this.#addToCache(item);

@@ -581,8 +581,17 @@ export class OstStore extends EventTarget {
 
     autoSelectProductByArrangementCode(arrangementCode) {
         // allProducts is Object.entries(combinedProducts) → array of
-        // [code, productData] tuples. A keyed lookup is cheaper than scanning.
-        const match = this.allProducts?.find((entry) => Array.isArray(entry) && entry[0] === arrangementCode);
+        // [code, productData] tuples. Match the map key first (the common
+        // case — products are keyed by arrangement code), then fall back to
+        // the product's own arrangement_code/code field so deep links resolve
+        // regardless of which identifier the catalog keys on.
+        const match = this.allProducts?.find(
+            (entry) =>
+                Array.isArray(entry) &&
+                (entry[0] === arrangementCode ||
+                    entry[1]?.arrangement_code === arrangementCode ||
+                    entry[1]?.code === arrangementCode),
+        );
         if (match) {
             this.setProduct(match[1]);
         } else {

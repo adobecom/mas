@@ -43,6 +43,30 @@ describe('OstStore', () => {
         expect(store.selectedProduct.name).to.equal('Photoshop');
     });
 
+    it('autoSelectProductByArrangementCode selects immediately when catalog is loaded', () => {
+        store.setProducts([
+            ['phsp_direct_individual', { name: 'Photoshop' }],
+            ['ppro_direct_individual', { name: 'Premiere plan' }],
+        ]);
+        store.autoSelectProductByArrangementCode('ppro_direct_individual');
+        expect(store.selectedProduct?.name).to.equal('Premiere plan');
+    });
+
+    it('autoSelectProductByArrangementCode matches the product arrangement_code field when the key differs', () => {
+        store.setProducts([['phsp', { arrangement_code: 'phsp-arr', name: 'Photoshop' }]]);
+        store.autoSelectProductByArrangementCode('phsp-arr');
+        expect(store.selectedProduct?.name).to.equal('Photoshop');
+    });
+
+    it('autoSelectProductByArrangementCode defers via pendingArrangementCode until setProducts arrives', () => {
+        store.allProducts = [];
+        store.autoSelectProductByArrangementCode('ppro_direct_individual');
+        expect(store.selectedProduct).to.be.undefined;
+        expect(store.pendingArrangementCode).to.equal('ppro_direct_individual');
+        store.setProducts([['ppro_direct_individual', { name: 'Premiere plan' }]]);
+        expect(store.selectedProduct?.name).to.equal('Premiere plan');
+    });
+
     it('sets offers and selects one', () => {
         const offers = [{ offerId: 'ABC123', planType: 'ABM' }];
         store.setOffers(offers);

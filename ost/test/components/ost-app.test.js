@@ -443,44 +443,30 @@ describe('ost-app', () => {
         });
     });
 
-    describe('resolveDeepLinkProduct', () => {
+    describe('deep-link product resolution (unified via store)', () => {
         afterEach(() => {
             store.allProducts = [];
             store.selectedProduct = undefined;
+            store.pendingArrangementCode = null;
         });
 
-        it('selects the product immediately when the catalog already has it', async () => {
-            store.allProducts = [
-                ['phsp', { arrangement_code: 'phsp-arr', name: 'Photoshop' }],
-                ['ilst', { arrangement_code: 'ilst-arr', name: 'Illustrator' }],
-            ];
+        it('applyDeepLink with only an arrangementCode routes through store.autoSelectProductByArrangementCode', async () => {
+            store.setProducts([['ppro_direct_individual', { name: 'Premiere plan' }]]);
             const el = await fixture(html`<ost-app></ost-app>`);
-            el.resolveDeepLinkProduct('ilst-arr');
-            expect(store.selectedProduct?.name).to.equal('Illustrator');
+            el.config = { searchParameters: '', arrangementCode: 'ppro_direct_individual' };
+            store.setAosParams({ arrangementCode: 'ppro_direct_individual' });
+            el.applyDeepLink();
+            expect(store.selectedProduct?.name).to.equal('Premiere plan');
         });
 
-        it('defers resolution until the catalog loads, then selects', async () => {
+        it('defers when the catalog is empty, then selects once setProducts arrives', async () => {
             store.allProducts = [];
             const el = await fixture(html`<ost-app></ost-app>`);
-            el.resolveDeepLinkProduct('acro-arr');
+            store.setAosParams({ arrangementCode: 'ppro_direct_individual' });
+            el.applyDeepLink();
             expect(store.selectedProduct).to.be.undefined;
-            // Simulate catalog load arriving later
-            store.allProducts = [['acro', { arrangement_code: 'acro-arr', name: 'Acrobat' }]];
-            expect(store.selectedProduct?.name).to.equal('Acrobat');
-        });
-
-        it('handles products that use `code` instead of `arrangement_code`', async () => {
-            store.allProducts = [['exp', { code: 'express-arr', name: 'Express' }]];
-            const el = await fixture(html`<ost-app></ost-app>`);
-            el.resolveDeepLinkProduct('express-arr');
-            expect(store.selectedProduct?.name).to.equal('Express');
-        });
-
-        it('skips products with neither code field and never selects when no match exists', async () => {
-            store.allProducts = [['noc', { name: 'NoCode' }]];
-            const el = await fixture(html`<ost-app></ost-app>`);
-            el.resolveDeepLinkProduct('nonexistent-arr');
-            expect(store.selectedProduct).to.be.undefined;
+            store.setProducts([['ppro_direct_individual', { name: 'Premiere plan' }]]);
+            expect(store.selectedProduct?.name).to.equal('Premiere plan');
         });
     });
 

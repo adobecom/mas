@@ -251,33 +251,8 @@ export class OstApp extends LitElement {
         if (osiId || offerId) {
             this.resolveDeepLinkOffer(osiId || offerId);
         } else if (store.aosParams.arrangementCode) {
-            this.resolveDeepLinkProduct(store.aosParams.arrangementCode);
+            store.autoSelectProductByArrangementCode(store.aosParams.arrangementCode);
         }
-    }
-
-    resolveDeepLinkProduct(arrangementCode) {
-        const tryResolve = () => {
-            const match = store.allProducts.find(([, product]) => {
-                const code = product.arrangement_code || product.code || '';
-                return code === arrangementCode;
-            });
-            if (match) {
-                store.setProduct(match[1]);
-                return true;
-            }
-            return false;
-        };
-        if (tryResolve()) return;
-        const handler = () => {
-            if (store.allProducts.length > 0) {
-                // Detach BEFORE calling setProduct — setProduct synchronously
-                // fires state-changed, which would re-enter this handler and
-                // recurse infinitely on a "Maximum call stack size" error.
-                store.removeEventListener('state-changed', handler);
-                tryResolve();
-            }
-        };
-        store.addEventListener('state-changed', handler);
     }
 
     async resolveDeepLinkOffer(id) {
@@ -303,7 +278,7 @@ export class OstApp extends LitElement {
             store.setAosParams(aosUpdates);
             store.setOsi(id);
 
-            this.resolveDeepLinkProduct(code);
+            store.autoSelectProductByArrangementCode(code);
 
             const handler = () => {
                 if (store.offers.length > 0) {

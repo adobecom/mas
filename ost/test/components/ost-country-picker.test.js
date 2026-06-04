@@ -8,6 +8,7 @@ describe('ost-country-picker', () => {
     beforeEach(() => {
         store.country = 'US';
         store.env = 'PRODUCTION';
+        store.landscape = 'PUBLISHED';
         originalFetch = globalThis.fetch;
     });
 
@@ -15,6 +16,7 @@ describe('ost-country-picker', () => {
         globalThis.fetch = originalFetch;
         store.country = 'US';
         store.env = 'PRODUCTION';
+        store.landscape = 'PUBLISHED';
     });
 
     it('renders the country control as an sp-picker, not a textfield', async () => {
@@ -76,5 +78,51 @@ describe('ost-country-picker', () => {
         picker.dispatchEvent(new Event('change'));
         expect(calls).to.include('DE');
         store.setCountry = origSetCountry;
+    });
+
+    it('renders exactly one sp-menu-item per country in the countries array', async () => {
+        globalThis.fetch = () => Promise.reject(new Error('network'));
+        const el = await fixture(html`<ost-country-picker></ost-country-picker>`);
+        await el.updateComplete;
+        const items = el.shadowRoot.querySelectorAll('sp-picker.country-input sp-menu-item');
+        const values = Array.from(items).map((item) => item.getAttribute('value'));
+        expect(items.length).to.equal(el.countries.length);
+        expect(values).to.deep.equal(el.countries);
+    });
+
+    it('updates store country to the dispatched picker value, not a fixed default', async () => {
+        globalThis.fetch = () => Promise.reject(new Error('network'));
+        const el = await fixture(html`<ost-country-picker></ost-country-picker>`);
+        await el.updateComplete;
+        const picker = el.shadowRoot.querySelector('sp-picker.country-input');
+        picker.value = 'JP';
+        picker.dispatchEvent(new Event('change'));
+        expect(store.country).to.equal('JP');
+        expect(store.country).to.not.equal('US');
+    });
+
+    it('renders the landscape control as an sp-picker with its options', async () => {
+        globalThis.fetch = () => Promise.reject(new Error('network'));
+        const el = await fixture(html`<ost-country-picker></ost-country-picker>`);
+        const pickers = el.shadowRoot.querySelectorAll('sp-picker');
+        const landscape = Array.from(pickers).find((p) => !p.classList.contains('country-input'));
+        expect(landscape).to.exist;
+        expect(landscape.tagName.toLowerCase()).to.equal('sp-picker');
+        const values = Array.from(landscape.querySelectorAll('sp-menu-item')).map((i) => i.getAttribute('value'));
+        expect(values).to.include('PUBLISHED');
+        expect(values).to.include('DRAFT');
+        expect(values).to.include('BOTH');
+    });
+
+    it('sets store.landscape when the landscape picker value changes', async () => {
+        globalThis.fetch = () => Promise.reject(new Error('network'));
+        const el = await fixture(html`<ost-country-picker></ost-country-picker>`);
+        await el.updateComplete;
+        const pickers = el.shadowRoot.querySelectorAll('sp-picker');
+        const landscape = Array.from(pickers).find((p) => !p.classList.contains('country-input'));
+        landscape.value = 'DRAFT';
+        landscape.dispatchEvent(new Event('change'));
+        expect(store.landscape).to.equal('DRAFT');
+        expect(store.landscape).to.not.equal('PUBLISHED');
     });
 });

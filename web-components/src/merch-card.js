@@ -117,12 +117,6 @@ function addSavedAmountOnPromo(cardEl, priceEl, options) {
         const pricePromo = priceSlot.querySelector('.price-alternative');
         if (!priceSt || !pricePromo) return;
 
-        const delimiter = priceSt
-            .querySelector('.price-decimals-delimiter')
-            .textContent.trim();
-        const stAriaLabel = priceSt.querySelector(
-            '.strikethrough-aria-label',
-        ).textContent;
         const recurrence =
             priceSt.querySelector('.price-recurrence').textContent;
         const amountSt = getPriceAmount(priceSt);

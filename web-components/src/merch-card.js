@@ -38,6 +38,7 @@ import { VariantLayout } from './variants/variant-layout.js';
 import { hydrate, ANALYTICS_SECTION_ATTR } from './hydrate.js';
 import { getService, printMeasure, shouldHideStPriceLabels } from './utils.js';
 import { COMPAT_VERSION_GLOBAL_PROMO_CODE } from './compat-version.js';
+import { formatRegularPrice } from './price/utilities.js';
 
 const MERCH_CARD = 'merch-card';
 
@@ -74,7 +75,23 @@ function getPriceAmount(el) {
     );
 }
 
-function addSavedAmountOnPromo(cardEl, priceEl) {
+function formatPrice(priceEl, price, country) {
+    const value = priceEl?.masElement?.value?.[0];
+    if (!value) return;
+    const { commitment, term } = value;
+    const { formatString, usePrecision } = value.priceDetails;
+    const priceFormatted = formatRegularPrice({
+        formatString,
+        price,
+        isIndianPrice: country === 'IN',
+        usePrecision,
+        commitment,
+        term,
+    });
+    return priceFormatted?.accessiblePrice;
+}
+
+function addSavedAmountOnPromo(cardEl, priceEl, options) {
     const badge = cardEl.querySelector('merch-badge');
     if (
         !cardEl.textContent.includes(PROMO_SAVED_AMOUNT) &&
@@ -100,18 +117,21 @@ function addSavedAmountOnPromo(cardEl, priceEl) {
         const stAriaLabel = priceSt.querySelector(
             '.strikethrough-aria-label',
         ).textContent;
+        const recurrence =
+            priceSt.querySelector('.price-recurrence').textContent;
         const amountSt = getPriceAmount(priceSt);
         const amountPromo = getPriceAmount(pricePromo);
         if (amountPromo >= amountSt) return;
 
-        const amountDiscount = (amountSt - amountPromo).toFixed(2).toString();
-        const discount = priceSt.textContent
-            .replace(stAriaLabel, '')
-            .replace(
-                amountSt.toString().replace('.', delimiter),
-                amountDiscount.replace('.', delimiter),
-            );
-        replaceDiscount(cardEl, discount.trim(), PROMO_SAVED_AMOUNT);
+        const amountDiscount = amountSt - amountPromo;
+        const discountFormatted = formatPrice(
+            priceEl,
+            amountDiscount,
+            options.country,
+        );
+        if (!discountFormatted) return;
+        const discount = `${discountFormatted}${recurrence}`;
+        replaceDiscount(cardEl, discount, PROMO_SAVED_AMOUNT);
     });
 }
 
@@ -127,7 +147,7 @@ function priceOptionsProvider(element, options) {
         options.displayPerUnit = false;
         options.displayTax = false;
     }
-    addSavedAmountOnPromo(card, element);
+    addSavedAmountOnPromo(card, element, options);
 
     if (
         !options.promotionCode &&

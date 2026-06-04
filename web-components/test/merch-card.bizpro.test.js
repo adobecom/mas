@@ -185,6 +185,67 @@ describe('bizpro whats-included toggle interaction', () => {
     });
 });
 
+describe('bizpro row-synced whats-included toggle', () => {
+    let container;
+    afterEach(() => container?.remove());
+
+    const SECTION =
+        '<div class="section"><h4>PDF tools</h4><ul><li>row</li></ul></div>';
+
+    // display:flex puts both cards on the same row (same top edge);
+    // display:block stacks them onto different rows.
+    async function renderCards(display) {
+        container = document.createElement('div');
+        container.className = 'two-merch-cards';
+        container.style.display = display;
+        document.body.appendChild(container);
+        const cards = [];
+        for (let i = 0; i < 2; i += 1) {
+            const card = document.createElement('merch-card');
+            card.setAttribute('variant', 'bizpro');
+            card.innerHTML = `<div slot="whats-included">${SECTION}</div>`;
+            container.appendChild(card);
+            await card.updateComplete;
+            card.requestUpdate();
+            await card.updateComplete;
+            cards.push(card);
+        }
+        return cards;
+    }
+
+    const zoneHidden = (card) =>
+        card.shadowRoot.querySelector('#features-zone').hasAttribute('hidden');
+    const clickToggle = (card) =>
+        card.shadowRoot.querySelector('.whats-included-toggle').click();
+
+    it('expands and collapses every card on the same row together', async () => {
+        const [first, second] = await renderCards('flex');
+
+        clickToggle(first);
+        await first.updateComplete;
+        await second.updateComplete;
+        expect(zoneHidden(first)).to.be.false;
+        expect(zoneHidden(second)).to.be.false;
+
+        // Collapsing from the OTHER card collapses the whole row too.
+        clickToggle(second);
+        await first.updateComplete;
+        await second.updateComplete;
+        expect(zoneHidden(first)).to.be.true;
+        expect(zoneHidden(second)).to.be.true;
+    });
+
+    it('leaves stacked (different-row) cards independent', async () => {
+        const [first, second] = await renderCards('block');
+
+        clickToggle(first);
+        await first.updateComplete;
+        await second.updateComplete;
+        expect(zoneHidden(first)).to.be.false;
+        expect(zoneHidden(second)).to.be.true;
+    });
+});
+
 describe('bizpro license dropdown interaction', () => {
     let card;
     afterEach(() => card?.remove());

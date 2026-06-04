@@ -206,10 +206,37 @@ export class BizPro extends VariantLayout {
         return def != null && opts.includes(def) ? def : opts[0];
     }
 
+    /**
+     * The bizpro cards sharing this card's visual row — same container, same
+     * rendered top edge (the row grouping syncRowHeights uses). Stacked
+     * (single-column) cards land on different rows and stay independent.
+     */
+    #rowCards() {
+        const top = Math.round(this.card.getBoundingClientRect().top);
+        const cards = Array.from(
+            this.getContainer()?.querySelectorAll(
+                'merch-card[variant="bizpro"]',
+            ) ?? [],
+        ).filter((card) => {
+            const rect = card.getBoundingClientRect();
+            return rect.width > 2 && Math.round(rect.top) === top;
+        });
+        return cards.length ? cards : [this.card];
+    }
+
     toggleExpanded = (e) => {
         e.preventDefault();
-        this.expanded = !this.expanded;
-        this.card.requestUpdate();
+        // Per Figma, cards on the same row expand/collapse together so their
+        // whats-included zones stay visually aligned. Every row card is set to
+        // the clicked card's new state (not blindly toggled), so rows whose
+        // states diverged (e.g. resized up from single-column) converge.
+        const expanded = !this.expanded;
+        for (const card of this.#rowCards()) {
+            const layout = card.variantLayout;
+            if (!(layout instanceof BizPro)) continue;
+            layout.expanded = expanded;
+            card.requestUpdate();
+        }
     };
 
     #removeLicenseDocListener() {

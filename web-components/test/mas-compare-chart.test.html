@@ -189,6 +189,9 @@
                     it('defaults sticky-offset to 64px', async () => {
                         const local =
                             document.createElement('mas-compare-chart');
+                        local.style.display = 'block';
+                        local.style.maxWidth = 'none';
+                        local.style.width = '1000px';
                         local.innerHTML = '<div name="g"><h4>G</h4></div>';
                         main.append(local);
                         await local.updateComplete;
@@ -203,6 +206,9 @@
                     it('honors sticky-offset attribute', async () => {
                         const local =
                             document.createElement('mas-compare-chart');
+                        local.style.display = 'block';
+                        local.style.maxWidth = 'none';
+                        local.style.width = '1000px';
                         local.setAttribute('sticky-offset', '48');
                         local.innerHTML = '<div name="g"><h4>G</h4></div>';
                         main.append(local);
@@ -218,6 +224,9 @@
                     it('honors legacy sticky-top attribute', async () => {
                         const local =
                             document.createElement('mas-compare-chart');
+                        local.style.display = 'block';
+                        local.style.maxWidth = 'none';
+                        local.style.width = '1000px';
                         local.setAttribute('sticky-top', '40');
                         local.innerHTML = '<div name="g"><h4>G</h4></div>';
                         main.append(local);
@@ -227,6 +236,40 @@
                                 '--compare-chart-sticky-offset',
                             ),
                         ).to.equal('40px');
+                        local.remove();
+                    });
+
+                    it('defaults mobile sticky-offset to 40px', async () => {
+                        const local =
+                            document.createElement('mas-compare-chart');
+                        local.style.display = 'block';
+                        local.style.width = '375px';
+                        local.setAttribute('sticky-offset', '48');
+                        local.innerHTML = '<div name="g"><h4>G</h4></div>';
+                        main.append(local);
+                        await local.updateComplete;
+                        expect(
+                            local.style.getPropertyValue(
+                                '--compare-chart-sticky-offset',
+                            ),
+                        ).to.equal('40px');
+                        local.remove();
+                    });
+
+                    it('honors mobile-sticky-offset attribute', async () => {
+                        const local =
+                            document.createElement('mas-compare-chart');
+                        local.style.display = 'block';
+                        local.style.width = '375px';
+                        local.setAttribute('mobile-sticky-offset', '24');
+                        local.innerHTML = '<div name="g"><h4>G</h4></div>';
+                        main.append(local);
+                        await local.updateComplete;
+                        expect(
+                            local.style.getPropertyValue(
+                                '--compare-chart-sticky-offset',
+                            ),
+                        ).to.equal('24px');
                         local.remove();
                     });
 

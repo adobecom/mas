@@ -17,6 +17,7 @@ const MAX_COMPARE_CHART_CARDS = 4;
 /** Below this width: 2-up layout; with 3+ columns, each column gets a card picker (tablet + phone). */
 const MOBILE_BREAKPOINT = 900; // px — host inline-size (matches container max-width for desktop grid)
 const DEFAULT_STICKY_OFFSET = 64; // px — default viewport offset for sticky header
+const DEFAULT_MOBILE_STICKY_OFFSET = 40; // px — default viewport offset for sticky header in mobile layout
 const CARD_SOURCE_SLOTS = [
     'icons',
     'header',
@@ -54,6 +55,11 @@ export class MasCompareChart extends LitElement {
         spectrum: { type: String, attribute: 'spectrum' },
         /** Viewport offset (px) from the top edge to the sticky header. */
         stickyOffset: { type: String, attribute: 'sticky-offset' },
+        /** Viewport offset (px) to the sticky header in mobile layout. */
+        mobileStickyOffset: {
+            type: String,
+            attribute: 'mobile-sticky-offset',
+        },
         /** @deprecated Use `sticky-offset`. */
         stickyTop: { type: String, attribute: 'sticky-top' },
         /** Disables the sticky-header behavior entirely (used by the Studio editor preview). */
@@ -147,6 +153,7 @@ export class MasCompareChart extends LitElement {
         }
         if (
             changed.has('stickyOffset') ||
+            changed.has('mobileStickyOffset') ||
             changed.has('stickyTop') ||
             changed.has('collapsed') ||
             changed.has('nonSticky')
@@ -806,6 +813,7 @@ export class MasCompareChart extends LitElement {
         if (isMobile) this.#enterMobile();
         else this.#exitMobile();
         this.#setStickyTopOffset();
+        this.#applyStickyOffset();
         this.#refreshStickyObservers();
         if (changed) this.requestUpdate();
     }
@@ -883,14 +891,27 @@ export class MasCompareChart extends LitElement {
         );
     }
 
+    #resolveMobileStickyOffsetRaw() {
+        return (
+            this.mobileStickyOffset ?? this.getAttribute('mobile-sticky-offset')
+        );
+    }
+
     #applyStickyOffset() {
-        const raw = this.#resolveStickyOffsetRaw();
-        const offset =
-            raw != null && String(raw).trim() !== ''
-                ? /^\d+$/.test(String(raw).trim())
-                    ? `${String(raw).trim()}px`
-                    : String(raw).trim()
-                : `${DEFAULT_STICKY_OFFSET}px`;
+        // Mobile zeroes --compare-chart-sticky-top (see #setStickyTopOffset),
+        // so the pin line is driven entirely by --compare-chart-sticky-offset.
+        const raw = this.#isMobile
+            ? this.#resolveMobileStickyOffsetRaw()
+            : this.#resolveStickyOffsetRaw();
+        const fallback = this.#isMobile
+            ? DEFAULT_MOBILE_STICKY_OFFSET
+            : DEFAULT_STICKY_OFFSET;
+        const trimmed = raw != null ? String(raw).trim() : '';
+        const offset = trimmed
+            ? /^\d+$/.test(trimmed)
+                ? `${trimmed}px`
+                : trimmed
+            : `${fallback}px`;
         this.style.setProperty('--compare-chart-sticky-offset', offset);
     }
 

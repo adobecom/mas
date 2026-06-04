@@ -431,7 +431,13 @@ var cm=Object.defineProperty;var mi=U=>{throw TypeError(U)};var nm=(U,B,K)=>B in
     `),customElements.define("ost-filter-bar",Kr);const Qi=[{"iso2-code":"AE"},{"iso2-code":"AM"},{"iso2-code":"AR"},{"iso2-code":"AT"},{"iso2-code":"AU"},{"iso2-code":"AZ"},{"iso2-code":"BB"},{"iso2-code":"BE"},{"iso2-code":"BG"},{"iso2-code":"BH"},{"iso2-code":"BO"},{"iso2-code":"BR"},{"iso2-code":"BS"},{"iso2-code":"BY"},{"iso2-code":"CA"},{"iso2-code":"CH"},{"iso2-code":"CL"},{"iso2-code":"CN"},{"iso2-code":"CO"},{"iso2-code":"CR"},{"iso2-code":"CY"},{"iso2-code":"CZ"},{"iso2-code":"DE"},{"iso2-code":"DK"},{"iso2-code":"DO"},{"iso2-code":"DZ"},{"iso2-code":"EC"},{"iso2-code":"EE"},{"iso2-code":"EG"},{"iso2-code":"ES"},{"iso2-code":"FI"},{"iso2-code":"FR"},{"iso2-code":"GB"},{"iso2-code":"GE"},{"iso2-code":"GR"},{"iso2-code":"GT"},{"iso2-code":"HK"},{"iso2-code":"HN"},{"iso2-code":"HR"},{"iso2-code":"HU"},{"iso2-code":"ID"},{"iso2-code":"IE"},{"iso2-code":"IL"},{"iso2-code":"IN"},{"iso2-code":"IS"},{"iso2-code":"IT"},{"iso2-code":"JM"},{"iso2-code":"JO"},{"iso2-code":"JP"},{"iso2-code":"KE"},{"iso2-code":"KG"},{"iso2-code":"KR"},{"iso2-code":"KW"},{"iso2-code":"KZ"},{"iso2-code":"LB"},{"iso2-code":"LK"},{"iso2-code":"LT"},{"iso2-code":"LU"},{"iso2-code":"LV"},{"iso2-code":"MA"},{"iso2-code":"MD"},{"iso2-code":"MO"},{"iso2-code":"MT"},{"iso2-code":"MU"},{"iso2-code":"MX"},{"iso2-code":"MY"},{"iso2-code":"NG"},{"iso2-code":"NI"},{"iso2-code":"NL"},{"iso2-code":"NO"},{"iso2-code":"NP"},{"iso2-code":"NZ"},{"iso2-code":"OM"},{"iso2-code":"PA"},{"iso2-code":"PE"},{"iso2-code":"PH"},{"iso2-code":"PL"},{"iso2-code":"PR"},{"iso2-code":"PT"},{"iso2-code":"PY"},{"iso2-code":"QA"},{"iso2-code":"RO"},{"iso2-code":"RU"},{"iso2-code":"SA"},{"iso2-code":"SE"},{"iso2-code":"SG"},{"iso2-code":"SI"},{"iso2-code":"SK"},{"iso2-code":"SV"},{"iso2-code":"TH"},{"iso2-code":"TJ"},{"iso2-code":"TM"},{"iso2-code":"TR"},{"iso2-code":"TT"},{"iso2-code":"TW"},{"iso2-code":"TZ"},{"iso2-code":"UA"},{"iso2-code":"US"},{"iso2-code":"UY"},{"iso2-code":"UZ"},{"iso2-code":"VE"},{"iso2-code":"VN"},{"iso2-code":"YE"},{"iso2-code":"ZA"}],ec="https://countries-stage.adobe.io/v2/countries?api_key=dexter-commerce-offers";function Cs(s){return s.map(e=>e["iso2-code"]||e).sort()}class Vr extends N{constructor(){super(),this.countries=Cs(Qi),this.handleStoreChange=this.handleStoreChange.bind(this)}connectedCallback(){super.connectedCallback(),n.subscribe(this.handleStoreChange),this.fetchCountries()}disconnectedCallback(){super.disconnectedCallback(),n.unsubscribe(this.handleStoreChange)}handleStoreChange(){this.requestUpdate()}async fetchCountries(){if(window.location.hostname!=="localhost")try{const e=await fetch(ec);if(!e.ok)throw new Error(`Countries request failed (${e.status})`);const t=await e.json(),r=Cs(t);r.includes(n.country)||(r.push(n.country),r.sort()),this.countries=r}catch{}}handleLandscapeChange(e){n.landscape=e.target.value,n.notify()}handleCountryChange(e){n.setCountry(e.target.value)}handleEnvToggle(e){const t=e.target.checked?"STAGE":"PRODUCTION";n.setEnv(t)}render(){const e=n.env==="STAGE";return d`
             <div class="picker-group">
                 <span class="picker-label">Landscape</span>
-                <sp-picker value=${n.landscape} size="s" label="Landscape" @change=${this.handleLandscapeChange}>
+                <sp-picker
+                    data-testid="ost-filter-landscape"
+                    value=${n.landscape}
+                    size="s"
+                    label="Landscape"
+                    @change=${this.handleLandscapeChange}
+                >
                     <sp-menu-item value="PUBLISHED">Published</sp-menu-item>
                     <sp-menu-item value="DRAFT">Draft</sp-menu-item>
                     <sp-menu-item value="BOTH">Both (published + draft)</sp-menu-item>
@@ -440,6 +446,7 @@ var cm=Object.defineProperty;var mi=U=>{throw TypeError(U)};var nm=(U,B,K)=>B in
             <div class="picker-group">
                 <span class="picker-label">Country</span>
                 <sp-picker
+                    data-testid="ost-filter-country"
                     class="country-input"
                     size="s"
                     label="Country"
@@ -1436,6 +1443,7 @@ var cm=Object.defineProperty;var mi=U=>{throw TypeError(U)};var nm=(U,B,K)=>B in
                       <div class="reference-osi-field">
                           <sp-field-label size="s">Reference offer OSI</sp-field-label>
                           <sp-textfield
+                              data-testid="ost-reference-osi-input"
                               size="s"
                               placeholder="e.g. base price OSI for comparison"
                               .value=${this.referenceOsi}

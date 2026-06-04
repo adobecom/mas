@@ -187,6 +187,7 @@ export class OstPlaceholderPanel extends LitElement {
                       <div class="reference-osi-field">
                           <sp-field-label size="s">Reference offer OSI</sp-field-label>
                           <sp-textfield
+                              data-testid="ost-reference-osi-input"
                               size="s"
                               placeholder="e.g. base price OSI for comparison"
                               .value=${this.referenceOsi}

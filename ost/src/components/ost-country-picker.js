@@ -112,7 +112,13 @@ export class OstCountryPicker extends LitElement {
         return html`
             <div class="picker-group">
                 <span class="picker-label">Landscape</span>
-                <sp-picker value=${store.landscape} size="s" label="Landscape" @change=${this.handleLandscapeChange}>
+                <sp-picker
+                    data-testid="ost-filter-landscape"
+                    value=${store.landscape}
+                    size="s"
+                    label="Landscape"
+                    @change=${this.handleLandscapeChange}
+                >
                     <sp-menu-item value="PUBLISHED">Published</sp-menu-item>
                     <sp-menu-item value="DRAFT">Draft</sp-menu-item>
                     <sp-menu-item value="BOTH">Both (published + draft)</sp-menu-item>
@@ -121,6 +127,7 @@ export class OstCountryPicker extends LitElement {
             <div class="picker-group">
                 <span class="picker-label">Country</span>
                 <sp-picker
+                    data-testid="ost-filter-country"
                     class="country-input"
                     size="s"
                     label="Country"

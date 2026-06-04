@@ -138,9 +138,7 @@ test.describe('M@S Studio ACOM BizPro card test suite', () => {
 
         await test.step('step-3: Validate whats included toggle label updated on the card', async () => {
             await expect(await editor.whatsIncludedLabel).toHaveValue(data.whatsIncluded.label);
-            await expect(await bizproCard.locator(bizpro.cardWhatsIncludedToggleLabel)).toHaveText(
-                data.whatsIncluded.label,
-            );
+            await expect(await bizproCard.locator(bizpro.cardWhatsIncludedToggleLabel)).toHaveText(data.whatsIncluded.label);
         });
 
         // Discard immediately after the edit (mirrors the title/description

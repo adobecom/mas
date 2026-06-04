@@ -40,26 +40,19 @@ test.describe('M@S Studio ACOM BizPro card CSS test suite', () => {
 
                 // Card title CSS
                 test.step('Validation-3: Validate card title CSS', async () => {
-                    expect(
-                        await webUtil.verifyCSS(bizproCard.locator(bizpro.cardTitle), bizpro.cssProp.title),
-                    ).toBeTruthy();
+                    expect(await webUtil.verifyCSS(bizproCard.locator(bizpro.cardTitle), bizpro.cssProp.title)).toBeTruthy();
                 }),
 
                 // Card description CSS
                 test.step('Validation-4: Validate card description CSS', async () => {
                     expect(
-                        await webUtil.verifyCSS(
-                            bizproCard.locator(bizpro.cardDescription).first(),
-                            bizpro.cssProp.description,
-                        ),
+                        await webUtil.verifyCSS(bizproCard.locator(bizpro.cardDescription).first(), bizpro.cssProp.description),
                     ).toBeTruthy();
                 }),
 
                 // Card price CSS
                 test.step('Validation-5: Validate card price CSS', async () => {
-                    expect(
-                        await webUtil.verifyCSS(bizproCard.locator(bizpro.cardPrice), bizpro.cssProp.price),
-                    ).toBeTruthy();
+                    expect(await webUtil.verifyCSS(bizproCard.locator(bizpro.cardPrice), bizpro.cssProp.price)).toBeTruthy();
                 }),
 
                 // Whats included toggle CSS

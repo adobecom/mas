@@ -411,7 +411,9 @@ var nt=Object.defineProperty;var we=p=>{throw TypeError(p)};var ct=(p,d,e)=>d in
         box-shadow: none;
         transform: none;
     }
-    :host(.compchart-preview-chart) .accessibility-header-row + .table-container {
+    :host(.compchart-preview-chart)
+        .accessibility-header-row
+        + .table-container {
         margin-top: var(--spectrum-spacing-400, 16px);
     }
 

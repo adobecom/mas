@@ -413,7 +413,9 @@ export const styles = css`
         box-shadow: none;
         transform: none;
     }
-    :host(.compchart-preview-chart) .accessibility-header-row + .table-container {
+    :host(.compchart-preview-chart)
+        .accessibility-header-row
+        + .table-container {
         margin-top: var(--spectrum-spacing-400, 16px);
     }
 

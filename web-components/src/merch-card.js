@@ -75,11 +75,11 @@ function getPriceAmount(el) {
     );
 }
 
-function decodeHtmlEntities(html) { 
-    const div = document.createElement('div'); 
-    div.innerHTML = html; 
-    return div.textContent; 
-} 
+function decodeHtmlEntities(html) {
+    const div = document.createElement('div');
+    div.innerHTML = html;
+    return div.textContent;
+}
 
 function formatPrice(priceEl, price, country) {
     const value = priceEl?.masElement?.value?.[0];

@@ -765,4 +765,261 @@ describe('OstStore', () => {
             expect(notifiedLandscape).to.equal('DRAFT');
         });
     });
+
+    describe('setEnv', () => {
+        it('switches env and clears offers for re-resolution', () => {
+            store.setOffers([{ offerId: 'a' }, { offerId: 'b' }]);
+            store.setEnv('STAGE');
+            expect(store.env).to.equal('STAGE');
+            expect(store.offers).to.deep.equal([]);
+        });
+
+        it('is a no-op when env is unchanged', () => {
+            store.setOffers([{ offerId: 'a' }]);
+            store.setEnv('PRODUCTION');
+            expect(store.offers).to.have.length(1);
+        });
+
+        it('preserves selected product and offer across env switch', () => {
+            store.setProduct({ name: 'Photoshop' });
+            store.setOffer({ offerId: 'a' });
+            store.setEnv('STAGE');
+            expect(store.selectedProduct.name).to.equal('Photoshop');
+            expect(store.selectedOffer.offerId).to.equal('a');
+        });
+    });
+
+    describe('setCurrentSlot', () => {
+        it('sets slot to trial when valid', () => {
+            store.setCurrentSlot('trial');
+            expect(store.currentSlot).to.equal('trial');
+        });
+
+        it('sets slot back to base', () => {
+            store.setCurrentSlot('trial');
+            store.setCurrentSlot('base');
+            expect(store.currentSlot).to.equal('base');
+        });
+
+        it('ignores an invalid slot value', () => {
+            store.setCurrentSlot('trial');
+            store.setCurrentSlot('bogus');
+            expect(store.currentSlot).to.equal('trial');
+        });
+    });
+
+    describe('clearOffers', () => {
+        it('empties selectedOffers and clears single selection', () => {
+            store.authoringFlow = 'bundle';
+            store.selectedOffers = [{ offer: {}, osi: 'a' }];
+            store.selectedOffer = { offerId: 'x' };
+            store.selectedOsi = 'x-osi';
+            store.clearOffers();
+            expect(store.selectedOffers).to.deep.equal([]);
+            expect(store.selectedOffer).to.be.undefined;
+            expect(store.selectedOsi).to.be.undefined;
+        });
+    });
+
+    describe('toggleMultiSelect', () => {
+        it('switches from tryBuy back to single', () => {
+            store.authoringFlow = 'tryBuy';
+            store.selectedOffers = [{ offer: {}, osi: 'a', role: 'base' }];
+            store.toggleMultiSelect();
+            expect(store.authoringFlow).to.equal('single');
+            expect(store.selectedOffers).to.deep.equal([]);
+        });
+
+        it('switches to tryBuy and carries existing single offer into base slot', () => {
+            store.authoringFlow = 'single';
+            const offer = { offerId: 'phsp' };
+            store.setOffer(offer);
+            store.setOsi('phsp-osi');
+            store.toggleMultiSelect();
+            expect(store.authoringFlow).to.equal('tryBuy');
+            expect(store.selectedBaseOffer).to.equal(offer);
+            expect(store.selectedBaseOsi).to.equal('phsp-osi');
+            expect(store.selectedOffer).to.be.undefined;
+        });
+
+        it('switches to tryBuy with no carried offers when none selected', () => {
+            store.authoringFlow = 'single';
+            store.toggleMultiSelect();
+            expect(store.authoringFlow).to.equal('tryBuy');
+            expect(store.selectedOffers).to.deep.equal([]);
+        });
+    });
+
+    describe('addOffer tryBuy explicit role', () => {
+        it('honors an explicit role argument over currentSlot', () => {
+            store.authoringFlow = 'tryBuy';
+            const trial = { offerId: 'trial' };
+            store.addOffer(trial, 'trial-osi', 'trial');
+            expect(store.selectedTrialOffer).to.equal(trial);
+            expect(store.currentSlot).to.equal('base');
+        });
+
+        it('replaces an existing offer in the same role slot', () => {
+            store.authoringFlow = 'tryBuy';
+            store.addOffer({ offerId: 'base1' }, 'osi1', 'base');
+            const base2 = { offerId: 'base2' };
+            store.addOffer(base2, 'osi2', 'base');
+            expect(store.selectedBaseOffer).to.equal(base2);
+            expect(store.selectedOffers.filter((o) => o.role === 'base')).to.have.length(1);
+        });
+    });
+
+    describe('removeOffer bounds', () => {
+        it('is a no-op for an out-of-range index', () => {
+            store.authoringFlow = 'bundle';
+            store.selectedOffers = [{ offer: {}, osi: 'a' }];
+            store.removeOffer(5);
+            expect(store.selectedOffers).to.have.length(1);
+        });
+
+        it('is a no-op for a negative index', () => {
+            store.authoringFlow = 'bundle';
+            store.selectedOffers = [{ offer: {}, osi: 'a' }];
+            store.removeOffer(-1);
+            expect(store.selectedOffers).to.have.length(1);
+        });
+    });
+
+    describe('confirmFlowSwitch no-op', () => {
+        it('does nothing when no pending switch exists', () => {
+            store.authoringFlow = 'single';
+            store.confirmFlowSwitch(true);
+            expect(store.authoringFlow).to.equal('single');
+            expect(store.pendingFlowSwitch).to.be.null;
+        });
+    });
+
+    describe('flow switch carries to bundle', () => {
+        it('maps prior offers into bundle entries on confirm with keep', () => {
+            store.authoringFlow = 'tryBuy';
+            store.selectedOffers = [
+                { offer: { id: 'base' }, osi: 'osi-base', role: 'base' },
+                { offer: { id: 'trial' }, osi: 'osi-trial', role: 'trial' },
+            ];
+            store.setAuthoringFlow('bundle');
+            store.confirmFlowSwitch(true);
+            expect(store.authoringFlow).to.equal('bundle');
+            expect(store.selectedOffers).to.have.length(2);
+            expect(store.selectedOffers[0].osi).to.equal('osi-base');
+            expect(store.selectedOffers[0].role).to.be.undefined;
+        });
+
+        it('carries a single offer into tryBuy with a second prior offer as trial', () => {
+            store.authoringFlow = 'bundle';
+            store.selectedOffers = [
+                { offer: { id: 'one' }, osi: 'osi-one' },
+                { offer: { id: 'two' }, osi: 'osi-two' },
+            ];
+            store.setAuthoringFlow('tryBuy');
+            store.confirmFlowSwitch(true);
+            expect(store.selectedBaseOsi).to.equal('osi-one');
+            expect(store.selectedTrialOsi).to.equal('osi-two');
+        });
+    });
+
+    describe('autoSelectProductByArrangementCode', () => {
+        it('selects the product whose tuple key matches the arrangement code', () => {
+            store.setProducts([
+                ['phsp', { name: 'Photoshop' }],
+                ['illu', { name: 'Illustrator' }],
+            ]);
+            store.autoSelectProductByArrangementCode('illu');
+            expect(store.selectedProduct.name).to.equal('Illustrator');
+        });
+
+        it('stashes a pending code when the catalog is not yet loaded', () => {
+            store.autoSelectProductByArrangementCode('phsp');
+            expect(store.selectedProduct).to.be.undefined;
+            expect(store.pendingArrangementCode).to.equal('phsp');
+        });
+
+        it('fulfills the pending arrangement code once products arrive', () => {
+            store.autoSelectProductByArrangementCode('illu');
+            store.setProducts([
+                ['phsp', { name: 'Photoshop' }],
+                ['illu', { name: 'Illustrator' }],
+            ]);
+            expect(store.selectedProduct.name).to.equal('Illustrator');
+            expect(store.pendingArrangementCode).to.be.null;
+        });
+    });
+
+    describe('applySearchParams deep link', () => {
+        it('is a no-op when no search parameters are provided', () => {
+            store.applySearchParams(null);
+            expect(store.deepLink).to.deep.equal({});
+        });
+
+        it('reads country and promotionCode params', () => {
+            const params = new URLSearchParams('country=DE&promotionCode=SAVE20');
+            store.applySearchParams(params);
+            expect(store.country).to.equal('DE');
+            expect(store.storedPromoOverride).to.equal('SAVE20');
+        });
+
+        it('captures deep link string and boolean fields', () => {
+            const params = new URLSearchParams(
+                'offerId=O123&type=checkout&workflowStep=ucv3&text=Buy&checkoutType=UCv3&modal=twp&entitlement=true&upgrade=true',
+            );
+            store.applySearchParams(params);
+            expect(store.deepLink.offerId).to.equal('O123');
+            expect(store.deepLink.type).to.equal('checkout');
+            expect(store.deepLink.workflowStep).to.equal('ucv3');
+            expect(store.deepLink.text).to.equal('Buy');
+            expect(store.deepLink.checkoutType).to.equal('UCv3');
+            expect(store.deepLink.modal).to.equal('twp');
+            expect(store.deepLink.entitlement).to.be.true;
+            expect(store.deepLink.upgrade).to.be.true;
+        });
+
+        it('parses entitlement/upgrade false flags as false', () => {
+            const params = new URLSearchParams('entitlement=false&upgrade=false');
+            store.applySearchParams(params);
+            expect(store.deepLink.entitlement).to.be.false;
+            expect(store.deepLink.upgrade).to.be.false;
+        });
+
+        it('applies aosParams from search params', () => {
+            const params = new URLSearchParams(
+                'commitment=YEAR&term=MONTHLY&customerSegment=INDIVIDUAL&marketSegment=COM&offerType=BASE',
+            );
+            store.applySearchParams(params);
+            expect(store.aosParams.commitment).to.equal('YEAR');
+            expect(store.aosParams.term).to.equal('MONTHLY');
+            expect(store.aosParams.customerSegment).to.equal('INDIVIDUAL');
+            expect(store.aosParams.marketSegment).to.equal('COM');
+            expect(store.aosParams.offerType).to.equal('BASE');
+        });
+
+        it('auto-selects the product from arrangement_code alongside aosParams', () => {
+            store.setProducts([['phsp', { name: 'Photoshop' }]]);
+            const params = new URLSearchParams('arrangement_code=phsp&commitment=YEAR');
+            store.applySearchParams(params);
+            expect(store.aosParams.arrangementCode).to.equal('phsp');
+            expect(store.selectedProduct.name).to.equal('Photoshop');
+        });
+
+        it('auto-selects the product from arrangement_code with no other aos params', () => {
+            store.setProducts([['illu', { name: 'Illustrator' }]]);
+            const params = new URLSearchParams('arrangement_code=illu');
+            store.applySearchParams(params);
+            expect(store.selectedProduct.name).to.equal('Illustrator');
+        });
+    });
+
+    describe('notify', () => {
+        it('dispatches a state-changed event to subscribers', () => {
+            let notified = false;
+            store.subscribe(() => {
+                notified = true;
+            });
+            store.notify();
+            expect(notified).to.be.true;
+        });
+    });
 });

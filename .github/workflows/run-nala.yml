@@ -91,7 +91,8 @@ jobs:
                   IMS_EMAIL: ${{ secrets.IMS_EMAIL }}
                   IMS_PASS: ${{ secrets.IMS_PASS }}
                   FORCE_COLOR: 3 # Force color output
-                  # 4-vCPU machine shared with docs job. Studio:3 + docs:1 = 4 workers
+                  # studio:3 + docs:1 = 4 workers × 45 RPS = 180 RPS, safely under 200 RPS EDS limit.
+                  # Both jobs share the same self-hosted runner pool — 4 total workers = 4 vCPUs.
                   NALA_PLAYWRIGHT_WORKERS: 3
 
             - name: Cleanup cloned cards
@@ -107,6 +108,7 @@ jobs:
                   GITHUB_ACTION_PATH: ${{ github.workspace }}
                   IMS_EMAIL: ${{ secrets.IMS_EMAIL }}
                   IMS_PASS: ${{ secrets.IMS_PASS }}
+
 
     run-nala-docs-tests:
         name: Running Nala Docs E2E UI Tests

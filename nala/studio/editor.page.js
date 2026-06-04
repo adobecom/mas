@@ -146,6 +146,21 @@ export default class EditorPage {
         return fieldGroupLocator.locator(this.overrideRestoreLink);
     }
 
+    async dismissTagPicker() {
+        const openTagPopover = this.panel.locator('aem-tag-picker-field#tags-field sp-popover[open]');
+        if ((await openTagPopover.count()) > 0) {
+            await this.page.keyboard.press('Escape');
+        }
+        await expect(openTagPopover).toHaveCount(0);
+    }
+
+    async selectSize(sizeLabel) {
+        await this.dismissTagPicker();
+        await this.size.scrollIntoViewIfNeeded();
+        await this.size.click();
+        await this.page.getByRole('option', { name: sizeLabel, exact: true }).click();
+    }
+
     async getLinkVariant(variant) {
         const linkVariant = {
             accent: this.accentVariant,

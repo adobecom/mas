@@ -76,11 +76,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-3: Edit size field', async () => {
             await expect(await editor.size).toBeVisible();
-            await editor.size.scrollIntoViewIfNeeded();
-            await editor.size.click();
-            const wideOption = page.getByRole('option', { name: 'Wide', exact: true });
-            await expect(wideOption).toBeVisible();
-            await wideOption.click();
+            await editor.selectSize('Wide');
             await page.waitForTimeout(2000);
             await studio.saveCard();
         });

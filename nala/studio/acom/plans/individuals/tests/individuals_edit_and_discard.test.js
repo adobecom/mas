@@ -160,10 +160,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         await test.step('step-2: Edit size field', async () => {
             await expect(await editor.size).toBeVisible();
             await expect(await editor.size).toHaveAttribute('value', 'Default');
-            await editor.size.scrollIntoViewIfNeeded();
-            await editor.size.click();
-            await page.waitForTimeout(500);
-            await page.getByRole('option', { name: 'Wide', exact: true }).click();
+            await editor.selectSize('Wide');
             await expect(editor.size).toHaveAttribute('value', 'wide');
         });
 
@@ -173,10 +170,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-4: Edit size field to super-wide', async () => {
             await expect(editor.size).toBeVisible();
-            await editor.size.scrollIntoViewIfNeeded();
-            await editor.size.click();
-            await page.waitForTimeout(500);
-            await page.getByRole('option', { name: 'Super Wide', exact: true }).click();
+            await editor.selectSize('Super Wide');
             await expect(editor.size).toHaveAttribute('value', 'super-wide');
         });
 

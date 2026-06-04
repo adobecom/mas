@@ -5369,9 +5369,10 @@ merch-card-collection.plans:is(.one-merch-card, .two-merch-cards, .three-merch-c
         grid-template-columns: repeat(4, minmax(0, 1fr));
         max-width: 1600px;
     }
-    /* A 2-card plans collection is still tagged .four-merch-cards (plans emits no
-       .two-merch-cards class), so it would inherit the 4-column track and sit
-       left-aligned. Detect exactly two cards and render them as a centred 2-up.
+    /* Detect exactly two cards structurally and render them as a centred 2-up.
+       Matching the cards directly (instead of a column class) works regardless
+       of whether the collection is tagged .two-merch-cards (since MWPW-196627)
+       or falls into .four-merch-cards (e.g. when a card has a 'wide' size).
        Per Figma the 2-up cards are wider than the dense 4-up: they flex-fill the
        row up to 596px (\u2248522px at the 1280 breakpoint), so widen the track and the
        card's own cap for this case only. */

@@ -508,7 +508,7 @@ describe('ost-app', () => {
                     commitment: 'YEAR',
                     term: 'MONTHLY',
                     customer_segment: 'INDIVIDUAL',
-                    market_segment: 'COM',
+                    market_segments: ['COM'],
                     offer_type: 'BASE',
                     price_point: 'REGULAR',
                 }),

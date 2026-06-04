@@ -297,7 +297,8 @@ export class OstApp extends LitElement {
             if (result.commitment) aosUpdates.commitment = result.commitment;
             if (result.term) aosUpdates.term = result.term;
             if (result.customer_segment) aosUpdates.customerSegment = result.customer_segment;
-            if (result.market_segment) aosUpdates.marketSegment = result.market_segment;
+            const marketSegment = Array.isArray(result.market_segments) ? result.market_segments[0] : result.market_segment;
+            if (marketSegment) aosUpdates.marketSegment = marketSegment;
             if (result.offer_type) aosUpdates.offerType = result.offer_type;
             store.setAosParams(aosUpdates);
             store.setOsi(id);

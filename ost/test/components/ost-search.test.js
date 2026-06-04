@@ -1,7 +1,30 @@
 import { expect, fixture, html } from '@open-wc/testing';
 import '../../src/components/ost-search.js';
+import { store } from '../../src/store/ost-store.js';
 
 describe('ost-search', () => {
+    let originalFetch;
+
+    beforeEach(() => {
+        originalFetch = window.fetch;
+        store.allProducts = [];
+        store.searchQuery = '';
+        store.searchType = '';
+        store.selectedProduct = undefined;
+        store.selectedOsi = undefined;
+        store.aosParams = {};
+    });
+
+    afterEach(() => {
+        window.fetch = originalFetch;
+        store.allProducts = [];
+        store.searchQuery = '';
+        store.searchType = '';
+        store.selectedProduct = undefined;
+        store.selectedOsi = undefined;
+        store.aosParams = {};
+    });
+
     it('renders sp-search element', async () => {
         const el = await fixture(html`<ost-search></ost-search>`);
         const search = el.shadowRoot.querySelector('sp-search');
@@ -81,5 +104,117 @@ describe('ost-search', () => {
     it('detectType returns product for empty string', async () => {
         const el = await fixture(html`<ost-search></ost-search>`);
         expect(el.detectType('')).to.equal('product');
+    });
+
+    it('writes query and type to the store on debounced input', async () => {
+        const el = await fixture(html`<ost-search></ost-search>`);
+        const search = el.shadowRoot.querySelector('sp-search');
+        search.value = 'illustrator';
+        search.dispatchEvent(new Event('input'));
+        await new Promise((r) => setTimeout(r, 300));
+        expect(store.searchQuery).to.equal('illustrator');
+        expect(store.searchType).to.equal('product');
+    });
+
+    it('selectProductByCode selects matching product from tuple entries', async () => {
+        const el = await fixture(html`<ost-search></ost-search>`);
+        const product = { arrangement_code: 'phsp-arr', name: 'Photoshop' };
+        store.allProducts = [['phsp', product]];
+        el.selectProductByCode('phsp-arr');
+        expect(store.selectedProduct).to.equal(product);
+        expect(store.aosParams.arrangementCode).to.equal('phsp-arr');
+    });
+
+    it('selectProductByCode matches on plain object entries via code field', async () => {
+        const el = await fixture(html`<ost-search></ost-search>`);
+        const product = { code: 'ai-code', name: 'Illustrator' };
+        store.allProducts = [product];
+        el.selectProductByCode('ai-code');
+        expect(store.selectedProduct).to.equal(product);
+    });
+
+    it('selectProductByCode leaves selection untouched when no product matches', async () => {
+        const el = await fixture(html`<ost-search></ost-search>`);
+        store.allProducts = [['phsp', { arrangement_code: 'phsp-arr' }]];
+        el.selectProductByCode('does-not-exist');
+        expect(store.selectedProduct).to.equal(undefined);
+    });
+
+    it('resolveOsi selects product and stores OSI when arrangement code resolves', async () => {
+        const el = await fixture(html`<ost-search></ost-search>`);
+        const product = { arrangement_code: 'osi-arr', name: 'XD' };
+        store.allProducts = [['xd', product]];
+        window.fetch = async () => ({
+            ok: true,
+            json: async () => ({ product_arrangement_code: 'osi-arr' }),
+        });
+        await el.resolveOsi('some-osi-id');
+        expect(store.selectedProduct).to.equal(product);
+        expect(store.selectedOsi).to.equal('some-osi-id');
+    });
+
+    it('resolveOsi swallows fetch errors without throwing', async () => {
+        const el = await fixture(html`<ost-search></ost-search>`);
+        window.fetch = async () => {
+            throw new Error('aos down');
+        };
+        await el.resolveOsi('bad-osi');
+        expect(store.selectedOsi).to.equal(undefined);
+    });
+
+    it('resolveOfferId maps offer fields to AOS params and selects the product', async () => {
+        const el = await fixture(html`<ost-search></ost-search>`);
+        const product = { arrangement_code: 'offer-arr', name: 'Acrobat' };
+        store.allProducts = [['acro', product]];
+        window.fetch = async () => ({
+            ok: true,
+            json: async () => [
+                {
+                    product_arrangement_code: 'offer-arr',
+                    customer_segment: 'INDIVIDUAL',
+                    market_segments: ['COM'],
+                    offer_type: 'BASE',
+                    commitment: 'YEAR',
+                    term: 'MONTHLY',
+                },
+            ],
+        });
+        await el.resolveOfferId('257E1D82082387D152029F93C1030624');
+        expect(store.searchQuery).to.equal('offer-arr');
+        expect(store.searchType).to.equal('product');
+        expect(store.aosParams.customerSegment).to.equal('INDIVIDUAL');
+        expect(store.aosParams.marketSegment).to.equal('COM');
+        expect(store.aosParams.offerType).to.equal('BASE');
+        expect(store.selectedProduct).to.equal(product);
+    });
+
+    it('resolveOfferId swallows fetch errors without throwing', async () => {
+        const el = await fixture(html`<ost-search></ost-search>`);
+        window.fetch = async () => {
+            throw new Error('aos down');
+        };
+        await el.resolveOfferId('257E1D82082387D152029F93C1030624');
+        expect(store.selectedProduct).to.equal(undefined);
+    });
+
+    it('handleSubmit prevents the default form submission', async () => {
+        const el = await fixture(html`<ost-search></ost-search>`);
+        let prevented = false;
+        el.handleSubmit({
+            preventDefault: () => {
+                prevented = true;
+            },
+        });
+        expect(prevented).to.equal(true);
+    });
+
+    it('disconnectedCallback clears the pending debounce timer', async () => {
+        const el = await fixture(html`<ost-search></ost-search>`);
+        const search = el.shadowRoot.querySelector('sp-search');
+        search.value = 'premiere';
+        search.dispatchEvent(new Event('input'));
+        el.remove();
+        await new Promise((r) => setTimeout(r, 300));
+        expect(store.searchQuery).to.equal('');
     });
 });

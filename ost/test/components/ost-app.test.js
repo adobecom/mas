@@ -475,6 +475,13 @@ describe('ost-app', () => {
             el.resolveDeepLinkProduct('express-arr');
             expect(store.selectedProduct?.name).to.equal('Express');
         });
+
+        it('skips products with neither code field and never selects when no match exists', async () => {
+            store.allProducts = [['noc', { name: 'NoCode' }]];
+            const el = await fixture(html`<ost-app></ost-app>`);
+            el.resolveDeepLinkProduct('nonexistent-arr');
+            expect(store.selectedProduct).to.be.undefined;
+        });
     });
 
     describe('resolveDeepLinkOffer', () => {
@@ -594,6 +601,401 @@ describe('ost-app', () => {
             store.wizardStep = 'offer';
             store.notify();
             expect(calls).to.deep.equal([]);
+        });
+
+        it('skips re-resolution while a previous re-apply is still in flight', async () => {
+            const el = await fixture(html`<ost-app></ost-app>`);
+            const calls = [];
+            el.resolveDeepLinkOffer = (id) => {
+                calls.push(id);
+                return Promise.resolve();
+            };
+            el.reapplyingDeepLink = true;
+            store.initialOsi = 'osi-inflight';
+            store.selectedOffer = undefined;
+            store.wizardStep = 'offer';
+            store.notify();
+            expect(calls).to.deep.equal([]);
+            el.reapplyingDeepLink = false;
+        });
+
+        it('does not re-resolve when not on the offer step', async () => {
+            const el = await fixture(html`<ost-app></ost-app>`);
+            const calls = [];
+            el.resolveDeepLinkOffer = (id) => {
+                calls.push(id);
+                return Promise.resolve();
+            };
+            store.initialOsi = 'osi-back';
+            store.selectedOffer = undefined;
+            store.wizardStep = 'entitlements';
+            store.notify();
+            expect(calls).to.deep.equal([]);
+        });
+    });
+
+    describe('help mode banner', () => {
+        afterEach(() => {
+            store.helpMode = false;
+        });
+
+        it('renders the help banner only after help mode is toggled on', async () => {
+            store.init({});
+            store.helpMode = false;
+            const el = await fixture(html`<ost-app></ost-app>`);
+            await el.updateComplete;
+            expect(el.shadowRoot.querySelector('ost-help-banner')).to.not.exist;
+            store.toggleHelp();
+            await el.updateComplete;
+            expect(store.helpMode).to.be.true;
+            expect(el.shadowRoot.querySelector('.ost-help-banner-wrapper ost-help-banner')).to.exist;
+        });
+
+        it('clicking the Help toggle flips store.helpMode', async () => {
+            store.init({});
+            store.helpMode = false;
+            const el = await fixture(html`<ost-app></ost-app>`);
+            await el.updateComplete;
+            el.shadowRoot.querySelector('.ost-help-toggle').click();
+            expect(store.helpMode).to.be.true;
+        });
+    });
+
+    describe('handleTabChange', () => {
+        afterEach(() => {
+            store.wizardStep = 'entitlements';
+            store.selectedProduct = undefined;
+            store.authoringFlow = 'single';
+        });
+
+        it('advances to the offer step when the offer tab is selected', async () => {
+            const el = await fixture(html`<ost-app></ost-app>`);
+            store.authoringFlow = 'single';
+            store.selectedProduct = { name: 'Photoshop' };
+            store.wizardStep = 'entitlements';
+            el.handleTabChange({ target: { selected: 'offer' } });
+            expect(store.wizardStep).to.equal('offer');
+        });
+
+        it('returns to the entitlements step when the entitlements tab is selected', async () => {
+            const el = await fixture(html`<ost-app></ost-app>`);
+            store.wizardStep = 'offer';
+            store.selectedOffer = { offer_id: 'Z' };
+            el.handleTabChange({ target: { selected: 'entitlements' } });
+            expect(store.wizardStep).to.equal('entitlements');
+            expect(store.selectedOffer).to.be.undefined;
+        });
+    });
+
+    describe('onTabUse / onTabBack routing', () => {
+        afterEach(() => {
+            store.authoringFlow = 'single';
+            store.selectedOffer = undefined;
+            store.onSelect = null;
+        });
+
+        it('onTabUse routes to focused-use in consult flow with a selected offer', async () => {
+            const el = await fixture(html`<ost-app></ost-app>`);
+            store.authoringFlow = 'consult';
+            store.selectedOffer = { offer_id: 'CUSE' };
+            store.country = 'US';
+            let received;
+            el.addEventListener('ost-select', (e) => {
+                if (e.detail?.osi === 'CUSE') received = e.detail;
+            });
+            el.onTabUse();
+            expect(received).to.exist;
+            expect(received.osi).to.equal('CUSE');
+        });
+
+        it('onTabUse falls through to footer-use when not consult', async () => {
+            const el = await fixture(html`<ost-app></ost-app>`);
+            store.authoringFlow = 'tryBuy';
+            store.selectedOffers = [{ offer: { offer_id: 'B' }, osi: 'osi-b', role: 'base' }];
+            let fired = false;
+            el.addEventListener('ost-multi-select', () => {
+                fired = true;
+            });
+            el.onTabUse();
+            expect(fired).to.be.true;
+        });
+
+        it('onTabBack routes to focused-back in consult flow with a selected offer', async () => {
+            const el = await fixture(html`<ost-app></ost-app>`);
+            store.authoringFlow = 'consult';
+            store.selectedOffer = { offer_id: 'CBACK' };
+            store.wizardStep = 'offer';
+            el.onTabBack();
+            expect(store.selectedOffer).to.be.undefined;
+            expect(store.wizardStep).to.equal('offer');
+        });
+
+        it('onTabBack falls through to handleBack when not consult', async () => {
+            const el = await fixture(html`<ost-app></ost-app>`);
+            store.authoringFlow = 'single';
+            store.selectedProduct = { name: 'Acrobat' };
+            store.selectedOffer = { offer_id: 'OF-1' };
+            store.wizardStep = 'offer';
+            el.onTabBack();
+            expect(store.wizardStep).to.equal('entitlements');
+            expect(store.selectedProduct?.name).to.equal('Acrobat');
+        });
+    });
+
+    describe('handleFooterUse code-output reach-through', () => {
+        afterEach(() => {
+            store.authoringFlow = 'single';
+            store.selectedProduct = undefined;
+            store.selectedOffer = undefined;
+            store.wizardStep = 'entitlements';
+            store.onSelect = null;
+        });
+
+        it('invokes the nested ost-code-output handleUse for the single flow', async () => {
+            store.authoringFlow = 'single';
+            store.selectedProduct = { name: 'Photoshop', arrangement_code: 'phsp' };
+            store.selectedOffer = { offer_id: 'X' };
+            store.wizardStep = 'offer';
+            store.notify();
+            const el = await fixture(html`<ost-app></ost-app>`);
+            await el.updateComplete;
+            const tab = el.shadowRoot.querySelector('ost-offer-tab');
+            await tab.updateComplete;
+            const panel = tab.shadowRoot.querySelector('ost-placeholder-panel');
+            await panel.updateComplete;
+            const codeOutput = panel.shadowRoot.querySelector('ost-code-output');
+            let called = false;
+            codeOutput.handleUse = () => {
+                called = true;
+            };
+            el.handleFooterUse();
+            expect(called).to.be.true;
+        });
+    });
+
+    describe('handleFocusedUse id fallback', () => {
+        afterEach(() => {
+            store.onSelect = null;
+            store.selectedOffer = undefined;
+        });
+
+        it('falls back to offer.id when offer_id is absent', async () => {
+            const el = await fixture(html`<ost-app></ost-app>`);
+            store.selectedOffer = { id: 'FALLBACK-ID' };
+            store.country = 'DE';
+            let received;
+            el.addEventListener('ost-select', (e) => {
+                if (e.detail?.osi === 'FALLBACK-ID') received = e.detail;
+            });
+            await el.handleFocusedUse();
+            expect(received).to.exist;
+            expect(received.osi).to.equal('FALLBACK-ID');
+        });
+    });
+
+    describe('applyDeepLink', () => {
+        afterEach(() => {
+            store.aosParams = {};
+            store.allProducts = [];
+            store.selectedProduct = undefined;
+            store.wizardStep = 'entitlements';
+            store.deepLink = {};
+        });
+
+        it('applies searchParameters then lands on the offer step for a deep-linked open', async () => {
+            store.allProducts = [['phsp', { arrangement_code: 'arr-x', name: 'Photoshop' }]];
+            const el = await fixture(html`<ost-app></ost-app>`);
+            let appliedParams;
+            const originalApply = store.applySearchParams.bind(store);
+            store.applySearchParams = (params) => {
+                appliedParams = params;
+                store.aosParams = { ...store.aosParams, arrangementCode: 'arr-x' };
+            };
+            el.config = { searchParameters: { foo: 'bar' } };
+            await el.updateComplete;
+            expect(appliedParams).to.deep.equal({ foo: 'bar' });
+            expect(store.wizardStep).to.equal('offer');
+            expect(store.selectedProduct?.name).to.equal('Photoshop');
+            store.applySearchParams = originalApply;
+        });
+    });
+
+    describe('fetchProducts', () => {
+        afterEach(() => {
+            store.allProducts = [];
+            delete window.tacocat;
+        });
+
+        it('seeds products from window.tacocat.products without fetching', async () => {
+            window.tacocat = { products: { phsp: { name: 'Photoshop' }, acro: { name: 'Acrobat' } } };
+            store.allProducts = [];
+            const el = await fixture(html`<ost-app></ost-app>`);
+            await el.fetchProducts();
+            expect(el.productsError).to.equal('');
+            expect(store.allProducts.length).to.equal(2);
+        });
+
+        it('records productsError and empties products when the fetch response is not ok', async () => {
+            delete window.tacocat;
+            store.allProducts = [];
+            const originalFetch = window.fetch;
+            window.fetch = async () => ({ ok: false, status: 503 });
+            try {
+                const el = await fixture(html`<ost-app></ost-app>`);
+                el.productsError = '';
+                store.allProducts = [];
+                await el.fetchProducts();
+                expect(el.productsError).to.contain('503');
+                expect(store.allProducts).to.deep.equal([]);
+            } finally {
+                window.fetch = originalFetch;
+            }
+        });
+
+        it('records productsError when the payload has no combinedProducts', async () => {
+            delete window.tacocat;
+            store.allProducts = [];
+            const originalFetch = window.fetch;
+            window.fetch = async () => ({ ok: true, json: async () => ({ somethingElse: true }) });
+            try {
+                const el = await fixture(html`<ost-app></ost-app>`);
+                el.productsError = '';
+                store.allProducts = [];
+                await el.fetchProducts();
+                expect(el.productsError).to.contain('combinedProducts');
+                expect(store.allProducts).to.deep.equal([]);
+            } finally {
+                window.fetch = originalFetch;
+            }
+        });
+
+        it('caches and seeds products on a successful fetch', async () => {
+            delete window.tacocat;
+            store.allProducts = [];
+            const originalFetch = window.fetch;
+            window.fetch = async () => ({
+                ok: true,
+                json: async () => ({ combinedProducts: { phsp: { name: 'Photoshop' } } }),
+            });
+            try {
+                const el = await fixture(html`<ost-app></ost-app>`);
+                el.productsError = '';
+                store.allProducts = [];
+                await el.fetchProducts();
+                expect(el.productsError).to.equal('');
+                expect(store.allProducts.length).to.equal(1);
+                expect(window.tacocat.products).to.deep.equal({ phsp: { name: 'Photoshop' } });
+            } finally {
+                window.fetch = originalFetch;
+            }
+        });
+
+        it('sends IMS auth headers when an access token is present', async () => {
+            delete window.tacocat;
+            store.allProducts = [];
+            store.accessToken = 'tok-123';
+            store.apiKey = 'key-abc';
+            const originalFetch = window.fetch;
+            const originalIMS = window.adobeIMS;
+            window.adobeIMS = { adobeIdData: { imsOrg: 'ORG@AdobeOrg', client_id: 'client-xyz' } };
+            let sentHeaders;
+            window.fetch = async (url, opts) => {
+                sentHeaders = opts.headers;
+                return { ok: true, json: async () => ({ combinedProducts: { phsp: { name: 'Photoshop' } } }) };
+            };
+            try {
+                const el = await fixture(html`<ost-app></ost-app>`);
+                el.productsError = '';
+                store.allProducts = [];
+                await el.fetchProducts();
+                expect(sentHeaders.Authorization).to.equal('Bearer tok-123');
+                expect(sentHeaders['x-gw-ims-org-id']).to.equal('ORG@AdobeOrg');
+                expect(sentHeaders['x-api-key']).to.equal('client-xyz');
+            } finally {
+                window.fetch = originalFetch;
+                window.adobeIMS = originalIMS;
+                store.accessToken = undefined;
+                store.apiKey = undefined;
+            }
+        });
+
+        it('returns early when the catalog is already populated', async () => {
+            store.allProducts = [['phsp', { name: 'Photoshop' }]];
+            let fetched = false;
+            const originalFetch = window.fetch;
+            window.fetch = async () => {
+                fetched = true;
+                return { ok: true, json: async () => ({ combinedProducts: {} }) };
+            };
+            try {
+                const el = await fixture(html`<ost-app></ost-app>`);
+                await el.fetchProducts();
+                expect(fetched).to.be.false;
+            } finally {
+                window.fetch = originalFetch;
+            }
+        });
+    });
+
+    describe('resolveDeepLinkOffer offer-watching handler', () => {
+        afterEach(() => {
+            store.allProducts = [];
+            store.offers = [];
+            store.selectedProduct = undefined;
+            store.selectedOffer = undefined;
+            store.aosParams = {};
+            store.initialOsi = undefined;
+        });
+
+        it('selects the offer matching offer_type + price_point once offers load', async () => {
+            const originalFetch = window.fetch;
+            window.fetch = async () => ({
+                ok: true,
+                json: async () => ({
+                    product_arrangement_code: 'phsp-arr',
+                    offer_type: 'BASE',
+                    price_point: 'REGULAR',
+                }),
+            });
+            try {
+                store.allProducts = [['phsp', { arrangement_code: 'phsp-arr', name: 'Photoshop' }]];
+                store.offers = [];
+                store.selectedOffer = undefined;
+                const el = await fixture(html`<ost-app></ost-app>`);
+                await el.resolveDeepLinkOffer('osi-match');
+                store.offers = [
+                    { offer_type: 'PROMOTION', price_point: 'PROMO', offer_id: 'wrong' },
+                    { offer_type: 'BASE', price_point: 'REGULAR', offer_id: 'right' },
+                ];
+                store.notify();
+                expect(store.selectedOffer?.offer_id).to.equal('right');
+            } finally {
+                window.fetch = originalFetch;
+            }
+        });
+
+        it('selects the sole offer when none matches but exactly one is available', async () => {
+            const originalFetch = window.fetch;
+            window.fetch = async () => ({
+                ok: true,
+                json: async () => ({
+                    product_arrangement_code: 'phsp-arr',
+                    offer_type: 'BASE',
+                    price_point: 'REGULAR',
+                }),
+            });
+            try {
+                store.allProducts = [['phsp', { arrangement_code: 'phsp-arr', name: 'Photoshop' }]];
+                store.offers = [];
+                store.selectedOffer = undefined;
+                const el = await fixture(html`<ost-app></ost-app>`);
+                await el.resolveDeepLinkOffer('osi-single');
+                store.offers = [{ offer_type: 'PROMOTION', price_point: 'PROMO', offer_id: 'only' }];
+                store.notify();
+                expect(store.selectedOffer?.offer_id).to.equal('only');
+            } finally {
+                window.fetch = originalFetch;
+            }
         });
     });
 });

@@ -71,8 +71,12 @@ export class OstCountryPicker extends LitElement {
         this.requestUpdate();
     }
 
+    isLocalhost() {
+        return window.location.hostname === 'localhost';
+    }
+
     async fetchCountries() {
-        if (window.location.hostname === 'localhost') {
+        if (this.isLocalhost()) {
             return;
         }
         try {

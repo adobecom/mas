@@ -209,4 +209,50 @@ describe('ost-country-picker', () => {
         expect(fetchCalled).to.be.false;
         expect(el.countries.length).to.be.greaterThan(10);
     });
+
+    it('replaces countries with the fetched, mapped, sorted list when not on localhost', async () => {
+        globalThis.fetch = () =>
+            Promise.resolve({
+                ok: true,
+                json: () => Promise.resolve([{ 'iso2-code': 'US' }, { 'iso2-code': 'DE' }, { 'iso2-code': 'FR' }]),
+            });
+        const el = await fixture(html`<ost-country-picker></ost-country-picker>`);
+        el.isLocalhost = () => false;
+        await el.fetchCountries();
+        expect(el.countries).to.deep.equal(['DE', 'FR', 'US']);
+    });
+
+    it('appends the current store country and re-sorts when the fetched list omits it', async () => {
+        store.country = 'JP';
+        globalThis.fetch = () =>
+            Promise.resolve({
+                ok: true,
+                json: () => Promise.resolve([{ 'iso2-code': 'US' }, { 'iso2-code': 'DE' }]),
+            });
+        const el = await fixture(html`<ost-country-picker></ost-country-picker>`);
+        el.isLocalhost = () => false;
+        await el.fetchCountries();
+        expect(el.countries).to.include('JP');
+        expect(el.countries).to.deep.equal(['DE', 'JP', 'US']);
+    });
+
+    it('keeps the static fallback when the countries request returns a non-ok response', async () => {
+        globalThis.fetch = () => Promise.resolve({ ok: false, status: 503, json: () => Promise.resolve([]) });
+        const el = await fixture(html`<ost-country-picker></ost-country-picker>`);
+        const fallback = el.countries;
+        el.isLocalhost = () => false;
+        await el.fetchCountries();
+        expect(el.countries).to.equal(fallback);
+        expect(el.countries.length).to.be.greaterThan(10);
+    });
+
+    it('keeps the static fallback when the countries fetch rejects off localhost', async () => {
+        globalThis.fetch = () => Promise.reject(new Error('network down'));
+        const el = await fixture(html`<ost-country-picker></ost-country-picker>`);
+        const fallback = el.countries;
+        el.isLocalhost = () => false;
+        await el.fetchCountries();
+        expect(el.countries).to.equal(fallback);
+        expect(el.countries.length).to.be.greaterThan(10);
+    });
 });

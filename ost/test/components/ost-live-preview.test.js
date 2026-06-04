@@ -185,4 +185,224 @@ describe('ost-live-preview', () => {
         expect(styles.height).to.equal('1px');
         expect(getComputedStyle(integer).display).to.not.equal('none');
     });
+
+    it('U5: builds price options with the selected OSI and template=price', async () => {
+        const preview = await getPreview();
+        preview.placeholderType = 'price';
+
+        const result = preview.buildPlaceholderOptions();
+
+        expect(result.placeholderOptions.template).to.equal('price');
+        expect(result.placeholderOptions.wcsOsi).to.deep.equal(['test-osi']);
+        expect(result.placeholderOptions.template).to.not.equal('optical');
+    });
+
+    it('U5: renders the price node without a data-template attribute', async () => {
+        store.masCommerceService = {
+            createInlinePrice: () => {
+                const node = document.createElement('span');
+                node.className = 'price';
+                return node;
+            },
+            createCheckoutButton: () => document.createElement('button'),
+            createCheckoutLink: () => document.createElement('a'),
+        };
+        const preview = await getPreview();
+        preview.placeholderType = 'price';
+        await preview.updateComplete;
+
+        const container = preview.shadowRoot.querySelector('.placeholder-container');
+        const node = container.querySelector('span.price');
+
+        expect(node).to.exist;
+        expect(node.dataset.template).to.equal(undefined);
+    });
+
+    it('U6: sets template=optical and tags the optical node with data-template', async () => {
+        store.masCommerceService = {
+            createInlinePrice: () => {
+                const node = document.createElement('span');
+                node.className = 'price';
+                return node;
+            },
+            createCheckoutButton: () => document.createElement('button'),
+            createCheckoutLink: () => document.createElement('a'),
+        };
+        const preview = await getPreview();
+        preview.placeholderType = 'optical';
+
+        const result = preview.buildPlaceholderOptions();
+        await preview.updateComplete;
+        const container = preview.shadowRoot.querySelector('.placeholder-container');
+        const node = container.querySelector('span.price');
+
+        expect(result.placeholderOptions.template).to.equal('optical');
+        expect(node.dataset.template).to.equal('optical');
+        expect(node.dataset.template).to.not.equal('price');
+    });
+
+    it('U6: sets template=annual and tags the annual node with data-template', async () => {
+        store.masCommerceService = {
+            createInlinePrice: () => {
+                const node = document.createElement('span');
+                node.className = 'price';
+                return node;
+            },
+            createCheckoutButton: () => document.createElement('button'),
+            createCheckoutLink: () => document.createElement('a'),
+        };
+        const preview = await getPreview();
+        preview.placeholderType = 'annual';
+
+        const result = preview.buildPlaceholderOptions();
+        await preview.updateComplete;
+        const container = preview.shadowRoot.querySelector('.placeholder-container');
+        const node = container.querySelector('span.price');
+
+        expect(result.placeholderOptions.template).to.equal('annual');
+        expect(node.dataset.template).to.equal('annual');
+        expect(node.dataset.template).to.not.equal('price');
+    });
+
+    it('U8: tags the promo-strikethrough node with data-template and strikes it through', async () => {
+        store.masCommerceService = {
+            createInlinePrice: () => {
+                const node = document.createElement('span');
+                node.className = 'placeholder-resolved';
+                node.textContent = '$9.99';
+                return node;
+            },
+            createCheckoutButton: () => document.createElement('button'),
+            createCheckoutLink: () => document.createElement('a'),
+        };
+        const preview = await getPreview();
+        preview.placeholderType = 'promo-strikethrough';
+        await preview.updateComplete;
+
+        const container = preview.shadowRoot.querySelector('.placeholder-container');
+        const node = container.querySelector('span.placeholder-resolved');
+
+        expect(node.dataset.template).to.equal('promo-strikethrough');
+        expect(getComputedStyle(node).textDecorationLine).to.equal('line-through');
+    });
+
+    it('U8: does not strike through a plain price node', async () => {
+        store.masCommerceService = {
+            createInlinePrice: () => {
+                const node = document.createElement('span');
+                node.className = 'placeholder-resolved';
+                node.textContent = '$9.99';
+                return node;
+            },
+            createCheckoutButton: () => document.createElement('button'),
+            createCheckoutLink: () => document.createElement('a'),
+        };
+        const preview = await getPreview();
+        preview.placeholderType = 'price';
+        await preview.updateComplete;
+
+        const container = preview.shadowRoot.querySelector('.placeholder-container');
+        const node = container.querySelector('span.placeholder-resolved');
+
+        expect(getComputedStyle(node).textDecorationLine).to.not.equal('line-through');
+    });
+
+    it('U11: calls createCheckoutButton and renders a button for checkoutUrl', async () => {
+        const calls = [];
+        store.masCommerceService = {
+            createInlinePrice: () => {
+                calls.push('createInlinePrice');
+                return document.createElement('span');
+            },
+            createCheckoutButton: () => {
+                calls.push('createCheckoutButton');
+                return document.createElement('button');
+            },
+            createCheckoutLink: () => {
+                calls.push('createCheckoutLink');
+                return document.createElement('a');
+            },
+        };
+        const preview = await getPreview();
+        preview.placeholderType = 'checkoutUrl';
+        await preview.updateComplete;
+        calls.length = 0;
+        preview.requestUpdate();
+        await preview.updateComplete;
+
+        const container = preview.shadowRoot.querySelector('.placeholder-container');
+        const button = container.querySelector('button');
+
+        expect(calls).to.include('createCheckoutButton');
+        expect(calls).to.not.include('createInlinePrice');
+        expect(button).to.exist;
+        preview.placeholderType = 'price';
+        await preview.updateComplete;
+    });
+
+    it('U11: falls back to createCheckoutLink when no button factory exists', async () => {
+        const calls = [];
+        store.masCommerceService = {
+            createInlinePrice: () => {
+                calls.push('createInlinePrice');
+                return document.createElement('span');
+            },
+            createCheckoutLink: () => {
+                calls.push('createCheckoutLink');
+                return document.createElement('a');
+            },
+        };
+        const preview = await getPreview();
+        preview.placeholderType = 'checkoutUrl';
+        await preview.updateComplete;
+        calls.length = 0;
+        preview.requestUpdate();
+        await preview.updateComplete;
+
+        const container = preview.shadowRoot.querySelector('.placeholder-container');
+        const link = container.querySelector('a');
+
+        expect(calls).to.include('createCheckoutLink');
+        expect(calls).to.not.include('createInlinePrice');
+        expect(link).to.exist;
+        preview.placeholderType = 'price';
+        await preview.updateComplete;
+    });
+
+    it('U14: includes both country and landscape from the store in placeholderOptions', async () => {
+        store.country = 'DE';
+        store.landscape = 'DRAFT';
+        const preview = await getPreview();
+        preview.placeholderType = 'price';
+
+        const result = preview.buildPlaceholderOptions();
+
+        expect(result.placeholderOptions.country).to.equal('DE');
+        expect(result.placeholderOptions.landscape).to.equal('DRAFT');
+    });
+
+    it('U14: re-renders the preview node when the store country changes', async () => {
+        const seenCountries = [];
+        store.country = 'US';
+        store.landscape = 'PUBLISHED';
+        store.masCommerceService = {
+            createInlinePrice: (options) => {
+                seenCountries.push(options.country);
+                const node = document.createElement('span');
+                node.className = 'price';
+                return node;
+            },
+            createCheckoutButton: () => document.createElement('button'),
+            createCheckoutLink: () => document.createElement('a'),
+        };
+        const preview = await getPreview();
+        preview.placeholderType = 'price';
+        await preview.updateComplete;
+
+        store.setCountry('FR');
+        await preview.updateComplete;
+
+        expect(seenCountries).to.include('FR');
+        expect(seenCountries[seenCountries.length - 1]).to.not.equal('US');
+    });
 });

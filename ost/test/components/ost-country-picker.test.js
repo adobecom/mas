@@ -125,4 +125,88 @@ describe('ost-country-picker', () => {
         expect(store.landscape).to.equal('DRAFT');
         expect(store.landscape).to.not.equal('PUBLISHED');
     });
+
+    it('notifies subscribers when the landscape picker value changes', async () => {
+        globalThis.fetch = () => Promise.reject(new Error('network'));
+        const el = await fixture(html`<ost-country-picker></ost-country-picker>`);
+        await el.updateComplete;
+        let notified = false;
+        const listener = () => {
+            notified = true;
+        };
+        store.addEventListener('state-changed', listener);
+        const pickers = el.shadowRoot.querySelectorAll('sp-picker');
+        const landscape = Array.from(pickers).find((p) => !p.classList.contains('country-input'));
+        landscape.value = 'BOTH';
+        landscape.dispatchEvent(new Event('change'));
+        store.removeEventListener('state-changed', listener);
+        expect(notified).to.be.true;
+    });
+
+    it('sets store.language to the mapped language for a mapped country code', async () => {
+        globalThis.fetch = () => Promise.reject(new Error('network'));
+        const el = await fixture(html`<ost-country-picker></ost-country-picker>`);
+        await el.updateComplete;
+        const picker = el.shadowRoot.querySelector('sp-picker.country-input');
+        picker.value = 'JP';
+        picker.dispatchEvent(new Event('change'));
+        expect(store.language).to.equal('ja');
+    });
+
+    it('sets store.language to a different mapped language for another mapped code', async () => {
+        globalThis.fetch = () => Promise.reject(new Error('network'));
+        const el = await fixture(html`<ost-country-picker></ost-country-picker>`);
+        await el.updateComplete;
+        const picker = el.shadowRoot.querySelector('sp-picker.country-input');
+        picker.value = 'DE';
+        picker.dispatchEvent(new Event('change'));
+        expect(store.language).to.equal('de');
+    });
+
+    it('falls back store.language to en for an unmapped country code', async () => {
+        globalThis.fetch = () => Promise.reject(new Error('network'));
+        store.language = 'fr';
+        const el = await fixture(html`<ost-country-picker></ost-country-picker>`);
+        await el.updateComplete;
+        const picker = el.shadowRoot.querySelector('sp-picker.country-input');
+        picker.value = 'ZZ';
+        picker.dispatchEvent(new Event('change'));
+        expect(store.country).to.equal('ZZ');
+        expect(store.language).to.equal('en');
+    });
+
+    it('switches store.env to STAGE when the switch is checked', async () => {
+        globalThis.fetch = () => Promise.reject(new Error('network'));
+        const el = await fixture(html`<ost-country-picker></ost-country-picker>`);
+        await el.updateComplete;
+        const toggle = el.shadowRoot.querySelector('sp-switch');
+        toggle.checked = true;
+        toggle.dispatchEvent(new Event('change'));
+        expect(store.env).to.equal('STAGE');
+    });
+
+    it('switches store.env to PRODUCTION when the switch is unchecked', async () => {
+        globalThis.fetch = () => Promise.reject(new Error('network'));
+        store.env = 'STAGE';
+        const el = await fixture(html`<ost-country-picker></ost-country-picker>`);
+        await el.updateComplete;
+        const toggle = el.shadowRoot.querySelector('sp-switch');
+        toggle.checked = false;
+        toggle.dispatchEvent(new Event('change'));
+        expect(store.env).to.equal('PRODUCTION');
+    });
+
+    it('calls fetchCountries on connect, returning early on localhost without replacing static countries', async () => {
+        let fetchCalled = false;
+        globalThis.fetch = () => {
+            fetchCalled = true;
+            return Promise.reject(new Error('network'));
+        };
+        const el = await fixture(html`<ost-country-picker></ost-country-picker>`);
+        await el.updateComplete;
+        await new Promise((r) => setTimeout(r, 50));
+        expect(window.location.hostname).to.equal('localhost');
+        expect(fetchCalled).to.be.false;
+        expect(el.countries.length).to.be.greaterThan(10);
+    });
 });

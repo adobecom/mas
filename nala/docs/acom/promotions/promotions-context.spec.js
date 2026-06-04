@@ -17,7 +17,7 @@ export const features = [
     },
     {
         tcid: '1',
-        name: '@MAS-Promotions-Context-Description-Promo-Code',
+        name: '@MAS-Promotions-Context-Description-Changed-Promo-Code',
         path: DOCS_GALLERY_PATH.PLANS.US,
         data: {
             id: '38a8c8f1-63a6-4b59-b8e1-0008674e22be',

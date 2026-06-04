@@ -47,7 +47,7 @@ test.describe('ACOM MAS Promotions Context feature test suite', () => {
         });
     });
 
-    // @MAS-Promotions-Context-Description-Promo-Code
+    // @MAS-Promotions-Context-Description-Changed-Promo-Code
     test(`${features[1].name},${features[1].tags}`, async () => {
         const { data } = features[1];
         const page = workerSetup.getPage('US');

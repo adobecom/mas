@@ -67,7 +67,8 @@ export default class OSTPage {
         this.ctaTextMenu = this.page.locator('[data-testid="ost-cta-text-menu"]');
 
         // Promo override
-        this.promoField = this.page.locator('[data-testid="ost-promo-override-input"]');
+        // sp-textfield wrapper — target the inner <input> so fill()/toHaveValue work.
+        this.promoField = this.page.locator('[data-testid="ost-promo-override-input"] input');
         this.promoLabel = this.page.locator('[data-testid="ost-promo-label"]');
         this.cancelPromo = this.page.locator('[data-testid="ost-promo-clear"]');
     }

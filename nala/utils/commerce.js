@@ -40,7 +40,6 @@ const DOCS_GALLERY_PATH = {
     },
     PLANS_COLLECTION: {
         US: '/web-components/docs/plans-collection.html',
-        ES_ES: '/web-components/docs/plans-collection.html?country=ES&language=es',
         GR_co: '/web-components/docs/plans-collection.html?country=GR',
         GR_EN: '/web-components/docs/plans-collection.html?locale=en_GR',
         AR_co: '/web-components/docs/plans-collection.html?country=AR',

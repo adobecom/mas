@@ -3608,6 +3608,65 @@ describe('MasRepository dictionary helpers', () => {
         });
     });
 
+    describe('mergePromoReferencesIntoFragmentData', () => {
+        const defaultPath = '/content/dam/mas/sandbox/en_US/my-card';
+        const promoPath = '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card';
+
+        it('loads promotions when list was never fetched before probing', async () => {
+            const repository = createFullRepository();
+            Store.promotions.list.data.set([]);
+            Store.promotions.list.data.removeMeta('listFetched');
+
+            const loadPromotionsStub = sandbox.stub(repository, 'loadPromotions').callsFake(async () => {
+                Store.promotions.list.data.set([
+                    {
+                        get: () => ({
+                            tags: [{ id: 'mas:promotion/black-friday' }],
+                        }),
+                    },
+                ]);
+                Store.promotions.list.data.setMeta('listFetched', true);
+            });
+
+            repository.aem = createAemMock({
+                fragments: {
+                    getByPath: sandbox
+                        .stub()
+                        .withArgs(promoPath)
+                        .resolves({
+                            id: 'promo-var-1',
+                            path: promoPath,
+                            tags: [{ id: 'mas:promotion/black-friday' }],
+                        }),
+                },
+            });
+
+            const result = await repository.mergePromoReferencesIntoFragmentData({
+                path: defaultPath,
+                references: [],
+            });
+
+            expect(loadPromotionsStub.calledOnce).to.be.true;
+            expect(result.references).to.have.lengthOf(1);
+            expect(result.references[0].path).to.equal(promoPath);
+        });
+
+        it('does not reload promotions when list was already fetched empty', async () => {
+            const repository = createFullRepository();
+            Store.promotions.list.data.set([]);
+            Store.promotions.list.data.setMeta('listFetched', true);
+            const loadPromotionsStub = sandbox.stub(repository, 'loadPromotions').resolves();
+
+            const result = await repository.mergePromoReferencesIntoFragmentData({
+                path: defaultPath,
+                references: [],
+            });
+
+            expect(loadPromotionsStub.called).to.be.false;
+            expect(result.references).to.deep.equal([]);
+        });
+    });
+
     describe('createPromoVariation', () => {
         const parentFragment = {
             id: 'parent-promo-1',
@@ -3715,7 +3774,7 @@ describe('MasRepository dictionary helpers', () => {
             expect(repository.aem.sites.cf.fragments.getByPath.calledWith(parentPath)).to.be.false;
         });
 
-        it('skips promo variations that are already published or modified', async () => {
+        it('skips promo variations that are already published', async () => {
             const repository = createRepository();
             const parentPath = '/content/dam/mas/sandbox/en_US/my-card';
             const promoVariationPath = '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card';
@@ -3737,6 +3796,32 @@ describe('MasRepository dictionary helpers', () => {
 
             const result = await repository.getUnpublishedAttachedPromoVariations(promotionFragment);
             expect(result).to.deep.equal([]);
+        });
+
+        it('includes promo variations with modified status as unpublished', async () => {
+            const repository = createRepository();
+            const parentPath = '/content/dam/mas/sandbox/en_US/my-card';
+            const promoVariationPath = '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card';
+            const promotionFragment = {
+                getFieldValues: sandbox.stub(),
+                tags: [{ id: 'mas:promotion/black-friday' }],
+            };
+            promotionFragment.getFieldValues.withArgs('fragments').returns([parentPath]);
+
+            repository.aem = createAemMock({
+                fragments: {
+                    getByPath: sandbox.stub().withArgs(promoVariationPath).resolves({
+                        path: promoVariationPath,
+                        status: 'MODIFIED',
+                        title: 'Black Friday Variation',
+                    }),
+                },
+            });
+
+            const result = await repository.getUnpublishedAttachedPromoVariations(promotionFragment);
+            expect(result).to.have.lengthOf(1);
+            expect(result[0].path).to.equal(promoVariationPath);
+            expect(result[0].status).to.equal('MODIFIED');
         });
     });
 

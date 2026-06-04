@@ -7,7 +7,14 @@ import { styles } from './mas-fragment-variations.css.js';
 import { extractLocaleFromPath, showToast } from './utils.js';
 import router from './router.js';
 import './aem/aem-tag-picker-field.js';
-import { getPromoNameFromTag, getPromotionTagFromFragment } from './promotions/promotion-model.js';
+import Store from './store.js';
+import {
+    findPromotionProjectIdByTag,
+    getPromoNameFromTag,
+    getPromotionTagFromFragment,
+    isPromoVariationPath,
+} from './promotions/promotion-model.js';
+import { getPromotionProjectsForProbe } from './promotions/promotions-repository.js';
 
 const styleElement = document.createElement('style');
 styleElement.textContent = styles;
@@ -91,12 +98,23 @@ class MasFragmentVariations extends LitElement {
         return this.hasLocaleVariations || this.hasPromoVariations || this.hasGroupedVariations;
     }
 
+    get repository() {
+        return document.querySelector('mas-repository');
+    }
+
     async handleEdit(fragmentStore) {
         const fragment = fragmentStore.value;
-        if (fragment?.id) {
-            const locale = extractLocaleFromPath(fragment.path);
-            await router.navigateToFragmentEditor(fragment.id, { locale, fragmentStore });
+        if (!fragment?.id) return;
+        const locale = extractLocaleFromPath(fragment.path);
+        if (isPromoVariationPath(fragment.path)) {
+            const promotionTagId = getPromotionTagFromFragment(fragment);
+            if (promotionTagId && this.repository?.loadPromotions) {
+                const projects = await getPromotionProjectsForProbe(() => this.repository.loadPromotions());
+                const promotionId = findPromotionProjectIdByTag(promotionTagId, projects);
+                if (promotionId) Store.promotions.promotionId.set(promotionId);
+            }
         }
+        await router.navigateToFragmentEditor(fragment.id, { locale, fragmentStore });
     }
 
     /**

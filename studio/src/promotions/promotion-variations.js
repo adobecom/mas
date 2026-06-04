@@ -1,4 +1,4 @@
-import { STATUS_PUBLISHED, STATUS_MODIFIED, TAG_PROMOTION_PREFIX } from '../constants.js';
+import { STATUS_PUBLISHED, TAG_PROMOTION_PREFIX } from '../constants.js';
 import { normalizeTagId } from '../aem/tag-id-utils.js';
 import { UserFriendlyError } from '../utils.js';
 import { processConcurrently, VARIATIONS_CONCURRENCY_LIMIT } from '../common/utils/item-loading.js';
@@ -164,7 +164,7 @@ export async function getUnpublishedAttachedPromoVariations(aem, promotionFragme
             if (!variationPath) return null;
             const variation = await aem.sites.cf.fragments.getByPath(variationPath).catch(() => null);
             if (!variation) return null;
-            if (variation.status === STATUS_PUBLISHED || variation.status === STATUS_MODIFIED) return null;
+            if (variation.status === STATUS_PUBLISHED) return null;
             return {
                 path: variationPath,
                 status: variation.status,

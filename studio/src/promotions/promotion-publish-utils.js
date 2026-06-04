@@ -7,6 +7,14 @@ export const PROMOTION_PUBLISH_SUCCESS_MESSAGE = 'Project successfully published
 
 export const PROMOTION_PUBLISH_ERROR_MESSAGE = 'Failed to publish project.';
 
+/**
+ * @param {number} shortfall - Promo variations that were requested but not included in publish
+ * @returns {string}
+ */
+export function promotionPublishShortfallMessage(shortfall) {
+    return `Project published, but ${shortfall} promo variation(s) could not be included.`;
+}
+
 export function isPromotionExpiredForPublish(promotionFragment) {
     return promotionFragment?.promotionStatus === 'expired';
 }
@@ -53,7 +61,7 @@ export async function confirmPublishDespiteUnpublishedPromoVariations(repository
  * @returns {Promise<boolean>}
  */
 export async function publishPromotionProject(repository, promotionFragment, promoVariationPaths = []) {
-    const publishReferencesWithStatus = ['DRAFT', 'UNPUBLISHED'];
+    const publishReferencesWithStatus = [];
     try {
         repository.operation.set(OPERATIONS.PUBLISH);
         if (!promoVariationPaths.length) {
@@ -71,6 +79,14 @@ export async function publishPromotionProject(repository, promotionFragment, pro
                 if (variationWithEtag) fragments.push(variationWithEtag);
             }
             await repository.aem.sites.cf.fragments.publishFragments(fragments, publishReferencesWithStatus);
+            const expectedFragmentCount = promoVariationPaths.length + 1;
+            const shortfall = expectedFragmentCount - fragments.length;
+            if (shortfall > 0) {
+                showToast(promotionPublishShortfallMessage(shortfall), 'info');
+            } else {
+                showToast(PROMOTION_PUBLISH_SUCCESS_MESSAGE, 'positive');
+            }
+            return true;
         }
         showToast(PROMOTION_PUBLISH_SUCCESS_MESSAGE, 'positive');
         return true;

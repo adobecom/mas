@@ -67,6 +67,21 @@ describe('promotion-variations', () => {
             expect(result).to.deep.equal(createdFragment);
         });
 
+        it('throws when promotion tag resolves to an unsafe promo folder name', async () => {
+            const aem = createAemMock({
+                fragments: {
+                    getById: sandbox.stub().resolves(parentFragment),
+                },
+            });
+
+            try {
+                await createPromoVariation(aem, parentFragment.id, 'mas:promotion/../evil');
+                expect.fail('Should have thrown');
+            } catch (err) {
+                expect(err.message).to.include('Invalid promotion tag');
+            }
+        });
+
         it('throws when promo variation already exists at target path', async () => {
             const aem = createAemMock({
                 fragments: {
@@ -107,6 +122,53 @@ describe('promotion-variations', () => {
             const result = await getUnpublishedAttachedPromoVariations(aem, promotionFragment);
             expect(result).to.have.lengthOf(1);
             expect(result[0].path).to.equal(promoPath);
+        });
+
+        it('includes modified promo variations as unpublished', async () => {
+            const promotionFragment = {
+                getFieldValues: sandbox.stub().callsFake((name) => {
+                    if (name === 'fragments') return ['/content/dam/mas/sandbox/en_US/my-card'];
+                    return undefined;
+                }),
+                tags: [{ id: 'mas:promotion/black-friday' }],
+            };
+            const promoPath = '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card';
+            const aem = createAemMock({
+                fragments: {
+                    getByPath: sandbox.stub().withArgs(promoPath).resolves({
+                        path: promoPath,
+                        status: 'MODIFIED',
+                        title: 'Promo Card',
+                    }),
+                },
+            });
+
+            const result = await getUnpublishedAttachedPromoVariations(aem, promotionFragment);
+            expect(result).to.have.lengthOf(1);
+            expect(result[0].status).to.equal('MODIFIED');
+        });
+
+        it('excludes published promo variations', async () => {
+            const promotionFragment = {
+                getFieldValues: sandbox.stub().callsFake((name) => {
+                    if (name === 'fragments') return ['/content/dam/mas/sandbox/en_US/my-card'];
+                    return undefined;
+                }),
+                tags: [{ id: 'mas:promotion/black-friday' }],
+            };
+            const promoPath = '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card';
+            const aem = createAemMock({
+                fragments: {
+                    getByPath: sandbox.stub().withArgs(promoPath).resolves({
+                        path: promoPath,
+                        status: 'PUBLISHED',
+                        title: 'Promo Card',
+                    }),
+                },
+            });
+
+            const result = await getUnpublishedAttachedPromoVariations(aem, promotionFragment);
+            expect(result).to.deep.equal([]);
         });
 
         it('returns empty array when promotion has no promotion tag', async () => {

@@ -9,6 +9,7 @@ import {
     PROMOTION_EXPIRED_PUBLISH_MESSAGE,
     PROMOTION_PUBLISH_ERROR_MESSAGE,
     PROMOTION_PUBLISH_SUCCESS_MESSAGE,
+    promotionPublishShortfallMessage,
     unpublishedPromoVariationsPublishMessage,
 } from '../../src/promotions/promotion-publish-utils.js';
 
@@ -26,6 +27,12 @@ describe('promotion-publish-utils', () => {
     it('exposes promotion publish success and error messages', () => {
         expect(PROMOTION_PUBLISH_SUCCESS_MESSAGE).to.equal('Project successfully published.');
         expect(PROMOTION_PUBLISH_ERROR_MESSAGE).to.equal('Failed to publish project.');
+    });
+
+    it('exposes shortfall message when some promo variations are omitted from publish', () => {
+        expect(promotionPublishShortfallMessage(2)).to.equal(
+            'Project published, but 2 promo variation(s) could not be included.',
+        );
     });
 
     it('returns confirmed without dialog when there are no unpublished variations', async () => {
@@ -79,7 +86,7 @@ describe('promotion-publish-utils', () => {
             const ok = await publishPromotionProject(repo, promotion, []);
 
             expect(ok).to.be.true;
-            expect(publish.calledOnceWith(promotion, ['DRAFT', 'UNPUBLISHED'])).to.be.true;
+            expect(publish.calledOnceWith(promotion, [])).to.be.true;
             expect(repo.operation.set.firstCall.args[0]).to.equal(OPERATIONS.PUBLISH);
             expect(repo.operation.set.lastCall.args[0]).to.equal(null);
         });
@@ -136,7 +143,45 @@ describe('promotion-publish-utils', () => {
             expect(fragments).to.have.lengthOf(2);
             expect(fragments[0].path).to.equal(promotionPath);
             expect(fragments[1].path).to.equal(variationPath);
-            expect(statuses).to.deep.equal(['DRAFT', 'UNPUBLISHED']);
+            expect(statuses).to.deep.equal([]);
+        });
+
+        it('publishes only resolved variations when some getByPath lookups fail', async () => {
+            const promotionPath = '/content/dam/mas/promotions/project';
+            const foundPath = '/content/dam/mas/acom/en_US/promotions/sale/card-a';
+            const missingPath = '/content/dam/mas/acom/en_US/promotions/sale/card-b';
+            const publishFragments = sinon.stub().resolves();
+            const getWithEtag = sinon.stub();
+            getWithEtag.withArgs('promo-1').resolves({ id: 'promo-1', path: promotionPath, etag: 'etag-promo' });
+            getWithEtag.withArgs('var-a').resolves({ id: 'var-a', path: foundPath, etag: 'etag-a' });
+            const getByPath = sinon.stub();
+            getByPath.withArgs(foundPath).resolves({ id: 'var-a', path: foundPath });
+            getByPath.withArgs(missingPath).rejects(new Error('not found'));
+            const repo = {
+                operation: { set: sinon.stub() },
+                aem: {
+                    sites: {
+                        cf: {
+                            fragments: {
+                                publish: sinon.stub(),
+                                publishFragments,
+                                getWithEtag,
+                                getByPath,
+                            },
+                        },
+                    },
+                },
+                processError: sinon.stub(),
+            };
+            const promotion = { id: 'promo-1', path: promotionPath };
+
+            const ok = await publishPromotionProject(repo, promotion, [foundPath, missingPath]);
+
+            expect(ok).to.be.true;
+            const [fragments] = publishFragments.firstCall.args;
+            expect(fragments).to.have.lengthOf(2);
+            expect(fragments[0].path).to.equal(promotionPath);
+            expect(fragments[1].path).to.equal(foundPath);
         });
     });
 });

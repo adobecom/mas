@@ -1,4 +1,4 @@
-import { PATH_TOKENS, PROMOTIONS_PATH_PREFIX, ROOT_PATH, TAG_PROMOTION_PREFIX } from '../constants.js';
+import { COLLECTION_MODEL_PATH, PATH_TOKENS, PROMOTIONS_PATH_PREFIX, ROOT_PATH, TAG_PROMOTION_PREFIX } from '../constants.js';
 import { normalizeTagId } from '../aem/tag-id-utils.js';
 
 /**
@@ -14,6 +14,17 @@ export function isPromoVariationPath(path) {
 }
 
 /**
+ * True when a default fragment path can have probed promo variation copies (MAS DAM card paths only).
+ * @param {{ path?: string, model?: { path?: string } }} fragmentData
+ * @returns {boolean}
+ */
+export function canProbePromoVariationsForFragment(fragmentData) {
+    if (!fragmentData?.path || isPromoVariationPath(fragmentData.path)) return false;
+    if (fragmentData.model?.path === COLLECTION_MODEL_PATH) return false;
+    return !!PATH_TOKENS.exec(fragmentData.path);
+}
+
+/**
  * Strips the promotion tag prefix to get the promo folder name (may contain slashes).
  * @param {string} tagId
  * @returns {string|null}
@@ -22,7 +33,33 @@ export function getPromoNameFromTag(tagId) {
     const id = normalizeTagId(tagId);
     if (!id.startsWith(TAG_PROMOTION_PREFIX)) return null;
     const name = id.slice(TAG_PROMOTION_PREFIX.length);
-    return name.length > 0 ? name : null;
+    if (!name.length || !isSafePromoFolderName(name)) return null;
+    return name;
+}
+
+/**
+ * Rejects path traversal or absolute segments in promo folder names (from mas:promotion/ tags).
+ * @param {string} promoName
+ * @returns {boolean}
+ */
+export function isSafePromoFolderName(promoName) {
+    if (!promoName || promoName.startsWith('/') || promoName.includes('\\')) return false;
+    const segments = promoName.split('/');
+    return segments.every((segment) => segment.length > 0 && segment !== '.' && segment !== '..');
+}
+
+/**
+ * @param {string} promotionTagId
+ * @param {Array<Object>} [promotionProjects]
+ * @returns {string|null}
+ */
+export function findPromotionProjectIdByTag(promotionTagId, promotionProjects = []) {
+    const normalized = normalizeTagId(promotionTagId);
+    if (!normalized) return null;
+    for (const project of promotionProjects) {
+        if (getPromotionTagFromFragment(project) === normalized) return project.id ?? null;
+    }
+    return null;
 }
 
 /**
@@ -113,4 +150,29 @@ export function fragmentIsPromoVariation(fragment) {
         if (id.startsWith(TAG_PROMOTION_PREFIX)) return true;
     }
     return false;
+}
+
+/**
+ * @param {unknown} error
+ * @returns {boolean}
+ */
+export function isFragmentNotFoundError(error) {
+    const status = error?.status ?? error?.response?.status;
+    if (status === 404) return true;
+    const message = error?.message?.toLowerCase() ?? '';
+    return message.includes('404') || message.includes('not found');
+}
+
+/**
+ * @param {{ getByPath: (path: string) => Promise<unknown> }} fragmentsApi
+ * @param {string} path
+ * @returns {Promise<object|null>}
+ */
+export async function getFragmentByPathOrNull(fragmentsApi, path) {
+    try {
+        return (await fragmentsApi.getByPath(path)) ?? null;
+    } catch (error) {
+        if (isFragmentNotFoundError(error)) return null;
+        throw error;
+    }
 }

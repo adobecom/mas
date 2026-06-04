@@ -1,12 +1,18 @@
 import { expect } from '@esm-bundle/chai';
+import sinon from 'sinon';
 import {
     buildPromoVariationPath,
     buildPromoVariationPathForTag,
+    canProbePromoVariationsForFragment,
+    findPromotionProjectIdByTag,
     fragmentIsPromoVariation,
+    getFragmentByPathOrNull,
     getPromoNameFromPromoVariationPath,
     getPromoNameFromTag,
     getPromotionTagFromFragment,
+    isFragmentNotFoundError,
     isPromoVariationPath,
+    isSafePromoFolderName,
     resolveDefaultPathFromPromoVariation,
 } from '../../src/promotions/promotion-model.js';
 
@@ -29,6 +35,27 @@ describe('promotion-model', () => {
         });
     });
 
+    describe('canProbePromoVariationsForFragment', () => {
+        it('returns false for collection fragments and non-DAM paths', () => {
+            expect(
+                canProbePromoVariationsForFragment({
+                    path: '/content/mas/collections/all',
+                    model: { path: '/conf/mas/settings/dam/cfm/models/collection' },
+                }),
+            ).to.be.false;
+            expect(canProbePromoVariationsForFragment({ path: '/content/mas/collections/all' })).to.be.false;
+        });
+
+        it('returns true for default MAS card paths', () => {
+            expect(
+                canProbePromoVariationsForFragment({
+                    path: defaultPath,
+                    model: { path: '/conf/mas/settings/dam/cfm/models/card' },
+                }),
+            ).to.be.true;
+        });
+    });
+
     describe('getPromoNameFromTag', () => {
         it('strips mas:promotion/ prefix', () => {
             expect(getPromoNameFromTag('mas:promotion/black-friday')).to.equal('black-friday');
@@ -37,6 +64,38 @@ describe('promotion-model', () => {
 
         it('returns null for non-promotion tags', () => {
             expect(getPromoNameFromTag('mas:status/draft')).to.be.null;
+        });
+
+        it('returns null for unsafe promo folder names', () => {
+            expect(getPromoNameFromTag('mas:promotion/../escape')).to.be.null;
+            expect(getPromoNameFromTag('mas:promotion/')).to.be.null;
+        });
+    });
+
+    describe('isSafePromoFolderName', () => {
+        it('accepts normal nested promo folder names', () => {
+            expect(isSafePromoFolderName('black-friday')).to.be.true;
+            expect(isSafePromoFolderName('this/is/my/promo')).to.be.true;
+        });
+
+        it('rejects path traversal segments', () => {
+            expect(isSafePromoFolderName('../evil')).to.be.false;
+            expect(isSafePromoFolderName('foo/../bar')).to.be.false;
+            expect(isSafePromoFolderName('/absolute')).to.be.false;
+        });
+    });
+
+    describe('findPromotionProjectIdByTag', () => {
+        it('returns the matching promotion project id', () => {
+            const id = findPromotionProjectIdByTag('mas:promotion/black-friday', [
+                { id: 'promo-1', tags: [{ id: 'mas:promotion/black-friday' }] },
+                { id: 'promo-2', tags: [{ id: 'mas:promotion/sale' }] },
+            ]);
+            expect(id).to.equal('promo-1');
+        });
+
+        it('returns null when no project matches', () => {
+            expect(findPromotionProjectIdByTag('mas:promotion/missing', [{ id: 'promo-1', tags: [] }])).to.be.null;
         });
     });
 
@@ -103,6 +162,41 @@ describe('promotion-model', () => {
 
         it('returns null for non-promo variation paths', () => {
             expect(getPromoNameFromPromoVariationPath(defaultPath)).to.be.null;
+        });
+    });
+
+    describe('isFragmentNotFoundError', () => {
+        it('returns true for 404 status or not-found messages', () => {
+            expect(isFragmentNotFoundError({ status: 404 })).to.be.true;
+            expect(isFragmentNotFoundError(new Error('Fragment not found'))).to.be.true;
+            expect(isFragmentNotFoundError(new Error('Request failed with 404'))).to.be.true;
+        });
+
+        it('returns false for other errors', () => {
+            expect(isFragmentNotFoundError(new Error('network timeout'))).to.be.false;
+            expect(isFragmentNotFoundError({ status: 500 })).to.be.false;
+        });
+    });
+
+    describe('getFragmentByPathOrNull', () => {
+        it('returns null for not-found errors', async () => {
+            const fragmentsApi = {
+                getByPath: sinon.stub().rejects(new Error('Fragment not found')),
+            };
+            const result = await getFragmentByPathOrNull(fragmentsApi, promoVariationPath);
+            expect(result).to.be.null;
+        });
+
+        it('rethrows non-not-found errors', async () => {
+            const fragmentsApi = {
+                getByPath: sinon.stub().rejects(new Error('Server error')),
+            };
+            try {
+                await getFragmentByPathOrNull(fragmentsApi, promoVariationPath);
+                expect.fail('Should have thrown');
+            } catch (err) {
+                expect(err.message).to.equal('Server error');
+            }
         });
     });
 });

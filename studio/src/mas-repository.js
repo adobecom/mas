@@ -37,7 +37,8 @@ import {
     ODIN_PREVIEW_FRAGMENTS_URL,
 } from './constants.js';
 import { applyFragmentListFilters } from './fragments/fragment-list-filters.js';
-import * as promotionVariations from './promotions/promotion-variations.js';
+import { mergePromoVariationReferences } from './promotions/promotion-variations.js';
+import * as promotionsRepository from './promotions/promotions-repository.js';
 import { fragmentHasPersonalizationTag, isPznCountryTagId, PZN_TAG_ID_PREFIX } from './common/utils/personalization-utils.js';
 import { Placeholder } from './aem/placeholder.js';
 import { getFragmentName } from './translation/translation-utils.js';
@@ -1141,6 +1142,7 @@ export class MasRepository extends LitElement {
         } catch (error) {
             this.processError(error, 'Could not load promotions.');
         } finally {
+            Store.promotions.list.data.setMeta('listFetched', true);
             Store.promotions.list.loading.set(false);
         }
     }
@@ -2286,39 +2288,20 @@ export class MasRepository extends LitElement {
      * @returns {Promise<Object>} The created promo variation fragment
      */
     async createPromoVariation(sourceFragmentId, promoTagId) {
-        const createdFragment = await promotionVariations.createPromoVariation(this.aem, sourceFragmentId, promoTagId);
-        const parentStore = Store.fragments.list.data.get().find((store) => store.get()?.id === sourceFragmentId);
-        if (parentStore) {
+        return promotionsRepository.createPromoVariation(this.aem, sourceFragmentId, promoTagId, async (createdFragment) => {
+            const parentStore = Store.fragments.list.data.get().find((store) => store.get()?.id === sourceFragmentId);
+            if (!parentStore) return;
             await this.refreshFragment(parentStore);
             const parent = parentStore.get();
-            if (parent) {
-                const enriched = promotionVariations.mergePromoVariationReferences(parent, [createdFragment]);
-                parentStore.refreshFrom(enriched);
-                this.#addToCache(parentStore.get());
-            }
-        }
-        return createdFragment;
-    }
-
-    #getPromotionProjectsForProbe() {
-        return (
-            Store.promotions.list.data
-                .get()
-                ?.map((store) => store.get())
-                .filter(Boolean) || []
-        );
+            if (!parent) return;
+            const enriched = mergePromoVariationReferences(parent, [createdFragment]);
+            parentStore.refreshFrom(enriched);
+            this.#addToCache(parentStore.get());
+        });
     }
 
     async mergePromoReferencesIntoFragmentData(fragmentData) {
-        return this.#mergePromoReferencesIntoFragmentData(fragmentData);
-    }
-
-    async #mergePromoReferencesIntoFragmentData(fragmentData) {
-        return promotionVariations.mergePromoReferencesForDefaultFragment(
-            this.aem,
-            fragmentData,
-            this.#getPromotionProjectsForProbe(),
-        );
+        return promotionsRepository.mergePromoReferencesIntoFragmentData(this.aem, fragmentData, () => this.loadPromotions());
     }
 
     /**
@@ -2328,17 +2311,16 @@ export class MasRepository extends LitElement {
      * @returns {Promise<Object|null>}
      */
     async resolveDefaultFragmentForPromoVariation(promoVariationPath, promoVariationId) {
-        const parent = await promotionVariations.resolveDefaultFragmentForPromoVariation(
+        return promotionsRepository.resolveDefaultFragmentForPromoVariation(
             this.aem,
             promoVariationPath,
             promoVariationId,
+            () => this.loadPromotions(),
         );
-        if (!parent) return null;
-        return this.#mergePromoReferencesIntoFragmentData(parent);
     }
 
     async getUnpublishedAttachedPromoVariations(promotionFragment) {
-        return promotionVariations.getUnpublishedAttachedPromoVariations(this.aem, promotionFragment);
+        return promotionsRepository.getUnpublishedAttachedPromoVariations(this.aem, promotionFragment);
     }
 
     /**
@@ -2564,7 +2546,7 @@ export class MasRepository extends LitElement {
         store.setLoading(true);
         const id = store.get().id;
         let latest = await this.aem.sites.cf.fragments.getById(id);
-        latest = await this.#mergePromoReferencesIntoFragmentData(latest);
+        latest = await promotionsRepository.mergePromoReferencesIntoFragmentData(this.aem, latest, () => this.loadPromotions());
 
         // Apply corrector transformer before refreshing
         const surface = this.search.value.path?.split('/').filter(Boolean)[0]?.toLowerCase();

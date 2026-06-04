@@ -12,7 +12,7 @@ import ReactiveController from '../reactivity/reactive-controller.js';
 import Store from '../store.js';
 import { normalizeTagId } from '../aem/tag-id-utils.js';
 import { splitPromotionTagsFieldValues } from './promotion-editor-utils.js';
-import { buildPromoVariationPathForTag, isPromoVariationPath } from './promotion-model.js';
+import { buildPromoVariationPathForTag, getFragmentByPathOrNull, isPromoVariationPath } from './promotion-model.js';
 
 const localStyles = css`
     :host {
@@ -245,6 +245,7 @@ const PROMO_VARIATION_EXISTS_MESSAGE =
     'A promo variation already exists for this fragment in this promotion project. Use View promo variation to open it.';
 const PROMO_VARIATION_MISSING_MESSAGE =
     'The promo variation for this fragment could not be found. It may have been removed. Use Create promo variation to add it again.';
+const PROMO_VARIATION_LOOKUP_FAILED_MESSAGE = 'Could not verify the promo variation. Check your connection and try again.';
 
 class MasPromotionsItemsTable extends LitElement {
     static styles = [tableStyles, localStyles];
@@ -286,6 +287,7 @@ class MasPromotionsItemsTable extends LitElement {
 
     connectedCallback() {
         super.connectedCallback();
+        if (this.#selectionController) return;
         const upper = this.typeUppercased;
         this.#selectionController = new ReactiveController(this, [
             getItemsSelectionStore()[`selected${upper}`],
@@ -376,14 +378,22 @@ class MasPromotionsItemsTable extends LitElement {
             this.existingPromoVariationDefaultPaths = new Set();
             return;
         }
+        const previous = this.existingPromoVariationDefaultPaths;
         const existing = new Set();
         await Promise.all(
             items.map(async (item) => {
                 if (signal.aborted) return;
                 const targetPath = buildPromoVariationPathForTag(item.path, promoTag);
                 if (!targetPath) return;
-                const variation = await this.repository.aem.sites.cf.fragments.getByPath(targetPath).catch(() => null);
-                if (variation?.id) existing.add(item.path);
+                try {
+                    const variation = await getFragmentByPathOrNull(this.repository.aem.sites.cf.fragments, targetPath);
+                    if (variation?.id) {
+                        existing.add(item.path);
+                        return;
+                    }
+                } catch {
+                    if (previous.has(item.path)) existing.add(item.path);
+                }
             }),
         );
         if (signal.aborted) return;
@@ -460,7 +470,14 @@ class MasPromotionsItemsTable extends LitElement {
         const targetPath = promoTag ? buildPromoVariationPathForTag(item.path, promoTag) : null;
         if (!targetPath) return;
 
-        const variation = await this.repository?.aem?.sites?.cf?.fragments?.getByPath(targetPath).catch(() => null);
+        const fragmentsApi = this.repository?.aem?.sites?.cf?.fragments;
+        let variation;
+        try {
+            variation = fragmentsApi ? await getFragmentByPathOrNull(fragmentsApi, targetPath) : null;
+        } catch {
+            showToast(PROMO_VARIATION_LOOKUP_FAILED_MESSAGE, 'negative');
+            return;
+        }
         if (!variation?.id) {
             showToast(PROMO_VARIATION_MISSING_MESSAGE, 'negative');
             this.existingPromoVariationDefaultPaths = new Set(
@@ -498,9 +515,14 @@ class MasPromotionsItemsTable extends LitElement {
 
         const targetPath = buildPromoVariationPathForTag(item.path, promoTag);
         if (targetPath) {
-            const existing = await this.repository.aem.sites.cf.fragments.getByPath(targetPath).catch(() => null);
-            if (existing) {
-                showToast(PROMO_VARIATION_EXISTS_MESSAGE, 'negative');
+            try {
+                const existing = await getFragmentByPathOrNull(this.repository.aem.sites.cf.fragments, targetPath);
+                if (existing) {
+                    showToast(PROMO_VARIATION_EXISTS_MESSAGE, 'negative');
+                    return;
+                }
+            } catch {
+                showToast(PROMO_VARIATION_LOOKUP_FAILED_MESSAGE, 'negative');
                 return;
             }
         }

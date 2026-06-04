@@ -1,5 +1,5 @@
 import { expect } from '@esm-bundle/chai';
-import { html } from 'lit';
+import { html, LitElement } from 'lit';
 import { fixture, fixtureCleanup } from '@open-wc/testing-helpers/pure';
 import sinon from 'sinon';
 import Store from '../../src/store.js';
@@ -102,6 +102,21 @@ describe('MasPromotionsItemsTable', () => {
         Store.promotions.selectedCards.set(['/path/a', '/path/b']);
         const el = await fixture(html`<mas-promotions-items-table .type=${TABLE_TYPE.CARDS}></mas-promotions-items-table>`);
         expect(el.selectedPaths).to.deep.equal(['/path/a', '/path/b']);
+    });
+
+    it('registers only one selection reactive controller when reparented', async () => {
+        const addControllerSpy = sandbox.spy(LitElement.prototype, 'addController');
+        const el = document.createElement('mas-promotions-items-table');
+        el.type = TABLE_TYPE.CARDS;
+        document.body.appendChild(el);
+        await el.updateComplete;
+        expect(addControllerSpy.callCount).to.equal(1);
+        el.remove();
+        document.body.appendChild(el);
+        await el.updateComplete;
+        expect(addControllerSpy.callCount).to.equal(1);
+        el.remove();
+        addControllerSpy.restore();
     });
 
     it('shows skeleton rows while loading', async () => {
@@ -567,6 +582,67 @@ describe('MasPromotionsItemsTable', () => {
         await new Promise((r) => setTimeout(r, 10));
         expect(toastStub.calledOnce).to.be.true;
         expect(toastStub.firstCall.args[0].content).to.include('could not be found');
+        el.remove();
+        Store.promotions.inEdit.set(null);
+        Store.promotions.selectedCards.set([]);
+    });
+
+    it('shows lookup-failed message on View when getByPath fails with a non-404 error', async () => {
+        const toastStub = sandbox.stub(Events.toast, 'emit');
+        const defaultPath = '/content/dam/mas/sandbox/en_US/my-card';
+        const promoVariationPath = '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card';
+        const promotion = new Fragment({
+            path: '/content/dam/mas/promotions/black-friday',
+            fields: [{ name: 'tags', values: ['mas:promotion/black-friday'], multiple: true }],
+        });
+        Store.promotions.inEdit.set(new FragmentStore(promotion));
+        Store.promotions.selectedCards.set([defaultPath]);
+
+        const el = new MasPromotionsItemsTable();
+        el.type = TABLE_TYPE.CARDS;
+        const fragment = {
+            path: defaultPath,
+            id: 'card-promo-id',
+            title: 'Promo Card',
+            studioPath: defaultPath,
+            status: 'DRAFT',
+            model: { path: CARD_MODEL_PATH },
+            fields: [],
+            tags: [],
+        };
+        let promoPathLookupCount = 0;
+        sandbox.stub(el, 'repository').get(() => ({
+            aem: {
+                getFragmentByPath: sandbox.stub().resolves(fragment),
+                sites: {
+                    cf: {
+                        fragments: {
+                            getByPath: sandbox.stub().callsFake((path) => {
+                                if (path !== promoVariationPath) return Promise.resolve(null);
+                                promoPathLookupCount += 1;
+                                if (promoPathLookupCount === 1) {
+                                    return Promise.resolve({ id: 'promo-var-id', path: promoVariationPath });
+                                }
+                                return Promise.reject(new Error('Server error'));
+                            }),
+                        },
+                    },
+                },
+            },
+        }));
+        document.body.appendChild(el);
+        await el.updateComplete;
+        await new Promise((r) => setTimeout(r, 80));
+        await el.updateComplete;
+
+        const viewItem = Array.from(el.shadowRoot.querySelectorAll('sp-menu-item')).find((item) =>
+            item.textContent.trim().includes('View promo variation'),
+        );
+        viewItem.dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
+        await new Promise((r) => setTimeout(r, 10));
+        expect(toastStub.calledOnce).to.be.true;
+        expect(toastStub.firstCall.args[0].content).to.include('Could not verify the promo variation');
+        expect(el.existingPromoVariationDefaultPaths.has(defaultPath)).to.be.true;
         el.remove();
         Store.promotions.inEdit.set(null);
         Store.promotions.selectedCards.set([]);

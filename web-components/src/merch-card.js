@@ -103,15 +103,11 @@ function addSavedAmountOnPromo(cardEl, priceEl) {
         const amountSt = getPriceAmount(priceSt);
         const amountPromo = getPriceAmount(pricePromo);
         const amountDiscount = (amountSt - amountPromo).toFixed(2).toString();
-        const discountText = amountDiscount.endsWith('.00')
-            ? amountDiscount.split('.')[0]
-            : amountDiscount;
-
         const discount = priceSt.textContent
             .replace(stAriaLabel, '')
             .replace(
                 amountSt.toString().replace('.', delimiter),
-                discountText.replace('.', delimiter),
+                amountDiscount.replace('.', delimiter),
             );
         replaceDiscount(cardEl, discount.trim(), PROMO_SAVED_AMOUNT);
     });

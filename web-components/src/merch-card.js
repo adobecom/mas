@@ -75,6 +75,12 @@ function getPriceAmount(el) {
     );
 }
 
+function decodeHtmlEntities(html) { 
+    const div = document.createElement('div'); 
+    div.innerHTML = html; 
+    return div.textContent; 
+} 
+
 function formatPrice(priceEl, price, country) {
     const value = priceEl?.masElement?.value?.[0];
     if (!value) return;
@@ -88,7 +94,7 @@ function formatPrice(priceEl, price, country) {
         commitment,
         term,
     });
-    return priceFormatted?.accessiblePrice;
+    return decodeHtmlEntities(priceFormatted?.accessiblePrice);
 }
 
 function addSavedAmountOnPromo(cardEl, priceEl, options) {

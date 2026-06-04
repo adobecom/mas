@@ -101,12 +101,23 @@ describe('OstStore', () => {
         expect(store.language).to.equal('en');
     });
 
-    it('clears selectedOffer and selectedOsi on setProduct', () => {
+    it('clears selectedOffer and selectedOsi when switching to a different product', () => {
+        store.selectedProduct = { name: 'Photoshop', arrangement_code: 'phsp' };
         store.selectedOffer = { offerId: 'test' };
         store.selectedOsi = 'test-osi';
-        store.setProduct({ name: 'Illustrator' });
+        store.setProduct({ name: 'Illustrator', arrangement_code: 'ilst' });
         expect(store.selectedOffer).to.be.undefined;
         expect(store.selectedOsi).to.be.undefined;
+    });
+
+    it('preserves selectedOffer and selectedOsi when re-setting the same product (deep-link pending re-fulfill)', () => {
+        const product = { name: 'Premiere plan', arrangement_code: 'ppro_direct_individual' };
+        store.setProduct(product);
+        store.setOffer({ offer_id: 'BD42B3', offer_type: 'BASE' });
+        store.setOsi('osi-deep');
+        store.setProduct(product);
+        expect(store.selectedOffer?.offer_id).to.equal('BD42B3');
+        expect(store.selectedOsi).to.equal('osi-deep');
     });
 
     it('sets osi', () => {

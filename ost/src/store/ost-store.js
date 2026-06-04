@@ -350,10 +350,18 @@ export class OstStore extends EventTarget {
     }
 
     setProduct(product) {
+        // Re-selecting the SAME product (e.g. a deep-link's pendingArrangementCode
+        // re-fulfilling once the catalog finishes loading) must NOT wipe the
+        // offer/OSI the deep-link already auto-selected. Only clear when the
+        // product actually changes.
+        const code = (p) => p?.arrangement_code ?? p?.code ?? p;
+        const sameProduct = product === this.selectedProduct || (product && this.selectedProduct && code(product) === code(this.selectedProduct));
         this.#batch(() => {
             this.selectedProduct = product;
-            this.selectedOffer = undefined;
-            this.selectedOsi = undefined;
+            if (!sameProduct) {
+                this.selectedOffer = undefined;
+                this.selectedOsi = undefined;
+            }
         });
         this.#maybeLoadOffers();
     }

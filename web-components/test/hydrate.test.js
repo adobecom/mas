@@ -24,6 +24,7 @@ import {
     appendSlot,
     processAddon,
     processTrialBadge,
+    normalizeVariant,
 } from '../src/hydrate.js';
 import { CCD_SLICE_AEM_FRAGMENT_MAPPING } from '../src/variants/ccd-slice.js';
 
@@ -62,6 +63,24 @@ const mockMerchCard = () => {
 await mockFetch(withWcs);
 
 document.head.appendChild(document.createElement('mas-commerce-service'));
+
+describe('normalizeVariant', () => {
+    it('normalizes any plans* variant to plans', () => {
+        expect(normalizeVariant('plans')).to.equal('plans');
+        expect(normalizeVariant('plans-students')).to.equal('plans');
+        expect(normalizeVariant('plans-education')).to.equal('plans');
+        expect(normalizeVariant('plans-v2')).to.equal('plans');
+    });
+
+    it('normalizes bizpro to plans for shared collection styling', () => {
+        expect(normalizeVariant('bizpro')).to.equal('plans');
+    });
+
+    it('leaves unrelated variants untouched', () => {
+        expect(normalizeVariant('catalog')).to.equal('catalog');
+        expect(normalizeVariant('')).to.equal('');
+    });
+});
 
 describe('processMnemonics', async () => {
     it('should process mnemonics', async () => {
@@ -632,7 +651,7 @@ describe('hydrate', () => {
         litCard.remove();
     });
 
-    it('injects merch-addon at slot="addon" for plans-bizpro variant', async () => {
+    it('injects merch-addon at slot="addon" for bizpro variant', async () => {
         const litCard = document.createElement('merch-card');
         document.body.appendChild(litCard);
         await customElements.whenDefined('merch-card');
@@ -641,7 +660,7 @@ describe('hydrate', () => {
         const fragment = {
             id: 'bizpro-addon',
             fields: {
-                variant: 'plans-bizpro',
+                variant: 'bizpro',
                 cardTitle: 'Creative Cloud Pro',
                 prices: '<p><span is="inline-price" data-template="price" data-wcs-osi="main"></span></p>',
                 ctas: '<a class="accent" data-wcs-osi="main">Buy</a>',

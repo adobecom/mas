@@ -1,4 +1,4 @@
-export default class ACOMPlansBizProCardPage {
+export default class ACOMBizProCardPage {
     constructor(page) {
         this.page = page;
 
@@ -28,7 +28,7 @@ export default class ACOMPlansBizProCardPage {
         this.cardLicenseSelectTrigger = page.locator('button.license-select-trigger');
         this.cardSecureTransaction = page.locator('.secure-transaction-label');
 
-        // BizPro Plans card CSS properties:
+        // BizPro card CSS properties:
         this.cssProp = {
             card: {
                 'background-color': 'rgb(248, 248, 248)',

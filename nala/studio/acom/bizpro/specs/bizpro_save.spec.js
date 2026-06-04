@@ -1,9 +1,9 @@
 export default {
-    FeatureName: 'M@S Studio ACOM Plans BizPro',
+    FeatureName: 'M@S Studio ACOM BizPro',
     features: [
         {
             tcid: '0',
-            name: '@studio-plans-bizpro-save-edited-fields',
+            name: '@studio-bizpro-save-edited-fields',
             path: '/studio.html',
             data: {
                 cardid: 'c3453a4e-cb16-4208-a1bb-fd56f170e0ab',
@@ -11,7 +11,7 @@ export default {
                 whatsIncludedLabel: 'Saved toggle label:',
             },
             browserParams: '#page=fragment-editor&path=sandbox&fragmentId=',
-            tags: '@mas-studio @acom @acom-save @acom-plans-bizpro @acom-plans-bizpro-save',
+            tags: '@mas-studio @acom @acom-save @acom-bizpro @acom-bizpro-save',
         },
     ],
 };

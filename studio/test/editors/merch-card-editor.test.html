@@ -1357,13 +1357,13 @@
                         });
                     });
 
-                    describe('#updateWhatsIncluded plans-bizpro routing', () => {
+                    describe('#updateWhatsIncluded bizpro routing', () => {
                         const BIZPRO_SEED =
                             '<p class="whats-included-label">Voir :</p>' +
                             '<div class="section"><h4>PDF</h4><ul><li>row</li></ul></div>';
 
                         async function setupBizPro(testId) {
-                            const { fragmentStore: store } = await setupTestEnvironment({ variant: ['plans-bizpro'] }, testId);
+                            const { fragmentStore: store } = await setupTestEnvironment({ variant: ['bizpro'] }, testId);
                             store.get().fields.push({ name: 'whatsIncluded', values: [BIZPRO_SEED], multiple: false });
                             return store;
                         }
@@ -1395,7 +1395,7 @@
                             expect(stored).to.include('PDF');
                         });
 
-                        it('ignores the "Add application" multifield for plans-bizpro', async () => {
+                        it('ignores the "Add application" multifield for bizpro', async () => {
                             const store = await setupBizPro('bizpro-wi-applications');
 
                             const multifield = editor.querySelector(

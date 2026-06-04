@@ -5527,37 +5527,37 @@ merch-card[variant="plans-v2"][size="wide"] footer [slot="heading-m"] {
         }
     `),u(rt,"collectionOptions",{customHeaderArea:r=>r.sidenav?g`<slot name="resultsText"></slot>`:w,headerVisibility:{search:!1,sort:!1,result:["mobile","tablet"],custom:["desktop"]},onSidenavAttached:r=>{let t=()=>{let i=r.querySelectorAll("merch-card");if(i.forEach(n=>{n.hasAttribute("data-size")&&(n.setAttribute("size",n.getAttribute("data-size")),n.removeAttribute("data-size"))}),!N.isDesktop)return;let a=0;i.forEach(n=>{if(n.style.display==="none")return;let o=n.getAttribute("size"),s=o==="wide"?2:o==="super-wide"?3:1;s===2&&a%3===2&&(n.setAttribute("data-size",o),n.removeAttribute("size"),s=1),a+=s})};N.matchDesktop.addEventListener("change",t),r.addEventListener(dt,t),r.onUnmount.push(()=>{N.matchDesktop.removeEventListener("change",t),r.removeEventListener(dt,t)})}});L();var Wc=`
 :root {
-    --consonant-merch-card-plans-bizpro-font-family-regular: 'Adobe Clean', adobe-clean, sans-serif;
-    --consonant-merch-card-plans-bizpro-font-family-display: 'Adobe Clean Display', 'adobe-clean-display', sans-serif;
-    --consonant-merch-card-plans-bizpro-max-width: 394px;
-    --consonant-merch-card-plans-bizpro-2up-max-width: 596px;
+    --consonant-merch-card-bizpro-font-family-regular: 'Adobe Clean', adobe-clean, sans-serif;
+    --consonant-merch-card-bizpro-font-family-display: 'Adobe Clean Display', 'adobe-clean-display', sans-serif;
+    --consonant-merch-card-bizpro-max-width: 394px;
+    --consonant-merch-card-bizpro-2up-max-width: 596px;
     /* Surface colors pinned to the Figma s2a tokens (background-default /
        background-subtle). Deliberately NOT var(--spectrum-gray-*): inside
        Studio an <sp-theme system="spectrum-two"> defines those, and S2's
        gray-100 (#e9e9e9) / gray-50 (#f8f8f8) are each one step grayer than
        the design, tinting every card surface. */
-    --consonant-merch-card-plans-bizpro-bg-default: #fff;
-    --consonant-merch-card-plans-bizpro-bg-subtle: #f8f8f8;
-    --consonant-merch-card-plans-bizpro-text-color: #000;
-    --consonant-merch-card-plans-bizpro-text-muted-color: #000000a3;
-    --consonant-merch-card-plans-bizpro-text-inverse-color: #fff;
-    --consonant-merch-card-plans-bizpro-cta-accent-color: #3b63fb;
-    --consonant-merch-card-plans-bizpro-divider-color: #0000001f;
+    --consonant-merch-card-bizpro-bg-default: #fff;
+    --consonant-merch-card-bizpro-bg-subtle: #f8f8f8;
+    --consonant-merch-card-bizpro-text-color: #000;
+    --consonant-merch-card-bizpro-text-muted-color: #000000a3;
+    --consonant-merch-card-bizpro-text-inverse-color: #fff;
+    --consonant-merch-card-bizpro-cta-accent-color: #3b63fb;
+    --consonant-merch-card-bizpro-divider-color: #0000001f;
 }
 
-/* The Milo .collection-container is itself a min-content grid; a plans-bizpro
+/* The Milo .collection-container is itself a min-content grid; a bizpro
    collection's minmax(0, 1fr) tracks have zero min-content, so it would collapse
    to ~0 width inside it. Let the collection take the full container width \u2014 it
    caps and centres itself via the grid rules below. */
-.collection-container.plans:has(merch-card[variant="plans-bizpro"]) {
+.collection-container.plans:has(merch-card[variant="bizpro"]) {
     display: block;
 }
 
 /* Width is driven by the grid track, not a fixed value \u2014 cards fluidly fit
    261px (1280 viewport) \u2192 394px (1920 viewport) per Figma. */
-merch-card[variant="plans-bizpro"] {
+merch-card[variant="bizpro"] {
     width: 100%;
-    max-width: var(--consonant-merch-card-plans-bizpro-max-width);
+    max-width: var(--consonant-merch-card-bizpro-max-width);
     overflow: visible;
     position: relative;
 }
@@ -5565,7 +5565,7 @@ merch-card[variant="plans-bizpro"] {
 /* Callout banner link \u2014 inherits dark text color + weight, just underlined.
    Force display:inline so the link flows with the surrounding text and
    doesn't get broken onto its own line by any inherited inline-block. */
-merch-card[variant="plans-bizpro"] [slot="callout-content"] a {
+merch-card[variant="bizpro"] [slot="callout-content"] a {
     display: inline;
     color: inherit;
     font-weight: inherit;
@@ -5576,8 +5576,8 @@ merch-card[variant="plans-bizpro"] [slot="callout-content"] a {
 /* The callout sits flat on the license-zone (Figma 1098:30779) \u2014 drop the
    global gray "pill" (background/radius/fit-content) that other variants use,
    so it's full-width caption text on the zone background instead of a box. */
-merch-card[variant="plans-bizpro"] [slot="callout-content"] > p,
-merch-card[variant="plans-bizpro"] [slot="callout-content"] > div > div {
+merch-card[variant="bizpro"] [slot="callout-content"] > p,
+merch-card[variant="bizpro"] [slot="callout-content"] > div > div {
     background: transparent;
     border-radius: 0;
     padding: 0;
@@ -5586,7 +5586,7 @@ merch-card[variant="plans-bizpro"] [slot="callout-content"] > div > div {
     line-height: 16px;
 }
 
-merch-card[variant="plans-bizpro"] [slot="callout-content"] > div {
+merch-card[variant="bizpro"] [slot="callout-content"] > div {
     margin: 0;
 }
 
@@ -5594,7 +5594,7 @@ merch-card[variant="plans-bizpro"] [slot="callout-content"] > div {
    Themes the real <merch-addon> injected at slot="addon". The purple frame
    and trailing sparkle live on the variant's .add-on wrapper (see variantStyle);
    here we size/colour the merch-addon checkbox + label via its custom props. */
-merch-card[variant="plans-bizpro"] merch-addon[slot="addon"] {
+merch-card[variant="bizpro"] merch-addon[slot="addon"] {
     flex: 1 0 0;
     min-width: 0;
     --merch-addon-gap: 8px;
@@ -5613,13 +5613,13 @@ merch-card[variant="plans-bizpro"] merch-addon[slot="addon"] {
     --merch-addon-label-size: 14px;
     --merch-addon-label-line-height: 18px;
     --merch-addon-label-weight: 700;
-    --merch-addon-label-color: var(--consonant-merch-card-plans-bizpro-text-color);
+    --merch-addon-label-color: var(--consonant-merch-card-bizpro-text-color);
 }
 
 /* Light-DOM color overrides \u2014 beat global promo/legal styling */
-merch-card[variant="plans-bizpro"] [slot="promo-text"] {
-    color: var(--consonant-merch-card-plans-bizpro-text-muted-color);
-    font-family: var(--consonant-merch-card-plans-bizpro-font-family-regular);
+merch-card[variant="bizpro"] [slot="promo-text"] {
+    color: var(--consonant-merch-card-bizpro-text-muted-color);
+    font-family: var(--consonant-merch-card-bizpro-font-family-regular);
     font-weight: 400;
     font-size: 14px;
     line-height: 18px;
@@ -5631,32 +5631,32 @@ merch-card[variant="plans-bizpro"] [slot="promo-text"] {
    shadow ::slotted) so it beats the global merch-card [slot="heading-xs"]
    rule. Per CSS Scoping, light-DOM rules outrank shadow ::slotted regardless
    of specificity, so the variant's slotted rules cannot win on their own. */
-merch-card[variant="plans-bizpro"] [slot="heading-xs"] {
+merch-card[variant="bizpro"] [slot="heading-xs"] {
     margin: 0;
-    font-family: var(--consonant-merch-card-plans-bizpro-font-family-display);
+    font-family: var(--consonant-merch-card-bizpro-font-family-display);
     font-weight: 900;
     font-size: 24px;
     line-height: 24px;
     letter-spacing: -0.48px;
-    color: var(--consonant-merch-card-plans-bizpro-text-color);
+    color: var(--consonant-merch-card-bizpro-text-color);
 }
 
-merch-card[variant="plans-bizpro"] [slot="body-xs"] {
+merch-card[variant="bizpro"] [slot="body-xs"] {
     margin: 0;
-    font-family: var(--consonant-merch-card-plans-bizpro-font-family-regular);
+    font-family: var(--consonant-merch-card-bizpro-font-family-regular);
     font-weight: 400;
     font-size: 14px;
     line-height: 18px;
     letter-spacing: 0.14px;
-    color: var(--consonant-merch-card-plans-bizpro-text-color);
+    color: var(--consonant-merch-card-bizpro-text-color);
 }
 
 /* Title / description fields are RTE \u2014 authors may save <h3>Title</h3> or
    <div><p>desc</p></div>, which the AEM mapping then wraps again. Make any
    inner block descendant inherit the outer slot styles so the visible text
    uses the variant typography instead of UA defaults. */
-merch-card[variant="plans-bizpro"] [slot="heading-xs"] :is(h1, h2, h3, h4, h5, h6, p, div, span),
-merch-card[variant="plans-bizpro"] [slot="body-xs"] :is(h1, h2, h3, h4, h5, h6, p, div, span) {
+merch-card[variant="bizpro"] [slot="heading-xs"] :is(h1, h2, h3, h4, h5, h6, p, div, span),
+merch-card[variant="bizpro"] [slot="body-xs"] :is(h1, h2, h3, h4, h5, h6, p, div, span) {
     margin: 0;
     font: inherit;
     color: inherit;
@@ -5664,19 +5664,19 @@ merch-card[variant="plans-bizpro"] [slot="body-xs"] :is(h1, h2, h3, h4, h5, h6, 
 }
 
 /* Rich whats-included styling: section title + bullet items + dividers */
-merch-card[variant="plans-bizpro"] [slot="whats-included"] {
-    font-family: var(--consonant-merch-card-plans-bizpro-font-family-regular);
+merch-card[variant="bizpro"] [slot="whats-included"] {
+    font-family: var(--consonant-merch-card-bizpro-font-family-regular);
 }
 
 /* The authored label only feeds the shadow-DOM toggle button text; never
    show it inside the features zone itself. */
-merch-card[variant="plans-bizpro"] [slot="whats-included"] .whats-included-label {
+merch-card[variant="bizpro"] [slot="whats-included"] .whats-included-label {
     display: none;
 }
 
-merch-card[variant="plans-bizpro"] [slot="whats-included"] .section,
-merch-card[variant="plans-bizpro"] [slot="whats-included"] h4,
-merch-card[variant="plans-bizpro"] [slot="whats-included"] h5 {
+merch-card[variant="bizpro"] [slot="whats-included"] .section,
+merch-card[variant="bizpro"] [slot="whats-included"] h4,
+merch-card[variant="bizpro"] [slot="whats-included"] h5 {
     margin: 0;
 }
 
@@ -5686,7 +5686,7 @@ merch-card[variant="plans-bizpro"] [slot="whats-included"] h5 {
    blocks inside the whats-included slot, blowing out paddings and forcing
    list items to wrap. Reset visual chrome so the section behaves as a
    transparent grouping container, per Figma. */
-merch-card[variant="plans-bizpro"] [slot="whats-included"] .section {
+merch-card[variant="bizpro"] [slot="whats-included"] .section {
     padding: 0;
     background: transparent;
     border: 0;
@@ -5694,12 +5694,12 @@ merch-card[variant="plans-bizpro"] [slot="whats-included"] .section {
     box-shadow: none;
 }
 
-merch-card[variant="plans-bizpro"] [slot="whats-included"] h4 {
+merch-card[variant="bizpro"] [slot="whats-included"] h4 {
     /* Pin the body font explicitly: on consumer pages (Milo) a global \`h4\`
        rule sets Adobe Clean Display Black directly on the element, which beats
        the font-family inherited from the slot container above. Studio has no
        such rule, so the title only looked wrong off-Studio. */
-    font-family: var(--consonant-merch-card-plans-bizpro-font-family-regular);
+    font-family: var(--consonant-merch-card-bizpro-font-family-regular);
     font-weight: 700;
     font-size: 14px;
     line-height: 18px;
@@ -5710,7 +5710,7 @@ merch-card[variant="plans-bizpro"] [slot="whats-included"] h4 {
     gap: 4px;
 }
 
-merch-card[variant="plans-bizpro"] [slot="whats-included"] ul {
+merch-card[variant="bizpro"] [slot="whats-included"] ul {
     list-style: none;
     margin: 12px 0 0;
     padding: 0;
@@ -5719,26 +5719,26 @@ merch-card[variant="plans-bizpro"] [slot="whats-included"] ul {
     gap: 12px;
 }
 
-merch-card[variant="plans-bizpro"] [slot="whats-included"] ul li {
+merch-card[variant="bizpro"] [slot="whats-included"] ul li {
     font-size: 14px;
     line-height: 18px;
     letter-spacing: 0.14px;
-    color: var(--consonant-merch-card-plans-bizpro-text-muted-color);
+    color: var(--consonant-merch-card-bizpro-text-muted-color);
     padding: 0 20px;
 }
 
-merch-card[variant="plans-bizpro"][border-color="black"] [slot="whats-included"] ul li {
-    color: var(--consonant-merch-card-plans-bizpro-text-inverse-color);
+merch-card[variant="bizpro"][border-color="black"] [slot="whats-included"] ul li {
+    color: var(--consonant-merch-card-bizpro-text-inverse-color);
 }
 
-merch-card[variant="plans-bizpro"] [slot="whats-included"] .section + .section {
-    border-top: 1px solid var(--consonant-merch-card-plans-bizpro-divider-color);
+merch-card[variant="bizpro"] [slot="whats-included"] .section + .section {
+    border-top: 1px solid var(--consonant-merch-card-bizpro-divider-color);
     padding-top: 16px;
 }
 
 /* Per Figma: the last section in a multi-section list uses 8px gap between title and items
    (the leading + middle sections stay at 12px). Single-section cards keep 12px. */
-merch-card[variant="plans-bizpro"] [slot="whats-included"] .section:not(:only-child):last-child ul {
+merch-card[variant="bizpro"] [slot="whats-included"] .section:not(:only-child):last-child ul {
     margin-top: 8px;
 }
 
@@ -5748,9 +5748,9 @@ merch-card[variant="plans-bizpro"] [slot="whats-included"] .section:not(:only-ch
    size="xs" default of 20px), so a host width/height alone leaves the inner image at 20px and
    overflowing the box. Set the --mod-img-* custom properties too \u2014 they inherit across the shadow
    boundary and size the image to match. (svg/.sp-icon are light DOM and just use width/height.) */
-merch-card[variant="plans-bizpro"] [slot="whats-included"] .section h4 > svg,
-merch-card[variant="plans-bizpro"] [slot="whats-included"] .section h4 > .sp-icon,
-merch-card[variant="plans-bizpro"] [slot="whats-included"] .section h4 > merch-icon {
+merch-card[variant="bizpro"] [slot="whats-included"] .section h4 > svg,
+merch-card[variant="bizpro"] [slot="whats-included"] .section h4 > .sp-icon,
+merch-card[variant="bizpro"] [slot="whats-included"] .section h4 > merch-icon {
     width: 16px;
     height: 16px;
     --mod-img-width: 16px;
@@ -5758,9 +5758,9 @@ merch-card[variant="plans-bizpro"] [slot="whats-included"] .section h4 > merch-i
     flex: 0 0 auto;
     color: inherit;
 }
-merch-card[variant="plans-bizpro"] [slot="whats-included"] .section:first-child h4 > svg,
-merch-card[variant="plans-bizpro"] [slot="whats-included"] .section:first-child h4 > .sp-icon,
-merch-card[variant="plans-bizpro"] [slot="whats-included"] .section:first-child h4 > merch-icon {
+merch-card[variant="bizpro"] [slot="whats-included"] .section:first-child h4 > svg,
+merch-card[variant="bizpro"] [slot="whats-included"] .section:first-child h4 > .sp-icon,
+merch-card[variant="bizpro"] [slot="whats-included"] .section:first-child h4 > merch-icon {
     width: 20px;
     height: 20px;
     --mod-img-width: 20px;
@@ -5768,14 +5768,14 @@ merch-card[variant="plans-bizpro"] [slot="whats-included"] .section:first-child 
 }
 
 /* CTA styling \u2014 pill-shaped buttons, accent solid + outlined */
-merch-card[variant="plans-bizpro"] [slot="footer"] a,
-merch-card[variant="plans-bizpro"] [slot="footer"] button {
+merch-card[variant="bizpro"] [slot="footer"] a,
+merch-card[variant="bizpro"] [slot="footer"] button {
     flex: 1 0 0;
     min-width: 0;
     height: 40px;
     padding: 14px 24px;
     border-radius: 999px;
-    font-family: var(--consonant-merch-card-plans-bizpro-font-family-regular);
+    font-family: var(--consonant-merch-card-bizpro-font-family-regular);
     font-weight: 700;
     font-size: 14px;
     line-height: 18px;
@@ -5789,55 +5789,55 @@ merch-card[variant="plans-bizpro"] [slot="footer"] button {
     white-space: nowrap;
 }
 
-merch-card[variant="plans-bizpro"] [slot="footer"] .con-button.blue,
-merch-card[variant="plans-bizpro"] [slot="footer"] a.accent,
-merch-card[variant="plans-bizpro"] [slot="footer"] [data-button-type="accent"] {
-    background: var(--consonant-merch-card-plans-bizpro-cta-accent-color);
-    color: var(--consonant-merch-card-plans-bizpro-text-inverse-color);
+merch-card[variant="bizpro"] [slot="footer"] .con-button.blue,
+merch-card[variant="bizpro"] [slot="footer"] a.accent,
+merch-card[variant="bizpro"] [slot="footer"] [data-button-type="accent"] {
+    background: var(--consonant-merch-card-bizpro-cta-accent-color);
+    color: var(--consonant-merch-card-bizpro-text-inverse-color);
     border: none;
 }
 
-merch-card[variant="plans-bizpro"] [slot="footer"] .con-button.outline,
-merch-card[variant="plans-bizpro"] [slot="footer"] a.outline,
-merch-card[variant="plans-bizpro"] [slot="footer"] [data-button-type="primary"] {
+merch-card[variant="bizpro"] [slot="footer"] .con-button.outline,
+merch-card[variant="bizpro"] [slot="footer"] a.outline,
+merch-card[variant="bizpro"] [slot="footer"] [data-button-type="primary"] {
     background: transparent;
-    color: var(--consonant-merch-card-plans-bizpro-text-color);
-    border: 2px solid var(--consonant-merch-card-plans-bizpro-text-color);
+    color: var(--consonant-merch-card-bizpro-text-color);
+    border: 2px solid var(--consonant-merch-card-bizpro-text-color);
 }
 
 /* heading-m holds the price. inline-price cards are covered by the .price-span
    rules below; "free" cards author literal text ("Free") that has no .price spans,
    so style the slot itself to match the Figma price (18px/900, node 1114:39070)
    instead of falling through to the global heading-m default (24px/700/#2c2c2c). */
-merch-card[variant="plans-bizpro"] [slot="heading-m"],
-merch-card[variant="plans-bizpro"] [slot="heading-m"] > p {
+merch-card[variant="bizpro"] [slot="heading-m"],
+merch-card[variant="bizpro"] [slot="heading-m"] > p {
     margin: 0;
-    font-family: var(--consonant-merch-card-plans-bizpro-font-family-display);
+    font-family: var(--consonant-merch-card-bizpro-font-family-display);
     font-weight: 900;
     font-size: 18px;
     line-height: 21px;
     letter-spacing: -0.48px;
-    color: var(--consonant-merch-card-plans-bizpro-text-color);
+    color: var(--consonant-merch-card-bizpro-text-color);
 }
 
 /* Price spans \u2014 individually styled per Figma */
-merch-card[variant="plans-bizpro"] [slot="heading-m"] .price,
-merch-card[variant="plans-bizpro"] [slot="heading-m"] .price-currency-symbol,
-merch-card[variant="plans-bizpro"] [slot="heading-m"] .price-integer,
-merch-card[variant="plans-bizpro"] [slot="heading-m"] .price-decimals-delimiter,
-merch-card[variant="plans-bizpro"] [slot="heading-m"] .price-decimals,
-merch-card[variant="plans-bizpro"] [slot="heading-m"] .price-recurrence {
-    font-family: var(--consonant-merch-card-plans-bizpro-font-family-display);
+merch-card[variant="bizpro"] [slot="heading-m"] .price,
+merch-card[variant="bizpro"] [slot="heading-m"] .price-currency-symbol,
+merch-card[variant="bizpro"] [slot="heading-m"] .price-integer,
+merch-card[variant="bizpro"] [slot="heading-m"] .price-decimals-delimiter,
+merch-card[variant="bizpro"] [slot="heading-m"] .price-decimals,
+merch-card[variant="bizpro"] [slot="heading-m"] .price-recurrence {
+    font-family: var(--consonant-merch-card-bizpro-font-family-display);
     font-weight: 900;
     font-size: 18px;
     line-height: 21px;
     letter-spacing: -0.48px;
-    color: var(--consonant-merch-card-plans-bizpro-text-color);
+    color: var(--consonant-merch-card-bizpro-text-color);
 }
 
 /* WCS recurrence dictionary returns abbreviations uppercased ("/MO");
    Figma's pricing typography presents it lowercase ("/mo"). */
-merch-card[variant="plans-bizpro"] [slot="heading-m"] .price-recurrence {
+merch-card[variant="bizpro"] [slot="heading-m"] .price-recurrence {
     text-transform: lowercase;
 }
 
@@ -5848,10 +5848,10 @@ merch-card[variant="plans-bizpro"] [slot="heading-m"] .price-recurrence {
    Cards stretch to equal height within a row (matches Figma row-equal layout)
    and widths flow fluidly via 1fr tracks. Container max-width caps growth so
    cards don't exceed the Figma xl (394px) width. */
-merch-card-collection.plans:is(.one-merch-card, .two-merch-cards, .three-merch-cards, .four-merch-cards):has(merch-card[variant="plans-bizpro"]) {
+merch-card-collection.plans:is(.one-merch-card, .two-merch-cards, .three-merch-cards, .four-merch-cards):has(merch-card[variant="bizpro"]) {
     display: grid;
     gap: 8px;
-    grid-template-columns: minmax(0, var(--consonant-merch-card-plans-bizpro-max-width));
+    grid-template-columns: minmax(0, var(--consonant-merch-card-bizpro-max-width));
     justify-content: center;
     /* Cards stretch to equal height; the white .top-card is pinned to its
        (uniform) content height and the gray .features-zone grows to fill the
@@ -5862,18 +5862,18 @@ merch-card-collection.plans:is(.one-merch-card, .two-merch-cards, .three-merch-c
 }
 
 @media screen and ${H} {
-    merch-card-collection.plans:is(.two-merch-cards, .three-merch-cards, .four-merch-cards):has(merch-card[variant="plans-bizpro"]) {
+    merch-card-collection.plans:is(.two-merch-cards, .three-merch-cards, .four-merch-cards):has(merch-card[variant="bizpro"]) {
         grid-template-columns: repeat(2, minmax(0, 1fr));
         max-width: 720px;
     }
 }
 
 @media screen and ${Ec} {
-    merch-card-collection.plans:is(.three-merch-cards):has(merch-card[variant="plans-bizpro"]) {
+    merch-card-collection.plans:is(.three-merch-cards):has(merch-card[variant="bizpro"]) {
         grid-template-columns: repeat(3, minmax(0, 1fr));
         max-width: 1192px;
     }
-    merch-card-collection.plans:is(.four-merch-cards):has(merch-card[variant="plans-bizpro"]) {
+    merch-card-collection.plans:is(.four-merch-cards):has(merch-card[variant="bizpro"]) {
         grid-template-columns: repeat(4, minmax(0, 1fr));
         max-width: 1600px;
     }
@@ -5883,25 +5883,25 @@ merch-card-collection.plans:is(.one-merch-card, .two-merch-cards, .three-merch-c
        Per Figma the 2-up cards are wider than the dense 4-up: they flex-fill the
        row up to 596px (\u2248522px at the 1280 breakpoint), so widen the track and the
        card's own cap for this case only. */
-    merch-card-collection.plans:has(merch-card[variant="plans-bizpro"]):has(> merch-card:nth-of-type(2):last-of-type) {
+    merch-card-collection.plans:has(merch-card[variant="bizpro"]):has(> merch-card:nth-of-type(2):last-of-type) {
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 12px;
-        max-width: calc(2 * var(--consonant-merch-card-plans-bizpro-2up-max-width) + 12px);
+        max-width: calc(2 * var(--consonant-merch-card-bizpro-2up-max-width) + 12px);
     }
-    merch-card-collection.plans:has(merch-card[variant="plans-bizpro"]):has(> merch-card:nth-of-type(2):last-of-type) merch-card[variant="plans-bizpro"] {
-        max-width: var(--consonant-merch-card-plans-bizpro-2up-max-width);
+    merch-card-collection.plans:has(merch-card[variant="bizpro"]):has(> merch-card:nth-of-type(2):last-of-type) merch-card[variant="bizpro"] {
+        max-width: var(--consonant-merch-card-bizpro-2up-max-width);
     }
 }
 
 @media screen and ${$} {
-    merch-card[variant="plans-bizpro"] {
+    merch-card[variant="bizpro"] {
         width: 100%;
-        max-width: var(--consonant-merch-card-plans-bizpro-max-width);
+        max-width: var(--consonant-merch-card-bizpro-max-width);
     }
 }
 
 /* ETF / legal text inline link styling \u2014 underlined inline anchors */
-merch-card[variant="plans-bizpro"] [slot="legal-text"] a {
+merch-card[variant="bizpro"] [slot="legal-text"] a {
     color: inherit;
     text-decoration: underline;
 }
@@ -6016,32 +6016,32 @@ merch-card[variant="plans-bizpro"] [slot="legal-text"] a {
                   `:w}
             <slot></slot>
         `}};it=new WeakMap,$e=new WeakMap,Pt=new WeakMap,Lt=new WeakSet,ni=function(){h(this,it)&&(document.removeEventListener("mousedown",h(this,it)),v(this,it,null))},u(rr,"variantStyle",y`
-        :host([variant='plans-bizpro']) {
+        :host([variant='bizpro']) {
             display: flex;
             flex-direction: column;
             background: var(
-                --consonant-merch-card-plans-bizpro-frame-bg,
-                var(--consonant-merch-card-plans-bizpro-bg-subtle, #f8f8f8)
+                --consonant-merch-card-bizpro-frame-bg,
+                var(--consonant-merch-card-bizpro-bg-subtle, #f8f8f8)
             );
             border-radius: 16px;
             padding: 8px;
             box-sizing: border-box;
             overflow: hidden;
             position: relative;
-            color: var(--consonant-merch-card-plans-bizpro-frame-text, #000);
+            color: var(--consonant-merch-card-bizpro-frame-text, #000);
             --secure-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='currentColor'%3E%3Cpath d='M9 9.2C9 8.64844 8.55156 8.2 8 8.2C7.44844 8.2 7 8.64844 7 9.2C7 9.52207 7.16289 9.7959 7.4 9.9789V10.6C7.4 10.9312 7.66875 11.2 8 11.2C8.33125 11.2 8.6 10.9312 8.6 10.6V9.9789C8.83711 9.7959 9 9.52207 9 9.2Z'/%3E%3Cpath d='M12 5.62031V5.2C12 2.99453 10.2055 1.2 8 1.2C5.79453 1.2 4 2.99453 4 5.2V5.62031C3.10274 5.72129 2.4 6.47637 2.4 7.4V12.6C2.4 13.5922 3.20782 14.4 4.2 14.4H11.8C12.7922 14.4 13.6 13.5922 13.6 12.6V7.4C13.6 6.47637 12.8973 5.72129 12 5.62031ZM8 2.4C9.54375 2.4 10.8 3.65625 10.8 5.2V5.6H5.2V5.2C5.2 3.65625 6.45625 2.4 8 2.4ZM12.4 12.6C12.4 12.9305 12.1305 13.2 11.8 13.2H4.2C3.86953 13.2 3.6 12.9305 3.6 12.6V7.4C3.6 7.06953 3.86953 6.8 4.2 6.8H11.8C12.1305 6.8 12.4 7.06953 12.4 7.4V12.6Z'/%3E%3C/svg%3E");
         }
 
-        :host([variant='plans-bizpro'][border-color='black']) {
-            --consonant-merch-card-plans-bizpro-frame-bg: #000;
-            --consonant-merch-card-plans-bizpro-frame-text: #fff;
-            --consonant-merch-card-plans-bizpro-divider-color: #ffffff29;
-            --consonant-merch-card-plans-bizpro-subtitle-color: #000;
+        :host([variant='bizpro'][border-color='black']) {
+            --consonant-merch-card-bizpro-frame-bg: #000;
+            --consonant-merch-card-bizpro-frame-text: #fff;
+            --consonant-merch-card-bizpro-divider-color: #ffffff29;
+            --consonant-merch-card-bizpro-subtitle-color: #000;
         }
 
-        :host([variant='plans-bizpro']) .top-card {
+        :host([variant='bizpro']) .top-card {
             background: var(
-                --consonant-merch-card-plans-bizpro-bg-default,
+                --consonant-merch-card-bizpro-bg-default,
                 #fff
             );
             border-radius: 12px;
@@ -6055,29 +6055,29 @@ merch-card[variant="plans-bizpro"] [slot="legal-text"] a {
                row carry unequal top content (e.g. a longer description), the white
                tops would otherwise end at different heights; syncHeights() measures
                every .top-card in the row and publishes the row max as
-               --consonant-merch-card-plans-bizpro-top-card-height, and the
+               --consonant-merch-card-bizpro-top-card-height, and the
                min-height below pulls shorter cards up to match. Falls back to auto
                when unset (single column / pre-sync). .top-card is content-box, so
                the measured content height maps straight to min-height. */
             flex: 0 0 auto;
             min-height: var(
-                --consonant-merch-card-plans-bizpro-top-card-height,
+                --consonant-merch-card-bizpro-top-card-height,
                 auto
             );
         }
 
-        :host([variant='plans-bizpro']) .mnemonic {
+        :host([variant='bizpro']) .mnemonic {
             display: flex;
             align-items: center;
             gap: 12px;
         }
 
-        :host([variant='plans-bizpro']) ::slotted([slot='icons']) {
+        :host([variant='bizpro']) ::slotted([slot='icons']) {
             width: 24px;
             height: 24px;
         }
 
-        :host([variant='plans-bizpro']) ::slotted([slot='subtitle']) {
+        :host([variant='bizpro']) ::slotted([slot='subtitle']) {
             margin: 0;
             font-family: 'Adobe Clean', adobe-clean, sans-serif;
             font-weight: 700;
@@ -6085,13 +6085,13 @@ merch-card[variant="plans-bizpro"] [slot="legal-text"] a {
             line-height: 20px;
             letter-spacing: 0;
             color: var(
-                --consonant-merch-card-plans-bizpro-subtitle-color,
+                --consonant-merch-card-bizpro-subtitle-color,
                 #000000a3
             );
             flex: 1;
         }
 
-        :host([variant='plans-bizpro']) .name-description {
+        :host([variant='bizpro']) .name-description {
             display: flex;
             flex-direction: column;
             gap: 8px;
@@ -6100,7 +6100,7 @@ merch-card[variant="plans-bizpro"] [slot="legal-text"] a {
             flex: 1 1 auto;
         }
 
-        :host([variant='plans-bizpro']) ::slotted([slot='heading-xs']) {
+        :host([variant='bizpro']) ::slotted([slot='heading-xs']) {
             margin: 0;
             font-family: 'Adobe Clean Display', 'adobe-clean-display',
                 sans-serif;
@@ -6111,7 +6111,7 @@ merch-card[variant="plans-bizpro"] [slot="legal-text"] a {
             color: #000;
         }
 
-        :host([variant='plans-bizpro']) ::slotted([slot='body-xs']) {
+        :host([variant='bizpro']) ::slotted([slot='body-xs']) {
             margin: 0;
             font-family: 'Adobe Clean', adobe-clean, sans-serif;
             font-weight: 400;
@@ -6121,13 +6121,13 @@ merch-card[variant="plans-bizpro"] [slot="legal-text"] a {
             color: #000;
         }
 
-        :host([variant='plans-bizpro']) .pricing {
+        :host([variant='bizpro']) .pricing {
             display: flex;
             flex-direction: column;
             gap: 0;
         }
 
-        :host([variant='plans-bizpro']) ::slotted([slot='heading-m']) {
+        :host([variant='bizpro']) ::slotted([slot='heading-m']) {
             margin: 0;
             font-family: 'Adobe Clean Display', 'adobe-clean-display',
                 sans-serif;
@@ -6138,7 +6138,7 @@ merch-card[variant="plans-bizpro"] [slot="legal-text"] a {
             color: #000;
         }
 
-        :host([variant='plans-bizpro']) ::slotted([slot='promo-text']) {
+        :host([variant='bizpro']) ::slotted([slot='promo-text']) {
             margin: 0;
             font-family: 'Adobe Clean', adobe-clean, sans-serif;
             font-weight: 400;
@@ -6148,11 +6148,11 @@ merch-card[variant="plans-bizpro"] [slot="legal-text"] a {
             color: #000000a3;
         }
 
-        :host([variant='plans-bizpro']) .legal-text {
+        :host([variant='bizpro']) .legal-text {
             color: #000;
         }
 
-        :host([variant='plans-bizpro']) ::slotted([slot='legal-text']) {
+        :host([variant='bizpro']) ::slotted([slot='legal-text']) {
             margin: 0;
             font-family: 'Adobe Clean', adobe-clean, sans-serif;
             font-weight: 400;
@@ -6162,7 +6162,7 @@ merch-card[variant="plans-bizpro"] [slot="legal-text"] a {
             color: #000000a3;
         }
 
-        :host([variant='plans-bizpro']) footer {
+        :host([variant='bizpro']) footer {
             display: flex;
             gap: 8px;
             padding: 0;
@@ -6171,13 +6171,13 @@ merch-card[variant="plans-bizpro"] [slot="legal-text"] a {
             min-height: auto;
         }
 
-        :host([variant='plans-bizpro']) footer ::slotted([slot='footer']) {
+        :host([variant='bizpro']) footer ::slotted([slot='footer']) {
             display: flex;
             gap: 8px;
             flex: 1;
         }
 
-        :host([variant='plans-bizpro']) .secure-transaction-label {
+        :host([variant='bizpro']) .secure-transaction-label {
             display: inline-flex;
             align-items: center;
             gap: 8px;
@@ -6194,7 +6194,7 @@ merch-card[variant="plans-bizpro"] [slot="legal-text"] a {
             white-space: normal;
         }
 
-        :host([variant='plans-bizpro']) .secure-transaction-label::before {
+        :host([variant='bizpro']) .secure-transaction-label::before {
             content: '';
             display: inline-block;
             width: 16px;
@@ -6205,7 +6205,7 @@ merch-card[variant="plans-bizpro"] [slot="legal-text"] a {
             background-size: contain;
         }
 
-        :host([variant='plans-bizpro']) .features-zone {
+        :host([variant='bizpro']) .features-zone {
             padding: 24px;
             display: flex;
             flex-direction: column;
@@ -6213,27 +6213,27 @@ merch-card[variant="plans-bizpro"] [slot="legal-text"] a {
             /* Grow to fill the card's remaining height so card bottoms align
                across the row (shorter cards get empty zone space below). */
             flex: 1 1 auto;
-            color: var(--consonant-merch-card-plans-bizpro-frame-text, #000);
+            color: var(--consonant-merch-card-bizpro-frame-text, #000);
         }
 
-        :host([variant='plans-bizpro']) .features-zone[hidden] {
+        :host([variant='bizpro']) .features-zone[hidden] {
             display: none;
         }
 
-        :host([variant='plans-bizpro']) ::slotted([slot='whats-included']) {
+        :host([variant='bizpro']) ::slotted([slot='whats-included']) {
             color: inherit;
             display: flex;
             flex-direction: column;
             gap: 24px;
         }
 
-        :host([variant='plans-bizpro']) .whats-included-toggle {
+        :host([variant='bizpro']) .whats-included-toggle {
             all: unset;
             display: flex;
             align-items: center;
             padding: 24px;
             cursor: pointer;
-            color: var(--consonant-merch-card-plans-bizpro-frame-text, #000);
+            color: var(--consonant-merch-card-bizpro-frame-text, #000);
             font-family: 'Adobe Clean', adobe-clean, sans-serif;
             font-weight: 700;
             font-size: 14px;
@@ -6242,22 +6242,22 @@ merch-card[variant="plans-bizpro"] [slot="legal-text"] a {
         }
 
         /* Expanded state: no bottom padding — features-zone provides spacing */
-        :host([variant='plans-bizpro'])
+        :host([variant='bizpro'])
             .whats-included-toggle[aria-expanded='true'] {
             padding-bottom: 0;
         }
 
-        :host([variant='plans-bizpro']) .whats-included-toggle-label {
+        :host([variant='bizpro']) .whats-included-toggle-label {
             flex: 1 0 0;
         }
 
-        :host([variant='plans-bizpro']) .whats-included-toggle:focus-visible {
+        :host([variant='bizpro']) .whats-included-toggle:focus-visible {
             outline: 2px solid #1473e6;
             outline-offset: -2px;
             border-radius: 8px;
         }
 
-        :host([variant='plans-bizpro']) .whats-included-toggle-chevron {
+        :host([variant='bizpro']) .whats-included-toggle-chevron {
             width: 20px;
             height: 20px;
             background-color: currentColor;
@@ -6269,20 +6269,20 @@ merch-card[variant="plans-bizpro"] [slot="legal-text"] a {
             flex: 0 0 auto;
         }
 
-        :host([variant='plans-bizpro'])
+        :host([variant='bizpro'])
             .whats-included-toggle[aria-expanded='true']
             .whats-included-toggle-chevron {
             transform: rotate(180deg);
         }
 
-        :host([variant='plans-bizpro']) .pricing-line {
+        :host([variant='bizpro']) .pricing-line {
             display: flex;
             align-items: baseline;
             flex-wrap: wrap;
             gap: 0;
         }
 
-        :host([variant='plans-bizpro']) ::slotted([slot='per-unit-label']) {
+        :host([variant='bizpro']) ::slotted([slot='per-unit-label']) {
             font-family: 'Adobe Clean Display', 'adobe-clean-display',
                 sans-serif;
             font-weight: 900;
@@ -6293,23 +6293,23 @@ merch-card[variant="plans-bizpro"] [slot="legal-text"] a {
             margin-inline-start: 4px;
         }
 
-        :host([variant='plans-bizpro']) .license-zone {
+        :host([variant='bizpro']) .license-zone {
             display: flex;
             flex-direction: column;
             background: var(
-                --consonant-merch-card-plans-bizpro-bg-subtle,
+                --consonant-merch-card-bizpro-bg-subtle,
                 #f8f8f8
             );
             border-radius: 8px;
             overflow: visible;
         }
 
-        :host([variant='plans-bizpro']) .license-select {
+        :host([variant='bizpro']) .license-select {
             position: relative;
             font-family: 'Adobe Clean', adobe-clean, sans-serif;
         }
 
-        :host([variant='plans-bizpro']) .license-select-trigger {
+        :host([variant='bizpro']) .license-select-trigger {
             all: unset;
             box-sizing: border-box;
             width: 100%;
@@ -6319,7 +6319,7 @@ merch-card[variant="plans-bizpro"] [slot="legal-text"] a {
             align-items: center;
             justify-content: space-between;
             background: var(
-                --consonant-merch-card-plans-bizpro-bg-default,
+                --consonant-merch-card-bizpro-bg-default,
                 #fff
             );
             border: 1px solid rgba(0, 0, 0, 0.08);
@@ -6332,28 +6332,28 @@ merch-card[variant="plans-bizpro"] [slot="legal-text"] a {
             letter-spacing: 0;
         }
 
-        :host([variant='plans-bizpro']) .license-select-trigger:focus-visible {
+        :host([variant='bizpro']) .license-select-trigger:focus-visible {
             outline: 2px solid #1473e6;
             outline-offset: 1px;
         }
 
-        :host([variant='plans-bizpro']) .license-select-trigger-text {
+        :host([variant='bizpro']) .license-select-trigger-text {
             display: flex;
             align-items: center;
             gap: 8px;
         }
 
-        :host([variant='plans-bizpro']) .license-select-value {
+        :host([variant='bizpro']) .license-select-value {
             font-weight: 700;
             color: #000;
         }
 
-        :host([variant='plans-bizpro']) .license-select-label {
+        :host([variant='bizpro']) .license-select-label {
             font-weight: 700;
             color: rgba(0, 0, 0, 0.64);
         }
 
-        :host([variant='plans-bizpro']) .license-select-chevron {
+        :host([variant='bizpro']) .license-select-chevron {
             width: 16px;
             height: 16px;
             background-color: currentColor;
@@ -6365,13 +6365,13 @@ merch-card[variant="plans-bizpro"] [slot="legal-text"] a {
             flex: 0 0 auto;
         }
 
-        :host([variant='plans-bizpro'])
+        :host([variant='bizpro'])
             .license-select-trigger[aria-expanded='true']
             .license-select-chevron {
             transform: rotate(180deg);
         }
 
-        :host([variant='plans-bizpro']) .license-select-popover {
+        :host([variant='bizpro']) .license-select-popover {
             position: absolute;
             top: 0;
             left: 0;
@@ -6380,7 +6380,7 @@ merch-card[variant="plans-bizpro"] [slot="legal-text"] a {
             padding: 0;
             list-style: none;
             background: var(
-                --consonant-merch-card-plans-bizpro-bg-default,
+                --consonant-merch-card-bizpro-bg-default,
                 #fff
             );
             border: 1px solid rgba(0, 0, 0, 0.08);
@@ -6394,11 +6394,11 @@ merch-card[variant="plans-bizpro"] [slot="legal-text"] a {
             z-index: 10;
         }
 
-        :host([variant='plans-bizpro']) .license-select-popover[hidden] {
+        :host([variant='bizpro']) .license-select-popover[hidden] {
             display: none;
         }
 
-        :host([variant='plans-bizpro']) .license-select-popover-header {
+        :host([variant='bizpro']) .license-select-popover-header {
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -6410,12 +6410,12 @@ merch-card[variant="plans-bizpro"] [slot="legal-text"] a {
             font-weight: 700;
             cursor: pointer;
             background: var(
-                --consonant-merch-card-plans-bizpro-bg-default,
+                --consonant-merch-card-bizpro-bg-default,
                 #fff
             );
         }
 
-        :host([variant='plans-bizpro']) .license-select-option {
+        :host([variant='bizpro']) .license-select-option {
             padding: 16px 12px;
             cursor: pointer;
             color: #000;
@@ -6426,19 +6426,19 @@ merch-card[variant="plans-bizpro"] [slot="legal-text"] a {
             border-bottom: 1px solid rgba(0, 0, 0, 0.08);
         }
 
-        :host([variant='plans-bizpro']) .license-select-option:last-child {
+        :host([variant='bizpro']) .license-select-option:last-child {
             border-bottom: none;
         }
 
-        :host([variant='plans-bizpro']) .license-select-option:hover,
-        :host([variant='plans-bizpro']) .license-select-option.selected {
+        :host([variant='bizpro']) .license-select-option:hover,
+        :host([variant='bizpro']) .license-select-option.selected {
             background: var(
-                --consonant-merch-card-plans-bizpro-bg-subtle,
+                --consonant-merch-card-bizpro-bg-subtle,
                 #f8f8f8
             );
         }
 
-        :host([variant='plans-bizpro']) .callout {
+        :host([variant='bizpro']) .callout {
             padding: 8px 12px 12px 12px;
             color: #000;
             font-family: 'Adobe Clean', adobe-clean, sans-serif;
@@ -6449,11 +6449,11 @@ merch-card[variant="plans-bizpro"] [slot="legal-text"] a {
             text-align: start;
         }
 
-        :host([variant='plans-bizpro']) ::slotted([slot='callout-content']) {
+        :host([variant='bizpro']) ::slotted([slot='callout-content']) {
             margin: 0;
         }
 
-        :host([variant='plans-bizpro']) .add-on {
+        :host([variant='bizpro']) .add-on {
             display: flex;
             align-items: center;
             gap: 8px;
@@ -6464,11 +6464,11 @@ merch-card[variant="plans-bizpro"] [slot="legal-text"] a {
             background:
                 linear-gradient(
                         var(
-                            --consonant-merch-card-plans-bizpro-bg-default,
+                            --consonant-merch-card-bizpro-bg-default,
                             #fff
                         ),
                         var(
-                            --consonant-merch-card-plans-bizpro-bg-default,
+                            --consonant-merch-card-bizpro-bg-default,
                             #fff
                         )
                     )
@@ -6480,7 +6480,7 @@ merch-card[variant="plans-bizpro"] [slot="legal-text"] a {
             box-sizing: border-box;
         }
 
-        :host([variant='plans-bizpro']) .add-on::after {
+        :host([variant='bizpro']) .add-on::after {
             content: '';
             width: 16px;
             height: 16px;
@@ -6498,10 +6498,10 @@ merch-card[variant="plans-bizpro"] [slot="legal-text"] a {
 
         /* C2 desktop breakpoint: toggle disappears, features-zone is always visible inline */
         @media (min-width: 1280px) {
-            :host([variant='plans-bizpro']) .whats-included-toggle {
+            :host([variant='bizpro']) .whats-included-toggle {
                 display: none;
             }
-            :host([variant='plans-bizpro']) .features-zone[hidden] {
+            :host([variant='bizpro']) .features-zone[hidden] {
                 display: flex;
             }
         }
@@ -9352,7 +9352,7 @@ merch-card[variant="mini"] span.renewal-text {
                 --gradient-firefly-spectrum
             );
         }
-    `);var na=new Map,dl=new WeakMap,hl=new Map,q=(e,r,t=null,i=null,a)=>{na.set(e,{class:r,fragmentMapping:t,style:i,collectionOptions:a})};q("catalog",Jt,Oc,Jt.variantStyle);q("image",_t);q("inline-heading",ia);q("mini-compare-chart",er,Hc,er.variantStyle);q("mini-compare-chart-mweb",tr,Fc,tr.variantStyle);q("plans",fe,aa,fe.variantStyle,fe.collectionOptions);q("plans-students",fe,Gc,fe.variantStyle,fe.collectionOptions);q("plans-education",fe,qc,fe.variantStyle,fe.collectionOptions);q("plans-v2",rt,jc,rt.variantStyle,rt.collectionOptions);q("plans-bizpro",rr,Yc,rr.variantStyle);q("product",ir,Kc,ir.variantStyle);q("segment",ar,Zc,ar.variantStyle);q("media",nr,el,nr.variantStyle);q("headless",lr,ol,lr.variantStyle);q("special-offers",or,rl,or.variantStyle);q("simplified-pricing-express",sr,qn,sr.variantStyle);q("full-pricing-express",cr,Gn,cr.variantStyle);q("mini",dr,cl,dr.variantStyle);q("image",_t,Ic,_t.variantStyle);q("fries",hr,Vn,hr.variantStyle);var yp=(e,r,t)=>{try{let i=hl.get(e.variant);if(i||(i=new CSSStyleSheet,i.replaceSync(r.cssText),hl.set(e.variant,i)),t?.styleSheet&&t.styleSheet!==i){let a=e.shadowRoot.adoptedStyleSheets.indexOf(t.styleSheet);a!==-1&&e.shadowRoot.adoptedStyleSheets.splice(a,1)}return e.shadowRoot.adoptedStyleSheets.includes(i)||e.shadowRoot.adoptedStyleSheets.push(i),{styleSheet:i}}catch{let a=document.createElement("style");a.textContent=r.cssText,a.setAttribute("data-variant-style",e.variant);let n=t?.styleElement||e.shadowRoot.querySelector("[data-variant-style]");return n&&n.remove(),e.shadowRoot.appendChild(a),{styleElement:a}}},jn=e=>{let r=na.get(e.variant);if(!r)return;let{class:t,style:i}=r,a=dl.get(e);if(a?.appliedVariant===e.variant)return new t(e);let n=i?yp(e,i,a):{};return dl.set(e,{appliedVariant:e.variant,...n}),new t(e)};function ra(e){return na.get(e)?.fragmentMapping}function pl(e){return na.get(e)?.collectionOptions}var ml=document.createElement("style");ml.innerHTML=`
+    `);var na=new Map,dl=new WeakMap,hl=new Map,q=(e,r,t=null,i=null,a)=>{na.set(e,{class:r,fragmentMapping:t,style:i,collectionOptions:a})};q("catalog",Jt,Oc,Jt.variantStyle);q("image",_t);q("inline-heading",ia);q("mini-compare-chart",er,Hc,er.variantStyle);q("mini-compare-chart-mweb",tr,Fc,tr.variantStyle);q("plans",fe,aa,fe.variantStyle,fe.collectionOptions);q("plans-students",fe,Gc,fe.variantStyle,fe.collectionOptions);q("plans-education",fe,qc,fe.variantStyle,fe.collectionOptions);q("plans-v2",rt,jc,rt.variantStyle,rt.collectionOptions);q("bizpro",rr,Yc,rr.variantStyle);q("product",ir,Kc,ir.variantStyle);q("segment",ar,Zc,ar.variantStyle);q("media",nr,el,nr.variantStyle);q("headless",lr,ol,lr.variantStyle);q("special-offers",or,rl,or.variantStyle);q("simplified-pricing-express",sr,qn,sr.variantStyle);q("full-pricing-express",cr,Gn,cr.variantStyle);q("mini",dr,cl,dr.variantStyle);q("image",_t,Ic,_t.variantStyle);q("fries",hr,Vn,hr.variantStyle);var yp=(e,r,t)=>{try{let i=hl.get(e.variant);if(i||(i=new CSSStyleSheet,i.replaceSync(r.cssText),hl.set(e.variant,i)),t?.styleSheet&&t.styleSheet!==i){let a=e.shadowRoot.adoptedStyleSheets.indexOf(t.styleSheet);a!==-1&&e.shadowRoot.adoptedStyleSheets.splice(a,1)}return e.shadowRoot.adoptedStyleSheets.includes(i)||e.shadowRoot.adoptedStyleSheets.push(i),{styleSheet:i}}catch{let a=document.createElement("style");a.textContent=r.cssText,a.setAttribute("data-variant-style",e.variant);let n=t?.styleElement||e.shadowRoot.querySelector("[data-variant-style]");return n&&n.remove(),e.shadowRoot.appendChild(a),{styleElement:a}}},jn=e=>{let r=na.get(e.variant);if(!r)return;let{class:t,style:i}=r,a=dl.get(e);if(a?.appliedVariant===e.variant)return new t(e);let n=i?yp(e,i,a):{};return dl.set(e,{appliedVariant:e.variant,...n}),new t(e)};function ra(e){return na.get(e)?.fragmentMapping}function pl(e){return na.get(e)?.collectionOptions}var ml=document.createElement("style");ml.innerHTML=`
 :root {
     --consonant-merch-card-detail-font-size: 12px;
     --consonant-merch-card-detail-font-weight: 500;

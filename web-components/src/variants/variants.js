@@ -16,10 +16,7 @@ import {
     PLANS_STUDENTS_AEM_FRAGMENT_MAPPING,
 } from './plans.js';
 import { PlansV2, PLANS_V2_AEM_FRAGMENT_MAPPING } from './plans-v2.js';
-import {
-    PlansBizPro,
-    PLANS_BIZPRO_AEM_FRAGMENT_MAPPING,
-} from './plans-bizpro.js';
+import { BizPro, BIZPRO_AEM_FRAGMENT_MAPPING } from './bizpro.js';
 import { Product, PRODUCT_AEM_FRAGMENT_MAPPING } from './product.js';
 import { Segment, SEGMENT_AEM_FRAGMENT_MAPPING } from './segment.js';
 import { Media, MEDIA_AEM_FRAGMENT_MAPPING } from './media.js';
@@ -113,13 +110,13 @@ registerVariant(
     PlansV2.collectionOptions,
 );
 registerVariant(
-    'plans-bizpro',
-    PlansBizPro,
-    PLANS_BIZPRO_AEM_FRAGMENT_MAPPING,
-    PlansBizPro.variantStyle,
-    // No collectionOptions (unlike the other plans* variants): those only drive
+    'bizpro',
+    BizPro,
+    BIZPRO_AEM_FRAGMENT_MAPPING,
+    BizPro.variantStyle,
+    // No collectionOptions (unlike the plans* variants): those only drive
     // sidenav-collection behavior (header visibility, results text, wide-card
-    // resize) and plans-bizpro collections render without a sidenav.
+    // resize) and bizpro collections render without a sidenav.
 );
 registerVariant(
     'product',

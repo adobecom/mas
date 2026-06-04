@@ -1,12 +1,12 @@
 import { VariantLayout } from './variant-layout';
 import { html, css, nothing } from 'lit';
-import { CSS } from './plans-bizpro.css.js';
+import { CSS } from './bizpro.css.js';
 import {
     EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
     SELECTOR_MAS_INLINE_PRICE,
 } from '../constants.js';
 
-export const PLANS_BIZPRO_AEM_FRAGMENT_MAPPING = {
+export const BIZPRO_AEM_FRAGMENT_MAPPING = {
     cardName: { attribute: 'name' },
     subtitle: { tag: 'p', slot: 'subtitle' },
     title: { tag: 'h3', slot: 'heading-xs' },
@@ -36,7 +36,7 @@ export const PLANS_BIZPRO_AEM_FRAGMENT_MAPPING = {
     style: 'consonant',
 };
 
-export class PlansBizPro extends VariantLayout {
+export class BizPro extends VariantLayout {
     expanded = false;
     licenseOpen = false;
     licenseQty = null;
@@ -55,7 +55,7 @@ export class PlansBizPro extends VariantLayout {
     get whatsIncludedToggleLabel() {
         // Authored per-locale via the editor's whats-included label input
         // (stored as a leading <p class="whats-included-label">, hidden in the
-        // features zone by plans-bizpro.css.js). English fallback covers
+        // features zone by bizpro.css.js). English fallback covers
         // fragments authored before the label existed.
         return (
             this.card
@@ -117,7 +117,7 @@ export class PlansBizPro extends VariantLayout {
     // Equalize the white card height across a row so the whats-included sections
     // start at the same Y even when cards carry unequal top content (matches the
     // plans/plans-v2 row-sync pattern). syncRowHeights publishes the row's max
-    // .top-card height as --consonant-merch-card-plans-bizpro-top-card-height,
+    // .top-card height as --consonant-merch-card-bizpro-top-card-height,
     // which the shadow .top-card consumes as min-height.
     syncHeights() {
         if (this.card.getBoundingClientRect().width <= 2) return;
@@ -409,32 +409,32 @@ export class PlansBizPro extends VariantLayout {
     }
 
     static variantStyle = css`
-        :host([variant='plans-bizpro']) {
+        :host([variant='bizpro']) {
             display: flex;
             flex-direction: column;
             background: var(
-                --consonant-merch-card-plans-bizpro-frame-bg,
-                var(--consonant-merch-card-plans-bizpro-bg-subtle, #f8f8f8)
+                --consonant-merch-card-bizpro-frame-bg,
+                var(--consonant-merch-card-bizpro-bg-subtle, #f8f8f8)
             );
             border-radius: 16px;
             padding: 8px;
             box-sizing: border-box;
             overflow: hidden;
             position: relative;
-            color: var(--consonant-merch-card-plans-bizpro-frame-text, #000);
+            color: var(--consonant-merch-card-bizpro-frame-text, #000);
             --secure-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='currentColor'%3E%3Cpath d='M9 9.2C9 8.64844 8.55156 8.2 8 8.2C7.44844 8.2 7 8.64844 7 9.2C7 9.52207 7.16289 9.7959 7.4 9.9789V10.6C7.4 10.9312 7.66875 11.2 8 11.2C8.33125 11.2 8.6 10.9312 8.6 10.6V9.9789C8.83711 9.7959 9 9.52207 9 9.2Z'/%3E%3Cpath d='M12 5.62031V5.2C12 2.99453 10.2055 1.2 8 1.2C5.79453 1.2 4 2.99453 4 5.2V5.62031C3.10274 5.72129 2.4 6.47637 2.4 7.4V12.6C2.4 13.5922 3.20782 14.4 4.2 14.4H11.8C12.7922 14.4 13.6 13.5922 13.6 12.6V7.4C13.6 6.47637 12.8973 5.72129 12 5.62031ZM8 2.4C9.54375 2.4 10.8 3.65625 10.8 5.2V5.6H5.2V5.2C5.2 3.65625 6.45625 2.4 8 2.4ZM12.4 12.6C12.4 12.9305 12.1305 13.2 11.8 13.2H4.2C3.86953 13.2 3.6 12.9305 3.6 12.6V7.4C3.6 7.06953 3.86953 6.8 4.2 6.8H11.8C12.1305 6.8 12.4 7.06953 12.4 7.4V12.6Z'/%3E%3C/svg%3E");
         }
 
-        :host([variant='plans-bizpro'][border-color='black']) {
-            --consonant-merch-card-plans-bizpro-frame-bg: #000;
-            --consonant-merch-card-plans-bizpro-frame-text: #fff;
-            --consonant-merch-card-plans-bizpro-divider-color: #ffffff29;
-            --consonant-merch-card-plans-bizpro-subtitle-color: #000;
+        :host([variant='bizpro'][border-color='black']) {
+            --consonant-merch-card-bizpro-frame-bg: #000;
+            --consonant-merch-card-bizpro-frame-text: #fff;
+            --consonant-merch-card-bizpro-divider-color: #ffffff29;
+            --consonant-merch-card-bizpro-subtitle-color: #000;
         }
 
-        :host([variant='plans-bizpro']) .top-card {
+        :host([variant='bizpro']) .top-card {
             background: var(
-                --consonant-merch-card-plans-bizpro-bg-default,
+                --consonant-merch-card-bizpro-bg-default,
                 #fff
             );
             border-radius: 12px;
@@ -448,29 +448,29 @@ export class PlansBizPro extends VariantLayout {
                row carry unequal top content (e.g. a longer description), the white
                tops would otherwise end at different heights; syncHeights() measures
                every .top-card in the row and publishes the row max as
-               --consonant-merch-card-plans-bizpro-top-card-height, and the
+               --consonant-merch-card-bizpro-top-card-height, and the
                min-height below pulls shorter cards up to match. Falls back to auto
                when unset (single column / pre-sync). .top-card is content-box, so
                the measured content height maps straight to min-height. */
             flex: 0 0 auto;
             min-height: var(
-                --consonant-merch-card-plans-bizpro-top-card-height,
+                --consonant-merch-card-bizpro-top-card-height,
                 auto
             );
         }
 
-        :host([variant='plans-bizpro']) .mnemonic {
+        :host([variant='bizpro']) .mnemonic {
             display: flex;
             align-items: center;
             gap: 12px;
         }
 
-        :host([variant='plans-bizpro']) ::slotted([slot='icons']) {
+        :host([variant='bizpro']) ::slotted([slot='icons']) {
             width: 24px;
             height: 24px;
         }
 
-        :host([variant='plans-bizpro']) ::slotted([slot='subtitle']) {
+        :host([variant='bizpro']) ::slotted([slot='subtitle']) {
             margin: 0;
             font-family: 'Adobe Clean', adobe-clean, sans-serif;
             font-weight: 700;
@@ -478,13 +478,13 @@ export class PlansBizPro extends VariantLayout {
             line-height: 20px;
             letter-spacing: 0;
             color: var(
-                --consonant-merch-card-plans-bizpro-subtitle-color,
+                --consonant-merch-card-bizpro-subtitle-color,
                 #000000a3
             );
             flex: 1;
         }
 
-        :host([variant='plans-bizpro']) .name-description {
+        :host([variant='bizpro']) .name-description {
             display: flex;
             flex-direction: column;
             gap: 8px;
@@ -493,7 +493,7 @@ export class PlansBizPro extends VariantLayout {
             flex: 1 1 auto;
         }
 
-        :host([variant='plans-bizpro']) ::slotted([slot='heading-xs']) {
+        :host([variant='bizpro']) ::slotted([slot='heading-xs']) {
             margin: 0;
             font-family: 'Adobe Clean Display', 'adobe-clean-display',
                 sans-serif;
@@ -504,7 +504,7 @@ export class PlansBizPro extends VariantLayout {
             color: #000;
         }
 
-        :host([variant='plans-bizpro']) ::slotted([slot='body-xs']) {
+        :host([variant='bizpro']) ::slotted([slot='body-xs']) {
             margin: 0;
             font-family: 'Adobe Clean', adobe-clean, sans-serif;
             font-weight: 400;
@@ -514,13 +514,13 @@ export class PlansBizPro extends VariantLayout {
             color: #000;
         }
 
-        :host([variant='plans-bizpro']) .pricing {
+        :host([variant='bizpro']) .pricing {
             display: flex;
             flex-direction: column;
             gap: 0;
         }
 
-        :host([variant='plans-bizpro']) ::slotted([slot='heading-m']) {
+        :host([variant='bizpro']) ::slotted([slot='heading-m']) {
             margin: 0;
             font-family: 'Adobe Clean Display', 'adobe-clean-display',
                 sans-serif;
@@ -531,7 +531,7 @@ export class PlansBizPro extends VariantLayout {
             color: #000;
         }
 
-        :host([variant='plans-bizpro']) ::slotted([slot='promo-text']) {
+        :host([variant='bizpro']) ::slotted([slot='promo-text']) {
             margin: 0;
             font-family: 'Adobe Clean', adobe-clean, sans-serif;
             font-weight: 400;
@@ -541,11 +541,11 @@ export class PlansBizPro extends VariantLayout {
             color: #000000a3;
         }
 
-        :host([variant='plans-bizpro']) .legal-text {
+        :host([variant='bizpro']) .legal-text {
             color: #000;
         }
 
-        :host([variant='plans-bizpro']) ::slotted([slot='legal-text']) {
+        :host([variant='bizpro']) ::slotted([slot='legal-text']) {
             margin: 0;
             font-family: 'Adobe Clean', adobe-clean, sans-serif;
             font-weight: 400;
@@ -555,7 +555,7 @@ export class PlansBizPro extends VariantLayout {
             color: #000000a3;
         }
 
-        :host([variant='plans-bizpro']) footer {
+        :host([variant='bizpro']) footer {
             display: flex;
             gap: 8px;
             padding: 0;
@@ -564,13 +564,13 @@ export class PlansBizPro extends VariantLayout {
             min-height: auto;
         }
 
-        :host([variant='plans-bizpro']) footer ::slotted([slot='footer']) {
+        :host([variant='bizpro']) footer ::slotted([slot='footer']) {
             display: flex;
             gap: 8px;
             flex: 1;
         }
 
-        :host([variant='plans-bizpro']) .secure-transaction-label {
+        :host([variant='bizpro']) .secure-transaction-label {
             display: inline-flex;
             align-items: center;
             gap: 8px;
@@ -587,7 +587,7 @@ export class PlansBizPro extends VariantLayout {
             white-space: normal;
         }
 
-        :host([variant='plans-bizpro']) .secure-transaction-label::before {
+        :host([variant='bizpro']) .secure-transaction-label::before {
             content: '';
             display: inline-block;
             width: 16px;
@@ -598,7 +598,7 @@ export class PlansBizPro extends VariantLayout {
             background-size: contain;
         }
 
-        :host([variant='plans-bizpro']) .features-zone {
+        :host([variant='bizpro']) .features-zone {
             padding: 24px;
             display: flex;
             flex-direction: column;
@@ -606,27 +606,27 @@ export class PlansBizPro extends VariantLayout {
             /* Grow to fill the card's remaining height so card bottoms align
                across the row (shorter cards get empty zone space below). */
             flex: 1 1 auto;
-            color: var(--consonant-merch-card-plans-bizpro-frame-text, #000);
+            color: var(--consonant-merch-card-bizpro-frame-text, #000);
         }
 
-        :host([variant='plans-bizpro']) .features-zone[hidden] {
+        :host([variant='bizpro']) .features-zone[hidden] {
             display: none;
         }
 
-        :host([variant='plans-bizpro']) ::slotted([slot='whats-included']) {
+        :host([variant='bizpro']) ::slotted([slot='whats-included']) {
             color: inherit;
             display: flex;
             flex-direction: column;
             gap: 24px;
         }
 
-        :host([variant='plans-bizpro']) .whats-included-toggle {
+        :host([variant='bizpro']) .whats-included-toggle {
             all: unset;
             display: flex;
             align-items: center;
             padding: 24px;
             cursor: pointer;
-            color: var(--consonant-merch-card-plans-bizpro-frame-text, #000);
+            color: var(--consonant-merch-card-bizpro-frame-text, #000);
             font-family: 'Adobe Clean', adobe-clean, sans-serif;
             font-weight: 700;
             font-size: 14px;
@@ -635,22 +635,22 @@ export class PlansBizPro extends VariantLayout {
         }
 
         /* Expanded state: no bottom padding — features-zone provides spacing */
-        :host([variant='plans-bizpro'])
+        :host([variant='bizpro'])
             .whats-included-toggle[aria-expanded='true'] {
             padding-bottom: 0;
         }
 
-        :host([variant='plans-bizpro']) .whats-included-toggle-label {
+        :host([variant='bizpro']) .whats-included-toggle-label {
             flex: 1 0 0;
         }
 
-        :host([variant='plans-bizpro']) .whats-included-toggle:focus-visible {
+        :host([variant='bizpro']) .whats-included-toggle:focus-visible {
             outline: 2px solid #1473e6;
             outline-offset: -2px;
             border-radius: 8px;
         }
 
-        :host([variant='plans-bizpro']) .whats-included-toggle-chevron {
+        :host([variant='bizpro']) .whats-included-toggle-chevron {
             width: 20px;
             height: 20px;
             background-color: currentColor;
@@ -662,20 +662,20 @@ export class PlansBizPro extends VariantLayout {
             flex: 0 0 auto;
         }
 
-        :host([variant='plans-bizpro'])
+        :host([variant='bizpro'])
             .whats-included-toggle[aria-expanded='true']
             .whats-included-toggle-chevron {
             transform: rotate(180deg);
         }
 
-        :host([variant='plans-bizpro']) .pricing-line {
+        :host([variant='bizpro']) .pricing-line {
             display: flex;
             align-items: baseline;
             flex-wrap: wrap;
             gap: 0;
         }
 
-        :host([variant='plans-bizpro']) ::slotted([slot='per-unit-label']) {
+        :host([variant='bizpro']) ::slotted([slot='per-unit-label']) {
             font-family: 'Adobe Clean Display', 'adobe-clean-display',
                 sans-serif;
             font-weight: 900;
@@ -686,23 +686,23 @@ export class PlansBizPro extends VariantLayout {
             margin-inline-start: 4px;
         }
 
-        :host([variant='plans-bizpro']) .license-zone {
+        :host([variant='bizpro']) .license-zone {
             display: flex;
             flex-direction: column;
             background: var(
-                --consonant-merch-card-plans-bizpro-bg-subtle,
+                --consonant-merch-card-bizpro-bg-subtle,
                 #f8f8f8
             );
             border-radius: 8px;
             overflow: visible;
         }
 
-        :host([variant='plans-bizpro']) .license-select {
+        :host([variant='bizpro']) .license-select {
             position: relative;
             font-family: 'Adobe Clean', adobe-clean, sans-serif;
         }
 
-        :host([variant='plans-bizpro']) .license-select-trigger {
+        :host([variant='bizpro']) .license-select-trigger {
             all: unset;
             box-sizing: border-box;
             width: 100%;
@@ -712,7 +712,7 @@ export class PlansBizPro extends VariantLayout {
             align-items: center;
             justify-content: space-between;
             background: var(
-                --consonant-merch-card-plans-bizpro-bg-default,
+                --consonant-merch-card-bizpro-bg-default,
                 #fff
             );
             border: 1px solid rgba(0, 0, 0, 0.08);
@@ -725,28 +725,28 @@ export class PlansBizPro extends VariantLayout {
             letter-spacing: 0;
         }
 
-        :host([variant='plans-bizpro']) .license-select-trigger:focus-visible {
+        :host([variant='bizpro']) .license-select-trigger:focus-visible {
             outline: 2px solid #1473e6;
             outline-offset: 1px;
         }
 
-        :host([variant='plans-bizpro']) .license-select-trigger-text {
+        :host([variant='bizpro']) .license-select-trigger-text {
             display: flex;
             align-items: center;
             gap: 8px;
         }
 
-        :host([variant='plans-bizpro']) .license-select-value {
+        :host([variant='bizpro']) .license-select-value {
             font-weight: 700;
             color: #000;
         }
 
-        :host([variant='plans-bizpro']) .license-select-label {
+        :host([variant='bizpro']) .license-select-label {
             font-weight: 700;
             color: rgba(0, 0, 0, 0.64);
         }
 
-        :host([variant='plans-bizpro']) .license-select-chevron {
+        :host([variant='bizpro']) .license-select-chevron {
             width: 16px;
             height: 16px;
             background-color: currentColor;
@@ -758,13 +758,13 @@ export class PlansBizPro extends VariantLayout {
             flex: 0 0 auto;
         }
 
-        :host([variant='plans-bizpro'])
+        :host([variant='bizpro'])
             .license-select-trigger[aria-expanded='true']
             .license-select-chevron {
             transform: rotate(180deg);
         }
 
-        :host([variant='plans-bizpro']) .license-select-popover {
+        :host([variant='bizpro']) .license-select-popover {
             position: absolute;
             top: 0;
             left: 0;
@@ -773,7 +773,7 @@ export class PlansBizPro extends VariantLayout {
             padding: 0;
             list-style: none;
             background: var(
-                --consonant-merch-card-plans-bizpro-bg-default,
+                --consonant-merch-card-bizpro-bg-default,
                 #fff
             );
             border: 1px solid rgba(0, 0, 0, 0.08);
@@ -787,11 +787,11 @@ export class PlansBizPro extends VariantLayout {
             z-index: 10;
         }
 
-        :host([variant='plans-bizpro']) .license-select-popover[hidden] {
+        :host([variant='bizpro']) .license-select-popover[hidden] {
             display: none;
         }
 
-        :host([variant='plans-bizpro']) .license-select-popover-header {
+        :host([variant='bizpro']) .license-select-popover-header {
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -803,12 +803,12 @@ export class PlansBizPro extends VariantLayout {
             font-weight: 700;
             cursor: pointer;
             background: var(
-                --consonant-merch-card-plans-bizpro-bg-default,
+                --consonant-merch-card-bizpro-bg-default,
                 #fff
             );
         }
 
-        :host([variant='plans-bizpro']) .license-select-option {
+        :host([variant='bizpro']) .license-select-option {
             padding: 16px 12px;
             cursor: pointer;
             color: #000;
@@ -819,19 +819,19 @@ export class PlansBizPro extends VariantLayout {
             border-bottom: 1px solid rgba(0, 0, 0, 0.08);
         }
 
-        :host([variant='plans-bizpro']) .license-select-option:last-child {
+        :host([variant='bizpro']) .license-select-option:last-child {
             border-bottom: none;
         }
 
-        :host([variant='plans-bizpro']) .license-select-option:hover,
-        :host([variant='plans-bizpro']) .license-select-option.selected {
+        :host([variant='bizpro']) .license-select-option:hover,
+        :host([variant='bizpro']) .license-select-option.selected {
             background: var(
-                --consonant-merch-card-plans-bizpro-bg-subtle,
+                --consonant-merch-card-bizpro-bg-subtle,
                 #f8f8f8
             );
         }
 
-        :host([variant='plans-bizpro']) .callout {
+        :host([variant='bizpro']) .callout {
             padding: 8px 12px 12px 12px;
             color: #000;
             font-family: 'Adobe Clean', adobe-clean, sans-serif;
@@ -842,11 +842,11 @@ export class PlansBizPro extends VariantLayout {
             text-align: start;
         }
 
-        :host([variant='plans-bizpro']) ::slotted([slot='callout-content']) {
+        :host([variant='bizpro']) ::slotted([slot='callout-content']) {
             margin: 0;
         }
 
-        :host([variant='plans-bizpro']) .add-on {
+        :host([variant='bizpro']) .add-on {
             display: flex;
             align-items: center;
             gap: 8px;
@@ -857,11 +857,11 @@ export class PlansBizPro extends VariantLayout {
             background:
                 linear-gradient(
                         var(
-                            --consonant-merch-card-plans-bizpro-bg-default,
+                            --consonant-merch-card-bizpro-bg-default,
                             #fff
                         ),
                         var(
-                            --consonant-merch-card-plans-bizpro-bg-default,
+                            --consonant-merch-card-bizpro-bg-default,
                             #fff
                         )
                     )
@@ -873,7 +873,7 @@ export class PlansBizPro extends VariantLayout {
             box-sizing: border-box;
         }
 
-        :host([variant='plans-bizpro']) .add-on::after {
+        :host([variant='bizpro']) .add-on::after {
             content: '';
             width: 16px;
             height: 16px;
@@ -891,10 +891,10 @@ export class PlansBizPro extends VariantLayout {
 
         /* C2 desktop breakpoint: toggle disappears, features-zone is always visible inline */
         @media (min-width: 1280px) {
-            :host([variant='plans-bizpro']) .whats-included-toggle {
+            :host([variant='bizpro']) .whats-included-toggle {
                 display: none;
             }
-            :host([variant='plans-bizpro']) .features-zone[hidden] {
+            :host([variant='bizpro']) .features-zone[hidden] {
                 display: flex;
             }
         }

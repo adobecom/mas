@@ -4,7 +4,7 @@ import sinon from 'sinon';
 import '../src/mas.js';
 import { EVENT_MERCH_QUANTITY_SELECTOR_CHANGE } from '../src/constants.js';
 
-let PlansBizPro;
+let BizPro;
 
 before(async () => {
     // merch-card's connectedCallback needs a commerce service in the DOM,
@@ -15,12 +15,12 @@ before(async () => {
         );
     }
     await customElements.whenDefined('merch-card');
-    ({ PlansBizPro } = await import('../src/variants/plans-bizpro.js'));
+    ({ BizPro } = await import('../src/variants/bizpro.js'));
 });
 
 async function renderCard(innerHTML) {
     const card = document.createElement('merch-card');
-    card.setAttribute('variant', 'plans-bizpro');
+    card.setAttribute('variant', 'bizpro');
     card.innerHTML = innerHTML;
     document.body.appendChild(card);
     await card.updateComplete;
@@ -32,7 +32,7 @@ async function renderCard(innerHTML) {
     return card;
 }
 
-describe('plans-bizpro add-on slot', () => {
+describe('bizpro add-on slot', () => {
     let card;
     afterEach(() => card?.remove());
 
@@ -47,9 +47,9 @@ describe('plans-bizpro add-on slot', () => {
     });
 });
 
-describe('PlansBizPro.adjustAddon', () => {
+describe('BizPro.adjustAddon', () => {
     function makeLayout(cardOverrides = {}) {
-        const layout = Object.create(PlansBizPro.prototype);
+        const layout = Object.create(BizPro.prototype);
         layout.card = {
             updateComplete: Promise.resolve(),
             querySelector: () => null,
@@ -88,7 +88,7 @@ describe('PlansBizPro.adjustAddon', () => {
     });
 });
 
-describe('plans-bizpro license-zone gating', () => {
+describe('bizpro license-zone gating', () => {
     let card;
     afterEach(() => card?.remove());
 
@@ -116,7 +116,7 @@ describe('plans-bizpro license-zone gating', () => {
     });
 });
 
-describe('plans-bizpro whats-included toggle label', () => {
+describe('bizpro whats-included toggle label', () => {
     let card;
     afterEach(() => card?.remove());
 
@@ -150,7 +150,7 @@ describe('plans-bizpro whats-included toggle label', () => {
     });
 });
 
-describe('plans-bizpro legal text', () => {
+describe('bizpro legal text', () => {
     let card;
     afterEach(() => card?.remove());
 
@@ -160,7 +160,7 @@ describe('plans-bizpro legal text', () => {
     });
 });
 
-describe('plans-bizpro whats-included toggle interaction', () => {
+describe('bizpro whats-included toggle interaction', () => {
     let card;
     afterEach(() => card?.remove());
 
@@ -185,7 +185,7 @@ describe('plans-bizpro whats-included toggle interaction', () => {
     });
 });
 
-describe('plans-bizpro license dropdown interaction', () => {
+describe('bizpro license dropdown interaction', () => {
     let card;
     afterEach(() => card?.remove());
 
@@ -260,7 +260,7 @@ describe('plans-bizpro license dropdown interaction', () => {
     });
 });
 
-describe('plans-bizpro resize handling', () => {
+describe('bizpro resize handling', () => {
     let card;
     // Real animation frames are throttled for backgrounded test pages, so the
     // frames are stubbed and flushed by hand to keep these deterministic.
@@ -352,7 +352,7 @@ describe('plans-bizpro resize handling', () => {
     });
 });
 
-describe('plans-bizpro add-on theming', () => {
+describe('bizpro add-on theming', () => {
     let card;
     afterEach(() => card?.remove());
 

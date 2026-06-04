@@ -1046,4 +1046,154 @@ describe('OstStore', () => {
             expect(notified).to.be.true;
         });
     });
+
+    describe('loadOffers', () => {
+        function makeAosOffer(overrides = {}) {
+            return {
+                offer_id: 'OF-1',
+                offer_type: 'BASE',
+                price_point: 'REGULAR',
+                market_segments: ['COM'],
+                commitment: 'YEAR',
+                term: 'MONTHLY',
+                ...overrides,
+            };
+        }
+
+        it('populates store.offers from searchOffers and clears loading', async () => {
+            const originalFetch = window.fetch;
+            window.fetch = async () => ({
+                ok: true,
+                json: async () => [makeAosOffer({ offer_id: 'A' }), makeAosOffer({ offer_id: 'B' })],
+            });
+            try {
+                store.selectedProduct = { name: 'Photoshop', icon: 'icon.png' };
+                store.aosParams = { arrangementCode: 'photoshop-arr' };
+                await store.loadOffers();
+                expect(store.offers).to.have.length(2);
+                expect(store.offers.every((o) => o.name === 'Photoshop')).to.be.true;
+                expect(store.loading).to.be.false;
+            } finally {
+                window.fetch = originalFetch;
+            }
+        });
+
+        it('auto-selects and resolves OSI when a single offer comes back', async () => {
+            const originalFetch = window.fetch;
+            window.fetch = async (url) => {
+                if (String(url).includes('/offer_selectors')) {
+                    return { ok: true, json: async () => ({ id: 'auto-osi' }) };
+                }
+                return { ok: true, json: async () => [makeAosOffer({ offer_id: 'ONLY-1' })] };
+            };
+            try {
+                store.selectedProduct = { name: 'Photoshop' };
+                store.aosParams = { arrangementCode: 'photoshop-arr' };
+                await store.loadOffers();
+                await new Promise((resolve) => setTimeout(resolve, 0));
+                expect(store.offers).to.have.length(1);
+                expect(store.selectedOffer?.offer_id).to.equal('ONLY-1');
+                expect(store.selectedOsi).to.equal('auto-osi');
+            } finally {
+                window.fetch = originalFetch;
+            }
+        });
+
+        it('returns early without fetching when no product is selected', async () => {
+            const originalFetch = window.fetch;
+            let called = false;
+            window.fetch = async () => {
+                called = true;
+                return { ok: true, json: async () => [] };
+            };
+            try {
+                store.selectedProduct = undefined;
+                await store.loadOffers();
+                expect(called).to.be.false;
+            } finally {
+                window.fetch = originalFetch;
+            }
+        });
+
+        it('emits a synthetic offer when aosParams.offerType starts with "fake-"', async () => {
+            store.selectedProduct = { name: 'Photoshop', icon: 'icon.png' };
+            store.aosParams = { arrangementCode: 'photoshop-arr', offerType: 'fake-PHSP_BASE' };
+            await store.loadOffers();
+            expect(store.offers).to.have.length(1);
+            expect(store.offers[0].offer_id).to.equal('Fake Offer');
+            expect(store.offers[0].offer_type).to.equal('fake-PHSP_BASE');
+            expect(store.offers[0].name).to.equal('Photoshop');
+        });
+
+        it('falls back to an empty offers list when the fetch throws', async () => {
+            const originalFetch = window.fetch;
+            window.fetch = async () => {
+                throw new Error('aos down');
+            };
+            try {
+                store.selectedProduct = { name: 'Photoshop' };
+                store.offers = [makeAosOffer({ offer_id: 'stale' })];
+                store.aosParams = { arrangementCode: 'photoshop-arr' };
+                await store.loadOffers();
+                expect(store.offers).to.have.length(0);
+                expect(store.loading).to.be.false;
+            } finally {
+                window.fetch = originalFetch;
+            }
+        });
+    });
+
+    describe('auto-trigger loadOffers', () => {
+        it('setProduct triggers a searchOffers fetch', async () => {
+            const originalFetch = window.fetch;
+            let called = false;
+            window.fetch = async () => {
+                called = true;
+                return { ok: true, json: async () => [] };
+            };
+            try {
+                store.setProduct({ arrangement_code: 'x', name: 'X' });
+                await new Promise((resolve) => setTimeout(resolve, 0));
+                expect(called).to.be.true;
+            } finally {
+                window.fetch = originalFetch;
+            }
+        });
+
+        it('setAosParams triggers a searchOffers fetch when a product is selected', async () => {
+            const originalFetch = window.fetch;
+            let calls = 0;
+            window.fetch = async () => {
+                calls++;
+                return { ok: true, json: async () => [] };
+            };
+            try {
+                store.selectedProduct = { arrangement_code: 'x', name: 'X' };
+                store.setAosParams({ commitment: 'YEAR' });
+                await new Promise((resolve) => setTimeout(resolve, 0));
+                expect(calls).to.be.greaterThan(0);
+            } finally {
+                window.fetch = originalFetch;
+            }
+        });
+
+        it('the offers key guard skips a duplicate loadOffers for unchanged params', async () => {
+            const originalFetch = window.fetch;
+            let calls = 0;
+            window.fetch = async () => {
+                calls++;
+                return { ok: true, json: async () => [] };
+            };
+            try {
+                store.setProduct({ arrangement_code: 'x', name: 'X' });
+                await new Promise((resolve) => setTimeout(resolve, 0));
+                const after = calls;
+                store.setAosParams({});
+                await new Promise((resolve) => setTimeout(resolve, 0));
+                expect(calls).to.equal(after);
+            } finally {
+                window.fetch = originalFetch;
+            }
+        });
+    });
 });

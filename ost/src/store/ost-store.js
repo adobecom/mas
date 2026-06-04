@@ -1,5 +1,7 @@
 import { ReactiveStore } from '../reactivity/reactive-store.js';
 import { languageMappings } from '../data/language-mappings.js';
+import { searchOffers, resolveOfferSelector, createOfferSelector } from '../utils/aos-client.js';
+import { applyPlanType } from '@dexter/tacocat-core/src/wcsUtils.js';
 
 const DEFAULT_AOS_PARAMS = {
     arrangementCode: '',
@@ -9,6 +11,13 @@ const DEFAULT_AOS_PARAMS = {
     offerType: '',
     marketSegment: '',
     pricePoint: '',
+};
+
+const DEFAULT_SEARCH_AOS_PARAMS = {
+    buyingProgram: 'RETAIL',
+    merchant: 'ADOBE',
+    salesChannel: 'DIRECT',
+    serviceProviders: ['PRICING'],
 };
 
 const DEFAULT_PLACEHOLDER_TYPES = [
@@ -53,6 +62,7 @@ const SLICES = [
     ['searchType', ''],
     ['allProducts', []],
     ['productsLoading', false],
+    ['loading', false],
     ['selectedProduct', undefined],
     ['offers', []],
     ['selectedOffer', undefined],
@@ -89,6 +99,7 @@ export class OstStore extends EventTarget {
     stores = {};
     #batchDepth = 0;
     #batchedDuringRun = false;
+    #offersKey = null;
 
     // Callback slots set once during init() — held as plain fields because
     // ReactiveStore.set(fn) treats `fn` as an updater function and would invoke
@@ -310,6 +321,7 @@ export class OstStore extends EventTarget {
 
     setAosParams(params) {
         this.aosParams = { ...this.aosParams, ...params };
+        this.#maybeLoadOffers();
     }
 
     setSearch(query, type) {
@@ -343,10 +355,200 @@ export class OstStore extends EventTarget {
             this.selectedOffer = undefined;
             this.selectedOsi = undefined;
         });
+        this.#maybeLoadOffers();
     }
 
     setOffers(offers) {
         this.offers = offers;
+    }
+
+    #offersFetchKey() {
+        return (
+            JSON.stringify(this.aosParams) +
+            this.country +
+            this.landscape +
+            this.env +
+            (this.selectedProduct?.arrangement_code ?? '')
+        );
+    }
+
+    #maybeLoadOffers() {
+        if (!this.selectedProduct) return;
+        const key = this.#offersFetchKey();
+        if (key === this.#offersKey) return;
+        this.loadOffers();
+    }
+
+    async loadOffers() {
+        const product = this.selectedProduct;
+        if (!product) return;
+
+        this.#offersKey = this.#offersFetchKey();
+
+        const {
+            aosParams: { commitment, term, customerSegment, offerType, marketSegment, pricePoint },
+            country,
+            landscape,
+            env,
+            environment,
+            apiKey,
+            accessToken,
+        } = this;
+
+        const arrangementCode = product.arrangement_code || product.arrangementCode || this.aosParams.arrangementCode;
+
+        if (offerType && offerType.startsWith('fake-')) {
+            const fakeOffer = {
+                offer_id: 'Fake Offer',
+                offer_type: offerType,
+                price_point: 'I am not real!',
+                language: 'Fake',
+                market_segments: ['COM'],
+                pricing: {
+                    currency: { format_string: "'US$'#,##0.00" },
+                    prices: [{ price_details: { display_rules: { price: 99.9 } } }],
+                },
+                planType: 'Fake',
+                name: product.name,
+                icon: product.icon,
+                id: 'Fake Offer',
+            };
+            this.setOffers([fakeOffer]);
+            return;
+        }
+
+        this.loading = true;
+        try {
+            let language = country === 'GB' ? 'EN' : 'MULT';
+            if (commitment === 'PERPETUAL') {
+                language = undefined;
+            }
+
+            const searchParams = {
+                ...DEFAULT_SEARCH_AOS_PARAMS,
+                arrangementCode: [arrangementCode],
+                pricePoint: pricePoint ? [pricePoint] : undefined,
+                commitment,
+                term,
+                offerType,
+                customerSegment,
+                marketSegment,
+                country,
+                language,
+            };
+
+            const baseConfig = {
+                accessToken,
+                apiKey,
+                baseUrl: this.baseUrl,
+                env,
+                environment,
+                pageSize: 1000,
+            };
+
+            // When landscape is "BOTH" (AI chat consult), merge DRAFT and
+            // PUBLISHED results so authors can browse both sets in one view.
+            // Each offer is tagged with its source landscape so the UI can
+            // badge/distinguish them.
+            const landscapesToFetch = landscape === 'BOTH' ? ['PUBLISHED', 'DRAFT'] : [landscape];
+            const responses = await Promise.all(
+                landscapesToFetch.map(async (ls) => {
+                    const res = await searchOffers(searchParams, { ...baseConfig, landscape: ls });
+                    return (res.data || res).map((o) => ({ ...o, landscapeSource: ls }));
+                }),
+            );
+            let offers = responses.flat().map(applyPlanType);
+            // De-dupe: if the same offer_id came back from both DRAFT and
+            // PUBLISHED (shouldn't normally, but safe to guard), keep the
+            // PUBLISHED copy since that's what renders on live commerce.
+            if (landscape === 'BOTH') {
+                const seen = new Map();
+                for (const offer of offers) {
+                    const id = offer.offer_id;
+                    if (!seen.has(id) || offer.landscapeSource === 'PUBLISHED') {
+                        seen.set(id, offer);
+                    }
+                }
+                offers = Array.from(seen.values());
+            }
+            offers = offers.map((offer) => ({
+                ...offer,
+                id: offer.offer_id,
+                name: product.name,
+                icon: product.icon,
+            }));
+            offers.sort(({ name: nameLeft, price_point: ppLeft }, { name: nameRight, price_point: ppRight }) =>
+                `${nameRight}${ppRight}`.localeCompare(`${nameLeft}${ppLeft}`),
+            );
+            this.setOffers(offers);
+            if (offers.length === 1) {
+                this.setOffer(offers[0]);
+                this.autoResolveOsi(offers[0]);
+            } else {
+                await this.autoFillBaseAndTrial(offers);
+            }
+        } catch {
+            this.setOffers([]);
+        } finally {
+            this.loading = false;
+        }
+    }
+
+    async autoResolveOsi(offer) {
+        if (offer.offer_type?.startsWith('fake-')) {
+            this.setOsi(offer.offer_type);
+            return;
+        }
+        try {
+            const params = {
+                product_arrangement_code: offer.product_arrangement_code,
+                buying_program: offer.buying_program,
+                commitment: offer.commitment,
+                term: offer.term,
+                customer_segment: offer.customer_segment,
+                market_segment: Array.isArray(offer.market_segments) ? offer.market_segments[0] : offer.market_segment,
+                sales_channel: offer.sales_channel,
+                offer_type: offer.offer_type,
+                price_point: offer.price_point,
+                merchant: offer.merchant,
+            };
+            const config = {
+                accessToken: this.accessToken,
+                apiKey: this.apiKey,
+                baseUrl: this.baseUrl,
+                env: this.env,
+            };
+            const {
+                data: { id },
+            } = await createOfferSelector(params, config);
+            this.setOsi(id);
+        } catch {
+            /* auto OSI resolution failed — user can still click the offer */
+        }
+    }
+
+    async autoFillBaseAndTrial(offers) {
+        if (!this.multiSelect) return;
+        const baseOffer = offers.find((o) => o.offer_type === 'BASE');
+        const trialOffer = offers.find((o) => o.offer_type === 'TRIAL');
+        if (!baseOffer || !trialOffer || offers.length !== 2) return;
+
+        const config = {
+            accessToken: this.accessToken,
+            apiKey: this.apiKey,
+            baseUrl: this.baseUrl,
+            env: this.env,
+        };
+        try {
+            const [baseOsi, trialOsi] = await Promise.all([
+                resolveOfferSelector(baseOffer, config),
+                resolveOfferSelector(trialOffer, config),
+            ]);
+            this.addOffer(baseOffer, baseOsi, 'base');
+            this.addOffer(trialOffer, trialOsi, 'trial');
+        } catch {
+            /* auto-fill failed — user can select manually */
+        }
     }
 
     setOffer(offer) {

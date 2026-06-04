@@ -38,9 +38,6 @@ const isExcluded = (t) => GLYPH_ALIASES.excluded.includes(t);
 const isNotApplicable = (t) =>
     !t || GLYPH_ALIASES.notApplicable.includes(t) || /^-+$/.test(t);
 
-const placeholder = (host, key, fallback) =>
-    host.placeholders?.[key] ?? fallback;
-
 export class MasCompareChart extends LitElement {
     static properties = {
         expandedGroups: {
@@ -61,9 +58,6 @@ export class MasCompareChart extends LitElement {
         stickyTop: { type: String, attribute: 'sticky-top' },
         /** Disables the sticky-header behavior entirely (used by the Studio editor preview). */
         nonSticky: { type: Boolean, attribute: 'non-sticky' },
-        // Map of locale-aware aria-label strings used by `placeholder()`.
-        // Assigned by the host page; falls back to English defaults when unset.
-        placeholders: { type: Object },
     };
 
     static styles = styles;
@@ -83,6 +77,7 @@ export class MasCompareChart extends LitElement {
     #selectionB = 1;
     #hydrating = false;
     #hydratingFromFragment = false;
+    #hydrateRaf = 0;
     #hydrationReady = null;
     #resolveHydrationReady = null;
     #isStickyHeaderActive = false;
@@ -103,8 +98,9 @@ export class MasCompareChart extends LitElement {
         // (e.g. Studio after a save) dispatch this event explicitly. No
         // MutationObserver — cell-level DOM mutations don't auto-rebuild,
         // and the table content is fully present at parse time.
-        this.addEventListener(EVENT_COMPARE_CHART_REHYDRATE, () =>
-            this.#hydrate(),
+        this.addEventListener(
+            EVENT_COMPARE_CHART_REHYDRATE,
+            this.#handleRehydrate,
         );
         this.addEventListener(EVENT_AEM_LOAD, this.#handleAemLoad);
         this.addEventListener(EVENT_AEM_ERROR, this.#handleAemError);
@@ -119,10 +115,18 @@ export class MasCompareChart extends LitElement {
 
     disconnectedCallback() {
         super.disconnectedCallback();
+        this.removeEventListener(
+            EVENT_COMPARE_CHART_REHYDRATE,
+            this.#handleRehydrate,
+        );
         this.removeEventListener(EVENT_AEM_LOAD, this.#handleAemLoad);
         this.removeEventListener(EVENT_AEM_ERROR, this.#handleAemError);
         this.removeEventListener(EVENT_MAS_READY, this.#handleNestedCardReady);
         this.#resizeObserver?.disconnect();
+        if (this.#hydrateRaf) {
+            cancelAnimationFrame(this.#hydrateRaf);
+            this.#hydrateRaf = 0;
+        }
         this.#teardownStickyObservers();
     }
 
@@ -131,8 +135,13 @@ export class MasCompareChart extends LitElement {
         this.#refreshStickyObservers();
     }
 
-    updated(changed) {
+    willUpdate(changed) {
+        // Parse before render so externally-set `expanded-groups` reflects in
+        // the same update (updated() runs after render, one cycle too late).
         if (changed.has('expandedGroups')) this.#parseExpanded();
+    }
+
+    updated(changed) {
         if (changed.has('consonant') || changed.has('spectrum')) {
             this.#propagateCardDisplayProperties();
         }
@@ -166,17 +175,20 @@ export class MasCompareChart extends LitElement {
             return;
         }
         if (source?.closest?.('merch-card')?.parentElement === this) {
-            this.#hydrate();
+            this.#scheduleHydrate();
         }
     };
 
     #handleAemError = (event) => {
         if (event.target?.parentElement === this) {
             this.#groups = [];
+            this.#tableGroups = [];
             this.#cardHeaders = [];
             this.#cards = [];
             this.#cellsByRow.clear();
             this.#rowMeta.clear();
+            this.#rowSlotIndex.clear();
+            this.#expandedGroupIndices = new Set();
             this.requestUpdate();
             this.#resolveHydrationReady?.(false);
             this.#hydrationReady = null;
@@ -184,9 +196,21 @@ export class MasCompareChart extends LitElement {
         }
     };
 
+    #handleRehydrate = () => this.#hydrate();
+
     #handleNestedCardReady = (event) => {
-        if (event.target?.parentElement === this) this.#hydrate();
+        if (event.target?.parentElement === this) this.#scheduleHydrate();
     };
+
+    // Card-ready events arrive one per card across separate microtasks; coalesce
+    // them into a single rebuild per frame instead of N full re-indexes.
+    #scheduleHydrate() {
+        if (this.#hydrateRaf) return;
+        this.#hydrateRaf = requestAnimationFrame(() => {
+            this.#hydrateRaf = 0;
+            this.#hydrate();
+        });
+    }
 
     #ensureHydrationReady() {
         if (this.#hydrationReady) return;
@@ -280,6 +304,15 @@ export class MasCompareChart extends LitElement {
             .slice(0, MAX_COMPARE_CHART_CARDS);
     }
 
+    #applyChartMarkupAttributes(table) {
+        if (!table?.getAttributeNames) return;
+        for (const name of table.getAttributeNames()) {
+            const value = table.getAttribute(name);
+            if (value == null) this.removeAttribute(name);
+            else this.setAttribute(name, value);
+        }
+    }
+
     async #hydrateFromFragment(fragment, sourceAemFragment) {
         if (!fragment) return;
         // Re-entrancy guard: nested aem-fragments dispatch EVENT_AEM_LOAD
@@ -308,9 +341,7 @@ export class MasCompareChart extends LitElement {
         const chartMarkup = this.#fieldValue(fragment, 'compareChart');
         const doc = parser.parseFromString(chartMarkup || '', 'text/html');
         const table = doc.body.querySelector('mas-compare-chart') || doc.body;
-        if (table.hasAttribute?.('expanded-groups')) {
-            this.expandedGroups = table.getAttribute('expanded-groups');
-        }
+        this.#applyChartMarkupAttributes(table);
 
         table.querySelectorAll(':scope > div[name]').forEach((group) => {
             const clone = group.cloneNode(true);
@@ -414,8 +445,6 @@ export class MasCompareChart extends LitElement {
         if (sourceCard) {
             sourceCard.hidden = true;
             sourceCard.setAttribute('aria-hidden', 'true');
-            sourceCard.dataset.cardId = cardId;
-            sourceCard.dataset.columnIndex = String(index + 1);
             sourceCard.dataset.cellColor = cellColor;
         }
         const title = Array.from(
@@ -666,41 +695,31 @@ export class MasCompareChart extends LitElement {
     }
 
     #decorateCell(p) {
-        // If already laid out, unwrap the chip so we can re-decorate cleanly
-        // (e.g. on subsequent MutationObserver fires).
-        const existingChip = p.querySelector(':scope > .compare-chart-chip');
-        if (existingChip) {
-            while (existingChip.firstChild) {
-                p.insertBefore(existingChip.firstChild, existingChip);
-            }
-            existingChip.remove();
-        }
         const text = p.textContent.trim();
         if (isIncluded(text)) {
             p.setAttribute(
                 'aria-label',
-                placeholder(this, 'included', 'Included'),
+                this.getAttribute('included-text') ?? 'Included',
             );
             this.#wrapGlyphs(p);
         } else if (isExcluded(text)) {
             p.setAttribute(
                 'aria-label',
-                placeholder(this, 'not-included', 'Not included'),
+                this.getAttribute('not-included-text') ?? 'Not included',
             );
             this.#wrapGlyphs(p);
         } else if (isNotApplicable(text)) {
             p.setAttribute(
                 'aria-label',
-                placeholder(this, 'not-applicable', 'Not applicable'),
+                this.getAttribute('not-applicable-text') ?? 'Not applicable',
             );
             if (!text) {
                 const sr = document.createElement('span');
                 sr.className = 'empty-cell-sr';
-                sr.textContent = placeholder(
-                    this,
-                    'empty-table-cell',
-                    'Not applicable',
-                );
+                sr.textContent =
+                    this.getAttribute('sr-only-not-applicable-text') ??
+                    this.getAttribute('not-applicable-text') ??
+                    'Not applicable';
                 p.textContent = '—';
                 const glyph = document.createElement('span');
                 glyph.setAttribute('aria-hidden', 'true');
@@ -875,11 +894,6 @@ export class MasCompareChart extends LitElement {
         this.style.setProperty('--compare-chart-sticky-offset', offset);
     }
 
-    // Sticky-header detection via IntersectionObserver instead of a scroll
-    // handler: two zero-height sentinels (top of host, bottom of host) drive
-    // the stuck state off the main thread, so scrolling does no per-frame
-    // layout work. The scroll container is always the viewport (the Studio
-    // editor preview opts out via `non-sticky`), so `root` stays null.
     #refreshStickyObservers() {
         this.#teardownStickyObservers();
         if (this.nonSticky || this.collapsed || !this.isConnected) return;
@@ -1154,11 +1168,8 @@ export class MasCompareChart extends LitElement {
         return html`<select
             class="mobile-filter-select"
             name="column-filter"
-            aria-label=${placeholder(
-                this,
-                'choose-table-column',
-                'Choose column',
-            )}
+            aria-label=${this.getAttribute('choose-table-column-text') ??
+            'Choose column'}
             .value=${String(selectedIdx)}
             @change=${(event) =>
                 this.#applyColumnSelection(
@@ -1221,7 +1232,8 @@ export class MasCompareChart extends LitElement {
             title: undefined,
             tooltipPosition: 'top-center',
             html: '<span class="compare-chart-chip"><span class="compare-chart-glyph" aria-hidden="true">—</span></span>',
-            ariaLabel: placeholder(this, 'not-applicable', 'Not applicable'),
+            ariaLabel:
+                this.getAttribute('not-applicable-text') ?? 'Not applicable',
         };
     }
 

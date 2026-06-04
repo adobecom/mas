@@ -66,6 +66,7 @@
             import { mockFetch } from './mocks/fetch.js';
             import { withAem } from './mocks/aem.js';
             import { withWcs } from './mocks/wcs.js';
+            import { EVENT_AEM_LOAD } from '../src/constants.js';
 
             runTests(async () => {
                 const main = document.querySelector('main');
@@ -128,6 +129,42 @@
                         ).to.contain('Variation cell');
 
                         duplicateChart.remove();
+                    });
+
+                    it('copies attributes from compareChart fragment markup on aem:load', async () => {
+                        const local =
+                            document.createElement('mas-compare-chart');
+                        const aemFragment =
+                            document.createElement('aem-fragment');
+                        local.append(aemFragment);
+                        main.append(local);
+                        await customElements.whenDefined('mas-compare-chart');
+
+                        aemFragment.dispatchEvent(
+                            new CustomEvent(EVENT_AEM_LOAD, {
+                                bubbles: true,
+                                detail: {
+                                    fields: {
+                                        compareChart: {
+                                            value: '<mas-compare-chart expanded-groups="1" included-text="{{included}}" not-included-text="{{not-included}}"><div name="g"><h4>G</h4></div></mas-compare-chart>',
+                                        },
+                                        cards: [],
+                                    },
+                                },
+                            }),
+                        );
+                        await local.updateComplete;
+
+                        expect(local.getAttribute('expanded-groups')).to.equal(
+                            '1',
+                        );
+                        expect(local.getAttribute('included-text')).to.equal(
+                            '{{included}}',
+                        );
+                        expect(
+                            local.getAttribute('not-included-text'),
+                        ).to.equal('{{not-included}}');
+                        local.remove();
                     });
 
                     it('reflects expanded-groups attribute', async () => {

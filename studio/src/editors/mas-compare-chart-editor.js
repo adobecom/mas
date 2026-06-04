@@ -47,6 +47,16 @@ export const DEFAULT_COMPARE_CHART_HTML =
 
 const PREVIEW_SLOT = 'compare-chart-preview';
 const MAX_COMPARE_CHART_CARDS = 4;
+// Locale-aware aria/SR strings the rendered chart reads as `<key>-text`
+// attributes. Stored as `{{key}}` dictionary tokens so the live page resolves
+// them per locale.
+const COMPARE_CHART_PLACEHOLDER_KEYS = [
+    'included',
+    'not-included',
+    'not-applicable',
+    'sr-only-not-applicable',
+    'choose-table-column',
+];
 const COMPARE_CHART_RTE_MARKS = ['small'];
 const VARIANT_TAG_PREFIX = 'mas:variant/';
 
@@ -113,6 +123,7 @@ class MasCompareChartEditor extends LitElement {
         super.connectedCallback();
         if (this.fragmentStore) {
             this.#ensureCompareChartTag();
+            this.#ensureCompareChartPlaceholders();
             this.#initFragmentReferencesMap();
         }
     }
@@ -127,6 +138,7 @@ class MasCompareChartEditor extends LitElement {
     update(changedProperties) {
         if (changedProperties.has('fragmentStore')) {
             this.#ensureCompareChartTag();
+            this.#ensureCompareChartPlaceholders();
         }
         if (changedProperties.has('fragmentStore') || changedProperties.has('localeDefaultFragment')) {
             this.#initFragmentReferencesMapToken += 1;
@@ -245,6 +257,18 @@ class MasCompareChartEditor extends LitElement {
             .filter(Boolean);
         if (tagIds.includes(TAG_COMPARE_CHART)) return;
         this.fragmentStore.updateField('tags', [...new Set([...tagIds, TAG_COMPARE_CHART])]);
+    }
+
+    // Backfill the `{{key}}` placeholder-text attributes on load. `#emitValue`
+    // only fires on structural edits, so existing charts (and ones edited only
+    // at the cell level) would otherwise never get them.
+    #ensureCompareChartPlaceholders() {
+        if (!this.fragmentStore || !this.fragment) return;
+        const { table } = this.#getDocument();
+        if (!table) return;
+        const hasAll = COMPARE_CHART_PLACEHOLDER_KEYS.every((key) => table.getAttribute(`${key}-text`) === `{{${key}}}`);
+        if (hasAll) return;
+        this.#emitValue(table);
     }
 
     get effectiveColumns() {
@@ -769,6 +793,9 @@ class MasCompareChartEditor extends LitElement {
 
     #emitValue(table) {
         if (!this.fragmentStore || !table) return;
+        for (const key of COMPARE_CHART_PLACEHOLDER_KEYS) {
+            table.setAttribute(`${key}-text`, `{{${key}}}`);
+        }
         const newValue = table.outerHTML;
         this.#ensureCompareChartTag();
         this.fragmentStore.updateField(COMPARE_CHART_FIELD, [newValue]);

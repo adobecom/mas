@@ -1,6 +1,7 @@
 import { expect, fixture, html } from '@open-wc/testing';
 import { store } from '../../src/store/ost-store.js';
 import '../../src/components/ost-product-list.js';
+import '../../src/components/ost-filter-bar.js';
 
 const MOCK_PRODUCTS = [
     {
@@ -141,5 +142,95 @@ describe('ost-product-list', () => {
         expect(name.textContent).to.equal('Photoshop');
         store.searchQuery = '';
         store.searchType = '';
+    });
+
+    it('applying a customer-segment filter narrows the displayed product list', async () => {
+        store.aosParams = { ...store.aosParams, customerSegment: 'TEAM' };
+        const el = await fixture(html`<ost-product-list></ost-product-list>`);
+
+        const names = Array.from(el.shadowRoot.querySelectorAll('.product-name')).map((n) => n.textContent);
+
+        expect(names).to.deep.equal(['Photoshop']);
+        expect(names).to.not.include('Illustrator');
+    });
+
+    it('changing the customer-segment filter re-filters the displayed list reactively', async () => {
+        const el = await fixture(html`<ost-product-list></ost-product-list>`);
+        expect(el.shadowRoot.querySelectorAll('.product-card').length).to.equal(2);
+
+        store.setAosParams({ customerSegment: 'TEAM' });
+        await el.updateComplete;
+
+        const cards = el.shadowRoot.querySelectorAll('.product-card');
+        expect(cards.length).to.equal(1);
+        expect(cards[0].querySelector('.product-name').textContent).to.equal('Photoshop');
+    });
+
+    it('applying a market-segment filter with no matches shows the empty state', async () => {
+        store.aosParams = { ...store.aosParams, marketSegment: 'EDU' };
+        const el = await fixture(html`<ost-product-list></ost-product-list>`);
+
+        expect(el.shadowRoot.querySelectorAll('.product-card').length).to.equal(0);
+        const empty = el.shadowRoot.querySelector('.empty-state');
+        expect(empty).to.exist;
+        expect(empty.textContent).to.include('No products found');
+    });
+
+    it('renders an active filter tag for each set customer/market/offer-type filter', async () => {
+        store.aosParams = { ...store.aosParams, customerSegment: 'TEAM', marketSegment: 'EDU', offerType: 'TRIAL' };
+        const el = await fixture(html`<ost-filter-bar></ost-filter-bar>`);
+
+        const labels = Array.from(el.shadowRoot.querySelectorAll('.tag')).map((t) =>
+            t.textContent.trim().replace(/\s*×$/, '').trim(),
+        );
+
+        expect(labels).to.include('Team');
+        expect(labels).to.include('Education');
+        expect(labels).to.include('Trial');
+        const count = el.shadowRoot.querySelector('.filter-count');
+        expect(count.textContent.trim()).to.equal('3');
+    });
+
+    it('shows no filter tags when no filters are active', async () => {
+        store.aosParams = { ...store.aosParams, customerSegment: '', marketSegment: '', offerType: '' };
+        const el = await fixture(html`<ost-filter-bar></ost-filter-bar>`);
+
+        expect(el.shadowRoot.querySelectorAll('.tag').length).to.equal(0);
+        expect(el.shadowRoot.querySelector('.filter-count')).to.not.exist;
+    });
+
+    it('clicking a filter tag clears that filter from store.aosParams', async () => {
+        store.aosParams = { ...store.aosParams, customerSegment: 'TEAM', marketSegment: '', offerType: '' };
+        const el = await fixture(html`<ost-filter-bar></ost-filter-bar>`);
+
+        const tag = el.shadowRoot.querySelector('.tag');
+        expect(tag.textContent).to.include('Team');
+        tag.click();
+
+        expect(store.aosParams.customerSegment).to.equal('');
+    });
+
+    it('clearing one filter tag leaves the other active filters intact', async () => {
+        store.aosParams = { ...store.aosParams, customerSegment: 'TEAM', marketSegment: 'EDU', offerType: '' };
+        const el = await fixture(html`<ost-filter-bar></ost-filter-bar>`);
+
+        const marketTag = Array.from(el.shadowRoot.querySelectorAll('.tag')).find((t) => t.textContent.includes('Education'));
+        marketTag.click();
+
+        expect(store.aosParams.marketSegment).to.equal('');
+        expect(store.aosParams.customerSegment).to.equal('TEAM');
+    });
+
+    it('clearing the customer-segment tag re-includes previously filtered products in the list', async () => {
+        store.aosParams = { ...store.aosParams, customerSegment: 'TEAM' };
+        const list = await fixture(html`<ost-product-list></ost-product-list>`);
+        const bar = await fixture(html`<ost-filter-bar></ost-filter-bar>`);
+        expect(list.shadowRoot.querySelectorAll('.product-card').length).to.equal(1);
+
+        const tag = bar.shadowRoot.querySelector('.tag');
+        tag.click();
+        await list.updateComplete;
+
+        expect(list.shadowRoot.querySelectorAll('.product-card').length).to.equal(2);
     });
 });

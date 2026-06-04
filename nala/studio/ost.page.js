@@ -10,6 +10,7 @@ export default class OSTPage {
         // Search + product list
         this.searchField = this.page.locator('[data-testid="ost-search-input"]');
         this.productList = this.page.locator('[data-testid="ost-product-name"]');
+        this.productCard = this.page.locator('[data-testid="ost-product-card"]');
 
         // Filter pickers
         this.planType = this.page.locator('[data-testid="ost-filter-plan-type"]');
@@ -21,6 +22,8 @@ export default class OSTPage {
         // Navigation buttons (two-tab wizard: entitlements → offer).
         this.nextButton = this.page.locator('[data-testid="ost-footer-next-button"]');
         this.backButton = this.page.locator('[data-testid="ost-back-button"]');
+        this.cancelButton = this.page.locator('[data-testid="ost-cancel-button"]');
+        this.closeButton = this.page.locator('[data-testid="ost-close-button"]');
 
         // Placeholder type chips (new model: chips replace the old offer/entitlements tabs).
         this.offerTab = this.page.locator('[data-testid="ost-placeholder-chip-price"]');

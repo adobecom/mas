@@ -409,17 +409,9 @@ mas-content {
        Narrow columns are fixed pixels (Hug to header text + 40px padding) so
        their widths can't drift between parent and variation containers; the
        three text columns (Path / Fragment title / Offer ID) absorb the rest. */
-    --mas-table-columns:
-        60px                            /* 1.  expand-cell */
-        minmax(0, 1.4fr)                /* 2.  Path */
-        minmax(0, 1fr)                  /* 3.  Fragment title */
-        minmax(0, 1fr)                  /* 4.  Offer ID */
-        110px                           /* 5.  Offer type */
-        160px                           /* 6.  Last modified by */
-        120px                           /* 7.  Price */
-        120px                           /* 8.  Status */
-        92px                            /* 9.  Actions */
-        96px;                           /* 10. Preview */
+    --mas-table-columns: 60px /* 1.  expand-cell */ minmax(0, 1.4fr) /* 2.  Path */ minmax(0, 1fr) /* 3.  Fragment title */
+        minmax(0, 1fr) /* 4.  Offer ID */ 110px /* 5.  Offer type */ 160px /* 6.  Last modified by */ 120px /* 7.  Price */
+        120px /* 8.  Status */ 92px /* 9.  Actions */ 96px; /* 10. Preview */
 
     /* Variation rows: 10 tracks. A leading 30px helper track makes the
        Path cell (which spans tracks 1+2 via grid-column: 1/3) exactly
@@ -429,17 +421,10 @@ mas-content {
        cell with the parent. Preview track is 76px (vs the parent's
        96px) so its right edge sits 20px before .expanded-content's
        right padding. */
-    --mas-table-columns-variation:
-        30px                            /* 1a. leading offset for Path (= parent track 2 +30px) */
-        minmax(0, 1.4fr)                /* 1b. Path (spans 1a + 1b) */
-        minmax(0, 1fr)                  /* 2.  Title */
-        minmax(0, 1fr)                  /* 3.  Offer ID */
-        110px                           /* 4.  Offer type */
-        160px                           /* 5.  Last modified by */
-        120px                           /* 6.  Price */
-        120px                           /* 7.  Status */
-        92px                            /* 8.  Actions */
-        76px;                           /* 9.  Preview */
+    --mas-table-columns-variation: 30px /* 1a. leading offset for Path (= parent track 2 +30px) */ minmax(0, 1.4fr)
+        /* 1b. Path (spans 1a + 1b) */ minmax(0, 1fr) /* 2.  Title */ minmax(0, 1fr) /* 3.  Offer ID */ 110px
+        /* 4.  Offer type */ 160px /* 5.  Last modified by */ 120px /* 6.  Price */ 120px /* 7.  Status */ 92px
+        /* 8.  Actions */ 76px; /* 9.  Preview */
 }
 
 #content sp-table {
@@ -547,7 +532,6 @@ sp-table-cell.actions {
     padding-left: 0 !important;
     padding-right: 0 !important;
 }
-
 
 #content sp-table-body {
     overflow: hidden;
@@ -665,7 +649,6 @@ sp-table-row *::before,
 sp-table-row *::after {
     border-radius: 0 !important;
 }
-
 
 sp-table-row:hover {
     background-color: var(--spectrum-gray-100, #e9e9e9);

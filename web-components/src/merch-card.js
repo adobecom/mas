@@ -70,7 +70,7 @@ function replaceDiscount(node, discount, placeholder) {
 
 function getPriceAmount(el) {
     return parseFloat(
-        `${el.querySelector('.price-integer').textContent}.${el.querySelector('.price-decimals').textContent}`,
+        `${el.querySelector('.price-integer').textContent.replace(/\D/g, '')}.${el.querySelector('.price-decimals').textContent}`,
     );
 }
 

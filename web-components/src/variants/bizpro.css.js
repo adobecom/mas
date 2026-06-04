@@ -316,6 +316,24 @@ merch-card[variant="bizpro"] [slot="heading-m"] .price-recurrence {
     text-transform: lowercase;
 }
 
+/* Plan type line ("Annual, billed monthly") — the legal-template price span,
+   rendered when the Show Plan type setting is on. Its container carries the
+   shared .price class, so this later rule overrides the 18px/900 price
+   styling above with the muted body style (same look as promo-text, Figma
+   1114:39070). Both the custom-element wrapper AND the inner .price container
+   need display:block — the wrapper is inline-block by default, which would
+   shrink-wrap the block container and keep it on the price's line. */
+merch-card[variant="bizpro"] [slot="heading-m"] span[is="inline-price"][data-template="legal"],
+merch-card[variant="bizpro"] [slot="heading-m"] .price.price-legal {
+    display: block;
+    font-family: var(--consonant-merch-card-bizpro-font-family-regular);
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 18px;
+    letter-spacing: 0.14px;
+    color: var(--consonant-merch-card-bizpro-text-muted-color);
+}
+
 /* Collection grid — C2 breakpoints only (768, 1280).
    - Mobile: single column, full width.
    - Tablet (≥768): 2-column grid for 2/3/4 cards.

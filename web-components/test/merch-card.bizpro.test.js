@@ -88,6 +88,48 @@ describe('BizPro.adjustAddon', () => {
     });
 });
 
+describe('bizpro plan type', () => {
+    let card;
+    afterEach(() => card?.remove());
+
+    it('exposes planType in the AEM fragment mapping so the editor shows the toggle', async () => {
+        const { BIZPRO_AEM_FRAGMENT_MAPPING } = await import(
+            '../src/variants/bizpro.js'
+        );
+        expect(BIZPRO_AEM_FRAGMENT_MAPPING.planType).to.be.true;
+    });
+
+    it('forwards settings.displayPlanType to legal-template prices only', async () => {
+        card = await renderCard('<h3 slot="heading-xs">Title</h3>');
+        card.settings = { displayPlanType: true };
+
+        const legalOptions = {};
+        card.variantLayout.priceOptionsProvider(
+            { dataset: { template: 'legal' } },
+            legalOptions,
+        );
+        expect(legalOptions.displayPlanType).to.be.true;
+
+        const priceOptions = {};
+        card.variantLayout.priceOptionsProvider(
+            { dataset: { template: 'price' } },
+            priceOptions,
+        );
+        expect(priceOptions.displayPlanType).to.be.undefined;
+    });
+
+    it('defaults displayPlanType to false without settings', async () => {
+        card = await renderCard('<h3 slot="heading-xs">Title</h3>');
+        card.settings = undefined;
+        const options = {};
+        card.variantLayout.priceOptionsProvider(
+            { dataset: { template: 'legal' } },
+            options,
+        );
+        expect(options.displayPlanType).to.be.false;
+    });
+});
+
 describe('bizpro license-zone gating', () => {
     let card;
     afterEach(() => card?.remove());

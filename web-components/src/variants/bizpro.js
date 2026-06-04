@@ -4,6 +4,7 @@ import { CSS } from './bizpro.css.js';
 import {
     EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
     SELECTOR_MAS_INLINE_PRICE,
+    TEMPLATE_PRICE_LEGAL,
 } from '../constants.js';
 
 export const BIZPRO_AEM_FRAGMENT_MAPPING = {
@@ -23,6 +24,7 @@ export const BIZPRO_AEM_FRAGMENT_MAPPING = {
     quantitySelect: { tag: 'div', slot: 'quantity-select' },
     shortDescription: { tag: 'div', slot: 'legal-text' },
     secureLabel: true,
+    planType: true,
     // AI Assistant add-on; offer + inline price resolve via the authored
     // {{addon-acrobat-ai-assistant}} placeholder.
     addon: true,
@@ -46,6 +48,18 @@ export class BizPro extends VariantLayout {
 
     getGlobalCSS() {
         return CSS;
+    }
+
+    /**
+     * Forwards the Show Plan type setting (fragment.settings.displayPlanType,
+     * resolved server-side from the surface settings fragment + the editor's
+     * showPlanType override) to the authored legal-template price, which then
+     * renders the localized plan type ("Annual, billed monthly") from the WCS
+     * offer. Same pattern as plans/plans-v2.
+     */
+    priceOptionsProvider(element, options) {
+        if (element.dataset.template !== TEMPLATE_PRICE_LEGAL) return;
+        options.displayPlanType = this.card?.settings?.displayPlanType ?? false;
     }
 
     get hasWhatsIncluded() {

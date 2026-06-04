@@ -691,5 +691,74 @@ describe('OstStore', () => {
             store.storedPromoOverride = undefined;
             expect(store.effectivePromoCode).to.equal('');
         });
+
+        it('U13: auto-populates from context promotionCode when no override is set', () => {
+            store.storedPromoOverride = undefined;
+            store.promotionCode = 'CTXONLY';
+            expect(store.effectivePromoCode).to.equal('CTXONLY');
+            expect(store.storedPromoOverride).to.be.undefined;
+        });
+
+        it('U13: setPromoCode override wins over context promotionCode', () => {
+            store.promotionCode = 'CTXONLY';
+            store.setPromoCode('OVERRIDE');
+            expect(store.effectivePromoCode).to.equal('OVERRIDE');
+        });
+
+        it('U13: setPromoCode empty string reverts to context promotionCode', () => {
+            store.promotionCode = 'CTXONLY';
+            store.setPromoCode('OVERRIDE');
+            store.setPromoCode('');
+            expect(store.effectivePromoCode).to.equal('CTXONLY');
+        });
+
+        it('U13: both override and context empty resolve to empty string', () => {
+            store.promotionCode = '';
+            store.setPromoCode('');
+            expect(store.effectivePromoCode).to.equal('');
+        });
+    });
+
+    describe('U14 country and landscape', () => {
+        it('setCountry sets store.country to the given code', () => {
+            store.setCountry('FR');
+            expect(store.country).to.equal('FR');
+            expect(store.country).to.not.equal('US');
+        });
+
+        it('setCountry derives language from country mapping', () => {
+            store.setCountry('JP');
+            expect(store.language).to.equal('ja');
+        });
+
+        it('setCountry falls back to en for an unmapped country code', () => {
+            store.setCountry('ZZ');
+            expect(store.language).to.equal('en');
+        });
+
+        it('setCountry notifies subscribers reactively', () => {
+            let notified = false;
+            store.subscribe(() => {
+                notified = true;
+            });
+            store.setCountry('DE');
+            expect(notified).to.be.true;
+        });
+
+        it('setting landscape updates store.landscape', () => {
+            expect(store.landscape).to.equal('PUBLISHED');
+            store.landscape = 'DRAFT';
+            expect(store.landscape).to.equal('DRAFT');
+            expect(store.landscape).to.not.equal('PUBLISHED');
+        });
+
+        it('setting landscape notifies subscribers reactively', () => {
+            let notified = false;
+            store.subscribe(() => {
+                notified = true;
+            });
+            store.landscape = 'DRAFT';
+            expect(notified).to.be.true;
+        });
     });
 });

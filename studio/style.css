@@ -1,7 +1,11 @@
 @import './mas-fragment-render.css';
 
 :root {
-    --mas-nav-height: 50px;
+    /* Must match the explicit mas-top-nav height below — studio-content's
+       calc(100vh − var(--mas-nav-height)) sets the side-nav's height, and
+       a mismatch makes the side-nav (and its bottom-anchored Advanced
+       tools button) shift vertically as layout reflows. */
+    --mas-nav-height: 56px;
 }
 
 body {
@@ -48,7 +52,10 @@ mas-side-nav {
     grid-row: 1 / 2;
     display: flex;
     flex-direction: column;
-    width: 160px;
+    /* 180px (vs the Figma's nominal 160px) so "Advanced tools" fits with
+       symmetric 12px item padding and the icon stays vertically aligned
+       with the other rows. Still within Figma's max-w-[260px] allowance. */
+    width: 180px;
     background-color: var(--alias-background-app-frame-layer-1, #f8f8f8);
     transition: width 0.2s ease;
     overflow: hidden;

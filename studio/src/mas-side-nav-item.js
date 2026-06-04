@@ -92,12 +92,11 @@ class MasSideNavItem extends LitElement {
            18px), so it appears centered in the 56px collapsed nav (icon
            center 18+10 = 28 = nav center). No instant property flips. */
 
-        /* End-section item (Advanced tools) — Figma assigns this row a
-           tighter px-[8px] padding on its container so the longer label
-           still fits inside the 160px nav. Without this override the
-           default 12px padding clips "Advanced tools" by ~10px. */
+        /* End-section item (Advanced tools) — same 12px inline padding as
+           the other items so the briefcase icon aligns horizontally with
+           Home / Fragments / etc. in both collapsed and expanded states. */
         :host(.bottom) {
-            padding-inline: 8px;
+            padding-inline: 12px;
         }
     `;
 

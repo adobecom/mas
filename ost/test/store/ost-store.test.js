@@ -242,6 +242,18 @@ describe('OstStore', () => {
             expect(store.aosParams.offerType).to.equal('TRIAL');
         });
 
+        it('reads storedPromoOverride from search params (price-element promo on deep-link)', () => {
+            const params = new URLSearchParams('storedPromoOverride=UMRM2MUSPr501YOC');
+            store.applySearchParams(params);
+            expect(store.effectivePromoCode).to.equal('UMRM2MUSPr501YOC');
+        });
+
+        it('reads promotionCode from search params', () => {
+            const params = new URLSearchParams('promotionCode=CTX30');
+            store.applySearchParams(params);
+            expect(store.effectivePromoCode).to.equal('CTX30');
+        });
+
         it('sets tryBuy flow from multiSelect param', () => {
             const params = new URLSearchParams('multiSelect=true');
             store.applySearchParams(params);

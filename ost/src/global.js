@@ -82,6 +82,8 @@ function openOfferSelectorTool(options) {
         accessToken: aosAccessToken,
         checkoutClientId,
         promotionCode,
+        offerSelectorPlaceholderOptions,
+        defaultPlaceholderOptions,
     };
 
     if (dialog) {

@@ -749,6 +749,9 @@ export class OstStore extends EventTarget {
         if (get('promotionCode')) {
             this.setPromoCode(get('promotionCode'));
         }
+        if (get('storedPromoOverride')) {
+            this.setPromoCode(get('storedPromoOverride'));
+        }
         if (get('multiSelect') === 'true') {
             this.authoringFlow = 'tryBuy';
         }

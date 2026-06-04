@@ -7,10 +7,11 @@ import { getService } from '../../utils.js';
  * @param {Map} [options.cache]
  * @param {AbortSignal} [options.signal]
  * @param {number} [options.timeoutMs]
+ * @param {string} [options.fallbackWcsOsi] - OSI to use when fragment has no osi field (e.g. parent card OSI for grouped variations)
  * @returns {Promise<Object|null>}
  */
-export async function loadOfferData(fragment, { cache = new Map(), signal, timeoutMs = 10000 } = {}) {
-    const wcsOsi = fragment?.fields?.find(({ name }) => name === 'osi')?.values?.[0];
+export async function loadOfferData(fragment, { cache = new Map(), signal, timeoutMs = 10000, fallbackWcsOsi } = {}) {
+    const wcsOsi = fragment?.fields?.find(({ name }) => name === 'osi')?.values?.[0] ?? fallbackWcsOsi;
     if (!wcsOsi) return null;
 
     try {

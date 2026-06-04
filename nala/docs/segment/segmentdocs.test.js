@@ -81,4 +81,27 @@ test.describe('Segment gallery feature test suite', () => {
             }
         });
     });
+
+    test(`[Test Id - ${features[2].tcid}] ${features[2].name},${features[2].tags}`, async () => {
+        const { data } = features[2];
+
+        await test.step('step-1: Go to Segment gallery page', async () => {
+            const page = workerSetup.getPage('US');
+            galleryPage = new MasSegment(page);
+
+            await workerSetup.verifyPageURL('US', DOCS_GALLERY_PATH.SEGMENT, expect);
+        });
+
+        await test.step('step-2: Verify Segment card ST price labels', async () => {
+            await expect(galleryPage.getCard(data.id)).toBeVisible();
+            await expect(galleryPage.getCard(data.id)).toHaveAttribute('variant', data.variant);
+            await expect(galleryPage.getCard(data.id).locator('[slot="callout-content"] [data-wcs-osi]')).toContainText(data.calloutPriceText);
+            await expect(galleryPage.getCard(data.id).locator('[slot="callout-content"] [data-wcs-osi] .price-strikethrough .price-recurrence')).toHaveAttribute('class', /price-recurrence/);
+            await expect(galleryPage.getCard(data.id).locator('[slot="callout-content"] [data-wcs-osi] .price-strikethrough .price-unit-type')).toHaveAttribute('class', /price-unit-type disabled/);
+            await expect(galleryPage.getCard(data.id).locator('[slot="callout-content"] [data-wcs-osi] .price-strikethrough .price-tax-inclusivity')).toHaveAttribute('class', /price-tax-inclusivity disabled/);
+            await expect(galleryPage.getCard(data.id).locator('[slot="callout-content"] [data-wcs-osi] .price-alternative .price-recurrence')).toHaveAttribute('class', /price-recurrence/);
+            await expect(galleryPage.getCard(data.id).locator('[slot="callout-content"] [data-wcs-osi] .price-alternative .price-unit-type')).toHaveAttribute('class', /price-unit-type/);
+            await expect(galleryPage.getCard(data.id).locator('[slot="callout-content"] [data-wcs-osi] .price-alternative .price-tax-inclusivity')).toHaveAttribute('class', /price-tax-inclusivity/);
+        });
+    });    
 });

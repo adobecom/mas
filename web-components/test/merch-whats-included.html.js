@@ -29,5 +29,16 @@ runTests(async () => {
         it('should display merch mnemonic list', async () => {
             expect(document.querySelector('merch-mnemonic-list')).to.exist;
         });
+        it('should hide empty heading slot', async () => {
+            const el = document.createElement('merch-whats-included');
+            const heading = document.createElement('div');
+            heading.setAttribute('slot', 'heading');
+            el.appendChild(heading);
+            document.body.appendChild(el);
+            await el.updateComplete;
+            const style = getComputedStyle(heading);
+            expect(style.display).to.equal('none');
+            el.remove();
+        });
     });
 });

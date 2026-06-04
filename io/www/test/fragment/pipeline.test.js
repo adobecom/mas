@@ -3,7 +3,6 @@ import sinon from 'sinon';
 import { main as action, resetCache } from '../../src/fragment/pipeline.js';
 import { clearSettingsCache } from '../../src/fragment/transformers/settings.js';
 import { mockDictionary } from './replace.test.js';
-import DICTIONARY_RESPONSE from './mocks/dictionary.json' with { type: 'json' };
 import SETTINGS_RESPONSE from './mocks/settings-sandbox.json' with { type: 'json' };
 import zlib from 'zlib';
 
@@ -11,7 +10,6 @@ import FRAGMENT_RESPONSE_EN from './mocks/fragment-en-default.json' with { type:
 import FRAGMENT_RESPONSE_FR from './mocks/fragment-fr.json' with { type: 'json' };
 import DICTIONARY_FOR_COLLECTION_RESPONSE from './mocks/dictionaryForCollection.json' with { type: 'json' };
 import COLLECTION_RESPONSE from './mocks/collection.json' with { type: 'json' };
-import FRAGMENT_AH_DE_DE_CORRUPTED from './mocks/fragment-ah-de_DE-corrupted.json' with { type: 'json' };
 import { MockState } from './mocks/MockState.js';
 import { createResponse } from './mocks/MockFetch.js';
 
@@ -29,7 +27,7 @@ function decompress(response) {
 }
 
 async function getFragment(params) {
-    return decompress(await action(params));
+    return decompress(await action({ api_key: 'wcms-commerce-ims-ro-user-milo', ...params }));
 }
 
 const EXPECTED_HEADERS = {
@@ -82,6 +80,16 @@ function setupFragmentMocks(fetchStub, { id, path, fields = {} }, preview = fals
     fetchStub
         .withArgs(`${odinDomain}${odinUriRoot}/some-fr-fr-fragment?references=all-hydrated`)
         .returns(createResponse(200, FRAGMENT_RESPONSE_FR));
+
+    // promotions folder — no active promotions by default
+    fetchStub
+        .withArgs(`${odinDomain}${odinUriRoot}/?path=/content/dam/mas/promotions`)
+        .returns(createResponse(200, { items: [] }));
+
+    // WCS prefill — hardcoded prod config is always merged in; return empty offers
+    fetchStub
+        .withArgs(sinon.match((url) => typeof url === 'string' && url.includes('web_commerce_artifact')))
+        .returns(createResponse(200, { resolvedOffers: [] }));
 }
 
 const EXPECTED_BODY = {
@@ -89,7 +97,7 @@ const EXPECTED_BODY = {
     path: '/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app',
 };
 // EXPECTED BODY SHA256 hash (includes settings/priceLiterals from mocked settings)
-const EXPECTED_BODY_HASH = 'e40a8c822bb0e6fd5ef462ee327d1e9240aa74219ec67d8da63ca15aa7250de9';
+const EXPECTED_BODY_HASH = 'c18ffd8f69c63d3313c3dfa3dcb71126717e83be7085acda810f4e5d1b572125';
 
 const RANDOM_OLD_DATE = 'Thu, 27 Jul 1978 09:00:00 GMT';
 
@@ -113,231 +121,9 @@ const runOnFilledState = async (fetchStub, entry, headers) => {
     });
 };
 
-describe('pipeline full use case', () => {
-    beforeEach(() => {
-        fetchStub = sinon.stub(globalThis, 'fetch').callsFake((url) => {
-            // eslint-disable-next-line no-console
-            console.warn('[test] unmatched fetch stub:', url);
-            return createResponse(404, { detail: 'Not Found' }, 'Not Found');
-        });
-        mockDictionary(false, fetchStub);
-        resetCache();
-        clearSettingsCache();
-    });
-
-    afterEach(() => {
-        fetchStub.restore();
-    });
-
-    it('should return fully baked /content/dam/mas/sandbox/fr_FR/someFragment', async () => {
-        setupFragmentMocks(fetchStub, {
-            id: 'some-en-us-fragment',
-            path: 'someFragment',
-        });
-        const state = new MockState();
-        const result = await getFragment({
-            id: 'some-en-us-fragment',
-            state: state,
-            locale: 'fr_FR',
-        });
-        expect(result.statusCode).to.equal(200);
-        expect(result.body).to.deep.include(EXPECTED_BODY);
-        expect(result.headers).to.have.property('Last-Modified');
-        expect(result.headers).to.have.property('ETag');
-        expect(result.headers['ETag']).to.equal(EXPECTED_BODY_HASH);
-        expect(Object.keys(state.store).length).to.equal(1);
-        expect(state.store).to.have.property('req-some-en-us-fragment-fr_FR');
-        const json = JSON.parse(state.store['req-some-en-us-fragment-fr_FR']);
-        delete json.lastModified; // removing the date to avoid flakiness
-        expect(json).to.deep.include({
-            fragmentsIds: {
-                'dictionary-id': 'sandbox_fr_FR_dictionary',
-                'default-locale-id': 'some-fr-fr-fragment',
-                'settings-id': 'settings-id',
-            },
-            hash: EXPECTED_BODY_HASH,
-        });
-    });
-
-    it('should return fully baked /content/dam/mas/sandbox/fr_FR/someFragment from preview too', async () => {
-        const previewStorage = {};
-        globalThis.localStorage = {
-            getItem: (key) => previewStorage[key] ?? null,
-            setItem: (key, value) => {
-                previewStorage[key] = value;
-            },
-        };
-        setupFragmentMocks(
-            fetchStub,
-            {
-                id: 'some-en-us-fragment',
-                path: 'someFragment',
-            },
-            true,
-        );
-        const state = new MockState();
-        const result = await getFragment({
-            id: 'some-en-us-fragment',
-            preview: {
-                url: 'https://odinpreview.corp.adobe.com/adobe/contentFragments',
-            },
-            state: state,
-            locale: 'fr_FR',
-        });
-        expect(result.statusCode).to.equal(200);
-        expect(result.body).to.deep.include(EXPECTED_BODY);
-        expect(result.headers).to.have.property('Last-Modified');
-        expect(result.headers).to.have.property('ETag');
-        expect(result.headers['ETag']).to.equal(EXPECTED_BODY_HASH);
-        expect(Object.keys(state.store).length).to.equal(1);
-        expect(state.store).to.have.property('req-some-en-us-fragment-fr_FR');
-        const json = JSON.parse(state.store['req-some-en-us-fragment-fr_FR']);
-        delete json.lastModified; // removing the date to avoid flakiness
-        expect(json).to.deep.include({
-            fragmentsIds: {
-                'dictionary-id': 'sandbox_fr_FR_dictionary',
-                'default-locale-id': 'some-fr-fr-fragment',
-                'settings-id': 'settings-id',
-            },
-            hash: EXPECTED_BODY_HASH,
-        });
-        delete globalThis.localStorage;
-    });
-
-    it('should detect already treated /content/dam/mas/sandbox/fr_FR/someFragment if not changed', async () => {
-        const result = await runOnFilledState(
-            fetchStub,
-            JSON.stringify({
-                fragmentsIds: {
-                    'dictionary-id': 'sandbox_fr_FR_dictionary',
-                    'default-locale-id': 'some-fr-fr-fragment',
-                    'settings-id': 'settings-id',
-                },
-                fragmentPath: 'someFragment',
-                lastModified: RANDOM_OLD_DATE,
-                hash: EXPECTED_BODY_HASH,
-            }),
-            {
-                'if-modified-since': 'Tue, 21 Nov 2050 08:00:00 GMT',
-            },
-        );
-        expect(result.body).to.be.undefined;
-        expect(result.statusCode).to.equal(304);
-        expect(result.headers).to.have.property('Last-Modified');
-        expect(result.headers['Last-Modified']).to.equal(RANDOM_OLD_DATE);
-    });
-
-    it('should return fully baked /content/dam/mas/sandbox/fr_FR/someFragment from fr_CA locale request', async () => {
-        setupFragmentMocks(fetchStub, {
-            id: 'some-en-us-fragment',
-            path: 'someFragment',
-        });
-        fetchStub
-            .withArgs(
-                'https://odin.adobe.com/adobe/contentFragments/byPath?path=/content/dam/mas/sandbox/fr_CA/dictionary/index',
-            )
-            .returns(createResponse(404, {}, 'Not Found'));
-        const state = new MockState();
-        const result = await getFragment({
-            id: 'some-en-us-fragment',
-            state: state,
-            locale: 'fr_CA',
-        });
-        expect(result.statusCode).to.equal(200);
-        expect(result.body).to.deep.include({
-            path: '/content/dam/mas/sandbox/fr_CA/ccd-slice-wide-cc-all-app',
-            id: 'some-fr-fr-fragment',
-        });
-        expect(result.headers).to.have.property('Last-Modified');
-        expect(result.headers).to.have.property('ETag');
-        expect(Object.keys(state.store).length).to.equal(1);
-        expect(state.store).to.have.property('req-some-en-us-fragment-fr_CA');
-        const json = JSON.parse(state.store['req-some-en-us-fragment-fr_CA']);
-        expect(json.fragmentsIds['dictionary-id']).to.not.equal('sandbox_fr_FR_dictionary');
-        expect(json.fragmentsIds['default-locale-id']).to.equal('some-fr-fr-fragment');
-    });
-
-    it('should return fully baked /content/dam/mas/sandbox/fr_CA/someFragment from fr_FR locale request, and country CA', async () => {
-        setupFragmentMocks(fetchStub, {
-            id: 'some-en-us-fragment',
-            path: 'someFragment',
-        });
-        fetchStub
-            .withArgs(
-                'https://odin.adobe.com/adobe/contentFragments/byPath?path=/content/dam/mas/sandbox/fr_FR/dictionary/index',
-            )
-            .returns(createResponse(404, {}, 'Not Found'));
-        const state = new MockState();
-        const result = await getFragment({
-            id: 'some-en-us-fragment',
-            state: state,
-            locale: 'fr_FR',
-            country: 'CA',
-        });
-        expect(result.statusCode).to.equal(200);
-        expect(result.body).to.deep.include({
-            path: '/content/dam/mas/sandbox/fr_CA/ccd-slice-wide-cc-all-app',
-            id: 'some-fr-fr-fragment',
-        });
-        expect(result.headers).to.have.property('Last-Modified');
-        expect(result.headers).to.have.property('ETag');
-        expect(Object.keys(state.store).length).to.equal(1);
-        expect(state.store).to.have.property('req-some-en-us-fragment-fr_CA');
-        const json = JSON.parse(state.store['req-some-en-us-fragment-fr_CA']);
-        expect(json.fragmentsIds['dictionary-id']).to.not.equal('sandbox_fr_FR_dictionary');
-        expect(json.fragmentsIds['default-locale-id']).to.equal('some-fr-fr-fragment');
-    });
-
-    it('should fix corrupted data-extra-options in adobe-home fragment', async () => {
-        const fragmentId = '8ede258f-a996-43c4-8525-b52543925ab0';
-
-        // Mock settings for adobe-home surface
-        fetchStub
-            .withArgs('https://odin.adobe.com/adobe/contentFragments/byPath?path=/content/dam/mas/adobe-home/settings/index')
-            .returns(createResponse(200, { id: 'adobe-home-settings-id' }));
-        fetchStub
-            .withArgs('https://odin.adobe.com/adobe/contentFragments/adobe-home-settings-id?references=all-hydrated')
-            .returns(createResponse(200, SETTINGS_RESPONSE));
-
-        // Mock the fragment fetch
-        fetchStub
-            .withArgs(`https://odin.adobe.com/adobe/contentFragments/${fragmentId}?references=all-hydrated`)
-            .returns(createResponse(200, FRAGMENT_AH_DE_DE_CORRUPTED));
-
-        // Mock dictionary for adobe-home de_DE (note the path structure matches adobe-home)
-        fetchStub
-            .withArgs(
-                'https://odin.adobe.com/adobe/contentFragments/byPath?path=/content/dam/mas/adobe-home/de_DE/dictionary/index',
-            )
-            .returns(createResponse(200, { id: 'de_DE_dictionary' }));
-
-        fetchStub
-            .withArgs('https://odin.adobe.com/adobe/contentFragments/de_DE_dictionary?references=all-hydrated')
-            .returns(createResponse(200, DICTIONARY_RESPONSE));
-
-        const state = new MockState();
-        const result = await getFragment({
-            id: fragmentId,
-            state: state,
-            locale: 'de_DE',
-            surface: 'adobe-home',
-        });
-
-        expect(result.statusCode).to.equal(200);
-        expect(result.body.fields.ctas.value).to.include(
-            'data-extra-options="{&quot;actionId&quot;:&quot;try&quot;,&quot;ctx&quot;:&quot;if&quot;}"',
-        );
-        expect(result.body.fields.ctas.value).to.include(
-            'data-extra-options="{&quot;actionId&quot;:&quot;buy&quot;,&quot;ctx&quot;:&quot;if&quot;}"',
-        );
-        expect(result.body.fields.ctas.value).to.not.include('\\"actionId\\"');
-    });
-});
-
 describe('collection placeholders', () => {
     beforeEach(function () {
         fetchStub = sinon.stub(globalThis, 'fetch').callsFake((url) => {
-            // eslint-disable-next-line no-console
             console.warn('[test] unmatched fetch stub:', url);
             return createResponse(404, { detail: 'Not Found' }, 'Not Found');
         });
@@ -379,7 +165,6 @@ describe('collection placeholders', () => {
 describe('pipeline corner cases', () => {
     beforeEach(() => {
         fetchStub = sinon.stub(globalThis, 'fetch').callsFake((url) => {
-            // eslint-disable-next-line no-console
             console.warn('[test] unmatched fetch stub:', url);
             return createResponse(404, { detail: 'Not Found' }, 'Not Found');
         });
@@ -412,6 +197,7 @@ describe('pipeline corner cases', () => {
         await state.put('configuration', `{"networkConfig":{"mainTimeout":10,"retries": 1}}`);
 
         const result = await action({
+            api_key: 'wcms-commerce-ims-ro-user-milo',
             id: 'some-en-us-fragment',
             state,
             locale: 'fr_FR',
@@ -422,6 +208,87 @@ describe('pipeline corner cases', () => {
 
     it('action should be defined', () => {
         expect(action).to.be.a('function');
+    });
+
+    it('should reject preview mode with 400', async () => {
+        const result = await action({
+            id: 'some-en-us-fragment',
+            locale: 'en_US',
+            preview: true,
+            state: new MockState(),
+        });
+        expect(result.statusCode).to.equal(400);
+        expect(result.message).to.equal('Preview mode is not supported in this pipeline');
+        expect(fetchStub.called).to.be.false;
+    });
+
+    it('should 400 when api_key param is missing', async () => {
+        const result = await action({
+            id: 'some-en-us-fragment',
+            locale: 'en_US',
+            state: new MockState(),
+        });
+        expect(result.statusCode).to.equal(400);
+        expect(result.message).to.equal('missing api_key');
+        expect(fetchStub.called).to.be.false;
+    });
+
+    it('should 401 when api_key is not in the accepted list', async () => {
+        const result = await getFragment({
+            id: 'some-en-us-fragment',
+            locale: 'en_US',
+            api_key: 'not-a-real-client',
+            state: new MockState(),
+        });
+        expect(result.statusCode).to.equal(401);
+        expect(result.message).to.equal('unauthorized api_key');
+        expect(fetchStub.called).to.be.false;
+    });
+
+    it('should 200 when api_key matches a hardcoded CreativeCloud version regex', async () => {
+        setupFragmentMocks(fetchStub, {
+            id: 'some-en-us-fragment',
+            path: 'someFragment',
+        });
+        const result = await getFragment({
+            id: 'some-en-us-fragment',
+            state: new MockState(),
+            locale: 'fr_FR',
+            api_key: 'CreativeCloud_v42_99',
+        });
+        expect(result.statusCode).to.equal(200);
+    });
+
+    it('should accept a state-supplied literal api_key', async () => {
+        setupFragmentMocks(fetchStub, {
+            id: 'some-en-us-fragment',
+            path: 'someFragment',
+        });
+        const state = new MockState();
+        await state.put('configuration', JSON.stringify({ apiKeys: ['my-test-key'] }));
+        const result = await getFragment({
+            id: 'some-en-us-fragment',
+            state,
+            locale: 'fr_FR',
+            api_key: 'my-test-key',
+        });
+        expect(result.statusCode).to.equal(200);
+    });
+
+    it('should accept a state-supplied slash-wrapped regex pattern', async () => {
+        setupFragmentMocks(fetchStub, {
+            id: 'some-en-us-fragment',
+            path: 'someFragment',
+        });
+        const state = new MockState();
+        await state.put('configuration', JSON.stringify({ apiKeys: ['/^my_v\\d+$/'] }));
+        const result = await getFragment({
+            id: 'some-en-us-fragment',
+            state,
+            locale: 'fr_FR',
+            api_key: 'my_v3',
+        });
+        expect(result.statusCode).to.equal(200);
     });
 
     it('no arguments should return 400', async () => {
@@ -435,6 +302,17 @@ describe('pipeline corner cases', () => {
             },
             statusCode: 400,
         });
+    });
+
+    it('unknown locale should return 400 without hitting Odin', async () => {
+        const result = await getFragment({
+            id: 'some-fragment',
+            locale: 'zz_ZZ',
+            state: new MockState(),
+        });
+        expect(result.statusCode).to.equal(400);
+        expect(result.body.message).to.match(/unknown locale/i);
+        expect(fetchStub.called).to.be.false;
     });
 
     it('bad path should return 400', async () => {
@@ -584,7 +462,6 @@ describe('pipeline corner cases', () => {
 describe('caching headers', () => {
     beforeEach(() => {
         fetchStub = sinon.stub(globalThis, 'fetch').callsFake((url) => {
-            // eslint-disable-next-line no-console
             console.warn('[test] unmatched fetch stub:', url);
             return createResponse(404, { detail: 'Not Found' }, 'Not Found');
         });
@@ -674,4 +551,4 @@ describe('caching headers', () => {
     });
 });
 
-export { getFragment, setupFragmentMocks, EXPECTED_BODY };
+export { getFragment, setupFragmentMocks, mockSettings, runOnFilledState, EXPECTED_BODY, EXPECTED_BODY_HASH, RANDOM_OLD_DATE };

@@ -148,6 +148,7 @@ describe('MasTranslationEditor', () => {
             Store.translationProjects.prefill.set({
                 targetLocale: 'tr_TR',
                 fragmentPath: '/content/dam/mas/s/en_US/f',
+                isCollection: false,
             });
 
             const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
@@ -157,6 +158,24 @@ describe('MasTranslationEditor', () => {
             expect(Store.translationProjects.selectedCards.get()).to.deep.equal(['/content/dam/mas/s/en_US/f']);
             expect(el.showSelectedEmptyState).to.be.false;
             expect(el.showLangSelectedEmptyState).to.be.false;
+        });
+
+        it('should put collection prefill into selectedCollections when prefill.isCollection is true', async () => {
+            Store.translationProjects.translationProjectId.set(null);
+            Store.translationProjects.prefill.set({
+                targetLocale: 'pl_PL',
+                fragmentPath: '/content/dam/mas/s/en_US/merch-card-collection/test-collection',
+                isCollection: true,
+            });
+
+            const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
+            await el.updateComplete;
+
+            expect(Store.translationProjects.selectedCollections.get()).to.deep.equal([
+                '/content/dam/mas/s/en_US/merch-card-collection/test-collection',
+            ]);
+            expect(Store.translationProjects.selectedCards.get()).to.deep.equal([]);
+            expect(el.showSelectedEmptyState).to.be.false;
         });
 
         it('should have save, discard, delete and loc actions disabled for new project by default', async () => {
@@ -1503,6 +1522,27 @@ describe('MasTranslationEditor', () => {
             await el.updateComplete;
             expect(closeEventFired).to.be.true;
             expect(Store.translationProjects.targetLocales.get()).to.deep.equal(['en_US']);
+        });
+
+        it('should render locale picker with default languages only (no regional variants)', async () => {
+            Store.search.set({ path: 'acom' });
+            Store.translationProjects.targetLocales.set([]);
+            const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
+            el.showLangSelectedEmptyState = true;
+            await el.updateComplete;
+            const overlayTrigger = el.shadowRoot.querySelector('#add-languages-overlay');
+            overlayTrigger.dispatchEvent(new CustomEvent('sp-opened'));
+            await el.updateComplete;
+            const langPicker = el.shadowRoot.querySelector('.add-langs-dialog mas-translation-languages');
+            expect(langPicker).to.exist;
+            expect(langPicker.hasAttribute('include-regional')).to.equal(false);
+            const codes = langPicker.localesArray.map((item) => item.locale);
+            expect(codes).to.include('fr_FR');
+            expect(codes).to.include('de_DE');
+            expect(codes).to.not.include('fr_CA');
+            expect(codes).to.not.include('fr_BE');
+            expect(codes).to.not.include('en_AU');
+            expect(codes).to.not.include('de_AT');
         });
     });
 

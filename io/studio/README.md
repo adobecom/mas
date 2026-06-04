@@ -53,7 +53,7 @@ Using Github workflows, the CI/CD of I/O studio has been automated. The workflow
 
 - detect PR creations with files in io/studio
 - build and run tests
-- auto-deploy the I/O studio actions in a personal workspace of the github.actor (with fallback mechanism to QA workspace)
+- auto-deploy the I/O studio actions in a personal workspace of the person who opened PR (github.event.pull_request.user.login) (with fallback mechanism to QA workspace)
 - runs health-check on deployed actions
 - post merge of PR, auto-deployment to stage with tests, then to prod if successful
 

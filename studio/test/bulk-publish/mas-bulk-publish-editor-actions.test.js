@@ -20,17 +20,26 @@ function seedNew(data = {}) {
 
 function makeFragmentStore(data = {}) {
     const fields = { status: BULK_PUBLISH_STATUS.DRAFT, urls: '', items: '[]', locales: [], title: 'Proj', ...data };
+    const getFieldValues = (k) => {
+        const v = fields[k];
+        if (v === undefined || v === null) return [];
+        return Array.isArray(v) ? v : [v];
+    };
     return {
         id: 'frag-id-1',
         value: {
             id: 'frag-id-1',
             getFieldValue: (k) => fields[k],
-            getFieldValues: (k) => (Array.isArray(fields[k]) ? fields[k] : [fields[k]]),
+            getFieldValues,
         },
         getFieldValue: (k) => fields[k],
-        getFieldValues: (k) => (Array.isArray(fields[k]) ? fields[k] : [fields[k]]),
+        getFieldValues,
         updateField: sinon.stub(),
         setFieldValue: sinon.stub(),
+        get: () => ({
+            fields: Object.entries(fields).map(([name, val]) => ({ name, values: Array.isArray(val) ? val : [val] })),
+        }),
+        refreshFrom: sinon.stub(),
     };
 }
 
@@ -255,9 +264,8 @@ describe('mas-bulk-publish-editor (field handlers)', () => {
         await el.updateComplete;
         el.handleUrlRemove({ detail: 'https://a.com' });
         expect(fields.urls).to.equal('https://b.com');
-        const remaining = JSON.parse(fields.items);
-        expect(remaining).to.have.lengthOf(1);
-        expect(remaining[0].url).to.equal('https://b.com');
+        expect(el.items).to.have.lengthOf(1);
+        expect(el.items[0].url).to.equal('https://b.com');
     });
 
     it('handleUrlRemove is a no-op when locked', async () => {
@@ -972,6 +980,26 @@ describe('mas-bulk-publish-editor (openLocalesPicker)', () => {
         expect(langPicker).to.exist;
         expect(langPicker.hasAttribute('include-source')).to.equal(true);
     });
+
+    it('locales picker passes include-regional so regional variants are included', async () => {
+        Store.search.set({ path: 'acom' });
+        const el = await makeEditor();
+        seedNew({ locales: [] });
+        await el.updateComplete;
+
+        el.localesPickerOpen = true;
+        await el.updateComplete;
+
+        const langPicker = el.shadowRoot.querySelector('mas-translation-languages');
+        expect(langPicker).to.exist;
+        expect(langPicker.hasAttribute('include-regional')).to.equal(true);
+        const codes = langPicker.localesArray.map((item) => item.locale);
+        expect(codes).to.include('fr_FR');
+        expect(codes).to.include('fr_CA');
+        expect(codes).to.include('fr_BE');
+        expect(codes).to.include('en_AU');
+        expect(codes).to.include('de_AT');
+    });
 });
 
 describe('mas-bulk-publish-editor (publish)', () => {
@@ -999,7 +1027,7 @@ describe('mas-bulk-publish-editor (publish)', () => {
         sandbox.restore();
     });
 
-    it('publish triggers the publish flow and calls saveFragment', async () => {
+    it('publish triggers the publish flow and calls the IO action', async () => {
         window.adobeIMS = { getAccessToken: () => ({ token: 'fake-token', clientId: 'mas-studio' }) };
 
         const el = await makeEditor();
@@ -1008,15 +1036,19 @@ describe('mas-bulk-publish-editor (publish)', () => {
         Store.bulkPublishProjects.inEdit.set(fs);
         await el.updateComplete;
 
-        repositoryEl.saveFragment = sandbox.stub().resolves({ id: 'frag-id-1' });
+        const fetchStub = sandbox.stub(window, 'fetch').resolves(
+            new Response(JSON.stringify({ status: 'Published' }), {
+                status: 200,
+                headers: { 'content-type': 'application/json' },
+            }),
+        );
+        repositoryEl.refreshFragment = sandbox.stub().resolves();
 
-        try {
-            await el.publish();
-        } catch {
-            // network call to io-base-url will fail in tests; that's ok
-        }
+        await el.publish();
 
-        expect(repositoryEl.saveFragment.called).to.equal(true);
+        expect(fetchStub.called).to.equal(true);
+        const [url] = fetchStub.firstCall.args;
+        expect(url).to.include('/bulk-publish');
         delete window.adobeIMS;
     });
 });

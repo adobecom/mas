@@ -22,6 +22,10 @@ export class MerchWhatsIncluded extends LitElement {
             margin-right: 16px;
         }
 
+        ::slotted([slot='heading']:empty) {
+            display: none;
+        }
+
         ::slotted([slot='content']) {
             display: contents;
         }

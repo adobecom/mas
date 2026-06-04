@@ -11,7 +11,7 @@ import { CARD_MODEL_PATH, COMPAT_VERSION } from '../constants.js';
 import '../fields/secure-text-field.js';
 import '../fields/plan-type-field.js';
 import '../fields/quantity-select-settings-field.js';
-import { getFragmentMapping, showToast } from '../utils.js';
+import { extractLocaleFromPath, getFragmentMapping, showToast } from '../utils.js';
 import '../fields/addon-field.js';
 import { createQuantitySelectValue, parseQuantitySelectValue, QUANTITY_SELECT_TAG } from '../common/fields/quantity-select.js';
 import Store from '../store.js';
@@ -162,21 +162,29 @@ class MerchCardEditor extends LitElement {
     }
 
     #syncGroupedPreviewLocale() {
-        const locales = this.groupedPreviewLocales;
-        if (!locales.length) {
-            if (this.previewLocaleOverride !== null) {
-                this.previewLocaleOverride = null;
-            }
+        const groupedLocales = this.groupedPreviewLocales;
+        if (groupedLocales.length) {
+            const codes = groupedLocales.map((locale) => locale.code);
+            const globalLocale = Store.localeOrRegion();
+            this.previewLocaleOverride = codes.includes(this.previewLocaleOverride)
+                ? this.previewLocaleOverride
+                : codes.includes(globalLocale)
+                  ? globalLocale
+                  : codes[0];
             return;
         }
 
-        const codes = locales.map((locale) => locale.code);
-        const globalLocale = Store.localeOrRegion();
-        this.previewLocaleOverride = codes.includes(this.previewLocaleOverride)
-            ? this.previewLocaleOverride
-            : codes.includes(globalLocale)
-              ? globalLocale
-              : codes[0];
+        if (this.effectiveIsVariation && !this.isGroupedVariation) {
+            const localeCode = extractLocaleFromPath(this.fragment?.path);
+            if (localeCode && getLocaleByCode(localeCode)) {
+                this.previewLocaleOverride = localeCode;
+                return;
+            }
+        }
+
+        if (this.previewLocaleOverride !== null) {
+            this.previewLocaleOverride = null;
+        }
     }
 
     #normalizePznTagIds(value) {

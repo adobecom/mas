@@ -99,10 +99,7 @@ export const features = [
             collection_id: '4a466a3c-efa2-4406-ae47-93abd2167e27',
             subtitle: 'Grouped variation of ES',
             badgeColor: 'rgb(80, 80, 80)', // Grey 700
-            price: {
-                ar: PRICE_PATTERN.AR.mo,
-                ar_en: PRICE_PATTERN.AR.mo_en,
-            },
+            price: PRICE_PATTERN.AR.mo_es,
         },
         tags: '@mas-docs @mas-acom @mas-variations @commerce @smoke @regression @milo',
     },
@@ -115,10 +112,7 @@ export const features = [
             variation_card_id: '9e201d14-c100-4397-a9a7-7ee1116e09f9',
             collection_id: '4a466a3c-efa2-4406-ae47-93abd2167e27',
             subtitle: 'AR regional variation from ES',
-            price: {
-                ar: PRICE_PATTERN.AR.mo,
-                ar_en: PRICE_PATTERN.AR.mo_en,
-            },
+            price: PRICE_PATTERN.AR.mo_es,
         },
         tags: '@mas-docs @mas-acom @mas-variations @commerce @smoke @regression @milo',
     },

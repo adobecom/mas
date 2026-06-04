@@ -228,7 +228,7 @@ test.describe('ACOM MAS Variations feature test suite', () => {
             await expect(acomPage.getCardSubtitle(data.cardid)).toContainText(data.subtitle);
             await expect(acomPage.getCardBadge(data.cardid)).toHaveCSS('background-color', data.badgeColor);
             await expect(acomPage.getCollection(data.collection_id)).toBeVisible();
-            await expect(acomPage.getCardPrice(data.cardid)).toContainText(data.price.ar);
+            await expect(acomPage.getCardPrice(data.cardid)).toContainText(data.price);
         });
 
         await test.step('step-2: Verify translated grouped card variation on AR_co', async () => {
@@ -240,7 +240,7 @@ test.describe('ACOM MAS Variations feature test suite', () => {
             await expect(acomPage.getCardSubtitle(data.cardid)).toContainText(data.subtitle);
             await expect(acomPage.getCardBadge(data.cardid)).toHaveCSS('background-color', data.badgeColor);
             await expect(acomPage.getCollection(data.collection_id)).toBeVisible();
-            await expect(acomPage.getCardPrice(data.cardid)).toContainText(data.price.ar_en);
+            await expect(acomPage.getCardPrice(data.cardid)).toContainText(data.price);
         });
     });
 
@@ -256,7 +256,7 @@ test.describe('ACOM MAS Variations feature test suite', () => {
             await expect(acomPage.getCard(data.cardid)).toHaveAttribute('variation-id', data.variation_card_id);
             await expect(acomPage.getCardSubtitle(data.cardid)).toContainText(data.subtitle);
             await expect(acomPage.getCollection(data.collection_id)).toBeVisible();
-            await expect(acomPage.getCardPrice(data.cardid)).toContainText(data.price.ar);
+            await expect(acomPage.getCardPrice(data.cardid)).toContainText(data.price);
         });
 
         await test.step('step-2: Verify translated regional card variation on AR_co', async () => {
@@ -267,7 +267,7 @@ test.describe('ACOM MAS Variations feature test suite', () => {
             await expect(acomPage.getCard(data.cardid)).toHaveAttribute('variation-id', data.variation_card_id);
             await expect(acomPage.getCardSubtitle(data.cardid)).toContainText(data.subtitle);
             await expect(acomPage.getCollection(data.collection_id)).toBeVisible();
-            await expect(acomPage.getCardPrice(data.cardid)).toContainText(data.price.ar_en);
+            await expect(acomPage.getCardPrice(data.cardid)).toContainText(data.price);
         });
     });
 

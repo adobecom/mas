@@ -260,7 +260,7 @@ class MasFragmentVariations extends LitElement {
         }
 
         if (!this.hasLocaleVariations) {
-            return html`<p>No locale variations found</p>`;
+            return html`<p class="variations-empty">No locale variations found.</p>`;
         }
 
         return html`
@@ -297,7 +297,7 @@ class MasFragmentVariations extends LitElement {
         }
 
         if (!this.hasGroupedVariations) {
-            return html`<p>No grouped variations found</p>`;
+            return html`<p class="variations-empty">No grouped variations found.</p>`;
         }
 
         return html`

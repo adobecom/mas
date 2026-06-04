@@ -1,18 +1,11 @@
 export const styles = `
 .expanded-content {
-    background-color: var(--spectrum-white);
-    padding: 16px 0px 24px 30px;
+    /* Figma Alias/background/app-frame/layer-1. */
+    background-color: var(--spectrum-background-layer-1-color, #f8f8f8);
+    /* Per sketch: 20px top, 30px left, 20px right, 20px bottom. */
+    padding: 20px 20px 20px 30px;
     border-bottom: 1px solid var(--spectrum-gray-100);
     position: relative;
-}
-
-.expanded-title {
-    font-size: 14px;
-    font-weight: 700;
-    line-height: 18px;
-    color: var(--spectrum-gray-800);
-    margin: 0 0 16px 0;
-    padding-left: 16px;
 }
 
 .expanded-content sp-tab {
@@ -20,11 +13,29 @@ export const styles = `
     line-height: 18px;
 }
 
+/* Tabs strip inherits the inset from .expanded-content padding above. */
+.expanded-content sp-tabs {
+    padding-left: 0;
+    padding-right: 0;
+}
+
+/* Body S empty-state copy for the three variation tabs. */
+.expanded-content .variations-empty {
+    font-size: 14px;
+    line-height: 1.5;
+    font-weight: 400;
+    color: var(--spectrum-gray-700, #505050);
+    margin: 32px 0 0 0;
+    padding: 0;
+}
+
 #content .expanded-content sp-table {
-    margin-top: 16px;
-    background-color: var(--spectrum-blue-100);
+    /* 32px between the tabs/divider and the variations subtable. */
+    margin-top: 32px;
+    background-color: transparent;
     border: none;
 }
+
 
 #content .expanded-content sp-table sp-table-body {
     border: none;
@@ -50,8 +61,23 @@ export const styles = `
     border-bottom: 1px solid var(--spectrum-gray-200);
 }
 
-#content .expanded-content .nested-fragment sp-table-row:hover {
-    background-color: var(--spectrum-blue-400);
+/* Bento border-radius — applied to the first and last CELLS of the first
+   and last variation rows. Single-row case: both :first-of-type and
+   :last-of-type select the same row, so all four corners are rounded. */
+#content .expanded-content sp-table-body mas-fragment-table:first-of-type sp-table-row > sp-table-cell:first-child {
+    border-top-left-radius: 12px !important;
+}
+#content .expanded-content sp-table-body mas-fragment-table:first-of-type sp-table-row > sp-table-cell:last-child {
+    border-top-right-radius: 12px !important;
+}
+#content .expanded-content sp-table-body mas-fragment-table:last-of-type sp-table-row > sp-table-cell:first-child {
+    border-bottom-left-radius: 12px !important;
+}
+#content .expanded-content sp-table-body mas-fragment-table:last-of-type sp-table-row > sp-table-cell:last-child {
+    border-bottom-right-radius: 12px !important;
+}
+#content .expanded-content sp-table-body mas-fragment-table:last-of-type sp-table-row {
+    border-bottom: 0;
 }
 
 /* Grouped variation expanded section */

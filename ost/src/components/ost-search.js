@@ -89,6 +89,13 @@ export class OstSearch extends LitElement {
             const result = await getOfferSelector(osi, config);
             const code = result?.product_arrangement_code || result?.arrangement_code;
             if (code) {
+                store.setAosParams({
+                    customerSegment: result.customer_segment,
+                    marketSegment: Array.isArray(result.market_segments) ? result.market_segments[0] : result.market_segment,
+                    offerType: result.offer_type,
+                    commitment: result.commitment,
+                    term: result.term,
+                });
                 this.selectProductByCode(code);
                 store.setOsi(osi);
             }

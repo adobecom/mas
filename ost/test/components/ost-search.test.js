@@ -153,6 +153,29 @@ describe('ost-search', () => {
         expect(store.selectedOsi).to.equal('some-osi-id');
     });
 
+    it('resolveOsi maps offer-selector fields to AOS params so fetchOffers uses fresh filters', async () => {
+        const el = await fixture(html`<ost-search></ost-search>`);
+        const product = { arrangement_code: 'osi-arr', name: 'XD' };
+        store.allProducts = [['xd', product]];
+        store.setAosParams({ customerSegment: 'TEAM', marketSegment: 'EDU', offerType: 'TRIAL' });
+        window.fetch = async () => ({
+            ok: true,
+            json: async () => ({
+                product_arrangement_code: 'osi-arr',
+                customer_segment: 'INDIVIDUAL',
+                market_segments: ['COM'],
+                offer_type: 'BASE',
+                commitment: 'YEAR',
+                term: 'MONTHLY',
+            }),
+        });
+        await el.resolveOsi('some-osi-id');
+        expect(store.aosParams.customerSegment).to.equal('INDIVIDUAL');
+        expect(store.aosParams.marketSegment).to.equal('COM');
+        expect(store.aosParams.offerType).to.equal('BASE');
+        expect(store.selectedOsi).to.equal('some-osi-id');
+    });
+
     it('resolveOsi swallows fetch errors without throwing', async () => {
         const el = await fixture(html`<ost-search></ost-search>`);
         window.fetch = async () => {

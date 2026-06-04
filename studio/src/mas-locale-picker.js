@@ -49,8 +49,11 @@ export class MasLocalePicker extends LitElement {
 
         .chevron {
             vertical-align: middle;
-            margin-left: 6px;
             margin-top: -3px;
+            /* No margin-left — Spectrum's text-to-visual gap (6px, set on
+               :host) already provides the spacing to the label, and adding a
+               second 6px makes the right side look 12px while the left
+               (icon→text) is only 6px. */
         }
 
         :host(.strong) {
@@ -70,22 +73,55 @@ export class MasLocalePicker extends LitElement {
             --mod-actionbutton-border-radius: 16px;
             --spectrum-actionbutton-height: 32px;
             --spectrum-actionbutton-min-width: auto;
+            /* Figma 15382:308970 — 12px outer padding + 6px icon-to-label gap.
+               Spectrum computes its internal gap as
+               text-to-visual + edge-to-text − edge-to-visual-only,
+               so edge-to-text and edge-to-visual-only must be equal for the
+               gap to reduce to exactly text-to-visual (6px). */
+            /* Padding/gap tokens applied via JS on the inner sp-action-button
+               (see firstUpdated) — CSS inheritance can't override sp-action-button's
+               own :host([size=m]) declarations for these tokens. */
         }
 
+        /* Component/M/Bold per Figma — Spectrum tokens for size 100. */
         .strong [slot='label'].locale-label {
             display: flex;
             align-items: center;
             gap: 6px;
             color: var(--spectrum-gray-50, #ffffff);
-            font-weight: 700;
-            font-size: 14px;
-            font-family: 'Adobe Clean', sans-serif;
+            font-family: var(--spectrum-sans-font-family-stack, 'Adobe Clean', sans-serif);
+            font-size: var(--spectrum-font-size-100, 14px);
+            line-height: var(--spectrum-line-height-100, 18px);
+            font-weight: var(--spectrum-bold-font-weight, 700);
+            letter-spacing: var(--spectrum-letter-spacing, 0);
         }
 
         .strong sp-menu-item .locale-label {
             display: flex;
             align-items: center;
             gap: 6px;
+        }
+
+        /* Same menu-item style as the folder picker (Figma 22245:321219).
+           Only active in .strong (top-nav) mode. */
+        :host(.strong) sp-menu-item {
+            --mod-menu-item-label-inline-edge-to-content: 12px;
+            --mod-menu-item-min-height: 32px;
+            --mod-menu-item-top-edge-to-text: 7px;
+            --mod-menu-item-bottom-edge-to-text: 7px;
+            --mod-menu-item-label-font-size: 14px;
+            --mod-menu-item-label-line-height: 18px;
+            --mod-menu-item-label-content-color-default: var(--alias-content-neutral-default, #292929);
+            padding-inline-start: 12px !important;
+            padding-inline-end: 12px !important;
+            padding-block-start: 7px !important;
+            padding-block-end: 7px !important;
+            border-radius: 8px;
+            font-weight: 500;
+            margin: 0 !important;
+        }
+        :host(.strong) sp-menu-item + sp-menu-item {
+            margin-top: 4px !important;
         }
 
         sp-menu-item .locale-label {
@@ -111,26 +147,53 @@ export class MasLocalePicker extends LitElement {
             line-height: 1;
         }
 
-        sp-menu {
-            padding-top: 20px;
+        /* Top-nav popover layout per Figma 11769:183597. sp-popover provides
+           8px padding inset; sp-menu lays out search + scrollable items list
+           with a 4px gap. The extra space between search and the items list
+           (12px total per Figma) comes from a margin-bottom on sp-search
+           below (12 − 4 = 8px). */
+        :host(.strong) sp-menu {
+            padding: 0 !important;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            min-width: 233px;
         }
 
-        sp-search {
+        /* Scroll is scoped to the items wrapper, NOT sp-menu — that way the
+           scrollbar track sits only beside the items list and never beneath
+           the search field above it.
+           max-height = 9 items × 32 + 8 inter-item gaps × 4 = 320px. */
+        :host(.strong) .locale-items-scroll {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            max-height: 320px;
+            overflow-y: auto;
+        }
+
+        /* Search field per Figma — 32px h, 16px radius, 2px gray-300 border.
+           8px margin-bottom + the 4px sp-menu flex gap = 12px gap to the
+           first menu item, matching Figma. */
+        :host(.strong) sp-search {
             display: block;
-            margin-left: auto;
-            margin-right: auto;
-            padding-bottom: 12px;
-            width: 80%;
-        }
-
-        sp-search {
-            --mod-search-border-color-default: var(--spectrum-gray-400, #a9a9a9ff);
+            width: 100%;
+            margin-bottom: 8px;
+            --mod-search-border-color-default: var(--spectrum-gray-300, #dadada);
             --mod-search-border-radius: 16px;
             --mod-search-border-width: 2px;
+            --mod-search-height: 32px;
         }
 
-        sp-search:focus {
+        :host(.strong) sp-search:focus {
             --spectrum-focus-indicator-color: transparent;
+        }
+
+        /* Items list — no flex gap from sp-menu (which is set to 12px between
+           search and items list); use sibling margin between items for the
+           4px row gap. */
+        :host(.strong) sp-search + sp-menu-item {
+            margin-top: 0 !important;
         }
 
         .selection-trigger {
@@ -371,9 +434,9 @@ export class MasLocalePicker extends LitElement {
     get searchField() {
         return !this.searchDisabled
             ? html` <sp-search
-                  name="locale-search"
                   size="m"
                   placeholder="${this.searchPlaceholder}"
+                  autocomplete="off"
                   @input=${this.handleSearchInput}
                   @click=${this.handleSearchFieldClick}
                   .value=${this.searchQuery}
@@ -595,6 +658,52 @@ export class MasLocalePicker extends LitElement {
         }
     }
 
+    // Override Spectrum's action-button size-m padding tokens directly on the
+    // inner sp-action-button, since :host([size=m]) declarations inside the
+    // action-button shadow always beat inherited custom-property values from
+    // outside (cascade beats inheritance regardless of !important). Inline
+    // style on the element wins via specificity (1,0,0,0). Only runs in the
+    // "strong" display mode (the pill variant shown in the top nav).
+    // Adopt a stylesheet into sp-action-menu's shadow root so both the
+    // inner sp-action-button (the EN(US) pill) and the sp-popover (its
+    // dropdown) are styled BEFORE either first paints. Only applies in
+    // .strong display mode (the top-nav variant).
+    async firstUpdated() {
+        await this.updateComplete;
+        if (this.displayMode !== 'strong') return;
+        const actionMenu = this.shadowRoot?.querySelector('sp-action-menu');
+        if (!actionMenu) return;
+        await actionMenu.updateComplete;
+        this.#adoptShadowStyles(actionMenu);
+    }
+
+    #adoptShadowStyles(actionMenu) {
+        if (!actionMenu.shadowRoot || actionMenu.dataset.shadowPatched) return;
+        const sheet = new CSSStyleSheet();
+        sheet.replaceSync(`
+            sp-action-button {
+                --spectrum-actionbutton-edge-to-text: 12px;
+                --spectrum-actionbutton-edge-to-visual: 12px;
+                --spectrum-actionbutton-edge-to-visual-only: 12px;
+                --spectrum-actionbutton-text-to-visual: 6px;
+            }
+            sp-popover {
+                padding: 8px !important;
+                border-radius: 10px !important;
+                border: 1px solid transparent !important;
+                background-color: #ffffff !important;
+                box-shadow:
+                    0 0 2px rgba(0, 0, 0, 0.12),
+                    0 2px 6px rgba(0, 0, 0, 0.04),
+                    0 4px 12px rgba(0, 0, 0, 0.08) !important;
+                min-width: auto !important;
+                width: fit-content !important;
+            }
+        `);
+        actionMenu.shadowRoot.adoptedStyleSheets = [...actionMenu.shadowRoot.adoptedStyleSheets, sheet];
+        actionMenu.dataset.shadowPatched = 'true';
+    }
+
     render() {
         if (this.isCheckboxSelection) {
             return html`
@@ -627,7 +736,10 @@ export class MasLocalePicker extends LitElement {
                 </span>
                 <sp-icon-chevron-down class="chevron" slot="label"></sp-icon-chevron-down>
                 <sp-menu size="m">
-                    ${this.searchField} ${this.getFilteredLocales().map((locale) => this.renderMenuItem(locale))}
+                    ${this.searchField}
+                    <div class="locale-items-scroll">
+                        ${this.getFilteredLocales().map((locale) => this.renderMenuItem(locale))}
+                    </div>
                 </sp-menu>
             </sp-action-menu>
         `;

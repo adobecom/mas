@@ -3,34 +3,52 @@ import { LitElement, html, css } from 'lit';
 class MasSideNavItem extends LitElement {
     static properties = {
         label: { type: String },
-        selected: { type: Boolean },
-        disabled: { type: Boolean },
+        selected: { type: Boolean, reflect: true },
+        disabled: { type: Boolean, reflect: true },
     };
 
     static styles = css`
         :host {
             display: flex;
-            flex-direction: column;
             align-items: center;
-            justify-content: center;
-            padding: 12px 8px;
-            margin: 4px;
+            position: relative;
+            min-height: 32px;
+            max-height: 50px;
+            width: 100%;
             border-radius: 8px;
-            font-size: 12px;
-            color: var(--spectrum-gray-800, #292929);
-            text-align: center;
-            min-height: 52px;
-            width: 68px;
-            box-sizing: border-box;
+            color: var(--alias-content-neutral-subdued-default, #505050);
+            font-family: 'Adobe Clean', sans-serif;
+            font-size: 14px;
+            line-height: 18px;
+            font-weight: 400;
             cursor: pointer;
-            transition:
-                background-color 0.2s ease,
-                color 0.2s ease;
             user-select: none;
+            box-sizing: border-box;
+            padding-inline: 12px;
+            gap: 6px;
+            overflow: hidden;
+            transition: background-color 0.15s ease;
         }
 
         :host(:hover:not([disabled])) {
-            background-color: rgba(0, 0, 0, 0.04);
+            background-color: var(--spectrum-gray-200, #e1e1e1);
+        }
+
+        :host([selected]) {
+            color: var(--alias-content-neutral-default, #292929);
+            font-weight: 700;
+        }
+
+        :host([selected])::before {
+            content: '';
+            position: absolute;
+            left: 4px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 2px;
+            height: 18px;
+            border-radius: 4px;
+            background-color: var(--palette-gray-800, #292929);
         }
 
         :host([disabled]) {
@@ -42,56 +60,51 @@ class MasSideNavItem extends LitElement {
             display: flex;
             align-items: center;
             justify-content: center;
-            width: 30px;
-            height: 30px;
-            margin-bottom: 4px;
-        }
-
-        :host([selected]) .icon-container {
-            background-color: var(--spectrum-gray-900, #000000);
-            border-radius: 8px;
-        }
-
-        ::slotted(*) {
             width: 20px;
             height: 20px;
-            color: var(--spectrum-gray-800, #292929);
+            flex-shrink: 0;
         }
 
-        :host([selected]) ::slotted(*) {
-            color: var(--spectrum-white, #ffffff);
+        ::slotted([slot='icon']) {
+            width: 20px;
+            height: 20px;
+            color: var(--alias-content-neutral-subdued-default, #505050);
+        }
+
+        :host([selected]) ::slotted([slot='icon']) {
+            color: var(--alias-content-neutral-default, #292929);
         }
 
         .label {
-            font-family: 'Adobe Clean', sans-serif;
-            font-size: 12px;
-            font-weight: inherit;
-            line-height: 18px;
-            text-align: center;
+            flex: 1;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            display: var(--mas-sidenav-label-display, inline);
         }
 
+        /* No data-collapsed-specific layout — the item keeps full-width
+           expanded layout in both modes. The nav's overflow:hidden + 200ms
+           width transition handles the visual collapse by clipping the right
+           side of the item (which contains the label). The icon stays at a
+           fixed x from the nav-left (nav-padding + item-padding = 6 + 12 =
+           18px), so it appears centered in the 56px collapsed nav (icon
+           center 18+10 = 28 = nav center). No instant property flips. */
+
+        /* End-section item (Advanced tools) — Figma assigns this row a
+           tighter px-[8px] padding on its container so the longer label
+           still fits inside the 160px nav. Without this override the
+           default 12px padding clips "Advanced tools" by ~10px. */
         :host(.bottom) {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-        }
-
-        .support-indicator {
-            position: absolute;
-            top: 8px;
-            right: 8px;
-            width: 14px;
-            height: 14px;
-        }
-
-        :host(.side-nav-support) {
-            position: relative;
+            padding-inline: 8px;
         }
     `;
 
     constructor() {
         super();
+        this.selected = false;
+        this.disabled = false;
         this.handleClick = this.handleClick.bind(this);
     }
 
@@ -124,7 +137,7 @@ class MasSideNavItem extends LitElement {
             <div class="icon-container">
                 <slot name="icon"></slot>
             </div>
-            <div class="label">${this.label}</div>
+            <span class="label">${this.label}</span>
         `;
     }
 }

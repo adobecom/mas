@@ -23,6 +23,7 @@ class MasTopNav extends LitElement {
     translationProjects = Store.translationProjects;
     bulkPublishProjects = Store.bulkPublishProjects;
     masks = Store.masks;
+    sideNavCollapsed = Store.sideNavCollapsed;
 
     reactiveController = new ReactiveController(this, [
         this.page,
@@ -41,7 +42,12 @@ class MasTopNav extends LitElement {
         this.bulkPublishProjects.projectId,
         this.masks.fragmentId,
         this.masks.creating,
+        this.sideNavCollapsed,
     ]);
+
+    toggleSideNav = () => Store.sideNavCollapsed.set((v) => !v);
+    historyBack = () => window.history.back();
+    historyForward = () => window.history.forward();
 
     createRenderRoot() {
         return this;
@@ -404,13 +410,27 @@ class MasTopNav extends LitElement {
     get historyNavigationTemplate() {
         return html`
             <div class="history-navigation" aria-label="History navigation">
-                <button class="history-nav-button" type="button" aria-label="Back" @click=${() => history.back()}>
+                <button class="history-nav-button" type="button" aria-label="Back" @click=${this.historyBack}>
                     <sp-icon-chevron-left size="s"></sp-icon-chevron-left>
                 </button>
-                <button class="history-nav-button" type="button" aria-label="Forward" @click=${() => history.forward()}>
+                <button class="history-nav-button" type="button" aria-label="Forward" @click=${this.historyForward}>
                     <sp-icon-chevron-right size="s"></sp-icon-chevron-right>
                 </button>
             </div>
+        `;
+    }
+
+    get hamburgerTemplate() {
+        return html`
+            <button
+                class="hamburger-button"
+                type="button"
+                aria-label="Toggle navigation"
+                aria-expanded=${!Store.sideNavCollapsed.get()}
+                @click=${this.toggleSideNav}
+            >
+                <sp-icon-show-menu size="m"></sp-icon-show-menu>
+            </button>
         `;
     }
 
@@ -418,6 +438,7 @@ class MasTopNav extends LitElement {
         return html`
             <nav>
                 <div class="left-section">
+                    ${this.hamburgerTemplate}
                     <a id="brand" href="#page=welcome">
                         <svg
                             id="logo"

@@ -206,7 +206,11 @@ export function openOfferSelectorTool(triggerElement, offerElement) {
         }
         let searchOfferSelectorId;
         let initialReferenceOsi;
-        const aosAccessToken = localStorage.getItem('masAccessToken') ?? window.adobeid.authorize();
+        const aosAccessToken =
+            localStorage.getItem('masAccessToken') ??
+            sessionStorage.getItem('masAccessToken') ??
+            window.adobeIMS?.getAccessToken()?.token ??
+            window.adobeid?.authorize?.();
         const searchParameters = new URLSearchParams();
         const promotionCode = triggerElement?.closest('merch-card-editor')?.getEffectiveFieldValue('promoCode', 0)?.trim();
 

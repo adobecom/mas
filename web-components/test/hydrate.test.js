@@ -632,6 +632,29 @@ describe('hydrate', () => {
         litCard.remove();
     });
 
+    it('injects merch-addon at slot="addon" for plans-bizpro variant', async () => {
+        const litCard = document.createElement('merch-card');
+        document.body.appendChild(litCard);
+        await customElements.whenDefined('merch-card');
+
+        const addonHtml = `<p><strong>Add Acrobat AI Assistant to your plan for </strong><span is="inline-price" data-template="price" data-wcs-osi="ai"></span></p>`;
+        const fragment = {
+            id: 'bizpro-addon',
+            fields: {
+                variant: 'plans-bizpro',
+                cardTitle: 'Creative Cloud Pro',
+                prices: '<p><span is="inline-price" data-template="price" data-wcs-osi="main"></span></p>',
+                ctas: '<a class="accent" data-wcs-osi="main">Buy</a>',
+                addon: addonHtml,
+            },
+        };
+        await hydrate(fragment, litCard);
+        expect(litCard.addon).to.exist;
+        expect(litCard.addon.tagName.toLowerCase()).to.equal('merch-addon');
+        expect(litCard.addon.getAttribute('slot')).to.equal('addon');
+        litCard.remove();
+    });
+
     it('passes through missing compatVersion as undefined', async () => {
         const fragment = {
             fields: {

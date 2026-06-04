@@ -12,6 +12,10 @@ describe('icon-library', () => {
             expect(getSpectrumVersion(VARIANT_NAMES.PLANS_V2)).to.equal('spectrum');
         });
 
+        it('should return "spectrum" for bizpro variant', () => {
+            expect(getSpectrumVersion(VARIANT_NAMES.BIZPRO)).to.equal('spectrum');
+        });
+
         it('should return "spectrum" for plans-students variant', () => {
             expect(getSpectrumVersion(VARIANT_NAMES.PLANS_STUDENTS)).to.equal('spectrum');
         });

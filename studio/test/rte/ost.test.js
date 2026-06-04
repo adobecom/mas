@@ -236,3 +236,75 @@ describe('openOfferSelectorTool deep-link type parameter', () => {
         expect(getSearchParamsFromLastCall().get('type')).to.equal('checkoutUrl');
     });
 });
+
+describe('closeOfferSelectorTool', () => {
+    let closeOfferSelectorTool;
+    let openOfferSelectorTool;
+    let openOstStub;
+    let originalWindowOst;
+    let masCommerceService;
+    let masStudio;
+    let renderCommerceServiceStub;
+    let refreshRenderedPricesStub;
+    let querySelectorStub;
+
+    before(async () => {
+        ({ closeOfferSelectorTool, openOfferSelectorTool } = await import('../../src/rte/ost.js'));
+    });
+
+    beforeEach(() => {
+        openOstStub = sinon.stub().returns(() => {});
+        originalWindowOst = window.ost;
+        window.ost = { openOfferSelectorTool: openOstStub };
+        localStorage.setItem('masAccessToken', 'test-token');
+
+        masCommerceService = document.createElement('mas-commerce-service');
+        masCommerceService.setAttribute('locale', 'en_EG');
+        Object.defineProperty(masCommerceService, 'settings', {
+            value: { country: 'EG', language: 'en' },
+            configurable: true,
+        });
+        Object.defineProperty(masCommerceService, 'featureFlags', {
+            value: { 'mas-ff-defaults': false },
+            configurable: true,
+        });
+
+        renderCommerceServiceStub = sinon.stub();
+        masStudio = { renderCommerceService: renderCommerceServiceStub };
+        refreshRenderedPricesStub = sinon.stub();
+
+        querySelectorStub = sinon.stub(document, 'querySelector');
+        querySelectorStub.withArgs('mas-commerce-service').returns(masCommerceService);
+        querySelectorStub.withArgs('mas-studio').returns(masStudio);
+        querySelectorStub.withArgs('merch-card-editor').returns({
+            refreshRenderedPrices: refreshRenderedPricesStub,
+        });
+
+        Store.search.set({ region: 'en_EG' });
+        Store.filters.set({ locale: 'en_US' });
+    });
+
+    afterEach(() => {
+        window.ost = originalWindowOst;
+        querySelectorStub.restore();
+    });
+
+    it('restores authoring commerce service locale when OST changed it', () => {
+        masCommerceService.setAttribute('locale', 'ar_EG');
+        openOfferSelectorTool(null, null);
+
+        closeOfferSelectorTool();
+
+        expect(renderCommerceServiceStub.calledOnce).to.be.true;
+        expect(refreshRenderedPricesStub.calledOnce).to.be.true;
+    });
+
+    it('skips restore when commerce service locale already matches authoring locale', () => {
+        openOfferSelectorTool(null, null);
+
+        closeOfferSelectorTool();
+
+        expect(renderCommerceServiceStub.notCalled).to.be.true;
+        expect(refreshRenderedPricesStub.notCalled).to.be.true;
+    });
+});

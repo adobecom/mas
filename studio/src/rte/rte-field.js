@@ -12,7 +12,6 @@ import prosemirrorStyles from './prosemirror.css.js';
 import { EVENT_OST_SELECT } from '../constants.js';
 import throttle from '../utils/throttle.js';
 import './rte-mnemonic-editor.js';
-import { getActiveMerchCardEditor } from '../editors/merch-card-editor.js';
 
 const CUSTOM_ELEMENT_CHECKOUT_LINK = 'checkout-link';
 const CUSTOM_ELEMENT_INLINE_PRICE = 'inline-price';
@@ -1455,14 +1454,10 @@ class RteField extends LitElement {
         }
 
         const tr = from === to ? state.tr.insert(from, node) : state.tr.replaceWith(from, to, node);
-        const nextState = state.apply(tr);
-        const contentUnchanged = this.#serializeContent(nextState) === this.value;
+
         dispatch(tr);
         this.showOfferSelector = false;
         closeOfferSelectorTool();
-        if (attributes.is === CUSTOM_ELEMENT_INLINE_PRICE && contentUnchanged) {
-            getActiveMerchCardEditor()?.refreshRenderedPrices?.();
-        }
     }
 
     #handleToolbarAction(markType) {

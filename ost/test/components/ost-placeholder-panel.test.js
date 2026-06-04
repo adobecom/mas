@@ -126,13 +126,20 @@ describe('ost-placeholder-panel', () => {
     });
 
     describe('U12 option toggles', () => {
+        // Each switch's default option value (DEFAULT_PLACEHOLDER_OPTIONS in
+        // ost-store.js). `inverted` switches (forceTaxExclusive) render the UI
+        // switch as the negation of the option, so checked=!option.
+        // The non-default direction is the only meaningful one: flipping AWAY
+        // from the default proves the @change handler actually fired (a
+        // tautological test that asserted the default value would pass even if
+        // the handler never ran).
         const optionSwitches = [
-            { key: 'displayFormatted', inverted: false },
-            { key: 'displayRecurrence', inverted: false },
-            { key: 'displayPerUnit', inverted: false },
-            { key: 'displayTax', inverted: false },
-            { key: 'forceTaxExclusive', inverted: true },
-            { key: 'displayOldPrice', inverted: false },
+            { key: 'displayFormatted', inverted: false, default: true },
+            { key: 'displayRecurrence', inverted: false, default: true },
+            { key: 'displayPerUnit', inverted: false, default: false },
+            { key: 'displayTax', inverted: false, default: false },
+            { key: 'forceTaxExclusive', inverted: true, default: false },
+            { key: 'displayOldPrice', inverted: false, default: true },
         ];
 
         const fireSwitch = (el, key, checked) => {
@@ -142,30 +149,36 @@ describe('ost-placeholder-panel', () => {
             sw.dispatchEvent(new Event('change'));
         };
 
-        optionSwitches.forEach(({ key, inverted }) => {
-            it(`maps the ${key} switch ON to its option in getEffectiveOptions`, async () => {
+        optionSwitches.forEach(({ key, inverted, default: defaultValue }) => {
+            const nonDefault = !defaultValue;
+            // For an inverted switch the option is the negation of `checked`,
+            // so to make the option non-default we set checked = defaultValue.
+            const checkedToFlip = inverted ? defaultValue : nonDefault;
+
+            it(`flipping the ${key} switch away from its default sets the option to ${nonDefault}`, async () => {
                 const el = await fixture(html`<ost-placeholder-panel></ost-placeholder-panel>`);
                 await el.updateComplete;
                 const options = el.shadowRoot.querySelector('ost-placeholder-options');
                 await options.updateComplete;
+                expect(el.getEffectiveOptions()[key]).to.equal(defaultValue);
 
-                fireSwitch(el, key, true);
+                fireSwitch(el, key, checkedToFlip);
 
-                const expected = inverted ? false : true;
-                expect(el.getEffectiveOptions()[key]).to.equal(expected);
+                expect(el.getEffectiveOptions()[key]).to.equal(nonDefault);
             });
 
-            it(`OFF state of the ${key} switch does not set its option true`, async () => {
+            it(`flipping the ${key} switch back to its default restores the option to ${defaultValue}`, async () => {
                 const el = await fixture(html`<ost-placeholder-panel></ost-placeholder-panel>`);
                 await el.updateComplete;
                 const options = el.shadowRoot.querySelector('ost-placeholder-options');
                 await options.updateComplete;
 
-                fireSwitch(el, key, false);
+                fireSwitch(el, key, checkedToFlip);
+                expect(el.getEffectiveOptions()[key]).to.equal(nonDefault);
 
-                const expected = inverted ? true : false;
-                expect(el.getEffectiveOptions()[key]).to.equal(expected);
-                expect(el.getEffectiveOptions()[key]).to.not.equal(inverted ? false : true);
+                fireSwitch(el, key, !checkedToFlip);
+
+                expect(el.getEffectiveOptions()[key]).to.equal(defaultValue);
             });
         });
     });

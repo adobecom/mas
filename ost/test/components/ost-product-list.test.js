@@ -166,12 +166,37 @@ describe('ost-product-list', () => {
         expect(cards[0].querySelector('.product-name').textContent).to.equal('Photoshop');
     });
 
-    it('applying a market-segment filter with no matches shows the empty state', async () => {
-        store.aosParams = { ...store.aosParams, marketSegment: 'EDU' };
-        const el = await fixture(html`<ost-product-list></ost-product-list>`);
+    it('market-segment filter excludes products that lack the segment and keeps those that have it', async () => {
+        // Products with DIFFERENT market segments so the filter genuinely
+        // discriminates: a COM-only product and an EDU-only product. A shared
+        // segment would make the empty/non-empty result independent of the
+        // filter (tautological).
+        store.allProducts = [
+            {
+                name: 'Commercial Only',
+                arrangement_code: 'comm',
+                customerSegments: { INDIVIDUAL: true },
+                marketSegments: { COM: true },
+                draft: false,
+            },
+            {
+                name: 'Education Only',
+                arrangement_code: 'edu',
+                customerSegments: { INDIVIDUAL: true },
+                marketSegments: { EDU: true },
+                draft: false,
+            },
+        ];
 
-        expect(el.shadowRoot.querySelectorAll('.product-card').length).to.equal(0);
-        const empty = el.shadowRoot.querySelector('.empty-state');
+        store.aosParams = { ...store.aosParams, marketSegment: 'COM' };
+        const comEl = await fixture(html`<ost-product-list></ost-product-list>`);
+        const comNames = Array.from(comEl.shadowRoot.querySelectorAll('.product-name')).map((n) => n.textContent);
+        expect(comNames).to.deep.equal(['Commercial Only']);
+
+        store.aosParams = { ...store.aosParams, marketSegment: 'GOV' };
+        const govEl = await fixture(html`<ost-product-list></ost-product-list>`);
+        expect(govEl.shadowRoot.querySelectorAll('.product-card').length).to.equal(0);
+        const empty = govEl.shadowRoot.querySelector('.empty-state');
         expect(empty).to.exist;
         expect(empty.textContent).to.include('No products found');
     });
@@ -221,16 +246,20 @@ describe('ost-product-list', () => {
         expect(store.aosParams.customerSegment).to.equal('TEAM');
     });
 
-    it('clearing the customer-segment tag re-includes previously filtered products in the list', async () => {
+    it('clearing the customer-segment tag re-includes the specific previously filtered product', async () => {
         store.aosParams = { ...store.aosParams, customerSegment: 'TEAM' };
         const list = await fixture(html`<ost-product-list></ost-product-list>`);
         const bar = await fixture(html`<ost-filter-bar></ost-filter-bar>`);
-        expect(list.shadowRoot.querySelectorAll('.product-card').length).to.equal(1);
+        // Only Photoshop has the TEAM segment; Illustrator is INDIVIDUAL-only.
+        const filteredNames = Array.from(list.shadowRoot.querySelectorAll('.product-name')).map((n) => n.textContent);
+        expect(filteredNames).to.deep.equal(['Photoshop']);
 
         const tag = bar.shadowRoot.querySelector('.tag');
         tag.click();
         await list.updateComplete;
 
-        expect(list.shadowRoot.querySelectorAll('.product-card').length).to.equal(2);
+        const clearedNames = Array.from(list.shadowRoot.querySelectorAll('.product-name')).map((n) => n.textContent);
+        expect(clearedNames).to.include('Illustrator');
+        expect(clearedNames).to.deep.equal(['Photoshop', 'Illustrator']);
     });
 });

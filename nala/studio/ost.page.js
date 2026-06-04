@@ -7,8 +7,11 @@ export default class OSTPage {
         this.page = page.locator('[data-testid="ost-modal"]');
         this.popup = this.page;
 
-        // Search + product list
-        this.searchField = this.page.locator('[data-testid="ost-search-input"]');
+        // Search + product list.
+        // ost-search-input is the data-testid on the <sp-search> wrapper; the
+        // editable element is the <input> inside its shadow root, so drill into
+        // it for .fill()/.type() (Playwright CSS pierces shadow DOM).
+        this.searchField = this.page.locator('[data-testid="ost-search-input"] input');
         this.productList = this.page.locator('[data-testid="ost-product-name"]');
         this.productCard = this.page.locator('[data-testid="ost-product-card"]');
 

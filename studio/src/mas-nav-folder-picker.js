@@ -7,6 +7,15 @@ export class MasNavFolderPicker extends LitElement {
     };
 
     static styles = css`
+        /* Hide the pill until the Spectrum shadow stylesheet has been
+           adopted — otherwise it paints briefly with default Spectrum
+           padding/sizes. We don't gate on the async folder list anymore;
+           instead the label falls back to the raw path string (see render)
+           so the pill text is correct from the first paint. */
+        :host(:not([data-shadow-ready])) sp-action-menu {
+            visibility: hidden;
+        }
+
         :host {
             --mod-actionbutton-min-width: auto;
             --mod-actionbutton-background-color-default: var(--spectrum-gray-800, #292929);
@@ -159,19 +168,33 @@ export class MasNavFolderPicker extends LitElement {
 
     // Adopt a stylesheet into sp-action-menu's shadow root so both the
     // inner sp-action-button (the SANDBOX pill) and the sp-popover (its
-    // dropdown) are styled BEFORE either first paints. Setting inline
-    // styles via .style.setProperty(...) after updateComplete fired too
-    // late and produced a visible "default → custom" flash on mount.
-    async firstUpdated() {
-        await this.updateComplete;
+    // dropdown) are styled BEFORE either first paints.
+    //
+    // Important: do NOT `await actionMenu.updateComplete` first — by then
+    // the action-button is in the DOM and the browser has typically already
+    // painted with Spectrum defaults, producing a visible "default → custom"
+    // flash on reload. Spectrum custom elements create their shadow root in
+    // the constructor, so it's available synchronously when firstUpdated
+    // runs. Adopt the sheet right here, before Lit yields to paint.
+    firstUpdated() {
         const actionMenu = this.shadowRoot.querySelector('sp-action-menu');
         if (!actionMenu) return;
-        await actionMenu.updateComplete;
-        this.#adoptShadowStyles(actionMenu);
+        // Adopt synchronously when sp-action-button is already in the shadow
+        // (so it paints with our styles), and defer to actionMenu.updateComplete
+        // only when the button isn't there yet — that way we never miss the
+        // first paint with default styles.
+        if (actionMenu.shadowRoot?.querySelector('sp-action-button')) {
+            this.#adoptShadowStyles(actionMenu);
+        } else {
+            actionMenu.updateComplete.then(() => this.#adoptShadowStyles(actionMenu));
+        }
     }
 
     #adoptShadowStyles(actionMenu) {
-        if (!actionMenu.shadowRoot || actionMenu.dataset.shadowPatched) return;
+        if (!actionMenu.shadowRoot || actionMenu.dataset.shadowPatched) {
+            this.toggleAttribute('data-shadow-ready', true);
+            return;
+        }
         const sheet = new CSSStyleSheet();
         sheet.replaceSync(`
             sp-action-button {
@@ -195,6 +218,7 @@ export class MasNavFolderPicker extends LitElement {
         `);
         actionMenu.shadowRoot.adoptedStyleSheets = [...actionMenu.shadowRoot.adoptedStyleSheets, sheet];
         actionMenu.dataset.shadowPatched = 'true';
+        this.toggleAttribute('data-shadow-ready', true);
     }
 
     render() {
@@ -203,6 +227,11 @@ export class MasNavFolderPicker extends LitElement {
             label: this.formatFolderName(folder),
         }));
         const currentFolder = options.find((option) => option.value === this.search.value.path);
+        // While the folder list is loading async, currentFolder is undefined.
+        // Fall back to formatting the raw path so the pill shows the correct
+        // label from the first paint instead of an empty span that fills in
+        // a few seconds later.
+        const currentLabel = currentFolder?.label ?? this.formatFolderName(this.search.value.path);
 
         return html`
             <div class="folder-picker-wrapper">
@@ -223,7 +252,7 @@ export class MasNavFolderPicker extends LitElement {
                         >
                             <path fill="#292929" d="M19 0h11v26zM11.1 0H0v26zM15 9.6L22.1 26h-4.6l-2.1-5.2h-5.2z"></path>
                         </svg>
-                        <span>${currentFolder?.label}</span>
+                        <span>${currentLabel}</span>
                     </span>
                     <sp-menu size="m" class="folder-picker-menu">
                         ${options.map(({ value, label }) => {

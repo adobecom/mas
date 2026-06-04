@@ -37,6 +37,14 @@ export class MasLocalePicker extends LitElement {
     reactiveController = new ReactiveController(this, [Store.fragmentEditor.translatedLocales]);
 
     static styles = css`
+        /* Hide the strong-mode pill until the Spectrum shadow stylesheet
+           has been adopted (see firstUpdated) — otherwise it paints with
+           default Spectrum padding/sizes briefly before flipping to our
+           Figma values. */
+        :host(.strong:not([data-shadow-ready])) sp-action-menu {
+            visibility: hidden;
+        }
+
         sp-label {
             font-weight: 600;
             padding-right: 8px;
@@ -157,7 +165,11 @@ export class MasLocalePicker extends LitElement {
             display: flex;
             flex-direction: column;
             gap: 4px;
-            min-width: 233px;
+            /* No min-width — let the popover hug its longest menu item.
+               The Figma's 233px was the design's nominal width, but the
+               real content (English (GB), Bulgarian (BG), etc.) is much
+               narrower; forcing 233px left a lot of empty space on the
+               right side of every row. */
         }
 
         /* Scroll is scoped to the items wrapper, NOT sp-menu — that way the
@@ -668,17 +680,33 @@ export class MasLocalePicker extends LitElement {
     // inner sp-action-button (the EN(US) pill) and the sp-popover (its
     // dropdown) are styled BEFORE either first paints. Only applies in
     // .strong display mode (the top-nav variant).
-    async firstUpdated() {
-        await this.updateComplete;
+    //
+    // Important: do NOT `await actionMenu.updateComplete` first — by then
+    // the action-button is in the DOM and the browser has typically already
+    // painted with Spectrum defaults, producing a visible "default → custom"
+    // flash on reload. Spectrum custom elements create their shadow root in
+    // the constructor, so it's available synchronously when firstUpdated
+    // runs. Adopt the sheet right here, before Lit yields to paint.
+    firstUpdated() {
         if (this.displayMode !== 'strong') return;
         const actionMenu = this.shadowRoot?.querySelector('sp-action-menu');
         if (!actionMenu) return;
-        await actionMenu.updateComplete;
-        this.#adoptShadowStyles(actionMenu);
+        // Adopt synchronously when sp-action-button is already in the shadow
+        // (so it paints with our styles), and defer to actionMenu.updateComplete
+        // only when the button isn't there yet — that way we never miss the
+        // first paint with default styles.
+        if (actionMenu.shadowRoot?.querySelector('sp-action-button')) {
+            this.#adoptShadowStyles(actionMenu);
+        } else {
+            actionMenu.updateComplete.then(() => this.#adoptShadowStyles(actionMenu));
+        }
     }
 
     #adoptShadowStyles(actionMenu) {
-        if (!actionMenu.shadowRoot || actionMenu.dataset.shadowPatched) return;
+        if (!actionMenu.shadowRoot || actionMenu.dataset.shadowPatched) {
+            this.toggleAttribute('data-shadow-ready', true);
+            return;
+        }
         const sheet = new CSSStyleSheet();
         sheet.replaceSync(`
             sp-action-button {
@@ -702,6 +730,7 @@ export class MasLocalePicker extends LitElement {
         `);
         actionMenu.shadowRoot.adoptedStyleSheets = [...actionMenu.shadowRoot.adoptedStyleSheets, sheet];
         actionMenu.dataset.shadowPatched = 'true';
+        this.toggleAttribute('data-shadow-ready', true);
     }
 
     render() {

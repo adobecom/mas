@@ -736,13 +736,15 @@ describe('OstStore', () => {
             expect(store.language).to.equal('en');
         });
 
-        it('setCountry notifies subscribers reactively', () => {
-            let notified = false;
+        it('setCountry updates country and notifies subscribers for that change', () => {
+            store.setCountry('US');
+            let notifiedCountry;
             store.subscribe(() => {
-                notified = true;
+                notifiedCountry = store.country;
             });
             store.setCountry('DE');
-            expect(notified).to.be.true;
+            expect(store.country).to.equal('DE');
+            expect(notifiedCountry).to.equal('DE');
         });
 
         it('setting landscape updates store.landscape', () => {
@@ -752,13 +754,15 @@ describe('OstStore', () => {
             expect(store.landscape).to.not.equal('PUBLISHED');
         });
 
-        it('setting landscape notifies subscribers reactively', () => {
-            let notified = false;
+        it('setting landscape updates landscape and notifies subscribers for that change', () => {
+            store.landscape = 'PUBLISHED';
+            let notifiedLandscape;
             store.subscribe(() => {
-                notified = true;
+                notifiedLandscape = store.landscape;
             });
             store.landscape = 'DRAFT';
-            expect(notified).to.be.true;
+            expect(store.landscape).to.equal('DRAFT');
+            expect(notifiedLandscape).to.equal('DRAFT');
         });
     });
 });

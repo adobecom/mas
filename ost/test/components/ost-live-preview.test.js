@@ -197,7 +197,7 @@ describe('ost-live-preview', () => {
         expect(result.placeholderOptions.template).to.not.equal('optical');
     });
 
-    it('U5: renders the price node without a data-template attribute', async () => {
+    it('U5: sets data-template only for non-price types', async () => {
         store.masCommerceService = {
             createInlinePrice: () => {
                 const node = document.createElement('span');
@@ -208,14 +208,20 @@ describe('ost-live-preview', () => {
             createCheckoutLink: () => document.createElement('a'),
         };
         const preview = await getPreview();
+
         preview.placeholderType = 'price';
         await preview.updateComplete;
+        const priceContainer = preview.shadowRoot.querySelector('.placeholder-container');
+        const priceNode = priceContainer.querySelector('span.price');
+        expect(priceNode).to.exist;
+        expect(priceNode.dataset.template).to.equal(undefined);
 
-        const container = preview.shadowRoot.querySelector('.placeholder-container');
-        const node = container.querySelector('span.price');
-
-        expect(node).to.exist;
-        expect(node.dataset.template).to.equal(undefined);
+        preview.placeholderType = 'optical';
+        await preview.updateComplete;
+        const opticalContainer = preview.shadowRoot.querySelector('.placeholder-container');
+        const opticalNode = opticalContainer.querySelector('span.price');
+        expect(opticalNode).to.exist;
+        expect(opticalNode.dataset.template).to.equal('optical');
     });
 
     it('U6: sets template=optical and tags the optical node with data-template', async () => {

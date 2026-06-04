@@ -102,6 +102,8 @@ function addSavedAmountOnPromo(cardEl, priceEl) {
         ).textContent;
         const amountSt = getPriceAmount(priceSt);
         const amountPromo = getPriceAmount(pricePromo);
+        if (amountPromo >= amountSt) return;
+
         const amountDiscount = (amountSt - amountPromo).toFixed(2).toString();
         const discount = priceSt.textContent
             .replace(stAriaLabel, '')

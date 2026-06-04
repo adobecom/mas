@@ -184,7 +184,12 @@ class MasTopNav extends LitElement {
     }
 
     willUpdate(changedProperties) {
-        if (changedProperties.has('aemEnv')) {
+        // Only refetch when aemEnv genuinely changes after the first render.
+        // On the very first update changedProperties contains every property
+        // (with an old value of undefined) — without the hasUpdated guard,
+        // that would cause profileBuilder to run twice: once from
+        // connectedCallback's #warmProfile, and again here.
+        if (this.hasUpdated && changedProperties.has('aemEnv')) {
             this.profileTemplatePromise = null;
             this.#warmProfile();
         }

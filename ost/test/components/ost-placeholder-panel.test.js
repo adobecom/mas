@@ -124,4 +124,49 @@ describe('ost-placeholder-panel', () => {
         const serialized = el.serializeOptions();
         expect(serialized.displayPlanType).to.be.true;
     });
+
+    describe('U12 option toggles', () => {
+        const optionSwitches = [
+            { key: 'displayFormatted', inverted: false },
+            { key: 'displayRecurrence', inverted: false },
+            { key: 'displayPerUnit', inverted: false },
+            { key: 'displayTax', inverted: false },
+            { key: 'forceTaxExclusive', inverted: true },
+            { key: 'displayOldPrice', inverted: false },
+        ];
+
+        const fireSwitch = (el, key, checked) => {
+            const options = el.shadowRoot.querySelector('ost-placeholder-options');
+            const sw = options.shadowRoot.querySelector(`[data-testid="ost-option-${key}"]`);
+            sw.checked = checked;
+            sw.dispatchEvent(new Event('change'));
+        };
+
+        optionSwitches.forEach(({ key, inverted }) => {
+            it(`maps the ${key} switch ON to its option in getEffectiveOptions`, async () => {
+                const el = await fixture(html`<ost-placeholder-panel></ost-placeholder-panel>`);
+                await el.updateComplete;
+                const options = el.shadowRoot.querySelector('ost-placeholder-options');
+                await options.updateComplete;
+
+                fireSwitch(el, key, true);
+
+                const expected = inverted ? false : true;
+                expect(el.getEffectiveOptions()[key]).to.equal(expected);
+            });
+
+            it(`OFF state of the ${key} switch does not set its option true`, async () => {
+                const el = await fixture(html`<ost-placeholder-panel></ost-placeholder-panel>`);
+                await el.updateComplete;
+                const options = el.shadowRoot.querySelector('ost-placeholder-options');
+                await options.updateComplete;
+
+                fireSwitch(el, key, false);
+
+                const expected = inverted ? true : false;
+                expect(el.getEffectiveOptions()[key]).to.equal(expected);
+                expect(el.getEffectiveOptions()[key]).to.not.equal(inverted ? false : true);
+            });
+        });
+    });
 });

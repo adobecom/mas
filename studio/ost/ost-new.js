@@ -1323,6 +1323,18 @@ var cm=Object.defineProperty;var mi=U=>{throw TypeError(U)};var nm=(U,B,K)=>B in
             display: none;
         }
 
+        .placeholder-container sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+
         .placeholder-container span.placeholder-resolved[data-template='optical'],
         .placeholder-container span.price.price-optical {
             font-weight: 700;

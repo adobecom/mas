@@ -159,4 +159,30 @@ describe('ost-live-preview', () => {
         expect(getComputedStyle(integer).display).to.not.equal('none');
         expect(getComputedStyle(recurrence).display).to.equal('none');
     });
+
+    it('clips the sr-only aria label so it is not visible in the strikethrough preview', async () => {
+        store.masCommerceService = {
+            createInlinePrice: () => {
+                const node = document.createElement('span');
+                node.className = 'price price-strikethrough';
+                node.innerHTML =
+                    '<sr-only class="strikethrough-aria-label">Regularly at </sr-only>' +
+                    '<span class="price-integer">9</span>';
+                return node;
+            },
+        };
+        const preview = await getPreview();
+        preview.placeholderType = 'strikethrough';
+        await preview.updateComplete;
+
+        const container = preview.shadowRoot.querySelector('.placeholder-container');
+        const srOnly = container.querySelector('sr-only');
+        const integer = container.querySelector('span.price-integer');
+        const styles = getComputedStyle(srOnly);
+
+        expect(styles.position).to.equal('absolute');
+        expect(styles.width).to.equal('1px');
+        expect(styles.height).to.equal('1px');
+        expect(getComputedStyle(integer).display).to.not.equal('none');
+    });
 });

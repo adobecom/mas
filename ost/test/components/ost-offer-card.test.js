@@ -115,4 +115,50 @@ describe('ost-offer-card', () => {
         const cell = el.shadowRoot.querySelector('.cell');
         expect(cell).to.not.exist;
     });
+
+    describe('U4 select offer', () => {
+        afterEach(() => {
+            store.authoringFlow = 'single';
+            store.selectedOffer = undefined;
+            store.selectedOsi = undefined;
+        });
+
+        it('selects the clicked offer and advances to the placeholder config view', async () => {
+            store.authoringFlow = 'single';
+            store.selectedOffer = undefined;
+            store.selectedOsi = undefined;
+            const offerA = { ...mockOffer, offer_type: 'fake-base', offer_id: 'OFFER-A' };
+            const el = await fixture(html`<ost-offer-card .offer=${offerA}></ost-offer-card>`);
+
+            el.shadowRoot.querySelector('.cell-price').click();
+            await el.updateComplete;
+            await new Promise((r) => setTimeout(r, 50));
+
+            expect(store.selectedOffer).to.equal(offerA);
+            expect(store.selectedOsi).to.equal('fake-base');
+            expect(store.viewState).to.equal('configure');
+            expect(store.viewState).to.not.equal('offers');
+        });
+
+        it('replaces the selection when a second distinct offer is clicked', async () => {
+            store.authoringFlow = 'single';
+            store.selectedOffer = undefined;
+            store.selectedOsi = undefined;
+            const offerA = { ...mockOffer, offer_type: 'fake-base', offer_id: 'OFFER-A' };
+            const offerB = { ...mockOffer, offer_type: 'fake-trial', offer_id: 'OFFER-B' };
+            const elA = await fixture(html`<ost-offer-card .offer=${offerA}></ost-offer-card>`);
+            const elB = await fixture(html`<ost-offer-card .offer=${offerB}></ost-offer-card>`);
+
+            elA.shadowRoot.querySelector('.cell-price').click();
+            await elA.updateComplete;
+            await new Promise((r) => setTimeout(r, 50));
+            elB.shadowRoot.querySelector('.cell-price').click();
+            await elB.updateComplete;
+            await new Promise((r) => setTimeout(r, 50));
+
+            expect(store.selectedOffer).to.equal(offerB);
+            expect(store.selectedOsi).to.equal('fake-trial');
+            expect(store.selectedOffer).to.not.equal(offerA);
+        });
+    });
 });

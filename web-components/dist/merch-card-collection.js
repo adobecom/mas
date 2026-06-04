@@ -4922,10 +4922,7 @@ merch-card[variant="bizpro"] [slot="legal-text"] a {
         }
 
         :host([variant='bizpro']) .top-card {
-            background: var(
-                --consonant-merch-card-bizpro-bg-default,
-                #fff
-            );
+            background: var(--consonant-merch-card-bizpro-bg-default, #fff);
             border-radius: 12px;
             padding: 24px;
             display: flex;
@@ -4966,10 +4963,7 @@ merch-card[variant="bizpro"] [slot="legal-text"] a {
             font-size: 16px;
             line-height: 20px;
             letter-spacing: 0;
-            color: var(
-                --consonant-merch-card-bizpro-subtitle-color,
-                #000000a3
-            );
+            color: var(--consonant-merch-card-bizpro-subtitle-color, #000000a3);
             flex: 1;
         }
 
@@ -5124,8 +5118,7 @@ merch-card[variant="bizpro"] [slot="legal-text"] a {
         }
 
         /* Expanded state: no bottom padding — features-zone provides spacing */
-        :host([variant='bizpro'])
-            .whats-included-toggle[aria-expanded='true'] {
+        :host([variant='bizpro']) .whats-included-toggle[aria-expanded='true'] {
             padding-bottom: 0;
         }
 
@@ -5178,10 +5171,7 @@ merch-card[variant="bizpro"] [slot="legal-text"] a {
         :host([variant='bizpro']) .license-zone {
             display: flex;
             flex-direction: column;
-            background: var(
-                --consonant-merch-card-bizpro-bg-subtle,
-                #f8f8f8
-            );
+            background: var(--consonant-merch-card-bizpro-bg-subtle, #f8f8f8);
             border-radius: 8px;
             overflow: visible;
         }
@@ -5200,10 +5190,7 @@ merch-card[variant="bizpro"] [slot="legal-text"] a {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            background: var(
-                --consonant-merch-card-bizpro-bg-default,
-                #fff
-            );
+            background: var(--consonant-merch-card-bizpro-bg-default, #fff);
             border: 1px solid rgba(0, 0, 0, 0.08);
             border-radius: 8px;
             cursor: pointer;
@@ -5261,10 +5248,7 @@ merch-card[variant="bizpro"] [slot="legal-text"] a {
             margin: 0;
             padding: 0;
             list-style: none;
-            background: var(
-                --consonant-merch-card-bizpro-bg-default,
-                #fff
-            );
+            background: var(--consonant-merch-card-bizpro-bg-default, #fff);
             border: 1px solid rgba(0, 0, 0, 0.08);
             border-radius: 8px;
             box-shadow:
@@ -5291,10 +5275,7 @@ merch-card[variant="bizpro"] [slot="legal-text"] a {
             line-height: 18px;
             font-weight: 700;
             cursor: pointer;
-            background: var(
-                --consonant-merch-card-bizpro-bg-default,
-                #fff
-            );
+            background: var(--consonant-merch-card-bizpro-bg-default, #fff);
         }
 
         :host([variant='bizpro']) .license-select-option {
@@ -5314,10 +5295,7 @@ merch-card[variant="bizpro"] [slot="legal-text"] a {
 
         :host([variant='bizpro']) .license-select-option:hover,
         :host([variant='bizpro']) .license-select-option.selected {
-            background: var(
-                --consonant-merch-card-bizpro-bg-subtle,
-                #f8f8f8
-            );
+            background: var(--consonant-merch-card-bizpro-bg-subtle, #f8f8f8);
         }
 
         :host([variant='bizpro']) .callout {
@@ -5345,14 +5323,8 @@ merch-card[variant="bizpro"] [slot="legal-text"] a {
                the gradient on border-box so only the 1px border shows it. */
             background:
                 linear-gradient(
-                        var(
-                            --consonant-merch-card-bizpro-bg-default,
-                            #fff
-                        ),
-                        var(
-                            --consonant-merch-card-bizpro-bg-default,
-                            #fff
-                        )
+                        var(--consonant-merch-card-bizpro-bg-default, #fff),
+                        var(--consonant-merch-card-bizpro-bg-default, #fff)
                     )
                     padding-box,
                 linear-gradient(45deg, #8d88f2 0%, #8d88f2 48.8%, #eb1000 100%)

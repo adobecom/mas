@@ -38,10 +38,7 @@ describe('merch-card-editor whats-included variant routing', () => {
     });
 
     it('parses the toggle label for bizpro and exposes it to the label input', () => {
-        const editor = makeEditor(
-            VARIANT_NAMES.BIZPRO,
-            `<p class="whats-included-label">Voir le contenu :</p>${SECTIONS}`,
-        );
+        const editor = makeEditor(VARIANT_NAMES.BIZPRO, `<p class="whats-included-label">Voir le contenu :</p>${SECTIONS}`);
         const wi = editor.whatsIncluded;
         expect(wi.label).to.equal('Voir le contenu :');
         expect(wi.bullets).to.have.lengthOf(1);

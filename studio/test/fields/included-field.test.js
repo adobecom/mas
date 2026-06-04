@@ -203,11 +203,7 @@ describe('Included field', () => {
 
     it('renders library icons in the spectrum system for the bizpro variant', async () => {
         const el = await fixture(
-            html`<mas-included-field
-                data-field-state="bullet"
-                icon="sp-icon-lock"
-                variant="bizpro"
-            ></mas-included-field>`,
+            html`<mas-included-field data-field-state="bullet" icon="sp-icon-lock" variant="bizpro"></mas-included-field>`,
             { parentNode: spTheme() },
         );
 

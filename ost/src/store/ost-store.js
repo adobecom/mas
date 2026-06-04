@@ -355,7 +355,9 @@ export class OstStore extends EventTarget {
         // offer/OSI the deep-link already auto-selected. Only clear when the
         // product actually changes.
         const code = (p) => p?.arrangement_code ?? p?.code ?? p;
-        const sameProduct = product === this.selectedProduct || (product && this.selectedProduct && code(product) === code(this.selectedProduct));
+        const sameProduct =
+            product === this.selectedProduct ||
+            (product && this.selectedProduct && code(product) === code(this.selectedProduct));
         this.#batch(() => {
             this.selectedProduct = product;
             if (!sameProduct) {

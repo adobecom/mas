@@ -66,6 +66,9 @@ describe('aos-client', () => {
             expect(call.url).to.include('api_key=test-key');
             expect(call.url).to.include('landscape=DRAFT');
             expect(call.url).to.include('page_size=1000');
+            // AOS rejects environment=PRODUCTION with HTTP 400; it must be normalized to PROD.
+            expect(call.url).to.include('environment=PROD');
+            expect(call.url).to.not.include('environment=PRODUCTION');
             expect(call.options.headers['Authorization']).to.equal('Bearer test-token');
             expect(call.options.headers['X-Api-Key']).to.equal('test-key');
             expect(result.data).to.deep.equal(fetchResponse);

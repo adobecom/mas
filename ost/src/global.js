@@ -68,6 +68,20 @@ function openOfferSelectorTool(options) {
         modalsAndEntitlements,
         authoringFlow,
         multiSelect,
+        // Commerce config must survive the ost-app.updated() re-init too, or
+        // store.init(this.config) resets these to undefined and AOS calls fail
+        // (e.g. environment defaults to the AOS-invalid 'PRODUCTION' → HTTP 400,
+        // surfacing as "No offers found").
+        country,
+        language,
+        env,
+        environment,
+        landscape,
+        wcsApiKey,
+        apiKey: aosApiKey,
+        accessToken: aosAccessToken,
+        checkoutClientId,
+        promotionCode,
     };
 
     if (dialog) {

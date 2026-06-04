@@ -9,6 +9,12 @@ function getBaseUrl(env, baseUrl) {
     return AOS_BASE_URLS[env] || AOS_BASE_URLS.STAGE;
 }
 
+// AOS accepts environment=PROD|STAGE; the legacy/default value 'PRODUCTION'
+// is rejected with HTTP 400. Normalize before it reaches the query string.
+function normalizeEnvironment(environment) {
+    return environment === 'PRODUCTION' ? 'PROD' : environment;
+}
+
 function buildHeaders({ accessToken, apiKey }) {
     const headers = {};
     if (apiKey) headers['X-Api-Key'] = apiKey;
@@ -69,7 +75,7 @@ export async function searchOffers(params, config) {
         service_providers: Array.isArray(serviceProviders) ? serviceProviders.join(',') : serviceProviders,
         term,
         api_key: apiKey,
-        environment,
+        environment: normalizeEnvironment(environment),
         landscape,
         page,
         page_size: pageSize,
@@ -100,7 +106,7 @@ export async function getOfferById(offerId, country, config) {
         offer_id: offerId,
         country,
         api_key: apiKey,
-        environment,
+        environment: normalizeEnvironment(environment),
         landscape,
     };
     const url = `${base}/offers?${toSearchParams(queryParams)}`;

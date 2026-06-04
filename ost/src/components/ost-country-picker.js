@@ -18,35 +18,42 @@ export class OstCountryPicker extends LitElement {
     static styles = css`
         :host {
             font-family: inherit;
-            display: flex;
-            align-items: center;
-            gap: 16px;
+            display: block;
+        }
+
+        .picker-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+            align-items: end;
         }
 
         .picker-group {
             display: flex;
-            align-items: center;
-            gap: 8px;
+            flex-direction: column;
+            gap: 2px;
+            min-width: 0;
         }
 
         .picker-label {
-            font-size: 11px;
+            font-size: 10px;
             font-weight: 600;
-            color: var(--spectrum-gray-600);
-            text-transform: uppercase;
-            letter-spacing: 0.04em;
+            color: #6e6e6e;
         }
 
         sp-picker {
-            min-width: 80px;
+            width: 100%;
+        }
+
+        .picker-env {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 8px;
         }
 
         sp-switch {
             --spectrum-switch-font-size: 11px;
-        }
-
-        .country-input {
-            min-width: 72px;
         }
     `;
 
@@ -114,35 +121,38 @@ export class OstCountryPicker extends LitElement {
         const isStage = store.env === 'STAGE';
 
         return html`
-            <div class="picker-group">
-                <span class="picker-label">Landscape</span>
-                <sp-picker
-                    data-testid="ost-filter-landscape"
-                    value=${store.landscape}
-                    size="s"
-                    label="Landscape"
-                    @change=${this.handleLandscapeChange}
-                >
-                    <sp-menu-item value="PUBLISHED">Published</sp-menu-item>
-                    <sp-menu-item value="DRAFT">Draft</sp-menu-item>
-                    <sp-menu-item value="BOTH">Both (published + draft)</sp-menu-item>
-                </sp-picker>
+            <div class="picker-grid">
+                <div class="picker-group">
+                    <span class="picker-label">Landscape</span>
+                    <sp-picker
+                        data-testid="ost-filter-landscape"
+                        value=${store.landscape}
+                        size="s"
+                        label="Landscape"
+                        @change=${this.handleLandscapeChange}
+                    >
+                        <sp-menu-item value="PUBLISHED">Published</sp-menu-item>
+                        <sp-menu-item value="DRAFT">Draft</sp-menu-item>
+                        <sp-menu-item value="BOTH">Both (published + draft)</sp-menu-item>
+                    </sp-picker>
+                </div>
+                <div class="picker-group">
+                    <span class="picker-label">Country</span>
+                    <sp-picker
+                        data-testid="ost-filter-country"
+                        size="s"
+                        label="Country"
+                        value=${store.country}
+                        @change=${this.handleCountryChange}
+                    >
+                        ${this.countries.map((code) => html`<sp-menu-item value=${code}>${code}</sp-menu-item>`)}
+                    </sp-picker>
+                </div>
             </div>
-            <div class="picker-group">
-                <span class="picker-label">Country</span>
-                <sp-picker
-                    data-testid="ost-filter-country"
-                    class="country-input"
-                    size="s"
-                    label="Country"
-                    value=${store.country}
-                    @change=${this.handleCountryChange}
-                >
-                    ${this.countries.map((code) => html`<sp-menu-item value=${code}>${code}</sp-menu-item>`)}
-                </sp-picker>
+            <div class="picker-env">
+                <sp-switch size="s" ?checked=${isStage} @change=${this.handleEnvToggle}>Stage</sp-switch>
+                <ost-help-icon text="${HELP_TOOLTIPS.landscapeEnv}"></ost-help-icon>
             </div>
-            <sp-switch size="s" ?checked=${isStage} @change=${this.handleEnvToggle}>Stage</sp-switch>
-            <ost-help-icon text="${HELP_TOOLTIPS.landscapeEnv}"></ost-help-icon>
         `;
     }
 }

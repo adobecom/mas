@@ -22,14 +22,14 @@ describe('ost-country-picker', () => {
     it('renders the country control as an sp-picker, not a textfield', async () => {
         globalThis.fetch = () => Promise.reject(new Error('network'));
         const el = await fixture(html`<ost-country-picker></ost-country-picker>`);
-        expect(el.shadowRoot.querySelector('sp-picker.country-input')).to.exist;
+        expect(el.shadowRoot.querySelector('sp-picker[data-testid="ost-filter-country"]')).to.exist;
         expect(el.shadowRoot.querySelector('sp-textfield')).to.be.null;
     });
 
     it('reflects the current store country as the picker value', async () => {
         globalThis.fetch = () => Promise.reject(new Error('network'));
         const el = await fixture(html`<ost-country-picker></ost-country-picker>`);
-        const picker = el.shadowRoot.querySelector('sp-picker.country-input');
+        const picker = el.shadowRoot.querySelector('sp-picker[data-testid="ost-filter-country"]');
         expect(picker.getAttribute('value')).to.equal('US');
     });
 
@@ -51,7 +51,7 @@ describe('ost-country-picker', () => {
         await el.updateComplete;
         await new Promise((r) => setTimeout(r, 50));
         await el.updateComplete;
-        const items = el.shadowRoot.querySelectorAll('sp-picker.country-input sp-menu-item');
+        const items = el.shadowRoot.querySelectorAll('sp-picker[data-testid="ost-filter-country"] sp-menu-item');
         expect(items.length).to.be.greaterThan(0);
     });
 
@@ -59,7 +59,7 @@ describe('ost-country-picker', () => {
         globalThis.fetch = () => Promise.reject(new Error('network'));
         const el = await fixture(html`<ost-country-picker></ost-country-picker>`);
         await el.updateComplete;
-        const items = el.shadowRoot.querySelectorAll('sp-picker.country-input sp-menu-item');
+        const items = el.shadowRoot.querySelectorAll('sp-picker[data-testid="ost-filter-country"] sp-menu-item');
         expect(items.length).to.be.greaterThan(10);
     });
 
@@ -73,7 +73,7 @@ describe('ost-country-picker', () => {
         };
         const el = await fixture(html`<ost-country-picker></ost-country-picker>`);
         await el.updateComplete;
-        const picker = el.shadowRoot.querySelector('sp-picker.country-input');
+        const picker = el.shadowRoot.querySelector('sp-picker[data-testid="ost-filter-country"]');
         picker.value = 'DE';
         picker.dispatchEvent(new Event('change'));
         expect(calls).to.include('DE');
@@ -84,7 +84,7 @@ describe('ost-country-picker', () => {
         globalThis.fetch = () => Promise.reject(new Error('network'));
         const el = await fixture(html`<ost-country-picker></ost-country-picker>`);
         await el.updateComplete;
-        const items = el.shadowRoot.querySelectorAll('sp-picker.country-input sp-menu-item');
+        const items = el.shadowRoot.querySelectorAll('sp-picker[data-testid="ost-filter-country"] sp-menu-item');
         const values = Array.from(items).map((item) => item.getAttribute('value'));
         expect(items.length).to.equal(el.countries.length);
         expect(values).to.deep.equal(el.countries);
@@ -94,7 +94,7 @@ describe('ost-country-picker', () => {
         globalThis.fetch = () => Promise.reject(new Error('network'));
         const el = await fixture(html`<ost-country-picker></ost-country-picker>`);
         await el.updateComplete;
-        const picker = el.shadowRoot.querySelector('sp-picker.country-input');
+        const picker = el.shadowRoot.querySelector('sp-picker[data-testid="ost-filter-country"]');
         picker.value = 'JP';
         picker.dispatchEvent(new Event('change'));
         expect(store.country).to.equal('JP');
@@ -104,8 +104,7 @@ describe('ost-country-picker', () => {
     it('renders the landscape control as an sp-picker with its options', async () => {
         globalThis.fetch = () => Promise.reject(new Error('network'));
         const el = await fixture(html`<ost-country-picker></ost-country-picker>`);
-        const pickers = el.shadowRoot.querySelectorAll('sp-picker');
-        const landscape = Array.from(pickers).find((p) => !p.classList.contains('country-input'));
+        const landscape = el.shadowRoot.querySelector('sp-picker[data-testid="ost-filter-landscape"]');
         expect(landscape).to.exist;
         expect(landscape.tagName.toLowerCase()).to.equal('sp-picker');
         const values = Array.from(landscape.querySelectorAll('sp-menu-item')).map((i) => i.getAttribute('value'));
@@ -147,7 +146,7 @@ describe('ost-country-picker', () => {
         globalThis.fetch = () => Promise.reject(new Error('network'));
         const el = await fixture(html`<ost-country-picker></ost-country-picker>`);
         await el.updateComplete;
-        const picker = el.shadowRoot.querySelector('sp-picker.country-input');
+        const picker = el.shadowRoot.querySelector('sp-picker[data-testid="ost-filter-country"]');
         picker.value = 'JP';
         picker.dispatchEvent(new Event('change'));
         expect(store.language).to.equal('ja');
@@ -157,7 +156,7 @@ describe('ost-country-picker', () => {
         globalThis.fetch = () => Promise.reject(new Error('network'));
         const el = await fixture(html`<ost-country-picker></ost-country-picker>`);
         await el.updateComplete;
-        const picker = el.shadowRoot.querySelector('sp-picker.country-input');
+        const picker = el.shadowRoot.querySelector('sp-picker[data-testid="ost-filter-country"]');
         picker.value = 'DE';
         picker.dispatchEvent(new Event('change'));
         expect(store.language).to.equal('de');
@@ -168,7 +167,7 @@ describe('ost-country-picker', () => {
         store.language = 'fr';
         const el = await fixture(html`<ost-country-picker></ost-country-picker>`);
         await el.updateComplete;
-        const picker = el.shadowRoot.querySelector('sp-picker.country-input');
+        const picker = el.shadowRoot.querySelector('sp-picker[data-testid="ost-filter-country"]');
         picker.value = 'ZZ';
         picker.dispatchEvent(new Event('change'));
         expect(store.country).to.equal('ZZ');

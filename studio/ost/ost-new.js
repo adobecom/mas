@@ -429,67 +429,77 @@ var cm=Object.defineProperty;var mi=U=>{throw TypeError(U)};var nm=(U,B,K)=>B in
             opacity: 0.7;
         }
     `),customElements.define("ost-filter-bar",Kr);const Qi=[{"iso2-code":"AE"},{"iso2-code":"AM"},{"iso2-code":"AR"},{"iso2-code":"AT"},{"iso2-code":"AU"},{"iso2-code":"AZ"},{"iso2-code":"BB"},{"iso2-code":"BE"},{"iso2-code":"BG"},{"iso2-code":"BH"},{"iso2-code":"BO"},{"iso2-code":"BR"},{"iso2-code":"BS"},{"iso2-code":"BY"},{"iso2-code":"CA"},{"iso2-code":"CH"},{"iso2-code":"CL"},{"iso2-code":"CN"},{"iso2-code":"CO"},{"iso2-code":"CR"},{"iso2-code":"CY"},{"iso2-code":"CZ"},{"iso2-code":"DE"},{"iso2-code":"DK"},{"iso2-code":"DO"},{"iso2-code":"DZ"},{"iso2-code":"EC"},{"iso2-code":"EE"},{"iso2-code":"EG"},{"iso2-code":"ES"},{"iso2-code":"FI"},{"iso2-code":"FR"},{"iso2-code":"GB"},{"iso2-code":"GE"},{"iso2-code":"GR"},{"iso2-code":"GT"},{"iso2-code":"HK"},{"iso2-code":"HN"},{"iso2-code":"HR"},{"iso2-code":"HU"},{"iso2-code":"ID"},{"iso2-code":"IE"},{"iso2-code":"IL"},{"iso2-code":"IN"},{"iso2-code":"IS"},{"iso2-code":"IT"},{"iso2-code":"JM"},{"iso2-code":"JO"},{"iso2-code":"JP"},{"iso2-code":"KE"},{"iso2-code":"KG"},{"iso2-code":"KR"},{"iso2-code":"KW"},{"iso2-code":"KZ"},{"iso2-code":"LB"},{"iso2-code":"LK"},{"iso2-code":"LT"},{"iso2-code":"LU"},{"iso2-code":"LV"},{"iso2-code":"MA"},{"iso2-code":"MD"},{"iso2-code":"MO"},{"iso2-code":"MT"},{"iso2-code":"MU"},{"iso2-code":"MX"},{"iso2-code":"MY"},{"iso2-code":"NG"},{"iso2-code":"NI"},{"iso2-code":"NL"},{"iso2-code":"NO"},{"iso2-code":"NP"},{"iso2-code":"NZ"},{"iso2-code":"OM"},{"iso2-code":"PA"},{"iso2-code":"PE"},{"iso2-code":"PH"},{"iso2-code":"PL"},{"iso2-code":"PR"},{"iso2-code":"PT"},{"iso2-code":"PY"},{"iso2-code":"QA"},{"iso2-code":"RO"},{"iso2-code":"RU"},{"iso2-code":"SA"},{"iso2-code":"SE"},{"iso2-code":"SG"},{"iso2-code":"SI"},{"iso2-code":"SK"},{"iso2-code":"SV"},{"iso2-code":"TH"},{"iso2-code":"TJ"},{"iso2-code":"TM"},{"iso2-code":"TR"},{"iso2-code":"TT"},{"iso2-code":"TW"},{"iso2-code":"TZ"},{"iso2-code":"UA"},{"iso2-code":"US"},{"iso2-code":"UY"},{"iso2-code":"UZ"},{"iso2-code":"VE"},{"iso2-code":"VN"},{"iso2-code":"YE"},{"iso2-code":"ZA"}],ec="https://countries-stage.adobe.io/v2/countries?api_key=dexter-commerce-offers";function Cs(s){return s.map(e=>e["iso2-code"]||e).sort()}class Vr extends N{constructor(){super(),this.countries=Cs(Qi),this.handleStoreChange=this.handleStoreChange.bind(this)}connectedCallback(){super.connectedCallback(),n.subscribe(this.handleStoreChange),this.fetchCountries()}disconnectedCallback(){super.disconnectedCallback(),n.unsubscribe(this.handleStoreChange)}handleStoreChange(){this.requestUpdate()}isLocalhost(){return window.location.hostname==="localhost"}async fetchCountries(){if(!this.isLocalhost())try{const e=await fetch(ec);if(!e.ok)throw new Error(`Countries request failed (${e.status})`);const t=await e.json(),r=Cs(t);r.includes(n.country)||(r.push(n.country),r.sort()),this.countries=r}catch{}}handleLandscapeChange(e){n.landscape=e.target.value,n.notify()}handleCountryChange(e){n.setCountry(e.target.value)}handleEnvToggle(e){const t=e.target.checked?"STAGE":"PRODUCTION";n.setEnv(t)}render(){const e=n.env==="STAGE";return d`
-            <div class="picker-group">
-                <span class="picker-label">Landscape</span>
-                <sp-picker
-                    data-testid="ost-filter-landscape"
-                    value=${n.landscape}
-                    size="s"
-                    label="Landscape"
-                    @change=${this.handleLandscapeChange}
-                >
-                    <sp-menu-item value="PUBLISHED">Published</sp-menu-item>
-                    <sp-menu-item value="DRAFT">Draft</sp-menu-item>
-                    <sp-menu-item value="BOTH">Both (published + draft)</sp-menu-item>
-                </sp-picker>
+            <div class="picker-grid">
+                <div class="picker-group">
+                    <span class="picker-label">Landscape</span>
+                    <sp-picker
+                        data-testid="ost-filter-landscape"
+                        value=${n.landscape}
+                        size="s"
+                        label="Landscape"
+                        @change=${this.handleLandscapeChange}
+                    >
+                        <sp-menu-item value="PUBLISHED">Published</sp-menu-item>
+                        <sp-menu-item value="DRAFT">Draft</sp-menu-item>
+                        <sp-menu-item value="BOTH">Both (published + draft)</sp-menu-item>
+                    </sp-picker>
+                </div>
+                <div class="picker-group">
+                    <span class="picker-label">Country</span>
+                    <sp-picker
+                        data-testid="ost-filter-country"
+                        size="s"
+                        label="Country"
+                        value=${n.country}
+                        @change=${this.handleCountryChange}
+                    >
+                        ${this.countries.map(t=>d`<sp-menu-item value=${t}>${t}</sp-menu-item>`)}
+                    </sp-picker>
+                </div>
             </div>
-            <div class="picker-group">
-                <span class="picker-label">Country</span>
-                <sp-picker
-                    data-testid="ost-filter-country"
-                    class="country-input"
-                    size="s"
-                    label="Country"
-                    value=${n.country}
-                    @change=${this.handleCountryChange}
-                >
-                    ${this.countries.map(t=>d`<sp-menu-item value=${t}>${t}</sp-menu-item>`)}
-                </sp-picker>
+            <div class="picker-env">
+                <sp-switch size="s" ?checked=${e} @change=${this.handleEnvToggle}>Stage</sp-switch>
+                <ost-help-icon text="${ze.landscapeEnv}"></ost-help-icon>
             </div>
-            <sp-switch size="s" ?checked=${e} @change=${this.handleEnvToggle}>Stage</sp-switch>
-            <ost-help-icon text="${ze.landscapeEnv}"></ost-help-icon>
         `}}O(Vr,"properties",{countries:{type:Array,state:!0}}),O(Vr,"styles",S`
         :host {
             font-family: inherit;
-            display: flex;
-            align-items: center;
-            gap: 16px;
+            display: block;
+        }
+
+        .picker-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+            align-items: end;
         }
 
         .picker-group {
             display: flex;
-            align-items: center;
-            gap: 8px;
+            flex-direction: column;
+            gap: 2px;
+            min-width: 0;
         }
 
         .picker-label {
-            font-size: 11px;
+            font-size: 10px;
             font-weight: 600;
-            color: var(--spectrum-gray-600);
-            text-transform: uppercase;
-            letter-spacing: 0.04em;
+            color: #6e6e6e;
         }
 
         sp-picker {
-            min-width: 80px;
+            width: 100%;
+        }
+
+        .picker-env {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 8px;
         }
 
         sp-switch {
             --spectrum-switch-font-size: 11px;
-        }
-
-        .country-input {
-            min-width: 72px;
         }
     `),customElements.define("ost-country-picker",Vr);var Ss;(function(s){s.BASE="BASE",s.TRIAL="TRIAL",s.PROMOTION="PROMOTION"})(Ss||(Ss={}));var ye;(function(s){s.MONTH="MONTH",s.YEAR="YEAR",s.TWO_YEARS="TWO_YEARS",s.THREE_YEARS="THREE_YEARS",s.PERPETUAL="PERPETUAL",s.TERM_LICENSE="TERM_LICENSE",s.ACCESS_PASS="ACCESS_PASS",s.THREE_MONTHS="THREE_MONTHS",s.SIX_MONTHS="SIX_MONTHS"})(ye||(ye={}));var Ce;(function(s){s.ANNUAL="ANNUAL",s.MONTHLY="MONTHLY",s.TWO_YEARS="TWO_YEARS",s.THREE_YEARS="THREE_YEARS",s.P1D="P1D",s.P1Y="P1Y",s.P3Y="P3Y",s.P10Y="P10Y",s.P15Y="P15Y",s.P3D="P3D",s.P7D="P7D",s.P30D="P30D",s.HALF_YEARLY="HALF_YEARLY",s.QUARTERLY="QUARTERLY"})(Ce||(Ce={}));var Es;(function(s){s.INDIVIDUAL="INDIVIDUAL",s.TEAM="TEAM",s.ENTERPRISE="ENTERPRISE"})(Es||(Es={}));var $s;(function(s){s.COM="COM",s.EDU="EDU",s.GOV="GOV"})($s||($s={}));var Ts;(function(s){s.DIRECT="DIRECT",s.INDIRECT="INDIRECT"})(Ts||(Ts={}));var As;(function(s){s.ENTERPRISE_PRODUCT="ENTERPRISE_PRODUCT",s.ETLA="ETLA",s.RETAIL="RETAIL",s.VIP="VIP",s.VIPMP="VIPMP",s.FREE="FREE"})(As||(As={}));const Ps="ABM",Os="PUF",Is="M2M",_s="PERPETUAL",Ls="P3Y";Ps+"",ye.YEAR,Ce.MONTHLY,Os+"",ye.YEAR,Ce.ANNUAL,Is+"",ye.MONTH,Ce.MONTHLY,_s+"",ye.PERPETUAL,Ls+"",ye.THREE_MONTHS,Ce.P3Y;const Ds="Value is not an offer",js=s=>{if(typeof s!="object")return Ds;const{commitment:e,term:t}=s,r=tc(e,t);return{...s,planType:r}},tc=(s,e)=>{switch(s){case void 0:return Ds;case"":return"";case ye.YEAR:return e===Ce.MONTHLY?Ps:e===Ce.ANNUAL?Os:"";case ye.MONTH:return e===Ce.MONTHLY?Is:"";case ye.PERPETUAL:return _s;case ye.TERM_LICENSE:return e===Ce.P3Y?Ls:"";default:return""}},Rs={ABM:"positive",PUF:"informative",M2M:"yellow",PERPETUAL:"seafoam",P3Y:"fuchsia"};function Ms(s){if(s.offer_type!=="TRIAL")return null;const e=(s.price_point||"").match(/(\d+)_DAY/i);return e?parseInt(e[1],10):null}function rc(s){var t,r,o,a,i;return(s==null?void 0:s.price_point)==="FREE"?!0:((i=(a=(o=(r=(t=s==null?void 0:s.pricing)==null?void 0:t.prices)==null?void 0:r[0])==null?void 0:o.price_details)==null?void 0:a.display_rules)==null?void 0:i.price)===0}function oc(s){var e,t;return((t=(e=s==null?void 0:s.pricing)==null?void 0:e.currency)==null?void 0:t.symbol)||"$"}function Bs(s){const e=s.term,t=s.commitment;return t==="YEAR"||e==="ANNUAL"?"/yr":t==="MONTH"||e==="MONTHLY"?"/mo":""}function Fs(s){var a,i,c,l,u,p;if(rc(s))return`${oc(s)}0.00`;const e=s.pricing;if(!e)return"";const t=((a=e.currency)==null?void 0:a.symbol)||"",r=((i=e.currency)==null?void 0:i.format_string)||"",o=(p=(u=(l=(c=e.prices)==null?void 0:c[0])==null?void 0:l.price_details)==null?void 0:u.display_rules)==null?void 0:p.price;return o===void 0?"":t&&o!==void 0?`${t}${o.toFixed(2)}`:r?r.replace(/#[#,.0]+/,o.toFixed(2)):String(o)}class Wr extends N{constructor(){super(),this.offer=void 0,this.selected=!1,this.lastSelected=!1,this.card=!1,this.resolving=!1,this.copied=!1}async copyOfferId(e,t){e.stopPropagation();try{await navigator.clipboard.writeText(t),this.copied=!0,setTimeout(()=>{this.copied=!1},1500)}catch{}}async handleClick(){if(!(!this.offer||this.resolving)){if(n.authoringFlow==="consult"){n.selectedOffer=this.offer,n.notify();return}this.resolving=!0;try{const e={accessToken:n.accessToken,apiKey:n.apiKey,baseUrl:n.baseUrl,env:n.env},t=await cr(this.offer,e);n.addOffer(this.offer,t)}catch{}this.resolving=!1}}renderCard(){const e=this.offer,t=Fs(e),r=Bs(e),o=e.offer_id||"";return d`
             <div class="offer-card" @click=${this.handleClick}>

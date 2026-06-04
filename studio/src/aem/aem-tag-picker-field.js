@@ -68,6 +68,7 @@ class AemTagPickerField extends LitElement {
             display: flex;
             align-items: center;
             flex-direction: column;
+            min-height: 40px;
         }
 
         :host([selection='checkbox']) {

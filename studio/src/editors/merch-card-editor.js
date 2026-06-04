@@ -1034,6 +1034,16 @@ class MerchCardEditor extends LitElement {
                     --mod-picker-border-radius: 8px;
                 }
 
+                #size {
+                    position: relative;
+                    z-index: 2;
+                }
+
+                #tags {
+                    position: relative;
+                    z-index: 1;
+                }
+
                 #whatsIncluded mas-multifield {
                     margin: 8px 16px 8px 0;
                 }

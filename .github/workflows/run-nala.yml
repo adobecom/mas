@@ -109,7 +109,6 @@ jobs:
                   IMS_EMAIL: ${{ secrets.IMS_EMAIL }}
                   IMS_PASS: ${{ secrets.IMS_PASS }}
 
-
     run-nala-docs-tests:
         name: Running Nala Docs E2E UI Tests
         needs: nala-gate

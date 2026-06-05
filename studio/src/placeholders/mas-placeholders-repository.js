@@ -427,9 +427,7 @@ export async function loadPlaceholders() {
 export function getDictionaryPath() {
     const repo = getRepository();
     const surfaceKey =
-        repo.page.value === PAGE_NAMES.PROMOTIONS_EDITOR
-            ? Store.promotions.itemPickerSurface.get() || null
-            : Store.surface();
+        repo.page.value === PAGE_NAMES.PROMOTIONS_EDITOR ? Store.promotions.itemPickerSurface.get() || null : Store.surface();
     if (!surfaceKey) return null;
     return `${ROOT_PATH}/${surfaceKey}/${Store.localeOrRegion()}/dictionary`;
 }

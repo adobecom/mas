@@ -32,7 +32,13 @@ import {
     PZN_FOLDER,
     SURFACES,
 } from './constants.js';
-import { clearDictionaryCache, fetchDictionary, getDictionaryPath, loadPlaceholders, loadPreviewPlaceholders } from './placeholders/mas-placeholders-repository.js';
+import {
+    clearDictionaryCache,
+    fetchDictionary,
+    getDictionaryPath,
+    loadPlaceholders,
+    loadPreviewPlaceholders,
+} from './placeholders/mas-placeholders-repository.js';
 import { fragmentHasPersonalizationTag, isPznCountryTagId, PZN_TAG_ID_PREFIX } from './common/utils/personalization-utils.js';
 import { getFragmentName } from './translation/translation-utils.js';
 import { getItemsSelectionStore } from './common/items-selection-store.js';

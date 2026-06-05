@@ -98,6 +98,10 @@ export class OstSearch extends LitElement {
                 });
                 this.selectProductByCode(code);
                 store.setOsi(osi);
+                // Mirror the deep-link contract: remember the searched OSI so the
+                // offer step auto-selects its matching offer (enabling "Use"
+                // without a manual offer-card click).
+                store.initialOsi = osi;
             }
         } catch {
             /* OSI resolution failed */

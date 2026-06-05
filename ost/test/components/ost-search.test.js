@@ -153,6 +153,19 @@ describe('ost-search', () => {
         expect(store.selectedOsi).to.equal('some-osi-id');
     });
 
+    it('resolveOsi sets initialOsi so the searched offer auto-selects on the offer step', async () => {
+        const el = await fixture(html`<ost-search></ost-search>`);
+        const product = { arrangement_code: 'osi-arr', name: 'XD' };
+        store.allProducts = [['xd', product]];
+        store.initialOsi = undefined;
+        window.fetch = async () => ({
+            ok: true,
+            json: async () => ({ product_arrangement_code: 'osi-arr' }),
+        });
+        await el.resolveOsi('searched-osi');
+        expect(store.initialOsi).to.equal('searched-osi');
+    });
+
     it('resolveOsi maps offer-selector fields to AOS params so fetchOffers uses fresh filters', async () => {
         const el = await fixture(html`<ost-search></ost-search>`);
         const product = { arrangement_code: 'osi-arr', name: 'XD' };

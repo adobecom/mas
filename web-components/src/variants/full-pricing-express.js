@@ -104,8 +104,21 @@ export class FullPricingExpress extends VariantLayout {
         `;
     }
 
-    async syncHeights() {
+    async waitForTitleFont() {
+        const title = this.card.querySelector(this.headingSelector);
+        if (title && document.fonts?.load) {
+            const style = window.getComputedStyle(title);
+            const font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+            await document.fonts
+                .load(font, title.textContent)
+                .catch(() => null);
+        }
         await document.fonts.ready;
+    }
+
+    async syncHeights() {
+        await this.waitForTitleFont();
+        await new Promise((resolve) => requestAnimationFrame(resolve));
         await new Promise((resolve) => requestAnimationFrame(resolve));
         if (this.card.getBoundingClientRect().width <= 2) return;
         const sectionEntries = FullPricingExpress.SYNCED_SECTIONS.map(
@@ -167,6 +180,31 @@ export class FullPricingExpress extends VariantLayout {
         if (window.matchMedia('(min-width: 768px)').matches) {
             this.syncHeights();
         }
+    }
+
+    connectedCallbackHook() {
+        if (!this.card || typeof ResizeObserver === 'undefined') return;
+        this.lastSyncedKey = '';
+        this.sizeObserver = new ResizeObserver(() => {
+            const width = this.card.getBoundingClientRect().width;
+            if (width <= 2) return;
+            const title = this.card.querySelector(this.headingSelector);
+            const titleHeight = title
+                ? Math.round(title.getBoundingClientRect().height)
+                : 0;
+            const key = `${Math.round(width)}:${titleHeight}`;
+            if (key === this.lastSyncedKey) return;
+            this.lastSyncedKey = key;
+            this.syncHeights();
+        });
+        this.sizeObserver.observe(this.card);
+        const title = this.card.querySelector(this.headingSelector);
+        if (title) this.sizeObserver.observe(title);
+    }
+
+    disconnectedCallbackHook() {
+        this.sizeObserver?.disconnect();
+        this.sizeObserver = null;
     }
 
     renderLayout() {

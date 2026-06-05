@@ -8,7 +8,7 @@ import {
 } from '../constants.js';
 import Store from '../store.js';
 import { getActiveMerchCardEditor } from '../editors/merch-card-editor.js';
-import { getLocaleByCode } from '../../../io/www/src/fragment/locales.js';
+import { getLocaleByCode } from '../locales.js';
 
 let ostRoot = document.getElementById('ost');
 let closeFunction;

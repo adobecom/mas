@@ -190,6 +190,16 @@ class MasBulkPublishEditor extends LitElement {
         return this.getField('status') ?? BULK_PUBLISH_STATUS.DRAFT;
     }
 
+    get lastResult() {
+        const raw = this.getField('lastResult');
+        if (!raw) return null;
+        try {
+            return JSON.parse(raw);
+        } catch {
+            return null;
+        }
+    }
+
     get urls() {
         return this.getField('urls') ?? '';
     }
@@ -717,10 +727,11 @@ class MasBulkPublishEditor extends LitElement {
     render() {
         if (!this.project) return html`<p>Loading…</p>`;
         const published = this.status === BULK_PUBLISH_STATUS.PUBLISHED;
-        const lastError =
-            this.status === BULK_PUBLISH_STATUS.DRAFT || this.status === BULK_PUBLISH_STATUS.PUBLISHED
-                ? (this.getField('lastError') ?? '')
-                : '';
+        const partial = this.status === BULK_PUBLISH_STATUS.PARTIALLY_PUBLISHED;
+        const failed = this.status === BULK_PUBLISH_STATUS.FAILED;
+        const draftError = this.status === BULK_PUBLISH_STATUS.DRAFT || published ? (this.getField('lastError') ?? '') : '';
+        const lastError = failed ? this.getField('lastError') || 'Publish failed' : draftError;
+        const result = partial ? this.lastResult : null;
         const titleText = this.isNewProject ? 'Create bulk publish project' : 'Bulk publish project';
         return html`
             ${this.pendingActions.size
@@ -734,11 +745,12 @@ class MasBulkPublishEditor extends LitElement {
             ${this.isPublishing
                 ? html`<mas-bulk-publish-success-banner variant="publishing"></mas-bulk-publish-success-banner>`
                 : nothing}
-            ${published || lastError
+            ${published || partial || lastError
                 ? html`<mas-bulk-publish-success-banner
                       .publishedAt=${this.getField('publishedAt') ?? ''}
                       .publishedBy=${this.getField('publishedBy') ?? ''}
                       .error=${lastError}
+                      .result=${result}
                   ></mas-bulk-publish-success-banner>`
                 : nothing}
             <section class="card">

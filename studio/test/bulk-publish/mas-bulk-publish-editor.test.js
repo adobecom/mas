@@ -134,6 +134,20 @@ describe('mas-bulk-publish-editor', () => {
         });
     });
 
+    it('passes parsed lastResult to the banner for PARTIALLY_PUBLISHED', async () => {
+        const el = await fixture(html`<mas-bulk-publish-editor></mas-bulk-publish-editor>`);
+        await el.updateComplete;
+        const result = { published: 3, rolledOut: 1, failed: 2, rolloutPending: 0, failures: [], failuresTruncated: false };
+        seedInEdit(el, {
+            status: BULK_PUBLISH_STATUS.PARTIALLY_PUBLISHED,
+            lastResult: JSON.stringify(result),
+        });
+        await el.updateComplete;
+        const banner = el.shadowRoot.querySelector('mas-bulk-publish-success-banner');
+        expect(banner).to.exist;
+        expect(banner.result).to.deep.equal(result);
+    });
+
     describe('Check for modifications', () => {
         it('"check-modifications" event from items triggers handleCheckModifications', async () => {
             const el = await fixture(html`<mas-bulk-publish-editor></mas-bulk-publish-editor>`);

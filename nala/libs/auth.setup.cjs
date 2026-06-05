@@ -1,11 +1,11 @@
 /* eslint-disable import/no-import-module-exports */
 import { test as setup, expect } from '@playwright/test';
 import path from 'path';
-import { installEdsThrottleOnPage } from './eds-throttle.js';
+import { installEdsThrottleOnContext } from './eds-throttle.js';
 
 const authFile = path.join(__dirname, '../../nala/.auth/user.json');
 
-setup('authenticate, @mas-studio', async ({ page, baseURL, browserName }) => {
+setup('authenticate, @mas-studio', async ({ page, context, baseURL, browserName }) => {
     if (browserName === 'chromium') {
         await page.setExtraHTTPHeaders({
             'sec-ch-ua': '"Chromium";v="123", "Not:A-Brand";v="8"',
@@ -15,7 +15,7 @@ setup('authenticate, @mas-studio', async ({ page, baseURL, browserName }) => {
     expect(process.env.IMS_EMAIL, 'ERROR: No environment variable for email provided for IMS Test.').toBeTruthy();
     expect(process.env.IMS_PASS, 'ERROR: No environment variable for password provided for IMS Test.').toBeTruthy();
 
-    await installEdsThrottleOnPage(page);
+    await installEdsThrottleOnContext(context);
     await page.goto(`${baseURL}/studio.html`);
     await page.waitForURL('**/auth.services.adobe.com/en_US/index.html**/');
 

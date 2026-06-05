@@ -134,6 +134,7 @@ async function cleanupClonedCards() {
 
         // Import request counter to track teardown requests
         const GlobalRequestCounter = (await import('../libs/global-request-counter.js')).default;
+        const { installEdsThrottleOnContext } = await import('../libs/eds-throttle.js');
 
         const browser = await chromium.launch({
             args: ['--disable-web-security', '--disable-gpu'],
@@ -152,7 +153,7 @@ async function cleanupClonedCards() {
             'sec-ch-ua': '"Chromium";v="123", "Not:A-Brand";v="8"',
         });
 
-        // Initialize request counter for teardown
+        await installEdsThrottleOnContext(context);
         await GlobalRequestCounter.init(page);
 
         const baseURL =

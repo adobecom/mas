@@ -57,9 +57,12 @@ done
 REPORTER=$reporter
 [[ ! -z "$REPORTER" ]] && REPORTER="--reporter $REPORTER"
 
+# Optional directory filter for sharded runs (space-separated paths)
+SHARD_DIRS="${SHARD_DIRS:-}"
+
 echo "Running Nala on branch: $FEATURE_BRANCH "
 echo "Tags : ${TAGS:-"No @tags or annotations on this PR"}"
-echo "Run Command : npx playwright test ${TAGS} ${EXCLUDE_TAGS} ${REPORTER}"
+echo "Run Command : npx playwright test ${SHARD_DIRS} ${TAGS} ${EXCLUDE_TAGS} ${REPORTER}"
 echo -e "\n"
 echo "*******************************"
 
@@ -92,7 +95,7 @@ fi
 # Run Playwright tests on the specific projects using root-level playwright.config.js
 echo "*** Running tests on specific projects ***"
 echo "Using project: $PROJECT"
-npx playwright test --config=./playwright.config.js ${TAGS} ${EXCLUDE_TAGS} --project=${PROJECT} ${REPORTER} || EXIT_STATUS=$?
+npx playwright test --config=./playwright.config.js ${SHARD_DIRS} ${TAGS} ${EXCLUDE_TAGS} --project=${PROJECT} ${REPORTER} || EXIT_STATUS=$?
 
 # Check if tests passed or failed
 if [ $EXIT_STATUS -ne 0 ]; then

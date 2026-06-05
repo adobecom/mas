@@ -29,14 +29,14 @@ const config = {
     /* Retry on CI only */
     retries: process.env.CI ? 1 : 0,
     /*
-     * EDS (~200 rps / hostname). EDS pacing in nala/libs/eds-throttle.js is per *worker*; multiple
-     * workers multiply traffic to the same preview host → 429s. Default CI workers=1; override
-     * with NALA_PLAYWRIGHT_WORKERS only if EDS grants a higher automation cap.
+     * Worker count drives the EDS throttle: eds-throttle.js derives per-worker RPS as
+     * floor(180 / workers). Changing the machine or NALA_PLAYWRIGHT_WORKERS auto-adjusts.
      */
     workers: (() => {
         const fromEnv = Number.parseInt(process.env.NALA_PLAYWRIGHT_WORKERS ?? '', 10);
-        if (Number.isFinite(fromEnv) && fromEnv > 0) return fromEnv;
-        return process.env.CI ? 2 : 3;
+        const workers = Number.isFinite(fromEnv) && fromEnv > 0 ? fromEnv : process.env.CI ? 4 : 3;
+        process.env.NALA_WORKER_COUNT = String(workers);
+        return workers;
     })(),
     /* Reporter to use. */
     reporter: process.env.CI

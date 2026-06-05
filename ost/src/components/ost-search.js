@@ -64,18 +64,46 @@ export class OstSearch extends LitElement {
 
     handleSearchInput(value) {
         clearTimeout(this.debounceTimer);
-        this.debounceTimer = setTimeout(() => {
-            this.query = value;
-            this.resultType = this.detectType(value);
-            store.setSearch(value, this.resultType);
-            this.requestUpdate();
+        this.pendingQuery = value;
+        this.debounceTimer = setTimeout(() => this.#runSearch(value), 250);
+    }
 
-            if (this.resultType === 'osi') {
-                this.resolveOsi(value);
-            } else if (this.resultType === 'offer') {
-                this.resolveOfferId(value);
-            }
-        }, 250);
+    hasPendingSearch() {
+        return this.debounceTimer != null;
+    }
+
+    // True only when the pending query is an OSI/offer id (which auto-resolves a
+    // product+offer). A pending product-name query is NOT included: the user
+    // picks a product card for those, so the selection must not be cleared.
+    hasPendingOsiSearch() {
+        if (this.debounceTimer == null || this.pendingQuery == null) return false;
+        const type = this.detectType(this.pendingQuery);
+        return type === 'osi' || type === 'offer';
+    }
+
+    // Resolve the pending (debounced) query immediately — called when the user
+    // clicks Next before the 250ms debounce fires, so a typed OSI/offer always
+    // resolves its product before the wizard advances (no race on fast input).
+    flushPendingSearch() {
+        if (this.debounceTimer == null) return;
+        clearTimeout(this.debounceTimer);
+        this.debounceTimer = null;
+        if (this.pendingQuery != null) this.#runSearch(this.pendingQuery);
+    }
+
+    #runSearch(value) {
+        this.debounceTimer = null;
+        this.pendingQuery = null;
+        this.query = value;
+        this.resultType = this.detectType(value);
+        store.setSearch(value, this.resultType);
+        this.requestUpdate();
+
+        if (this.resultType === 'osi') {
+            this.resolveOsi(value);
+        } else if (this.resultType === 'offer') {
+            this.resolveOfferId(value);
+        }
     }
 
     async resolveOsi(osi) {
@@ -89,6 +117,12 @@ export class OstSearch extends LitElement {
             const result = await getOfferSelector(osi, config);
             const code = result?.product_arrangement_code || result?.arrangement_code;
             if (code) {
+                // This searched OSI now owns the selection. Set initialOsi BEFORE
+                // loading offers (so autoSelectByInitialOsi picks its offer) and
+                // drop any prior selection so a stale deep-link can't linger and
+                // "Use" stays disabled until the new offer resolves.
+                store.initialOsi = osi;
+                store.clearSelectedOffer();
                 store.setAosParams({
                     customerSegment: result.customer_segment,
                     marketSegment: Array.isArray(result.market_segments) ? result.market_segments[0] : result.market_segment,
@@ -97,11 +131,9 @@ export class OstSearch extends LitElement {
                     term: result.term,
                 });
                 this.selectProductByCode(code);
+                // setOsi LAST: selectProductByCode → setProduct clears selectedOsi
+                // when the product changes, so set it after the product is chosen.
                 store.setOsi(osi);
-                // Mirror the deep-link contract: remember the searched OSI so the
-                // offer step auto-selects its matching offer (enabling "Use"
-                // without a manual offer-card click).
-                store.initialOsi = osi;
             }
         } catch {
             /* OSI resolution failed */

@@ -253,4 +253,26 @@ describe('ost-search', () => {
         await new Promise((r) => setTimeout(r, 300));
         expect(store.searchQuery).to.equal('');
     });
+
+    it('hasPendingSearch reflects a debounced-but-unresolved query', async () => {
+        const el = await fixture(html`<ost-search></ost-search>`);
+        expect(el.hasPendingSearch()).to.equal(false);
+        el.handleSearchInput('photoshop');
+        expect(el.hasPendingSearch()).to.equal(true);
+    });
+
+    it('flushPendingSearch resolves the pending query immediately', async () => {
+        const el = await fixture(html`<ost-search></ost-search>`);
+        el.handleSearchInput('photoshop');
+        el.flushPendingSearch();
+        expect(el.hasPendingSearch()).to.equal(false);
+        expect(store.searchQuery).to.equal('photoshop');
+        expect(store.searchType).to.equal('product');
+    });
+
+    it('flushPendingSearch is a no-op without a pending query', async () => {
+        const el = await fixture(html`<ost-search></ost-search>`);
+        el.flushPendingSearch();
+        expect(store.searchQuery).to.equal('');
+    });
 });

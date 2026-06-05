@@ -394,6 +394,7 @@ export class OstStore extends EventTarget {
         if (!product) return;
 
         this.#offersKey = this.#offersFetchKey();
+        const requestKey = this.#offersKey;
 
         const {
             aosParams: { commitment, term, customerSegment, offerType, marketSegment, pricePoint },
@@ -467,6 +468,10 @@ export class OstStore extends EventTarget {
                     return (res.data || res).map((o) => ({ ...o, landscapeSource: ls }));
                 }),
             );
+            // A newer loadOffers (the user switched OSI/product mid-flight)
+            // superseded this request — drop the stale response so it can't
+            // overwrite the current product's offers/selection.
+            if (requestKey !== this.#offersKey) return;
             let offers = responses.flat().map(applyPlanType);
             // De-dupe: if the same offer_id came back from both DRAFT and
             // PUBLISHED (shouldn't normally, but safe to guard), keep the
@@ -491,10 +496,15 @@ export class OstStore extends EventTarget {
                 `${nameRight}${ppRight}`.localeCompare(`${nameLeft}${ppLeft}`),
             );
             this.setOffers(offers);
-            if (offers.length === 1) {
+            // An active deep-link/search OSI owns the selection — try it first so
+            // it wins over the blind single-offer autoResolveOsi (which would mint
+            // a fresh OSI and clobber the user's chosen one).
+            if (this.autoSelectByInitialOsi(offers)) {
+                // selected by initialOsi
+            } else if (offers.length === 1) {
                 this.setOffer(offers[0]);
                 this.autoResolveOsi(offers[0]);
-            } else if (!this.autoSelectByInitialOsi(offers)) {
+            } else {
                 await this.autoFillBaseAndTrial(offers);
             }
         } catch {
@@ -507,12 +517,14 @@ export class OstStore extends EventTarget {
     // A searched/deep-linked OSI resolves to one specific offer; pick the offer
     // matching its resolved offer_type so "Use" enables without a manual click,
     // then reuse the searched OSI directly. Returns true when it selected one.
+    // This is the single store-owned deep-link/search offer-selection path.
     autoSelectByInitialOsi(offers) {
-        if (!this.initialOsi || offers.length <= 1) return false;
+        if (!this.initialOsi || offers.length === 0) return false;
         const wanted = this.aosParams.offerType;
         const match = wanted ? offers.find((o) => o.offer_type === wanted) : undefined;
-        if (!match) return false;
-        this.setOffer(match);
+        const chosen = match ?? (offers.length === 1 ? offers[0] : undefined);
+        if (!chosen) return false;
+        this.setOffer(chosen);
         this.setOsi(this.initialOsi);
         return true;
     }
@@ -576,6 +588,13 @@ export class OstStore extends EventTarget {
 
     setOffer(offer) {
         this.selectedOffer = offer;
+    }
+
+    clearSelectedOffer() {
+        this.#batch(() => {
+            this.selectedOffer = undefined;
+            this.selectedOsi = undefined;
+        });
     }
 
     setOsi(osi) {

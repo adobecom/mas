@@ -566,6 +566,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await page.waitForTimeout(2000);
             await expect(await ost.searchField).toBeVisible();
             await ost.searchField.fill(data.osi.updated);
+            await expect(await ost.nextButton).toBeEnabled();
             await (await ost.nextButton).click();
             await expect(await ost.priceUse).toBeEnabled();
             await ost.priceUse.click();
@@ -1447,6 +1448,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await page.waitForTimeout(2000);
             await expect(await ost.searchField).toBeVisible();
             await ost.searchField.fill(data.osi.updated);
+            await expect(await ost.nextButton).toBeEnabled();
             await (await ost.nextButton).click();
             await ost.legalChip.click();
             await ost.legalDisclaimer.scrollIntoViewIfNeeded();

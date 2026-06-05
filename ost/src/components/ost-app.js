@@ -265,6 +265,8 @@ export class OstApp extends LitElement {
                 env: store.env,
             };
             const result = await getOfferSelector(id, config);
+            // A newer deep link / search superseded this resolution mid-flight.
+            if (store.initialOsi !== id) return;
             const code = result?.product_arrangement_code || result?.arrangement_code;
             if (!code) return;
 
@@ -275,25 +277,13 @@ export class OstApp extends LitElement {
             const marketSegment = Array.isArray(result.market_segments) ? result.market_segments[0] : result.market_segment;
             if (marketSegment) aosUpdates.marketSegment = marketSegment;
             if (result.offer_type) aosUpdates.offerType = result.offer_type;
-            store.setAosParams(aosUpdates);
             store.setOsi(id);
-
+            store.setAosParams(aosUpdates);
+            // setAosParams/setProduct trigger loadOffers, which selects the offer
+            // matching this OSI via autoSelectByInitialOsi — the single, store-owned
+            // resolution path (no competing state-changed listener that could
+            // re-select a previous product's offer after the user switches OSI).
             store.autoSelectProductByArrangementCode(code);
-
-            const handler = () => {
-                if (store.offers.length > 0) {
-                    store.removeEventListener('state-changed', handler);
-                    const match = store.offers.find(
-                        (o) => o.offer_type === result.offer_type && o.price_point === result.price_point,
-                    );
-                    if (match) {
-                        store.setOffer(match);
-                    } else if (store.offers.length === 1) {
-                        store.setOffer(store.offers[0]);
-                    }
-                }
-            };
-            store.addEventListener('state-changed', handler);
         } catch {
             /* OSI resolution failed */
         }

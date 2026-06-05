@@ -528,6 +528,16 @@ describe('OstStore', () => {
         });
     });
 
+    describe('clearSelectedOffer', () => {
+        it('clears the selected offer and osi', () => {
+            store.setOffer({ offer_id: 'o' });
+            store.setOsi('OSI-1');
+            store.clearSelectedOffer();
+            expect(store.selectedOffer).to.be.undefined;
+            expect(store.selectedOsi).to.be.undefined;
+        });
+    });
+
     describe('autoSelectByInitialOsi', () => {
         const base = { offer_id: 'b', offer_type: 'BASE' };
         const trial = { offer_id: 't', offer_type: 'TRIAL' };
@@ -541,7 +551,7 @@ describe('OstStore', () => {
             expect(store.selectedOsi).to.equal('OSI-TRIAL');
         });
 
-        it('returns false when no offer matches the resolved offer_type', () => {
+        it('returns false when a multi-offer list has no offer_type match', () => {
             store.initialOsi = 'OSI-X';
             store.setAosParams({ offerType: 'PROMOTION' });
             expect(store.autoSelectByInitialOsi([base, trial])).to.be.false;
@@ -553,10 +563,17 @@ describe('OstStore', () => {
             expect(store.autoSelectByInitialOsi([base, trial])).to.be.false;
         });
 
-        it('returns false for a single-offer list (handled elsewhere)', () => {
+        it('selects the sole offer for a single-offer list under an initialOsi', () => {
+            store.initialOsi = 'OSI-SOLE';
+            store.setAosParams({ offerType: 'PROMOTION' });
+            expect(store.autoSelectByInitialOsi([base])).to.be.true;
+            expect(store.selectedOffer).to.equal(base);
+            expect(store.selectedOsi).to.equal('OSI-SOLE');
+        });
+
+        it('returns false for an empty offer list', () => {
             store.initialOsi = 'OSI-BASE';
-            store.setAosParams({ offerType: 'BASE' });
-            expect(store.autoSelectByInitialOsi([base])).to.be.false;
+            expect(store.autoSelectByInitialOsi([])).to.be.false;
         });
     });
 

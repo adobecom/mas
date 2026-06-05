@@ -153,7 +153,9 @@ describe('project.js', () => {
         it('retries on 412 with fresh ETag and succeeds', async () => {
             const fragment = makeFragment([{ name: 'status', type: 'text', values: ['Draft'] }]);
             getFragmentWithEtagStub.resolves({ fragment, etag: '"etag-fresh"' });
-            putToOdinStub.onFirstCall().rejects(new Error('PUT /fragments/proj-1 failed with status 412: Precondition Failed'));
+            const err412 = new Error('PUT /fragments/proj-1 failed with status 412: Precondition Failed');
+            err412.status = 412;
+            putToOdinStub.onFirstCall().rejects(err412);
             putToOdinStub.onSecondCall().resolves({ success: true });
 
             await mod.updateProjectFragment('https://odin.example', 'proj-1', 'token', { status: 'Published' });
@@ -165,7 +167,9 @@ describe('project.js', () => {
         it('throws immediately on non-412/500 errors without retry', async () => {
             const fragment = makeFragment([{ name: 'status', type: 'text', values: ['Draft'] }]);
             getFragmentWithEtagStub.resolves({ fragment, etag: '"e"' });
-            putToOdinStub.rejects(new Error('PUT /fragments/proj-1 failed with status 400: Bad Request'));
+            const err400 = new Error('PUT /fragments/proj-1 failed with status 400: Bad Request');
+            err400.status = 400;
+            putToOdinStub.rejects(err400);
 
             let threw = false;
             try {

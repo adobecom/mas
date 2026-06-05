@@ -38,7 +38,7 @@ async function updateProjectFragment(odinEndpoint, projectId, authToken, fieldUp
             return;
         } catch (err) {
             lastError = err;
-            const status = err.message.match(/status (\d{3})/)?.[1];
+            const status = String(err.status ?? '');
             if (status !== '412' && status !== '500') throw err;
             if (attempt < maxRetries) await new Promise((r) => setTimeout(r, 500 * attempt));
         }

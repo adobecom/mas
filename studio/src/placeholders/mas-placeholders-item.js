@@ -119,20 +119,8 @@ class MasPlaceholdersItem extends LitElement {
     async onPublish(event) {
         if (this.placeholder.status === STATUS_PUBLISHED) return;
         this.toggleDropdown(this.placeholder.key, event);
-        const refs = this.placeholder?.getPublishableReferences?.() ?? { variations: [], cards: [] };
-        if (refs.variations.length || refs.cards.length) {
-            const { MasPublishDialog } = await import('../publish/mas-publish-dialog.js');
-            const result = await MasPublishDialog.show(refs);
-            if (!result.confirmed) return;
-            showToast('Publishing placeholder...');
-            await this.repository.publishFragment(this.placeholder, {
-                selectedRefIds: result.selectedIds,
-                allSelected: result.allSelected,
-            });
-        } else {
-            showToast('Publishing placeholder...');
-            await this.repository.publishFragment(this.placeholder);
-        }
+        showToast('Publishing placeholder...');
+        await this.repository.publishFragment(this.placeholder);
         const updatedPlaceholder = {
             ...this.placeholder,
             status: STATUS_PUBLISHED,

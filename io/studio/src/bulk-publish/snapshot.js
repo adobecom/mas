@@ -81,7 +81,7 @@ function deserializeEntries(entries) {
     return {
         createdAt: parsed[0].createdAt,
         fragments: Object.fromEntries(
-            parsed.map(({ fragmentId, versionId, wasPublished }) => [fragmentId, { versionId, wasPublished }]),
+            parsed.map(({ fragmentId, path, versionId, wasPublished }) => [fragmentId, { path, versionId, wasPublished }]),
         ),
     };
 }

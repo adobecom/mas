@@ -118,15 +118,17 @@ export class BizPro extends VariantLayout {
      * instead of being appended after it. The field's only manifestation is
      * the plan type line, so with the Show Plan type setting off (no
      * .price-plan-type span) the override does not render either.
+     *
+     * The [slot="legal-text"] element is read in place, never detached: the
+     * shadow template has no matching named slot, so it does not render
+     * anyway, and merch-card swaps in a fresh variantLayout after the first
+     * render — state cached on a layout instance (or a DOM removal it
+     * performed) would be lost to the replacement instance.
      */
     adjustShortDescription() {
-        if (!this.shortDescriptionSource) {
-            const legalText = this.card.querySelector('[slot="legal-text"]');
-            if (!legalText) return;
-            this.shortDescriptionSource = legalText;
-            legalText.remove();
-        }
-        const text = this.shortDescriptionSource.textContent?.trim();
+        const text = this.card
+            .querySelector('[slot="legal-text"]')
+            ?.textContent?.trim();
         if (!text) return;
         const legalPrice = this.card.querySelector(
             '[slot="heading-m"] [data-template="legal"]',

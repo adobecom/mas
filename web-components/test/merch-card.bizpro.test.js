@@ -277,8 +277,29 @@ describe('bizpro short description plan type override', () => {
         expect(card.querySelector('.price-plan-type').textContent).to.equal(
             'Yearly, paid monthly',
         );
-        // The field's only manifestation is the plan type line.
-        expect(card.querySelector('[slot="legal-text"]')).to.not.exist;
+        // The source element stays in the light DOM (so the override survives
+        // layout re-instantiation) but never projects — the shadow template
+        // has no legal-text slot.
+        expect(card.querySelector('[slot="legal-text"]').assignedSlot).to.be
+            .null;
+    });
+
+    it('survives the variantLayout being replaced after first render', async () => {
+        card = await renderCard(
+            `${LEGAL_PRICE}<div slot="legal-text">Yearly, paid monthly</div>`,
+        );
+        // First instance applies the override...
+        card.variantLayout.adjustShortDescription();
+        // ...then merch-card swaps in a fresh layout and the legal price
+        // re-resolves with the derived wording.
+        card.querySelector('.price-plan-type').textContent =
+            'Annual, billed monthly';
+        const freshLayout = Object.create(BizPro.prototype);
+        freshLayout.card = card;
+        freshLayout.adjustShortDescription();
+        expect(card.querySelector('.price-plan-type').textContent).to.equal(
+            'Yearly, paid monthly',
+        );
     });
 
     it('keeps the derived wording when no short description is authored', async () => {
@@ -296,8 +317,11 @@ describe('bizpro short description plan type override', () => {
                 '<div slot="legal-text">Yearly, paid monthly</div>',
         );
         card.variantLayout.adjustShortDescription();
-        expect(card.querySelector('[slot="legal-text"]')).to.not.exist;
-        expect(card.textContent).to.not.contain('Yearly, paid monthly');
+        // No plan type span to override, and the source element itself never
+        // projects into the shadow DOM — the text appears nowhere.
+        expect(card.querySelector('.price-legal').textContent).to.equal('');
+        expect(card.querySelector('[slot="legal-text"]').assignedSlot).to.be
+            .null;
     });
 
     it('re-applies the override after the legal price re-resolves', async () => {

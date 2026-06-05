@@ -33,8 +33,9 @@ jobs:
             contains(github.event.pull_request.labels.*.name, 'run nala')
         runs-on: [self-hosted, Linux, X64, '${{ matrix.runner }}']
         timeout-minutes: 30
-        # Each shard is pinned to a specific runner via matrix.runner (unique label per machine).
-        # Runners in separate regions → separate IPs → independent EDS budgets.
+        # Each shard is pinned to its runner via matrix.runner (unique label per machine).
+        # SJ and Oregon have independent IPs and full EDS budgets.
+        # Noida runner shares its IP with the nala-docs runner — workers split accordingly.
         strategy:
             fail-fast: false
             matrix:
@@ -124,7 +125,7 @@ jobs:
                   IMS_EMAIL: ${{ secrets.IMS_EMAIL }}
                   IMS_PASS: ${{ secrets.IMS_PASS }}
                   FORCE_COLOR: 3 # Force color output
-                  # Workers per shard set in matrix: SJ/Oregon get 4, Noida gets 2 (shared IP with docs).
+                  # Workers per shard declared in matrix (see above). Noida shard shares IP with nala-docs.
                   NALA_PLAYWRIGHT_WORKERS: ${{ matrix.workers }}
 
             - name: Cleanup cloned cards
@@ -236,5 +237,5 @@ jobs:
                   prBaseBranch: ${{ github.event.pull_request.base.ref }}
                   GITHUB_ACTION_PATH: ${{ github.workspace }}
                   FORCE_COLOR: 3 # Force color output
-                  # Noida runner shares IP with studio shard-rest (3+1=4 workers × 45 = 180 RPS total).
+                  # Noida runner shares IP with nala-studio-noida shard (3+1=4 workers × 45 = 180 RPS from Noida IP).
                   NALA_PLAYWRIGHT_WORKERS: 1

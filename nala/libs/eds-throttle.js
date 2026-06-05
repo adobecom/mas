@@ -13,6 +13,9 @@
 /** Combined RPS budget with headroom under the 200 rps/hostname tenant limit. */
 const EDS_SAFE_TOTAL_RPS = 180;
 
+/** Maximum RPS a single worker should ever use, regardless of how few workers are running. */
+const EDS_MAX_RPS_PER_WORKER = 45;
+
 export function resolveEdsMaxRps() {
     if (process.env.NALA_EDS_THROTTLE_DISABLED === '1') return 0;
     if (process.env.NALA_EDS_MAX_RPS !== undefined && process.env.NALA_EDS_MAX_RPS !== '') {
@@ -24,7 +27,7 @@ export function resolveEdsMaxRps() {
     }
     const workers = Number.parseInt(process.env.NALA_WORKER_COUNT ?? '1', 10);
     const n = Number.isFinite(workers) && workers > 0 ? workers : 1;
-    return Math.floor(EDS_SAFE_TOTAL_RPS / n);
+    return Math.min(Math.floor(EDS_SAFE_TOTAL_RPS / n), EDS_MAX_RPS_PER_WORKER);
 }
 
 export function isEdsEdgeHost(url) {

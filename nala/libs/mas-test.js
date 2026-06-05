@@ -85,6 +85,13 @@ const masTest = base.extend({
 
         await GlobalRequestCounter.init(page);
 
+        // Log ODIN 429s so we know if rate limiting is happening
+        page.on('response', (response) => {
+            if (response.url().includes('adobeaemcloud.com') && response.status() === 429) {
+                console.warn(`[NALA] ODIN 429 Too Many Requests: ${response.url()}`);
+            }
+        });
+
         try {
             await use(page);
         } finally {

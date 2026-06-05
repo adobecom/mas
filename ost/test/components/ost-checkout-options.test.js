@@ -253,6 +253,26 @@ describe('ost-checkout-options', () => {
         expect(el.ctaDropdownOpen).to.be.false;
     });
 
+    it('renders CTA options as role=option inside a role=listbox dropdown', async () => {
+        store.ctaTextOption = {
+            getTexts: () => [
+                { id: 'buy-now', name: 'Buy now' },
+                { id: 'save-now', name: 'Save now' },
+            ],
+            getDefaultText: () => 'buy-now',
+        };
+        store.notify();
+        await el.updateComplete;
+        el.shadowRoot.querySelector('[data-testid="ost-cta-text-menu"]').click();
+        await el.updateComplete;
+        const dropdown = el.shadowRoot.querySelector('.cta-dropdown');
+        expect(dropdown.getAttribute('role')).to.equal('listbox');
+        const options = el.shadowRoot.querySelectorAll('.cta-option');
+        options.forEach((o) => expect(o.getAttribute('role')).to.equal('option'));
+        const saveNow = Array.from(options).find((o) => o.textContent.trim() === 'Save now');
+        expect(saveNow, 'Save now option must render').to.exist;
+    });
+
     it('handleDocClick closes the dropdown on an outside click', () => {
         el.ctaDropdownOpen = true;
         document.body.click();

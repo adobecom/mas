@@ -91,9 +91,9 @@ jobs:
                   IMS_EMAIL: ${{ secrets.IMS_EMAIL }}
                   IMS_PASS: ${{ secrets.IMS_PASS }}
                   FORCE_COLOR: 3 # Force color output
-                  # 4 workers × 45 RPS/worker = 180 RPS combined, safely under the 200 RPS
-                  # per-hostname limit enforced by AEM.live. Raise only if EDS grants a higher cap.
-                  NALA_PLAYWRIGHT_WORKERS: 4
+                  # studio:3 + docs:1 = 4 workers × 45 RPS = 180 RPS, safely under 200 RPS EDS limit.
+                  # Both jobs share the same self-hosted runner pool — 4 total workers = 4 vCPUs.
+                  NALA_PLAYWRIGHT_WORKERS: 3
 
             - name: Cleanup cloned cards
               if: always()
@@ -117,7 +117,7 @@ jobs:
         if: |
             github.event.action == 'opened' ||
             contains(github.event.pull_request.labels.*.name, 'run nala')
-        runs-on: ubuntu-latest
+        runs-on: [self-hosted, Linux, X64]
         timeout-minutes: 20 # Prevent hanging jobs
         strategy:
             matrix:
@@ -204,4 +204,4 @@ jobs:
                   prBaseBranch: ${{ github.event.pull_request.base.ref }}
                   GITHUB_ACTION_PATH: ${{ github.workspace }}
                   FORCE_COLOR: 3 # Force color output
-
+                  NALA_PLAYWRIGHT_WORKERS: 1

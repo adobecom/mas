@@ -135,6 +135,7 @@ describe('BizPro.adjustLegal', () => {
         const clone = {
             setAttribute: sinon.spy(),
             onceSettled: () => Promise.resolve(),
+            dataset: {},
         };
         const insertBefore = sinon.spy();
         const price = {
@@ -165,9 +166,12 @@ describe('BizPro.adjustLegal', () => {
         expect(clone.setAttribute.calledWith('data-template', 'legal')).to.be
             .true;
         expect(insertBefore.calledWith(clone, 'next-sibling')).to.be.true;
-        // per-unit/tax move off the main price onto the legal clone
-        expect(price.dataset.displayPerUnit).to.equal('false');
+        // tax moves off the main price onto the legal clone, but per-unit
+        // stays on the pricing line (Figma 3260:44659) and is disabled on
+        // the clone so it doesn't render twice.
         expect(price.dataset.displayTax).to.equal('false');
+        expect(price.dataset.displayPerUnit).to.be.undefined;
+        expect(clone.dataset.displayPerUnit).to.equal('false');
     });
 
     it('leaves disabled display options untouched on the main price', async () => {

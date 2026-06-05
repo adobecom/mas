@@ -67,7 +67,7 @@ export class BizPro extends VariantLayout {
      * Clones the authored main price into a legal-template sibling (same as
      * plans/plans-v2), so the plan type line needs no extra authoring — the
      * Show Plan type toggle alone controls it via priceOptionsProvider above.
-     * Per-unit/tax/plan-type rendering moves off the main price onto the clone.
+     * Tax/plan-type rendering moves off the main price onto the clone.
      */
     async adjustLegal() {
         if (this.legalAdjusted) return;
@@ -80,13 +80,16 @@ export class BizPro extends VariantLayout {
             const legal = headingPrice.cloneNode(true);
             await headingPrice.onceSettled();
             if (!headingPrice?.options) return;
-            if (headingPrice.options.displayPerUnit)
-                headingPrice.dataset.displayPerUnit = 'false';
+            // Unlike plans, per-unit stays on the pricing line (Figma
+            // 3260:44659 puts "per license" right after the price, in the
+            // same typography) — only tax and plan type move to the legal
+            // line. The clone drops per-unit so it doesn't render twice.
             if (headingPrice.options.displayTax)
                 headingPrice.dataset.displayTax = 'false';
             if (headingPrice.options.displayPlanType)
                 headingPrice.dataset.displayPlanType = 'false';
             legal.setAttribute('data-template', 'legal');
+            legal.dataset.displayPerUnit = 'false';
             headingPrice.parentNode.insertBefore(
                 legal,
                 headingPrice.nextSibling,

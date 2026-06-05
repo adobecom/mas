@@ -90,6 +90,14 @@ application:
                             timeout: 300000
                         annotations:
                             require-adobe-auth: false
+                    bulk-publish-worker:
+                        function: src/bulk-publish/bulk-publish-worker.js
+                        runtime: nodejs:22
+                        limits:
+                            timeout: 3600000
+                        annotations:
+                            require-adobe-auth: false
+                            final: true
                     bulk-snapshot:
                         function: src/bulk-publish/snapshot-action.js
                         web: 'yes'

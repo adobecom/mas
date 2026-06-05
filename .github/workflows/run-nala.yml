@@ -31,8 +31,10 @@ jobs:
         if: |
             github.event.action == 'opened' ||
             contains(github.event.pull_request.labels.*.name, 'run nala')
-        runs-on: [self-hosted, Linux, X64, nala-studio]
+        runs-on: [self-hosted, Linux, X64, '${{ matrix.runner }}']
         timeout-minutes: 30
+        # Each shard is pinned to a specific runner via matrix.runner (unique label per machine).
+        # Runners in separate regions → separate IPs → independent EDS budgets.
         strategy:
             fail-fast: false
             matrix:
@@ -40,11 +42,17 @@ jobs:
                     - shard: acom-ahome
                       node-version: 20.x
                       dirs: nala/studio/acom nala/studio/ahome
+                      runner: nala-studio-sj # San Jose — own IP, full budget
+                      workers: 4
                     - shard: ccd-commerce
                       node-version: 20.x
                       dirs: nala/studio/ccd nala/studio/commerce
+                      runner: nala-studio-oregon # Oregon — own IP, full budget
+                      workers: 4
                     - shard: rest
                       node-version: 20.x
+                      runner: nala-studio-noida # Noida — shares IP with nala-docs (3+1=4×45=180 RPS)
+                      workers: 3
                       # dirs intentionally omitted — auto-discovered at runtime
         steps:
             - name: Checkout repository
@@ -57,8 +65,6 @@ jobs:
                   if [ -n "${{ matrix.dirs }}" ]; then
                     echo "SHARD_DIRS=${{ matrix.dirs }}" >> $GITHUB_ENV
                   else
-                    # Shard 3 catch-all: every studio dir/file not claimed by shards 1-2.
-                    # New directories are automatically included here — no workflow change needed.
                     CLAIMED="nala/studio/acom nala/studio/ahome nala/studio/ccd nala/studio/commerce"
                     DIRS=""
                     for path in nala/studio/*/; do
@@ -116,11 +122,8 @@ jobs:
                   IMS_EMAIL: ${{ secrets.IMS_EMAIL }}
                   IMS_PASS: ${{ secrets.IMS_PASS }}
                   FORCE_COLOR: 3 # Force color output
-                  # All runners share the same NAT IP (200 RPS EDS budget total).
-                  # Budget split: studio 135 RPS + docs 45 RPS = 180 RPS.
-                  # Per studio runner: 135/3 = 45 RPS → 4 workers × 11 RPS each.
-                  NALA_PLAYWRIGHT_WORKERS: 4
-                  NALA_EDS_MAX_RPS: 11
+                  # Workers per shard set in matrix: SJ/Oregon get 4, Noida gets 2 (shared IP with docs).
+                  NALA_PLAYWRIGHT_WORKERS: ${{ matrix.workers }}
 
             - name: Cleanup cloned cards
               if: always()
@@ -231,6 +234,5 @@ jobs:
                   prBaseBranch: ${{ github.event.pull_request.base.ref }}
                   GITHUB_ACTION_PATH: ${{ github.workspace }}
                   FORCE_COLOR: 3 # Force color output
-                  # docs budget: 45 RPS (1 worker × 45). Studio takes the remaining 135 RPS.
+                  # Noida runner shares IP with studio shard-rest (3+1=4 workers × 45 = 180 RPS total).
                   NALA_PLAYWRIGHT_WORKERS: 1
-                  NALA_EDS_MAX_RPS: 45

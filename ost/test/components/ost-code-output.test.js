@@ -288,6 +288,43 @@ describe('ost-code-output', () => {
             }
         });
 
+        it('forwards the effective promo as promoOverride so it writes back to the card', async () => {
+            const original = navigator.clipboard?.writeText;
+            Object.defineProperty(navigator, 'clipboard', {
+                value: { writeText: async () => {} },
+                configurable: true,
+            });
+
+            store.storedPromoOverride = 'SAVE20';
+
+            const ostApp = document.createElement('div');
+            Object.defineProperty(ostApp, 'tagName', { value: 'OST-APP' });
+            ostApp.attachShadow({ mode: 'open' });
+            document.body.appendChild(ostApp);
+            const panel = document.createElement('ost-placeholder-panel');
+            ostApp.shadowRoot.appendChild(panel);
+            await panel.updateComplete;
+
+            let capturedArg;
+            ostApp.select = (arg) => {
+                capturedArg = arg;
+            };
+
+            const codeOutput = panel.shadowRoot.querySelector('ost-code-output');
+            await codeOutput.handleUse();
+
+            expect(capturedArg.promoOverride).to.equal('SAVE20');
+
+            ostApp.remove();
+            store.storedPromoOverride = undefined;
+            if (original) {
+                Object.defineProperty(navigator, 'clipboard', {
+                    value: { writeText: original },
+                    configurable: true,
+                });
+            }
+        });
+
         it('combines base OSI with referenceOsi when type is discount', async () => {
             const original = navigator.clipboard?.writeText;
             Object.defineProperty(navigator, 'clipboard', {

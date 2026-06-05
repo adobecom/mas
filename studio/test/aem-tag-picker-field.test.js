@@ -2,34 +2,36 @@ import { expect, fixture, html } from '@open-wc/testing';
 import '../src/swc.js';
 import '../src/aem/aem-tag-picker-field.js';
 import { TAG_COMPARE_CHART, TAG_COMPARE_CHART_PATH, TAG_MERCH_CARD, TAG_MERCH_CARD_COLLECTION } from '../src/constants.js';
-import { setNamespaceCache } from '../src/aem/tag-cache.js';
+import { blockTagCacheLoading, resetTagCache, seedTagCache } from './helpers/tag-cache.js';
 
 describe('AemTagPickerField', () => {
     const namespace = '/content/cq:tags/mas';
     const contentTypePath = (tag) => `/content/cq:tags/${tag.replace(':', '/')}`;
 
     beforeEach(() => {
-        setNamespaceCache(
-            namespace,
-            new Map([
-                [
-                    contentTypePath(TAG_MERCH_CARD),
-                    {
-                        name: 'merch-card',
-                        title: 'Merch Card',
-                        path: contentTypePath(TAG_MERCH_CARD),
-                    },
-                ],
-                [
-                    contentTypePath(TAG_MERCH_CARD_COLLECTION),
-                    {
-                        name: 'merch-card-collection',
-                        title: 'Merch Card Collection',
-                        path: contentTypePath(TAG_MERCH_CARD_COLLECTION),
-                    },
-                ],
-            ]),
-        );
+        resetTagCache(namespace);
+        seedTagCache(namespace, [
+            [
+                contentTypePath(TAG_MERCH_CARD),
+                {
+                    name: 'merch-card',
+                    title: 'Merch Card',
+                    path: contentTypePath(TAG_MERCH_CARD),
+                },
+            ],
+            [
+                contentTypePath(TAG_MERCH_CARD_COLLECTION),
+                {
+                    name: 'merch-card-collection',
+                    title: 'Merch Card Collection',
+                    path: contentTypePath(TAG_MERCH_CARD_COLLECTION),
+                },
+            ],
+        ]);
+    });
+
+    afterEach(() => {
+        resetTagCache(namespace);
     });
 
     it('adds Compare chart as a local content type option and resolves selected title', async () => {
@@ -54,7 +56,7 @@ describe('AemTagPickerField', () => {
     });
 
     it('returns no selected tags while namespace tags are still loading', async () => {
-        setNamespaceCache(namespace, new Promise(() => {}));
+        blockTagCacheLoading(namespace);
 
         const el = await fixture(html`
             <aem-tag-picker-field

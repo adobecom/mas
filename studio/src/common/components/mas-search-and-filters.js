@@ -7,7 +7,7 @@ import { getItemsSelectionStore } from '../items-selection-store.js';
 import { AEM_TAG_PATH_PRODUCT_CODE_ROOT, FILTER_TYPE, PAGE_NAMES, TABLE_TYPE } from '../../constants.js';
 import ReactiveController from '../../reactivity/reactive-controller.js';
 import { AEM } from '../../aem/aem.js';
-import { getNamespaceCache, setNamespaceCache } from '../../aem/tag-cache.js';
+import { ensureNamespaceTags, getNamespaceCache, getNamespaceInflight } from '../../aem/tag-cache.js';
 import '../../aem/aem-tag-picker-field.js';
 
 const MAS_TAG_NAMESPACE = '/content/cq:tags/mas';
@@ -214,32 +214,19 @@ class MasSearchAndFilters extends LitElement {
     }
 
     #loadTagOptions() {
-        const cachedTags = getNamespaceCache(MAS_TAG_NAMESPACE);
-        if (cachedTags instanceof Promise) {
-            this.#refreshOptionsAfterTagCacheLoad(cachedTags);
+        if (getNamespaceCache(MAS_TAG_NAMESPACE)) return;
+
+        const inflightLoad = getNamespaceInflight(MAS_TAG_NAMESPACE);
+        if (inflightLoad) {
+            this.#refreshOptionsAfterTagCacheLoad(inflightLoad);
             return;
         }
-        if (cachedTags) return;
 
         const baseUrl = document.querySelector('meta[name="aem-base-url"]')?.content;
         if (!baseUrl) return;
 
-        let resolveNamespace;
-        const cachePromise = new Promise((resolve) => {
-            resolveNamespace = resolve;
-        });
-        setNamespaceCache(MAS_TAG_NAMESPACE, cachePromise);
-        this.#refreshOptionsAfterTagCacheLoad(cachePromise);
-
-        new AEM(null, baseUrl).tags
-            .list(MAS_TAG_NAMESPACE)
-            .then((rawTags) => {
-                setNamespaceCache(MAS_TAG_NAMESPACE, new Map((rawTags?.hits || []).map((tag) => [tag.path, tag])));
-            })
-            .catch(() => {
-                setNamespaceCache(MAS_TAG_NAMESPACE, new Map());
-            })
-            .finally(resolveNamespace);
+        const loadPromise = ensureNamespaceTags(MAS_TAG_NAMESPACE, (namespace) => new AEM(null, baseUrl).tags.list(namespace));
+        this.#refreshOptionsAfterTagCacheLoad(loadPromise);
     }
 
     connectedCallback() {
@@ -414,11 +401,12 @@ class MasSearchAndFilters extends LitElement {
 
     #addCachedFilterOptions(optionMaps) {
         const cachedTags = getNamespaceCache(MAS_TAG_NAMESPACE);
-        if (cachedTags instanceof Promise) {
-            this.#refreshOptionsAfterTagCacheLoad(cachedTags);
+        if (!cachedTags) {
+            const inflightLoad = getNamespaceInflight(MAS_TAG_NAMESPACE);
+            if (inflightLoad) this.#refreshOptionsAfterTagCacheLoad(inflightLoad);
             return;
         }
-        if (!cachedTags?.values) return;
+        if (!cachedTags.values) return;
 
         for (const tag of cachedTags.values()) {
             if (!tag?.path) continue;

@@ -12,7 +12,7 @@ import { VARIANTS } from '../editors/variant-picker.js';
 import { getItemFieldState } from '../utils/field-state.js';
 import { getService } from '../utils.js';
 import { AEM_TAG_PATTERN, fromAttribute, toAttribute } from './tag-path-utils.js';
-import { getNamespaceCache, setNamespaceCache } from './tag-cache.js';
+import { ensureNamespaceTags, getNamespaceCache } from './tag-cache.js';
 
 const PRODUCT_CODE_TAG_PREFIX = `${AEM_TAG_PATH_PRODUCT_CODE_ROOT}/`;
 const SELECTION_CHECKBOX = 'checkbox';
@@ -253,9 +253,7 @@ class AemTagPickerField extends LitElement {
 
     #onOstSelect = async ({ detail: { offerSelectorId, offer } }) => {
         if (!offer) return;
-        if (this.#data instanceof Promise) {
-            await this.#data;
-        }
+        await this.#ensureNamespaceLoaded();
         const productArrangementCode = await this.#getOfferProductArrangementCode(offerSelectorId, offer);
         const extractedOffer = {
             offer_type: offer.offer_type,
@@ -382,22 +380,14 @@ class AemTagPickerField extends LitElement {
         });
     }
 
+    async #ensureNamespaceLoaded() {
+        if (getNamespaceCache(this.namespace)) return;
+        await ensureNamespaceTags(this.namespace, (ns) => this.#aem.tags.list(ns));
+    }
+
     async loadTags() {
-        if (!this.#data) {
-            let resolveNamespace;
-            setNamespaceCache(
-                this.namespace,
-                new Promise((resolve) => {
-                    resolveNamespace = resolve;
-                }),
-            );
-            const rawTags = await this.#aem.tags.list(this.namespace);
-            if (!rawTags) return;
-            setNamespaceCache(this.namespace, new Map(rawTags.hits.map((tag) => [tag.path, tag])));
-            resolveNamespace();
-        } else if (this.#data instanceof Promise) {
-            // If still loading, wait
-            await this.#data;
+        if (!getNamespaceCache(this.namespace)) {
+            await ensureNamespaceTags(this.namespace, (ns) => this.#aem.tags.list(ns));
         }
 
         this.addContentTypeTags();
@@ -485,7 +475,7 @@ class AemTagPickerField extends LitElement {
 
     // For hierarchical or single-click modes
     async toggleTag(path) {
-        await this.#data; // ensure data is loaded first
+        await this.#ensureNamespaceLoaded();
         let currentValue = [...this.#asValueArray()];
         const storedPath = this.#toStoredValue(path);
         const equivalentPath = this.#toPath(path);

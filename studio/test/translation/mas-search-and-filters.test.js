@@ -4,8 +4,9 @@ import { fixture, fixtureCleanup } from '@open-wc/testing-helpers/pure';
 import sinon from 'sinon';
 import Store from '../../src/store.js';
 import { setItemsSelectionStore } from '../../src/common/items-selection-store.js';
-import { TABLE_TYPE, FILTER_TYPE, PAGE_NAMES } from '../../src/constants.js';
-import { setNamespaceCache } from '../../src/aem/tag-cache.js';
+import { FILTER_TYPE, PAGE_NAMES } from '../../src/constants.js';
+import { stubAemTagQueryFetch } from '../helpers/aem-tag-fetch.js';
+import { resetTagCache, seedTagCache } from '../helpers/tag-cache.js';
 import '../../src/swc.js';
 import '../../src/common/components/mas-search-and-filters.js';
 
@@ -16,7 +17,7 @@ const seedCustomTagTaxonomy = (titles = ['Accordion', 'Marquee', 'Test']) => {
         const path = `/content/cq:tags/mas/custom/${slug}`;
         return [path, { path, title, name: slug }];
     });
-    setNamespaceCache(MAS_TAG_NAMESPACE, new Map(entries));
+    seedTagCache(MAS_TAG_NAMESPACE, entries);
 };
 
 describe('MasSearchAndFilters', () => {
@@ -42,6 +43,7 @@ describe('MasSearchAndFilters', () => {
 
     beforeEach(() => {
         sandbox = sinon.createSandbox();
+        stubAemTagQueryFetch(sandbox);
         originalSearch = Store.search.get();
         originalFilters = Store.filters.get();
         originalPage = Store.page.get();
@@ -49,7 +51,7 @@ describe('MasSearchAndFilters', () => {
         Store.search.set({});
         Store.filters.set({ locale: 'en_US', tags: undefined, personalizationFilterEnabled: false });
         Store.page.set(PAGE_NAMES.CONTENT);
-        setNamespaceCache(MAS_TAG_NAMESPACE, new Map());
+        resetTagCache(MAS_TAG_NAMESPACE);
         Store.translationProjects.allCards.set([]);
         Store.translationProjects.displayCards.set([]);
         Store.translationProjects.allCollections.set([]);
@@ -65,7 +67,7 @@ describe('MasSearchAndFilters', () => {
     afterEach(() => {
         fixtureCleanup();
         sandbox.restore();
-        setNamespaceCache(MAS_TAG_NAMESPACE, undefined);
+        resetTagCache(MAS_TAG_NAMESPACE);
         Store.translationProjects.allCards.set([]);
         Store.translationProjects.displayCards.set([]);
         Store.translationProjects.allCollections.set([]);
@@ -80,7 +82,6 @@ describe('MasSearchAndFilters', () => {
         Store.search.set(originalSearch);
         Store.filters.set(originalFilters);
         Store.page.set(originalPage);
-        setNamespaceCache(MAS_TAG_NAMESPACE, undefined);
     });
 
     describe('initialization', () => {
@@ -712,31 +713,28 @@ describe('MasSearchAndFilters', () => {
         });
 
         it('should populate dropdown options from the cached MAS tag taxonomy', async () => {
-            setNamespaceCache(
-                MAS_TAG_NAMESPACE,
-                new Map([
-                    [
-                        '/content/cq:tags/mas/market_segments/com',
-                        { path: '/content/cq:tags/mas/market_segments/com', name: 'com', title: 'Commercial' },
-                    ],
-                    [
-                        '/content/cq:tags/mas/market_segments/edu',
-                        { path: '/content/cq:tags/mas/market_segments/edu', name: 'edu', title: 'Education' },
-                    ],
-                    [
-                        '/content/cq:tags/mas/customer_segment/team',
-                        { path: '/content/cq:tags/mas/customer_segment/team', name: 'team', title: 'Team' },
-                    ],
-                    [
-                        '/content/cq:tags/mas/product_code/photoshop',
-                        { path: '/content/cq:tags/mas/product_code/photoshop', name: 'photoshop', title: 'Photoshop' },
-                    ],
-                    [
-                        '/content/cq:tags/mas/product_code/photoshop/cc',
-                        { path: '/content/cq:tags/mas/product_code/photoshop/cc', name: 'cc', title: 'Photoshop CC' },
-                    ],
-                ]),
-            );
+            seedTagCache(MAS_TAG_NAMESPACE, [
+                [
+                    '/content/cq:tags/mas/market_segments/com',
+                    { path: '/content/cq:tags/mas/market_segments/com', name: 'com', title: 'Commercial' },
+                ],
+                [
+                    '/content/cq:tags/mas/market_segments/edu',
+                    { path: '/content/cq:tags/mas/market_segments/edu', name: 'edu', title: 'Education' },
+                ],
+                [
+                    '/content/cq:tags/mas/customer_segment/team',
+                    { path: '/content/cq:tags/mas/customer_segment/team', name: 'team', title: 'Team' },
+                ],
+                [
+                    '/content/cq:tags/mas/product_code/photoshop',
+                    { path: '/content/cq:tags/mas/product_code/photoshop', name: 'photoshop', title: 'Photoshop' },
+                ],
+                [
+                    '/content/cq:tags/mas/product_code/photoshop/cc',
+                    { path: '/content/cq:tags/mas/product_code/photoshop/cc', name: 'cc', title: 'Photoshop CC' },
+                ],
+            ]);
 
             const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${false}></mas-search-and-filters>`);
             Store.translationProjects.allCards.set([]);
@@ -1510,20 +1508,17 @@ describe('MasSearchAndFilters', () => {
         });
 
         it('keeps parent tags alongside their children (matches the content page)', async () => {
-            setNamespaceCache(
-                MAS_TAG_NAMESPACE,
-                new Map([
-                    [
-                        '/content/cq:tags/mas/custom/milo-blocks',
-                        { path: '/content/cq:tags/mas/custom/milo-blocks', title: 'Milo Blocks' },
-                    ],
-                    [
-                        '/content/cq:tags/mas/custom/milo-blocks/marquee',
-                        { path: '/content/cq:tags/mas/custom/milo-blocks/marquee', title: 'Marquee' },
-                    ],
-                    ['/content/cq:tags/mas/custom/test', { path: '/content/cq:tags/mas/custom/test', title: 'Test' }],
-                ]),
-            );
+            seedTagCache(MAS_TAG_NAMESPACE, [
+                [
+                    '/content/cq:tags/mas/custom/milo-blocks',
+                    { path: '/content/cq:tags/mas/custom/milo-blocks', title: 'Milo Blocks' },
+                ],
+                [
+                    '/content/cq:tags/mas/custom/milo-blocks/marquee',
+                    { path: '/content/cq:tags/mas/custom/milo-blocks/marquee', title: 'Marquee' },
+                ],
+                ['/content/cq:tags/mas/custom/test', { path: '/content/cq:tags/mas/custom/test', title: 'Test' }],
+            ]);
             const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${false}></mas-search-and-filters>`);
             await el.updateComplete;
             const ids = el.tagOptions.map((o) => o.id);

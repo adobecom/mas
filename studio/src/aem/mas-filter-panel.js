@@ -192,7 +192,7 @@ class MasFilterPanel extends LitElement {
         const picker = this.shadowRoot.querySelector('aem-tag-picker-field[top="product_code"]');
         const allTags = picker?.allTags;
 
-        if (!picker || !allTags || allTags instanceof Promise) {
+        if (!picker || !allTags) {
             return tags;
         }
 

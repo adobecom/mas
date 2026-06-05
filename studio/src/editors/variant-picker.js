@@ -41,7 +41,7 @@ export const VARIANTS = [
     {
         label: 'BizPro',
         value: VARIANT_NAMES.BIZPRO,
-        surface: SURFACES.ACOM.name,
+        surfaces: [SURFACES.ACOM],
     },
     {
         label: 'Plans Students',

@@ -365,8 +365,6 @@ function createWorkerPageSetup(config = {}) {
             const consoleListener = await setupMasConsoleListener(consoleErrors);
             page.on('console', consoleListener);
 
-            await installEdsThrottleOnPage(page);
-
             // Load the page
             await page.goto(fullUrl);
             await page.waitForLoadState('networkidle');

@@ -977,23 +977,6 @@ describe('MasFragmentEditor', () => {
             el.updateFragment(event);
             expect(el.inEdit.value.updateField.calledWith('tags', ['tag1', 'tag2'])).to.be.true;
         });
-
-        it('refreshes rendered prices when prices field changes', () => {
-            const refreshStub = sandbox.stub();
-            sandbox.stub(document, 'querySelector').withArgs('merch-card-editor').returns({
-                refreshRenderedPrices: refreshStub,
-            });
-
-            const event = {
-                target: {
-                    dataset: { field: 'prices' },
-                    value: '<span is="inline-price" data-wcs-osi="abc"></span>',
-                },
-            };
-            el.updateFragment(event);
-
-            expect(refreshStub.calledOnce).to.be.true;
-        });
     });
 
     describe('dialog visibility', () => {

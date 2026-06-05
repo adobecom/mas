@@ -7,6 +7,8 @@ import {
     PLACEHOLDER_CTA_SURFACES,
 } from '../constants.js';
 import Store from '../store.js';
+import { getActiveMerchCardEditor } from '../editors/merch-card-editor.js';
+import { getLocaleByCode } from '../../../io/www/src/fragment/locales.js';
 
 let ostRoot = document.getElementById('ost');
 let closeFunction;
@@ -248,6 +250,8 @@ export function openOfferSelectorTool(triggerElement, offerElement) {
                 if (value) searchParameters.append(key, value);
             });
         }
+        const authoringLocale = Store.localeOrRegion();
+        const localeMeta = getLocaleByCode(authoringLocale);
         const ostCloseFunction = window.ost.openOfferSelectorTool({
             aosApiKey: 'wcms-commerce-ims-user-prod',
             checkoutClientId: 'creative',
@@ -286,8 +290,8 @@ export function openOfferSelectorTool(triggerElement, offerElement) {
             searchParameters,
             searchOfferSelectorId,
             initialReferenceOsi,
-            country: masCommerceService.settings.country,
-            language: masCommerceService.settings.language,
+            country: localeMeta?.country ?? masCommerceService.settings.country,
+            language: localeMeta?.lang ?? masCommerceService.settings.language,
             defaultPlaceholderOptions: ostDefaultSettings(),
             offerSelectorPlaceholderOptions,
             modalsAndEntitlements: ['acom', 'acom-cc', 'acom-dc', 'sandbox', 'nala'].includes(Store.search.get().path),
@@ -313,7 +317,24 @@ export function openOfferSelectorTool(triggerElement, offerElement) {
     }
 }
 
+function restoreAuthoringCommerceServiceLocale() {
+    const studio = document.querySelector('mas-studio');
+    if (!studio?.renderCommerceService) return;
+
+    const editor = getActiveMerchCardEditor();
+    document.addEventListener(
+        'wcms:commerce:ready',
+        () => {
+            const service = document.querySelector('mas-commerce-service');
+            editor?.registerCommerceProviders?.(service);
+        },
+        { once: true },
+    );
+    studio.renderCommerceService();
+}
+
 export function closeOfferSelectorTool() {
     closeFunction?.();
     closeFunction = null;
+    restoreAuthoringCommerceServiceLocale();
 }

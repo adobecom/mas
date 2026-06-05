@@ -236,3 +236,53 @@ describe('openOfferSelectorTool deep-link type parameter', () => {
         expect(getSearchParamsFromLastCall().get('type')).to.equal('checkoutUrl');
     });
 });
+
+describe('closeOfferSelectorTool', () => {
+    let closeOfferSelectorTool;
+    let masStudio;
+    let renderCommerceServiceStub;
+    let registerCommerceProvidersStub;
+    let querySelectorStub;
+
+    before(async () => {
+        ({ closeOfferSelectorTool } = await import('../../src/rte/ost.js'));
+    });
+
+    beforeEach(() => {
+        renderCommerceServiceStub = sinon.stub();
+        masStudio = { renderCommerceService: renderCommerceServiceStub };
+        registerCommerceProvidersStub = sinon.stub();
+
+        querySelectorStub = sinon.stub(document, 'querySelector');
+        querySelectorStub.withArgs('mas-studio').returns(masStudio);
+        querySelectorStub.withArgs('mas-commerce-service').returns(document.createElement('mas-commerce-service'));
+        querySelectorStub.withArgs('merch-card-editor').returns({
+            registerCommerceProviders: registerCommerceProvidersStub,
+        });
+    });
+
+    afterEach(() => {
+        querySelectorStub.restore();
+    });
+
+    it('always calls renderCommerceService on close', () => {
+        closeOfferSelectorTool();
+
+        expect(renderCommerceServiceStub.calledOnce).to.be.true;
+    });
+
+    it('calls registerCommerceProviders on editor after wcms:commerce:ready fires', () => {
+        closeOfferSelectorTool();
+        document.dispatchEvent(new CustomEvent('wcms:commerce:ready'));
+
+        expect(registerCommerceProvidersStub.calledOnce).to.be.true;
+    });
+
+    it('does nothing when mas-studio is not present', () => {
+        querySelectorStub.withArgs('mas-studio').returns(null);
+
+        closeOfferSelectorTool();
+
+        expect(renderCommerceServiceStub.notCalled).to.be.true;
+    });
+});

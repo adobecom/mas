@@ -1252,7 +1252,7 @@ export default class MasFragmentEditor extends LitElement {
         }
 
         this.fragmentStore.updateField(fieldName, value);
-        if (fieldName === 'promoCode' || fieldName === 'prices') {
+        if (fieldName === 'promoCode') {
             getActiveMerchCardEditor()?.refreshRenderedPrices?.();
         }
     }

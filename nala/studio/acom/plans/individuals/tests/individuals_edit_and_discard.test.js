@@ -1409,7 +1409,9 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-5: Remove promo', async () => {
-            await editor.panel.locator('sp-field-group#ctas a[data-wcs-osi]').dblclick();
+            const editedCTA = editor.panel.locator('sp-field-group#ctas a[data-wcs-osi]');
+            await editedCTA.scrollIntoViewIfNeeded();
+            await editedCTA.dblclick();
             await expect(await ost.checkoutTab).toBeVisible();
             await expect(await ost.promoField).toBeVisible();
             await expect(await ost.promoLabel).toBeVisible();

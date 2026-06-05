@@ -1455,6 +1455,19 @@ class RteField extends LitElement {
 
         const tr = from === to ? state.tr.insert(from, node) : state.tr.replaceWith(from, to, node);
 
+        // Editing an existing checkout-link via a multi-step OST flow can leave an
+        // empty <a> behind (the host link split on insert). Remove any link node
+        // that ended up with no content and no offer so the editor doesn't keep a
+        // phantom CTA. Walk descending positions so earlier deletes don't shift
+        // the positions of not-yet-removed nodes.
+        const emptyLinkRanges = [];
+        tr.doc.descendants((descNode, pos) => {
+            const isLink = descNode.type === state.schema.nodes.link;
+            const isEmpty = descNode.content.size === 0 && !descNode.attrs?.['data-wcs-osi'];
+            if (isLink && isEmpty) emptyLinkRanges.push({ from: pos, to: pos + descNode.nodeSize });
+        });
+        emptyLinkRanges.sort((a, b) => b.from - a.from).forEach((range) => tr.delete(range.from, range.to));
+
         dispatch(tr);
         this.showOfferSelector = false;
         closeOfferSelectorTool();

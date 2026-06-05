@@ -148,6 +148,25 @@ describe('mas-bulk-publish-editor', () => {
         expect(banner.result).to.deep.equal(result);
     });
 
+    it('REVERT not disabled when status is PARTIALLY_PUBLISHED', async () => {
+        const el = await fixture(html`<mas-bulk-publish-editor></mas-bulk-publish-editor>`);
+        await el.updateComplete;
+        seedInEdit(
+            el,
+            {
+                title: 'x',
+                urls: '',
+                items: '[]',
+                locales: [],
+                status: BULK_PUBLISH_STATUS.PARTIALLY_PUBLISHED,
+            },
+            { id: 'existing-frag-id' },
+        );
+        await el.updateComplete;
+        const quick = el.shadowRoot.querySelector('mas-quick-actions');
+        expect(quick.disabled.has(QUICK_ACTION.REVERT)).to.equal(false);
+    });
+
     describe('Check for modifications', () => {
         it('"check-modifications" event from items triggers handleCheckModifications', async () => {
             const el = await fixture(html`<mas-bulk-publish-editor></mas-bulk-publish-editor>`);

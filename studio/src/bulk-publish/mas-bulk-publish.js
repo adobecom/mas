@@ -207,6 +207,7 @@ class MasBulkPublish extends LitElement {
     renderActions(projectStore) {
         const status = getProjectField(projectStore.get(), 'status', BULK_PUBLISH_STATUS.DRAFT);
         const isPublished = status === BULK_PUBLISH_STATUS.PUBLISHED;
+        const canRevert = status === BULK_PUBLISH_STATUS.PUBLISHED || status === BULK_PUBLISH_STATUS.PARTIALLY_PUBLISHED;
         const isPublishing = status === BULK_PUBLISH_STATUS.PUBLISHING;
         return html`
             <overlay-trigger placement="bottom-end" offset="4">
@@ -224,7 +225,7 @@ class MasBulkPublish extends LitElement {
                                   ${PUBLISH_SVG} Publish
                               </sp-menu-item>`
                             : nothing}
-                        ${isPublished
+                        ${canRevert
                             ? html`<sp-menu-item @click=${() => this.openRevertDialog(projectStore)}>
                                   <sp-icon-undo slot="icon"></sp-icon-undo>
                                   Revert

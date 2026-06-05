@@ -249,6 +249,10 @@ class MasBulkPublishEditor extends LitElement {
         return this.status === BULK_PUBLISH_STATUS.PUBLISHED;
     }
 
+    get canRevert() {
+        return this.status === BULK_PUBLISH_STATUS.PUBLISHED || this.status === BULK_PUBLISH_STATUS.PARTIALLY_PUBLISHED;
+    }
+
     get isPublishing() {
         return this.status === BULK_PUBLISH_STATUS.PUBLISHING;
     }
@@ -299,7 +303,7 @@ class MasBulkPublishEditor extends LitElement {
         } else if (!this.hasChanges) {
             disabled.add(QUICK_ACTION.SAVE);
         }
-        disabled.add(QUICK_ACTION.REVERT);
+        if (!this.canRevert) disabled.add(QUICK_ACTION.REVERT);
         if (!this.items.length) disabled.add(QUICK_ACTION.COPY);
         if (!this.hasValidItems || this.publishBlockedReason || this.status === BULK_PUBLISH_STATUS.PUBLISHING) {
             disabled.add(QUICK_ACTION.PUBLISH);

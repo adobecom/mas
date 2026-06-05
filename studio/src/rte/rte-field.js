@@ -1674,6 +1674,8 @@ class RteField extends LitElement {
         if (osiDomTarget) {
             const prosemirrorNodeAtClick = view.state.doc.nodeAt(nodePos);
             if (prosemirrorNodeAtClick && prosemirrorNodeAtClick.attrs['data-wcs-osi']) {
+                const selection = NodeSelection.create(view.state.doc, nodePos);
+                view.dispatch(view.state.tr.setSelection(selection));
                 ostRteFieldSource = this;
                 this.showOfferSelector = true;
                 this.handleOpenOfferSelector(null, osiDomTarget);

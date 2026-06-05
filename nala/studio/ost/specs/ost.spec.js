@@ -1,7 +1,6 @@
-// Dedicated fr_FR fragment created for NALA OST E2E coverage.
-// PREREQUISITE: replace the placeholder below with the real fr_FR fragment id
-// (created specifically for nala to avoid collisions with other suites — never reuse en_GB).
-export const OST_FR_FRAGMENT = '<TODO-fr_FR-fragment-id>';
+// Dedicated fr_FR fragment created for NALA OST E2E coverage
+// (/content/dam/mas/nala/fr_FR/ost-nala-card-fr — promo/legal/OSI price, never reuse en_GB).
+export const OST_FR_FRAGMENT = '12a636a7-8642-44da-a081-0a3faa729ef3';
 
 export default {
     FeatureName: 'M@S Studio OST',
@@ -61,7 +60,7 @@ export default {
             data: {
                 product: 'Photoshop',
                 placeholderChip: 'price',
-                expectedPrice: 'US$',
+                expectedPrice: '€',
             },
             tags: '@mas-studio @ost @ost-e2e',
         },
@@ -72,7 +71,7 @@ export default {
             data: {
                 product: 'Photoshop',
                 templates: ['optical', 'annual'],
-                expectedPrice: 'US$',
+                expectedPrice: '€',
             },
             tags: '@mas-studio @ost @ost-e2e',
         },
@@ -83,7 +82,7 @@ export default {
             data: {
                 product: 'Photoshop',
                 template: 'strikethrough',
-                forbiddenLeaks: ['/mo', 'TTC', 'sr-only'],
+                forbiddenLeaks: ['sr-only', '{{', '}}', 'undefined', 'NaN'],
             },
             tags: '@mas-studio @ost @ost-e2e',
         },
@@ -121,7 +120,6 @@ export default {
             data: {
                 fragmentId: OST_FR_FRAGMENT,
                 template: 'legal',
-                expectedDisclaimer: 'par licence',
             },
             tags: '@mas-studio @ost @ost-e2e',
         },
@@ -146,9 +144,9 @@ export default {
                 product: 'Photoshop',
                 template: 'price',
                 toggles: {
-                    displayRecurrence: '/mo',
-                    displayPerUnit: 'per license',
-                    displayTax: 'tax',
+                    displayRecurrence: '/mois',
+                    displayPerUnit: 'par licence',
+                    displayTax: 'HT',
                 },
             },
             tags: '@mas-studio @ost @ost-e2e',

@@ -528,6 +528,38 @@ describe('OstStore', () => {
         });
     });
 
+    describe('autoSelectByInitialOsi', () => {
+        const base = { offer_id: 'b', offer_type: 'BASE' };
+        const trial = { offer_id: 't', offer_type: 'TRIAL' };
+
+        it('selects the offer matching the resolved offer_type', () => {
+            store.initialOsi = 'OSI-TRIAL';
+            store.setAosParams({ offerType: 'TRIAL' });
+            const selected = store.autoSelectByInitialOsi([base, trial]);
+            expect(selected).to.be.true;
+            expect(store.selectedOffer).to.equal(trial);
+            expect(store.selectedOsi).to.equal('OSI-TRIAL');
+        });
+
+        it('returns false when no offer matches the resolved offer_type', () => {
+            store.initialOsi = 'OSI-X';
+            store.setAosParams({ offerType: 'PROMOTION' });
+            expect(store.autoSelectByInitialOsi([base, trial])).to.be.false;
+            expect(store.selectedOffer).to.be.undefined;
+        });
+
+        it('returns false without an initialOsi', () => {
+            store.setAosParams({ offerType: 'BASE' });
+            expect(store.autoSelectByInitialOsi([base, trial])).to.be.false;
+        });
+
+        it('returns false for a single-offer list (handled elsewhere)', () => {
+            store.initialOsi = 'OSI-BASE';
+            store.setAosParams({ offerType: 'BASE' });
+            expect(store.autoSelectByInitialOsi([base])).to.be.false;
+        });
+    });
+
     describe('addOffer', () => {
         it('sets selectedOffer in single flow', () => {
             store.authoringFlow = 'single';

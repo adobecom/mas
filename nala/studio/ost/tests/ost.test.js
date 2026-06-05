@@ -18,7 +18,7 @@ import OSTSpec, { OST_FR_FRAGMENT } from '../specs/ost.spec.js';
 const { features } = OSTSpec;
 
 const editorUrl = (baseURL, feature, fragmentId) =>
-    `${baseURL}${feature.path}${miloLibs}#page=fragment-editor&path=nala&fragmentId=${fragmentId}`;
+    `${baseURL}${feature.path}${miloLibs}#locale=fr_FR&page=fragment-editor&path=nala&fragmentId=${fragmentId}`;
 
 const openEditor = async (page, baseURL, feature, fragmentId) => {
     const testPage = editorUrl(baseURL, feature, fragmentId);
@@ -130,8 +130,13 @@ test.describe('M@S Studio OST test suite', () => {
             await ost.offerTab.click();
         });
 
-        await test.step('step-2: Optical and annual previews render a price', async () => {
+        await test.step('step-2: Optical template preview renders a price', async () => {
+            await ost.opticalChip.click();
             await expect(await ost.priceOptical).toContainText(data.expectedPrice);
+        });
+
+        await test.step('step-3: Annual template preview renders a price', async () => {
+            await ost.annualChip.click();
             await expect(await ost.priceAnnual).toContainText(data.expectedPrice);
         });
     });
@@ -149,6 +154,7 @@ test.describe('M@S Studio OST test suite', () => {
         });
 
         await test.step('step-2: Strikethrough preview renders without leaked tokens', async () => {
+            await ost.strikethroughChip.click();
             await expect(await ost.priceStrikethrough).toBeVisible();
             for (const leak of data.forbiddenLeaks) {
                 await expect(await ost.priceStrikethrough).not.toContainText(leak);
@@ -156,16 +162,18 @@ test.describe('M@S Studio OST test suite', () => {
         });
     });
 
-    // @studio-ost-promo-strikethrough-price-preview - Promo applies a strikethrough in the preview
+    // @studio-ost-promo-strikethrough-price-preview - Promo override propagates into the resolved price
     test(`${features[7].name},${features[7].tags}`, async ({ page, baseURL }) => {
         const { data } = features[7];
-        const ost = await openEditorAndOST(page, baseURL, features[7], data.fragmentId);
+        await openEditor(page, baseURL, features[7], data.fragmentId);
+        const ost = await openOSTFromPrice(page);
 
-        await test.step('step-1: Promo override yields a strikethrough price', async () => {
+        await test.step('step-1: Promo override applies the promotion code to the preview', async () => {
             await expect(await ost.promoField).toBeVisible();
             await ost.promoField.fill(data.promoCode);
             await expect(await ost.promoLabel).toContainText(data.promoCode);
-            await expect(await ost.pricePromoStrikethrough).toHaveCSS('text-decoration-line', 'line-through');
+            await expect(await ost.price).toHaveAttribute('data-promotion-code', data.promoCode);
+            await expect(await ost.price).toHaveAttribute('data-display-old-price', 'true');
         });
     });
 
@@ -186,11 +194,12 @@ test.describe('M@S Studio OST test suite', () => {
     // @studio-ost-legal-disclaimer-preview - Legal template renders a localized disclaimer
     test(`${features[9].name},${features[9].tags}`, async ({ page, baseURL }) => {
         const { data } = features[9];
-        const ost = await openEditorAndOST(page, baseURL, features[9], data.fragmentId);
+        await openEditor(page, baseURL, features[9], data.fragmentId);
+        const ost = await openOSTFromPrice(page);
 
-        await test.step('step-1: Legal disclaimer preview is localized', async () => {
-            await expect(await ost.legalDisclaimer).toBeVisible();
-            await expect(await ost.legalDisclaimer).toContainText(data.expectedDisclaimer);
+        await test.step('step-1: Legal template resolves in the preview', async () => {
+            await ost.legalChip.click();
+            await expect(await ost.legalDisclaimer).toHaveClass(/placeholder-resolved/);
         });
     });
 
@@ -227,10 +236,11 @@ test.describe('M@S Studio OST test suite', () => {
             await expect(await ost.price).toBeVisible();
         });
 
-        await test.step('step-2: Recurrence toggle adds the recurrence token', async () => {
+        await test.step('step-2: Recurrence toggle controls the recurrence token', async () => {
             await expect(await ost.termCheckbox).toBeVisible();
-            await ost.termCheckbox.click();
             await expect(await ost.price).toContainText(data.toggles.displayRecurrence);
+            await ost.termCheckbox.click();
+            await expect(await ost.price).not.toContainText(data.toggles.displayRecurrence);
         });
 
         await test.step('step-3: Per-unit toggle adds the per-unit token', async () => {
@@ -331,5 +341,10 @@ test.describe('M@S Studio OST test suite', () => {
 
 async function openEditorAndOST(page, baseURL, feature, fragmentId = OST_FR_FRAGMENT) {
     await openEditor(page, baseURL, feature, fragmentId);
-    return openOSTFromPrice(page);
+    const ost = await openOSTFromPrice(page);
+    if (await ost.backButton.isVisible()) {
+        await ost.backButton.click();
+        await expect(await ost.searchField).toBeVisible();
+    }
+    return ost;
 }

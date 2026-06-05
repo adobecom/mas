@@ -32,6 +32,12 @@ export default class OSTPage {
         this.offerTab = this.page.locator('[data-testid="ost-placeholder-chip-price"]');
         this.entitlementsTab = this.page.locator('[data-testid="ost-placeholder-chip-checkoutUrl"]');
         this.checkoutTab = this.page.locator('[data-testid="ost-placeholder-chip-checkoutUrl"]');
+        this.priceChip = this.page.locator('[data-testid="ost-placeholder-chip-price"]');
+        this.opticalChip = this.page.locator('[data-testid="ost-placeholder-chip-optical"]');
+        this.annualChip = this.page.locator('[data-testid="ost-placeholder-chip-annual"]');
+        this.strikethroughChip = this.page.locator('[data-testid="ost-placeholder-chip-strikethrough"]');
+        this.legalChip = this.page.locator('[data-testid="ost-placeholder-chip-legal"]');
+        this.discountChip = this.page.locator('[data-testid="ost-placeholder-chip-discount"]');
 
         // Inline-price spans rendered by mas-commerce-service inside the live preview.
         // Playwright's CSS pierces the live-preview's shadow root automatically.

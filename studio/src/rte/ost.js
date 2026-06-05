@@ -156,9 +156,6 @@ export async function onPlaceholderSelect(offerSelectorId, type, offer, options,
         attributes['data-analytics-id'] = options.ctaText;
     }
 
-    if (promoOverride) {
-        attributes['data-promotion-code'] = promoOverride;
-    }
     if (!options.isPerpetual) {
         delete changes.isPerpetual;
     }
@@ -167,6 +164,12 @@ export async function onPlaceholderSelect(offerSelectorId, type, offer, options,
         if (attribute) {
             attributes[attribute] = value;
         }
+    }
+
+    if (promoOverride) {
+        attributes['data-promotion-code'] = promoOverride;
+    } else {
+        delete attributes['data-promotion-code'];
     }
 
     ostRoot.dispatchEvent(

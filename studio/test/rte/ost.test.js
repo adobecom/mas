@@ -82,6 +82,28 @@ describe('onPlaceholderSelect', () => {
         expect(event.detail).to.deep.equal(expectedAttributes);
     });
 
+    it('should prefer promoOverride over a stale storedPromoOverride option', () => {
+        const options = {
+            storedPromoOverride: 'OLDPROMO',
+        };
+
+        onPlaceholderSelect('test-id', 'price', {}, options, 'NEWPROMO');
+
+        const event = dispatchEventStub.getCall(0).args[0];
+        expect(event.detail['data-promotion-code']).to.equal('NEWPROMO');
+    });
+
+    it('should remove data-promotion-code when promoOverride is empty', () => {
+        const options = {
+            storedPromoOverride: 'OLDPROMO',
+        };
+
+        onPlaceholderSelect('test-id', 'price', {}, options, '');
+
+        const event = dispatchEventStub.getCall(0).args[0];
+        expect(event.detail).to.not.have.property('data-promotion-code');
+    });
+
     it('should dispatch an event with correct attributes for legal', () => {
         const offerSelectorId = 'test-id';
         const type = 'legal';

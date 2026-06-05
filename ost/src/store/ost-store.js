@@ -494,7 +494,7 @@ export class OstStore extends EventTarget {
             if (offers.length === 1) {
                 this.setOffer(offers[0]);
                 this.autoResolveOsi(offers[0]);
-            } else {
+            } else if (!this.autoSelectByInitialOsi(offers)) {
                 await this.autoFillBaseAndTrial(offers);
             }
         } catch {
@@ -502,6 +502,19 @@ export class OstStore extends EventTarget {
         } finally {
             this.loading = false;
         }
+    }
+
+    // A searched/deep-linked OSI resolves to one specific offer; pick the offer
+    // matching its resolved offer_type so "Use" enables without a manual click,
+    // then reuse the searched OSI directly. Returns true when it selected one.
+    autoSelectByInitialOsi(offers) {
+        if (!this.initialOsi || offers.length <= 1) return false;
+        const wanted = this.aosParams.offerType;
+        const match = wanted ? offers.find((o) => o.offer_type === wanted) : undefined;
+        if (!match) return false;
+        this.setOffer(match);
+        this.setOsi(this.initialOsi);
+        return true;
     }
 
     async autoResolveOsi(offer) {

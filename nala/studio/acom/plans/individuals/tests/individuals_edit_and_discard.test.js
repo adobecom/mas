@@ -567,7 +567,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await expect(await ost.searchField).toBeVisible();
             await ost.searchField.fill(data.osi.updated);
             await (await ost.nextButton).click();
-            await expect(await ost.priceUse).toBeVisible();
+            await expect(await ost.priceUse).toBeEnabled();
             await ost.priceUse.click();
         });
 
@@ -605,6 +605,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         const { data } = features[11];
         const testPage = `${baseURL}${features[11].path}${miloLibs}${features[11].browserParams}${data.cardid}`;
         setTestPage(testPage);
+        const individualsCard = await studio.getCard(data.cardid);
 
         await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
             await page.goto(testPage);
@@ -1239,19 +1240,11 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
                 .click();
             await expect(async () => {
                 await ost.workflowMenu.click();
-                await expect(
-                    page.locator('div[role="option"]', {
-                        hasText: `${data.cta.updated.workflowStep}`,
-                    }),
-                ).toBeVisible({
+                await expect(page.locator(`sp-menu-item[value="${data.cta.updated.workflowStep}"]`)).toBeVisible({
                     timeout: 500,
                 });
             }).toPass();
-            await page
-                .locator('div[role="option"]', {
-                    hasText: `${data.cta.updated.workflowOption}`,
-                })
-                .click();
+            await page.locator(`sp-menu-item[value="${data.cta.updated.workflowStep}"]`).click();
             await expect(await ost.checkoutLink).toHaveAttribute('data-checkout-workflow-step', data.cta.updated.workflowStep);
             await ost.checkoutLinkUse.click();
             await page.waitForTimeout(1000);
@@ -1455,6 +1448,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await expect(await ost.searchField).toBeVisible();
             await ost.searchField.fill(data.osi.updated);
             await (await ost.nextButton).click();
+            await ost.legalChip.click();
             await ost.legalDisclaimer.scrollIntoViewIfNeeded();
             await expect(await ost.legalDisclaimer).not.toContainText(data.cardLegalDisclaimer);
             await expect(await ost.unitCheckbox).toBeVisible();

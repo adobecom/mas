@@ -472,6 +472,46 @@ describe('bizpro license dropdown interaction', () => {
     });
 });
 
+describe('bizpro license label pluralization', () => {
+    let card;
+    afterEach(() => card?.remove());
+
+    const QS = (title, def) =>
+        `<div slot="quantity-select"><merch-quantity-select title="${title}" min="1" max="10" step="1" default-value="${def}"></merch-quantity-select></div>`;
+
+    const labelText = () =>
+        card.shadowRoot
+            .querySelector('.license-select-trigger .license-select-label')
+            .textContent.trim();
+
+    async function selectQty(value) {
+        card.shadowRoot.querySelector('.license-select-trigger').click();
+        await card.updateComplete;
+        [...card.shadowRoot.querySelectorAll('.license-select-option')]
+            .find((li) => li.textContent.trim() === value)
+            .click();
+        await card.updateComplete;
+    }
+
+    it('pluralizes the authored title with "s" when quantity > 1', async () => {
+        card = await renderCard(QS('License', '2'));
+        expect(labelText()).to.equal('Licenses');
+        await selectQty('1');
+        expect(labelText()).to.equal('License');
+        await selectQty('5');
+        expect(labelText()).to.equal('Licenses');
+    });
+
+    it('uses the authored explicit plural after "|" when present', async () => {
+        card = await renderCard(QS('Licence|Licences', '1'));
+        expect(labelText()).to.equal('Licence');
+        await selectQty('3');
+        expect(labelText()).to.equal('Licences');
+        // the "|" form never leaks into the UI
+        expect(card.shadowRoot.textContent).to.not.contain('|');
+    });
+});
+
 describe('bizpro resize handling', () => {
     let card;
     // Real animation frames are throttled for backgrounded test pages, so the

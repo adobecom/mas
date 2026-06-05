@@ -276,10 +276,18 @@ export class BizPro extends VariantLayout {
         return opts.length ? opts : null;
     }
 
-    get licenseLabel() {
-        // Authored per-locale via the quantity-select title; the fallback only
-        // shows for half-configured selectors (min/max set, title blank).
-        return this.quantitySelectEl?.getAttribute('title') || 'License';
+    /**
+     * Singular/plural label forms for the license dropdown, authored
+     * per-locale via the quantity-select title. The title optionally carries
+     * an explicit plural after a "|" ("Licence|Licences"); without one the
+     * plural appends "s" — right for the English "License", and locales where
+     * that's wrong author the explicit form. The 'License' fallback only
+     * shows for half-configured selectors (min/max set, title blank).
+     */
+    get licenseLabels() {
+        const raw = this.quantitySelectEl?.getAttribute('title') || 'License';
+        const [singular, plural] = raw.split('|').map((s) => s.trim());
+        return { singular, plural: plural || `${singular}s` };
     }
 
     get hasLicenseSelector() {
@@ -384,9 +392,8 @@ export class BizPro extends VariantLayout {
         const opts = this.licenseOptions;
         const current = this.currentLicenseValue;
         const open = !!this.licenseOpen;
-        // The authored title is shown as-is for every quantity; pluralizing in
-        // code can't be done correctly across locales.
-        const label = this.licenseLabel;
+        const { singular, plural } = this.licenseLabels;
+        const label = Number(current) === 1 ? singular : plural;
         return html`
             <div class="license-select" ?data-open=${open}>
                 <button

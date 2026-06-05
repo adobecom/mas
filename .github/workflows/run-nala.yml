@@ -65,6 +65,8 @@ jobs:
                   if [ -n "${{ matrix.dirs }}" ]; then
                     echo "SHARD_DIRS=${{ matrix.dirs }}" >> $GITHUB_ENV
                   else
+                    # Shard 3 catch-all: every studio dir/file not claimed by shards 1-2.
+                    # New directories are automatically included here — no workflow change needed.
                     CLAIMED="nala/studio/acom nala/studio/ahome nala/studio/ccd nala/studio/commerce"
                     DIRS=""
                     for path in nala/studio/*/; do

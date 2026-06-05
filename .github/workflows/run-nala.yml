@@ -44,7 +44,7 @@ jobs:
                       node-version: 20.x
                       dirs: nala/studio/acom nala/studio/ahome
                       runner: nala-studio-sj # San Jose — own IP, full budget
-                      workers: 4
+                      workers: 3
                     - shard: ccd-commerce
                       node-version: 20.x
                       dirs: nala/studio/ccd nala/studio/commerce

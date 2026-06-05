@@ -7,7 +7,6 @@ import {
     SELECTOR_MAS_INLINE_PRICE,
     TEMPLATE_PRICE_LEGAL,
 } from '../constants.js';
-import { formatLiteral } from '../price/template.js';
 
 export const BIZPRO_AEM_FRAGMENT_MAPPING = {
     cardName: { attribute: 'name' },
@@ -279,33 +278,19 @@ export class BizPro extends VariantLayout {
 
     /**
      * Label for the license dropdown at the given quantity. The authored
-     * quantity-select title is treated as an ICU message and formatted with
-     * {count} — the same IntlMessageFormat mechanism the price literals use
-     * (e.g. price-literal-plan-type-label). The intended authoring is a
-     * dictionary placeholder (e.g. {{license-count-label}}) whose per-locale
-     * value is an ICU plural like
-     *   {count, plural, one {License} other {Licenses}}
-     * — the fragment pipeline's replace transformer resolves the placeholder
-     * before hydration, and ICU plural categories (one/few/many/other) keep
-     * every locale correct, including Slavic multi-form plurals. Plain-text
-     * titles render unchanged for every quantity: pluralization is never
-     * derived in code (appending "s" corrupts CJK and most non-English
-     * locales). Note: don't reference {count} inside the plural forms — the
-     * number renders separately in the trigger. The 'License' fallback only
-     * shows for half-configured selectors (min/max set, title blank).
+     * quantity-select title carries "singular|plural" — intended authoring is
+     * two dictionary placeholders ({{license-label}}|{{licenses-label}}, the
+     * coll-result-text/coll-results-text pattern) that the fragment
+     * pipeline's replace transformer resolves per locale before hydration.
+     * Without a "|" the title renders unchanged for every quantity:
+     * pluralization is never derived in code (appending "s" corrupts CJK and
+     * most non-English locales). The 'License' fallback only shows for
+     * half-configured selectors (min/max set, title blank).
      */
     licenseLabel(count) {
         const title = this.quantitySelectEl?.getAttribute('title') || 'License';
-        if (!title.includes('{')) return title;
-        const locale =
-            document
-                .querySelector('mas-commerce-service')
-                ?.settings?.locale?.replace('_', '-') ?? 'en-US';
-        return (
-            formatLiteral({ title }, locale, 'title', {
-                count: Number(count),
-            }) || title
-        );
+        const [singular, plural] = title.split('|').map((s) => s.trim());
+        return Number(count) === 1 ? singular : plural || singular;
     }
 
     get hasLicenseSelector() {

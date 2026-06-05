@@ -1,15 +1,25 @@
 import { test } from '@playwright/test';
+import { installEdsThrottleOnPage } from '../libs/eds-throttle.js';
 
 const MILO_LIBS = process.env.MILO_LIBS || '';
 const MAS_LIBS = process.env.MAS_LIBS || '';
 const MAS_IO_URL = process.env.MAS_IO_URL || '';
 
 const PRICE_PATTERN = {
+    FAKE: {
+        // TODO: narrow to /mo and /mes separately when MWPW-197541 is fixed
+        promo: /US\$55\.50\/(mo|mes)/,
+        regular: /US\$99\.90\/(mo|mes)/,
+    },
     US: {
         mo: /US\$\d+\.\d\d\/mo/,
         yr: /US\$\d+\.\d\d\/yr/,
     },
-    AR: { mo: /Ar\$\s[\d.,]+\/mo/, mo_en: /Ar\$\s[\d.,]+\/mo/ },
+    AR: {
+        mo_en: /Ar\$\s[\d.,]+\/mo/,
+        // TODO: narrow to /mes once MWPW-197541 is fixed
+        mo_es: /Ar\$\s[\d.,]+\/(mo|mes)/,
+    },
     AU: { mo: /A\$\d+\.\d\d\/mo/ },
     CA: { mo: /CAD\s\$\d+\.\d\d\/mo/ },
     EG: { mo: /LE\s+\d+\.\d\d\/.+/ },
@@ -353,6 +363,8 @@ function createWorkerPageSetup(config = {}) {
             // Set up console listener
             const consoleListener = await setupMasConsoleListener(consoleErrors);
             page.on('console', consoleListener);
+
+            await installEdsThrottleOnPage(page);
 
             // Load the page
             await page.goto(fullUrl);

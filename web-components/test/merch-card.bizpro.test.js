@@ -609,6 +609,76 @@ describe('bizpro resize handling', () => {
     });
 });
 
+describe('bizpro strikethrough price', () => {
+    let card;
+    afterEach(() => card?.remove());
+
+    // Promo shape: WCS resolves a single price-template inline-price into a
+    // struck regular price + the promo price, separated by an &nbsp;.
+    const PROMO_PRICE_HTML =
+        '<p slot="heading-m"><span is="inline-price" data-template="price" class="placeholder-resolved">' +
+        '<span class="price price-strikethrough"><span class="price-currency-symbol">US$</span>' +
+        '<span class="price-integer">49</span><span class="price-decimals-delimiter">.</span>' +
+        '<span class="price-decimals">99</span><span class="price-recurrence">/MO</span></span>' +
+        '&nbsp;<span class="price price-alternative"><span class="price-currency-symbol">US$</span>' +
+        '<span class="price-integer">34</span><span class="price-decimals-delimiter">.</span>' +
+        '<span class="price-decimals">97</span><span class="price-recurrence">/MO</span></span>' +
+        '</span></p>';
+
+    it('renders the struck regular price small, muted and above the promo price (Figma 988:14784-5)', async () => {
+        card = await renderCard(PROMO_PRICE_HTML);
+        const struck = card.querySelector('.price-strikethrough');
+        const promo = card.querySelector('.price-alternative');
+
+        const struckStyles = getComputedStyle(struck);
+        expect(struckStyles.display).to.equal('block');
+        expect(struckStyles.fontSize).to.equal('14px');
+        expect(struckStyles.fontWeight).to.equal('400');
+        expect(struckStyles.textDecorationLine).to.contain('line-through');
+        // --consonant-merch-card-bizpro-text-muted-color: #000000a3
+        expect(struckStyles.color).to.match(/rgba\(0, 0, 0, 0\.6/);
+        // Inner spans must not fall through to the 18px/900 price rules
+        const recurrence = getComputedStyle(
+            struck.querySelector('.price-recurrence'),
+        );
+        expect(recurrence.fontSize).to.equal('14px');
+        expect(recurrence.fontWeight).to.equal('400');
+
+        // The promo price keeps the full pricing typography, unstruck
+        const promoStyles = getComputedStyle(promo);
+        expect(promoStyles.fontSize).to.equal('18px');
+        expect(promoStyles.fontWeight).to.equal('900');
+        expect(promoStyles.textDecorationLine).to.not.contain('line-through');
+
+        // Stacked: struck price on its own line above, left-aligned with the
+        // promo price (the separating &nbsp; must not indent the promo line)
+        const struckBox = struck.getBoundingClientRect();
+        const promoBox = promo.getBoundingClientRect();
+        expect(struckBox.bottom).to.be.at.most(promoBox.top + 1);
+        expect(Math.abs(struckBox.left - promoBox.left)).to.be.below(1);
+    });
+
+    it('stacks an authored strikethrough-template price above the main price', async () => {
+        card = await renderCard(
+            '<p slot="heading-m"><span is="inline-price" data-template="strikethrough" class="placeholder-resolved">' +
+                '<span class="price price-strikethrough"><span class="price-currency-symbol">US$</span>' +
+                '<span class="price-integer">49</span><span class="price-recurrence">/MO</span></span></span> ' +
+                '<span is="inline-price" data-template="price" class="placeholder-resolved">' +
+                '<span class="price"><span class="price-currency-symbol">US$</span>' +
+                '<span class="price-integer">34</span><span class="price-recurrence">/MO</span></span></span></p>',
+        );
+        const struckWrapper = card.querySelector(
+            '[data-template="strikethrough"]',
+        );
+        expect(getComputedStyle(struckWrapper).display).to.equal('block');
+        const struckBox = struckWrapper.getBoundingClientRect();
+        const mainBox = card
+            .querySelector('[data-template="price"]')
+            .getBoundingClientRect();
+        expect(struckBox.bottom).to.be.at.most(mainBox.top + 1);
+    });
+});
+
 describe('bizpro add-on theming', () => {
     let card;
     afterEach(() => card?.remove());

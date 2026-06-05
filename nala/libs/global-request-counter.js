@@ -5,7 +5,6 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import { resolveEdsMaxRps, isEdsEdgeHost, throttleEdsGap, logEdsThrottleOnce } from './eds-throttle.js';
 
 const DEFAULT_TRACKED_URLS = {
     ODIN_AEM: 'https://author-p22655-e59433.adobeaemcloud.com',
@@ -50,29 +49,19 @@ class GlobalRequestCounter {
             };
         }
 
-        const edsMaxRps = resolveEdsMaxRps();
-        logEdsThrottleOnce(edsMaxRps);
+        // Count requests without intercepting — avoids conflicting with any page.route() throttle handler
+        page.on('request', (request) => {
+            const url = request.url();
+            const method = request.method();
 
-        // Set up routing to track requests to all configured URLs
-        await page.route('**/*', async (route) => {
-            const url = route.request().url();
-            const method = route.request().method();
-
-            // Check which service this request belongs to
             for (const [serviceName, serviceUrl] of Object.entries(globalThis.requestCounter.trackedUrls)) {
                 if (url.startsWith(serviceUrl)) {
                     const serviceCount = globalThis.requestCounter.serviceCounts[serviceName];
                     serviceCount.totalRequests++;
                     serviceCount.methods[method] = (serviceCount.methods[method] || 0) + 1;
-                    break; // Only count for the first matching service
+                    break;
                 }
             }
-
-            if (edsMaxRps > 0 && isEdsEdgeHost(url)) {
-                await throttleEdsGap(edsMaxRps);
-            }
-
-            await route.continue();
         });
     }
 

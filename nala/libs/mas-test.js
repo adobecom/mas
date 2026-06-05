@@ -1,6 +1,5 @@
 import { test as base } from '@playwright/test';
 import GlobalRequestCounter from './global-request-counter.js';
-import { installEdsThrottleOnContext } from './eds-throttle.js';
 import { setCurrentTestName } from '../utils/fragment-tracker.js';
 import StudioPage from '../studio/studio.page.js';
 import EditorPage from '../studio/editor.page.js';
@@ -46,7 +45,7 @@ const masIOUrl = process.env.MAS_IO_URL || '';
  * Extended Playwright test that automatically handles common MAS test operations
  */
 const masTest = base.extend({
-    page: async ({ page, context, browserName }, use, testInfo) => {
+    page: async ({ page, browserName }, use, testInfo) => {
         // Multiply default timeout by 3 (same as test.slow())
         const currentTimeout = testInfo.timeout;
         testInfo.setTimeout(currentTimeout * 3);
@@ -84,7 +83,6 @@ const masTest = base.extend({
         versions = new VersionPage(page);
         placeholders = new PlaceholdersPage(page);
 
-        await installEdsThrottleOnContext(context);
         await GlobalRequestCounter.init(page);
 
         try {

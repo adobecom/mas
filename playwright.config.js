@@ -30,7 +30,9 @@ const config = {
     retries: process.env.CI ? 1 : 0,
     /*
      * Worker count drives the EDS throttle: eds-throttle.js derives per-worker RPS as
-     * floor(180 / workers). Changing the machine or NALA_PLAYWRIGHT_WORKERS auto-adjusts.
+     * floor(180 / workers). All CI runners share the same NAT IP — the 200 RPS EDS budget
+     * is shared across all concurrent jobs. NALA_PLAYWRIGHT_WORKERS is set per-job in the
+     * workflow to control the combined total (studio shards + docs ≤ 4 workers = 180 RPS).
      */
     workers: (() => {
         const fromEnv = Number.parseInt(process.env.NALA_PLAYWRIGHT_WORKERS ?? '', 10);

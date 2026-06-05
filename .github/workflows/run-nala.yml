@@ -116,6 +116,11 @@ jobs:
                   IMS_EMAIL: ${{ secrets.IMS_EMAIL }}
                   IMS_PASS: ${{ secrets.IMS_PASS }}
                   FORCE_COLOR: 3 # Force color output
+                  # All runners share the same NAT IP (200 RPS EDS budget total).
+                  # Budget split: studio 135 RPS + docs 45 RPS = 180 RPS.
+                  # Per studio runner: 135/3 = 45 RPS → 4 workers × 11 RPS each.
+                  NALA_PLAYWRIGHT_WORKERS: 4
+                  NALA_EDS_MAX_RPS: 11
 
             - name: Cleanup cloned cards
               if: always()
@@ -226,3 +231,6 @@ jobs:
                   prBaseBranch: ${{ github.event.pull_request.base.ref }}
                   GITHUB_ACTION_PATH: ${{ github.workspace }}
                   FORCE_COLOR: 3 # Force color output
+                  # docs budget: 45 RPS (1 worker × 45). Studio takes the remaining 135 RPS.
+                  NALA_PLAYWRIGHT_WORKERS: 1
+                  NALA_EDS_MAX_RPS: 45

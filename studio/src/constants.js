@@ -286,6 +286,8 @@ export const BULK_PUBLISH_STATUS = {
     DRAFT: 'Draft',
     PUBLISHING: 'Publishing',
     PUBLISHED: 'Published',
+    PARTIALLY_PUBLISHED: 'Partially published',
+    FAILED: 'Failed',
     LOCKED: 'Locked',
     REVERTING: 'Reverting',
     REVERTED: 'Reverted',

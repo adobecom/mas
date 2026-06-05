@@ -1,4 +1,5 @@
 import Store from '../store.js';
+import { BULK_PUBLISH_STATUS } from '../constants.js';
 
 function patchProjectStore(project, fields) {
     const snapshot = structuredClone(project.get());
@@ -10,8 +11,16 @@ function patchProjectStore(project, fields) {
     project.refreshFrom(snapshot);
 }
 
-export async function startPublishing({ project, token, ioBaseUrl, repository }) {
-    const { publishBulk } = await import('./bulk-publish-client.js');
+export async function startPublishing({
+    project,
+    token,
+    ioBaseUrl,
+    repository,
+    publishFn,
+    pollIntervalMs = 2000,
+    maxPolls = 150,
+}) {
+    const fn = publishFn ?? (await import('./bulk-publish-client.js')).publishBulk;
     const profile = await window.adobeIMS?.getProfile?.().catch(() => null);
     const publishedBy = profile?.email ?? '';
 
@@ -20,14 +29,14 @@ export async function startPublishing({ project, token, ioBaseUrl, repository })
         [project.id]: true,
     });
     try {
-        const result = await publishBulk({ ioBaseUrl, projectId: project.id, publishedBy, token });
-        patchProjectStore(project, {
-            status: result.status,
-            publishedAt: result.publishedAt,
-            publishedBy: result.publishedBy,
-        });
-        repository.refreshFragment(project).catch(() => {});
-        return result;
+        await fn({ ioBaseUrl, projectId: project.id, publishedBy, token });
+        for (let i = 0; i < maxPolls; i++) {
+            await repository.refreshFragment(project).catch(() => {});
+            const statusField = project.get()?.fields?.find((f) => f.name === 'status');
+            const status = statusField?.values?.[0];
+            if (status && status !== BULK_PUBLISH_STATUS.PUBLISHING) break;
+            await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
+        }
     } finally {
         const current = { ...Store.bulkPublishProjects.publishing.get() };
         delete current[project.id];

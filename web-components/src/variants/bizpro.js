@@ -79,13 +79,16 @@ export class BizPro extends VariantLayout {
             const legal = headingPrice.cloneNode(true);
             await headingPrice.onceSettled();
             if (!headingPrice?.options) return;
-            if (headingPrice.options.displayPerUnit)
-                headingPrice.dataset.displayPerUnit = 'false';
+            // Unlike plans, per-unit stays on the pricing line (Figma puts
+            // "per license" right after the price, same typography as the
+            // per-unit-label slot) — only tax and plan type move to the
+            // legal line, where legal.js separates them with a dot.
             if (headingPrice.options.displayTax)
                 headingPrice.dataset.displayTax = 'false';
             if (headingPrice.options.displayPlanType)
                 headingPrice.dataset.displayPlanType = 'false';
             legal.setAttribute('data-template', 'legal');
+            legal.dataset.displayPerUnit = 'false';
             headingPrice.parentNode.insertBefore(
                 legal,
                 headingPrice.nextSibling,

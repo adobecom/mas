@@ -6,11 +6,11 @@ export default {
             name: '@studio-bizpro-save-edited-fields',
             path: '/studio.html',
             data: {
-                cardid: 'c3453a4e-cb16-4208-a1bb-fd56f170e0ab',
+                cardid: '6edac1ee-89f9-4432-aa42-008a360fa537',
                 title: 'Saved BizPro Title',
                 whatsIncludedLabel: 'Saved toggle label:',
             },
-            browserParams: '#page=fragment-editor&path=sandbox&fragmentId=',
+            browserParams: '#page=fragment-editor&path=nala&fragmentId=',
             tags: '@mas-studio @acom @acom-save @acom-bizpro @acom-bizpro-save',
         },
     ],

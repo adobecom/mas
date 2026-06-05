@@ -1,5 +1,6 @@
 import { test as base } from '@playwright/test';
 import GlobalRequestCounter from './global-request-counter.js';
+import { installEdsThrottleOnPage } from './eds-throttle.js';
 import { setCurrentTestName } from '../utils/fragment-tracker.js';
 import StudioPage from '../studio/studio.page.js';
 import EditorPage from '../studio/editor.page.js';
@@ -83,7 +84,7 @@ const masTest = base.extend({
         versions = new VersionPage(page);
         placeholders = new PlaceholdersPage(page);
 
-        // Initialize counter
+        await installEdsThrottleOnPage(page);
         await GlobalRequestCounter.init(page);
 
         try {

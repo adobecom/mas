@@ -23,7 +23,7 @@ async function main(params) {
         });
         const workerResult = await invokeAsyncAction(
             workerActionName,
-            { projectId: params.projectId, publishedBy: params.publishedBy || '', odinEndpoint, authToken },
+            { projectId: params.projectId, publishedBy: params.publishedBy || '', authToken },
             params,
         );
 

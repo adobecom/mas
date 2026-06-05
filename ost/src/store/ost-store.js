@@ -278,6 +278,10 @@ export class OstStore extends EventTarget {
         this.currentSlot = 'base';
         this.pendingFlowSwitch = null;
         this.offers = [];
+        // Reset the offers-fetch cache key so the first product selection of a
+        // fresh OST session always reloads offers (a re-open with the same
+        // product would otherwise hit the stale key and skip the fetch).
+        this.#offersKey = null;
         this.searchQuery = '';
         this.searchType = '';
         this.deepLink = {};

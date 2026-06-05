@@ -185,6 +185,19 @@ describe('OstStore', () => {
             expect(store.allProducts).to.deep.equal(products);
         });
 
+        it('reloads offers after re-init even for the same product (offersKey reset)', () => {
+            const product = { name: 'Premiere plan', arrangement_code: 'ppro_direct_individual' };
+            let loads = 0;
+            store.loadOffers = () => {
+                loads++;
+            };
+            store.setProduct(product);
+            expect(loads).to.equal(1);
+            store.init({});
+            store.setProduct(product);
+            expect(loads).to.equal(2);
+        });
+
         it('resets authoringFlow to single (default) and clears selectedOffers', () => {
             // The default authoringFlow is 'single' so a deep-linked open
             // (e.g. RTE double-click on an existing CTA — passes

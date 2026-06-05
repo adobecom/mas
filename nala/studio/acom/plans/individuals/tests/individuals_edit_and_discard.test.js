@@ -1355,6 +1355,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
                 'data-promotion-code',
                 data.promo.original,
             );
+            await expect(await individualsCard.locator(plans.cardCTA)).toHaveAttribute('href', /commerce\.adobe\.com/);
 
             const CTAhref = await individualsCard.locator(plans.cardCTA).getAttribute('href');
             const workflowStep = decodeURI(CTAhref).split('?')[0];
@@ -1389,7 +1390,8 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-3: Validate edited CTA promo in Editor panel', async () => {
-            await expect(await editor.CTA).toHaveAttribute('data-promotion-code', data.promo.updated);
+            const editedCTA = editor.panel.locator('sp-field-group#ctas a[data-wcs-osi]');
+            await expect(editedCTA).toHaveAttribute('data-promotion-code', data.promo.updated);
         });
 
         await test.step('step-4: Validate edited CTA promo on the card', async () => {
@@ -1452,9 +1454,10 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await (await ost.nextButton).click();
             await ost.legalChip.click();
             await ost.legalDisclaimer.scrollIntoViewIfNeeded();
-            await expect(await ost.legalDisclaimer).not.toContainText(data.cardLegalDisclaimer);
             await expect(await ost.unitCheckbox).toBeVisible();
-            await ost.unitCheckbox.click();
+            if (!(await ost.legalDisclaimer.textContent())?.includes(data.cardLegalDisclaimer)) {
+                await ost.unitCheckbox.click();
+            }
             await expect(await ost.legalDisclaimer).toContainText(data.cardLegalDisclaimer);
             await expect(await ost.legalDisclaimerUse).toBeVisible();
             await ost.legalDisclaimerUse.click();

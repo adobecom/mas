@@ -49,7 +49,7 @@ e.g `<meta name="mas-ff-defaults" content="on">`
 | GR_en (Greece) | incl. VAT | excl. VAT |
 | HU_hu (Hungary) | áfával | áfa nélkül |
 | IE_en (Ireland) | incl. VAT | excl. VAT |
-| IT_it (Italy) | incl. IVA | escl. IVA. |
+| IT_it (Italy) | incl. IVA | escl. IVA |
 | LT_lt (Lithuania) | su PVM | be PVM |
 | LU_de (Luxembourg) | inkl. MwSt. | exkl. MwSt. |
 | LU_en (Luxembourg) | incl. VAT | excl. VAT |

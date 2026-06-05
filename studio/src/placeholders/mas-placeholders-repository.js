@@ -357,7 +357,7 @@ export async function createPlaceholder(placeholder) {
         Store.placeholders.list.data.set((prev) => [...prev, new FragmentStore(newPlaceholder)]);
         return true;
     } catch (error) {
-        repo.processError(error, 'Failed to create');
+        repo.processError(error, 'Failed to create placeholder.');
         return false;
     }
 }
@@ -370,10 +370,8 @@ export async function publishPlaceholder(placeholder) {
     const indexPath = `${parentPath}/index`;
     const indexFragment = await getIndexFragment(indexPath);
     if (!indexFragment) {
-        repo.processError(
-            new Error(`Dictionary index fragment not found at ${indexPath}`),
-            'Dictionary index is missing, please report to administrator.',
-        );
+        const errorMessage = `Could not load placeholders index at ${indexPath}`;
+        repo.processError(new Error(errorMessage), `${errorMessage}, please report to administrator.`);
         return false;
     }
 

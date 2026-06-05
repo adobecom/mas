@@ -112,4 +112,20 @@ describe('bulk-publish-worker — runWorker', () => {
         expect(firstUpdate.status).to.equal('Publishing');
         expect(firstUpdate.snapshots[0]).to.include('publishComplete');
     });
+
+    it('marks rollout-failed and skips republish when localeSync fails', async () => {
+        deps.rolloutLocales.resolves(false);
+        deps.publishResolved.onFirstCall().resolves([
+            { path: '/content/dam/mas/acom/en_US/a', status: 'published' },
+            { path: '/content/dam/mas/acom/es_MX/a', status: 'failed', reason: 'not-found' },
+        ]);
+        const result = await worker.runWorker(
+            { projectId: 'proj-1', odinEndpoint: 'https://odin', authToken: 't', publishedBy: '' },
+            deps,
+        );
+        expect(deps.waitForFragments).to.not.have.been.called;
+        expect(deps.publishResolved).to.have.been.calledOnce;
+        expect(result.reasons['rollout-failed']).to.equal(1);
+        expect(deps.updateProjectFragment.lastCall.args[3].status).to.equal('Partially published');
+    });
 });

@@ -1474,7 +1474,7 @@ class MerchCardCollectionEditor extends LitElement {
                           <div class="form-row">
                               <sp-switch
                                   ?checked="${this.fragment.getField('locReady')?.values[0]}"
-                                  @click="${this.#updateLocReady}"
+                                  @change="${this.#updateLocReady}"
                               >
                                   Send to translation
                               </sp-switch>

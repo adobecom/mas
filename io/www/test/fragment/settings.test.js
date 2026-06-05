@@ -855,6 +855,32 @@ describe('settings', () => {
                 expect(result.body.settings.displayAnnual).to.equal(true);
             });
 
+            it('ignores malformed override locales when matching country', async () => {
+                const context = {
+                    locale: 'fr_FR',
+                    country: 'AU',
+                    body: { fields: {} },
+                    promises: {
+                        settings: Promise.resolve({
+                            displayAnnual: {
+                                default: { name: 'displayAnnual', valuetype: 'boolean', booleanValue: false },
+                                override: [
+                                    {
+                                        name: 'displayAnnual',
+                                        valuetype: 'boolean',
+                                        // locales comes from settings content, so ignore malformed entries without skipping valid ones.
+                                        locales: [null, undefined, '', 'undefined', 'en', 'en_AU'],
+                                        booleanValue: true,
+                                    },
+                                ],
+                            },
+                        }),
+                    },
+                };
+                const result = await settings.process(context);
+                expect(result.body.settings.displayAnnual).to.equal(true);
+            });
+
             it('matches override country case-insensitively', async () => {
                 const context = {
                     locale: 'fr_FR',

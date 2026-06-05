@@ -56,4 +56,30 @@ describe('mas-bulk-publish-success-banner', () => {
         const result = el.formatDate('not-a-date');
         expect(result).to.equal('not-a-date');
     });
+
+    it('renders partial summary with counts and rolled-out note', async () => {
+        const result = {
+            published: 3,
+            rolledOut: 1,
+            failed: 2,
+            rolloutPending: 0,
+            failures: [{ path: '/a', reason: 'error-invalid' }],
+            failuresTruncated: false,
+        };
+        const el = await fixture(html`<mas-bulk-publish-success-banner .result=${result}></mas-bulk-publish-success-banner>`);
+        await el.updateComplete;
+        const text = el.shadowRoot.textContent;
+        expect(text).to.include('3');
+        expect(text).to.include('2');
+        expect(text).to.include('rolled out');
+        expect(el.getAttribute('variant')).to.equal('partial');
+    });
+
+    it('notes truncation when failuresTruncated', async () => {
+        const failures = Array.from({ length: 100 }, (v, i) => ({ path: `/p${i}`, reason: 'not-found' }));
+        const result = { published: 100, rolledOut: 0, failed: 100, rolloutPending: 0, failures, failuresTruncated: true };
+        const el = await fixture(html`<mas-bulk-publish-success-banner .result=${result}></mas-bulk-publish-success-banner>`);
+        await el.updateComplete;
+        expect(el.shadowRoot.textContent).to.include('100 of 100');
+    });
 });

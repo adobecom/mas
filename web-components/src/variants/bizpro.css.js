@@ -394,9 +394,4 @@ merch-card-collection.plans:is(.one-merch-card, .two-merch-cards, .three-merch-c
     }
 }
 
-/* ETF / legal text inline link styling — underlined inline anchors */
-merch-card[variant="bizpro"] [slot="legal-text"] a {
-    color: inherit;
-    text-decoration: underline;
-}
 `;

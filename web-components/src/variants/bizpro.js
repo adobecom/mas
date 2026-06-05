@@ -3,6 +3,7 @@ import { html, css, nothing } from 'lit';
 import { CSS } from './bizpro.css.js';
 import {
     EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
+    EVENT_TYPE_RESOLVED,
     SELECTOR_MAS_INLINE_PRICE,
     TEMPLATE_PRICE_LEGAL,
 } from '../constants.js';
@@ -79,24 +80,57 @@ export class BizPro extends VariantLayout {
             const legal = headingPrice.cloneNode(true);
             await headingPrice.onceSettled();
             if (!headingPrice?.options) return;
-            // Unlike plans, per-unit stays on the pricing line (Figma puts
-            // "per license" right after the price, same typography as the
-            // per-unit-label slot) — only tax and plan type move to the
-            // legal line, where legal.js separates them with a dot.
+            if (headingPrice.options.displayPerUnit)
+                headingPrice.dataset.displayPerUnit = 'false';
             if (headingPrice.options.displayTax)
                 headingPrice.dataset.displayTax = 'false';
             if (headingPrice.options.displayPlanType)
                 headingPrice.dataset.displayPlanType = 'false';
             legal.setAttribute('data-template', 'legal');
-            legal.dataset.displayPerUnit = 'false';
             headingPrice.parentNode.insertBefore(
                 legal,
                 headingPrice.nextSibling,
             );
             await legal.onceSettled();
+            // Re-apply the authored override whenever the legal price
+            // re-resolves (locale/quantity changes regenerate its innerHTML).
+            // Matches the mini-compare-chart pattern.
+            if (!this.legalResolvedHandler) {
+                this.legalResolvedHandler = () => this.adjustShortDescription();
+                legal.addEventListener(
+                    EVENT_TYPE_RESOLVED,
+                    this.legalResolvedHandler,
+                );
+            }
+            this.adjustShortDescription();
         } catch {
             // Proceed with the other post-update adjustments
         }
+    }
+
+    /**
+     * Authored Short Description overrides the derived plan type wording
+     * ("Annual, billed monthly") — same mechanism as mini-compare-chart's
+     * adjustShortDescription, except the text REPLACES the derived label
+     * instead of being appended after it. The field's only manifestation is
+     * the plan type line, so with the Show Plan type setting off (no
+     * .price-plan-type span) the override does not render either.
+     */
+    adjustShortDescription() {
+        if (!this.shortDescriptionSource) {
+            const legalText = this.card.querySelector('[slot="legal-text"]');
+            if (!legalText) return;
+            this.shortDescriptionSource = legalText;
+            legalText.remove();
+        }
+        const text = this.shortDescriptionSource.textContent?.trim();
+        if (!text) return;
+        const legalPrice = this.card.querySelector(
+            '[slot="heading-m"] [data-template="legal"]',
+        );
+        const planType = legalPrice?.querySelector('.price-plan-type');
+        if (!planType) return;
+        planType.textContent = text;
     }
 
     get hasWhatsIncluded() {
@@ -160,6 +194,10 @@ export class BizPro extends VariantLayout {
         if (!this.legalAdjusted) {
             await this.adjustLegal();
         }
+        // Also runs when there is no main price (free cards): the authored
+        // Short Description is still detached from the light DOM so it never
+        // renders as a standalone block.
+        this.adjustShortDescription();
         await super.postCardUpdateHook();
         // Line the white .top-card sections up across a row once the card has
         // laid out. Only relevant when cards sit side by side (>=768px).
@@ -218,10 +256,6 @@ export class BizPro extends VariantLayout {
             this.#resizeFrame = null;
         }
         this.#visibilityObserver?.disconnect();
-    }
-
-    get hasLegalText() {
-        return !!this.card.querySelector('[slot="legal-text"]');
     }
 
     get quantitySelectEl() {
@@ -432,11 +466,6 @@ export class BizPro extends VariantLayout {
                     </div>
                     <slot name="promo-text"></slot>
                 </div>
-                ${this.hasLegalText
-                    ? html`<div class="legal-text">
-                          <slot name="legal-text"></slot>
-                      </div>`
-                    : nothing}
                 ${this.hasLicenseSelector ||
                 this.hasCallout ||
                 this.hasQuantitySelect
@@ -607,20 +636,6 @@ export class BizPro extends VariantLayout {
         }
 
         :host([variant='bizpro']) ::slotted([slot='promo-text']) {
-            margin: 0;
-            font-family: 'Adobe Clean', adobe-clean, sans-serif;
-            font-weight: 400;
-            font-size: 14px;
-            line-height: 18px;
-            letter-spacing: 0.14px;
-            color: #000000a3;
-        }
-
-        :host([variant='bizpro']) .legal-text {
-            color: #000;
-        }
-
-        :host([variant='bizpro']) ::slotted([slot='legal-text']) {
             margin: 0;
             font-family: 'Adobe Clean', adobe-clean, sans-serif;
             font-weight: 400;

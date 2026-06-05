@@ -135,7 +135,6 @@ describe('BizPro.adjustLegal', () => {
         const clone = {
             setAttribute: sinon.spy(),
             onceSettled: () => Promise.resolve(),
-            dataset: {},
         };
         const insertBefore = sinon.spy();
         const price = {
@@ -166,12 +165,9 @@ describe('BizPro.adjustLegal', () => {
         expect(clone.setAttribute.calledWith('data-template', 'legal')).to.be
             .true;
         expect(insertBefore.calledWith(clone, 'next-sibling')).to.be.true;
-        // tax moves off the main price onto the legal clone, but per-unit
-        // stays on the pricing line (bizpro Figma) and is disabled on the
-        // clone so it doesn't render twice.
+        // per-unit/tax move off the main price onto the legal clone
+        expect(price.dataset.displayPerUnit).to.equal('false');
         expect(price.dataset.displayTax).to.equal('false');
-        expect(price.dataset.displayPerUnit).to.be.undefined;
-        expect(clone.dataset.displayPerUnit).to.equal('false');
     });
 
     it('leaves disabled display options untouched on the main price', async () => {
@@ -259,13 +255,59 @@ describe('bizpro whats-included toggle label', () => {
     });
 });
 
-describe('bizpro legal text', () => {
+describe('bizpro short description plan type override', () => {
     let card;
     afterEach(() => card?.remove());
 
-    it('renders the legal-text wrapper only when legal text is slotted', async () => {
-        card = await renderCard('<div slot="legal-text">Legal terms</div>');
-        expect(card.shadowRoot.querySelector('.legal-text')).to.exist;
+    // Mimics the legal price markup after it resolves with displayPlanType on.
+    const LEGAL_PRICE =
+        '<p slot="heading-m"><span is="inline-price" data-template="legal">' +
+        '<span class="price price-legal"><span class="price-plan-type">Annual, billed monthly</span></span>' +
+        '</span></p>';
+
+    it('replaces the derived plan type wording with the authored text', async () => {
+        card = await renderCard(
+            `${LEGAL_PRICE}<div slot="legal-text">Yearly, paid monthly</div>`,
+        );
+        card.variantLayout.adjustShortDescription();
+        expect(card.querySelector('.price-plan-type').textContent).to.equal(
+            'Yearly, paid monthly',
+        );
+        // The field's only manifestation is the plan type line.
+        expect(card.querySelector('[slot="legal-text"]')).to.not.exist;
+    });
+
+    it('keeps the derived wording when no short description is authored', async () => {
+        card = await renderCard(LEGAL_PRICE);
+        card.variantLayout.adjustShortDescription();
+        expect(card.querySelector('.price-plan-type').textContent).to.equal(
+            'Annual, billed monthly',
+        );
+    });
+
+    it('renders nothing when the plan type line is off (no .price-plan-type)', async () => {
+        card = await renderCard(
+            '<p slot="heading-m"><span is="inline-price" data-template="legal">' +
+                '<span class="price price-legal"></span></span></p>' +
+                '<div slot="legal-text">Yearly, paid monthly</div>',
+        );
+        card.variantLayout.adjustShortDescription();
+        expect(card.querySelector('[slot="legal-text"]')).to.not.exist;
+        expect(card.textContent).to.not.contain('Yearly, paid monthly');
+    });
+
+    it('re-applies the override after the legal price re-resolves', async () => {
+        card = await renderCard(
+            `${LEGAL_PRICE}<div slot="legal-text">Yearly, paid monthly</div>`,
+        );
+        card.variantLayout.adjustShortDescription();
+        // A re-resolve regenerates the price markup (derived wording returns).
+        card.querySelector('.price-plan-type').textContent =
+            'Annual, billed monthly';
+        card.variantLayout.adjustShortDescription();
+        expect(card.querySelector('.price-plan-type').textContent).to.equal(
+            'Yearly, paid monthly',
+        );
     });
 });
 

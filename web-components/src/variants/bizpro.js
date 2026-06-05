@@ -53,13 +53,47 @@ export class BizPro extends VariantLayout {
     /**
      * Forwards the Show Plan type setting (fragment.settings.displayPlanType,
      * resolved server-side from the surface settings fragment + the editor's
-     * showPlanType override) to the authored legal-template price, which then
-     * renders the localized plan type ("Annual, billed monthly") from the WCS
-     * offer. Same pattern as plans/plans-v2.
+     * showPlanType override) to the legal-template price that adjustLegal()
+     * generates, which then renders the localized plan type ("Annual, billed
+     * monthly") from the WCS offer. Same pattern as plans/plans-v2.
      */
     priceOptionsProvider(element, options) {
         if (element.dataset.template !== TEMPLATE_PRICE_LEGAL) return;
         options.displayPlanType = this.card?.settings?.displayPlanType ?? false;
+    }
+
+    /**
+     * Clones the authored main price into a legal-template sibling (same as
+     * plans/plans-v2), so the plan type line needs no extra authoring — the
+     * Show Plan type toggle alone controls it via priceOptionsProvider above.
+     * Per-unit/tax/plan-type rendering moves off the main price onto the clone.
+     */
+    async adjustLegal() {
+        if (this.legalAdjusted) return;
+        try {
+            this.legalAdjusted = true;
+            await this.card.updateComplete;
+            await customElements.whenDefined('inline-price');
+            const headingPrice = this.mainPrice;
+            if (!headingPrice) return;
+            const legal = headingPrice.cloneNode(true);
+            await headingPrice.onceSettled();
+            if (!headingPrice?.options) return;
+            if (headingPrice.options.displayPerUnit)
+                headingPrice.dataset.displayPerUnit = 'false';
+            if (headingPrice.options.displayTax)
+                headingPrice.dataset.displayTax = 'false';
+            if (headingPrice.options.displayPlanType)
+                headingPrice.dataset.displayPlanType = 'false';
+            legal.setAttribute('data-template', 'legal');
+            headingPrice.parentNode.insertBefore(
+                legal,
+                headingPrice.nextSibling,
+            );
+            await legal.onceSettled();
+        } catch {
+            // Proceed with the other post-update adjustments
+        }
     }
 
     get hasWhatsIncluded() {
@@ -120,6 +154,9 @@ export class BizPro extends VariantLayout {
 
     async postCardUpdateHook() {
         await this.adjustAddon();
+        if (!this.legalAdjusted) {
+            await this.adjustLegal();
+        }
         await super.postCardUpdateHook();
         // Line the white .top-card sections up across a row once the card has
         // laid out. Only relevant when cards sit side by side (>=768px).

@@ -130,6 +130,69 @@ describe('bizpro plan type', () => {
     });
 });
 
+describe('BizPro.adjustLegal', () => {
+    function makeFixture(priceOverrides = {}) {
+        const clone = {
+            setAttribute: sinon.spy(),
+            onceSettled: () => Promise.resolve(),
+        };
+        const insertBefore = sinon.spy();
+        const price = {
+            dataset: {},
+            options: {},
+            cloneNode: () => clone,
+            onceSettled: () => Promise.resolve(),
+            parentNode: { insertBefore },
+            nextSibling: 'next-sibling',
+            ...priceOverrides,
+        };
+        const layout = Object.create(BizPro.prototype);
+        layout.card = {
+            updateComplete: Promise.resolve(),
+            querySelector: (sel) =>
+                sel.includes('heading-m') && sel.includes('price')
+                    ? price
+                    : null,
+        };
+        return { layout, price, clone, insertBefore };
+    }
+
+    it('clones the main price into a legal-template sibling — no authoring needed', async () => {
+        const { layout, price, clone, insertBefore } = makeFixture({
+            options: { displayPerUnit: true, displayTax: true },
+        });
+        await layout.adjustLegal();
+        expect(clone.setAttribute.calledWith('data-template', 'legal')).to.be
+            .true;
+        expect(insertBefore.calledWith(clone, 'next-sibling')).to.be.true;
+        // per-unit/tax move off the main price onto the legal clone
+        expect(price.dataset.displayPerUnit).to.equal('false');
+        expect(price.dataset.displayTax).to.equal('false');
+    });
+
+    it('leaves disabled display options untouched on the main price', async () => {
+        const { layout, price } = makeFixture({ options: {} });
+        await layout.adjustLegal();
+        expect(price.dataset.displayPerUnit).to.be.undefined;
+        expect(price.dataset.displayTax).to.be.undefined;
+        expect(price.dataset.displayPlanType).to.be.undefined;
+    });
+
+    it('runs only once (legalAdjusted guard)', async () => {
+        const { layout, insertBefore } = makeFixture();
+        await layout.adjustLegal();
+        await layout.adjustLegal();
+        expect(insertBefore.callCount).to.equal(1);
+    });
+
+    it('does nothing without a main price', async () => {
+        const { layout, insertBefore } = makeFixture();
+        layout.card.querySelector = () => null;
+        await layout.adjustLegal(); // must not throw
+        expect(insertBefore.called).to.be.false;
+    });
+});
+
 describe('bizpro license-zone gating', () => {
     let card;
     afterEach(() => card?.remove());

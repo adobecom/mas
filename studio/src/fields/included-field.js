@@ -12,6 +12,7 @@ class IncludedField extends LitElement {
             link: { type: String, reflect: true },
             modalOpen: { type: Boolean, state: true },
             iconLibrary: { type: Boolean, reflect: true },
+            variant: { type: String, reflect: true },
         };
     }
 

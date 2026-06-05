@@ -138,11 +138,15 @@ export default class MerchAddon extends LitElement {
             border: var(--merch-addon-checkbox-border);
             border-radius: var(--merch-addon-checkbox-radius);
             box-sizing: border-box;
+            background: var(--merch-addon-checkbox-bg, transparent);
         }
 
         :host #addon-checkbox:checked + #custom-checkbox {
             background: var(--merch-addon-checkbox-checked-bg) no-repeat
-                var(--merch-addon-checkbox-checked-color);
+                var(
+                    --merch-addon-checkbox-checked-bg-color,
+                    var(--merch-addon-checkbox-checked-color)
+                );
             border-color: var(--merch-addon-checkbox-checked-color);
         }
 
@@ -151,7 +155,7 @@ export default class MerchAddon extends LitElement {
             font-size: var(--merch-addon-label-size);
             line-height: var(--merch-addon-label-line-height);
             font-style: normal;
-            font-weight: 400;
+            font-weight: var(--merch-addon-label-weight, 400);
             cursor: pointer;
         }
 

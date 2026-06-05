@@ -1,5 +1,6 @@
 import { test as base } from '@playwright/test';
 import GlobalRequestCounter from './global-request-counter.js';
+import { installEdsThrottleOnPage } from './eds-throttle.js';
 import { setCurrentTestName } from '../utils/fragment-tracker.js';
 import StudioPage from '../studio/studio.page.js';
 import EditorPage from '../studio/editor.page.js';
@@ -9,6 +10,7 @@ import COMFries from '../studio/commerce/fries/fries.page.js';
 import AHTryBuyWidgetPage from '../studio/ahome/try-buy-widget/try-buy-widget.page.js';
 import AHPromotedPlansPage from '../studio/ahome/promoted-plans/promoted-plans.page.js';
 import ACOMPlansCardPage from '../studio/acom/plans/plans.page.js';
+import ACOMBizProCardPage from '../studio/acom/bizpro/bizpro.page.js';
 import EXPRESSFullPricingPage from '../studio/express/full-pricing/full-pricing.page.js';
 import VersionPage from '../studio/versions/versions.page.js';
 import PlaceholdersPage from '../studio/placeholders/placeholders.page.js';
@@ -26,6 +28,7 @@ let fries;
 let trybuywidget;
 let promotedplans;
 let plans;
+let bizpro;
 let fullPricingExpress;
 let placeholders;
 let versions;
@@ -72,6 +75,7 @@ const masTest = base.extend({
         trybuywidget = new AHTryBuyWidgetPage(page);
         promotedplans = new AHPromotedPlansPage(page);
         plans = new ACOMPlansCardPage(page);
+        bizpro = new ACOMBizProCardPage(page);
         fullPricingExpress = new EXPRESSFullPricingPage(page);
         ost = new OSTPage(page);
         translationEditor = new TranslationEditorPage(page);
@@ -80,7 +84,7 @@ const masTest = base.extend({
         versions = new VersionPage(page);
         placeholders = new PlaceholdersPage(page);
 
-        // Initialize counter
+        await installEdsThrottleOnPage(page);
         await GlobalRequestCounter.init(page);
 
         try {
@@ -125,6 +129,7 @@ export {
     trybuywidget,
     promotedplans,
     plans,
+    bizpro,
     fullPricingExpress,
     ost,
     translations,

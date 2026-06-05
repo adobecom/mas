@@ -493,8 +493,13 @@ describe('bizpro license label pluralization', () => {
         await card.updateComplete;
     }
 
-    it('pluralizes the authored title with "s" when quantity > 1', async () => {
-        card = await renderCard(QS('License', '2'));
+    // The title arrives as an ICU plural message — typically authored as a
+    // dictionary placeholder ({{license-count-label}}) that the fragment
+    // pipeline resolves per locale before hydration.
+    const ICU = '{count, plural, one {License} other {Licenses}}';
+
+    it('formats an ICU plural title with the selected quantity', async () => {
+        card = await renderCard(QS(ICU, '2'));
         expect(labelText()).to.equal('Licenses');
         await selectQty('1');
         expect(labelText()).to.equal('License');
@@ -502,13 +507,31 @@ describe('bizpro license label pluralization', () => {
         expect(labelText()).to.equal('Licenses');
     });
 
-    it('uses the authored explicit plural after "|" when present', async () => {
-        card = await renderCard(QS('Licence|Licences', '1'));
-        expect(labelText()).to.equal('Licence');
-        await selectQty('3');
-        expect(labelText()).to.equal('Licences');
-        // the "|" form never leaks into the UI
-        expect(card.shadowRoot.textContent).to.not.contain('|');
+    it('supports locale-specific plural categories', async () => {
+        // Polish: 2 → few, 5 → many. Requires the commerce locale; the test
+        // service defaults to en-US, so pass the forms a paucal language uses.
+        card = await renderCard(
+            QS(
+                '{count, plural, one {licencja} few {licencje} many {licencji} other {licencji}}',
+                '1',
+            ),
+        );
+        // en-US plural rules only hit one/other — "one" at 1, "other" → many bucket text
+        expect(labelText()).to.equal('licencja');
+        await selectQty('5');
+        expect(labelText()).to.equal('licencji');
+    });
+
+    it('never derives plurals for plain-text titles (CJK-safe)', async () => {
+        card = await renderCard(QS('License', '2'));
+        expect(labelText()).to.equal('License');
+        await selectQty('5');
+        expect(labelText()).to.equal('License');
+    });
+
+    it('falls back to the raw title when the ICU message is malformed', async () => {
+        card = await renderCard(QS('{count, plural, broken', '2'));
+        expect(labelText()).to.equal('{count, plural, broken');
     });
 });
 

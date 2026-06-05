@@ -1396,17 +1396,20 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-4: Validate edited CTA promo on the card', async () => {
             const newCTA = await individualsCard.locator(plans.cardCTA);
+            // The edited promotion code propagates to the card's checkout link.
+            // The resolved `apc` URL param only appears while the promo is active
+            // (commerce-service drops an inactive promotionCode), so assert the
+            // attribute — not the apc — to stay independent of promo date windows.
             await expect(newCTA).toHaveAttribute('data-promotion-code', data.promo.updated);
             await expect(newCTA).toHaveAttribute('href', new RegExp(`${data.ucv3}`));
             await expect(newCTA).toHaveAttribute('href', new RegExp(`co=${data.country}`));
             await expect(newCTA).toHaveAttribute('href', new RegExp(`ctx=${data.ctx}`));
             await expect(newCTA).toHaveAttribute('href', new RegExp(`lang=${data.lang}`));
             await expect(newCTA).toHaveAttribute('href', new RegExp(`cli=${data.client}`));
-            await expect(newCTA).toHaveAttribute('href', new RegExp(`apc=${data.promo.updated}`));
         });
 
         await test.step('step-5: Remove promo', async () => {
-            await (await editor.CTA).dblclick();
+            await editor.panel.locator('sp-field-group#ctas a[data-wcs-osi]').dblclick();
             await expect(await ost.checkoutTab).toBeVisible();
             await expect(await ost.promoField).toBeVisible();
             await expect(await ost.promoLabel).toBeVisible();
@@ -1418,7 +1421,9 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-6: Validate promo removed in Editor panel', async () => {
-            await expect(await editor.CTA).not.toHaveAttribute('data-promotion-code');
+            await expect(editor.panel.locator('sp-field-group#ctas a[data-wcs-osi]')).not.toHaveAttribute(
+                'data-promotion-code',
+            );
         });
 
         await test.step('step-7: Validate CTA promo removed from the card', async () => {

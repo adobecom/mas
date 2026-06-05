@@ -835,6 +835,65 @@ describe('settings', () => {
                 expect(result.body.settings.displayAnnual).to.equal(false);
             });
 
+            it('applies en_AU override for a French request with country=AU', async () => {
+                const context = {
+                    locale: 'fr_FR',
+                    country: 'AU',
+                    body: { fields: {} },
+                    promises: {
+                        settings: Promise.resolve({
+                            displayAnnual: {
+                                default: { name: 'displayAnnual', valuetype: 'boolean', booleanValue: false },
+                                override: [
+                                    { name: 'displayAnnual', valuetype: 'boolean', locales: ['en_AU'], booleanValue: true },
+                                ],
+                            },
+                        }),
+                    },
+                };
+                const result = await settings.process(context);
+                expect(result.body.settings.displayAnnual).to.equal(true);
+            });
+
+            it('matches override country case-insensitively', async () => {
+                const context = {
+                    locale: 'fr_FR',
+                    country: 'au',
+                    body: { fields: {} },
+                    promises: {
+                        settings: Promise.resolve({
+                            displayAnnual: {
+                                default: { name: 'displayAnnual', valuetype: 'boolean', booleanValue: false },
+                                override: [
+                                    { name: 'displayAnnual', valuetype: 'boolean', locales: ['en_AU'], booleanValue: true },
+                                ],
+                            },
+                        }),
+                    },
+                };
+                const result = await settings.process(context);
+                expect(result.body.settings.displayAnnual).to.equal(true);
+            });
+
+            it('derives country from the locale when no country param is present', async () => {
+                const context = {
+                    locale: 'en_AU',
+                    body: { fields: {} },
+                    promises: {
+                        settings: Promise.resolve({
+                            displayAnnual: {
+                                default: { name: 'displayAnnual', valuetype: 'boolean', booleanValue: false },
+                                override: [
+                                    { name: 'displayAnnual', valuetype: 'boolean', locales: ['en_AU'], booleanValue: true },
+                                ],
+                            },
+                        }),
+                    },
+                };
+                const result = await settings.process(context);
+                expect(result.body.settings.displayAnnual).to.equal(true);
+            });
+
             it('normalizes fragment.fields boolean string "true" for boolean type (e.g. showPlanType)', async () => {
                 const context = {
                     locale: 'en_US',

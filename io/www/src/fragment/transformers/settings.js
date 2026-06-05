@@ -1,5 +1,5 @@
 import { odinUrl, odinReferences } from '../utils/paths.js';
-import { fetch, getFragmentId, getRegionalLocale, getRequestInfos } from '../utils/common.js';
+import { fetch, getCountry, getFragmentId, getRegionalLocale, getRequestInfos } from '../utils/common.js';
 import { logDebug } from '../utils/log.js';
 
 const SETTINGS_ID_PATH = 'settings/index';
@@ -162,7 +162,7 @@ async function init(initContext) {
     return await getSettings(initContext);
 }
 
-export function resolveSettingEntry(fragment, locale, setting) {
+export function resolveSettingEntry(fragment, locale, setting, country) {
     const defaultEntry = setting.default;
     if (!defaultEntry) return null;
     const template = fragment.fields?.variant;
@@ -170,7 +170,10 @@ export function resolveSettingEntry(fragment, locale, setting) {
     const fragmentTags = fragment.fields?.tags ?? [];
     const filtered = setting.override.filter((overrideSetting) => {
         const localeOk =
-            !overrideSetting.locales || overrideSetting.locales.length === 0 || overrideSetting.locales.includes(locale);
+            !overrideSetting.locales ||
+            overrideSetting.locales.length === 0 ||
+            overrideSetting.locales.includes(locale) ||
+            (country && overrideSetting.locales.some((entryLocale) => entryLocale.split('_')[1]?.toUpperCase() === country));
         const tagsOk =
             !overrideSetting.tags ||
             overrideSetting.tags.length === 0 ||
@@ -195,8 +198,9 @@ export function resolveSettingEntry(fragment, locale, setting) {
 }
 
 function applySettings(context, fragment, locale, settings) {
+    const country = getCountry(context)?.toUpperCase();
     for (const key of Object.keys(settings)) {
-        const entry = resolveSettingEntry(fragment, locale, settings[key]);
+        const entry = resolveSettingEntry(fragment, locale, settings[key], country);
         if (!entry) continue;
         fragment.settings = {
             ...fragment.settings,

@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>bizpro — preview</title>
+    <link rel="stylesheet" href="https://use.typekit.net/hah7vzn.css">
+    <script type="module" src="./mas.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 40px;
+            font-family: 'Adobe Clean', adobe-clean, 'Trebuchet MS', sans-serif;
+            background: #fff;
+        }
+        /* Match Figma md (24px side padding) and sm (24px) so 2-col / 1-col layouts behave like the design canvases */
+        @media (max-width: 1199px) {
+            body { padding: 40px 24px; }
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(0, 394px));
+            gap: 16px;
+            justify-content: center;
+            align-items: start;
+        }
+        /* Businesses grid: 351px tracks per Figma BP2; 528px at LARGE_DESKTOP per BP1 */
+        .grid.biz {
+            grid-template-columns: repeat(auto-fit, minmax(0, 351px));
+        }
+        @media (min-width: 1600px) {
+            .grid.biz {
+                grid-template-columns: repeat(auto-fit, minmax(0, 528px));
+            }
+        }
+        /* Students & Teachers grid: sm=327, md=356, lg=530, xl=528 per Figma BP4/BP3/BP2/BP1.
+           Gap is 8px per Figma at every breakpoint (so 2×356+8=720 fits the md canvas). */
+        .grid.ste {
+            grid-template-columns: repeat(auto-fit, minmax(0, 327px));
+            gap: 8px;
+        }
+        @media (min-width: 768px) {
+            .grid.ste {
+                grid-template-columns: repeat(auto-fit, minmax(0, 356px));
+            }
+        }
+        @media (min-width: 1200px) {
+            .grid.ste {
+                grid-template-columns: repeat(auto-fit, minmax(0, 530px));
+            }
+        }
+        @media (min-width: 1600px) {
+            .grid.ste {
+                grid-template-columns: repeat(auto-fit, minmax(0, 528px));
+            }
+        }
+        .icon-cc {
+            width: 24px; height: 24px;
+            background: conic-gradient(from 180deg, #ff61c7, #ff5e3a, #ffb700, #00d4a6, #00aaff, #8d57ff, #ff61c7);
+            border-radius: 5px;
+            display: inline-flex;
+        }
+        merch-card[variant="bizpro"] {
+            min-width: 0;
+        }
+        h1 { font-size: 16px; margin-bottom: 24px; }
+        /* Acrobat Pro mnemonic — red rounded square with white A glyph. Approximation
+           of @a4u/a4u-adobe-app-icons-web B_app_AdobeAcrobatPro. */
+        .icon-acrobat {
+            width: 24px; height: 24px;
+            display: inline-block;
+            background: #ec1c24;
+            border-radius: 5px;
+            position: relative;
+        }
+        .icon-acrobat::before {
+            content: '';
+            position: absolute;
+            inset: 4px;
+            background-color: #fff;
+            mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M8 1.5 11.6 14.5 9.7 14.5 8.85 11.5 5.3 11.5 6.05 9.9 8.4 9.9 7.1 5.3 4 14.5 2 14.5 7 1.5Z'/%3E%3C/svg%3E") center / contain no-repeat;
+            -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M8 1.5 11.6 14.5 9.7 14.5 8.85 11.5 5.3 11.5 6.05 9.9 8.4 9.9 7.1 5.3 4 14.5 2 14.5 7 1.5Z'/%3E%3C/svg%3E") center / contain no-repeat;
+        }
+        /* Creative Cloud mnemonic — rainbow gradient square (approximation of B_app_CreativeCloud). */
+        .icon-cc {
+            width: 24px; height: 24px;
+            display: inline-block;
+            border-radius: 5px;
+            background:
+                linear-gradient(135deg,
+                    #ff61c7 0%, #ff5e3a 25%, #ffb700 50%,
+                    #00d4a6 70%, #00aaff 85%, #8d57ff 100%);
+        }
+        /* Section icons inherit width/height from variant CSS (20 for first, 16 for rest). */
+        .section-icon { flex: 0 0 auto; }
+    </style>
+</head>
+<body>
+    <mas-commerce-service></mas-commerce-service>
+    <h1>bizpro — Figma parity check</h1>
+    <h2 style="font-size: 14px; margin: 24px 0 16px; color: #666;">Individuals</h2>
+    <div class="grid">
+        <merch-card variant="bizpro" secure-label="Secure transaction">
+            <span slot="icons" class="icon-acrobat"></span>
+            <p slot="subtitle">AI insights and creation</p>
+            <h3 slot="heading-xs">Acrobat Express</h3>
+            <div slot="body-xs">Get document insights with AI-powered tools, and quickly create on-brand content.</div>
+            <p slot="heading-m"><span class="price"><span class="price-currency-symbol">US$</span><span class="price-integer">9</span><span class="price-decimals-delimiter">.</span><span class="price-decimals">99</span><span class="price-recurrence">/mo</span></span></p>
+            <p slot="promo-text">Annual, billed monthly</p>
+            <div slot="footer">
+                <a href="#" data-button-type="accent">Free trial</a>
+                <a href="#" data-button-type="primary">Learn more</a>
+            </div>
+            <div slot="whats-included">
+                <div class="section">
+                    <h4><svg class="section-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M6.5 1c0 3-1 4.5-3.5 6 2.5 1.5 3.5 3 3.5 6 0-3 1-4.5 3.5-6C7.5 5.5 6.5 4 6.5 1Z"/><path d="M12 9c0 1.2-.5 1.8-1.5 2.5 1 .7 1.5 1.3 1.5 2.5 0-1.2.5-1.8 1.5-2.5C12.5 10.8 12 10.2 12 9Z"/></svg>AI Assistant</h4>
+                    <ul>
+                        <li>Get AI summaries, insights, and answers</li>
+                        <li>Organize, share, and collaborate with PDF Spaces</li>
+                    </ul>
+                </div>
+                <div class="section">
+                    <h4><svg class="section-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M11.5 1.5 14.5 4.5 6 13 3 13 3 10Zm-1.4 1.4L11.5 4.3 3.6 12.2v.4h.4Z"/></svg>Creation tools</h4>
+                    <ul>
+                        <li>Create flyers, social content, and presentations from documents</li>
+                    </ul>
+                </div>
+            </div>
+        </merch-card>
+
+        <merch-card variant="bizpro" border-color="black" secure-label="Secure transaction">
+            <span slot="icons" class="icon-acrobat"></span>
+            <p slot="subtitle">All-in-one solution</p>
+            <h3 slot="heading-xs">Acrobat Studio</h3>
+            <div slot="body-xs">Do it all with the AI-powered PDF and design solution for document workflows.</div>
+            <p slot="heading-m"><span class="price"><span class="price-currency-symbol">US$</span><span class="price-integer">24</span><span class="price-decimals-delimiter">.</span><span class="price-decimals">99</span><span class="price-recurrence">/mo</span></span></p>
+            <p slot="promo-text">Annual, billed monthly</p>
+            <div slot="footer">
+                <a href="#" data-button-type="accent">Free trial</a>
+                <a href="#" data-button-type="primary">Learn more</a>
+            </div>
+            <div slot="whats-included">
+                <div class="section">
+                    <h4><svg class="section-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M4 1.5h6.5L13.5 4.5V14.5H4V1.5Zm6.5 0v3h3M5.5 7.5h6.5v1H5.5Zm0 2.5h6.5v1H5.5Zm0 2.5h4v1H5.5Z"/></svg>70+ PDF tools</h4>
+                    <ul>
+                        <li>Get all the PDF tools in Acrobat Pro</li>
+                    </ul>
+                </div>
+                <div class="section">
+                    <h4><svg class="section-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M6.5 1c0 3-1 4.5-3.5 6 2.5 1.5 3.5 3 3.5 6 0-3 1-4.5 3.5-6C7.5 5.5 6.5 4 6.5 1Z"/><path d="M12 9c0 1.2-.5 1.8-1.5 2.5 1 .7 1.5 1.3 1.5 2.5 0-1.2.5-1.8 1.5-2.5C12.5 10.8 12 10.2 12 9Z"/></svg>AI Assistant</h4>
+                    <ul>
+                        <li>Ask AI to edit, convert, or compress PDFs</li>
+                        <li>Get AI summaries, insights, and answers</li>
+                        <li>Organize, share, and collaborate with PDF Spaces</li>
+                    </ul>
+                </div>
+                <div class="section">
+                    <h4><svg class="section-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M11.5 1.5 14.5 4.5 6 13 3 13 3 10Zm-1.4 1.4L11.5 4.3 3.6 12.2v.4h.4Z"/></svg>Creation tools</h4>
+                    <ul>
+                        <li>Create flyers, social content, and presentations from documents</li>
+                    </ul>
+                </div>
+            </div>
+        </merch-card>
+    </div>
+
+    <h2 style="font-size: 14px; margin: 48px 0 16px; color: #666;">Businesses (license quantity + callout)</h2>
+    <div class="grid biz">
+        <merch-card variant="bizpro"
+            secure-label="Secure transaction"
+            license-options="1,2,3,4,5+"
+            license-label="License"
+            license-label-plural="Licenses">
+            <span slot="icons" class="icon-acrobat"></span>
+            <p slot="subtitle">Full PDF toolset</p>
+            <h3 slot="heading-xs">Acrobat Pro for teams</h3>
+            <div slot="body-xs">Create, edit, and sign PDFs with secure PDF and e-signature workflows.</div>
+            <p slot="heading-m"><span class="price"><span class="price-currency-symbol">US$</span><span class="price-integer">23</span><span class="price-decimals-delimiter">.</span><span class="price-decimals">99</span><span class="price-recurrence">/mo</span></span></p>
+            <span slot="per-unit-label">per license</span>
+            <p slot="promo-text">Annual, billed monthly</p>
+            <div slot="callout-content">Save 7.5% your first year with 3+ licenses. <a href="#">See terms</a></div>
+            <div slot="footer">
+                <a href="#" data-button-type="accent">Free trial</a>
+                <a href="#" data-button-type="primary">Buy now</a>
+            </div>
+            <div slot="whats-included">
+                <div class="section">
+                    <h4><svg class="section-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M4 1.5h6.5L13.5 4.5V14.5H4V1.5Zm6.5 0v3h3M5.5 7.5h6.5v1H5.5Zm0 2.5h6.5v1H5.5Zm0 2.5h4v1H5.5Z"/></svg>70+ PDF tools</h4>
+                    <ul>
+                        <li>Create, edit, convert, export, compare, and organize PDFs</li>
+                        <li>Collect e-signatures and track responses</li>
+                        <li>Password-protect and redact PDFs</li>
+                        <li>Create, fill, sign, and send forms</li>
+                    </ul>
+                </div>
+            </div>
+        </merch-card>
+
+        <merch-card variant="bizpro"
+            border-color="black"
+            secure-label="Secure transaction"
+            license-options="1,2,3,4,5+"
+            license-label="License"
+            license-label-plural="Licenses">
+            <span slot="icons" class="icon-acrobat"></span>
+            <p slot="subtitle">All-in-one solution</p>
+            <h3 slot="heading-xs">Acrobat Studio for teams</h3>
+            <div slot="body-xs">Do it all with the AI-powered PDF and design solution for document workflows.</div>
+            <p slot="heading-m"><span class="price"><span class="price-currency-symbol">US$</span><span class="price-integer">27</span><span class="price-decimals-delimiter">.</span><span class="price-decimals">74</span><span class="price-recurrence">/mo</span></span></p>
+            <span slot="per-unit-label">per license</span>
+            <p slot="promo-text">Annual, billed monthly</p>
+            <div slot="callout-content">Save 7.5% your first year with 3+ licenses. <a href="#">See terms</a></div>
+            <div slot="footer">
+                <a href="#" data-button-type="accent">Free trial</a>
+                <a href="#" data-button-type="primary">Buy now</a>
+            </div>
+            <div slot="whats-included">
+                <div class="section">
+                    <h4><svg class="section-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M6.5 1c0 3-1 4.5-3.5 6 2.5 1.5 3.5 3 3.5 6 0-3 1-4.5 3.5-6C7.5 5.5 6.5 4 6.5 1Z"/><path d="M12 9c0 1.2-.5 1.8-1.5 2.5 1 .7 1.5 1.3 1.5 2.5 0-1.2.5-1.8 1.5-2.5C12.5 10.8 12 10.2 12 9Z"/></svg>AI Assistant</h4>
+                    <ul>
+                        <li>Summarize documents</li>
+                        <li>Organize and share in PDF Spaces</li>
+                    </ul>
+                </div>
+                <div class="section">
+                    <h4><svg class="section-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M11.5 1.5 14.5 4.5 6 13 3 13 3 10Zm-1.4 1.4L11.5 4.3 3.6 12.2v.4h.4Z"/></svg>Creation tools</h4>
+                    <ul>
+                        <li>Create flyers, social content, and presentations from documents</li>
+                    </ul>
+                </div>
+            </div>
+        </merch-card>
+    </div>
+
+    <h2 style="font-size: 14px; margin: 48px 0 16px; color: #666;">Students &amp; Teachers (strike-through price + AI add-on + single CTA)</h2>
+    <div class="grid ste">
+        <merch-card variant="bizpro" card-type="students-teachers" secure-label="Secure transaction">
+            <span slot="icons" class="icon-acrobat"></span>
+            <p slot="subtitle">Full PDF toolset</p>
+            <h3 slot="heading-xs">Acrobat Pro</h3>
+            <div slot="body-xs">Create, edit, and sign PDFs with secure PDF and e-signature workflows.</div>
+            <p slot="heading-m"><span class="price"><span class="price-currency-symbol">US$</span><span class="price-integer">19</span><span class="price-decimals-delimiter">.</span><span class="price-decimals">99</span><span class="price-recurrence">/mo</span></span></p>
+            <p slot="promo-text">Annual, billed monthly</p>
+            <div slot="add-on">
+                <div class="ai-addon">
+                    <span class="ai-addon-checkbox" data-checked="false" role="checkbox" aria-checked="false" tabindex="0"></span>
+                    <span class="ai-addon-label">Add Acrobat AI Assistant to your plan for US$1.99/mo.</span>
+                    <span class="ai-addon-icon" aria-hidden="true"></span>
+                </div>
+            </div>
+            <div slot="footer">
+                <a href="#" data-button-type="accent">Free trial</a>
+            </div>
+            <div slot="whats-included">
+                <div class="section">
+                    <h4><svg class="section-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M4 1.5h6.5L13.5 4.5V14.5H4V1.5Zm6.5 0v3h3M5.5 7.5h6.5v1H5.5Zm0 2.5h6.5v1H5.5Zm0 2.5h4v1H5.5Z"/></svg>70+ PDF tools</h4>
+                    <ul>
+                        <li>Create, edit, convert, export, compare, and organize PDFs</li>
+                        <li>Collect e-signatures and track responses</li>
+                        <li>Password-protect and redact PDFs</li>
+                        <li>Create, fill, sign, and send forms</li>
+                        <li>Create web forms, turn scans into editable PDFs, and access 70+ features</li>
+                    </ul>
+                </div>
+            </div>
+        </merch-card>
+
+        <merch-card variant="bizpro" card-type="students-teachers" border-color="black" secure-label="Secure transaction">
+            <span slot="icons" class="icon-cc"></span>
+            <p slot="subtitle">All-in-one creative toolkit</p>
+            <h3 slot="heading-xs">Creative Cloud Pro for students and teachers</h3>
+            <div slot="body-xs">Save 71% on 20+ apps, including Acrobat Pro, plus Firefly creative AI for images, video, and audio. Pay US$19.99/mo the first year and US$39.99/mo after that.</div>
+            <p slot="terms-link"><a href="#">See terms</a> | <a href="#">See what's included</a></p>
+            <p slot="price-original">US$69.99/mo</p>
+            <p slot="heading-m"><span class="price"><span class="price-currency-symbol">US$</span><span class="price-integer">19</span><span class="price-decimals-delimiter">.</span><span class="price-decimals">99</span><span class="price-recurrence">/mo</span></span></p>
+            <p slot="promo-text">Annual, billed monthly</p>
+            <div slot="add-on">
+                <div class="ai-addon">
+                    <span class="ai-addon-checkbox" data-checked="true" role="checkbox" aria-checked="true" tabindex="0"></span>
+                    <span class="ai-addon-label">Add Acrobat AI Assistant to your plan for US$1.99/mo.</span>
+                    <span class="ai-addon-icon" aria-hidden="true"></span>
+                </div>
+            </div>
+            <div slot="footer">
+                <a href="#" data-button-type="accent">Free trial</a>
+            </div>
+            <div slot="whats-included">
+                <div class="section">
+                    <h4><svg class="section-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M4 1.5h6.5L13.5 4.5V14.5H4V1.5Zm6.5 0v3h3M5.5 7.5h6.5v1H5.5Zm0 2.5h6.5v1H5.5Zm0 2.5h4v1H5.5Z"/></svg>70+ PDF tools</h4>
+                    <ul>
+                        <li>Get all the PDF tools in Acrobat Pro</li>
+                    </ul>
+                </div>
+                <div class="section">
+                    <h4><svg class="section-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M6.5 1c0 3-1 4.5-3.5 6 2.5 1.5 3.5 3 3.5 6 0-3 1-4.5 3.5-6C7.5 5.5 6.5 4 6.5 1Z"/><path d="M12 9c0 1.2-.5 1.8-1.5 2.5 1 .7 1.5 1.3 1.5 2.5 0-1.2.5-1.8 1.5-2.5C12.5 10.8 12 10.2 12 9Z"/></svg>AI Assistant</h4>
+                    <ul>
+                        <li>Ask AI to edit, convert, or compress PDFs</li>
+                        <li>Get AI summaries, insights, and answers</li>
+                        <li>Organize, share, and collaborate with PDF Spaces</li>
+                    </ul>
+                </div>
+                <div class="section">
+                    <h4><svg class="section-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M11.5 1.5 14.5 4.5 6 13 3 13 3 10Zm-1.4 1.4L11.5 4.3 3.6 12.2v.4h.4Z"/></svg>Creation tools</h4>
+                    <ul>
+                        <li>Create flyers, social content, and presentations from documents</li>
+                    </ul>
+                </div>
+            </div>
+        </merch-card>
+    </div>
+</body>
+</html>

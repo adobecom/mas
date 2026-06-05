@@ -1429,8 +1429,13 @@ class RteField extends LitElement {
             ...attributes,
         };
 
-        const content =
-            attributes.is === CUSTOM_ELEMENT_CHECKOUT_LINK && attributes.text ? state.schema.text(attributes.text) : null;
+        // Preserve the CTA label when editing a checkout link whose text the OST
+        // did not change (e.g. a promo-only edit). The multi-step OST flow collapses
+        // the editor selection before the checkout-link event arrives, so fall back
+        // to the label captured when the CTA was double-clicked.
+        const selectedText = selection.node?.type === state.schema.nodes.link ? selection.node.textContent : '';
+        const ctaText = attributes.text || selectedText || this.ostTargetText || '';
+        const content = attributes.is === CUSTOM_ELEMENT_CHECKOUT_LINK && ctaText ? state.schema.text(ctaText) : null;
 
         const node = nodeType.create(mergedAttributes, content, selection.node?.marks);
 
@@ -1608,6 +1613,9 @@ class RteField extends LitElement {
     handleOpenOfferSelector(event, element) {
         ostRteFieldSource = this;
         this.showOfferSelector = true;
+        // A toolbar/button open (real event) is a fresh insert, not an edit of a
+        // double-clicked CTA — forget any remembered label.
+        if (event) this.ostTargetText = null;
         if (!element && this.osi) {
             element = this.selectedMerchLink;
             if (!element) {
@@ -1689,6 +1697,9 @@ class RteField extends LitElement {
             if (prosemirrorNodeAtClick && prosemirrorNodeAtClick.attrs['data-wcs-osi']) {
                 const selection = NodeSelection.create(view.state.doc, nodePos);
                 view.dispatch(view.state.tr.setSelection(selection));
+                // Remember the CTA label so a promo-only OST edit can restore it
+                // (the multi-step flow collapses the selection before "Use").
+                this.ostTargetText = prosemirrorNodeAtClick.textContent || '';
                 ostRteFieldSource = this;
                 this.showOfferSelector = true;
                 this.handleOpenOfferSelector(null, osiDomTarget);

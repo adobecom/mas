@@ -127,6 +127,8 @@ jobs:
                   FORCE_COLOR: 3 # Force color output
                   # Workers per shard declared in matrix (see above). Noida shard shares IP with nala-docs.
                   NALA_PLAYWRIGHT_WORKERS: ${{ matrix.workers }}
+                  # Unique UA per shard so ODIN rate-limits each shard independently.
+                  NALA_SHARD_ID: ${{ matrix.shard }}
 
             - name: Cleanup cloned cards
               if: always()

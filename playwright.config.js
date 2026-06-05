@@ -1,7 +1,8 @@
 import { devices } from '@playwright/test';
 
-const USER_AGENT_DESKTOP =
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.6900.0 Safari/537.36 NALA-MAS';
+// NALA_SHARD_ID gives each shard a distinct UA so ODIN rate-limits them separately.
+const shardSuffix = process.env.NALA_SHARD_ID ? `-${process.env.NALA_SHARD_ID}` : '';
+const USER_AGENT_DESKTOP = `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.6900.0 Safari/537.36 NALA-MAS${shardSuffix}`;
 
 /**
  * @see https://playwright.dev/docs/test-configuration

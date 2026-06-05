@@ -122,7 +122,7 @@ class MasFilterPanel extends LitElement {
                 }
 
                 const picker = this.shadowRoot.querySelector(`aem-tag-picker-field[top="${type}"]`);
-                picker?.allTags.then?.(() => {
+                picker?.allTags?.then?.(() => {
                     // when tags are loaded
                     this.tagsByType[type].forEach((displayedTag) => {
                         picker.selectedTags.forEach((selTag) => {

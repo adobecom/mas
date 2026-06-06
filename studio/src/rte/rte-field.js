@@ -1699,9 +1699,9 @@ class RteField extends LitElement {
                 view.dispatch(view.state.tr.setSelection(selection));
                 // Remember the CTA label so a promo-only OST edit can restore it
                 // (the multi-step flow collapses the selection before "Use").
+                // handleOpenOfferSelector(null, …) sets ostRteFieldSource and
+                // showOfferSelector; passing null preserves the label above.
                 this.ostTargetText = prosemirrorNodeAtClick.textContent || '';
-                ostRteFieldSource = this;
-                this.showOfferSelector = true;
                 this.handleOpenOfferSelector(null, osiDomTarget);
                 return true;
             }

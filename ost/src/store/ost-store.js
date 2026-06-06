@@ -503,9 +503,8 @@ export class OstStore extends EventTarget {
             // An active deep-link/search OSI owns the selection — try it first so
             // it wins over the blind single-offer autoResolveOsi (which would mint
             // a fresh OSI and clobber the user's chosen one).
-            if (this.autoSelectByInitialOsi(offers)) {
-                // selected by initialOsi
-            } else if (offers.length === 1) {
+            if (this.autoSelectByInitialOsi(offers)) return;
+            if (offers.length === 1) {
                 this.setOffer(offers[0]);
                 this.autoResolveOsi(offers[0]);
             } else {

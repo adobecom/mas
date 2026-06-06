@@ -131,10 +131,8 @@ export class OstEntitlementsTab extends LitElement {
         const search = this.shadowRoot?.querySelector('ost-search');
         if (search?.hasPendingOsiSearch?.()) {
             store.clearSelectedOffer();
-            search.flushPendingSearch();
-        } else {
-            search?.flushPendingSearch?.();
         }
+        search?.flushPendingSearch?.();
         store.goToOffer();
     }
 

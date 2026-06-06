@@ -507,8 +507,8 @@ describe('ost-app', () => {
                 // selectedOsi is intentionally not asserted here: the immediate
                 // resolveDeepLinkProduct call invokes setProduct, which clears
                 // selectedOsi as part of the product-changed contract; in real
-                // usage the offer-watching handler re-resolves it once offers
-                // load.
+                // usage loadOffers' autoSelectByInitialOsi re-resolves it once
+                // offers load.
                 expect(store.aosParams.arrangementCode).to.equal('phsp-arr');
                 expect(store.aosParams.commitment).to.equal('YEAR');
                 expect(store.aosParams.offerType).to.equal('BASE');
@@ -923,65 +923,9 @@ describe('ost-app', () => {
         });
     });
 
-    describe('resolveDeepLinkOffer offer-watching handler', () => {
-        afterEach(() => {
-            store.allProducts = [];
-            store.offers = [];
-            store.selectedProduct = undefined;
-            store.selectedOffer = undefined;
-            store.aosParams = {};
-            store.initialOsi = undefined;
-        });
-
-        it('selects the offer matching offer_type + price_point once offers load', async () => {
-            const originalFetch = window.fetch;
-            window.fetch = async () => ({
-                ok: true,
-                json: async () => ({
-                    product_arrangement_code: 'phsp-arr',
-                    offer_type: 'BASE',
-                    price_point: 'REGULAR',
-                }),
-            });
-            try {
-                store.allProducts = [['phsp', { arrangement_code: 'phsp-arr', name: 'Photoshop' }]];
-                store.offers = [];
-                store.selectedOffer = undefined;
-                const el = await fixture(html`<ost-app></ost-app>`);
-                await el.resolveDeepLinkOffer('osi-match');
-                store.offers = [
-                    { offer_type: 'PROMOTION', price_point: 'PROMO', offer_id: 'wrong' },
-                    { offer_type: 'BASE', price_point: 'REGULAR', offer_id: 'right' },
-                ];
-                store.notify();
-                expect(store.selectedOffer?.offer_id).to.equal('right');
-            } finally {
-                window.fetch = originalFetch;
-            }
-        });
-
-        it('selects the sole offer when none matches but exactly one is available', async () => {
-            const originalFetch = window.fetch;
-            window.fetch = async () => ({
-                ok: true,
-                json: async () => ({
-                    product_arrangement_code: 'phsp-arr',
-                    offer_type: 'BASE',
-                    price_point: 'REGULAR',
-                }),
-            });
-            try {
-                store.allProducts = [['phsp', { arrangement_code: 'phsp-arr', name: 'Photoshop' }]];
-                store.offers = [];
-                store.selectedOffer = undefined;
-                const el = await fixture(html`<ost-app></ost-app>`);
-                await el.resolveDeepLinkOffer('osi-single');
-                store.offers = [{ offer_type: 'PROMOTION', price_point: 'PROMO', offer_id: 'only' }];
-                store.notify();
-                expect(store.selectedOffer?.offer_id).to.equal('only');
-            } finally {
-                window.fetch = originalFetch;
-            }
-        });
-    });
+    // Deep-link offer selection is now owned by the store: resolveDeepLinkOffer
+    // sets initialOsi + aosParams and lets loadOffers' autoSelectByInitialOsi
+    // pick the matching offer (covered in ost-store.test.js). The old per-call
+    // state-changed offer-watching handler was removed to avoid it re-selecting a
+    // previous product's offer after the user switched OSI.
 });

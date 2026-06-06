@@ -88,6 +88,115 @@ describe('BizPro.adjustAddon', () => {
     });
 });
 
+describe('bizpro plan type', () => {
+    let card;
+    afterEach(() => card?.remove());
+
+    it('exposes planType in the AEM fragment mapping so the editor shows the toggle', async () => {
+        const { BIZPRO_AEM_FRAGMENT_MAPPING } = await import(
+            '../src/variants/bizpro.js'
+        );
+        expect(BIZPRO_AEM_FRAGMENT_MAPPING.planType).to.be.true;
+    });
+
+    it('forwards settings.displayPlanType to legal-template prices only', async () => {
+        card = await renderCard('<h3 slot="heading-xs">Title</h3>');
+        card.settings = { displayPlanType: true };
+
+        const legalOptions = {};
+        card.variantLayout.priceOptionsProvider(
+            { dataset: { template: 'legal' } },
+            legalOptions,
+        );
+        expect(legalOptions.displayPlanType).to.be.true;
+
+        const priceOptions = {};
+        card.variantLayout.priceOptionsProvider(
+            { dataset: { template: 'price' } },
+            priceOptions,
+        );
+        expect(priceOptions.displayPlanType).to.be.undefined;
+    });
+
+    it('defaults displayPlanType to false without settings', async () => {
+        card = await renderCard('<h3 slot="heading-xs">Title</h3>');
+        card.settings = undefined;
+        const options = {};
+        card.variantLayout.priceOptionsProvider(
+            { dataset: { template: 'legal' } },
+            options,
+        );
+        expect(options.displayPlanType).to.be.false;
+    });
+});
+
+describe('BizPro.adjustLegal', () => {
+    function makeFixture(priceOverrides = {}) {
+        const clone = {
+            setAttribute: sinon.spy(),
+            onceSettled: () => Promise.resolve(),
+            dataset: {},
+        };
+        const insertBefore = sinon.spy();
+        const price = {
+            dataset: {},
+            options: {},
+            cloneNode: () => clone,
+            onceSettled: () => Promise.resolve(),
+            parentNode: { insertBefore },
+            nextSibling: 'next-sibling',
+            ...priceOverrides,
+        };
+        const layout = Object.create(BizPro.prototype);
+        layout.card = {
+            updateComplete: Promise.resolve(),
+            querySelector: (sel) =>
+                sel.includes('heading-m') && sel.includes('price')
+                    ? price
+                    : null,
+        };
+        return { layout, price, clone, insertBefore };
+    }
+
+    it('clones the main price into a legal-template sibling — no authoring needed', async () => {
+        const { layout, price, clone, insertBefore } = makeFixture({
+            options: { displayPerUnit: true, displayTax: true },
+        });
+        await layout.adjustLegal();
+        expect(clone.setAttribute.calledWith('data-template', 'legal')).to.be
+            .true;
+        expect(insertBefore.calledWith(clone, 'next-sibling')).to.be.true;
+        // tax moves off the main price onto the legal clone, but per-unit
+        // stays on the pricing line (Figma 3260:44659) and is disabled on
+        // the clone so it doesn't render twice.
+        expect(price.dataset.displayTax).to.equal('false');
+        expect(price.dataset.displayPerUnit).to.be.undefined;
+        expect(clone.dataset.displayPerUnit).to.equal('false');
+    });
+
+    it('leaves disabled display options untouched on the main price', async () => {
+        const { layout, price } = makeFixture({ options: {} });
+        await layout.adjustLegal();
+        expect(price.dataset.displayPerUnit).to.be.undefined;
+        expect(price.dataset.displayTax).to.be.undefined;
+        expect(price.dataset.displayPlanType).to.be.undefined;
+    });
+
+    it('runs only once (legalAdjusted guard)', async () => {
+        const { layout, insertBefore } = makeFixture();
+        await layout.adjustLegal();
+        await layout.adjustLegal();
+        expect(insertBefore.callCount).to.equal(1);
+    });
+
+    it('does nothing without a main price', async () => {
+        const { layout, insertBefore } = makeFixture();
+        layout.card.querySelector = () => null;
+        await layout.adjustLegal(); // must not throw
+        expect(insertBefore.called).to.be.false;
+    });
+});
+
 describe('bizpro license-zone gating', () => {
     let card;
     afterEach(() => card?.remove());
@@ -150,13 +259,83 @@ describe('bizpro whats-included toggle label', () => {
     });
 });
 
-describe('bizpro legal text', () => {
+describe('bizpro short description plan type override', () => {
     let card;
     afterEach(() => card?.remove());
 
-    it('renders the legal-text wrapper only when legal text is slotted', async () => {
-        card = await renderCard('<div slot="legal-text">Legal terms</div>');
-        expect(card.shadowRoot.querySelector('.legal-text')).to.exist;
+    // Mimics the legal price markup after it resolves with displayPlanType on.
+    const LEGAL_PRICE =
+        '<p slot="heading-m"><span is="inline-price" data-template="legal">' +
+        '<span class="price price-legal"><span class="price-plan-type">Annual, billed monthly</span></span>' +
+        '</span></p>';
+
+    it('replaces the derived plan type wording with the authored text', async () => {
+        card = await renderCard(
+            `${LEGAL_PRICE}<div slot="legal-text">Yearly, paid monthly</div>`,
+        );
+        card.variantLayout.adjustShortDescription();
+        expect(card.querySelector('.price-plan-type').textContent).to.equal(
+            'Yearly, paid monthly',
+        );
+        // The source element stays in the light DOM (so the override survives
+        // layout re-instantiation) but never projects — the shadow template
+        // has no legal-text slot.
+        expect(card.querySelector('[slot="legal-text"]').assignedSlot).to.be
+            .null;
+    });
+
+    it('survives the variantLayout being replaced after first render', async () => {
+        card = await renderCard(
+            `${LEGAL_PRICE}<div slot="legal-text">Yearly, paid monthly</div>`,
+        );
+        // First instance applies the override...
+        card.variantLayout.adjustShortDescription();
+        // ...then merch-card swaps in a fresh layout and the legal price
+        // re-resolves with the derived wording.
+        card.querySelector('.price-plan-type').textContent =
+            'Annual, billed monthly';
+        const freshLayout = Object.create(BizPro.prototype);
+        freshLayout.card = card;
+        freshLayout.adjustShortDescription();
+        expect(card.querySelector('.price-plan-type').textContent).to.equal(
+            'Yearly, paid monthly',
+        );
+    });
+
+    it('keeps the derived wording when no short description is authored', async () => {
+        card = await renderCard(LEGAL_PRICE);
+        card.variantLayout.adjustShortDescription();
+        expect(card.querySelector('.price-plan-type').textContent).to.equal(
+            'Annual, billed monthly',
+        );
+    });
+
+    it('renders nothing when the plan type line is off (no .price-plan-type)', async () => {
+        card = await renderCard(
+            '<p slot="heading-m"><span is="inline-price" data-template="legal">' +
+                '<span class="price price-legal"></span></span></p>' +
+                '<div slot="legal-text">Yearly, paid monthly</div>',
+        );
+        card.variantLayout.adjustShortDescription();
+        // No plan type span to override, and the source element itself never
+        // projects into the shadow DOM — the text appears nowhere.
+        expect(card.querySelector('.price-legal').textContent).to.equal('');
+        expect(card.querySelector('[slot="legal-text"]').assignedSlot).to.be
+            .null;
+    });
+
+    it('re-applies the override after the legal price re-resolves', async () => {
+        card = await renderCard(
+            `${LEGAL_PRICE}<div slot="legal-text">Yearly, paid monthly</div>`,
+        );
+        card.variantLayout.adjustShortDescription();
+        // A re-resolve regenerates the price markup (derived wording returns).
+        card.querySelector('.price-plan-type').textContent =
+            'Annual, billed monthly';
+        card.variantLayout.adjustShortDescription();
+        expect(card.querySelector('.price-plan-type').textContent).to.equal(
+            'Yearly, paid monthly',
+        );
     });
 });
 
@@ -182,6 +361,67 @@ describe('bizpro whats-included toggle interaction', () => {
         await card.updateComplete;
         expect(zone.hasAttribute('hidden')).to.be.true;
         expect(toggle.getAttribute('aria-expanded')).to.equal('false');
+    });
+});
+
+describe('bizpro row-synced whats-included toggle', () => {
+    let container;
+    afterEach(() => container?.remove());
+
+    const SECTION =
+        '<div class="section"><h4>PDF tools</h4><ul><li>row</li></ul></div>';
+
+    // display:flex puts both cards on the same row (same top edge);
+    // display:block stacks them onto different rows.
+    async function renderCards(display) {
+        container = document.createElement('div');
+        container.className = 'two-merch-cards';
+        container.style.display = display;
+        document.body.appendChild(container);
+        const cards = [];
+        for (let i = 0; i < 2; i += 1) {
+            const card = document.createElement('merch-card');
+            card.setAttribute('variant', 'bizpro');
+            card.innerHTML = `<div slot="whats-included">${SECTION}</div>`;
+            container.appendChild(card);
+            await card.updateComplete;
+            card.requestUpdate();
+            await card.updateComplete;
+            cards.push(card);
+        }
+        return cards;
+    }
+
+    const zoneHidden = (card) =>
+        card.shadowRoot.querySelector('#features-zone').hasAttribute('hidden');
+    const clickToggle = (card) =>
+        card.shadowRoot.querySelector('.whats-included-toggle').click();
+
+    it('expands and collapses every card on the same row together', async () => {
+        const [first, second] = await renderCards('flex');
+
+        clickToggle(first);
+        await first.updateComplete;
+        await second.updateComplete;
+        expect(zoneHidden(first)).to.be.false;
+        expect(zoneHidden(second)).to.be.false;
+
+        // Collapsing from the OTHER card collapses the whole row too.
+        clickToggle(second);
+        await first.updateComplete;
+        await second.updateComplete;
+        expect(zoneHidden(first)).to.be.true;
+        expect(zoneHidden(second)).to.be.true;
+    });
+
+    it('leaves stacked (different-row) cards independent', async () => {
+        const [first, second] = await renderCards('block');
+
+        clickToggle(first);
+        await first.updateComplete;
+        await second.updateComplete;
+        expect(zoneHidden(first)).to.be.false;
+        expect(zoneHidden(second)).to.be.true;
     });
 });
 
@@ -257,6 +497,51 @@ describe('bizpro license dropdown interaction', () => {
                 .querySelector('#license-popover')
                 .hasAttribute('hidden'),
         ).to.be.true;
+    });
+});
+
+describe('bizpro license label pluralization', () => {
+    let card;
+    afterEach(() => card?.remove());
+
+    const QS = (title, def) =>
+        `<div slot="quantity-select"><merch-quantity-select title="${title}" min="1" max="10" step="1" default-value="${def}"></merch-quantity-select></div>`;
+
+    const labelText = () =>
+        card.shadowRoot
+            .querySelector('.license-select-trigger .license-select-label')
+            .textContent.trim();
+
+    async function selectQty(value) {
+        card.shadowRoot.querySelector('.license-select-trigger').click();
+        await card.updateComplete;
+        [...card.shadowRoot.querySelectorAll('.license-select-option')]
+            .find((li) => li.textContent.trim() === value)
+            .click();
+        await card.updateComplete;
+    }
+
+    // The title arrives as "singular|plural" — typically authored as two
+    // dictionary placeholders ({{license-label}}|{{licenses-label}}) that the
+    // fragment pipeline resolves per locale before hydration.
+    it('picks singular at 1 and plural above from a "singular|plural" title', async () => {
+        card = await renderCard(QS('License|Licenses', '2'));
+        expect(labelText()).to.equal('Licenses');
+        await selectQty('1');
+        expect(labelText()).to.equal('License');
+        await selectQty('5');
+        expect(labelText()).to.equal('Licenses');
+        // the "|" form never leaks into the UI
+        expect(card.shadowRoot.textContent).to.not.contain('|');
+    });
+
+    it('never derives plurals for plain-text titles (CJK-safe)', async () => {
+        card = await renderCard(QS('License', '2'));
+        expect(labelText()).to.equal('License');
+        await selectQty('5');
+        expect(labelText()).to.equal('License');
+        await selectQty('1');
+        expect(labelText()).to.equal('License');
     });
 });
 
@@ -349,6 +634,76 @@ describe('bizpro resize handling', () => {
         } finally {
             window.IntersectionObserver = RealObserver;
         }
+    });
+});
+
+describe('bizpro strikethrough price', () => {
+    let card;
+    afterEach(() => card?.remove());
+
+    // Promo shape: WCS resolves a single price-template inline-price into a
+    // struck regular price + the promo price, separated by an &nbsp;.
+    const PROMO_PRICE_HTML =
+        '<p slot="heading-m"><span is="inline-price" data-template="price" class="placeholder-resolved">' +
+        '<span class="price price-strikethrough"><span class="price-currency-symbol">US$</span>' +
+        '<span class="price-integer">49</span><span class="price-decimals-delimiter">.</span>' +
+        '<span class="price-decimals">99</span><span class="price-recurrence">/MO</span></span>' +
+        '&nbsp;<span class="price price-alternative"><span class="price-currency-symbol">US$</span>' +
+        '<span class="price-integer">34</span><span class="price-decimals-delimiter">.</span>' +
+        '<span class="price-decimals">97</span><span class="price-recurrence">/MO</span></span>' +
+        '</span></p>';
+
+    it('renders the struck regular price small, muted and above the promo price (Figma 988:14784-5)', async () => {
+        card = await renderCard(PROMO_PRICE_HTML);
+        const struck = card.querySelector('.price-strikethrough');
+        const promo = card.querySelector('.price-alternative');
+
+        const struckStyles = getComputedStyle(struck);
+        expect(struckStyles.display).to.equal('block');
+        expect(struckStyles.fontSize).to.equal('14px');
+        expect(struckStyles.fontWeight).to.equal('400');
+        expect(struckStyles.textDecorationLine).to.contain('line-through');
+        // --consonant-merch-card-bizpro-text-muted-color: #000000a3
+        expect(struckStyles.color).to.match(/rgba\(0, 0, 0, 0\.6/);
+        // Inner spans must not fall through to the 18px/900 price rules
+        const recurrence = getComputedStyle(
+            struck.querySelector('.price-recurrence'),
+        );
+        expect(recurrence.fontSize).to.equal('14px');
+        expect(recurrence.fontWeight).to.equal('400');
+
+        // The promo price keeps the full pricing typography, unstruck
+        const promoStyles = getComputedStyle(promo);
+        expect(promoStyles.fontSize).to.equal('18px');
+        expect(promoStyles.fontWeight).to.equal('900');
+        expect(promoStyles.textDecorationLine).to.not.contain('line-through');
+
+        // Stacked: struck price on its own line above, left-aligned with the
+        // promo price (the separating &nbsp; must not indent the promo line)
+        const struckBox = struck.getBoundingClientRect();
+        const promoBox = promo.getBoundingClientRect();
+        expect(struckBox.bottom).to.be.at.most(promoBox.top + 1);
+        expect(Math.abs(struckBox.left - promoBox.left)).to.be.below(1);
+    });
+
+    it('stacks an authored strikethrough-template price above the main price', async () => {
+        card = await renderCard(
+            '<p slot="heading-m"><span is="inline-price" data-template="strikethrough" class="placeholder-resolved">' +
+                '<span class="price price-strikethrough"><span class="price-currency-symbol">US$</span>' +
+                '<span class="price-integer">49</span><span class="price-recurrence">/MO</span></span></span> ' +
+                '<span is="inline-price" data-template="price" class="placeholder-resolved">' +
+                '<span class="price"><span class="price-currency-symbol">US$</span>' +
+                '<span class="price-integer">34</span><span class="price-recurrence">/MO</span></span></span></p>',
+        );
+        const struckWrapper = card.querySelector(
+            '[data-template="strikethrough"]',
+        );
+        expect(getComputedStyle(struckWrapper).display).to.equal('block');
+        const struckBox = struckWrapper.getBoundingClientRect();
+        const mainBox = card
+            .querySelector('[data-template="price"]')
+            .getBoundingClientRect();
+        expect(struckBox.bottom).to.be.at.most(mainBox.top + 1);
     });
 });
 

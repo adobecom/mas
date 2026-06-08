@@ -548,7 +548,9 @@ describe('mas-placeholders-repository', () => {
             const [reportedError, userMessage] = repo.processError.firstCall.args;
             expect(reportedError).to.be.an.instanceOf(Error);
             expect(reportedError.message).to.include(expectedIndexPath);
-            expect(userMessage).to.equal('Dictionary index is missing, please report to administrator.');
+            expect(userMessage).to.equal(
+                'Could not load placeholders index at /content/dam/mas/acom/en_US/dictionary/index, please report to administrator.',
+            );
         });
     });
 

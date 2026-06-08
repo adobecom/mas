@@ -138,12 +138,11 @@ export class MerchCardCollection extends LitElement {
         this.onUnmount = [];
         this.resizeHandlerDebounced = debounce(
             this.resizeHandler.bind(this),
-            500,
+            300,
         );
-        this.resizeHandler = this.resizeHandler.bind(this);
     }
 
-    resizeHandler(firstPaint) {
+    resizeHandler() {
         this.firstChild?.variantLayout?.resizeHandler?.();
     }
 

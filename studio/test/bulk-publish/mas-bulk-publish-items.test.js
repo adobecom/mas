@@ -24,6 +24,42 @@ describe('mas-bulk-publish-items', () => {
         expect(list.querySelectorAll('[data-testid="item-row"]')).to.have.lengthOf(2);
     });
 
+    it('prefixes the locale to the Studio path when item has locale and authorPath', async () => {
+        const el = await fixture(html`
+            <mas-bulk-publish-items
+                .items=${[{ url: 'https://a', authorPath: 'merch-card: SANDBOX / default', locale: 'en_US', status: 'valid' }]}
+                .urls=${'x'}
+            ></mas-bulk-publish-items>
+        `);
+        await el.updateComplete;
+        const link = el.shadowRoot.querySelector('[data-testid="item-row"] a');
+        expect(link.textContent.trim()).to.equal('[en_US] merch-card: SANDBOX / default');
+    });
+
+    it('renders the Studio path without brackets when locale is missing', async () => {
+        const el = await fixture(html`
+            <mas-bulk-publish-items
+                .items=${[{ url: 'https://a', authorPath: 'merch-card: SANDBOX / default', locale: '', status: 'valid' }]}
+                .urls=${'x'}
+            ></mas-bulk-publish-items>
+        `);
+        await el.updateComplete;
+        const link = el.shadowRoot.querySelector('[data-testid="item-row"] a');
+        expect(link.textContent.trim()).to.equal('merch-card: SANDBOX / default');
+    });
+
+    it('falls back to the url when authorPath is absent', async () => {
+        const el = await fixture(html`
+            <mas-bulk-publish-items
+                .items=${[{ url: 'https://a', status: 'error', reason: 'not-found' }]}
+                .urls=${'x'}
+            ></mas-bulk-publish-items>
+        `);
+        await el.updateComplete;
+        const link = el.shadowRoot.querySelector('[data-testid="item-row"] a');
+        expect(link.textContent.trim()).to.equal('https://a');
+    });
+
     it('footer row shows error count when errors exist', async () => {
         const el = await fixture(html`
             <mas-bulk-publish-items

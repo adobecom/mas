@@ -523,6 +523,7 @@ class MasBulkPublishEditor extends LitElement {
                                 fragmentId: fragment.id,
                                 path: fragment.path,
                                 authorPath: authorPath || null,
+                                locale: fragment.locale || null,
                                 href: href || null,
                                 status: 'valid',
                                 alreadyPublished: fragment.status === STATUS_PUBLISHED,

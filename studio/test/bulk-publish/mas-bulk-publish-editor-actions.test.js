@@ -895,6 +895,27 @@ describe('mas-bulk-publish-editor (validate)', () => {
         expect(item.alreadyPublished).to.equal(false);
     });
 
+    it('validate sets locale on the item from the fragment path', async () => {
+        const el = await makeEditor();
+        seedNew({ urls: '/content/dam/mas/sandbox/en_US/locale-frag' });
+        await el.updateComplete;
+
+        const rawFrag = {
+            id: 'frag-locale-1',
+            path: '/content/dam/mas/sandbox/en_US/locale-frag',
+            status: 'MODIFIED',
+            fields: [],
+        };
+        repositoryEl.aem = {
+            sites: { cf: { fragments: { getByPath: sandbox.stub().resolves(rawFrag) } } },
+        };
+
+        const result = await el.validate();
+        const item = result.find((i) => i.url === '/content/dam/mas/sandbox/en_US/locale-frag');
+        expect(item.status).to.equal('valid');
+        expect(item.locale).to.equal('en_US');
+    });
+
     it('validate marks 404 errors as not-found', async () => {
         const el = await makeEditor();
         const fields = seedNew({ urls: '/content/dam/mas/missing' });

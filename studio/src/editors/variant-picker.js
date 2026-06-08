@@ -6,6 +6,7 @@ export const VARIANT_NAMES = {
     CATALOG: 'catalog',
     PLANS: 'plans',
     PLANS_V2: 'plans-v2',
+    BIZPRO: 'bizpro',
     PLANS_STUDENTS: 'plans-students',
     PLANS_EDUCATION: 'plans-education',
     PRODUCT: 'product',
@@ -34,6 +35,11 @@ export const VARIANTS = [
     {
         label: 'Plans v2',
         value: VARIANT_NAMES.PLANS_V2,
+        surface: SURFACES.ACOM.name,
+    },
+    {
+        label: 'BizPro',
+        value: VARIANT_NAMES.BIZPRO,
         surface: SURFACES.ACOM.name,
     },
     {
@@ -118,6 +124,7 @@ const ACOM_CC_TEMPLATES = new Set([
     VARIANT_NAMES.MINI_COMPARE_CHART,
     VARIANT_NAMES.IMAGE,
     VARIANT_NAMES.SPECIAL_OFFERS,
+    VARIANT_NAMES.BIZPRO,
 ]);
 
 const ACOM_DC_TEMPLATES = new Set([
@@ -125,6 +132,7 @@ const ACOM_DC_TEMPLATES = new Set([
     VARIANT_NAMES.SEGMENT,
     VARIANT_NAMES.MINI_COMPARE_CHART,
     VARIANT_NAMES.IMAGE,
+    VARIANT_NAMES.BIZPRO,
 ]);
 
 /** Flat tree-picker-compatible list of allowed variants, optionally filtered by surface. */

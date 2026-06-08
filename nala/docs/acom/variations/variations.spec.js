@@ -1,6 +1,6 @@
 import { PRICE_PATTERN, DOCS_GALLERY_PATH } from '../../../utils/commerce.js';
 
-export const FeatureName = 'Merch Acom Cards Feature';
+export const FeatureName = 'Merch Acom Cards Variations Feature';
 export const features = [
     {
         tcid: '0',
@@ -32,7 +32,7 @@ export const features = [
             subtitle: 'GR regional variation',
             price: PRICE_PATTERN.GR.mo_en,
         },
-        tags: '@mas-docs @mas-acom @mas-variations @commerce @smoke @regression @milo @regional-variation',
+        tags: '@mas-docs @mas-acom @mas-variations @commerce @smoke @regression @milo',
     },
     {
         tcid: '2',
@@ -44,7 +44,7 @@ export const features = [
             removed_id: '7545e2eb-8fad-47d8-96cf-e76d3370c9f4',
             reorder: ['40d5ebda-a155-4375-91c3-fbb788ab5314', 'd4faa487-d88e-4fb7-b42f-c1a3101ea937'],
         },
-        tags: '@mas-docs @mas-acom @mas-variations @commerce @smoke @regression @milo @regional-variation',
+        tags: '@mas-docs @mas-acom @mas-variations @commerce @smoke @regression @milo',
     },
     {
         tcid: '3',
@@ -59,7 +59,7 @@ export const features = [
                 '40d5ebda-a155-4375-91c3-fbb788ab5314',
             ],
         },
-        tags: '@mas-docs @mas-acom @mas-variations @commerce @smoke @regression @milo @regional-variation',
+        tags: '@mas-docs @mas-acom @mas-variations @commerce @smoke @regression @milo',
     },
     {
         tcid: '4',
@@ -71,9 +71,9 @@ export const features = [
             collection_id: 'b5486c6e-34c6-40a4-aa31-37eca4edf35d',
             variation_collection_id: 'a74b83a6-116c-4bc0-9cb0-b52e050cc712',
             subtitle: 'en_GR grouped variation',
-            price: PRICE_PATTERN.GR.mo_en,
+            price: PRICE_PATTERN.US.mo,
         },
-        tags: '@mas-docs @mas-acom @mas-variations @commerce @smoke @regression @milo @regional-variation',
+        tags: '@mas-docs @mas-acom @mas-variations @commerce @smoke @regression @milo',
     },
     {
         tcid: '5',
@@ -85,9 +85,9 @@ export const features = [
             collection_id: 'b5486c6e-34c6-40a4-aa31-37eca4edf35d',
             variation_collection_id: 'a74b83a6-116c-4bc0-9cb0-b52e050cc712',
             subtitle: 'GR regional variation',
-            price: PRICE_PATTERN.GR.mo_en,
+            price: PRICE_PATTERN.US.mo,
         },
-        tags: '@mas-docs @mas-acom @mas-variations @commerce @smoke @regression @milo @regional-variation',
+        tags: '@mas-docs @mas-acom @mas-variations @commerce @smoke @regression @milo',
     },
     {
         tcid: '6',
@@ -99,12 +99,9 @@ export const features = [
             collection_id: '4a466a3c-efa2-4406-ae47-93abd2167e27',
             subtitle: 'Grouped variation of ES',
             badgeColor: 'rgb(80, 80, 80)', // Grey 700
-            price: {
-                ar: PRICE_PATTERN.AR.mo,
-                ar_en: PRICE_PATTERN.AR.mo_en,
-            },
+            price: PRICE_PATTERN.AR.mo_es,
         },
-        tags: '@mas-docs @mas-acom @mas-variations @commerce @smoke @regression @milo @regional-variation',
+        tags: '@mas-docs @mas-acom @mas-variations @commerce @smoke @regression @milo',
     },
     {
         tcid: '7',
@@ -115,25 +112,21 @@ export const features = [
             variation_card_id: '9e201d14-c100-4397-a9a7-7ee1116e09f9',
             collection_id: '4a466a3c-efa2-4406-ae47-93abd2167e27',
             subtitle: 'AR regional variation from ES',
-            price: {
-                ar: PRICE_PATTERN.AR.mo,
-                ar_en: PRICE_PATTERN.AR.mo_en,
-            },
+            price: PRICE_PATTERN.AR.mo_es,
         },
-        tags: '@mas-docs @mas-acom @mas-variations @commerce @smoke @regression @milo @regional-variation',
+        tags: '@mas-docs @mas-acom @mas-variations @commerce @smoke @regression @milo',
     },
-    // once issue with AR is fixed, add this test
-    // {
-    //     tcid: '8',
-    //     name: '@MAS-Translated-Card-Regional-Variation-in-Translated-Collection-Grouped-Variation',
-    //     path: [DOCS_GALLERY_PATH.PLANS_COLLECTION.AR_ES_co, DOCS_GALLERY_PATH.PLANS_COLLECTION.AR_ES],
-    //     data: {
-    //         cardid: '',
-    //         variation_card_id: '',
-    //         collection_id: '',
-    //         variation_collection_id: '',
-    //         subtitle: '',
-    //     },
-    //     tags: '@mas-docs @mas-acom @mas-variations @commerce @smoke @regression @milo @regional-variation',
-    // },
+    {
+        tcid: '8',
+        name: '@MAS-Translated-Card-Regional-Variation-in-Translated-Collection-Grouped-Variation',
+        path: [DOCS_GALLERY_PATH.PLANS_COLLECTION.AR_ES_co, DOCS_GALLERY_PATH.PLANS_COLLECTION.AR_ES],
+        data: {
+            cardid: 'f2c5dea9-6d4b-48ba-b42f-609830d22820',
+            variation_card_id: 'b4034b7e-bad6-4d86-930f-9f6d7ea20fba',
+            collection_id: 'b5486c6e-34c6-40a4-aa31-37eca4edf35d',
+            variation_collection_id: '22b9ba86-07d5-4fdf-a0bf-b81ae9bdd6d6',
+            subtitle: 'AR regional variation of ES',
+        },
+        tags: '@mas-docs @mas-acom @mas-variations @commerce @smoke @regression @milo',
+    },
 ];

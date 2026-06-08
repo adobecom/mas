@@ -100,11 +100,7 @@ const responses = {
 async function executeProjectStart(service, params) {
     try {
         const context = await service.prepareProjectStart(params);
-        const versioningResult = await service.runVersioningStage(context);
-        if (!versioningResult.success) {
-            throw service.createProjectStartError(500, 'Failed to version target fragments');
-        }
-        await service.runPostVersioningStage(context);
+        await service.runSyncAndLocStage(context);
         return service.finalizeProjectStart(context);
     } catch (error) {
         if (service.isProjectStartError(error)) {
@@ -222,8 +218,7 @@ describe('Translation project-start', () => {
     describe('main function', () => {
         it('should be defined', () => {
             expect(projectStartService.prepareProjectStart).to.be.a('function');
-            expect(projectStartService.runVersioningStage).to.be.a('function');
-            expect(projectStartService.runPostVersioningStage).to.be.a('function');
+            expect(projectStartService.runSyncAndLocStage).to.be.a('function');
             expect(projectStartService.finalizeProjectStart).to.be.a('function');
         });
 
@@ -560,57 +555,6 @@ describe('Translation project-start', () => {
             expect(requestBody.cfPaths).to.deep.equal(items);
         });
 
-        it('should process versioning in batches', async () => {
-            // 15 fragments × 1 locale = 15 itemsToVersion (batch size 10 → 2 batches)
-            const items = Array.from({ length: 15 }, (_, i) => `/content/dam/mas/foo/en_US/fragment${i + 1}`);
-            const mockProjectCF = setProjectFields(createMockProjectCF(), {
-                fragments: items,
-            });
-
-            const { callCounts } = setupFetchStub({
-                '/adobe/sites/cf/fragments/test-project-id': responses.ok(mockProjectCF, '"test-etag"'),
-                '/adobe/sites/cf/fragments?path=': (url, options, callCount) =>
-                    responses.ok({ items: [{ id: `version-target-${callCount}` }] }),
-                '/versions': { ok: true },
-                '/bin/sendToLocalisationAsync': { ok: true },
-            });
-
-            const result = await executeProjectStart(projectStartService, baseParams);
-
-            expect(result.statusCode).to.equal(200);
-            expect(callCounts['/bin/sendToLocalisationAsync']).to.equal(1);
-            expect(callCounts['/adobe/sites/cf/fragments?path=']).to.equal(15);
-            expect(callCounts['/versions']).to.equal(15);
-        });
-
-        it('should process versioning with custom batch size when batchSize param is provided', async () => {
-            // 30 fragments × 1 locale = 30 itemsToVersion (batch size 25 → 2 batches)
-            const items = Array.from({ length: 30 }, (_, i) => `/content/dam/mas/foo/en_US/fragment${i + 1}`);
-            const mockProjectCF = setProjectFields(createMockProjectCF(), {
-                fragments: items,
-            });
-
-            const { callCounts } = setupFetchStub({
-                '/adobe/sites/cf/fragments/test-project-id': responses.ok(mockProjectCF, '"test-etag"'),
-                '/adobe/sites/cf/fragments?path=': (url, options, callCount) =>
-                    responses.ok({ items: [{ id: `version-target-${callCount}` }] }),
-                '/versions': { ok: true },
-                '/bin/sendToLocalisationAsync': { ok: true },
-            });
-
-            const params = {
-                ...baseParams,
-                batchSize: 25,
-            };
-
-            const result = await executeProjectStart(projectStartService, params);
-
-            expect(result.statusCode).to.equal(200);
-            expect(callCounts['/bin/sendToLocalisationAsync']).to.equal(1);
-            expect(callCounts['/adobe/sites/cf/fragments?path=']).to.equal(30);
-            expect(callCounts['/versions']).to.equal(30);
-        });
-
         it('should retry failed requests up to 3 times', async () => {
             const mockProjectCF = setProjectFields(createMockProjectCF(), {
                 fragments: ['/content/dam/mas/foo/en_US/fragment1'],
@@ -672,86 +616,6 @@ describe('Translation project-start', () => {
 
             expect(result.statusCode).to.equal(200);
             expect(callCounts['/bin/sendToLocalisationAsync']).to.equal(3);
-        });
-
-        it('should call onBatchCompleted with cumulative counts after each versioning batch', async () => {
-            // 15 fragments × 1 locale = 15 items to version → 2 batches (10 + 5) with batchSize=10
-            const items = Array.from({ length: 15 }, (_, i) => `/content/dam/mas/foo/en_US/fragment${i + 1}`);
-            const mockProjectCF = setProjectFields(createMockProjectCF(), { fragments: items });
-
-            setupFetchStub({
-                '/adobe/sites/cf/fragments/test-project-id': responses.ok(mockProjectCF, '"test-etag"'),
-                '/adobe/sites/cf/fragments?path=': (url, options, callCount) =>
-                    responses.ok({ items: [{ id: `version-target-${callCount}` }] }),
-                '/versions': { ok: true },
-            });
-
-            const context = await projectStartService.prepareProjectStart(baseParams);
-            const onBatchCompleted = sinon.stub().resolves();
-
-            await projectStartService.runVersioningStage(context, { onBatchCompleted });
-
-            expect(onBatchCompleted).to.have.been.calledTwice;
-            expect(onBatchCompleted.firstCall.args[0]).to.deep.equal({
-                completedItemCount: 10,
-                failedItemCount: 0,
-                itemCount: 15,
-            });
-            expect(onBatchCompleted.secondCall.args[0]).to.deep.equal({
-                completedItemCount: 15,
-                failedItemCount: 0,
-                itemCount: 15,
-            });
-        });
-
-        it('should apply default rpsLimit of 10 when not provided in params', async () => {
-            // 15 fragments × 1 locale = 15 items to version → 2 batches (batchSize=10)
-            // default rpsLimit=10 → minBatchMs = 10/10*1000 = 1000ms
-            // With Date.now stubbed to 0, elapsed=0 → wait=1000ms per batch
-            const items = Array.from({ length: 15 }, (_, i) => `/content/dam/mas/foo/en_US/fragment${i + 1}`);
-            const mockProjectCF = setProjectFields(createMockProjectCF(), { fragments: items });
-
-            sinon.stub(Date, 'now').returns(0);
-
-            setupFetchStub({
-                '/adobe/sites/cf/fragments/test-project-id': responses.ok(mockProjectCF, '"test-etag"'),
-                '/adobe/sites/cf/fragments?path=': (url, options, callCount) =>
-                    responses.ok({ items: [{ id: `version-target-${callCount}` }] }),
-                '/versions': { ok: true },
-                '/bin/sendToLocalisationAsync': { ok: true },
-            });
-
-            const result = await executeProjectStart(projectStartService, baseParams);
-
-            expect(result.statusCode).to.equal(200);
-            // 2 versioning batches → 2 throttle sleeps at 1000ms each
-            const throttleCalls = global.setTimeout.args.filter(([, delay]) => delay === 1000);
-            expect(throttleCalls).to.have.lengthOf(2);
-        });
-
-        it('should use rpsLimit from params when provided', async () => {
-            // 15 fragments × 1 locale = 15 items to version → 3 batches (batchSize=5)
-            // rpsLimit=10 → minBatchMs = 5/10*1000 = 500ms (batchSize≤rpsLimit: burst stays within limit)
-            // With Date.now stubbed to 0, elapsed=0 → wait=500ms per batch
-            const items = Array.from({ length: 15 }, (_, i) => `/content/dam/mas/foo/en_US/fragment${i + 1}`);
-            const mockProjectCF = setProjectFields(createMockProjectCF(), { fragments: items });
-
-            sinon.stub(Date, 'now').returns(0);
-
-            setupFetchStub({
-                '/adobe/sites/cf/fragments/test-project-id': responses.ok(mockProjectCF, '"test-etag"'),
-                '/adobe/sites/cf/fragments?path=': (url, options, callCount) =>
-                    responses.ok({ items: [{ id: `version-target-${callCount}` }] }),
-                '/versions': { ok: true },
-                '/bin/sendToLocalisationAsync': { ok: true },
-            });
-
-            const result = await executeProjectStart(projectStartService, { ...baseParams, batchSize: 5, rpsLimit: 10 });
-
-            expect(result.statusCode).to.equal(200);
-            // 3 versioning batches → 3 throttle sleeps at 500ms each
-            const throttleCalls = global.setTimeout.args.filter(([, delay]) => delay === 500);
-            expect(throttleCalls).to.have.lengthOf(3);
         });
     });
 
@@ -979,7 +843,7 @@ describe('Translation project-start', () => {
             const results = await executeProjectStart(projectStartService, params);
             const statusCode = results.statusCode || (results.error && results.error.statusCode);
             expect(statusCode).to.equal(200);
-            expect(callCounts['/adobe/sites/cf/fragments?path=/content/dam/mas/foo/de_DE/dictionary/index']).to.equal(2);
+            expect(callCounts['/adobe/sites/cf/fragments?path=/content/dam/mas/foo/de_DE/dictionary/index']).to.equal(1);
             const dictionarySyncCalls = stub
                 .getCalls()
                 .filter((call) => call.args[0] === 'https://test-odin.com/adobe/sites/cf/fragments/dict-de-id');
@@ -1114,7 +978,7 @@ describe('Translation project-start', () => {
             expect(result.statusCode).to.equal(200);
             expect(callCounts['/adobe/sites/cf/fragments/referencedBy']).to.equal(1);
             expect(callCounts['/adobe/sites/cf/fragments?path=/content/dam/mas/foo/en_US/default-fragment']).to.equal(1);
-            expect(callCounts['/adobe/sites/cf/fragments?path=/content/dam/mas/foo/de_DE/default-fragment']).to.equal(2);
+            expect(callCounts['/adobe/sites/cf/fragments?path=/content/dam/mas/foo/de_DE/default-fragment']).to.equal(1);
             const parentSyncCalls = stub
                 .getCalls()
                 .filter((call) => call.args[0] === 'https://test-odin.com/adobe/sites/cf/fragments/parent-de-id');
@@ -1189,7 +1053,7 @@ describe('Translation project-start', () => {
             });
 
             expect(result.statusCode).to.equal(200);
-            expect(callCounts['/adobe/sites/cf/fragments?path=/content/dam/mas/foo/de_DE/default-fragment']).to.equal(2);
+            expect(callCounts['/adobe/sites/cf/fragments?path=/content/dam/mas/foo/de_DE/default-fragment']).to.equal(1);
             const parentSyncCalls = stub
                 .getCalls()
                 .filter((call) => call.args[0] === 'https://test-odin.com/adobe/sites/cf/fragments/parent-de-id');

@@ -8,7 +8,7 @@
  * there so the first navigation is paced too.
  */
 
-/** Default CI cap under 200 rps with headroom for edge burst rules. */
+/** Default CI cap: 45 rps/worker × 4 workers (studio:3 + docs:1) = 180 rps, under 200 rps EDS limit. */
 const DEFAULT_CI_EDS_MAX_RPS = 45;
 
 export function resolveEdsMaxRps() {

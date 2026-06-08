@@ -218,7 +218,21 @@ async function getVariationParent(odinEndpoint, variationPath, authToken) {
             return { parentFragment: null, status };
         }
 
-        const parentReferences = allParentReferences.filter((ref) => ref.type === 'content-fragment');
+        // referencedBy returns parents across all surfaces; restrict to the variation's own surface
+        // so cross-surface clones (e.g. sandbox/nala) don't contaminate the sync list
+        const surface = variationPath.match(PATH_TOKENS)?.groups?.surface;
+        if (!surface) {
+            logger.warn(`No surface match for variation ${variationPath}; skipping cross-surface filter`);
+        }
+        const surfacePrefix = surface ? `/content/dam/mas/${surface}/` : null;
+        const parentReferences = allParentReferences.filter((ref) => {
+            if (ref.type !== 'content-fragment') return false;
+            if (surfacePrefix && !ref.path?.startsWith(surfacePrefix)) {
+                logger.info(`Ignoring cross-surface parent ${ref.path} for variation ${variationPath}`);
+                return false;
+            }
+            return true;
+        });
 
         // Find the parent whose variations field contains this grouped variation path
         for (const parentRef of parentReferences) {

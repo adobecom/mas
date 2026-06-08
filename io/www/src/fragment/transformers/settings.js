@@ -1,5 +1,5 @@
 import { odinUrl, odinReferences } from '../utils/paths.js';
-import { fetch, getCountry, getFragmentId, getRegionalLocale, getRequestInfos } from '../utils/common.js';
+import { countryOf, fetch, getCountry, getFragmentId, getRegionalLocale, getRequestInfos } from '../utils/common.js';
 import { logDebug } from '../utils/log.js';
 
 const SETTINGS_ID_PATH = 'settings/index';
@@ -162,10 +162,6 @@ async function init(initContext) {
     return await getSettings(initContext);
 }
 
-function matchesCountry(entryLocale, country) {
-    return entryLocale?.split('_')[1]?.toUpperCase() === country;
-}
-
 export function resolveSettingEntry(fragment, locale, setting, country) {
     const defaultEntry = setting.default;
     if (!defaultEntry) return null;
@@ -177,7 +173,7 @@ export function resolveSettingEntry(fragment, locale, setting, country) {
             !overrideSetting.locales ||
             overrideSetting.locales.length === 0 ||
             overrideSetting.locales.includes(locale) ||
-            (country && overrideSetting.locales.some((entryLocale) => matchesCountry(entryLocale, country)));
+            (country && overrideSetting.locales.some((entryLocale) => countryOf(entryLocale)?.toUpperCase() === country));
         const tagsOk =
             !overrideSetting.tags ||
             overrideSetting.tags.length === 0 ||

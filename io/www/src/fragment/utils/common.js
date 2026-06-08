@@ -238,6 +238,13 @@ async function getRequestInfos(context) {
 }
 
 /**
+ * Country segment of a locale code (e.g. `en_AU` → `AU`), or undefined when absent.
+ * @param {string} [locale]
+ * @returns {string|undefined}
+ */
+const countryOf = (locale) => locale?.split('_')[1];
+
+/**
  * Returns which geo dimensions match between `tags` and the given locale/country,
  * or null if neither matches. Tags are CQ tag paths whose last two segments
  * must be `(locale|country)/<value>` — accepted in long form
@@ -251,7 +258,7 @@ async function getRequestInfos(context) {
  * @returns {{ region: boolean, country: boolean } | null}
  */
 function matchesGeo(tags, { regionLocale, country }) {
-    const effectiveCountry = country ?? regionLocale?.split('_')[1];
+    const effectiveCountry = country ?? countryOf(regionLocale);
     const matchSuffix = (value) => tags.some((tag) => new RegExp(`(^|[/:])(locale|country)/([^/]+/)?${value}$`, 'i').test(tag));
     const region = Boolean(regionLocale) && matchSuffix(regionLocale);
     const countryMatch = Boolean(effectiveCountry) && matchSuffix(effectiveCountry);
@@ -265,7 +272,7 @@ function matchesGeo(tags, { regionLocale, country }) {
  * @param {PipelineContext} context
  * @returns {string}
  */
-const getCountry = (context) => context.country || context.locale?.split('_')[1] || '';
+const getCountry = (context) => context.country || countryOf(context.locale) || '';
 
 /**
  * Effective locale for region-aware operations (dictionary fetch, settings overrides, WCS).
@@ -277,6 +284,7 @@ const getCountry = (context) => context.country || context.locale?.split('_')[1]
 const getRegionalLocale = (context) => context.regionLocale ?? context.locale;
 
 export {
+    countryOf,
     createTimeoutPromise,
     internalFetch as fetch,
     getCountry,

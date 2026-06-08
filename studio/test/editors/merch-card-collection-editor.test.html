@@ -327,6 +327,90 @@
                         expect(editor.collectionPasteLinksItems.length).to.equal(0);
                     });
                 });
+
+                describe('fragment editor section', () => {
+                    const spTheme = () => document.querySelector('main sp-theme');
+                    let fragEditorHost;
+
+                    function collectionWithLocReady(locReadyValue = false, suffix = '') {
+                        return {
+                            id: `frag-editor${suffix}`,
+                            path: `/content/mas/collections/en_US/all/frag-editor${suffix}`,
+                            model: { path: COLLECTION_MODEL_PATH, name: 'Collection', title: 'Collection' },
+                            title: 'Fragment Editor Test',
+                            description: 'Test description text',
+                            tags: [],
+                            fields: [
+                                { name: 'label', type: 'text', multiple: false, values: ['L'] },
+                                { name: 'queryLabel', type: 'text', multiple: false, values: [''] },
+                                { name: 'icon', type: 'text', multiple: false, values: [''] },
+                                { name: 'iconLight', type: 'text', multiple: false, values: [''] },
+                                { name: 'cards', type: 'content-reference', multiple: true, values: [] },
+                                { name: 'collections', type: 'content-reference', multiple: true, values: [] },
+                                { name: 'locReady', type: 'boolean', multiple: false, values: [locReadyValue] },
+                            ],
+                            references: [],
+                        };
+                    }
+
+                    beforeEach(() => {
+                        fragEditorHost = document.createElement('div');
+                        spTheme().appendChild(fragEditorHost);
+                    });
+
+                    afterEach(() => {
+                        fragEditorHost?.remove();
+                        fragEditorHost = null;
+                    });
+
+                    it('renders fragment-title, fragment-description, and the locReady sp-switch', async () => {
+                        const editor = document.createElement('merch-card-collection-editor');
+                        editor.updateFragment = () => {};
+                        editor.fragmentStore = new FragmentStore(new Fragment(collectionWithLocReady(false, '-render')));
+                        fragEditorHost.appendChild(editor);
+                        await editor.updateComplete;
+
+                        expect(editor.shadowRoot.querySelector('#fragment-title')).to.exist;
+                        expect(editor.shadowRoot.querySelector('#fragment-description')).to.exist;
+                        expect(editor.shadowRoot.querySelector('sp-switch:not(#hide-cards)')).to.exist;
+                    });
+
+                    it('calls fragmentStore.updateField to toggle locReady when the sp-switch fires a change event', async () => {
+                        const editor = document.createElement('merch-card-collection-editor');
+                        editor.updateFragment = () => {};
+                        const fragmentStore = new FragmentStore(new Fragment(collectionWithLocReady(false, '-toggle')));
+                        const updateFieldSpy = spy(fragmentStore, 'updateField');
+                        editor.fragmentStore = fragmentStore;
+                        fragEditorHost.appendChild(editor);
+                        await editor.updateComplete;
+
+                        editor.shadowRoot
+                            .querySelector('sp-switch:not(#hide-cards)')
+                            .dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+
+                        const locReadyCall = updateFieldSpy.getCalls().find((c) => c.args[0] === 'locReady');
+                        expect(locReadyCall).to.exist;
+                        expect(locReadyCall.args[1]).to.deep.equal([true]); // !false → true
+                        updateFieldSpy.restore();
+                    });
+
+                    it('calls fragmentStore.updateFieldInternal with field name and new value on title input', async () => {
+                        const editor = document.createElement('merch-card-collection-editor');
+                        editor.updateFragment = () => {};
+                        const fragmentStore = new FragmentStore(new Fragment(collectionWithLocReady(false, '-internal')));
+                        const updateInternalSpy = spy(fragmentStore, 'updateFieldInternal');
+                        editor.fragmentStore = fragmentStore;
+                        fragEditorHost.appendChild(editor);
+                        await editor.updateComplete;
+
+                        const titleField = editor.shadowRoot.querySelector('#fragment-title');
+                        titleField.value = 'Updated Title';
+                        titleField.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
+
+                        expect(updateInternalSpy.calledWith('title', 'Updated Title')).to.be.true;
+                        updateInternalSpy.restore();
+                    });
+                });
             });
         </script>
         <main>

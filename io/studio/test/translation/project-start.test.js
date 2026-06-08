@@ -756,32 +756,23 @@ describe('Translation project-start', () => {
     });
 
     describe('Localization request payload', () => {
-        it('should send correct payload with target locales and machineTranslation flag', async () => {
+        async function getLocPayload(flowValue, targetLocales = ['de_DE', 'fr_FR']) {
             const mockProjectCF = setProjectFields(createMockProjectCF(), {
                 fragments: ['/content/dam/mas/foo/en_US/fragment1'],
-                targetLocales: ['de_DE', 'fr_FR', 'it_IT'],
+                targetLocales,
             });
-
             const { stub } = setupFetchStub({
                 '/adobe/sites/cf/fragments/test-project-id': responses.ok(mockProjectCF, '"test-etag"'),
                 '/adobe/sites/cf/fragments?path=': responses.notFound(),
                 '/bin/sendToLocalisationAsync': { ok: true },
             });
+            await executeProjectStart(projectStartService, { ...baseParams, translationMapping: { acom: flowValue } });
+            const locCall = stub.getCalls().find((call) => call.args[0].includes('/bin/sendToLocalisationAsync'));
+            return { requestBody: JSON.parse(locCall.args[1].body), locCall };
+        }
 
-            const params = {
-                ...baseParams,
-                translationMapping: { acom: 'transcreation' },
-            };
-
-            await executeProjectStart(projectStartService, params);
-
-            // Find the loc request call
-            const locRequestCall = stub.getCalls().find((call) => call.args[0].includes('/bin/sendToLocalisationAsync'));
-
-            expect(locRequestCall).to.exist;
-            expect(locRequestCall.args[0]).to.include('/bin/sendToLocalisationAsync');
-
-            const requestBody = JSON.parse(locRequestCall.args[1].body);
+        it('should send correct payload with transcreation flag', async () => {
+            const { requestBody, locCall } = await getLocPayload('transcreation', ['de_DE', 'fr_FR', 'it_IT']);
             expect(requestBody).to.deep.equal({
                 includeNestedCFs: false,
                 syncNestedCFs: false,
@@ -790,11 +781,36 @@ describe('Translation project-start', () => {
                 cfPaths: ['/content/dam/mas/foo/en_US/fragment1'],
                 taskName: 'Test-Project',
             });
-
-            expect(locRequestCall.args[1].headers).to.deep.include({
+            expect(locCall.args[1].headers).to.deep.include({
                 Authorization: 'Bearer token',
                 'Content-Type': 'application/json',
             });
+        });
+
+        it('should send correct payload with machineTranslation flag', async () => {
+            const { requestBody } = await getLocPayload('machineTranslation');
+            expect(requestBody).to.deep.equal({
+                includeNestedCFs: false,
+                syncNestedCFs: false,
+                targetLocales: ['de_DE', 'fr_FR'],
+                machineTranslation: true,
+                cfPaths: ['/content/dam/mas/foo/en_US/fragment1'],
+                taskName: 'Test-Project',
+            });
+        });
+
+        it('should send correct payload without translation flags for humanTranslation flow', async () => {
+            const { requestBody } = await getLocPayload('humanTranslation');
+            expect(requestBody).to.deep.equal({
+                includeNestedCFs: false,
+                syncNestedCFs: false,
+                targetLocales: ['de_DE', 'fr_FR'],
+                cfPaths: ['/content/dam/mas/foo/en_US/fragment1'],
+                taskName: 'Test-Project',
+            });
+            expect(requestBody).to.not.have.property('machineTranslation');
+            expect(requestBody).to.not.have.property('transcreation');
+            expect(requestBody).to.not.have.property('humanTranslation');
         });
     });
 
@@ -1245,6 +1261,86 @@ describe('Translation project-start', () => {
                 multiple: true,
                 values: ['/content/dam/mas/foo/de_DE/productCode/pzn/grouped-variation'],
             });
+        });
+
+        it('should ignore cross-surface parents returned by referencedBy', async () => {
+            const groupedVariationPath = '/content/dam/mas/foo/en_US/productCode/pzn/grouped-variation';
+            const parentFragmentPath = '/content/dam/mas/foo/en_US/default-fragment';
+            const crossSurfaceParentPath = '/content/dam/mas/sandbox/en_US/default-fragment';
+            const mockProjectCF = setProjectFields(createMockProjectCF(), {
+                fragments: [groupedVariationPath],
+                targetLocales: ['de_DE'],
+            });
+
+            const { lastCallOptions, callCounts, stub } = setupFetchStub({
+                '/adobe/sites/cf/fragments/test-project-id': responses.ok(mockProjectCF, '"test-etag"'),
+                '/adobe/sites/cf/fragments/referencedBy': responses.ok({
+                    items: [
+                        {
+                            path: groupedVariationPath,
+                            parentReferences: [
+                                {
+                                    type: 'content-fragment',
+                                    path: crossSurfaceParentPath,
+                                    title: 'Cross-surface Parent',
+                                },
+                                {
+                                    type: 'content-fragment',
+                                    path: parentFragmentPath,
+                                    title: 'Parent Fragment',
+                                },
+                            ],
+                        },
+                    ],
+                }),
+                '/adobe/sites/cf/fragments?path=/content/dam/mas/foo/en_US/default-fragment': responses.ok({
+                    items: [
+                        {
+                            id: 'parent-en-id',
+                            path: parentFragmentPath,
+                            etag: 'parent-en-etag',
+                            fields: [{ name: 'variations', values: [groupedVariationPath] }],
+                        },
+                    ],
+                }),
+                '/adobe/sites/cf/fragments?path=/content/dam/mas/foo/de_DE/default-fragment': responses.ok({
+                    items: [
+                        {
+                            id: 'parent-de-id',
+                            path: '/content/dam/mas/foo/de_DE/default-fragment',
+                            etag: 'parent-de-etag',
+                            fields: [{ name: 'variations', values: [] }],
+                        },
+                    ],
+                }),
+                '/adobe/sites/cf/fragments/parent-de-id/versions': responses.ok(),
+                '/adobe/sites/cf/fragments/parent-de-id': responses.ok(),
+                '/bin/sendToLocalisationAsync': responses.ok(),
+            });
+
+            const result = await executeProjectStart(projectStartService, {
+                ...baseParams,
+                surface: 'foo',
+            });
+
+            expect(result.statusCode).to.equal(200);
+            // The sandbox parent should never be fetched — surface filter rejects it.
+            // Assert against stub.getCalls() (not callCounts), because callCounts only tracks
+            // registered routes and would be undefined for the sandbox URL even without the filter.
+            const sandboxCalls = stub.getCalls().filter((call) => call.args[0].includes('/sandbox/'));
+            expect(sandboxCalls, 'no fetch should target the sandbox surface').to.have.lengthOf(0);
+            expect(callCounts['/adobe/sites/cf/fragments?path=/content/dam/mas/foo/en_US/default-fragment']).to.equal(1);
+
+            const parentSyncCalls = stub
+                .getCalls()
+                .filter((call) => call.args[0] === 'https://test-odin.com/adobe/sites/cf/fragments/parent-de-id');
+            expect(parentSyncCalls).to.have.lengthOf(1);
+
+            const deSyncOptions = lastCallOptions['/adobe/sites/cf/fragments/parent-de-id'];
+            expect(deSyncOptions.method).to.equal('PUT');
+            const deSyncBody = JSON.parse(deSyncOptions.body);
+            const variationsField = deSyncBody.fields.find((f) => f.name === 'variations');
+            expect(variationsField.values).to.deep.equal(['/content/dam/mas/foo/de_DE/productCode/pzn/grouped-variation']);
         });
     });
 });

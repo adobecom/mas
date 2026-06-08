@@ -864,7 +864,37 @@ describe('MasSearchAndFilters', () => {
                 ></mas-search-and-filters>`,
             );
             expect(Store.filters.get().tags).to.equal('mas:variant/compare-chart');
-            expect(repository.searchFragments.calledOnceWithExactly({ force: true })).to.be.true;
+            expect(
+                repository.searchFragments.calledOnceWithExactly({
+                    force: true,
+                    query: undefined,
+                    tags: 'mas:variant/compare-chart',
+                }),
+            ).to.be.true;
+        });
+
+        it('uses the active selection store search/filters when present, leaving the globals untouched', async () => {
+            Store.page.set(PAGE_NAMES.FRAGMENT_EDITOR);
+            const repository = { searchFragments: sandbox.stub() };
+            const originalQuerySelector = document.querySelector.bind(document);
+            sandbox.stub(document, 'querySelector').callsFake((selector) => {
+                if (selector === 'mas-repository') return repository;
+                return originalQuerySelector(selector);
+            });
+            Store.compareChart.filters.set({ locale: 'en_US' });
+            setItemsSelectionStore(Store.compareChart);
+            await fixture(
+                html`<mas-search-and-filters
+                    type="cards"
+                    .searchOnly=${false}
+                    .lockedTemplateFilter=${'compare-chart'}
+                ></mas-search-and-filters>`,
+            );
+            expect(Store.compareChart.filters.get().tags).to.equal('mas:variant/compare-chart');
+            expect(Store.filters.get().tags).to.be.undefined;
+            expect(Store.search.get()).to.deep.equal({});
+            expect(repository.searchFragments.calledOnce).to.be.true;
+            Store.compareChart.filters.set({ locale: 'en_US' });
         });
 
         it('should not write Store.filters.tags for collections or placeholders', async () => {

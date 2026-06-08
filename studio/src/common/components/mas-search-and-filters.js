@@ -34,6 +34,10 @@ class MasSearchAndFilters extends LitElement {
     #savedFilters = null;
     #lastForcedSearchSignature = null;
     #tagCachePromise = null;
+    // Search/filters come from the active items-selection store when it provides them
+    // (e.g. the compare-chart picker), else the global stores. Resolved at connect.
+    #searchStore = Store.search;
+    #filtersStore = Store.filters;
 
     static properties = {
         type: { type: String }, // 'cards' | 'collections' | 'placeholders'
@@ -145,7 +149,7 @@ class MasSearchAndFilters extends LitElement {
 
     #syncFiltersFromStore() {
         if (this.type !== TABLE_TYPE.CARDS) return;
-        const tagsByType = this.#tagsByType(Store.filters.get()?.tags);
+        const tagsByType = this.#tagsByType(this.#filtersStore.get()?.tags);
         if (!this.#isTemplateFilterLocked) {
             this.#setFilterIfChanged(
                 'templateFilter',
@@ -161,7 +165,7 @@ class MasSearchAndFilters extends LitElement {
         if (this.type !== TABLE_TYPE.CARDS) return;
 
         const nextQuery = this.searchQuery?.trim() || undefined;
-        const currentSearch = Store.search.get() || {};
+        const currentSearch = this.#searchStore.get() || {};
         const currentQuery = currentSearch.query || undefined;
         if (currentQuery !== nextQuery) {
             const nextSearch = { ...currentSearch };
@@ -170,10 +174,10 @@ class MasSearchAndFilters extends LitElement {
             } else {
                 delete nextSearch.query;
             }
-            Store.search.set(nextSearch);
+            this.#searchStore.set(nextSearch);
         }
 
-        const currentFilters = Store.filters.get() || {};
+        const currentFilters = this.#filtersStore.get() || {};
         const unmanagedTags = this.#tagsList(currentFilters.tags).filter((tag) => !this.#isManagedTag(tag));
         const variantTags = (this.templateFilter || []).filter(Boolean).map((template) => `${VARIANT_TAG_PREFIX}${template}`);
         const nextTags = [
@@ -185,7 +189,7 @@ class MasSearchAndFilters extends LitElement {
         ].join(',');
         const currentTags = this.#tagsList(currentFilters.tags).join(',');
         if (currentTags !== nextTags) {
-            Store.filters.set({
+            this.#filtersStore.set({
                 ...currentFilters,
                 tags: nextTags || undefined,
             });
@@ -199,7 +203,7 @@ class MasSearchAndFilters extends LitElement {
         const signature = `${query || ''}\0${tags}`;
         if (this.#lastForcedSearchSignature === signature) return;
         this.#lastForcedSearchSignature = signature;
-        document.querySelector('mas-repository')?.searchFragments?.({ force: true });
+        document.querySelector('mas-repository')?.searchFragments?.({ force: true, query, tags });
     }
 
     #refreshOptionsAfterTagCacheLoad(cachePromise) {
@@ -231,9 +235,12 @@ class MasSearchAndFilters extends LitElement {
 
     connectedCallback() {
         super.connectedCallback();
+        const selectionStore = getItemsSelectionStore();
+        this.#searchStore = selectionStore.search ?? Store.search;
+        this.#filtersStore = selectionStore.filters ?? Store.filters;
         if (this.type === TABLE_TYPE.CARDS) {
-            this.#savedSearch = Store.search.get();
-            this.#savedFilters = Store.filters.get();
+            this.#savedSearch = this.#searchStore.get();
+            this.#savedFilters = this.#filtersStore.get();
             this.#syncFiltersFromStore();
             this.#syncLockedTemplateFilter();
             this.#applyDefaultTemplateFilter();
@@ -242,7 +249,6 @@ class MasSearchAndFilters extends LitElement {
         } else {
             this.#syncLockedTemplateFilter();
         }
-        const selectionStore = getItemsSelectionStore();
         this.commonDataController = new ReactiveController(this, [
             selectionStore[`all${this.typeUppercased}`],
             selectionStore[`display${this.typeUppercased}`],
@@ -271,10 +277,10 @@ class MasSearchAndFilters extends LitElement {
         this.dataSubscription?.unsubscribe();
         if (this.type === TABLE_TYPE.CARDS) {
             if (this.#savedSearch !== null) {
-                Store.search.set(this.#savedSearch);
+                this.#searchStore.set(this.#savedSearch);
             }
             if (this.#savedFilters !== null) {
-                Store.filters.set(this.#savedFilters);
+                this.#filtersStore.set(this.#savedFilters);
             }
         }
     }

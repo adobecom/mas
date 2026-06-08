@@ -6,6 +6,8 @@ import {
     EVENT_KEYDOWN,
     EVENT_OST_OFFER_SELECT,
     TAG_COMPARE_CHART,
+    TAG_MERCH_CARD,
+    TAG_MERCH_CARD_COLLECTION,
     TAG_MODEL_ID_MAPPING,
 } from './constants.js';
 import router from './router.js';
@@ -227,9 +229,7 @@ export class MasCreateDialog extends LitElement {
         this.loading = true;
 
         const modelId =
-            this.type === 'merch-card'
-                ? TAG_MODEL_ID_MAPPING['mas:studio/content-type/merch-card']
-                : TAG_MODEL_ID_MAPPING['mas:studio/content-type/merch-card-collection'];
+            this.type === 'merch-card' ? TAG_MODEL_ID_MAPPING[TAG_MERCH_CARD] : TAG_MODEL_ID_MAPPING[TAG_MERCH_CARD_COLLECTION];
 
         const fragmentData = {
             modelId,
@@ -242,11 +242,12 @@ export class MasCreateDialog extends LitElement {
                 tags: this.tags,
                 compatVersion: COMPAT_VERSION,
             };
-        } else if (this.type === COMPARE_CHART_CREATE_TYPE) {
-            fragmentData.data = {
-                [COMPARE_CHART_FIELD]: DEFAULT_COMPARE_CHART_HTML,
-                tags: [TAG_COMPARE_CHART],
-            };
+        } else {
+            fragmentData.data = { label: this.title };
+            if (this.type === COMPARE_CHART_CREATE_TYPE) {
+                fragmentData.data[COMPARE_CHART_FIELD] = DEFAULT_COMPARE_CHART_HTML;
+                fragmentData.tags = [TAG_COMPARE_CHART];
+            }
         }
 
         const masRepository = document.querySelector('mas-repository');

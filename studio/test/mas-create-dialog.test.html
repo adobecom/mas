@@ -153,11 +153,16 @@
                         const options = fetchStub.getCall(0).args[1];
                         const requestBody = JSON.parse(options.body);
                         const compareChartField = requestBody.fields.find((field) => field.name === 'compareChart');
+                        const labelField = requestBody.fields.find((field) => field.name === 'label');
+                        const tagsField = requestBody.fields.find((field) => field.name === 'tags');
 
                         expect(requestBody).to.have.property('title', 'Test Compare Chart');
+                        expect(labelField).to.exist;
+                        expect(labelField.values).to.deep.equal(['Test Compare Chart']);
                         expect(compareChartField).to.exist;
                         expect(compareChartField.type).to.equal('long-text');
                         expect(compareChartField.values[0]).to.include('<mas-compare-chart>');
+                        expect(tagsField).to.not.exist;
                     });
 
                     it('should not retry compare chart creation after a non-conflict failure', async () => {

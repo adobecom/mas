@@ -593,12 +593,6 @@ export const styles = css`
         min-width: 0;
     }
 
-    .compchart-empty-cards {
-        text-align: center;
-        color: var(--spectrum-gray-600);
-        padding: 12px;
-    }
-
     sp-underlay:not([open]) + sp-dialog {
         display: none;
     }

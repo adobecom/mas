@@ -207,6 +207,29 @@ const Store = {
         showSelected: new ReactiveStore(false),
         projectType: new ReactiveStore(null),
     },
+    compareChart: {
+        // Local search/filters for the editor's item picker, kept off the router
+        // hash so the picker never dirties the URL.
+        search: new ReactiveStore({}),
+        filters: new ReactiveStore({ locale: 'en_US' }, filtersValidator),
+        inEdit: new ReactiveStore(null),
+        allCards: new ReactiveStore([]),
+        cardsByPaths: new ReactiveStore(new Map()),
+        displayCards: new ReactiveStore([]),
+        selectedCards: new ReactiveStore([]),
+        offerDataCache: new Map(),
+        groupedVariationsByParent: new ReactiveStore(new Map()),
+        groupedVariationsData: new ReactiveStore(new Map()),
+        allCollections: new ReactiveStore([]),
+        collectionsByPaths: new ReactiveStore(new Map()),
+        displayCollections: new ReactiveStore([]),
+        selectedCollections: new ReactiveStore([]),
+        allPlaceholders: new ReactiveStore([]),
+        placeholdersByPaths: new ReactiveStore(new Map()),
+        displayPlaceholders: new ReactiveStore([]),
+        selectedPlaceholders: new ReactiveStore([]),
+        showSelected: new ReactiveStore(false),
+    },
 };
 
 // #region Validators

@@ -20,7 +20,6 @@ import { normalizeTagId } from '../aem/tag-id-utils.js';
 import { getFromFragmentCache } from '../mas-repository.js';
 import generateFragmentStore, { createPreviewDataWithParent } from '../reactivity/source-fragment-store.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
-import { ReactiveStore } from '../reactivity/reactive-store.js';
 import router from '../router.js';
 import { getItemsSelectionStore, setItemsSelectionStore } from '../common/items-selection-store.js';
 import '../common/components/mas-items-selector.js';
@@ -1668,43 +1667,25 @@ class MasCompareChartEditor extends LitElement {
         this.#updateCardsField(paths);
     }
 
-    #createItemsSelectionStore(paths) {
-        const cards = paths.map((path) => this.#getSourceCardFragment(path)).filter(Boolean);
-        const cardsByPaths = new Map(cards.map((card) => [card.path, card]));
-        return {
-            inEdit: new ReactiveStore(null),
-            allCards: new ReactiveStore([]),
-            cardsByPaths: new ReactiveStore(cardsByPaths),
-            displayCards: new ReactiveStore([]),
-            selectedCards: new ReactiveStore(paths),
-            offerDataCache: Store.translationProjects.offerDataCache,
-            groupedVariationsByParent: new ReactiveStore(new Map()),
-            groupedVariationsData: new ReactiveStore(new Map()),
-            allCollections: new ReactiveStore([]),
-            collectionsByPaths: new ReactiveStore(new Map()),
-            displayCollections: new ReactiveStore([]),
-            selectedCollections: new ReactiveStore([]),
-            allPlaceholders: new ReactiveStore([]),
-            placeholdersByPaths: new ReactiveStore(new Map()),
-            displayPlaceholders: new ReactiveStore([]),
-            selectedPlaceholders: new ReactiveStore([]),
-            showSelected: new ReactiveStore(true),
-        };
-    }
-
     #openItemsSelector() {
         this.previousItemsSelectionStore = getItemsSelectionStore({ allowUnset: true });
-        this.itemsSelectionStore = this.#createItemsSelectionStore(this.#cardPaths);
-        setItemsSelectionStore(this.itemsSelectionStore);
+        this.itemsSelectionStore = Store.compareChart;
+        const cards = this.#cardPaths.map((path) => this.#getSourceCardFragment(path)).filter(Boolean);
+        Store.compareChart.cardsByPaths.set(new Map(cards.map((card) => [card.path, card])));
+        Store.compareChart.selectedCards.set([...this.#cardPaths]);
+        Store.compareChart.allCards.set([]);
+        Store.compareChart.displayCards.set([]);
+        Store.compareChart.showSelected.set(true);
+        setItemsSelectionStore(Store.compareChart);
         const repository = document.querySelector('mas-repository');
         const currentTags = Store.filters.get()?.tags;
         const tags = (Array.isArray(currentTags) ? currentTags : String(currentTags || '').split(',')).filter(
             (tag) => tag && !tag.startsWith(TAG_STUDIO_CONTENT_TYPE) && !tag.startsWith(VARIANT_TAG_PREFIX),
         );
-        repository?.searchFragments?.({
-            force: true,
-            tags: [TAG_MERCH_CARD, ...tags, `${VARIANT_TAG_PREFIX}${VARIANT_NAMES.COMPARE_CHART_COLUMN}`],
-        });
+        const pickerTags = [TAG_MERCH_CARD, ...tags, `${VARIANT_TAG_PREFIX}${VARIANT_NAMES.COMPARE_CHART_COLUMN}`];
+        // Seed the picker's local filters (not global Store.filters, which is URL-synced and would dirty the hash).
+        Store.compareChart.filters.set({ tags: pickerTags.join(',') });
+        repository?.searchFragments?.({ force: true, tags: pickerTags });
         this.pickerOpen = true;
         this.requestUpdate();
     }
@@ -2372,7 +2353,6 @@ class MasCompareChartEditor extends LitElement {
     #renderCardsSection(columns) {
         const paths = this.#cardPaths;
         const columnsByPath = new Map(columns.map((c) => [c.parentPath || c.path, c]));
-        const maxCardsSelected = paths.length >= MAX_COMPARE_CHART_CARDS;
         return html`
             <div
                 class="compchart-cards-section"
@@ -2459,20 +2439,7 @@ class MasCompareChartEditor extends LitElement {
                               </div>
                           </div>
                       `
-                    : html`
-                          <div class="compchart-empty-cards">
-                              No products yet.
-                              <sp-button
-                                  size="s"
-                                  variant="accent"
-                                  ?disabled=${maxCardsSelected}
-                                  @click=${this.#openItemsSelector}
-                              >
-                                  <sp-icon-add slot="icon"></sp-icon-add>
-                                  Add fragment
-                              </sp-button>
-                          </div>
-                      `}
+                    : nothing}
             </div>
             ${this.pickerOpen
                 ? html`<sp-dialog-wrapper

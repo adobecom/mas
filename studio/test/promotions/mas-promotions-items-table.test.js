@@ -718,6 +718,35 @@ describe('MasPromotionsItemsTable', () => {
             Store.promotions.inEdit.set(new FragmentStore(promotion));
         };
 
+        const createPromoVariationAem = (overrides = {}) => {
+            const parentFragment = {
+                id: 'card-promo-id',
+                path: defaultPath,
+                title: 'Promo Card',
+                model: { id: 'model-1' },
+                fields: [{ name: 'title', values: ['Promo Card'] }],
+                tags: [{ id: 'mas:product_code/cc' }],
+            };
+            const createdFragment = { id: 'new-promo-var-id', path: promoVariationPath };
+            return {
+                sites: {
+                    cf: {
+                        fragments: {
+                            getById: sandbox.stub().resolves(parentFragment),
+                            getByPath: sandbox.stub().resolves(null),
+                            ensureFolderExists: sandbox.stub().resolves(),
+                            pollCreatedFragment: sandbox.stub().resolves(createdFragment),
+                            ...overrides.fragments,
+                        },
+                    },
+                },
+                getCsrfToken: sandbox.stub().resolves('csrf-token'),
+                createFragmentCopy: overrides.createFragmentCopy || sandbox.stub().resolves({ id: 'new-promo-var-id' }),
+                wait: sandbox.stub().resolves(),
+                saveTags: sandbox.stub().resolves(),
+            };
+        };
+
         const findCreateMenuItem = (el) =>
             Array.from(el.shadowRoot.querySelectorAll('sp-menu-item')).find((item) =>
                 item.textContent.trim().includes('Create promo variation'),
@@ -739,14 +768,11 @@ describe('MasPromotionsItemsTable', () => {
             const toastStub = sandbox.stub(Events.toast, 'emit');
             setupPromotionInEdit();
 
-            const created = { id: 'new-promo-var-id', path: promoVariationPath };
-            const createStub = sandbox.stub().resolves(created);
-            const getByPathStub = sandbox.stub().resolves(null);
-
+            const aem = createPromoVariationAem();
             const el = await fixture(html`<mas-promotions-items-table .type=${TABLE_TYPE.CARDS}></mas-promotions-items-table>`);
             sandbox.stub(el, 'repository').get(() => ({
-                createPromoVariation: createStub,
-                aem: { sites: { cf: { fragments: { getByPath: getByPathStub } } } },
+                refreshFragment: sandbox.stub().resolves(),
+                aem,
             }));
             el.viewOnlyFragments = [cardFragment];
             await el.updateComplete;
@@ -761,7 +787,7 @@ describe('MasPromotionsItemsTable', () => {
             await el.updateComplete;
             await new Promise((r) => setTimeout(r, 10));
 
-            expect(createStub.calledOnceWith('card-promo-id', promoTag)).to.be.true;
+            expect(aem.createFragmentCopy.calledOnce).to.be.true;
             expect(toastStub.called).to.be.true;
             expect(toastStub.getCalls().some((call) => call.args[0].content === 'Promo variation created')).to.be.true;
             expect(el.existingPromoVariationDefaultPaths.has(defaultPath)).to.be.true;
@@ -772,12 +798,12 @@ describe('MasPromotionsItemsTable', () => {
 
         it('does not create promo variation when user cancels the dialog', async () => {
             setupPromotionInEdit();
-            const createStub = sandbox.stub().resolves({ id: 'x', path: promoVariationPath });
+            const aem = createPromoVariationAem();
 
             const el = await fixture(html`<mas-promotions-items-table .type=${TABLE_TYPE.CARDS}></mas-promotions-items-table>`);
             sandbox.stub(el, 'repository').get(() => ({
-                createPromoVariation: createStub,
-                aem: { sites: { cf: { fragments: { getByPath: sandbox.stub().resolves(null) } } } },
+                refreshFragment: sandbox.stub().resolves(),
+                aem,
             }));
             el.viewOnlyFragments = [cardFragment];
             await el.updateComplete;
@@ -787,17 +813,16 @@ describe('MasPromotionsItemsTable', () => {
             await el.updateComplete;
             await new Promise((r) => setTimeout(r, 10));
 
-            expect(createStub.called).to.be.false;
+            expect(aem.createFragmentCopy.called).to.be.false;
         });
 
         it('shows already-exists toast when variation is present at target path before confirm', async () => {
             const toastStub = sandbox.stub(Events.toast, 'emit');
             setupPromotionInEdit();
-            const createStub = sandbox.stub().resolves({ id: 'x', path: promoVariationPath });
 
             const el = await fixture(html`<mas-promotions-items-table .type=${TABLE_TYPE.CARDS}></mas-promotions-items-table>`);
             sandbox.stub(el, 'repository').get(() => ({
-                createPromoVariation: createStub,
+                refreshFragment: sandbox.stub().resolves(),
                 aem: {
                     sites: {
                         cf: {
@@ -816,7 +841,6 @@ describe('MasPromotionsItemsTable', () => {
 
             await clickCreateAndWaitForDialog(el);
 
-            expect(createStub.called).to.be.false;
             expect(el.confirmDialogConfig).to.be.null;
             expect(toastStub.calledOnce).to.be.true;
             expect(toastStub.firstCall.args[0].content).to.include('already exists');
@@ -825,12 +849,13 @@ describe('MasPromotionsItemsTable', () => {
         it('shows error toast when createPromoVariation fails', async () => {
             const toastStub = sandbox.stub(Events.toast, 'emit');
             setupPromotionInEdit();
-            const createStub = sandbox.stub().rejects(new Error('AEM copy failed'));
-
+            const aem = createPromoVariationAem({
+                createFragmentCopy: sandbox.stub().rejects(new Error('AEM copy failed')),
+            });
             const el = await fixture(html`<mas-promotions-items-table .type=${TABLE_TYPE.CARDS}></mas-promotions-items-table>`);
             sandbox.stub(el, 'repository').get(() => ({
-                createPromoVariation: createStub,
-                aem: { sites: { cf: { fragments: { getByPath: sandbox.stub().resolves(null) } } } },
+                refreshFragment: sandbox.stub().resolves(),
+                aem,
             }));
             el.viewOnlyFragments = [cardFragment];
             await el.updateComplete;
@@ -840,7 +865,7 @@ describe('MasPromotionsItemsTable', () => {
             await new Promise((r) => setTimeout(r, 20));
             await el.updateComplete;
 
-            expect(createStub.calledOnce).to.be.true;
+            expect(aem.createFragmentCopy.calledOnce).to.be.true;
             expect(toastStub.getCalls().some((call) => call.args[0].content === 'AEM copy failed')).to.be.true;
             expect(el.createPromoVariationLoading).to.be.false;
         });

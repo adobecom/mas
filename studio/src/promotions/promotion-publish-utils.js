@@ -1,5 +1,6 @@
 import { OPERATIONS } from '../constants.js';
 import { showToast } from '../utils.js';
+import { getUnpublishedAttachedPromoVariations } from './promotions-repository.js';
 
 export const PROMOTION_EXPIRED_PUBLISH_MESSAGE = 'This promotion has ended. Update the dates to publish again.';
 
@@ -31,13 +32,13 @@ export function unpublishedPromoVariationsPublishMessage(count) {
 }
 
 /**
- * @param {object} repository
+ * @param {import('../aem/aem.js').AEM} aem
  * @param {object} promotionFragment
  * @param {(title: string, message: string, options: object) => Promise<boolean>} showDialog
  * @returns {Promise<{ confirmed: boolean, variationPaths: string[] }>}
  */
-export async function confirmPublishDespiteUnpublishedPromoVariations(repository, promotionFragment, showDialog) {
-    const unpublished = await repository.getUnpublishedAttachedPromoVariations(promotionFragment);
+export async function confirmPublishDespiteUnpublishedPromoVariations(aem, promotionFragment, showDialog) {
+    const unpublished = await getUnpublishedAttachedPromoVariations(aem, promotionFragment);
     if (!unpublished.length) {
         return { confirmed: true, variationPaths: [] };
     }

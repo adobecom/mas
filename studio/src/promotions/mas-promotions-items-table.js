@@ -13,6 +13,7 @@ import Store from '../store.js';
 import { normalizeTagId } from '../aem/tag-id-utils.js';
 import { splitPromotionTagsFieldValues } from './promotion-editor-utils.js';
 import { buildPromoVariationPathForTag, getFragmentByPathOrNull, isPromoVariationPath } from './promotion-model.js';
+import { createPromoVariation } from './promotions-repository.js';
 
 const localStyles = css`
     :host {
@@ -533,7 +534,9 @@ class MasPromotionsItemsTable extends LitElement {
         try {
             this.createPromoVariationLoading = true;
             showToast('Creating promo variation...');
-            const created = await this.repository.createPromoVariation(item.id, promoTag);
+            const created = await createPromoVariation(this.repository.aem, item.id, promoTag, (store) =>
+                this.repository.refreshFragment(store),
+            );
             showToast('Promo variation created', 'positive');
             this.existingPromoVariationDefaultPaths = new Set([...this.existingPromoVariationDefaultPaths, item.path]);
             await this.#navigateToFragmentEditorFromProject(created.id, created.path);

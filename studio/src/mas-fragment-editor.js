@@ -34,6 +34,7 @@ import {
     isPromoVariationPath,
 } from './promotions/promotion-model.js';
 import { splitPromotionTagsFieldValues } from './promotions/promotion-editor-utils.js';
+import * as promotionsRepository from './promotions/promotions-repository.js';
 import { normalizeTagId } from './aem/tag-id-utils.js';
 import './editors/merch-card-editor.js';
 import './editors/merch-card-collection-editor.js';
@@ -936,7 +937,11 @@ export default class MasFragmentEditor extends LitElement {
                 void this.repository.loadPreviewPlaceholders(Store.localeOrRegion());
             }
             let fragmentData = await this.repository.aem.sites.cf.fragments.getById(fragmentId);
-            fragmentData = await this.repository.mergePromoReferencesIntoFragmentData(fragmentData);
+            fragmentData = await promotionsRepository.mergePromoReferencesIntoFragmentData(
+                this.repository.aem,
+                fragmentData,
+                () => this.repository.loadPromotions(),
+            );
             const fragment = new Fragment(fragmentData);
 
             snapFilterToPathDefault(fragment.path);
@@ -1051,7 +1056,12 @@ export default class MasFragmentEditor extends LitElement {
         }
 
         if (isPromoVariationPath(fragmentPath)) {
-            parentData = await this.repository.resolveDefaultFragmentForPromoVariation(fragmentPath, this.fragment?.id);
+            parentData = await promotionsRepository.resolveDefaultFragmentForPromoVariation(
+                this.repository.aem,
+                fragmentPath,
+                this.fragment?.id,
+                () => this.repository.loadPromotions(),
+            );
             if (parentData) {
                 this.editorContextStore?.setParent(parentData);
                 this.groupedVariationOrphanMessage = null;

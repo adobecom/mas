@@ -1,5 +1,6 @@
 import Store from '../store.js';
 import { canProbePromoVariationsForFragment } from './promotion-model.js';
+import { mergePromoVariationReferences } from './promotion-variations.js';
 import * as promotionVariations from './promotion-variations.js';
 
 const PROMOTIONS_LIST_FETCHED_META = 'listFetched';
@@ -67,14 +68,32 @@ export async function getUnpublishedAttachedPromoVariations(aem, promotionFragme
 }
 
 /**
+ * @param {string} sourceFragmentId
+ * @param {(store: import('../reactivity/fragment-store.js').FragmentStore) => Promise<void>} refreshFragment
+ * @returns {(created: Object) => Promise<void>}
+ */
+export function buildPromoVariationParentRefreshCallback(sourceFragmentId, refreshFragment) {
+    return async (createdFragment) => {
+        const parentStore = Store.fragments.list.data.get().find((store) => store.get()?.id === sourceFragmentId);
+        if (!parentStore) return;
+        await refreshFragment(parentStore);
+        const parent = parentStore.get();
+        if (!parent) return;
+        const enriched = mergePromoVariationReferences(parent, [createdFragment]);
+        parentStore.refreshFrom(enriched);
+    };
+}
+
+/**
  * @param {import('../aem/aem.js').AEM} aem
  * @param {string} sourceFragmentId
  * @param {string} promoTagId
- * @param {(created: Object, sourceFragmentId: string) => Promise<void>} [onCreated]
+ * @param {(store: import('../reactivity/fragment-store.js').FragmentStore) => Promise<void>} [refreshFragment]
  * @returns {Promise<Object>}
  */
-export async function createPromoVariation(aem, sourceFragmentId, promoTagId, onCreated) {
+export async function createPromoVariation(aem, sourceFragmentId, promoTagId, refreshFragment) {
+    const onCreated = refreshFragment ? buildPromoVariationParentRefreshCallback(sourceFragmentId, refreshFragment) : undefined;
     const createdFragment = await promotionVariations.createPromoVariation(aem, sourceFragmentId, promoTagId);
-    if (onCreated) await onCreated(createdFragment, sourceFragmentId);
+    if (onCreated) await onCreated(createdFragment);
     return createdFragment;
 }

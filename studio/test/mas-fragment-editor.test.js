@@ -23,15 +23,12 @@ describe('MasFragmentEditor', () => {
         sandbox.restore();
     });
 
-    function createEditor({
-        resolveHydratedParentFragment,
-        resolveDefaultFragmentForPromoVariation,
-        getLocaleDefaultFragmentAsync,
-    } = {}) {
+    function createEditor({ resolveHydratedParentFragment, aem, getLocaleDefaultFragmentAsync } = {}) {
         const editor = new MasFragmentEditor();
         const repository = {
             resolveHydratedParentFragment: resolveHydratedParentFragment || sandbox.stub().resolves(null),
-            resolveDefaultFragmentForPromoVariation: resolveDefaultFragmentForPromoVariation || sandbox.stub().resolves(null),
+            aem: aem || { sites: { cf: { fragments: {} } } },
+            loadPromotions: sandbox.stub().resolves(),
         };
 
         sandbox.stub(editor, 'repository').get(() => repository);
@@ -57,19 +54,31 @@ describe('MasFragmentEditor', () => {
     describe('grouped variation parent resolution', () => {
         it('resolves parent through promo variation resolver for promo paths', async () => {
             const promoPath = '/content/dam/mas/sandbox/en_US/promotions/back-to-school/my-card';
-            const parentData = { id: 'default-id', path: '/content/dam/mas/sandbox/en_US/my-card' };
-            const resolvePromoParentStub = sandbox.stub().resolves(parentData);
+            const parentPath = '/content/dam/mas/sandbox/en_US/my-card';
+            const parentData = { id: 'default-id', path: parentPath };
             const resolveGroupedStub = sandbox.stub().resolves(null);
-            const { editor, repository } = createEditor({
+            const { editor } = createEditor({
                 resolveHydratedParentFragment: resolveGroupedStub,
-                resolveDefaultFragmentForPromoVariation: resolvePromoParentStub,
+                aem: {
+                    sites: {
+                        cf: {
+                            fragments: {
+                                getById: sandbox.stub().resolves({
+                                    id: 'promo-var-id',
+                                    path: promoPath,
+                                    tags: [{ id: 'mas:promotion/back-to-school' }],
+                                }),
+                                getByPath: sandbox.stub().withArgs(parentPath).resolves(parentData),
+                            },
+                        },
+                    },
+                },
             });
             editor.inEdit.value = { get: () => ({ id: 'promo-var-id' }) };
 
             const result = await editor.resolveVariationParentFragment(promoPath);
 
             expect(result).to.deep.equal(parentData);
-            expect(repository.resolveDefaultFragmentForPromoVariation.calledOnceWith(promoPath, 'promo-var-id')).to.be.true;
             expect(resolveGroupedStub.called).to.be.false;
             expect(editor.editorContextStore.defaultLocaleId).to.equal('default-id');
         });
@@ -324,7 +333,7 @@ describe('MasFragmentEditor', () => {
             mockRepo = {
                 refreshFragment: sandbox.stub().resolves(),
                 loadPreviewPlaceholders: sandbox.stub().resolves(),
-                mergePromoReferencesIntoFragmentData: sandbox.stub().callsFake(async (data) => data),
+                loadPromotions: sandbox.stub().resolves(),
                 search: { value: { path: 'sandbox' } },
                 aem: {
                     sites: {

@@ -36,20 +36,38 @@ describe('promotion-publish-utils', () => {
     });
 
     it('returns confirmed without dialog when there are no unpublished variations', async () => {
-        const repo = { getUnpublishedAttachedPromoVariations: sinon.stub().resolves([]) };
+        const aem = { sites: { cf: { fragments: { getByPath: sinon.stub().resolves(null) } } } };
         const showDialog = sinon.stub().resolves(true);
-        const result = await confirmPublishDespiteUnpublishedPromoVariations(repo, { id: 'p1' }, showDialog);
+        const result = await confirmPublishDespiteUnpublishedPromoVariations(
+            aem,
+            { id: 'p1', getFieldValues: () => [], tags: [] },
+            showDialog,
+        );
         expect(result).to.deep.equal({ confirmed: true, variationPaths: [] });
-        expect(repo.getUnpublishedAttachedPromoVariations.calledOnceWith({ id: 'p1' })).to.be.true;
         expect(showDialog.called).to.be.false;
     });
 
     it('shows dialog and returns not confirmed when user cancels', async () => {
-        const repo = {
-            getUnpublishedAttachedPromoVariations: sinon.stub().resolves([{ path: '/v1', status: 'DRAFT' }]),
+        const parentPath = '/content/dam/mas/sandbox/en_US/my-card';
+        const promoPath = '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card';
+        const aem = {
+            sites: {
+                cf: {
+                    fragments: {
+                        getByPath: sinon.stub().withArgs(promoPath).resolves({ path: promoPath, status: 'DRAFT', title: 'V1' }),
+                    },
+                },
+            },
+        };
+        const promotionFragment = {
+            getFieldValues: sinon.stub().callsFake((name) => {
+                if (name === 'fragments') return [parentPath];
+                return undefined;
+            }),
+            tags: [{ id: 'mas:promotion/black-friday' }],
         };
         const showDialog = sinon.stub().resolves(false);
-        const result = await confirmPublishDespiteUnpublishedPromoVariations(repo, { id: 'p1' }, showDialog);
+        const result = await confirmPublishDespiteUnpublishedPromoVariations(aem, promotionFragment, showDialog);
         expect(result).to.deep.equal({ confirmed: false, variationPaths: [] });
         expect(showDialog.calledOnce).to.be.true;
         const [title, message, options] = showDialog.firstCall.args;
@@ -61,15 +79,32 @@ describe('promotion-publish-utils', () => {
     });
 
     it('returns variation paths when user confirms publish together', async () => {
-        const repo = {
-            getUnpublishedAttachedPromoVariations: sinon.stub().resolves([
-                { path: '/v1', status: 'DRAFT' },
-                { path: '/v2', status: 'DRAFT' },
-            ]),
+        const parentPaths = ['/content/dam/mas/sandbox/en_US/card-a', '/content/dam/mas/sandbox/en_US/card-b'];
+        const path1 = '/content/dam/mas/sandbox/en_US/promotions/black-friday/card-a';
+        const path2 = '/content/dam/mas/sandbox/en_US/promotions/black-friday/card-b';
+        const aem = {
+            sites: {
+                cf: {
+                    fragments: {
+                        getByPath: sinon.stub().callsFake(async (path) => {
+                            if (path === path1) return { path: path1, status: 'DRAFT', title: 'V1' };
+                            if (path === path2) return { path: path2, status: 'DRAFT', title: 'V2' };
+                            return null;
+                        }),
+                    },
+                },
+            },
+        };
+        const promotionFragment = {
+            getFieldValues: sinon.stub().callsFake((name) => {
+                if (name === 'fragments') return parentPaths;
+                return undefined;
+            }),
+            tags: [{ id: 'mas:promotion/black-friday' }],
         };
         const showDialog = sinon.stub().resolves(true);
-        const result = await confirmPublishDespiteUnpublishedPromoVariations(repo, { id: 'p1' }, showDialog);
-        expect(result).to.deep.equal({ confirmed: true, variationPaths: ['/v1', '/v2'] });
+        const result = await confirmPublishDespiteUnpublishedPromoVariations(aem, promotionFragment, showDialog);
+        expect(result).to.deep.equal({ confirmed: true, variationPaths: [path1, path2] });
         expect(showDialog.firstCall.args[1]).to.equal(unpublishedPromoVariationsPublishMessage(2));
     });
 

@@ -302,7 +302,7 @@ class MasPromotionsEditor extends LitElement {
     }
 
     async #confirmPublishWithUnpublishedPromoVariations() {
-        return confirmPublishDespiteUnpublishedPromoVariations(this.repository, this.fragment, (title, message, options) =>
+        return confirmPublishDespiteUnpublishedPromoVariations(this.repository.aem, this.fragment, (title, message, options) =>
             this.#showDialog(title, message, options),
         );
     }

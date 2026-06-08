@@ -4,6 +4,7 @@ import Store from '../../src/store.js';
 import { setItemsSelectionStore } from '../../src/common/items-selection-store.js';
 import MasPromotionsEditor from '../../src/promotions/mas-promotions-editor.js';
 import { Promotion } from '../../src/aem/promotion.js';
+import { CARD_MODEL_PATH } from '../../src/constants.js';
 
 function makeFragmentData(overrides = {}) {
     return {
@@ -87,7 +88,6 @@ describe('MasPromotionsEditor', () => {
             createFragment: sandbox.stub().resolves(makePromotion({ id: 'created-id', title: 'T' })),
             saveFragment: sandbox.stub().resolves(),
             publishFragment: sandbox.stub().resolves(true),
-            getUnpublishedAttachedPromoVariations: sandbox.stub().resolves([]),
             unpublishFragment: sandbox.stub().resolves(true),
             searchFragments: sandbox.stub(),
             loadAllCollections: sandbox.stub(),
@@ -629,23 +629,59 @@ describe('MasPromotionsEditor', () => {
 
     describe('publish reminder flow', () => {
         it('prompts before publish when attached promo variations are unpublished', async () => {
-            const { el, repo } = await mountEditorWithRepo({
-                getUnpublishedAttachedPromoVariations: sandbox.stub().resolves([{ path: '/promo-var-1', status: 'DRAFT' }]),
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            const parentPath = '/content/dam/mas/sandbox/en_US/my-card';
+            const promoVarPath = '/content/dam/mas/sandbox/en_US/promotions/code-test/my-card';
+            const promotion = makePromotion({
+                id: 'promo-1',
+                title: 'Test Promotion',
+                startDate: '2030-01-01T00:00:00.000Z',
+                endDate: '2030-12-31T00:00:00.000Z',
+                status: 'DRAFT',
+                fragments: [parentPath],
+                fields: [
+                    { name: 'title', type: 'text', values: ['Test Promotion'] },
+                    { name: 'promoCode', type: 'text', values: ['TEST'] },
+                    { name: 'startDate', values: ['2030-01-01T00:00:00.000Z'] },
+                    { name: 'endDate', values: ['2030-12-31T00:00:00.000Z'] },
+                    { name: 'tags', values: ['mas:promotion/code-test'], multiple: true },
+                    { name: 'surfaces', type: 'text', multiple: false, values: ['sandbox'] },
+                    { name: 'geos', type: 'tag', multiple: true, values: ['mas:locale/us'] },
+                    { name: 'fragments', type: 'content-fragment', multiple: true, values: [parentPath] },
+                ],
             });
-            el.isNewPromotion = false;
-            el.fragment.id = 'promo-1';
-            await fillValidFields(el);
-            el.fragmentStore.updateField('startDate', ['2030-01-01T00:00:00.000Z']);
-            el.fragmentStore.updateField('endDate', ['2030-12-31T00:00:00.000Z']);
-            el.fragment.hasChanges = false;
-            Store.promotions.selectedCards.set([]);
+            Store.promotions.inEdit.set(new FragmentStore(promotion));
+            const { el, repo } = await mountEditorWithRepo({
+                aem: {
+                    getFragmentByPath: sandbox.stub().resolves({
+                        path: parentPath,
+                        model: { path: CARD_MODEL_PATH },
+                    }),
+                    sites: {
+                        cf: {
+                            fragments: {
+                                getById: sandbox.stub().resolves(null),
+                                publish: sandbox.stub().resolves(),
+                                publishFragments: sandbox.stub().resolves(),
+                                getWithEtag: sandbox.stub(),
+                                getByPath: sandbox.stub().withArgs(promoVarPath).resolves({
+                                    path: promoVarPath,
+                                    status: 'DRAFT',
+                                    title: 'Unpublished variation',
+                                }),
+                            },
+                        },
+                    },
+                },
+            });
             Store.promotions.selectedCollections.set([]);
             await el.updateComplete;
 
             clickPromotionsFormButton(el, 'Publish');
+            await new Promise((resolve) => setTimeout(resolve, 0));
             await el.updateComplete;
 
-            expect(repo.getUnpublishedAttachedPromoVariations.calledOnce).to.be.true;
+            expect(repo.aem.sites.cf.fragments.getByPath.calledWith(promoVarPath)).to.be.true;
             expect(repo.aem.sites.cf.fragments.publish.called).to.be.false;
             expect(repo.aem.sites.cf.fragments.publishFragments.called).to.be.false;
         });

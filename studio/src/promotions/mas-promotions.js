@@ -398,7 +398,7 @@ class MasPromotions extends LitElement {
             return;
         }
         const { confirmed, variationPaths } = await confirmPublishDespiteUnpublishedPromoVariations(
-            this.repository,
+            this.repository.aem,
             fragment,
             (title, message, options) => this.#showDialog(title, message, options),
         );

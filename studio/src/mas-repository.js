@@ -37,7 +37,6 @@ import {
     ODIN_PREVIEW_FRAGMENTS_URL,
 } from './constants.js';
 import { applyFragmentListFilters } from './fragments/fragment-list-filters.js';
-import { mergePromoVariationReferences } from './promotions/promotion-variations.js';
 import * as promotionsRepository from './promotions/promotions-repository.js';
 import { fragmentHasPersonalizationTag, isPznCountryTagId, PZN_TAG_ID_PREFIX } from './common/utils/personalization-utils.js';
 import { Placeholder } from './aem/placeholder.js';
@@ -2279,48 +2278,6 @@ export class MasRepository extends LitElement {
         }
 
         return createdFragment;
-    }
-
-    /**
-     * Creates a promo variation for a default fragment under promotions/{promoName}/.
-     * @param {string} sourceFragmentId - Default fragment ID to copy from
-     * @param {string} promoTagId - mas:promotion/{promoName} tag from the promotion project
-     * @returns {Promise<Object>} The created promo variation fragment
-     */
-    async createPromoVariation(sourceFragmentId, promoTagId) {
-        return promotionsRepository.createPromoVariation(this.aem, sourceFragmentId, promoTagId, async (createdFragment) => {
-            const parentStore = Store.fragments.list.data.get().find((store) => store.get()?.id === sourceFragmentId);
-            if (!parentStore) return;
-            await this.refreshFragment(parentStore);
-            const parent = parentStore.get();
-            if (!parent) return;
-            const enriched = mergePromoVariationReferences(parent, [createdFragment]);
-            parentStore.refreshFrom(enriched);
-            this.#addToCache(parentStore.get());
-        });
-    }
-
-    async mergePromoReferencesIntoFragmentData(fragmentData) {
-        return promotionsRepository.mergePromoReferencesIntoFragmentData(this.aem, fragmentData, () => this.loadPromotions());
-    }
-
-    /**
-     * Resolves the default fragment for a promo variation path.
-     * @param {string} promoVariationPath
-     * @param {string} [promoVariationId]
-     * @returns {Promise<Object|null>}
-     */
-    async resolveDefaultFragmentForPromoVariation(promoVariationPath, promoVariationId) {
-        return promotionsRepository.resolveDefaultFragmentForPromoVariation(
-            this.aem,
-            promoVariationPath,
-            promoVariationId,
-            () => this.loadPromotions(),
-        );
-    }
-
-    async getUnpublishedAttachedPromoVariations(promotionFragment) {
-        return promotionsRepository.getUnpublishedAttachedPromoVariations(this.aem, promotionFragment);
     }
 
     /**

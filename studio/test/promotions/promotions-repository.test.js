@@ -2,6 +2,7 @@ import { expect } from '@esm-bundle/chai';
 import sinon from 'sinon';
 import Store from '../../src/store.js';
 import {
+    createPromoVariation,
     getPromotionProjectsForProbe,
     mergePromoReferencesIntoFragmentData,
 } from '../../src/promotions/promotions-repository.js';
@@ -82,6 +83,48 @@ describe('promotions-repository', () => {
 
             expect(result.references).to.have.lengthOf(1);
             expect(result.references[0].path).to.equal(promoPath);
+        });
+    });
+
+    describe('createPromoVariation', () => {
+        const parentFragment = {
+            id: 'parent-promo-1',
+            path: '/content/dam/mas/sandbox/en_US/my-card',
+            tags: [{ id: 'mas:product_code/cc' }],
+        };
+        const promoTag = 'mas:promotion/black-friday';
+        const targetPath = '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card';
+
+        it('refreshes parent store after creation when refreshFragment is provided', async () => {
+            const createdFragment = { id: 'new-promo-var-id', path: targetPath };
+            const aem = {
+                sites: {
+                    cf: {
+                        fragments: {
+                            getById: sandbox.stub().resolves(parentFragment),
+                            getByPath: sandbox.stub().resolves(null),
+                            ensureFolderExists: sandbox.stub().resolves(),
+                            pollCreatedFragment: sandbox.stub().resolves(createdFragment),
+                        },
+                    },
+                },
+                getCsrfToken: sandbox.stub().resolves('csrf-token'),
+                createFragmentCopy: sandbox.stub().resolves({ id: 'new-promo-var-id' }),
+                wait: sandbox.stub().resolves(),
+                saveTags: sandbox.stub().resolves(),
+            };
+            const refreshFragment = sandbox.stub().resolves();
+            const parentStore = {
+                get: () => ({ id: parentFragment.id, references: [] }),
+                refreshFrom: sandbox.stub(),
+            };
+            sandbox.stub(Store.fragments.list.data, 'get').returns([parentStore]);
+
+            const result = await createPromoVariation(aem, parentFragment.id, promoTag, refreshFragment);
+
+            expect(result).to.deep.equal(createdFragment);
+            expect(refreshFragment.calledOnceWith(parentStore)).to.be.true;
+            expect(parentStore.refreshFrom.calledOnce).to.be.true;
         });
     });
 });

@@ -49,9 +49,9 @@ application:
                                 acom: transcreation
                                 acom-cc: transcreation
                                 acom-dc: transcreation
-                                adobe-home: transcreation
-                                ccd: transcreation
-                                commerce: machineTranslation
+                                adobe-home: humanTranslation
+                                ccd: humanTranslation
+                                commerce: humanTranslation
                                 express: transcreation
                                 sandbox: machineTranslation
                                 nala: machineTranslation
@@ -61,6 +61,8 @@ application:
                     translation-project-dispatcher:
                         function: src/translation/project-start-dispatcher.js
                         runtime: nodejs:22
+                        inputs:
+                            workerConcurrency: $WORKER_CONCURRENCY
                         annotations:
                             require-adobe-auth: false
                             final: true
@@ -70,8 +72,9 @@ application:
                         inputs:
                             batchSize: $BATCH_SIZE
                             rpsLimit: $RPS_LIMIT
+                            workerConcurrency: $WORKER_CONCURRENCY
                         limits:
-                            timeout: 3600000
+                            timeout: 1800000
                         annotations:
                             require-adobe-auth: false
                             final: true
@@ -90,4 +93,27 @@ application:
                             timeout: 300000
                         annotations:
                             require-adobe-auth: false
-                            final: true
+                    bulk-snapshot:
+                        function: src/bulk-publish/snapshot-action.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        limits:
+                            timeout: 300000
+                        annotations:
+                            require-adobe-auth: false
+                    bulk-revert:
+                        function: src/bulk-publish/revert-action.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        limits:
+                            timeout: 300000
+                        annotations:
+                            require-adobe-auth: false
+                    bulk-check-modifications:
+                        function: src/bulk-publish/check-modifications-action.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        limits:
+                            timeout: 60000
+                        annotations:
+                            require-adobe-auth: false

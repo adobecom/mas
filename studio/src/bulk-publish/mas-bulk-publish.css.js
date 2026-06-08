@@ -1,8 +1,11 @@
 import { css } from 'lit';
 import { skeletonStyles } from '../common/skeleton-styles.css.js';
+import { tableHeaderBaseStyles, tableBodyBaseStyles } from '../common/styles/table-styles.css.js';
 
 export const styles = [
     skeletonStyles,
+    tableHeaderBaseStyles,
+    tableBodyBaseStyles,
     css`
         :host {
             display: block;
@@ -47,60 +50,27 @@ export const styles = [
             margin: 24px 0 0;
         }
 
-        table {
+        sp-table {
             width: 100%;
-            border-collapse: separate;
-            border-spacing: 0;
-            background: white;
-            border-radius: 12px;
-            overflow: hidden;
-            border: 1px solid var(--spectrum-gray-300, #dadada);
         }
 
-        thead th {
-            background: var(--spectrum-gray-75, #f3f3f3);
-            font-size: 14px;
-            font-weight: 700;
-            line-height: 18px;
-            color: var(--spectrum-gray-800, #222);
-            text-align: left;
-            padding: 13px 20px;
-            height: 44px;
-            box-sizing: border-box;
-            border-bottom: 1px solid var(--spectrum-gray-300, #dadada);
-            white-space: nowrap;
-        }
-
-        thead th.center {
+        sp-table-head-cell.center,
+        sp-table-cell.center {
             text-align: center;
+            justify-content: center;
         }
 
-        tbody td {
-            padding: 16px 20px;
-            height: 68px;
-            box-sizing: border-box;
-            font-size: 14px;
-            line-height: 18px;
-            color: var(--spectrum-gray-800, #292929);
-            border-bottom: 1px solid var(--spectrum-gray-300, #dadada);
-            background: white;
-            vertical-align: middle;
+        sp-table-row {
+            cursor: pointer;
         }
 
-        tbody tr:last-child td {
-            border-bottom: none;
-        }
-
-        tbody td.project-name {
-            font-weight: 700;
-        }
-
-        tbody td.center {
-            text-align: center;
-        }
-
-        tbody tr.disabled td {
+        sp-table-row.disabled {
             opacity: 0.38;
+            pointer-events: none;
+        }
+
+        sp-table-cell.project-name {
+            font-weight: 700;
         }
 
         .status-light {
@@ -146,6 +116,14 @@ export const styles = [
             --status-color: var(--spectrum-gray-700, #4b4b4b);
         }
 
+        .status-light.reverting {
+            --status-color: var(--spectrum-orange-700, #e68619);
+        }
+
+        .status-light.reverted {
+            --status-color: var(--spectrum-purple-700, #7030a0);
+        }
+
         .actions-cell {
             text-align: center;
         }
@@ -165,13 +143,8 @@ export const styles = [
             z-index: 10;
         }
 
-        .skeleton-row td {
-            padding: 16px 20px;
-            height: 68px;
-            box-sizing: border-box;
-            border-bottom: 1px solid var(--spectrum-gray-300, #dadada);
-            background: white;
-            vertical-align: middle;
+        sp-table-row sp-table-cell .skeleton-table-cell {
+            height: 20px;
         }
     `,
 ];

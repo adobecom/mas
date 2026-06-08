@@ -316,6 +316,77 @@ merch-card[variant="bizpro"] [slot="heading-m"] .price-recurrence {
     text-transform: lowercase;
 }
 
+/* Strikethrough (regular) price — Figma 988:14784: 14px regular muted, struck,
+   on its own line ABOVE the current price (988:14785). Out-specifies the
+   18px/900 .price rules above. Covers both markup shapes:
+   - promo: .price-strikethrough next to .price-alternative inside one
+     price-template inline-price (the promo price keeps the 18px/900 look)
+   - authored: a separate strikethrough-template inline-price before the main
+     price. The line-through itself comes from the global stylesheet. */
+merch-card[variant="bizpro"]
+    [slot="heading-m"]
+    .price:is(.price-strikethrough, .price-promo-strikethrough),
+merch-card[variant="bizpro"]
+    [slot="heading-m"]
+    .price:is(.price-strikethrough, .price-promo-strikethrough)
+    span {
+    font-family: var(--consonant-merch-card-bizpro-font-family-regular);
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 18px;
+    letter-spacing: 0.14px;
+    color: var(--consonant-merch-card-bizpro-text-muted-color);
+}
+
+/* Stack the struck price onto its own line. The authored shape needs the
+   inline-price wrapper itself to break (its inner .price going block would
+   stay inside the inline-block wrapper); the promo shape needs the inner
+   .price-strikethrough to break within the shared wrapper. */
+merch-card[variant="bizpro"]
+    [slot="heading-m"]
+    span[is="inline-price"]:is(
+        [data-template="strikethrough"],
+        [data-template="priceStrikethrough"]
+    ),
+merch-card[variant="bizpro"]
+    [slot="heading-m"]
+    span[is="inline-price"][data-template="price"]
+    .price:is(.price-strikethrough, .price-promo-strikethrough) {
+    display: block;
+}
+
+/* The promo shape separates the two prices with an &nbsp; text node directly
+   inside the wrapper; once the strikethrough goes block, that nbsp would
+   indent the promo price's line. Zeroing the wrapper font collapses it — the
+   .price spans carry their own explicit sizes (same trick as plans.css.js'
+   ja_JP price-alternative block). */
+merch-card[variant="bizpro"]
+    [slot="heading-m"]
+    span[is="inline-price"][data-template="price"]:has(
+        .price-strikethrough,
+        .price-promo-strikethrough
+    ) {
+    font-size: 0;
+}
+
+/* Plan type line ("Annual, billed monthly") — the legal-template price span,
+   rendered when the Show Plan type setting is on. Its container carries the
+   shared .price class, so this later rule overrides the 18px/900 price
+   styling above with the muted body style (same look as promo-text, Figma
+   1114:39070). Both the custom-element wrapper AND the inner .price container
+   need display:block — the wrapper is inline-block by default, which would
+   shrink-wrap the block container and keep it on the price's line. */
+merch-card[variant="bizpro"] [slot="heading-m"] span[is="inline-price"][data-template="legal"],
+merch-card[variant="bizpro"] [slot="heading-m"] .price.price-legal {
+    display: block;
+    font-family: var(--consonant-merch-card-bizpro-font-family-regular);
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 18px;
+    letter-spacing: 0.14px;
+    color: var(--consonant-merch-card-bizpro-text-muted-color);
+}
+
 /* Collection grid — C2 breakpoints only (768, 1280).
    - Mobile: single column, full width.
    - Tablet (≥768): 2-column grid for 2/3/4 cards.
@@ -376,9 +447,4 @@ merch-card-collection.plans:is(.one-merch-card, .two-merch-cards, .three-merch-c
     }
 }
 
-/* ETF / legal text inline link styling — underlined inline anchors */
-merch-card[variant="bizpro"] [slot="legal-text"] a {
-    color: inherit;
-    text-decoration: underline;
-}
 `;

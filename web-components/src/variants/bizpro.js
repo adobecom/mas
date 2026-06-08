@@ -3,7 +3,9 @@ import { html, css, nothing } from 'lit';
 import { CSS } from './bizpro.css.js';
 import {
     EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
+    EVENT_TYPE_RESOLVED,
     SELECTOR_MAS_INLINE_PRICE,
+    TEMPLATE_PRICE_LEGAL,
 } from '../constants.js';
 
 export const BIZPRO_AEM_FRAGMENT_MAPPING = {
@@ -23,6 +25,7 @@ export const BIZPRO_AEM_FRAGMENT_MAPPING = {
     quantitySelect: { tag: 'div', slot: 'quantity-select' },
     shortDescription: { tag: 'div', slot: 'legal-text' },
     secureLabel: true,
+    planType: true,
     // AI Assistant add-on; offer + inline price resolve via the authored
     // {{addon-acrobat-ai-assistant}} placeholder.
     addon: true,
@@ -46,6 +49,93 @@ export class BizPro extends VariantLayout {
 
     getGlobalCSS() {
         return CSS;
+    }
+
+    /**
+     * Forwards the Show Plan type setting (fragment.settings.displayPlanType,
+     * resolved server-side from the surface settings fragment + the editor's
+     * showPlanType override) to the legal-template price that adjustLegal()
+     * generates, which then renders the localized plan type ("Annual, billed
+     * monthly") from the WCS offer. Same pattern as plans/plans-v2.
+     */
+    priceOptionsProvider(element, options) {
+        if (element.dataset.template !== TEMPLATE_PRICE_LEGAL) return;
+        options.displayPlanType = this.card?.settings?.displayPlanType ?? false;
+    }
+
+    /**
+     * Clones the authored main price into a legal-template sibling (same as
+     * plans/plans-v2), so the plan type line needs no extra authoring — the
+     * Show Plan type toggle alone controls it via priceOptionsProvider above.
+     * Tax/plan-type rendering moves off the main price onto the clone.
+     */
+    async adjustLegal() {
+        if (this.legalAdjusted) return;
+        try {
+            this.legalAdjusted = true;
+            await this.card.updateComplete;
+            await customElements.whenDefined('inline-price');
+            const headingPrice = this.mainPrice;
+            if (!headingPrice) return;
+            const legal = headingPrice.cloneNode(true);
+            await headingPrice.onceSettled();
+            if (!headingPrice?.options) return;
+            // Unlike plans, per-unit stays on the pricing line (Figma
+            // 3260:44659 puts "per license" right after the price, in the
+            // same typography) — only tax and plan type move to the legal
+            // line. The clone drops per-unit so it doesn't render twice.
+            if (headingPrice.options.displayTax)
+                headingPrice.dataset.displayTax = 'false';
+            if (headingPrice.options.displayPlanType)
+                headingPrice.dataset.displayPlanType = 'false';
+            legal.setAttribute('data-template', 'legal');
+            legal.dataset.displayPerUnit = 'false';
+            headingPrice.parentNode.insertBefore(
+                legal,
+                headingPrice.nextSibling,
+            );
+            await legal.onceSettled();
+            // Re-apply the authored override whenever the legal price
+            // re-resolves (locale/quantity changes regenerate its innerHTML).
+            // Matches the mini-compare-chart pattern.
+            if (!this.legalResolvedHandler) {
+                this.legalResolvedHandler = () => this.adjustShortDescription();
+                legal.addEventListener(
+                    EVENT_TYPE_RESOLVED,
+                    this.legalResolvedHandler,
+                );
+            }
+            this.adjustShortDescription();
+        } catch {
+            // Proceed with the other post-update adjustments
+        }
+    }
+
+    /**
+     * Authored Short Description overrides the derived plan type wording
+     * ("Annual, billed monthly") — same mechanism as mini-compare-chart's
+     * adjustShortDescription, except the text REPLACES the derived label
+     * instead of being appended after it. The field's only manifestation is
+     * the plan type line, so with the Show Plan type setting off (no
+     * .price-plan-type span) the override does not render either.
+     *
+     * The [slot="legal-text"] element is read in place, never detached: the
+     * shadow template has no matching named slot, so it does not render
+     * anyway, and merch-card swaps in a fresh variantLayout after the first
+     * render — state cached on a layout instance (or a DOM removal it
+     * performed) would be lost to the replacement instance.
+     */
+    adjustShortDescription() {
+        const text = this.card
+            .querySelector('[slot="legal-text"]')
+            ?.textContent?.trim();
+        if (!text) return;
+        const legalPrice = this.card.querySelector(
+            '[slot="heading-m"] [data-template="legal"]',
+        );
+        const planType = legalPrice?.querySelector('.price-plan-type');
+        if (!planType) return;
+        planType.textContent = text;
     }
 
     get hasWhatsIncluded() {
@@ -106,6 +196,13 @@ export class BizPro extends VariantLayout {
 
     async postCardUpdateHook() {
         await this.adjustAddon();
+        if (!this.legalAdjusted) {
+            await this.adjustLegal();
+        }
+        // Also runs when there is no main price (free cards): the authored
+        // Short Description is still detached from the light DOM so it never
+        // renders as a standalone block.
+        this.adjustShortDescription();
         await super.postCardUpdateHook();
         // Line the white .top-card sections up across a row once the card has
         // laid out. Only relevant when cards sit side by side (>=768px).
@@ -166,10 +263,6 @@ export class BizPro extends VariantLayout {
         this.#visibilityObserver?.disconnect();
     }
 
-    get hasLegalText() {
-        return !!this.card.querySelector('[slot="legal-text"]');
-    }
-
     get quantitySelectEl() {
         return this.card.querySelector('merch-quantity-select');
     }
@@ -188,10 +281,21 @@ export class BizPro extends VariantLayout {
         return opts.length ? opts : null;
     }
 
-    get licenseLabel() {
-        // Authored per-locale via the quantity-select title; the fallback only
-        // shows for half-configured selectors (min/max set, title blank).
-        return this.quantitySelectEl?.getAttribute('title') || 'License';
+    /**
+     * Label for the license dropdown at the given quantity. The authored
+     * quantity-select title carries "singular|plural" — intended authoring is
+     * two dictionary placeholders ({{license-label}}|{{licenses-label}}, the
+     * coll-result-text/coll-results-text pattern) that the fragment
+     * pipeline's replace transformer resolves per locale before hydration.
+     * Without a "|" the title renders unchanged for every quantity:
+     * pluralization is never derived in code (appending "s" corrupts CJK and
+     * most non-English locales). The 'License' fallback only shows for
+     * half-configured selectors (min/max set, title blank).
+     */
+    licenseLabel(count) {
+        const title = this.quantitySelectEl?.getAttribute('title') || 'License';
+        const [singular, plural] = title.split('|').map((s) => s.trim());
+        return Number(count) === 1 ? singular : plural || singular;
     }
 
     get hasLicenseSelector() {
@@ -206,10 +310,37 @@ export class BizPro extends VariantLayout {
         return def != null && opts.includes(def) ? def : opts[0];
     }
 
+    /**
+     * The bizpro cards sharing this card's visual row — same container, same
+     * rendered top edge (the row grouping syncRowHeights uses). Stacked
+     * (single-column) cards land on different rows and stay independent.
+     */
+    #rowCards() {
+        const top = Math.round(this.card.getBoundingClientRect().top);
+        const cards = Array.from(
+            this.getContainer()?.querySelectorAll(
+                'merch-card[variant="bizpro"]',
+            ) ?? [],
+        ).filter((card) => {
+            const rect = card.getBoundingClientRect();
+            return rect.width > 2 && Math.round(rect.top) === top;
+        });
+        return cards.length ? cards : [this.card];
+    }
+
     toggleExpanded = (e) => {
         e.preventDefault();
-        this.expanded = !this.expanded;
-        this.card.requestUpdate();
+        // Per Figma, cards on the same row expand/collapse together so their
+        // whats-included zones stay visually aligned. Every row card is set to
+        // the clicked card's new state (not blindly toggled), so rows whose
+        // states diverged (e.g. resized up from single-column) converge.
+        const expanded = !this.expanded;
+        for (const card of this.#rowCards()) {
+            const layout = card.variantLayout;
+            if (!(layout instanceof BizPro)) continue;
+            layout.expanded = expanded;
+            card.requestUpdate();
+        }
     };
 
     #removeLicenseDocListener() {
@@ -269,9 +400,7 @@ export class BizPro extends VariantLayout {
         const opts = this.licenseOptions;
         const current = this.currentLicenseValue;
         const open = !!this.licenseOpen;
-        // The authored title is shown as-is for every quantity; pluralizing in
-        // code can't be done correctly across locales.
-        const label = this.licenseLabel;
+        const label = this.licenseLabel(Number(current));
         return html`
             <div class="license-select" ?data-open=${open}>
                 <button
@@ -351,11 +480,6 @@ export class BizPro extends VariantLayout {
                     </div>
                     <slot name="promo-text"></slot>
                 </div>
-                ${this.hasLegalText
-                    ? html`<div class="legal-text">
-                          <slot name="legal-text"></slot>
-                      </div>`
-                    : nothing}
                 ${this.hasLicenseSelector ||
                 this.hasCallout ||
                 this.hasQuantitySelect
@@ -526,20 +650,6 @@ export class BizPro extends VariantLayout {
         }
 
         :host([variant='bizpro']) ::slotted([slot='promo-text']) {
-            margin: 0;
-            font-family: 'Adobe Clean', adobe-clean, sans-serif;
-            font-weight: 400;
-            font-size: 14px;
-            line-height: 18px;
-            letter-spacing: 0.14px;
-            color: #000000a3;
-        }
-
-        :host([variant='bizpro']) .legal-text {
-            color: #000;
-        }
-
-        :host([variant='bizpro']) ::slotted([slot='legal-text']) {
             margin: 0;
             font-family: 'Adobe Clean', adobe-clean, sans-serif;
             font-weight: 400;

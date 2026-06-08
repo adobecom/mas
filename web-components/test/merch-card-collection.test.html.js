@@ -332,6 +332,14 @@ runTests(async () => {
             );
             expect(secondCard.getAttribute('data-size')).to.equal('wide');
         });
+        it('display two cards collection centralized', async () => {
+            await toggleDesktop();
+            [merchCards, render] = prepareTemplate('plansTwoCardsColl', false);
+            render();
+            await merchCards.checkReady();
+            const coll = document.querySelector('.merch-card-collection');
+            expect(coll.classList.contains('two-merch-cards')).to.be.true;
+        });
     });
 
     describe('merch-card-collection override feature', () => {

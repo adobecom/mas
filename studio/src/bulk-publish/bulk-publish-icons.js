@@ -150,6 +150,13 @@ export const DELETE_SVG = html`<svg width="20" height="20" viewBox="0 0 20 20" f
     </g>
 </svg>`;
 
+export const REVERT_SVG = html`<svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path
+        d="M10 3C7.17 3 4.67 4.37 3.1 6.5H5a.75.75 0 0 1 0 1.5H1.75A.75.75 0 0 1 1 7.25V4a.75.75 0 0 1 1.5 0v1.45A8.5 8.5 0 1 1 1.5 10a.75.75 0 0 1 1.5 0A7 7 0 1 0 10 3Z"
+        fill="currentColor"
+    />
+</svg>`;
+
 export const ALERT_DIAMOND_SVG = html`<svg
     width="22"
     height="22"

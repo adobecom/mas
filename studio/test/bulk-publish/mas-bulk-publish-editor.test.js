@@ -24,7 +24,7 @@ describe('mas-bulk-publish-editor', () => {
     it('renders empty state (textarea visible, PUBLISH disabled)', async () => {
         const el = await fixture(html`<mas-bulk-publish-editor></mas-bulk-publish-editor>`);
         await el.updateComplete;
-        seedInEdit(el, { title: '', urls: '', items: '[]', locales: [], status: BULK_PUBLISH_STATUS.DRAFT });
+        seedInEdit(el, { title: '', urls: '', locales: [], status: BULK_PUBLISH_STATUS.DRAFT });
         await el.updateComplete;
         const quick = el.shadowRoot.querySelector('mas-quick-actions');
         expect(quick.disabled.has(QUICK_ACTION.PUBLISH)).to.equal(true);
@@ -38,12 +38,12 @@ describe('mas-bulk-publish-editor', () => {
             {
                 title: 'x',
                 urls: '',
-                items: JSON.stringify([{ url: 'a', path: '/x', status: 'valid' }]),
                 locales: [],
                 status: BULK_PUBLISH_STATUS.DRAFT,
             },
             { id: 'existing-frag-id' },
         );
+        el.localItems = [{ url: 'a', path: '/x', status: 'valid' }];
         await el.updateComplete;
         const quick = el.shadowRoot.querySelector('mas-quick-actions');
         expect(quick.disabled.has(QUICK_ACTION.PUBLISH)).to.equal(false);
@@ -55,7 +55,6 @@ describe('mas-bulk-publish-editor', () => {
         seedInEdit(el, {
             title: 'x',
             urls: '',
-            items: '[]',
             locales: [],
             status: BULK_PUBLISH_STATUS.PUBLISHED,
             publishedAt: '2026-04-23',
@@ -82,7 +81,6 @@ describe('mas-bulk-publish-editor', () => {
             seedInEdit(el, {
                 title: 'x',
                 urls: '',
-                items: '[]',
                 locales: [],
                 status: BULK_PUBLISH_STATUS.PUBLISHED,
                 publishedAt: '2026-04-23',
@@ -100,7 +98,6 @@ describe('mas-bulk-publish-editor', () => {
             seedInEdit(el, {
                 title: 'x',
                 urls: '',
-                items: '[]',
                 locales: [],
                 status: BULK_PUBLISH_STATUS.PUBLISHED,
                 publishedAt: '2026-04-23',
@@ -120,7 +117,6 @@ describe('mas-bulk-publish-editor', () => {
                 {
                     title: 'x',
                     urls: '',
-                    items: JSON.stringify([{ url: 'a', path: '/x', status: 'valid' }]),
                     locales: [],
                     status: BULK_PUBLISH_STATUS.PUBLISHED,
                     publishedAt: '2026-04-23',
@@ -128,6 +124,7 @@ describe('mas-bulk-publish-editor', () => {
                 },
                 { id: 'existing-frag-id' },
             );
+            el.localItems = [{ url: 'a', path: '/x', status: 'valid' }];
             await el.updateComplete;
             const quick = el.shadowRoot.querySelector('mas-quick-actions');
             expect(quick.disabled.has(QUICK_ACTION.PUBLISH)).to.equal(true);
@@ -148,13 +145,13 @@ describe('mas-bulk-publish-editor', () => {
                 {
                     title: 'x',
                     urls: '',
-                    items: JSON.stringify([{ url: 'a', path: '/p1', status: 'valid' }]),
                     locales: [],
                     status: BULK_PUBLISH_STATUS.PUBLISHED,
                     snapshot: JSON.stringify(snapshot),
                 },
                 { id: 'existing-frag-id' },
             );
+            el.localItems = [{ url: 'a', path: '/p1', status: 'valid' }];
             await el.updateComplete;
 
             // Track calls to handleCheckModifications via a flag on the instance
@@ -188,7 +185,6 @@ describe('mas-bulk-publish-editor', () => {
                 {
                     title: 'x',
                     urls: '',
-                    items: '[]',
                     locales: [],
                     status: BULK_PUBLISH_STATUS.PUBLISHED,
                 },

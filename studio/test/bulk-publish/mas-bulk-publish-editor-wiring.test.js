@@ -27,7 +27,7 @@ describe('mas-bulk-publish-editor wiring', () => {
         const data = {
             status: 'Draft',
             urls: 'https://mas.adobe.com/studio.html#query=9a75e22f-9c48-418d-8da3-687e8f635282',
-            items: '[]',
+            fragments: [],
             locales: [],
             title: 'x',
         };

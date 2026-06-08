@@ -131,7 +131,7 @@ class MasBulkPublish extends LitElement {
         const data = projectStore.get();
         const surface = Store.search.get()?.path?.split('/').filter(Boolean)[0]?.toLowerCase() ?? 'sandbox';
         const title = e.detail.title;
-        const items = getProjectField(data, 'items', '[]');
+        const fragments = getProjectFieldList(data, 'fragments');
         const locales = getProjectFieldList(data, 'locales');
         this.duplicating = true;
         try {
@@ -144,7 +144,7 @@ class MasBulkPublish extends LitElement {
                     { name: 'title', type: 'text', values: [title] },
                     { name: 'status', type: 'text', values: [BULK_PUBLISH_STATUS.DRAFT] },
                     { name: 'urls', type: 'text', values: [''] },
-                    { name: 'items', type: 'text', values: [items] },
+                    { name: 'fragments', type: 'content-fragment', multiple: true, values: fragments },
                     { name: 'locales', type: 'text', multiple: true, values: locales },
                 ],
             };
@@ -159,26 +159,6 @@ class MasBulkPublish extends LitElement {
         } finally {
             this.duplicating = false;
         }
-    }
-
-    parseItems(rawItems) {
-        if (!rawItems) return [];
-        try {
-            return JSON.parse(rawItems);
-        } catch {
-            return [];
-        }
-    }
-
-    countByType(items) {
-        const counts = { fragment: 0, collection: 0, placeholder: 0 };
-        for (const item of items) {
-            if (!item || item.status !== 'valid') continue;
-            const type = item.type ?? 'fragment';
-            const bucket = counts[type] !== undefined ? type : 'fragment';
-            counts[bucket] += 1;
-        }
-        return counts;
     }
 
     formatDate(value) {
@@ -258,7 +238,7 @@ class MasBulkPublish extends LitElement {
 
     renderRow(projectStore) {
         const data = projectStore.get();
-        const counts = this.countByType(this.parseItems(getProjectField(data, 'items')));
+        const counts = { fragment: getProjectFieldList(data, 'fragments').length, collection: 0, placeholder: 0 };
         const title = getProjectField(data, 'title', '');
         const status = getProjectField(data, 'status', BULK_PUBLISH_STATUS.DRAFT);
         const createdBy = data.created?.fullName ?? data.created?.by ?? '—';

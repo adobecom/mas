@@ -30,8 +30,6 @@
         <script type="module" src="./mas-sidenav.js"></script>
         <script type="module">
             import { init } from './common.js';
-            // Initialize commerce service and mas.js (which includes merch-card-collection)
-            // mas-mnemonic will be loaded dynamically when needed
             init();
         </script>
         <script
@@ -95,6 +93,12 @@
                             href="?locale=fr_FR"
                             >fr_FR</a
                         >
+                        OR
+                        <a
+                            class="spectrum-Link spectrum-Link--secondary"
+                            href="?locale=en_AU"
+                            >en_AU</a
+                        >
                     </div>
                     <div>
                         Switch country/language:
@@ -108,6 +112,12 @@
                             class="spectrum-Link spectrum-Link--secondary"
                             href="?country=FR&language=fr"
                             >Country: FR, language: fr</a
+                        >
+                        OR
+                        <a
+                            class="spectrum-Link spectrum-Link--secondary"
+                            href="?country=AU&language=en"
+                            >Country: AU, language: en</a
                         >
                     </div>
                     <div class="express-container">

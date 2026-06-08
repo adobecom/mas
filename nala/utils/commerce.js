@@ -20,7 +20,14 @@ const PRICE_PATTERN = {
         // TODO: narrow to /mes once MWPW-197541 is fixed
         mo_es: /Ar\$\s[\d.,]+\/(mo|mes)/,
     },
-    AU: { mo: /A\$\d+\.\d\d\/mo/ },
+    AU: {
+        mo: /A\$\d+\.\d\d\/mo/,
+        yr: /A\$[\d,]+\.\d\d\/yr/,
+    },
+    FR_AU: {
+        mois: /A\$\d+\.\d\d\/mois/,
+        an: /A\$[\d,]+\.\d\d\/an/,
+    },
     CA: { mo: /CAD\s\$\d+\.\d\d\/mo/ },
     EG: { mo: /LE\s+\d+\.\d\d\/.+/ },
     FR: { mo: /\d+,\d\d\s€\/mois/ },
@@ -38,6 +45,7 @@ const DOCS_GALLERY_PATH = {
         US: '/web-components/docs/ccd-mini.html',
         FR: '/web-components/docs/ccd-mini.html?locale=fr_FR',
         AU: '/web-components/docs/ccd-mini.html?locale=en_AU',
+        FR_AU: '/web-components/docs/ccd-mini.html?locale=fr_FR&country=AU',
     },
     ADOBE_HOME: { US: '/web-components/docs/adobe-home.html' },
     PLANS: {
@@ -62,7 +70,12 @@ const DOCS_GALLERY_PATH = {
     FRIES: '/web-components/docs/fries.html',
     CHECKOUT_LINK: '/web-components/docs/checkout-link.html',
     MERCH_CARD: '/web-components/docs/merch-card.html',
-    EXPRESS: '/web-components/docs/express.html',
+    EXPRESS: {
+        US: '/web-components/docs/express.html',
+        FR: '/web-components/docs/express.html?locale=fr_FR',
+        AU: '/web-components/docs/express.html?locale=en_AU',
+        FR_AU: '/web-components/docs/express.html?locale=fr_FR&country=AU',
+    },
 };
 
 async function setupMasConsoleListener(consoleErrors) {

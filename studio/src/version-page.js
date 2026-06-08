@@ -835,8 +835,11 @@ class VersionPage extends LitElement {
             let settings = cachedFragment?.settings || fragmentData.settings || {};
             const priceLiterals = cachedFragment?.priceLiterals || fragmentData.priceLiterals || {};
 
-            // Fallback: if no cached settings and variant is 'plans', apply known settings
-            if (!cachedFragment?.settings && normalizedFields.variant?.startsWith('plans')) {
+            // Fallback: if no cached settings and variant is a plans* (or bizpro) variant, apply known settings
+            if (
+                !cachedFragment?.settings &&
+                (normalizedFields.variant?.startsWith('plans') || normalizedFields.variant === 'bizpro')
+            ) {
                 settings = { ...settings };
                 if (normalizedFields.showSecureLabel !== false) {
                     settings.secureLabel = '{{secure-label}}';

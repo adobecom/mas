@@ -5,10 +5,12 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import { throttleOdinGap } from './eds-throttle.js';
+import { throttleOdinGap, isOdinHost } from './eds-throttle.js';
 
 const DEFAULT_TRACKED_URLS = {
     ODIN_AEM: 'https://author-p22655-e59433.adobeaemcloud.com',
+    ODIN_PREVIEW: 'https://odinpreview.corp.adobe.com',
+    ODIN_PUBLISHED: 'https://odin.adobe.com',
     // Future: Add more services
     // WCS: 'https://www.adobe.com/web_commerce_artifact',
     // MAS_IO: 'https://mas.adobe.com/io',
@@ -80,7 +82,7 @@ class GlobalRequestCounter {
                 console.info(`[NALA] ODIN throttle active: ~${odinMaxRps} rps/worker. Set NALA_ODIN_MAX_RPS to override.\n`);
             }
             await page.route(
-                (url) => url.includes('adobeaemcloud.com'),
+                (url) => isOdinHost(url),
                 async (route) => {
                     await throttleOdinGap(odinMaxRps);
                     await route.continue();

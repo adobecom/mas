@@ -44,7 +44,20 @@ export function isEdsEdgeHost(url) {
     }
 }
 
-/** Separate throttle chain for ODIN (AEM author) — independent of EDS chain. */
+export function isOdinHost(url) {
+    try {
+        const { hostname } = new URL(url);
+        return (
+            hostname.endsWith('adobeaemcloud.com') ||
+            hostname === 'odinpreview.corp.adobe.com' ||
+            hostname === 'odin.adobe.com'
+        );
+    } catch {
+        return false;
+    }
+}
+
+/** Separate throttle chain for ODIN (AEM author + preview) — independent of EDS chain. */
 export function throttleOdinGap(maxRps) {
     const minGapMs = 1000 / maxRps;
     if (!globalThis.odinThrottleChain) {

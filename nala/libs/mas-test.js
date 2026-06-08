@@ -1,5 +1,6 @@
 import { test as base } from '@playwright/test';
 import GlobalRequestCounter from './global-request-counter.js';
+import { isOdinHost } from './eds-throttle.js';
 import { setCurrentTestName } from '../utils/fragment-tracker.js';
 import StudioPage from '../studio/studio.page.js';
 import EditorPage from '../studio/editor.page.js';
@@ -87,7 +88,7 @@ const masTest = base.extend({
 
         // Log ODIN 429s so we know if rate limiting is happening
         page.on('response', (response) => {
-            if (response.url().includes('adobeaemcloud.com') && response.status() === 429) {
+            if (isOdinHost(response.url()) && response.status() === 429) {
                 console.warn(`[NALA] ODIN 429 Too Many Requests: ${response.url()}`);
             }
         });

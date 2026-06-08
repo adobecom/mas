@@ -6,6 +6,15 @@ import { setItemsSelectionStore } from '../../src/common/items-selection-store.j
 import { BULK_PUBLISH_STATUS, PAGE_NAMES, QUICK_ACTION } from '../../src/constants.js';
 import '../../src/bulk-publish/mas-bulk-publish-editor.js';
 
+if (!customElements.get('aem-fragment')) {
+    customElements.define(
+        'aem-fragment',
+        class extends HTMLElement {
+            cache = { get: () => undefined, add: () => {}, remove: () => {} };
+        },
+    );
+}
+
 function seedNew(data = {}) {
     const fields = { status: BULK_PUBLISH_STATUS.DRAFT, urls: '', locales: [], title: '', fragments: [], ...data };
     Store.bulkPublishProjects.inEdit.set({
@@ -1073,5 +1082,96 @@ describe('mas-bulk-publish-editor (publish)', () => {
         const [url] = fetchStub.firstCall.args;
         expect(url).to.include('/bulk-publish');
         delete window.adobeIMS;
+    });
+});
+
+describe('mas-bulk-publish-editor (#loadItemDetails)', () => {
+    let repositoryEl;
+    let sandbox;
+
+    function makeRawProject(overrides = {}) {
+        const base = {
+            title: 'Test Project',
+            status: 'Draft',
+            urls: '',
+            locales: [],
+            lastError: '',
+            snapshots: [],
+            fragments: [],
+            ...overrides,
+        };
+        return {
+            id: 'proj-id-1',
+            path: '/content/dam/mas/bulk-publish/sandbox/proj1',
+            status: 'DRAFT',
+            fields: Object.entries(base).map(([name, val]) => ({
+                name,
+                values: Array.isArray(val) ? val : val == null ? [] : [val],
+            })),
+        };
+    }
+
+    beforeEach(() => {
+        sandbox = sinon.createSandbox();
+        repositoryEl = document.createElement('mas-repository');
+        repositoryEl.setAttribute('bucket', 'test-bucket');
+        document.body.appendChild(repositoryEl);
+        Store.search.set({ path: 'sandbox' });
+        Store.bulkPublishProjects.projectId.set('proj-id-1');
+    });
+
+    afterEach(() => {
+        Store.bulkPublishProjects.inEdit.set(null);
+        Store.bulkPublishProjects.projectId.set(null);
+        Store.search.set({});
+        repositoryEl.remove();
+        sandbox.restore();
+    });
+
+    it('populates localItems from fragments field on load', async () => {
+        const rawProject = makeRawProject({ fragments: ['/content/dam/mas/en_US/frag1'] });
+        repositoryEl.getFragmentById = sandbox.stub().resolves(rawProject);
+        const rawFrag = { id: 'frag-1', path: '/content/dam/mas/en_US/frag1', fields: [], status: 'DRAFT' };
+        repositoryEl.aem = {
+            sites: { cf: { fragments: { getByPath: sandbox.stub().resolves(rawFrag) } } },
+        };
+
+        const el = await fixture(html`<mas-bulk-publish-editor></mas-bulk-publish-editor>`);
+        await el.updateComplete;
+        await new Promise((r) => setTimeout(r, 100));
+
+        expect(el.localItems).to.be.an('array').with.lengthOf(1);
+        expect(el.localItems[0].path).to.equal('/content/dam/mas/en_US/frag1');
+        expect(el.localItems[0].status).to.equal('valid');
+    });
+
+    it('skips load when fragments field is empty', async () => {
+        const rawProject = makeRawProject({ fragments: [] });
+        repositoryEl.getFragmentById = sandbox.stub().resolves(rawProject);
+        const getByPath = sandbox.stub();
+        repositoryEl.aem = { sites: { cf: { fragments: { getByPath } } } };
+
+        const el = await fixture(html`<mas-bulk-publish-editor></mas-bulk-publish-editor>`);
+        await el.updateComplete;
+        await new Promise((r) => setTimeout(r, 50));
+
+        expect(getByPath.called).to.equal(false);
+        expect(el.localItems).to.equal(null);
+    });
+
+    it('falls back gracefully when getByPath throws', async () => {
+        const rawProject = makeRawProject({ fragments: ['/content/dam/mas/en_US/missing'] });
+        repositoryEl.getFragmentById = sandbox.stub().resolves(rawProject);
+        repositoryEl.aem = {
+            sites: { cf: { fragments: { getByPath: sandbox.stub().rejects(new Error('not found')) } } },
+        };
+
+        const el = await fixture(html`<mas-bulk-publish-editor></mas-bulk-publish-editor>`);
+        await el.updateComplete;
+        await new Promise((r) => setTimeout(r, 100));
+
+        expect(el.localItems).to.be.an('array').with.lengthOf(1);
+        expect(el.localItems[0].status).to.equal('valid');
+        expect(el.localItems[0].path).to.equal('/content/dam/mas/en_US/missing');
     });
 });

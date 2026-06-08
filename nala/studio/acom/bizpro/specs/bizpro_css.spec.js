@@ -6,9 +6,9 @@ export default {
             name: '@studio-bizpro-css',
             path: '/studio.html',
             data: {
-                cardid: '3004a00c-bec2-4944-90f0-914e0319b826',
+                cardid: '4f048713-13f8-410b-94a9-c0e03d09fc34',
             },
-            browserParams: '#page=content&path=sandbox&query=',
+            browserParams: '#page=content&path=nala&query=',
             tags: '@mas-studio @acom @acom-css @acom-bizpro @acom-bizpro-css',
         },
     ],

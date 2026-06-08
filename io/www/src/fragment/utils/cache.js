@@ -1,6 +1,10 @@
 import { getJsonFromState, mark, measureTiming } from './common.js';
+import { geoCacheKey } from '../locales.js';
 import { log } from './log.js';
-const getRequestMetadataKey = (context) => `req-${context.id}-${context.locale}`;
+const getRequestMetadataKey = ({ id, locale, country, pzn }) => {
+    const geo = geoCacheKey(locale, country);
+    return `req-${id}-${geo.locale}${geo.country ? `-${geo.country}` : ''}${pzn ? `-${pzn}` : ''}`;
+};
 
 async function getRequestMetadata(context) {
     const requestKey = getRequestMetadataKey(context);

@@ -34,7 +34,7 @@ export const features = [
         data: {
             id: '87088898-81df-4fb0-9b51-0d7ff8938467',
             variant: 'segment',
-            calloutPriceText: 'Regularly at US$34.49/moper licenseexcl. tax Alternatively at US$17.24/moper licenseexcl. tax',
+            calloutPriceText: 'Regularly at US$34.49/mo Alternatively at US$17.24/moper licenseexcl. tax',
         },
         tags: '@mas-docs @mas-segment @commerce @smoke @regression @milo',
     },    

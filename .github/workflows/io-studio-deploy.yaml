@@ -9,14 +9,18 @@ on:
             batch_size:
                 type: number
                 required: false
-                default: 10
+                default: 5
             rps_limit:
                 type: number
                 required: false
-                default: 10
+                default: 5
                 # NOTE: batch_size must not exceed rps_limit — each batch fires all requests
                 # simultaneously, so a batch larger than the RPS limit would burst past the
                 # limit before throttling applies.
+            worker_concurrency:
+                type: number
+                required: false
+                default: 2
         secrets:
             ENV:
                 required: true
@@ -83,4 +87,5 @@ jobs:
                   ODIN_ENDPOINT: 'https://author-p22655-${{ secrets.ODIN_BUCKET }}.adobeaemcloud.com'
                   BATCH_SIZE: ${{ inputs.batch_size }}
                   RPS_LIMIT: ${{ inputs.rps_limit }}
+                  WORKER_CONCURRENCY: ${{ inputs.worker_concurrency }}
               run: npx aio app deploy -v

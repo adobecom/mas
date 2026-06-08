@@ -244,6 +244,10 @@ class MasBulkPublishEditor extends LitElement {
         return this.status === BULK_PUBLISH_STATUS.PUBLISHING;
     }
 
+    get canStartPublishing() {
+        return !this.hasChanges;
+    }
+
     get isReadonly() {
         return this.isLocked || this.isPublished || this.isPublishing;
     }
@@ -696,10 +700,8 @@ class MasBulkPublishEditor extends LitElement {
     }
 
     async publish() {
-        if (this.hasChanges) {
-            await this.saveBulkProject();
-            if (this.hasChanges) return;
-        }
+        if (this.hasChanges) await this.saveBulkProject();
+        if (!this.canStartPublishing) return;
         try {
             await this.#withPendingAction(QUICK_ACTION.PUBLISH, async () => {
                 const { startPublishing } = await import('./bulk-publish-store.js');

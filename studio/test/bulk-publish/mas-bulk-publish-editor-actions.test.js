@@ -164,6 +164,22 @@ describe('mas-bulk-publish-editor (computed getters)', () => {
         expect(el.publishBlockedReason).to.equal('');
     });
 
+    it('canStartPublishing is false while the project still has unsaved changes', async () => {
+        const el = await makeEditor();
+        Store.bulkPublishProjects.inEdit.set(makeFragmentStore({ items: JSON.stringify([{ status: 'valid' }]) }));
+        await el.updateComplete;
+        el.hasChanges = true;
+        expect(el.canStartPublishing).to.equal(false);
+    });
+
+    it('canStartPublishing is true once the project is saved', async () => {
+        const el = await makeEditor();
+        Store.bulkPublishProjects.inEdit.set(makeFragmentStore({ items: JSON.stringify([{ status: 'valid' }]) }));
+        await el.updateComplete;
+        el.hasChanges = false;
+        expect(el.canStartPublishing).to.equal(true);
+    });
+
     it('disabledActions disables PUBLISH when all valid items are alreadyPublished', async () => {
         const el = await makeEditor();
         Store.bulkPublishProjects.inEdit.set(

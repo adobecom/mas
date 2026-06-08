@@ -104,14 +104,6 @@ function ensureCompatVersionOnMerchCardFieldList(modelPath, fields) {
     return false;
 }
 
-let repository;
-
-export function getRepository() {
-    if (repository) return repository;
-    repository = document.querySelector('mas-repository');
-    return repository;
-}
-
 export class MasRepository extends LitElement {
     static properties = {
         bucket: { type: String },

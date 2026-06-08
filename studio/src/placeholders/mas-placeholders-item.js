@@ -122,15 +122,13 @@ class MasPlaceholdersItem extends LitElement {
         this.toggleDropdown(this.placeholder.key, event);
         showToast('Publishing placeholder...');
         const success = await publishPlaceholder(this.placeholder);
-        if (!success) {
-            showToast('Failed to publish placeholder', { variant: 'error' });
-            return;
+        if (success) {
+            const updatedPlaceholder = {
+                ...this.placeholder,
+                status: STATUS_PUBLISHED,
+            };
+            this.placeholderStore.refreshFrom(updatedPlaceholder);
         }
-        const updatedPlaceholder = {
-            ...this.placeholder,
-            status: STATUS_PUBLISHED,
-        };
-        this.placeholderStore.refreshFrom(updatedPlaceholder);
     }
 
     preventSelection(event) {

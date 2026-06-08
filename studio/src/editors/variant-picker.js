@@ -131,6 +131,7 @@ const ACOM_DC_TEMPLATES = new Set([
     VARIANT_NAMES.SEGMENT,
     VARIANT_NAMES.MINI_COMPARE_CHART,
     VARIANT_NAMES.IMAGE,
+    VARIANT_NAMES.BIZPRO,
 ]);
 
 /** Flat tree-picker-compatible list of allowed variants, optionally filtered by surface. */

@@ -201,11 +201,12 @@ async function getTranslationData(authToken, projectCF, surface, translationFlow
         itemsToSync,
         locales,
         surface,
-        translationFlow: translationFlow
-            ? {
-                  [translationFlow]: true,
-              }
-            : {},
+        translationFlow:
+            translationFlow && translationFlow !== 'humanTranslation'
+                ? {
+                      [translationFlow]: true,
+                  }
+                : {},
     };
 }
 

@@ -5,6 +5,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+import { throttleOdinGap } from './eds-throttle.js';
 
 const DEFAULT_TRACKED_URLS = {
     ODIN_AEM: 'https://author-p22655-e59433.adobeaemcloud.com',
@@ -63,6 +64,29 @@ class GlobalRequestCounter {
                 }
             }
         });
+
+        // ODIN throttle — separate chain from EDS so page loads are not slowed down.
+        // ODIN rate-limits per User-Agent; with multiple workers sharing one UA this cap
+        // prevents 429s / silent timeouts from ODIN under concurrent load.
+        const odinMaxRps = (() => {
+            if (process.env.NALA_EDS_THROTTLE_DISABLED === '1') return 0;
+            const v = Number.parseInt(process.env.NALA_ODIN_MAX_RPS ?? '20', 10);
+            return Number.isFinite(v) && v > 0 ? v : 20;
+        })();
+
+        if (odinMaxRps > 0) {
+            if (!globalThis.odinThrottleLogged) {
+                globalThis.odinThrottleLogged = true;
+                console.info(`[NALA] ODIN throttle active: ~${odinMaxRps} rps/worker. Set NALA_ODIN_MAX_RPS to override.\n`);
+            }
+            await page.route(
+                (url) => url.includes('adobeaemcloud.com'),
+                async (route) => {
+                    await throttleOdinGap(odinMaxRps);
+                    await route.continue();
+                },
+            );
+        }
     }
 
     /**

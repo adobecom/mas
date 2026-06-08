@@ -44,6 +44,27 @@ export function isEdsEdgeHost(url) {
     }
 }
 
+/** Separate throttle chain for ODIN (AEM author) — independent of EDS chain. */
+export function throttleOdinGap(maxRps) {
+    const minGapMs = 1000 / maxRps;
+    if (!globalThis.odinThrottleChain) {
+        globalThis.odinThrottleChain = Promise.resolve();
+    }
+
+    const next = globalThis.odinThrottleChain.then(async () => {
+        const last = globalThis.odinThrottleLastContinueAt ?? 0;
+        const now = Date.now();
+        const wait = Math.max(0, minGapMs - (now - last));
+        if (wait > 0) {
+            await new Promise((r) => setTimeout(r, wait));
+        }
+        globalThis.odinThrottleLastContinueAt = Date.now();
+    });
+
+    globalThis.odinThrottleChain = next.catch(() => {});
+    return next;
+}
+
 export function throttleEdsGap(maxRps) {
     const minGapMs = 1000 / maxRps;
     if (!globalThis.edsThrottleChain) {

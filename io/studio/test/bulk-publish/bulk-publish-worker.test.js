@@ -88,4 +88,56 @@ describe('bulk-publish-worker — runWorker', () => {
         expect(firstUpdate.status).to.equal('Publishing');
         expect(firstUpdate.snapshots[0]).to.include('publishComplete');
     });
+
+    it('reuses a pending snapshot on re-run instead of taking a new one', async () => {
+        deps.getProjectSnapshots.returns(['{"fragmentId":"f1","publishComplete":false}']);
+        deps.publishResolved.resolves([{ path: '/content/dam/mas/acom/en_US/a', status: 'published' }]);
+        deps.getProjectLocales.returns([]);
+
+        await worker.runWorker({ projectId: 'proj-1', odinEndpoint: 'https://odin', authToken: 't', publishedBy: '' }, deps);
+
+        expect(deps.createSnapshot).to.not.have.been.called;
+        const firstUpdate = deps.updateProjectFragment.getCall(0).args[3];
+        expect(firstUpdate.status).to.equal('Publishing');
+        expect(firstUpdate).to.not.have.property('snapshots');
+        const finalSnapshots = deps.updateProjectFragment.lastCall.args[3].snapshots;
+        expect(finalSnapshots[0]).to.not.include('publishComplete');
+    });
+
+    it('ignores a fully-complete existing snapshot and takes a fresh one', async () => {
+        deps.getProjectSnapshots.returns(['{"fragmentId":"f1"}']);
+        deps.publishResolved.resolves([{ path: '/content/dam/mas/acom/en_US/a', status: 'published' }]);
+        deps.getProjectLocales.returns([]);
+
+        await worker.runWorker({ projectId: 'proj-1', odinEndpoint: 'https://odin', authToken: 't', publishedBy: '' }, deps);
+
+        expect(deps.createSnapshot).to.have.been.calledOnce;
+    });
+
+    it('treats a malformed snapshot entry as not-pending and takes a fresh snapshot', async () => {
+        deps.getProjectSnapshots.returns(['not-json']);
+        deps.publishResolved.resolves([{ path: '/content/dam/mas/acom/en_US/a', status: 'published' }]);
+        deps.getProjectLocales.returns([]);
+
+        await worker.runWorker({ projectId: 'proj-1', odinEndpoint: 'https://odin', authToken: 't', publishedBy: '' }, deps);
+
+        expect(deps.createSnapshot).to.have.been.calledOnce;
+    });
+});
+
+describe('bulk-publish-worker — main', () => {
+    const { main } = require('../../src/bulk-publish/bulk-publish-worker.js');
+
+    it('returns a 500 envelope with the error message when the worker throws', async () => {
+        const res = await main({ projectId: 'proj-1', odinEndpoint: 'https://odin.invalid', authToken: 't' });
+        expect(res.statusCode).to.equal(500);
+        expect(res.body).to.have.property('error');
+        expect(res.body.error).to.be.a('string');
+    });
+
+    it('maps aemOdinEndpoint over odinEndpoint without throwing on param access', async () => {
+        const res = await main({ projectId: 'proj-1', aemOdinEndpoint: 'https://odin.invalid', authToken: 't' });
+        expect(res.statusCode).to.equal(500);
+        expect(res.body.error).to.be.a('string');
+    });
 });

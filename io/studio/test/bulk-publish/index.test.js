@@ -66,4 +66,11 @@ describe('bulk-publish/index.js — dispatcher', () => {
         expect(res.statusCode).to.equal(401);
         expect(invokeAsyncActionStub).to.not.have.been.called;
     });
+
+    it('returns 500 when invoking the worker rejects', async () => {
+        invokeAsyncActionStub.rejects(new Error('Request defines parameters that are not allowed'));
+        const res = await action.main(valid);
+        expect(res.statusCode).to.equal(500);
+        expect(res.body.error).to.equal('Internal server error');
+    });
 });

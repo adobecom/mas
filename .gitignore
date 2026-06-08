@@ -31,6 +31,7 @@ nala/.auth/
 !.claude/commands/
 !.claude/commands/**
 .logs/
+.scout
 .specify/
 .worktrees/
 .pids

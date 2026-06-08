@@ -491,4 +491,14 @@ export const styles = css`
         outline: 2px solid var(--spectrum-accent-content-color-key-focus, #2f55e0);
         outline-offset: 2px;
     }
+
+    .form-container {
+        h2 {
+            padding-top: 20px;
+        }
+    }
+
+    .form-row {
+        margin: 20px 0;
+    }
 `;

@@ -87,7 +87,7 @@ class MasBulkPublishSuccessBanner extends LitElement {
         if (changed.has('error') || changed.has('result')) {
             if (this.variant === 'publishing') return;
             if (this.error) this.variant = 'error';
-            else if (this.result && (this.result.failed > 0 || this.result.rolloutPending > 0)) this.variant = 'partial';
+            else if (this.result && this.result.failed > 0) this.variant = 'partial';
             else this.variant = 'success';
         }
     }
@@ -110,15 +110,13 @@ class MasBulkPublishSuccessBanner extends LitElement {
     }
 
     renderPartial() {
-        const { published, rolledOut, failed, failures = [], failuresTruncated } = this.result;
+        const { published, failed, failures = [], failuresTruncated } = this.result;
         return html`
             <div class="header">
                 <sp-icon-alert></sp-icon-alert>
                 <p class="title">Project partially published</p>
             </div>
-            <p class="body">
-                ${published} published${rolledOut ? html` (${rolledOut} newly rolled out)` : nothing}, ${failed} failed.
-            </p>
+            <p class="body">${published} published, ${failed} failed.</p>
             <ul class="failure-list">
                 ${failures.map((f) => html`<li>${f.path} — ${f.reason}</li>`)}
             </ul>

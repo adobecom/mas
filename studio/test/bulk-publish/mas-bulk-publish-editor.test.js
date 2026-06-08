@@ -137,7 +137,7 @@ describe('mas-bulk-publish-editor', () => {
     it('passes parsed lastResult to the banner for PARTIALLY_PUBLISHED', async () => {
         const el = await fixture(html`<mas-bulk-publish-editor></mas-bulk-publish-editor>`);
         await el.updateComplete;
-        const result = { published: 3, rolledOut: 1, failed: 2, rolloutPending: 0, failures: [], failuresTruncated: false };
+        const result = { published: 3, failed: 2, failures: [], failuresTruncated: false };
         seedInEdit(el, {
             status: BULK_PUBLISH_STATUS.PARTIALLY_PUBLISHED,
             lastResult: JSON.stringify(result),

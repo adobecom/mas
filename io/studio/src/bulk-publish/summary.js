@@ -1,15 +1,12 @@
 const FAILURES_CAP = 100;
 
-function buildResult({ details, rolledOut = [], pending = [], startedAt, finishedAt }) {
-    const pendingEntries = pending.map((path) => ({ path, status: 'failed', reason: 'rollout-pending' }));
-    const allDetails = [...details, ...pendingEntries];
-
+function buildResult({ details, startedAt, finishedAt }) {
     const reasons = {};
     const failures = [];
     let published = 0;
     let failed = 0;
 
-    for (const detail of allDetails) {
+    for (const detail of details) {
         if (detail.status === 'published') {
             published += 1;
         } else if (detail.status === 'failed') {
@@ -21,11 +18,9 @@ function buildResult({ details, rolledOut = [], pending = [], startedAt, finishe
     }
 
     return {
-        total: allDetails.length,
+        total: details.length,
         published,
-        rolledOut: rolledOut.length,
         failed,
-        rolloutPending: pending.length,
         startedAt,
         finishedAt,
         reasons,

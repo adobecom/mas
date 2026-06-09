@@ -21,6 +21,35 @@ export function renderFragmentStatusCell(status) {
     </sp-table-cell>`;
 }
 
+const PROMOTION_STATUS_LABEL = {
+    draft: 'DRAFT',
+    active: 'ACTIVE',
+    scheduled: 'SCHEDULED',
+    expired: 'EXPIRED',
+    modified: 'MODIFIED',
+    unknown: 'UNKNOWN',
+};
+
+/**
+ * Status cell for promotion list (draft / active / scheduled / expired / unknown).
+ * @param {string} [promotionStatus]
+ * @returns {import('lit').TemplateResult|typeof nothing}
+ */
+export function renderPromotionStatusCell(promotionStatus) {
+    if (!promotionStatus) return nothing;
+    const key = promotionStatus.toLowerCase();
+    let statusClass = '';
+    if (key === 'active') statusClass = 'green';
+    else if (key === 'draft') statusClass = 'blue';
+    else if (key === 'scheduled') statusClass = 'yellow';
+    else if (key === 'modified') statusClass = 'yellow';
+    const label = PROMOTION_STATUS_LABEL[key] ?? key.toUpperCase();
+    return html`<sp-table-cell class="status-cell">
+        <div class="status-dot ${statusClass}"></div>
+        ${label}
+    </sp-table-cell>`;
+}
+
 /**
  * Returns a human-readable item type label.
  * @param {Object} item
@@ -29,10 +58,27 @@ export function renderFragmentStatusCell(status) {
 export function getItemTypeLabel(item) {
     if (!item) return 'Unknown';
     if (Fragment.isGroupedVariationPath(item.path)) return 'Grouped variation';
-    if (item.model?.path?.includes('/dictionary/')) return 'Placeholder';
+    if (item.model?.path?.includes('/dictionnary')) return 'Placeholder';
     if (item.model?.path === COLLECTION_MODEL_PATH) return 'Collection';
     if (item.model?.path === CARD_MODEL_PATH) return 'Default';
     return 'Unknown';
+}
+
+/**
+ * Detects clicks that originated on an interactive control inside a selectable
+ * `sp-table-row` (checkbox, expand chevron, copy/action button). Used to avoid
+ * toggling row selection when the user is interacting with such controls.
+ * @param {Event} event
+ * @returns {boolean}
+ */
+export function shouldIgnoreRowClickForSelection(event) {
+    return event.composedPath().some((node) => {
+        if (!(node instanceof Element)) return false;
+        if (node.tagName === 'SP-CHECKBOX') return true;
+        if (node.classList?.contains('expand-button')) return true;
+        if (node.tagName === 'SP-ACTION-BUTTON') return true;
+        return false;
+    });
 }
 
 /**

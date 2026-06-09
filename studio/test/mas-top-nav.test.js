@@ -100,6 +100,7 @@ describe('MasTopNav', () => {
     describe('breadcrumbs', () => {
         it('should render fragment editor breadcrumbs and navigate to content from first crumb', async () => {
             Store.page.value = PAGE_NAMES.FRAGMENT_EDITOR;
+            Store.promotions.promotionId.value = null;
             const navigateStub = sandbox.stub(router, 'navigateToPage').returns(() => {});
             const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
             const items = [...el.querySelectorAll('.nav-breadcrumbs sp-breadcrumb-item')].map((item) =>
@@ -109,6 +110,19 @@ describe('MasTopNav', () => {
             expect(items).to.deep.equal(['Fragments', 'Editor']);
             el.querySelector('.nav-breadcrumbs sp-breadcrumb-item').click();
             expect(navigateStub.calledWith(PAGE_NAMES.CONTENT)).to.be.true;
+        });
+
+        it('should render promotion breadcrumbs on fragment editor when promotionId is set', async () => {
+            Store.page.value = PAGE_NAMES.FRAGMENT_EDITOR;
+            Store.promotions.promotionId.value = 'promo-1';
+            const navigateStub = sandbox.stub(router, 'navigateToPage').returns(() => {});
+            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
+            const breadcrumbs = [...el.querySelectorAll('.nav-breadcrumbs sp-breadcrumb-item')];
+            const items = breadcrumbs.map((item) => item.textContent.trim());
+
+            expect(items).to.deep.equal(['Promotions', 'Edit promotion project', 'Edit promotion variation']);
+            breadcrumbs[1].click();
+            expect(navigateStub.calledWith(PAGE_NAMES.PROMOTIONS_EDITOR)).to.be.true;
         });
 
         it('should render version breadcrumbs and navigate to editor from second crumb', async () => {
@@ -173,7 +187,7 @@ describe('MasTopNav', () => {
             const items = [...el.querySelectorAll('.nav-breadcrumbs sp-breadcrumb-item')].map((item) =>
                 item.textContent.trim(),
             );
-            expect(items).to.deep.equal(['Promotions', 'Edit project']);
+            expect(items).to.deep.equal(['Promotions', 'Edit promotion project']);
         });
 
         it('should render promotions editor breadcrumbs and label for create flow', async () => {
@@ -183,7 +197,7 @@ describe('MasTopNav', () => {
             const items = [...el.querySelectorAll('.nav-breadcrumbs sp-breadcrumb-item')].map((item) =>
                 item.textContent.trim(),
             );
-            expect(items).to.deep.equal(['Promotions', 'Create new project']);
+            expect(items).to.deep.equal(['Promotions', 'Create new promotion project']);
         });
 
         it('should navigate to promotions page when promotions breadcrumb is clicked', async () => {
@@ -335,6 +349,24 @@ describe('MasTopNav', () => {
 
         it('should disable folder picker on bulk publish editor page', async () => {
             Store.page.value = PAGE_NAMES.BULK_PUBLISH_EDITOR;
+            const el = await fixture(html`<mas-top-nav show-pickers></mas-top-nav>`);
+            await el.updateComplete;
+            const folderPicker = el.querySelector('mas-nav-folder-picker');
+            expect(folderPicker).to.exist;
+            expect(folderPicker.hasAttribute('disabled')).to.be.true;
+        });
+
+        it('should disable folder picker on promotions list page', async () => {
+            Store.page.value = PAGE_NAMES.PROMOTIONS;
+            const el = await fixture(html`<mas-top-nav show-pickers></mas-top-nav>`);
+            await el.updateComplete;
+            const folderPicker = el.querySelector('mas-nav-folder-picker');
+            expect(folderPicker).to.exist;
+            expect(folderPicker.hasAttribute('disabled')).to.be.true;
+        });
+
+        it('should disable folder picker on promotions editor page', async () => {
+            Store.page.value = PAGE_NAMES.PROMOTIONS_EDITOR;
             const el = await fixture(html`<mas-top-nav show-pickers></mas-top-nav>`);
             await el.updateComplete;
             const folderPicker = el.querySelector('mas-nav-folder-picker');
@@ -564,7 +596,7 @@ describe('MasTopNav', () => {
 
             await el.onLocaleChanged({ detail: { locale: 'tr_TR', fragmentId: null } });
 
-            expect(navigateSpy.calledWith('test-id')).to.be.true;
+            expect(navigateSpy.called).to.be.false;
             expect(Store.search.value.region).to.equal('tr_TR');
         });
     });

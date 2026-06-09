@@ -193,6 +193,8 @@ export const VARIATION_TYPES = {
 
 export const PZN_FOLDER = 'pzn';
 
+export const PROMOTIONS_PATH_PREFIX = 'promotions/';
+
 /** CQ tag path for the country root under pzn (exception: not “personalization-only” for filters). */
 export const PZN_COUNTRY_TAG_PATH_PREFIX = '/content/cq:tags/mas/pzn/country';
 
@@ -248,6 +250,8 @@ export const QUICK_ACTION = {
     LOC: 'loc',
     VALIDATE: 'validate',
     LINK: 'link',
+    REVERT: 'revert',
+    CHECK_MODIFICATIONS: 'check-modifications',
 };
 
 export const FILTER_TYPE = {
@@ -255,6 +259,10 @@ export const FILTER_TYPE = {
     MARKET_SEGMENT: 'marketSegment',
     CUSTOMER_SEGMENT: 'customerSegment',
     PRODUCT: 'product',
+    OFFER_TYPE: 'offerType',
+    PLAN_TYPE: 'planType',
+    PZN: 'pzn',
+    TAG: 'tag',
 };
 
 export const FRAGMENT_STATUS = {
@@ -269,7 +277,6 @@ export const TABLE_TYPE = {
     PLACEHOLDERS: 'placeholders',
 };
 
-export const TRANSLATIONS_ALLOWED_SURFACES = ['acom', 'acom-cc', 'acom-dc', 'express', 'sandbox', 'nala'];
 export const PLACEHOLDER_CTA_SURFACES = ['acom', 'acom-cc', 'acom-dc', 'express', 'sandbox', 'nala'];
 
 /** Plain preview origin — use for direct `.json` lookups (e.g. fil_PH placeholder fallback). */
@@ -282,6 +289,8 @@ export const BULK_PUBLISH_STATUS = {
     PUBLISHING: 'Publishing',
     PUBLISHED: 'Published',
     LOCKED: 'Locked',
+    REVERTING: 'Reverting',
+    REVERTED: 'Reverted',
 };
 
 export const BULK_PUBLISH_PARENT_PATH = '/content/dam/mas/bulk-publish-projects';

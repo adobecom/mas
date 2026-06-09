@@ -157,5 +157,11 @@ export const styles = [
             width: 10px;
             height: 10px;
         }
+
+        .confirm-dialog-overlay {
+            sp-dialog-wrapper {
+                z-index: 11;
+            }
+        }
     `,
 ];

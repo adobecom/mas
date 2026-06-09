@@ -20,17 +20,26 @@ function seedNew(data = {}) {
 
 function makeFragmentStore(data = {}) {
     const fields = { status: BULK_PUBLISH_STATUS.DRAFT, urls: '', items: '[]', locales: [], title: 'Proj', ...data };
+    const getFieldValues = (k) => {
+        const v = fields[k];
+        if (v === undefined || v === null) return [];
+        return Array.isArray(v) ? v : [v];
+    };
     return {
         id: 'frag-id-1',
         value: {
             id: 'frag-id-1',
             getFieldValue: (k) => fields[k],
-            getFieldValues: (k) => (Array.isArray(fields[k]) ? fields[k] : [fields[k]]),
+            getFieldValues,
         },
         getFieldValue: (k) => fields[k],
-        getFieldValues: (k) => (Array.isArray(fields[k]) ? fields[k] : [fields[k]]),
+        getFieldValues,
         updateField: sinon.stub(),
         setFieldValue: sinon.stub(),
+        get: () => ({
+            fields: Object.entries(fields).map(([name, val]) => ({ name, values: Array.isArray(val) ? val : [val] })),
+        }),
+        refreshFrom: sinon.stub(),
     };
 }
 
@@ -145,14 +154,30 @@ describe('mas-bulk-publish-editor (computed getters)', () => {
         expect(el.publishBlockedReason).to.equal('Project must be saved before publishing');
     });
 
-    it('disabledActions disables PUBLISH when an existing project has unsaved changes', async () => {
+    it('disabledActions enables PUBLISH when an existing project has unsaved changes (auto-saves on publish)', async () => {
         const el = await makeEditor();
         Store.bulkPublishProjects.inEdit.set(makeFragmentStore({ items: JSON.stringify([{ status: 'valid' }]) }));
         await el.updateComplete;
         el.hasChanges = true;
         await el.updateComplete;
-        expect(el.disabledActions.has(QUICK_ACTION.PUBLISH)).to.equal(true);
-        expect(el.publishBlockedReason).to.equal('Project must be saved before publishing');
+        expect(el.disabledActions.has(QUICK_ACTION.PUBLISH)).to.equal(false);
+        expect(el.publishBlockedReason).to.equal('');
+    });
+
+    it('canStartPublishing is false while the project still has unsaved changes', async () => {
+        const el = await makeEditor();
+        Store.bulkPublishProjects.inEdit.set(makeFragmentStore({ items: JSON.stringify([{ status: 'valid' }]) }));
+        await el.updateComplete;
+        el.hasChanges = true;
+        expect(el.canStartPublishing).to.equal(false);
+    });
+
+    it('canStartPublishing is true once the project is saved', async () => {
+        const el = await makeEditor();
+        Store.bulkPublishProjects.inEdit.set(makeFragmentStore({ items: JSON.stringify([{ status: 'valid' }]) }));
+        await el.updateComplete;
+        el.hasChanges = false;
+        expect(el.canStartPublishing).to.equal(true);
     });
 
     it('disabledActions disables PUBLISH when all valid items are alreadyPublished', async () => {
@@ -255,9 +280,8 @@ describe('mas-bulk-publish-editor (field handlers)', () => {
         await el.updateComplete;
         el.handleUrlRemove({ detail: 'https://a.com' });
         expect(fields.urls).to.equal('https://b.com');
-        const remaining = JSON.parse(fields.items);
-        expect(remaining).to.have.lengthOf(1);
-        expect(remaining[0].url).to.equal('https://b.com');
+        expect(el.items).to.have.lengthOf(1);
+        expect(el.items[0].url).to.equal('https://b.com');
     });
 
     it('handleUrlRemove is a no-op when locked', async () => {
@@ -483,6 +507,55 @@ describe('mas-bulk-publish-editor (save/delete/lock with repository)', () => {
         await el.saveBulkProject();
 
         expect(repositoryEl.saveFragment.calledOnce).to.equal(true);
+    });
+
+    it('publish auto-saves first when hasChanges is true', async () => {
+        const el = await makeEditor();
+        const fs = makeFragmentStore({
+            title: 'Proj',
+            urls: '',
+            items: JSON.stringify([{ status: 'valid', path: '/content/dam/mas/foo' }]),
+            locales: [],
+        });
+        Store.bulkPublishProjects.inEdit.set(fs);
+        await el.updateComplete;
+        Store.search.set({ path: 'sandbox' });
+        el.hasChanges = true;
+
+        const saveSpy = sandbox.spy(el, 'saveBulkProject');
+        repositoryEl.saveFragment = sandbox.stub().resolves({ id: 'frag-id-1' });
+
+        try {
+            await el.publish();
+        } catch {
+            // publish() may throw later in the bulk-publish-client flow under WTR;
+            // we only assert that saveBulkProject was invoked first.
+        }
+
+        expect(saveSpy.calledOnce).to.equal(true);
+    });
+
+    it('publish does not auto-save when hasChanges is false', async () => {
+        const el = await makeEditor();
+        const fs = makeFragmentStore({
+            title: 'Proj',
+            urls: '',
+            items: JSON.stringify([{ status: 'valid', path: '/content/dam/mas/foo' }]),
+            locales: [],
+        });
+        Store.bulkPublishProjects.inEdit.set(fs);
+        await el.updateComplete;
+        Store.search.set({ path: 'sandbox' });
+
+        const saveSpy = sandbox.spy(el, 'saveBulkProject');
+
+        try {
+            await el.publish();
+        } catch {
+            // ignore downstream bulk-publish-client errors under WTR
+        }
+
+        expect(saveSpy.called).to.equal(false);
     });
 
     it('deleteBulkProject clears inEdit and navigates home for new project without calling repo', async () => {
@@ -1039,79 +1112,88 @@ describe('mas-bulk-publish-editor (reEnrichItems on load)', () => {
         sandbox.restore();
     });
 
-    it('re-resolves authorPath and locale for valid items that lack them', async () => {
+    it('resolves authorPath and locale by path for items reconstructed from fragments', async () => {
         const el = await makeEditor();
-        const stored = [
-            {
-                url: 'https://mas.adobe.com/studio.html#path=sandbox',
-                fragmentId: 'frag-1',
-                path: '/content/dam/mas/sandbox/en_US/card-1',
-                status: 'valid',
-            },
-        ];
+        const path = '/content/dam/mas/sandbox/en_US/card-1';
+        const fs = makeFragmentStore({ fragments: [path] });
+        Store.bulkPublishProjects.inEdit.set(fs);
+        await el.updateComplete;
+
+        const getByPath = sandbox.stub().resolves(rawCardFragment('frag-1', path));
+        repositoryEl.aem = { sites: { cf: { fragments: { getByPath } } } };
+
+        await el.reEnrichItems();
+
+        expect(getByPath.calledWith(path)).to.equal(true);
+        expect(el.localItems[0].authorPath).to.be.a('string').and.to.include('merch-card');
+        expect(el.localItems[0].locale).to.equal('en_US');
+    });
+
+    it('resolves by fragmentId when the item carries one (legacy items JSON)', async () => {
+        const el = await makeEditor();
+        const path = '/content/dam/mas/sandbox/en_US/card-1';
+        const stored = [{ url: 'u', fragmentId: 'frag-1', path, status: 'valid' }];
         const fs = makeFragmentStore({ items: JSON.stringify(stored) });
         Store.bulkPublishProjects.inEdit.set(fs);
         await el.updateComplete;
 
-        repositoryEl.getFragmentById = sandbox
-            .stub()
-            .resolves(rawCardFragment('frag-1', '/content/dam/mas/sandbox/en_US/card-1'));
+        repositoryEl.getFragmentById = sandbox.stub().resolves(rawCardFragment('frag-1', path));
 
         await el.reEnrichItems();
 
-        const [, written] = fs.updateField.withArgs('items').lastCall.args;
-        const items = JSON.parse(written[0]);
-        expect(items[0].authorPath).to.be.a('string').and.to.include('merch-card');
-        expect(items[0].locale).to.equal('en_US');
+        expect(repositoryEl.getFragmentById.calledWith('frag-1')).to.equal(true);
+        expect(el.localItems[0].authorPath).to.be.a('string').and.to.include('merch-card');
+        expect(el.localItems[0].locale).to.equal('en_US');
     });
 
     it('does not mark the project as changed when re-enriching', async () => {
         const el = await makeEditor();
-        const stored = [{ url: 'u', fragmentId: 'frag-1', path: '/content/dam/mas/sandbox/en_US/card-1', status: 'valid' }];
-        const fs = makeFragmentStore({ items: JSON.stringify(stored) });
+        const path = '/content/dam/mas/sandbox/en_US/card-1';
+        const fs = makeFragmentStore({ fragments: [path] });
         Store.bulkPublishProjects.inEdit.set(fs);
         await el.updateComplete;
         el.hasChanges = false;
 
-        repositoryEl.getFragmentById = sandbox
-            .stub()
-            .resolves(rawCardFragment('frag-1', '/content/dam/mas/sandbox/en_US/card-1'));
+        repositoryEl.aem = {
+            sites: { cf: { fragments: { getByPath: sandbox.stub().resolves(rawCardFragment('frag-1', path)) } } },
+        };
 
         await el.reEnrichItems();
 
         expect(el.hasChanges).to.equal(false);
     });
 
-    it('leaves error items untouched and does not resolve them', async () => {
+    it('skips items that already have an authorPath', async () => {
         const el = await makeEditor();
-        const stored = [{ url: 'bad', status: 'error', reason: 'not-found' }];
+        const stored = [{ url: 'u', path: '/x', authorPath: 'merch-card: SANDBOX', status: 'valid' }];
         const fs = makeFragmentStore({ items: JSON.stringify(stored) });
         Store.bulkPublishProjects.inEdit.set(fs);
         await el.updateComplete;
 
+        const getByPath = sandbox.stub();
+        repositoryEl.aem = { sites: { cf: { fragments: { getByPath } } } };
         repositoryEl.getFragmentById = sandbox.stub();
 
         await el.reEnrichItems();
 
+        expect(getByPath.called).to.equal(false);
         expect(repositoryEl.getFragmentById.called).to.equal(false);
     });
 
     it('keeps the item valid when the fragment can no longer be resolved', async () => {
         const el = await makeEditor();
-        const stored = [{ url: 'u', fragmentId: 'gone', path: '/content/dam/mas/sandbox/en_US/gone', status: 'valid' }];
-        const fs = makeFragmentStore({ items: JSON.stringify(stored) });
+        const path = '/content/dam/mas/sandbox/en_US/gone';
+        const fs = makeFragmentStore({ fragments: [path] });
         Store.bulkPublishProjects.inEdit.set(fs);
         await el.updateComplete;
 
-        repositoryEl.getFragmentById = sandbox.stub().rejects(new Error('boom'));
+        repositoryEl.aem = {
+            sites: { cf: { fragments: { getByPath: sandbox.stub().rejects(new Error('boom')) } } },
+        };
 
         await el.reEnrichItems();
 
-        const call = fs.updateField.withArgs('items').lastCall;
-        if (call) {
-            const items = JSON.parse(call.args[1][0]);
-            expect(items[0].status).to.equal('valid');
-        }
+        expect(el.localItems[0].status).to.equal('valid');
     });
 });
 
@@ -1140,7 +1222,7 @@ describe('mas-bulk-publish-editor (publish)', () => {
         sandbox.restore();
     });
 
-    it('publish triggers the publish flow and calls saveFragment', async () => {
+    it('publish triggers the publish flow and calls the IO action', async () => {
         window.adobeIMS = { getAccessToken: () => ({ token: 'fake-token', clientId: 'mas-studio' }) };
 
         const el = await makeEditor();
@@ -1149,15 +1231,19 @@ describe('mas-bulk-publish-editor (publish)', () => {
         Store.bulkPublishProjects.inEdit.set(fs);
         await el.updateComplete;
 
-        repositoryEl.saveFragment = sandbox.stub().resolves({ id: 'frag-id-1' });
+        const fetchStub = sandbox.stub(window, 'fetch').resolves(
+            new Response(JSON.stringify({ status: 'Published' }), {
+                status: 200,
+                headers: { 'content-type': 'application/json' },
+            }),
+        );
+        repositoryEl.refreshFragment = sandbox.stub().resolves();
 
-        try {
-            await el.publish();
-        } catch {
-            // network call to io-base-url will fail in tests; that's ok
-        }
+        await el.publish();
 
-        expect(repositoryEl.saveFragment.called).to.equal(true);
+        expect(fetchStub.called).to.equal(true);
+        const [url] = fetchStub.firstCall.args;
+        expect(url).to.include('/bulk-publish');
         delete window.adobeIMS;
     });
 });

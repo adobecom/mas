@@ -1,5 +1,5 @@
 import { EVENT_AEM_LOAD, FF_DEFAULTS } from './constants.js';
-import { getService } from './utils.js';
+import { getService, shouldHideStPriceLabels } from './utils.js';
 
 const MAS_FIELD_TAG = 'mas-field';
 const CHECKOUT_STYLE_PATTERN = /(accent|primary|secondary)(-(outline|link))?/;
@@ -14,6 +14,11 @@ const CHECKOUT_STYLE_PATTERN = /(accent|primary|secondary)(-(outline|link))?/;
 export function priceOptionsProvider(element, options) {
     if (!element?.closest?.(MAS_FIELD_TAG)) return options;
     options[FF_DEFAULTS] = true;
+
+    if (shouldHideStPriceLabels(element)) {
+        options.displayPerUnit = false;
+        options.displayTax = false;
+    }
 }
 
 function registerPriceOptionsProvider(service) {
@@ -140,11 +145,19 @@ class MasField extends HTMLElement {
         return anchor.outerHTML;
     }
 
+    #setFragmentIds() {
+        if (!this.aemFragment) return;
+        this.setAttribute('fragment-id', this.aemFragment.data?.id);
+        const variationId = this.aemFragment.data?.variationId;
+        if (variationId) this.setAttribute('variation-id', variationId);
+    }
+
     #renderField() {
         if (!this.#fields || !this.#field) return;
         const { fieldName, index } = this.#parseFieldAndIndex(this.#field);
         const fieldValue = this.#normalizeFieldValue(this.#fields[fieldName]);
         if (fieldValue === undefined) return;
+        this.#setFragmentIds();
         const content = this.#ensureContentElement();
         let html;
         if (index !== null) {

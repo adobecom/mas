@@ -209,10 +209,10 @@
                             id: `test-variation-${testId}`,
                             tags: overrides.tags || [],
                             fields: baseMockData.fields.map((field) => {
-                                if (field.name === 'variant') return { ...field, values: ['plans'] };
                                 if (overrides[field.name] !== undefined) {
                                     return { ...field, values: overrides[field.name], multiple: field.multiple };
                                 }
+                                if (field.name === 'variant') return { ...field, values: ['plans'] };
                                 return { ...field, values: [] }; // Empty = inherit
                             }),
                         };
@@ -1354,6 +1354,57 @@
                             expect(
                                 element.querySelector('[slot="content"] merch-mnemonic-list a merch-icon').getAttribute('alt'),
                             ).to.equal('alt text 1');
+                        });
+                    });
+
+                    describe('#updateWhatsIncluded bizpro routing', () => {
+                        const BIZPRO_SEED =
+                            '<p class="whats-included-label">Voir :</p>' +
+                            '<div class="section"><h4>PDF</h4><ul><li>row</li></ul></div>';
+
+                        async function setupBizPro(testId) {
+                            const { fragmentStore: store } = await setupTestEnvironment({ variant: ['bizpro'] }, testId);
+                            store.get().fields.push({ name: 'whatsIncluded', values: [BIZPRO_SEED], multiple: false });
+                            return store;
+                        }
+
+                        it('serializes bullet multifield changes and preserves the stored label', async () => {
+                            const store = await setupBizPro('bizpro-wi-bullets');
+
+                            const multifield = editor.querySelector('#whatsIncluded mas-multifield[button-label="Add bullet"]');
+                            multifield.value = [{ icon: 'sp-icon-star', alt: '<p>Title</p><p>new row</p>', link: '' }];
+                            multifield.dispatchEvent(new CustomEvent('change'));
+
+                            const stored = store.get().getFieldValue('whatsIncluded');
+                            expect(stored).to.include('<div class="section">');
+                            expect(stored).to.include('sp-icon-star');
+                            expect(stored).to.include('new row');
+                            expect(stored).to.include('<p class="whats-included-label">Voir :</p>');
+                        });
+
+                        it('serializes label input changes and preserves the stored bullets', async () => {
+                            const store = await setupBizPro('bizpro-wi-label');
+
+                            const labelField = editor.querySelector('#whatsIncludedLabel');
+                            labelField.value = 'New label';
+                            labelField.dispatchEvent(new Event('input'));
+
+                            const stored = store.get().getFieldValue('whatsIncluded');
+                            expect(stored).to.include('<p class="whats-included-label">New label</p>');
+                            expect(stored).to.include('<div class="section">');
+                            expect(stored).to.include('PDF');
+                        });
+
+                        it('ignores the "Add application" multifield for bizpro', async () => {
+                            const store = await setupBizPro('bizpro-wi-applications');
+
+                            const multifield = editor.querySelector(
+                                '#whatsIncluded mas-multifield[button-label="Add application"]',
+                            );
+                            multifield.value = [{ icon: '', alt: 'ignored', link: '' }];
+                            multifield.dispatchEvent(new CustomEvent('change'));
+
+                            expect(store.get().getFieldValue('whatsIncluded')).to.equal(BIZPRO_SEED);
                         });
                     });
 

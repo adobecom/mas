@@ -986,28 +986,28 @@ describe('class "InlinePrice"', () => {
             {
                 locale: 'VN_en',
                 expected: [
-                    [false, false],
+                    [true, false],
                     [true, true],
-                    [false, false],
+                    [true, false],
                     [true, true],
                 ],
             },
             {
                 locale: 'VN_vi',
                 expected: [
-                    [false, false],
+                    [true, false],
                     [true, true],
-                    [false, false],
+                    [true, false],
                     [true, true],
                 ],
             },
             {
                 locale: 'AR_es',
                 expected: [
-                    [true, false],
-                    [true, true],
-                    [true, false],
-                    [true, true],
+                    [false, false],
+                    [false, false],
+                    [false, false],
+                    [false, false],
                 ],
             },
             {
@@ -1194,6 +1194,30 @@ describe('commerce service', () => {
         it('returns empty string if no offers provided', async () => {
             const { buildPriceHTML } = initMasCommerceService();
             expect(buildPriceHTML([])).to.be.empty;
+        });
+
+        it('does not pick the promo template when the offer carries no promotion, even if promotionCode is in scope', async () => {
+            const { buildPriceHTML } = await initMasCommerceService();
+            const nonPromoAbmOffer = [
+                {
+                    priceDetails: {
+                        price: 43.99,
+                        formatString: "'A$'#,##0.00",
+                    },
+                    planType: 'ABM',
+                    commitment: 'YEAR',
+                    term: 'MONTHLY',
+                },
+            ];
+            expect(() =>
+                buildPriceHTML(nonPromoAbmOffer, {
+                    country: 'AU',
+                    language: 'en',
+                    displayAnnual: true,
+                    promotionCode: 'CCI_AA_3MO_AUS',
+                    template: 'price',
+                }),
+            ).to.not.throw();
         });
     });
 

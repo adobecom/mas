@@ -1,5 +1,5 @@
 import { css } from 'lit';
-import { ghostButtonStyles, selectItemsFormSectionStyles } from './common/styles/table-styles.css.js';
+import { ghostButtonStyles, selectItemsFormSectionStyles } from '../common/styles/table-styles.css.js';
 
 export const styles = [
     ghostButtonStyles,
@@ -48,6 +48,11 @@ export const styles = [
 
         .promotions-form-panel-content > div {
             flex: 1;
+        }
+
+        .promotions-form-panel-divider {
+            align-self: stretch;
+            height: auto;
         }
 
         .promotions-form-fields sp-field-label {

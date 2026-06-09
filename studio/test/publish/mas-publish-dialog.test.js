@@ -5,22 +5,22 @@ const VARIATION = { id: 'var-1', path: '/content/dam/mas/sandbox/en_GB/my-fragme
 const CARD = { id: 'card-1', path: '/content/dam/mas/sandbox/en_US/some-card', status: 'UNPUBLISHED' };
 
 describe('MasPublishDialog', () => {
-    it('open이 false면 아무것도 렌더링하지 않음', async () => {
+    it('renders nothing when open is false', async () => {
         const el = await fixture(html`<mas-publish-dialog></mas-publish-dialog>`);
         expect(el.shadowRoot.querySelector('sp-dialog')).to.be.null;
     });
 
-    it('open이 true면 Select All + 개별 체크박스 렌더링', async () => {
+    it('renders Select All checkbox and individual checkboxes when open is true', async () => {
         const el = await fixture(html`<mas-publish-dialog></mas-publish-dialog>`);
         el.refs = { variations: [VARIATION], cards: [CARD] };
         el.open = true;
         await el.updateComplete;
-        // Select All 1개 + 개별 2개 = 3개
+        // 1 Select All + 2 individual = 3 total
         const checkboxes = el.shadowRoot.querySelectorAll('sp-checkbox');
         expect(checkboxes.length).to.equal(3);
     });
 
-    it('기본값으로 모든 개별 체크박스가 미체크', async () => {
+    it('all individual checkboxes are unchecked by default', async () => {
         const el = await fixture(html`<mas-publish-dialog></mas-publish-dialog>`);
         el.refs = { variations: [VARIATION], cards: [CARD] };
         el.open = true;
@@ -29,7 +29,7 @@ describe('MasPublishDialog', () => {
         checkboxes.forEach((cb) => expect(!!cb.checked).to.be.false);
     });
 
-    it('아무것도 선택 안 하고 confirm 시 selectedIds 비어있고 allSelected false', async () => {
+    it('confirm with nothing selected emits empty selectedIds and allSelected false', async () => {
         const el = await fixture(html`<mas-publish-dialog></mas-publish-dialog>`);
         el.refs = { variations: [VARIATION], cards: [CARD] };
         el.open = true;
@@ -45,7 +45,7 @@ describe('MasPublishDialog', () => {
         expect(event.detail.allSelected).to.be.false;
     });
 
-    it('Select All 체크 시 모든 개별 체크박스가 체크됨', async () => {
+    it('checking Select All checks all individual checkboxes', async () => {
         const el = await fixture(html`<mas-publish-dialog></mas-publish-dialog>`);
         el.refs = { variations: [VARIATION], cards: [CARD] };
         el.open = true;
@@ -60,7 +60,7 @@ describe('MasPublishDialog', () => {
         refCheckboxes.forEach((cb) => expect(!!cb.checked).to.be.true);
     });
 
-    it('Select All 체크 후 confirm 시 allSelected: true', async () => {
+    it('confirm after Select All emits allSelected true', async () => {
         const el = await fixture(html`<mas-publish-dialog></mas-publish-dialog>`);
         el.refs = { variations: [VARIATION], cards: [CARD] };
         el.open = true;
@@ -80,7 +80,7 @@ describe('MasPublishDialog', () => {
         expect(event.detail.allSelected).to.be.true;
     });
 
-    it('cancel 시 publish-cancelled 발생', async () => {
+    it('cancel emits publish-cancelled', async () => {
         const el = await fixture(html`<mas-publish-dialog></mas-publish-dialog>`);
         el.refs = { variations: [VARIATION], cards: [] };
         el.open = true;

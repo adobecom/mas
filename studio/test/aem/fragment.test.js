@@ -630,12 +630,12 @@ describe('Fragment', () => {
     });
 
     describe('getPublishableReferences', () => {
-        it('references가 없으면 빈 객체 반환', () => {
+        it('returns empty object when there are no references', () => {
             const fragment = new Fragment(createFragmentConfig({ references: [] }));
             expect(fragment.getPublishableReferences()).to.deep.equal({ variations: [], cards: [] });
         });
 
-        it('DRAFT variation과 UNPUBLISHED card를 분리해서 반환', () => {
+        it('returns DRAFT variations and UNPUBLISHED cards separately', () => {
             const fragment = new Fragment(
                 createFragmentConfig({
                     path: '/content/dam/mas/sandbox/en_US/my-fragment',
@@ -663,7 +663,7 @@ describe('Fragment', () => {
             expect(result.cards[0].id).to.equal('card-1');
         });
 
-        it('MODIFIED variation도 포함해서 반환', () => {
+        it('includes MODIFIED variations in the result', () => {
             const fragment = new Fragment(
                 createFragmentConfig({
                     path: '/content/dam/mas/sandbox/en_US/my-fragment',
@@ -687,7 +687,7 @@ describe('Fragment', () => {
             expect(result.variations[0].id).to.equal('var-1');
         });
 
-        it('NEW status card와 variation도 포함해서 반환', () => {
+        it('includes NEW status cards and variations in the result', () => {
             const fragment = new Fragment(
                 createFragmentConfig({
                     path: '/content/dam/mas/sandbox/en_US/my-fragment',
@@ -708,7 +708,7 @@ describe('Fragment', () => {
             expect(result.cards[0].id).to.equal('card-1');
         });
 
-        it('이미 PUBLISHED인 reference는 제외', () => {
+        it('excludes already PUBLISHED references', () => {
             const fragment = new Fragment(
                 createFragmentConfig({
                     path: '/content/dam/mas/sandbox/en_US/my-fragment',

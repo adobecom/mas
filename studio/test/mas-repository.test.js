@@ -3975,21 +3975,21 @@ describe('MasRepository publishFragment', () => {
 
     const fragment = { id: 'frag-1', path: '/content/dam/mas/sandbox/en_US/card' };
 
-    it('옵션 없으면 빈 filterReferencesByStatus로 publish', async () => {
+    it('publishes with empty filterReferencesByStatus when no options given', async () => {
         const repo = makeRepo();
         await repo.publishFragment(fragment);
         expect(repo.aem.sites.cf.fragments.publish.calledWith(fragment, [])).to.be.true;
         expect(repo.aem.sites.cf.fragments.publishFragments.called).to.be.false;
     });
 
-    it('allSelected: true면 DRAFT/MODIFIED/UNPUBLISHED filter 사용하는 단일 call', async () => {
+    it('uses DRAFT/MODIFIED/UNPUBLISHED filter in a single call when allSelected is true', async () => {
         const repo = makeRepo();
         await repo.publishFragment(fragment, { allSelected: true });
         expect(repo.aem.sites.cf.fragments.publish.calledWith(fragment, ['DRAFT', 'MODIFIED', 'UNPUBLISHED'])).to.be.true;
         expect(repo.aem.sites.cf.fragments.publishFragments.called).to.be.false;
     });
 
-    it('selectedRefIds가 있으면 parent [] publish 후 ref 별도 publish', async () => {
+    it('publishes parent with [] then publishes refs separately when selectedRefIds given', async () => {
         const repo = makeRepo();
         await repo.publishFragment(fragment, { selectedRefIds: ['ref-1'] });
         expect(repo.aem.sites.cf.fragments.publish.calledWith(fragment, [])).to.be.true;
@@ -3997,14 +3997,14 @@ describe('MasRepository publishFragment', () => {
         expect(repo.aem.sites.cf.fragments.publishFragments.called).to.be.true;
     });
 
-    it('selectedRefIds 없으면 ref publish 건너뜀', async () => {
+    it('skips ref publish when selectedRefIds is absent', async () => {
         const repo = makeRepo();
         await repo.publishFragment(fragment, {});
         expect(repo.aem.sites.cf.fragments.publish.calledWith(fragment, [])).to.be.true;
         expect(repo.aem.sites.cf.fragments.publishFragments.called).to.be.false;
     });
 
-    it('allSelected: true이고 NEW ref가 있으면 cascade 후 NEW ref 별도 publish', async () => {
+    it('publishes NEW refs separately after cascade when allSelected is true and NEW refs exist', async () => {
         const repo = makeRepo();
         const fragWithNew = {
             ...fragment,
@@ -4019,7 +4019,7 @@ describe('MasRepository publishFragment', () => {
         expect(repo.aem.sites.cf.fragments.publishFragments.called).to.be.true;
     });
 
-    it('allSelected: true이고 NEW ref가 없으면 별도 publish 없음', async () => {
+    it('does not publish refs separately when allSelected is true and no NEW refs exist', async () => {
         const repo = makeRepo();
         const fragNoNew = {
             ...fragment,

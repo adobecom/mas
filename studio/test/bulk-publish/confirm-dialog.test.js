@@ -134,7 +134,7 @@ describe('mas-bulk-publish-confirm-dialog', () => {
         expect(ev).to.exist;
     });
 
-    it('cascade 옵션 체크박스 2개 렌더링', async () => {
+    it('renders 2 cascade option checkboxes', async () => {
         const el = await fixture(html`
             <mas-bulk-publish-confirm-dialog
                 .projectTitle=${'Test'}
@@ -148,7 +148,7 @@ describe('mas-bulk-publish-confirm-dialog', () => {
         expect(checkboxes.length).to.equal(2);
     });
 
-    it('publish-confirmed에 includeVariations/includeCards 기본값 false', async () => {
+    it('publish-confirmed defaults includeVariations and includeCards to false', async () => {
         const el = await fixture(html`
             <mas-bulk-publish-confirm-dialog
                 .projectTitle=${'Test'}

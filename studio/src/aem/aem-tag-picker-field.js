@@ -61,6 +61,8 @@ class AemTagPickerField extends LitElement {
         personalizationEnabled: { type: Boolean, attribute: 'personalization-enabled' },
         /** When true, all interactive controls (trigger, search, checkboxes, reset/apply) are locked. */
         disabled: { type: Boolean, reflect: true },
+        /** When set, overrides the selection-derived quiet styling of the trigger button. */
+        quiet: { type: Boolean },
     };
 
     static styles = css`
@@ -740,6 +742,10 @@ class AemTagPickerField extends LitElement {
         return this.selection === SELECTION_CHECKBOX_TAGS;
     }
 
+    get #triggerQuiet() {
+        return this.quiet ?? !this.isCheckboxTagsMode;
+    }
+
     get #checkboxListDisabled() {
         return this.disabled || (this.personalizationToggle && !this.personalizationEnabled);
     }
@@ -914,7 +920,12 @@ class AemTagPickerField extends LitElement {
         const selectCount = !this.isCheckboxTagsMode && currentValues.length > 0 ? html`(${currentValues.length})` : '';
         const trigger = html`
             <overlay-trigger placement="bottom" @sp-closed=${this.#handleCheckoxMenuClose}>
-                <sp-action-button slot="trigger" aria-label=${this.triggerLabel} ?disabled=${this.disabled}>
+                <sp-action-button
+                    slot="trigger"
+                    ?quiet=${this.#triggerQuiet}
+                    aria-label=${this.triggerLabel}
+                    ?disabled=${this.disabled}
+                >
                     ${this.isCheckboxTagsMode ? nothing : html`${this.triggerLabel} ${selectCount}`}
                     ${this.isCheckboxTagsMode
                         ? html`<sp-icon-add size="m" slot="icon"></sp-icon-add>`

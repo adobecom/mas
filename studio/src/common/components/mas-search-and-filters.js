@@ -710,6 +710,7 @@ class MasSearchAndFilters extends LitElement {
                 label=${label}
                 multiple
                 selection="checkbox"
+                .quiet=${false}
                 .value=${this.#selectedTagPaths(selectedValues)}
                 ?disabled=${this.isLoading}
                 @change=${(e) => this.#handleTagPickerChange(filterType, e)}

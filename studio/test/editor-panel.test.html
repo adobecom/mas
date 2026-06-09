@@ -396,13 +396,11 @@
                         pSandbox
                             .stub(pEditorPanel.fragment, 'getPublishableReferences')
                             .returns({ variations: [variation], cards: [] });
-                        pSandbox
-                            .stub(MasPublishDialog, 'show')
-                            .resolves({
-                                confirmed: true,
-                                selectedIds: ['var1-0000-0000-0000-000000000000'],
-                                allSelected: false,
-                            });
+                        pSandbox.stub(MasPublishDialog, 'show').resolves({
+                            confirmed: true,
+                            selectedIds: ['var1-0000-0000-0000-000000000000'],
+                            allSelected: false,
+                        });
                         await pEditorPanel.publishFragment();
                         expect(publishStub.calledOnce).to.be.true;
                         expect(

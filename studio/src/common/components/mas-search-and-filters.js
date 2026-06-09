@@ -537,16 +537,16 @@ class MasSearchAndFilters extends LitElement {
                 if (!this.#fragmentMatchesAnyTag(fragment, this.productFilter)) return false;
             }
             if (hasOfferType) {
-                if (!fragment.tags?.some((tag) => this.offerTypeFilter.includes(tag.id))) return false;
+                if (!this.#fragmentMatchesAnyTag(fragment, this.offerTypeFilter)) return false;
             }
             if (hasPlanType) {
-                if (!fragment.tags?.some((tag) => this.planTypeFilter.includes(tag.id))) return false;
+                if (!this.#fragmentMatchesAnyTag(fragment, this.planTypeFilter)) return false;
             }
             if (hasPzn) {
-                if (!fragment.tags?.some((tag) => this.pznFilter.includes(tag.id))) return false;
+                if (!this.#fragmentMatchesAnyTag(fragment, this.pznFilter)) return false;
             }
             if (hasTag) {
-                if (!fragment.tags?.some((tag) => this.tagFilter.includes(tag.id))) return false;
+                if (!this.#fragmentMatchesAnyTag(fragment, this.tagFilter)) return false;
             }
             return true;
         });

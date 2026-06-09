@@ -798,6 +798,60 @@ describe('MasSearchAndFilters', () => {
             await el.updateComplete;
             expect(Store.translationProjects.displayCards.get().length).to.equal(1);
         });
+
+        it('matches a descendant offer type when its parent is selected', async () => {
+            Store.translationProjects.allCards.set([
+                createMockFragment({ tags: [{ id: 'mas:offer_type/base/promo', title: 'Promo' }] }),
+                createMockFragment({ tags: [{ id: 'mas:offer_type/trial', title: 'Trial' }] }),
+            ]);
+            const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${false}></mas-search-and-filters>`);
+            el.offerTypeFilter = ['mas:offer_type/base'];
+            await el.updateComplete;
+            expect(Store.translationProjects.displayCards.get().length).to.equal(1);
+        });
+
+        it('matches a descendant plan type when its parent is selected', async () => {
+            Store.translationProjects.allCards.set([
+                createMockFragment({ tags: [{ id: 'mas:plan_type/abm/annual', title: 'Annual' }] }),
+                createMockFragment({ tags: [{ id: 'mas:plan_type/puf', title: 'PUF' }] }),
+            ]);
+            const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${false}></mas-search-and-filters>`);
+            el.planTypeFilter = ['mas:plan_type/abm'];
+            await el.updateComplete;
+            expect(Store.translationProjects.displayCards.get().length).to.equal(1);
+        });
+
+        it('matches a descendant personalization tag when its parent is selected', async () => {
+            Store.translationProjects.allCards.set([
+                createMockFragment({ tags: [{ id: 'mas:pzn/edu/student', title: 'Student' }] }),
+                createMockFragment({ tags: [{ id: 'mas:pzn/general', title: 'General' }] }),
+            ]);
+            const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${false}></mas-search-and-filters>`);
+            el.pznFilter = ['mas:pzn/edu'];
+            await el.updateComplete;
+            expect(Store.translationProjects.displayCards.get().length).to.equal(1);
+        });
+
+        it('matches a descendant custom tag when its parent is selected', async () => {
+            Store.translationProjects.allCards.set([
+                createMockFragment({ tags: [{ id: 'mas:custom/featured/hero', title: 'Hero' }] }),
+                createMockFragment({ tags: [{ id: 'mas:custom/legacy', title: 'Legacy' }] }),
+            ]);
+            const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${false}></mas-search-and-filters>`);
+            el.tagFilter = ['mas:custom/featured'];
+            await el.updateComplete;
+            expect(Store.translationProjects.displayCards.get().length).to.equal(1);
+        });
+
+        it('does not match a sibling tag with a shared id prefix (boundary-guarded)', async () => {
+            Store.translationProjects.allCards.set([
+                createMockFragment({ tags: [{ id: 'mas:offer_type/baseline', title: 'Baseline' }] }),
+            ]);
+            const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${false}></mas-search-and-filters>`);
+            el.offerTypeFilter = ['mas:offer_type/base'];
+            await el.updateComplete;
+            expect(Store.translationProjects.displayCards.get().length).to.equal(0);
+        });
     });
 
     describe('checkbox change handling', () => {

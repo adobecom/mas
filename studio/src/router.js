@@ -633,6 +633,7 @@ export class Router extends EventTarget {
                 }
             } else {
                 Store.fragmentEditor.loading.set(false);
+                Store.fragments.inEdit.set(null);
                 if (Store.viewMode.value === 'editing') {
                     Store.viewMode.set('default');
                 }

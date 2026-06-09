@@ -393,11 +393,24 @@
                             fields: [],
                             tags: [],
                         });
-                        pSandbox.stub(pEditorPanel.fragment, 'getPublishableReferences').returns({ variations: [variation], cards: [] });
-                        pSandbox.stub(MasPublishDialog, 'show').resolves({ confirmed: true, selectedIds: ['var1-0000-0000-0000-000000000000'], allSelected: false });
+                        pSandbox
+                            .stub(pEditorPanel.fragment, 'getPublishableReferences')
+                            .returns({ variations: [variation], cards: [] });
+                        pSandbox
+                            .stub(MasPublishDialog, 'show')
+                            .resolves({
+                                confirmed: true,
+                                selectedIds: ['var1-0000-0000-0000-000000000000'],
+                                allSelected: false,
+                            });
                         await pEditorPanel.publishFragment();
                         expect(publishStub.calledOnce).to.be.true;
-                        expect(publishStub.calledWith(pEditorPanel.fragment, { selectedRefIds: ['var1-0000-0000-0000-000000000000'], allSelected: false })).to.be.true;
+                        expect(
+                            publishStub.calledWith(pEditorPanel.fragment, {
+                                selectedRefIds: ['var1-0000-0000-0000-000000000000'],
+                                allSelected: false,
+                            }),
+                        ).to.be.true;
                     });
 
                     it('does not call repository.publishFragment when dialog is cancelled', async () => {
@@ -409,7 +422,9 @@
                             fields: [],
                             tags: [],
                         });
-                        pSandbox.stub(pEditorPanel.fragment, 'getPublishableReferences').returns({ variations: [variation], cards: [] });
+                        pSandbox
+                            .stub(pEditorPanel.fragment, 'getPublishableReferences')
+                            .returns({ variations: [variation], cards: [] });
                         pSandbox.stub(MasPublishDialog, 'show').resolves({ confirmed: false });
                         await pEditorPanel.publishFragment();
                         expect(publishStub.called).to.be.false;

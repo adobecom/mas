@@ -2365,7 +2365,6 @@ export class MasRepository extends LitElement {
         }
     }
 
-
     /**
      * Updates a given fragment store with the latest data
      * @param {FragmentStore} store

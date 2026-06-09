@@ -77,6 +77,7 @@ class MasBulkPublishEditor extends LitElement {
     #abortController = null;
     #validateId = 0;
     #discardResolve = null;
+    #loadingItems = false;
 
     constructor() {
         super();
@@ -134,40 +135,45 @@ class MasBulkPublishEditor extends LitElement {
 
     async #loadItemDetails() {
         const paths = this.getFields('fragments');
-        if (!paths.length || this.localItems !== null) return;
-        const surface = Store.search.get()?.path;
-        const { signal } = this.#abortController;
-        const CONCURRENCY = 5;
-        const items = new Array(paths.length).fill(null);
-        for (let i = 0; i < paths.length; i += CONCURRENCY) {
-            if (signal.aborted) return;
-            const batch = paths.slice(i, i + CONCURRENCY);
-            const results = await Promise.all(
-                batch.map(async (path, j) => {
-                    try {
-                        const rawFragment = await this.repository.aem.sites.cf.fragments.getByPath(path);
-                        const fragment = new Fragment(rawFragment);
-                        const { authorPath, href } = generateCodeToUse(fragment, surface, PAGE_NAMES.CONTENT) || {};
-                        return {
-                            url: path,
-                            fragmentId: fragment.id,
-                            path: fragment.path,
-                            authorPath: authorPath || null,
-                            href: href || null,
-                            status: 'valid',
-                            alreadyPublished: fragment.status === STATUS_PUBLISHED,
-                        };
-                    } catch {
-                        return { url: path, path, status: 'valid' };
-                    }
-                }),
-            );
-            results.forEach((result, j) => {
-                items[i + j] = result;
-            });
+        if (!paths.length || this.localItems !== null || this.#loadingItems) return;
+        this.#loadingItems = true;
+        try {
+            const surface = Store.search.get()?.path;
+            const { signal } = this.#abortController;
+            const CONCURRENCY = 5;
+            const items = new Array(paths.length).fill(null);
+            for (let i = 0; i < paths.length; i += CONCURRENCY) {
+                if (signal.aborted) return;
+                const batch = paths.slice(i, i + CONCURRENCY);
+                const results = await Promise.all(
+                    batch.map(async (path, j) => {
+                        try {
+                            const rawFragment = await this.repository.aem.sites.cf.fragments.getByPath(path);
+                            const fragment = new Fragment(rawFragment);
+                            const { authorPath, href } = generateCodeToUse(fragment, surface, PAGE_NAMES.CONTENT) || {};
+                            return {
+                                url: path,
+                                fragmentId: fragment.id,
+                                path: fragment.path,
+                                authorPath: authorPath || null,
+                                href: href || null,
+                                status: 'valid',
+                                alreadyPublished: fragment.status === STATUS_PUBLISHED,
+                            };
+                        } catch {
+                            return { url: path, path, status: 'valid' };
+                        }
+                    }),
+                );
+                results.forEach((result, j) => {
+                    items[i + j] = result;
+                });
+            }
+            if (signal.aborted || this.localItems !== null) return;
+            this.localItems = items;
+        } finally {
+            this.#loadingItems = false;
         }
-        if (signal.aborted || this.localItems !== null) return;
-        this.localItems = items;
     }
 
     disconnectedCallback() {
@@ -261,7 +267,6 @@ class MasBulkPublishEditor extends LitElement {
 
     get publishBlockedReason() {
         if (this.isNewProject) return PUBLISH_BLOCKED_REASON.UNSAVED;
-        if (!this.hasValidItems) return '';
         if (this.status === BULK_PUBLISH_STATUS.PUBLISHED) return PUBLISH_BLOCKED_REASON.ALREADY_PUBLISHED;
         if (!this.hasValidItems) return '';
         if (this.allAlreadyPublished) return PUBLISH_BLOCKED_REASON.ALL_ITEMS_PUBLISHED;

@@ -721,16 +721,22 @@ export default class EditorPanel extends LitElement {
 
     async publishFragment() {
         const refs = this.fragment?.getPublishableReferences?.() ?? { variations: [], cards: [] };
-        if (refs.variations.length || refs.cards.length) {
-            const { MasPublishDialog } = await import('./publish/mas-publish-dialog.js');
-            const result = await MasPublishDialog.show(refs);
-            if (!result.confirmed) return;
-            this.repository.publishFragment(this.fragment, {
-                selectedRefIds: result.selectedIds,
-                allSelected: result.allSelected,
-            });
-        } else {
-            this.repository.publishFragment(this.fragment);
+        try {
+            if (refs.variations.length || refs.cards.length) {
+                const { MasPublishDialog } = await import('./publish/mas-publish-dialog.js');
+                const result = await MasPublishDialog.show(refs);
+                if (!result.confirmed) return;
+                await this.repository.publishFragment(this.fragment, {
+                    selectedRefIds: result.selectedIds,
+                    allSelected: result.allSelected,
+                });
+            } else {
+                await this.repository.publishFragment(this.fragment);
+            }
+        } catch (error) {
+            console.error('Failed to publish fragment:', error);
+            showToast(`Failed to publish fragment: ${error.message}`, 'negative');
+            throw error;
         }
     }
 

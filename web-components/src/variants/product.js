@@ -255,7 +255,7 @@ export class Product extends VariantLayout {
         const price = this.mainPrice;
         let planType = this.card.planType;
         if (price) {
-            (await price.onceSettled?.()) || Promise.resolve();
+            await price.onceSettled?.();
             planType = price.value?.[0]?.planType;
         }
         if (!planType) return;

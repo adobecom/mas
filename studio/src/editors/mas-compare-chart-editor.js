@@ -1694,42 +1694,26 @@ class MasCompareChartEditor extends LitElement {
     }
 
     get #itemsSelectorDialog() {
-        const footerContent = html`
-            <sp-button-group>
-                <sp-button variant="secondary" treatment="outline" @click=${() => this.#dispatchItemsSelectorEvent('cancel')}
-                    >Cancel</sp-button
-                >
-                <sp-button variant="accent" @click=${() => this.#dispatchItemsSelectorEvent('confirm')}
-                    >Add selected items</sp-button
-                >
-            </sp-button-group>
-        `;
         return html`<sp-dialog-wrapper
             class="compchart-items-selector-dialog"
             slot="click-content"
             headline="Select items"
             headline-visibility="none"
-            .footer=${footerContent}
+            confirm-label="Add selected items"
+            cancel-label="Cancel"
             underlay
-            dismissable
             no-divider
             @sp-opened=${this.#openItemsSelector}
-            @cancel=${this.#closeItemsSelector}
             @confirm=${this.#confirmItemsSelector}
         >
-        <mas-items-selector 
-            .allowedTypes=${[TABLE_TYPE.CARDS]}
-            .maxSelectedCards=${MAX_COMPARE_CHART_CARDS}
-            .defaultTemplateFilter=${VARIANT_NAMES.COMPARE_CHART_COLUMN}
+            <mas-items-selector
+                .allowedTypes=${[TABLE_TYPE.CARDS]}
+                .maxSelectedCards=${MAX_COMPARE_CHART_CARDS}
+                .defaultTemplateFilter=${VARIANT_NAMES.COMPARE_CHART_COLUMN}
+                .disableGroupedVariationSelection=${true}
             ></mas-items-selector>
-        </sp-dialog-wrapper>
         </sp-dialog-wrapper> `;
     }
-
-    #dispatchItemsSelectorEvent = (name) => {
-        const wrapper = this.renderRoot.querySelector('.compchart-items-selector-dialog');
-        wrapper?.dispatchEvent(new CustomEvent(name, { bubbles: true, composed: true }));
-    };
 
     #fragmentFromItemsSelectionStore(path) {
         return (
@@ -1739,7 +1723,8 @@ class MasCompareChartEditor extends LitElement {
         );
     }
 
-    #confirmItemsSelector(event) {
+    #confirmItemsSelector = ({ target }) => {
+        target.close();
         const paths = (this.itemsSelectionStore?.selectedCards.value || []).slice(0, MAX_COMPARE_CHART_CARDS);
         const pickedFragments = new Map(this.pickedFragments);
         paths.forEach((path) => {
@@ -1750,12 +1735,7 @@ class MasCompareChartEditor extends LitElement {
         });
         this.pickedFragments = pickedFragments;
         this.#updateCardsField(paths);
-        this.#closeItemsSelector(event?.target);
-    }
-
-    #closeItemsSelector() {
-        this.modalOpen = false;
-    }
+    };
 
     #removeCard(index) {
         const paths = [...this.#cardPaths];

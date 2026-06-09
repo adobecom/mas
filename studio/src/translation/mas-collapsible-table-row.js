@@ -18,12 +18,12 @@ export class MasCollapsibleTableRow extends LitElement {
         isTopLevelExpanded: { type: Boolean },
         expandedVariationsPaths: { type: Set, state: true },
         isLoadingVariations: { type: Boolean, state: true },
-        isLoadingReferences: { type: Boolean, state: true },
-        refreshedCard: { type: Object, state: true },
         repository: { type: Object, state: true },
         getDisplayName: { type: Function },
         renderFragmentStatusCell: { type: Function },
         disableCardExpansion: { type: Boolean },
+        disableGroupedVariationSelection: { type: Boolean },
+        hideLocaleTab: { type: Boolean },
     };
 
     constructor() {
@@ -31,6 +31,8 @@ export class MasCollapsibleTableRow extends LitElement {
         this.getDisplayName = (fragmentData) => fragmentData?.path ?? '';
         this.renderFragmentStatusCell = () => nothing;
         this.disableCardExpansion = false;
+        this.disableGroupedVariationSelection = false;
+        this.hideLocaleTab = false;
         if (!this.tabs) {
             this.tabs = [
                 { label: 'Locale', key: 'locale' },
@@ -40,8 +42,6 @@ export class MasCollapsibleTableRow extends LitElement {
         }
         this.selectedTabKey = 'locale';
         this.isTopLevelExpanded = false;
-        this.isLoadingReferences = false;
-        this.refreshedCard = null;
         this.expandedVariationsPaths = new Set();
         this.variationsController = new ReactiveController(this, [getItemsSelectionStore().groupedVariationsByParent]);
         this.selectedCardsController = new ReactiveController(this, [getItemsSelectionStore().selectedCards]);
@@ -58,6 +58,20 @@ export class MasCollapsibleTableRow extends LitElement {
         super.updated(changedProperties);
         if (changedProperties.has('disableCardExpansion') && this.disableCardExpansion) {
             this.isTopLevelExpanded = false;
+        }
+    }
+
+    get visibleTabs() {
+        return this.hideLocaleTab ? this.tabs.filter((tab) => tab.key !== 'locale') : this.tabs;
+    }
+
+    willUpdate(changedProperties) {
+        if (
+            changedProperties.has('hideLocaleTab') &&
+            this.hideLocaleTab &&
+            !this.visibleTabs.some((tab) => tab.key === this.selectedTabKey)
+        ) {
+            this.selectedTabKey = this.visibleTabs.find((tab) => !tab.disabled)?.key ?? this.visibleTabs[0]?.key ?? '';
         }
     }
 
@@ -124,6 +138,7 @@ export class MasCollapsibleTableRow extends LitElement {
                           <sp-checkbox
                               ?checked=${this.allGroupedVariationsSelected}
                               ?indeterminate=${!this.allGroupedVariationsSelected && this.someGroupedVariationsSelected}
+                              ?disabled=${this.disableGroupedVariationSelection}
                               @change=${this.#toggleSelectAllGrouped}
                           ></sp-checkbox>
                       </sp-table-cell>
@@ -141,7 +156,9 @@ export class MasCollapsibleTableRow extends LitElement {
                                   value=${variationPath}
                                   ?selected=${isSelected}
                                   aria-selected=${isSelected ? 'true' : 'false'}
-                                  @click=${(event) => this.#onRowClickForSelection(event, variationPath)}
+                                  @click=${this.disableGroupedVariationSelection
+                                      ? null
+                                      : (event) => this.#onRowClickForSelection(event, variationPath)}
                               >
                                   <sp-table-cell class="table-icon-cell">
                                       <sp-button
@@ -160,6 +177,7 @@ export class MasCollapsibleTableRow extends LitElement {
                                       <sp-checkbox
                                           value=${variationPath}
                                           ?checked=${isSelected}
+                                          ?disabled=${this.disableGroupedVariationSelection}
                                           @change=${(event) => this.#toggleSelect(event, variationPath)}
                                       ></sp-checkbox>
                                   </sp-table-cell>
@@ -173,12 +191,7 @@ export class MasCollapsibleTableRow extends LitElement {
     }
 
     get localeTabTemplate() {
-        if (this.isLoadingReferences) {
-            return html` <div class="loading-container--flex">
-                <sp-progress-circle label="Loading variations" indeterminate size="l"></sp-progress-circle>
-            </div>`;
-        }
-        const localeVariations = new Fragment(this.refreshedCard || this.topLevelCard).listLocaleVariations();
+        const localeVariations = new Fragment(this.topLevelCard).listLocaleVariations();
         if (!localeVariations.length) {
             return html`<div class="empty-grouped-variations">No locale variations found</div>`;
         }
@@ -329,7 +342,6 @@ export class MasCollapsibleTableRow extends LitElement {
     #toggleExpandTopLevel(e) {
         e.stopPropagation();
         this.isTopLevelExpanded = !this.isTopLevelExpanded;
-        if (this.isTopLevelExpanded) this.#loadReferences();
         if (this.isGroupedVariation) {
             if (getItemsSelectionStore().groupedVariationsData.value?.get(this.topLevelCard.path)) return;
             this.isLoadingVariations = true;
@@ -350,23 +362,6 @@ export class MasCollapsibleTableRow extends LitElement {
             }).finally(() => {
                 this.isLoadingVariations = false;
             });
-        }
-    }
-
-    // Search results don't carry hydrated `references`, so locale variations can't be derived
-    // from the card alone. Fetch the fragment by id (references=direct-hydrated) on first expand.
-    async #loadReferences() {
-        if (this.refreshedCard || this.topLevelCard?.references?.length) return;
-        const fragments = this.repository?.aem?.sites?.cf?.fragments;
-        const id = this.topLevelCard?.id;
-        if (!fragments?.getById || !id) return;
-        this.isLoadingReferences = true;
-        try {
-            this.refreshedCard = await fragments.getById(id);
-        } catch (err) {
-            console.warn(`Failed to load locale variations for ${this.topLevelCard?.path}:`, err.message);
-        } finally {
-            this.isLoadingReferences = false;
         }
     }
 
@@ -447,13 +442,13 @@ export class MasCollapsibleTableRow extends LitElement {
                 ? html`<div class="nested-content-container">
                       <div class="nested-content">
                           <sp-tabs quiet .selected=${this.selectedTabKey} @change=${this.#handleTabChange}>
-                              ${this.tabs.map(
+                              ${this.visibleTabs.map(
                                   (tab) =>
                                       html`<sp-tab value=${tab.key} label=${tab.label} ?disabled=${tab.disabled}>
                                           ${tab.label}
                                       </sp-tab>`,
                               )}
-                              ${this.tabs.map(
+                              ${this.visibleTabs.map(
                                   (tab) =>
                                       html`<sp-tab-panel value=${tab.key}>
                                           ${this[`${tab.key}TabTemplate`] ?? nothing}

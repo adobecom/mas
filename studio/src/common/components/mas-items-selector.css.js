@@ -55,10 +55,6 @@ export const styles = [
             padding-bottom: 48px;
         }
 
-        .container.show-selected {
-            grid-template-columns: minmax(0, 1fr) 308px;
-        }
-
         mas-select-items-table {
             flex: 1;
             min-width: 0;

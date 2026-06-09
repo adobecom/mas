@@ -233,7 +233,9 @@ class MasPromotionsItemsSelector extends LitElement {
                                           @promotion-surface-change=${this.#onPromotionItemSurfaceChange}
                                       ></mas-search-and-filters>
                                   `}
-                            <div class="container ${this.viewOnly ? 'view-only' : ''}">
+                            <div
+                                class="container ${this.viewOnly ? 'view-only' : ''} ${showingSelection ? 'show-selected' : ''}"
+                            >
                                 ${this.viewOnly
                                     ? html`<mas-promotions-items-table
                                           .type=${tab.value}

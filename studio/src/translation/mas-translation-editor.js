@@ -561,25 +561,16 @@ class MasTranslationEditor extends LitElement {
     };
 
     renderAddItemsDialog() {
-        const footerContent = html`
-            <sp-button-group>
-                <sp-button variant="secondary" treatment="outline" @click=${() => this.#dispatchDialogEvent('cancel')}
-                    >Cancel</sp-button
-                >
-                <sp-button variant="accent" @click=${() => this.#dispatchDialogEvent('confirm')}>Add selected items</sp-button>
-            </sp-button-group>
-        `;
         return html`
             <sp-dialog-wrapper
                 class="add-items-dialog"
                 slot="click-content"
                 headline="Select items"
                 headline-visibility="none"
-                .footer=${footerContent}
+                confirm-label="Add selected items"
+                cancel-label="Cancel"
                 underlay
-                dismissable
                 no-divider
-                @sp-opened=${this.#alignItemsDialogFooter}
                 @confirm=${this.#confirmItemSelection}
                 @cancel=${this.#cancelItemSelection}
                 @close=${this.#restoreItemsSnapshot}
@@ -587,18 +578,11 @@ class MasTranslationEditor extends LitElement {
                 <mas-items-selector
                     .getDisplayName=${getFragmentName}
                     .renderFragmentStatusCell=${renderFragmentStatusCell}
+                    .hideLocaleTab=${true}
                 ></mas-items-selector>
             </sp-dialog-wrapper>
         `;
     }
-
-    #alignItemsDialogFooter = ({ target }) => {
-        const slotDiv = target?.shadowRoot?.querySelector('div[slot="footer"]');
-        if (!slotDiv) return;
-        slotDiv.style.width = '100%';
-        slotDiv.style.display = 'flex';
-        slotDiv.style.justifyContent = 'flex-end';
-    };
 
     // Flag stays sticky across the duplicate close event sp-dialog-wrapper emits after confirm/cancel;
     // it's cleared on the next #openAddItemsOverlay so a re-opened dialog starts fresh.
@@ -608,11 +592,6 @@ class MasTranslationEditor extends LitElement {
         Store.translationProjects.selectedCollections.set(this.#collectionsSnapshot);
         Store.translationProjects.selectedPlaceholders.set(this.#placeholdersSnapshot);
         this.showSelectedEmptyState = this.selectedCount === 0;
-    };
-
-    #dispatchDialogEvent = (name) => {
-        const wrapper = this.renderRoot.querySelector('.add-items-dialog');
-        wrapper?.dispatchEvent(new CustomEvent(name, { bubbles: true, composed: true }));
     };
 
     renderAddLanguagesDialog() {

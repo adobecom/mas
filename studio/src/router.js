@@ -200,6 +200,19 @@ export class Router extends EventTarget {
         }
     }
 
+    #resetPromotionEditorState() {
+        Store.promotions.promotionId.set(null);
+        Store.promotions.inEdit.set(null);
+        Store.promotions.showSelected.set(false);
+        Store.promotions.selectedCards.set([]);
+        Store.promotions.selectedCollections.set([]);
+        Store.promotions.selectedPlaceholders.set([]);
+    }
+
+    #clearsPromotionContextOnNavigateTo(targetPage) {
+        return targetPage !== PAGE_NAMES.PROMOTIONS_EDITOR && targetPage !== PAGE_NAMES.FRAGMENT_EDITOR;
+    }
+
     /**
      * Navigation function to change the current page
      * @param {string} value - The page to navigate to
@@ -233,13 +246,8 @@ export class Router extends EventTarget {
                         Store.translationProjects.inEdit.set(null);
                         Store.translationProjects.showSelected.set(false);
                     }
-                    if (Store.page.value === PAGE_NAMES.PROMOTIONS_EDITOR && targetPage !== PAGE_NAMES.PROMOTIONS_EDITOR) {
-                        Store.promotions.promotionId.set(null);
-                        Store.promotions.inEdit.set(null);
-                        Store.promotions.showSelected.set(false);
-                        Store.promotions.selectedCards.set([]);
-                        Store.promotions.selectedCollections.set([]);
-                        Store.promotions.selectedPlaceholders.set([]);
+                    if (this.#clearsPromotionContextOnNavigateTo(targetPage)) {
+                        this.#resetPromotionEditorState();
                     }
                     if (targetPage === PAGE_NAMES.TRANSLATIONS && Store.page.value !== PAGE_NAMES.TRANSLATIONS) {
                         Store.filters.set((prev) => ({ ...prev, locale: 'en_US' }));
@@ -310,6 +318,7 @@ export class Router extends EventTarget {
             // Navigate to content page in table view
             Store.viewMode.set('default');
             Store.renderMode.set('table');
+            this.#resetPromotionEditorState();
             if (leavingFragmentEditor) {
                 this.#snapContentLocaleToParentDefault();
             }

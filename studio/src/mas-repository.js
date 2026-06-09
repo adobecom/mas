@@ -37,6 +37,8 @@ import {
     TAG_COMPARE_CHART,
     TAG_MERCH_CARD_COLLECTION,
 } from './constants.js';
+import { applyFragmentListFilters } from './fragments/fragment-list-filters.js';
+import * as promotionsRepository from './promotions/promotions-repository.js';
 import {
     clearDictionaryCache,
     fetchDictionary,
@@ -150,16 +152,10 @@ export class MasRepository extends LitElement {
     #searchCursor = null;
     #addonPlaceholdersRequest = null;
 
-    /**
-     * When personalization is off, exclude fragments that carry mas:pzn/… tags except mas:pzn/country/….
-     * When on, search omits non-country pzn tags from the API; narrowing by those tags happens in mas-content.
-     * @param {import('./reactivity/fragment-store.js').FragmentStore[]} fragmentStores
-     */
-    #filterStoresByPersonalizationEnabled(fragmentStores) {
-        if (this.filters.value.personalizationFilterEnabled === true) return fragmentStores;
-        return fragmentStores.filter((fs) => {
-            const fragment = fs.get?.() ?? fs.value;
-            return !fragmentHasPersonalizationTag(fragment);
+    #applyFragmentListFilters(fragmentStores) {
+        return applyFragmentListFilters(fragmentStores, {
+            page: this.page.value,
+            personalizationFilterEnabled: this.filters.value.personalizationFilterEnabled,
         });
     }
 
@@ -232,6 +228,7 @@ export class MasRepository extends LitElement {
             case PAGE_NAMES.CONTENT:
                 this.searchFragments();
                 this.loadPreviewPlaceholders();
+                void this.loadPromotions();
                 break;
             case PAGE_NAMES.WELCOME:
                 this.loadRecentlyUpdatedFragments();
@@ -505,7 +502,7 @@ export class MasRepository extends LitElement {
                 const fragmentPath = fragmentStore?.get?.()?.path;
                 return !Fragment.isGroupedVariationPath(fragmentPath);
             });
-            filteredData = this.#filterStoresByPersonalizationEnabled(filteredData);
+            filteredData = this.#applyFragmentListFilters(filteredData);
             if (filteredData.length !== currentData.length) {
                 dataStore.set(filteredData);
             }
@@ -654,7 +651,7 @@ export class MasRepository extends LitElement {
                     applyCorrectorToFragment(fragmentData, fragmentSurface);
                     const fragment = await this.#addToCache(fragmentData);
                     const sourceStore = generateFragmentStore(fragment, null, { lazy: true });
-                    dataStore.set(this.#filterStoresByPersonalizationEnabled([sourceStore]));
+                    dataStore.set(this.#applyFragmentListFilters([sourceStore]));
 
                     if (fragmentSurface) {
                         Store.search.setMeta('uuid-query', query);
@@ -710,7 +707,7 @@ export class MasRepository extends LitElement {
                     Store.fragments.list.loading.set(false);
                     return;
                 }
-                Store.fragments.list.data.set([...this.#filterStoresByPersonalizationEnabled(fragmentStores)]);
+                Store.fragments.list.data.set([...this.#applyFragmentListFilters(fragmentStores)]);
                 Store.fragments.list.firstPageLoaded.set(true);
                 const cursorState = done ? null : { cursor, variants, contentTypes, surface, fragmentStores, lowerClientQuery };
                 this.#searchCursor = cursorState;
@@ -759,7 +756,7 @@ export class MasRepository extends LitElement {
     static MAX_EAGER_PZN_PAGES = 20;
     /**
      * Visible-row threshold for the post-filter refill loop in #refillBelowThreshold.
-     * When a cursor page, after #filterStoresByPersonalizationEnabled has been
+     * When a cursor page, after #applyFragmentListFilters has been
      * applied, has fewer than this many visible items AND the cursor is not
      * exhausted, the loop fetches additional cursor pages until the threshold is
      * met or the cursor runs out. Prevents the narrow-filter UX where a user sees
@@ -811,7 +808,7 @@ export class MasRepository extends LitElement {
                 );
                 pagesLoaded++;
                 if (this.#searchCursor !== cursorSnapshot) return;
-                Store.fragments.list.data.set([...this.#filterStoresByPersonalizationEnabled(fragmentStores)]);
+                Store.fragments.list.data.set([...this.#applyFragmentListFilters(fragmentStores)]);
                 if (done) {
                     this.#searchCursor = null;
                     return;
@@ -831,7 +828,7 @@ export class MasRepository extends LitElement {
         Store.fragments.list.loading.set(true);
         try {
             while (this.#searchCursor === cursorSnapshot) {
-                const filtered = this.#filterStoresByPersonalizationEnabled(fragmentStores);
+                const filtered = this.#applyFragmentListFilters(fragmentStores);
                 if (filtered.length >= MasRepository.MIN_FILTERED_PAGE_RESULTS) return;
                 if (rounds >= MasRepository.MAX_REFILL_ROUNDS) {
                     Store.fragments.list.hasMore.set(true);
@@ -853,7 +850,7 @@ export class MasRepository extends LitElement {
                     Store.fragments.list.hasMore.set(true);
                     return;
                 }
-                Store.fragments.list.data.set([...this.#filterStoresByPersonalizationEnabled(fragmentStores)]);
+                Store.fragments.list.data.set([...this.#applyFragmentListFilters(fragmentStores)]);
                 if (done) {
                     this.#searchCursor = null;
                     Store.fragments.list.hasMore.set(false);
@@ -889,7 +886,7 @@ export class MasRepository extends LitElement {
                 this.#abortControllers.search?.signal,
             );
             if (this.#searchCursor !== cursorSnapshot) return;
-            Store.fragments.list.data.set([...this.#filterStoresByPersonalizationEnabled(fragmentStores)]);
+            Store.fragments.list.data.set([...this.#applyFragmentListFilters(fragmentStores)]);
             if (done) {
                 this.#searchCursor = null;
                 Store.fragments.list.hasMore.set(false);
@@ -1028,6 +1025,7 @@ export class MasRepository extends LitElement {
         } catch (error) {
             this.processError(error, 'Could not load promotions.');
         } finally {
+            Store.promotions.list.data.setMeta('listFetched', true);
             Store.promotions.list.loading.set(false);
         }
     }
@@ -2039,7 +2037,8 @@ export class MasRepository extends LitElement {
     async refreshFragment(store) {
         store.setLoading(true);
         const id = store.get().id;
-        const latest = await this.aem.sites.cf.fragments.getById(id);
+        let latest = await this.aem.sites.cf.fragments.getById(id);
+        latest = await promotionsRepository.mergePromoReferencesIntoFragmentData(this.aem, latest, () => this.loadPromotions());
 
         // Apply corrector transformer before refreshing
         const surface = this.search.value.path?.split('/').filter(Boolean)[0]?.toLowerCase();

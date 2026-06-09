@@ -1,5 +1,6 @@
 import { expect, fixture, html } from '@open-wc/testing';
 import sinon from 'sinon';
+import Store from '../src/store.js';
 import '../src/mas-fragment-variations.js';
 import { getGroupedVariationTagsValue, getPromotionCode } from '../src/editors/variation-utils.js';
 
@@ -28,6 +29,7 @@ describe('MasFragmentVariations', () => {
 
     const createFragmentMock = () => ({
         listLocaleVariations: () => [],
+        listPromoVariations: () => [],
         listGroupedVariations: () => [],
     });
 
@@ -347,6 +349,7 @@ describe('MasFragmentVariations', () => {
             const variation = createVariationFragment();
             const fragment = {
                 listLocaleVariations: () => [variation],
+                listPromoVariations: () => [],
                 listGroupedVariations: () => [],
             };
             const el = await fixture(html`<mas-fragment-variations .fragment=${fragment}></mas-fragment-variations>`);
@@ -361,6 +364,7 @@ describe('MasFragmentVariations', () => {
             const variation = createVariationFragment();
             const fragment = {
                 listLocaleVariations: () => [],
+                listPromoVariations: () => [],
                 listGroupedVariations: () => [variation],
             };
             const el = await fixture(html`<mas-fragment-variations .fragment=${fragment}></mas-fragment-variations>`);
@@ -372,6 +376,73 @@ describe('MasFragmentVariations', () => {
             expect(row.editFragmentStore).to.exist;
             expect(row.editFragmentStore).to.not.equal(row.fragmentStore);
             expect(el.textContent).to.include('Duplicate');
+        });
+    });
+
+    describe('promotion variations tab', () => {
+        it('renders promotion details for promo variations', async () => {
+            const promoVariation = createVariationFragment({
+                id: 'promo-var-1',
+                path: '/content/dam/mas/sandbox/en_US/promotions/back-to-school/my-card',
+                tags: [{ id: 'mas:promotion/back-to-school', title: 'Back to School' }],
+            });
+            const fragment = {
+                listLocaleVariations: () => [],
+                listPromoVariations: () => [promoVariation],
+                listGroupedVariations: () => [],
+            };
+
+            const el = await fixture(html`<mas-fragment-variations .fragment=${fragment}></mas-fragment-variations>`);
+            el.togglePromoVariation('promo-var-1');
+            await el.updateComplete;
+
+            expect(el.textContent).to.include('Promotion');
+            expect(el.textContent).to.include('Back to School');
+            expect(el.textContent).to.include('Promotion project');
+            expect(el.textContent).to.include('back-to-school');
+        });
+
+        it('sets promotionId when opening a promo variation from the promotion tab', async () => {
+            const promoVariation = createVariationFragment({
+                id: 'promo-var-1',
+                path: '/content/dam/mas/sandbox/en_US/promotions/back-to-school/my-card',
+                tags: [{ id: 'mas:promotion/back-to-school', title: 'Back to School' }],
+            });
+            const fragment = {
+                listLocaleVariations: () => [],
+                listPromoVariations: () => [promoVariation],
+                listGroupedVariations: () => [],
+            };
+            const el = await fixture(html`<mas-fragment-variations .fragment=${fragment}></mas-fragment-variations>`);
+            const editStore = {
+                value: {
+                    id: 'promo-var-1',
+                    path: '/content/dam/mas/sandbox/en_US/promotions/back-to-school/my-card',
+                    tags: [{ id: 'mas:promotion/back-to-school' }],
+                },
+            };
+            const loadPromotions = sandbox.stub().callsFake(async () => {
+                Store.promotions.list.data.set([
+                    {
+                        get: () => ({
+                            id: 'promo-project-1',
+                            tags: [{ id: 'mas:promotion/back-to-school' }],
+                        }),
+                    },
+                ]);
+                Store.promotions.list.loading.set(false);
+            });
+            sandbox.stub(el, 'repository').get(() => ({ loadPromotions }));
+            const routerModule = await import('../src/router.js');
+            const navigateSpy = sandbox.stub(routerModule.default, 'navigateToFragmentEditor').resolves();
+            Store.promotions.promotionId.set(null);
+
+            await el.handleEdit(editStore);
+
+            expect(loadPromotions.calledOnce).to.be.true;
+            expect(Store.promotions.promotionId.get()).to.equal('promo-project-1');
+            expect(navigateSpy.calledOnce).to.be.true;
+            Store.promotions.promotionId.set(null);
         });
     });
 });

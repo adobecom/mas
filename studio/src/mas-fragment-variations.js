@@ -14,6 +14,14 @@ import {
     VARIATION_TABS,
 } from './editors/variation-utils.js';
 import './aem/aem-tag-picker-field.js';
+import Store from './store.js';
+import {
+    findPromotionProjectIdByTag,
+    getPromoNameFromTag,
+    getPromotionTagFromFragment,
+    isPromoVariationPath,
+} from './promotions/promotion-model.js';
+import { getPromotionProjectsForProbe } from './promotions/promotions-repository.js';
 
 const styleElement = document.createElement('style');
 styleElement.textContent = styles;
@@ -25,6 +33,7 @@ class MasFragmentVariations extends LitElement {
         fragmentStore: { type: Object, attribute: false },
         loading: { type: Boolean, attribute: false },
         expandedGroupedVariations: { type: Object, state: true },
+        expandedPromoVariations: { type: Object, state: true },
         duplicateSource: { type: Object, state: true },
         duplicatePznTags: { type: Array, state: true },
         duplicateLoading: { type: Boolean, state: true },
@@ -36,6 +45,7 @@ class MasFragmentVariations extends LitElement {
         this.fragmentStore = null;
         this.loading = false;
         this.expandedGroupedVariations = new Set();
+        this.expandedPromoVariations = new Set();
         this.duplicateSource = null;
         this.duplicatePznTags = [];
         this.duplicateLoading = false;
@@ -75,8 +85,16 @@ class MasFragmentVariations extends LitElement {
         return listGroupedVariations(this.fragment);
     }
 
+    get promoVariations() {
+        return this.fragment.listPromoVariations();
+    }
+
     get hasLocaleVariations() {
         return this.localeVariations.length > 0;
+    }
+
+    get hasPromoVariations() {
+        return this.promoVariations.length > 0;
     }
 
     get hasGroupedVariations() {
@@ -84,15 +102,26 @@ class MasFragmentVariations extends LitElement {
     }
 
     get hasAnyVariations() {
-        return hasAnyVariationTabItems(this.fragment);
+        return this.hasLocaleVariations || this.hasPromoVariations || this.hasGroupedVariations;
+    }
+
+    get repository() {
+        return document.querySelector('mas-repository');
     }
 
     async handleEdit(fragmentStore) {
         const fragment = fragmentStore.value;
-        if (fragment?.id) {
-            const locale = extractLocaleFromPath(fragment.path);
-            await router.navigateToFragmentEditor(fragment.id, { locale, fragmentStore });
+        if (!fragment?.id) return;
+        const locale = extractLocaleFromPath(fragment.path);
+        if (isPromoVariationPath(fragment.path)) {
+            const promotionTagId = getPromotionTagFromFragment(fragment);
+            if (promotionTagId && this.repository?.loadPromotions) {
+                const projects = await getPromotionProjectsForProbe(() => this.repository.loadPromotions());
+                const promotionId = findPromotionProjectIdByTag(promotionTagId, projects);
+                if (promotionId) Store.promotions.promotionId.set(promotionId);
+            }
         }
+        await router.navigateToFragmentEditor(fragment.id, { locale, fragmentStore });
     }
 
     /**
@@ -116,6 +145,30 @@ class MasFragmentVariations extends LitElement {
      */
     isGroupedVariationExpanded(fragmentId) {
         return this.expandedGroupedVariations.has(fragmentId);
+    }
+
+    togglePromoVariation(fragmentId) {
+        const newSet = new Set(this.expandedPromoVariations);
+        if (newSet.has(fragmentId)) {
+            newSet.delete(fragmentId);
+        } else {
+            newSet.add(fragmentId);
+        }
+        this.expandedPromoVariations = newSet;
+    }
+
+    isPromoVariationExpanded(fragmentId) {
+        return this.expandedPromoVariations.has(fragmentId);
+    }
+
+    getPromotionInfo(variationFragment) {
+        const promotionTagId = getPromotionTagFromFragment(variationFragment);
+        const promoProject = getPromoNameFromTag(promotionTagId) || '';
+        const promotionName = variationFragment.tags?.find((tag) => tag.id === promotionTagId)?.title || promoProject;
+        return {
+            promotionName: promotionName || '-',
+            promoProject: promoProject || '-',
+        };
     }
 
     openDuplicateDialog(variationFragment) {
@@ -304,6 +357,61 @@ class MasFragmentVariations extends LitElement {
         `;
     }
 
+    get promotionVariationsTemplate() {
+        if (this.loading) {
+            return html`
+                <div class="loading-container">
+                    <sp-progress-circle indeterminate size="l"></sp-progress-circle>
+                    <p>Loading promotion variations...</p>
+                </div>
+            `;
+        }
+
+        if (!this.hasPromoVariations) {
+            return html`<p>No promotion variations found</p>`;
+        }
+
+        return html`
+            <sp-table size="m">
+                <sp-table-body>
+                    ${this.promoVariations.map((variationFragment) => {
+                        const mergedData = createPreviewDataWithParent(variationFragment, this.fragment);
+                        const fragmentStore = new FragmentStore(new Fragment(mergedData));
+                        const editStore = generateFragmentStore(variationFragment, this.fragment);
+                        const isExpanded = this.isPromoVariationExpanded(variationFragment.id);
+                        const { promotionName, promoProject } = this.getPromotionInfo(variationFragment);
+                        return html`
+                            <mas-fragment-table
+                                class="mas-fragment nested-fragment ${isExpanded ? 'expanded' : ''}"
+                                data-id="${variationFragment.id}"
+                                .fragmentStore=${fragmentStore}
+                                .editFragmentStore=${editStore}
+                                .canCreateVariation=${false}
+                                .expanded=${isExpanded}
+                                .toggleExpand=${() => this.togglePromoVariation(variationFragment.id)}
+                                @dblclick=${() => this.handleEdit(editStore)}
+                            ></mas-fragment-table>
+                            ${isExpanded
+                                ? html`
+                                      <div class="grouped-variation-expanded">
+                                          <div class="promo-code-field">
+                                              <span class="field-label">Promotion</span>
+                                              <span class="field-value">${promotionName}</span>
+                                          </div>
+                                          <div class="tags-group">
+                                              <span class="field-label">Promotion project</span>
+                                              <span class="field-value">${promoProject}</span>
+                                          </div>
+                                      </div>
+                                  `
+                                : nothing}
+                        `;
+                    })}
+                </sp-table-body>
+            </sp-table>
+        `;
+    }
+
     render() {
         if (!this.fragment) {
             return html``;
@@ -319,11 +427,7 @@ class MasFragmentVariations extends LitElement {
                 <sp-tabs selected="locale" quiet>
                     ${VARIATION_TABS.map((tab) => html`<sp-tab value=${tab.id} label=${tab.label}>${tab.label}</sp-tab>`)}
                     <sp-tab-panel value="locale">${this.localeVariationsTemplate}</sp-tab-panel>
-                    <sp-tab-panel value="promotion">
-                        <div class="tab-content-placeholder">
-                            <p>Promotion content will be displayed here</p>
-                        </div>
-                    </sp-tab-panel>
+                    <sp-tab-panel value="promotion">${this.promotionVariationsTemplate}</sp-tab-panel>
                     <sp-tab-panel value="grouped">${this.groupedVariationsTemplate}</sp-tab-panel>
                 </sp-tabs>
                 ${this.duplicateDialogTemplate}

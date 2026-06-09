@@ -578,7 +578,7 @@ class MasTranslationEditor extends LitElement {
                 <mas-items-selector
                     .getDisplayName=${getFragmentName}
                     .renderFragmentStatusCell=${renderFragmentStatusCell}
-                    .hideLocaleTab=${true}
+                    .disableLocaleVariations=${true}
                 ></mas-items-selector>
             </sp-dialog-wrapper>
         `;

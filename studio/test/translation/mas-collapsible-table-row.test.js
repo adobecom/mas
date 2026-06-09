@@ -5,6 +5,7 @@ import sinon from 'sinon';
 import Store from '../../src/store.js';
 import { setItemsSelectionStore } from '../../src/common/items-selection-store.js';
 import { setCardVariationsByPaths } from '../../src/common/utils/items-loader.js';
+import { Fragment } from '../../src/aem/fragment.js';
 import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, FRAGMENT_STATUS } from '../../src/constants.js';
 import { renderFragmentStatusCell } from '../../src/translation/translation-utils.js';
 import '../../src/swc.js';
@@ -653,6 +654,39 @@ describe('MasCollapsibleTableRow', () => {
         it('should render the locale tab by default', async () => {
             const el = await setup(false);
             expect(el.shadowRoot.querySelector('sp-tab[value="locale"]')).to.exist;
+        });
+    });
+
+    describe('disableLocaleVariations', () => {
+        it('should render an empty locale tab without listing variations when set', async () => {
+            const listStub = sandbox.stub(Fragment.prototype, 'listLocaleVariations');
+            const topLevelCard = createMockTopLevelCard();
+            setupCardVariationsInStore(topLevelCard.path, []);
+            const el = await fixture(
+                html`<mas-collapsible-table-row
+                    .topLevelCard=${topLevelCard}
+                    .isTopLevelExpanded=${true}
+                    .disableLocaleVariations=${true}
+                ></mas-collapsible-table-row>`,
+            );
+            await el.updateComplete;
+            const localePanel = el.shadowRoot.querySelector('sp-tab-panel[value="locale"]');
+            expect(localePanel?.querySelector('.empty-grouped-variations')).to.exist;
+            expect(listStub.called).to.be.false;
+        });
+
+        it('should list locale variations by default', async () => {
+            const listStub = sandbox.stub(Fragment.prototype, 'listLocaleVariations').returns([]);
+            const topLevelCard = createMockTopLevelCard();
+            setupCardVariationsInStore(topLevelCard.path, []);
+            const el = await fixture(
+                html`<mas-collapsible-table-row
+                    .topLevelCard=${topLevelCard}
+                    .isTopLevelExpanded=${true}
+                ></mas-collapsible-table-row>`,
+            );
+            await el.updateComplete;
+            expect(listStub.called).to.be.true;
         });
     });
 

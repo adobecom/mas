@@ -32,6 +32,7 @@ class MasItemsSelector extends LitElement {
         defaultTemplateFilter: { type: String, attribute: 'default-template-filter' },
         disableGroupedVariationSelection: { type: Boolean, attribute: 'disable-grouped-variation-selection' },
         hideLocaleTab: { type: Boolean, attribute: 'hide-locale-tab' },
+        disableLocaleVariations: { type: Boolean, attribute: 'disable-locale-variations' },
         /** @type {(fragmentData: object) => string} */
         getDisplayName: { type: Function },
         renderFragmentStatusCell: { type: Function },
@@ -49,6 +50,7 @@ class MasItemsSelector extends LitElement {
         this.defaultTemplateFilter = '';
         this.disableGroupedVariationSelection = false;
         this.hideLocaleTab = false;
+        this.disableLocaleVariations = false;
         this.getDisplayName = (fragmentData) => fragmentData?.path ?? '';
         this.renderFragmentStatusCell = renderFragmentStatusCell;
     }
@@ -197,6 +199,7 @@ class MasItemsSelector extends LitElement {
                 .maxSelectedCards=${this.maxSelectedCards}
                 .disableGroupedVariationSelection=${this.disableGroupedVariationSelection}
                 .hideLocaleTab=${this.hideLocaleTab}
+                .disableLocaleVariations=${this.disableLocaleVariations}
                 .getDisplayName=${this.getDisplayName}
                 .renderFragmentStatusCell=${this.renderFragmentStatusCell}
                 @show-toast=${this.#showToast}

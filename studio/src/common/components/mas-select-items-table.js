@@ -29,6 +29,7 @@ class MasSelectItemsTable extends LitElement {
         disableCardExpansion: { type: Boolean },
         disableGroupedVariationSelection: { type: Boolean },
         hideLocaleTab: { type: Boolean },
+        disableLocaleVariations: { type: Boolean },
     };
 
     hasMore = new StoreController(this, Store.fragments.list.hasMore);
@@ -57,6 +58,7 @@ class MasSelectItemsTable extends LitElement {
         this.disableCardExpansion = false;
         this.disableGroupedVariationSelection = false;
         this.hideLocaleTab = false;
+        this.disableLocaleVariations = false;
     }
 
     connectedCallback() {
@@ -322,6 +324,7 @@ class MasSelectItemsTable extends LitElement {
                             .disableCardExpansion=${this.disableCardExpansion}
                             .disableGroupedVariationSelection=${this.disableGroupedVariationSelection}
                             .hideLocaleTab=${this.hideLocaleTab}
+                            .disableLocaleVariations=${this.disableLocaleVariations}
                             .getDisplayName=${this.getDisplayName}
                             .renderFragmentStatusCell=${this.renderFragmentStatusCell}
                         ></mas-collapsible-table-row>`,

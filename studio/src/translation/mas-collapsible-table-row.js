@@ -24,6 +24,7 @@ export class MasCollapsibleTableRow extends LitElement {
         disableCardExpansion: { type: Boolean },
         disableGroupedVariationSelection: { type: Boolean },
         hideLocaleTab: { type: Boolean },
+        disableLocaleVariations: { type: Boolean },
     };
 
     constructor() {
@@ -33,6 +34,7 @@ export class MasCollapsibleTableRow extends LitElement {
         this.disableCardExpansion = false;
         this.disableGroupedVariationSelection = false;
         this.hideLocaleTab = false;
+        this.disableLocaleVariations = false;
         if (!this.tabs) {
             this.tabs = [
                 { label: 'Locale', key: 'locale' },
@@ -191,7 +193,7 @@ export class MasCollapsibleTableRow extends LitElement {
     }
 
     get localeTabTemplate() {
-        const localeVariations = new Fragment(this.topLevelCard).listLocaleVariations();
+        const localeVariations = this.disableLocaleVariations ? [] : new Fragment(this.topLevelCard).listLocaleVariations();
         if (!localeVariations.length) {
             return html`<div class="empty-grouped-variations">No locale variations found</div>`;
         }

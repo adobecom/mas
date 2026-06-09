@@ -31,6 +31,9 @@ import {
     MAS_PRODUCT_CODE_PREFIX,
     PZN_FOLDER,
     SURFACES,
+    DICTIONARY_ENTRY_MODEL_ID,
+    DICTIONARY_INDEX_MODEL_ID,
+    TAG_STATUS_DRAFT,
 } from './constants.js';
 import { applyFragmentListFilters } from './fragments/fragment-list-filters.js';
 import * as promotionsRepository from './promotions/promotions-repository.js';
@@ -48,6 +51,7 @@ import generateFragmentStore from './reactivity/source-fragment-store.js';
 import { getDefaultLocaleCode } from '../../io/www/src/fragment/locales.js';
 import { applyCorrectorToFragment } from './utils/corrector-helper.js';
 import { Promotion } from './aem/promotion.js';
+import { Placeholder } from './aem/placeholder.js';
 
 let fragmentCache;
 

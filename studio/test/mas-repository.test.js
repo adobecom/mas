@@ -3753,3 +3753,434 @@ describe('MasRepository bulkPublishFragments', () => {
         expect(repo.aem.sites.cf.fragments.publishFragments.called).to.be.false;
     });
 });
+
+describe('MasRepository ensureDictionaryFolder', () => {
+    let sandbox;
+    let repo;
+
+    beforeEach(() => {
+        sandbox = sinon.createSandbox();
+        repo = Object.create(MasRepository.prototype);
+        repo.aem = {
+            folders: {
+                list: sandbox.stub(),
+                create: sandbox.stub(),
+            },
+        };
+    });
+
+    afterEach(() => sandbox.restore());
+
+    it('returns false for falsy dictionaryPath', async () => {
+        expect(await repo.ensureDictionaryFolder(null)).to.be.false;
+        expect(await repo.ensureDictionaryFolder('')).to.be.false;
+    });
+
+    it('returns false when path has no parent or folderName', async () => {
+        expect(await repo.ensureDictionaryFolder('/singlepart')).to.be.false;
+    });
+
+    it('returns false when folders.list throws', async () => {
+        repo.aem.folders.list.rejects(new Error('network error'));
+        expect(await repo.ensureDictionaryFolder('/parent/child')).to.be.false;
+    });
+
+    it('returns true when folder already exists in parent children', async () => {
+        repo.aem.folders.list.resolves({
+            children: [{ path: '/parent/child', name: 'child' }],
+        });
+        expect(await repo.ensureDictionaryFolder('/parent/child')).to.be.true;
+        expect(repo.aem.folders.create.called).to.be.false;
+    });
+
+    it('creates folder and returns true when it does not exist', async () => {
+        repo.aem.folders.list.resolves({ children: [] });
+        repo.aem.folders.create.resolves();
+        expect(await repo.ensureDictionaryFolder('/parent/child')).to.be.true;
+        expect(repo.aem.folders.create.calledWith('/parent', 'child', 'child')).to.be.true;
+    });
+
+    it('returns true on 409 conflict during create', async () => {
+        repo.aem.folders.list.resolves({ children: [] });
+        repo.aem.folders.create.rejects(new Error('status 409 Conflict'));
+        expect(await repo.ensureDictionaryFolder('/parent/child')).to.be.true;
+    });
+
+    it('returns false on non-409 create error', async () => {
+        repo.aem.folders.list.resolves({ children: [] });
+        repo.aem.folders.create.rejects(new Error('status 500 Internal Server Error'));
+        expect(await repo.ensureDictionaryFolder('/parent/child')).to.be.false;
+    });
+});
+
+describe('MasRepository fetchIndexFragment', () => {
+    let sandbox;
+    let repo;
+
+    beforeEach(() => {
+        sandbox = sinon.createSandbox();
+        repo = Object.create(MasRepository.prototype);
+        repo.aem = { sites: { cf: { fragments: { getByPath: sandbox.stub() } } } };
+    });
+
+    afterEach(() => sandbox.restore());
+
+    it('returns the fragment on success', async () => {
+        const raw = { id: 'idx-1', path: '/path/index' };
+        repo.aem.sites.cf.fragments.getByPath.resolves(raw);
+        const result = await repo.fetchIndexFragment('/path/index');
+        expect(result).to.deep.equal(raw);
+    });
+
+    it('returns null for 404 errors', async () => {
+        repo.aem.sites.cf.fragments.getByPath.rejects(new Error('404 not found'));
+        expect(await repo.fetchIndexFragment('/missing/index')).to.be.null;
+    });
+
+    it('rethrows non-404 errors', async () => {
+        repo.aem.sites.cf.fragments.getByPath.rejects(new Error('500 server error'));
+        try {
+            await repo.fetchIndexFragment('/path/index');
+            expect.fail('should have thrown');
+        } catch (err) {
+            expect(err.message).to.include('500');
+        }
+    });
+});
+
+describe('MasRepository ensureReferenceField', () => {
+    let repo;
+
+    beforeEach(() => {
+        repo = Object.create(MasRepository.prototype);
+    });
+
+    it('adds a new field when it does not exist', () => {
+        const fields = [];
+        const { fields: result, changed } = repo.ensureReferenceField(fields, 'parent', '/some/path');
+        expect(changed).to.be.true;
+        expect(result[0]).to.deep.include({ name: 'parent', values: ['/some/path'] });
+    });
+
+    it('returns changed=false when existing field already matches', () => {
+        const fields = [{ name: 'parent', type: 'content-fragment', multiple: false, values: ['/some/path'] }];
+        const { changed } = repo.ensureReferenceField(fields, 'parent', '/some/path');
+        expect(changed).to.be.false;
+    });
+
+    it('updates existing field with different value', () => {
+        const fields = [{ name: 'parent', type: 'content-fragment', multiple: false, values: ['/old/path'] }];
+        const { changed, fields: result } = repo.ensureReferenceField(fields, 'parent', '/new/path');
+        expect(changed).to.be.true;
+        expect(result[0].values).to.deep.equal(['/new/path']);
+    });
+
+    it('uses empty array when value is falsy', () => {
+        const fields = [];
+        const { fields: result } = repo.ensureReferenceField(fields, 'parent', null);
+        expect(result[0].values).to.deep.equal([]);
+    });
+});
+
+describe('MasRepository ensureIndexFallbackFields', () => {
+    let sandbox;
+    let repo;
+
+    beforeEach(() => {
+        sandbox = sinon.createSandbox();
+        repo = Object.create(MasRepository.prototype);
+        repo.aem = { sites: { cf: { fragments: { save: sandbox.stub() } } } };
+    });
+
+    afterEach(() => sandbox.restore());
+
+    it('returns indexFragment unchanged when parentReference is null', async () => {
+        const frag = { id: 'idx', fields: [] };
+        const result = await repo.ensureIndexFallbackFields(frag, null);
+        expect(result).to.equal(frag);
+    });
+
+    it('returns indexFragment unchanged when no change needed', async () => {
+        const frag = {
+            id: 'idx',
+            fields: [{ name: 'parent', type: 'content-fragment', multiple: false, values: ['/ref'] }],
+        };
+        const result = await repo.ensureIndexFallbackFields(frag, '/ref');
+        expect(result).to.equal(frag);
+        expect(repo.aem.sites.cf.fragments.save.called).to.be.false;
+    });
+
+    it('saves and returns updated fragment when parent reference changes', async () => {
+        const frag = { id: 'idx', fields: [] };
+        const saved = { id: 'idx', fields: [{ name: 'parent', values: ['/new/ref'] }] };
+        repo.aem.sites.cf.fragments.save.resolves(saved);
+        const result = await repo.ensureIndexFallbackFields(frag, '/new/ref');
+        expect(result).to.equal(saved);
+    });
+
+    it('returns indexFragment when save fails', async () => {
+        const frag = { id: 'idx', fields: [] };
+        repo.aem.sites.cf.fragments.save.rejects(new Error('save error'));
+        const result = await repo.ensureIndexFallbackFields(frag, '/new/ref');
+        expect(result).to.equal(frag);
+    });
+});
+
+describe('MasRepository createDictionaryIndexFragment', () => {
+    let sandbox;
+    let repo;
+
+    beforeEach(() => {
+        sandbox = sinon.createSandbox();
+        repo = Object.create(MasRepository.prototype);
+        repo.aem = { sites: { cf: { fragments: { create: sandbox.stub() } } } };
+        sandbox.stub(repo, 'publishFragment').resolves(true);
+    });
+
+    afterEach(() => sandbox.restore());
+
+    it('creates fragment and publishes it by default', async () => {
+        const created = { id: 'new-idx', path: '/path/index' };
+        repo.aem.sites.cf.fragments.create.resolves(created);
+        const result = await repo.createDictionaryIndexFragment({ parentPath: '/path', parentReference: '/ref' });
+        expect(result).to.equal(created);
+        expect(repo.publishFragment.calledWith(created, {}, false)).to.be.true;
+    });
+
+    it('skips publish when publish=false', async () => {
+        const created = { id: 'new-idx', path: '/path/index' };
+        repo.aem.sites.cf.fragments.create.resolves(created);
+        await repo.createDictionaryIndexFragment({ parentPath: '/path', parentReference: null, publish: false });
+        expect(repo.publishFragment.called).to.be.false;
+    });
+
+    it('returns null when create returns fragment without id', async () => {
+        repo.aem.sites.cf.fragments.create.resolves({});
+        const result = await repo.createDictionaryIndexFragment({ parentPath: '/path', parentReference: null });
+        expect(result).to.be.null;
+    });
+
+    it('returns null when create throws', async () => {
+        repo.aem.sites.cf.fragments.create.rejects(new Error('create failed'));
+        const result = await repo.createDictionaryIndexFragment({ parentPath: '/path', parentReference: null });
+        expect(result).to.be.null;
+    });
+});
+
+describe('MasRepository getParentPath', () => {
+    let repo;
+
+    beforeEach(() => {
+        repo = Object.create(MasRepository.prototype);
+    });
+
+    it('returns parent path for a valid fragment path', () => {
+        const frag = { path: '/content/dam/mas/sandbox/en_US/dict/placeholder-key' };
+        expect(repo.getParentPath(frag)).to.equal('/content/dam/mas/sandbox/en_US/dict');
+    });
+
+    it('throws when fragment path has no parent', () => {
+        const frag = { path: 'no-slash' };
+        expect(() => repo.getParentPath(frag)).to.throw();
+    });
+});
+
+describe('MasRepository getIndexFragment', () => {
+    let sandbox;
+    let repo;
+
+    beforeEach(() => {
+        sandbox = sinon.createSandbox();
+        repo = Object.create(MasRepository.prototype);
+        repo.aem = { sites: { cf: { fragments: { getByPath: sandbox.stub() } } } };
+    });
+
+    afterEach(() => sandbox.restore());
+
+    it('returns a Fragment wrapping the fetched raw data', async () => {
+        const raw = { id: 'idx-1', path: '/path/index', fields: [] };
+        repo.aem.sites.cf.fragments.getByPath.resolves(raw);
+        const result = await repo.getIndexFragment('/path/index');
+        expect(result).to.be.instanceOf(Fragment);
+        expect(result.id).to.equal('idx-1');
+    });
+
+    it('returns null when getByPath throws', async () => {
+        repo.aem.sites.cf.fragments.getByPath.rejects(new Error('not found'));
+        expect(await repo.getIndexFragment('/missing/index')).to.be.null;
+    });
+});
+
+describe('MasRepository addToIndexFragment', () => {
+    let sandbox;
+    let repo;
+
+    beforeEach(() => {
+        sandbox = sinon.createSandbox();
+        repo = Object.create(MasRepository.prototype);
+        repo.aem = { sites: { cf: { fragments: { save: sandbox.stub() } } } };
+        sandbox.stub(repo, 'publishFragment').resolves(true);
+        sandbox.stub(repo, 'processError');
+    });
+
+    afterEach(() => sandbox.restore());
+
+    const makeFrag = (path, fields = []) => new Fragment({ id: 'f1', path, fields, tags: [] });
+    const makeIndexFrag = (entries = []) =>
+        new Fragment({
+            id: 'idx',
+            path: '/parent/index',
+            fields: [{ name: 'entries', type: 'content-fragment', multiple: true, values: entries }],
+            tags: [],
+        });
+
+    it('returns false when index fragment does not exist', async () => {
+        sandbox.stub(repo, 'getIndexFragment').resolves(null);
+        const frag = makeFrag('/parent/entry');
+        expect(await repo.addToIndexFragment(frag)).to.be.false;
+    });
+
+    it('returns false when entries field is missing', async () => {
+        const indexWithNoEntries = new Fragment({ id: 'idx', path: '/parent/index', fields: [], tags: [] });
+        sandbox.stub(repo, 'getIndexFragment').resolves(indexWithNoEntries);
+        const frag = makeFrag('/parent/entry');
+        expect(await repo.addToIndexFragment(frag)).to.be.false;
+    });
+
+    it('adds fragment path and publishes index', async () => {
+        const indexFrag = makeIndexFrag([]);
+        sandbox.stub(repo, 'getIndexFragment').resolves(indexFrag);
+        repo.aem.sites.cf.fragments.save.resolves(indexFrag);
+        const frag = makeFrag('/parent/entry');
+        const result = await repo.addToIndexFragment(frag);
+        expect(result).to.be.true;
+        expect(repo.aem.sites.cf.fragments.save.called).to.be.true;
+        expect(repo.publishFragment.calledWith(indexFrag, {}, false)).to.be.true;
+    });
+
+    it('skips save but still publishes when fragment already in index', async () => {
+        const indexFrag = makeIndexFrag(['/parent/entry']);
+        sandbox.stub(repo, 'getIndexFragment').resolves(indexFrag);
+        const frag = makeFrag('/parent/entry');
+        const result = await repo.addToIndexFragment(frag);
+        expect(result).to.be.true;
+        expect(repo.aem.sites.cf.fragments.save.called).to.be.false;
+        expect(repo.publishFragment.called).to.be.true;
+    });
+});
+
+describe('MasRepository removeFromIndexFragment', () => {
+    let sandbox;
+    let repo;
+
+    beforeEach(() => {
+        sandbox = sinon.createSandbox();
+        repo = Object.create(MasRepository.prototype);
+        repo.aem = { sites: { cf: { fragments: { save: sandbox.stub() } } } };
+        sandbox.stub(repo, 'publishFragment').resolves(true);
+        sandbox.stub(repo, 'processError');
+    });
+
+    afterEach(() => sandbox.restore());
+
+    const makeFrag = (path) => new Fragment({ id: 'f1', path, fields: [], tags: [] });
+    const makeIndexFrag = (entries) =>
+        new Fragment({
+            id: 'idx',
+            path: '/parent/index',
+            fields: [{ name: 'entries', type: 'content-fragment', multiple: true, values: entries }],
+            tags: [],
+        });
+
+    it('returns false when index fragment does not exist', async () => {
+        sandbox.stub(repo, 'getIndexFragment').resolves(null);
+        expect(await repo.removeFromIndexFragment(makeFrag('/parent/entry'))).to.be.false;
+    });
+
+    it('removes matching path and publishes index', async () => {
+        const indexFrag = makeIndexFrag(['/parent/entry', '/parent/other']);
+        sandbox.stub(repo, 'getIndexFragment').resolves(indexFrag);
+        repo.aem.sites.cf.fragments.save.resolves(indexFrag);
+        const result = await repo.removeFromIndexFragment(makeFrag('/parent/entry'));
+        expect(result).to.be.true;
+        expect(repo.aem.sites.cf.fragments.save.called).to.be.true;
+    });
+
+    it('skips save but still publishes when fragment not in index', async () => {
+        const indexFrag = makeIndexFrag(['/parent/other']);
+        sandbox.stub(repo, 'getIndexFragment').resolves(indexFrag);
+        const result = await repo.removeFromIndexFragment(makeFrag('/parent/entry'));
+        expect(result).to.be.true;
+        expect(repo.aem.sites.cf.fragments.save.called).to.be.false;
+        expect(repo.publishFragment.called).to.be.true;
+    });
+
+    it('accepts an array of fragments', async () => {
+        const indexFrag = makeIndexFrag(['/parent/a', '/parent/b']);
+        sandbox.stub(repo, 'getIndexFragment').resolves(indexFrag);
+        repo.aem.sites.cf.fragments.save.resolves(indexFrag);
+        const result = await repo.removeFromIndexFragment([makeFrag('/parent/a'), makeFrag('/parent/b')]);
+        expect(result).to.be.true;
+    });
+});
+
+describe('MasRepository createPlaceholder', () => {
+    let sandbox;
+    let repo;
+    let originalSearchGet;
+    let originalFiltersGet;
+    let originalPlaceholdersSet;
+
+    beforeEach(() => {
+        sandbox = sinon.createSandbox();
+        repo = Object.create(MasRepository.prototype);
+        repo.search = { value: { path: 'sandbox' } };
+        repo.filters = { value: { locale: 'en_US' } };
+        repo.aem = { saveTags: sandbox.stub().resolves() };
+        sandbox.stub(repo, 'getDictionaryPath').returns('/content/dam/mas/sandbox/en_US/dict');
+        sandbox.stub(repo, 'createFragment').resolves({
+            id: 'new-ph',
+            path: '/content/dam/mas/sandbox/en_US/dict/my-key',
+            fields: [
+                { name: 'key', values: ['my-key'] },
+                { name: 'value', values: ['my-value'] },
+                { name: 'richTextValue', values: [''] },
+                { name: 'locReady', values: [true] },
+            ],
+            tags: [],
+        });
+        sandbox.stub(repo, 'addToIndexFragment').resolves(true);
+        sandbox.stub(repo, 'processError');
+
+        originalPlaceholdersSet = Store.placeholders?.list?.data?.set;
+        if (Store.placeholders?.list?.data) {
+            Store.placeholders.list.data.set = sandbox.stub();
+        }
+    });
+
+    afterEach(() => {
+        if (Store.placeholders?.list?.data && originalPlaceholdersSet) {
+            Store.placeholders.list.data.set = originalPlaceholdersSet;
+        }
+        sandbox.restore();
+    });
+
+    it('returns false when folderPath or locale is missing', async () => {
+        repo.search = { value: { path: null } };
+        expect(await repo.createPlaceholder({ key: 'k', value: 'v' })).to.be.false;
+    });
+
+    it('creates fragment, updates index, and returns true on success', async () => {
+        const result = await repo.createPlaceholder({ key: 'my-key', value: 'my-value', isRichText: false });
+        expect(result).to.be.true;
+        expect(repo.createFragment.called).to.be.true;
+        expect(repo.addToIndexFragment.called).to.be.true;
+    });
+
+    it('returns false and calls processError when addToIndexFragment fails', async () => {
+        repo.addToIndexFragment.resolves(false);
+        const result = await repo.createPlaceholder({ key: 'k', value: 'v' });
+        expect(result).to.be.false;
+        expect(repo.processError.called).to.be.true;
+    });
+});

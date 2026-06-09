@@ -12,7 +12,7 @@ import { transformer as defaultLanguage } from '../../io/www/src/fragment/transf
 import { clearDictionaryCache, getDictionary, transformer as replace } from '../../io/www/src/fragment/transformers/replace.js';
 import { clearSettingsCache, transformer as settings } from '../../io/www/src/fragment/transformers/settings.js';
 import { transformer as customize } from '../../io/www/src/fragment/transformers/customize.js';
-import { transformer as promotions } from '../../io/www/src/fragment/transformers/promotions.js';
+import { clearPromoCache, transformer as promotions } from '../../io/www/src/fragment/transformers/promotions.js';
 import { ODIN_PREVIEW_FRAGMENTS_URL } from '../src/constants.js';
 
 const PIPELINE = [fetchFragment, defaultLanguage, promotions, customize, settings, replace, corrector];
@@ -62,6 +62,7 @@ if (typeof window !== 'undefined') {
 function clearCaches() {
     clearDictionaryCache(true);
     clearSettingsCache(true);
+    clearPromoCache(true);
 }
 
 async function previewFragment(id, options) {

@@ -100,6 +100,7 @@ describe('MasTopNav', () => {
     describe('breadcrumbs', () => {
         it('should render fragment editor breadcrumbs and navigate to content from first crumb', async () => {
             Store.page.value = PAGE_NAMES.FRAGMENT_EDITOR;
+            Store.promotions.promotionId.value = null;
             const navigateStub = sandbox.stub(router, 'navigateToPage').returns(() => {});
             const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
             const items = [...el.querySelectorAll('.nav-breadcrumbs sp-breadcrumb-item')].map((item) =>
@@ -109,6 +110,19 @@ describe('MasTopNav', () => {
             expect(items).to.deep.equal(['Fragments', 'Editor']);
             el.querySelector('.nav-breadcrumbs sp-breadcrumb-item').click();
             expect(navigateStub.calledWith(PAGE_NAMES.CONTENT)).to.be.true;
+        });
+
+        it('should render promotion breadcrumbs on fragment editor when promotionId is set', async () => {
+            Store.page.value = PAGE_NAMES.FRAGMENT_EDITOR;
+            Store.promotions.promotionId.value = 'promo-1';
+            const navigateStub = sandbox.stub(router, 'navigateToPage').returns(() => {});
+            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
+            const breadcrumbs = [...el.querySelectorAll('.nav-breadcrumbs sp-breadcrumb-item')];
+            const items = breadcrumbs.map((item) => item.textContent.trim());
+
+            expect(items).to.deep.equal(['Promotions', 'Edit promotion project', 'Edit promotion variation']);
+            breadcrumbs[1].click();
+            expect(navigateStub.calledWith(PAGE_NAMES.PROMOTIONS_EDITOR)).to.be.true;
         });
 
         it('should render version breadcrumbs and navigate to editor from second crumb', async () => {

@@ -248,15 +248,20 @@ async function processFragment(fragment) {
     }
 
     // Check all fields with string values — AEM richtext type may vary ('text', 'html', 'richtext', etc.)
-    const updatedFields = fields.map((field) => {
-        const updatedValues = (field.values || []).map((val) => {
-            if (typeof val !== 'string') return val;
-            const { html, changed } = transformHtml(val);
-            if (changed) result.fieldsChanged.push(field.name);
-            return html;
+    // Returns transformed fields and the names of changed fields.
+    const applyTransform = (sourceFields, tracking) =>
+        sourceFields.map((field) => {
+            const updatedValues = (field.values || []).map((val) => {
+                if (typeof val !== 'string') return val;
+                const { html, changed } = transformHtml(val);
+                if (changed && tracking) tracking.push(field.name);
+                return html;
+            });
+            return { ...field, values: updatedValues };
         });
-        return { ...field, values: updatedValues };
-    });
+
+    // Dry-check against snapshot to decide whether to skip
+    applyTransform(fields, result.fieldsChanged);
 
     if (!result.fieldsChanged.length) {
         result.skipped = true;
@@ -265,17 +270,18 @@ async function processFragment(fragment) {
 
     if (!APPLY) return result; // dry-run
 
-    // Apply: fetch fresh ETag then PUT
+    // Apply: re-fetch fresh fragment so we transform the latest content (not the stale snapshot),
+    // avoiding silent overwrites if the fragment was edited between search and PUT.
     try {
         const fresh = await getFragmentById(id);
-        const toSave = { ...fresh, fields: updatedFields };
+        const toSave = { ...fresh, fields: applyTransform(fresh.fields) };
         await saveFragment(toSave);
     } catch (err) {
         if (err instanceof ETagConflict) {
-            // Retry once with a fresh ETag
+            // Retry once — re-fetch again to get the latest ETag and content
             try {
                 const fresh = await getFragmentById(id);
-                const toSave = { ...fresh, fields: updatedFields };
+                const toSave = { ...fresh, fields: applyTransform(fresh.fields) };
                 await saveFragment(toSave);
             } catch (retryErr) {
                 result.error = `ETag retry failed: ${retryErr.message}`;

@@ -1,5 +1,5 @@
 import { expect, fixture, html } from '@open-wc/testing';
-import '../../src/publish/mas-publish-dialog.js';
+import { MasPublishDialog } from '../../src/publish/mas-publish-dialog.js';
 
 const VARIATION = { id: 'var-1', path: '/content/dam/mas/sandbox/en_GB/my-fragment', status: 'DRAFT' };
 const CARD = { id: 'card-1', path: '/content/dam/mas/sandbox/en_US/some-card', status: 'UNPUBLISHED' };
@@ -92,5 +92,61 @@ describe('MasPublishDialog', () => {
         });
         el.cancel();
         expect(cancelled).to.be.true;
+    });
+});
+
+describe('MasPublishDialog.show()', () => {
+    afterEach(() => {
+        document.body.querySelectorAll('mas-publish-dialog').forEach((el) => el.remove());
+    });
+
+    it('resolves with confirmed:true and selectedIds when publish-confirmed fires', async () => {
+        const promise = MasPublishDialog.show({ variations: [VARIATION], cards: [CARD] });
+
+        const dialog = document.body.querySelector('mas-publish-dialog');
+        dialog.dispatchEvent(
+            new CustomEvent('publish-confirmed', {
+                detail: { selectedIds: ['var-1'], allSelected: false },
+            }),
+        );
+
+        const result = await promise;
+        expect(result).to.deep.equal({ confirmed: true, selectedIds: ['var-1'], allSelected: false });
+    });
+
+    it('resolves with confirmed:false when publish-cancelled fires', async () => {
+        const promise = MasPublishDialog.show({ variations: [VARIATION], cards: [] });
+
+        const dialog = document.body.querySelector('mas-publish-dialog');
+        dialog.dispatchEvent(new CustomEvent('publish-cancelled'));
+
+        const result = await promise;
+        expect(result).to.deep.equal({ confirmed: false, selectedIds: [], allSelected: false });
+    });
+
+    it('removes the dialog from DOM after confirm to prevent DOM leak', async () => {
+        const promise = MasPublishDialog.show({ variations: [VARIATION], cards: [] });
+
+        const dialog = document.body.querySelector('mas-publish-dialog');
+        expect(dialog).to.exist;
+
+        dialog.dispatchEvent(
+            new CustomEvent('publish-confirmed', {
+                detail: { selectedIds: [], allSelected: true },
+            }),
+        );
+        await promise;
+
+        expect(document.body.querySelector('mas-publish-dialog')).to.be.null;
+    });
+
+    it('removes the dialog from DOM after cancel to prevent DOM leak', async () => {
+        const promise = MasPublishDialog.show({ variations: [VARIATION], cards: [] });
+
+        const dialog = document.body.querySelector('mas-publish-dialog');
+        dialog.dispatchEvent(new CustomEvent('publish-cancelled'));
+        await promise;
+
+        expect(document.body.querySelector('mas-publish-dialog')).to.be.null;
     });
 });

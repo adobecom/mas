@@ -119,10 +119,16 @@ describe('bulk-publish/index.js', () => {
     });
 
     it('returns 400 when locales exceeds maximum', async () => {
-        const locales = Array.from({ length: 51 }, (_, i) => `locale_${i}`);
+        const locales = Array.from({ length: 201 }, (_, i) => `locale_${i}`);
         const result = await action.main({ ...baseParams, locales });
         expect(result.error.statusCode).to.equal(400);
-        expect(result.error.body.error).to.include('50');
+        expect(result.error.body.error).to.include('200');
+    });
+
+    it('accepts up to MAX_LOCALES locales without rejecting on the cap', async () => {
+        const locales = Array.from({ length: 200 }, (_, i) => `locale_${i}`);
+        const result = await action.main({ ...baseParams, locales });
+        expect(result.statusCode).to.equal(200);
     });
 
     it('returns 400 when paths is an empty array', async () => {
@@ -639,6 +645,34 @@ describe('bulk-publish/index.js', () => {
 
             const publishBody = JSON.parse(fetchOdinStub.firstCall.args[3].body);
             expect(publishBody.paths).to.deep.equal(snapshotPaths);
+        });
+
+        it('filters out snapshot paths that do not start with /content/dam/mas/', async () => {
+            const validPath = '/content/dam/mas/acom/en_US/card1';
+            const invalidPath = '/content/dam/internal/secrets/private';
+            createSnapshotStub.resolves([
+                JSON.stringify({
+                    fragmentId: 'frag-1',
+                    path: validPath,
+                    versionId: 'v1',
+                    wasPublished: false,
+                    createdAt: '2025-01-01T00:00:00.000Z',
+                }),
+                JSON.stringify({
+                    fragmentId: 'frag-bad',
+                    path: invalidPath,
+                    versionId: 'v2',
+                    wasPublished: false,
+                    createdAt: '2025-01-01T00:00:00.000Z',
+                }),
+            ]);
+
+            const result = await projectAction.main({ ...baseParams, paths: undefined, projectId: 'proj-uuid' });
+
+            expect(result.statusCode).to.equal(200);
+            const publishBody = JSON.parse(fetchOdinStub.firstCall.args[3].body);
+            expect(publishBody.paths).to.deep.equal([validPath]);
+            expect(publishBody.paths).not.to.include(invalidPath);
         });
     });
 });

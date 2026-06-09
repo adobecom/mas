@@ -15,7 +15,7 @@ const {
 
 const logger = Core.Logger('bulk-publish', { level: 'info' });
 const MAX_PATHS = 500;
-const MAX_LOCALES = 50;
+const MAX_LOCALES = 200;
 const MAX_RESOLVED = 5000;
 const MAX_CHUNK_SIZE = 50;
 const PATH_PREFIX = '/content/dam/mas/';

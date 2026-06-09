@@ -51,4 +51,7 @@ export const styles = css`
         margin-bottom: 12px;
         color: var(--spectrum-global-color-gray-800);
     }
+    h2 {
+        padding-block-end: 0;
+    }
 `;

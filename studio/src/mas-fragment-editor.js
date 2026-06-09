@@ -26,6 +26,16 @@ import {
 } from './utils.js';
 import { getSpectrumVersion } from './constants/icon-library.js';
 import { getFragmentPartsToUse } from './editor-panel.js';
+import {
+    getPromotionTagFromFragment,
+    getPromoNameFromTag,
+    buildPromoVariationPathForTag,
+    getPromoNameFromPromoVariationPath,
+    isPromoVariationPath,
+} from './promotions/promotion-model.js';
+import { splitPromotionTagsFieldValues } from './promotions/promotion-editor-utils.js';
+import * as promotionsRepository from './promotions/promotions-repository.js';
+import { normalizeTagId } from './aem/tag-id-utils.js';
 import './editors/merch-card-editor.js';
 import './editors/merch-card-collection-editor.js';
 import './mas-variation-dialog.js';
@@ -505,6 +515,9 @@ export default class MasFragmentEditor extends LitElement {
     reactiveController = new ReactiveController(this, [
         Store.fragmentEditor.fragmentId,
         Store.fragmentEditor.loading,
+        Store.fragmentEditor.editorContext,
+        Store.promotions.promotionId,
+        Store.promotions.inEdit,
         Store.search,
         Store.filters,
     ]);
@@ -923,7 +936,12 @@ export default class MasFragmentEditor extends LitElement {
             if (this.repository.search.value.path) {
                 void this.repository.loadPreviewPlaceholders(Store.localeOrRegion());
             }
-            const fragmentData = await this.repository.aem.sites.cf.fragments.getById(fragmentId);
+            let fragmentData = await this.repository.aem.sites.cf.fragments.getById(fragmentId);
+            fragmentData = await promotionsRepository.mergePromoReferencesIntoFragmentData(
+                this.repository.aem,
+                fragmentData,
+                () => this.repository.loadPromotions(),
+            );
             const fragment = new Fragment(fragmentData);
 
             snapFilterToPathDefault(fragment.path);
@@ -1037,7 +1055,24 @@ export default class MasFragmentEditor extends LitElement {
             return parentData;
         }
 
+        if (isPromoVariationPath(fragmentPath)) {
+            parentData = await promotionsRepository.resolveDefaultFragmentForPromoVariation(
+                this.repository.aem,
+                fragmentPath,
+                this.fragment?.id,
+                () => this.repository.loadPromotions(),
+            );
+            if (parentData) {
+                this.editorContextStore?.setParent(parentData);
+                this.groupedVariationOrphanMessage = null;
+                return parentData;
+            }
+            this.groupedVariationOrphanMessage = null;
+            return null;
+        }
+
         if (!Fragment.isGroupedVariationPath(fragmentPath)) {
+            this.groupedVariationOrphanMessage = null;
             return null;
         }
 
@@ -1188,6 +1223,7 @@ export default class MasFragmentEditor extends LitElement {
         const parentLocale = extractLocaleFromPath(this.localeDefaultFragment.path);
         // Reset changes to avoid discard dialog since we're navigating to the parent
         Store.editor.resetChanges();
+        Store.promotions.promotionId.set(null);
         if (parentLocale) {
             Store.removeRegionOverride();
             // Also update the locale filter to match the parent fragment's locale
@@ -1563,6 +1599,90 @@ export default class MasFragmentEditor extends LitElement {
         </div>`;
     }
 
+    isPromoVariationFragment() {
+        if (!this.fragment) return false;
+        if (isPromoVariationPath(this.fragment.path)) return true;
+        if (this.editorContextStore?.isPromoVariationByPath) return true;
+        if (getPromotionTagFromFragment(this.fragment)) return true;
+        return this.#matchesActivePromoVariationPath();
+    }
+
+    getActivePromotionTagId() {
+        const promotion = Store.promotions.inEdit.get()?.get?.();
+        if (!promotion) return null;
+        const { promotion: promotionTags } = splitPromotionTagsFieldValues(promotion.getFieldValues('tags'));
+        const first = promotionTags[0];
+        return first ? normalizeTagId(first) : null;
+    }
+
+    #matchesActivePromoVariationPath() {
+        const promoTag = this.getActivePromotionTagId();
+        if (!promoTag || !this.fragment?.path) return false;
+        const parent = this.localeDefaultFragment;
+        if (parent?.path && buildPromoVariationPathForTag(parent.path, promoTag) === this.fragment.path) {
+            return true;
+        }
+        return isPromoVariationPath(this.fragment.path);
+    }
+
+    #formatPromoLabel(rawName) {
+        if (!rawName) return '';
+        return rawName
+            .split('/')
+            .pop()
+            .split(/[-_]/)
+            .filter(Boolean)
+            .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+            .join(' ');
+    }
+
+    displayPromoVariationInfo(clazz) {
+        const promotionTagId = getPromotionTagFromFragment(this.fragment) || this.getActivePromotionTagId();
+        const promotionName =
+            this.fragment.getCurrentTagTitle(TAG_PROMOTION_PREFIX) ||
+            (promotionTagId ? this.#formatPromoLabel(getPromoNameFromTag(promotionTagId)) : '') ||
+            this.#formatPromoLabel(getPromoNameFromPromoVariationPath(this.fragment.path)) ||
+            Store.promotions.inEdit.get()?.get?.()?.title ||
+            'Promotion';
+        return html`<div class="${clazz}">
+            <span>Promo variation: <strong>${promotionName}</strong></span>
+        </div>`;
+    }
+
+    variationTypeHeader(clazz) {
+        if (!this.fragment) return nothing;
+        if (Fragment.isGroupedVariationPath(this.fragment.path)) {
+            return this.displayGroupedVariationInfo(clazz);
+        }
+        if (this.isPromoVariationFragment()) {
+            return this.displayPromoVariationInfo(clazz);
+        }
+        return this.displayRegionalVarationInfo(clazz);
+    }
+
+    showsPreviewVariationTypeHeader() {
+        if (!this.fragment) return false;
+        if (this.isPromoVariationFragment()) return true;
+        return this.editorContextStore.isVariation(this.fragment.id);
+    }
+
+    get previewVariationHeader() {
+        if (!this.showsPreviewVariationTypeHeader()) {
+            return nothing;
+        }
+        return this.variationTypeHeader('preview-header');
+    }
+
+    get localeVariationHeader() {
+        if (!this.fragment || this.isPromoVariationFragment()) {
+            return nothing;
+        }
+        if (!this.editorContextStore.isVariation(this.fragment.id)) {
+            return nothing;
+        }
+        return this.variationTypeHeader('locale-variation-header');
+    }
+
     #handleGroupedPreviewLocaleChange = (event) => {
         const editor = getActiveMerchCardEditor();
         if (!editor) return;
@@ -1609,16 +1729,6 @@ export default class MasFragmentEditor extends LitElement {
                 </sp-picker>
             </div>
         `;
-    }
-
-    get localeVariationHeader() {
-        if (!this.fragment || !this.editorContextStore.isVariation(this.fragment.id)) {
-            return nothing;
-        }
-        if (Fragment.isGroupedVariationPath(this.fragment.path)) {
-            return this.displayGroupedVariationInfo('locale-variation-header');
-        }
-        return this.displayRegionalVarationInfo('locale-variation-header');
     }
 
     get localeDefaultLocaleLabel() {
@@ -1863,12 +1973,7 @@ export default class MasFragmentEditor extends LitElement {
         return html`
             <div id="preview-column">
                 <div id="preview-wrapper">
-                    ${this.groupedPreviewLocaleSelector}
-                    ${this.editorContextStore.isVariation(this.fragment.id)
-                        ? Fragment.isGroupedVariationPath(this.fragment.path)
-                            ? this.displayGroupedVariationInfo('preview-header')
-                            : this.displayRegionalVarationInfo('preview-header')
-                        : nothing}
+                    ${this.groupedPreviewLocaleSelector} ${this.previewVariationHeader}
                     <div class="preview-content columns mas-fragment">
                         <sp-theme color="light" scale="medium" system="${getSpectrumVersion(attrs.variant)}">
                             <merch-card

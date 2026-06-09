@@ -33,10 +33,6 @@ export const styles = [
             border-radius: 12px;
         }
 
-        sp-table-body {
-            min-height: 50vh;
-        }
-
         .fragments-table sp-table-head sp-table-head-cell:first-of-type,
         .fragments-table sp-table-head sp-table-head-cell:last-of-type,
         .fragments-table sp-table-head sp-table-checkbox-cell:first-of-type {

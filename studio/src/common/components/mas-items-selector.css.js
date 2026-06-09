@@ -27,7 +27,7 @@ export const styles = [
             flex-direction: column;
             min-width: 80vw;
             max-height: 70vh;
-            min-height: 0;
+            min-height: 50vh;
         }
 
         sp-tabs {

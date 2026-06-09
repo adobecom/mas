@@ -304,6 +304,21 @@ class MasTopNav extends LitElement {
         };
 
         if (this.page.value === PAGE_NAMES.FRAGMENT_EDITOR) {
+            const promotionId = this.promotions.promotionId.get();
+            if (promotionId) {
+                return [
+                    { label: 'Promotions', handler: handlers.promotions },
+                    {
+                        label: this.promotionsEditorBreadcrumbLabel,
+                        handler: () => {
+                            const id = this.promotions.promotionId.get();
+                            if (id) Store.promotions.promotionId.set(id);
+                            router.navigateToPage(PAGE_NAMES.PROMOTIONS_EDITOR)();
+                        },
+                    },
+                    { label: 'Edit promotion variation' },
+                ];
+            }
             return [{ label: 'Fragments', handler: handlers.content }, { label: 'Editor' }];
         }
         if (this.page.value === PAGE_NAMES.VERSION) {

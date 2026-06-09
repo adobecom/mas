@@ -1,6 +1,7 @@
 import { VariantLayout } from './variant-layout';
 import { html, css, nothing } from 'lit';
 import { CSS } from './bizpro.css.js';
+import { ARROW_DOWN, ARROW_UP, ENTER, TAB } from '../focus.js';
 import {
     EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
     EVENT_TYPE_RESOLVED,
@@ -43,6 +44,10 @@ export class BizPro extends VariantLayout {
     expanded = false;
     licenseOpen = false;
     licenseQty = null;
+    // Active-descendant index into licenseOptions while the popover is open
+    // (same model as merch-quantity-select.highlightedIndex). DOM focus stays
+    // on the combobox trigger; arrow keys move this highlight, not focus.
+    licenseHighlightedIndex = 0;
     #licenseDocListenerBound = null;
     #resizeFrame = null;
     #visibilityObserver = null;
@@ -352,8 +357,16 @@ export class BizPro extends VariantLayout {
         this.#licenseDocListenerBound = null;
     }
 
+    #currentLicenseIndex() {
+        const idx = this.licenseOptions?.indexOf(this.currentLicenseValue);
+        return idx > 0 ? idx : 0;
+    }
+
     #openLicensePopover() {
         this.licenseOpen = true;
+        // Open with the active-descendant highlight on the selected option
+        // (matches merch-quantity-select.openMenu / toggleMenu).
+        this.licenseHighlightedIndex = this.#currentLicenseIndex();
         if (!this.#licenseDocListenerBound) {
             this.#licenseDocListenerBound = (evt) => {
                 if (!evt.composedPath().includes(this.card)) {
@@ -369,95 +382,88 @@ export class BizPro extends VariantLayout {
         }
     }
 
+    #closeLicensePopover() {
+        this.licenseOpen = false;
+        this.#removeLicenseDocListener();
+    }
+
     toggleLicensePopover = (e) => {
         e.preventDefault();
         e.stopPropagation();
         if (this.licenseOpen) {
-            this.licenseOpen = false;
-            this.#removeLicenseDocListener();
+            this.#closeLicensePopover();
         } else {
             this.#openLicensePopover();
         }
         this.card.requestUpdate();
     };
 
-    #handleTriggerKeydown = (e) => {
-        if (!['ArrowDown', 'ArrowUp', 'Enter', ' '].includes(e.key)) return;
-        e.preventDefault();
-        // Enter/Space on an open popover toggles it closed (trigger re-focused
-        // after ArrowUp from first option lands here).
-        if (this.licenseOpen && (e.key === 'Enter' || e.key === ' ')) {
-            this.licenseOpen = false;
-            this.#removeLicenseDocListener();
-            this.card.requestUpdate();
-            return;
+    /**
+     * Keyboard handling for the license combobox. Mirrors
+     * merch-quantity-select.handleKeydown: DOM focus stays on the trigger and
+     * arrow keys move the active-descendant highlight (aria-activedescendant)
+     * rather than moving focus into the listbox. Enter/Space commit the
+     * highlighted option, Escape closes, Tab commits and lets focus advance.
+     */
+    #handleLicenseKeydown = (e) => {
+        const opts = this.licenseOptions;
+        if (!opts?.length) return;
+        const last = opts.length - 1;
+        switch (e.key) {
+            case ARROW_DOWN:
+                e.preventDefault();
+                if (this.licenseOpen) {
+                    this.licenseHighlightedIndex =
+                        (this.licenseHighlightedIndex + 1) % opts.length;
+                } else {
+                    this.#openLicensePopover();
+                }
+                break;
+            case ARROW_UP:
+                e.preventDefault();
+                if (this.licenseOpen) {
+                    this.licenseHighlightedIndex =
+                        (this.licenseHighlightedIndex - 1 + opts.length) %
+                        opts.length;
+                } else {
+                    this.#openLicensePopover();
+                }
+                break;
+            case 'Home':
+                if (!this.licenseOpen) return;
+                e.preventDefault();
+                this.licenseHighlightedIndex = 0;
+                break;
+            case 'End':
+                if (!this.licenseOpen) return;
+                e.preventDefault();
+                this.licenseHighlightedIndex = last;
+                break;
+            case ENTER:
+            case ' ':
+                e.preventDefault();
+                if (this.licenseOpen) {
+                    this.selectLicenseQty(opts[this.licenseHighlightedIndex]);
+                    return; // selectLicenseQty already requests an update
+                }
+                this.#openLicensePopover();
+                break;
+            case 'Escape':
+                if (!this.licenseOpen) return;
+                e.preventDefault();
+                this.#closeLicensePopover();
+                break;
+            case TAB:
+                // Commit the highlight and let focus advance naturally (no
+                // preventDefault) — same as merch-quantity-select.
+                if (this.licenseOpen) {
+                    this.selectLicenseQty(opts[this.licenseHighlightedIndex]);
+                }
+                return;
+            default:
+                return;
         }
-        if (!this.licenseOpen) {
-            this.#openLicensePopover();
-            this.card.requestUpdate();
-        }
-        // Move DOM focus into the listbox after the render makes options visible.
-        this.card.updateComplete.then(() => {
-            const options = Array.from(
-                this.card.shadowRoot?.querySelectorAll('[role="option"]') ?? [],
-            );
-            if (!options.length) return;
-            const current = this.currentLicenseValue;
-            const selected = options.find(
-                (el) => el.dataset.value === current,
-            );
-            // Per ARIA APG: ArrowUp opens to last option; others open to
-            // the selected option (or first if none selected).
-            (e.key === 'ArrowUp'
-                ? options[options.length - 1]
-                : (selected ?? options[0])
-            ).focus();
-        });
-    };
-
-    #handleOptionKeydown = (e) => {
-        const options = Array.from(
-            this.card.shadowRoot?.querySelectorAll('[role="option"]') ?? [],
-        );
-        const idx = options.indexOf(e.currentTarget);
-        const trigger = () =>
-            this.card.shadowRoot?.querySelector('.license-select-trigger');
-
-        if (e.key === 'ArrowDown') {
-            e.preventDefault();
-            options[Math.min(idx + 1, options.length - 1)]?.focus();
-        } else if (e.key === 'ArrowUp') {
-            e.preventDefault();
-            if (idx === 0) {
-                trigger()?.focus();
-            } else {
-                options[idx - 1]?.focus();
-            }
-        } else if (e.key === 'Home') {
-            e.preventDefault();
-            options[0]?.focus();
-        } else if (e.key === 'End') {
-            e.preventDefault();
-            options[options.length - 1]?.focus();
-        } else if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            const value = e.currentTarget.dataset.value;
-            if (value) this.selectLicenseQty(value);
-            // selectLicenseQty calls requestUpdate; wait for the re-render
-            // (which hides the listbox) before returning focus to the trigger.
-            this.card.updateComplete.then(() => trigger()?.focus());
-        } else if (e.key === 'Escape') {
-            e.preventDefault();
-            this.licenseOpen = false;
-            this.#removeLicenseDocListener();
-            this.card.requestUpdate();
-            this.card.updateComplete.then(() => trigger()?.focus());
-        } else if (e.key === 'Tab') {
-            // Close popover but allow natural tab order to continue.
-            this.licenseOpen = false;
-            this.#removeLicenseDocListener();
-            this.card.requestUpdate();
-        }
+        this.card.requestUpdate();
     };
 
     selectLicenseQty = (value) => {
@@ -489,14 +495,17 @@ export class BizPro extends VariantLayout {
         const label = this.licenseLabel(Number(current));
         return html`
             <div class="license-select" ?data-open=${open}>
-                <button
+                <div
                     class="license-select-trigger"
-                    type="button"
-                    aria-haspopup="listbox"
+                    role="combobox"
+                    tabindex="0"
                     aria-expanded=${open ? 'true' : 'false'}
                     aria-controls="license-popover"
+                    aria-activedescendant=${open
+                        ? `license-option-${this.licenseHighlightedIndex}`
+                        : nothing}
                     @click=${this.toggleLicensePopover}
-                    @keydown=${this.#handleTriggerKeydown}
+                    @keydown=${this.#handleLicenseKeydown}
                 >
                     <span class="license-select-trigger-text">
                         <span class="license-select-value">${current}</span>
@@ -506,7 +515,7 @@ export class BizPro extends VariantLayout {
                         class="license-select-chevron"
                         aria-hidden="true"
                     ></span>
-                </button>
+                </div>
                 <ul
                     id="license-popover"
                     class="license-select-popover"
@@ -529,19 +538,22 @@ export class BizPro extends VariantLayout {
                         ></span>
                     </li>
                     ${opts.map(
-                        (opt) => html`
+                        (opt, index) => html`
                             <li
-                                class="license-select-option ${opt === current
-                                    ? 'selected'
-                                    : ''}"
+                                class="license-select-option ${index ===
+                                this.licenseHighlightedIndex
+                                    ? 'highlighted'
+                                    : ''}${opt === current ? ' selected' : ''}"
+                                id="license-option-${index}"
                                 role="option"
                                 aria-selected=${opt === current
                                     ? 'true'
                                     : 'false'}
-                                tabindex="-1"
-                                data-value=${opt}
                                 @click=${() => this.selectLicenseQty(opt)}
-                                @keydown=${this.#handleOptionKeydown}
+                                @mouseenter=${() => {
+                                    this.licenseHighlightedIndex = index;
+                                    this.card.requestUpdate();
+                                }}
                             >
                                 ${opt}
                             </li>
@@ -1006,18 +1018,17 @@ export class BizPro extends VariantLayout {
         }
 
         :host([variant='bizpro']) .license-select-option:hover,
+        :host([variant='bizpro']) .license-select-option.highlighted,
         :host([variant='bizpro']) .license-select-option.selected {
             background: var(--consonant-merch-card-bizpro-bg-subtle, #f8f8f8);
         }
 
-        :host([variant='bizpro']) .license-select-option:focus {
-            outline: none;
-        }
-
-        :host([variant='bizpro']) .license-select-option:focus-visible {
+        /* Active-descendant indicator: DOM focus stays on the combobox
+           trigger, so the keyboard-highlighted option needs its own visible
+           ring (WCAG 2.4.7) layered over the highlight background. */
+        :host([variant='bizpro']) .license-select-option.highlighted {
             outline: 2px solid #1473e6;
             outline-offset: -2px;
-            background: var(--consonant-merch-card-bizpro-bg-subtle, #f8f8f8);
         }
 
         :host([variant='bizpro']) .callout {

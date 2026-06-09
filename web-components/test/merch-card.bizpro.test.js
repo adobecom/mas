@@ -507,175 +507,194 @@ describe('bizpro license dropdown keyboard navigation', () => {
     const QS =
         '<div slot="quantity-select"><merch-quantity-select title="License|Licenses" min="1" max="5" step="1" default-value="3"></merch-quantity-select></div>';
 
+    // Options are values 1..5, so the default "3" is at index 2.
+
     function key(target, keyName) {
-        target.dispatchEvent(
-            new KeyboardEvent('keydown', { key: keyName, bubbles: true }),
-        );
+        const event = new KeyboardEvent('keydown', {
+            key: keyName,
+            bubbles: true,
+            cancelable: true,
+        });
+        target.dispatchEvent(event);
+        return event;
     }
 
-    async function getOptions() {
-        return Array.from(
-            card.shadowRoot.querySelectorAll('[role="option"]'),
+    const trigger = () =>
+        card.shadowRoot.querySelector('.license-select-trigger');
+    const popoverHidden = () =>
+        card.shadowRoot
+            .querySelector('#license-popover')
+            .hasAttribute('hidden');
+    const highlighted = () =>
+        card.shadowRoot.querySelector('.license-select-option.highlighted');
+    const activeDescendant = () =>
+        card.shadowRoot.querySelector(
+            `#${trigger().getAttribute('aria-activedescendant')}`,
         );
-    }
 
-    it('opens popover and focuses selected option on ArrowDown', async () => {
+    it('exposes the trigger as a combobox in the tab order', async () => {
         card = await renderCard(QS);
-        const trigger = card.shadowRoot.querySelector('.license-select-trigger');
-        key(trigger, 'ArrowDown');
-        await card.updateComplete;
-        expect(
-            card.shadowRoot
-                .querySelector('#license-popover')
-                .hasAttribute('hidden'),
-        ).to.be.false;
-        const opts = await getOptions();
-        const selected = opts.find((o) => o.dataset.value === '3');
-        expect(card.shadowRoot.activeElement).to.equal(selected);
+        expect(trigger().getAttribute('role')).to.equal('combobox');
+        expect(trigger().getAttribute('tabindex')).to.equal('0');
+        expect(trigger().getAttribute('aria-controls')).to.equal(
+            'license-popover',
+        );
     });
 
-    it('opens popover and focuses last option on ArrowUp', async () => {
+    it('opens on ArrowDown and highlights the selected option', async () => {
         card = await renderCard(QS);
-        const trigger = card.shadowRoot.querySelector('.license-select-trigger');
-        key(trigger, 'ArrowUp');
+        const event = key(trigger(), 'ArrowDown');
         await card.updateComplete;
-        const opts = await getOptions();
-        expect(card.shadowRoot.activeElement).to.equal(opts[opts.length - 1]);
+        expect(popoverHidden()).to.be.false;
+        expect(event.defaultPrevented).to.be.true;
+        // DOM focus stays on the trigger; the highlight is the selected value.
+        expect(highlighted().id).to.equal('license-option-2');
+        expect(trigger().getAttribute('aria-activedescendant')).to.equal(
+            'license-option-2',
+        );
+        expect(activeDescendant().textContent.trim()).to.equal('3');
     });
 
-    it('opens popover on Enter', async () => {
+    it('opens on ArrowUp and prevents the default page scroll', async () => {
         card = await renderCard(QS);
-        const trigger = card.shadowRoot.querySelector('.license-select-trigger');
-        key(trigger, 'Enter');
+        const event = key(trigger(), 'ArrowUp');
         await card.updateComplete;
-        expect(
-            card.shadowRoot
-                .querySelector('#license-popover')
-                .hasAttribute('hidden'),
-        ).to.be.false;
+        expect(popoverHidden()).to.be.false;
+        expect(event.defaultPrevented).to.be.true;
     });
 
-    it('closes popover with Enter on open trigger', async () => {
+    it('opens on Enter and Space', async () => {
         card = await renderCard(QS);
-        const trigger = card.shadowRoot.querySelector('.license-select-trigger');
-        key(trigger, 'Enter');
+        key(trigger(), 'Enter');
         await card.updateComplete;
-        key(trigger, 'Enter');
+        expect(popoverHidden()).to.be.false;
+        // Space closes (toggles) the open popover...
+        key(trigger(), ' ');
         await card.updateComplete;
-        expect(
-            card.shadowRoot
-                .querySelector('#license-popover')
-                .hasAttribute('hidden'),
-        ).to.be.true;
+        expect(popoverHidden()).to.be.true;
+        // ...and reopens from closed.
+        key(trigger(), ' ');
+        await card.updateComplete;
+        expect(popoverHidden()).to.be.false;
     });
 
-    it('navigates options with ArrowDown and ArrowUp', async () => {
+    it('moves the highlight with ArrowDown/ArrowUp and wraps around', async () => {
         card = await renderCard(QS);
-        const trigger = card.shadowRoot.querySelector('.license-select-trigger');
-        key(trigger, 'ArrowDown');
+        key(trigger(), 'ArrowDown'); // open, highlight idx 2 ("3")
         await card.updateComplete;
-        const opts = await getOptions();
-        // Start at selected (index 2 for value "3")
-        const startIdx = opts.findIndex((o) => o.dataset.value === '3');
-        key(card.shadowRoot.activeElement, 'ArrowDown');
-        expect(card.shadowRoot.activeElement).to.equal(opts[startIdx + 1]);
-        key(card.shadowRoot.activeElement, 'ArrowUp');
-        expect(card.shadowRoot.activeElement).to.equal(opts[startIdx]);
+        key(trigger(), 'ArrowDown');
+        await card.updateComplete;
+        expect(highlighted().id).to.equal('license-option-3');
+        key(trigger(), 'ArrowUp');
+        await card.updateComplete;
+        expect(highlighted().id).to.equal('license-option-2');
+        // Wrap: from idx 2 up three times -> 1 -> 0 -> last (4)
+        key(trigger(), 'ArrowUp');
+        await card.updateComplete;
+        key(trigger(), 'ArrowUp');
+        await card.updateComplete;
+        key(trigger(), 'ArrowUp');
+        await card.updateComplete;
+        expect(highlighted().id).to.equal('license-option-4');
     });
 
-    it('does not move past first or last option', async () => {
+    it('Home and End jump the highlight to first and last option', async () => {
         card = await renderCard(QS);
-        const trigger = card.shadowRoot.querySelector('.license-select-trigger');
-        key(trigger, 'ArrowDown');
+        key(trigger(), 'ArrowDown');
         await card.updateComplete;
-        const opts = await getOptions();
-        key(opts[0], 'ArrowUp');
-        // ArrowUp on first option returns focus to trigger
-        expect(card.shadowRoot.activeElement).to.equal(trigger);
-
-        key(trigger, 'ArrowDown');
+        key(trigger(), 'End');
         await card.updateComplete;
-        key(opts[opts.length - 1], 'ArrowDown');
-        expect(card.shadowRoot.activeElement).to.equal(opts[opts.length - 1]);
+        expect(highlighted().id).to.equal('license-option-4');
+        key(trigger(), 'Home');
+        await card.updateComplete;
+        expect(highlighted().id).to.equal('license-option-0');
     });
 
-    it('Home and End jump to first and last option', async () => {
+    it('keeps DOM focus on the trigger while navigating', async () => {
         card = await renderCard(QS);
-        const trigger = card.shadowRoot.querySelector('.license-select-trigger');
-        key(trigger, 'ArrowDown');
+        trigger().focus();
+        key(trigger(), 'ArrowDown');
         await card.updateComplete;
-        const opts = await getOptions();
-        key(opts[2], 'End');
-        expect(card.shadowRoot.activeElement).to.equal(opts[opts.length - 1]);
-        key(opts[opts.length - 1], 'Home');
-        expect(card.shadowRoot.activeElement).to.equal(opts[0]);
+        key(trigger(), 'ArrowDown');
+        await card.updateComplete;
+        expect(card.shadowRoot.activeElement).to.equal(trigger());
     });
 
-    it('selects option on Enter and returns focus to trigger', async () => {
+    it('selects the highlighted option on Enter and closes', async () => {
         card = await renderCard(QS);
-        const trigger = card.shadowRoot.querySelector('.license-select-trigger');
-        key(trigger, 'ArrowDown');
+        key(trigger(), 'ArrowDown'); // open at "3"
         await card.updateComplete;
-        const opts = await getOptions();
-        const target = opts.find((o) => o.dataset.value === '5');
-        key(target, 'Enter');
+        key(trigger(), 'ArrowDown'); // highlight "4"
+        await card.updateComplete;
+        key(trigger(), 'ArrowDown'); // highlight "5"
+        await card.updateComplete;
+        key(trigger(), 'Enter');
         await card.updateComplete;
         expect(
             card.shadowRoot
                 .querySelector('.license-select-value')
                 .textContent.trim(),
         ).to.equal('5');
-        expect(
-            card.shadowRoot
-                .querySelector('#license-popover')
-                .hasAttribute('hidden'),
-        ).to.be.true;
-        await card.updateComplete;
-        expect(card.shadowRoot.activeElement).to.equal(trigger);
+        expect(popoverHidden()).to.be.true;
     });
 
-    it('closes popover on Escape and returns focus to trigger', async () => {
+    it('routes the keyboard selection through the quantity selector', async () => {
         card = await renderCard(QS);
-        const trigger = card.shadowRoot.querySelector('.license-select-trigger');
-        key(trigger, 'ArrowDown');
+        const events = [];
+        card.addEventListener(EVENT_MERCH_QUANTITY_SELECTOR_CHANGE, (e) =>
+            events.push(e.detail),
+        );
+        key(trigger(), 'ArrowDown'); // open at "3"
         await card.updateComplete;
-        const opts = await getOptions();
-        key(opts[0], 'Escape');
+        key(trigger(), 'Enter'); // select "3"
         await card.updateComplete;
         expect(
-            card.shadowRoot
-                .querySelector('#license-popover')
-                .hasAttribute('hidden'),
-        ).to.be.true;
-        await card.updateComplete;
-        expect(card.shadowRoot.activeElement).to.equal(trigger);
+            card.querySelector('merch-quantity-select').selectedValue,
+        ).to.equal(3);
+        expect(events).to.deep.include({ option: 3 });
     });
 
-    it('closes popover on Tab without preventing natural tab flow', async () => {
+    it('closes on Escape and keeps focus on the trigger', async () => {
         card = await renderCard(QS);
-        const trigger = card.shadowRoot.querySelector('.license-select-trigger');
-        key(trigger, 'ArrowDown');
+        trigger().focus();
+        key(trigger(), 'ArrowDown');
         await card.updateComplete;
-        const opts = await getOptions();
-        const tabEvent = new KeyboardEvent('keydown', {
-            key: 'Tab',
-            bubbles: true,
-            cancelable: true,
-        });
-        opts[0].dispatchEvent(tabEvent);
+        const event = key(trigger(), 'Escape');
         await card.updateComplete;
+        expect(popoverHidden()).to.be.true;
+        expect(event.defaultPrevented).to.be.true;
+        expect(card.shadowRoot.activeElement).to.equal(trigger());
+    });
+
+    it('commits the highlight on Tab and lets focus advance', async () => {
+        card = await renderCard(QS);
+        key(trigger(), 'ArrowDown'); // open at "3"
+        await card.updateComplete;
+        key(trigger(), 'ArrowDown'); // highlight "4"
+        await card.updateComplete;
+        const event = key(trigger(), 'Tab');
+        await card.updateComplete;
+        expect(popoverHidden()).to.be.true;
+        // Tab must NOT be prevented — focus continues to the next control.
+        expect(event.defaultPrevented).to.be.false;
         expect(
             card.shadowRoot
-                .querySelector('#license-popover')
-                .hasAttribute('hidden'),
-        ).to.be.true;
-        expect(tabEvent.defaultPrevented).to.be.false;
+                .querySelector('.license-select-value')
+                .textContent.trim(),
+        ).to.equal('4');
+    });
+
+    it('drops aria-activedescendant when closed', async () => {
+        card = await renderCard(QS);
+        expect(trigger().hasAttribute('aria-activedescendant')).to.be.false;
+        key(trigger(), 'ArrowDown');
+        await card.updateComplete;
+        expect(trigger().hasAttribute('aria-activedescendant')).to.be.true;
     });
 
     it('header list item is hidden from assistive technology', async () => {
         card = await renderCard(QS);
-        const trigger = card.shadowRoot.querySelector('.license-select-trigger');
-        trigger.click();
+        trigger().click();
         await card.updateComplete;
         const header = card.shadowRoot.querySelector(
             '.license-select-popover-header',

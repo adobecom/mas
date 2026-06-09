@@ -28,6 +28,7 @@ import {
     PROMOTION_EXPIRED_PUBLISH_MESSAGE,
 } from './promotion-publish-utils.js';
 import { renderFragmentStatusCell } from '../common/utils/render-utils.js';
+import { clearCaches } from '../../libs/fragment-client.js';
 
 function getPromotionPickerFragmentLabel(data) {
     const webComponentName = MODEL_WEB_COMPONENT_MAPPING[data?.model?.path];
@@ -475,6 +476,7 @@ class MasPromotionsEditor extends LitElement {
                 this.isCreated = true;
             }
 
+            clearCaches();
             showToast('Project successfully created.', 'positive');
 
             Store.promotions.inEdit.set(new FragmentStore(newPromotion));
@@ -513,6 +515,7 @@ class MasPromotionsEditor extends LitElement {
             showToast('Failed to save project.', 'negative');
             return;
         }
+        clearCaches();
         showToast('Project successfully saved.', 'positive');
         Store.promotions.selectedPlaceholders.set([]);
         await this.#hydratePromotionItemSelectionFromFragment();

@@ -493,9 +493,7 @@ runTests(async () => {
                     card.variantLayout.headingSelector,
                 );
                 title.style.minHeight = '200px';
-                for (let attempt = 0; attempt < 20 && !spy.called; attempt++) {
-                    await delay(50);
-                }
+                card.variantLayout.resyncOnReflow();
                 expect(spy.called).to.be.true;
                 title.style.minHeight = '';
                 spy.restore();

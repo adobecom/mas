@@ -182,21 +182,23 @@ export class FullPricingExpress extends VariantLayout {
         }
     }
 
+    resyncOnReflow() {
+        const width = this.card.getBoundingClientRect().width;
+        if (width <= 2) return;
+        const title = this.card.querySelector(this.headingSelector);
+        const titleHeight = title
+            ? Math.round(title.getBoundingClientRect().height)
+            : 0;
+        const key = `${Math.round(width)}:${titleHeight}`;
+        if (key === this.lastSyncedKey) return;
+        this.lastSyncedKey = key;
+        this.syncHeights();
+    }
+
     connectedCallbackHook() {
         if (!this.card || typeof ResizeObserver === 'undefined') return;
         this.lastSyncedKey = '';
-        this.sizeObserver = new ResizeObserver(() => {
-            const width = this.card.getBoundingClientRect().width;
-            if (width <= 2) return;
-            const title = this.card.querySelector(this.headingSelector);
-            const titleHeight = title
-                ? Math.round(title.getBoundingClientRect().height)
-                : 0;
-            const key = `${Math.round(width)}:${titleHeight}`;
-            if (key === this.lastSyncedKey) return;
-            this.lastSyncedKey = key;
-            this.syncHeights();
-        });
+        this.sizeObserver = new ResizeObserver(() => this.resyncOnReflow());
         this.sizeObserver.observe(this.card);
         const title = this.card.querySelector(this.headingSelector);
         if (title) this.sizeObserver.observe(title);

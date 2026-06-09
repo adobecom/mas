@@ -1677,11 +1677,10 @@ class MasCompareChartEditor extends LitElement {
         this.#updateCardsField(paths);
     }
 
-    #openItemsSelector(event) {
+    async #openItemsSelector(event) {
         const cards = this.#cardPaths.map((path) => this.#getSourceCardFragment(path)).filter(Boolean);
         Store.compareChart.cardsByPaths.set(new Map(cards.map((card) => [card.path, card])));
         Store.compareChart.selectedCards.set([...this.#cardPaths]);
-        Store.compareChart.displayCards.set([...this.#cardPaths]);
         Store.compareChart.showSelected.set(true);
         const repository = document.querySelector('mas-repository');
         const currentTags = Store.filters.get()?.tags;
@@ -1714,25 +1713,18 @@ class MasCompareChartEditor extends LitElement {
             underlay
             dismissable
             no-divider
-            @sp-opened=${this.#alignItemsDialogFooter}
-            @cancel=${this.#cancelItemsSelector}
+            @sp-opened=${this.#openItemsSelector}
+            @cancel=${this.#closeItemsSelector}
             @confirm=${this.#confirmItemsSelector}
         >
-            <mas-items-selector
-                .allowedTypes=${[TABLE_TYPE.CARDS]}
-                .maxSelectedCards=${MAX_COMPARE_CHART_CARDS}
-                .defaultTemplateFilter=${VARIANT_NAMES.COMPARE_CHART_COLUMN}
+        <mas-items-selector 
+            .allowedTypes=${[TABLE_TYPE.CARDS]}
+            .maxSelectedCards=${MAX_COMPARE_CHART_CARDS}
+            .defaultTemplateFilter=${VARIANT_NAMES.COMPARE_CHART_COLUMN}
             ></mas-items-selector>
-        </sp-dialog-wrapper>`;
+        </sp-dialog-wrapper>
+        </sp-dialog-wrapper> `;
     }
-
-    #alignItemsDialogFooter = ({ target }) => {
-        const slotDiv = target?.shadowRoot?.querySelector('div[slot="footer"]');
-        if (!slotDiv) return;
-        slotDiv.style.width = '100%';
-        slotDiv.style.display = 'flex';
-        slotDiv.style.justifyContent = 'flex-end';
-    };
 
     #dispatchItemsSelectorEvent = (name) => {
         const wrapper = this.renderRoot.querySelector('.compchart-items-selector-dialog');
@@ -1761,12 +1753,8 @@ class MasCompareChartEditor extends LitElement {
         this.#closeItemsSelector(event?.target);
     }
 
-    #cancelItemsSelector(event) {
-        this.#closeItemsSelector(event?.target);
-    }
-
-    #closeItemsSelector(target) {
-        target?.dispatchEvent(new Event('close', { bubbles: true, composed: true }));
+    #closeItemsSelector() {
+        this.modalOpen = false;
     }
 
     #removeCard(index) {
@@ -1794,11 +1782,6 @@ class MasCompareChartEditor extends LitElement {
             }
         }
         this.#updateCardsField(paths);
-    }
-
-    #requestRemoveCard(event, path) {
-        event.stopPropagation();
-        this.cardPathToRemove = path;
     }
 
     #cancelRemoveCard = () => {
@@ -2411,7 +2394,7 @@ class MasCompareChartEditor extends LitElement {
             >
                 <div class="compchart-cards-header">
                     <h3 class="compchart-cards-title">Selected fragments *</h3>
-                    <overlay-trigger type="modal" triggered-by="click" @sp-opened=${this.#openItemsSelector}>
+                    <overlay-trigger type="modal" triggered-by="click">
                         ${this.#itemsSelectorDialog}
                         <sp-button slot="trigger" size="s" variant="secondary" quiet>
                             <sp-icon-edit slot="icon"></sp-icon-edit>

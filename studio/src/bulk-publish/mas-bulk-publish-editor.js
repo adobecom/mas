@@ -225,12 +225,13 @@ class MasBulkPublishEditor extends LitElement {
 
     get allAlreadyPublished() {
         if (this.status === BULK_PUBLISH_STATUS.PUBLISHED) return true;
+        if (this.locales.length > 0) return false;
         const valid = this.items.filter((i) => i.status === 'valid');
         return valid.length > 0 && valid.every((i) => i.alreadyPublished);
     }
 
     get publishBlockedReason() {
-        if (this.isNewProject || this.hasChanges) return PUBLISH_BLOCKED_REASON.UNSAVED;
+        if (this.isNewProject) return PUBLISH_BLOCKED_REASON.UNSAVED;
         if (!this.hasValidItems) return '';
         if (this.status === BULK_PUBLISH_STATUS.PUBLISHED) return PUBLISH_BLOCKED_REASON.ALREADY_PUBLISHED;
         if (this.allAlreadyPublished) return PUBLISH_BLOCKED_REASON.ALL_ITEMS_PUBLISHED;
@@ -255,6 +256,10 @@ class MasBulkPublishEditor extends LitElement {
 
     get isPublishing() {
         return this.status === BULK_PUBLISH_STATUS.PUBLISHING;
+    }
+
+    get canStartPublishing() {
+        return !this.hasChanges;
     }
 
     get isReadonly() {
@@ -709,6 +714,8 @@ class MasBulkPublishEditor extends LitElement {
     }
 
     async publish() {
+        if (this.hasChanges) await this.saveBulkProject();
+        if (!this.canStartPublishing) return;
         try {
             await this.#withPendingAction(QUICK_ACTION.PUBLISH, async () => {
                 const { startPublishing } = await import('./bulk-publish-store.js');

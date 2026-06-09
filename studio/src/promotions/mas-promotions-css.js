@@ -1,5 +1,5 @@
 import { css } from 'lit';
-import { tableCellBaseStyles } from './common/styles/table-styles.css.js';
+import { tableCellBaseStyles } from '../common/styles/table-styles.css.js';
 
 export const styles = css`
     ${tableCellBaseStyles}

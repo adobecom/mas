@@ -1,6 +1,7 @@
 const { init } = require('@adobe/aio-lib-state');
 
-const VERSIONING_LOCK_KEY = 'translation-versioning.lock';
+const WORKER_SLOTS_KEY = 'translation-worker.slots';
+const DEFAULT_CAPACITY = 2;
 const DEFAULT_LEASE_DURATION_MS = 90 * 1000;
 const DEFAULT_MAX_ATTEMPTS = 1;
 const DEFAULT_INITIAL_RETRY_DELAY_MS = 1000;
@@ -15,12 +16,12 @@ function normalizeOwner(owner = {}) {
     };
 }
 
-function sameOwner(lock, owner) {
+function sameOwner(slot, owner) {
     const normalizedOwner = normalizeOwner(owner);
     return (
-        lock?.jobId === normalizedOwner.jobId &&
-        lock?.projectId === normalizedOwner.projectId &&
-        (lock?.activationId || null) === normalizedOwner.activationId
+        slot?.jobId === normalizedOwner.jobId &&
+        slot?.projectId === normalizedOwner.projectId &&
+        (slot?.activationId || null) === normalizedOwner.activationId
     );
 }
 
@@ -28,15 +29,15 @@ function toDate(value) {
     return value instanceof Date ? value : new Date(value);
 }
 
-function isLockExpired(lock, options = {}) {
-    if (!lock?.leaseUntil) {
+function isSlotExpired(slot, options = {}) {
+    if (!slot?.leaseUntil) {
         return true;
     }
     const now = options.now ? toDate(options.now()) : new Date();
-    return new Date(lock.leaseUntil).getTime() <= now.getTime();
+    return new Date(slot.leaseUntil).getTime() <= now.getTime();
 }
 
-function buildLockRecord(owner, options = {}) {
+function buildSlotRecord(owner, options = {}) {
     const now = options.now ? toDate(options.now()) : new Date();
     const leaseDurationMs = options.leaseDurationMs ?? DEFAULT_LEASE_DURATION_MS;
     const normalizedOwner = normalizeOwner(owner);
@@ -60,23 +61,38 @@ function getBackoffDelay(attempt, options = {}) {
     return baseDelay + jitter;
 }
 
-async function getVersioningLock() {
+async function readSlots() {
     const state = await init();
-    const result = await state.get(VERSIONING_LOCK_KEY);
+    const result = await state.get(WORKER_SLOTS_KEY);
     if (!result?.value) {
-        return null;
+        return [];
     }
-    return JSON.parse(result.value);
+    try {
+        const parsed = JSON.parse(result.value);
+        return Array.isArray(parsed?.slots) ? parsed.slots : [];
+    } catch (e) {
+        return [];
+    }
 }
 
-async function putVersioningLock(lock, options = {}) {
+async function writeSlots(slots, options = {}) {
     const state = await init();
     const ttlSeconds = Math.max(1, Math.ceil((options.leaseDurationMs ?? DEFAULT_LEASE_DURATION_MS) / 1000));
-    await state.put(VERSIONING_LOCK_KEY, JSON.stringify(lock), { ttl: ttlSeconds });
-    return lock;
+    await state.put(WORKER_SLOTS_KEY, JSON.stringify({ slots }), { ttl: ttlSeconds });
+    return slots;
 }
 
-async function acquireVersioningLock(owner, options = {}) {
+function pruneExpired(slots, options = {}) {
+    return slots.filter((slot) => !isSlotExpired(slot, options));
+}
+
+async function getActiveSlots(options = {}) {
+    const slots = await readSlots();
+    return pruneExpired(slots, options);
+}
+
+async function acquireWorkerSlot(owner, options = {}) {
+    const capacity = options.capacity ?? DEFAULT_CAPACITY;
     const maxAttempts = options.maxAttempts ?? DEFAULT_MAX_ATTEMPTS;
     const sleep =
         options.sleep ||
@@ -85,38 +101,41 @@ async function acquireVersioningLock(owner, options = {}) {
         });
 
     for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
-        const currentLock = await getVersioningLock();
+        const slots = pruneExpired(await readSlots(), options);
 
-        if (!currentLock || isLockExpired(currentLock, options)) {
-            const lock = buildLockRecord(owner, options);
-            await putVersioningLock(lock, options);
+        const existingIndex = slots.findIndex((slot) => sameOwner(slot, owner));
+        if (existingIndex !== -1) {
+            const renewed = buildSlotRecord(owner, {
+                ...options,
+                acquiredAt: slots[existingIndex].acquiredAt,
+            });
+            const updated = [...slots];
+            updated[existingIndex] = renewed;
+            await writeSlots(updated, options);
             return {
                 acquired: true,
-                lock,
+                slot: renewed,
                 attempt,
+                alreadyOwned: true,
             };
         }
 
-        if (sameOwner(currentLock, owner)) {
-            const renewedLock = buildLockRecord(owner, {
-                ...options,
-                acquiredAt: currentLock.acquiredAt,
-            });
-            await putVersioningLock(renewedLock, options);
+        if (slots.length < capacity) {
+            const slot = buildSlotRecord(owner, options);
+            await writeSlots([...slots, slot], options);
             return {
                 acquired: true,
-                lock: renewedLock,
+                slot,
                 attempt,
-                alreadyOwned: true,
             };
         }
 
         if (attempt === maxAttempts) {
             return {
                 acquired: false,
-                lock: currentLock,
+                slots,
                 attempt,
-                reason: 'locked',
+                reason: 'no_slots_available',
             };
         }
 
@@ -126,79 +145,75 @@ async function acquireVersioningLock(owner, options = {}) {
 
     return {
         acquired: false,
-        lock: null,
+        slots: [],
         attempt: maxAttempts,
         reason: 'unknown',
     };
 }
 
-async function renewVersioningLock(owner, options = {}) {
-    const currentLock = await getVersioningLock();
-    if (!currentLock) {
+async function renewWorkerSlot(owner, options = {}) {
+    const slots = await readSlots();
+    const index = slots.findIndex((slot) => sameOwner(slot, owner));
+    if (index === -1) {
         return {
             renewed: false,
             reason: 'missing',
         };
     }
-    if (!sameOwner(currentLock, owner)) {
-        return {
-            renewed: false,
-            reason: 'not_owner',
-            lock: currentLock,
-        };
-    }
-    if (isLockExpired(currentLock, options)) {
+    if (isSlotExpired(slots[index], options)) {
         return {
             renewed: false,
             reason: 'expired',
-            lock: currentLock,
+            slot: slots[index],
         };
     }
 
-    const renewedLock = buildLockRecord(owner, {
+    const renewed = buildSlotRecord(owner, {
         ...options,
-        acquiredAt: currentLock.acquiredAt,
+        acquiredAt: slots[index].acquiredAt,
     });
-    await putVersioningLock(renewedLock, options);
+    const updated = [...slots];
+    updated[index] = renewed;
+    await writeSlots(updated, options);
     return {
         renewed: true,
-        lock: renewedLock,
+        slot: renewed,
     };
 }
 
-async function releaseVersioningLock(owner) {
-    const currentLock = await getVersioningLock();
-    if (!currentLock) {
+async function releaseWorkerSlot(owner) {
+    const slots = await readSlots();
+    const index = slots.findIndex((slot) => sameOwner(slot, owner));
+    if (index === -1) {
         return {
             released: false,
             reason: 'missing',
         };
     }
-    if (!sameOwner(currentLock, owner)) {
-        return {
-            released: false,
-            reason: 'not_owner',
-            lock: currentLock,
-        };
-    }
 
-    const state = await init();
-    await state.delete(VERSIONING_LOCK_KEY);
+    const remaining = slots.filter((_, i) => i !== index);
+    if (remaining.length === 0) {
+        const state = await init();
+        await state.delete(WORKER_SLOTS_KEY);
+    } else {
+        await writeSlots(remaining);
+    }
     return {
         released: true,
     };
 }
 
 module.exports = {
-    VERSIONING_LOCK_KEY,
+    WORKER_SLOTS_KEY,
+    DEFAULT_CAPACITY,
     DEFAULT_LEASE_DURATION_MS,
     DEFAULT_MAX_ATTEMPTS,
     DEFAULT_INITIAL_RETRY_DELAY_MS,
     DEFAULT_MAX_RETRY_DELAY_MS,
     DEFAULT_JITTER_RATIO,
-    isLockExpired,
-    acquireVersioningLock,
-    getVersioningLock,
-    renewVersioningLock,
-    releaseVersioningLock,
+    isSlotExpired,
+    acquireWorkerSlot,
+    getActiveSlots,
+    renewWorkerSlot,
+    releaseWorkerSlot,
 };

@@ -116,7 +116,7 @@ describe('Translation state helpers', () => {
             jobId: 'job-1',
             status: 'QUEUED',
             submissionDate: '2026-03-24T10:00:00Z',
-            versioning: {
+            progress: {
                 startedAt: null,
                 completedAt: null,
                 durationMs: null,
@@ -141,7 +141,7 @@ describe('Translation state helpers', () => {
             activationId: null,
             lastError: null,
         });
-        expect(parsedSummary.versioning).to.deep.equal(summary.versioning);
+        expect(parsedSummary.progress).to.deep.equal(summary.progress);
         expect(parsedSummary.updatedAt).to.be.a('string');
     });
 
@@ -151,7 +151,7 @@ describe('Translation state helpers', () => {
             {
                 projectId: 'project-1',
                 status: 'QUEUED',
-                versioning: {},
+                progress: {},
             },
             {
                 params: {
@@ -172,7 +172,7 @@ describe('Translation state helpers', () => {
                 activationId: 'activation-1',
                 status: 'RUNNING',
                 submissionDate: '2026-03-24T10:00:00Z',
-                versioning: {
+                progress: {
                     startedAt: '2026-03-24T10:01:00Z',
                     completedAt: null,
                     durationMs: null,
@@ -186,7 +186,7 @@ describe('Translation state helpers', () => {
 
         const result = await stateHelpers.patchProjectSummary('project-1', {
             status: 'ASYNC_PROCESSING',
-            versioning: {
+            progress: {
                 completedAt: '2026-03-24T10:05:00Z',
                 durationMs: 240000,
                 itemCount: 15,
@@ -201,7 +201,7 @@ describe('Translation state helpers', () => {
             submissionDate: '2026-03-24T10:00:00Z',
             lastError: null,
         });
-        expect(result.versioning).to.deep.equal({
+        expect(result.progress).to.deep.equal({
             startedAt: '2026-03-24T10:01:00Z',
             completedAt: '2026-03-24T10:05:00Z',
             durationMs: 240000,
@@ -212,7 +212,7 @@ describe('Translation state helpers', () => {
         const [, serializedSummary] = mockState.put.firstCall.args;
         const storedSummary = JSON.parse(serializedSummary);
         expect(storedSummary.status).to.equal('ASYNC_PROCESSING');
-        expect(storedSummary.versioning).to.deep.equal(result.versioning);
+        expect(storedSummary.progress).to.deep.equal(result.progress);
         expect(storedSummary.updatedAt).to.be.a('string');
         expect(storedSummary.updatedAt).to.not.equal('2026-03-24T10:01:00Z');
     });

@@ -1015,6 +1015,106 @@ describe('mas-bulk-publish-editor (openLocalesPicker)', () => {
     });
 });
 
+describe('mas-bulk-publish-editor (reEnrichItems on load)', () => {
+    let repositoryEl;
+    let sandbox;
+    const CARD_MODEL_PATH = '/conf/mas/settings/dam/cfm/models/card';
+
+    function rawCardFragment(id, path) {
+        return { id, path, model: { path: CARD_MODEL_PATH }, status: 'MODIFIED', fields: [], tags: [] };
+    }
+
+    beforeEach(() => {
+        sandbox = sinon.createSandbox();
+        repositoryEl = document.createElement('mas-repository');
+        repositoryEl.setAttribute('bucket', 'test-bucket');
+        document.body.appendChild(repositoryEl);
+        Store.search.set({ path: 'sandbox' });
+    });
+
+    afterEach(() => {
+        Store.bulkPublishProjects.inEdit.set(null);
+        Store.search.set({});
+        repositoryEl.remove();
+        sandbox.restore();
+    });
+
+    it('re-resolves authorPath and locale for valid items that lack them', async () => {
+        const el = await makeEditor();
+        const stored = [
+            {
+                url: 'https://mas.adobe.com/studio.html#path=sandbox',
+                fragmentId: 'frag-1',
+                path: '/content/dam/mas/sandbox/en_US/card-1',
+                status: 'valid',
+            },
+        ];
+        const fs = makeFragmentStore({ items: JSON.stringify(stored) });
+        Store.bulkPublishProjects.inEdit.set(fs);
+        await el.updateComplete;
+
+        repositoryEl.getFragmentById = sandbox
+            .stub()
+            .resolves(rawCardFragment('frag-1', '/content/dam/mas/sandbox/en_US/card-1'));
+
+        await el.reEnrichItems();
+
+        const [, written] = fs.updateField.withArgs('items').lastCall.args;
+        const items = JSON.parse(written[0]);
+        expect(items[0].authorPath).to.be.a('string').and.to.include('merch-card');
+        expect(items[0].locale).to.equal('en_US');
+    });
+
+    it('does not mark the project as changed when re-enriching', async () => {
+        const el = await makeEditor();
+        const stored = [{ url: 'u', fragmentId: 'frag-1', path: '/content/dam/mas/sandbox/en_US/card-1', status: 'valid' }];
+        const fs = makeFragmentStore({ items: JSON.stringify(stored) });
+        Store.bulkPublishProjects.inEdit.set(fs);
+        await el.updateComplete;
+        el.hasChanges = false;
+
+        repositoryEl.getFragmentById = sandbox
+            .stub()
+            .resolves(rawCardFragment('frag-1', '/content/dam/mas/sandbox/en_US/card-1'));
+
+        await el.reEnrichItems();
+
+        expect(el.hasChanges).to.equal(false);
+    });
+
+    it('leaves error items untouched and does not resolve them', async () => {
+        const el = await makeEditor();
+        const stored = [{ url: 'bad', status: 'error', reason: 'not-found' }];
+        const fs = makeFragmentStore({ items: JSON.stringify(stored) });
+        Store.bulkPublishProjects.inEdit.set(fs);
+        await el.updateComplete;
+
+        repositoryEl.getFragmentById = sandbox.stub();
+
+        await el.reEnrichItems();
+
+        expect(repositoryEl.getFragmentById.called).to.equal(false);
+    });
+
+    it('keeps the item valid when the fragment can no longer be resolved', async () => {
+        const el = await makeEditor();
+        const stored = [{ url: 'u', fragmentId: 'gone', path: '/content/dam/mas/sandbox/en_US/gone', status: 'valid' }];
+        const fs = makeFragmentStore({ items: JSON.stringify(stored) });
+        Store.bulkPublishProjects.inEdit.set(fs);
+        await el.updateComplete;
+
+        repositoryEl.getFragmentById = sandbox.stub().rejects(new Error('boom'));
+
+        await el.reEnrichItems();
+
+        const call = fs.updateField.withArgs('items').lastCall;
+        if (call) {
+            const items = JSON.parse(call.args[1][0]);
+            expect(items[0].status).to.equal('valid');
+        }
+    });
+});
+
 describe('mas-bulk-publish-editor (publish)', () => {
     let repositoryEl;
     let sandbox;

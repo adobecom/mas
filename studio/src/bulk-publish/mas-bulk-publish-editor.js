@@ -96,6 +96,7 @@ class MasBulkPublishEditor extends LitElement {
                     this.hasChanges = false;
                     await this.updateComplete;
                     if (this.urls && !this.items.length) this.validate();
+                    else if (this.items.length) this.reEnrichItems();
                 }
             } catch {
                 if (!signal.aborted) {
@@ -484,6 +485,32 @@ class MasBulkPublishEditor extends LitElement {
                 showToast('Failed to duplicate the project.', 'negative');
             }
         });
+    }
+
+    async reEnrichItems() {
+        const items = this.items;
+        if (!items.some((i) => i.fragmentId)) return;
+        const { generateCodeToUse } = await import('../utils.js');
+        const surface = Store.search.get()?.path;
+        const enriched = await Promise.all(
+            items.map(async (item) => {
+                if (!item.fragmentId) return item;
+                try {
+                    const fragment = new Fragment(await this.repository.getFragmentById(item.fragmentId));
+                    const { authorPath, href } = generateCodeToUse(fragment, surface, PAGE_NAMES.CONTENT) || {};
+                    return {
+                        ...item,
+                        authorPath: authorPath || item.authorPath || null,
+                        locale: fragment.locale || item.locale || null,
+                        href: href || item.href || null,
+                    };
+                } catch {
+                    return item;
+                }
+            }),
+        );
+        this.project.updateField('items', [JSON.stringify(enriched)]);
+        this.requestUpdate();
     }
 
     async validate() {

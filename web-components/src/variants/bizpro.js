@@ -352,11 +352,9 @@ export class BizPro extends VariantLayout {
         this.#licenseDocListenerBound = null;
     }
 
-    toggleLicensePopover = (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        this.licenseOpen = !this.licenseOpen;
-        if (this.licenseOpen) {
+    #openLicensePopover() {
+        this.licenseOpen = true;
+        if (!this.#licenseDocListenerBound) {
             this.#licenseDocListenerBound = (evt) => {
                 if (!evt.composedPath().includes(this.card)) {
                     this.licenseOpen = false;
@@ -368,10 +366,98 @@ export class BizPro extends VariantLayout {
                 'mousedown',
                 this.#licenseDocListenerBound,
             );
-        } else {
+        }
+    }
+
+    toggleLicensePopover = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (this.licenseOpen) {
+            this.licenseOpen = false;
             this.#removeLicenseDocListener();
+        } else {
+            this.#openLicensePopover();
         }
         this.card.requestUpdate();
+    };
+
+    #handleTriggerKeydown = (e) => {
+        if (!['ArrowDown', 'ArrowUp', 'Enter', ' '].includes(e.key)) return;
+        e.preventDefault();
+        // Enter/Space on an open popover toggles it closed (trigger re-focused
+        // after ArrowUp from first option lands here).
+        if (this.licenseOpen && (e.key === 'Enter' || e.key === ' ')) {
+            this.licenseOpen = false;
+            this.#removeLicenseDocListener();
+            this.card.requestUpdate();
+            return;
+        }
+        if (!this.licenseOpen) {
+            this.#openLicensePopover();
+            this.card.requestUpdate();
+        }
+        // Move DOM focus into the listbox after the render makes options visible.
+        this.card.updateComplete.then(() => {
+            const options = Array.from(
+                this.card.shadowRoot?.querySelectorAll('[role="option"]') ?? [],
+            );
+            if (!options.length) return;
+            const current = this.currentLicenseValue;
+            const selected = options.find(
+                (el) => el.dataset.value === current,
+            );
+            // Per ARIA APG: ArrowUp opens to last option; others open to
+            // the selected option (or first if none selected).
+            (e.key === 'ArrowUp'
+                ? options[options.length - 1]
+                : (selected ?? options[0])
+            ).focus();
+        });
+    };
+
+    #handleOptionKeydown = (e) => {
+        const options = Array.from(
+            this.card.shadowRoot?.querySelectorAll('[role="option"]') ?? [],
+        );
+        const idx = options.indexOf(e.currentTarget);
+        const trigger = () =>
+            this.card.shadowRoot?.querySelector('.license-select-trigger');
+
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            options[Math.min(idx + 1, options.length - 1)]?.focus();
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            if (idx === 0) {
+                trigger()?.focus();
+            } else {
+                options[idx - 1]?.focus();
+            }
+        } else if (e.key === 'Home') {
+            e.preventDefault();
+            options[0]?.focus();
+        } else if (e.key === 'End') {
+            e.preventDefault();
+            options[options.length - 1]?.focus();
+        } else if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            const value = e.currentTarget.dataset.value;
+            if (value) this.selectLicenseQty(value);
+            // selectLicenseQty calls requestUpdate; wait for the re-render
+            // (which hides the listbox) before returning focus to the trigger.
+            this.card.updateComplete.then(() => trigger()?.focus());
+        } else if (e.key === 'Escape') {
+            e.preventDefault();
+            this.licenseOpen = false;
+            this.#removeLicenseDocListener();
+            this.card.requestUpdate();
+            this.card.updateComplete.then(() => trigger()?.focus());
+        } else if (e.key === 'Tab') {
+            // Close popover but allow natural tab order to continue.
+            this.licenseOpen = false;
+            this.#removeLicenseDocListener();
+            this.card.requestUpdate();
+        }
     };
 
     selectLicenseQty = (value) => {
@@ -410,6 +496,7 @@ export class BizPro extends VariantLayout {
                     aria-expanded=${open ? 'true' : 'false'}
                     aria-controls="license-popover"
                     @click=${this.toggleLicensePopover}
+                    @keydown=${this.#handleTriggerKeydown}
                 >
                     <span class="license-select-trigger-text">
                         <span class="license-select-value">${current}</span>
@@ -428,6 +515,7 @@ export class BizPro extends VariantLayout {
                 >
                     <li
                         class="license-select-popover-header"
+                        aria-hidden="true"
                         @click=${this.toggleLicensePopover}
                     >
                         <span class="license-select-trigger-text">
@@ -450,7 +538,10 @@ export class BizPro extends VariantLayout {
                                 aria-selected=${opt === current
                                     ? 'true'
                                     : 'false'}
+                                tabindex="-1"
+                                data-value=${opt}
                                 @click=${() => this.selectLicenseQty(opt)}
+                                @keydown=${this.#handleOptionKeydown}
                             >
                                 ${opt}
                             </li>
@@ -916,6 +1007,16 @@ export class BizPro extends VariantLayout {
 
         :host([variant='bizpro']) .license-select-option:hover,
         :host([variant='bizpro']) .license-select-option.selected {
+            background: var(--consonant-merch-card-bizpro-bg-subtle, #f8f8f8);
+        }
+
+        :host([variant='bizpro']) .license-select-option:focus {
+            outline: none;
+        }
+
+        :host([variant='bizpro']) .license-select-option:focus-visible {
+            outline: 2px solid #1473e6;
+            outline-offset: -2px;
             background: var(--consonant-merch-card-bizpro-bg-subtle, #f8f8f8);
         }
 

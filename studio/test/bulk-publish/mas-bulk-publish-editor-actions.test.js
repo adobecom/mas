@@ -1195,6 +1195,52 @@ describe('mas-bulk-publish-editor (reEnrichItems on load)', () => {
 
         expect(el.localItems[0].status).to.equal('valid');
     });
+
+    it('does not overwrite localItems when a newer run supersedes it mid-flight', async () => {
+        const el = await makeEditor();
+        const path = '/content/dam/mas/sandbox/en_US/card-1';
+        const fs = makeFragmentStore({ fragments: [path] });
+        Store.bulkPublishProjects.inEdit.set(fs);
+        await el.updateComplete;
+
+        let resolveFetch;
+        const getByPath = sandbox.stub().returns(new Promise((r) => (resolveFetch = r)));
+        repositoryEl.aem = { sites: { cf: { fragments: { getByPath } } } };
+
+        const enrichPromise = el.reEnrichItems();
+        const pending = [{ url: 'typed', status: 'pending' }];
+        el.localItems = pending;
+        el.disconnectedCallback();
+        resolveFetch(rawCardFragment('frag-1', path));
+        await enrichPromise;
+
+        expect(el.localItems).to.equal(pending);
+    });
+
+    it('caps concurrent fragment fetches when re-enriching many items', async () => {
+        const el = await makeEditor();
+        const paths = Array.from({ length: 10 }, (n, i) => `/content/dam/mas/sandbox/en_US/card-${i}`);
+        const fs = makeFragmentStore({ fragments: paths });
+        Store.bulkPublishProjects.inEdit.set(fs);
+        await el.updateComplete;
+
+        let inFlight = 0;
+        let peak = 0;
+        const getByPath = sandbox.stub().callsFake(async (p) => {
+            inFlight++;
+            peak = Math.max(peak, inFlight);
+            await Promise.resolve();
+            await Promise.resolve();
+            inFlight--;
+            return rawCardFragment(`frag-${p}`, p);
+        });
+        repositoryEl.aem = { sites: { cf: { fragments: { getByPath } } } };
+
+        await el.reEnrichItems();
+
+        expect(getByPath.callCount).to.equal(10);
+        expect(peak).to.be.at.most(4);
+    });
 });
 
 describe('mas-bulk-publish-editor (publish)', () => {

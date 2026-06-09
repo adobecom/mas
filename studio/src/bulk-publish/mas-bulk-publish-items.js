@@ -75,6 +75,11 @@ class MasBulkPublishItems extends LitElement {
         return item.locale ? `[${item.locale}] ${item.authorPath}` : item.authorPath;
     }
 
+    itemHref(item) {
+        const target = item.href ?? item.url;
+        return /^https?:\/\//.test(target) ? target : null;
+    }
+
     renderStatusCell(item) {
         if (!item.status || item.status === 'pending') {
             return html`<span class="status-cell status-pending">Pending…</span>`;
@@ -126,9 +131,11 @@ class MasBulkPublishItems extends LitElement {
                           ${rows.map(
                               (item) => html`
                                   <li data-testid="item-row">
-                                      <a href=${item.href ?? item.url} target="_blank" rel="noopener"
-                                          >${this.itemLabel(item)}</a
-                                      >
+                                      ${this.itemHref(item)
+                                          ? html`<a href=${this.itemHref(item)} target="_blank" rel="noopener"
+                                                >${this.itemLabel(item)}</a
+                                            >`
+                                          : html`<span class="item-label">${this.itemLabel(item)}</span>`}
                                       <span class="url-spacer"></span>
                                       ${this.renderStatusCell(item)}
                                       ${this.isPublished

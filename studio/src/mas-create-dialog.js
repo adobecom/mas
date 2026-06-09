@@ -16,7 +16,7 @@ import './rte/osi-field.js';
 import './aem/aem-tag-picker-field.js';
 import generateFragmentStore from './reactivity/source-fragment-store.js';
 import { showToast } from './utils.js';
-import { DEFAULT_COMPARE_CHART_HTML } from './compare-chart/mas-compare-chart-editor.js';
+import { DEFAULT_COMPARE_CHART_HTML } from './editors/mas-compare-chart-editor.js';
 
 export class MasCreateDialog extends LitElement {
     static properties = {

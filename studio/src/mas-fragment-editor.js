@@ -8,7 +8,6 @@ import StoreController from './reactivity/store-controller.js';
 import {
     CARD_MODEL_PATH,
     COLLECTION_MODEL_PATH,
-    COMPARE_CHART_FIELD,
     MAS_PRODUCT_CODE_PREFIX,
     ODIN_PREVIEW_ORIGIN,
     PAGE_NAMES,
@@ -22,6 +21,7 @@ import {
     extractSurfaceFromPath,
     generateCodeToUse,
     getFragmentMapping,
+    hasNonEmptyCompareChart,
     replaceLocaleInPath,
     showToast,
 } from './utils.js';
@@ -29,7 +29,7 @@ import { getSpectrumVersion } from './constants/icon-library.js';
 import { getFragmentPartsToUse } from './editor-panel.js';
 import './editors/merch-card-editor.js';
 import './editors/merch-card-collection-editor.js';
-import './compare-chart/mas-compare-chart-editor.js';
+import './editors/mas-compare-chart-editor.js';
 import './mas-variation-dialog.js';
 import { getCountryName, getDefaultLocaleCode, getLocaleByCode } from '../../io/www/src/fragment/locales.js';
 import { branch2Icon } from './icons.js';
@@ -142,6 +142,15 @@ export default class MasFragmentEditor extends LitElement {
             padding: 0;
         }
 
+        sp-underlay + sp-dialog {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 2000;
+            max-width: 500px;
+        }
+
         #breadcrumbs {
             margin-bottom: 32px;
         }
@@ -161,40 +170,58 @@ export default class MasFragmentEditor extends LitElement {
         }
 
         #editor-content {
-            display: flex;
-            flex: 1 1 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
             gap: 32px;
+            flex: 1;
             min-height: 0;
             width: 100%;
-            overflow: hidden;
+            padding-bottom: 48px;
         }
 
         #editor-content.compare-chart-content {
+            display: flex;
+            flex: 1 1 auto;
             gap: 0;
+            padding-bottom: 0;
+            overflow: hidden;
         }
 
         #form-column {
+            padding-right: 16px;
+        }
+
+        #form-column.compare-chart-column {
             display: flex;
             flex-direction: column;
             flex: 1 1 auto;
             min-width: 0;
             min-height: 0;
-            overflow: auto;
-        }
-
-        #form-column.compare-chart-column {
+            padding-right: 0;
             overflow: hidden;
         }
 
         #preview-column {
+            position: sticky;
+            top: 16px;
+            height: fit-content;
+            max-height: calc(100vh - 200px);
             display: flex;
             flex-direction: column;
-            flex: 1 1 auto;
-            min-width: 0;
-            min-height: 0;
-            overflow: auto;
             align-items: center;
             gap: 16px;
+        }
+
+        @media (max-width: 1200px) {
+            #editor-content:not(.compare-chart-content) {
+                grid-template-columns: 1fr;
+                overflow: auto;
+            }
+
+            #preview-column {
+                position: relative;
+                max-height: none;
+            }
         }
 
         #preview-wrapper {
@@ -667,7 +694,7 @@ export default class MasFragmentEditor extends LitElement {
     }
 
     get isCompareChart() {
-        return this.fragment?.model?.path === COLLECTION_MODEL_PATH && !!this.fragment?.getField(COMPARE_CHART_FIELD);
+        return this.fragment?.model?.path === COLLECTION_MODEL_PATH && hasNonEmptyCompareChart(this.fragment);
     }
 
     get fragmentStore() {

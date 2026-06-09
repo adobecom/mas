@@ -676,7 +676,7 @@ class MasSearchAndFilters extends LitElement {
 
         return html`
             <overlay-trigger placement="bottom-start" ?disabled=${locked} @sp-closed=${(e) => e.stopPropagation()}>
-                <sp-action-button dir="ltr" quiet slot="trigger" .disabled=${this.isLoading || locked}>
+                <sp-action-button class="template-filter" dir="ltr" slot="trigger" .disabled=${this.isLoading || locked}>
                     ${displayLabel}
                     <sp-icon-chevron-down slot="icon"></sp-icon-chevron-down>
                 </sp-action-button>
@@ -725,7 +725,7 @@ class MasSearchAndFilters extends LitElement {
 
         return html`
             <overlay-trigger placement="bottom-start" @sp-closed=${(e) => e.stopPropagation()}>
-                <sp-action-button quiet slot="trigger" .disabled=${this.isLoading}>
+                <sp-action-button slot="trigger" .disabled=${this.isLoading}>
                     ${displayLabel}
                     <sp-icon-chevron-down slot="icon"></sp-icon-chevron-down>
                 </sp-action-button>

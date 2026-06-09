@@ -5,8 +5,10 @@ export const styles = [
     ghostButtonStyles,
     css`
         :host {
+            display: flex;
             min-height: 0;
             min-width: 0;
+            max-height: 100%;
         }
 
         .selected-items {

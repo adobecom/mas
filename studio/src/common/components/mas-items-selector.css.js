@@ -47,17 +47,20 @@ export const styles = [
         }
 
         .container {
-            display: grid;
-            grid-template-columns: minmax(0, 1fr) 308px;
+            display: flex;
+            gap: 16px;
             flex: 1;
-            gap: 12px;
             min-height: 0;
-            min-width: 0;
             width: 100%;
             padding-bottom: 48px;
         }
 
+        .container.show-selected {
+            grid-template-columns: minmax(0, 1fr) 308px;
+        }
+
         mas-select-items-table {
+            flex: 1;
             min-width: 0;
             min-height: 0;
             display: flex;
@@ -67,6 +70,10 @@ export const styles = [
         mas-selected-items {
             min-width: 0;
             width: 308px;
+        }
+
+        .container:not(.show-selected) mas-selected-items {
+            display: none;
         }
 
         .container.view-only {

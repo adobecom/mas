@@ -914,12 +914,7 @@ class AemTagPickerField extends LitElement {
         const selectCount = !this.isCheckboxTagsMode && currentValues.length > 0 ? html`(${currentValues.length})` : '';
         const trigger = html`
             <overlay-trigger placement="bottom" @sp-closed=${this.#handleCheckoxMenuClose}>
-                <sp-action-button
-                    slot="trigger"
-                    ?quiet=${!this.isCheckboxTagsMode}
-                    aria-label=${this.triggerLabel}
-                    ?disabled=${this.disabled}
-                >
+                <sp-action-button slot="trigger" aria-label=${this.triggerLabel} ?disabled=${this.disabled}>
                     ${this.isCheckboxTagsMode ? nothing : html`${this.triggerLabel} ${selectCount}`}
                     ${this.isCheckboxTagsMode
                         ? html`<sp-icon-add size="m" slot="icon"></sp-icon-add>`

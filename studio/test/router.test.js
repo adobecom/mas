@@ -1,6 +1,6 @@
 import { expect } from '@esm-bundle/chai';
 import sinon from 'sinon';
-import { Router, promoHashIsSearchSync, orderHashParamEntries } from '../src/router.js';
+import { Router, promoHashIsSearchSync, translationHashIsSearchSync, orderHashParamEntries } from '../src/router.js';
 import Store from '../src/store.js';
 import { PAGE_NAMES, COLLECTION_MODEL_PATH, COMPARE_CHART_FIELD } from '../src/constants.js';
 import { FragmentStore } from '../src/reactivity/fragment-store.js';
@@ -713,6 +713,28 @@ describe('Router', () => {
             expect(Store.viewMode.get()).to.equal('editing');
         });
 
+        it('should use editor-panel for a collection with an empty compareChart field', async () => {
+            Store.page.set(PAGE_NAMES.CONTENT);
+            const collectionStore = new FragmentStore(
+                new Fragment({
+                    id: 'empty-compare-chart-collection-id',
+                    model: { path: COLLECTION_MODEL_PATH },
+                    fields: [{ name: COMPARE_CHART_FIELD, values: [''] }],
+                }),
+            );
+            const mockEditorPanel = {
+                editFragment: sandbox.stub().resolves(),
+            };
+            sandbox.stub(document, 'querySelector').withArgs('editor-panel').returns(mockEditorPanel);
+
+            await router.navigateToFragmentEditor('empty-compare-chart-collection-id', {
+                fragmentStore: collectionStore,
+            });
+
+            expect(mockEditorPanel.editFragment.calledOnceWith(collectionStore)).to.be.true;
+            expect(Store.page.get()).to.equal(PAGE_NAMES.CONTENT);
+        });
+
         it('should use editor-panel for a provided collection fragment store', async () => {
             Store.page.set(PAGE_NAMES.CONTENT);
             const collectionStore = new FragmentStore(
@@ -913,6 +935,26 @@ describe('Router', () => {
             const prev = '#page=promotions-editor&promotionId=a&path=sandbox';
             const next = '#page=promotions-editor&promotionId=b&path=sandbox&query=x';
             expect(promoHashIsSearchSync(prev, next)).to.be.false;
+        });
+    });
+
+    describe('translationHashIsSearchSync', () => {
+        it('returns true when item-picker search params change on translation-editor', () => {
+            const prev = '#page=translation-editor&translationProjectId=p1&path=sandbox';
+            const next = '#page=translation-editor&translationProjectId=p1&path=nala&query=uuid&region=de_DE';
+            expect(translationHashIsSearchSync(prev, next)).to.be.true;
+        });
+
+        it('returns false when leaving the translation editor', () => {
+            const prev = '#page=translation-editor&translationProjectId=p1&path=sandbox';
+            const next = '#page=content&path=sandbox';
+            expect(translationHashIsSearchSync(prev, next)).to.be.false;
+        });
+
+        it('returns false when translationProjectId changes', () => {
+            const prev = '#page=translation-editor&translationProjectId=p1&path=sandbox';
+            const next = '#page=translation-editor&translationProjectId=p2&path=sandbox&query=x';
+            expect(translationHashIsSearchSync(prev, next)).to.be.false;
         });
     });
 

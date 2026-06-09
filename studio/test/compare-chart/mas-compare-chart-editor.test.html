@@ -21,7 +21,7 @@
             import { fixture } from '@open-wc/testing-helpers/pure';
 
             import '../../src/swc.js';
-            import '../../src/compare-chart/mas-compare-chart-editor.js';
+            import '../../src/editors/mas-compare-chart-editor.js';
             import '../../../web-components/src/commerce.js';
             import '../../../web-components/src/aem-fragment.js';
             import '../../../web-components/src/mas-commerce-service.js';
@@ -290,6 +290,39 @@
                         expect(tooltipLinks.map((link) => link.getAttribute('title'))).to.include(tooltipTitlesInValue[0]);
                         expect(chart.shadowRoot.querySelectorAll('.tooltip-wrapper').length).to.be.greaterThan(10);
                         expect(chart.shadowRoot.querySelectorAll('.tooltip-trigger').length).to.be.greaterThan(10);
+                    });
+
+                    it('marks referenced changes dirty when a cell edit is staged and clears them on discard', async () => {
+                        const fragmentStore = generateFragmentStore(structuredClone(compareChartSeed));
+                        const el = await fixture(
+                            html`<mas-compare-chart-editor .fragmentStore=${fragmentStore}></mas-compare-chart-editor>`,
+                            { parentNode: fixtureHost() },
+                        );
+                        for (let i = 0; i < 10; i += 1) {
+                            await el.updateComplete;
+                            if (el.shadowRoot.querySelectorAll('.compchart-card-row').length === 3) break;
+                        }
+
+                        Store.editor.referencedFragmentStoresHaveChanges.set(false);
+                        const cell = el.shadowRoot.querySelector('.compchart-cell .compchart-cell-value[data-rte-anchor-key]');
+                        cell.click();
+                        let rteField;
+                        for (let i = 0; i < 10; i += 1) {
+                            await el.updateComplete;
+                            rteField = el.shadowRoot.querySelector('.compchart-cell .compchart-cell-value rte-field');
+                            if (rteField) break;
+                        }
+                        expect(rteField, 'inline rte-field').to.exist;
+
+                        rteField.value = '<p>Staged edit value</p>';
+                        rteField.dispatchEvent(new Event('change', { bubbles: true }));
+                        await el.updateComplete;
+
+                        expect(Store.editor.referencedFragmentStoresHaveChanges.get()).to.be.true;
+
+                        el.discardCardFragmentChanges();
+                        await el.updateComplete;
+                        expect(Store.editor.referencedFragmentStoresHaveChanges.get()).to.be.false;
                     });
                 });
             });

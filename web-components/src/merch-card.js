@@ -733,14 +733,27 @@ export class MerchCard extends LitElement {
                 if (!settled) return Promise.resolve(element);
                 return settled.catch(() => element);
             }),
-        ).then((elements) =>
-            elements.every((el) =>
-                el.classList.contains('placeholder-resolved'),
-            ),
-        );
+        ).then((elements) => {
+            const active = elements.filter((el) => el.isConnected);
+            return (
+                active.length === 0 ||
+                active.every((el) =>
+                    el.classList.contains('placeholder-resolved'),
+                )
+            );
+        });
         const result = await Promise.race([successPromise, timeoutPromise]);
 
-        if (result === true) {
+        if (!this.isConnected) return;
+
+        const connectedMasElements = masElements.filter((el) => el.isConnected);
+        const allResolved =
+            connectedMasElements.length === 0 ||
+            connectedMasElements.every((el) =>
+                el.classList.contains('placeholder-resolved'),
+            );
+
+        if (allResolved) {
             this.measure = performance.measure(
                 this.#durationMarkName,
                 this.#startMarkName,
@@ -773,7 +786,7 @@ export class MerchCard extends LitElement {
                     details,
                 );
             } else {
-                const ctaFailed = masElements.some(
+                const ctaFailed = connectedMasElements.some(
                     (el) =>
                         el.matches(SELECTOR_MAS_CHECKOUT_LINK) &&
                         el.classList.contains('placeholder-failed'),

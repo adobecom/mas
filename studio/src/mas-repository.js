@@ -15,6 +15,8 @@ import {
     extractLocaleFromPath,
     extractSurfaceFromPath,
     isUUID,
+    matchesContentTypeFilter,
+    resolveContentTypeFilters,
 } from './utils.js';
 import {
     OPERATIONS,
@@ -40,7 +42,6 @@ import {
     TAG_MERCH_CARD_COLLECTION,
 } from './constants.js';
 import { fragmentHasPersonalizationTag, isPznCountryTagId, PZN_TAG_ID_PREFIX } from './common/utils/personalization-utils.js';
-import { matchesContentTypeFilter, resolveContentTypeFilters } from './compare-chart/content-type-utils.js';
 import { Placeholder } from './aem/placeholder.js';
 import { getFragmentName } from './translation/translation-utils.js';
 import { getItemsSelectionStore } from './common/items-selection-store.js';

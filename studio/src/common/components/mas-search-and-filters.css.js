@@ -28,7 +28,6 @@ export const styles = css`
 
     .filters {
         display: flex;
-        align-items: center;
         gap: 12px;
         margin-bottom: 8px;
         flex-wrap: wrap;
@@ -37,6 +36,10 @@ export const styles = css`
     sp-action-button {
         display: flex;
         flex-direction: row-reverse;
+    }
+
+    sp-action-button.template-filter {
+        height: 32px;
     }
 
     .filter-popover {

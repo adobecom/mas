@@ -995,7 +995,8 @@ export async function hydrate(fragment, merchCard) {
 
     const { id, fields, settings = {}, priceLiterals } = fragment;
     const { variant } = fields;
-    if (!variant) throw new Error(`hydrate: no variant found in payload ${id}`);
+    if (!variant)
+        throw new Error(`hydrate: no template found in payload ${id}`);
     cleanup(merchCard);
     merchCard.compatVersion = fields.compatVersion;
     merchCard.contextPromotionCode = fields.promoCode;

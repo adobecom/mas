@@ -249,7 +249,9 @@ class MasItemsSelector extends LitElement {
                                               : ''}
                                       ></mas-search-and-filters>
                                   `}
-                            <div class="container ${this.viewOnly ? 'view-only' : ''}">
+                            <div
+                                class="container ${this.viewOnly ? 'view-only' : ''} ${showingSelection ? 'show-selected' : ''}"
+                            >
                                 ${this.#renderItemsTable(tab.value)}
                                 ${this.viewOnly
                                     ? nothing

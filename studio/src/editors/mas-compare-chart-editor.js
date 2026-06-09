@@ -99,7 +99,6 @@ class MasCompareChartEditor extends LitElement {
         this.draggingVariation = null;
         this.draggingGroup = null;
         this.draggingFeature = null;
-        this.pickerOpen = false;
         this.itemsSelectionStore = null;
         this.previousItemsSelectionStore = null;
         this.reactiveController = new ReactiveController(this, [], this.#syncDirtyCardStoreState);
@@ -120,6 +119,9 @@ class MasCompareChartEditor extends LitElement {
 
     connectedCallback() {
         super.connectedCallback();
+        this.previousItemsSelectionStore = getItemsSelectionStore({ allowUnset: true });
+        this.itemsSelectionStore = Store.compareChart;
+        setItemsSelectionStore(Store.compareChart);
         if (this.fragmentStore) {
             this.#ensureCompareChartTag();
             this.#ensureCompareChartPlaceholders();
@@ -130,7 +132,9 @@ class MasCompareChartEditor extends LitElement {
     disconnectedCallback() {
         super.disconnectedCallback();
         this.#clearLightDomPreview();
-        if (this.pickerOpen) this.#handlePickerClose();
+        setItemsSelectionStore(this.previousItemsSelectionStore);
+        this.previousItemsSelectionStore = null;
+        this.itemsSelectionStore = null;
         Store.editor.referencedFragmentStoresHaveChanges.set(false);
     }
 
@@ -1120,6 +1124,7 @@ class MasCompareChartEditor extends LitElement {
     #stageColumnFeatures(cardPath, features) {
         if (!cardPath) return;
         this.columnFeatureDrafts = new Map(this.columnFeatureDrafts).set(cardPath, features);
+        this.#syncDirtyCardStoreState();
         this.requestUpdate();
     }
 
@@ -1154,7 +1159,8 @@ class MasCompareChartEditor extends LitElement {
     }
 
     #syncDirtyCardStoreState() {
-        Store.editor.referencedFragmentStoresHaveChanges.set(this.dirtyCardFragmentStores.length > 0);
+        const hasPendingDrafts = this.columnFeatureDrafts.size > 0;
+        Store.editor.referencedFragmentStoresHaveChanges.set(hasPendingDrafts || this.dirtyCardFragmentStores.length > 0);
     }
 
     discardCardFragmentChanges() {
@@ -1397,6 +1403,10 @@ class MasCompareChartEditor extends LitElement {
                 stores.push(store, store.previewStore);
             }
             this.reactiveController.updateStores(this.#reactiveStores(stores));
+            // Placeholders are already loaded by the time a card is added, so the new preview
+            // store won't get the Store.placeholders.preview trigger; resolve it now so offers
+            // render without a manual page refresh.
+            fragmentStore.resolvePreviewFragment();
         }
     }
 
@@ -1667,16 +1677,14 @@ class MasCompareChartEditor extends LitElement {
         this.#updateCardsField(paths);
     }
 
-    #openItemsSelector() {
-        this.previousItemsSelectionStore = getItemsSelectionStore({ allowUnset: true });
-        this.itemsSelectionStore = Store.compareChart;
+    #openItemsSelector(event) {
+        if (event && event.target !== event.currentTarget) return;
         const cards = this.#cardPaths.map((path) => this.#getSourceCardFragment(path)).filter(Boolean);
         Store.compareChart.cardsByPaths.set(new Map(cards.map((card) => [card.path, card])));
         Store.compareChart.selectedCards.set([...this.#cardPaths]);
         Store.compareChart.allCards.set([]);
         Store.compareChart.displayCards.set([]);
         Store.compareChart.showSelected.set(true);
-        setItemsSelectionStore(Store.compareChart);
         const repository = document.querySelector('mas-repository');
         const currentTags = Store.filters.get()?.tags;
         const tags = (Array.isArray(currentTags) ? currentTags : String(currentTags || '').split(',')).filter(
@@ -1686,9 +1694,52 @@ class MasCompareChartEditor extends LitElement {
         // Seed the picker's local filters (not global Store.filters, which is URL-synced and would dirty the hash).
         Store.compareChart.filters.set({ tags: pickerTags.join(',') });
         repository?.searchFragments?.({ force: true, tags: pickerTags });
-        this.pickerOpen = true;
-        this.requestUpdate();
     }
+
+    get #itemsSelectorDialog() {
+        const footerContent = html`
+            <sp-button-group>
+                <sp-button variant="secondary" treatment="outline" @click=${() => this.#dispatchItemsSelectorEvent('cancel')}
+                    >Cancel</sp-button
+                >
+                <sp-button variant="accent" @click=${() => this.#dispatchItemsSelectorEvent('confirm')}
+                    >Add selected items</sp-button
+                >
+            </sp-button-group>
+        `;
+        return html`<sp-dialog-wrapper
+            class="compchart-items-selector-dialog"
+            slot="click-content"
+            headline="Select items"
+            headline-visibility="none"
+            .footer=${footerContent}
+            underlay
+            dismissable
+            no-divider
+            @sp-opened=${this.#alignItemsDialogFooter}
+            @cancel=${this.#cancelItemsSelector}
+            @confirm=${this.#confirmItemsSelector}
+        >
+            <mas-items-selector
+                .allowedTypes=${[TABLE_TYPE.CARDS]}
+                .maxSelectedCards=${MAX_COMPARE_CHART_CARDS}
+                .defaultTemplateFilter=${VARIANT_NAMES.COMPARE_CHART_COLUMN}
+            ></mas-items-selector>
+        </sp-dialog-wrapper>`;
+    }
+
+    #alignItemsDialogFooter = ({ target }) => {
+        const slotDiv = target?.shadowRoot?.querySelector('div[slot="footer"]');
+        if (!slotDiv) return;
+        slotDiv.style.width = '100%';
+        slotDiv.style.display = 'flex';
+        slotDiv.style.justifyContent = 'flex-end';
+    };
+
+    #dispatchItemsSelectorEvent = (name) => {
+        const wrapper = this.renderRoot.querySelector('.compchart-items-selector-dialog');
+        wrapper?.dispatchEvent(new CustomEvent(name, { bubbles: true, composed: true }));
+    };
 
     #fragmentFromItemsSelectionStore(path) {
         return (
@@ -1698,7 +1749,7 @@ class MasCompareChartEditor extends LitElement {
         );
     }
 
-    #confirmItemsSelector() {
+    #confirmItemsSelector(event) {
         const paths = (this.itemsSelectionStore?.selectedCards.value || []).slice(0, MAX_COMPARE_CHART_CARDS);
         const pickedFragments = new Map(this.pickedFragments);
         paths.forEach((path) => {
@@ -1709,15 +1760,15 @@ class MasCompareChartEditor extends LitElement {
         });
         this.pickedFragments = pickedFragments;
         this.#updateCardsField(paths);
-        this.#handlePickerClose();
+        this.#closeItemsSelector(event?.target);
     }
 
-    #handlePickerClose() {
-        setItemsSelectionStore(this.previousItemsSelectionStore);
-        this.previousItemsSelectionStore = null;
-        this.itemsSelectionStore = null;
-        this.pickerOpen = false;
-        this.requestUpdate();
+    #cancelItemsSelector(event) {
+        this.#closeItemsSelector(event?.target);
+    }
+
+    #closeItemsSelector(target) {
+        target?.dispatchEvent(new Event('close', { bubbles: true, composed: true }));
     }
 
     #removeCard(index) {
@@ -1830,7 +1881,7 @@ class MasCompareChartEditor extends LitElement {
         this.editorView = view;
     }
 
-    #renderViewToggle() {
+    get #viewToggle() {
         return html`
             <div class="editor-view-toggle" role="tablist" aria-label="Compare chart editor view">
                 <button
@@ -1861,7 +1912,7 @@ class MasCompareChartEditor extends LitElement {
         this.fragmentStore?.updateFieldInternal('description', e.target.value);
     }
 
-    #renderGeneralInfo() {
+    get #generalInfo() {
         return html`
             <div class="compchart-general-info">
                 <h3 class="compchart-general-info-title">General info</h3>
@@ -1892,7 +1943,7 @@ class MasCompareChartEditor extends LitElement {
     #renderEditView(groups, columns) {
         const expandedGroups = this.#expandedGroupNames(groups);
         return html`
-            ${this.#renderGeneralInfo()} ${this.groupedVariationTagsTemplate} ${this.#renderCardsSection(columns)}
+            ${this.#generalInfo} ${this.groupedVariationTagsTemplate} ${this.#renderCardsSection(columns)}
             <div class="compchart-grid" style="--compchart-editor-columns: ${columns.length}">
                 <div class="compchart-header-cell">Feature</div>
                 ${columns.map((column) => {
@@ -2144,7 +2195,7 @@ class MasCompareChartEditor extends LitElement {
                         <h2>Create compare chart</h2>
                         <slot name="field-status"></slot>
                     </div>
-                    ${this.#renderViewToggle()}
+                    ${this.#viewToggle}
                 </div>
                 ${this.editorView === 'preview'
                     ? this.#renderPreviewView(groups, columns)
@@ -2362,10 +2413,13 @@ class MasCompareChartEditor extends LitElement {
             >
                 <div class="compchart-cards-header">
                     <h3 class="compchart-cards-title">Selected fragments *</h3>
-                    <sp-button size="s" variant="secondary" quiet @click=${this.#openItemsSelector}>
-                        <sp-icon-edit slot="icon"></sp-icon-edit>
-                        Edit
-                    </sp-button>
+                    <overlay-trigger type="modal" triggered-by="click" @sp-opened=${this.#openItemsSelector}>
+                        ${this.#itemsSelectorDialog}
+                        <sp-button slot="trigger" size="s" variant="secondary" quiet>
+                            <sp-icon-edit slot="icon"></sp-icon-edit>
+                            Edit
+                        </sp-button>
+                    </overlay-trigger>
                 </div>
                 ${paths.length
                     ? html`
@@ -2441,30 +2495,6 @@ class MasCompareChartEditor extends LitElement {
                       `
                     : nothing}
             </div>
-            ${this.pickerOpen
-                ? html`<sp-dialog-wrapper
-                      class="compchart-items-selector-dialog"
-                      open
-                      mode="modal"
-                      size="l"
-                      headline="Select items"
-                      headline-visibility="none"
-                      cancel-label="Cancel"
-                      confirm-label="Add selected items"
-                      underlay
-                      no-divider
-                      @cancel=${this.#handlePickerClose}
-                      @confirm=${this.#confirmItemsSelector}
-                      @close=${this.#handlePickerClose}
-                  >
-                      <mas-items-selector
-                          .allowedTypes=${[TABLE_TYPE.CARDS]}
-                          .maxSelectedCards=${MAX_COMPARE_CHART_CARDS}
-                          .defaultTemplateFilter=${VARIANT_NAMES.COMPARE_CHART_COLUMN}
-                          hide-selected-toggle
-                      ></mas-items-selector>
-                  </sp-dialog-wrapper>`
-                : nothing}
             ${this.#renderRemoveCardDialog(columnsByPath)}
         `;
     }

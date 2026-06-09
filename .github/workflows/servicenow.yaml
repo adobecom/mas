@@ -23,7 +23,7 @@ on:
       - opened
       - closed
     branches:
-      - MWPW-172706
+      - main
     paths:
       - 'io/**'
       - 'studio/**'

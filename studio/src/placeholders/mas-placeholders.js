@@ -7,6 +7,7 @@ import './mas-placeholders-creation-modal.js';
 import './mas-placeholders-item.js';
 import Events from '../events.js';
 import { MasRepository } from '../mas-repository.js';
+import { removeFromIndexFragment } from './mas-placeholders-repository.js';
 import '../mas-selection-panel.js';
 import { showToast } from '../utils.js';
 import { confirmation } from '../mas-confirm-dialog.js';
@@ -261,7 +262,7 @@ class MasPlaceholders extends LitElement {
         this.pending = true;
         showToast('Deleting placeholders...');
 
-        await this.repository.removeFromIndexFragment(fragments);
+        await removeFromIndexFragment(fragments);
         await this.repository.bulkDeleteFragments(fragments, {
             startToast: false,
             endToast: false,

@@ -1678,12 +1678,10 @@ class MasCompareChartEditor extends LitElement {
     }
 
     #openItemsSelector(event) {
-        if (event && event.target !== event.currentTarget) return;
         const cards = this.#cardPaths.map((path) => this.#getSourceCardFragment(path)).filter(Boolean);
         Store.compareChart.cardsByPaths.set(new Map(cards.map((card) => [card.path, card])));
         Store.compareChart.selectedCards.set([...this.#cardPaths]);
-        Store.compareChart.allCards.set([]);
-        Store.compareChart.displayCards.set([]);
+        Store.compareChart.displayCards.set([...this.#cardPaths]);
         Store.compareChart.showSelected.set(true);
         const repository = document.querySelector('mas-repository');
         const currentTags = Store.filters.get()?.tags;

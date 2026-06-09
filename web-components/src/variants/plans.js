@@ -326,7 +326,7 @@ export class Plans extends VariantLayout {
         addon.setAttribute('custom-checkbox', '');
         const price = this.mainPrice;
         if (!price) return;
-        await price.onceSettled();
+        (await price.onceSettled?.()) || Promise.resolve();
         const planType = price.value?.[0]?.planType;
         if (!planType) return;
         addon.planType = planType;

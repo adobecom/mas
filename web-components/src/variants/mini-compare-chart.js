@@ -536,7 +536,7 @@ export class MiniCompareChart extends VariantLayout {
         const price = this.mainPrice;
         let planType = this.card.planType;
         if (price) {
-            await price.onceSettled();
+            (await price.onceSettled?.()) || Promise.resolve();
             planType = price.value?.[0]?.planType;
         }
         if (!planType) return;

@@ -1,4 +1,4 @@
-import { COLLECTION_MODEL_PATH } from '../constants.js';
+import { COLLECTION_MODEL_PATH, DICTIONARY_MODEL_PATH } from '../constants.js';
 
 export function getProjectField(project, name, fallback) {
     const data = project.value ?? project;
@@ -16,7 +16,7 @@ export function itemTypeFromPath(path) {
 
 export function itemTypeFromFragment(fragment) {
     if (fragment?.model?.path === COLLECTION_MODEL_PATH) return 'collection';
-    if (fragment?.model?.path?.includes('/dictionnary')) return 'placeholder';
+    if (fragment?.model?.path?.includes(DICTIONARY_MODEL_PATH)) return 'placeholder';
     return itemTypeFromPath(fragment?.path);
 }
 

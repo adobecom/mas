@@ -147,6 +147,26 @@ describe('bulk-publish-worker — runWorker', () => {
     });
 });
 
+describe('bulk-publish-worker — terminalStatus', () => {
+    const { terminalStatus, WORKER_STATUS } = require('../../src/bulk-publish/bulk-publish-worker.js');
+
+    it('reports Published for an empty project instead of Failed', () => {
+        expect(terminalStatus({ total: 0, published: 0, failed: 0 })).to.equal(WORKER_STATUS.PUBLISHED);
+    });
+
+    it('reports Failed when there is work but nothing published', () => {
+        expect(terminalStatus({ total: 1, published: 0, failed: 1 })).to.equal(WORKER_STATUS.FAILED);
+    });
+
+    it('reports Published when every path published', () => {
+        expect(terminalStatus({ total: 2, published: 2, failed: 0 })).to.equal(WORKER_STATUS.PUBLISHED);
+    });
+
+    it('reports Partially published when some paths failed', () => {
+        expect(terminalStatus({ total: 2, published: 1, failed: 1 })).to.equal(WORKER_STATUS.PARTIALLY_PUBLISHED);
+    });
+});
+
 describe('bulk-publish-worker — main', () => {
     const { main } = require('../../src/bulk-publish/bulk-publish-worker.js');
 

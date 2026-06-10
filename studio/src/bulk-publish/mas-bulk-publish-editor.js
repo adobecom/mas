@@ -294,7 +294,7 @@ class MasBulkPublishEditor extends LitElement {
     async #withPendingAction(action, fn) {
         this.pendingActions = new Set([...this.pendingActions, action]);
         try {
-            await fn();
+            return await fn();
         } finally {
             const next = new Set(this.pendingActions);
             next.delete(action);
@@ -746,9 +746,9 @@ class MasBulkPublishEditor extends LitElement {
         if (this.hasChanges) await this.saveBulkProject();
         if (!this.canStartPublishing) return;
         try {
-            await this.#withPendingAction(QUICK_ACTION.PUBLISH, async () => {
+            const outcome = await this.#withPendingAction(QUICK_ACTION.PUBLISH, async () => {
                 const { startPublishing } = await import('./bulk-publish-store.js');
-                await startPublishing({
+                return startPublishing({
                     project: this.project,
                     token: this.token,
                     ioBaseUrl: this.ioBaseUrl,
@@ -756,7 +756,9 @@ class MasBulkPublishEditor extends LitElement {
                 });
             });
             this.requestUpdate();
-            if (this.status === BULK_PUBLISH_STATUS.PUBLISHED) {
+            if (outcome?.timedOut) {
+                showToast('Still publishing — check back later.', 'info');
+            } else if (this.status === BULK_PUBLISH_STATUS.PUBLISHED) {
                 showToast('Project published successfully.', 'positive');
             }
         } catch (err) {

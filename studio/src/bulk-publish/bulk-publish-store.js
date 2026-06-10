@@ -11,6 +11,9 @@ function patchProjectStore(project, fields) {
     project.refreshFrom(snapshot);
 }
 
+const POLL_BACKOFF_FACTOR = 1.5;
+const POLL_MAX_INTERVAL_MS = 30000;
+
 export async function startPublishing({
     project,
     token,
@@ -19,6 +22,7 @@ export async function startPublishing({
     publishFn,
     pollIntervalMs = 2000,
     maxPolls = 150,
+    sleepFn = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
 }) {
     const fn = publishFn ?? (await import('./bulk-publish-client.js')).publishBulk;
     const profile = await window.adobeIMS?.getProfile?.().catch(() => null);
@@ -35,13 +39,16 @@ export async function startPublishing({
     ]);
     try {
         await fn({ ioBaseUrl, projectId: project.id, publishedBy, token });
+        let interval = pollIntervalMs;
         for (let i = 0; i < maxPolls; i++) {
             await repository.refreshFragment(project).catch(() => {});
             const statusField = project.get()?.fields?.find((f) => f.name === 'status');
             const status = statusField?.values?.[0];
-            if (terminalStatuses.has(status)) break;
-            await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
+            if (terminalStatuses.has(status)) return { status };
+            await sleepFn(interval);
+            interval = Math.min(interval * POLL_BACKOFF_FACTOR, POLL_MAX_INTERVAL_MS);
         }
+        return { timedOut: true };
     } finally {
         const current = { ...Store.bulkPublishProjects.publishing.get() };
         delete current[project.id];

@@ -221,4 +221,67 @@ describe('startPublishing (async dispatch + poll)', () => {
         });
         expect(Store.bulkPublishProjects.publishing.get()['p1']).to.be.undefined;
     });
+
+    it('reports timedOut when status never leaves a non-terminal state', async () => {
+        const status = BULK_PUBLISH_STATUS.PUBLISHING;
+        project = {
+            id: 'p1',
+            get: () => ({ fields: [{ name: 'status', values: [status] }] }),
+            refreshFrom: sinon.stub(),
+        };
+        repo = { refreshFragment: sinon.stub().resolves() };
+        const publishFn = sinon.stub().resolves({ accepted: true });
+        const result = await startPublishing({
+            project,
+            token: 't',
+            ioBaseUrl: 'x',
+            repository: repo,
+            publishFn,
+            pollIntervalMs: 1,
+            maxPolls: 3,
+        });
+        expect(result).to.deep.equal({ timedOut: true });
+    });
+
+    it('reports the terminal status when polling completes in time', async () => {
+        const publishFn = sinon.stub().resolves({ accepted: true });
+        const result = await startPublishing({
+            project,
+            token: 't',
+            ioBaseUrl: 'x',
+            repository: repo,
+            publishFn,
+            pollIntervalMs: 1,
+            maxPolls: 5,
+        });
+        expect(result).to.deep.equal({ status: BULK_PUBLISH_STATUS.PARTIALLY_PUBLISHED });
+    });
+
+    it('backs off between polls instead of using a fixed interval', async () => {
+        const status = BULK_PUBLISH_STATUS.PUBLISHING;
+        project = {
+            id: 'p1',
+            get: () => ({ fields: [{ name: 'status', values: [status] }] }),
+            refreshFrom: sinon.stub(),
+        };
+        repo = { refreshFragment: sinon.stub().resolves() };
+        const delays = [];
+        const sleepFn = (ms) => {
+            delays.push(ms);
+            return Promise.resolve();
+        };
+        const publishFn = sinon.stub().resolves({ accepted: true });
+        await startPublishing({
+            project,
+            token: 't',
+            ioBaseUrl: 'x',
+            repository: repo,
+            publishFn,
+            pollIntervalMs: 2000,
+            maxPolls: 5,
+            sleepFn,
+        });
+        expect(delays.length).to.be.greaterThan(1);
+        expect(delays[1]).to.be.greaterThan(delays[0]);
+    });
 });

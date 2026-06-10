@@ -13,6 +13,7 @@ const {
     getProjectSnapshots,
 } = require('./project.js');
 
+// Contract: these strings must match BULK_PUBLISH_STATUS in studio/src/constants.js (UI side).
 const WORKER_STATUS = { PUBLISHED: 'Published', PARTIALLY_PUBLISHED: 'Partially published', FAILED: 'Failed' };
 
 function relabelNotLocalized(details) {
@@ -42,6 +43,7 @@ function removePendingMarker(entries) {
 }
 
 function terminalStatus(result) {
+    if (result.total === 0) return WORKER_STATUS.PUBLISHED;
     if (result.published === 0) return WORKER_STATUS.FAILED;
     if (result.failed === 0) return WORKER_STATUS.PUBLISHED;
     return WORKER_STATUS.PARTIALLY_PUBLISHED;

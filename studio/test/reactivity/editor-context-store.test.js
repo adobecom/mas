@@ -184,6 +184,31 @@ describe('Reactivity Stores', () => {
                 expect(result).to.equal(mockData);
                 expect(store.defaultLocaleId).to.equal('parent-id');
             });
+
+            it('should fetch promo variation parent from path without getById', async () => {
+                store = new EditorContextStore(null);
+                const promoFragmentPath = '/content/dam/mas/sandbox/en_US/promotions/back-to-school/cards/my-card';
+                const parentData = {
+                    id: 'default-id',
+                    path: '/content/dam/mas/sandbox/en_US/cards/my-card',
+                };
+                const getByIdStub = sandbox.stub();
+                const getByPathStub = sandbox.stub().resolves(parentData);
+                const promoAem = { sites: { cf: { fragments: { getById: getByIdStub, getByPath: getByPathStub } } } };
+
+                document.querySelector = (selector) => {
+                    if (selector === 'mas-repository') return { aem: promoAem };
+                    return originalQuerySelector.call(document, selector);
+                };
+
+                store.fetchParentForPromoVariation(promoFragmentPath);
+                const result = await store.getLocaleDefaultFragmentAsync();
+
+                expect(getByIdStub.called).to.be.false;
+                expect(getByPathStub.calledOnceWith('/content/dam/mas/sandbox/en_US/cards/my-card')).to.be.true;
+                expect(result).to.deep.equal(parentData);
+                expect(store.defaultLocaleId).to.equal('default-id');
+            });
         });
 
         describe('reset', () => {
@@ -192,12 +217,14 @@ describe('Reactivity Stores', () => {
                 store.localeDefaultFragment = mockLocaleDefaultFragment;
                 store.defaultLocaleId = 'parent-fragment-id';
                 store.isVariationByPath = true;
+                store.isPromoVariationByPath = true;
 
                 store.reset();
 
                 expect(store.localeDefaultFragment).to.be.null;
                 expect(store.defaultLocaleId).to.be.null;
                 expect(store.isVariationByPath).to.be.false;
+                expect(store.isPromoVariationByPath).to.be.false;
                 expect(store.get()).to.be.null;
             });
         });

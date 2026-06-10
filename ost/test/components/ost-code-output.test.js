@@ -3,6 +3,9 @@ import '../../src/components/ost-placeholder-panel.js';
 import '../../src/components/ost-code-output.js';
 import { store } from '../../src/store/ost-store.js';
 
+const outputForType = (panel, type) =>
+    panel.shadowRoot.querySelector(`[data-testid="ost-placeholder-row-${type}"] ost-code-output`);
+
 describe('ost-code-output', () => {
     beforeEach(() => {
         store.selectedOffer = { offer_id: 'TEST123', offer_type: 'BASE' };
@@ -25,6 +28,7 @@ describe('ost-code-output', () => {
             forceTaxExclusive: false,
             displayOldPrice: true,
         };
+        store.placeholderOptions = { ...store.defaultPlaceholderOptions };
         store.aosParams = { marketSegment: 'COM' };
         store.checkoutClientId = 'mas-commerce-service';
     });
@@ -32,12 +36,13 @@ describe('ost-code-output', () => {
     afterEach(() => {
         store.selectedOffer = undefined;
         store.selectedOsi = undefined;
+        store.placeholderOptions = { ...store.defaultPlaceholderOptions };
     });
 
     it('renders code string with OSI when inside placeholder panel', async () => {
         const panel = await fixture(html`<ost-placeholder-panel></ost-placeholder-panel>`);
         await panel.updateComplete;
-        const codeOutput = panel.shadowRoot.querySelector('ost-code-output');
+        const codeOutput = outputForType(panel, 'price');
         await codeOutput.updateComplete;
         const code = codeOutput.shadowRoot.querySelector('code');
         expect(code).to.exist;
@@ -46,7 +51,7 @@ describe('ost-code-output', () => {
 
     it('renders Use button', async () => {
         const panel = await fixture(html`<ost-placeholder-panel></ost-placeholder-panel>`);
-        const codeOutput = panel.shadowRoot.querySelector('ost-code-output');
+        const codeOutput = outputForType(panel, 'price');
         await codeOutput.updateComplete;
         const button = codeOutput.shadowRoot.querySelector('sp-button');
         expect(button).to.exist;
@@ -56,7 +61,7 @@ describe('ost-code-output', () => {
     it('disables Use button when no OSI is selected', async () => {
         store.selectedOsi = undefined;
         const panel = await fixture(html`<ost-placeholder-panel></ost-placeholder-panel>`);
-        const codeOutput = panel.shadowRoot.querySelector('ost-code-output');
+        const codeOutput = outputForType(panel, 'price');
         await codeOutput.updateComplete;
         const button = codeOutput.shadowRoot.querySelector('sp-button');
         expect(button.hasAttribute('disabled')).to.be.true;
@@ -64,10 +69,8 @@ describe('ost-code-output', () => {
 
     it('includes type in code string for non-price types', async () => {
         const panel = await fixture(html`<ost-placeholder-panel></ost-placeholder-panel>`);
-        panel.placeholderCtrl.setType('optical');
         await panel.updateComplete;
-        const codeOutput = panel.shadowRoot.querySelector('ost-code-output');
-        codeOutput.requestUpdate();
+        const codeOutput = outputForType(panel, 'optical');
         await codeOutput.updateComplete;
         const code = codeOutput.shadowRoot.querySelector('code');
         expect(code.textContent).to.include('type="optical"');
@@ -76,11 +79,9 @@ describe('ost-code-output', () => {
     it('omits options that equal their default value', async () => {
         const panel = await fixture(html`<ost-placeholder-panel></ost-placeholder-panel>`);
         await panel.updateComplete;
-        const codeOutput = panel.shadowRoot.querySelector('ost-code-output');
+        const codeOutput = outputForType(panel, 'price');
         await codeOutput.updateComplete;
         const code = codeOutput.shadowRoot.querySelector('code');
-        // displayFormatted=true and displayRecurrence=true and displayOldPrice=true
-        // are all defaults — they MUST NOT appear in the emitted markup.
         expect(code.textContent).to.not.include('displayFormatted');
         expect(code.textContent).to.not.include('displayRecurrence');
         expect(code.textContent).to.not.include('displayOldPrice');
@@ -91,7 +92,7 @@ describe('ost-code-output', () => {
         store.promotionCode = 'BLACK_FRIDAY';
         const panel = await fixture(html`<ost-placeholder-panel></ost-placeholder-panel>`);
         await panel.updateComplete;
-        const codeOutput = panel.shadowRoot.querySelector('ost-code-output');
+        const codeOutput = outputForType(panel, 'price');
         codeOutput.requestUpdate();
         await codeOutput.updateComplete;
         const code = codeOutput.shadowRoot.querySelector('code');
@@ -103,10 +104,8 @@ describe('ost-code-output', () => {
     it('emits an option only when it differs from the default', async () => {
         const panel = await fixture(html`<ost-placeholder-panel></ost-placeholder-panel>`);
         await panel.updateComplete;
-        // Default for displayTax is false. Flipping to true should emit it.
-        panel.toggleOption('displayTax');
-        await panel.updateComplete;
-        const codeOutput = panel.shadowRoot.querySelector('ost-code-output');
+        store.setPlaceholderOptions({ ...store.placeholderOptions, displayTax: true });
+        const codeOutput = outputForType(panel, 'price');
         codeOutput.requestUpdate();
         await codeOutput.updateComplete;
         const code = codeOutput.shadowRoot.querySelector('code');
@@ -114,10 +113,10 @@ describe('ost-code-output', () => {
     });
 
     async function setupCheckoutType(panel) {
-        panel.placeholderCtrl.setType('checkoutUrl');
-        await panel.updateComplete;
-        const codeOutput = panel.shadowRoot.querySelector('ost-code-output');
-        const checkoutOptions = panel.shadowRoot.querySelector('ost-checkout-options');
+        const codeOutput = outputForType(panel, 'checkoutUrl');
+        const checkoutOptions = panel.shadowRoot.querySelector(
+            '[data-testid="ost-placeholder-row-checkoutUrl"] ost-checkout-options',
+        );
         await checkoutOptions.updateComplete;
         return { codeOutput, checkoutOptions };
     }
@@ -176,18 +175,16 @@ describe('ost-code-output', () => {
 
     it('combines OSI with referenceOsi for discount type', async () => {
         const panel = await fixture(html`<ost-placeholder-panel></ost-placeholder-panel>`);
-        panel.placeholderCtrl.setType('discount');
         await panel.updateComplete;
-        const codeOutput = panel.shadowRoot.querySelector('ost-code-output');
+        const codeOutput = outputForType(panel, 'discount');
         codeOutput.referenceOsi = 'ref-osi';
         const text = await getCodeText(codeOutput);
         expect(text).to.include('osi="abc123,ref-osi"');
     });
 
     describe('handleUse', () => {
-        it('does nothing when the component is not inside a placeholder panel', async () => {
+        it('does nothing when the component has no placeholderType', async () => {
             const codeOutput = await fixture(html`<ost-code-output></ost-code-output>`);
-            // No throw, no state change.
             await codeOutput.handleUse();
             expect(codeOutput.buttonText).to.equal('Use');
         });
@@ -206,7 +203,7 @@ describe('ost-code-output', () => {
 
             const panel = await fixture(html`<ost-placeholder-panel></ost-placeholder-panel>`);
             await panel.updateComplete;
-            const codeOutput = panel.shadowRoot.querySelector('ost-code-output');
+            const codeOutput = outputForType(panel, 'price');
             await codeOutput.handleUse();
             expect(written).to.include('abc123');
             expect(codeOutput.buttonText).to.equal('Copied');
@@ -232,9 +229,8 @@ describe('ost-code-output', () => {
 
             const panel = await fixture(html`<ost-placeholder-panel></ost-placeholder-panel>`);
             await panel.updateComplete;
-            const codeOutput = panel.shadowRoot.querySelector('ost-code-output');
+            const codeOutput = outputForType(panel, 'price');
             await codeOutput.handleUse();
-            // Still flips the label even when clipboard rejects.
             expect(codeOutput.buttonText).to.equal('Copied');
 
             if (original) {
@@ -252,12 +248,7 @@ describe('ost-code-output', () => {
                 configurable: true,
             });
 
-            // Fake ost-app host that captures select() calls.
             const ostApp = document.createElement('div');
-            ostApp.tagName_ = 'OST-APP';
-            // Lit fixtures live inside a temporary container; reparent the
-            // panel under our fake ost-app so getRootNode().host walks land
-            // on our captor.
             Object.defineProperty(ostApp, 'tagName', { value: 'OST-APP' });
             ostApp.attachShadow({ mode: 'open' });
             document.body.appendChild(ostApp);
@@ -271,13 +262,97 @@ describe('ost-code-output', () => {
                 capturedArg = arg;
             };
 
-            const codeOutput = panel.shadowRoot.querySelector('ost-code-output');
+            const codeOutput = outputForType(panel, 'price');
             await codeOutput.handleUse();
 
             expect(capturedArg).to.exist;
             expect(capturedArg.osi).to.equal('abc123');
             expect(capturedArg.type).to.equal('price');
             expect(capturedArg.country).to.equal(store.country);
+
+            ostApp.remove();
+            if (original) {
+                Object.defineProperty(navigator, 'clipboard', {
+                    value: { writeText: original },
+                    configurable: true,
+                });
+            }
+        });
+
+        it('combines base OSI with referenceOsi when type is discount', async () => {
+            const original = navigator.clipboard?.writeText;
+            Object.defineProperty(navigator, 'clipboard', {
+                value: { writeText: async () => {} },
+                configurable: true,
+            });
+
+            const ostApp = document.createElement('div');
+            Object.defineProperty(ostApp, 'tagName', { value: 'OST-APP' });
+            ostApp.attachShadow({ mode: 'open' });
+            document.body.appendChild(ostApp);
+
+            const panel = document.createElement('ost-placeholder-panel');
+            ostApp.shadowRoot.appendChild(panel);
+            await panel.updateComplete;
+
+            let captured;
+            ostApp.select = (arg) => {
+                captured = arg;
+            };
+            const codeOutput = outputForType(panel, 'discount');
+            codeOutput.referenceOsi = 'ref-osi';
+
+            await codeOutput.handleUse();
+            expect(captured.osi).to.equal('abc123,ref-osi');
+
+            ostApp.remove();
+            if (original) {
+                Object.defineProperty(navigator, 'clipboard', {
+                    value: { writeText: original },
+                    configurable: true,
+                });
+            }
+        });
+
+        it('folds checkout controller state into options when present', async () => {
+            const original = navigator.clipboard?.writeText;
+            Object.defineProperty(navigator, 'clipboard', {
+                value: { writeText: async () => {} },
+                configurable: true,
+            });
+
+            const ostApp = document.createElement('div');
+            Object.defineProperty(ostApp, 'tagName', { value: 'OST-APP' });
+            ostApp.attachShadow({ mode: 'open' });
+            document.body.appendChild(ostApp);
+
+            const panel = document.createElement('ost-placeholder-panel');
+            ostApp.shadowRoot.appendChild(panel);
+            await panel.updateComplete;
+
+            const checkoutOptions = panel.shadowRoot.querySelector(
+                '[data-testid="ost-placeholder-row-checkoutUrl"] ost-checkout-options',
+            );
+            await checkoutOptions.updateComplete;
+            checkoutOptions.toggleModal(true);
+            checkoutOptions.setModalType('twp');
+            checkoutOptions.toggleEntitlement(true);
+            checkoutOptions.toggleUpgrade(true);
+            checkoutOptions.setCtaText('buy-now');
+
+            let captured;
+            ostApp.select = (arg) => {
+                captured = arg;
+            };
+
+            const codeOutput = outputForType(panel, 'checkoutUrl');
+            await codeOutput.handleUse();
+            expect(captured.options.modal).to.equal('twp');
+            expect(captured.options.entitlement).to.equal(true);
+            expect(captured.options.upgrade).to.equal(true);
+            expect(captured.options.ctaText).to.equal('buy-now');
+            expect(captured.options.workflow).to.equal('UCv3');
+            expect(captured.options.clientId).to.equal('mas-commerce-service');
 
             ostApp.remove();
             if (original) {
@@ -310,99 +385,13 @@ describe('ost-code-output', () => {
                 capturedArg = arg;
             };
 
-            const codeOutput = panel.shadowRoot.querySelector('ost-code-output');
+            const codeOutput = outputForType(panel, 'price');
             await codeOutput.handleUse();
 
             expect(capturedArg.promoOverride).to.equal('SAVE20');
 
             ostApp.remove();
             store.storedPromoOverride = undefined;
-            if (original) {
-                Object.defineProperty(navigator, 'clipboard', {
-                    value: { writeText: original },
-                    configurable: true,
-                });
-            }
-        });
-
-        it('combines base OSI with referenceOsi when type is discount', async () => {
-            const original = navigator.clipboard?.writeText;
-            Object.defineProperty(navigator, 'clipboard', {
-                value: { writeText: async () => {} },
-                configurable: true,
-            });
-
-            const ostApp = document.createElement('div');
-            Object.defineProperty(ostApp, 'tagName', { value: 'OST-APP' });
-            ostApp.attachShadow({ mode: 'open' });
-            document.body.appendChild(ostApp);
-
-            const panel = document.createElement('ost-placeholder-panel');
-            ostApp.shadowRoot.appendChild(panel);
-            await panel.updateComplete;
-            panel.placeholderCtrl.setType('discount');
-            await panel.updateComplete;
-
-            let captured;
-            ostApp.select = (arg) => {
-                captured = arg;
-            };
-            const codeOutput = panel.shadowRoot.querySelector('ost-code-output');
-            codeOutput.referenceOsi = 'ref-osi';
-
-            await codeOutput.handleUse();
-            expect(captured.osi).to.equal('abc123,ref-osi');
-
-            ostApp.remove();
-            if (original) {
-                Object.defineProperty(navigator, 'clipboard', {
-                    value: { writeText: original },
-                    configurable: true,
-                });
-            }
-        });
-
-        it('folds checkout controller state into options when present', async () => {
-            const original = navigator.clipboard?.writeText;
-            Object.defineProperty(navigator, 'clipboard', {
-                value: { writeText: async () => {} },
-                configurable: true,
-            });
-
-            const ostApp = document.createElement('div');
-            Object.defineProperty(ostApp, 'tagName', { value: 'OST-APP' });
-            ostApp.attachShadow({ mode: 'open' });
-            document.body.appendChild(ostApp);
-
-            const panel = document.createElement('ost-placeholder-panel');
-            ostApp.shadowRoot.appendChild(panel);
-            await panel.updateComplete;
-            panel.placeholderCtrl.setType('checkoutUrl');
-            await panel.updateComplete;
-
-            const checkoutOptions = panel.shadowRoot.querySelector('ost-checkout-options');
-            await checkoutOptions.updateComplete;
-            checkoutOptions.toggleModal(true);
-            checkoutOptions.setModalType('twp');
-            checkoutOptions.toggleEntitlement(true);
-            checkoutOptions.toggleUpgrade(true);
-            checkoutOptions.setCtaText('buy-now');
-
-            let captured;
-            ostApp.select = (arg) => {
-                captured = arg;
-            };
-
-            const codeOutput = panel.shadowRoot.querySelector('ost-code-output');
-            await codeOutput.handleUse();
-            expect(captured.options.modal).to.equal('twp');
-            expect(captured.options.entitlement).to.equal(true);
-            expect(captured.options.upgrade).to.equal(true);
-            expect(captured.options.ctaText).to.equal('buy-now');
-            expect(captured.options.workflow).to.equal('UCv3');
-            expect(captured.options.clientId).to.equal('mas-commerce-service');
-
-            ostApp.remove();
             if (original) {
                 Object.defineProperty(navigator, 'clipboard', {
                     value: { writeText: original },

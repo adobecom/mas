@@ -1,75 +1,81 @@
 import { LitElement, html, css } from 'lit';
 import { store } from '../store/ost-store.js';
 
-const OPTION_LABELS = {
-    displayFormatted: 'Format as currency',
-    displayRecurrence: 'Show billing period',
-    displayPerUnit: 'Show per-license label',
-    displayTax: 'Show tax label',
-    forceTaxExclusive: 'Exclude tax from price',
-    displayOldPrice: 'Show original price',
-};
+const DISABLE_OPTIONS = [
+    { key: 'displayFormatted', label: 'HTML Format' },
+    { key: 'displayRecurrence', label: 'Term' },
+    { key: 'displayPerUnit', label: 'Unit' },
+    { key: 'displayTax', label: 'Tax Label' },
+    { key: 'forceTaxExclusive', label: 'Include Tax' },
+    { key: 'displayOldPrice', label: 'Old price' },
+];
 
 export class OstPlaceholderOptions extends LitElement {
     static styles = css`
         :host {
             font-family: inherit;
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            column-gap: 16px;
+            display: block;
         }
 
-        .option-row {
+        .disable-label {
+            font-size: 12px;
+            color: var(--spectrum-gray-700);
+            margin-bottom: 4px;
+        }
+
+        .disable-group {
             display: flex;
-            align-items: center;
-            justify-content: space-between;
-            height: 32px;
-            padding: 0 12px;
-            border-bottom: 1px solid var(--spectrum-gray-100);
-        }
-
-        .option-row:nth-last-child(-n + 2) {
-            border-bottom: none;
-        }
-
-        .option-label {
-            font-size: 13px;
-            color: var(--spectrum-gray-800);
+            flex-wrap: wrap;
+            gap: 8px 16px;
         }
     `;
 
-    get controller() {
-        const root = this.getRootNode();
-        const panel = root?.host?.tagName === 'OST-PLACEHOLDER-PANEL' ? root.host : null;
-        return panel?.placeholderCtrl;
+    constructor() {
+        super();
+        this.handleStoreChange = this.handleStoreChange.bind(this);
+    }
+
+    connectedCallback() {
+        super.connectedCallback();
+        store.subscribe(this.handleStoreChange);
+    }
+
+    disconnectedCallback() {
+        super.disconnectedCallback();
+        store.unsubscribe(this.handleStoreChange);
+    }
+
+    handleStoreChange() {
+        this.requestUpdate();
+    }
+
+    // Legacy "Disable" semantics: a box is checked when its option is off
+    // (value false). This holds uniformly, including "Include Tax"
+    // (forceTaxExclusive) — checked when forceTaxExclusive is false.
+    isChecked(key) {
+        return !store.placeholderOptions[key];
+    }
+
+    toggle(key, checked) {
+        store.setPlaceholderOptions({ ...store.placeholderOptions, [key]: !checked });
     }
 
     render() {
-        const ctrl = this.controller;
-        if (!ctrl) return html``;
-        const opts = ctrl.options;
         return html`
-            ${Object.entries(OPTION_LABELS).map(
-                ([key, label]) => html`
-                    <div class="option-row">
-                        <span class="option-label">${label}</span>
-                        <sp-switch
-                            data-testid="ost-option-${key}"
+            <div class="disable-label">Disable</div>
+            <div class="disable-group" role="group" aria-label="Disable">
+                ${DISABLE_OPTIONS.map(
+                    ({ key, label }) => html`
+                        <sp-checkbox
+                            data-testid="ost-disable-${key}"
                             size="s"
-                            ?checked=${key === 'forceTaxExclusive' ? !opts[key] : !!opts[key]}
-                            @change=${(e) => {
-                                if (key === 'forceTaxExclusive') {
-                                    ctrl.options[key] = !e.target.checked;
-                                } else {
-                                    ctrl.options[key] = e.target.checked;
-                                }
-                                ctrl.requestUpdate();
-                                store.notify();
-                            }}
-                        ></sp-switch>
-                    </div>
-                `,
-            )}
+                            ?checked=${this.isChecked(key)}
+                            @change=${(e) => this.toggle(key, e.target.checked)}
+                            >${label}</sp-checkbox
+                        >
+                    `,
+                )}
+            </div>
         `;
     }
 }

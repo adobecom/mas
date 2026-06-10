@@ -139,6 +139,37 @@ describe('OstStore', () => {
         expect(store.defaultPlaceholderOptions.displayOldPrice).to.be.true;
     });
 
+    it('seeds placeholderOptions from defaults', () => {
+        expect(store.placeholderOptions).to.deep.equal(store.defaultPlaceholderOptions);
+    });
+
+    it('updates placeholderOptions via setPlaceholderOptions and notifies', () => {
+        let notified = false;
+        store.subscribe(() => {
+            notified = true;
+        });
+        store.setPlaceholderOptions({ ...store.placeholderOptions, displayTax: true });
+        expect(store.placeholderOptions.displayTax).to.be.true;
+        expect(store.placeholderOptions.displayFormatted).to.be.true;
+        expect(notified).to.be.true;
+    });
+
+    it('getEffectiveOptions returns global options for a type', () => {
+        store.setPlaceholderOptions({ ...store.placeholderOptions, displayTax: true });
+        expect(store.getEffectiveOptions('price').displayTax).to.be.true;
+    });
+
+    it('getEffectiveOptions merges per-type overrides', () => {
+        const effective = store.getEffectiveOptions('legal');
+        expect(effective.displayPlanType).to.be.true;
+    });
+
+    it('resets placeholderOptions to defaults on init', () => {
+        store.setPlaceholderOptions({ ...store.placeholderOptions, displayTax: true });
+        store.init({});
+        expect(store.placeholderOptions.displayTax).to.be.false;
+    });
+
     it('has default placeholder types', () => {
         expect(store.placeholderTypes).to.have.length(8);
         expect(store.placeholderTypes[0].type).to.equal('price');

@@ -21,14 +21,23 @@ const DEFAULT_SEARCH_AOS_PARAMS = {
 };
 
 const DEFAULT_PLACEHOLDER_TYPES = [
-    { type: 'price', name: 'Price' },
-    { type: 'optical', name: 'Optical price' },
-    { type: 'annual', name: 'Annual price' },
-    { type: 'strikethrough', name: 'Strikethrough price' },
-    { type: 'promo-strikethrough', name: 'Promo strikethrough price' },
-    { type: 'discount', name: 'Discount percentage' },
-    { type: 'legal', name: 'Legal disclaimer', overrides: { displayPlanType: true } },
-    { type: 'checkoutUrl', name: 'Checkout URL' },
+    { type: 'price', name: 'Price', description: 'Formatted price, can be inlined with neighbour text' },
+    { type: 'optical', name: 'Optical price', description: 'Formatted price calculating monthly payments for annual plans' },
+    { type: 'annual', name: 'Annual price', description: 'Formatted price calculating annual payments for ABM plan' },
+    { type: 'strikethrough', name: 'Strikethrough price', description: 'Formatted price displayed as strikethrough' },
+    {
+        type: 'promo-strikethrough',
+        name: 'Promo strikethrough price',
+        description: 'Formatted price displayed as promo strikethrough',
+    },
+    { type: 'discount', name: 'Discount percentage', description: 'Percentage discount between regular and current price' },
+    {
+        type: 'legal',
+        name: 'Legal disclaimer',
+        description: 'Legal disclaimer for a selected offer',
+        overrides: { displayPlanType: true },
+    },
+    { type: 'checkoutUrl', name: 'Checkout URL', description: 'Checkout URL for a selected offer' },
 ];
 
 const DEFAULT_PLACEHOLDER_OPTIONS = {
@@ -88,6 +97,11 @@ const SLICES = [
     ['masCommerceService', null],
     ['placeholderTypes', [...DEFAULT_PLACEHOLDER_TYPES]],
     ['defaultPlaceholderOptions', { ...DEFAULT_PLACEHOLDER_OPTIONS }],
+    // Global, user-editable placeholder options shared across every type row
+    // (legacy parity: the legacy OST held a single options state for all rows).
+    // Kept in enabled-semantics boolean-map form; the "Disable" checkbox group
+    // inverts only at the presentation layer.
+    ['placeholderOptions', { ...DEFAULT_PLACEHOLDER_OPTIONS }],
     ['offerSelectorPlaceholderOptions', {}],
     ['deepLink', {}],
     ['ctaTextOption', null],
@@ -287,6 +301,7 @@ export class OstStore extends EventTarget {
         this.deepLink = {};
         this.promotionCode = undefined;
         this.storedPromoOverride = undefined;
+        this.placeholderOptions = { ...DEFAULT_PLACEHOLDER_OPTIONS };
 
         if (config.multiSelect === true) {
             this.authoringFlow = 'tryBuy';
@@ -309,6 +324,7 @@ export class OstStore extends EventTarget {
         });
         if (config.defaultPlaceholderOptions) {
             this.defaultPlaceholderOptions = { ...DEFAULT_PLACEHOLDER_OPTIONS, ...config.defaultPlaceholderOptions };
+            this.placeholderOptions = { ...this.defaultPlaceholderOptions };
         }
         if (config.offerSelectorPlaceholderOptions) {
             this.offerSelectorPlaceholderOptions = config.offerSelectorPlaceholderOptions;
@@ -744,6 +760,16 @@ export class OstStore extends EventTarget {
 
     setPromoCode(code) {
         this.storedPromoOverride = code;
+    }
+
+    setPlaceholderOptions(options) {
+        this.placeholderOptions = { ...options };
+    }
+
+    getEffectiveOptions(type) {
+        const typeConfig = this.placeholderTypes.find((t) => t.type === type);
+        const overrides = typeConfig?.overrides || {};
+        return { ...this.placeholderOptions, ...overrides };
     }
 
     get effectivePromoCode() {

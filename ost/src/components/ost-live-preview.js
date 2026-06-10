@@ -137,19 +137,15 @@ export class OstLivePreview extends LitElement {
     }
 
     buildPlaceholderOptions() {
-        const panel = this.getPanel();
-        if (!panel) return null;
-
         const osi = store.selectedOsi;
         const service = store.masCommerceService;
         if (!osi || !service) return null;
         if (typeof service.createInlinePrice !== 'function') return null;
 
-        const ctrl = panel.placeholderCtrl;
-        const checkoutCtrl = panel.shadowRoot?.querySelector('ost-checkout-options')?.checkout;
-        const type = this.placeholderType || ctrl.selectedType;
-        const typeOverrides = store.placeholderTypes.find((t) => t.type === type)?.overrides || {};
-        const options = { ...ctrl.getEffectiveOptions(), ...typeOverrides };
+        const type = this.placeholderType;
+        if (!type) return null;
+        const checkoutCtrl = this.getPanel()?.shadowRoot?.querySelector('ost-checkout-options')?.checkout;
+        const options = store.getEffectiveOptions(type);
 
         const wcsOsi = type === 'discount' && this.referenceOsi ? [osi, this.referenceOsi] : [osi];
 

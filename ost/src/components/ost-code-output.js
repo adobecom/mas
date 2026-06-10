@@ -63,17 +63,14 @@ export class OstCodeOutput extends LitElement {
     }
 
     getCodeString() {
-        const panel = this.panel;
-        if (!panel) return '';
-
         const baseOsi = store.selectedOsi;
         if (!baseOsi) return '';
 
-        const ctrl = panel.placeholderCtrl;
-        const type = this.placeholderType || ctrl.selectedType;
-        const options = ctrl.getEffectiveOptions();
+        const type = this.placeholderType;
+        if (!type) return '';
+        const options = store.getEffectiveOptions(type);
 
-        const checkoutCtrl = panel.shadowRoot?.querySelector('ost-checkout-options')?.checkout;
+        const checkoutCtrl = this.panel?.shadowRoot?.querySelector('ost-checkout-options')?.checkout;
 
         const osi = type === 'discount' && this.referenceOsi ? `${baseOsi},${this.referenceOsi}` : baseOsi;
         const parts = [`osi="${osi}"`];
@@ -120,16 +117,13 @@ export class OstCodeOutput extends LitElement {
     }
 
     async handleUse() {
-        const panel = this.panel;
-        if (!panel) return;
-
         const baseOsi = store.selectedOsi;
-        const ctrl = panel.placeholderCtrl;
-        const type = this.placeholderType || ctrl.selectedType;
+        const type = this.placeholderType;
+        if (!type) return;
         const osi = type === 'discount' && this.referenceOsi ? `${baseOsi},${this.referenceOsi}` : baseOsi;
-        const options = ctrl.serializeOptions();
+        const options = store.getEffectiveOptions(type);
 
-        const checkoutCtrl = panel.shadowRoot?.querySelector('ost-checkout-options')?.checkout;
+        const checkoutCtrl = this.panel?.shadowRoot?.querySelector('ost-checkout-options')?.checkout;
 
         if (checkoutCtrl) {
             options.workflowStep = checkoutCtrl.workflowStep;

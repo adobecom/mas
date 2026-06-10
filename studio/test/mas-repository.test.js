@@ -226,10 +226,12 @@ describe('MasRepository dictionary helpers', () => {
             repository.page = { value: PAGE_NAMES.CONTENT };
             repository.searchFragments = sandbox.stub();
             repository.loadPreviewPlaceholders = sandbox.stub();
+            repository.loadPromotions = sandbox.stub();
             try {
                 repository.handleSearch();
                 expect(repository.searchFragments.calledOnce).to.be.true;
                 expect(repository.loadPreviewPlaceholders.calledOnce).to.be.true;
+                expect(repository.loadPromotions.calledOnce).to.be.true;
             } finally {
                 Store.profile.set(originalProfile);
             }
@@ -1510,6 +1512,60 @@ describe('MasRepository dictionary helpers', () => {
                 const passedStores = mockDataStore.set.lastCall.args[0];
                 expect(passedStores).to.have.lengthOf(1);
                 expect(passedStores[0].get().id).to.equal('coll-plain');
+            } finally {
+                Store.profile.set(originalProfile);
+                Store.fragments.list.data = originalData;
+            }
+        });
+
+        it('excludes promo variation fragments from CONTENT list', async () => {
+            const repository = createFullRepository();
+            repository.page = { value: PAGE_NAMES.CONTENT };
+            repository.search = { value: { path: 'acom', query: '' } };
+            repository.filters = {
+                value: {
+                    locale: 'en_US',
+                    tags: '',
+                    personalizationFilterEnabled: false,
+                },
+            };
+            const promoVariation = createFragment({
+                id: 'promo-var-1',
+                path: `${ROOT_PATH}/acom/en_US/promotions/back-to-school/cards/a`,
+                tags: [{ id: 'mas:promotion/back-to-school' }],
+                fields: [],
+            });
+            const plainFragment = createFragment({
+                id: 'plain-2',
+                path: `${ROOT_PATH}/acom/en_US/cards/b`,
+                tags: [{ id: 'mas:product/x' }],
+                fields: [],
+            });
+            const mockCursor = createMockCursor([[promoVariation, plainFragment]]);
+            const searchStub = sandbox.stub().resolves(mockCursor);
+            repository.aem = createAemMock({
+                fragments: {
+                    search: searchStub,
+                },
+            });
+            const { default: Store } = await import('../src/store.js');
+            const originalProfile = Store.profile.value;
+            Store.profile.set({ name: 'test-user' });
+            Store.createdByUsers.set([]);
+            const mockDataStore = {
+                get: sandbox.stub().returns([]),
+                getMeta: sandbox.stub().returns(null),
+                set: sandbox.stub(),
+                setMeta: sandbox.stub(),
+            };
+            const originalData = Store.fragments.list.data;
+            Store.fragments.list.data = mockDataStore;
+            try {
+                await repository.searchFragments();
+                expect(mockDataStore.set.called).to.be.true;
+                const passedStores = mockDataStore.set.lastCall.args[0];
+                expect(passedStores).to.have.lengthOf(1);
+                expect(passedStores[0].get().id).to.equal('plain-2');
             } finally {
                 Store.profile.set(originalProfile);
                 Store.fragments.list.data = originalData;

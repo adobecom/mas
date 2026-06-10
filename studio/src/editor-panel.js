@@ -498,6 +498,7 @@ export default class EditorPanel extends LitElement {
     async navigateToLocaleDefaultFragment() {
         if (!this.localeDefaultFragment) return;
         const parentLocale = extractLocaleFromPath(this.localeDefaultFragment.path);
+        Store.promotions.promotionId.set(null);
         if (parentLocale) {
             Store.filters.set((prev) => ({ ...prev, locale: parentLocale }));
         }

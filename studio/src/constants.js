@@ -193,6 +193,8 @@ export const VARIATION_TYPES = {
 
 export const PZN_FOLDER = 'pzn';
 
+export const PROMOTIONS_PATH_PREFIX = 'promotions/';
+
 /** CQ tag path for the country root under pzn (exception: not “personalization-only” for filters). */
 export const PZN_COUNTRY_TAG_PATH_PREFIX = '/content/cq:tags/mas/pzn/country';
 
@@ -261,6 +263,7 @@ export const FILTER_TYPE = {
     PLAN_TYPE: 'planType',
     PZN: 'pzn',
     TAG: 'tag',
+    STATUS: 'status',
 };
 
 export const FRAGMENT_STATUS = {

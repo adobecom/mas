@@ -179,16 +179,72 @@ describe('promotions', () => {
             expect(result.activeProject).to.not.be.null;
         });
 
-        it('matches project by regionLocale', async () => {
+        it('matches project by regionLocale resolved from defaultLanguage promise', async () => {
             const project = makeProject({ surfaces: ['acom'], geos: ['/content/cq:tags/mas/locale/fr_CH'] });
             const hydrated = makeHydratedProject();
             fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
             fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
 
+            // regionLocale must come from the defaultLanguage promise, not the init-phase context
             const result = await promotionsTransformer.init(
-                createContext({ locale: 'fr_FR', country: 'CH', regionLocale: 'fr_CH' }),
+                createContext({
+                    locale: 'fr_FR',
+                    country: 'CH',
+                    promises: {
+                        defaultLanguage: Promise.resolve({
+                            status: 200,
+                            defaultLocale: 'fr_FR',
+                            regionLocale: 'fr_CH',
+                            surface: 'acom',
+                        }),
+                    },
+                }),
             );
             expect(result.activeProject).to.not.be.null;
+        });
+
+        it('applies en_GR project when locale=en_US and country=GR (regionLocale resolved by defaultLanguage)', async () => {
+            const project = makeProject({ surfaces: ['acom'], geos: ['/content/cq:tags/mas/locale/en_GR'] });
+            const hydrated = makeHydratedProject();
+            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+            fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
+
+            const result = await promotionsTransformer.init(
+                createContext({
+                    locale: 'en_US',
+                    country: 'GR',
+                    promises: {
+                        defaultLanguage: Promise.resolve({
+                            status: 200,
+                            defaultLocale: 'en_US',
+                            regionLocale: 'en_GR',
+                            surface: 'acom',
+                        }),
+                    },
+                }),
+            );
+            expect(result.activeProject).to.not.be.null;
+        });
+
+        it('does not apply en_US project when locale=en_US and country=GR', async () => {
+            const project = makeProject({ surfaces: ['acom'], geos: ['/content/cq:tags/mas/locale/en_US'] });
+            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+
+            const result = await promotionsTransformer.init(
+                createContext({
+                    locale: 'en_US',
+                    country: 'GR',
+                    promises: {
+                        defaultLanguage: Promise.resolve({
+                            status: 200,
+                            defaultLocale: 'en_US',
+                            regionLocale: 'en_GR',
+                            surface: 'acom',
+                        }),
+                    },
+                }),
+            );
+            expect(result.activeProject).to.be.null;
         });
 
         it('uses first match and logs warning when multiple projects match', async () => {
@@ -318,6 +374,22 @@ describe('promotions', () => {
             await promotionsTransformer.init(createContext({ regionLocale: 'en_US' }));
 
             expect(fetchStub.withArgs(FOLDER_URL).callCount).to.equal(1);
+        });
+
+        it('falls back to locale when defaultLanguage resolves without regionLocale', async () => {
+            const project = makeProject({ surfaces: ['acom'], geos: [] });
+            const hydrated = makeHydratedProject();
+            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+            fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
+
+            const result = await promotionsTransformer.init(
+                createContext({
+                    promises: {
+                        defaultLanguage: Promise.resolve({ status: 200, defaultLocale: 'en_US' }),
+                    },
+                }),
+            );
+            expect(result.activeProject).to.not.be.null;
         });
 
         it('returns no active project when defaultLanguage resolves without defaultLocale', async () => {

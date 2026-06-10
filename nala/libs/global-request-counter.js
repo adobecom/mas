@@ -83,7 +83,9 @@ class GlobalRequestCounter {
                 globalThis.odinThrottleLogged = true;
                 const workers = process.env.NALA_WORKER_COUNT ?? '?';
                 const total = odinMaxRps * Number(workers || 1);
-                console.info(`[NALA] ODIN throttle active: ~${odinMaxRps} rps/worker × ${workers} workers = ~${total} rps combined (limit ${process.env.NALA_ODIN_MAX_RPS ?? '20'}). Set NALA_ODIN_MAX_RPS to override.\n`);
+                console.info(
+                    `[NALA] ODIN throttle active: ~${odinMaxRps} rps/worker × ${workers} workers = ~${total} rps combined (limit ${process.env.NALA_ODIN_MAX_RPS ?? '20'}). Set NALA_ODIN_MAX_RPS to override.\n`,
+                );
             }
             await page.route(
                 (url) => isOdinHost(url),

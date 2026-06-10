@@ -48,9 +48,7 @@ export function isOdinHost(url) {
     try {
         const { hostname } = new URL(url);
         return (
-            hostname.endsWith('adobeaemcloud.com') ||
-            hostname === 'odinpreview.corp.adobe.com' ||
-            hostname === 'odin.adobe.com'
+            hostname.endsWith('adobeaemcloud.com') || hostname === 'odinpreview.corp.adobe.com' || hostname === 'odin.adobe.com'
         );
     } catch {
         return false;

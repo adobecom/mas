@@ -262,16 +262,25 @@ async function init(context) {
     // Fire projects fetch immediately — needs no context dependencies
     const projectsPromise = fetchProjects(context);
 
-    // Resolve request info in parallel
-    const { surface } = await getRequestInfos(context);
-    if (!surface) return { status: 200, activeProject: null };
+    // Resolve surface, projects, and defaultLanguage (which carries regionLocale) all in parallel.
+    // regionLocale is NOT available on the init-phase context — it is computed by defaultLanguage.init
+    // and only placed on context during the process phase. We must read it from the promise.
+    const [{ surface }, projects, defaultLangResult] = await Promise.all([
+        getRequestInfos(context),
+        projectsPromise,
+        context.promises?.defaultLanguage,
+    ]);
 
-    const projects = await projectsPromise;
+    if (!surface) return { status: 200, activeProject: null };
     if (!projects?.length) return { status: 200, activeProject: null };
 
+    const defaultLocale = defaultLangResult?.defaultLocale;
+    if (!defaultLocale) return { status: 200, activeProject: null };
+    const resolvedRegionLocale = defaultLangResult.regionLocale;
+
     const instant = toInstant(context.preview ? context.instant : undefined);
-    const { locale, country, regionLocale } = context;
-    const effectiveRegionLocale = regionLocale ?? locale;
+    const { locale, country } = context;
+    const effectiveRegionLocale = resolvedRegionLocale ?? locale;
 
     let active = null;
     let matchCount = 0;
@@ -288,16 +297,10 @@ async function init(context) {
         return { status: 200, activeProject: null };
     } else {
         log(
-            `Active promotion project "${active.name}" (${active.id}) matched for surface "${surface}", regionLocale "${regionLocale}", country "${country}"`,
+            `Active promotion project "${active.name}" (${active.id}) matched for surface "${surface}", regionLocale "${effectiveRegionLocale}", country "${country}"`,
             context,
         );
     }
-
-    // Await defaultLanguage to get resolved locale info for variation folder searches
-    const defaultLangResult = await context.promises?.defaultLanguage;
-    const defaultLocale = defaultLangResult?.defaultLocale;
-    if (!defaultLocale) return { status: 200, activeProject: null };
-    const resolvedRegionLocale = defaultLangResult.regionLocale;
 
     const promoTag = active.tags.find((tag) => tag.startsWith(PROMO_TAG_PREFIX));
     const promoName = promoTag.slice(PROMO_TAG_PREFIX.length);

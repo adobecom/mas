@@ -472,6 +472,46 @@ runTests(async () => {
                 expect(descriptionHeight).to.equal('');
             });
 
+            it('should observe the card for resync after font reflow', async () => {
+                const card = document.querySelector(
+                    'merch-card[variant="full-pricing-express"]',
+                );
+                await card.updateComplete;
+                expect(card.variantLayout.sizeObserver).to.be.an.instanceof(
+                    ResizeObserver,
+                );
+            });
+
+            it('should resync siblings when its title reflows', async () => {
+                const card = document.querySelector(
+                    'merch-card[variant="full-pricing-express"]',
+                );
+                await card.updateComplete;
+                const spy = sinon.spy(card.variantLayout, 'syncHeights');
+                card.variantLayout.lastSyncedKey = '';
+                const title = card.querySelector(
+                    card.variantLayout.headingSelector,
+                );
+                title.style.minHeight = '200px';
+                card.variantLayout.resyncOnReflow();
+                expect(spy.called).to.be.true;
+                title.style.minHeight = '';
+                spy.restore();
+            });
+
+            it('should disconnect the observer on disconnect', async () => {
+                const card = document.querySelector(
+                    'merch-card[variant="full-pricing-express"]',
+                );
+                await card.updateComplete;
+                const observer = card.variantLayout.sizeObserver;
+                const disconnectSpy = sinon.spy(observer, 'disconnect');
+                card.variantLayout.disconnectedCallbackHook();
+                expect(disconnectSpy.called).to.be.true;
+                expect(card.variantLayout.sizeObserver).to.equal(null);
+                card.variantLayout.connectedCallbackHook();
+            });
+
             it('should apply flexbox to short-description for alignment', async () => {
                 const card = document.querySelector(
                     'merch-card[variant="full-pricing-express"]',

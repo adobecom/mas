@@ -1535,6 +1535,108 @@ describe('customize promo variation', function () {
     });
 });
 
+const CARD_MODEL = { id: 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ' };
+const COLLECTION_MODEL = { id: 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24' };
+// `customize` receives the already-fetched mask fragment on `context.maskFragment` (set by the `mask`
+// transformer). These tests cover the merge only; mask resolution/fetch lives in `mask.test.js`.
+const MASK = { fields: { badge: 'MASKED BADGE', mnemonicIcon: [] } };
+
+describe('customize mask overlay', function () {
+    it('should overlay the mask onto a card fragment (authored fields win, empty fields preserved)', async function () {
+        const result = await process({
+            ...FAKE_CONTEXT,
+            fragmentPath: 'promo-card',
+            locale: 'en_US',
+            parsedLocale: 'en_US',
+            maskFragment: MASK,
+            body: {
+                path: '/content/dam/mas/sandbox/en_US/promo-card',
+                id: 'card-root',
+                model: CARD_MODEL,
+                fields: { badge: 'ORIGINAL', subtitle: 'keep me', title: 'Card' },
+                references: {},
+                referencesTree: [],
+            },
+        });
+        expect(result.status).to.equal(200);
+        expect(result.body.id).to.equal('card-root');
+        expect(result.body.fields.badge).to.equal('MASKED BADGE');
+        expect(result.body.fields.subtitle).to.equal('keep me');
+        expect(result.body.fields.title).to.equal('Card');
+    });
+
+    it('does not apply mask when root fragment is not a card (root-only overlay)', async function () {
+        const result = await process({
+            ...FAKE_CONTEXT,
+            fragmentPath: 'promo-coll',
+            locale: 'en_US',
+            parsedLocale: 'en_US',
+            maskFragment: MASK,
+            body: {
+                path: '/content/dam/mas/sandbox/en_US/promo-coll',
+                id: 'coll-root',
+                // collection root has no model -> mask must not apply
+                fields: { cards: ['card-1'], collections: [] },
+                references: {
+                    'card-1': {
+                        type: 'content-fragment',
+                        value: {
+                            path: '/content/dam/mas/sandbox/en_US/card-1',
+                            id: 'card-1',
+                            model: CARD_MODEL,
+                            fields: { badge: 'ORIGINAL', variations: [] },
+                        },
+                    },
+                },
+                referencesTree: [{ fieldName: 'cards', identifier: 'card-1', referencesTree: [] }],
+            },
+        });
+        expect(result.status).to.equal(200);
+        expect(result.body.fields.badge).to.be.undefined;
+        // card references are not overlaid (root-only overlay)
+        expect(result.body.references['card-1'].value.fields.badge).to.equal('ORIGINAL');
+    });
+
+    it('should not overlay when the fragment has a non-card model', async function () {
+        const result = await process({
+            ...FAKE_CONTEXT,
+            fragmentPath: 'promo-coll',
+            locale: 'en_US',
+            parsedLocale: 'en_US',
+            maskFragment: MASK,
+            body: {
+                path: '/content/dam/mas/sandbox/en_US/promo-coll',
+                id: 'coll-root',
+                model: COLLECTION_MODEL,
+                fields: { badge: 'ORIGINAL', cards: [], collections: [] },
+                references: {},
+                referencesTree: [],
+            },
+        });
+        expect(result.status).to.equal(200);
+        expect(result.body.fields.badge).to.equal('ORIGINAL');
+    });
+
+    it('should be a no-op when no mask fragment was resolved', async function () {
+        const result = await process({
+            ...FAKE_CONTEXT,
+            fragmentPath: 'promo-card',
+            locale: 'en_US',
+            parsedLocale: 'en_US',
+            body: {
+                path: '/content/dam/mas/sandbox/en_US/promo-card',
+                id: 'card-root',
+                model: CARD_MODEL,
+                fields: { badge: 'ORIGINAL' },
+                references: {},
+                referencesTree: [],
+            },
+        });
+        expect(result.status).to.equal(200);
+        expect(result.body.fields.badge).to.equal('ORIGINAL');
+    });
+});
+
 describe('customize promoCode application', function () {
     const MINIMAL_PROJECT = {
         id: 'promo-proj',

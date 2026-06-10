@@ -1,16 +1,10 @@
 import { PATH_TOKENS } from '../utils/paths.js';
-import { getRequestInfos, matchesGeo } from '../utils/common.js';
+import { getRequestInfos, matchesGeo, skimFragmentFromReferences } from '../utils/common.js';
 import { logDebug } from '../utils/log.js';
 
 const PZN_FOLDER = '/pzn/';
-
-function skimFragmentFromReferences(fragment) {
-    const skimmedFragment = structuredClone(fragment);
-    delete skimmedFragment.references;
-    delete skimmedFragment.modelReferences;
-    delete skimmedFragment.referencesTree;
-    return skimmedFragment;
-}
+// base64 id of /conf/mas/settings/dam/cfm/models/card — masks overlay card fragments only
+const CARD_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ';
 
 /**
  * Resolves the same fragment-init payload as the `defaultLanguage` transformer (`body`, `defaultLocale`, `regionLocale`, etc.)
@@ -314,6 +308,7 @@ async function customize(context) {
     const promos = activeProject
         ? { activeProject, promoMap: context.promoMap ?? {}, fragmentPaths: context.promoFragmentPaths ?? new Set() }
         : null;
+    const { maskFragment } = context;
 
     if (status != 200) {
         return { ...context, status, message };
@@ -331,11 +326,14 @@ async function customize(context) {
         references,
         surface,
     };
-    const {
-        fragment: customizedFragment,
-        references: customizedReferences,
-        referencesTree: customizedReferenceTree,
-    } = customizeTree(baseFragment, referencesTree, customizeContext);
+    const customizedTree = customizeTree(baseFragment, referencesTree, customizeContext);
+    let { fragment: customizedFragment } = customizedTree;
+    const { references: customizedReferences, referencesTree: customizedReferenceTree } = customizedTree;
+
+    if (maskFragment && customizedFragment.model?.id === CARD_MODEL_ID) {
+        logDebug(() => `Applying mask ${maskFragment.id} on fragment ${customizedFragment.id}`, context);
+        customizedFragment = deepMerge(customizedFragment, maskFragment);
+    }
     customizedFragment.references = customizedReferences;
     customizedFragment.referencesTree = customizedReferenceTree;
     return {

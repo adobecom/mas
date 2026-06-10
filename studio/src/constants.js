@@ -129,6 +129,8 @@ export const PAGE_NAMES = {
     BULK_PUBLISH: 'bulkPublish',
     BULK_PUBLISH_EDITOR: 'bulkPublishEditor',
     ADVANCED_TOOLS: 'advanced-tools',
+    MASKS: 'masks',
+    MASKS_EDITOR: 'masks-editor',
 };
 
 export const TAG_STATUS_PUBLISHED = 'mas:status/published';
@@ -156,6 +158,11 @@ export const FIELD_MODEL_MAPPING = {
 
 export const TAG_STUDIO_CONTENT_TYPE = 'mas:studio/content-type';
 export const TAG_PROMOTION_PREFIX = 'mas:promotion/';
+
+/** Masks: card fragments stored under <surface>/<locale>/masks and tagged in the masks namespace. */
+export const MASKS_FOLDER = 'masks';
+export const TAG_MASKS_NAMESPACE_PATH = '/content/cq:tags/mas/masks';
+export const MAS_MASKS_PREFIX = 'mas:masks/';
 
 /** Full AEM content path for product_code */
 export const AEM_TAG_PATH_PRODUCT_CODE_ROOT = '/content/cq:tags/mas/product_code';

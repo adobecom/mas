@@ -5980,13 +5980,18 @@ merch-card-collection.plans:is(.one-merch-card, .two-merch-cards, .three-merch-c
                     tabindex="0"
                     aria-expanded=${a?"true":"false"}
                     aria-controls="license-popover"
+                    aria-labelledby="license-select-label"
                     aria-activedescendant=${a?`license-option-${this.licenseHighlightedIndex}`:w}
                     @click=${this.toggleLicensePopover}
                     @keydown=${h(this,da)}
                 >
                     <span class="license-select-trigger-text">
                         <span class="license-select-value">${i}</span>
-                        <span class="license-select-label">${n}</span>
+                        <span
+                            class="license-select-label"
+                            id="license-select-label"
+                            >${n}</span
+                        >
                     </span>
                     <span
                         class="license-select-chevron"
@@ -5997,6 +6002,9 @@ merch-card-collection.plans:is(.one-merch-card, .two-merch-cards, .three-merch-c
                     id="license-popover"
                     class="license-select-popover"
                     role="listbox"
+                    aria-labelledby="license-select-label"
+                    aria-multiselectable="false"
+                    tabindex="-1"
                     ?hidden=${!a}
                 >
                     <li

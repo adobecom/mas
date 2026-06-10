@@ -399,11 +399,14 @@ export class BizPro extends VariantLayout {
     };
 
     /**
-     * Keyboard handling for the license combobox. Mirrors
-     * merch-quantity-select.handleKeydown: DOM focus stays on the trigger and
-     * arrow keys move the active-descendant highlight (aria-activedescendant)
-     * rather than moving focus into the listbox. Enter/Space commit the
-     * highlighted option, Escape closes, Tab commits and lets focus advance.
+     * Keyboard handling for the license combobox. Follows the same
+     * active-descendant model as merch-quantity-select: DOM focus stays on the
+     * trigger and arrow keys move the active-descendant highlight
+     * (aria-activedescendant) rather than moving focus into the listbox. Beyond
+     * that reference it adds the ARIA APG select-only-combobox keys — open on
+     * ArrowUp as well as ArrowDown, Home/End, and ArrowUp wraparound.
+     * Enter/Space commit the highlighted option, Escape closes, Tab commits and
+     * lets focus advance.
      */
     #handleLicenseKeydown = (e) => {
         const opts = this.licenseOptions;
@@ -501,6 +504,7 @@ export class BizPro extends VariantLayout {
                     tabindex="0"
                     aria-expanded=${open ? 'true' : 'false'}
                     aria-controls="license-popover"
+                    aria-labelledby="license-select-label"
                     aria-activedescendant=${open
                         ? `license-option-${this.licenseHighlightedIndex}`
                         : nothing}
@@ -509,7 +513,11 @@ export class BizPro extends VariantLayout {
                 >
                     <span class="license-select-trigger-text">
                         <span class="license-select-value">${current}</span>
-                        <span class="license-select-label">${label}</span>
+                        <span
+                            class="license-select-label"
+                            id="license-select-label"
+                            >${label}</span
+                        >
                     </span>
                     <span
                         class="license-select-chevron"
@@ -520,6 +528,9 @@ export class BizPro extends VariantLayout {
                     id="license-popover"
                     class="license-select-popover"
                     role="listbox"
+                    aria-labelledby="license-select-label"
+                    aria-multiselectable="false"
+                    tabindex="-1"
                     ?hidden=${!open}
                 >
                     <li

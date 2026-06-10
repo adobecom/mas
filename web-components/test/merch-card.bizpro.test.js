@@ -539,6 +539,13 @@ describe('bizpro license dropdown keyboard navigation', () => {
         expect(trigger().getAttribute('aria-controls')).to.equal(
             'license-popover',
         );
+        // role=combobox is name-from-author, so inner text does not supply an
+        // accessible name — it must come from aria-labelledby.
+        const labelledby = trigger().getAttribute('aria-labelledby');
+        expect(labelledby).to.equal('license-select-label');
+        expect(
+            card.shadowRoot.getElementById(labelledby)?.textContent.trim(),
+        ).to.not.equal('');
     });
 
     it('opens on ArrowDown and highlights the selected option', async () => {

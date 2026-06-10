@@ -1203,6 +1203,14 @@ class MerchCardEditor extends LitElement {
                             @input="${this.#handleFragmentDescriptionUpdate}"
                         ></sp-textfield>
                     </sp-field-group>
+                    <sp-field-group id="fragment-locready-group">
+                        <sp-field-label for="fragment-locready">Send to translation?</sp-field-label>
+                        <sp-switch
+                            id="fragment-locready"
+                            ?checked="${form.locReady?.values[0]}"
+                            @click="${this.#handleLocReady}"
+                        ></sp-switch>
+                    </sp-field-group>
                 </div>
                 <sp-field-group class="toggle" id="title">
                     <sp-field-label for="card-title">Title</sp-field-label>
@@ -1683,6 +1691,11 @@ class MerchCardEditor extends LitElement {
 
     #handleFragmentDescriptionUpdate(e) {
         this.fragmentStore.updateFieldInternal('description', e.target.value);
+    }
+
+    #handleLocReady() {
+        const value = !this.fragment.getField('locReady')?.values[0];
+        this.fragmentStore.updateField('locReady', [value]);
     }
 
     #whatsIncludedRowIsEmpty(value) {

@@ -271,6 +271,20 @@ describe('MasSelectedItems', () => {
             expect(list).to.exist;
         });
 
+        it('should re-render when cardsByPaths is populated after selection', async () => {
+            const card = createMockCard('/path/late', 'Late Card');
+            Store.translationProjects.selectedCards.set(['/path/late']);
+            Store.translationProjects.showSelected.set(true);
+            const el = await fixture(html`<mas-selected-items></mas-selected-items>`);
+            await el.updateComplete;
+            expect(el.shadowRoot.querySelectorAll('.item')).to.have.lengthOf(0);
+
+            Store.translationProjects.cardsByPaths.set(new Map([['/path/late', card]]));
+            await el.updateComplete;
+            const titles = [...el.shadowRoot.querySelectorAll('.title')].map((n) => n.textContent.trim());
+            expect(titles).to.include('Late Card');
+        });
+
         it('should render item elements for each selected item', async () => {
             const card1 = createMockCard('/path/card1', 'Card 1');
             const card2 = createMockCard('/path/card2', 'Card 2');

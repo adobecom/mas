@@ -24,6 +24,10 @@ class MasSelectedItems extends LitElement {
             getItemsSelectionStore().selectedCollections,
             getItemsSelectionStore().selectedPlaceholders,
             getItemsSelectionStore().groupedVariationsByParent,
+            getItemsSelectionStore().cardsByPaths,
+            getItemsSelectionStore().groupedVariationsData,
+            getItemsSelectionStore().collectionsByPaths,
+            getItemsSelectionStore().placeholdersByPaths,
         ]);
         this.fetchController = new ReactiveController(
             this,

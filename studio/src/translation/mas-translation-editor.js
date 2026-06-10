@@ -524,8 +524,6 @@ class MasTranslationEditor extends LitElement {
                 searchAndFilters.productFilter = [];
             }
         }
-        Store.translationProjects.allCards.set([]);
-        Store.translationProjects.displayCards.set([]);
         if (this.repository?.searchFragments) this.repository.searchFragments();
         if (this.repository?.loadPlaceholders) this.repository.loadPlaceholders();
         if (this.repository?.loadAllCollections) this.repository.loadAllCollections();

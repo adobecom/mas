@@ -1051,11 +1051,6 @@ class MerchCardEditor extends LitElement {
                     --mod-picker-border-radius: 8px;
                 }
 
-                #size {
-                    position: relative;
-                    z-index: 2;
-                }
-
                 #tags {
                     position: relative;
                     z-index: 1;

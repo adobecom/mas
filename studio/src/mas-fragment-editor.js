@@ -2025,7 +2025,11 @@ export default class MasFragmentEditor extends LitElement {
     }
 
     #handlePreviewError = (e) => {
-        this.previewError = e.detail?.message ?? 'Card failed to load';
+        let defaultErrorMessage = 'Card failed to load';
+        if (!/hydrate\: no template/.test(e.detail?.message)) {
+            defaultErrorMessage = e.detail?.message;
+        }
+        this.previewError = defaultErrorMessage;
     };
 
     #clearPreviewError = () => {

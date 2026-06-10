@@ -415,36 +415,40 @@ class MasSelectItemsTable extends LitElement {
     }
 
     render() {
-        const hasItems = this.itemsToDisplay.length > 0;
         const fetching = this.loading.value;
         const loadingFirstPage = fetching && !this.firstPageLoaded.value;
         const showSkeleton = this.isLoading || loadingFirstPage;
-        const showEmpty = !showSkeleton && !fetching && !hasItems;
+        const showEmpty = !showSkeleton && this.itemsToDisplay.length === 0;
+        const showTable = showSkeleton || this.itemsToDisplay.length > 0;
 
         return html`
             ${showEmpty ? html`<p>No items found.</p>` : nothing}
-            <sp-table class="fragments-table item-table" emphasized>
-                <sp-table-head>
-                    ${repeat(
-                        this.tableColumns,
-                        (column) => column.key,
-                        (column) =>
-                            column.key === 'checkbox' && !this.viewOnly
-                                ? html`<sp-table-head-cell class=${column.class ?? ''}>
-                                      <sp-checkbox
-                                          ?checked=${this.selectAllChecked}
-                                          ?indeterminate=${this.selectAllIndeterminate}
-                                          ?disabled=${this.selectAllDisabled}
-                                          @change=${(e) => this.#toggleSelectAll(e)}
-                                          aria-label="Select all loaded items"
-                                      ></sp-checkbox>
-                                  </sp-table-head-cell>`
-                                : html`<sp-table-head-cell class=${column.class ?? ''}> ${column.label} </sp-table-head-cell>`,
-                    )}
-                </sp-table-head>
-                <sp-table-body>${showSkeleton ? this.#renderSkeletonRows() : this.#renderTableBody()}</sp-table-body>
-                ${this.hasMore.value ? html`<div class="scroll-sentinel"></div>` : nothing} ${this.loadingMoreIndicator}
-            </sp-table>
+            ${showTable
+                ? html`<sp-table class="fragments-table item-table" emphasized>
+                      <sp-table-head>
+                          ${repeat(
+                              this.tableColumns,
+                              (column) => column.key,
+                              (column) =>
+                                  column.key === 'checkbox' && !this.viewOnly
+                                      ? html`<sp-table-head-cell class=${column.class ?? ''}>
+                                            <sp-checkbox
+                                                ?checked=${this.selectAllChecked}
+                                                ?indeterminate=${this.selectAllIndeterminate}
+                                                ?disabled=${this.selectAllDisabled}
+                                                @change=${(e) => this.#toggleSelectAll(e)}
+                                                aria-label="Select all loaded items"
+                                            ></sp-checkbox>
+                                        </sp-table-head-cell>`
+                                      : html`<sp-table-head-cell class=${column.class ?? ''}>
+                                            ${column.label}
+                                        </sp-table-head-cell>`,
+                          )}
+                      </sp-table-head>
+                      <sp-table-body>${showSkeleton ? this.#renderSkeletonRows() : this.#renderTableBody()}</sp-table-body>
+                      ${this.hasMore.value ? html`<div class="scroll-sentinel"></div>` : nothing} ${this.loadingMoreIndicator}
+                  </sp-table>`
+                : nothing}
         `;
     }
 }

@@ -3643,12 +3643,15 @@ describe('MasRepository publishFragment', () => {
         expect(repo.aem.sites.cf.fragments.publishFragments.called).to.be.false;
     });
 
-    it('publishes parent with [] then publishes refs separately when selectedRefIds given', async () => {
+    it('publishes parent with [] then publishes refs individually when selectedRefIds given', async () => {
         const repo = makeRepo();
+        const refFragment = { id: 'ref-1', path: '/content/dam/mas/sandbox/en_GB/card', etag: 'abc' };
+        repo.aem.sites.cf.fragments.getWithEtag = sandbox.stub().resolves(refFragment);
         await repo.publishFragment(fragment, { selectedRefIds: ['ref-1'] });
         expect(repo.aem.sites.cf.fragments.publish.calledWith(fragment, [])).to.be.true;
         expect(repo.aem.sites.cf.fragments.getWithEtag.calledWith('ref-1')).to.be.true;
-        expect(repo.aem.sites.cf.fragments.publishFragments.called).to.be.true;
+        expect(repo.aem.sites.cf.fragments.publish.calledWith(refFragment, [])).to.be.true;
+        expect(repo.aem.sites.cf.fragments.publishFragments.called).to.be.false;
     });
 
     it('skips ref publish when selectedRefIds is absent', async () => {
@@ -3658,8 +3661,19 @@ describe('MasRepository publishFragment', () => {
         expect(repo.aem.sites.cf.fragments.publishFragments.called).to.be.false;
     });
 
-    it('explicitly publishes all refs when allSelected is true regardless of status', async () => {
+    it('explicitly publishes all refs individually when allSelected is true regardless of status', async () => {
         const repo = makeRepo();
+        const pubVar = { id: 'pub-var-1', path: '/p1', etag: 'e1' };
+        const draftVar = { id: 'draft-var-2', path: '/p2', etag: 'e2' };
+        const newCard = { id: 'new-card-1', path: '/p3', etag: 'e3' };
+        repo.aem.sites.cf.fragments.getWithEtag = sandbox
+            .stub()
+            .onFirstCall()
+            .resolves(pubVar)
+            .onSecondCall()
+            .resolves(draftVar)
+            .onThirdCall()
+            .resolves(newCard);
         const fragWithMixedRefs = {
             ...fragment,
             getPublishableReferences: () => ({
@@ -3674,10 +3688,10 @@ describe('MasRepository publishFragment', () => {
         expect(
             repo.aem.sites.cf.fragments.publish.calledWith(fragWithMixedRefs, ['DRAFT', 'MODIFIED', 'UNPUBLISHED']),
         ).to.be.true;
-        expect(repo.aem.sites.cf.fragments.getWithEtag.calledWith('pub-var-1')).to.be.true;
-        expect(repo.aem.sites.cf.fragments.getWithEtag.calledWith('draft-var-2')).to.be.true;
-        expect(repo.aem.sites.cf.fragments.getWithEtag.calledWith('new-card-1')).to.be.true;
-        expect(repo.aem.sites.cf.fragments.publishFragments.called).to.be.true;
+        expect(repo.aem.sites.cf.fragments.publish.calledWith(pubVar, [])).to.be.true;
+        expect(repo.aem.sites.cf.fragments.publish.calledWith(draftVar, [])).to.be.true;
+        expect(repo.aem.sites.cf.fragments.publish.calledWith(newCard, [])).to.be.true;
+        expect(repo.aem.sites.cf.fragments.publishFragments.called).to.be.false;
     });
 });
 

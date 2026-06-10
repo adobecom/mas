@@ -1577,7 +1577,7 @@ export class MasRepository extends LitElement {
         );
         const valid = refFragments.filter(Boolean);
         if (valid.length === 0) return;
-        await this.aem.sites.cf.fragments.publishFragments(valid, []);
+        await Promise.all(valid.map((ref) => this.aem.sites.cf.fragments.publish(ref, [])));
     }
 
     /**

@@ -10,9 +10,6 @@ const defaults = {
     sourcemap: process.argv.includes('sourcemap'),
     platform: 'browser',
     target: ['es2020'],
-    // Inline static assets as data URLs at build time so JS modules can
-    // `import url from './path.svg'` and embed it in CSS / DOM.
-    loader: { '.svg': 'dataurl' },
 };
 
 // Read the price-literals.js file content

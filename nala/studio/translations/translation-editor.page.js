@@ -53,7 +53,7 @@ export default class TranslationEditorPage {
         this.appliedFilterTags = fragmentsTab.locator('mas-search-and-filters .applied-filters sp-tag');
 
         // Filters
-        this.filterButtons = page.locator('mas-search-and-filters sp-action-button[slot="trigger"]');
+        this.filterButtons = page.locator('sp-action-button.filter-trigger');
         this.filterPopover = page.locator('sp-popover.filter-popover[open]').first();
 
         // Collections tab

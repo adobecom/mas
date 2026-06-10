@@ -146,36 +146,6 @@ export default class EditorPage {
         return fieldGroupLocator.locator(this.overrideRestoreLink);
     }
 
-    async dismissTagPicker() {
-        await this.page.keyboard.press('Escape');
-        const openTagPopover = this.panel.locator('aem-tag-picker-field#tags-field sp-popover[open]');
-        await expect(openTagPopover).toHaveCount(0);
-    }
-
-    async waitForTagsFieldStable() {
-        const tagsField = this.panel.locator('aem-tag-picker-field#tags-field');
-        await expect(tagsField).toBeVisible();
-        await expect.poll(async () => tagsField.locator('sp-tag').count(), { timeout: 15000 }).toBeGreaterThan(0);
-    }
-
-    async selectSize(sizeLabel) {
-        const valueByLabel = {
-            Wide: 'wide',
-            'Super Wide': 'super-wide',
-            Default: 'Default',
-        };
-        const value = valueByLabel[sizeLabel] ?? sizeLabel;
-
-        await this.dismissTagPicker();
-        await this.waitForTagsFieldStable();
-        await this.tagsFieldGroup.evaluate((el) => el.scrollIntoView({ block: 'end' }));
-        await this.size.scrollIntoViewIfNeeded();
-        await this.size.click();
-        const menuItem = this.page.locator(`sp-menu-item[value="${value}"]`);
-        await expect(menuItem.first()).toBeVisible({ timeout: 10000 });
-        await menuItem.first().click({ force: true });
-    }
-
     async getLinkVariant(variant) {
         const linkVariant = {
             accent: this.accentVariant,

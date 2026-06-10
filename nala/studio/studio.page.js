@@ -95,8 +95,7 @@ export default class StudioPage {
         this.versionHistoryButton = this.sideNav.locator('mas-side-nav-item[label="History"]');
         this.copyFieldButton = this.sideNav.locator('mas-side-nav-item[label="Copy Field"]');
         // Side-nav renders the Copy Field popover inside its shadow root; Playwright CSS selectors pierce shadow.
-        this.copyFieldPopover = this.sideNav.locator('overlay-trigger sp-popover');
-        this.copyFieldPopoverContent = this.sideNav.locator('.copy-field-scroll');
+        this.copyFieldPopover = this.sideNav.locator('sp-popover[open]');
         this.copyFieldRow = (label) =>
             this.copyFieldPopover.locator('sp-menu-item', { has: this.page.locator(`.field-label:text-is("${label}")`) });
         this.copyFieldRowValue = (label) => this.copyFieldRow(label).locator('.field-value');
@@ -587,36 +586,17 @@ export default class StudioPage {
         }
     }
 
-    async openCopyFieldPopover() {
-        await expect(this.copyFieldButton).toBeVisible();
-        await expect(this.copyFieldButton).toBeEnabled({ timeout: 15000 });
-        await this.copyFieldButton.dispatchEvent('pointerdown', { bubbles: true, composed: true });
-        await this.copyFieldButton.click();
-        await expect(this.copyFieldPopoverContent).toBeVisible({ timeout: 15000 });
-        await expect(this.sideNav.locator('.copy-field-scroll sp-menu-item:not([disabled])').first()).toBeVisible({
-            timeout: 15000,
-        });
-    }
-
     async discardEditorChanges(editor) {
+        // Close the editor and verify discard is triggered
+        // await editor.closeEditor.click(); // discard and close buttons were removed with the new UI. Enable back when implemented
         const fragmentUrl = this.page.url();
-        if (editor?.dismissTagPicker) {
-            await editor.dismissTagPicker();
-        }
-        await this.page.keyboard.press('Escape');
-
-        const saveButton = this.sideNav.locator('mas-side-nav-item[label="Save"]');
-        await expect(saveButton).toBeEnabled({ timeout: 15000 });
-
-        const fragmentsBreadcrumb = this.topnav.locator('.nav-breadcrumbs sp-breadcrumb-item', { hasText: 'Fragments' });
-        await expect(fragmentsBreadcrumb).toBeVisible();
-        await fragmentsBreadcrumb.scrollIntoViewIfNeeded();
-        await fragmentsBreadcrumb.click();
-
-        const discardDialog = this.page.locator('sp-dialog[variant="confirmation"]').filter({ hasText: 'Confirm Discard' });
-        await expect(discardDialog).toBeVisible({ timeout: 30000 });
-        await discardDialog.getByRole('button', { name: 'Discard', exact: true }).click();
-        await expect(editor.panel).not.toBeVisible();
+        await expect(this.fragmentsTable).toBeVisible();
+        await this.fragmentsTable.scrollIntoViewIfNeeded();
+        await this.fragmentsTable.click();
+        // await this.page.goBack();
+        await expect(await this.confirmationDialog).toBeVisible();
+        await this.discardDialog.click();
+        await expect(await editor.panel).not.toBeVisible();
         await this.page.goto(fragmentUrl);
         await this.page.waitForLoadState('domcontentloaded');
         await this.waitForCardsLoaded();

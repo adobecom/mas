@@ -1547,11 +1547,8 @@ export class MasRepository extends LitElement {
             if (allSelected) {
                 await this.aem.sites.cf.fragments.publish(fragment, ['DRAFT', 'MODIFIED', 'UNPUBLISHED']);
                 const { variations = [], cards = [] } = fragment.getPublishableReferences?.() ?? {};
-                const aemHandledStatuses = new Set(['DRAFT', 'MODIFIED', 'UNPUBLISHED']);
-                const explicitRefIds = [...variations, ...cards]
-                    .filter((r) => !aemHandledStatuses.has(r.status?.toUpperCase()))
-                    .map((r) => r.id);
-                if (explicitRefIds.length) await this.#publishRefIds(explicitRefIds);
+                const allRefIds = [...variations, ...cards].map((r) => r.id);
+                if (allRefIds.length) await this.#publishRefIds(allRefIds);
             } else {
                 await this.aem.sites.cf.fragments.publish(fragment, []);
                 if (selectedRefIds?.length) {

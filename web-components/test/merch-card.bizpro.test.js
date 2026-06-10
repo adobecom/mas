@@ -86,6 +86,17 @@ describe('BizPro.adjustAddon', () => {
         expect(addon.setAttribute.calledWith('custom-checkbox', '')).to.be.true;
         expect(addon.planType).to.be.undefined;
     });
+
+    it('does not throw when price element lacks onceSettled (unupgraded custom element)', async () => {
+        const addon = { setAttribute: sinon.spy() };
+        const price = { value: [{ planType: 'PUF' }] }; // no onceSettled
+        const layout = makeLayout({
+            addon,
+            querySelector: (sel) => (sel.includes('heading-m') ? price : null),
+        });
+        await layout.adjustAddon();
+        expect(addon.planType).to.equal('PUF');
+    });
 });
 
 describe('bizpro plan type', () => {

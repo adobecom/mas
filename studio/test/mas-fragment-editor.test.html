@@ -67,10 +67,12 @@
                         sandbox.restore();
                     });
 
-                    function createEditor({ resolveHydratedParentFragment, getLocaleDefaultFragmentAsync } = {}) {
+                    function createEditor({ resolveHydratedParentFragment, aem, getLocaleDefaultFragmentAsync } = {}) {
                         const editor = new MasFragmentEditor();
                         const repository = {
                             resolveHydratedParentFragment: resolveHydratedParentFragment || sandbox.stub().resolves(null),
+                            aem: aem || { sites: { cf: { fragments: {} } } },
+                            loadPromotions: sandbox.stub().resolves(),
                         };
 
                         sandbox.stub(editor, 'repository').get(() => repository);
@@ -130,6 +132,37 @@
                             expect(resolveHydratedParentFragment.alwaysCalledWith(groupedPath)).to.be.true;
                             expect(editor.editorContextStore.defaultLocaleId).to.equal('parent-fragment-id');
                             expect(editor.editorContextStore.localeDefaultFragment).to.deep.equal(parentData);
+                        });
+
+                        it('resolves parent through promo variation resolver for promo paths', async () => {
+                            const promoPath = '/content/dam/mas/sandbox/en_US/promotions/back-to-school/my-card';
+                            const parentPath = '/content/dam/mas/sandbox/en_US/my-card';
+                            const parentData = { id: 'default-id', path: parentPath };
+                            const resolveGroupedStub = sandbox.stub().resolves(null);
+                            const { editor } = createEditor({
+                                resolveHydratedParentFragment: resolveGroupedStub,
+                                aem: {
+                                    sites: {
+                                        cf: {
+                                            fragments: {
+                                                getById: sandbox.stub().resolves({
+                                                    id: 'promo-var-id',
+                                                    path: promoPath,
+                                                    tags: [{ id: 'mas:promotion/back-to-school' }],
+                                                }),
+                                                getByPath: sandbox.stub().withArgs(parentPath).resolves(parentData),
+                                            },
+                                        },
+                                    },
+                                },
+                            });
+                            editor.inEdit.value = { get: () => ({ id: 'promo-var-id' }) };
+
+                            const result = await editor.resolveVariationParentFragment(promoPath);
+
+                            expect(result).to.deep.equal(parentData);
+                            expect(resolveGroupedStub.called).to.be.false;
+                            expect(editor.editorContextStore.defaultLocaleId).to.equal('default-id');
                         });
 
                         it('sets orphan warning message when grouped variation remains unreferenced', async () => {
@@ -300,6 +333,7 @@
                             parentFetchPromise: null,
                             loadFragmentContext: sandbox.stub().resolves(),
                             isVariation: sandbox.stub().returns(false),
+                            isFragmentTranslatable: true,
                             detectVariationFromPath: sandbox.stub().returns({ isVariation: false, defaultLocale: null }),
                             setParent(parentData) {
                                 if (!parentData) return;
@@ -319,6 +353,7 @@
                             mockRepo = {
                                 refreshFragment: sandbox.stub().resolves(),
                                 loadPreviewPlaceholders: sandbox.stub().resolves(),
+                                loadPromotions: sandbox.stub().resolves(),
                                 search: { value: { path: 'sandbox' } },
                                 aem: {
                                     sites: {

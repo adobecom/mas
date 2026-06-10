@@ -35,6 +35,7 @@ export class MasCollapsibleTableRow extends LitElement {
         this.disableGroupedVariationSelection = false;
         this.hideLocaleTab = false;
         this.disableLocaleVariations = false;
+        this.referencesLoaded = false;
         if (!this.tabs) {
             this.tabs = [
                 { label: 'Locale', key: 'locale' },
@@ -60,6 +61,9 @@ export class MasCollapsibleTableRow extends LitElement {
         super.updated(changedProperties);
         if (changedProperties.has('disableCardExpansion') && this.disableCardExpansion) {
             this.isTopLevelExpanded = false;
+        }
+        if (changedProperties.has('isTopLevelExpanded') && this.isTopLevelExpanded) {
+            this.#loadReferencesIfNeeded();
         }
     }
 
@@ -339,6 +343,16 @@ export class MasCollapsibleTableRow extends LitElement {
         } else {
             getItemsSelectionStore().selectedCards.set([...current, path]);
         }
+    }
+
+    #loadReferencesIfNeeded() {
+        if (this.disableLocaleVariations || this.referencesLoaded || !this.topLevelCard?.id) return;
+        this.referencesLoaded = true;
+        this.repository?.aem?.sites?.cf?.fragments?.getById?.(this.topLevelCard.id).then((hydrated) => {
+            if (hydrated) {
+                this.topLevelCard = { ...this.topLevelCard, ...hydrated };
+            }
+        });
     }
 
     #toggleExpandTopLevel(e) {

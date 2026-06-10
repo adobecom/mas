@@ -762,18 +762,19 @@ describe('MasCollapsibleTableRow', () => {
             expect(emptyMsg.textContent).to.include('No locale variations found');
         });
 
-        it('should show a loading state in the locale tab while references load', async () => {
-            const topLevelCard = createMockTopLevelCard();
+        it('should not fetch references when disableLocaleVariations is set', async () => {
+            const topLevelCard = { ...createMockTopLevelCard(), id: 'frag-1' };
+            const getById = sandbox.stub().resolves({ ...topLevelCard, references: [] });
             const el = await fixture(
                 html`<mas-collapsible-table-row
                     .topLevelCard=${topLevelCard}
-                    .isTopLevelExpanded=${true}
-                    .isLoadingReferences=${true}
+                    .disableLocaleVariations=${true}
                 ></mas-collapsible-table-row>`,
             );
+            el.repository = { aem: { sites: { cf: { fragments: { getById } } } } };
+            el.shadowRoot.querySelector('.expand-button').click();
             await el.updateComplete;
-            const localePanel = el.shadowRoot.querySelector('sp-tab-panel[value="locale"]');
-            expect(localePanel.querySelector('sp-progress-circle')).to.exist;
+            expect(getById.called).to.be.false;
         });
 
         it('should fetch hydrated references on first expand to populate locale variations', async () => {

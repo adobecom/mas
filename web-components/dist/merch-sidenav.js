@@ -119,7 +119,7 @@ var D=Object.defineProperty;var w=(s,e,t)=>e in s?D(s,e,{enumerable:!0,configura
             --merch-sidenav-item-selected-background: var(
                 --spectrum-gray-300,
                 #d5d5d5
-            );            
+            );
             --merch-sidenav-list-item-gap: 4px;
             /* Checkbox group */
             --merch-sidenav-checkbox-group-title-font-size: 14px;
@@ -182,7 +182,7 @@ var D=Object.defineProperty;var w=(s,e,t)=>e in s?D(s,e,{enumerable:!0,configura
             );
             --mod-sidenav-background-hover-selected: var(
                 --merch-sidenav-item-hover-background
-            );            
+            );
             --mod-sidenav-gap: var(--merch-sidenav-list-item-gap);
         }
 

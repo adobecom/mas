@@ -119,10 +119,16 @@ describe('bulk-publish/index.js', () => {
     });
 
     it('returns 400 when locales exceeds maximum', async () => {
-        const locales = Array.from({ length: 51 }, (_, i) => `locale_${i}`);
+        const locales = Array.from({ length: 201 }, (_, i) => `locale_${i}`);
         const result = await action.main({ ...baseParams, locales });
         expect(result.error.statusCode).to.equal(400);
-        expect(result.error.body.error).to.include('50');
+        expect(result.error.body.error).to.include('200');
+    });
+
+    it('accepts up to MAX_LOCALES locales without rejecting on the cap', async () => {
+        const locales = Array.from({ length: 200 }, (_, i) => `locale_${i}`);
+        const result = await action.main({ ...baseParams, locales });
+        expect(result.statusCode).to.equal(200);
     });
 
     it('never calls fetchFragmentByPath (skip-check removed)', async () => {

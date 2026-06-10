@@ -194,7 +194,7 @@ export class BizPro extends VariantLayout {
         addon.setAttribute('custom-checkbox', '');
         const price = this.mainPrice;
         if (!price) return;
-        await price.onceSettled();
+        await price.onceSettled?.();
         const planType = price.value?.[0]?.planType;
         if (planType) addon.planType = planType;
     }

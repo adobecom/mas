@@ -155,12 +155,18 @@ export class OstEntitlementsTab extends LitElement {
                     <div class="mode-group">
                         <span class="panel-label">Authoring mode</span>
                         <sp-picker
+                            data-testid="ost-authoring-mode"
                             size="s"
                             label="Authoring mode"
                             value=${store.authoringFlow}
                             @change=${(e) => store.chooseAuthoringFlow(e.target.value)}
                         >
-                            ${FLOW_LABELS.map((flow) => html`<sp-menu-item value=${flow.value}>${flow.label}</sp-menu-item>`)}
+                            ${FLOW_LABELS.map(
+                                (flow) =>
+                                    html`<sp-menu-item data-testid="ost-authoring-mode-${flow.value}" value=${flow.value}
+                                        >${flow.label}</sp-menu-item
+                                    >`,
+                            )}
                         </sp-picker>
                     </div>
                     <ost-product-detail summary></ost-product-detail>

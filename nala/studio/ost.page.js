@@ -27,48 +27,83 @@ export default class OSTPage {
         this.backButton = this.page.locator('[data-testid="ost-back-button"]');
         this.cancelButton = this.page.locator('[data-testid="ost-cancel-button"]');
         this.closeButton = this.page.locator('[data-testid="ost-close-button"]');
+        this.footerUseButton = this.page.locator('[data-testid="ost-footer-use-button"]');
 
-        // Placeholder type chips (new model: chips replace the old offer/entitlements tabs).
-        this.offerTab = this.page.locator('[data-testid="ost-placeholder-chip-price"]');
-        this.entitlementsTab = this.page.locator('[data-testid="ost-placeholder-chip-checkoutUrl"]');
-        this.checkoutTab = this.page.locator('[data-testid="ost-placeholder-chip-checkoutUrl"]');
-        this.priceChip = this.page.locator('[data-testid="ost-placeholder-chip-price"]');
-        this.opticalChip = this.page.locator('[data-testid="ost-placeholder-chip-optical"]');
-        this.annualChip = this.page.locator('[data-testid="ost-placeholder-chip-annual"]');
-        this.strikethroughChip = this.page.locator('[data-testid="ost-placeholder-chip-strikethrough"]');
-        this.legalChip = this.page.locator('[data-testid="ost-placeholder-chip-legal"]');
-        this.discountChip = this.page.locator('[data-testid="ost-placeholder-chip-discount"]');
+        // Authoring mode picker (entitlements step) — drives single/tryBuy/bundle/consult.
+        this.authoringMode = this.page.locator('[data-testid="ost-authoring-mode"]');
+        this.authoringModeSingle = this.page.locator('[data-testid="ost-authoring-mode-single"]');
+        this.authoringModeTryBuy = this.page.locator('[data-testid="ost-authoring-mode-tryBuy"]');
+        this.authoringModeBundle = this.page.locator('[data-testid="ost-authoring-mode-bundle"]');
+        this.authoringModeConsult = this.page.locator('[data-testid="ost-authoring-mode-consult"]');
 
-        // Inline-price spans rendered by mas-commerce-service inside the live preview.
-        // Playwright's CSS pierces the live-preview's shadow root automatically.
-        const preview = this.page.locator('[data-testid="ost-preview-container"]');
-        this.price = preview.locator('span[is="inline-price"][data-template="price"]');
-        this.priceOptical = preview.locator('span[is="inline-price"][data-template="optical"]');
-        this.priceStrikethrough = preview.locator('span[is="inline-price"][data-template="strikethrough"]');
-        this.pricePromoStrikethrough = preview.locator('span[is="inline-price"][data-template="price"] > .price-strikethrough');
-        this.priceAnnual = preview.locator('span[is="inline-price"][data-template="annual"]');
-        this.legalDisclaimer = preview.locator('span[is="inline-price"][data-template="legal"]');
+        // Flow-specific config panels on the offer step (targeted by component tag —
+        // Playwright CSS pierces shadow DOM). tryBuy/bundle render the selection
+        // list; consult renders the focused offer detail.
+        this.selectionList = this.page.locator('ost-selection-list');
+        this.offerDetailFocused = this.page.locator('ost-offer-detail-focused');
+        // Offer cards in the offer-step left column (bordered `card` layout).
+        this.offerCard = this.page.locator('ost-offer-card[card]');
 
-        // Placeholder option switches (the new equivalent of the old checkboxes).
-        this.termCheckbox = this.page.locator('[data-testid="ost-option-displayRecurrence"]');
-        this.unitCheckbox = this.page.locator('[data-testid="ost-option-displayPerUnit"]');
-        this.taxlabelCheckbox = this.page.locator('[data-testid="ost-option-displayTax"]');
-        this.taxInlcusivityCheckbox = this.page.locator('[data-testid="ost-option-forceTaxExclusive"]');
-        this.oldPriceCheckbox = this.page.locator('[data-testid="ost-option-displayOldPrice"]');
+        // Placeholder type rows. The new (legacy-style) model lists every type
+        // as its own always-visible row — there are no chips/tabs to activate.
+        // Each row owns its own live preview and "Use" button. The *Tab/*Chip
+        // aliases below resolve to the row element so existing specs that assert
+        // visibility or click the type still work (clicking a row is harmless).
+        const row = (type) => this.page.locator(`[data-testid="ost-placeholder-row-${type}"]`);
+        this.priceRow = row('price');
+        this.opticalRow = row('optical');
+        this.annualRow = row('annual');
+        this.strikethroughRow = row('strikethrough');
+        this.promoStrikethroughRow = row('promo-strikethrough');
+        this.discountRow = row('discount');
+        this.legalRow = row('legal');
+        this.checkoutRow = row('checkoutUrl');
 
-        // The wizard's single footer "Use" button is shared across placeholder types.
-        // To "use" a different template the user clicks the chip first; the per-type
-        // aliases below all resolve to the same footer button.
-        const useButton = this.page.locator('[data-testid="ost-footer-use-button"]');
-        this.priceUse = useButton;
-        this.priceOpticalUse = useButton;
-        this.priceStrikethroughUse = useButton;
-        this.priceAnnualUse = useButton;
-        this.legalDisclaimerUse = useButton;
-        this.checkoutLinkUse = useButton;
+        // Back-compat aliases (old chip/tab names → rows).
+        this.offerTab = this.priceRow;
+        this.entitlementsTab = this.checkoutRow;
+        this.checkoutTab = this.checkoutRow;
+        this.priceChip = this.priceRow;
+        this.opticalChip = this.opticalRow;
+        this.annualChip = this.annualRow;
+        this.strikethroughChip = this.strikethroughRow;
+        this.legalChip = this.legalRow;
+        this.discountChip = this.discountRow;
 
-        // Checkout placeholder bits (only visible when the checkoutUrl chip is active).
-        this.checkoutLink = preview.locator('a[is="checkout-link"]');
+        // Inline-price spans rendered by mas-commerce-service inside each row's
+        // live preview. Playwright's CSS pierces the shadow root automatically.
+        // Note: ost-live-preview only stamps data-template for non-price types,
+        // so the price preview span carries no data-template.
+        const preview = (type) => row(type).locator('[data-testid="ost-preview-container"]');
+        this.price = preview('price').locator('span[is="inline-price"]');
+        this.priceOptical = preview('optical').locator('span[is="inline-price"][data-template="optical"]');
+        this.priceStrikethrough = preview('strikethrough').locator('span[is="inline-price"][data-template="strikethrough"]');
+        this.pricePromoStrikethrough = preview('promo-strikethrough').locator(
+            'span[is="inline-price"][data-template="promo-strikethrough"]',
+        );
+        this.priceAnnual = preview('annual').locator('span[is="inline-price"][data-template="annual"]');
+        this.legalDisclaimer = preview('legal').locator('span[is="inline-price"][data-template="legal"]');
+
+        // Placeholder option checkboxes (legacy "Disable" group). A box is
+        // checked when its option is OFF (disabled); see ost-placeholder-options.
+        this.htmlFormatCheckbox = this.page.locator('[data-testid="ost-disable-displayFormatted"]');
+        this.termCheckbox = this.page.locator('[data-testid="ost-disable-displayRecurrence"]');
+        this.unitCheckbox = this.page.locator('[data-testid="ost-disable-displayPerUnit"]');
+        this.taxlabelCheckbox = this.page.locator('[data-testid="ost-disable-displayTax"]');
+        this.taxInlcusivityCheckbox = this.page.locator('[data-testid="ost-disable-forceTaxExclusive"]');
+        this.oldPriceCheckbox = this.page.locator('[data-testid="ost-disable-displayOldPrice"]');
+
+        // Each type row has its own "Use" button (data-testid="ost-use-button").
+        const useFor = (type) => row(type).locator('[data-testid="ost-use-button"]');
+        this.priceUse = useFor('price');
+        this.priceOpticalUse = useFor('optical');
+        this.priceStrikethroughUse = useFor('strikethrough');
+        this.priceAnnualUse = useFor('annual');
+        this.legalDisclaimerUse = useFor('legal');
+        this.checkoutLinkUse = useFor('checkoutUrl');
+
+        // Checkout placeholder bits live inside the checkoutUrl row.
+        this.checkoutLink = preview('checkoutUrl').locator('a[is="checkout-link"]');
         this.workflowMenu = this.page.locator('[data-testid="ost-workflow-menu"]');
         this.ctaTextMenu = this.page.locator('[data-testid="ost-cta-text-menu"]');
 

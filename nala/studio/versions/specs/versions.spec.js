@@ -19,7 +19,7 @@ export default {
                 fragmentId: '48a759ce-3c9a-4158-9bc3-b21ffa07e8e4',
             },
             browserParams: '#page=version&path=nala&fragmentId=',
-            tags: '@mas-studio @version',
+            tags: '@mas-studio @version @nopr',
         },
         {
             tcid: '2',

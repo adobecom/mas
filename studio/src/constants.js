@@ -264,6 +264,7 @@ export const FILTER_TYPE = {
     PLAN_TYPE: 'planType',
     PZN: 'pzn',
     TAG: 'tag',
+    STATUS: 'status',
 };
 
 export const FRAGMENT_STATUS = {

@@ -214,6 +214,11 @@ describe('MasSearchAndFilters', () => {
             );
             expect(el.templateFilter).to.deep.equal(['catalog']);
         });
+
+        it('should initialize statusFilter as empty', async () => {
+            const el = await fixture(html`<mas-search-and-filters type="cards"></mas-search-and-filters>`);
+            expect(el.statusFilter).to.deep.equal([]);
+        });
     });
 
     describe('typeUppercased getter', () => {
@@ -303,6 +308,14 @@ describe('MasSearchAndFilters', () => {
             ]);
         });
 
+        it('should return status filters with correct format', async () => {
+            const el = await fixture(html`<mas-search-and-filters type="cards"></mas-search-and-filters>`);
+            el.statusOptions = [{ id: 'PUBLISHED', title: 'Published' }];
+            el.statusFilter = ['PUBLISHED'];
+            await el.updateComplete;
+            expect(el.appliedFilters).to.deep.equal([{ type: FILTER_TYPE.STATUS, id: 'PUBLISHED', label: 'Published' }]);
+        });
+
         it('should return combined filters from all types', async () => {
             const el = await fixture(html`<mas-search-and-filters type="cards"></mas-search-and-filters>`);
             el.templateOptions = [{ id: 'plans', title: 'Plans' }];
@@ -371,17 +384,30 @@ describe('MasSearchAndFilters', () => {
                 ],
             });
 
-        it('should render the Template trigger and AEM tag picker for every other filter', async () => {
+        it('should render the Template and Status triggers and AEM tag picker for every other filter', async () => {
             const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${false}></mas-search-and-filters>`);
             await el.updateComplete;
             const filterTriggers = el.shadowRoot.querySelectorAll('sp-action-button[slot="trigger"]');
             const tagPickers = el.shadowRoot.querySelectorAll('aem-tag-picker-field');
-            expect(filterTriggers.length).to.equal(1);
+            expect(filterTriggers.length).to.equal(2);
             expect(tagPickers.length).to.equal(7);
             tagPickers.forEach((tagPicker) => {
                 expect(tagPicker.multiple).to.be.true;
                 expect(tagPicker.selection).to.equal('checkbox');
             });
+        });
+
+        it('renders a Status filter with Published/Draft/Modified options', async () => {
+            const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${false}></mas-search-and-filters>`);
+            await el.updateComplete;
+            expect(el.statusOptions.map((o) => o.id)).to.have.members(['PUBLISHED', 'DRAFT', 'MODIFIED']);
+            expect(el.statusOptions.map((o) => o.title)).to.have.members(['Published', 'Draft', 'Modified']);
+        });
+
+        it('does not populate Status options when searchOnly is true', async () => {
+            const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${true}></mas-search-and-filters>`);
+            await el.updateComplete;
+            expect(el.statusOptions.length).to.equal(0);
         });
 
         it('renders a tag picker for each AEM-sourced filter type', async () => {
@@ -923,6 +949,30 @@ describe('MasSearchAndFilters', () => {
             expect(Store.translationProjects.displayCards.get().length).to.equal(1);
         });
 
+        it('should filter by status', async () => {
+            Store.translationProjects.allCards.set([
+                createMockFragment({ status: 'PUBLISHED' }),
+                createMockFragment({ status: 'DRAFT' }),
+                createMockFragment({ status: 'MODIFIED' }),
+            ]);
+            const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${false}></mas-search-and-filters>`);
+            el.statusFilter = ['PUBLISHED'];
+            await el.updateComplete;
+            expect(Store.translationProjects.displayCards.get().length).to.equal(1);
+        });
+
+        it('should filter by multiple statuses (OR within the filter)', async () => {
+            Store.translationProjects.allCards.set([
+                createMockFragment({ status: 'PUBLISHED' }),
+                createMockFragment({ status: 'DRAFT' }),
+                createMockFragment({ status: 'MODIFIED' }),
+            ]);
+            const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${false}></mas-search-and-filters>`);
+            el.statusFilter = ['PUBLISHED', 'MODIFIED'];
+            await el.updateComplete;
+            expect(Store.translationProjects.displayCards.get().length).to.equal(2);
+        });
+
         it('should filter by market segment tag', async () => {
             Store.translationProjects.allCards.set([
                 createMockFragment({ tags: [{ id: 'mas:market_segments/com', title: 'Commercial' }] }),
@@ -1074,6 +1124,18 @@ describe('MasSearchAndFilters', () => {
             tag.dispatchEvent(new CustomEvent('delete', { bubbles: true }));
             await el.updateComplete;
             expect(el.customerSegmentFilter).to.not.include('mas:customer_segment/individual');
+        });
+
+        it('removes status chip on sp-tag delete', async () => {
+            const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${false}></mas-search-and-filters>`);
+            el.statusOptions = [{ id: 'PUBLISHED', title: 'Published' }];
+            el.statusFilter = ['PUBLISHED'];
+            await el.updateComplete;
+            const tag = el.shadowRoot.querySelector('sp-tag');
+            tag.value = { type: FILTER_TYPE.STATUS, id: 'PUBLISHED' };
+            tag.dispatchEvent(new CustomEvent('delete', { bubbles: true }));
+            await el.updateComplete;
+            expect(el.statusFilter).to.not.include('PUBLISHED');
         });
 
         it('should remove product filter on tag delete', async () => {

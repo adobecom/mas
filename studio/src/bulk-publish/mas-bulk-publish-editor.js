@@ -43,6 +43,21 @@ const PUBLISH_BLOCKED_REASON = {
     ALL_ITEMS_PUBLISHED: 'All items are already published',
 };
 
+const ENRICH_CONCURRENCY = 8;
+
+async function mapWithConcurrency(items, limit, fn) {
+    const results = new Array(items.length);
+    let next = 0;
+    const worker = async () => {
+        while (next < items.length) {
+            const index = next++;
+            results[index] = await fn(items[index], index);
+        }
+    };
+    await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+    return results;
+}
+
 function buildProjectPayload({ surface, title, status, urls, fragments, locales, items }) {
     return {
         title,
@@ -125,6 +140,7 @@ class MasBulkPublishEditor extends LitElement {
                     this.hasChanges = false;
                     await this.updateComplete;
                     if (this.urls && !this.items.length) this.validate();
+                    else if (this.items.length) this.reEnrichItems();
                 }
             } catch {
                 if (!signal.aborted) {
@@ -611,6 +627,36 @@ class MasBulkPublishEditor extends LitElement {
         });
     }
 
+    async reEnrichItems() {
+        const items = this.items;
+        if (!items.some((i) => i.path && !i.authorPath)) return;
+        const runId = ++this.#validateId;
+        const surface = Store.search.get()?.path;
+        const enrich = async (item) => {
+            if (item.authorPath || !item.path) return item;
+            try {
+                const rawFragment = item.fragmentId
+                    ? await this.repository.getFragmentById(item.fragmentId)
+                    : await this.repository.aem.sites.cf.fragments.getByPath(item.path);
+                const fragment = new Fragment(rawFragment);
+                const { authorPath, href } = generateCodeToUse(fragment, surface, PAGE_NAMES.CONTENT) || {};
+                return {
+                    ...item,
+                    fragmentId: fragment.id || item.fragmentId,
+                    authorPath: authorPath || item.authorPath || null,
+                    locale: fragment.locale || item.locale || null,
+                    href: href || item.href || null,
+                };
+            } catch {
+                return item;
+            }
+        };
+        const enriched = await mapWithConcurrency(items, ENRICH_CONCURRENCY, enrich);
+        if (runId !== this.#validateId) return;
+        this.localItems = enriched;
+        this.requestUpdate();
+    }
+
     async validate() {
         const runId = ++this.#validateId;
         const { parseStudioUrl, parseAemPath } = await import('./url-to-path.js');
@@ -653,6 +699,7 @@ class MasBulkPublishEditor extends LitElement {
                                 path: fragment.path,
                                 type: itemTypeFromFragment(fragment),
                                 authorPath: authorPath || null,
+                                locale: fragment.locale || null,
                                 href: href || null,
                                 status: 'valid',
                                 alreadyPublished: fragment.status === STATUS_PUBLISHED,

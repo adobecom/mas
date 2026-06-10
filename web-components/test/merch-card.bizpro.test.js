@@ -511,6 +511,216 @@ describe('bizpro license dropdown interaction', () => {
     });
 });
 
+describe('bizpro license dropdown keyboard navigation', () => {
+    let card;
+    afterEach(() => card?.remove());
+
+    const QS =
+        '<div slot="quantity-select"><merch-quantity-select title="License|Licenses" min="1" max="5" step="1" default-value="3"></merch-quantity-select></div>';
+
+    // Options are values 1..5, so the default "3" is at index 2.
+
+    function key(target, keyName) {
+        const event = new KeyboardEvent('keydown', {
+            key: keyName,
+            bubbles: true,
+            cancelable: true,
+        });
+        target.dispatchEvent(event);
+        return event;
+    }
+
+    const trigger = () =>
+        card.shadowRoot.querySelector('.license-select-trigger');
+    const popoverHidden = () =>
+        card.shadowRoot
+            .querySelector('#license-popover')
+            .hasAttribute('hidden');
+    const highlighted = () =>
+        card.shadowRoot.querySelector('.license-select-option.highlighted');
+    const activeDescendant = () =>
+        card.shadowRoot.querySelector(
+            `#${trigger().getAttribute('aria-activedescendant')}`,
+        );
+
+    it('exposes the trigger as a combobox in the tab order', async () => {
+        card = await renderCard(QS);
+        expect(trigger().getAttribute('role')).to.equal('combobox');
+        expect(trigger().getAttribute('tabindex')).to.equal('0');
+        expect(trigger().getAttribute('aria-controls')).to.equal(
+            'license-popover',
+        );
+        // role=combobox is name-from-author, so inner text does not supply an
+        // accessible name — it must come from aria-labelledby.
+        const labelledby = trigger().getAttribute('aria-labelledby');
+        expect(labelledby).to.equal('license-select-label');
+        expect(
+            card.shadowRoot.getElementById(labelledby)?.textContent.trim(),
+        ).to.not.equal('');
+    });
+
+    it('opens on ArrowDown and highlights the selected option', async () => {
+        card = await renderCard(QS);
+        const event = key(trigger(), 'ArrowDown');
+        await card.updateComplete;
+        expect(popoverHidden()).to.be.false;
+        expect(event.defaultPrevented).to.be.true;
+        // DOM focus stays on the trigger; the highlight is the selected value.
+        expect(highlighted().id).to.equal('license-option-2');
+        expect(trigger().getAttribute('aria-activedescendant')).to.equal(
+            'license-option-2',
+        );
+        expect(activeDescendant().textContent.trim()).to.equal('3');
+    });
+
+    it('opens on ArrowUp and prevents the default page scroll', async () => {
+        card = await renderCard(QS);
+        const event = key(trigger(), 'ArrowUp');
+        await card.updateComplete;
+        expect(popoverHidden()).to.be.false;
+        expect(event.defaultPrevented).to.be.true;
+    });
+
+    it('opens on Enter and Space', async () => {
+        card = await renderCard(QS);
+        key(trigger(), 'Enter');
+        await card.updateComplete;
+        expect(popoverHidden()).to.be.false;
+        // Space closes (toggles) the open popover...
+        key(trigger(), ' ');
+        await card.updateComplete;
+        expect(popoverHidden()).to.be.true;
+        // ...and reopens from closed.
+        key(trigger(), ' ');
+        await card.updateComplete;
+        expect(popoverHidden()).to.be.false;
+    });
+
+    it('moves the highlight with ArrowDown/ArrowUp and wraps around', async () => {
+        card = await renderCard(QS);
+        key(trigger(), 'ArrowDown'); // open, highlight idx 2 ("3")
+        await card.updateComplete;
+        key(trigger(), 'ArrowDown');
+        await card.updateComplete;
+        expect(highlighted().id).to.equal('license-option-3');
+        key(trigger(), 'ArrowUp');
+        await card.updateComplete;
+        expect(highlighted().id).to.equal('license-option-2');
+        // Wrap: from idx 2 up three times -> 1 -> 0 -> last (4)
+        key(trigger(), 'ArrowUp');
+        await card.updateComplete;
+        key(trigger(), 'ArrowUp');
+        await card.updateComplete;
+        key(trigger(), 'ArrowUp');
+        await card.updateComplete;
+        expect(highlighted().id).to.equal('license-option-4');
+    });
+
+    it('Home and End jump the highlight to first and last option', async () => {
+        card = await renderCard(QS);
+        key(trigger(), 'ArrowDown');
+        await card.updateComplete;
+        key(trigger(), 'End');
+        await card.updateComplete;
+        expect(highlighted().id).to.equal('license-option-4');
+        key(trigger(), 'Home');
+        await card.updateComplete;
+        expect(highlighted().id).to.equal('license-option-0');
+    });
+
+    it('keeps DOM focus on the trigger while navigating', async () => {
+        card = await renderCard(QS);
+        trigger().focus();
+        key(trigger(), 'ArrowDown');
+        await card.updateComplete;
+        key(trigger(), 'ArrowDown');
+        await card.updateComplete;
+        expect(card.shadowRoot.activeElement).to.equal(trigger());
+    });
+
+    it('selects the highlighted option on Enter and closes', async () => {
+        card = await renderCard(QS);
+        key(trigger(), 'ArrowDown'); // open at "3"
+        await card.updateComplete;
+        key(trigger(), 'ArrowDown'); // highlight "4"
+        await card.updateComplete;
+        key(trigger(), 'ArrowDown'); // highlight "5"
+        await card.updateComplete;
+        key(trigger(), 'Enter');
+        await card.updateComplete;
+        expect(
+            card.shadowRoot
+                .querySelector('.license-select-value')
+                .textContent.trim(),
+        ).to.equal('5');
+        expect(popoverHidden()).to.be.true;
+    });
+
+    it('routes the keyboard selection through the quantity selector', async () => {
+        card = await renderCard(QS);
+        const events = [];
+        card.addEventListener(EVENT_MERCH_QUANTITY_SELECTOR_CHANGE, (e) =>
+            events.push(e.detail),
+        );
+        key(trigger(), 'ArrowDown'); // open at "3"
+        await card.updateComplete;
+        key(trigger(), 'Enter'); // select "3"
+        await card.updateComplete;
+        expect(
+            card.querySelector('merch-quantity-select').selectedValue,
+        ).to.equal(3);
+        expect(events).to.deep.include({ option: 3 });
+    });
+
+    it('closes on Escape and keeps focus on the trigger', async () => {
+        card = await renderCard(QS);
+        trigger().focus();
+        key(trigger(), 'ArrowDown');
+        await card.updateComplete;
+        const event = key(trigger(), 'Escape');
+        await card.updateComplete;
+        expect(popoverHidden()).to.be.true;
+        expect(event.defaultPrevented).to.be.true;
+        expect(card.shadowRoot.activeElement).to.equal(trigger());
+    });
+
+    it('commits the highlight on Tab and lets focus advance', async () => {
+        card = await renderCard(QS);
+        key(trigger(), 'ArrowDown'); // open at "3"
+        await card.updateComplete;
+        key(trigger(), 'ArrowDown'); // highlight "4"
+        await card.updateComplete;
+        const event = key(trigger(), 'Tab');
+        await card.updateComplete;
+        expect(popoverHidden()).to.be.true;
+        // Tab must NOT be prevented — focus continues to the next control.
+        expect(event.defaultPrevented).to.be.false;
+        expect(
+            card.shadowRoot
+                .querySelector('.license-select-value')
+                .textContent.trim(),
+        ).to.equal('4');
+    });
+
+    it('drops aria-activedescendant when closed', async () => {
+        card = await renderCard(QS);
+        expect(trigger().hasAttribute('aria-activedescendant')).to.be.false;
+        key(trigger(), 'ArrowDown');
+        await card.updateComplete;
+        expect(trigger().hasAttribute('aria-activedescendant')).to.be.true;
+    });
+
+    it('header list item is hidden from assistive technology', async () => {
+        card = await renderCard(QS);
+        trigger().click();
+        await card.updateComplete;
+        const header = card.shadowRoot.querySelector(
+            '.license-select-popover-header',
+        );
+        expect(header.getAttribute('aria-hidden')).to.equal('true');
+    });
+});
+
 describe('bizpro license label pluralization', () => {
     let card;
     afterEach(() => card?.remove());

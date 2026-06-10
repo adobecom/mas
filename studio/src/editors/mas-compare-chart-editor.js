@@ -1677,7 +1677,7 @@ class MasCompareChartEditor extends LitElement {
         this.#updateCardsField(paths);
     }
 
-    #openItemsSelector() {
+    #openItemsSelector(event) {
         const cards = this.#cardPaths.map((path) => this.#getSourceCardFragment(path)).filter(Boolean);
         const cardsByPaths = new Map(Store.compareChart.cardsByPaths.value);
         cards.forEach((card) => cardsByPaths.set(card.path, card));

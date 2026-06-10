@@ -57,6 +57,7 @@ class MasItemsSelector extends LitElement {
 
     connectedCallback() {
         super.connectedCallback();
+        this.addEventListener('sp-opened', this.#stopPropagation);
         const s = getItemsSelectionStore();
         this.storeController = new ReactiveController(this, [
             s.inEdit,
@@ -65,6 +66,10 @@ class MasItemsSelector extends LitElement {
             s.selectedCollections,
             s.selectedPlaceholders,
         ]);
+    }
+
+    #stopPropagation(event) {
+        event.stopPropagation();
     }
 
     get showSelected() {

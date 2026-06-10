@@ -41,7 +41,7 @@ const PUBLISH_BLOCKED_REASON = {
     ALL_ITEMS_PUBLISHED: 'All items are already published',
 };
 
-const ENRICH_CONCURRENCY = 4;
+const ENRICH_CONCURRENCY = 8;
 
 async function mapWithConcurrency(items, limit, fn) {
     const results = new Array(items.length);

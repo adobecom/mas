@@ -6,6 +6,8 @@ var D=Object.defineProperty;var w=(o,e,t)=>e in o?D(o,e,{enumerable:!0,configura
             <slot></slot>
         </div>`}};r(p,"properties",{sidenavListTitle:{type:String},label:{type:String},deeplink:{type:String,attribute:"deeplink"},selectedText:{type:String,reflect:!0,attribute:"selected-text"},selectedValue:{type:String,reflect:!0,attribute:"selected-value"},toggleIconColor:{type:Boolean,attribute:"toggle-icon-color"}}),r(p,"styles",Y`
         :host {
+            --highcontrast-sidenav-item-background-default-selected: var(--spectrum-gray-300);
+            --highcontrast-sidenav-background-hover-selected: var(--spectrum-gray-200);
             display: block;
             contain: content;
             margin-top: var(--merch-sidenav-list-gap);

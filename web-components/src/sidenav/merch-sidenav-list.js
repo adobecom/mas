@@ -26,6 +26,8 @@ export class MerchSidenavList extends LitElement {
 
     static styles = css`
         :host {
+            --highcontrast-sidenav-item-background-default-selected: var(--spectrum-gray-300);
+            --highcontrast-sidenav-background-hover-selected: var(--spectrum-gray-200);
             display: block;
             contain: content;
             margin-top: var(--merch-sidenav-list-gap);

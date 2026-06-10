@@ -3658,32 +3658,35 @@ describe('MasRepository publishFragment', () => {
         expect(repo.aem.sites.cf.fragments.publishFragments.called).to.be.false;
     });
 
-    it('publishes NEW refs separately after cascade when allSelected is true and NEW refs exist', async () => {
+    it('publishes NEW and PUBLISHED refs separately after cascade when allSelected is true', async () => {
         const repo = makeRepo();
-        const fragWithNew = {
+        const fragWithNewAndPublished = {
             ...fragment,
             getPublishableReferences: () => ({
-                variations: [],
+                variations: [{ id: 'pub-var-1', status: 'PUBLISHED' }],
                 cards: [{ id: 'new-card-1', status: 'NEW' }],
             }),
         };
-        await repo.publishFragment(fragWithNew, { allSelected: true });
-        expect(repo.aem.sites.cf.fragments.publish.calledWith(fragWithNew, ['DRAFT', 'MODIFIED', 'UNPUBLISHED'])).to.be.true;
+        await repo.publishFragment(fragWithNewAndPublished, { allSelected: true });
+        expect(
+            repo.aem.sites.cf.fragments.publish.calledWith(fragWithNewAndPublished, ['DRAFT', 'MODIFIED', 'UNPUBLISHED']),
+        ).to.be.true;
+        expect(repo.aem.sites.cf.fragments.getWithEtag.calledWith('pub-var-1')).to.be.true;
         expect(repo.aem.sites.cf.fragments.getWithEtag.calledWith('new-card-1')).to.be.true;
         expect(repo.aem.sites.cf.fragments.publishFragments.called).to.be.true;
     });
 
-    it('does not publish refs separately when allSelected is true and no NEW refs exist', async () => {
+    it('does not publish refs separately when allSelected is true and all refs are AEM-handled statuses', async () => {
         const repo = makeRepo();
-        const fragNoNew = {
+        const fragDraftOnly = {
             ...fragment,
             getPublishableReferences: () => ({
                 variations: [{ id: 'var-1', status: 'DRAFT' }],
                 cards: [],
             }),
         };
-        await repo.publishFragment(fragNoNew, { allSelected: true });
-        expect(repo.aem.sites.cf.fragments.publish.calledWith(fragNoNew, ['DRAFT', 'MODIFIED', 'UNPUBLISHED'])).to.be.true;
+        await repo.publishFragment(fragDraftOnly, { allSelected: true });
+        expect(repo.aem.sites.cf.fragments.publish.calledWith(fragDraftOnly, ['DRAFT', 'MODIFIED', 'UNPUBLISHED'])).to.be.true;
         expect(repo.aem.sites.cf.fragments.publishFragments.called).to.be.false;
     });
 });

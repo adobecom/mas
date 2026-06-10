@@ -419,7 +419,7 @@ class MasSelectItemsTable extends LitElement {
         const loadingFirstPage = fetching && !this.firstPageLoaded.value;
         const showSkeleton = this.isLoading || loadingFirstPage;
         const showEmpty = !showSkeleton && this.itemsToDisplay.length === 0;
-        const showTable = showSkeleton || this.itemsToDisplay.length > 0;
+        const showTable = showSkeleton || !this.isLoading;
 
         return html`
             ${showEmpty ? html`<p>No items found.</p>` : nothing}

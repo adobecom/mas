@@ -494,6 +494,52 @@ describe('MasSearchAndFilters', () => {
             checkbox.dispatchEvent(new CustomEvent('change', { bubbles: true, composed: true }));
             expect(ancestorSawChange).to.be.false;
         });
+
+        it('should stop filter popover sp-opened events from escaping to ancestors', async () => {
+            const wrapper = await fixture(
+                html`<div><mas-search-and-filters type="cards" .searchOnly=${false}></mas-search-and-filters></div>`,
+            );
+            const el = wrapper.querySelector('mas-search-and-filters');
+            el.templateOptions = [{ id: 'plans', title: 'Plans' }];
+            await el.updateComplete;
+            let ancestorSawOpened = false;
+            wrapper.addEventListener('sp-opened', () => {
+                ancestorSawOpened = true;
+            });
+            const overlayTrigger = el.shadowRoot.querySelector('overlay-trigger');
+            overlayTrigger.dispatchEvent(new CustomEvent('sp-opened', { bubbles: true, composed: true }));
+            expect(ancestorSawOpened).to.be.false;
+        });
+
+        it('should stop tag picker sp-opened events from escaping to ancestors', async () => {
+            const wrapper = await fixture(
+                html`<div><mas-search-and-filters type="cards" .searchOnly=${false}></mas-search-and-filters></div>`,
+            );
+            const el = wrapper.querySelector('mas-search-and-filters');
+            await el.updateComplete;
+            let ancestorSawOpened = false;
+            wrapper.addEventListener('sp-opened', () => {
+                ancestorSawOpened = true;
+            });
+            const tagPicker = el.shadowRoot.querySelector('aem-tag-picker-field');
+            tagPicker.dispatchEvent(new CustomEvent('sp-opened', { bubbles: true, composed: true }));
+            expect(ancestorSawOpened).to.be.false;
+        });
+
+        it('should stop filter popover sp-closed events from escaping to ancestors', async () => {
+            const wrapper = await fixture(
+                html`<div><mas-search-and-filters type="cards" .searchOnly=${false}></mas-search-and-filters></div>`,
+            );
+            const el = wrapper.querySelector('mas-search-and-filters');
+            await el.updateComplete;
+            let ancestorSawClosed = false;
+            wrapper.addEventListener('sp-closed', () => {
+                ancestorSawClosed = true;
+            });
+            const tagPicker = el.shadowRoot.querySelector('aem-tag-picker-field');
+            tagPicker.dispatchEvent(new CustomEvent('sp-closed', { bubbles: true, composed: true }));
+            expect(ancestorSawClosed).to.be.false;
+        });
     });
 
     describe('applied filters rendering', () => {

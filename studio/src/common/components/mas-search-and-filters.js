@@ -45,6 +45,11 @@ class MasSearchAndFilters extends LitElement {
     #searchStore = Store.search;
     #filtersStore = Store.filters;
 
+    // Overlay open/close events from the internal filter popovers are an
+    // implementation detail; stop them at the host so ancestor overlays
+    // (e.g. the promotions add-items overlay) never see them.
+    #stopOverlayEventPropagation = (event) => event.stopPropagation();
+
     static properties = {
         type: { type: String }, // 'cards' | 'collections' | 'placeholders'
         searchQuery: { type: String },
@@ -245,6 +250,8 @@ class MasSearchAndFilters extends LitElement {
 
     connectedCallback() {
         super.connectedCallback();
+        this.addEventListener('sp-opened', this.#stopOverlayEventPropagation);
+        this.addEventListener('sp-closed', this.#stopOverlayEventPropagation);
         const selectionStore = getItemsSelectionStore();
         this.#searchStore = selectionStore.search ?? Store.search;
         this.#filtersStore = selectionStore.filters ?? Store.filters;
@@ -283,6 +290,8 @@ class MasSearchAndFilters extends LitElement {
 
     disconnectedCallback() {
         super.disconnectedCallback();
+        this.removeEventListener('sp-opened', this.#stopOverlayEventPropagation);
+        this.removeEventListener('sp-closed', this.#stopOverlayEventPropagation);
         const selectionStore = getItemsSelectionStore({ allowUnset: true });
         if (selectionStore) {
             selectionStore[`display${this.typeUppercased}`].set(selectionStore[`all${this.typeUppercased}`].value);
@@ -704,7 +713,7 @@ class MasSearchAndFilters extends LitElement {
         const displayLabel = selectedCount > 0 ? `${label} (${selectedCount})` : label;
 
         return html`
-            <overlay-trigger placement="bottom-start" ?disabled=${locked} @sp-closed=${(e) => e.stopPropagation()}>
+            <overlay-trigger placement="bottom-start" ?disabled=${locked}>
                 <sp-action-button class="template-filter" dir="ltr" slot="trigger" .disabled=${this.isLoading || locked}>
                     ${displayLabel}
                     <sp-icon-chevron-down slot="icon"></sp-icon-chevron-down>
@@ -754,7 +763,7 @@ class MasSearchAndFilters extends LitElement {
         const displayLabel = 'Surface';
 
         return html`
-            <overlay-trigger placement="bottom-start" @sp-closed=${(e) => e.stopPropagation()}>
+            <overlay-trigger placement="bottom-start">
                 <sp-action-button slot="trigger" .disabled=${this.isLoading}>
                     ${displayLabel}
                     <sp-icon-chevron-down slot="icon"></sp-icon-chevron-down>

@@ -696,8 +696,11 @@ class AemTagPickerField extends LitElement {
     // Keep the internal state & notify on changes
     updated(changedProperties) {
         if (changedProperties.has('value')) {
+            const previousValue = this.#asValueArray(changedProperties.get('value'));
             const currentValue = this.#asValueArray();
-            this.tempValue = this.isCheckboxTagsMode ? this.#selectedPaths(currentValue) : [...currentValue];
+            if (!this.#hasSameSelections(previousValue, currentValue)) {
+                this.tempValue = this.isCheckboxTagsMode ? this.#selectedPaths(currentValue) : [...currentValue];
+            }
         }
         this.#updateMargin();
     }

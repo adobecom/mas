@@ -658,7 +658,7 @@ describe('Fragment', () => {
             expect(fragment.getPublishableReferences()).to.deep.equal({ variations: [], cards: [] });
         });
 
-        it('returns DRAFT variations and UNPUBLISHED cards separately', () => {
+        it('returns all variations and cards regardless of status', () => {
             const fragment = new Fragment(
                 createFragmentConfig({
                     path: '/content/dam/mas/sandbox/en_US/my-fragment',
@@ -680,19 +680,20 @@ describe('Fragment', () => {
                 }),
             );
             const result = fragment.getPublishableReferences();
-            expect(result.variations).to.have.length(1);
-            expect(result.variations[0].id).to.equal('var-1');
+            expect(result.variations).to.have.length(2);
+            expect(result.variations.map((r) => r.id)).to.include.members(['var-1', 'pub-1']);
             expect(result.cards).to.have.length(1);
             expect(result.cards[0].id).to.equal('card-1');
         });
 
-        it('includes MODIFIED variations in the result', () => {
+        it('includes MODIFIED and NEW status references', () => {
             const fragment = new Fragment(
                 createFragmentConfig({
                     path: '/content/dam/mas/sandbox/en_US/my-fragment',
                     references: [
                         { id: 'var-1', path: '/content/dam/mas/sandbox/en_GB/my-fragment', status: 'MODIFIED' },
-                        { id: 'pub-1', path: '/content/dam/mas/sandbox/en_AU/my-fragment', status: 'PUBLISHED' },
+                        { id: 'var-2', path: '/content/dam/mas/sandbox/en_AU/my-fragment', status: 'NEW' },
+                        { id: 'card-1', path: '/content/dam/mas/sandbox/en_US/some-card', status: 'NEW' },
                     ],
                     fields: [
                         {
@@ -702,36 +703,18 @@ describe('Fragment', () => {
                                 '/content/dam/mas/sandbox/en_AU/my-fragment',
                             ],
                         },
-                    ],
-                }),
-            );
-            const result = fragment.getPublishableReferences();
-            expect(result.variations).to.have.length(1);
-            expect(result.variations[0].id).to.equal('var-1');
-        });
-
-        it('includes NEW status cards and variations in the result', () => {
-            const fragment = new Fragment(
-                createFragmentConfig({
-                    path: '/content/dam/mas/sandbox/en_US/my-fragment',
-                    references: [
-                        { id: 'var-1', path: '/content/dam/mas/sandbox/en_GB/my-fragment', status: 'NEW' },
-                        { id: 'card-1', path: '/content/dam/mas/sandbox/en_US/some-card', status: 'NEW' },
-                    ],
-                    fields: [
-                        { name: 'variations', values: ['/content/dam/mas/sandbox/en_GB/my-fragment'] },
                         { name: 'cards', values: ['/content/dam/mas/sandbox/en_US/some-card'] },
                     ],
                 }),
             );
             const result = fragment.getPublishableReferences();
-            expect(result.variations).to.have.length(1);
-            expect(result.variations[0].id).to.equal('var-1');
+            expect(result.variations).to.have.length(2);
+            expect(result.variations.map((r) => r.id)).to.include.members(['var-1', 'var-2']);
             expect(result.cards).to.have.length(1);
             expect(result.cards[0].id).to.equal('card-1');
         });
 
-        it('excludes already PUBLISHED references', () => {
+        it('includes already PUBLISHED references in the dialog', () => {
             const fragment = new Fragment(
                 createFragmentConfig({
                     path: '/content/dam/mas/sandbox/en_US/my-fragment',
@@ -740,7 +723,8 @@ describe('Fragment', () => {
                 }),
             );
             const result = fragment.getPublishableReferences();
-            expect(result.variations).to.have.length(0);
+            expect(result.variations).to.have.length(1);
+            expect(result.variations[0].id).to.equal('var-1');
             expect(result.cards).to.have.length(0);
         });
     });

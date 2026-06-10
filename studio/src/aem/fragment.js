@@ -136,7 +136,6 @@ export class Fragment {
     getPublishableReferences() {
         if (!this.references?.length) return { variations: [], cards: [] };
 
-        const publishableStatuses = new Set(['NEW', 'DRAFT', 'MODIFIED', 'UNPUBLISHED']);
         const variationPaths = new Set(this.getFieldValues('variations'));
         const cardPaths = new Set(this.getFieldValues('cards'));
 
@@ -144,7 +143,6 @@ export class Fragment {
         const cards = [];
 
         for (const ref of this.references) {
-            if (!publishableStatuses.has(ref.status?.toUpperCase())) continue;
             if (variationPaths.has(ref.path)) {
                 variations.push(ref);
             } else if (cardPaths.has(ref.path)) {

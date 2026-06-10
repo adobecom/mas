@@ -89,6 +89,28 @@ describe('bulk-publish-worker — runWorker', () => {
         expect(firstUpdate.snapshots[0]).to.include('publishComplete');
     });
 
+    it('snapshots and sets Publishing before publishing starts', async () => {
+        deps.publishResolved.resolves([{ path: '/content/dam/mas/acom/en_US/a', status: 'published' }]);
+        deps.getProjectLocales.returns([]);
+
+        await worker.runWorker({ projectId: 'proj-1', odinEndpoint: 'https://odin', authToken: 't', publishedBy: '' }, deps);
+
+        expect(deps.createSnapshot).to.have.been.calledBefore(deps.publishResolved);
+        expect(deps.updateProjectFragment.getCall(0).calledBefore(deps.publishResolved.firstCall)).to.equal(true);
+        expect(deps.updateProjectFragment.getCall(0).args[3].status).to.equal('Publishing');
+    });
+
+    it('sets Publishing before publishing when reusing a pending snapshot', async () => {
+        deps.getProjectSnapshots.returns(['{"fragmentId":"f1","publishComplete":false}']);
+        deps.publishResolved.resolves([{ path: '/content/dam/mas/acom/en_US/a', status: 'published' }]);
+        deps.getProjectLocales.returns([]);
+
+        await worker.runWorker({ projectId: 'proj-1', odinEndpoint: 'https://odin', authToken: 't', publishedBy: '' }, deps);
+
+        expect(deps.updateProjectFragment.getCall(0).calledBefore(deps.publishResolved.firstCall)).to.equal(true);
+        expect(deps.updateProjectFragment.getCall(0).args[3].status).to.equal('Publishing');
+    });
+
     it('reuses a pending snapshot on re-run instead of taking a new one', async () => {
         deps.getProjectSnapshots.returns(['{"fragmentId":"f1","publishComplete":false}']);
         deps.publishResolved.resolves([{ path: '/content/dam/mas/acom/en_US/a', status: 'published' }]);

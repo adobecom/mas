@@ -152,6 +152,62 @@ describe('startPublishing (async dispatch + poll)', () => {
         expect(repo.refreshFragment.called).to.equal(true);
     });
 
+    it('keeps polling while status is still Draft after dispatch', async () => {
+        let calls = 0;
+        let status = BULK_PUBLISH_STATUS.DRAFT;
+        project = {
+            id: 'p1',
+            get: () => ({ fields: [{ name: 'status', values: [status] }] }),
+            refreshFrom: sinon.stub(),
+        };
+        repo = {
+            refreshFragment: sinon.stub().callsFake(async () => {
+                calls += 1;
+                if (calls === 2) status = BULK_PUBLISH_STATUS.PUBLISHING;
+                if (calls === 4) status = BULK_PUBLISH_STATUS.PUBLISHED;
+            }),
+        };
+        const publishFn = sinon.stub().resolves({ accepted: true });
+        await startPublishing({
+            project,
+            token: 't',
+            ioBaseUrl: 'x',
+            repository: repo,
+            publishFn,
+            pollIntervalMs: 1,
+            maxPolls: 10,
+        });
+        expect(repo.refreshFragment.callCount).to.equal(4);
+        expect(status).to.equal(BULK_PUBLISH_STATUS.PUBLISHED);
+    });
+
+    it('stops polling on a Failed terminal status', async () => {
+        let calls = 0;
+        let status = BULK_PUBLISH_STATUS.DRAFT;
+        project = {
+            id: 'p1',
+            get: () => ({ fields: [{ name: 'status', values: [status] }] }),
+            refreshFrom: sinon.stub(),
+        };
+        repo = {
+            refreshFragment: sinon.stub().callsFake(async () => {
+                calls += 1;
+                if (calls === 3) status = BULK_PUBLISH_STATUS.FAILED;
+            }),
+        };
+        const publishFn = sinon.stub().resolves({ accepted: true });
+        await startPublishing({
+            project,
+            token: 't',
+            ioBaseUrl: 'x',
+            repository: repo,
+            publishFn,
+            pollIntervalMs: 1,
+            maxPolls: 10,
+        });
+        expect(repo.refreshFragment.callCount).to.equal(3);
+    });
+
     it('clears the publishing flag after completion', async () => {
         const publishFn = sinon.stub().resolves({ accepted: true });
         await startPublishing({

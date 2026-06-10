@@ -69,10 +69,6 @@ async function runWorker(input, deps = {}) {
     const title = projTitle(fragment);
     const existingSnapshots = projSnapshots(fragment);
 
-    const resolved = resolve(paths, locales);
-    const details = await publish(resolved, odinEndpoint, authToken, logger);
-    relabelNotLocalized(details);
-
     let snapshotEntries;
     if (hasPendingSnapshot(existingSnapshots)) {
         snapshotEntries = existingSnapshots;
@@ -86,6 +82,10 @@ async function runWorker(input, deps = {}) {
             lastError: '',
         });
     }
+
+    const resolved = resolve(paths, locales);
+    const details = await publish(resolved, odinEndpoint, authToken, logger);
+    relabelNotLocalized(details);
 
     const result = buildResult({ details, startedAt, finishedAt: now().toISOString() });
     const status = terminalStatus(result);

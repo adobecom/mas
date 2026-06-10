@@ -7,7 +7,7 @@ import { BULK_PUBLISH_STATUS, BULK_PUBLISH_PARENT_PATH, BULK_PUBLISH_PROJECT_MOD
 import { normalizeKey, showToast } from '../utils.js';
 import { startReverting } from './bulk-publish-store.js';
 import { PUBLISH_SVG } from './bulk-publish-icons.js';
-import { getProjectField, getProjectFieldList } from './bulk-publish-utils.js';
+import { getProjectField, getProjectFieldList, itemTypeFromPath } from './bulk-publish-utils.js';
 import './mas-bulk-publish-duplicate-dialog.js';
 import './mas-bulk-publish-delete-dialog.js';
 import './mas-bulk-publish-revert-dialog.js';
@@ -134,6 +134,7 @@ class MasBulkPublish extends LitElement {
         const surface = Store.search.get()?.path?.split('/').filter(Boolean)[0]?.toLowerCase() ?? 'sandbox';
         const title = e.detail.title;
         const items = getProjectField(data, 'items', '[]');
+        const fragments = getProjectFieldList(data, 'fragments');
         const locales = getProjectFieldList(data, 'locales');
         this.duplicating = true;
         try {
@@ -147,6 +148,7 @@ class MasBulkPublish extends LitElement {
                     { name: 'status', type: 'text', values: [BULK_PUBLISH_STATUS.DRAFT] },
                     { name: 'urls', type: 'text', values: [''] },
                     { name: 'items', type: 'text', values: [items] },
+                    { name: 'fragments', type: 'content-fragment', multiple: true, values: fragments },
                     { name: 'locales', type: 'text', multiple: true, values: locales },
                 ],
             };
@@ -259,9 +261,19 @@ class MasBulkPublish extends LitElement {
         );
     }
 
+    projectItems(data) {
+        const items = this.parseItems(getProjectField(data, 'items'));
+        if (items.length) return items;
+        return getProjectFieldList(data, 'fragments').map((path) => ({
+            path,
+            status: 'valid',
+            type: itemTypeFromPath(path),
+        }));
+    }
+
     renderRow(projectStore) {
         const data = projectStore.get();
-        const counts = this.countByType(this.parseItems(getProjectField(data, 'items')));
+        const counts = this.countByType(this.projectItems(data));
         const title = getProjectField(data, 'title', '');
         const status = getProjectField(data, 'status', BULK_PUBLISH_STATUS.DRAFT);
         const createdBy = data.created?.fullName ?? data.created?.by ?? '—';

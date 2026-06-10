@@ -28,13 +28,18 @@ export async function startPublishing({
         ...Store.bulkPublishProjects.publishing.get(),
         [project.id]: true,
     });
+    const terminalStatuses = new Set([
+        BULK_PUBLISH_STATUS.PUBLISHED,
+        BULK_PUBLISH_STATUS.PARTIALLY_PUBLISHED,
+        BULK_PUBLISH_STATUS.FAILED,
+    ]);
     try {
         await fn({ ioBaseUrl, projectId: project.id, publishedBy, token });
         for (let i = 0; i < maxPolls; i++) {
             await repository.refreshFragment(project).catch(() => {});
             const statusField = project.get()?.fields?.find((f) => f.name === 'status');
             const status = statusField?.values?.[0];
-            if (status && status !== BULK_PUBLISH_STATUS.PUBLISHING) break;
+            if (terminalStatuses.has(status)) break;
             await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
         }
     } finally {

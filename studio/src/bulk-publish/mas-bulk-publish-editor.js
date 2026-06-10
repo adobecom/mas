@@ -1,6 +1,7 @@
 import { LitElement, html, nothing } from 'lit';
 import Store from '../store.js';
 import StoreController from '../reactivity/store-controller.js';
+import ReactiveController from '../reactivity/reactive-controller.js';
 import router from '../router.js';
 import { styles } from './mas-bulk-publish-editor.css.js';
 import {
@@ -33,6 +34,7 @@ import {
     REVERT_SVG,
 } from './bulk-publish-icons.js';
 import { generateCodeToUse, showToast, normalizeKey } from '../utils.js';
+import { buildItemsMetadata, itemTypeFromFragment, itemTypeFromPath } from './bulk-publish-utils.js';
 import './mas-bulk-publish-revert-dialog.js';
 
 const PUBLISH_BLOCKED_REASON = {
@@ -41,7 +43,7 @@ const PUBLISH_BLOCKED_REASON = {
     ALL_ITEMS_PUBLISHED: 'All items are already published',
 };
 
-function buildProjectPayload({ surface, title, status, urls, fragments, locales }) {
+function buildProjectPayload({ surface, title, status, urls, fragments, locales, items }) {
     return {
         title,
         name: normalizeKey(title),
@@ -53,6 +55,7 @@ function buildProjectPayload({ surface, title, status, urls, fragments, locales 
             { name: 'urls', type: 'text', values: [urls] },
             { name: 'fragments', type: 'content-fragment', multiple: true, values: fragments },
             { name: 'locales', type: 'text', multiple: true, values: locales },
+            { name: 'items', type: 'text', values: [items] },
         ],
     };
 }
@@ -77,6 +80,16 @@ class MasBulkPublishEditor extends LitElement {
     #abortController = null;
     #validateId = 0;
     #discardResolve = null;
+    #projectReactivity = new ReactiveController(this, []);
+    #observedProject = null;
+
+    willUpdate() {
+        const store = this.project instanceof FragmentStore ? this.project : null;
+        if (store !== this.#observedProject) {
+            this.#observedProject = store;
+            this.#projectReactivity.updateStores(store ? [store] : []);
+        }
+    }
 
     constructor() {
         super();
@@ -155,9 +168,21 @@ class MasBulkPublishEditor extends LitElement {
 
     get items() {
         if (this.localItems !== null) return this.localItems;
+        const savedItems = this.#parsedItemsMetadata();
         const paths = this.getFields('fragments');
-        if (paths.length) return paths.map((path) => ({ path, url: path, status: 'valid' }));
-        // Legacy fallback for existing projects that still have items JSON field
+        if (paths.length) {
+            const typeByPath = new Map(savedItems.map((item) => [item.path, item.type]));
+            return paths.map((path) => ({
+                path,
+                url: path,
+                status: 'valid',
+                type: typeByPath.get(path) ?? itemTypeFromPath(path),
+            }));
+        }
+        return savedItems;
+    }
+
+    #parsedItemsMetadata() {
         const raw = this.getField('items');
         if (!raw) return [];
         try {
@@ -502,6 +527,7 @@ class MasBulkPublishEditor extends LitElement {
                         urls: this.urls,
                         fragments: validPaths,
                         locales: this.locales,
+                        items: buildItemsMetadata(this.items),
                     });
                     const raw = await this.repository.createFragment(payload, false);
                     if (!raw) throw new Error('Create returned empty response');
@@ -519,6 +545,7 @@ class MasBulkPublishEditor extends LitElement {
                         this.project.updateField(name, [value]);
                     }
                     const validPaths = this.items.filter((i) => i.status === 'valid' && i.path).map((i) => i.path);
+                    this.project.updateField('items', [buildItemsMetadata(this.items)]);
                     this.project.updateField('fragments', validPaths);
                     this.project.updateField('locales', this.locales);
                     const saved = await this.repository.saveFragment(this.project, false);
@@ -571,6 +598,7 @@ class MasBulkPublishEditor extends LitElement {
                     urls: '',
                     fragments: validPaths,
                     locales: this.locales,
+                    items: buildItemsMetadata(this.items),
                 });
                 const raw = await this.repository.createFragment(payload, false);
                 if (!raw) throw new Error('Create returned empty response');
@@ -623,6 +651,7 @@ class MasBulkPublishEditor extends LitElement {
                                 url: raw,
                                 fragmentId: fragment.id,
                                 path: fragment.path,
+                                type: itemTypeFromFragment(fragment),
                                 authorPath: authorPath || null,
                                 href: href || null,
                                 status: 'valid',

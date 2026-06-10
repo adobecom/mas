@@ -3,7 +3,7 @@ import Store from '../store.js';
 import StoreController from '../reactivity/store-controller.js';
 import router from '../router.js';
 import { styles } from './mas-bulk-publish.css.js';
-import { BULK_PUBLISH_STATUS, BULK_PUBLISH_PARENT_PATH, BULK_PUBLISH_PROJECT_MODEL_ID, PAGE_NAMES } from '../constants.js';
+import { BULK_PUBLISH_STATUS, BULK_PUBLISH_PROJECT_MODEL_ID, PAGE_NAMES } from '../constants.js';
 import { normalizeKey, showToast } from '../utils.js';
 import './mas-bulk-publish-duplicate-dialog.js';
 import './mas-bulk-publish-delete-dialog.js';
@@ -116,7 +116,7 @@ class MasBulkPublish extends LitElement {
                 title,
                 name: normalizeKey(title),
                 modelId: BULK_PUBLISH_PROJECT_MODEL_ID,
-                parentPath: `${BULK_PUBLISH_PARENT_PATH}/${surface}`,
+                parentPath: this.repository.getBulkPublishParentPath(surface),
                 fields: [
                     { name: 'title', type: 'text', values: [title] },
                     { name: 'status', type: 'text', values: [BULK_PUBLISH_STATUS.DRAFT] },

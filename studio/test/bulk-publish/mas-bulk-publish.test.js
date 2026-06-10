@@ -68,6 +68,9 @@ describe('mas-bulk-publish (methods)', () => {
         sandbox.stub(router, 'navigateToPage').callsFake(navigateStub);
 
         repositoryEl = document.createElement('mas-repository');
+        repositoryEl.getBulkPublishParentPath = sandbox
+            .stub()
+            .callsFake((surface) => `/content/dam/mas/${surface}/bulk-publish-projects`);
         document.body.appendChild(repositoryEl);
     });
 

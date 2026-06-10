@@ -35,6 +35,7 @@ import {
     PZN_FOLDER,
     SURFACES,
     ODIN_PREVIEW_FRAGMENTS_URL,
+    BULK_PUBLISH_PROJECTS_FOLDER,
 } from './constants.js';
 import { fragmentHasPersonalizationTag, isPznCountryTagId, PZN_TAG_ID_PREFIX } from './common/utils/personalization-utils.js';
 import { Placeholder } from './aem/placeholder.js';
@@ -1344,9 +1345,13 @@ export class MasRepository extends LitElement {
         }
     }
 
+    getBulkPublishParentPath(surface) {
+        return `${getDamPath(surface?.toLowerCase())}/${BULK_PUBLISH_PROJECTS_FOLDER}`;
+    }
+
     getBulkPublishProjectsPath() {
         const surface = this.search.value.path?.split('/').filter(Boolean)[0]?.toLowerCase() ?? 'sandbox';
-        return `/content/dam/mas/bulk-publish-projects/${surface}`;
+        return this.getBulkPublishParentPath(surface);
     }
 
     async loadBulkPublishProjects() {

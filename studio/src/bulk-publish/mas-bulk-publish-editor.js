@@ -7,7 +7,6 @@ import {
     QUICK_ACTION,
     BULK_PUBLISH_STATUS,
     BULK_PUBLISH_PROJECT_MODEL_ID,
-    BULK_PUBLISH_PARENT_PATH,
     PAGE_NAMES,
     STATUS_PUBLISHED,
 } from '../constants.js';
@@ -31,12 +30,12 @@ const PUBLISH_BLOCKED_REASON = {
     ALL_ITEMS_PUBLISHED: 'All items are already published',
 };
 
-function buildProjectPayload({ surface, title, status, urls, items, locales }) {
+function buildProjectPayload({ parentPath, title, status, urls, items, locales }) {
     return {
         title,
         name: normalizeKey(title),
         modelId: BULK_PUBLISH_PROJECT_MODEL_ID,
-        parentPath: `${BULK_PUBLISH_PARENT_PATH}/${surface}`,
+        parentPath,
         fields: [
             { name: 'title', type: 'text', values: [title] },
             { name: 'status', type: 'text', values: [status] },
@@ -401,7 +400,7 @@ class MasBulkPublishEditor extends LitElement {
                 if (this.isNewProject) {
                     const title = this.title || 'Untitled bulk publish project';
                     const payload = buildProjectPayload({
-                        surface,
+                        parentPath: this.repository.getBulkPublishParentPath(surface),
                         title,
                         status: this.status,
                         urls: this.urls,
@@ -468,7 +467,7 @@ class MasBulkPublishEditor extends LitElement {
         await this.#withPendingAction(QUICK_ACTION.DUPLICATE, async () => {
             try {
                 const payload = buildProjectPayload({
-                    surface,
+                    parentPath: this.repository.getBulkPublishParentPath(surface),
                     title,
                     status: BULK_PUBLISH_STATUS.DRAFT,
                     urls: '',

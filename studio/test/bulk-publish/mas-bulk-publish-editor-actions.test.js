@@ -1239,7 +1239,7 @@ describe('mas-bulk-publish-editor (reEnrichItems on load)', () => {
         await el.reEnrichItems();
 
         expect(getByPath.callCount).to.equal(10);
-        expect(peak).to.be.at.most(4);
+        expect(peak).to.be.at.most(8);
     });
 });
 

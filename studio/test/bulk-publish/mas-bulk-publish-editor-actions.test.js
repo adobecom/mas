@@ -968,7 +968,7 @@ describe('mas-bulk-publish-editor (validate)', () => {
         expect(item.alreadyPublished).to.equal(false);
     });
 
-    it('validate sets locale on the item from the fragment path', async () => {
+    it('validate sets locale on the item from the fragment path.', async () => {
         const el = await makeEditor();
         seedNew({ urls: '/content/dam/mas/sandbox/en_US/locale-frag' });
         await el.updateComplete;

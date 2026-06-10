@@ -13,7 +13,7 @@ import '../common/components/mas-search-and-filters.js';
 import { styles } from '../common/components/mas-items-selector.css.js';
 import { debounce, isUUID } from '../utils.js';
 import { normalizePromotionSearchInput } from './promotion-editor-utils.js';
-import { renderFragmentStatusCell } from '../common/utils/render-utils.js';
+import { renderFragmentStatusCell, getStudioFragmentDisplayPath } from '../common/utils/render-utils.js';
 
 const PROMOTION_TABS = [
     { value: TABLE_TYPE.CARDS, label: 'Fragments' },
@@ -53,7 +53,7 @@ class MasPromotionsItemsSelector extends LitElement {
         this.viewOnly = false;
         this.searchQuery = '';
         this.selectedTab = TABLE_TYPE.CARDS;
-        this.getDisplayName = (fragmentData) => fragmentData?.path ?? '';
+        this.getDisplayName = getStudioFragmentDisplayPath;
         this.renderFragmentStatusCell = renderFragmentStatusCell;
         this.fragmentSurfaceOptions = [];
         this.itemPickerSurface = new StoreController(this, Store.promotions.itemPickerSurface);

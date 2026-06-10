@@ -347,6 +347,15 @@ describe('MasSelectItemsTable', () => {
             expect(emptyMessage).to.exist;
             expect(emptyMessage.textContent).to.equal('No items found.');
         });
+
+        it('still renders the table when there are no items', async () => {
+            const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            await el.updateComplete;
+            setupCardsInStore([]);
+            await el.updateComplete;
+            expect(el.shadowRoot.querySelector('sp-table')).to.exist;
+            expect(el.shadowRoot.querySelectorAll('sp-table-head-cell').length).to.be.greaterThan(0);
+        });
     });
 
     describe('rendering - table structure', () => {

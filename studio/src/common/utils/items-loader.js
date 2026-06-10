@@ -224,10 +224,7 @@ async function processCardsData(allCards, repository, state, getDisplayName) {
         if (getItemsSelectionStore({ allowUnset: true }) !== store) return;
         const cardsByPaths = new Map(store.cardsByPaths.get() || []);
         enrichedCards.forEach((card) => cardsByPaths.set(card.path, card));
-        const selectedCardPaths = store.selectedCards.get() || [];
-        const selectedCards = selectedCardPaths.map((path) => cardsByPaths.get(path)).filter(Boolean);
-        const selectedCardPathSet = new Set(selectedCardPaths);
-        const displayCards = [...selectedCards, ...enrichedCards.filter((card) => !selectedCardPathSet.has(card.path))];
+        const displayCards = enrichedCards;
         const prefetchedVariations = new Map(
             enrichedCards
                 .filter((card) => card.groupedVariations?.length)

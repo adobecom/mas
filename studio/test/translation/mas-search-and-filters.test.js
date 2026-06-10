@@ -50,6 +50,8 @@ describe('MasSearchAndFilters', () => {
         setItemsSelectionStore(Store.translationProjects);
         Store.search.set({});
         Store.filters.set({ locale: 'en_US', tags: undefined, personalizationFilterEnabled: false });
+        Store.translationProjects.search.set({});
+        Store.translationProjects.filters.set({ locale: 'en_US', tags: undefined, personalizationFilterEnabled: false });
         Store.page.set(PAGE_NAMES.CONTENT);
         resetTagCache(MAS_TAG_NAMESPACE);
         Store.translationProjects.allCards.set([]);
@@ -82,6 +84,26 @@ describe('MasSearchAndFilters', () => {
         Store.search.set(originalSearch);
         Store.filters.set(originalFilters);
         Store.page.set(originalPage);
+    });
+
+    describe('selection store isolation', () => {
+        it('persists card search to the bound slice and never writes the global hash store', async () => {
+            setItemsSelectionStore(Store.promotions);
+            Store.promotions.search.set({});
+            Store.promotions.filters.set({ locale: 'en_US' });
+            Store.promotions.allCards.set([]);
+            Store.promotions.displayCards.set([]);
+            const globalSearch = Store.search.get();
+            const globalFilters = Store.filters.get();
+
+            const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${true}></mas-search-and-filters>`);
+            el.searchQuery = 'creative cloud';
+            await el.updateComplete;
+
+            expect(Store.promotions.search.get().query).to.equal('creative cloud');
+            expect(Store.search.get()).to.equal(globalSearch);
+            expect(Store.filters.get()).to.equal(globalFilters);
+        });
     });
 
     describe('initialization', () => {
@@ -120,7 +142,7 @@ describe('MasSearchAndFilters', () => {
         });
 
         it('should initialize card filters from Store.filters.tags and ignore content type tags', async () => {
-            Store.filters.set({
+            Store.translationProjects.filters.set({
                 locale: 'en_US',
                 tags: [
                     'mas:offer_type/base',
@@ -141,7 +163,7 @@ describe('MasSearchAndFilters', () => {
             expect(el.marketSegmentFilter).to.deep.equal(['mas:market_segments/com']);
             expect(el.customerSegmentFilter).to.deep.equal(['mas:customer_segment/team']);
             expect(el.productFilter).to.deep.equal(['mas:product_code/photoshop']);
-            expect(Store.filters.get().tags).to.equal(
+            expect(Store.translationProjects.filters.get().tags).to.equal(
                 [
                     'mas:offer_type/base',
                     'mas:plan_type/abm',
@@ -157,7 +179,7 @@ describe('MasSearchAndFilters', () => {
         });
 
         it('should let lockedTemplateFilter override Store.filters variant tags', async () => {
-            Store.filters.set({
+            Store.translationProjects.filters.set({
                 locale: 'en_US',
                 tags: 'mas:market_segments/com,mas:variant/catalog',
                 personalizationFilterEnabled: false,
@@ -171,7 +193,7 @@ describe('MasSearchAndFilters', () => {
             );
             expect(el.templateFilter).to.deep.equal(['compare-chart']);
             expect(el.marketSegmentFilter).to.deep.equal(['mas:market_segments/com']);
-            expect(Store.filters.get().tags).to.equal('mas:market_segments/com,mas:variant/compare-chart');
+            expect(Store.translationProjects.filters.get().tags).to.equal('mas:market_segments/com,mas:variant/compare-chart');
         });
 
         it('should preselect defaultTemplateFilter when no template is selected', async () => {
@@ -183,7 +205,7 @@ describe('MasSearchAndFilters', () => {
                 ></mas-search-and-filters>`,
             );
             expect(el.templateFilter).to.deep.equal(['compare-chart-column']);
-            expect(Store.filters.get().tags).to.equal('mas:variant/compare-chart-column');
+            expect(Store.translationProjects.filters.get().tags).to.equal('mas:variant/compare-chart-column');
         });
 
         it('should let defaultTemplateFilter stay changeable and deletable (not locked)', async () => {
@@ -200,7 +222,7 @@ describe('MasSearchAndFilters', () => {
         });
 
         it('should not override an existing Store variant with defaultTemplateFilter', async () => {
-            Store.filters.set({
+            Store.translationProjects.filters.set({
                 locale: 'en_US',
                 tags: 'mas:variant/catalog',
                 personalizationFilterEnabled: false,
@@ -213,6 +235,24 @@ describe('MasSearchAndFilters', () => {
                 ></mas-search-and-filters>`,
             );
             expect(el.templateFilter).to.deep.equal(['catalog']);
+        });
+
+        it('should not re-apply defaultTemplateFilter after the user clears it and the component reconnects', async () => {
+            const el = await fixture(
+                html`<mas-search-and-filters
+                    type="cards"
+                    .searchOnly=${false}
+                    .defaultTemplateFilter=${'compare-chart-column'}
+                ></mas-search-and-filters>`,
+            );
+            expect(el.templateFilter).to.deep.equal(['compare-chart-column']);
+            el.templateFilter = [];
+            await el.updateComplete;
+            const parent = el.parentNode;
+            parent.removeChild(el);
+            parent.appendChild(el);
+            await el.updateComplete;
+            expect(el.templateFilter).to.deep.equal([]);
         });
 
         it('should initialize statusFilter as empty', async () => {
@@ -549,33 +589,33 @@ describe('MasSearchAndFilters', () => {
             const el = await fixture(html`<mas-search-and-filters type="cards"></mas-search-and-filters>`);
             el.searchQuery = 'Photoshop';
             await el.updateComplete;
-            expect(Store.search.get().query).to.equal('Photoshop');
+            expect(Store.translationProjects.search.get().query).to.equal('Photoshop');
         });
 
         it('should clear Store.search.query when card searchQuery is empty', async () => {
-            Store.search.set({ path: 'acom', query: 'Photoshop' });
+            Store.translationProjects.search.set({ path: 'acom', query: 'Photoshop' });
             const el = await fixture(html`<mas-search-and-filters type="cards"></mas-search-and-filters>`);
             el.searchQuery = '';
             await el.updateComplete;
-            expect(Store.search.get()).to.deep.equal({ path: 'acom' });
+            expect(Store.translationProjects.search.get()).to.deep.equal({ path: 'acom' });
         });
 
         it('should not write Store.search when normalized card searchQuery is unchanged', async () => {
-            Store.search.set({ path: 'acom', query: 'Photoshop' });
-            const setSpy = sandbox.spy(Store.search, 'set');
+            Store.translationProjects.search.set({ path: 'acom', query: 'Photoshop' });
+            const setSpy = sandbox.spy(Store.translationProjects.search, 'set');
             await fixture(html`<mas-search-and-filters type="cards" .searchQuery=${'Photoshop'}></mas-search-and-filters>`);
             expect(setSpy.called).to.be.false;
         });
 
         it('should not write Store.search for collections or placeholders', async () => {
-            Store.search.set({ path: 'acom', query: 'original' });
+            Store.translationProjects.search.set({ path: 'acom', query: 'original' });
             const collectionEl = await fixture(html`<mas-search-and-filters type="collections"></mas-search-and-filters>`);
             collectionEl.searchQuery = 'collection';
             await collectionEl.updateComplete;
             const placeholderEl = await fixture(html`<mas-search-and-filters type="placeholders"></mas-search-and-filters>`);
             placeholderEl.searchQuery = 'placeholder';
             await placeholderEl.updateComplete;
-            expect(Store.search.get()).to.deep.equal({ path: 'acom', query: 'original' });
+            expect(Store.translationProjects.search.get()).to.deep.equal({ path: 'acom', query: 'original' });
         });
 
         it('should filter displayCards locally when searchQuery is set on cards', async () => {
@@ -844,11 +884,11 @@ describe('MasSearchAndFilters', () => {
             const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${false}></mas-search-and-filters>`);
             el.templateFilter = ['plans'];
             await el.updateComplete;
-            expect(Store.filters.get().tags).to.equal('mas:variant/plans');
+            expect(Store.translationProjects.filters.get().tags).to.equal('mas:variant/plans');
         });
 
         it('should preserve unrelated tags and replace stale variant tags', async () => {
-            Store.filters.set({
+            Store.translationProjects.filters.set({
                 locale: 'en_US',
                 tags: 'mas:studio/content-type/compare-chart,mas:market_segments/com,mas:variant/catalog,mas:product_code/photoshop',
                 personalizationFilterEnabled: true,
@@ -856,7 +896,7 @@ describe('MasSearchAndFilters', () => {
             const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${false}></mas-search-and-filters>`);
             el.templateFilter = ['plans'];
             await el.updateComplete;
-            expect(Store.filters.get()).to.deep.equal({
+            expect(Store.translationProjects.filters.get()).to.deep.equal({
                 locale: 'en_US',
                 tags: 'mas:market_segments/com,mas:product_code/photoshop,mas:variant/plans',
                 personalizationFilterEnabled: true,
@@ -871,7 +911,7 @@ describe('MasSearchAndFilters', () => {
                     .lockedTemplateFilter=${'plans'}
                 ></mas-search-and-filters>`,
             );
-            expect(Store.filters.get().tags).to.equal('mas:variant/plans');
+            expect(Store.translationProjects.filters.get().tags).to.equal('mas:variant/plans');
         });
 
         it('should force repository search for locked template filters on fragment editor', async () => {
@@ -889,7 +929,7 @@ describe('MasSearchAndFilters', () => {
                     .lockedTemplateFilter=${'compare-chart'}
                 ></mas-search-and-filters>`,
             );
-            expect(Store.filters.get().tags).to.equal('mas:variant/compare-chart');
+            expect(Store.translationProjects.filters.get().tags).to.equal('mas:variant/compare-chart');
             expect(
                 repository.searchFragments.calledOnceWithExactly({
                     force: true,
@@ -924,7 +964,11 @@ describe('MasSearchAndFilters', () => {
         });
 
         it('should not write Store.filters.tags for collections or placeholders', async () => {
-            Store.filters.set({ locale: 'en_US', tags: 'mas:variant/plans', personalizationFilterEnabled: false });
+            Store.translationProjects.filters.set({
+                locale: 'en_US',
+                tags: 'mas:variant/plans',
+                personalizationFilterEnabled: false,
+            });
             const collectionEl = await fixture(
                 html`<mas-search-and-filters type="collections" .searchOnly=${false}></mas-search-and-filters>`,
             );
@@ -935,7 +979,7 @@ describe('MasSearchAndFilters', () => {
             );
             placeholderEl.templateFilter = ['segment'];
             await placeholderEl.updateComplete;
-            expect(Store.filters.get().tags).to.equal('mas:variant/plans');
+            expect(Store.translationProjects.filters.get().tags).to.equal('mas:variant/plans');
         });
 
         it('should filter by template variant — excludes non-matching cards', async () => {
@@ -1153,7 +1197,7 @@ describe('MasSearchAndFilters', () => {
 
     describe('clear all filters', () => {
         it('should clear all filters when clear button is clicked', async () => {
-            Store.filters.set({
+            Store.translationProjects.filters.set({
                 locale: 'en_US',
                 tags: 'mas:status/published,mas:market_segments/com,mas:variant/plans,mas:product_code/photoshop',
                 personalizationFilterEnabled: false,
@@ -1170,7 +1214,7 @@ describe('MasSearchAndFilters', () => {
             expect(el.marketSegmentFilter).to.deep.equal([]);
             expect(el.customerSegmentFilter).to.deep.equal([]);
             expect(el.productFilter).to.deep.equal([]);
-            expect(Store.filters.get().tags).to.equal('mas:status/published');
+            expect(Store.translationProjects.filters.get().tags).to.equal('mas:status/published');
         });
     });
 
@@ -1215,15 +1259,19 @@ describe('MasSearchAndFilters', () => {
         });
 
         it('should restore saved Store.search and Store.filters on card disconnect', async () => {
-            Store.search.set({ path: 'acom', query: 'original' });
-            Store.filters.set({ locale: 'en_US', tags: 'mas:product_code/photoshop', personalizationFilterEnabled: true });
+            Store.translationProjects.search.set({ path: 'acom', query: 'original' });
+            Store.translationProjects.filters.set({
+                locale: 'en_US',
+                tags: 'mas:product_code/photoshop',
+                personalizationFilterEnabled: true,
+            });
             const el = await fixture(html`<mas-search-and-filters type="cards"></mas-search-and-filters>`);
             el.searchQuery = 'changed';
             el.templateFilter = ['plans'];
             await el.updateComplete;
             el.disconnectedCallback();
-            expect(Store.search.get()).to.deep.equal({ path: 'acom', query: 'original' });
-            expect(Store.filters.get()).to.deep.equal({
+            expect(Store.translationProjects.search.get()).to.deep.equal({ path: 'acom', query: 'original' });
+            expect(Store.translationProjects.filters.get()).to.deep.equal({
                 locale: 'en_US',
                 tags: 'mas:product_code/photoshop',
                 personalizationFilterEnabled: true,
@@ -1330,7 +1378,7 @@ describe('MasSearchAndFilters', () => {
             await el.updateComplete;
             el.searchQuery = '';
             await el.updateComplete;
-            expect(Store.search.get().query).to.be.undefined;
+            expect(Store.translationProjects.search.get().query).to.be.undefined;
         });
 
         it('should handle non-empty search query — filters displayCards locally', async () => {
@@ -1364,7 +1412,7 @@ describe('MasSearchAndFilters', () => {
             const el = await fixture(html`<mas-search-and-filters type="cards"></mas-search-and-filters>`);
             el.searchQuery = '';
             await el.updateComplete;
-            expect(Store.search.get().query).to.be.undefined;
+            expect(Store.translationProjects.search.get().query).to.be.undefined;
         });
 
         it('should handle tag with empty id', async () => {

@@ -106,6 +106,11 @@ const Store = {
         inEdit: new ReactiveStore(null),
         promotionId: new ReactiveStore(null),
 
+        // Local search/filters for the editor's item picker, kept off the router
+        // hash so the picker never dirties the URL.
+        search: new ReactiveStore({}),
+        filters: new ReactiveStore({ locale: 'en_US' }, filtersValidator),
+
         allCards: new ReactiveStore([]),
         cardsByPaths: new ReactiveStore(new Map()),
         displayCards: new ReactiveStore([]),
@@ -158,6 +163,11 @@ const Store = {
         translationProjectId: new ReactiveStore(null),
         prefill: new ReactiveStore(null),
 
+        // Local search/filters for the editor's item picker, kept off the router
+        // hash so the picker never dirties the URL.
+        search: new ReactiveStore({}),
+        filters: new ReactiveStore({ locale: 'en_US' }, filtersValidator),
+
         allCards: new ReactiveStore([]),
         cardsByPaths: new ReactiveStore(new Map()),
         displayCards: new ReactiveStore([]),
@@ -188,6 +198,10 @@ const Store = {
         inEdit: new ReactiveStore(null),
         projectId: new ReactiveStore(null),
         publishing: new ReactiveStore({}),
+        // Local search/filters for the add-items picker, kept off the router hash
+        // so the picker never dirties the URL.
+        search: new ReactiveStore({}),
+        filters: new ReactiveStore({ locale: 'en_US' }, filtersValidator),
         allCards: new ReactiveStore([]),
         cardsByPaths: new ReactiveStore(new Map()),
         displayCards: new ReactiveStore([]),

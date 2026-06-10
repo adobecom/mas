@@ -13,7 +13,7 @@ import router from '../router.js';
 import { normalizeKey, showToast } from '../utils.js';
 import { PAGE_NAMES, TRANSLATION_PROJECT_MODEL_ID, QUICK_ACTION, TABLE_TYPE } from '../constants.js';
 import { getItemsSelectionStore, setItemsSelectionStore } from '../common/items-selection-store.js';
-import { getFragmentName, renderFragmentStatusCell, getOdinLocTaskNameValidationError } from './translation-utils.js';
+import { renderFragmentStatusCell, getOdinLocTaskNameValidationError } from './translation-utils.js';
 import './mas-collapsible-table-row.js';
 
 class MasTranslationEditor extends LitElement {
@@ -574,7 +574,6 @@ class MasTranslationEditor extends LitElement {
                 @close=${this.#restoreItemsSnapshot}
             >
                 <mas-items-selector
-                    .getDisplayName=${getFragmentName}
                     .renderFragmentStatusCell=${renderFragmentStatusCell}
                     .disableLocaleVariations=${true}
                 ></mas-items-selector>
@@ -846,7 +845,6 @@ class MasTranslationEditor extends LitElement {
                               ${this.isSelectedItemsOpen
                                   ? html`<mas-items-selector
                                         .viewOnly=${true}
-                                        .getDisplayName=${getFragmentName}
                                         .renderFragmentStatusCell=${renderFragmentStatusCell}
                                     ></mas-items-selector>`
                                   : nothing}

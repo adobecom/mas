@@ -5,7 +5,7 @@ import { getItemsSelectionStore } from '../items-selection-store.js';
 import { CARD_MODEL_PATH, TABLE_TYPE } from '../../constants.js';
 import { toggleSidebarIcon } from '../../icons.js';
 import { Fragment } from '../../aem/fragment.js';
-import { renderFragmentStatusCell } from '../utils/render-utils.js';
+import { renderFragmentStatusCell, getStudioFragmentDisplayPath } from '../utils/render-utils.js';
 import './mas-select-items-table.js';
 import './mas-selected-items.js';
 import './mas-search-and-filters.js';
@@ -51,7 +51,7 @@ class MasItemsSelector extends LitElement {
         this.disableGroupedVariationSelection = false;
         this.hideLocaleTab = false;
         this.disableLocaleVariations = false;
-        this.getDisplayName = (fragmentData) => fragmentData?.path ?? '';
+        this.getDisplayName = getStudioFragmentDisplayPath;
         this.renderFragmentStatusCell = renderFragmentStatusCell;
     }
 

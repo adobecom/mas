@@ -39,6 +39,7 @@ class MasSearchAndFilters extends LitElement {
     #savedSearch = null;
     #savedFilters = null;
     #lastForcedSearchSignature = null;
+    #defaultTemplateFilterApplied = false;
     #tagCachePromise = null;
     // Search/filters come from the active items-selection store when it provides them
     // (e.g. the compare-chart picker), else the global stores. Resolved at connect.
@@ -120,6 +121,8 @@ class MasSearchAndFilters extends LitElement {
 
     #applyDefaultTemplateFilter() {
         if (this.#isTemplateFilterLocked || !this.defaultTemplateFilter) return;
+        if (this.#defaultTemplateFilterApplied) return;
+        this.#defaultTemplateFilterApplied = true;
         if (this.templateFilter.length) return;
         this.templateFilter = [this.defaultTemplateFilter];
     }
@@ -253,8 +256,8 @@ class MasSearchAndFilters extends LitElement {
         this.addEventListener('sp-opened', this.#stopOverlayEventPropagation);
         this.addEventListener('sp-closed', this.#stopOverlayEventPropagation);
         const selectionStore = getItemsSelectionStore();
-        this.#searchStore = selectionStore.search ?? Store.search;
-        this.#filtersStore = selectionStore.filters ?? Store.filters;
+        this.#searchStore = selectionStore.search;
+        this.#filtersStore = selectionStore.filters;
         if (this.type === TABLE_TYPE.CARDS) {
             this.#savedSearch = this.#searchStore.get();
             this.#savedFilters = this.#filtersStore.get();

@@ -1677,22 +1677,22 @@ class MasCompareChartEditor extends LitElement {
         this.#updateCardsField(paths);
     }
 
-    async #openItemsSelector(event) {
+    #openItemsSelector() {
         const cards = this.#cardPaths.map((path) => this.#getSourceCardFragment(path)).filter(Boolean);
         const cardsByPaths = new Map(Store.compareChart.cardsByPaths.value);
         cards.forEach((card) => cardsByPaths.set(card.path, card));
         Store.compareChart.cardsByPaths.set(cardsByPaths);
         Store.compareChart.selectedCards.set([...this.#cardPaths]);
         Store.compareChart.showSelected.set(true);
-        const repository = document.querySelector('mas-repository');
         const currentTags = Store.filters.get()?.tags;
         const tags = (Array.isArray(currentTags) ? currentTags : String(currentTags || '').split(',')).filter(
             (tag) => tag && !tag.startsWith(TAG_STUDIO_CONTENT_TYPE) && !tag.startsWith(VARIANT_TAG_PREFIX),
         );
         const pickerTags = [TAG_MERCH_CARD, ...tags, `${VARIANT_TAG_PREFIX}${VARIANT_NAMES.COMPARE_CHART_COLUMN}`];
         // Seed the picker's local filters (not global Store.filters, which is URL-synced and would dirty the hash).
+        // mas-search-and-filters owns the actual repository search on connect (via defaultTemplateFilter);
+        // firing one here too raced with and overruled that authoritative result.
         Store.compareChart.filters.set({ tags: pickerTags.join(',') });
-        repository?.searchFragments?.({ force: true, tags: pickerTags });
     }
 
     get #itemsSelectorDialog() {

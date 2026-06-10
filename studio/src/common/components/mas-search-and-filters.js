@@ -4,14 +4,30 @@ import { VARIANTS } from '../../editors/variant-picker.js';
 import { styles } from './mas-search-and-filters.css.js';
 import Store from '../../store.js';
 import { getItemsSelectionStore } from '../items-selection-store.js';
-import { FILTER_TYPE, TABLE_TYPE } from '../../constants.js';
+import { FILTER_TYPE, TABLE_TYPE, FRAGMENT_STATUS } from '../../constants.js';
 import ReactiveController from '../../reactivity/reactive-controller.js';
 import { AEM } from '../../aem/aem.js';
 import { getNamespaceCache, setNamespaceCache } from '../../aem/tag-cache.js';
 import { toAttribute } from '../../aem/tag-path-utils.js';
+import { isPznCountryTagPath } from '../utils/personalization-utils.js';
 
 const MAS_TAG_NAMESPACE = '/content/cq:tags/mas';
-const CUSTOM_TAG_ROOT = `${MAS_TAG_NAMESPACE}/custom/`;
+
+const TAXONOMY_FILTERS = [
+    { optionsProp: 'marketSegmentOptions', root: 'market_segments' },
+    { optionsProp: 'customerSegmentOptions', root: 'customer_segment' },
+    { optionsProp: 'productOptions', root: 'product_code', directChildrenOnly: true },
+    { optionsProp: 'offerTypeOptions', root: 'offer_type' },
+    { optionsProp: 'planTypeOptions', root: 'plan_type' },
+    { optionsProp: 'pznOptions', root: 'pzn', exclude: isPznCountryTagPath },
+    { optionsProp: 'tagOptions', root: 'custom' },
+];
+
+const STATUS_OPTIONS = [
+    { id: FRAGMENT_STATUS.PUBLISHED, title: 'Published' },
+    { id: FRAGMENT_STATUS.DRAFT, title: 'Draft' },
+    { id: FRAGMENT_STATUS.MODIFIED, title: 'Modified' },
+];
 
 class MasSearchAndFilters extends LitElement {
     static styles = styles;
@@ -30,6 +46,7 @@ class MasSearchAndFilters extends LitElement {
         planTypeFilter: { type: Array, state: true },
         pznFilter: { type: Array, state: true },
         tagFilter: { type: Array, state: true },
+        statusFilter: { type: Array, state: true },
         templateOptions: { type: Array },
         marketSegmentOptions: { type: Array },
         customerSegmentOptions: { type: Array },
@@ -38,6 +55,7 @@ class MasSearchAndFilters extends LitElement {
         planTypeOptions: { type: Array },
         pznOptions: { type: Array },
         tagOptions: { type: Array },
+        statusOptions: { type: Array },
         searchOnly: { type: Boolean, reflect: true },
         promotionSurfaceOptions: { type: Array },
         promotionSurface: { type: String },
@@ -54,6 +72,7 @@ class MasSearchAndFilters extends LitElement {
         this.planTypeFilter = [];
         this.pznFilter = [];
         this.tagFilter = [];
+        this.statusFilter = [];
         this.templateOptions = [];
         this.marketSegmentOptions = [];
         this.customerSegmentOptions = [];
@@ -62,6 +81,7 @@ class MasSearchAndFilters extends LitElement {
         this.planTypeOptions = [];
         this.pznOptions = [];
         this.tagOptions = [];
+        this.statusOptions = [];
         this.dataSubscription = null;
         this.promotionSurfaceOptions = [];
         this.promotionSurface = '';
@@ -81,9 +101,6 @@ class MasSearchAndFilters extends LitElement {
             ...(this.type !== TABLE_TYPE.PLACEHOLDERS ? [Store.fragments.list.firstPageLoaded] : []),
         ]);
         const dataCallback = () => {
-            if (!this.searchOnly) {
-                this.#extractFilterOptions();
-            }
             this.#applyFilters();
             this.requestUpdate();
         };
@@ -92,7 +109,12 @@ class MasSearchAndFilters extends LitElement {
             unsubscribe: () => selectionStore[`all${this.typeUppercased}`].unsubscribe(dataCallback),
         };
         if (!this.searchOnly && this.type !== TABLE_TYPE.PLACEHOLDERS) {
-            this.#loadCustomTagOptions();
+            this.templateOptions = VARIANTS.filter((variant) => variant.label.toLowerCase() !== 'all').map((variant) => ({
+                id: variant.value,
+                title: variant.label,
+            }));
+            this.statusOptions = STATUS_OPTIONS;
+            this.#loadTaxonomyFilterOptions();
         }
     }
 
@@ -137,6 +159,7 @@ class MasSearchAndFilters extends LitElement {
         const planTypeMap = new Map(this.planTypeOptions.map((opt) => [opt.id || opt.value, opt]));
         const pznMap = new Map(this.pznOptions.map((opt) => [opt.id || opt.value, opt]));
         const tagMap = new Map(this.tagOptions.map((opt) => [opt.id || opt.value, opt]));
+        const statusMap = new Map(this.statusOptions.map((opt) => [opt.id || opt.value, opt]));
 
         for (const id of this.templateFilter) {
             const option = templateMap.get(id);
@@ -170,50 +193,14 @@ class MasSearchAndFilters extends LitElement {
             const option = tagMap.get(id);
             if (option) filters.push({ type: FILTER_TYPE.TAG, id, label: option.title || option.label });
         }
+        for (const id of this.statusFilter) {
+            const option = statusMap.get(id);
+            if (option) filters.push({ type: FILTER_TYPE.STATUS, id, label: option.title || option.label });
+        }
         return filters;
     }
 
-    #extractFilterOptions() {
-        const marketSegments = new Map();
-        const customerSegments = new Map();
-        const products = new Map();
-        const offerTypes = new Map();
-        const planTypes = new Map();
-        const pzns = new Map();
-        for (const fragment of getItemsSelectionStore()[`all${this.typeUppercased}`].value) {
-            if (!fragment.tags) continue;
-
-            for (const tag of fragment.tags) {
-                const tagId = tag.id || '';
-                const tagTitle = tag.title || tagId.split('/').pop() || '';
-                if (tagId.startsWith('mas:market_segment/') || tagId.startsWith('mas:market_segments/')) {
-                    marketSegments.set(tagId, { id: tagId, title: tagTitle });
-                } else if (tagId.startsWith('mas:customer_segment/')) {
-                    customerSegments.set(tagId, { id: tagId, title: tagTitle });
-                } else if (tagId.startsWith('mas:product_code/')) {
-                    products.set(tagId, { id: tagId, title: tagTitle });
-                } else if (tagId.startsWith('mas:offer_type/')) {
-                    offerTypes.set(tagId, { id: tagId, title: tagTitle });
-                } else if (tagId.startsWith('mas:plan_type/')) {
-                    planTypes.set(tagId, { id: tagId, title: tagTitle });
-                } else if (tagId.startsWith('mas:pzn/')) {
-                    pzns.set(tagId, { id: tagId, title: tagTitle });
-                }
-            }
-        }
-        this.templateOptions = VARIANTS.filter((variant) => variant.label.toLowerCase() !== 'all').map((variant) => ({
-            id: variant.value,
-            title: variant.label,
-        }));
-        this.marketSegmentOptions = Array.from(marketSegments.values()).sort((a, b) => a.title.localeCompare(b.title));
-        this.customerSegmentOptions = Array.from(customerSegments.values()).sort((a, b) => a.title.localeCompare(b.title));
-        this.productOptions = Array.from(products.values()).sort((a, b) => a.title.localeCompare(b.title));
-        this.offerTypeOptions = Array.from(offerTypes.values()).sort((a, b) => a.title.localeCompare(b.title));
-        this.planTypeOptions = Array.from(planTypes.values()).sort((a, b) => a.title.localeCompare(b.title));
-        this.pznOptions = Array.from(pzns.values()).sort((a, b) => a.title.localeCompare(b.title));
-    }
-
-    async #loadCustomTagOptions() {
+    async #loadTaxonomyFilterOptions() {
         let data = getNamespaceCache(MAS_TAG_NAMESPACE);
         if (!data) {
             const aem = new AEM(null, document.querySelector('meta[name="aem-base-url"]')?.content);
@@ -233,10 +220,19 @@ class MasSearchAndFilters extends LitElement {
             data = getNamespaceCache(MAS_TAG_NAMESPACE);
         }
         if (!data || data instanceof Promise) return;
-        this.tagOptions = [...data.values()]
-            .filter((tag) => tag.path.startsWith(CUSTOM_TAG_ROOT) && tag.path !== CUSTOM_TAG_ROOT.slice(0, -1))
-            .map((tag) => ({ id: toAttribute([tag.path]), title: tag.title || tag.name || tag.path.split('/').pop() }))
-            .sort((a, b) => a.title.localeCompare(b.title));
+        const tags = [...data.values()];
+        for (const { optionsProp, root, exclude, directChildrenOnly } of TAXONOMY_FILTERS) {
+            const rootPath = `${MAS_TAG_NAMESPACE}/${root}/`;
+            const matching = tags.filter((tag) => {
+                if (!tag.path.startsWith(rootPath)) return false;
+                if (exclude && exclude(tag.path)) return false;
+                if (directChildrenOnly && tag.path.slice(rootPath.length).includes('/')) return false;
+                return true;
+            });
+            this[optionsProp] = matching
+                .map((tag) => ({ id: toAttribute([tag.path]), title: tag.title || tag.name || tag.path.split('/').pop() }))
+                .sort((a, b) => a.title.localeCompare(b.title));
+        }
     }
 
     willUpdate(changed) {
@@ -249,7 +245,8 @@ class MasSearchAndFilters extends LitElement {
             changed.has('offerTypeFilter') ||
             changed.has('planTypeFilter') ||
             changed.has('pznFilter') ||
-            changed.has('tagFilter')
+            changed.has('tagFilter') ||
+            changed.has('statusFilter')
         ) {
             this.#applyFilters();
         }
@@ -282,6 +279,9 @@ class MasSearchAndFilters extends LitElement {
                 break;
             case FILTER_TYPE.TAG:
                 currentValues = [...this.tagFilter];
+                break;
+            case FILTER_TYPE.STATUS:
+                currentValues = [...this.statusFilter];
                 break;
             default:
                 currentValues = [];
@@ -320,6 +320,9 @@ class MasSearchAndFilters extends LitElement {
             case FILTER_TYPE.TAG:
                 this.tagFilter = currentValues;
                 break;
+            case FILTER_TYPE.STATUS:
+                this.statusFilter = currentValues;
+                break;
         }
     }
 
@@ -353,6 +356,9 @@ class MasSearchAndFilters extends LitElement {
             case FILTER_TYPE.TAG:
                 this.tagFilter = this.tagFilter.filter((filterId) => filterId !== id);
                 break;
+            case FILTER_TYPE.STATUS:
+                this.statusFilter = this.statusFilter.filter((filterId) => filterId !== id);
+                break;
         }
     }
 
@@ -365,6 +371,7 @@ class MasSearchAndFilters extends LitElement {
         this.planTypeFilter = [];
         this.pznFilter = [];
         this.tagFilter = [];
+        this.statusFilter = [];
     }
 
     resetFilters() {
@@ -470,6 +477,10 @@ class MasSearchAndFilters extends LitElement {
         `;
     }
 
+    #fragmentMatchesAnyTag(fragment, selectedIds) {
+        return fragment.tags?.some((tag) => selectedIds.some((sel) => tag.id === sel || tag.id?.startsWith(`${sel}/`)));
+    }
+
     #applyFilters() {
         const source = getItemsSelectionStore()[`all${this.typeUppercased}`].value || [];
         const query = this.searchQuery?.toLowerCase();
@@ -481,6 +492,7 @@ class MasSearchAndFilters extends LitElement {
         const hasPlanType = this.planTypeFilter?.length > 0;
         const hasPzn = this.pznFilter?.length > 0;
         const hasTag = this.tagFilter?.length > 0;
+        const hasStatus = this.statusFilter?.length > 0;
 
         const result = source.filter((fragment) => {
             if (query) {
@@ -512,26 +524,29 @@ class MasSearchAndFilters extends LitElement {
                 if (!variantField?.values?.length) return false;
                 if (!variantField.values.some((value) => this.templateFilter.includes(value))) return false;
             }
+            if (hasStatus) {
+                if (!this.statusFilter.includes(fragment.status)) return false;
+            }
             if (hasMarket) {
-                if (!fragment.tags?.some((tag) => this.marketSegmentFilter.includes(tag.id))) return false;
+                if (!this.#fragmentMatchesAnyTag(fragment, this.marketSegmentFilter)) return false;
             }
             if (hasCustomer) {
-                if (!fragment.tags?.some((tag) => this.customerSegmentFilter.includes(tag.id))) return false;
+                if (!this.#fragmentMatchesAnyTag(fragment, this.customerSegmentFilter)) return false;
             }
             if (hasProduct) {
-                if (!fragment.tags?.some((tag) => this.productFilter.includes(tag.id))) return false;
+                if (!this.#fragmentMatchesAnyTag(fragment, this.productFilter)) return false;
             }
             if (hasOfferType) {
-                if (!fragment.tags?.some((tag) => this.offerTypeFilter.includes(tag.id))) return false;
+                if (!this.#fragmentMatchesAnyTag(fragment, this.offerTypeFilter)) return false;
             }
             if (hasPlanType) {
-                if (!fragment.tags?.some((tag) => this.planTypeFilter.includes(tag.id))) return false;
+                if (!this.#fragmentMatchesAnyTag(fragment, this.planTypeFilter)) return false;
             }
             if (hasPzn) {
-                if (!fragment.tags?.some((tag) => this.pznFilter.includes(tag.id))) return false;
+                if (!this.#fragmentMatchesAnyTag(fragment, this.pznFilter)) return false;
             }
             if (hasTag) {
-                if (!fragment.tags?.some((tag) => this.tagFilter.includes(tag.id))) return false;
+                if (!this.#fragmentMatchesAnyTag(fragment, this.tagFilter)) return false;
             }
             return true;
         });
@@ -574,8 +589,9 @@ class MasSearchAndFilters extends LitElement {
                     this.customerSegmentFilter,
                     FILTER_TYPE.CUSTOMER_SEGMENT,
                 )}
-                ${this.#renderFilterPicker('Product', this.productOptions, this.productFilter, FILTER_TYPE.PRODUCT)}
+                ${this.#renderFilterPicker('Product Code', this.productOptions, this.productFilter, FILTER_TYPE.PRODUCT)}
                 ${this.#renderFilterPicker('Tag', this.tagOptions, this.tagFilter, FILTER_TYPE.TAG)}
+                ${this.#renderFilterPicker('Status', this.statusOptions, this.statusFilter, FILTER_TYPE.STATUS)}
                 ${this.#renderFilterPicker('Personalization', this.pznOptions, this.pznFilter, FILTER_TYPE.PZN)}
                 ${surfacePicker}
             </div>

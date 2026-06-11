@@ -1284,10 +1284,19 @@ class MasCompareChartEditor extends LitElement {
         this.#commitActiveRteCell(key, rteField);
     }
 
+    #rteFieldHasOpenModal(rteField) {
+        return Boolean(
+            rteField?.showOfferSelector || rteField?.showLinkEditor || rteField?.showIconEditor || rteField?.showMnemonicEditor,
+        );
+    }
+
     #deactivateRteCell(key, event) {
         const nextTarget = event?.relatedTarget || event?.detail?.relatedTarget;
         const currentTarget = event?.currentTarget;
         if (nextTarget && (currentTarget?.contains?.(nextTarget) || currentTarget?.shadowRoot?.contains?.(nextTarget))) {
+            return;
+        }
+        if (this.#rteFieldHasOpenModal(currentTarget)) {
             return;
         }
         if (this.activeRteCell === key) {
@@ -2196,7 +2205,6 @@ class MasCompareChartEditor extends LitElement {
                 .value=${activeEditor.value}
                 @change=${changeHandler}
                 @focusout=${(event) => this.#deactivateRteCell(key, event)}
-                @rte-focusout=${(event) => this.#deactivateRteCell(key, event)}
                 @keydown=${(event) => {
                     if (event.key === 'Escape') this.#deactivateRteCell(key, event);
                 }}

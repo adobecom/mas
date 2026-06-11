@@ -456,11 +456,10 @@ export function processFeatures(fields, merchCard, mapping) {
             container.append(p);
             return;
         }
-        // Trust boundary: features payload originates from AEM-authored
-        // fragments via IMS-gated write path. Do not call with untrusted input.
         container.insertAdjacentHTML('beforeend', value);
     });
     if (container.children.length) merchCard.append(container);
+    processFeaturesLinks(merchCard, mapping);
 }
 
 function transformLinkToButton(linkElement, merchCard, aemFragmentMapping) {
@@ -524,6 +523,16 @@ function transformLinkToButton(linkElement, merchCard, aemFragmentMapping) {
 
 function processDescriptionLinks(merchCard, aemFragmentMapping) {
     const { slot } = aemFragmentMapping?.description;
+    processLinks(merchCard, aemFragmentMapping, slot);
+}
+
+function processFeaturesLinks(merchCard, aemFragmentMapping) {
+    const slot = aemFragmentMapping?.features?.slot;
+    if (!slot) return;
+    processLinks(merchCard, aemFragmentMapping, slot);
+}
+
+function processLinks(merchCard, aemFragmentMapping, slot) {
     const links = merchCard.querySelectorAll(
         `[slot="${slot}"] a[data-wcs-osi]`,
     );

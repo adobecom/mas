@@ -39,6 +39,7 @@ export class MasCollapsibleTableRow extends LitElement {
         if (!this.tabs) {
             this.tabs = [
                 { label: 'Locale', key: 'locale' },
+                { label: 'Promotion', key: 'promotion', disabled: true },
                 { label: 'Grouped variation', key: 'groupedVariation' },
             ];
         }

@@ -184,7 +184,9 @@ describe('MasItemsSelector', () => {
             expect(tables.length).to.equal(3);
         });
 
-        it('should render mas-selected-items in each tab panel when not viewOnly', async () => {
+        it('should render mas-selected-items in each tab panel when not viewOnly and a selection is showing', async () => {
+            Store.translationProjects.selectedCards.set(['/path/card1']);
+            Store.translationProjects.showSelected.set(true);
             const el = await fixture(html`<mas-items-selector></mas-items-selector>`);
             const selectedItems = el.shadowRoot.querySelectorAll('mas-selected-items');
             expect(selectedItems.length).to.equal(3);
@@ -335,7 +337,9 @@ describe('MasItemsSelector', () => {
     });
 
     describe('mas-selected-items integration', () => {
-        it('should render mas-selected-items when not viewOnly', async () => {
+        it('should render mas-selected-items when not viewOnly and a selection is showing', async () => {
+            Store.translationProjects.selectedCards.set(['/path/card1']);
+            Store.translationProjects.showSelected.set(true);
             const el = await fixture(html`<mas-items-selector></mas-items-selector>`);
             const selectedItems = el.shadowRoot.querySelector('mas-selected-items');
             expect(selectedItems).to.exist;

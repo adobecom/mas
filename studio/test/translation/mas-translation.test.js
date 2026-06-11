@@ -221,12 +221,12 @@ describe('MasTranslation', () => {
             expect(cells[3].textContent).to.include('In progress');
         });
 
-        it('should display N/A when the coarse project status is missing', async () => {
+        it('should display an en-dash when the coarse project status is missing', async () => {
             const mockProjects = [createMockTranslationProject('1', 'Project 1')];
             Store.translationProjects.list.data.value = mockProjects;
             const el = await fixture(html`<mas-translation></mas-translation>`);
             const cells = el.shadowRoot.querySelectorAll('sp-table-cell');
-            expect(cells[3].textContent).to.include('N/A');
+            expect(cells[3].textContent).to.include('–');
         });
 
         it('should render Edit menu item', async () => {
@@ -259,20 +259,20 @@ describe('MasTranslation', () => {
     });
 
     describe('formatSubmissionDate', () => {
-        it('should display N/A when submission date is null', async () => {
+        it('should display an en-dash when submission date is null', async () => {
             const mockProjects = [createMockTranslationProject('1', 'Project 1', 'John Doe', null)];
             Store.translationProjects.list.data.value = mockProjects;
             const el = await fixture(html`<mas-translation></mas-translation>`);
             const cells = el.shadowRoot.querySelectorAll('sp-table-cell');
-            expect(cells[2].textContent).to.equal('N/A');
+            expect(cells[2].textContent).to.equal('–');
         });
 
-        it('should display N/A when submission date is undefined', async () => {
+        it('should display an en-dash when submission date is undefined', async () => {
             const mockProjects = [createMockTranslationProject('1', 'Project 1', 'John Doe', undefined)];
             Store.translationProjects.list.data.value = mockProjects;
             const el = await fixture(html`<mas-translation></mas-translation>`);
             const cells = el.shadowRoot.querySelectorAll('sp-table-cell');
-            expect(cells[2].textContent).to.equal('N/A');
+            expect(cells[2].textContent).to.equal('–');
         });
 
         it('should format date correctly when submission date exists', async () => {

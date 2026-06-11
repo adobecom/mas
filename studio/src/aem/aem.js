@@ -233,10 +233,18 @@ class AEM {
 
         const { title, description, fields } = fragment;
 
-        const fieldsWithType = fields.map((field) => ({
-            ...field,
-            type: field.type || 'text',
-        }));
+        const isReferenceType = (type) => type === 'content-fragment' || type === 'content-reference';
+        const fieldsWithType = fields.map((field) => {
+            const type = field.type || 'text';
+            // Multi-value reference fields use [''] as an internal "explicitly cleared" sentinel,
+            // but AEM rejects '' for references (it wants a path/UUID) — send an empty list instead.
+            // Non-reference fields keep [''] so variation clear-overrides round-trip correctly.
+            const values =
+                field.multiple && isReferenceType(type)
+                    ? (field.values || []).filter((value) => value != null && value !== '')
+                    : field.values;
+            return { ...field, type, values };
+        });
 
         const response = await fetch(`${this.cfFragmentsUrl}/${fragment.id}`, {
             method: 'PUT',

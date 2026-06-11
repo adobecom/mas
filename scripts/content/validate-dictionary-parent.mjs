@@ -5,14 +5,13 @@ const ROOT_PATH = '/content/dam/mas';
 const args = process.argv.slice(2);
 const bucket = args[0];
 const surface = args[1];
-const dryRun = args.includes('--dry-run');
 const live = args.includes('--live');
 
 const accessToken = process.env.MAS_ACCESS_TOKEN;
 const apiKey = process.env.MAS_API_KEY;
 
 if (!bucket || !surface || !accessToken || !apiKey) {
-    console.error('Usage: node validate-dictionary-parent.mjs <bucket> <surface> [--dry-run] [--live]');
+    console.error('Usage: node validate-dictionary-parent.mjs <bucket> <surface> [--live]');
     console.error('Ensure MAS_ACCESS_TOKEN and MAS_API_KEY are set as environment variables.');
     process.exit(1);
 }
@@ -75,7 +74,6 @@ async function fetchIndexFragment(indexPath) {
 }
 
 async function run() {
-    if (dryRun) console.log('[dry-run] Read-only validation — no changes will be made.\n');
     if (live) console.log(`[live] Fetching fragments from ${liveBaseUrl}\n`);
 
     const validLocaleCodes = new Set(getSurfaceLocales(surface).map(getLocaleCode));

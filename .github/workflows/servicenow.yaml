@@ -46,7 +46,7 @@ env:
     IMSACCESS_CLIENT_ID: ${{ secrets.IMSACCESS_CLIENT_ID }}
     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     # Notifications will be sent to the #merch-at-scale Slack channel
-    SLACK_WEBHOOK_URL: ${{ secrets.MERCH_AT_SCALE_SLACK_WEBHOOK_URL }}
+    SLACK_WEBHOOK_URL: ${{ secrets.MAS_CHANGELOG_SLACK_WEBHOOK_URL }}
     PR_TITLE: ${{ github.event.pull_request.title }}
     PR_BODY: ${{ github.event.pull_request.body }}
     PR_NUMBER: ${{ github.event.pull_request.number }}

@@ -45,6 +45,12 @@ const PUBLISH_BLOCKED_REASON = {
 
 const ENRICH_CONCURRENCY = 8;
 
+export function publishToast(outcome, status) {
+    if (outcome?.timedOut) return { message: 'Still publishing — check back later.', variant: 'info' };
+    if (status === BULK_PUBLISH_STATUS.PUBLISHED) return { message: 'Project published successfully.', variant: 'positive' };
+    return null;
+}
+
 async function mapWithConcurrency(items, limit, fn) {
     const results = new Array(items.length);
     let next = 0;
@@ -803,11 +809,8 @@ class MasBulkPublishEditor extends LitElement {
                 });
             });
             this.requestUpdate();
-            if (outcome?.timedOut) {
-                showToast('Still publishing — check back later.', 'info');
-            } else if (this.status === BULK_PUBLISH_STATUS.PUBLISHED) {
-                showToast('Project published successfully.', 'positive');
-            }
+            const toast = publishToast(outcome, this.status);
+            if (toast) showToast(toast.message, toast.variant);
         } catch (err) {
             showToast(err.message || 'Failed to publish the project.', 'negative');
         }

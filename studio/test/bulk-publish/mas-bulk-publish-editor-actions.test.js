@@ -5,6 +5,7 @@ import router from '../../src/router.js';
 import { setItemsSelectionStore } from '../../src/common/items-selection-store.js';
 import { BULK_PUBLISH_STATUS, COLLECTION_MODEL_PATH, PAGE_NAMES, QUICK_ACTION } from '../../src/constants.js';
 import '../../src/bulk-publish/mas-bulk-publish-editor.js';
+import { publishToast } from '../../src/bulk-publish/mas-bulk-publish-editor.js';
 
 function seedNew(data = {}) {
     const fields = { status: BULK_PUBLISH_STATUS.DRAFT, urls: '', items: '[]', locales: [], title: '', ...data };
@@ -48,6 +49,28 @@ async function makeEditor() {
     await el.updateComplete;
     return el;
 }
+
+describe('publishToast', () => {
+    it('signals "still publishing" when the poll window times out', () => {
+        expect(publishToast({ timedOut: true }, BULK_PUBLISH_STATUS.PUBLISHING)).to.deep.equal({
+            message: 'Still publishing — check back later.',
+            variant: 'info',
+        });
+    });
+
+    it('signals success when the project reached Published', () => {
+        expect(publishToast({ status: BULK_PUBLISH_STATUS.PUBLISHED }, BULK_PUBLISH_STATUS.PUBLISHED)).to.deep.equal({
+            message: 'Project published successfully.',
+            variant: 'positive',
+        });
+    });
+
+    it('stays silent for a non-terminal outcome that did not time out', () => {
+        expect(
+            publishToast({ status: BULK_PUBLISH_STATUS.PARTIALLY_PUBLISHED }, BULK_PUBLISH_STATUS.PARTIALLY_PUBLISHED),
+        ).to.equal(null);
+    });
+});
 
 describe('mas-bulk-publish-editor (computed getters)', () => {
     afterEach(() => Store.bulkPublishProjects.inEdit.set(null));

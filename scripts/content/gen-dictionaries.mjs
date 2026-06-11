@@ -34,7 +34,8 @@ function getParentReference(localeName) {
     const defaultLocaleCode = getDefaultLocaleCode(surface, localeName);
     if (!defaultLocaleCode || defaultLocaleCode === localeName) {
         if (surface !== 'acom') {
-            return `${ROOT_PATH}/acom/${localeName}/dictionary/index`;
+            const acomLocaleCode = getDefaultLocaleCode('acom', localeName);
+            return acomLocaleCode ? `${ROOT_PATH}/acom/${acomLocaleCode}/dictionary/index` : null;
         }
         return null;
     }

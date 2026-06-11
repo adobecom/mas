@@ -16,8 +16,7 @@ export const features = [
             },
             thirdCard: {
                 productName: 'Adobe Premiere Pro',
-                firstLine:
-                    'Premiere for video editing, title animation, effects, sound mixing, and more',
+                firstLine: 'Premiere for video editing, title animation, effects, sound mixing, and more',
             },
         },
         tags: '@mas-docs @masks @commerce @smoke @regression',

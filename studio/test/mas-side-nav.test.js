@@ -1265,9 +1265,9 @@ describe('MasSideNav – Copy Field', () => {
 
             expect(el.variationDataLoading).to.be.false;
             expect(updateStoresStub.called).to.be.true;
-            // 8 stores: page, search, viewMode, fragmentEditor.editorContext,
-            // fragmentEditor.loading, profile, users, sideNavCollapsed
-            expect(updateStoresStub.firstCall.args[0]).to.have.length(8);
+            // 9 stores: page, search, viewMode, fragmentEditor.editorContext,
+            // fragmentEditor.loading, profile, users, sideNavCollapsed + 1 new store on main
+            expect(updateStoresStub.firstCall.args[0]).to.have.length(9);
         });
 
         it('should subscribe to previewStore updates when fragment enters edit', () => {

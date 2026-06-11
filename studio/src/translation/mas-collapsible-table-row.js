@@ -22,6 +22,9 @@ export class MasCollapsibleTableRow extends LitElement {
         getDisplayName: { type: Function },
         renderFragmentStatusCell: { type: Function },
         disableCardExpansion: { type: Boolean },
+        disableGroupedVariationSelection: { type: Boolean },
+        hideLocaleTab: { type: Boolean },
+        disableLocaleVariations: { type: Boolean },
     };
 
     constructor() {
@@ -29,6 +32,10 @@ export class MasCollapsibleTableRow extends LitElement {
         this.getDisplayName = (fragmentData) => fragmentData?.path ?? '';
         this.renderFragmentStatusCell = () => nothing;
         this.disableCardExpansion = false;
+        this.disableGroupedVariationSelection = false;
+        this.hideLocaleTab = false;
+        this.disableLocaleVariations = false;
+        this.referencesLoaded = false;
         if (!this.tabs) {
             this.tabs = [
                 { label: 'Locale', key: 'locale' },
@@ -54,6 +61,23 @@ export class MasCollapsibleTableRow extends LitElement {
         super.updated(changedProperties);
         if (changedProperties.has('disableCardExpansion') && this.disableCardExpansion) {
             this.isTopLevelExpanded = false;
+        }
+        if (changedProperties.has('isTopLevelExpanded') && this.isTopLevelExpanded) {
+            this.#loadReferencesIfNeeded();
+        }
+    }
+
+    get visibleTabs() {
+        return this.hideLocaleTab ? this.tabs.filter((tab) => tab.key !== 'locale') : this.tabs;
+    }
+
+    willUpdate(changedProperties) {
+        if (
+            changedProperties.has('hideLocaleTab') &&
+            this.hideLocaleTab &&
+            !this.visibleTabs.some((tab) => tab.key === this.selectedTabKey)
+        ) {
+            this.selectedTabKey = this.visibleTabs.find((tab) => !tab.disabled)?.key ?? this.visibleTabs[0]?.key ?? '';
         }
     }
 
@@ -120,6 +144,7 @@ export class MasCollapsibleTableRow extends LitElement {
                           <sp-checkbox
                               ?checked=${this.allGroupedVariationsSelected}
                               ?indeterminate=${!this.allGroupedVariationsSelected && this.someGroupedVariationsSelected}
+                              ?disabled=${this.disableGroupedVariationSelection}
                               @change=${this.#toggleSelectAllGrouped}
                           ></sp-checkbox>
                       </sp-table-cell>
@@ -137,7 +162,9 @@ export class MasCollapsibleTableRow extends LitElement {
                                   value=${variationPath}
                                   ?selected=${isSelected}
                                   aria-selected=${isSelected ? 'true' : 'false'}
-                                  @click=${(event) => this.#onRowClickForSelection(event, variationPath)}
+                                  @click=${this.disableGroupedVariationSelection
+                                      ? null
+                                      : (event) => this.#onRowClickForSelection(event, variationPath)}
                               >
                                   <sp-table-cell class="table-icon-cell">
                                       <sp-button
@@ -156,6 +183,7 @@ export class MasCollapsibleTableRow extends LitElement {
                                       <sp-checkbox
                                           value=${variationPath}
                                           ?checked=${isSelected}
+                                          ?disabled=${this.disableGroupedVariationSelection}
                                           @change=${(event) => this.#toggleSelect(event, variationPath)}
                                       ></sp-checkbox>
                                   </sp-table-cell>
@@ -169,7 +197,7 @@ export class MasCollapsibleTableRow extends LitElement {
     }
 
     get localeTabTemplate() {
-        const localeVariations = new Fragment(this.topLevelCard).listLocaleVariations();
+        const localeVariations = this.disableLocaleVariations ? [] : new Fragment(this.topLevelCard).listLocaleVariations();
         if (!localeVariations.length) {
             return html`<div class="empty-grouped-variations">No locale variations found</div>`;
         }
@@ -307,7 +335,8 @@ export class MasCollapsibleTableRow extends LitElement {
         this.#toggleSelect(e, path);
     }
 
-    #toggleSelect(e, path) {
+    #toggleSelect = (e) => {
+        const { path } = this.topLevelCard;
         e.stopPropagation();
         const current = getItemsSelectionStore().selectedCards.value || [];
         if (current.includes(path)) {
@@ -315,6 +344,16 @@ export class MasCollapsibleTableRow extends LitElement {
         } else {
             getItemsSelectionStore().selectedCards.set([...current, path]);
         }
+    };
+
+    #loadReferencesIfNeeded() {
+        if (this.disableLocaleVariations || this.referencesLoaded || !this.topLevelCard?.id) return;
+        this.referencesLoaded = true;
+        this.repository?.aem?.sites?.cf?.fragments?.getById?.(this.topLevelCard.id).then((hydrated) => {
+            if (hydrated) {
+                this.topLevelCard = { ...this.topLevelCard, ...hydrated };
+            }
+        });
     }
 
     #toggleExpandTopLevel(e) {
@@ -410,7 +449,7 @@ export class MasCollapsibleTableRow extends LitElement {
                     <sp-checkbox
                         value=${this.topLevelCard.path}
                         ?checked=${isSelected}
-                        @change=${(e) => this.#toggleSelect(e, this.topLevelCard.path)}
+                        @change=${this.#toggleSelect}
                     ></sp-checkbox>
                 </sp-table-cell>
                 ${this.cells.map((cell) => this[`render${cell}`](this.topLevelCard) ?? nothing)}
@@ -420,13 +459,13 @@ export class MasCollapsibleTableRow extends LitElement {
                 ? html`<div class="nested-content-container">
                       <div class="nested-content">
                           <sp-tabs quiet .selected=${this.selectedTabKey} @change=${this.#handleTabChange}>
-                              ${this.tabs.map(
+                              ${this.visibleTabs.map(
                                   (tab) =>
                                       html`<sp-tab value=${tab.key} label=${tab.label} ?disabled=${tab.disabled}>
                                           ${tab.label}
                                       </sp-tab>`,
                               )}
-                              ${this.tabs.map(
+                              ${this.visibleTabs.map(
                                   (tab) =>
                                       html`<sp-tab-panel value=${tab.key}>
                                           ${this[`${tab.key}TabTemplate`] ?? nothing}

@@ -247,7 +247,13 @@ async function runWithProject(params, odinEndpoint, authToken) {
         snapshotEntries = freshEntries;
     }
 
-    const snapshotPathList = getSnapshotPaths(snapshotEntries).filter((p) => p.startsWith(PATH_PREFIX));
+    const allSnapshotPaths = getSnapshotPaths(snapshotEntries);
+    const snapshotPathList = allSnapshotPaths.filter((p) => p.startsWith(PATH_PREFIX));
+    const skipped = allSnapshotPaths.length - snapshotPathList.length;
+    if (skipped > 0) {
+        const skippedPaths = allSnapshotPaths.filter((p) => !p.startsWith(PATH_PREFIX));
+        logger.warn(`Skipping ${skipped} snapshot path(s) not under ${PATH_PREFIX}: ${skippedPaths.join(', ')}`);
+    }
     const resolved = snapshotPathList.length > 0 ? snapshotPathList : resolvePaths(paths, locales);
     if (resolved.length === 0) {
         await updateProjectFragment(odinEndpoint, projectId, authToken, {

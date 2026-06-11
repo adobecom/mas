@@ -647,6 +647,31 @@ describe('bulk-publish/index.js', () => {
             expect(publishBody.paths).to.deep.equal(snapshotPaths);
         });
 
+        it('logs a warning for snapshot paths filtered out due to non-matching prefix', async () => {
+            const validPath = '/content/dam/mas/acom/en_US/card1';
+            const invalidPath = '/content/dam/internal/secrets/private';
+            createSnapshotStub.resolves([
+                JSON.stringify({
+                    fragmentId: 'frag-1',
+                    path: validPath,
+                    versionId: 'v1',
+                    wasPublished: false,
+                    createdAt: '2025-01-01T00:00:00.000Z',
+                }),
+                JSON.stringify({
+                    fragmentId: 'frag-bad',
+                    path: invalidPath,
+                    versionId: 'v2',
+                    wasPublished: false,
+                    createdAt: '2025-01-01T00:00:00.000Z',
+                }),
+            ]);
+
+            await projectAction.main({ ...baseParams, paths: undefined, projectId: 'proj-uuid' });
+
+            expect(loggerStub.warn).to.have.been.calledWithMatch(sinon.match(invalidPath));
+        });
+
         it('filters out snapshot paths that do not start with /content/dam/mas/', async () => {
             const validPath = '/content/dam/mas/acom/en_US/card1';
             const invalidPath = '/content/dam/internal/secrets/private';

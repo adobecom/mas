@@ -157,12 +157,6 @@ class MasTranslationLanguages extends LitElement {
         return html`
             <div class="select-lang-content">
                 <div class="sticky-header">
-                    <sp-search
-                        placeholder="Search locale"
-                        .value=${this.searchQuery}
-                        @input=${this.handleSearch}
-                        @change=${this.handleSearch}
-                    ></sp-search>
                     <div class="select-all-row">
                         <sp-checkbox
                             ?checked=${this.selectAllChecked}
@@ -175,11 +169,20 @@ class MasTranslationLanguages extends LitElement {
                     </div>
                     <sp-divider size="s"></sp-divider>
                 </div>
-                <div class="regions">
-                    ${this.groupedLocales.map((group) => this.renderRegion(group))}
-                    ${this.groupedLocales.length === 0
-                        ? html`<p class="no-results">No locales match your search.</p>`
-                        : nothing}
+                <div
+                    class="locales-flat-grid"
+                    style="grid-template-rows: repeat(${Math.ceil((this.localesArray?.length || 0) / 4)}, auto);"
+                >
+                    ${this.localesArray?.map(
+                        (item) => html`
+                            <sp-checkbox
+                                ?checked=${this.selectedLocales.includes(item.locale)}
+                                @change=${this.toggleLocale}
+                            >
+                                ${item.locale}
+                            </sp-checkbox>
+                        `,
+                    )}
                 </div>
             </div>
         `;

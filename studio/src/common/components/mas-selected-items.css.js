@@ -9,12 +9,16 @@ export const styles = [
             min-height: 0;
             min-width: 0;
             max-height: 100%;
+            width: 100%;
         }
 
         .selected-items {
             box-sizing: border-box;
             display: flex;
             flex-direction: column;
+            flex: 1 1 auto;
+            width: 100%;
+            box-sizing: border-box;
             padding: 12px;
             margin: 0;
             gap: 12px;
@@ -43,6 +47,9 @@ export const styles = [
                     margin: 0;
                     min-width: 0;
                     overflow-wrap: break-word;
+                    font-size: 14px;
+                    line-height: 18px;
+                    font-weight: 700;
                 }
 
                 .type {
@@ -53,6 +60,13 @@ export const styles = [
                     grid-column: 2;
                     grid-row: 1 / 3;
                     align-self: center;
+                    justify-self: end;
+                    width: 32px;
+                    height: 32px;
+                    min-width: 32px;
+                    min-height: 32px;
+                    border-radius: 4px !important;
+                    --mod-button-border-radius: 4px;
                 }
             }
         }

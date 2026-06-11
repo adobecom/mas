@@ -87,8 +87,8 @@ export const tableCellBaseStyles = css`
 
 export const tableSelectedRowStyles = css`
     sp-table-row[selected] {
-        --mod-table-row-background-color: var(--spectrum-blue-200);
-        --spectrum-table-cell-background-color: var(--spectrum-blue-200);
+        --mod-table-row-background-color: var(--spectrum-indigo-200);
+        --spectrum-table-cell-background-color: var(--spectrum-indigo-200);
     }
 `;
 
@@ -112,10 +112,53 @@ export const selectItemsFormSectionStyles = css`
     .items-empty-state {
         display: flex;
         flex-direction: row;
-        gap: 12px;
-        padding: 12px 24px;
-        border: 1px dashed var(--spectrum-gray-800);
+        align-items: center;
+        gap: 10px;
+        min-height: 72px;
+        padding: 12px 32px 12px 24px;
+        cursor: pointer;
+        background: #ffffff;
+        transition:
+            background-color 0.35s ease-in-out,
+            box-shadow 0.35s ease-in-out;
+        border: none;
+        background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25' fill='none'><rect width='100%25' height='100%25' rx='10' ry='10' stroke='%23292929' stroke-width='2' stroke-dasharray='7 7'/></svg>");
+        background-repeat: no-repeat;
+        background-position: center;
         border-radius: 10px;
+        box-shadow:
+            0px 0px 1px rgba(0, 0, 0, 0.08),
+            0px 1px 4px rgba(0, 0, 0, 0.04),
+            0px 2px 8px rgba(0, 0, 0, 0.08);
+
+        &:hover {
+            background-color: var(--spectrum-background-layer-2-color, #fafafa);
+            box-shadow:
+                0px 0px 1px rgba(0, 0, 0, 0.1),
+                0px 2px 8px rgba(0, 0, 0, 0.06),
+                0px 4px 16px rgba(0, 0, 0, 0.1);
+        }
+
+        .label {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            color: #292929;
+            font-size: 14px;
+            line-height: 18px;
+        }
+
+        .label strong {
+            font-weight: 700;
+        }
+
+        .label span {
+            font-weight: 400;
+        }
+
+        .label br {
+            display: none;
+        }
     }
 
     .selected-items {

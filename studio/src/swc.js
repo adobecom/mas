@@ -35,6 +35,7 @@ import '@spectrum-web-components/icons-workflow/icons/sp-icon-cclibrary.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-checkmark-circle.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-checkmark.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-chevron-down.js';
+import '@spectrum-web-components/icons-ui/icons/sp-icon-chevron100.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-chevron-left.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-chevron-right.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-chevron-up.js';
@@ -100,6 +101,8 @@ import '@spectrum-web-components/icons-workflow/icons/sp-icon-select-rectangle.j
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-settings.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-shopping-cart.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-social-network.js';
+import '@spectrum-web-components/icons-workflow/icons/sp-icon-sort-order-down.js';
+import '@spectrum-web-components/icons-workflow/icons/sp-icon-sort-order-up.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-star.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-stroke-solid.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-table.js';

@@ -133,7 +133,7 @@ class MasSelectedItems extends LitElement {
                               <sp-button
                                   class="remove-button ghost-button"
                                   variant="secondary"
-                                  size="l"
+                                  size="m"
                                   icon-only
                                   @click=${() => this.removeItem(item)}
                               >

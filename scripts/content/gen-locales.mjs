@@ -4,55 +4,35 @@
  * e.g: node gen-locales.mjs author-p22655-e155390 ccd [--dry-run]
  */
 
+import { fileURLToPath } from 'url';
 import { getSurfaceLocales, getLocaleCode } from '../../io/www/src/fragment/locales.js';
 
 const ROOT_PATH = '/content/dam/mas';
 
-const args = process.argv.slice(2);
-const positional = args.filter((a) => !a.startsWith('--'));
-const bucket = positional[0];
-const surface = positional[1];
-const dryRun = args.includes('--dry-run');
-
-const accessToken = process.env.MAS_ACCESS_TOKEN;
-const apiKey = process.env.MAS_API_KEY;
-
-if (!bucket || !surface || !accessToken || !apiKey) {
-    console.error('Usage: node gen-locales.mjs <bucket> <surface> [--dry-run]');
-    console.error('Ensure MAS_ACCESS_TOKEN and MAS_API_KEY are set as environment variables.');
-    process.exit(1);
-}
-
-const locales = getSurfaceLocales(surface).map(getLocaleCode);
-
-if (!locales.length) {
-    console.error(`No locales found for surface '${surface}'. Check locales.js for valid surface names.`);
-    process.exit(1);
-}
-
-const baseUrl = `https://${bucket}.adobeaemcloud.com`;
-const headers = {
-    'Content-Type': 'application/json',
-    Authorization: `Bearer ${accessToken}`,
-    'x-api-key': apiKey,
-};
-
-async function listExistingFolders() {
+async function listExistingFolders(baseUrl, headers, surface) {
     const path = `${ROOT_PATH}/${surface}`;
     const response = await fetch(`${baseUrl}/bin/querybuilder.json?path=${path}&path.flat=true&type=sling:Folder&p.limit=-1`, {
         headers,
     });
-    if (!response.ok) {
-        throw new Error(`Failed to list folders: ${response.status} ${response.statusText}`);
-    }
+    if (!response.ok) throw new Error(`Failed to list folders: ${response.status} ${response.statusText}`);
     const { hits } = await response.json();
     return new Set(hits.map(({ name }) => name));
 }
 
-async function run() {
+export async function run({ bucket, surface, dryRun = false, accessToken, apiKey }) {
+    const locales = getSurfaceLocales(surface).map(getLocaleCode);
+    if (!locales.length) throw new Error(`No locales found for surface '${surface}'`);
+
+    const baseUrl = `https://${bucket}.adobeaemcloud.com`;
+    const headers = {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+        'x-api-key': apiKey,
+    };
+
     if (dryRun) console.log('[dry-run] No POST requests will be made.\n');
 
-    const existingNames = await listExistingFolders();
+    const existingNames = await listExistingFolders(baseUrl, headers, surface);
     const existing = [];
     const toCreate = [];
 
@@ -105,4 +85,19 @@ async function run() {
     console.log('\nDone.');
 }
 
-run();
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+    const args = process.argv.slice(2);
+    const positional = args.filter((a) => !a.startsWith('--'));
+    const [bucket, surface] = positional;
+    const dryRun = args.includes('--dry-run');
+    const accessToken = process.env.MAS_ACCESS_TOKEN;
+    const apiKey = process.env.MAS_API_KEY;
+
+    if (!bucket || !surface || !accessToken || !apiKey) {
+        console.error('Usage: node gen-locales.mjs <bucket> <surface> [--dry-run]');
+        console.error('Ensure MAS_ACCESS_TOKEN and MAS_API_KEY are set as environment variables.');
+        process.exit(1);
+    }
+
+    run({ bucket, surface, dryRun, accessToken, apiKey });
+}

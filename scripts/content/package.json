@@ -4,7 +4,7 @@
     "type": "module",
     "private": true,
     "scripts": {
-        "test": "node --test",
-        "test:ci": "node --test"
+        "test": "node --test ../test/*.test.mjs",
+        "test:ci": "node --test ../test/*.test.mjs"
     }
 }

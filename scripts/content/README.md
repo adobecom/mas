@@ -1,5 +1,8 @@
 # env vars
 
+- `MAS_ACCESS_TOKEN`: The IMS access token of a user, copy it from your IMS session in MAS Studio, typically using `copy(adobeid.authorize())` in the console.
+- `MAS_API_KEY`: The API key for authentication, api key used in MAS Studio.
+
 ```sh
 export MAS_ACCESS_TOKEN="your-access-token"
 export MAS_API_KEY="your-api-key"

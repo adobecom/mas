@@ -1,6 +1,6 @@
 import { html, css } from 'lit';
 import { VariantLayout } from './variant-layout.js';
-import { CSS } from './compare-chart.css.js';
+import { CSS } from './compare-chart-column.css.js';
 
 export const COMPARE_CHART_COLUMN_AEM_FRAGMENT_MAPPING = {
     mnemonics: { size: 'l' },

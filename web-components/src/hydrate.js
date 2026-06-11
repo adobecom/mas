@@ -401,22 +401,9 @@ function processMnemonicElements(htmlContent) {
     return htmlContent;
 }
 
-function unwrapSingleParagraph(htmlContent) {
-    if (!htmlContent || typeof htmlContent !== 'string') return htmlContent;
-    const template = document.createElement('template');
-    template.innerHTML = htmlContent.trim();
-    const children = Array.from(template.content.children);
-    if (children.length !== 1 || children[0].tagName !== 'P') {
-        return htmlContent;
-    }
-    return children[0].innerHTML;
-}
-
 export function processPrices(fields, merchCard, mapping) {
     if (fields.prices) {
-        fields.prices = unwrapSingleParagraph(
-            processMnemonicElements(fields.prices),
-        );
+        fields.prices = processMnemonicElements(fields.prices);
     }
     appendSlot('prices', fields, merchCard, mapping);
 }

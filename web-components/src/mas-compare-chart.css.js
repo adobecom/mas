@@ -3,17 +3,51 @@ import { css } from 'lit';
 export const styles = css`
     :host {
         --comparison-border-radius: 8px;
-        --comparison-row-border-color: #e9e9e9;
         --comparison-desktop-max-width: 1200px;
         --comparison-tablet-spacing: var(--spectrum-spacing-800, 48px);
         --comparison-table-spacing: var(--spectrum-spacing-300, 12px);
-        --compare-chart-row-border-color: var(--comparison-row-border-color);
+        --compare-chart-row-border-color: var(
+            --spectrum-gray-200,
+            var(--color-gray-200, #e8e8e8)
+        );
         --compare-chart-desktop-max-width: var(--comparison-desktop-max-width);
         --compare-chart-spacing: var(--comparison-table-spacing);
-        --hover-border-color: #357beb;
-        --primary-cell-path-color: #05834e;
-        --color-text: #2c2c2c;
-        --color-text-secondary: #6e6e6e;
+        --compare-chart-color-white: var(
+            --spectrum-gray-50,
+            var(--color-white, #fff)
+        );
+        --compare-chart-color-gray-100: var(
+            --spectrum-gray-100,
+            var(--color-gray-100, #f8f8f8)
+        );
+        --compare-chart-color-gray-300: var(
+            --spectrum-gray-300,
+            var(--color-gray-300, #d4d4d4)
+        );
+        --compare-chart-text-color: var(
+            --spectrum-gray-800,
+            var(--text-color, #2c2c2c)
+        );
+        --compare-chart-text-secondary-color: var(
+            --spectrum-gray-600,
+            var(--color-gray-600, #686868)
+        );
+        --compare-chart-hover-color: var(
+            --spectrum-accent-color-default,
+            var(--color-accent, #357beb)
+        );
+        --compare-chart-primary-color: var(
+            --spectrum-positive-color-default,
+            var(--merch-color-green-promo, #05834e)
+        );
+        --compare-chart-tooltip-bg: var(
+            --spectrum-gray-800,
+            var(--text-color, #2c2c2c)
+        );
+        --compare-chart-tooltip-color: var(
+            --spectrum-gray-50,
+            var(--color-white, #fff)
+        );
         --compare-chart-cols: 3;
         --compare-chart-leading-col: minmax(192px, 1fr);
         --compare-chart-data-cols: repeat(
@@ -24,13 +58,6 @@ export const styles = css`
         --compare-chart-sticky-offset: 64px;
 
         /* Local fallbacks for Milo/Spectrum typography tokens. */
-        --type-heading-xs: 700 18px/22px 'Adobe Clean', sans-serif;
-        --type-body-bold-s: 700 16px/24px 'Adobe Clean', sans-serif;
-        --type-body-bold-xs: 700 14px/20px 'Adobe Clean', sans-serif;
-        --type-body-bold-xxs: 700 12px/15px 'Adobe Clean', sans-serif;
-        --type-body-xs: 400 14px/20px 'Adobe Clean', sans-serif;
-        --type-body-italic-xxs: italic 400 12px/15px 'Adobe Clean', sans-serif;
-        --type-body-xxxs: 400 11px/14px 'Adobe Clean', sans-serif;
         --compare-chart-header-title-font: 700 16px/24px 'Adobe Clean',
             sans-serif;
         --compare-chart-header-price-font: 700 16px/20px 'Adobe Clean',
@@ -47,15 +74,14 @@ export const styles = css`
         max-width: 100%;
         box-sizing: border-box;
         font-family: var(--body-font-family, 'Adobe Clean', sans-serif);
-        color: var(--color-text);
+        color: var(--compare-chart-text-color);
     }
 
     :host-context(.dark),
     :host([data-dark]) {
-        --color-text: #f5f5f5;
-        --color-text-secondary: #b0b0b0;
-        --comparison-row-border-color: #444;
-        --compare-chart-row-border-color: #444;
+        --compare-chart-text-color: #f5f5f5;
+        --compare-chart-text-secondary-color: #b0b0b0;
+        --compare-chart-row-border-color: var(--color-gray-700, #444);
         background: #1e1e1e;
     }
 
@@ -118,7 +144,7 @@ export const styles = css`
         width: 100vw;
         margin-inline: calc(50% - 50vw);
         z-index: 9;
-        background: var(--color-white, #fff);
+        background: var(--compare-chart-color-white);
         box-shadow: 0 1px 6px 0 rgb(0 0 0 / 12%);
         transform: translateY(0) translateZ(0);
         backface-visibility: hidden;
@@ -141,7 +167,7 @@ export const styles = css`
         display: flex;
         align-items: stretch;
         font: var(--type-body-bold-s);
-        color: var(--color-text);
+        color: var(--compare-chart-text-color);
         white-space: nowrap;
     }
     .header-leading-header {
@@ -169,7 +195,7 @@ export const styles = css`
         align-items: stretch;
         justify-content: center;
         gap: 4px;
-        color: var(--color-text);
+        color: var(--compare-chart-text-color);
         text-align: center;
         align-self: stretch;
     }
@@ -179,10 +205,10 @@ export const styles = css`
     }
     .header-segment,
     .price-segment {
-        border: 1px solid var(--color-gray-300, #d5d5d5);
+        border: 1px solid var(--compare-chart-color-gray-300);
         border-radius: var(--comparison-border-radius);
         padding: var(--spectrum-spacing-200, 8px);
-        background: #fff;
+        background: var(--compare-chart-color-white);
         transition:
             border-color var(--transition-smooth, 0.3s ease),
             background var(--transition-smooth, 0.3s ease),
@@ -194,7 +220,7 @@ export const styles = css`
     .price-segment[data-card-index='3'],
     .header-segment[data-cell-color='grey'],
     .price-segment[data-cell-color='grey'] {
-        background: var(--color-gray-100, #f8f8f8);
+        background: var(--compare-chart-color-gray-100);
     }
     .header-segment {
         position: relative;
@@ -237,7 +263,7 @@ export const styles = css`
         bottom: -1px;
         box-sizing: border-box;
         border: none;
-        border-top: 1px solid var(--color-gray-300, #d5d5d5);
+        border-top: 1px solid var(--compare-chart-color-gray-300);
         border-radius: 0 0 var(--comparison-border-radius)
             var(--comparison-border-radius);
         color: transparent;
@@ -252,8 +278,8 @@ export const styles = css`
             #ebeeff;
     }
     .mobile-filter-select option {
-        background: var(--color-white, #fff);
-        color: var(--color-black, #000);
+        background: var(--compare-chart-color-white);
+        color: var(--compare-chart-text-color);
     }
     .sticky-header.is-stuck .header-segment,
     .sticky-header.is-stuck .price-segment {
@@ -285,7 +311,7 @@ export const styles = css`
         font:
             700 var(--type-heading-s-size, 18px) / 1.25 'Adobe Clean',
             sans-serif;
-        color: var(--color-text);
+        color: var(--compare-chart-text-color);
     }
     ::slotted(p) {
         text-align: center;
@@ -360,7 +386,7 @@ export const styles = css`
         letter-spacing: 0;
         margin: 0;
         text-align: center;
-        color: var(--C1-Text-text, #2c2c2c);
+        color: var(--compare-chart-text-color);
     }
     ::slotted([slot$='-cta']) {
         display: flex;
@@ -387,7 +413,7 @@ export const styles = css`
         margin: var(--spectrum-spacing-400, 16px) auto 0;
         padding: 0;
         box-sizing: border-box;
-        color: var(--color-gray-700-variant, var(--color-text));
+        color: var(--compare-chart-text-color);
         font-family: var(--body-font-family, 'Adobe Clean', sans-serif);
         font-size: var(--ax-body-xs-size, var(--type-body-xs-size, 14px));
         font-style: normal;
@@ -428,8 +454,8 @@ export const styles = css`
         width: 100%;
         box-sizing: border-box;
         padding: var(--spectrum-spacing-500, 24px);
-        background: var(--C1-Web-Gray-Scale-gray-100, #f8f8f8);
-        border: 1px solid var(--C1-Stroke-compare-table-border, #d4d4d4);
+        background: var(--compare-chart-color-gray-100);
+        border: 1px solid var(--compare-chart-color-gray-300);
         font-size: var(--type-heading-s-size, 18px);
         font-weight: 700;
         line-height: var(--type-heading-s-lh, 22.5px);
@@ -437,12 +463,12 @@ export const styles = css`
         border-radius: var(--Radius-corner-radius-100, 8px)
             var(--Radius-corner-radius-100, 8px) 8px 8px;
         font-family: var(--body-font-family, 'Adobe Clean', sans-serif);
-        color: var(--color-black, #000);
+        color: var(--compare-chart-text-color);
         text-align: center;
         cursor: pointer;
     }
     .table-column-header:focus-visible {
-        outline: 2px solid var(--hover-border-color);
+        outline: 2px solid var(--compare-chart-hover-color);
         outline-offset: -2px;
     }
     .table-column-header[aria-expanded='false'] {
@@ -482,11 +508,11 @@ export const styles = css`
         padding: 0;
     }
     .table-row:not(:last-child) {
-        border-bottom: 1px solid var(--comparison-row-border-color);
+        border-bottom: 1px solid var(--compare-chart-row-border-color);
     }
 
     .row-header {
-        color: var(--color-black, #000);
+        color: var(--compare-chart-text-color);
         display: flex;
         gap: 6px;
         align-items: center;
@@ -502,7 +528,7 @@ export const styles = css`
         line-height: 1.3;
     }
     .row-label {
-        color: var(--C1-Text-text, #2c2c2c);
+        color: var(--compare-chart-text-color);
         display: inline;
         flex: 1 1 auto;
         font-family: var(--Font-adobe-clean, 'Adobe Clean');
@@ -526,7 +552,7 @@ export const styles = css`
     .description-row .row-header {
         font: var(--type-body-xxxs);
         font-weight: 400;
-        color: var(--color-text-secondary);
+        color: var(--compare-chart-text-secondary-color);
     }
 
     .table-row p[role='cell'] {
@@ -537,7 +563,7 @@ export const styles = css`
         text-align: center;
         font-size: var(--type-body-xs-size, 14px);
         line-height: var(--type-body-xs-lh, 20px);
-        color: var(--color-black, #000);
+        color: var(--compare-chart-text-color);
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -547,8 +573,8 @@ export const styles = css`
     }
     .compare-chart-chip {
         align-items: center;
-        background: #fff;
-        border: 1px solid var(--color-gray-300, #d5d5d5);
+        background: var(--compare-chart-color-white);
+        border: 1px solid var(--compare-chart-color-gray-300);
         border-radius: 4px;
         box-sizing: border-box;
         display: flex;
@@ -560,14 +586,14 @@ export const styles = css`
         width: calc(100% - 2 * var(--comparison-table-spacing) - 2px);
     }
     .table-row p[role='cell']:not(:nth-child(2)) .compare-chart-chip {
-        background-color: var(--color-gray-100, #f8f8f8);
+        background-color: var(--compare-chart-color-gray-100);
     }
     .table-row p[role='cell']:nth-child(even) .compare-chart-chip {
-        background-color: var(--color-white, #fff);
+        background-color: var(--compare-chart-color-white);
     }
 
     .table-row p[role='cell'] > small {
-        color: var(--color-black, #000);
+        color: var(--compare-chart-text-color);
         display: block;
         font-size: var(--type-body-xxs-size, 12px);
         font-weight: 400;
@@ -577,27 +603,27 @@ export const styles = css`
     }
 
     .table-row p.primary-cell > small {
-        color: var(--primary-cell-path-color, #05834e);
+        color: var(--compare-chart-primary-color);
     }
 
     .table-row p.emoji-primary-cell .compare-chart-chip,
     .table-row p.emoji-primary-cell > small {
-        color: var(--primary-cell-path-color, #05834e);
+        color: var(--compare-chart-primary-color);
     }
 
     .compare-chart-glyph.excluded {
-        color: var(--color-text, #2c2c2c);
+        color: var(--compare-chart-text-color);
     }
 
     /* Cell-level primary glyph tint (per Figma: ✅ primary feature). */
     .compare-chart-glyph.included.primary {
-        color: var(--primary-cell-path-color, #05834e);
+        color: var(--compare-chart-primary-color);
         font-weight: 700;
     }
 
     /* Item-cell rows: no chip border, plain text. */
     .table-row p.item-cell {
-        color: var(--color-text-secondary, #6e6e6e);
+        color: var(--compare-chart-text-secondary-color);
         display: block;
         font-size: 11px;
         font-weight: 400;
@@ -607,7 +633,7 @@ export const styles = css`
     }
 
     .table-row p.item-cell.primary-cell {
-        color: var(--primary-cell-path-color, #05834e);
+        color: var(--compare-chart-primary-color);
     }
 
     /* ---------- tooltip (Figma: Table tool tip, 7 positions) ---------- */
@@ -625,7 +651,7 @@ export const styles = css`
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        color: var(--color-text-secondary, #6e6e6e);
+        color: var(--compare-chart-text-secondary-color);
         font:
             italic 700 9px/1 'Adobe Clean',
             serif;
@@ -636,13 +662,13 @@ export const styles = css`
     }
     .tooltip-trigger:hover,
     .tooltip-trigger:focus-visible {
-        color: var(--hover-border-color);
+        color: var(--compare-chart-hover-color);
         outline: none;
     }
     .tooltip-popover {
         position: absolute;
-        background: #2c2c2c;
-        color: #fff;
+        background: var(--compare-chart-tooltip-bg);
+        color: var(--compare-chart-tooltip-color);
         border-radius: 4px;
         padding: 8px 12px;
         font: var(--type-body-xs);
@@ -674,7 +700,7 @@ export const styles = css`
         position: absolute;
         width: 8px;
         height: 8px;
-        background: #2c2c2c;
+        background: var(--compare-chart-tooltip-bg);
         transform: rotate(45deg);
     }
 

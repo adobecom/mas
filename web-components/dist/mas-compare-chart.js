@@ -1,17 +1,51 @@
-var de=Object.defineProperty;var _t=p=>{throw TypeError(p)};var he=(p,m,t)=>m in p?de(p,m,{enumerable:!0,configurable:!0,writable:!0,value:t}):p[m]=t;var st=(p,m,t)=>he(p,typeof m!="symbol"?m+"":m,t),nt=(p,m,t)=>m.has(p)||_t("Cannot "+t);var i=(p,m,t)=>(nt(p,m,"read from private field"),t?t.call(p):m.get(p)),u=(p,m,t)=>m.has(p)?_t("Cannot add the same private member more than once"):m instanceof WeakSet?m.add(p):m.set(p,t),d=(p,m,t,e)=>(nt(p,m,"write to private field"),e?e.call(p,t):m.set(p,t),t),s=(p,m,t)=>(nt(p,m,"access private method"),t);import{html as A,LitElement as Ee,nothing as y}from"./lit-all.min.js";import{repeat as ht}from"./lit-all.min.js";import{unsafeHTML as Ot}from"./lit-all.min.js";var Le=Object.freeze({MONTH:"MONTH",YEAR:"YEAR",TWO_YEARS:"TWO_YEARS",THREE_YEARS:"THREE_YEARS",PERPETUAL:"PERPETUAL",TERM_LICENSE:"TERM_LICENSE",ACCESS_PASS:"ACCESS_PASS",THREE_MONTHS:"THREE_MONTHS",SIX_MONTHS:"SIX_MONTHS"}),Me=Object.freeze({ANNUAL:"ANNUAL",MONTHLY:"MONTHLY",TWO_YEARS:"TWO_YEARS",THREE_YEARS:"THREE_YEARS",P1D:"P1D",P1Y:"P1Y",P3Y:"P3Y",P10Y:"P10Y",P15Y:"P15Y",P3D:"P3D",P7D:"P7D",P30D:"P30D",HALF_YEARLY:"HALF_YEARLY",QUARTERLY:"QUARTERLY"});var me='span[is="inline-price"][data-wcs-osi]',ue='a[is="checkout-link"][data-wcs-osi],button[is="checkout-button"][data-wcs-osi]';var ge='a[is="upt-link"]',Oe=`${me},${ue},${ge}`;var ct="aem:load",lt="aem:error",pt="mas:ready";var dt="mas-compare-chart:rehydrate",kt="expanded-groups-change";var Pe=Object.freeze({SEGMENTATION:"segmentation",BUNDLE:"bundle",COMMITMENT:"commitment",RECOMMENDATION:"recommendation",EMAIL:"email",PAYMENT:"payment",CHANGE_PLAN_TEAM_PLANS:"change-plan/team-upgrade/plans",CHANGE_PLAN_TEAM_PAYMENT:"change-plan/team-upgrade/payment"});var Ie=Object.freeze({STAGE:"STAGE",PRODUCTION:"PRODUCTION",LOCAL:"LOCAL"});var fe=p=>String(p||"").normalize("NFKD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[/&]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/-+/g,"-").replace(/^-+|-+$/g,"")||"item",Nt=p=>Array.from(p.childNodes).map(m=>m.nodeType===Node.TEXT_NODE?m.textContent:m.nodeType===Node.ELEMENT_NODE?m.outerHTML:"").join("").replace(/\s+/g," ").trim(),xe=p=>{let m=p.querySelector("[aria-label]")?.getAttribute("aria-label")?.trim().toLowerCase();return m==="yes"?"\u2713":m==="no"?"\u2717":p.querySelector(".icon-checkmark-no-fill, .icon-checkmark")?"\u2713":p.querySelector(".icon-crossmark")?"\u2717":Nt(p)},St=p=>Nt(p).replace(/\s+/g," ").trim(),be=p=>(p.querySelector(".ctv2-th-header")?.textContent||p.textContent||"").replace(/:$/,"").replace(/\s+/g," ").trim(),Rt=(p,m)=>{let t=fe(p),e=t,o=2;for(;m.has(e);)e=`${t}-${o}`,o+=1;return m.add(e),e},Lt=p=>{let m=new Set;return Array.from(p.querySelectorAll(":scope > table")).map(t=>{let e=Array.from(t.querySelectorAll(":scope > thead > tr:first-child > th")),o=e[0],a=(o?.textContent||"").replace(/\s+/g," ").trim(),l=e.slice(1).map(h=>h.textContent.replace(/\s+/g," ").trim()),n=new Set,c=Array.from(t.querySelectorAll(":scope > tbody > tr")).map(h=>{let g=Array.from(h.children),x=g.find(f=>f.matches('th[scope="row"], th'))||g[0],b=be(x);return{name:Rt(b,n),html:St(x),cells:g.slice(g.indexOf(x)+1).map(xe)}});return{name:Rt(a,m),label:a,labelHtml:o?St(o):a,columns:l,rows:c}})};import{css as ye}from"./lit-all.min.js";var Mt=ye`
+var de=Object.defineProperty;var Tt=p=>{throw TypeError(p)};var he=(p,m,t)=>m in p?de(p,m,{enumerable:!0,configurable:!0,writable:!0,value:t}):p[m]=t;var st=(p,m,t)=>he(p,typeof m!="symbol"?m+"":m,t),nt=(p,m,t)=>m.has(p)||Tt("Cannot "+t);var a=(p,m,t)=>(nt(p,m,"read from private field"),t?t.call(p):m.get(p)),u=(p,m,t)=>m.has(p)?Tt("Cannot add the same private member more than once"):m instanceof WeakSet?m.add(p):m.set(p,t),d=(p,m,t,e)=>(nt(p,m,"write to private field"),e?e.call(p,t):m.set(p,t),t),s=(p,m,t)=>(nt(p,m,"access private method"),t);import{html as A,LitElement as Ee,nothing as b}from"./lit-all.min.js";import{repeat as ht}from"./lit-all.min.js";import{unsafeHTML as Ot}from"./lit-all.min.js";var Le=Object.freeze({MONTH:"MONTH",YEAR:"YEAR",TWO_YEARS:"TWO_YEARS",THREE_YEARS:"THREE_YEARS",PERPETUAL:"PERPETUAL",TERM_LICENSE:"TERM_LICENSE",ACCESS_PASS:"ACCESS_PASS",THREE_MONTHS:"THREE_MONTHS",SIX_MONTHS:"SIX_MONTHS"}),Me=Object.freeze({ANNUAL:"ANNUAL",MONTHLY:"MONTHLY",TWO_YEARS:"TWO_YEARS",THREE_YEARS:"THREE_YEARS",P1D:"P1D",P1Y:"P1Y",P3Y:"P3Y",P10Y:"P10Y",P15Y:"P15Y",P3D:"P3D",P7D:"P7D",P30D:"P30D",HALF_YEARLY:"HALF_YEARLY",QUARTERLY:"QUARTERLY"});var me='span[is="inline-price"][data-wcs-osi]',ue='a[is="checkout-link"][data-wcs-osi],button[is="checkout-button"][data-wcs-osi]';var ge='a[is="upt-link"]',Oe=`${me},${ue},${ge}`;var ct="aem:load",lt="aem:error",pt="mas:ready";var dt="mas-compare-chart:rehydrate",St="expanded-groups-change";var Pe=Object.freeze({SEGMENTATION:"segmentation",BUNDLE:"bundle",COMMITMENT:"commitment",RECOMMENDATION:"recommendation",EMAIL:"email",PAYMENT:"payment",CHANGE_PLAN_TEAM_PLANS:"change-plan/team-upgrade/plans",CHANGE_PLAN_TEAM_PAYMENT:"change-plan/team-upgrade/payment"});var Ie=Object.freeze({STAGE:"STAGE",PRODUCTION:"PRODUCTION",LOCAL:"LOCAL"});var fe=p=>String(p||"").normalize("NFKD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[/&]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/-+/g,"-").replace(/^-+|-+$/g,"")||"item",Nt=p=>Array.from(p.childNodes).map(m=>m.nodeType===Node.TEXT_NODE?m.textContent:m.nodeType===Node.ELEMENT_NODE?m.outerHTML:"").join("").replace(/\s+/g," ").trim(),xe=p=>{let m=p.querySelector("[aria-label]")?.getAttribute("aria-label")?.trim().toLowerCase();return m==="yes"?"\u2713":m==="no"?"\u2717":p.querySelector(".icon-checkmark-no-fill, .icon-checkmark")?"\u2713":p.querySelector(".icon-crossmark")?"\u2717":Nt(p)},kt=p=>Nt(p).replace(/\s+/g," ").trim(),ye=p=>(p.querySelector(".ctv2-th-header")?.textContent||p.textContent||"").replace(/:$/,"").replace(/\s+/g," ").trim(),Rt=(p,m)=>{let t=fe(p),e=t,o=2;for(;m.has(e);)e=`${t}-${o}`,o+=1;return m.add(e),e},Lt=p=>{let m=new Set;return Array.from(p.querySelectorAll(":scope > table")).map(t=>{let e=Array.from(t.querySelectorAll(":scope > thead > tr:first-child > th")),o=e[0],i=(o?.textContent||"").replace(/\s+/g," ").trim(),l=e.slice(1).map(h=>h.textContent.replace(/\s+/g," ").trim()),n=new Set,c=Array.from(t.querySelectorAll(":scope > tbody > tr")).map(h=>{let g=Array.from(h.children),x=g.find(f=>f.matches('th[scope="row"], th'))||g[0],y=ye(x);return{name:Rt(y,n),html:kt(x),cells:g.slice(g.indexOf(x)+1).map(xe)}});return{name:Rt(i,m),label:i,labelHtml:o?kt(o):i,columns:l,rows:c}})};import{css as be}from"./lit-all.min.js";var Mt=be`
     :host {
         --comparison-border-radius: 8px;
-        --comparison-row-border-color: #e9e9e9;
         --comparison-desktop-max-width: 1200px;
         --comparison-tablet-spacing: var(--spectrum-spacing-800, 48px);
         --comparison-table-spacing: var(--spectrum-spacing-300, 12px);
-        --compare-chart-row-border-color: var(--comparison-row-border-color);
+        --compare-chart-row-border-color: var(
+            --spectrum-gray-200,
+            var(--color-gray-200, #e8e8e8)
+        );
         --compare-chart-desktop-max-width: var(--comparison-desktop-max-width);
         --compare-chart-spacing: var(--comparison-table-spacing);
-        --hover-border-color: #357beb;
-        --primary-cell-path-color: #05834e;
-        --color-text: #2c2c2c;
-        --color-text-secondary: #6e6e6e;
+        --compare-chart-color-white: var(
+            --spectrum-gray-50,
+            var(--color-white, #fff)
+        );
+        --compare-chart-color-gray-100: var(
+            --spectrum-gray-100,
+            var(--color-gray-100, #f8f8f8)
+        );
+        --compare-chart-color-gray-300: var(
+            --spectrum-gray-300,
+            var(--color-gray-300, #d4d4d4)
+        );
+        --compare-chart-text-color: var(
+            --spectrum-gray-800,
+            var(--text-color, #2c2c2c)
+        );
+        --compare-chart-text-secondary-color: var(
+            --spectrum-gray-600,
+            var(--color-gray-600, #686868)
+        );
+        --compare-chart-hover-color: var(
+            --spectrum-accent-color-default,
+            var(--color-accent, #357beb)
+        );
+        --compare-chart-primary-color: var(
+            --spectrum-positive-color-default,
+            var(--merch-color-green-promo, #05834e)
+        );
+        --compare-chart-tooltip-bg: var(
+            --spectrum-gray-800,
+            var(--text-color, #2c2c2c)
+        );
+        --compare-chart-tooltip-color: var(
+            --spectrum-gray-50,
+            var(--color-white, #fff)
+        );
         --compare-chart-cols: 3;
         --compare-chart-leading-col: minmax(192px, 1fr);
         --compare-chart-data-cols: repeat(
@@ -22,13 +56,6 @@ var de=Object.defineProperty;var _t=p=>{throw TypeError(p)};var he=(p,m,t)=>m in
         --compare-chart-sticky-offset: 64px;
 
         /* Local fallbacks for Milo/Spectrum typography tokens. */
-        --type-heading-xs: 700 18px/22px 'Adobe Clean', sans-serif;
-        --type-body-bold-s: 700 16px/24px 'Adobe Clean', sans-serif;
-        --type-body-bold-xs: 700 14px/20px 'Adobe Clean', sans-serif;
-        --type-body-bold-xxs: 700 12px/15px 'Adobe Clean', sans-serif;
-        --type-body-xs: 400 14px/20px 'Adobe Clean', sans-serif;
-        --type-body-italic-xxs: italic 400 12px/15px 'Adobe Clean', sans-serif;
-        --type-body-xxxs: 400 11px/14px 'Adobe Clean', sans-serif;
         --compare-chart-header-title-font: 700 16px/24px 'Adobe Clean',
             sans-serif;
         --compare-chart-header-price-font: 700 16px/20px 'Adobe Clean',
@@ -45,15 +72,14 @@ var de=Object.defineProperty;var _t=p=>{throw TypeError(p)};var he=(p,m,t)=>m in
         max-width: 100%;
         box-sizing: border-box;
         font-family: var(--body-font-family, 'Adobe Clean', sans-serif);
-        color: var(--color-text);
+        color: var(--compare-chart-text-color);
     }
 
     :host-context(.dark),
     :host([data-dark]) {
-        --color-text: #f5f5f5;
-        --color-text-secondary: #b0b0b0;
-        --comparison-row-border-color: #444;
-        --compare-chart-row-border-color: #444;
+        --compare-chart-text-color: #f5f5f5;
+        --compare-chart-text-secondary-color: #b0b0b0;
+        --compare-chart-row-border-color: var(--color-gray-700, #444);
         background: #1e1e1e;
     }
 
@@ -116,7 +142,7 @@ var de=Object.defineProperty;var _t=p=>{throw TypeError(p)};var he=(p,m,t)=>m in
         width: 100vw;
         margin-inline: calc(50% - 50vw);
         z-index: 9;
-        background: var(--color-white, #fff);
+        background: var(--compare-chart-color-white);
         box-shadow: 0 1px 6px 0 rgb(0 0 0 / 12%);
         transform: translateY(0) translateZ(0);
         backface-visibility: hidden;
@@ -139,7 +165,7 @@ var de=Object.defineProperty;var _t=p=>{throw TypeError(p)};var he=(p,m,t)=>m in
         display: flex;
         align-items: stretch;
         font: var(--type-body-bold-s);
-        color: var(--color-text);
+        color: var(--compare-chart-text-color);
         white-space: nowrap;
     }
     .header-leading-header {
@@ -167,7 +193,7 @@ var de=Object.defineProperty;var _t=p=>{throw TypeError(p)};var he=(p,m,t)=>m in
         align-items: stretch;
         justify-content: center;
         gap: 4px;
-        color: var(--color-text);
+        color: var(--compare-chart-text-color);
         text-align: center;
         align-self: stretch;
     }
@@ -177,10 +203,10 @@ var de=Object.defineProperty;var _t=p=>{throw TypeError(p)};var he=(p,m,t)=>m in
     }
     .header-segment,
     .price-segment {
-        border: 1px solid var(--color-gray-300, #d5d5d5);
+        border: 1px solid var(--compare-chart-color-gray-300);
         border-radius: var(--comparison-border-radius);
         padding: var(--spectrum-spacing-200, 8px);
-        background: #fff;
+        background: var(--compare-chart-color-white);
         transition:
             border-color var(--transition-smooth, 0.3s ease),
             background var(--transition-smooth, 0.3s ease),
@@ -192,7 +218,7 @@ var de=Object.defineProperty;var _t=p=>{throw TypeError(p)};var he=(p,m,t)=>m in
     .price-segment[data-card-index='3'],
     .header-segment[data-cell-color='grey'],
     .price-segment[data-cell-color='grey'] {
-        background: var(--color-gray-100, #f8f8f8);
+        background: var(--compare-chart-color-gray-100);
     }
     .header-segment {
         position: relative;
@@ -235,7 +261,7 @@ var de=Object.defineProperty;var _t=p=>{throw TypeError(p)};var he=(p,m,t)=>m in
         bottom: -1px;
         box-sizing: border-box;
         border: none;
-        border-top: 1px solid var(--color-gray-300, #d5d5d5);
+        border-top: 1px solid var(--compare-chart-color-gray-300);
         border-radius: 0 0 var(--comparison-border-radius)
             var(--comparison-border-radius);
         color: transparent;
@@ -250,8 +276,8 @@ var de=Object.defineProperty;var _t=p=>{throw TypeError(p)};var he=(p,m,t)=>m in
             #ebeeff;
     }
     .mobile-filter-select option {
-        background: var(--color-white, #fff);
-        color: var(--color-black, #000);
+        background: var(--compare-chart-color-white);
+        color: var(--compare-chart-text-color);
     }
     .sticky-header.is-stuck .header-segment,
     .sticky-header.is-stuck .price-segment {
@@ -283,7 +309,7 @@ var de=Object.defineProperty;var _t=p=>{throw TypeError(p)};var he=(p,m,t)=>m in
         font:
             700 var(--type-heading-s-size, 18px) / 1.25 'Adobe Clean',
             sans-serif;
-        color: var(--color-text);
+        color: var(--compare-chart-text-color);
     }
     ::slotted(p) {
         text-align: center;
@@ -358,7 +384,7 @@ var de=Object.defineProperty;var _t=p=>{throw TypeError(p)};var he=(p,m,t)=>m in
         letter-spacing: 0;
         margin: 0;
         text-align: center;
-        color: var(--C1-Text-text, #2c2c2c);
+        color: var(--compare-chart-text-color);
     }
     ::slotted([slot$='-cta']) {
         display: flex;
@@ -385,7 +411,7 @@ var de=Object.defineProperty;var _t=p=>{throw TypeError(p)};var he=(p,m,t)=>m in
         margin: var(--spectrum-spacing-400, 16px) auto 0;
         padding: 0;
         box-sizing: border-box;
-        color: var(--color-gray-700-variant, var(--color-text));
+        color: var(--compare-chart-text-color);
         font-family: var(--body-font-family, 'Adobe Clean', sans-serif);
         font-size: var(--ax-body-xs-size, var(--type-body-xs-size, 14px));
         font-style: normal;
@@ -426,8 +452,8 @@ var de=Object.defineProperty;var _t=p=>{throw TypeError(p)};var he=(p,m,t)=>m in
         width: 100%;
         box-sizing: border-box;
         padding: var(--spectrum-spacing-500, 24px);
-        background: var(--C1-Web-Gray-Scale-gray-100, #f8f8f8);
-        border: 1px solid var(--C1-Stroke-compare-table-border, #d4d4d4);
+        background: var(--compare-chart-color-gray-100);
+        border: 1px solid var(--compare-chart-color-gray-300);
         font-size: var(--type-heading-s-size, 18px);
         font-weight: 700;
         line-height: var(--type-heading-s-lh, 22.5px);
@@ -435,12 +461,12 @@ var de=Object.defineProperty;var _t=p=>{throw TypeError(p)};var he=(p,m,t)=>m in
         border-radius: var(--Radius-corner-radius-100, 8px)
             var(--Radius-corner-radius-100, 8px) 8px 8px;
         font-family: var(--body-font-family, 'Adobe Clean', sans-serif);
-        color: var(--color-black, #000);
+        color: var(--compare-chart-text-color);
         text-align: center;
         cursor: pointer;
     }
     .table-column-header:focus-visible {
-        outline: 2px solid var(--hover-border-color);
+        outline: 2px solid var(--compare-chart-hover-color);
         outline-offset: -2px;
     }
     .table-column-header[aria-expanded='false'] {
@@ -480,11 +506,11 @@ var de=Object.defineProperty;var _t=p=>{throw TypeError(p)};var he=(p,m,t)=>m in
         padding: 0;
     }
     .table-row:not(:last-child) {
-        border-bottom: 1px solid var(--comparison-row-border-color);
+        border-bottom: 1px solid var(--compare-chart-row-border-color);
     }
 
     .row-header {
-        color: var(--color-black, #000);
+        color: var(--compare-chart-text-color);
         display: flex;
         gap: 6px;
         align-items: center;
@@ -500,7 +526,7 @@ var de=Object.defineProperty;var _t=p=>{throw TypeError(p)};var he=(p,m,t)=>m in
         line-height: 1.3;
     }
     .row-label {
-        color: var(--C1-Text-text, #2c2c2c);
+        color: var(--compare-chart-text-color);
         display: inline;
         flex: 1 1 auto;
         font-family: var(--Font-adobe-clean, 'Adobe Clean');
@@ -524,7 +550,7 @@ var de=Object.defineProperty;var _t=p=>{throw TypeError(p)};var he=(p,m,t)=>m in
     .description-row .row-header {
         font: var(--type-body-xxxs);
         font-weight: 400;
-        color: var(--color-text-secondary);
+        color: var(--compare-chart-text-secondary-color);
     }
 
     .table-row p[role='cell'] {
@@ -535,7 +561,7 @@ var de=Object.defineProperty;var _t=p=>{throw TypeError(p)};var he=(p,m,t)=>m in
         text-align: center;
         font-size: var(--type-body-xs-size, 14px);
         line-height: var(--type-body-xs-lh, 20px);
-        color: var(--color-black, #000);
+        color: var(--compare-chart-text-color);
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -545,8 +571,8 @@ var de=Object.defineProperty;var _t=p=>{throw TypeError(p)};var he=(p,m,t)=>m in
     }
     .compare-chart-chip {
         align-items: center;
-        background: #fff;
-        border: 1px solid var(--color-gray-300, #d5d5d5);
+        background: var(--compare-chart-color-white);
+        border: 1px solid var(--compare-chart-color-gray-300);
         border-radius: 4px;
         box-sizing: border-box;
         display: flex;
@@ -558,14 +584,14 @@ var de=Object.defineProperty;var _t=p=>{throw TypeError(p)};var he=(p,m,t)=>m in
         width: calc(100% - 2 * var(--comparison-table-spacing) - 2px);
     }
     .table-row p[role='cell']:not(:nth-child(2)) .compare-chart-chip {
-        background-color: var(--color-gray-100, #f8f8f8);
+        background-color: var(--compare-chart-color-gray-100);
     }
     .table-row p[role='cell']:nth-child(even) .compare-chart-chip {
-        background-color: var(--color-white, #fff);
+        background-color: var(--compare-chart-color-white);
     }
 
     .table-row p[role='cell'] > small {
-        color: var(--color-black, #000);
+        color: var(--compare-chart-text-color);
         display: block;
         font-size: var(--type-body-xxs-size, 12px);
         font-weight: 400;
@@ -575,27 +601,27 @@ var de=Object.defineProperty;var _t=p=>{throw TypeError(p)};var he=(p,m,t)=>m in
     }
 
     .table-row p.primary-cell > small {
-        color: var(--primary-cell-path-color, #05834e);
+        color: var(--compare-chart-primary-color);
     }
 
     .table-row p.emoji-primary-cell .compare-chart-chip,
     .table-row p.emoji-primary-cell > small {
-        color: var(--primary-cell-path-color, #05834e);
+        color: var(--compare-chart-primary-color);
     }
 
     .compare-chart-glyph.excluded {
-        color: var(--color-text, #2c2c2c);
+        color: var(--compare-chart-text-color);
     }
 
     /* Cell-level primary glyph tint (per Figma: ✅ primary feature). */
     .compare-chart-glyph.included.primary {
-        color: var(--primary-cell-path-color, #05834e);
+        color: var(--compare-chart-primary-color);
         font-weight: 700;
     }
 
     /* Item-cell rows: no chip border, plain text. */
     .table-row p.item-cell {
-        color: var(--color-text-secondary, #6e6e6e);
+        color: var(--compare-chart-text-secondary-color);
         display: block;
         font-size: 11px;
         font-weight: 400;
@@ -605,7 +631,7 @@ var de=Object.defineProperty;var _t=p=>{throw TypeError(p)};var he=(p,m,t)=>m in
     }
 
     .table-row p.item-cell.primary-cell {
-        color: var(--primary-cell-path-color, #05834e);
+        color: var(--compare-chart-primary-color);
     }
 
     /* ---------- tooltip (Figma: Table tool tip, 7 positions) ---------- */
@@ -623,7 +649,7 @@ var de=Object.defineProperty;var _t=p=>{throw TypeError(p)};var he=(p,m,t)=>m in
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        color: var(--color-text-secondary, #6e6e6e);
+        color: var(--compare-chart-text-secondary-color);
         font:
             italic 700 9px/1 'Adobe Clean',
             serif;
@@ -634,13 +660,13 @@ var de=Object.defineProperty;var _t=p=>{throw TypeError(p)};var he=(p,m,t)=>m in
     }
     .tooltip-trigger:hover,
     .tooltip-trigger:focus-visible {
-        color: var(--hover-border-color);
+        color: var(--compare-chart-hover-color);
         outline: none;
     }
     .tooltip-popover {
         position: absolute;
-        background: #2c2c2c;
-        color: #fff;
+        background: var(--compare-chart-tooltip-bg);
+        color: var(--compare-chart-tooltip-color);
         border-radius: 4px;
         padding: 8px 12px;
         font: var(--type-body-xs);
@@ -672,7 +698,7 @@ var de=Object.defineProperty;var _t=p=>{throw TypeError(p)};var he=(p,m,t)=>m in
         position: absolute;
         width: 8px;
         height: 8px;
-        background: #2c2c2c;
+        background: var(--compare-chart-tooltip-bg);
         transform: rotate(45deg);
     }
 
@@ -923,7 +949,7 @@ var de=Object.defineProperty;var _t=p=>{throw TypeError(p)};var he=(p,m,t)=>m in
     :host([data-dark]) .header-content.is-stuck {
         background: #2c2c2c;
     }
-`;var Pt="mas-compare-chart",ve=3e4,tt=4,Ae=900,we=64,Ce=40,Te=["icons","header","badge","price","description","detail","cta"],M={included:["\u2713","\u2714","\u2705"],excluded:["\u2717","\u2718","\u2716","\xD7"],notApplicable:["\u2014","-"]},_e=p=>M.included.includes(p),ke=p=>M.excluded.includes(p),Se=p=>!p||M.notApplicable.includes(p)||/^-+$/.test(p),F,E,k,S,R,T,$,O,v,G,_,w,C,V,Y,N,P,I,q,H,D,j,K,W,Z,X,Q,r,mt,ut,gt,It,$t,Ht,Dt,Ut,Ft,Gt,B,Vt,Yt,zt,et,Bt,ft,qt,jt,xt,bt,Kt,rt,yt,Re,ot,Et,vt,Wt,Zt,Xt,At,Qt,Jt,it,at,wt,Ct,te,ee,re,oe,U,ie,L,ae,se,ne,ce,le,pe,Tt,z=class extends Ee{constructor(){super();u(this,r);u(this,F);u(this,E,[]);u(this,k,[]);u(this,S,new Map);u(this,R,new Map);u(this,T,[]);u(this,$,[]);u(this,O,new Map);u(this,v,new Set);u(this,G);u(this,_,!1);u(this,w,0);u(this,C,1);u(this,V,!1);u(this,Y,!1);u(this,N,0);u(this,P,null);u(this,I,null);u(this,q,!1);u(this,H,null);u(this,D,null);u(this,j,!1);u(this,K,!1);u(this,W,t=>{let e=t.target;if(e?.parentElement===this){s(this,r,Ft).call(this,t.detail,e);return}e?.closest?.("merch-card")?.parentElement===this&&s(this,r,mt).call(this)});u(this,Z,t=>{var e;t.target?.parentElement===this&&(d(this,T,[]),d(this,$,[]),d(this,k,[]),d(this,E,[]),i(this,S).clear(),i(this,R).clear(),i(this,O).clear(),d(this,v,new Set),this.requestUpdate(),(e=i(this,I))==null||e.call(this,!1),d(this,P,null),d(this,I,null))});u(this,X,()=>s(this,r,B).call(this));u(this,Q,t=>{t.target?.parentElement===this&&s(this,r,mt).call(this)});d(this,F,this.attachInternals?.()),i(this,F)&&(i(this,F).role="table")}connectedCallback(){super.connectedCallback(),this.addEventListener(dt,i(this,X)),this.addEventListener(ct,i(this,W)),this.addEventListener(lt,i(this,Z)),this.addEventListener(pt,i(this,Q)),d(this,G,new ResizeObserver(()=>s(this,r,yt).call(this))),i(this,G).observe(this),s(this,r,At).call(this),s(this,r,it).call(this)}disconnectedCallback(){super.disconnectedCallback(),this.removeEventListener(dt,i(this,X)),this.removeEventListener(ct,i(this,W)),this.removeEventListener(lt,i(this,Z)),this.removeEventListener(pt,i(this,Q)),i(this,G)?.disconnect(),i(this,N)&&(cancelAnimationFrame(i(this,N)),d(this,N,0)),s(this,r,wt).call(this)}firstUpdated(){s(this,r,B).call(this),s(this,r,at).call(this)}willUpdate(t){t.has("expandedGroups")&&s(this,r,ft).call(this)}updated(t){(t.has("consonant")||t.has("spectrum"))&&s(this,r,gt).call(this),(t.has("stickyOffset")||t.has("mobileStickyOffset")||t.has("stickyTop")||t.has("collapsed")||t.has("nonSticky"))&&(s(this,r,it).call(this),s(this,r,at).call(this))}checkReady(){if(!this.querySelector(":scope > aem-fragment"))return Promise.resolve(!0);s(this,r,ut).call(this);let e=new Promise(o=>setTimeout(()=>o(!1),ve));return Promise.race([i(this,P),e])}render(){return this.collapsed?y:A`
+`;var Pt="mas-compare-chart",ve=3e4,tt=4,Ae=900,we=64,Ce=40,_e=["icons","header","badge","price","description","detail","cta"],M={included:["\u2713","\u2714","\u2705"],excluded:["\u2717","\u2718","\u2716","\xD7"],notApplicable:["\u2014","-"]},Te=p=>M.included.includes(p),Se=p=>M.excluded.includes(p),ke=p=>!p||M.notApplicable.includes(p)||/^-+$/.test(p),F,E,S,k,R,_,$,O,v,G,T,w,C,V,Y,N,P,I,q,H,D,j,K,W,Z,X,Q,r,mt,ut,gt,It,$t,Ht,Dt,Ut,Ft,Gt,B,Vt,Yt,zt,et,Bt,ft,qt,jt,xt,yt,Kt,rt,bt,Re,ot,Et,vt,Wt,Zt,Xt,At,Qt,Jt,at,it,wt,Ct,te,ee,re,oe,U,ae,L,ie,se,ne,ce,le,pe,_t,z=class extends Ee{constructor(){super();u(this,r);u(this,F);u(this,E,[]);u(this,S,[]);u(this,k,new Map);u(this,R,new Map);u(this,_,[]);u(this,$,[]);u(this,O,new Map);u(this,v,new Set);u(this,G);u(this,T,!1);u(this,w,0);u(this,C,1);u(this,V,!1);u(this,Y,!1);u(this,N,0);u(this,P,null);u(this,I,null);u(this,q,!1);u(this,H,null);u(this,D,null);u(this,j,!1);u(this,K,!1);u(this,W,t=>{let e=t.target;if(e?.parentElement===this){s(this,r,Ft).call(this,t.detail,e);return}e?.closest?.("merch-card")?.parentElement===this&&s(this,r,mt).call(this)});u(this,Z,t=>{var e;t.target?.parentElement===this&&(d(this,_,[]),d(this,$,[]),d(this,S,[]),d(this,E,[]),a(this,k).clear(),a(this,R).clear(),a(this,O).clear(),d(this,v,new Set),this.requestUpdate(),(e=a(this,I))==null||e.call(this,!1),d(this,P,null),d(this,I,null))});u(this,X,()=>s(this,r,B).call(this));u(this,Q,t=>{t.target?.parentElement===this&&s(this,r,mt).call(this)});d(this,F,this.attachInternals?.()),a(this,F)&&(a(this,F).role="table")}connectedCallback(){super.connectedCallback(),this.addEventListener(dt,a(this,X)),this.addEventListener(ct,a(this,W)),this.addEventListener(lt,a(this,Z)),this.addEventListener(pt,a(this,Q)),d(this,G,new ResizeObserver(()=>s(this,r,bt).call(this))),a(this,G).observe(this),s(this,r,At).call(this),s(this,r,at).call(this)}disconnectedCallback(){super.disconnectedCallback(),this.removeEventListener(dt,a(this,X)),this.removeEventListener(ct,a(this,W)),this.removeEventListener(lt,a(this,Z)),this.removeEventListener(pt,a(this,Q)),a(this,G)?.disconnect(),a(this,N)&&(cancelAnimationFrame(a(this,N)),d(this,N,0)),s(this,r,wt).call(this)}firstUpdated(){s(this,r,B).call(this),s(this,r,it).call(this)}willUpdate(t){t.has("expandedGroups")&&s(this,r,ft).call(this)}updated(t){(t.has("consonant")||t.has("spectrum"))&&s(this,r,gt).call(this),(t.has("stickyOffset")||t.has("mobileStickyOffset")||t.has("stickyTop")||t.has("collapsed")||t.has("nonSticky"))&&(s(this,r,at).call(this),s(this,r,it).call(this))}checkReady(){if(!this.querySelector(":scope > aem-fragment"))return Promise.resolve(!0);s(this,r,ut).call(this);let e=new Promise(o=>setTimeout(()=>o(!1),ve));return Promise.race([a(this,P),e])}render(){return this.collapsed?b:A`
             <div
                 class="sticky-sentinel sticky-sentinel-top"
                 aria-hidden="true"
@@ -942,24 +968,24 @@ var de=Object.defineProperty;var _t=p=>{throw TypeError(p)};var he=(p,m,t)=>m in
             >
                 ${s(this,r,Et).call(this).map(t=>A`<span role="columnheader">${t.title}</span>`)}
             </div>
-            ${ht(i(this,T),(t,e)=>`${t.groupIndex}:${e}`,t=>s(this,r,ne).call(this,t))}
+            ${ht(a(this,_),(t,e)=>`${t.groupIndex}:${e}`,t=>s(this,r,ne).call(this,t))}
             <div
                 class="sticky-sentinel sticky-sentinel-bottom"
                 aria-hidden="true"
             ></div>
-        `}};F=new WeakMap,E=new WeakMap,k=new WeakMap,S=new WeakMap,R=new WeakMap,T=new WeakMap,$=new WeakMap,O=new WeakMap,v=new WeakMap,G=new WeakMap,_=new WeakMap,w=new WeakMap,C=new WeakMap,V=new WeakMap,Y=new WeakMap,N=new WeakMap,P=new WeakMap,I=new WeakMap,q=new WeakMap,H=new WeakMap,D=new WeakMap,j=new WeakMap,K=new WeakMap,W=new WeakMap,Z=new WeakMap,X=new WeakMap,Q=new WeakMap,r=new WeakSet,mt=function(){i(this,N)||d(this,N,requestAnimationFrame(()=>{d(this,N,0),s(this,r,B).call(this)}))},ut=function(){i(this,P)||d(this,P,new Promise(t=>{d(this,I,t)}))},gt=function(t=i(this,E)){t.forEach(e=>{e.consonant=this.consonant,e.toggleAttribute("consonant",!!this.consonant),this.spectrum?(e.spectrum=this.spectrum,e.setAttribute("spectrum",this.spectrum)):e.removeAttribute("spectrum")})},It=function(t,e){let o=t?.fields||{};if(Array.isArray(o)){let l=o.find(n=>n.name===e);return l?.multiple?l.values||[]:l?.values?.[0]||""}let a=o[e];return Array.isArray(a)?a[0]||"":a?.value??a??""},$t=function(t,e){let o=t?.fields||{};if(Array.isArray(o))return o.find(l=>l.name===e)?.values||[];let a=o[e];return Array.isArray(a)?a:a==null||a===""?[]:[a?.value??a]},Ht=function(t){let e=t?.references||{};return Array.isArray(e)?e.map(o=>({identifier:o.identifier||o.id||o.path,value:o.value||o})).filter(o=>o.value):Object.entries(e).map(([o,a])=>({identifier:o,value:a?.value||a})).filter(o=>o.value)},Dt=function(t){let e=s(this,r,Ht).call(this,t),o=n=>e.find(({identifier:c,value:h})=>c===n||h.id===n||h.path===n)?.value,a=s(this,r,$t).call(this,t,"cards").map(o).filter(Boolean);if(a.length)return a.slice(0,tt);let l=(t.referencesTree||[]).filter(n=>n.fieldName==="cards").map(n=>o(n.identifier)).filter(Boolean);return l.length?l.slice(0,tt):e.map(({value:n})=>n).filter(n=>n?.fields).slice(0,tt)},Ut=function(t){if(t?.getAttributeNames)for(let e of t.getAttributeNames()){let o=t.getAttribute(e);o==null?this.removeAttribute(e):this.setAttribute(e,o)}},Ft=async function(t,e){if(t&&!i(this,Y)){d(this,Y,!0);try{await s(this,r,Gt).call(this,t,e)}finally{d(this,Y,!1)}}},Gt=async function(t,e){var x;s(this,r,ut).call(this),this.querySelectorAll("[data-compare-chart-generated]").forEach(b=>b.remove());let o=new DOMParser,a=s(this,r,It).call(this,t,"compareChart"),l=o.parseFromString(a||"","text/html"),n=l.body.querySelector("mas-compare-chart")||l.body;s(this,r,Ut).call(this,n),n.querySelectorAll(":scope > div[name]").forEach(b=>{let f=b.cloneNode(!0);f.dataset.compareChartGenerated="true",this.append(f)});let c=e?.hasAttribute("author"),h=s(this,r,Dt).call(this,t),g=[];h.forEach(b=>{e?.cache?.add(b);let f=document.createElement("merch-card");f.setAttribute("slot","cards"),f.dataset.compareChartGenerated="true",s(this,r,gt).call(this,[f]);let J=document.createElement("aem-fragment");J.setAttribute("fragment",b.id),c&&J.setAttribute("author",""),J.setAttribute("loading","cache"),f.append(J),this.append(f),g.push(f)}),await Promise.all(g.map(b=>b.checkReady?.().catch(()=>!1))),s(this,r,B).call(this),(x=i(this,I))==null||x.call(this,!0),d(this,P,null),d(this,I,null)},B=function(){if(!i(this,V)){d(this,V,!0);try{s(this,r,Vt).call(this),s(this,r,Bt).call(this),s(this,r,ft).call(this),s(this,r,jt).call(this),s(this,r,yt).call(this),this.requestUpdate()}finally{d(this,V,!1)}}},Vt=function(){let t=Array.from(this.querySelectorAll(':scope > merch-card[slot="cards"]')).slice(0,tt);this.querySelectorAll(":scope > [data-compare-chart-slot]").forEach(o=>o.remove());let e=[];t.forEach((o,a)=>{let l=`card-${a+1}`;o.dataset.cardId=l,o.dataset.columnIndex=String(a+1),o.style.setProperty("--col",a+1);let n=o.getAttribute("cell-color")??"default";e.push(s(this,r,Yt).call(this,o,l,a,n))}),d(this,E,t),d(this,k,e),this.setAttribute("data-child-count",String(t.length)),this.style.setProperty("--compare-chart-cols",t.length)},Yt=function(t,e,o,a){let l={},n=new Set;for(let h of Te){let g=`${e}-${h}`;if(l[h]=g,!t)continue;let x=Array.from(t.querySelectorAll(`:scope > [slot="${h}"]`));x.length&&n.add(h);for(let b of x){if(h==="cta"){s(this,r,zt).call(this,b,g);continue}let f=b.cloneNode(!0);f.setAttribute("slot",g),f.toggleAttribute("data-compare-chart-slot",!0),s(this,r,et).call(this,f),this.appendChild(f)}}t&&(t.hidden=!0,t.setAttribute("aria-hidden","true"),t.dataset.cellColor=a);let c=Array.from(this.querySelectorAll(`:scope > [slot="${l.header}"]`)).map(h=>h.textContent.trim()).filter(Boolean).join(" ");return{cardId:e,col:o+1,cellColor:a,slots:l,presentSlots:n,title:c||`Card ${o+1}`}},zt=function(t,e){let o=t.matches("a,button")?[t]:Array.from(t.querySelectorAll("a,button"));if(!o.length){let a=t.cloneNode(!0);a.setAttribute("slot",e),a.toggleAttribute("data-compare-chart-slot",!0),s(this,r,et).call(this,a),this.appendChild(a);return}for(let a of o){let l=a.cloneNode(!0);l.setAttribute("slot",e),l.toggleAttribute("data-compare-chart-slot",!0),s(this,r,et).call(this,l),this.appendChild(l)}},et=function(t){t.removeAttribute("style"),t.querySelectorAll("[style]").forEach(e=>e.removeAttribute("style"))},Bt=function(){d(this,T,[]),d(this,$,Lt(this)),i(this,O).clear();let t=1;Array.from(this.querySelectorAll(":scope > div[name]")).forEach((e,o)=>{let a=e.getAttribute("name"),l=e.querySelector(":scope > h4")?.textContent.trim()??"",n=o+1,c={heading:l,groupIndex:n,groupKey:a,rows:[]};i(this,T).push(c);let h=new Map;e.querySelectorAll(":scope > p[name]").forEach(g=>{h.set(g.getAttribute("name"),g)}),h.forEach((g,x)=>{let b=`${a}@${x}`;t++,c.rows.push({slot:b,rowIndex:t}),i(this,O).set(b,{rowIndex:t,groupIndex:n})})}),i(this,$).forEach(e=>{let o=i(this,T).length+1,a={heading:e.label,groupIndex:o,groupKey:e.name,rows:[]};i(this,T).push(a),e.rows.forEach(l=>{let n=`${e.name}@${l.name}`;t++,a.rows.push({slot:n,rowIndex:t}),i(this,O).set(n,{rowIndex:t,groupIndex:o})})})},ft=function(){let t=(this.expandedGroups??"").trim(),e=i(this,T).length;if(d(this,v,new Set),!t)e>0&&i(this,v).add(1);else if(t==="all")for(let o=1;o<=e;o+=1)i(this,v).add(o);else{if(t==="none")return;t.split(",").map(o=>parseInt(o.trim(),10)).filter(o=>!isNaN(o)&&o>=1&&o<=e).forEach(o=>i(this,v).add(o))}},qt=function(){let t=i(this,T).length;return i(this,v).size?t&&i(this,v).size===t?"all":[...i(this,v)].sort((e,o)=>e-o).join(","):"none"},jt=function(){i(this,R).clear(),i(this,S).clear(),Array.from(this.querySelectorAll(":scope > div[name]")).forEach(t=>{let e=t.getAttribute("name"),o=new Map;t.querySelectorAll(":scope > p[name]").forEach(a=>{o.set(a.getAttribute("name"),a)}),o.forEach((a,l)=>{let n=`${e}@${l}`,c=a.cloneNode(!0),h=s(this,r,xt).call(this,c);i(this,R).set(n,{labelHTML:c.innerHTML,title:h,tooltipPosition:a.getAttribute("data-tooltip-position")??"top-center",isItemRow:a.hasAttribute("item")})})}),Array.from(this.querySelectorAll(':scope > merch-card[slot="cards"]')).forEach(t=>{let e=t.dataset.cardId,o=parseInt(t.dataset.columnIndex,10),a=new Map;t.querySelectorAll(':scope > p[name], :scope > [slot="features"] p[name]').forEach(l=>{let n=l.getAttribute("name");!n||!n.includes("@")||a.set(n,l)});for(let[l,n]of a){if(!i(this,O).has(l))continue;let c=n.cloneNode(!0),h=c.textContent.includes("\u2705"),g=c.hasAttribute("primary");g&&c.classList.add("primary-cell"),h&&c.classList.add("emoji-primary-cell");let x=c.hasAttribute("item");x&&c.classList.add("item-cell");let b=s(this,r,xt).call(this,c);s(this,r,bt).call(this,c);let f=i(this,S).get(l)??[];f.push({cardId:e,col:o,isCellPrimary:g,isEmojiPrimary:h,isItem:x,title:b,tooltipPosition:c.getAttribute("data-tooltip-position")??"top-center",html:c.innerHTML,ariaLabel:c.getAttribute("aria-label")}),i(this,S).set(l,f)}});for(let t of i(this,$))t.rows.forEach(e=>{let o=`${t.name}@${e.name}`;i(this,R).set(o,{labelHTML:e.html,title:void 0,tooltipPosition:"top-center",isItemRow:!1});let a=e.cells.map((l,n)=>{let c=document.createElement("p");return c.innerHTML=l,s(this,r,bt).call(this,c),{cardId:i(this,E)[n]?.dataset.cardId,col:n+1,isCellPrimary:!1,isEmojiPrimary:l.includes("\u2705"),isItem:!1,title:void 0,tooltipPosition:"top-center",html:c.innerHTML,ariaLabel:c.getAttribute("aria-label")}}).filter(l=>l.cardId);i(this,S).set(o,a)})},xt=function(t){let e=t.querySelector(":scope > a.secondary-link[title]"),o=e?.getAttribute("title")||t.getAttribute("title")||void 0;return e?.remove(),o&&t.removeAttribute("title"),o},bt=function(t){let e=t.textContent.trim();if(_e(e))t.setAttribute("aria-label",this.getAttribute("included-text")??"Included"),s(this,r,rt).call(this,t);else if(ke(e))t.setAttribute("aria-label",this.getAttribute("not-included-text")??"Not included"),s(this,r,rt).call(this,t);else if(Se(e)){if(t.setAttribute("aria-label",this.getAttribute("not-applicable-text")??"Not applicable"),!e){let o=document.createElement("span");o.className="empty-cell-sr",o.textContent=this.getAttribute("sr-only-not-applicable-text")??this.getAttribute("not-applicable-text")??"Not applicable",t.textContent="\u2014";let a=document.createElement("span");a.setAttribute("aria-hidden","true"),a.textContent="\u2014",t.replaceChildren(a,o)}}else t.removeAttribute("aria-label"),s(this,r,rt).call(this,t);s(this,r,Kt).call(this,t)},Kt=function(t){if(t.classList.contains("item-cell"))return;let e=document.createElement("span");e.className="compare-chart-chip";let o=Array.from(t.childNodes);for(let a of o){if(a.nodeType===Node.ELEMENT_NODE&&a.tagName==="SMALL")break;e.appendChild(a)}t.insertBefore(e,t.firstChild)},rt=function(t){let e=[...M.included,...M.excluded,...M.notApplicable],o=t.classList.contains("primary-cell");Array.from(t.childNodes).forEach(a=>{if(a.nodeType!==Node.TEXT_NODE)return;let l=a.textContent;if(!e.some(c=>l.includes(c)))return;let n=document.createDocumentFragment();for(let c of l)if(e.includes(c)){let h=document.createElement("span");h.setAttribute("aria-hidden","true"),h.classList.add("compare-chart-glyph"),h.textContent=c==="\u2705"?"\u2713":c,M.included.includes(c)&&h.classList.add("included"),M.excluded.includes(c)&&h.classList.add("excluded"),(o||c==="\u2705")&&h.classList.add("primary"),n.appendChild(h)}else n.appendChild(document.createTextNode(c));a.replaceWith(n)})},yt=function(){let t=this.getBoundingClientRect().width||this.offsetWidth||window.innerWidth,e=t>0&&t<Ae,o=e!==i(this,_);d(this,_,e),this.toggleAttribute("data-mobile",e),e?s(this,r,vt).call(this):s(this,r,Zt).call(this),s(this,r,At).call(this),s(this,r,it).call(this),s(this,r,at).call(this),o&&this.requestUpdate()},Re=function(){return new Set(s(this,r,ot).call(this))},ot=function(){return!i(this,_)||i(this,E).length<=2?i(this,E).map(t=>t.dataset.cardId):[i(this,E)[i(this,w)],i(this,E)[i(this,C)]].filter(Boolean).map(t=>t.dataset.cardId)},Et=function(){return s(this,r,ot).call(this).map(t=>i(this,k).find(e=>e.cardId===t)).filter(Boolean)},vt=function(){this.style.setProperty("--compare-chart-cols",2),!(i(this,E).length<=2)&&s(this,r,Wt).call(this)},Wt=function(){let t=i(this,E).length;t<=2||(i(this,w)>=t&&d(this,w,0),i(this,C)>=t&&d(this,C,Math.min(1,t-1)),i(this,w)===i(this,C)&&d(this,C,(i(this,w)+1)%t))},Zt=function(){this.style.setProperty("--compare-chart-cols",i(this,E).length)},Xt=function(t,e){t==="A"?(e===i(this,C)&&d(this,C,i(this,w)),d(this,w,e)):(e===i(this,w)&&d(this,w,i(this,C)),d(this,C,e)),s(this,r,vt).call(this),this.requestUpdate()},At=function(){if(i(this,_)){this.style.setProperty("--compare-chart-sticky-top","0px");return}},Qt=function(){return this.stickyOffset??this.getAttribute("sticky-offset")??this.stickyTop??this.getAttribute("sticky-top")},Jt=function(){return this.mobileStickyOffset??this.getAttribute("mobile-sticky-offset")},it=function(){let t=i(this,_)?s(this,r,Jt).call(this):s(this,r,Qt).call(this),e=i(this,_)?Ce:we,o=t!=null?String(t).trim():"",a=o?/^\d+$/.test(o)?`${o}px`:o:`${e}px`;this.style.setProperty("--compare-chart-sticky-offset",a)},at=function(){if(s(this,r,wt).call(this),this.nonSticky||this.collapsed||!this.isConnected)return;let t=this.shadowRoot,e=t?.querySelector(".header-content"),o=t?.querySelector(".sticky-sentinel-top"),a=t?.querySelector(".sticky-sentinel-bottom");if(!e||!o||!a)return;let l=parseFloat(getComputedStyle(e).top)||0,n=e.getBoundingClientRect().height;d(this,H,new IntersectionObserver(([c])=>{d(this,j,c.boundingClientRect.bottom<=l),s(this,r,Ct).call(this)},{threshold:[0],rootMargin:`${-l}px 0px 0px 0px`})),i(this,H).observe(o),d(this,D,new IntersectionObserver(([c])=>{d(this,K,c.boundingClientRect.top>l+n),s(this,r,Ct).call(this)},{threshold:[0],rootMargin:`${-(l+n)}px 0px 0px 0px`})),i(this,D).observe(a)},wt=function(){i(this,H)?.disconnect(),i(this,D)?.disconnect(),d(this,H,null),d(this,D,null)},Ct=function(){s(this,r,te).call(this,i(this,j)&&i(this,K))},te=function(t){let e=this.shadowRoot?.querySelector(".header-content");if(t!==i(this,q)){if(t){let o=e?.getBoundingClientRect().height??0;this.style.setProperty("--compare-chart-sticky-spacer-height",`${o}px`)}else this.style.removeProperty("--compare-chart-sticky-spacer-height");d(this,q,t),this.toggleAttribute("data-sticky-header",t),e?.classList.toggle("sticky",t),e?.classList.toggle("is-stuck",t)}},ee=function(t){let e=!1;i(this,v).has(t)?i(this,v).delete(t):(d(this,v,new Set([t])),e=!0),this.expandedGroups=s(this,r,qt).call(this),this.dispatchEvent(new CustomEvent(kt,{detail:{value:this.expandedGroups},bubbles:!0,composed:!0})),this.requestUpdate(),e&&this.updateComplete.then(()=>s(this,r,re).call(this,t))},re=function(t){if(this.collapsed)return;let e=this.shadowRoot?.querySelector(`.table-container[data-group-index="${String(t)}"]`);if(!e)return;let o=this.shadowRoot?.querySelector(".header-content"),a=getComputedStyle(this),l=parseFloat(a.getPropertyValue("--compare-chart-sticky-top"))||0,n=a.getPropertyValue("--compare-chart-sticky-offset").trim(),c=n&&parseFloat(n)||0,h=o?.getBoundingClientRect().height??0,g=l+c+h,x=e.style.scrollMarginTop;e.style.scrollMarginTop=`${g}px`,e.scrollIntoView({block:"start",behavior:"smooth"}),requestAnimationFrame(()=>{e.style.scrollMarginTop=x})},oe=function(){let t=s(this,r,Et).call(this),e=s(this,r,ie).call(this,t),o=1;return A`
+        `}};F=new WeakMap,E=new WeakMap,S=new WeakMap,k=new WeakMap,R=new WeakMap,_=new WeakMap,$=new WeakMap,O=new WeakMap,v=new WeakMap,G=new WeakMap,T=new WeakMap,w=new WeakMap,C=new WeakMap,V=new WeakMap,Y=new WeakMap,N=new WeakMap,P=new WeakMap,I=new WeakMap,q=new WeakMap,H=new WeakMap,D=new WeakMap,j=new WeakMap,K=new WeakMap,W=new WeakMap,Z=new WeakMap,X=new WeakMap,Q=new WeakMap,r=new WeakSet,mt=function(){a(this,N)||d(this,N,requestAnimationFrame(()=>{d(this,N,0),s(this,r,B).call(this)}))},ut=function(){a(this,P)||d(this,P,new Promise(t=>{d(this,I,t)}))},gt=function(t=a(this,E)){t.forEach(e=>{e.consonant=this.consonant,e.toggleAttribute("consonant",!!this.consonant),this.spectrum?(e.spectrum=this.spectrum,e.setAttribute("spectrum",this.spectrum)):e.removeAttribute("spectrum")})},It=function(t,e){let o=t?.fields||{};if(Array.isArray(o)){let l=o.find(n=>n.name===e);return l?.multiple?l.values||[]:l?.values?.[0]||""}let i=o[e];return Array.isArray(i)?i[0]||"":i?.value??i??""},$t=function(t,e){let o=t?.fields||{};if(Array.isArray(o))return o.find(l=>l.name===e)?.values||[];let i=o[e];return Array.isArray(i)?i:i==null||i===""?[]:[i?.value??i]},Ht=function(t){let e=t?.references||{};return Array.isArray(e)?e.map(o=>({identifier:o.identifier||o.id||o.path,value:o.value||o})).filter(o=>o.value):Object.entries(e).map(([o,i])=>({identifier:o,value:i?.value||i})).filter(o=>o.value)},Dt=function(t){let e=s(this,r,Ht).call(this,t),o=n=>e.find(({identifier:c,value:h})=>c===n||h.id===n||h.path===n)?.value,i=s(this,r,$t).call(this,t,"cards").map(o).filter(Boolean);if(i.length)return i.slice(0,tt);let l=(t.referencesTree||[]).filter(n=>n.fieldName==="cards").map(n=>o(n.identifier)).filter(Boolean);return l.length?l.slice(0,tt):e.map(({value:n})=>n).filter(n=>n?.fields).slice(0,tt)},Ut=function(t){if(t?.getAttributeNames)for(let e of t.getAttributeNames()){let o=t.getAttribute(e);o==null?this.removeAttribute(e):this.setAttribute(e,o)}},Ft=async function(t,e){if(t&&!a(this,Y)){d(this,Y,!0);try{await s(this,r,Gt).call(this,t,e)}finally{d(this,Y,!1)}}},Gt=async function(t,e){var x;s(this,r,ut).call(this),this.querySelectorAll("[data-compare-chart-generated]").forEach(y=>y.remove());let o=new DOMParser,i=s(this,r,It).call(this,t,"compareChart"),l=o.parseFromString(i||"","text/html"),n=l.body.querySelector("mas-compare-chart")||l.body;s(this,r,Ut).call(this,n),n.querySelectorAll(":scope > div[name]").forEach(y=>{let f=y.cloneNode(!0);f.dataset.compareChartGenerated="true",this.append(f)});let c=e?.hasAttribute("author"),h=s(this,r,Dt).call(this,t),g=[];h.forEach(y=>{e?.cache?.add(y);let f=document.createElement("merch-card");f.setAttribute("slot","cards"),f.dataset.compareChartGenerated="true",s(this,r,gt).call(this,[f]);let J=document.createElement("aem-fragment");J.setAttribute("fragment",y.id),c&&J.setAttribute("author",""),J.setAttribute("loading","cache"),f.append(J),this.append(f),g.push(f)}),await Promise.all(g.map(y=>y.checkReady?.().catch(()=>!1))),s(this,r,B).call(this),(x=a(this,I))==null||x.call(this,!0),d(this,P,null),d(this,I,null)},B=function(){if(!a(this,V)){d(this,V,!0);try{s(this,r,Vt).call(this),s(this,r,Bt).call(this),s(this,r,ft).call(this),s(this,r,jt).call(this),s(this,r,bt).call(this),this.requestUpdate()}finally{d(this,V,!1)}}},Vt=function(){let t=Array.from(this.querySelectorAll(':scope > merch-card[slot="cards"]')).slice(0,tt);this.querySelectorAll(":scope > [data-compare-chart-slot]").forEach(o=>o.remove());let e=[];t.forEach((o,i)=>{let l=`card-${i+1}`;o.dataset.cardId=l,o.dataset.columnIndex=String(i+1),o.style.setProperty("--col",i+1);let n=o.getAttribute("cell-color")??"default";e.push(s(this,r,Yt).call(this,o,l,i,n))}),d(this,E,t),d(this,S,e),this.setAttribute("data-child-count",String(t.length)),this.style.setProperty("--compare-chart-cols",t.length)},Yt=function(t,e,o,i){let l={},n=new Set;for(let h of _e){let g=`${e}-${h}`;if(l[h]=g,!t)continue;let x=Array.from(t.querySelectorAll(`:scope > [slot="${h}"]`));x.length&&n.add(h);for(let y of x){if(h==="cta"){s(this,r,zt).call(this,y,g);continue}let f=y.cloneNode(!0);f.setAttribute("slot",g),f.toggleAttribute("data-compare-chart-slot",!0),s(this,r,et).call(this,f),this.appendChild(f)}}t&&(t.hidden=!0,t.setAttribute("aria-hidden","true"),t.dataset.cellColor=i);let c=Array.from(this.querySelectorAll(`:scope > [slot="${l.header}"]`)).map(h=>h.textContent.trim()).filter(Boolean).join(" ");return{cardId:e,col:o+1,cellColor:i,slots:l,presentSlots:n,title:c||`Card ${o+1}`}},zt=function(t,e){let o=t.matches("a,button")?[t]:Array.from(t.querySelectorAll("a,button"));if(!o.length){let i=t.cloneNode(!0);i.setAttribute("slot",e),i.toggleAttribute("data-compare-chart-slot",!0),s(this,r,et).call(this,i),this.appendChild(i);return}for(let i of o){let l=i.cloneNode(!0);l.setAttribute("slot",e),l.toggleAttribute("data-compare-chart-slot",!0),s(this,r,et).call(this,l),this.appendChild(l)}},et=function(t){t.removeAttribute("style"),t.querySelectorAll("[style]").forEach(e=>e.removeAttribute("style"))},Bt=function(){d(this,_,[]),d(this,$,Lt(this)),a(this,O).clear();let t=1;Array.from(this.querySelectorAll(":scope > div[name]")).forEach((e,o)=>{let i=e.getAttribute("name"),l=e.querySelector(":scope > h4")?.textContent.trim()??"",n=o+1,c={heading:l,groupIndex:n,groupKey:i,rows:[]};a(this,_).push(c);let h=new Map;e.querySelectorAll(":scope > p[name]").forEach(g=>{h.set(g.getAttribute("name"),g)}),h.forEach((g,x)=>{let y=`${i}@${x}`;t++,c.rows.push({slot:y,rowIndex:t}),a(this,O).set(y,{rowIndex:t,groupIndex:n})})}),a(this,$).forEach(e=>{let o=a(this,_).length+1,i={heading:e.label,groupIndex:o,groupKey:e.name,rows:[]};a(this,_).push(i),e.rows.forEach(l=>{let n=`${e.name}@${l.name}`;t++,i.rows.push({slot:n,rowIndex:t}),a(this,O).set(n,{rowIndex:t,groupIndex:o})})})},ft=function(){let t=(this.expandedGroups??"").trim(),e=a(this,_).length;if(d(this,v,new Set),!t)e>0&&a(this,v).add(1);else if(t==="all")for(let o=1;o<=e;o+=1)a(this,v).add(o);else{if(t==="none")return;t.split(",").map(o=>parseInt(o.trim(),10)).filter(o=>!isNaN(o)&&o>=1&&o<=e).forEach(o=>a(this,v).add(o))}},qt=function(){let t=a(this,_).length;return a(this,v).size?t&&a(this,v).size===t?"all":[...a(this,v)].sort((e,o)=>e-o).join(","):"none"},jt=function(){a(this,R).clear(),a(this,k).clear(),Array.from(this.querySelectorAll(":scope > div[name]")).forEach(t=>{let e=t.getAttribute("name"),o=new Map;t.querySelectorAll(":scope > p[name]").forEach(i=>{o.set(i.getAttribute("name"),i)}),o.forEach((i,l)=>{let n=`${e}@${l}`,c=i.cloneNode(!0),h=s(this,r,xt).call(this,c);a(this,R).set(n,{labelHTML:c.innerHTML,title:h,tooltipPosition:i.getAttribute("data-tooltip-position")??"top-center",isItemRow:i.hasAttribute("item")})})}),Array.from(this.querySelectorAll(':scope > merch-card[slot="cards"]')).forEach(t=>{let e=t.dataset.cardId,o=parseInt(t.dataset.columnIndex,10),i=new Map;t.querySelectorAll(':scope > p[name], :scope > [slot="features"] p[name]').forEach(l=>{let n=l.getAttribute("name");!n||!n.includes("@")||i.set(n,l)});for(let[l,n]of i){if(!a(this,O).has(l))continue;let c=n.cloneNode(!0),h=c.textContent.includes("\u2705"),g=c.hasAttribute("primary");g&&c.classList.add("primary-cell"),h&&c.classList.add("emoji-primary-cell");let x=c.hasAttribute("item");x&&c.classList.add("item-cell");let y=s(this,r,xt).call(this,c);s(this,r,yt).call(this,c);let f=a(this,k).get(l)??[];f.push({cardId:e,col:o,isCellPrimary:g,isEmojiPrimary:h,isItem:x,title:y,tooltipPosition:c.getAttribute("data-tooltip-position")??"top-center",html:c.innerHTML,ariaLabel:c.getAttribute("aria-label")}),a(this,k).set(l,f)}});for(let t of a(this,$))t.rows.forEach(e=>{let o=`${t.name}@${e.name}`;a(this,R).set(o,{labelHTML:e.html,title:void 0,tooltipPosition:"top-center",isItemRow:!1});let i=e.cells.map((l,n)=>{let c=document.createElement("p");return c.innerHTML=l,s(this,r,yt).call(this,c),{cardId:a(this,E)[n]?.dataset.cardId,col:n+1,isCellPrimary:!1,isEmojiPrimary:l.includes("\u2705"),isItem:!1,title:void 0,tooltipPosition:"top-center",html:c.innerHTML,ariaLabel:c.getAttribute("aria-label")}}).filter(l=>l.cardId);a(this,k).set(o,i)})},xt=function(t){let e=t.querySelector(":scope > a.secondary-link[title]"),o=e?.getAttribute("title")||t.getAttribute("title")||void 0;return e?.remove(),o&&t.removeAttribute("title"),o},yt=function(t){let e=t.textContent.trim();if(Te(e))t.setAttribute("aria-label",this.getAttribute("included-text")??"Included"),s(this,r,rt).call(this,t);else if(Se(e))t.setAttribute("aria-label",this.getAttribute("not-included-text")??"Not included"),s(this,r,rt).call(this,t);else if(ke(e)){if(t.setAttribute("aria-label",this.getAttribute("not-applicable-text")??"Not applicable"),!e){let o=document.createElement("span");o.className="empty-cell-sr",o.textContent=this.getAttribute("sr-only-not-applicable-text")??this.getAttribute("not-applicable-text")??"Not applicable",t.textContent="\u2014";let i=document.createElement("span");i.setAttribute("aria-hidden","true"),i.textContent="\u2014",t.replaceChildren(i,o)}}else t.removeAttribute("aria-label"),s(this,r,rt).call(this,t);s(this,r,Kt).call(this,t)},Kt=function(t){if(t.classList.contains("item-cell"))return;let e=document.createElement("span");e.className="compare-chart-chip";let o=Array.from(t.childNodes);for(let i of o){if(i.nodeType===Node.ELEMENT_NODE&&i.tagName==="SMALL")break;e.appendChild(i)}t.insertBefore(e,t.firstChild)},rt=function(t){let e=[...M.included,...M.excluded,...M.notApplicable],o=t.classList.contains("primary-cell");Array.from(t.childNodes).forEach(i=>{if(i.nodeType!==Node.TEXT_NODE)return;let l=i.textContent;if(!e.some(c=>l.includes(c)))return;let n=document.createDocumentFragment();for(let c of l)if(e.includes(c)){let h=document.createElement("span");h.setAttribute("aria-hidden","true"),h.classList.add("compare-chart-glyph"),h.textContent=c==="\u2705"?"\u2713":c,M.included.includes(c)&&h.classList.add("included"),M.excluded.includes(c)&&h.classList.add("excluded"),(o||c==="\u2705")&&h.classList.add("primary"),n.appendChild(h)}else n.appendChild(document.createTextNode(c));i.replaceWith(n)})},bt=function(){let t=this.getBoundingClientRect().width||this.offsetWidth||window.innerWidth,e=t>0&&t<Ae,o=e!==a(this,T);d(this,T,e),this.toggleAttribute("data-mobile",e),e?s(this,r,vt).call(this):s(this,r,Zt).call(this),s(this,r,At).call(this),s(this,r,at).call(this),s(this,r,it).call(this),o&&this.requestUpdate()},Re=function(){return new Set(s(this,r,ot).call(this))},ot=function(){return!a(this,T)||a(this,E).length<=2?a(this,E).map(t=>t.dataset.cardId):[a(this,E)[a(this,w)],a(this,E)[a(this,C)]].filter(Boolean).map(t=>t.dataset.cardId)},Et=function(){return s(this,r,ot).call(this).map(t=>a(this,S).find(e=>e.cardId===t)).filter(Boolean)},vt=function(){this.style.setProperty("--compare-chart-cols",2),!(a(this,E).length<=2)&&s(this,r,Wt).call(this)},Wt=function(){let t=a(this,E).length;t<=2||(a(this,w)>=t&&d(this,w,0),a(this,C)>=t&&d(this,C,Math.min(1,t-1)),a(this,w)===a(this,C)&&d(this,C,(a(this,w)+1)%t))},Zt=function(){this.style.setProperty("--compare-chart-cols",a(this,E).length)},Xt=function(t,e){t==="A"?(e===a(this,C)&&d(this,C,a(this,w)),d(this,w,e)):(e===a(this,w)&&d(this,w,a(this,C)),d(this,C,e)),s(this,r,vt).call(this),this.requestUpdate()},At=function(){if(a(this,T)){this.style.setProperty("--compare-chart-sticky-top","0px");return}},Qt=function(){return this.stickyOffset??this.getAttribute("sticky-offset")??this.stickyTop??this.getAttribute("sticky-top")},Jt=function(){return this.mobileStickyOffset??this.getAttribute("mobile-sticky-offset")},at=function(){let t=a(this,T)?s(this,r,Jt).call(this):s(this,r,Qt).call(this),e=a(this,T)?Ce:we,o=t!=null?String(t).trim():"",i=o?/^\d+$/.test(o)?`${o}px`:o:`${e}px`;this.style.setProperty("--compare-chart-sticky-offset",i)},it=function(){if(s(this,r,wt).call(this),this.nonSticky||this.collapsed||!this.isConnected)return;let t=this.shadowRoot,e=t?.querySelector(".header-content"),o=t?.querySelector(".sticky-sentinel-top"),i=t?.querySelector(".sticky-sentinel-bottom");if(!e||!o||!i)return;let l=parseFloat(getComputedStyle(e).top)||0,n=e.getBoundingClientRect().height;d(this,H,new IntersectionObserver(([c])=>{d(this,j,c.boundingClientRect.bottom<=l),s(this,r,Ct).call(this)},{threshold:[0],rootMargin:`${-l}px 0px 0px 0px`})),a(this,H).observe(o),d(this,D,new IntersectionObserver(([c])=>{d(this,K,c.boundingClientRect.top>l+n),s(this,r,Ct).call(this)},{threshold:[0],rootMargin:`${-(l+n)}px 0px 0px 0px`})),a(this,D).observe(i)},wt=function(){a(this,H)?.disconnect(),a(this,D)?.disconnect(),d(this,H,null),d(this,D,null)},Ct=function(){s(this,r,te).call(this,a(this,j)&&a(this,K))},te=function(t){let e=this.shadowRoot?.querySelector(".header-content");if(t!==a(this,q)){if(t){let o=e?.getBoundingClientRect().height??0;this.style.setProperty("--compare-chart-sticky-spacer-height",`${o}px`)}else this.style.removeProperty("--compare-chart-sticky-spacer-height");d(this,q,t),this.toggleAttribute("data-sticky-header",t),e?.classList.toggle("sticky",t),e?.classList.toggle("is-stuck",t)}},ee=function(t){let e=!1;a(this,v).has(t)?a(this,v).delete(t):(d(this,v,new Set([t])),e=!0),this.expandedGroups=s(this,r,qt).call(this),this.dispatchEvent(new CustomEvent(St,{detail:{value:this.expandedGroups},bubbles:!0,composed:!0})),this.requestUpdate(),e&&this.updateComplete.then(()=>s(this,r,re).call(this,t))},re=function(t){if(this.collapsed)return;let e=this.shadowRoot?.querySelector(`.table-container[data-group-index="${String(t)}"]`);if(!e)return;let o=this.shadowRoot?.querySelector(".header-content"),i=getComputedStyle(this),l=parseFloat(i.getPropertyValue("--compare-chart-sticky-top"))||0,n=i.getPropertyValue("--compare-chart-sticky-offset").trim(),c=n&&parseFloat(n)||0,h=o?.getBoundingClientRect().height??0,g=l+c+h,x=e.style.scrollMarginTop;e.style.scrollMarginTop=`${g}px`,e.scrollIntoView({block:"start",behavior:"smooth"}),requestAnimationFrame(()=>{e.style.scrollMarginTop=x})},oe=function(){let t=s(this,r,Et).call(this),e=s(this,r,ae).call(this,t),o=1;return A`
             ${s(this,r,U).call(this,t,"header",o++,e)}
-            ${e.has("price")?s(this,r,U).call(this,t,"price",o++,e):y}
-            ${e.has("description")?s(this,r,U).call(this,t,"description",o++,e):y}
-            ${e.has("detail")?s(this,r,U).call(this,t,"detail",o++,e):y}
-            ${e.has("cta")?s(this,r,U).call(this,t,"cta",o++,e):y}
-        `},U=function(t,e,o,a){return A`
+            ${e.has("price")?s(this,r,U).call(this,t,"price",o++,e):b}
+            ${e.has("description")?s(this,r,U).call(this,t,"description",o++,e):b}
+            ${e.has("detail")?s(this,r,U).call(this,t,"detail",o++,e):b}
+            ${e.has("cta")?s(this,r,U).call(this,t,"cta",o++,e):b}
+        `},U=function(t,e,o,i){return A`
             <div
                 class="header-leading header-leading-${e}"
                 style="--row: ${o};"
             ></div>
-            ${t.map((l,n)=>s(this,r,ae).call(this,l,e,n+1,n,o,a))}
-        `},ie=function(t){let e=new Set;for(let o of t)for(let a of o.presentSlots)e.add(a);return e},L=function(t,e,o){return o.has(e)?A`<slot name=${t.slots[e]}></slot>`:y},ae=function(t,e,o,a,l,n){let c=["header-card-segment",`${e}-segment`],h=t.cellColor;return A`<div
+            ${t.map((l,n)=>s(this,r,ie).call(this,l,e,n+1,n,o,i))}
+        `},ae=function(t){let e=new Set;for(let o of t)for(let i of o.presentSlots)e.add(i);return e},L=function(t,e,o){return o.has(e)?A`<slot name=${t.slots[e]}></slot>`:b},ie=function(t,e,o,i,l,n){let c=["header-card-segment",`${e}-segment`],h=t.cellColor;return A`<div
             class=${c.join(" ")}
             data-card-id=${t.cardId}
             data-card-index=${t.col-1}
@@ -970,26 +996,26 @@ var de=Object.defineProperty;var _t=p=>{throw TypeError(p)};var he=(p,m,t)=>m in
                       ${s(this,r,L).call(this,t,"icons",n)}
                       ${s(this,r,L).call(this,t,"header",n)}
                       ${s(this,r,L).call(this,t,"badge",n)}
-                      ${s(this,r,se).call(this,t,a)}
-                  `:y}
-            ${e==="price"?s(this,r,L).call(this,t,"price",n):y}
-            ${e==="description"?s(this,r,L).call(this,t,"description",n):y}
-            ${e==="detail"?s(this,r,L).call(this,t,"detail",n):y}
-            ${e==="cta"?s(this,r,L).call(this,t,"cta",n):y}
-        </div>`},se=function(t,e){if(!i(this,_)||i(this,k).length<=2)return y;let o=i(this,k).findIndex(n=>n.cardId===t.cardId),a=e===0?"A":"B",l=a==="A"?i(this,C):i(this,w);return A`<select
+                      ${s(this,r,se).call(this,t,i)}
+                  `:b}
+            ${e==="price"?s(this,r,L).call(this,t,"price",n):b}
+            ${e==="description"?s(this,r,L).call(this,t,"description",n):b}
+            ${e==="detail"?s(this,r,L).call(this,t,"detail",n):b}
+            ${e==="cta"?s(this,r,L).call(this,t,"cta",n):b}
+        </div>`},se=function(t,e){if(!a(this,T)||a(this,S).length<=2)return b;let o=a(this,S).findIndex(n=>n.cardId===t.cardId),i=e===0?"A":"B",l=i==="A"?a(this,C):a(this,w);return A`<select
             class="mobile-filter-select"
             name="column-filter"
             aria-label=${this.getAttribute("choose-table-column-text")??"Choose column"}
             .value=${String(o)}
-            @change=${n=>s(this,r,Xt).call(this,a,parseInt(n.target.value,10))}
+            @change=${n=>s(this,r,Xt).call(this,i,parseInt(n.target.value,10))}
         >
-            ${i(this,k).map((n,c)=>c===l?y:A`<option
+            ${a(this,S).map((n,c)=>c===l?b:A`<option
                     value=${c}
                     ?selected=${c===o}
                 >
                     ${n.title}
                 </option>`)}
-        </select>`},ne=function(t){let e=i(this,v).has(t.groupIndex);return A`
+        </select>`},ne=function(t){let e=a(this,v).has(t.groupIndex);return A`
             <div class="table-container" data-group-index=${t.groupIndex}>
                 <button
                     class="table-column-header"
@@ -1009,16 +1035,16 @@ var de=Object.defineProperty;var _t=p=>{throw TypeError(p)};var he=(p,m,t)=>m in
                     role="rowgroup"
                     aria-label=${t.heading}
                 >
-                    ${ht(t.rows,(o,a)=>`${o.slot}:${a}`,o=>s(this,r,le).call(this,o))}
+                    ${ht(t.rows,(o,i)=>`${o.slot}:${i}`,o=>s(this,r,le).call(this,o))}
                 </div>
             </div>
-        `},ce=function(t,e){return{cardId:t,col:e,isCellPrimary:!1,isEmojiPrimary:!1,isItem:!1,title:void 0,tooltipPosition:"top-center",html:'<span class="compare-chart-chip"><span class="compare-chart-glyph" aria-hidden="true">\u2014</span></span>',ariaLabel:this.getAttribute("not-applicable-text")??"Not applicable"}},le=function(t){let e=i(this,R).get(t.slot)??{},o=new Map((i(this,S).get(t.slot)??[]).map(c=>[c.cardId,c])),a=s(this,r,ot).call(this),l=a.map(c=>o.get(c)).filter(Boolean);!l.length&&a.length>0&&i(this,R).has(t.slot)&&(l=a.map(c=>{let h=i(this,E).find(x=>x.dataset.cardId===c),g=parseInt(h?.dataset.columnIndex??"1",10);return s(this,r,ce).call(this,c,g)}));let n=["table-row"];return e.isItemRow&&n.push("description-row"),A`
+        `},ce=function(t,e){return{cardId:t,col:e,isCellPrimary:!1,isEmojiPrimary:!1,isItem:!1,title:void 0,tooltipPosition:"top-center",html:'<span class="compare-chart-chip"><span class="compare-chart-glyph" aria-hidden="true">\u2014</span></span>',ariaLabel:this.getAttribute("not-applicable-text")??"Not applicable"}},le=function(t){let e=a(this,R).get(t.slot)??{},o=new Map((a(this,k).get(t.slot)??[]).map(c=>[c.cardId,c])),i=s(this,r,ot).call(this),l=i.map(c=>o.get(c)).filter(Boolean);!l.length&&i.length>0&&a(this,R).has(t.slot)&&(l=i.map(c=>{let h=a(this,E).find(x=>x.dataset.cardId===c),g=parseInt(h?.dataset.columnIndex??"1",10);return s(this,r,ce).call(this,c,g)}));let n=["table-row"];return e.isItemRow&&n.push("description-row"),A`
             <div class=${n.join(" ")} role="row">
                 <div class="row-header" role="rowheader">
                     <span class="row-label"
                         >${Ot(e.labelHTML??"")}</span
                     >
-                    ${s(this,r,Tt).call(this,e.title,e.tooltipPosition)}
+                    ${s(this,r,_t).call(this,e.title,e.tooltipPosition)}
                 </div>
                 ${ht(l,(c,h)=>`${c.cardId}:${h}`,c=>s(this,r,pe).call(this,c))}
             </div>
@@ -1027,12 +1053,12 @@ var de=Object.defineProperty;var _t=p=>{throw TypeError(p)};var he=(p,m,t)=>m in
             class=${e.join(" ")}
             data-card-id=${t.cardId}
             style="--col: ${t.col};"
-            aria-label=${t.ariaLabel??y}
+            aria-label=${t.ariaLabel??b}
         >
-            ${Ot(t.html)}${s(this,r,Tt).call(this,t.title,t.tooltipPosition)}
-        </p>`},Tt=function(t,e){return t?A`<span class="tooltip-wrapper" data-tooltip-position=${e||"top-center"}>
+            ${Ot(t.html)}${s(this,r,_t).call(this,t.title,t.tooltipPosition)}
+        </p>`},_t=function(t,e){return t?A`<span class="tooltip-wrapper" data-tooltip-position=${e||"top-center"}>
             <button class="tooltip-trigger" aria-label="More info" tabindex="0">
                 <span aria-hidden="true">i</span>
             </button>
             <span class="tooltip-popover" role="tooltip">${t}</span>
-        </span>`:y},st(z,"properties",{expandedGroups:{type:String,attribute:"expanded-groups",reflect:!0},collapsed:{type:Boolean,attribute:"collapsed",reflect:!0},consonant:{type:Boolean,attribute:"consonant"},spectrum:{type:String,attribute:"spectrum"},stickyOffset:{type:String,attribute:"sticky-offset"},mobileStickyOffset:{type:String,attribute:"mobile-sticky-offset"},stickyTop:{type:String,attribute:"sticky-top"},nonSticky:{type:Boolean,attribute:"non-sticky"}}),st(z,"styles",Mt);customElements.get(Pt)||customElements.define(Pt,z);export{z as MasCompareChart};
+        </span>`:b},st(z,"properties",{expandedGroups:{type:String,attribute:"expanded-groups",reflect:!0},collapsed:{type:Boolean,attribute:"collapsed",reflect:!0},consonant:{type:Boolean,attribute:"consonant"},spectrum:{type:String,attribute:"spectrum"},stickyOffset:{type:String,attribute:"sticky-offset"},mobileStickyOffset:{type:String,attribute:"mobile-sticky-offset"},stickyTop:{type:String,attribute:"sticky-top"},nonSticky:{type:Boolean,attribute:"non-sticky"}}),st(z,"styles",Mt);customElements.get(Pt)||customElements.define(Pt,z);export{z as MasCompareChart};

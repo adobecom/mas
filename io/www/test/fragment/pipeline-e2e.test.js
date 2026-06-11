@@ -213,7 +213,7 @@ describe('pipeline end to end', () => {
             pzn: 'segment-A',
         });
         expect(result.statusCode).to.equal(200);
-        expect(state.store).to.have.property('req-some-en-us-fragment-fr_FR-segment-A');
+        expect(state.store).to.have.property('req-some-en-us-fragment-fr_FR-p_segment-A');
     });
 
     it('should include mask segment in cache key when mask is provided', async () => {

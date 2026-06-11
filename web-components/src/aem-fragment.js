@@ -418,6 +418,7 @@ export class AemFragment extends HTMLElement {
         const {
             fields,
             id,
+            maskId,
             tags,
             variationId,
             settings = {},
@@ -437,6 +438,7 @@ export class AemFragment extends HTMLElement {
                 settings,
                 priceLiterals,
                 dictionary,
+                maskId,
                 placeholders,
                 variationId,
             },
@@ -452,6 +454,7 @@ export class AemFragment extends HTMLElement {
             settings = {},
             priceLiterals = {},
             dictionary = {},
+            maskId,
             placeholders = {},
             variationId,
         } = this.#rawData;
@@ -467,6 +470,7 @@ export class AemFragment extends HTMLElement {
                 settings,
                 priceLiterals,
                 dictionary,
+                maskId,
                 placeholders,
                 variationId,
             },

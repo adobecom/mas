@@ -333,6 +333,7 @@ async function customize(context) {
     if (maskFragment && customizedFragment.model?.id === CARD_MODEL_ID) {
         logDebug(() => `Applying mask ${maskFragment.id} on fragment ${customizedFragment.id}`, context);
         customizedFragment = deepMerge(customizedFragment, maskFragment);
+        customizedFragment.maskId = maskFragment.id;
     }
     customizedFragment.references = customizedReferences;
     customizedFragment.referencesTree = customizedReferenceTree;

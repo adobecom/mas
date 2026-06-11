@@ -1,0 +1,335 @@
+<!doctype html>
+<html>
+    <head>
+        <script>
+            window.__swc = { warn: () => {} };
+        </script>
+        <script type="module">
+            window.process = { env: {} };
+            window.__swc = { warn: () => {} };
+        </script>
+        <title>mas-compare-chart-editor test page</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link rel="stylesheet" href="https://www.adobe.com/libs/styles/styles.css" />
+    </head>
+    <body>
+        <script type="module">
+            import { runTests } from '@web/test-runner-mocha';
+            import { expect } from '@esm-bundle/chai';
+            import sinon from 'sinon';
+            import { html } from 'lit';
+            import { fixture } from '@open-wc/testing-helpers/pure';
+
+            import '../../src/swc.js';
+            import '../../src/editors/mas-compare-chart-editor.js';
+            import '../../../web-components/src/commerce.js';
+            import '../../../web-components/src/aem-fragment.js';
+            import '../../../web-components/src/mas-commerce-service.js';
+            import '../../../web-components/src/mas-compare-chart.js';
+            import { withAem } from '../../../web-components/test/mocks/aem.js';
+            import { withWcs } from '../../../web-components/test/mocks/wcs.js';
+            import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, COMPARE_CHART_FIELD } from '../../src/constants.js';
+            import Store from '../../src/store.js';
+            import generateFragmentStore from '../../src/reactivity/source-fragment-store.js';
+            import { getItemsSelectionStore } from '../../src/common/items-selection-store.js';
+
+            const compareChartExpressSource = await fetch(
+                '/__wds-outside-root__/1/web-components/test/mocks/sites/fragments/compare-chart-express.json',
+            ).then((response) => response.json());
+
+            const fixtureHost = () => document.querySelector('sp-theme');
+            const withWebComponentsMocks = (mock) => (originalFetch) =>
+                mock((resource, options) => {
+                    const path = String(resource);
+                    if (path.startsWith('/test/mocks/offers.json') || path.startsWith('/test/mocks/sites/')) {
+                        return originalFetch(`/__wds-outside-root__/1/web-components${path}`, options);
+                    }
+                    return originalFetch(resource, options);
+                });
+
+            const withTags =
+                (originalFetch) =>
+                async ({ pathname, searchParams }) => {
+                    if (pathname.endsWith('/bin/querybuilder.json')) {
+                        return originalFetch('/test/mocks/tags.json');
+                    }
+                };
+
+            const getField = (fragment, fieldName) => fragment.fields.find((field) => field.name === fieldName);
+            const getFieldValues = (fragment, fieldName) => getField(fragment, fieldName)?.values || [];
+            const getFieldValue = (fragment, fieldName, index = 0) => getFieldValues(fragment, fieldName)[index];
+            const upsertField = (fragment, name, values, multiple = false) => {
+                const field = getField(fragment, name);
+                if (field) {
+                    field.values = values;
+                    field.multiple = multiple;
+                    return;
+                }
+                fragment.fields.push({ name, values, multiple });
+            };
+            const inferModelPath = (fields) => ('cards' in fields ? COLLECTION_MODEL_PATH : CARD_MODEL_PATH);
+            const referencedPath = (source, value) => {
+                const reference = source.references?.[value];
+                return reference?.type === 'content-fragment' ? reference.value.path : value;
+            };
+            const normalizeField = (source, [name, rawValue]) => {
+                if (Array.isArray(rawValue)) {
+                    return { name, values: rawValue.map((value) => referencedPath(source, value)), multiple: true };
+                }
+                if (rawValue && typeof rawValue === 'object' && ('value' in rawValue || 'mimeType' in rawValue)) {
+                    return {
+                        name,
+                        values: 'value' in rawValue ? [rawValue.value] : [],
+                        mimeType: rawValue.mimeType,
+                        multiple: false,
+                    };
+                }
+                return { name, values: [rawValue], multiple: false };
+            };
+            const toStudioFragment = (source) => {
+                const fields = Object.entries(source.fields || {}).map((field) => normalizeField(source, field));
+                const fragment = {
+                    id: source.id,
+                    path: source.path,
+                    title: source.title,
+                    status: source.status || 'PUBLISHED',
+                    model: { path: inferModelPath(source.fields || {}) },
+                    tags: source.tags || [],
+                    fields,
+                    references: Object.values(source.references || {})
+                        .filter((reference) => reference?.type === 'content-fragment' && reference.value)
+                        .map((reference) => toStudioFragment(reference.value)),
+                };
+
+                if (fragment.model.path === CARD_MODEL_PATH && !getFieldValue(fragment, 'osi')) {
+                    const pricesMarkup = getFieldValue(fragment, 'prices') || '';
+                    const wcsOsi = pricesMarkup.match(/data-wcs-osi="([^"]+)"/)?.[1];
+                    if (wcsOsi) upsertField(fragment, 'osi', [wcsOsi]);
+                }
+                return fragment;
+            };
+
+            const compareChartSeed = toStudioFragment(compareChartExpressSource);
+            const value = getFieldValue(compareChartSeed, COMPARE_CHART_FIELD);
+            const cardPaths = getFieldValues(compareChartSeed, 'cards');
+            const columns = cardPaths.map((path) => {
+                const fragment = compareChartSeed.references.find((reference) => reference.path === path);
+                return {
+                    path,
+                    title: getFieldValue(fragment, 'cardTitle') || fragment.title,
+                    fragment,
+                    features: getFieldValues(fragment, 'features'),
+                };
+            });
+            const firstCardOsi = getFieldValue(columns[0].fragment, 'osi');
+            const tooltipTitlesInValue = [...value.matchAll(/title="([^"]+)"/g)].map((match) => match[1]);
+
+            const visibleVariationPath = columns[0].path.replace('/en_US/', '/en_IE/');
+            const visibleVariationTitle = `${columns[0].title} AU`;
+            const visibleVariation = structuredClone(columns[0].fragment);
+            visibleVariation.id = `${visibleVariation.id}-au`;
+            visibleVariation.path = visibleVariationPath;
+            visibleVariation.title = visibleVariationTitle;
+            upsertField(visibleVariation, 'cardTitle', [visibleVariationTitle]);
+            upsertField(visibleVariation, 'prices', ['<span>€24.99/mo</span>']);
+            upsertField(visibleVariation, 'description', ['<p>Localized Adobe Express offer.</p>']);
+            upsertField(visibleVariation, 'ctas', [
+                '<a class="accent" href="#" data-wcs-osi="Iddp6yEOwCAU2QYDNZOOt0PD3iao4vXSV_sykYck7XQ">Buy now</a>',
+            ]);
+            upsertField(visibleVariation, 'osi', ['Iddp6yEOwCAU2QYDNZOOt0PD3iao4vXSV_sykYck7XQ']);
+            visibleVariation.tags = [
+                { id: 'mas:product_code/adobe-express', title: columns[0].title },
+                { id: 'mas:offer_type/base', title: 'Base' },
+            ];
+            upsertField(visibleVariation, 'pznTags', ['mas:pzn/country/en_AU'], true);
+            upsertField(columns[0].fragment, 'variations', [visibleVariationPath], true);
+            columns[0].fragment.references = [...(columns[0].fragment.references || []), visibleVariation];
+
+            runTests(async () => {
+                describe('mas-compare-chart-editor', () => {
+                    let sandbox;
+                    const originalAdobeIms = window.adobeIMS;
+                    const originalLana = window.lana;
+                    const originalFetch = window.fetch;
+
+                    beforeEach(async () => {
+                        sandbox = sinon.createSandbox();
+
+                        window.adobeIMS = {
+                            initialized: true,
+                            isSignedInUser: () => false,
+                            getProfile: sandbox.stub().resolves({}),
+                        };
+                        window.lana = { log: sandbox.spy() };
+
+                        const mocks = await Promise.all(
+                            [withTags, withWebComponentsMocks(withWcs), withWebComponentsMocks(withAem)].map((stub) =>
+                                stub(originalFetch),
+                            ),
+                        );
+                        mocks.forEach((mock) => {
+                            mock.count = 0;
+                        });
+                        sandbox.stub(window, 'fetch').callsFake(async (...args) => {
+                            const { href, pathname, searchParams } = new URL(String(args[0]), window.location);
+                            const headers = args[1]?.headers || {};
+                            let found = false;
+                            for await (const mock of mocks) {
+                                found = await mock({ href, pathname, searchParams, headers });
+                                if (found === false) continue;
+                                mock.count += 1;
+                                break;
+                            }
+                            if (found === false) return originalFetch(...args);
+                            return found;
+                        });
+                    });
+
+                    afterEach(() => {
+                        sandbox.restore();
+                        window.adobeIMS = originalAdobeIms;
+                        window.lana = originalLana;
+                    });
+
+                    it('renders three cards, sections, features, and authored feature tooltips', async () => {
+                        const fragmentStore = generateFragmentStore(structuredClone(compareChartSeed));
+                        const el = await fixture(
+                            html`<mas-compare-chart-editor .fragmentStore=${fragmentStore}></mas-compare-chart-editor>`,
+                            { parentNode: fixtureHost() },
+                        );
+                        for (let i = 0; i < 10; i += 1) {
+                            await el.updateComplete;
+                            if (el.shadowRoot.querySelectorAll('.compchart-card-row').length === 3) break;
+                        }
+
+                        expect(el.editorView).to.equal('edit');
+                        expect(el.shadowRoot.querySelector('.compchart-grid')).to.exist;
+                        expect(el.shadowRoot.querySelector('.compchart-preview-grid')).to.not.exist;
+                        expect(el.shadowRoot.querySelectorAll('.compchart-card-row')).to.have.lengthOf(3);
+                        expect(el.shadowRoot.querySelectorAll('.compchart-group-header').length).to.be.greaterThan(5);
+                        expect(el.shadowRoot.querySelectorAll('.compchart-row-label')).to.have.lengthOf(4);
+                        const editHeaders = [...el.shadowRoot.querySelectorAll('.compchart-header-cell')].map((node) =>
+                            node.textContent.trim(),
+                        );
+                        expect(editHeaders).to.include(columns[0].title);
+                        expect(editHeaders).to.include(columns[1].title);
+                        expect(editHeaders).to.include(columns[2].title);
+                        expect(el.shadowRoot.querySelector('.compchart-cards-table').textContent).to.not.include(firstCardOsi);
+                        expect(el.effectiveValue).to.include('<div name="adobe-apps">');
+                        expect(el.effectiveValue).to.include('<div name="generative-ai">');
+                        expect(el.effectiveValue).to.not.include('<merch-card');
+
+                        el.shadowRoot.querySelector('.compchart-card-row sp-action-button[label="Expand row"]').click();
+                        let variationPanel;
+                        for (let i = 0; i < 10; i += 1) {
+                            await el.updateComplete;
+                            variationPanel = el.shadowRoot.querySelector('.compchart-card-variation-panel');
+                            if (variationPanel?.textContent.includes('€24.99/mo')) break;
+                        }
+                        expect(variationPanel).to.exist;
+                        expect(variationPanel.textContent).to.include('Locale (1)');
+                        expect(variationPanel.textContent).to.include(visibleVariationTitle);
+                        expect(variationPanel.textContent).to.include('Base');
+                        expect(variationPanel.textContent).to.include('€24.99/mo');
+                        el.shadowRoot.querySelector('.compchart-card-variation-row').click();
+                        await el.updateComplete;
+                        expect(el.effectiveColumns[0].path).to.equal(visibleVariationPath);
+
+                        el.shadowRoot.querySelector('.compchart-chevron').click();
+                        await el.updateComplete;
+                        expect(el.effectiveValue).to.include('expanded-groups="none"');
+                        el.shadowRoot.querySelector('.compchart-chevron').click();
+                        await el.updateComplete;
+                        expect(el.effectiveValue).to.include('expanded-groups="1"');
+
+                        el.shadowRoot.querySelector('.editor-view-toggle button[role="tab"]:last-child').click();
+                        await el.updateComplete;
+                        let chart;
+                        for (let i = 0; i < 10; i += 1) {
+                            chart = el.querySelector('[slot="compare-chart-preview"] mas-compare-chart');
+                            if (chart?.querySelector(':scope > aem-fragment')) break;
+                        }
+
+                        const preview = el.shadowRoot.querySelector('.compchart-preview');
+                        expect(el.editorView).to.equal('preview');
+                        expect(el.shadowRoot.querySelector('.compchart-grid')).to.not.exist;
+                        expect(preview, 'preview container').to.exist;
+                        expect(chart, 'preview chart').to.exist;
+                        expect(chart.classList.contains('compchart-preview-chart')).to.be.true;
+                        expect(chart.hasAttribute('consonant')).to.be.true;
+                        expect(preview.querySelector('mas-compare-chart')).to.not.exist;
+                        expect(chart.querySelector(':scope > aem-fragment'), 'preview aem fragment').to.exist;
+                        for (let i = 0; i < 20; i += 1) {
+                            await chart.updateComplete;
+                            const previewText = chart.shadowRoot?.textContent.replace(/\s+/g, ' ').trim() || '';
+                            if (
+                                chart.querySelectorAll(
+                                    ':scope > merch-card[slot="cards"] > aem-fragment[author][loading="cache"]',
+                                ).length === 3 &&
+                                previewText.includes('Generate Presentations')
+                            )
+                                break;
+                        }
+
+                        expect(chart.shadowRoot).to.exist;
+                        expect(
+                            chart.querySelectorAll(':scope > merch-card[slot="cards"] > aem-fragment[author][loading="cache"]'),
+                        ).to.have.lengthOf(3);
+                        expect(chart.querySelector(':scope > merch-card[slot="cards"]:not([data-compare-chart-generated])')).to
+                            .not.exist;
+                        expect(chart.querySelector(':scope > div[name]:not([data-compare-chart-generated])')).to.not.exist;
+                        const previewText = chart.shadowRoot.textContent.replace(/\s+/g, ' ').trim();
+                        expect(previewText).to.include(columns[1].title);
+                        expect(previewText).to.include(columns[2].title);
+                        expect(previewText).to.include('Adobe apps');
+                        expect(previewText).to.include('Seamless integration');
+                        expect(previewText).to.include('Generative AI');
+                        expect(previewText).to.include('Generate Presentations');
+                        const tooltipLinks = [...chart.querySelectorAll('a.secondary-link[title]')];
+                        expect(tooltipLinks.length).to.be.greaterThan(10);
+                        expect(tooltipLinks.map((link) => link.getAttribute('title'))).to.include(tooltipTitlesInValue[0]);
+                        expect(chart.shadowRoot.querySelectorAll('.tooltip-wrapper').length).to.be.greaterThan(10);
+                        expect(chart.shadowRoot.querySelectorAll('.tooltip-trigger').length).to.be.greaterThan(10);
+                    });
+
+                    it('marks referenced changes dirty when a cell edit is staged and clears them on discard', async () => {
+                        const fragmentStore = generateFragmentStore(structuredClone(compareChartSeed));
+                        const el = await fixture(
+                            html`<mas-compare-chart-editor .fragmentStore=${fragmentStore}></mas-compare-chart-editor>`,
+                            { parentNode: fixtureHost() },
+                        );
+                        for (let i = 0; i < 10; i += 1) {
+                            await el.updateComplete;
+                            if (el.shadowRoot.querySelectorAll('.compchart-card-row').length === 3) break;
+                        }
+
+                        Store.editor.referencedFragmentStoresHaveChanges.set(false);
+                        const cell = el.shadowRoot.querySelector('.compchart-cell .compchart-cell-value[data-rte-anchor-key]');
+                        cell.click();
+                        let rteField;
+                        for (let i = 0; i < 10; i += 1) {
+                            await el.updateComplete;
+                            rteField = el.shadowRoot.querySelector('.compchart-cell .compchart-cell-value rte-field');
+                            if (rteField) break;
+                        }
+                        expect(rteField, 'inline rte-field').to.exist;
+
+                        rteField.value = '<p>Staged edit value</p>';
+                        rteField.dispatchEvent(new Event('change', { bubbles: true }));
+                        await el.updateComplete;
+
+                        expect(Store.editor.referencedFragmentStoresHaveChanges.get()).to.be.true;
+
+                        el.discardCardFragmentChanges();
+                        await el.updateComplete;
+                        expect(Store.editor.referencedFragmentStoresHaveChanges.get()).to.be.false;
+                    });
+                });
+            });
+        </script>
+        <main>
+            <mas-commerce-service env="stage"></mas-commerce-service>
+            <sp-theme system="spectrum-two" color="light" scale="medium"></sp-theme>
+        </main>
+    </body>
+</html>

@@ -5,6 +5,7 @@ import sinon from 'sinon';
 import Store from '../../src/store.js';
 import { setItemsSelectionStore } from '../../src/common/items-selection-store.js';
 import { setCardVariationsByPaths } from '../../src/common/utils/items-loader.js';
+import { Fragment } from '../../src/aem/fragment.js';
 import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, FRAGMENT_STATUS } from '../../src/constants.js';
 import { renderFragmentStatusCell } from '../../src/translation/translation-utils.js';
 import '../../src/swc.js';
@@ -617,6 +618,175 @@ describe('MasCollapsibleTableRow', () => {
             const variationRows = el.shadowRoot.querySelectorAll('sp-table-row[value]');
             const hasVariation = [...variationRows].some((r) => r.getAttribute('value') === varPath);
             expect(hasVariation).to.be.true;
+        });
+    });
+
+    describe('hideLocaleTab', () => {
+        const setup = async (hide) => {
+            const topLevelCard = createMockTopLevelCard();
+            setupCardVariationsInStore(topLevelCard.path, []);
+            const el = await fixture(
+                html`<mas-collapsible-table-row
+                    .topLevelCard=${topLevelCard}
+                    .isTopLevelExpanded=${true}
+                    .hideLocaleTab=${hide}
+                ></mas-collapsible-table-row>`,
+            );
+            await el.updateComplete;
+            return el;
+        };
+
+        it('should not render the locale tab when hideLocaleTab is set', async () => {
+            const el = await setup(true);
+            expect(el.shadowRoot.querySelector('sp-tab[value="locale"]')).to.be.null;
+        });
+
+        it('should still render the grouped variation tab when hideLocaleTab is set', async () => {
+            const el = await setup(true);
+            expect(el.shadowRoot.querySelector('sp-tab[value="groupedVariation"]')).to.exist;
+        });
+
+        it('should select the grouped variation tab by default when the locale tab is hidden', async () => {
+            const el = await setup(true);
+            expect(el.selectedTabKey).to.equal('groupedVariation');
+        });
+
+        it('should render the locale tab by default', async () => {
+            const el = await setup(false);
+            expect(el.shadowRoot.querySelector('sp-tab[value="locale"]')).to.exist;
+        });
+    });
+
+    describe('disableLocaleVariations', () => {
+        it('should render an empty locale tab without listing variations when set', async () => {
+            const listStub = sandbox.stub(Fragment.prototype, 'listLocaleVariations');
+            const topLevelCard = createMockTopLevelCard();
+            setupCardVariationsInStore(topLevelCard.path, []);
+            const el = await fixture(
+                html`<mas-collapsible-table-row
+                    .topLevelCard=${topLevelCard}
+                    .isTopLevelExpanded=${true}
+                    .disableLocaleVariations=${true}
+                ></mas-collapsible-table-row>`,
+            );
+            await el.updateComplete;
+            const localePanel = el.shadowRoot.querySelector('sp-tab-panel[value="locale"]');
+            expect(localePanel?.querySelector('.empty-grouped-variations')).to.exist;
+            expect(listStub.called).to.be.false;
+        });
+
+        it('should list locale variations by default', async () => {
+            const listStub = sandbox.stub(Fragment.prototype, 'listLocaleVariations').returns([]);
+            const topLevelCard = createMockTopLevelCard();
+            setupCardVariationsInStore(topLevelCard.path, []);
+            const el = await fixture(
+                html`<mas-collapsible-table-row
+                    .topLevelCard=${topLevelCard}
+                    .isTopLevelExpanded=${true}
+                ></mas-collapsible-table-row>`,
+            );
+            await el.updateComplete;
+            expect(listStub.called).to.be.true;
+        });
+    });
+
+    describe('disableGroupedVariationSelection', () => {
+        const varPath = '/content/dam/mas/acom/en_US/cards/parent/pzn/var1';
+
+        const setup = async (disable) => {
+            const topLevelCard = createMockTopLevelCard({
+                path: '/content/dam/mas/acom/en_US/cards/parent',
+                variationPaths: [varPath],
+            });
+            setupCardVariationsInStore(topLevelCard.path, [{ path: varPath, title: 'Variation 1', fieldTags: [] }]);
+            const el = await fixture(
+                html`<mas-collapsible-table-row
+                    .topLevelCard=${topLevelCard}
+                    .isTopLevelExpanded=${true}
+                    .disableGroupedVariationSelection=${disable}
+                ></mas-collapsible-table-row>`,
+            );
+            await el.updateComplete;
+            return el;
+        };
+
+        it('should disable the variation row checkbox when flag is set', async () => {
+            const el = await setup(true);
+            const checkbox = el.shadowRoot.querySelector(`sp-table-row[value="${varPath}"] sp-checkbox`);
+            expect(checkbox).to.exist;
+            expect(checkbox.disabled).to.be.true;
+        });
+
+        it('should disable the select all checkbox when flag is set', async () => {
+            const el = await setup(true);
+            const selectAll = el.shadowRoot.querySelector('.select-all-row sp-checkbox');
+            expect(selectAll).to.exist;
+            expect(selectAll.disabled).to.be.true;
+        });
+
+        it('should not change selectedCards when a disabled variation row is clicked', async () => {
+            Store.translationProjects.selectedCards.set([]);
+            const el = await setup(true);
+            const row = el.shadowRoot.querySelector(`sp-table-row[value="${varPath}"]`);
+            row.click();
+            await el.updateComplete;
+            expect(Store.translationProjects.selectedCards.value).to.deep.equal([]);
+        });
+
+        it('should keep the variation row visible when flag is set', async () => {
+            const el = await setup(true);
+            const row = el.shadowRoot.querySelector(`sp-table-row[value="${varPath}"]`);
+            expect(row).to.exist;
+        });
+
+        it('should keep the variation checkbox enabled by default', async () => {
+            const el = await setup(false);
+            const checkbox = el.shadowRoot.querySelector(`sp-table-row[value="${varPath}"] sp-checkbox`);
+            expect(checkbox.disabled).to.not.be.true;
+        });
+    });
+
+    describe('locale variations tab', () => {
+        it('should show empty message when the card has no locale variations', async () => {
+            const topLevelCard = createMockTopLevelCard();
+            const el = await fixture(
+                html`<mas-collapsible-table-row
+                    .topLevelCard=${topLevelCard}
+                    .isTopLevelExpanded=${true}
+                ></mas-collapsible-table-row>`,
+            );
+            await el.updateComplete;
+            const localePanel = el.shadowRoot.querySelector('sp-tab-panel[value="locale"]');
+            const emptyMsg = localePanel?.querySelector('.empty-grouped-variations');
+            expect(emptyMsg).to.exist;
+            expect(emptyMsg.textContent).to.include('No locale variations found');
+        });
+
+        it('should not fetch references when disableLocaleVariations is set', async () => {
+            const topLevelCard = { ...createMockTopLevelCard(), id: 'frag-1' };
+            const getById = sandbox.stub().resolves({ ...topLevelCard, references: [] });
+            const el = await fixture(
+                html`<mas-collapsible-table-row
+                    .topLevelCard=${topLevelCard}
+                    .disableLocaleVariations=${true}
+                ></mas-collapsible-table-row>`,
+            );
+            el.repository = { aem: { sites: { cf: { fragments: { getById } } } } };
+            el.shadowRoot.querySelector('.expand-button').click();
+            await el.updateComplete;
+            expect(getById.called).to.be.false;
+        });
+
+        it('should fetch hydrated references on first expand to populate locale variations', async () => {
+            const topLevelCard = { ...createMockTopLevelCard(), id: 'frag-1' };
+            const el = await fixture(
+                html`<mas-collapsible-table-row .topLevelCard=${topLevelCard}></mas-collapsible-table-row>`,
+            );
+            const getById = sandbox.stub().resolves({ ...topLevelCard, references: [] });
+            el.repository = { aem: { sites: { cf: { fragments: { getById } } } } };
+            el.shadowRoot.querySelector('.expand-button').click();
+            await el.updateComplete;
+            expect(getById.calledOnceWith('frag-1')).to.be.true;
         });
     });
 

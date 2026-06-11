@@ -21,6 +21,7 @@ import {
     extractSurfaceFromPath,
     generateCodeToUse,
     getFragmentMapping,
+    hasNonEmptyCompareChart,
     replaceLocaleInPath,
     showToast,
 } from './utils.js';
@@ -38,6 +39,7 @@ import * as promotionsRepository from './promotions/promotions-repository.js';
 import { normalizeTagId } from './aem/tag-id-utils.js';
 import './editors/merch-card-editor.js';
 import './editors/merch-card-collection-editor.js';
+import './editors/mas-compare-chart-editor.js';
 import './mas-variation-dialog.js';
 import { getCountryName, getDefaultLocaleCode, getLocaleByCode } from '../../io/www/src/fragment/locales.js';
 import { branch2Icon } from './icons.js';
@@ -126,14 +128,37 @@ function getWhatsIncludedDividerColorFromMarkup(fragment) {
 
 export default class MasFragmentEditor extends LitElement {
     static styles = css`
+        mas-fragment-editor {
+            display: block;
+            width: 100%;
+            height: 100%;
+            min-height: 0;
+        }
+
         #fragment-editor {
             display: flex;
             flex-direction: column;
+            box-sizing: border-box;
+            width: 100%;
             height: 100%;
+            min-height: 0;
             padding: 32px;
             max-width: 100%;
             margin: 0 auto;
             background: var(--spectrum-global-color-gray-75);
+        }
+
+        #fragment-editor.compare-chart-editor {
+            padding: 0;
+        }
+
+        sp-underlay + sp-dialog {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 2000;
+            max-width: 500px;
         }
 
         #breadcrumbs {
@@ -159,18 +184,31 @@ export default class MasFragmentEditor extends LitElement {
             grid-template-columns: 1fr 1fr;
             gap: 32px;
             flex: 1;
+            min-height: 0;
+            width: 100%;
             padding-bottom: 48px;
         }
 
-        @media (max-width: 1200px) {
-            #editor-content {
-                grid-template-columns: 1fr;
-                overflow: auto;
-            }
+        #editor-content.compare-chart-content {
+            display: flex;
+            flex: 1 1 auto;
+            gap: 0;
+            padding-bottom: 0;
+            overflow: hidden;
         }
 
         #form-column {
             padding-right: 16px;
+        }
+
+        #form-column.compare-chart-column {
+            display: flex;
+            flex-direction: column;
+            flex: 1 1 auto;
+            min-width: 0;
+            min-height: 0;
+            padding-right: 0;
+            overflow: hidden;
         }
 
         #preview-column {
@@ -184,11 +222,25 @@ export default class MasFragmentEditor extends LitElement {
             gap: 16px;
         }
 
+        @media (max-width: 1200px) {
+            #editor-content:not(.compare-chart-content) {
+                grid-template-columns: 1fr;
+                overflow: auto;
+            }
+
+            #preview-column {
+                position: relative;
+                max-height: none;
+            }
+        }
+
         #preview-wrapper {
             display: flex;
             flex-direction: column;
             align-items: center;
             margin: 0 auto;
+            max-width: 100%;
+            max-height: 100%;
             border-radius: 12px;
             box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.16);
             overflow-y: auto;
@@ -210,13 +262,6 @@ export default class MasFragmentEditor extends LitElement {
 
         .preview-locale-panel sp-picker {
             width: 100%;
-        }
-
-        @media (max-width: 1200px) {
-            #preview-column {
-                position: relative;
-                max-height: none;
-            }
         }
 
         .preview-header {
@@ -254,11 +299,41 @@ export default class MasFragmentEditor extends LitElement {
         }
 
         .section {
+            flex: 1 1 auto;
+            min-height: 0;
+            box-sizing: border-box;
             background: var(--spectrum-global-color-gray-50);
             border: 1px solid var(--spectrum-global-color-gray-300);
             border-radius: 16px;
             padding: 32px;
             box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.16);
+        }
+
+        .section.compare-chart-section {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            padding: 0;
+            border: 0;
+            border-radius: 0;
+            background: transparent;
+            box-shadow: none;
+        }
+
+        .section.compare-chart-section #author-path {
+            flex: 0 0 auto;
+            margin: 16px 16px 0;
+        }
+
+        .section.compare-chart-section .locale-variation-header {
+            flex: 0 0 auto;
+            margin: 16px 16px 0;
+        }
+
+        .section.compare-chart-section mas-compare-chart-editor {
+            flex: 1 1 auto;
+            min-height: 0;
+            width: 100%;
         }
 
         .section-title {
@@ -515,6 +590,7 @@ export default class MasFragmentEditor extends LitElement {
     reactiveController = new ReactiveController(this, [
         Store.fragmentEditor.fragmentId,
         Store.fragmentEditor.loading,
+        Store.editor.referencedFragmentStoresHaveChanges,
         Store.fragmentEditor.editorContext,
         Store.promotions.promotionId,
         Store.promotions.inEdit,
@@ -628,6 +704,10 @@ export default class MasFragmentEditor extends LitElement {
 
     get fragment() {
         return this.fragmentStore?.get();
+    }
+
+    get isCompareChart() {
+        return this.fragment?.model?.path === COLLECTION_MODEL_PATH && hasNonEmptyCompareChart(this.fragment);
     }
 
     get fragmentStore() {
@@ -1258,6 +1338,7 @@ export default class MasFragmentEditor extends LitElement {
     discardConfirmed() {
         this.showDiscardDialog = false;
         if (this.discardPromiseResolver) {
+            this.querySelector('mas-compare-chart-editor')?.discardCardFragmentChanges();
             this.fragmentStore.discardChanges();
             this.discardPromiseResolver(true);
             this.discardPromiseResolver = null;
@@ -1387,7 +1468,24 @@ export default class MasFragmentEditor extends LitElement {
 
     async saveFragment() {
         try {
-            await this.repository.saveFragment(this.fragmentStore, true);
+            const compareChartEditor = this.querySelector('mas-compare-chart-editor');
+            let dirtyCardFragmentStores = [];
+            if (compareChartEditor) {
+                compareChartEditor.commitFeatureDrafts();
+                dirtyCardFragmentStores = compareChartEditor.dirtyCardFragmentStores.filter(
+                    (store) => store.get?.().hasChanges,
+                );
+            }
+            if (dirtyCardFragmentStores.length) showToast('Saving fragment...');
+            for (const cardFragmentStore of dirtyCardFragmentStores) {
+                const savedCard = await this.repository.saveFragment(cardFragmentStore, false);
+                if (!savedCard) return;
+            }
+            Store.editor.referencedFragmentStoresHaveChanges.set(false);
+            const savedFragment = await this.repository.saveFragment(this.fragmentStore, !dirtyCardFragmentStores.length);
+            if (dirtyCardFragmentStores.length && savedFragment) {
+                showToast('Fragment successfully saved.', 'positive');
+            }
         } catch (error) {
             console.error('Failed to save fragment:', error);
             showToast(`Failed to save fragment: ${error.message}`, 'negative');
@@ -1901,25 +1999,40 @@ export default class MasFragmentEditor extends LitElement {
                 `;
                 break;
             case COLLECTION_MODEL_PATH:
-                editorContent = html`
-                    <merch-card-collection-editor
-                        .fragmentStore=${this.fragmentStore}
-                        .updateFragment=${this.updateFragment}
-                        .localeDefaultFragment=${this.localeDefaultFragment}
-                        .isVariation=${this.editorContextStore.isVariation(this.fragment?.id)}
-                    ></merch-card-collection-editor>
-                `;
+                editorContent = this.isCompareChart
+                    ? html`
+                          <mas-compare-chart-editor
+                              .fragmentStore=${this.fragmentStore}
+                              .updateFragment=${this.updateFragment}
+                              .localeDefaultFragment=${this.localeDefaultFragment}
+                              .isVariation=${this.editorContextStore.isVariation(this.fragment?.id)}
+                          ></mas-compare-chart-editor>
+                      `
+                    : html`
+                          <merch-card-collection-editor
+                              .fragmentStore=${this.fragmentStore}
+                              .updateFragment=${this.updateFragment}
+                              .localeDefaultFragment=${this.localeDefaultFragment}
+                              .isVariation=${this.editorContextStore.isVariation(this.fragment?.id)}
+                          ></merch-card-collection-editor>
+                      `;
                 break;
         }
 
         return html`
             ${this.derivedFromContainer}
-            <div class="section">${this.authorPath} ${this.localeVariationHeader} ${editorContent}</div>
+            <div class=${`section${this.isCompareChart ? ' compare-chart-section' : ''}`}>
+                ${this.isCompareChart ? nothing : this.authorPath} ${this.localeVariationHeader} ${editorContent}
+            </div>
         `;
     }
 
     #handlePreviewError = (e) => {
-        this.previewError = e.detail?.message ?? 'Card failed to load';
+        let defaultErrorMessage = 'Card failed to load';
+        if (!/hydrate\: no template/.test(e.detail?.message)) {
+            defaultErrorMessage = e.detail?.message;
+        }
+        this.previewError = defaultErrorMessage;
     };
 
     #clearPreviewError = () => {
@@ -2116,9 +2229,11 @@ export default class MasFragmentEditor extends LitElement {
 
         return html`
             ${this.styles}
-            <div id="fragment-editor">
-                <div id="editor-content">
-                    <div id="form-column">${this.fragmentEditor}</div>
+            <div id="fragment-editor" class=${this.isCompareChart ? 'compare-chart-editor' : ''}>
+                <div id="editor-content" class=${this.isCompareChart ? 'compare-chart-content' : ''}>
+                    <div id="form-column" class=${this.isCompareChart ? 'compare-chart-column' : ''}>
+                        ${this.fragmentEditor}
+                    </div>
                     ${this.previewColumn}
                 </div>
                 ${this.deleteConfirmationDialog} ${this.discardConfirmationDialog} ${this.cloneConfirmationDialog}

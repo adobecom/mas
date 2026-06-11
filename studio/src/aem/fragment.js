@@ -191,9 +191,14 @@ export class Fragment {
                 if (isTags) this.newTags = value;
                 return false;
             }
-            const newField = { name: fieldName, type: parentField?.type || 'text', values: encodedValues };
+            const newField = {
+                name: fieldName,
+                type: parentField?.type || (isTags ? 'tag' : 'text'),
+                values: encodedValues,
+            };
             // Inherit multiple from parent field
             if (parentField?.multiple) newField.multiple = true;
+            if (isTags) newField.multiple = true;
             this.fields.push(newField);
         }
 

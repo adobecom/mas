@@ -930,8 +930,10 @@ export class MasRepository extends LitElement {
 
             const damPath = getDamPath(surfaceKey);
             const locale = this.filters.value.locale;
+            const searchPath =
+                this.page.value === PAGE_NAMES.PROMOTIONS_EDITOR ? damPath : `${damPath}/${locale}`;
             const searchOptions = {
-                path: `${damPath}/${locale}`,
+                path: searchPath,
                 modelIds: [TAG_MODEL_ID_MAPPING['mas:studio/content-type/merch-card-collection']],
                 sort: [{ on: 'modifiedOrCreated', order: 'DESC' }],
             };

@@ -4,16 +4,29 @@ import { styles as tableStyles } from '../common/components/mas-select-items-tab
 import { getItemsSelectionStore } from '../common/items-selection-store.js';
 import { loadSelectedFragments } from '../common/utils/items-loader.js';
 import { TABLE_TYPE, CARD_MODEL_PATH } from '../constants.js';
-import { getItemTypeLabel } from '../common/utils/render-utils.js';
+import { getItemTypeLabel, shouldIgnoreRowClickForSelection } from '../common/utils/render-utils.js';
 import { closePreview, openPreview } from '../mas-card-preview.js';
 import router from '../router.js';
 import { extractLocaleFromPath, showToast } from '../utils.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 import Store from '../store.js';
 import { normalizeTagId } from '../aem/tag-id-utils.js';
-import { splitPromotionTagsFieldValues } from './promotion-editor-utils.js';
+import {
+    splitPromotionTagsFieldValues,
+    parsePromoCodeExceptions,
+    parseOfferSubstitutions,
+    parseCountriesFromGeos,
+    countDistinctPromoCodesForOffer,
+    groupCountriesByPromoCodeForOffer,
+    groupOfferSubstitutionsForOffer,
+    applyPromotionOfferProductTagsToSearch,
+    buildRemoveOfferConfirmationMessage,
+    getPromotionItemsRemovedByOfferRemoval,
+    pruneOrphanedPromotionSelectionAfterOfferRemoval,
+} from './promotion-editor-utils.js';
 import { buildPromoVariationPathForTag, getFragmentByPathOrNull, isPromoVariationPath } from './promotion-model.js';
 import { createPromoVariation } from './promotions-repository.js';
+import { openOfferSelectorTool } from '../rte/ost.js';
 
 const localStyles = css`
     :host {
@@ -100,6 +113,130 @@ const localStyles = css`
         flex: 0 0 auto;
     }
 
+    .promotions-view-only .expand-cell {
+        flex: 0 0 2.5rem;
+        width: 2.5rem;
+        min-width: 2.5rem;
+        max-width: 2.5rem;
+        justify-content: center;
+    }
+
+    .promotions-offers-layout .promo-code-head-cell,
+    .promotions-offers-layout .promo-code-cell {
+        justify-content: center;
+        text-align: center;
+    }
+
+    .promotions-view-only .expand-cell sp-icon-chevron-down {
+        transition: transform 0.2s;
+    }
+
+    .promotions-view-only .expand-cell sp-icon-chevron-down.expanded {
+        transform: rotate(180deg);
+    }
+
+    .promotions-view-only .detail-row {
+        width: 100%;
+    }
+
+    .promotions-offers-layout {
+        --offer-expand-column-width: 2.5rem;
+        --offer-actions-column-width: 4.5rem;
+        --offer-promo-actions-gap: var(--spectrum-spacing-500);
+        --offer-detail-end-inset: calc(
+            var(--offer-actions-column-width) + var(--offer-promo-actions-gap) + var(--spectrum-spacing-200)
+        );
+    }
+
+    .promotions-offers-layout sp-table-body > sp-table-row.offer-row {
+        border-bottom: 1px solid var(--spectrum-gray-200);
+    }
+
+    .promotions-offers-layout sp-table-body > sp-table-row.offer-row > sp-table-cell {
+        border-bottom: 0;
+    }
+
+    .promotions-offers-layout .detail-row sp-table-cell.detail-cell-full {
+        flex: 1 1 100%;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+        background: var(--spectrum-gray-75);
+        padding-block: var(--spectrum-spacing-200);
+        padding-inline-start: calc(var(--offer-expand-column-width) + var(--spectrum-spacing-200));
+        padding-inline-end: var(--offer-detail-end-inset);
+        display: block;
+    }
+
+    .promotions-view-only .offer-detail-content {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: var(--spectrum-spacing-200);
+        width: 100%;
+        min-width: 0;
+    }
+
+    .promotions-view-only .detail-offer-id {
+        font-size: var(--spectrum-font-size-75);
+        color: var(--spectrum-gray-800);
+        line-height: 1.4;
+    }
+
+    .promotions-view-only .detail-offer-id strong {
+        font-weight: 600;
+        margin-inline-end: var(--spectrum-spacing-75);
+    }
+
+    .promotions-view-only .detail-offer-id span {
+        overflow-wrap: anywhere;
+    }
+
+    .promotions-view-only .offer-promo-codes-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: var(--spectrum-font-size-75);
+        color: var(--spectrum-gray-800);
+        table-layout: fixed;
+    }
+
+    .promotions-view-only .offer-promo-codes-table th,
+    .promotions-view-only .offer-promo-codes-table td {
+        border: 1px solid var(--spectrum-gray-200);
+        padding: 10px 20px;
+        text-align: left;
+        vertical-align: top;
+    }
+
+    .promotions-view-only .offer-promo-codes-table th {
+        background: var(--spectrum-gray-100);
+        font-weight: 600;
+    }
+
+    .promotions-view-only .offer-promo-codes-table th:first-child,
+    .promotions-view-only .offer-promo-codes-table td:first-child {
+        width: 32%;
+    }
+
+    .promotions-view-only .offer-promo-codes-table th:last-child,
+    .promotions-view-only .offer-promo-codes-table td:last-child {
+        width: 68%;
+    }
+
+    .promotions-view-only .offer-promo-codes-table tbody td {
+        background: var(--spectrum-white);
+    }
+
+    .promotions-view-only .offer-promo-codes-table td:first-child {
+        font-family: var(--spectrum-code-font-family, monospace);
+        white-space: nowrap;
+    }
+
+    .promotions-offers-layout sp-table-row.offer-row {
+        cursor: pointer;
+    }
+
     .promotions-view-only sp-action-menu {
         --mod-actionbutton-edge-to-text: 6px;
     }
@@ -130,57 +267,109 @@ const localStyles = css`
         align-items: center;
     }
 
-    .promotions-cards-layout sp-table-head-cell,
-    .promotions-cards-layout sp-table-cell,
+    .promotions-offers-layout sp-table-head-cell,
+    .promotions-offers-layout sp-table-cell,
+    .promotions-fragments-layout sp-table-head-cell,
+    .promotions-fragments-layout sp-table-cell,
     .promotions-collections-layout sp-table-head-cell,
     .promotions-collections-layout sp-table-cell {
         justify-content: flex-start;
         text-align: start;
     }
 
-    .promotions-cards-layout sp-table-head-cell:nth-child(1),
-    .promotions-cards-layout sp-table-cell:nth-child(1) {
+    .promotions-offers-layout sp-table-head-cell:nth-child(1),
+    .promotions-offers-layout sp-table-cell:nth-child(1) {
+        flex: 0 0 var(--offer-expand-column-width);
+        width: var(--offer-expand-column-width);
+        min-width: var(--offer-expand-column-width);
+        max-width: var(--offer-expand-column-width);
+    }
+
+    .promotions-offers-layout sp-table-head-cell:nth-child(2),
+    .promotions-offers-layout sp-table-cell:nth-child(2) {
+        flex: 1.1 1 0;
+        min-width: 0;
+    }
+
+    .promotions-offers-layout sp-table-head-cell:nth-child(3),
+    .promotions-offers-layout sp-table-cell:nth-child(3),
+    .promotions-offers-layout sp-table-head-cell:nth-child(4),
+    .promotions-offers-layout sp-table-cell:nth-child(4),
+    .promotions-offers-layout sp-table-head-cell:nth-child(5),
+    .promotions-offers-layout sp-table-cell:nth-child(5),
+    .promotions-offers-layout sp-table-head-cell:nth-child(6),
+    .promotions-offers-layout sp-table-cell:nth-child(6),
+    .promotions-offers-layout sp-table-head-cell:nth-child(7),
+    .promotions-offers-layout sp-table-cell:nth-child(7) {
+        flex: 0.75 1 0;
+        min-width: 5rem;
+    }
+
+    .promotions-offers-layout sp-table-head-cell:nth-child(8),
+    .promotions-offers-layout sp-table-cell:nth-child(8) {
+        flex: 0 0 calc(5.5rem + var(--offer-promo-actions-gap));
+        width: calc(5.5rem + var(--offer-promo-actions-gap));
+        min-width: calc(5.5rem + var(--offer-promo-actions-gap));
+        max-width: calc(5.5rem + var(--offer-promo-actions-gap));
+        white-space: nowrap;
+        padding-inline-end: var(--offer-promo-actions-gap);
+        box-sizing: border-box;
+    }
+
+    .promotions-offers-layout sp-table-head-cell:nth-child(9),
+    .promotions-offers-layout sp-table-cell:nth-child(9) {
+        flex: 0 0 calc(var(--offer-actions-column-width) + var(--spectrum-spacing-300));
+        width: calc(var(--offer-actions-column-width) + var(--spectrum-spacing-300));
+        min-width: calc(var(--offer-actions-column-width) + var(--spectrum-spacing-300));
+        max-width: calc(var(--offer-actions-column-width) + var(--spectrum-spacing-300));
+        white-space: nowrap;
+        padding-inline-end: var(--spectrum-spacing-300);
+        box-sizing: border-box;
+    }
+
+    .promotions-fragments-layout sp-table-head-cell:nth-child(1),
+    .promotions-fragments-layout sp-table-cell:nth-child(1) {
         flex: 1.05 1 0;
         min-width: 0;
     }
 
-    .promotions-cards-layout sp-table-head-cell:nth-child(2),
-    .promotions-cards-layout sp-table-cell:nth-child(2) {
+    .promotions-fragments-layout sp-table-head-cell:nth-child(2),
+    .promotions-fragments-layout sp-table-cell:nth-child(2) {
         flex: 0.95 1 0;
         min-width: 0;
     }
 
-    .promotions-cards-layout sp-table-head-cell:nth-child(3),
-    .promotions-cards-layout sp-table-cell:nth-child(3) {
+    .promotions-fragments-layout sp-table-head-cell:nth-child(3),
+    .promotions-fragments-layout sp-table-cell:nth-child(3) {
         flex: 1.15 1 0;
         min-width: 0;
     }
 
-    .promotions-cards-layout sp-table-head-cell:nth-child(4),
-    .promotions-cards-layout sp-table-cell:nth-child(4) {
+    .promotions-fragments-layout sp-table-head-cell:nth-child(4),
+    .promotions-fragments-layout sp-table-cell:nth-child(4) {
         flex: 1.45 1 0;
         min-width: 0;
     }
 
-    .promotions-cards-layout sp-table-head-cell:nth-child(5),
-    .promotions-cards-layout sp-table-cell:nth-child(5) {
+    .promotions-fragments-layout sp-table-head-cell:nth-child(5),
+    .promotions-fragments-layout sp-table-cell:nth-child(5) {
         flex: 0.65 1 0;
         min-width: 6rem;
     }
 
-    .promotions-cards-layout sp-table-head-cell:nth-child(6),
-    .promotions-cards-layout sp-table-cell:nth-child(6) {
+    .promotions-fragments-layout sp-table-head-cell:nth-child(6),
+    .promotions-fragments-layout sp-table-cell:nth-child(6) {
         flex: 0.8 1 0;
         min-width: 7.25rem;
     }
 
-    .promotions-cards-layout sp-table-cell:nth-child(5),
-    .promotions-cards-layout sp-table-cell:nth-child(6) {
+    .promotions-fragments-layout sp-table-cell:nth-child(5),
+    .promotions-fragments-layout sp-table-cell:nth-child(6) {
         white-space: nowrap;
     }
 
-    .promotions-cards-layout sp-table-head-cell:nth-child(7),
-    .promotions-cards-layout sp-table-cell:nth-child(7) {
+    .promotions-fragments-layout sp-table-head-cell:nth-child(7),
+    .promotions-fragments-layout sp-table-cell:nth-child(7) {
         flex: 0 0 6.5rem;
         width: 6.5rem;
         min-width: 6.5rem;
@@ -188,13 +377,32 @@ const localStyles = css`
         white-space: nowrap;
     }
 
-    .promotions-cards-layout sp-table-head-cell:nth-child(8),
-    .promotions-cards-layout sp-table-cell:nth-child(8) {
+    .promotions-fragments-layout sp-table-head-cell:nth-child(8),
+    .promotions-fragments-layout sp-table-cell:nth-child(8) {
         flex: 0 0 6rem;
         width: 6rem;
         min-width: 6rem;
         max-width: 6rem;
         white-space: nowrap;
+    }
+
+    .offers-empty-state {
+        display: flex;
+        flex-direction: row;
+        gap: 12px;
+        padding: 12px;
+        border: 2px dashed var(--spectrum-gray-400);
+        border-radius: 8px;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .offers-empty-state .label {
+        align-content: center;
+    }
+
+    .offers-empty-state sp-button {
+        background: white;
     }
 
     .promotions-collections-layout sp-table-head-cell:nth-child(1),
@@ -255,9 +463,14 @@ class MasPromotionsItemsTable extends LitElement {
         type: { type: String },
         getDisplayName: { type: Function },
         renderFragmentStatusCell: { type: Function },
+        promoCodeExceptions: { type: Array },
+        defaultPromoCode: { type: String },
+        geos: { type: Array },
+        expandedPaths: { type: Object, state: true },
         viewOnlyLoading: { type: Boolean, state: true },
         viewOnlyFragments: { type: Array, state: true },
         confirmDialogConfig: { type: Object, state: true },
+        offerRemovalDialogOpen: { type: Boolean, state: true },
         createPromoVariationLoading: { type: Boolean, state: true },
         existingPromoVariationDefaultPaths: { type: Object, state: true },
     };
@@ -271,8 +484,13 @@ class MasPromotionsItemsTable extends LitElement {
         this.viewOnlyLoading = false;
         this.viewOnlyFragments = [];
         this.confirmDialogConfig = null;
+        this.offerRemovalDialogOpen = false;
         this.createPromoVariationLoading = false;
         this.existingPromoVariationDefaultPaths = new Set();
+        this.promoCodeExceptions = [];
+        this.defaultPromoCode = '';
+        this.geos = [];
+        this.expandedPaths = new Set();
         this.getDisplayName = (fragmentData) => fragmentData?.path ?? '';
         this.renderFragmentStatusCell = () => nothing;
     }
@@ -289,11 +507,14 @@ class MasPromotionsItemsTable extends LitElement {
     connectedCallback() {
         super.connectedCallback();
         if (this.#selectionController) return;
-        const upper = this.typeUppercased;
-        this.#selectionController = new ReactiveController(this, [
-            getItemsSelectionStore()[`selected${upper}`],
-            Store.promotions.inEdit,
-        ]);
+        const store = getItemsSelectionStore();
+        const selectionStore =
+            this.type === TABLE_TYPE.OFFERS
+                ? store.selectedOffers
+                : this.type === TABLE_TYPE.CARDS
+                  ? store.selectedCards
+                  : store.selectedCollections;
+        this.#selectionController = new ReactiveController(this, [selectionStore, Store.promotions.inEdit]);
     }
 
     disconnectedCallback() {
@@ -301,6 +522,9 @@ class MasPromotionsItemsTable extends LitElement {
         this.#processAbortController?.abort();
         this.#processAbortController = null;
         this.viewOnlyLoading = false;
+        this.confirmDialogConfig?.onCancel?.();
+        this.confirmDialogConfig = null;
+        this.offerRemovalDialogOpen = false;
     }
 
     get repository() {
@@ -312,10 +536,56 @@ class MasPromotionsItemsTable extends LitElement {
     }
 
     get selectedPaths() {
-        return getItemsSelectionStore()[`selected${this.typeUppercased}`].value;
+        const store = getItemsSelectionStore();
+        if (this.type === TABLE_TYPE.OFFERS) return store.selectedOffers.value;
+        return store[`selected${this.typeUppercased}`].value;
+    }
+
+    get #promoCodeExceptionValues() {
+        if (this.promoCodeExceptions?.length) return this.promoCodeExceptions;
+        return Store.promotions.inEdit.get()?.get?.()?.getFieldValues('offers') ?? [];
+    }
+
+    get #defaultPromoCodeValue() {
+        if (this.defaultPromoCode) return this.defaultPromoCode;
+        return Store.promotions.inEdit.get()?.get?.()?.getFieldValues('promoCode')?.[0] ?? '';
+    }
+
+    get #geoValues() {
+        if (this.geos?.length) return this.geos;
+        return Store.promotions.inEdit.get()?.get?.()?.getFieldValues('geos') ?? [];
+    }
+
+    get #countries() {
+        return parseCountriesFromGeos(this.#geoValues);
+    }
+
+    get #exceptionsMap() {
+        return parsePromoCodeExceptions(this.#promoCodeExceptionValues);
+    }
+
+    get #offerSubstitutionsMap() {
+        return parseOfferSubstitutions(this.#promoCodeExceptionValues);
+    }
+
+    #promoCodeCountForOffer(offerId) {
+        return countDistinctPromoCodesForOffer(this.#exceptionsMap, offerId, this.#countries, this.#defaultPromoCodeValue);
     }
 
     get tableColumns() {
+        if (this.type === TABLE_TYPE.OFFERS) {
+            return [
+                { label: '', key: 'expand' },
+                { label: 'Offer', key: 'offer', sortable: true },
+                { label: 'Product arrangement', key: 'productArrangement' },
+                { label: 'Offer type', key: 'offerType' },
+                { label: 'Plan type', key: 'planType' },
+                { label: 'Customer segment', key: 'customerSegment' },
+                { label: 'Market segment', key: 'marketSegment' },
+                { label: 'Promo code', key: 'promoCode' },
+                { label: 'Actions', key: 'actions' },
+            ];
+        }
         if (this.type === TABLE_TYPE.CARDS) {
             return [
                 { label: 'Offer', key: 'offer', sortable: true },
@@ -340,11 +610,38 @@ class MasPromotionsItemsTable extends LitElement {
     updated(changed) {
         super.updated(changed);
         if (!this.type) return;
+        if (this.type === TABLE_TYPE.OFFERS) {
+            this.#loadSelectedOffers(this.selectedPaths);
+            return;
+        }
         const paths = this.selectedPaths;
         const key = paths.slice().sort().join('|');
         if (key === this.#loadedPathsKey) return;
         this.#loadedPathsKey = key;
         this.#loadSelected(paths);
+    }
+
+    #loadSelectedOffers(offerIds) {
+        const key = offerIds.slice().sort().join('|');
+        if (key === this.#loadedPathsKey) return;
+        this.#loadedPathsKey = key;
+        if (!offerIds.length) {
+            this.viewOnlyFragments = [];
+            this.viewOnlyLoading = false;
+            return;
+        }
+        this.viewOnlyFragments = offerIds.map((offerId) => {
+            const cached = Store.promotions.offerDataCache.get(offerId);
+            if (cached) return cached;
+            return {
+                path: offerId,
+                id: offerId,
+                offerData: { offerId },
+                tags: [],
+                fields: [],
+            };
+        });
+        this.viewOnlyLoading = false;
     }
 
     async #loadSelected(paths) {
@@ -362,7 +659,9 @@ class MasPromotionsItemsTable extends LitElement {
             onItems: (items) => {
                 if (!signal.aborted) {
                     this.viewOnlyFragments = items;
-                    this.#syncExistingPromoVariations(items, signal);
+                    if (this.type === TABLE_TYPE.CARDS) {
+                        this.#syncExistingPromoVariations(items, signal);
+                    }
                 }
             },
             getDisplayName: this.getDisplayName,
@@ -547,16 +846,102 @@ class MasPromotionsItemsTable extends LitElement {
         }
     }
 
-    #removeFromList(e, item) {
+    #getOfferRemovalContext(selectorId) {
+        const store = getItemsSelectionStore();
+        return {
+            store,
+            removed: getPromotionItemsRemovedByOfferRemoval({
+                offerSelectorId: selectorId,
+                selectedOffers: store.selectedOffers.value,
+                selectedCards: store.selectedCards.value,
+                selectedCollections: store.selectedCollections.value,
+                offerDataCache: Store.promotions.offerDataCache,
+                cardsByPaths: store.cardsByPaths.value,
+                collectionsByPaths: store.collectionsByPaths.value,
+                groupedVariationsByParent: store.groupedVariationsByParent.value,
+                groupedVariationsData: store.groupedVariationsData.value,
+            }),
+        };
+    }
+
+    #confirmRemoveOffer(fragmentCount, collectionCount) {
+        return new Promise((resolve) => {
+            this.confirmDialogConfig = {
+                title: 'Remove offer',
+                message: buildRemoveOfferConfirmationMessage(fragmentCount, collectionCount),
+                confirmText: 'Delete',
+                cancelText: 'Cancel',
+                variant: 'confirmation',
+                onConfirm: () => resolve(true),
+                onCancel: () => resolve(false),
+            };
+        });
+    }
+
+    #applyOfferRemoval(selectorId) {
+        const store = getItemsSelectionStore();
+        const remainingOffers = store.selectedOffers.value.filter((id) => id !== selectorId);
+        store.selectedOffers.set(remainingOffers);
+        Store.promotions.offerDataCache.delete(selectorId);
+        if (!remainingOffers.length) {
+            store.selectedCards.set([]);
+            store.selectedCollections.set([]);
+        } else {
+            const pruned = pruneOrphanedPromotionSelectionAfterOfferRemoval({
+                selectedCards: store.selectedCards.value,
+                selectedCollections: store.selectedCollections.value,
+                remainingSelectedOfferIds: remainingOffers,
+                offerDataCache: Store.promotions.offerDataCache,
+                cardsByPaths: store.cardsByPaths.value,
+                collectionsByPaths: store.collectionsByPaths.value,
+                groupedVariationsByParent: store.groupedVariationsByParent.value,
+                groupedVariationsData: store.groupedVariationsData.value,
+            });
+            store.selectedCards.set(pruned.selectedCards);
+            store.selectedCollections.set(pruned.selectedCollections);
+        }
+        applyPromotionOfferProductTagsToSearch(Store.promotions.offerDataCache, remainingOffers);
+        this.dispatchEvent(
+            new CustomEvent('promotion-offer-removed', {
+                bubbles: true,
+                composed: true,
+            }),
+        );
+    }
+
+    async #removeFromList(e, item) {
         e.stopPropagation();
         const path = item?.path;
         if (!path) return;
         const store = getItemsSelectionStore();
+        if (this.type === TABLE_TYPE.OFFERS) {
+            if (this.offerRemovalDialogOpen) return;
+            const selectorId = item.path || item.id;
+            const { removed } = this.#getOfferRemovalContext(selectorId);
+            const fragmentCount = removed.removedCards.length;
+            const collectionCount = removed.removedCollections.length;
+            if (fragmentCount + collectionCount > 0) {
+                this.offerRemovalDialogOpen = true;
+                let confirmed = false;
+                try {
+                    confirmed = await this.#confirmRemoveOffer(fragmentCount, collectionCount);
+                } finally {
+                    this.offerRemovalDialogOpen = false;
+                }
+                if (!confirmed) return;
+            }
+            this.#applyOfferRemoval(selectorId);
+            return;
+        }
         if (this.type === TABLE_TYPE.CARDS) {
             store.selectedCards.set(store.selectedCards.value.filter((p) => p !== path));
         } else {
             store.selectedCollections.set(store.selectedCollections.value.filter((p) => p !== path));
         }
+    }
+
+    #openOst() {
+        openOfferSelectorTool(document.createElement('osi-field'), null);
     }
 
     #renderOfferCell(item) {
@@ -615,8 +1000,8 @@ class MasPromotionsItemsTable extends LitElement {
     }
 
     #renderActionsCell(item) {
-        const showCreatePromo = this.#canCreatePromoVariation(item);
-        const showViewPromo = this.#hasPromoVariationForItem(item);
+        const showCreatePromo = this.type === TABLE_TYPE.CARDS && this.#canCreatePromoVariation(item);
+        const showViewPromo = this.type === TABLE_TYPE.CARDS && this.#hasPromoVariationForItem(item);
         return html`<sp-table-cell class="actions-cell">
             <sp-action-menu placement="bottom-end" quiet @click=${(e) => e.stopPropagation()}>
                 <sp-icon-more slot="icon"></sp-icon-more>
@@ -635,16 +1020,155 @@ class MasPromotionsItemsTable extends LitElement {
                           View promo variation
                       </sp-menu-item>`
                     : nothing}
-                <sp-menu-item @click=${(e) => this.#editFragment(e, item)}>
-                    <sp-icon-edit slot="icon"></sp-icon-edit>
-                    ${this.type === TABLE_TYPE.COLLECTIONS ? 'Edit collection' : 'Edit fragment'}
-                </sp-menu-item>
-                <sp-menu-item @click=${(e) => this.#removeFromList(e, item)}>
-                    <sp-icon-delete slot="icon"></sp-icon-delete>
-                    Remove from list
-                </sp-menu-item>
+                ${this.type === TABLE_TYPE.OFFERS
+                    ? html`<sp-menu-item @click=${(e) => this.#removeFromList(e, item)}>
+                          <sp-icon-delete slot="icon"></sp-icon-delete>
+                          Remove from list
+                      </sp-menu-item>`
+                    : html`<sp-menu-item @click=${(e) => this.#editFragment(e, item)}>
+                              <sp-icon-edit slot="icon"></sp-icon-edit>
+                              ${this.type === TABLE_TYPE.COLLECTIONS ? 'Edit collection' : 'Edit fragment'}
+                          </sp-menu-item>
+                          <sp-menu-item @click=${(e) => this.#removeFromList(e, item)}>
+                              <sp-icon-delete slot="icon"></sp-icon-delete>
+                              Remove from list
+                          </sp-menu-item>`}
             </sp-action-menu>
         </sp-table-cell>`;
+    }
+
+    #toggleExpand(path) {
+        const next = new Set(this.expandedPaths);
+        if (next.has(path)) {
+            next.delete(path);
+        } else {
+            next.add(path);
+        }
+        this.expandedPaths = next;
+    }
+
+    #onOfferRowClick(e, path) {
+        if (shouldIgnoreRowClickForSelection(e)) return;
+        this.#toggleExpand(path);
+    }
+
+    #renderExpandCell(item) {
+        const expanded = this.expandedPaths.has(item.path);
+        return html`<sp-table-cell class="expand-cell">
+            <sp-action-button
+                quiet
+                size="s"
+                aria-label=${expanded ? 'Collapse row' : 'Expand row'}
+                @click=${(e) => {
+                    e.stopPropagation();
+                    this.#toggleExpand(item.path);
+                }}
+            >
+                <sp-icon-chevron-down slot="icon" class=${expanded ? 'expanded' : ''}></sp-icon-chevron-down>
+            </sp-action-button>
+        </sp-table-cell>`;
+    }
+
+    #renderTagCell(item, tagKey) {
+        const title = item?.getTagTitle?.(tagKey) || '-';
+        return html`<sp-table-cell>${title}</sp-table-cell>`;
+    }
+
+    #renderProductArrangementCell(item) {
+        const arrangement = item?.getTagTitle?.('product_arrangement') || item?.offerData?.product_arrangement_code || '-';
+        return html`<sp-table-cell>${arrangement}</sp-table-cell>`;
+    }
+
+    #renderPromoCodeCell(item) {
+        const offerId = item?.offerData?.offerId;
+        const count = this.#promoCodeCountForOffer(offerId);
+        return html`<sp-table-cell class="promo-code-cell">${count || '-'}</sp-table-cell>`;
+    }
+
+    #getOfferPromoCodeGroups(item) {
+        const offerKeys = [item?.path, item?.offerData?.offerId].filter(Boolean);
+        return groupCountriesByPromoCodeForOffer(this.#exceptionsMap, offerKeys, this.#countries, this.#defaultPromoCodeValue);
+    }
+
+    #getOfferSubstitutionGroups(item) {
+        const offerKeys = [item?.path, item?.offerData?.offerId].filter(Boolean);
+        const offersBySelectorId = new Map(
+            (this.viewOnlyFragments ?? [])
+                .map((offer) => {
+                    const selectorId = offer?.path ?? offer?.id;
+                    if (!selectorId) return null;
+                    const label =
+                        offer?.tags?.find(({ id }) => id.startsWith('mas:product_code/'))?.title ||
+                        offer?.offerData?.offerId ||
+                        selectorId;
+                    return [selectorId, label];
+                })
+                .filter(Boolean),
+        );
+        return groupOfferSubstitutionsForOffer(
+            this.#offerSubstitutionsMap,
+            offerKeys,
+            this.#countries,
+            (selectorId) => offersBySelectorId.get(selectorId) ?? selectorId,
+        );
+    }
+
+    #renderExpandedDetailRow(item) {
+        if (!this.expandedPaths.has(item.path)) return nothing;
+        const offerId = item?.offerData?.offerId ?? '-';
+        const promoCodeGroups = this.#getOfferPromoCodeGroups(item);
+        const offerSubstitutionGroups = this.#getOfferSubstitutionGroups(item);
+        return html`<sp-table-row class="detail-row">
+            <sp-table-cell class="detail-cell-full">
+                <div class="offer-detail-content">
+                    <div class="detail-offer-id"><strong>Offer ID:</strong><span>${offerId}</span></div>
+                    <table class="offer-promo-codes-table">
+                        <thead>
+                            <tr>
+                                <th>Promo codes</th>
+                                <th>Countries</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${promoCodeGroups.length
+                                ? repeat(
+                                      promoCodeGroups,
+                                      (group) => group.promoCode,
+                                      (group) =>
+                                          html`<tr>
+                                              <td>${group.promoCode}</td>
+                                              <td>${group.countriesLabel}</td>
+                                          </tr>`,
+                                  )
+                                : html`<tr>
+                                      <td colspan="2">-</td>
+                                  </tr>`}
+                        </tbody>
+                    </table>
+                    ${offerSubstitutionGroups.length
+                        ? html`<table class="offer-promo-codes-table">
+                              <thead>
+                                  <tr>
+                                      <th>Substitute offers</th>
+                                      <th>Countries</th>
+                                  </tr>
+                              </thead>
+                              <tbody>
+                                  ${repeat(
+                                      offerSubstitutionGroups,
+                                      (group) => group.offerLabel,
+                                      (group) =>
+                                          html`<tr>
+                                              <td>${group.offerLabel}</td>
+                                              <td>${group.countriesLabel}</td>
+                                          </tr>`,
+                                  )}
+                              </tbody>
+                          </table>`
+                        : nothing}
+                </div>
+            </sp-table-cell>
+        </sp-table-row>`;
     }
 
     #renderPreviewCell(item) {
@@ -661,7 +1185,24 @@ class MasPromotionsItemsTable extends LitElement {
         </sp-table-cell>`;
     }
 
-    #renderCardRow(item) {
+    #renderOfferRow(item) {
+        return html`<sp-table-row class="offer-row" value=${item.path} @click=${(e) => this.#onOfferRowClick(e, item.path)}>
+            ${this.#renderExpandCell(item)} ${this.#renderOfferCell(item)} ${this.#renderProductArrangementCell(item)}
+            ${this.#renderTagCell(item, 'offer_type')} ${this.#renderTagCell(item, 'plan_type')}
+            ${this.#renderTagCell(item, 'customer_segment')} ${this.#renderTagCell(item, 'market_segment')}
+            ${this.#renderPromoCodeCell(item)} ${this.#renderActionsCell(item)}
+        </sp-table-row>`;
+    }
+
+    #renderOfferRows(items) {
+        return repeat(
+            items,
+            (item) => item.path,
+            (item) => html`${this.#renderOfferRow(item)}${this.#renderExpandedDetailRow(item)}`,
+        );
+    }
+
+    #renderFragmentRow(item) {
         return html`<sp-table-row value=${item.path}>
             ${this.#renderOfferCell(item)}
             <sp-table-cell>${item.title || 'no title'}</sp-table-cell>
@@ -686,7 +1227,7 @@ class MasPromotionsItemsTable extends LitElement {
             (_, i) =>
                 html`<sp-table-row class="skeleton-row" key=${i}>
                     ${this.tableColumns.map(
-                        (column) =>
+                        () =>
                             html`<sp-table-cell>
                                 <div class="skeleton-element skeleton-table-cell"></div>
                             </sp-table-cell>`,
@@ -695,38 +1236,76 @@ class MasPromotionsItemsTable extends LitElement {
         );
     }
 
+    get #layoutClass() {
+        if (this.type === TABLE_TYPE.OFFERS) return 'promotions-offers-layout';
+        if (this.type === TABLE_TYPE.CARDS) return 'promotions-fragments-layout';
+        return 'promotions-collections-layout';
+    }
+
+    get #emptySelectionMessage() {
+        if (this.type === TABLE_TYPE.CARDS) {
+            return 'No fragments selected. Use Add fragments to pick cards matching your offers.';
+        }
+        if (this.type === TABLE_TYPE.COLLECTIONS) {
+            return 'No collections selected.';
+        }
+        return 'No items found.';
+    }
+
+    get #offersEmptyStateTemplate() {
+        return html`<div class="offers-empty-state">
+            <div class="icon">
+                <sp-button variant="secondary" @click=${this.#openOst}>
+                    <sp-icon-add size="xxl"></sp-icon-add>
+                </sp-button>
+            </div>
+            <div class="label">
+                <strong>Add product offers</strong><br />
+                Choose offers for selected countries.
+            </div>
+        </div>`;
+    }
+
     render() {
+        if (this.type === TABLE_TYPE.OFFERS && !this.viewOnlyLoading && this.selectedPaths.length === 0) {
+            return html`${this.confirmDialogTemplate}${this.#offersEmptyStateTemplate}`;
+        }
+
         const showSkeleton = this.viewOnlyLoading;
         const items = this.viewOnlyFragments;
         const showEmpty = !showSkeleton && items.length === 0;
         const showTable = showSkeleton || items.length > 0;
-        const layoutClass = this.type === TABLE_TYPE.CARDS ? 'promotions-cards-layout' : 'promotions-collections-layout';
 
         return html`
-            ${this.confirmDialogTemplate} ${showEmpty ? html`<p>No items found.</p>` : nothing}
+            ${this.confirmDialogTemplate} ${showEmpty ? html`<p>${this.#emptySelectionMessage}</p>` : nothing}
             ${showTable
-                ? html`<sp-table class="fragments-table item-table promotions-view-only ${layoutClass}" emphasized>
+                ? html`<sp-table class="fragments-table item-table promotions-view-only ${this.#layoutClass}" emphasized>
                       <sp-table-head>
                           ${repeat(
                               this.tableColumns,
                               (column) => column.key,
-                              (column) => html`<sp-table-head-cell>${column.label}</sp-table-head-cell>`,
+                              (column) =>
+                                  html`<sp-table-head-cell class=${column.key === 'promoCode' ? 'promo-code-head-cell' : ''}
+                                      >${column.label}</sp-table-head-cell
+                                  >`,
                           )}
                       </sp-table-head>
                       <sp-table-body>
                           ${showSkeleton
                               ? this.#renderSkeletonRows()
-                              : this.type === TABLE_TYPE.CARDS
-                                ? repeat(
-                                      items,
-                                      (f) => f.path,
-                                      (f) => this.#renderCardRow(f),
-                                  )
-                                : repeat(
-                                      items,
-                                      (f) => f.path,
-                                      (f) => this.#renderCollectionRow(f),
-                                  )}
+                              : this.type === TABLE_TYPE.OFFERS
+                                ? this.#renderOfferRows(items)
+                                : this.type === TABLE_TYPE.CARDS
+                                  ? repeat(
+                                        items,
+                                        (f) => f.path,
+                                        (f) => this.#renderFragmentRow(f),
+                                    )
+                                  : repeat(
+                                        items,
+                                        (f) => f.path,
+                                        (f) => this.#renderCollectionRow(f),
+                                    )}
                       </sp-table-body>
                   </sp-table>`
                 : nothing}

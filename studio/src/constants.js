@@ -272,6 +272,7 @@ export const FRAGMENT_STATUS = {
 };
 
 export const TABLE_TYPE = {
+    OFFERS: 'offers',
     CARDS: 'cards',
     COLLECTIONS: 'collections',
     PLACEHOLDERS: 'placeholders',

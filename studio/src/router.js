@@ -1,6 +1,6 @@
 import { PAGE_NAMES, SORT_COLUMNS, WCS_LANDSCAPE_PUBLISHED, COLLECTION_MODEL_PATH } from './constants.js';
 import Store from './store.js';
-import { isPromotionItemSelectionDirty } from './promotions/promotion-editor-utils.js';
+import { isPromotionItemSelectionDirty, isPromotionOffersSelectionDirty } from './promotions/promotion-editor-utils.js';
 import { debounce } from './utils.js';
 import { canAccessSettings } from './groups.js';
 import { getDefaultLocaleCode } from '../../io/www/src/fragment/locales.js';
@@ -21,7 +21,7 @@ export function promoHashIsSearchSync(previousHash, nextHash) {
     if (next.get('page') !== PAGE_NAMES.PROMOTIONS_EDITOR) return false;
     if (prev.get('page') && prev.get('page') !== PAGE_NAMES.PROMOTIONS_EDITOR) return false;
     if (prev.get('promotionId') !== next.get('promotionId')) return false;
-    const ignorable = new Set(['query', 'path']);
+    const ignorable = new Set(['query', 'path', 'tags', 'locale', 'personalizationFilterEnabled']);
     const keys = new Set([...prev.keys(), ...next.keys()]);
     for (const key of keys) {
         if (ignorable.has(key)) continue;
@@ -122,11 +122,13 @@ export class Router extends EventTarget {
         if (!inEdit) return false;
         if (inEdit.hasChanges) return true;
 
-        return isPromotionItemSelectionDirty(
-            inEdit,
-            Store.promotions.selectedCards.value,
-            Store.promotions.selectedCollections.value,
-            Store.promotions.itemHydrateUnreachablePaths.value,
+        return (
+            isPromotionItemSelectionDirty(
+                inEdit,
+                Store.promotions.selectedCards.value,
+                Store.promotions.selectedCollections.value,
+                Store.promotions.itemHydrateUnreachablePaths.value,
+            ) || isPromotionOffersSelectionDirty(inEdit, Store.promotions.selectedOffers.value)
         );
     }
 
@@ -193,8 +195,10 @@ export class Router extends EventTarget {
         Store.promotions.inEdit.set(null);
         Store.promotions.showSelected.set(false);
         Store.promotions.selectedCards.set([]);
+        Store.promotions.selectedOffers.set([]);
         Store.promotions.selectedCollections.set([]);
         Store.promotions.selectedPlaceholders.set([]);
+        Store.filters.set((prev) => ({ ...prev, tags: undefined }));
     }
 
     #clearsPromotionContextOnNavigateTo(targetPage) {

@@ -17,6 +17,7 @@ describe('MasPromotionsItemsSelector', () => {
         Store.promotions.inEdit.set(null);
         Store.promotions.showSelected.set(false);
         Store.promotions.selectedCards.set([]);
+        Store.promotions.selectedOffers.set([]);
         Store.promotions.selectedCollections.set([]);
         Store.promotions.selectedPlaceholders.set([]);
     });
@@ -25,17 +26,43 @@ describe('MasPromotionsItemsSelector', () => {
         fixtureCleanup();
         await new Promise((resolve) => setTimeout(resolve, 350));
         sandbox.restore();
+        Store.filters.set((prev) => ({ ...prev, tags: undefined }));
         Store.promotions.inEdit.set(null);
         Store.promotions.showSelected.set(false);
         Store.promotions.selectedCards.set([]);
+        Store.promotions.selectedOffers.set([]);
         Store.promotions.selectedCollections.set([]);
         Store.promotions.selectedPlaceholders.set([]);
         setItemsSelectionStore(null);
     });
 
-    it('renders two promotion tabs', async () => {
+    it('renders two picker tabs for fragments and collections', async () => {
         const el = await fixture(html`<mas-promotions-items-selector></mas-promotions-items-selector>`);
         expect(el.shadowRoot.querySelectorAll('sp-tab').length).to.equal(2);
+    });
+
+    it('renders three view-only tabs for offers, fragments, and collections', async () => {
+        const el = await fixture(html`<mas-promotions-items-selector .viewOnly=${true}></mas-promotions-items-selector>`);
+        expect(el.shadowRoot.querySelectorAll('sp-tab').length).to.equal(3);
+    });
+
+    it('honors selectedTab binding in viewOnly mode', async () => {
+        const el = await fixture(
+            html`<mas-promotions-items-selector
+                .viewOnly=${true}
+                .selectedTab=${TABLE_TYPE.OFFERS}
+            ></mas-promotions-items-selector>`,
+        );
+        await el.updateComplete;
+        expect(el.selectedTab).to.equal(TABLE_TYPE.OFFERS);
+    });
+
+    it('includes offers selection count in tab label when viewOnly', async () => {
+        Store.promotions.selectedOffers.set(['offer-a', 'offer-b']);
+        const el = await fixture(html`<mas-promotions-items-selector .viewOnly=${true}></mas-promotions-items-selector>`);
+        await el.updateComplete;
+        const offersTab = [...el.shadowRoot.querySelectorAll('sp-tab')].find((t) => t.value === TABLE_TYPE.OFFERS);
+        expect(offersTab.textContent).to.include('(2)');
     });
 
     it('dispatches promotion-items-tab-change when tab selection changes', async () => {
@@ -61,7 +88,7 @@ describe('MasPromotionsItemsSelector', () => {
 
     it('renders mas-promotions-items-table when viewOnly', async () => {
         const el = await fixture(html`<mas-promotions-items-selector .viewOnly=${true}></mas-promotions-items-selector>`);
-        expect(el.shadowRoot.querySelectorAll('mas-promotions-items-table').length).to.equal(2);
+        expect(el.shadowRoot.querySelectorAll('mas-promotions-items-table').length).to.equal(3);
     });
 
     it('includes selection counts in tab labels when viewOnly', async () => {
@@ -117,6 +144,40 @@ describe('MasPromotionsItemsSelector', () => {
         const spies = filters.map((f) => sandbox.spy(f, 'resetFilters'));
         el.resetFilters();
         spies.forEach((s) => expect(s.callCount).to.equal(1));
+    });
+
+    it('syncs selected offer product tags to Store.filters on connect', async () => {
+        Store.promotions.selectedOffers.set(['fpsa-osi', 'stel-osi']);
+        Store.promotions.offerDataCache.set('fpsa-osi', {
+            tags: [{ id: 'mas:product_code/fpsa', title: 'FPSA' }],
+        });
+        Store.promotions.offerDataCache.set('stel-osi', {
+            tags: [{ id: 'mas:product_code/stel', title: 'STEL' }],
+        });
+        await fixture(html`<mas-promotions-items-selector></mas-promotions-items-selector>`);
+        expect(Store.filters.get().tags).to.equal('mas:product_code/fpsa,mas:product_code/stel');
+    });
+
+    it('passes product tags from selected offers as productFilter to fragment search', async () => {
+        Store.promotions.selectedOffers.set(['phsp-osi']);
+        Store.promotions.offerDataCache.set('phsp-osi', {
+            path: 'phsp-osi',
+            id: 'phsp-osi',
+            offerData: { offerId: 'phsp-osi' },
+            tags: [{ id: 'mas:product_code/phsp', title: 'Photoshop' }],
+            fields: [],
+        });
+        const el = await fixture(html`<mas-promotions-items-selector></mas-promotions-items-selector>`);
+        await el.updateComplete;
+        const filters = [...el.renderRoot.querySelectorAll('mas-search-and-filters')];
+        filters.forEach((f) => expect(f.productFilter).to.deep.equal(['mas:product_code/phsp']));
+    });
+
+    it('passes empty productFilter when no offers are selected', async () => {
+        const el = await fixture(html`<mas-promotions-items-selector></mas-promotions-items-selector>`);
+        await el.updateComplete;
+        const filters = [...el.renderRoot.querySelectorAll('mas-search-and-filters')];
+        filters.forEach((f) => expect(f.productFilter).to.deep.equal([]));
     });
 
     it('updates sp-toast when a child table dispatches show-toast', async () => {

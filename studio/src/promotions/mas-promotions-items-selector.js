@@ -12,10 +12,20 @@ import '../common/components/mas-selected-items.js';
 import '../common/components/mas-search-and-filters.js';
 import { styles } from '../common/components/mas-items-selector.css.js';
 import { debounce, isUUID } from '../utils.js';
-import { normalizePromotionSearchInput } from './promotion-editor-utils.js';
+import {
+    applyPromotionOfferProductTagsToSearch,
+    collectPromotionOfferProductTags,
+    normalizePromotionSearchInput,
+} from './promotion-editor-utils.js';
 import { renderFragmentStatusCell } from '../common/utils/render-utils.js';
 
-const PROMOTION_TABS = [
+const PROMOTION_PICKER_TABS = [
+    { value: TABLE_TYPE.CARDS, label: 'Fragments' },
+    { value: TABLE_TYPE.COLLECTIONS, label: 'Collections' },
+];
+
+const PROMOTION_VIEW_TABS = [
+    { value: TABLE_TYPE.OFFERS, label: 'Offers' },
     { value: TABLE_TYPE.CARDS, label: 'Fragments' },
     { value: TABLE_TYPE.COLLECTIONS, label: 'Collections' },
 ];
@@ -65,11 +75,22 @@ class MasPromotionsItemsSelector extends LitElement {
         this.storeController = new ReactiveController(this, [
             s.inEdit,
             s.showSelected,
+            s.selectedOffers,
             s.selectedCards,
             s.selectedCollections,
             s.selectedPlaceholders,
         ]);
+        if (!this.viewOnly) {
+            new ReactiveController(this, [s.selectedOffers], this.#onSelectedOffersChange);
+            this.#syncOfferProductTagsToFragmentSearch();
+        }
     }
+
+    #onSelectedOffersChange = () => {
+        if (!this.viewOnly) {
+            this.#syncOfferProductTagsToFragmentSearch();
+        }
+    };
 
     get showSelected() {
         return getItemsSelectionStore().showSelected.value;
@@ -137,10 +158,20 @@ class MasPromotionsItemsSelector extends LitElement {
         );
     }
 
+    get #tabs() {
+        return this.viewOnly ? PROMOTION_VIEW_TABS : PROMOTION_PICKER_TABS;
+    }
+
+    #getSelectionStoreKey(tabValue) {
+        if (tabValue === TABLE_TYPE.OFFERS) return 'selectedOffers';
+        const valueUppercase = tabValue.charAt(0).toUpperCase() + tabValue.slice(1);
+        return `selected${valueUppercase}`;
+    }
+
     #getTabLabel(tab) {
         if (this.viewOnly) {
-            const valueUppercase = tab.value.charAt(0).toUpperCase() + tab.value.slice(1);
-            return `${tab.label} (${getItemsSelectionStore()[`selected${valueUppercase}`].value.length})`;
+            const count = getItemsSelectionStore()[this.#getSelectionStoreKey(tab.value)].value.length;
+            return `${tab.label} (${count})`;
         }
         return tab.label;
     }
@@ -174,13 +205,33 @@ class MasPromotionsItemsSelector extends LitElement {
         s.allCollections.set([]);
         s.allCollections.setMeta('loaded', false);
         s.displayCollections.set([]);
-        repo?.searchFragments?.();
+        this.#syncOfferProductTagsToFragmentSearch();
         repo?.loadAllCollections?.();
         repo?.loadPlaceholders?.();
     }
 
+    get #offerProductTags() {
+        const s = getItemsSelectionStore();
+        return collectPromotionOfferProductTags(Store.promotions.offerDataCache, s.selectedOffers.value);
+    }
+
+    #syncOfferProductTagsToFragmentSearch() {
+        const s = getItemsSelectionStore({ allowUnset: true });
+        if (!s) return [];
+        const tags = applyPromotionOfferProductTagsToSearch(Store.promotions.offerDataCache, s.selectedOffers.value);
+        const filters = this.renderRoot.querySelectorAll('mas-search-and-filters');
+        filters.forEach((el) => {
+            el.productFilter = tags;
+        });
+        if (Store.promotions.itemPickerSurface.get()) {
+            document.querySelector('mas-repository')?.searchFragments?.();
+        }
+        return tags;
+    }
+
     resetFilters() {
         this.renderRoot.querySelectorAll('mas-search-and-filters').forEach((el) => el.resetFilters());
+        this.#syncOfferProductTagsToFragmentSearch();
     }
 
     render() {
@@ -212,12 +263,12 @@ class MasPromotionsItemsSelector extends LitElement {
                   `}
             <sp-tabs quiet .selected=${this.selectedTab} @change=${this.#handleTabChange}>
                 ${repeat(
-                    PROMOTION_TABS,
+                    this.#tabs,
                     (tab) => tab.value,
                     (tab) => html`<sp-tab value=${tab.value} label=${tab.label}>${this.#getTabLabel(tab)}</sp-tab>`,
                 )}
                 ${repeat(
-                    PROMOTION_TABS,
+                    this.#tabs,
                     (tab) => tab.value,
                     (tab) => html`
                         <sp-tab-panel value=${tab.value} class=${this.viewOnly ? 'view-only' : ''}>
@@ -230,6 +281,7 @@ class MasPromotionsItemsSelector extends LitElement {
                                           .searchOnly=${[TABLE_TYPE.PLACEHOLDERS, TABLE_TYPE.COLLECTIONS].includes(tab.value)}
                                           .promotionSurfaceOptions=${promotionSurfaceOptions}
                                           .promotionSurface=${surfacePickerValue ?? ''}
+                                          .productFilter=${this.#offerProductTags}
                                           @promotion-surface-change=${this.#onPromotionItemSurfaceChange}
                                       ></mas-search-and-filters>
                                   `}
@@ -240,6 +292,13 @@ class MasPromotionsItemsSelector extends LitElement {
                                           .getDisplayName=${this.getDisplayName}
                                           .renderFragmentStatusCell=${this.renderFragmentStatusCell}
                                           @show-toast=${this.#showToast}
+                                          @promotion-offer-removed=${() =>
+                                              this.dispatchEvent(
+                                                  new CustomEvent('promotion-offer-removed', {
+                                                      bubbles: true,
+                                                      composed: true,
+                                                  }),
+                                              )}
                                       ></mas-promotions-items-table>`
                                     : html`<mas-select-items-table
                                           .viewOnly=${false}

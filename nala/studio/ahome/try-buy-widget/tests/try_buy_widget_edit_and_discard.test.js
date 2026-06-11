@@ -132,11 +132,8 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         });
 
         await test.step('step-7: Validate new image on the card', async () => {
-            await expect((await studio.getCard(data.cardid)).locator(trybuywidget.cardImage)).toBeVisible();
-            await expect((await studio.getCard(data.cardid)).locator(trybuywidget.cardImage)).toHaveAttribute(
-                'src',
-                data.background.updated,
-            );
+            const cardImage = (await studio.getCard(data.cardid)).locator(trybuywidget.cardImage);
+            await expect(cardImage).toHaveAttribute('src', data.background.updated);
         });
 
         await test.step('step-8: Close the editor and verify discard is triggered', async () => {

@@ -893,6 +893,7 @@ class MerchCardEditor extends LitElement {
             if (dividerField) dividerField.style.display = 'block';
         }
         this.#displayBadgeColorFields(this.badgeText);
+        this.#displayBadgeIconField(this.badgeText);
         this.#displayTrialBadgeColorFields(this.trialBadgeText);
 
         if (variant.disabledAttributes && Array.isArray(variant.disabledAttributes)) {
@@ -1048,6 +1049,11 @@ class MerchCardEditor extends LitElement {
                     --mod-picker-border-color-default: var(--spectrum-gray-300);
                     --mod-picker-border-width: 2px;
                     --mod-picker-border-radius: 8px;
+                }
+
+                #tags {
+                    position: relative;
+                    z-index: 1;
                 }
 
                 #whatsIncluded mas-multifield {
@@ -2073,6 +2079,7 @@ class MerchCardEditor extends LitElement {
             this.availableWhatsIncludedDividerColors = [];
         }
         this.#displayBadgeColorFields(this.badgeText);
+        this.#displayBadgeIconField(this.badgeText);
         this.#displayTrialBadgeColorFields(this.trialBadgeText);
     }
 
@@ -2095,6 +2102,13 @@ class MerchCardEditor extends LitElement {
         }
         if (badgeBorderColorField) {
             badgeBorderColorField.style.display = text ? 'block' : 'none';
+        }
+    }
+
+    #displayBadgeIconField(text) {
+        const badgeIconField = this.querySelector('sp-field-group.toggle#badgeIcon');
+        if (badgeIconField) {
+            badgeIconField.style.display = text ? 'block' : 'none';
         }
     }
 
@@ -2332,6 +2346,7 @@ class MerchCardEditor extends LitElement {
     }
 
     #updateBadgeTextAndIcon(text, icon) {
+        this.#displayBadgeIconField(text);
         if (this.supportsBadgeColors) {
             this.#displayBadgeColorFields(text);
             this.#updateBadge(text, this.badge.bgColor, this.badge.borderColor, icon);

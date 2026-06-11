@@ -13,7 +13,7 @@ import '../common/components/mas-search-and-filters.js';
 import { styles } from '../common/components/mas-items-selector.css.js';
 import { debounce, isUUID } from '../utils.js';
 import { normalizePromotionSearchInput } from './promotion-editor-utils.js';
-import { renderFragmentStatusCell } from '../common/utils/render-utils.js';
+import { renderFragmentStatusCell, getStudioFragmentDisplayPath } from '../common/utils/render-utils.js';
 
 const PROMOTION_TABS = [
     { value: TABLE_TYPE.CARDS, label: 'Fragments' },
@@ -53,7 +53,7 @@ class MasPromotionsItemsSelector extends LitElement {
         this.viewOnly = false;
         this.searchQuery = '';
         this.selectedTab = TABLE_TYPE.CARDS;
-        this.getDisplayName = (fragmentData) => fragmentData?.path ?? '';
+        this.getDisplayName = getStudioFragmentDisplayPath;
         this.renderFragmentStatusCell = renderFragmentStatusCell;
         this.fragmentSurfaceOptions = [];
         this.itemPickerSurface = new StoreController(this, Store.promotions.itemPickerSurface);
@@ -61,6 +61,7 @@ class MasPromotionsItemsSelector extends LitElement {
 
     connectedCallback() {
         super.connectedCallback();
+        this.addEventListener('sp-opened', this.#stopPropagation);
         const s = getItemsSelectionStore();
         this.storeController = new ReactiveController(this, [
             s.inEdit,
@@ -69,6 +70,10 @@ class MasPromotionsItemsSelector extends LitElement {
             s.selectedCollections,
             s.selectedPlaceholders,
         ]);
+    }
+
+    #stopPropagation(event) {
+        event.stopPropagation();
     }
 
     get showSelected() {
@@ -233,7 +238,9 @@ class MasPromotionsItemsSelector extends LitElement {
                                           @promotion-surface-change=${this.#onPromotionItemSurfaceChange}
                                       ></mas-search-and-filters>
                                   `}
-                            <div class="container ${this.viewOnly ? 'view-only' : ''}">
+                            <div
+                                class="container ${this.viewOnly ? 'view-only' : ''} ${showingSelection ? 'show-selected' : ''}"
+                            >
                                 ${this.viewOnly
                                     ? html`<mas-promotions-items-table
                                           .type=${tab.value}
@@ -251,10 +258,7 @@ class MasPromotionsItemsSelector extends LitElement {
                                       ></mas-select-items-table>`}
                                 ${this.viewOnly
                                     ? nothing
-                                    : html`<mas-selected-items
-                                          .getDisplayName=${this.getDisplayName}
-                                          .disableRemoveWhileFragmentsLoading=${false}
-                                      ></mas-selected-items>`}
+                                    : html`<mas-selected-items .getDisplayName=${this.getDisplayName}></mas-selected-items>`}
                             </div>
                             <sp-toast timeout="6000" @close=${(event) => event.stopPropagation()}></sp-toast>
                         </sp-tab-panel>

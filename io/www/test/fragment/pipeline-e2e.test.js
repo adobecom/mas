@@ -232,6 +232,59 @@ describe('pipeline end to end', () => {
         expect(state.store).to.have.property('req-some-en-us-fragment-fr_FR-m_black-friday');
     });
 
+    it('should replace fragment placeholders with values from mask variables', async () => {
+        setupFragmentMocks(fetchStub, { id: 'some-en-us-fragment', path: 'someFragment' });
+
+        // Override the fr fragment: badge field contains a placeholder solved by the mask's variables
+        fetchStub
+            .withArgs('https://odin.adobe.com/adobe/contentFragments/some-fr-fr-fragment?references=all-hydrated')
+            .returns(
+                createResponse(200, {
+                    path: '/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app',
+                    id: 'some-fr-fr-fragment',
+                    model: { id: 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ' },
+                    fields: {
+                        variant: 'plans',
+                        osi: 'Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ',
+                        badge: { value: '{{promo-label}}', mimeType: 'text/html' },
+                    },
+                    references: {},
+                    referencesTree: [],
+                }),
+            );
+
+        // Mask fragment: variables map 'promo-label' to '{{select}}', a key already in the
+        // dictionary mock — replace resolves the nested placeholder in a second pass.
+        fetchStub
+            .withArgs(
+                'https://odin.adobe.com/adobe/contentFragments/byPath?path=/content/dam/mas/sandbox/fr_FR/masks/holiday',
+            )
+            .returns(createResponse(200, { id: 'mask-holiday-id' }));
+        fetchStub
+            .withArgs('https://odin.adobe.com/adobe/contentFragments/mask-holiday-id')
+            .returns(
+                createResponse(200, {
+                    id: 'mask-holiday-id',
+                    path: '/content/dam/mas/sandbox/fr_FR/masks/holiday',
+                    model: { id: 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ' },
+                    fields: { variables: ['promo-label:{{select}}'] },
+                    references: {},
+                }),
+            );
+
+        const state = new MockState();
+        const result = await getFragment({
+            id: 'some-en-us-fragment',
+            state,
+            locale: 'fr_FR',
+            mask: 'holiday',
+        });
+
+        expect(result.statusCode).to.equal(200);
+        // {{promo-label}} → {{select}} (from mask variables) → 'Select' (from dictionary)
+        expect(result.body.fields.badge.value).to.equal('Select');
+    });
+
     it('should fix corrupted data-extra-options in adobe-home fragment', async () => {
         const fragmentId = '8ede258f-a996-43c4-8525-b52543925ab0';
 

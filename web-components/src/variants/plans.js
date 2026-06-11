@@ -263,6 +263,7 @@ export class Plans extends VariantLayout {
             await this.adjustLegal();
             await this.adjustEduLists();
         }
+        await super.postCardUpdateHook();
         if (window.matchMedia('(min-width: 768px)').matches) {
             requestAnimationFrame(() => {
                 this.syncHeights();
@@ -325,7 +326,7 @@ export class Plans extends VariantLayout {
         addon.setAttribute('custom-checkbox', '');
         const price = this.mainPrice;
         if (!price) return;
-        await price.onceSettled();
+        await price.onceSettled?.();
         const planType = price.value?.[0]?.planType;
         if (!planType) return;
         addon.planType = planType;

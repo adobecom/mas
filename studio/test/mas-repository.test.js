@@ -3674,9 +3674,8 @@ describe('MasRepository publishFragment', () => {
             }),
         };
         await repo.publishFragment(fragWithMixedRefs, { allSelected: true });
-        expect(
-            repo.aem.sites.cf.fragments.publish.calledWith(fragWithMixedRefs, ['DRAFT', 'MODIFIED', 'UNPUBLISHED']),
-        ).to.be.true;
+        expect(repo.aem.sites.cf.fragments.publish.calledWith(fragWithMixedRefs, ['DRAFT', 'MODIFIED', 'UNPUBLISHED'])).to.be
+            .true;
         // cascade already published DRAFT/MODIFIED/UNPUBLISHED refs — no individual re-publish
         expect(repo.aem.sites.cf.fragments.publish.callCount).to.equal(1);
         expect(repo.aem.sites.cf.fragments.getWithEtag.called).to.be.false;

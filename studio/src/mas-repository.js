@@ -1621,9 +1621,7 @@ export class MasRepository extends LitElement {
         const valid = [];
         for (let i = 0; i < refIds.length; i += CHUNK_SIZE) {
             const chunk = refIds.slice(i, i + CHUNK_SIZE);
-            const fetched = await Promise.all(
-                chunk.map((id) => this.aem.sites.cf.fragments.getWithEtag(id).catch(() => null)),
-            );
+            const fetched = await Promise.all(chunk.map((id) => this.aem.sites.cf.fragments.getWithEtag(id).catch(() => null)));
             valid.push(...fetched.filter(Boolean));
         }
         if (valid.length === 0) return;

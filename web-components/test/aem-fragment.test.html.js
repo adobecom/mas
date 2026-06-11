@@ -632,6 +632,37 @@ runTests(async () => {
                     'attr-instant-xyz',
                 );
             });
+            it('appends mask param to endpoint URL', async () => {
+                cache.clear();
+                const aemFragment = document.createElement('aem-fragment');
+                aemFragment.setAttribute('fragment', 'fragment-cc-all-apps');
+                aemFragment.setAttribute('mask', 'story');
+                document.body.appendChild(aemFragment);
+                await aemFragment.updateComplete;
+                expect(fetch.lastCall.firstArg).to.include('&mask=story');
+                aemFragment.remove();
+            });
+
+            it('appends pzn param to endpoint URL', async () => {
+                cache.clear();
+                const aemFragment = document.createElement('aem-fragment');
+                aemFragment.setAttribute('fragment', 'fragment-cc-all-apps');
+                aemFragment.setAttribute('pzn', 'segment1');
+                document.body.appendChild(aemFragment);
+                await aemFragment.updateComplete;
+                expect(fetch.lastCall.firstArg).to.include('&pzn=segment1');
+                aemFragment.remove();
+            });
+
+            it('includes mask and pzn in cacheKey', () => {
+                const aemFragment = document.createElement('aem-fragment');
+                aemFragment.setAttribute('fragment', 'frag-id');
+                expect(aemFragment.cacheKey()).to.equal('{frag-id}');
+                aemFragment.setAttribute('mask', 'story');
+                expect(aemFragment.cacheKey()).to.equal('{frag-id}-m_story');
+                aemFragment.setAttribute('pzn', 'seg1');
+                expect(aemFragment.cacheKey()).to.equal('{frag-id}-p_seg1-m_story');
+            });
         });
 
         describe('mas-field wrapper', () => {

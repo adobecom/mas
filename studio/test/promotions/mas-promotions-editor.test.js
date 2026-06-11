@@ -4,7 +4,7 @@ import Store from '../../src/store.js';
 import { setItemsSelectionStore } from '../../src/common/items-selection-store.js';
 import MasPromotionsEditor from '../../src/promotions/mas-promotions-editor.js';
 import { Promotion } from '../../src/aem/promotion.js';
-import { CARD_MODEL_PATH } from '../../src/constants.js';
+import { CARD_MODEL_PATH, PAGE_NAMES } from '../../src/constants.js';
 
 function makeFragmentData(overrides = {}) {
     return {
@@ -742,6 +742,38 @@ describe('MasPromotionsEditor', () => {
             await el.updateComplete;
             const overlay = el.renderRoot.querySelector('.confirm-dialog-overlay');
             expect(overlay).to.not.be.null;
+        });
+    });
+
+    describe('reopening the add-items dialog', () => {
+        it('clears the cards search cache on close so results reload next open, preserving the selection', async () => {
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            Store.promotions.inEdit.set(new FragmentStore(makePromotion({ surfaces: ['sandbox'] })));
+            const { el, repo } = await mountEditorWithRepo();
+            Store.page.set(PAGE_NAMES.PROMOTIONS_EDITOR);
+
+            Store.promotions.selectedCards.set(['/card/a', '/card/b']);
+            Store.promotions.allCards.set([{ path: '/card/a' }, { path: '/card/b' }]);
+            Store.promotions.displayCards.set([{ path: '/card/a' }, { path: '/card/b' }]);
+            Store.promotions.cardsByPaths.set(
+                new Map([
+                    ['/card/a', {}],
+                    ['/card/b', {}],
+                ]),
+            );
+            el.showSelectedEmptyState = false;
+            await el.updateComplete;
+            repo.searchFragments.resetHistory();
+
+            const dialog = el.renderRoot.querySelector('.add-items-dialog');
+            dialog.dispatchEvent(new CustomEvent('confirm', { bubbles: true, composed: true }));
+            await el.updateComplete;
+
+            expect(Store.promotions.allCards.value).to.deep.equal([]);
+            expect(Store.promotions.displayCards.value).to.deep.equal([]);
+            expect(Store.promotions.cardsByPaths.value.size).to.equal(0);
+            expect(Store.promotions.selectedCards.value).to.deep.equal(['/card/a', '/card/b']);
+            expect(repo.searchFragments.called).to.be.true;
         });
     });
 });

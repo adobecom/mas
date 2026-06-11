@@ -5,14 +5,20 @@ import sinon from 'sinon';
 import Store from '../../src/store.js';
 import { setItemsSelectionStore } from '../../src/common/items-selection-store.js';
 import { TABLE_TYPE } from '../../src/constants.js';
+import { stubAemTagQueryFetch } from '../helpers/aem-tag-fetch.js';
+import { resetTagCache } from '../helpers/tag-cache.js';
 import '../../src/swc.js';
 import '../../src/promotions/mas-promotions-items-selector.js';
+
+const MAS_TAG_NAMESPACE = '/content/cq:tags/mas';
 
 describe('MasPromotionsItemsSelector', () => {
     let sandbox;
 
     beforeEach(() => {
         sandbox = sinon.createSandbox();
+        stubAemTagQueryFetch(sandbox);
+        resetTagCache(MAS_TAG_NAMESPACE);
         setItemsSelectionStore(Store.promotions);
         Store.promotions.inEdit.set(null);
         Store.promotions.showSelected.set(false);

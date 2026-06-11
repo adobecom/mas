@@ -895,6 +895,9 @@ class MasPromotionsEditor extends LitElement {
     #clearPromotionItemPickerSurface() {
         Store.promotions.itemPickerSurface.set(null);
         Store.filters.set((prev) => ({ ...prev, tags: undefined }));
+        Store.promotions.allCards.set([]);
+        Store.promotions.displayCards.set([]);
+        Store.promotions.cardsByPaths.set(new Map());
         if (Store.page.get() === PAGE_NAMES.PROMOTIONS_EDITOR) {
             this.repository?.searchFragments?.();
         }
@@ -1245,7 +1248,6 @@ class MasPromotionsEditor extends LitElement {
             >
                 <mas-promotions-items-selector
                     .fragmentSurfaceOptions=${this.promotionPickerSurfaces}
-                    .getDisplayName=${getPromotionPickerFragmentLabel}
                     .renderFragmentStatusCell=${renderFragmentStatusCell}
                     @promotion-items-tab-change=${this.#onPromotionItemsTabChange}
                 ></mas-promotions-items-selector>

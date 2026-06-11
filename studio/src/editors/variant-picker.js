@@ -25,115 +25,108 @@ export const VARIANT_NAMES = {
     FULL_PRICING_EXPRESS: 'full-pricing-express',
     HEADLESS: 'headless',
     MEDIA: 'media',
+    COMPARE_CHART_COLUMN: 'compare-chart-column',
 };
 //TODO make that feed (excepts ALL maybe) dynamically served from milo
 
 export const VARIANTS = [
-    { label: 'All', value: VARIANT_NAMES.ALL, surface: 'all' },
-    { label: 'Catalog', value: VARIANT_NAMES.CATALOG, surface: SURFACES.ACOM.name },
-    { label: 'Plans', value: VARIANT_NAMES.PLANS, surface: SURFACES.ACOM.name },
+    { label: 'All', value: VARIANT_NAMES.ALL, surfaces: ['all'] },
+    { label: 'Catalog', value: VARIANT_NAMES.CATALOG, surfaces: [SURFACES.ACOM] },
+    { label: 'Plans', value: VARIANT_NAMES.PLANS, surfaces: [SURFACES.ACOM] },
     {
         label: 'Plans v2',
         value: VARIANT_NAMES.PLANS_V2,
-        surface: SURFACES.ACOM.name,
+        surfaces: [SURFACES.ACOM],
     },
     {
         label: 'BizPro',
         value: VARIANT_NAMES.BIZPRO,
-        surface: SURFACES.ACOM.name,
+        surfaces: [SURFACES.ACOM, SURFACES.ACOM_CC, SURFACES.ACOM_DC],
     },
     {
         label: 'Plans Students',
         value: VARIANT_NAMES.PLANS_STUDENTS,
-        surface: SURFACES.ACOM.name,
+        surfaces: [SURFACES.ACOM],
     },
     {
         label: 'Plans Education',
         value: VARIANT_NAMES.PLANS_EDUCATION,
-        surface: SURFACES.ACOM.name,
+        surfaces: [SURFACES.ACOM],
     },
     {
         label: 'Product',
         value: VARIANT_NAMES.PRODUCT,
-        surface: SURFACES.ACOM_CC.name,
+        surfaces: [SURFACES.ACOM_CC, SURFACES.ACOM_DC],
     },
-    { label: 'Segment', value: VARIANT_NAMES.SEGMENT, surface: SURFACES.ACOM_CC.name },
-    { label: 'Media', value: VARIANT_NAMES.MEDIA, surface: SURFACES.ACOM.name },
-    { label: 'Slice', value: VARIANT_NAMES.SLICES, surface: SURFACES.CCD.name },
+    {
+        label: 'Segment',
+        value: VARIANT_NAMES.SEGMENT,
+        surfaces: [SURFACES.ACOM_CC, SURFACES.ACOM_DC],
+    },
+    { label: 'Media', value: VARIANT_NAMES.MEDIA, surfaces: [SURFACES.ACOM] },
+    { label: 'Slice', value: VARIANT_NAMES.SLICES, surfaces: [SURFACES.CCD] },
     {
         label: 'Special offers',
         value: VARIANT_NAMES.SPECIAL_OFFERS,
-        surface: SURFACES.ACOM_CC.name,
+        surfaces: [SURFACES.ACOM_CC],
     },
-    { label: 'Suggested', value: VARIANT_NAMES.SUGGESTED, surface: SURFACES.CCD.name },
+    { label: 'Suggested', value: VARIANT_NAMES.SUGGESTED, surfaces: [SURFACES.CCD] },
     {
         label: 'Try Buy Widget',
         value: VARIANT_NAMES.TRY_BUY_WIDGET,
-        surface: SURFACES.ADOBE_HOME.name,
+        surfaces: [SURFACES.ADOBE_HOME],
     },
     {
         label: 'Promoted Plans',
         value: VARIANT_NAMES.PROMOTED_PLANS,
-        surface: SURFACES.ADOBE_HOME.name,
+        surfaces: [SURFACES.ADOBE_HOME],
     },
     {
         label: 'Fries',
         value: VARIANT_NAMES.FRIES,
-        surface: SURFACES.COMMERCE.name,
+        surfaces: [SURFACES.COMMERCE],
     },
     {
         label: 'Simplified pricing Express',
         value: VARIANT_NAMES.SIMPLIFIED_PRICING_EXPRESS,
-        surface: SURFACES.EXPRESS.name,
+        surfaces: [SURFACES.EXPRESS],
     },
     {
         label: 'Mini',
         value: VARIANT_NAMES.MINI,
-        surface: SURFACES.CCD.name,
+        surfaces: [SURFACES.CCD],
     },
     {
         label: 'Image',
         value: VARIANT_NAMES.IMAGE,
-        surface: SURFACES.ACOM_CC.name,
+        surfaces: [SURFACES.ACOM_CC, SURFACES.ACOM_DC],
     },
     {
         label: 'Full Pricing Express',
         value: 'full-pricing-express',
-        surface: SURFACES.EXPRESS.name,
+        surfaces: [SURFACES.EXPRESS],
     },
     {
         label: 'Headless',
         value: VARIANT_NAMES.HEADLESS,
-        surface: SURFACES.SANDBOX.name,
+        surfaces: [SURFACES.SANDBOX],
     },
     {
         label: 'Mini Compare Chart',
         value: VARIANT_NAMES.MINI_COMPARE_CHART,
-        surface: SURFACES.ACOM_CC.name,
+        surfaces: [SURFACES.ACOM_CC, SURFACES.ACOM_DC],
     },
     {
         label: 'Mini Compare Chart Mweb',
         value: VARIANT_NAMES.MINI_COMPARE_CHART_MWEB,
-        surface: SURFACES.ACOM.name,
+        surfaces: [SURFACES.ACOM],
+    },
+    {
+        label: 'Compare Chart Column',
+        value: VARIANT_NAMES.COMPARE_CHART_COLUMN,
+        surfaces: [SURFACES.ACOM_CC, SURFACES.ACOM_DC, SURFACES.ACOM, SURFACES.EXPRESS],
     },
 ];
-
-const ACOM_CC_TEMPLATES = new Set([
-    VARIANT_NAMES.PRODUCT,
-    VARIANT_NAMES.SEGMENT,
-    VARIANT_NAMES.MINI_COMPARE_CHART,
-    VARIANT_NAMES.IMAGE,
-    VARIANT_NAMES.SPECIAL_OFFERS,
-    VARIANT_NAMES.BIZPRO,
-]);
-
-const ACOM_DC_TEMPLATES = new Set([
-    VARIANT_NAMES.PRODUCT,
-    VARIANT_NAMES.SEGMENT,
-    VARIANT_NAMES.MINI_COMPARE_CHART,
-    VARIANT_NAMES.IMAGE,
-    VARIANT_NAMES.BIZPRO,
-]);
 
 /** Flat tree-picker-compatible list of allowed variants, optionally filtered by surface. */
 export const getVariantTreeData = (surface) =>
@@ -141,9 +134,7 @@ export const getVariantTreeData = (surface) =>
         if (v.value === VARIANT_NAMES.ALL) return false;
         if (!surface) return true;
         if ([SURFACES.SANDBOX.name, SURFACES.NALA.name].includes(surface)) return true;
-        if (surface === SURFACES.ACOM_CC.name) return ACOM_CC_TEMPLATES.has(v.value);
-        if (surface === SURFACES.ACOM_DC.name) return ACOM_DC_TEMPLATES.has(v.value);
-        return v.surface === surface;
+        return v.surfaces.some((s) => s.name === surface);
     }).map((v) => ({
         name: v.value,
         label: v.label,

@@ -205,8 +205,7 @@ export const styles = [
                 --mod-popover-background-color: #ffffff;
                 --mod-popover-border-color: transparent;
                 --mod-popover-border-width: 0;
-                --mod-popover-filter: drop-shadow(0px 0px 2px rgba(0, 0, 0, 0.12))
-                    drop-shadow(0px 2px 6px rgba(0, 0, 0, 0.04))
+                --mod-popover-filter: drop-shadow(0px 0px 2px rgba(0, 0, 0, 0.12)) drop-shadow(0px 2px 6px rgba(0, 0, 0, 0.04))
                     drop-shadow(0px 4px 12px rgba(0, 0, 0, 0.08));
             }
 

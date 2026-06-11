@@ -13,11 +13,7 @@ import {
     loadSelectedFragments,
 } from '../utils/items-loader.js';
 import { shouldIgnoreRowClickForSelection, getStudioFragmentDisplayPath } from '../utils/render-utils.js';
-import {
-    fragmentsEmptyStateIcon,
-    collectionsEmptyStateIcon,
-    placeholdersEmptyStateIcon,
-} from '../../icons.js';
+import { fragmentsEmptyStateIcon, collectionsEmptyStateIcon, placeholdersEmptyStateIcon } from '../../icons.js';
 
 const EMPTY_STATE_COPY = {
     [TABLE_TYPE.CARDS]: {

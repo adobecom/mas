@@ -59,16 +59,19 @@ class MasItemsSelector extends LitElement {
         super.connectedCallback();
         this.addEventListener('sp-opened', this.#stopPropagation);
         const s = getItemsSelectionStore();
-        this.storeController = new ReactiveController(this, [
-            s.inEdit,
-            s.showSelected,
-            s.selectedCards,
-            s.selectedCollections,
-            s.selectedPlaceholders,
-            s.displayCards,
-            s.displayCollections,
-            s.displayPlaceholders,
-        ].filter(Boolean));
+        this.storeController = new ReactiveController(
+            this,
+            [
+                s.inEdit,
+                s.showSelected,
+                s.selectedCards,
+                s.selectedCollections,
+                s.selectedPlaceholders,
+                s.displayCards,
+                s.displayCollections,
+                s.displayPlaceholders,
+            ].filter(Boolean),
+        );
     }
 
     #stopPropagation(event) {

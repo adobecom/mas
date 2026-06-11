@@ -764,9 +764,7 @@ class MasSearchAndFilters extends LitElement {
                                 </sp-checkbox>
                             `;
                         })}
-                        ${filteredOptions.length === 0
-                            ? html`<div class="filter-popover-empty">No matches.</div>`
-                            : nothing}
+                        ${filteredOptions.length === 0 ? html`<div class="filter-popover-empty">No matches.</div>` : nothing}
                     </div>
                 </sp-popover>
             </overlay-trigger>

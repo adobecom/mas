@@ -175,10 +175,7 @@ class MasTranslationLanguages extends LitElement {
                 >
                     ${this.localesArray?.map(
                         (item) => html`
-                            <sp-checkbox
-                                ?checked=${this.selectedLocales.includes(item.locale)}
-                                @change=${this.toggleLocale}
-                            >
+                            <sp-checkbox ?checked=${this.selectedLocales.includes(item.locale)} @change=${this.toggleLocale}>
                                 ${item.locale}
                             </sp-checkbox>
                         `,

@@ -54,9 +54,7 @@ masStudio-*.json
 .superpowers/
 
 # Worktree documentation (per-ticket, not committed)
-docs/
-!web-components/docs/
-!web-components/docs/**
+/docs/
 
 # web-components specific
 !web-components/dist

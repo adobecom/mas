@@ -356,13 +356,17 @@
                         expect(editor).to.exist;
 
                         editor.showOfferSelector = true;
-                        editor.dispatchEvent(new FocusEvent('focusout', { bubbles: true, composed: true, relatedTarget: null }));
+                        editor.dispatchEvent(
+                            new FocusEvent('focusout', { bubbles: true, composed: true, relatedTarget: null }),
+                        );
                         await el.updateComplete;
                         expect(el.activeRteCell).to.equal(key);
 
                         editor.showOfferSelector = false;
                         editor.showLinkEditor = true;
-                        editor.dispatchEvent(new FocusEvent('focusout', { bubbles: true, composed: true, relatedTarget: null }));
+                        editor.dispatchEvent(
+                            new FocusEvent('focusout', { bubbles: true, composed: true, relatedTarget: null }),
+                        );
                         await el.updateComplete;
                         expect(el.activeRteCell).to.equal(key);
                     });
@@ -373,7 +377,9 @@
                         const editor = el.shadowRoot.querySelector('rte-field');
                         expect(editor).to.exist;
 
-                        editor.dispatchEvent(new FocusEvent('focusout', { bubbles: true, composed: true, relatedTarget: null }));
+                        editor.dispatchEvent(
+                            new FocusEvent('focusout', { bubbles: true, composed: true, relatedTarget: null }),
+                        );
                         await el.updateComplete;
                         expect(el.activeRteCell).to.be.null;
                         expect(el.activeRteEditor).to.be.null;

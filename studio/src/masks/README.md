@@ -24,14 +24,14 @@ Masks are tagged in the `mas:masks/<surface>/<mask-name>` namespace so the pipel
 
 **`MasksStore` (`masks-store.js`)** — reactive state store. Manages the mask list, loading flag, and the currently edited fragment. Key methods:
 
-| Method | Description |
-|---|---|
-| `ensureLoaded(surface, locale)` | Loads masks for the given surface/locale (no-op if already loaded). |
+| Method                                             | Description                                                                                        |
+| -------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `ensureLoaded(surface, locale)`                    | Loads masks for the given surface/locale (no-op if already loaded).                                |
 | `createMask({ name, title, description, fields })` | Creates the `masks/` folder if needed, creates the card fragment, and assigns its identifying tag. |
-| `saveMask(fragment)` | Persists field edits. Bypasses the main repository (masks have no OSI). |
-| `loadMaskByName(name, surface, locale)` | Resolves a mask by node name (used for deep-linking the editor). |
-| `publishMask(id)` | Publishes the mask fragment. |
-| `deleteMask(id)` | Deletes the mask fragment and refreshes the list. |
+| `saveMask(fragment)`                               | Persists field edits. Bypasses the main repository (masks have no OSI).                            |
+| `loadMaskByName(name, surface, locale)`            | Resolves a mask by node name (used for deep-linking the editor).                                   |
+| `publishMask(id)`                                  | Publishes the mask fragment.                                                                       |
+| `deleteMask(id)`                                   | Deletes the mask fragment and refreshes the list.                                                  |
 
 ## Pipeline integration
 

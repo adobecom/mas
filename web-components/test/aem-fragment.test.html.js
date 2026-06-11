@@ -661,7 +661,9 @@ runTests(async () => {
                 aemFragment.setAttribute('mask', 'story');
                 expect(aemFragment.cacheKey()).to.equal('{frag-id}-m_story');
                 aemFragment.setAttribute('pzn', 'seg1');
-                expect(aemFragment.cacheKey()).to.equal('{frag-id}-p_seg1-m_story');
+                expect(aemFragment.cacheKey()).to.equal(
+                    '{frag-id}-p_seg1-m_story',
+                );
             });
         });
 

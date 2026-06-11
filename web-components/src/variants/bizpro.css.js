@@ -471,6 +471,16 @@ merch-card-collection.plans:is(.one-merch-card, .two-merch-cards, .three-merch-c
         width: 100%;
         max-width: none;
     }
+
+    /* A collection inside a Milo .section.container inherits its 24px page
+       gutter; one dropped straight into a plain section gets none, so the
+       now-full-width cards bleed to the viewport edge. Restore the gutter on
+       the collection itself for that case only. The > .content > chain pins
+       this to the collection's own section, so it never doubles up where a
+       .container already supplies the gutter. */
+    .section:not(.container) > .content > .collection-container.plans:has(merch-card[variant="bizpro"]) {
+        padding-inline: 24px;
+    }
 }
 
 `;

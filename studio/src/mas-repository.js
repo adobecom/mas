@@ -960,8 +960,7 @@ export class MasRepository extends LitElement {
 
             const damPath = getDamPath(surfaceKey);
             const locale = this.filters.value.locale;
-            const searchPath =
-                this.page.value === PAGE_NAMES.PROMOTIONS_EDITOR ? damPath : `${damPath}/${locale}`;
+            const searchPath = this.page.value === PAGE_NAMES.PROMOTIONS_EDITOR ? damPath : `${damPath}/${locale}`;
             const searchOptions = {
                 path: searchPath,
                 modelIds: [TAG_MODEL_ID_MAPPING[TAG_MERCH_CARD_COLLECTION]],

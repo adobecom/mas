@@ -108,10 +108,7 @@ var D=Object.defineProperty;var w=(s,e,t)=>e in s?D(s,e,{enumerable:!0,configura
             --merch-sidenav-item-label-bottom-margin: 8px;
             --merch-sidenav-item-icon-top-margin: 7px;
             --merch-sidenav-item-icon-gap: 8px;
-            --merch-sidenav-item-selected-color: var(
-                --spectrum-gray-800,
-                #222222
-            );
+            --merch-sidenav-item-selected-color: var(--color-black, #000000);
             --merch-sidenav-item-hover-background: var(
                 --spectrum-gray-200,
                 #e6e6e6

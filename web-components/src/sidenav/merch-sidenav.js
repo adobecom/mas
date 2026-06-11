@@ -194,10 +194,7 @@ export class MerchSideNav extends LitElement {
             --merch-sidenav-item-label-bottom-margin: 8px;
             --merch-sidenav-item-icon-top-margin: 7px;
             --merch-sidenav-item-icon-gap: 8px;
-            --merch-sidenav-item-selected-color: var(
-                --spectrum-gray-800,
-                #222222
-            );
+            --merch-sidenav-item-selected-color: var(--color-black, #000000);
             --merch-sidenav-item-hover-background: var(
                 --spectrum-gray-200,
                 #e6e6e6

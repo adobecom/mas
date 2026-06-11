@@ -1,6 +1,5 @@
-import { getDefaultLocaleCode, getSurfaceLocales, getLocaleCode } from '../../io/www/src/fragment/locales.js';
-
-const ROOT_PATH = '/content/dam/mas';
+import { getSurfaceLocales, getLocaleCode } from '../../io/www/src/fragment/locales.js';
+import { ROOT_PATH, getParentReference } from './common.js';
 
 const args = process.argv.slice(2);
 const bucket = args[0];
@@ -25,18 +24,6 @@ const authorHeaders = {
     Authorization: `Bearer ${accessToken}`,
     'x-api-key': apiKey,
 };
-
-function getExpectedParent(localeName) {
-    const defaultLocaleCode = getDefaultLocaleCode(surface, localeName);
-    if (!defaultLocaleCode || defaultLocaleCode === localeName) {
-        if (surface !== 'acom') {
-            const acomLocaleCode = getDefaultLocaleCode('acom', localeName);
-            return acomLocaleCode ? `${ROOT_PATH}/acom/${acomLocaleCode}/dictionary/index` : null;
-        }
-        return null;
-    }
-    return `${ROOT_PATH}/${surface}/${defaultLocaleCode}/dictionary/index`;
-}
 
 async function listLocaleFolders(surfaceName) {
     const path = `${ROOT_PATH}/${surfaceName}`;
@@ -90,7 +77,7 @@ async function run() {
         }
 
         const indexPath = `${folder.path}/dictionary/index`;
-        const expectedParent = getExpectedParent(folder.name);
+        const expectedParent = getParentReference(surface, folder.name);
 
         try {
             const fragment = await fetchIndexFragment(indexPath);

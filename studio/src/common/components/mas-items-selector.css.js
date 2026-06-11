@@ -27,7 +27,7 @@ export const styles = [
             flex-direction: column;
             min-width: 80vw;
             max-height: 70vh;
-            min-height: 0;
+            min-height: 50vh;
         }
 
         sp-tabs {
@@ -48,6 +48,7 @@ export const styles = [
 
         .container {
             display: flex;
+            gap: 16px;
             flex: 1;
             min-height: 0;
             width: 100%;
@@ -59,9 +60,20 @@ export const styles = [
             min-width: 0;
             min-height: 0;
             display: flex;
+            overflow-x: auto;
+        }
+
+        mas-selected-items {
+            min-width: 0;
+            width: 308px;
+        }
+
+        .container:not(.show-selected) mas-selected-items {
+            display: none;
         }
 
         .container.view-only {
+            display: flex;
             width: 100%;
             padding-bottom: 0;
         }

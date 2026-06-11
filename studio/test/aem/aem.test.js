@@ -90,4 +90,35 @@ describe('aem.js', () => {
             expect(result.languageCopies).to.be.an('array');
         });
     });
+
+    describe('method: saveFragment', () => {
+        it('strips empty values from multi-value reference fields but preserves clear sentinels elsewhere', async () => {
+            let putBody;
+            window.fetch = async (url, options) => {
+                const headers = { get: () => 'etag1' };
+                if (options?.method === 'PUT') {
+                    putBody = JSON.parse(options.body);
+                }
+                return { ok: true, headers, json: async () => ({ id: 'f1', etag: 'etag2', modified: 2 }) };
+            };
+
+            await aem.saveFragment({
+                id: 'f1',
+                title: 't',
+                description: 'd',
+                fields: [
+                    { name: 'cards', type: 'content-fragment', multiple: true, values: ['/content/dam/a', '', null] },
+                    { name: 'collections', type: 'content-reference', multiple: true, values: [''] },
+                    { name: 'features', type: 'text', multiple: true, values: [''] },
+                    { name: 'title', type: 'text', multiple: false, values: [''] },
+                ],
+            });
+
+            const byName = (name) => putBody.fields.find((field) => field.name === name);
+            expect(byName('cards').values).to.deep.equal(['/content/dam/a']);
+            expect(byName('collections').values).to.deep.equal([]);
+            expect(byName('features').values).to.deep.equal(['']);
+            expect(byName('title').values).to.deep.equal(['']);
+        });
+    });
 });

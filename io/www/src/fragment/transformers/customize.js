@@ -6,6 +6,11 @@ const PZN_FOLDER = '/pzn/';
 // base64 id of /conf/mas/settings/dam/cfm/models/card — masks overlay card fragments only
 const CARD_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ';
 
+// Per-variant fields whose array values must be concatenated (parent + child) rather than overwritten.
+const MERGE_CONFIG = {
+    'compare-chart-column': { arraysToMerge: ['features'] },
+};
+
 /**
  * Resolves the same fragment-init payload as the `defaultLanguage` transformer (`body`, `defaultLocale`, `regionLocale`, etc.)
  * by awaiting `context.promises.defaultLanguage`. Validates `surface` and `fragmentPath` from `requestInfos` first.
@@ -38,6 +43,17 @@ function deepMerge(...objects) {
             }
         }
     }
+    // Some variants carry partial array fields across variations (e.g. compare-chart `features`);
+    // concatenate parent + child into the freshly-built result instead of mutating `child`
+    // (a shared reference reused by sibling merges).
+    const arraysToMerge = MERGE_CONFIG[objects?.[0]?.fields?.variant]?.arraysToMerge;
+    arraysToMerge?.forEach((field) => {
+        const parentValues = objects[0]?.fields?.[field]?.value || [];
+        const childValues = objects[1]?.fields?.[field]?.value || [];
+        if (result.fields?.[field] && (parentValues.length || childValues.length)) {
+            result.fields[field].value = [...parentValues, ...childValues];
+        }
+    });
     return result;
 }
 

@@ -84,6 +84,78 @@ describe('customize collections', function () {
         expect(result.fields.variant).to.equal('');
     });
 
+    it('should preserve parent features when compare-chart-column template omits features', function () {
+        const parent = {
+            fields: {
+                variant: 'compare-chart-column',
+                features: { value: ['<p name="group-a@parent-only">Parent only</p>'] },
+            },
+        };
+        const child = { fields: { title: 'Regional title' } };
+        const result = deepMerge(parent, child);
+        expect(result.fields.features.value).to.deep.equal(['<p name="group-a@parent-only">Parent only</p>']);
+        expect(result.fields.title).to.equal('Regional title');
+    });
+
+    it('should append child features to parent features for compare-chart-column template', async function () {
+        const childOnlyResult = deepMerge(
+            {
+                fields: {
+                    variant: 'compare-chart-column',
+                    title: 'Parent title',
+                },
+            },
+            {
+                fields: {
+                    features: { value: ['<p name="group-a@child-only">Child only</p>'] },
+                },
+            },
+        );
+        expect(childOnlyResult.fields.features.value).to.deep.equal(['<p name="group-a@child-only">Child only</p>']);
+        expect(childOnlyResult.fields.title).to.equal('Parent title');
+
+        const body = {
+            path: '/content/dam/mas/sandbox/en_US/compare-chart-card',
+            id: 'compare-chart-card',
+            title: 'Compare chart card',
+            fields: {
+                variant: 'compare-chart-column',
+                features: {
+                    value: ['<p name="group-a@parent-only">Parent only</p>', '<p name="group-a@override">Parent value</p>'],
+                },
+                variations: ['compare-chart-card-be'],
+            },
+            references: {
+                'compare-chart-card-be': {
+                    type: 'content-fragment',
+                    value: {
+                        path: '/content/dam/mas/sandbox/en_BE/compare-chart-card',
+                        id: 'compare-chart-card-be',
+                        fields: {
+                            features: { value: ['<p name="group-a@override">Child value</p>'] },
+                        },
+                    },
+                },
+            },
+            referencesTree: [],
+        };
+
+        const result = await process({
+            ...FAKE_CONTEXT,
+            fragmentPath: 'compare-chart-card',
+            locale: 'en_BE',
+            parsedLocale: 'en_US',
+            body,
+        });
+
+        expect(result.status).to.equal(200);
+        expect(result.body.fields.features.value).to.deep.equal([
+            '<p name="group-a@parent-only">Parent only</p>',
+            '<p name="group-a@override">Parent value</p>',
+            '<p name="group-a@override">Child value</p>',
+        ]);
+    });
+
     it('should customize subcollections and sub fragments', async function () {
         const result = await process({
             ...FAKE_CONTEXT,

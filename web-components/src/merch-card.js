@@ -654,7 +654,7 @@ export class MerchCard extends LitElement {
                             this.#resolveHydration = resolve;
                         });
                     }
-                    hydrate(fragment, this);
+                    await hydrate(fragment, this);
                 } catch (e) {
                     this.#fail(`hydration has failed: ${e.message}`);
                 } finally {
@@ -728,17 +728,32 @@ export class MerchCard extends LitElement {
         }
         const masElements = [...this.querySelectorAll(SELECTOR_MAS_ELEMENT)];
         const successPromise = Promise.all(
-            masElements.map((element) =>
-                element.onceSettled().catch(() => element),
-            ),
-        ).then((elements) =>
-            elements.every((el) =>
-                el.classList.contains('placeholder-resolved'),
-            ),
-        );
+            masElements.map((element) => {
+                const settled = element.onceSettled?.();
+                if (!settled) return Promise.resolve(element);
+                return settled.catch(() => element);
+            }),
+        ).then((elements) => {
+            const active = elements.filter((el) => el.isConnected);
+            return (
+                active.length === 0 ||
+                active.every((el) =>
+                    el.classList.contains('placeholder-resolved'),
+                )
+            );
+        });
         const result = await Promise.race([successPromise, timeoutPromise]);
 
-        if (result === true) {
+        if (!this.isConnected) return;
+
+        const connectedMasElements = masElements.filter((el) => el.isConnected);
+        const allResolved =
+            connectedMasElements.length === 0 ||
+            connectedMasElements.every((el) =>
+                el.classList.contains('placeholder-resolved'),
+            );
+
+        if (allResolved) {
             this.measure = performance.measure(
                 this.#durationMarkName,
                 this.#startMarkName,
@@ -771,7 +786,7 @@ export class MerchCard extends LitElement {
                     details,
                 );
             } else {
-                const ctaFailed = masElements.some(
+                const ctaFailed = connectedMasElements.some(
                     (el) =>
                         el.matches(SELECTOR_MAS_CHECKOUT_LINK) &&
                         el.classList.contains('placeholder-failed'),

@@ -26,7 +26,7 @@ describe('MasPromotionsItemsTable', () => {
 
     afterEach(async () => {
         fixtureCleanup();
-        await new Promise((resolve) => setTimeout(resolve, 350));
+        await Promise.resolve();
         sandbox.restore();
         Store.promotions.selectedCards.set([]);
         Store.promotions.selectedOffers.set([]);

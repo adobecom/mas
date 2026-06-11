@@ -17,8 +17,6 @@ import {
     collectPromotionOfferProductTags,
     normalizePromotionSearchInput,
 } from './promotion-editor-utils.js';
-import { renderFragmentStatusCell } from '../common/utils/render-utils.js';
-import { normalizePromotionSearchInput } from './promotion-editor-utils.js';
 import { renderFragmentStatusCell, getStudioFragmentDisplayPath } from '../common/utils/render-utils.js';
 
 const PROMOTION_PICKER_TABS = [

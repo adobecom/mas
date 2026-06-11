@@ -161,7 +161,7 @@ describe('MasPromotionsItemsSelector', () => {
             tags: [{ id: 'mas:product_code/stel', title: 'STEL' }],
         });
         await fixture(html`<mas-promotions-items-selector></mas-promotions-items-selector>`);
-        expect(Store.filters.get().tags).to.equal('mas:product_code/fpsa,mas:product_code/stel');
+        expect(Store.promotions.filters.get().tags).to.equal('mas:product_code/fpsa,mas:product_code/stel');
     });
 
     it('passes product tags from selected offers as productFilter to fragment search', async () => {

@@ -199,14 +199,15 @@ export function collectPromotionOfferProductTags(offerDataCache, selectedOfferId
 }
 
 /**
- * Applies selected-offer product tags to Store.filters for AEM fragment search.
+ * Applies selected-offer product tags to the active items-selection filters store (or Store.filters) for AEM fragment search.
  * @param {Map<string, { tags?: Array<{ id?: string }> }>} offerDataCache
  * @param {string[]} selectedOfferIds
  * @returns {string[]}
  */
 export function applyPromotionOfferProductTagsToSearch(offerDataCache, selectedOfferIds) {
     const tags = collectPromotionOfferProductTags(offerDataCache, selectedOfferIds);
-    Store.filters.set((prev) => ({
+    const filtersStore = getItemsSelectionStore({ allowUnset: true })?.filters ?? Store.filters;
+    filtersStore.set((prev) => ({
         ...prev,
         tags: tags.length ? tags.join(',') : undefined,
     }));

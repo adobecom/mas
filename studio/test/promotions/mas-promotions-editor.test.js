@@ -79,7 +79,7 @@ describe('MasPromotionsEditor', () => {
             el.remove();
             await el.updateComplete;
         }
-        await new Promise((resolve) => setTimeout(resolve, 350));
+        await flushPromises();
         sandbox.restore();
         Store.promotions.inEdit.set(originalInEdit);
         Store.promotions.selectedCards.set(originalSelectedCards);
@@ -1328,11 +1328,6 @@ describe('MasPromotionsEditor', () => {
         });
     });
 
-    describe('lock quick action', () => {
-        it('Lock project is always disabled', async () => {
-            const el = await mountEditor();
-            await el.updateComplete;
-            expect(isPromotionQuickActionDisabled(el, 'Lock project')).to.be.true;
     describe('reopening the add-items dialog', () => {
         it('clears the cards search cache on close so results reload next open, preserving the selection', async () => {
             const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
@@ -1349,8 +1344,8 @@ describe('MasPromotionsEditor', () => {
                     ['/card/b', {}],
                 ]),
             );
-            el.showSelectedEmptyState = false;
             await el.updateComplete;
+            expect(el.showSelectedEmptyState).to.be.false;
             repo.searchFragments.resetHistory();
 
             const dialog = el.renderRoot.querySelector('.add-items-dialog');

@@ -1555,28 +1555,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                       <sp-icon-alert class="icon"></sp-icon-alert>
                   `:_}
             <div class="text"><slot></slot></div>
-        `}};eg([n({type:Boolean,reflect:!0})],ko.prototype,"icon",2),eg([n({reflect:!0})],ko.prototype,"variant",2);f();l("sp-help-text",ko);f();l("sp-icon",fr);hr();var rg="1.11.2";var gd=new Set,ey=()=>{let o=document.documentElement.dir==="rtl"?document.documentElement.dir:"ltr";gd.forEach(t=>{t.setAttribute("dir",o)})},ry=new MutationObserver(ey);ry.observe(document.documentElement,{attributes:!0,attributeFilter:["dir"]});var oy=o=>typeof o.startManagingContentDirection<"u"||o.tagName==="SP-THEME";function og(o){class t extends o{get isLTR(){return this.dir==="ltr"}hasVisibleFocusInTree(){let r=((s=document)=>{var i;let a=s.activeElement;for(;a!=null&&a.shadowRoot&&a.shadowRoot.activeElement;)a=a.shadowRoot.activeElement;let m=a?[a]:[];for(;a;){let u=a.assignedSlot||a.parentElement||((i=a.getRootNode())==null?void 0:i.host);u&&m.push(u),a=u}return m})(this.getRootNode())[0];if(!r)return!1;try{return r.matches(":focus-visible")||r.matches(".focus-visible")}catch{return r.matches(".focus-visible")}}connectedCallback(){if(!this.hasAttribute("dir")){let r=this.assignedSlot||this.parentNode;for(;r!==document.documentElement&&!oy(r);)r=r.assignedSlot||r.parentNode||r.host;if(this.dir=r.dir==="rtl"?r.dir:this.dir||"ltr",r===document.documentElement)gd.add(this);else{let{localName:s}=r;s.search("-")>-1&&!customElements.get(s)?customElements.whenDefined(s).then(()=>{r.startManagingContentDirection(this)}):r.startManagingContentDirection(this)}this._dirParent=r}super.connectedCallback()}disconnectedCallback(){super.disconnectedCallback(),this._dirParent&&(this._dirParent===document.documentElement?gd.delete(this):this._dirParent.stopManagingContentDirection(this),this.removeAttribute("dir"))}}return t}var zo=class extends og(ne){};zo.VERSION=rg;var sy=y`
-    @media (forced-colors:active){:host{--highcontrast-illustrated-message-illustration-color:CanvasText;--highcontrast-illustrated-message-illustration-accent-color:Highlight}}:host{--spectrum-illustrated-message-description-max-inline-size:var(--spectrum-illustrated-message-maximum-width);--spectrum-illustrated-message-heading-max-inline-size:var(--spectrum-illustrated-message-maximum-width);--spectrum-illustrated-message-title-to-heading:var(--spectrum-spacing-400);--spectrum-illustrated-message-heading-to-description:var(--spectrum-spacing-75);--spectrum-illustrated-message-illustration-color:var(--spectrum-neutral-visual-color);--spectrum-illustrated-message-illustration-accent-color:var(--spectrum-accent-visual-color);--spectrum-illustrated-message-title-font-family:var(--spectrum-sans-font-family-stack);--spectrum-illustrated-message-title-font-weight:var(--spectrum-heading-sans-serif-font-weight);--spectrum-illustrated-message-title-font-style:var(--spectrum-heading-sans-serif-font-style);--spectrum-illustrated-message-title-font-size:var(--spectrum-illustrated-message-title-size);--spectrum-illustrated-message-title-line-height:var(--spectrum-heading-line-height);--spectrum-illustrated-message-title-color:var(--spectrum-heading-color);--spectrum-illustrated-message-description-font-family:var(--spectrum-sans-font-family-stack);--spectrum-illustrated-message-description-font-weight:var(--spectrum-body-sans-serif-font-weight);--spectrum-illustrated-message-description-font-style:var(--spectrum-body-sans-serif-font-style);--spectrum-illustrated-message-description-font-size:var(--spectrum-illustrated-message-body-size);--spectrum-illustrated-message-description-line-height:var(--spectrum-body-line-height);--spectrum-illustrated-message-description-color:var(--spectrum-body-color);block-size:100%;display:flex;display:var(--mod-illustrated-message-display,flex);text-align:center;pointer-events:auto;pointer-events:var(--mod-illustrated-message-pointer-events,auto);max-inline-size:var(--mod-illustrated-message-content-maximum-width);flex-direction:column;justify-content:center;align-items:center}:host:lang(ja),:host:lang(ko),:host:lang(zh){--spectrum-illustrated-message-title-font-size:var(--spectrum-illustrated-message-cjk-title-size)}#illustration{color:var(--highcontrast-illustrated-message-illustration-color,var(--mod-illustrated-message-illustration-color,var(--spectrum-illustrated-message-illustration-color)));fill:currentColor;stroke:currentColor;margin-block-end:var(--mod-illustrated-message-title-to-heading,var(--spectrum-illustrated-message-title-to-heading))}.spectrum-IllustratedMessage-accent{color:var(--highcontrast-illustrated-message-illustration-accent-color,var(--mod-illustrated-message-illustration-accent-color,var(--spectrum-illustrated-message-illustration-accent-color)));fill:currentColor;stroke:currentColor}#heading{font-family:var(--mod-illustrated-message-title-font-family,var(--spectrum-illustrated-message-title-font-family));font-weight:var(--mod-illustrated-message-title-font-weight,var(--spectrum-illustrated-message-title-font-weight));font-style:var(--mod-illustrated-message-title-font-style,var(--spectrum-illustrated-message-title-font-style));font-size:var(--mod-illustrated-message-title-font-size,var(--spectrum-illustrated-message-title-font-size));line-height:var(--mod-illustrated-message-title-line-height,var(--spectrum-illustrated-message-title-line-height));color:var(--mod-illustrated-message-title-color,var(--spectrum-illustrated-message-title-color));max-inline-size:var(--mod-illustrated-message-heading-max-inline-size,var(--spectrum-illustrated-message-heading-max-inline-size));margin-block-start:0;margin-block-end:var(--mod-illustrated-message-heading-to-body,0)}#description{position:var(--mod-illustrated-message-description-position);z-index:var(--mod-illustrated-message-description-z-index);pointer-events:auto;pointer-events:var(--mod-illustrated-message-description-pointer-events,auto);font-family:var(--mod-illustrated-message-description-font-family,var(--spectrum-illustrated-message-description-font-family));font-weight:var(--mod-illustrated-message-description-font-weight,var(--spectrum-illustrated-message-description-font-weight));font-style:var(--mod-illustrated-message-description-font-style,var(--spectrum-illustrated-message-description-font-style));font-size:var(--mod-illustrated-message-description-font-size,var(--spectrum-illustrated-message-description-font-size));line-height:var(--mod-illustrated-message-description-line-height,var(--spectrum-illustrated-message-description-line-height));color:var(--mod-illustrated-message-description-color,var(--spectrum-illustrated-message-description-color));max-inline-size:var(--mod-illustrated-message-description-max-inline-size,var(--spectrum-illustrated-message-description-max-inline-size));margin-block-start:var(--mod-illustrated-message-heading-to-description,var(--spectrum-illustrated-message-heading-to-description));margin-block-end:0}::slotted(svg[viewBox]){width:100%}
-`,sg=sy;var iy=y`
-    .spectrum{color:var(--spectrum-body-m-text-color,var(--spectrum-alias-text-color));font-family:var(--spectrum-alias-body-text-font-family,var(--spectrum-global-font-family-base));font-size:var(--spectrum-alias-font-size-default,var(--spectrum-global-dimension-font-size-100))}
-`,va=iy;var ay=y`
-    .spectrum-Typography:lang(ar){font-family:var(--spectrum-font-family-ar)}.spectrum-Typography:lang(he){font-family:var(--spectrum-font-family-he)}.spectrum-Heading:lang(ja),.spectrum-Heading:lang(ko),.spectrum-Heading:lang(zh){font-family:var(--mod-heading-cjk-font-family,var(--spectrum-heading-cjk-font-family));font-style:var(--mod-heading-cjk-font-style,var(--spectrum-heading-cjk-font-style));font-weight:var(--mod-heading-cjk-font-weight,var(--spectrum-heading-cjk-font-weight));font-size:var(--mod-heading-cjk-font-size,var(--spectrum-heading-cjk-font-size));line-height:var(--mod-heading-cjk-line-height,var(--spectrum-heading-cjk-line-height));letter-spacing:var(--mod-heading-cjk-letter-spacing,var(--spectrum-heading-cjk-letter-spacing))}.spectrum-Heading:lang(ja) .spectrum-Heading-emphasized,.spectrum-Heading:lang(ja) em,.spectrum-Heading:lang(ko) .spectrum-Heading-emphasized,.spectrum-Heading:lang(ko) em,.spectrum-Heading:lang(zh) .spectrum-Heading-emphasized,.spectrum-Heading:lang(zh) em{font-style:var(--mod-heading-cjk-emphasized-font-style,var(--spectrum-heading-cjk-emphasized-font-style));font-weight:var(--mod-heading-cjk-emphasized-font-weight,var(--spectrum-heading-cjk-emphasized-font-weight))}.spectrum-Heading:lang(ja) .spectrum-Heading-strong,.spectrum-Heading:lang(ja) strong,.spectrum-Heading:lang(ko) .spectrum-Heading-strong,.spectrum-Heading:lang(ko) strong,.spectrum-Heading:lang(zh) .spectrum-Heading-strong,.spectrum-Heading:lang(zh) strong{font-style:var(--mod-heading-cjk-strong-font-style,var(--spectrum-heading-cjk-strong-font-style));font-weight:var(--mod-heading-cjk-strong-font-weight,var(--spectrum-heading-cjk-strong-font-weight))}.spectrum-Heading:lang(ja) .spectrum-Heading-strong.spectrum-Heading-emphasized,.spectrum-Heading:lang(ja) em strong,.spectrum-Heading:lang(ja) strong em,.spectrum-Heading:lang(ko) .spectrum-Heading-strong.spectrum-Heading-emphasized,.spectrum-Heading:lang(ko) em strong,.spectrum-Heading:lang(ko) strong em,.spectrum-Heading:lang(zh) .spectrum-Heading-strong.spectrum-Heading-emphasized,.spectrum-Heading:lang(zh) em strong,.spectrum-Heading:lang(zh) strong em{font-style:var(--mod-heading-cjk-strong-emphasized-font-style,var(--spectrum-heading-cjk-strong-emphasized-font-style));font-weight:var(--mod-heading-cjk-strong-emphasized-font-weight,var(--spectrum-heading-cjk-strong-emphasized-font-weight))}.spectrum-Heading--heavy:lang(ja),.spectrum-Heading--heavy:lang(ko),.spectrum-Heading--heavy:lang(zh){font-style:var(--mod-heading-cjk-heavy-font-style,var(--spectrum-heading-cjk-heavy-font-style));font-weight:var(--mod-heading-cjk-heavy-font-weight,var(--spectrum-heading-cjk-heavy-font-weight))}.spectrum-Heading--heavy:lang(ja) .spectrum-Heading-emphasized,.spectrum-Heading--heavy:lang(ja) em,.spectrum-Heading--heavy:lang(ko) .spectrum-Heading-emphasized,.spectrum-Heading--heavy:lang(ko) em,.spectrum-Heading--heavy:lang(zh) .spectrum-Heading-emphasized,.spectrum-Heading--heavy:lang(zh) em{font-style:var(--mod-heading-cjk-heavy-emphasized-font-style,var(--spectrum-heading-cjk-heavy-emphasized-font-style));font-weight:var(--mod-heading-cjk-heavy-emphasized-font-weight,var(--spectrum-heading-cjk-heavy-emphasized-font-weight))}.spectrum-Heading--heavy:lang(ja) .spectrum-Heading-strong,.spectrum-Heading--heavy:lang(ja) strong,.spectrum-Heading--heavy:lang(ko) .spectrum-Heading-strong,.spectrum-Heading--heavy:lang(ko) strong,.spectrum-Heading--heavy:lang(zh) .spectrum-Heading-strong,.spectrum-Heading--heavy:lang(zh) strong{font-style:var(--mod-heading-cjk-heavy-strong-font-style,var(--spectrum-heading-cjk-heavy-strong-font-style));font-weight:var(--mod-heading-cjk-heavy-strong-font-weight,var(--spectrum-heading-cjk-heavy-strong-font-weight))}.spectrum-Heading--heavy:lang(ja) .spectrum-Heading-strong.spectrum-Heading-emphasized,.spectrum-Heading--heavy:lang(ja) em strong,.spectrum-Heading--heavy:lang(ja) strong em,.spectrum-Heading--heavy:lang(ko) .spectrum-Heading-strong.spectrum-Heading-emphasized,.spectrum-Heading--heavy:lang(ko) em strong,.spectrum-Heading--heavy:lang(ko) strong em,.spectrum-Heading--heavy:lang(zh) .spectrum-Heading-strong.spectrum-Heading-emphasized,.spectrum-Heading--heavy:lang(zh) em strong,.spectrum-Heading--heavy:lang(zh) strong em{font-style:var(--mod-heading-cjk-heavy-strong-emphasized-font-style,var(--spectrum-heading-cjk-heavy-strong-emphasized-font-style));font-weight:var(--mod-heading-cjk-heavy-strong-emphasized-font-weight,var(--spectrum-heading-cjk-heavy-strong-emphasized-font-weight))}.spectrum-Heading--light:lang(ja),.spectrum-Heading--light:lang(ko),.spectrum-Heading--light:lang(zh){font-style:var(--mod-heading-cjk-light-font-style,var(--spectrum-heading-cjk-light-font-style));font-weight:var(--mod-heading-cjk-light-font-weight,var(--spectrum-heading-cjk-light-font-weight))}.spectrum-Heading--light:lang(ja) .spectrum-Heading-strong,.spectrum-Heading--light:lang(ja) strong,.spectrum-Heading--light:lang(ko) .spectrum-Heading-strong,.spectrum-Heading--light:lang(ko) strong,.spectrum-Heading--light:lang(zh) .spectrum-Heading-strong,.spectrum-Heading--light:lang(zh) strong{font-style:var(--mod-heading-cjk-light-strong-font-style,var(--spectrum-heading-cjk-light-strong-font-style));font-weight:var(--mod-heading-cjk-light-strong-font-weight,var(--spectrum-heading-cjk-light-strong-font-weight))}.spectrum-Heading--light:lang(ja) .spectrum-Heading-emphasized,.spectrum-Heading--light:lang(ja) em,.spectrum-Heading--light:lang(ko) .spectrum-Heading-emphasized,.spectrum-Heading--light:lang(ko) em,.spectrum-Heading--light:lang(zh) .spectrum-Heading-emphasized,.spectrum-Heading--light:lang(zh) em{font-style:var(--mod-heading-cjk-light-emphasized-font-style,var(--spectrum-heading-cjk-light-emphasized-font-style));font-weight:var(--mod-heading-cjk-light-emphasized-font-weight,var(--spectrum-heading-cjk-light-emphasized-font-weight))}.spectrum-Heading--light:lang(ja) .spectrum-Heading-strong.spectrum-Heading-emphasized,.spectrum-Heading--light:lang(ja) em strong,.spectrum-Heading--light:lang(ja) strong em,.spectrum-Heading--light:lang(ko) .spectrum-Heading-strong.spectrum-Heading-emphasized,.spectrum-Heading--light:lang(ko) em strong,.spectrum-Heading--light:lang(ko) strong em,.spectrum-Heading--light:lang(zh) .spectrum-Heading-strong.spectrum-Heading-emphasized,.spectrum-Heading--light:lang(zh) em strong,.spectrum-Heading--light:lang(zh) strong em{font-style:var(--mod-heading-cjk-light-strong-emphasized-font-style,var(--spectrum-heading-cjk-light-strong-emphasized-font-style));font-weight:var(--mod-heading-cjk-light-strong-emphasized-font-weight,var(--spectrum-heading-cjk-light-strong-emphasized-font-weight))}.spectrum-Body:lang(ja),.spectrum-Body:lang(ko),.spectrum-Body:lang(zh){font-family:var(--mod-body-cjk-font-family,var(--spectrum-body-cjk-font-family));font-style:var(--mod-body-cjk-font-style,var(--spectrum-body-cjk-font-style));font-weight:var(--mod-body-cjk-font-weight,var(--spectrum-body-cjk-font-weight));line-height:var(--mod-body-cjk-line-height,var(--spectrum-body-cjk-line-height));letter-spacing:var(--mod-body-cjk-letter-spacing,var(--spectrum-body-cjk-letter-spacing))}.spectrum-Body:lang(ja) .spectrum-Body-strong,.spectrum-Body:lang(ja) strong,.spectrum-Body:lang(ko) .spectrum-Body-strong,.spectrum-Body:lang(ko) strong,.spectrum-Body:lang(zh) .spectrum-Body-strong,.spectrum-Body:lang(zh) strong{font-style:var(--mod-body-cjk-strong-font-style,var(--spectrum-body-cjk-strong-font-style));font-weight:var(--mod-body-cjk-strong-font-weight,var(--spectrum-body-cjk-strong-font-weight))}.spectrum-Body:lang(ja) .spectrum-Body-emphasized,.spectrum-Body:lang(ja) em,.spectrum-Body:lang(ko) .spectrum-Body-emphasized,.spectrum-Body:lang(ko) em,.spectrum-Body:lang(zh) .spectrum-Body-emphasized,.spectrum-Body:lang(zh) em{font-style:var(--mod-body-cjk-emphasized-font-style,var(--spectrum-body-cjk-emphasized-font-style));font-weight:var(--mod-body-cjk-emphasized-font-weight,var(--spectrum-body-cjk-emphasized-font-weight))}.spectrum-Body:lang(ja) .spectrum-Body-strong.spectrum-Body-emphasized,.spectrum-Body:lang(ja) em strong,.spectrum-Body:lang(ja) strong em,.spectrum-Body:lang(ko) .spectrum-Body-strong.spectrum-Body-emphasized,.spectrum-Body:lang(ko) em strong,.spectrum-Body:lang(ko) strong em,.spectrum-Body:lang(zh) .spectrum-Body-strong.spectrum-Body-emphasized,.spectrum-Body:lang(zh) em strong,.spectrum-Body:lang(zh) strong em{font-style:var(--mod-body-cjk-strong-emphasized-font-style,var(--spectrum-body-cjk-strong-emphasized-font-style));font-weight:var(--mod-body-cjk-strong-emphasized-font-weight,var(--spectrum-body-cjk-strong-emphasized-font-weight))}.spectrum-Detail:lang(ja),.spectrum-Detail:lang(ko),.spectrum-Detail:lang(zh){font-family:var(--mod-detail-cjk-font-family,var(--spectrum-detail-cjk-font-family));font-style:var(--mod-detail-cjk-font-style,var(--spectrum-detail-cjk-font-style));font-weight:var(--mod-detail-cjk-font-weight,var(--spectrum-detail-cjk-font-weight));line-height:var(--mod-detail-cjk-line-height,var(--spectrum-detail-cjk-line-height))}.spectrum-Detail:lang(ja) .spectrum-Detail-strong,.spectrum-Detail:lang(ja) strong,.spectrum-Detail:lang(ko) .spectrum-Detail-strong,.spectrum-Detail:lang(ko) strong,.spectrum-Detail:lang(zh) .spectrum-Detail-strong,.spectrum-Detail:lang(zh) strong{font-style:var(--mod-detail-cjk-strong-font-style,var(--spectrum-detail-cjk-strong-font-style));font-weight:var(--mod-detail-cjk-strong-font-weight,var(--spectrum-detail-cjk-strong-font-weight))}.spectrum-Detail:lang(ja) .spectrum-Detail-emphasized,.spectrum-Detail:lang(ja) em,.spectrum-Detail:lang(ko) .spectrum-Detail-emphasized,.spectrum-Detail:lang(ko) em,.spectrum-Detail:lang(zh) .spectrum-Detail-emphasized,.spectrum-Detail:lang(zh) em{font-style:var(--mod-detail-cjk-emphasized-font-style,var(--spectrum-detail-cjk-emphasized-font-style));font-weight:var(--mod-detail-cjk-emphasized-font-weight,var(--spectrum-detail-cjk-emphasized-font-weight))}.spectrum-Detail:lang(ja) .spectrum-Detail-strong.spectrum-Detail-emphasized,.spectrum-Detail:lang(ja) em strong,.spectrum-Detail:lang(ja) strong em,.spectrum-Detail:lang(ko) .spectrum-Detail-strong.spectrum-Detail-emphasized,.spectrum-Detail:lang(ko) em strong,.spectrum-Detail:lang(ko) strong em,.spectrum-Detail:lang(zh) .spectrum-Detail-strong.spectrum-Detail-emphasized,.spectrum-Detail:lang(zh) em strong,.spectrum-Detail:lang(zh) strong em{font-style:var(--mod-detail-cjk-strong-emphasized-font-style,var(--spectrum-detail-cjk-strong-emphasized-font-style));font-weight:var(--mod-detail-cjk-strong-emphasized-font-weight,var(--spectrum-detail-cjk-strong-emphasized-font-weight))}.spectrum-Detail--light:lang(ja),.spectrum-Detail--light:lang(ko),.spectrum-Detail--light:lang(zh){font-style:var(--mod-detail-cjk-light-font-style,var(--spectrum-detail-cjk-light-font-style));font-weight:var(--mod-detail-cjk-light-font-weight,var(--spectrum-detail-cjk-light-font-weight))}.spectrum-Detail--light:lang(ja) .spectrum-Detail-strong,.spectrum-Detail--light:lang(ja) strong,.spectrum-Detail--light:lang(ko) .spectrum-Detail-strong,.spectrum-Detail--light:lang(ko) strong,.spectrum-Detail--light:lang(zh) .spectrum-Detail-strong,.spectrum-Detail--light:lang(zh) strong{font-style:var(--mod-detail-cjk-light-strong-font-style,var(--spectrum-detail-cjk-light-strong-font-style));font-weight:var(--mod-detail-cjk-light-strong-font-weight,var(--spectrum-detail-cjk-light-strong-font-weight))}.spectrum-Detail--light:lang(ja) .spectrum-Detail-emphasized,.spectrum-Detail--light:lang(ja) em,.spectrum-Detail--light:lang(ko) .spectrum-Detail-emphasized,.spectrum-Detail--light:lang(ko) em,.spectrum-Detail--light:lang(zh) .spectrum-Detail-emphasized,.spectrum-Detail--light:lang(zh) em{font-style:var(--mod-detail-cjk-light-emphasized-font-style,var(--spectrum-detail-cjk-light-emphasized-font-style));font-weight:var(--mod-detail-cjk-light-emphasized-font-weight,var(--spectrum-detail-cjk-light-emphasized-font-weight))}.spectrum-Detail--light:lang(ja) .spectrum-Detail-strong.spectrum-Detail-emphasized,.spectrum-Detail--light:lang(ko) .spectrum-Detail-strong.spectrum-Detail-emphasized,.spectrum-Detail--light:lang(zh) .spectrum-Detail-strong.spectrum-Detail-emphasized{font-style:var(--mod-detail-cjk-light-strong-emphasized-font-style,var(--spectrum-detail-cjk-light-strong-emphasized-font-style));font-weight:var(--mod-detail-cjk-light-strong-emphasized-font-weight,var(--spectrum-detail-cjk-light-strong-emphasized-font-weight))}.spectrum-Code:lang(ja),.spectrum-Code:lang(ko),.spectrum-Code:lang(zh){font-family:var(--mod-code-cjk-font-family,var(--spectrum-code-cjk-font-family));font-style:var(--mod-code-cjk-font-style,var(--spectrum-code-cjk-font-style));font-weight:var(--mod-code-cjk-font-weight,var(--spectrum-code-cjk-font-weight));line-height:var(--mod-code-cjk-line-height,var(--spectrum-code-cjk-line-height));letter-spacing:var(--mod-code-cjk-letter-spacing,var(--spectrum-code-cjk-letter-spacing))}.spectrum-Code:lang(ja) .spectrum-Code-strong,.spectrum-Code:lang(ja) strong,.spectrum-Code:lang(ko) .spectrum-Code-strong,.spectrum-Code:lang(ko) strong,.spectrum-Code:lang(zh) .spectrum-Code-strong,.spectrum-Code:lang(zh) strong{font-style:var(--mod-code-cjk-strong-font-style,var(--spectrum-code-cjk-strong-font-style));font-weight:var(--mod-code-cjk-strong-font-weight,var(--spectrum-code-cjk-strong-font-weight))}.spectrum-Code:lang(ja) .spectrum-Code-emphasized,.spectrum-Code:lang(ja) em,.spectrum-Code:lang(ko) .spectrum-Code-emphasized,.spectrum-Code:lang(ko) em,.spectrum-Code:lang(zh) .spectrum-Code-emphasized,.spectrum-Code:lang(zh) em{font-style:var(--mod-code-cjk-emphasized-font-style,var(--spectrum-code-cjk-emphasized-font-style));font-weight:var(--mod-code-cjk-emphasized-font-weight,var(--spectrum-code-cjk-emphasized-font-weight))}.spectrum-Code:lang(ja) .spectrum-Code-strong.spectrum-Code-emphasized,.spectrum-Code:lang(ja) em strong,.spectrum-Code:lang(ja) strong em,.spectrum-Code:lang(ko) .spectrum-Code-strong.spectrum-Code-emphasized,.spectrum-Code:lang(ko) em strong,.spectrum-Code:lang(ko) strong em,.spectrum-Code:lang(zh) .spectrum-Code-strong.spectrum-Code-emphasized,.spectrum-Code:lang(zh) em strong,.spectrum-Code:lang(zh) strong em{font-style:var(--mod-code-cjk-strong-emphasized-font-style,var(--spectrum-code-cjk-strong-emphasized-font-style));font-weight:var(--mod-code-cjk-strong-emphasized-font-weight,var(--spectrum-code-cjk-strong-emphasized-font-weight))}
-`,fa=ay;var cy=y`
-    .spectrum-Typography .spectrum-Heading{--spectrum-heading-margin-start:calc(var(--mod-heading-font-size,var(--spectrum-heading-font-size))*var(--spectrum-heading-margin-top-multiplier));--spectrum-heading-margin-end:calc(var(--mod-heading-font-size,var(--spectrum-heading-font-size))*var(--spectrum-heading-margin-bottom-multiplier))}@media (forced-colors:active){.spectrum-Heading{--highcontrast-heading-font-color:Text}}.spectrum-Heading,.spectrum-Heading--sizeM{--spectrum-heading-font-size:var(--spectrum-heading-size-m);--spectrum-heading-cjk-font-size:var(--spectrum-heading-cjk-size-m)}.spectrum-Heading--sizeXXS{--spectrum-heading-font-size:var(--spectrum-heading-size-xxs);--spectrum-heading-cjk-font-size:var(--spectrum-heading-cjk-size-xxs)}.spectrum-Heading--sizeXS{--spectrum-heading-font-size:var(--spectrum-heading-size-xs);--spectrum-heading-cjk-font-size:var(--spectrum-heading-cjk-size-xs)}.spectrum-Heading--sizeS{--spectrum-heading-font-size:var(--spectrum-heading-size-s);--spectrum-heading-cjk-font-size:var(--spectrum-heading-cjk-size-s)}.spectrum-Heading--sizeL{--spectrum-heading-font-size:var(--spectrum-heading-size-l);--spectrum-heading-cjk-font-size:var(--spectrum-heading-cjk-size-l)}.spectrum-Heading--sizeXL{--spectrum-heading-font-size:var(--spectrum-heading-size-xl);--spectrum-heading-cjk-font-size:var(--spectrum-heading-cjk-size-xl)}.spectrum-Heading--sizeXXL{--spectrum-heading-font-size:var(--spectrum-heading-size-xxl);--spectrum-heading-cjk-font-size:var(--spectrum-heading-cjk-size-xxl)}.spectrum-Heading--sizeXXXL{--spectrum-heading-font-size:var(--spectrum-heading-size-xxxl);--spectrum-heading-cjk-font-size:var(--spectrum-heading-cjk-size-xxxl)}.spectrum-Heading{--spectrum-heading-sans-serif-font-family:var(--spectrum-sans-font-family-stack);--spectrum-heading-serif-font-family:var(--spectrum-serif-font-family-stack);--spectrum-heading-cjk-font-family:var(--spectrum-cjk-font-family-stack);--spectrum-heading-cjk-letter-spacing:var(--spectrum-cjk-letter-spacing);--spectrum-heading-font-color:var(--spectrum-heading-color);font-family:var(--mod-heading-sans-serif-font-family,var(--spectrum-heading-sans-serif-font-family));font-style:var(--mod-heading-sans-serif-font-style,var(--spectrum-heading-sans-serif-font-style));font-weight:var(--mod-heading-sans-serif-font-weight,var(--spectrum-heading-sans-serif-font-weight));font-size:var(--mod-heading-font-size,var(--spectrum-heading-font-size));color:var(--highcontrast-heading-font-color,var(--mod-heading-font-color,var(--spectrum-heading-font-color)));line-height:var(--mod-heading-line-height,var(--spectrum-heading-line-height));margin-block-start:var(--mod-heading-margin-start,var(--spectrum-heading-margin-start,0));margin-block-end:var(--mod-heading-margin-end,var(--spectrum-heading-margin-end,0))}.spectrum-Heading .spectrum-Heading-strong,.spectrum-Heading strong{font-style:var(--mod-heading-sans-serif-strong-font-style,var(--spectrum-heading-sans-serif-strong-font-style));font-weight:var(--mod-heading-sans-serif-strong-font-weight,var(--spectrum-heading-sans-serif-strong-font-weight))}.spectrum-Heading .spectrum-Heading-emphasized,.spectrum-Heading em{font-style:var(--mod-heading-sans-serif-emphasized-font-style,var(--spectrum-heading-sans-serif-emphasized-font-style));font-weight:var(--mod-heading-sans-serif-emphasized-font-weight,var(--spectrum-heading-sans-serif-emphasized-font-weight))}.spectrum-Heading .spectrum-Heading-strong.spectrum-Heading-emphasized,.spectrum-Heading em strong,.spectrum-Heading strong em{font-style:var(--mod-heading-sans-serif-strong-emphasized-font-style,var(--spectrum-heading-sans-serif-strong-emphasized-font-style));font-weight:var(--mod-heading-sans-serif-strong-emphasized-font-weight,var(--spectrum-heading-sans-serif-strong-emphasized-font-weight))}.spectrum-Heading:lang(ja),.spectrum-Heading:lang(ko),.spectrum-Heading:lang(zh){font-family:var(--mod-heading-cjk-font-family,var(--spectrum-heading-cjk-font-family));font-style:var(--mod-heading-cjk-font-style,var(--spectrum-heading-cjk-font-style));font-weight:var(--mod-heading-cjk-font-weight,var(--spectrum-heading-cjk-font-weight));font-size:var(--mod-heading-cjk-font-size,var(--spectrum-heading-cjk-font-size));line-height:var(--mod-heading-cjk-line-height,var(--spectrum-heading-cjk-line-height));letter-spacing:var(--mod-heading-cjk-letter-spacing,var(--spectrum-heading-cjk-letter-spacing))}.spectrum-Heading:lang(ja) .spectrum-Heading-emphasized,.spectrum-Heading:lang(ja) em,.spectrum-Heading:lang(ko) .spectrum-Heading-emphasized,.spectrum-Heading:lang(ko) em,.spectrum-Heading:lang(zh) .spectrum-Heading-emphasized,.spectrum-Heading:lang(zh) em{font-style:var(--mod-heading-cjk-emphasized-font-style,var(--spectrum-heading-cjk-emphasized-font-style));font-weight:var(--mod-heading-cjk-emphasized-font-weight,var(--spectrum-heading-cjk-emphasized-font-weight))}.spectrum-Heading:lang(ja) .spectrum-Heading-strong,.spectrum-Heading:lang(ja) strong,.spectrum-Heading:lang(ko) .spectrum-Heading-strong,.spectrum-Heading:lang(ko) strong,.spectrum-Heading:lang(zh) .spectrum-Heading-strong,.spectrum-Heading:lang(zh) strong{font-style:var(--mod-heading-cjk-strong-font-style,var(--spectrum-heading-cjk-strong-font-style));font-weight:var(--mod-heading-cjk-strong-font-weight,var(--spectrum-heading-cjk-strong-font-weight))}.spectrum-Heading:lang(ja) .spectrum-Heading-strong.spectrum-Heading-emphasized,.spectrum-Heading:lang(ja) em strong,.spectrum-Heading:lang(ja) strong em,.spectrum-Heading:lang(ko) .spectrum-Heading-strong.spectrum-Heading-emphasized,.spectrum-Heading:lang(ko) em strong,.spectrum-Heading:lang(ko) strong em,.spectrum-Heading:lang(zh) .spectrum-Heading-strong.spectrum-Heading-emphasized,.spectrum-Heading:lang(zh) em strong,.spectrum-Heading:lang(zh) strong em{font-style:var(--mod-heading-cjk-strong-emphasized-font-style,var(--spectrum-heading-cjk-strong-emphasized-font-style));font-weight:var(--mod-heading-cjk-strong-emphasized-font-weight,var(--spectrum-heading-cjk-strong-emphasized-font-weight))}.spectrum-Heading--heavy{font-style:var(--mod-heading-sans-serif-heavy-font-style,var(--spectrum-heading-sans-serif-heavy-font-style));font-weight:var(--mod-heading-sans-serif-heavy-font-weight,var(--spectrum-heading-sans-serif-heavy-font-weight))}.spectrum-Heading--heavy .spectrum-Heading-strong,.spectrum-Heading--heavy strong{font-style:var(--mod-heading-sans-serif-heavy-strong-font-style,var(--spectrum-heading-sans-serif-heavy-strong-font-style));font-weight:var(--mod-heading-sans-serif-heavy-strong-font-weight,var(--spectrum-heading-sans-serif-heavy-strong-font-weight))}.spectrum-Heading--heavy .spectrum-Heading-emphasized,.spectrum-Heading--heavy em{font-style:var(--mod-heading-sans-serif-heavy-emphasized-font-style,var(--spectrum-heading-sans-serif-heavy-emphasized-font-style));font-weight:var(--mod-heading-sans-serif-heavy-emphasized-font-weight,var(--spectrum-heading-sans-serif-heavy-emphasized-font-weight))}.spectrum-Heading--heavy .spectrum-Heading-strong.spectrum-Heading-emphasized,.spectrum-Heading--heavy em strong,.spectrum-Heading--heavy strong em{font-style:var(--mod-heading-sans-serif-heavy-strong-emphasized-font-style,var(--spectrum-heading-sans-serif-heavy-strong-emphasized-font-style));font-weight:var(--mod-heading-sans-serif-heavy-strong-emphasized-font-weight,var(--spectrum-heading-sans-serif-heavy-strong-emphasized-font-weight))}.spectrum-Heading--heavy:lang(ja),.spectrum-Heading--heavy:lang(ko),.spectrum-Heading--heavy:lang(zh){font-style:var(--mod-heading-cjk-heavy-font-style,var(--spectrum-heading-cjk-heavy-font-style));font-weight:var(--mod-heading-cjk-heavy-font-weight,var(--spectrum-heading-cjk-heavy-font-weight))}.spectrum-Heading--heavy:lang(ja) .spectrum-Heading-emphasized,.spectrum-Heading--heavy:lang(ja) em,.spectrum-Heading--heavy:lang(ko) .spectrum-Heading-emphasized,.spectrum-Heading--heavy:lang(ko) em,.spectrum-Heading--heavy:lang(zh) .spectrum-Heading-emphasized,.spectrum-Heading--heavy:lang(zh) em{font-style:var(--mod-heading-cjk-heavy-emphasized-font-style,var(--spectrum-heading-cjk-heavy-emphasized-font-style));font-weight:var(--mod-heading-cjk-heavy-emphasized-font-weight,var(--spectrum-heading-cjk-heavy-emphasized-font-weight))}.spectrum-Heading--heavy:lang(ja) .spectrum-Heading-strong,.spectrum-Heading--heavy:lang(ja) strong,.spectrum-Heading--heavy:lang(ko) .spectrum-Heading-strong,.spectrum-Heading--heavy:lang(ko) strong,.spectrum-Heading--heavy:lang(zh) .spectrum-Heading-strong,.spectrum-Heading--heavy:lang(zh) strong{font-style:var(--mod-heading-cjk-heavy-strong-font-style,var(--spectrum-heading-cjk-heavy-strong-font-style));font-weight:var(--mod-heading-cjk-heavy-strong-font-weight,var(--spectrum-heading-cjk-heavy-strong-font-weight))}.spectrum-Heading--heavy:lang(ja) .spectrum-Heading-strong.spectrum-Heading-emphasized,.spectrum-Heading--heavy:lang(ja) em strong,.spectrum-Heading--heavy:lang(ja) strong em,.spectrum-Heading--heavy:lang(ko) .spectrum-Heading-strong.spectrum-Heading-emphasized,.spectrum-Heading--heavy:lang(ko) em strong,.spectrum-Heading--heavy:lang(ko) strong em,.spectrum-Heading--heavy:lang(zh) .spectrum-Heading-strong.spectrum-Heading-emphasized,.spectrum-Heading--heavy:lang(zh) em strong,.spectrum-Heading--heavy:lang(zh) strong em{font-style:var(--mod-heading-cjk-heavy-strong-emphasized-font-style,var(--spectrum-heading-cjk-heavy-strong-emphasized-font-style));font-weight:var(--mod-heading-cjk-heavy-strong-emphasized-font-weight,var(--spectrum-heading-cjk-heavy-strong-emphasized-font-weight))}.spectrum-Heading--light{font-style:var(--mod-heading-sans-serif-light-font-style,var(--spectrum-heading-sans-serif-light-font-style));font-weight:var(--mod-heading-sans-serif-light-font-weight,var(--spectrum-heading-sans-serif-light-font-weight))}.spectrum-Heading--light .spectrum-Heading-emphasized,.spectrum-Heading--light em{font-style:var(--mod-heading-sans-serif-light-emphasized-font-style,var(--spectrum-heading-sans-serif-light-emphasized-font-style));font-weight:var(--mod-heading-sans-serif-light-emphasized-font-weight,var(--spectrum-heading-sans-serif-light-emphasized-font-weight))}.spectrum-Heading--light .spectrum-Heading-strong,.spectrum-Heading--light strong{font-style:var(--mod-heading-sans-serif-light-strong-font-style,var(--spectrum-heading-sans-serif-light-strong-font-style));font-weight:var(--mod-heading-sans-serif-light-strong-font-weight,var(--spectrum-heading-sans-serif-light-strong-font-weight))}.spectrum-Heading--light .spectrum-Heading-strong.spectrum-Heading-emphasized,.spectrum-Heading--light em strong,.spectrum-Heading--light strong em{font-style:var(--mod-heading-sans-serif-light-strong-emphasized-font-style,var(--spectrum-heading-sans-serif-light-strong-emphasized-font-style));font-weight:var(--mod-heading-sans-serif-light-strong-emphasized-font-weight,var(--spectrum-heading-sans-serif-light-strong-emphasized-font-weight))}.spectrum-Heading--light:lang(ja),.spectrum-Heading--light:lang(ko),.spectrum-Heading--light:lang(zh){font-style:var(--mod-heading-cjk-light-font-style,var(--spectrum-heading-cjk-light-font-style));font-weight:var(--mod-heading-cjk-light-font-weight,var(--spectrum-heading-cjk-light-font-weight))}.spectrum-Heading--light:lang(ja) .spectrum-Heading-strong,.spectrum-Heading--light:lang(ja) strong,.spectrum-Heading--light:lang(ko) .spectrum-Heading-strong,.spectrum-Heading--light:lang(ko) strong,.spectrum-Heading--light:lang(zh) .spectrum-Heading-strong,.spectrum-Heading--light:lang(zh) strong{font-style:var(--mod-heading-cjk-light-strong-font-style,var(--spectrum-heading-cjk-light-strong-font-style));font-weight:var(--mod-heading-cjk-light-strong-font-weight,var(--spectrum-heading-cjk-light-strong-font-weight))}.spectrum-Heading--light:lang(ja) .spectrum-Heading-emphasized,.spectrum-Heading--light:lang(ja) em,.spectrum-Heading--light:lang(ko) .spectrum-Heading-emphasized,.spectrum-Heading--light:lang(ko) em,.spectrum-Heading--light:lang(zh) .spectrum-Heading-emphasized,.spectrum-Heading--light:lang(zh) em{font-style:var(--mod-heading-cjk-light-emphasized-font-style,var(--spectrum-heading-cjk-light-emphasized-font-style));font-weight:var(--mod-heading-cjk-light-emphasized-font-weight,var(--spectrum-heading-cjk-light-emphasized-font-weight))}.spectrum-Heading--light:lang(ja) .spectrum-Heading-strong.spectrum-Heading-emphasized,.spectrum-Heading--light:lang(ja) em strong,.spectrum-Heading--light:lang(ja) strong em,.spectrum-Heading--light:lang(ko) .spectrum-Heading-strong.spectrum-Heading-emphasized,.spectrum-Heading--light:lang(ko) em strong,.spectrum-Heading--light:lang(ko) strong em,.spectrum-Heading--light:lang(zh) .spectrum-Heading-strong.spectrum-Heading-emphasized,.spectrum-Heading--light:lang(zh) em strong,.spectrum-Heading--light:lang(zh) strong em{font-style:var(--mod-heading-cjk-light-strong-emphasized-font-style,var(--spectrum-heading-cjk-light-strong-emphasized-font-style));font-weight:var(--mod-heading-cjk-light-strong-emphasized-font-weight,var(--spectrum-heading-cjk-light-strong-emphasized-font-weight))}.spectrum-Heading--serif{font-family:var(--mod-heading-serif-font-family,var(--spectrum-heading-serif-font-family));font-style:var(--mod-heading-serif-font-style,var(--spectrum-heading-serif-font-style));font-weight:var(--mod-heading-serif-font-weight,var(--spectrum-heading-serif-font-weight))}.spectrum-Heading--serif .spectrum-Heading-emphasized,.spectrum-Heading--serif em{font-style:var(--mod-heading-serif-emphasized-font-style,var(--spectrum-heading-serif-emphasized-font-style));font-weight:var(--mod-heading-serif-emphasized-font-weight,var(--spectrum-heading-serif-emphasized-font-weight))}.spectrum-Heading--serif .spectrum-Heading-strong,.spectrum-Heading--serif strong{font-style:var(--mod-heading-serif-strong-font-style,var(--spectrum-heading-serif-strong-font-style));font-weight:var(--mod-heading-serif-strong-font-weight,var(--spectrum-heading-serif-strong-font-weight))}.spectrum-Heading--serif .spectrum-Heading-strong.spectrum-Heading-emphasized,.spectrum-Heading--serif em strong,.spectrum-Heading--serif strong em{font-style:var(--mod-heading-serif-strong-emphasized-font-style,var(--spectrum-heading-serif-strong-emphasized-font-style));font-weight:var(--mod-heading-serif-strong-emphasized-font-weight,var(--spectrum-heading-serif-strong-emphasized-font-weight))}.spectrum-Heading--serif.spectrum-Heading--heavy{font-style:var(--mod-heading-serif-heavy-font-style,var(--spectrum-heading-serif-heavy-font-style));font-weight:var(--mod-heading-serif-heavy-font-weight,var(--spectrum-heading-serif-heavy-font-weight))}.spectrum-Heading--serif.spectrum-Heading--heavy .spectrum-Heading-strong,.spectrum-Heading--serif.spectrum-Heading--heavy strong{font-style:var(--mod-heading-serif-heavy-strong-font-style,var(--spectrum-heading-serif-heavy-strong-font-style));font-weight:var(--mod-heading-serif-heavy-strong-font-weight,var(--spectrum-heading-serif-heavy-strong-font-weight))}.spectrum-Heading--serif.spectrum-Heading--heavy .spectrum-Heading-emphasized,.spectrum-Heading--serif.spectrum-Heading--heavy em{font-style:var(--mod-heading-serif-heavy-emphasized-font-style,var(--spectrum-heading-serif-heavy-emphasized-font-style));font-weight:var(--mod-heading-serif-heavy-emphasized-font-weight,var(--spectrum-heading-serif-heavy-emphasized-font-weight))}.spectrum-Heading--serif.spectrum-Heading--heavy .spectrum-Heading-strong.spectrum-Heading-emphasized,.spectrum-Heading--serif.spectrum-Heading--heavy em strong,.spectrum-Heading--serif.spectrum-Heading--heavy strong em{font-style:var(--mod-heading-serif-heavy-strong-emphasized-font-style,var(--spectrum-heading-serif-heavy-strong-emphasized-font-style));font-weight:var(--mod-heading-serif-heavy-strong-emphasized-font-weight,var(--spectrum-heading-serif-heavy-strong-emphasized-font-weight))}.spectrum-Heading--serif.spectrum-Heading--light{font-style:var(--mod-heading-serif-light-font-style,var(--spectrum-heading-serif-light-font-style));font-weight:var(--mod-heading-serif-light-font-weight,var(--spectrum-heading-serif-light-font-weight))}.spectrum-Heading--serif.spectrum-Heading--light .spectrum-Heading-emphasized,.spectrum-Heading--serif.spectrum-Heading--light em{font-style:var(--mod-heading-serif-light-emphasized-font-style,var(--spectrum-heading-serif-light-emphasized-font-style));font-weight:var(--mod-heading-serif-light-emphasized-font-weight,var(--spectrum-heading-serif-light-emphasized-font-weight))}.spectrum-Heading--serif.spectrum-Heading--light .spectrum-Heading-strong,.spectrum-Heading--serif.spectrum-Heading--light strong{font-style:var(--mod-heading-serif-light-strong-font-style,var(--spectrum-heading-serif-light-strong-font-style));font-weight:var(--mod-heading-serif-light-strong-font-weight,var(--spectrum-heading-serif-light-strong-font-weight))}.spectrum-Heading--serif.spectrum-Heading--light .spectrum-Heading-strong.spectrum-Heading-emphasized,.spectrum-Heading--serif.spectrum-Heading--light em strong,.spectrum-Heading--serif.spectrum-Heading--light strong em{font-style:var(--mod-heading-serif-light-strong-emphasized-font-style,var(--spectrum-heading-serif-light-strong-emphasized-font-style));font-weight:var(--mod-heading-serif-light-strong-emphasized-font-weight,var(--spectrum-heading-serif-light-strong-emphasized-font-weight))}
-`,ig=cy;var ag=[va,fa,ig];var ny=y`
-    .spectrum-Typography .spectrum-Body{--spectrum-body-margin-end:calc(var(--mod-body-font-size,var(--spectrum-body-font-size))*var(--spectrum-body-margin-multiplier))}@media (forced-colors:active){.spectrum-Body{--highcontrast-body-font-color:Text}}.spectrum-Body,.spectrum-Body--sizeM{--spectrum-body-font-size:var(--spectrum-body-size-m)}.spectrum-Body--sizeXS{--spectrum-body-font-size:var(--spectrum-body-size-xs)}.spectrum-Body--sizeS{--spectrum-body-font-size:var(--spectrum-body-size-s)}.spectrum-Body--sizeL{--spectrum-body-font-size:var(--spectrum-body-size-l)}.spectrum-Body--sizeXL{--spectrum-body-font-size:var(--spectrum-body-size-xl)}.spectrum-Body--sizeXXL{--spectrum-body-font-size:var(--spectrum-body-size-xxl)}.spectrum-Body--sizeXXXL{--spectrum-body-font-size:var(--spectrum-body-size-xxxl)}.spectrum-Body{--spectrum-body-sans-serif-font-family:var(--spectrum-sans-font-family-stack);--spectrum-body-serif-font-family:var(--spectrum-serif-font-family-stack);--spectrum-body-cjk-font-family:var(--spectrum-cjk-font-family-stack);--spectrum-body-cjk-letter-spacing:var(--spectrum-cjk-letter-spacing);--spectrum-body-font-color:var(--spectrum-body-color);font-family:var(--mod-body-sans-serif-font-family,var(--spectrum-body-sans-serif-font-family));font-style:var(--mod-body-sans-serif-font-style,var(--spectrum-body-sans-serif-font-style));font-weight:var(--mod-body-sans-serif-font-weight,var(--spectrum-body-sans-serif-font-weight));font-size:var(--mod-body-font-size,var(--spectrum-body-font-size));color:var(--highcontrast-body-font-color,var(--mod-body-font-color,var(--spectrum-body-font-color)));line-height:var(--mod-body-line-height,var(--spectrum-body-line-height));margin-block-start:var(--mod-body-margin-start,var(--mod-body-margin,0));margin-block-end:var(--mod-body-margin-end,var(--mod-body-margin,var(--spectrum-body-margin-end,0)))}.spectrum-Body .spectrum-Body-strong,.spectrum-Body strong{font-style:var(--mod-body-sans-serif-strong-font-style,var(--spectrum-body-sans-serif-strong-font-style));font-weight:var(--mod-body-sans-serif-strong-font-weight,var(--spectrum-body-sans-serif-strong-font-weight))}.spectrum-Body .spectrum-Body-emphasized,.spectrum-Body em{font-style:var(--mod-body-sans-serif-emphasized-font-style,var(--spectrum-body-sans-serif-emphasized-font-style));font-weight:var(--mod-body-sans-serif-emphasized-font-weight,var(--spectrum-body-sans-serif-emphasized-font-weight))}.spectrum-Body .spectrum-Body-strong.spectrum-Body-emphasized,.spectrum-Body em strong,.spectrum-Body strong em{font-style:var(--mod-body-sans-serif-strong-emphasized-font-style,var(--spectrum-body-sans-serif-strong-emphasized-font-style));font-weight:var(--mod-body-sans-serif-strong-emphasized-font-weight,var(--spectrum-body-sans-serif-strong-emphasized-font-weight))}.spectrum-Body:lang(ja),.spectrum-Body:lang(ko),.spectrum-Body:lang(zh){font-family:var(--mod-body-cjk-font-family,var(--spectrum-body-cjk-font-family));font-style:var(--mod-body-cjk-font-style,var(--spectrum-body-cjk-font-style));font-weight:var(--mod-body-cjk-font-weight,var(--spectrum-body-cjk-font-weight));line-height:var(--mod-body-cjk-line-height,var(--spectrum-body-cjk-line-height));letter-spacing:var(--mod-body-cjk-letter-spacing,var(--spectrum-body-cjk-letter-spacing))}.spectrum-Body:lang(ja) .spectrum-Body-strong,.spectrum-Body:lang(ja) strong,.spectrum-Body:lang(ko) .spectrum-Body-strong,.spectrum-Body:lang(ko) strong,.spectrum-Body:lang(zh) .spectrum-Body-strong,.spectrum-Body:lang(zh) strong{font-style:var(--mod-body-cjk-strong-font-style,var(--spectrum-body-cjk-strong-font-style));font-weight:var(--mod-body-cjk-strong-font-weight,var(--spectrum-body-cjk-strong-font-weight))}.spectrum-Body:lang(ja) .spectrum-Body-emphasized,.spectrum-Body:lang(ja) em,.spectrum-Body:lang(ko) .spectrum-Body-emphasized,.spectrum-Body:lang(ko) em,.spectrum-Body:lang(zh) .spectrum-Body-emphasized,.spectrum-Body:lang(zh) em{font-style:var(--mod-body-cjk-emphasized-font-style,var(--spectrum-body-cjk-emphasized-font-style));font-weight:var(--mod-body-cjk-emphasized-font-weight,var(--spectrum-body-cjk-emphasized-font-weight))}.spectrum-Body:lang(ja) .spectrum-Body-strong.spectrum-Body-emphasized,.spectrum-Body:lang(ja) em strong,.spectrum-Body:lang(ja) strong em,.spectrum-Body:lang(ko) .spectrum-Body-strong.spectrum-Body-emphasized,.spectrum-Body:lang(ko) em strong,.spectrum-Body:lang(ko) strong em,.spectrum-Body:lang(zh) .spectrum-Body-strong.spectrum-Body-emphasized,.spectrum-Body:lang(zh) em strong,.spectrum-Body:lang(zh) strong em{font-style:var(--mod-body-cjk-strong-emphasized-font-style,var(--spectrum-body-cjk-strong-emphasized-font-style));font-weight:var(--mod-body-cjk-strong-emphasized-font-weight,var(--spectrum-body-cjk-strong-emphasized-font-weight))}.spectrum-Body--serif{font-family:var(--mod-body-serif-font-family,var(--spectrum-body-serif-font-family));font-weight:var(--mod-body-serif-font-weight,var(--spectrum-body-serif-font-weight));font-style:var(--mod-body-serif-font-style,var(--spectrum-body-serif-font-style))}.spectrum-Body--serif .spectrum-Body-strong,.spectrum-Body--serif strong{font-style:var(--mod-body-serif-strong-font-style,var(--spectrum-body-serif-strong-font-style));font-weight:var(--mod-body-serif-strong-font-weight,var(--spectrum-body-serif-strong-font-weight))}.spectrum-Body--serif .spectrum-Body-emphasized,.spectrum-Body--serif em{font-style:var(--mod-body-serif-emphasized-font-style,var(--spectrum-body-serif-emphasized-font-style));font-weight:var(--mod-body-serif-emphasized-font-weight,var(--spectrum-body-serif-emphasized-font-weight))}.spectrum-Body--serif .spectrum-Body-strong.spectrum-Body-emphasized,.spectrum-Body--serif em strong,.spectrum-Body--serif strong em{font-style:var(--mod-body-serif-strong-emphasized-font-style,var(--spectrum-body-serif-strong-emphasized-font-style));font-weight:var(--mod-body-serif-strong-emphasized-font-weight,var(--spectrum-body-serif-strong-emphasized-font-weight))}.spectrum-Detail--light .spectrum-Detail-strong.spectrum-Body-emphasized{font-style:var(--mod-detail-sans-serif-light-strong-emphasized-font-style,var(--spectrum-detail-sans-serif-light-strong-emphasized-font-style));font-weight:var(--mod-detail-sans-serif-light-strong-emphasized-font-weight,var(--spectrum-detail-sans-serif-light-strong-emphasized-font-weight))}.spectrum-Detail--serif.spectrum-Detail--light .spectrum-Detail-strong.spectrum-Body-emphasized{font-style:var(--mod-detail-serif-light-strong-emphasized-font-style,var(--spectrum-detail-serif-light-strong-emphasized-font-style));font-weight:var(--mod-detail-serif-light-strong-emphasized-font-weight,var(--spectrum-detail-serif-light-strong-emphasized-font-weight))}
-`,cg=ny;var ng=[va,fa,cg];var ly=Object.defineProperty,dy=Object.getOwnPropertyDescriptor,lg=(o,t,e,r)=>{for(var s=r>1?void 0:r?dy(t,e):t,i=o.length-1,a;i>=0;i--)(a=o[i])&&(s=(r?a(t,e,s):a(s))||s);return r&&s&&ly(t,e,s),s},Dr=class extends zo{constructor(){super(...arguments),this.heading="",this.description=""}static get styles(){return[ag,ng,sg]}render(){return c`
-            <div id="illustration"><slot></slot></div>
-            <h2
-                id="heading"
-                class="spectrum-Heading spectrum-Heading--sizeL spectrum-Heading--light"
-            >
-                <slot name="heading">${this.heading}</slot>
-            </h2>
-            <div id="description" class="spectrum-Body spectrum-Body--sizeS">
-                <slot name="description">${this.description}</slot>
-            </div>
-        `}};Dr.is="sp-illustrated-message",lg([n()],Dr.prototype,"heading",2),lg([n()],Dr.prototype,"description",2);function bd(o,t){window.__swc&&window.__swc.DEBUG&&customElements.get(o)&&window.__swc.warn(void 0,`Attempted to redefine <${o}>. This usually indicates that multiple versions of the same web component were loaded onto a single page.`,"https://opensource.adobe.com/spectrum-web-components/registry-conflicts"),customElements.define(o,t)}bd("sp-illustrated-message",Dr);p();var dg=({width:o=24,height:t=24,hidden:e=!1,title:r="Add"}={})=>d`<svg
+        `}};eg([n({type:Boolean,reflect:!0})],ko.prototype,"icon",2),eg([n({reflect:!0})],ko.prototype,"variant",2);f();l("sp-help-text",ko);f();l("sp-icon",fr);p();var rg=({width:o=24,height:t=24,hidden:e=!1,title:r="Add"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -1590,7 +1569,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
       d="m16.25,9.25h-5.5V3.75c0-.41406-.33594-.75-.75-.75s-.75.33594-.75.75v5.5H3.75c-.41406,0-.75.33594-.75.75s.33594.75.75.75h5.5v5.5c0,.41406.33594.75.75.75s.75-.33594.75-.75v-5.5h5.5c.41406,0,.75-.33594.75-.75s-.33594-.75-.75-.75Z"
       fill="currentColor"
     />
-  </svg>`;var mg=({width:o=24,height:t=24,hidden:e=!1,title:r="Add"}={})=>d`<svg
+  </svg>`;var og=({width:o=24,height:t=24,hidden:e=!1,title:r="Add"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     height="${t}"
     viewBox="0 0 36 36"
@@ -1603,7 +1582,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
     <path
       d="M29 16h-9V7a1 1 0 0 0-1-1h-2a1 1 0 0 0-1 1v9H7a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1h9v9a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1v-9h9a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1Z"
     />
-  </svg>`;var xa=class extends h{render(){return b(c),this.spectrumVersion===2?dg({hidden:!this.label,title:this.label}):mg({hidden:!this.label,title:this.label})}};f();l("sp-icon-add",xa);p();var ug=({width:o=24,height:t=24,hidden:e=!1,title:r="Apps"}={})=>d`<svg
+  </svg>`;var va=class extends h{render(){return b(c),this.spectrumVersion===2?rg({hidden:!this.label,title:this.label}):og({hidden:!this.label,title:this.label})}};f();l("sp-icon-add",va);p();var sg=({width:o=24,height:t=24,hidden:e=!1,title:r="Apps"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -1629,7 +1608,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
       d="m15.25098,11.00293h-3.5c-1.5166,0-2.75-1.2334-2.75-2.75v-3.5c0-1.5166,1.2334-2.75,2.75-2.75h3.5c1.5166,0,2.75,1.2334,2.75,2.75v3.5c0,1.5166-1.2334,2.75-2.75,2.75Zm-3.5-7.5c-.68945,0-1.25.56055-1.25,1.25v3.5c0,.68945.56055,1.25,1.25,1.25h3.5c.68945,0,1.25-.56055,1.25-1.25v-3.5c0-.68945-.56055-1.25-1.25-1.25h-3.5Z"
       fill="currentColor"
     />
-  </svg>`;var pg=({width:o=24,height:t=24,hidden:e=!1,title:r="Apps"}={})=>d`<svg
+  </svg>`;var ig=({width:o=24,height:t=24,hidden:e=!1,title:r="Apps"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -1648,7 +1627,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
     <rect x="2.5" y="26.5" width="7" height="7" rx="2" ry="2" />
     <rect x="14.5" y="26.5" width="7" height="7" rx="2" ry="2" />
     <rect x="26.5" y="26.5" width="7" height="7" rx="2" ry="2" />
-  </svg>`;var ya=class extends h{render(){return b(c),this.spectrumVersion===2?ug({hidden:!this.label,title:this.label}):pg({hidden:!this.label,title:this.label})}};f();l("sp-icon-apps",ya);p();var hg=({width:o=24,height:t=24,hidden:e=!1,title:r="Archive"}={})=>d`<svg
+  </svg>`;var fa=class extends h{render(){return b(c),this.spectrumVersion===2?sg({hidden:!this.label,title:this.label}):ig({hidden:!this.label,title:this.label})}};f();l("sp-icon-apps",fa);p();var ag=({width:o=24,height:t=24,hidden:e=!1,title:r="Archive"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -1666,7 +1645,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
       d="m12.25,12h-4.5c-.41406,0-.75-.33594-.75-.75s.33594-.75.75-.75h4.5c.41406,0,.75.33594.75.75s-.33594.75-.75.75Z"
       fill="currentColor"
     />
-  </svg>`;var gg=({width:o=24,height:t=24,hidden:e=!1,title:r="Archive"}={})=>d`<svg
+  </svg>`;var cg=({width:o=24,height:t=24,hidden:e=!1,title:r="Archive"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     height="${t}"
     viewBox="0 0 36 36"
@@ -1680,7 +1659,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
     <path
       d="M2 12v19a1 1 0 0 0 1 1h30a1 1 0 0 0 1-1V12Zm21 12H13a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1Z"
     />
-  </svg>`;var wa=class extends h{render(){return b(c),this.spectrumVersion===2?hg({hidden:!this.label,title:this.label}):gg({hidden:!this.label,title:this.label})}};f();l("sp-icon-archive",wa);p();var bg=({width:o=24,height:t=24,hidden:e=!1,title:r="Aspect Ratio"}={})=>d`<svg
+  </svg>`;var xa=class extends h{render(){return b(c),this.spectrumVersion===2?ag({hidden:!this.label,title:this.label}):cg({hidden:!this.label,title:this.label})}};f();l("sp-icon-archive",xa);p();var ng=({width:o=24,height:t=24,hidden:e=!1,title:r="Aspect Ratio"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -1719,7 +1698,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                 stroke-width="0"
             ></path>
         </svg>
-    `;var ka=class extends h{render(){return b(c),this.spectrumVersion===2?bg({hidden:!this.label,title:this.label}):M({hidden:!this.label,title:this.label})}};f();l("sp-icon-aspect-ratio",ka);p();var vg=({width:o=24,height:t=24,hidden:e=!1,title:r="Bell"}={})=>d`<svg
+    `;var ya=class extends h{render(){return b(c),this.spectrumVersion===2?ng({hidden:!this.label,title:this.label}):M({hidden:!this.label,title:this.label})}};f();l("sp-icon-aspect-ratio",ya);p();var lg=({width:o=24,height:t=24,hidden:e=!1,title:r="Bell"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -1733,7 +1712,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
       d="m17.78613,12.67578c-.16846-.30859-.34082-.60742-.51123-.90234-.82666-1.43457-1.54102-2.67285-1.54102-4.62012,0-3.11914-2.5376-5.65723-5.65723-5.65723s-5.65723,2.53809-5.65723,5.65723c0,1.7666-.75879,3.04883-1.56201,4.40527-.22021.37207-.44141.74609-.64941,1.13086-.37598.69629-.35693,1.52051.05078,2.2041.41211.69043,1.13672,1.10254,1.93848,1.10254h3.05225c0,1.5166,1.2334,2.75,2.75,2.75s2.75-1.2334,2.75-2.75h3.05518c.80322,0,1.52783-.41309,1.93896-1.10547.40771-.6875.42383-1.51562.04248-2.21484Zm-7.78662,4.57031c-.68945,0-1.25-.56055-1.25-1.25h2.5c0,.68945-.56055,1.25-1.25,1.25Zm6.4541-3.12109c-.06641.11133-.26221.37109-.64893.37109H4.19727c-.26855,0-.51172-.13867-.65039-.37109-.06445-.1084-.19531-.39551-.01855-.72266.19824-.36816.40967-.72461.61963-1.0791.87109-1.4707,1.77148-2.99219,1.77148-5.16992,0-2.25391,1.90381-4.15723,4.15723-4.15723s4.15723,1.90332,4.15723,4.15723c0,2.34863.88525,3.88379,1.7417,5.36914.16455.28516.33057.57324.49365.87207.18066.33105.04932.62109-.01562.73047Z"
       fill="currentColor"
     />
-  </svg>`;var fg=({width:o=24,height:t=24,hidden:e=!1,title:r="Bell"}={})=>d`<svg
+  </svg>`;var dg=({width:o=24,height:t=24,hidden:e=!1,title:r="Bell"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -1746,7 +1725,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
     <path
       d="M18 36a4.406 4.406 0 0 0 4-4h-8a4.406 4.406 0 0 0 4 4ZM27.143 11.385c0-3.437-3.206-4.891-7.143-5.268V3a1.079 1.079 0 0 0-1.143-1h-1.714A1.079 1.079 0 0 0 16 3v3.117c-3.937.377-7.143 1.831-7.143 5.268C8.857 26.8 4 26.111 4 28.154V30h28v-1.846C32 26 27.143 26.8 27.143 11.385Z"
     />
-  </svg>`;var za=class extends h{render(){return b(c),this.spectrumVersion===2?vg({hidden:!this.label,title:this.label}):fg({hidden:!this.label,title:this.label})}};f();l("sp-icon-bell",za);p();var xg=({width:o=24,height:t=24,hidden:e=!1,title:r="Bookmark"}={})=>d`<svg
+  </svg>`;var wa=class extends h{render(){return b(c),this.spectrumVersion===2?lg({hidden:!this.label,title:this.label}):dg({hidden:!this.label,title:this.label})}};f();l("sp-icon-bell",wa);p();var mg=({width:o=24,height:t=24,hidden:e=!1,title:r="Bookmark"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -1761,7 +1740,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
       fill="currentColor"
       stroke-width="0"
     />
-  </svg>`;var yg=({width:o=24,height:t=24,hidden:e=!1,title:r="Bookmark"}={})=>d`<svg
+  </svg>`;var ug=({width:o=24,height:t=24,hidden:e=!1,title:r="Bookmark"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     height="${t}"
     viewBox="0 0 36 36"
@@ -1777,7 +1756,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
     <path
       d="M8 27.443A3.987 3.987 0 0 1 9.995 20h10.523a1 1 0 0 0 .8-.4l11.1-14.8a.5.5 0 0 0-.4-.8H16.025a1 1 0 0 0-.8.4L3.522 19.328h.008A7.942 7.942 0 0 0 8 31.716ZM32.018 16h-3.236l-9 12H18v4h2.518a1 1 0 0 0 .8-.4l11.1-14.8a.5.5 0 0 0-.4-.8Z"
     />
-  </svg>`;var Ca=class extends h{render(){return b(c),this.spectrumVersion===2?xg({hidden:!this.label,title:this.label}):yg({hidden:!this.label,title:this.label})}};f();l("sp-icon-bookmark",Ca);p();var wg=({width:o=24,height:t=24,hidden:e=!1,title:r="Briefcase"}={})=>d`<svg
+  </svg>`;var ka=class extends h{render(){return b(c),this.spectrumVersion===2?mg({hidden:!this.label,title:this.label}):ug({hidden:!this.label,title:this.label})}};f();l("sp-icon-bookmark",ka);p();var pg=({width:o=24,height:t=24,hidden:e=!1,title:r="Briefcase"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -1804,7 +1783,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
       d="m14.25,12.25c-.41406,0-.75-.33594-.75-.75v-2.5c0-.41406.33594-.75.75-.75s.75.33594.75.75v2.5c0,.41406-.33594.75-.75.75Z"
       fill="currentColor"
     />
-  </svg>`;var kg=({width:o=24,height:t=24,hidden:e=!1,title:r="Briefcase"}={})=>d`<svg
+  </svg>`;var hg=({width:o=24,height:t=24,hidden:e=!1,title:r="Briefcase"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     height="${t}"
     viewBox="0 0 36 36"
@@ -1817,7 +1796,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
     <path
       d="M20 18v3.287a.75.75 0 0 1-.75.75L16.75 22a.75.75 0 0 1-.75-.75V18H0v13a1 1 0 0 0 1 1h34a1 1 0 0 0 1-1V18ZM35 10h-9V6a2 2 0 0 0-2-2H12a2 2 0 0 0-2 2v4H1a1 1 0 0 0-1 1v5h16v-1.361a.75.75 0 0 1 .75-.75l2.5.037a.75.75 0 0 1 .75.75V16h16v-5a1 1 0 0 0-1-1ZM13 7h10v3H13Z"
     />
-  </svg>`;var Ta=class extends h{render(){return b(c),this.spectrumVersion===2?wg({hidden:!this.label,title:this.label}):kg({hidden:!this.label,title:this.label})}};f();l("sp-icon-briefcase",Ta);p();var zg=({width:o=24,height:t=24,hidden:e=!1,title:r="Brush"}={})=>d`<svg
+  </svg>`;var za=class extends h{render(){return b(c),this.spectrumVersion===2?pg({hidden:!this.label,title:this.label}):hg({hidden:!this.label,title:this.label})}};f();l("sp-icon-briefcase",za);p();var gg=({width:o=24,height:t=24,hidden:e=!1,title:r="Brush"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -1831,7 +1810,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
       d="m18.07422,1.60052c-.52832-.44141-1.19238-.6543-1.88281-.58789-.68555.06152-1.30664.38672-1.74512.91211-.03638.04297-5.02991,6.01904-6.6936,8.01196-.34375.01636-.69238.06714-1.04175.16382-1.97266.54688-2.68652,2.23242-3.31543,3.71875-.50098,1.18359-.97461,2.30176-2.00293,2.8584-.28613.1543-.43945.47656-.37988.79688.05957.31934.31836.56445.6416.60645.93555.12012,1.97656.20801,3.02344.20801,2.16016,0,4.35156-.37207,5.7207-1.59375.9248-.8252,1.38477-1.9375,1.36523-3.30664-.00085-.0625-.01978-.12158-.02417-.18359l1.20679-1.44336c2.10254-2.5166,5.38086-6.44238,5.45508-6.5293.91113-1.09082.76465-2.7207-.32715-3.63184Zm-8.67383,13.97461c-1.05273.94043-3.10938,1.34473-5.86523,1.17969.55371-.72461.91016-1.56934,1.24121-2.35059.56934-1.34375,1.06055-2.50488,2.33496-2.8584.875-.24121,1.73145-.11328,2.35352.35254.5.375.79102.92578.79883,1.51172.0127.92676-.26953,1.63574-.86328,2.16504Zm7.85254-11.30859c-.04297.05078-3.34473,4.00293-5.45801,6.5332l-.63416.75952c-.21741-.31958-.47217-.61816-.79651-.86108-.27283-.2041-.57422-.36011-.89014-.48413,2.01074-2.40723,6.05859-7.25122,6.12158-7.32544.18359-.2207.44336-.35645.72949-.38281.29297-.02246.56641.0625.78809.24707.45605.38086.51758,1.06152.13965,1.51367Z"
       fill="currentColor"
     />
-  </svg>`;var Cg=({width:o=24,height:t=24,hidden:e=!1,title:r="Brush"}={})=>d`<svg
+  </svg>`;var bg=({width:o=24,height:t=24,hidden:e=!1,title:r="Brush"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -1844,7 +1823,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
     <path
       d="M12.509 21.03a4.917 4.917 0 0 0-4.195 1.204 12.924 12.924 0 0 0-2.68 4.782c-.462 1.94-.899 3.772-3.359 4.772a.6.6 0 0 0-.34.712.898.898 0 0 0 .644.658c.585.146 1.253.284 1.977.398 2.607.41 7.48.738 10.806-1.652 1.238-.848 2.837-2.982 2.822-4.546a6.813 6.813 0 0 0-5.675-6.328ZM19.9 24.1c7.235-8.227 16.422-19.535 14.016-21.941S21.546 10.976 14.38 18.83a10.051 10.051 0 0 1 5.52 5.27Z"
     />
-  </svg>`;var Ia=class extends h{render(){return b(c),this.spectrumVersion===2?zg({hidden:!this.label,title:this.label}):Cg({hidden:!this.label,title:this.label})}};f();l("sp-icon-brush",Ia);p();var Tg=({width:o=24,height:t=24,hidden:e=!1,title:r="Calendar"}={})=>d`<svg
+  </svg>`;var Ca=class extends h{render(){return b(c),this.spectrumVersion===2?gg({hidden:!this.label,title:this.label}):bg({hidden:!this.label,title:this.label})}};f();l("sp-icon-brush",Ca);p();var vg=({width:o=24,height:t=24,hidden:e=!1,title:r="Calendar"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -1864,7 +1843,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
     <rect x="5" y="13" width="2" height="2" rx="1" ry="1" fill="currentColor" />
     <rect x="9" y="13" width="2" height="2" rx="1" ry="1" fill="currentColor" />
     <rect x="13" y="13" width="2" height="2" rx="1" ry="1" fill="currentColor" />
-  </svg>`;var Ig=({width:o=24,height:t=24,hidden:e=!1,title:r="Calendar"}={})=>d`<svg
+  </svg>`;var fg=({width:o=24,height:t=24,hidden:e=!1,title:r="Calendar"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -1882,7 +1861,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
         d="M6 12h4v4H6zM12 12h4v4h-4zM18 12h4v4h-4zM24 12h4v4h-4zM6 18h4v4H6zM12 18h4v4h-4zM18 18h4v4h-4zM24 18h4v4h-4zM6 24h4v4H6zM12 24h4v4h-4zM18 24h4v4h-4zM24 24h4v4h-4z"
       />
     </g>
-  </svg>`;var Sa=class extends h{render(){return b(c),this.spectrumVersion===2?Tg({hidden:!this.label,title:this.label}):Ig({hidden:!this.label,title:this.label})}};f();l("sp-icon-calendar",Sa);p();var Sg=({width:o=24,height:t=24,hidden:e=!1,title:r="Camera"}={})=>d`<svg
+  </svg>`;var Ta=class extends h{render(){return b(c),this.spectrumVersion===2?vg({hidden:!this.label,title:this.label}):fg({hidden:!this.label,title:this.label})}};f();l("sp-icon-calendar",Ta);p();var xg=({width:o=24,height:t=24,hidden:e=!1,title:r="Camera"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -1900,7 +1879,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
       d="m10,14.5c-2.20557,0-4-1.79395-4-4s1.79443-4,4-4,4,1.79395,4,4-1.79443,4-4,4Zm0-6.5c-1.37842,0-2.5,1.12109-2.5,2.5s1.12158,2.5,2.5,2.5,2.5-1.12109,2.5-2.5-1.12158-2.5-2.5-2.5Z"
       fill="currentColor"
     />
-  </svg>`;var Eg=({width:o=24,height:t=24,hidden:e=!1,title:r="Camera"}={})=>d`<svg
+  </svg>`;var yg=({width:o=24,height:t=24,hidden:e=!1,title:r="Camera"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -1914,7 +1893,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
     <path
       d="M33 8h-6.05l-3.352-3.674a1 1 0 0 0-.74-.326h-9.717a1 1 0 0 0-.739.326L9.05 8H3a1 1 0 0 0-1 1v20a1 1 0 0 0 1 1h30a1 1 0 0 0 1-1V9a1 1 0 0 0-1-1ZM18 26.2a8.2 8.2 0 1 1 8.2-8.2 8.2 8.2 0 0 1-8.2 8.2Z"
     />
-  </svg>`;var Ea=class extends h{render(){return b(c),this.spectrumVersion===2?Sg({hidden:!this.label,title:this.label}):Eg({hidden:!this.label,title:this.label})}};f();l("sp-icon-camera",Ea);p();var $g=({width:o=24,height:t=24,hidden:e=!1,title:r="Campaign"}={})=>d`<svg
+  </svg>`;var Ia=class extends h{render(){return b(c),this.spectrumVersion===2?xg({hidden:!this.label,title:this.label}):yg({hidden:!this.label,title:this.label})}};f();l("sp-icon-camera",Ia);p();var wg=({width:o=24,height:t=24,hidden:e=!1,title:r="Campaign"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     height="${t}"
     viewBox="0 0 36 36"
@@ -1928,7 +1907,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
     <path
       d="M6.227 20.311H2A16.172 16.172 0 0 0 15.688 34v-4.227a12.007 12.007 0 0 1-9.461-9.462ZM29.773 20.311a12.007 12.007 0 0 1-9.461 9.462V34A16.172 16.172 0 0 0 34 20.311ZM15.688 6.228V2A16.171 16.171 0 0 0 2 15.688h4.228a12 12 0 0 1 9.46-9.46ZM29.772 15.688H34A16.171 16.171 0 0 0 20.312 2v4.228a12 12 0 0 1 9.46 9.46Z"
     />
-  </svg>`;var $a=class extends h{render(){return b(c),this.spectrumVersion===1?$g({hidden:!this.label,title:this.label}):M({hidden:!this.label,title:this.label})}};f();l("sp-icon-campaign",$a);p();var _g=({width:o=24,height:t=24,hidden:e=!1,title:r="Cancel"}={})=>d`<svg
+  </svg>`;var Sa=class extends h{render(){return b(c),this.spectrumVersion===1?wg({hidden:!this.label,title:this.label}):M({hidden:!this.label,title:this.label})}};f();l("sp-icon-campaign",Sa);p();var kg=({width:o=24,height:t=24,hidden:e=!1,title:r="Cancel"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -1942,7 +1921,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
       d="M16.20123,16.16553c1.57397-1.58289,2.54877-3.76221,2.54877-6.16553,0-4.82471-3.92529-8.75-8.75-8.75-2.40332,0-4.58264.97485-6.16559,2.54883-.00647.00598-.01508.00781-.02142.01416s-.00818.01489-.01422.02148c-1.57397,1.58289-2.54877,3.76221-2.54877,6.16553,0,4.82471,3.92529,8.75,8.75,8.75,2.40332,0,4.58264-.97485,6.16559-2.54883.00647-.00598.01508-.00781.02142-.01416s.00818-.01489.01422-.02148ZM17.25,10c0,1.72925-.61047,3.31738-1.62463,4.56482L5.43518,4.37463c1.24744-1.01416,2.83563-1.62463,4.56482-1.62463,3.99756,0,7.25,3.25244,7.25,7.25ZM2.75,10c0-1.72925.61047-3.31738,1.62463-4.56482l10.19019,10.19019c-1.24744,1.01416-2.83563,1.62463-4.56482,1.62463-3.99756,0-7.25-3.25244-7.25-7.25Z"
       fill="currentColor"
     />
-  </svg>`;var Ag=({width:o=24,height:t=24,hidden:e=!1,title:r="Cancel"}={})=>d`<svg
+  </svg>`;var zg=({width:o=24,height:t=24,hidden:e=!1,title:r="Cancel"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     height="${t}"
     viewBox="0 0 36 36"
@@ -1955,7 +1934,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
     <path
       d="M18 2a16 16 0 1 0 16 16A16 16 0 0 0 18 2Zm12 16a11.943 11.943 0 0 1-2.219 6.953L11.047 8.219A12 12 0 0 1 30 18ZM6 18a11.945 11.945 0 0 1 2.219-6.953l16.734 16.735A12 12 0 0 1 6 18Z"
     />
-  </svg>`;var _a=class extends h{render(){return b(c),this.spectrumVersion===2?_g({hidden:!this.label,title:this.label}):Ag({hidden:!this.label,title:this.label})}};f();l("sp-icon-cancel",_a);p();var Lg=({width:o=24,height:t=24,hidden:e=!1,title:r="CCLibrary"}={})=>d`<svg
+  </svg>`;var Ea=class extends h{render(){return b(c),this.spectrumVersion===2?kg({hidden:!this.label,title:this.label}):zg({hidden:!this.label,title:this.label})}};f();l("sp-icon-cancel",Ea);p();var Cg=({width:o=24,height:t=24,hidden:e=!1,title:r="CCLibrary"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -1973,7 +1952,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
       d="m15.62988,5H7.37012c-1.30713,0-2.37012,1.06348-2.37012,2.37012v8.25977c0,1.30664,1.06299,2.37012,2.37012,2.37012h8.25977c1.30713,0,2.37012-1.06348,2.37012-2.37012V7.37012c0-1.30664-1.06299-2.37012-2.37012-2.37012Zm.87012,10.62988c0,.47949-.39014.87012-.87012.87012H7.37012c-.47998,0-.87012-.39062-.87012-.87012V7.37012c0-.47949.39014-.87012.87012-.87012h3.62988v4.13428c0,.35645.43085.53491.68286.28271l1.0343-1.03418c.15619-.15625.40948-.15625.56567,0l1.0343,1.03418c.25201.2522.68286.07373.68286-.28271v-4.13428h.62988c.47998,0,.87012.39062.87012.87012v8.25977Z"
       fill="currentColor"
     />
-  </svg>`;var Hg=({width:o=24,height:t=24,hidden:e=!1,title:r="CCLibrary"}={})=>d`<svg
+  </svg>`;var Tg=({width:o=24,height:t=24,hidden:e=!1,title:r="CCLibrary"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     height="${t}"
     viewBox="0 0 36 36"
@@ -1986,7 +1965,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
     <path
       d="M33 6h-3V3a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v26a1 1 0 0 0 1 1h3v3a1 1 0 0 0 1 1h26a1 1 0 0 0 1-1V7a1 1 0 0 0-1-1ZM4 28V4h24v2H7a1 1 0 0 0-1 1v21Zm28 4H8V8h14v14l4-3 4 3V8h2Z"
     />
-  </svg>`;var Aa=class extends h{render(){return b(c),this.spectrumVersion===2?Lg({hidden:!this.label,title:this.label}):Hg({hidden:!this.label,title:this.label})}};f();l("sp-icon-cclibrary",Aa);p();var Bg=({width:o=24,height:t=24,hidden:e=!1,title:r="Checkmark Circle"}={})=>d`<svg
+  </svg>`;var $a=class extends h{render(){return b(c),this.spectrumVersion===2?Cg({hidden:!this.label,title:this.label}):Tg({hidden:!this.label,title:this.label})}};f();l("sp-icon-cclibrary",$a);p();var Ig=({width:o=24,height:t=24,hidden:e=!1,title:r="Checkmark Circle"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -2004,7 +1983,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
       d="M9.22266,13.5c-.21191,0-.41504-.08984-.55762-.24805l-2.51074-2.79199c-.27734-.30859-.25195-.78223.05566-1.05957s.78125-.25195,1.05957.05566l1.89355,2.10645,3.4873-4.75586c.24316-.33398.71094-.40918,1.04785-.16113.33398.24414.40625.71387.16113,1.04785l-4.03223,5.5c-.13281.18262-.3418.29492-.56738.30566-.01172.00098-.02441.00098-.03711.00098Z"
       fill="currentColor"
     />
-  </svg>`;var Pg=({width:o=24,height:t=24,hidden:e=!1,title:r="Checkmark Circle"}={})=>d`<svg
+  </svg>`;var Sg=({width:o=24,height:t=24,hidden:e=!1,title:r="Checkmark Circle"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -2017,7 +1996,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
     <path
       d="M18 2a16 16 0 1 0 16 16A16 16 0 0 0 18 2Zm10.666 9.08L16.018 27.341a1.208 1.208 0 0 1-.875.461c-.024.002-.05.002-.073.002a1.2 1.2 0 0 1-.85-.351l-7.784-7.795a1.2 1.2 0 0 1 0-1.698l1.326-1.325a1.201 1.201 0 0 1 1.695 0l5.346 5.347L25.314 8.473A1.203 1.203 0 0 1 27 8.263l1.455 1.133a1.205 1.205 0 0 1 .211 1.684Z"
     />
-  </svg>`;var La=class extends h{render(){return b(c),this.spectrumVersion===2?Bg({hidden:!this.label,title:this.label}):Pg({hidden:!this.label,title:this.label})}};f();l("sp-icon-checkmark-circle",La);p();var Dg=({width:o=24,height:t=24,hidden:e=!1,title:r="Checkmark"}={})=>d`<svg
+  </svg>`;var _a=class extends h{render(){return b(c),this.spectrumVersion===2?Ig({hidden:!this.label,title:this.label}):Sg({hidden:!this.label,title:this.label})}};f();l("sp-icon-checkmark-circle",_a);p();var Eg=({width:o=24,height:t=24,hidden:e=!1,title:r="Checkmark"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -2031,7 +2010,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
       d="M7.86426,15.73438c-.22266,0-.43359-.09863-.57617-.26953l-3.74707-4.49805c-.26562-.31836-.22168-.79199.0957-1.05664.31738-.26562.79004-.22363,1.05664.0957l3.15332,3.78613,7.43945-9.46875c.25586-.32617.72852-.38184,1.05273-.12695.32617.25586.38281.72754.12695,1.05273l-8.01172,10.19824c-.13965.17871-.35254.28418-.5791.28711h-.01074Z"
       fill="currentColor"
     />
-  </svg>`;var jg=({width:o=24,height:t=24,hidden:e=!1,title:r="Checkmark"}={})=>d`<svg
+  </svg>`;var $g=({width:o=24,height:t=24,hidden:e=!1,title:r="Checkmark"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     height="${t}"
     viewBox="0 0 36 36"
@@ -2044,7 +2023,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
     <path
       d="m31.312 7.725-1.455-1.133a1 1 0 0 0-1.4.175L14.822 24.283l-6.647-6.612a1 1 0 0 0-1.414 0L5.436 19a1 1 0 0 0 0 1.414l8.926 8.9a1 1 0 0 0 1.5-.093L31.487 9.128a1 1 0 0 0-.175-1.403Z"
     />
-  </svg>`;var Ha=class extends h{render(){return b(c),this.spectrumVersion===2?Dg({hidden:!this.label,title:this.label}):jg({hidden:!this.label,title:this.label})}};f();l("sp-icon-checkmark",Ha);p();var Mg=({width:o=24,height:t=24,hidden:e=!1,title:r="Chevron Down"}={})=>d`<svg
+  </svg>`;var Aa=class extends h{render(){return b(c),this.spectrumVersion===2?Eg({hidden:!this.label,title:this.label}):$g({hidden:!this.label,title:this.label})}};f();l("sp-icon-checkmark",Aa);p();var _g=({width:o=24,height:t=24,hidden:e=!1,title:r="Chevron Down"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -2058,7 +2037,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
       d="M3.75488,7.24316c.28711-.29883.76172-.3086,1.05957-.02051l5.18359,4.98633,5.19727-4.99902c.29785-.28808.77246-.27832,1.05957.02051.28711.29687.27832.77246-.02051,1.05957l-5.7168,5.5c-.29004.28027-.74902.28027-1.03906,0l-5.70312-5.4873c-.15332-.14649-.23047-.34375-.23047-.54004,0-.18751.06934-.37501.20996-.51954Z"
       fill="currentColor"
     />
-  </svg>`;var Og=({width:o=24,height:t=24,hidden:e=!1,title:r="Chevron Down"}={})=>d`<svg
+  </svg>`;var Ag=({width:o=24,height:t=24,hidden:e=!1,title:r="Chevron Down"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     height="${t}"
     viewBox="0 0 36 36"
@@ -2071,7 +2050,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
     <path
       d="M8 14.02a2 2 0 0 1 3.411-1.411l6.578 6.572 6.578-6.572a2 2 0 0 1 2.874 2.773l-.049.049-7.992 7.984a2 2 0 0 1-2.825 0l-7.989-7.983A1.989 1.989 0 0 1 8 14.02Z"
     />
-  </svg>`;var Ba=class extends h{render(){return b(c),this.spectrumVersion===2?Mg({hidden:!this.label,title:this.label}):Og({hidden:!this.label,title:this.label})}};f();l("sp-icon-chevron-down",Ba);p();var Rg=({width:o=24,height:t=24,hidden:e=!1,title:r="Chevron Left"}={})=>d`<svg
+  </svg>`;var La=class extends h{render(){return b(c),this.spectrumVersion===2?_g({hidden:!this.label,title:this.label}):Ag({hidden:!this.label,title:this.label})}};f();l("sp-icon-chevron-down",La);p();var Lg=({width:o=24,height:t=24,hidden:e=!1,title:r="Chevron Left"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -2085,7 +2064,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
       d="m12.2373,16.45508c-.19629,0-.39355-.07715-.54004-.23047l-5.4873-5.70312c-.28027-.29004-.28027-.74902,0-1.03906l5.5-5.7168c.28711-.29883.7627-.30762,1.05957-.02051.29883.28711.30859.76172.02051,1.05957l-4.99902,5.19727,4.98633,5.18359c.28809.29785.27832.77246-.02051,1.05957-.14453.14062-.33203.20996-.51953.20996Z"
       fill="currentColor"
     />
-  </svg>`;var qg=({width:o=24,height:t=24,hidden:e=!1,title:r="Chevron Left"}={})=>d`<svg
+  </svg>`;var Hg=({width:o=24,height:t=24,hidden:e=!1,title:r="Chevron Left"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     height="${t}"
     viewBox="0 0 36 36"
@@ -2098,7 +2077,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
     <path
       d="M12 18a1.988 1.988 0 0 0 .585 1.409l7.983 7.98a2 2 0 1 0 2.871-2.772l-.049-.049L16.819 18l6.572-6.57a2 2 0 0 0-2.773-2.87l-.049.049-7.983 7.98A1.988 1.988 0 0 0 12 18Z"
     />
-  </svg>`;var Pa=class extends h{render(){return b(c),this.spectrumVersion===2?Rg({hidden:!this.label,title:this.label}):qg({hidden:!this.label,title:this.label})}};f();l("sp-icon-chevron-left",Pa);p();var Fg=({width:o=24,height:t=24,hidden:e=!1,title:r="Chevron Right"}={})=>d`<svg
+  </svg>`;var Ha=class extends h{render(){return b(c),this.spectrumVersion===2?Lg({hidden:!this.label,title:this.label}):Hg({hidden:!this.label,title:this.label})}};f();l("sp-icon-chevron-left",Ha);p();var Bg=({width:o=24,height:t=24,hidden:e=!1,title:r="Chevron Right"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -2112,7 +2091,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
       d="m7.75,16.46484c-.1875,0-.37402-.06934-.51953-.20996-.29883-.28711-.30859-.76172-.02051-1.05957l4.99902-5.19727-4.98633-5.18359c-.28809-.29785-.27832-.77246.02051-1.05957.2959-.28711.77344-.2793,1.05957.02051l5.4873,5.70312c.28027.29004.28027.74902,0,1.03906l-5.5,5.7168c-.14648.15332-.34375.23047-.54004.23047Z"
       fill="currentColor"
     />
-  </svg>`;var Vg=({width:o=24,height:t=24,hidden:e=!1,title:r="Chevron Right"}={})=>d`<svg
+  </svg>`;var Pg=({width:o=24,height:t=24,hidden:e=!1,title:r="Chevron Right"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     height="${t}"
     viewBox="0 0 36 36"
@@ -2125,7 +2104,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
     <path
       d="M24 18a1.988 1.988 0 0 1-.585 1.409l-7.983 7.98a2 2 0 1 1-2.871-2.772l.049-.049L19.181 18l-6.572-6.57a2 2 0 0 1 2.773-2.87l.049.049 7.983 7.98A1.988 1.988 0 0 1 24 18Z"
     />
-  </svg>`;var Da=class extends h{render(){return b(c),this.spectrumVersion===2?Fg({hidden:!this.label,title:this.label}):Vg({hidden:!this.label,title:this.label})}};f();l("sp-icon-chevron-right",Da);p();var Ng=({width:o=24,height:t=24,hidden:e=!1,title:r="Chevron Up"}={})=>d`<svg
+  </svg>`;var Ba=class extends h{render(){return b(c),this.spectrumVersion===2?Bg({hidden:!this.label,title:this.label}):Pg({hidden:!this.label,title:this.label})}};f();l("sp-icon-chevron-right",Ba);p();var Dg=({width:o=24,height:t=24,hidden:e=!1,title:r="Chevron Up"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -2139,7 +2118,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
       d="M3.54492,12.2373c0-.19629.07715-.39355.23047-.54004l5.70312-5.4873c.29004-.28027.74902-.28027,1.03906,0l5.7168,5.5c.29883.28711.30762.7627.02051,1.05957-.28711.29883-.76172.30859-1.05957.02051l-5.19727-4.99902-5.18359,4.98633c-.29785.28809-.77246.27832-1.05957-.02051-.14062-.14453-.20996-.33203-.20996-.51954Z"
       fill="currentColor"
     />
-  </svg>`;var Ug=({width:o=24,height:t=24,hidden:e=!1,title:r="Chevron Up"}={})=>d`<svg
+  </svg>`;var jg=({width:o=24,height:t=24,hidden:e=!1,title:r="Chevron Up"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     height="${t}"
     viewBox="0 0 36 36"
@@ -2152,7 +2131,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
     <path
       d="M28 21.98a2 2 0 0 1-3.411 1.411l-6.578-6.572-6.578 6.572a2 2 0 0 1-2.874-2.773l.049-.049 7.992-7.984a2 2 0 0 1 2.825 0l7.989 7.983A1.989 1.989 0 0 1 28 21.98Z"
     />
-  </svg>`;var ja=class extends h{render(){return b(c),this.spectrumVersion===2?Ng({hidden:!this.label,title:this.label}):Ug({hidden:!this.label,title:this.label})}};f();l("sp-icon-chevron-up",ja);p();var Zg=({width:o=24,height:t=24,hidden:e=!1,title:r="Close Circle"}={})=>d`<svg
+  </svg>`;var Pa=class extends h{render(){return b(c),this.spectrumVersion===2?Dg({hidden:!this.label,title:this.label}):jg({hidden:!this.label,title:this.label})}};f();l("sp-icon-chevron-up",Pa);p();var Mg=({width:o=24,height:t=24,hidden:e=!1,title:r="Close Circle"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -2170,7 +2149,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
       d="M10,18.75c-4.8252,0-8.75-3.9248-8.75-8.75S5.1748,1.25,10,1.25s8.75,3.9248,8.75,8.75-3.9248,8.75-8.75,8.75ZM10,2.75c-3.99805,0-7.25,3.25195-7.25,7.25s3.25195,7.25,7.25,7.25,7.25-3.25195,7.25-7.25-3.25195-7.25-7.25-7.25Z"
       fill="currentColor"
     />
-  </svg>`;var Wg=({width:o=24,height:t=24,hidden:e=!1,title:r="Close Circle"}={})=>d`<svg
+  </svg>`;var Og=({width:o=24,height:t=24,hidden:e=!1,title:r="Close Circle"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     height="${t}"
     viewBox="0 0 36 36"
@@ -2183,7 +2162,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
     <path
       d="M29.314 6.686a16 16 0 1 0 0 22.627 16 16 0 0 0 0-22.627Zm-2.687 18.527-1.414 1.414a1.2 1.2 0 0 1-1.7 0L18 21.111l-5.516 5.516a1.2 1.2 0 0 1-1.7 0l-1.409-1.415a1.2 1.2 0 0 1 0-1.7L14.889 18l-5.514-5.516a1.2 1.2 0 0 1 0-1.7l1.414-1.414a1.2 1.2 0 0 1 1.7 0L18 14.888l5.516-5.515a1.2 1.2 0 0 1 1.7 0l1.414 1.414a1.2 1.2 0 0 1 0 1.7L21.111 18l5.516 5.516a1.2 1.2 0 0 1 0 1.7Z"
     />
-  </svg>`;var Ma=class extends h{render(){return b(c),this.spectrumVersion===2?Zg({hidden:!this.label,title:this.label}):Wg({hidden:!this.label,title:this.label})}};f();l("sp-icon-close-circle",Ma);p();var Kg=({width:o=24,height:t=24,hidden:e=!1,title:r="Close"}={})=>d`<svg
+  </svg>`;var Da=class extends h{render(){return b(c),this.spectrumVersion===2?Mg({hidden:!this.label,title:this.label}):Og({hidden:!this.label,title:this.label})}};f();l("sp-icon-close-circle",Da);p();var Rg=({width:o=24,height:t=24,hidden:e=!1,title:r="Close"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -2197,7 +2176,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
       d="m11.06061,10l5.20648-5.20605c.29297-.29297.29297-.76758,0-1.06055s-.76758-.29297-1.06055,0l-5.20654,5.20605L4.79346,3.7334c-.29297-.29297-.76758-.29297-1.06055,0s-.29297.76758,0,1.06055l5.20648,5.20605-5.20648,5.20605c-.29297.29297-.29297.76758,0,1.06055.14648.14648.33838.21973.53027.21973s.38379-.07324.53027-.21973l5.20654-5.20605,5.20654,5.20605c.14648.14648.33838.21973.53027.21973s.38379-.07324.53027-.21973c.29297-.29297.29297-.76758,0-1.06055l-5.20648-5.20605Z"
       fill="currentColor"
     />
-  </svg>`;var Gg=({width:o=24,height:t=24,hidden:e=!1,title:r="Close"}={})=>d`<svg
+  </svg>`;var qg=({width:o=24,height:t=24,hidden:e=!1,title:r="Close"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -2210,7 +2189,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
     <path
       d="M26.485 6.686 18 15.172 9.515 6.686a1 1 0 0 0-1.414 0L6.686 8.101a1 1 0 0 0 0 1.414L15.172 18l-8.486 8.485a1 1 0 0 0 0 1.414l1.415 1.415a1 1 0 0 0 1.414 0L18 20.828l8.485 8.486a1 1 0 0 0 1.414 0l1.415-1.415a1 1 0 0 0 0-1.414L20.828 18l8.486-8.485a1 1 0 0 0 0-1.414l-1.415-1.415a1 1 0 0 0-1.414 0Z"
     />
-  </svg>`;var Oa=class extends h{render(){return b(c),this.spectrumVersion===2?Kg({hidden:!this.label,title:this.label}):Gg({hidden:!this.label,title:this.label})}};f();l("sp-icon-close",Oa);p();var Xg=({width:o=24,height:t=24,hidden:e=!1,title:r="Cloud"}={})=>d`<svg
+  </svg>`;var ja=class extends h{render(){return b(c),this.spectrumVersion===2?Rg({hidden:!this.label,title:this.label}):qg({hidden:!this.label,title:this.label})}};f();l("sp-icon-close",ja);p();var Fg=({width:o=24,height:t=24,hidden:e=!1,title:r="Cloud"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -2224,7 +2203,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
       d="m15.40674,17H3.71777c-1.90332,0-3.45166-1.54883-3.45166-3.45215,0-1.49316.9668-2.78027,2.32373-3.25-.04297-.23047-.06445-.46484-.06445-.70215,0-2.17969,1.80957-3.95312,4.03369-3.95312.27979,0,.55762.0293.83105.08789.63721-1.95801,2.47607-3.34668,4.58838-3.34668,2.6709,0,4.84424,2.17285,4.84424,4.84375,0,.43848-.0625.87305-.18701,1.29883,1.80225.53125,3.10303,2.19141,3.10303,4.1416,0,2.38867-1.94336,4.33203-4.33203,4.33203ZM6.55908,7.14258c-1.39697,0-2.53369,1.10059-2.53369,2.45312,0,.33203.06934.65625.20605.96484.09961.22363.08301.48242-.04395.69238-.12744.20996-.34912.34375-.59375.35938-1.0249.06543-1.82764.91602-1.82764,1.93555,0,1.07617.87549,1.95215,1.95166,1.95215h11.68896c1.56152,0,2.83203-1.27051,2.83203-2.83203,0-1.49707-1.17822-2.7334-2.68213-2.81445-.25439-.01367-.48438-.15625-.61084-.37695-.12646-.22168-.13184-.49219-.01416-.71777.25977-.49902.39111-1.01465.39111-1.53125,0-1.84375-1.5-3.34375-3.34424-3.34375-1.6626,0-3.08008,1.25195-3.29736,2.91211-.03076.23535-.17188.44238-.37988.55762-.20752.11719-.45898.12598-.67432.02734-.34766-.1582-.70654-.23828-1.06787-.23828Z"
       fill="currentColor"
     />
-  </svg>`;var Yg=({width:o=24,height:t=24,hidden:e=!1,title:r="Cloud Outline"}={})=>d`<svg
+  </svg>`;var Vg=({width:o=24,height:t=24,hidden:e=!1,title:r="Cloud Outline"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     height="${t}"
     viewBox="0 0 36 36"
@@ -2237,7 +2216,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
     <path
       d="M20.5 6.714a6.788 6.788 0 0 1 6.538 8.606 5.492 5.492 0 0 1 .605-.034 5.357 5.357 0 0 1 0 10.714H6.214a3.215 3.215 0 0 1 0-6.429h.359v-1.428a5.718 5.718 0 0 1 7.2-5.519 6.788 6.788 0 0 1 6.727-5.91Zm0-2a8.811 8.811 0 0 0-8.233 5.715 7.724 7.724 0 0 0-7.69 7.406A5.214 5.214 0 0 0 6.214 28h21.429a7.357 7.357 0 0 0 1.643-14.529A8.8 8.8 0 0 0 20.5 4.714Z"
     />
-  </svg>`;var Ra=class extends h{render(){return b(c),this.spectrumVersion===2?Xg({hidden:!this.label,title:this.label}):Yg({hidden:!this.label,title:this.label})}};f();l("sp-icon-cloud",Ra);p();var Jg=({width:o=24,height:t=24,hidden:e=!1,title:r="Code"}={})=>d`<svg
+  </svg>`;var Ma=class extends h{render(){return b(c),this.spectrumVersion===2?Fg({hidden:!this.label,title:this.label}):Vg({hidden:!this.label,title:this.label})}};f();l("sp-icon-cloud",Ma);p();var Ng=({width:o=24,height:t=24,hidden:e=!1,title:r="Code"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -2259,7 +2238,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
       d="M8.22852,18c-.05859,0-.11816-.00684-.17676-.02051-.40332-.09766-.65039-.50293-.55371-.90527l3.5-14.5c.09766-.40332.50977-.64551.90527-.55371.40332.09766.65039.50293.55371.90527l-3.5,14.5c-.08301.34375-.39062.57422-.72852.57422Z"
       fill="currentColor"
     />
-  </svg>`;var Qg=({width:o=24,height:t=24,hidden:e=!1,title:r="Code"}={})=>d`<svg
+  </svg>`;var Ug=({width:o=24,height:t=24,hidden:e=!1,title:r="Code"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     height="${t}"
     viewBox="0 0 36 36"
@@ -2272,7 +2251,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
     <path
       d="m35.493 19.061-8.193 8.32a1 1 0 0 1-1.425 0l-.893-.907a1.006 1.006 0 0 1 0-1.4L31.943 18l-6.959-7.071a1.006 1.006 0 0 1 0-1.4l.893-.907a1 1 0 0 1 1.425 0l8.191 8.32a1.523 1.523 0 0 1 0 2.119ZM.507 16.939 8.7 8.619a1 1 0 0 1 1.425 0l.893.907a1.006 1.006 0 0 1 0 1.4L4.057 18l6.959 7.071a1.006 1.006 0 0 1 0 1.4l-.893.907a1 1 0 0 1-1.425 0L.507 19.061a1.523 1.523 0 0 1 0-2.122ZM15.489 29.687h-1.144a1 1 0 0 1-.966-1.259l6.192-23.041a1 1 0 0 1 .966-.741h1.105a1 1 0 0 1 .966 1.254l-6.153 23.046a1 1 0 0 1-.966.741Z"
     />
-  </svg>`;var qa=class extends h{render(){return b(c),this.spectrumVersion===2?Jg({hidden:!this.label,title:this.label}):Qg({hidden:!this.label,title:this.label})}};f();l("sp-icon-code",qa);p();var t0=({width:o=24,height:t=24,hidden:e=!1,title:r="Collection"}={})=>d`<svg
+  </svg>`;var Oa=class extends h{render(){return b(c),this.spectrumVersion===2?Ng({hidden:!this.label,title:this.label}):Ug({hidden:!this.label,title:this.label})}};f();l("sp-icon-code",Oa);p();var Zg=({width:o=24,height:t=24,hidden:e=!1,title:r="Collection"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -2287,7 +2266,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
       fill="currentColor"
       stroke-width="0"
     />
-  </svg>`;var e0=({width:o=24,height:t=24,hidden:e=!1,title:r="Collection"}={})=>d`<svg
+  </svg>`;var Wg=({width:o=24,height:t=24,hidden:e=!1,title:r="Collection"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     height="${t}"
     viewBox="0 0 36 36"
@@ -2300,7 +2279,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
     <path
       d="M33 4H3a1 1 0 0 0-1 1v24a1 1 0 0 0 1 1h30a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1ZM12 28H4V18h8Zm0-12H4V6h8Zm10 12h-8V18h8Zm0-12h-8V6h8Zm10 12h-8V18h8Zm0-12h-8V6h8Z"
     />
-  </svg>`;var Fa=class extends h{render(){return b(c),this.spectrumVersion===2?t0({hidden:!this.label,title:this.label}):e0({hidden:!this.label,title:this.label})}};f();l("sp-icon-collection",Fa);p();var r0=({width:o=24,height:t=24,hidden:e=!1,title:r="Copy"}={})=>d`<svg
+  </svg>`;var Ra=class extends h{render(){return b(c),this.spectrumVersion===2?Zg({hidden:!this.label,title:this.label}):Wg({hidden:!this.label,title:this.label})}};f();l("sp-icon-collection",Ra);p();var Kg=({width:o=24,height:t=24,hidden:e=!1,title:r="Copy"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -2346,7 +2325,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
       d="m8.25,14c-1.24023,0-2.25-1.00977-2.25-2.25,0-.41406.33594-.75.75-.75s.75.33594.75.75c0,.41309.33691.75.75.75.41406,0,.75.33594.75.75s-.33594.75-.75.75Z"
       fill="currentColor"
     />
-  </svg>`;var o0=({width:o=24,height:t=24,hidden:e=!1,title:r="Copy"}={})=>d`<svg
+  </svg>`;var Gg=({width:o=24,height:t=24,hidden:e=!1,title:r="Copy"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     height="${t}"
     viewBox="0 0 36 36"
@@ -2377,7 +2356,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
     <rect height="2" rx=".5" ry=".5" width="2" x="24" y="22" />
     <rect height="2" rx=".5" ry=".5" width="2" x="28" y="22" />
     <path d="M10 12H3a1 1 0 0 0-1 1v20a1 1 0 0 0 1 1h20a1 1 0 0 0 1-1v-7H11a1 1 0 0 1-1-1Z" />
-  </svg>`;var Va=class extends h{render(){return b(c),this.spectrumVersion===2?r0({hidden:!this.label,title:this.label}):o0({hidden:!this.label,title:this.label})}};f();l("sp-icon-copy",Va);p();var s0=({width:o=24,height:t=24,hidden:e=!1,title:r="Cover Image"}={})=>d`<svg
+  </svg>`;var qa=class extends h{render(){return b(c),this.spectrumVersion===2?Kg({hidden:!this.label,title:this.label}):Gg({hidden:!this.label,title:this.label})}};f();l("sp-icon-copy",qa);p();var Xg=({width:o=24,height:t=24,hidden:e=!1,title:r="Cover Image"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     height="${t}"
     viewBox="0 0 36 36"
@@ -2394,7 +2373,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
     <path
       d="M24 34.038a3.12 3.12 0 0 0-1.048-2.353 10.109 10.109 0 0 0-5.738-2.234 1.144 1.144 0 0 1-.99-1.148v-1.658a1.114 1.114 0 0 1 .276-.721 8.747 8.747 0 0 0 2.007-5.481C18.507 16.31 16.315 14 13 14s-5.567 2.4-5.567 6.443a8.853 8.853 0 0 0 2.1 5.485 1.106 1.106 0 0 1 .273.717V28.3a1.138 1.138 0 0 1-.993 1.148 9.693 9.693 0 0 0-5.809 2.232A3.125 3.125 0 0 0 2 34v2h22Z"
     />
-  </svg>`;var Na=class extends h{render(){return b(c),this.spectrumVersion===1?s0({hidden:!this.label,title:this.label}):M({hidden:!this.label,title:this.label})}};f();l("sp-icon-cover-image",Na);p();var i0=({width:o=24,height:t=24,hidden:e=!1,title:r="Data Correlated"}={})=>d`<svg
+  </svg>`;var Fa=class extends h{render(){return b(c),this.spectrumVersion===1?Xg({hidden:!this.label,title:this.label}):M({hidden:!this.label,title:this.label})}};f();l("sp-icon-cover-image",Fa);p();var Yg=({width:o=24,height:t=24,hidden:e=!1,title:r="Data Correlated"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     height="${t}"
     viewBox="0 0 36 36"
@@ -2410,7 +2389,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
     <path
       d="M10 22a12 12 0 0 1 15.482-11.482 12 12 0 1 0-14.964 14.964A11.989 11.989 0 0 1 10 22ZM25.482 10.518a11.907 11.907 0 0 1 .458 2.294A10 10 0 1 1 12.812 25.94a11.907 11.907 0 0 1-2.294-.458 12 12 0 1 0 14.964-14.964Z"
     />
-  </svg>`;var Ua=class extends h{render(){return b(c),this.spectrumVersion===1?i0({hidden:!this.label,title:this.label}):M({hidden:!this.label,title:this.label})}};f();l("sp-icon-data-correlated",Ua);p();var a0=({width:o=24,height:t=24,hidden:e=!1,title:r="Delete"}={})=>d`<svg
+  </svg>`;var Va=class extends h{render(){return b(c),this.spectrumVersion===1?Yg({hidden:!this.label,title:this.label}):M({hidden:!this.label,title:this.label})}};f();l("sp-icon-data-correlated",Va);p();var Jg=({width:o=24,height:t=24,hidden:e=!1,title:r="Delete"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -2432,7 +2411,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
       d="m17,4h-3.5v-.75c0-1.24023-1.00977-2.25-2.25-2.25h-2.5c-1.24023,0-2.25,1.00977-2.25,2.25v.75h-3.5c-.41406,0-.75.33594-.75.75s.33594.75.75.75h.52002l.42236,10.3418c.04785,1.20996,1.03613,2.1582,2.24805,2.1582h7.61914c1.21191,0,2.2002-.94824,2.24805-2.1582l.42236-10.3418h.52002c.41406,0,.75-.33594.75-.75s-.33594-.75-.75-.75Zm-9-.75c0-.41309.33691-.75.75-.75h2.5c.41309,0,.75.33691.75.75v.75h-4v-.75Zm6.55957,12.53125c-.0166.40332-.3457.71875-.75.71875h-7.61914c-.4043,0-.7334-.31543-.75-.71875l-.41968-10.28125h9.9585l-.41968,10.28125Z"
       fill="currentColor"
     />
-  </svg>`;var c0=({width:o=24,height:t=24,hidden:e=!1,title:r="Delete"}={})=>d`<svg
+  </svg>`;var Qg=({width:o=24,height:t=24,hidden:e=!1,title:r="Delete"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     height="${t}"
     viewBox="0 0 36 36"
@@ -2445,7 +2424,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
     <path
       d="M31.5 6H24V4a2 2 0 0 0-2-2H12a2 2 0 0 0-2 2v2H2.5a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h2l2.413 25.1a1 1 0 0 0 1 .9h18.179a1 1 0 0 0 1-.9L29.5 8h2a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5ZM11.065 29A1 1 0 0 1 10 28.068l-1.071-16a1 1 0 1 1 2-.134l1.071 16A1 1 0 0 1 11.065 29ZM18 28a1 1 0 0 1-2 0V12a1 1 0 0 1 2 0Zm4-22H12V4h10Zm2 22.068a1 1 0 1 1-2-.134l1.071-16a1 1 0 1 1 2 .134Z"
     />
-  </svg>`;var Za=class extends h{render(){return b(c),this.spectrumVersion===2?a0({hidden:!this.label,title:this.label}):c0({hidden:!this.label,title:this.label})}};f();l("sp-icon-delete",Za);p();var Wa=({width:o=24,height:t=24,hidden:e=!1,title:r="Deselect"}={})=>d`<svg
+  </svg>`;var Na=class extends h{render(){return b(c),this.spectrumVersion===2?Jg({hidden:!this.label,title:this.label}):Qg({hidden:!this.label,title:this.label})}};f();l("sp-icon-delete",Na);p();var Ua=({width:o=24,height:t=24,hidden:e=!1,title:r="Deselect"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     height="${t}"
     viewBox="0 0 36 36"
@@ -2470,7 +2449,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
     <path
       d="M32 27.437V22h-2v3.437l2 2zM25.436 30H22v2h5.436l-2-2zM4 8.563V14h2v-3.437l-2-2zM10.562 6H14V4H8.562l2 2z"
     />
-  </svg>`;var Ka=({width:o=24,height:t=24,hidden:e=!1,title:r="Select No"}={})=>d`<svg
+  </svg>`;var Za=({width:o=24,height:t=24,hidden:e=!1,title:r="Select No"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -2484,7 +2463,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
       d="m12.75,3.49996h-1.25c-.41406,0-.75-.33594-.75-.75s.33594-.75.75-.75h1.25c.41406,0,.75.33594.75.75s-.33594.75-.75.75Zm.75,13.75c0-.41406-.33594-.75-.75-.75h-1.25c-.41406,0-.75.33594-.75.75s.33594.75.75.75h1.25c.41406,0,.75-.33594.75-.75ZM9.25,2.74996c0-.41406-.33594-.75-.75-.75h-1.25c-.41406,0-.75.33594-.75.75s.33594.75.75.75h1.25c.41406,0,.75-.33594.75-.75Zm0,14.5c0-.41406-.33594-.75-.75-.75h-1.25c-.41406,0-.75.33594-.75.75s.33594.75.75.75h1.25c.41406,0,.75-.33594.75-.75Zm8.75-13c0-1.24072-1.00928-2.25-2.25-2.25-.41406,0-.75.33594-.75.75s.33594.75.75.75c.41357,0,.75.33643.75.75,0,.41406.33594.75.75.75s.75-.33594.75-.75Zm0,4.25v-1.25c0-.41406-.33594-.75-.75-.75s-.75.33594-.75.75v1.25c0,.41406.33594.75.75.75s.75-.33594.75-.75Zm-14.5,0v-1.25c0-.41406-.33594-.75-.75-.75s-.75.33594-.75.75v1.25c0,.41406.33594.75.75.75s.75-.33594.75-.75Zm14.5,4.25v-1.25c0-.41406-.33594-.75-.75-.75s-.75.33594-.75.75v1.25c0,.41406.33594.75.75.75s.75-.33594.75-.75Zm-14.5,0v-1.25c0-.41406-.33594-.75-.75-.75s-.75.33594-.75.75v1.25c0,.41406.33594.75.75.75s.75-.33594.75-.75Zm1.5,4.5c0-.41406-.33594-.75-.75-.75-.41357,0-.75-.33643-.75-.75,0-.41406-.33594-.75-.75-.75s-.75.33594-.75.75c0,1.24072,1.00928,2.25,2.25,2.25.41406,0,.75-.33594.75-.75Zm13.78027,1.53027c.29297-.29297.29297-.76758,0-1.06055L2.28027,1.21969c-.29297-.29297-.76758-.29297-1.06055,0s-.29297.76758,0,1.06055l16.5,16.5c.14648.14648.33838.21973.53027.21973s.38379-.07324.53027-.21973Z"
       fill="currentColor"
     />
-  </svg>`;var Ga=class extends h{render(){return b(c),this.spectrumVersion===1?Wa({hidden:!this.label,title:this.label}):Ka({hidden:!this.label,title:this.label})}};f();l("sp-icon-deselect",Ga);p();var n0=({width:o=24,height:t=24,hidden:e=!1,title:r="Divide"}={})=>d`<svg
+  </svg>`;var Wa=class extends h{render(){return b(c),this.spectrumVersion===1?Ua({hidden:!this.label,title:this.label}):Za({hidden:!this.label,title:this.label})}};f();l("sp-icon-deselect",Wa);p();var t0=({width:o=24,height:t=24,hidden:e=!1,title:r="Divide"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     height="${t}"
     viewBox="0 0 36 36"
@@ -2497,7 +2476,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
     <rect height="4" rx=".5" ry=".5" width="32" x="2" y="16" />
     <circle cx="18" cy="6" r="3.8" />
     <circle cx="18" cy="30" r="3.8" />
-  </svg>`;var Xa=class extends h{render(){return b(c),this.spectrumVersion===1?n0({hidden:!this.label,title:this.label}):M({hidden:!this.label,title:this.label})}};f();l("sp-icon-divide",Xa);p();var l0=({width:o=24,height:t=24,hidden:e=!1,title:r="Duplicate"}={})=>d`<svg
+  </svg>`;var Ka=class extends h{render(){return b(c),this.spectrumVersion===1?t0({hidden:!this.label,title:this.label}):M({hidden:!this.label,title:this.label})}};f();l("sp-icon-divide",Ka);p();var e0=({width:o=24,height:t=24,hidden:e=!1,title:r="Duplicate"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -2519,7 +2498,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
       d="m15.75,5H7.25c-1.24072,0-2.25,1.00928-2.25,2.25v8.5c0,1.24072,1.00928,2.25,2.25,2.25h8.5c1.24072,0,2.25-1.00928,2.25-2.25V7.25c0-1.24072-1.00928-2.25-2.25-2.25Zm.75,10.75c0,.41357-.33643.75-.75.75H7.25c-.41357,0-.75-.33643-.75-.75V7.25c0-.41357.33643-.75.75-.75h8.5c.41357,0,.75.33643.75.75v8.5Z"
       fill="currentColor"
     />
-  </svg>`;var d0=({width:o=24,height:t=24,hidden:e=!1,title:r="Duplicate"}={})=>d`<svg
+  </svg>`;var r0=({width:o=24,height:t=24,hidden:e=!1,title:r="Duplicate"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -2535,7 +2514,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
         d="M33 10H11a1 1 0 0 0-1 1v22a1 1 0 0 0 1 1h22a1 1 0 0 0 1-1V11a1 1 0 0 0-1-1Zm-4 13.5h-5.5V29h-3v-5.5H15v-3h5.5V15h3v5.5H29Z"
       />
     </g>
-  </svg>`;var Ya=class extends h{render(){return b(c),this.spectrumVersion===2?l0({hidden:!this.label,title:this.label}):d0({hidden:!this.label,title:this.label})}};f();l("sp-icon-duplicate",Ya);p();var m0=({width:o=24,height:t=24,hidden:e=!1,title:r="Edit"}={})=>d`<svg
+  </svg>`;var Ga=class extends h{render(){return b(c),this.spectrumVersion===2?e0({hidden:!this.label,title:this.label}):r0({hidden:!this.label,title:this.label})}};f();l("sp-icon-duplicate",Ga);p();var o0=({width:o=24,height:t=24,hidden:e=!1,title:r="Edit"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -2549,7 +2528,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
       d="m17.78076,1.75684c-1.27197-1.04102-3.22705-.89844-4.4502.32324L3.07764,12.33398c-.32031.31934-.55859.7168-.68896,1.15039l-1.38428,4.58398c-.08008.26465-.00781.55176.1875.74707.14258.14258.33447.21973.53027.21973.07227,0,.14551-.01074.2168-.03223l4.58252-1.38379c.43359-.12988.83154-.36816,1.15088-.68848,0,0,10.16846-10.16797,10.35547-10.35547.64795-.64746.99316-1.54492.94775-2.45996-.0459-.91504-.48145-1.77539-1.19482-2.3584ZM2.84473,17.16309l.97998-3.24609c.02716-.09033.06714-.17578.11377-.25732l2.40869,2.40918c-.08154.04639-.16718.08643-.25781.11377l-3.24463.98047Zm14.12158-11.64746c-.15472.15552-7.09985,7.1001-9.52545,9.52588l-2.47461-2.4751L14.39111,3.14062c.38623-.38672.896-.58594,1.38965-.58594.38086,0,.75244.11914,1.05029.3623.3916.32129.62109.77246.646,1.27246.0249.49316-.16113.97656-.51074,1.32617Z"
       fill="currentColor"
     />
-  </svg>`;var u0=({width:o=24,height:t=24,hidden:e=!1,title:r="Edit"}={})=>d`<svg
+  </svg>`;var s0=({width:o=24,height:t=24,hidden:e=!1,title:r="Edit"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     height="${t}"
     viewBox="0 0 36 36"
@@ -2562,7 +2541,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
     <path
       d="M33.567 8.2 27.8 2.432a1.215 1.215 0 0 0-.866-.353H26.9a1.371 1.371 0 0 0-.927.406L5.084 23.372a.99.99 0 0 0-.251.422L2.055 33.1c-.114.377.459.851.783.851a.251.251 0 0 0 .062-.007c.276-.063 7.866-2.344 9.311-2.778a.972.972 0 0 0 .414-.249l20.888-20.889a1.372 1.372 0 0 0 .4-.883 1.221 1.221 0 0 0-.346-.945ZM11.4 29.316c-2.161.649-4.862 1.465-6.729 2.022l2.009-6.73Z"
     />
-  </svg>`;var Ja=class extends h{render(){return b(c),this.spectrumVersion===2?m0({hidden:!this.label,title:this.label}):u0({hidden:!this.label,title:this.label})}};f();l("sp-icon-edit",Ja);p();var p0=({width:o=24,height:t=24,hidden:e=!1,title:r="Export"}={})=>d`<svg
+  </svg>`;var Xa=class extends h{render(){return b(c),this.spectrumVersion===2?o0({hidden:!this.label,title:this.label}):s0({hidden:!this.label,title:this.label})}};f();l("sp-icon-edit",Xa);p();var i0=({width:o=24,height:t=24,hidden:e=!1,title:r="Export"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -2580,7 +2559,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
       d="M13.04688,12.95605c-.41406,0-.75.33594-.75.75v2.04395c0,.41309-.33691.75-.75.75H3.25c-.41309,0-.75-.33691-.75-.75V4.25c0-.41309.33691-.75.75-.75h8.5c.41309,0,.75.33691.75.75v1.96777c0,.41406.33594.75.75.75s.75-.33594.75-.75v-1.96777c0-1.24023-1.00977-2.25-2.25-2.25H3.25c-1.24023,0-2.25,1.00977-2.25,2.25v11.5c0,1.24023,1.00977,2.25,2.25,2.25h8.29688c1.24023,0,2.25-1.00977,2.25-2.25v-2.04395c0-.41406-.33594-.75-.75-.75Z"
       fill="currentColor"
     />
-  </svg>`;var h0=({width:o=24,height:t=24,hidden:e=!1,title:r="Export"}={})=>d`<svg
+  </svg>`;var a0=({width:o=24,height:t=24,hidden:e=!1,title:r="Export"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     height="${t}"
     viewBox="0 0 36 36"
@@ -2596,7 +2575,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
     <path
       d="M35.856 17.649 29.332 10.2a.787.787 0 0 0-.527-.2.8.8 0 0 0-.8.8V16H17a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1h11v5.2a.8.8 0 0 0 .8.8.787.787 0 0 0 .527-.2l6.524-7.445a.5.5 0 0 0 0-.7Z"
     />
-  </svg>`;var Qa=class extends h{render(){return b(c),this.spectrumVersion===2?p0({hidden:!this.label,title:this.label}):h0({hidden:!this.label,title:this.label})}};f();l("sp-icon-export",Qa);p();var g0=({width:o=24,height:t=24,hidden:e=!1,title:r="File Txt"}={})=>d`<svg
+  </svg>`;var Ya=class extends h{render(){return b(c),this.spectrumVersion===2?i0({hidden:!this.label,title:this.label}):a0({hidden:!this.label,title:this.label})}};f();l("sp-icon-export",Ya);p();var c0=({width:o=24,height:t=24,hidden:e=!1,title:r="File Txt"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     height="${t}"
     viewBox="0 0 36 36"
@@ -2610,7 +2589,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
     <path
       d="M19 14a1 1 0 0 1-1-1V2H7a1 1 0 0 0-1 1v30a1 1 0 0 0 1 1h22a1 1 0 0 0 1-1V14Zm7 15.5a.5.5 0 0 1-.5.5h-15a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h15a.5.5 0 0 1 .5.5Zm0-4a.5.5 0 0 1-.5.5h-15a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h15a.5.5 0 0 1 .5.5Zm0-4a.5.5 0 0 1-.5.5h-15a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h15a.5.5 0 0 1 .5.5Z"
     />
-  </svg>`;var b0=({width:o=24,height:t=24,hidden:e=!1,title:r="File Text"}={})=>d`<svg
+  </svg>`;var n0=({width:o=24,height:t=24,hidden:e=!1,title:r="File Text"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -2632,7 +2611,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
       d="m13,14.49805h-6c-.41406,0-.75-.33594-.75-.75s.33594-.75.75-.75h6c.41406,0,.75.33594.75.75s-.33594.75-.75.75Z"
       fill="currentColor"
     />
-  </svg>`;var tc=class extends h{render(){return b(c),this.spectrumVersion===1?g0({hidden:!this.label,title:this.label}):b0({hidden:!this.label,title:this.label})}};f();l("sp-icon-file-txt",tc);p();var v0=({width:o=24,height:t=24,hidden:e=!1,title:r="Filter"}={})=>d`<svg
+  </svg>`;var Ja=class extends h{render(){return b(c),this.spectrumVersion===1?c0({hidden:!this.label,title:this.label}):n0({hidden:!this.label,title:this.label})}};f();l("sp-icon-file-txt",Ja);p();var l0=({width:o=24,height:t=24,hidden:e=!1,title:r="Filter"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -2646,7 +2625,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
       d="m8.99902,18.72852c-.35938,0-.7168-.09814-1.03711-.29297-.60254-.36572-.96191-1.00488-.96191-1.70947v-6.23584c0-.18604-.06836-.36377-.19238-.50146L2.62793,5.34521c-.53809-.59033-.67383-1.4165-.34863-2.15234.32422-.73584,1.02539-1.19287,1.83008-1.19287h11.78125c.80469,0,1.50586.45703,1.83008,1.19287.3252.73584.18945,1.56201-.35254,2.15576l-4.17578,4.64014c-.12402.1377-.19238.31543-.19238.50146v5.04541c0,.84375-.46484,1.60889-1.21289,1.99707l-1.86523.96826c-.29199.15186-.6084.22754-.92285.22754ZM4.10938,3.5c-.29492,0-.41797.2085-.45801.29834s-.11035.32178.08789.53955l4.18359,4.64697c.37207.41357.57715.94824.57715,1.50537v6.23584c0,.25391.16797.3833.24023.42725.07227.04443.26562.13232.49023.0166l1.86523-.96875c.25-.12939.4043-.38428.4043-.66553v-5.04541c0-.55713.20508-1.0918.57715-1.50537l4.17969-4.64355c.20215-.22119.13184-.45312.0918-.54297s-.16309-.29834-.45801-.29834H4.10938Z"
       fill="currentColor"
     />
-  </svg>`;var f0=({width:o=24,height:t=24,hidden:e=!1,title:r="Filter"}={})=>d`<svg
+  </svg>`;var d0=({width:o=24,height:t=24,hidden:e=!1,title:r="Filter"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     height="${t}"
     viewBox="0 0 36 36"
@@ -2659,7 +2638,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
     <path
       d="M30.946 2H3.054a1 1 0 0 0-.787 1.617L14 18.589V33.9a.992.992 0 0 0 1.68.824l3.981-4.153a1.219 1.219 0 0 0 .339-.843V18.589L31.733 3.617A1 1 0 0 0 30.946 2Z"
     />
-  </svg>`;var ec=class extends h{render(){return b(c),this.spectrumVersion===2?v0({hidden:!this.label,title:this.label}):f0({hidden:!this.label,title:this.label})}};f();l("sp-icon-filter",ec);p();var x0=({width:o=24,height:t=24,hidden:e=!1,title:r="Folder Add"}={})=>d`<svg
+  </svg>`;var Qa=class extends h{render(){return b(c),this.spectrumVersion===2?l0({hidden:!this.label,title:this.label}):d0({hidden:!this.label,title:this.label})}};f();l("sp-icon-filter",Qa);p();var m0=({width:o=24,height:t=24,hidden:e=!1,title:r="Folder Add"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -2677,7 +2656,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
       d="m15,10.49805c-2.48529,0-4.5,2.01465-4.5,4.5s2.01471,4.5,4.5,4.5,4.5-2.01465,4.5-4.5-2.01471-4.5-4.5-4.5Zm2.5,5.125h-1.875v1.875c0,.34521-.27979.625-.625.625s-.625-.27979-.625-.625v-1.875h-1.875c-.34521,0-.625-.27979-.625-.625s.27979-.625.625-.625h1.875v-1.875c0-.34521.27979-.625.625-.625s.625.27979.625.625v1.875h1.875c.34521,0,.625.27979.625.625s-.27979.625-.625.625Z"
       fill="currentColor"
     />
-  </svg>`;var y0=({width:o=24,height:t=24,hidden:e=!1,title:r="Folder Add"}={})=>d`<svg
+  </svg>`;var u0=({width:o=24,height:t=24,hidden:e=!1,title:r="Folder Add"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     height="${t}"
     viewBox="0 0 36 36"
@@ -2693,7 +2672,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
     <path
       d="M27 18a9 9 0 1 0 9 9 9 9 0 0 0-9-9Zm5.4 10a.5.5 0 0 1-.5.5h-3.4v3.4a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1-.5-.5v-3.4h-3.4a.5.5 0 0 1-.5-.5v-2a.5.5 0 0 1 .5-.5h3.4v-3.4a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 .5.5v3.4h3.4a.5.5 0 0 1 .5.5Z"
     />
-  </svg>`;var rc=class extends h{render(){return b(c),this.spectrumVersion===2?x0({hidden:!this.label,title:this.label}):y0({hidden:!this.label,title:this.label})}};f();l("sp-icon-folder-add",rc);p();var w0=({width:o=24,height:t=24,hidden:e=!1,title:r="Globe Grid"}={})=>d`<svg
+  </svg>`;var tc=class extends h{render(){return b(c),this.spectrumVersion===2?m0({hidden:!this.label,title:this.label}):u0({hidden:!this.label,title:this.label})}};f();l("sp-icon-folder-add",tc);p();var p0=({width:o=24,height:t=24,hidden:e=!1,title:r="Globe Grid"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -2708,7 +2687,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
       fill="currentColor"
       stroke-width="0"
     />
-  </svg>`;var k0=({width:o=24,height:t=24,hidden:e=!1,title:r="Globe Grid"}={})=>d`<svg
+  </svg>`;var h0=({width:o=24,height:t=24,hidden:e=!1,title:r="Globe Grid"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     height="${t}"
     viewBox="0 0 36 36"
@@ -2721,7 +2700,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
     <path
       d="M17 0a17 17 0 1 0 17 17A17 17 0 0 0 17 0Zm13.749 16h-5.571a27.12 27.12 0 0 0-.853-6h4.547a13.676 13.676 0 0 1 1.877 6Zm-3.311-8H23.7a14.681 14.681 0 0 0-2.2-4.04A13.864 13.864 0 0 1 27.438 8ZM16 18v6h-4.268a24.81 24.81 0 0 1-.911-6Zm-5.179-2a24.81 24.81 0 0 1 .911-6H16v6ZM18 18h5.179a24.81 24.81 0 0 1-.911 6H18Zm0-2v-6h4.268a24.81 24.81 0 0 1 .911 6Zm3.568-8H18V3.619C19.307 4.158 20.6 5.7 21.568 8ZM16 3.619V8h-3.568C13.4 5.7 14.693 4.158 16 3.619Zm-3.5.341A14.681 14.681 0 0 0 10.305 8H6.562A13.864 13.864 0 0 1 12.5 3.96ZM5.128 10h4.547a27.12 27.12 0 0 0-.853 6H3.251a13.676 13.676 0 0 1 1.877-6Zm-1.877 8h5.571a27.12 27.12 0 0 0 .853 6H5.128a13.676 13.676 0 0 1-1.877-6Zm3.311 8h3.743a14.681 14.681 0 0 0 2.195 4.04A13.864 13.864 0 0 1 6.562 26Zm5.87 0H16v4.381c-1.307-.539-2.6-2.081-3.568-4.381ZM18 30.381V26h3.568c-.968 2.3-2.261 3.842-3.568 4.381Zm3.5-.341A14.681 14.681 0 0 0 23.7 26h3.743a13.864 13.864 0 0 1-5.943 4.04ZM28.872 24h-4.547a27.12 27.12 0 0 0 .853-6h5.571a13.676 13.676 0 0 1-1.877 6Z"
     />
-  </svg>`;var oc=class extends h{render(){return b(c),this.spectrumVersion===2?w0({hidden:!this.label,title:this.label}):k0({hidden:!this.label,title:this.label})}};f();l("sp-icon-globe-grid",oc);p();var z0=({width:o=24,height:t=24,hidden:e=!1,title:r="Graph Bar Vertical"}={})=>d`<svg
+  </svg>`;var ec=class extends h{render(){return b(c),this.spectrumVersion===2?p0({hidden:!this.label,title:this.label}):h0({hidden:!this.label,title:this.label})}};f();l("sp-icon-globe-grid",ec);p();var g0=({width:o=24,height:t=24,hidden:e=!1,title:r="Graph Bar Vertical"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     height="${t}"
     viewBox="0 0 36 36"
@@ -2735,7 +2714,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
       d="M26 3v27h6V3a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1ZM18 13v17h6V13a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1ZM10 21v9h6v-9a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1ZM2 25v5h6v-5a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1Z"
     />
     <rect height="2" rx=".5" ry=".5" width="34" y="32" />
-  </svg>`;var sc=class extends h{render(){return b(c),this.spectrumVersion===1?z0({hidden:!this.label,title:this.label}):M({hidden:!this.label,title:this.label})}};f();l("sp-icon-graph-bar-vertical",sc);p();var C0=({width:o=24,height:t=24,hidden:e=!1,title:r="Graphic"}={})=>d`<svg
+  </svg>`;var rc=class extends h{render(){return b(c),this.spectrumVersion===1?g0({hidden:!this.label,title:this.label}):M({hidden:!this.label,title:this.label})}};f();l("sp-icon-graph-bar-vertical",rc);p();var b0=({width:o=24,height:t=24,hidden:e=!1,title:r="Graphic"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     height="${t}"
     viewBox="0 0 36 36"
@@ -2748,7 +2727,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
     <path
       d="M33 14h-9V1.385a.482.482 0 0 0-.481-.5H23.5a.494.494 0 0 0-.35.147L1.091 23.146a.5.5 0 0 0 .354.854h8.838A7.909 7.909 0 0 0 10 26a7.976 7.976 0 0 0 14.89 4H33a1 1 0 0 0 1-1V15a1 1 0 0 0-1-1ZM4.828 22 22 4.828V14h-3a1 1 0 0 0-1 1v3a7.967 7.967 0 0 0-6.891 4ZM18 32a6 6 0 1 1 6-6 6.007 6.007 0 0 1-6 6Z"
     />
-  </svg>`;var ic=class extends h{render(){return b(c),this.spectrumVersion===1?C0({hidden:!this.label,title:this.label}):M({hidden:!this.label,title:this.label})}};f();l("sp-icon-graphic",ic);p();var T0=({width:o=24,height:t=24,hidden:e=!1,title:r="Help Outline"}={})=>d`<svg
+  </svg>`;var oc=class extends h{render(){return b(c),this.spectrumVersion===1?b0({hidden:!this.label,title:this.label}):M({hidden:!this.label,title:this.label})}};f();l("sp-icon-graphic",oc);p();var v0=({width:o=24,height:t=24,hidden:e=!1,title:r="Help Outline"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -2761,7 +2740,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
     <path
       d="M20.181 25.932a1.833 1.833 0 0 1-1.954 2.015 1.862 1.862 0 0 1-1.956-2.015 1.955 1.955 0 1 1 3.91 0ZM17.953 8a9.232 9.232 0 0 0-4.518 1.072c-.119.063-.119.185-.119.307v2.971a.15.15 0 0 0 .238.122 7.385 7.385 0 0 1 3.744-1.01c1.813 0 2.527.766 2.527 1.869 0 .95-.565 1.593-1.545 2.603-1.427 1.472-2.29 2.389-2.29 3.829a3.417 3.417 0 0 0 .714 2.114.488.488 0 0 0 .386.123h2.586a.13.13 0 0 0 .119-.215 3.302 3.302 0 0 1-.476-1.686c0-.917 1.1-1.928 2.26-3.062a5.474 5.474 0 0 0 1.901-4.226c0-2.696-1.96-4.81-5.527-4.81ZM35 18A17 17 0 1 1 18 1a17 17 0 0 1 17 17Zm-3.65 0A13.35 13.35 0 1 0 18 31.35 13.35 13.35 0 0 0 31.35 18Z"
     />
-  </svg>`;var ac=class extends h{render(){return b(c),this.spectrumVersion===1?T0({hidden:!this.label,title:this.label}):M({hidden:!this.label,title:this.label})}};f();l("sp-icon-help-outline",ac);p();var I0=({width:o=24,height:t=24,hidden:e=!1,title:r="Help"}={})=>d`<svg
+  </svg>`;var sc=class extends h{render(){return b(c),this.spectrumVersion===1?v0({hidden:!this.label,title:this.label}):M({hidden:!this.label,title:this.label})}};f();l("sp-icon-help-outline",sc);p();var f0=({width:o=24,height:t=24,hidden:e=!1,title:r="Help"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     height="${t}"
     viewBox="0 0 36 36"
@@ -2774,7 +2753,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
     <path
       d="M18 2a16 16 0 1 0 16 16A16 16 0 0 0 18 2Zm.047 26.876a2.69 2.69 0 1 1 0-5.375 2.62 2.62 0 0 1 2.8 2.67 2.581 2.581 0 0 1-2.8 2.705Zm3.566-12.818-.2.21c-.789.829-1.684 1.768-1.684 2.351a2.771 2.771 0 0 0 .359 1.348l.145.277-.113.429a.617.617 0 0 1-.567.378h-2.682a.867.867 0 0 1-.65-.235 4.111 4.111 0 0 1-.845-2.525c0-1.677.934-2.714 2.225-4.15.2-.219.39-.42.575-.609.629-.651 1.013-1.071 1.013-1.515 0-.308 0-1.245-1.786-1.245a5.918 5.918 0 0 0-3.159.919.592.592 0 0 1-.653-.02l-.237-.169-.055-.443v-2.9a.879.879 0 0 1 .393-.819 8.275 8.275 0 0 1 4.3-1.1c3.291 0 5.5 2.117 5.5 5.272a6.131 6.131 0 0 1-1.879 4.546Z"
     />
-  </svg>`;var S0=({width:o=24,height:t=24,hidden:e=!1,title:r="Help Circle"}={})=>d`<svg
+  </svg>`;var x0=({width:o=24,height:t=24,hidden:e=!1,title:r="Help Circle"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -2796,7 +2775,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
       d="m9.99219,12.70605c-.41406,0-.75-.33594-.75-.75,0-1.02246.07031-1.71387,1.03906-2.68262.78516-.78613.91797-1.10156.91797-1.65137,0-.20996-.06641-1.25781-1.37402-1.25781-1.36523,0-1.51074,1.15625-1.52637,1.3877-.02637.41309-.39258.7207-.79688.69922-.41406-.02734-.72656-.38379-.69922-.79688.06348-.96484.77637-2.79004,3.02246-2.79004,1.88672,0,2.87402,1.3877,2.87402,2.75781,0,1.14355-.45703,1.81055-1.35742,2.71191-.57617.57617-.59961.81152-.59961,1.62207,0,.41406-.33594.75-.75.75Z"
       fill="currentColor"
     />
-  </svg>`;var cc=class extends h{render(){return b(c),this.spectrumVersion===1?I0({hidden:!this.label,title:this.label}):S0({hidden:!this.label,title:this.label})}};f();l("sp-icon-help",cc);p();var E0=({width:o=24,height:t=24,hidden:e=!1,title:r="History"}={})=>d`<svg
+  </svg>`;var ic=class extends h{render(){return b(c),this.spectrumVersion===1?f0({hidden:!this.label,title:this.label}):x0({hidden:!this.label,title:this.label})}};f();l("sp-icon-help",ic);p();var y0=({width:o=24,height:t=24,hidden:e=!1,title:r="History"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -2814,7 +2793,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
       d="M10,1.25c-2.78918,0-5.39026,1.36719-7.02332,3.56567l-.24426-1.48462c-.06738-.40918-.46289-.68359-.8623-.61816-.4082.06738-.68555.45361-.61816.8623l.55371,3.36279c.06055.36719.37891.62793.73926.62793.04004,0,.08105-.00293.12207-.00977l3.36621-.55127c.40918-.06689.68555-.45264.61914-.86133-.06738-.4082-.44727-.68359-.86133-.61914l-1.68457.27588c1.34741-1.87939,3.54175-3.05029,5.89355-3.05029,3.99805,0,7.25,3.25244,7.25,7.25s-3.25195,7.25-7.25,7.25c-2.98047,0-5.62305-1.78662-6.73145-4.55225-.1543-.38477-.59082-.57178-.97559-.41699-.38477.1543-.57129.59082-.41699.97559,1.33887,3.3374,4.52734,5.49365,8.12402,5.49365,4.8252,0,8.75-3.92529,8.75-8.75S14.8252,1.25,10,1.25Z"
       fill="currentColor"
     />
-  </svg>`;var $0=({width:o=24,height:t=24,hidden:e=!1,title:r="History"}={})=>d`<svg
+  </svg>`;var w0=({width:o=24,height:t=24,hidden:e=!1,title:r="History"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     height="${t}"
     viewBox="0 0 36 36"
@@ -2830,7 +2809,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
     <path
       d="M18 2A15.946 15.946 0 0 0 6.856 6.519 13.124 13.124 0 0 0 2.847 14H.5a.5.5 0 0 0-.5.5.49.49 0 0 0 .147.35l3.537 4.033a.5.5 0 0 0 .632 0l3.537-4.033A.49.49 0 0 0 8 14.5a.5.5 0 0 0-.5-.5H4.969a11.708 11.708 0 0 1 3.489-6.245 14 14 0 1 1-.009 20.481.5.5 0 0 0-.691.006l-.707.707a.506.506 0 0 0 0 .723A16 16 0 1 0 18 2Z"
     />
-  </svg>`;var nc=class extends h{render(){return b(c),this.spectrumVersion===2?E0({hidden:!this.label,title:this.label}):$0({hidden:!this.label,title:this.label})}};f();l("sp-icon-history",nc);p();var _0=({width:o=24,height:t=24,hidden:e=!1,title:r="Home"}={})=>d`<svg
+  </svg>`;var ac=class extends h{render(){return b(c),this.spectrumVersion===2?y0({hidden:!this.label,title:this.label}):w0({hidden:!this.label,title:this.label})}};f();l("sp-icon-history",ac);p();var k0=({width:o=24,height:t=24,hidden:e=!1,title:r="Home"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -2844,7 +2823,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
       d="m17.13086,5.73438L11.38086,1.26172c-.8125-.63086-1.94922-.63184-2.76172.00098L2.86914,5.73438h-.00098c-.54395.42285-.86816,1.08691-.86816,1.77637v8.23926c0,1.24023,1.00977,2.25,2.25,2.25h11.5c1.24023,0,2.25-1.00977,2.25-2.25V7.51074c0-.68945-.32422-1.35352-.86914-1.77637Zm-5.63086,10.76562h-3v-4.75c0-.41309.33691-.75.75-.75h1.5c.41309,0,.75.33691.75.75v4.75Zm5-.75c0,.41309-.33691.75-.75.75h-2.75v-4.75c0-1.24023-1.00977-2.25-2.25-2.25h-1.5c-1.24023,0-2.25,1.00977-2.25,2.25v4.75h-2.75c-.41309,0-.75-.33691-.75-.75V7.51074c0-.22949.1084-.45117.28906-.59277l5.75-4.4707c.27246-.21191.65137-.20898.92188-.00098l5.74902,4.47168c.18164.1416.29004.36328.29004.59277v8.23926Z"
       fill="currentColor"
     />
-  </svg>`;var A0=({width:o=24,height:t=24,hidden:e=!1,title:r="Home"}={})=>d`<svg
+  </svg>`;var z0=({width:o=24,height:t=24,hidden:e=!1,title:r="Home"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     height="${t}"
     viewBox="0 0 36 36"
@@ -2858,7 +2837,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
       d="M35.332 20.25 18.75 3.668a1.063 1.063 0 0 0-1.5 0L.668 20.25a1.061 1.061 0 0 0 0 1.5l1.958 1.957a1 1 0 0 0 .707.293H4v9a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V23a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v10a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-9h.667a1 1 0 0 0 .707-.293l1.958-1.957a1.061 1.061 0 0 0 0-1.5Z"
       fill-rule="evenodd"
     />
-  </svg>`;var lc=class extends h{render(){return b(c),this.spectrumVersion===2?_0({hidden:!this.label,title:this.label}):A0({hidden:!this.label,title:this.label})}};f();l("sp-icon-home",lc);p();var L0=({width:o=24,height:t=24,hidden:e=!1,title:r="Image"}={})=>d`<svg
+  </svg>`;var cc=class extends h{render(){return b(c),this.spectrumVersion===2?k0({hidden:!this.label,title:this.label}):z0({hidden:!this.label,title:this.label})}};f();l("sp-icon-home",cc);p();var C0=({width:o=24,height:t=24,hidden:e=!1,title:r="Image"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -2876,7 +2855,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
       d="m16.75,3H3.25c-1.24023,0-2.25,1.00977-2.25,2.25v9.5c0,1.24023,1.00977,2.25,2.25,2.25h13.5c1.24023,0,2.25-1.00977,2.25-2.25V5.25c0-1.24023-1.00977-2.25-2.25-2.25Zm-13.5,1.5h13.5c.41309,0,.75.33691.75.75v8.21094l-1.90918-1.90918c-.87695-.87695-2.30469-.87695-3.18164,0l-1.23145,1.23145c-.09961.09766-.25684.09668-.35449.00098l-3.23242-3.23242c-.84961-.84961-2.33203-.84961-3.18164,0l-1.90918,1.90918v-6.21094c0-.41309.33691-.75.75-.75Zm0,11c-.41309,0-.75-.33691-.75-.75v-1.16797l2.96973-2.96973c.29297-.29297.76758-.29297,1.06055,0l3.2334,3.2334c.68164.67969,1.79199.68066,2.47363-.00098l1.23242-1.23242c.29297-.29297.76758-.29297,1.06055,0l2.70068,2.70068c-.1311.11206-.29565.18701-.48096.18701H3.25Z"
       fill="currentColor"
     />
-  </svg>`;var H0=({width:o=24,height:t=24,hidden:e=!1,title:r="Image"}={})=>d`<svg
+  </svg>`;var T0=({width:o=24,height:t=24,hidden:e=!1,title:r="Image"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     height="${t}"
     viewBox="0 0 36 36"
@@ -2890,7 +2869,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
       d="M33 6H3a1 1 0 0 0-1 1v22a1 1 0 0 0 1 1h30a1 1 0 0 0 1-1V7a1 1 0 0 0-1-1Zm-1 19.373L26.728 20.1a2 2 0 0 0-2.828 0l-3.072 3.072-7.556-7.557a2 2 0 0 0-2.828 0L4 22.059V8h28Z"
     />
     <circle cx="26.7" cy="13.3" r="2.7" />
-  </svg>`;var dc=class extends h{render(){return b(c),this.spectrumVersion===2?L0({hidden:!this.label,title:this.label}):H0({hidden:!this.label,title:this.label})}};f();l("sp-icon-image",dc);p();var B0=({width:o=24,height:t=24,hidden:e=!1,title:r="Info Outline"}={})=>d`<svg
+  </svg>`;var nc=class extends h{render(){return b(c),this.spectrumVersion===2?C0({hidden:!this.label,title:this.label}):T0({hidden:!this.label,title:this.label})}};f();l("sp-icon-image",nc);p();var I0=({width:o=24,height:t=24,hidden:e=!1,title:r="Info Outline"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -2903,7 +2882,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
     <path
       d="M20.15 12A2.15 2.15 0 1 1 18 9.85 2.15 2.15 0 0 1 20.15 12Zm.183 12H20v-7.6a.4.4 0 0 0-.4-.4h-3.934s-1.166.032-1.166 1c0 .967 1.167 1 1.167 1H16v6h-.333s-1.167.032-1.167 1c0 .967 1.167 1 1.167 1h4.667s1.166-.033 1.166-1c0-.968-1.167-1-1.167-1ZM18 1a17 17 0 1 0 17 17A17 17 0 0 0 18 1Zm0 30.35A13.35 13.35 0 1 1 31.35 18 13.35 13.35 0 0 1 18 31.35Z"
     />
-  </svg>`;var mc=({width:o=24,height:t=24,hidden:e=!1,title:r="Info Circle"}={})=>d`<svg
+  </svg>`;var lc=({width:o=24,height:t=24,hidden:e=!1,title:r="Info Circle"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -2925,7 +2904,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
       d="m10,15.0625c-.41406,0-.75-.33594-.75-.75v-4.83496c0-.41406.33594-.75.75-.75s.75.33594.75.75v4.83496c0,.41406-.33594.75-.75.75Z"
       fill="currentColor"
     />
-  </svg>`;var uc=class extends h{render(){return b(c),this.spectrumVersion===1?B0({hidden:!this.label,title:this.label}):mc({hidden:!this.label,title:this.label})}};f();l("sp-icon-info-outline",uc);p();var P0=({width:o=24,height:t=24,hidden:e=!1,title:r="Info"}={})=>d`<svg
+  </svg>`;var dc=class extends h{render(){return b(c),this.spectrumVersion===1?I0({hidden:!this.label,title:this.label}):lc({hidden:!this.label,title:this.label})}};f();l("sp-icon-info-outline",dc);p();var S0=({width:o=24,height:t=24,hidden:e=!1,title:r="Info"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     height="${t}"
     viewBox="0 0 36 36"
@@ -2938,7 +2917,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
     <path
       d="M18 2a16 16 0 1 0 16 16A16 16 0 0 0 18 2Zm-.3 4.3a2.718 2.718 0 0 1 2.864 2.824 2.664 2.664 0 0 1-2.864 2.863 2.705 2.705 0 0 1-2.864-2.864A2.717 2.717 0 0 1 17.7 6.3ZM22 27a1 1 0 0 1-1 1h-6a1 1 0 0 1-1-1v-2a1 1 0 0 1 1-1h1v-6h-1a1 1 0 0 1-1-1v-2a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v9h1a1 1 0 0 1 1 1Z"
     />
-  </svg>`;var pc=class extends h{render(){return b(c),this.spectrumVersion===1?P0({hidden:!this.label,title:this.label}):mc({hidden:!this.label,title:this.label})}};f();l("sp-icon-info",pc);p();var D0=({width:o=24,height:t=24,hidden:e=!1,title:r="Label"}={})=>d`<svg
+  </svg>`;var mc=class extends h{render(){return b(c),this.spectrumVersion===1?S0({hidden:!this.label,title:this.label}):lc({hidden:!this.label,title:this.label})}};f();l("sp-icon-info",mc);p();var E0=({width:o=24,height:t=24,hidden:e=!1,title:r="Label"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     height="${t}"
     viewBox="0 0 36 36"
@@ -2951,7 +2930,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
     <path
       d="m35.293 19.292-17-17A1 1 0 0 0 17.586 2H3a1 1 0 0 0-1 1v14.585a1 1 0 0 0 .293.708l17 17a1 1 0 0 0 1.414 0l14.586-14.586a1 1 0 0 0 0-1.415ZM8 10.6A2.6 2.6 0 1 1 10.6 8 2.6 2.6 0 0 1 8 10.6Z"
     />
-  </svg>`;var j0=({width:o=24,height:t=24,hidden:e=!1,title:r="Tag"}={})=>d`<svg
+  </svg>`;var $0=({width:o=24,height:t=24,hidden:e=!1,title:r="Tag"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -2966,7 +2945,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
       fill="currentColor"
     />
     <circle cx="5.99998" cy="6" r="1" fill="currentColor" />
-  </svg>`;var hc=class extends h{render(){return b(c),this.spectrumVersion===1?D0({hidden:!this.label,title:this.label}):j0({hidden:!this.label,title:this.label})}};f();l("sp-icon-label",hc);p();var M0=({width:o=24,height:t=24,hidden:e=!1,title:r="Learn"}={})=>d`<svg
+  </svg>`;var uc=class extends h{render(){return b(c),this.spectrumVersion===1?E0({hidden:!this.label,title:this.label}):$0({hidden:!this.label,title:this.label})}};f();l("sp-icon-label",uc);p();var _0=({width:o=24,height:t=24,hidden:e=!1,title:r="Learn"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -3000,7 +2979,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
       ry=".409"
       transform="rotate(-45 29.498 7.554)"
     />
-  </svg>`;var gc=class extends h{render(){return b(c),this.spectrumVersion===1?M0({hidden:!this.label,title:this.label}):M({hidden:!this.label,title:this.label})}};f();l("sp-icon-learn",gc);p();var O0=({width:o=24,height:t=24,hidden:e=!1,title:r="Link Check"}={})=>d`<svg
+  </svg>`;var pc=class extends h{render(){return b(c),this.spectrumVersion===1?_0({hidden:!this.label,title:this.label}):M({hidden:!this.label,title:this.label})}};f();l("sp-icon-learn",pc);p();var A0=({width:o=24,height:t=24,hidden:e=!1,title:r="Link Check"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     height="${t}"
     viewBox="0 0 36 36"
@@ -3016,7 +2995,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
     <path
       d="M16.926 20.056a3.579 3.579 0 0 1-.594-.478 4.159 4.159 0 0 1-1.241-1.625 2.053 2.053 0 0 0-.428.318l-1.636 1.712a7.155 7.155 0 0 0 1.227 1.673 6.109 6.109 0 0 0 1.3.97 12.276 12.276 0 0 1 1.372-2.57ZM27 18.1a8.9 8.9 0 1 0 8.9 8.9 8.9 8.9 0 0 0-8.9-8.9Zm-2.338 14.312-4.128-4.128a.5.5 0 0 1 0-.707l1.036-1.036a.5.5 0 0 1 .707 0l2.731 2.731 6.106-6.106a.5.5 0 0 1 .707 0l1.043 1.043a.5.5 0 0 1 0 .707l-7.5 7.5a.5.5 0 0 1-.702-.004Z"
     />
-  </svg>`;var bc=class extends h{render(){return b(c),this.spectrumVersion===1?O0({hidden:!this.label,title:this.label}):M({hidden:!this.label,title:this.label})}};f();l("sp-icon-link-check",bc);p();var R0=({width:o=24,height:t=24,hidden:e=!1,title:r="Link Out Light"}={})=>d`<svg
+  </svg>`;var hc=class extends h{render(){return b(c),this.spectrumVersion===1?A0({hidden:!this.label,title:this.label}):M({hidden:!this.label,title:this.label})}};f();l("sp-icon-link-check",hc);p();var L0=({width:o=24,height:t=24,hidden:e=!1,title:r="Link Out Light"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     height="${t}"
     viewBox="0 0 36 36"
@@ -3032,7 +3011,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
     <path
       d="m23.54 2.853 3.389 3.39-9.546 9.546a.5.5 0 0 0 0 .707l2.117 2.121a.5.5 0 0 0 .707 0l9.546-9.546 3.389 3.389a.5.5 0 0 0 .858-.353V2H23.893a.5.5 0 0 0-.353.853Z"
     />
-  </svg>`;var vc=class extends h{render(){return b(c),this.spectrumVersion===1?R0({hidden:!this.label,title:this.label}):M({hidden:!this.label,title:this.label})}};f();l("sp-icon-link-out-light",vc);p();var q0=({width:o=24,height:t=24,hidden:e=!1,title:r="Link Page"}={})=>d`<svg
+  </svg>`;var gc=class extends h{render(){return b(c),this.spectrumVersion===1?L0({hidden:!this.label,title:this.label}):M({hidden:!this.label,title:this.label})}};f();l("sp-icon-link-out-light",gc);p();var H0=({width:o=24,height:t=24,hidden:e=!1,title:r="Link Page"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     height="${t}"
     viewBox="0 0 36 36"
@@ -3048,7 +3027,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
     <path
       d="M16 19.25a3.151 3.151 0 0 1-.909-1.3 2.041 2.041 0 0 0-.428.318l-1.636 1.712a7.164 7.164 0 0 0 1.227 1.673A6.165 6.165 0 0 0 16 22.833ZM18 19v16a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V19a1 1 0 0 0-1-1H19a1 1 0 0 0-1 1Zm16 15H20V22h14Z"
     />
-  </svg>`;var fc=class extends h{render(){return b(c),this.spectrumVersion===1?q0({hidden:!this.label,title:this.label}):M({hidden:!this.label,title:this.label})}};f();l("sp-icon-link-page",fc);p();var F0=({width:o=24,height:t=24,hidden:e=!1,title:r="Link"}={})=>d`<svg
+  </svg>`;var bc=class extends h{render(){return b(c),this.spectrumVersion===1?H0({hidden:!this.label,title:this.label}):M({hidden:!this.label,title:this.label})}};f();l("sp-icon-link-page",bc);p();var B0=({width:o=24,height:t=24,hidden:e=!1,title:r="Link"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -3062,7 +3041,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
       d="m5.31348,18.74805c-1.04102,0-2.08105-.39648-2.87305-1.18848-1.58398-1.58398-1.58398-4.16211,0-5.74707l3.90527-3.90527c1.58496-1.58398,4.16211-1.58301,5.74707,0,.2168.21777.40723.45703.56641.70996.2207.35059.11523.81348-.23535,1.03418-.35254.22168-.81348.11426-1.03418-.23535-.10059-.16016-.22168-.31152-.35938-.44922-.99902-.99902-2.625-.99805-3.62402.00098l-3.90527,3.90527c-.99902,1-.99902,2.62695,0,3.62598,1.00098,1.00098,2.62695.99707,3.62598,0l1.95215-1.95215c.29297-.29297.76758-.29297,1.06055,0s.29297.76758,0,1.06055l-1.95215,1.95215c-.79199.79199-1.83301,1.1875-2.87402,1.18848Zm8.34082-6.65527l3.90527-3.90527c1.58398-1.58496,1.58398-4.16309,0-5.74707s-4.16309-1.58398-5.74707,0l-1.95215,1.95215c-.29297.29297-.29297.76758,0,1.06055s.76758.29297,1.06055,0l1.95215-1.95215c.99902-.99805,2.625-1,3.62598,0,.99902.99902.99902,2.62598,0,3.62598l-3.90527,3.90527c-.99902.99902-2.625,1-3.62402.00098-.1377-.1377-.25879-.28906-.35938-.44922-.2207-.34961-.68164-.45703-1.03418-.23535-.35059.2207-.45605.68359-.23535,1.03418.15918.25293.34961.49219.56641.70996.79297.79199,1.83301,1.18848,2.87402,1.18848,1.04004,0,2.08105-.39648,2.87305-1.18848Z"
       fill="currentColor"
     />
-  </svg>`;var V0=({width:o=24,height:t=24,hidden:e=!1,title:r="Link"}={})=>d`<svg
+  </svg>`;var P0=({width:o=24,height:t=24,hidden:e=!1,title:r="Link"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     height="${t}"
     viewBox="0 0 36 36"
@@ -3078,7 +3057,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
     <path
       d="M15.926 25.824c-.52.52-3.5 3.547-3.713 3.762a4.1 4.1 0 1 1-5.8-5.8L13.6 16.6a4.58 4.58 0 0 1 3.366-1.292 4.2 4.2 0 0 1 3.784 2.782 2.067 2.067 0 0 0 .428-.318l1.734-1.721a7.165 7.165 0 0 0-1.226-1.673 7.311 7.311 0 0 0-10.26.048l-7.187 7.186a7.176 7.176 0 0 0 10.148 10.149c.386-.386 4.194-4.243 5.281-5.33a8.3 8.3 0 0 1-3.742-.607Z"
     />
-  </svg>`;var xc=class extends h{render(){return b(c),this.spectrumVersion===2?F0({hidden:!this.label,title:this.label}):V0({hidden:!this.label,title:this.label})}};f();l("sp-icon-link",xc);p();var N0=({width:o=24,height:t=24,hidden:e=!1,title:r="Lock Closed"}={})=>d`<svg
+  </svg>`;var vc=class extends h{render(){return b(c),this.spectrumVersion===2?B0({hidden:!this.label,title:this.label}):P0({hidden:!this.label,title:this.label})}};f();l("sp-icon-link",vc);p();var D0=({width:o=24,height:t=24,hidden:e=!1,title:r="Lock Closed"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -3091,7 +3070,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
     <path
       d="M29 16h-1v-2a10 10 0 0 0-20 0v2H7a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h22a1 1 0 0 0 1-1V17a1 1 0 0 0-1-1Zm-17-2a6 6 0 0 1 12 0v2H12Zm8 12.222V29a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1v-2.778a3 3 0 1 1 4 0Z"
     />
-  </svg>`;var U0=({width:o=24,height:t=24,hidden:e=!1,title:r="Lock"}={})=>d`<svg
+  </svg>`;var j0=({width:o=24,height:t=24,hidden:e=!1,title:r="Lock"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -3109,7 +3088,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
       d="M15,7.02539v-.52539c0-2.75684-2.24316-5-5-5s-5,2.24316-5,5v.52539c-1.12158.12622-2,1.07007-2,2.22461v6.5c0,1.24023,1.00977,2.25,2.25,2.25h9.5c1.24023,0,2.25-1.00977,2.25-2.25v-6.5c0-1.15454-.87842-2.09839-2-2.22461ZM10,3c1.92969,0,3.5,1.57031,3.5,3.5v.5h-7v-.5c0-1.92969,1.57031-3.5,3.5-3.5ZM15.5,15.75c0,.41309-.33691.75-.75.75H5.25c-.41309,0-.75-.33691-.75-.75v-6.5c0-.41309.33691-.75.75-.75h9.5c.41309,0,.75.33691.75.75v6.5Z"
       fill="currentColor"
     />
-  </svg>`;var yc=class extends h{render(){return b(c),this.spectrumVersion===1?N0({hidden:!this.label,title:this.label}):U0({hidden:!this.label,title:this.label})}};f();l("sp-icon-lock-closed",yc);p();var Z0=({width:o=24,height:t=24,hidden:e=!1,title:r="Lock Open"}={})=>d`<svg
+  </svg>`;var fc=class extends h{render(){return b(c),this.spectrumVersion===1?D0({hidden:!this.label,title:this.label}):j0({hidden:!this.label,title:this.label})}};f();l("sp-icon-lock-closed",fc);p();var M0=({width:o=24,height:t=24,hidden:e=!1,title:r="Lock Open"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -3127,7 +3106,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
       d="M14.75,8H6.5v-2.75c0-1.92969,1.57031-3.5,3.5-3.5.86523,0,1.69629.31836,2.33887.89551.30664.27734.7832.25293,1.05859-.05664.27734-.30762.25195-.78223-.05664-1.05859-.91797-.8252-2.10449-1.28027-3.34082-1.28027-2.75684,0-5,2.24316-5,5v2.77539c-1.12158.12622-2,1.07007-2,2.22461v6.5c0,1.24023,1.00977,2.25,2.25,2.25h9.5c1.24023,0,2.25-1.00977,2.25-2.25v-6.5c0-1.24023-1.00977-2.25-2.25-2.25ZM15.5,16.75c0,.41309-.33691.75-.75.75H5.25c-.41309,0-.75-.33691-.75-.75v-6.5c0-.41309.33691-.75.75-.75h9.5c.41309,0,.75.33691.75.75v6.5Z"
       fill="currentColor"
     />
-  </svg>`;var W0=({width:o=24,height:t=24,hidden:e=!1,title:r="Lock Open"}={})=>d`<svg
+  </svg>`;var O0=({width:o=24,height:t=24,hidden:e=!1,title:r="Lock Open"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -3140,7 +3119,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
     <path
       d="M29 16H11.9v-5.648A6.213 6.213 0 0 1 18 4a6.142 6.142 0 0 1 5.507 3.419c.31.639.266 1.146.777 1.146a.508.508 0 0 0 .186-.036l2.682-1.069a.514.514 0 0 0 .322-.471C27.474 5.513 24.167.2 18 .2 11.143.2 8 6.505 8 10.292V16H7a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h22a1 1 0 0 0 1-1V17a1 1 0 0 0-1-1Zm-9 10.222V29a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1v-2.778a3 3 0 1 1 4 0Z"
     />
-  </svg>`;var wc=class extends h{render(){return b(c),this.spectrumVersion===2?Z0({hidden:!this.label,title:this.label}):W0({hidden:!this.label,title:this.label})}};f();l("sp-icon-lock-open",wc);p();var K0=({width:o=24,height:t=24,hidden:e=!1,title:r="Market"}={})=>d`<svg
+  </svg>`;var xc=class extends h{render(){return b(c),this.spectrumVersion===2?M0({hidden:!this.label,title:this.label}):O0({hidden:!this.label,title:this.label})}};f();l("sp-icon-lock-open",xc);p();var R0=({width:o=24,height:t=24,hidden:e=!1,title:r="Market"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -3160,7 +3139,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
       fill="currentColor"
       stroke-width="0"
     />
-  </svg>`;var G0=({width:o=24,height:t=24,hidden:e=!1,title:r="Shop"}={})=>d`<svg
+  </svg>`;var q0=({width:o=24,height:t=24,hidden:e=!1,title:r="Shop"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -3173,7 +3152,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
     <path
       d="M34.94 16H1.06a.8.8 0 0 1-.769-1.02L3.793 2.725A1 1 0 0 1 4.754 2h26.492a1 1 0 0 1 .961.725L35.71 14.98a.8.8 0 0 1-.77 1.02ZM30 18v6H14v-6h-2v14H6V18H4v14a2 2 0 0 0 2 2h24a2 2 0 0 0 2-2V18ZM4 14h2L8 4H6Zm8.5 0h2l1-10h-2Zm8-10 1 10h2l-1-10ZM30 4h-2l2 10h2Z"
     />
-  </svg>`;var kc=class extends h{render(){return b(c),this.spectrumVersion===2?K0({hidden:!this.label,title:this.label}):G0({hidden:!this.label,title:this.label})}};f();l("sp-icon-market",kc);p();var X0=({width:o=24,height:t=24,hidden:e=!1,title:r="Money"}={})=>d`<svg
+  </svg>`;var yc=class extends h{render(){return b(c),this.spectrumVersion===2?R0({hidden:!this.label,title:this.label}):q0({hidden:!this.label,title:this.label})}};f();l("sp-icon-market",yc);p();var F0=({width:o=24,height:t=24,hidden:e=!1,title:r="Money"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     height="${t}"
     viewBox="0 0 36 36"
@@ -3189,7 +3168,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
     />
     <path d="M33 26H5a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1h1v16h28v1a1 1 0 0 1-1 1Z" />
     <path d="M29 30H1a1 1 0 0 1-1-1V13a1 1 0 0 1 1-1h1v16h28v1a1 1 0 0 1-1 1Z" />
-  </svg>`;var zc=class extends h{render(){return b(c),this.spectrumVersion===1?X0({hidden:!this.label,title:this.label}):M({hidden:!this.label,title:this.label})}};f();l("sp-icon-money",zc);p();var Y0=({width:o=24,height:t=24,hidden:e=!1,title:r="Move"}={})=>d`<svg
+  </svg>`;var wc=class extends h{render(){return b(c),this.spectrumVersion===1?F0({hidden:!this.label,title:this.label}):M({hidden:!this.label,title:this.label})}};f();l("sp-icon-money",wc);p();var V0=({width:o=24,height:t=24,hidden:e=!1,title:r="Move"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -3203,7 +3182,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
       d="m18.7832,9.46973l-2.25-2.25c-.29297-.29297-.76758-.29297-1.06055,0s-.29297.76758,0,1.06055l.96973.96973h-5.69238V3.55762l.96973.96973c.14648.14648.33838.21973.53027.21973s.38379-.07324.53027-.21973c.29297-.29297.29297-.76758,0-1.06055l-2.25-2.25c-.29297-.29297-.76758-.29297-1.06055,0l-2.25,2.25c-.29297.29297-.29297.76758,0,1.06055s.76758.29297,1.06055,0l.96973-.96973v5.69238H3.55762l.96973-.96973c.29297-.29297.29297-.76758,0-1.06055s-.76758-.29297-1.06055,0l-2.25,2.25c-.29297.29297-.29297.76758,0,1.06055l2.25,2.25c.14648.14648.33838.21973.53027.21973s.38379-.07324.53027-.21973c.29297-.29297.29297-.76758,0-1.06055l-.96973-.96973h5.69238v5.69238l-.96973-.96973c-.29297-.29297-.76758-.29297-1.06055,0s-.29297.76758,0,1.06055l2.25,2.25c.14648.14648.33838.21973.53027.21973s.38379-.07324.53027-.21973l2.25-2.25c.29297-.29297.29297-.76758,0-1.06055s-.76758-.29297-1.06055,0l-.96973.96973v-5.69238h5.69238l-.96973.96973c-.29297.29297-.29297.76758,0,1.06055.14648.14648.33838.21973.53027.21973s.38379-.07324.53027-.21973l2.25-2.25c.29297-.29297.29297-.76758,0-1.06055Z"
       fill="currentColor"
     />
-  </svg>`;var J0=({width:o=24,height:t=24,hidden:e=!1,title:r="Move"}={})=>d`<svg
+  </svg>`;var N0=({width:o=24,height:t=24,hidden:e=!1,title:r="Move"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     height="${t}"
     viewBox="0 0 36 36"
@@ -3216,7 +3195,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
     <path
       d="M34 18a.5.5 0 0 0-.113-.316L32 16.029V16h-.033l-2.113-1.853A.49.49 0 0 0 29.5 14a.5.5 0 0 0-.5.5V16h-9V7h1.5a.5.5 0 0 0 .5-.5.489.489 0 0 0-.147-.35L20 4.033V4h-.029l-1.655-1.887a.5.5 0 0 0-.632 0L16.029 4H16v.033l-1.853 2.113A.489.489 0 0 0 14 6.5a.5.5 0 0 0 .5.5H16v9H7v-1.5a.5.5 0 0 0-.5-.5.49.49 0 0 0-.35.147L4.033 16H4v.029l-1.887 1.655a.5.5 0 0 0 0 .632L4 19.971V20h.033l2.113 1.852A.491.491 0 0 0 6.5 22a.5.5 0 0 0 .5-.5V20h9v9h-1.5a.5.5 0 0 0-.5.5.487.487 0 0 0 .147.35L16 31.967V32h.029l1.655 1.887a.5.5 0 0 0 .632 0L19.971 32H20v-.033l1.853-2.114A.487.487 0 0 0 22 29.5a.5.5 0 0 0-.5-.5H20v-9h9v1.5a.5.5 0 0 0 .5.5.491.491 0 0 0 .35-.148L31.967 20H32v-.029l1.887-1.655A.5.5 0 0 0 34 18Z"
     />
-  </svg>`;var Cc=class extends h{render(){return b(c),this.spectrumVersion===2?Y0({hidden:!this.label,title:this.label}):J0({hidden:!this.label,title:this.label})}};f();l("sp-icon-move",Cc);p();var Q0=({width:o=24,height:t=24,hidden:e=!1,title:r="New Item"}={})=>d`<svg
+  </svg>`;var kc=class extends h{render(){return b(c),this.spectrumVersion===2?V0({hidden:!this.label,title:this.label}):N0({hidden:!this.label,title:this.label})}};f();l("sp-icon-move",kc);p();var U0=({width:o=24,height:t=24,hidden:e=!1,title:r="New Item"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -3232,7 +3211,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
     <path
       d="M16.5 10a.5.5 0 0 0-.5.5V16h-5.5a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5H16v5.5a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5V18h5.5a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5H18v-5.5a.5.5 0 0 0-.5-.5Z"
     />
-  </svg>`;var tb=({width:o=24,height:t=24,hidden:e=!1,title:r="New"}={})=>d`<svg
+  </svg>`;var Z0=({width:o=24,height:t=24,hidden:e=!1,title:r="New"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -3250,7 +3229,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
       d="m13.76318,10c0,.42139-.3418.76318-.76318.76318h-2.23682v2.23682c0,.42139-.3418.76318-.76318.76318s-.76318-.3418-.76318-.76318v-2.23682h-2.23682c-.42139,0-.76318-.3418-.76318-.76318s.3418-.76318.76318-.76318h2.23682v-2.23682c0-.42139.3418-.76318.76318-.76318s.76318.3418.76318.76318v2.23682h2.23682c.42139,0,.76318.3418.76318.76318Z"
       fill="currentColor"
     />
-  </svg>`;var Tc=class extends h{render(){return b(c),this.spectrumVersion===1?Q0({hidden:!this.label,title:this.label}):tb({hidden:!this.label,title:this.label})}};f();l("sp-icon-new-item",Tc);p();var eb=({width:o=24,height:t=24,hidden:e=!1,title:r="Offer"}={})=>d`<svg
+  </svg>`;var zc=class extends h{render(){return b(c),this.spectrumVersion===1?U0({hidden:!this.label,title:this.label}):Z0({hidden:!this.label,title:this.label})}};f();l("sp-icon-new-item",zc);p();var W0=({width:o=24,height:t=24,hidden:e=!1,title:r="Offer"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     height="${t}"
     viewBox="0 0 36 36"
@@ -3263,7 +3242,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
     <path
       d="m18.26 10.911 1.993 5.228 5.629.264a.233.233 0 0 1 .136.415l-4.4 3.5 1.489 5.382a.235.235 0 0 1-.356.256l-4.711-3.063-4.711 3.068a.235.235 0 0 1-.356-.256l1.486-5.391-4.4-3.5a.233.233 0 0 1 .141-.414l5.629-.264 1.993-5.228a.236.236 0 0 1 .438.003ZM2 28H0v2a2 2 0 0 0 2 2h4v-2H2ZM6 4h4v2H6zM8 30h4v2H8zM0 10h2v4H0zM2 6h2V4H2a2 2 0 0 0-2 2v2h2ZM0 16h2v4H0zM0 22h2v4H0zM34 10h2v4h-2zM34 16h2v4h-2zM34 22h2v4h-2zM14 30h4v2h-4zM12 4h4v2h-4zM34 4h-4v2h4v2h2V6a2 2 0 0 0-2-2ZM18 4h4v2h-4zM34 30h-2v2h2a2 2 0 0 0 2-2v-2h-2ZM26 30h4v2h-4zM20 30h4v2h-4zM24 4h4v2h-4z"
     />
-  </svg>`;var Ic=class extends h{render(){return b(c),this.spectrumVersion===1?eb({hidden:!this.label,title:this.label}):M({hidden:!this.label,title:this.label})}};f();l("sp-icon-offer",Ic);p();var rb=({width:o=24,height:t=24,hidden:e=!1,title:r="Open In"}={})=>d`<svg
+  </svg>`;var Cc=class extends h{render(){return b(c),this.spectrumVersion===1?W0({hidden:!this.label,title:this.label}):M({hidden:!this.label,title:this.label})}};f();l("sp-icon-offer",Cc);p();var K0=({width:o=24,height:t=24,hidden:e=!1,title:r="Open In"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -3281,7 +3260,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
       d="m11,9.75v4.24268c0,.41406-.33594.75-.75.75s-.75-.33594-.75-.75v-2.43213l-6.46973,6.46973c-.14648.14648-.33838.21973-.53027.21973s-.38379-.07324-.53027-.21973c-.29297-.29297-.29297-.76758,0-1.06055l6.46973-6.46973h-2.43213c-.41406,0-.75-.33594-.75-.75s.33594-.75.75-.75h4.24268c.41406,0,.75.33594.75.75Z"
       fill="currentColor"
     />
-  </svg>`;var ob=({width:o=24,height:t=24,hidden:e=!1,title:r="Open In"}={})=>d`<svg
+  </svg>`;var G0=({width:o=24,height:t=24,hidden:e=!1,title:r="Open In"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -3297,7 +3276,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
     <path
       d="M18.636 27.764a.784.784 0 0 0 .56.236.803.803 0 0 0 .804-.754v-10.75a.497.497 0 0 0-.496-.496H8.754a.803.803 0 0 0-.754.804.785.785 0 0 0 .235.56l3.786 3.786-9.042 9.042a1 1 0 0 0 0 1.415l1.414 1.414a1 1 0 0 0 1.414 0l9.043-9.042Z"
     />
-  </svg>`;var Sc=class extends h{render(){return b(c),this.spectrumVersion===2?rb({hidden:!this.label,title:this.label}):ob({hidden:!this.label,title:this.label})}};f();l("sp-icon-open-in",Sc);p();var sb=({width:o=24,height:t=24,hidden:e=!1,title:r="Order"}={})=>d`<svg
+  </svg>`;var Tc=class extends h{render(){return b(c),this.spectrumVersion===2?K0({hidden:!this.label,title:this.label}):G0({hidden:!this.label,title:this.label})}};f();l("sp-icon-open-in",Tc);p();var X0=({width:o=24,height:t=24,hidden:e=!1,title:r="Order"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -3319,7 +3298,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
       d="m4.50586,12.43555l-.75586.66162v-6.19434l.75586.66162c.14258.12402.31836.18555.49414.18555.20801,0,.41602-.08691.56445-.25586.27246-.31152.24121-.78613-.07031-1.05859l-2-1.75c-.2832-.24805-.70508-.24805-.98828,0l-2,1.75c-.31152.27246-.34277.74707-.07031,1.05859.27344.31152.74805.34082,1.05859.07031l.75586-.66162v6.19434l-.75586-.66162c-.31055-.27148-.78516-.24121-1.05859.07031-.27246.31152-.24121.78613.07031,1.05859l2,1.75c.03711.03271.08154.04932.12305.07324.03223.0188.06006.04248.09521.05664.08887.03516.18213.05566.27588.05566s.18701-.02051.27588-.05566c.03516-.01416.06299-.03784.09521-.05664.0415-.02393.08594-.04053.12305-.07324l2-1.75c.31152-.27246.34277-.74707.07031-1.05859-.27441-.31152-.74707-.3418-1.05859-.07031Z"
       fill="currentColor"
     />
-  </svg>`;var Ec=class extends h{render(){return b(c),this.spectrumVersion===2?sb({hidden:!this.label,title:this.label}):M({hidden:!this.label,title:this.label})}};f();l("sp-icon-order",Ec);p();var ib=({width:o=24,height:t=24,hidden:e=!1,title:r="Page Rule"}={})=>d`<svg
+  </svg>`;var Ic=class extends h{render(){return b(c),this.spectrumVersion===2?X0({hidden:!this.label,title:this.label}):M({hidden:!this.label,title:this.label})}};f();l("sp-icon-order",Ic);p();var Y0=({width:o=24,height:t=24,hidden:e=!1,title:r="Page Rule"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     height="${t}"
     viewBox="0 0 36 36"
@@ -3333,7 +3312,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
       d="M34.875 4H1.125A1.147 1.147 0 0 0 0 5.167v25.666A1.147 1.147 0 0 0 1.125 32h33.75A1.147 1.147 0 0 0 36 30.833V5.167A1.147 1.147 0 0 0 34.875 4ZM34 30H2V8h32Z"
     />
     <rect height="2" rx=".5" ry=".5" width="28" x="4" y="12" />
-  </svg>`;var $c=class extends h{render(){return b(c),this.spectrumVersion===1?ib({hidden:!this.label,title:this.label}):M({hidden:!this.label,title:this.label})}};f();l("sp-icon-page-rule",$c);p();var ab=({width:o=24,height:t=24,hidden:e=!1,title:r="Pause"}={})=>d`<svg
+  </svg>`;var Sc=class extends h{render(){return b(c),this.spectrumVersion===1?Y0({hidden:!this.label,title:this.label}):M({hidden:!this.label,title:this.label})}};f();l("sp-icon-page-rule",Sc);p();var J0=({width:o=24,height:t=24,hidden:e=!1,title:r="Pause"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -3359,7 +3338,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
       d="m15.75,18h-2.5c-1.24072,0-2.25-1.00977-2.25-2.25V4.25c0-1.24023,1.00928-2.25,2.25-2.25h2.5c1.24072,0,2.25,1.00977,2.25,2.25v11.5c0,1.24023-1.00928,2.25-2.25,2.25Zm-2.5-14.5c-.41357,0-.75.33691-.75.75v11.5c0,.41309.33643.75.75.75h2.5c.41357,0,.75-.33691.75-.75V4.25c0-.41309-.33643-.75-.75-.75h-2.5Z"
       fill="currentColor"
     />
-  </svg>`;var cb=({width:o=24,height:t=24,hidden:e=!1,title:r="Pause"}={})=>d`<svg
+  </svg>`;var Q0=({width:o=24,height:t=24,hidden:e=!1,title:r="Pause"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     height="${t}"
     viewBox="0 0 36 36"
@@ -3373,7 +3352,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
       <rect height="28" rx="1" width="8" x="6" y="4" />
       <rect height="28" rx="1" width="8" x="20" y="4" />
     </g>
-  </svg>`;var _c=class extends h{render(){return b(c),this.spectrumVersion===2?ab({hidden:!this.label,title:this.label}):cb({hidden:!this.label,title:this.label})}};f();l("sp-icon-pause",_c);p();var nb=({width:o=24,height:t=24,hidden:e=!1,title:r="Preview"}={})=>d`<svg
+  </svg>`;var Ec=class extends h{render(){return b(c),this.spectrumVersion===2?J0({hidden:!this.label,title:this.label}):Q0({hidden:!this.label,title:this.label})}};f();l("sp-icon-pause",Ec);p();var tb=({width:o=24,height:t=24,hidden:e=!1,title:r="Preview"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -3391,7 +3370,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
       d="m16.34082,5.28027l-3.62109-3.62012c-.41797-.41992-.99805-.66016-1.59082-.66016h-5.87891c-1.24023,0-2.25,1.00977-2.25,2.25v12.5c0,1.24023,1.00977,2.25,2.25,2.25h3.75c.41406,0,.75-.33594.75-.75s-.33594-.75-.75-.75h-3.75c-.41309,0-.75-.33691-.75-.75V3.25c0-.41309.33691-.75.75-.75h4.75v3.25c0,1.24023,1.00977,2.25,2.25,2.25h3.25v.5c0,.41406.33594.75.75.75s.75-.33594.75-.75v-1.62891c0-.5918-.24023-1.17188-.65918-1.59082Zm-4.84082.46973v-3.13574c.05493.03198.11279.06006.1582.10547l3.62207,3.62109c.04565.04565.07373.10376.10596.15918h-3.13623c-.41309,0-.75-.33691-.75-.75Z"
       fill="currentColor"
     />
-  </svg>`;var lb=({width:o=24,height:t=24,hidden:e=!1,title:r="Preview"}={})=>d`<svg
+  </svg>`;var eb=({width:o=24,height:t=24,hidden:e=!1,title:r="Preview"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     height="${t}"
     viewBox="0 0 36 36"
@@ -3407,7 +3386,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
     <path
       d="M33 4H3a1 1 0 0 0-1 1v26a1 1 0 0 0 1 1h11.232a11.322 11.322 0 0 1-2.068-2H4V10h28v17.777l2 1.99V5a1 1 0 0 0-1-1Z"
     />
-  </svg>`;var Ac=class extends h{render(){return b(c),this.spectrumVersion===2?nb({hidden:!this.label,title:this.label}):lb({hidden:!this.label,title:this.label})}};f();l("sp-icon-preview",Ac);p();var db=({width:o=24,height:t=24,hidden:e=!1,title:r="Promote"}={})=>d`<svg
+  </svg>`;var $c=class extends h{render(){return b(c),this.spectrumVersion===2?tb({hidden:!this.label,title:this.label}):eb({hidden:!this.label,title:this.label})}};f();l("sp-icon-preview",$c);p();var rb=({width:o=24,height:t=24,hidden:e=!1,title:r="Promote"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -3421,7 +3400,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
       d="m18.01367,2.38867c-.61719-.41797-1.39648-.50391-2.08984-.22852-2.95996,1.17773-5.21094,1.85254-6.17383,1.85254h-4.75c-2.20605,0-4,1.79297-4,3.99707,0,2.20312,1.79395,3.99609,4,3.99609h.1626l2.26123,5.45215c.39844.96094,1.33105,1.54199,2.31152,1.54199.31836,0,.6416-.06152.9541-.19043.61621-.25586,1.09668-.73535,1.35254-1.35156.25586-.61719.25586-1.2959,0-1.91504l-1.42163-3.42554c1.16479.23438,3.01807.83789,5.31226,1.73901.26562.10449.54395.15527.82129.15527.44434,0,.88477-.13184,1.2627-.38965.61621-.41895.9834-1.11426.9834-1.85938v-7.51172c0-.74707-.36914-1.44336-.98633-1.8623ZM2.5,8.00977c0-1.37695,1.12109-2.49707,2.5-2.49707h4v4.99316h-4c-1.37891,0-2.5-1.12012-2.5-2.49609Zm8.15723,8.87305c-.10254.24609-.29492.43848-.54199.54102-.50781.21094-1.09375-.03125-1.30664-.54004l-2.02295-4.87793h2.16516l1.70642,4.11328c.10156.24609.10156.51758,0,.76367Zm6.84277-5.12012c0,.25195-.11914.47852-.32715.62012-.20801.14062-.46094.16797-.69141.07715-2.70569-1.06299-4.70264-1.68872-5.98145-1.88257v-5.13452c1.29395-.19189,3.29041-.82007,5.97852-1.88818.2334-.09277.48633-.06543.69238.0752.20898.1416.3291.36816.3291.62109v7.51172Z"
       fill="currentColor"
     />
-  </svg>`;var mb=({width:o=24,height:t=24,hidden:e=!1,title:r="Promote"}={})=>d`<svg
+  </svg>`;var ob=({width:o=24,height:t=24,hidden:e=!1,title:r="Promote"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     height="${t}"
     viewBox="0 0 36 36"
@@ -3434,7 +3413,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
     <path
       d="M6 6a6 6 0 0 0 0 12h6V6ZM13.079 34h-2.908a1.5 1.5 0 0 1-1.455-1.136L6 20h6l2.534 12.136A1.5 1.5 0 0 1 13.079 34ZM32.5 23.957S25.974 18 17.425 18H14V6h3.425C25.845 6 32.5.043 32.5.043A1.268 1.268 0 0 1 34 1.426v21.148a1.268 1.268 0 0 1-1.5 1.383Z"
     />
-  </svg>`;var Lc=class extends h{render(){return b(c),this.spectrumVersion===2?db({hidden:!this.label,title:this.label}):mb({hidden:!this.label,title:this.label})}};f();l("sp-icon-promote",Lc);p();var ub=({width:o=24,height:t=24,hidden:e=!1,title:r="Download"}={})=>d`<svg
+  </svg>`;var _c=class extends h{render(){return b(c),this.spectrumVersion===2?rb({hidden:!this.label,title:this.label}):ob({hidden:!this.label,title:this.label})}};f();l("sp-icon-promote",_c);p();var sb=({width:o=24,height:t=24,hidden:e=!1,title:r="Download"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -3452,7 +3431,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
       d="m15.75,18H4.25c-1.24023,0-2.25-1.00977-2.25-2.25v-2.02148c0-.41406.33594-.75.75-.75s.75.33594.75.75v2.02148c0,.41309.33691.75.75.75h11.5c.41309,0,.75-.33691.75-.75v-2.02148c0-.41406.33594-.75.75-.75s.75.33594.75.75v2.02148c0,1.24023-1.00977,2.25-2.25,2.25Z"
       fill="currentColor"
     />
-  </svg>`;var pb=({width:o=24,height:t=24,hidden:e=!1,title:r="Save To"}={})=>d`<svg
+  </svg>`;var ib=({width:o=24,height:t=24,hidden:e=!1,title:r="Save To"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     height="${t}"
     viewBox="0 0 36 36"
@@ -3468,7 +3447,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
     <path
       d="m10.2 17.331 7.445 7.525a.5.5 0 0 0 .7 0l7.455-7.525a.782.782 0 0 0 .2-.526.8.8 0 0 0-.8-.8H20V3a1 1 0 0 0-1-1h-2a1 1 0 0 0-1 1v13h-5.2a.8.8 0 0 0-.8.8.782.782 0 0 0 .2.531Z"
     />
-  </svg>`;var Hc=class extends h{render(){return b(c),this.spectrumVersion===2?ub({hidden:!this.label,title:this.label}):pb({hidden:!this.label,title:this.label})}};f();l("sp-icon-download",Hc);p();var hb=({width:o=24,height:t=24,hidden:e=!1,title:r="Publish Remove"}={})=>d`<svg
+  </svg>`;var Ac=class extends h{render(){return b(c),this.spectrumVersion===2?sb({hidden:!this.label,title:this.label}):ib({hidden:!this.label,title:this.label})}};f();l("sp-icon-download",Ac);p();var ab=({width:o=24,height:t=24,hidden:e=!1,title:r="Publish Remove"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     height="${t}"
     viewBox="0 0 36 36"
@@ -3481,7 +3460,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
     <path
       d="M33.191 1.113 1.8 10.478a.5.5 0 0 0-.08.926l7.92 3.954ZM15.645 22.372 10.08 19.25v7.639a.713.713 0 0 0 1.174.544l3.795-3.2a12.242 12.242 0 0 1 .596-1.861ZM27 14.8a12.288 12.288 0 0 1 2.786.329l5.851-12.765-22.548 14.667 4.435 2.229A12.273 12.273 0 0 1 27 14.8ZM27 18.1a8.9 8.9 0 1 0 8.9 8.9 8.9 8.9 0 0 0-8.9-8.9Zm5.826 12.267a.5.5 0 0 1 0 .707l-1.752 1.752a.5.5 0 0 1-.707 0L27 29.459l-3.367 3.367a.5.5 0 0 1-.707 0l-1.752-1.752a.5.5 0 0 1 0-.707L24.541 27l-3.367-3.367a.5.5 0 0 1 0-.707l1.752-1.752a.5.5 0 0 1 .707 0L27 24.541l3.367-3.367a.5.5 0 0 1 .707 0l1.752 1.752a.5.5 0 0 1 0 .707L29.459 27Z"
     />
-  </svg>`;var gb=({width:o=24,height:t=24,hidden:e=!1,title:r="Publish No"}={})=>d`<svg
+  </svg>`;var cb=({width:o=24,height:t=24,hidden:e=!1,title:r="Publish No"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -3501,7 +3480,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
       fill="currentColor"
       stroke-width="0"
     />
-  </svg>`;var Bc=class extends h{render(){return b(c),this.spectrumVersion===1?hb({hidden:!this.label,title:this.label}):gb({hidden:!this.label,title:this.label})}};f();l("sp-icon-publish-remove",Bc);p();var bb=({width:o=24,height:t=24,hidden:e=!1,title:r="Publish"}={})=>d`<svg
+  </svg>`;var Lc=class extends h{render(){return b(c),this.spectrumVersion===1?ab({hidden:!this.label,title:this.label}):cb({hidden:!this.label,title:this.label})}};f();l("sp-icon-publish-remove",Lc);p();var nb=({width:o=24,height:t=24,hidden:e=!1,title:r="Publish"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -3516,7 +3495,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
       fill="currentColor"
       stroke-width="0"
     />
-  </svg>`;var Pc=class extends h{render(){return b(c),this.spectrumVersion===2?bb({hidden:!this.label,title:this.label}):M({hidden:!this.label,title:this.label})}};f();l("sp-icon-publish",Pc);p();var vb=({width:o=24,height:t=24,hidden:e=!1,title:r="Refresh"}={})=>d`<svg
+  </svg>`;var Hc=class extends h{render(){return b(c),this.spectrumVersion===2?nb({hidden:!this.label,title:this.label}):M({hidden:!this.label,title:this.label})}};f();l("sp-icon-publish",Hc);p();var lb=({width:o=24,height:t=24,hidden:e=!1,title:r="Refresh"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -3534,7 +3513,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
       d="M17.21094,11.03223c-.39697-.09668-.80811.14648-.90771.54883-.71826,2.90918-3.31006,4.94043-6.30322,4.94043-2.51703,0-4.73523-1.44653-5.80914-3.63354l2.1026.50854c.40283.0918.80811-.15039.90527-.55371.09717-.40234-.15039-.80762-.55273-.90527l-3.25494-.78662c-.17102-.11816-.38531-.17139-.60199-.11865-.0152.00391-.026.01465-.04071.01929-.10321.01318-.20392.04419-.29425.09985-.16943.10352-.29102.27051-.33789.46387l-.87549,3.62402c-.09717.40234.15039.80762.55273.90527.05957.01367.11865.02051.17676.02051.33838,0,.64551-.23047.72852-.57422l.38043-1.57471c1.39764,2.43213,4.00189,4.00537,6.92084,4.00537,3.68457,0,6.87549-2.50098,7.75928-6.08105.09961-.40234-.146-.80859-.54834-.9082Z"
       fill="currentColor"
     />
-  </svg>`;var fb=({width:o=24,height:t=24,hidden:e=!1,title:r="Refresh"}={})=>d`<svg
+  </svg>`;var db=({width:o=24,height:t=24,hidden:e=!1,title:r="Refresh"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -3547,7 +3526,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
     <path
       d="M32.674 20H30.78a1.215 1.215 0 0 0-1.162.938 11.447 11.447 0 0 1-19.116 5.074l-.692-.693 3.955-3.955a.785.785 0 0 0 .235-.56.803.803 0 0 0-.754-.804H2.496a.5.5 0 0 0-.496.496v10.75a.803.803 0 0 0 .804.754.784.784 0 0 0 .56-.236l3.617-3.617.356.357a16.17 16.17 0 0 0 7.284 4.331A15.43 15.43 0 0 0 33.665 21.17a.996.996 0 0 0-.991-1.17ZM33.196 4a.784.784 0 0 0-.56.236l-3.617 3.617-.356-.357a16.17 16.17 0 0 0-7.284-4.331A15.43 15.43 0 0 0 2.335 14.83.996.996 0 0 0 3.326 16H5.22a1.216 1.216 0 0 0 1.162-.938 11.447 11.447 0 0 1 19.116-5.074l.692.693-3.955 3.955a.786.786 0 0 0-.235.56.804.804 0 0 0 .754.804h10.75a.5.5 0 0 0 .496-.496V4.754A.803.803 0 0 0 33.196 4Z"
     />
-  </svg>`;var Dc=class extends h{render(){return b(c),this.spectrumVersion===2?vb({hidden:!this.label,title:this.label}):fb({hidden:!this.label,title:this.label})}};f();l("sp-icon-refresh",Dc);p();var xb=({width:o=24,height:t=24,hidden:e=!1,title:r="Remove"}={})=>d`<svg
+  </svg>`;var Bc=class extends h{render(){return b(c),this.spectrumVersion===2?lb({hidden:!this.label,title:this.label}):db({hidden:!this.label,title:this.label})}};f();l("sp-icon-refresh",Bc);p();var mb=({width:o=24,height:t=24,hidden:e=!1,title:r="Remove"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     height="${t}"
     viewBox="0 0 36 36"
@@ -3558,7 +3537,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
     aria-label="${r}"
   >
     <rect height="4" rx="1" ry="1" width="24" x="6" y="16" />
-  </svg>`;var jc=class extends h{render(){return b(c),this.spectrumVersion===1?xb({hidden:!this.label,title:this.label}):M({hidden:!this.label,title:this.label})}};f();l("sp-icon-remove",jc);p();var yb=({width:o=24,height:t=24,hidden:e=!1,title:r="Review Link"}={})=>d`<svg
+  </svg>`;var Pc=class extends h{render(){return b(c),this.spectrumVersion===1?mb({hidden:!this.label,title:this.label}):M({hidden:!this.label,title:this.label})}};f();l("sp-icon-remove",Pc);p();var ub=({width:o=24,height:t=24,hidden:e=!1,title:r="Review Link"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -3585,7 +3564,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
       d="m12.7998,14.9502c-.19189,0-.38379-.07324-.53027-.21973-.29297-.29297-.29297-.76758,0-1.06055l2.40039-2.40039c.29297-.29297.76758-.29297,1.06055,0s.29297.76758,0,1.06055l-2.40039,2.40039c-.14648.14648-.33838.21973-.53027.21973Z"
       fill="currentColor"
     />
-  </svg>`;var Mc=class extends h{render(){return b(c),this.spectrumVersion===2?yb({hidden:!this.label,title:this.label}):M({hidden:!this.label,title:this.label})}};f();l("sp-icon-review-link",Mc);p();var wb=({width:o=24,height:t=24,hidden:e=!1,title:r="Ribbon"}={})=>d`<svg
+  </svg>`;var Dc=class extends h{render(){return b(c),this.spectrumVersion===2?ub({hidden:!this.label,title:this.label}):M({hidden:!this.label,title:this.label})}};f();l("sp-icon-review-link",Dc);p();var pb=({width:o=24,height:t=24,hidden:e=!1,title:r="Ribbon"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -3599,7 +3578,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
       d="m16.34521,16.37939l-1.9281-4.45544c1.13184-1.13171,1.83289-2.69434,1.83289-4.4176,0-3.44629-2.80371-6.25-6.25-6.25S3.75,4.06006,3.75,7.50635c0,1.72327.70105,3.28589,1.83289,4.4176l-1.9281,4.45544c-.10303.23877-.0752.51367.07324.72656.14844.21338.39111.32715.65674.32031l1.85791-.10303,1.19727,1.42529c.14355.1709.35449.26758.57422.26758.03809,0,.07666-.00293.11523-.00879.25928-.04053.47852-.21338.57861-.45605l1.29199-3.14209,1.29199,3.14209c.1001.24268.31934.41553.57861.45605.03857.00586.07715.00879.11523.00879.21973,0,.43066-.09668.57422-.26758l1.19727-1.42529,1.85791.10303c.2666.00732.5083-.10693.65674-.32031.14844-.21289.17627-.48779.07324-.72656ZM5.25,7.50635c0-2.61914,2.13086-4.75,4.75-4.75s4.75,2.13086,4.75,4.75-2.13086,4.75-4.75,4.75-4.75-2.13086-4.75-4.75Zm2.5415,9.32861l-.6416-.76367c-.15186-.18018-.37988-.27734-.61572-.2666l-1.02051.05664,1.29449-2.99121c.68665.41016,1.4566.69067,2.27979.81201l-1.29645,3.15283Zm5.67432-1.03027c-.24316-.01172-.46338.08643-.61572.2666l-.6416.76367-1.29645-3.15283c.82318-.12134,1.59314-.40186,2.27979-.81201l1.29449,2.99121-1.02051-.05664Z"
       fill="currentColor"
     />
-  </svg>`;var kb=({width:o=24,height:t=24,hidden:e=!1,title:r="Ribbon"}={})=>d`<svg
+  </svg>`;var hb=({width:o=24,height:t=24,hidden:e=!1,title:r="Ribbon"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     height="${t}"
     viewBox="0 0 36 36"
@@ -3612,7 +3591,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
     <path
       d="M11.776 22.661 7.564 30.24a.5.5 0 0 0 .617.693L12.2 29.5a.5.5 0 0 1 .639.3l1.432 4.016a.5.5 0 0 0 .926.038l1.681-3.708-3.042-6.441a11.429 11.429 0 0 1-2.06-1.044Zm16.66 7.579-3.869-7.807a11.248 11.248 0 0 1-8.218 1.935l4.459 9.49a.5.5 0 0 0 .925-.038l1.432-4.02a.5.5 0 0 1 .64-.3l4.014 1.432a.5.5 0 0 0 .617-.692ZM18 4a9 9 0 1 0 9 9 9 9 0 0 0-9-9Zm0 14.5a5.5 5.5 0 1 1 5.5-5.5 5.5 5.5 0 0 1-5.5 5.5Z"
     />
-  </svg>`;var Oc=class extends h{render(){return b(c),this.spectrumVersion===2?wb({hidden:!this.label,title:this.label}):kb({hidden:!this.label,title:this.label})}};f();l("sp-icon-ribbon",Oc);p();var zb=({width:o=24,height:t=24,hidden:e=!1,title:r="Save Floppy"}={})=>d`<svg
+  </svg>`;var jc=class extends h{render(){return b(c),this.spectrumVersion===2?pb({hidden:!this.label,title:this.label}):hb({hidden:!this.label,title:this.label})}};f();l("sp-icon-ribbon",jc);p();var gb=({width:o=24,height:t=24,hidden:e=!1,title:r="Save Floppy"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -3626,7 +3605,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
       d="M17.41406,4.10352l-1.51758-1.51758c-.37793-.37793-.87988-.58594-1.41406-.58594H4.25c-1.24072,0-2.25,1.00977-2.25,2.25v11.5c0,1.24023,1.00928,2.25,2.25,2.25h11.5c1.24072,0,2.25-1.00977,2.25-2.25V5.51758c0-.52637-.21338-1.04199-.58594-1.41406ZM7.75,3.5h4.5v3h-4.5v-3ZM13.25,16.5h-6.5v-4.5h6.5v4.5ZM16.5,15.75c0,.41309-.33643.75-.75.75h-1v-4.5c0-.82715-.67285-1.5-1.5-1.5h-6.5c-.82715,0-1.5.67285-1.5,1.5v4.5h-1c-.41357,0-.75-.33691-.75-.75V4.25c0-.41309.33643-.75.75-.75h2v3c0,.82715.67285,1.5,1.5,1.5h4.5c.82715,0,1.5-.67285,1.5-1.5v-3h.73242c.1333,0,.25879.05176.35352.14648l1.51758,1.51758c.09326.09277.14648.22168.14648.35352v10.23242Z"
       fill="currentColor"
     />
-  </svg>`;var Cb=({width:o=24,height:t=24,hidden:e=!1,title:r="Save Floppy"}={})=>d`<svg
+  </svg>`;var bb=({width:o=24,height:t=24,hidden:e=!1,title:r="Save Floppy"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     height="${t}"
     viewBox="0 0 36 36"
@@ -3640,7 +3619,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
     <path
       d="M31.708 8.293s-4.015-4-4.146-4.114A.969.969 0 0 0 27 4h-1v8H14V4H5a1 1 0 0 0-1 1v26a1 1 0 0 0 1 1h26a1 1 0 0 0 1-1V9a1 1 0 0 0-.292-.707ZM26 30H10V16h16Z"
     />
-  </svg>`;var Rc=class extends h{render(){return b(c),this.spectrumVersion===2?zb({hidden:!this.label,title:this.label}):Cb({hidden:!this.label,title:this.label})}};f();l("sp-icon-save-floppy",Rc);p();var Tb=({width:o=24,height:t=24,hidden:e=!1,title:r="Select Multi"}={})=>d`<svg
+  </svg>`;var Mc=class extends h{render(){return b(c),this.spectrumVersion===2?gb({hidden:!this.label,title:this.label}):bb({hidden:!this.label,title:this.label})}};f();l("sp-icon-save-floppy",Mc);p();var vb=({width:o=24,height:t=24,hidden:e=!1,title:r="Select Multi"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -3662,7 +3641,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
       d="M2.75,13.7501c-.41406,0-.75-.33594-.75-.75V4.2501c0-1.24023,1.00928-2.25,2.25-2.25h8.75c.41406,0,.75.33594.75.75s-.33594.75-.75.75H4.25c-.41357,0-.75.33691-.75.75v8.75c0,.41406-.33594.75-.75.75Z"
       fill="currentColor"
     />
-  </svg>`;var Ib=({width:o=24,height:t=24,hidden:e=!1,title:r="Select Box All"}={})=>d`<svg
+  </svg>`;var fb=({width:o=24,height:t=24,hidden:e=!1,title:r="Select Box All"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     height="${t}"
     viewBox="0 0 36 36"
@@ -3676,7 +3655,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
       d="M29.2 8H12.8A4.8 4.8 0 0 0 8 12.8v16.4a4.8 4.8 0 0 0 4.8 4.8h16.4a4.8 4.8 0 0 0 4.8-4.8V12.8A4.8 4.8 0 0 0 29.2 8Zm1.223 9.049L18.988 28.573a.8.8 0 0 1-1.131 0l-6.28-6.278a.8.8 0 0 1 0-1.131l2.491-2.491a.8.8 0 0 1 1.131 0l3.224 3.227 8.378-8.47a.8.8 0 0 1 1.131 0l2.491 2.491a.8.8 0 0 1 0 1.128Z"
     />
     <path d="M26 2H6.8A4.8 4.8 0 0 0 2 6.8V26a4 4 0 0 0 4 4V6h24a4 4 0 0 0-4-4Z" />
-  </svg>`;var qc=class extends h{render(){return b(c),this.spectrumVersion===2?Tb({hidden:!this.label,title:this.label}):Ib({hidden:!this.label,title:this.label})}};f();l("sp-icon-select-multi",qc);p();var Fc=class extends h{render(){return b(c),this.spectrumVersion===2?Ka({hidden:!this.label,title:this.label}):Wa({hidden:!this.label,title:this.label})}};f();l("sp-icon-select-no",Fc);p();var Sb=({width:o=24,height:t=24,hidden:e=!1,title:r="Select Rectangle"}={})=>d`<svg
+  </svg>`;var Oc=class extends h{render(){return b(c),this.spectrumVersion===2?vb({hidden:!this.label,title:this.label}):fb({hidden:!this.label,title:this.label})}};f();l("sp-icon-select-multi",Oc);p();var Rc=class extends h{render(){return b(c),this.spectrumVersion===2?Za({hidden:!this.label,title:this.label}):Ua({hidden:!this.label,title:this.label})}};f();l("sp-icon-select-no",Rc);p();var xb=({width:o=24,height:t=24,hidden:e=!1,title:r="Select Rectangle"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -3734,7 +3713,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
       d="m12.75,16.5h-1.25c-.41406,0-.75.33594-.75.75s.33594.75.75.75h1.25c.41406,0,.75-.33594.75-.75s-.33594-.75-.75-.75Z"
       fill="currentColor"
     />
-  </svg>`;var Eb=({width:o=24,height:t=24,hidden:e=!1,title:r="Rect Select"}={})=>d`<svg
+  </svg>`;var yb=({width:o=24,height:t=24,hidden:e=!1,title:r="Rect Select"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     height="${t}"
     viewBox="0 0 36 36"
@@ -3747,7 +3726,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
     <path
       d="M10 4h6v2h-6zM20 4h6v2h-6zM3 4a1 1 0 0 0-1 1v3h2V6h2V4ZM2 12h2v4H2zM2 20h2v4H2zM4 30v-2H2v3a1 1 0 0 0 1 1h3v-2ZM10 30h6v2h-6zM20 30h6v2h-6zM30 4v2h2v2h2V5a1 1 0 0 0-1-1ZM32 12h2v4h-2zM32 20h2v4h-2zM32 28v2h-2v2h3a1 1 0 0 0 1-1v-3Z"
     />
-  </svg>`;var Vc=class extends h{render(){return b(c),this.spectrumVersion===2?Sb({hidden:!this.label,title:this.label}):Eb({hidden:!this.label,title:this.label})}};f();l("sp-icon-select-rectangle",Vc);p();var $b=({width:o=24,height:t=24,hidden:e=!1,title:r="Settings"}={})=>d`<svg
+  </svg>`;var qc=class extends h{render(){return b(c),this.spectrumVersion===2?xb({hidden:!this.label,title:this.label}):yb({hidden:!this.label,title:this.label})}};f();l("sp-icon-select-rectangle",qc);p();var wb=({width:o=24,height:t=24,hidden:e=!1,title:r="Settings"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -3765,7 +3744,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
       d="M6.90674,18.31836c-.33936,0-.68213-.08496-.99219-.26465l-.81982-.47266c-.89307-.51367-1.25-1.64941-.81104-2.58301l.58008-1.2334c-.26514-.36328-.48975-.75098-.67188-1.16113l-1.35693-.1123c-1.02881-.08496-1.83447-.95996-1.83447-1.99121l-.00098-.94629c0-1.0332.80518-1.90918,1.8335-1.99414l1.35449-.11426c.0918-.20898.19238-.40918.30176-.59961.10986-.19141.2334-.37891.36914-.56445l-.58057-1.22949c-.44092-.93262-.08643-2.06836.80713-2.58496l.82031-.47363c.89258-.5166,2.05371-.25879,2.64258.58984l.77734,1.11816c.44385-.0498.89209-.04785,1.34082,0l.77539-1.11914c.58887-.84961,1.75098-1.10938,2.64355-.59375l.81982.47266c.89404.51562,1.24951,1.65137.81055,2.58398l-.58008,1.23242c.26562.36426.49023.75195.67188,1.16113l1.35693.1123c1.02832.08496,1.83398.95996,1.83496,1.99121l.00049.94727c.00098,1.03125-.80371,1.90723-1.83203,1.99414l-1.35547.11426c-.09131.20898-.19189.4082-.30273.59961h0c-.10938.18945-.23242.37793-.36816.56348l.58057,1.22949c.44043.93164.08643,2.06738-.80664,2.58496l-.8208.47461c-.89355.51855-2.05371.25781-2.64258-.59082l-.77734-1.11816c-.4458.04883-.89404.04785-1.34082.00098l-.77637,1.12012c-.38379.55371-1.01172.85645-1.65039.85645ZM6.9043,3.22461c-.08496,0-.17041.02148-.24805.06641l-.8208.47461c-.22266.12891-.31152.41211-.20117.64551l.77881,1.65039c.12598.2666.08398.58203-.10742.80664-.2041.23926-.37305.47656-.5166.72559-.14111.24609-.26514.51855-.36816.80957-.09814.27832-.3501.47266-.64404.49707l-1.81885.15332c-.26172.02246-.4585.23633-.4585.49902l.00098.94629c0,.25781.20117.47656.4585.49805l1.81934.15039c.29395.02441.54639.21875.64502.49707.19873.56055.49707,1.07617.88672,1.53223.19189.22363.23438.54004.10889.80664l-.77783,1.65234c-.10938.2334-.021.51758.20264.64551l.82031.47363c.22412.12988.51416.06348.66016-.14746l1.04102-1.50195c.16748-.24219.45898-.36914.75244-.30957.58838.10742,1.18457.1084,1.77002-.00098.28955-.05469.58496.06641.75342.30957l1.04199,1.49902c.14648.20996.43848.27637.66064.14746l.82031-.47363c.22607-.13086.31348-.40918.20117-.64648l-.77881-1.65039c-.12598-.2666-.08398-.58203.10742-.80664.2041-.24023.37305-.47656.51562-.72461l.00049-.00098c.14258-.24707.26318-.51172.36865-.80957.09863-.27832.35059-.47266.64453-.49707l1.81885-.15234c.25635-.02246.45752-.24121.45752-.49902l-.00049-.94727c0-.26172-.19727-.47559-.45898-.49805l-1.81885-.15039c-.29395-.02441-.54639-.21875-.64502-.49707-.19775-.55957-.49658-1.0752-.88721-1.53223-.19141-.22461-.23389-.54004-.1084-.80664l.77734-1.65234c.10986-.2334.021-.51758-.20264-.64648l-.81982-.47266c-.22461-.12695-.51416-.06152-.66113.14941l-1.03955,1.5c-.16797.24316-.45898.36816-.75293.31055-.59131-.10938-1.1875-.10938-1.77002,0-.29199.05176-.58545-.06738-.75342-.30957l-1.04199-1.49902c-.09619-.1377-.25293-.21387-.41211-.21387Z"
       fill="currentColor"
     />
-  </svg>`;var _b=({width:o=24,height:t=24,hidden:e=!1,title:r="Settings"}={})=>d`<svg
+  </svg>`;var kb=({width:o=24,height:t=24,hidden:e=!1,title:r="Settings"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     height="${t}"
     viewBox="0 0 36 36"
@@ -3778,7 +3757,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
     <path
       d="M32.9 15.793h-3.111a11.953 11.953 0 0 0-1.842-4.507l2.205-2.206a1.1 1.1 0 0 0 0-1.56l-1.673-1.672a1.1 1.1 0 0 0-1.56 0l-2.205 2.205a11.925 11.925 0 0 0-4.507-1.841V3.1A1.1 1.1 0 0 0 19.1 2h-2.2a1.1 1.1 0 0 0-1.1 1.1v3.112a11.925 11.925 0 0 0-4.507 1.841l-2.2-2.205a1.1 1.1 0 0 0-1.56 0L5.848 7.52a1.1 1.1 0 0 0 0 1.56l2.205 2.206a11.953 11.953 0 0 0-1.842 4.507H3.1A1.1 1.1 0 0 0 2 16.9v2.2a1.1 1.1 0 0 0 1.1 1.1h3.111a11.934 11.934 0 0 0 1.842 4.507l-2.205 2.212a1.1 1.1 0 0 0 0 1.56l1.673 1.673a1.1 1.1 0 0 0 1.56 0l2.205-2.205a11.925 11.925 0 0 0 4.507 1.841V32.9A1.1 1.1 0 0 0 16.9 34h2.2a1.1 1.1 0 0 0 1.1-1.1v-3.112a11.925 11.925 0 0 0 4.507-1.841l2.205 2.205a1.1 1.1 0 0 0 1.56 0l1.673-1.673a1.1 1.1 0 0 0 0-1.56l-2.205-2.205a11.934 11.934 0 0 0 1.842-4.507H32.9A1.1 1.1 0 0 0 34 19.1v-2.2a1.1 1.1 0 0 0-1.1-1.107ZM22.414 18A4.414 4.414 0 1 1 18 13.586 4.414 4.414 0 0 1 22.414 18Z"
     />
-  </svg>`;var Nc=class extends h{render(){return b(c),this.spectrumVersion===2?$b({hidden:!this.label,title:this.label}):_b({hidden:!this.label,title:this.label})}};f();l("sp-icon-settings",Nc);p();var Ab=({width:o=24,height:t=24,hidden:e=!1,title:r="Shopping Cart"}={})=>d`<svg
+  </svg>`;var Fc=class extends h{render(){return b(c),this.spectrumVersion===2?wb({hidden:!this.label,title:this.label}):kb({hidden:!this.label,title:this.label})}};f();l("sp-icon-settings",Fc);p();var zb=({width:o=24,height:t=24,hidden:e=!1,title:r="Shopping Cart"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -3792,7 +3771,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
       d="m17.18028,4.80859c-.42871-.51367-1.05811-.80859-1.72754-.80859H5.08659l-.14069-.86133c-.17822-1.09473-1.1123-1.88867-2.2207-1.88867h-1.72461c-.41406,0-.75.33594-.75.75s.33594.75.75.75h1.72461c.36963,0,.68066.26465.74023.62988l1.58936,9.73145c.17822,1.09473,1.1123,1.88867,2.2207,1.88867h8.72461c.41406,0,.75-.33594.75-.75s-.33594-.75-.75-.75H7.27549c-.36963,0-.68066-.26465-.74023-.62988l-.30542-1.87012h8.76831c1.08789,0,2.01904-.77637,2.21387-1.84766l.45459-2.5c.11963-.6582-.05762-1.33008-.48633-1.84375Zm-.98926,1.57617l-.45459,2.49902c-.06494.35742-.37549.61621-.73828.61621H5.98484l-.65326-4h10.12115c.30566,0,.49219.16895.57617.26953s.2168.31445.16211.61523Zm-1.19082,12.86533c-.69036,0-1.25-.55964-1.25-1.25s.55964-1.25,1.25-1.25,1.25.55964,1.25,1.25-.55964,1.25-1.25,1.25Zm-7.99892,0c-.69036,0-1.25-.55964-1.25-1.25s.55964-1.25,1.25-1.25,1.25.55964,1.25,1.25-.55964,1.25-1.25,1.25Z"
       fill="currentColor"
     />
-  </svg>`;var Lb=({width:o=24,height:t=24,hidden:e=!1,title:r="Shopping Cart"}={})=>d`<svg
+  </svg>`;var Cb=({width:o=24,height:t=24,hidden:e=!1,title:r="Shopping Cart"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     height="${t}"
     viewBox="0 0 36 36"
@@ -3807,7 +3786,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
     <path
       d="M29.326 24H10.469l.762-2.6H28a1.331 1.331 0 0 0 1.307-1.071L33.974 7.66a1.334 1.334 0 0 0-1.308-1.595h-.126v-.03H6.5l-1.289-3.5A1.335 1.335 0 0 0 3.889 1.4H1.333a1.334 1.334 0 0 0 0 2.667h1.406L8.667 20l-1.294 5.075A1.569 1.569 0 0 0 8.667 27h20.666a1.589 1.589 0 0 0 1.334-1.6 1.4 1.4 0 0 0-1.341-1.4ZM7.529 8.835H30.6l-3.693 9.9H11.174Z"
     />
-  </svg>`;var Uc=class extends h{render(){return b(c),this.spectrumVersion===2?Ab({hidden:!this.label,title:this.label}):Lb({hidden:!this.label,title:this.label})}};f();l("sp-icon-shopping-cart",Uc);p();var Hb=({width:o=24,height:t=24,hidden:e=!1,title:r="Social Network"}={})=>d`<svg
+  </svg>`;var Vc=class extends h{render(){return b(c),this.spectrumVersion===2?zb({hidden:!this.label,title:this.label}):Cb({hidden:!this.label,title:this.label})}};f();l("sp-icon-shopping-cart",Vc);p();var Tb=({width:o=24,height:t=24,hidden:e=!1,title:r="Social Network"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -3835,7 +3814,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
     <circle cx="14.55749" cy="16.71049" r="1.49968" fill="currentColor" stroke-width="0" />
     <circle cx="17.40009" cy="8.08823" r="1.49968" fill="currentColor" stroke-width="0" />
     <circle cx="2.59991" cy="8.08069" r="1.49968" fill="currentColor" stroke-width="0" />
-  </svg>`;var Bb=({width:o=24,height:t=24,hidden:e=!1,title:r="Social Network"}={})=>d`<svg
+  </svg>`;var Ib=({width:o=24,height:t=24,hidden:e=!1,title:r="Social Network"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     height="${t}"
     viewBox="0 0 36 36"
@@ -3848,7 +3827,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
     <path
       d="M32.087 22.347v-8.694A3.117 3.117 0 0 0 29.066 8.2L21.12 3.235c0-.036.01-.069.01-.1a3.13 3.13 0 1 0-6.26 0c0 .036.009.069.01.1L6.934 8.2a3.086 3.086 0 0 0-1.456-.375 3.121 3.121 0 0 0-1.565 5.827v8.694A3.117 3.117 0 0 0 6.934 27.8l7.946 4.966c0 .036-.01.069-.01.1a3.13 3.13 0 0 0 6.26 0c0-.036-.009-.069-.01-.1l7.946-4.966a3.086 3.086 0 0 0 1.456.375 3.121 3.121 0 0 0 1.565-5.827Zm-10.944-3.724a2.985 2.985 0 0 0-.016-1.237l7.184-4.046a3.16 3.16 0 0 0 1.776.788v7.72a3.171 3.171 0 0 0-1.794.8Zm-13.424 4.02a3.175 3.175 0 0 0-1.806-.827v-7.723a3.162 3.162 0 0 0 1.74-.773l7.22 4.066a2.985 2.985 0 0 0-.016 1.237ZM27.546 9.61a3.181 3.181 0 0 0-.311 1.354 3.233 3.233 0 0 0 .067.649l-7.194 4.052A3.165 3.165 0 0 0 19 15.031v-8.8A3.205 3.205 0 0 0 20.493 5.2ZM15.521 5.193A3.2 3.2 0 0 0 17 6.238v8.793a3.165 3.165 0 0 0-1.108.634L8.672 11.6a3.15 3.15 0 0 0-.215-1.99ZM8.376 26.342a2.578 2.578 0 0 0 .369-1.363 3.223 3.223 0 0 0-.059-.585l7.126-4.014a3.189 3.189 0 0 0 1.188.7v8.7a3.155 3.155 0 0 0-1.456 1.038Zm12.09 4.473A3.18 3.18 0 0 0 19 29.775V21.08a3.189 3.189 0 0 0 1.188-.7l7.112 4.005a3.16 3.16 0 0 0 .249 2Z"
     />
-  </svg>`;var Zc=class extends h{render(){return b(c),this.spectrumVersion===2?Hb({hidden:!this.label,title:this.label}):Bb({hidden:!this.label,title:this.label})}};f();l("sp-icon-social-network",Zc);p();var Pb=({width:o=24,height:t=24,hidden:e=!1,title:r="Star"}={})=>d`<svg
+  </svg>`;var Nc=class extends h{render(){return b(c),this.spectrumVersion===2?Tb({hidden:!this.label,title:this.label}):Ib({hidden:!this.label,title:this.label})}};f();l("sp-icon-social-network",Nc);p();var Sb=({width:o=24,height:t=24,hidden:e=!1,title:r="Star"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -3862,7 +3841,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
       d="M5.50586,18.63037c-.35938.00049-.71875-.1123-1.02734-.33691-.59375-.43164-.85352-1.16797-.66016-1.87646l.97754-3.57715c.0791-.28906-.02051-.5957-.25391-.78271l-2.89258-2.31934c-.57324-.45947-.79688-1.20801-.57031-1.90674.22754-.69824.84766-1.17188,1.58203-1.20654l3.70312-.17529c.29883-.01416.55957-.2041.66504-.4834l1.3125-3.46875c.25977-.6875.90234-1.13135,1.63672-1.13135s1.37695.44385,1.63672,1.13086v.00049l1.31055,3.46826c.10645.2793.36816.46973.66602.48389l3.7041.17529c.7334.03467,1.35449.5083,1.58203,1.20703.22656.69873.00293,1.44727-.57031,1.90625l-2.89355,2.31934c-.23242.18652-.33301.49414-.25391.78271l.97656,3.57422c.19336.70996-.06641,1.44775-.66211,1.87891-.59766.43359-1.37891.44727-1.99316.0415l-3.07129-2.03662c-.25098-.16553-.5752-.16602-.82617-.00146l-3.11719,2.04443c-.29492.19336-.62793.28955-.96094.28955ZM9.97852,2.86572c-.0791,0-.18359.02832-.23438.16211l-1.31152,3.46777c-.31641.83936-1.10059,1.40918-1.99805,1.45166l-3.70312.17529c-.14258.00684-.20117.09766-.22559.17236-.02441.0752-.03027.18311.08105.27295l2.89258,2.31885c.70117.56055,1.00098,1.48291.76367,2.34912l-.97754,3.57617c-.03809.13721.03027.22168.09473.26807.0625.04492.16211.08545.28418.00684l3.11719-2.04492c.75293-.49316,1.72559-.4917,2.47656.00537l3.07129,2.03662c.12109.0791.22168.04004.28516-.00635.06445-.04639.13281-.13037.09473-.26807l-.97656-3.57471c-.23633-.86572.06348-1.78711.76367-2.34814l2.89355-2.31934c.11133-.08887.10547-.19727.08105-.27197-.02441-.0752-.08301-.16602-.22559-.17285l-3.7041-.17529c-.89551-.04248-1.67969-.61182-1.99805-1.45117l-1.31055-3.46826c-.05078-.13379-.15527-.16211-.23438-.16211Z"
       fill="currentColor"
     />
-  </svg>`;var Db=({width:o=24,height:t=24,hidden:e=!1,title:r="Star Outline"}={})=>d`<svg
+  </svg>`;var Eb=({width:o=24,height:t=24,hidden:e=!1,title:r="Star Outline"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     height="${t}"
     viewBox="0 0 36 36"
@@ -3875,7 +3854,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
     <path
       d="m18.059 5.082 3.554 9.5 10.219.481-7.974 6.4 2.671 9.837-8.535-5.568-8.557 5.615 2.7-9.873-7.974-6.4 10.2-.489Zm.023-4.259a.737.737 0 0 0-.7.479l-4.411 11.349-12.2.586a.75.75 0 0 0-.433 1.334l9.523 7.642-3.229 11.8a.752.752 0 0 0 .724.951.74.74 0 0 0 .41-.126L18 28.122l10.187 6.648a.742.742 0 0 0 .408.125.752.752 0 0 0 .725-.95l-3.189-11.732 9.528-7.653a.75.75 0 0 0-.434-1.334l-12.2-.575-4.24-11.34a.738.738 0 0 0-.703-.488Z"
     />
-  </svg>`;var Wc=class extends h{render(){return b(c),this.spectrumVersion===2?Pb({hidden:!this.label,title:this.label}):Db({hidden:!this.label,title:this.label})}};f();l("sp-icon-star",Wc);p();var jb=({width:o=24,height:t=24,hidden:e=!1,title:r="Stroke Solid"}={})=>d`<svg
+  </svg>`;var Uc=class extends h{render(){return b(c),this.spectrumVersion===2?Sb({hidden:!this.label,title:this.label}):Eb({hidden:!this.label,title:this.label})}};f();l("sp-icon-star",Uc);p();var $b=({width:o=24,height:t=24,hidden:e=!1,title:r="Stroke Solid"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -3889,7 +3868,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
       d="m18,10.75H2c-.41406,0-.75-.33594-.75-.75s.33594-.75.75-.75h16c.41406,0,.75.33594.75.75s-.33594.75-.75.75Z"
       fill="currentColor"
     />
-  </svg>`;var Kc=class extends h{render(){return b(c),this.spectrumVersion===2?jb({hidden:!this.label,title:this.label}):M({hidden:!this.label,title:this.label})}};f();l("sp-icon-stroke-solid",Kc);p();var Mb=({width:o=24,height:t=24,hidden:e=!1,title:r="Table"}={})=>d`<svg
+  </svg>`;var Zc=class extends h{render(){return b(c),this.spectrumVersion===2?$b({hidden:!this.label,title:this.label}):M({hidden:!this.label,title:this.label})}};f();l("sp-icon-stroke-solid",Zc);p();var _b=({width:o=24,height:t=24,hidden:e=!1,title:r="Table"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -3904,7 +3883,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
       fill="currentColor"
       stroke-width="0"
     />
-  </svg>`;var Ob=({width:o=24,height:t=24,hidden:e=!1,title:r="Table"}={})=>d`<svg
+  </svg>`;var Ab=({width:o=24,height:t=24,hidden:e=!1,title:r="Table"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     height="${t}"
     viewBox="0 0 36 36"
@@ -3917,7 +3896,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
     <path
       d="M33 2H3a1 1 0 0 0-1 1v30a1 1 0 0 0 1 1h30a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1ZM12 32H4v-4h8Zm0-6H4v-4h8Zm0-6H4v-4h8Zm20 12H14v-4h18Zm0-6H14v-4h18Zm0-6H14v-4h18Zm0-6H4V4h28Z"
     />
-  </svg>`;var Gc=class extends h{render(){return b(c),this.spectrumVersion===2?Mb({hidden:!this.label,title:this.label}):Ob({hidden:!this.label,title:this.label})}};f();l("sp-icon-table",Gc);p();var Rb=({width:o=24,height:t=24,hidden:e=!1,title:r="Tag Bold"}={})=>d`<svg
+  </svg>`;var Wc=class extends h{render(){return b(c),this.spectrumVersion===2?_b({hidden:!this.label,title:this.label}):Ab({hidden:!this.label,title:this.label})}};f();l("sp-icon-table",Wc);p();var Lb=({width:o=24,height:t=24,hidden:e=!1,title:r="Tag Bold"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     height="${t}"
     viewBox="0 0 36 36"
@@ -3930,7 +3909,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
     <path
       d="M6 4.508c0-.212.045-.339.279-.381C7.949 4.085 12.172 4 15.284 4c9.7 0 11.184 4.659 11.184 7.37a6.462 6.462 0 0 1-2.923 5.507A7.114 7.114 0 0 1 28 23.443C28 28.78 22.942 32 15.284 32c-4.038 0-7.195-.042-8.96-.085-.231-.042-.324-.169-.324-.339Zm5.978 11.474h3.359a24.278 24.278 0 0 1 4.021.3 4.89 4.89 0 0 0 1.681-3.91c0-2.922-1.946-4.358-5.568-4.358-1.415 0-2.563.05-3.493.05Zm0 11.971c.979.042 2.09.084 3.424.084 4.176.042 6.843-1.307 6.843-4.133 0-1.73-.888-3.122-3.2-3.669a12.249 12.249 0 0 0-3.023-.3h-4.044Z"
     />
-  </svg>`;var Xc=class extends h{render(){return b(c),this.spectrumVersion===1?Rb({hidden:!this.label,title:this.label}):M({hidden:!this.label,title:this.label})}};f();l("sp-icon-tag-bold",Xc);p();var qb=({width:o=24,height:t=24,hidden:e=!1,title:r="Tag Italic"}={})=>d`<svg
+  </svg>`;var Kc=class extends h{render(){return b(c),this.spectrumVersion===1?Lb({hidden:!this.label,title:this.label}):M({hidden:!this.label,title:this.label})}};f();l("sp-icon-tag-bold",Kc);p();var Hb=({width:o=24,height:t=24,hidden:e=!1,title:r="Tag Italic"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     height="${t}"
     viewBox="0 0 36 36"
@@ -3943,7 +3922,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
     <path
       d="M17.682 31.663c-.041.213-.08.3-.282.3h-4.08c-.2 0-.279-.043-.24-.341l4.481-27.367c.041-.213.16-.255.281-.255h4.121c.24 0 .279.127.279.34Z"
     />
-  </svg>`;var Yc=class extends h{render(){return b(c),this.spectrumVersion===1?qb({hidden:!this.label,title:this.label}):M({hidden:!this.label,title:this.label})}};f();l("sp-icon-tag-italic",Yc);p();var Fb=({width:o=24,height:t=24,hidden:e=!1,title:r="Text Bold"}={})=>d`<svg
+  </svg>`;var Gc=class extends h{render(){return b(c),this.spectrumVersion===1?Hb({hidden:!this.label,title:this.label}):M({hidden:!this.label,title:this.label})}};f();l("sp-icon-tag-italic",Gc);p();var Bb=({width:o=24,height:t=24,hidden:e=!1,title:r="Text Bold"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -3958,7 +3937,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
       fill="currentColor"
       stroke-width="0"
     />
-  </svg>`;var Vb=({width:o=24,height:t=24,hidden:e=!1,title:r="Text Bold"}={})=>d`<svg
+  </svg>`;var Pb=({width:o=24,height:t=24,hidden:e=!1,title:r="Text Bold"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     height="${t}"
     viewBox="0 0 36 36"
@@ -3971,7 +3950,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
     <path
       d="M1 4a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1V8h8v20H9a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1h-3V8h8v3a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1Z"
     />
-  </svg>`;var Jc=class extends h{render(){return b(c),this.spectrumVersion===2?Fb({hidden:!this.label,title:this.label}):Vb({hidden:!this.label,title:this.label})}};f();l("sp-icon-text-bold",Jc);p();var Nb=({width:o=24,height:t=24,hidden:e=!1,title:r="Text Bulleted"}={})=>d`<svg
+  </svg>`;var Xc=class extends h{render(){return b(c),this.spectrumVersion===2?Bb({hidden:!this.label,title:this.label}):Pb({hidden:!this.label,title:this.label})}};f();l("sp-icon-text-bold",Xc);p();var Db=({width:o=24,height:t=24,hidden:e=!1,title:r="Text Bulleted"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     height="${t}"
     viewBox="0 0 36 36"
@@ -3987,7 +3966,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
     <rect height="4" rx="1" ry="1" width="22" x="12" y="28" />
     <rect height="4" rx="1" ry="1" width="22" x="12" y="16" />
     <rect height="4" rx="1" ry="1" width="22" x="12" y="4" />
-  </svg>`;var Ub=({width:o=24,height:t=24,hidden:e=!1,title:r="List Bulleted"}={})=>d`<svg
+  </svg>`;var jb=({width:o=24,height:t=24,hidden:e=!1,title:r="List Bulleted"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -4012,7 +3991,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
     <circle cx="3.5" cy="3.77108" r="1.5" fill="currentColor" />
     <circle cx="3.5" cy="9.77108" r="1.5" fill="currentColor" />
     <circle cx="3.5" cy="15.77108" r="1.5" fill="currentColor" />
-  </svg>`;var Qc=class extends h{render(){return b(c),this.spectrumVersion===1?Nb({hidden:!this.label,title:this.label}):Ub({hidden:!this.label,title:this.label})}};f();l("sp-icon-text-bulleted",Qc);p();var Zb=({width:o=24,height:t=24,hidden:e=!1,title:r="Text Italic"}={})=>d`<svg
+  </svg>`;var Yc=class extends h{render(){return b(c),this.spectrumVersion===1?Db({hidden:!this.label,title:this.label}):jb({hidden:!this.label,title:this.label})}};f();l("sp-icon-text-bulleted",Yc);p();var Mb=({width:o=24,height:t=24,hidden:e=!1,title:r="Text Italic"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -4026,7 +4005,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
       d="m16.6543,2.75586c-.38184-.48047-.95312-.75586-1.56641-.75586H6.04102c-.93457,0-1.75391.59668-2.13867,1.55957l-.55762,1.4043c-.15234.38477.03516.82031.4209.97363.38184.15332.81934-.03418.97363-.4209l.55664-1.40234c.05762-.14355.28223-.61426.74512-.61426h3.7207l-3.49219,13h-1.60742c-.41406,0-.75.33594-.75.75s.33594.75.75.75h4.63965c.41406,0,.75-.33594.75-.75s-.33594-.75-.75-.75h-1.47852l3.49219-13h3.77246c.20996,0,.33496.11816.3916.18848.05566.07129.14258.21973.09473.4248l-.25,1.07715c-.09375.4043.15723.80664.56055.90039.05762.01367.11426.01953.1709.01953.34082,0,.64941-.23438.72949-.58008l.25-1.07715c.13965-.59766,0-1.2168-.38086-1.69727Z"
       fill="currentColor"
     />
-  </svg>`;var Wb=({width:o=24,height:t=24,hidden:e=!1,title:r="Text Italic"}={})=>d`<svg
+  </svg>`;var Ob=({width:o=24,height:t=24,hidden:e=!1,title:r="Text Italic"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     height="${t}"
     viewBox="0 0 36 36"
@@ -4039,7 +4018,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
     <path
       d="M7.919 4a1.561 1.561 0 0 0-1.351 1l-2.109 6a.685.685 0 0 0 .649 1h2a1.557 1.557 0 0 0 1.351-1l1.055-3h8l-7.028 20h-3a1.557 1.557 0 0 0-1.351 1l-.7 2a.685.685 0 0 0 .649 1h10a1.557 1.557 0 0 0 1.351-1l.7-2a.684.684 0 0 0-.649-1h-3l7.028-20h8l-1.055 3a.685.685 0 0 0 .649 1h2a1.557 1.557 0 0 0 1.351-1l2.109-6a.686.686 0 0 0-.649-1Z"
     />
-  </svg>`;var tn=class extends h{render(){return b(c),this.spectrumVersion===2?Zb({hidden:!this.label,title:this.label}):Wb({hidden:!this.label,title:this.label})}};f();l("sp-icon-text-italic",tn);p();var Kb=({width:o=24,height:t=24,hidden:e=!1,title:r="Text Strikethrough"}={})=>d`<svg
+  </svg>`;var Jc=class extends h{render(){return b(c),this.spectrumVersion===2?Mb({hidden:!this.label,title:this.label}):Ob({hidden:!this.label,title:this.label})}};f();l("sp-icon-text-italic",Jc);p();var Rb=({width:o=24,height:t=24,hidden:e=!1,title:r="Text Strikethrough"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -4057,7 +4036,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
       d="m16.25,9.25H3.75c-.41406,0-.75.33594-.75.75s.33594.75.75.75h5.5v5.75h-1.5498c-.41406,0-.75.33594-.75.75s.33594.75.75.75h4.63965c.41406,0,.75-.33594.75-.75s-.33594-.75-.75-.75h-1.58984v-5.75h5.5c.41406,0,.75-.33594.75-.75s-.33594-.75-.75-.75Z"
       fill="currentColor"
     />
-  </svg>`;var Gb=({width:o=24,height:t=24,hidden:e=!1,title:r="Text Strikethrough"}={})=>d`<svg
+  </svg>`;var qb=({width:o=24,height:t=24,hidden:e=!1,title:r="Text Strikethrough"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     height="${t}"
     viewBox="0 0 36 36"
@@ -4071,7 +4050,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
       d="M23 28h-3v-6h-4v6h-3a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1ZM31 4H5a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1V8h8v8h4V8h8v3a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1Z"
     />
     <rect height="2" rx=".5" ry=".5" width="28" x="4" y="18" />
-  </svg>`;var en=class extends h{render(){return b(c),this.spectrumVersion===2?Kb({hidden:!this.label,title:this.label}):Gb({hidden:!this.label,title:this.label})}};f();l("sp-icon-text-strikethrough",en);p();var Xb=({width:o=24,height:t=24,hidden:e=!1,title:r="Translate"}={})=>d`<svg
+  </svg>`;var Qc=class extends h{render(){return b(c),this.spectrumVersion===2?Rb({hidden:!this.label,title:this.label}):qb({hidden:!this.label,title:this.label})}};f();l("sp-icon-text-strikethrough",Qc);p();var Fb=({width:o=24,height:t=24,hidden:e=!1,title:r="Translate"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -4091,7 +4070,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
       fill="currentColor"
       stroke-width="0"
     />
-  </svg>`;var rn=class extends h{render(){return b(c),this.spectrumVersion===2?Xb({hidden:!this.label,title:this.label}):M({hidden:!this.label,title:this.label})}};f();l("sp-icon-translate",rn);p();var Yb=({width:o=24,height:t=24,hidden:e=!1,title:r="Underline"}={})=>d`<svg
+  </svg>`;var tn=class extends h{render(){return b(c),this.spectrumVersion===2?Fb({hidden:!this.label,title:this.label}):M({hidden:!this.label,title:this.label})}};f();l("sp-icon-translate",tn);p();var Vb=({width:o=24,height:t=24,hidden:e=!1,title:r="Underline"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     height="${t}"
     viewBox="0 0 36 36"
@@ -4105,7 +4084,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
     <path
       d="M22.5 4.012a.5.5 0 0 0-.5.5v13.5s.482 6.2-5 6.2c-5.459 0-5-6.2-5-6.2v-13.5a.5.5 0 0 0-.5-.5h-3a.5.5 0 0 0-.5.5v13.5c0 1.412-.141 10 9 10S26 19 26 17.988V4.512a.5.5 0 0 0-.5-.5Z"
     />
-  </svg>`;var Jb=({width:o=24,height:t=24,hidden:e=!1,title:r="Text Underline"}={})=>d`<svg
+  </svg>`;var Nb=({width:o=24,height:t=24,hidden:e=!1,title:r="Text Underline"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -4123,7 +4102,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
       d="m16.25,19H3.75c-.41406,0-.75-.33594-.75-.75s.33594-.75.75-.75h12.5c.41406,0,.75.33594.75.75s-.33594.75-.75.75Z"
       fill="currentColor"
     />
-  </svg>`;var on=class extends h{render(){return b(c),this.spectrumVersion===1?Yb({hidden:!this.label,title:this.label}):Jb({hidden:!this.label,title:this.label})}};f();l("sp-icon-underline",on);p();var Qb=({width:o=24,height:t=24,hidden:e=!1,title:r="Undo"}={})=>d`<svg
+  </svg>`;var en=class extends h{render(){return b(c),this.spectrumVersion===1?Vb({hidden:!this.label,title:this.label}):Nb({hidden:!this.label,title:this.label})}};f();l("sp-icon-underline",en);p();var Ub=({width:o=24,height:t=24,hidden:e=!1,title:r="Undo"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -4137,7 +4116,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
       d="m12.25732,5H3.80811l1.71973-1.71973c.29297-.29297.29297-.76758,0-1.06055s-.76758-.29297-1.06055,0l-2.99756,2.99756c-.29297.29248-.29297.76709-.00049,1.06006l2.99756,3.00244c.14648.14697.33838.22021.53076.22021.19189,0,.3833-.07324.52979-.21924.29346-.29248.29346-.76758.00098-1.06055l-1.71747-1.72021h8.44647c2.48145,0,4.50049,2.01855,4.50049,4.5s-2.01904,4.5-4.50049,4.5h-3.73779c-.41406,0-.75.33594-.75.75s.33594.75.75.75h3.73779c3.30859,0,6.00049-2.69141,6.00049-6s-2.69189-6-6.00049-6Z"
       fill="currentColor"
     />
-  </svg>`;var tv=({width:o=24,height:t=24,hidden:e=!1,title:r="Undo"}={})=>d`<svg
+  </svg>`;var Zb=({width:o=24,height:t=24,hidden:e=!1,title:r="Undo"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     height="${t}"
     viewBox="0 0 36 36"
@@ -4150,7 +4129,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
     <path
       d="M30.663 12.542A10.391 10.391 0 0 0 23.671 10H11V4.8a.8.8 0 0 0-.8-.8.787.787 0 0 0-.527.2l-7.529 7.449a.5.5 0 0 0 0 .7L9.668 19.8a.787.787 0 0 0 .527.2.8.8 0 0 0 .8-.8V14h12.882a6.139 6.139 0 0 1 6.223 5.8A5.889 5.889 0 0 1 24 26h-7a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1h6.526a10.335 10.335 0 0 0 10.426-9.013 9.947 9.947 0 0 0-3.289-8.445Z"
     />
-  </svg>`;var sn=class extends h{render(){return b(c),this.spectrumVersion===2?Qb({hidden:!this.label,title:this.label}):tv({hidden:!this.label,title:this.label})}};f();l("sp-icon-undo",sn);p();var ev=({width:o=24,height:t=24,hidden:e=!1,title:r="Unlink"}={})=>d`<svg
+  </svg>`;var rn=class extends h{render(){return b(c),this.spectrumVersion===2?Ub({hidden:!this.label,title:this.label}):Zb({hidden:!this.label,title:this.label})}};f();l("sp-icon-undo",rn);p();var Wb=({width:o=24,height:t=24,hidden:e=!1,title:r="Unlink"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -4184,7 +4163,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
       d="m15.10059,10.35645c-.19238,0-.38379-.07324-.53027-.21973-.29297-.29297-.29297-.76758,0-1.06055l1.92773-1.92773c1-1,1-2.62695.00098-3.62598-.96875-.96875-2.65723-.96875-3.62598,0l-1.95215,1.95215c-.29297.29297-.76758.29297-1.06055,0s-.29297-.76758,0-1.06055l1.95215-1.95215c.76758-.76758,1.78809-1.19141,2.87402-1.19141,1.08496,0,2.10547.42383,2.87305,1.19141,1.58398,1.58398,1.58398,4.16211,0,5.74609l-1.92871,1.92871c-.14648.14648-.33789.21973-.53027.21973Z"
       fill="currentColor"
     />
-  </svg>`;var rv=({width:o=24,height:t=24,hidden:e=!1,title:r="Link Off"}={})=>d`<svg
+  </svg>`;var Kb=({width:o=24,height:t=24,hidden:e=!1,title:r="Link Off"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -4197,7 +4176,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
     <path
       d="m11.136 9.523-1.496 1.44-5.328-5.24 1.496-1.439 5.328 5.239zM31.801 30.277l-1.496 1.439-5.299-5.334 1.495-1.439 5.3 5.334zM11.057 1.8h2.314v4.629h-2.314zM1.8 11.057h4.629v2.314H1.8zM29.571 22.629H34.2v2.314h-4.629zM22.629 29.571h2.314V34.2h-2.314zM18.053 23.708l-5.84 5.878a4.101 4.101 0 0 1-5.8-5.8l5.858-5.858-2.171-2.174-5.861 5.858A7.176 7.176 0 0 0 14.388 31.76l5.842-5.874ZM17.917 12.258l5.84-5.878a4.101 4.101 0 1 1 5.8 5.8l-5.858 5.858 2.171 2.174 5.861-5.858A7.176 7.176 0 1 0 21.582 4.206L15.74 10.08Z"
     />
-  </svg>`;var an=class extends h{render(){return b(c),this.spectrumVersion===2?ev({hidden:!this.label,title:this.label}):rv({hidden:!this.label,title:this.label})}};f();l("sp-icon-unlink",an);p();var ov=({width:o=24,height:t=24,hidden:e=!1,title:r="Upload To Cloud Outline"}={})=>d`<svg
+  </svg>`;var on=class extends h{render(){return b(c),this.spectrumVersion===2?Wb({hidden:!this.label,title:this.label}):Kb({hidden:!this.label,title:this.label})}};f();l("sp-icon-unlink",on);p();var Gb=({width:o=24,height:t=24,hidden:e=!1,title:r="Upload To Cloud Outline"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     height="${t}"
     viewBox="0 0 36 36"
@@ -4213,7 +4192,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
     <path
       d="M13.5 18H16v15a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1V18h2.5a.5.5 0 0 0 .5-.5.489.489 0 0 0-.117-.317l-4.519-5.023a.5.5 0 0 0-.728 0l-4.519 5.02a.489.489 0 0 0-.117.32.5.5 0 0 0 .5.5Z"
     />
-  </svg>`;var cn=class extends h{render(){return b(c),this.spectrumVersion===1?ov({hidden:!this.label,title:this.label}):M({hidden:!this.label,title:this.label})}};f();l("sp-icon-upload-to-cloud-outline",cn);p();var sv=({width:o=24,height:t=24,hidden:e=!1,title:r="Upload To Cloud"}={})=>d`<svg
+  </svg>`;var sn=class extends h{render(){return b(c),this.spectrumVersion===1?Gb({hidden:!this.label,title:this.label}):M({hidden:!this.label,title:this.label})}};f();l("sp-icon-upload-to-cloud-outline",sn);p();var Xb=({width:o=24,height:t=24,hidden:e=!1,title:r="Upload To Cloud"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -4231,7 +4210,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
       d="m13.85352,10.82373l-3.00293-2.99756c-.29297-.29199-.76709-.29248-1.06006.00049l-2.99707,2.99756c-.29297.29297-.29297.76758,0,1.06055.14648.14648.33838.21973.53027.21973s.38379-.07324.53027-.21973l1.72217-1.72253v8.18347c0,.41406.33594.75.75.75s.75-.33594.75-.75v-8.17517l1.71777,1.71472c.29248.29199.76709.29199,1.06055-.00098.29248-.29297.29248-.76807-.00098-1.06055Z"
       fill="currentColor"
     />
-  </svg>`;var iv=({width:o=24,height:t=24,hidden:e=!1,title:r="Upload To Cloud"}={})=>d`<svg
+  </svg>`;var Yb=({width:o=24,height:t=24,hidden:e=!1,title:r="Upload To Cloud"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     height="${t}"
     viewBox="0 0 36 36"
@@ -4244,7 +4223,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
     <path
       d="M16 33a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1v-9h-4ZM29.572 11.143a6.449 6.449 0 0 0-.726.041 8.144 8.144 0 1 0-15.922-3.236 6.862 6.862 0 0 0-8.407 8.394A3.857 3.857 0 1 0 3.857 24H16v-6h-4.3a.7.7 0 0 1-.7-.7.685.685 0 0 1 .207-.49l6.468-5.685a.5.5 0 0 1 .65 0l6.468 5.685a.685.685 0 0 1 .207.49.7.7 0 0 1-.7.7H20v6h9.572a6.429 6.429 0 0 0 0-12.857Z"
     />
-  </svg>`;var nn=class extends h{render(){return b(c),this.spectrumVersion===2?sv({hidden:!this.label,title:this.label}):iv({hidden:!this.label,title:this.label})}};f();l("sp-icon-upload-to-cloud",nn);p();var av=({width:o=24,height:t=24,hidden:e=!1,title:r="User"}={})=>d`<svg
+  </svg>`;var an=class extends h{render(){return b(c),this.spectrumVersion===2?Xb({hidden:!this.label,title:this.label}):Yb({hidden:!this.label,title:this.label})}};f();l("sp-icon-upload-to-cloud",an);p();var Jb=({width:o=24,height:t=24,hidden:e=!1,title:r="User"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -4262,7 +4241,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
       d="m17.24902,18.75c-.37793,0-.70312-.28516-.74463-.66895-.2627-2.42871-3.12012-4.33105-6.50439-4.33105-3.41357,0-6.27051,1.89844-6.50342,4.32227-.04004.41211-.40967.72754-.81836.67383-.41211-.03906-.71436-.40527-.6748-.81836.30615-3.18359,3.81885-5.67773,7.99658-5.67773,4.2085,0,7.646,2.4375,7.99561,5.66895.04443.41211-.25293.78223-.66504.82715-.02734.00293-.05469.00391-.08154.00391Z"
       fill="currentColor"
     />
-  </svg>`;var cv=({width:o=24,height:t=24,hidden:e=!1,title:r="User"}={})=>d`<svg
+  </svg>`;var Qb=({width:o=24,height:t=24,hidden:e=!1,title:r="User"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     height="${t}"
     viewBox="0 0 36 36"
@@ -4275,7 +4254,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
     <path
       d="M32.949 34a.993.993 0 0 0 1-1.053c-.661-7.184-8.027-9.631-10.278-9.827C22.026 22.977 22 21.652 22 20c0 0 3.532-3.943 3.532-8.958C25.532 5.617 22.445 2 18 2s-7.532 3.617-7.532 9.042C10.468 16.057 14 20 14 20c0 1.652-.026 2.977-1.674 3.12-2.251.2-9.617 2.643-10.278 9.827a.993.993 0 0 0 1 1.053Z"
     />
-  </svg>`;var ln=class extends h{render(){return b(c),this.spectrumVersion===2?av({hidden:!this.label,title:this.label}):cv({hidden:!this.label,title:this.label})}};f();l("sp-icon-user",ln);p();var nv=({width:o=24,height:t=24,hidden:e=!1,title:r="Video Filled"}={})=>d`<svg
+  </svg>`;var cn=class extends h{render(){return b(c),this.spectrumVersion===2?Jb({hidden:!this.label,title:this.label}):Qb({hidden:!this.label,title:this.label})}};f();l("sp-icon-user",cn);p();var tv=({width:o=24,height:t=24,hidden:e=!1,title:r="Video Filled"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -4288,7 +4267,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
     <path
       d="M4 5v26a1 1 0 0 0 1 1h26a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1Zm6 24.5a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-3a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 .5.5Zm0-6.706a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-3a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 .5.5Zm0-6.588a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-3a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 .5.5ZM10 9.5a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-3a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 .5.5ZM23.5 18h-11a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5ZM30 29.5a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-3a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 .5.5Zm0-6.706a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-3a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 .5.5Zm0-6.588a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-3a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 .5.5ZM30 9.5a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-3a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 .5.5Z"
     />
-  </svg>`;var dn=class extends h{render(){return b(c),this.spectrumVersion===1?nv({hidden:!this.label,title:this.label}):M({hidden:!this.label,title:this.label})}};f();l("sp-icon-video-filled",dn);p();var lv=({width:o=24,height:t=24,hidden:e=!1,title:r="View Card"}={})=>d`<svg
+  </svg>`;var nn=class extends h{render(){return b(c),this.spectrumVersion===1?tv({hidden:!this.label,title:this.label}):M({hidden:!this.label,title:this.label})}};f();l("sp-icon-video-filled",nn);p();var ev=({width:o=24,height:t=24,hidden:e=!1,title:r="View Card"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     height="${t}"
     viewBox="0 0 36 36"
@@ -4301,7 +4280,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
     <path
       d="M2 33a1 1 0 0 0 1 1h7V18H2ZM3 2a1 1 0 0 0-1 1v11h8V2ZM26 34h7a1 1 0 0 0 1-1v-5h-8ZM33 2h-7v6h8V3a1 1 0 0 0-1-1ZM14 22h8v12h-8zM14 2h8v16h-8zM26 12h8v12h-8z"
     />
-  </svg>`;var mn=class extends h{render(){return b(c),this.spectrumVersion===1?lv({hidden:!this.label,title:this.label}):M({hidden:!this.label,title:this.label})}};f();l("sp-icon-view-card",mn);p();var dv=({width:o=24,height:t=24,hidden:e=!1,title:r="View Grid Fluid"}={})=>d`<svg
+  </svg>`;var ln=class extends h{render(){return b(c),this.spectrumVersion===1?ev({hidden:!this.label,title:this.label}):M({hidden:!this.label,title:this.label})}};f();l("sp-icon-view-card",ln);p();var rv=({width:o=24,height:t=24,hidden:e=!1,title:r="View Grid Fluid"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -4327,7 +4306,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
       d="m15.75,9h-.5c-1.24072,0-2.25-1.00928-2.25-2.25v-2.5c0-1.24072,1.00928-2.25,2.25-2.25h.5c1.24072,0,2.25,1.00928,2.25,2.25v2.5c0,1.24072-1.00928,2.25-2.25,2.25Zm-.5-5.5c-.41357,0-.75.33643-.75.75v2.5c0,.41357.33643.75.75.75h.5c.41357,0,.75-.33643.75-.75v-2.5c0-.41357-.33643-.75-.75-.75h-.5Z"
       fill="currentColor"
     />
-  </svg>`;var un=class extends h{render(){return b(c),this.spectrumVersion===2?dv({hidden:!this.label,title:this.label}):M({hidden:!this.label,title:this.label})}};f();l("sp-icon-view-grid-fluid",un);p();var mv=({width:o=24,height:t=24,hidden:e=!1,title:r="View Grid"}={})=>d`<svg
+  </svg>`;var dn=class extends h{render(){return b(c),this.spectrumVersion===2?rv({hidden:!this.label,title:this.label}):M({hidden:!this.label,title:this.label})}};f();l("sp-icon-view-grid-fluid",dn);p();var ov=({width:o=24,height:t=24,hidden:e=!1,title:r="View Grid"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     width="${o}"
     height="${t}"
@@ -4353,7 +4332,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
       d="m15.75,9h-2.5c-1.24023,0-2.25-1.00977-2.25-2.25v-2.5c0-1.24023,1.00977-2.25,2.25-2.25h2.5c1.24023,0,2.25,1.00977,2.25,2.25v2.5c0,1.24023-1.00977,2.25-2.25,2.25Zm-2.5-5.5c-.41309,0-.75.33691-.75.75v2.5c0,.41309.33691.75.75.75h2.5c.41309,0,.75-.33691.75-.75v-2.5c0-.41309-.33691-.75-.75-.75h-2.5Z"
       fill="currentColor"
     />
-  </svg>`;var uv=({width:o=24,height:t=24,hidden:e=!1,title:r="Classic Grid View"}={})=>d`<svg
+  </svg>`;var sv=({width:o=24,height:t=24,hidden:e=!1,title:r="Classic Grid View"}={})=>d`<svg
     xmlns="http://www.w3.org/2000/svg"
     height="${t}"
     viewBox="0 0 36 36"
@@ -4367,7 +4346,28 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
     <rect height="14" rx="1" ry="1" width="14" x="20" y="2" />
     <rect height="14" rx="1" ry="1" width="14" x="2" y="20" />
     <rect height="14" rx="1" ry="1" width="14" x="20" y="20" />
-  </svg>`;var pn=class extends h{render(){return b(c),this.spectrumVersion===2?mv({hidden:!this.label,title:this.label}):uv({hidden:!this.label,title:this.label})}};f();l("sp-icon-view-grid",pn);L();br();Te();p();var my=y`
+  </svg>`;var mn=class extends h{render(){return b(c),this.spectrumVersion===2?ov({hidden:!this.label,title:this.label}):sv({hidden:!this.label,title:this.label})}};f();l("sp-icon-view-grid",mn);hr();var iv="1.11.2";var gd=new Set,ey=()=>{let o=document.documentElement.dir==="rtl"?document.documentElement.dir:"ltr";gd.forEach(t=>{t.setAttribute("dir",o)})},ry=new MutationObserver(ey);ry.observe(document.documentElement,{attributes:!0,attributeFilter:["dir"]});var oy=o=>typeof o.startManagingContentDirection<"u"||o.tagName==="SP-THEME";function av(o){class t extends o{get isLTR(){return this.dir==="ltr"}hasVisibleFocusInTree(){let r=((s=document)=>{var i;let a=s.activeElement;for(;a!=null&&a.shadowRoot&&a.shadowRoot.activeElement;)a=a.shadowRoot.activeElement;let m=a?[a]:[];for(;a;){let u=a.assignedSlot||a.parentElement||((i=a.getRootNode())==null?void 0:i.host);u&&m.push(u),a=u}return m})(this.getRootNode())[0];if(!r)return!1;try{return r.matches(":focus-visible")||r.matches(".focus-visible")}catch{return r.matches(".focus-visible")}}connectedCallback(){if(!this.hasAttribute("dir")){let r=this.assignedSlot||this.parentNode;for(;r!==document.documentElement&&!oy(r);)r=r.assignedSlot||r.parentNode||r.host;if(this.dir=r.dir==="rtl"?r.dir:this.dir||"ltr",r===document.documentElement)gd.add(this);else{let{localName:s}=r;s.search("-")>-1&&!customElements.get(s)?customElements.whenDefined(s).then(()=>{r.startManagingContentDirection(this)}):r.startManagingContentDirection(this)}this._dirParent=r}super.connectedCallback()}disconnectedCallback(){super.disconnectedCallback(),this._dirParent&&(this._dirParent===document.documentElement?gd.delete(this):this._dirParent.stopManagingContentDirection(this),this.removeAttribute("dir"))}}return t}var zo=class extends av(ne){};zo.VERSION=iv;var sy=y`
+    @media (forced-colors:active){:host{--highcontrast-illustrated-message-illustration-color:CanvasText;--highcontrast-illustrated-message-illustration-accent-color:Highlight}}:host{--spectrum-illustrated-message-description-max-inline-size:var(--spectrum-illustrated-message-maximum-width);--spectrum-illustrated-message-heading-max-inline-size:var(--spectrum-illustrated-message-maximum-width);--spectrum-illustrated-message-title-to-heading:var(--spectrum-spacing-400);--spectrum-illustrated-message-heading-to-description:var(--spectrum-spacing-75);--spectrum-illustrated-message-illustration-color:var(--spectrum-neutral-visual-color);--spectrum-illustrated-message-illustration-accent-color:var(--spectrum-accent-visual-color);--spectrum-illustrated-message-title-font-family:var(--spectrum-sans-font-family-stack);--spectrum-illustrated-message-title-font-weight:var(--spectrum-heading-sans-serif-font-weight);--spectrum-illustrated-message-title-font-style:var(--spectrum-heading-sans-serif-font-style);--spectrum-illustrated-message-title-font-size:var(--spectrum-illustrated-message-title-size);--spectrum-illustrated-message-title-line-height:var(--spectrum-heading-line-height);--spectrum-illustrated-message-title-color:var(--spectrum-heading-color);--spectrum-illustrated-message-description-font-family:var(--spectrum-sans-font-family-stack);--spectrum-illustrated-message-description-font-weight:var(--spectrum-body-sans-serif-font-weight);--spectrum-illustrated-message-description-font-style:var(--spectrum-body-sans-serif-font-style);--spectrum-illustrated-message-description-font-size:var(--spectrum-illustrated-message-body-size);--spectrum-illustrated-message-description-line-height:var(--spectrum-body-line-height);--spectrum-illustrated-message-description-color:var(--spectrum-body-color);block-size:100%;display:flex;display:var(--mod-illustrated-message-display,flex);text-align:center;pointer-events:auto;pointer-events:var(--mod-illustrated-message-pointer-events,auto);max-inline-size:var(--mod-illustrated-message-content-maximum-width);flex-direction:column;justify-content:center;align-items:center}:host:lang(ja),:host:lang(ko),:host:lang(zh){--spectrum-illustrated-message-title-font-size:var(--spectrum-illustrated-message-cjk-title-size)}#illustration{color:var(--highcontrast-illustrated-message-illustration-color,var(--mod-illustrated-message-illustration-color,var(--spectrum-illustrated-message-illustration-color)));fill:currentColor;stroke:currentColor;margin-block-end:var(--mod-illustrated-message-title-to-heading,var(--spectrum-illustrated-message-title-to-heading))}.spectrum-IllustratedMessage-accent{color:var(--highcontrast-illustrated-message-illustration-accent-color,var(--mod-illustrated-message-illustration-accent-color,var(--spectrum-illustrated-message-illustration-accent-color)));fill:currentColor;stroke:currentColor}#heading{font-family:var(--mod-illustrated-message-title-font-family,var(--spectrum-illustrated-message-title-font-family));font-weight:var(--mod-illustrated-message-title-font-weight,var(--spectrum-illustrated-message-title-font-weight));font-style:var(--mod-illustrated-message-title-font-style,var(--spectrum-illustrated-message-title-font-style));font-size:var(--mod-illustrated-message-title-font-size,var(--spectrum-illustrated-message-title-font-size));line-height:var(--mod-illustrated-message-title-line-height,var(--spectrum-illustrated-message-title-line-height));color:var(--mod-illustrated-message-title-color,var(--spectrum-illustrated-message-title-color));max-inline-size:var(--mod-illustrated-message-heading-max-inline-size,var(--spectrum-illustrated-message-heading-max-inline-size));margin-block-start:0;margin-block-end:var(--mod-illustrated-message-heading-to-body,0)}#description{position:var(--mod-illustrated-message-description-position);z-index:var(--mod-illustrated-message-description-z-index);pointer-events:auto;pointer-events:var(--mod-illustrated-message-description-pointer-events,auto);font-family:var(--mod-illustrated-message-description-font-family,var(--spectrum-illustrated-message-description-font-family));font-weight:var(--mod-illustrated-message-description-font-weight,var(--spectrum-illustrated-message-description-font-weight));font-style:var(--mod-illustrated-message-description-font-style,var(--spectrum-illustrated-message-description-font-style));font-size:var(--mod-illustrated-message-description-font-size,var(--spectrum-illustrated-message-description-font-size));line-height:var(--mod-illustrated-message-description-line-height,var(--spectrum-illustrated-message-description-line-height));color:var(--mod-illustrated-message-description-color,var(--spectrum-illustrated-message-description-color));max-inline-size:var(--mod-illustrated-message-description-max-inline-size,var(--spectrum-illustrated-message-description-max-inline-size));margin-block-start:var(--mod-illustrated-message-heading-to-description,var(--spectrum-illustrated-message-heading-to-description));margin-block-end:0}::slotted(svg[viewBox]){width:100%}
+`,cv=sy;var iy=y`
+    .spectrum{color:var(--spectrum-body-m-text-color,var(--spectrum-alias-text-color));font-family:var(--spectrum-alias-body-text-font-family,var(--spectrum-global-font-family-base));font-size:var(--spectrum-alias-font-size-default,var(--spectrum-global-dimension-font-size-100))}
+`,un=iy;var ay=y`
+    .spectrum-Typography:lang(ar){font-family:var(--spectrum-font-family-ar)}.spectrum-Typography:lang(he){font-family:var(--spectrum-font-family-he)}.spectrum-Heading:lang(ja),.spectrum-Heading:lang(ko),.spectrum-Heading:lang(zh){font-family:var(--mod-heading-cjk-font-family,var(--spectrum-heading-cjk-font-family));font-style:var(--mod-heading-cjk-font-style,var(--spectrum-heading-cjk-font-style));font-weight:var(--mod-heading-cjk-font-weight,var(--spectrum-heading-cjk-font-weight));font-size:var(--mod-heading-cjk-font-size,var(--spectrum-heading-cjk-font-size));line-height:var(--mod-heading-cjk-line-height,var(--spectrum-heading-cjk-line-height));letter-spacing:var(--mod-heading-cjk-letter-spacing,var(--spectrum-heading-cjk-letter-spacing))}.spectrum-Heading:lang(ja) .spectrum-Heading-emphasized,.spectrum-Heading:lang(ja) em,.spectrum-Heading:lang(ko) .spectrum-Heading-emphasized,.spectrum-Heading:lang(ko) em,.spectrum-Heading:lang(zh) .spectrum-Heading-emphasized,.spectrum-Heading:lang(zh) em{font-style:var(--mod-heading-cjk-emphasized-font-style,var(--spectrum-heading-cjk-emphasized-font-style));font-weight:var(--mod-heading-cjk-emphasized-font-weight,var(--spectrum-heading-cjk-emphasized-font-weight))}.spectrum-Heading:lang(ja) .spectrum-Heading-strong,.spectrum-Heading:lang(ja) strong,.spectrum-Heading:lang(ko) .spectrum-Heading-strong,.spectrum-Heading:lang(ko) strong,.spectrum-Heading:lang(zh) .spectrum-Heading-strong,.spectrum-Heading:lang(zh) strong{font-style:var(--mod-heading-cjk-strong-font-style,var(--spectrum-heading-cjk-strong-font-style));font-weight:var(--mod-heading-cjk-strong-font-weight,var(--spectrum-heading-cjk-strong-font-weight))}.spectrum-Heading:lang(ja) .spectrum-Heading-strong.spectrum-Heading-emphasized,.spectrum-Heading:lang(ja) em strong,.spectrum-Heading:lang(ja) strong em,.spectrum-Heading:lang(ko) .spectrum-Heading-strong.spectrum-Heading-emphasized,.spectrum-Heading:lang(ko) em strong,.spectrum-Heading:lang(ko) strong em,.spectrum-Heading:lang(zh) .spectrum-Heading-strong.spectrum-Heading-emphasized,.spectrum-Heading:lang(zh) em strong,.spectrum-Heading:lang(zh) strong em{font-style:var(--mod-heading-cjk-strong-emphasized-font-style,var(--spectrum-heading-cjk-strong-emphasized-font-style));font-weight:var(--mod-heading-cjk-strong-emphasized-font-weight,var(--spectrum-heading-cjk-strong-emphasized-font-weight))}.spectrum-Heading--heavy:lang(ja),.spectrum-Heading--heavy:lang(ko),.spectrum-Heading--heavy:lang(zh){font-style:var(--mod-heading-cjk-heavy-font-style,var(--spectrum-heading-cjk-heavy-font-style));font-weight:var(--mod-heading-cjk-heavy-font-weight,var(--spectrum-heading-cjk-heavy-font-weight))}.spectrum-Heading--heavy:lang(ja) .spectrum-Heading-emphasized,.spectrum-Heading--heavy:lang(ja) em,.spectrum-Heading--heavy:lang(ko) .spectrum-Heading-emphasized,.spectrum-Heading--heavy:lang(ko) em,.spectrum-Heading--heavy:lang(zh) .spectrum-Heading-emphasized,.spectrum-Heading--heavy:lang(zh) em{font-style:var(--mod-heading-cjk-heavy-emphasized-font-style,var(--spectrum-heading-cjk-heavy-emphasized-font-style));font-weight:var(--mod-heading-cjk-heavy-emphasized-font-weight,var(--spectrum-heading-cjk-heavy-emphasized-font-weight))}.spectrum-Heading--heavy:lang(ja) .spectrum-Heading-strong,.spectrum-Heading--heavy:lang(ja) strong,.spectrum-Heading--heavy:lang(ko) .spectrum-Heading-strong,.spectrum-Heading--heavy:lang(ko) strong,.spectrum-Heading--heavy:lang(zh) .spectrum-Heading-strong,.spectrum-Heading--heavy:lang(zh) strong{font-style:var(--mod-heading-cjk-heavy-strong-font-style,var(--spectrum-heading-cjk-heavy-strong-font-style));font-weight:var(--mod-heading-cjk-heavy-strong-font-weight,var(--spectrum-heading-cjk-heavy-strong-font-weight))}.spectrum-Heading--heavy:lang(ja) .spectrum-Heading-strong.spectrum-Heading-emphasized,.spectrum-Heading--heavy:lang(ja) em strong,.spectrum-Heading--heavy:lang(ja) strong em,.spectrum-Heading--heavy:lang(ko) .spectrum-Heading-strong.spectrum-Heading-emphasized,.spectrum-Heading--heavy:lang(ko) em strong,.spectrum-Heading--heavy:lang(ko) strong em,.spectrum-Heading--heavy:lang(zh) .spectrum-Heading-strong.spectrum-Heading-emphasized,.spectrum-Heading--heavy:lang(zh) em strong,.spectrum-Heading--heavy:lang(zh) strong em{font-style:var(--mod-heading-cjk-heavy-strong-emphasized-font-style,var(--spectrum-heading-cjk-heavy-strong-emphasized-font-style));font-weight:var(--mod-heading-cjk-heavy-strong-emphasized-font-weight,var(--spectrum-heading-cjk-heavy-strong-emphasized-font-weight))}.spectrum-Heading--light:lang(ja),.spectrum-Heading--light:lang(ko),.spectrum-Heading--light:lang(zh){font-style:var(--mod-heading-cjk-light-font-style,var(--spectrum-heading-cjk-light-font-style));font-weight:var(--mod-heading-cjk-light-font-weight,var(--spectrum-heading-cjk-light-font-weight))}.spectrum-Heading--light:lang(ja) .spectrum-Heading-strong,.spectrum-Heading--light:lang(ja) strong,.spectrum-Heading--light:lang(ko) .spectrum-Heading-strong,.spectrum-Heading--light:lang(ko) strong,.spectrum-Heading--light:lang(zh) .spectrum-Heading-strong,.spectrum-Heading--light:lang(zh) strong{font-style:var(--mod-heading-cjk-light-strong-font-style,var(--spectrum-heading-cjk-light-strong-font-style));font-weight:var(--mod-heading-cjk-light-strong-font-weight,var(--spectrum-heading-cjk-light-strong-font-weight))}.spectrum-Heading--light:lang(ja) .spectrum-Heading-emphasized,.spectrum-Heading--light:lang(ja) em,.spectrum-Heading--light:lang(ko) .spectrum-Heading-emphasized,.spectrum-Heading--light:lang(ko) em,.spectrum-Heading--light:lang(zh) .spectrum-Heading-emphasized,.spectrum-Heading--light:lang(zh) em{font-style:var(--mod-heading-cjk-light-emphasized-font-style,var(--spectrum-heading-cjk-light-emphasized-font-style));font-weight:var(--mod-heading-cjk-light-emphasized-font-weight,var(--spectrum-heading-cjk-light-emphasized-font-weight))}.spectrum-Heading--light:lang(ja) .spectrum-Heading-strong.spectrum-Heading-emphasized,.spectrum-Heading--light:lang(ja) em strong,.spectrum-Heading--light:lang(ja) strong em,.spectrum-Heading--light:lang(ko) .spectrum-Heading-strong.spectrum-Heading-emphasized,.spectrum-Heading--light:lang(ko) em strong,.spectrum-Heading--light:lang(ko) strong em,.spectrum-Heading--light:lang(zh) .spectrum-Heading-strong.spectrum-Heading-emphasized,.spectrum-Heading--light:lang(zh) em strong,.spectrum-Heading--light:lang(zh) strong em{font-style:var(--mod-heading-cjk-light-strong-emphasized-font-style,var(--spectrum-heading-cjk-light-strong-emphasized-font-style));font-weight:var(--mod-heading-cjk-light-strong-emphasized-font-weight,var(--spectrum-heading-cjk-light-strong-emphasized-font-weight))}.spectrum-Body:lang(ja),.spectrum-Body:lang(ko),.spectrum-Body:lang(zh){font-family:var(--mod-body-cjk-font-family,var(--spectrum-body-cjk-font-family));font-style:var(--mod-body-cjk-font-style,var(--spectrum-body-cjk-font-style));font-weight:var(--mod-body-cjk-font-weight,var(--spectrum-body-cjk-font-weight));line-height:var(--mod-body-cjk-line-height,var(--spectrum-body-cjk-line-height));letter-spacing:var(--mod-body-cjk-letter-spacing,var(--spectrum-body-cjk-letter-spacing))}.spectrum-Body:lang(ja) .spectrum-Body-strong,.spectrum-Body:lang(ja) strong,.spectrum-Body:lang(ko) .spectrum-Body-strong,.spectrum-Body:lang(ko) strong,.spectrum-Body:lang(zh) .spectrum-Body-strong,.spectrum-Body:lang(zh) strong{font-style:var(--mod-body-cjk-strong-font-style,var(--spectrum-body-cjk-strong-font-style));font-weight:var(--mod-body-cjk-strong-font-weight,var(--spectrum-body-cjk-strong-font-weight))}.spectrum-Body:lang(ja) .spectrum-Body-emphasized,.spectrum-Body:lang(ja) em,.spectrum-Body:lang(ko) .spectrum-Body-emphasized,.spectrum-Body:lang(ko) em,.spectrum-Body:lang(zh) .spectrum-Body-emphasized,.spectrum-Body:lang(zh) em{font-style:var(--mod-body-cjk-emphasized-font-style,var(--spectrum-body-cjk-emphasized-font-style));font-weight:var(--mod-body-cjk-emphasized-font-weight,var(--spectrum-body-cjk-emphasized-font-weight))}.spectrum-Body:lang(ja) .spectrum-Body-strong.spectrum-Body-emphasized,.spectrum-Body:lang(ja) em strong,.spectrum-Body:lang(ja) strong em,.spectrum-Body:lang(ko) .spectrum-Body-strong.spectrum-Body-emphasized,.spectrum-Body:lang(ko) em strong,.spectrum-Body:lang(ko) strong em,.spectrum-Body:lang(zh) .spectrum-Body-strong.spectrum-Body-emphasized,.spectrum-Body:lang(zh) em strong,.spectrum-Body:lang(zh) strong em{font-style:var(--mod-body-cjk-strong-emphasized-font-style,var(--spectrum-body-cjk-strong-emphasized-font-style));font-weight:var(--mod-body-cjk-strong-emphasized-font-weight,var(--spectrum-body-cjk-strong-emphasized-font-weight))}.spectrum-Detail:lang(ja),.spectrum-Detail:lang(ko),.spectrum-Detail:lang(zh){font-family:var(--mod-detail-cjk-font-family,var(--spectrum-detail-cjk-font-family));font-style:var(--mod-detail-cjk-font-style,var(--spectrum-detail-cjk-font-style));font-weight:var(--mod-detail-cjk-font-weight,var(--spectrum-detail-cjk-font-weight));line-height:var(--mod-detail-cjk-line-height,var(--spectrum-detail-cjk-line-height))}.spectrum-Detail:lang(ja) .spectrum-Detail-strong,.spectrum-Detail:lang(ja) strong,.spectrum-Detail:lang(ko) .spectrum-Detail-strong,.spectrum-Detail:lang(ko) strong,.spectrum-Detail:lang(zh) .spectrum-Detail-strong,.spectrum-Detail:lang(zh) strong{font-style:var(--mod-detail-cjk-strong-font-style,var(--spectrum-detail-cjk-strong-font-style));font-weight:var(--mod-detail-cjk-strong-font-weight,var(--spectrum-detail-cjk-strong-font-weight))}.spectrum-Detail:lang(ja) .spectrum-Detail-emphasized,.spectrum-Detail:lang(ja) em,.spectrum-Detail:lang(ko) .spectrum-Detail-emphasized,.spectrum-Detail:lang(ko) em,.spectrum-Detail:lang(zh) .spectrum-Detail-emphasized,.spectrum-Detail:lang(zh) em{font-style:var(--mod-detail-cjk-emphasized-font-style,var(--spectrum-detail-cjk-emphasized-font-style));font-weight:var(--mod-detail-cjk-emphasized-font-weight,var(--spectrum-detail-cjk-emphasized-font-weight))}.spectrum-Detail:lang(ja) .spectrum-Detail-strong.spectrum-Detail-emphasized,.spectrum-Detail:lang(ja) em strong,.spectrum-Detail:lang(ja) strong em,.spectrum-Detail:lang(ko) .spectrum-Detail-strong.spectrum-Detail-emphasized,.spectrum-Detail:lang(ko) em strong,.spectrum-Detail:lang(ko) strong em,.spectrum-Detail:lang(zh) .spectrum-Detail-strong.spectrum-Detail-emphasized,.spectrum-Detail:lang(zh) em strong,.spectrum-Detail:lang(zh) strong em{font-style:var(--mod-detail-cjk-strong-emphasized-font-style,var(--spectrum-detail-cjk-strong-emphasized-font-style));font-weight:var(--mod-detail-cjk-strong-emphasized-font-weight,var(--spectrum-detail-cjk-strong-emphasized-font-weight))}.spectrum-Detail--light:lang(ja),.spectrum-Detail--light:lang(ko),.spectrum-Detail--light:lang(zh){font-style:var(--mod-detail-cjk-light-font-style,var(--spectrum-detail-cjk-light-font-style));font-weight:var(--mod-detail-cjk-light-font-weight,var(--spectrum-detail-cjk-light-font-weight))}.spectrum-Detail--light:lang(ja) .spectrum-Detail-strong,.spectrum-Detail--light:lang(ja) strong,.spectrum-Detail--light:lang(ko) .spectrum-Detail-strong,.spectrum-Detail--light:lang(ko) strong,.spectrum-Detail--light:lang(zh) .spectrum-Detail-strong,.spectrum-Detail--light:lang(zh) strong{font-style:var(--mod-detail-cjk-light-strong-font-style,var(--spectrum-detail-cjk-light-strong-font-style));font-weight:var(--mod-detail-cjk-light-strong-font-weight,var(--spectrum-detail-cjk-light-strong-font-weight))}.spectrum-Detail--light:lang(ja) .spectrum-Detail-emphasized,.spectrum-Detail--light:lang(ja) em,.spectrum-Detail--light:lang(ko) .spectrum-Detail-emphasized,.spectrum-Detail--light:lang(ko) em,.spectrum-Detail--light:lang(zh) .spectrum-Detail-emphasized,.spectrum-Detail--light:lang(zh) em{font-style:var(--mod-detail-cjk-light-emphasized-font-style,var(--spectrum-detail-cjk-light-emphasized-font-style));font-weight:var(--mod-detail-cjk-light-emphasized-font-weight,var(--spectrum-detail-cjk-light-emphasized-font-weight))}.spectrum-Detail--light:lang(ja) .spectrum-Detail-strong.spectrum-Detail-emphasized,.spectrum-Detail--light:lang(ko) .spectrum-Detail-strong.spectrum-Detail-emphasized,.spectrum-Detail--light:lang(zh) .spectrum-Detail-strong.spectrum-Detail-emphasized{font-style:var(--mod-detail-cjk-light-strong-emphasized-font-style,var(--spectrum-detail-cjk-light-strong-emphasized-font-style));font-weight:var(--mod-detail-cjk-light-strong-emphasized-font-weight,var(--spectrum-detail-cjk-light-strong-emphasized-font-weight))}.spectrum-Code:lang(ja),.spectrum-Code:lang(ko),.spectrum-Code:lang(zh){font-family:var(--mod-code-cjk-font-family,var(--spectrum-code-cjk-font-family));font-style:var(--mod-code-cjk-font-style,var(--spectrum-code-cjk-font-style));font-weight:var(--mod-code-cjk-font-weight,var(--spectrum-code-cjk-font-weight));line-height:var(--mod-code-cjk-line-height,var(--spectrum-code-cjk-line-height));letter-spacing:var(--mod-code-cjk-letter-spacing,var(--spectrum-code-cjk-letter-spacing))}.spectrum-Code:lang(ja) .spectrum-Code-strong,.spectrum-Code:lang(ja) strong,.spectrum-Code:lang(ko) .spectrum-Code-strong,.spectrum-Code:lang(ko) strong,.spectrum-Code:lang(zh) .spectrum-Code-strong,.spectrum-Code:lang(zh) strong{font-style:var(--mod-code-cjk-strong-font-style,var(--spectrum-code-cjk-strong-font-style));font-weight:var(--mod-code-cjk-strong-font-weight,var(--spectrum-code-cjk-strong-font-weight))}.spectrum-Code:lang(ja) .spectrum-Code-emphasized,.spectrum-Code:lang(ja) em,.spectrum-Code:lang(ko) .spectrum-Code-emphasized,.spectrum-Code:lang(ko) em,.spectrum-Code:lang(zh) .spectrum-Code-emphasized,.spectrum-Code:lang(zh) em{font-style:var(--mod-code-cjk-emphasized-font-style,var(--spectrum-code-cjk-emphasized-font-style));font-weight:var(--mod-code-cjk-emphasized-font-weight,var(--spectrum-code-cjk-emphasized-font-weight))}.spectrum-Code:lang(ja) .spectrum-Code-strong.spectrum-Code-emphasized,.spectrum-Code:lang(ja) em strong,.spectrum-Code:lang(ja) strong em,.spectrum-Code:lang(ko) .spectrum-Code-strong.spectrum-Code-emphasized,.spectrum-Code:lang(ko) em strong,.spectrum-Code:lang(ko) strong em,.spectrum-Code:lang(zh) .spectrum-Code-strong.spectrum-Code-emphasized,.spectrum-Code:lang(zh) em strong,.spectrum-Code:lang(zh) strong em{font-style:var(--mod-code-cjk-strong-emphasized-font-style,var(--spectrum-code-cjk-strong-emphasized-font-style));font-weight:var(--mod-code-cjk-strong-emphasized-font-weight,var(--spectrum-code-cjk-strong-emphasized-font-weight))}
+`,pn=ay;var cy=y`
+    .spectrum-Typography .spectrum-Heading{--spectrum-heading-margin-start:calc(var(--mod-heading-font-size,var(--spectrum-heading-font-size))*var(--spectrum-heading-margin-top-multiplier));--spectrum-heading-margin-end:calc(var(--mod-heading-font-size,var(--spectrum-heading-font-size))*var(--spectrum-heading-margin-bottom-multiplier))}@media (forced-colors:active){.spectrum-Heading{--highcontrast-heading-font-color:Text}}.spectrum-Heading,.spectrum-Heading--sizeM{--spectrum-heading-font-size:var(--spectrum-heading-size-m);--spectrum-heading-cjk-font-size:var(--spectrum-heading-cjk-size-m)}.spectrum-Heading--sizeXXS{--spectrum-heading-font-size:var(--spectrum-heading-size-xxs);--spectrum-heading-cjk-font-size:var(--spectrum-heading-cjk-size-xxs)}.spectrum-Heading--sizeXS{--spectrum-heading-font-size:var(--spectrum-heading-size-xs);--spectrum-heading-cjk-font-size:var(--spectrum-heading-cjk-size-xs)}.spectrum-Heading--sizeS{--spectrum-heading-font-size:var(--spectrum-heading-size-s);--spectrum-heading-cjk-font-size:var(--spectrum-heading-cjk-size-s)}.spectrum-Heading--sizeL{--spectrum-heading-font-size:var(--spectrum-heading-size-l);--spectrum-heading-cjk-font-size:var(--spectrum-heading-cjk-size-l)}.spectrum-Heading--sizeXL{--spectrum-heading-font-size:var(--spectrum-heading-size-xl);--spectrum-heading-cjk-font-size:var(--spectrum-heading-cjk-size-xl)}.spectrum-Heading--sizeXXL{--spectrum-heading-font-size:var(--spectrum-heading-size-xxl);--spectrum-heading-cjk-font-size:var(--spectrum-heading-cjk-size-xxl)}.spectrum-Heading--sizeXXXL{--spectrum-heading-font-size:var(--spectrum-heading-size-xxxl);--spectrum-heading-cjk-font-size:var(--spectrum-heading-cjk-size-xxxl)}.spectrum-Heading{--spectrum-heading-sans-serif-font-family:var(--spectrum-sans-font-family-stack);--spectrum-heading-serif-font-family:var(--spectrum-serif-font-family-stack);--spectrum-heading-cjk-font-family:var(--spectrum-cjk-font-family-stack);--spectrum-heading-cjk-letter-spacing:var(--spectrum-cjk-letter-spacing);--spectrum-heading-font-color:var(--spectrum-heading-color);font-family:var(--mod-heading-sans-serif-font-family,var(--spectrum-heading-sans-serif-font-family));font-style:var(--mod-heading-sans-serif-font-style,var(--spectrum-heading-sans-serif-font-style));font-weight:var(--mod-heading-sans-serif-font-weight,var(--spectrum-heading-sans-serif-font-weight));font-size:var(--mod-heading-font-size,var(--spectrum-heading-font-size));color:var(--highcontrast-heading-font-color,var(--mod-heading-font-color,var(--spectrum-heading-font-color)));line-height:var(--mod-heading-line-height,var(--spectrum-heading-line-height));margin-block-start:var(--mod-heading-margin-start,var(--spectrum-heading-margin-start,0));margin-block-end:var(--mod-heading-margin-end,var(--spectrum-heading-margin-end,0))}.spectrum-Heading .spectrum-Heading-strong,.spectrum-Heading strong{font-style:var(--mod-heading-sans-serif-strong-font-style,var(--spectrum-heading-sans-serif-strong-font-style));font-weight:var(--mod-heading-sans-serif-strong-font-weight,var(--spectrum-heading-sans-serif-strong-font-weight))}.spectrum-Heading .spectrum-Heading-emphasized,.spectrum-Heading em{font-style:var(--mod-heading-sans-serif-emphasized-font-style,var(--spectrum-heading-sans-serif-emphasized-font-style));font-weight:var(--mod-heading-sans-serif-emphasized-font-weight,var(--spectrum-heading-sans-serif-emphasized-font-weight))}.spectrum-Heading .spectrum-Heading-strong.spectrum-Heading-emphasized,.spectrum-Heading em strong,.spectrum-Heading strong em{font-style:var(--mod-heading-sans-serif-strong-emphasized-font-style,var(--spectrum-heading-sans-serif-strong-emphasized-font-style));font-weight:var(--mod-heading-sans-serif-strong-emphasized-font-weight,var(--spectrum-heading-sans-serif-strong-emphasized-font-weight))}.spectrum-Heading:lang(ja),.spectrum-Heading:lang(ko),.spectrum-Heading:lang(zh){font-family:var(--mod-heading-cjk-font-family,var(--spectrum-heading-cjk-font-family));font-style:var(--mod-heading-cjk-font-style,var(--spectrum-heading-cjk-font-style));font-weight:var(--mod-heading-cjk-font-weight,var(--spectrum-heading-cjk-font-weight));font-size:var(--mod-heading-cjk-font-size,var(--spectrum-heading-cjk-font-size));line-height:var(--mod-heading-cjk-line-height,var(--spectrum-heading-cjk-line-height));letter-spacing:var(--mod-heading-cjk-letter-spacing,var(--spectrum-heading-cjk-letter-spacing))}.spectrum-Heading:lang(ja) .spectrum-Heading-emphasized,.spectrum-Heading:lang(ja) em,.spectrum-Heading:lang(ko) .spectrum-Heading-emphasized,.spectrum-Heading:lang(ko) em,.spectrum-Heading:lang(zh) .spectrum-Heading-emphasized,.spectrum-Heading:lang(zh) em{font-style:var(--mod-heading-cjk-emphasized-font-style,var(--spectrum-heading-cjk-emphasized-font-style));font-weight:var(--mod-heading-cjk-emphasized-font-weight,var(--spectrum-heading-cjk-emphasized-font-weight))}.spectrum-Heading:lang(ja) .spectrum-Heading-strong,.spectrum-Heading:lang(ja) strong,.spectrum-Heading:lang(ko) .spectrum-Heading-strong,.spectrum-Heading:lang(ko) strong,.spectrum-Heading:lang(zh) .spectrum-Heading-strong,.spectrum-Heading:lang(zh) strong{font-style:var(--mod-heading-cjk-strong-font-style,var(--spectrum-heading-cjk-strong-font-style));font-weight:var(--mod-heading-cjk-strong-font-weight,var(--spectrum-heading-cjk-strong-font-weight))}.spectrum-Heading:lang(ja) .spectrum-Heading-strong.spectrum-Heading-emphasized,.spectrum-Heading:lang(ja) em strong,.spectrum-Heading:lang(ja) strong em,.spectrum-Heading:lang(ko) .spectrum-Heading-strong.spectrum-Heading-emphasized,.spectrum-Heading:lang(ko) em strong,.spectrum-Heading:lang(ko) strong em,.spectrum-Heading:lang(zh) .spectrum-Heading-strong.spectrum-Heading-emphasized,.spectrum-Heading:lang(zh) em strong,.spectrum-Heading:lang(zh) strong em{font-style:var(--mod-heading-cjk-strong-emphasized-font-style,var(--spectrum-heading-cjk-strong-emphasized-font-style));font-weight:var(--mod-heading-cjk-strong-emphasized-font-weight,var(--spectrum-heading-cjk-strong-emphasized-font-weight))}.spectrum-Heading--heavy{font-style:var(--mod-heading-sans-serif-heavy-font-style,var(--spectrum-heading-sans-serif-heavy-font-style));font-weight:var(--mod-heading-sans-serif-heavy-font-weight,var(--spectrum-heading-sans-serif-heavy-font-weight))}.spectrum-Heading--heavy .spectrum-Heading-strong,.spectrum-Heading--heavy strong{font-style:var(--mod-heading-sans-serif-heavy-strong-font-style,var(--spectrum-heading-sans-serif-heavy-strong-font-style));font-weight:var(--mod-heading-sans-serif-heavy-strong-font-weight,var(--spectrum-heading-sans-serif-heavy-strong-font-weight))}.spectrum-Heading--heavy .spectrum-Heading-emphasized,.spectrum-Heading--heavy em{font-style:var(--mod-heading-sans-serif-heavy-emphasized-font-style,var(--spectrum-heading-sans-serif-heavy-emphasized-font-style));font-weight:var(--mod-heading-sans-serif-heavy-emphasized-font-weight,var(--spectrum-heading-sans-serif-heavy-emphasized-font-weight))}.spectrum-Heading--heavy .spectrum-Heading-strong.spectrum-Heading-emphasized,.spectrum-Heading--heavy em strong,.spectrum-Heading--heavy strong em{font-style:var(--mod-heading-sans-serif-heavy-strong-emphasized-font-style,var(--spectrum-heading-sans-serif-heavy-strong-emphasized-font-style));font-weight:var(--mod-heading-sans-serif-heavy-strong-emphasized-font-weight,var(--spectrum-heading-sans-serif-heavy-strong-emphasized-font-weight))}.spectrum-Heading--heavy:lang(ja),.spectrum-Heading--heavy:lang(ko),.spectrum-Heading--heavy:lang(zh){font-style:var(--mod-heading-cjk-heavy-font-style,var(--spectrum-heading-cjk-heavy-font-style));font-weight:var(--mod-heading-cjk-heavy-font-weight,var(--spectrum-heading-cjk-heavy-font-weight))}.spectrum-Heading--heavy:lang(ja) .spectrum-Heading-emphasized,.spectrum-Heading--heavy:lang(ja) em,.spectrum-Heading--heavy:lang(ko) .spectrum-Heading-emphasized,.spectrum-Heading--heavy:lang(ko) em,.spectrum-Heading--heavy:lang(zh) .spectrum-Heading-emphasized,.spectrum-Heading--heavy:lang(zh) em{font-style:var(--mod-heading-cjk-heavy-emphasized-font-style,var(--spectrum-heading-cjk-heavy-emphasized-font-style));font-weight:var(--mod-heading-cjk-heavy-emphasized-font-weight,var(--spectrum-heading-cjk-heavy-emphasized-font-weight))}.spectrum-Heading--heavy:lang(ja) .spectrum-Heading-strong,.spectrum-Heading--heavy:lang(ja) strong,.spectrum-Heading--heavy:lang(ko) .spectrum-Heading-strong,.spectrum-Heading--heavy:lang(ko) strong,.spectrum-Heading--heavy:lang(zh) .spectrum-Heading-strong,.spectrum-Heading--heavy:lang(zh) strong{font-style:var(--mod-heading-cjk-heavy-strong-font-style,var(--spectrum-heading-cjk-heavy-strong-font-style));font-weight:var(--mod-heading-cjk-heavy-strong-font-weight,var(--spectrum-heading-cjk-heavy-strong-font-weight))}.spectrum-Heading--heavy:lang(ja) .spectrum-Heading-strong.spectrum-Heading-emphasized,.spectrum-Heading--heavy:lang(ja) em strong,.spectrum-Heading--heavy:lang(ja) strong em,.spectrum-Heading--heavy:lang(ko) .spectrum-Heading-strong.spectrum-Heading-emphasized,.spectrum-Heading--heavy:lang(ko) em strong,.spectrum-Heading--heavy:lang(ko) strong em,.spectrum-Heading--heavy:lang(zh) .spectrum-Heading-strong.spectrum-Heading-emphasized,.spectrum-Heading--heavy:lang(zh) em strong,.spectrum-Heading--heavy:lang(zh) strong em{font-style:var(--mod-heading-cjk-heavy-strong-emphasized-font-style,var(--spectrum-heading-cjk-heavy-strong-emphasized-font-style));font-weight:var(--mod-heading-cjk-heavy-strong-emphasized-font-weight,var(--spectrum-heading-cjk-heavy-strong-emphasized-font-weight))}.spectrum-Heading--light{font-style:var(--mod-heading-sans-serif-light-font-style,var(--spectrum-heading-sans-serif-light-font-style));font-weight:var(--mod-heading-sans-serif-light-font-weight,var(--spectrum-heading-sans-serif-light-font-weight))}.spectrum-Heading--light .spectrum-Heading-emphasized,.spectrum-Heading--light em{font-style:var(--mod-heading-sans-serif-light-emphasized-font-style,var(--spectrum-heading-sans-serif-light-emphasized-font-style));font-weight:var(--mod-heading-sans-serif-light-emphasized-font-weight,var(--spectrum-heading-sans-serif-light-emphasized-font-weight))}.spectrum-Heading--light .spectrum-Heading-strong,.spectrum-Heading--light strong{font-style:var(--mod-heading-sans-serif-light-strong-font-style,var(--spectrum-heading-sans-serif-light-strong-font-style));font-weight:var(--mod-heading-sans-serif-light-strong-font-weight,var(--spectrum-heading-sans-serif-light-strong-font-weight))}.spectrum-Heading--light .spectrum-Heading-strong.spectrum-Heading-emphasized,.spectrum-Heading--light em strong,.spectrum-Heading--light strong em{font-style:var(--mod-heading-sans-serif-light-strong-emphasized-font-style,var(--spectrum-heading-sans-serif-light-strong-emphasized-font-style));font-weight:var(--mod-heading-sans-serif-light-strong-emphasized-font-weight,var(--spectrum-heading-sans-serif-light-strong-emphasized-font-weight))}.spectrum-Heading--light:lang(ja),.spectrum-Heading--light:lang(ko),.spectrum-Heading--light:lang(zh){font-style:var(--mod-heading-cjk-light-font-style,var(--spectrum-heading-cjk-light-font-style));font-weight:var(--mod-heading-cjk-light-font-weight,var(--spectrum-heading-cjk-light-font-weight))}.spectrum-Heading--light:lang(ja) .spectrum-Heading-strong,.spectrum-Heading--light:lang(ja) strong,.spectrum-Heading--light:lang(ko) .spectrum-Heading-strong,.spectrum-Heading--light:lang(ko) strong,.spectrum-Heading--light:lang(zh) .spectrum-Heading-strong,.spectrum-Heading--light:lang(zh) strong{font-style:var(--mod-heading-cjk-light-strong-font-style,var(--spectrum-heading-cjk-light-strong-font-style));font-weight:var(--mod-heading-cjk-light-strong-font-weight,var(--spectrum-heading-cjk-light-strong-font-weight))}.spectrum-Heading--light:lang(ja) .spectrum-Heading-emphasized,.spectrum-Heading--light:lang(ja) em,.spectrum-Heading--light:lang(ko) .spectrum-Heading-emphasized,.spectrum-Heading--light:lang(ko) em,.spectrum-Heading--light:lang(zh) .spectrum-Heading-emphasized,.spectrum-Heading--light:lang(zh) em{font-style:var(--mod-heading-cjk-light-emphasized-font-style,var(--spectrum-heading-cjk-light-emphasized-font-style));font-weight:var(--mod-heading-cjk-light-emphasized-font-weight,var(--spectrum-heading-cjk-light-emphasized-font-weight))}.spectrum-Heading--light:lang(ja) .spectrum-Heading-strong.spectrum-Heading-emphasized,.spectrum-Heading--light:lang(ja) em strong,.spectrum-Heading--light:lang(ja) strong em,.spectrum-Heading--light:lang(ko) .spectrum-Heading-strong.spectrum-Heading-emphasized,.spectrum-Heading--light:lang(ko) em strong,.spectrum-Heading--light:lang(ko) strong em,.spectrum-Heading--light:lang(zh) .spectrum-Heading-strong.spectrum-Heading-emphasized,.spectrum-Heading--light:lang(zh) em strong,.spectrum-Heading--light:lang(zh) strong em{font-style:var(--mod-heading-cjk-light-strong-emphasized-font-style,var(--spectrum-heading-cjk-light-strong-emphasized-font-style));font-weight:var(--mod-heading-cjk-light-strong-emphasized-font-weight,var(--spectrum-heading-cjk-light-strong-emphasized-font-weight))}.spectrum-Heading--serif{font-family:var(--mod-heading-serif-font-family,var(--spectrum-heading-serif-font-family));font-style:var(--mod-heading-serif-font-style,var(--spectrum-heading-serif-font-style));font-weight:var(--mod-heading-serif-font-weight,var(--spectrum-heading-serif-font-weight))}.spectrum-Heading--serif .spectrum-Heading-emphasized,.spectrum-Heading--serif em{font-style:var(--mod-heading-serif-emphasized-font-style,var(--spectrum-heading-serif-emphasized-font-style));font-weight:var(--mod-heading-serif-emphasized-font-weight,var(--spectrum-heading-serif-emphasized-font-weight))}.spectrum-Heading--serif .spectrum-Heading-strong,.spectrum-Heading--serif strong{font-style:var(--mod-heading-serif-strong-font-style,var(--spectrum-heading-serif-strong-font-style));font-weight:var(--mod-heading-serif-strong-font-weight,var(--spectrum-heading-serif-strong-font-weight))}.spectrum-Heading--serif .spectrum-Heading-strong.spectrum-Heading-emphasized,.spectrum-Heading--serif em strong,.spectrum-Heading--serif strong em{font-style:var(--mod-heading-serif-strong-emphasized-font-style,var(--spectrum-heading-serif-strong-emphasized-font-style));font-weight:var(--mod-heading-serif-strong-emphasized-font-weight,var(--spectrum-heading-serif-strong-emphasized-font-weight))}.spectrum-Heading--serif.spectrum-Heading--heavy{font-style:var(--mod-heading-serif-heavy-font-style,var(--spectrum-heading-serif-heavy-font-style));font-weight:var(--mod-heading-serif-heavy-font-weight,var(--spectrum-heading-serif-heavy-font-weight))}.spectrum-Heading--serif.spectrum-Heading--heavy .spectrum-Heading-strong,.spectrum-Heading--serif.spectrum-Heading--heavy strong{font-style:var(--mod-heading-serif-heavy-strong-font-style,var(--spectrum-heading-serif-heavy-strong-font-style));font-weight:var(--mod-heading-serif-heavy-strong-font-weight,var(--spectrum-heading-serif-heavy-strong-font-weight))}.spectrum-Heading--serif.spectrum-Heading--heavy .spectrum-Heading-emphasized,.spectrum-Heading--serif.spectrum-Heading--heavy em{font-style:var(--mod-heading-serif-heavy-emphasized-font-style,var(--spectrum-heading-serif-heavy-emphasized-font-style));font-weight:var(--mod-heading-serif-heavy-emphasized-font-weight,var(--spectrum-heading-serif-heavy-emphasized-font-weight))}.spectrum-Heading--serif.spectrum-Heading--heavy .spectrum-Heading-strong.spectrum-Heading-emphasized,.spectrum-Heading--serif.spectrum-Heading--heavy em strong,.spectrum-Heading--serif.spectrum-Heading--heavy strong em{font-style:var(--mod-heading-serif-heavy-strong-emphasized-font-style,var(--spectrum-heading-serif-heavy-strong-emphasized-font-style));font-weight:var(--mod-heading-serif-heavy-strong-emphasized-font-weight,var(--spectrum-heading-serif-heavy-strong-emphasized-font-weight))}.spectrum-Heading--serif.spectrum-Heading--light{font-style:var(--mod-heading-serif-light-font-style,var(--spectrum-heading-serif-light-font-style));font-weight:var(--mod-heading-serif-light-font-weight,var(--spectrum-heading-serif-light-font-weight))}.spectrum-Heading--serif.spectrum-Heading--light .spectrum-Heading-emphasized,.spectrum-Heading--serif.spectrum-Heading--light em{font-style:var(--mod-heading-serif-light-emphasized-font-style,var(--spectrum-heading-serif-light-emphasized-font-style));font-weight:var(--mod-heading-serif-light-emphasized-font-weight,var(--spectrum-heading-serif-light-emphasized-font-weight))}.spectrum-Heading--serif.spectrum-Heading--light .spectrum-Heading-strong,.spectrum-Heading--serif.spectrum-Heading--light strong{font-style:var(--mod-heading-serif-light-strong-font-style,var(--spectrum-heading-serif-light-strong-font-style));font-weight:var(--mod-heading-serif-light-strong-font-weight,var(--spectrum-heading-serif-light-strong-font-weight))}.spectrum-Heading--serif.spectrum-Heading--light .spectrum-Heading-strong.spectrum-Heading-emphasized,.spectrum-Heading--serif.spectrum-Heading--light em strong,.spectrum-Heading--serif.spectrum-Heading--light strong em{font-style:var(--mod-heading-serif-light-strong-emphasized-font-style,var(--spectrum-heading-serif-light-strong-emphasized-font-style));font-weight:var(--mod-heading-serif-light-strong-emphasized-font-weight,var(--spectrum-heading-serif-light-strong-emphasized-font-weight))}
+`,nv=cy;var lv=[un,pn,nv];var ny=y`
+    .spectrum-Typography .spectrum-Body{--spectrum-body-margin-end:calc(var(--mod-body-font-size,var(--spectrum-body-font-size))*var(--spectrum-body-margin-multiplier))}@media (forced-colors:active){.spectrum-Body{--highcontrast-body-font-color:Text}}.spectrum-Body,.spectrum-Body--sizeM{--spectrum-body-font-size:var(--spectrum-body-size-m)}.spectrum-Body--sizeXS{--spectrum-body-font-size:var(--spectrum-body-size-xs)}.spectrum-Body--sizeS{--spectrum-body-font-size:var(--spectrum-body-size-s)}.spectrum-Body--sizeL{--spectrum-body-font-size:var(--spectrum-body-size-l)}.spectrum-Body--sizeXL{--spectrum-body-font-size:var(--spectrum-body-size-xl)}.spectrum-Body--sizeXXL{--spectrum-body-font-size:var(--spectrum-body-size-xxl)}.spectrum-Body--sizeXXXL{--spectrum-body-font-size:var(--spectrum-body-size-xxxl)}.spectrum-Body{--spectrum-body-sans-serif-font-family:var(--spectrum-sans-font-family-stack);--spectrum-body-serif-font-family:var(--spectrum-serif-font-family-stack);--spectrum-body-cjk-font-family:var(--spectrum-cjk-font-family-stack);--spectrum-body-cjk-letter-spacing:var(--spectrum-cjk-letter-spacing);--spectrum-body-font-color:var(--spectrum-body-color);font-family:var(--mod-body-sans-serif-font-family,var(--spectrum-body-sans-serif-font-family));font-style:var(--mod-body-sans-serif-font-style,var(--spectrum-body-sans-serif-font-style));font-weight:var(--mod-body-sans-serif-font-weight,var(--spectrum-body-sans-serif-font-weight));font-size:var(--mod-body-font-size,var(--spectrum-body-font-size));color:var(--highcontrast-body-font-color,var(--mod-body-font-color,var(--spectrum-body-font-color)));line-height:var(--mod-body-line-height,var(--spectrum-body-line-height));margin-block-start:var(--mod-body-margin-start,var(--mod-body-margin,0));margin-block-end:var(--mod-body-margin-end,var(--mod-body-margin,var(--spectrum-body-margin-end,0)))}.spectrum-Body .spectrum-Body-strong,.spectrum-Body strong{font-style:var(--mod-body-sans-serif-strong-font-style,var(--spectrum-body-sans-serif-strong-font-style));font-weight:var(--mod-body-sans-serif-strong-font-weight,var(--spectrum-body-sans-serif-strong-font-weight))}.spectrum-Body .spectrum-Body-emphasized,.spectrum-Body em{font-style:var(--mod-body-sans-serif-emphasized-font-style,var(--spectrum-body-sans-serif-emphasized-font-style));font-weight:var(--mod-body-sans-serif-emphasized-font-weight,var(--spectrum-body-sans-serif-emphasized-font-weight))}.spectrum-Body .spectrum-Body-strong.spectrum-Body-emphasized,.spectrum-Body em strong,.spectrum-Body strong em{font-style:var(--mod-body-sans-serif-strong-emphasized-font-style,var(--spectrum-body-sans-serif-strong-emphasized-font-style));font-weight:var(--mod-body-sans-serif-strong-emphasized-font-weight,var(--spectrum-body-sans-serif-strong-emphasized-font-weight))}.spectrum-Body:lang(ja),.spectrum-Body:lang(ko),.spectrum-Body:lang(zh){font-family:var(--mod-body-cjk-font-family,var(--spectrum-body-cjk-font-family));font-style:var(--mod-body-cjk-font-style,var(--spectrum-body-cjk-font-style));font-weight:var(--mod-body-cjk-font-weight,var(--spectrum-body-cjk-font-weight));line-height:var(--mod-body-cjk-line-height,var(--spectrum-body-cjk-line-height));letter-spacing:var(--mod-body-cjk-letter-spacing,var(--spectrum-body-cjk-letter-spacing))}.spectrum-Body:lang(ja) .spectrum-Body-strong,.spectrum-Body:lang(ja) strong,.spectrum-Body:lang(ko) .spectrum-Body-strong,.spectrum-Body:lang(ko) strong,.spectrum-Body:lang(zh) .spectrum-Body-strong,.spectrum-Body:lang(zh) strong{font-style:var(--mod-body-cjk-strong-font-style,var(--spectrum-body-cjk-strong-font-style));font-weight:var(--mod-body-cjk-strong-font-weight,var(--spectrum-body-cjk-strong-font-weight))}.spectrum-Body:lang(ja) .spectrum-Body-emphasized,.spectrum-Body:lang(ja) em,.spectrum-Body:lang(ko) .spectrum-Body-emphasized,.spectrum-Body:lang(ko) em,.spectrum-Body:lang(zh) .spectrum-Body-emphasized,.spectrum-Body:lang(zh) em{font-style:var(--mod-body-cjk-emphasized-font-style,var(--spectrum-body-cjk-emphasized-font-style));font-weight:var(--mod-body-cjk-emphasized-font-weight,var(--spectrum-body-cjk-emphasized-font-weight))}.spectrum-Body:lang(ja) .spectrum-Body-strong.spectrum-Body-emphasized,.spectrum-Body:lang(ja) em strong,.spectrum-Body:lang(ja) strong em,.spectrum-Body:lang(ko) .spectrum-Body-strong.spectrum-Body-emphasized,.spectrum-Body:lang(ko) em strong,.spectrum-Body:lang(ko) strong em,.spectrum-Body:lang(zh) .spectrum-Body-strong.spectrum-Body-emphasized,.spectrum-Body:lang(zh) em strong,.spectrum-Body:lang(zh) strong em{font-style:var(--mod-body-cjk-strong-emphasized-font-style,var(--spectrum-body-cjk-strong-emphasized-font-style));font-weight:var(--mod-body-cjk-strong-emphasized-font-weight,var(--spectrum-body-cjk-strong-emphasized-font-weight))}.spectrum-Body--serif{font-family:var(--mod-body-serif-font-family,var(--spectrum-body-serif-font-family));font-weight:var(--mod-body-serif-font-weight,var(--spectrum-body-serif-font-weight));font-style:var(--mod-body-serif-font-style,var(--spectrum-body-serif-font-style))}.spectrum-Body--serif .spectrum-Body-strong,.spectrum-Body--serif strong{font-style:var(--mod-body-serif-strong-font-style,var(--spectrum-body-serif-strong-font-style));font-weight:var(--mod-body-serif-strong-font-weight,var(--spectrum-body-serif-strong-font-weight))}.spectrum-Body--serif .spectrum-Body-emphasized,.spectrum-Body--serif em{font-style:var(--mod-body-serif-emphasized-font-style,var(--spectrum-body-serif-emphasized-font-style));font-weight:var(--mod-body-serif-emphasized-font-weight,var(--spectrum-body-serif-emphasized-font-weight))}.spectrum-Body--serif .spectrum-Body-strong.spectrum-Body-emphasized,.spectrum-Body--serif em strong,.spectrum-Body--serif strong em{font-style:var(--mod-body-serif-strong-emphasized-font-style,var(--spectrum-body-serif-strong-emphasized-font-style));font-weight:var(--mod-body-serif-strong-emphasized-font-weight,var(--spectrum-body-serif-strong-emphasized-font-weight))}.spectrum-Detail--light .spectrum-Detail-strong.spectrum-Body-emphasized{font-style:var(--mod-detail-sans-serif-light-strong-emphasized-font-style,var(--spectrum-detail-sans-serif-light-strong-emphasized-font-style));font-weight:var(--mod-detail-sans-serif-light-strong-emphasized-font-weight,var(--spectrum-detail-sans-serif-light-strong-emphasized-font-weight))}.spectrum-Detail--serif.spectrum-Detail--light .spectrum-Detail-strong.spectrum-Body-emphasized{font-style:var(--mod-detail-serif-light-strong-emphasized-font-style,var(--spectrum-detail-serif-light-strong-emphasized-font-style));font-weight:var(--mod-detail-serif-light-strong-emphasized-font-weight,var(--spectrum-detail-serif-light-strong-emphasized-font-weight))}
+`,dv=ny;var mv=[un,pn,dv];var ly=Object.defineProperty,dy=Object.getOwnPropertyDescriptor,uv=(o,t,e,r)=>{for(var s=r>1?void 0:r?dy(t,e):t,i=o.length-1,a;i>=0;i--)(a=o[i])&&(s=(r?a(t,e,s):a(s))||s);return r&&s&&ly(t,e,s),s},Dr=class extends zo{constructor(){super(...arguments),this.heading="",this.description=""}static get styles(){return[lv,mv,cv]}render(){return c`
+            <div id="illustration"><slot></slot></div>
+            <h2
+                id="heading"
+                class="spectrum-Heading spectrum-Heading--sizeL spectrum-Heading--light"
+            >
+                <slot name="heading">${this.heading}</slot>
+            </h2>
+            <div id="description" class="spectrum-Body spectrum-Body--sizeS">
+                <slot name="description">${this.description}</slot>
+            </div>
+        `}};Dr.is="sp-illustrated-message",uv([n()],Dr.prototype,"heading",2),uv([n()],Dr.prototype,"description",2);function bd(o,t){window.__swc&&window.__swc.DEBUG&&customElements.get(o)&&window.__swc.warn(void 0,`Attempted to redefine <${o}>. This usually indicates that multiple versions of the same web component were loaded onto a single page.`,"https://opensource.adobe.com/spectrum-web-components/registry-conflicts"),customElements.define(o,t)}bd("sp-illustrated-message",Dr);L();br();Te();p();var my=y`
             /*!
  * Copyright 2025 Adobe. All rights reserved. This file is licensed to you under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License./
  * 

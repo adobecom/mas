@@ -618,6 +618,35 @@ describe('promotions', () => {
             ]);
         });
 
+        it('parses substitute lines and builds country-scoped substituteMap', async () => {
+            fetchStub = sinon.stub(globalThis, 'fetch');
+            const project = makeProject({
+                surfaces: ['acom'],
+                geos: [],
+                offers: ['substitute:OSI-1:OSI-DE:DE', 'substitute:OSI-2:OSI-US:US', 'substitute::bad:'],
+            });
+            const hydrated = makeHydratedProject({ fragmentPaths: ['offers/offer-1'] });
+            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+            fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
+
+            const initResult = await promotionsTransformer.init(createContext());
+            fetchStub.restore();
+            clearPromoCache();
+
+            expect(initResult.activeProject.offerSubstitutions).to.deep.equal([
+                { baseOsi: 'OSI-1', substituteOsi: 'OSI-DE', country: 'DE' },
+                { baseOsi: 'OSI-2', substituteOsi: 'OSI-US', country: 'US' },
+            ]);
+
+            const processResult = await promotionsTransformer.process(
+                createContext({
+                    country: 'DE',
+                    promises: { promotions: Promise.resolve({ status: 200, activeProject: initResult.activeProject }) },
+                }),
+            );
+            expect(processResult.substituteMap).to.deep.equal({ 'OSI-1': 'OSI-DE' });
+        });
+
         it('skips offerLines with missing promoCode', async () => {
             fetchStub = sinon.stub(globalThis, 'fetch');
             const project = makeProject({ surfaces: ['acom'], geos: [], offers: ['OSI-1::US', 'OSI-2:VALID:'] });

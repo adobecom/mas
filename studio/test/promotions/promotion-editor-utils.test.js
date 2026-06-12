@@ -934,6 +934,81 @@ describe('promotion-editor-utils', () => {
             const entry = await resolvePromotionOfferCacheEntry('osi-unknown');
             expect(entry?.id).to.equal('osi-unknown');
         });
+
+        it('resolves a regional custom OSI with country and WCS product name', async () => {
+            let capturedOptions;
+            const wcsOffer = {
+                productArrangementCode: 'cc_all_apps',
+                productArrangement: { productFamily: 'CC_ALL_APPS', productCode: 'CCSN' },
+            };
+            const mockService = document.createElement('mas-commerce-service');
+            mockService.collectPriceOptions = (overrides) => {
+                capturedOptions = overrides;
+                return overrides;
+            };
+            mockService.resolveOfferSelectors = () => [Promise.resolve([wcsOffer])];
+            document.body.appendChild(mockService);
+            const entry = await resolvePromotionOfferCacheEntry('regional-osi', 'my');
+            document.body.removeChild(mockService);
+            expect(capturedOptions.country).to.equal('MY');
+            expect(capturedOptions.language).to.equal('MULT');
+            expect(promotionOfferCacheEntryHasDisplayName(entry)).to.be.true;
+            expect(entry.tags.find((tag) => tag.id.startsWith('mas:product_code/'))?.title).to.equal('CC_ALL_APPS');
+        });
+
+        it('extracts country code correctly from composite locale formats', async () => {
+            let capturedCountry;
+            const mockService = document.createElement('mas-commerce-service');
+            mockService.collectPriceOptions = (overrides) => {
+                capturedCountry = overrides.country;
+                return overrides;
+            };
+            mockService.resolveOfferSelectors = () => [Promise.resolve([])];
+            document.body.appendChild(mockService);
+            await resolvePromotionOfferCacheEntry('osi-ca', 'CA_en');
+            const countryCA = capturedCountry;
+            await resolvePromotionOfferCacheEntry('osi-lu', 'en_LU');
+            const countryLU = capturedCountry;
+            document.body.removeChild(mockService);
+            expect(countryCA).to.equal('CA');
+            expect(countryLU).to.equal('LU');
+        });
+
+        it('sets language EN for GB and MULT for other countries', async () => {
+            const captured = [];
+            const mockService = document.createElement('mas-commerce-service');
+            mockService.collectPriceOptions = (overrides) => {
+                captured.push({ country: overrides.country, language: overrides.language });
+                return overrides;
+            };
+            mockService.resolveOfferSelectors = () => [Promise.resolve([])];
+            document.body.appendChild(mockService);
+            await resolvePromotionOfferCacheEntry('osi-gb', 'GB');
+            await resolvePromotionOfferCacheEntry('osi-de', 'DE');
+            document.body.removeChild(mockService);
+            expect(captured[0]).to.deep.equal({ country: 'GB', language: 'EN' });
+            expect(captured[1]).to.deep.equal({ country: 'DE', language: 'MULT' });
+        });
+
+        it('normalizes camelCase WCS fields into offer tags', async () => {
+            const wcsOffer = {
+                offerType: 'BASE',
+                planType: 'ABM',
+                customerSegment: 'INDIVIDUAL',
+                marketSegments: ['COM'],
+                productArrangement: { productFamily: 'PHSP', productCode: 'PHSP' },
+            };
+            const mockService = document.createElement('mas-commerce-service');
+            mockService.collectPriceOptions = (o) => o;
+            mockService.resolveOfferSelectors = () => [Promise.resolve([wcsOffer])];
+            document.body.appendChild(mockService);
+            const entry = await resolvePromotionOfferCacheEntry('osi-phsp', 'US');
+            document.body.removeChild(mockService);
+            expect(entry.tags.find((t) => t.id === 'mas:offer_type/base')).to.exist;
+            expect(entry.tags.find((t) => t.id === 'mas:plan_type/abm')).to.exist;
+            expect(entry.tags.find((t) => t.id === 'mas:customer_segment/individual')).to.exist;
+            expect(entry.tags.find((t) => t.id === 'mas:market_segment/com')).to.exist;
+        });
     });
 
     describe('hydratePromotionOfferCacheFromSelectorIds', () => {

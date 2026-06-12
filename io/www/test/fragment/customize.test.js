@@ -1737,3 +1737,36 @@ describe('customize promoCode application', function () {
         expect(result.body.references['card-1'].value.fields.promoCode).to.equal('CARD-PROMO');
     });
 });
+
+describe('customize OSI substitution', function () {
+    const MINIMAL_PROJECT = {
+        id: 'sub-proj',
+        path: '/content/dam/mas/promotions/test',
+        defaultVariations: {},
+        regionVariations: {},
+    };
+    const CARD_PATHS = new Set(['test-card']);
+
+    it('should substitute OSI and use the substituted value for promo lookup', async function () {
+        const result = await processWithPromos(
+            {
+                ...FAKE_CONTEXT,
+                fragmentPath: 'test-card',
+                body: {
+                    path: '/content/dam/mas/sandbox/en_US/test-card',
+                    id: 'test-card',
+                    fields: { osi: 'BASE-OSI' },
+                    references: {},
+                    referencesTree: [],
+                },
+                promoFragmentPaths: CARD_PATHS,
+                substituteMap: { 'BASE-OSI': 'SUB-OSI' },
+            },
+            MINIMAL_PROJECT,
+            { 'SUB-OSI': 'PROMO-FOR-SUB' },
+        );
+        expect(result.status).to.equal(200);
+        expect(result.body.fields.osi).to.equal('SUB-OSI');
+        expect(result.body.fields.promoCode).to.equal('PROMO-FOR-SUB');
+    });
+});

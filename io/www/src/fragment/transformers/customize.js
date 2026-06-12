@@ -206,6 +206,22 @@ function mergeVariations(root, customizeContext) {
     return root;
 }
 
+function applyOsiSubstitution(fragment, substituteMap, context) {
+    const fragOsi = fragment.fields?.osi;
+    if (!fragOsi || !substituteMap) return;
+    const osis = Array.isArray(fragOsi) ? fragOsi : [fragOsi];
+    for (const osi of osis) {
+        if (substituteMap[osi]) {
+            const substituteOsi = substituteMap[osi];
+            fragment.fields.osi = Array.isArray(fragOsi)
+                ? fragOsi.map((o) => (o === osi ? substituteOsi : o))
+                : substituteOsi;
+            logDebug(() => `Substituting OSI ${osi} with ${substituteOsi} on fragment ${fragment.id}`, context);
+            return;
+        }
+    }
+}
+
 function applyPromoCode(fragment, promoMap, context) {
     const fragOsi = fragment.fields?.osi;
     if (!fragOsi) return;
@@ -274,6 +290,7 @@ function customizeTree(root, referencesTree = [], customizeContext) {
     //start by merging current fragment with its regional variation, and promos if any
     const customizedRoot = mergeVariations(root, customizeContext);
     if (customizeContext.promos?.fragmentPaths.has(PATH_TOKENS.exec(root.path)?.groups.fragmentPath)) {
+        applyOsiSubstitution(customizedRoot, customizeContext.promos.substituteMap, customizeContext);
         applyPromoCode(customizedRoot, customizeContext.promos.promoMap, customizeContext);
     }
 
@@ -328,7 +345,12 @@ async function customize(context) {
     const promosResult = await context.promises?.promotions;
     const activeProject = promosResult?.activeProject;
     const promos = activeProject
-        ? { activeProject, promoMap: context.promoMap ?? {}, fragmentPaths: context.promoFragmentPaths ?? new Set() }
+        ? {
+              activeProject,
+              promoMap: context.promoMap ?? {},
+              substituteMap: context.substituteMap ?? {},
+              fragmentPaths: context.promoFragmentPaths ?? new Set(),
+          }
         : null;
 
     if (status != 200) {

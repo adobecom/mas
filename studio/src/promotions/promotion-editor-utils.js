@@ -355,14 +355,18 @@ export function buildPromotionOfferTags(offer, productArrangementCode) {
         });
     };
 
-    addTag('product_code', offer?.product_code, offer?.product_name ?? offer?.product_code);
+    const arrangement = offer?.productArrangement ?? offer?.product_arrangement;
+    const productCode = offer?.product_code ?? offer?.productCode ?? arrangement?.productCode ?? arrangement?.product_code;
+    const productName =
+        offer?.product_name ?? offer?.productName ?? arrangement?.productFamily ?? arrangement?.product_family ?? productCode;
+    addTag('product_code', productCode, productName);
     addTag('product_arrangement', productArrangementCode, productArrangementCode);
-    addTag('offer_type', offer?.offer_type);
+    addTag('offer_type', offer?.offer_type ?? offer?.offerType);
     addTag('plan_type', offer?.planType ?? offer?.plan_type);
-    addTag('customer_segment', offer?.customer_segment);
+    addTag('customer_segment', offer?.customer_segment ?? offer?.customerSegment);
     const marketSegment = Array.isArray(offer?.market_segments)
         ? offer.market_segments[0]
-        : (offer?.market_segments ?? offer?.market_segment);
+        : (offer?.market_segments ?? offer?.market_segment ?? offer?.marketSegments?.[0] ?? offer?.marketSegment);
     addTag('market_segment', marketSegment);
 
     return tags;
@@ -430,35 +434,46 @@ export function buildPromotionOfferCacheEntry(offerSelectorId, offer, productArr
     };
 }
 
-/**
- * Resolves product arrangement code from OST payload or commerce service.
- * @param {string} offerSelectorId
- * @param {object} offer
- * @returns {Promise<string|undefined>}
- */
-async function resolvePromotionOfferFromCommerce(offerSelectorId) {
+function extractCountryFromLocale(locale) {
+    if (!locale) return null;
+    const parts = String(locale).split('_');
+    if (parts.length === 1) return parts[0].toUpperCase();
+    const countryPart = parts.find((p) => /[A-Z]/.test(p));
+    return (countryPart ?? parts[parts.length - 1]).toUpperCase();
+}
+
+async function resolvePromotionWcsOffer(offerSelectorId, country) {
     if (!offerSelectorId) return null;
-    try {
-        const service = getService();
-        if (!service?.collectPriceOptions || !service?.resolveOfferSelectors) return null;
-        const priceOptions = service.collectPriceOptions({ wcsOsi: offerSelectorId });
-        const [offersPromise] = service.resolveOfferSelectors(priceOptions);
-        const [resolvedOffer] = (await offersPromise) || [];
-        return normalizeCommerceOffer(resolvedOffer);
-    } catch {
-        return null;
+    const service = getService();
+    if (!service?.collectPriceOptions || !service?.resolveOfferSelectors) return null;
+    const overrides = { wcsOsi: offerSelectorId };
+    const countryCode = extractCountryFromLocale(country);
+    if (countryCode) {
+        overrides.country = countryCode;
+        overrides.language = countryCode === 'GB' ? 'EN' : 'MULT';
     }
+    const priceOptions = service.collectPriceOptions(overrides);
+    const [offersPromise] = service.resolveOfferSelectors(priceOptions);
+    if (!offersPromise) return null;
+    const [offer] = (await offersPromise) || [];
+    return offer ?? null;
 }
 
 /**
  * Resolves an offer selector id via commerce and builds a promotion offer cache row.
  * @param {string} offerSelectorId
+ * @param {string} [country]
  * @returns {Promise<object|null>}
  */
-export async function resolvePromotionOfferCacheEntry(offerSelectorId) {
+export async function resolvePromotionOfferCacheEntry(offerSelectorId, country) {
     if (!offerSelectorId) return null;
-    const resolvedOffer = await resolvePromotionOfferFromCommerce(offerSelectorId);
-    const arrangementCode = resolvedOffer?.productArrangementCode ?? resolvedOffer?.product_arrangement_code;
+    let resolvedOffer = null;
+    try {
+        resolvedOffer = await resolvePromotionWcsOffer(offerSelectorId, country);
+    } catch {
+        resolvedOffer = null;
+    }
+    const arrangementCode = resolvedOffer?.product_arrangement_code ?? resolvedOffer?.productArrangementCode;
     return buildPromotionOfferCacheEntry(offerSelectorId, resolvedOffer, arrangementCode);
 }
 
@@ -482,8 +497,12 @@ async function resolvePromotionOfferProductArrangementCode(offerSelectorId, offe
     if (offer?.productArrangementCode) return offer.productArrangementCode;
     if (offer?.product_arrangement_code) return offer.product_arrangement_code;
     if (!offerSelectorId) return undefined;
-    const resolvedOffer = await resolvePromotionOfferFromCommerce(offerSelectorId);
-    return resolvedOffer?.productArrangementCode ?? resolvedOffer?.product_arrangement_code;
+    try {
+        const resolvedOffer = await resolvePromotionWcsOffer(offerSelectorId);
+        return resolvedOffer?.productArrangementCode ?? resolvedOffer?.product_arrangement_code;
+    } catch {
+        return undefined;
+    }
 }
 
 /**
@@ -645,23 +664,6 @@ export function promotionOfferCacheEntryHasDisplayName(cacheEntry) {
     if (!cacheEntry) return false;
     const tag = cacheEntry.tags?.find(({ id }) => id?.startsWith('mas:product_code/'));
     return Boolean(tag?.title && tag.title !== tag.id?.split('/').pop());
-}
-
-function normalizeCommerceOffer(resolvedOffer) {
-    if (!resolvedOffer || typeof resolvedOffer !== 'object') return null;
-    return {
-        ...resolvedOffer,
-        offer_type: resolvedOffer.offer_type ?? resolvedOffer.offerType,
-        plan_type: resolvedOffer.plan_type ?? resolvedOffer.planType,
-        planType: resolvedOffer.planType ?? resolvedOffer.plan_type,
-        customer_segment: resolvedOffer.customer_segment ?? resolvedOffer.customerSegment,
-        market_segments: resolvedOffer.market_segments ?? resolvedOffer.marketSegments,
-        market_segment: resolvedOffer.market_segment ?? resolvedOffer.marketSegments?.[0],
-        product_arrangement_code: resolvedOffer.product_arrangement_code ?? resolvedOffer.productArrangementCode,
-        productArrangementCode: resolvedOffer.productArrangementCode ?? resolvedOffer.product_arrangement_code,
-        offer_id: resolvedOffer.offer_id ?? resolvedOffer.offerId,
-        offerId: resolvedOffer.offerId ?? resolvedOffer.offer_id,
-    };
 }
 
 export function parsePromotionOffersField(values) {

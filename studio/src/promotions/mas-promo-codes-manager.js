@@ -145,7 +145,7 @@ class MasPromoCodesManager extends LitElement {
     #handleManualOsiInput(baseOfferId, country, value) {
         const trimmed = value.trim();
         this.#setWorkingOfferSubstitution(baseOfferId, country, trimmed);
-        this.#scheduleSubstituteResolve(trimmed);
+        this.#scheduleSubstituteResolve(trimmed, country);
     }
 
     #clearSubstituteResolveTimers() {
@@ -156,22 +156,25 @@ class MasPromoCodesManager extends LitElement {
     }
 
     #collectCustomSubstituteIds() {
-        const ids = new Set();
+        const map = new Map();
         for (const [key, substituteId] of this.workingOfferSubstitutions) {
             if (!substituteId) continue;
-            const baseSelectorId = key.split('|')[0];
+            const [baseSelectorId, country] = key.split('|');
             if (this.#isDifferentProjectOfferSubstitution(substituteId, baseSelectorId)) continue;
-            ids.add(substituteId);
+            if (!map.has(substituteId)) map.set(substituteId, country);
         }
-        return [...ids];
+        return map;
     }
 
     async #hydrateSubstituteOffersFromWorking() {
         const generation = this.#substituteResolveGeneration;
-        await Promise.all(this.#collectCustomSubstituteIds().map((id) => this.#resolveSubstituteOffer(id, generation)));
+        const idsWithCountry = this.#collectCustomSubstituteIds();
+        await Promise.all(
+            [...idsWithCountry.entries()].map(([id, country]) => this.#resolveSubstituteOffer(id, country, generation)),
+        );
     }
 
-    #scheduleSubstituteResolve(osi) {
+    #scheduleSubstituteResolve(osi, country) {
         if (this.#substituteResolveTimers.has(osi)) {
             clearTimeout(this.#substituteResolveTimers.get(osi));
         }
@@ -180,12 +183,12 @@ class MasPromoCodesManager extends LitElement {
         if (cached && promotionOfferCacheEntryHasDisplayName(cached)) return;
         const timer = setTimeout(() => {
             this.#substituteResolveTimers.delete(osi);
-            this.#resolveSubstituteOffer(osi, this.#substituteResolveGeneration);
+            this.#resolveSubstituteOffer(osi, country, this.#substituteResolveGeneration);
         }, CUSTOM_OSI_RESOLVE_DEBOUNCE_MS);
         this.#substituteResolveTimers.set(osi, timer);
     }
 
-    async #resolveSubstituteOffer(osi, generation = this.#substituteResolveGeneration) {
+    async #resolveSubstituteOffer(osi, country, generation = this.#substituteResolveGeneration) {
         if (!osi || !this.open || generation !== this.#substituteResolveGeneration) return;
         const cached = this.substituteOfferCache?.get(osi);
         if (cached && promotionOfferCacheEntryHasDisplayName(cached)) return;
@@ -194,13 +197,14 @@ class MasPromoCodesManager extends LitElement {
         pending.add(osi);
         this.substituteResolvePending = pending;
 
-        const entry = await this.#getSubstituteResolver()(osi);
+        const entry = await this.#getSubstituteResolver()(osi, country);
 
         const pendingAfter = new Set(this.substituteResolvePending);
         pendingAfter.delete(osi);
         this.substituteResolvePending = pendingAfter;
 
-        if (!this.open || generation !== this.#substituteResolveGeneration || !entry) return;
+        if (!this.open || generation !== this.#substituteResolveGeneration) return;
+        if (!promotionOfferCacheEntryHasDisplayName(entry)) return;
         const next = new Map(this.substituteOfferCache);
         next.set(osi, entry);
         this.substituteOfferCache = next;

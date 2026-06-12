@@ -111,6 +111,43 @@ function toInstant(value) {
 const PROMO_TAG_PREFIX = 'mas:promotion/';
 
 /**
+ * Parses offer substitution lines of the form "substitute:<baseOsi>:<substituteOsi>:<country>"
+ * written by Studio's serializeOfferSubstitutions. Each line overrides one OSI with another
+ * for a specific country.
+ * @param {string[]} lines
+ * @returns {{ baseOsi: string, substituteOsi: string, country: string }[]}
+ */
+function parseOfferSubstitutions(lines) {
+    return lines
+        .map((line) => {
+            if (!line.startsWith('substitute:')) return null;
+            const parts = line.split(':');
+            if (parts.length < 4) return null;
+            const [, baseOsi, substituteOsi, country] = parts;
+            if (!baseOsi?.trim() || !substituteOsi?.trim() || !country?.trim()) return null;
+            return { baseOsi: baseOsi.trim(), substituteOsi: substituteOsi.trim(), country: country.trim() };
+        })
+        .filter(Boolean);
+}
+
+/**
+ * Builds a flat baseOsi → substituteOsi lookup for the current country.
+ * @param {{ baseOsi: string, substituteOsi: string, country: string }[]} substitutions
+ * @param {string} country
+ * @returns {Object}
+ */
+function buildSubstituteMap(substitutions, country) {
+    const map = {};
+    if (!country) return map;
+    for (const sub of substitutions) {
+        if (sub.country === country) {
+            map[sub.baseOsi] = sub.substituteOsi;
+        }
+    }
+    return map;
+}
+
+/**
  * Parses project-level offer override lines of the form "<osis>:<promocode>:<countries>"
  * where osis and countries are comma-separated lists (may be empty), promoCode is required.
  * @param {string[]} lines
@@ -323,8 +360,9 @@ async function init(context) {
     const hydratedProject = hydrateResponse.body;
     const fragmentPaths = parseFragmentPaths(hydratedProject);
     const offerOverrides = parseOfferOverrides(active.offerLines);
+    const offerSubstitutions = parseOfferSubstitutions(active.offerLines);
     const promoCode = hydratedProject.fields?.promoCode ?? null;
-    if (!fragmentPaths.length && !offerOverrides.length) {
+    if (!fragmentPaths.length && !offerOverrides.length && !offerSubstitutions.length) {
         logDebug(() => `Promotion project ${active.id} has no fragments or offer overrides, skipping`, context);
         return { status: 200, activeProject: null };
     }
@@ -342,6 +380,7 @@ async function init(context) {
             promoCode,
             fragmentPaths,
             offerOverrides,
+            offerSubstitutions,
             defaultVariations,
             regionVariations,
         },
@@ -384,10 +423,11 @@ function buildPromoMap(offerOverrides, country, projectPromoCode, context) {
 async function promotions(context) {
     const { activeProject } = (await context.promises?.promotions) ?? {};
     if (!activeProject) return { ...context, status: 200 };
-    const { fragmentPaths = [], offerOverrides = [], promoCode } = activeProject;
+    const { fragmentPaths = [], offerOverrides = [], offerSubstitutions = [], promoCode } = activeProject;
     const promoMap = buildPromoMap(offerOverrides, context.country, promoCode, context);
+    const substituteMap = buildSubstituteMap(offerSubstitutions, context.country);
     const promoFragmentPaths = new Set(fragmentPaths);
-    return { ...context, status: 200, promoMap, promoFragmentPaths };
+    return { ...context, status: 200, promoMap, substituteMap, promoFragmentPaths };
 }
 
 export const transformer = {

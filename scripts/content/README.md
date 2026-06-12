@@ -1,85 +1,59 @@
+# env vars
+
+- `MAS_ACCESS_TOKEN`: The IMS access token of a user, copy it from your IMS session in MAS Studio, typically using `copy(adobeid.authorize())` in the console.
+- `MAS_API_KEY`: The API key for authentication, api key used in MAS Studio.
+
+```sh
+export MAS_ACCESS_TOKEN="your-access-token"
+export MAS_API_KEY="your-api-key"
+```
+
 # gen-locales.mjs
 
-## Description
+Creates locale folder tree for a given surface in Odin. Locales are sourced from `locales.js` for the given surface. Existing folders are skipped; missing ones are created in batches of 5.
 
-The `gen-locales.mjs` script is used to generate locale content tree for a MAS sub tenant in Odin.
-
-## Usage
-
-### Prerequisites
-
-- Node.js installed on your machine
-
-- Required environment variables:
-
-    - `accessToken`: The IMS access token of a user, copy it from your IMS session in MAS Studio, typically using `copy(adobeid.authorize())` in the console.
-    - `apiKey`: The API key for authentication, api key used in MAS Studio.
-
-- Required parameters:
-    - `bucket`: The AEM bucket name, e.g: author-p22655-e155390 for Odin QA
-    - `consumer`: The consumer identifier, e.g: ccd
-
-### Running the Script
-
-3. Run the script:
-
-    ```sh
-    export MAS_ACCESS_TOKEN="your-access-token"
-    export MAS_API_KEY="mas-studio"
-
-    node gen-locales.mjs author-p22655-e155390 drafts
-    ```
+```sh
+node gen-locales.mjs author-*-* acom-cc --dry-run
+```
 
 # gen-dictionaries.mjs
 
-## Description
-
 The `gen-dictionaries.mjs` script creates dictionary index fragments for all locale folders under a given surface in Odin. For each locale subfolder it checks whether an `index` content fragment exists and creates one if not, then publishes it.
+Each index fragment's `parent` field is set based on the locale's position in the hierarchy:
 
-- Required parameters:
-
-    - `bucket`: The AEM bucket name, e.g: `author-p22655-e155390` for Odin QA
-    - `surface`: The surface name, e.g: `sandbox`
-    - `modelId`: The content fragment model ID for the dictionary index
-
-- Optional flags:
-    - `--dry-run`: Lists locale folders and logs what would be created without making any POST requests.
-
-### Running the Script
+- A **regional locale** points to its surface default. For example, `sandbox/fr_CA` gets parent `sandbox/fr_FR` index.
+- A **surface default locale** points to the corresponding `acom` locale. For example, `sandbox/fr_FR` gets parent `acom/fr_FR` index.
+- An **`acom` locale** has no parent (`null`).
+  Newly created indexes are published, but existing ones that had their parent field fixed will not be published.
 
 ```sh
-
-node gen-dictionaries.mjs author-*-* sandbox L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25hcnk
+node gen-dictionaries.mjs author-*-* express L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25hcnk --dry-run
 ```
 
-### Dry run
+# validate-dictionary-parent.mjs
 
-Use `--dry-run` to preview what the script would do without creating or publishing any fragments:
+Read-only validation that each locale's dictionary index fragment has the correct `parent` reference for a given surface. Logs `OK`, `MISMATCH`, or `MISSING` per locale and prints a summary at the end. Makes no changes.
 
 ```sh
-node gen-dictionaries.mjs author-*-* sandbox L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25hcnk --dry-run
+# validate author fragments
+node validate-dictionary-parent.mjs author-*-* sandbox
+
+# validate published fragments on odin.adobe.com
+node validate-dictionary-parent.mjs author-*-* sandbox --live
 ```
 
 # repair-dictionary-entry.mjs
 
-Checks that all dictionary entry fragments in each locale's `dictionary` folder are referenced in the index's `entries` field. Logs and repairs missing entries. Use `--publish` to publish the index after repair.
+Checks that all dictionary entry fragments in each locale's `dictionary` folder are referenced in the index's `entries` field. Logs and repairs missing entries. Use `--live` to publish the index after repair.
 
 ```sh
-export MAS_ACCESS_TOKEN="your-access-token"
-export MAS_API_KEY="mas-studio"
+# validate published fragments on odin.adobe.com
+node repair-dictionary-entry.mjs author-*-* sandbox --dry-run
 
-node repair-dictionary-entry.mjs author-*-* sandbox
-```
-
-To run for a specific locale, in dry run - no edits, no publish:
-
-```sh
+# run for a specific locale
 node repair-dictionary-entry.mjs author-*-* sandbox de_DE --dry-run
-```
 
-To repair and publish:
-
-```sh
+# repair and publish
 node repair-dictionary-entry.mjs author-*-* sandbox de_DE --publish
 ```
 

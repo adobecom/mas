@@ -1,4 +1,5 @@
 import { PATH_TOKENS, PZN_FOLDER, TAG_PROMOTION_PREFIX, MAS_PRODUCT_CODE_PREFIX } from '../constants.js';
+import { isPromoVariationPath } from '../promotions/promotion-model.js';
 import { getCachedTagTitle } from './tag-cache.js';
 import { formatProductCodeNestedTitle, normalizeTagId } from './tag-id-utils.js';
 import { isVariationPathInParentLocaleFamily } from '../../../io/www/src/fragment/locales.js';
@@ -190,9 +191,14 @@ export class Fragment {
                 if (isTags) this.newTags = value;
                 return false;
             }
-            const newField = { name: fieldName, type: parentField?.type || 'text', values: encodedValues };
+            const newField = {
+                name: fieldName,
+                type: parentField?.type || (isTags ? 'tag' : 'text'),
+                values: encodedValues,
+            };
             // Inherit multiple from parent field
             if (parentField?.multiple) newField.multiple = true;
+            if (isTags) newField.multiple = true;
             this.fields.push(newField);
         }
 
@@ -352,11 +358,12 @@ export class Fragment {
      */
     #categorizeVariations() {
         const variationPaths = this.getVariations();
-        if (!variationPaths.length || !this.references?.length) {
+        const references = this.references || [];
+        if (!variationPaths.length && !references.length) {
             return { locale: [], promo: [], grouped: [] };
         }
 
-        const referencesByPath = new Map(this.references.map((ref) => [ref.path, ref]));
+        const referencesByPath = new Map(references.map((ref) => [ref.path, ref]));
 
         const currentMatch = this.path.match(PATH_TOKENS);
         const { surface, parsedLocale: currentLocale, fragmentPath } = currentMatch?.groups || {};
@@ -364,6 +371,7 @@ export class Fragment {
         const locale = [];
         const promo = [];
         const grouped = [];
+        const promoPaths = new Set();
 
         for (const path of variationPaths) {
             const reference = referencesByPath.get(path);
@@ -376,9 +384,16 @@ export class Fragment {
                 continue;
             }
 
+            if (isPromoVariationPath(path)) {
+                promo.push(reference);
+                promoPaths.add(path);
+                continue;
+            }
+
             const isPromo = reference.tags?.some((t) => t.id?.startsWith(TAG_PROMOTION_PREFIX));
             if (isPromo) {
                 promo.push(reference);
+                promoPaths.add(path);
                 continue;
             }
 
@@ -398,6 +413,12 @@ export class Fragment {
             }
         }
 
+        for (const reference of references) {
+            if (!isPromoVariationPath(reference.path) || promoPaths.has(reference.path)) continue;
+            promo.push(reference);
+            promoPaths.add(reference.path);
+        }
+
         return { locale, promo, grouped };
     }
 
@@ -415,6 +436,14 @@ export class Fragment {
      */
     listGroupedVariations() {
         return this.#categorizeVariations().grouped;
+    }
+
+    /**
+     * Lists all promo variations of the fragment.
+     * @returns {Object[]}
+     */
+    listPromoVariations() {
+        return this.#categorizeVariations().promo;
     }
 
     /**

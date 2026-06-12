@@ -17,6 +17,8 @@ export const CSS = `
     --consonant-merch-card-bizpro-text-muted-color: #000000a3;
     --consonant-merch-card-bizpro-text-inverse-color: #fff;
     --consonant-merch-card-bizpro-cta-accent-color: #3b63fb;
+    --consonant-merch-card-bizpro-cta-accent-hover-color: #274dea;
+    --consonant-merch-card-bizpro-cta-outline-hover-color: #ebebeb;
     --consonant-merch-card-bizpro-divider-color: #0000001f;
 }
 
@@ -272,12 +274,29 @@ merch-card[variant="bizpro"] [slot="footer"] [data-button-type="accent"] {
     border: none;
 }
 
+/* Hover (S2A): the accent button darkens; the outline button gets a subtle
+   gray fill while its border and text stay unchanged. Selectors mirror the
+   base rules above so hover applies to the same buttons. */
+merch-card[variant="bizpro"] [slot="footer"] .con-button.blue:hover,
+merch-card[variant="bizpro"] [slot="footer"] a.accent:hover,
+merch-card[variant="bizpro"] [slot="footer"] [data-button-type="accent"]:hover {
+    background-color: var(--consonant-merch-card-bizpro-cta-accent-hover-color);
+}
+
 merch-card[variant="bizpro"] [slot="footer"] .con-button.outline,
+merch-card[variant="bizpro"] [slot="footer"] .con-button.primary,
 merch-card[variant="bizpro"] [slot="footer"] a.outline,
 merch-card[variant="bizpro"] [slot="footer"] [data-button-type="primary"] {
     background: transparent;
     color: var(--consonant-merch-card-bizpro-text-color);
     border: 2px solid var(--consonant-merch-card-bizpro-text-color);
+}
+
+merch-card[variant="bizpro"] [slot="footer"] .con-button.outline:hover,
+merch-card[variant="bizpro"] [slot="footer"] .con-button.primary:hover,
+merch-card[variant="bizpro"] [slot="footer"] a.outline:hover,
+merch-card[variant="bizpro"] [slot="footer"] [data-button-type="primary"]:hover {
+    background-color: var(--consonant-merch-card-bizpro-cta-outline-hover-color);
 }
 
 /* heading-m holds the price. inline-price cards are covered by the .price-span
@@ -314,6 +333,77 @@ merch-card[variant="bizpro"] [slot="heading-m"] .price-recurrence {
    Figma's pricing typography presents it lowercase ("/mo"). */
 merch-card[variant="bizpro"] [slot="heading-m"] .price-recurrence {
     text-transform: lowercase;
+}
+
+/* Strikethrough (regular) price — Figma 988:14784: 14px regular muted, struck,
+   on its own line ABOVE the current price (988:14785). Out-specifies the
+   18px/900 .price rules above. Covers both markup shapes:
+   - promo: .price-strikethrough next to .price-alternative inside one
+     price-template inline-price (the promo price keeps the 18px/900 look)
+   - authored: a separate strikethrough-template inline-price before the main
+     price. The line-through itself comes from the global stylesheet. */
+merch-card[variant="bizpro"]
+    [slot="heading-m"]
+    .price:is(.price-strikethrough, .price-promo-strikethrough),
+merch-card[variant="bizpro"]
+    [slot="heading-m"]
+    .price:is(.price-strikethrough, .price-promo-strikethrough)
+    span {
+    font-family: var(--consonant-merch-card-bizpro-font-family-regular);
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 18px;
+    letter-spacing: 0.14px;
+    color: var(--consonant-merch-card-bizpro-text-muted-color);
+}
+
+/* Stack the struck price onto its own line. The authored shape needs the
+   inline-price wrapper itself to break (its inner .price going block would
+   stay inside the inline-block wrapper); the promo shape needs the inner
+   .price-strikethrough to break within the shared wrapper. */
+merch-card[variant="bizpro"]
+    [slot="heading-m"]
+    span[is="inline-price"]:is(
+        [data-template="strikethrough"],
+        [data-template="priceStrikethrough"]
+    ),
+merch-card[variant="bizpro"]
+    [slot="heading-m"]
+    span[is="inline-price"][data-template="price"]
+    .price:is(.price-strikethrough, .price-promo-strikethrough) {
+    display: block;
+}
+
+/* The promo shape separates the two prices with an &nbsp; text node directly
+   inside the wrapper; once the strikethrough goes block, that nbsp would
+   indent the promo price's line. Zeroing the wrapper font collapses it — the
+   .price spans carry their own explicit sizes (same trick as plans.css.js'
+   ja_JP price-alternative block). */
+merch-card[variant="bizpro"]
+    [slot="heading-m"]
+    span[is="inline-price"][data-template="price"]:has(
+        .price-strikethrough,
+        .price-promo-strikethrough
+    ) {
+    font-size: 0;
+}
+
+/* Plan type line ("Annual, billed monthly") — the legal-template price span,
+   rendered when the Show Plan type setting is on. Its container carries the
+   shared .price class, so this later rule overrides the 18px/900 price
+   styling above with the muted body style (same look as promo-text, Figma
+   1114:39070). Both the custom-element wrapper AND the inner .price container
+   need display:block — the wrapper is inline-block by default, which would
+   shrink-wrap the block container and keep it on the price's line. */
+merch-card[variant="bizpro"] [slot="heading-m"] span[is="inline-price"][data-template="legal"],
+merch-card[variant="bizpro"] [slot="heading-m"] .price.price-legal {
+    display: block;
+    font-family: var(--consonant-merch-card-bizpro-font-family-regular);
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 18px;
+    letter-spacing: 0.14px;
+    color: var(--consonant-merch-card-bizpro-text-muted-color);
 }
 
 /* Collection grid — C2 breakpoints only (768, 1280).
@@ -370,15 +460,27 @@ merch-card-collection.plans:is(.one-merch-card, .two-merch-cards, .three-merch-c
 }
 
 @media screen and ${MOBILE_LANDSCAPE} {
+    /* Mobile (320–767px): the default track caps cards at 394px, leaving side
+       margins wider than the 24px gutter. Collapse to a single 1fr track and
+       drop the card cap so cards fill the available width. */
+    merch-card-collection.plans:is(.one-merch-card, .two-merch-cards, .three-merch-cards, .four-merch-cards):has(merch-card[variant="bizpro"]) {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
     merch-card[variant="bizpro"] {
         width: 100%;
-        max-width: var(--consonant-merch-card-bizpro-max-width);
+        max-width: none;
+    }
+
+    /* A collection inside a Milo .section.container inherits its 24px page
+       gutter; one dropped straight into a plain section gets none, so the
+       now-full-width cards bleed to the viewport edge. Restore the gutter on
+       the collection itself for that case only. The > .content > chain pins
+       this to the collection's own section, so it never doubles up where a
+       .container already supplies the gutter. */
+    .section:not(.container) > .content > .collection-container.plans:has(merch-card[variant="bizpro"]) {
+        padding-inline: 24px;
     }
 }
 
-/* ETF / legal text inline link styling — underlined inline anchors */
-merch-card[variant="bizpro"] [slot="legal-text"] a {
-    color: inherit;
-    text-decoration: underline;
-}
 `;

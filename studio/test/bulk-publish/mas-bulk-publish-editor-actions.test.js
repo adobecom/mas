@@ -154,14 +154,30 @@ describe('mas-bulk-publish-editor (computed getters)', () => {
         expect(el.publishBlockedReason).to.equal('Project must be saved before publishing');
     });
 
-    it('disabledActions disables PUBLISH when an existing project has unsaved changes', async () => {
+    it('disabledActions enables PUBLISH when an existing project has unsaved changes (auto-saves on publish)', async () => {
         const el = await makeEditor();
         Store.bulkPublishProjects.inEdit.set(makeFragmentStore({ items: JSON.stringify([{ status: 'valid' }]) }));
         await el.updateComplete;
         el.hasChanges = true;
         await el.updateComplete;
-        expect(el.disabledActions.has(QUICK_ACTION.PUBLISH)).to.equal(true);
-        expect(el.publishBlockedReason).to.equal('Project must be saved before publishing');
+        expect(el.disabledActions.has(QUICK_ACTION.PUBLISH)).to.equal(false);
+        expect(el.publishBlockedReason).to.equal('');
+    });
+
+    it('canStartPublishing is false while the project still has unsaved changes', async () => {
+        const el = await makeEditor();
+        Store.bulkPublishProjects.inEdit.set(makeFragmentStore({ items: JSON.stringify([{ status: 'valid' }]) }));
+        await el.updateComplete;
+        el.hasChanges = true;
+        expect(el.canStartPublishing).to.equal(false);
+    });
+
+    it('canStartPublishing is true once the project is saved', async () => {
+        const el = await makeEditor();
+        Store.bulkPublishProjects.inEdit.set(makeFragmentStore({ items: JSON.stringify([{ status: 'valid' }]) }));
+        await el.updateComplete;
+        el.hasChanges = false;
+        expect(el.canStartPublishing).to.equal(true);
     });
 
     it('disabledActions disables PUBLISH when all valid items are alreadyPublished', async () => {
@@ -491,6 +507,55 @@ describe('mas-bulk-publish-editor (save/delete/lock with repository)', () => {
         await el.saveBulkProject();
 
         expect(repositoryEl.saveFragment.calledOnce).to.equal(true);
+    });
+
+    it('publish auto-saves first when hasChanges is true', async () => {
+        const el = await makeEditor();
+        const fs = makeFragmentStore({
+            title: 'Proj',
+            urls: '',
+            items: JSON.stringify([{ status: 'valid', path: '/content/dam/mas/foo' }]),
+            locales: [],
+        });
+        Store.bulkPublishProjects.inEdit.set(fs);
+        await el.updateComplete;
+        Store.search.set({ path: 'sandbox' });
+        el.hasChanges = true;
+
+        const saveSpy = sandbox.spy(el, 'saveBulkProject');
+        repositoryEl.saveFragment = sandbox.stub().resolves({ id: 'frag-id-1' });
+
+        try {
+            await el.publish();
+        } catch {
+            // publish() may throw later in the bulk-publish-client flow under WTR;
+            // we only assert that saveBulkProject was invoked first.
+        }
+
+        expect(saveSpy.calledOnce).to.equal(true);
+    });
+
+    it('publish does not auto-save when hasChanges is false', async () => {
+        const el = await makeEditor();
+        const fs = makeFragmentStore({
+            title: 'Proj',
+            urls: '',
+            items: JSON.stringify([{ status: 'valid', path: '/content/dam/mas/foo' }]),
+            locales: [],
+        });
+        Store.bulkPublishProjects.inEdit.set(fs);
+        await el.updateComplete;
+        Store.search.set({ path: 'sandbox' });
+
+        const saveSpy = sandbox.spy(el, 'saveBulkProject');
+
+        try {
+            await el.publish();
+        } catch {
+            // ignore downstream bulk-publish-client errors under WTR
+        }
+
+        expect(saveSpy.called).to.equal(false);
     });
 
     it('deleteBulkProject clears inEdit and navigates home for new project without calling repo', async () => {
@@ -903,6 +968,27 @@ describe('mas-bulk-publish-editor (validate)', () => {
         expect(item.alreadyPublished).to.equal(false);
     });
 
+    it('validate sets locale on the item from the fragment path.', async () => {
+        const el = await makeEditor();
+        seedNew({ urls: '/content/dam/mas/sandbox/en_US/locale-frag' });
+        await el.updateComplete;
+
+        const rawFrag = {
+            id: 'frag-locale-1',
+            path: '/content/dam/mas/sandbox/en_US/locale-frag',
+            status: 'MODIFIED',
+            fields: [],
+        };
+        repositoryEl.aem = {
+            sites: { cf: { fragments: { getByPath: sandbox.stub().resolves(rawFrag) } } },
+        };
+
+        const result = await el.validate();
+        const item = result.find((i) => i.url === '/content/dam/mas/sandbox/en_US/locale-frag');
+        expect(item.status).to.equal('valid');
+        expect(item.locale).to.equal('en_US');
+    });
+
     it('validate marks 404 errors as not-found', async () => {
         const el = await makeEditor();
         const fields = seedNew({ urls: '/content/dam/mas/missing' });
@@ -999,6 +1085,161 @@ describe('mas-bulk-publish-editor (openLocalesPicker)', () => {
         expect(codes).to.include('fr_BE');
         expect(codes).to.include('en_AU');
         expect(codes).to.include('de_AT');
+    });
+});
+
+describe('mas-bulk-publish-editor (reEnrichItems on load)', () => {
+    let repositoryEl;
+    let sandbox;
+    const CARD_MODEL_PATH = '/conf/mas/settings/dam/cfm/models/card';
+
+    function rawCardFragment(id, path) {
+        return { id, path, model: { path: CARD_MODEL_PATH }, status: 'MODIFIED', fields: [], tags: [] };
+    }
+
+    beforeEach(() => {
+        sandbox = sinon.createSandbox();
+        repositoryEl = document.createElement('mas-repository');
+        repositoryEl.setAttribute('bucket', 'test-bucket');
+        document.body.appendChild(repositoryEl);
+        Store.search.set({ path: 'sandbox' });
+    });
+
+    afterEach(() => {
+        Store.bulkPublishProjects.inEdit.set(null);
+        Store.search.set({});
+        repositoryEl.remove();
+        sandbox.restore();
+    });
+
+    it('resolves authorPath and locale by path for items reconstructed from fragments', async () => {
+        const el = await makeEditor();
+        const path = '/content/dam/mas/sandbox/en_US/card-1';
+        const fs = makeFragmentStore({ fragments: [path] });
+        Store.bulkPublishProjects.inEdit.set(fs);
+        await el.updateComplete;
+
+        const getByPath = sandbox.stub().resolves(rawCardFragment('frag-1', path));
+        repositoryEl.aem = { sites: { cf: { fragments: { getByPath } } } };
+
+        await el.reEnrichItems();
+
+        expect(getByPath.calledWith(path)).to.equal(true);
+        expect(el.localItems[0].authorPath).to.be.a('string').and.to.include('merch-card');
+        expect(el.localItems[0].locale).to.equal('en_US');
+    });
+
+    it('resolves by fragmentId when the item carries one (legacy items JSON)', async () => {
+        const el = await makeEditor();
+        const path = '/content/dam/mas/sandbox/en_US/card-1';
+        const stored = [{ url: 'u', fragmentId: 'frag-1', path, status: 'valid' }];
+        const fs = makeFragmentStore({ items: JSON.stringify(stored) });
+        Store.bulkPublishProjects.inEdit.set(fs);
+        await el.updateComplete;
+
+        repositoryEl.getFragmentById = sandbox.stub().resolves(rawCardFragment('frag-1', path));
+
+        await el.reEnrichItems();
+
+        expect(repositoryEl.getFragmentById.calledWith('frag-1')).to.equal(true);
+        expect(el.localItems[0].authorPath).to.be.a('string').and.to.include('merch-card');
+        expect(el.localItems[0].locale).to.equal('en_US');
+    });
+
+    it('does not mark the project as changed when re-enriching', async () => {
+        const el = await makeEditor();
+        const path = '/content/dam/mas/sandbox/en_US/card-1';
+        const fs = makeFragmentStore({ fragments: [path] });
+        Store.bulkPublishProjects.inEdit.set(fs);
+        await el.updateComplete;
+        el.hasChanges = false;
+
+        repositoryEl.aem = {
+            sites: { cf: { fragments: { getByPath: sandbox.stub().resolves(rawCardFragment('frag-1', path)) } } },
+        };
+
+        await el.reEnrichItems();
+
+        expect(el.hasChanges).to.equal(false);
+    });
+
+    it('skips items that already have an authorPath', async () => {
+        const el = await makeEditor();
+        const stored = [{ url: 'u', path: '/x', authorPath: 'merch-card: SANDBOX', status: 'valid' }];
+        const fs = makeFragmentStore({ items: JSON.stringify(stored) });
+        Store.bulkPublishProjects.inEdit.set(fs);
+        await el.updateComplete;
+
+        const getByPath = sandbox.stub();
+        repositoryEl.aem = { sites: { cf: { fragments: { getByPath } } } };
+        repositoryEl.getFragmentById = sandbox.stub();
+
+        await el.reEnrichItems();
+
+        expect(getByPath.called).to.equal(false);
+        expect(repositoryEl.getFragmentById.called).to.equal(false);
+    });
+
+    it('keeps the item valid when the fragment can no longer be resolved', async () => {
+        const el = await makeEditor();
+        const path = '/content/dam/mas/sandbox/en_US/gone';
+        const fs = makeFragmentStore({ fragments: [path] });
+        Store.bulkPublishProjects.inEdit.set(fs);
+        await el.updateComplete;
+
+        repositoryEl.aem = {
+            sites: { cf: { fragments: { getByPath: sandbox.stub().rejects(new Error('boom')) } } },
+        };
+
+        await el.reEnrichItems();
+
+        expect(el.localItems[0].status).to.equal('valid');
+    });
+
+    it('does not overwrite localItems when a newer run supersedes it mid-flight', async () => {
+        const el = await makeEditor();
+        const path = '/content/dam/mas/sandbox/en_US/card-1';
+        const fs = makeFragmentStore({ fragments: [path] });
+        Store.bulkPublishProjects.inEdit.set(fs);
+        await el.updateComplete;
+
+        let resolveFetch;
+        const getByPath = sandbox.stub().returns(new Promise((r) => (resolveFetch = r)));
+        repositoryEl.aem = { sites: { cf: { fragments: { getByPath } } } };
+
+        const enrichPromise = el.reEnrichItems();
+        const pending = [{ url: 'typed', status: 'pending' }];
+        el.localItems = pending;
+        el.disconnectedCallback();
+        resolveFetch(rawCardFragment('frag-1', path));
+        await enrichPromise;
+
+        expect(el.localItems).to.equal(pending);
+    });
+
+    it('caps concurrent fragment fetches when re-enriching many items', async () => {
+        const el = await makeEditor();
+        const paths = Array.from({ length: 10 }, (n, i) => `/content/dam/mas/sandbox/en_US/card-${i}`);
+        const fs = makeFragmentStore({ fragments: paths });
+        Store.bulkPublishProjects.inEdit.set(fs);
+        await el.updateComplete;
+
+        let inFlight = 0;
+        let peak = 0;
+        const getByPath = sandbox.stub().callsFake(async (p) => {
+            inFlight++;
+            peak = Math.max(peak, inFlight);
+            await Promise.resolve();
+            await Promise.resolve();
+            inFlight--;
+            return rawCardFragment(`frag-${p}`, p);
+        });
+        repositoryEl.aem = { sites: { cf: { fragments: { getByPath } } } };
+
+        await el.reEnrichItems();
+
+        expect(getByPath.callCount).to.equal(10);
+        expect(peak).to.be.at.most(8);
     });
 });
 

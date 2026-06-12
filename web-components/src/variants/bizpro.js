@@ -1,9 +1,12 @@
 import { VariantLayout } from './variant-layout';
 import { html, css, nothing } from 'lit';
 import { CSS } from './bizpro.css.js';
+import { ARROW_DOWN, ARROW_UP, ENTER, TAB } from '../focus.js';
 import {
     EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
+    EVENT_TYPE_RESOLVED,
     SELECTOR_MAS_INLINE_PRICE,
+    TEMPLATE_PRICE_LEGAL,
 } from '../constants.js';
 
 export const BIZPRO_AEM_FRAGMENT_MAPPING = {
@@ -23,8 +26,7 @@ export const BIZPRO_AEM_FRAGMENT_MAPPING = {
     quantitySelect: { tag: 'div', slot: 'quantity-select' },
     shortDescription: { tag: 'div', slot: 'legal-text' },
     secureLabel: true,
-    // AI Assistant add-on; offer + inline price resolve via the authored
-    // {{addon-acrobat-ai-assistant}} placeholder.
+    planType: true,
     addon: true,
     ctas: { slot: 'footer', size: 'm' },
     whatsIncluded: { tag: 'div', slot: 'whats-included' },
@@ -40,12 +42,77 @@ export class BizPro extends VariantLayout {
     expanded = false;
     licenseOpen = false;
     licenseQty = null;
+    // Active-descendant highlight; focus stays on the trigger (combobox model).
+    licenseHighlightedIndex = 0;
     #licenseDocListenerBound = null;
-    #resizeFrame = null;
-    #visibilityObserver = null;
+    #sizeObserver = null;
+    lastSyncKey = null;
 
     getGlobalCSS() {
         return CSS;
+    }
+
+    // Forwards the Show Plan type setting to the legal-template price (which
+    // renders the plan type line). Same pattern as plans/plans-v2.
+    priceOptionsProvider(element, options) {
+        if (element.dataset.template !== TEMPLATE_PRICE_LEGAL) return;
+        options.displayPlanType = this.card?.settings?.displayPlanType ?? false;
+    }
+
+    // Clones the main price into a legal-template sibling (as plans/plans-v2) so
+    // tax/plan-type render on the clone, off the main price.
+    async adjustLegal() {
+        if (this.legalAdjusted) return;
+        try {
+            this.legalAdjusted = true;
+            await this.card.updateComplete;
+            await customElements.whenDefined('inline-price');
+            const headingPrice = this.mainPrice;
+            if (!headingPrice) return;
+            const legal = headingPrice.cloneNode(true);
+            await headingPrice.onceSettled();
+            if (!headingPrice?.options) return;
+            // Per-unit stays on the pricing line (unlike plans); only tax and
+            // plan type move to the legal clone, which drops per-unit.
+            if (headingPrice.options.displayTax)
+                headingPrice.dataset.displayTax = 'false';
+            if (headingPrice.options.displayPlanType)
+                headingPrice.dataset.displayPlanType = 'false';
+            legal.setAttribute('data-template', 'legal');
+            legal.dataset.displayPerUnit = 'false';
+            headingPrice.parentNode.insertBefore(
+                legal,
+                headingPrice.nextSibling,
+            );
+            await legal.onceSettled();
+            // Re-apply the override whenever the legal price re-resolves.
+            if (!this.legalResolvedHandler) {
+                this.legalResolvedHandler = () => this.adjustShortDescription();
+                legal.addEventListener(
+                    EVENT_TYPE_RESOLVED,
+                    this.legalResolvedHandler,
+                );
+            }
+            this.adjustShortDescription();
+        } catch {
+            // Proceed with the other post-update adjustments
+        }
+    }
+
+    // Authored Short Description replaces the derived plan type wording. Read
+    // [slot="legal-text"] in place (never detached): the shadow has no matching
+    // slot so it won't render, and merch-card swaps in a fresh layout per render.
+    adjustShortDescription() {
+        const text = this.card
+            .querySelector('[slot="legal-text"]')
+            ?.textContent?.trim();
+        if (!text) return;
+        const legalPrice = this.card.querySelector(
+            '[slot="heading-m"] [data-template="legal"]',
+        );
+        const planType = legalPrice?.querySelector('.price-plan-type');
+        if (!planType) return;
+        planType.textContent = text;
     }
 
     get hasWhatsIncluded() {
@@ -53,10 +120,8 @@ export class BizPro extends VariantLayout {
     }
 
     get whatsIncludedToggleLabel() {
-        // Authored per-locale via the editor's whats-included label input
-        // (stored as a leading <p class="whats-included-label">, hidden in the
-        // features zone by bizpro.css.js). English fallback covers
-        // fragments authored before the label existed.
+        // Authored as a leading <p class="whats-included-label">; English
+        // fallback covers fragments authored before the label existed.
         return (
             this.card
                 .querySelector('[slot="whats-included"] .whats-included-label')
@@ -69,10 +134,8 @@ export class BizPro extends VariantLayout {
     }
 
     get hasQuantitySelect() {
-        // The "Show quantity selector" toggle authors an empty sentinel
-        // (<merch-quantity-select/>) when off, which hydrate still wraps in a
-        // slot div. Only count a *configured* selector (title/min/step) so an
-        // empty one doesn't trigger the styled license-zone.
+        // Count only a configured selector (title/min/step) — the toggle authors
+        // an empty <merch-quantity-select/> when off.
         const qs = this.quantitySelectEl;
         if (!qs) return false;
         return (
@@ -99,75 +162,112 @@ export class BizPro extends VariantLayout {
         addon.setAttribute('custom-checkbox', '');
         const price = this.mainPrice;
         if (!price) return;
-        await price.onceSettled();
+        await price.onceSettled?.();
         const planType = price.value?.[0]?.planType;
         if (planType) addon.planType = planType;
     }
 
     async postCardUpdateHook() {
         await this.adjustAddon();
+        if (!this.legalAdjusted) {
+            await this.adjustLegal();
+        }
+        this.adjustShortDescription();
         await super.postCardUpdateHook();
-        // Line the white .top-card sections up across a row once the card has
-        // laid out. Only relevant when cards sit side by side (>=768px).
-        if (window.matchMedia('(min-width: 768px)').matches) {
-            requestAnimationFrame(() => this.syncHeights());
+        // Line the white .top-card sections up across a row (desktop only).
+        if (window.matchMedia('(min-width: 768px)').matches) this.syncHeights();
+    }
+
+    // Heading/description reflow when the Adobe Clean fonts load, so wait for
+    // them before measuring. Same shape as full-pricing-express.waitForTitleFont.
+    async waitForContentFonts() {
+        const els = [
+            this.card.querySelector('[slot="heading-xs"]'),
+            this.card.querySelector('[slot="body-xs"]'),
+        ].filter(Boolean);
+        if (document.fonts?.load) {
+            await Promise.all(
+                els.map((el) => {
+                    const s = window.getComputedStyle(el);
+                    const font = `${s.fontWeight} ${s.fontSize} ${s.fontFamily}`;
+                    return document.fonts
+                        .load(font, el.textContent)
+                        .catch(() => null);
+                }),
+            );
+        }
+        await document.fonts?.ready;
+    }
+
+    // Publish each row's tallest white-card height as min-height so prices/CTAs
+    // line up. Group by offsetTop, not rect.top: the tab entrance animation
+    // transforms the painted tops mid-flight, which would split a row.
+    async syncHeights() {
+        if (this.card.heightSync === false) return;
+        await this.waitForContentFonts();
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+        const container = this.getContainer();
+        if (!container || this.card.getBoundingClientRect().width <= 2) return;
+        const variant = this.card.variant;
+        const prop = `--consonant-merch-card-${variant}-top-card-height`;
+        const cards = [
+            ...container.querySelectorAll(`merch-card[variant="${variant}"]`),
+        ].filter(
+            (card) =>
+                card.getBoundingClientRect().width > 2 &&
+                card.variantLayout?.card?.heightSync !== false,
+        );
+        const rows = new Map();
+        for (const card of cards) {
+            const row = rows.get(card.offsetTop) ?? [];
+            row.push(card);
+            rows.set(card.offsetTop, row);
+        }
+        for (const row of rows.values()) {
+            let max = 0;
+            for (const card of row) {
+                card.style.removeProperty(prop);
+                const topCard = card.shadowRoot?.querySelector('.top-card');
+                if (topCard)
+                    max = Math.max(
+                        max,
+                        parseInt(getComputedStyle(topCard).height) || 0,
+                    );
+            }
+            // A lone card has nothing to match, so it keeps its natural height.
+            if (max > 0 && row.length > 1)
+                row.forEach((card) => card.style.setProperty(prop, `${max}px`));
         }
     }
 
-    // Equalize the white card height across a row so the whats-included sections
-    // start at the same Y even when cards carry unequal top content (matches the
-    // plans/plans-v2 row-sync pattern). syncRowHeights publishes the row's max
-    // .top-card height as --consonant-merch-card-bizpro-top-card-height,
-    // which the shadow .top-card consumes as min-height.
-    syncHeights() {
-        if (this.card.getBoundingClientRect().width <= 2) return;
-        this.syncRowHeights([
-            {
-                name: 'top-card',
-                getElement: (card) =>
-                    card.shadowRoot?.querySelector('.top-card'),
-            },
-        ]);
+    // Re-sync on a real reflow (width or description-height change), keyed so
+    // publishing the min-height can't loop the observer. Mirrors
+    // full-pricing-express.resyncOnReflow.
+    resyncOnReflow() {
+        const width = this.card.getBoundingClientRect().width;
+        if (width <= 2) return;
+        const desc = this.card.querySelector('[slot="body-xs"]');
+        const descHeight = desc
+            ? Math.round(desc.getBoundingClientRect().height)
+            : 0;
+        const key = `${Math.round(width)}:${descHeight}`;
+        if (key === this.lastSyncKey) return;
+        this.lastSyncKey = key;
+        this.syncHeights();
     }
 
-    handleResize = () => {
-        if (this.#resizeFrame) cancelAnimationFrame(this.#resizeFrame);
-        this.#resizeFrame = requestAnimationFrame(() => {
-            this.#resizeFrame = null;
-            if (window.matchMedia('(min-width: 768px)').matches) {
-                this.syncHeights();
-            }
-        });
-    };
-
     connectedCallbackHook() {
-        window.addEventListener('resize', this.handleResize);
-        // Cards revealed lazily (e.g. a non-default tab) lay out with width 0, so
-        // the postCardUpdateHook sync above bails and never runs. Re-sync the
-        // first time the card actually becomes visible. Matches plans-v2.
-        this.#visibilityObserver = new IntersectionObserver(([entry]) => {
-            if (entry.boundingClientRect.height === 0) return;
-            if (!entry.isIntersecting) return;
-            if (window.matchMedia('(min-width: 768px)').matches) {
-                requestAnimationFrame(() => this.syncHeights());
-            }
-            this.#visibilityObserver?.disconnect();
-        });
-        this.#visibilityObserver.observe(this.card);
+        if (!this.card || typeof ResizeObserver === 'undefined') return;
+        this.#sizeObserver = new ResizeObserver(() => this.resyncOnReflow());
+        this.#sizeObserver.observe(this.card);
+        const desc = this.card.querySelector('[slot="body-xs"]');
+        if (desc) this.#sizeObserver.observe(desc);
     }
 
     disconnectedCallbackHook() {
         this.#removeLicenseDocListener();
-        window.removeEventListener('resize', this.handleResize);
-        if (this.#resizeFrame) {
-            cancelAnimationFrame(this.#resizeFrame);
-            this.#resizeFrame = null;
-        }
-        this.#visibilityObserver?.disconnect();
-    }
-
-    get hasLegalText() {
-        return !!this.card.querySelector('[slot="legal-text"]');
+        this.#sizeObserver?.disconnect();
     }
 
     get quantitySelectEl() {
@@ -175,8 +275,7 @@ export class BizPro extends VariantLayout {
     }
 
     get licenseOptions() {
-        // Options are driven by the authored quantity selector (min→max by step)
-        // so the styled dropdown follows the "Show quantity selector" toggle.
+        // Options come from the authored quantity selector (min→max by step).
         const qs = this.quantitySelectEl;
         if (!qs) return null;
         const min = parseInt(qs.getAttribute('min'), 10);
@@ -188,10 +287,13 @@ export class BizPro extends VariantLayout {
         return opts.length ? opts : null;
     }
 
-    get licenseLabel() {
-        // Authored per-locale via the quantity-select title; the fallback only
-        // shows for half-configured selectors (min/max set, title blank).
-        return this.quantitySelectEl?.getAttribute('title') || 'License';
+    // Plural label from the authored "singular|plural" title (two dictionary
+    // placeholders, resolved per locale). No "|" → unchanged for every quantity;
+    // pluralization is never derived in code (appending "s" breaks most locales).
+    licenseLabel(count) {
+        const title = this.quantitySelectEl?.getAttribute('title') || 'License';
+        const [singular, plural] = title.split('|').map((s) => s.trim());
+        return Number(count) === 1 ? singular : plural || singular;
     }
 
     get hasLicenseSelector() {
@@ -206,10 +308,33 @@ export class BizPro extends VariantLayout {
         return def != null && opts.includes(def) ? def : opts[0];
     }
 
+    // Cards sharing this card's row (same offsetTop, as syncHeights groups them);
+    // stacked single-column cards land on different rows and stay independent.
+    #rowCards() {
+        const top = this.card.offsetTop;
+        const cards = Array.from(
+            this.getContainer()?.querySelectorAll(
+                'merch-card[variant="bizpro"]',
+            ) ?? [],
+        ).filter(
+            (card) =>
+                card.getBoundingClientRect().width > 2 &&
+                card.offsetTop === top,
+        );
+        return cards.length ? cards : [this.card];
+    }
+
     toggleExpanded = (e) => {
         e.preventDefault();
-        this.expanded = !this.expanded;
-        this.card.requestUpdate();
+        // Cards on a row expand/collapse together (Figma). Set every row card to
+        // the clicked card's new state so diverged rows converge.
+        const expanded = !this.expanded;
+        for (const card of this.#rowCards()) {
+            const layout = card.variantLayout;
+            if (!(layout instanceof BizPro)) continue;
+            layout.expanded = expanded;
+            card.requestUpdate();
+        }
     };
 
     #removeLicenseDocListener() {
@@ -221,11 +346,16 @@ export class BizPro extends VariantLayout {
         this.#licenseDocListenerBound = null;
     }
 
-    toggleLicensePopover = (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        this.licenseOpen = !this.licenseOpen;
-        if (this.licenseOpen) {
+    #currentLicenseIndex() {
+        const idx = this.licenseOptions?.indexOf(this.currentLicenseValue);
+        return idx > 0 ? idx : 0;
+    }
+
+    #openLicensePopover() {
+        this.licenseOpen = true;
+        // Open with the highlight on the selected option.
+        this.licenseHighlightedIndex = this.#currentLicenseIndex();
+        if (!this.#licenseDocListenerBound) {
             this.#licenseDocListenerBound = (evt) => {
                 if (!evt.composedPath().includes(this.card)) {
                     this.licenseOpen = false;
@@ -237,8 +367,84 @@ export class BizPro extends VariantLayout {
                 'mousedown',
                 this.#licenseDocListenerBound,
             );
+        }
+    }
+
+    #closeLicensePopover() {
+        this.licenseOpen = false;
+        this.#removeLicenseDocListener();
+    }
+
+    toggleLicensePopover = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (this.licenseOpen) {
+            this.#closeLicensePopover();
         } else {
-            this.#removeLicenseDocListener();
+            this.#openLicensePopover();
+        }
+        this.card.requestUpdate();
+    };
+
+    // Select-only combobox keys (ARIA APG): arrows/Home/End move the
+    // active-descendant highlight, Enter/Space commit, Escape closes, Tab commits
+    // and lets focus advance. Focus stays on the trigger throughout.
+    #handleLicenseKeydown = (e) => {
+        const opts = this.licenseOptions;
+        if (!opts?.length) return;
+        const last = opts.length - 1;
+        switch (e.key) {
+            case ARROW_DOWN:
+                e.preventDefault();
+                if (this.licenseOpen) {
+                    this.licenseHighlightedIndex =
+                        (this.licenseHighlightedIndex + 1) % opts.length;
+                } else {
+                    this.#openLicensePopover();
+                }
+                break;
+            case ARROW_UP:
+                e.preventDefault();
+                if (this.licenseOpen) {
+                    this.licenseHighlightedIndex =
+                        (this.licenseHighlightedIndex - 1 + opts.length) %
+                        opts.length;
+                } else {
+                    this.#openLicensePopover();
+                }
+                break;
+            case 'Home':
+                if (!this.licenseOpen) return;
+                e.preventDefault();
+                this.licenseHighlightedIndex = 0;
+                break;
+            case 'End':
+                if (!this.licenseOpen) return;
+                e.preventDefault();
+                this.licenseHighlightedIndex = last;
+                break;
+            case ENTER:
+            case ' ':
+                e.preventDefault();
+                if (this.licenseOpen) {
+                    this.selectLicenseQty(opts[this.licenseHighlightedIndex]);
+                    return; // selectLicenseQty already requests an update
+                }
+                this.#openLicensePopover();
+                break;
+            case 'Escape':
+                if (!this.licenseOpen) return;
+                e.preventDefault();
+                this.#closeLicensePopover();
+                break;
+            case TAB:
+                // Commit the highlight; no preventDefault so focus advances.
+                if (this.licenseOpen) {
+                    this.selectLicenseQty(opts[this.licenseHighlightedIndex]);
+                }
+                return;
+            default:
+                return;
         }
         this.card.requestUpdate();
     };
@@ -269,36 +475,47 @@ export class BizPro extends VariantLayout {
         const opts = this.licenseOptions;
         const current = this.currentLicenseValue;
         const open = !!this.licenseOpen;
-        // The authored title is shown as-is for every quantity; pluralizing in
-        // code can't be done correctly across locales.
-        const label = this.licenseLabel;
+        const label = this.licenseLabel(Number(current));
         return html`
             <div class="license-select" ?data-open=${open}>
-                <button
+                <div
                     class="license-select-trigger"
-                    type="button"
-                    aria-haspopup="listbox"
+                    role="combobox"
+                    tabindex="0"
                     aria-expanded=${open ? 'true' : 'false'}
                     aria-controls="license-popover"
+                    aria-labelledby="license-select-label"
+                    aria-activedescendant=${open
+                        ? `license-option-${this.licenseHighlightedIndex}`
+                        : nothing}
                     @click=${this.toggleLicensePopover}
+                    @keydown=${this.#handleLicenseKeydown}
                 >
                     <span class="license-select-trigger-text">
                         <span class="license-select-value">${current}</span>
-                        <span class="license-select-label">${label}</span>
+                        <span
+                            class="license-select-label"
+                            id="license-select-label"
+                            >${label}</span
+                        >
                     </span>
                     <span
                         class="license-select-chevron"
                         aria-hidden="true"
                     ></span>
-                </button>
+                </div>
                 <ul
                     id="license-popover"
                     class="license-select-popover"
                     role="listbox"
+                    aria-labelledby="license-select-label"
+                    aria-multiselectable="false"
+                    tabindex="-1"
                     ?hidden=${!open}
                 >
                     <li
                         class="license-select-popover-header"
+                        aria-hidden="true"
                         @click=${this.toggleLicensePopover}
                     >
                         <span class="license-select-trigger-text">
@@ -312,16 +529,22 @@ export class BizPro extends VariantLayout {
                         ></span>
                     </li>
                     ${opts.map(
-                        (opt) => html`
+                        (opt, index) => html`
                             <li
-                                class="license-select-option ${opt === current
-                                    ? 'selected'
-                                    : ''}"
+                                class="license-select-option ${index ===
+                                this.licenseHighlightedIndex
+                                    ? 'highlighted'
+                                    : ''}${opt === current ? ' selected' : ''}"
+                                id="license-option-${index}"
                                 role="option"
                                 aria-selected=${opt === current
                                     ? 'true'
                                     : 'false'}
                                 @click=${() => this.selectLicenseQty(opt)}
+                                @mouseenter=${() => {
+                                    this.licenseHighlightedIndex = index;
+                                    this.card.requestUpdate();
+                                }}
                             >
                                 ${opt}
                             </li>
@@ -351,11 +574,6 @@ export class BizPro extends VariantLayout {
                     </div>
                     <slot name="promo-text"></slot>
                 </div>
-                ${this.hasLegalText
-                    ? html`<div class="legal-text">
-                          <slot name="legal-text"></slot>
-                      </div>`
-                    : nothing}
                 ${this.hasLicenseSelector ||
                 this.hasCallout ||
                 this.hasQuantitySelect
@@ -417,7 +635,7 @@ export class BizPro extends VariantLayout {
                 var(--consonant-merch-card-bizpro-bg-subtle, #f8f8f8)
             );
             border-radius: 16px;
-            padding: 8px;
+            padding: 4px;
             box-sizing: border-box;
             overflow: hidden;
             position: relative;
@@ -440,15 +658,9 @@ export class BizPro extends VariantLayout {
             flex-direction: column;
             gap: 24px;
             color: #000;
-            /* The white card sits at its natural content height and does NOT grow
-               to fill (.features-zone below absorbs the slack). When cards in a
-               row carry unequal top content (e.g. a longer description), the white
-               tops would otherwise end at different heights; syncHeights() measures
-               every .top-card in the row and publishes the row max as
-               --consonant-merch-card-bizpro-top-card-height, and the
-               min-height below pulls shorter cards up to match. Falls back to auto
-               when unset (single column / pre-sync). .top-card is content-box, so
-               the measured content height maps straight to min-height. */
+            /* Natural height (features-zone absorbs the slack). syncHeights
+               publishes the row's max .top-card height here as min-height so
+               shorter cards match; content-box, so the height maps straight. */
             flex: 0 0 auto;
             min-height: var(
                 --consonant-merch-card-bizpro-top-card-height,
@@ -482,8 +694,7 @@ export class BizPro extends VariantLayout {
             display: flex;
             flex-direction: column;
             gap: 8px;
-            /* Grow to absorb height differences so everything from price
-               downward sticks to the bottom edge of the white card. */
+            /* Grow so price downward sticks to the bottom of the white card. */
             flex: 1 1 auto;
         }
 
@@ -526,20 +737,6 @@ export class BizPro extends VariantLayout {
         }
 
         :host([variant='bizpro']) ::slotted([slot='promo-text']) {
-            margin: 0;
-            font-family: 'Adobe Clean', adobe-clean, sans-serif;
-            font-weight: 400;
-            font-size: 14px;
-            line-height: 18px;
-            letter-spacing: 0.14px;
-            color: #000000a3;
-        }
-
-        :host([variant='bizpro']) .legal-text {
-            color: #000;
-        }
-
-        :host([variant='bizpro']) ::slotted([slot='legal-text']) {
             margin: 0;
             font-family: 'Adobe Clean', adobe-clean, sans-serif;
             font-weight: 400;
@@ -597,8 +794,7 @@ export class BizPro extends VariantLayout {
             display: flex;
             flex-direction: column;
             gap: 24px;
-            /* Grow to fill the card's remaining height so card bottoms align
-               across the row (shorter cards get empty zone space below). */
+            /* Grow to fill remaining height so card bottoms align across a row. */
             flex: 1 1 auto;
             color: var(--consonant-merch-card-bizpro-frame-text, #000);
         }
@@ -775,10 +971,14 @@ export class BizPro extends VariantLayout {
             display: none;
         }
 
+        /* Mirror the collapsed trigger so open/close is seamless: 39px (trigger
+           40px − the popover's 1px top border) with the trigger's 12px padding. */
         :host([variant='bizpro']) .license-select-popover-header {
             display: flex;
             align-items: center;
             justify-content: space-between;
+            height: 39px;
+            box-sizing: border-box;
             padding: 12px;
             border-bottom: 1px solid rgba(0, 0, 0, 0.08);
             font-family: 'Adobe Clean', adobe-clean, sans-serif;
@@ -805,8 +1005,16 @@ export class BizPro extends VariantLayout {
         }
 
         :host([variant='bizpro']) .license-select-option:hover,
+        :host([variant='bizpro']) .license-select-option.highlighted,
         :host([variant='bizpro']) .license-select-option.selected {
             background: var(--consonant-merch-card-bizpro-bg-subtle, #f8f8f8);
+        }
+
+        /* Focus stays on the trigger, so the highlighted option needs its own
+           visible ring (WCAG 2.4.7). */
+        :host([variant='bizpro']) .license-select-option.highlighted {
+            outline: 2px solid #1473e6;
+            outline-offset: -2px;
         }
 
         :host([variant='bizpro']) .callout {
@@ -829,9 +1037,8 @@ export class BizPro extends VariantLayout {
             align-items: center;
             gap: 8px;
             padding: 16px 12px;
-            /* Gradient border (Figma 1098:33812) — same purple→red AI gradient
-               as the trailing sparkle. Paint the white fill on padding-box and
-               the gradient on border-box so only the 1px border shows it. */
+            /* Gradient border: white fill on padding-box, gradient on border-box
+               so only the 1px border shows it. */
             background:
                 linear-gradient(
                         var(--consonant-merch-card-bizpro-bg-default, #fff),
@@ -850,10 +1057,7 @@ export class BizPro extends VariantLayout {
             width: 16px;
             height: 16px;
             flex: 0 0 auto;
-            /* Sparkle gradient is the raw 2-stop Linear Gradient (not the
-               48.8%-stop AI Gradient): vertical, red top → purple bottom — the
-               Figma asset is purple→red top-to-bottom inside a -scale-y-100
-               flip, so as displayed it reads red on top. */
+            /* Vertical red→purple sparkle (red on top, per the flipped asset). */
             background: linear-gradient(180deg, #eb1000 0%, #8d88f2 100%);
             mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M7.498 15.61C6.369 11.154 4.842 9.627 .39 8.502c-.52-.133-.52-.871 0-1.004C4.846 6.37 6.373 4.842 7.498 .39c.133-.52.871-.52 1.004 0C9.63 4.846 11.158 6.373 15.61 7.498c.52.133.52.871 0 1.004C11.154 9.63 9.627 11.158 8.502 15.61c-.133.52-.871.52-1.004 0Z'/%3E%3C/svg%3E")
                 center / contain no-repeat;

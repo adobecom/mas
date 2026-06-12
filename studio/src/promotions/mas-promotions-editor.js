@@ -1,18 +1,17 @@
 import { LitElement, html, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
-import { MasRepository } from './mas-repository.js';
-import './aem/aem-tag-picker-field.js';
-import Store from './store.js';
-import StoreController from './reactivity/store-controller.js';
-import ReactiveController from './reactivity/reactive-controller.js';
-import { FragmentStore } from './reactivity/fragment-store.js';
+import { MasRepository } from '../mas-repository.js';
+import '../aem/aem-tag-picker-field.js';
+import Store from '../store.js';
+import StoreController from '../reactivity/store-controller.js';
+import ReactiveController from '../reactivity/reactive-controller.js';
+import { FragmentStore } from '../reactivity/fragment-store.js';
 import styles from './mas-promotions-editor-css.js';
-import { SURFACES, PAGE_NAMES, PROMOTION_MODEL_ID, TABLE_TYPE } from './constants.js';
-import { normalizeKey, showToast, extractSurfaceFromPath } from './utils.js';
-import { getFragmentPartsToUse, MODEL_WEB_COMPONENT_MAPPING } from './editor-panel.js';
-import { Promotion } from './aem/promotion.js';
-import './promotions/mas-promotions-items-selector.js';
-import { getItemsSelectionStore, setItemsSelectionStore } from './common/items-selection-store.js';
+import { SURFACES, PAGE_NAMES, PROMOTION_MODEL_ID, TABLE_TYPE } from '../constants.js';
+import { normalizeKey, showToast } from '../utils.js';
+import { Promotion } from '../aem/promotion.js';
+import './mas-promotions-items-selector.js';
+import { getItemsSelectionStore, setItemsSelectionStore } from '../common/items-selection-store.js';
 import {
     classifyPromotionPathsForSelection,
     isPromotionItemSelectionDirty,
@@ -20,25 +19,15 @@ import {
     parsePromotionSurfacesFieldValues,
     serializePromotionSurfacesForAem,
     splitPromotionTagsFieldValues,
-} from './promotions/promotion-editor-utils.js';
-import { renderFragmentStatusCell } from './common/utils/render-utils.js';
-
-function getPromotionPickerFragmentLabel(data) {
-    const webComponentName = MODEL_WEB_COMPONENT_MAPPING[data?.model?.path];
-    const fragmentPath = typeof data?.path === 'string' ? data.path : data?.get?.()?.path;
-    const pathSurface = extractSurfaceFromPath(fragmentPath);
-    const searchSnapshot = Store.search.get();
-    const storeLike = {
-        search: {
-            value: {
-                ...searchSnapshot,
-                path: pathSurface ?? searchSnapshot.path,
-            },
-        },
-    };
-    const { fragmentParts } = getFragmentPartsToUse(storeLike, data);
-    return `${webComponentName}: ${fragmentParts}`;
-}
+} from './promotion-editor-utils.js';
+import {
+    confirmPublishDespiteUnpublishedPromoVariations,
+    isPromotionExpiredForPublish,
+    publishPromotionProject,
+    PROMOTION_EXPIRED_PUBLISH_MESSAGE,
+} from './promotion-publish-utils.js';
+import { renderFragmentStatusCell } from '../common/utils/render-utils.js';
+import { clearCaches } from '../../libs/fragment-client.js';
 
 const typeMap = {
     title: { type: 'text' },
@@ -295,22 +284,30 @@ class MasPromotionsEditor extends LitElement {
         }
     }
 
+    async #confirmPublishWithUnpublishedPromoVariations() {
+        return confirmPublishDespiteUnpublishedPromoVariations(this.repository.aem, this.fragment, (title, message, options) =>
+            this.#showDialog(title, message, options),
+        );
+    }
+
     #handlePublishPromotion = async () => {
         if (!this.fragment?.id || this.isNewPromotion) return;
         if (this.fragment.hasChanges || this.#itemsSelectionDirty) {
             showToast('Save your changes before publishing.', 'info');
             return;
         }
-        if (this.fragment.promotionStatus === 'expired') {
-            showToast('This promotion has ended. Update the dates to publish again.', 'info');
+        if (isPromotionExpiredForPublish(this.fragment)) {
+            showToast(PROMOTION_EXPIRED_PUBLISH_MESSAGE, 'info');
             return;
         }
         if (this.fragment.isPromotionPublished && !this.fragment.isPromotionModified) {
             return;
         }
+        const { confirmed, variationPaths } = await this.#confirmPublishWithUnpublishedPromoVariations();
+        if (!confirmed) return;
         this.promotionPublish = true;
         try {
-            const ok = await this.repository.publishFragment(this.fragment, ['DRAFT', 'UNPUBLISHED'], true);
+            const ok = await publishPromotionProject(this.repository, this.fragment, variationPaths);
             if (ok) await this.#reloadPromotionFromServer();
         } finally {
             this.promotionPublish = false;
@@ -461,6 +458,7 @@ class MasPromotionsEditor extends LitElement {
                 this.isCreated = true;
             }
 
+            clearCaches();
             showToast('Project successfully created.', 'positive');
 
             Store.promotions.inEdit.set(new FragmentStore(newPromotion));
@@ -499,6 +497,7 @@ class MasPromotionsEditor extends LitElement {
             showToast('Failed to save project.', 'negative');
             return;
         }
+        clearCaches();
         showToast('Project successfully saved.', 'positive');
         Store.promotions.selectedPlaceholders.set([]);
         await this.#hydratePromotionItemSelectionFromFragment();
@@ -572,6 +571,9 @@ class MasPromotionsEditor extends LitElement {
 
     #clearPromotionItemPickerSurface() {
         Store.promotions.itemPickerSurface.set(null);
+        Store.promotions.allCards.set([]);
+        Store.promotions.displayCards.set([]);
+        Store.promotions.cardsByPaths.set(new Map());
         if (Store.page.get() === PAGE_NAMES.PROMOTIONS_EDITOR) {
             this.repository?.searchFragments?.();
         }
@@ -656,7 +658,7 @@ class MasPromotionsEditor extends LitElement {
         slotDiv.style.justifyContent = 'flex-end';
     };
 
-    renderAddItemsDialog() {
+    get addItemsDialog() {
         const footerContent = html`
             <sp-button-group>
                 <sp-button variant="secondary" treatment="outline" @click=${() => this.#dispatchDialogEvent('cancel')}
@@ -684,7 +686,6 @@ class MasPromotionsEditor extends LitElement {
             >
                 <mas-promotions-items-selector
                     .fragmentSurfaceOptions=${this.promotionPickerSurfaces}
-                    .getDisplayName=${getPromotionPickerFragmentLabel}
                     .renderFragmentStatusCell=${renderFragmentStatusCell}
                     @promotion-items-tab-change=${this.#onPromotionItemsTabChange}
                 ></mas-promotions-items-selector>
@@ -700,7 +701,7 @@ class MasPromotionsEditor extends LitElement {
         const updateDisabled = !(this.fragment?.hasChanges || this.#itemsSelectionDirty);
         const canOpenItemPicker = this.promotionPickerSurfaces.length > 0;
         return html`
-            ${this.renderConfirmDialog()}
+            ${this.confirmDialog}
             <div class="promotions-form-container">
                 <div class="promotions-form-header">
                     <h1>${this.isNewPromotion ? 'Create new promotion project' : 'Edit promotion project'}</h1>
@@ -769,7 +770,7 @@ class MasPromotionsEditor extends LitElement {
                                 ></aem-tag-picker-field>
                             </sp-field-group>
                         </div>
-                        <sp-divider size="m" style="align-self: stretch; height: auto;" vertical></sp-divider>
+                        <sp-divider size="m" class="promotions-form-panel-divider" vertical></sp-divider>
                         <div class="promotions-form-surfaces">
                             <sp-field-label required>Surfaces</sp-field-label>
                             <div class="promotions-form-surfaces-panel">
@@ -778,7 +779,7 @@ class MasPromotionsEditor extends LitElement {
                                           <div class="surfaces-empty-state">
                                               <div class="icon">
                                                   <overlay-trigger type="modal" id="add-surfaces-overlay">
-                                                      ${this.renderAddSurfacesDialog()}
+                                                      ${this.addSurfacesDialog}
                                                       <sp-button slot="trigger" variant="secondary">
                                                           <sp-icon-add size="xxl"></sp-icon-add>
                                                       </sp-button>
@@ -812,7 +813,7 @@ class MasPromotionsEditor extends LitElement {
                                                       },
                                                   )}
                                                   <overlay-trigger type="modal" id="add-surfaces-overlay">
-                                                      ${this.renderAddSurfacesDialog()}
+                                                      ${this.addSurfacesDialog}
                                                       <sp-button slot="trigger" variant="secondary" icon-only>
                                                           <sp-icon-add slot="icon" size="m"></sp-icon-add>
                                                       </sp-button>
@@ -837,7 +838,7 @@ class MasPromotionsEditor extends LitElement {
                                               triggered-by="click"
                                               @sp-opened=${this.#openAddItemsOverlay}
                                           >
-                                              ${this.renderAddItemsDialog()}
+                                              ${this.addItemsDialog}
                                               <sp-button
                                                   slot="trigger"
                                                   variant="secondary"
@@ -866,7 +867,7 @@ class MasPromotionsEditor extends LitElement {
                                   </h2>
                                   <div>
                                       <overlay-trigger type="modal" id="add-promotion-items-overlay" triggered-by="click">
-                                          ${this.renderAddItemsDialog()}
+                                          ${this.addItemsDialog}
                                           <sp-action-button
                                               slot="trigger"
                                               quiet
@@ -888,7 +889,6 @@ class MasPromotionsEditor extends LitElement {
                               ${this.isSelectedItemsOpen
                                   ? html`<mas-promotions-items-selector
                                         .viewOnly=${true}
-                                        .getDisplayName=${getPromotionPickerFragmentLabel}
                                         .renderFragmentStatusCell=${renderFragmentStatusCell}
                                     ></mas-promotions-items-selector>`
                                   : nothing}
@@ -926,7 +926,7 @@ class MasPromotionsEditor extends LitElement {
         `;
     }
 
-    renderAddSurfacesDialog() {
+    get addSurfacesDialog() {
         const surfaces = this.fragment?.fields.find((field) => field.name === 'surfaces')?.values || [];
         return html`
             <sp-dialog-wrapper
@@ -960,7 +960,7 @@ class MasPromotionsEditor extends LitElement {
         `;
     }
 
-    renderConfirmDialog() {
+    get confirmDialog() {
         if (!this.confirmDialogConfig) return nothing;
 
         const { title, message, onConfirm, onCancel, confirmText, cancelText, variant } = this.confirmDialogConfig;

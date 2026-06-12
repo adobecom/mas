@@ -1560,6 +1560,46 @@
                             expect(() => editor.registerCommerceProviders(null)).to.not.throw();
                         });
                     });
+
+                    describe('loc-ready metadata toggle', () => {
+                        it('renders fragment-locready-group in General info, not the old #locReady group', async () => {
+                            const { editor } = await setupTestEnvironment({}, 'locready-render');
+                            expect(editor.querySelector('sp-field-group#locReady')).to.be.null;
+                            expect(editor.querySelector('sp-field-group#fragment-locready-group')).to.exist;
+                            expect(editor.querySelector('sp-field-label[for="fragment-locready"]')).to.exist;
+                            expect(editor.querySelector('sp-switch#fragment-locready')).to.exist;
+                        });
+
+                        it('toggle starts unchecked when locReady field is absent', async () => {
+                            const { editor } = await setupTestEnvironment({}, 'locready-unchecked');
+                            const sw = editor.querySelector('sp-switch#fragment-locready');
+                            expect(sw.hasAttribute('checked')).to.be.false;
+                        });
+
+                        it('clicking the toggle sets locReady to true', async () => {
+                            const { editor, fragmentStore } = await setupTestEnvironment({}, 'locready-click');
+                            fragmentStore.get().fields.push({ name: 'locReady', type: 'boolean', values: [false] });
+                            fragmentStore.notify();
+                            await editor.updateComplete;
+                            const sw = editor.querySelector('sp-switch#fragment-locready');
+                            sw.click();
+                            await editor.updateComplete;
+                            expect(fragmentStore.get().getFieldValues('locReady')).to.deep.equal([true]);
+                        });
+
+                        it('clicking the toggle twice restores locReady to false', async () => {
+                            const { editor, fragmentStore } = await setupTestEnvironment({}, 'locready-double-click');
+                            fragmentStore.get().fields.push({ name: 'locReady', type: 'boolean', values: [false] });
+                            fragmentStore.notify();
+                            await editor.updateComplete;
+                            const sw = editor.querySelector('sp-switch#fragment-locready');
+                            sw.click();
+                            await editor.updateComplete;
+                            sw.click();
+                            await editor.updateComplete;
+                            expect(fragmentStore.get().getFieldValues('locReady')).to.deep.equal([false]);
+                        });
+                    });
                 });
             });
         </script>

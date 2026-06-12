@@ -2,8 +2,9 @@ import { expect } from '@esm-bundle/chai';
 import sinon from 'sinon';
 import Store from '../../src/store.js';
 import { setItemsSelectionStore } from '../../src/common/items-selection-store.js';
-import MasPromotionsEditor from '../../src/mas-promotions-editor.js';
+import MasPromotionsEditor from '../../src/promotions/mas-promotions-editor.js';
 import { Promotion } from '../../src/aem/promotion.js';
+import { CARD_MODEL_PATH, PAGE_NAMES } from '../../src/constants.js';
 
 function makeFragmentData(overrides = {}) {
     return {
@@ -45,15 +46,6 @@ describe('MasPromotionsEditor', () => {
 
     beforeEach(() => {
         sandbox = sinon.createSandbox();
-        sandbox.stub(window, 'fetch').callsFake(async (url) => {
-            if (String(url).includes('querybuilder.json') && String(url).includes('cq:Tag')) {
-                return new Response(JSON.stringify({ hits: [] }), {
-                    status: 200,
-                    headers: { 'Content-Type': 'application/json' },
-                });
-            }
-            return Promise.reject(new TypeError('Failed to fetch'));
-        });
         originalInEdit = Store.promotions.inEdit.get();
         originalSelectedCards = [...Store.promotions.selectedCards.value];
         originalSelectedCollections = [...Store.promotions.selectedCollections.value];
@@ -99,8 +91,20 @@ describe('MasPromotionsEditor', () => {
             unpublishFragment: sandbox.stub().resolves(true),
             searchFragments: sandbox.stub(),
             loadAllCollections: sandbox.stub(),
+            operation: { set: sandbox.stub() },
+            processError: sandbox.stub(),
             aem: {
-                sites: { cf: { fragments: { getById: sandbox.stub().resolves(null) } } },
+                sites: {
+                    cf: {
+                        fragments: {
+                            getById: sandbox.stub().resolves(null),
+                            publish: sandbox.stub().resolves(),
+                            publishFragments: sandbox.stub().resolves(),
+                            getWithEtag: sandbox.stub(),
+                            getByPath: sandbox.stub().resolves(null),
+                        },
+                    },
+                },
                 getFragmentByPath: null,
             },
             ...overrides,
@@ -346,9 +350,8 @@ describe('MasPromotionsEditor', () => {
                 status: 'MODIFIED',
             });
             Store.promotions.inEdit.set(new FragmentStore(promotion));
-            const publishFragment = sandbox.stub().resolves(true);
+            const publish = sandbox.stub().resolves();
             const { el } = await mountEditorWithRepo({
-                publishFragment,
                 aem: {
                     sites: {
                         cf: {
@@ -362,6 +365,7 @@ describe('MasPromotionsEditor', () => {
                                         status: 'PUBLISHED',
                                     }),
                                 ),
+                                publish,
                             },
                         },
                     },
@@ -370,8 +374,8 @@ describe('MasPromotionsEditor', () => {
             });
             await el.updateComplete;
             clickPromotionsFormButton(el, 'Publish');
-            await el.updateComplete;
-            expect(publishFragment.calledOnce).to.be.true;
+            await new Promise((resolve) => setTimeout(resolve, 0));
+            expect(publish.calledOnce).to.be.true;
         });
 
         it('shows Unpublish only when promotion is published', async () => {
@@ -623,6 +627,66 @@ describe('MasPromotionsEditor', () => {
         });
     });
 
+    describe('publish reminder flow', () => {
+        it('prompts before publish when attached promo variations are unpublished', async () => {
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            const parentPath = '/content/dam/mas/sandbox/en_US/my-card';
+            const promoVarPath = '/content/dam/mas/sandbox/en_US/promotions/code-test/my-card';
+            const promotion = makePromotion({
+                id: 'promo-1',
+                title: 'Test Promotion',
+                startDate: '2030-01-01T00:00:00.000Z',
+                endDate: '2030-12-31T00:00:00.000Z',
+                status: 'DRAFT',
+                fragments: [parentPath],
+                fields: [
+                    { name: 'title', type: 'text', values: ['Test Promotion'] },
+                    { name: 'promoCode', type: 'text', values: ['TEST'] },
+                    { name: 'startDate', values: ['2030-01-01T00:00:00.000Z'] },
+                    { name: 'endDate', values: ['2030-12-31T00:00:00.000Z'] },
+                    { name: 'tags', values: ['mas:promotion/code-test'], multiple: true },
+                    { name: 'surfaces', type: 'text', multiple: false, values: ['sandbox'] },
+                    { name: 'geos', type: 'tag', multiple: true, values: ['mas:locale/us'] },
+                    { name: 'fragments', type: 'content-fragment', multiple: true, values: [parentPath] },
+                ],
+            });
+            Store.promotions.inEdit.set(new FragmentStore(promotion));
+            const { el, repo } = await mountEditorWithRepo({
+                aem: {
+                    getFragmentByPath: sandbox.stub().resolves({
+                        path: parentPath,
+                        model: { path: CARD_MODEL_PATH },
+                    }),
+                    sites: {
+                        cf: {
+                            fragments: {
+                                getById: sandbox.stub().resolves(null),
+                                publish: sandbox.stub().resolves(),
+                                publishFragments: sandbox.stub().resolves(),
+                                getWithEtag: sandbox.stub(),
+                                getByPath: sandbox.stub().withArgs(promoVarPath).resolves({
+                                    path: promoVarPath,
+                                    status: 'DRAFT',
+                                    title: 'Unpublished variation',
+                                }),
+                            },
+                        },
+                    },
+                },
+            });
+            Store.promotions.selectedCollections.set([]);
+            await el.updateComplete;
+
+            clickPromotionsFormButton(el, 'Publish');
+            await new Promise((resolve) => setTimeout(resolve, 0));
+            await el.updateComplete;
+
+            expect(repo.aem.sites.cf.fragments.getByPath.calledWith(promoVarPath)).to.be.true;
+            expect(repo.aem.sites.cf.fragments.publish.called).to.be.false;
+            expect(repo.aem.sites.cf.fragments.publishFragments.called).to.be.false;
+        });
+    });
+
     describe('cancel flow', () => {
         it('navigates to promotions page on cancel when no changes', async () => {
             const el = await mountEditor();
@@ -663,7 +727,7 @@ describe('MasPromotionsEditor', () => {
         });
     });
 
-    describe('renderConfirmDialog', () => {
+    describe('confirmDialog', () => {
         it('renders nothing when confirmDialogConfig is null', async () => {
             const el = await mountEditor();
             const overlay = el.renderRoot.querySelector('.confirm-dialog-overlay');
@@ -678,6 +742,38 @@ describe('MasPromotionsEditor', () => {
             await el.updateComplete;
             const overlay = el.renderRoot.querySelector('.confirm-dialog-overlay');
             expect(overlay).to.not.be.null;
+        });
+    });
+
+    describe('reopening the add-items dialog', () => {
+        it('clears the cards search cache on close so results reload next open, preserving the selection', async () => {
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            Store.promotions.inEdit.set(new FragmentStore(makePromotion({ surfaces: ['sandbox'] })));
+            const { el, repo } = await mountEditorWithRepo();
+            Store.page.set(PAGE_NAMES.PROMOTIONS_EDITOR);
+
+            Store.promotions.selectedCards.set(['/card/a', '/card/b']);
+            Store.promotions.allCards.set([{ path: '/card/a' }, { path: '/card/b' }]);
+            Store.promotions.displayCards.set([{ path: '/card/a' }, { path: '/card/b' }]);
+            Store.promotions.cardsByPaths.set(
+                new Map([
+                    ['/card/a', {}],
+                    ['/card/b', {}],
+                ]),
+            );
+            el.showSelectedEmptyState = false;
+            await el.updateComplete;
+            repo.searchFragments.resetHistory();
+
+            const dialog = el.renderRoot.querySelector('.add-items-dialog');
+            dialog.dispatchEvent(new CustomEvent('confirm', { bubbles: true, composed: true }));
+            await el.updateComplete;
+
+            expect(Store.promotions.allCards.value).to.deep.equal([]);
+            expect(Store.promotions.displayCards.value).to.deep.equal([]);
+            expect(Store.promotions.cardsByPaths.value.size).to.equal(0);
+            expect(Store.promotions.selectedCards.value).to.deep.equal(['/card/a', '/card/b']);
+            expect(repo.searchFragments.called).to.be.true;
         });
     });
 });

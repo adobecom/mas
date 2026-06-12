@@ -1,7 +1,7 @@
 import { PAGE_NAMES, SORT_COLUMNS, WCS_LANDSCAPE_PUBLISHED, COLLECTION_MODEL_PATH } from './constants.js';
 import Store from './store.js';
 import { isPromotionItemSelectionDirty } from './promotions/promotion-editor-utils.js';
-import { debounce } from './utils.js';
+import { debounce, hasNonEmptyCompareChart } from './utils.js';
 import { canAccessSettings } from './groups.js';
 import { getDefaultLocaleCode } from '../../io/www/src/fragment/locales.js';
 
@@ -9,25 +9,37 @@ const STORE_SEARCH_HASH_KEYS = ['path', 'query', 'region'];
 const STORE_SEARCH_HASH_DEFAULT = {};
 
 /**
- * True when the URL hash change only adjusts search-linked params while staying on the promotions editor.
+ * True when the URL hash change only adjusts search-linked params while staying on the same
+ * editor page for the same record. Used to skip the discard prompt when the item picker's
+ * search/filter (query/path/region) updates the hash.
  * @param {string} previousHash
  * @param {string} nextHash
+ * @param {string} page editor page that must stay active
+ * @param {string} idKey hash key identifying the edited record (must stay unchanged)
  * @returns {boolean}
  */
-export function promoHashIsSearchSync(previousHash, nextHash) {
+function editorHashIsSearchSync(previousHash, nextHash, page, idKey) {
     const toParams = (h) => new URLSearchParams(h?.startsWith('#') ? h.slice(1) : h || '');
     const prev = toParams(previousHash);
     const next = toParams(nextHash);
-    if (next.get('page') !== PAGE_NAMES.PROMOTIONS_EDITOR) return false;
-    if (prev.get('page') && prev.get('page') !== PAGE_NAMES.PROMOTIONS_EDITOR) return false;
-    if (prev.get('promotionId') !== next.get('promotionId')) return false;
-    const ignorable = new Set(['query', 'path']);
+    if (next.get('page') !== page) return false;
+    if (prev.get('page') && prev.get('page') !== page) return false;
+    if (prev.get(idKey) !== next.get(idKey)) return false;
+    const ignorable = new Set(['query', 'path', 'region']);
     const keys = new Set([...prev.keys(), ...next.keys()]);
     for (const key of keys) {
         if (ignorable.has(key)) continue;
         if (prev.get(key) !== next.get(key)) return false;
     }
     return true;
+}
+
+export function promoHashIsSearchSync(previousHash, nextHash) {
+    return editorHashIsSearchSync(previousHash, nextHash, PAGE_NAMES.PROMOTIONS_EDITOR, 'promotionId');
+}
+
+export function translationHashIsSearchSync(previousHash, nextHash) {
+    return editorHashIsSearchSync(previousHash, nextHash, PAGE_NAMES.TRANSLATION_EDITOR, 'translationProjectId');
 }
 
 /**
@@ -188,6 +200,19 @@ export class Router extends EventTarget {
         }
     }
 
+    #resetPromotionEditorState() {
+        Store.promotions.promotionId.set(null);
+        Store.promotions.inEdit.set(null);
+        Store.promotions.showSelected.set(false);
+        Store.promotions.selectedCards.set([]);
+        Store.promotions.selectedCollections.set([]);
+        Store.promotions.selectedPlaceholders.set([]);
+    }
+
+    #clearsPromotionContextOnNavigateTo(targetPage) {
+        return targetPage !== PAGE_NAMES.PROMOTIONS_EDITOR && targetPage !== PAGE_NAMES.FRAGMENT_EDITOR;
+    }
+
     /**
      * Navigation function to change the current page
      * @param {string} value - The page to navigate to
@@ -221,13 +246,8 @@ export class Router extends EventTarget {
                         Store.translationProjects.inEdit.set(null);
                         Store.translationProjects.showSelected.set(false);
                     }
-                    if (Store.page.value === PAGE_NAMES.PROMOTIONS_EDITOR && targetPage !== PAGE_NAMES.PROMOTIONS_EDITOR) {
-                        Store.promotions.promotionId.set(null);
-                        Store.promotions.inEdit.set(null);
-                        Store.promotions.showSelected.set(false);
-                        Store.promotions.selectedCards.set([]);
-                        Store.promotions.selectedCollections.set([]);
-                        Store.promotions.selectedPlaceholders.set([]);
+                    if (this.#clearsPromotionContextOnNavigateTo(targetPage)) {
+                        this.#resetPromotionEditorState();
                     }
                     if (targetPage === PAGE_NAMES.TRANSLATIONS && Store.page.value !== PAGE_NAMES.TRANSLATIONS) {
                         Store.filters.set((prev) => ({ ...prev, locale: 'en_US' }));
@@ -298,6 +318,7 @@ export class Router extends EventTarget {
             // Navigate to content page in table view
             Store.viewMode.set('default');
             Store.renderMode.set('table');
+            this.#resetPromotionEditorState();
             if (leavingFragmentEditor) {
                 this.#snapContentLocaleToParentDefault();
             }
@@ -329,7 +350,9 @@ export class Router extends EventTarget {
             const fragmentList = Store.fragments.list.data.get();
             const fragmentStore = providedFragmentStore ?? fragmentList?.find((f) => f.get()?.id === fragmentId);
 
-            if (!viewPage && fragmentStore?.get()?.model?.path === COLLECTION_MODEL_PATH) {
+            const fragment = fragmentStore?.get();
+            const isCompareChart = hasNonEmptyCompareChart(fragment);
+            if (!viewPage && fragment?.model?.path === COLLECTION_MODEL_PATH && !isCompareChart) {
                 // Use editor-panel for collections
                 const editorPanel = document.querySelector('editor-panel');
                 if (editorPanel) {
@@ -564,7 +587,9 @@ export class Router extends EventTarget {
             if (!this.isNavigating) {
                 const { editor, shouldCheckUnsavedChanges } = this.getActiveEditor();
                 const skipDiscardForSearchHash =
-                    shouldCheckUnsavedChanges && promoHashIsSearchSync(this.previousHash, this.location.hash);
+                    shouldCheckUnsavedChanges &&
+                    (promoHashIsSearchSync(this.previousHash, this.location.hash) ||
+                        translationHashIsSearchSync(this.previousHash, this.location.hash));
 
                 if (shouldCheckUnsavedChanges && !skipDiscardForSearchHash) {
                     const confirmed = editor ? await editor.promptDiscardChanges() : true;
@@ -608,6 +633,7 @@ export class Router extends EventTarget {
                 }
             } else {
                 Store.fragmentEditor.loading.set(false);
+                Store.fragments.inEdit.set(null);
                 if (Store.viewMode.value === 'editing') {
                     Store.viewMode.set('default');
                 }

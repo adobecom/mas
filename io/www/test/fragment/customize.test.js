@@ -1769,4 +1769,25 @@ describe('customize OSI substitution', function () {
         expect(result.body.fields.osi).to.equal('SUB-OSI');
         expect(result.body.fields.promoCode).to.equal('PROMO-FOR-SUB');
     });
+
+    it('should substitute matching OSI inside an array field', async function () {
+        const result = await processWithPromos(
+            {
+                ...FAKE_CONTEXT,
+                fragmentPath: 'test-card',
+                body: {
+                    path: '/content/dam/mas/sandbox/en_US/test-card',
+                    id: 'test-card',
+                    fields: { osi: ['OSI-A', 'OSI-B'] },
+                    references: {},
+                    referencesTree: [],
+                },
+                promoFragmentPaths: CARD_PATHS,
+                substituteMap: { 'OSI-B': 'OSI-B-SUB' },
+            },
+            MINIMAL_PROJECT,
+        );
+        expect(result.status).to.equal(200);
+        expect(result.body.fields.osi).to.deep.equal(['OSI-A', 'OSI-B-SUB']);
+    });
 });

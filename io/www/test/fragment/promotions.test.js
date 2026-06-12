@@ -623,7 +623,12 @@ describe('promotions', () => {
             const project = makeProject({
                 surfaces: ['acom'],
                 geos: [],
-                offers: ['substitute:OSI-1:OSI-DE:DE', 'substitute:OSI-2:OSI-US:US', 'substitute::bad:'],
+                offers: [
+                    'substitute:OSI-1:OSI-DE:DE',
+                    'substitute:OSI-2:OSI-US:US',
+                    'substitute::bad:',
+                    'substitute:only-two-parts',
+                ],
             });
             const hydrated = makeHydratedProject({ fragmentPaths: ['offers/offer-1'] });
             fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));

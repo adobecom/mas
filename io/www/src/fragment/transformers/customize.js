@@ -1,10 +1,8 @@
 import { PATH_TOKENS } from '../utils/paths.js';
-import { getRequestInfos, matchesGeo, skimFragmentFromReferences } from '../utils/common.js';
+import { CARD_MODEL_ID, getRequestInfos, matchesGeo, skimFragmentFromReferences } from '../utils/common.js';
 import { logDebug } from '../utils/log.js';
 
 const PZN_FOLDER = '/pzn/';
-// base64 id of /conf/mas/settings/dam/cfm/models/card — masks overlay card fragments only
-const CARD_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ';
 
 // Per-variant fields whose array values must be concatenated (parent + child) rather than overwritten.
 const MERGE_CONFIG = {

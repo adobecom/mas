@@ -9,6 +9,21 @@ import { delay } from './utils.js';
 
 import { mockIms } from './mocks/ims.js';
 import { withWcs } from './mocks/wcs.js';
+import Media from '../src/media.js';
+
+// Deterministically control Media.isMobile without real viewport changes —
+// setViewport round-trips are slow/flaky under the full suite and can stall the
+// file. The toggle/height logic keys off Media.isMobile and a JS `.open` class,
+// not live media queries, so a stubbed getter exercises the same code paths.
+const setIsMobile = (value) => {
+    Object.defineProperty(Media.matchMobile, 'matches', {
+        configurable: true,
+        get: () => value,
+    });
+};
+const resetIsMobile = () => {
+    delete Media.matchMobile.matches;
+};
 
 runTests(async () => {
     mockIms();
@@ -242,19 +257,142 @@ runTests(async () => {
             expect(list.classList.contains('open')).to.be.true;
         });
 
-        it('should clean up on disconnect', async () => {
+        it('[desktop→mobile] clears grow-only synced heights so mobile restores natural height', async () => {
+            const card = document.querySelector('#card-mweb-1');
+            await card.checkReady();
+            await delay(200);
+
+            const layout = card.variantLayout;
+            const container = layout.getContainer();
+
+            try {
+                // Desktop sync sets cross-card min-height vars on the container.
+                setIsMobile(false);
+                layout.reconcileBreakpoint();
+                await delay(50);
+                expect(
+                    parseInt(
+                        container.style.getPropertyValue(
+                            '--consonant-merch-card-footer-row-1-min-height',
+                        ),
+                    ) || 0,
+                    'footer-row height synced on desktop',
+                ).to.be.at.least(32);
+
+                // Mobile is single-column: the grow-only heights must be cleared
+                // so collapsed cards size naturally instead of keeping desktop
+                // heights.
+                setIsMobile(true);
+                layout.reconcileBreakpoint();
+                await delay(50);
+                expect(
+                    container.style.getPropertyValue(
+                        '--consonant-merch-card-footer-row-1-min-height',
+                    ),
+                    'footer-row height cleared on mobile',
+                ).to.equal('');
+                expect(
+                    container.style.getPropertyValue(
+                        '--consonant-merch-card-mini-compare-chart-mweb-body-xs-height',
+                    ),
+                    'body-xs height cleared on mobile',
+                ).to.equal('');
+            } finally {
+                resetIsMobile();
+            }
+        });
+
+        it('[desktop→mobile] reconciles toggle when crossing breakpoint on resize', async () => {
+            const card = document.querySelector('#card-mweb-1');
+            await card.checkReady();
+            await delay(200);
+
+            const layout = card.variantLayout;
+            const bodyXs = card.querySelector('[slot="body-xs"]');
+            const titleDiv = bodyXs.querySelector('.footer-rows-title');
+            const list = bodyXs.querySelector('ul.checkmark-copy-container');
+
+            try {
+                // Desktop baseline: list open, no toggle button
+                setIsMobile(false);
+                layout.reconcileBreakpoint();
+                expect(titleDiv.querySelector('.toggle-icon')).to.be.null;
+                expect(list.classList.contains('open')).to.be.true;
+
+                // Cross to mobile: collapsible toggle appears, list collapses
+                setIsMobile(true);
+                layout.reconcileBreakpoint();
+                const toggleBtn = titleDiv.querySelector('.toggle-icon');
+                expect(toggleBtn, 'toggle button added on mobile').to.exist;
+                expect(list.classList.contains('open'), 'collapsed on mobile')
+                    .to.be.false;
+                expect(toggleBtn.getAttribute('aria-expanded')).to.equal(
+                    'false',
+                );
+
+                // Cross back to desktop: toggle removed, list open again
+                setIsMobile(false);
+                layout.reconcileBreakpoint();
+                expect(
+                    titleDiv.querySelector('.toggle-icon'),
+                    'toggle removed on desktop',
+                ).to.be.null;
+                expect(list.classList.contains('open'), 'open on desktop').to.be
+                    .true;
+            } finally {
+                resetIsMobile();
+            }
+        });
+
+        it('clears the resize observer on disconnect', async () => {
             const card = document.querySelector('#card-mweb-1');
             await card.checkReady();
             await delay(100);
 
-            const variantLayout = card.variantLayout;
+            const layout = card.variantLayout;
+            layout.disconnectedCallbackHook();
+            expect(layout._syncObserver).to.be.null;
+            layout.connectedCallbackHook(); // reconnect must not throw
+        });
 
-            // disconnectedCallbackHook should remove event listener and observer
-            variantLayout.disconnectedCallbackHook();
-            expect(variantLayout._syncObserver).to.be.null;
+        it('[regression] reconciles after a disconnect/reconnect across the breakpoint', async () => {
+            const card = document.querySelector('#card-mweb-1');
+            await card.checkReady();
+            await delay(100);
 
-            // Re-connect
-            variantLayout.connectedCallbackHook();
+            const layout = card.variantLayout;
+            const bodyXs = card.querySelector('[slot="body-xs"]');
+            const list = bodyXs.querySelector('ul.checkmark-copy-container');
+
+            try {
+                // Collapse in mobile, then simulate a DOM move (disconnect).
+                setIsMobile(true);
+                layout.reconcileBreakpoint();
+                expect(list.classList.contains('open')).to.be.false;
+                layout.disconnectedCallbackHook();
+
+                // Reconnect on a desktop viewport: list must not be stranded
+                // display:none with no opener.
+                setIsMobile(false);
+                layout.connectedCallbackHook();
+                expect(
+                    list.classList.contains('open'),
+                    'list reopened on desktop reconnect',
+                ).to.be.true;
+
+                // The re-wired handler still reconciles on a later resize.
+                setIsMobile(true);
+                layout.reconcileBreakpoint();
+                expect(
+                    list.classList.contains('open'),
+                    'collapses again on mobile after reconnect',
+                ).to.be.false;
+            } finally {
+                resetIsMobile();
+                // Restore desktop state + listener for any later use of the card.
+                layout.connectedCallbackHook();
+                layout.applyToggleMode();
+            }
         });
     });
 });

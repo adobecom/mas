@@ -3,9 +3,8 @@
  * e.g: node gen-dictionaries.mjs author-*-* sandbox L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25hcnk
  */
 
-import { getDefaultLocaleCode, getSurfaceLocales, getLocaleCode } from '../../io/www/src/fragment/locales.js';
-
-const ROOT_PATH = '/content/dam/mas';
+import { getSurfaceLocales, getLocaleCode } from '../../io/www/src/fragment/locales.js';
+import { ROOT_PATH, getParentReference } from './common.js';
 
 const args = process.argv.slice(2);
 const bucket = args[0];
@@ -29,12 +28,6 @@ const headers = {
     Authorization: `Bearer ${accessToken}`,
     'x-api-key': apiKey,
 };
-
-function getParentReference(localeName) {
-    const defaultLocaleCode = getDefaultLocaleCode(surface, localeName);
-    if (!defaultLocaleCode || defaultLocaleCode === localeName) return null;
-    return `${ROOT_PATH}/${surface}/${defaultLocaleCode}/dictionary/index`;
-}
 
 async function listLocaleFolders(surfaceName) {
     const path = `${ROOT_PATH}/${surfaceName}`;
@@ -218,7 +211,7 @@ async function run() {
         const indexPath = `${dictionaryPath}/index`;
         try {
             const existing = await fetchIndexFragment(indexPath);
-            const parentReference = getParentReference(folder.name);
+            const parentReference = getParentReference(surface, folder.name);
             if (existing) {
                 existingIndexes.push(indexPath);
                 const currentParent = existing.fields?.find((f) => f.name === 'parent')?.values?.[0] ?? null;

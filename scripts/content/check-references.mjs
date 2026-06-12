@@ -28,7 +28,7 @@ import { createHeaders, parseArgs } from './common.js';
 const DEFAULT_AUTHOR_HOST = 'author-p22655-e59433.adobeaemcloud.com';
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-const { getFlag, hasFlag } = parseArgs(process.argv);
+const { getFlag } = parseArgs(process.argv);
 
 const id = getFlag('--id');
 const authorHost = getFlag('--author-host') || DEFAULT_AUTHOR_HOST;
@@ -45,7 +45,9 @@ const token = process.env.MAS_IMS_TOKEN;
 const apiKey = process.env.MAS_API_KEY || 'mas-studio';
 
 if (!id || !token) {
-    console.error('Usage: MAS_IMS_TOKEN=<token> node check-references.mjs --id <fragmentId> [--author-host <host>] [--fields a,b] [--max N]');
+    console.error(
+        'Usage: MAS_IMS_TOKEN=<token> node check-references.mjs --id <fragmentId> [--author-host <host>] [--fields a,b] [--max N]',
+    );
     process.exit(1);
 }
 
@@ -124,7 +126,13 @@ console.log('Walking reference graph (one fetch per reference)...\n');
 await walk(root.fragment, 0);
 
 console.log(`\nFetched ${count} reference(s) across the graph.`);
-console.log(`Status breakdown: ${Object.entries(statusCounts).map(([k, v]) => `${k}=${v}`).join('  ') || '(none)'}`);
+console.log(
+    `Status breakdown: ${
+        Object.entries(statusCounts)
+            .map(([k, v]) => `${k}=${v}`)
+            .join('  ') || '(none)'
+    }`,
+);
 if (invalid.length === 0) {
     console.log('No invalid references found.');
     process.exit(0);

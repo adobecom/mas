@@ -831,6 +831,7 @@ export class MasRepository extends LitElement {
         if (signal?.aborted) return false;
         const page = await cursor.next();
         if (page.done) return true;
+        const fgStores = [];
         for await (const item of page.value) {
             if (this.#skipVariant(variants, item)) continue;
             if (!matchesContentTypeFilter(contentTypes, item)) continue;
@@ -841,12 +842,13 @@ export class MasRepository extends LitElement {
                 const fragment = await this.#addToCache(item);
                 const fgStore = generateFragmentStore(fragment, null, { lazy: true });
                 if (match.exact) {
-                    fragmentStores.unshift(fgStore);
+                    fgStores.unshift(fgStore);
                 } else {
-                    fragmentStores.push(fgStore);
+                    fgStores.push(fgStore);
                 }
             }
         }
+        fragmentStores.push(...fgStores);
         return false;
     }
 

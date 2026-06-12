@@ -31,22 +31,71 @@ describe('ost-code-output', () => {
         store.placeholderOptions = { ...store.defaultPlaceholderOptions };
         store.aosParams = { marketSegment: 'COM' };
         store.checkoutClientId = 'mas-commerce-service';
+        store.placeholderTab = 'price';
     });
 
     afterEach(() => {
         store.selectedOffer = undefined;
         store.selectedOsi = undefined;
         store.placeholderOptions = { ...store.defaultPlaceholderOptions };
+        store.placeholderTab = 'price';
     });
 
-    it('renders code string with OSI when inside placeholder panel', async () => {
+    it('prefers its osi property over store.selectedOsi in the code string', async () => {
+        const codeOutput = await fixture(html`<ost-code-output .placeholderType=${'price'}></ost-code-output>`);
+        codeOutput.osi = 'override-osi';
+        await codeOutput.updateComplete;
+        expect(codeOutput.getCodeString()).to.include('osi="override-osi"');
+    });
+
+    it('forwards the override osi and offer through handleUse', async () => {
+        const original = navigator.clipboard?.writeText;
+        Object.defineProperty(navigator, 'clipboard', {
+            value: { writeText: async () => {} },
+            configurable: true,
+        });
+        const ostApp = document.createElement('div');
+        Object.defineProperty(ostApp, 'tagName', { value: 'OST-APP' });
+        ostApp.attachShadow({ mode: 'open' });
+        document.body.appendChild(ostApp);
+        const codeOutput = document.createElement('ost-code-output');
+        codeOutput.placeholderType = 'price';
+        codeOutput.osi = 'trial-osi';
+        codeOutput.offer = { offer_id: 'TRIAL1' };
+        ostApp.shadowRoot.appendChild(codeOutput);
+        await codeOutput.updateComplete;
+
+        let captured;
+        ostApp.select = (arg) => {
+            captured = arg;
+        };
+        await codeOutput.handleUse();
+        expect(captured.osi).to.equal('trial-osi');
+        expect(captured.offer.offer_id).to.equal('TRIAL1');
+
+        ostApp.remove();
+        if (original) {
+            Object.defineProperty(navigator, 'clipboard', {
+                value: { writeText: original },
+                configurable: true,
+            });
+        }
+    });
+
+    it('builds code string with OSI when inside placeholder panel', async () => {
         const panel = await fixture(html`<ost-placeholder-panel></ost-placeholder-panel>`);
         await panel.updateComplete;
         const codeOutput = outputForType(panel, 'price');
         await codeOutput.updateComplete;
-        const code = codeOutput.shadowRoot.querySelector('code');
-        expect(code).to.exist;
-        expect(code.textContent).to.include('abc123');
+        expect(codeOutput.getCodeString()).to.include('abc123');
+    });
+
+    it('does not display the code string', async () => {
+        const panel = await fixture(html`<ost-placeholder-panel></ost-placeholder-panel>`);
+        await panel.updateComplete;
+        const codeOutput = outputForType(panel, 'price');
+        await codeOutput.updateComplete;
+        expect(Boolean(codeOutput.shadowRoot.querySelector('code'))).to.be.false;
     });
 
     it('renders Use button', async () => {
@@ -60,9 +109,7 @@ describe('ost-code-output', () => {
 
     it('disables Use button when no OSI is selected', async () => {
         store.selectedOsi = undefined;
-        const panel = await fixture(html`<ost-placeholder-panel></ost-placeholder-panel>`);
-        const codeOutput = outputForType(panel, 'price');
-        await codeOutput.updateComplete;
+        const codeOutput = await fixture(html`<ost-code-output .placeholderType=${'price'}></ost-code-output>`);
         const button = codeOutput.shadowRoot.querySelector('sp-button');
         expect(button.hasAttribute('disabled')).to.be.true;
     });
@@ -72,8 +119,7 @@ describe('ost-code-output', () => {
         await panel.updateComplete;
         const codeOutput = outputForType(panel, 'optical');
         await codeOutput.updateComplete;
-        const code = codeOutput.shadowRoot.querySelector('code');
-        expect(code.textContent).to.include('type="optical"');
+        expect(codeOutput.getCodeString()).to.include('type="optical"');
     });
 
     it('omits options that equal their default value', async () => {
@@ -81,10 +127,10 @@ describe('ost-code-output', () => {
         await panel.updateComplete;
         const codeOutput = outputForType(panel, 'price');
         await codeOutput.updateComplete;
-        const code = codeOutput.shadowRoot.querySelector('code');
-        expect(code.textContent).to.not.include('displayFormatted');
-        expect(code.textContent).to.not.include('displayRecurrence');
-        expect(code.textContent).to.not.include('displayOldPrice');
+        const text = codeOutput.getCodeString();
+        expect(text).to.not.include('displayFormatted');
+        expect(text).to.not.include('displayRecurrence');
+        expect(text).to.not.include('displayOldPrice');
     });
 
     it('emits promotionCode="cancel-context" when storedPromoOverride is set to the sentinel', async () => {
@@ -95,8 +141,7 @@ describe('ost-code-output', () => {
         const codeOutput = outputForType(panel, 'price');
         codeOutput.requestUpdate();
         await codeOutput.updateComplete;
-        const code = codeOutput.shadowRoot.querySelector('code');
-        expect(code.textContent).to.include('promotionCode="cancel-context"');
+        expect(codeOutput.getCodeString()).to.include('promotionCode="cancel-context"');
         store.storedPromoOverride = undefined;
         store.promotionCode = undefined;
     });
@@ -108,11 +153,12 @@ describe('ost-code-output', () => {
         const codeOutput = outputForType(panel, 'price');
         codeOutput.requestUpdate();
         await codeOutput.updateComplete;
-        const code = codeOutput.shadowRoot.querySelector('code');
-        expect(code.textContent).to.include('displayTax="true"');
+        expect(codeOutput.getCodeString()).to.include('displayTax="true"');
     });
 
     async function setupCheckoutType(panel) {
+        store.placeholderTab = 'checkout';
+        await panel.updateComplete;
         const codeOutput = outputForType(panel, 'checkoutUrl');
         const checkoutOptions = panel.shadowRoot.querySelector(
             '[data-testid="ost-placeholder-row-checkoutUrl"] ost-checkout-options',
@@ -124,7 +170,7 @@ describe('ost-code-output', () => {
     async function getCodeText(codeOutput) {
         codeOutput.requestUpdate();
         await codeOutput.updateComplete;
-        return codeOutput.shadowRoot.querySelector('code').textContent;
+        return codeOutput.getCodeString();
     }
 
     it('emits workflowStep when checkout controller has a non-default step', async () => {
@@ -328,6 +374,7 @@ describe('ost-code-output', () => {
 
             const panel = document.createElement('ost-placeholder-panel');
             ostApp.shadowRoot.appendChild(panel);
+            store.placeholderTab = 'checkout';
             await panel.updateComplete;
 
             const checkoutOptions = panel.shadowRoot.querySelector(

@@ -79,6 +79,10 @@ const SLICES = [
     // OSI the OST was deep-link opened with; preserved across Back so the offer
     // step can re-resolve it. Cleared on init and on manual offer selection.
     ['initialOsi', undefined],
+    // Attributes of the deep-linked OSI's resolved offer (offer_type,
+    // commitment, term, segments) — used by autoSelectByInitialOsi to pick the
+    // matching offer without narrowing the visible filters away from "All".
+    ['initialOsiAttributes', undefined],
     // Tracks the offer the user had selected before clicking Back/Change so the
     // offer-card render can highlight it as a "previously used" choice.
     ['lastSelectedOfferId', undefined],
@@ -104,6 +108,9 @@ const SLICES = [
     ['placeholderOptions', { ...DEFAULT_PLACEHOLDER_OPTIONS }],
     ['offerSelectorPlaceholderOptions', {}],
     ['deepLink', {}],
+    // Active placeholder-panel tab: 'price' | 'checkout' | 'details'. Lives in
+    // the store (not the panel) so it survives Back/Next within an OST session.
+    ['placeholderTab', 'price'],
     ['ctaTextOption', null],
     ['helpMode', false],
     ['pendingArrangementCode', null],
@@ -114,14 +121,17 @@ export class OstStore extends EventTarget {
     #batchDepth = 0;
     #batchedDuringRun = false;
     #offersKey = null;
+    #trialAutoFillPending = false;
+    // True once the user clicks a try/buy slot to target it; consumed (and
+    // reset) by the next addOffer so an explicit target wins over type routing
+    // exactly once, then type routing resumes.
+    #slotManuallyTargeted = false;
 
     // Callback slots set once during init() — held as plain fields because
     // ReactiveStore.set(fn) treats `fn` as an updater function and would invoke
     // it with the current value, mangling the stored callback.
     onSelect = null;
     onCancel = null;
-    onMultiSelect = null;
-    onBundleSelect = null;
 
     constructor() {
         super();
@@ -241,12 +251,42 @@ export class OstStore extends EventTarget {
         return this.selectedOffers.map((o) => o.osi).join(',');
     }
 
-    get multiSelect() {
-        return this.authoringFlow === 'tryBuy';
+    // Offer groups the placeholder panel renders rows for. Every flow funnels
+    // into this one shape so "Use" always goes through the single onSelect
+    // pipeline: tryBuy yields a labeled group per offer (each emitting plain
+    // single-OSI markup), bundle yields one joined-OSI group (summed price,
+    // multi-item checkout).
+    get panelGroups() {
+        switch (this.authoringFlow) {
+            case 'tryBuy': {
+                const groups = [];
+                if (this.selectedTrialOsi) {
+                    groups.push({ role: 'trial', label: 'Trial', osi: this.selectedTrialOsi, offer: this.selectedTrialOffer });
+                }
+                if (this.selectedBaseOsi) {
+                    groups.push({ role: 'buy', label: 'Buy', osi: this.selectedBaseOsi, offer: this.selectedBaseOffer });
+                }
+                return groups;
+            }
+            case 'bundle': {
+                if (this.selectedOffers.length === 0) return [];
+                return [
+                    {
+                        role: 'bundle',
+                        label: `Bundle (${this.selectedOffers.length})`,
+                        osi: this.bundleOsis,
+                        offer: this.selectedOffers[0].offer,
+                    },
+                ];
+            }
+            default:
+                if (!this.selectedOffer || !this.selectedOsi) return [];
+                return [{ role: 'single', label: '', osi: this.selectedOsi, offer: this.selectedOffer }];
+        }
     }
 
-    get canConfirmMultiSelect() {
-        return this.authoringFlow === 'tryBuy' && !!this.selectedBaseOsi;
+    get multiSelect() {
+        return this.authoringFlow === 'tryBuy';
     }
 
     subscribe(callback) {
@@ -283,6 +323,7 @@ export class OstStore extends EventTarget {
         this.selectedOffer = undefined;
         this.selectedOsi = undefined;
         this.initialOsi = undefined;
+        this.initialOsiAttributes = undefined;
         // 'single' is the safe default: it matches the most common caller
         // (RTE double-click on an existing CTA) and is overridden below for
         // multiSelect / bundleSelect / explicit authoringFlow.
@@ -290,6 +331,7 @@ export class OstStore extends EventTarget {
         this.wizardStep = 'entitlements';
         this.selectedOffers = [];
         this.currentSlot = 'base';
+        this.#slotManuallyTargeted = false;
         this.pendingFlowSwitch = null;
         this.offers = [];
         // Reset the offers-fetch cache key so the first product selection of a
@@ -299,6 +341,7 @@ export class OstStore extends EventTarget {
         this.searchQuery = '';
         this.searchType = '';
         this.deepLink = {};
+        this.placeholderTab = 'price';
         this.promotionCode = undefined;
         this.storedPromoOverride = undefined;
         this.placeholderOptions = { ...DEFAULT_PLACEHOLDER_OPTIONS };
@@ -312,7 +355,7 @@ export class OstStore extends EventTarget {
         if (config.authoringFlow && VALID_FLOWS.includes(config.authoringFlow)) {
             this.authoringFlow = config.authoringFlow;
         }
-        const CALLBACK_KEYS = ['onSelect', 'onCancel', 'onMultiSelect', 'onBundleSelect'];
+        const CALLBACK_KEYS = ['onSelect', 'onCancel'];
         Object.keys(config).forEach((key) => {
             if (key === 'multiSelect' || key === 'bundleSelect' || key === 'authoringFlow') return;
             if (config[key] === undefined) return;
@@ -323,11 +366,28 @@ export class OstStore extends EventTarget {
             }
         });
         if (config.defaultPlaceholderOptions) {
-            this.defaultPlaceholderOptions = { ...DEFAULT_PLACEHOLDER_OPTIONS, ...config.defaultPlaceholderOptions };
+            // Studio's config carries forceTaxExclusive in the legacy OST
+            // contract, where the value is inverted at placeholder-build time
+            // (tacocat PlaceholderKey.jsx) — the effective default is its
+            // negation. Taking it literally renders tax-exclusive (HT) prices
+            // where legacy rendered tax-inclusive (TTC).
+            const { forceTaxExclusive, ...defaults } = config.defaultPlaceholderOptions;
+            this.defaultPlaceholderOptions = {
+                ...DEFAULT_PLACEHOLDER_OPTIONS,
+                ...defaults,
+                ...(forceTaxExclusive === undefined ? {} : { forceTaxExclusive: !forceTaxExclusive }),
+            };
             this.placeholderOptions = { ...this.defaultPlaceholderOptions };
         }
         if (config.offerSelectorPlaceholderOptions) {
             this.offerSelectorPlaceholderOptions = config.offerSelectorPlaceholderOptions;
+            const restored = {};
+            for (const key of Object.keys(DEFAULT_PLACEHOLDER_OPTIONS)) {
+                if (config.offerSelectorPlaceholderOptions[key] !== undefined) {
+                    restored[key] = config.offerSelectorPlaceholderOptions[key];
+                }
+            }
+            this.placeholderOptions = { ...this.placeholderOptions, ...restored };
             const incomingPromoOverride = config.offerSelectorPlaceholderOptions.storedPromoOverride;
             if (incomingPromoOverride !== undefined && this.storedPromoOverride === undefined) {
                 this.storedPromoOverride = incomingPromoOverride;
@@ -539,8 +599,33 @@ export class OstStore extends EventTarget {
     // This is the single store-owned deep-link/search offer-selection path.
     autoSelectByInitialOsi(offers) {
         if (!this.initialOsi || offers.length === 0) return false;
-        const wanted = this.aosParams.offerType;
-        const match = wanted ? offers.find((o) => o.offer_type === wanted) : undefined;
+        const attrs = this.initialOsiAttributes;
+        let match;
+        if (attrs) {
+            // Relax the match progressively — the user may have changed plan
+            // filters after the deep-link resolved (e.g. PUF promo reopened,
+            // then switched to ABM), so plan fields can legitimately diverge.
+            const tiers = [
+                (o) =>
+                    (!attrs.offer_type || o.offer_type === attrs.offer_type) &&
+                    (!attrs.commitment || o.commitment === attrs.commitment) &&
+                    (!attrs.term || o.term === attrs.term) &&
+                    (!attrs.customer_segment || o.customer_segment === attrs.customer_segment),
+                (o) =>
+                    attrs.offer_type &&
+                    o.offer_type === attrs.offer_type &&
+                    (!attrs.customer_segment || o.customer_segment === attrs.customer_segment),
+                (o) => attrs.offer_type && o.offer_type === attrs.offer_type,
+            ];
+            for (const tier of tiers) {
+                match = offers.find(tier);
+                if (match) break;
+            }
+        }
+        if (!match) {
+            const wanted = this.aosParams.offerType;
+            match = wanted ? offers.find((o) => o.offer_type === wanted) : undefined;
+        }
         const chosen = match ?? (offers.length === 1 ? offers[0] : undefined);
         if (!chosen) return false;
         this.setOffer(chosen);
@@ -581,32 +666,95 @@ export class OstStore extends EventTarget {
         }
     }
 
+    // tryBuy convenience: when the loaded offers leave no ambiguity (a single
+    // BASE candidate), pre-fill the base slot; the addOffer hook then fills the
+    // matching trial. Authors can always pick/replace slots manually.
     async autoFillBaseAndTrial(offers) {
-        if (!this.multiSelect) return;
-        const baseOffer = offers.find((o) => o.offer_type === 'BASE');
-        const trialOffer = offers.find((o) => o.offer_type === 'TRIAL');
-        if (!baseOffer || !trialOffer || offers.length !== 2) return;
+        if (this.authoringFlow !== 'tryBuy' || this.selectedBaseOsi) return;
+        const baseCandidates = offers.filter((o) => o.offer_type === 'BASE');
+        if (baseCandidates.length !== 1) return;
+        try {
+            await this.#resolveAndAddOffer(baseCandidates[0], 'base');
+        } catch {
+            /* auto-fill failed — user can select manually */
+        }
+    }
 
+    async #maybeAutoFillTrial(baseOffer) {
+        if (this.#trialAutoFillPending || this.selectedTrialOsi) return;
+        const candidate = this.#matchCounterpart(baseOffer, 'TRIAL');
+        if (!candidate) return;
+        this.#trialAutoFillPending = true;
+        try {
+            await this.#resolveAndAddOffer(candidate, 'trial');
+        } catch {
+            /* auto-fill failed — user can select manually */
+        } finally {
+            this.#trialAutoFillPending = false;
+        }
+    }
+
+    async #maybeAutoFillBase(trialOffer) {
+        if (this.#trialAutoFillPending || this.selectedBaseOsi) return;
+        const candidate = this.#matchCounterpart(trialOffer, 'BASE');
+        if (!candidate) return;
+        this.#trialAutoFillPending = true;
+        try {
+            await this.#resolveAndAddOffer(candidate, 'base');
+        } catch {
+            /* auto-fill failed — user can select manually */
+        } finally {
+            this.#trialAutoFillPending = false;
+        }
+    }
+
+    // Find the single offer of `offerType` that mirrors the picked offer,
+    // relaxing the match (segments + plan → segments → any) until exactly one
+    // candidate is left; null when it stays ambiguous.
+    #matchCounterpart(picked, offerType) {
+        const pool = this.offers.filter((o) => o.offer_type === offerType && o.offer_id !== picked?.offer_id);
+        const marketSegmentOf = (o) => (Array.isArray(o.market_segments) ? o.market_segments[0] : o.market_segments);
+        const single = (predicate) => {
+            const matches = pool.filter(predicate);
+            return matches.length === 1 ? matches[0] : null;
+        };
+        return (
+            (picked &&
+                single(
+                    (o) =>
+                        o.customer_segment === picked.customer_segment &&
+                        marketSegmentOf(o) === marketSegmentOf(picked) &&
+                        o.commitment === picked.commitment &&
+                        o.term === picked.term,
+                )) ||
+            (picked &&
+                single(
+                    (o) => o.customer_segment === picked.customer_segment && marketSegmentOf(o) === marketSegmentOf(picked),
+                )) ||
+            single(() => true)
+        );
+    }
+
+    async #resolveAndAddOffer(offer, role) {
         const config = {
             accessToken: this.accessToken,
             apiKey: this.apiKey,
             baseUrl: this.baseUrl,
             env: this.env,
         };
-        try {
-            const [baseOsi, trialOsi] = await Promise.all([
-                resolveOfferSelector(baseOffer, config),
-                resolveOfferSelector(trialOffer, config),
-            ]);
-            this.addOffer(baseOffer, baseOsi, 'base');
-            this.addOffer(trialOffer, trialOsi, 'trial');
-        } catch {
-            /* auto-fill failed — user can select manually */
-        }
+        const osi = await resolveOfferSelector(offer, config);
+        this.addOffer(offer, osi, role);
     }
 
     setOffer(offer) {
         this.selectedOffer = offer;
+    }
+
+    clearInitialOsi() {
+        this.#batch(() => {
+            this.initialOsi = undefined;
+            this.initialOsiAttributes = undefined;
+        });
     }
 
     clearSelectedOffer() {
@@ -645,6 +793,7 @@ export class OstStore extends EventTarget {
 
     setCurrentSlot(slot) {
         if (slot !== 'base' && slot !== 'trial') return;
+        this.#slotManuallyTargeted = true;
         this.currentSlot = slot;
     }
 
@@ -670,6 +819,7 @@ export class OstStore extends EventTarget {
         }
         this.authoringFlow = flow;
         this.currentSlot = 'base';
+        this.#slotManuallyTargeted = false;
         let nextSelected = [];
 
         if (keepSelections && previousOffers.length > 0) {
@@ -696,13 +846,40 @@ export class OstStore extends EventTarget {
     }
 
     addOffer(offer, osi, role) {
-        this.#batch(() => this.#addOffer(offer, osi, role));
+        // Slot precedence: an explicit role (programmatic) > a slot the user
+        // manually targeted (clicking a slot wins over type) > the offer's
+        // type default > the current slot. The manual-target flag is consumed
+        // here so type routing resumes on the next pick.
+        const manualTarget = this.#slotManuallyTargeted;
+        this.#slotManuallyTargeted = false;
+        const targetRole = role || (manualTarget ? this.currentSlot : this.#defaultSlotFor(offer)) || this.currentSlot;
+        this.#batch(() => this.#addOffer(offer, osi, targetRole, !role && !manualTarget));
+        // Auto-fill the counterpart unless the user manually targeted a slot —
+        // a manual target means "put it exactly here", so don't also touch the
+        // other slot. An explicit programmatic role still auto-fills.
+        if (this.authoringFlow !== 'tryBuy' || manualTarget) return;
+        if (targetRole === 'base' && offer?.offer_type === 'BASE') {
+            this.#maybeAutoFillTrial(offer);
+        } else if (targetRole === 'trial' && offer?.offer_type === 'TRIAL') {
+            this.#maybeAutoFillBase(offer);
+        }
     }
 
-    #addOffer(offer, osi, role) {
+    // In tryBuy an untargeted pick routes by its own type — a TRIAL belongs in
+    // the trial slot, a BASE in the base slot; ambiguous types (e.g. PROMOTION)
+    // fall through to the current slot.
+    #defaultSlotFor(offer) {
+        if (this.authoringFlow !== 'tryBuy') return undefined;
+        if (offer?.offer_type === 'TRIAL') return 'trial';
+        if (offer?.offer_type === 'BASE') return 'base';
+        return undefined;
+    }
+
+    #addOffer(offer, osi, role, autoAdvance = false) {
         if (this.authoringFlow === 'consult') return;
 
         this.initialOsi = undefined;
+        this.initialOsiAttributes = undefined;
 
         if (this.authoringFlow === 'single') {
             this.selectedOffer = offer;
@@ -715,8 +892,11 @@ export class OstStore extends EventTarget {
             const next = this.selectedOffers.filter((o) => o.role !== targetRole);
             next.push({ offer, osi, role: targetRole });
             this.selectedOffers = next;
-            if (targetRole === 'base' && this.currentSlot === 'base') {
-                this.currentSlot = 'trial';
+            // After an untargeted fill, advance the target to the still-empty
+            // slot so a quick second pick lands there. A manual target (or an
+            // explicit role) skips this so it doesn't fight the user's choice.
+            if (autoAdvance) {
+                this.currentSlot = targetRole === 'base' ? 'trial' : 'base';
             }
             return;
         }
@@ -776,22 +956,6 @@ export class OstStore extends EventTarget {
         return this.storedPromoOverride || this.promotionCode || '';
     }
 
-    toggleMultiSelect() {
-        this.#batch(() => {
-            if (this.authoringFlow === 'tryBuy') {
-                this.applyFlowSwitch('single', false);
-            } else {
-                const keepSelections = !!this.selectedOffer;
-                if (keepSelections) {
-                    this.selectedOffers = [{ offer: this.selectedOffer, osi: this.selectedOsi, role: 'base' }];
-                }
-                this.authoringFlow = 'tryBuy';
-                this.selectedOffer = undefined;
-                this.selectedOsi = undefined;
-            }
-        });
-    }
-
     toggleHelp() {
         this.helpMode = !this.helpMode;
     }
@@ -835,6 +999,9 @@ export class OstStore extends EventTarget {
         if (get('upgrade')) deepLink.upgrade = get('upgrade') === 'true';
 
         this.deepLink = deepLink;
+        if (deepLink.type === 'checkoutUrl') {
+            this.placeholderTab = 'checkout';
+        }
 
         const aosUpdates = {};
         const arrangementCode = get('arrangement_code');

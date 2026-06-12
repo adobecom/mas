@@ -1,13 +1,13 @@
 /**
  * MAS Studio OST authoring-mode E2E suite.
  *
- * Drives each authoring mode (single / try-buy / bundle / consult) through the
- * OST UI via the "Authoring mode" picker on the entitlements step, then asserts
- * the correct config panel renders on the offer step:
- *   - single  → placeholder type rows
- *   - tryBuy  → selection list (base + trial slots)
- *   - bundle  → selection list (bundle slots)
- *   - consult → focused offer detail once an offer is picked
+ * Drives each authoring mode (single / try-buy / bundle) through the OST UI
+ * via the "Authoring mode" picker on the entitlements step, then asserts the
+ * correct config panel renders on the offer step:
+ *   - single → placeholder type rows
+ *   - tryBuy → selection slots + per-offer (Trial/Buy) placeholder rows
+ *   - bundle → selection slots + joined-OSI placeholder rows
+ * Consult is chat-only (deep-link) and must not appear in the picker.
  *
  * Requires the dedicated fr_FR OST fragment and a healthy NALA Studio env.
  * Run: npm run nala -- --grep @ost-authoring-modes
@@ -92,9 +92,14 @@ test.describe('M@S Studio OST authoring modes test suite', () => {
             await advanceToOffer(ost, data.product);
         });
 
-        await test.step('step-2: Offer step shows the selection list, not placeholder rows', async () => {
+        await test.step('step-2: Offer step shows the selection slots above the panel', async () => {
             await expect(await ost.selectionList).toBeVisible();
-            await expect(await ost.priceRow).toBeHidden();
+        });
+
+        await test.step('step-3: Filling a slot reveals the per-offer placeholder rows', async () => {
+            await ost.offerCard.first().click();
+            await expect(await ost.buyPriceRow).toBeVisible();
+            await expect(await ost.buyPriceRow.locator('[data-testid="ost-use-button"]')).toBeVisible();
         });
     });
 
@@ -108,34 +113,25 @@ test.describe('M@S Studio OST authoring modes test suite', () => {
             await advanceToOffer(ost, data.product);
         });
 
-        await test.step('step-2: Offer step shows the selection list, not placeholder rows', async () => {
+        await test.step('step-2: Offer step shows the selection slots above the panel', async () => {
             await expect(await ost.selectionList).toBeVisible();
-            await expect(await ost.priceRow).toBeHidden();
+        });
+
+        await test.step('step-3: Adding an offer reveals the joined-OSI placeholder rows', async () => {
+            await ost.offerCard.first().click();
+            await expect(await ost.priceRow).toBeVisible();
         });
     });
 
-    // @studio-ost-mode-consult - Consult mode renders the focused offer detail
+    // @studio-ost-mode-no-consult - Consult must not be offered in the authoring-mode picker
     test(`${features[3].name},${features[3].tags}`, async ({ page, baseURL }) => {
-        const { data } = features[3];
         const ost = await openEditorAndOST(page, baseURL, features[3]);
 
-        await test.step('step-1: Consult mode is selected and advances to offers', async () => {
-            await selectAuthoringMode(ost, ost.authoringModeConsult);
-            await advanceToOffer(ost, data.product);
-        });
-
-        await test.step('step-2: The focused offer detail renders (auto-selected via deep-link OSI or manual pick)', async () => {
-            // When the OST is opened from a price, the deep-linked OSI
-            // auto-selects its offer once offers load (autoSelectByInitialOsi),
-            // which immediately swaps consult to the focused single-column view
-            // and hides the offer list. Only click a card when no offer was
-            // auto-selected.
-            await expect(ost.offerDetailFocused.or(ost.offerCard.first())).toBeVisible();
-            if (await ost.offerCard.first().isVisible()) {
-                await ost.offerCard.first().click();
-            }
-            await expect(await ost.offerDetailFocused).toBeVisible();
-            await expect(await ost.priceRow).toBeHidden();
+        await test.step('step-1: The authoring-mode picker offers no Consult option', async () => {
+            await expect(await ost.authoringMode).toBeVisible();
+            await ost.authoringMode.click();
+            await expect(await ost.authoringModeSingle).toBeVisible();
+            await expect(await ost.authoringModeConsult).toBeHidden();
         });
     });
 });

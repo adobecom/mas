@@ -4,8 +4,13 @@ import './ost-placeholder-options.js';
 import './ost-checkout-options.js';
 import './ost-live-preview.js';
 import './ost-code-output.js';
-import './ost-help-icon.js';
-import { HELP_TOOLTIPS } from '../data/help-content.js';
+import './ost-product-detail.js';
+
+const PANEL_TABS = [
+    { value: 'price', label: 'Price' },
+    { value: 'checkout', label: 'Checkout' },
+    { value: 'details', label: 'Offer Details' },
+];
 
 export class OstPlaceholderPanel extends LitElement {
     static styles = css`
@@ -17,15 +22,6 @@ export class OstPlaceholderPanel extends LitElement {
             min-width: 0;
         }
 
-        .section-label {
-            font-size: 11px;
-            font-weight: 700;
-            color: var(--spectrum-gray-600);
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            margin-bottom: 4px;
-        }
-
         .placeholder-rows {
             display: flex;
             flex-direction: column;
@@ -34,8 +30,8 @@ export class OstPlaceholderPanel extends LitElement {
         .placeholder-row {
             display: flex;
             flex-direction: column;
-            gap: 8px;
-            padding: 12px 0;
+            gap: 6px;
+            padding: 8px 0;
             border-bottom: 1px solid var(--spectrum-gray-200);
         }
 
@@ -43,7 +39,17 @@ export class OstPlaceholderPanel extends LitElement {
             border-bottom: none;
         }
 
+        .row-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
         .row-name {
+            display: flex;
+            align-items: center;
+            gap: 8px;
             font-size: 14px;
             font-weight: 700;
             color: var(--spectrum-gray-900);
@@ -115,14 +121,26 @@ export class OstPlaceholderPanel extends LitElement {
         this.referenceOsi = e.target.value;
     }
 
-    renderRow(type) {
+    renderRow(type, group) {
         const isDiscount = type.type === 'discount';
         const isCheckoutUrl = type.type === 'checkoutUrl';
         const rowReferenceOsi = isDiscount ? this.referenceOsi : '';
+        const roleSuffix = group.role === 'trial' || group.role === 'buy' ? `-${group.role}` : '';
         return html`
-            <div class="placeholder-row" data-testid="ost-placeholder-row-${type.type}">
+            <div class="placeholder-row" data-testid="ost-placeholder-row-${type.type}${roleSuffix}">
                 <div class="row-main">
-                    <div class="row-name">${type.name}</div>
+                    <div class="row-header">
+                        <div class="row-name">
+                            ${type.name}
+                            ${group.label ? html`<sp-badge size="s" variant="informative">${group.label}</sp-badge>` : nothing}
+                        </div>
+                        <ost-code-output
+                            .placeholderType=${type.type}
+                            .referenceOsi=${rowReferenceOsi}
+                            .osi=${group.osi}
+                            .offer=${group.offer}
+                        ></ost-code-output>
+                    </div>
                     ${type.description ? html`<div class="row-description">${type.description}</div>` : nothing}
                 </div>
 
@@ -142,28 +160,58 @@ export class OstPlaceholderPanel extends LitElement {
                       `
                     : nothing}
 
-                <ost-code-output .placeholderType=${type.type} .referenceOsi=${rowReferenceOsi}></ost-code-output>
-
-                <ost-live-preview .placeholderType=${type.type} .referenceOsi=${rowReferenceOsi}></ost-live-preview>
+                <ost-live-preview
+                    .placeholderType=${type.type}
+                    .referenceOsi=${rowReferenceOsi}
+                    .osi=${group.osi}
+                    .offer=${group.offer}
+                ></ost-live-preview>
             </div>
         `;
     }
 
+    handleTabChange(e) {
+        store.placeholderTab = e.target.selected;
+    }
+
+    // tryBuy renders one row per offer group, restricted to the two types an
+    // author actually places per offer (price + CTA); exotic price types stay
+    // available in Single Offer mode. Other flows render every type for their
+    // one group (bundle's group carries the joined OSI).
+    rowsForTab(predicate) {
+        const groups = store.panelGroups;
+        const types = store.placeholderTypes.filter(predicate);
+        const isTryBuy = store.authoringFlow === 'tryBuy';
+        const rowTypes = isTryBuy ? types.filter((t) => ['price', 'checkoutUrl'].includes(t.type)) : types;
+        return groups.flatMap((group) => rowTypes.map((t) => this.renderRow(t, group)));
+    }
+
+    renderTabContent() {
+        switch (store.placeholderTab) {
+            case 'checkout':
+                return html` <div class="placeholder-rows">${this.rowsForTab((t) => t.type === 'checkoutUrl')}</div> `;
+            case 'details':
+                return html`<ost-product-detail></ost-product-detail>`;
+            default:
+                return html`
+                    <div class="placeholder-rows">${this.rowsForTab((t) => t.type !== 'checkoutUrl')}</div>
+                    <ost-placeholder-options></ost-placeholder-options>
+                `;
+        }
+    }
+
     render() {
-        if (!store.selectedOffer) {
+        if (store.panelGroups.length === 0) {
             return html`<span class="empty-state">Select an offer to see placeholder options.</span>`;
         }
 
-        const types = store.placeholderTypes;
-
         return html`
-            <div class="section-label">Options <ost-help-icon text="${HELP_TOOLTIPS.options}"></ost-help-icon></div>
-            <ost-placeholder-options></ost-placeholder-options>
-
-            <div class="section-label">
-                Placeholder Type <ost-help-icon text="${HELP_TOOLTIPS.placeholderType}"></ost-help-icon>
-            </div>
-            <div class="placeholder-rows">${types.map((t) => this.renderRow(t))}</div>
+            <sp-tabs size="m" selected=${store.placeholderTab} @change=${this.handleTabChange}>
+                ${PANEL_TABS.map(
+                    (tab) => html` <sp-tab data-testid="ost-tab-${tab.value}" value=${tab.value} label=${tab.label}></sp-tab> `,
+                )}
+            </sp-tabs>
+            ${this.renderTabContent()}
         `;
     }
 }

@@ -183,6 +183,348 @@ describe('OstStore', () => {
         expect(store.defaultPlaceholderOptions.displayFormatted).to.be.true;
     });
 
+    it('inverts forceTaxExclusive from defaultPlaceholderOptions (legacy contract)', () => {
+        store.init({ defaultPlaceholderOptions: { forceTaxExclusive: true } });
+        expect(store.defaultPlaceholderOptions.forceTaxExclusive).to.be.false;
+        expect(store.placeholderOptions.forceTaxExclusive).to.be.false;
+    });
+
+    it('inverts an explicit false forceTaxExclusive from defaultPlaceholderOptions', () => {
+        store.init({ defaultPlaceholderOptions: { forceTaxExclusive: false } });
+        expect(store.defaultPlaceholderOptions.forceTaxExclusive).to.be.true;
+    });
+
+    it('keeps the built-in forceTaxExclusive default when the config omits it', () => {
+        store.init({ defaultPlaceholderOptions: { displayTax: true } });
+        expect(store.defaultPlaceholderOptions.forceTaxExclusive).to.be.false;
+    });
+
+    it('restores display options from offerSelectorPlaceholderOptions on init', () => {
+        store.init({
+            offerSelectorPlaceholderOptions: { displayPerUnit: true, displayTax: true },
+        });
+        expect(store.placeholderOptions.displayPerUnit).to.be.true;
+        expect(store.placeholderOptions.displayTax).to.be.true;
+    });
+
+    it('restores forceTaxExclusive from offerSelectorPlaceholderOptions without inversion', () => {
+        store.init({
+            offerSelectorPlaceholderOptions: { forceTaxExclusive: true },
+        });
+        expect(store.placeholderOptions.forceTaxExclusive).to.be.true;
+    });
+
+    it('reopened placeholder options win over defaultPlaceholderOptions', () => {
+        store.init({
+            defaultPlaceholderOptions: { displayTax: false },
+            offerSelectorPlaceholderOptions: { displayTax: true },
+        });
+        expect(store.placeholderOptions.displayTax).to.be.true;
+        expect(store.defaultPlaceholderOptions.displayTax).to.be.false;
+    });
+
+    describe('autoSelectByInitialOsi attribute matching', () => {
+        const offers = [
+            { offer_id: 'T1', offer_type: 'TRIAL', commitment: 'YEAR', term: 'MONTHLY', customer_segment: 'INDIVIDUAL' },
+            { offer_id: 'B1', offer_type: 'BASE', commitment: 'YEAR', term: 'MONTHLY', customer_segment: 'INDIVIDUAL' },
+            { offer_id: 'B2', offer_type: 'BASE', commitment: 'MONTH', term: 'MONTHLY', customer_segment: 'TEAM' },
+        ];
+
+        it('picks the offer matching the stashed deep-link attributes', () => {
+            store.initialOsi = 'deep-osi';
+            store.initialOsiAttributes = {
+                offer_type: 'BASE',
+                commitment: 'YEAR',
+                term: 'MONTHLY',
+                customer_segment: 'INDIVIDUAL',
+            };
+            expect(store.autoSelectByInitialOsi(offers)).to.be.true;
+            expect(store.selectedOffer.offer_id).to.equal('B1');
+            expect(store.selectedOsi).to.equal('deep-osi');
+        });
+
+        it('relaxes to offer_type matching when the plan attributes no longer match', () => {
+            store.initialOsi = 'deep-osi';
+            store.initialOsiAttributes = {
+                offer_type: 'BASE',
+                commitment: 'YEAR',
+                term: 'ANNUAL',
+                customer_segment: 'INDIVIDUAL',
+            };
+            expect(store.autoSelectByInitialOsi(offers)).to.be.true;
+            expect(store.selectedOffer.offer_id).to.equal('B1');
+        });
+
+        it('falls back to aosParams offerType matching without attributes', () => {
+            store.initialOsi = 'deep-osi';
+            store.initialOsiAttributes = undefined;
+            store.setAosParams({ offerType: 'TRIAL' });
+            expect(store.autoSelectByInitialOsi(offers)).to.be.true;
+            expect(store.selectedOffer.offer_id).to.equal('T1');
+        });
+    });
+
+    describe('tryBuy trial auto-fill', () => {
+        let originalFetch;
+        beforeEach(() => {
+            originalFetch = window.fetch;
+            window.fetch = async (url) => {
+                if (String(url).includes('offer_selectors') || String(url).includes('offer-selectors')) {
+                    return { ok: true, json: async () => ({ id: 'auto-trial-osi' }) };
+                }
+                return { ok: true, json: async () => [] };
+            };
+            store.applyFlowSwitch('tryBuy', false);
+        });
+
+        afterEach(() => {
+            window.fetch = originalFetch;
+            store.applyFlowSwitch('single', false);
+        });
+
+        const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+        it('auto-fills the single trial candidate when a base offer is picked', async () => {
+            store.offers = [
+                { offer_id: 'B1', offer_type: 'BASE' },
+                { offer_id: 'T1', offer_type: 'TRIAL' },
+            ];
+            store.addOffer({ offer_id: 'B1', offer_type: 'BASE' }, 'base-osi', 'base');
+            await tick();
+            await tick();
+            expect(store.selectedBaseOsi).to.equal('base-osi');
+            expect(store.selectedTrialOsi).to.equal('auto-trial-osi');
+            expect(store.selectedTrialOffer.offer_id).to.equal('T1');
+        });
+
+        it('picks the trial matching the base segments among multiple trial candidates', async () => {
+            const base = {
+                offer_id: 'B1',
+                offer_type: 'BASE',
+                customer_segment: 'INDIVIDUAL',
+                market_segments: ['COM'],
+                commitment: 'YEAR',
+                term: 'MONTHLY',
+            };
+            store.offers = [
+                base,
+                {
+                    offer_id: 'T-TEAM',
+                    offer_type: 'TRIAL',
+                    customer_segment: 'TEAM',
+                    market_segments: ['COM'],
+                    commitment: 'YEAR',
+                    term: 'MONTHLY',
+                },
+                {
+                    offer_id: 'T-IND',
+                    offer_type: 'TRIAL',
+                    customer_segment: 'INDIVIDUAL',
+                    market_segments: ['COM'],
+                    commitment: 'YEAR',
+                    term: 'MONTHLY',
+                },
+            ];
+            store.addOffer(base, 'base-osi', 'base');
+            await tick();
+            await tick();
+            expect(store.selectedTrialOffer?.offer_id).to.equal('T-IND');
+        });
+
+        it('does not auto-fill when the trial candidates stay ambiguous', async () => {
+            store.offers = [
+                { offer_id: 'B1', offer_type: 'BASE' },
+                { offer_id: 'T1', offer_type: 'TRIAL' },
+                { offer_id: 'T2', offer_type: 'TRIAL' },
+            ];
+            store.addOffer({ offer_id: 'B1', offer_type: 'BASE' }, 'base-osi', 'base');
+            await tick();
+            await tick();
+            expect(store.selectedTrialOsi).to.equal(null);
+        });
+
+        it('routes a clicked TRIAL offer into the trial slot by type when no slot is targeted', async () => {
+            store.offers = [];
+            store.addOffer({ offer_id: 'T1', offer_type: 'TRIAL' }, 'trial-osi');
+            expect(store.selectedTrialOsi).to.equal('trial-osi');
+            expect(store.selectedBaseOsi).to.equal(null);
+        });
+
+        it('honors the manually targeted slot over the offer type', async () => {
+            store.offers = [];
+            store.setCurrentSlot('trial');
+            store.addOffer({ offer_id: 'B1', offer_type: 'BASE' }, 'base-into-trial-osi');
+            expect(store.selectedTrialOsi).to.equal('base-into-trial-osi');
+            expect(store.selectedBaseOsi).to.equal(null);
+        });
+
+        it('lets a second same-type offer fill the other slot via manual targeting', async () => {
+            store.offers = [];
+            store.addOffer({ offer_id: 'B1', offer_type: 'BASE' }, 'buy-osi');
+            expect(store.selectedBaseOsi).to.equal('buy-osi');
+            store.setCurrentSlot('trial');
+            store.addOffer({ offer_id: 'B2', offer_type: 'BASE' }, 'trial-osi');
+            expect(store.selectedBaseOsi).to.equal('buy-osi');
+            expect(store.selectedTrialOsi).to.equal('trial-osi');
+        });
+
+        it('does not auto-fill when the user manually targets the trial slot', async () => {
+            window.fetch = async (url) => {
+                if (String(url).includes('offer_selectors') || String(url).includes('offer-selectors')) {
+                    return { ok: true, json: async () => ({ id: 'auto-osi' }) };
+                }
+                return { ok: true, json: async () => [] };
+            };
+            store.offers = [
+                { offer_id: 'B1', offer_type: 'BASE' },
+                { offer_id: 'T1', offer_type: 'TRIAL' },
+            ];
+            store.setCurrentSlot('base');
+            store.addOffer({ offer_id: 'B1', offer_type: 'BASE' }, 'buy-osi');
+            await tick();
+            await tick();
+            expect(store.selectedBaseOsi).to.equal('buy-osi');
+            expect(store.selectedTrialOsi).to.equal(null);
+        });
+
+        it('auto-fills the matching base when a trial is picked first', async () => {
+            window.fetch = async (url) => {
+                if (String(url).includes('offer_selectors') || String(url).includes('offer-selectors')) {
+                    return { ok: true, json: async () => ({ id: 'auto-base-osi' }) };
+                }
+                return { ok: true, json: async () => [] };
+            };
+            store.offers = [
+                { offer_id: 'B1', offer_type: 'BASE' },
+                { offer_id: 'T1', offer_type: 'TRIAL' },
+            ];
+            store.addOffer({ offer_id: 'T1', offer_type: 'TRIAL' }, 'trial-osi');
+            await tick();
+            await tick();
+            expect(store.selectedTrialOsi).to.equal('trial-osi');
+            expect(store.selectedBaseOsi).to.equal('auto-base-osi');
+            expect(store.selectedBaseOffer.offer_id).to.equal('B1');
+        });
+
+        it('advances the target to the empty slot after an untargeted fill', async () => {
+            store.offers = [];
+            store.addOffer({ offer_id: 'B1', offer_type: 'BASE' }, 'buy-osi');
+            expect(store.currentSlot).to.equal('trial');
+        });
+
+        it('clears the manual-target flag after consuming it so type routing resumes', async () => {
+            store.offers = [];
+            store.setCurrentSlot('trial');
+            store.addOffer({ offer_id: 'B1', offer_type: 'BASE' }, 'into-trial');
+            expect(store.selectedTrialOsi).to.equal('into-trial');
+            store.addOffer({ offer_id: 'B2', offer_type: 'BASE' }, 'into-base');
+            expect(store.selectedBaseOsi).to.equal('into-base');
+            expect(store.selectedTrialOsi).to.equal('into-trial');
+        });
+
+        it('does not overwrite a trial the user already picked', async () => {
+            store.offers = [
+                { offer_id: 'B1', offer_type: 'BASE' },
+                { offer_id: 'T1', offer_type: 'TRIAL' },
+            ];
+            store.addOffer({ offer_id: 'T9', offer_type: 'TRIAL' }, 'picked-trial-osi', 'trial');
+            store.addOffer({ offer_id: 'B1', offer_type: 'BASE' }, 'base-osi', 'base');
+            await tick();
+            await tick();
+            expect(store.selectedTrialOsi).to.equal('picked-trial-osi');
+        });
+
+        it('does not auto-fill outside the tryBuy flow', async () => {
+            store.applyFlowSwitch('bundle', false);
+            store.offers = [
+                { offer_id: 'B1', offer_type: 'BASE' },
+                { offer_id: 'T1', offer_type: 'TRIAL' },
+            ];
+            store.addOffer({ offer_id: 'B1', offer_type: 'BASE' }, 'base-osi', 'bundle');
+            await tick();
+            await tick();
+            expect(store.selectedTrialOsi).to.equal(null);
+        });
+    });
+
+    describe('panelGroups', () => {
+        it('returns one unlabeled group for single flow', () => {
+            store.setOffer({ offer_id: 'BASE1' });
+            store.setOsi('osi-base');
+            const groups = store.panelGroups;
+            expect(groups).to.have.length(1);
+            expect(groups[0].osi).to.equal('osi-base');
+            expect(groups[0].role).to.equal('single');
+        });
+
+        it('returns empty when nothing is selected', () => {
+            expect(store.panelGroups).to.deep.equal([]);
+        });
+
+        it('returns trial then buy groups for tryBuy flow', () => {
+            store.applyFlowSwitch('tryBuy', false);
+            store.addOffer({ offer_id: 'TRIAL1' }, 'osi-trial', 'trial');
+            store.addOffer({ offer_id: 'BASE1' }, 'osi-base', 'base');
+            const groups = store.panelGroups;
+            expect(groups.map((g) => g.role)).to.deep.equal(['trial', 'buy']);
+            expect(groups[0].osi).to.equal('osi-trial');
+            expect(groups[1].osi).to.equal('osi-base');
+            expect(groups[0].label).to.equal('Trial');
+            expect(groups[1].label).to.equal('Buy');
+        });
+
+        it('returns only the buy group when tryBuy has no trial', () => {
+            store.applyFlowSwitch('tryBuy', false);
+            store.addOffer({ offer_id: 'BASE1' }, 'osi-base', 'base');
+            const groups = store.panelGroups;
+            expect(groups).to.have.length(1);
+            expect(groups[0].role).to.equal('buy');
+        });
+
+        it('returns one joined-OSI group for bundle flow', () => {
+            store.applyFlowSwitch('bundle', false);
+            store.addOffer({ offer_id: 'A' }, 'osi-a', 'bundle');
+            store.addOffer({ offer_id: 'B' }, 'osi-b', 'bundle');
+            const groups = store.panelGroups;
+            expect(groups).to.have.length(1);
+            expect(groups[0].osi).to.equal('osi-a,osi-b');
+            expect(groups[0].role).to.equal('bundle');
+        });
+
+        it('returns empty for bundle flow with no offers', () => {
+            store.applyFlowSwitch('bundle', false);
+            expect(store.panelGroups).to.deep.equal([]);
+        });
+    });
+
+    it('defaults placeholderTab to price', () => {
+        expect(store.placeholderTab).to.equal('price');
+    });
+
+    it('selects the checkout tab when deep-linked to a checkoutUrl placeholder', () => {
+        store.applySearchParams(new URLSearchParams('type=checkoutUrl'));
+        expect(store.placeholderTab).to.equal('checkout');
+    });
+
+    it('keeps the price tab for price-type deep links', () => {
+        store.applySearchParams(new URLSearchParams('type=price'));
+        expect(store.placeholderTab).to.equal('price');
+    });
+
+    it('resets placeholderTab on init', () => {
+        store.placeholderTab = 'checkout';
+        store.init({});
+        expect(store.placeholderTab).to.equal('price');
+    });
+
+    it('ignores non-placeholder keys in offerSelectorPlaceholderOptions', () => {
+        store.init({
+            offerSelectorPlaceholderOptions: { workflowStep: 'recommendation', wcsOsi: 'abc' },
+        });
+        expect(store.placeholderOptions.workflowStep).to.be.undefined;
+        expect(store.placeholderOptions.wcsOsi).to.be.undefined;
+    });
+
     it('extends EventTarget', () => {
         expect(store).to.be.instanceOf(EventTarget);
     });
@@ -806,13 +1148,6 @@ describe('OstStore', () => {
             expect(store.selectedBaseOffer).to.be.null;
             expect(store.selectedTrialOffer).to.be.null;
         });
-
-        it('canConfirmMultiSelect works with tryBuy flow', () => {
-            store.authoringFlow = 'tryBuy';
-            expect(store.canConfirmMultiSelect).to.be.false;
-            store.selectedOffers = [{ offer: {}, osi: 'base-osi', role: 'base' }];
-            expect(store.canConfirmMultiSelect).to.be.true;
-        });
     });
 
     describe('effectivePromoCode', () => {
@@ -958,35 +1293,6 @@ describe('OstStore', () => {
             expect(store.selectedOffers).to.deep.equal([]);
             expect(store.selectedOffer).to.be.undefined;
             expect(store.selectedOsi).to.be.undefined;
-        });
-    });
-
-    describe('toggleMultiSelect', () => {
-        it('switches from tryBuy back to single', () => {
-            store.authoringFlow = 'tryBuy';
-            store.selectedOffers = [{ offer: {}, osi: 'a', role: 'base' }];
-            store.toggleMultiSelect();
-            expect(store.authoringFlow).to.equal('single');
-            expect(store.selectedOffers).to.deep.equal([]);
-        });
-
-        it('switches to tryBuy and carries existing single offer into base slot', () => {
-            store.authoringFlow = 'single';
-            const offer = { offerId: 'phsp' };
-            store.setOffer(offer);
-            store.setOsi('phsp-osi');
-            store.toggleMultiSelect();
-            expect(store.authoringFlow).to.equal('tryBuy');
-            expect(store.selectedBaseOffer).to.equal(offer);
-            expect(store.selectedBaseOsi).to.equal('phsp-osi');
-            expect(store.selectedOffer).to.be.undefined;
-        });
-
-        it('switches to tryBuy with no carried offers when none selected', () => {
-            store.authoringFlow = 'single';
-            store.toggleMultiSelect();
-            expect(store.authoringFlow).to.equal('tryBuy');
-            expect(store.selectedOffers).to.deep.equal([]);
         });
     });
 

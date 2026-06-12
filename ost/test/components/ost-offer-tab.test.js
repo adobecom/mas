@@ -91,22 +91,12 @@ describe('ost-offer-tab configPanel per authoring flow', () => {
             expect(useButton(el).hasAttribute('disabled')).to.be.false;
         });
 
-        it('tryBuy: "Use base offer only" when only a base is selected, enabled', async () => {
+        it('tryBuy: plain "Use", enabled once a base is selected', async () => {
             store.authoringFlow = 'tryBuy';
             store.selectedOffers = [{ offer: SELECTED, osi: 'base-osi', role: 'base' }];
             const el = await fixture(html`<ost-offer-tab></ost-offer-tab>`);
-            expect(useButton(el).textContent.trim()).to.equal('Use base offer only');
+            expect(useButton(el).textContent.trim()).to.equal('Use');
             expect(useButton(el).hasAttribute('disabled')).to.be.false;
-        });
-
-        it('tryBuy: "Use both offers" once a trial is added', async () => {
-            store.authoringFlow = 'tryBuy';
-            store.selectedOffers = [
-                { offer: SELECTED, osi: 'base-osi', role: 'base' },
-                { offer: { offer_id: 'TRIAL1' }, osi: 'trial-osi', role: 'trial' },
-            ];
-            const el = await fixture(html`<ost-offer-tab></ost-offer-tab>`);
-            expect(useButton(el).textContent.trim()).to.equal('Use both offers');
         });
 
         it('tryBuy: disabled when no base role is selected', async () => {
@@ -116,11 +106,11 @@ describe('ost-offer-tab configPanel per authoring flow', () => {
             expect(useButton(el).hasAttribute('disabled')).to.be.true;
         });
 
-        it('bundle: "Use bundle (N offers)" and enabled only with 2+ offers', async () => {
+        it('bundle: plain "Use", enabled only with 2+ offers', async () => {
             store.authoringFlow = 'bundle';
             store.selectedOffers = [{ offer: SELECTED, osi: 'o1' }];
             let el = await fixture(html`<ost-offer-tab></ost-offer-tab>`);
-            expect(useButton(el).textContent.trim()).to.equal('Use bundle (1 offers)');
+            expect(useButton(el).textContent.trim()).to.equal('Use');
             expect(useButton(el).hasAttribute('disabled')).to.be.true;
 
             store.selectedOffers = [
@@ -128,7 +118,6 @@ describe('ost-offer-tab configPanel per authoring flow', () => {
                 { offer: { offer_id: 'O2' }, osi: 'o2' },
             ];
             el = await fixture(html`<ost-offer-tab></ost-offer-tab>`);
-            expect(useButton(el).textContent.trim()).to.equal('Use bundle (2 offers)');
             expect(useButton(el).hasAttribute('disabled')).to.be.false;
         });
 

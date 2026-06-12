@@ -22,54 +22,78 @@ describe('ost-placeholder-options', () => {
         store.placeholderOptions = { ...store.defaultPlaceholderOptions };
     });
 
-    it('renders a Disable group label', async () => {
+    const expand = async (el) => {
+        const toggle = el.shadowRoot.querySelector('[data-testid="ost-options-toggle"]');
+        toggle.click();
+        await el.updateComplete;
+    };
+
+    it('is collapsed by default — no checkboxes shown', async () => {
         const el = await fixture(html`<ost-placeholder-options></ost-placeholder-options>`);
+        expect(Boolean(el.shadowRoot.querySelector('sp-checkbox'))).to.be.false;
+        expect(el.shadowRoot.querySelector('[data-testid="ost-options-toggle"]')).to.exist;
+    });
+
+    it('expands the checkbox group when the toggle is clicked', async () => {
+        const el = await fixture(html`<ost-placeholder-options></ost-placeholder-options>`);
+        await expand(el);
         const group = el.shadowRoot.querySelector('sp-checkbox-group, .disable-group');
         expect(group).to.exist;
     });
 
-    it('renders the six legacy disable checkboxes with terse labels', async () => {
+    it('renders the five disable checkboxes with terse labels (no HTML Format)', async () => {
         const el = await fixture(html`<ost-placeholder-options></ost-placeholder-options>`);
+        await expand(el);
         const boxes = el.shadowRoot.querySelectorAll('sp-checkbox');
         const labels = Array.from(boxes).map((b) => b.textContent.trim());
-        expect(labels).to.deep.equal(['HTML Format', 'Term', 'Unit', 'Tax Label', 'Include Tax', 'Old price']);
+        expect(labels).to.deep.equal(['Term', 'Unit', 'Tax Label', 'Include Tax', 'Old price']);
     });
 
     it('checked = disabled for an enabled-by-default option', async () => {
         const el = await fixture(html`<ost-placeholder-options></ost-placeholder-options>`);
-        expect(isChecked(cb(el, 'displayFormatted'))).to.be.false;
+        await expand(el);
+        expect(isChecked(cb(el, 'displayRecurrence'))).to.be.false;
     });
 
     it('checked when the option is disabled', async () => {
         store.placeholderOptions = { ...store.placeholderOptions, displayRecurrence: false };
         const el = await fixture(html`<ost-placeholder-options></ost-placeholder-options>`);
+        await expand(el);
         expect(isChecked(cb(el, 'displayRecurrence'))).to.be.true;
     });
 
     it('toggling a Disable checkbox turns the option off in the store', async () => {
         const el = await fixture(html`<ost-placeholder-options></ost-placeholder-options>`);
-        const box = cb(el, 'displayFormatted');
+        await expand(el);
+        const box = cb(el, 'displayRecurrence');
         box.checked = true;
         box.dispatchEvent(new Event('change'));
-        expect(store.placeholderOptions.displayFormatted).to.be.false;
+        expect(store.placeholderOptions.displayRecurrence).to.be.false;
     });
 
     it('Include Tax is checked when tax is included (forceTaxExclusive false)', async () => {
         const el = await fixture(html`<ost-placeholder-options></ost-placeholder-options>`);
+        await expand(el);
         expect(isChecked(cb(el, 'forceTaxExclusive'))).to.be.true;
     });
 
     it('unchecking Include Tax sets forceTaxExclusive true', async () => {
         const el = await fixture(html`<ost-placeholder-options></ost-placeholder-options>`);
+        await expand(el);
         const box = cb(el, 'forceTaxExclusive');
         box.checked = false;
         box.dispatchEvent(new Event('change'));
         expect(store.placeholderOptions.forceTaxExclusive).to.be.true;
     });
 
-    describe('every Disable checkbox drives its option (all 6 keys)', () => {
+    it('does not render an HTML Format option', async () => {
+        const el = await fixture(html`<ost-placeholder-options></ost-placeholder-options>`);
+        await expand(el);
+        expect(Boolean(cb(el, 'displayFormatted'))).to.be.false;
+    });
+
+    describe('every Disable checkbox drives its option (5 keys)', () => {
         const optionBoxes = [
-            { key: 'displayFormatted', default: true },
             { key: 'displayRecurrence', default: true },
             { key: 'displayPerUnit', default: false },
             { key: 'displayTax', default: false },
@@ -91,7 +115,7 @@ describe('ost-placeholder-options', () => {
 
             it(`toggling ${key} away from its default sets the option to ${nonDefault}`, async () => {
                 const el = await fixture(html`<ost-placeholder-options></ost-placeholder-options>`);
-                await el.updateComplete;
+                await expand(el);
                 expect(store.getEffectiveOptions('price')[key]).to.equal(defaultValue);
                 fireBox(el, key, checkedToFlip);
                 expect(store.getEffectiveOptions('price')[key]).to.equal(nonDefault);
@@ -99,7 +123,7 @@ describe('ost-placeholder-options', () => {
 
             it(`toggling ${key} back restores the option to ${defaultValue}`, async () => {
                 const el = await fixture(html`<ost-placeholder-options></ost-placeholder-options>`);
-                await el.updateComplete;
+                await expand(el);
                 fireBox(el, key, checkedToFlip);
                 expect(store.getEffectiveOptions('price')[key]).to.equal(nonDefault);
                 fireBox(el, key, !checkedToFlip);

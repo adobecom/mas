@@ -270,15 +270,18 @@ export class OstApp extends LitElement {
             const code = result?.product_arrangement_code || result?.arrangement_code;
             if (!code) return;
 
-            const aosUpdates = { arrangementCode: code };
-            if (result.commitment) aosUpdates.commitment = result.commitment;
-            if (result.term) aosUpdates.term = result.term;
-            if (result.customer_segment) aosUpdates.customerSegment = result.customer_segment;
-            const marketSegment = Array.isArray(result.market_segments) ? result.market_segments[0] : result.market_segment;
-            if (marketSegment) aosUpdates.marketSegment = marketSegment;
-            if (result.offer_type) aosUpdates.offerType = result.offer_type;
+            // Keep every segment filter at its "All" default: the resolved
+            // offer's attributes are stashed so autoSelectByInitialOsi can pick
+            // the matching offer out of the unfiltered list.
+            store.initialOsiAttributes = {
+                commitment: result.commitment,
+                term: result.term,
+                customer_segment: result.customer_segment,
+                market_segment: Array.isArray(result.market_segments) ? result.market_segments[0] : result.market_segment,
+                offer_type: result.offer_type,
+            };
             store.setOsi(id);
-            store.setAosParams(aosUpdates);
+            store.setAosParams({ arrangementCode: code });
             // setAosParams/setProduct trigger loadOffers, which selects the offer
             // matching this OSI via autoSelectByInitialOsi — the single, store-owned
             // resolution path (no competing state-changed listener that could
@@ -366,25 +369,6 @@ export class OstApp extends LitElement {
         }
     }
 
-    selectMulti() {
-        if (!store.canConfirmMultiSelect) return;
-        const detail = {
-            base: store.selectedBaseOsi ? { osi: store.selectedBaseOsi, offer: store.selectedBaseOffer } : null,
-            trial: store.selectedTrialOsi ? { osi: store.selectedTrialOsi, offer: store.selectedTrialOffer } : null,
-            country: store.country,
-        };
-        this.dispatchEvent(
-            new CustomEvent('ost-multi-select', {
-                bubbles: true,
-                composed: true,
-                detail,
-            }),
-        );
-        if (typeof store.onMultiSelect === 'function') {
-            store.onMultiSelect(detail);
-        }
-    }
-
     cancel() {
         this.dispatchEvent(
             new CustomEvent('ost-cancel', {
@@ -443,44 +427,18 @@ export class OstApp extends LitElement {
     }
 
     handleFooterUse() {
-        const flow = store.authoringFlow;
-        if (flow === 'tryBuy') {
-            this.selectMulti();
-            return;
-        }
-        if (flow === 'bundle') {
-            this.selectBundle();
-            return;
-        }
-        if (flow === 'consult') {
+        if (store.authoringFlow === 'consult') {
             this.cancel();
             return;
         }
-        // The placeholder panel now lives inside ost-offer-tab; reach its
-        // code-output through the tab's shadow root.
+        // Every authoring flow funnels through the placeholder panel: the
+        // footer Use delegates to the first row's code-output (tryBuy and
+        // bundle rows carry their own per-offer/joined OSI).
         const tab = this.shadowRoot.querySelector('ost-offer-tab');
         const panel = tab?.shadowRoot?.querySelector('ost-placeholder-panel');
         const codeOutput = panel?.shadowRoot?.querySelector('ost-code-output');
         if (codeOutput) {
             codeOutput.handleUse();
-        }
-    }
-
-    selectBundle() {
-        if (!store.canConfirm) return;
-        const detail = {
-            offers: store.selectedOffers.map((o) => ({ osi: o.osi, offer: o.offer })),
-            country: store.country,
-        };
-        this.dispatchEvent(
-            new CustomEvent('ost-bundle-select', {
-                bubbles: true,
-                composed: true,
-                detail,
-            }),
-        );
-        if (typeof store.onBundleSelect === 'function') {
-            store.onBundleSelect(detail);
         }
     }
 

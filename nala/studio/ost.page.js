@@ -51,6 +51,11 @@ export default class OSTPage {
         // visibility or click the type still work (clicking a row is harmless).
         const row = (type) => this.page.locator(`[data-testid="ost-placeholder-row-${type}"]`);
         this.priceRow = row('price');
+        // Try/Buy renders one labeled row per offer role.
+        this.trialPriceRow = row('price-trial');
+        this.buyPriceRow = row('price-buy');
+        this.trialCheckoutRow = row('checkoutUrl-trial');
+        this.buyCheckoutRow = row('checkoutUrl-buy');
         this.opticalRow = row('optical');
         this.annualRow = row('annual');
         this.strikethroughRow = row('strikethrough');
@@ -59,10 +64,18 @@ export default class OSTPage {
         this.legalRow = row('legal');
         this.checkoutRow = row('checkoutUrl');
 
-        // Back-compat aliases (old chip/tab names → rows).
+        // Placeholder-panel category tabs (Price / Checkout / Offer Details).
+        // The Checkout tab auto-activates when the OST is reopened from a CTA
+        // (deep-link type=checkoutUrl); price rows live under the default tab.
+        this.priceTab = this.page.locator('[data-testid="ost-tab-price"]');
+        this.offerDetailsTab = this.page.locator('[data-testid="ost-tab-details"]');
+
+        // Back-compat aliases. offerTab maps to the price row (clicking a row
+        // is harmless); the checkout aliases map to the Checkout tab so legacy
+        // "click the checkout tab/chip" flows activate the right tab.
         this.offerTab = this.priceRow;
-        this.entitlementsTab = this.checkoutRow;
-        this.checkoutTab = this.checkoutRow;
+        this.entitlementsTab = this.page.locator('[data-testid="ost-tab-checkout"]');
+        this.checkoutTab = this.entitlementsTab;
         this.priceChip = this.priceRow;
         this.opticalChip = this.opticalRow;
         this.annualChip = this.annualRow;

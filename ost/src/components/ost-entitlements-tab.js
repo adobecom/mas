@@ -10,7 +10,6 @@ const FLOW_LABELS = [
     { value: 'single', label: 'Single Offer' },
     { value: 'tryBuy', label: 'Try / Buy' },
     { value: 'bundle', label: 'Soft Bundle' },
-    { value: 'consult', label: 'Consult' },
 ];
 
 export class OstEntitlementsTab extends LitElement {

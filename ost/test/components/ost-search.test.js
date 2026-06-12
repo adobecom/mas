@@ -166,7 +166,7 @@ describe('ost-search', () => {
         expect(store.initialOsi).to.equal('searched-osi');
     });
 
-    it('resolveOsi maps offer-selector fields to AOS params so fetchOffers uses fresh filters', async () => {
+    it('resolveOsi resets segment filters to All and stashes the offer attributes for auto-select', async () => {
         const el = await fixture(html`<ost-search></ost-search>`);
         const product = { arrangement_code: 'osi-arr', name: 'XD' };
         store.allProducts = [['xd', product]];
@@ -183,9 +183,18 @@ describe('ost-search', () => {
             }),
         });
         await el.resolveOsi('some-osi-id');
-        expect(store.aosParams.customerSegment).to.equal('INDIVIDUAL');
-        expect(store.aosParams.marketSegment).to.equal('COM');
-        expect(store.aosParams.offerType).to.equal('BASE');
+        expect(store.aosParams.customerSegment).to.equal('');
+        expect(store.aosParams.marketSegment).to.equal('');
+        expect(store.aosParams.offerType).to.equal('');
+        expect(store.aosParams.commitment).to.equal('');
+        expect(store.aosParams.term).to.equal('');
+        expect(store.initialOsiAttributes).to.deep.equal({
+            customer_segment: 'INDIVIDUAL',
+            market_segment: 'COM',
+            offer_type: 'BASE',
+            commitment: 'YEAR',
+            term: 'MONTHLY',
+        });
         expect(store.selectedOsi).to.equal('some-osi-id');
     });
 

@@ -123,12 +123,22 @@ export class OstSearch extends LitElement {
                 // "Use" stays disabled until the new offer resolves.
                 store.initialOsi = osi;
                 store.clearSelectedOffer();
-                store.setAosParams({
-                    customerSegment: result.customer_segment,
-                    marketSegment: Array.isArray(result.market_segments) ? result.market_segments[0] : result.market_segment,
-                    offerType: result.offer_type,
+                // Keep every filter at its "All" default: the resolved offer's
+                // attributes are stashed for autoSelectByInitialOsi instead of
+                // narrowing the visible filter pickers.
+                store.initialOsiAttributes = {
+                    customer_segment: result.customer_segment,
+                    market_segment: Array.isArray(result.market_segments) ? result.market_segments[0] : result.market_segment,
+                    offer_type: result.offer_type,
                     commitment: result.commitment,
                     term: result.term,
+                };
+                store.setAosParams({
+                    customerSegment: '',
+                    marketSegment: '',
+                    offerType: '',
+                    commitment: '',
+                    term: '',
                 });
                 this.selectProductByCode(code);
                 // setOsi LAST: selectProductByCode → setProduct clears selectedOsi

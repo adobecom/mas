@@ -90,14 +90,10 @@ describe('ost-app', () => {
         beforeEach(() => {
             store.onSelect = null;
             store.onCancel = null;
-            store.onMultiSelect = null;
-            store.onBundleSelect = null;
         });
         afterEach(() => {
             store.onSelect = null;
             store.onCancel = null;
-            store.onMultiSelect = null;
-            store.onBundleSelect = null;
         });
 
         it('calls store.onSelect with positional args when select() runs', async () => {
@@ -127,110 +123,6 @@ describe('ost-app', () => {
             };
             el.cancel();
             expect(called).to.be.true;
-        });
-    });
-
-    describe('selectMulti', () => {
-        beforeEach(() => {
-            store.onMultiSelect = null;
-        });
-        afterEach(() => {
-            store.onMultiSelect = null;
-        });
-
-        it('is a no-op when canConfirmMultiSelect is false', async () => {
-            const el = await fixture(html`<ost-app></ost-app>`);
-            store.authoringFlow = 'tryBuy';
-            store.selectedOffers = [];
-            let fired = false;
-            el.addEventListener('ost-multi-select', () => {
-                fired = true;
-            });
-            el.selectMulti();
-            expect(fired).to.be.false;
-        });
-
-        it('dispatches ost-multi-select and calls store.onMultiSelect with base + trial', async () => {
-            const el = await fixture(html`<ost-app></ost-app>`);
-            store.authoringFlow = 'tryBuy';
-            store.country = 'US';
-            store.selectedOffers = [
-                { offer: { offer_id: 'B' }, osi: 'osi-base', role: 'base' },
-                { offer: { offer_id: 'T' }, osi: 'osi-trial', role: 'trial' },
-            ];
-            const calls = [];
-            let received;
-            el.addEventListener('ost-multi-select', (e) => {
-                received = e.detail;
-            });
-            store.onMultiSelect = (d) => {
-                calls.push(d);
-            };
-            el.selectMulti();
-            expect(received).to.exist;
-            expect(received.base).to.deep.equal({ osi: 'osi-base', offer: { offer_id: 'B' } });
-            expect(received.trial).to.deep.equal({ osi: 'osi-trial', offer: { offer_id: 'T' } });
-            expect(received.country).to.equal('US');
-            const match = calls.find((c) => c && c.base?.osi === 'osi-base');
-            expect(match).to.exist;
-        });
-
-        it('emits trial: null when only the base slot is filled', async () => {
-            const el = await fixture(html`<ost-app></ost-app>`);
-            store.authoringFlow = 'tryBuy';
-            store.selectedOffers = [{ offer: { offer_id: 'B' }, osi: 'osi-base', role: 'base' }];
-            let received;
-            el.addEventListener('ost-multi-select', (e) => {
-                received = e.detail;
-            });
-            el.selectMulti();
-            expect(received.base).to.exist;
-            expect(received.trial).to.equal(null);
-        });
-    });
-
-    describe('selectBundle', () => {
-        beforeEach(() => {
-            store.onBundleSelect = null;
-        });
-        afterEach(() => {
-            store.onBundleSelect = null;
-        });
-
-        it('is a no-op when canConfirm is false', async () => {
-            const el = await fixture(html`<ost-app></ost-app>`);
-            store.authoringFlow = 'bundle';
-            store.selectedOffers = []; // bundle requires >= 2 to confirm
-            let fired = false;
-            el.addEventListener('ost-bundle-select', () => {
-                fired = true;
-            });
-            el.selectBundle();
-            expect(fired).to.be.false;
-        });
-
-        it('dispatches ost-bundle-select with all offers and calls store.onBundleSelect', async () => {
-            const el = await fixture(html`<ost-app></ost-app>`);
-            store.authoringFlow = 'bundle';
-            store.country = 'JP';
-            store.selectedOffers = [
-                { offer: { offer_id: 'A' }, osi: 'osi-a' },
-                { offer: { offer_id: 'B' }, osi: 'osi-b' },
-                { offer: { offer_id: 'C' }, osi: 'osi-c' },
-            ];
-            const calls = [];
-            let received;
-            el.addEventListener('ost-bundle-select', (e) => {
-                received = e.detail;
-            });
-            store.onBundleSelect = (d) => {
-                calls.push(d);
-            };
-            el.selectBundle();
-            expect(received.offers).to.have.length(3);
-            expect(received.country).to.equal('JP');
-            const match = calls.find((c) => c?.offers?.length === 3);
-            expect(match).to.exist;
         });
     });
 
@@ -331,36 +223,7 @@ describe('ost-app', () => {
 
     describe('handleFooterUse', () => {
         afterEach(() => {
-            store.onMultiSelect = null;
-            store.onBundleSelect = null;
             store.onCancel = null;
-        });
-
-        it('routes to selectMulti when flow is tryBuy', async () => {
-            const el = await fixture(html`<ost-app></ost-app>`);
-            store.authoringFlow = 'tryBuy';
-            store.selectedOffers = [{ offer: { offer_id: 'B' }, osi: 'osi-b', role: 'base' }];
-            let fired = false;
-            el.addEventListener('ost-multi-select', () => {
-                fired = true;
-            });
-            el.handleFooterUse();
-            expect(fired).to.be.true;
-        });
-
-        it('routes to selectBundle when flow is bundle', async () => {
-            const el = await fixture(html`<ost-app></ost-app>`);
-            store.authoringFlow = 'bundle';
-            store.selectedOffers = [
-                { offer: { offer_id: 'A' }, osi: 'a' },
-                { offer: { offer_id: 'B' }, osi: 'b' },
-            ];
-            let fired = false;
-            el.addEventListener('ost-bundle-select', () => {
-                fired = true;
-            });
-            el.handleFooterUse();
-            expect(fired).to.be.true;
         });
 
         it('routes to cancel when flow is consult', async () => {
@@ -484,7 +347,7 @@ describe('ost-app', () => {
             }
         });
 
-        it('seeds AOS filters and selectedOsi from the resolved OSI then defers product/offer selection', async () => {
+        it('selects the product but keeps segment filters at All, stashing attributes for auto-select', async () => {
             const originalFetch = window.fetch;
             // getOfferSelector returns response.json() unwrapped (see aos-client.js:121)
             window.fetch = async () => ({
@@ -510,10 +373,17 @@ describe('ost-app', () => {
                 // usage loadOffers' autoSelectByInitialOsi re-resolves it once
                 // offers load.
                 expect(store.aosParams.arrangementCode).to.equal('phsp-arr');
-                expect(store.aosParams.commitment).to.equal('YEAR');
-                expect(store.aosParams.offerType).to.equal('BASE');
-                expect(store.aosParams.customerSegment).to.equal('INDIVIDUAL');
-                expect(store.aosParams.marketSegment).to.equal('COM');
+                expect(store.aosParams.commitment).to.equal('');
+                expect(store.aosParams.offerType).to.equal('');
+                expect(store.aosParams.customerSegment).to.equal('');
+                expect(store.aosParams.marketSegment).to.equal('');
+                expect(store.initialOsiAttributes).to.deep.equal({
+                    commitment: 'YEAR',
+                    term: 'MONTHLY',
+                    customer_segment: 'INDIVIDUAL',
+                    market_segment: 'COM',
+                    offer_type: 'BASE',
+                });
                 expect(store.selectedProduct?.name).to.equal('Photoshop');
                 store.allProducts = [];
             } finally {
@@ -696,14 +566,13 @@ describe('ost-app', () => {
 
         it('onTabUse falls through to footer-use when not consult', async () => {
             const el = await fixture(html`<ost-app></ost-app>`);
-            store.authoringFlow = 'tryBuy';
-            store.selectedOffers = [{ offer: { offer_id: 'B' }, osi: 'osi-b', role: 'base' }];
-            let fired = false;
-            el.addEventListener('ost-multi-select', () => {
-                fired = true;
-            });
+            store.authoringFlow = 'single';
+            let routed = false;
+            el.handleFooterUse = () => {
+                routed = true;
+            };
             el.onTabUse();
-            expect(fired).to.be.true;
+            expect(routed).to.be.true;
         });
 
         it('onTabBack routes to focused-back in consult flow with a selected offer', async () => {
@@ -741,6 +610,7 @@ describe('ost-app', () => {
             store.authoringFlow = 'single';
             store.selectedProduct = { name: 'Photoshop', arrangement_code: 'phsp' };
             store.selectedOffer = { offer_id: 'X' };
+            store.selectedOsi = 'x-osi';
             store.wizardStep = 'offer';
             store.notify();
             const el = await fixture(html`<ost-app></ost-app>`);

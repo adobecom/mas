@@ -5,6 +5,8 @@ export class OstLivePreview extends LitElement {
     static properties = {
         placeholderType: { type: String },
         referenceOsi: { type: String },
+        osi: { type: String },
+        offer: { type: Object },
     };
 
     #placeholderNode = null;
@@ -19,8 +21,7 @@ export class OstLivePreview extends LitElement {
         .preview-card {
             background: var(--spectrum-gray-50);
             border-radius: 8px;
-            padding: 20px;
-            min-height: 56px;
+            padding: 12px;
         }
 
         .label {
@@ -29,7 +30,7 @@ export class OstLivePreview extends LitElement {
             color: var(--spectrum-gray-600);
             text-transform: uppercase;
             letter-spacing: 0.05em;
-            margin-bottom: 12px;
+            margin-bottom: 6px;
             display: flex;
             align-items: center;
             gap: 8px;
@@ -46,7 +47,7 @@ export class OstLivePreview extends LitElement {
         }
 
         .placeholder-container {
-            min-height: 40px;
+            min-height: 24px;
         }
 
         .placeholder-container a,
@@ -131,23 +132,30 @@ export class OstLivePreview extends LitElement {
         this.#showDiscountHint = built?.showHint ?? false;
     }
 
-    getPanel() {
-        const root = this.getRootNode();
-        return root?.host?.tagName === 'OST-PLACEHOLDER-PANEL' ? root.host : null;
+    get effectiveOsi() {
+        return this.osi || store.selectedOsi;
+    }
+
+    get effectiveOffer() {
+        return this.offer || store.selectedOffer;
     }
 
     buildPlaceholderOptions() {
-        const osi = store.selectedOsi;
+        const osi = this.effectiveOsi;
         const service = store.masCommerceService;
         if (!osi || !service) return null;
         if (typeof service.createInlinePrice !== 'function') return null;
 
         const type = this.placeholderType;
         if (!type) return null;
-        const checkoutCtrl = this.getPanel()?.shadowRoot?.querySelector('ost-checkout-options')?.checkout;
+        // Scope the checkout controller to this row — tryBuy renders one
+        // checkout row per offer, each with its own ost-checkout-options.
+        const checkoutCtrl = this.closest('.placeholder-row')?.querySelector('ost-checkout-options')?.checkout;
         const options = store.getEffectiveOptions(type);
 
-        const wcsOsi = type === 'discount' && this.referenceOsi ? [osi, this.referenceOsi] : [osi];
+        // Split joined OSIs (soft bundle) so each resolves individually and
+        // the price template sums them.
+        const wcsOsi = type === 'discount' && this.referenceOsi ? [osi, this.referenceOsi] : osi.split(',');
 
         const placeholderOptions = {
             ...options,
@@ -202,7 +210,7 @@ export class OstLivePreview extends LitElement {
             node.dataset.template = type;
         }
 
-        const isPromo = store.selectedOffer?.offer_type === 'PROMOTION';
+        const isPromo = this.effectiveOffer?.offer_type === 'PROMOTION';
         const showHint = type === 'discount' && !this.referenceOsi && !isPromo;
 
         return { node, showHint };

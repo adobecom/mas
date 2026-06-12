@@ -45,6 +45,16 @@ describe('ost-product-list', () => {
         store.productsLoading = false;
     });
 
+    it('clears the deep-link OSI when the user picks a product manually', async () => {
+        store.initialOsi = 'stale-deep-osi';
+        store.initialOsiAttributes = { offer_type: 'BASE' };
+        const el = await fixture(html`<ost-product-list></ost-product-list>`);
+        el.handleProductClick({ arrangement_code: 'phsp-arr', name: 'Photoshop' });
+        expect(store.initialOsi).to.be.undefined;
+        expect(store.initialOsiAttributes).to.be.undefined;
+        expect(store.selectedProduct?.name).to.equal('Photoshop');
+    });
+
     it('renders product cards from store', async () => {
         const el = await fixture(html`<ost-product-list></ost-product-list>`);
         const cards = el.shadowRoot.querySelectorAll('.product-card');

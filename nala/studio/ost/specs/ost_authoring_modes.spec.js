@@ -29,7 +29,7 @@ export default {
         },
         {
             tcid: '3',
-            name: '@studio-ost-mode-consult',
+            name: '@studio-ost-mode-no-consult',
             path: '/studio.html',
             data: { product: 'Photoshop' },
             tags: '@mas-studio @ost @ost-e2e @ost-authoring-modes',

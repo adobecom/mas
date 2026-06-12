@@ -803,7 +803,7 @@ export class MasRepository extends LitElement {
      * the card will be displayed after top results.
      */
     #queryMatches(query, item) {
-        if (!query) return { exact: true };
+        if (!query) return { exact: false };
 
         const haystack = this.#queryHaystack(item);
         if (haystack.includes(query)) {

@@ -1,12 +1,25 @@
 import { fixture, html, expect } from '@open-wc/testing';
+import sinon from 'sinon';
 import Store from '../../src/store.js';
 import { setItemsSelectionStore } from '../../src/common/items-selection-store.js';
+import { stubAemTagQueryFetch } from '../helpers/aem-tag-fetch.js';
+import { resetTagCache } from '../helpers/tag-cache.js';
 import '../../src/mas-add-items-dialog.js';
 
+const MAS_TAG_NAMESPACE = '/content/cq:tags/mas';
+
 describe('mas-add-items-dialog store reset', () => {
-    beforeEach(() => setItemsSelectionStore(Store.bulkPublishProjects));
+    let sandbox;
+
+    beforeEach(() => {
+        sandbox = sinon.createSandbox();
+        stubAemTagQueryFetch(sandbox);
+        setItemsSelectionStore(Store.bulkPublishProjects);
+        resetTagCache(MAS_TAG_NAMESPACE);
+    });
 
     afterEach(() => {
+        sandbox.restore();
         Store.bulkPublishProjects.allCards.set([]);
         Store.bulkPublishProjects.displayCards.set([]);
         Store.bulkPublishProjects.groupedVariationsByParent.set(new Map());

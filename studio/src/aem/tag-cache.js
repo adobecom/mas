@@ -1,21 +1,59 @@
 import { fromAttribute } from './tag-path-utils.js';
 
-const namespaces = {};
+/** @type {Map<string, Map<string, object>>} */
+const data = new Map();
+
+/** @type {Map<string, Promise<Map<string, object>>>} */
+const inflight = new Map();
+
+/**
+ * @param {object|undefined|null} rawTags
+ * @returns {Map<string, object>}
+ */
+const tagsToMap = (rawTags) => (rawTags?.hits ? new Map(rawTags.hits.map((tag) => [tag.path, tag])) : new Map());
 
 /**
  * @param {string} namespace
- * @returns {Map<string, object>|Promise<void>|undefined}
+ * @returns {Map<string, object>|undefined}
  */
 export function getNamespaceCache(namespace) {
-    return namespaces[namespace];
+    return data.get(namespace);
 }
 
 /**
  * @param {string} namespace
- * @param {Map<string, object>|Promise<void>} value
+ * @returns {Promise<Map<string, object>>|undefined}
  */
-export function setNamespaceCache(namespace, value) {
-    namespaces[namespace] = value;
+export function getNamespaceInflight(namespace) {
+    return inflight.get(namespace);
+}
+
+/**
+ * Loads AEM tags for a namespace once, deduplicating concurrent requests.
+ * @param {string} namespace
+ * @param {(namespace: string) => Promise<object|undefined|null>} loader
+ * @returns {Promise<Map<string, object>>}
+ */
+export async function ensureNamespaceTags(namespace, loader) {
+    const cached = data.get(namespace);
+    if (cached) return cached;
+
+    const pending = inflight.get(namespace);
+    if (pending) return pending;
+
+    const promise = Promise.resolve(loader(namespace))
+        .then(tagsToMap)
+        .catch(() => new Map())
+        .then((map) => {
+            data.set(namespace, map);
+            return map;
+        })
+        .finally(() => {
+            inflight.delete(namespace);
+        });
+
+    inflight.set(namespace, promise);
+    return promise;
 }
 
 /**
@@ -25,11 +63,14 @@ export function setNamespaceCache(namespace, value) {
  * @returns {string|undefined}
  */
 export function getCachedTagTitle(tagOrPath, namespace = '/content/cq:tags/mas') {
-    const data = namespaces[namespace];
-    if (!data || data instanceof Promise) return undefined;
+    const cached = data.get(namespace);
+    if (!cached) return undefined;
 
     const path = tagOrPath?.startsWith('/content/cq:tags/') ? tagOrPath : fromAttribute(tagOrPath)?.[0];
     if (!path) return undefined;
 
-    return data.get(path)?.title;
+    return cached.get(path)?.title;
 }
+
+/** Test seam: direct access to the cache stores for setup/teardown in tests. */
+export const __tagCacheStores = { data, inflight };

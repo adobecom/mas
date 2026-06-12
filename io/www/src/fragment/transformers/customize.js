@@ -4,6 +4,11 @@ import { logDebug } from '../utils/log.js';
 
 const PZN_FOLDER = '/pzn/';
 
+// Per-variant fields whose array values must be concatenated (parent + child) rather than overwritten.
+const MERGE_CONFIG = {
+    'compare-chart-column': { arraysToMerge: ['features'] },
+};
+
 function skimFragmentFromReferences(fragment) {
     const skimmedFragment = structuredClone(fragment);
     delete skimmedFragment.references;
@@ -44,6 +49,17 @@ function deepMerge(...objects) {
             }
         }
     }
+    // Some variants carry partial array fields across variations (e.g. compare-chart `features`);
+    // concatenate parent + child into the freshly-built result instead of mutating `child`
+    // (a shared reference reused by sibling merges).
+    const arraysToMerge = MERGE_CONFIG[objects?.[0]?.fields?.variant]?.arraysToMerge;
+    arraysToMerge?.forEach((field) => {
+        const parentValues = objects[0]?.fields?.[field]?.value || [];
+        const childValues = objects[1]?.fields?.[field]?.value || [];
+        if (result.fields?.[field] && (parentValues.length || childValues.length)) {
+            result.fields[field].value = [...parentValues, ...childValues];
+        }
+    });
     return result;
 }
 

@@ -1,5 +1,6 @@
 import { expect } from 'chai';
 import sinon from 'sinon';
+import { CARD_MODEL_ID } from '../../src/fragment/utils/common.js';
 import { resetCache } from '../../src/fragment/pipeline.js';
 import { clearSettingsCache } from '../../src/fragment/transformers/settings.js';
 import { clearPromoCache } from '../../src/fragment/transformers/promotions.js';
@@ -240,7 +241,7 @@ describe('pipeline end to end', () => {
             createResponse(200, {
                 path: '/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app',
                 id: 'some-fr-fr-fragment',
-                model: { id: 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ' },
+                model: { id: CARD_MODEL_ID },
                 fields: {
                     variant: 'plans',
                     osi: 'Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ',
@@ -260,7 +261,7 @@ describe('pipeline end to end', () => {
             createResponse(200, {
                 id: 'mask-holiday-id',
                 path: '/content/dam/mas/sandbox/fr_FR/masks/holiday',
-                model: { id: 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ' },
+                model: { id: CARD_MODEL_ID },
                 fields: { variables: ['promo-label:{{select}}'] },
                 references: {},
             }),

@@ -36,6 +36,9 @@ import { log, logDebug, logError, getErrorMessage } from '../utils/log.js';
  * @property {Object<string, string>} [__ow_headers] - OpenWhisk request headers (e.g. for If-Modified-Since).
  */
 
+const CARD_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ';
+const COLLECTION_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24';
+
 async function computeBody(response, context) {
     let body = await response.json();
     if (context.preview && Array.isArray(body.fields)) {
@@ -292,6 +295,8 @@ function skimFragmentFromReferences(fragment) {
 }
 
 export {
+    CARD_MODEL_ID,
+    COLLECTION_MODEL_ID,
     createTimeoutPromise,
     internalFetch as fetch,
     getCountry,

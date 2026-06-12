@@ -213,9 +213,7 @@ function applyOsiSubstitution(fragment, substituteMap, context) {
     for (const osi of osis) {
         if (substituteMap[osi]) {
             const substituteOsi = substituteMap[osi];
-            fragment.fields.osi = Array.isArray(fragOsi)
-                ? fragOsi.map((o) => (o === osi ? substituteOsi : o))
-                : substituteOsi;
+            fragment.fields.osi = Array.isArray(fragOsi) ? fragOsi.map((o) => (o === osi ? substituteOsi : o)) : substituteOsi;
             logDebug(() => `Substituting OSI ${osi} with ${substituteOsi} on fragment ${fragment.id}`, context);
             return;
         }

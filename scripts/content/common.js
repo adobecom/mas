@@ -1,5 +1,5 @@
 import { DICTIONARY_ENTRY_MODEL_ID, DICTIONARY_INDEX_MODEL_ID } from '../../studio/src/constants.js';
-import { getSurfaceLocales, getLocaleCode } from '../../io/www/src/fragment/locales.js';
+import { getDefaultLocaleCode, getSurfaceLocales, getLocaleCode } from '../../io/www/src/fragment/locales.js';
 
 export const ROOT_PATH = '/content/dam/mas';
 export const CARD_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ';
@@ -7,6 +7,24 @@ export const COLLECTION_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxz
 export { DICTIONARY_ENTRY_MODEL_ID, DICTIONARY_INDEX_MODEL_ID };
 
 export const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/**
+ * Returns the expected parent reference path for a locale's dictionary index fragment.
+ * - Regional locale → surface default index (e.g. express/fr_CA → express/fr_FR)
+ * - Surface default → acom default index (e.g. express/fr_FR → acom/fr_FR), resolved via getDefaultLocaleCode to avoid dangling refs
+ * - acom locale → null (no parent)
+ */
+export function getParentReference(surface, localeName) {
+    const defaultLocaleCode = getDefaultLocaleCode(surface, localeName);
+    if (!defaultLocaleCode || defaultLocaleCode === localeName) {
+        if (surface !== 'acom') {
+            const acomLocaleCode = getDefaultLocaleCode('acom', localeName);
+            return acomLocaleCode ? `${ROOT_PATH}/acom/${acomLocaleCode}/dictionary/index` : null;
+        }
+        return null;
+    }
+    return `${ROOT_PATH}/${surface}/${defaultLocaleCode}/dictionary/index`;
+}
 
 export function parseArgs(argv) {
     const args = argv.slice(2);

@@ -34,7 +34,6 @@ async function fetchMask(context) {
 
 async function init(context) {
     // mask transformer is only relevant if mask param is present in the request, otherwise we can skip it entirely
-    // maskTag (set by the promotions transformer) takes precedence over the request mask param
     const { mask } = context;
     if (!mask) {
         logDebug(() => `No mask added in that request`, context);

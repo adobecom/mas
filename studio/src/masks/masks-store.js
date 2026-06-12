@@ -5,7 +5,6 @@ import { ReactiveStore } from '../reactivity/reactive-store.js';
 import { showToast, normalizeKey } from '../utils.js';
 
 const CARD_MODEL_ID = TAG_MODEL_ID_MAPPING['mas:studio/content-type/merch-card'];
-const FOLDER_NOT_FOUND_MESSAGES = ['404', 'not found', 'Fragment not found'];
 
 /**
  * Per-surface/locale holder for "masks": plain card fragments stored under

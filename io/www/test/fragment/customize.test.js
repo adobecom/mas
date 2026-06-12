@@ -1157,7 +1157,7 @@ describe('customize typical cases', function () {
         });
         expect(result.status).to.equal(200);
         expect(result.body).to.deep.include({
-            path: '/content/dam/mas/sandbox/fr_CA/ccd-slice-wide-cc-all-app',
+            path: '/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app',
         });
         expect(result.body.fields.badge.value).to.equal('canadian card');
         expect(result.body.fields.description.value).to.equal('<p>french default description</p>');
@@ -1205,7 +1205,7 @@ describe('customize typical cases', function () {
         });
         expect(result.status).to.equal(200);
         expect(result.body).to.deep.include({
-            path: '/content/dam/mas/sandbox/fr_CH/ccd-slice-wide-cc-all-app',
+            path: '/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app',
         });
         expect(result.body.fields.badge.value).to.equal('swiss card');
         expect(result.body.fields.description.value).to.equal('<p>swiss description</p>');
@@ -1500,7 +1500,7 @@ describe('customize promo variation', function () {
         );
 
         expect(result.status).to.equal(200);
-        expect(result.body.variationId).to.equal('promo-region-id');
+        expect(result.body.variationId).to.equal('promo-var-id');
         expect(result.body.fields.title).to.equal('Region Promo Title');
         expect(result.body.fields.badge).to.equal('PROMO');
     });

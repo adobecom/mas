@@ -128,6 +128,14 @@ class FragmentCache {
         return fetchInfo;
     }
 
+    set(key, fragment) {
+        this.#fragmentCache.set(key, fragment);
+        if (this.#promises.has(key)) {
+            const [, resolve] = this.#promises.get(key);
+            resolve();
+        }
+    }
+
     remove(fragmentId) {
         this.#fragmentCache.delete(fragmentId);
         this.#fetchInfos.delete(fragmentId);
@@ -185,7 +193,7 @@ export class AemFragment extends HTMLElement {
     }
 
     cacheKey() {
-        return `{${this.#fragmentId}}${this.#pzn ? `-p_${this.#pzn}` : ''}${this.#mask ? `-m_${this.#mask}` : ''}`;
+        return `${this.#fragmentId}${this.#pzn ? `-p_${this.#pzn}` : ''}${this.#mask ? `-m_${this.#mask}` : ''}`;
     }
 
     attributeChangedCallback(name, oldValue, newValue) {
@@ -308,11 +316,11 @@ export class AemFragment extends HTMLElement {
             if (!ready) return; // already fetching data
         }
         if (flushCache) {
-            cache.remove(this.#fragmentId);
+            cache.remove(this.cacheKey());
         }
         if (this.#loading === LOADING_CACHE) {
             await Promise.race([
-                cache.getAsPromise(this.#fragmentId),
+                cache.getAsPromise(this.cacheKey()),
                 new Promise((resolve) => setTimeout(resolve, this.#timeout)),
             ]);
         }
@@ -367,7 +375,7 @@ export class AemFragment extends HTMLElement {
     async #fetchData() {
         this.classList.remove('error');
         this.#data = null;
-        let fragment = cache.get(this.#fragmentId);
+        let fragment = cache.get(this.cacheKey());
         if (fragment) {
             this.#rawData = fragment;
             return true;
@@ -388,7 +396,11 @@ export class AemFragment extends HTMLElement {
 
         fragment = await this.#getFragment(endpoint);
         fragment.fields.originalId ??= this.#fragmentId;
-        cache.add(fragment);
+        if (this.#mask || this.#pzn) {
+            cache.set(this.cacheKey(), fragment);
+        } else {
+            cache.add(fragment);
+        }
         this.#rawData = fragment;
         return true;
     }

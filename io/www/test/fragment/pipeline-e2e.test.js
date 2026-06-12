@@ -110,7 +110,7 @@ describe('pipeline end to end', () => {
         });
         expect(result.statusCode).to.equal(200);
         expect(result.body).to.deep.include({
-            path: '/content/dam/mas/sandbox/fr_CA/ccd-slice-wide-cc-all-app',
+            path: '/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app',
             id: 'some-fr-fr-fragment',
         });
         expect(result.headers).to.have.property('Last-Modified');
@@ -141,7 +141,7 @@ describe('pipeline end to end', () => {
         });
         expect(result.statusCode).to.equal(200);
         expect(result.body).to.deep.include({
-            path: '/content/dam/mas/sandbox/fr_CA/ccd-slice-wide-cc-all-app',
+            path: '/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app',
             id: 'some-fr-fr-fragment',
         });
         expect(result.headers).to.have.property('Last-Modified');
@@ -217,12 +217,35 @@ describe('pipeline end to end', () => {
         expect(state.store).to.have.property('req-some-en-us-fragment-fr_FR-p_segment-A');
     });
 
+    function stubMask(fetchStub) {
+        // Mask fragment: variables map 'promo-label' to '{{select}}', a key already in the
+        // dictionary mock — replace resolves the nested placeholder in a second pass.
+        fetchStub
+            .withArgs(
+                'https://odin.adobe.com/adobe/contentFragments/byPath?path=/content/dam/mas/sandbox/fr_FR/masks/black-friday',
+            )
+            .returns(createResponse(200, { id: 'mask-holiday-id' }));
+        fetchStub
+            .withArgs('https://odin.adobe.com/adobe/contentFragments/byPath?path=/content/dam/mas/sandbox/fr_FR/masks/holiday')
+            .returns(createResponse(200, { id: 'mask-holiday-id' }));
+        fetchStub.withArgs('https://odin.adobe.com/adobe/contentFragments/mask-holiday-id').returns(
+            createResponse(200, {
+                id: 'mask-holiday-id',
+                path: '/content/dam/mas/sandbox/fr_FR/masks/holiday',
+                model: { id: CARD_MODEL_ID },
+                fields: { variables: ['promo-label:{{select}}'] },
+                references: {},
+            }),
+        );
+    }
+
     it('should include mask segment in cache key when mask is provided', async () => {
         setupFragmentMocks(fetchStub, {
             id: 'some-en-us-fragment',
             path: 'someFragment',
         });
         const state = new MockState();
+        stubMask(fetchStub);
         const result = await getFragment({
             id: 'some-en-us-fragment',
             state: state,
@@ -230,6 +253,9 @@ describe('pipeline end to end', () => {
             mask: 'black-friday',
         });
         expect(result.statusCode).to.equal(200);
+        expect(result.body.id).to.equal('some-fr-fr-fragment');
+        expect(result.body.path).to.equal('/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app');
+        expect(result.body.maskId).to.equal('mask-holiday-id');
         expect(state.store).to.have.property('req-some-en-us-fragment-fr_FR-m_black-friday');
     });
 
@@ -252,20 +278,7 @@ describe('pipeline end to end', () => {
             }),
         );
 
-        // Mask fragment: variables map 'promo-label' to '{{select}}', a key already in the
-        // dictionary mock — replace resolves the nested placeholder in a second pass.
-        fetchStub
-            .withArgs('https://odin.adobe.com/adobe/contentFragments/byPath?path=/content/dam/mas/sandbox/fr_FR/masks/holiday')
-            .returns(createResponse(200, { id: 'mask-holiday-id' }));
-        fetchStub.withArgs('https://odin.adobe.com/adobe/contentFragments/mask-holiday-id').returns(
-            createResponse(200, {
-                id: 'mask-holiday-id',
-                path: '/content/dam/mas/sandbox/fr_FR/masks/holiday',
-                model: { id: CARD_MODEL_ID },
-                fields: { variables: ['promo-label:{{select}}'] },
-                references: {},
-            }),
-        );
+        stubMask(fetchStub);
 
         const state = new MockState();
         const result = await getFragment({

@@ -632,6 +632,75 @@ runTests(async () => {
                     'attr-instant-xyz',
                 );
             });
+            it('does not serve cached unmasked fragment to a masked aem-fragment', async () => {
+                cache.clear();
+                const count = aemMock.count;
+
+                // Load without mask — gets cached under plain id
+                const frag1 = document.createElement('aem-fragment');
+                frag1.setAttribute('fragment', 'fragment-cc-all-apps');
+                document.body.appendChild(frag1);
+                await oneEvent(frag1, 'aem:load');
+
+                // Load same id with mask — must NOT hit the unmasked cache entry
+                const frag2 = document.createElement('aem-fragment');
+                frag2.setAttribute('fragment', 'fragment-cc-all-apps');
+                frag2.setAttribute('mask', 'story');
+                document.body.appendChild(frag2);
+                await oneEvent(frag2, 'aem:load');
+
+                // Two distinct fetches are required: one plain, one with &mask=story
+                expect(aemMock.count).to.equal(count + 2);
+
+                frag1.remove();
+                frag2.remove();
+            });
+
+            it('does not serve cached masked fragment to an unmasked aem-fragment', async () => {
+                cache.clear();
+                const count = aemMock.count;
+
+                // Load with mask first
+                const frag1 = document.createElement('aem-fragment');
+                frag1.setAttribute('fragment', 'fragment-cc-all-apps');
+                frag1.setAttribute('mask', 'story');
+                document.body.appendChild(frag1);
+                await oneEvent(frag1, 'aem:load');
+
+                // Load same id without mask — must NOT hit the masked cache entry
+                const frag2 = document.createElement('aem-fragment');
+                frag2.setAttribute('fragment', 'fragment-cc-all-apps');
+                document.body.appendChild(frag2);
+                await oneEvent(frag2, 'aem:load');
+
+                // Two distinct fetches required
+                expect(aemMock.count).to.equal(count + 2);
+
+                frag1.remove();
+                frag2.remove();
+            });
+
+            it('does not serve cached unmasked fragment to a pzn aem-fragment', async () => {
+                cache.clear();
+                const count = aemMock.count;
+
+                const frag1 = document.createElement('aem-fragment');
+                frag1.setAttribute('fragment', 'fragment-cc-all-apps');
+                document.body.appendChild(frag1);
+                await oneEvent(frag1, 'aem:load');
+
+                const frag2 = document.createElement('aem-fragment');
+                frag2.setAttribute('fragment', 'fragment-cc-all-apps');
+                frag2.setAttribute('pzn', 'segment1');
+                document.body.appendChild(frag2);
+                await oneEvent(frag2, 'aem:load');
+
+                expect(aemMock.count).to.equal(count + 2);
+
+                frag1.remove();
+                frag2.remove();
+            });
+
             it('appends mask param to endpoint URL', async () => {
                 cache.clear();
                 const aemFragment = document.createElement('aem-fragment');
@@ -657,12 +726,12 @@ runTests(async () => {
             it('includes mask and pzn in cacheKey', () => {
                 const aemFragment = document.createElement('aem-fragment');
                 aemFragment.setAttribute('fragment', 'frag-id');
-                expect(aemFragment.cacheKey()).to.equal('{frag-id}');
+                expect(aemFragment.cacheKey()).to.equal('frag-id');
                 aemFragment.setAttribute('mask', 'story');
-                expect(aemFragment.cacheKey()).to.equal('{frag-id}-m_story');
+                expect(aemFragment.cacheKey()).to.equal('frag-id-m_story');
                 aemFragment.setAttribute('pzn', 'seg1');
                 expect(aemFragment.cacheKey()).to.equal(
-                    '{frag-id}-p_seg1-m_story',
+                    'frag-id-p_seg1-m_story',
                 );
             });
         });

@@ -6,6 +6,7 @@ const PZN_FOLDER = '/pzn/';
 
 // Per-variant fields whose array values must be concatenated (parent + child) rather than overwritten.
 const MERGE_CONFIG = {
+    DO_NOT_MERGE_KEYS: ['id', 'path'],
     'compare-chart-column': { arraysToMerge: ['features'] },
 };
 
@@ -27,8 +28,16 @@ async function resolveFragmentInit(context, requestInfos) {
 
 function deepMerge(...objects) {
     const result = {};
+    MERGE_CONFIG.DO_NOT_MERGE_KEYS.map((key) => {
+        if (objects[0]?.[key] !== undefined) {
+            result[key] = objects[0][key];
+        }
+    });
     for (const obj of objects) {
         for (const key in obj) {
+            if (MERGE_CONFIG.DO_NOT_MERGE_KEYS.includes(key)) {
+                continue;
+            }
             if (typeof obj[key] === 'object' && obj[key] !== null && !Array.isArray(obj[key])) {
                 result[key] = deepMerge(result[key] || {}, obj[key]);
             } else {
@@ -163,8 +172,6 @@ function mergeVariations(root, customizeContext) {
     if (promoVariation) {
         logDebug(() => `Merging promo variation ${promoVariation.id} for fragment ${root.id}`, customizeContext);
         const merged = deepMerge(root, promoVariation);
-        merged.id = root.id;
-        merged.path = root.path;
         merged.variationId = promoVariation.id;
         return merged;
     }
@@ -179,7 +186,6 @@ function mergeVariations(root, customizeContext) {
         if (regionalVariation) {
             logDebug(() => `Merging regional variation ${regionalVariation.id} for fragment ${root.id}`, customizeContext);
             const merged = deepMerge(root, regionalVariation);
-            merged.id = root.id;
             merged.variationId = regionalVariation.id;
             return merged;
         }
@@ -191,7 +197,6 @@ function mergeVariations(root, customizeContext) {
             customizeContext,
         );
         const merged = deepMerge(root, personalizationVariation);
-        merged.id = root.id;
         merged.variationId = personalizationVariation.id;
         return merged;
     }

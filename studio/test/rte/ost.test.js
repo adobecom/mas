@@ -235,52 +235,78 @@ describe('openOfferSelectorTool deep-link type parameter', () => {
         expect(openOstStub.calledOnce).to.be.true;
         expect(getSearchParamsFromLastCall().get('type')).to.equal('checkoutUrl');
     });
+
+    it('passes language and country from authoring locale for en_EG regional variation', () => {
+        const localeOrRegionStub = sinon.stub(Store, 'localeOrRegion').returns('en_EG');
+        const masCommerceService = document.querySelector('mas-commerce-service');
+        masCommerceService.settings.country = 'SA';
+        masCommerceService.settings.language = 'ar';
+
+        openOfferSelectorTool(null, null);
+
+        expect(openOstStub.calledOnce).to.be.true;
+        const config = openOstStub.getCall(0).args[0];
+        expect(config.language).to.equal('en');
+        expect(config.country).to.equal('EG');
+
+        localeOrRegionStub.restore();
+    });
 });
 
 describe('closeOfferSelectorTool', () => {
     let closeOfferSelectorTool;
+    let openOfferSelectorTool;
     let masStudio;
     let renderCommerceServiceStub;
-    let registerCommerceProvidersStub;
     let querySelectorStub;
+    let originalWindowOst;
+    let originalLocalStorage;
 
     before(async () => {
-        ({ closeOfferSelectorTool } = await import('../../src/rte/ost.js'));
+        ({ closeOfferSelectorTool, openOfferSelectorTool } = await import('../../src/rte/ost.js'));
     });
 
     beforeEach(() => {
         renderCommerceServiceStub = sinon.stub();
         masStudio = { renderCommerceService: renderCommerceServiceStub };
-        registerCommerceProvidersStub = sinon.stub();
 
         querySelectorStub = sinon.stub(document, 'querySelector');
         querySelectorStub.withArgs('mas-studio').returns(masStudio);
-        querySelectorStub.withArgs('mas-commerce-service').returns(document.createElement('mas-commerce-service'));
-        querySelectorStub.withArgs('merch-card-editor').returns({
-            registerCommerceProviders: registerCommerceProvidersStub,
-        });
+        querySelectorStub.callThrough();
+
+        originalWindowOst = window.ost;
+        window.ost = { openOfferSelectorTool: sinon.stub().returns(() => {}) };
+        originalLocalStorage = localStorage.getItem('masAccessToken');
+        localStorage.setItem('masAccessToken', 'test-token');
     });
 
     afterEach(() => {
         querySelectorStub.restore();
+        window.ost = originalWindowOst;
+        if (originalLocalStorage === null) {
+            localStorage.removeItem('masAccessToken');
+        } else {
+            localStorage.setItem('masAccessToken', originalLocalStorage);
+        }
     });
 
-    it('always calls renderCommerceService on close', () => {
+    it('calls renderCommerceService when an OST session was open', () => {
+        openOfferSelectorTool(null, null);
         closeOfferSelectorTool();
 
         expect(renderCommerceServiceStub.calledOnce).to.be.true;
     });
 
-    it('calls registerCommerceProviders on editor after wcms:commerce:ready fires', () => {
+    it('does nothing when no OST session is open', () => {
         closeOfferSelectorTool();
-        document.dispatchEvent(new CustomEvent('wcms:commerce:ready'));
 
-        expect(registerCommerceProvidersStub.calledOnce).to.be.true;
+        expect(renderCommerceServiceStub.notCalled).to.be.true;
     });
 
-    it('does nothing when mas-studio is not present', () => {
+    it('does not call renderCommerceService when mas-studio is not present', () => {
         querySelectorStub.withArgs('mas-studio').returns(null);
 
+        openOfferSelectorTool(null, null);
         closeOfferSelectorTool();
 
         expect(renderCommerceServiceStub.notCalled).to.be.true;

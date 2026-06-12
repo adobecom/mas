@@ -7,7 +7,6 @@ import {
     PLACEHOLDER_CTA_SURFACES,
 } from '../constants.js';
 import Store from '../store.js';
-import { getActiveMerchCardEditor } from '../editors/merch-card-editor.js';
 import { getLocaleByCode } from '../locales.js';
 
 let ostRoot = document.getElementById('ost');
@@ -321,20 +320,12 @@ function restoreAuthoringCommerceServiceLocale() {
     const studio = document.querySelector('mas-studio');
     if (!studio?.renderCommerceService) return;
 
-    const editor = getActiveMerchCardEditor();
-    document.addEventListener(
-        'wcms:commerce:ready',
-        () => {
-            const service = document.querySelector('mas-commerce-service');
-            editor?.registerCommerceProviders?.(service);
-        },
-        { once: true },
-    );
     studio.renderCommerceService();
 }
 
 export function closeOfferSelectorTool() {
-    closeFunction?.();
+    if (!closeFunction) return;
+    closeFunction();
     closeFunction = null;
     restoreAuthoringCommerceServiceLocale();
 }

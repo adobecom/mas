@@ -810,16 +810,8 @@ export class MasRepository extends LitElement {
             return { exact: true };
         }
 
-        const hsArray = haystack.split('\n');
-        const qArray = query.split(' ');
-        let match = false; // at least one field matches all query items
-        hsArray.forEach((hs) => {
-            const matchArray = [];
-            qArray.forEach((q) => {
-                matchArray.push(hs.includes(q));
-            });
-            if (matchArray.every((el) => el)) match = true;
-        });
+        const queryArray = query.split(' ');
+        const match = haystack.split('\n').some((hs) => queryArray.every((q) => hs.includes(q)));
         if (match) {
             return { exact: false };
         }

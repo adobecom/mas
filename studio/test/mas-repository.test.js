@@ -3685,9 +3685,8 @@ describe('MasRepository publishFragment', () => {
             }),
         };
         await repo.publishFragment(fragWithMixedRefs, { allSelected: true });
-        expect(
-            repo.aem.sites.cf.fragments.publish.calledWith(fragWithMixedRefs, ['DRAFT', 'MODIFIED', 'UNPUBLISHED']),
-        ).to.be.true;
+        expect(repo.aem.sites.cf.fragments.publish.calledWith(fragWithMixedRefs, ['DRAFT', 'MODIFIED', 'UNPUBLISHED'])).to.be
+            .true;
         expect(repo.aem.sites.cf.fragments.publish.calledWith(pubVar, [])).to.be.true;
         expect(repo.aem.sites.cf.fragments.publish.calledWith(draftVar, [])).to.be.true;
         expect(repo.aem.sites.cf.fragments.publish.calledWith(newCard, [])).to.be.true;

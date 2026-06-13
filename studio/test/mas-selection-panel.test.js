@@ -304,7 +304,9 @@ describe('MasSelectionPanel', () => {
             await el.handlePublish();
 
             expect(showStub.called).to.be.false;
-            expect(repository.bulkPublishFragments.calledWith(['frag-1'], sinon.match({ selectedRefIds: [], allSelected: false }))).to.be.true;
+            expect(
+                repository.bulkPublishFragments.calledWith(['frag-1'], sinon.match({ selectedRefIds: [], allSelected: false })),
+            ).to.be.true;
         });
     });
 

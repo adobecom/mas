@@ -1594,6 +1594,9 @@ export class MasRepository extends LitElement {
 
             if (allSelected) {
                 await this.aem.sites.cf.fragments.publish(fragment, ['DRAFT', 'MODIFIED', 'UNPUBLISHED']);
+                const { variations = [], cards = [] } = fragment.getPublishableReferences?.() ?? {};
+                const allRefIds = [...variations, ...cards].map((r) => r.id);
+                if (allRefIds.length) await this.#publishRefIds(allRefIds);
             } else {
                 await this.aem.sites.cf.fragments.publish(fragment, []);
                 if (selectedRefIds?.length) {
@@ -1625,7 +1628,7 @@ export class MasRepository extends LitElement {
             valid.push(...fetched.filter(Boolean));
         }
         if (valid.length === 0) return;
-        await this.aem.sites.cf.fragments.publishFragments(valid, []);
+        await Promise.all(valid.map((ref) => this.aem.sites.cf.fragments.publish(ref, [])));
     }
 
     /**

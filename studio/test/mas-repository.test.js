@@ -3643,15 +3643,15 @@ describe('MasRepository publishFragment', () => {
         expect(repo.aem.sites.cf.fragments.publishFragments.called).to.be.false;
     });
 
-    it('publishes parent with [] then batch-publishes refs when selectedRefIds given', async () => {
+    it('publishes parent with [] then publishes each ref individually when selectedRefIds given', async () => {
         const repo = makeRepo();
         const refFragment = { id: 'ref-1', path: '/content/dam/mas/sandbox/en_GB/card', etag: 'abc' };
         repo.aem.sites.cf.fragments.getWithEtag = sandbox.stub().resolves(refFragment);
-        repo.aem.sites.cf.fragments.publishFragments = sandbox.stub().resolves();
         await repo.publishFragment(fragment, { selectedRefIds: ['ref-1'] });
         expect(repo.aem.sites.cf.fragments.publish.calledWith(fragment, [])).to.be.true;
         expect(repo.aem.sites.cf.fragments.getWithEtag.calledWith('ref-1')).to.be.true;
-        expect(repo.aem.sites.cf.fragments.publishFragments.calledWith([refFragment], [])).to.be.true;
+        expect(repo.aem.sites.cf.fragments.publish.calledWith(refFragment, [])).to.be.true;
+        expect(repo.aem.sites.cf.fragments.publishFragments.called).to.be.false;
     });
 
     it('skips ref publish when selectedRefIds is absent', async () => {
@@ -3661,8 +3661,19 @@ describe('MasRepository publishFragment', () => {
         expect(repo.aem.sites.cf.fragments.publishFragments.called).to.be.false;
     });
 
-    it('does not re-publish refs individually when allSelected is true (cascade handles them)', async () => {
+    it('explicitly publishes all refs individually when allSelected is true (cascade unreliable for path-based MAS variations)', async () => {
         const repo = makeRepo();
+        const pubVar = { id: 'pub-var-1', path: '/p1', etag: 'e1' };
+        const draftVar = { id: 'draft-var-2', path: '/p2', etag: 'e2' };
+        const newCard = { id: 'new-card-1', path: '/p3', etag: 'e3' };
+        repo.aem.sites.cf.fragments.getWithEtag = sandbox
+            .stub()
+            .onFirstCall()
+            .resolves(pubVar)
+            .onSecondCall()
+            .resolves(draftVar)
+            .onThirdCall()
+            .resolves(newCard);
         const fragWithMixedRefs = {
             ...fragment,
             getPublishableReferences: () => ({
@@ -3674,11 +3685,12 @@ describe('MasRepository publishFragment', () => {
             }),
         };
         await repo.publishFragment(fragWithMixedRefs, { allSelected: true });
-        expect(repo.aem.sites.cf.fragments.publish.calledWith(fragWithMixedRefs, ['DRAFT', 'MODIFIED', 'UNPUBLISHED'])).to.be
-            .true;
-        // cascade already published DRAFT/MODIFIED/UNPUBLISHED refs — no individual re-publish
-        expect(repo.aem.sites.cf.fragments.publish.callCount).to.equal(1);
-        expect(repo.aem.sites.cf.fragments.getWithEtag.called).to.be.false;
+        expect(
+            repo.aem.sites.cf.fragments.publish.calledWith(fragWithMixedRefs, ['DRAFT', 'MODIFIED', 'UNPUBLISHED']),
+        ).to.be.true;
+        expect(repo.aem.sites.cf.fragments.publish.calledWith(pubVar, [])).to.be.true;
+        expect(repo.aem.sites.cf.fragments.publish.calledWith(draftVar, [])).to.be.true;
+        expect(repo.aem.sites.cf.fragments.publish.calledWith(newCard, [])).to.be.true;
         expect(repo.aem.sites.cf.fragments.publishFragments.called).to.be.false;
     });
 });
@@ -3699,6 +3711,7 @@ describe('MasRepository bulkPublishFragments', () => {
             sites: {
                 cf: {
                     fragments: {
+                        publish: sandbox.stub().resolves(),
                         publishFragments: sandbox.stub().resolves(),
                         getWithEtag: sandbox.stub().callsFake((id) => Promise.resolve({ id })),
                     },
@@ -3730,10 +3743,11 @@ describe('MasRepository bulkPublishFragments', () => {
         expect(repo.aem.sites.cf.fragments.publishFragments.calledWith([frag1], [])).to.be.true;
     });
 
-    it('publishes selectedRefIds separately after main fragments when provided', async () => {
+    it('publishes selectedRefIds individually after main fragments when provided', async () => {
         await repo.bulkPublishFragments(['frag-1'], { selectedRefIds: ['ref-a'], withToast: false });
         expect(repo.aem.sites.cf.fragments.getWithEtag.calledWith('ref-a')).to.be.true;
-        expect(repo.aem.sites.cf.fragments.publishFragments.callCount).to.equal(2);
+        expect(repo.aem.sites.cf.fragments.publishFragments.callCount).to.equal(1);
+        expect(repo.aem.sites.cf.fragments.publish.calledWith({ id: 'ref-a' }, [])).to.be.true;
     });
 
     it('skips ref publish when selectedRefIds is absent', async () => {

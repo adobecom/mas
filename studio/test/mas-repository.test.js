@@ -1372,6 +1372,54 @@ describe('MasRepository dictionary helpers', () => {
                     restore();
                 }
             });
+
+            it('ignores stale variation parent resolution when search is superseded', async () => {
+                const repository = createFullRepository();
+                repository.page = { value: PAGE_NAMES.CONTENT };
+                const variationPath = `${ROOT_PATH}/acom/en_US/photoshop/pzn/my-card`;
+                const variationFragment = createFragment({ id: variationUuid, path: variationPath, fields: [] });
+                const parentFragment = createFragment({
+                    id: parentUuid,
+                    path: `${ROOT_PATH}/acom/en_US/my-card`,
+                    fields: [{ name: 'variations', values: [variationPath] }],
+                });
+
+                let resolveStaleParent;
+                const staleParentPromise = new Promise((resolve) => {
+                    resolveStaleParent = resolve;
+                });
+
+                repository.search = { value: { path: 'ccd', query: variationUuid } };
+                repository.filters = { value: { locale: 'en_US', tags: '' } };
+
+                const getByIdStub = sandbox.stub();
+                getByIdStub.withArgs(variationUuid).resolves(variationFragment);
+                sandbox.stub(repository, 'resolveHydratedParentFragment').returns(staleParentPromise);
+
+                const searchStub = sandbox.stub().returns(createMockCursor([[]]));
+                repository.aem = createAemMock({ fragments: { getById: getByIdStub, search: searchStub } });
+
+                const { Store, restore } = await setupVariationUuidSearch();
+                try {
+                    const staleSearch = repository.searchFragments();
+
+                    repository.search = { value: { path: 'acom', query: 'photoshop' } };
+                    const freshSearch = repository.searchFragments();
+
+                    await freshSearch;
+                    expect(Store.fragments.highlightedVariationId.get()).to.be.null;
+                    expect(Store.fragments.expandedId.get()).to.be.null;
+
+                    resolveStaleParent(parentFragment);
+                    await staleSearch;
+
+                    expect(Store.fragments.highlightedVariationId.get()).to.be.null;
+                    expect(Store.fragments.expandedId.get()).to.be.null;
+                    expect(Store.fragments.variationSearchTab.get()).to.be.null;
+                } finally {
+                    restore();
+                }
+            });
         });
 
         it('performs regular search when query is not a UUID', async () => {

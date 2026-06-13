@@ -1265,7 +1265,7 @@ describe('MasSideNav – Copy Field', () => {
 
             expect(el.variationDataLoading).to.be.false;
             expect(updateStoresStub.called).to.be.true;
-            expect(updateStoresStub.firstCall.args[0]).to.have.length(7);
+            expect(updateStoresStub.firstCall.args[0]).to.have.length(8);
         });
 
         it('should subscribe to previewStore updates when fragment enters edit', () => {

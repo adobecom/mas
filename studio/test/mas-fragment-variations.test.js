@@ -2,6 +2,7 @@ import { expect, fixture, html } from '@open-wc/testing';
 import sinon from 'sinon';
 import Store from '../src/store.js';
 import '../src/mas-fragment-variations.js';
+import { getGroupedVariationTagsValue, getPromotionCode } from '../src/editors/variation-utils.js';
 
 describe('MasFragmentVariations', () => {
     let sandbox;
@@ -33,38 +34,33 @@ describe('MasFragmentVariations', () => {
     });
 
     describe('getGroupedVariationTagsValue', () => {
-        it('returns comma-separated pznTags from fragment fields', async () => {
-            const el = await fixture(html`<mas-fragment-variations></mas-fragment-variations>`);
+        it('returns comma-separated pznTags from fragment fields', () => {
             const variation = createVariationFragment();
-            expect(el.getGroupedVariationTagsValue(variation)).to.equal('mas:pzn/tag-a,mas:pzn/tag-b');
+            expect(getGroupedVariationTagsValue(variation)).to.equal('mas:pzn/tag-a,mas:pzn/tag-b');
         });
 
-        it('returns empty string when pznTags field is missing', async () => {
-            const el = await fixture(html`<mas-fragment-variations></mas-fragment-variations>`);
+        it('returns empty string when pznTags field is missing', () => {
             const variation = createVariationFragment({ fields: [] });
-            expect(el.getGroupedVariationTagsValue(variation)).to.equal('');
+            expect(getGroupedVariationTagsValue(variation)).to.equal('');
         });
 
-        it('returns empty string when pznTags values are empty', async () => {
-            const el = await fixture(html`<mas-fragment-variations></mas-fragment-variations>`);
+        it('returns empty string when pznTags values are empty', () => {
             const variation = createVariationFragment({
                 fields: [{ name: 'pznTags', values: [] }],
             });
-            expect(el.getGroupedVariationTagsValue(variation)).to.equal('');
+            expect(getGroupedVariationTagsValue(variation)).to.equal('');
         });
     });
 
     describe('getPromoCode', () => {
-        it('returns first promoCode value from fragment fields', async () => {
-            const el = await fixture(html`<mas-fragment-variations></mas-fragment-variations>`);
+        it('returns first promoCode value from fragment fields', () => {
             const variation = createVariationFragment();
-            expect(el.getPromoCode(variation)).to.equal('SAVE20');
+            expect(getPromotionCode(variation)).to.equal('SAVE20');
         });
 
-        it('returns empty string when promoCode field is missing', async () => {
-            const el = await fixture(html`<mas-fragment-variations></mas-fragment-variations>`);
+        it('returns empty string when promoCode field is missing', () => {
             const variation = createVariationFragment({ fields: [] });
-            expect(el.getPromoCode(variation)).to.equal('');
+            expect(getPromotionCode(variation)).to.equal('');
         });
     });
 

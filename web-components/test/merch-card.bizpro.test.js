@@ -511,6 +511,216 @@ describe('bizpro license dropdown interaction', () => {
     });
 });
 
+describe('bizpro license dropdown keyboard navigation', () => {
+    let card;
+    afterEach(() => card?.remove());
+
+    const QS =
+        '<div slot="quantity-select"><merch-quantity-select title="License|Licenses" min="1" max="5" step="1" default-value="3"></merch-quantity-select></div>';
+
+    // Options are values 1..5, so the default "3" is at index 2.
+
+    function key(target, keyName) {
+        const event = new KeyboardEvent('keydown', {
+            key: keyName,
+            bubbles: true,
+            cancelable: true,
+        });
+        target.dispatchEvent(event);
+        return event;
+    }
+
+    const trigger = () =>
+        card.shadowRoot.querySelector('.license-select-trigger');
+    const popoverHidden = () =>
+        card.shadowRoot
+            .querySelector('#license-popover')
+            .hasAttribute('hidden');
+    const highlighted = () =>
+        card.shadowRoot.querySelector('.license-select-option.highlighted');
+    const activeDescendant = () =>
+        card.shadowRoot.querySelector(
+            `#${trigger().getAttribute('aria-activedescendant')}`,
+        );
+
+    it('exposes the trigger as a combobox in the tab order', async () => {
+        card = await renderCard(QS);
+        expect(trigger().getAttribute('role')).to.equal('combobox');
+        expect(trigger().getAttribute('tabindex')).to.equal('0');
+        expect(trigger().getAttribute('aria-controls')).to.equal(
+            'license-popover',
+        );
+        // role=combobox is name-from-author, so inner text does not supply an
+        // accessible name — it must come from aria-labelledby.
+        const labelledby = trigger().getAttribute('aria-labelledby');
+        expect(labelledby).to.equal('license-select-label');
+        expect(
+            card.shadowRoot.getElementById(labelledby)?.textContent.trim(),
+        ).to.not.equal('');
+    });
+
+    it('opens on ArrowDown and highlights the selected option', async () => {
+        card = await renderCard(QS);
+        const event = key(trigger(), 'ArrowDown');
+        await card.updateComplete;
+        expect(popoverHidden()).to.be.false;
+        expect(event.defaultPrevented).to.be.true;
+        // DOM focus stays on the trigger; the highlight is the selected value.
+        expect(highlighted().id).to.equal('license-option-2');
+        expect(trigger().getAttribute('aria-activedescendant')).to.equal(
+            'license-option-2',
+        );
+        expect(activeDescendant().textContent.trim()).to.equal('3');
+    });
+
+    it('opens on ArrowUp and prevents the default page scroll', async () => {
+        card = await renderCard(QS);
+        const event = key(trigger(), 'ArrowUp');
+        await card.updateComplete;
+        expect(popoverHidden()).to.be.false;
+        expect(event.defaultPrevented).to.be.true;
+    });
+
+    it('opens on Enter and Space', async () => {
+        card = await renderCard(QS);
+        key(trigger(), 'Enter');
+        await card.updateComplete;
+        expect(popoverHidden()).to.be.false;
+        // Space closes (toggles) the open popover...
+        key(trigger(), ' ');
+        await card.updateComplete;
+        expect(popoverHidden()).to.be.true;
+        // ...and reopens from closed.
+        key(trigger(), ' ');
+        await card.updateComplete;
+        expect(popoverHidden()).to.be.false;
+    });
+
+    it('moves the highlight with ArrowDown/ArrowUp and wraps around', async () => {
+        card = await renderCard(QS);
+        key(trigger(), 'ArrowDown'); // open, highlight idx 2 ("3")
+        await card.updateComplete;
+        key(trigger(), 'ArrowDown');
+        await card.updateComplete;
+        expect(highlighted().id).to.equal('license-option-3');
+        key(trigger(), 'ArrowUp');
+        await card.updateComplete;
+        expect(highlighted().id).to.equal('license-option-2');
+        // Wrap: from idx 2 up three times -> 1 -> 0 -> last (4)
+        key(trigger(), 'ArrowUp');
+        await card.updateComplete;
+        key(trigger(), 'ArrowUp');
+        await card.updateComplete;
+        key(trigger(), 'ArrowUp');
+        await card.updateComplete;
+        expect(highlighted().id).to.equal('license-option-4');
+    });
+
+    it('Home and End jump the highlight to first and last option', async () => {
+        card = await renderCard(QS);
+        key(trigger(), 'ArrowDown');
+        await card.updateComplete;
+        key(trigger(), 'End');
+        await card.updateComplete;
+        expect(highlighted().id).to.equal('license-option-4');
+        key(trigger(), 'Home');
+        await card.updateComplete;
+        expect(highlighted().id).to.equal('license-option-0');
+    });
+
+    it('keeps DOM focus on the trigger while navigating', async () => {
+        card = await renderCard(QS);
+        trigger().focus();
+        key(trigger(), 'ArrowDown');
+        await card.updateComplete;
+        key(trigger(), 'ArrowDown');
+        await card.updateComplete;
+        expect(card.shadowRoot.activeElement).to.equal(trigger());
+    });
+
+    it('selects the highlighted option on Enter and closes', async () => {
+        card = await renderCard(QS);
+        key(trigger(), 'ArrowDown'); // open at "3"
+        await card.updateComplete;
+        key(trigger(), 'ArrowDown'); // highlight "4"
+        await card.updateComplete;
+        key(trigger(), 'ArrowDown'); // highlight "5"
+        await card.updateComplete;
+        key(trigger(), 'Enter');
+        await card.updateComplete;
+        expect(
+            card.shadowRoot
+                .querySelector('.license-select-value')
+                .textContent.trim(),
+        ).to.equal('5');
+        expect(popoverHidden()).to.be.true;
+    });
+
+    it('routes the keyboard selection through the quantity selector', async () => {
+        card = await renderCard(QS);
+        const events = [];
+        card.addEventListener(EVENT_MERCH_QUANTITY_SELECTOR_CHANGE, (e) =>
+            events.push(e.detail),
+        );
+        key(trigger(), 'ArrowDown'); // open at "3"
+        await card.updateComplete;
+        key(trigger(), 'Enter'); // select "3"
+        await card.updateComplete;
+        expect(
+            card.querySelector('merch-quantity-select').selectedValue,
+        ).to.equal(3);
+        expect(events).to.deep.include({ option: 3 });
+    });
+
+    it('closes on Escape and keeps focus on the trigger', async () => {
+        card = await renderCard(QS);
+        trigger().focus();
+        key(trigger(), 'ArrowDown');
+        await card.updateComplete;
+        const event = key(trigger(), 'Escape');
+        await card.updateComplete;
+        expect(popoverHidden()).to.be.true;
+        expect(event.defaultPrevented).to.be.true;
+        expect(card.shadowRoot.activeElement).to.equal(trigger());
+    });
+
+    it('commits the highlight on Tab and lets focus advance', async () => {
+        card = await renderCard(QS);
+        key(trigger(), 'ArrowDown'); // open at "3"
+        await card.updateComplete;
+        key(trigger(), 'ArrowDown'); // highlight "4"
+        await card.updateComplete;
+        const event = key(trigger(), 'Tab');
+        await card.updateComplete;
+        expect(popoverHidden()).to.be.true;
+        // Tab must NOT be prevented — focus continues to the next control.
+        expect(event.defaultPrevented).to.be.false;
+        expect(
+            card.shadowRoot
+                .querySelector('.license-select-value')
+                .textContent.trim(),
+        ).to.equal('4');
+    });
+
+    it('drops aria-activedescendant when closed', async () => {
+        card = await renderCard(QS);
+        expect(trigger().hasAttribute('aria-activedescendant')).to.be.false;
+        key(trigger(), 'ArrowDown');
+        await card.updateComplete;
+        expect(trigger().hasAttribute('aria-activedescendant')).to.be.true;
+    });
+
+    it('header list item is hidden from assistive technology', async () => {
+        card = await renderCard(QS);
+        trigger().click();
+        await card.updateComplete;
+        const header = card.shadowRoot.querySelector(
+            '.license-select-popover-header',
+        );
+        expect(header.getAttribute('aria-hidden')).to.equal('true');
+    });
+});
+
 describe('bizpro license label pluralization', () => {
     let card;
     afterEach(() => card?.remove());
@@ -582,68 +792,197 @@ describe('bizpro resize handling', () => {
 
     const flushFrames = () => frames.splice(0).forEach((cb) => cb?.());
 
-    it('debounces resize events into a single height sync', async () => {
-        card = await renderCard('<h3 slot="heading-xs">Title</h3>');
-        const layout = card.variantLayout;
-        const sync = sinon.spy(layout, 'syncHeights');
+    // syncHeights now awaits document.fonts (which settle on a macrotask) before
+    // the double rAF, so deterministic driving needs real macrotask yields
+    // between frame flushes, not just microtask drains.
+    const flushUntilCalled = async (spy) => {
+        for (let i = 0; i < 30 && !spy.called; i += 1) {
+            await new Promise((resolve) => setTimeout(resolve, 0));
+            flushFrames();
+        }
+    };
 
-        frames.length = 0;
-        // The second call must cancel the first scheduled frame (debounce).
-        layout.handleResize();
-        layout.handleResize();
-        flushFrames();
-
-        expect(sync.callCount).to.equal(1);
-    });
-
-    it('cancels a pending resize frame on disconnect', async () => {
-        card = await renderCard('<h3 slot="heading-xs">Title</h3>');
-        const layout = card.variantLayout;
-        const sync = sinon.spy(layout, 'syncHeights');
-
-        frames.length = 0;
-        layout.handleResize();
-        card.remove();
-        flushFrames();
-
-        expect(sync.called).to.be.false;
-    });
-
-    it('re-syncs heights once the card first becomes visible', async () => {
-        const callbacks = [];
-        const RealObserver = window.IntersectionObserver;
+    it('observes the card on connect and re-syncs on reflow', async () => {
+        const observers = [];
+        const RealObserver = window.ResizeObserver;
         class FakeObserver {
             constructor(callback) {
-                callbacks.push(callback);
+                this.callback = callback;
+                observers.push(this);
             }
             observe() {}
-            disconnect() {}
+            disconnect() {
+                this.disconnected = true;
+            }
         }
-        window.IntersectionObserver = FakeObserver;
+        window.ResizeObserver = FakeObserver;
+        try {
+            card = await renderCard('<div slot="body-xs">desc</div>');
+            const layout = card.variantLayout;
+            const resync = sinon.stub(layout, 'resyncOnReflow');
+            // The surviving layout (card.variantLayout) owns the last observer.
+            const obs = observers[observers.length - 1];
+            expect(obs, 'observes on connect').to.exist;
+            obs.callback();
+            expect(resync.calledOnce, 'a reflow re-runs the sync').to.be.true;
+        } finally {
+            window.ResizeObserver = RealObserver;
+        }
+    });
+
+    it('re-syncs on a real reflow but dedupes unchanged geometry', async () => {
+        // resyncOnReflow keys on width:descriptionHeight so a genuine reflow
+        // (mount at 0 → width, or a font swap changing the description height)
+        // re-syncs, while publishing the min-height (a top-card height change)
+        // leaves the key unchanged and can't loop the observer.
+        const layout = Object.create(BizPro.prototype);
+        const rect = { width: 0, top: 0, height: 0 };
+        let descHeight = 18;
+        const desc = { getBoundingClientRect: () => ({ height: descHeight }) };
+        layout.card = {
+            getBoundingClientRect: () => rect,
+            querySelector: (sel) => (sel.includes('body-xs') ? desc : null),
+        };
+        const sync = sinon.stub(layout, 'syncHeights').resolves();
+
+        layout.resyncOnReflow();
+        expect(sync.called, 'no sync while width 0').to.be.false;
+
+        rect.width = 300;
+        layout.resyncOnReflow();
+        expect(sync.calledOnce, 'syncs when width becomes real').to.be.true;
+
+        layout.resyncOnReflow();
+        expect(sync.calledOnce, 'deduped on unchanged geometry').to.be.true;
+
+        descHeight = 36;
+        layout.resyncOnReflow();
+        expect(sync.calledTwice, 're-syncs when the description reflows').to.be
+            .true;
+    });
+
+    it('disconnects its resize observer when the card is removed', async () => {
+        // A card torn down while still collapsed must clean up its observer.
+        const observers = [];
+        const RealObserver = window.ResizeObserver;
+        class FakeObserver {
+            constructor(callback) {
+                this.callback = callback;
+                observers.push(this);
+            }
+            observe() {}
+            disconnect() {
+                this.disconnected = true;
+            }
+        }
+        window.ResizeObserver = FakeObserver;
         try {
             card = await renderCard('<h3 slot="heading-xs">Title</h3>');
-            const sync = sinon.spy(card.variantLayout, 'syncHeights');
-            // The card's observer is the last one created during render.
-            const onVisibility = callbacks[callbacks.length - 1];
+            // connectedCallbackHook observes the card on connect.
+            expect(observers.length, 'observes on connect').to.be.greaterThan(
+                0,
+            );
 
-            frames.length = 0;
-            // Hidden (zero-height) and off-screen entries must not sync.
-            onVisibility([
-                { boundingClientRect: { height: 0 }, isIntersecting: true },
-            ]);
-            onVisibility([
-                { boundingClientRect: { height: 10 }, isIntersecting: false },
-            ]);
-            flushFrames();
-            expect(sync.called).to.be.false;
-
-            onVisibility([
-                { boundingClientRect: { height: 10 }, isIntersecting: true },
-            ]);
-            flushFrames();
-            expect(sync.callCount).to.equal(1);
+            card.remove();
+            expect(
+                observers.some((o) => o.disconnected),
+                'observer cleaned up on remove',
+            ).to.be.true;
         } finally {
-            window.IntersectionObserver = RealObserver;
+            window.ResizeObserver = RealObserver;
+        }
+    });
+
+    it('waits for the web fonts to settle before measuring the row', async () => {
+        // The .top-card height is driven by the heading/description, which
+        // reflow when the Adobe Clean fonts swap in; measuring before the swap
+        // publishes a stale row max. syncHeights must defer until
+        // document.fonts.ready + a frame, matching full-pricing-express.
+        // Isolated instance so a render-triggered sync can't pollute the count.
+        const layout = Object.create(BizPro.prototype);
+        layout.card = {
+            getBoundingClientRect: () => ({ width: 300, top: 0, height: 400 }),
+            querySelector: () => null,
+            variant: 'bizpro',
+        };
+        // getContainer is the first thing touched once measuring begins.
+        const getContainer = sinon.stub(layout, 'getContainer').returns(null);
+
+        const done = layout.syncHeights();
+        // Regression: the old code measured right here, before the font swap.
+        expect(getContainer.called, 'must not measure before fonts settle').to
+            .be.false;
+
+        await flushUntilCalled(getContainer);
+        await done;
+        expect(getContainer.calledOnce, 'measures once fonts settle').to.be
+            .true;
+    });
+
+    it('groups rows by offsetTop, immune to the entrance animation transform', async () => {
+        // The tab-switch entrance animation translateY-staggers the cards, so
+        // their painted tops (getBoundingClientRect) drift apart while offsetTop
+        // holds still. Grouping by offsetTop keeps same-row cards together —
+        // grouping on the drifted top would split the row and publish a wrong
+        // per-card height (the flicker).
+        const prop = '--consonant-merch-card-bizpro-top-card-height';
+        const makeCard = (offsetTop, topCardHeight) => {
+            const topCard = { __h: topCardHeight };
+            const styles = {};
+            const card = {
+                offsetTop,
+                variant: 'bizpro',
+                getBoundingClientRect: () => ({ width: 300 }),
+                shadowRoot: { querySelector: () => topCard },
+                style: {
+                    setProperty: (k, v) => (styles[k] = v),
+                    removeProperty: (k) => delete styles[k],
+                    getPropertyValue: (k) => styles[k] ?? '',
+                },
+                __styles: styles,
+            };
+            card.variantLayout = { card };
+            return card;
+        };
+        // Row A (offsetTop 0): 200 & 260 → max 260. Row B (offsetTop 500): a
+        // lone card keeps its natural height (no var published).
+        const a1 = makeCard(0, 200);
+        const a2 = makeCard(0, 260);
+        const b1 = makeCard(500, 180);
+        const cards = [a1, a2, b1];
+
+        const layout = Object.create(BizPro.prototype);
+        layout.card = a1;
+        sinon.stub(layout, 'waitForContentFonts').resolves();
+        sinon
+            .stub(layout, 'getContainer')
+            .returns({ querySelectorAll: () => cards });
+        const gcs = sinon
+            .stub(window, 'getComputedStyle')
+            .callsFake((el) =>
+                el && '__h' in el ? { height: `${el.__h}px` } : { height: '' },
+            );
+        try {
+            const done = layout.syncHeights();
+            await flushUntilCalled({
+                get called() {
+                    return a1.__styles[prop] !== undefined;
+                },
+            });
+            await done;
+            expect(
+                a1.__styles[prop],
+                'shorter card pulled to row max',
+            ).to.equal('260px');
+            expect(a2.__styles[prop], 'tallest card sets the row max').to.equal(
+                '260px',
+            );
+            expect(
+                b1.__styles[prop],
+                'lone card on its own row keeps natural height',
+            ).to.be.undefined;
+        } finally {
+            gcs.restore();
         }
     });
 });

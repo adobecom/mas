@@ -14,14 +14,20 @@
  *   # Dry-run (no changes, report only)
  *   node studio/scripts/migrate-mnemonic-text.mjs --host https://author-xxx.adobeaemcloud.com --token $TOKEN
  *
- *   # Apply to all English fragments
- *   node studio/scripts/migrate-mnemonic-text.mjs --host ... --token ... --apply
+ *   # Dry-run a single surface (recommended starting point)
+ *   node studio/scripts/migrate-mnemonic-text.mjs --host ... --token ... --surface catalog
  *
- *   # Apply to specific locales
- *   node studio/scripts/migrate-mnemonic-text.mjs --host ... --token ... --apply --locale de,fr,ja
+ *   # Apply to a single surface (English only)
+ *   node studio/scripts/migrate-mnemonic-text.mjs --host ... --token ... --apply --surface catalog
  *
- *   # Apply to all locales
- *   node studio/scripts/migrate-mnemonic-text.mjs --host ... --token ... --apply --locale all
+ *   # Apply to a specific surface + locale (run once per surface to limit blast radius)
+ *   node studio/scripts/migrate-mnemonic-text.mjs --host ... --token ... --apply --surface catalog --locale de,fr,ja
+ *
+ *   # Apply to a surface across all locales
+ *   node studio/scripts/migrate-mnemonic-text.mjs --host ... --token ... --apply --surface catalog --locale all
+ *
+ *   # Apply to multiple surfaces (separate runs recommended for easier rollback)
+ *   node studio/scripts/migrate-mnemonic-text.mjs --host ... --token ... --apply --surface catalog,cc
  *
  *   # Test on a single fragment (dry-run by default)
  *   node studio/scripts/migrate-mnemonic-text.mjs --host ... --token ... --fragment <id-or-aem-path>
@@ -29,8 +35,14 @@
  *
  *   # Debug: print raw field names/types to diagnose unexpected results
  *   node studio/scripts/migrate-mnemonic-text.mjs --host ... --token ... --fragment <id-or-aem-path> --debug
+ *
+ * Output log:
+ *   In --apply bulk mode a timestamped log file is automatically written to the current
+ *   directory (e.g. mnemonic-migration-catalog-de-2026-06-13T12-00-00.log).
+ *   To capture dry-run output manually: node ... 2>&1 | tee run.log
  */
 
+import { createWriteStream } from 'node:fs';
 import { parseArgs } from 'node:util';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -66,6 +78,7 @@ const { values: args } = parseArgs({
         host: { type: 'string' },
         token: { type: 'string' },
         apply: { type: 'boolean', default: false },
+        surface: { type: 'string' },
         locale: { type: 'string' },
         fragment: { type: 'string' },
         debug: { type: 'boolean', default: false },
@@ -83,10 +96,15 @@ Options:
   --host <url>          AEM author base URL (required)
   --token <token>       Bearer token (required)
   --apply               Actually save changes (default: dry-run)
-  --locale <locales>    Comma-separated locale codes, or "all"
+  --surface <surfaces>  Comma-separated surface names (e.g. catalog,cc).
+                        Recommended: run one surface at a time to limit blast radius.
+                        Path: /content/dam/mas/<surface>[/<locale>]
+  --locale <locales>    Comma-separated locale codes, or "all" (default: English only)
   --fragment <id|path>  Process a single fragment only (for testing)
   --debug               Print raw field names and types for each fragment
   --help                Show this message
+
+Note: In --apply bulk mode a timestamped log file is written automatically.
 `);
     process.exit(args.help ? 0 : 1);
 }
@@ -96,23 +114,74 @@ const TOKEN = args.token;
 const APPLY = args.apply;
 const DEBUG = args.debug;
 const SINGLE_FRAGMENT = args.fragment;
-
+const SURFACE_ARG = args.surface;
 const LOCALES_ARG = args.locale;
-let searchLocales = [null]; // null = default path (no locale prefix = en)
-if (SINGLE_FRAGMENT) {
-    searchLocales = [null]; // ignored when --fragment is set
-} else if (LOCALES_ARG === 'all') {
-    searchLocales = [null, ...ALL_LOCALES];
-} else if (LOCALES_ARG) {
-    searchLocales = [
-        null,
-        ...LOCALES_ARG.split(',')
-            .map((l) => l.trim())
-            .filter(Boolean),
-    ];
-}
 
 const BASE_CONTENT_PATH = '/content/dam/mas';
+
+// Build list of absolute AEM content paths to search.
+// Structure: /content/dam/mas[/<surface>][/<locale>]
+// Running per-surface is recommended to isolate blast radius of a potential rollback.
+function buildSearchPaths() {
+    if (SINGLE_FRAGMENT) return [];
+
+    const surfaces = SURFACE_ARG
+        ? SURFACE_ARG.split(',')
+              .map((s) => s.trim())
+              .filter(Boolean)
+        : [null]; // null = no surface prefix (root scope)
+
+    const locales =
+        LOCALES_ARG === 'all'
+            ? [null, ...ALL_LOCALES]
+            : LOCALES_ARG
+              ? LOCALES_ARG.split(',')
+                    .map((l) => l.trim())
+                    .filter(Boolean)
+              : [null]; // null = English/default (no locale suffix)
+
+    const paths = [];
+    for (const surface of surfaces) {
+        for (const locale of locales) {
+            let path = BASE_CONTENT_PATH;
+            if (surface) path += `/${surface}`;
+            if (locale) path += `/${locale}`;
+            paths.push(path);
+        }
+    }
+    return paths;
+}
+
+const searchPaths = buildSearchPaths();
+
+// --- Logging ---
+
+// In apply-mode bulk runs, automatically write a timestamped log file so there
+// is a paper trail of exactly which fragments were modified.
+let logStream = null;
+if (APPLY && !SINGLE_FRAGMENT) {
+    const surfaceTag = SURFACE_ARG ? SURFACE_ARG.replace(/,/g, '-') : 'all';
+    const localeTag = LOCALES_ARG || 'en';
+    const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    const logFile = `mnemonic-migration-${surfaceTag}-${localeTag}-${ts}.log`;
+    logStream = createWriteStream(logFile, { flags: 'a' });
+
+    console.log(`Logging to: ${logFile}`);
+}
+
+function log(...parts) {
+    const line = parts.join(' ');
+
+    console.log(line);
+    logStream?.write(`${line}\n`);
+}
+
+function logError(...parts) {
+    const line = parts.join(' ');
+
+    console.error(line);
+    logStream?.write(`${line}\n`);
+}
 
 const CF_URL = `${HOST}/adobe/sites/cf/fragments`;
 const CF_SEARCH = `${CF_URL}/search`;
@@ -242,9 +311,7 @@ async function processFragment(fragment) {
 
     if (DEBUG) {
         console.log(`  [debug] fields:`);
-        fields.forEach((f) =>
-            console.log(`    name=${f.name} type=${f.type} values=${JSON.stringify(f.values?.slice(0, 1))?.slice(0, 120)}`),
-        );
+        fields.forEach((f) => console.log(`    name=${f.name} type=${f.type} values=${JSON.stringify(f.values?.slice(0, 1))}`));
     }
 
     // Check all fields with string values — AEM richtext type may vary ('text', 'html', 'richtext', etc.)
@@ -320,14 +387,14 @@ async function* searchFragmentsWithMnemonicText(path) {
 // --- Main ---
 
 async function main() {
-    console.log(`Mode: ${APPLY ? 'APPLY' : 'DRY-RUN'}`);
-    console.log(`Host: ${HOST}`);
+    log(`Mode: ${APPLY ? 'APPLY' : 'DRY-RUN'}`);
+    log(`Host: ${HOST}`);
 
     const stats = { total: 0, converted: 0, skipped: 0, errors: 0 };
 
     if (SINGLE_FRAGMENT) {
         // Single-fragment mode
-        console.log(`\nProcessing single fragment: ${SINGLE_FRAGMENT}`);
+        log(`\nProcessing single fragment: ${SINGLE_FRAGMENT}`);
         let raw;
         if (UUID_RE.test(SINGLE_FRAGMENT)) {
             raw = await getFragmentById(SINGLE_FRAGMENT);
@@ -341,20 +408,19 @@ async function main() {
 
         if (result.error) {
             stats.errors++;
-            console.error(`  ✗ ERROR: ${result.error}`);
+            logError(`  ✗ ERROR: ${result.error}`);
         } else if (result.skipped) {
             stats.skipped++;
-            console.log(`  — No mnemonic-text found`);
+            log(`  — No mnemonic-text found`);
         } else {
             stats.converted++;
             const action = APPLY ? '✓ Saved' : '~ Would update';
-            console.log(`  ${action}: fields [${result.fieldsChanged.join(', ')}]`);
+            log(`  ${action}: fields [${result.fieldsChanged.join(', ')}]`);
         }
     } else {
-        // Bulk mode: search all matching fragments per locale path
-        for (const locale of searchLocales) {
-            const path = locale ? `${BASE_CONTENT_PATH}/${locale}` : BASE_CONTENT_PATH;
-            console.log(`\nSearching: ${path}`);
+        // Bulk mode: search per computed path (surface × locale combinations)
+        for (const path of searchPaths) {
+            log(`\nSearching: ${path}`);
 
             for await (const batch of searchFragmentsWithMnemonicText(path)) {
                 for (const fragment of batch) {
@@ -363,20 +429,20 @@ async function main() {
 
                     if (result.error) {
                         stats.errors++;
-                        console.error(`  ✗ [${result.id}] ${result.title}: ${result.error}`);
+                        logError(`  ✗ [${result.id}] ${result.title}: ${result.error}`);
                     } else if (result.skipped) {
                         stats.skipped++;
                     } else {
                         stats.converted++;
                         const action = APPLY ? '✓' : '~';
-                        console.log(`  ${action} [${result.id}] ${result.title} — fields: ${result.fieldsChanged.join(', ')}`);
+                        log(`  ${action} [${result.id}] ${result.title} — fields: ${result.fieldsChanged.join(', ')}`);
                     }
                 }
             }
         }
     }
 
-    console.log(`
+    log(`
 === Report ===
 Total found : ${stats.total}
 Converted   : ${stats.converted}${APPLY ? '' : ' (dry-run — not saved)'}
@@ -384,10 +450,11 @@ Skipped     : ${stats.skipped}
 Errors      : ${stats.errors}
 `);
 
+    logStream?.end();
     if (stats.errors > 0) process.exit(1);
 }
 
 main().catch((err) => {
-    console.error('Fatal:', err.message);
+    logError('Fatal:', err.message);
     process.exit(1);
 });

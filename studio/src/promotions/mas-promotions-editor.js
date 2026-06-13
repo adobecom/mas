@@ -8,8 +8,7 @@ import ReactiveController from '../reactivity/reactive-controller.js';
 import { FragmentStore } from '../reactivity/fragment-store.js';
 import styles from './mas-promotions-editor-css.js';
 import { SURFACES, PAGE_NAMES, PROMOTION_MODEL_ID, TABLE_TYPE } from '../constants.js';
-import { normalizeKey, showToast, extractSurfaceFromPath } from '../utils.js';
-import { getFragmentPartsToUse, MODEL_WEB_COMPONENT_MAPPING } from '../editor-panel.js';
+import { normalizeKey, showToast } from '../utils.js';
 import { Promotion } from '../aem/promotion.js';
 import './mas-promotions-items-selector.js';
 import { getItemsSelectionStore, setItemsSelectionStore } from '../common/items-selection-store.js';
@@ -29,23 +28,6 @@ import {
 } from './promotion-publish-utils.js';
 import { renderFragmentStatusCell } from '../common/utils/render-utils.js';
 import { clearCaches } from '../../libs/fragment-client.js';
-
-function getPromotionPickerFragmentLabel(data) {
-    const webComponentName = MODEL_WEB_COMPONENT_MAPPING[data?.model?.path];
-    const fragmentPath = typeof data?.path === 'string' ? data.path : data?.get?.()?.path;
-    const pathSurface = extractSurfaceFromPath(fragmentPath);
-    const searchSnapshot = Store.search.get();
-    const storeLike = {
-        search: {
-            value: {
-                ...searchSnapshot,
-                path: pathSurface ?? searchSnapshot.path,
-            },
-        },
-    };
-    const { fragmentParts } = getFragmentPartsToUse(storeLike, data);
-    return `${webComponentName}: ${fragmentParts}`;
-}
 
 const typeMap = {
     title: { type: 'text' },
@@ -589,6 +571,9 @@ class MasPromotionsEditor extends LitElement {
 
     #clearPromotionItemPickerSurface() {
         Store.promotions.itemPickerSurface.set(null);
+        Store.promotions.allCards.set([]);
+        Store.promotions.displayCards.set([]);
+        Store.promotions.cardsByPaths.set(new Map());
         if (Store.page.get() === PAGE_NAMES.PROMOTIONS_EDITOR) {
             this.repository?.searchFragments?.();
         }
@@ -701,7 +686,6 @@ class MasPromotionsEditor extends LitElement {
             >
                 <mas-promotions-items-selector
                     .fragmentSurfaceOptions=${this.promotionPickerSurfaces}
-                    .getDisplayName=${getPromotionPickerFragmentLabel}
                     .renderFragmentStatusCell=${renderFragmentStatusCell}
                     @promotion-items-tab-change=${this.#onPromotionItemsTabChange}
                 ></mas-promotions-items-selector>
@@ -905,7 +889,6 @@ class MasPromotionsEditor extends LitElement {
                               ${this.isSelectedItemsOpen
                                   ? html`<mas-promotions-items-selector
                                         .viewOnly=${true}
-                                        .getDisplayName=${getPromotionPickerFragmentLabel}
                                         .renderFragmentStatusCell=${renderFragmentStatusCell}
                                     ></mas-promotions-items-selector>`
                                   : nothing}

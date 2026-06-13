@@ -183,6 +183,22 @@
                         let span = firstStyledElement();
                         expect(span.className).to.equal('renewal-text');
                     });
+
+                    it('should apply small markup', async function () {
+                        rte = await createFromTemplate('rte-small', this.test.title);
+                        await selectWordsInTextNode(rte.editorView, 'Small');
+
+                        const smallButton = rte.shadowRoot.querySelector('#smallButton');
+                        expect(smallButton).to.exist;
+                        smallButton.click();
+                        await delay(100);
+
+                        const small = rte.shadowRoot.querySelector('.ProseMirror small');
+                        expect(small).to.exist;
+                        expect(small.textContent).to.equal('Small');
+                        expect(smallButton.selected).to.be.true;
+                        expect(rte.value).to.equal('<p><small>Small</small></p>');
+                    });
                 });
 
                 // Theses are not very stable in headless chrome. Enable them for localing.
@@ -594,6 +610,9 @@
         </template>
         <template id="rte-mnemonic">
             <rte-field mnemonic><p></p></rte-field>
+        </template>
+        <template id="rte-small">
+            <rte-field styling marks="small"> Small </rte-field>
         </template>
     </body>
 </html>

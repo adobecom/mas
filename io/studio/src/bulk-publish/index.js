@@ -262,6 +262,9 @@ async function runWithProject(params, odinEndpoint, authToken) {
         }).catch(() => {});
         return { statusCode: 200, body: { status: PROJECT_STATUS.DRAFT, lastError: 'No valid paths after locale resolution' } };
     }
+    if (resolved.length > MAX_RESOLVED) {
+        return errorResponse(400, `Resolved ${resolved.length} paths exceeds maximum of ${MAX_RESOLVED}`, logger);
+    }
 
     const chunks = groupAndChunk(resolved, MAX_CHUNK_SIZE);
     const details = [];

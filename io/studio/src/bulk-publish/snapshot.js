@@ -131,7 +131,13 @@ async function createSnapshot({
         );
         const valid = results.filter(Boolean);
         allEntries.push(...valid.map(({ id, path, versionId, wasPublished }) => [id, { path, versionId, wasPublished }]));
-        const newRefs = [...new Set(valid.flatMap((r) => r.refPaths).filter((p) => !visited.has(p)))];
+        const newRefs = [
+            ...new Set(
+                valid
+                    .flatMap((r) => r.refPaths)
+                    .filter((p) => p.startsWith('/content/dam/mas/') && !visited.has(p)),
+            ),
+        ];
         for (const p of newRefs) visited.add(p);
         if (newRefs.length > 0) {
             await processBatch(newRefs, false);

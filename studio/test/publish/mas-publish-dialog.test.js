@@ -149,4 +149,27 @@ describe('MasPublishDialog.show()', () => {
 
         expect(document.body.querySelector('mas-publish-dialog')).to.be.null;
     });
+
+    it('cleanup fires only once when publish-confirmed is dispatched twice', async () => {
+        let removeCalls = 0;
+        const origRemove = Element.prototype.remove;
+        Element.prototype.remove = function () {
+            if (this.tagName && this.tagName.toLowerCase() === 'mas-publish-dialog') removeCalls++;
+            return origRemove.call(this);
+        };
+
+        try {
+            const showPromise = MasPublishDialog.show({ variations: [VARIATION], cards: [] });
+            const dialog = document.body.querySelector('mas-publish-dialog');
+
+            const detail = { selectedIds: [], allSelected: true };
+            dialog.dispatchEvent(new CustomEvent('publish-confirmed', { detail }));
+            dialog.dispatchEvent(new CustomEvent('publish-confirmed', { detail }));
+
+            await showPromise;
+            expect(removeCalls).to.equal(1);
+        } finally {
+            Element.prototype.remove = origRemove;
+        }
+    });
 });

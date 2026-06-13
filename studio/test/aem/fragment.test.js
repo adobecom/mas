@@ -727,5 +727,25 @@ describe('Fragment', () => {
             expect(result.variations[0].id).to.equal('var-1');
             expect(result.cards).to.have.length(0);
         });
+
+        it('includes merch-card-collection child refs from collections field in cards', () => {
+            const fragment = new Fragment(
+                createFragmentConfig({
+                    path: '/content/dam/mas/sandbox/en_US/my-collection',
+                    references: [
+                        { id: 'col-1', path: '/content/dam/mas/sandbox/en_US/sub-collection', status: 'DRAFT' },
+                        { id: 'card-1', path: '/content/dam/mas/sandbox/en_US/card-one', status: 'NEW' },
+                    ],
+                    fields: [
+                        { name: 'variations', values: [] },
+                        { name: 'collections', values: ['/content/dam/mas/sandbox/en_US/sub-collection'] },
+                        { name: 'cards', values: ['/content/dam/mas/sandbox/en_US/card-one'] },
+                    ],
+                }),
+            );
+            const result = fragment.getPublishableReferences();
+            expect(result.cards.map((r) => r.id)).to.include.members(['col-1', 'card-1']);
+            expect(result.variations).to.have.length(0);
+        });
     });
 });

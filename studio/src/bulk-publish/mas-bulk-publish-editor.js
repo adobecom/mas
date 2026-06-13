@@ -93,6 +93,7 @@ class MasBulkPublishEditor extends LitElement {
     #validateId = 0;
     #discardResolve = null;
     #loadingItems = false;
+    #currentProjectId = null;
 
     constructor() {
         super();
@@ -189,6 +190,14 @@ class MasBulkPublishEditor extends LitElement {
             this.localItems = items;
         } finally {
             this.#loadingItems = false;
+        }
+    }
+
+    updated() {
+        const newId = this.project?.id ?? null;
+        if (newId !== this.#currentProjectId) {
+            this.localItems = null;
+            this.#currentProjectId = newId;
         }
     }
 

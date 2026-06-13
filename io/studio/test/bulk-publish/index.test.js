@@ -647,6 +647,24 @@ describe('bulk-publish/index.js', () => {
             expect(publishBody.paths).to.deep.equal(snapshotPaths);
         });
 
+        it('returns 400 when snapshot produces more than MAX_RESOLVED (5000) paths in project mode', async () => {
+            const manyPaths = Array.from({ length: 5001 }, (_, i) =>
+                JSON.stringify({
+                    fragmentId: `frag-${i}`,
+                    path: `/content/dam/mas/acom/en_US/card-${i}`,
+                    versionId: 'v1',
+                    wasPublished: false,
+                    createdAt: '2025-01-01T00:00:00.000Z',
+                }),
+            );
+            createSnapshotStub.resolves(manyPaths);
+
+            const result = await projectAction.main({ ...baseParams, paths: undefined, projectId: 'proj-uuid' });
+
+            expect(result.error.statusCode).to.equal(400);
+            expect(result.error.body.error).to.include('exceeds maximum');
+        });
+
         it('logs a warning for snapshot paths filtered out due to non-matching prefix', async () => {
             const validPath = '/content/dam/mas/acom/en_US/card1';
             const invalidPath = '/content/dam/internal/secrets/private';

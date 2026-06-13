@@ -218,6 +218,29 @@ describe('mas-bulk-publish-editor', () => {
             expect(el._checkModCallCount).to.equal(1);
         });
 
+        it('resets localItems to null when inEdit switches to a different project', async () => {
+            const el = await fixture(html`<mas-bulk-publish-editor></mas-bulk-publish-editor>`);
+            await el.updateComplete;
+
+            seedInEdit(
+                el,
+                { title: 'Project A', urls: '', locales: [], status: BULK_PUBLISH_STATUS.DRAFT },
+                { id: 'project-a-id' },
+            );
+            el.localItems = [{ url: 'a', path: '/x', status: 'valid' }];
+            await el.updateComplete;
+
+            // Switch to a different project
+            seedInEdit(
+                el,
+                { title: 'Project B', urls: '', locales: [], status: BULK_PUBLISH_STATUS.DRAFT },
+                { id: 'project-b-id' },
+            );
+            await el.updateComplete;
+
+            expect(el.localItems).to.be.null;
+        });
+
         it('Modification results are passed to mas-bulk-publish-items as .modifications prop', async () => {
             const el = await fixture(html`<mas-bulk-publish-editor></mas-bulk-publish-editor>`);
             await el.updateComplete;

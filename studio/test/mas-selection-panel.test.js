@@ -219,6 +219,95 @@ describe('MasSelectionPanel', () => {
         });
     });
 
+    describe('handlePublish', () => {
+        let repository;
+        let MasPublishDialogModule;
+
+        beforeEach(async () => {
+            repository = { bulkPublishFragments: sandbox.stub().resolves(true) };
+            MasPublishDialogModule = await import('../src/publish/mas-publish-dialog.js');
+        });
+
+        function makePublishableFragment(id, refs = { variations: [], cards: [] }) {
+            return {
+                id,
+                model: { path: CARD_MODEL_PATH },
+                getPublishableReferences() {
+                    return refs;
+                },
+            };
+        }
+
+        it('calls bulkPublishFragments with selectedRefIds and allSelected from dialog when refs exist', async () => {
+            const frag = makePublishableFragment('frag-1', {
+                variations: [{ id: 'var-1', path: '/content/dam/mas/en_US/var-1', status: 'DRAFT' }],
+                cards: [],
+            });
+            sandbox.stub(MasPublishDialogModule.MasPublishDialog, 'show').resolves({
+                confirmed: true,
+                selectedIds: ['var-1'],
+                allSelected: false,
+            });
+            Store.fragments.list.data.set([makeFragmentStore(frag)]);
+            const el = await fixture(
+                html`<mas-selection-panel
+                    open
+                    .selectionStore=${makeSelectionStore([makeFragmentStore(frag)])}
+                    .repository=${repository}
+                ></mas-selection-panel>`,
+            );
+
+            await el.handlePublish();
+
+            expect(repository.bulkPublishFragments.calledOnce).to.be.true;
+            const [, opts] = repository.bulkPublishFragments.firstCall.args;
+            expect(opts.selectedRefIds).to.deep.equal(['var-1']);
+            expect(opts.allSelected).to.be.false;
+        });
+
+        it('does not call bulkPublishFragments when dialog is cancelled', async () => {
+            const frag = makePublishableFragment('frag-1', {
+                variations: [{ id: 'var-1', path: '/content/dam/mas/en_US/var-1', status: 'DRAFT' }],
+                cards: [],
+            });
+            sandbox.stub(MasPublishDialogModule.MasPublishDialog, 'show').resolves({
+                confirmed: false,
+                selectedIds: [],
+                allSelected: false,
+            });
+            Store.fragments.list.data.set([makeFragmentStore(frag)]);
+            const el = await fixture(
+                html`<mas-selection-panel
+                    open
+                    .selectionStore=${makeSelectionStore([makeFragmentStore(frag)])}
+                    .repository=${repository}
+                ></mas-selection-panel>`,
+            );
+
+            await el.handlePublish();
+
+            expect(repository.bulkPublishFragments.called).to.be.false;
+        });
+
+        it('skips dialog and calls bulkPublishFragments with empty refs when fragment has no publishable references', async () => {
+            const frag = makePublishableFragment('frag-1', { variations: [], cards: [] });
+            const showStub = sandbox.stub(MasPublishDialogModule.MasPublishDialog, 'show');
+            Store.fragments.list.data.set([makeFragmentStore(frag)]);
+            const el = await fixture(
+                html`<mas-selection-panel
+                    open
+                    .selectionStore=${makeSelectionStore([makeFragmentStore(frag)])}
+                    .repository=${repository}
+                ></mas-selection-panel>`,
+            );
+
+            await el.handlePublish();
+
+            expect(showStub.called).to.be.false;
+            expect(repository.bulkPublishFragments.calledWith(['frag-1'], sinon.match({ selectedRefIds: [], allSelected: false }))).to.be.true;
+        });
+    });
+
     describe('render', () => {
         it('shows Copy URLs button when items are selected', async () => {
             const fragment = { id: 'uuid-1', model: { path: CARD_MODEL_PATH } };

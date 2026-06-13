@@ -137,7 +137,10 @@ export class Fragment {
         if (!this.references?.length) return { variations: [], cards: [] };
 
         const variationPaths = new Set(this.getFieldValues('variations'));
-        const cardPaths = new Set(this.getFieldValues('cards'));
+        const cardPaths = new Set([
+            ...this.getFieldValues('cards'),
+            ...this.getFieldValues('collections'),
+        ]);
 
         const variations = [];
         const cards = [];

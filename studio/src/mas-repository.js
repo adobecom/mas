@@ -1627,7 +1627,7 @@ export class MasRepository extends LitElement {
             const fetched = await Promise.all(chunk.map((id) => this.aem.sites.cf.fragments.getWithEtag(id).catch(() => null)));
             valid.push(...fetched.filter(Boolean));
         }
-        if (valid.length === 0) return;
+        if (valid.length === 0) throw new Error('Failed to fetch any ref for publishing');
         await Promise.all(valid.map((ref) => this.aem.sites.cf.fragments.publish(ref, [])));
     }
 

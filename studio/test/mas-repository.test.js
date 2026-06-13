@@ -3695,6 +3695,40 @@ describe('MasRepository publishFragment', () => {
     });
 });
 
+describe('MasRepository #publishRefIds (via publishFragment selectedRefIds)', () => {
+    let sandbox;
+
+    beforeEach(() => {
+        sandbox = sinon.createSandbox();
+    });
+    afterEach(() => sandbox.restore());
+
+    const makeRepo = () => {
+        const repo = new MasRepository();
+        repo.operation = { set: sandbox.stub() };
+        repo.aem = {
+            sites: {
+                cf: {
+                    fragments: {
+                        publish: sandbox.stub().resolves(),
+                        getWithEtag: sandbox.stub().rejects(new Error('not found')),
+                    },
+                },
+            },
+        };
+        sandbox.stub(repo, 'processError');
+        return repo;
+    };
+
+    it('reports failure (via processError) when all getWithEtag calls fail', async () => {
+        const repo = makeRepo();
+        const fragment = { id: 'frag-1', path: '/content/dam/mas/sandbox/en_US/card' };
+        const result = await repo.publishFragment(fragment, { selectedRefIds: ['ref-x'] });
+        expect(result).to.be.false;
+        expect(repo.processError.called).to.be.true;
+    });
+});
+
 describe('MasRepository bulkPublishFragments', () => {
     let sandbox;
     let repo;

@@ -118,11 +118,15 @@ class MasPublishDialog extends LitElement {
                 resolve(result);
             };
 
-            dialog.addEventListener('publish-confirmed', (e) =>
-                cleanup({ confirmed: true, selectedIds: e.detail.selectedIds, allSelected: e.detail.allSelected }),
+            dialog.addEventListener(
+                'publish-confirmed',
+                (e) => cleanup({ confirmed: true, selectedIds: e.detail.selectedIds, allSelected: e.detail.allSelected }),
+                { once: true },
             );
-            dialog.addEventListener('publish-cancelled', () =>
-                cleanup({ confirmed: false, selectedIds: [], allSelected: false }),
+            dialog.addEventListener(
+                'publish-cancelled',
+                () => cleanup({ confirmed: false, selectedIds: [], allSelected: false }),
+                { once: true },
             );
 
             dialog.refs = refs;

@@ -225,22 +225,22 @@ describe('bulk-publish/snapshot.js', () => {
             fetchOdinStub.callsFake((endpoint, uri) => {
                 if (uri.includes('/adobe/sites/cf/fragments?path=')) {
                     const path = decodeURIComponent(uri.split('path=')[1]);
-                    if (path === '/content/dam/coll') {
+                    if (path === '/content/dam/mas/acom/en_US/coll') {
                         return fetchResponse({
                             items: [
                                 {
                                     id: 'frag-coll',
-                                    path: '/content/dam/coll',
+                                    path: '/content/dam/mas/acom/en_US/coll',
                                     status: 'PUBLISHED',
                                     fields: [
-                                        { name: 'cards', values: ['/content/dam/card-1'] },
-                                        { name: 'variations', values: ['/content/dam/var-1'] },
+                                        { name: 'cards', values: ['/content/dam/mas/acom/en_US/card-1'] },
+                                        { name: 'variations', values: ['/content/dam/mas/acom/en_US/var-1'] },
                                     ],
                                 },
                             ],
                         });
                     }
-                    if (path === '/content/dam/card-1') {
+                    if (path === '/content/dam/mas/acom/en_US/card-1') {
                         return fetchResponse({ items: [{ id: 'frag-card', path, status: 'PUBLISHED', fields: [] }] });
                     }
                 }
@@ -252,7 +252,7 @@ describe('bulk-publish/snapshot.js', () => {
             });
 
             const results = await snapshot.createSnapshot({
-                paths: ['/content/dam/coll'],
+                paths: ['/content/dam/mas/acom/en_US/coll'],
                 projectId: 'p1',
                 projectTitle: 'T',
                 odinEndpoint,
@@ -269,7 +269,7 @@ describe('bulk-publish/snapshot.js', () => {
             fetchOdinStub.callsFake((endpoint, uri) => {
                 if (uri.includes('/adobe/sites/cf/fragments?path=')) {
                     const path = decodeURIComponent(uri.split('path=')[1]);
-                    if (path === '/content/dam/main') {
+                    if (path === '/content/dam/mas/acom/en_US/main') {
                         return fetchResponse({
                             items: [
                                 {
@@ -277,14 +277,14 @@ describe('bulk-publish/snapshot.js', () => {
                                     path,
                                     status: 'PUBLISHED',
                                     fields: [
-                                        { name: 'variations', values: ['/content/dam/var-1'] },
-                                        { name: 'cards', values: ['/content/dam/card-1'] },
+                                        { name: 'variations', values: ['/content/dam/mas/acom/en_US/var-1'] },
+                                        { name: 'cards', values: ['/content/dam/mas/acom/en_US/card-1'] },
                                     ],
                                 },
                             ],
                         });
                     }
-                    if (path === '/content/dam/var-1') {
+                    if (path === '/content/dam/mas/acom/en_US/var-1') {
                         return fetchResponse({ items: [{ id: 'frag-var', path, status: 'DRAFT', fields: [] }] });
                     }
                 }
@@ -296,7 +296,7 @@ describe('bulk-publish/snapshot.js', () => {
             });
 
             const results = await snapshot.createSnapshot({
-                paths: ['/content/dam/main'],
+                paths: ['/content/dam/mas/acom/en_US/main'],
                 projectId: 'p1',
                 projectTitle: 'T',
                 odinEndpoint,
@@ -315,17 +315,17 @@ describe('bulk-publish/snapshot.js', () => {
                 if (uri.includes('/adobe/sites/cf/fragments?path=')) {
                     const path = decodeURIComponent(uri.split('path=')[1]);
                     const fragments = {
-                        '/content/dam/coll': {
+                        '/content/dam/mas/acom/en_US/coll': {
                             id: 'frag-coll',
                             status: 'PUBLISHED',
-                            fields: [{ name: 'cards', values: ['/content/dam/card-1'] }],
+                            fields: [{ name: 'cards', values: ['/content/dam/mas/acom/en_US/card-1'] }],
                         },
-                        '/content/dam/card-1': {
+                        '/content/dam/mas/acom/en_US/card-1': {
                             id: 'frag-card',
                             status: 'PUBLISHED',
-                            fields: [{ name: 'variations', values: ['/content/dam/var-1'] }],
+                            fields: [{ name: 'variations', values: ['/content/dam/mas/acom/en_US/var-1'] }],
                         },
-                        '/content/dam/var-1': { id: 'frag-var', status: 'DRAFT', fields: [] },
+                        '/content/dam/mas/acom/en_US/var-1': { id: 'frag-var', status: 'DRAFT', fields: [] },
                     };
                     const f = fragments[path];
                     return f ? fetchResponse({ items: [{ ...f, path }] }) : fetchResponse({ items: [] });
@@ -338,7 +338,7 @@ describe('bulk-publish/snapshot.js', () => {
             });
 
             const results = await snapshot.createSnapshot({
-                paths: ['/content/dam/coll'],
+                paths: ['/content/dam/mas/acom/en_US/coll'],
                 projectId: 'p1',
                 projectTitle: 'T',
                 odinEndpoint,
@@ -356,17 +356,17 @@ describe('bulk-publish/snapshot.js', () => {
                 if (uri.includes('/adobe/sites/cf/fragments?path=')) {
                     const path = decodeURIComponent(uri.split('path=')[1]);
                     const fragments = {
-                        '/content/dam/coll': {
+                        '/content/dam/mas/acom/en_US/coll': {
                             id: 'frag-coll',
                             status: 'PUBLISHED',
-                            fields: [{ name: 'collections', values: ['/content/dam/sub-coll'] }],
+                            fields: [{ name: 'collections', values: ['/content/dam/mas/acom/en_US/sub-coll'] }],
                         },
-                        '/content/dam/sub-coll': {
+                        '/content/dam/mas/acom/en_US/sub-coll': {
                             id: 'frag-sub-coll',
                             status: 'PUBLISHED',
-                            fields: [{ name: 'cards', values: ['/content/dam/card-1'] }],
+                            fields: [{ name: 'cards', values: ['/content/dam/mas/acom/en_US/card-1'] }],
                         },
-                        '/content/dam/card-1': { id: 'frag-card', status: 'PUBLISHED', fields: [] },
+                        '/content/dam/mas/acom/en_US/card-1': { id: 'frag-card', status: 'PUBLISHED', fields: [] },
                     };
                     const f = fragments[path];
                     return f ? fetchResponse({ items: [{ ...f, path }] }) : fetchResponse({ items: [] });
@@ -379,7 +379,7 @@ describe('bulk-publish/snapshot.js', () => {
             });
 
             const results = await snapshot.createSnapshot({
-                paths: ['/content/dam/coll'],
+                paths: ['/content/dam/mas/acom/en_US/coll'],
                 projectId: 'p1',
                 projectTitle: 'T',
                 odinEndpoint,
@@ -392,17 +392,17 @@ describe('bulk-publish/snapshot.js', () => {
         });
 
         it('deduplicates shared paths across the recursive tree', async () => {
-            const sharedCard = '/content/dam/shared-card';
+            const sharedCard = '/content/dam/mas/acom/en_US/shared-card';
             fetchOdinStub.callsFake((endpoint, uri) => {
                 if (uri.includes('/adobe/sites/cf/fragments?path=')) {
                     const path = decodeURIComponent(uri.split('path=')[1]);
                     const fragments = {
-                        '/content/dam/coll-a': {
+                        '/content/dam/mas/acom/en_US/coll-a': {
                             id: 'frag-a',
                             status: 'PUBLISHED',
                             fields: [{ name: 'cards', values: [sharedCard] }],
                         },
-                        '/content/dam/coll-b': {
+                        '/content/dam/mas/acom/en_US/coll-b': {
                             id: 'frag-b',
                             status: 'PUBLISHED',
                             fields: [{ name: 'cards', values: [sharedCard] }],
@@ -420,7 +420,7 @@ describe('bulk-publish/snapshot.js', () => {
             });
 
             const results = await snapshot.createSnapshot({
-                paths: ['/content/dam/coll-a', '/content/dam/coll-b'],
+                paths: ['/content/dam/mas/acom/en_US/coll-a', '/content/dam/mas/acom/en_US/coll-b'],
                 projectId: 'p1',
                 projectTitle: 'T',
                 odinEndpoint,
@@ -431,6 +431,46 @@ describe('bulk-publish/snapshot.js', () => {
             expect(results).to.have.length(3);
             const fragmentIds = results.map((r) => JSON.parse(r).fragmentId);
             expect(fragmentIds.filter((id) => id === 'frag-shared')).to.have.length(1);
+        });
+
+        it('does not fetch referenced paths that are outside /content/dam/mas/', async () => {
+            fetchOdinStub.callsFake((endpoint, uri) => {
+                if (uri.includes('/adobe/sites/cf/fragments?path=')) {
+                    const path = decodeURIComponent(uri.split('path=')[1]);
+                    if (path === '/content/dam/mas/project/en_US/coll') {
+                        return fetchResponse({
+                            items: [
+                                {
+                                    id: 'frag-coll',
+                                    path,
+                                    status: 'PUBLISHED',
+                                    fields: [{ name: 'cards', values: ['/content/dam/other/private-card'] }],
+                                },
+                            ],
+                        });
+                    }
+                    return fetchResponse({ items: [] });
+                }
+                if (uri.includes('/versions')) {
+                    return fetchResponse({}, { location: '/versions/ver-1' });
+                }
+                return fetchResponse({});
+            });
+
+            const results = await snapshot.createSnapshot({
+                paths: ['/content/dam/mas/project/en_US/coll'],
+                projectId: 'p1',
+                projectTitle: 'T',
+                odinEndpoint,
+                authToken,
+                includeCards: true,
+            });
+
+            expect(results).to.have.length(1);
+            expect(JSON.parse(results[0]).fragmentId).to.equal('frag-coll');
+            // External path must NOT have been fetched
+            const calledUris = fetchOdinStub.args.map(([, uri]) => uri);
+            expect(calledUris.some((u) => u.includes('other/private-card'))).to.be.false;
         });
 
         it('skips missing referenced fragments without throwing', async () => {

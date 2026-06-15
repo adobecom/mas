@@ -848,6 +848,47 @@ describe('MasRepository dictionary helpers', () => {
             }
         });
 
+        it('clears variation search stores when switching to text search', async () => {
+            const repository = createFullRepository();
+            repository.page = { value: PAGE_NAMES.CONTENT };
+            repository.search = { value: { path: 'acom', query: 'photoshop' } };
+            repository.filters = { value: { locale: 'en_US', tags: '' } };
+            const searchStub = sandbox.stub().returns(createMockCursor([[]]));
+            repository.aem = createAemMock({
+                fragments: { search: searchStub },
+            });
+            const { default: Store } = await import('../src/store.js');
+            const originalProfile = Store.profile.value;
+            const originalExpandedId = Store.fragments.expandedId.get();
+            const originalHighlightedId = Store.fragments.highlightedVariationId.get();
+            const originalVariationTab = Store.fragments.variationSearchTab.get();
+            Store.profile.set({ name: 'test-user' });
+            Store.fragments.expandedId.set('parent-uuid');
+            Store.fragments.highlightedVariationId.set('variation-uuid');
+            Store.fragments.variationSearchTab.set('grouped');
+            const mockDataStore = {
+                get: sandbox.stub().returns([]),
+                getMeta: sandbox.stub().returns(null),
+                set: sandbox.stub(),
+                setMeta: sandbox.stub(),
+            };
+            const originalData = Store.fragments.list.data;
+            Store.fragments.list.data = mockDataStore;
+            try {
+                await repository.searchFragments();
+                expect(searchStub.calledOnce).to.be.true;
+                expect(Store.fragments.expandedId.get()).to.be.null;
+                expect(Store.fragments.highlightedVariationId.get()).to.be.null;
+                expect(Store.fragments.variationSearchTab.get()).to.be.null;
+            } finally {
+                Store.profile.set(originalProfile);
+                Store.fragments.expandedId.set(originalExpandedId);
+                Store.fragments.highlightedVariationId.set(originalHighlightedId);
+                Store.fragments.variationSearchTab.set(originalVariationTab);
+                Store.fragments.list.data = originalData;
+            }
+        });
+
         it('searches by UUID when query is a valid UUID', async () => {
             const repository = createFullRepository();
             repository.page = { value: PAGE_NAMES.CONTENT };
@@ -1191,6 +1232,216 @@ describe('MasRepository dictionary helpers', () => {
                 else Store.filters.setMeta('uuid-locale', originalUuidLocale);
                 Store.fragments.list.data = originalData;
             }
+        });
+
+        describe('variation UUID search', () => {
+            const variationUuid = '5f16bf69-4dd2-4788-a163-8d33c7d68906';
+            const parentUuid = '55df6f26-c5ad-4f83-a4d3-d5e25c99059b';
+
+            const setupVariationUuidSearch = async () => {
+                const { default: Store } = await import('../src/store.js');
+                const originalProfile = Store.profile.value;
+                const originalSearch = structuredClone(Store.search.get());
+                const originalFilters = structuredClone(Store.filters.get());
+                const originalExpandedId = Store.fragments.expandedId.get();
+                const originalHighlightedId = Store.fragments.highlightedVariationId.get();
+                const originalVariationTab = Store.fragments.variationSearchTab.get();
+                const originalUuidSearchQuery = Store.search.getMeta('uuid-query');
+                const originalUuidPath = Store.search.getMeta('uuid-path');
+                const originalUuidQuery = Store.filters.getMeta('uuid-query');
+                const originalUuidLocale = Store.filters.getMeta('uuid-locale');
+                Store.profile.set({ name: 'test-user' });
+                let dataValue = [];
+                const mockDataStore = {
+                    get: sandbox.stub().callsFake(() => dataValue),
+                    getMeta: sandbox.stub().returns(null),
+                    set: sandbox.stub().callsFake((value) => {
+                        dataValue = value;
+                    }),
+                    setMeta: sandbox.stub(),
+                };
+                const originalData = Store.fragments.list.data;
+                Store.fragments.list.data = mockDataStore;
+                return {
+                    Store,
+                    mockDataStore,
+                    restore: () => {
+                        Store.profile.set(originalProfile);
+                        Store.search.set(originalSearch);
+                        Store.filters.set(originalFilters);
+                        Store.fragments.expandedId.set(originalExpandedId);
+                        Store.fragments.highlightedVariationId.set(originalHighlightedId);
+                        Store.fragments.variationSearchTab.set(originalVariationTab);
+                        if (originalUuidSearchQuery === null) Store.search.removeMeta('uuid-query');
+                        else Store.search.setMeta('uuid-query', originalUuidSearchQuery);
+                        if (originalUuidPath === null) Store.search.removeMeta('uuid-path');
+                        else Store.search.setMeta('uuid-path', originalUuidPath);
+                        if (originalUuidQuery === null) Store.filters.removeMeta('uuid-query');
+                        else Store.filters.setMeta('uuid-query', originalUuidQuery);
+                        if (originalUuidLocale === null) Store.filters.removeMeta('uuid-locale');
+                        else Store.filters.setMeta('uuid-locale', originalUuidLocale);
+                        Store.fragments.list.data = originalData;
+                    },
+                };
+            };
+
+            it('resolves parent and sets expand/highlight stores for grouped variation UUID', async () => {
+                const repository = createFullRepository();
+                repository.page = { value: PAGE_NAMES.CONTENT };
+                const variationPath = `${ROOT_PATH}/acom/en_US/photoshop/pzn/my-card`;
+                const parentPath = `${ROOT_PATH}/acom/en_US/my-card`;
+                const variationFragment = createFragment({ id: variationUuid, path: variationPath, fields: [] });
+                const parentFragment = createFragment({
+                    id: parentUuid,
+                    path: parentPath,
+                    fields: [{ name: 'variations', values: [variationPath] }],
+                });
+                repository.search = { value: { path: 'ccd', query: variationUuid } };
+                repository.filters = { value: { locale: 'en_US', tags: '' } };
+                const getByIdStub = sandbox.stub();
+                getByIdStub.withArgs(variationUuid).resolves(variationFragment);
+                getByIdStub.withArgs(parentUuid).resolves(parentFragment);
+                sandbox.stub(repository, 'resolveHydratedParentFragment').resolves(parentFragment);
+                repository.aem = createAemMock({ fragments: { getById: getByIdStub, search: sandbox.stub() } });
+                const { Store, mockDataStore, restore } = await setupVariationUuidSearch();
+                try {
+                    await repository.searchFragments();
+                    expect(Store.search.get().path).to.equal('acom');
+                    expect(mockDataStore.set.secondCall.args[0][0].get().id).to.equal(parentUuid);
+                    expect(Store.fragments.expandedId.get()).to.equal(parentUuid);
+                    expect(Store.fragments.highlightedVariationId.get()).to.equal(variationUuid);
+                    expect(Store.fragments.variationSearchTab.get()).to.equal('grouped');
+                } finally {
+                    restore();
+                }
+            });
+
+            it('resolves parent for locale variation UUID via getByPath', async () => {
+                const repository = createFullRepository();
+                repository.page = { value: PAGE_NAMES.CONTENT };
+                const variationPath = `${ROOT_PATH}/acom/fr_CA/my-card`;
+                const parentPath = `${ROOT_PATH}/acom/fr_FR/my-card`;
+                const variationFragment = createFragment({ id: variationUuid, path: variationPath, fields: [] });
+                const parentFragment = createFragment({ id: parentUuid, path: parentPath, fields: [] });
+                repository.search = { value: { path: 'acom', query: variationUuid } };
+                repository.filters = { value: { locale: 'fr_FR', tags: '' } };
+                const getByIdStub = sandbox.stub().resolves(variationFragment);
+                const getByPathStub = sandbox.stub().resolves(parentFragment);
+                repository.aem = createAemMock({
+                    fragments: { getById: getByIdStub, getByPath: getByPathStub, search: sandbox.stub() },
+                });
+                const { Store, mockDataStore, restore } = await setupVariationUuidSearch();
+                try {
+                    await repository.searchFragments();
+                    expect(getByPathStub.calledOnceWith(parentPath)).to.be.true;
+                    expect(mockDataStore.set.secondCall.args[0][0].get().id).to.equal(parentUuid);
+                    expect(Store.fragments.expandedId.get()).to.equal(parentUuid);
+                    expect(Store.fragments.highlightedVariationId.get()).to.equal(variationUuid);
+                    expect(Store.fragments.variationSearchTab.get()).to.equal('locale');
+                } finally {
+                    restore();
+                }
+            });
+
+            it('resolves parent for promo variation UUID via getByPath', async () => {
+                const repository = createFullRepository();
+                repository.page = { value: PAGE_NAMES.CONTENT };
+                const variationPath = `${ROOT_PATH}/acom/en_US/promotions/summer-sale/my-card`;
+                const parentPath = `${ROOT_PATH}/acom/en_US/my-card`;
+                const variationFragment = createFragment({ id: variationUuid, path: variationPath, fields: [] });
+                const parentFragment = createFragment({ id: parentUuid, path: parentPath, fields: [] });
+                repository.search = { value: { path: 'acom', query: variationUuid } };
+                repository.filters = { value: { locale: 'en_US', tags: '' } };
+                const getByIdStub = sandbox.stub().resolves(variationFragment);
+                const getByPathStub = sandbox.stub().resolves(parentFragment);
+                repository.aem = createAemMock({
+                    fragments: { getById: getByIdStub, getByPath: getByPathStub, search: sandbox.stub() },
+                });
+                const { Store, mockDataStore, restore } = await setupVariationUuidSearch();
+                try {
+                    await repository.searchFragments();
+                    expect(getByPathStub.calledOnceWith(parentPath)).to.be.true;
+                    expect(mockDataStore.set.secondCall.args[0][0].get().id).to.equal(parentUuid);
+                    expect(Store.fragments.expandedId.get()).to.equal(parentUuid);
+                    expect(Store.fragments.highlightedVariationId.get()).to.equal(variationUuid);
+                    expect(Store.fragments.variationSearchTab.get()).to.equal('promotion');
+                } finally {
+                    restore();
+                }
+            });
+
+            it('clears list and stores when variation UUID parent is not found', async () => {
+                const repository = createFullRepository();
+                repository.page = { value: PAGE_NAMES.CONTENT };
+                const variationPath = `${ROOT_PATH}/acom/fr_CA/my-card`;
+                const variationFragment = createFragment({ id: variationUuid, path: variationPath, fields: [] });
+                repository.search = { value: { path: 'acom', query: variationUuid } };
+                repository.filters = { value: { locale: 'fr_FR', tags: '' } };
+                const getByIdStub = sandbox.stub().resolves(variationFragment);
+                const getByPathStub = sandbox.stub().resolves(null);
+                repository.aem = createAemMock({
+                    fragments: { getById: getByIdStub, getByPath: getByPathStub, search: sandbox.stub() },
+                });
+                const { Store, mockDataStore, restore } = await setupVariationUuidSearch();
+                try {
+                    await repository.searchFragments();
+                    expect(mockDataStore.set.called).to.be.true;
+                    expect(mockDataStore.get()).to.deep.equal([]);
+                    expect(Store.fragments.expandedId.get()).to.be.null;
+                    expect(Store.fragments.highlightedVariationId.get()).to.be.null;
+                    expect(Store.fragments.variationSearchTab.get()).to.be.null;
+                } finally {
+                    restore();
+                }
+            });
+
+            it('ignores stale variation parent resolution when search is superseded', async () => {
+                const repository = createFullRepository();
+                repository.page = { value: PAGE_NAMES.CONTENT };
+                const variationPath = `${ROOT_PATH}/acom/en_US/photoshop/pzn/my-card`;
+                const variationFragment = createFragment({ id: variationUuid, path: variationPath, fields: [] });
+                const parentFragment = createFragment({
+                    id: parentUuid,
+                    path: `${ROOT_PATH}/acom/en_US/my-card`,
+                    fields: [{ name: 'variations', values: [variationPath] }],
+                });
+
+                let resolveStaleParent;
+                const staleParentPromise = new Promise((resolve) => {
+                    resolveStaleParent = resolve;
+                });
+
+                repository.search = { value: { path: 'ccd', query: variationUuid } };
+                repository.filters = { value: { locale: 'en_US', tags: '' } };
+
+                const getByIdStub = sandbox.stub();
+                getByIdStub.withArgs(variationUuid).resolves(variationFragment);
+                sandbox.stub(repository, 'resolveHydratedParentFragment').returns(staleParentPromise);
+
+                const searchStub = sandbox.stub().returns(createMockCursor([[]]));
+                repository.aem = createAemMock({ fragments: { getById: getByIdStub, search: searchStub } });
+
+                const { Store, restore } = await setupVariationUuidSearch();
+                try {
+                    const staleSearch = repository.searchFragments();
+
+                    repository.search = { value: { path: 'acom', query: 'photoshop' } };
+                    const freshSearch = repository.searchFragments();
+
+                    await freshSearch;
+                    expect(Store.fragments.highlightedVariationId.get()).to.be.null;
+                    expect(Store.fragments.expandedId.get()).to.be.null;
+
+                    resolveStaleParent(parentFragment);
+                    await staleSearch;
+
+                    expect(Store.fragments.highlightedVariationId.get()).to.be.null;
+                    expect(Store.fragments.expandedId.get()).to.be.null;
+                    expect(Store.fragments.variationSearchTab.get()).to.be.null;
+                } finally {
+                    restore();
+                }
+            });
         });
 
         it('performs regular search when query is not a UUID', async () => {

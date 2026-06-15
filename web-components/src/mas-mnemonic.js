@@ -364,7 +364,6 @@ export default class MasMnemonic extends LitElement {
             this.mnemonicText ||
             this.content ||
             this.textContent?.trim() ||
-            this.alt ||
             ''
         );
     }

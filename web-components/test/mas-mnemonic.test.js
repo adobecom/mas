@@ -428,29 +428,3 @@ describe('mas-mnemonic – smart-placement', () => {
         });
     });
 });
-
-describe('mas-mnemonic – effectiveContent alt fallback', () => {
-    afterEach(() => {
-        document.body
-            .querySelectorAll('mas-mnemonic')
-            .forEach((el) => el.remove());
-    });
-
-    it('effectiveContent falls back to alt when content is empty', async () => {
-        const el = await connected({
-            src: 'test.svg',
-            alt: 'Adobe Express icon',
-        });
-        expect(el.effectiveContent).to.equal('Adobe Express icon');
-    });
-
-    it('effectiveContent prefers text content over alt', async () => {
-        const el = document.createElement('mas-mnemonic');
-        el.setAttribute('src', 'test.svg');
-        el.setAttribute('alt', 'Adobe Express icon');
-        el.textContent = 'Adobe Express';
-        document.body.append(el);
-        await el.updateComplete;
-        expect(el.effectiveContent).to.equal('Adobe Express');
-    });
-});

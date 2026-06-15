@@ -1166,7 +1166,7 @@ class MasPromotionsEditor extends LitElement {
         const offerIds = Store.promotions.selectedOffers.value;
         const promoCodeGroups = groupCountriesByPromoCode(exceptions, offerIds, countries, defaultPromoCode);
         const totalOffers = offerIds.length;
-        const totalFragments = Store.promotions.selectedCards.value.length;
+        const totalFragments = Store.promotions.selectedCards.value.length + Store.promotions.selectedCollections.value.length;
 
         return html`<div class="promotion-summary">
             <div class="promotion-summary-body">

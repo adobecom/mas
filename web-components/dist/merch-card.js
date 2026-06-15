@@ -9730,7 +9730,11 @@ merch-card div[slot='bg-image'] img {
   content: "\\00a0";
 }
 
-.price-tax-inclusivity:not(.disabled) + .price-plan-type:not(.disabled):not(.no-dot)::before {
+.price-legal .price-unit-type.disabled + .price-tax-inclusivity:not(.disabled)::before {
+  content: none;
+}
+
+.price-tax-inclusivity:not(.disabled) + .price-plan-type:not(.no-dot):not(:empty)::before {
   content: "\\00a0";
 }
 

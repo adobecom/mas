@@ -112,6 +112,13 @@ describe('mask transformer process', function () {
         expect(result.dictionary.existing).to.equal('val');
     });
 
+    it('preserves colons in variable values when splitting on the first colon only', async function () {
+        const maskWithVars = { id: 'mask-id', fields: { variables: ['url:https://example.com/path'] } };
+        const ctx = { ...BASE, promises: { mask: Promise.resolve(maskWithVars) } };
+        const result = await mask.process(ctx);
+        expect(result.dictionary.url).to.equal('https://example.com/path');
+    });
+
     it('returns context unchanged when mask promise resolves to null', async function () {
         const ctx = { ...BASE, promises: { mask: Promise.resolve(null) } };
         const result = await mask.process(ctx);

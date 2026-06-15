@@ -99,7 +99,9 @@ export default class OSTPage {
 
         // Placeholder option checkboxes (legacy "Disable" group). A box is
         // checked when its option is OFF (disabled); see ost-placeholder-options.
-        this.htmlFormatCheckbox = this.page.locator('[data-testid="ost-disable-displayFormatted"]');
+        // The group is collapsed by default — call expandOptions() before
+        // asserting/clicking any of these.
+        this.optionsToggle = this.page.locator('[data-testid="ost-options-toggle"]');
         this.termCheckbox = this.page.locator('[data-testid="ost-disable-displayRecurrence"]');
         this.unitCheckbox = this.page.locator('[data-testid="ost-disable-displayPerUnit"]');
         this.taxlabelCheckbox = this.page.locator('[data-testid="ost-disable-displayTax"]');
@@ -125,5 +127,13 @@ export default class OSTPage {
         this.promoField = this.page.locator('[data-testid="ost-promo-override-input"] input');
         this.promoLabel = this.page.locator('[data-testid="ost-promo-label"]');
         this.cancelPromo = this.page.locator('[data-testid="ost-promo-clear"]');
+    }
+
+    // The "Options" (Disable) group is collapsed by default; expand it once so
+    // the term/unit/tax/old-price checkboxes are visible and clickable.
+    async expandOptions() {
+        if (await this.termCheckbox.isVisible().catch(() => false)) return;
+        await this.optionsToggle.click();
+        await this.termCheckbox.first().waitFor({ state: 'visible', timeout: 5000 });
     }
 }

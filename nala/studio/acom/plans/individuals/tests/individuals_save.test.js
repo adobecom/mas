@@ -380,6 +380,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await (await editor.prices.locator(editor.regularPrice)).dblclick();
             await expect(await ost.price).toBeVisible();
             await expect(await ost.priceUse).toBeVisible();
+            await ost.expandOptions();
             await expect(await ost.oldPriceCheckbox).toBeVisible();
             await ost.oldPriceCheckbox.click();
             await ost.priceUse.click();
@@ -550,6 +551,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await editor.descriptionFieldGroup.locator(editor.OSTButton).click();
             await ost.legalChip.click();
             await ost.legalDisclaimer.scrollIntoViewIfNeeded();
+            await ost.expandOptions();
             await expect(await ost.unitCheckbox).toBeVisible();
             if (!(await ost.legalDisclaimer.textContent())?.includes(data.legalDisclaimer)) {
                 await ost.unitCheckbox.click();
@@ -571,6 +573,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await editor.description.locator(editor.legalDisclaimer).dblclick();
             await ost.legalChip.click();
             await ost.legalDisclaimer.scrollIntoViewIfNeeded();
+            await ost.expandOptions();
             await expect(await ost.taxlabelCheckbox).toBeVisible();
             if (!(await ost.legalDisclaimer.textContent())?.includes(data.legalDisclaimerTax)) {
                 await ost.taxlabelCheckbox.click();

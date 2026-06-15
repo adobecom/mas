@@ -237,6 +237,7 @@ test.describe('M@S Studio OST test suite', () => {
         });
 
         await test.step('step-2: Recurrence toggle controls the recurrence token', async () => {
+            await ost.expandOptions();
             await expect(await ost.termCheckbox).toBeVisible();
             await expect(await ost.price).toContainText(data.toggles.displayRecurrence);
             await ost.termCheckbox.click();

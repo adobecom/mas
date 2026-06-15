@@ -495,6 +495,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await expect(await ost.promoField).toHaveValue(data.promo);
 
             await expect(await ost.priceUse).toBeVisible();
+            await ost.expandOptions();
             await expect(await ost.unitCheckbox).toBeVisible();
             await ost.unitCheckbox.click();
             await expect(await ost.price).toContainText(data.price.updated);
@@ -1461,6 +1462,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await (await ost.nextButton).click();
             await ost.legalChip.click();
             await ost.legalDisclaimer.scrollIntoViewIfNeeded();
+            await ost.expandOptions();
             await expect(await ost.unitCheckbox).toBeVisible();
             if (!(await ost.legalDisclaimer.textContent())?.includes(data.cardLegalDisclaimer)) {
                 await ost.unitCheckbox.click();

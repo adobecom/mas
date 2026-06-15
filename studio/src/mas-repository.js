@@ -52,6 +52,12 @@ import { getItemsSelectionStore } from './common/items-selection-store.js';
 import generateFragmentStore from './reactivity/source-fragment-store.js';
 import { getDefaultLocaleCode } from '../../io/www/src/fragment/locales.js';
 import { applyCorrectorToFragment } from './utils/corrector-helper.js';
+import {
+    classifyVariationByPath,
+    resolveLocaleVariationParentPath,
+    resolvePromoVariationParentPath,
+    VARIATION_SEARCH_TABS,
+} from './utils/variation-search.js';
 import { Promotion } from './aem/promotion.js';
 
 let fragmentCache;
@@ -615,21 +621,52 @@ export class MasRepository extends LitElement {
             const searchController = this.#abortControllers.search;
 
             if (isUUID(query)) {
-                // Check if the fragment with this UUID is already the only one in the store
                 const [currentFragment] = dataStore.get() ?? [];
+                const highlightedId = Store.fragments.highlightedVariationId.get();
+                const expandedId = Store.fragments.expandedId.get();
+                const alreadyResolvedVariation =
+                    highlightedId === query && expandedId && currentFragment?.value?.id === expandedId;
                 if (
-                    currentFragment?.value.id === query &&
+                    (currentFragment?.value?.id === query || alreadyResolvedVariation) &&
                     dataStore.get()?.length === 1 &&
                     metaPersonalizationOn === personalizationOn
                 ) {
-                    // Skip search if we already have exactly this fragment
                     Store.fragments.list.loading.set(false);
                     Store.fragments.list.firstPageLoaded.set(true);
                     return;
                 }
                 const fragmentData = await this.aem.sites.cf.fragments.getById(query, this.#abortControllers.search);
-                const fragmentSurface = extractSurfaceFromPath(fragmentData?.path)?.toLowerCase() || null;
-                const fragmentLocale = extractLocaleFromPath(fragmentData?.path);
+                let displayFragment = fragmentData;
+                const { isVariation, tab } = classifyVariationByPath(fragmentData?.path);
+
+                if (isVariation && fragmentData) {
+                    const parentData = await this.#resolveParentForVariationSearch(fragmentData);
+                    if (this.#abortControllers.search !== searchController) {
+                        Store.fragments.list.loading.set(false);
+                        return;
+                    }
+                    if (!parentData) {
+                        Store.fragments.expandedId.set(null);
+                        Store.fragments.highlightedVariationId.set(null);
+                        Store.fragments.variationSearchTab.set(null);
+                        dataStore.set([]);
+                        Store.fragments.list.data.set([]);
+                        Store.fragments.list.firstPageLoaded.set(true);
+                        Store.fragments.list.loading.set(false);
+                        return;
+                    }
+                    displayFragment = parentData;
+                    Store.fragments.expandedId.set(parentData.id);
+                    Store.fragments.highlightedVariationId.set(query);
+                    Store.fragments.variationSearchTab.set(tab);
+                } else {
+                    Store.fragments.expandedId.set(null);
+                    Store.fragments.highlightedVariationId.set(null);
+                    Store.fragments.variationSearchTab.set(null);
+                }
+
+                const fragmentSurface = extractSurfaceFromPath(displayFragment?.path)?.toLowerCase() || null;
+                const fragmentLocale = extractLocaleFromPath(displayFragment?.path);
                 const matchesSurface = !fragmentSurface || fragmentSurface === path;
                 const syncedPathQuery = Store.search.getMeta('uuid-query');
                 const syncedPath = Store.search.getMeta('uuid-path');
@@ -640,16 +677,16 @@ export class MasRepository extends LitElement {
                 const matchesLocale = !fragmentLocale || fragmentLocale === locale;
 
                 if (
-                    fragmentData &&
+                    displayFragment &&
                     (canSyncSurface || matchesSurface) &&
                     (canSyncLocale || matchesLocale) &&
-                    matchesContentTypeFilter(contentTypes, fragmentData) &&
-                    !Fragment.isGroupedVariationPath(fragmentData.path)
+                    matchesContentTypeFilter(contentTypes, displayFragment) &&
+                    (isVariation || !Fragment.isGroupedVariationPath(fragmentData?.path))
                 ) {
                     resolvedLocale = canSyncLocale ? fragmentLocale || locale : locale;
                     resolvedPath = canSyncSurface ? fragmentSurface || path : path;
-                    applyCorrectorToFragment(fragmentData, fragmentSurface);
-                    const fragment = await this.#addToCache(fragmentData);
+                    applyCorrectorToFragment(displayFragment, fragmentSurface);
+                    const fragment = await this.#addToCache(displayFragment);
                     const sourceStore = generateFragmentStore(fragment, null, { lazy: true });
                     dataStore.set(this.#applyFragmentListFilters([sourceStore]));
 
@@ -663,7 +700,6 @@ export class MasRepository extends LitElement {
                         Store.filters.setMeta('uuid-locale', fragmentLocale);
                     }
 
-                    // Backfill the surface for pathless UUID deep-links so the picker and URL normalize.
                     if (
                         canSyncSurface &&
                         fragmentSurface &&
@@ -691,6 +727,9 @@ export class MasRepository extends LitElement {
                 Store.fragments.list.data.set(dataStore.get());
                 Store.fragments.list.firstPageLoaded.set(true);
             } else {
+                Store.fragments.expandedId.set(null);
+                Store.fragments.highlightedVariationId.set(null);
+                Store.fragments.variationSearchTab.set(null);
                 const surface = path?.split('/').filter(Boolean)[0]?.toLowerCase();
                 const fragmentStores = [];
                 if (lowerClientQuery.trim().includes(' ')) {
@@ -1882,6 +1921,26 @@ export class MasRepository extends LitElement {
             .toLowerCase()
             .replace(/[^a-z0-9]+/g, '-')
             .replace(/^-|-$/g, '');
+    }
+
+    async #resolveParentForVariationSearch(variationFragment) {
+        const path = variationFragment.path;
+        const { tab } = classifyVariationByPath(path);
+
+        if (tab === VARIATION_SEARCH_TABS.GROUPED) {
+            return await this.resolveHydratedParentFragment(path);
+        }
+        if (tab === VARIATION_SEARCH_TABS.PROMOTION) {
+            const parentPath = resolvePromoVariationParentPath(path);
+            if (!parentPath) return null;
+            return await this.aem.sites.cf.fragments.getByPath(parentPath);
+        }
+        if (tab === VARIATION_SEARCH_TABS.LOCALE) {
+            const parentPath = resolveLocaleVariationParentPath(path);
+            if (!parentPath) return null;
+            return await this.aem.sites.cf.fragments.getByPath(parentPath);
+        }
+        return null;
     }
 
     /**

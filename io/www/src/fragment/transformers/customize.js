@@ -1,6 +1,12 @@
 import { PATH_TOKENS } from '../utils/paths.js';
-import { CARD_MODEL_ID, getRequestInfos, matchesGeo, skimFragmentFromReferences } from '../utils/common.js';
-import { logDebug } from '../utils/log.js';
+import {
+    CARD_MODEL_ID,
+    getRequestInfos,
+    matchesGeo,
+    skimFragmentFromReferences,
+    VALID_PARAMETER_VALUE_REGEX,
+} from '../utils/common.js';
+import { logDebug, logError } from '../utils/log.js';
 
 const PZN_FOLDER = '/pzn/';
 
@@ -327,7 +333,7 @@ async function customize(context) {
     const promos = activeProject
         ? { activeProject, promoMap: context.promoMap ?? {}, fragmentPaths: context.promoFragmentPaths ?? new Set() }
         : null;
-    const { maskFragment } = context;
+    const { maskFragment, pzn } = context;
 
     if (status != 200) {
         return { ...context, status, message };
@@ -345,6 +351,11 @@ async function customize(context) {
         references,
         surface,
     };
+    if (pzn && !VALID_PARAMETER_VALUE_REGEX.test(pzn)) {
+        logError(`Invalid pzn value '${pzn}', ignoring...`, context);
+        customizeContext.pzn = undefined;
+    }
+
     const customizedTree = customizeTree(baseFragment, referencesTree, customizeContext);
     let { fragment: customizedFragment } = customizedTree;
     const { references: customizedReferences, referencesTree: customizedReferenceTree } = customizedTree;

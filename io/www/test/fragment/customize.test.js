@@ -1079,6 +1079,46 @@ describe('customize collections', function () {
         // pzn variation lives under en_US path, must NOT be applied to a fr_FR fragment
         expect(result.body.fields.badge).to.equal('default badge');
     });
+
+    it('should ignore pzn and not apply any variation when pzn contains invalid characters', async function () {
+        const pznVariationId = 'pzn-var-winter-sale';
+        const bodyWithPzn = {
+            path: '/content/dam/mas/sandbox/en_US/pzn-test-fragment',
+            id: 'root-fragment',
+            title: 'Root',
+            fields: {
+                badge: 'default badge',
+                variations: [pznVariationId],
+            },
+            references: {
+                [pznVariationId]: {
+                    type: 'content-fragment',
+                    value: {
+                        path: '/content/dam/mas/sandbox/en_US/PA-123/pzn/winter-sale',
+                        id: pznVariationId,
+                        title: 'Winter sale pzn',
+                        fields: {
+                            pznTags: ['mas:commerce/campaigns/pzn/winter-sale'],
+                            badge: 'Winter sale PZN',
+                        },
+                    },
+                },
+            },
+            referencesTree: [],
+        };
+
+        const result = await process({
+            ...FAKE_CONTEXT,
+            fragmentPath: 'pzn-test-fragment',
+            locale: 'en_US',
+            parsedLocale: 'en_US',
+            pzn: '../evil;drop table',
+            body: bodyWithPzn,
+        });
+
+        expect(result.status).to.equal(200);
+        expect(result.body.fields.badge).to.equal('default badge');
+    });
 });
 
 async function process(context) {

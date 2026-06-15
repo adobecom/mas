@@ -58,7 +58,7 @@ export class MasksStore {
         return `${ROOT_PATH}/${surface}/${locale}/${MASKS_FOLDER}`;
     }
 
-    /** Tag id whose leaf equals the mask fragment node name; the io `mask` param resolves it by path. */
+    /** Tag id whose leaf equals the mask fragment node name */
     maskTagId(name, surface = this.#surface) {
         return `${MAS_MASKS_PREFIX}${surface}/${normalizeKey(name)}`;
     }

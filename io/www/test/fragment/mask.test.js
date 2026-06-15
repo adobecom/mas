@@ -75,6 +75,12 @@ describe('mask transformer init', function () {
         const result = await mask.init(withLocale('en_US', 'en_US', { mask: 'broken' }));
         expect(result).to.equal(null);
     });
+
+    it('resolves to null when the mask name contains invalid characters, without fetching', async function () {
+        const result = await mask.init(withLocale('en_US', 'en_US', { mask: '../evil' }));
+        expect(result).to.equal(null);
+        expect(fetchStub.called).to.be.false;
+    });
 });
 
 describe('mask transformer process', function () {

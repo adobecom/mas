@@ -20,8 +20,8 @@ class MasVariableField extends LitElement {
     `;
 
     static properties = {
-        _key: { state: true },
-        _val: { state: true },
+        key: { state: true },
+        value: { state: true },
     };
 
     static get observedAttributes() {
@@ -30,8 +30,8 @@ class MasVariableField extends LitElement {
 
     constructor() {
         super();
-        this._key = '';
-        this._val = '';
+        this.key = '';
+        this.value = '';
     }
 
     // mas-multifield sets 'value' via setAttribute — parse into key/val here.
@@ -40,24 +40,24 @@ class MasVariableField extends LitElement {
         if (name === 'value') {
             const s = newVal ?? '';
             const colon = s.indexOf(':');
-            this._key = colon >= 0 ? s.slice(0, colon) : s;
-            this._val = colon >= 0 ? s.slice(colon + 1) : '';
+            this.key = colon >= 0 ? s.slice(0, colon) : s;
+            this.value = colon >= 0 ? s.slice(colon + 1) : '';
         }
     }
 
     get value() {
-        return `${this._key}:${this._val}`;
+        return `${this.key}:${this.value}`;
     }
 
     #onKeyInput(e) {
         e.stopPropagation();
-        this._key = e.target.value;
+        this.key = e.target.value;
         this.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
     }
 
     #onValInput(e) {
         e.stopPropagation();
-        this._val = e.target.value;
+        this.value = e.target.value;
         this.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
     }
 
@@ -67,8 +67,8 @@ class MasVariableField extends LitElement {
 
     render() {
         return html`
-            <sp-textfield placeholder="Key" .value=${this._key} @input=${this.#onKeyInput}></sp-textfield>
-            <sp-textfield placeholder="Value" .value=${this._val} @input=${this.#onValInput}></sp-textfield>
+            <sp-textfield placeholder="Key" .value=${this.key} @input=${this.#onKeyInput}></sp-textfield>
+            <sp-textfield placeholder="Value" .value=${this.value} @input=${this.#onValInput}></sp-textfield>
             <sp-action-button quiet @click=${this.#delete}>
                 <sp-icon-delete slot="icon" label="Remove"></sp-icon-delete>
             </sp-action-button>

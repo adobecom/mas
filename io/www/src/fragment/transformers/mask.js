@@ -1,6 +1,12 @@
-import { fetch, getFragmentId, getRequestInfos, skimFragmentFromReferences } from '../utils/common.js';
+import {
+    fetch,
+    getFragmentId,
+    getRequestInfos,
+    skimFragmentFromReferences,
+    VALID_PARAMETER_VALUE_REGEX,
+} from '../utils/common.js';
 import { odinUrl, odinReferences } from '../utils/paths.js';
-import { logDebug } from '../utils/log.js';
+import { logDebug, logError } from '../utils/log.js';
 
 const MASKS_FOLDER = 'masks';
 
@@ -40,6 +46,11 @@ async function init(context) {
         return null;
     }
 
+    if (!VALID_PARAMETER_VALUE_REGEX.test(mask)) {
+        logError(`Invalid mask name '${mask}', ignoring...`, context);
+        return null;
+    }
+
     const [{ surface }, { defaultLocale, regionLocale }] = await Promise.all([
         getRequestInfos(context),
         context.promises?.defaultLanguage,
@@ -50,8 +61,7 @@ async function init(context) {
 
 /**
  * Resolves the requested mask to its card fragment and exposes it on `context.maskFragment` for the
- * `customize` transformer to overlay. Placed after `promotions` (which may set `context.maskTag`),
- * so the effective identifier is the promotion-set tag if present, otherwise the request `mask` param.
+ * `customize` transformer to overlay.
  * The fetch runs here (not in init) because the region locale is already computed by `defaultLanguage`
  * and the mask identifier is only final after promotions. `context.mask` (the request param) is left
  * untouched so it keeps driving the response cache key.

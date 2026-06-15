@@ -379,6 +379,47 @@ describe('MasFragmentVariations', () => {
         });
     });
 
+    describe('variation search highlight and tab', () => {
+        it('syncs selectedTab from variationSearchTab store', async () => {
+            Store.fragments.variationSearchTab.set('grouped');
+            const el = await fixture(
+                html`<mas-fragment-variations .fragment=${createFragmentMock()}></mas-fragment-variations>`,
+            );
+            await el.updateComplete;
+            expect(el.selectedTab).to.equal('grouped');
+            Store.fragments.variationSearchTab.set(null);
+        });
+
+        it('applies variation-search-highlight class to matching variation row', async () => {
+            const variation = createVariationFragment({ id: 'highlight-var-1' });
+            const fragment = {
+                listLocaleVariations: () => [variation],
+                listPromoVariations: () => [],
+                listGroupedVariations: () => [],
+            };
+            Store.fragments.highlightedVariationId.set('highlight-var-1');
+            const el = await fixture(html`<mas-fragment-variations .fragment=${fragment}></mas-fragment-variations>`);
+            await el.updateComplete;
+
+            const row = el.querySelector('mas-fragment-table');
+            expect(row.classList.contains('variation-search-highlight')).to.be.true;
+            Store.fragments.highlightedVariationId.set(null);
+        });
+
+        it('clears variationSearchTab when user changes tab manually', async () => {
+            Store.fragments.variationSearchTab.set('promotion');
+            const el = await fixture(
+                html`<mas-fragment-variations .fragment=${createFragmentMock()}></mas-fragment-variations>`,
+            );
+            await el.updateComplete;
+
+            el.handleTabChange({ target: { selected: 'locale' } });
+
+            expect(el.selectedTab).to.equal('locale');
+            expect(Store.fragments.variationSearchTab.get()).to.be.null;
+        });
+    });
+
     describe('promotion variations tab', () => {
         it('renders promotion details for promo variations', async () => {
             const promoVariation = createVariationFragment({

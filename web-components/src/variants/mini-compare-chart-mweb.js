@@ -9,7 +9,26 @@ import {
     TEMPLATE_PRICE_LEGAL,
 } from '../constants.js';
 
-const FOOTER_ROW_MIN_HEIGHT = 32; // as per the XD.
+const FOOTER_ROW_MIN_HEIGHT = 32;
+// Fallback list id for cards without a heading id; the counter keeps siblings
+// unique so aria-controls / DOM ids never collide.
+let listIdCounter = 0;
+const nextListId = () => `mweb-list-${(listIdCounter += 1)}`;
+
+const BODY_SLOT_NAMES = [
+    'heading-xs',
+    'subtitle',
+    'heading-m-price',
+    'promo-text',
+    'body-m',
+    'body-xs',
+    'footer-rows',
+];
+// The height sync is grow-only, so these must be cleared when the layout
+// collapses to a single mobile column — otherwise cards keep the taller desktop
+// heights and the collapsed "what's included" leaves dead space.
+const SYNCED_HEIGHT_NAMES = [...BODY_SLOT_NAMES, 'footer'];
+const MAX_FOOTER_ROWS = 8; // matches the .footer-row-cell nth-child rules in CSS
 
 export const MINI_COMPARE_CHART_MWEB_AEM_FRAGMENT_MAPPING = {
     cardName: { attribute: 'name' },
@@ -49,6 +68,7 @@ export class MiniCompareChartMweb extends VariantLayout {
     constructor(card) {
         super(card);
         this.updatePriceQuantity = this.updatePriceQuantity.bind(this);
+        this.reconcileBreakpoint = this.reconcileBreakpoint.bind(this);
     }
 
     connectedCallbackHook() {
@@ -56,6 +76,10 @@ export class MiniCompareChartMweb extends VariantLayout {
             EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
             this.updatePriceQuantity,
         );
+        Media.matchMobile.addEventListener('change', this.reconcileBreakpoint);
+        // A DOM move reuses this instance and setupToggle won't re-run, so resync
+        // to the current viewport — else the list can be stranded collapsed.
+        if (this._toggleEls) this.applyToggleMode();
     }
 
     disconnectedCallbackHook() {
@@ -63,8 +87,22 @@ export class MiniCompareChartMweb extends VariantLayout {
             EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
             this.updatePriceQuantity,
         );
+        Media.matchMobile.removeEventListener(
+            'change',
+            this.reconcileBreakpoint,
+        );
         this._syncObserver?.disconnect();
         this._syncObserver = null;
+    }
+
+    reconcileBreakpoint() {
+        this.applyToggleMode();
+        if (Media.isMobile) {
+            this.resetSyncedHeights();
+            this.removeEmptyRows();
+        } else {
+            this.syncSiblingHeights();
+        }
     }
 
     updatePriceQuantity({ detail }) {
@@ -133,17 +171,7 @@ export class MiniCompareChartMweb extends VariantLayout {
             return;
         }
 
-        const slots = [
-            'heading-xs',
-            'subtitle',
-            'heading-m-price',
-            'promo-text',
-            'body-m',
-            'body-xs',
-            'footer-rows',
-        ];
-
-        slots.forEach((slot) => {
+        BODY_SLOT_NAMES.forEach((slot) => {
             const lightEl = this.card.querySelector(`[slot="${slot}"]`);
             const el =
                 lightEl ??
@@ -203,44 +231,62 @@ export class MiniCompareChartMweb extends VariantLayout {
     }
 
     setupToggle() {
-        if (this.toggleSetupDone) return;
         const bodyXs = this.card.querySelector('[slot="body-xs"]');
-        if (!bodyXs) return;
-        const titleEl = bodyXs.querySelector('p');
-        const listEl = bodyXs.querySelector('ul');
+        const titleEl = bodyXs?.querySelector('p');
+        const listEl = bodyXs?.querySelector('ul');
         if (!titleEl || !listEl) return;
-        // Already transformed (e.g. by Milo block)
+        // Skip if the Milo block already built this structure.
         if (bodyXs.querySelector('.footer-rows-title')) return;
-        this.toggleSetupDone = true;
+
         const titleText = titleEl.textContent.trim();
-        const cardHeading = this.card.querySelector('h3')?.id;
-        const listId = cardHeading
-            ? `${cardHeading}-list`
-            : `mweb-list-${Date.now()}`;
-        listEl.setAttribute('id', listId);
+        const heading = this.card.querySelector('h3')?.id;
+        const listId = heading ? `${heading}-list` : nextListId();
+        listEl.id = listId;
         listEl.classList.add('checkmark-copy-container');
+
         const titleDiv = createTag(
             'div',
             { class: 'footer-rows-title' },
             titleText,
         );
+        const toggleBtn = createTag('button', {
+            class: 'toggle-icon',
+            'aria-label': titleText,
+            'aria-expanded': 'false',
+            'aria-controls': listId,
+        });
+        this._toggleEls = { titleDiv, toggleBtn, listEl };
+
+        // Mobile-only: on desktop the list stays open and the button is detached,
+        // so clicks there must not collapse it.
+        titleDiv.addEventListener('click', () => {
+            if (Media.isMobile) this.setListOpen(!this.isListOpen);
+        });
+        titleEl.replaceWith(titleDiv);
+    }
+
+    get isListOpen() {
+        return this._toggleEls?.listEl.classList.contains('open') ?? false;
+    }
+
+    // One definition of "open", shared by the click handler and applyToggleMode.
+    setListOpen(isOpen) {
+        const { toggleBtn, listEl } = this._toggleEls;
+        listEl.classList.toggle('open', isOpen);
+        toggleBtn.classList.toggle('expanded', isOpen);
+        toggleBtn.setAttribute('aria-expanded', String(isOpen));
+    }
+
+    applyToggleMode() {
+        if (!this._toggleEls) return;
+        const { titleDiv, toggleBtn, listEl } = this._toggleEls;
         if (Media.isMobile) {
-            const toggleBtn = createTag('button', {
-                class: 'toggle-icon',
-                'aria-label': titleText,
-                'aria-expanded': 'false',
-                'aria-controls': listId,
-            });
-            titleDiv.appendChild(toggleBtn);
-            titleDiv.addEventListener('click', () => {
-                const isOpen = listEl.classList.toggle('open');
-                toggleBtn.classList.toggle('expanded', isOpen);
-                toggleBtn.setAttribute('aria-expanded', String(isOpen));
-            });
+            titleDiv.append(toggleBtn);
+            this.setListOpen(false);
         } else {
+            toggleBtn.remove();
             listEl.classList.add('open');
         }
-        titleEl.replaceWith(titleDiv);
     }
 
     get legalDisplayDot() {
@@ -319,24 +365,39 @@ export class MiniCompareChartMweb extends VariantLayout {
             await this.adjustLegal();
         }
         this.setupToggle();
-        if (Media.isMobile) {
-            this.removeEmptyRows();
-        } else {
-            this.adjustMiniCompareFooterRows();
+        this.reconcileBreakpoint();
+    }
 
-            const container = this.getContainer();
-            if (!container) return;
-
-            requestAnimationFrame(() => {
-                const cards = container.querySelectorAll(
-                    'merch-card[variant="mini-compare-chart-mweb"]',
-                );
-                cards.forEach((card) => {
-                    card.variantLayout?.adjustMiniCompareBodySlots?.();
-                    card.variantLayout?.adjustMiniCompareFooterRows?.();
-                });
-            });
+    resetSyncedHeights() {
+        const container = this.getContainer();
+        if (!container) return;
+        SYNCED_HEIGHT_NAMES.forEach((name) => {
+            container.style.removeProperty(
+                `--consonant-merch-card-${this.card.variant}-${name}-height`,
+            );
+        });
+        for (let index = 1; index <= MAX_FOOTER_ROWS; index += 1) {
+            container.style.removeProperty(
+                this.getRowMinHeightPropertyName(index),
+            );
         }
+    }
+
+    syncSiblingHeights() {
+        this.adjustMiniCompareFooterRows();
+
+        const container = this.getContainer();
+        if (!container) return;
+
+        requestAnimationFrame(() => {
+            const cards = container.querySelectorAll(
+                'merch-card[variant="mini-compare-chart-mweb"]',
+            );
+            cards.forEach((card) => {
+                card.variantLayout?.adjustMiniCompareBodySlots?.();
+                card.variantLayout?.adjustMiniCompareFooterRows?.();
+            });
+        });
     }
 
     static variantStyle = css`

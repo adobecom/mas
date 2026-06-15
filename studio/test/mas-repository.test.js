@@ -3977,6 +3977,30 @@ describe('MasRepository #publishRefIds (via publishFragment selectedRefIds)', ()
         expect(result).to.be.false;
         expect(repo.processError.called).to.be.true;
     });
+
+    it('publishes refs in chunks of 10 — never more than 10 publish calls in flight at once', async () => {
+        const repo = makeRepo();
+        // 25 refs — needs 3 chunks: 10, 10, 5
+        const refIds = Array.from({ length: 25 }, (_, i) => `ref-${i}`);
+        repo.aem.sites.cf.fragments.getWithEtag = sandbox.stub().callsFake((id) => Promise.resolve({ id }));
+
+        let maxInFlight = 0;
+        let inFlight = 0;
+        repo.aem.sites.cf.fragments.publish = sandbox.stub().callsFake(() => {
+            inFlight++;
+            if (inFlight > maxInFlight) maxInFlight = inFlight;
+            return Promise.resolve().then(() => {
+                inFlight--;
+            });
+        });
+
+        const fragment = { id: 'frag-main', path: '/content/dam/mas/sandbox/en_US/card' };
+        await repo.publishFragment(fragment, { selectedRefIds: refIds });
+
+        // 1 for main fragment + 25 for refs
+        expect(repo.aem.sites.cf.fragments.publish.callCount).to.equal(26);
+        expect(maxInFlight).to.be.at.most(10);
+    });
 });
 
 describe('MasRepository bulkPublishFragments', () => {

@@ -1667,7 +1667,10 @@ export class MasRepository extends LitElement {
             valid.push(...fetched.filter(Boolean));
         }
         if (valid.length === 0) throw new Error('Failed to fetch any ref for publishing');
-        await Promise.all(valid.map((ref) => this.aem.sites.cf.fragments.publish(ref, [])));
+        for (let i = 0; i < valid.length; i += CHUNK_SIZE) {
+            const chunk = valid.slice(i, i + CHUNK_SIZE);
+            await Promise.all(chunk.map((ref) => this.aem.sites.cf.fragments.publish(ref, [])));
+        }
     }
 
     /**

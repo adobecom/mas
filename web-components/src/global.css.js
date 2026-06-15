@@ -608,7 +608,7 @@ merch-card div[slot='bg-image'] img {
   content: "\\00a0";
 }
 
-.price-tax-inclusivity:not(.disabled) + .price-plan-type:not(.disabled)::before {
+.price-tax-inclusivity:not(.disabled) + .price-plan-type:not(.disabled):not(.no-dot)::before {
   content: "\\00a0";
 }
 

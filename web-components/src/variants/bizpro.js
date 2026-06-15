@@ -113,6 +113,13 @@ export class BizPro extends VariantLayout {
         const planType = legalPrice?.querySelector('.price-plan-type');
         if (!planType) return;
         planType.textContent = text;
+        planType.classList.remove('disabled');
+        const taxInclusivity = legalPrice.querySelector(
+            '.price-tax-inclusivity:not(.disabled)',
+        );
+        if (taxInclusivity && !taxInclusivity.textContent.endsWith('.')) {
+            taxInclusivity.textContent += '.';
+        }
     }
 
     get hasWhatsIncluded() {

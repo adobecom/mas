@@ -37,7 +37,10 @@ function renderContainer(
         taxInclusivityLabel,
         true,
     );
-    markup += renderSpan(cssClassNames.planType, planTypeLabel, null);
+    const planTypeCssClass = displayDot
+        ? cssClassNames.planType
+        : `${cssClassNames.planType} no-dot`;
+    markup += renderSpan(planTypeCssClass, planTypeLabel, null);
 
     return renderSpan(cssClass, markup, {
         ...attributes,

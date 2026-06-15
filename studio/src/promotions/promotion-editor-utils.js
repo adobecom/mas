@@ -381,15 +381,31 @@ export function resolvePromotionOfferMnemonicIconUrl(offer) {
     if (offer?.icon) return offer.icon;
     if (offer?.productIcon) return offer.productIcon;
 
-    const code = String(offer?.product_code ?? '').toLowerCase();
-    if (!code) return undefined;
+    const arrangement = offer?.productArrangement ?? offer?.product_arrangement;
+    const code = String(
+        offer?.product_code ?? offer?.productCode ?? arrangement?.productCode ?? arrangement?.product_code ?? '',
+    ).toLowerCase();
 
-    const byId = ADOBE_PRODUCTS.find((product) => product.id === code || product.id.replace(/-/g, '') === code);
-    if (byId) return `${PRODUCT_ICON_BASE_URL}/${byId.id}.svg`;
+    if (code) {
+        const byId = ADOBE_PRODUCTS.find((product) => product.id === code || product.id.replace(/-/g, '') === code);
+        if (byId) return `${PRODUCT_ICON_BASE_URL}/${byId.id}.svg`;
 
-    const compactCode = code.replace(/[^a-z0-9]/g, '');
-    const byName = ADOBE_PRODUCTS.find((product) => product.name.toLowerCase().replace(/[^a-z0-9]/g, '') === compactCode);
-    if (byName) return `${PRODUCT_ICON_BASE_URL}/${byName.id}.svg`;
+        const compactCode = code.replace(/[^a-z0-9]/g, '');
+        const byCode = ADOBE_PRODUCTS.find((product) => product.name.toLowerCase().replace(/[^a-z0-9]/g, '') === compactCode);
+        if (byCode) return `${PRODUCT_ICON_BASE_URL}/${byCode.id}.svg`;
+    }
+
+    const productName = String(
+        offer?.product_name ?? offer?.productName ?? arrangement?.productFamily ?? arrangement?.product_family ?? '',
+    )
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, '');
+    if (productName) {
+        const byProductName = ADOBE_PRODUCTS.find(
+            (product) => product.name.toLowerCase().replace(/[^a-z0-9]/g, '') === productName,
+        );
+        if (byProductName) return `${PRODUCT_ICON_BASE_URL}/${byProductName.id}.svg`;
+    }
 
     return undefined;
 }

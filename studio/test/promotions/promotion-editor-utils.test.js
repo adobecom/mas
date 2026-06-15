@@ -734,6 +734,18 @@ describe('promotion-editor-utils', () => {
                 'https://example.com/icon.svg',
             );
         });
+
+        it('resolves icon from product_name when product_code does not match ADOBE_PRODUCTS', () => {
+            const url = resolvePromotionOfferMnemonicIconUrl({ product_code: 'ilst', product_name: 'Illustrator' });
+            expect(url).to.equal('https://www.adobe.com/cc-shared/assets/img/product-icons/svg/illustrator.svg');
+        });
+
+        it('resolves icon from productArrangement.productFamily when product_code is absent', () => {
+            const url = resolvePromotionOfferMnemonicIconUrl({
+                productArrangement: { productCode: 'phsp', productFamily: 'Photoshop' },
+            });
+            expect(url).to.equal('https://www.adobe.com/cc-shared/assets/img/product-icons/svg/photoshop.svg');
+        });
     });
 
     describe('groupCountriesByPromoCodeForOffer', () => {

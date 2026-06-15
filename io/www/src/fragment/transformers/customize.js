@@ -351,7 +351,12 @@ async function customize(context) {
         references,
         surface,
     };
-    if (pzn && !VALID_PARAMETER_VALUE_REGEX.test(pzn)) {
+    if (
+        pzn &&
+        String(pzn)
+            .split(',')
+            .some((token) => !VALID_PARAMETER_VALUE_REGEX.test(token.trim()))
+    ) {
         logError(`Invalid pzn value '${pzn}', ignoring...`, context);
         customizeContext.pzn = undefined;
     }

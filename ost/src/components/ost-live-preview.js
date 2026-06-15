@@ -10,7 +10,7 @@ export class OstLivePreview extends LitElement {
     };
 
     #placeholderNode = null;
-    #showDiscountHint = false;
+    #staticDiscount = false;
 
     static styles = css`
         :host {
@@ -97,12 +97,6 @@ export class OstLivePreview extends LitElement {
             text-transform: uppercase;
         }
 
-        .placeholder-container .discount-hint {
-            font-size: 13px;
-            color: var(--spectrum-gray-600);
-            font-style: italic;
-        }
-
         .placeholder-container .price-unit-type:not(.disabled)::before,
         .placeholder-container .price-tax-inclusivity:not(.disabled)::before {
             content: '\u00a0';
@@ -128,8 +122,8 @@ export class OstLivePreview extends LitElement {
 
     willUpdate() {
         const built = this.#buildPlaceholder();
+        this.#staticDiscount = built?.staticDiscount ?? false;
         this.#placeholderNode = built?.node ?? null;
-        this.#showDiscountHint = built?.showHint ?? false;
     }
 
     get effectiveOsi() {
@@ -188,11 +182,27 @@ export class OstLivePreview extends LitElement {
         return { type, placeholderOptions, service };
     }
 
+    // The discount % is only computable for a PROMOTION offer — it has a
+    // current price below its priceWithoutDiscount. Everything else (BASE,
+    // TRIAL — a free trial has no price delta to compute) has no discount, so
+    // render a static 0% instead of an empty inline-price preview.
+    #discountIsComputable() {
+        return this.effectiveOffer?.offer_type === 'PROMOTION';
+    }
+
     #buildPlaceholder() {
         const result = this.buildPlaceholderOptions();
         if (!result) return null;
 
         const { type, placeholderOptions, service } = result;
+
+        if (type === 'discount' && !this.referenceOsi && !this.#discountIsComputable()) {
+            // Render 0% as a Lit-managed template node (see render()), not an
+            // imperative DOM node — alternating a raw node with a raw
+            // inline-price node in the same binding makes Lit drop it on the
+            // next selection.
+            return { staticDiscount: true, node: null };
+        }
 
         let node;
         if (type === 'checkoutUrl') {
@@ -210,10 +220,7 @@ export class OstLivePreview extends LitElement {
             node.dataset.template = type;
         }
 
-        const isPromo = this.effectiveOffer?.offer_type === 'PROMOTION';
-        const showHint = type === 'discount' && !this.referenceOsi && !isPromo;
-
-        return { node, showHint };
+        return { node };
     }
 
     getTypeName() {
@@ -229,12 +236,9 @@ export class OstLivePreview extends LitElement {
             <div class="preview-card" data-testid="ost-live-preview">
                 <div class="label">Live Preview ${typeName ? html`<span class="type-badge">${typeName}</span>` : nothing}</div>
                 <div class="placeholder-container" data-testid="ost-preview-container">
-                    ${this.#placeholderNode ?? nothing}
-                    ${this.#showDiscountHint
-                        ? html`<span class="discount-hint"
-                              >Enter a reference offer OSI to calculate the discount percentage.</span
-                          >`
-                        : nothing}
+                    ${this.#staticDiscount
+                        ? html`<span class="discount" data-template="discount">0%</span>`
+                        : (this.#placeholderNode ?? nothing)}
                 </div>
             </div>
         `;

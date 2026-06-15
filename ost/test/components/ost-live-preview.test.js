@@ -65,24 +65,91 @@ describe('ost-live-preview', () => {
         expect(result.placeholderOptions.wcsOsi).to.deep.equal(['test-osi']);
     });
 
-    it('does not show the reference-OSI hint for a discount on a PROMOTION offer', async () => {
-        store.selectedOffer = { offer_id: 'PROMO1', offer_type: 'PROMOTION' };
-        const preview = await getPreview();
-        preview.placeholderType = 'discount';
-        preview.referenceOsi = '';
-        await preview.updateComplete;
-        const hint = preview.shadowRoot.querySelector('.discount-hint');
-        expect(hint).to.equal(null);
-    });
-
-    it('shows the reference-OSI hint for a discount on a NON-PROMOTION offer without reference OSI', async () => {
+    it('never shows the reference-OSI hint (discount is automatic now)', async () => {
         store.selectedOffer = { offer_id: 'BASE1', offer_type: 'BASE' };
         const preview = await getPreview();
         preview.placeholderType = 'discount';
         preview.referenceOsi = '';
         await preview.updateComplete;
-        const hint = preview.shadowRoot.querySelector('.discount-hint');
-        expect(hint).to.exist;
+        expect(Boolean(preview.shadowRoot.querySelector('.discount-hint'))).to.be.false;
+    });
+
+    it('renders a static 0% discount for a plain BASE offer', async () => {
+        store.selectedOffer = { offer_id: 'BASE1', offer_type: 'BASE' };
+        const preview = await getPreview();
+        preview.placeholderType = 'discount';
+        preview.referenceOsi = '';
+        await preview.updateComplete;
+        const node = preview.shadowRoot.querySelector('[data-testid="ost-preview-container"] .discount');
+        expect(node).to.exist;
+        expect(node.textContent.trim()).to.equal('0%');
+    });
+
+    it('keeps the static 0% discount after selecting a different plain offer', async () => {
+        store.selectedOffer = { offer_id: 'BASE1', offer_type: 'BASE' };
+        const preview = await getPreview();
+        preview.placeholderType = 'discount';
+        preview.referenceOsi = '';
+        await preview.updateComplete;
+        store.setOffer({ offer_id: 'BASE2', offer_type: 'BASE' });
+        store.setOsi('test-osi-2');
+        await preview.updateComplete;
+        const node = preview.shadowRoot.querySelector('[data-testid="ost-preview-container"] .discount');
+        expect(node).to.exist;
+        expect(node.textContent.trim()).to.equal('0%');
+    });
+
+    it('keeps the 0% after switching from a promo offer (inline-price node) to a plain offer', async () => {
+        store.masCommerceService = { createInlinePrice: () => document.createElement('span') };
+        store.selectedOffer = { offer_id: 'PROMO1', offer_type: 'PROMOTION' };
+        const preview = await getPreview();
+        preview.placeholderType = 'discount';
+        preview.referenceOsi = '';
+        await preview.updateComplete;
+        preview.offer = { offer_id: 'BASE2', offer_type: 'BASE' };
+        preview.osi = 'test-osi-2';
+        preview.requestUpdate();
+        await preview.updateComplete;
+        const node = preview.shadowRoot.querySelector('[data-testid="ost-preview-container"] .discount');
+        expect(node).to.exist;
+        expect(node.textContent.trim()).to.equal('0%');
+    });
+
+    it('renders the resolved inline-price discount node for a PROMOTION offer (no static 0%)', async () => {
+        store.selectedOffer = { offer_id: 'PROMO1', offer_type: 'PROMOTION' };
+        store.masCommerceService = {
+            createInlinePrice: () => {
+                const span = document.createElement('span');
+                span.dataset.fromService = 'true';
+                return span;
+            },
+        };
+        const preview = await getPreview();
+        preview.placeholderType = 'discount';
+        preview.referenceOsi = '';
+        await preview.updateComplete;
+        const node = preview.shadowRoot.querySelector('[data-testid="ost-preview-container"] span');
+        expect(node?.dataset.fromService).to.equal('true');
+    });
+
+    it('renders a static 0% discount for a TRIAL offer (a free trial has no discount delta)', async () => {
+        store.selectedOffer = { offer_id: 'TRIAL1', offer_type: 'TRIAL' };
+        const preview = await getPreview();
+        preview.placeholderType = 'discount';
+        preview.referenceOsi = '';
+        await preview.updateComplete;
+        const node = preview.shadowRoot.querySelector('[data-testid="ost-preview-container"] .discount');
+        expect(node).to.exist;
+        expect(node.textContent.trim()).to.equal('0%');
+    });
+
+    it('still honors a manual reference OSI for the discount preview', async () => {
+        store.selectedOffer = { offer_id: 'BASE1', offer_type: 'BASE' };
+        const preview = await getPreview();
+        preview.placeholderType = 'discount';
+        preview.referenceOsi = 'ref-osi-123';
+        const result = preview.buildPlaceholderOptions();
+        expect(result.placeholderOptions.wcsOsi).to.deep.equal(['test-osi', 'ref-osi-123']);
     });
 
     it('passes [promo, reference] OSIs for a discount when referenceOsi is set', async () => {

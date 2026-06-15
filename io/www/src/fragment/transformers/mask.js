@@ -79,7 +79,11 @@ async function mask(context) {
         // we split them and add them to the context dictionary as key->value pairs
         context.dictionary = {
             ...context?.dictionary,
-            ...Object.fromEntries(maskFragment.fields.variables.map((v) => [v.slice(0, v.indexOf(':')), v.slice(v.indexOf(':') + 1)])),
+            ...Object.fromEntries(
+                maskFragment.fields.variables
+                    .filter((v) => v.includes(':'))
+                    .map((v) => [v.slice(0, v.indexOf(':')), v.slice(v.indexOf(':') + 1)]),
+            ),
         };
     }
 

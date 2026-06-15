@@ -608,6 +608,10 @@ merch-card div[slot='bg-image'] img {
   content: "\\00a0";
 }
 
+.price-tax-inclusivity:not(.disabled) + .price-plan-type:not(.disabled)::before {
+  content: "\\00a0";
+}
+
 merch-card span.placeholder-resolved[data-template='priceStrikethrough'],
 merch-card span.placeholder-resolved[data-template='strikethrough'],
 merch-card span.price.price-strikethrough {

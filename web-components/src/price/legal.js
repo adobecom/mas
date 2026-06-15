@@ -30,7 +30,7 @@ function renderContainer(
     markup += renderSpan(cssClassNames.unitType, perUnitLabel, null, true);
 
     if (taxInclusivityLabel && planTypeLabel && displayDot) {
-        taxInclusivityLabel += '. ';
+        taxInclusivityLabel += '.';
     }
     markup += renderSpan(
         cssClassNames.taxInclusivity,

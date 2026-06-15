@@ -2076,107 +2076,12 @@ class MerchCardEditor extends LitElement {
         return this.getEffectiveFieldValue('badge', 0) || '';
     }
 
-    get badgeElement() {
-        const badgeHtml = this.badgeText;
-
-        if (!badgeHtml) return undefined;
-
-        if (badgeHtml?.startsWith('<merch-badge')) {
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(badgeHtml, 'text/html');
-            return doc.querySelector('merch-badge');
-        }
-
-        return {
-            textContent: badgeHtml,
-        };
-    }
-
     get isPlans() {
         return this.fragment.variant?.startsWith('plans');
     }
 
-    get badge() {
-        if (!this.supportsBadgeColors) {
-            return {
-                text: this.badgeText,
-            };
-        }
-
-        const badgeEl = this.badgeElement;
-        const hasInlinePrice = badgeEl?.querySelector?.('span[is="inline-price"]');
-        const text = hasInlinePrice ? badgeEl.innerHTML : badgeEl?.textContent || '';
-        const bgColorAttr = this.badgeElement?.getAttribute?.('background-color');
-        const bgColor = bgColorAttr?.toLowerCase();
-
-        const borderColorAttr = this.badgeElement?.getAttribute?.('border-color');
-        const borderColor = borderColorAttr?.toLowerCase();
-        const icon = this.badgeElement?.getAttribute?.('icon');
-
-        return {
-            text,
-            bgColor,
-            borderColor,
-            icon,
-        };
-    }
-
     get trialBadgeText() {
         return this.getEffectiveFieldValue('trialBadge', 0) || '';
-    }
-
-    get trialBadgeElement() {
-        const trialBadgeHtml = this.trialBadgeText;
-
-        if (!trialBadgeHtml) return undefined;
-
-        if (trialBadgeHtml?.startsWith('<merch-badge')) {
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(trialBadgeHtml, 'text/html');
-            return doc.querySelector('merch-badge');
-        }
-
-        return {
-            textContent: trialBadgeHtml,
-        };
-    }
-
-    get trialBadge() {
-        if (!this.supportsBadgeColors) {
-            return {
-                text: this.trialBadgeText,
-            };
-        }
-
-        const hasInlinePrice = this.trialBadgeElement?.querySelector?.('span[is="inline-price"]');
-        const text = hasInlinePrice ? this.trialBadgeElement.innerHTML : this.trialBadgeElement?.textContent || '';
-        const bgColorAttr = this.trialBadgeElement?.getAttribute?.('background-color');
-        const bgColor = bgColorAttr?.toLowerCase();
-
-        const borderColorAttr = this.trialBadgeElement?.getAttribute?.('border-color');
-        const borderColor = borderColorAttr?.toLowerCase();
-
-        return {
-            text,
-            bgColor,
-            borderColor,
-        };
-    }
-
-    #parseBadgeHtml(html) {
-        if (!html) return { text: '', bgColor: '', borderColor: '' };
-        if (html.startsWith('<merch-badge')) {
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(html, 'text/html');
-            const el = doc.querySelector('merch-badge');
-            return {
-                text: el?.textContent?.trim() || '',
-                bgColor: el?.getAttribute('background-color')?.toLowerCase() || '',
-                borderColor: el?.getAttribute('border-color')?.toLowerCase() || '',
-                icon: el?.getAttribute('icon') || '',
-            };
-        }
-        return { text: html.trim(), bgColor: '', borderColor: '' };
     }
 
     #getCompositeComponentState(fieldName, parser, component, getOwnHtml) {
@@ -2241,68 +2146,6 @@ class MerchCardEditor extends LitElement {
         this.fragmentStore.updateField(fieldName, [value]);
         showToast('Field restored to parent value', 'positive');
     }
-
-    #createBadgeElement(text, bgColor, borderColor, icon) {
-        if (!text) return;
-
-        const element = document.createElement('merch-badge');
-        if (bgColor) {
-            element.setAttribute('background-color', bgColor);
-            if (bgColor.includes('-green-900-') || bgColor.includes('-gray-700-') || bgColor === 'gradient-purple-blue')
-                element.setAttribute('color', '#fff');
-        }
-        if (borderColor && borderColor !== 'Default') {
-            element.setAttribute('border-color', borderColor);
-        }
-        if (icon) {
-            element.setAttribute('icon', icon);
-        }
-        element.setAttribute('variant', this.getEffectiveFieldValue('variant'));
-        element.innerHTML = text;
-        return element;
-    }
-
-    #updateBadgeText(event) {
-        const text = event.target.value || '';
-        const icon = this.badge.icon;
-        this.#updateBadgeTextAndIcon(text, icon);
-    }
-
-    #updateBadgeIcon(event) {
-        const text = this.badge.text;
-        const icon = event.detail.icon;
-        this.#updateBadgeTextAndIcon(text, icon);
-    }
-
-    #updateBadgeTextAndIcon(text, icon) {
-        this.#displayBadgeIconField(text);
-        if (this.supportsBadgeColors) {
-            this.#displayBadgeColorFields(text);
-            this.#updateBadge(text, this.badge.bgColor, this.badge.borderColor, icon);
-        } else {
-            this.fragmentStore.updateField('badge', [text]);
-        }
-    }
-
-    #updateTrialBadgeText(event) {
-        const text = event.target.value || '';
-        if (this.supportsBadgeColors) {
-            this.#displayTrialBadgeColorFields(text);
-            this.#updateTrialBadge(text, this.trialBadge.bgColor, this.trialBadge.borderColor);
-        } else {
-            this.fragmentStore.updateField('trialBadge', [text]);
-        }
-    }
-
-    #updateBadge = (text, bgColor, borderColor, icon) => {
-        const element = this.#createBadgeElement(text, bgColor, borderColor, icon);
-        this.fragmentStore.updateField('badge', [element?.outerHTML || '']);
-    };
-
-    #updateTrialBadge = (text, bgColor, borderColor) => {
-        const element = this.#createBadgeElement(text, bgColor, borderColor);
-        this.fragmentStore.updateField('trialBadge', [element?.outerHTML || '']);
-    };
 
     #displayTrialBadgeColorFields(text) {
         if (!this.supportsBadgeColors) return;

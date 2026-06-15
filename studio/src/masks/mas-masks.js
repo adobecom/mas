@@ -115,16 +115,18 @@ class MasMasks extends LitElement {
     }
 
     #loadMasks() {
-        const key = `${this.surface}:${this.locale}`;
-        if (key === this.loadedKey) return;
-        if (!this.surface || !this.locale) return;
-        if (!Store.masks.aem) {
-            Store.masks.initAem(this.bucket, this.baseUrl);
+        if (canAccessMasks(this.surface)) {
+            const key = `${this.surface}:${this.locale}`;
+            if (key === this.loadedKey) return;
+            if (!this.surface || !this.locale) return;
+            if (!Store.masks.aem) {
+                Store.masks.initAem(this.bucket, this.baseUrl);
+            }
+            this.loadedKey = key;
+            Store.masks.ensureLoaded(this.surface, this.locale).then(() => {
+                if (`${this.surface}:${this.locale}` !== key) this.#loadMasks();
+            });
         }
-        this.loadedKey = key;
-        Store.masks.ensureLoaded(this.surface, this.locale).then(() => {
-            if (`${this.surface}:${this.locale}` !== key) this.#loadMasks();
-        });
     }
 
     #create() {

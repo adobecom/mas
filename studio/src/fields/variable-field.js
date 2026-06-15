@@ -21,7 +21,7 @@ class MasVariableField extends LitElement {
 
     static properties = {
         key: { state: true },
-        value: { state: true },
+        val: { state: true },
     };
 
     static get observedAttributes() {
@@ -31,7 +31,7 @@ class MasVariableField extends LitElement {
     constructor() {
         super();
         this.key = '';
-        this.value = '';
+        this.val = '';
     }
 
     // mas-multifield sets 'value' via setAttribute — parse into key/val here.
@@ -41,12 +41,12 @@ class MasVariableField extends LitElement {
             const s = newVal ?? '';
             const colon = s.indexOf(':');
             this.key = colon >= 0 ? s.slice(0, colon) : s;
-            this.value = colon >= 0 ? s.slice(colon + 1) : '';
+            this.val = colon >= 0 ? s.slice(colon + 1) : '';
         }
     }
 
     get value() {
-        return `${this.key}:${this.value}`;
+        return `${this.key}:${this.val}`;
     }
 
     #onKeyInput(e) {
@@ -57,7 +57,7 @@ class MasVariableField extends LitElement {
 
     #onValInput(e) {
         e.stopPropagation();
-        this.value = e.target.value;
+        this.val = e.target.value;
         this.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
     }
 
@@ -68,7 +68,7 @@ class MasVariableField extends LitElement {
     render() {
         return html`
             <sp-textfield placeholder="Key" .value=${this.key} @input=${this.#onKeyInput}></sp-textfield>
-            <sp-textfield placeholder="Value" .value=${this.value} @input=${this.#onValInput}></sp-textfield>
+            <sp-textfield placeholder="Value" .value=${this.val} @input=${this.#onValInput}></sp-textfield>
             <sp-action-button quiet @click=${this.#delete}>
                 <sp-icon-delete slot="icon" label="Remove"></sp-icon-delete>
             </sp-action-button>

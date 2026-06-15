@@ -556,7 +556,7 @@ export class Router extends EventTarget {
 
     start() {
         this.currentParams = new URLSearchParams(this.#hashValue());
-        const normalizedOnStart = this.#normalizeSettingsEditorRoute();
+        const normalizedOnStart = this.#normalizeSettingsEditorRoute() || this.#normalizeMasksEditorRoute();
         this.linkStoreToHash(Store.page, 'page', PAGE_NAMES.WELCOME);
         this.linkStoreToHash(Store.search, STORE_SEARCH_HASH_KEYS, STORE_SEARCH_HASH_DEFAULT);
         this.linkStoreToHash(Store.filters, ['locale', 'tags', 'personalizationFilterEnabled'], {
@@ -573,7 +573,6 @@ export class Router extends EventTarget {
         this.linkStoreToHash(Store.bulkPublishProjects.projectId, 'bulkPublishProjectId');
         this.linkStoreToHash(Store.settings.fragmentId, 'fragmentId');
         this.linkStoreToHash(Store.masks.editingName, 'maskName');
-        this.#normalizeMasksEditorRoute();
         const redirectedOnStart = this.#enforceSettingsAccessFromParams();
         const normalizedLocaleRegionOnStart = this.#normalizeLocaleRegionFromHash();
         if (normalizedOnStart || redirectedOnStart || normalizedLocaleRegionOnStart) {

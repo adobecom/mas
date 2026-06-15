@@ -144,6 +144,42 @@ describe('MasksStore', () => {
         expect(await store.loadMaskByName('missing', 'acom', 'en_US')).to.equal(null);
     });
 
+    it('publishes a mask and returns the refreshed fragment', async () => {
+        const published = { id: 'pub-id', title: 'Published', path: 'p', fields: [] };
+        const aem = createAemMock({
+            fragments: {
+                ...createAemMock().sites.cf.fragments,
+                getWithEtag: sinon.stub().resolves({ id: 'pub-id', etag: 'e' }),
+                publish: sinon.stub().resolves(),
+                getById: sinon.stub().resolves(published),
+            },
+        });
+        store.setAem(aem);
+        await store.loadSurface('acom', 'en_US');
+
+        const result = await store.publishMask('pub-id');
+        expect(aem.sites.cf.fragments.getWithEtag.calledWith('pub-id')).to.equal(true);
+        expect(aem.sites.cf.fragments.publish.calledOnce).to.equal(true);
+        expect(result).to.deep.equal(published);
+        expect(store.loading.get()).to.equal(false);
+    });
+
+    it('returns false and records an error when publishing fails', async () => {
+        const aem = createAemMock({
+            fragments: {
+                ...createAemMock().sites.cf.fragments,
+                getWithEtag: sinon.stub().rejects(new Error('network error')),
+            },
+        });
+        store.setAem(aem);
+        await store.loadSurface('acom', 'en_US');
+
+        const result = await store.publishMask('bad-id');
+        expect(result).to.equal(false);
+        expect(store.error.get()).to.equal('Failed to publish mask.');
+        expect(store.loading.get()).to.equal(false);
+    });
+
     it('deletes a mask via id', async () => {
         const aem = createAemMock();
         store.setAem(aem);

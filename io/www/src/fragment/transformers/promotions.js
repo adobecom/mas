@@ -156,6 +156,7 @@ function buildSubstituteMap(substitutions, country) {
 function parseOfferOverrides(lines) {
     return lines
         .map((line) => {
+            if (line.startsWith('substitute:')) return null;
             const [osisPart, promoCode, countriesPart] = line.split(':');
             if (!promoCode?.trim()) return null;
             return {

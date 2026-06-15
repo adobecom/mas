@@ -176,7 +176,29 @@ describe('MasPromotionsItemsSelector', () => {
         const el = await fixture(html`<mas-promotions-items-selector></mas-promotions-items-selector>`);
         await el.updateComplete;
         const filters = [...el.renderRoot.querySelectorAll('mas-search-and-filters')];
-        filters.forEach((f) => expect(f.productFilter).to.deep.equal(['mas:product_code/phsp']));
+        const cardsFilter = filters.find((f) => f.type === TABLE_TYPE.CARDS);
+        const collectionsFilter = filters.find((f) => f.type === TABLE_TYPE.COLLECTIONS);
+        expect(cardsFilter.productFilter).to.deep.equal(['mas:product_code/phsp']);
+        expect(collectionsFilter.productFilter).to.deep.equal([]);
+    });
+
+    it('keeps collections list after selecting another collection when offers have product tags', async () => {
+        Store.promotions.selectedOffers.set(['phsp-osi']);
+        Store.promotions.offerDataCache.set('phsp-osi', {
+            tags: [{ id: 'mas:product_code/phsp', title: 'Photoshop' }],
+        });
+        const collections = [
+            { path: '/content/dam/mas/sandbox/en_US/col-a', title: 'Col A', tags: [] },
+            { path: '/content/dam/mas/sandbox/en_US/col-b', title: 'Col B', tags: [] },
+        ];
+        Store.promotions.allCollections.set(collections);
+        Store.promotions.displayCollections.set(collections);
+        const el = await fixture(html`<mas-promotions-items-selector></mas-promotions-items-selector>`);
+        el.selectedTab = TABLE_TYPE.COLLECTIONS;
+        await el.updateComplete;
+        Store.promotions.selectedCollections.set([collections[0].path]);
+        await el.updateComplete;
+        expect(Store.promotions.displayCollections.value).to.have.length(2);
     });
 
     it('passes empty productFilter when no offers are selected', async () => {

@@ -209,14 +209,15 @@ function mergeVariations(root, customizeContext) {
 function applyOsiSubstitution(fragment, substituteMap, context) {
     const fragOsi = fragment.fields?.osi;
     if (!fragOsi || !substituteMap) return;
-    const osis = Array.isArray(fragOsi) ? fragOsi : [fragOsi];
-    for (const osi of osis) {
-        if (substituteMap[osi]) {
-            const substituteOsi = substituteMap[osi];
-            fragment.fields.osi = Array.isArray(fragOsi) ? fragOsi.map((o) => (o === osi ? substituteOsi : o)) : substituteOsi;
-            logDebug(() => `Substituting OSI ${osi} with ${substituteOsi} on fragment ${fragment.id}`, context);
-            return;
-        }
+    if (Array.isArray(fragOsi)) {
+        fragment.fields.osi = fragOsi.map((o) => {
+            const sub = substituteMap[o];
+            if (sub) logDebug(() => `Substituting OSI ${o} with ${sub} on fragment ${fragment.id}`, context);
+            return sub ?? o;
+        });
+    } else if (substituteMap[fragOsi]) {
+        logDebug(() => `Substituting OSI ${fragOsi} with ${substituteMap[fragOsi]} on fragment ${fragment.id}`, context);
+        fragment.fields.osi = substituteMap[fragOsi];
     }
 }
 

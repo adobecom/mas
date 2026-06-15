@@ -480,6 +480,7 @@ class MasPromotions extends LitElement {
     }
 
     #handleDuplicatePromotionFromList(promotion) {
+        if (this.duplicating) return;
         const fragment = promotion.get();
         this.#duplicateProposedTitle = `${fragment.getFieldValue('title')} copy`;
         this.#duplicateFragment = fragment;

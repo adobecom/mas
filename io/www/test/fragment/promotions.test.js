@@ -666,6 +666,26 @@ describe('promotions', () => {
             expect(result.activeProject.offerOverrides).to.deep.equal([{ osis: ['OSI-2'], promoCode: 'VALID', countries: [] }]);
         });
 
+        it('does not treat substitute: lines as offer overrides when both are present', async () => {
+            fetchStub = sinon.stub(globalThis, 'fetch');
+            const project = makeProject({
+                surfaces: ['acom'],
+                geos: [],
+                offers: ['substitute:OSI-A:OSI-B:US', 'OSI-1:BLACKFRIDAY:US'],
+            });
+            const hydrated = makeHydratedProject();
+            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+            fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
+
+            const result = await promotionsTransformer.init(createContext());
+            fetchStub.restore();
+            clearPromoCache();
+
+            expect(result.activeProject.offerOverrides).to.deep.equal([
+                { osis: ['OSI-1'], promoCode: 'BLACKFRIDAY', countries: ['US'] },
+            ]);
+        });
+
         it('logs when wildcard override shadows project-level promoCode with a different value', async () => {
             const logStub = sinon.stub(console, 'log');
             const result = await promotionsTransformer.process(

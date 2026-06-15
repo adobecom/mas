@@ -1,5 +1,6 @@
 import { expect } from '@esm-bundle/chai';
 import Store from '../../src/store.js';
+import { setItemsSelectionStore } from '../../src/common/items-selection-store.js';
 import {
     classifyPromotionPathsForSelection,
     countDistinctPromoCodesForOffer,
@@ -42,6 +43,10 @@ import {
     serializePromoCodeExceptions,
     serializePromotionOffersField,
     splitPromotionTagsFieldValues,
+    handlePromotionOstOfferSelect,
+    isPromotionOfferSubstitutionEntry,
+    isPromotionOfferCacheEntry,
+    serializePromotionOfferCacheSnapshot,
 } from '../../src/promotions/promotion-editor-utils.js';
 import { COLLECTION_MODEL_PATH } from '../../src/constants.js';
 
@@ -183,6 +188,34 @@ describe('promotion-editor-utils', () => {
             expect(fragment.getFieldValues('fragments')).to.deep.equal(['/content/dam/card-a']);
             expect(fragment.getFieldValues('offers')).to.include('osi-1');
             expect(fragment.getFieldValues('offers')).to.include('osi-1:CODE:US');
+        });
+
+        it('merges cards and collections into fragments for AEM and clears collections field', () => {
+            const fragment = {
+                hasChanges: false,
+                fields: [
+                    {
+                        name: 'collections',
+                        type: 'content-fragment',
+                        multiple: true,
+                        values: ['/content/dam/col-old'],
+                    },
+                ],
+                getField(name) {
+                    return this.fields.find((f) => f.name === name);
+                },
+                getFieldValues(name) {
+                    return this.getField(name)?.values ?? [];
+                },
+            };
+            const changed = applyPromotionItemSelectionToFragment(fragment, {
+                selectedCards: ['/content/dam/card-a'],
+                selectedCollections: ['/content/dam/col-1'],
+                selectedOfferIds: [],
+            });
+            expect(changed).to.be.true;
+            expect(fragment.getFieldValues('fragments')).to.deep.equal(['/content/dam/card-a', '/content/dam/col-1']);
+            expect(fragment.getFieldValues('collections')).to.deep.equal([]);
         });
     });
 
@@ -1031,6 +1064,136 @@ describe('promotion-editor-utils', () => {
             await hydratePromotionOfferCacheFromSelectorIds(['osi-unknown'], cache);
             expect(cache.has('osi-unknown')).to.be.true;
             expect(cache.get('osi-unknown').id).to.equal('osi-unknown');
+        });
+    });
+
+    describe('isPromotionOfferSubstitutionEntry', () => {
+        it('returns true for a string starting with substitute:', () => {
+            expect(isPromotionOfferSubstitutionEntry('substitute:OSI-A:OSI-B:US')).to.be.true;
+        });
+
+        it('returns false for a string starting with offer-cache:', () => {
+            expect(isPromotionOfferSubstitutionEntry('offer-cache::osi-1:{"product_code":"PHSP"}')).to.be.false;
+        });
+
+        it('returns false for non-string values', () => {
+            expect(isPromotionOfferSubstitutionEntry(null)).to.be.false;
+            expect(isPromotionOfferSubstitutionEntry(42)).to.be.false;
+            expect(isPromotionOfferSubstitutionEntry(undefined)).to.be.false;
+        });
+    });
+
+    describe('isPromotionOfferCacheEntry', () => {
+        it('returns true for a string starting with offer-cache:', () => {
+            expect(isPromotionOfferCacheEntry('offer-cache::osi-1:{"product_code":"PHSP"}')).to.be.true;
+        });
+
+        it('returns false for a string starting with substitute:', () => {
+            expect(isPromotionOfferCacheEntry('substitute:OSI-A:OSI-B:US')).to.be.false;
+        });
+
+        it('returns false for non-string values', () => {
+            expect(isPromotionOfferCacheEntry(null)).to.be.false;
+            expect(isPromotionOfferCacheEntry(undefined)).to.be.false;
+        });
+    });
+
+    describe('serializePromotionOfferCacheSnapshot', () => {
+        it('returns null for falsy input', () => {
+            expect(serializePromotionOfferCacheSnapshot(null)).to.be.null;
+            expect(serializePromotionOfferCacheSnapshot(undefined)).to.be.null;
+        });
+
+        it('serializes known offer fields from offerData', () => {
+            const cacheEntry = {
+                offerData: {
+                    product_code: 'PHSP',
+                    offer_type: 'BASE',
+                    planType: 'ABM',
+                    customer_segment: 'INDIVIDUAL',
+                    market_segments: 'COM',
+                    product_arrangement_code: 'PA-123',
+                    offerId: 'wcs-offer-1',
+                },
+                tags: [],
+            };
+            const snapshot = serializePromotionOfferCacheSnapshot(cacheEntry);
+            expect(snapshot).to.include({ product_code: 'PHSP', offer_type: 'BASE', plan_type: 'ABM' });
+            expect(snapshot.offer_id).to.equal('wcs-offer-1');
+            expect(snapshot.product_arrangement_code).to.equal('PA-123');
+        });
+
+        it('extracts product_code from tag when offerData lacks it', () => {
+            const cacheEntry = {
+                offerData: {},
+                tags: [{ id: 'mas:product_code/ccsn', title: 'CCSN' }],
+            };
+            const snapshot = serializePromotionOfferCacheSnapshot(cacheEntry);
+            expect(snapshot?.product_code).to.equal('CCSN');
+        });
+
+        it('returns null when all fields are empty', () => {
+            const cacheEntry = { offerData: {}, tags: [] };
+            expect(serializePromotionOfferCacheSnapshot(cacheEntry)).to.be.null;
+        });
+
+        it('reads icon from getFieldValue when present', () => {
+            const cacheEntry = {
+                offerData: { product_code: 'PHSP' },
+                tags: [],
+                getFieldValue: (name) => (name === 'mnemonicIcon' ? 'https://adobe.com/icon.svg' : undefined),
+            };
+            const snapshot = serializePromotionOfferCacheSnapshot(cacheEntry);
+            expect(snapshot?.icon).to.equal('https://adobe.com/icon.svg');
+        });
+    });
+
+    describe('handlePromotionOstOfferSelect', () => {
+        beforeEach(() => {
+            Store.promotions.selectedOffers.set([]);
+            Store.promotions.offerDataCache.clear();
+            setItemsSelectionStore(Store.promotions);
+        });
+
+        afterEach(() => {
+            setItemsSelectionStore(null);
+        });
+
+        it('adds the offer to selectedOffers and returns true', async () => {
+            const added = await handlePromotionOstOfferSelect({
+                detail: {
+                    offerSelectorId: 'phsp-osi',
+                    offer: { product_arrangement_code: 'PA-999', product_code: 'PHSP' },
+                },
+            });
+            expect(added).to.be.true;
+            expect(Store.promotions.selectedOffers.get()).to.deep.equal(['phsp-osi']);
+            expect(Store.promotions.offerDataCache.has('phsp-osi')).to.be.true;
+        });
+
+        it('returns false and does not duplicate when offer is already selected', async () => {
+            Store.promotions.selectedOffers.set(['phsp-osi']);
+            const added = await handlePromotionOstOfferSelect({
+                detail: {
+                    offerSelectorId: 'phsp-osi',
+                    offer: { product_arrangement_code: 'PA-999' },
+                },
+            });
+            expect(added).to.be.false;
+            expect(Store.promotions.selectedOffers.get()).to.deep.equal(['phsp-osi']);
+        });
+
+        it('still adds the offer when commerce service is unavailable (no productArrangementCode)', async () => {
+            const added = await handlePromotionOstOfferSelect({
+                detail: { offerSelectorId: 'unknown-osi', offer: {} },
+            });
+            expect(added).to.be.true;
+            expect(Store.promotions.selectedOffers.get()).to.include('unknown-osi');
+        });
+
+        it('returns false for a missing offerSelectorId', async () => {
+            const added = await handlePromotionOstOfferSelect({ detail: { offerSelectorId: '', offer: {} } });
+            expect(added).to.be.false;
         });
     });
 });

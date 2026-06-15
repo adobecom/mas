@@ -40,6 +40,21 @@ const promotionsItemsSelectorStyles = css`
         display: flex;
     }
 
+    :host([view-only]) {
+        min-height: auto;
+        max-height: none;
+        min-width: 0;
+    }
+
+    :host([view-only]) sp-tabs,
+    :host([view-only]) sp-tab-panel[selected] {
+        flex: 0 1 auto;
+    }
+
+    :host([view-only]) mas-promotions-items-table {
+        flex: 0 1 auto;
+    }
+
     .selected-items-count {
         bottom: 128px;
         pointer-events: auto;
@@ -50,7 +65,7 @@ class MasPromotionsItemsSelector extends LitElement {
     static styles = [styles, promotionsItemsSelectorStyles];
 
     static properties = {
-        viewOnly: { type: Boolean, state: true },
+        viewOnly: { type: Boolean, reflect: true, attribute: 'view-only' },
         searchQuery: { type: String, state: true },
         selectedTab: { type: String, state: true },
         getDisplayName: { type: Function },
@@ -225,7 +240,9 @@ class MasPromotionsItemsSelector extends LitElement {
         const tags = applyPromotionOfferProductTagsToSearch(Store.promotions.offerDataCache, s.selectedOffers.value);
         const filters = this.renderRoot.querySelectorAll('mas-search-and-filters');
         filters.forEach((el) => {
-            el.productFilter = tags;
+            if (el.type === TABLE_TYPE.CARDS) {
+                el.productFilter = tags;
+            }
         });
         if (Store.promotions.itemPickerSurface.get()) {
             document.querySelector('mas-repository')?.searchFragments?.();
@@ -285,7 +302,7 @@ class MasPromotionsItemsSelector extends LitElement {
                                           .searchOnly=${[TABLE_TYPE.PLACEHOLDERS, TABLE_TYPE.COLLECTIONS].includes(tab.value)}
                                           .promotionSurfaceOptions=${promotionSurfaceOptions}
                                           .promotionSurface=${surfacePickerValue ?? ''}
-                                          .productFilter=${this.#offerProductTags}
+                                          .productFilter=${tab.value === TABLE_TYPE.CARDS ? this.#offerProductTags : []}
                                           @promotion-surface-change=${this.#onPromotionItemSurfaceChange}
                                       ></mas-search-and-filters>
                                   `}

@@ -245,6 +245,8 @@ const localStyles = css`
         width: 100%;
         min-width: 100%;
         box-sizing: border-box;
+        flex: 0 1 auto;
+        overflow: visible;
     }
 
     .promotions-view-only sp-table-head,

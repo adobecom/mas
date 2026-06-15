@@ -385,7 +385,9 @@ class MasPromotionsEditor extends LitElement {
                 Store.promotions.selectedCollections.set(fromCollections.filter(Boolean));
             }
         } else if (!hasStoredItemSelection) {
-            const { cards, cols } = await classifyPromotionPathsForSelection(allPaths, (path) => getFragmentByPath(path));
+            const { cards, cols } = await classifyPromotionPathsForSelection(allPaths, (path) =>
+                this.repository.aem.getFragmentByPath(path),
+            );
             Store.promotions.selectedCards.set(cards);
             Store.promotions.selectedCollections.set(cols);
         }
@@ -1013,7 +1015,12 @@ class MasPromotionsEditor extends LitElement {
         Store.promotions.allCards.set([]);
         Store.promotions.displayCards.set([]);
         selector?.resetFilters();
-        if (this.repository?.loadAllCollections) this.repository.loadAllCollections();
+        const cachedCollections = Store.promotions.allCollections.get();
+        if (Store.promotions.allCollections.getMeta('loaded') && cachedCollections?.length) {
+            Store.promotions.displayCollections.set(cachedCollections);
+        } else if (this.repository?.loadAllCollections) {
+            this.repository.loadAllCollections();
+        }
         if (this.repository?.loadPlaceholders) this.repository.loadPlaceholders();
         return true;
     }

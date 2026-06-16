@@ -301,7 +301,7 @@ export const BULK_PUBLISH_STATUS = {
     REVERTED: 'Reverted',
 };
 
-export const BULK_PUBLISH_PARENT_PATH = '/content/dam/mas/bulk-publish-projects';
+export const BULK_PUBLISH_PROJECTS_FOLDER = 'bulk-publish-projects';
 
 /**
  * Compat version of the card.

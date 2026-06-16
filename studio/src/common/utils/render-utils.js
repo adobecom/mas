@@ -1,8 +1,8 @@
 import { html, nothing } from 'lit';
-import { FRAGMENT_STATUS, CARD_MODEL_PATH, COLLECTION_MODEL_PATH } from '../../constants.js';
+import { FRAGMENT_STATUS, CARD_MODEL_PATH, COLLECTION_MODEL_PATH, PAGE_NAMES } from '../../constants.js';
 import { Fragment } from '../../aem/fragment.js';
 import Store from '../../store.js';
-import { generateCodeToUse } from '../../utils.js';
+import { generateCodeToUse, extractSurfaceFromPath } from '../../utils.js';
 
 /**
  * Studio display path for an item-picker row's "Path" column: the same
@@ -12,7 +12,12 @@ import { generateCodeToUse } from '../../utils.js';
  * @returns {string}
  */
 export function getStudioFragmentDisplayPath(fragment) {
-    return generateCodeToUse(fragment, Store.search.get().path, Store.page.get())?.authorPath || '';
+    const page = Store.page.get();
+    const path =
+        page === PAGE_NAMES.PROMOTIONS_EDITOR
+            ? (Store.promotions.itemPickerSurface.get() ?? extractSurfaceFromPath(fragment?.path) ?? Store.search.get().path)
+            : Store.search.get().path;
+    return generateCodeToUse(fragment, path, page)?.authorPath || '';
 }
 
 /**

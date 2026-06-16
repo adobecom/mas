@@ -686,6 +686,15 @@ export class MasRepository extends LitElement {
                     resolvedLocale = canSyncLocale ? fragmentLocale || locale : locale;
                     resolvedPath = canSyncSurface ? fragmentSurface || path : path;
                     applyCorrectorToFragment(displayFragment, fragmentSurface);
+                    displayFragment = await promotionsRepository.mergePromoReferencesIntoFragmentData(
+                        this.aem,
+                        displayFragment,
+                        () => this.loadPromotions(),
+                    );
+                    if (this.#abortControllers.search !== searchController) {
+                        Store.fragments.list.loading.set(false);
+                        return;
+                    }
                     const fragment = await this.#addToCache(displayFragment);
                     const sourceStore = generateFragmentStore(fragment, null, { lazy: true });
                     dataStore.set(this.#applyFragmentListFilters([sourceStore]));
@@ -1877,7 +1886,7 @@ export class MasRepository extends LitElement {
         if (tab === VARIATION_SEARCH_TABS.PROMOTION) {
             const parentPath = resolvePromoVariationParentPath(path);
             if (!parentPath) return null;
-            return await this.aem.sites.cf.fragments.getByPath(parentPath);
+            return await this.aem.sites.cf.fragments.getByPath(parentPath, { references: 'direct-hydrated' });
         }
         if (tab === VARIATION_SEARCH_TABS.LOCALE) {
             const parentPath = resolveLocaleVariationParentPath(path);

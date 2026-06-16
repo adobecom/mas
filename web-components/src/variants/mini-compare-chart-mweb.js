@@ -507,20 +507,6 @@ export class MiniCompareChartMweb extends VariantLayout {
         }
         :host([variant='mini-compare-chart-mweb'])
             .body
-            > slot[name='subtitle'] {
-            min-height: var(
-                --consonant-merch-card-mini-compare-chart-mweb-subtitle-height
-            );
-        }
-        :host([variant='mini-compare-chart-mweb'])
-            .price-wrapping
-            > slot[name='heading-m-price'] {
-            min-height: var(
-                --consonant-merch-card-mini-compare-chart-mweb-heading-m-price-height
-            );
-        }
-        :host([variant='mini-compare-chart-mweb'])
-            .body
             > slot[name='promo-text'] {
             min-height: var(
                 --consonant-merch-card-mini-compare-chart-mweb-promo-text-height

@@ -135,8 +135,7 @@ export class MiniCompareChartMweb extends VariantLayout {
 
         const slots = [
             'heading-xs',
-            'subtitle',
-            'heading-m-price',
+            'price-wrapping',
             'promo-text',
             'body-m',
             'body-xs',
@@ -150,6 +149,11 @@ export class MiniCompareChartMweb extends VariantLayout {
                 this.card.shadowRoot.querySelector(`slot[name="${slot}"]`);
             this.updateCardElementMinHeight(el, slot);
         });
+        // subtitle + heading-m-price are wrapped together; sync the wrapper as one unit
+        this.updateCardElementMinHeight(
+            this.card.shadowRoot.querySelector('.price-wrapping'),
+            'price-wrapping',
+        );
         // Re-measure promo-text from shadow DOM slot (includes slotted content padding)
         this.updateCardElementMinHeight(
             this.card.shadowRoot.querySelector('slot[name="promo-text"]'),
@@ -347,9 +351,10 @@ export class MiniCompareChartMweb extends VariantLayout {
         }
 
         :host([variant='mini-compare-chart-mweb'])
-            .body
+            .price-wrapping
             > slot[name='heading-m-price'] {
             display: flex;
+            flex: 1;
             flex-direction: column;
             justify-content: flex-end;
         }
@@ -494,7 +499,7 @@ export class MiniCompareChartMweb extends VariantLayout {
             );
         }
         :host([variant='mini-compare-chart-mweb'])
-            .body
+            .price-wrapping
             > slot[name='heading-m-price'] {
             min-height: var(
                 --consonant-merch-card-mini-compare-chart-mweb-heading-m-price-height

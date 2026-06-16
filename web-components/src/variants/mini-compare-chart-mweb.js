@@ -220,7 +220,7 @@ export class MiniCompareChartMweb extends VariantLayout {
         listEl.setAttribute('id', listId);
         listEl.classList.add('checkmark-copy-container');
         const titleDiv = createTag(
-            'div',
+            'h4',
             { class: 'footer-rows-title' },
             titleText,
         );

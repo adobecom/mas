@@ -200,7 +200,7 @@ describe('MasSelectItemsTable', () => {
         it('should return true for cards when firstPageLoaded is false', async () => {
             const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
             await el.updateComplete;
-            Store.fragments.list.firstPageLoaded.set(false);
+            el.dataReady = false;
             setupCardsInStore([createMockCard('/path/card1', 'Card 1')]);
             await el.updateComplete;
             expect(el.isLoading).to.be.true;
@@ -209,16 +209,16 @@ describe('MasSelectItemsTable', () => {
         it('should return false for cards when firstPageLoaded is true', async () => {
             const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
             await el.updateComplete;
-            Store.fragments.list.firstPageLoaded.set(true);
+            el.dataReady = true;
             setupCardsInStore([createMockCard('/path/card1', 'Card 1')]);
             await el.updateComplete;
             expect(el.isLoading).to.be.false;
         });
 
         it('should return true for collections when firstPageLoaded is false', async () => {
-            Store.fragments.list.firstPageLoaded.set(false);
             const el = await fixture(html`<mas-select-items-table type="collections"></mas-select-items-table>`);
             await el.updateComplete;
+            el.dataReady = false;
             expect(el.isLoading).to.be.true;
         });
 
@@ -319,7 +319,7 @@ describe('MasSelectItemsTable', () => {
         it('should render skeleton rows when loading', async () => {
             const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
             await el.updateComplete;
-            Store.fragments.list.firstPageLoaded.set(false);
+            el.dataReady = false;
             setupCardsInStore([createMockCard('/path/card1', 'Card 1')]);
             await el.updateComplete;
             const skeletonRows = el.shadowRoot.querySelectorAll('.skeleton-row');
@@ -329,7 +329,7 @@ describe('MasSelectItemsTable', () => {
         it('should not render skeleton rows when not loading', async () => {
             const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
             await el.updateComplete;
-            Store.fragments.list.firstPageLoaded.set(true);
+            el.dataReady = true;
             setupCardsInStore([createMockCard('/path/card1', 'Card 1')]);
             await el.updateComplete;
             const skeletonRows = el.shadowRoot.querySelectorAll('.skeleton-row');
@@ -346,6 +346,15 @@ describe('MasSelectItemsTable', () => {
             const emptyMessage = el.shadowRoot.querySelector('p');
             expect(emptyMessage).to.exist;
             expect(emptyMessage.textContent).to.equal('No items found.');
+        });
+
+        it('does not render the table when there are no items', async () => {
+            const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            await el.updateComplete;
+            setupCardsInStore([]);
+            await el.updateComplete;
+            expect(el.shadowRoot.querySelector('sp-table')).to.be.null;
+            expect(el.shadowRoot.querySelectorAll('sp-table-head-cell').length).to.equal(0);
         });
     });
 

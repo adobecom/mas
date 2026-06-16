@@ -54,6 +54,11 @@ export const styles = `
     background-color: var(--spectrum-blue-400);
 }
 
+.nested-fragment.variation-search-highlight sp-table-row {
+    outline: 2px solid var(--spectrum-blue-800);
+    outline-offset: -2px;
+}
+
 /* Grouped variation expanded section */
 .grouped-variation-expanded {
     display: flex;

@@ -177,4 +177,47 @@ describe('PreviewFragmentStore', () => {
         expect(store.lazy).to.be.false;
         store.dispose();
     });
+
+    it('leaves resolved=false when dictionary is not ready so a later subscription fires resolution', () => {
+        const fragment = createFragment();
+        // Dictionary empty for the active locale: previewDictionaryReady() returns false.
+        Store.placeholders.previewByLocale.value = { en_US: {} };
+
+        const store = new PreviewFragmentStore(fragment, null, { lazy: true });
+        const getResolvedSpy = sandbox.stub(store, 'getResolvedFragment').resolves(null);
+
+        store.resolveFragment(true);
+        expect(store.resolved).to.be.false;
+        expect(getResolvedSpy.called).to.be.false;
+
+        // Dictionary arrives; subscription fires synchronous resolve dispatch.
+        Store.placeholders.previewByLocale.value = { en_US: { key: 'value' } };
+        placeholderSubscribers.forEach((fn) => fn());
+
+        expect(getResolvedSpy.calledOnce).to.be.true;
+        store.dispose();
+    });
+
+    it('re-resolves when the active locale dictionary changes', async () => {
+        const fragment = createFragment();
+        const store = new PreviewFragmentStore(fragment, null, { lazy: true });
+        // Resolve to a real-looking value so the resolved-locale signature is recorded.
+        const resolvedValue = { fields: [] };
+        const getResolvedSpy = sandbox.stub(store, 'getResolvedFragment').resolves(resolvedValue);
+        sandbox.stub(store, 'replaceFrom');
+
+        // First resolve for en_US.
+        store.resolveFragment(true);
+        expect(getResolvedSpy.callCount).to.equal(1);
+        // Let the resolve promise chain settle so #resolvedDictionarySig is recorded
+        // and #resolving is cleared.
+        await new Promise((r) => setTimeout(r));
+
+        Store.localeOrRegion.returns('fr_FR');
+        Store.placeholders.previewByLocale.value = { en_US: { key: 'value' }, fr_FR: { key: 'valeur' } };
+        placeholderSubscribers.forEach((fn) => fn());
+
+        expect(getResolvedSpy.callCount).to.equal(2);
+        store.dispose();
+    });
 });

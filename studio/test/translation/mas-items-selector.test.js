@@ -4,17 +4,23 @@ import { fixture, fixtureCleanup } from '@open-wc/testing-helpers/pure';
 import sinon from 'sinon';
 import Store from '../../src/store.js';
 import { setItemsSelectionStore } from '../../src/common/items-selection-store.js';
+import { stubAemTagQueryFetch } from '../helpers/aem-tag-fetch.js';
+import { resetTagCache } from '../helpers/tag-cache.js';
 import { CARD_MODEL_PATH, FRAGMENT_STATUS, TABLE_TYPE } from '../../src/constants.js';
 import '../../src/swc.js';
 import '../../src/common/components/mas-items-selector.js';
 import { TABS } from '../../src/common/components/mas-items-selector.js';
+
+const MAS_TAG_NAMESPACE = '/content/cq:tags/mas';
 
 describe('MasItemsSelector', () => {
     let sandbox;
 
     beforeEach(() => {
         sandbox = sinon.createSandbox();
+        stubAemTagQueryFetch(sandbox);
         setItemsSelectionStore(Store.translationProjects);
+        resetTagCache(MAS_TAG_NAMESPACE);
         Store.translationProjects.inEdit.set(null);
         Store.translationProjects.showSelected.set(false);
         Store.translationProjects.selectedCards.set([]);
@@ -31,6 +37,7 @@ describe('MasItemsSelector', () => {
         Store.translationProjects.selectedCollections.set([]);
         Store.translationProjects.selectedPlaceholders.set([]);
         setItemsSelectionStore(null);
+        resetTagCache(MAS_TAG_NAMESPACE);
     });
 
     describe('TABS constant', () => {

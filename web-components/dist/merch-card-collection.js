@@ -1691,7 +1691,6 @@ merch-card[variant="mini-compare-chart"] merch-mnemonic-list:nth-child(8) {
 
   merch-card[variant="mini-compare-chart-mweb"] ul {
     padding: 0;
-    margin-top: 16px;
     display: flex;
     flex-direction: column;
     gap: var(--consonant-merch-spacing-xxs);
@@ -1830,7 +1829,8 @@ merch-card[variant="mini-compare-chart"] merch-mnemonic-list:nth-child(8) {
   }
 
   merch-card[variant="mini-compare-chart-mweb"] .checkmark-copy-container.open {
-    display: contents;
+    display: block;
+    margin-top: 16px;
   }
 
 .collection-container.mini-compare-chart-mweb {
@@ -2036,7 +2036,6 @@ merch-card[variant="mini-compare-chart-mweb"] .price-plan-type{
   }
 
   merch-card[variant="mini-compare-chart-mweb"] [slot="body-m"] {
-    padding: var(--consonant-merch-card-card-mini-compare-mobile-spacing-xs) var(--consonant-merch-spacing-xs) 0;
     font-size: var(--consonant-merch-card-body-m-font-size);
     line-height: var(--consonant-merch-card-body-s-line-height);
     font-weight: 400;
@@ -2132,6 +2131,7 @@ merch-card[variant="mini-compare-chart-mweb"] .price-plan-type{
 
   merch-card[variant="mini-compare-chart-mweb"] .checkmark-copy-container.open {
     display: block;
+    margin-top: 16px;
   }
 
   merch-card[variant="mini-compare-chart-mweb"] .footer-row-cell-checkmark {

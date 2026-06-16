@@ -2877,10 +2877,6 @@ merch-card .footer-row-cell:nth-child(8) {
             .price-wrapping
             > slot[name='subtitle'] {
             display: block;
-            min-height: var(
-                --consonant-merch-card-mini-compare-chart-mweb-subtitle-height,
-                0px
-            );
         }
 
         :host([variant='mini-compare-chart-mweb'])
@@ -2937,6 +2933,15 @@ merch-card .footer-row-cell:nth-child(8) {
         @media screen and ${ma(b)} {
             :host([variant='mini-compare-chart-mweb']) footer {
                 padding: 0;
+            }
+
+            :host([variant='mini-compare-chart-mweb'])
+                .price-wrapping
+                > slot[name='subtitle'] {
+                min-height: var(
+                    --consonant-merch-card-mini-compare-chart-mweb-subtitle-height,
+                    0px
+                );
             }
         }
 

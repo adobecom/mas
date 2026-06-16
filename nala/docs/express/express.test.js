@@ -8,8 +8,10 @@ test.skip(({ browserName }) => browserName !== 'chromium', 'Not supported to run
 
 const workerSetup = createWorkerPageSetup({
     pages: [
-        { name: 'EXPRESS', url: DOCS_GALLERY_PATH.EXPRESS },
-        { name: 'FULL_PRICING_EXPRESS', url: '/web-components/docs/express.html' },
+        { name: 'EXPRESS', url: DOCS_GALLERY_PATH.EXPRESS.US },
+        { name: 'FULL_PRICING_EXPRESS', url: DOCS_GALLERY_PATH.EXPRESS.US },
+        { name: 'AU', url: DOCS_GALLERY_PATH.EXPRESS.AU },
+        { name: 'FR_AU', url: DOCS_GALLERY_PATH.EXPRESS.FR_AU },
     ],
 });
 
@@ -33,7 +35,7 @@ test.describe('MAS Express Cards test suite', () => {
         console.info(`[Test Page]: ${await page.url()}`);
 
         await test.step('step-1: Wait for Express page elements', async () => {
-            await workerSetup.verifyPageURL('EXPRESS', DOCS_GALLERY_PATH.EXPRESS, expect);
+            await workerSetup.verifyPageURL('EXPRESS', DOCS_GALLERY_PATH.EXPRESS.US, expect);
 
             await page.waitForSelector('merch-card-collection', { timeout: 30000 });
             await page.waitForSelector('merch-card[variant="simplified-pricing-express"]', { timeout: 30000 });
@@ -69,7 +71,7 @@ test.describe('MAS Express Cards test suite', () => {
         console.info(`[Test Page]: ${await page.url()}`);
 
         await test.step('step-1: Wait for Express page elements', async () => {
-            await workerSetup.verifyPageURL('EXPRESS', DOCS_GALLERY_PATH.EXPRESS, expect);
+            await workerSetup.verifyPageURL('EXPRESS', DOCS_GALLERY_PATH.EXPRESS.US, expect);
 
             await page.waitForSelector('merch-card-collection', { timeout: 30000 });
             await page.waitForSelector('merch-card[variant="simplified-pricing-express"]', { timeout: 30000 });
@@ -133,7 +135,7 @@ test.describe('MAS Express Cards test suite', () => {
         console.info(`[Test Page]: ${await page.url()}`);
 
         await test.step('step-1: Wait for Express page elements', async () => {
-            await workerSetup.verifyPageURL('EXPRESS', DOCS_GALLERY_PATH.EXPRESS, expect);
+            await workerSetup.verifyPageURL('EXPRESS', DOCS_GALLERY_PATH.EXPRESS.US, expect);
 
             await page.waitForSelector('merch-card-collection', { timeout: 30000 });
             await page.waitForSelector('merch-card[variant="simplified-pricing-express"]', { timeout: 30000 });
@@ -174,7 +176,7 @@ test.describe('MAS Express Cards test suite', () => {
         console.info(`[Test Page]: ${await page.url()}`);
 
         await test.step('step-1: Wait for Full Pricing Express page elements', async () => {
-            await workerSetup.verifyPageURL('FULL_PRICING_EXPRESS', DOCS_GALLERY_PATH.EXPRESS, expect);
+            await workerSetup.verifyPageURL('FULL_PRICING_EXPRESS', DOCS_GALLERY_PATH.EXPRESS.US, expect);
 
             await page.waitForSelector('merch-card-collection.full-pricing-express', { timeout: 30000 });
             await page.waitForSelector('merch-card[variant="full-pricing-express"]', { timeout: 30000 });
@@ -231,7 +233,7 @@ test.describe('MAS Express Cards test suite', () => {
         console.info(`[Test Page]: ${await page.url()}`);
 
         await test.step('step-1: Wait for Full Pricing Express page elements', async () => {
-            await workerSetup.verifyPageURL('FULL_PRICING_EXPRESS', DOCS_GALLERY_PATH.EXPRESS, expect);
+            await workerSetup.verifyPageURL('FULL_PRICING_EXPRESS', DOCS_GALLERY_PATH.EXPRESS.US, expect);
 
             await page.waitForSelector('merch-card-collection.full-pricing-express', { timeout: 30000 });
             await page.waitForSelector('merch-card[variant="full-pricing-express"]', { timeout: 30000 });
@@ -300,7 +302,7 @@ test.describe('MAS Express Cards test suite', () => {
         console.info(`[Test Page]: ${await page.url()}`);
 
         await test.step('step-1: Wait for Full Pricing Express page elements', async () => {
-            await workerSetup.verifyPageURL('FULL_PRICING_EXPRESS', DOCS_GALLERY_PATH.EXPRESS, expect);
+            await workerSetup.verifyPageURL('FULL_PRICING_EXPRESS', DOCS_GALLERY_PATH.EXPRESS.US, expect);
 
             await page.waitForSelector('merch-card-collection.full-pricing-express', { timeout: 30000 });
             await page.waitForSelector('merch-card[variant="full-pricing-express"]', { timeout: 30000 });
@@ -424,4 +426,34 @@ test.describe('MAS Express Cards test suite', () => {
             expect(styles).toBeDefined();
         });
     });
+
+    features
+        .filter((feature) => feature.regional)
+        .forEach((feature) => {
+            test(`[Test Id - ${feature.tcid}] ${feature.name}, ${feature.tags}`, async () => {
+                const { data } = feature;
+                const pageName = Object.keys(DOCS_GALLERY_PATH.EXPRESS).find(
+                    (k) => DOCS_GALLERY_PATH.EXPRESS[k] === feature.path,
+                );
+                const page = workerSetup.getPage(pageName);
+
+                await test.step('step-1: Verify Express regional page is loaded', async () => {
+                    await workerSetup.verifyPageURL(pageName, feature.path, expect);
+                    await page.waitForSelector(`merch-card[variant="${data.variant}"]`, { timeout: 30000 });
+                    await page.waitForTimeout(3000);
+                });
+
+                await test.step('step-2: Verify regional pricing', async () => {
+                    const card = new ExpressCard(page, data.id);
+                    await expect(card.card).toBeVisible();
+                    await card.card.evaluate((el) => el.checkReady());
+
+                    const regularPrice = await card.card.evaluate((el) => el.regularPrice);
+                    expect(regularPrice).toMatch(data.regularPrice);
+
+                    const annualPrice = await card.card.evaluate((el) => el.annualPrice);
+                    expect(annualPrice).toMatch(data.annualPrice);
+                });
+            });
+        });
 });

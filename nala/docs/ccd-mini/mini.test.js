@@ -12,6 +12,7 @@ const workerSetup = createWorkerPageSetup({
         { name: 'US', url: DOCS_GALLERY_PATH.CCD_MINI.US },
         { name: 'FR', url: DOCS_GALLERY_PATH.CCD_MINI.FR },
         { name: 'AU', url: DOCS_GALLERY_PATH.CCD_MINI.AU },
+        { name: 'FR_AU', url: DOCS_GALLERY_PATH.CCD_MINI.FR_AU },
     ],
 });
 

@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { matchesGeo, getCountry } from '../../src/fragment/utils/common.js';
+import { matchesGeo, getCountry, countryOf } from '../../src/fragment/utils/common.js';
 
 describe('common utils', () => {
     describe('matchesGeo', () => {
@@ -86,6 +86,20 @@ describe('common utils', () => {
         it('returns empty string when both are missing or malformed', () => {
             expect(getCountry({})).to.equal('');
             expect(getCountry({ locale: 'fr' })).to.equal('');
+        });
+    });
+
+    describe('countryOf', () => {
+        it('extracts the country segment of a locale code', () => {
+            expect(countryOf('en_AU')).to.equal('AU');
+        });
+
+        it('returns undefined for a locale without a country segment', () => {
+            expect(countryOf('fr')).to.equal(undefined);
+        });
+
+        it('returns undefined for a missing locale', () => {
+            expect(countryOf(undefined)).to.equal(undefined);
         });
     });
 });

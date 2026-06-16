@@ -6,7 +6,7 @@ export const features = [
     {
         tcid: '0',
         name: '@MAS-Express-Card-Free',
-        path: DOCS_GALLERY_PATH.EXPRESS,
+        path: DOCS_GALLERY_PATH.EXPRESS.US,
         data: {
             id: '67c78f03-7d88-44c9-9a06-05443ec9265d',
             title: 'Free',
@@ -22,7 +22,7 @@ export const features = [
     {
         tcid: '1',
         name: '@MAS-Express-Card-Premium',
-        path: DOCS_GALLERY_PATH.EXPRESS,
+        path: DOCS_GALLERY_PATH.EXPRESS.US,
         data: {
             id: 'b28957b9-2341-40f9-9004-24446f68e5e5',
             title: 'Premium',
@@ -39,7 +39,7 @@ export const features = [
     {
         tcid: '2',
         name: '@MAS-Express-Card-Firefly-Pro',
-        path: DOCS_GALLERY_PATH.EXPRESS,
+        path: DOCS_GALLERY_PATH.EXPRESS.US,
         data: {
             id: 'aaa728dc-2b44-495c-b9f0-bb82044db18a',
             title: 'Firefly Pro',
@@ -60,7 +60,7 @@ export const features = [
     {
         tcid: '3',
         name: '@MAS-Full-Pricing-Express-Free',
-        path: DOCS_GALLERY_PATH.EXPRESS,
+        path: DOCS_GALLERY_PATH.EXPRESS.US,
         data: {
             id: '53fcf015-5c28-4214-bd2b-d4c22f1774b8',
             title: 'Adobe Express Free',
@@ -90,7 +90,7 @@ export const features = [
     {
         tcid: '4',
         name: '@MAS-Full-Pricing-Express-Premium',
-        path: DOCS_GALLERY_PATH.EXPRESS,
+        path: DOCS_GALLERY_PATH.EXPRESS.US,
         data: {
             id: '025dfceb-c035-45b7-8ea1-8feed25c8009',
             title: 'Adobe Express Premium',
@@ -124,7 +124,7 @@ export const features = [
     {
         tcid: '5',
         name: '@MAS-Full-Pricing-Express-Pro',
-        path: DOCS_GALLERY_PATH.EXPRESS,
+        path: DOCS_GALLERY_PATH.EXPRESS.US,
         data: {
             id: '9406f1ae-7bee-48c3-9892-49af6816033e',
             title: 'Express Free',
@@ -154,5 +154,57 @@ export const features = [
             compareLink: 'Compare all features',
         },
         tags: '@mas-docs @full-pricing-express @express-card @pro @commerce @smoke @regression @milo',
+    },
+    {
+        tcid: '6',
+        name: '@MAS-Express-Card-Premium-au',
+        path: DOCS_GALLERY_PATH.EXPRESS.AU,
+        regional: true,
+        data: {
+            id: 'b28957b9-2341-40f9-9004-24446f68e5e5',
+            regularPrice: PRICE_PATTERN.AU.mo,
+            annualPrice: PRICE_PATTERN.AU.yr,
+            variant: 'simplified-pricing-express',
+        },
+        tags: '@mas-docs @express @express-card @premium @simplified @commerce @regression @milo',
+    },
+    {
+        tcid: '7',
+        name: '@MAS-Express-Card-Premium-fr-au',
+        path: DOCS_GALLERY_PATH.EXPRESS.FR_AU,
+        regional: true,
+        data: {
+            id: 'b28957b9-2341-40f9-9004-24446f68e5e5',
+            regularPrice: PRICE_PATTERN.FR_AU.mois,
+            annualPrice: PRICE_PATTERN.FR_AU.an,
+            variant: 'simplified-pricing-express',
+        },
+        tags: '@mas-docs @express @express-card @premium @simplified @commerce @regression @milo',
+    },
+    {
+        tcid: '8',
+        name: '@MAS-Full-Pricing-Express-Premium-au',
+        path: DOCS_GALLERY_PATH.EXPRESS.AU,
+        regional: true,
+        data: {
+            id: '025dfceb-c035-45b7-8ea1-8feed25c8009',
+            regularPrice: PRICE_PATTERN.AU.mo,
+            annualPrice: PRICE_PATTERN.AU.yr,
+            variant: 'full-pricing-express',
+        },
+        tags: '@mas-docs @full-pricing-express @express-card @premium @commerce @regression @milo',
+    },
+    {
+        tcid: '9',
+        name: '@MAS-Full-Pricing-Express-Premium-fr-au',
+        path: DOCS_GALLERY_PATH.EXPRESS.FR_AU,
+        regional: true,
+        data: {
+            id: '025dfceb-c035-45b7-8ea1-8feed25c8009',
+            regularPrice: PRICE_PATTERN.FR_AU.mois,
+            annualPrice: PRICE_PATTERN.FR_AU.an,
+            variant: 'full-pricing-express',
+        },
+        tags: '@mas-docs @full-pricing-express @express-card @premium @commerce @regression @milo',
     },
 ];

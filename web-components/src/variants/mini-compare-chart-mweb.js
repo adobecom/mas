@@ -412,7 +412,9 @@ export class MiniCompareChartMweb extends VariantLayout {
             :host([variant='mini-compare-chart-mweb']) footer {
                 padding: 0;
             }
+        }
 
+        @media screen and ${unsafeCSS(TABLET_UP)} {
             :host([variant='mini-compare-chart-mweb'])
                 .price-wrapping
                 > slot[name='subtitle'] {

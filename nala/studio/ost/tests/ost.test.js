@@ -215,12 +215,14 @@ test.describe('M@S Studio OST test suite', () => {
         // The fixture's price shows recurrence + per-unit + tax by default, so
         // each "Disable" toggle REMOVES its token. Assert present → toggle →
         // gone, which exercises the same mutation without assuming a start state.
+        // Recurrence renders as /mois or /an depending on which offer (ABM vs
+        // PUF) lands first — match either so offer ordering doesn't flake CI.
         await test.step('step-2: Recurrence toggle controls the recurrence token', async () => {
             await ost.expandOptions();
             await expect(await ost.termCheckbox).toBeVisible();
-            await expect(await ost.price).toContainText(data.toggles.displayRecurrence);
+            await expect(await ost.price).toContainText(/\/(mois|an)/);
             await ost.termCheckbox.click();
-            await expect(await ost.price).not.toContainText(data.toggles.displayRecurrence);
+            await expect(await ost.price).not.toContainText(/\/(mois|an)/);
         });
 
         await test.step('step-3: Per-unit toggle controls the per-unit token', async () => {

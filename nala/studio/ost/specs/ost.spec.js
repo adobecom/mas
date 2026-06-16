@@ -144,7 +144,7 @@ export default {
                 product: 'Photoshop',
                 template: 'price',
                 toggles: {
-                    displayRecurrence: '/mois',
+                    // recurrence (/mois or /an) is asserted via regex in the test
                     displayPerUnit: 'par licence',
                     displayTax: 'TTC',
                 },

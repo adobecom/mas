@@ -20,7 +20,7 @@ test.describe('MAS Docs Masks feature test suite', () => {
 
         await test.step('step-2: Click Mask button to apply nala-mask', async () => {
             await masksPage.btnMask.click();
-            await masksPage.waitForTimeout(3000);
+            await page.waitForTimeout(3000);
             // wait for all three cards to show the masked title
             for (const id of data.fragmentIds) {
                 await expect(masksPage.card(id).title).toContainText(data.mask.title, { timeout: 15000 });

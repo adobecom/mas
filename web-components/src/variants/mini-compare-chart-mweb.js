@@ -135,8 +135,8 @@ export class MiniCompareChartMweb extends VariantLayout {
 
         const slots = [
             'heading-xs',
-            'price-wrapping',
-            'promo-text',
+            'subtitle',
+            'heading-m-price',
             'body-m',
             'body-xs',
             'footer-rows',
@@ -149,20 +149,16 @@ export class MiniCompareChartMweb extends VariantLayout {
                 this.card.shadowRoot.querySelector(`slot[name="${slot}"]`);
             this.updateCardElementMinHeight(el, slot);
         });
-        // subtitle + heading-m-price are wrapped together; sync the wrapper as one unit
-        this.updateCardElementMinHeight(
-            this.card.shadowRoot.querySelector('.price-wrapping'),
-            'price-wrapping',
-        );
-        // Re-measure promo-text from shadow DOM slot (includes slotted content padding)
-        this.updateCardElementMinHeight(
-            this.card.shadowRoot.querySelector('slot[name="promo-text"]'),
-            'promo-text',
-        );
-        this.updateCardElementMinHeight(
-            this.card.shadowRoot.querySelector('footer'),
-            'footer',
-        );
+
+        [
+            ['slot[name="promo-text"]', 'promo-text'],
+            ['footer', 'footer'],
+        ].forEach(([selector, name]) => {
+            this.updateCardElementMinHeight(
+                this.card.shadowRoot.querySelector(selector),
+                name,
+            );
+        });
     }
 
     adjustMiniCompareFooterRows() {
@@ -353,15 +349,16 @@ export class MiniCompareChartMweb extends VariantLayout {
         :host([variant='mini-compare-chart-mweb']) .body > .price-wrapping {
             display: flex;
             flex-direction: column;
-            min-height: var(
-                --consonant-merch-card-mini-compare-chart-mweb-price-wrapping-height
-            );
         }
 
         :host([variant='mini-compare-chart-mweb'])
             .price-wrapping
             > slot[name='subtitle'] {
             display: block;
+            min-height: var(
+                --consonant-merch-card-mini-compare-chart-mweb-subtitle-height,
+                0px
+            );
         }
 
         :host([variant='mini-compare-chart-mweb'])

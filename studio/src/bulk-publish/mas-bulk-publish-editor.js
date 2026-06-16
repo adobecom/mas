@@ -7,7 +7,6 @@ import {
     QUICK_ACTION,
     BULK_PUBLISH_STATUS,
     BULK_PUBLISH_PROJECT_MODEL_ID,
-    BULK_PUBLISH_PARENT_PATH,
     PAGE_NAMES,
     STATUS_PUBLISHED,
 } from '../constants.js';
@@ -56,12 +55,12 @@ async function mapWithConcurrency(items, limit, fn) {
     return results;
 }
 
-function buildProjectPayload({ surface, title, status, urls, fragments, locales }) {
+function buildProjectPayload({ parentPath, title, status, urls, fragments, locales }) {
     return {
         title,
         name: normalizeKey(title),
         modelId: BULK_PUBLISH_PROJECT_MODEL_ID,
-        parentPath: `${BULK_PUBLISH_PARENT_PATH}/${surface}`,
+        parentPath,
         fields: [
             { name: 'title', type: 'text', values: [title] },
             { name: 'status', type: 'text', values: [status] },
@@ -498,7 +497,7 @@ class MasBulkPublishEditor extends LitElement {
                     const title = this.title || 'Untitled bulk publish project';
                     const validPaths = this.items.filter((i) => i.status === 'valid' && i.path).map((i) => i.path);
                     const payload = buildProjectPayload({
-                        surface,
+                        parentPath: this.repository.getBulkPublishParentPath(surface),
                         title,
                         status: this.status,
                         urls: this.urls,
@@ -567,7 +566,7 @@ class MasBulkPublishEditor extends LitElement {
             try {
                 const validPaths = this.items.filter((i) => i.status === 'valid' && i.path).map((i) => i.path);
                 const payload = buildProjectPayload({
-                    surface,
+                    parentPath: this.repository.getBulkPublishParentPath(surface),
                     title,
                     status: BULK_PUBLISH_STATUS.DRAFT,
                     urls: '',

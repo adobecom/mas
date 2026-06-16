@@ -14,7 +14,7 @@ export const features = [
             promoPrice: PRICE_PATTERN.FAKE.promo,
             price: PRICE_PATTERN.FAKE.regular,
         },
-        browserParams: '?mas.preview=on',
+        browserParams: ['?mas.preview=on', 'instant=2026-04-15'],
         tags: '@mas-docs @mas-acom @mas-promotions @commerce @smoke @regression @milo',
     },
     {
@@ -92,7 +92,7 @@ export const features = [
             promoPrice: PRICE_PATTERN.FAKE.promo,
             price: PRICE_PATTERN.FAKE.regular,
         },
-        browserParams: '?mas.preview=on',
+        browserParams: ['?mas.preview=on', 'instant=2026-04-15'],
         tags: '@mas-docs @mas-acom @mas-promotions @commerce @smoke @regression @milo',
     },
     // add grouped variation card in grouped variation collection when MWPW-197436 is fixed

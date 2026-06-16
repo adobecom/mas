@@ -1502,6 +1502,53 @@ describe('MasRepository dictionary helpers', () => {
                     if (!hadListFetched) Store.promotions.list.data.removeMeta('listFetched');
                 }
             });
+
+            it('ignores stale parent UUID search when promo merge is superseded by a new search', async () => {
+                const repository = createFullRepository();
+                repository.page = { value: PAGE_NAMES.CONTENT };
+                const uuid = '12345678-1234-1234-1234-123456789012';
+                const fragmentPath = `${ROOT_PATH}/acom/en_US/my-card`;
+                const mockFragment = createFragment({ id: uuid, path: fragmentPath, fields: [] });
+
+                let resolveLoadPromotions;
+                repository.loadPromotions = sandbox.stub().callsFake(
+                    () =>
+                        new Promise((resolve) => {
+                            resolveLoadPromotions = resolve;
+                        }),
+                );
+
+                const getByIdStub = sandbox.stub().resolves(mockFragment);
+                const searchStub = sandbox.stub().returns(createMockCursor([]));
+                repository.aem = createAemMock({ fragments: { getById: getByIdStub, search: searchStub } });
+
+                repository.search = { value: { path: 'acom', query: uuid } };
+                repository.filters = { value: { locale: 'en_US', tags: '' } };
+
+                const { Store, mockDataStore, restore } = await setupVariationUuidSearch();
+                const originalPromotions = Store.promotions.list.data.get();
+                const hadListFetched = Store.promotions.list.data.hasMeta('listFetched');
+                Store.promotions.list.data.set([]);
+                if (hadListFetched) Store.promotions.list.data.removeMeta('listFetched');
+
+                try {
+                    const staleSearch = repository.searchFragments();
+
+                    repository.search = { value: { path: 'acom', query: 'photoshop' } };
+                    const freshSearch = repository.searchFragments();
+                    await freshSearch;
+
+                    const countAfterFresh = mockDataStore.set.callCount;
+                    resolveLoadPromotions();
+                    await staleSearch;
+
+                    expect(mockDataStore.set.callCount).to.equal(countAfterFresh);
+                } finally {
+                    restore();
+                    Store.promotions.list.data.set(originalPromotions);
+                    if (hadListFetched) Store.promotions.list.data.setMeta('listFetched', true);
+                }
+            });
         });
 
         it('performs regular search when query is not a UUID', async () => {

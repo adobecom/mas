@@ -7,7 +7,7 @@ import { TABLE_TYPE, CARD_MODEL_PATH } from '../constants.js';
 import { getItemTypeLabel } from '../common/utils/render-utils.js';
 import { closePreview, openPreview } from '../mas-card-preview.js';
 import router from '../router.js';
-import { extractLocaleFromPath, showToast } from '../utils.js';
+import { extractLocaleFromPath, extractSurfaceFromPath, showToast } from '../utils.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 import Store from '../store.js';
 import { normalizeTagId } from '../aem/tag-id-utils.js';
@@ -437,6 +437,8 @@ class MasPromotionsItemsTable extends LitElement {
         if (promotionId) {
             Store.promotions.promotionId.set(promotionId);
         }
+        const surface = extractSurfaceFromPath(path);
+        if (surface) Store.search.set((prev) => ({ ...prev, path: surface }));
         const locale = extractLocaleFromPath(path);
         await router.navigateToFragmentEditor(fragmentId, { locale });
         if (promotionId) {
@@ -448,6 +450,8 @@ class MasPromotionsItemsTable extends LitElement {
         e.stopPropagation();
         if (!item?.id || !item?.path) return;
         Store.promotions.promotionId.set(null);
+        const surface = extractSurfaceFromPath(item.path);
+        if (surface) Store.search.set((prev) => ({ ...prev, path: surface }));
         const locale = extractLocaleFromPath(item.path);
         await router.navigateToFragmentEditor(item.id, { locale });
     }

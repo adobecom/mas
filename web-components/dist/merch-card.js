@@ -2868,6 +2868,20 @@ merch-card .footer-row-cell:nth-child(8) {
             display: block;
         }
 
+        :host([variant='mini-compare-chart-mweb']) .body > .price-wrapping {
+            display: flex;
+            flex-direction: column;
+            min-height: var(
+                --consonant-merch-card-mini-compare-chart-mweb-price-wrapping-height
+            );
+        }
+
+        :host([variant='mini-compare-chart-mweb'])
+            .price-wrapping
+            > slot[name='subtitle'] {
+            display: block;
+        }
+
         :host([variant='mini-compare-chart-mweb'])
             .price-wrapping
             > slot[name='heading-m-price'] {

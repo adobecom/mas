@@ -129,6 +129,25 @@ export default class OSTPage {
         this.cancelPromo = this.page.locator('[data-testid="ost-promo-clear"]');
     }
 
+    // On the offer step, select the first offer card. The placeholder panel
+    // (price rows + live preview) only renders once an offer is selected — the
+    // old chip flow had no separate offer-select step, so legacy tests skipped
+    // this and never reached the preview.
+    async selectFirstOffer() {
+        await this.offerCard.first().click();
+    }
+
+    // From the product step (where openEditorAndOST leaves the OST after backing
+    // out of the deep link), advance to the offer step using the deep-linked
+    // product that is still selected, then pick an offer so the price rows +
+    // live preview render. Searching for a *different* product would fight the
+    // persisted deep-link selection (Bug-7 contract) and may land on a product
+    // with no offers.
+    async advanceToOfferStep() {
+        await this.nextButton.click();
+        await this.selectFirstOffer();
+    }
+
     // The "Options" (Disable) group is collapsed by default; expand it once so
     // the term/unit/tax/old-price checkboxes are visible and clickable.
     async expandOptions() {

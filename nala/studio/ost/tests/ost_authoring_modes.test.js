@@ -55,9 +55,10 @@ const selectAuthoringMode = async (ost, modeOption) => {
     await modeOption.click();
 };
 
-const advanceToOffer = async (ost, product) => {
-    await ost.searchField.fill(product);
-    await ost.productCard.filter({ hasText: product }).first().click();
+// Use the deep-linked product (Creative Cloud Pro) that openEditorAndOST leaves
+// selected — searching a different product fights the persisted deep-link
+// selection and can land on a product with no offers.
+const advanceToOffer = async (ost) => {
     await expect(await ost.nextButton).toBeEnabled();
     await ost.nextButton.click();
     await expect(await ost.backButton).toBeVisible();
@@ -66,12 +67,11 @@ const advanceToOffer = async (ost, product) => {
 test.describe('M@S Studio OST authoring modes test suite', () => {
     // @studio-ost-mode-single - Single Offer mode renders placeholder type rows
     test(`${features[0].name},${features[0].tags}`, async ({ page, baseURL }) => {
-        const { data } = features[0];
         const ost = await openEditorAndOST(page, baseURL, features[0]);
 
         await test.step('step-1: Single Offer mode is selected and advances to offers', async () => {
             await selectAuthoringMode(ost, ost.authoringModeSingle);
-            await advanceToOffer(ost, data.product);
+            await advanceToOffer(ost);
         });
 
         await test.step('step-2: Selecting an offer reveals the placeholder type rows', async () => {
@@ -84,12 +84,11 @@ test.describe('M@S Studio OST authoring modes test suite', () => {
 
     // @studio-ost-mode-trybuy - Try/Buy mode renders the base+trial selection list
     test(`${features[1].name},${features[1].tags}`, async ({ page, baseURL }) => {
-        const { data } = features[1];
         const ost = await openEditorAndOST(page, baseURL, features[1]);
 
         await test.step('step-1: Try/Buy mode is selected and advances to offers', async () => {
             await selectAuthoringMode(ost, ost.authoringModeTryBuy);
-            await advanceToOffer(ost, data.product);
+            await advanceToOffer(ost);
         });
 
         await test.step('step-2: Offer step shows the selection slots above the panel', async () => {
@@ -105,12 +104,11 @@ test.describe('M@S Studio OST authoring modes test suite', () => {
 
     // @studio-ost-mode-bundle - Soft Bundle mode renders the bundle selection list
     test(`${features[2].name},${features[2].tags}`, async ({ page, baseURL }) => {
-        const { data } = features[2];
         const ost = await openEditorAndOST(page, baseURL, features[2]);
 
         await test.step('step-1: Soft Bundle mode is selected and advances to offers', async () => {
             await selectAuthoringMode(ost, ost.authoringModeBundle);
-            await advanceToOffer(ost, data.product);
+            await advanceToOffer(ost);
         });
 
         await test.step('step-2: Offer step shows the selection slots above the panel', async () => {

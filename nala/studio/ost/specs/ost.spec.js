@@ -1,6 +1,6 @@
 // Dedicated fr_FR fragment created for NALA OST E2E coverage
 // (/content/dam/mas/nala/fr_FR/ost-nala-card-fr — promo/legal/OSI price, never reuse en_GB).
-export const OST_FR_FRAGMENT = '12a636a7-8642-44da-a081-0a3faa729ef3';
+export const OST_FR_FRAGMENT = '029a3452-ab2c-4381-aef9-b37f48706545';
 
 export default {
     FeatureName: 'M@S Studio OST',
@@ -146,7 +146,7 @@ export default {
                 toggles: {
                     displayRecurrence: '/mois',
                     displayPerUnit: 'par licence',
-                    displayTax: 'HT',
+                    displayTax: 'TTC',
                 },
             },
             tags: '@mas-studio @ost @ost-e2e',

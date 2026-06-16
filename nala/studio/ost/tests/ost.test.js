@@ -67,17 +67,15 @@ test.describe('M@S Studio OST test suite', () => {
         });
     });
 
-    // @studio-ost-select-product-shows-offers - Selecting a product advances to the offer step
+    // @studio-ost-select-product-shows-offers - A selected product advances to the offer step
     test(`${features[2].name},${features[2].tags}`, async ({ page, baseURL }) => {
-        const { data } = features[2];
         const ost = await openEditorAndOST(page, baseURL, features[2]);
 
-        await test.step('step-1: Select product and advance to the offer step', async () => {
-            await ost.searchField.fill(data.product);
-            await ost.productCard.filter({ hasText: data.product }).first().click();
+        await test.step('step-1: The selected (deep-linked) product enables Next and advances', async () => {
             await expect(await ost.nextButton).toBeEnabled();
             await ost.nextButton.click();
             await expect(await ost.backButton).toBeVisible();
+            await expect(await ost.offerCard.first()).toBeVisible();
         });
     });
 
@@ -87,15 +85,13 @@ test.describe('M@S Studio OST test suite', () => {
         const ost = await openEditorAndOST(page, baseURL, features[3]);
 
         await test.step('step-1: Advance to the offer step', async () => {
-            await ost.searchField.fill(data.product);
-            await ost.productCard.filter({ hasText: data.product }).first().click();
             await ost.nextButton.click();
             await expect(await ost.backButton).toBeVisible();
         });
 
-        await test.step('step-2: Activate the price placeholder chip', async () => {
-            await expect(await ost.offerTab).toBeVisible();
-            await ost.offerTab.click();
+        await test.step('step-2: Select an offer and confirm the price row appears', async () => {
+            await expect(await ost.offerCard.first()).toBeVisible();
+            await ost.selectFirstOffer();
             await expect(await ost.priceUse).toBeVisible();
         });
     });
@@ -105,11 +101,8 @@ test.describe('M@S Studio OST test suite', () => {
         const { data } = features[4];
         const ost = await openEditorAndOST(page, baseURL, features[4]);
 
-        await test.step('step-1: Advance to the offer step and select the price chip', async () => {
-            await ost.searchField.fill(data.product);
-            await ost.productCard.filter({ hasText: data.product }).first().click();
-            await ost.nextButton.click();
-            await ost.offerTab.click();
+        await test.step('step-1: Advance to the offer step with the deep-linked product', async () => {
+            await ost.advanceToOfferStep();
         });
 
         await test.step('step-2: Preview renders a resolved price', async () => {
@@ -124,19 +117,14 @@ test.describe('M@S Studio OST test suite', () => {
         const ost = await openEditorAndOST(page, baseURL, features[5]);
 
         await test.step('step-1: Advance to the offer step', async () => {
-            await ost.searchField.fill(data.product);
-            await ost.productCard.filter({ hasText: data.product }).first().click();
-            await ost.nextButton.click();
-            await ost.offerTab.click();
+            await ost.advanceToOfferStep();
         });
 
         await test.step('step-2: Optical template preview renders a price', async () => {
-            await ost.opticalChip.click();
             await expect(await ost.priceOptical).toContainText(data.expectedPrice);
         });
 
         await test.step('step-3: Annual template preview renders a price', async () => {
-            await ost.annualChip.click();
             await expect(await ost.priceAnnual).toContainText(data.expectedPrice);
         });
     });
@@ -147,14 +135,10 @@ test.describe('M@S Studio OST test suite', () => {
         const ost = await openEditorAndOST(page, baseURL, features[6]);
 
         await test.step('step-1: Advance to the offer step', async () => {
-            await ost.searchField.fill(data.product);
-            await ost.productCard.filter({ hasText: data.product }).first().click();
-            await ost.nextButton.click();
-            await ost.offerTab.click();
+            await ost.advanceToOfferStep();
         });
 
         await test.step('step-2: Strikethrough preview renders without leaked tokens', async () => {
-            await ost.strikethroughChip.click();
             await expect(await ost.priceStrikethrough).toBeVisible();
             for (const leak of data.forbiddenLeaks) {
                 await expect(await ost.priceStrikethrough).not.toContainText(leak);
@@ -183,10 +167,7 @@ test.describe('M@S Studio OST test suite', () => {
         const ost = await openEditorAndOST(page, baseURL, features[8]);
 
         await test.step('step-1: Promotional offer shows an auto discount', async () => {
-            await ost.searchField.fill(data.promotionOffer.osi);
-            await ost.productCard.first().click();
-            await ost.nextButton.click();
-            await ost.offerTab.click();
+            await ost.advanceToOfferStep();
             await expect(await ost.promoField).toBeVisible();
         });
     });
@@ -209,12 +190,10 @@ test.describe('M@S Studio OST test suite', () => {
         const ost = await openEditorAndOST(page, baseURL, features[10]);
 
         await test.step('step-1: Advance to the offer step', async () => {
-            await ost.searchField.fill(data.product);
-            await ost.productCard.filter({ hasText: data.product }).first().click();
-            await ost.nextButton.click();
+            await ost.advanceToOfferStep();
         });
 
-        await test.step('step-2: Checkout chip exposes the checkout link and menus', async () => {
+        await test.step('step-2: Checkout tab exposes the checkout link and menus', async () => {
             await expect(await ost.checkoutTab).toBeVisible();
             await ost.checkoutTab.click();
             await expect(await ost.workflowMenu).toBeVisible();
@@ -229,13 +208,13 @@ test.describe('M@S Studio OST test suite', () => {
         const ost = await openEditorAndOST(page, baseURL, features[11]);
 
         await test.step('step-1: Advance to the offer step with the price chip', async () => {
-            await ost.searchField.fill(data.product);
-            await ost.productCard.filter({ hasText: data.product }).first().click();
-            await ost.nextButton.click();
-            await ost.offerTab.click();
+            await ost.advanceToOfferStep();
             await expect(await ost.price).toBeVisible();
         });
 
+        // The fixture's price shows recurrence + per-unit + tax by default, so
+        // each "Disable" toggle REMOVES its token. Assert present → toggle →
+        // gone, which exercises the same mutation without assuming a start state.
         await test.step('step-2: Recurrence toggle controls the recurrence token', async () => {
             await ost.expandOptions();
             await expect(await ost.termCheckbox).toBeVisible();
@@ -244,16 +223,18 @@ test.describe('M@S Studio OST test suite', () => {
             await expect(await ost.price).not.toContainText(data.toggles.displayRecurrence);
         });
 
-        await test.step('step-3: Per-unit toggle adds the per-unit token', async () => {
+        await test.step('step-3: Per-unit toggle controls the per-unit token', async () => {
             await expect(await ost.unitCheckbox).toBeVisible();
-            await ost.unitCheckbox.click();
             await expect(await ost.price).toContainText(data.toggles.displayPerUnit);
+            await ost.unitCheckbox.click();
+            await expect(await ost.price).not.toContainText(data.toggles.displayPerUnit);
         });
 
-        await test.step('step-4: Tax toggle adds the tax token', async () => {
+        await test.step('step-4: Tax toggle controls the tax token', async () => {
             await expect(await ost.taxlabelCheckbox).toBeVisible();
-            await ost.taxlabelCheckbox.click();
             await expect(await ost.price).toContainText(data.toggles.displayTax);
+            await ost.taxlabelCheckbox.click();
+            await expect(await ost.price).not.toContainText(data.toggles.displayTax);
         });
     });
 
@@ -306,10 +287,7 @@ test.describe('M@S Studio OST test suite', () => {
         const ost = await openEditorAndOST(page, baseURL, features[15]);
 
         await test.step('step-1: Advance to the offer step with the price chip', async () => {
-            await ost.searchField.fill(data.product);
-            await ost.productCard.filter({ hasText: data.product }).first().click();
-            await ost.nextButton.click();
-            await ost.offerTab.click();
+            await ost.advanceToOfferStep();
             await expect(await ost.price).toBeVisible();
         });
 
@@ -327,8 +305,6 @@ test.describe('M@S Studio OST test suite', () => {
         const ost = await openEditorAndOST(page, baseURL, features[16]);
 
         await test.step('step-1: Reach the offer step', async () => {
-            await ost.searchField.fill(data.product);
-            await ost.productCard.filter({ hasText: data.product }).first().click();
             await ost.nextButton.click();
             await expect(await ost.cancelButton).toBeVisible();
         });

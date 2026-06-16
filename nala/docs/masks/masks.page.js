@@ -13,6 +13,7 @@ export default class MasksPage {
             badge: card.locator('[slot="badge"] merch-badge').or(card.locator('merch-badge')),
             title: card.locator('h3[slot="heading-xs"]'),
             description: card.locator('[slot="body-xs"]'),
+            bodyM: card.locator('[slot="body-m"]'),
         };
     }
 }

@@ -20,6 +20,7 @@ test.describe('MAS Docs Masks feature test suite', () => {
 
         await test.step('step-2: Click Mask button to apply nala-mask', async () => {
             await masksPage.btnMask.click();
+            await masksPage.waitForTimeout(3000);
             // wait for all three cards to show the masked title
             for (const id of data.fragmentIds) {
                 await expect(masksPage.card(id).title).toContainText(data.mask.title, { timeout: 15000 });
@@ -43,8 +44,8 @@ test.describe('MAS Docs Masks feature test suite', () => {
 
         await test.step('step-5: Verify third card has productName and firstLine placeholders replaced', async () => {
             const thirdCardId = data.fragmentIds[2];
-            const { description } = masksPage.card(thirdCardId);
-            await expect(description).toContainText(data.thirdCard.productName);
+            const { description, bodyM } = masksPage.card(thirdCardId);
+            await expect(bodyM).toContainText(data.thirdCard.productName);
             await expect(description.locator('ul li').first()).toContainText(data.thirdCard.firstLine);
         });
     });

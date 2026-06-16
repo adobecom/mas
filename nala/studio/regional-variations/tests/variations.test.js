@@ -506,8 +506,20 @@ test.describe('M@S Studio - Variations Page test suite', () => {
                 test.step('field: price (OST) — edit, verify preview, click restore, verify original', async () => {
                     await expect(await editor.prices).toBeVisible();
                     await editor.prices.locator(editor.regularPrice).dblclick();
+                    // New tabbed OST: the price-row preview renders only after an
+                    // offer is selected, and the option toggles live in the
+                    // collapsed "Options" section.
+                    if (
+                        await ost.offerCard
+                            .first()
+                            .isVisible()
+                            .catch(() => false)
+                    ) {
+                        await ost.selectFirstOffer();
+                    }
                     await expect(await ost.price).toBeVisible();
                     await expect(await ost.priceUse).toBeVisible();
+                    await ost.expandOptions();
                     await expect(await ost.unitCheckbox).toBeVisible();
                     await ost.unitCheckbox.click();
                     await ost.priceUse.click();
@@ -552,7 +564,11 @@ test.describe('M@S Studio - Variations Page test suite', () => {
                     await expect(await ost.searchField).toBeVisible();
                     await ost.searchField.fill(data.osi);
                     await (await ost.nextButton).click();
-                    await expect(ost.priceUse).toBeVisible();
+                    // New tabbed OST: a searched OSI auto-resolves its offer (and
+                    // preserves the deep-linked OSI). Wait for that async
+                    // resolution to render the price row — do NOT click an offer
+                    // card here, as that mints a fresh OSI and loses data.osi.
+                    await expect(ost.priceUse).toBeVisible({ timeout: 15000 });
                     await ost.priceUse.click();
                     await page.waitForTimeout(400);
                     await expect(await editor.OSI).toContainText(data.osi);

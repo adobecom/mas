@@ -602,16 +602,22 @@ export class OstStore extends EventTarget {
         const attrs = this.initialOsiAttributes;
         let match;
         if (attrs) {
+            const segmentOf = (o) => (Array.isArray(o.market_segments) ? o.market_segments[0] : o.market_segment);
+            const segmentMatches = (o) => !attrs.market_segment || segmentOf(o) === attrs.market_segment;
             // Relax the match progressively — the user may have changed plan
             // filters after the deep-link resolved (e.g. PUF promo reopened,
             // then switched to ABM), so plan fields can legitimately diverge.
+            // market_segment stays a discriminator until the final tier so a
+            // deep-linked EDU OSI never resolves to a same-type COM sibling.
             const tiers = [
                 (o) =>
+                    segmentMatches(o) &&
                     (!attrs.offer_type || o.offer_type === attrs.offer_type) &&
                     (!attrs.commitment || o.commitment === attrs.commitment) &&
                     (!attrs.term || o.term === attrs.term) &&
                     (!attrs.customer_segment || o.customer_segment === attrs.customer_segment),
                 (o) =>
+                    segmentMatches(o) &&
                     attrs.offer_type &&
                     o.offer_type === attrs.offer_type &&
                     (!attrs.customer_segment || o.customer_segment === attrs.customer_segment),

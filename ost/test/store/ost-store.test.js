@@ -262,6 +262,37 @@ describe('OstStore', () => {
             expect(store.autoSelectByInitialOsi(offers)).to.be.true;
             expect(store.selectedOffer.offer_id).to.equal('T1');
         });
+
+        it('prefers the offer whose market segment matches the deep-link over a same-type sibling', () => {
+            const segmented = [
+                {
+                    offer_id: 'COM',
+                    offer_type: 'TRIAL',
+                    commitment: 'YEAR',
+                    term: 'MONTHLY',
+                    customer_segment: 'INDIVIDUAL',
+                    market_segments: ['COM'],
+                },
+                {
+                    offer_id: 'EDU',
+                    offer_type: 'TRIAL',
+                    commitment: 'YEAR',
+                    term: 'MONTHLY',
+                    customer_segment: 'INDIVIDUAL',
+                    market_segments: ['EDU'],
+                },
+            ];
+            store.initialOsi = 'deep-osi';
+            store.initialOsiAttributes = {
+                offer_type: 'TRIAL',
+                commitment: 'YEAR',
+                term: 'MONTHLY',
+                customer_segment: 'INDIVIDUAL',
+                market_segment: 'EDU',
+            };
+            expect(store.autoSelectByInitialOsi(segmented)).to.be.true;
+            expect(store.selectedOffer.offer_id).to.equal('EDU');
+        });
     });
 
     describe('tryBuy trial auto-fill', () => {

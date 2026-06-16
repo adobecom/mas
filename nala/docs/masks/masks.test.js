@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { features } from './masks.spec.js';
 import MasksPage from './masks.page.js';
+import { constructTestUrl } from '../../utils/commerce.js';
 
 test.skip(({ browserName }) => browserName !== 'chromium', 'Not supported to run on multiple browsers.');
 
@@ -8,7 +9,7 @@ test.describe('MAS Docs Masks feature test suite', () => {
     // @MAS-Docs-Masks
     test(`${features[0].name},${features[0].tags}`, async ({ page, baseURL }) => {
         const { data } = features[0];
-        const testPage = `${baseURL}${features[0].path}`;
+        const testPage = constructTestUrl(baseURL, features[0].path);
         const masksPage = new MasksPage(page);
 
         await test.step('step-1: Load masks doc page and wait for cards', async () => {

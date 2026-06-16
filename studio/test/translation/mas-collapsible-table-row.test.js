@@ -560,6 +560,27 @@ describe('MasCollapsibleTableRow', () => {
             await el.updateComplete;
             expect(Store.translationProjects.selectedCards.value).to.deep.equal([]);
         });
+
+        it('should add the grouped variation path, not the parent, when a variation checkbox is checked', async () => {
+            const parentPath = '/content/dam/mas/acom/en_US/cards/parent';
+            const varPath = `${parentPath}/pzn/var1`;
+            const topLevelCard = createMockTopLevelCard({ path: parentPath, variationPaths: [varPath] });
+            setupCardVariationsInStore(parentPath, [{ path: varPath, title: 'Variation 1' }]);
+            Store.translationProjects.selectedCards.set([]);
+            const el = await fixture(
+                html`<mas-collapsible-table-row
+                    .topLevelCard=${topLevelCard}
+                    .isTopLevelExpanded=${true}
+                ></mas-collapsible-table-row>`,
+            );
+            el.selectedTabKey = 'groupedVariation';
+            await el.updateComplete;
+            const variationCheckbox = el.shadowRoot.querySelector(`sp-checkbox[value="${varPath}"]`);
+            variationCheckbox.click();
+            await el.updateComplete;
+            expect(Store.translationProjects.selectedCards.value).to.include(varPath);
+            expect(Store.translationProjects.selectedCards.value).to.not.include(parentPath);
+        });
     });
 
     describe('grouped variations tab', () => {

@@ -2854,8 +2854,10 @@ merch-card .footer-row-cell:nth-child(8) {
                 ${this.icons}
                 <slot name="badge"></slot>
                 <slot name="heading-xs"></slot>
-                <slot name="subtitle"></slot>
-                <slot name="heading-m-price"></slot>
+                <div class="price-wrapping">
+                    <slot name="subtitle"></slot>
+                    <slot name="heading-m-price"></slot>
+                </div>
                 <slot name="promo-text"></slot>
                 <slot name="body-m"></slot>
                 ${this.getMiniCompareFooter()}

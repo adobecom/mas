@@ -21,6 +21,8 @@ const Store = {
         },
         inEdit: new ReactiveStore(null),
         expandedId: new ReactiveStore(null), // Fragment ID to auto-expand in variations table
+        highlightedVariationId: new ReactiveStore(null), // Variation ID to highlight after UUID variation search
+        variationSearchTab: new ReactiveStore(null), // 'locale' | 'promotion' | 'grouped' tab to open in variations panel
     },
     fragmentEditor: {
         fragmentId: new ReactiveStore(null),

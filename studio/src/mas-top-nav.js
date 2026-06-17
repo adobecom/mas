@@ -22,6 +22,7 @@ class MasTopNav extends LitElement {
     promotions = Store.promotions;
     translationProjects = Store.translationProjects;
     bulkPublishProjects = Store.bulkPublishProjects;
+    masks = Store.masks;
 
     reactiveController = new ReactiveController(this, [
         this.page,
@@ -38,6 +39,8 @@ class MasTopNav extends LitElement {
         this.translationProjects.inEdit,
         this.bulkPublishProjects.inEdit,
         this.bulkPublishProjects.projectId,
+        this.masks.fragmentId,
+        this.masks.creating,
     ]);
 
     createRenderRoot() {
@@ -181,6 +184,14 @@ class MasTopNav extends LitElement {
 
     get isPromotionsEditorPage() {
         return this.page.value === PAGE_NAMES.PROMOTIONS_EDITOR;
+    }
+
+    get isMasksEditorPage() {
+        return this.page.value === PAGE_NAMES.MASKS_EDITOR;
+    }
+
+    get masksEditorBreadcrumbLabel() {
+        return this.masks.creating.get() ? 'New mask' : 'Editor';
     }
 
     get topNavLocale() {
@@ -361,6 +372,12 @@ class MasTopNav extends LitElement {
                 { label: this.bulkPublishEditorBreadcrumbLabel },
             ];
         }
+        if (this.page.value === PAGE_NAMES.MASKS_EDITOR) {
+            return [
+                { label: 'Masks', handler: () => router.navigateToPage(PAGE_NAMES.MASKS)() },
+                { label: this.masksEditorBreadcrumbLabel },
+            ];
+        }
 
         return [];
     }
@@ -387,10 +404,10 @@ class MasTopNav extends LitElement {
     get historyNavigationTemplate() {
         return html`
             <div class="history-navigation" aria-label="History navigation">
-                <button class="history-nav-button" type="button" aria-label="Back">
+                <button class="history-nav-button" type="button" aria-label="Back" @click=${() => history.back()}>
                     <sp-icon-chevron-left size="s"></sp-icon-chevron-left>
                 </button>
-                <button class="history-nav-button" type="button" aria-label="Forward" disabled>
+                <button class="history-nav-button" type="button" aria-label="Forward" @click=${() => history.forward()}>
                     <sp-icon-chevron-right size="s"></sp-icon-chevron-right>
                 </button>
             </div>

@@ -206,6 +206,27 @@ describe('FragmentClient', () => {
         expect(result).to.have.property('fields');
     });
 
+    it('runs the mask transformer when mask option is supplied', async () => {
+        const maskByPathUrl = `${baseUrl}/byPath?path=/content/dam/mas/sandbox/en_US/masks/promo`;
+        const maskId = 'mask-frag-id';
+        const maskHydrateUrl = `${baseUrl}/${maskId}`;
+        fetchStub.withArgs(maskByPathUrl).returns(createResponse(200, { id: maskId }));
+        fetchStub
+            .withArgs(maskHydrateUrl)
+            .returns(
+                createResponse(200, { id: maskId, fields: { badge: 'MASKED BADGE' }, references: {}, referencesTree: [] }),
+            );
+
+        const result = await previewFragment(mockCardFragment.id, {
+            surface: 'sandbox',
+            locale: 'en_US',
+            mask: 'promo',
+        });
+
+        expect(fetchStub.calledWith(maskByPathUrl)).to.be.true;
+        expect(result).to.have.property('fields');
+    });
+
     describe('previewStudioFragment', () => {
         it('returns processed body with api_key fragment-client-studio', async () => {
             const body = { ...mockCardFragment };

@@ -2,6 +2,7 @@ import { PAGE_NAMES, SORT_COLUMNS, WCS_LANDSCAPE_DRAFT, WCS_LANDSCAPE_PUBLISHED 
 import { ReactiveStore } from './reactivity/reactive-store.js';
 import { EditorContextStore } from './reactivity/editor-context-store.js';
 import { SettingsStore } from './settings/settings-store.js';
+import { MasksStore } from './masks/masks-store.js';
 
 let editorContextInstance = null;
 
@@ -21,6 +22,8 @@ const Store = {
         },
         inEdit: new ReactiveStore(null),
         expandedId: new ReactiveStore(null), // Fragment ID to auto-expand in variations table
+        highlightedVariationId: new ReactiveStore(null), // Variation ID to highlight after UUID variation search
+        variationSearchTab: new ReactiveStore(null), // 'locale' | 'promotion' | 'grouped' tab to open in variations panel
     },
     fragmentEditor: {
         fragmentId: new ReactiveStore(null),
@@ -80,6 +83,7 @@ const Store = {
         previewByLocale: new ReactiveStore({}),
     },
     settings: new SettingsStore(),
+    masks: new MasksStore(),
     profile: new ReactiveStore({}),
     createdByUsers: new ReactiveStore([]),
     users: new ReactiveStore([]),
@@ -291,6 +295,8 @@ function pageValidator(value) {
         PAGE_NAMES.BULK_PUBLISH,
         PAGE_NAMES.BULK_PUBLISH_EDITOR,
         PAGE_NAMES.ADVANCED_TOOLS,
+        PAGE_NAMES.MASKS,
+        PAGE_NAMES.MASKS_EDITOR,
     ];
     return validPages.includes(value) ? value : PAGE_NAMES.WELCOME;
 }

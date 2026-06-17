@@ -129,6 +129,8 @@ export const PAGE_NAMES = {
     BULK_PUBLISH: 'bulkPublish',
     BULK_PUBLISH_EDITOR: 'bulkPublishEditor',
     ADVANCED_TOOLS: 'advanced-tools',
+    MASKS: 'masks',
+    MASKS_EDITOR: 'masks-editor',
 };
 
 export const TAG_STATUS_PUBLISHED = 'mas:status/published';
@@ -162,6 +164,11 @@ export const TAG_MERCH_CARD_COLLECTION = `${TAG_STUDIO_CONTENT_TYPE}/merch-card-
 export const TAG_MERCH_CARD = `${TAG_STUDIO_CONTENT_TYPE}/merch-card`;
 export const TAG_COMPARE_CHART = `${TAG_STUDIO_CONTENT_TYPE}/${COMPARE_CHART_CREATE_TYPE}`;
 export const TAG_COMPARE_CHART_PATH = `/content/cq:tags/${TAG_COMPARE_CHART.replace(':', '/')}`;
+
+/** Masks: card fragments stored under <surface>/<locale>/masks and tagged in the masks namespace. */
+export const MASKS_FOLDER = 'masks';
+export const TAG_MASKS_NAMESPACE_PATH = '/content/cq:tags/mas/masks';
+export const MAS_MASKS_PREFIX = 'mas:masks/';
 
 /** Full AEM content path for product_code */
 export const AEM_TAG_PATH_PRODUCT_CODE_ROOT = '/content/cq:tags/mas/product_code';
@@ -300,7 +307,7 @@ export const BULK_PUBLISH_STATUS = {
     REVERTED: 'Reverted',
 };
 
-export const BULK_PUBLISH_PARENT_PATH = '/content/dam/mas/bulk-publish-projects';
+export const BULK_PUBLISH_PROJECTS_FOLDER = 'bulk-publish-projects';
 
 /**
  * Compat version of the card.

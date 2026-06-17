@@ -36,6 +36,10 @@ import { log, logDebug, logError, getErrorMessage } from '../utils/log.js';
  * @property {Object<string, string>} [__ow_headers] - OpenWhisk request headers (e.g. for If-Modified-Since).
  */
 
+const CARD_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ';
+const COLLECTION_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24';
+const VALID_PARAMETER_VALUE_REGEX = /^[a-zA-Z0-9_-]+$/;
+
 async function computeBody(response, context) {
     let body = await response.json();
     if (context.preview && Array.isArray(body.fields)) {
@@ -276,7 +280,25 @@ const getCountry = (context) => context.country || context.locale?.split('_')[1]
  */
 const getRegionalLocale = (context) => context.regionLocale ?? context.locale;
 
+/**
+ * Skims a fragment by stripping its references, which can be large and are not needed for masks. This is used to keep the mask fragment lightweight since it's only used as an overlay and doesn't need to resolve references. The
+ * full fragment with references is still fetched to check for existence and for validation against the card model, but
+ * the skimmed version is what gets exposed on `context.maskFragment` for the `customize` transformer to apply.
+ * @param {*} fragment
+ * @returns skimmed fragment without references
+ */
+function skimFragmentFromReferences(fragment) {
+    const skimmedFragment = structuredClone(fragment);
+    delete skimmedFragment.references;
+    delete skimmedFragment.modelReferences;
+    delete skimmedFragment.referencesTree;
+    return skimmedFragment;
+}
+
 export {
+    CARD_MODEL_ID,
+    COLLECTION_MODEL_ID,
+    VALID_PARAMETER_VALUE_REGEX,
     createTimeoutPromise,
     internalFetch as fetch,
     getCountry,
@@ -288,4 +310,5 @@ export {
     mark,
     matchesGeo,
     measureTiming,
+    skimFragmentFromReferences,
 };

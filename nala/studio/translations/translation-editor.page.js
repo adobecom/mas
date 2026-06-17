@@ -46,9 +46,7 @@ export default class TranslationEditorPage {
         this.addSelectedItemsButton = this.selectItemsDialog.getByRole('button', { name: 'Add selected items' });
         this.selectedItemsButton = page.locator('mas-items-selector .selected-items-count sp-button');
 
-        this.searchInput = fragmentsTab.locator(
-            'mas-search-and-filters sp-search input, mas-search-and-filters input[type="search"]',
-        );
+        this.searchInput = this.selectItemsDialog.locator('.dialog-header sp-search input');
         this.fragmentsResultCount = fragmentsTab.locator('mas-search-and-filters .result-count');
         this.appliedFilterTags = fragmentsTab.locator('mas-search-and-filters .applied-filters sp-tag');
 
@@ -138,6 +136,8 @@ export default class TranslationEditorPage {
         await this.addItemsButton.click();
         await expect(this.selectItemsDialog).toBeVisible({ timeout: 10000 });
         await this.cardsTab.click();
+        await expect(this.searchInput).toBeVisible({ timeout: 10000 });
+        await expect(this.tableRows.first()).toBeVisible({ timeout: 30000 });
         await this.searchInput.fill(cardId);
         await this.page.keyboard.press('Enter');
         await expect(this.tableRows.first()).toBeVisible({ timeout: 30000 });

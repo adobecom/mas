@@ -241,3 +241,86 @@ describe('wcs corner cases', function () {
         });
     });
 });
+
+describe('wcs OSI substitution', function () {
+    let context = {};
+    let fetchStub;
+
+    const stubbedOffer = (name) => ({ resolvedOffers: [{ name }] });
+
+    beforeEach(function () {
+        fetchStub = sinon.stub(globalThis, 'fetch');
+        fetchStub.resolves(createResponse(200, stubbedOffer('default')));
+        context = {
+            api_key: 'testing_wcs',
+            locale: 'en_US',
+            wcsConfiguration: CONFIGURATION(),
+        };
+    });
+
+    afterEach(function () {
+        fetchStub.restore();
+    });
+
+    it('substitutes OSI from data-wcs-osi HTML content when substituteMap is provided', async function () {
+        context.body = {
+            prices: '<span data-wcs-osi="BASE-OSI"></span>',
+            fields: {},
+        };
+        context.substituteMap = { 'BASE-OSI': 'SUB-OSI' };
+        fetchStub
+            .withArgs(sinon.match((url) => url.includes('offer_selector_ids=SUB-OSI')))
+            .returns(createResponse(200, stubbedOffer('substituted')));
+
+        context = await wcs.process(context);
+
+        expect(context.body.wcs.prod).to.have.property('SUB-OSI-us-mult');
+        expect(context.body.wcs.prod).to.not.have.property('BASE-OSI-us-mult');
+    });
+
+    it('substitutes OSI from fields.osi when substituteMap is provided', async function () {
+        context.body = {
+            prices: '<span data-wcs-osi="BASE-OSI"></span>',
+            fields: { osi: 'BASE-OSI' },
+        };
+        context.substituteMap = { 'BASE-OSI': 'SUB-OSI' };
+        fetchStub
+            .withArgs(sinon.match((url) => url.includes('offer_selector_ids=SUB-OSI')))
+            .returns(createResponse(200, stubbedOffer('substituted')));
+
+        context = await wcs.process(context);
+
+        expect(context.body.wcs.prod).to.have.property('SUB-OSI-us-mult');
+        expect(context.body.wcs.prod).to.not.have.property('BASE-OSI-us-mult');
+    });
+
+    it('leaves OSI unchanged when no substituteMap is present', async function () {
+        context.body = {
+            prices: '<span data-wcs-osi="ORIG-OSI"></span>',
+            fields: { osi: 'ORIG-OSI' },
+        };
+        fetchStub
+            .withArgs(sinon.match((url) => url.includes('offer_selector_ids=ORIG-OSI')))
+            .returns(createResponse(200, stubbedOffer('original')));
+
+        context = await wcs.process(context);
+
+        expect(context.body.wcs.prod).to.have.property('ORIG-OSI-us-mult');
+    });
+
+    it('leaves OSI unchanged when substituteMap has no matching entry', async function () {
+        context.body = {
+            prices: '<span data-wcs-osi="ORIG-OSI"></span>',
+            fields: { osi: 'ORIG-OSI' },
+        };
+        context.substituteMap = { 'OTHER-OSI': 'SUB-OSI' };
+        fetchStub
+            .withArgs(sinon.match((url) => url.includes('offer_selector_ids=ORIG-OSI')))
+            .returns(createResponse(200, stubbedOffer('original')));
+
+        context = await wcs.process(context);
+
+        expect(context.body.wcs.prod).to.have.property('ORIG-OSI-us-mult');
+        expect(context.body.wcs.prod).to.not.have.property('OTHER-OSI-us-mult');
+    });
+});

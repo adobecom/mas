@@ -5,17 +5,16 @@ import {
     classifyPromotionPathsForSelection,
     countDistinctPromoCodesForOffer,
     addPromotionOfferFromOst,
-    buildPromotionOfferCacheEntry,
-    buildPromotionOfferTags,
+    buildPromotionOfferRecord,
     applyPromotionItemSelectionToFragment,
-    buildPromotionOfferCacheEntryFromSnapshot,
+    buildPromotionOfferRecordFromFields,
     buildPromotionOffersFieldValues,
-    hydratePromotionOfferCacheFromSelectorIds,
-    resolvePromotionOfferCacheEntry,
-    parsePromotionOfferCacheLines,
+    hydratePromotionOfferRecords,
+    resolvePromotionOfferRecord,
+    parsePromotionOfferLines,
     upsertPromotionFragmentsField,
     upsertPromotionOffersField,
-    serializePromotionOfferCacheLine,
+    serializePromotionOfferLine,
     applyPromotionOfferProductTagsToSearch,
     collectPromotionOfferProductTags,
     pruneOrphanedPromotionSelectionAfterOfferRemoval,
@@ -23,9 +22,8 @@ import {
     buildRemoveOfferConfirmationMessage,
     groupCountriesByPromoCode,
     groupCountriesByPromoCodeForOffer,
-    promotionOfferCacheEntryHasDisplayName,
+    promotionOfferRecordHasDisplayName,
     normalizePromotionOfferData,
-    resolvePromotionOfferMnemonicIconUrl,
     getEffectivePromoCode,
     isPromotionItemSelectionDirty,
     isPromotionOffersSelectionDirty,
@@ -45,8 +43,8 @@ import {
     splitPromotionTagsFieldValues,
     handlePromotionOstOfferSelect,
     isPromotionOfferSubstitutionEntry,
-    isPromotionOfferCacheEntry,
-    serializePromotionOfferCacheSnapshot,
+    isPromotionOfferLine,
+    serializePromotionOfferFields,
 } from '../../src/promotions/promotion-editor-utils.js';
 import { COLLECTION_MODEL_PATH } from '../../src/constants.js';
 
@@ -139,7 +137,7 @@ describe('promotion-editor-utils', () => {
             const cache = new Map([
                 [
                     'osi-abc',
-                    buildPromotionOfferCacheEntry(
+                    buildPromotionOfferRecord(
                         'osi-abc',
                         { product_code: 'Acrobat Pro Subs CC', offer_type: 'BASE', plan_type: 'PUF' },
                         'PA-1386',
@@ -149,10 +147,10 @@ describe('promotion-editor-utils', () => {
             const values = buildPromotionOffersFieldValues(p, ['osi-abc'], cache);
             expect(values).to.include('osi-abc');
             expect(values.some((line) => line.startsWith('offer-cache::'))).to.be.true;
-            const restored = parsePromotionOfferCacheLines(values).get('osi-abc');
+            const restored = parsePromotionOfferLines(values).get('osi-abc');
             expect(restored?.product_code).to.equal('Acrobat Pro Subs CC');
             expect(restored?.product_arrangement_code).to.equal('PA-1386');
-            const entry = buildPromotionOfferCacheEntryFromSnapshot('osi-abc', restored);
+            const entry = buildPromotionOfferRecordFromFields('osi-abc', restored);
             expect(entry.tags.find(({ id }) => id.startsWith('mas:product_code/'))?.title).to.equal('Acrobat Pro Subs CC');
             const { promoExceptions, offerSubstitutions } = parsePromotionOffersField(values);
             expect(promoExceptions.size).to.equal(0);
@@ -597,8 +595,8 @@ describe('promotion-editor-utils', () => {
         const ffsaCard = '/content/dam/mas/ffsa-card';
         const phspCard = '/content/dam/mas/phsp-card';
         const offerCache = new Map([
-            ['ffsa-osi', buildPromotionOfferCacheEntry('ffsa-osi', { product_code: 'FFSA', offer_id: 'wcs-1' })],
-            ['phsp-osi', buildPromotionOfferCacheEntry('phsp-osi', { product_code: 'PHSP', offer_id: 'wcs-2' })],
+            ['ffsa-osi', buildPromotionOfferRecord('ffsa-osi', { product_code: 'FFSA', offer_id: 'wcs-1' })],
+            ['phsp-osi', buildPromotionOfferRecord('phsp-osi', { product_code: 'PHSP', offer_id: 'wcs-2' })],
         ]);
         const cardsByPaths = new Map([
             [ffsaCard, { path: ffsaCard, tags: [{ id: 'mas:product_code/ffsa', title: 'FFSA' }] }],
@@ -625,8 +623,8 @@ describe('promotion-editor-utils', () => {
         const phspCard = '/content/dam/mas/phsp-card';
         const ffsaCol = '/content/dam/mas/ffsa-col';
         const offerCache = new Map([
-            ['ffsa-osi', buildPromotionOfferCacheEntry('ffsa-osi', { product_code: 'FFSA', offer_id: 'wcs-1' })],
-            ['phsp-osi', buildPromotionOfferCacheEntry('phsp-osi', { product_code: 'PHSP', offer_id: 'wcs-2' })],
+            ['ffsa-osi', buildPromotionOfferRecord('ffsa-osi', { product_code: 'FFSA', offer_id: 'wcs-1' })],
+            ['phsp-osi', buildPromotionOfferRecord('phsp-osi', { product_code: 'PHSP', offer_id: 'wcs-2' })],
         ]);
         const cardsByPaths = new Map([
             [ffsaCard, { path: ffsaCard, tags: [{ id: 'mas:product_code/ffsa', title: 'FFSA' }] }],
@@ -689,32 +687,6 @@ describe('promotion-editor-utils', () => {
         });
     });
 
-    describe('buildPromotionOfferTags', () => {
-        it('maps OST offer fields to mas tag ids and display titles', () => {
-            const tags = buildPromotionOfferTags(
-                {
-                    product_code: 'FFSA',
-                    offer_type: 'BASE',
-                    planType: 'ABM',
-                    customer_segment: 'INDIVIDUAL',
-                    market_segments: 'COM',
-                },
-                'PA-2511',
-            );
-            expect(tags).to.deep.include({ id: 'mas:product_code/ffsa', title: 'FFSA' });
-            expect(tags).to.deep.include({ id: 'mas:product_arrangement/pa-2511', title: 'PA-2511' });
-            expect(tags).to.deep.include({ id: 'mas:offer_type/base', title: 'BASE' });
-            expect(tags).to.deep.include({ id: 'mas:plan_type/abm', title: 'ABM' });
-            expect(tags).to.deep.include({ id: 'mas:customer_segment/individual', title: 'INDIVIDUAL' });
-            expect(tags).to.deep.include({ id: 'mas:market_segment/com', title: 'COM' });
-        });
-
-        it('uses product_name for product_code tag title when present', () => {
-            const tags = buildPromotionOfferTags({ product_code: 'ilst', product_name: 'Illustrator' });
-            expect(tags).to.deep.include({ id: 'mas:product_code/ilst', title: 'Illustrator' });
-        });
-    });
-
     describe('normalizePromotionOfferData', () => {
         it('normalizes offer_id to offerId and product arrangement code', () => {
             const data = normalizePromotionOfferData(
@@ -725,26 +697,6 @@ describe('promotion-editor-utils', () => {
             expect(data.offerId).to.equal('wcs-123');
             expect(data.offer_id).to.be.undefined;
             expect(data.product_arrangement_code).to.equal('PA-9');
-        });
-    });
-
-    describe('resolvePromotionOfferMnemonicIconUrl', () => {
-        it('returns offer icon when present on OST payload', () => {
-            expect(resolvePromotionOfferMnemonicIconUrl({ icon: 'https://example.com/icon.svg' })).to.equal(
-                'https://example.com/icon.svg',
-            );
-        });
-
-        it('resolves icon from product_name when product_code does not match ADOBE_PRODUCTS', () => {
-            const url = resolvePromotionOfferMnemonicIconUrl({ product_code: 'ilst', product_name: 'Illustrator' });
-            expect(url).to.equal('https://www.adobe.com/cc-shared/assets/img/product-icons/svg/illustrator.svg');
-        });
-
-        it('resolves icon from productArrangement.productFamily when product_code is absent', () => {
-            const url = resolvePromotionOfferMnemonicIconUrl({
-                productArrangement: { productCode: 'phsp', productFamily: 'Photoshop' },
-            });
-            expect(url).to.equal('https://www.adobe.com/cc-shared/assets/img/product-icons/svg/photoshop.svg');
         });
     });
 
@@ -764,9 +716,9 @@ describe('promotion-editor-utils', () => {
         });
     });
 
-    describe('buildPromotionOfferCacheEntry', () => {
+    describe('buildPromotionOfferRecord', () => {
         it('exposes getTagTitle for offer table columns', () => {
-            const entry = buildPromotionOfferCacheEntry(
+            const entry = buildPromotionOfferRecord(
                 'phsp-osi',
                 {
                     product_code: 'PHSP',
@@ -787,7 +739,7 @@ describe('promotion-editor-utils', () => {
         });
 
         it('stores mnemonicIcon field when offer icon is present', () => {
-            const entry = buildPromotionOfferCacheEntry(
+            const entry = buildPromotionOfferRecord(
                 'phsp-osi',
                 { product_code: 'PHSP', icon: 'https://example.com/phsp.svg' },
                 'PA-1',
@@ -948,35 +900,35 @@ describe('promotion-editor-utils', () => {
         });
     });
 
-    describe('serializePromotionOfferCacheLine', () => {
+    describe('serializePromotionOfferLine', () => {
         it('returns empty string when offerSelectorId is missing', () => {
-            expect(serializePromotionOfferCacheLine('', { product_code: 'PHSP' })).to.equal('');
+            expect(serializePromotionOfferLine('', { product_code: 'PHSP' })).to.equal('');
         });
 
-        it('returns empty string when snapshot is null', () => {
-            expect(serializePromotionOfferCacheLine('osi-1', null)).to.equal('');
+        it('returns empty string when fields is null', () => {
+            expect(serializePromotionOfferLine('osi-1', null)).to.equal('');
         });
 
-        it('produces an offer-cache:: line that round-trips through parsePromotionOfferCacheLines', () => {
-            const line = serializePromotionOfferCacheLine('osi-abc', {
+        it('produces an offer-cache:: line that round-trips through parsePromotionOfferLines', () => {
+            const line = serializePromotionOfferLine('osi-abc', {
                 product_code: 'PHSP',
                 offer_id: 'wcs-1',
             });
             expect(line).to.match(/^offer-cache::/);
-            const parsed = parsePromotionOfferCacheLines([line]);
-            const snapshot = parsed.get('osi-abc');
-            expect(snapshot?.product_code).to.equal('PHSP');
-            expect(snapshot?.offer_id).to.equal('wcs-1');
+            const parsed = parsePromotionOfferLines([line]);
+            const fields = parsed.get('osi-abc');
+            expect(fields?.product_code).to.equal('PHSP');
+            expect(fields?.offer_id).to.equal('wcs-1');
         });
     });
 
-    describe('resolvePromotionOfferCacheEntry', () => {
+    describe('resolvePromotionOfferRecord', () => {
         it('returns null for empty offerSelectorId', async () => {
-            expect(await resolvePromotionOfferCacheEntry('')).to.be.null;
+            expect(await resolvePromotionOfferRecord('')).to.be.null;
         });
 
         it('returns a fallback cache entry when commerce service is unavailable', async () => {
-            const entry = await resolvePromotionOfferCacheEntry('osi-unknown');
+            const entry = await resolvePromotionOfferRecord('osi-unknown');
             expect(entry?.id).to.equal('osi-unknown');
         });
 
@@ -993,11 +945,11 @@ describe('promotion-editor-utils', () => {
             };
             mockService.resolveOfferSelectors = () => [Promise.resolve([wcsOffer])];
             document.body.appendChild(mockService);
-            const entry = await resolvePromotionOfferCacheEntry('regional-osi', 'my');
+            const entry = await resolvePromotionOfferRecord('regional-osi', 'my');
             document.body.removeChild(mockService);
             expect(capturedOptions.country).to.equal('MY');
             expect(capturedOptions.language).to.equal('MULT');
-            expect(promotionOfferCacheEntryHasDisplayName(entry)).to.be.true;
+            expect(promotionOfferRecordHasDisplayName(entry)).to.be.true;
             expect(entry.tags.find((tag) => tag.id.startsWith('mas:product_code/'))?.title).to.equal('CC_ALL_APPS');
         });
 
@@ -1010,9 +962,9 @@ describe('promotion-editor-utils', () => {
             };
             mockService.resolveOfferSelectors = () => [Promise.resolve([])];
             document.body.appendChild(mockService);
-            await resolvePromotionOfferCacheEntry('osi-ca', 'CA_en');
+            await resolvePromotionOfferRecord('osi-ca', 'CA_en');
             const countryCA = capturedCountry;
-            await resolvePromotionOfferCacheEntry('osi-lu', 'en_LU');
+            await resolvePromotionOfferRecord('osi-lu', 'en_LU');
             const countryLU = capturedCountry;
             document.body.removeChild(mockService);
             expect(countryCA).to.equal('CA');
@@ -1028,8 +980,8 @@ describe('promotion-editor-utils', () => {
             };
             mockService.resolveOfferSelectors = () => [Promise.resolve([])];
             document.body.appendChild(mockService);
-            await resolvePromotionOfferCacheEntry('osi-gb', 'GB');
-            await resolvePromotionOfferCacheEntry('osi-de', 'DE');
+            await resolvePromotionOfferRecord('osi-gb', 'GB');
+            await resolvePromotionOfferRecord('osi-de', 'DE');
             document.body.removeChild(mockService);
             expect(captured[0]).to.deep.equal({ country: 'GB', language: 'EN' });
             expect(captured[1]).to.deep.equal({ country: 'DE', language: 'MULT' });
@@ -1047,7 +999,7 @@ describe('promotion-editor-utils', () => {
             mockService.collectPriceOptions = (o) => o;
             mockService.resolveOfferSelectors = () => [Promise.resolve([wcsOffer])];
             document.body.appendChild(mockService);
-            const entry = await resolvePromotionOfferCacheEntry('osi-phsp', 'US');
+            const entry = await resolvePromotionOfferRecord('osi-phsp', 'US');
             document.body.removeChild(mockService);
             expect(entry.tags.find((t) => t.id === 'mas:offer_type/base')).to.exist;
             expect(entry.tags.find((t) => t.id === 'mas:plan_type/abm')).to.exist;
@@ -1056,24 +1008,24 @@ describe('promotion-editor-utils', () => {
         });
     });
 
-    describe('hydratePromotionOfferCacheFromSelectorIds', () => {
+    describe('hydratePromotionOfferRecords', () => {
         it('does nothing for an empty ids array', async () => {
             const cache = new Map();
-            await hydratePromotionOfferCacheFromSelectorIds([], cache);
+            await hydratePromotionOfferRecords([], cache);
             expect(cache.size).to.equal(0);
         });
 
         it('skips ids whose cache entry already has a display name', async () => {
-            const existing = buildPromotionOfferCacheEntry('osi-1', { product_code: 'PHSP' }, 'PA-1');
-            expect(promotionOfferCacheEntryHasDisplayName(existing)).to.be.true;
+            const existing = buildPromotionOfferRecord('osi-1', { product_code: 'PHSP' }, 'PA-1');
+            expect(promotionOfferRecordHasDisplayName(existing)).to.be.true;
             const cache = new Map([['osi-1', existing]]);
-            await hydratePromotionOfferCacheFromSelectorIds(['osi-1'], cache);
+            await hydratePromotionOfferRecords(['osi-1'], cache);
             expect(cache.get('osi-1')).to.equal(existing);
         });
 
         it('adds a fallback entry for uncached ids when commerce service is unavailable', async () => {
             const cache = new Map();
-            await hydratePromotionOfferCacheFromSelectorIds(['osi-unknown'], cache);
+            await hydratePromotionOfferRecords(['osi-unknown'], cache);
             expect(cache.has('osi-unknown')).to.be.true;
             expect(cache.get('osi-unknown').id).to.equal('osi-unknown');
         });
@@ -1095,25 +1047,25 @@ describe('promotion-editor-utils', () => {
         });
     });
 
-    describe('isPromotionOfferCacheEntry', () => {
+    describe('isPromotionOfferLine', () => {
         it('returns true for a string starting with offer-cache:', () => {
-            expect(isPromotionOfferCacheEntry('offer-cache::osi-1:{"product_code":"PHSP"}')).to.be.true;
+            expect(isPromotionOfferLine('offer-cache::osi-1:{"product_code":"PHSP"}')).to.be.true;
         });
 
         it('returns false for a string starting with substitute:', () => {
-            expect(isPromotionOfferCacheEntry('substitute:OSI-A:OSI-B:US')).to.be.false;
+            expect(isPromotionOfferLine('substitute:OSI-A:OSI-B:US')).to.be.false;
         });
 
         it('returns false for non-string values', () => {
-            expect(isPromotionOfferCacheEntry(null)).to.be.false;
-            expect(isPromotionOfferCacheEntry(undefined)).to.be.false;
+            expect(isPromotionOfferLine(null)).to.be.false;
+            expect(isPromotionOfferLine(undefined)).to.be.false;
         });
     });
 
-    describe('serializePromotionOfferCacheSnapshot', () => {
+    describe('serializePromotionOfferFields', () => {
         it('returns null for falsy input', () => {
-            expect(serializePromotionOfferCacheSnapshot(null)).to.be.null;
-            expect(serializePromotionOfferCacheSnapshot(undefined)).to.be.null;
+            expect(serializePromotionOfferFields(null)).to.be.null;
+            expect(serializePromotionOfferFields(undefined)).to.be.null;
         });
 
         it('serializes known offer fields from offerData', () => {
@@ -1129,10 +1081,10 @@ describe('promotion-editor-utils', () => {
                 },
                 tags: [],
             };
-            const snapshot = serializePromotionOfferCacheSnapshot(cacheEntry);
-            expect(snapshot).to.include({ product_code: 'PHSP', offer_type: 'BASE', plan_type: 'ABM' });
-            expect(snapshot.offer_id).to.equal('wcs-offer-1');
-            expect(snapshot.product_arrangement_code).to.equal('PA-123');
+            const fields = serializePromotionOfferFields(cacheEntry);
+            expect(fields).to.include({ product_code: 'PHSP', offer_type: 'BASE', plan_type: 'ABM' });
+            expect(fields.offer_id).to.equal('wcs-offer-1');
+            expect(fields.product_arrangement_code).to.equal('PA-123');
         });
 
         it('extracts product_code from tag when offerData lacks it', () => {
@@ -1140,13 +1092,13 @@ describe('promotion-editor-utils', () => {
                 offerData: {},
                 tags: [{ id: 'mas:product_code/ccsn', title: 'CCSN' }],
             };
-            const snapshot = serializePromotionOfferCacheSnapshot(cacheEntry);
-            expect(snapshot?.product_code).to.equal('CCSN');
+            const fields = serializePromotionOfferFields(cacheEntry);
+            expect(fields?.product_code).to.equal('CCSN');
         });
 
         it('returns null when all fields are empty', () => {
             const cacheEntry = { offerData: {}, tags: [] };
-            expect(serializePromotionOfferCacheSnapshot(cacheEntry)).to.be.null;
+            expect(serializePromotionOfferFields(cacheEntry)).to.be.null;
         });
 
         it('reads icon from getFieldValue when present', () => {
@@ -1155,8 +1107,8 @@ describe('promotion-editor-utils', () => {
                 tags: [],
                 getFieldValue: (name) => (name === 'mnemonicIcon' ? 'https://adobe.com/icon.svg' : undefined),
             };
-            const snapshot = serializePromotionOfferCacheSnapshot(cacheEntry);
-            expect(snapshot?.icon).to.equal('https://adobe.com/icon.svg');
+            const fields = serializePromotionOfferFields(cacheEntry);
+            expect(fields?.icon).to.equal('https://adobe.com/icon.svg');
         });
     });
 

@@ -4,6 +4,10 @@ import { log, logError } from '../utils/log.js';
 const MAS_ELEMENT_REGEXP = /<[^>]+data-wcs-osi=\\"(?<osi>[^\\]+)\\"[^>]*?>/gm;
 const PROMOCODE_REGEXP = /(?<promo>data-promotion-code=\\"(?<promotionCode>[^\\]+)\\")/;
 
+function substituteOsi(osi, substituteMap) {
+    return substituteMap?.[osi] ?? osi;
+}
+
 async function fetchArtifact(osi, promotionCode, wcsContext, idx) {
     const url = new URL(wcsContext.wcsURL);
     url.searchParams.set('country', wcsContext.country);
@@ -74,7 +78,7 @@ async function wcs(context) {
         const tokenKey = ({ osi, promotionCode }) => `${osi}-${promotionCode || ''}`;
         matches.forEach((match) => {
             const token = {
-                osi: match.groups.osi,
+                osi: substituteOsi(match.groups.osi, context.substituteMap),
             };
             const promoMatch = match[0].match(PROMOCODE_REGEXP);
             if (promoMatch && promoMatch.groups?.promotionCode) {
@@ -85,7 +89,7 @@ async function wcs(context) {
 
         if (body.fields.osi) {
             const token = {
-                osi: body.fields.osi,
+                osi: substituteOsi(body.fields.osi, context.substituteMap),
                 promotionCode: body.fields.promoCode,
             };
             tokenMap.set(tokenKey(token), token);

@@ -208,6 +208,120 @@ describe('MasPromotionsItemsSelector', () => {
         filters.forEach((f) => expect(f.productFilter).to.deep.equal([]));
     });
 
+    it('does not render offer filter dropdown when only one offer is selected', async () => {
+        Store.promotions.selectedOffers.set(['phsp-osi']);
+        Store.promotions.offerDataCache.set('phsp-osi', {
+            tags: [{ id: 'mas:product_code/phsp', title: 'Photoshop' }],
+            getTagTitle(key) {
+                return this.tags.find((t) => t.id.includes(key))?.title;
+            },
+        });
+        const el = await fixture(html`<mas-promotions-items-selector></mas-promotions-items-selector>`);
+        await el.updateComplete;
+        expect(el.shadowRoot.querySelector('sp-picker.offer-filter')).to.be.null;
+    });
+
+    it('renders offer filter dropdown with All and per-offer options when two offers are selected', async () => {
+        Store.promotions.selectedOffers.set(['phsp-osi', 'ilst-osi']);
+        Store.promotions.offerDataCache.set('phsp-osi', {
+            tags: [{ id: 'mas:product_code/phsp', title: 'Photoshop' }],
+            getTagTitle(key) {
+                return this.tags.find((t) => t.id.includes(key))?.title;
+            },
+        });
+        Store.promotions.offerDataCache.set('ilst-osi', {
+            tags: [{ id: 'mas:product_code/ilst', title: 'Illustrator' }],
+            getTagTitle(key) {
+                return this.tags.find((t) => t.id.includes(key))?.title;
+            },
+        });
+        const el = await fixture(html`<mas-promotions-items-selector></mas-promotions-items-selector>`);
+        await el.updateComplete;
+        const picker = el.shadowRoot.querySelector('sp-picker.offer-filter');
+        expect(picker).to.exist;
+        const items = [...picker.querySelectorAll('sp-menu-item')];
+        expect(items.length).to.equal(3);
+        expect(items[0].value).to.equal('all');
+        expect(items[1].value).to.equal('phsp-osi');
+        expect(items[2].value).to.equal('ilst-osi');
+    });
+
+    it('filters productFilter to single offer when that offer is selected in the dropdown', async () => {
+        Store.promotions.selectedOffers.set(['phsp-osi', 'ilst-osi']);
+        Store.promotions.offerDataCache.set('phsp-osi', {
+            tags: [{ id: 'mas:product_code/phsp', title: 'Photoshop' }],
+            getTagTitle(key) {
+                return this.tags.find((t) => t.id.includes(key))?.title;
+            },
+        });
+        Store.promotions.offerDataCache.set('ilst-osi', {
+            tags: [{ id: 'mas:product_code/ilst', title: 'Illustrator' }],
+            getTagTitle(key) {
+                return this.tags.find((t) => t.id.includes(key))?.title;
+            },
+        });
+        const el = await fixture(html`<mas-promotions-items-selector></mas-promotions-items-selector>`);
+        await el.updateComplete;
+        const picker = el.shadowRoot.querySelector('sp-picker.offer-filter');
+        picker.value = 'phsp-osi';
+        picker.dispatchEvent(new Event('change', { bubbles: true }));
+        await el.updateComplete;
+        const cardsFilter = [...el.renderRoot.querySelectorAll('mas-search-and-filters')].find(
+            (f) => f.type === TABLE_TYPE.CARDS,
+        );
+        expect(cardsFilter.productFilter).to.deep.equal(['mas:product_code/phsp']);
+    });
+
+    it('restores union of all offer tags when All offers is selected in the dropdown', async () => {
+        Store.promotions.selectedOffers.set(['phsp-osi', 'ilst-osi']);
+        Store.promotions.offerDataCache.set('phsp-osi', {
+            tags: [{ id: 'mas:product_code/phsp', title: 'Photoshop' }],
+            getTagTitle(key) {
+                return this.tags.find((t) => t.id.includes(key))?.title;
+            },
+        });
+        Store.promotions.offerDataCache.set('ilst-osi', {
+            tags: [{ id: 'mas:product_code/ilst', title: 'Illustrator' }],
+            getTagTitle(key) {
+                return this.tags.find((t) => t.id.includes(key))?.title;
+            },
+        });
+        const el = await fixture(html`<mas-promotions-items-selector></mas-promotions-items-selector>`);
+        await el.updateComplete;
+        el.activeFilterOfferId = 'phsp-osi';
+        await el.updateComplete;
+        const picker = el.shadowRoot.querySelector('sp-picker.offer-filter');
+        picker.value = 'all';
+        picker.dispatchEvent(new Event('change', { bubbles: true }));
+        await el.updateComplete;
+        const cardsFilter = [...el.renderRoot.querySelectorAll('mas-search-and-filters')].find(
+            (f) => f.type === TABLE_TYPE.CARDS,
+        );
+        expect(cardsFilter.productFilter).to.deep.equal(['mas:product_code/phsp', 'mas:product_code/ilst']);
+    });
+
+    it('resets activeFilterOfferId when the active offer is removed from selection', async () => {
+        Store.promotions.selectedOffers.set(['phsp-osi', 'ilst-osi']);
+        Store.promotions.offerDataCache.set('phsp-osi', {
+            tags: [{ id: 'mas:product_code/phsp', title: 'Photoshop' }],
+            getTagTitle(key) {
+                return this.tags.find((t) => t.id.includes(key))?.title;
+            },
+        });
+        Store.promotions.offerDataCache.set('ilst-osi', {
+            tags: [{ id: 'mas:product_code/ilst', title: 'Illustrator' }],
+            getTagTitle(key) {
+                return this.tags.find((t) => t.id.includes(key))?.title;
+            },
+        });
+        const el = await fixture(html`<mas-promotions-items-selector></mas-promotions-items-selector>`);
+        el.activeFilterOfferId = 'phsp-osi';
+        await el.updateComplete;
+        Store.promotions.selectedOffers.set(['ilst-osi']);
+        await el.updateComplete;
+        expect(el.activeFilterOfferId).to.equal('');
+    });
+
     it('updates sp-toast when a child table dispatches show-toast', async () => {
         const el = await fixture(html`<mas-promotions-items-selector .viewOnly=${true}></mas-promotions-items-selector>`);
         await el.updateComplete;

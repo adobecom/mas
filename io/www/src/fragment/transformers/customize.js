@@ -206,27 +206,13 @@ function mergeVariations(root, customizeContext) {
     return root;
 }
 
-function applyOsiSubstitution(fragment, substituteMap, context) {
-    const fragOsi = fragment.fields?.osi;
-    if (!fragOsi || !substituteMap) return;
-    if (Array.isArray(fragOsi)) {
-        fragment.fields.osi = fragOsi.map((o) => {
-            const sub = substituteMap[o];
-            if (sub) logDebug(() => `Substituting OSI ${o} with ${sub} on fragment ${fragment.id}`, context);
-            return sub ?? o;
-        });
-    } else if (substituteMap[fragOsi]) {
-        logDebug(() => `Substituting OSI ${fragOsi} with ${substituteMap[fragOsi]} on fragment ${fragment.id}`, context);
-        fragment.fields.osi = substituteMap[fragOsi];
-    }
-}
-
-function applyPromoCode(fragment, promoMap, context) {
+function applyPromoCode(fragment, promoMap, substituteMap, context) {
     const fragOsi = fragment.fields?.osi;
     if (!fragOsi) return;
     const osis = Array.isArray(fragOsi) ? fragOsi : [fragOsi];
+    const effectiveOsis = osis.map((o) => substituteMap?.[o] ?? o);
     let promoCode = promoMap['*'];
-    for (const osi of osis) {
+    for (const osi of effectiveOsis) {
         if (promoMap[osi]) {
             promoCode = promoMap[osi];
             break;
@@ -289,8 +275,7 @@ function customizeTree(root, referencesTree = [], customizeContext) {
     //start by merging current fragment with its regional variation, and promos if any
     const customizedRoot = mergeVariations(root, customizeContext);
     if (customizeContext.promos?.fragmentPaths.has(PATH_TOKENS.exec(root.path)?.groups.fragmentPath)) {
-        applyOsiSubstitution(customizedRoot, customizeContext.promos.substituteMap, customizeContext);
-        applyPromoCode(customizedRoot, customizeContext.promos.promoMap, customizeContext);
+        applyPromoCode(customizedRoot, customizeContext.promos.promoMap, customizeContext.promos.substituteMap, customizeContext);
     }
 
     //adapt referencesTree to match the customized root's cards/collections

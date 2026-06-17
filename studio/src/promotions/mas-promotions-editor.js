@@ -19,10 +19,10 @@ import { getItemsSelectionStore, setItemsSelectionStore } from '../common/items-
 import {
     applyPromotionItemSelectionToFragment,
     buildPromotionOffersFieldValues,
-    buildPromotionOfferCacheEntryFromSnapshot,
+    buildPromotionOfferRecordFromFields,
     classifyPromotionPathsForSelection,
-    hydratePromotionOfferCacheFromSelectorIds,
-    parsePromotionOfferCacheLines,
+    hydratePromotionOfferRecords,
+    parsePromotionOfferLines,
     isPromotionItemSelectionDirty,
     isPromotionOffersSelectionDirty,
     getPromotionRequiredFieldsValidation,
@@ -394,16 +394,16 @@ class MasPromotionsEditor extends LitElement {
 
         const offerValues = f.getField('offers') ? f.getFieldValues('offers') : [];
         const savedOfferIds = parseSelectedOfferIdsFromOffersField(offerValues);
-        const cachedSnapshots = parsePromotionOfferCacheLines(offerValues);
+        const savedOfferFields = parsePromotionOfferLines(offerValues);
         if (savedOfferIds.length) {
             Store.promotions.selectedOffers.set(savedOfferIds);
             for (const id of savedOfferIds) {
-                const snapshot = cachedSnapshots.get(id);
-                if (snapshot) {
-                    Store.promotions.offerDataCache.set(id, buildPromotionOfferCacheEntryFromSnapshot(id, snapshot));
+                const fields = savedOfferFields.get(id);
+                if (fields) {
+                    Store.promotions.offerDataCache.set(id, buildPromotionOfferRecordFromFields(id, fields));
                 }
             }
-            await hydratePromotionOfferCacheFromSelectorIds(savedOfferIds, Store.promotions.offerDataCache);
+            await hydratePromotionOfferRecords(savedOfferIds, Store.promotions.offerDataCache);
         } else if (!hasStoredOfferSelection) {
             Store.promotions.selectedOffers.set([]);
         }
@@ -1108,8 +1108,8 @@ class MasPromotionsEditor extends LitElement {
         return html`
             ${this.promotionEmptyItemsTab === TABLE_TYPE.OFFERS
                 ? html`<sp-action-button quiet @click=${this.#openPromotionsOst}>
-                      <sp-icon-edit slot="icon" label="Edit offers"></sp-icon-edit>
-                      Edit
+                      <sp-icon-add slot="icon" label="Add offer"></sp-icon-add>
+                      Add offer
                   </sp-action-button>`
                 : html`<sp-action-button
                       quiet
@@ -1421,8 +1421,8 @@ class MasPromotionsEditor extends LitElement {
                                       <div>
                                           ${this.selectedItemsViewTab === TABLE_TYPE.OFFERS
                                               ? html`<sp-action-button quiet @click=${this.#openPromotionsOst}>
-                                                    <sp-icon-edit slot="icon" label="Edit offers"></sp-icon-edit>
-                                                    Edit
+                                                    <sp-icon-add slot="icon" label="Add offer"></sp-icon-add>
+                                                    Add offer
                                                 </sp-action-button>`
                                               : html`<sp-action-button
                                                     quiet

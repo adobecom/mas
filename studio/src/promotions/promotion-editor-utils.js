@@ -1,13 +1,11 @@
 import { isPznCountryTagId, tagRefToTagId } from '../common/utils/personalization-utils.js';
+import { buildOfferTags, resolveOfferMnemonicIconUrl } from './offer-utils.js';
 import { COLLECTION_MODEL_PATH, ROOT_PATH, TAG_PROMOTION_PREFIX } from '../constants.js';
-import { ADOBE_PRODUCTS } from '../constants/adobe-products.js';
 import { normalizeTagId } from '../aem/tag-id-utils.js';
 import { getItemsSelectionStore } from '../common/items-selection-store.js';
 import Store from '../store.js';
 import { closeOfferSelectorTool } from '../rte/ost.js';
 import { getService, isUUID, parseStudioDeepLinksFromText } from '../utils.js';
-
-const PRODUCT_ICON_BASE_URL = 'https://www.adobe.com/cc-shared/assets/img/product-icons/svg';
 
 export const PROMOTION_FIELD_TYPE_MAP = {
     title: { type: 'text' },
@@ -333,83 +331,6 @@ export function pruneOrphanedPromotionSelectionAfterOfferRemoval({
     };
 }
 
-function formatPromotionOfferTagTitle(value) {
-    if (value == null || value === '') return '';
-    return String(value).toUpperCase();
-}
-
-/**
- * Builds mas tag entries for promotion offer table columns from an OST offer payload.
- * @param {object} offer
- * @param {string} [productArrangementCode]
- * @returns {Array<{ id: string, title: string }>}
- */
-export function buildPromotionOfferTags(offer, productArrangementCode) {
-    const tags = [];
-    const addTag = (category, value, displayValue) => {
-        if (value == null || value === '') return;
-        const normalized = String(value).toLowerCase();
-        tags.push({
-            id: `mas:${category}/${normalized}`,
-            title: displayValue ?? formatPromotionOfferTagTitle(value),
-        });
-    };
-
-    const arrangement = offer?.productArrangement ?? offer?.product_arrangement;
-    const productCode = offer?.product_code ?? offer?.productCode ?? arrangement?.productCode ?? arrangement?.product_code;
-    const productName =
-        offer?.product_name ?? offer?.productName ?? arrangement?.productFamily ?? arrangement?.product_family ?? productCode;
-    addTag('product_code', productCode, productName);
-    addTag('product_arrangement', productArrangementCode, productArrangementCode);
-    addTag('offer_type', offer?.offer_type ?? offer?.offerType);
-    addTag('plan_type', offer?.planType ?? offer?.plan_type);
-    addTag('customer_segment', offer?.customer_segment ?? offer?.customerSegment);
-    const marketSegment = Array.isArray(offer?.market_segments)
-        ? offer.market_segments[0]
-        : (offer?.market_segments ?? offer?.market_segment ?? offer?.marketSegments?.[0] ?? offer?.marketSegment);
-    addTag('market_segment', marketSegment);
-
-    return tags;
-}
-
-/**
- * Resolves a mnemonic icon URL from an OST offer payload.
- * @param {object} offer
- * @returns {string|undefined}
- */
-export function resolvePromotionOfferMnemonicIconUrl(offer) {
-    if (offer?.icon) return offer.icon;
-    if (offer?.productIcon) return offer.productIcon;
-
-    const arrangement = offer?.productArrangement ?? offer?.product_arrangement;
-    const code = String(
-        offer?.product_code ?? offer?.productCode ?? arrangement?.productCode ?? arrangement?.product_code ?? '',
-    ).toLowerCase();
-
-    if (code) {
-        const byId = ADOBE_PRODUCTS.find((product) => product.id === code || product.id.replace(/-/g, '') === code);
-        if (byId) return `${PRODUCT_ICON_BASE_URL}/${byId.id}.svg`;
-
-        const compactCode = code.replace(/[^a-z0-9]/g, '');
-        const byCode = ADOBE_PRODUCTS.find((product) => product.name.toLowerCase().replace(/[^a-z0-9]/g, '') === compactCode);
-        if (byCode) return `${PRODUCT_ICON_BASE_URL}/${byCode.id}.svg`;
-    }
-
-    const productName = String(
-        offer?.product_name ?? offer?.productName ?? arrangement?.productFamily ?? arrangement?.product_family ?? '',
-    )
-        .toLowerCase()
-        .replace(/[^a-z0-9]/g, '');
-    if (productName) {
-        const byProductName = ADOBE_PRODUCTS.find(
-            (product) => product.name.toLowerCase().replace(/[^a-z0-9]/g, '') === productName,
-        );
-        if (byProductName) return `${PRODUCT_ICON_BASE_URL}/${byProductName.id}.svg`;
-    }
-
-    return undefined;
-}
-
 export function normalizePromotionOfferData(offer, offerSelectorId, productArrangementCode) {
     const base = offer && typeof offer === 'object' ? { ...offer } : {};
     const offerId = base.offerId ?? base.offer_id ?? offerSelectorId;
@@ -429,10 +350,10 @@ export function normalizePromotionOfferData(offer, offerSelectorId, productArran
  * @param {string} [productArrangementCode]
  * @returns {object}
  */
-export function buildPromotionOfferCacheEntry(offerSelectorId, offer, productArrangementCode) {
+export function buildPromotionOfferRecord(offerSelectorId, offer, productArrangementCode) {
     const offerData = normalizePromotionOfferData(offer, offerSelectorId, productArrangementCode);
-    const tags = buildPromotionOfferTags(offer, offerData.product_arrangement_code);
-    const mnemonicIcon = resolvePromotionOfferMnemonicIconUrl(offer);
+    const tags = buildOfferTags(offer, offerData.product_arrangement_code);
+    const mnemonicIcon = resolveOfferMnemonicIconUrl(offer);
     const fields = mnemonicIcon ? [{ name: 'mnemonicIcon', values: [mnemonicIcon] }] : [];
     return {
         path: offerSelectorId,
@@ -481,7 +402,7 @@ async function resolvePromotionWcsOffer(offerSelectorId, country) {
  * @param {string} [country]
  * @returns {Promise<object|null>}
  */
-export async function resolvePromotionOfferCacheEntry(offerSelectorId, country) {
+export async function resolvePromotionOfferRecord(offerSelectorId, country) {
     if (!offerSelectorId) return null;
     let resolvedOffer = null;
     try {
@@ -490,21 +411,21 @@ export async function resolvePromotionOfferCacheEntry(offerSelectorId, country) 
         resolvedOffer = null;
     }
     const arrangementCode = resolvedOffer?.product_arrangement_code ?? resolvedOffer?.productArrangementCode;
-    return buildPromotionOfferCacheEntry(offerSelectorId, resolvedOffer, arrangementCode);
+    return buildPromotionOfferRecord(offerSelectorId, resolvedOffer, arrangementCode);
 }
 
 /**
  * @param {string[]} offerSelectorIds
  * @param {Map<string, object>} offerDataCache
  */
-export async function hydratePromotionOfferCacheFromSelectorIds(offerSelectorIds, offerDataCache) {
+export async function hydratePromotionOfferRecords(offerSelectorIds, offerDataCache) {
     const cache = offerDataCache instanceof Map ? offerDataCache : new Map();
     const ids = (offerSelectorIds || []).filter(Boolean);
     await Promise.all(
         ids.map(async (id) => {
             const existing = cache.get(id);
-            if (promotionOfferCacheEntryHasDisplayName(existing)) return;
-            cache.set(id, await resolvePromotionOfferCacheEntry(id));
+            if (promotionOfferRecordHasDisplayName(existing)) return;
+            cache.set(id, await resolvePromotionOfferRecord(id));
         }),
     );
 }
@@ -534,7 +455,7 @@ export function addPromotionOfferFromOst(offerSelectorId, offer, selectedOffersS
     if (!offerSelectorId) return false;
     if (selectedOffersStore.value.includes(offerSelectorId)) return false;
     selectedOffersStore.set([...selectedOffersStore.value, offerSelectorId]);
-    offerDataCache.set(offerSelectorId, buildPromotionOfferCacheEntry(offerSelectorId, offer, productArrangementCode));
+    offerDataCache.set(offerSelectorId, buildPromotionOfferRecord(offerSelectorId, offer, productArrangementCode));
     return true;
 }
 
@@ -558,9 +479,9 @@ export async function handlePromotionOstOfferSelect({ detail: { offerSelectorId,
 }
 
 const PROMOTION_OFFER_SUBSTITUTION_PREFIX = 'substitute';
-const PROMOTION_OFFER_CACHE_PREFIX = 'offer-cache';
+const PROMOTION_OFFER_LINE_PREFIX = 'offer-cache';
 
-const PROMOTION_OFFER_CACHE_SNAPSHOT_KEYS = [
+const OFFER_FIELD_KEYS = [
     'product_code',
     'product_name',
     'offer_type',
@@ -576,31 +497,31 @@ export function isPromotionOfferSubstitutionEntry(entry) {
     return typeof entry === 'string' && entry.startsWith(`${PROMOTION_OFFER_SUBSTITUTION_PREFIX}:`);
 }
 
-export function isPromotionOfferCacheEntry(entry) {
-    return typeof entry === 'string' && entry.startsWith(`${PROMOTION_OFFER_CACHE_PREFIX}:`);
+export function isPromotionOfferLine(entry) {
+    return typeof entry === 'string' && entry.startsWith(`${PROMOTION_OFFER_LINE_PREFIX}:`);
 }
 
-function sanitizePromotionOfferCacheSnapshot(raw) {
+function sanitizeOfferFields(raw) {
     if (!raw || typeof raw !== 'object') return null;
-    const snapshot = {};
-    for (const key of PROMOTION_OFFER_CACHE_SNAPSHOT_KEYS) {
+    const fields = {};
+    for (const key of OFFER_FIELD_KEYS) {
         const value = raw[key];
         if (value == null || value === '') continue;
-        snapshot[key] = String(value);
+        fields[key] = String(value);
     }
-    return Object.keys(snapshot).length ? snapshot : null;
+    return Object.keys(fields).length ? fields : null;
 }
 
 /**
  * @param {object|null|undefined} cacheEntry
  * @returns {Record<string, string>|null}
  */
-export function serializePromotionOfferCacheSnapshot(cacheEntry) {
+export function serializePromotionOfferFields(cacheEntry) {
     if (!cacheEntry) return null;
     const offer = cacheEntry.offerData || {};
     const productCodeTag = cacheEntry.tags?.find(({ id }) => id?.startsWith('mas:product_code/'));
     const productCodeFromTag = productCodeTag?.title || productCodeTag?.id?.split('/').pop();
-    const snapshot = sanitizePromotionOfferCacheSnapshot({
+    const fields = sanitizeOfferFields({
         product_code: offer.product_code ?? productCodeFromTag,
         product_name: productCodeTag?.title,
         offer_type: offer.offer_type,
@@ -613,31 +534,31 @@ export function serializePromotionOfferCacheSnapshot(cacheEntry) {
         icon: cacheEntry.getFieldValue?.('mnemonicIcon') ?? offer.icon ?? offer.productIcon,
         offer_id: offer.offerId ?? offer.offer_id ?? cacheEntry.path ?? cacheEntry.id,
     });
-    return snapshot;
+    return fields;
 }
 
 /**
  * @param {string} offerSelectorId
- * @param {Record<string, string>} snapshot
+ * @param {Record<string, string>} fields
  * @returns {string}
  */
-export function serializePromotionOfferCacheLine(offerSelectorId, snapshot) {
-    const safeSnapshot = sanitizePromotionOfferCacheSnapshot(snapshot);
-    if (!offerSelectorId || !safeSnapshot) return '';
-    const payload = encodeURIComponent(JSON.stringify({ id: offerSelectorId, ...safeSnapshot }));
-    return `${PROMOTION_OFFER_CACHE_PREFIX}::${payload}`;
+export function serializePromotionOfferLine(offerSelectorId, fields) {
+    const safeFields = sanitizeOfferFields(fields);
+    if (!offerSelectorId || !safeFields) return '';
+    const payload = encodeURIComponent(JSON.stringify({ id: offerSelectorId, ...safeFields }));
+    return `${PROMOTION_OFFER_LINE_PREFIX}::${payload}`;
 }
 
 /**
  * @param {unknown[]} values
  * @returns {Map<string, Record<string, string>>}
  */
-export function parsePromotionOfferCacheLines(values) {
-    const cacheById = new Map();
-    if (!Array.isArray(values)) return cacheById;
+export function parsePromotionOfferLines(values) {
+    const fieldsByOfferId = new Map();
+    if (!Array.isArray(values)) return fieldsByOfferId;
     for (const entry of values) {
-        if (!isPromotionOfferCacheEntry(entry)) continue;
-        const payloadPrefix = `${PROMOTION_OFFER_CACHE_PREFIX}::`;
+        if (!isPromotionOfferLine(entry)) continue;
+        const payloadPrefix = `${PROMOTION_OFFER_LINE_PREFIX}::`;
         if (!entry.startsWith(payloadPrefix)) continue;
         const payload = entry.slice(payloadPrefix.length);
         try {
@@ -645,38 +566,38 @@ export function parsePromotionOfferCacheLines(values) {
             const offerSelectorId = parsed?.id;
             const rest = { ...(parsed || {}) };
             delete rest.id;
-            const snapshot = sanitizePromotionOfferCacheSnapshot(rest);
-            if (offerSelectorId && snapshot) cacheById.set(String(offerSelectorId), snapshot);
+            const fields = sanitizeOfferFields(rest);
+            if (offerSelectorId && fields) fieldsByOfferId.set(String(offerSelectorId), fields);
         } catch {
             /* ignore malformed cache lines */
         }
     }
-    return cacheById;
+    return fieldsByOfferId;
 }
 
 /**
  * @param {string} offerSelectorId
- * @param {Record<string, string>|null|undefined} snapshot
+ * @param {Record<string, string>|null|undefined} fields
  * @returns {object}
  */
-export function buildPromotionOfferCacheEntryFromSnapshot(offerSelectorId, snapshot) {
-    const safeSnapshot = sanitizePromotionOfferCacheSnapshot(snapshot);
-    if (!safeSnapshot) return buildPromotionOfferCacheEntry(offerSelectorId, null, null);
+export function buildPromotionOfferRecordFromFields(offerSelectorId, fields) {
+    const safeFields = sanitizeOfferFields(fields);
+    if (!safeFields) return buildPromotionOfferRecord(offerSelectorId, null, null);
     const offer = {
-        product_code: safeSnapshot.product_code ?? safeSnapshot.product_name,
-        offer_type: safeSnapshot.offer_type,
-        plan_type: safeSnapshot.plan_type,
-        planType: safeSnapshot.plan_type,
-        customer_segment: safeSnapshot.customer_segment,
-        market_segments: safeSnapshot.market_segment,
-        market_segment: safeSnapshot.market_segment,
-        offer_id: safeSnapshot.offer_id ?? offerSelectorId,
-        icon: safeSnapshot.icon,
+        product_code: safeFields.product_code ?? safeFields.product_name,
+        offer_type: safeFields.offer_type,
+        plan_type: safeFields.plan_type,
+        planType: safeFields.plan_type,
+        customer_segment: safeFields.customer_segment,
+        market_segments: safeFields.market_segment,
+        market_segment: safeFields.market_segment,
+        offer_id: safeFields.offer_id ?? offerSelectorId,
+        icon: safeFields.icon,
     };
-    return buildPromotionOfferCacheEntry(offerSelectorId, offer, safeSnapshot.product_arrangement_code);
+    return buildPromotionOfferRecord(offerSelectorId, offer, safeFields.product_arrangement_code);
 }
 
-export function promotionOfferCacheEntryHasDisplayName(cacheEntry) {
+export function promotionOfferRecordHasDisplayName(cacheEntry) {
     if (!cacheEntry) return false;
     const tag = cacheEntry.tags?.find(({ id }) => id?.startsWith('mas:product_code/'));
     return Boolean(tag?.title && tag.title !== tag.id?.split('/').pop());
@@ -688,7 +609,7 @@ export function parsePromotionOffersField(values) {
     if (!Array.isArray(values)) return { promoExceptions, offerSubstitutions };
     for (const entry of values) {
         if (!entry) continue;
-        if (isPromotionOfferCacheEntry(entry)) continue;
+        if (isPromotionOfferLine(entry)) continue;
         if (isPromotionOfferSubstitutionEntry(entry)) {
             const parts = entry.split(':');
             if (parts.length < 4) continue;
@@ -840,12 +761,12 @@ export function buildPromotionOffersFieldValues(promotionLike, selectedOfferIds,
     const parsed = parsePromotionOffersField(offerValues);
     const promoExceptions = overrides.promoExceptions ?? parsed.promoExceptions;
     const offerSubstitutions = overrides.offerSubstitutions ?? parsed.offerSubstitutions;
-    const persistedCache = parsePromotionOfferCacheLines(offerValues);
+    const persistedFields = parsePromotionOfferLines(offerValues);
     const cacheLines = (selectedOfferIds || [])
         .filter(Boolean)
         .map((id) => {
-            const snapshot = serializePromotionOfferCacheSnapshot(offerDataCache?.get?.(id)) ?? persistedCache.get(id) ?? null;
-            return snapshot ? serializePromotionOfferCacheLine(id, snapshot) : '';
+            const fields = serializePromotionOfferFields(offerDataCache?.get?.(id)) ?? persistedFields.get(id) ?? null;
+            return fields ? serializePromotionOfferLine(id, fields) : '';
         })
         .filter(Boolean);
     return serializePromotionOffersField(promoExceptions, offerSubstitutions, selectedOfferIds, cacheLines);

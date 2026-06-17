@@ -3,7 +3,7 @@ import { html } from 'lit';
 import { fixture, fixtureCleanup } from '@open-wc/testing-helpers/pure';
 import sinon from 'sinon';
 import '../../src/swc.js';
-import { buildPromotionOfferCacheEntry } from '../../src/promotions/promotion-editor-utils.js';
+import { buildPromotionOfferRecord } from '../../src/promotions/promotion-editor-utils.js';
 import '../../src/promotions/mas-promo-codes-manager.js';
 import { MANAGE_PROMO_CODES_AND_OFFERS_LABEL } from '../../src/promotions/mas-promo-codes-manager.js';
 
@@ -66,7 +66,7 @@ async function expandCountry(el, country) {
 }
 
 function makeIllustratorCacheEntry(osi) {
-    return buildPromotionOfferCacheEntry(osi, {
+    return buildPromotionOfferRecord(osi, {
         product_code: 'ilst',
         product_name: 'Illustrator',
         offerId: osi,

@@ -1766,7 +1766,7 @@ describe('customize OSI substitution', function () {
             { 'SUB-OSI': 'PROMO-FOR-SUB' },
         );
         expect(result.status).to.equal(200);
-        expect(result.body.fields.osi).to.equal('SUB-OSI');
+        expect(result.body.fields.osi).to.equal('BASE-OSI');
         expect(result.body.fields.promoCode).to.equal('PROMO-FOR-SUB');
     });
 
@@ -1788,7 +1788,7 @@ describe('customize OSI substitution', function () {
             MINIMAL_PROJECT,
         );
         expect(result.status).to.equal(200);
-        expect(result.body.fields.osi).to.deep.equal(['OSI-A', 'OSI-B-SUB']);
+        expect(result.body.fields.osi).to.deep.equal(['OSI-A', 'OSI-B']);
     });
 
     it('should substitute all matching OSIs when every array entry has a substitute', async function () {
@@ -1809,7 +1809,7 @@ describe('customize OSI substitution', function () {
             MINIMAL_PROJECT,
         );
         expect(result.status).to.equal(200);
-        expect(result.body.fields.osi).to.deep.equal(['OSI-A-SUB', 'OSI-B-SUB']);
+        expect(result.body.fields.osi).to.deep.equal(['OSI-A', 'OSI-B']);
     });
 });
 

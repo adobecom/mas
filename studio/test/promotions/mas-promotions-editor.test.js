@@ -196,13 +196,13 @@ describe('MasPromotionsEditor', () => {
             expect(editBtn?.hasAttribute('disabled')).to.be.true;
         });
 
-        it('shows Edit for offers on Offers tab and Edit for fragments on Fragments tab', async () => {
+        it('shows Add offer for offers on Offers tab and Edit for fragments on Fragments tab', async () => {
             const el = await mountEditor();
             Store.promotions.selectedOffers.set(['offer-1']);
             el.promotionEmptyItemsTab = TABLE_TYPE.OFFERS;
             await el.updateComplete;
             const offersToolbar = el.renderRoot.querySelector('.promotion-empty-actions');
-            expect(offersToolbar.textContent).to.include('Edit');
+            expect(offersToolbar.textContent).to.include('Add offer');
             expect(offersToolbar.textContent).to.not.include('Add fragments');
             el.promotionEmptyItemsTab = TABLE_TYPE.CARDS;
             await el.updateComplete;
@@ -1096,7 +1096,9 @@ describe('MasPromotionsEditor', () => {
     describe('selected items edit button', () => {
         function getSelectedItemsEditButton(el) {
             const header = el.renderRoot.querySelector('.selected-items-header');
-            return [...header.querySelectorAll('sp-action-button')].find((button) => button.textContent.trim() === 'Edit');
+            return [...header.querySelectorAll('sp-action-button')].find(
+                (button) => button.textContent.trim() === 'Edit' || button.textContent.trim() === 'Add offer',
+            );
         }
 
         async function mountEditorWithSelectedItems() {
@@ -1134,7 +1136,7 @@ describe('MasPromotionsEditor', () => {
             expect(el.renderRoot.querySelector('#add-promotion-items-overlay').open).to.equal('click');
         });
 
-        it('does not wrap Edit in overlay-trigger when Offers tab is active', async () => {
+        it('does not wrap Add offer in overlay-trigger when Offers tab is active', async () => {
             const el = await mountEditorWithSelectedItems();
             el.selectedItemsViewTab = TABLE_TYPE.OFFERS;
             await el.updateComplete;

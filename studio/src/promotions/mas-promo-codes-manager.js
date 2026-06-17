@@ -4,8 +4,8 @@ import {
     parseCountriesFromGeos,
     getEffectivePromoCode,
     getEffectiveSubstituteOffer,
-    promotionOfferCacheEntryHasDisplayName,
-    resolvePromotionOfferCacheEntry,
+    promotionOfferRecordHasDisplayName,
+    resolvePromotionOfferRecord,
 } from './promotion-editor-utils.js';
 import { shouldIgnoreRowClickForSelection } from '../common/utils/render-utils.js';
 import { managerStyles } from './mas-promo-codes-manager.css.js';
@@ -180,7 +180,7 @@ class MasPromoCodesManager extends LitElement {
         }
         if (!osi) return;
         const cached = this.substituteOfferCache?.get(osi);
-        if (cached && promotionOfferCacheEntryHasDisplayName(cached)) return;
+        if (cached && promotionOfferRecordHasDisplayName(cached)) return;
         const timer = setTimeout(() => {
             this.#substituteResolveTimers.delete(osi);
             this.#resolveSubstituteOffer(osi, country, this.#substituteResolveGeneration);
@@ -191,7 +191,7 @@ class MasPromoCodesManager extends LitElement {
     async #resolveSubstituteOffer(osi, country, generation = this.#substituteResolveGeneration) {
         if (!osi || !this.open || generation !== this.#substituteResolveGeneration) return;
         const cached = this.substituteOfferCache?.get(osi);
-        if (cached && promotionOfferCacheEntryHasDisplayName(cached)) return;
+        if (cached && promotionOfferRecordHasDisplayName(cached)) return;
 
         const pending = new Set(this.substituteResolvePending);
         pending.add(osi);
@@ -204,7 +204,7 @@ class MasPromoCodesManager extends LitElement {
         this.substituteResolvePending = pendingAfter;
 
         if (!this.open || generation !== this.#substituteResolveGeneration) return;
-        if (!promotionOfferCacheEntryHasDisplayName(entry)) return;
+        if (!promotionOfferRecordHasDisplayName(entry)) return;
         const next = new Map(this.substituteOfferCache);
         next.set(osi, entry);
         this.substituteOfferCache = next;
@@ -212,11 +212,11 @@ class MasPromoCodesManager extends LitElement {
 
     #getResolvedSubstituteEntry(substituteSelectorId) {
         const entry = this.substituteOfferCache?.get(substituteSelectorId);
-        return promotionOfferCacheEntryHasDisplayName(entry) ? entry : null;
+        return promotionOfferRecordHasDisplayName(entry) ? entry : null;
     }
 
     #getSubstituteResolver() {
-        return this.resolveSubstituteOfferEntry ?? resolvePromotionOfferCacheEntry;
+        return this.resolveSubstituteOfferEntry ?? resolvePromotionOfferRecord;
     }
 
     #getManualOsiLabel(osi) {

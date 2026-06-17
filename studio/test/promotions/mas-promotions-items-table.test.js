@@ -10,7 +10,7 @@ import { Fragment } from '../../src/aem/fragment.js';
 import Events from '../../src/events.js';
 import '../../src/swc.js';
 import MasPromotionsItemsTable from '../../src/promotions/mas-promotions-items-table.js';
-import { buildPromotionOfferCacheEntry } from '../../src/promotions/promotion-editor-utils.js';
+import { buildPromotionOfferRecord } from '../../src/promotions/promotion-editor-utils.js';
 
 describe('MasPromotionsItemsTable', () => {
     let sandbox;
@@ -146,7 +146,7 @@ describe('MasPromotionsItemsTable', () => {
         Store.promotions.selectedOffers.set(['ffsa-osi']);
         Store.promotions.offerDataCache.set(
             'ffsa-osi',
-            buildPromotionOfferCacheEntry(
+            buildPromotionOfferRecord(
                 'ffsa-osi',
                 {
                     product_code: 'FFSA',
@@ -210,7 +210,7 @@ describe('MasPromotionsItemsTable', () => {
         Store.promotions.selectedOffers.set(['offer-expand']);
         Store.promotions.offerDataCache.set(
             'offer-expand',
-            buildPromotionOfferCacheEntry('offer-expand', { product_code: 'PHSP', offer_id: 'offer-expand' }, 'PA-1'),
+            buildPromotionOfferRecord('offer-expand', { product_code: 'PHSP', offer_id: 'offer-expand' }, 'PA-1'),
         );
         const el = await fixture(html`
             <mas-promotions-items-table
@@ -240,7 +240,7 @@ describe('MasPromotionsItemsTable', () => {
         Store.promotions.selectedOffers.set(['icon-offer']);
         Store.promotions.offerDataCache.set(
             'icon-offer',
-            buildPromotionOfferCacheEntry('icon-offer', { product_code: 'PHSP', icon: 'https://example.com/phsp.svg' }, 'PA-1'),
+            buildPromotionOfferRecord('icon-offer', { product_code: 'PHSP', icon: 'https://example.com/phsp.svg' }, 'PA-1'),
         );
         const el = await fixture(html`<mas-promotions-items-table .type=${TABLE_TYPE.OFFERS}></mas-promotions-items-table>`);
         await el.updateComplete;
@@ -322,11 +322,11 @@ describe('MasPromotionsItemsTable', () => {
         Store.promotions.selectedCards.set([ffsaCard, phspCard]);
         Store.promotions.offerDataCache.set(
             'ffsa-osi',
-            buildPromotionOfferCacheEntry('ffsa-osi', { product_code: 'FFSA', offer_id: 'wcs-1' }),
+            buildPromotionOfferRecord('ffsa-osi', { product_code: 'FFSA', offer_id: 'wcs-1' }),
         );
         Store.promotions.offerDataCache.set(
             'phsp-osi',
-            buildPromotionOfferCacheEntry('phsp-osi', { product_code: 'PHSP', offer_id: 'wcs-2' }),
+            buildPromotionOfferRecord('phsp-osi', { product_code: 'PHSP', offer_id: 'wcs-2' }),
         );
         Store.promotions.cardsByPaths.set(
             new Map([
@@ -357,7 +357,7 @@ describe('MasPromotionsItemsTable', () => {
         Store.promotions.selectedCards.set([ffsaCard]);
         Store.promotions.offerDataCache.set(
             'ffsa-osi',
-            buildPromotionOfferCacheEntry('ffsa-osi', { product_code: 'FFSA', offer_id: 'wcs-1' }),
+            buildPromotionOfferRecord('ffsa-osi', { product_code: 'FFSA', offer_id: 'wcs-1' }),
         );
         Store.promotions.cardsByPaths.set(
             new Map([[ffsaCard, { path: ffsaCard, tags: [{ id: 'mas:product_code/ffsa', title: 'FFSA' }] }]]),
@@ -383,7 +383,7 @@ describe('MasPromotionsItemsTable', () => {
         Store.promotions.selectedCollections.set(['/content/dam/mas/ffsa-col']);
         Store.promotions.offerDataCache.set(
             'ffsa-osi',
-            buildPromotionOfferCacheEntry('ffsa-osi', { product_code: 'FFSA', offer_id: 'wcs-1' }),
+            buildPromotionOfferRecord('ffsa-osi', { product_code: 'FFSA', offer_id: 'wcs-1' }),
         );
         Store.promotions.cardsByPaths.set(
             new Map([[ffsaCard, { path: ffsaCard, tags: [{ id: 'mas:product_code/ffsa', title: 'FFSA' }] }]]),
@@ -1223,7 +1223,7 @@ describe('MasPromotionsItemsTable', () => {
             Store.promotions.selectedCards.set([ffsaCard]);
             Store.promotions.offerDataCache.set(
                 'ffsa-osi',
-                buildPromotionOfferCacheEntry('ffsa-osi', { product_code: 'FFSA', offer_id: 'wcs-1' }),
+                buildPromotionOfferRecord('ffsa-osi', { product_code: 'FFSA', offer_id: 'wcs-1' }),
             );
             Store.promotions.cardsByPaths.set(
                 new Map([[ffsaCard, { path: ffsaCard, tags: [{ id: 'mas:product_code/ffsa', title: 'FFSA' }] }]]),

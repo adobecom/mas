@@ -19,6 +19,8 @@ import {
 } from './promotion-editor-utils.js';
 import { renderFragmentStatusCell, getStudioFragmentDisplayPath } from '../common/utils/render-utils.js';
 
+const OFFER_FILTER_ALL = 'all';
+
 const PROMOTION_PICKER_TABS = [
     { value: TABLE_TYPE.CARDS, label: 'Fragments' },
     { value: TABLE_TYPE.COLLECTIONS, label: 'Collections' },
@@ -68,6 +70,7 @@ class MasPromotionsItemsSelector extends LitElement {
         viewOnly: { type: Boolean, reflect: true, attribute: 'view-only' },
         searchQuery: { type: String, state: true },
         selectedTab: { type: String, state: true },
+        activeFilterOfferId: { type: String, state: true },
         getDisplayName: { type: Function },
         renderFragmentStatusCell: { type: Function },
         fragmentSurfaceOptions: { type: Array },
@@ -78,6 +81,7 @@ class MasPromotionsItemsSelector extends LitElement {
         this.viewOnly = false;
         this.searchQuery = '';
         this.selectedTab = TABLE_TYPE.CARDS;
+        this.activeFilterOfferId = '';
         this.getDisplayName = getStudioFragmentDisplayPath;
         this.renderFragmentStatusCell = renderFragmentStatusCell;
         this.fragmentSurfaceOptions = [];
@@ -104,6 +108,10 @@ class MasPromotionsItemsSelector extends LitElement {
 
     #onSelectedOffersChange = () => {
         if (!this.viewOnly) {
+            const s = getItemsSelectionStore({ allowUnset: true });
+            if (this.activeFilterOfferId && !s?.selectedOffers.value.includes(this.activeFilterOfferId)) {
+                this.activeFilterOfferId = '';
+            }
             this.#syncOfferProductTagsToFragmentSearch();
         }
     };
@@ -229,15 +237,35 @@ class MasPromotionsItemsSelector extends LitElement {
         repo?.loadPlaceholders?.();
     }
 
+    get #activeFilterIds() {
+        const s = getItemsSelectionStore({ allowUnset: true });
+        const all = s?.selectedOffers.value ?? [];
+        return this.activeFilterOfferId ? [this.activeFilterOfferId] : all;
+    }
+
+    get #offerFilterOptions() {
+        const s = getItemsSelectionStore({ allowUnset: true });
+        return (s?.selectedOffers.value ?? []).map((id) => ({
+            id,
+            label: Store.promotions.offerDataCache.get(id)?.getTagTitle?.('product_code') ?? id,
+        }));
+    }
+
+    #handleOfferFilterChange = (e) => {
+        e.stopPropagation();
+        const val = e.target.value;
+        this.activeFilterOfferId = val === OFFER_FILTER_ALL ? '' : (val ?? '');
+        this.#syncOfferProductTagsToFragmentSearch();
+    };
+
     get #offerProductTags() {
-        const s = getItemsSelectionStore();
-        return collectPromotionOfferProductTags(Store.promotions.offerDataCache, s.selectedOffers.value);
+        return collectPromotionOfferProductTags(Store.promotions.offerDataCache, this.#activeFilterIds);
     }
 
     #syncOfferProductTagsToFragmentSearch() {
         const s = getItemsSelectionStore({ allowUnset: true });
         if (!s) return [];
-        const tags = applyPromotionOfferProductTagsToSearch(Store.promotions.offerDataCache, s.selectedOffers.value);
+        const tags = applyPromotionOfferProductTagsToSearch(Store.promotions.offerDataCache, this.#activeFilterIds);
         const filters = this.renderRoot.querySelectorAll('mas-search-and-filters');
         filters.forEach((el) => {
             if (el.type === TABLE_TYPE.CARDS) {
@@ -296,6 +324,20 @@ class MasPromotionsItemsSelector extends LitElement {
                             ${this.viewOnly
                                 ? nothing
                                 : html`
+                                      ${tab.value === TABLE_TYPE.CARDS && this.#offerFilterOptions.length > 1
+                                          ? html`<sp-picker
+                                                class="offer-filter"
+                                                size="m"
+                                                label="Offer"
+                                                .value=${this.activeFilterOfferId}
+                                                @change=${this.#handleOfferFilterChange}
+                                            >
+                                                <sp-menu-item value=${OFFER_FILTER_ALL}>All offers</sp-menu-item>
+                                                ${this.#offerFilterOptions.map(
+                                                    ({ id, label }) => html`<sp-menu-item value=${id}>${label}</sp-menu-item>`,
+                                                )}
+                                            </sp-picker>`
+                                          : nothing}
                                       <mas-search-and-filters
                                           .type=${tab.value}
                                           .searchQuery=${tab.value === this.selectedTab ? this.searchQuery : ''}

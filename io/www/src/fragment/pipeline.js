@@ -11,6 +11,7 @@ import { transformer as defaultLanguage } from './transformers/defaultLanguage.j
 import { transformer as corrector } from './transformers/corrector.js';
 import { transformer as replace } from './transformers/replace.js';
 import { transformer as promotions } from './transformers/promotions.js';
+import { transformer as mask } from './transformers/mask.js';
 import { transformer as settings } from './transformers/settings.js';
 import { transformer as customize } from './transformers/customize.js';
 import { transformer as wcs } from './transformers/wcs.js';
@@ -20,7 +21,7 @@ function calculateHash(body) {
     return crypto.createHash('sha256').update(JSON.stringify(body)).digest('hex');
 }
 
-const PIPELINE = [fetchFragment, defaultLanguage, promotions, customize, settings, replace, wcs, corrector];
+const PIPELINE = [fetchFragment, defaultLanguage, promotions, mask, customize, settings, replace, wcs, corrector];
 
 const RESPONSE_HEADERS = {
     'Access-Control-Expose-Headers': 'X-Request-Id,Etag,Last-Modified,server-timing',

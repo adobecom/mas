@@ -9,6 +9,7 @@ node ./docs/src/build-docs.mjs step-by-step.md ./docs/step-by-step.html
 node ./docs/src/build-docs.mjs mas.js.md ./docs/mas.js.html
 node ./docs/src/build-docs.mjs feature-flags.md ./docs/feature-flags.html
 node ./docs/src/build-docs.mjs aem-fragment.md ./docs/aem-fragment.html
+node ./docs/src/build-docs.mjs masks.md ./docs/masks.html
 node ./docs/src/build-docs.mjs merch-card.md ./docs/merch-card.html
 node ./docs/src/build-docs.mjs plans.md ./docs/plans.html
 node ./docs/src/build-docs.mjs plans-collection.md ./docs/plans-collection.html

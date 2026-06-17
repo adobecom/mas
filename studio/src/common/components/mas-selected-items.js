@@ -1,7 +1,6 @@
 import { LitElement, html, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import { styles } from './mas-selected-items.css.js';
-import Store from '../../store.js';
 import { getItemsSelectionStore } from '../items-selection-store.js';
 import ReactiveController from '../../reactivity/reactive-controller.js';
 import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH } from '../../constants.js';
@@ -25,8 +24,10 @@ class MasSelectedItems extends LitElement {
             getItemsSelectionStore().selectedCollections,
             getItemsSelectionStore().selectedPlaceholders,
             getItemsSelectionStore().groupedVariationsByParent,
-            Store.fragments.list.loading,
-            Store.placeholders.list.loading,
+            getItemsSelectionStore().cardsByPaths,
+            getItemsSelectionStore().groupedVariationsData,
+            getItemsSelectionStore().collectionsByPaths,
+            getItemsSelectionStore().placeholdersByPaths,
         ]);
         this.fetchController = new ReactiveController(
             this,
@@ -84,10 +85,6 @@ class MasSelectedItems extends LitElement {
         return getItemsSelectionStore().showSelected.value;
     }
 
-    get isLoadingItems() {
-        return Store.fragments.list.loading.get() || Store.placeholders.list.loading.get();
-    }
-
     getType(item) {
         return getItemTypeLabel(item);
     }
@@ -125,10 +122,7 @@ class MasSelectedItems extends LitElement {
 
     render() {
         return html`${this.showSelected && this.selectedItems.length > 0
-            ? html`<ul
-                  class="selected-items"
-                  style="margin-left: ${this.showSelected && this.selectedItems.length > 0 ? '12px' : '0'}"
-              >
+            ? html`<ul class="selected-items">
                   ${repeat(
                       this.selectedItems,
                       (item) => item.path,
@@ -142,7 +136,6 @@ class MasSelectedItems extends LitElement {
                                   size="l"
                                   icon-only
                                   @click=${() => this.removeItem(item)}
-                                  ?disabled=${this.isLoadingItems}
                               >
                                   <sp-icon-close slot="icon"></sp-icon-close>
                               </sp-button>

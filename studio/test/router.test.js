@@ -942,6 +942,56 @@ describe('Router', () => {
         });
     });
 
+    describe('masks route and editor branches', () => {
+        let originalMasksCreating;
+        let originalMasksFragmentId;
+
+        beforeEach(() => {
+            originalMasksCreating = Store.masks.creating.get();
+            originalMasksFragmentId = Store.masks.fragmentId.get();
+        });
+
+        afterEach(() => {
+            Store.masks.creating.set(originalMasksCreating);
+            Store.masks.fragmentId.set(originalMasksFragmentId);
+        });
+
+        it('normalizes masks-editor to masks on start when no maskName and not creating', async () => {
+            mockLocation.hash = '#page=masks-editor&path=acom';
+            router.start();
+            expect(Store.page.get()).to.equal(PAGE_NAMES.MASKS);
+            await new Promise((resolve) => setTimeout(resolve, 100));
+            expect(mockLocation.hash).to.include('page=masks');
+            expect(mockLocation.hash).to.not.include('page=masks-editor');
+        });
+
+        it('keeps masks-editor on start when maskName is present', () => {
+            mockLocation.hash = '#page=masks-editor&path=acom&maskName=promo';
+            router.start();
+            expect(Store.page.get()).to.equal(PAGE_NAMES.MASKS_EDITOR);
+        });
+
+        it('keeps masks-editor on start when creating is true', () => {
+            Store.masks.creating.set(true);
+            mockLocation.hash = '#page=masks-editor&path=acom';
+            router.start();
+            expect(Store.page.get()).to.equal(PAGE_NAMES.MASKS_EDITOR);
+        });
+
+        it('should block unauthorized masks page navigation and redirect to welcome', async () => {
+            Store.page.set(PAGE_NAMES.WELCOME);
+            Store.profile.set({});
+            Store.users.set([]);
+            Store.masks.creating.set(true);
+            Store.masks.fragmentId.set('mask-id');
+
+            await router.navigateToPage(PAGE_NAMES.MASKS)();
+            expect(Store.page.get()).to.equal(PAGE_NAMES.WELCOME);
+            expect(Store.masks.creating.get()).to.equal(false);
+            expect(Store.masks.fragmentId.get()).to.equal(null);
+        });
+    });
+
     describe('promoHashIsSearchSync', () => {
         it('returns true when only query is added on promotions-editor', () => {
             const prev = '#page=promotions-editor&path=sandbox';

@@ -3,7 +3,7 @@ import sinon from 'sinon';
 import { transformer as promotionsTransformer, clearPromoCache } from '../../src/fragment/transformers/promotions.js';
 import { createResponse } from './mocks/MockFetch.js';
 
-const FOLDER_URL = 'https://odin.adobe.com/adobe/contentFragments/?path=/content/dam/mas/promotions';
+const FOLDER_URL = 'https://odin.adobe.com/adobe/contentFragments/?path=/content/dam/mas/promotions&limit=50';
 const hydrateUrl = (id) => `https://odin.adobe.com/adobe/contentFragments/${id}?references=all-hydrated`;
 
 const START = '2020-01-01T00:00:00Z';
@@ -418,6 +418,18 @@ describe('promotions', () => {
             const result = await promotionsTransformer.init(createContext());
             expect(result.activeProject).to.not.be.null;
             expect(result.activeProject.defaultVariations).to.deep.equal({});
+        });
+
+        it('fetches all pages when cursor is present in folder response', async () => {
+            const p1 = makeProject({ id: 'proj-1', surfaces: ['express'] });
+            const p2 = makeProject({ id: 'proj-2', surfaces: ['acom'], geos: [] });
+            const hydrated = makeHydratedProject();
+            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [p1], cursor: 'page2' }));
+            fetchStub.withArgs(`${FOLDER_URL}&cursor=page2`).returns(createResponse(200, { items: [p2] }));
+            fetchStub.withArgs(hydrateUrl('proj-2')).returns(createResponse(200, hydrated));
+
+            const result = await promotionsTransformer.init(createContext());
+            expect(result.activeProject?.id).to.equal('proj-2');
         });
     });
 

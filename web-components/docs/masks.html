@@ -1,0 +1,151 @@
+
+    <!DOCTYPE html>
+    <html>
+    <head>
+    <meta charset="UTF-8">
+    <title>M@S Web Components</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="spectrum.css">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://p.typekit.net/p.css?s=1&amp;k=hah7vzn&amp;ht=tk&amp;f=7180.7181.7182.7183.22474.22749.22750.22751.22753&amp;a=8634977&amp;app=typekit&amp;e=css">
+    <link rel="stylesheet" href="https://use.typekit.net/hah7vzn.css">
+    <link rel="stylesheet" href="/studio/con-button.css">
+  
+  <!-- Include your custom element script as an ES6 module -->
+  <script type="module">
+    import { init } from './common.js';
+    init();
+  </script>
+  <!-- Include Highlight.js stylesheet for syntax highlighting -->
+  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/default.min.css">
+  <script type="module" src="./mas-sidenav.js"></script>
+</head>
+<body class="spectrum spectrum--medium spectrum--light">
+    <aside is="mas-sidenav"></aside>
+<main>
+<sp-theme color="light" scale="medium">
+<h1 id="masks" tabindex="-1">Masks <a class="header-anchor" href="#masks" href="#masks" title="Permalink to this heading">#</a></h1>
+<p>A <strong>mask</strong> is a card content fragment that is overlaid on top of another card fragment at pipeline time. Only the fields present in the mask override the base fragment; all other fields are left untouched.</p>
+<p>Typical use cases: seasonal promotions, regional copy overrides, A/B copy variants — all without duplicating the base fragment.</p>
+<h2 id="how-it-works" tabindex="-1">How it works <a class="header-anchor" href="#how-it-works" href="#how-it-works" title="Permalink to this heading">#</a></h2>
+<ol>
+<li>Add a <code>mask</code> attribute to <code>&lt;aem-fragment&gt;</code> with the mask’s node name.</li>
+<li>The pipeline fetches the mask card fragment from <code>&lt;surface&gt;/&lt;locale&gt;/masks/&lt;name&gt;</code>, trying the regional locale first and falling back to the surface default locale.</li>
+<li>The mask’s fields are deep-merged onto the base card fragment before WCS pricing and token replacement run.</li>
+<li>The <code>mask</code> value is part of the response cache key (<code>m_&lt;mask&gt;</code>), so masked and unmasked responses are cached independently.</li>
+</ol>
+<h2 id="usage" tabindex="-1">Usage <a class="header-anchor" href="#usage" href="#usage" title="Permalink to this heading">#</a></h2>
+<pre><code class="hljs language-html"><span class="hljs-tag">&lt;<span class="hljs-name">aem-fragment</span>
+    <span class="hljs-attr">fragment</span>=<span class="hljs-string">&quot;d8008cac-010f-4607-bacc-a7a327da1312&quot;</span>
+    <span class="hljs-attr">mask</span>=<span class="hljs-string">&quot;holiday-promo&quot;</span>
+&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">aem-fragment</span>&gt;</span>
+</code></pre>
+<p>Combine with <code>pzn</code> when both a mask overlay and a personalization variant are needed:</p>
+<pre><code class="hljs language-html"><span class="hljs-tag">&lt;<span class="hljs-name">aem-fragment</span>
+    <span class="hljs-attr">fragment</span>=<span class="hljs-string">&quot;d8008cac-010f-4607-bacc-a7a327da1312&quot;</span>
+    <span class="hljs-attr">mask</span>=<span class="hljs-string">&quot;holiday-promo&quot;</span>
+    <span class="hljs-attr">pzn</span>=<span class="hljs-string">&quot;returning-customer&quot;</span>
+&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">aem-fragment</span>&gt;</span>
+</code></pre>
+<h2 id="attributes" tabindex="-1">Attributes <a class="header-anchor" href="#attributes" href="#attributes" title="Permalink to this heading">#</a></h2>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Description</th>
+<th>Required</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>mask</code></td>
+<td>Node name of the mask fragment to apply. Resolved under <code>&lt;surface&gt;/&lt;locale&gt;/masks/&lt;name&gt;</code> on the active surface.</td>
+<td><code>false</code></td>
+</tr>
+<tr>
+<td><code>pzn</code></td>
+<td>Personalization identifier forwarded to the pipeline as the <code>pzn</code> query parameter.</td>
+<td><code>false</code></td>
+</tr>
+</tbody>
+</table>
+<p>Both attributes are covered in full on the <a href="./aem-fragment.md"><code>aem-fragment</code></a> reference page.</p>
+<h2 id="variables" tabindex="-1">Variables <a class="header-anchor" href="#variables" href="#variables" title="Permalink to this heading">#</a></h2>
+<p>A mask fragment may declare a <code>variables</code> field — an array of <code>key:value</code> strings. The pipeline injects these as replacement tokens, making them available to the <code>replace</code> transformer. This lets a single mask drive both field overrides and token substitutions without changing the base fragment.</p>
+<p>Example <code>variables</code> field values:</p>
+<pre><code class="hljs"><span class="hljs-attribute">promo_label</span>:Save <span class="hljs-number">40</span>%
+<span class="hljs-attribute">badge_color</span>:spectrum-yellow-<span class="hljs-number">300</span>-plans
+</code></pre>
+<h2 id="authoring-masks" tabindex="-1">Authoring masks <a class="header-anchor" href="#authoring-masks" href="#authoring-masks" title="Permalink to this heading">#</a></h2>
+<p>Masks are authored in M@S Studio under <strong>Advanced Tools → Masks</strong>. The editor provides the same plans-card field sections as the main card editor, plus a live blurred preview that unblurs each part as content is added.</p>
+<ul>
+<li><strong>Name</strong> — the node name used in the <code>mask</code> attribute (immutable after creation).</li>
+<li><strong>Title</strong> — display name shown in the masks list.</li>
+<li><strong>Placeholders</strong> — the <code>variables</code> field; each entry is a <code>key:value</code> string injected into the replacement dictionary.</li>
+</ul>
+<p>See the <a href="../../studio/src/masks/README.md">studio masks README</a> for the full authoring and AEM folder reference.</p>
+<h2 id="example" tabindex="-1">Example <a class="header-anchor" href="#example" href="#example" title="Permalink to this heading">#</a></h2>
+<div class="mask-parent">
+    <style>
+        .mask-parent {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+        }
+    </style>
+    <div class="mask-item">
+        <merch-card><aem-fragment fragment="5a5ca143-a417-4087-b466-5b72ac68a830"></aem-fragment></merch-card>
+        <a class="plans-link" target="_blank" href="https://main--mas--adobecom.aem.live/studio.html?#path=nala&query=5a5ca143-a417-4087-b466-5b72ac68a830"> Open in Studio</a>
+    </div>
+    <div class="mask-item">
+        <merch-card><aem-fragment fragment="9406f1ae-7bee-48c3-9892-49af6816033e"></aem-fragment></merch-card>
+        <a class="plans-link" target="_blank" href="https://main--mas--adobecom.aem.live/studio.html?#path=nala&query=1736f2c9-0931-401b-b3c0-fe87ff72ad38"> Open in Studio</a>
+    </div>
+    <div class="mask-item">
+        <merch-card><aem-fragment fragment="6d128c6b-4f42-4052-98ca-4dddf8d88785"></aem-fragment></merch-card>
+        <a class="plans-link" target="_blank" href="https://main--mas--adobecom.aem.live/studio.html?#path=nala&query=6d128c6b-4f42-4052-98ca-4dddf8d88785"> Open in Studio</a>
+    </div>
+    <div>
+        <p> you can click on following buttons to apply a <a href="https://mas.adobe.com/studio.html#maskName=nala-mask&page=masks-editor&path=nala">mask</a> and remove it
+        </p>
+        <p>
+            <button id="btnMask">Mask</button>
+            <button id="btnUnMask">Remove Mask</button>
+        </p>
+    </div>
+</div>
+<script type="module">
+    document.getElementById('btnMask').addEventListener('click', () => {
+        document.querySelectorAll('aem-fragment').forEach(el => {
+            el.setAttribute('mask', 'nala-mask');
+            document.querySelector('mas-commerce-service').refreshFragments();
+        });
+    });
+    document.getElementById('btnUnMask').addEventListener('click', () => {
+        document.querySelectorAll('aem-fragment').forEach(el => {
+            el.removeAttribute('mask');
+            document.querySelector('mas-commerce-service').refreshFragments();
+        });
+    });
+</script>
+
+</sp-theme>
+</main>
+<script type="module">
+  document.querySelectorAll('code.demo').forEach(el => {
+      const targetContainer = document.createElement('div');
+      targetContainer.classList.toggle('light', el.classList.contains('light'));
+      targetContainer.innerHTML = `<h4>Demo: </h4><div class="demo-container">${el.textContent}</div>`;
+      el.parentElement.after(targetContainer);
+      // Extract and evaluate <script> tags
+      const scriptTags = targetContainer.getElementsByTagName('script');
+      for (let i = 0; i < scriptTags.length; i++) {
+          const script = document.createElement('script');
+          script.type = 'module';
+          script.text = scriptTags[i].text;
+          document.body.appendChild(script); // Appends to the document to execute
+          scriptTags[i].remove(); // Remove the script tag
+      }
+  });
+</script>
+</body>
+</html>

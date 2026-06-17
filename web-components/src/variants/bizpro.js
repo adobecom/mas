@@ -3,6 +3,7 @@ import { html, css, nothing } from 'lit';
 import { CSS } from './bizpro.css.js';
 import { ARROW_DOWN, ARROW_UP, ENTER, TAB } from '../focus.js';
 import {
+    EVENT_MERCH_CARD_QUANTITY_CHANGE,
     EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
     EVENT_TYPE_RESOLVED,
     SELECTOR_MAS_INLINE_PRICE,
@@ -258,7 +259,14 @@ export class BizPro extends VariantLayout {
     }
 
     connectedCallbackHook() {
-        if (!this.card || typeof ResizeObserver === 'undefined') return;
+        if (!this.card) return;
+        // The 3-in-1 modal reports its license count back through the authored
+        // quantity-select; mirror it into our custom selector (MWPW-198372).
+        this.card.addEventListener(
+            EVENT_MERCH_CARD_QUANTITY_CHANGE,
+            this.#onModalQuantityChange,
+        );
+        if (typeof ResizeObserver === 'undefined') return;
         this.#sizeObserver = new ResizeObserver(() => this.resyncOnReflow());
         this.#sizeObserver.observe(this.card);
         const desc = this.card.querySelector('[slot="body-xs"]');
@@ -268,7 +276,21 @@ export class BizPro extends VariantLayout {
     disconnectedCallbackHook() {
         this.#removeLicenseDocListener();
         this.#sizeObserver?.disconnect();
+        this.card?.removeEventListener(
+            EVENT_MERCH_CARD_QUANTITY_CHANGE,
+            this.#onModalQuantityChange,
+        );
     }
+
+    #onModalQuantityChange = ({ detail }) => {
+        const next = detail?.quantity == null ? null : String(detail.quantity);
+        if (next == null || next === this.licenseQty) return;
+        // Ignore values the configured selector can't represent; currentLicenseValue
+        // returns licenseQty verbatim, so an out-of-range value would render as-is.
+        if (!this.licenseOptions?.includes(next)) return;
+        this.licenseQty = next;
+        this.card.requestUpdate();
+    };
 
     get quantitySelectEl() {
         return this.card.querySelector('merch-quantity-select');

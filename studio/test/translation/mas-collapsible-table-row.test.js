@@ -581,6 +581,78 @@ describe('MasCollapsibleTableRow', () => {
             expect(Store.translationProjects.selectedCards.value).to.include(varPath);
             expect(Store.translationProjects.selectedCards.value).to.not.include(parentPath);
         });
+
+        it('should add the grouped variation path, not the parent, when a variation row is clicked', async () => {
+            const parentPath = '/content/dam/mas/acom/en_US/cards/parent';
+            const varPath = `${parentPath}/pzn/var1`;
+            const topLevelCard = createMockTopLevelCard({ path: parentPath, variationPaths: [varPath] });
+            setupCardVariationsInStore(parentPath, [{ path: varPath, title: 'Variation 1' }]);
+            Store.translationProjects.selectedCards.set([]);
+            const el = await fixture(
+                html`<mas-collapsible-table-row
+                    .topLevelCard=${topLevelCard}
+                    .isTopLevelExpanded=${true}
+                ></mas-collapsible-table-row>`,
+            );
+            el.selectedTabKey = 'groupedVariation';
+            await el.updateComplete;
+            const variationRow = el.shadowRoot.querySelector(`sp-table-row[value="${varPath}"]`);
+            variationRow.click();
+            await el.updateComplete;
+            expect(Store.translationProjects.selectedCards.value).to.include(varPath);
+            expect(Store.translationProjects.selectedCards.value).to.not.include(parentPath);
+        });
+
+        it('should select every grouped variation path when select all is checked', async () => {
+            const parentPath = '/content/dam/mas/acom/en_US/cards/parent';
+            const varPath1 = `${parentPath}/pzn/var1`;
+            const varPath2 = `${parentPath}/pzn/var2`;
+            const topLevelCard = createMockTopLevelCard({ path: parentPath, variationPaths: [varPath1, varPath2] });
+            setupCardVariationsInStore(parentPath, [
+                { path: varPath1, title: 'Variation 1' },
+                { path: varPath2, title: 'Variation 2' },
+            ]);
+            Store.translationProjects.selectedCards.set([]);
+            const el = await fixture(
+                html`<mas-collapsible-table-row
+                    .topLevelCard=${topLevelCard}
+                    .isTopLevelExpanded=${true}
+                ></mas-collapsible-table-row>`,
+            );
+            el.selectedTabKey = 'groupedVariation';
+            await el.updateComplete;
+            const selectAll = el.shadowRoot.querySelector('.select-all-row sp-checkbox');
+            selectAll.click();
+            await el.updateComplete;
+            expect(Store.translationProjects.selectedCards.value).to.include(varPath1);
+            expect(Store.translationProjects.selectedCards.value).to.include(varPath2);
+            expect(Store.translationProjects.selectedCards.value).to.not.include(parentPath);
+        });
+
+        it('should deselect every grouped variation path when select all is unchecked', async () => {
+            const parentPath = '/content/dam/mas/acom/en_US/cards/parent';
+            const varPath1 = `${parentPath}/pzn/var1`;
+            const varPath2 = `${parentPath}/pzn/var2`;
+            const topLevelCard = createMockTopLevelCard({ path: parentPath, variationPaths: [varPath1, varPath2] });
+            setupCardVariationsInStore(parentPath, [
+                { path: varPath1, title: 'Variation 1' },
+                { path: varPath2, title: 'Variation 2' },
+            ]);
+            Store.translationProjects.selectedCards.set([varPath1, varPath2]);
+            const el = await fixture(
+                html`<mas-collapsible-table-row
+                    .topLevelCard=${topLevelCard}
+                    .isTopLevelExpanded=${true}
+                ></mas-collapsible-table-row>`,
+            );
+            el.selectedTabKey = 'groupedVariation';
+            await el.updateComplete;
+            const selectAll = el.shadowRoot.querySelector('.select-all-row sp-checkbox');
+            selectAll.click();
+            await el.updateComplete;
+            expect(Store.translationProjects.selectedCards.value).to.not.include(varPath1);
+            expect(Store.translationProjects.selectedCards.value).to.not.include(varPath2);
+        });
     });
 
     describe('grouped variations tab', () => {

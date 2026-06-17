@@ -69,5 +69,15 @@ export default {
             tags: '@mas-studio @translation-editor @regression',
             description: 'Translation Editor Actions: create project save, add languages overlay, add files overlay',
         },
+        {
+            tcid: '7',
+            name: '@translation-editor-add-grouped-variation',
+            path: '/studio.html',
+            data: { cardId: 'd7393fa0-f1f0-457c-af4b-aa9dc3fa1017' },
+            browserParams: '#page=translation-editor&path=nala',
+            tags: '@mas-studio @translation-editor @cards',
+            description:
+                'Search a card by id, expand it, select one grouped variation, Add selected items, then verify it appears in Selected items with item type "Grouped variation"',
+        },
     ],
 };

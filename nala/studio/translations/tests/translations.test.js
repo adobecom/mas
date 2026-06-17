@@ -304,4 +304,25 @@ test.describe('M@S Studio Translations Test Suite', () => {
             expect(allTitles.some((t) => t.includes(projectTitle))).toBe(false);
         });
     });
+
+    // 7. @translation-editor-add-grouped-variation – Add one grouped variation and verify its item type
+    test(`${features[7].name},${features[7].tags}`, async ({ page, baseURL }) => {
+        const { cardId } = features[7].data;
+        const testPage = `${baseURL}${features[7].path}${miloLibs}${features[7].browserParams}`;
+        setTestPage(testPage);
+
+        await test.step('step-1: open new translation editor (no save)', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+            await expect(translationEditor.form).toBeVisible({ timeout: 15000 });
+        });
+
+        await test.step('step-2: search card by id, select one grouped variation, add', async () => {
+            await translationEditor.addGroupedVariationByCardId(cardId);
+        });
+
+        await test.step('step-3: verify Selected items shows item type "Grouped variation"', async () => {
+            await translationEditor.expectSelectedItemType('Grouped variation');
+        });
+    });
 });

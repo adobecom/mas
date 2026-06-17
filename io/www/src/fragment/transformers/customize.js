@@ -275,7 +275,12 @@ function customizeTree(root, referencesTree = [], customizeContext) {
     //start by merging current fragment with its regional variation, and promos if any
     const customizedRoot = mergeVariations(root, customizeContext);
     if (customizeContext.promos?.fragmentPaths.has(PATH_TOKENS.exec(root.path)?.groups.fragmentPath)) {
-        applyPromoCode(customizedRoot, customizeContext.promos.promoMap, customizeContext.promos.substituteMap, customizeContext);
+        applyPromoCode(
+            customizedRoot,
+            customizeContext.promos.promoMap,
+            customizeContext.promos.substituteMap,
+            customizeContext,
+        );
     }
 
     //adapt referencesTree to match the customized root's cards/collections

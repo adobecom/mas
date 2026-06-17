@@ -454,6 +454,47 @@
                         });
                     });
                 });
+
+                describe('RTE Field: mnemonic serialization', () => {
+                    it('serializes mnemonicText as text content, not as mnemonic-text attribute', async function () {
+                        const rte = await createFromTemplate('rte-mnemonic', this.test.title);
+                        const view = rte.editorView;
+                        const { state } = view;
+                        const mnemonicNode = state.schema.nodes.mnemonic.create({
+                            src: 'https://www.adobe.com/cc-shared/assets/img/product-icons/svg/photoshop.svg',
+                            alt: 'Photoshop',
+                            size: 's',
+                            mnemonicText: 'Edit Photos',
+                            mnemonicPlacement: 'top',
+                        });
+                        view.dispatch(state.tr.replaceSelectionWith(mnemonicNode));
+
+                        const html = rte.value;
+                        expect(html).to.include('>Edit Photos<');
+                        expect(html).to.not.include('mnemonic-text=');
+                        expect(html).to.include('mnemonic-placement="top"');
+                    });
+
+                    it('parses mnemonicText from text content', async function () {
+                        const rte = await createFromTemplate('rte-mnemonic', this.test.title);
+                        rte.value =
+                            '<p><mas-mnemonic src="test.svg" size="s" mnemonic-placement="top">Edit Photos</mas-mnemonic></p>';
+                        await rte.updateComplete;
+
+                        const node = rte.editorView.state.doc.firstChild.firstChild;
+                        expect(node.attrs.mnemonicText).to.equal('Edit Photos');
+                    });
+
+                    it('parses mnemonicText from mnemonic-text attribute for backward compatibility', async function () {
+                        const rte = await createFromTemplate('rte-mnemonic', this.test.title);
+                        rte.value =
+                            '<p><mas-mnemonic src="test.svg" size="s" mnemonic-text="Edit Photos" mnemonic-placement="top"></mas-mnemonic></p>';
+                        await rte.updateComplete;
+
+                        const node = rte.editorView.state.doc.firstChild.firstChild;
+                        expect(node.attrs.mnemonicText).to.equal('Edit Photos');
+                    });
+                });
             });
         </script>
         <mas-commerce-service data-mas-ff-defaults="off" env="stage"></mas-commerce-service>
@@ -566,6 +607,9 @@
         </template>
         <template id="rte-marks">
             <rte-field styling marks="promo-text,promo-duration-text,renewal-text"> Styling </rte-field>
+        </template>
+        <template id="rte-mnemonic">
+            <rte-field mnemonic><p></p></rte-field>
         </template>
         <template id="rte-small">
             <rte-field styling marks="small"> Small </rte-field>

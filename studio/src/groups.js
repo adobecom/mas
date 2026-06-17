@@ -43,3 +43,8 @@ export function canAccessSettings(surface) {
     const requiredGroup = SETTINGS_ACCESS_GROUP_BY_SURFACE.get(key);
     return !!requiredGroup && groups.includes(requiredGroup.toUpperCase());
 }
+
+/** Masks authoring is an advanced, per-surface capability gated like settings. */
+export function canAccessMasks(surface) {
+    return canAccessSettings(surface);
+}

@@ -1032,13 +1032,36 @@ async function processWithPromos(context, activeProject, promoMap) {
         surface: context.surface ?? 'sandbox',
         fragmentPath: context.fragmentPath,
     };
+    const activeProjects = activeProject ? [activeProject] : [];
     const promises = {
         fetchFragment: Promise.resolve(phase1),
-        promotions: Promise.resolve({ activeProject }),
+        promotions: Promise.resolve({ activeProjects }),
     };
     promises.defaultLanguage = defaultLanguage.init({ ...context, promises });
     context.promises = promises;
-    if (promoMap) context.promoMap = promoMap;
+    if (activeProject) {
+        const fragmentPaths = context.promoFragmentPaths ?? new Set();
+        context.promoProjects = [{ project: activeProject, promoMap: promoMap ?? {}, fragmentPaths }];
+    }
+    return await customize.process(context);
+}
+
+async function processWithPromoProjects(context, promoProjects) {
+    const phase1 = {
+        status: 200,
+        body: context.body,
+        parsedLocale: context.parsedLocale ?? 'en_US',
+        surface: context.surface ?? 'sandbox',
+        fragmentPath: context.fragmentPath,
+    };
+    const activeProjects = promoProjects.map(({ project }) => project);
+    const promises = {
+        fetchFragment: Promise.resolve(phase1),
+        promotions: Promise.resolve({ activeProjects }),
+    };
+    promises.defaultLanguage = defaultLanguage.init({ ...context, promises });
+    context.promises = promises;
+    context.promoProjects = promoProjects;
     return await customize.process(context);
 }
 
@@ -1663,5 +1686,141 @@ describe('customize promoCode application', function () {
         );
         expect(result.status).to.equal(200);
         expect(result.body.references['card-1'].value.fields.promoCode).to.equal('CARD-PROMO');
+    });
+});
+
+describe('customize with multiple active promotion projects', function () {
+    const PROJECT_A = {
+        id: 'proj-a',
+        path: '/content/dam/mas/promotions/proj-a',
+        defaultVariations: {
+            'card-a': {
+                id: 'var-a',
+                path: '/content/dam/mas/sandbox/en_US/promotions/proj-a/card-a',
+                fields: { title: 'Project A variation' },
+            },
+        },
+        regionVariations: {},
+    };
+    const PROJECT_B = {
+        id: 'proj-b',
+        path: '/content/dam/mas/promotions/proj-b',
+        defaultVariations: {
+            'card-b': {
+                id: 'var-b',
+                path: '/content/dam/mas/sandbox/en_US/promotions/proj-b/card-b',
+                fields: { title: 'Project B variation' },
+            },
+        },
+        regionVariations: {},
+    };
+
+    function makeCollectionBody() {
+        return {
+            path: '/content/dam/mas/sandbox/en_US/collection',
+            id: 'collection',
+            fields: { cards: ['card-a', 'card-b'], collections: [] },
+            references: {
+                'card-a': {
+                    type: 'content-fragment',
+                    value: {
+                        path: '/content/dam/mas/sandbox/en_US/card-a',
+                        id: 'card-a',
+                        fields: { osi: 'OSI-A', title: 'Original A', variations: [] },
+                    },
+                },
+                'card-b': {
+                    type: 'content-fragment',
+                    value: {
+                        path: '/content/dam/mas/sandbox/en_US/card-b',
+                        id: 'card-b',
+                        fields: { osi: 'OSI-B', title: 'Original B', variations: [] },
+                    },
+                },
+            },
+            referencesTree: [
+                { fieldName: 'cards', identifier: 'card-a', referencesTree: [] },
+                { fieldName: 'cards', identifier: 'card-b', referencesTree: [] },
+            ],
+        };
+    }
+
+    it('applies a different project to each fragment in a collection', async function () {
+        const result = await processWithPromoProjects(
+            { ...FAKE_CONTEXT, fragmentPath: 'collection', body: makeCollectionBody() },
+            [
+                { project: PROJECT_A, promoMap: { 'OSI-A': 'CODE-A' }, fragmentPaths: new Set(['card-a']) },
+                { project: PROJECT_B, promoMap: { 'OSI-B': 'CODE-B' }, fragmentPaths: new Set(['card-b']) },
+            ],
+        );
+        expect(result.status).to.equal(200);
+        expect(result.body.references['card-a'].value.variationId).to.equal('var-a');
+        expect(result.body.references['card-a'].value.fields.promoCode).to.equal('CODE-A');
+        expect(result.body.references['card-b'].value.variationId).to.equal('var-b');
+        expect(result.body.references['card-b'].value.fields.promoCode).to.equal('CODE-B');
+    });
+
+    it('first project wins when both projects target the same fragment', async function () {
+        const projectAlt = {
+            id: 'proj-alt',
+            path: '/content/dam/mas/promotions/proj-alt',
+            defaultVariations: {
+                'card-a': {
+                    id: 'var-alt',
+                    path: '/content/dam/mas/sandbox/en_US/promotions/proj-alt/card-a',
+                    fields: { title: 'Project Alt variation' },
+                },
+            },
+            regionVariations: {},
+        };
+        const rootFragment = {
+            id: 'card-a',
+            path: '/content/dam/mas/sandbox/en_US/card-a',
+            fields: { osi: 'OSI-A', title: 'Original A' },
+            references: {},
+            referencesTree: [],
+        };
+        const result = await processWithPromoProjects({ ...FAKE_CONTEXT, fragmentPath: 'card-a', body: rootFragment }, [
+            { project: PROJECT_A, promoMap: { 'OSI-A': 'FIRST' }, fragmentPaths: new Set(['card-a']) },
+            { project: projectAlt, promoMap: { 'OSI-A': 'SECOND' }, fragmentPaths: new Set(['card-a']) },
+        ]);
+        expect(result.status).to.equal(200);
+        expect(result.body.variationId).to.equal('var-a');
+        expect(result.body.fields.promoCode).to.equal('FIRST');
+    });
+
+    it('variation and promoCode walks are independent — A supplies variation, B supplies promoCode', async function () {
+        const projectVariationOnly = {
+            id: 'proj-var',
+            path: '/content/dam/mas/promotions/proj-var',
+            defaultVariations: {
+                'card-x': {
+                    id: 'var-x',
+                    path: '/content/dam/mas/sandbox/en_US/promotions/proj-var/card-x',
+                    fields: { title: 'Variation-only project' },
+                },
+            },
+            regionVariations: {},
+        };
+        const projectPromoOnly = {
+            id: 'proj-promo',
+            path: '/content/dam/mas/promotions/proj-promo',
+            defaultVariations: {},
+            regionVariations: {},
+        };
+        const rootFragment = {
+            id: 'card-x',
+            path: '/content/dam/mas/sandbox/en_US/card-x',
+            fields: { osi: 'OSI-X', title: 'Original X' },
+            references: {},
+            referencesTree: [],
+        };
+        const result = await processWithPromoProjects({ ...FAKE_CONTEXT, fragmentPath: 'card-x', body: rootFragment }, [
+            { project: projectVariationOnly, promoMap: { 'OSI-X': 'FROM-VAR-PROJECT' }, fragmentPaths: new Set() },
+            { project: projectPromoOnly, promoMap: { 'OSI-X': 'FROM-PROMO-PROJECT' }, fragmentPaths: new Set(['card-x']) },
+        ]);
+        expect(result.status).to.equal(200);
+        expect(result.body.variationId).to.equal('var-x');
+        expect(result.body.fields.promoCode).to.equal('FROM-PROMO-PROJECT');
     });
 });

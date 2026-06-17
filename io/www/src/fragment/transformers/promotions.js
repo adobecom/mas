@@ -19,17 +19,20 @@
  *   - Fetches the promotions folder (cached for 5 min).
  *   - Filters projects by promotion tag, surface, geo, and date window.
  *   - Awaits `defaultLanguage` to resolve `defaultLocale` / `regionLocale`.
- *   - Hydrates the first matching project (for fragment OSI/promoCode data).
- *   - Folder-searches promo variations for `defaultLocale` and `regionLocale` (in parallel
- *     with hydration). Returns `{ activeProject }` with `defaultVariations` / `regionVariations`
- *     maps (keyed by fragmentPath) consumed by `customize` for promo variation merging.
+ *   - Hydrates ALL matched projects in parallel (for fragment OSI/promoCode data) and
+ *     folder-searches their promo variations for `defaultLocale` and `regionLocale`.
+ *   - Returns `{ activeProjects }` — array preserving the delivery listing (creation) order,
+ *     which is the precedence order. Each project carries its own `defaultVariations` /
+ *     `regionVariations` maps (keyed by fragmentPath). `customize` picks the first applicable
+ *     project per fragment.
  *
  * **`process`** runs sequentially before `customize`:
- *   - Builds a flat `promoMap` (OSI → promoCode) from the active project's fragments
- *     and offer overrides, resolved for the current country.
+ *   - For each active project, builds its own `promoMap` (OSI → promoCode) from its
+ *     promoCode and offer overrides, resolved for the current country.
  *   - Wildcard overrides (empty osis) are stored under the `'*'` key.
- *   - The `promoMap` is placed on context; `customize` reads it via `context.promoMap`
- *     and applies promo codes to each fragment during tree traversal.
+ *   - Places `context.promoProjects` (array of `{ project, promoMap, fragmentPaths }`).
+ *   - `customize` walks this array per fragment and applies the first applicable
+ *     project's variation / promoCode (folder order = priority).
  */
 import { FRAGMENT_URL_PREFIX, MAS_ROOT, PATH_TOKENS, odinReferences } from '../utils/paths.js';
 import { fetch, getRequestInfos, matchesGeo } from '../utils/common.js';
@@ -254,58 +257,16 @@ async function fetchPromoVariations(baseUrl, surface, locale, projectName, conte
 }
 
 /**
- * Fetches promotion projects, selects the first matching one, hydrates it for
- * OSI/promoCode data, and fetches promo variation folders for defaultLocale and
- * regionLocale. Returns { activeProject } consumed by `customize`.
+ * Hydrates a single matched project and fetches its variation folders.
+ * Returns the per-project activeProject shape, or `null` if hydration failed
+ * or the project has no fragments and no offer overrides (nothing to apply).
  */
-async function init(context) {
-    // Fire projects fetch immediately — needs no context dependencies
-    const projectsPromise = fetchProjects(context);
-
-    // Resolve request info in parallel
-    const { surface } = await getRequestInfos(context);
-    if (!surface) return { status: 200, activeProject: null };
-
-    const projects = await projectsPromise;
-    if (!projects?.length) return { status: 200, activeProject: null };
-
-    const instant = toInstant(context.preview ? context.instant : undefined);
-    const { locale, country, regionLocale } = context;
-    const effectiveRegionLocale = regionLocale ?? locale;
-
-    let active = null;
-    let matchCount = 0;
-    for (const project of projects) {
-        if (matchesProject(project, { surface, locale, country, regionLocale: effectiveRegionLocale, instant }, context)) {
-            matchCount++;
-            if (!active) active = project;
-        }
-    }
-    if (matchCount > 1) {
-        logDebug(() => `Multiple promotion projects matched (${matchCount}), using first: ${active.id}`, context);
-    }
-    if (!active) {
-        return { status: 200, activeProject: null };
-    } else {
-        log(
-            `Active promotion project "${active.name}" (${active.id}) matched for surface "${surface}", regionLocale "${regionLocale}", country "${country}"`,
-            context,
-        );
-    }
-
-    // Await defaultLanguage to get resolved locale info for variation folder searches
-    const defaultLangResult = await context.promises?.defaultLanguage;
-    const defaultLocale = defaultLangResult?.defaultLocale;
-    if (!defaultLocale) return { status: 200, activeProject: null };
-    const resolvedRegionLocale = defaultLangResult.regionLocale;
-
-    const promoTag = active.tags.find((tag) => tag.startsWith(PROMO_TAG_PREFIX));
+async function hydrateProject(project, { baseUrl, surface, defaultLocale, resolvedRegionLocale }, context) {
+    const promoTag = project.tags.find((tag) => tag.startsWith(PROMO_TAG_PREFIX));
     const promoName = promoTag.slice(PROMO_TAG_PREFIX.length);
-    const baseUrl = context.preview?.url ?? FRAGMENT_URL_PREFIX;
 
-    // Hydrate project (for fragments/OSI data) and fetch variation folders in parallel
     const [hydrateResponse, defaultVariations, regionVariations] = await Promise.all([
-        fetch(odinReferences(active.id, true, context.preview), context, 'promotions-hydrate'),
+        fetch(odinReferences(project.id, true, context.preview), context, 'promotions-hydrate'),
         fetchPromoVariations(baseUrl, surface, defaultLocale, promoName, context),
         resolvedRegionLocale && resolvedRegionLocale !== defaultLocale
             ? fetchPromoVariations(baseUrl, surface, resolvedRegionLocale, promoName, context)
@@ -313,36 +274,81 @@ async function init(context) {
     ]);
 
     if (hydrateResponse.status !== 200) {
-        logError(`Failed to hydrate promotion project ${active.id}: ${hydrateResponse.message}`, context);
-        return { status: 200, activeProject: null };
+        logError(`Failed to hydrate promotion project ${project.id}: ${hydrateResponse.message}`, context);
+        return null;
     }
 
     const hydratedProject = hydrateResponse.body;
     const fragmentPaths = parseFragmentPaths(hydratedProject);
-    const offerOverrides = parseOfferOverrides(active.offerLines);
+    const offerOverrides = parseOfferOverrides(project.offerLines);
     const promoCode = hydratedProject.fields?.promoCode ?? null;
     if (!fragmentPaths.length && !offerOverrides.length) {
-        logDebug(() => `Promotion project ${active.id} has no fragments or offer overrides, skipping`, context);
-        return { status: 200, activeProject: null };
+        logDebug(() => `Promotion project ${project.id} has no fragments or offer overrides, skipping`, context);
+        return null;
     }
     logDebug(
         () =>
-            `Active promotion project ${active.id} with ${fragmentPaths.length} fragments, ${offerOverrides.length} offer overrides, promoCode="${promoCode}", ${Object.keys(defaultVariations).length} default variations, ${Object.keys(regionVariations).length} region variations`,
+            `Active promotion project ${project.id} with ${fragmentPaths.length} fragments, ${offerOverrides.length} offer overrides, promoCode="${promoCode}", ${Object.keys(defaultVariations).length} default variations, ${Object.keys(regionVariations).length} region variations`,
         context,
     );
 
     return {
-        status: 200,
-        activeProject: {
-            id: active.id,
-            path: active.path,
-            promoCode,
-            fragmentPaths,
-            offerOverrides,
-            defaultVariations,
-            regionVariations,
-        },
+        id: project.id,
+        path: project.path,
+        promoCode,
+        fragmentPaths,
+        offerOverrides,
+        defaultVariations,
+        regionVariations,
     };
+}
+
+/**
+ * Fetches promotion projects, collects ALL projects matching the request's
+ * surface/locale/time, hydrates each in parallel, and fetches their promo
+ * variation folders. Returns `{ activeProjects }` (array, preserving folder
+ * order) consumed by `customize`. Per-fragment "first applicable project"
+ * resolution happens downstream in the customize transformer.
+ */
+async function init(context) {
+    // Fire projects fetch immediately — needs no context dependencies
+    const projectsPromise = fetchProjects(context);
+
+    // Resolve request info in parallel
+    const { surface } = await getRequestInfos(context);
+    if (!surface) return { status: 200, activeProjects: [] };
+
+    const projects = await projectsPromise;
+    if (!projects?.length) return { status: 200, activeProjects: [] };
+
+    const instant = toInstant(context.preview ? context.instant : undefined);
+    const { locale, country, regionLocale } = context;
+    const effectiveRegionLocale = regionLocale ?? locale;
+
+    const matched = projects.filter((project) =>
+        matchesProject(project, { surface, locale, country, regionLocale: effectiveRegionLocale, instant }, context),
+    );
+    if (!matched.length) return { status: 200, activeProjects: [] };
+
+    log(
+        `${matched.length} promotion project(s) matched for surface "${surface}", regionLocale "${regionLocale}", country "${country}": ${matched.map((p) => `"${p.name}" (${p.id})`).join(', ')}`,
+        context,
+    );
+
+    // Await defaultLanguage to get resolved locale info for variation folder searches
+    const defaultLangResult = await context.promises?.defaultLanguage;
+    const defaultLocale = defaultLangResult?.defaultLocale;
+    if (!defaultLocale) return { status: 200, activeProjects: [] };
+    const resolvedRegionLocale = defaultLangResult.regionLocale;
+    const baseUrl = context.preview?.url ?? FRAGMENT_URL_PREFIX;
+
+    // Hydrate all matched projects concurrently
+    const hydrated = await Promise.all(
+        matched.map((project) => hydrateProject(project, { baseUrl, surface, defaultLocale, resolvedRegionLocale }, context)),
+    );
+    const activeProjects = hydrated.filter(Boolean);
+
+    return { status: 200, activeProjects };
 }
 
 /**
@@ -374,17 +380,21 @@ function buildPromoMap(offerOverrides, country, projectPromoCode, context) {
 }
 
 /**
- * Builds the promoMap and promoFragmentPaths from the active project and places them on context
- * for the customize transformer to apply during fragment tree traversal.
+ * For each active project, builds its own promoMap and fragmentPaths Set and
+ * places the per-project array on context for the customize transformer to
+ * walk per-fragment during tree traversal. Order is preserved (folder order
+ * from Odin), and customize picks the first applicable project per fragment.
  * Matching is done by fragmentPath (locale-independent) so translated fragments are handled correctly.
  */
 async function promotions(context) {
-    const { activeProject } = (await context.promises?.promotions) ?? {};
-    if (!activeProject) return { ...context, status: 200 };
-    const { fragmentPaths = [], offerOverrides = [], promoCode } = activeProject;
-    const promoMap = buildPromoMap(offerOverrides, context.country, promoCode, context);
-    const promoFragmentPaths = new Set(fragmentPaths);
-    return { ...context, status: 200, promoMap, promoFragmentPaths };
+    const { activeProjects = [] } = (await context.promises?.promotions) ?? {};
+    if (!activeProjects.length) return { ...context, status: 200 };
+    const promoProjects = activeProjects.map((project) => ({
+        project,
+        promoMap: buildPromoMap(project.offerOverrides, context.country, project.promoCode, context),
+        fragmentPaths: new Set(project.fragmentPaths),
+    }));
+    return { ...context, status: 200, promoProjects };
 }
 
 export const transformer = {

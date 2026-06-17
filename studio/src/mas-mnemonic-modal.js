@@ -350,6 +350,7 @@ class MasMnemonicModal extends LitElement {
                               <rte-field
                                   id="description"
                                   link
+                                  icon
                                   .value=${this.alt || ''}
                                   @change=${(e) => (this.altHtml = e.target.value)}
                               ></rte-field>
@@ -400,6 +401,7 @@ class MasMnemonicModal extends LitElement {
                               <rte-field
                                   id="url-description"
                                   link
+                                  icon
                                   .value=${this.alt || ''}
                                   @change=${(e) => (this.altHtml = e.target.value)}
                               ></rte-field>

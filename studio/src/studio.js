@@ -26,6 +26,7 @@ import './editors/merch-card-collection-editor.js';
 import { initUsers } from './users.js';
 import './placeholders/mas-placeholders.js';
 import './settings/mas-settings.js';
+import './masks/mas-masks.js';
 import './mas-advanced-tools.js';
 import './mas-confirm-dialog.js';
 import './mas-card-preview.js';
@@ -157,6 +158,11 @@ class MasStudio extends LitElement {
         return html`<mas-settings bucket=${this.bucket} base-url=${this.baseUrl}></mas-settings>`;
     }
 
+    get masks() {
+        if (this.page.value !== PAGE_NAMES.MASKS && this.page.value !== PAGE_NAMES.MASKS_EDITOR) return nothing;
+        return html`<mas-masks bucket=${this.bucket} base-url=${this.baseUrl}></mas-masks>`;
+    }
+
     get splashScreen() {
         if (this.page.value !== PAGE_NAMES.WELCOME) return nothing;
         return html`<mas-splash-screen base-url=${this.baseUrl}></mas-splash-screen>`;
@@ -261,7 +267,7 @@ class MasStudio extends LitElement {
                           ${this.splashScreen} ${this.content} ${this.placeholders} ${this.fragmentEditor} ${this.promotions}
                           ${this.promotionsEditor} ${this.versionPage} ${this.translation} ${this.translationEditor}
                           ${this.bulkPublish} ${this.bulkPublishEditor} ${this.advancedTools} ${this.editorPanel}
-                          ${this.settings}
+                          ${this.settings} ${this.masks}
                       </div>`
                     : nothing}
             </div>

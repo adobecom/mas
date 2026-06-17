@@ -96,9 +96,12 @@ class MasFragment extends LitElement {
         const newExpandedState = !this.expanded;
         this.expanded = newExpandedState;
 
-        // Clear expandedId if collapsing the auto-expanded fragment
-        if (!newExpandedState && Store.fragments.expandedId.get() === this.fragmentStore?.value?.id) {
-            Store.fragments.expandedId.set(null);
+        if (!newExpandedState) {
+            if (Store.fragments.expandedId.get() === this.fragmentStore?.value?.id) {
+                Store.fragments.expandedId.set(null);
+            }
+            Store.fragments.highlightedVariationId.set(null);
+            Store.fragments.variationSearchTab.set(null);
         }
 
         const fragment = this.fragmentStore.value;

@@ -81,15 +81,20 @@ async function fetchProjects(context) {
     }
 
     const baseUrl = context.preview?.url ?? FRAGMENT_URL_PREFIX;
-    const folderUrl = `${baseUrl}/?path=${PROMOTIONS_PATH}`;
-    const response = await fetch(folderUrl, context, 'promotions-folder');
-    if (response.status !== 200) {
-        logDebug(() => `Failed to fetch promotions folder: ${response.message}`, context);
-        return null;
-    }
+    const allItems = [];
+    let cursor;
+    do {
+        const url = `${baseUrl}/?path=${PROMOTIONS_PATH}&limit=50${cursor ? `&cursor=${cursor}` : ''}`;
+        const response = await fetch(url, context, 'promotions-folder');
+        if (response.status !== 200) {
+            logDebug(() => `Failed to fetch promotions folder: ${response.message}`, context);
+            return null;
+        }
+        allItems.push(...(response.body?.items ?? []));
+        cursor = response.body?.cursor;
+    } while (cursor);
 
-    const items = response.body?.items ?? [];
-    const projects = items.map(({ id, path, name, fields }) => ({
+    const projects = allItems.map(({ id, path, name, fields }) => ({
         id,
         path,
         name,

@@ -323,4 +323,50 @@ describe('wcs OSI substitution', function () {
         expect(context.body.wcs.prod).to.have.property('ORIG-OSI-us-mult');
         expect(context.body.wcs.prod).to.not.have.property('OTHER-OSI-us-mult');
     });
+
+    it('rewrites body HTML with substituted OSI', async function () {
+        context.body = {
+            prices: '<span data-wcs-osi="BASE-OSI"></span>',
+            fields: {},
+        };
+        context.substituteMap = { 'BASE-OSI': 'SUB-OSI' };
+        fetchStub
+            .withArgs(sinon.match((url) => url.includes('offer_selector_ids=SUB-OSI')))
+            .returns(createResponse(200, stubbedOffer('substituted')));
+
+        context = await wcs.process(context);
+
+        expect(context.body.prices).to.include('data-wcs-osi="SUB-OSI"');
+        expect(context.body.prices).to.not.include('data-wcs-osi="BASE-OSI"');
+    });
+
+    it('rewrites body fields.osi with substituted OSI', async function () {
+        context.body = {
+            prices: '<span data-wcs-osi="HTML-OSI"></span>',
+            fields: { osi: 'FIELD-OSI' },
+        };
+        context.substituteMap = { 'FIELD-OSI': 'SUB-FIELD-OSI' };
+        fetchStub
+            .withArgs(sinon.match((url) => url.includes('offer_selector_ids=SUB-FIELD-OSI')))
+            .returns(createResponse(200, stubbedOffer('substituted')));
+
+        context = await wcs.process(context);
+
+        expect(context.body.fields.osi).to.equal('SUB-FIELD-OSI');
+    });
+
+    it('rewrites body HTML even when no wcsConfiguration is available', async function () {
+        context.body = {
+            prices: '<span data-wcs-osi="BASE-OSI"></span>',
+            fields: {},
+        };
+        context.substituteMap = { 'BASE-OSI': 'SUB-OSI' };
+        delete context.wcsConfiguration;
+
+        context = await wcs.process(context);
+
+        expect(context.body.prices).to.include('data-wcs-osi="SUB-OSI"');
+        expect(context.body.prices).to.not.include('data-wcs-osi="BASE-OSI"');
+        expect(context.body.wcs).to.be.undefined;
+    });
 });

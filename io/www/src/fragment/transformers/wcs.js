@@ -65,14 +65,39 @@ async function computeCache(tokens, wcsContext) {
 }
 
 async function wcs(context) {
+    const { body } = context;
+    const bodyString = JSON.stringify(body);
+    const matches = [...bodyString.matchAll(MAS_ELEMENT_REGEXP)];
+
+    let newBodyString = bodyString;
+    let offset = 0;
+    matches.forEach((match) => {
+        const originalOsi = match.groups.osi;
+        const substitutedOsi = substituteOsi(originalOsi, context.substituteMap);
+        if (originalOsi !== substitutedOsi) {
+            const matchStart = match.index + offset;
+            const origMatchStr = match[0];
+            const newMatchStr = origMatchStr.replace(`\\"${originalOsi}\\"`, `\\"${substitutedOsi}\\"`);
+            newBodyString =
+                newBodyString.slice(0, matchStart) + newMatchStr + newBodyString.slice(matchStart + origMatchStr.length);
+            offset += newMatchStr.length - origMatchStr.length;
+        }
+    });
+    if (newBodyString !== bodyString) {
+        context.body = JSON.parse(newBodyString);
+    }
+    if (body.fields?.osi) {
+        const substitutedOsi = substituteOsi(body.fields.osi, context.substituteMap);
+        if (substitutedOsi !== body.fields.osi) {
+            context.body.fields.osi = substitutedOsi;
+        }
+    }
+
     const wcsConfigs = context.wcsConfiguration;
     if (!wcsConfigs || wcsConfigs.length === 0) {
         log('No WCS configurations available', context);
         return context;
     }
-    const { body } = context;
-    const bodyString = JSON.stringify(body);
-    const matches = [...bodyString.matchAll(MAS_ELEMENT_REGEXP)];
     if (matches.length > 0) {
         const tokenMap = new Map();
         const tokenKey = ({ osi, promotionCode }) => `${osi}-${promotionCode || ''}`;

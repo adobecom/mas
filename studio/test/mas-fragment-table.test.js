@@ -1,5 +1,6 @@
 import { expect, fixture, html } from '@open-wc/testing';
 import sinon from 'sinon';
+import '../src/swc.js';
 import '../src/mas-fragment-table.js';
 import Events from '../src/events.js';
 import Store from '../src/store.js';
@@ -195,6 +196,59 @@ describe('MasFragmentTable', () => {
             const el = await fixture(html`<mas-fragment-table .fragmentStore=${fragmentStore}></mas-fragment-table>`);
             await el.copyCode({ stopPropagation: sandbox.stub() });
             expect(clipboardStub.write.called).to.be.false;
+        });
+    });
+
+    describe('nested variation selection', () => {
+        let selectingSnapshot;
+        let selectionSnapshot;
+
+        beforeEach(() => {
+            selectingSnapshot = Store.selecting.get();
+            selectionSnapshot = Store.selection.get();
+        });
+
+        afterEach(() => {
+            Store.selecting.set(selectingSnapshot);
+            Store.selection.set(selectionSnapshot);
+        });
+
+        it('renders an empty row value for nested rows', async () => {
+            const fragmentStore = createFragmentStore({ id: 'variation-1', locale: 'en_CA' });
+            const el = await fixture(
+                html`<mas-fragment-table .fragmentStore=${fragmentStore} .nested=${true}></mas-fragment-table>`,
+            );
+            await el.updateComplete;
+
+            const row = el.querySelector('sp-table-row');
+            expect(row.getAttribute('value')).to.equal('');
+        });
+
+        it('shows a checkbox in the name cell while selecting', async () => {
+            Store.selecting.set(true);
+            const fragmentStore = createFragmentStore({ id: 'variation-1', locale: 'en_CA' });
+            const el = await fixture(
+                html`<mas-fragment-table .fragmentStore=${fragmentStore} .nested=${true}></mas-fragment-table>`,
+            );
+            await el.updateComplete;
+
+            const nameCell = el.querySelector('sp-table-cell.name');
+            expect(nameCell.querySelector('sp-checkbox')).to.exist;
+        });
+
+        it('toggles Store.selection when the nested checkbox changes', async () => {
+            Store.selecting.set(true);
+            const fragmentStore = createFragmentStore({ id: 'variation-1', locale: 'en_CA' });
+            const el = await fixture(
+                html`<mas-fragment-table .fragmentStore=${fragmentStore} .nested=${true}></mas-fragment-table>`,
+            );
+            await el.updateComplete;
+
+            el.handleVariationSelect({ stopPropagation: sandbox.stub() });
+            expect(Store.selection.get()).to.deep.equal(['variation-1']);
+
+            el.handleVariationSelect({ stopPropagation: sandbox.stub() });
+            expect(Store.selection.get()).to.deep.equal([]);
         });
     });
 });

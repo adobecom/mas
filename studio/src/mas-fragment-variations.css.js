@@ -59,6 +59,10 @@ export const styles = `
     outline-offset: -2px;
 }
 
+#content .expanded-content .nested-fragment sp-table-cell.name sp-checkbox {
+    flex-shrink: 0;
+}
+
 /* Grouped variation expanded section */
 .grouped-variation-expanded {
     display: flex;

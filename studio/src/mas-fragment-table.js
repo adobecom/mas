@@ -2,7 +2,7 @@ import { LitElement, html, css } from 'lit';
 import ReactiveController from './reactivity/reactive-controller.js';
 import { extractLocaleFromPath, generateCodeToUse, getService, showToast, previewFragmentOnPage } from './utils.js';
 import { getFragmentName } from './translation/translation-utils.js';
-import Store from './store.js';
+import Store, { toggleSelection } from './store.js';
 import { closePreview, openPreview } from './mas-card-preview.js';
 import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH } from './constants.js';
 import { MasRepository } from './mas-repository.js';
@@ -40,7 +40,7 @@ class MasFragmentTable extends LitElement {
         this.failedPrice = false;
     }
 
-    #reactiveControllers = new ReactiveController(this);
+    #reactiveController = new ReactiveController(this);
 
     /** @type {MasRepository} */
     get repository() {
@@ -84,8 +84,12 @@ class MasFragmentTable extends LitElement {
     }
 
     update(changedProperties) {
-        if (changedProperties.has('fragmentStore')) {
-            this.#reactiveControllers.updateStores([this.fragmentStore]);
+        if (changedProperties.has('fragmentStore') || changedProperties.has('nested')) {
+            const stores = [this.fragmentStore];
+            if (this.nested) {
+                stores.push(Store.selecting, Store.selection);
+            }
+            this.#reactiveController.updateStores(stores);
         }
         super.update(changedProperties);
     }
@@ -173,6 +177,15 @@ class MasFragmentTable extends LitElement {
         }
     }
 
+    get isVariationSelected() {
+        return Store.selection.get().includes(this.fragmentStore.value.id);
+    }
+
+    handleVariationSelect(event) {
+        event.stopPropagation();
+        toggleSelection(this.fragmentStore.value.id);
+    }
+
     getTruncatedOfferId() {
         const offerId = this.offerData?.offerId;
         if (!offerId || offerId.length <= 5) return offerId;
@@ -206,7 +219,7 @@ class MasFragmentTable extends LitElement {
                   ></mas-variation-dialog>`
                 : ''}
             <sp-table-row
-                value="${data.id}"
+                value="${this.nested ? '' : data.id}"
                 class="${this.expanded ? 'expanded' : ''} ${this.failedPrice ? 'price-failed' : ''}"
             >
                 ${this.nested
@@ -219,6 +232,13 @@ class MasFragmentTable extends LitElement {
                           </button>
                       </sp-table-cell>`}
                 <sp-table-cell class="name">
+                    ${this.nested && Store.selecting.get()
+                        ? html`<sp-checkbox
+                              ?checked=${this.isVariationSelected}
+                              @change=${this.handleVariationSelect}
+                              @click=${(e) => e.stopPropagation()}
+                          ></sp-checkbox>`
+                        : ''}
                     ${this.nested
                         ? html`${data.locale}`
                         : html`<div class="icon">${this.icon}</div>

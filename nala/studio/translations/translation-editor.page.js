@@ -46,7 +46,9 @@ export default class TranslationEditorPage {
         this.addSelectedItemsButton = this.selectItemsDialog.getByRole('button', { name: 'Add selected items' });
         this.selectedItemsButton = page.locator('mas-items-selector .selected-items-count sp-button');
 
-        this.searchInput = this.selectItemsDialog.locator('.dialog-header sp-search input');
+        this.searchInput = fragmentsTab.locator(
+            'mas-search-and-filters sp-search input, mas-search-and-filters input[type="search"]',
+        );
         this.fragmentsResultCount = fragmentsTab.locator('mas-search-and-filters .result-count');
         this.appliedFilterTags = fragmentsTab.locator('mas-search-and-filters .applied-filters sp-tag');
 
@@ -74,13 +76,6 @@ export default class TranslationEditorPage {
         // Expand/collapse button
         this.expandRowButton = (index) =>
             this.cardsTable.locator('sp-table-body sp-table-row').nth(index).locator('sp-button.expand-button').first();
-
-        // Grouped variation selection (inside the expanded card row, Select items dialog)
-        this.groupedVariationTab = page.getByRole('tab', { name: 'Grouped variation' }).first();
-        this.groupedVariationRows = this.selectItemsDialog.locator(
-            'sp-tab-panel[value="groupedVariation"] sp-table-body sp-table-row[value]',
-        );
-        this.groupedVariationCheckbox = (index) => this.groupedVariationRows.nth(index).locator('sp-checkbox');
 
         // View-only mode
         this.viewOnlyCardsTab = page.getByRole('tabpanel', { name: /Fragments\s*\(\d+\)/ }).first();
@@ -130,32 +125,6 @@ export default class TranslationEditorPage {
         await expect(this.saveButton).toBeEnabled({ timeout: 10000 });
         await this.saveButton.click();
         await this.page.waitForTimeout(2000);
-    }
-
-    async addGroupedVariationByCardId(cardId) {
-        await this.addItemsButton.click();
-        await expect(this.selectItemsDialog).toBeVisible({ timeout: 10000 });
-        await this.cardsTab.click();
-        await expect(this.searchInput).toBeVisible({ timeout: 10000 });
-        await expect(this.tableRows.first()).toBeVisible({ timeout: 30000 });
-        await this.searchInput.fill(cardId);
-        await this.page.keyboard.press('Enter');
-        await expect(this.tableRows.first()).toBeVisible({ timeout: 30000 });
-        await this.expandRowButton(0).click();
-        await expect(this.groupedVariationTab).toBeVisible({ timeout: 10000 });
-        await this.groupedVariationTab.click();
-        await expect(this.groupedVariationCheckbox(0)).toBeVisible({ timeout: 10000 });
-        await this.groupedVariationCheckbox(0).click();
-        await this.addSelectedItemsButton.click();
-        await expect(this.selectItemsDialog).not.toBeVisible({ timeout: 10000 });
-    }
-
-    async expectSelectedItemType(label) {
-        await this.selectedItemsToggleButton.click();
-        await expect(this.selectedItemsExpandedPanel).toBeVisible({ timeout: 10000 });
-        await expect(this.selectedItemsExpandedPanel.locator('sp-table-cell', { hasText: label })).toHaveCount(1, {
-            timeout: 10000,
-        });
     }
 
     async expectCardRowsMatchSearchTerm(term) {

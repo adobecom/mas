@@ -33,6 +33,7 @@ import {
     MAS_PRODUCT_CODE_PREFIX,
     PZN_FOLDER,
     SURFACES,
+    BULK_PUBLISH_PROJECTS_FOLDER,
     COMPARE_CHART_FIELD,
     DICTIONARY_ENTRY_MODEL_ID,
     DICTIONARY_INDEX_MODEL_ID,
@@ -1342,9 +1343,13 @@ export class MasRepository extends LitElement {
         }
     }
 
+    getBulkPublishParentPath(surface) {
+        return `${getDamPath(surface?.toLowerCase())}/${BULK_PUBLISH_PROJECTS_FOLDER}`;
+    }
+
     getBulkPublishProjectsPath() {
         const surface = this.search.value.path?.split('/').filter(Boolean)[0]?.toLowerCase() ?? 'sandbox';
-        return `/content/dam/mas/bulk-publish-projects/${surface}`;
+        return this.getBulkPublishParentPath(surface);
     }
 
     async loadBulkPublishProjects() {

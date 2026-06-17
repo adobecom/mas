@@ -431,6 +431,20 @@ describe('promotions', () => {
             const result = await promotionsTransformer.init(createContext());
             expect(result.activeProject?.id).to.equal('proj-2');
         });
+
+        it('finds matching project when it is the 51st item (beyond the old default limit)', async () => {
+            const nonMatching = Array.from({ length: 50 }, (_, i) =>
+                makeProject({ id: `proj-${i + 1}`, surfaces: ['express'] }),
+            );
+            const matching = makeProject({ id: 'proj-51', surfaces: ['acom'], geos: [] });
+            const hydrated = makeHydratedProject();
+            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: nonMatching, cursor: 'page2' }));
+            fetchStub.withArgs(`${FOLDER_URL}&cursor=page2`).returns(createResponse(200, { items: [matching] }));
+            fetchStub.withArgs(hydrateUrl('proj-51')).returns(createResponse(200, hydrated));
+
+            const result = await promotionsTransformer.init(createContext());
+            expect(result.activeProject?.id).to.equal('proj-51');
+        });
     });
 
     describe('preview mode', () => {

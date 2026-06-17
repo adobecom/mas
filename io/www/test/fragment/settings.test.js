@@ -1,5 +1,6 @@
 import { expect } from 'chai';
 import sinon from 'sinon';
+import { COLLECTION_MODEL_ID } from '../../src/fragment/utils/common.js';
 import {
     transformer as settings,
     getSettings,
@@ -339,7 +340,7 @@ describe('settings', () => {
             const context = {
                 locale: 'fr_FR',
                 body: {
-                    model: { id: 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24' },
+                    model: { id: COLLECTION_MODEL_ID },
                     references: {
                         ref1: {
                             type: 'content-fragment',

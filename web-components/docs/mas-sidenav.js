@@ -12,6 +12,7 @@ class MasSidenav extends HTMLElement {
       <a href="/web-components/docs/upt-link.html">UPT Link</a>
       <a href="/web-components/docs/inline-price.html">Inline Price</a>
       <a href="/web-components/docs/aem-fragment.html">AEM Fragment</a>
+      <a href="/web-components/docs/masks.html">Masks</a>
       <a href="/web-components/docs/merch-card.html">Merch Card</a>
       <a href="/web-components/docs/ccd.html">CCD Gallery</a>
       <a href="/web-components/docs/ccd-mini.html">CCD Mini</a>

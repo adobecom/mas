@@ -19,7 +19,7 @@ function odinId(id, preview) {
 }
 
 /**
- * builds a full fetchable url to the fragment references
+ * builds a full fetchable url
  * @param {*} id id of the fragment,
  * @param {boolean} allHydrated whether to fetch all references or not
  * @param {boolean} preview preview object if to be used

@@ -353,6 +353,42 @@ describe('bizpro short description plan type override', () => {
     });
 });
 
+describe('bizpro short description tax spacing', () => {
+    let card;
+    afterEach(() => card?.remove());
+
+    // Legal price as it resolves on a VAT card where the plan type comes from
+    // the authored short description: tax label is set, plan-type span is empty,
+    // so the legal template never spaced the two apart (MWPW-198626).
+    const legalWithTax = (taxText) =>
+        '<p slot="heading-m"><span is="inline-price" data-template="legal">' +
+        '<span class="price price-legal">' +
+        '<span class="price-unit-type disabled"></span>' +
+        `<span class="price-tax-inclusivity">${taxText}</span>` +
+        '<span class="price-plan-type disabled"></span>' +
+        '</span></span></p>';
+
+    it('inserts a space between the tax label and the injected plan type', async () => {
+        card = await renderCard(
+            `${legalWithTax('excl. VAT')}<div slot="legal-text">Annual, billed monthly</div>`,
+        );
+        card.variantLayout.adjustShortDescription();
+        expect(card.querySelector('.price-legal').textContent).to.equal(
+            'excl. VAT Annual, billed monthly',
+        );
+    });
+
+    it('does not double the separator when the tax label already ends in space', async () => {
+        card = await renderCard(
+            `${legalWithTax('incl. VAT. ')}<div slot="legal-text">Annual, billed monthly</div>`,
+        );
+        card.variantLayout.adjustShortDescription();
+        expect(card.querySelector('.price-legal').textContent).to.equal(
+            'incl. VAT. Annual, billed monthly',
+        );
+    });
+});
+
 describe('bizpro whats-included toggle interaction', () => {
     let card;
     afterEach(() => card?.remove());

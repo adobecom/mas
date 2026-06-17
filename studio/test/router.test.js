@@ -1,8 +1,8 @@
 import { expect } from '@esm-bundle/chai';
 import sinon from 'sinon';
-import { Router, promoHashIsSearchSync, orderHashParamEntries } from '../src/router.js';
+import { Router, promoHashIsSearchSync, translationHashIsSearchSync, orderHashParamEntries } from '../src/router.js';
 import Store from '../src/store.js';
-import { PAGE_NAMES, COLLECTION_MODEL_PATH } from '../src/constants.js';
+import { PAGE_NAMES, COLLECTION_MODEL_PATH, COMPARE_CHART_FIELD } from '../src/constants.js';
 import { FragmentStore } from '../src/reactivity/fragment-store.js';
 import { ReactiveStore } from '../src/reactivity/reactive-store.js';
 import { Fragment } from '../src/aem/fragment.js';
@@ -14,6 +14,7 @@ describe('Router', () => {
     let mockLocation;
     let originalPageValue;
     let originalFragmentsInEdit;
+    let originalFragmentsList;
     let originalTranslationProjectsInEdit;
     let originalSelectedCards;
     let originalSelectedCollections;
@@ -90,6 +91,7 @@ describe('Router', () => {
         router = new Router(mockLocation);
         originalPageValue = Store.page.value;
         originalFragmentsInEdit = Store.fragments.inEdit.get();
+        originalFragmentsList = Store.fragments.list.data.get();
         originalTranslationProjectsInEdit = Store.translationProjects.inEdit.get();
         originalSelectedCards = Store.translationProjects.selectedCards.value;
         originalSelectedCollections = Store.translationProjects.selectedCollections.value;
@@ -118,6 +120,7 @@ describe('Router', () => {
         sandbox.restore();
         Store.page.value = originalPageValue;
         Store.fragments.inEdit.set(originalFragmentsInEdit);
+        Store.fragments.list.data.set(originalFragmentsList);
         Store.translationProjects.inEdit.set(originalTranslationProjectsInEdit);
         Store.translationProjects.selectedCards.set(originalSelectedCards);
         Store.translationProjects.selectedCollections.set(originalSelectedCollections);
@@ -725,6 +728,43 @@ describe('Router', () => {
             expect(Store.search.get().region).to.equal('fr_FR');
         });
 
+        it('should navigate compare chart collections to the full-page fragment editor', async () => {
+            const fragment = new Fragment({
+                id: 'compare-chart-id',
+                model: { path: COLLECTION_MODEL_PATH },
+                fields: [{ name: COMPARE_CHART_FIELD, values: ['<mas-compare-chart></mas-compare-chart>'] }],
+            });
+            Store.fragments.list.data.set([new FragmentStore(fragment)]);
+
+            await router.navigateToFragmentEditor('compare-chart-id');
+
+            expect(Store.fragmentEditor.fragmentId.get()).to.equal('compare-chart-id');
+            expect(Store.page.get()).to.equal(PAGE_NAMES.FRAGMENT_EDITOR);
+            expect(Store.viewMode.get()).to.equal('editing');
+        });
+
+        it('should use editor-panel for a collection with an empty compareChart field', async () => {
+            Store.page.set(PAGE_NAMES.CONTENT);
+            const collectionStore = new FragmentStore(
+                new Fragment({
+                    id: 'empty-compare-chart-collection-id',
+                    model: { path: COLLECTION_MODEL_PATH },
+                    fields: [{ name: COMPARE_CHART_FIELD, values: [''] }],
+                }),
+            );
+            const mockEditorPanel = {
+                editFragment: sandbox.stub().resolves(),
+            };
+            sandbox.stub(document, 'querySelector').withArgs('editor-panel').returns(mockEditorPanel);
+
+            await router.navigateToFragmentEditor('empty-compare-chart-collection-id', {
+                fragmentStore: collectionStore,
+            });
+
+            expect(mockEditorPanel.editFragment.calledOnceWith(collectionStore)).to.be.true;
+            expect(Store.page.get()).to.equal(PAGE_NAMES.CONTENT);
+        });
+
         it('should use editor-panel for a provided collection fragment store', async () => {
             Store.page.set(PAGE_NAMES.CONTENT);
             const collectionStore = new FragmentStore(
@@ -902,6 +942,56 @@ describe('Router', () => {
         });
     });
 
+    describe('masks route and editor branches', () => {
+        let originalMasksCreating;
+        let originalMasksFragmentId;
+
+        beforeEach(() => {
+            originalMasksCreating = Store.masks.creating.get();
+            originalMasksFragmentId = Store.masks.fragmentId.get();
+        });
+
+        afterEach(() => {
+            Store.masks.creating.set(originalMasksCreating);
+            Store.masks.fragmentId.set(originalMasksFragmentId);
+        });
+
+        it('normalizes masks-editor to masks on start when no maskName and not creating', async () => {
+            mockLocation.hash = '#page=masks-editor&path=acom';
+            router.start();
+            expect(Store.page.get()).to.equal(PAGE_NAMES.MASKS);
+            await new Promise((resolve) => setTimeout(resolve, 100));
+            expect(mockLocation.hash).to.include('page=masks');
+            expect(mockLocation.hash).to.not.include('page=masks-editor');
+        });
+
+        it('keeps masks-editor on start when maskName is present', () => {
+            mockLocation.hash = '#page=masks-editor&path=acom&maskName=promo';
+            router.start();
+            expect(Store.page.get()).to.equal(PAGE_NAMES.MASKS_EDITOR);
+        });
+
+        it('keeps masks-editor on start when creating is true', () => {
+            Store.masks.creating.set(true);
+            mockLocation.hash = '#page=masks-editor&path=acom';
+            router.start();
+            expect(Store.page.get()).to.equal(PAGE_NAMES.MASKS_EDITOR);
+        });
+
+        it('should block unauthorized masks page navigation and redirect to welcome', async () => {
+            Store.page.set(PAGE_NAMES.WELCOME);
+            Store.profile.set({});
+            Store.users.set([]);
+            Store.masks.creating.set(true);
+            Store.masks.fragmentId.set('mask-id');
+
+            await router.navigateToPage(PAGE_NAMES.MASKS)();
+            expect(Store.page.get()).to.equal(PAGE_NAMES.WELCOME);
+            expect(Store.masks.creating.get()).to.equal(false);
+            expect(Store.masks.fragmentId.get()).to.equal(null);
+        });
+    });
+
     describe('promoHashIsSearchSync', () => {
         it('returns true when only query is added on promotions-editor', () => {
             const prev = '#page=promotions-editor&path=sandbox';
@@ -925,6 +1015,26 @@ describe('Router', () => {
             const prev = '#page=promotions-editor&promotionId=a&path=sandbox';
             const next = '#page=promotions-editor&promotionId=b&path=sandbox&query=x';
             expect(promoHashIsSearchSync(prev, next)).to.be.false;
+        });
+    });
+
+    describe('translationHashIsSearchSync', () => {
+        it('returns true when item-picker search params change on translation-editor', () => {
+            const prev = '#page=translation-editor&translationProjectId=p1&path=sandbox';
+            const next = '#page=translation-editor&translationProjectId=p1&path=nala&query=uuid&region=de_DE';
+            expect(translationHashIsSearchSync(prev, next)).to.be.true;
+        });
+
+        it('returns false when leaving the translation editor', () => {
+            const prev = '#page=translation-editor&translationProjectId=p1&path=sandbox';
+            const next = '#page=content&path=sandbox';
+            expect(translationHashIsSearchSync(prev, next)).to.be.false;
+        });
+
+        it('returns false when translationProjectId changes', () => {
+            const prev = '#page=translation-editor&translationProjectId=p1&path=sandbox';
+            const next = '#page=translation-editor&translationProjectId=p2&path=sandbox&query=x';
+            expect(translationHashIsSearchSync(prev, next)).to.be.false;
         });
     });
 

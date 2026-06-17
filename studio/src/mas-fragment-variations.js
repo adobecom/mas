@@ -1,13 +1,21 @@
 import { LitElement, html, nothing } from 'lit';
 import { FragmentStore } from './reactivity/fragment-store.js';
 import { Fragment } from './aem/fragment.js';
-import { VARIATION_TYPES } from './constants.js';
 import generateFragmentStore, { createPreviewDataWithParent } from './reactivity/source-fragment-store.js';
 import { styles } from './mas-fragment-variations.css.js';
 import { extractLocaleFromPath, showToast } from './utils.js';
 import router from './router.js';
+import {
+    getGroupedVariationTagsValue,
+    getPromotionCode,
+    hasAnyVariationTabItems,
+    listGroupedVariations,
+    listLocaleVariations,
+    VARIATION_TABS,
+} from './editors/variation-utils.js';
 import './aem/aem-tag-picker-field.js';
 import Store from './store.js';
+import ReactiveController from './reactivity/reactive-controller.js';
 import {
     findPromotionProjectIdByTag,
     getPromoNameFromTag,
@@ -30,7 +38,13 @@ class MasFragmentVariations extends LitElement {
         duplicateSource: { type: Object, state: true },
         duplicatePznTags: { type: Array, state: true },
         duplicateLoading: { type: Boolean, state: true },
+        selectedTab: { type: String, state: true },
     };
+
+    reactiveController = new ReactiveController(this, [
+        Store.fragments.highlightedVariationId,
+        Store.fragments.variationSearchTab,
+    ]);
 
     constructor() {
         super();
@@ -42,6 +56,7 @@ class MasFragmentVariations extends LitElement {
         this.duplicateSource = null;
         this.duplicatePznTags = [];
         this.duplicateLoading = false;
+        this.selectedTab = Store.fragments.variationSearchTab.get() || 'locale';
     }
 
     createRenderRoot() {
@@ -70,12 +85,49 @@ class MasFragmentVariations extends LitElement {
         this.#unsubscribeFragmentStore = null;
     }
 
+    updated(changedProperties) {
+        super.updated(changedProperties);
+        const searchTab = Store.fragments.variationSearchTab.get();
+        if (searchTab) {
+            this.selectedTab = searchTab;
+        }
+        const highlightId = Store.fragments.highlightedVariationId.get();
+        if (highlightId && this.#hasVariationInParent(highlightId)) {
+            this.scrollToHighlightedVariation();
+        }
+    }
+
+    handleTabChange({ target: { selected } }) {
+        this.selectedTab = selected;
+        Store.fragments.variationSearchTab.set(null);
+    }
+
+    isVariationHighlighted(variationFragmentId) {
+        return Store.fragments.highlightedVariationId.get() === variationFragmentId;
+    }
+
+    #hasVariationInParent(variationId) {
+        return (
+            this.localeVariations.some((v) => v.id === variationId) ||
+            this.groupedVariations.some((v) => v.id === variationId) ||
+            this.promoVariations.some((v) => v.id === variationId)
+        );
+    }
+
+    async scrollToHighlightedVariation() {
+        const id = Store.fragments.highlightedVariationId.get();
+        if (!id) return;
+        await this.updateComplete;
+        const row = this.querySelector(`[data-id="${id}"]`);
+        row?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
     get localeVariations() {
-        return this.fragment.listLocaleVariations();
+        return listLocaleVariations(this.fragment);
     }
 
     get groupedVariations() {
-        return this.fragment.listGroupedVariations();
+        return listGroupedVariations(this.fragment);
     }
 
     get promoVariations() {
@@ -115,27 +167,6 @@ class MasFragmentVariations extends LitElement {
             }
         }
         await router.navigateToFragmentEditor(fragment.id, { locale, fragmentStore });
-    }
-
-    /**
-     * Returns pznTags value as a comma-separated string for aem-tag-picker-field.
-     * @param {Object} variationFragment
-     * @returns {string}
-     */
-    getGroupedVariationTagsValue(variationFragment) {
-        const pznTagsField = variationFragment.fields?.find((field) => field.name === 'pznTags');
-        const tags = pznTagsField?.values || [];
-        return tags.join(',');
-    }
-
-    /**
-     * Extracts promo code from a fragment's fields.
-     * @param {Object} variationFragment
-     * @returns {string}
-     */
-    getPromoCode(variationFragment) {
-        const promoCodeField = variationFragment.fields?.find((field) => field.name === 'promoCode');
-        return promoCodeField?.values?.[0] || '';
     }
 
     /**
@@ -186,7 +217,7 @@ class MasFragmentVariations extends LitElement {
     }
 
     openDuplicateDialog(variationFragment) {
-        const sourceTags = this.getGroupedVariationTagsValue(variationFragment);
+        const sourceTags = getGroupedVariationTagsValue(variationFragment);
         this.duplicateSource = variationFragment;
         this.duplicatePznTags = sourceTags ? sourceTags.split(',') : [];
     }
@@ -284,9 +315,10 @@ class MasFragmentVariations extends LitElement {
                         const mergedData = createPreviewDataWithParent(variationFragment, this.fragment);
                         const fragmentStore = new FragmentStore(new Fragment(mergedData));
                         const editStore = generateFragmentStore(variationFragment, this.fragment);
+                        const isHighlighted = this.isVariationHighlighted(variationFragment.id);
                         return html`
                             <mas-fragment-table
-                                class="mas-fragment nested-fragment"
+                                class="mas-fragment nested-fragment ${isHighlighted ? 'variation-search-highlight' : ''}"
                                 data-id="${variationFragment.id}"
                                 .fragmentStore=${fragmentStore}
                                 .editFragmentStore=${editStore}
@@ -321,12 +353,15 @@ class MasFragmentVariations extends LitElement {
                         const mergedData = createPreviewDataWithParent(variationFragment, this.fragment);
                         const fragmentStore = new FragmentStore(new Fragment(mergedData));
                         const editStore = generateFragmentStore(variationFragment, this.fragment);
-                        const tagsValue = this.getGroupedVariationTagsValue(variationFragment);
-                        const promoCode = this.getPromoCode(variationFragment);
+                        const tagsValue = getGroupedVariationTagsValue(variationFragment);
+                        const promoCode = getPromotionCode(variationFragment);
                         const isExpanded = this.isGroupedVariationExpanded(variationFragment.id);
+                        const isHighlighted = this.isVariationHighlighted(variationFragment.id);
                         return html`
                             <mas-fragment-table
-                                class="mas-fragment nested-fragment ${isExpanded ? 'expanded' : ''}"
+                                class="mas-fragment nested-fragment ${isExpanded ? 'expanded' : ''} ${isHighlighted
+                                    ? 'variation-search-highlight'
+                                    : ''}"
                                 data-id="${variationFragment.id}"
                                 .fragmentStore=${fragmentStore}
                                 .editFragmentStore=${editStore}
@@ -393,10 +428,13 @@ class MasFragmentVariations extends LitElement {
                         const fragmentStore = new FragmentStore(new Fragment(mergedData));
                         const editStore = generateFragmentStore(variationFragment, this.fragment);
                         const isExpanded = this.isPromoVariationExpanded(variationFragment.id);
+                        const isHighlighted = this.isVariationHighlighted(variationFragment.id);
                         const { promotionName, promoProject } = this.getPromotionInfo(variationFragment);
                         return html`
                             <mas-fragment-table
-                                class="mas-fragment nested-fragment ${isExpanded ? 'expanded' : ''}"
+                                class="mas-fragment nested-fragment ${isExpanded ? 'expanded' : ''} ${isHighlighted
+                                    ? 'variation-search-highlight'
+                                    : ''}"
                                 data-id="${variationFragment.id}"
                                 .fragmentStore=${fragmentStore}
                                 .editFragmentStore=${editStore}
@@ -438,10 +476,8 @@ class MasFragmentVariations extends LitElement {
                     : this.hasAnyVariations
                       ? html`<h3 class="expanded-title">Variations</h3>`
                       : html`<h3 class="expanded-title">No Variations found.</h3>`}
-                <sp-tabs selected="locale" quiet>
-                    <sp-tab value="locale" label="Locale">Locale</sp-tab>
-                    <sp-tab value="promotion" label="Promotion">Promotion</sp-tab>
-                    <sp-tab value="grouped" label="${VARIATION_TYPES.GROUPED}">${VARIATION_TYPES.GROUPED}</sp-tab>
+                <sp-tabs quiet .selected=${this.selectedTab} @change=${this.handleTabChange}>
+                    ${VARIATION_TABS.map((tab) => html`<sp-tab value=${tab.id} label=${tab.label}>${tab.label}</sp-tab>`)}
                     <sp-tab-panel value="locale">${this.localeVariationsTemplate}</sp-tab-panel>
                     <sp-tab-panel value="promotion">${this.promotionVariationsTemplate}</sp-tab-panel>
                     <sp-tab-panel value="grouped">${this.groupedVariationsTemplate}</sp-tab-panel>

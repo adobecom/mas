@@ -129,6 +129,8 @@ export const PAGE_NAMES = {
     BULK_PUBLISH: 'bulkPublish',
     BULK_PUBLISH_EDITOR: 'bulkPublishEditor',
     ADVANCED_TOOLS: 'advanced-tools',
+    MASKS: 'masks',
+    MASKS_EDITOR: 'masks-editor',
 };
 
 export const TAG_STATUS_PUBLISHED = 'mas:status/published';
@@ -146,6 +148,8 @@ export const TRANSLATION_PROJECT_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0
 // Add the card-related constants from incoming changes
 export const CARD_MODEL_PATH = '/conf/mas/settings/dam/cfm/models/card';
 export const COLLECTION_MODEL_PATH = '/conf/mas/settings/dam/cfm/models/collection';
+export const COMPARE_CHART_CREATE_TYPE = 'compare-chart';
+export const COMPARE_CHART_FIELD = 'compareChart';
 
 export const COLLECTION_GROUPED_VARIATION_PAC = 'merch-card-collection';
 
@@ -156,6 +160,15 @@ export const FIELD_MODEL_MAPPING = {
 
 export const TAG_STUDIO_CONTENT_TYPE = 'mas:studio/content-type';
 export const TAG_PROMOTION_PREFIX = 'mas:promotion/';
+export const TAG_MERCH_CARD_COLLECTION = `${TAG_STUDIO_CONTENT_TYPE}/merch-card-collection`;
+export const TAG_MERCH_CARD = `${TAG_STUDIO_CONTENT_TYPE}/merch-card`;
+export const TAG_COMPARE_CHART = `${TAG_STUDIO_CONTENT_TYPE}/${COMPARE_CHART_CREATE_TYPE}`;
+export const TAG_COMPARE_CHART_PATH = `/content/cq:tags/${TAG_COMPARE_CHART.replace(':', '/')}`;
+
+/** Masks: card fragments stored under <surface>/<locale>/masks and tagged in the masks namespace. */
+export const MASKS_FOLDER = 'masks';
+export const TAG_MASKS_NAMESPACE_PATH = '/content/cq:tags/mas/masks';
+export const MAS_MASKS_PREFIX = 'mas:masks/';
 
 /** Full AEM content path for product_code */
 export const AEM_TAG_PATH_PRODUCT_CODE_ROOT = '/content/cq:tags/mas/product_code';
@@ -164,8 +177,8 @@ export const AEM_TAG_PATH_PRODUCT_CODE_ROOT = '/content/cq:tags/mas/product_code
 export const MAS_PRODUCT_CODE_PREFIX = 'mas:product_code/';
 
 export const TAG_MODEL_ID_MAPPING = {
-    'mas:studio/content-type/merch-card-collection': 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24',
-    'mas:studio/content-type/merch-card': 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ',
+    [TAG_MERCH_CARD_COLLECTION]: 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24',
+    [TAG_MERCH_CARD]: 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ',
 };
 
 export const EDITABLE_FRAGMENT_MODEL_IDS = Object.values(TAG_MODEL_ID_MAPPING);
@@ -263,6 +276,7 @@ export const FILTER_TYPE = {
     PLAN_TYPE: 'planType',
     PZN: 'pzn',
     TAG: 'tag',
+    STATUS: 'status',
 };
 
 export const FRAGMENT_STATUS = {
@@ -293,7 +307,7 @@ export const BULK_PUBLISH_STATUS = {
     REVERTED: 'Reverted',
 };
 
-export const BULK_PUBLISH_PARENT_PATH = '/content/dam/mas/bulk-publish-projects';
+export const BULK_PUBLISH_PROJECTS_FOLDER = 'bulk-publish-projects';
 
 /**
  * Compat version of the card.

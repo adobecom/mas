@@ -113,36 +113,6 @@ describe('MasSelectedItems', () => {
         });
     });
 
-    describe('isLoadingItems getter', () => {
-        it('should return false when neither fragments nor placeholders are loading', async () => {
-            Store.fragments.list.loading.set(false);
-            Store.placeholders.list.loading.set(false);
-            const el = await fixture(html`<mas-selected-items></mas-selected-items>`);
-            expect(el.isLoadingItems).to.be.false;
-        });
-
-        it('should return true when fragments are loading', async () => {
-            Store.fragments.list.loading.set(true);
-            Store.placeholders.list.loading.set(false);
-            const el = await fixture(html`<mas-selected-items></mas-selected-items>`);
-            expect(el.isLoadingItems).to.be.true;
-        });
-
-        it('should return true when placeholders are loading', async () => {
-            Store.fragments.list.loading.set(false);
-            Store.placeholders.list.loading.set(true);
-            const el = await fixture(html`<mas-selected-items></mas-selected-items>`);
-            expect(el.isLoadingItems).to.be.true;
-        });
-
-        it('should return true when both fragments and placeholders are loading', async () => {
-            Store.fragments.list.loading.set(true);
-            Store.placeholders.list.loading.set(true);
-            const el = await fixture(html`<mas-selected-items></mas-selected-items>`);
-            expect(el.isLoadingItems).to.be.true;
-        });
-    });
-
     describe('selectedItems getter', () => {
         it('should return empty array when no items selected', async () => {
             const el = await fixture(html`<mas-selected-items></mas-selected-items>`);
@@ -301,6 +271,20 @@ describe('MasSelectedItems', () => {
             expect(list).to.exist;
         });
 
+        it('should re-render when cardsByPaths is populated after selection', async () => {
+            const card = createMockCard('/path/late', 'Late Card');
+            Store.translationProjects.selectedCards.set(['/path/late']);
+            Store.translationProjects.showSelected.set(true);
+            const el = await fixture(html`<mas-selected-items></mas-selected-items>`);
+            await el.updateComplete;
+            expect(el.shadowRoot.querySelectorAll('.item')).to.have.lengthOf(0);
+
+            Store.translationProjects.cardsByPaths.set(new Map([['/path/late', card]]));
+            await el.updateComplete;
+            const titles = [...el.shadowRoot.querySelectorAll('.title')].map((n) => n.textContent.trim());
+            expect(titles).to.include('Late Card');
+        });
+
         it('should render item elements for each selected item', async () => {
             const card1 = createMockCard('/path/card1', 'Card 1');
             const card2 = createMockCard('/path/card2', 'Card 2');
@@ -359,14 +343,14 @@ describe('MasSelectedItems', () => {
             expect(closeIcon).to.exist;
         });
 
-        it('should set correct margin-left when items are visible', async () => {
+        it('should not set inline margin when items are visible', async () => {
             const card = createMockCard('/path/card1', 'Test Card');
             setCardsByPaths(new Map([['/path/card1', card]]));
             Store.translationProjects.selectedCards.set(['/path/card1']);
             Store.translationProjects.showSelected.set(true);
             const el = await fixture(html`<mas-selected-items></mas-selected-items>`);
             const list = el.shadowRoot.querySelector('.selected-items');
-            expect(list.style.marginLeft).to.equal('12px');
+            expect(list.style.marginLeft).to.equal('');
         });
     });
 
@@ -403,7 +387,7 @@ describe('MasSelectedItems', () => {
             expect(Store.translationProjects.selectedCards.get()).to.deep.equal(['/path/card1']);
         });
 
-        it('should disable remove button when items are loading', async () => {
+        it('should keep remove button enabled when items are loading', async () => {
             const card = createMockCard('/path/card1', 'Test Card');
             setCardsByPaths(new Map([['/path/card1', card]]));
             Store.translationProjects.selectedCards.set(['/path/card1']);
@@ -411,7 +395,7 @@ describe('MasSelectedItems', () => {
             Store.fragments.list.loading.set(true);
             const el = await fixture(html`<mas-selected-items></mas-selected-items>`);
             const removeButton = el.shadowRoot.querySelector('.remove-button');
-            expect(removeButton.disabled).to.be.true;
+            expect(removeButton.disabled).to.be.false;
         });
 
         it('should enable remove button when items are not loading', async () => {

@@ -22,7 +22,8 @@ function normalizeSurface(surface) {
 function getCurrentUserNormalizedGroups() {
     const { email } = Store.profile.get();
     if (!email) return null;
-    const user = Store.users.get().find((u) => u.userPrincipalName === email);
+    const normalizedEmail = email.toLowerCase();
+    const user = Store.users.get().find((u) => u.userPrincipalName?.toLowerCase() === normalizedEmail);
     if (!user) return null;
     return user.groups?.map((group) => group.toUpperCase()) ?? [];
 }
@@ -41,4 +42,9 @@ export function canAccessSettings(surface) {
     if (!key || ADMIN_ONLY_SETTINGS_SURFACES.has(key)) return false;
     const requiredGroup = SETTINGS_ACCESS_GROUP_BY_SURFACE.get(key);
     return !!requiredGroup && groups.includes(requiredGroup.toUpperCase());
+}
+
+/** Masks authoring is an advanced, per-surface capability gated like settings. */
+export function canAccessMasks(surface) {
+    return canAccessSettings(surface);
 }

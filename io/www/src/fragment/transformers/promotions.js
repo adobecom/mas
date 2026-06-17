@@ -314,16 +314,25 @@ async function init(context) {
     // Fire projects fetch immediately — needs no context dependencies
     const projectsPromise = fetchProjects(context);
 
-    // Resolve request info in parallel
-    const { surface } = await getRequestInfos(context);
-    if (!surface) return { status: 200, activeProjects: [] };
+    // Resolve surface, projects, and defaultLanguage (which carries regionLocale) all in parallel.
+    // regionLocale is NOT available on the init-phase context — it is computed by defaultLanguage.init
+    // and only placed on context during the process phase. We must read it from the promise.
+    const [{ surface }, projects, defaultLangResult] = await Promise.all([
+        getRequestInfos(context),
+        projectsPromise,
+        context.promises?.defaultLanguage,
+    ]);
 
-    const projects = await projectsPromise;
+    if (!surface) return { status: 200, activeProjects: [] };
     if (!projects?.length) return { status: 200, activeProjects: [] };
 
+    const defaultLocale = defaultLangResult?.defaultLocale;
+    if (!defaultLocale) return { status: 200, activeProjects: [] };
+    const resolvedRegionLocale = defaultLangResult.regionLocale;
+
     const instant = toInstant(context.preview ? context.instant : undefined);
-    const { locale, country, regionLocale } = context;
-    const effectiveRegionLocale = regionLocale ?? locale;
+    const { locale, country } = context;
+    const effectiveRegionLocale = resolvedRegionLocale ?? locale;
 
     const matched = projects.filter((project) =>
         matchesProject(project, { surface, locale, country, regionLocale: effectiveRegionLocale, instant }, context),
@@ -331,15 +340,10 @@ async function init(context) {
     if (!matched.length) return { status: 200, activeProjects: [] };
 
     log(
-        `${matched.length} promotion project(s) matched for surface "${surface}", regionLocale "${regionLocale}", country "${country}": ${matched.map((p) => `"${p.name}" (${p.id})`).join(', ')}`,
+        `${matched.length} promotion project(s) matched for surface "${surface}", regionLocale "${effectiveRegionLocale}", country "${country}": ${matched.map((p) => `"${p.name}" (${p.id})`).join(', ')}`,
         context,
     );
 
-    // Await defaultLanguage to get resolved locale info for variation folder searches
-    const defaultLangResult = await context.promises?.defaultLanguage;
-    const defaultLocale = defaultLangResult?.defaultLocale;
-    if (!defaultLocale) return { status: 200, activeProjects: [] };
-    const resolvedRegionLocale = defaultLangResult.regionLocale;
     const baseUrl = context.preview?.url ?? FRAGMENT_URL_PREFIX;
 
     // Hydrate all matched projects concurrently

@@ -2,6 +2,7 @@ import { expect, fixture, html } from '@open-wc/testing';
 import sinon from 'sinon';
 import Store from '../src/store.js';
 import '../src/mas-fragment-variations.js';
+import { getGroupedVariationTagsValue, getPromotionCode } from '../src/editors/variation-utils.js';
 
 describe('MasFragmentVariations', () => {
     let sandbox;
@@ -33,38 +34,33 @@ describe('MasFragmentVariations', () => {
     });
 
     describe('getGroupedVariationTagsValue', () => {
-        it('returns comma-separated pznTags from fragment fields', async () => {
-            const el = await fixture(html`<mas-fragment-variations></mas-fragment-variations>`);
+        it('returns comma-separated pznTags from fragment fields', () => {
             const variation = createVariationFragment();
-            expect(el.getGroupedVariationTagsValue(variation)).to.equal('mas:pzn/tag-a,mas:pzn/tag-b');
+            expect(getGroupedVariationTagsValue(variation)).to.equal('mas:pzn/tag-a,mas:pzn/tag-b');
         });
 
-        it('returns empty string when pznTags field is missing', async () => {
-            const el = await fixture(html`<mas-fragment-variations></mas-fragment-variations>`);
+        it('returns empty string when pznTags field is missing', () => {
             const variation = createVariationFragment({ fields: [] });
-            expect(el.getGroupedVariationTagsValue(variation)).to.equal('');
+            expect(getGroupedVariationTagsValue(variation)).to.equal('');
         });
 
-        it('returns empty string when pznTags values are empty', async () => {
-            const el = await fixture(html`<mas-fragment-variations></mas-fragment-variations>`);
+        it('returns empty string when pznTags values are empty', () => {
             const variation = createVariationFragment({
                 fields: [{ name: 'pznTags', values: [] }],
             });
-            expect(el.getGroupedVariationTagsValue(variation)).to.equal('');
+            expect(getGroupedVariationTagsValue(variation)).to.equal('');
         });
     });
 
     describe('getPromoCode', () => {
-        it('returns first promoCode value from fragment fields', async () => {
-            const el = await fixture(html`<mas-fragment-variations></mas-fragment-variations>`);
+        it('returns first promoCode value from fragment fields', () => {
             const variation = createVariationFragment();
-            expect(el.getPromoCode(variation)).to.equal('SAVE20');
+            expect(getPromotionCode(variation)).to.equal('SAVE20');
         });
 
-        it('returns empty string when promoCode field is missing', async () => {
-            const el = await fixture(html`<mas-fragment-variations></mas-fragment-variations>`);
+        it('returns empty string when promoCode field is missing', () => {
             const variation = createVariationFragment({ fields: [] });
-            expect(el.getPromoCode(variation)).to.equal('');
+            expect(getPromotionCode(variation)).to.equal('');
         });
     });
 
@@ -380,6 +376,47 @@ describe('MasFragmentVariations', () => {
             expect(row.editFragmentStore).to.exist;
             expect(row.editFragmentStore).to.not.equal(row.fragmentStore);
             expect(el.textContent).to.include('Duplicate');
+        });
+    });
+
+    describe('variation search highlight and tab', () => {
+        it('syncs selectedTab from variationSearchTab store', async () => {
+            Store.fragments.variationSearchTab.set('grouped');
+            const el = await fixture(
+                html`<mas-fragment-variations .fragment=${createFragmentMock()}></mas-fragment-variations>`,
+            );
+            await el.updateComplete;
+            expect(el.selectedTab).to.equal('grouped');
+            Store.fragments.variationSearchTab.set(null);
+        });
+
+        it('applies variation-search-highlight class to matching variation row', async () => {
+            const variation = createVariationFragment({ id: 'highlight-var-1' });
+            const fragment = {
+                listLocaleVariations: () => [variation],
+                listPromoVariations: () => [],
+                listGroupedVariations: () => [],
+            };
+            Store.fragments.highlightedVariationId.set('highlight-var-1');
+            const el = await fixture(html`<mas-fragment-variations .fragment=${fragment}></mas-fragment-variations>`);
+            await el.updateComplete;
+
+            const row = el.querySelector('mas-fragment-table');
+            expect(row.classList.contains('variation-search-highlight')).to.be.true;
+            Store.fragments.highlightedVariationId.set(null);
+        });
+
+        it('clears variationSearchTab when user changes tab manually', async () => {
+            Store.fragments.variationSearchTab.set('promotion');
+            const el = await fixture(
+                html`<mas-fragment-variations .fragment=${createFragmentMock()}></mas-fragment-variations>`,
+            );
+            await el.updateComplete;
+
+            el.handleTabChange({ target: { selected: 'locale' } });
+
+            expect(el.selectedTab).to.equal('locale');
+            expect(Store.fragments.variationSearchTab.get()).to.be.null;
         });
     });
 

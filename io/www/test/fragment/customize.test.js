@@ -2,6 +2,7 @@ import { expect } from 'chai';
 import sinon from 'sinon';
 import { createResponse } from './mocks/MockFetch.js';
 import { MockState } from './mocks/MockState.js';
+import { CARD_MODEL_ID, COLLECTION_MODEL_ID } from '../../src/fragment/utils/common.js';
 import { deepMerge, transformer as customize } from '../../src/fragment/transformers/customize.js';
 import { transformer as defaultLanguage } from '../../src/fragment/transformers/defaultLanguage.js';
 import FRAGMENT_RESPONSE_FR from './mocks/fragment-fr.json' with { type: 'json' };
@@ -82,6 +83,78 @@ describe('customize collections', function () {
         const right = { fields: { variant: '' } };
         const result = deepMerge(left, right);
         expect(result.fields.variant).to.equal('');
+    });
+
+    it('should preserve parent features when compare-chart-column template omits features', function () {
+        const parent = {
+            fields: {
+                variant: 'compare-chart-column',
+                features: { value: ['<p name="group-a@parent-only">Parent only</p>'] },
+            },
+        };
+        const child = { fields: { title: 'Regional title' } };
+        const result = deepMerge(parent, child);
+        expect(result.fields.features.value).to.deep.equal(['<p name="group-a@parent-only">Parent only</p>']);
+        expect(result.fields.title).to.equal('Regional title');
+    });
+
+    it('should append child features to parent features for compare-chart-column template', async function () {
+        const childOnlyResult = deepMerge(
+            {
+                fields: {
+                    variant: 'compare-chart-column',
+                    title: 'Parent title',
+                },
+            },
+            {
+                fields: {
+                    features: { value: ['<p name="group-a@child-only">Child only</p>'] },
+                },
+            },
+        );
+        expect(childOnlyResult.fields.features.value).to.deep.equal(['<p name="group-a@child-only">Child only</p>']);
+        expect(childOnlyResult.fields.title).to.equal('Parent title');
+
+        const body = {
+            path: '/content/dam/mas/sandbox/en_US/compare-chart-card',
+            id: 'compare-chart-card',
+            title: 'Compare chart card',
+            fields: {
+                variant: 'compare-chart-column',
+                features: {
+                    value: ['<p name="group-a@parent-only">Parent only</p>', '<p name="group-a@override">Parent value</p>'],
+                },
+                variations: ['compare-chart-card-be'],
+            },
+            references: {
+                'compare-chart-card-be': {
+                    type: 'content-fragment',
+                    value: {
+                        path: '/content/dam/mas/sandbox/en_BE/compare-chart-card',
+                        id: 'compare-chart-card-be',
+                        fields: {
+                            features: { value: ['<p name="group-a@override">Child value</p>'] },
+                        },
+                    },
+                },
+            },
+            referencesTree: [],
+        };
+
+        const result = await process({
+            ...FAKE_CONTEXT,
+            fragmentPath: 'compare-chart-card',
+            locale: 'en_BE',
+            parsedLocale: 'en_US',
+            body,
+        });
+
+        expect(result.status).to.equal(200);
+        expect(result.body.fields.features.value).to.deep.equal([
+            '<p name="group-a@parent-only">Parent only</p>',
+            '<p name="group-a@override">Parent value</p>',
+            '<p name="group-a@override">Child value</p>',
+        ]);
     });
 
     it('should customize subcollections and sub fragments', async function () {
@@ -1006,6 +1079,46 @@ describe('customize collections', function () {
         // pzn variation lives under en_US path, must NOT be applied to a fr_FR fragment
         expect(result.body.fields.badge).to.equal('default badge');
     });
+
+    it('should ignore pzn and not apply any variation when pzn contains invalid characters', async function () {
+        const pznVariationId = 'pzn-var-winter-sale';
+        const bodyWithPzn = {
+            path: '/content/dam/mas/sandbox/en_US/pzn-test-fragment',
+            id: 'root-fragment',
+            title: 'Root',
+            fields: {
+                badge: 'default badge',
+                variations: [pznVariationId],
+            },
+            references: {
+                [pznVariationId]: {
+                    type: 'content-fragment',
+                    value: {
+                        path: '/content/dam/mas/sandbox/en_US/PA-123/pzn/winter-sale',
+                        id: pznVariationId,
+                        title: 'Winter sale pzn',
+                        fields: {
+                            pznTags: ['mas:commerce/campaigns/pzn/winter-sale'],
+                            badge: 'Winter sale PZN',
+                        },
+                    },
+                },
+            },
+            referencesTree: [],
+        };
+
+        const result = await process({
+            ...FAKE_CONTEXT,
+            fragmentPath: 'pzn-test-fragment',
+            locale: 'en_US',
+            parsedLocale: 'en_US',
+            pzn: '../evil;drop table',
+            body: bodyWithPzn,
+        });
+
+        expect(result.status).to.equal(200);
+        expect(result.body.fields.badge).to.equal('default badge');
+    });
 });
 
 async function process(context) {
@@ -1107,7 +1220,7 @@ describe('customize typical cases', function () {
         });
         expect(result.status).to.equal(200);
         expect(result.body).to.deep.include({
-            path: '/content/dam/mas/sandbox/fr_CA/ccd-slice-wide-cc-all-app',
+            path: '/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app',
         });
         expect(result.body.fields.badge.value).to.equal('canadian card');
         expect(result.body.fields.description.value).to.equal('<p>french default description</p>');
@@ -1155,7 +1268,7 @@ describe('customize typical cases', function () {
         });
         expect(result.status).to.equal(200);
         expect(result.body).to.deep.include({
-            path: '/content/dam/mas/sandbox/fr_CH/ccd-slice-wide-cc-all-app',
+            path: '/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app',
         });
         expect(result.body.fields.badge.value).to.equal('swiss card');
         expect(result.body.fields.description.value).to.equal('<p>swiss description</p>');
@@ -1450,7 +1563,7 @@ describe('customize promo variation', function () {
         );
 
         expect(result.status).to.equal(200);
-        expect(result.body.variationId).to.equal('promo-region-id');
+        expect(result.body.variationId).to.equal('promo-var-id');
         expect(result.body.fields.title).to.equal('Region Promo Title');
         expect(result.body.fields.badge).to.equal('PROMO');
     });
@@ -1555,6 +1668,108 @@ describe('customize promo variation', function () {
         expect(result.body.variationId).to.equal('region-only-id');
         expect(result.body.fields.title).to.equal('Region Only Title');
         expect(result.body.fields.badge).to.equal('REGION');
+    });
+});
+
+const CARD_MODEL = { id: CARD_MODEL_ID };
+const COLLECTION_MODEL = { id: COLLECTION_MODEL_ID };
+// `customize` receives the already-fetched mask fragment on `context.maskFragment` (set by the `mask`
+// transformer). These tests cover the merge only; mask resolution/fetch lives in `mask.test.js`.
+const MASK = { fields: { badge: 'MASKED BADGE', mnemonicIcon: [] } };
+
+describe('customize mask overlay', function () {
+    it('should overlay the mask onto a card fragment (authored fields win, empty fields preserved)', async function () {
+        const result = await process({
+            ...FAKE_CONTEXT,
+            fragmentPath: 'promo-card',
+            locale: 'en_US',
+            parsedLocale: 'en_US',
+            maskFragment: MASK,
+            body: {
+                path: '/content/dam/mas/sandbox/en_US/promo-card',
+                id: 'card-root',
+                model: CARD_MODEL,
+                fields: { badge: 'ORIGINAL', subtitle: 'keep me', title: 'Card' },
+                references: {},
+                referencesTree: [],
+            },
+        });
+        expect(result.status).to.equal(200);
+        expect(result.body.id).to.equal('card-root');
+        expect(result.body.fields.badge).to.equal('MASKED BADGE');
+        expect(result.body.fields.subtitle).to.equal('keep me');
+        expect(result.body.fields.title).to.equal('Card');
+    });
+
+    it('does not apply mask when root fragment is not a card (root-only overlay)', async function () {
+        const result = await process({
+            ...FAKE_CONTEXT,
+            fragmentPath: 'promo-coll',
+            locale: 'en_US',
+            parsedLocale: 'en_US',
+            maskFragment: MASK,
+            body: {
+                path: '/content/dam/mas/sandbox/en_US/promo-coll',
+                id: 'coll-root',
+                // collection root has no model -> mask must not apply
+                fields: { cards: ['card-1'], collections: [] },
+                references: {
+                    'card-1': {
+                        type: 'content-fragment',
+                        value: {
+                            path: '/content/dam/mas/sandbox/en_US/card-1',
+                            id: 'card-1',
+                            model: CARD_MODEL,
+                            fields: { badge: 'ORIGINAL', variations: [] },
+                        },
+                    },
+                },
+                referencesTree: [{ fieldName: 'cards', identifier: 'card-1', referencesTree: [] }],
+            },
+        });
+        expect(result.status).to.equal(200);
+        expect(result.body.fields.badge).to.be.undefined;
+        // card references are not overlaid (root-only overlay)
+        expect(result.body.references['card-1'].value.fields.badge).to.equal('ORIGINAL');
+    });
+
+    it('should not overlay when the fragment has a non-card model', async function () {
+        const result = await process({
+            ...FAKE_CONTEXT,
+            fragmentPath: 'promo-coll',
+            locale: 'en_US',
+            parsedLocale: 'en_US',
+            maskFragment: MASK,
+            body: {
+                path: '/content/dam/mas/sandbox/en_US/promo-coll',
+                id: 'coll-root',
+                model: COLLECTION_MODEL,
+                fields: { badge: 'ORIGINAL', cards: [], collections: [] },
+                references: {},
+                referencesTree: [],
+            },
+        });
+        expect(result.status).to.equal(200);
+        expect(result.body.fields.badge).to.equal('ORIGINAL');
+    });
+
+    it('should be a no-op when no mask fragment was resolved', async function () {
+        const result = await process({
+            ...FAKE_CONTEXT,
+            fragmentPath: 'promo-card',
+            locale: 'en_US',
+            parsedLocale: 'en_US',
+            body: {
+                path: '/content/dam/mas/sandbox/en_US/promo-card',
+                id: 'card-root',
+                model: CARD_MODEL,
+                fields: { badge: 'ORIGINAL' },
+                references: {},
+                referencesTree: [],
+            },
+        });
+        expect(result.status).to.equal(200);
+        expect(result.body.fields.badge).to.equal('ORIGINAL');
     });
 });
 

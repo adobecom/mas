@@ -264,11 +264,10 @@ class MasMnemonicModal extends LitElement {
         if (!raw) return false;
         if (raw.startsWith('<p>')) {
             const doc = new DOMParser().parseFromString(raw, 'text/html');
-            const txt = doc
-                .querySelector('p')
-                ?.textContent?.replace(/\u00a0/g, ' ')
-                .trim();
-            return !!txt;
+            const p = doc.querySelector('p');
+            const txt = p?.textContent?.replace(/\u00a0/g, ' ').trim();
+            if (txt) return true;
+            return !!p?.querySelector('.icon-button');
         }
         return true;
     }

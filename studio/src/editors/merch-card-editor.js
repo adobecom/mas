@@ -1676,11 +1676,10 @@ class MerchCardEditor extends LitElement {
         if (!alt.startsWith('<p>')) return false;
 
         const doc = new DOMParser().parseFromString(alt, 'text/html');
-        const t = doc
-            .querySelector('p')
-            ?.textContent.replace(/\u00a0/g, ' ')
-            .trim();
-        return !t;
+        const p = doc.querySelector('p');
+        const t = p?.textContent.replace(/\u00a0/g, ' ').trim();
+        if (t) return false;
+        return !p?.querySelector('.icon-button');
     }
 
     createMnemonicList(value, isBullet) {

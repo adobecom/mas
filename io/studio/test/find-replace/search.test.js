@@ -56,8 +56,9 @@ describe('find-replace/search: findMatches', () => {
     };
 
     it('matches a single mapped field (calloutText -> callout)', () => {
-        expect(svc.findMatches(fragment, 'calloutText', 'assistant', false))
-            .to.deep.equal([{ field: 'calloutText', value: '<p>AI Assistant add-on</p>' }]);
+        expect(svc.findMatches(fragment, 'calloutText', 'assistant', false)).to.deep.equal([
+            { field: 'calloutText', value: '<p>AI Assistant add-on</p>' },
+        ]);
     });
     it('matches button text inside the ctas field', () => {
         const m = svc.findMatches(fragment, 'buttonText', 'buy now', false);
@@ -65,17 +66,28 @@ describe('find-replace/search: findMatches', () => {
         expect(m[0].field).to.equal('buttonText');
     });
     it('matches the fragment top-level title', () => {
-        expect(svc.findMatches(fragment, 'fragmentTitle', 'all apps', false))
-            .to.deep.equal([{ field: 'fragmentTitle', value: 'CCD Slice Wide CC All Apps' }]);
+        expect(svc.findMatches(fragment, 'fragmentTitle', 'all apps', false)).to.deep.equal([
+            { field: 'fragmentTitle', value: 'CCD Slice Wide CC All Apps' },
+        ]);
     });
     it('matches a tag id under the tags scope', () => {
-        expect(svc.findMatches(fragment, 'tags', 'plan_type/abm', false))
-            .to.deep.equal([{ field: 'tags', value: 'mas:plan_type/abm' }]);
+        expect(svc.findMatches(fragment, 'tags', 'plan_type/abm', false)).to.deep.equal([
+            { field: 'tags', value: 'mas:plan_type/abm' },
+        ]);
     });
     it('everywhere scans all fields plus title/description', () => {
         const fieldsHit = svc.findMatches(fragment, 'everywhere', 'school', false).map((x) => x.field);
         expect(fieldsHit).to.include('subtitle');
         expect(fieldsHit).to.include('description');
+    });
+    it('everywhere yields at most one match per field even with multiple matching values', () => {
+        const multiValueFragment = {
+            title: '',
+            description: '',
+            fields: [{ name: 'subtitle', values: ['school sale', 'back to school'] }],
+        };
+        const m = svc.findMatches(multiValueFragment, 'everywhere', 'school', false);
+        expect(m).to.deep.equal([{ field: 'subtitle', value: 'school sale' }]);
     });
     it('returns [] for an unknown scope', () => {
         expect(svc.findMatches(fragment, 'bogus', 'x', false)).to.deep.equal([]);
@@ -91,13 +103,16 @@ describe('find-replace/search: buildSearchQuery', () => {
         expect(q.sort).to.deep.equal([{ on: 'created', order: 'ASC' }]);
     });
     it('narrows the path to a locale when given', () => {
-        expect(svc.buildSearchQuery({ surface: 'acom', locale: 'de_DE', find: 'x' }).filter.path)
-            .to.equal('/content/dam/mas/acom/de_DE');
+        expect(svc.buildSearchQuery({ surface: 'acom', locale: 'de_DE', find: 'x' }).filter.path).to.equal(
+            '/content/dam/mas/acom/de_DE',
+        );
     });
     it('adds tags and status filters when provided', () => {
         const q = svc.buildSearchQuery({
-            surface: 'acom', find: 'x',
-            tags: ['mas:customer_segment/individual'], status: 'PUBLISHED',
+            surface: 'acom',
+            find: 'x',
+            tags: ['mas:customer_segment/individual'],
+            status: 'PUBLISHED',
         });
         expect(q.filter.tags).to.deep.equal(['mas:customer_segment/individual']);
         expect(q.filter.status).to.deep.equal(['PUBLISHED']);
@@ -116,8 +131,10 @@ describe('find-replace/search: searchCandidates', () => {
 
         const ids = [];
         for await (const item of mod.searchCandidates({
-            odinEndpoint: 'https://odin.example', authToken: 't',
-            query: { sort: [], filter: { path: '/content/dam/mas/acom' } }, limit: 50,
+            odinEndpoint: 'https://odin.example',
+            authToken: 't',
+            query: { sort: [], filter: { path: '/content/dam/mas/acom' } },
+            limit: 50,
         })) {
             ids.push(item.id);
         }
@@ -133,10 +150,22 @@ describe('find-replace/search: searchCandidates', () => {
 describe('find-replace/search: runSearch', () => {
     it('returns only fragments whose scoped field matches, in the result shape', async () => {
         const items = [
-            { id: 'f1', path: '/content/dam/mas/acom/en_US/a', title: 'A', status: 'PUBLISHED', etag: 'e1',
-              fields: [{ name: 'subtitle', values: ['Back to school'] }] },
-            { id: 'f2', path: '/content/dam/mas/acom/en_US/b', title: 'B', status: 'DRAFT', etag: 'e2',
-              fields: [{ name: 'subtitle', values: ['Nothing here'] }] },
+            {
+                id: 'f1',
+                path: '/content/dam/mas/acom/en_US/a',
+                title: 'A',
+                status: 'PUBLISHED',
+                etag: 'e1',
+                fields: [{ name: 'subtitle', values: ['Back to school'] }],
+            },
+            {
+                id: 'f2',
+                path: '/content/dam/mas/acom/en_US/b',
+                title: 'B',
+                status: 'DRAFT',
+                etag: 'e2',
+                fields: [{ name: 'subtitle', values: ['Nothing here'] }],
+            },
         ];
         const fetchOdinStub = sinon.stub().resolves(fetchResponse({ items, cursor: null }));
         const getValues = (fragment, name) => {
@@ -146,22 +175,32 @@ describe('find-replace/search: runSearch', () => {
         const mod = load({ fetchOdin: fetchOdinStub, getValues });
 
         const result = await mod.runSearch({
-            odinEndpoint: 'https://odin.example', authToken: 't',
-            surface: 'acom', find: 'school', searchIn: 'subtitle', matchCase: false,
+            odinEndpoint: 'https://odin.example',
+            authToken: 't',
+            surface: 'acom',
+            find: 'school',
+            searchIn: 'subtitle',
+            matchCase: false,
         });
 
         expect(result.total).to.equal(1);
-        expect(result.items).to.deep.equal([{
-            id: 'f1', path: '/content/dam/mas/acom/en_US/a', locale: 'en_US',
-            title: 'A', status: 'PUBLISHED', etag: 'e1',
-            matches: [{ field: 'subtitle', value: 'Back to school' }],
-        }]);
+        expect(result.items).to.deep.equal([
+            {
+                id: 'f1',
+                path: '/content/dam/mas/acom/en_US/a',
+                locale: 'en_US',
+                title: 'A',
+                status: 'PUBLISHED',
+                etag: 'e1',
+                matches: [{ field: 'subtitle', value: 'Back to school' }],
+            },
+        ]);
     });
 });
 
 describe('find-replace/search: main action', () => {
-    function loadAction({ allowed = true, items = [] } = {}) {
-        const fetchOdinStub = sinon.stub().resolves(fetchResponse({ items, cursor: null }));
+    function loadAction({ allowed = true, items = [], fetchOdin, missing = null } = {}) {
+        const fetchOdinStub = fetchOdin ?? sinon.stub().resolves(fetchResponse({ items, cursor: null }));
         const getValues = (fragment, name) => {
             const f = (fragment.fields || []).find((x) => x.name === name);
             return f ? { values: f.values, path: `/fields/${name}` } : null;
@@ -170,10 +209,7 @@ describe('find-replace/search: main action', () => {
             '../common.js': { fetchOdin: fetchOdinStub, getValues },
             '../../utils.js': {
                 errorResponse: (statusCode, message) => ({ statusCode, body: { error: message } }),
-                checkMissingRequestInputs: (params, required = []) => {
-                    const missing = required.filter((k) => params[k] === undefined);
-                    return missing.length ? `missing parameter(s) '${missing}'` : null;
-                },
+                checkMissingRequestInputs: () => missing,
                 getBearerToken: () => 'token',
                 isAllowed: async () => allowed,
             },
@@ -182,17 +218,26 @@ describe('find-replace/search: main action', () => {
     }
 
     const baseParams = {
-        odinEndpoint: 'https://odin.example', allowedClientId: 'mas-studio',
+        odinEndpoint: 'https://odin.example',
+        allowedClientId: 'mas-studio',
         __ow_headers: { authorization: 'Bearer token' },
-        find: 'school', surface: 'acom', searchIn: 'subtitle',
+        find: 'school',
+        surface: 'acom',
+        searchIn: 'subtitle',
     };
 
     afterEach(() => sinon.restore());
 
     it('returns 200 with the search result body', async () => {
         const items = [
-            { id: 'f1', path: '/content/dam/mas/acom/en_US/a', title: 'A', status: 'PUBLISHED', etag: 'e1',
-              fields: [{ name: 'subtitle', values: ['Back to school'] }] },
+            {
+                id: 'f1',
+                path: '/content/dam/mas/acom/en_US/a',
+                title: 'A',
+                status: 'PUBLISHED',
+                etag: 'e1',
+                fields: [{ name: 'subtitle', values: ['Back to school'] }],
+            },
         ];
         const { mod, fetchOdinStub } = loadAction({ items });
         const res = await mod.main(baseParams);
@@ -208,5 +253,18 @@ describe('find-replace/search: main action', () => {
     it('returns 400 when odinEndpoint is missing', async () => {
         const { mod } = loadAction();
         expect((await mod.main({ ...baseParams, odinEndpoint: undefined })).statusCode).to.equal(400);
+    });
+    it('returns 400 when a required param (find) is missing', async () => {
+        const { mod } = loadAction({ missing: 'missing parameter(s) [find]' });
+        const res = await mod.main({ ...baseParams, find: undefined });
+        expect(res.statusCode).to.equal(400);
+        expect(res.body.error).to.equal('missing parameter(s) [find]');
+    });
+    it('returns 500 when fetchOdin throws', async () => {
+        const fetchOdin = sinon.stub().rejects(new Error('odin unavailable'));
+        const { mod } = loadAction({ fetchOdin });
+        const res = await mod.main(baseParams);
+        expect(res.statusCode).to.equal(500);
+        expect(res.body.error).to.equal('odin unavailable');
     });
 });

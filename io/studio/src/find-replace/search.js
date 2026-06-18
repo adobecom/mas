@@ -85,9 +85,7 @@ function findMatches(fragment, searchIn, find, matchCase) {
 const DEFAULT_SORT = [{ on: 'created', order: 'ASC' }];
 
 function buildSearchQuery({ surface, locale, tags = [], status, find }) {
-    const path = locale
-        ? `/content/dam/mas/${surface}/${locale}`
-        : `/content/dam/mas/${surface}`;
+    const path = locale ? `/content/dam/mas/${surface}/${locale}` : `/content/dam/mas/${surface}`;
     const filter = { path };
     if (find) filter.fullText = { text: find, queryMode: 'EDGES' };
     if (tags.length) filter.tags = tags;
@@ -101,9 +99,7 @@ async function* searchCandidates({ odinEndpoint, authToken, query, limit = 50 })
         const params = { query: JSON.stringify(query), limit: String(limit) };
         if (cursor) params.cursor = cursor;
         const qs = new URLSearchParams(params).toString();
-        // eslint-disable-next-line no-await-in-loop
         const response = await fetchOdin(odinEndpoint, `/adobe/sites/cf/fragments/search?${qs}`, authToken);
-        // eslint-disable-next-line no-await-in-loop
         const { items = [], cursor: next } = await response.json();
         yield* items;
         cursor = next;
@@ -111,8 +107,16 @@ async function* searchCandidates({ odinEndpoint, authToken, query, limit = 50 })
 }
 
 async function runSearch({
-    odinEndpoint, authToken, surface, locale, tags, status,
-    find, searchIn = 'everywhere', matchCase = false, limit,
+    odinEndpoint,
+    authToken,
+    surface,
+    locale,
+    tags,
+    status,
+    find,
+    searchIn = 'everywhere',
+    matchCase = false,
+    limit,
 }) {
     const query = buildSearchQuery({ surface, locale, tags, status, find });
     const items = [];
@@ -152,7 +156,15 @@ async function main(params) {
         const tags = Array.isArray(params.tags) ? params.tags : [];
 
         const result = await runSearch({
-            odinEndpoint, authToken, surface, locale, tags, status, find, searchIn, matchCase,
+            odinEndpoint,
+            authToken,
+            surface,
+            locale,
+            tags,
+            status,
+            find,
+            searchIn,
+            matchCase,
         });
         return { statusCode: 200, body: result };
     } catch (error) {
@@ -162,6 +174,13 @@ async function main(params) {
 }
 
 module.exports = {
-    main, matchesText, extractLocale, SCOPE_FIELDS, findMatches, buildSearchQuery, searchCandidates, runSearch,
+    main,
+    matchesText,
+    extractLocale,
+    SCOPE_FIELDS,
+    findMatches,
+    buildSearchQuery,
+    searchCandidates,
+    runSearch,
 };
 exports.main = main;

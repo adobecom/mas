@@ -76,7 +76,7 @@ describe('bulk-edit/search: findMatches', () => {
         ]);
     });
     it('everywhere scans all fields plus title/description', () => {
-        const fieldsHit = svc.findMatches(fragment, 'everywhere', 'school', false).map((x) => x.field);
+        const fieldsHit = svc.findMatches(fragment, '*', 'school', false).map((x) => x.field);
         expect(fieldsHit).to.include('subtitle');
         expect(fieldsHit).to.include('description');
     });
@@ -86,7 +86,7 @@ describe('bulk-edit/search: findMatches', () => {
             description: '',
             fields: [{ name: 'subtitle', values: ['school sale', 'back to school'] }],
         };
-        const m = svc.findMatches(multiValueFragment, 'everywhere', 'school', false);
+        const m = svc.findMatches(multiValueFragment, '*', 'school', false);
         expect(m).to.deep.equal([{ field: 'subtitle', value: 'school sale' }]);
     });
     it('returns [] for an unknown scope', () => {

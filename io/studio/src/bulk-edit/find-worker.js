@@ -23,7 +23,7 @@ async function runFindWorker(jobId, { odinEndpoint }) {
     try {
         for await (const items of searchPages({ odinEndpoint, authToken, query })) {
             for (const fragment of items) {
-                const matches = findMatches(fragment, params.searchIn || 'everywhere', params.find, !!params.matchCase);
+                const matches = findMatches(fragment, params.searchIn || '*', params.find, !!params.matchCase);
                 if (matches.length) {
                     results.push({
                         id: fragment.id,

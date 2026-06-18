@@ -57,7 +57,7 @@ function matchEverywhere(fragment, find, matchCase) {
 }
 
 function findMatches(fragment, searchIn, find, matchCase) {
-    if (searchIn === 'everywhere') return matchEverywhere(fragment, find, matchCase);
+    if (searchIn === '*') return matchEverywhere(fragment, find, matchCase);
 
     const scope = SCOPE_FIELDS[searchIn];
     if (!scope) return [];

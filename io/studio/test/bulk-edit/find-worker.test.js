@@ -6,7 +6,7 @@ function load(overrides = {}) {
     const job =
         overrides.job === undefined
             ? {
-                  params: { find: 'school', surface: 'acom', searchIn: 'everywhere', matchCase: false },
+                  params: { find: 'school', surface: 'acom', searchIn: '*', matchCase: false },
                   authToken: 't',
                   status: 'RUNNING',
               }

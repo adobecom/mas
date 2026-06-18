@@ -25,7 +25,7 @@ function load({ existing = null, allowed = true } = {}) {
     return { mod, invokeAsyncAction, writeJob, readJob };
 }
 
-const findParams = { type: 'find', find: 'school', surface: 'acom', searchIn: 'everywhere' };
+const findParams = { type: 'find', find: 'school', surface: 'acom', searchIn: '*' };
 
 describe('bulk-edit: computeJobId', () => {
     it('is stable for identical params and tag order', () => {

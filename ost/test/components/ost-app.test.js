@@ -407,6 +407,54 @@ describe('ost-app', () => {
                 window.fetch = originalFetch;
             }
         });
+    });
+
+    describe('resolveBundleDeepLink', () => {
+        afterEach(() => {
+            store.authoringFlow = 'single';
+            store.selectedOffers = [];
+        });
+
+        it('resolves every bundle OSI and adds each to the bundle', async () => {
+            const originalFetch = window.fetch;
+            window.fetch = async (url) => ({
+                ok: true,
+                json: async () => ({
+                    product_arrangement_code: 'phsp-arr',
+                    offer_type: 'BASE',
+                    market_segments: ['COM'],
+                    customer_segment: 'INDIVIDUAL',
+                }),
+            });
+            try {
+                store.authoringFlow = 'bundle';
+                store.selectedOffers = [];
+                const el = await fixture(html`<ost-app></ost-app>`);
+                await el.resolveBundleDeepLink(['osi-a', 'osi-b', 'osi-c']);
+                expect(store.selectedOffers.length).to.equal(3);
+                expect(store.selectedOffers.map((o) => o.osi)).to.deep.equal(['osi-a', 'osi-b', 'osi-c']);
+            } finally {
+                window.fetch = originalFetch;
+            }
+        });
+
+        it('skips OSIs that fail to resolve and keeps the rest', async () => {
+            const originalFetch = window.fetch;
+            window.fetch = async (url) => {
+                if (String(url).includes('osi-bad')) throw new Error('aos down');
+                return { ok: true, json: async () => ({ product_arrangement_code: 'phsp-arr', offer_type: 'BASE' }) };
+            };
+            try {
+                store.authoringFlow = 'bundle';
+                store.selectedOffers = [];
+                const el = await fixture(html`<ost-app></ost-app>`);
+                await el.resolveBundleDeepLink(['osi-ok', 'osi-bad']);
+                expect(store.selectedOffers.length).to.equal(1);
+                expect(store.selectedOffers[0].osi).to.equal('osi-ok');
+            } finally {
+                window.fetch = originalFetch;
+            }
+        });
 
         it('persists the deep-link OSI on store.initialOsi', async () => {
             const originalFetch = window.fetch;
@@ -609,12 +657,13 @@ describe('ost-app', () => {
             store.onSelect = null;
         });
 
-        it('invokes the nested ost-code-output handleUse for the single flow', async () => {
+        it('invokes only the Price row code-output for the single flow (not every price type)', async () => {
             store.authoringFlow = 'single';
             store.selectedProduct = { name: 'Photoshop', arrangement_code: 'phsp' };
             store.selectedOffer = { offer_id: 'X' };
             store.selectedOsi = 'x-osi';
             store.wizardStep = 'offer';
+            store.placeholderTab = 'price';
             store.notify();
             const el = await fixture(html`<ost-app></ost-app>`);
             await el.updateComplete;
@@ -622,13 +671,40 @@ describe('ost-app', () => {
             await tab.updateComplete;
             const panel = tab.shadowRoot.querySelector('ost-placeholder-panel');
             await panel.updateComplete;
-            const codeOutput = panel.shadowRoot.querySelector('ost-code-output');
-            let called = false;
-            codeOutput.handleUse = () => {
-                called = true;
-            };
+            const outputs = panel.shadowRoot.querySelectorAll('ost-code-output');
+            // Price tab renders every price type (price/optical/annual/…), but the
+            // footer Use must fire ONLY the Price row.
+            expect(outputs.length).to.be.greaterThan(1);
+            const usedTypes = [];
+            outputs.forEach((o) => {
+                o.handleUse = () => usedTypes.push(o.placeholderType);
+            });
             el.handleFooterUse();
-            expect(called).to.be.true;
+            expect(usedTypes).to.deep.equal(['price']);
+        });
+
+        it('invokes only the Price row (joined OSI) for a bundle, not every price type', async () => {
+            store.applyFlowSwitch('bundle', false);
+            store.selectedProduct = { name: 'CC', arrangement_code: 'cc' };
+            store.addOffer({ offer_id: 'A' }, 'osi-a', 'bundle');
+            store.addOffer({ offer_id: 'B' }, 'osi-b', 'bundle');
+            store.wizardStep = 'offer';
+            store.placeholderTab = 'price';
+            store.notify();
+            const el = await fixture(html`<ost-app></ost-app>`);
+            await el.updateComplete;
+            const tab = el.shadowRoot.querySelector('ost-offer-tab');
+            await tab.updateComplete;
+            const panel = tab.shadowRoot.querySelector('ost-placeholder-panel');
+            await panel.updateComplete;
+            const usedTypes = [];
+            panel.shadowRoot.querySelectorAll('ost-code-output').forEach((o) => {
+                o.handleUse = () => usedTypes.push(o.placeholderType);
+            });
+            el.handleFooterUse();
+            expect(usedTypes).to.deep.equal(['price']);
+            store.applyFlowSwitch('single', false);
+            store.selectedOffers = [];
         });
 
         it('invokes every code-output (trial + buy) in the tryBuy flow', async () => {
@@ -658,6 +734,54 @@ describe('ost-app', () => {
             el.handleFooterUse();
             expect(calls).to.equal(2);
             store.selectedOffers = [];
+        });
+
+        it('emits only the checkout row on the Checkout tab (single flow)', async () => {
+            store.authoringFlow = 'single';
+            store.selectedProduct = { name: 'Photoshop', arrangement_code: 'phsp' };
+            store.selectedOffer = { offer_id: 'X' };
+            store.selectedOsi = 'x-osi';
+            store.wizardStep = 'offer';
+            store.placeholderTab = 'checkout';
+            store.notify();
+            const el = await fixture(html`<ost-app></ost-app>`);
+            await el.updateComplete;
+            const tab = el.shadowRoot.querySelector('ost-offer-tab');
+            await tab.updateComplete;
+            const panel = tab.shadowRoot.querySelector('ost-placeholder-panel');
+            await panel.updateComplete;
+            const usedTypes = [];
+            panel.shadowRoot.querySelectorAll('ost-code-output').forEach((o) => {
+                o.handleUse = () => usedTypes.push(o.placeholderType);
+            });
+            el.handleFooterUse();
+            expect(usedTypes).to.deep.equal(['checkoutUrl']);
+            store.placeholderTab = 'price';
+        });
+
+        it('emits one checkout placeholder with the joined OSI for a bundle on the Checkout tab', async () => {
+            store.applyFlowSwitch('bundle', false);
+            store.selectedProduct = { name: 'CC', arrangement_code: 'cc' };
+            store.addOffer({ offer_id: 'A' }, 'osi-a', 'bundle');
+            store.addOffer({ offer_id: 'B' }, 'osi-b', 'bundle');
+            store.wizardStep = 'offer';
+            store.placeholderTab = 'checkout';
+            store.notify();
+            const el = await fixture(html`<ost-app></ost-app>`);
+            await el.updateComplete;
+            const tab = el.shadowRoot.querySelector('ost-offer-tab');
+            await tab.updateComplete;
+            const panel = tab.shadowRoot.querySelector('ost-placeholder-panel');
+            await panel.updateComplete;
+            const used = [];
+            panel.shadowRoot.querySelectorAll('ost-code-output').forEach((o) => {
+                o.handleUse = () => used.push({ type: o.placeholderType, osi: o.osi });
+            });
+            el.handleFooterUse();
+            expect(used).to.deep.equal([{ type: 'checkoutUrl', osi: 'osi-a,osi-b' }]);
+            store.applyFlowSwitch('single', false);
+            store.selectedOffers = [];
+            store.placeholderTab = 'price';
         });
     });
 

@@ -84,6 +84,7 @@ export class OstEntitlementsTab extends LitElement {
             display: flex;
             flex-direction: column;
             gap: 4px;
+            margin-bottom: 20px;
         }
 
         .footer {

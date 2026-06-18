@@ -23,6 +23,7 @@ function openOfferSelectorTool(options) {
         searchParameters,
         searchOfferSelectorId,
         initialReferenceOsi,
+        bundleOsis,
         defaultPlaceholderOptions,
         offerSelectorPlaceholderOptions = {
             displayFormatted: true,
@@ -62,6 +63,7 @@ function openOfferSelectorTool(options) {
         searchParameters,
         searchOfferSelectorId,
         initialReferenceOsi,
+        bundleOsis,
         ctaTextOption,
         modalsAndEntitlements,
         authoringFlow,

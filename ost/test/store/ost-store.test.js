@@ -841,13 +841,33 @@ describe('OstStore', () => {
     });
 
     describe('chooseAuthoringFlow', () => {
-        it('switches flow and clears selections immediately (no pending switch)', () => {
+        it('carries the selection over immediately', () => {
             store.authoringFlow = 'bundle';
-            store.selectedOffers = [{ offer: {}, osi: 'a' }];
+            store.selectedOffers = [{ offer: { offer_id: 'a' }, osi: 'a' }];
             store.chooseAuthoringFlow('single');
             expect(store.authoringFlow).to.equal('single');
-            expect(store.selectedOffers).to.deep.equal([]);
-            expect(store.pendingFlowSwitch).to.be.null;
+            expect(store.selectedOffer?.offer_id).to.equal('a');
+        });
+
+        it('moves a single deep-linked offer into the base slot when switching to tryBuy', () => {
+            store.authoringFlow = 'single';
+            store.setOffer({ offer_id: 'deep' });
+            store.setOsi('deep-osi');
+            store.chooseAuthoringFlow('tryBuy');
+            expect(store.authoringFlow).to.equal('tryBuy');
+            const base = store.selectedOffers.find((o) => o.role === 'base');
+            expect(base?.osi).to.equal('deep-osi');
+            store.selectedOffers = [];
+        });
+
+        it('moves a single offer into the bundle when switching to soft bundle', () => {
+            store.authoringFlow = 'single';
+            store.setOffer({ offer_id: 'deep' });
+            store.setOsi('deep-osi');
+            store.chooseAuthoringFlow('bundle');
+            expect(store.authoringFlow).to.equal('bundle');
+            expect(store.selectedOffers.map((o) => o.osi)).to.deep.equal(['deep-osi']);
+            store.selectedOffers = [];
         });
 
         it('ignores invalid flow', () => {
@@ -1062,73 +1082,6 @@ describe('OstStore', () => {
         });
     });
 
-    describe('setAuthoringFlow with state carry', () => {
-        it('switches immediately when no selections', () => {
-            store.setAuthoringFlow('tryBuy');
-            expect(store.authoringFlow).to.equal('tryBuy');
-            expect(store.pendingFlowSwitch).to.be.null;
-        });
-
-        it('sets pendingFlowSwitch when selections exist', () => {
-            store.authoringFlow = 'bundle';
-            store.selectedOffers = [{ offer: {}, osi: 'a' }];
-            store.setAuthoringFlow('single');
-            expect(store.pendingFlowSwitch).to.equal('single');
-            expect(store.authoringFlow).to.equal('bundle');
-        });
-
-        it('confirmFlowSwitch with keep transfers offers', () => {
-            store.authoringFlow = 'bundle';
-            const offerA = { offerId: 'a' };
-            store.selectedOffers = [{ offer: offerA, osi: 'osi-a' }];
-            store.setAuthoringFlow('tryBuy');
-            store.confirmFlowSwitch(true);
-            expect(store.authoringFlow).to.equal('tryBuy');
-            expect(store.selectedBaseOffer).to.equal(offerA);
-        });
-
-        it('confirmFlowSwitch with discard clears offers', () => {
-            store.authoringFlow = 'bundle';
-            store.selectedOffers = [{ offer: {}, osi: 'a' }];
-            store.setAuthoringFlow('single');
-            store.confirmFlowSwitch(false);
-            expect(store.authoringFlow).to.equal('single');
-            expect(store.selectedOffers).to.deep.equal([]);
-        });
-
-        it('cancelFlowSwitch restores original state', () => {
-            store.authoringFlow = 'bundle';
-            store.selectedOffers = [{ offer: {}, osi: 'a' }];
-            store.setAuthoringFlow('single');
-            store.cancelFlowSwitch();
-            expect(store.authoringFlow).to.equal('bundle');
-            expect(store.pendingFlowSwitch).to.be.null;
-        });
-
-        it('ignores switch to same flow', () => {
-            // Default authoringFlow is 'single', so setAuthoringFlow('single')
-            // is a no-op and must not notify subscribers.
-            let notified = false;
-            store.subscribe(() => {
-                notified = true;
-            });
-            store.setAuthoringFlow('single');
-            expect(notified).to.be.false;
-        });
-
-        it('carries single selectedOffer to tryBuy base slot', () => {
-            store.authoringFlow = 'single';
-            const offer = { offerId: 'phsp' };
-            store.setOffer(offer);
-            store.setOsi('phsp-osi');
-            store.setAuthoringFlow('tryBuy');
-            store.confirmFlowSwitch(true);
-            expect(store.authoringFlow).to.equal('tryBuy');
-            expect(store.selectedBaseOffer).to.equal(offer);
-            expect(store.selectedBaseOsi).to.equal('phsp-osi');
-        });
-    });
-
     describe('bundleOsis', () => {
         it('joins OSIs with comma', () => {
             store.selectedOffers = [
@@ -1340,24 +1293,14 @@ describe('OstStore', () => {
         });
     });
 
-    describe('confirmFlowSwitch no-op', () => {
-        it('does nothing when no pending switch exists', () => {
-            store.authoringFlow = 'single';
-            store.confirmFlowSwitch(true);
-            expect(store.authoringFlow).to.equal('single');
-            expect(store.pendingFlowSwitch).to.be.null;
-        });
-    });
-
     describe('flow switch carries to bundle', () => {
-        it('maps prior offers into bundle entries on confirm with keep', () => {
+        it('maps prior offers into bundle entries when keeping selections', () => {
             store.authoringFlow = 'tryBuy';
             store.selectedOffers = [
                 { offer: { id: 'base' }, osi: 'osi-base', role: 'base' },
                 { offer: { id: 'trial' }, osi: 'osi-trial', role: 'trial' },
             ];
-            store.setAuthoringFlow('bundle');
-            store.confirmFlowSwitch(true);
+            store.applyFlowSwitch('bundle', true);
             expect(store.authoringFlow).to.equal('bundle');
             expect(store.selectedOffers).to.have.length(2);
             expect(store.selectedOffers[0].osi).to.equal('osi-base');
@@ -1370,8 +1313,7 @@ describe('OstStore', () => {
                 { offer: { id: 'one' }, osi: 'osi-one' },
                 { offer: { id: 'two' }, osi: 'osi-two' },
             ];
-            store.setAuthoringFlow('tryBuy');
-            store.confirmFlowSwitch(true);
+            store.applyFlowSwitch('tryBuy', true);
             expect(store.selectedBaseOsi).to.equal('osi-one');
             expect(store.selectedTrialOsi).to.equal('osi-two');
         });

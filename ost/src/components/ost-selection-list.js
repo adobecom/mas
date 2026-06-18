@@ -6,16 +6,16 @@ function offerLabel(offer) {
     return offer.offer_id || offer.product_arrangement_code || '';
 }
 
-// Richer slot descriptor for try/buy and bundle slots: the product name as the
-// primary line, a compact attribute string (plan · type · price) as secondary,
-// and the OSI kept as a muted third line. Falls back to the OSI as the name
-// when an offer carries no product name.
 function offerPeriod(offer) {
     if (offer.commitment === 'YEAR' || offer.term === 'ANNUAL') return '/yr';
     if (offer.commitment === 'MONTH' || offer.term === 'MONTHLY') return '/mo';
     return '';
 }
 
+// Richer slot descriptor for try/buy and bundle slots: the product name as the
+// primary line, a compact attribute string (plan · type · price) as secondary,
+// and the OSI kept as a muted third line. Falls back to the OSI as the name
+// when an offer carries no product name.
 export function offerSummary(offer) {
     if (!offer) return { name: '', details: '', osi: '' };
     const osi = offerLabel(offer);
@@ -191,27 +191,6 @@ export class OstSelectionList extends LitElement {
             padding: 6px 14px;
             font-style: italic;
         }
-
-        .confirm-bar {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 10px 14px;
-            border: 1px solid var(--spectrum-yellow-400, #e6a300);
-            border-radius: 8px;
-            background: var(--spectrum-yellow-100, #fff3cd);
-            margin-bottom: 8px;
-            font-size: 13px;
-            color: var(--spectrum-gray-900);
-        }
-
-        .confirm-bar .confirm-text {
-            flex: 1;
-        }
-
-        .confirm-bar sp-button {
-            flex-shrink: 0;
-        }
     `;
 
     constructor() {
@@ -242,31 +221,12 @@ export class OstSelectionList extends LitElement {
         `;
     }
 
-    get confirmBar() {
-        if (!store.pendingFlowSwitch) return nothing;
-        const offerNames =
-            store.selectedOffers.length > 0
-                ? store.selectedOffers
-                      .map((o) => offerLabel(o.offer))
-                      .filter(Boolean)
-                      .join(', ')
-                : offerLabel(store.selectedOffer);
-        return html`
-            <div class="confirm-bar">
-                <span class="confirm-text">Keep "${offerNames}" in your new selection?</span>
-                <sp-button size="s" variant="primary" @click=${() => store.confirmFlowSwitch(true)}>Keep</sp-button>
-                <sp-button size="s" variant="secondary" @click=${() => store.confirmFlowSwitch(false)}>Discard</sp-button>
-            </div>
-        `;
-    }
-
     get tryBuyContent() {
         const baseOffer = store.selectedBaseOffer;
         const trialOffer = store.selectedTrialOffer;
         const currentSlot = store.currentSlot;
 
         return html`
-            ${this.confirmBar}
             <div
                 class="selection-slot clickable ${currentSlot === 'trial' ? 'active' : ''} ${trialOffer ? 'filled' : ''}"
                 @click=${() => store.setCurrentSlot('trial')}
@@ -321,7 +281,6 @@ export class OstSelectionList extends LitElement {
     get bundleContent() {
         const offers = store.selectedOffers;
         return html`
-            ${this.confirmBar}
             ${offers.map(
                 (entry, index) => html`
                     <div class="selection-slot filled">

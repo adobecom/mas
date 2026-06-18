@@ -95,7 +95,6 @@ const SLICES = [
     ['wizardStep', 'entitlements'],
     ['selectedOffers', []],
     ['currentSlot', 'base'],
-    ['pendingFlowSwitch', null],
     ['promotionCode', undefined],
     ['storedPromoOverride', undefined],
     ['masCommerceService', null],
@@ -331,7 +330,6 @@ export class OstStore extends EventTarget {
         this.selectedOffers = [];
         this.currentSlot = 'base';
         this.#slotManuallyTargeted = false;
-        this.pendingFlowSwitch = null;
         this.offers = [];
         // Reset the offers-fetch cache key so the first product selection of a
         // fresh OST session always reloads offers (a re-open with the same
@@ -773,44 +771,20 @@ export class OstStore extends EventTarget {
         this.selectedOsi = osi;
     }
 
-    setAuthoringFlow(flow, keepSelections = false) {
-        if (!VALID_FLOWS.includes(flow)) return;
-        if (flow === this.authoringFlow) return;
-
-        const hasSelections = this.selectedOffers.length > 0 || !!this.selectedOffer;
-        if (!keepSelections && hasSelections) {
-            this.pendingFlowSwitch = flow;
-            return;
-        }
-
-        this.applyFlowSwitch(flow, keepSelections);
-    }
-
-    // Tab-1 mode picker: switch authoring flow and discard any in-progress
-    // offer selections immediately (no pendingFlowSwitch confirm bar, which
-    // lives on Tab 2 and would be invisible from Tab 1). Switching mode is a
-    // deliberate restart of the authoring intent.
+    // Tab-1 mode picker: switch authoring flow and carry the current offer
+    // selection into the new mode (single's offer becomes the base slot in
+    // tryBuy / the first bundle offer). Keeping the selection preserves a
+    // deep-linked offer — the author's anchor — instead of discarding it.
     chooseAuthoringFlow(flow) {
         if (!VALID_FLOWS.includes(flow)) return;
         if (flow === this.authoringFlow) return;
-        this.applyFlowSwitch(flow, false);
+        this.applyFlowSwitch(flow, true);
     }
 
     setCurrentSlot(slot) {
         if (slot !== 'base' && slot !== 'trial') return;
         this.#slotManuallyTargeted = true;
         this.currentSlot = slot;
-    }
-
-    confirmFlowSwitch(keep) {
-        const flow = this.pendingFlowSwitch;
-        if (!flow) return;
-        this.pendingFlowSwitch = null;
-        this.applyFlowSwitch(flow, keep);
-    }
-
-    cancelFlowSwitch() {
-        this.pendingFlowSwitch = null;
     }
 
     applyFlowSwitch(flow, keepSelections) {

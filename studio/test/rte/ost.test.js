@@ -257,4 +257,30 @@ describe('openOfferSelectorTool deep-link type parameter', () => {
         expect(openOstStub.calledOnce).to.be.true;
         expect(getSearchParamsFromLastCall().get('type')).to.equal('checkoutUrl');
     });
+
+    function elementWith(attrs) {
+        return {
+            isInlinePrice: true,
+            innerText: '',
+            getAttribute: (key) => attrs[key] ?? null,
+            getAttributeNames: () => Object.keys(attrs),
+        };
+    }
+
+    it('opens a multi-OSI non-discount placeholder in bundle mode with all OSIs', () => {
+        openOfferSelectorTool(null, elementWith({ 'data-wcs-osi': 'osi-a,osi-b,osi-c' }));
+        const config = openOstStub.getCall(0).args[0];
+        expect(config.bundleOsis).to.deep.equal(['osi-a', 'osi-b', 'osi-c']);
+        expect(config.authoringFlow).to.equal('bundle');
+        expect(config.searchOfferSelectorId).to.be.undefined;
+    });
+
+    it('treats a multi-OSI discount placeholder as a single offer plus reference, not a bundle', () => {
+        openOfferSelectorTool(null, elementWith({ 'data-wcs-osi': 'osi-base,osi-ref', 'data-template': 'discount' }));
+        const config = openOstStub.getCall(0).args[0];
+        expect(config.bundleOsis).to.be.undefined;
+        expect(config.authoringFlow).to.be.undefined;
+        expect(config.searchOfferSelectorId).to.equal('osi-base');
+        expect(config.initialReferenceOsi).to.equal('osi-ref');
+    });
 });

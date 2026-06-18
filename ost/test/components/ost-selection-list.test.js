@@ -9,7 +9,6 @@ function resetStore() {
     store.selectedOffer = undefined;
     store.selectedOsi = undefined;
     store.currentSlot = 'base';
-    store.pendingFlowSwitch = null;
 }
 
 describe('ost-selection-list', () => {
@@ -152,52 +151,6 @@ describe('ost-selection-list', () => {
             const el = await fixture(html`<ost-selection-list></ost-selection-list>`);
             expect(el.shadowRoot.querySelectorAll('.selection-slot')).to.have.length(0);
             expect(el.shadowRoot.querySelector('.bundle-hint')).to.exist;
-        });
-    });
-
-    describe('pending flow switch confirm bar', () => {
-        it('renders a confirm bar with offer names when a flow switch is pending', async () => {
-            store.authoringFlow = 'tryBuy';
-            store.pendingFlowSwitch = 'bundle';
-            store.selectedOffers = [
-                { offer: { offer_id: 'KEEP-1' }, osi: 'k1' },
-                { offer: { offer_id: 'KEEP-2' }, osi: 'k2' },
-            ];
-            const el = await fixture(html`<ost-selection-list></ost-selection-list>`);
-            const bar = el.shadowRoot.querySelector('.confirm-bar');
-            expect(bar).to.exist;
-            expect(bar.textContent).to.contain('KEEP-1');
-            expect(bar.textContent).to.contain('KEEP-2');
-        });
-
-        it('renders no confirm bar when no flow switch is pending', async () => {
-            store.authoringFlow = 'tryBuy';
-            const el = await fixture(html`<ost-selection-list></ost-selection-list>`);
-            expect(el.shadowRoot.querySelector('.confirm-bar')).to.not.exist;
-        });
-
-        it('confirms a flow switch and keeps selections when "Keep" is clicked', async () => {
-            store.authoringFlow = 'tryBuy';
-            store.pendingFlowSwitch = 'bundle';
-            store.selectedOffers = [{ offer: { offer_id: 'X' }, osi: 'x', role: 'base' }];
-            const el = await fixture(html`<ost-selection-list></ost-selection-list>`);
-            const buttons = el.shadowRoot.querySelectorAll('.confirm-bar sp-button');
-            buttons[0].dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
-            expect(store.pendingFlowSwitch).to.be.null;
-            expect(store.authoringFlow).to.equal('bundle');
-            expect(store.selectedOffers.length).to.be.greaterThan(0);
-        });
-
-        it('confirms a flow switch and discards selections when "Discard" is clicked', async () => {
-            store.authoringFlow = 'tryBuy';
-            store.pendingFlowSwitch = 'bundle';
-            store.selectedOffers = [{ offer: { offer_id: 'Y' }, osi: 'y', role: 'base' }];
-            const el = await fixture(html`<ost-selection-list></ost-selection-list>`);
-            const buttons = el.shadowRoot.querySelectorAll('.confirm-bar sp-button');
-            buttons[1].dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
-            expect(store.pendingFlowSwitch).to.be.null;
-            expect(store.authoringFlow).to.equal('bundle');
-            expect(store.selectedOffers.length).to.equal(0);
         });
     });
 

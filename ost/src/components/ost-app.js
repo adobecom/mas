@@ -233,16 +233,20 @@ export class OstApp extends LitElement {
         if (params) {
             store.applySearchParams(params);
         }
+        const bundleOsis = this.config?.bundleOsis;
         const osiId = this.config?.searchOfferSelectorId;
         const offerId = store.deepLink.offerId;
-        const hasDeepLinkIntent = osiId || offerId || store.deepLink.type || store.aosParams.arrangementCode;
+        const hasDeepLinkIntent =
+            (bundleOsis && bundleOsis.length) || osiId || offerId || store.deepLink.type || store.aosParams.arrangementCode;
         if (hasDeepLinkIntent && store.wizardStep !== 'offer') {
             // A deep-linked open (RTE double-click on an existing CTA, chat OSI
             // attach) already has its target chosen — land directly on Tab 2.
             store.wizardStep = 'offer';
             store.notify();
         }
-        if (osiId || offerId) {
+        if (bundleOsis && bundleOsis.length) {
+            this.resolveBundleDeepLink(bundleOsis);
+        } else if (osiId || offerId) {
             this.resolveDeepLinkOffer(osiId || offerId);
         } else if (store.aosParams.arrangementCode) {
             store.autoSelectProductByArrangementCode(store.aosParams.arrangementCode);
@@ -284,6 +288,40 @@ export class OstApp extends LitElement {
         } catch {
             /* OSI resolution failed */
         }
+    }
+
+    // Reopen a soft-bundle placeholder: resolve each saved OSI back to an offer
+    // and add it to the bundle. OSIs that no longer resolve are skipped so the
+    // author still sees the surviving offers. The product list (Tab 1) is seeded
+    // from the first resolved OSI so "add more" works.
+    async resolveBundleDeepLink(osis) {
+        const config = {
+            accessToken: store.accessToken,
+            apiKey: store.apiKey,
+            baseUrl: store.baseUrl,
+            env: store.env,
+        };
+        let firstCode;
+        for (const osi of osis) {
+            try {
+                const result = await getOfferSelector(osi, config);
+                const code = result?.product_arrangement_code || result?.arrangement_code;
+                firstCode = firstCode || code;
+                const offer = {
+                    offer_id: osi,
+                    offer_type: result?.offer_type,
+                    planType: result?.plan_type,
+                    customer_segment: result?.customer_segment,
+                    market_segments: result?.market_segments,
+                    product_arrangement_code: code,
+                    name: result?.product_name || code || osi,
+                };
+                store.addOffer(offer, osi);
+            } catch {
+                /* this OSI no longer resolves — skip it */
+            }
+        }
+        if (firstCode) store.autoSelectProductByArrangementCode(firstCode);
     }
 
     async fetchProducts() {
@@ -425,14 +463,18 @@ export class OstApp extends LitElement {
             this.cancel();
             return;
         }
-        // Every authoring flow funnels through the placeholder panel. The active
-        // tab renders one code-output per panel group, so the footer Use emits
-        // every one: tryBuy yields two (trial + buy) for the active type, bundle
-        // and single each yield one (bundle's row carries the joined OSI).
+        // The footer Use emits the tab's PRIMARY placeholder type, once per offer
+        // group: 'price' on the Price tab, 'checkoutUrl' on the Checkout tab. The
+        // exotic price types (optical/annual/strikethrough/discount/legal) are
+        // placed only via their own per-row Use buttons, never the footer — so the
+        // footer must NOT fire every code-output (that would emit all 7 types).
+        // tryBuy yields two primary rows (trial + buy); single/bundle yield one.
         const tab = this.shadowRoot.querySelector('ost-offer-tab');
         const panel = tab?.shadowRoot?.querySelector('ost-placeholder-panel');
-        const codeOutputs = panel?.shadowRoot?.querySelectorAll('ost-code-output') ?? [];
-        codeOutputs.forEach((codeOutput) => codeOutput.handleUse());
+        if (!panel) return;
+        const primaryType = store.placeholderTab === 'checkout' ? 'checkoutUrl' : 'price';
+        const rows = panel.shadowRoot.querySelectorAll(`[data-testid^="ost-placeholder-row-${primaryType}"]`);
+        rows.forEach((row) => row.querySelector('ost-code-output')?.handleUse());
     }
 
     // Tab footers dispatch intent events; ost-app owns the handlers so the

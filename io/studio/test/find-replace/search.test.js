@@ -76,3 +76,28 @@ describe('find-replace/search: findMatches', () => {
         expect(svc.findMatches(fragment, 'bogus', 'x', false)).to.deep.equal([]);
     });
 });
+
+describe('find-replace/search: buildSearchQuery', () => {
+    const svc = load();
+    it('searches the whole surface when no locale given', () => {
+        const q = svc.buildSearchQuery({ surface: 'acom', find: 'school' });
+        expect(q.filter.path).to.equal('/content/dam/mas/acom');
+        expect(q.filter.fullText).to.deep.equal({ text: 'school', queryMode: 'EDGES' });
+        expect(q.sort).to.deep.equal([{ on: 'created', order: 'ASC' }]);
+    });
+    it('narrows the path to a locale when given', () => {
+        expect(svc.buildSearchQuery({ surface: 'acom', locale: 'de_DE', find: 'x' }).filter.path)
+            .to.equal('/content/dam/mas/acom/de_DE');
+    });
+    it('adds tags and status filters when provided', () => {
+        const q = svc.buildSearchQuery({
+            surface: 'acom', find: 'x',
+            tags: ['mas:customer_segment/individual'], status: 'PUBLISHED',
+        });
+        expect(q.filter.tags).to.deep.equal(['mas:customer_segment/individual']);
+        expect(q.filter.status).to.deep.equal(['PUBLISHED']);
+    });
+    it('omits fullText when find is empty', () => {
+        expect(svc.buildSearchQuery({ surface: 'acom', find: '' }).filter.fullText).to.equal(undefined);
+    });
+});

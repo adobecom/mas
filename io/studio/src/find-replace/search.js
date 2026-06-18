@@ -82,7 +82,20 @@ function findMatches(fragment, searchIn, find, matchCase) {
     return matches;
 }
 
+const DEFAULT_SORT = [{ on: 'created', order: 'ASC' }];
+
+function buildSearchQuery({ surface, locale, tags = [], status, find }) {
+    const path = locale
+        ? `/content/dam/mas/${surface}/${locale}`
+        : `/content/dam/mas/${surface}`;
+    const filter = { path };
+    if (find) filter.fullText = { text: find, queryMode: 'EDGES' };
+    if (tags.length) filter.tags = tags;
+    if (status) filter.status = [status];
+    return { sort: DEFAULT_SORT, filter };
+}
+
 async function main() {}
 
-module.exports = { main, matchesText, extractLocale, SCOPE_FIELDS, findMatches };
+module.exports = { main, matchesText, extractLocale, SCOPE_FIELDS, findMatches, buildSearchQuery };
 exports.main = main;

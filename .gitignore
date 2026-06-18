@@ -52,6 +52,7 @@ masStudio-*.json
 .aio
 .cursor
 .superpowers/
+requests.http
 
 # Worktree documentation (per-ticket, not committed)
 /docs/

@@ -1,47 +1,4 @@
 #!/usr/bin/env node
-/**
- * Migrate mnemonic-text attribute to text content in AEM content fragments.
- *
- * Background: GLaaS translates text nodes inside custom elements but NOT
- * custom HTML attributes. This script converts the old format:
- *   <mas-mnemonic mnemonic-text="Adobe Acrobat" ...></mas-mnemonic>
- * to the new format:
- *   <mas-mnemonic ...>Adobe Acrobat</mas-mnemonic>
- *
- * Prerequisites: PR #931 must be deployed before running with --apply.
- *
- * Usage:
- *   # Dry-run (no changes, report only)
- *   node studio/scripts/migrate-mnemonic-text.mjs --host https://author-xxx.adobeaemcloud.com --token $TOKEN
- *
- *   # Dry-run a single surface (recommended starting point)
- *   node studio/scripts/migrate-mnemonic-text.mjs --host ... --token ... --surface catalog
- *
- *   # Apply to a single surface (English only)
- *   node studio/scripts/migrate-mnemonic-text.mjs --host ... --token ... --apply --surface catalog
- *
- *   # Apply to a specific surface + locale (run once per surface to limit blast radius)
- *   node studio/scripts/migrate-mnemonic-text.mjs --host ... --token ... --apply --surface catalog --locale de,fr,ja
- *
- *   # Apply to a surface across all locales
- *   node studio/scripts/migrate-mnemonic-text.mjs --host ... --token ... --apply --surface catalog --locale all
- *
- *   # Apply to multiple surfaces (separate runs recommended for easier rollback)
- *   node studio/scripts/migrate-mnemonic-text.mjs --host ... --token ... --apply --surface catalog,cc
- *
- *   # Test on a single fragment (dry-run by default)
- *   node studio/scripts/migrate-mnemonic-text.mjs --host ... --token ... --fragment <id-or-aem-path>
- *   node studio/scripts/migrate-mnemonic-text.mjs --host ... --token ... --fragment <id-or-aem-path> --apply
- *
- *   # Debug: print raw field names/types to diagnose unexpected results
- *   node studio/scripts/migrate-mnemonic-text.mjs --host ... --token ... --fragment <id-or-aem-path> --debug
- *
- * Output log:
- *   In --apply bulk mode a timestamped log file is automatically written to the current
- *   directory (e.g. mnemonic-migration-catalog-de-2026-06-13T12-00-00.log).
- *   To capture dry-run output manually: node ... 2>&1 | tee run.log
- */
-
 import { createWriteStream } from 'node:fs';
 import { parseArgs } from 'node:util';
 

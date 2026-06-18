@@ -608,7 +608,15 @@ export class MerchCard extends LitElement {
         // aem-fragment logic
         this.addEventListener(EVENT_AEM_ERROR, this.handleAemFragmentEvents);
         this.addEventListener(EVENT_AEM_LOAD, this.handleAemFragmentEvents);
-        this.addEventListener(EVENT_MAS_READY, this.handleInfoIconEvents);
+        this.addEventListener(EVENT_MAS_READY, () => {
+            this.handleInfoIconEvents();
+
+            if (this.settings?.titleModalTrigger) {
+                const mapping = this.variantLayout.aemFragmentMapping.title;
+                this.makeElementModalTrigger(mapping?.tag, mapping?.slot);
+                this.makeElementModalTrigger('merch-icon', 'icons');
+            }
+        });
         this.addEventListener('change', this.changeHandler);
 
         if (this.variantLayout) {
@@ -618,6 +626,25 @@ export class MerchCard extends LitElement {
         if (!this.aemFragment) {
             setTimeout(() => this.checkReady(), 0);
         }
+    }
+
+    makeElementModalTrigger(tag, slot) {
+        const trigger = this.querySelector(
+            `${tag}[slot="${slot}"]:not(.modal-trigger)`,
+        );
+        if (!trigger) return;
+        const cta = this.querySelector(
+            'a.button.placeholder-resolved[data-modal]',
+        );
+        if (!cta) return;
+        trigger.setAttribute('tabindex', '0');
+        trigger.addEventListener('click', () => {
+            cta.click();
+        });
+        trigger.addEventListener('keypress', (e) => {
+            if (e.code === 'Enter') cta.click();
+        });
+        trigger.classList.add('modal-trigger');
     }
 
     disconnectedCallback() {

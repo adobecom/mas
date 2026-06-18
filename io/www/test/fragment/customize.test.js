@@ -1153,7 +1153,8 @@ async function processWithPromos(context, activeProject, promoMap) {
     promises.defaultLanguage = defaultLanguage.init({ ...context, promises });
     context.promises = promises;
     if (activeProject) {
-        const fragmentPaths = context.promoFragmentPaths ?? new Set();
+        // Mirror the real promotions process step: fragmentPaths come from the project itself.
+        const fragmentPaths = new Set(activeProject.fragmentPaths ?? []);
         context.promoProjects = [{ project: activeProject, promoMap: promoMap ?? {}, fragmentPaths }];
     }
     return await customize.process(context);
@@ -1777,10 +1778,10 @@ describe('customize promoCode application', function () {
     const MINIMAL_PROJECT = {
         id: 'promo-proj',
         path: '/content/dam/mas/promotions/test',
+        fragmentPaths: ['test-card'],
         defaultVariations: {},
         regionVariations: {},
     };
-    const CARD_PATHS = new Set(['test-card']);
 
     function makeBody(osiValue, extra = {}) {
         return {
@@ -1795,7 +1796,7 @@ describe('customize promoCode application', function () {
 
     it('should apply promoCode from promoMap when OSI matches', async function () {
         const result = await processWithPromos(
-            { ...FAKE_CONTEXT, fragmentPath: 'test-card', body: makeBody('OSI-123'), promoFragmentPaths: CARD_PATHS },
+            { ...FAKE_CONTEXT, fragmentPath: 'test-card', body: makeBody('OSI-123') },
             MINIMAL_PROJECT,
             { 'OSI-123': 'SUMMER25' },
         );
@@ -1809,7 +1810,6 @@ describe('customize promoCode application', function () {
                 ...FAKE_CONTEXT,
                 fragmentPath: 'test-card',
                 body: makeBody(['OSI-001', 'OSI-002']),
-                promoFragmentPaths: CARD_PATHS,
             },
             MINIMAL_PROJECT,
             { 'OSI-002': 'MULTI10' },
@@ -1820,7 +1820,7 @@ describe('customize promoCode application', function () {
 
     it('should apply wildcard promoCode when no specific OSI match', async function () {
         const result = await processWithPromos(
-            { ...FAKE_CONTEXT, fragmentPath: 'test-card', body: makeBody('OSI-UNKNOWN'), promoFragmentPaths: CARD_PATHS },
+            { ...FAKE_CONTEXT, fragmentPath: 'test-card', body: makeBody('OSI-UNKNOWN') },
             MINIMAL_PROJECT,
             { '*': 'UNIVERSAL' },
         );
@@ -1830,7 +1830,7 @@ describe('customize promoCode application', function () {
 
     it('should prefer specific OSI match over wildcard', async function () {
         const result = await processWithPromos(
-            { ...FAKE_CONTEXT, fragmentPath: 'test-card', body: makeBody('OSI-1'), promoFragmentPaths: CARD_PATHS },
+            { ...FAKE_CONTEXT, fragmentPath: 'test-card', body: makeBody('OSI-1') },
             MINIMAL_PROJECT,
             { '*': 'WILDCARD', 'OSI-1': 'SPECIFIC' },
         );
@@ -1838,15 +1838,14 @@ describe('customize promoCode application', function () {
         expect(result.body.fields.promoCode).to.equal('SPECIFIC');
     });
 
-    it('should not set promoCode when fragment path is not in promoFragmentPaths', async function () {
+    it("should not set promoCode when fragment path is not in the project's fragmentPaths", async function () {
         const result = await processWithPromos(
             {
                 ...FAKE_CONTEXT,
                 fragmentPath: 'test-card',
                 body: makeBody('OSI-123'),
-                promoFragmentPaths: new Set(['other-path']),
             },
-            MINIMAL_PROJECT,
+            { ...MINIMAL_PROJECT, fragmentPaths: ['other-path'] },
             { 'OSI-123': 'SUMMER25' },
         );
         expect(result.status).to.equal(200);
@@ -1865,7 +1864,7 @@ describe('customize promoCode application', function () {
 
     it('should not set promoCode when fragment has no osi field', async function () {
         const result = await processWithPromos(
-            { ...FAKE_CONTEXT, fragmentPath: 'test-card', body: makeBody(undefined), promoFragmentPaths: CARD_PATHS },
+            { ...FAKE_CONTEXT, fragmentPath: 'test-card', body: makeBody(undefined) },
             MINIMAL_PROJECT,
             { '*': 'UNIVERSAL' },
         );
@@ -1878,7 +1877,6 @@ describe('customize promoCode application', function () {
             {
                 ...FAKE_CONTEXT,
                 fragmentPath: 'test-collection',
-                promoFragmentPaths: new Set(['card-1']),
                 body: {
                     path: '/content/dam/mas/sandbox/en_US/test-collection',
                     id: 'test-collection',
@@ -1896,7 +1894,7 @@ describe('customize promoCode application', function () {
                     referencesTree: [{ fieldName: 'cards', identifier: 'card-1', referencesTree: [] }],
                 },
             },
-            MINIMAL_PROJECT,
+            { ...MINIMAL_PROJECT, fragmentPaths: ['card-1'] },
             { 'OSI-CARD': 'CARD-PROMO' },
         );
         expect(result.status).to.equal(200);

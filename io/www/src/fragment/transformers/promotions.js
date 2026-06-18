@@ -246,10 +246,24 @@ async function fetchPromoVariations(baseUrl, surface, locale, projectName, conte
     const variations = {};
     const prefix = `promotions/${projectName}/`;
     let cursor;
+    let fetchedAnyPage = false;
     do {
         const url = `${baseUrl}/?path=${path}&limit=50${cursor ? `&cursor=${cursor}` : ''}`;
         const response = await fetch(url, context, `promo-variations-${projectName}-${locale}`);
-        if (response.status !== 200) return cacheVariations(context.preview, cacheKey, {});
+        if (response.status !== 200) {
+            // First-page failure (commonly: no variations folder) is expected → cache empty silently.
+            // A later-page failure means a transient error mid-pagination; keep the pages already
+            // collected rather than discarding them, and log how many we had.
+            if (fetchedAnyPage) {
+                logError(
+                    `Promo variations for ${cacheKey}: page fetch failed (status ${response.status}) after collecting ${Object.keys(variations).length}; returning partial results`,
+                    context,
+                );
+                return cacheVariations(context.preview, cacheKey, variations);
+            }
+            return cacheVariations(context.preview, cacheKey, {});
+        }
+        fetchedAnyPage = true;
         const items = response.body?.items ?? [];
         for (const item of items) {
             const match = PATH_TOKENS.exec(item.path);

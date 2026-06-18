@@ -522,6 +522,23 @@ describe('promotions', () => {
             const result = await promotionsTransformer.init(createContext());
             expect(result.activeProjects[0].defaultVariations).to.have.keys(['card-1', 'card-2']);
         });
+
+        it('keeps partial variation results when a later page fetch fails', async () => {
+            const project = makeProject({ surfaces: ['acom'], geos: [] });
+            const hydrated = makeHydratedProject();
+            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+            fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
+
+            const varBase =
+                'https://odin.adobe.com/adobe/contentFragments/?path=/content/dam/mas/acom/en_US/promotions/black-friday&limit=50';
+            const v1 = { id: 'v1', path: '/content/dam/mas/acom/en_US/promotions/black-friday/card-1', fields: {} };
+            // Page 1 succeeds with a cursor; page 2 fails → page-1 result is preserved (not discarded).
+            fetchStub.withArgs(varBase).returns(createResponse(200, { items: [v1], cursor: 'vp2' }));
+            fetchStub.withArgs(`${varBase}&cursor=vp2`).returns(createResponse(503, null, 'Error'));
+
+            const result = await promotionsTransformer.init(createContext());
+            expect(result.activeProjects[0].defaultVariations).to.have.keys(['card-1']);
+        });
     });
 
     describe('preview mode', () => {

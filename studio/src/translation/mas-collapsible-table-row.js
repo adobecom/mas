@@ -335,8 +335,7 @@ export class MasCollapsibleTableRow extends LitElement {
         this.#toggleSelect(e, path);
     }
 
-    #toggleSelect = (e) => {
-        const { path } = this.topLevelCard;
+    #toggleSelect = (e, path) => {
         e.stopPropagation();
         const current = getItemsSelectionStore().selectedCards.value || [];
         if (current.includes(path)) {
@@ -449,7 +448,7 @@ export class MasCollapsibleTableRow extends LitElement {
                     <sp-checkbox
                         value=${this.topLevelCard.path}
                         ?checked=${isSelected}
-                        @change=${this.#toggleSelect}
+                        @change=${(e) => this.#toggleSelect(e, this.topLevelCard.path)}
                     ></sp-checkbox>
                 </sp-table-cell>
                 ${this.cells.map((cell) => this[`render${cell}`](this.topLevelCard) ?? nothing)}

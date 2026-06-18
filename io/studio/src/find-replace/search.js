@@ -133,7 +133,33 @@ async function runSearch({
     return { items, total: items.length };
 }
 
-async function main() {}
+async function main(params) {
+    try {
+        const odinEndpoint = params.aemOdinEndpoint || params.odinEndpoint;
+        if (!odinEndpoint) {
+            return errorResponse(400, 'missing parameter(s) [aemOdinEndpoint|odinEndpoint]', logger);
+        }
+
+        const missing = checkMissingRequestInputs(params, ['find', 'surface'], ['Authorization']);
+        if (missing) return errorResponse(400, missing, logger);
+
+        const authToken = getBearerToken(params);
+        if (!(await isAllowed(authToken, params.allowedClientId))) {
+            return errorResponse(401, 'Authorization failed', logger);
+        }
+
+        const { find, surface, searchIn = 'everywhere', matchCase = false, locale, status } = params;
+        const tags = Array.isArray(params.tags) ? params.tags : [];
+
+        const result = await runSearch({
+            odinEndpoint, authToken, surface, locale, tags, status, find, searchIn, matchCase,
+        });
+        return { statusCode: 200, body: result };
+    } catch (error) {
+        logger.error(JSON.stringify({ event: 'find-replace-search-error', error: error.message }));
+        return errorResponse(500, error.message || 'Internal server error', logger);
+    }
+}
 
 module.exports = {
     main, matchesText, extractLocale, SCOPE_FIELDS, findMatches, buildSearchQuery, searchCandidates, runSearch,

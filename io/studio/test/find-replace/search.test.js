@@ -158,3 +158,55 @@ describe('find-replace/search: runSearch', () => {
         }]);
     });
 });
+
+describe('find-replace/search: main action', () => {
+    function loadAction({ allowed = true, items = [] } = {}) {
+        const fetchOdinStub = sinon.stub().resolves(fetchResponse({ items, cursor: null }));
+        const getValues = (fragment, name) => {
+            const f = (fragment.fields || []).find((x) => x.name === name);
+            return f ? { values: f.values, path: `/fields/${name}` } : null;
+        };
+        const mod = proxyquire('../../src/find-replace/search.js', {
+            '../common.js': { fetchOdin: fetchOdinStub, getValues },
+            '../../utils.js': {
+                errorResponse: (statusCode, message) => ({ statusCode, body: { error: message } }),
+                checkMissingRequestInputs: (params, required = []) => {
+                    const missing = required.filter((k) => params[k] === undefined);
+                    return missing.length ? `missing parameter(s) '${missing}'` : null;
+                },
+                getBearerToken: () => 'token',
+                isAllowed: async () => allowed,
+            },
+        });
+        return { mod, fetchOdinStub };
+    }
+
+    const baseParams = {
+        odinEndpoint: 'https://odin.example', allowedClientId: 'mas-studio',
+        __ow_headers: { authorization: 'Bearer token' },
+        find: 'school', surface: 'acom', searchIn: 'subtitle',
+    };
+
+    afterEach(() => sinon.restore());
+
+    it('returns 200 with the search result body', async () => {
+        const items = [
+            { id: 'f1', path: '/content/dam/mas/acom/en_US/a', title: 'A', status: 'PUBLISHED', etag: 'e1',
+              fields: [{ name: 'subtitle', values: ['Back to school'] }] },
+        ];
+        const { mod, fetchOdinStub } = loadAction({ items });
+        const res = await mod.main(baseParams);
+        expect(res.statusCode).to.equal(200);
+        expect(res.body.total).to.equal(1);
+        expect(res.body.items[0].id).to.equal('f1');
+        expect(fetchOdinStub.calledOnce).to.equal(true);
+    });
+    it('returns 401 when the token is not allowed', async () => {
+        const { mod } = loadAction({ allowed: false });
+        expect((await mod.main(baseParams)).statusCode).to.equal(401);
+    });
+    it('returns 400 when odinEndpoint is missing', async () => {
+        const { mod } = loadAction();
+        expect((await mod.main({ ...baseParams, odinEndpoint: undefined })).statusCode).to.equal(400);
+    });
+});

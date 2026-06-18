@@ -95,7 +95,24 @@ function buildSearchQuery({ surface, locale, tags = [], status, find }) {
     return { sort: DEFAULT_SORT, filter };
 }
 
+async function* searchCandidates({ odinEndpoint, authToken, query, limit = 50 }) {
+    let cursor;
+    do {
+        const params = { query: JSON.stringify(query), limit: String(limit) };
+        if (cursor) params.cursor = cursor;
+        const qs = new URLSearchParams(params).toString();
+        // eslint-disable-next-line no-await-in-loop
+        const response = await fetchOdin(odinEndpoint, `/adobe/sites/cf/fragments/search?${qs}`, authToken);
+        // eslint-disable-next-line no-await-in-loop
+        const { items = [], cursor: next } = await response.json();
+        yield* items;
+        cursor = next;
+    } while (cursor);
+}
+
 async function main() {}
 
-module.exports = { main, matchesText, extractLocale, SCOPE_FIELDS, findMatches, buildSearchQuery };
+module.exports = {
+    main, matchesText, extractLocale, SCOPE_FIELDS, findMatches, buildSearchQuery, searchCandidates,
+};
 exports.main = main;

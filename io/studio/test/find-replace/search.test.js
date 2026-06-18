@@ -1,5 +1,10 @@
 const { expect } = require('chai');
 const proxyquire = require('proxyquire');
+const sinon = require('sinon');
+
+function fetchResponse(body) {
+    return { ok: true, status: 200, statusText: 'OK', json: async () => body };
+}
 
 const commonStub = { fetchOdin: async () => ({}), getValues: () => null };
 const load = (overrides = {}) =>
@@ -99,5 +104,28 @@ describe('find-replace/search: buildSearchQuery', () => {
     });
     it('omits fullText when find is empty', () => {
         expect(svc.buildSearchQuery({ surface: 'acom', find: '' }).filter.fullText).to.equal(undefined);
+    });
+});
+
+describe('find-replace/search: searchCandidates', () => {
+    it('follows cursors and yields every item', async () => {
+        const fetchOdinStub = sinon.stub();
+        fetchOdinStub.onCall(0).resolves(fetchResponse({ items: [{ id: 'a' }], cursor: 'c1' }));
+        fetchOdinStub.onCall(1).resolves(fetchResponse({ items: [{ id: 'b' }], cursor: null }));
+        const mod = load({ fetchOdin: fetchOdinStub });
+
+        const ids = [];
+        for await (const item of mod.searchCandidates({
+            odinEndpoint: 'https://odin.example', authToken: 't',
+            query: { sort: [], filter: { path: '/content/dam/mas/acom' } }, limit: 50,
+        })) {
+            ids.push(item.id);
+        }
+
+        expect(ids).to.deep.equal(['a', 'b']);
+        expect(fetchOdinStub.callCount).to.equal(2);
+        expect(fetchOdinStub.getCall(0).args[1]).to.contain('/adobe/sites/cf/fragments/search?');
+        expect(fetchOdinStub.getCall(0).args[1]).to.contain('query=');
+        expect(fetchOdinStub.getCall(1).args[1]).to.contain('cursor=c1');
     });
 });

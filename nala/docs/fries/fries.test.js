@@ -1,17 +1,11 @@
 import { expect, test } from '@playwright/test';
 import { features } from './fries.spec.js';
 import FriesGalleryPage from './fries.page.js';
-import {
-    createWorkerPageSetup,
-    DOCS_GALLERY_PATH,
-} from '../../utils/commerce.js';
+import { createWorkerPageSetup, DOCS_GALLERY_PATH } from '../../utils/commerce.js';
 
 let friesPage;
 
-test.skip(
-    ({ browserName }) => browserName !== 'chromium',
-    'Not supported to run on multiple browsers.',
-);
+test.skip(({ browserName }) => browserName !== 'chromium', 'Not supported to run on multiple browsers.');
 
 const workerSetup = createWorkerPageSetup({
     pages: [{ name: 'US', url: DOCS_GALLERY_PATH.FRIES }],
@@ -54,9 +48,7 @@ test.describe('Fries Cards Feature', () => {
 
                 // The fries variant maps fields into named slots. If the variant layout
                 // didn't resolve, none of these would exist.
-                await expect(
-                    card.locator('h3[slot="heading-xxs"]'),
-                ).toBeVisible();
+                await expect(card.locator('h3[slot="heading-xxs"]')).toBeVisible();
                 await expect(card.locator('p[slot="price"]')).toBeVisible();
                 await expect(card.locator('[slot="cta"]').first()).toBeVisible();
             });

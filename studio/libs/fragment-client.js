@@ -13,9 +13,10 @@ import { clearDictionaryCache, getDictionary, transformer as replace } from '../
 import { clearSettingsCache, transformer as settings } from '../../io/www/src/fragment/transformers/settings.js';
 import { transformer as customize } from '../../io/www/src/fragment/transformers/customize.js';
 import { clearPromoCache, transformer as promotions } from '../../io/www/src/fragment/transformers/promotions.js';
+import { transformer as mask } from '../../io/www/src/fragment/transformers/mask.js';
 import { ODIN_PREVIEW_FRAGMENTS_URL } from '../src/constants.js';
 
-const PIPELINE = [fetchFragment, defaultLanguage, promotions, customize, settings, replace, corrector];
+const PIPELINE = [fetchFragment, defaultLanguage, promotions, mask, customize, settings, replace, corrector];
 class LocaleStorageState {
     constructor() {        
     }

@@ -7,7 +7,8 @@ function fetchResponse(body) {
 }
 
 const commonStub = { fetchOdin: async () => ({}), getValues: () => null };
-const load = (overrides = {}) => proxyquire('../../src/bulk-edit/search.js', { '../common.js': { ...commonStub, ...overrides } });
+const load = (overrides = {}) =>
+    proxyquire('../../src/bulk-edit/search.js', { '../common.js': { ...commonStub, ...overrides } });
 
 const { matchesText } = load();
 
@@ -145,4 +146,3 @@ describe('bulk-edit/search: searchCandidates', () => {
         expect(fetchOdinStub.getCall(1).args[1]).to.contain('cursor=c1');
     });
 });
-

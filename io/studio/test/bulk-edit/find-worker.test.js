@@ -3,9 +3,14 @@ const proxyquire = require('proxyquire');
 
 function load(overrides = {}) {
     const patches = [];
-    const job = overrides.job === undefined
-        ? { params: { find: 'school', surface: 'acom', searchIn: 'everywhere', matchCase: false }, authToken: 't', status: 'RUNNING' }
-        : overrides.job;
+    const job =
+        overrides.job === undefined
+            ? {
+                  params: { find: 'school', surface: 'acom', searchIn: 'everywhere', matchCase: false },
+                  authToken: 't',
+                  status: 'RUNNING',
+              }
+            : overrides.job;
     const stubs = {
         './search.js': {
             buildSearchQuery: () => ({ sort: [], filter: {} }),
@@ -34,7 +39,13 @@ function load(overrides = {}) {
 describe('bulk-edit/find-worker: runFindWorker', () => {
     it('accumulates matches across pages and finishes DONE', async () => {
         const { mod, patches } = load({
-            pages: [[{ id: 'a', path: '/p/a', hit: 'A' }], [{ id: 'b', path: '/p/b', hit: 'B' }, { id: 'c', path: '/p/c' }]],
+            pages: [
+                [{ id: 'a', path: '/p/a', hit: 'A' }],
+                [
+                    { id: 'b', path: '/p/b', hit: 'B' },
+                    { id: 'c', path: '/p/c' },
+                ],
+            ],
         });
         await mod.runFindWorker('job1', { odinEndpoint: 'https://odin' });
         const done = patches[patches.length - 1];

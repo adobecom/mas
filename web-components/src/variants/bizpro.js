@@ -49,6 +49,11 @@ export class BizPro extends VariantLayout {
     #sizeObserver = null;
     lastSyncKey = null;
 
+    constructor(card) {
+        super(card);
+        this.updatePriceQuantity = this.updatePriceQuantity.bind(this);
+    }
+
     getGlobalCSS() {
         return CSS;
     }
@@ -165,6 +170,14 @@ export class BizPro extends VariantLayout {
         );
     }
 
+    // Push the selected license quantity onto the main price so WCS re-prices
+    // (volume promo). Mirrors mini-compare-chart — bizpro previously only
+    // dispatched the event for checkout-link wiring, leaving the price at qty 1.
+    updatePriceQuantity({ detail }) {
+        if (!this.mainPrice || !detail?.option) return;
+        this.mainPrice.dataset.quantity = detail.option;
+    }
+
     async adjustAddon() {
         await this.card.updateComplete;
         const addon = this.card.addon;
@@ -273,6 +286,10 @@ export class BizPro extends VariantLayout {
             EVENT_MERCH_CARD_QUANTITY_CHANGE,
             this.#onModalQuantityChange,
         );
+        this.card.addEventListener(
+            EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
+            this.updatePriceQuantity,
+        );
         if (typeof ResizeObserver === 'undefined') return;
         this.#sizeObserver = new ResizeObserver(() => this.resyncOnReflow());
         this.#sizeObserver.observe(this.card);
@@ -281,6 +298,10 @@ export class BizPro extends VariantLayout {
     }
 
     disconnectedCallbackHook() {
+        this.card?.removeEventListener(
+            EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
+            this.updatePriceQuantity,
+        );
         this.#removeLicenseDocListener();
         this.#sizeObserver?.disconnect();
         this.card?.removeEventListener(

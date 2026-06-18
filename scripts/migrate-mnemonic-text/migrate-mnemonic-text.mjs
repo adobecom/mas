@@ -113,17 +113,38 @@ const searchPaths = buildSearchPaths();
 
 // --- Logging ---
 
+const surfaceTag = SURFACE_ARG ? SURFACE_ARG.replace(/,/g, '-') : 'all';
+const localeTag = LOCALES_ARG || 'en';
+const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+const modeTag = APPLY ? 'apply' : 'dry-run';
+
 // In apply-mode bulk runs, automatically write a timestamped log file so there
 // is a paper trail of exactly which fragments were modified.
 let logStream = null;
 if (APPLY && !SINGLE_FRAGMENT) {
-    const surfaceTag = SURFACE_ARG ? SURFACE_ARG.replace(/,/g, '-') : 'all';
-    const localeTag = LOCALES_ARG || 'en';
-    const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
     const logFile = `mnemonic-migration-${surfaceTag}-${localeTag}-${ts}.log`;
     logStream = createWriteStream(logFile, { flags: 'a' });
-
     console.log(`Logging to: ${logFile}`);
+}
+
+// CSV report — always written (dry-run and apply) so results can be reviewed.
+let csvStream = null;
+if (!SINGLE_FRAGMENT) {
+    const csvFile = `mnemonic-migration-${surfaceTag}-${localeTag}-${modeTag}-${ts}.csv`;
+    csvStream = createWriteStream(csvFile, { flags: 'w' });
+    csvStream.write('id,title,status,fields_changed,reason\n');
+    console.log(`CSV report: ${csvFile}`);
+}
+
+function csvEscape(val) {
+    const str = String(val ?? '');
+    return str.includes(',') || str.includes('"') || str.includes('\n')
+        ? `"${str.replace(/"/g, '""')}"`
+        : str;
+}
+
+function recordCsv(id, title, status, fieldsChanged, reason) {
+    csvStream?.write(`${[id, title, status, fieldsChanged, reason].map(csvEscape).join(',')}\n`);
 }
 
 function log(...parts) {
@@ -387,12 +408,15 @@ async function main() {
                     if (result.error) {
                         stats.errors++;
                         logError(`  ✗ [${result.id}] ${result.title}: ${result.error}`);
+                        recordCsv(result.id, result.title, 'error', '', result.error);
                     } else if (result.skipped) {
                         stats.skipped++;
+                        recordCsv(result.id, result.title, 'skipped', '', 'no mnemonic-text found');
                     } else {
                         stats.converted++;
                         const action = APPLY ? '✓' : '~';
                         log(`  ${action} [${result.id}] ${result.title} — fields: ${result.fieldsChanged.join(', ')}`);
+                        recordCsv(result.id, result.title, APPLY ? 'converted' : 'would-convert', result.fieldsChanged.join(';'), '');
                     }
                 }
             }
@@ -407,6 +431,7 @@ Skipped     : ${stats.skipped}
 Errors      : ${stats.errors}
 `);
 
+    csvStream?.end();
     logStream?.end();
     if (stats.errors > 0) process.exit(1);
 }

@@ -236,9 +236,12 @@ class RteField extends LitElement {
                 :host([hide-format-buttons]) #editor {
                     height: 32px;
                     min-height: 32px;
-                    padding: 0;
-                    display: flex;
-                    align-items: center;
+                    /* Vertically center the single line via line-height, NOT flex:
+                       Firefox cannot map a click to a caret position inside a
+                       vertically-centered flex contenteditable, collapsing the caret
+                       to the start of the text. Block layout keeps click-to-caret correct. */
+                    padding: 0 4px;
+                    line-height: 28px;
                     font-size: var(--spectrum-font-size-100);
                 }
 
@@ -912,7 +915,7 @@ class RteField extends LitElement {
                                 alt: domNode.getAttribute('alt'),
                                 size: domNode.getAttribute('size') || 'xs',
                                 class: 'mnemonic',
-                                mnemonicText: domNode.getAttribute('mnemonic-text'),
+                                mnemonicText: domNode.textContent?.trim() || domNode.getAttribute('mnemonic-text'),
                                 mnemonicPlacement: domNode.getAttribute('mnemonic-placement') || 'top',
                             };
                         },
@@ -1014,8 +1017,8 @@ class RteField extends LitElement {
                     };
                     if (alt) attrs.alt = alt;
                     if (mnemonicText && mnemonicText.trim() !== '') {
-                        attrs['mnemonic-text'] = mnemonicText.trim();
                         attrs['mnemonic-placement'] = mnemonicPlacement || 'top';
+                        return ['mas-mnemonic', attrs, mnemonicText.trim()];
                     }
                     return ['mas-mnemonic', attrs];
                 },

@@ -359,7 +359,7 @@ describe('bizpro short description tax spacing', () => {
 
     // Legal price as it resolves on a VAT card where the plan type comes from
     // the authored short description: tax label is set, plan-type span is empty,
-    // so the legal template never spaced the two apart (MWPW-198626).
+    // so the legal template never added its ". " separator (MWPW-198626).
     const legalWithTax = (taxText) =>
         '<p slot="heading-m"><span is="inline-price" data-template="legal">' +
         '<span class="price price-legal">' +
@@ -368,13 +368,15 @@ describe('bizpro short description tax spacing', () => {
         '<span class="price-plan-type disabled"></span>' +
         '</span></span></p>';
 
-    it('inserts a space between the tax label and the injected plan type', async () => {
+    it('inserts the ". " separator between the tax label and the injected plan type', async () => {
         card = await renderCard(
             `${legalWithTax('excl. VAT')}<div slot="legal-text">Annual, billed monthly</div>`,
         );
         card.variantLayout.adjustShortDescription();
+        // Matches the template's WCS path ("incl. VAT. Annual…") so injected and
+        // WCS-sourced plan types read identically.
         expect(card.querySelector('.price-legal').textContent).to.equal(
-            'excl. VAT Annual, billed monthly',
+            'excl. VAT. Annual, billed monthly',
         );
     });
 
@@ -413,7 +415,7 @@ describe('bizpro short description tax spacing', () => {
         card.variantLayout.adjustShortDescription();
         card.variantLayout.adjustShortDescription();
         expect(card.querySelector('.price-legal').textContent).to.equal(
-            'excl. VAT Annual, billed monthly',
+            'excl. VAT. Annual, billed monthly',
         );
     });
 });

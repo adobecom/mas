@@ -114,13 +114,14 @@ export class BizPro extends VariantLayout {
         const planType = legalPrice?.querySelector('.price-plan-type');
         if (!planType) return;
         planType.textContent = text;
-        // The legal template only spaces the tax label off the plan type when it
-        // rendered the plan type itself; we inject it, so add the gap (MWPW-198626).
+        // The legal template appends ". " between the tax label and plan type, but
+        // only when it rendered the plan type itself; we inject it, so add the same
+        // separator so injected and WCS-sourced lines read alike (MWPW-198626).
         const tax = legalPrice.querySelector(
             '.price-tax-inclusivity:not(.disabled)',
         );
         if (tax?.textContent && !/\s$/.test(tax.textContent)) {
-            tax.textContent += ' ';
+            tax.textContent += '. ';
         }
     }
 

@@ -2,7 +2,7 @@ const { Core } = require('@adobe/aio-sdk');
 const { errorResponse, checkMissingRequestInputs, getBearerToken, isAllowed } = require('../../utils.js');
 const { fetchOdin, getValues } = require('../common.js');
 
-const logger = Core.Logger('find-replace-find', { level: 'info' });
+const logger = Core.Logger('bulk-edit-find', { level: 'info' });
 
 function matchesText(value, find, matchCase) {
     if (value == null) return false;
@@ -168,7 +168,7 @@ async function main(params) {
         });
         return { statusCode: 200, body: result };
     } catch (error) {
-        logger.error(JSON.stringify({ event: 'find-replace-find-error', error: error.message }));
+        logger.error(JSON.stringify({ event: 'bulk-edit-find-error', error: error.message }));
         return errorResponse(500, error.message || 'Internal server error', logger);
     }
 }

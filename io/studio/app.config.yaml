@@ -40,15 +40,15 @@ application:
                         function: src/members/list.js
                         web: 'yes'
                         runtime: nodejs:22
-                    find-replace-find:
-                        function: src/find-replace/find.js
+                    bulk-edit-find:
+                        function: src/bulk-edit/find.js
                         web: 'yes'
                         runtime: nodejs:22
                         annotations:
                             require-adobe-auth: false
                             final: true
-                    find-replace-replace:
-                        function: src/find-replace/replace.js
+                    bulk-edit-replace:
+                        function: src/bulk-edit/replace.js
                         web: 'yes'
                         runtime: nodejs:22
                         annotations:

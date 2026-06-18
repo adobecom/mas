@@ -8,11 +8,11 @@ function fetchResponse(body) {
 
 const commonStub = { fetchOdin: async () => ({}), getValues: () => null };
 const load = (overrides = {}) =>
-    proxyquire('../../src/find-replace/find.js', { '../common.js': { ...commonStub, ...overrides } });
+    proxyquire('../../src/bulk-edit/find.js', { '../common.js': { ...commonStub, ...overrides } });
 
 const { matchesText } = load();
 
-describe('find-replace/find: matchesText', () => {
+describe('bulk-edit/find: matchesText', () => {
     it('matches a case-insensitive substring by default', () => {
         expect(matchesText('Back to School sale', 'school', false)).to.equal(true);
     });
@@ -26,7 +26,7 @@ describe('find-replace/find: matchesText', () => {
     });
 });
 
-describe('find-replace/find: extractLocale', () => {
+describe('bulk-edit/find: extractLocale', () => {
     const { extractLocale } = load();
     it('pulls the locale segment from a mas fragment path', () => {
         expect(extractLocale('/content/dam/mas/acom/en_US/photoshop-abm')).to.equal('en_US');
@@ -37,7 +37,7 @@ describe('find-replace/find: extractLocale', () => {
     });
 });
 
-describe('find-replace/find: findMatches', () => {
+describe('bulk-edit/find: findMatches', () => {
     const getValues = (fragment, name) => {
         const f = (fragment.fields || []).find((x) => x.name === name);
         return f ? { values: f.values, path: `/fields/${name}` } : null;
@@ -94,7 +94,7 @@ describe('find-replace/find: findMatches', () => {
     });
 });
 
-describe('find-replace/find: buildSearchQuery', () => {
+describe('bulk-edit/find: buildSearchQuery', () => {
     const svc = load();
     it('searches the whole surface when no locale given', () => {
         const q = svc.buildSearchQuery({ surface: 'acom', find: 'school' });
@@ -122,7 +122,7 @@ describe('find-replace/find: buildSearchQuery', () => {
     });
 });
 
-describe('find-replace/find: searchCandidates', () => {
+describe('bulk-edit/find: searchCandidates', () => {
     it('follows cursors and yields every item', async () => {
         const fetchOdinStub = sinon.stub();
         fetchOdinStub.onCall(0).resolves(fetchResponse({ items: [{ id: 'a' }], cursor: 'c1' }));
@@ -147,7 +147,7 @@ describe('find-replace/find: searchCandidates', () => {
     });
 });
 
-describe('find-replace/find: runFind', () => {
+describe('bulk-edit/find: runFind', () => {
     it('returns only fragments whose scoped field matches, in the result shape', async () => {
         const items = [
             {
@@ -198,14 +198,14 @@ describe('find-replace/find: runFind', () => {
     });
 });
 
-describe('find-replace/find: main action', () => {
+describe('bulk-edit/find: main action', () => {
     function loadAction({ allowed = true, items = [], fetchOdin, missing = null } = {}) {
         const fetchOdinStub = fetchOdin ?? sinon.stub().resolves(fetchResponse({ items, cursor: null }));
         const getValues = (fragment, name) => {
             const f = (fragment.fields || []).find((x) => x.name === name);
             return f ? { values: f.values, path: `/fields/${name}` } : null;
         };
-        const mod = proxyquire('../../src/find-replace/find.js', {
+        const mod = proxyquire('../../src/bulk-edit/find.js', {
             '../common.js': { fetchOdin: fetchOdinStub, getValues },
             '../../utils.js': {
                 errorResponse: (statusCode, message) => ({ statusCode, body: { error: message } }),

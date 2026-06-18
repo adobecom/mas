@@ -329,7 +329,7 @@ async function* searchFragmentsWithMnemonicText(path) {
     };
     if (path) filter.path = path;
 
-    const query = JSON.stringify({ filter, sort: [{ on: '_created', order: 'DESC' }] });
+    const query = JSON.stringify({ filter, sort: [{ on: 'created', order: 'DESC' }] });
     const params = new URLSearchParams({ query, limit: 50 });
 
     while (true) {

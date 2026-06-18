@@ -19,10 +19,8 @@ import { getItemsSelectionStore, setItemsSelectionStore } from '../common/items-
 import {
     applyPromotionItemSelectionToFragment,
     buildPromotionOffersFieldValues,
-    buildPromotionOfferRecordFromFields,
     classifyPromotionPathsForSelection,
     hydratePromotionOfferRecords,
-    parsePromotionOfferLines,
     isPromotionItemSelectionDirty,
     isPromotionOffersSelectionDirty,
     getPromotionRequiredFieldsValidation,
@@ -347,7 +345,6 @@ class MasPromotionsEditor extends LitElement {
             selectedCards: Store.promotions.selectedCards.value,
             selectedCollections: Store.promotions.selectedCollections.value,
             selectedOfferIds: Store.promotions.selectedOffers.value,
-            offerDataCache: Store.promotions.offerDataCache,
         });
         this.fragmentStore?.notify();
     }
@@ -394,15 +391,8 @@ class MasPromotionsEditor extends LitElement {
 
         const offerValues = f.getField('offers') ? f.getFieldValues('offers') : [];
         const savedOfferIds = parseSelectedOfferIdsFromOffersField(offerValues);
-        const savedOfferFields = parsePromotionOfferLines(offerValues);
         if (savedOfferIds.length) {
             Store.promotions.selectedOffers.set(savedOfferIds);
-            for (const id of savedOfferIds) {
-                const fields = savedOfferFields.get(id);
-                if (fields) {
-                    Store.promotions.offerDataCache.set(id, buildPromotionOfferRecordFromFields(id, fields));
-                }
-            }
             await hydratePromotionOfferRecords(savedOfferIds, Store.promotions.offerDataCache);
         } else if (!hasStoredOfferSelection) {
             Store.promotions.selectedOffers.set([]);
@@ -581,12 +571,10 @@ class MasPromotionsEditor extends LitElement {
         const { exceptions, offerSubstitutions = new Map() } = event.detail;
         this.fragmentStore.updateField(
             'offers',
-            buildPromotionOffersFieldValues(
-                this.fragment,
-                Store.promotions.selectedOffers.value,
-                Store.promotions.offerDataCache,
-                { promoExceptions: exceptions, offerSubstitutions },
-            ),
+            buildPromotionOffersFieldValues(this.fragment, Store.promotions.selectedOffers.value, {
+                promoExceptions: exceptions,
+                offerSubstitutions,
+            }),
         );
         this.promoCodesManagerOpen = false;
     };
@@ -638,11 +626,7 @@ class MasPromotionsEditor extends LitElement {
             case 'fragments':
                 return [...Store.promotions.selectedCards.value, ...Store.promotions.selectedCollections.value];
             case 'offers':
-                return buildPromotionOffersFieldValues(
-                    this.fragment,
-                    Store.promotions.selectedOffers.value,
-                    Store.promotions.offerDataCache,
-                );
+                return buildPromotionOffersFieldValues(this.fragment, Store.promotions.selectedOffers.value);
             default:
                 return field.values;
         }

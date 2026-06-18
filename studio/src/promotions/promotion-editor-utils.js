@@ -479,122 +479,9 @@ export async function handlePromotionOstOfferSelect({ detail: { offerSelectorId,
 }
 
 const PROMOTION_OFFER_SUBSTITUTION_PREFIX = 'substitute';
-const PROMOTION_OFFER_LINE_PREFIX = 'offer-cache';
-
-const OFFER_FIELD_KEYS = [
-    'product_code',
-    'product_name',
-    'offer_type',
-    'plan_type',
-    'customer_segment',
-    'market_segment',
-    'product_arrangement_code',
-    'icon',
-    'offer_id',
-];
 
 export function isPromotionOfferSubstitutionEntry(entry) {
     return typeof entry === 'string' && entry.startsWith(`${PROMOTION_OFFER_SUBSTITUTION_PREFIX}:`);
-}
-
-export function isPromotionOfferLine(entry) {
-    return typeof entry === 'string' && entry.startsWith(`${PROMOTION_OFFER_LINE_PREFIX}:`);
-}
-
-function sanitizeOfferFields(raw) {
-    if (!raw || typeof raw !== 'object') return null;
-    const fields = {};
-    for (const key of OFFER_FIELD_KEYS) {
-        const value = raw[key];
-        if (value == null || value === '') continue;
-        fields[key] = String(value);
-    }
-    return Object.keys(fields).length ? fields : null;
-}
-
-/**
- * @param {object|null|undefined} cacheEntry
- * @returns {Record<string, string>|null}
- */
-export function serializePromotionOfferFields(cacheEntry) {
-    if (!cacheEntry) return null;
-    const offer = cacheEntry.offerData || {};
-    const productCodeTag = cacheEntry.tags?.find(({ id }) => id?.startsWith('mas:product_code/'));
-    const productCodeFromTag = productCodeTag?.title || productCodeTag?.id?.split('/').pop();
-    const fields = sanitizeOfferFields({
-        product_code: offer.product_code ?? productCodeFromTag,
-        product_name: productCodeTag?.title,
-        offer_type: offer.offer_type,
-        plan_type: offer.planType ?? offer.plan_type,
-        customer_segment: offer.customer_segment,
-        market_segment: Array.isArray(offer.market_segments)
-            ? offer.market_segments[0]
-            : (offer.market_segments ?? offer.market_segment),
-        product_arrangement_code: offer.product_arrangement_code ?? offer.productArrangementCode,
-        icon: cacheEntry.getFieldValue?.('mnemonicIcon') ?? offer.icon ?? offer.productIcon,
-        offer_id: offer.offerId ?? offer.offer_id ?? cacheEntry.path ?? cacheEntry.id,
-    });
-    return fields;
-}
-
-/**
- * @param {string} offerSelectorId
- * @param {Record<string, string>} fields
- * @returns {string}
- */
-export function serializePromotionOfferLine(offerSelectorId, fields) {
-    const safeFields = sanitizeOfferFields(fields);
-    if (!offerSelectorId || !safeFields) return '';
-    const payload = encodeURIComponent(JSON.stringify({ id: offerSelectorId, ...safeFields }));
-    return `${PROMOTION_OFFER_LINE_PREFIX}::${payload}`;
-}
-
-/**
- * @param {unknown[]} values
- * @returns {Map<string, Record<string, string>>}
- */
-export function parsePromotionOfferLines(values) {
-    const fieldsByOfferId = new Map();
-    if (!Array.isArray(values)) return fieldsByOfferId;
-    for (const entry of values) {
-        if (!isPromotionOfferLine(entry)) continue;
-        const payloadPrefix = `${PROMOTION_OFFER_LINE_PREFIX}::`;
-        if (!entry.startsWith(payloadPrefix)) continue;
-        const payload = entry.slice(payloadPrefix.length);
-        try {
-            const parsed = JSON.parse(decodeURIComponent(payload));
-            const offerSelectorId = parsed?.id;
-            const rest = { ...(parsed || {}) };
-            delete rest.id;
-            const fields = sanitizeOfferFields(rest);
-            if (offerSelectorId && fields) fieldsByOfferId.set(String(offerSelectorId), fields);
-        } catch {
-            /* ignore malformed cache lines */
-        }
-    }
-    return fieldsByOfferId;
-}
-
-/**
- * @param {string} offerSelectorId
- * @param {Record<string, string>|null|undefined} fields
- * @returns {object}
- */
-export function buildPromotionOfferRecordFromFields(offerSelectorId, fields) {
-    const safeFields = sanitizeOfferFields(fields);
-    if (!safeFields) return buildPromotionOfferRecord(offerSelectorId, null, null);
-    const offer = {
-        product_code: safeFields.product_code ?? safeFields.product_name,
-        offer_type: safeFields.offer_type,
-        plan_type: safeFields.plan_type,
-        planType: safeFields.plan_type,
-        customer_segment: safeFields.customer_segment,
-        market_segments: safeFields.market_segment,
-        market_segment: safeFields.market_segment,
-        offer_id: safeFields.offer_id ?? offerSelectorId,
-        icon: safeFields.icon,
-    };
-    return buildPromotionOfferRecord(offerSelectorId, offer, safeFields.product_arrangement_code);
 }
 
 export function promotionOfferRecordHasDisplayName(cacheEntry) {
@@ -609,7 +496,6 @@ export function parsePromotionOffersField(values) {
     if (!Array.isArray(values)) return { promoExceptions, offerSubstitutions };
     for (const entry of values) {
         if (!entry) continue;
-        if (isPromotionOfferLine(entry)) continue;
         if (isPromotionOfferSubstitutionEntry(entry)) {
             const parts = entry.split(':');
             if (parts.length < 4) continue;
@@ -660,12 +546,10 @@ export function parseSelectedOfferIdsFromOffersField(values) {
         .filter(Boolean);
 }
 
-export function serializePromotionOffersField(promoExceptions, offerSubstitutions, selectedOfferIds, cacheLines = []) {
+export function serializePromotionOffersField(promoExceptions, offerSubstitutions, selectedOfferIds) {
     const selectedLines = Array.isArray(selectedOfferIds) ? selectedOfferIds.filter(Boolean) : [];
-    const serializedCacheLines = (cacheLines || []).filter(Boolean);
     return [
         ...selectedLines,
-        ...serializedCacheLines,
         ...serializePromoCodeExceptions(promoExceptions),
         ...serializeOfferSubstitutions(offerSubstitutions),
     ];
@@ -729,7 +613,7 @@ export function upsertPromotionFragmentsField(fragment, paths) {
  */
 export function applyPromotionItemSelectionToFragment(
     fragment,
-    { selectedCards = [], selectedCollections = [], selectedOfferIds = [], offerDataCache = null } = {},
+    { selectedCards = [], selectedCollections = [], selectedOfferIds = [] } = {},
 ) {
     if (!fragment?.fields) return false;
     let changed = false;
@@ -743,7 +627,7 @@ export function applyPromotionItemSelectionToFragment(
         changed = true;
     }
 
-    const offerValues = buildPromotionOffersFieldValues(fragment, selectedOfferIds, offerDataCache);
+    const offerValues = buildPromotionOffersFieldValues(fragment, selectedOfferIds);
     if (upsertPromotionOffersField(fragment, offerValues)) changed = true;
 
     if (changed) fragment.hasChanges = true;
@@ -753,23 +637,14 @@ export function applyPromotionItemSelectionToFragment(
 /**
  * @param {{ getFieldValues: (name: string) => unknown[], getField?: (name: string) => unknown }} promotionLike
  * @param {string[]|undefined} selectedOfferIds
- * @param {Map<string, object>|null|undefined} [offerDataCache]
  * @returns {string[]}
  */
-export function buildPromotionOffersFieldValues(promotionLike, selectedOfferIds, offerDataCache = null, overrides = {}) {
+export function buildPromotionOffersFieldValues(promotionLike, selectedOfferIds, overrides = {}) {
     const offerValues = promotionLike?.getField('offers') ? promotionLike.getFieldValues('offers') : [];
     const parsed = parsePromotionOffersField(offerValues);
     const promoExceptions = overrides.promoExceptions ?? parsed.promoExceptions;
     const offerSubstitutions = overrides.offerSubstitutions ?? parsed.offerSubstitutions;
-    const persistedFields = parsePromotionOfferLines(offerValues);
-    const cacheLines = (selectedOfferIds || [])
-        .filter(Boolean)
-        .map((id) => {
-            const fields = serializePromotionOfferFields(offerDataCache?.get?.(id)) ?? persistedFields.get(id) ?? null;
-            return fields ? serializePromotionOfferLine(id, fields) : '';
-        })
-        .filter(Boolean);
-    return serializePromotionOffersField(promoExceptions, offerSubstitutions, selectedOfferIds, cacheLines);
+    return serializePromotionOffersField(promoExceptions, offerSubstitutions, selectedOfferIds);
 }
 
 export function getEffectiveSubstituteOffer(offerSubstitutions, baseOfferId, country) {

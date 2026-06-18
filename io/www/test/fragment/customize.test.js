@@ -2050,4 +2050,36 @@ describe('promoCode behavior unchanged after OSI substitution refactor', functio
         expect(result.body.references['card-1'].value.fields.promoCode).to.equal('CHILD-PROMO');
         expect(result.body.references['card-1'].value.fields.osi).to.equal('OSI-CHILD');
     });
+
+    it('should apply promoCode from promoMap against substituted scalar OSI', async function () {
+        const result = await processWithPromos(
+            {
+                ...FAKE_CONTEXT,
+                fragmentPath: 'test-card',
+                body: makeBody('BASE-OSI'),
+                promoFragmentPaths: CARD_PATHS,
+                substituteMap: { 'BASE-OSI': 'SUB-OSI' },
+            },
+            MINIMAL_PROJECT,
+            { 'SUB-OSI': 'SUBST-PROMO' },
+        );
+        expect(result.status).to.equal(200);
+        expect(result.body.fields.promoCode).to.equal('SUBST-PROMO');
+    });
+
+    it('should apply promoCode from promoMap against substituted array OSI entry', async function () {
+        const result = await processWithPromos(
+            {
+                ...FAKE_CONTEXT,
+                fragmentPath: 'test-card',
+                body: makeBody(['OSI-A', 'OSI-B']),
+                promoFragmentPaths: CARD_PATHS,
+                substituteMap: { 'OSI-B': 'OSI-B-SUB' },
+            },
+            MINIMAL_PROJECT,
+            { 'OSI-B-SUB': 'ARRAY-SUBST-PROMO' },
+        );
+        expect(result.status).to.equal(200);
+        expect(result.body.fields.promoCode).to.equal('ARRAY-SUBST-PROMO');
+    });
 });

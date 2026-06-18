@@ -69,22 +69,24 @@ async function wcs(context) {
     const bodyString = JSON.stringify(body);
     const matches = [...bodyString.matchAll(MAS_ELEMENT_REGEXP)];
 
-    let newBodyString = bodyString;
-    let offset = 0;
+    const parts = [];
+    let lastEnd = 0;
     matches.forEach((match) => {
         const originalOsi = match.groups.osi;
         const substitutedOsi = substituteOsi(originalOsi, context.substituteMap);
         if (originalOsi !== substitutedOsi) {
-            const matchStart = match.index + offset;
-            const origMatchStr = match[0];
-            const newMatchStr = origMatchStr.replace(`\\"${originalOsi}\\"`, `\\"${substitutedOsi}\\"`);
-            newBodyString =
-                newBodyString.slice(0, matchStart) + newMatchStr + newBodyString.slice(matchStart + origMatchStr.length);
-            offset += newMatchStr.length - origMatchStr.length;
+            parts.push(bodyString.slice(lastEnd, match.index));
+            parts.push(match[0].replace(`\\"${originalOsi}\\"`, `\\"${substitutedOsi}\\"`));
+            lastEnd = match.index + match[0].length;
         }
     });
-    if (newBodyString !== bodyString) {
-        context.body = JSON.parse(newBodyString);
+    if (parts.length > 0) {
+        parts.push(bodyString.slice(lastEnd));
+        try {
+            context.body = JSON.parse(parts.join(''));
+        } catch (error) {
+            logError(`Failed to rewrite body with substituted OSIs: ${error.message}`, context);
+        }
     }
     if (body.fields?.osi) {
         const substitutedOsi = substituteOsi(body.fields.osi, context.substituteMap);

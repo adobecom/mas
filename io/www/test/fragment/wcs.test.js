@@ -369,4 +369,37 @@ describe('wcs OSI substitution', function () {
         expect(context.body.prices).to.not.include('data-wcs-osi="BASE-OSI"');
         expect(context.body.wcs).to.be.undefined;
     });
+
+    it('leaves body unchanged and logs error if rewritten bodyString is invalid JSON', async function () {
+        const originalPrices = '<span data-wcs-osi="OSI-A"></span>';
+        context.body = { prices: originalPrices, fields: {} };
+        context.substituteMap = { 'OSI-A': 'INVALID"OSI' };
+
+        context = await wcs.process(context);
+
+        expect(context.body.prices).to.equal(originalPrices);
+    });
+
+    it('rewrites body HTML with multiple data-wcs-osi placeholders', async function () {
+        context.body = {
+            prices: '<span data-wcs-osi="OSI-A"></span><span data-wcs-osi="OSI-B"></span>',
+            fields: {},
+        };
+        context.substituteMap = { 'OSI-A': 'SUBSTITUTED-OSI-A', 'OSI-B': 'B' };
+        fetchStub
+            .withArgs(sinon.match((url) => url.includes('offer_selector_ids=SUBSTITUTED-OSI-A')))
+            .returns(createResponse(200, stubbedOffer('sub-a')));
+        fetchStub
+            .withArgs(sinon.match((url) => url.includes('offer_selector_ids=B')))
+            .returns(createResponse(200, stubbedOffer('sub-b')));
+
+        context = await wcs.process(context);
+
+        expect(context.body.prices).to.include('data-wcs-osi="SUBSTITUTED-OSI-A"');
+        expect(context.body.prices).to.include('data-wcs-osi="B"');
+        expect(context.body.prices).to.not.include('data-wcs-osi="OSI-A"');
+        expect(context.body.prices).to.not.include('data-wcs-osi="OSI-B"');
+        expect(context.body.wcs.prod).to.have.property('SUBSTITUTED-OSI-A-us-mult');
+        expect(context.body.wcs.prod).to.have.property('B-us-mult');
+    });
 });

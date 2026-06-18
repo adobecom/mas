@@ -2,19 +2,17 @@ import { expect } from '@esm-bundle/chai';
 import Store from '../../src/store.js';
 import { setItemsSelectionStore } from '../../src/common/items-selection-store.js';
 import {
+    PROMOTION_FIELD_TYPE_MAP,
     classifyPromotionPathsForSelection,
     countDistinctPromoCodesForOffer,
     addPromotionOfferFromOst,
     buildPromotionOfferRecord,
     applyPromotionItemSelectionToFragment,
-    buildPromotionOfferRecordFromFields,
     buildPromotionOffersFieldValues,
     hydratePromotionOfferRecords,
     resolvePromotionOfferRecord,
-    parsePromotionOfferLines,
     upsertPromotionFragmentsField,
     upsertPromotionOffersField,
-    serializePromotionOfferLine,
     applyPromotionOfferProductTagsToSearch,
     collectPromotionOfferProductTags,
     pruneOrphanedPromotionSelectionAfterOfferRemoval,
@@ -43,8 +41,6 @@ import {
     splitPromotionTagsFieldValues,
     handlePromotionOstOfferSelect,
     isPromotionOfferSubstitutionEntry,
-    isPromotionOfferLine,
-    serializePromotionOfferFields,
 } from '../../src/promotions/promotion-editor-utils.js';
 import { COLLECTION_MODEL_PATH } from '../../src/constants.js';
 
@@ -130,32 +126,6 @@ describe('promotion-editor-utils', () => {
             expect(values).to.include('osi-3');
             expect(values).to.include('osi-1:CODE:US');
             expect(values).to.include('substitute:osi-1:osi-2:CA_en');
-        });
-
-        it('persists offer display metadata as offer-cache lines', () => {
-            const p = makePromotionLike({ offers: [] });
-            const cache = new Map([
-                [
-                    'osi-abc',
-                    buildPromotionOfferRecord(
-                        'osi-abc',
-                        { product_code: 'Acrobat Pro Subs CC', offer_type: 'BASE', plan_type: 'PUF' },
-                        'PA-1386',
-                    ),
-                ],
-            ]);
-            const values = buildPromotionOffersFieldValues(p, ['osi-abc'], cache);
-            expect(values).to.include('osi-abc');
-            expect(values.some((line) => line.startsWith('offer-cache::'))).to.be.true;
-            const restored = parsePromotionOfferLines(values).get('osi-abc');
-            expect(restored?.product_code).to.equal('Acrobat Pro Subs CC');
-            expect(restored?.product_arrangement_code).to.equal('PA-1386');
-            const entry = buildPromotionOfferRecordFromFields('osi-abc', restored);
-            expect(entry.tags.find(({ id }) => id.startsWith('mas:product_code/'))?.title).to.equal('Acrobat Pro Subs CC');
-            const { promoExceptions, offerSubstitutions } = parsePromotionOffersField(values);
-            expect(promoExceptions.size).to.equal(0);
-            expect(offerSubstitutions.size).to.equal(0);
-            expect(parseSelectedOfferIdsFromOffersField(values)).to.deep.equal(['osi-abc']);
         });
     });
 
@@ -900,28 +870,6 @@ describe('promotion-editor-utils', () => {
         });
     });
 
-    describe('serializePromotionOfferLine', () => {
-        it('returns empty string when offerSelectorId is missing', () => {
-            expect(serializePromotionOfferLine('', { product_code: 'PHSP' })).to.equal('');
-        });
-
-        it('returns empty string when fields is null', () => {
-            expect(serializePromotionOfferLine('osi-1', null)).to.equal('');
-        });
-
-        it('produces an offer-cache:: line that round-trips through parsePromotionOfferLines', () => {
-            const line = serializePromotionOfferLine('osi-abc', {
-                product_code: 'PHSP',
-                offer_id: 'wcs-1',
-            });
-            expect(line).to.match(/^offer-cache::/);
-            const parsed = parsePromotionOfferLines([line]);
-            const fields = parsed.get('osi-abc');
-            expect(fields?.product_code).to.equal('PHSP');
-            expect(fields?.offer_id).to.equal('wcs-1');
-        });
-    });
-
     describe('resolvePromotionOfferRecord', () => {
         it('returns null for empty offerSelectorId', async () => {
             expect(await resolvePromotionOfferRecord('')).to.be.null;
@@ -1047,71 +995,6 @@ describe('promotion-editor-utils', () => {
         });
     });
 
-    describe('isPromotionOfferLine', () => {
-        it('returns true for a string starting with offer-cache:', () => {
-            expect(isPromotionOfferLine('offer-cache::osi-1:{"product_code":"PHSP"}')).to.be.true;
-        });
-
-        it('returns false for a string starting with substitute:', () => {
-            expect(isPromotionOfferLine('substitute:OSI-A:OSI-B:US')).to.be.false;
-        });
-
-        it('returns false for non-string values', () => {
-            expect(isPromotionOfferLine(null)).to.be.false;
-            expect(isPromotionOfferLine(undefined)).to.be.false;
-        });
-    });
-
-    describe('serializePromotionOfferFields', () => {
-        it('returns null for falsy input', () => {
-            expect(serializePromotionOfferFields(null)).to.be.null;
-            expect(serializePromotionOfferFields(undefined)).to.be.null;
-        });
-
-        it('serializes known offer fields from offerData', () => {
-            const cacheEntry = {
-                offerData: {
-                    product_code: 'PHSP',
-                    offer_type: 'BASE',
-                    planType: 'ABM',
-                    customer_segment: 'INDIVIDUAL',
-                    market_segments: 'COM',
-                    product_arrangement_code: 'PA-123',
-                    offerId: 'wcs-offer-1',
-                },
-                tags: [],
-            };
-            const fields = serializePromotionOfferFields(cacheEntry);
-            expect(fields).to.include({ product_code: 'PHSP', offer_type: 'BASE', plan_type: 'ABM' });
-            expect(fields.offer_id).to.equal('wcs-offer-1');
-            expect(fields.product_arrangement_code).to.equal('PA-123');
-        });
-
-        it('extracts product_code from tag when offerData lacks it', () => {
-            const cacheEntry = {
-                offerData: {},
-                tags: [{ id: 'mas:product_code/ccsn', title: 'CCSN' }],
-            };
-            const fields = serializePromotionOfferFields(cacheEntry);
-            expect(fields?.product_code).to.equal('CCSN');
-        });
-
-        it('returns null when all fields are empty', () => {
-            const cacheEntry = { offerData: {}, tags: [] };
-            expect(serializePromotionOfferFields(cacheEntry)).to.be.null;
-        });
-
-        it('reads icon from getFieldValue when present', () => {
-            const cacheEntry = {
-                offerData: { product_code: 'PHSP' },
-                tags: [],
-                getFieldValue: (name) => (name === 'mnemonicIcon' ? 'https://adobe.com/icon.svg' : undefined),
-            };
-            const fields = serializePromotionOfferFields(cacheEntry);
-            expect(fields?.icon).to.equal('https://adobe.com/icon.svg');
-        });
-    });
-
     describe('handlePromotionOstOfferSelect', () => {
         beforeEach(() => {
             Store.promotions.selectedOffers.set([]);
@@ -1158,6 +1041,35 @@ describe('promotion-editor-utils', () => {
         it('returns false for a missing offerSelectorId', async () => {
             const added = await handlePromotionOstOfferSelect({ detail: { offerSelectorId: '', offer: {} } });
             expect(added).to.be.false;
+        });
+    });
+
+    describe('PROMOTION_FIELD_TYPE_MAP', () => {
+        it('defines correct type for each promotion fragment field', () => {
+            expect(PROMOTION_FIELD_TYPE_MAP.title).to.deep.equal({ type: 'text' });
+            expect(PROMOTION_FIELD_TYPE_MAP.promoCode).to.deep.equal({ type: 'text' });
+            expect(PROMOTION_FIELD_TYPE_MAP.offers).to.deep.equal({ type: 'text', multiple: true });
+            expect(PROMOTION_FIELD_TYPE_MAP.startDate).to.deep.equal({ type: 'date-time' });
+            expect(PROMOTION_FIELD_TYPE_MAP.endDate).to.deep.equal({ type: 'date-time' });
+            expect(PROMOTION_FIELD_TYPE_MAP.tags).to.deep.equal({ type: 'tag', multiple: true });
+            expect(PROMOTION_FIELD_TYPE_MAP.surfaces).to.deep.equal({ type: 'text', multiple: true });
+            expect(PROMOTION_FIELD_TYPE_MAP.geos).to.deep.equal({ type: 'tag', multiple: true });
+            expect(PROMOTION_FIELD_TYPE_MAP.fragments).to.deep.equal({ type: 'content-fragment', multiple: true });
+        });
+
+        it('covers all expected promotion field names', () => {
+            const keys = Object.keys(PROMOTION_FIELD_TYPE_MAP);
+            expect(keys).to.include.members([
+                'title',
+                'promoCode',
+                'offers',
+                'startDate',
+                'endDate',
+                'tags',
+                'surfaces',
+                'geos',
+                'fragments',
+            ]);
         });
     });
 });

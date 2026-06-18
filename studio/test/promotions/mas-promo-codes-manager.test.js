@@ -150,13 +150,13 @@ describe('MasPromoCodesManager', () => {
             expect($$(el, '[data-country="CA_en"] .promo-code-input').length).to.be.greaterThan(0);
         });
 
-        it('pre-fills promo code input with defaultPromoCode when no exception', async () => {
+        it('shows empty promo code input when no exception exists for that geo/offer', async () => {
             const el = await renderManager({ defaultPromoCode: 'DEFAULT_CODE' });
             await expandCountry(el, 'CA_en');
             const inputs = $$(el, '[data-country="CA_en"] .promo-code-input');
             expect(inputs.length).to.be.greaterThan(0);
             inputs.forEach((input) => {
-                expect(input.value).to.equal('DEFAULT_CODE');
+                expect(input.value).to.equal('');
             });
         });
 
@@ -282,14 +282,14 @@ describe('MasPromoCodesManager', () => {
             checkboxes.forEach((cb) => expect(cb.checked).to.be.false);
         });
 
-        it('clicking promo restore removes the exception and shows default code', async () => {
+        it('clicking promo restore removes the exception and shows empty field', async () => {
             const exceptions = new Map([['default-osi|CA_en', 'CCI_30OFF']]);
             const el = await renderManager({ exceptions });
             await expandCountry(el, 'CA_en');
             $(el, '[data-country="CA_en"] .restore-promo-link').click();
             await el.updateComplete;
             const input = $(el, '[data-country="CA_en"] .promo-code-input');
-            expect(input.value).to.equal('CCI_40OFF');
+            expect(input.value).to.equal('');
             expect($(el, '[data-country="CA_en"] .restore-promo-link')).to.be.null;
         });
 
@@ -321,7 +321,7 @@ describe('MasPromoCodesManager', () => {
             await expandCountry(el, 'CA_en');
             $(el, '[data-country="CA_en"] .restore-promo-link').click();
             await el.updateComplete;
-            expect($(el, '[data-country="CA_en"] .promo-code-input').value).to.equal('CCI_40OFF');
+            expect($(el, '[data-country="CA_en"] .promo-code-input').value).to.equal('');
             expect($(el, '[data-country="CA_en"] .offer-id-text').textContent.trim()).to.equal(REGIONAL_OFFER_ID);
             expect($(el, '[data-country="CA_en"] .restore-offer-link')).to.exist;
             expect($(el, '[data-country="CA_en"] .restore-promo-link')).to.be.null;

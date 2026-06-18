@@ -138,8 +138,24 @@ class MasPromoCodesManager extends LitElement {
         this.workingOfferSubstitutions = next;
     }
 
-    #handlePromoCodeInput(offerId, country, value) {
-        this.#setWorkingException(offerId, country, value);
+    #handlePromoCodeInput(offerId, country, input) {
+        if (input.value.includes(':')) {
+            input.setCustomValidity('Promo codes cannot contain ":".');
+            input.reportValidity();
+            return;
+        }
+        input.setCustomValidity('');
+        this.#setWorkingException(offerId, country, input.value);
+    }
+
+    #handleBulkPromoInput(input) {
+        if (input.value.includes(':')) {
+            input.setCustomValidity('Promo codes cannot contain ":".');
+            input.reportValidity();
+            return;
+        }
+        input.setCustomValidity('');
+        this.bulkPromoCode = input.value;
     }
 
     #handleManualOsiInput(baseOfferId, country, value) {
@@ -355,7 +371,7 @@ class MasPromoCodesManager extends LitElement {
                   : this.#getManualOsiLabel(substituteSelectorId)
             : this.#getOfferName(displayOffer);
         const displayIconSrc = isCustomOsi && !resolvedSubstituteEntry ? null : this.#getMnemonicIcon(displayOffer);
-        const effectiveCode = getEffectivePromoCode(this.workingExceptions, baseSelectorId, country, this.defaultPromoCode);
+        const effectiveCode = getEffectivePromoCode(this.workingExceptions, baseSelectorId, country, '');
         const isPromoOverridden = this.workingExceptions.has(`${baseSelectorId}|${country}`);
         const isOfferOverridden = Boolean(substituteSelectorId);
         const copyLabel = isCustomOsi ? 'Copy OSI' : 'Copy Offer ID';
@@ -409,8 +425,9 @@ class MasPromoCodesManager extends LitElement {
                 <input
                     class="promo-code-input"
                     type="text"
+                    maxlength="200"
                     .value=${effectiveCode}
-                    @input=${(e) => this.#handlePromoCodeInput(baseSelectorId, country, e.target.value)}
+                    @input=${(e) => this.#handlePromoCodeInput(baseSelectorId, country, e.target)}
                 />
                 ${isPromoOverridden
                     ? html`<button
@@ -505,11 +522,10 @@ class MasPromoCodesManager extends LitElement {
                     <input
                         class="bulk-promo-input"
                         type="text"
+                        maxlength="200"
                         placeholder="Promo code"
                         .value=${this.bulkPromoCode}
-                        @input=${(e) => {
-                            this.bulkPromoCode = e.target.value;
-                        }}
+                        @input=${(e) => this.#handleBulkPromoInput(e.target)}
                     />
                 </div>
                 <sp-button class="bulk-apply-button" variant="secondary" @click=${this.#handleBulkApply}> Apply </sp-button>

@@ -80,6 +80,12 @@ describe('render-utils', () => {
             expect(getItemTypeLabel({ path: '/content/x/pzn/y/var' })).to.equal('Grouped variation');
         });
 
+        it('returns Promotion for promo variation paths', () => {
+            expect(getItemTypeLabel({ path: '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card' })).to.equal(
+                'Promotion',
+            );
+        });
+
         it('returns Placeholder for dictionary model', () => {
             expect(getItemTypeLabel({ model: { path: '/conf/.../dictionnary/foo' } })).to.equal('Placeholder');
         });

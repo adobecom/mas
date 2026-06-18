@@ -645,6 +645,10 @@ export class MerchCard extends LitElement {
             if (e.code === 'Enter') cta.click();
         });
         trigger.classList.add('modal-trigger');
+        trigger.setAttribute('role', 'link');
+        if (tag === 'merch-icon') {
+            trigger.setAttribute('alt', this.title);
+        }
     }
 
     disconnectedCallback() {

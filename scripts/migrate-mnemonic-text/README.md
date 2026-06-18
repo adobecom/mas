@@ -25,16 +25,16 @@ node scripts/migrate-mnemonic-text/migrate-mnemonic-text.mjs --host <url> --toke
 
 ### Options
 
-| Flag | Description |
-|------|-------------|
-| `--host <url>` | AEM author base URL (required) |
-| `--token <token>` | Bearer token (required) |
-| `--apply` | Actually save changes (default: dry-run) |
-| `--surface <surfaces>` | Comma-separated surface names (e.g. `catalog,cc`). Run one surface at a time to limit blast radius. Path: `/content/dam/mas/<surface>[/<locale>]` |
-| `--locale <locales>` | Comma-separated locale codes, or `all` (default: English only) |
-| `--fragment <id\|path>` | Process a single fragment only (for testing) |
-| `--debug` | Print raw field names and types for each fragment |
-| `--help` | Show usage message |
+| Flag                    | Description                                                                                                                                       |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--host <url>`          | AEM author base URL (required)                                                                                                                    |
+| `--token <token>`       | Bearer token (required)                                                                                                                           |
+| `--apply`               | Actually save changes (default: dry-run)                                                                                                          |
+| `--surface <surfaces>`  | Comma-separated surface names (e.g. `catalog,cc`). Run one surface at a time to limit blast radius. Path: `/content/dam/mas/<surface>[/<locale>]` |
+| `--locale <locales>`    | Comma-separated locale codes, or `all` (default: English only)                                                                                    |
+| `--fragment <id\|path>` | Process a single fragment only (for testing)                                                                                                      |
+| `--debug`               | Print raw field names and types for each fragment                                                                                                 |
+| `--help`                | Show usage message                                                                                                                                |
 
 ### Examples
 

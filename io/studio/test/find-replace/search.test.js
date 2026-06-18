@@ -20,3 +20,14 @@ describe('find-replace/search: matchesText', () => {
         expect(matchesText(undefined, 'x', false)).to.equal(false);
     });
 });
+
+describe('find-replace/search: extractLocale', () => {
+    const { extractLocale } = load();
+    it('pulls the locale segment from a mas fragment path', () => {
+        expect(extractLocale('/content/dam/mas/acom/en_US/photoshop-abm')).to.equal('en_US');
+    });
+    it('returns null when the path does not match', () => {
+        expect(extractLocale('/some/other/path')).to.equal(null);
+        expect(extractLocale()).to.equal(null);
+    });
+});

@@ -11,7 +11,13 @@ function matchesText(value, find, matchCase) {
     return haystack.toLowerCase().includes(find.toLowerCase());
 }
 
+const PATH_LOCALE = /\/content\/dam\/mas\/[\w-]+\/(?<locale>[\w-]+)\//;
+
+function extractLocale(path = '') {
+    return path.match(PATH_LOCALE)?.groups?.locale ?? null;
+}
+
 async function main() {}
 
-module.exports = { main, matchesText };
+module.exports = { main, matchesText, extractLocale };
 exports.main = main;

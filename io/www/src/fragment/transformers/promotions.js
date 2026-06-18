@@ -243,21 +243,25 @@ async function fetchPromoVariations(baseUrl, surface, locale, projectName, conte
     }
 
     const path = `${MAS_ROOT}/${surface}/${locale}/promotions/${projectName}`;
-    const url = `${baseUrl}/?path=${path}`;
-    const response = await fetch(url, context, 'promo-variations');
-    if (response.status !== 200) return cacheVariations(context.preview, cacheKey, {});
-    const items = response.body?.items ?? [];
     const variations = {};
     const prefix = `promotions/${projectName}/`;
-    for (const item of items) {
-        const match = PATH_TOKENS.exec(item.path);
-        if (match) {
-            const fullFragPath = match.groups.fragmentPath;
-            if (fullFragPath.startsWith(prefix)) {
-                variations[fullFragPath.slice(prefix.length)] = item;
+    let cursor;
+    do {
+        const url = `${baseUrl}/?path=${path}&limit=50${cursor ? `&cursor=${cursor}` : ''}`;
+        const response = await fetch(url, context, `promo-variations-${projectName}-${locale}`);
+        if (response.status !== 200) return cacheVariations(context.preview, cacheKey, {});
+        const items = response.body?.items ?? [];
+        for (const item of items) {
+            const match = PATH_TOKENS.exec(item.path);
+            if (match) {
+                const fullFragPath = match.groups.fragmentPath;
+                if (fullFragPath.startsWith(prefix)) {
+                    variations[fullFragPath.slice(prefix.length)] = item;
+                }
             }
         }
-    }
+        cursor = response.body?.cursor;
+    } while (cursor);
     return cacheVariations(context.preview, cacheKey, variations);
 }
 
@@ -271,7 +275,7 @@ async function hydrateProject(project, { baseUrl, surface, defaultLocale, resolv
     const promoName = promoTag.slice(PROMO_TAG_PREFIX.length);
 
     const [hydrateResponse, defaultVariations, regionVariations] = await Promise.all([
-        fetch(odinReferences(project.id, true, context.preview), context, 'promotions-hydrate'),
+        fetch(odinReferences(project.id, true, context.preview), context, `promotions-hydrate-${project.id}`),
         fetchPromoVariations(baseUrl, surface, defaultLocale, promoName, context),
         resolvedRegionLocale && resolvedRegionLocale !== defaultLocale
             ? fetchPromoVariations(baseUrl, surface, resolvedRegionLocale, promoName, context)
@@ -351,11 +355,19 @@ async function init(context) {
 
     const baseUrl = context.preview?.url ?? FRAGMENT_URL_PREFIX;
 
-    // Hydrate all matched projects concurrently
-    const hydrated = await Promise.all(
+    // Hydrate all matched projects concurrently. allSettled (not all) isolates per-project
+    // failures: if one project's hydration rejects, the others are still served.
+    const settled = await Promise.allSettled(
         matched.map((project) => hydrateProject(project, { baseUrl, surface, defaultLocale, resolvedRegionLocale }, context)),
     );
-    const activeProjects = hydrated.filter(Boolean);
+    const activeProjects = [];
+    settled.forEach((result, i) => {
+        if (result.status === 'rejected') {
+            logError(`Failed to hydrate promotion project ${matched[i].id}: ${result.reason}`, context);
+        } else if (result.value) {
+            activeProjects.push(result.value);
+        }
+    });
 
     return { status: 200, activeProjects };
 }
@@ -397,7 +409,6 @@ function buildPromoMap(offerOverrides, country, projectPromoCode, context) {
  */
 async function promotions(context) {
     const { activeProjects = [] } = (await context.promises?.promotions) ?? {};
-    if (!activeProjects.length) return { ...context, status: 200 };
     const promoProjects = activeProjects.map((project) => ({
         project,
         promoMap: buildPromoMap(project.offerOverrides, context.country, project.promoCode, context),

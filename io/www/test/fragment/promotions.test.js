@@ -300,6 +300,28 @@ describe('promotions', () => {
             expect(result.activeProjects[0].id).to.equal('proj-2');
         });
 
+        it('isolates a project whose hydration throws and still serves the others (allSettled)', async () => {
+            const p1 = makeProject({ id: 'proj-1', surfaces: ['acom'], geos: [], tags: ['mas:promotion/p1'] });
+            const p2 = makeProject({
+                id: 'proj-2',
+                path: '/content/dam/mas/promotions/p2',
+                surfaces: ['acom'],
+                geos: [],
+                tags: ['mas:promotion/p2'],
+            });
+            const good = makeHydratedProject({ fragmentId: 'f2', fragmentPath: '/content/dam/mas/acom/en_US/offers/b' });
+            // proj-1 hydrate is 200 but malformed (fragments is not an array) → parseFragmentPaths throws,
+            // so its hydrateProject promise rejects. allSettled keeps proj-2 served.
+            const malformed = { fields: { fragments: 'not-an-array' } };
+            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [p1, p2] }));
+            fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, malformed));
+            fetchStub.withArgs(hydrateUrl('proj-2')).returns(createResponse(200, good));
+
+            const result = await promotionsTransformer.init(createContext());
+            expect(result.activeProjects).to.have.length(1);
+            expect(result.activeProjects[0].id).to.equal('proj-2');
+        });
+
         it('returns no active projects when hydration fails', async () => {
             const project = makeProject({ surfaces: ['acom'], geos: ['/content/cq:tags/mas/locale/en_US'] });
             fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
@@ -448,7 +470,7 @@ describe('promotions', () => {
 
             // Variation folder returns 200 but no items field
             const varUrl =
-                'https://odin.adobe.com/adobe/contentFragments/?path=/content/dam/mas/acom/en_US/promotions/black-friday';
+                'https://odin.adobe.com/adobe/contentFragments/?path=/content/dam/mas/acom/en_US/promotions/black-friday&limit=50';
             fetchStub.withArgs(varUrl).returns(createResponse(200, {}));
 
             const result = await promotionsTransformer.init(createContext());
@@ -465,7 +487,8 @@ describe('promotions', () => {
             fetchStub.withArgs(hydrateUrl('proj-2')).returns(createResponse(200, hydrated));
 
             const result = await promotionsTransformer.init(createContext());
-            expect(result.activeProject?.id).to.equal('proj-2');
+            expect(result.activeProjects).to.have.length(1);
+            expect(result.activeProjects[0].id).to.equal('proj-2');
         });
 
         it('finds matching project when it is the 51st item (beyond the old default limit)', async () => {
@@ -479,7 +502,25 @@ describe('promotions', () => {
             fetchStub.withArgs(hydrateUrl('proj-51')).returns(createResponse(200, hydrated));
 
             const result = await promotionsTransformer.init(createContext());
-            expect(result.activeProject?.id).to.equal('proj-51');
+            expect(result.activeProjects).to.have.length(1);
+            expect(result.activeProjects[0].id).to.equal('proj-51');
+        });
+
+        it('fetches all variation pages when cursor is present', async () => {
+            const project = makeProject({ surfaces: ['acom'], geos: [] });
+            const hydrated = makeHydratedProject();
+            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+            fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
+
+            const varBase =
+                'https://odin.adobe.com/adobe/contentFragments/?path=/content/dam/mas/acom/en_US/promotions/black-friday&limit=50';
+            const v1 = { id: 'v1', path: '/content/dam/mas/acom/en_US/promotions/black-friday/card-1', fields: {} };
+            const v2 = { id: 'v2', path: '/content/dam/mas/acom/en_US/promotions/black-friday/card-2', fields: {} };
+            fetchStub.withArgs(varBase).returns(createResponse(200, { items: [v1], cursor: 'vp2' }));
+            fetchStub.withArgs(`${varBase}&cursor=vp2`).returns(createResponse(200, { items: [v2] }));
+
+            const result = await promotionsTransformer.init(createContext());
+            expect(result.activeProjects[0].defaultVariations).to.have.keys(['card-1', 'card-2']);
         });
     });
 
@@ -542,20 +583,20 @@ describe('promotions', () => {
     });
 
     describe('process', () => {
-        it('returns no promoProjects when promises.promotions is absent', async () => {
+        it('returns empty promoProjects when promises.promotions is absent', async () => {
             const context = createContext({});
             const result = await promotionsTransformer.process(context);
             expect(result.status).to.equal(200);
-            expect(result.promoProjects).to.be.undefined;
+            expect(result.promoProjects).to.deep.equal([]);
         });
 
-        it('returns no promoProjects when activeProjects is empty', async () => {
+        it('returns empty promoProjects when activeProjects is empty', async () => {
             const context = createContext({
                 promises: { promotions: Promise.resolve({ status: 200, activeProjects: [] }) },
             });
             const result = await promotionsTransformer.process(context);
             expect(result.status).to.equal(200);
-            expect(result.promoProjects).to.be.undefined;
+            expect(result.promoProjects).to.deep.equal([]);
         });
 
         it('builds per-project promoMap and fragmentPaths Set', async () => {

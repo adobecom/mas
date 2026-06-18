@@ -161,7 +161,7 @@ function findPromoVariation(root, customizeContext) {
     const promoProjects = customizeContext.promoProjects;
     if (!promoProjects?.length) return null;
     const match = PATH_TOKENS.exec(root.path);
-    if (!match) return null;
+    if (!match?.groups) return null;
     const { fragmentPath } = match.groups;
     for (const { project } of promoProjects) {
         const defaultVar = project.defaultVariations?.[fragmentPath];
@@ -178,7 +178,7 @@ function findPromoMapForFragment(root, customizeContext) {
     const promoProjects = customizeContext.promoProjects;
     if (!promoProjects?.length) return null;
     const match = PATH_TOKENS.exec(root.path);
-    if (!match) return null;
+    if (!match?.groups) return null;
     const { fragmentPath } = match.groups;
     for (const { promoMap, fragmentPaths } of promoProjects) {
         if (fragmentPaths.has(fragmentPath)) return promoMap;

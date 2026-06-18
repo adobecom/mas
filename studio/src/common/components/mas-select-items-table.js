@@ -13,6 +13,28 @@ import {
     loadSelectedFragments,
 } from '../utils/items-loader.js';
 import { shouldIgnoreRowClickForSelection, getStudioFragmentDisplayPath } from '../utils/render-utils.js';
+import { fragmentsEmptyStateIcon, collectionsEmptyStateIcon, placeholdersEmptyStateIcon } from '../../icons.js';
+
+const EMPTY_STATE_COPY = {
+    [TABLE_TYPE.CARDS]: {
+        icon: fragmentsEmptyStateIcon,
+        title: 'No fragments yet',
+        description:
+            'To start translating fragments, you need to add them to your project first. Use the "Edit" option in the Selected items section to manage your content.',
+    },
+    [TABLE_TYPE.COLLECTIONS]: {
+        icon: collectionsEmptyStateIcon,
+        title: 'No collections yet',
+        description:
+            'To start translating collections, you need to add them to your project first. Use the "Edit" option in the Selected items section to manage your content.',
+    },
+    [TABLE_TYPE.PLACEHOLDERS]: {
+        icon: placeholdersEmptyStateIcon,
+        title: 'No placeholders yet',
+        description:
+            'To start translating placeholders, you need to add them to your project first. Use the "Edit" option in the Selected items section to manage your content.',
+    },
+};
 
 class MasSelectItemsTable extends LitElement {
     static styles = styles;
@@ -421,8 +443,19 @@ class MasSelectItemsTable extends LitElement {
         const showEmpty = !showSkeleton && this.itemsToDisplay.length === 0;
         const showTable = !showEmpty && (showSkeleton || !this.isLoading);
 
+        const emptyStateCopy = EMPTY_STATE_COPY[this.type];
         return html`
-            ${showEmpty ? html`<p>No items found.</p>` : nothing}
+            ${showEmpty
+                ? this.viewOnly && emptyStateCopy
+                    ? html`<div class="items-empty-state" role="status">
+                          <div class="items-empty-state__icon">${emptyStateCopy.icon}</div>
+                          <div class="items-empty-state__text">
+                              <p class="items-empty-state__title">${emptyStateCopy.title}</p>
+                              <p class="items-empty-state__description">${emptyStateCopy.description}</p>
+                          </div>
+                      </div>`
+                    : html`<p>No items found.</p>`
+                : nothing}
             ${showTable
                 ? html`<sp-table class="fragments-table item-table" emphasized>
                       <sp-table-head>
@@ -431,7 +464,7 @@ class MasSelectItemsTable extends LitElement {
                               (column) => column.key,
                               (column) =>
                                   column.key === 'checkbox' && !this.viewOnly
-                                      ? html`<sp-table-head-cell class=${column.class ?? ''}>
+                                      ? html`<sp-table-head-cell class="${column.class ?? ''} ${column.key}">
                                             <sp-checkbox
                                                 ?checked=${this.selectAllChecked}
                                                 ?indeterminate=${this.selectAllIndeterminate}
@@ -440,13 +473,14 @@ class MasSelectItemsTable extends LitElement {
                                                 aria-label="Select all loaded items"
                                             ></sp-checkbox>
                                         </sp-table-head-cell>`
-                                      : html`<sp-table-head-cell class=${column.class ?? ''}>
+                                      : html`<sp-table-head-cell class="${column.class ?? ''} ${column.key}">
                                             ${column.label}
                                         </sp-table-head-cell>`,
                           )}
                       </sp-table-head>
                       <sp-table-body>${showSkeleton ? this.#renderSkeletonRows() : this.#renderTableBody()}</sp-table-body>
-                      ${this.hasMore.value ? html`<div class="scroll-sentinel"></div>` : nothing} ${this.loadingMoreIndicator}
+                      ${!this.viewOnly && this.hasMore.value ? html`<div class="scroll-sentinel"></div>` : nothing}
+                      ${this.viewOnly ? nothing : this.loadingMoreIndicator}
                   </sp-table>`
                 : nothing}
         `;

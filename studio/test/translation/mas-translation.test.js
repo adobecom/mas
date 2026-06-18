@@ -98,7 +98,7 @@ describe('MasTranslation', () => {
             const el = await fixture(html`<mas-translation></mas-translation>`);
             const header = el.shadowRoot.querySelector('.translation-header h2');
             expect(header).to.exist;
-            expect(header.textContent).to.equal('Translations');
+            expect(header.textContent).to.equal('Translation');
         });
 
         it('should render create button', async () => {
@@ -112,7 +112,7 @@ describe('MasTranslation', () => {
             const el = await fixture(html`<mas-translation></mas-translation>`);
             const search = el.shadowRoot.querySelector('sp-search');
             expect(search).to.exist;
-            expect(search.disabled).to.be.true;
+            expect(search.disabled).to.not.be.true;
         });
 
         it('should render result count', async () => {
@@ -123,7 +123,7 @@ describe('MasTranslation', () => {
             Store.translationProjects.list.data.value = mockProjects;
             const el = await fixture(html`<mas-translation></mas-translation>`);
             const toolbar = el.shadowRoot.querySelector('.translation-toolbar');
-            expect(toolbar.textContent).to.include('2 result(s)');
+            expect(toolbar.textContent.replace(/\s+/g, ' ')).to.include('2 result(s)');
         });
     });
 
@@ -171,10 +171,10 @@ describe('MasTranslation', () => {
             const el = await fixture(html`<mas-translation></mas-translation>`);
             const headers = el.shadowRoot.querySelectorAll('sp-table-head-cell');
             expect(headers.length).to.equal(5);
-            expect(headers[0].textContent.trim()).to.equal('Translation Project');
-            expect(headers[1].textContent.trim()).to.equal('Status');
-            expect(headers[2].textContent.trim()).to.equal('Last updated by');
-            expect(headers[3].textContent.trim()).to.equal('Sent on');
+            expect(headers[0].textContent.trim()).to.equal('Project');
+            expect(headers[1].textContent.trim()).to.equal('Last modified by');
+            expect(headers[2].textContent.trim()).to.equal('Sent on');
+            expect(headers[3].textContent.trim()).to.equal('Status');
             expect(headers[4].textContent.trim()).to.equal('Actions');
         });
 
@@ -197,12 +197,12 @@ describe('MasTranslation', () => {
             expect(cells[0].textContent).to.equal('My Translation Project');
         });
 
-        it('should display last updated by in table row', async () => {
+        it('should display last modified by in table row', async () => {
             const mockProjects = [createMockTranslationProject('1', 'Project', 'Jane Smith')];
             Store.translationProjects.list.data.value = mockProjects;
             const el = await fixture(html`<mas-translation></mas-translation>`);
             const cells = el.shadowRoot.querySelectorAll('sp-table-cell');
-            expect(cells[2].textContent).to.equal('Jane Smith');
+            expect(cells[1].textContent).to.equal('Jane Smith');
         });
 
         it('should render action menu for each row', async () => {
@@ -218,15 +218,15 @@ describe('MasTranslation', () => {
             Store.translationProjects.list.data.value = mockProjects;
             const el = await fixture(html`<mas-translation></mas-translation>`);
             const cells = el.shadowRoot.querySelectorAll('sp-table-cell');
-            expect(cells[1].textContent).to.equal('Running');
+            expect(cells[3].textContent).to.include('In progress');
         });
 
-        it('should display N/A when the coarse project status is missing', async () => {
+        it('should display an en-dash when the coarse project status is missing', async () => {
             const mockProjects = [createMockTranslationProject('1', 'Project 1')];
             Store.translationProjects.list.data.value = mockProjects;
             const el = await fixture(html`<mas-translation></mas-translation>`);
             const cells = el.shadowRoot.querySelectorAll('sp-table-cell');
-            expect(cells[1].textContent).to.equal('N/A');
+            expect(cells[3].textContent).to.include('–');
         });
 
         it('should render Edit menu item', async () => {
@@ -259,20 +259,20 @@ describe('MasTranslation', () => {
     });
 
     describe('formatSubmissionDate', () => {
-        it('should display N/A when submission date is null', async () => {
+        it('should display an en-dash when submission date is null', async () => {
             const mockProjects = [createMockTranslationProject('1', 'Project 1', 'John Doe', null)];
             Store.translationProjects.list.data.value = mockProjects;
             const el = await fixture(html`<mas-translation></mas-translation>`);
             const cells = el.shadowRoot.querySelectorAll('sp-table-cell');
-            expect(cells[3].textContent).to.equal('N/A');
+            expect(cells[2].textContent).to.equal('–');
         });
 
-        it('should display N/A when submission date is undefined', async () => {
+        it('should display an en-dash when submission date is undefined', async () => {
             const mockProjects = [createMockTranslationProject('1', 'Project 1', 'John Doe', undefined)];
             Store.translationProjects.list.data.value = mockProjects;
             const el = await fixture(html`<mas-translation></mas-translation>`);
             const cells = el.shadowRoot.querySelectorAll('sp-table-cell');
-            expect(cells[3].textContent).to.equal('N/A');
+            expect(cells[2].textContent).to.equal('–');
         });
 
         it('should format date correctly when submission date exists', async () => {
@@ -281,7 +281,7 @@ describe('MasTranslation', () => {
             Store.translationProjects.list.data.value = mockProjects;
             const el = await fixture(html`<mas-translation></mas-translation>`);
             const cells = el.shadowRoot.querySelectorAll('sp-table-cell');
-            expect(cells[3].textContent).to.equal('Mar 15, 2024');
+            expect(cells[2].textContent).to.equal('Mar 15, 2024');
         });
 
         it('should format different dates correctly', async () => {
@@ -290,7 +290,7 @@ describe('MasTranslation', () => {
             Store.translationProjects.list.data.value = mockProjects;
             const el = await fixture(html`<mas-translation></mas-translation>`);
             const cells = el.shadowRoot.querySelectorAll('sp-table-cell');
-            expect(cells[3].textContent).to.equal('Dec 25, 2025');
+            expect(cells[2].textContent).to.equal('Dec 25, 2025');
         });
     });
 

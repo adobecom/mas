@@ -79,11 +79,13 @@ class MasSearchAndFilters extends LitElement {
         defaultTemplateFilter: { type: String, attribute: 'default-template-filter' },
         promotionSurfaceOptions: { type: Array },
         promotionSurface: { type: String },
+        filterPopoverSearch: { type: Object, state: true },
     };
 
     constructor() {
         super();
         this.searchQuery = '';
+        this.filterPopoverSearch = {};
         this.templateFilter = [];
         this.marketSegmentFilter = [];
         this.customerSegmentFilter = [];
@@ -714,16 +716,41 @@ class MasSearchAndFilters extends LitElement {
         if (!options.length) return nothing;
         const selectedCount = selectedValues.length;
         const displayLabel = selectedCount > 0 ? `${label} (${selectedCount})` : label;
+        const isSearchable = filterType === FILTER_TYPE.TEMPLATE || filterType === FILTER_TYPE.PRODUCT;
+        const query = isSearchable ? (this.filterPopoverSearch?.[filterType] || '').toLowerCase().trim() : '';
+        const filteredOptions = query
+            ? options.filter((option) => (option.title || option.label || '').toLowerCase().includes(query))
+            : options;
 
         return html`
             <overlay-trigger placement="bottom-start" ?disabled=${locked}>
                 <sp-action-button class="template-filter" dir="ltr" slot="trigger" .disabled=${this.isLoading || locked}>
                     ${displayLabel}
-                    <sp-icon-chevron-down slot="icon"></sp-icon-chevron-down>
+                    <sp-icon-chevron100 slot="icon" class="picker-chevron"></sp-icon-chevron100>
                 </sp-action-button>
-                <sp-popover slot="click-content" class="filter-popover">
+                <sp-popover slot="click-content" class="filter-popover filter-popover--${filterType}">
+                    ${isSearchable
+                        ? html`<sp-search
+                              class="filter-popover-search"
+                              size="s"
+                              placeholder="Search"
+                              .value=${this.filterPopoverSearch?.[filterType] || ''}
+                              @input=${(e) => {
+                                  this.filterPopoverSearch = {
+                                      ...this.filterPopoverSearch,
+                                      [filterType]: e.target.value,
+                                  };
+                              }}
+                              @change=${(e) => {
+                                  this.filterPopoverSearch = {
+                                      ...this.filterPopoverSearch,
+                                      [filterType]: e.target.value,
+                                  };
+                              }}
+                          ></sp-search>`
+                        : nothing}
                     <div class="checkbox-list">
-                        ${options.map((option) => {
+                        ${filteredOptions.map((option) => {
                             const optionId = option.id || option.value;
                             const isChecked = selectedValues.includes(optionId);
                             return html`
@@ -737,6 +764,7 @@ class MasSearchAndFilters extends LitElement {
                                 </sp-checkbox>
                             `;
                         })}
+                        ${filteredOptions.length === 0 ? html`<div class="filter-popover-empty">No matches.</div>` : nothing}
                     </div>
                 </sp-popover>
             </overlay-trigger>
@@ -769,7 +797,7 @@ class MasSearchAndFilters extends LitElement {
             <overlay-trigger placement="bottom-start">
                 <sp-action-button slot="trigger" .disabled=${this.isLoading}>
                     ${displayLabel}
-                    <sp-icon-chevron-down slot="icon"></sp-icon-chevron-down>
+                    <sp-icon-chevron100 slot="icon" class="picker-chevron"></sp-icon-chevron100>
                 </sp-action-button>
                 <sp-popover slot="click-content" class="filter-popover">
                     <sp-menu>
@@ -892,7 +920,7 @@ class MasSearchAndFilters extends LitElement {
     render() {
         const surfacePicker = this.#renderPromotionSurfacePicker();
         if (this.searchOnly) {
-            return html`${this.renderCount()} ${surfacePicker}`;
+            return html`${surfacePicker}`;
         }
         return html`
             <div class="filters">

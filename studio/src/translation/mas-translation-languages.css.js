@@ -9,7 +9,7 @@ export const styles = css`
     }
 
     .select-lang-content {
-        min-width: 600px;
+        width: 700px;
         display: flex;
         flex-direction: column;
         gap: 12px;
@@ -20,8 +20,8 @@ export const styles = css`
     .sticky-header {
         display: flex;
         flex-direction: column;
-        gap: 12px;
-        padding: 4px 0 0 4px;
+        gap: 0;
+        padding: 0;
     }
 
     .select-all-row {
@@ -42,6 +42,26 @@ export const styles = css`
         overflow-y: auto;
         flex: 1;
         min-height: 0;
+    }
+
+    .locales-flat-grid {
+        display: grid;
+        grid-auto-flow: column;
+        grid-template-columns: repeat(4, max-content);
+        row-gap: 8px;
+        justify-content: space-between;
+        overflow-y: auto;
+        flex: 1;
+        min-height: 0;
+        padding: 0;
+    }
+
+    .locales-flat-grid sp-checkbox,
+    .select-all-row sp-checkbox {
+        --mod-checkbox-label-font-size: 14px;
+        --mod-checkbox-label-line-height: 18px;
+        --mod-checkbox-focus-indicator-thickness: 0;
+        --mod-checkbox-focus-indicator-color: transparent;
     }
 
     .region-card {

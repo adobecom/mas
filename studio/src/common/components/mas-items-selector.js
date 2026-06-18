@@ -59,13 +59,19 @@ class MasItemsSelector extends LitElement {
         super.connectedCallback();
         this.addEventListener('sp-opened', this.#stopPropagation);
         const s = getItemsSelectionStore();
-        this.storeController = new ReactiveController(this, [
-            s.inEdit,
-            s.showSelected,
-            s.selectedCards,
-            s.selectedCollections,
-            s.selectedPlaceholders,
-        ]);
+        this.storeController = new ReactiveController(
+            this,
+            [
+                s.inEdit,
+                s.showSelected,
+                s.selectedCards,
+                s.selectedCollections,
+                s.selectedPlaceholders,
+                s.displayCards,
+                s.displayCollections,
+                s.displayPlaceholders,
+            ].filter(Boolean),
+        );
     }
 
     #stopPropagation(event) {
@@ -147,6 +153,15 @@ class MasItemsSelector extends LitElement {
         return true;
     }
 
+    get currentTabResultCount() {
+        const s = getItemsSelectionStore();
+        const tab = this.selectedTab;
+        if (tab === TABLE_TYPE.CARDS) return s.displayCards?.value?.length ?? 0;
+        if (tab === TABLE_TYPE.COLLECTIONS) return s.displayCollections?.value?.length ?? 0;
+        if (tab === TABLE_TYPE.PLACEHOLDERS) return s.displayPlaceholders?.value?.length ?? 0;
+        return 0;
+    }
+
     #toggleShowSelected() {
         getItemsSelectionStore().showSelected.set(!this.showSelected);
     }
@@ -224,19 +239,6 @@ class MasItemsSelector extends LitElement {
         const toggleLabel = showingSelection ? 'Hide selection' : 'Selected items';
         const tabs = this.tabs;
         return html`
-            ${this.viewOnly
-                ? nothing
-                : html`
-                      <div class="dialog-header">
-                          <h2>Select items</h2>
-                          <sp-search
-                              size="m"
-                              placeholder="Search..."
-                              @input=${this.#handleSearchInput}
-                              @submit=${this.#handleSearchSubmit}
-                          ></sp-search>
-                      </div>
-                  `}
             <sp-tabs quiet .selected=${this.selectedTab} @change=${this.#handleTabChange}>
                 ${repeat(
                     tabs,
@@ -251,6 +253,14 @@ class MasItemsSelector extends LitElement {
                             ${this.viewOnly
                                 ? nothing
                                 : html`
+                                      <div class="dialog-header">
+                                          <sp-search
+                                              size="m"
+                                              placeholder="Search..."
+                                              @input=${this.#handleSearchInput}
+                                              @submit=${this.#handleSearchSubmit}
+                                          ></sp-search>
+                                      </div>
                                       <mas-search-and-filters
                                           .type=${tab.value}
                                           .searchQuery=${tab.value === this.selectedTab ? this.searchQuery : ''}
@@ -267,9 +277,12 @@ class MasItemsSelector extends LitElement {
                                 class="container ${this.viewOnly ? 'view-only' : ''} ${showingSelection ? 'show-selected' : ''}"
                             >
                                 ${this.#renderItemsTable(tab.value)}
-                                ${this.viewOnly
+                                ${this.viewOnly || !showingSelection
                                     ? nothing
-                                    : html`<mas-selected-items .getDisplayName=${this.getDisplayName}></mas-selected-items>`}
+                                    : html`<mas-selected-items
+                                          class="selected-items-panel"
+                                          .getDisplayName=${this.getDisplayName}
+                                      ></mas-selected-items>`}
                             </div>
                             <sp-toast timeout="6000" @close=${(event) => event.stopPropagation()}></sp-toast>
                         </sp-tab-panel>

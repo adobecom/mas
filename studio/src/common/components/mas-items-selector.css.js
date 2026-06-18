@@ -4,30 +4,91 @@ import { ghostButtonStyles } from '../styles/table-styles.css.js';
 export const styles = [
     ghostButtonStyles,
     css`
+        .search-filters-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+        }
+
         .dialog-header {
             display: flex;
             align-items: center;
-            gap: 16px;
-            margin-bottom: 16px;
+            gap: 12px;
         }
 
-        .dialog-header h2 {
-            margin: 0;
+        .dialog-header .result-count {
+            font-size: 12px;
+            line-height: 16px;
+            font-weight: 400;
             white-space: nowrap;
-            font-size: 18px;
+        }
+
+        .dialog-header .result-count-number {
+            color: #292929;
+        }
+
+        .dialog-header .result-count-label {
+            color: #6e6e6e;
         }
 
         .dialog-header sp-search {
-            flex: 1;
-            max-width: 400px;
+            width: 452px;
+            flex: 0 0 auto;
+            --mod-search-block-size: 32px;
+            --mod-search-border-radius: 16px;
+            --mod-search-border-width: 2px;
+            --mod-search-border-color-default: #dadada;
+            --mod-search-border-color-hover: #dadada;
+            --mod-search-focus-indicator-thickness: 0;
+            --mod-search-focus-indicator-gap: 0;
+            --mod-search-focus-indicator-color: transparent;
+        }
+
+        sp-tabs {
+            --mod-tabs-font-weight: 400;
+            --mod-tabs-font-size: 14px;
+            --mod-tabs-line-height: 18px;
+            --mod-tabs-item-height: 48px;
+            --mod-tabs-color: #505050;
+            --mod-tabs-color-hover: #292929;
+            --mod-tabs-color-selected: #292929;
+            --mod-tabs-color-key-focus: #292929;
+            --mod-tabs-divider-size: 2px;
+            --mod-tabs-divider-background-color: #e1e1e1;
+            --spectrum-tabs-divider-background-color: #e1e1e1;
+            --mod-tabs-selection-indicator-color: #292929;
+            --mod-tabs-start-to-item-quiet: 0;
+            --mod-tabs-focus-ring-color: transparent;
+            --mod-tabs-focus-indicator-color: transparent;
+            --mod-tabs-focus-indicator-thickness: 0;
+            --spectrum-focus-indicator-color: transparent;
+            --spectrum-focus-indicator-thickness: 0;
+        }
+
+        sp-tab {
+            --mod-tabs-focus-ring-color: transparent;
+            --mod-tabs-focus-indicator-color: transparent;
+            --mod-tabs-focus-indicator-thickness: 0;
+            --spectrum-focus-indicator-color: transparent;
+            --spectrum-focus-indicator-thickness: 0;
+        }
+
+        sp-tab:focus:not(:focus-visible),
+        sp-tab:focus-within:not(:focus-visible) {
+            outline: none;
+        }
+
+        sp-tab + sp-tab {
+            margin-inline-start: 32px;
         }
 
         :host {
             display: flex;
             flex-direction: column;
+            width: 100%;
+            height: 100%;
             min-width: 80vw;
-            max-height: 70vh;
-            min-height: 50vh;
+            min-height: 0;
         }
 
         sp-tabs {
@@ -35,6 +96,20 @@ export const styles = [
             flex-direction: column;
             flex: 1;
             min-height: 0;
+            position: relative;
+        }
+
+        sp-tabs::after {
+            content: '';
+            position: absolute;
+            top: 46px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: #e1e1e1;
+            border-radius: 2px;
+            pointer-events: none;
+            z-index: 0;
         }
 
         sp-tab-panel[selected] {
@@ -43,20 +118,21 @@ export const styles = [
             flex: 1;
             min-height: 0;
             gap: 12px;
-            padding-top: 16px;
+            padding-top: 32px;
         }
 
         .container {
             display: flex;
-            gap: 16px;
+            flex-direction: row;
             flex: 1;
             min-height: 0;
             width: 100%;
-            padding-bottom: 48px;
+            padding-bottom: 0;
+            gap: 12px;
         }
 
         mas-select-items-table {
-            flex: 1;
+            flex: 1 1 auto;
             min-width: 0;
             min-height: 0;
             display: flex;
@@ -70,6 +146,13 @@ export const styles = [
 
         .container:not(.show-selected) mas-selected-items {
             display: none;
+        }
+
+        mas-selected-items.selected-items-panel {
+            flex: 0 0 279px;
+            width: 279px;
+            min-height: 0;
+            display: flex;
         }
 
         .container.view-only {
@@ -90,10 +173,25 @@ export const styles = [
             z-index: 1000;
         }
 
+        .selected-items-count-inline {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            padding-top: 32px;
+            gap: 6px;
+            flex: 0 0 auto;
+
+            sp-button {
+                min-width: 156px;
+                font-weight: 500;
+            }
+
+            sp-button[disabled] sp-icon {
+                opacity: 0.2;
+            }
+        }
+
         .selected-items-count {
-            position: fixed;
-            bottom: 95px;
-            right: 42px;
             display: flex;
             justify-content: flex-end;
             align-items: center;

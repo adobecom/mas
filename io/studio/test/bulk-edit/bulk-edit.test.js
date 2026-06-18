@@ -6,6 +6,7 @@ function load({ existing = null, allowed = true } = {}) {
     const invokeAsyncAction = sinon.stub().resolves({ activationId: 'act-1' });
     const writeJob = sinon.stub().resolves();
     const readJob = sinon.stub().resolves(existing);
+    const patchJob = sinon.stub().resolves();
     const mod = proxyquire('../../src/bulk-edit/bulk-edit.js', {
         '../../utils.js': {
             errorResponse: (statusCode, message) => ({ error: { statusCode, body: { error: message } } }),
@@ -19,10 +20,10 @@ function load({ existing = null, allowed = true } = {}) {
             buildSiblingActionName: (params, name) => `MerchAtScaleStudio/${name}`,
             '@noCallThru': true,
         },
-        './state.js': { readJob, writeJob, '@noCallThru': true },
+        './state.js': { readJob, writeJob, patchJob, '@noCallThru': true },
         '@adobe/aio-sdk': { Core: { Logger: () => ({ info() {}, error() {} }) }, '@noCallThru': true },
     });
-    return { mod, invokeAsyncAction, writeJob, readJob };
+    return { mod, invokeAsyncAction, writeJob, readJob, patchJob };
 }
 
 const findParams = { type: 'find', find: 'school', surface: 'acom', searchIn: '*' };
@@ -88,6 +89,27 @@ describe('bulk-edit: handlePost', () => {
         const res = await mod.handlePost(findParams);
         expect(res.error.statusCode).to.equal(401);
     });
+    it('cancels a superseded RUNNING job before starting the new one', async () => {
+        const { mod, readJob, patchJob, writeJob } = load();
+        readJob.withArgs('old-job').resolves({ status: 'RUNNING' });
+        const res = await mod.handlePost({ ...findParams, supersedes: 'old-job' });
+        expect(patchJob.calledWith('old-job', { cancelled: true })).to.equal(true);
+        expect(writeJob.calledOnce).to.equal(true);
+        expect(res.body.reused).to.equal(false);
+    });
+    it('does not cancel a superseded job that is not RUNNING', async () => {
+        const { mod, readJob, patchJob } = load();
+        readJob.withArgs('old-job').resolves({ status: 'DONE' });
+        await mod.handlePost({ ...findParams, supersedes: 'old-job' });
+        expect(patchJob.called).to.equal(false);
+    });
+    it('does not reuse a RUNNING job already flagged cancelled', async () => {
+        const { mod, invokeAsyncAction, writeJob } = load({ existing: { status: 'RUNNING', cancelled: true } });
+        const res = await mod.handlePost(findParams);
+        expect(res.body.reused).to.equal(false);
+        expect(writeJob.calledOnce).to.equal(true);
+        expect(invokeAsyncAction.calledOnce).to.equal(true);
+    });
 });
 
 describe('bulk-edit: handleGet', () => {
@@ -108,6 +130,12 @@ describe('bulk-edit: handleGet', () => {
         const res = await mod.handleGet({ jobId: 'j' });
         expect(res.error.statusCode).to.equal(500);
         expect(res.error.body.total).to.equal(2);
+    });
+    it('returns done:true on CANCELLED (200)', async () => {
+        const { mod } = load({ existing: { status: 'CANCELLED', total: 2, results: [{ id: 'a' }, { id: 'b' }] } });
+        const res = await mod.handleGet({ jobId: 'j', offset: '0' });
+        expect(res.statusCode).to.equal(200);
+        expect(res.body.done).to.equal(true);
     });
     it('404s an unknown jobId', async () => {
         const { mod } = load({ existing: null });

@@ -2,7 +2,7 @@ const crypto = require('crypto');
 const { Core } = require('@adobe/aio-sdk');
 const { errorResponse, getBearerToken, isAllowed, parseOwBody } = require('../../utils.js');
 const { invokeAsyncAction, buildSiblingActionName } = require('../common.js');
-const { readJob, writeJob } = require('./state.js');
+const { readJob, writeJob, patchJob } = require('./state.js');
 
 const logger = Core.Logger('bulk-edit', { level: 'info' });
 
@@ -25,6 +25,13 @@ function canonicalSearchKey(params) {
 
 function computeJobId(params) {
     return crypto.createHash('sha256').update(canonicalSearchKey(params)).digest('hex');
+}
+
+async function cancelJob(jobId) {
+    const job = await readJob(jobId);
+    if (job && job.status === 'RUNNING') {
+        await patchJob(jobId, { cancelled: true });
+    }
 }
 
 async function handlePost(params) {
@@ -51,8 +58,12 @@ async function handlePost(params) {
     };
     const jobId = computeJobId(searchKey);
 
+    if (params.supersedes && params.supersedes !== jobId) {
+        await cancelJob(params.supersedes);
+    }
+
     const existing = await readJob(jobId);
-    if (existing && (existing.status === 'RUNNING' || existing.status === 'DONE')) {
+    if (existing && !existing.cancelled && (existing.status === 'RUNNING' || existing.status === 'DONE')) {
         return { statusCode: 202, body: { jobId, reused: true } };
     }
 
@@ -95,7 +106,7 @@ async function handleGet(params) {
             status: job.status,
             total: job.total,
             truncated: !!job.truncated,
-            done: job.status === 'DONE',
+            done: job.status === 'DONE' || job.status === 'CANCELLED',
             items: (job.results || []).slice(offset),
         },
     };

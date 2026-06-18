@@ -41,6 +41,11 @@ async function runFindWorker(jobId, { odinEndpoint }) {
                 }
             }
             await patchJob(jobId, { results: [...results], total: results.length });
+            const fresh = await readJob(jobId);
+            if (fresh?.cancelled) {
+                await patchJob(jobId, { status: 'CANCELLED', total: results.length });
+                return { status: 'CANCELLED', total: results.length, truncated };
+            }
             if (truncated) break;
         }
         await patchJob(jobId, { status: 'DONE', results, total: results.length, truncated });

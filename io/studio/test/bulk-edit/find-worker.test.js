@@ -23,7 +23,7 @@ function load(overrides = {}) {
             '@noCallThru': true,
         },
         './state.js': {
-            readJob: async () => job,
+            readJob: overrides.readJob || (async () => job),
             patchJob: async (jobId, patch) => {
                 patches.push(patch);
             },
@@ -91,6 +91,24 @@ describe('bulk-edit/find-worker: runFindWorker', () => {
             threw = true;
         }
         expect(threw).to.equal(true);
+    });
+    it('stops with CANCELLED when the job is flagged mid-pagination', async () => {
+        let reads = 0;
+        const { mod, patches } = load({
+            pages: [[{ id: 'a', path: '/p/a', hit: 'A' }], [{ id: 'b', path: '/p/b', hit: 'B' }]],
+            readJob: async () => {
+                reads += 1;
+                return {
+                    params: { find: 'school', surface: 'acom', searchIn: '*', matchCase: false },
+                    authToken: 't',
+                    status: 'RUNNING',
+                    cancelled: reads > 1,
+                };
+            },
+        });
+        const result = await mod.runFindWorker('job1', { odinEndpoint: 'https://odin' });
+        expect(result.status).to.equal('CANCELLED');
+        expect(patches[patches.length - 1].status).to.equal('CANCELLED');
     });
 });
 

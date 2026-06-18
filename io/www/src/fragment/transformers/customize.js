@@ -94,10 +94,15 @@ function parsePznTokens(pzn) {
         .filter(Boolean);
 }
 
+const PZN_TAG_RE = /(?:^|[/:])pzn\/(.+)$/i;
+
 function countMatchedPznTokens(tags, tokens) {
     let n = 0;
     for (const token of tokens) {
-        if (tags.some((tag) => Boolean(tag && token && tag.endsWith(`${PZN_FOLDER}${token}`)))) {
+        if (tags.some((tag) => {
+            const match = tag && PZN_TAG_RE.exec(tag);
+            return match && match[1].toLowerCase() === token.toLowerCase();
+        })) {
             n += 1;
         }
     }

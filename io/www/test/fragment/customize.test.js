@@ -656,6 +656,47 @@ describe('customize collections', function () {
         expect(result.body.fields.badge).to.equal('Gold tier PZN');
     });
 
+    it('should match pzn tag when pzn is the top-level namespace (mas:pzn/edu, no intermediate folder)', async function () {
+        const pznVariationId = 'pzn-var-edu';
+        const bodyWithPzn = {
+            path: '/content/dam/mas/sandbox/en_US/cc-plans-photoshop-individuals-default',
+            id: 'root-fragment',
+            title: 'Root',
+            fields: {
+                badge: 'default badge',
+                variations: [pznVariationId],
+            },
+            references: {
+                [pznVariationId]: {
+                    type: 'content-fragment',
+                    value: {
+                        path: '/content/dam/mas/sandbox/en_US/phsp_direct_individual/pzn/photoshop-individual-edu',
+                        id: pznVariationId,
+                        title: 'EDU variation',
+                        fields: {
+                            pznTags: ['mas:pzn/edu'],
+                            badge: 'Students badge',
+                        },
+                    },
+                },
+            },
+            referencesTree: [],
+        };
+
+        const result = await process({
+            ...FAKE_CONTEXT,
+            fragmentPath: 'cc-plans-photoshop-individuals-default',
+            locale: 'en_US',
+            parsedLocale: 'en_US',
+            pzn: 'edu',
+            body: bodyWithPzn,
+        });
+
+        expect(result.status).to.equal(200);
+        expect(result.body.fields.badge).to.equal('Students badge');
+        expect(result.body.variationId).to.equal(pznVariationId);
+    });
+
     it('should coerce non-string pzn to string for token matching', async function () {
         const pznVariationId = 'pzn-numeric-token';
         const bodyWithPzn = {

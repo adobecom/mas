@@ -6,6 +6,28 @@ function offerLabel(offer) {
     return offer.offer_id || offer.product_arrangement_code || '';
 }
 
+// Richer slot descriptor for try/buy and bundle slots: the product name as the
+// primary line, a compact attribute string (plan · type · price) as secondary,
+// and the OSI kept as a muted third line. Falls back to the OSI as the name
+// when an offer carries no product name.
+function offerPeriod(offer) {
+    if (offer.commitment === 'YEAR' || offer.term === 'ANNUAL') return '/yr';
+    if (offer.commitment === 'MONTH' || offer.term === 'MONTHLY') return '/mo';
+    return '';
+}
+
+export function offerSummary(offer) {
+    if (!offer) return { name: '', details: '', osi: '' };
+    const osi = offerLabel(offer);
+    const name = offer.name || osi;
+    const planType = offer.planType || offer.plan_type;
+    const priceValue = offer.pricing?.prices?.[0]?.price_details?.display_rules?.price;
+    const symbol = offer.pricing?.currency?.symbol;
+    const price = priceValue !== undefined && symbol ? `${symbol}${priceValue.toFixed(2)}${offerPeriod(offer)}` : '';
+    const details = [planType, offer.offer_type, price].filter(Boolean).join(' · ');
+    return { name, details, osi };
+}
+
 export class OstSelectionList extends LitElement {
     static styles = css`
         :host {
@@ -125,6 +147,22 @@ export class OstSelectionList extends LitElement {
             font-style: italic;
         }
 
+        .slot-details {
+            font-size: 12px;
+            color: var(--spectrum-gray-700);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .slot-osi {
+            font-size: 11px;
+            color: var(--spectrum-gray-500);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
         .slot-number {
             font-size: 12px;
             font-weight: 700;
@@ -195,6 +233,15 @@ export class OstSelectionList extends LitElement {
         this.requestUpdate();
     }
 
+    renderOfferSummary(offer) {
+        const { name, details, osi } = offerSummary(offer);
+        return html`
+            <div class="slot-value">${name}</div>
+            ${details ? html`<div class="slot-details">${details}</div>` : nothing}
+            ${osi && osi !== name ? html`<div class="slot-osi">${osi}</div>` : nothing}
+        `;
+    }
+
     get confirmBar() {
         if (!store.pendingFlowSwitch) return nothing;
         const offerNames =
@@ -227,9 +274,9 @@ export class OstSelectionList extends LitElement {
                 ${trialOffer ? html`<span class="slot-check" aria-hidden="true">✓</span>` : nothing}
                 <div class="slot-content">
                     <div class="slot-label">Trial offer (Free trial CTA, optional)</div>
-                    <div class="slot-value ${trialOffer ? '' : 'empty'}">
-                        ${trialOffer ? offerLabel(trialOffer) : 'Click to target, then pick an offer below'}
-                    </div>
+                    ${trialOffer
+                        ? this.renderOfferSummary(trialOffer)
+                        : html`<div class="slot-value empty">Click to target, then pick an offer below</div>`}
                 </div>
                 ${trialOffer
                     ? html`<button
@@ -251,9 +298,9 @@ export class OstSelectionList extends LitElement {
                 ${baseOffer ? html`<span class="slot-check" aria-hidden="true">✓</span>` : nothing}
                 <div class="slot-content">
                     <div class="slot-label">Base offer (Buy CTA)</div>
-                    <div class="slot-value ${baseOffer ? '' : 'empty'}">
-                        ${baseOffer ? offerLabel(baseOffer) : 'Click to target, then pick an offer below'}
-                    </div>
+                    ${baseOffer
+                        ? this.renderOfferSummary(baseOffer)
+                        : html`<div class="slot-value empty">Click to target, then pick an offer below</div>`}
                 </div>
                 ${baseOffer
                     ? html`<button
@@ -280,9 +327,7 @@ export class OstSelectionList extends LitElement {
                     <div class="selection-slot filled">
                         <span class="slot-check" aria-hidden="true">✓</span>
                         <span class="slot-number">${index + 1}.</span>
-                        <div class="slot-content">
-                            <div class="slot-value">${offerLabel(entry.offer)}</div>
-                        </div>
+                        <div class="slot-content">${this.renderOfferSummary(entry.offer)}</div>
                         <button class="slot-clear" title="Remove offer" @click=${() => store.removeOffer(index)}>
                             &times;
                         </button>

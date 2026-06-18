@@ -1,8 +1,6 @@
 import { LitElement, html, css, nothing } from 'lit';
 import { store } from '../store/ost-store.js';
 import './ost-offer-card.js';
-import './ost-help-icon.js';
-import { HELP_TOOLTIPS } from '../data/help-content.js';
 
 export class OstProductDetail extends LitElement {
     static properties = {
@@ -250,9 +248,9 @@ export class OstProductDetail extends LitElement {
                         <div class="offers-table">
                             <div class="offers-table-head">
                                 <span class="th">Price</span>
-                                <span class="th">Plan <ost-help-icon text="${HELP_TOOLTIPS.planBadge}"></ost-help-icon></span>
+                                <span class="th">Plan</span>
                                 <span class="th">Type</span>
-                                <span class="th">Offer ID <ost-help-icon text="${HELP_TOOLTIPS.offerId}"></ost-help-icon></span>
+                                <span class="th">Offer ID</span>
                                 <span class="th th-actions"></span>
                             </div>
                             <div class="offers-table-body">

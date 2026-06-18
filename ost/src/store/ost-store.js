@@ -112,7 +112,6 @@ const SLICES = [
     // the store (not the panel) so it survives Back/Next within an OST session.
     ['placeholderTab', 'price'],
     ['ctaTextOption', null],
-    ['helpMode', false],
     ['pendingArrangementCode', null],
 ];
 
@@ -960,10 +959,6 @@ export class OstStore extends EventTarget {
 
     get effectivePromoCode() {
         return this.storedPromoOverride || this.promotionCode || '';
-    }
-
-    toggleHelp() {
-        this.helpMode = !this.helpMode;
     }
 
     applySearchParams(searchParameters) {

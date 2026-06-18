@@ -708,28 +708,6 @@ describe('OstStore', () => {
         });
     });
 
-    describe('helpMode', () => {
-        it('defaults to false', () => {
-            expect(store.helpMode).to.be.false;
-        });
-
-        it('toggles helpMode and notifies', () => {
-            let notified = false;
-            store.subscribe(() => {
-                notified = true;
-            });
-            store.toggleHelp();
-            expect(store.helpMode).to.be.true;
-            expect(notified).to.be.true;
-        });
-
-        it('toggles back to false', () => {
-            store.toggleHelp();
-            store.toggleHelp();
-            expect(store.helpMode).to.be.false;
-        });
-    });
-
     describe('viewState', () => {
         it("returns 'offers' before any offer is selected", () => {
             expect(store.viewState).to.equal('offers');

@@ -1,8 +1,6 @@
 import { LitElement, html, css } from 'lit';
 import { store } from '../store/ost-store.js';
 import { countries as staticCountries } from '../data/countries.js';
-import { HELP_TOOLTIPS } from '../data/help-content.js';
-import './ost-help-icon.js';
 
 const COUNTRIES_API = 'https://countries-stage.adobe.io/v2/countries?api_key=dexter-commerce-offers';
 
@@ -151,7 +149,6 @@ export class OstCountryPicker extends LitElement {
             </div>
             <div class="picker-env">
                 <sp-switch size="s" ?checked=${isStage} @change=${this.handleEnvToggle}>Stage</sp-switch>
-                <ost-help-icon text="${HELP_TOOLTIPS.landscapeEnv}"></ost-help-icon>
             </div>
         `;
     }

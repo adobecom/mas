@@ -1,6 +1,7 @@
 import { expect, fixture, html } from '@open-wc/testing';
 import { store } from '../../src/store/ost-store.js';
 import '../../src/components/ost-selection-list.js';
+import { offerSummary } from '../../src/components/ost-selection-list.js';
 
 function resetStore() {
     store.authoringFlow = 'single';
@@ -54,17 +55,24 @@ describe('ost-selection-list', () => {
             expect(slots[1].classList.contains('active')).to.be.true;
         });
 
-        it('marks filled slots with a checkmark and offer label', async () => {
-            store.selectedOffers = [{ offer: { offer_id: 'BASE-1' }, osi: 'base-osi-1', role: 'base' }];
+        it('marks filled slots with a checkmark and shows the offer name plus OSI', async () => {
+            store.selectedOffers = [
+                {
+                    offer: { offer_id: 'BASE-1', name: 'Photoshop', offer_type: 'BASE', planType: 'ABM' },
+                    osi: 'base-osi-1',
+                    role: 'base',
+                },
+            ];
             const el = await fixture(html`<ost-selection-list></ost-selection-list>`);
             const slots = el.shadowRoot.querySelectorAll('.selection-slot');
             const baseSlot = slots[1];
             expect(baseSlot.classList.contains('filled')).to.be.true;
             expect(baseSlot.querySelector('.slot-check')).to.exist;
-            expect(baseSlot.querySelector('.slot-value').textContent.trim()).to.equal('BASE-1');
+            expect(baseSlot.querySelector('.slot-value').textContent.trim()).to.equal('Photoshop');
+            expect(baseSlot.querySelector('.slot-osi').textContent.trim()).to.equal('BASE-1');
         });
 
-        it('falls back to product_arrangement_code when offer_id is missing', async () => {
+        it('falls back to the OSI as the name when the offer has no name', async () => {
             store.selectedOffers = [{ offer: { product_arrangement_code: 'pac-xyz' }, osi: 'osi-1', role: 'trial' }];
             const el = await fixture(html`<ost-selection-list></ost-selection-list>`);
             const slots = el.shadowRoot.querySelectorAll('.selection-slot');
@@ -201,5 +209,33 @@ describe('ost-selection-list', () => {
         store.notify();
         await el.updateComplete;
         expect(el.shadowRoot.querySelectorAll('.selection-slot').length).to.equal(1);
+    });
+
+    describe('offerSummary', () => {
+        it('returns name, details, and osi for a full offer', () => {
+            const summary = offerSummary({
+                offer_id: 'OFFER-1',
+                name: 'Creative Cloud All Apps',
+                offer_type: 'BASE',
+                planType: 'ABM',
+            });
+            expect(summary.name).to.equal('Creative Cloud All Apps');
+            expect(summary.osi).to.equal('OFFER-1');
+            expect(summary.details).to.contain('ABM');
+            expect(summary.details).to.contain('BASE');
+        });
+
+        it('uses the OSI as the name when no product name is present', () => {
+            const summary = offerSummary({ offer_id: 'OFFER-2' });
+            expect(summary.name).to.equal('OFFER-2');
+            expect(summary.osi).to.equal('OFFER-2');
+        });
+
+        it('returns empty fields for a missing offer', () => {
+            const summary = offerSummary(null);
+            expect(summary.name).to.equal('');
+            expect(summary.osi).to.equal('');
+            expect(summary.details).to.equal('');
+        });
     });
 });

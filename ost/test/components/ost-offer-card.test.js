@@ -347,4 +347,42 @@ describe('ost-offer-card', () => {
             store.selectedOsi = undefined;
         });
     });
+
+    describe('scroll into view on selection', () => {
+        it('scrolls itself into view when rendered already selected', async () => {
+            const el = document.createElement('ost-offer-card');
+            el.offer = mockOffer;
+            el.selected = true;
+            let scrolled = false;
+            el.scrollIntoView = () => {
+                scrolled = true;
+            };
+            document.body.appendChild(el);
+            await el.updateComplete;
+            expect(scrolled).to.be.true;
+            el.remove();
+        });
+
+        it('scrolls into view when it becomes selected after render', async () => {
+            const el = await fixture(html`<ost-offer-card .offer=${mockOffer}></ost-offer-card>`);
+            let scrolled = false;
+            el.scrollIntoView = () => {
+                scrolled = true;
+            };
+            el.selected = true;
+            await el.updateComplete;
+            expect(scrolled).to.be.true;
+        });
+
+        it('does not scroll when not selected', async () => {
+            const el = await fixture(html`<ost-offer-card .offer=${mockOffer}></ost-offer-card>`);
+            let scrolled = false;
+            el.scrollIntoView = () => {
+                scrolled = true;
+            };
+            el.requestUpdate();
+            await el.updateComplete;
+            expect(scrolled).to.be.false;
+        });
+    });
 });

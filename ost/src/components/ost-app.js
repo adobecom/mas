@@ -1,11 +1,11 @@
 import { LitElement, html, css } from 'lit';
 import './ost-entitlements-tab.js';
 import './ost-offer-tab.js';
-import './ost-help-banner.js';
 import { store } from '../store/ost-store.js';
 import { getOfferSelector } from '../utils/aos-client.js';
 
 const ADOBE_FONTS_URL = 'https://use.typekit.net/pps7abe.css';
+const OST_DOCS_URL = 'https://mas.adobe.com/docs/ost/new-ost';
 const PRODUCTS_ENDPOINT = 'https://14257-masstudio.adobeioruntime.net/api/v1/web/MerchAtScaleStudio/ost-products-read';
 
 export class OstApp extends LitElement {
@@ -143,12 +143,6 @@ export class OstApp extends LitElement {
             flex: 1;
             min-height: 0;
             overflow: hidden;
-        }
-
-        .ost-help-banner-wrapper {
-            padding: 0 24px;
-            background: var(--spectrum-gray-100);
-            flex-shrink: 0;
         }
 
         .ost-close-btn {
@@ -431,15 +425,14 @@ export class OstApp extends LitElement {
             this.cancel();
             return;
         }
-        // Every authoring flow funnels through the placeholder panel: the
-        // footer Use delegates to the first row's code-output (tryBuy and
-        // bundle rows carry their own per-offer/joined OSI).
+        // Every authoring flow funnels through the placeholder panel. The active
+        // tab renders one code-output per panel group, so the footer Use emits
+        // every one: tryBuy yields two (trial + buy) for the active type, bundle
+        // and single each yield one (bundle's row carries the joined OSI).
         const tab = this.shadowRoot.querySelector('ost-offer-tab');
         const panel = tab?.shadowRoot?.querySelector('ost-placeholder-panel');
-        const codeOutput = panel?.shadowRoot?.querySelector('ost-code-output');
-        if (codeOutput) {
-            codeOutput.handleUse();
-        }
+        const codeOutputs = panel?.shadowRoot?.querySelectorAll('ost-code-output') ?? [];
+        codeOutputs.forEach((codeOutput) => codeOutput.handleUse());
     }
 
     // Tab footers dispatch intent events; ost-app owns the handlers so the
@@ -489,8 +482,7 @@ export class OstApp extends LitElement {
                         quiet
                         size="s"
                         class="ost-help-toggle"
-                        ?selected=${store.helpMode}
-                        @click=${() => store.toggleHelp()}
+                        @click=${() => window.open(OST_DOCS_URL, '_blank', 'noopener')}
                     >
                         <sp-icon-info slot="icon"></sp-icon-info>
                         Help
@@ -525,7 +517,6 @@ export class OstApp extends LitElement {
                         ></sp-tab>
                     </sp-tabs>
                 </div>
-                ${store.helpMode ? html`<div class="ost-help-banner-wrapper"><ost-help-banner></ost-help-banner></div>` : ''}
                 <div class="ost-tab-body">${tabBody}</div>
             </div>
         `;

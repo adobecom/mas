@@ -262,6 +262,16 @@ export class OstOfferCard extends LitElement {
         }
     }
 
+    updated(changed) {
+        // When a deep-linked offer auto-selects, the offer list may have
+        // scrolled past it — bring the selected card into view so the user sees
+        // which offer was pre-chosen. Runs on first render (selected from the
+        // start) and whenever `selected` flips on.
+        if (changed.has('selected') && this.selected) {
+            this.scrollIntoView({ block: 'nearest' });
+        }
+    }
+
     async handleClick() {
         if (!this.offer || this.resolving) return;
         if (store.authoringFlow === 'consult') {

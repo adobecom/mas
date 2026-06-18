@@ -490,30 +490,33 @@ describe('ost-app', () => {
         });
     });
 
-    describe('help mode banner', () => {
+    describe('help button', () => {
+        let originalOpen;
+        beforeEach(() => {
+            originalOpen = window.open;
+        });
         afterEach(() => {
-            store.helpMode = false;
+            window.open = originalOpen;
         });
 
-        it('renders the help banner only after help mode is toggled on', async () => {
+        it('opens the OST docs in a new tab when clicked', async () => {
             store.init({});
-            store.helpMode = false;
+            const el = await fixture(html`<ost-app></ost-app>`);
+            await el.updateComplete;
+            let opened;
+            window.open = (url, target) => {
+                opened = { url, target };
+            };
+            el.shadowRoot.querySelector('.ost-help-toggle').click();
+            expect(opened.url).to.equal('https://mas.adobe.com/docs/ost/new-ost');
+            expect(opened.target).to.equal('_blank');
+        });
+
+        it('does not render an in-app help banner', async () => {
+            store.init({});
             const el = await fixture(html`<ost-app></ost-app>`);
             await el.updateComplete;
             expect(el.shadowRoot.querySelector('ost-help-banner')).to.not.exist;
-            store.toggleHelp();
-            await el.updateComplete;
-            expect(store.helpMode).to.be.true;
-            expect(el.shadowRoot.querySelector('.ost-help-banner-wrapper ost-help-banner')).to.exist;
-        });
-
-        it('clicking the Help toggle flips store.helpMode', async () => {
-            store.init({});
-            store.helpMode = false;
-            const el = await fixture(html`<ost-app></ost-app>`);
-            await el.updateComplete;
-            el.shadowRoot.querySelector('.ost-help-toggle').click();
-            expect(store.helpMode).to.be.true;
         });
     });
 
@@ -626,6 +629,35 @@ describe('ost-app', () => {
             };
             el.handleFooterUse();
             expect(called).to.be.true;
+        });
+
+        it('invokes every code-output (trial + buy) in the tryBuy flow', async () => {
+            store.authoringFlow = 'tryBuy';
+            store.selectedProduct = { name: 'Photoshop', arrangement_code: 'phsp' };
+            store.selectedOffers = [
+                { offer: { offer_id: 'TRIAL' }, osi: 'trial-osi', role: 'trial' },
+                { offer: { offer_id: 'BASE' }, osi: 'base-osi', role: 'base' },
+            ];
+            store.wizardStep = 'offer';
+            store.placeholderTab = 'price';
+            store.notify();
+            const el = await fixture(html`<ost-app></ost-app>`);
+            await el.updateComplete;
+            const tab = el.shadowRoot.querySelector('ost-offer-tab');
+            await tab.updateComplete;
+            const panel = tab.shadowRoot.querySelector('ost-placeholder-panel');
+            await panel.updateComplete;
+            const outputs = panel.shadowRoot.querySelectorAll('ost-code-output');
+            expect(outputs.length).to.equal(2);
+            let calls = 0;
+            outputs.forEach((o) => {
+                o.handleUse = () => {
+                    calls += 1;
+                };
+            });
+            el.handleFooterUse();
+            expect(calls).to.equal(2);
+            store.selectedOffers = [];
         });
     });
 

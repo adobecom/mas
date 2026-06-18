@@ -103,9 +103,8 @@ runTests(async () => {
                 <span
                     is="inline-price"
                     slot="price"
-                    class="placeholder-failed"
                     data-wcs-osi="unresolved-osi"
-                >US$9.99/mo</span>
+                ></span>
             `;
             document.body.append(card);
 

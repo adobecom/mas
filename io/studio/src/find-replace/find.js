@@ -2,7 +2,7 @@ const { Core } = require('@adobe/aio-sdk');
 const { errorResponse, checkMissingRequestInputs, getBearerToken, isAllowed } = require('../../utils.js');
 const { fetchOdin, getValues } = require('../common.js');
 
-const logger = Core.Logger('find-replace-search', { level: 'info' });
+const logger = Core.Logger('find-replace-find', { level: 'info' });
 
 function matchesText(value, find, matchCase) {
     if (value == null) return false;
@@ -106,7 +106,7 @@ async function* searchCandidates({ odinEndpoint, authToken, query, limit = 50 })
     } while (cursor);
 }
 
-async function runSearch({
+async function runFind({
     odinEndpoint,
     authToken,
     surface,
@@ -155,7 +155,7 @@ async function main(params) {
         const { find, surface, searchIn = 'everywhere', matchCase = false, locale, status } = params;
         const tags = Array.isArray(params.tags) ? params.tags : [];
 
-        const result = await runSearch({
+        const result = await runFind({
             odinEndpoint,
             authToken,
             surface,
@@ -168,7 +168,7 @@ async function main(params) {
         });
         return { statusCode: 200, body: result };
     } catch (error) {
-        logger.error(JSON.stringify({ event: 'find-replace-search-error', error: error.message }));
+        logger.error(JSON.stringify({ event: 'find-replace-find-error', error: error.message }));
         return errorResponse(500, error.message || 'Internal server error', logger);
     }
 }
@@ -181,6 +181,6 @@ module.exports = {
     findMatches,
     buildSearchQuery,
     searchCandidates,
-    runSearch,
+    runFind,
 };
 exports.main = main;

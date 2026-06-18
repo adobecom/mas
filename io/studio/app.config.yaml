@@ -40,8 +40,8 @@ application:
                         function: src/members/list.js
                         web: 'yes'
                         runtime: nodejs:22
-                    find-replace-search:
-                        function: src/find-replace/search.js
+                    find-replace-find:
+                        function: src/find-replace/find.js
                         web: 'yes'
                         runtime: nodejs:22
                         annotations:

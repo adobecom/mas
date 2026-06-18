@@ -47,7 +47,13 @@ const VARIANTS_WITH_HEIGHT_SYNC = [
     'simplified-pricing-express',
 ];
 
-const VARIANTS_WITH_WIDTH_BADGE_SYNC = ['segment', 'product'];
+const VARIANTS_WITH_WIDTH_BADGE_SYNC = [
+    'segment',
+    'product',
+    'mini-compare-chart',
+    'mini-compare-chart-mweb',
+    'plans-education',
+];
 
 function priceOptionsProvider(element, options) {
     const card = element.closest(MERCH_CARD);
@@ -109,7 +115,9 @@ const intersectionObserver = new IntersectionObserver((entries) => {
         if (VARIANTS_WITH_WIDTH_BADGE_SYNC.includes(card.variant)) {
             if (entry.boundingClientRect.width === 0) return;
             if (
-                card.variant === 'product' &&
+                (card.variant === 'product' ||
+                    card.variant === 'plans-education' ||
+                    card.variant.startsWith('mini-compare-chart')) &&
                 card.querySelector('merch-icon[slot="icons"]')
             ) {
                 intersectionObserver.unobserve(card);
@@ -117,9 +125,9 @@ const intersectionObserver = new IntersectionObserver((entries) => {
             }
 
             const cardWidth = card.getBoundingClientRect().width;
-            const badgeEl = card.querySelector('[slot="badge"]');
+            const badgeEl = card.querySelector('[slot="badge"] > merch-badge');
             const badgeWidth = badgeEl?.getBoundingClientRect().width || 0;
-            if (cardWidth === 0 || badgeWidth === 0) {
+            if (cardWidth === 0 || !badgeEl) {
                 intersectionObserver.unobserve(card);
                 return;
             }

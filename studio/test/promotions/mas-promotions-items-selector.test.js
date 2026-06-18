@@ -218,7 +218,11 @@ describe('MasPromotionsItemsSelector', () => {
         });
         const el = await fixture(html`<mas-promotions-items-selector></mas-promotions-items-selector>`);
         await el.updateComplete;
-        expect(el.shadowRoot.querySelector('sp-picker.offer-filter')).to.be.null;
+        const cardsFilter = [...el.renderRoot.querySelectorAll('mas-search-and-filters')].find(
+            (f) => f.type === TABLE_TYPE.CARDS,
+        );
+        await cardsFilter.updateComplete;
+        expect(cardsFilter.shadowRoot.querySelector('sp-picker.offer-filter')).to.be.null;
     });
 
     it('renders offer filter dropdown with All and per-offer options when two offers are selected', async () => {
@@ -237,7 +241,11 @@ describe('MasPromotionsItemsSelector', () => {
         });
         const el = await fixture(html`<mas-promotions-items-selector></mas-promotions-items-selector>`);
         await el.updateComplete;
-        const picker = el.shadowRoot.querySelector('sp-picker.offer-filter');
+        const cardsFilter = [...el.renderRoot.querySelectorAll('mas-search-and-filters')].find(
+            (f) => f.type === TABLE_TYPE.CARDS,
+        );
+        await cardsFilter.updateComplete;
+        const picker = cardsFilter.shadowRoot.querySelector('sp-picker.offer-filter');
         expect(picker).to.exist;
         const items = [...picker.querySelectorAll('sp-menu-item')];
         expect(items.length).to.equal(3);
@@ -262,13 +270,14 @@ describe('MasPromotionsItemsSelector', () => {
         });
         const el = await fixture(html`<mas-promotions-items-selector></mas-promotions-items-selector>`);
         await el.updateComplete;
-        const picker = el.shadowRoot.querySelector('sp-picker.offer-filter');
-        picker.value = 'phsp-osi';
-        picker.dispatchEvent(new Event('change', { bubbles: true }));
-        await el.updateComplete;
         const cardsFilter = [...el.renderRoot.querySelectorAll('mas-search-and-filters')].find(
             (f) => f.type === TABLE_TYPE.CARDS,
         );
+        await cardsFilter.updateComplete;
+        const picker = cardsFilter.shadowRoot.querySelector('sp-picker.offer-filter');
+        picker.value = 'phsp-osi';
+        picker.dispatchEvent(new Event('change', { bubbles: true }));
+        await el.updateComplete;
         expect(cardsFilter.productFilter).to.deep.equal(['mas:product_code/phsp']);
     });
 
@@ -290,13 +299,14 @@ describe('MasPromotionsItemsSelector', () => {
         await el.updateComplete;
         el.activeFilterOfferId = 'phsp-osi';
         await el.updateComplete;
-        const picker = el.shadowRoot.querySelector('sp-picker.offer-filter');
-        picker.value = 'all';
-        picker.dispatchEvent(new Event('change', { bubbles: true }));
-        await el.updateComplete;
         const cardsFilter = [...el.renderRoot.querySelectorAll('mas-search-and-filters')].find(
             (f) => f.type === TABLE_TYPE.CARDS,
         );
+        await cardsFilter.updateComplete;
+        const picker = cardsFilter.shadowRoot.querySelector('sp-picker.offer-filter');
+        picker.value = 'all';
+        picker.dispatchEvent(new Event('change', { bubbles: true }));
+        await el.updateComplete;
         expect(cardsFilter.productFilter).to.deep.equal(['mas:product_code/phsp', 'mas:product_code/ilst']);
     });
 

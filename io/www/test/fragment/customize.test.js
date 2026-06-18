@@ -70,6 +70,18 @@ describe('customize collections', function () {
         expect(result).to.deep.equal(expected);
     });
 
+    it('should preserve nested id and path fields (e.g. model.id after pzn merge)', function () {
+        const root = { id: 'root-id', path: '/root', model: { id: 'model-id', title: 'Card' } };
+        const variation = { id: 'var-id', path: '/var', model: { title: 'Card Variation' } };
+        const result = deepMerge(root, variation);
+        // top-level id/path come from root (DO_NOT_MERGE_KEYS)
+        expect(result.id).to.equal('root-id');
+        expect(result.path).to.equal('/root');
+        // nested model.id must be preserved — not dropped by DO_NOT_MERGE_KEYS recursion
+        expect(result.model.id).to.equal('model-id');
+        expect(result.model.title).to.equal('Card Variation');
+    });
+
     it('should preserve left value when right has undefined (e.g. fields.variant)', function () {
         const left = { fields: { variant: 'regional-variant', title: 'Root' } };
         const right = { fields: { variant: undefined, title: 'Regional' } };

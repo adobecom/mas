@@ -33,19 +33,25 @@ async function resolveFragmentInit(context, requestInfos) {
 }
 
 function deepMerge(...objects) {
+    return _deepMerge(true, ...objects);
+}
+
+function _deepMerge(topLevel, ...objects) {
     const result = {};
-    MERGE_CONFIG.DO_NOT_MERGE_KEYS.map((key) => {
-        if (objects[0]?.[key] !== undefined) {
-            result[key] = objects[0][key];
-        }
-    });
+    if (topLevel) {
+        MERGE_CONFIG.DO_NOT_MERGE_KEYS.map((key) => {
+            if (objects[0]?.[key] !== undefined) {
+                result[key] = objects[0][key];
+            }
+        });
+    }
     for (const obj of objects) {
         for (const key in obj) {
-            if (MERGE_CONFIG.DO_NOT_MERGE_KEYS.includes(key)) {
+            if (topLevel && MERGE_CONFIG.DO_NOT_MERGE_KEYS.includes(key)) {
                 continue;
             }
             if (typeof obj[key] === 'object' && obj[key] !== null && !Array.isArray(obj[key])) {
-                result[key] = deepMerge(result[key] || {}, obj[key]);
+                result[key] = _deepMerge(false, result[key] || {}, obj[key]);
             } else {
                 if (!Array.isArray(obj[key]) || obj[key].length > 0) {
                     // Preserve left value when right is undefined; only overwrite for '' (explicit clear) or other defined values

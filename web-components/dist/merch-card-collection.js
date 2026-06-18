@@ -2507,7 +2507,8 @@ merch-card .footer-row-cell:nth-child(8) {
             color: #ffffff;
         }
 
-        :host([variant='mini-compare-chart-mweb']) ::slotted(h3[slot='heading-xs']) {
+        :host([variant='mini-compare-chart-mweb'])
+            ::slotted(h3[slot='heading-xs']) {
             max-width: var(--consonant-merch-card-heading-xs-max-width, 100%);
         }
 

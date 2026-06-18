@@ -138,9 +138,7 @@ if (!SINGLE_FRAGMENT) {
 
 function csvEscape(val) {
     const str = String(val ?? '');
-    return str.includes(',') || str.includes('"') || str.includes('\n')
-        ? `"${str.replace(/"/g, '""')}"`
-        : str;
+    return str.includes(',') || str.includes('"') || str.includes('\n') ? `"${str.replace(/"/g, '""')}"` : str;
 }
 
 function recordCsv(id, title, status, fieldsChanged, reason) {
@@ -416,7 +414,13 @@ async function main() {
                         stats.converted++;
                         const action = APPLY ? '✓' : '~';
                         log(`  ${action} [${result.id}] ${result.title} — fields: ${result.fieldsChanged.join(', ')}`);
-                        recordCsv(result.id, result.title, APPLY ? 'converted' : 'would-convert', result.fieldsChanged.join(';'), '');
+                        recordCsv(
+                            result.id,
+                            result.title,
+                            APPLY ? 'converted' : 'would-convert',
+                            result.fieldsChanged.join(';'),
+                            '',
+                        );
                     }
                 }
             }

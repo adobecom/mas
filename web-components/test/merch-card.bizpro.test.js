@@ -387,6 +387,35 @@ describe('bizpro short description tax spacing', () => {
             'incl. VAT. Annual, billed monthly',
         );
     });
+
+    it('adds no separator when there is no tax label (e.g. en-US)', async () => {
+        const noTax =
+            '<p slot="heading-m"><span is="inline-price" data-template="legal">' +
+            '<span class="price price-legal">' +
+            '<span class="price-unit-type disabled"></span>' +
+            '<span class="price-tax-inclusivity disabled"></span>' +
+            '<span class="price-plan-type disabled"></span>' +
+            '</span></span></p>';
+        card = await renderCard(
+            `${noTax}<div slot="legal-text">Annual, billed monthly</div>`,
+        );
+        card.variantLayout.adjustShortDescription();
+        expect(card.querySelector('.price-legal').textContent).to.equal(
+            'Annual, billed monthly',
+        );
+    });
+
+    it('stays idempotent across repeated re-resolves (no accumulating spaces)', async () => {
+        card = await renderCard(
+            `${legalWithTax('excl. VAT')}<div slot="legal-text">Annual, billed monthly</div>`,
+        );
+        card.variantLayout.adjustShortDescription();
+        card.variantLayout.adjustShortDescription();
+        card.variantLayout.adjustShortDescription();
+        expect(card.querySelector('.price-legal').textContent).to.equal(
+            'excl. VAT Annual, billed monthly',
+        );
+    });
 });
 
 describe('bizpro whats-included toggle interaction', () => {

@@ -17,7 +17,72 @@ function extractLocale(path = '') {
     return path.match(PATH_LOCALE)?.groups?.locale ?? null;
 }
 
+const SCOPE_FIELDS = {
+    price: { fields: ['prices'] },
+    buttonText: { fields: ['ctas'] },
+    calloutText: { fields: ['callout'] },
+    productDescription: { fields: ['description'] },
+    productText: { fields: ['promoText', 'shortDescription'] },
+    subtitle: { fields: ['subtitle'] },
+    fragmentTitle: { top: ['title'] },
+    fragmentDescription: { top: ['description'] },
+    tags: { tags: true },
+};
+
+function tagToString(tag) {
+    if (typeof tag === 'string') return tag;
+    return tag?.id || tag?.title || '';
+}
+
+function matchTags(fragment, find, matchCase) {
+    const values = getValues(fragment, 'tags')?.values ?? fragment.tags ?? [];
+    return values
+        .map(tagToString)
+        .filter((t) => matchesText(t, find, matchCase))
+        .map((t) => ({ field: 'tags', value: t }));
+}
+
+function matchEverywhere(fragment, find, matchCase) {
+    const matches = [];
+    for (const field of fragment.fields || []) {
+        for (const value of field.values || []) {
+            if (matchesText(value, find, matchCase)) {
+                matches.push({ field: field.name, value });
+                break;
+            }
+        }
+    }
+    for (const prop of ['title', 'description']) {
+        if (matchesText(fragment[prop], find, matchCase)) {
+            matches.push({ field: prop, value: fragment[prop] });
+        }
+    }
+    return matches;
+}
+
+function findMatches(fragment, searchIn, find, matchCase) {
+    if (searchIn === 'everywhere') return matchEverywhere(fragment, find, matchCase);
+
+    const scope = SCOPE_FIELDS[searchIn];
+    if (!scope) return [];
+    if (scope.tags) return matchTags(fragment, find, matchCase);
+
+    const matches = [];
+    for (const name of scope.fields || []) {
+        const values = getValues(fragment, name)?.values ?? [];
+        for (const value of values) {
+            if (matchesText(value, find, matchCase)) matches.push({ field: searchIn, value });
+        }
+    }
+    for (const prop of scope.top || []) {
+        if (matchesText(fragment[prop], find, matchCase)) {
+            matches.push({ field: searchIn, value: fragment[prop] });
+        }
+    }
+    return matches;
+}
+
 async function main() {}
 
-module.exports = { main, matchesText, extractLocale };
+module.exports = { main, matchesText, extractLocale, SCOPE_FIELDS, findMatches };
 exports.main = main;

@@ -253,7 +253,7 @@ class MasPromotionsItemsSelector extends LitElement {
 
     #handleOfferFilterChange = (e) => {
         e.stopPropagation();
-        const val = e.target.value;
+        const val = e.detail.value;
         this.activeFilterOfferId = val === OFFER_FILTER_ALL ? '' : (val ?? '');
         this.#syncOfferProductTagsToFragmentSearch();
     };
@@ -324,20 +324,6 @@ class MasPromotionsItemsSelector extends LitElement {
                             ${this.viewOnly
                                 ? nothing
                                 : html`
-                                      ${tab.value === TABLE_TYPE.CARDS && this.#offerFilterOptions.length > 1
-                                          ? html`<sp-picker
-                                                class="offer-filter"
-                                                size="m"
-                                                label="Offer"
-                                                .value=${this.activeFilterOfferId}
-                                                @change=${this.#handleOfferFilterChange}
-                                            >
-                                                <sp-menu-item value=${OFFER_FILTER_ALL}>All offers</sp-menu-item>
-                                                ${this.#offerFilterOptions.map(
-                                                    ({ id, label }) => html`<sp-menu-item value=${id}>${label}</sp-menu-item>`,
-                                                )}
-                                            </sp-picker>`
-                                          : nothing}
                                       <mas-search-and-filters
                                           .type=${tab.value}
                                           .searchQuery=${tab.value === this.selectedTab ? this.searchQuery : ''}
@@ -345,7 +331,10 @@ class MasPromotionsItemsSelector extends LitElement {
                                           .promotionSurfaceOptions=${promotionSurfaceOptions}
                                           .promotionSurface=${surfacePickerValue ?? ''}
                                           .productFilter=${tab.value === TABLE_TYPE.CARDS ? this.#offerProductTags : []}
+                                          .offerFilterOptions=${tab.value === TABLE_TYPE.CARDS ? this.#offerFilterOptions : []}
+                                          .offerFilterValue=${this.activeFilterOfferId}
                                           @promotion-surface-change=${this.#onPromotionItemSurfaceChange}
+                                          @offer-filter-change=${this.#handleOfferFilterChange}
                                       ></mas-search-and-filters>
                                   `}
                             <div

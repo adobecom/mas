@@ -7,11 +7,11 @@ function fetchResponse(body) {
 }
 
 const commonStub = { fetchOdin: async () => ({}), getValues: () => null };
-const load = (overrides = {}) => proxyquire('../../src/bulk-edit/find.js', { '../common.js': { ...commonStub, ...overrides } });
+const load = (overrides = {}) => proxyquire('../../src/bulk-edit/search.js', { '../common.js': { ...commonStub, ...overrides } });
 
 const { matchesText } = load();
 
-describe('bulk-edit/find: matchesText', () => {
+describe('bulk-edit/search: matchesText', () => {
     it('matches a case-insensitive substring by default', () => {
         expect(matchesText('Back to School sale', 'school', false)).to.equal(true);
     });
@@ -25,7 +25,7 @@ describe('bulk-edit/find: matchesText', () => {
     });
 });
 
-describe('bulk-edit/find: extractLocale', () => {
+describe('bulk-edit/search: extractLocale', () => {
     const { extractLocale } = load();
     it('pulls the locale segment from a mas fragment path', () => {
         expect(extractLocale('/content/dam/mas/acom/en_US/photoshop-abm')).to.equal('en_US');
@@ -36,7 +36,7 @@ describe('bulk-edit/find: extractLocale', () => {
     });
 });
 
-describe('bulk-edit/find: findMatches', () => {
+describe('bulk-edit/search: findMatches', () => {
     const getValues = (fragment, name) => {
         const f = (fragment.fields || []).find((x) => x.name === name);
         return f ? { values: f.values, path: `/fields/${name}` } : null;
@@ -93,7 +93,7 @@ describe('bulk-edit/find: findMatches', () => {
     });
 });
 
-describe('bulk-edit/find: buildSearchQuery', () => {
+describe('bulk-edit/search: buildSearchQuery', () => {
     const svc = load();
     it('searches the whole surface when no locale given', () => {
         const q = svc.buildSearchQuery({ surface: 'acom', find: 'school' });
@@ -121,7 +121,7 @@ describe('bulk-edit/find: buildSearchQuery', () => {
     });
 });
 
-describe('bulk-edit/find: searchCandidates', () => {
+describe('bulk-edit/search: searchCandidates', () => {
     it('follows cursors and yields every item', async () => {
         const fetchOdinStub = sinon.stub();
         fetchOdinStub.onCall(0).resolves(fetchResponse({ items: [{ id: 'a' }], cursor: 'c1' }));
@@ -146,124 +146,3 @@ describe('bulk-edit/find: searchCandidates', () => {
     });
 });
 
-describe('bulk-edit/find: runFind', () => {
-    it('returns only fragments whose scoped field matches, in the result shape', async () => {
-        const items = [
-            {
-                id: 'f1',
-                path: '/content/dam/mas/acom/en_US/a',
-                title: 'A',
-                status: 'PUBLISHED',
-                etag: 'e1',
-                fields: [{ name: 'subtitle', values: ['Back to school'] }],
-            },
-            {
-                id: 'f2',
-                path: '/content/dam/mas/acom/en_US/b',
-                title: 'B',
-                status: 'DRAFT',
-                etag: 'e2',
-                fields: [{ name: 'subtitle', values: ['Nothing here'] }],
-            },
-        ];
-        const fetchOdinStub = sinon.stub().resolves(fetchResponse({ items, cursor: null }));
-        const getValues = (fragment, name) => {
-            const f = (fragment.fields || []).find((x) => x.name === name);
-            return f ? { values: f.values, path: `/fields/${name}` } : null;
-        };
-        const mod = load({ fetchOdin: fetchOdinStub, getValues });
-
-        const result = await mod.runFind({
-            odinEndpoint: 'https://odin.example',
-            authToken: 't',
-            surface: 'acom',
-            find: 'school',
-            searchIn: 'subtitle',
-            matchCase: false,
-        });
-
-        expect(result.total).to.equal(1);
-        expect(result.items).to.deep.equal([
-            {
-                id: 'f1',
-                path: '/content/dam/mas/acom/en_US/a',
-                locale: 'en_US',
-                title: 'A',
-                status: 'PUBLISHED',
-                etag: 'e1',
-                matches: [{ field: 'subtitle', value: 'Back to school' }],
-            },
-        ]);
-    });
-});
-
-describe('bulk-edit/find: main action', () => {
-    function loadAction({ allowed = true, items = [], fetchOdin, missing = null } = {}) {
-        const fetchOdinStub = fetchOdin ?? sinon.stub().resolves(fetchResponse({ items, cursor: null }));
-        const getValues = (fragment, name) => {
-            const f = (fragment.fields || []).find((x) => x.name === name);
-            return f ? { values: f.values, path: `/fields/${name}` } : null;
-        };
-        const mod = proxyquire('../../src/bulk-edit/find.js', {
-            '../common.js': { fetchOdin: fetchOdinStub, getValues },
-            '../../utils.js': {
-                errorResponse: (statusCode, message) => ({ statusCode, body: { error: message } }),
-                checkMissingRequestInputs: () => missing,
-                getBearerToken: () => 'token',
-                isAllowed: async () => allowed,
-            },
-        });
-        return { mod, fetchOdinStub };
-    }
-
-    const baseParams = {
-        odinEndpoint: 'https://odin.example',
-        allowedClientId: 'mas-studio',
-        __ow_headers: { authorization: 'Bearer token' },
-        find: 'school',
-        surface: 'acom',
-        searchIn: 'subtitle',
-    };
-
-    afterEach(() => sinon.restore());
-
-    it('returns 200 with the search result body', async () => {
-        const items = [
-            {
-                id: 'f1',
-                path: '/content/dam/mas/acom/en_US/a',
-                title: 'A',
-                status: 'PUBLISHED',
-                etag: 'e1',
-                fields: [{ name: 'subtitle', values: ['Back to school'] }],
-            },
-        ];
-        const { mod, fetchOdinStub } = loadAction({ items });
-        const res = await mod.main(baseParams);
-        expect(res.statusCode).to.equal(200);
-        expect(res.body.total).to.equal(1);
-        expect(res.body.items[0].id).to.equal('f1');
-        expect(fetchOdinStub.calledOnce).to.equal(true);
-    });
-    it('returns 401 when the token is not allowed', async () => {
-        const { mod } = loadAction({ allowed: false });
-        expect((await mod.main(baseParams)).statusCode).to.equal(401);
-    });
-    it('returns 400 when odinEndpoint is missing', async () => {
-        const { mod } = loadAction();
-        expect((await mod.main({ ...baseParams, odinEndpoint: undefined })).statusCode).to.equal(400);
-    });
-    it('returns 400 when a required param (find) is missing', async () => {
-        const { mod } = loadAction({ missing: 'missing parameter(s) [find]' });
-        const res = await mod.main({ ...baseParams, find: undefined });
-        expect(res.statusCode).to.equal(400);
-        expect(res.body.error).to.equal('missing parameter(s) [find]');
-    });
-    it('returns 500 when fetchOdin throws', async () => {
-        const fetchOdin = sinon.stub().rejects(new Error('odin unavailable'));
-        const { mod } = loadAction({ fetchOdin });
-        const res = await mod.main(baseParams);
-        expect(res.statusCode).to.equal(500);
-        expect(res.body.error).to.equal('odin unavailable');
-    });
-});

@@ -129,3 +129,32 @@ describe('find-replace/search: searchCandidates', () => {
         expect(fetchOdinStub.getCall(1).args[1]).to.contain('cursor=c1');
     });
 });
+
+describe('find-replace/search: runSearch', () => {
+    it('returns only fragments whose scoped field matches, in the result shape', async () => {
+        const items = [
+            { id: 'f1', path: '/content/dam/mas/acom/en_US/a', title: 'A', status: 'PUBLISHED', etag: 'e1',
+              fields: [{ name: 'subtitle', values: ['Back to school'] }] },
+            { id: 'f2', path: '/content/dam/mas/acom/en_US/b', title: 'B', status: 'DRAFT', etag: 'e2',
+              fields: [{ name: 'subtitle', values: ['Nothing here'] }] },
+        ];
+        const fetchOdinStub = sinon.stub().resolves(fetchResponse({ items, cursor: null }));
+        const getValues = (fragment, name) => {
+            const f = (fragment.fields || []).find((x) => x.name === name);
+            return f ? { values: f.values, path: `/fields/${name}` } : null;
+        };
+        const mod = load({ fetchOdin: fetchOdinStub, getValues });
+
+        const result = await mod.runSearch({
+            odinEndpoint: 'https://odin.example', authToken: 't',
+            surface: 'acom', find: 'school', searchIn: 'subtitle', matchCase: false,
+        });
+
+        expect(result.total).to.equal(1);
+        expect(result.items).to.deep.equal([{
+            id: 'f1', path: '/content/dam/mas/acom/en_US/a', locale: 'en_US',
+            title: 'A', status: 'PUBLISHED', etag: 'e1',
+            matches: [{ field: 'subtitle', value: 'Back to school' }],
+        }]);
+    });
+});

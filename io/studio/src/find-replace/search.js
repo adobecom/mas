@@ -110,9 +110,32 @@ async function* searchCandidates({ odinEndpoint, authToken, query, limit = 50 })
     } while (cursor);
 }
 
+async function runSearch({
+    odinEndpoint, authToken, surface, locale, tags, status,
+    find, searchIn = 'everywhere', matchCase = false, limit,
+}) {
+    const query = buildSearchQuery({ surface, locale, tags, status, find });
+    const items = [];
+    for await (const fragment of searchCandidates({ odinEndpoint, authToken, query, limit })) {
+        const matches = findMatches(fragment, searchIn, find, matchCase);
+        if (matches.length) {
+            items.push({
+                id: fragment.id,
+                path: fragment.path,
+                locale: extractLocale(fragment.path),
+                title: fragment.title,
+                status: fragment.status,
+                etag: fragment.etag,
+                matches,
+            });
+        }
+    }
+    return { items, total: items.length };
+}
+
 async function main() {}
 
 module.exports = {
-    main, matchesText, extractLocale, SCOPE_FIELDS, findMatches, buildSearchQuery, searchCandidates,
+    main, matchesText, extractLocale, SCOPE_FIELDS, findMatches, buildSearchQuery, searchCandidates, runSearch,
 };
 exports.main = main;

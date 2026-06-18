@@ -317,7 +317,9 @@ describe('Icon picker field', () => {
         await el.updateComplete;
 
         let deleteFired = false;
-        el.addEventListener('delete-field', () => { deleteFired = true; });
+        el.addEventListener('delete-field', () => {
+            deleteFired = true;
+        });
 
         el.dispatchEvent(new CustomEvent('modal-close', { bubbles: true }));
         await el.updateComplete;

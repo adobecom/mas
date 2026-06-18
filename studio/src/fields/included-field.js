@@ -259,9 +259,7 @@ class IncludedField extends LitElement {
                 </div>
 
                 <div class="included-info">
-                    <div class="value">
-                        ${this.#renderDescription()}
-                    </div>
+                    <div class="value">${this.#renderDescription()}</div>
                 </div>
 
                 <sp-action-menu class="action-menu" quiet size="s" placement="bottom-end" @change=${this.#handleMenuChange}>

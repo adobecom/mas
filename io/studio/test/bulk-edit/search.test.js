@@ -122,7 +122,7 @@ describe('bulk-edit/search: buildSearchQuery', () => {
     });
 });
 
-describe('bulk-edit/search: searchCandidates', () => {
+describe('bulk-edit/search: searchPages', () => {
     it('follows cursors and yields every item', async () => {
         const fetchOdinStub = sinon.stub();
         fetchOdinStub.onCall(0).resolves(fetchResponse({ items: [{ id: 'a' }], cursor: 'c1' }));
@@ -130,13 +130,13 @@ describe('bulk-edit/search: searchCandidates', () => {
         const mod = load({ fetchOdin: fetchOdinStub });
 
         const ids = [];
-        for await (const item of mod.searchCandidates({
+        for await (const page of mod.searchPages({
             odinEndpoint: 'https://odin.example',
             authToken: 't',
             query: { sort: [], filter: { path: '/content/dam/mas/acom' } },
             limit: 50,
         })) {
-            ids.push(item.id);
+            ids.push(...page.map((i) => i.id));
         }
 
         expect(ids).to.deep.equal(['a', 'b']);

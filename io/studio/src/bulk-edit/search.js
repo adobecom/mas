@@ -102,12 +102,6 @@ async function* searchPages({ odinEndpoint, authToken, query, limit = 50 }) {
     } while (cursor);
 }
 
-async function* searchCandidates(opts) {
-    for await (const items of searchPages(opts)) {
-        yield* items;
-    }
-}
-
 module.exports = {
     matchesText,
     extractLocale,
@@ -115,5 +109,4 @@ module.exports = {
     findMatches,
     buildSearchQuery,
     searchPages,
-    searchCandidates,
 };

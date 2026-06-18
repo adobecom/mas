@@ -122,6 +122,27 @@ describe('bulk-edit: handleGet', () => {
 });
 
 describe('bulk-edit: main routing', () => {
+    it('does not let the request body override the injected allowedClientId', async () => {
+        const isAllowed = sinon.stub().resolves(true);
+        const mod = proxyquire('../../src/bulk-edit/bulk-edit.js', {
+            '../../utils.js': {
+                errorResponse: (statusCode, message) => ({ error: { statusCode, body: { error: message } } }),
+                getBearerToken: () => 'token',
+                isAllowed,
+                parseOwBody: (p) => ({ ...p, allowedClientId: 'attacker-client' }),
+                '@noCallThru': true,
+            },
+            '../common.js': {
+                invokeAsyncAction: sinon.stub().resolves({ activationId: 'a' }),
+                buildSiblingActionName: (params, name) => `MerchAtScaleStudio/${name}`,
+                '@noCallThru': true,
+            },
+            './state.js': { readJob: sinon.stub().resolves(null), writeJob: sinon.stub().resolves(), '@noCallThru': true },
+            '@adobe/aio-sdk': { Core: { Logger: () => ({ info() {}, error() {} }) }, '@noCallThru': true },
+        });
+        await mod.main({ __ow_method: 'post', allowedClientId: 'mas-studio', type: 'find', find: 'x', surface: 'acom' });
+        expect(isAllowed.firstCall.args[1]).to.equal('mas-studio');
+    });
     it('routes POST to handlePost', async () => {
         const { mod } = load();
         const res = await mod.main({ __ow_method: 'post', ...findParams });

@@ -104,7 +104,11 @@ async function handleGet(params) {
 async function main(params) {
     try {
         const method = (params.__ow_method || '').toLowerCase();
-        if (method === 'post') return await handlePost(parseOwBody(params));
+        if (method === 'post') {
+            const body = parseOwBody(params);
+            body.allowedClientId = params.allowedClientId;
+            return await handlePost(body);
+        }
         if (method === 'get') return await handleGet(params);
         return errorResponse(405, `method '${method}' not allowed`, logger);
     } catch (error) {

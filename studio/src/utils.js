@@ -206,7 +206,7 @@ export const MODEL_WEB_COMPONENT_MAPPING = {
 };
 
 function getWebComponentName(fragment) {
-    if (fragment?.model?.path === COLLECTION_MODEL_PATH && fragment?.getField?.(COMPARE_CHART_FIELD)) {
+    if (fragment?.model?.path === COLLECTION_MODEL_PATH && hasNonEmptyCompareChart(fragment)) {
         return 'mas-compare-chart';
     }
     return MODEL_WEB_COMPONENT_MAPPING[fragment?.model?.path];

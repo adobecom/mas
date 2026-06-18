@@ -19,6 +19,8 @@ describe('MasTopNav', () => {
     let originalPromotionId;
     let originalTranslationProjectId;
     let originalTranslationInEdit;
+    let originalMasksFragmentId;
+    let originalMasksCreating;
 
     beforeEach(() => {
         sandbox = sinon.createSandbox();
@@ -30,6 +32,8 @@ describe('MasTopNav', () => {
         originalPromotionId = Store.promotions.promotionId.value;
         originalTranslationProjectId = Store.translationProjects.translationProjectId.value;
         originalTranslationInEdit = Store.translationProjects.inEdit.value;
+        originalMasksFragmentId = Store.masks.fragmentId.value;
+        originalMasksCreating = Store.masks.creating.value;
         window.adobeIMS = {
             getAccessToken: () => ({ token: 'mock-token' }),
             getProfile: () => Promise.resolve({ displayName: 'Test User', email: 'test@example.com' }),
@@ -52,6 +56,8 @@ describe('MasTopNav', () => {
         Store.promotions.promotionId.value = originalPromotionId;
         Store.translationProjects.translationProjectId.value = originalTranslationProjectId;
         Store.translationProjects.inEdit.value = originalTranslationInEdit;
+        Store.masks.fragmentId.value = originalMasksFragmentId;
+        Store.masks.creating.value = originalMasksCreating;
         delete window.adobeIMS;
     });
 
@@ -310,12 +316,43 @@ describe('MasTopNav', () => {
     });
 
     describe('history navigation visuals', () => {
-        it('should render history navigation buttons with forward disabled', async () => {
+        it('should render history navigation buttons with neither disabled', async () => {
             const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
             const buttons = el.querySelectorAll('.history-navigation .history-nav-button');
             expect(buttons.length).to.equal(2);
             expect(buttons[0].hasAttribute('disabled')).to.be.false;
-            expect(buttons[1].hasAttribute('disabled')).to.be.true;
+            expect(buttons[1].hasAttribute('disabled')).to.be.false;
+        });
+    });
+
+    describe('masks editor breadcrumbs', () => {
+        it('shows Masks > Editor breadcrumbs on MASKS_EDITOR page', async () => {
+            Store.page.value = PAGE_NAMES.MASKS_EDITOR;
+            Store.masks.creating.value = false;
+            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
+            await el.updateComplete;
+            const items = [...el.querySelectorAll('.nav-breadcrumbs sp-breadcrumb-item')];
+            expect(items.map((i) => i.textContent.trim())).to.deep.equal(['Masks', 'Editor']);
+        });
+
+        it('shows New mask label when creating is true', async () => {
+            Store.page.value = PAGE_NAMES.MASKS_EDITOR;
+            Store.masks.creating.value = true;
+            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
+            await el.updateComplete;
+            const items = [...el.querySelectorAll('.nav-breadcrumbs sp-breadcrumb-item')];
+            expect(items[1].textContent.trim()).to.equal('New mask');
+        });
+
+        it('Masks crumb navigates to MASKS page on click', async () => {
+            Store.page.value = PAGE_NAMES.MASKS_EDITOR;
+            Store.masks.creating.value = false;
+            const navigateStub = sandbox.stub(router, 'navigateToPage').returns(() => {});
+            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
+            await el.updateComplete;
+            const firstItem = el.querySelector('.nav-breadcrumbs sp-breadcrumb-item');
+            firstItem.click();
+            expect(navigateStub.calledWith(PAGE_NAMES.MASKS)).to.be.true;
         });
     });
 

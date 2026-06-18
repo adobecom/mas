@@ -2,7 +2,10 @@ import { expect } from '@esm-bundle/chai';
 import sinon from 'sinon';
 // mas.js first to break the circular dep between variant-layout and variants
 import '../src/mas.js';
-import { EVENT_MERCH_QUANTITY_SELECTOR_CHANGE } from '../src/constants.js';
+import {
+    EVENT_MERCH_CARD_QUANTITY_CHANGE,
+    EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
+} from '../src/constants.js';
 
 let BizPro;
 
@@ -508,6 +511,54 @@ describe('bizpro license dropdown interaction', () => {
                 .querySelector('#license-popover')
                 .hasAttribute('hidden'),
         ).to.be.true;
+    });
+});
+
+describe('bizpro license sync from the 3-in-1 modal', () => {
+    let card;
+    afterEach(() => card?.remove());
+
+    const QS =
+        '<div slot="quantity-select"><merch-quantity-select title="License" min="1" max="10" step="1" default-value="2"></merch-quantity-select></div>';
+
+    const value = () =>
+        card.shadowRoot
+            .querySelector('.license-select-value')
+            .textContent.trim();
+
+    // merch-card.handleAddonAndQuantityUpdate fires this on the quantity-select
+    // when the 3-in-1 modal closes with a new license count (MWPW-198372).
+    const modalQuantityChange = (quantity) =>
+        card.querySelector('merch-quantity-select').dispatchEvent(
+            new CustomEvent(EVENT_MERCH_CARD_QUANTITY_CHANGE, {
+                detail: { quantity },
+                bubbles: true,
+                composed: true,
+            }),
+        );
+
+    it('reflects a modal license change in the custom selector', async () => {
+        card = await renderCard(QS);
+        expect(value()).to.equal('2');
+
+        modalQuantityChange(6);
+        await card.updateComplete;
+
+        expect(value()).to.equal('6');
+        expect(
+            card.shadowRoot
+                .querySelector('.license-select-option.selected')
+                .textContent.trim(),
+        ).to.equal('6');
+    });
+
+    it('ignores a modal quantity outside the configured range', async () => {
+        card = await renderCard(QS);
+
+        modalQuantityChange(99);
+        await card.updateComplete;
+
+        expect(value()).to.equal('2');
     });
 });
 

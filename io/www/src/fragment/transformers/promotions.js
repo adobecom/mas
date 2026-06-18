@@ -342,8 +342,9 @@ async function hydrateProject(project, { baseUrl, surface, defaultLocale, resolv
     const hydratedProject = hydrateResponse.body;
     const fragmentPaths = parseFragmentPaths(hydratedProject);
     const offerOverrides = parseOfferOverrides(project.offerLines);
+    const offerSubstitutions = parseOfferSubstitutions(project.offerLines);
     const promoCode = hydratedProject.fields?.promoCode ?? null;
-    if (!fragmentPaths.length && !offerOverrides.length) {
+    if (!fragmentPaths.length && !offerOverrides.length && !offerSubstitutions.length) {
         logDebug(() => `Promotion project ${project.id} has no fragments or offer overrides, skipping`, context);
         return null;
     }
@@ -359,6 +360,7 @@ async function hydrateProject(project, { baseUrl, surface, defaultLocale, resolv
         promoCode,
         fragmentPaths,
         offerOverrides,
+        offerSubstitutions,
         defaultVariations,
         regionVariations,
     };
@@ -464,6 +466,7 @@ async function promotions(context) {
     const promoProjects = activeProjects.map((project) => ({
         project,
         promoMap: buildPromoMap(project.offerOverrides, context.country, project.promoCode, context),
+        substituteMap: buildSubstituteMap(project.offerSubstitutions ?? [], context.country),
         fragmentPaths: new Set(project.fragmentPaths),
     }));
     return { ...context, status: 200, promoProjects };

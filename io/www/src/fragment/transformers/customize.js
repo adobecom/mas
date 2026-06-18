@@ -180,8 +180,8 @@ function findPromoMapForFragment(root, customizeContext) {
     const match = PATH_TOKENS.exec(root.path);
     if (!match?.groups) return null;
     const { fragmentPath } = match.groups;
-    for (const { promoMap, fragmentPaths } of promoProjects) {
-        if (fragmentPaths.has(fragmentPath)) return promoMap;
+    for (const { promoMap, substituteMap, fragmentPaths } of promoProjects) {
+        if (fragmentPaths.has(fragmentPath)) return { promoMap, substituteMap };
     }
     return null;
 }
@@ -292,9 +292,9 @@ function adaptReferencesTree(referencesTree, customizedRoot) {
 function customizeTree(root, referencesTree = [], customizeContext) {
     //start by merging current fragment with its regional variation, and promos if any
     const customizedRoot = mergeVariations(root, customizeContext);
-    const promoMap = findPromoMapForFragment(root, customizeContext);
-    if (promoMap) {
-        applyPromoCode(customizedRoot, promoMap, customizeContext);
+    const promoEntry = findPromoMapForFragment(root, customizeContext);
+    if (promoEntry) {
+        applyPromoCode(customizedRoot, promoEntry.promoMap, promoEntry.substituteMap, customizeContext);
     }
 
     //adapt referencesTree to match the customized root's cards/collections

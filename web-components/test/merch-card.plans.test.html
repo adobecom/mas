@@ -266,7 +266,6 @@
                         container.append(masCommerceService, ccAllApps);
                         await oneEvent(ccAllApps, 'mas:ready');
                         await delay(50);
-                        ccAllApps.titleElement.click();
                         expect(
                             ccAllApps.titleElement.classList.contains(
                                 'modal-trigger',

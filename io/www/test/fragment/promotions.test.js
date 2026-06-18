@@ -789,7 +789,7 @@ describe('promotions', () => {
             fetchStub.restore();
             clearPromoCache();
 
-            expect(initResult.activeProject.offerSubstitutions).to.deep.equal([
+            expect(initResult.activeProjects[0].offerSubstitutions).to.deep.equal([
                 { baseOsi: 'OSI-1', substituteOsi: 'OSI-DE', country: 'DE' },
                 { baseOsi: 'OSI-2', substituteOsi: 'OSI-US', country: 'US' },
             ]);
@@ -797,10 +797,10 @@ describe('promotions', () => {
             const processResult = await promotionsTransformer.process(
                 createContext({
                     country: 'DE',
-                    promises: { promotions: Promise.resolve({ status: 200, activeProject: initResult.activeProject }) },
+                    promises: { promotions: Promise.resolve({ status: 200, activeProjects: [initResult.activeProjects[0]] }) },
                 }),
             );
-            expect(processResult.substituteMap).to.deep.equal({ 'OSI-1': 'OSI-DE' });
+            expect(processResult.promoProjects[0].substituteMap).to.deep.equal({ 'OSI-1': 'OSI-DE' });
         });
 
         it('skips offerLines with missing promoCode', async () => {
@@ -834,7 +834,7 @@ describe('promotions', () => {
             fetchStub.restore();
             clearPromoCache();
 
-            expect(result.activeProject.offerOverrides).to.deep.equal([
+            expect(result.activeProjects[0].offerOverrides).to.deep.equal([
                 { osis: ['OSI-1'], promoCode: 'BLACKFRIDAY', countries: ['US'] },
             ]);
         });
@@ -923,11 +923,11 @@ describe('parseOfferOverrides and substituteMap after OSI substitution refactor'
         const result = await promotionsTransformer.init(createContext());
         clearPromoCache();
 
-        expect(result.activeProject.offerOverrides).to.deep.equal([
+        expect(result.activeProjects[0].offerOverrides).to.deep.equal([
             { osis: ['OSI-1'], promoCode: 'BLACKFRIDAY', countries: ['US', 'CA'] },
             { osis: [], promoCode: 'GLOBAL', countries: [] },
         ]);
-        expect(result.activeProject.offerSubstitutions).to.deep.equal([]);
+        expect(result.activeProjects[0].offerSubstitutions).to.deep.equal([]);
     });
 
     it('produces empty substituteMap when active project has no offerSubstitutions', async () => {
@@ -937,12 +937,12 @@ describe('parseOfferOverrides and substituteMap after OSI substitution refactor'
                 promises: {
                     promotions: Promise.resolve({
                         status: 200,
-                        activeProject: { fragmentPaths: [], offerOverrides: [], promoCode: null },
+                        activeProjects: [{ fragmentPaths: [], offerOverrides: [], promoCode: null }],
                     }),
                 },
             }),
         );
-        expect(result.substituteMap).to.deep.equal({});
+        expect(result.promoProjects[0].substituteMap).to.deep.equal({});
     });
 
     it('produces empty substituteMap when country does not match any substitution', async () => {
@@ -952,17 +952,19 @@ describe('parseOfferOverrides and substituteMap after OSI substitution refactor'
                 promises: {
                     promotions: Promise.resolve({
                         status: 200,
-                        activeProject: {
-                            fragmentPaths: [],
-                            offerOverrides: [],
-                            offerSubstitutions: [{ baseOsi: 'OSI-1', substituteOsi: 'OSI-DE', country: 'DE' }],
-                            promoCode: null,
-                        },
+                        activeProjects: [
+                            {
+                                fragmentPaths: [],
+                                offerOverrides: [],
+                                offerSubstitutions: [{ baseOsi: 'OSI-1', substituteOsi: 'OSI-DE', country: 'DE' }],
+                                promoCode: null,
+                            },
+                        ],
                     }),
                 },
             }),
         );
-        expect(result.substituteMap).to.deep.equal({});
+        expect(result.promoProjects[0].substituteMap).to.deep.equal({});
     });
 
     it('normal offer overrides still build promoMap correctly when substitute lines are also present', async () => {
@@ -981,10 +983,10 @@ describe('parseOfferOverrides and substituteMap after OSI substitution refactor'
         const processResult = await promotionsTransformer.process(
             createContext({
                 country: 'US',
-                promises: { promotions: Promise.resolve({ status: 200, activeProject: initResult.activeProject }) },
+                promises: { promotions: Promise.resolve({ status: 200, activeProjects: [initResult.activeProjects[0]] }) },
             }),
         );
-        expect(processResult.promoMap).to.deep.include({ 'OSI-1': 'BLACKFRIDAY' });
-        expect(processResult.substituteMap).to.deep.equal({ 'OSI-A': 'OSI-B' });
+        expect(processResult.promoProjects[0].promoMap).to.deep.include({ 'OSI-1': 'BLACKFRIDAY' });
+        expect(processResult.promoProjects[0].substituteMap).to.deep.equal({ 'OSI-A': 'OSI-B' });
     });
 });

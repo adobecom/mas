@@ -154,16 +154,17 @@ function buildSubstituteMap(substitutions, { regionLocale, country }) {
 }
 
 /**
- * Parses project-level offer override lines of the form "<osis>:<promocode>:<countries>"
- * where osis and countries are comma-separated lists (may be empty), promoCode is required.
+ * Parses project-level offer override lines of the form "<osis>:<promocode>"
+ * where osis is a comma-separated list (may be empty), promoCode is required.
+ * Geo targeting is inherited from the project's geos field.
  * @param {string[]} lines
- * @returns {{ osis: string[], promoCode: string, countries: string[] }[]}
+ * @returns {{ osis: string[], promoCode: string }[]}
  */
 function parseOfferOverrides(lines) {
     return lines
         .map((line) => {
             if (line.startsWith('substitute:')) return null;
-            const [osisPart, promoCode, countriesPart] = line.split(':');
+            const [osisPart, promoCode] = line.split(':');
             if (!promoCode?.trim()) return null;
             return {
                 osis: osisPart
@@ -173,12 +174,6 @@ function parseOfferOverrides(lines) {
                           .filter(Boolean)
                     : [],
                 promoCode: promoCode.trim(),
-                countries: countriesPart
-                    ? countriesPart
-                          .split(',')
-                          .map((s) => s.trim())
-                          .filter(Boolean)
-                    : [],
             };
         })
         .filter(Boolean);
@@ -339,7 +334,7 @@ async function hydrateProject(project, { baseUrl, surface, defaultLocale, resolv
 
     const hydratedProject = hydrateResponse.body;
     const fragmentPaths = parseFragmentPaths(hydratedProject);
-    const offerOverrides = parseOfferOverrides(project.offerLines);
+    const offerOverrides = parseOfferOverrides(project.offerLines).map((override) => ({ ...override, geos: project.geos }));
     const offerSubstitutions = parseOfferSubstitutions(project.offerLines).map((sub) => ({ ...sub, geos: project.geos }));
     const promoCode = hydratedProject.fields?.promoCode ?? null;
     if (!fragmentPaths.length && !offerOverrides.length && !offerSubstitutions.length) {
@@ -430,14 +425,13 @@ async function init(context) {
  * Overrides can target specific OSIs or act as wildcards (empty osis list).
  * Specific OSI overrides take priority over the wildcard.
  */
-function buildPromoMap(offerOverrides, country, projectPromoCode, context) {
+function buildPromoMap(offerOverrides, { regionLocale, country }, projectPromoCode, context) {
     const map = {};
     if (projectPromoCode) {
         map['*'] = projectPromoCode;
     }
     for (const override of offerOverrides) {
-        const countryMatch = override.countries.length === 0 || (country && override.countries.includes(country));
-        if (!countryMatch) continue;
+        if (override.geos?.length && !matchesGeo(override.geos, { regionLocale, country })) continue;
         if (override.osis.length === 0) {
             if (map['*'] && map['*'] !== override.promoCode) {
                 log(`Project promoCode "${map['*']}" overridden by wildcard offer override "${override.promoCode}"`, context);
@@ -464,7 +458,7 @@ async function promotions(context) {
     const { regionLocale, country } = context;
     const promoProjects = activeProjects.map((project) => ({
         project,
-        promoMap: buildPromoMap(project.offerOverrides, country, project.promoCode, context),
+        promoMap: buildPromoMap(project.offerOverrides, { regionLocale, country }, project.promoCode, context),
         substituteMap: buildSubstituteMap(project.offerSubstitutions ?? [], { regionLocale, country }),
         fragmentPaths: new Set(project.fragmentPaths),
     }));

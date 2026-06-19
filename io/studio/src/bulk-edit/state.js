@@ -52,6 +52,11 @@ async function readUserCsv(jobId) {
     return JSON.parse(result.value);
 }
 
+async function deleteUserCsv(jobId) {
+    const state = await init();
+    await state.delete(buildUserCsvKey(jobId));
+}
+
 module.exports = {
     JOB_TTL,
     USER_CSV_TTL,
@@ -64,4 +69,5 @@ module.exports = {
     patchJob,
     writeUserCsv,
     readUserCsv,
+    deleteUserCsv,
 };

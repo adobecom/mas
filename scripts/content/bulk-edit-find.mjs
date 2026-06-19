@@ -58,7 +58,7 @@ function splitCsv(value) {
 
 const bulkEdit = require(resolve(studioDir, 'src/bulk-edit/bulk-edit.js'));
 const findWorker = require(resolve(studioDir, 'src/bulk-edit/find-worker.js'));
-const { readJob, writeJob, patchJob, JOB_TTL } = require(resolve(studioDir, 'src/bulk-edit/state.js'));
+const { readJob, writeJob, patchJob, deleteUserCsv, JOB_TTL } = require(resolve(studioDir, 'src/bulk-edit/state.js'));
 
 const searchKey = {
     type: 'find',
@@ -115,6 +115,10 @@ if (!forceRefresh && existing && !existing.cancelled && (existing.status === 'RU
     }
     console.log(JSON.stringify(formatOutput(job, { reused: true }), null, 2));
     process.exit(0);
+}
+
+if (forceRefresh) {
+    await deleteUserCsv(jobId);
 }
 
 await writeJob(jobId, {

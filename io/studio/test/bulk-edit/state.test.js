@@ -118,4 +118,11 @@ describe('bulk-edit/state: user CSV', () => {
         expect(puts[0].key).to.equal('bulk-edit.abc.csv');
         expect(puts[0].opts.ttl).to.equal(31536000);
     });
+    it('deleteUserCsv removes the stored upload', async () => {
+        const { mod, store } = load();
+        await mod.writeUserCsv('abc', { rows: [{ fragment_id: 'f1' }] });
+        await mod.deleteUserCsv('abc');
+        expect(store['bulk-edit.abc.csv']).to.equal(undefined);
+        expect(await mod.readUserCsv('abc')).to.equal(null);
+    });
 });

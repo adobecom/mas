@@ -11,6 +11,7 @@ function load({ existing = null, userCsv = null, allowed = true } = {}) {
     const patchJob = sinon.stub().resolves();
     const readUserCsv = sinon.stub().resolves(userCsv);
     const writeUserCsv = sinon.stub().resolves();
+    const deleteUserCsv = sinon.stub().resolves();
     const mod = proxyquire('../../src/bulk-edit/bulk-edit.js', {
         '../../utils.js': {
             errorResponse: (statusCode, message) => ({ error: { statusCode, body: { error: message } } }),
@@ -28,10 +29,10 @@ function load({ existing = null, userCsv = null, allowed = true } = {}) {
             buildSiblingActionName: (params, name) => `MerchAtScaleStudio/${name}`,
             '@noCallThru': true,
         },
-        './state.js': { readJob, writeJob, patchJob, readUserCsv, writeUserCsv, '@noCallThru': true },
+        './state.js': { readJob, writeJob, patchJob, readUserCsv, writeUserCsv, deleteUserCsv, '@noCallThru': true },
         '@adobe/aio-sdk': { Core: { Logger: () => ({ info() {}, error() {} }) }, '@noCallThru': true },
     });
-    return { mod, invokeAsyncAction, writeJob, readJob, patchJob, readUserCsv, writeUserCsv };
+    return { mod, invokeAsyncAction, writeJob, readJob, patchJob, readUserCsv, writeUserCsv, deleteUserCsv };
 }
 
 const findParams = {
@@ -207,12 +208,18 @@ describe('bulk-edit: handlePost', () => {
         expect(invokeAsyncAction.calledOnce).to.equal(true);
     });
     it('re-runs a DONE job when forceRefresh is true', async () => {
-        const { mod, invokeAsyncAction, writeJob } = load({ existing: { status: 'DONE', results: [{ id: 'a' }], total: 1 } });
+        const { mod, invokeAsyncAction, writeJob, deleteUserCsv } = load({ existing: { status: 'DONE', results: [{ id: 'a' }], total: 1 } });
         const res = await mod.handlePost({ ...findParams, forceRefresh: true });
         expect(res.statusCode).to.equal(202);
         expect(res.body.reused).to.equal(false);
+        expect(deleteUserCsv.calledOnceWith(res.body.jobId)).to.equal(true);
         expect(writeJob.calledOnce).to.equal(true);
         expect(invokeAsyncAction.calledOnce).to.equal(true);
+    });
+    it('does not clear uploaded CSV without forceRefresh', async () => {
+        const { mod, deleteUserCsv } = load({ existing: { status: 'DONE' } });
+        await mod.handlePost(findParams);
+        expect(deleteUserCsv.called).to.equal(false);
     });
     it('supersedes a RUNNING job with a fresh runId when forceRefresh is true', async () => {
         const { mod, readJob, patchJob, invokeAsyncAction, writeJob } = load();

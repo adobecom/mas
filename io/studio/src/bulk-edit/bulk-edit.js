@@ -2,7 +2,7 @@ const crypto = require('crypto');
 const { Core } = require('@adobe/aio-sdk');
 const { errorResponse, getBearerToken, isAllowed, parseOwBody, parseCsvUploadBody, isCsvUpload } = require('../../utils.js');
 const { invokeAsyncAction, buildSiblingActionName } = require('../common.js');
-const { readJob, writeJob, patchJob, readUserCsv, writeUserCsv } = require('./state.js');
+const { readJob, writeJob, patchJob, readUserCsv, writeUserCsv, deleteUserCsv } = require('./state.js');
 const { normalizeLocales } = require('./search.js');
 const {
     parseJobIdParam,
@@ -110,6 +110,10 @@ async function handlePost(params) {
 
     if (!params.odinEndpoint) {
         return errorResponse(400, 'missing parameter(s) odinEndpoint', logger);
+    }
+
+    if (forceRefresh) {
+        await deleteUserCsv(jobId);
     }
 
     // runId supersedes any worker still running under this jobId: a forced refresh writes a fresh

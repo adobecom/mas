@@ -738,9 +738,9 @@ describe('MasCollapsibleTableRow', () => {
             expect(el.shadowRoot.querySelector('sp-tab[value="groupedVariation"]')).to.exist;
         });
 
-        it('should select the grouped variation tab by default when the locale tab is hidden', async () => {
+        it('should select the promotion variation tab by default when the locale tab is hidden', async () => {
             const el = await setup(true);
-            expect(el.selectedTabKey).to.equal('groupedVariation');
+            expect(el.selectedTabKey).to.equal('promotion');
         });
 
         it('should render the locale tab by default', async () => {

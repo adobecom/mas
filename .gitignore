@@ -53,6 +53,8 @@ masStudio-*.json
 .cursor
 .superpowers/
 requests.http
+*.csv
+
 
 # Worktree documentation (per-ticket, not committed)
 /docs/

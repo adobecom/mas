@@ -469,6 +469,13 @@ async function promotions(context) {
         fragmentPaths: new Set(project.fragmentPaths),
     }));
     const substituteMap = Object.assign({}, ...promoProjects.map((p) => p.substituteMap));
+    promoProjects.forEach(({ project, promoMap, substituteMap: sm }) => {
+        logDebug(
+            () =>
+                `Project "${project.id}" promoMap: ${JSON.stringify(promoMap)}, substituteMap: ${JSON.stringify(sm)}`,
+            context,
+        );
+    });
     return { ...context, status: 200, promoProjects, substituteMap };
 }
 

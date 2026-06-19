@@ -27,8 +27,11 @@ const SCOPE_FIELDS = {
     productText: { fields: ['promoText', 'shortDescription'] },
     subtitle: { fields: ['subtitle'] },
     fragmentDescription: { top: ['description'] },
+    fragmentTitle: { top: ['title'] },
     tags: { tags: true },
 };
+
+const NON_EDITABLE_FIELD_NAMES = new Set(['name']);
 
 function tagToString(tag) {
     if (typeof tag === 'string') return tag;
@@ -46,6 +49,7 @@ function matchTags(fragment, find, matchCase) {
 function matchEverywhere(fragment, find, matchCase) {
     const matches = [];
     for (const field of fragment.fields || []) {
+        if (NON_EDITABLE_FIELD_NAMES.has(field.name)) continue;
         for (const value of field.values || []) {
             if (matchesText(value, find, matchCase)) {
                 matches.push({ field: field.name, value });
@@ -53,10 +57,11 @@ function matchEverywhere(fragment, find, matchCase) {
             }
         }
     }
-    for (const prop of ['description']) {
-        if (matchesText(fragment[prop], find, matchCase)) {
-            matches.push({ field: prop, value: fragment[prop] });
-        }
+    if (matchesText(fragment.description, find, matchCase)) {
+        matches.push({ field: 'description', value: fragment.description });
+    }
+    if (matchesText(fragment.title, find, matchCase)) {
+        matches.push({ field: 'fragmentTitle', value: fragment.title });
     }
     return matches;
 }
@@ -168,6 +173,7 @@ module.exports = {
     matchesText,
     extractLocale,
     SCOPE_FIELDS,
+    NON_EDITABLE_FIELD_NAMES,
     normalizeSearchIn,
     normalizeLocales,
     findMatchesInScope,

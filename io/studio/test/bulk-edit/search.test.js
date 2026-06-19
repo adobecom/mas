@@ -65,18 +65,35 @@ describe('bulk-edit/search: findMatches', () => {
         expect(m).to.have.lengthOf(1);
         expect(m[0].field).to.equal('buttonText');
     });
-    it('does not match fragment title (not editable in bulk edit)', () => {
-        expect(svc.findMatches(fragment, 'fragmentTitle', 'all apps', false)).to.deep.equal([]);
+    it('matches fragment title via the fragmentTitle scope', () => {
+        expect(svc.findMatches(fragment, 'fragmentTitle', 'all apps', false)).to.deep.equal([
+            { field: 'fragmentTitle', value: 'CCD Slice Wide CC All Apps' },
+        ]);
     });
-    it('everywhere scans fields and description but not fragment title', () => {
+    it('everywhere scans fields, description, and fragment title but not fragment name', () => {
         const fieldsHit = svc.findMatches(fragment, '*', 'school', false).map((x) => x.field);
         expect(fieldsHit).to.include('subtitle');
         expect(fieldsHit).to.include('description');
-        expect(fieldsHit).to.not.include('title');
+        expect(fieldsHit).to.not.include('name');
     });
-    it('everywhere ignores fragment title when it is the only match', () => {
-        const titleOnly = { title: 'firefly card', description: '', fields: [] };
-        expect(svc.findMatches(titleOnly, '*', 'firefly', false)).to.deep.equal([]);
+    it('everywhere matches fragment title when it is the only hit', () => {
+        const titleOnly = { title: 'firefly card', name: 'firefly-card-slug', description: '', fields: [] };
+        expect(svc.findMatches(titleOnly, '*', 'firefly', false)).to.deep.equal([
+            { field: 'fragmentTitle', value: 'firefly card' },
+        ]);
+    });
+    it('does not match top-level fragment name or the name field', () => {
+        const byName = {
+            title: 'Display title',
+            name: 'internal-slug',
+            description: '',
+            fields: [{ name: 'name', values: ['card-node-name'] }],
+        };
+        expect(svc.findMatches(byName, '*', 'internal-slug', false)).to.deep.equal([]);
+        expect(svc.findMatches(byName, '*', 'card-node-name', false)).to.deep.equal([]);
+        expect(svc.findMatches(byName, 'fragmentTitle', 'Display', false)).to.deep.equal([
+            { field: 'fragmentTitle', value: 'Display title' },
+        ]);
     });
     it('matches a tag id under the tags scope', () => {
         expect(svc.findMatches(fragment, 'tags', 'plan_type/abm', false)).to.deep.equal([

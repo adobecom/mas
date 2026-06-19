@@ -148,6 +148,7 @@ export const TRANSLATION_PROJECT_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0
 // Add the card-related constants from incoming changes
 export const CARD_MODEL_PATH = '/conf/mas/settings/dam/cfm/models/card';
 export const COLLECTION_MODEL_PATH = '/conf/mas/settings/dam/cfm/models/collection';
+export const DICTIONARY_MODEL_PATH = '/conf/mas/settings/dam/cfm/models/dictionnary';
 export const COMPARE_CHART_CREATE_TYPE = 'compare-chart';
 export const COMPARE_CHART_FIELD = 'compareChart';
 
@@ -299,10 +300,14 @@ export const ODIN_PREVIEW_ORIGIN = 'https://odinpreview.corp.adobe.com';
 
 export const BULK_PUBLISH_PROJECT_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2J1bGstcHVibGlzaC1wcm9qZWN0';
 
+// Contract: the terminal values (Published/Partially published/Failed) must match
+// WORKER_STATUS in io/studio/src/bulk-publish/bulk-publish-worker.js (IO side).
 export const BULK_PUBLISH_STATUS = {
     DRAFT: 'Draft',
     PUBLISHING: 'Publishing',
     PUBLISHED: 'Published',
+    PARTIALLY_PUBLISHED: 'Partially published',
+    FAILED: 'Failed',
     LOCKED: 'Locked',
     REVERTING: 'Reverting',
     REVERTED: 'Reverted',

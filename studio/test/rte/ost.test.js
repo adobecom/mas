@@ -283,4 +283,80 @@ describe('openOfferSelectorTool deep-link type parameter', () => {
         expect(config.searchOfferSelectorId).to.equal('osi-base');
         expect(config.initialReferenceOsi).to.equal('osi-ref');
     });
+
+    it('passes language and country from authoring locale for en_EG regional variation', () => {
+        const localeOrRegionStub = sinon.stub(Store, 'localeOrRegion').returns('en_EG');
+        const masCommerceService = document.querySelector('mas-commerce-service');
+        masCommerceService.settings.country = 'SA';
+        masCommerceService.settings.language = 'ar';
+
+        openOfferSelectorTool(null, null);
+
+        expect(openOstStub.calledOnce).to.be.true;
+        const config = openOstStub.getCall(0).args[0];
+        expect(config.language).to.equal('en');
+        expect(config.country).to.equal('EG');
+
+        localeOrRegionStub.restore();
+    });
+});
+
+describe('closeOfferSelectorTool', () => {
+    let closeOfferSelectorTool;
+    let openOfferSelectorTool;
+    let masStudio;
+    let renderCommerceServiceStub;
+    let querySelectorStub;
+    let originalWindowOst;
+    let originalLocalStorage;
+
+    before(async () => {
+        ({ closeOfferSelectorTool, openOfferSelectorTool } = await import('../../src/rte/ost.js'));
+    });
+
+    beforeEach(() => {
+        renderCommerceServiceStub = sinon.stub();
+        masStudio = { renderCommerceService: renderCommerceServiceStub };
+
+        querySelectorStub = sinon.stub(document, 'querySelector');
+        querySelectorStub.withArgs('mas-studio').returns(masStudio);
+        querySelectorStub.callThrough();
+
+        originalWindowOst = window.ost;
+        window.ost = { openOfferSelectorTool: sinon.stub().returns(() => {}) };
+        originalLocalStorage = localStorage.getItem('masAccessToken');
+        localStorage.setItem('masAccessToken', 'test-token');
+    });
+
+    afterEach(() => {
+        querySelectorStub.restore();
+        window.ost = originalWindowOst;
+        if (originalLocalStorage === null) {
+            localStorage.removeItem('masAccessToken');
+        } else {
+            localStorage.setItem('masAccessToken', originalLocalStorage);
+        }
+    });
+
+    it('calls renderCommerceService when an OST session was open', () => {
+        openOfferSelectorTool(null, null);
+        closeOfferSelectorTool();
+
+        expect(renderCommerceServiceStub.calledOnce).to.be.true;
+    });
+
+    it('does nothing when no OST session is open', () => {
+        closeOfferSelectorTool();
+
+        expect(renderCommerceServiceStub.notCalled).to.be.true;
+    });
+
+    it('does not call renderCommerceService when mas-studio is not present', () => {
+        querySelectorStub.withArgs('mas-studio').returns(null);
+
+        openOfferSelectorTool(null, null);
+        closeOfferSelectorTool();
+
+        expect(renderCommerceServiceStub.notCalled).to.be.true;
+    });
 });

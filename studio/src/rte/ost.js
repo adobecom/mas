@@ -7,6 +7,7 @@ import {
     PLACEHOLDER_CTA_SURFACES,
 } from '../constants.js';
 import Store from '../store.js';
+import { getLocaleByCode } from '../locales.js';
 
 let ostRoot = document.getElementById('ost');
 let closeFunction;
@@ -265,6 +266,8 @@ export function openOfferSelectorTool(triggerElement, offerElement) {
                 if (value) searchParameters.append(key, value);
             });
         }
+        const authoringLocale = Store.localeOrRegion();
+        const localeMeta = getLocaleByCode(authoringLocale);
         const ostCloseFunction = window.ost.openOfferSelectorTool({
             aosApiKey: 'wcms-commerce-ims-user-prod',
             checkoutClientId: 'creative',
@@ -305,8 +308,8 @@ export function openOfferSelectorTool(triggerElement, offerElement) {
             initialReferenceOsi,
             bundleOsis,
             authoringFlow: bundleOsis ? 'bundle' : undefined,
-            country: masCommerceService.settings.country,
-            language: masCommerceService.settings.language,
+            country: localeMeta?.country ?? masCommerceService.settings.country,
+            language: localeMeta?.lang ?? masCommerceService.settings.language,
             defaultPlaceholderOptions: ostDefaultSettings(),
             offerSelectorPlaceholderOptions,
             modalsAndEntitlements: ['acom', 'acom-cc', 'acom-dc', 'sandbox', 'nala'].includes(Store.search.get().path),
@@ -332,7 +335,16 @@ export function openOfferSelectorTool(triggerElement, offerElement) {
     }
 }
 
+function restoreAuthoringCommerceServiceLocale() {
+    const studio = document.querySelector('mas-studio');
+    if (!studio?.renderCommerceService) return;
+
+    studio.renderCommerceService();
+}
+
 export function closeOfferSelectorTool() {
-    closeFunction?.();
+    if (!closeFunction) return;
+    closeFunction();
     closeFunction = null;
+    restoreAuthoringCommerceServiceLocale();
 }

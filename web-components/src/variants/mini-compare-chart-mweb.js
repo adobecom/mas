@@ -104,6 +104,7 @@ export class MiniCompareChartMweb extends VariantLayout {
                 getElement: (card) => card.querySelector(`[slot="${slot}"]`),
             })),
         );
+        this.adjustMiniCompareFooterRows();
     }
 
     priceOptionsProvider(element, options) {

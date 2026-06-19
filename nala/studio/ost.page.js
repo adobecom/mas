@@ -155,4 +155,21 @@ export default class OSTPage {
         await this.optionsToggle.click();
         await this.termCheckbox.first().waitFor({ state: 'visible', timeout: 5000 });
     }
+
+    // The legal-disclaimer preview renders an unresolved placeholder first, then
+    // WCS resolves it (adding the `placeholder-resolved` class) a beat later.
+    // Reading its textContent before that settles makes a conditional
+    // "is the right option already on?" toggle decide on a transient value and
+    // flip to the wrong state — the root of the fr_FR legal-literal flake. Wait
+    // for resolution before any such decision.
+    async waitForLegalResolved() {
+        const legal = this.legalDisclaimer.first();
+        await legal.waitFor({ state: 'visible', timeout: 30000 });
+        // mas-commerce-service stamps `placeholder-resolved` on the inline-price
+        // host once WCS resolves it — a template-agnostic "settled" signal.
+        // Waiting for it means a subsequent toggle decision reads the real
+        // current state, not the transient loading placeholder (the root of the
+        // fr_FR legal-literal flake).
+        await legal.and(this.page.locator('.placeholder-resolved')).first().waitFor({ state: 'visible', timeout: 30000 });
+    }
 }

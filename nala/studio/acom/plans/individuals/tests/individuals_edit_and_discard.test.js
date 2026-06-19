@@ -1464,6 +1464,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await ost.legalDisclaimer.scrollIntoViewIfNeeded();
             await ost.expandOptions();
             await expect(await ost.unitCheckbox).toBeVisible();
+            await ost.waitForLegalResolved();
             if (!(await ost.legalDisclaimer.textContent())?.includes(data.cardLegalDisclaimer)) {
                 await ost.unitCheckbox.click();
             }

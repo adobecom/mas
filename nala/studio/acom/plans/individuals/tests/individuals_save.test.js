@@ -553,6 +553,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await ost.legalDisclaimer.scrollIntoViewIfNeeded();
             await ost.expandOptions();
             await expect(await ost.unitCheckbox).toBeVisible();
+            await ost.waitForLegalResolved();
             if (!(await ost.legalDisclaimer.textContent())?.includes(data.legalDisclaimer)) {
                 await ost.unitCheckbox.click();
             }
@@ -575,6 +576,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await ost.legalDisclaimer.scrollIntoViewIfNeeded();
             await ost.expandOptions();
             await expect(await ost.taxlabelCheckbox).toBeVisible();
+            await ost.waitForLegalResolved();
             if (!(await ost.legalDisclaimer.textContent())?.includes(data.legalDisclaimerTax)) {
                 await ost.taxlabelCheckbox.click();
             }

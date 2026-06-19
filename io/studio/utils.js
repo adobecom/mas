@@ -156,7 +156,7 @@ function parseOwBody(params) {
 
 function parseRawBody(params) {
     if (params.__ow_body == null) return '';
-    let body = params.__ow_body;
+    const body = params.__ow_body;
     if (Buffer.isBuffer(body)) return body.toString('utf8');
     if (typeof body !== 'string') return String(body);
     const trimmed = body.trim();

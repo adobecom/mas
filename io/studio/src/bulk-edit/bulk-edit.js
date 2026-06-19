@@ -104,30 +104,29 @@ async function handlePost(params) {
     const forceRefresh = isForceRefresh(params.forceRefresh);
     const existing = await readJob(jobId);
 
-    if (forceRefresh && existing?.status === 'RUNNING' && !existing.cancelled) {
-        await cancelJob(jobId);
-    }
-
     if (!forceRefresh && existing && !existing.cancelled && (existing.status === 'RUNNING' || existing.status === 'DONE')) {
         return { statusCode: 202, body: { jobId, reused: true } };
     }
 
+    if (!params.odinEndpoint) {
+        return errorResponse(400, 'missing parameter(s) odinEndpoint', logger);
+    }
+
+    // runId supersedes any worker still running under this jobId: a forced refresh writes a fresh
+    // runId, and the previous worker stops (without clobbering state) when it sees the mismatch.
+    const runId = crypto.randomUUID();
     await writeJob(jobId, {
         type: params.type,
         params: searchKey,
-        authToken,
+        runId,
         status: 'RUNNING',
         results: [],
         total: 0,
         requestedAt: new Date().toISOString(),
     });
 
-    if (!params.odinEndpoint) {
-        return errorResponse(400, 'missing parameter(s) odinEndpoint', logger);
-    }
-
     const workerAction = buildSiblingActionName(params, WORKER_ACTIONS[params.type]);
-    await invokeAsyncAction(workerAction, { jobId }, params);
+    await invokeAsyncAction(workerAction, { jobId, authToken, runId }, params);
 
     return { statusCode: 202, body: { jobId, reused: false } };
 }
@@ -255,6 +254,7 @@ async function main(params) {
             const body = parseOwBody(params);
             body.allowedClientId = params.allowedClientId;
             body.odinEndpoint = params.odinEndpoint;
+            body.__ow_headers = params.__ow_headers;
             return await handlePost(body);
         }
         if (method === 'get') return await handleGet(params);

@@ -129,15 +129,25 @@ describe('bulk-edit: handlePost', () => {
         expect(writeJob.calledOnce).to.equal(true);
         expect(invokeAsyncAction.calledOnce).to.equal(true);
         expect(invokeAsyncAction.firstCall.args[0]).to.equal('MerchAtScaleStudio/bulk-edit-find-worker');
-        expect(invokeAsyncAction.firstCall.args[1]).to.deep.equal({ jobId: res.body.jobId });
+        const invokeArgs = invokeAsyncAction.firstCall.args[1];
+        expect(invokeArgs.jobId).to.equal(res.body.jobId);
+        expect(invokeArgs.authToken).to.equal('token');
+        expect(invokeArgs.runId).to.be.a('string');
     });
-    it('400s when odinEndpoint is missing', async () => {
-        const { mod, invokeAsyncAction } = load();
+    it('does not persist the auth token in job state', async () => {
+        const { mod, writeJob, invokeAsyncAction } = load();
+        await mod.handlePost(findParams);
+        expect(writeJob.firstCall.args[1]).to.not.have.property('authToken');
+        expect(writeJob.firstCall.args[1].runId).to.equal(invokeAsyncAction.firstCall.args[1].runId);
+    });
+    it('400s when odinEndpoint is missing, without persisting a job', async () => {
+        const { mod, invokeAsyncAction, writeJob } = load();
         const { odinEndpoint, ...withoutEndpoint } = findParams;
         const res = await mod.handlePost(withoutEndpoint);
         expect(res.error.statusCode).to.equal(400);
         expect(res.error.body.error).to.include('odinEndpoint');
         expect(invokeAsyncAction.called).to.equal(false);
+        expect(writeJob.called).to.equal(false);
     });
     it('reuses a RUNNING job without writing or invoking', async () => {
         const { mod, invokeAsyncAction, writeJob } = load({ existing: { status: 'RUNNING' } });
@@ -204,14 +214,17 @@ describe('bulk-edit: handlePost', () => {
         expect(writeJob.calledOnce).to.equal(true);
         expect(invokeAsyncAction.calledOnce).to.equal(true);
     });
-    it('cancels a RUNNING job before re-running when forceRefresh is true', async () => {
+    it('supersedes a RUNNING job with a fresh runId when forceRefresh is true', async () => {
         const { mod, readJob, patchJob, invokeAsyncAction, writeJob } = load();
-        readJob.resolves({ status: 'RUNNING' });
+        readJob.resolves({ status: 'RUNNING', runId: 'old-run' });
         const res = await mod.handlePost({ ...findParams, forceRefresh: true });
-        expect(patchJob.calledWith(sinon.match.string, { cancelled: true })).to.equal(true);
-        expect(res.body.reused).to.equal(false);
+        expect(patchJob.called).to.equal(false);
         expect(writeJob.calledOnce).to.equal(true);
-        expect(invokeAsyncAction.calledOnce).to.equal(true);
+        const newRunId = writeJob.firstCall.args[1].runId;
+        expect(newRunId).to.be.a('string');
+        expect(newRunId).to.not.equal('old-run');
+        expect(invokeAsyncAction.firstCall.args[1].runId).to.equal(newRunId);
+        expect(res.body.reused).to.equal(false);
     });
     it('accepts forceRefresh as the string "true"', async () => {
         const { mod, invokeAsyncAction } = load({ existing: { status: 'DONE' } });
@@ -336,8 +349,7 @@ describe('bulk-edit: handleCsvUpload', () => {
     it('400s when a CSV row is not in the original job', async () => {
         const { mod } = load({ existing: doneJob });
         const badCsv =
-            'fragment_id,path,locale,field,find,replace,etag,status\n' +
-            'missing,/p,en_US,subtitle,x,,e1,PUBLISHED\n';
+            'fragment_id,path,locale,field,find,replace,etag,status\n' + 'missing,/p,en_US,subtitle,x,,e1,PUBLISHED\n';
         const res = await mod.handleCsvUpload({ jobId: 'job-1', __ow_body: badCsv });
         expect(res.error.statusCode).to.equal(400);
         expect(res.error.body.error).to.include('not found in job results');

@@ -112,6 +112,26 @@ describe('bulk-edit/csv: round-trip', () => {
     it('rejects unknown headers', () => {
         expect(() => fromCsv('bad,headers\n1,2')).to.throw(/header/i);
     });
+
+    it('neutralizes leading formula characters and reverses them on parse', () => {
+        const rows = [
+            {
+                fragment_id: 'f1',
+                path: '/p/a',
+                locale: 'en_US',
+                field: 'subtitle',
+                find: '=1+2',
+                replace: '@SUM(A1)',
+                etag: 'e1',
+                status: 'PUBLISHED',
+            },
+        ];
+        const text = toCsv(rows);
+        const dataLine = text.split('\n')[1];
+        expect(dataLine).to.include("'=1+2");
+        expect(dataLine).to.include("'@SUM(A1)");
+        expect(fromCsv(text)).to.deep.equal(rows);
+    });
 });
 
 describe('bulk-edit/csv: buildResultRowKeys', () => {

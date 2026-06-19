@@ -211,7 +211,9 @@ describe('bulk-edit/search: searchPages', () => {
 
     it('retries on 429 and succeeds on the second attempt', async () => {
         const fetchOdinStub = sinon.stub();
-        fetchOdinStub.onFirstCall().rejects(new Error('GET /adobe/sites/cf/fragments/search failed with status 429: Too Many Requests'));
+        fetchOdinStub
+            .onFirstCall()
+            .rejects(new Error('GET /adobe/sites/cf/fragments/search failed with status 429: Too Many Requests'));
         fetchOdinStub.onSecondCall().resolves(fetchResponse({ items: [{ id: 'a' }], cursor: null }));
         const mod = load({ fetchOdin: fetchOdinStub });
 

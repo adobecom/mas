@@ -148,6 +148,20 @@ describe('bulk-edit/find-worker: runFindWorker', () => {
         }
         expect(threw).to.equal(true);
     });
+    it('stops with SUPERSEDED and writes no terminal status when the runId no longer matches', async () => {
+        const { mod, patches } = load({
+            pages: [[{ id: 'a', path: '/p/a', hit: 'A' }], [{ id: 'b', path: '/p/b', hit: 'B' }]],
+            job: {
+                params: { find: 'school', surface: 'acom', searchIn: '*', matchCase: false },
+                status: 'RUNNING',
+                runId: 'new-run',
+            },
+        });
+        const result = await mod.runFindWorker('job1', { odinEndpoint: 'https://odin', runId: 'old-run' });
+        expect(result.status).to.equal('SUPERSEDED');
+        expect(patches.some((p) => p.status === 'DONE')).to.equal(false);
+        expect(patches.length).to.equal(0);
+    });
     it('stops with CANCELLED when the job is flagged mid-pagination', async () => {
         let reads = 0;
         const { mod, patches } = load({

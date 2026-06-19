@@ -1,12 +1,24 @@
 const HEADERS = ['fragment_id', 'path', 'locale', 'field', 'find', 'replace', 'etag', 'status'];
 
+const FORMULA_LEAD = /^['=+\-@\t\r]/;
+
 function escape(value) {
     if (value === null || value === undefined) return '';
-    const str = String(value);
+    let str = String(value);
+    // Spreadsheet apps execute cells starting with =,+,-,@ as formulas. Prefix a quote to
+    // neutralize; unescape() reverses it so the find-key round-trip stays exact.
+    if (FORMULA_LEAD.test(str)) str = `'${str}`;
     if (/[",\n]/.test(str)) {
         return `"${str.replace(/"/g, '""')}"`;
     }
     return str;
+}
+
+function unescape(value) {
+    if (typeof value === 'string' && /^'['=+\-@\t\r]/.test(value)) {
+        return value.slice(1);
+    }
+    return value;
 }
 
 function parseJobIdParam(raw) {
@@ -118,7 +130,7 @@ function fromCsv(text) {
         const values = parseCsvLine(line);
         const row = {};
         for (let i = 0; i < HEADERS.length; i++) {
-            row[HEADERS[i]] = values[i] ?? '';
+            row[HEADERS[i]] = unescape(values[i] ?? '');
         }
         return row;
     });

@@ -13,12 +13,26 @@ function buildFindResult(fragment, matches) {
     };
 }
 
-async function runFindWorker(jobId, { odinEndpoint }) {
+async function resolveStop(jobId, runId) {
+    const fresh = await readJob(jobId);
+    if (!fresh || fresh.runId !== runId) return 'SUPERSEDED';
+    if (fresh.cancelled) return 'CANCELLED';
+    return null;
+}
+
+async function finalizeStop(jobId, stop, results, truncated) {
+    if (stop === 'CANCELLED') {
+        await patchJob(jobId, { status: 'CANCELLED', total: results.length });
+    }
+    return { status: stop, total: results.length, truncated };
+}
+
+async function runFindWorker(jobId, { odinEndpoint, authToken, runId }) {
     if (!odinEndpoint) throw new Error('missing parameter(s) odinEndpoint');
     const job = await readJob(jobId);
     if (!job) throw new Error(`bulk-edit job ${jobId} not found`);
 
-    const { params = {}, authToken } = job;
+    const { params = {} } = job;
     const tags = Array.isArray(params.tags) ? params.tags : [];
     const paths = buildSearchPaths(params.surface, params.locale);
 
@@ -43,34 +57,29 @@ async function runFindWorker(jobId, { odinEndpoint }) {
                         break;
                     }
                 }
+                const stop = await resolveStop(jobId, runId);
+                if (stop) return finalizeStop(jobId, stop, results, truncated);
                 await patchJob(jobId, { results: [...results], total: results.length });
-                const fresh = await readJob(jobId);
-                if (fresh?.cancelled) {
-                    await patchJob(jobId, { status: 'CANCELLED', total: results.length });
-                    return { status: 'CANCELLED', total: results.length, truncated };
-                }
                 if (truncated) break;
             }
             if (truncated) break;
-            const fresh = await readJob(jobId);
-            if (fresh?.cancelled) {
-                await patchJob(jobId, { status: 'CANCELLED', total: results.length });
-                return { status: 'CANCELLED', total: results.length, truncated };
-            }
+            const stop = await resolveStop(jobId, runId);
+            if (stop) return finalizeStop(jobId, stop, results, truncated);
         }
         await patchJob(jobId, { status: 'DONE', results, total: results.length, truncated });
         return { status: 'DONE', total: results.length, truncated };
     } catch (error) {
-        await patchJob(jobId, { status: 'FAILED', error: error.message, total: results.length });
+        if ((await resolveStop(jobId, runId)) === null) {
+            await patchJob(jobId, { status: 'FAILED', error: error.message, total: results.length });
+        }
         throw error;
     }
 }
 
 async function main(params) {
-    const { jobId } = params;
-    const { odinEndpoint } = params;
+    const { jobId, odinEndpoint, authToken, runId } = params;
     try {
-        const result = await runFindWorker(jobId, { odinEndpoint });
+        const result = await runFindWorker(jobId, { odinEndpoint, authToken, runId });
         return { statusCode: 200, body: { jobId, ...result } };
     } catch (error) {
         logger.error(JSON.stringify({ event: 'bulk-edit-find-worker-error', jobId, error: error.message }));

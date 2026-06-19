@@ -39,9 +39,7 @@ const token = process.env.MAS_TOKEN || process.env.MAS_IMS_TOKEN;
 const odinEndpoint = process.env.ODIN_ENDPOINT;
 
 if (!surface || !find || !token || !odinEndpoint) {
-    console.error(
-        'Usage: node bulk-edit-find.mjs --surface <s> --find <text>',
-    );
+    console.error('Usage: node bulk-edit-find.mjs --surface <s> --find <text>');
     console.error(
         '  [--search-in field|f1,f2] [--locale en_US|en_US,fr_FR] [--tags a,b] [--status PUBLISHED] [--match-case] [--force-refresh]',
     );
@@ -123,7 +121,6 @@ if (!forceRefresh && existing && !existing.cancelled && (existing.status === 'RU
 await writeJob(jobId, {
     type: 'find',
     params: searchKey,
-    authToken: token,
     status: 'RUNNING',
     results: [],
     total: 0,
@@ -131,7 +128,7 @@ await writeJob(jobId, {
 });
 
 console.error(`jobId: ${jobId}`);
-const { statusCode, body } = await findWorker.main({ jobId, odinEndpoint });
+const { statusCode, body } = await findWorker.main({ jobId, odinEndpoint, authToken: token });
 if (statusCode !== 200) {
     console.error(body?.error || body);
     process.exit(1);

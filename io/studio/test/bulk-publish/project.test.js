@@ -149,5 +149,42 @@ describe('project.js', () => {
             const publishedAtField = fields.find((f) => f.name === 'publishedAt');
             expect(publishedAtField.values).to.deep.equal(['2025-01-01T00:00:00.000Z']);
         });
+
+        it('refetches the etag and retries when the PUT returns a 412 conflict', async () => {
+            const fragment = makeFragment([{ name: 'status', type: 'text', values: ['Draft'] }]);
+            getFragmentWithEtagStub
+                .onFirstCall()
+                .resolves({ fragment, etag: '"stale"' })
+                .onSecondCall()
+                .resolves({ fragment, etag: '"fresh"' });
+            putToOdinStub
+                .onFirstCall()
+                .rejects(new Error('PUT /adobe/sites/cf/fragments/proj-1 failed with status 412: Precondition Failed'))
+                .onSecondCall()
+                .resolves({ success: true });
+
+            await mod.updateProjectFragment('https://odin.example', 'proj-1', 'token', { status: 'Published' });
+
+            expect(putToOdinStub.callCount).to.equal(2);
+            expect(putToOdinStub.secondCall.args[3].etag).to.equal('"fresh"');
+        });
+
+        it('rethrows after exhausting retries on persistent 412', async () => {
+            const fragment = makeFragment([{ name: 'status', type: 'text', values: ['Draft'] }]);
+            getFragmentWithEtagStub.resolves({ fragment, etag: '"e"' });
+            putToOdinStub.rejects(
+                new Error('PUT /adobe/sites/cf/fragments/proj-1 failed with status 412: Precondition Failed'),
+            );
+
+            let thrown = null;
+            await mod
+                .updateProjectFragment('https://odin.example', 'proj-1', 'token', { status: 'Published' }, 3)
+                .catch((e) => {
+                    thrown = e;
+                });
+
+            expect(thrown).to.be.an('error');
+            expect(putToOdinStub.callCount).to.equal(3);
+        });
     });
 });

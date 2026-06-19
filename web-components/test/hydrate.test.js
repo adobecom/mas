@@ -35,6 +35,7 @@ import { withWcs } from './mocks/wcs.js';
 import { delay } from './utils.js';
 import { PLANS_AEM_FRAGMENT_MAPPING } from '../src/variants/plans.js';
 import { MINI_COMPARE_CHART_AEM_FRAGMENT_MAPPING } from '../src/variants/mini-compare-chart.js';
+import { COMPARE_CHART_COLUMN_AEM_FRAGMENT_MAPPING } from '../src/variants/compare-chart-column.js';
 import { COMPAT_VERSION_GLOBAL_PROMO_CODE } from '../src/compat-version.js';
 
 function getFooterElement(merchCard) {
@@ -605,6 +606,27 @@ describe('processFeatures', () => {
         const slot = merchCard.querySelector(':scope > [slot="features"]');
         expect(slot).to.exist;
         expect(slot.querySelectorAll('p[name]')).to.have.length(2);
+        merchCard.remove();
+    });
+
+    it('transforms checkout links in the features slot', () => {
+        const merchCard = mockMerchCard();
+        processFeatures(
+            {
+                features: [
+                    {
+                        value: '<p name="cta@buy"><a data-wcs-osi="abm" class="accent">Buy</a></p>',
+                        mimeType: 'text/html',
+                    },
+                ],
+            },
+            merchCard,
+            COMPARE_CHART_COLUMN_AEM_FRAGMENT_MAPPING,
+        );
+        const slot = merchCard.querySelector('[slot="features"]');
+        const button = slot.querySelector('button[data-wcs-osi="abm"]');
+        expect(button).to.exist;
+        expect(button.classList.contains('spectrum-Button--accent')).to.be.true;
         merchCard.remove();
     });
 });

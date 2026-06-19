@@ -1,13 +1,38 @@
 const crypto = require('crypto');
 const { Core } = require('@adobe/aio-sdk');
-const { errorResponse, getBearerToken, isAllowed, parseOwBody } = require('../../utils.js');
+const { errorResponse, getBearerToken, isAllowed, parseOwBody, parseCsvUploadBody, isCsvUpload } = require('../../utils.js');
 const { invokeAsyncAction, buildSiblingActionName } = require('../common.js');
-const { readJob, writeJob, patchJob } = require('./state.js');
+const { readJob, writeJob, patchJob, readUserCsv, writeUserCsv } = require('./state.js');
+const { normalizeLocales } = require('./search.js');
+const {
+    parseJobIdParam,
+    filterResultsByUserCsv,
+    flattenResultsToRows,
+    buildResultRowKeys,
+    rowKey,
+    toCsv,
+    fromCsv,
+} = require('./csv.js');
 
 const logger = Core.Logger('bulk-edit', { level: 'info' });
 
 const WORKER_ACTIONS = { find: 'bulk-edit-find-worker' };
 const REQUIRED_INPUTS = { find: ['find', 'surface'] };
+const TERMINAL_STATUSES = new Set(['DONE', 'CANCELLED']);
+
+function normalizeSearchInKey(searchIn) {
+    if (searchIn == null || searchIn === '' || searchIn === '*') return '*';
+    const list = Array.isArray(searchIn) ? searchIn : [searchIn];
+    const scopes = [...new Set(list.filter(Boolean))].sort();
+    if (!scopes.length || scopes.includes('*')) return '*';
+    return scopes.length === 1 ? scopes[0] : scopes;
+}
+
+function normalizeLocalesKey(locale) {
+    const locales = normalizeLocales(locale);
+    if (!locales) return null;
+    return locales.length === 1 ? locales[0] : locales;
+}
 
 function canonicalSearchKey(params) {
     const tags = Array.isArray(params.tags) ? [...params.tags].sort() : [];
@@ -15,10 +40,10 @@ function canonicalSearchKey(params) {
         type: params.type,
         find: params.find,
         surface: params.surface,
-        searchIn: params.searchIn || '*',
+        searchIn: normalizeSearchInKey(params.searchIn),
         matchCase: !!params.matchCase,
         status: params.status || null,
-        locale: params.locale || null,
+        locale: normalizeLocalesKey(params.locale),
         tags,
     });
 }
@@ -32,6 +57,10 @@ async function cancelJob(jobId) {
     if (job && job.status === 'RUNNING') {
         await patchJob(jobId, { cancelled: true });
     }
+}
+
+function isForceRefresh(value) {
+    return value === true || value === 'true' || value === 1 || value === '1';
 }
 
 async function handlePost(params) {
@@ -50,10 +79,10 @@ async function handlePost(params) {
         type: params.type,
         find: params.find,
         surface: params.surface,
-        searchIn: params.searchIn || '*',
+        searchIn: normalizeSearchInKey(params.searchIn),
         matchCase: !!params.matchCase,
         status: params.status || null,
-        locale: params.locale || null,
+        locale: normalizeLocalesKey(params.locale),
         tags: Array.isArray(params.tags) ? params.tags : [],
     };
     const jobId = computeJobId(searchKey);
@@ -62,8 +91,14 @@ async function handlePost(params) {
         await cancelJob(params.supersedes);
     }
 
+    const forceRefresh = isForceRefresh(params.forceRefresh);
     const existing = await readJob(jobId);
-    if (existing && !existing.cancelled && (existing.status === 'RUNNING' || existing.status === 'DONE')) {
+
+    if (forceRefresh && existing?.status === 'RUNNING' && !existing.cancelled) {
+        await cancelJob(jobId);
+    }
+
+    if (!forceRefresh && existing && !existing.cancelled && (existing.status === 'RUNNING' || existing.status === 'DONE')) {
         return { statusCode: 202, body: { jobId, reused: true } };
     }
 
@@ -77,10 +112,66 @@ async function handlePost(params) {
         requestedAt: new Date().toISOString(),
     });
 
+    if (!params.odinEndpoint) {
+        return errorResponse(400, 'missing parameter(s) odinEndpoint', logger);
+    }
+
     const workerAction = buildSiblingActionName(params, WORKER_ACTIONS[params.type]);
     await invokeAsyncAction(workerAction, { jobId }, params);
 
     return { statusCode: 202, body: { jobId, reused: false } };
+}
+
+function applyUserCsvFilter(results, userCsv) {
+    if (!userCsv?.rows?.length) {
+        return { items: results || [], filteredByUpload: false };
+    }
+    const items = filterResultsByUserCsv(results, userCsv.rows);
+    return { items, filteredByUpload: true };
+}
+
+async function handleCsvUpload(params) {
+    const authToken = getBearerToken(params);
+    if (!(await isAllowed(authToken, params.allowedClientId))) {
+        return errorResponse(401, 'Authorization failed', logger);
+    }
+
+    const { jobId } = params;
+    if (!jobId) return errorResponse(400, "missing parameter(s) 'jobId'", logger);
+
+    const csvText = parseCsvUploadBody(params).trim();
+    if (!csvText) return errorResponse(400, 'missing CSV body', logger);
+
+    const job = await readJob(jobId);
+    if (!job) return errorResponse(404, `bulk-edit job ${jobId} not found`, logger);
+    if (!TERMINAL_STATUSES.has(job.status)) {
+        return errorResponse(400, `bulk-edit job ${jobId} is not ready for upload (status: ${job.status})`, logger);
+    }
+
+    let rows;
+    try {
+        rows = fromCsv(csvText);
+    } catch (error) {
+        return errorResponse(400, error.message || 'invalid CSV', logger);
+    }
+
+    const allowedKeys = buildResultRowKeys(job.results);
+    for (const row of rows) {
+        if (!allowedKeys.has(rowKey(row))) {
+            return errorResponse(400, `CSV row not found in job results: ${rowKey(row)}`, logger);
+        }
+    }
+
+    await writeUserCsv(jobId, {
+        jobId,
+        uploadedAt: new Date().toISOString(),
+        rows,
+    });
+
+    return {
+        statusCode: 202,
+        body: { jobId, rowsAccepted: rows.length, filteredByUpload: true },
+    };
 }
 
 async function handleGet(params) {
@@ -89,7 +180,10 @@ async function handleGet(params) {
         return errorResponse(401, 'Authorization failed', logger);
     }
 
-    const { jobId } = params;
+    const rawJobId = params.jobId;
+    if (!rawJobId) return errorResponse(400, "missing parameter(s) 'jobId'", logger);
+
+    const { jobId, wantsCsv } = parseJobIdParam(rawJobId);
     if (!jobId) return errorResponse(400, "missing parameter(s) 'jobId'", logger);
 
     const job = await readJob(jobId);
@@ -99,15 +193,42 @@ async function handleGet(params) {
         return { error: { statusCode: 500, body: { status: 'FAILED', error: job.error, total: job.total } } };
     }
 
+    if (wantsCsv && !TERMINAL_STATUSES.has(job.status)) {
+        return errorResponse(400, `bulk-edit job ${jobId} is not ready for CSV export (status: ${job.status})`, logger);
+    }
+
+    const userCsv = await readUserCsv(jobId);
+    const { items, filteredByUpload } = applyUserCsvFilter(job.results, userCsv);
+
+    if (wantsCsv) {
+        const rows = flattenResultsToRows(items);
+        if (userCsv?.rows?.length) {
+            const replaceByKey = new Map(userCsv.rows.map((row) => [rowKey(row), row.replace ?? '']));
+            for (const row of rows) {
+                row.replace = replaceByKey.get(rowKey(row)) ?? row.replace;
+            }
+        }
+        return {
+            statusCode: 200,
+            headers: {
+                'Content-Type': 'text/csv; charset=utf-8',
+                'Content-Disposition': `attachment; filename="${jobId}.csv"`,
+            },
+            body: toCsv(rows),
+        };
+    }
+
     const offset = Number.parseInt(params.offset, 10) || 0;
+    const sliced = items.slice(offset);
     return {
         statusCode: 200,
         body: {
             status: job.status,
-            total: job.total,
+            total: items.length,
             truncated: !!job.truncated,
             done: job.status === 'DONE' || job.status === 'CANCELLED',
-            items: (job.results || []).slice(offset),
+            filteredByUpload,
+            items: sliced,
         },
     };
 }
@@ -116,8 +237,12 @@ async function main(params) {
     try {
         const method = (params.__ow_method || '').toLowerCase();
         if (method === 'post') {
+            if (isCsvUpload(params)) {
+                return handleCsvUpload({ ...params, allowedClientId: params.allowedClientId });
+            }
             const body = parseOwBody(params);
             body.allowedClientId = params.allowedClientId;
+            body.odinEndpoint = params.odinEndpoint;
             return await handlePost(body);
         }
         if (method === 'get') return await handleGet(params);
@@ -128,5 +253,17 @@ async function main(params) {
     }
 }
 
-module.exports = { main, handlePost, handleGet, canonicalSearchKey, computeJobId, WORKER_ACTIONS };
+module.exports = {
+    main,
+    handlePost,
+    handleGet,
+    handleCsvUpload,
+    applyUserCsvFilter,
+    canonicalSearchKey,
+    computeJobId,
+    normalizeSearchInKey,
+    normalizeLocalesKey,
+    isForceRefresh,
+    WORKER_ACTIONS,
+};
 exports.main = main;

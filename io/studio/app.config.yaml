@@ -50,6 +50,8 @@ application:
                     bulk-edit-find-worker:
                         function: src/bulk-edit/find-worker.js
                         runtime: nodejs:22
+                        inputs:
+                            odinEndpoint: $ODIN_ENDPOINT
                         limits:
                             timeout: 1800000
                         annotations:

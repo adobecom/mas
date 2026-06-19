@@ -47,3 +47,33 @@ describe('bulk-edit/state: patchJob', () => {
         expect(await mod.readJob('new')).to.deep.equal({ status: 'FAILED' });
     });
 });
+
+describe('bulk-edit/state: user CSV', () => {
+    it('keys user CSV as bulk-edit.{jobId}.csv', async () => {
+        const { mod, store } = load();
+        await mod.writeUserCsv('abc', { jobId: 'abc', rows: [] });
+        expect(store['bulk-edit.abc.csv']).to.equal(JSON.stringify({ jobId: 'abc', rows: [] }));
+    });
+    it('round-trips user CSV records', async () => {
+        const { mod } = load();
+        const value = { jobId: 'abc', uploadedAt: '2026-01-01T00:00:00.000Z', rows: [{ fragment_id: 'f1' }] };
+        await mod.writeUserCsv('abc', value);
+        expect(await mod.readUserCsv('abc')).to.deep.equal(value);
+    });
+    it('uses MAX_TTL for user CSV writes', async () => {
+        const puts = [];
+        const fakeState = {
+            put: async (key, value, opts) => {
+                puts.push({ key, value, opts });
+            },
+            get: async () => undefined,
+            delete: async () => {},
+        };
+        const mod = proxyquire('../../src/bulk-edit/state.js', {
+            '@adobe/aio-lib-state': { init: async () => fakeState, MAX_TTL: 31536000, '@noCallThru': true },
+        });
+        await mod.writeUserCsv('abc', { rows: [] });
+        expect(puts[0].key).to.equal('bulk-edit.abc.csv');
+        expect(puts[0].opts.ttl).to.equal(31536000);
+    });
+});

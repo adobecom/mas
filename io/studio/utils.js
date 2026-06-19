@@ -154,11 +154,94 @@ function parseOwBody(params) {
     }
 }
 
+function parseRawBody(params) {
+    if (params.__ow_body == null) return '';
+    let body = params.__ow_body;
+    if (Buffer.isBuffer(body)) return body.toString('utf8');
+    if (typeof body !== 'string') return String(body);
+    const trimmed = body.trim();
+    if (trimmed.startsWith('\uFEFF') || trimmed.startsWith('fragment_id')) return body;
+    try {
+        const decoded = Buffer.from(body, 'base64').toString('utf8');
+        if (decoded.includes('fragment_id')) return decoded;
+    } catch {}
+    return body;
+}
+
+function isCsvContentType(params) {
+    const ct = params.__ow_headers?.['content-type'] || '';
+    return ct.split(';')[0].trim().toLowerCase() === 'text/csv';
+}
+
+function isMultipartContentType(params) {
+    const ct = params.__ow_headers?.['content-type'] || '';
+    return ct.split(';')[0].trim().toLowerCase() === 'multipart/form-data';
+}
+
+function parseMultipartBoundary(contentType) {
+    const match = /boundary=([^;]+)/i.exec(contentType || '');
+    if (!match) return null;
+    return match[1].trim().replace(/^"|"$/g, '');
+}
+
+function parseMultipartRawBody(params) {
+    if (params.__ow_body == null) return '';
+    let body = params.__ow_body;
+    if (Buffer.isBuffer(body)) body = body.toString('utf8');
+    if (typeof body !== 'string') body = String(body);
+    if (body.trimStart().startsWith('--')) return body;
+    try {
+        const decoded = Buffer.from(body, 'base64').toString('utf8');
+        if (decoded.trimStart().startsWith('--')) return decoded;
+    } catch {}
+    return body;
+}
+
+function extractCsvFromMultipart(body, contentType) {
+    const boundary = parseMultipartBoundary(contentType);
+    if (!boundary) return '';
+    const delimiter = `--${boundary}`;
+    for (const section of body.split(delimiter)) {
+        const trimmed = section.replace(/^\r?\n/, '').replace(/\r?\n--?\s*$/, '');
+        if (!trimmed || trimmed === '--') continue;
+        const splitAt = trimmed.indexOf('\r\n\r\n');
+        let content;
+        if (splitAt >= 0) {
+            content = trimmed.slice(splitAt + 4);
+        } else {
+            const lfSplit = trimmed.indexOf('\n\n');
+            content = lfSplit >= 0 ? trimmed.slice(lfSplit + 2) : trimmed;
+        }
+        content = content.replace(/\r?\n--\s*$/, '').trim();
+        if (content.includes('fragment_id')) return content;
+    }
+    return '';
+}
+
+function parseCsvUploadBody(params) {
+    if (isMultipartContentType(params)) {
+        const ct = params.__ow_headers?.['content-type'] || '';
+        return extractCsvFromMultipart(parseMultipartRawBody(params), ct);
+    }
+    return parseRawBody(params);
+}
+
+function isCsvUpload(params) {
+    return isCsvContentType(params) || isMultipartContentType(params);
+}
+
 module.exports = {
     errorResponse,
     getBearerToken,
     isAllowed,
     parseOwBody,
+    parseRawBody,
+    parseCsvUploadBody,
+    parseMultipartRawBody,
+    extractCsvFromMultipart,
+    isCsvContentType,
+    isMultipartContentType,
+    isCsvUpload,
     stringParameters,
     checkMissingRequestInputs,
 };

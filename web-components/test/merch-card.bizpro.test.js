@@ -2,7 +2,10 @@ import { expect } from '@esm-bundle/chai';
 import sinon from 'sinon';
 // mas.js first to break the circular dep between variant-layout and variants
 import '../src/mas.js';
-import { EVENT_MERCH_QUANTITY_SELECTOR_CHANGE } from '../src/constants.js';
+import {
+    EVENT_MERCH_CARD_QUANTITY_CHANGE,
+    EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
+} from '../src/constants.js';
 
 let BizPro;
 
@@ -350,6 +353,73 @@ describe('bizpro short description plan type override', () => {
     });
 });
 
+describe('bizpro short description tax spacing', () => {
+    let card;
+    afterEach(() => card?.remove());
+
+    // Legal price as it resolves on a VAT card where the plan type comes from
+    // the authored short description: tax label is set, plan-type span is empty,
+    // so the legal template never added its ". " separator (MWPW-198626).
+    const legalWithTax = (taxText) =>
+        '<p slot="heading-m"><span is="inline-price" data-template="legal">' +
+        '<span class="price price-legal">' +
+        '<span class="price-unit-type disabled"></span>' +
+        `<span class="price-tax-inclusivity">${taxText}</span>` +
+        '<span class="price-plan-type disabled"></span>' +
+        '</span></span></p>';
+
+    it('inserts the ". " separator between the tax label and the injected plan type', async () => {
+        card = await renderCard(
+            `${legalWithTax('excl. VAT')}<div slot="legal-text">Annual, billed monthly</div>`,
+        );
+        card.variantLayout.adjustShortDescription();
+        // Matches the template's WCS path ("incl. VAT. Annual…") so injected and
+        // WCS-sourced plan types read identically.
+        expect(card.querySelector('.price-legal').textContent).to.equal(
+            'excl. VAT. Annual, billed monthly',
+        );
+    });
+
+    it('does not double the separator when the tax label already ends in space', async () => {
+        card = await renderCard(
+            `${legalWithTax('incl. VAT. ')}<div slot="legal-text">Annual, billed monthly</div>`,
+        );
+        card.variantLayout.adjustShortDescription();
+        expect(card.querySelector('.price-legal').textContent).to.equal(
+            'incl. VAT. Annual, billed monthly',
+        );
+    });
+
+    it('adds no separator when there is no tax label (e.g. en-US)', async () => {
+        const noTax =
+            '<p slot="heading-m"><span is="inline-price" data-template="legal">' +
+            '<span class="price price-legal">' +
+            '<span class="price-unit-type disabled"></span>' +
+            '<span class="price-tax-inclusivity disabled"></span>' +
+            '<span class="price-plan-type disabled"></span>' +
+            '</span></span></p>';
+        card = await renderCard(
+            `${noTax}<div slot="legal-text">Annual, billed monthly</div>`,
+        );
+        card.variantLayout.adjustShortDescription();
+        expect(card.querySelector('.price-legal').textContent).to.equal(
+            'Annual, billed monthly',
+        );
+    });
+
+    it('stays idempotent across repeated re-resolves (no accumulating spaces)', async () => {
+        card = await renderCard(
+            `${legalWithTax('excl. VAT')}<div slot="legal-text">Annual, billed monthly</div>`,
+        );
+        card.variantLayout.adjustShortDescription();
+        card.variantLayout.adjustShortDescription();
+        card.variantLayout.adjustShortDescription();
+        expect(card.querySelector('.price-legal').textContent).to.equal(
+            'excl. VAT. Annual, billed monthly',
+        );
+    });
+});
+
 describe('bizpro whats-included toggle interaction', () => {
     let card;
     afterEach(() => card?.remove());
@@ -508,6 +578,54 @@ describe('bizpro license dropdown interaction', () => {
                 .querySelector('#license-popover')
                 .hasAttribute('hidden'),
         ).to.be.true;
+    });
+});
+
+describe('bizpro license sync from the 3-in-1 modal', () => {
+    let card;
+    afterEach(() => card?.remove());
+
+    const QS =
+        '<div slot="quantity-select"><merch-quantity-select title="License" min="1" max="10" step="1" default-value="2"></merch-quantity-select></div>';
+
+    const value = () =>
+        card.shadowRoot
+            .querySelector('.license-select-value')
+            .textContent.trim();
+
+    // merch-card.handleAddonAndQuantityUpdate fires this on the quantity-select
+    // when the 3-in-1 modal closes with a new license count (MWPW-198372).
+    const modalQuantityChange = (quantity) =>
+        card.querySelector('merch-quantity-select').dispatchEvent(
+            new CustomEvent(EVENT_MERCH_CARD_QUANTITY_CHANGE, {
+                detail: { quantity },
+                bubbles: true,
+                composed: true,
+            }),
+        );
+
+    it('reflects a modal license change in the custom selector', async () => {
+        card = await renderCard(QS);
+        expect(value()).to.equal('2');
+
+        modalQuantityChange(6);
+        await card.updateComplete;
+
+        expect(value()).to.equal('6');
+        expect(
+            card.shadowRoot
+                .querySelector('.license-select-option.selected')
+                .textContent.trim(),
+        ).to.equal('6');
+    });
+
+    it('ignores a modal quantity outside the configured range', async () => {
+        card = await renderCard(QS);
+
+        modalQuantityChange(99);
+        await card.updateComplete;
+
+        expect(value()).to.equal('2');
     });
 });
 

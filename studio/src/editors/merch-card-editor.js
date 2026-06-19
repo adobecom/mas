@@ -1530,6 +1530,7 @@ class MerchCardEditor extends LitElement {
                         upt-link
                         list
                         mnemonic
+                        icon
                         data-field="shortDescription"
                         data-field-state="${this.getFieldState('shortDescription')}"
                         .osi=${form.osi.values[0]}

@@ -17,6 +17,7 @@ import { transformer as mask } from '../../io/www/src/fragment/transformers/mask
 import { ODIN_PREVIEW_FRAGMENTS_URL } from '../src/constants.js';
 import { transformer as wcs } from '../../io/www/src/fragment/transformers/wcs.js';
 import { loadConfiguration } from '../../io/www/src/fragment/utils/configuration.js';
+import { mark } from '../../io/www/src/fragment/utils/common.js';
 
 const PIPELINE = [fetchFragment, defaultLanguage, promotions, mask, customize, settings, replace, corrector, wcs];
 class LocaleStorageState {

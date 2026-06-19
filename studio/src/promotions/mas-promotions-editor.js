@@ -291,6 +291,11 @@ class MasPromotionsEditor extends LitElement {
                 });
             }
         }
+        for (const selectorId of Store.promotions.selectedOffers.value) {
+            const row = this.#mapPromotionOfferSelectorToRow(selectorId);
+            const key = row.path || row.id || row.offerData?.offerId;
+            if (key && !offersByKey.has(key)) offersByKey.set(key, row);
+        }
         this.promoManagerOffers = [...offersByKey.values()];
     }
 

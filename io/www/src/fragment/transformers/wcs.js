@@ -88,9 +88,9 @@ async function wcs(context) {
             logError(`Failed to rewrite body with substituted OSIs: ${error.message}`, context);
         }
     }
-    if (body.fields?.osi) {
-        const substitutedOsi = substituteOsi(body.fields.osi, context.substituteMap);
-        if (substitutedOsi !== body.fields.osi) {
+    if (context.body.fields?.osi) {
+        const substitutedOsi = substituteOsi(context.body.fields.osi, context.substituteMap);
+        if (substitutedOsi !== context.body.fields.osi) {
             context.body.fields.osi = substitutedOsi;
         }
     }
@@ -114,10 +114,10 @@ async function wcs(context) {
             tokenMap.set(tokenKey(token), token);
         });
 
-        if (body.fields.osi) {
+        if (context.body.fields?.osi) {
             const token = {
-                osi: substituteOsi(body.fields.osi, context.substituteMap),
-                promotionCode: body.fields.promoCode,
+                osi: substituteOsi(context.body.fields.osi, context.substituteMap),
+                promotionCode: context.body.fields.promoCode,
             };
             tokenMap.set(tokenKey(token), token);
         }

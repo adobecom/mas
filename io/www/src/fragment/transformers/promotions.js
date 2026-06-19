@@ -469,7 +469,8 @@ async function promotions(context) {
         substituteMap: buildSubstituteMap(project.offerSubstitutions ?? [], context.country),
         fragmentPaths: new Set(project.fragmentPaths),
     }));
-    return { ...context, status: 200, promoProjects };
+    const substituteMap = Object.assign({}, ...promoProjects.map((p) => p.substituteMap));
+    return { ...context, status: 200, promoProjects, substituteMap };
 }
 
 export const transformer = {

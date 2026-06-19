@@ -46,7 +46,11 @@ describe('utils: multipart CSV upload', () => {
         `------BulkEditFormBoundary--\r\n`;
 
     it('detects multipart/form-data', () => {
-        expect(isMultipartContentType({ __ow_headers: { 'content-type': 'multipart/form-data; boundary=----BulkEditFormBoundary' } })).to.equal(true);
+        expect(
+            isMultipartContentType({
+                __ow_headers: { 'content-type': 'multipart/form-data; boundary=----BulkEditFormBoundary' },
+            }),
+        ).to.equal(true);
     });
     it('isCsvUpload accepts multipart', () => {
         expect(isCsvUpload({ __ow_headers: { 'content-type': `multipart/form-data; boundary=${boundary}` } })).to.equal(true);

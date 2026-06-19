@@ -208,7 +208,9 @@ describe('bulk-edit: handlePost', () => {
         expect(invokeAsyncAction.calledOnce).to.equal(true);
     });
     it('re-runs a DONE job when forceRefresh is true', async () => {
-        const { mod, invokeAsyncAction, writeJob, deleteUserCsv } = load({ existing: { status: 'DONE', results: [{ id: 'a' }], total: 1 } });
+        const { mod, invokeAsyncAction, writeJob, deleteUserCsv } = load({
+            existing: { status: 'DONE', results: [{ id: 'a' }], total: 1 },
+        });
         const res = await mod.handlePost({ ...findParams, forceRefresh: true });
         expect(res.statusCode).to.equal(202);
         expect(res.body.reused).to.equal(false);

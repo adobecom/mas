@@ -119,36 +119,34 @@ function toInstant(value) {
 const PROMO_TAG_PREFIX = 'mas:promotion/';
 
 /**
- * Parses offer substitution lines of the form "substitute:<baseOsi>:<substituteOsi>:<country>"
- * written by Studio's serializeOfferSubstitutions. Each line overrides one OSI with another
- * for a specific country.
+ * Parses offer substitution lines of the form "substitute:<baseOsi>:<substituteOsi>".
+ * Each line overrides one OSI with another; geo targeting is inherited from the project's geos field.
  * @param {string[]} lines
- * @returns {{ baseOsi: string, substituteOsi: string, country: string }[]}
+ * @returns {{ baseOsi: string, substituteOsi: string }[]}
  */
 function parseOfferSubstitutions(lines) {
     return lines
         .map((line) => {
             if (!line.startsWith('substitute:')) return null;
             const parts = line.split(':');
-            if (parts.length < 4) return null;
-            const [, baseOsi, substituteOsi, country] = parts;
-            if (!baseOsi?.trim() || !substituteOsi?.trim() || !country?.trim()) return null;
-            return { baseOsi: baseOsi.trim(), substituteOsi: substituteOsi.trim(), country: country.trim() };
+            if (parts.length < 3) return null;
+            const [, baseOsi, substituteOsi] = parts;
+            if (!baseOsi?.trim() || !substituteOsi?.trim()) return null;
+            return { baseOsi: baseOsi.trim(), substituteOsi: substituteOsi.trim() };
         })
         .filter(Boolean);
 }
 
 /**
- * Builds a flat baseOsi → substituteOsi lookup for the current country.
- * @param {{ baseOsi: string, substituteOsi: string, country: string }[]} substitutions
- * @param {string} country
+ * Builds a flat baseOsi → substituteOsi lookup for the current geo.
+ * @param {{ baseOsi: string, substituteOsi: string, geos: string[] }[]} substitutions
+ * @param {{ regionLocale: string, country: string }} geoContext
  * @returns {Object}
  */
-function buildSubstituteMap(substitutions, country) {
+function buildSubstituteMap(substitutions, { regionLocale, country }) {
     const map = {};
-    if (!country) return map;
     for (const sub of substitutions) {
-        if (sub.country === country) {
+        if (!sub.geos?.length || matchesGeo(sub.geos, { regionLocale, country })) {
             map[sub.baseOsi] = sub.substituteOsi;
         }
     }
@@ -342,7 +340,7 @@ async function hydrateProject(project, { baseUrl, surface, defaultLocale, resolv
     const hydratedProject = hydrateResponse.body;
     const fragmentPaths = parseFragmentPaths(hydratedProject);
     const offerOverrides = parseOfferOverrides(project.offerLines);
-    const offerSubstitutions = parseOfferSubstitutions(project.offerLines);
+    const offerSubstitutions = parseOfferSubstitutions(project.offerLines).map((sub) => ({ ...sub, geos: project.geos }));
     const promoCode = hydratedProject.fields?.promoCode ?? null;
     if (!fragmentPaths.length && !offerOverrides.length && !offerSubstitutions.length) {
         logDebug(() => `Promotion project ${project.id} has no fragments or offer overrides, skipping`, context);
@@ -463,10 +461,11 @@ function buildPromoMap(offerOverrides, country, projectPromoCode, context) {
  */
 async function promotions(context) {
     const { activeProjects = [] } = (await context.promises?.promotions) ?? {};
+    const { regionLocale, country } = context;
     const promoProjects = activeProjects.map((project) => ({
         project,
-        promoMap: buildPromoMap(project.offerOverrides, context.country, project.promoCode, context),
-        substituteMap: buildSubstituteMap(project.offerSubstitutions ?? [], context.country),
+        promoMap: buildPromoMap(project.offerOverrides, country, project.promoCode, context),
+        substituteMap: buildSubstituteMap(project.offerSubstitutions ?? [], { regionLocale, country }),
         fragmentPaths: new Set(project.fragmentPaths),
     }));
     const substituteMap = Object.assign({}, ...promoProjects.map((p) => p.substituteMap));

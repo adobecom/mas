@@ -769,15 +769,15 @@ describe('promotions', () => {
             ]);
         });
 
-        it('parses substitute lines and builds country-scoped substituteMap', async () => {
+        it('parses substitute lines and builds geo-scoped substituteMap', async () => {
             fetchStub = sinon.stub(globalThis, 'fetch');
             const project = makeProject({
                 surfaces: ['acom'],
                 geos: [],
                 offers: [
-                    'substitute:OSI-1:OSI-DE:DE',
-                    'substitute:OSI-2:OSI-US:US',
-                    'substitute::bad:',
+                    'substitute:OSI-1:OSI-DE',
+                    'substitute:OSI-2:OSI-US',
+                    'substitute::bad',
                     'substitute:only-two-parts',
                 ],
             });
@@ -790,8 +790,8 @@ describe('promotions', () => {
             clearPromoCache();
 
             expect(initResult.activeProjects[0].offerSubstitutions).to.deep.equal([
-                { baseOsi: 'OSI-1', substituteOsi: 'OSI-DE', country: 'DE' },
-                { baseOsi: 'OSI-2', substituteOsi: 'OSI-US', country: 'US' },
+                { baseOsi: 'OSI-1', substituteOsi: 'OSI-DE', geos: [] },
+                { baseOsi: 'OSI-2', substituteOsi: 'OSI-US', geos: [] },
             ]);
 
             const processResult = await promotionsTransformer.process(
@@ -800,7 +800,7 @@ describe('promotions', () => {
                     promises: { promotions: Promise.resolve({ status: 200, activeProjects: [initResult.activeProjects[0]] }) },
                 }),
             );
-            expect(processResult.promoProjects[0].substituteMap).to.deep.equal({ 'OSI-1': 'OSI-DE' });
+            expect(processResult.promoProjects[0].substituteMap).to.deep.equal({ 'OSI-1': 'OSI-DE', 'OSI-2': 'OSI-US' });
         });
 
         it('skips offerLines with missing promoCode', async () => {
@@ -945,7 +945,7 @@ describe('parseOfferOverrides and substituteMap after OSI substitution refactor'
         expect(result.promoProjects[0].substituteMap).to.deep.equal({});
     });
 
-    it('produces empty substituteMap when country does not match any substitution', async () => {
+    it('produces empty substituteMap when geo does not match any substitution', async () => {
         const result = await promotionsTransformer.process(
             createContext({
                 country: 'FR',
@@ -956,7 +956,7 @@ describe('parseOfferOverrides and substituteMap after OSI substitution refactor'
                             {
                                 fragmentPaths: [],
                                 offerOverrides: [],
-                                offerSubstitutions: [{ baseOsi: 'OSI-1', substituteOsi: 'OSI-DE', country: 'DE' }],
+                                offerSubstitutions: [{ baseOsi: 'OSI-1', substituteOsi: 'OSI-DE', geos: ['/content/cq:tags/mas/country/DE'] }],
                                 promoCode: null,
                             },
                         ],
@@ -965,6 +965,28 @@ describe('parseOfferOverrides and substituteMap after OSI substitution refactor'
             }),
         );
         expect(result.promoProjects[0].substituteMap).to.deep.equal({});
+    });
+
+    it('applies substituteMap when geo matches substitution', async () => {
+        const result = await promotionsTransformer.process(
+            createContext({
+                country: 'DE',
+                promises: {
+                    promotions: Promise.resolve({
+                        status: 200,
+                        activeProjects: [
+                            {
+                                fragmentPaths: [],
+                                offerOverrides: [],
+                                offerSubstitutions: [{ baseOsi: 'OSI-1', substituteOsi: 'OSI-DE', geos: ['/content/cq:tags/mas/country/DE'] }],
+                                promoCode: null,
+                            },
+                        ],
+                    }),
+                },
+            }),
+        );
+        expect(result.promoProjects[0].substituteMap).to.deep.equal({ 'OSI-1': 'OSI-DE' });
     });
 
     it('normal offer overrides still build promoMap correctly when substitute lines are also present', async () => {

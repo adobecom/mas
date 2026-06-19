@@ -154,17 +154,19 @@ function buildSubstituteMap(substitutions, { regionLocale, country }) {
 }
 
 /**
- * Parses project-level offer override lines of the form "<osis>:<promocode>"
- * where osis is a comma-separated list (may be empty), promoCode is required.
- * Geo targeting is inherited from the project's geos field.
+ * Parses project-level offer override lines of the form "<osis>:<promocode>:<geo1>,<geo2>,..."
+ * where osis is a comma-separated list (may be empty), promoCode is required,
+ * and geos is a comma-separated list of geo tags (may be empty = wildcard).
  * @param {string[]} lines
- * @returns {{ osis: string[], promoCode: string }[]}
+ * @returns {{ osis: string[], promoCode: string, geos: string[] }[]}
  */
 function parseOfferOverrides(lines) {
     return lines
         .map((line) => {
             if (line.startsWith('substitute:')) return null;
-            const [osisPart, promoCode] = line.split(':');
+            const parts = line.split(':');
+            const [osisPart, promoCode] = parts;
+            const geosPart = parts.slice(2).join(':');
             if (!promoCode?.trim()) return null;
             return {
                 osis: osisPart
@@ -174,6 +176,12 @@ function parseOfferOverrides(lines) {
                           .filter(Boolean)
                     : [],
                 promoCode: promoCode.trim(),
+                geos: geosPart
+                    ? geosPart
+                          .split(',')
+                          .map((s) => s.trim())
+                          .filter(Boolean)
+                    : [],
             };
         })
         .filter(Boolean);
@@ -334,7 +342,7 @@ async function hydrateProject(project, { baseUrl, surface, defaultLocale, resolv
 
     const hydratedProject = hydrateResponse.body;
     const fragmentPaths = parseFragmentPaths(hydratedProject);
-    const offerOverrides = parseOfferOverrides(project.offerLines).map((override) => ({ ...override, geos: project.geos }));
+    const offerOverrides = parseOfferOverrides(project.offerLines);
     const offerSubstitutions = parseOfferSubstitutions(project.offerLines).map((sub) => ({ ...sub, geos: project.geos }));
     const promoCode = hydratedProject.fields?.promoCode ?? null;
     if (!fragmentPaths.length && !offerOverrides.length && !offerSubstitutions.length) {

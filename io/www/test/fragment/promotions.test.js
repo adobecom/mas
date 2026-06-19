@@ -760,7 +760,11 @@ describe('promotions', () => {
             const project = makeProject({
                 surfaces: ['acom'],
                 geos: [],
-                offers: ['OSI-1:BLACKFRIDAY', ':GLOBAL:', 'OSI-2:SPECIAL'],
+                offers: [
+                    'OSI-1:BLACKFRIDAY:/content/cq:tags/mas/country/US,/content/cq:tags/mas/country/CA',
+                    ':GLOBAL:',
+                    'OSI-2:SPECIAL:',
+                ],
             });
             const hydrated = makeHydratedProject();
             fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
@@ -771,7 +775,11 @@ describe('promotions', () => {
             clearPromoCache();
 
             expect(result.activeProjects[0].offerOverrides).to.deep.equal([
-                { osis: ['OSI-1'], promoCode: 'BLACKFRIDAY', geos: [] },
+                {
+                    osis: ['OSI-1'],
+                    promoCode: 'BLACKFRIDAY',
+                    geos: ['/content/cq:tags/mas/country/US', '/content/cq:tags/mas/country/CA'],
+                },
                 { osis: [], promoCode: 'GLOBAL', geos: [] },
                 { osis: ['OSI-2'], promoCode: 'SPECIAL', geos: [] },
             ]);
@@ -825,7 +833,7 @@ describe('promotions', () => {
             const project = makeProject({
                 surfaces: ['acom'],
                 geos: [],
-                offers: ['substitute:OSI-A:OSI-B', 'OSI-1:BLACKFRIDAY'],
+                offers: ['substitute:OSI-A:OSI-B', 'OSI-1:BLACKFRIDAY:/content/cq:tags/mas/country/US'],
             });
             const hydrated = makeHydratedProject();
             fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
@@ -836,7 +844,7 @@ describe('promotions', () => {
             clearPromoCache();
 
             expect(result.activeProjects[0].offerOverrides).to.deep.equal([
-                { osis: ['OSI-1'], promoCode: 'BLACKFRIDAY', geos: [] },
+                { osis: ['OSI-1'], promoCode: 'BLACKFRIDAY', geos: ['/content/cq:tags/mas/country/US'] },
             ]);
         });
 

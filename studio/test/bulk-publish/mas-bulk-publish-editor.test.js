@@ -2,6 +2,8 @@ import { fixture, html, expect } from '@open-wc/testing';
 import Store from '../../src/store.js';
 import '../../src/bulk-publish/mas-bulk-publish-editor.js';
 import { BULK_PUBLISH_STATUS, QUICK_ACTION } from '../../src/constants.js';
+import { Fragment } from '../../src/aem/fragment.js';
+import { FragmentStore } from '../../src/reactivity/fragment-store.js';
 
 function seedInEdit(el, data = {}, { id = null } = {}) {
     const inner = {
@@ -106,6 +108,30 @@ describe('mas-bulk-publish-editor', () => {
         expect(el.shadowRoot.querySelector('mas-bulk-publish-success-banner')).to.exist;
     });
 
+    it('re-renders the publishing banner when the project store updates during polling', async () => {
+        const el = await fixture(html`<mas-bulk-publish-editor></mas-bulk-publish-editor>`);
+        await el.updateComplete;
+        const store = new FragmentStore(
+            new Fragment({
+                id: 'frag-1',
+                path: '/content/dam/mas/bulk-publish-projects/acom/p1',
+                fields: [
+                    { name: 'title', type: 'text', values: ['x'] },
+                    { name: 'status', type: 'text', values: [BULK_PUBLISH_STATUS.DRAFT] },
+                    { name: 'urls', type: 'text', values: [''] },
+                    { name: 'fragments', type: 'content-fragment', multiple: true, values: ['/x'] },
+                    { name: 'locales', type: 'text', multiple: true, values: [] },
+                ],
+            }),
+        );
+        Store.bulkPublishProjects.inEdit.set(store);
+        await el.updateComplete;
+        expect(el.shadowRoot.querySelector('mas-bulk-publish-success-banner[variant="publishing"]')).to.not.exist;
+        store.updateField('status', [BULK_PUBLISH_STATUS.PUBLISHING]);
+        await el.updateComplete;
+        expect(el.shadowRoot.querySelector('mas-bulk-publish-success-banner[variant="publishing"]')).to.exist;
+    });
+
     it('does not update inEdit after disconnecting during async init', async () => {
         Store.bulkPublishProjects.inEdit.set(null);
         Store.bulkPublishProjects.projectId.set('test-id');
@@ -173,6 +199,39 @@ describe('mas-bulk-publish-editor', () => {
             const quick = el.shadowRoot.querySelector('mas-quick-actions');
             expect(quick.disabled.has(QUICK_ACTION.PUBLISH)).to.equal(true);
         });
+    });
+
+    it('passes parsed lastResult to the banner for PARTIALLY_PUBLISHED', async () => {
+        const el = await fixture(html`<mas-bulk-publish-editor></mas-bulk-publish-editor>`);
+        await el.updateComplete;
+        const result = { published: 3, failed: 2, failures: [], failuresTruncated: false };
+        seedInEdit(el, {
+            status: BULK_PUBLISH_STATUS.PARTIALLY_PUBLISHED,
+            lastResult: JSON.stringify(result),
+        });
+        await el.updateComplete;
+        const banner = el.shadowRoot.querySelector('mas-bulk-publish-success-banner');
+        expect(banner).to.exist;
+        expect(banner.result).to.deep.equal(result);
+    });
+
+    it('REVERT not disabled when status is PARTIALLY_PUBLISHED', async () => {
+        const el = await fixture(html`<mas-bulk-publish-editor></mas-bulk-publish-editor>`);
+        await el.updateComplete;
+        seedInEdit(
+            el,
+            {
+                title: 'x',
+                urls: '',
+                items: '[]',
+                locales: [],
+                status: BULK_PUBLISH_STATUS.PARTIALLY_PUBLISHED,
+            },
+            { id: 'existing-frag-id' },
+        );
+        await el.updateComplete;
+        const quick = el.shadowRoot.querySelector('mas-quick-actions');
+        expect(quick.disabled.has(QUICK_ACTION.REVERT)).to.equal(false);
     });
 
     describe('Check for modifications', () => {

@@ -3,7 +3,6 @@ const { buildSearchQuery, buildSearchPaths, searchPages, findMatches, extractLoc
 const { readJob, patchJob } = require('./state.js');
 
 const logger = Core.Logger('bulk-edit-find-worker', { level: 'info' });
-const RESULT_CAP = 1000;
 
 function buildFindResult(fragment, matches) {
     return {
@@ -20,11 +19,11 @@ async function resolveStop(jobId, runId) {
     return null;
 }
 
-async function finalizeStop(jobId, stop, results, truncated) {
+async function finalizeStop(jobId, stop, results) {
     if (stop === 'CANCELLED') {
         await patchJob(jobId, { status: 'CANCELLED', total: results.length });
     }
-    return { status: stop, total: results.length, truncated };
+    return { status: stop, total: results.length };
 }
 
 async function runFindWorker(jobId, { odinEndpoint, authToken, runId }) {
@@ -37,7 +36,6 @@ async function runFindWorker(jobId, { odinEndpoint, authToken, runId }) {
     const paths = buildSearchPaths(params.surface, params.locale);
 
     const results = [];
-    let truncated = false;
     try {
         for (const path of paths) {
             const query = buildSearchQuery({
@@ -52,22 +50,16 @@ async function runFindWorker(jobId, { odinEndpoint, authToken, runId }) {
                     if (matches.length) {
                         results.push(buildFindResult(fragment, matches));
                     }
-                    if (results.length >= RESULT_CAP) {
-                        truncated = true;
-                        break;
-                    }
                 }
                 const stop = await resolveStop(jobId, runId);
-                if (stop) return finalizeStop(jobId, stop, results, truncated);
+                if (stop) return finalizeStop(jobId, stop, results);
                 await patchJob(jobId, { results: [...results], total: results.length });
-                if (truncated) break;
             }
-            if (truncated) break;
             const stop = await resolveStop(jobId, runId);
-            if (stop) return finalizeStop(jobId, stop, results, truncated);
+            if (stop) return finalizeStop(jobId, stop, results);
         }
-        await patchJob(jobId, { status: 'DONE', results, total: results.length, truncated });
-        return { status: 'DONE', total: results.length, truncated };
+        await patchJob(jobId, { status: 'DONE', results, total: results.length });
+        return { status: 'DONE', total: results.length };
     } catch (error) {
         if ((await resolveStop(jobId, runId)) === null) {
             await patchJob(jobId, { status: 'FAILED', error: error.message, total: results.length });
@@ -87,5 +79,5 @@ async function main(params) {
     }
 }
 
-module.exports = { main, runFindWorker, buildFindResult, RESULT_CAP };
+module.exports = { main, runFindWorker, buildFindResult };
 exports.main = main;

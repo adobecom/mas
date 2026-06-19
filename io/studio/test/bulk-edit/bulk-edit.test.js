@@ -64,7 +64,7 @@ const doneJobResults = [
     },
 ];
 
-const doneJob = { status: 'DONE', total: 2, results: doneJobResults, truncated: false };
+const doneJob = { status: 'DONE', total: 2, results: doneJobResults };
 
 const sampleCsvRow =
     'fragment_id,path,locale,field,find,replace,etag,status\n' +
@@ -246,7 +246,7 @@ describe('bulk-edit: handleGet', () => {
     });
     it('pages results with offset and limit like AEM fragment search', async () => {
         const results = [{ id: 'a' }, { id: 'b' }, { id: 'c' }, { id: 'd' }, { id: 'e' }];
-        const { mod } = load({ existing: { status: 'DONE', total: 5, results, truncated: false } });
+        const { mod } = load({ existing: { status: 'DONE', total: 5, results } });
         const first = await mod.handleGet({ jobId: 'j', offset: '0', limit: '2' });
         expect(first.body.offset).to.equal(0);
         expect(first.body.limit).to.equal(2);
@@ -261,7 +261,7 @@ describe('bulk-edit: handleGet', () => {
         expect(res.body.limit).to.equal(50);
     });
     it('returns done:true on DONE', async () => {
-        const { mod } = load({ existing: { status: 'DONE', total: 1, results: [{ id: 'a' }], truncated: false } });
+        const { mod } = load({ existing: { status: 'DONE', total: 1, results: [{ id: 'a' }] } });
         const res = await mod.handleGet({ jobId: 'j', offset: '0' });
         expect(res.body.done).to.equal(true);
     });

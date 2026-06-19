@@ -78,13 +78,12 @@ const searchKey = {
 const forceRefresh = hasFlag('--force-refresh');
 const jobId = bulkEdit.computeJobId(searchKey);
 
-function formatOutput(job, { reused = false, status, total, truncated } = {}) {
+function formatOutput(job, { reused = false, status, total } = {}) {
     return {
         jobId,
         reused,
         status: status ?? job?.status,
         total: total ?? job?.total ?? 0,
-        truncated: truncated ?? !!job?.truncated,
         done: (status ?? job?.status) === 'DONE' || (status ?? job?.status) === 'CANCELLED',
         items: job?.results ?? [],
     };

@@ -54,7 +54,6 @@ describe('bulk-edit/find-worker: runFindWorker', () => {
         expect(done.status).to.equal('DONE');
         expect(done.total).to.equal(2);
         expect(done.results.map((r) => r.id)).to.deep.equal(['a', 'b']);
-        expect(done.truncated).to.equal(false);
     });
     it('returns the full Odin fragment with matches and locale', async () => {
         const cardModelId = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ';
@@ -107,14 +106,13 @@ describe('bulk-edit/find-worker: runFindWorker', () => {
         const progressTotals = patches.filter((p) => !p.status).map((p) => p.total);
         expect(progressTotals).to.deep.equal([1, 2]);
     });
-    it('marks truncated when the result cap is exceeded', async () => {
+    it('collects all matches without a result cap', async () => {
         const big = Array.from({ length: 1001 }, (_, i) => ({ id: String(i), path: `/p/${i}`, hit: 'x' }));
         const { mod, patches } = load({ pages: [big] });
         await mod.runFindWorker('job1', { odinEndpoint: 'https://odin' });
         const done = patches[patches.length - 1];
         expect(done.status).to.equal('DONE');
-        expect(done.total).to.equal(1000);
-        expect(done.truncated).to.equal(true);
+        expect(done.total).to.equal(1001);
     });
     it('marks FAILED and rethrows on AEM error', async () => {
         const { mod, patches } = load({ error: true });

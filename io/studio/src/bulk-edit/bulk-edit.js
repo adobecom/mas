@@ -236,7 +236,6 @@ async function handleGet(params) {
             total: items.length,
             offset,
             limit,
-            truncated: !!job.truncated,
             done: job.status === 'DONE' || job.status === 'CANCELLED',
             filteredByUpload,
             items: page,

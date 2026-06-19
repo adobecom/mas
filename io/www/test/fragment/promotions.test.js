@@ -774,12 +774,7 @@ describe('promotions', () => {
             const project = makeProject({
                 surfaces: ['acom'],
                 geos: [],
-                offers: [
-                    'substitute:OSI-1:OSI-DE',
-                    'substitute:OSI-2:OSI-US',
-                    'substitute::bad',
-                    'substitute:only-two-parts',
-                ],
+                offers: ['substitute:OSI-1:OSI-DE', 'substitute:OSI-2:OSI-US', 'substitute::bad', 'substitute:only-two-parts'],
             });
             const hydrated = makeHydratedProject({ fragmentPaths: ['offers/offer-1'] });
             fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
@@ -956,7 +951,9 @@ describe('parseOfferOverrides and substituteMap after OSI substitution refactor'
                             {
                                 fragmentPaths: [],
                                 offerOverrides: [],
-                                offerSubstitutions: [{ baseOsi: 'OSI-1', substituteOsi: 'OSI-DE', geos: ['/content/cq:tags/mas/country/DE'] }],
+                                offerSubstitutions: [
+                                    { baseOsi: 'OSI-1', substituteOsi: 'OSI-DE', geos: ['/content/cq:tags/mas/country/DE'] },
+                                ],
                                 promoCode: null,
                             },
                         ],
@@ -978,7 +975,9 @@ describe('parseOfferOverrides and substituteMap after OSI substitution refactor'
                             {
                                 fragmentPaths: [],
                                 offerOverrides: [],
-                                offerSubstitutions: [{ baseOsi: 'OSI-1', substituteOsi: 'OSI-DE', geos: ['/content/cq:tags/mas/country/DE'] }],
+                                offerSubstitutions: [
+                                    { baseOsi: 'OSI-1', substituteOsi: 'OSI-DE', geos: ['/content/cq:tags/mas/country/DE'] },
+                                ],
                                 promoCode: null,
                             },
                         ],

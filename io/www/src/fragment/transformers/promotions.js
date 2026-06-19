@@ -471,8 +471,7 @@ async function promotions(context) {
     const substituteMap = Object.assign({}, ...promoProjects.map((p) => p.substituteMap));
     promoProjects.forEach(({ project, promoMap, substituteMap: sm }) => {
         logDebug(
-            () =>
-                `Project "${project.id}" promoMap: ${JSON.stringify(promoMap)}, substituteMap: ${JSON.stringify(sm)}`,
+            () => `Project "${project.id}" promoMap: ${JSON.stringify(promoMap)}, substituteMap: ${JSON.stringify(sm)}`,
             context,
         );
     });

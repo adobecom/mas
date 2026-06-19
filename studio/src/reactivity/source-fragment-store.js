@@ -3,6 +3,7 @@ import { FragmentStore } from './fragment-store.js';
 import { PreviewFragmentStore, INHERITED_SETTINGS_FIELDS } from './preview-fragment-store.js';
 import Store from '../store.js';
 import { getGlobalSettingsDefaults } from '../settings/settings-store.js';
+import { variationFieldShouldInheritParent } from '../aem/variation-utils.js';
 
 export class SourceFragmentStore extends FragmentStore {
     /** @type {PreviewFragmentStore} */
@@ -74,11 +75,16 @@ export class SourceFragmentStore extends FragmentStore {
         }
     }
 
-    resetFieldToParent(fieldName, parentValues = []) {
+    resetFieldToParent(fieldName) {
         const success = this.value.resetFieldToParent(fieldName);
         if (success) {
             this.notify();
-            this.previewStore.updateFieldWithParentValue(fieldName, parentValues);
+            if (this.parentFragment) {
+                const parentValues = this.parentFragment.getField(fieldName)?.values ?? [];
+                this.previewStore.updateField(fieldName, parentValues);
+            } else {
+                this.previewStore.refreshFrom(structuredClone(this.value));
+            }
         }
         return success;
     }
@@ -103,14 +109,15 @@ export class SourceFragmentStore extends FragmentStore {
  */
 export default function generateFragmentStore(fragment, parentFragment = null, options = {}) {
     // Source store keeps the raw fragment data
-    const sourceFragment = new Fragment(structuredClone(fragment));
+    const sourceData = structuredClone(fragment);
+    const sourceFragment = new Fragment(sourceData);
 
     // Preview store gets parent-merged data for variations
     let previewData;
     if (parentFragment) {
-        previewData = createPreviewDataWithParent(fragment, parentFragment);
+        previewData = createPreviewDataWithParent(sourceData, parentFragment);
     } else {
-        previewData = structuredClone(fragment);
+        previewData = structuredClone(sourceData);
     }
 
     const previewStore = new PreviewFragmentStore(new Fragment(previewData), undefined, options);
@@ -131,16 +138,7 @@ export function createPreviewDataWithParent(sourceFragment, parentFragment) {
         const sourceField = previewData.fields?.find((f) => f.name === parentField.name);
         const sourceValues = sourceField?.values || [];
 
-        // Check if variation should inherit from parent
-        let shouldInherit = sourceValues.length === 0;
-
-        // For [""], check if it's a multi-value field
-        if (!shouldInherit && sourceValues.length === 1 && sourceValues[0] === '') {
-            // For multi-value fields, [""] is explicit clear - don't inherit
-            // For single-value fields, [""] is AEM's default - inherit
-            const isMultipleField = sourceField?.multiple === true;
-            shouldInherit = !isMultipleField;
-        }
+        const shouldInherit = variationFieldShouldInheritParent(sourceValues, sourceField?.multiple === true);
 
         if (shouldInherit && parentField?.values?.length > 0) {
             if (sourceField) {
@@ -158,11 +156,6 @@ export function createPreviewDataWithParent(sourceFragment, parentFragment) {
             const previewField = previewData.fields?.find((f) => f.name === fieldName);
             const previewVals = previewField?.values ?? [];
 
-            const isExplicitInheritSentinel =
-                previewVals.length === 1 && previewVals[0] === '' && previewField?.multiple !== true;
-            if (isExplicitInheritSentinel) {
-                continue;
-            }
             if (previewVals.length > 0) {
                 continue;
             }

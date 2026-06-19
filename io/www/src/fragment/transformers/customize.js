@@ -7,6 +7,7 @@ import {
     VALID_PARAMETER_VALUE_REGEX,
 } from '../utils/common.js';
 import { logDebug, logError } from '../utils/log.js';
+import { normalizeExplicitEmptyInFields } from '../utils/explicit-empty.js';
 
 const PZN_FOLDER = '/pzn/';
 
@@ -291,6 +292,7 @@ function adaptReferencesTree(referencesTree, customizedRoot) {
 function customizeTree(root, referencesTree = [], customizeContext) {
     //start by merging current fragment with its regional variation, and promos if any
     const customizedRoot = mergeVariations(root, customizeContext);
+    customizedRoot.fields = normalizeExplicitEmptyInFields(customizedRoot.fields);
     const promoMap = findPromoMapForFragment(root, customizeContext);
     if (promoMap) {
         applyPromoCode(customizedRoot, promoMap, customizeContext);

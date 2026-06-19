@@ -16,6 +16,7 @@ import {
     EVENT_AEM_LOAD,
     EVENT_AEM_ERROR,
 } from '../src/constants.js';
+import { EXPLICIT_EMPTY_SENTINEL } from '../../io/www/src/fragment/utils/explicit-empty.js';
 
 chai.use(chaiAsPromised);
 
@@ -89,6 +90,38 @@ runTests(async () => {
         });
 
         describe('aem-fragment core functionality', () => {
+            it('normalizes explicit_empty sentinel to empty string in author mode', async () => {
+                const fragmentId = 'sentinel-badge-test';
+                cache.add({
+                    id: fragmentId,
+                    fields: [
+                        {
+                            name: 'badge',
+                            values: [EXPLICIT_EMPTY_SENTINEL],
+                            multiple: false,
+                        },
+                        { name: 'title', values: ['Keep me'], multiple: false },
+                    ],
+                    tags: [],
+                    settings: {},
+                    priceLiterals: {},
+                    dictionary: {},
+                    placeholders: {},
+                });
+
+                const aemFragment = document.createElement('aem-fragment');
+                aemFragment.setAttribute('fragment', fragmentId);
+                aemFragment.setAttribute('author', '');
+                document.body.appendChild(aemFragment);
+                await aemFragment.updateComplete;
+
+                expect(aemFragment.data.fields.badge).to.equal('');
+                expect(aemFragment.data.fields.title).to.equal('Keep me');
+
+                aemFragment.remove();
+                cache.clear();
+            });
+
             it('has fragment cache', async () => {
                 expect(cache).to.exist;
                 expect(cache.has('id123')).to.false;

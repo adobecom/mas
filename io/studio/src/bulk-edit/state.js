@@ -1,7 +1,8 @@
+const zlib = require('zlib');
 const stateLib = require('@adobe/aio-lib-state');
 const { init } = stateLib;
 
-const JOB_TTL = 5 * 60;
+const JOB_TTL = 30 * 60;
 const USER_CSV_TTL = stateLib.MAX_TTL;
 
 function buildJobKey(jobId) {
@@ -12,9 +13,17 @@ function buildUserCsvKey(jobId) {
     return `bulk-edit.${jobId}.csv`;
 }
 
+function encodeStateValue(value) {
+    return zlib.brotliCompressSync(JSON.stringify(value)).toString('base64');
+}
+
+function decodeStateValue(raw) {
+    return JSON.parse(zlib.brotliDecompressSync(Buffer.from(raw, 'base64')).toString());
+}
+
 async function writeJob(jobId, value, ttl = JOB_TTL) {
     const state = await init();
-    await state.put(buildJobKey(jobId), JSON.stringify(value), { ttl });
+    await state.put(buildJobKey(jobId), encodeStateValue(value), { ttl });
     return value;
 }
 
@@ -22,7 +31,7 @@ async function readJob(jobId) {
     const state = await init();
     const result = await state.get(buildJobKey(jobId));
     if (!result?.value) return null;
-    return JSON.parse(result.value);
+    return decodeStateValue(result.value);
 }
 
 async function patchJob(jobId, patch, ttl = JOB_TTL) {
@@ -53,6 +62,8 @@ module.exports = {
     USER_CSV_TTL,
     buildJobKey,
     buildUserCsvKey,
+    encodeStateValue,
+    decodeStateValue,
     writeJob,
     readJob,
     patchJob,

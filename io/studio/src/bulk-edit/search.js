@@ -3,14 +3,8 @@ const { fetchOdin, getValues } = require('../common.js');
 const CARD_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ';
 const COLLECTION_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24';
 const DICTIONARY_ENTRY_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25uYXJ5';
-const DICTIONARY_INDEX_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25hcnk';
 
-const BULK_EDIT_MODEL_IDS = [
-    CARD_MODEL_ID,
-    COLLECTION_MODEL_ID,
-    DICTIONARY_ENTRY_MODEL_ID,
-    DICTIONARY_INDEX_MODEL_ID,
-];
+const BULK_EDIT_MODEL_IDS = [CARD_MODEL_ID, COLLECTION_MODEL_ID, DICTIONARY_ENTRY_MODEL_ID];
 
 function matchesText(value, find, matchCase) {
     if (value == null) return false;
@@ -32,7 +26,6 @@ const SCOPE_FIELDS = {
     productDescription: { fields: ['description'] },
     productText: { fields: ['promoText', 'shortDescription'] },
     subtitle: { fields: ['subtitle'] },
-    fragmentTitle: { top: ['title'] },
     fragmentDescription: { top: ['description'] },
     tags: { tags: true },
 };
@@ -60,7 +53,7 @@ function matchEverywhere(fragment, find, matchCase) {
             }
         }
     }
-    for (const prop of ['title', 'description']) {
+    for (const prop of ['description']) {
         if (matchesText(fragment[prop], find, matchCase)) {
             matches.push({ field: prop, value: fragment[prop] });
         }

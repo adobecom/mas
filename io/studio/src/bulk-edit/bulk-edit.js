@@ -19,6 +19,16 @@ const logger = Core.Logger('bulk-edit', { level: 'info' });
 const WORKER_ACTIONS = { find: 'bulk-edit-find-worker' };
 const REQUIRED_INPUTS = { find: ['find', 'surface'] };
 const TERMINAL_STATUSES = new Set(['DONE', 'CANCELLED']);
+const DEFAULT_PAGE_LIMIT = 50;
+const MAX_PAGE_LIMIT = 50;
+
+function parsePageParams(params) {
+    const offset = Math.max(0, Number.parseInt(params.offset, 10) || 0);
+    let limit = Number.parseInt(params.limit, 10);
+    if (!Number.isFinite(limit) || limit <= 0) limit = DEFAULT_PAGE_LIMIT;
+    if (limit > MAX_PAGE_LIMIT) limit = MAX_PAGE_LIMIT;
+    return { offset, limit };
+}
 
 function normalizeSearchInKey(searchIn) {
     if (searchIn == null || searchIn === '' || searchIn === '*') return '*';
@@ -218,17 +228,19 @@ async function handleGet(params) {
         };
     }
 
-    const offset = Number.parseInt(params.offset, 10) || 0;
-    const sliced = items.slice(offset);
+    const { offset, limit } = parsePageParams(params);
+    const page = items.slice(offset, offset + limit);
     return {
         statusCode: 200,
         body: {
             status: job.status,
             total: items.length,
+            offset,
+            limit,
             truncated: !!job.truncated,
             done: job.status === 'DONE' || job.status === 'CANCELLED',
             filteredByUpload,
-            items: sliced,
+            items: page,
         },
     };
 }
@@ -264,6 +276,9 @@ module.exports = {
     normalizeSearchInKey,
     normalizeLocalesKey,
     isForceRefresh,
+    parsePageParams,
+    DEFAULT_PAGE_LIMIT,
+    MAX_PAGE_LIMIT,
     WORKER_ACTIONS,
 };
 exports.main = main;

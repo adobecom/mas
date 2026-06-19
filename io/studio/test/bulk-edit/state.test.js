@@ -17,16 +17,58 @@ function load(store = {}) {
     return { mod, store };
 }
 
+const sampleJob = {
+    status: 'DONE',
+    total: 2,
+    results: [
+        {
+            id: 'frag-1',
+            path: '/content/dam/mas/sandbox/en_US/foo',
+            locale: 'en_US',
+            status: 'PUBLISHED',
+            etag: 'e1',
+            matches: [{ field: 'subtitle', value: 'firefly' }],
+        },
+        {
+            id: 'frag-2',
+            path: '/content/dam/mas/sandbox/en_US/bar',
+            locale: 'en_US',
+            status: 'PUBLISHED',
+            etag: 'e2',
+            matches: [{ field: 'title', value: 'firefly pro' }],
+        },
+    ],
+};
+
+describe('bulk-edit/state: encodeStateValue + decodeStateValue', () => {
+    it('round-trips a job-shaped object', () => {
+        const { mod } = load();
+        const encoded = mod.encodeStateValue(sampleJob);
+        expect(mod.decodeStateValue(encoded)).to.deep.equal(sampleJob);
+    });
+    it('throws on invalid base64 payload', () => {
+        const { mod } = load();
+        expect(() => mod.decodeStateValue('not-valid-base64!!!')).to.throw();
+    });
+});
+
 describe('bulk-edit/state: writeJob + readJob', () => {
     it('round-trips a job record by jobId', async () => {
         const { mod } = load();
         await mod.writeJob('abc', { status: 'RUNNING', results: [], total: 0 });
         expect(await mod.readJob('abc')).to.deep.equal({ status: 'RUNNING', results: [], total: 0 });
     });
-    it('keys state as bulk-edit.{jobId}', async () => {
+    it('stores brotli-compressed base64, not plain JSON', async () => {
         const { mod, store } = load();
-        await mod.writeJob('abc', { x: 1 });
-        expect(store['bulk-edit.abc']).to.equal(JSON.stringify({ x: 1 }));
+        const value = { x: 1 };
+        await mod.writeJob('abc', value);
+        expect(store['bulk-edit.abc']).to.not.equal(JSON.stringify(value));
+        expect(mod.decodeStateValue(store['bulk-edit.abc'])).to.deep.equal(value);
+    });
+    it('round-trips a realistic job with results', async () => {
+        const { mod } = load();
+        await mod.writeJob('job-1', sampleJob);
+        expect(await mod.readJob('job-1')).to.deep.equal(sampleJob);
     });
     it('returns null for an unknown jobId', async () => {
         const { mod } = load();

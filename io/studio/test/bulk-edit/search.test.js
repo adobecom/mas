@@ -65,20 +65,23 @@ describe('bulk-edit/search: findMatches', () => {
         expect(m).to.have.lengthOf(1);
         expect(m[0].field).to.equal('buttonText');
     });
-    it('matches the fragment top-level title', () => {
-        expect(svc.findMatches(fragment, 'fragmentTitle', 'all apps', false)).to.deep.equal([
-            { field: 'fragmentTitle', value: 'CCD Slice Wide CC All Apps' },
-        ]);
+    it('does not match fragment title (not editable in bulk edit)', () => {
+        expect(svc.findMatches(fragment, 'fragmentTitle', 'all apps', false)).to.deep.equal([]);
+    });
+    it('everywhere scans fields and description but not fragment title', () => {
+        const fieldsHit = svc.findMatches(fragment, '*', 'school', false).map((x) => x.field);
+        expect(fieldsHit).to.include('subtitle');
+        expect(fieldsHit).to.include('description');
+        expect(fieldsHit).to.not.include('title');
+    });
+    it('everywhere ignores fragment title when it is the only match', () => {
+        const titleOnly = { title: 'firefly card', description: '', fields: [] };
+        expect(svc.findMatches(titleOnly, '*', 'firefly', false)).to.deep.equal([]);
     });
     it('matches a tag id under the tags scope', () => {
         expect(svc.findMatches(fragment, 'tags', 'plan_type/abm', false)).to.deep.equal([
             { field: 'tags', value: 'mas:plan_type/abm' },
         ]);
-    });
-    it('everywhere scans all fields plus title/description', () => {
-        const fieldsHit = svc.findMatches(fragment, '*', 'school', false).map((x) => x.field);
-        expect(fieldsHit).to.include('subtitle');
-        expect(fieldsHit).to.include('description');
     });
     it('everywhere yields at most one match per field even with multiple matching values', () => {
         const multiValueFragment = {

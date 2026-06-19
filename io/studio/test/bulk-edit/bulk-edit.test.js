@@ -222,12 +222,30 @@ describe('bulk-edit: handlePost', () => {
 });
 
 describe('bulk-edit: handleGet', () => {
-    it('returns a RUNNING delta sliced by offset', async () => {
+    it('returns a page of items using offset and default limit', async () => {
         const { mod } = load({ existing: { status: 'RUNNING', total: 3, results: [{ id: 'a' }, { id: 'b' }, { id: 'c' }] } });
         const res = await mod.handleGet({ jobId: 'j', offset: '1' });
         expect(res.statusCode).to.equal(200);
         expect(res.body.done).to.equal(false);
+        expect(res.body.offset).to.equal(1);
+        expect(res.body.limit).to.equal(50);
         expect(res.body.items.map((i) => i.id)).to.deep.equal(['b', 'c']);
+    });
+    it('pages results with offset and limit like AEM fragment search', async () => {
+        const results = [{ id: 'a' }, { id: 'b' }, { id: 'c' }, { id: 'd' }, { id: 'e' }];
+        const { mod } = load({ existing: { status: 'DONE', total: 5, results, truncated: false } });
+        const first = await mod.handleGet({ jobId: 'j', offset: '0', limit: '2' });
+        expect(first.body.offset).to.equal(0);
+        expect(first.body.limit).to.equal(2);
+        expect(first.body.total).to.equal(5);
+        expect(first.body.items.map((i) => i.id)).to.deep.equal(['a', 'b']);
+        const second = await mod.handleGet({ jobId: 'j', offset: '2', limit: '2' });
+        expect(second.body.items.map((i) => i.id)).to.deep.equal(['c', 'd']);
+    });
+    it('caps limit at 50', async () => {
+        const { mod } = load({ existing: { status: 'DONE', total: 1, results: [{ id: 'a' }] } });
+        const res = await mod.handleGet({ jobId: 'j', limit: '200' });
+        expect(res.body.limit).to.equal(50);
     });
     it('returns done:true on DONE', async () => {
         const { mod } = load({ existing: { status: 'DONE', total: 1, results: [{ id: 'a' }], truncated: false } });

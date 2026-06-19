@@ -667,7 +667,7 @@ export class MerchCard extends LitElement {
         );
         this.removeEventListener(EVENT_AEM_ERROR, this.handleAemFragmentEvents);
         this.removeEventListener(EVENT_AEM_LOAD, this.handleAemFragmentEvents);
-        this.removeEventListener(EVENT_MAS_READY, this.handleInfoIconEvents);
+        this.removeEventListener(EVENT_MAS_READY, this.handleMasReady);
         this.removeEventListener('change', this.changeHandler);
         this.removeEventListener(
             EVENT_MERCH_ADDON_AND_QUANTITY_UPDATE,

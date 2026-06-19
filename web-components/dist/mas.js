@@ -3372,10 +3372,6 @@ merch-card .footer-row-cell:nth-child(8) {
             </div>
             ${this.getMiniCompareFooterRows()}
         `}async postCardUpdateHook(){if(await super.postCardUpdateHook(),this.legalAdjusted||await this.adjustLegal(),this.setupToggle(),$.isMobile)this.removeEmptyRows();else{this.adjustMiniCompareFooterRows();let e=this.getContainer();if(!e)return;requestAnimationFrame(()=>{e.querySelectorAll('merch-card[variant="mini-compare-chart-mweb"]').forEach(a=>{a.variantLayout?.adjustMiniCompareBodySlots?.(),a.variantLayout?.adjustMiniCompareFooterRows?.()})})}}};g(kr,"variantStyle",S`
-        :host([variant='mini-compare-chart-mweb']) .body > slot {
-            display: block;
-        }
-
         :host([variant='mini-compare-chart-mweb']) .body > .price-wrapping {
             display: flex;
             flex-direction: column;

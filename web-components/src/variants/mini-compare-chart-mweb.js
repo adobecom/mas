@@ -342,10 +342,6 @@ export class MiniCompareChartMweb extends VariantLayout {
     }
 
     static variantStyle = css`
-        :host([variant='mini-compare-chart-mweb']) .body > slot {
-            display: block;
-        }
-
         :host([variant='mini-compare-chart-mweb']) .body > .price-wrapping {
             display: flex;
             flex-direction: column;

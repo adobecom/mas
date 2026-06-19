@@ -672,7 +672,7 @@ export class MerchCard extends LitElement {
         let fragmentId = aemFragment?.getAttribute('fragment');
         fragmentId = `[${fragmentId}]`;
         const detail = {
-            ...this.aemFragment.fetchInfo,
+            ...aemFragment?.fetchInfo,
             ...this.#service.duration,
             ...details,
             message: error,

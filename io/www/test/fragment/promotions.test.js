@@ -731,11 +731,7 @@ describe('promotions', () => {
 
         it('override takes priority over project-level promoCode for same OSI', async () => {
             const result = await promotionsTransformer.process(
-                makeCtx(
-                    'US',
-                    [{ osis: ['OSI-1'], promoCode: 'OVERRIDE', geos: ['US'] }],
-                    'DEFAULT',
-                ),
+                makeCtx('US', [{ osis: ['OSI-1'], promoCode: 'OVERRIDE', geos: ['US'] }], 'DEFAULT'),
             );
             const promoMap = firstPromoMap(result);
             expect(promoMap['OSI-1']).to.equal('OVERRIDE');
@@ -744,11 +740,7 @@ describe('promotions', () => {
 
         it('falls back to project-level promoCode when override geo does not match', async () => {
             const result = await promotionsTransformer.process(
-                makeCtx(
-                    'CA',
-                    [{ osis: ['OSI-1'], promoCode: 'US-ONLY', geos: ['US'] }],
-                    'DEFAULT',
-                ),
+                makeCtx('CA', [{ osis: ['OSI-1'], promoCode: 'US-ONLY', geos: ['US'] }], 'DEFAULT'),
             );
             const promoMap = firstPromoMap(result);
             expect(promoMap['OSI-1']).to.be.undefined;
@@ -781,11 +773,7 @@ describe('promotions', () => {
             const project = makeProject({
                 surfaces: ['acom'],
                 geos: [],
-                offers: [
-                    'OSI-1:BLACKFRIDAY:US,CA',
-                    ':GLOBAL:',
-                    'OSI-2:SPECIAL:',
-                ],
+                offers: ['OSI-1:BLACKFRIDAY:US,CA', ':GLOBAL:', 'OSI-2:SPECIAL:'],
             });
             const hydrated = makeHydratedProject();
             fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));

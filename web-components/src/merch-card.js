@@ -273,6 +273,7 @@ export class MerchCard extends LitElement {
         this.spectrum = 'css';
         this.loading = 'lazy';
         this.handleAemFragmentEvents = this.handleAemFragmentEvents.bind(this);
+        this.handleMasReady = this.handleMasReady.bind(this);
         this.handleMerchOfferSelectReady =
             this.handleMerchOfferSelectReady.bind(this);
     }
@@ -567,6 +568,19 @@ export class MerchCard extends LitElement {
         }
     }
 
+    additionalModalTriggers() {
+        if (!this.settings?.additionalModalTriggers) return;
+
+        const mapping = this.variantLayout.aemFragmentMapping.title;
+        this.makeElementModalTrigger(mapping?.tag, mapping?.slot);
+        this.makeElementModalTrigger('merch-icon', 'icons');
+    }
+
+    handleMasReady() {
+        this.handleInfoIconEvents();
+        this.additionalModalTriggers();
+    }
+
     /* c8 ignore next 3 */
     includes(text) {
         return this.textContent.match(new RegExp(text, 'i')) !== null;
@@ -608,15 +622,7 @@ export class MerchCard extends LitElement {
         // aem-fragment logic
         this.addEventListener(EVENT_AEM_ERROR, this.handleAemFragmentEvents);
         this.addEventListener(EVENT_AEM_LOAD, this.handleAemFragmentEvents);
-        this.addEventListener(EVENT_MAS_READY, () => {
-            this.handleInfoIconEvents();
-
-            if (this.settings?.titleModalTrigger) {
-                const mapping = this.variantLayout.aemFragmentMapping.title;
-                this.makeElementModalTrigger(mapping?.tag, mapping?.slot);
-                this.makeElementModalTrigger('merch-icon', 'icons');
-            }
-        });
+        this.addEventListener(EVENT_MAS_READY, this.handleMasReady);
         this.addEventListener('change', this.changeHandler);
 
         if (this.variantLayout) {

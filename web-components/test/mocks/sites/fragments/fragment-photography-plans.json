@@ -49,7 +49,7 @@
     "referencesTree": [],
     "settings": {
         "displayPlanType": true,
-        "titleModalTrigger": true,
+        "additionalModalTriggers": true,
         "secureLabel": "Secure transaction"
     }
 }

@@ -164,7 +164,6 @@ module.exports = {
     CARD_MODEL_ID,
     COLLECTION_MODEL_ID,
     DICTIONARY_ENTRY_MODEL_ID,
-    DICTIONARY_INDEX_MODEL_ID,
     BULK_EDIT_MODEL_IDS,
     matchesText,
     extractLocale,

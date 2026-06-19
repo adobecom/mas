@@ -364,17 +364,17 @@ export class MiniCompareChartMweb extends VariantLayout {
             // Wait for ALL sibling cards to complete before any card syncs
             const container = this.card.parentElement;
             const allCards = Array.from(
-                container.querySelectorAll(`merch-card[variant="${this.card.variant}"]`)
+                container.querySelectorAll(
+                    `merch-card[variant="${this.card.variant}"]`,
+                ),
             );
-            
+
             // Wait for all cards to complete their post update hooks
-            await Promise.all(
-                allCards.map(card => card.updateComplete)
-            );
-            
+            await Promise.all(allCards.map((card) => card.updateComplete));
+
             // Additional small delay to ensure DOM is settled
-            await new Promise(resolve => setTimeout(resolve, 100));
-            
+            await new Promise((resolve) => setTimeout(resolve, 100));
+
             if (this.card === container.firstElementChild) {
                 requestAnimationFrame(() => {
                     this.syncHeights();

@@ -696,7 +696,7 @@ describe('promotions', () => {
 
         it('maps specific OSI override when OSI and geo match', async () => {
             const result = await promotionsTransformer.process(
-                makeCtx('US', [{ osis: ['OSI-1'], promoCode: 'OVERRIDE', geos: ['US'] }]),
+                makeCtx('US', [{ osis: ['OSI-1'], promoCode: 'OVERRIDE', geos: ['/content/cq:tags/mas/country/US'] }]),
             );
             expect(firstPromoMap(result)).to.deep.equal({ 'OSI-1': 'OVERRIDE' });
         });
@@ -710,7 +710,7 @@ describe('promotions', () => {
 
         it('maps wildcard when osis is empty and geo matches', async () => {
             const result = await promotionsTransformer.process(
-                makeCtx('FR', [{ osis: [], promoCode: 'FRANCE', geos: ['FR'] }]),
+                makeCtx('FR', [{ osis: [], promoCode: 'FRANCE', geos: ['/content/cq:tags/mas/country/FR'] }]),
             );
             expect(firstPromoMap(result)).to.deep.equal({ '*': 'FRANCE' });
         });
@@ -724,14 +724,18 @@ describe('promotions', () => {
 
         it('skips override when geo does not match', async () => {
             const result = await promotionsTransformer.process(
-                makeCtx('CA', [{ osis: ['OSI-1'], promoCode: 'NOPE', geos: ['US'] }]),
+                makeCtx('CA', [{ osis: ['OSI-1'], promoCode: 'NOPE', geos: ['/content/cq:tags/mas/country/US'] }]),
             );
             expect(firstPromoMap(result)).to.deep.equal({});
         });
 
         it('override takes priority over project-level promoCode for same OSI', async () => {
             const result = await promotionsTransformer.process(
-                makeCtx('US', [{ osis: ['OSI-1'], promoCode: 'OVERRIDE', geos: ['US'] }], 'DEFAULT'),
+                makeCtx(
+                    'US',
+                    [{ osis: ['OSI-1'], promoCode: 'OVERRIDE', geos: ['/content/cq:tags/mas/country/US'] }],
+                    'DEFAULT',
+                ),
             );
             const promoMap = firstPromoMap(result);
             expect(promoMap['OSI-1']).to.equal('OVERRIDE');
@@ -740,7 +744,11 @@ describe('promotions', () => {
 
         it('falls back to project-level promoCode when override geo does not match', async () => {
             const result = await promotionsTransformer.process(
-                makeCtx('CA', [{ osis: ['OSI-1'], promoCode: 'US-ONLY', geos: ['US'] }], 'DEFAULT'),
+                makeCtx(
+                    'CA',
+                    [{ osis: ['OSI-1'], promoCode: 'US-ONLY', geos: ['/content/cq:tags/mas/country/US'] }],
+                    'DEFAULT',
+                ),
             );
             const promoMap = firstPromoMap(result);
             expect(promoMap['OSI-1']).to.be.undefined;
@@ -758,7 +766,9 @@ describe('promotions', () => {
                                 {
                                     id: 'proj-1',
                                     fragmentPaths: [],
-                                    offerOverrides: [{ osis: ['OSI-1'], promoCode: 'AU-PROMO', geos: ['en_AU'] }],
+                                    offerOverrides: [
+                                        { osis: ['OSI-1'], promoCode: 'AU-PROMO', geos: ['/content/cq:tags/mas/locale/en_AU'] },
+                                    ],
                                 },
                             ],
                         }),
@@ -773,7 +783,11 @@ describe('promotions', () => {
             const project = makeProject({
                 surfaces: ['acom'],
                 geos: [],
-                offers: ['OSI-1:BLACKFRIDAY:US,CA', ':GLOBAL:', 'OSI-2:SPECIAL:'],
+                offers: [
+                    'OSI-1:BLACKFRIDAY:/content/cq:tags/mas/country/US,/content/cq:tags/mas/country/CA',
+                    ':GLOBAL:',
+                    'OSI-2:SPECIAL:',
+                ],
             });
             const hydrated = makeHydratedProject();
             fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
@@ -787,7 +801,7 @@ describe('promotions', () => {
                 {
                     osis: ['OSI-1'],
                     promoCode: 'BLACKFRIDAY',
-                    geos: ['US', 'CA'],
+                    geos: ['/content/cq:tags/mas/country/US', '/content/cq:tags/mas/country/CA'],
                 },
                 { osis: [], promoCode: 'GLOBAL', geos: [] },
                 { osis: ['OSI-2'], promoCode: 'SPECIAL', geos: [] },

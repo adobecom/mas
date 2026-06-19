@@ -433,21 +433,13 @@ async function init(context) {
  * Overrides can target specific OSIs or act as wildcards (empty osis list).
  * Specific OSI overrides take priority over the wildcard.
  */
-function matchesGeoCode(geos, { regionLocale, country }) {
-    return geos.some(
-        (g) =>
-            (regionLocale && g.toLowerCase() === regionLocale.toLowerCase()) ||
-            (country && g.toLowerCase() === country.toLowerCase()),
-    );
-}
-
 function buildPromoMap(offerOverrides, { regionLocale, country }, projectPromoCode, context) {
     const map = {};
     if (projectPromoCode) {
         map['*'] = projectPromoCode;
     }
     for (const override of offerOverrides) {
-        if (override.geos?.length && !matchesGeoCode(override.geos, { regionLocale, country })) continue;
+        if (override.geos?.length && !matchesGeo(override.geos, { regionLocale, country })) continue;
         if (override.osis.length === 0) {
             if (map['*'] && map['*'] !== override.promoCode) {
                 log(`Project promoCode "${map['*']}" overridden by wildcard offer override "${override.promoCode}"`, context);

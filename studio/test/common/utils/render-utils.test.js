@@ -10,7 +10,7 @@ import {
 } from '../../../src/common/utils/render-utils.js';
 import { generateCodeToUse } from '../../../src/utils.js';
 import Store from '../../../src/store.js';
-import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, FRAGMENT_STATUS } from '../../../src/constants.js';
+import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, DICTIONARY_MODEL_PATH, FRAGMENT_STATUS } from '../../../src/constants.js';
 
 describe('render-utils', () => {
     describe('renderFragmentStatusCell', () => {
@@ -87,7 +87,7 @@ describe('render-utils', () => {
         });
 
         it('returns Placeholder for dictionary model', () => {
-            expect(getItemTypeLabel({ model: { path: '/conf/.../dictionnary/foo' } })).to.equal('Placeholder');
+            expect(getItemTypeLabel({ model: { path: `${DICTIONARY_MODEL_PATH}/foo` } })).to.equal('Placeholder');
         });
 
         it('returns Collection for collection model', () => {

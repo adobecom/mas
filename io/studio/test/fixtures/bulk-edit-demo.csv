@@ -1,4 +1,0 @@
-fragment_id,path,locale,field,find,replace,etag,status
-frag-card-001,/content/dam/mas/sandbox/en_US/cards/back-to-school,en_US,subtitle,school,academy,etag-001,PUBLISHED
-frag-card-001,/content/dam/mas/sandbox/en_US/cards/back-to-school,en_US,calloutText,Assistant,Helper,etag-001,PUBLISHED
-frag-card-002,/content/dam/mas/sandbox/en_US/cards/cc-all-apps,en_US,buttonText,Buy now,Subscribe,etag-002,PUBLISHED

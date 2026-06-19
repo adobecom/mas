@@ -46,6 +46,8 @@ export const MINI_COMPARE_CHART_MWEB_AEM_FRAGMENT_MAPPING = {
 };
 
 export class MiniCompareChartMweb extends VariantLayout {
+    #syncObserver;
+
     constructor(card) {
         super(card);
         this.updatePriceQuantity = this.updatePriceQuantity.bind(this);
@@ -65,11 +67,43 @@ export class MiniCompareChartMweb extends VariantLayout {
         );
         this._syncObserver?.disconnect();
         this._syncObserver = null;
+        this.#syncObserver?.disconnect();
+        this.#syncObserver = null;
     }
 
     updatePriceQuantity({ detail }) {
         if (!this.mainPrice || !detail?.option) return;
         this.mainPrice.dataset.quantity = detail.option;
+    }
+
+    syncHeights() {
+        if (this.card.getBoundingClientRect().width <= 2) {
+            if (!this.#syncObserver) {
+                this.#syncObserver = new ResizeObserver(() => {
+                    if (this.card.getBoundingClientRect().width > 2) {
+                        this.#syncObserver?.disconnect();
+                        this.#syncObserver = null;
+                        this.syncHeights();
+                    }
+                });
+                this.#syncObserver.observe(this.card);
+            }
+            return;
+        }
+        const slots = [
+            'heading-xs',
+            'subtitle',
+            'heading-m-price',
+            'promo-text',
+            'body-m',
+            'body-xs',
+        ];
+        this.syncRowHeights(
+            slots.map((slot) => ({
+                name: slot,
+                getElement: (card) => card.querySelector(`[slot="${slot}"]`),
+            })),
+        );
     }
 
     priceOptionsProvider(element, options) {
@@ -137,6 +171,8 @@ export class MiniCompareChartMweb extends VariantLayout {
             'heading-xs',
             'subtitle',
             'heading-m-price',
+            'price-wrapping',
+            'promo-text',
             'body-m',
             'body-xs',
             'footer-rows',
@@ -316,28 +352,34 @@ export class MiniCompareChartMweb extends VariantLayout {
     }
 
     async postCardUpdateHook() {
-        await super.postCardUpdateHook();
         if (!this.legalAdjusted) {
             await this.adjustLegal();
         }
         this.setupToggle();
         if (Media.isMobile) {
             this.removeEmptyRows();
-        } else {
-            this.adjustMiniCompareFooterRows();
-
-            const container = this.getContainer();
-            if (!container) return;
-
-            requestAnimationFrame(() => {
-                const cards = container.querySelectorAll(
-                    'merch-card[variant="mini-compare-chart-mweb"]',
-                );
-                cards.forEach((card) => {
-                    card.variantLayout?.adjustMiniCompareBodySlots?.();
-                    card.variantLayout?.adjustMiniCompareFooterRows?.();
+        }
+        await super.postCardUpdateHook();
+        if (window.matchMedia('(min-width: 768px)').matches) {
+            // Wait for ALL sibling cards to complete before any card syncs
+            const container = this.card.parentElement;
+            const allCards = Array.from(
+                container.querySelectorAll(`merch-card[variant="${this.card.variant}"]`)
+            );
+            
+            // Wait for all cards to complete their post update hooks
+            await Promise.all(
+                allCards.map(card => card.updateComplete)
+            );
+            
+            // Additional small delay to ensure DOM is settled
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
+            if (this.card === container.firstElementChild) {
+                requestAnimationFrame(() => {
+                    this.syncHeights();
                 });
-            });
+            }
         }
     }
 
@@ -360,6 +402,9 @@ export class MiniCompareChartMweb extends VariantLayout {
             flex: 1;
             flex-direction: column;
             justify-content: flex-end;
+            min-height: var(
+                --consonant-merch-card-mini-compare-chart-mweb-heading-m-price-height
+            );
         }
 
         :host([variant='mini-compare-chart-mweb'])
@@ -501,6 +546,7 @@ export class MiniCompareChartMweb extends VariantLayout {
         :host([variant='mini-compare-chart-mweb'])
             .body
             > slot[name='heading-xs'] {
+            display: block;
             min-height: var(
                 --consonant-merch-card-mini-compare-chart-mweb-heading-xs-height
             );
@@ -508,13 +554,23 @@ export class MiniCompareChartMweb extends VariantLayout {
         :host([variant='mini-compare-chart-mweb'])
             .body
             > slot[name='promo-text'] {
+            display: block;
             min-height: var(
                 --consonant-merch-card-mini-compare-chart-mweb-promo-text-height
             );
         }
         :host([variant='mini-compare-chart-mweb']) .body > slot[name='body-m'] {
+            display: block;
             min-height: var(
                 --consonant-merch-card-mini-compare-chart-mweb-body-m-height
+            );
+        }
+        :host([variant='mini-compare-chart-mweb'])
+            .footer-rows-container
+            > slot[name='body-xs'] {
+            display: block;
+            min-height: var(
+                --consonant-merch-card-mini-compare-chart-mweb-body-xs-height
             );
         }
 

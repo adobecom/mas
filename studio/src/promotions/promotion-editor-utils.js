@@ -639,11 +639,18 @@ export function applyPromotionItemSelectionToFragment(
  * @param {string[]|undefined} selectedOfferIds
  * @returns {string[]}
  */
-export function buildPromotionOffersFieldValues(promotionLike, selectedOfferIds, overrides = {}) {
-    const offerValues = promotionLike?.getField('offers') ? promotionLike.getFieldValues('offers') : [];
+export function buildPromotionOffersFieldValues(promotionFragment, selectedOfferIds, overrides = {}) {
+    const offerValues = promotionFragment?.getField('offers') ? promotionFragment.getFieldValues('offers') : [];
     const parsed = parsePromotionOffersField(offerValues);
-    const promoExceptions = overrides.promoExceptions ?? parsed.promoExceptions;
-    const offerSubstitutions = overrides.offerSubstitutions ?? parsed.offerSubstitutions;
+    let promoExceptions = overrides.promoExceptions ?? parsed.promoExceptions;
+    let offerSubstitutions = overrides.offerSubstitutions ?? parsed.offerSubstitutions;
+    const geos = promotionFragment?.getFieldValues?.('geos') ?? [];
+    if (geos.length) {
+        const valid = new Set(parseCountriesFromGeos(geos));
+        const isValid = (key) => valid.has(key.split('|')[1]);
+        promoExceptions = new Map([...promoExceptions].filter(([k]) => isValid(k)));
+        offerSubstitutions = new Map([...offerSubstitutions].filter(([k]) => isValid(k)));
+    }
     return serializePromotionOffersField(promoExceptions, offerSubstitutions, selectedOfferIds);
 }
 

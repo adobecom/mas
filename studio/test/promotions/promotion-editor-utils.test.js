@@ -47,7 +47,7 @@ import { COLLECTION_MODEL_PATH } from '../../src/constants.js';
 const resolved = '/content/dam/mas/promotions/test-items/resolved-card-fragment';
 const fetchFailed = '/content/dam/mas/promotions/test-items/fetch-failed-card-fragment';
 
-function makePromotionLike({ fragments = [], collections, offers } = {}) {
+function makePromotionFragment({ fragments = [], collections, offers, geos } = {}) {
     return {
         getField: (name) => {
             if (name === 'collections') return collections !== undefined;
@@ -58,6 +58,7 @@ function makePromotionLike({ fragments = [], collections, offers } = {}) {
             if (name === 'fragments') return fragments;
             if (name === 'collections') return collections ?? [];
             if (name === 'offers') return offers ?? [];
+            if (name === 'geos') return geos ?? [];
             return [];
         },
     };
@@ -70,12 +71,12 @@ describe('promotion-editor-utils', () => {
         });
 
         it('returns false when merged paths match selection', () => {
-            const p = makePromotionLike({ fragments: ['/b', '/a'], collections: [] });
+            const p = makePromotionFragment({ fragments: ['/b', '/a'], collections: [] });
             expect(isPromotionItemSelectionDirty(p, ['/a'], ['/b'])).to.be.false;
         });
 
         it('returns true when selection adds a path', () => {
-            const p = makePromotionLike({ fragments: ['/a'] });
+            const p = makePromotionFragment({ fragments: ['/a'] });
             expect(isPromotionItemSelectionDirty(p, ['/a', '/x'], [])).to.be.true;
         });
 
@@ -88,29 +89,29 @@ describe('promotion-editor-utils', () => {
         });
 
         it('returns false when store includes all saved paths after failed-fetch fallback', () => {
-            const p = makePromotionLike({ fragments: [resolved, fetchFailed] });
+            const p = makePromotionFragment({ fragments: [resolved, fetchFailed] });
             expect(isPromotionItemSelectionDirty(p, [resolved, fetchFailed], [])).to.be.false;
         });
 
         it('returns true when a saved path is missing from store selection', () => {
-            const p = makePromotionLike({ fragments: [resolved, fetchFailed] });
+            const p = makePromotionFragment({ fragments: [resolved, fetchFailed] });
             expect(isPromotionItemSelectionDirty(p, [resolved], [])).to.be.true;
         });
     });
 
     describe('isPromotionOffersSelectionDirty', () => {
         it('returns false when saved offer ids match selection', () => {
-            const p = makePromotionLike({ offers: ['osi-1', 'osi-2'] });
+            const p = makePromotionFragment({ offers: ['osi-1', 'osi-2'] });
             expect(isPromotionOffersSelectionDirty(p, ['osi-1', 'osi-2'])).to.be.false;
         });
 
         it('returns true when selection adds an offer id', () => {
-            const p = makePromotionLike({ offers: ['osi-1'] });
+            const p = makePromotionFragment({ offers: ['osi-1'] });
             expect(isPromotionOffersSelectionDirty(p, ['osi-1', 'osi-2'])).to.be.true;
         });
 
         it('ignores promo exception and substitution lines when comparing saved offers', () => {
-            const p = makePromotionLike({ offers: ['osi-1', 'osi-1:CODE:US', 'substitute:osi-1:osi-2:CA_en'] });
+            const p = makePromotionFragment({ offers: ['osi-1', 'osi-1:CODE:US', 'substitute:osi-1:osi-2:CA_en'] });
             expect(isPromotionOffersSelectionDirty(p, ['osi-1'])).to.be.false;
             expect(isPromotionOffersSelectionDirty(p, ['osi-1', 'osi-2'])).to.be.true;
         });
@@ -118,12 +119,42 @@ describe('promotion-editor-utils', () => {
 
     describe('buildPromotionOffersFieldValues', () => {
         it('preserves promo exceptions and substitutions while updating selected offer ids', () => {
-            const p = makePromotionLike({
+            const p = makePromotionFragment({
                 offers: ['osi-1', 'osi-1:CODE:US', 'substitute:osi-1:osi-2:CA_en'],
             });
             const values = buildPromotionOffersFieldValues(p, ['osi-1', 'osi-3']);
             expect(values).to.include('osi-1');
             expect(values).to.include('osi-3');
+            expect(values).to.include('osi-1:CODE:US');
+            expect(values).to.include('substitute:osi-1:osi-2:CA_en');
+        });
+
+        it('removes promo exceptions for geos no longer in the geos field', () => {
+            const p = makePromotionFragment({
+                geos: ['mas:locale/en_AU', 'mas:locale/en_GB'],
+                offers: ['osi-1:CCI_AU:en_AU', 'osi-1:CCI_UK:en_GB', 'osi-1:OLD:au'],
+            });
+            const values = buildPromotionOffersFieldValues(p, ['osi-1']);
+            expect(values).to.include('osi-1:CCI_AU:en_AU');
+            expect(values).to.include('osi-1:CCI_UK:en_GB');
+            expect(values).to.not.include('osi-1:OLD:au');
+        });
+
+        it('removes substitutions for geos no longer in the geos field', () => {
+            const p = makePromotionFragment({
+                geos: ['mas:locale/en_AU'],
+                offers: ['substitute:osi-1:osi-2:en_AU', 'substitute:osi-1:osi-3:en_GB'],
+            });
+            const values = buildPromotionOffersFieldValues(p, []);
+            expect(values).to.include('substitute:osi-1:osi-2:en_AU');
+            expect(values).to.not.include('substitute:osi-1:osi-3:en_GB');
+        });
+
+        it('does not filter when geos field is empty', () => {
+            const p = makePromotionFragment({
+                offers: ['osi-1:CODE:US', 'substitute:osi-1:osi-2:CA_en'],
+            });
+            const values = buildPromotionOffersFieldValues(p, ['osi-1']);
             expect(values).to.include('osi-1:CODE:US');
             expect(values).to.include('substitute:osi-1:osi-2:CA_en');
         });

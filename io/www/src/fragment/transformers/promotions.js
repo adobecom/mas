@@ -131,8 +131,8 @@ function parseOfferSubstitutions(lines) {
             const parts = line.split(':');
             if (parts.length < 3) return null;
             const [, baseOsi, substituteOsi, geo] = parts;
-            if (!baseOsi?.trim() || !substituteOsi?.trim()) return null;
-            return { baseOsi: baseOsi.trim(), substituteOsi: substituteOsi.trim(), geo: geo?.trim() || null };
+            if (!baseOsi || !substituteOsi) return null;
+            return { baseOsi, substituteOsi, geo: geo || null };
         })
         .filter(Boolean);
 }
@@ -443,7 +443,16 @@ function buildPromoMap(offerOverrides, { regionLocale, country }, projectPromoCo
         map['*'] = projectPromoCode;
     }
     for (const override of offerOverrides) {
-        if (override.geos?.length && !matchesGeo(override.geos, { regionLocale, country })) continue;
+        if (override.geos?.length) {
+            const cqGeos = override.geos.map((g) =>
+                g.startsWith('mas:') || g.startsWith('/content/')
+                    ? g
+                    : g.includes('_')
+                      ? `mas:locale/${g}`
+                      : `mas:country/${g}`,
+            );
+            if (!matchesGeo(cqGeos, { regionLocale, country })) continue;
+        }
         if (override.osis.length === 0) {
             if (map['*'] && map['*'] !== override.promoCode) {
                 log(`Project promoCode "${map['*']}" overridden by wildcard offer override "${override.promoCode}"`, context);

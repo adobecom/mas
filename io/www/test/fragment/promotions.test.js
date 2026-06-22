@@ -778,6 +778,45 @@ describe('promotions', () => {
             expect(firstPromoMap(result)).to.deep.equal({ 'OSI-1': 'AU-PROMO' });
         });
 
+        it('maps OSI override when geo is raw locale code (en_AU)', async () => {
+            const result = await promotionsTransformer.process(
+                createContext({
+                    country: 'AU',
+                    regionLocale: 'en_AU',
+                    promises: {
+                        promotions: Promise.resolve({
+                            status: 200,
+                            activeProjects: [
+                                {
+                                    id: 'proj-1',
+                                    fragmentPaths: [],
+                                    offerOverrides: [{ osis: ['OSI-1'], promoCode: 'AU-PROMO', geos: ['en_AU'] }],
+                                    promoCode: 'GLOBAL',
+                                },
+                            ],
+                        }),
+                    },
+                }),
+            );
+            const promoMap = firstPromoMap(result);
+            expect(promoMap['OSI-1']).to.equal('AU-PROMO');
+            expect(promoMap['*']).to.equal('GLOBAL');
+        });
+
+        it('maps wildcard override when geo is raw country code (cr)', async () => {
+            const result = await promotionsTransformer.process(
+                makeCtx('CR', [{ osis: [], promoCode: 'CR-PROMO', geos: ['cr'] }], 'GLOBAL'),
+            );
+            expect(firstPromoMap(result)).to.deep.equal({ '*': 'CR-PROMO' });
+        });
+
+        it('skips raw geo override when country does not match', async () => {
+            const result = await promotionsTransformer.process(
+                makeCtx('DE', [{ osis: ['OSI-1'], promoCode: 'AU-PROMO', geos: ['en_AU'] }]),
+            );
+            expect(firstPromoMap(result)).to.deep.equal({});
+        });
+
         it('parses offerLines from hydrated project and includes offerOverrides on activeProjects', async () => {
             fetchStub = sinon.stub(globalThis, 'fetch');
             const project = makeProject({ surfaces: ['acom'], geos: [] });

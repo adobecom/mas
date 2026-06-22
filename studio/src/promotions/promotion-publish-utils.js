@@ -8,6 +8,8 @@ export const PROMOTION_PUBLISH_SUCCESS_MESSAGE = 'Project successfully published
 
 export const PROMOTION_PUBLISH_ERROR_MESSAGE = 'Failed to publish project.';
 
+export const PROMOTION_SAVE_BEFORE_PUBLISH_MESSAGE = 'Save your changes before publishing.';
+
 /**
  * @param {number} shortfall - Promo variations that were requested but not included in publish
  * @returns {string}
@@ -18,6 +20,65 @@ export function promotionPublishShortfallMessage(shortfall) {
 
 export function isPromotionExpiredForPublish(promotionFragment) {
     return promotionFragment?.promotionStatus === 'expired';
+}
+
+/**
+ * @param {object} promotionFragment
+ * @returns {Date|null}
+ */
+function getPromotionStartDate(promotionFragment) {
+    const raw = promotionFragment?.getFieldValue?.('startDate') ?? promotionFragment?.startDateValue;
+    if (!raw) return null;
+    const startDate = new Date(raw);
+    return Number.isNaN(startDate.getTime()) ? null : startDate;
+}
+
+/**
+ * @param {object} promotionFragment
+ * @param {Date} [now]
+ * @returns {boolean}
+ */
+function isPromotionStartDateInFuture(promotionFragment, now = new Date()) {
+    const startDate = getPromotionStartDate(promotionFragment);
+    if (!startDate) return false;
+    return startDate > now;
+}
+
+/**
+ * @param {object} promotionFragment
+ * @param {{ hasUnsavedChanges?: boolean, promotionPublish?: boolean }} options
+ * @returns {boolean}
+ */
+function isPromotionPublishActionAllowed(promotionFragment, { hasUnsavedChanges = false, promotionPublish = false } = {}) {
+    if (!promotionFragment?.id) return false;
+    if (hasUnsavedChanges) return false;
+    if (promotionPublish) return false;
+    if (!getPromotionStartDate(promotionFragment)) return false;
+    if (isPromotionExpiredForPublish(promotionFragment)) return false;
+    if (promotionFragment.isPromotionPublished && !promotionFragment.isPromotionModified) return false;
+    return true;
+}
+
+/**
+ * @param {object} promotionFragment
+ * @param {{ hasUnsavedChanges?: boolean, promotionPublish?: boolean, now?: Date }} options
+ * @returns {boolean}
+ */
+export function canSchedulePromotion(promotionFragment, options = {}) {
+    const { now = new Date(), ...rest } = options;
+    if (!isPromotionPublishActionAllowed(promotionFragment, rest)) return false;
+    return isPromotionStartDateInFuture(promotionFragment, now);
+}
+
+/**
+ * @param {object} promotionFragment
+ * @param {{ hasUnsavedChanges?: boolean, promotionPublish?: boolean, now?: Date }} options
+ * @returns {boolean}
+ */
+export function canPublishPromotionNow(promotionFragment, options = {}) {
+    const { now = new Date(), ...rest } = options;
+    if (!isPromotionPublishActionAllowed(promotionFragment, rest)) return false;
+    return !isPromotionStartDateInFuture(promotionFragment, now);
 }
 
 export const UNPUBLISHED_PROMO_VARIATIONS_DIALOG = {

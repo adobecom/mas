@@ -2037,3 +2037,65 @@ describe('customize with multiple active promotion projects', function () {
         expect(result.body.fields.promoCode).to.equal('FROM-PROMO-PROJECT');
     });
 });
+
+describe('customize OSI substitution', function () {
+    const MINIMAL_PROJECT = {
+        id: 'sub-proj',
+        path: '/content/dam/mas/promotions/test',
+        defaultVariations: {},
+        regionVariations: {},
+    };
+
+    it('should apply promoCode via substituteMap for scalar OSI', async function () {
+        const result = await processWithPromoProjects(
+            {
+                ...FAKE_CONTEXT,
+                fragmentPath: 'test-card',
+                body: {
+                    path: '/content/dam/mas/sandbox/en_US/test-card',
+                    id: 'test-card',
+                    fields: { osi: 'BASE-OSI' },
+                    references: {},
+                    referencesTree: [],
+                },
+            },
+            [
+                {
+                    project: MINIMAL_PROJECT,
+                    promoMap: { 'SUB-OSI': 'PROMO-FOR-SUB' },
+                    substituteMap: { 'BASE-OSI': 'SUB-OSI' },
+                    fragmentPaths: new Set(['test-card']),
+                },
+            ],
+        );
+        expect(result.status).to.equal(200);
+        expect(result.body.fields.osi).to.equal('BASE-OSI');
+        expect(result.body.fields.promoCode).to.equal('PROMO-FOR-SUB');
+    });
+
+    it('should apply promoCode via substituteMap for array OSI', async function () {
+        const result = await processWithPromoProjects(
+            {
+                ...FAKE_CONTEXT,
+                fragmentPath: 'test-card',
+                body: {
+                    path: '/content/dam/mas/sandbox/en_US/test-card',
+                    id: 'test-card',
+                    fields: { osi: ['OSI-A', 'OSI-B'] },
+                    references: {},
+                    referencesTree: [],
+                },
+            },
+            [
+                {
+                    project: MINIMAL_PROJECT,
+                    promoMap: { 'OSI-B-SUB': 'ARRAY-PROMO' },
+                    substituteMap: { 'OSI-B': 'OSI-B-SUB' },
+                    fragmentPaths: new Set(['test-card']),
+                },
+            ],
+        );
+        expect(result.status).to.equal(200);
+        expect(result.body.fields.promoCode).to.equal('ARRAY-PROMO');
+    });
+});

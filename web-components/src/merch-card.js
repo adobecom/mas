@@ -635,6 +635,7 @@ export class MerchCard extends LitElement {
     }
 
     makeElementModalTrigger(tag, slot) {
+        const isIcon = tag === 'merch-icon';
         const trigger = this.querySelector(
             `${tag}[slot="${slot}"]:not(.modal-trigger)`,
         );
@@ -644,15 +645,18 @@ export class MerchCard extends LitElement {
         );
         if (!cta) return;
         trigger.setAttribute('tabindex', '0');
-        trigger.addEventListener('click', () => {
-            cta.click();
+        trigger.addEventListener('click', (e) => {
+            cta.checkoutActionHandler?.(e);
         });
         trigger.addEventListener('keypress', (e) => {
-            if (e.code === 'Enter') cta.click();
+            if (e.code === 'Enter') cta.checkoutActionHandler?.(e);
         });
         trigger.classList.add('modal-trigger');
+        const titleDaaLL = this.title.replace(/\s+/g, '-').toLowerCase();
+        const daaLL = `${titleDaaLL}${isIcon ? '-icon' : ''}--${this.analyticsId}--card`;
+        trigger.setAttribute('daa-ll', daaLL);
         trigger.setAttribute('role', 'link');
-        if (tag === 'merch-icon') {
+        if (isIcon) {
             trigger.setAttribute('alt', this.title);
         }
     }

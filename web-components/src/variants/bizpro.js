@@ -52,6 +52,9 @@ export class BizPro extends VariantLayout {
     constructor(card) {
         super(card);
         this.updatePriceQuantity = this.updatePriceQuantity.bind(this);
+        // Restore expanded state persisted on the card element (survives layout
+        // recreation caused by fragment hydration resetting card.variant).
+        this.expanded = card._bizproExpanded ?? false;
     }
 
     getGlobalCSS() {
@@ -381,6 +384,7 @@ export class BizPro extends VariantLayout {
             const layout = card.variantLayout;
             if (!(layout instanceof BizPro)) continue;
             layout.expanded = expanded;
+            card._bizproExpanded = expanded;
             card.requestUpdate();
         }
     };

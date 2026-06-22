@@ -1,5 +1,14 @@
+const { SCOPE_FIELDS } = require('./search.js');
+
 const HEADERS = ['fragment_id', 'path', 'locale', 'field', 'find', 'replace', 'etag', 'status'];
 const CSV_MARKER = HEADERS[0];
+
+const FIELD_TO_SCOPE = new Map();
+for (const [scope, config] of Object.entries(SCOPE_FIELDS)) {
+    for (const fieldName of config.fields || []) {
+        FIELD_TO_SCOPE.set(fieldName, scope);
+    }
+}
 
 const FORMULA_LEAD = /^['=+\-@\t\r]/;
 
@@ -38,6 +47,31 @@ function rowKey({ fragment_id, field, find }) {
     return `${fragment_id}|${field}|${find}`;
 }
 
+function rowKeyAliases(fragmentId, field, find) {
+    const aliases = new Set([rowKey({ fragment_id: fragmentId, field, find })]);
+    const scope = FIELD_TO_SCOPE.get(field);
+    if (scope) {
+        aliases.add(rowKey({ fragment_id: fragmentId, field: scope, find }));
+    }
+    const scopeConfig = SCOPE_FIELDS[field];
+    if (scopeConfig?.fields) {
+        for (const fieldName of scopeConfig.fields) {
+            aliases.add(rowKey({ fragment_id: fragmentId, field: fieldName, find }));
+        }
+    }
+    return aliases;
+}
+
+function uploadRowMatchesMatch(fragmentId, match, userRow) {
+    if (userRow.fragment_id !== fragmentId) return false;
+    const matchKeys = rowKeyAliases(fragmentId, match.field, match.value);
+    const userKeys = rowKeyAliases(userRow.fragment_id, userRow.field, userRow.find);
+    for (const key of matchKeys) {
+        if (userKeys.has(key)) return true;
+    }
+    return false;
+}
+
 function matchRowKey(fragmentId, match) {
     return rowKey({ fragment_id: fragmentId, field: match.field, find: match.value });
 }
@@ -63,10 +97,11 @@ function flattenResultsToRows(results) {
 
 function filterResultsByUserCsv(results, userRows) {
     if (!userRows?.length) return results || [];
-    const allowed = new Set(userRows.map((row) => rowKey(row)));
     const filtered = [];
     for (const item of results || []) {
-        const matches = (item.matches || []).filter((match) => allowed.has(matchRowKey(item.id, match)));
+        const matches = (item.matches || []).filter((match) =>
+            userRows.some((userRow) => uploadRowMatchesMatch(item.id, match, userRow)),
+        );
         if (matches.length) {
             filtered.push({ ...item, matches });
         }
@@ -78,7 +113,9 @@ function buildResultRowKeys(results) {
     const keys = new Set();
     for (const item of results || []) {
         for (const match of item.matches || []) {
-            keys.add(matchRowKey(item.id, match));
+            for (const alias of rowKeyAliases(item.id, match.field, match.value)) {
+                keys.add(alias);
+            }
         }
     }
     return keys;
@@ -86,9 +123,11 @@ function buildResultRowKeys(results) {
 
 function applyUserReplaceValues(rows, userRows) {
     if (!userRows?.length) return rows;
-    const replaceByKey = new Map(userRows.map((row) => [rowKey(row), row.replace ?? '']));
     for (const row of rows) {
-        row.replace = replaceByKey.get(rowKey(row)) ?? row.replace;
+        const userRow = userRows.find((candidate) =>
+            uploadRowMatchesMatch(row.fragment_id, { field: row.field, value: row.find }, candidate),
+        );
+        if (userRow) row.replace = userRow.replace ?? '';
     }
     return rows;
 }
@@ -235,6 +274,8 @@ module.exports = {
     HEADERS,
     parseJobIdParam,
     rowKey,
+    rowKeyAliases,
+    uploadRowMatchesMatch,
     flattenResultsToRows,
     filterResultsByUserCsv,
     buildResultRowKeys,

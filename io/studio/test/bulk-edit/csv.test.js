@@ -158,6 +158,47 @@ describe('bulk-edit/csv: filterResultsByUserCsv', () => {
     it('returns all results when userRows is empty', () => {
         expect(filterResultsByUserCsv(results, [])).to.deep.equal(results);
     });
+
+    it('accepts legacy scope names in uploaded rows', () => {
+        const userRows = [
+            {
+                fragment_id: 'a',
+                field: 'productDescription',
+                find: 'school',
+            },
+        ];
+        const productResults = [
+            {
+                id: 'a',
+                path: '/p/a',
+                locale: 'en_US',
+                etag: 'e1',
+                status: 'PUBLISHED',
+                matches: [{ field: 'subtitle', value: 'school' }],
+            },
+        ];
+        const filtered = filterResultsByUserCsv(productResults, userRows);
+        expect(filtered).to.have.lengthOf(0);
+
+        const cardResults = [
+            {
+                id: 'a',
+                path: '/p/a',
+                locale: 'en_US',
+                etag: 'e1',
+                status: 'PUBLISHED',
+                matches: [{ field: 'cardTitle', value: 'Adobe Firefly Pro' }],
+            },
+        ];
+        const cardUserRows = [
+            {
+                fragment_id: 'a',
+                field: 'productDescription',
+                find: 'Adobe Firefly Pro',
+            },
+        ];
+        expect(filterResultsByUserCsv(cardResults, cardUserRows)).to.deep.equal(cardResults);
+    });
 });
 
 describe('bulk-edit/csv: round-trip', () => {
@@ -239,5 +280,16 @@ describe('bulk-edit/csv: buildResultRowKeys', () => {
             },
         ]);
         expect(keys.has(rowKey({ fragment_id: 'a', field: 'subtitle', find: 'school' }))).to.equal(true);
+    });
+
+    it('includes legacy scope aliases for Odin field matches', () => {
+        const keys = buildResultRowKeys([
+            {
+                id: 'a',
+                matches: [{ field: 'cardTitle', value: 'Adobe Firefly Pro' }],
+            },
+        ]);
+        expect(keys.has(rowKey({ fragment_id: 'a', field: 'cardTitle', find: 'Adobe Firefly Pro' }))).to.equal(true);
+        expect(keys.has(rowKey({ fragment_id: 'a', field: 'productDescription', find: 'Adobe Firefly Pro' }))).to.equal(true);
     });
 });

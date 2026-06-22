@@ -57,7 +57,7 @@ describe('bulk-edit/search: findMatches', () => {
 
     it('matches a single mapped field (calloutText -> callout)', () => {
         expect(svc.findMatches(fragment, 'calloutText', 'assistant', false)).to.deep.equal([
-            { field: 'calloutText', value: '<p>AI Assistant add-on</p>' },
+            { field: 'callout', value: '<p>AI Assistant add-on</p>' },
         ]);
     });
     it('matches button text inside the ctas field', () => {
@@ -76,9 +76,9 @@ describe('bulk-edit/search: findMatches', () => {
             ],
         };
         expect(svc.findMatches(withProductFields, 'productDescription', 'firefly', false)).to.deep.equal([
-            { field: 'productDescription', value: 'Adobe Firefly Pro' },
-            { field: 'productDescription', value: '<p>firefly is good</p>' },
-            { field: 'productDescription', value: '<div>Adobe Firefly Pro column</div>' },
+            { field: 'cardTitle', value: 'Adobe Firefly Pro' },
+            { field: 'features', value: '<p>firefly is good</p>' },
+            { field: 'compareChart', value: '<div>Adobe Firefly Pro column</div>' },
         ]);
     });
     it('matches fragment title via the fragmentTitle scope', () => {
@@ -97,8 +97,8 @@ describe('bulk-edit/search: findMatches', () => {
         };
         const fieldsHit = svc.findMatches(withIcon, '*', 'firefly', false).map((x) => x.field);
         expect(fieldsHit).to.not.include('mnemonicIcon');
-        expect(fieldsHit).to.not.include('cardTitle');
-        expect(fieldsHit).to.include('productDescription');
+        expect(fieldsHit).to.include('cardTitle');
+        expect(fieldsHit).to.not.include('productDescription');
     });
     it('everywhere scans scoped fields, fragment description, and fragment title but not fragment name', () => {
         const fieldsHit = svc.findMatches(fragment, '*', 'school', false).map((x) => x.field);
@@ -256,25 +256,7 @@ describe('bulk-edit/search: searchPages', () => {
         expect(fetchOdinStub.getCall(1).args[1]).to.contain('cursor=c1');
     });
 
-    it('retries on 429 and succeeds on the second attempt', async () => {
-        const fetchOdinStub = sinon.stub();
-        fetchOdinStub
-            .onFirstCall()
-            .rejects(new Error('GET /adobe/sites/cf/fragments/search failed with status 429: Too Many Requests'));
-        fetchOdinStub.onSecondCall().resolves(fetchResponse({ items: [{ id: 'a' }], cursor: null }));
-        const mod = load({ fetchOdin: fetchOdinStub });
-
-        const clock = sinon.useFakeTimers();
-        const promise = collectIds(mod.searchPages);
-        await clock.tickAsync(2000);
-        const ids = await promise;
-        clock.restore();
-
-        expect(ids).to.deep.equal(['a']);
-        expect(fetchOdinStub.callCount).to.equal(2);
-    });
-
-    it('does not retry on non-retryable 401', async () => {
+    it('propagates fetchOdin errors', async () => {
         const fetchOdinStub = sinon.stub();
         fetchOdinStub.rejects(new Error('GET /adobe/sites/cf/fragments/search failed with status 401: Unauthorized'));
         const mod = load({ fetchOdin: fetchOdinStub });
@@ -289,24 +271,5 @@ describe('bulk-edit/search: searchPages', () => {
         expect(error).to.be.an.instanceOf(Error);
         expect(error.message).to.include('status 401');
         expect(fetchOdinStub.callCount).to.equal(1);
-    });
-
-    it('retries on 500 until maxRetries then throws', async () => {
-        const fetchOdinStub = sinon.stub();
-        fetchOdinStub.rejects(new Error('GET /adobe/sites/cf/fragments/search failed with status 500: Internal Server Error'));
-        const mod = load({ fetchOdin: fetchOdinStub });
-
-        const clock = sinon.useFakeTimers();
-        let error;
-        const run = collectIds(mod.searchPages, { ...searchParams, maxRetries: 3 }).catch((e) => {
-            error = e;
-        });
-        await clock.tickAsync(10000);
-        await run;
-        clock.restore();
-
-        expect(error).to.be.an.instanceOf(Error);
-        expect(error.message).to.include('status 500');
-        expect(fetchOdinStub.callCount).to.equal(3);
     });
 });

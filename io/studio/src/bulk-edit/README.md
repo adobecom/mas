@@ -89,7 +89,7 @@ Start a search.
 |-------|----------|-------|
 | `surface` | yes | e.g. `sandbox`, `acom` |
 | `find` | yes | Text to search for |
-| `searchIn` | no | Field scope or `"*"` for all scopes in `SCOPE_FIELDS` (`prices`, `ctas`, `calloutText`, `productDescription`, `promoText`, `subtitle`, `fragmentDescription`, `fragmentTitle`, `placeholderValue`, `tags`) — not arbitrary Odin fields |
+| `searchIn` | no | Field scope or `"*"` for all scopes in `SCOPE_FIELDS` (`prices`, `ctas`, `calloutText`, `productDescription`, `promoText`, `subtitle`, `fragmentDescription`, `fragmentTitle`, `tags`) — not arbitrary Odin fields |
 | `matchCase` | no | Default `false` |
 | `locale` | no | String or array; omit for all locales |
 | `tags` | no | Filter by fragment tags |
@@ -237,9 +237,10 @@ fragment_id,path,locale,field,find,replace,etag,status
 ```
 
 - One row per **match** (a fragment with two field hits → two rows)
+- `field` is the Odin field name (e.g. `cardTitle`, `value`, `subtitle`); legacy scope labels (e.g. `productDescription`) are still accepted on CSV upload
 - Leave `replace` empty on export; the replace text is supplied in `POST /bulk-edit-replace`
 - **Tags** can appear in find results but are never rewritten on replace (rows come back `SKIPPED`)
-- **Placeholder keys** (`key` field on dictionary entries) are never rewritten on replace; `{{placeholder}}` references in card content may be updated when the search term matches inside them
+- `{{placeholder}}` references in card content may be updated when the search term matches inside them
 
 Row identity for validation: `fragment_id|field|find`.
 
@@ -262,7 +263,7 @@ Row identity for validation: `fragment_id|field|find`.
 ## Replace behavior
 
 1. Uploaded CSV rows are grouped by fragment; multiple field replacements on one fragment are applied in a single Odin PUT.
-2. Replace substitutes the **find search term** (from the find job), not the full matched value in each CSV row. Rows where `replace` equals the search term, unchanged text, tag fields, or placeholder keys are **skipped**.
+2. Replace substitutes the **find search term** (from the find job), not the full matched value in each CSV row. Rows where `replace` equals the search term, unchanged text, or tag fields are **skipped**.
 3. **Dry run** — fetches each fragment from Odin, applies replacements in memory (no PUT), and exports JSON with full modified fragment payloads (`WOULD_REPLACE` items include `title`, `description`, `fields`). A `results-full.json` companion lists only modified fragments.
 4. **Live run** — statuses are `REPLACED`, `SKIPPED`, `FAILED`, or `CONFLICT` (fragment changed since find).
 5. Large replace jobs may run across multiple worker activations until complete.
@@ -289,7 +290,6 @@ Product and UX edge cases to plan for in clients (e.g. MAS Studio). Not an exhau
 | Remove uploaded CSV | `DELETE /bulk-edit-find?jobId=…` restores full find exports and `filteredByUpload: false`. |
 | Subset CSV upload | Upload defines the filter — exports include only uploaded rows; extra rows in the file are rejected. |
 | Tag matches in export | Informational only — replace always skips tag fields. |
-| Placeholder key matches | Informational only — replace skips dictionary `key` fields. |
 | Following the redirect | Do not send the IMS `Authorization` header to presigned `exports` URLs — use auth only on the bulk-edit API poll call. |
 
 ---

@@ -146,7 +146,7 @@ describe('bulk-edit/replace: applyReplacementsToFragment', () => {
                 description: '',
                 fields: [{ name: 'cardTitle', values: ['text {{old-placeholder}} more text'] }],
             },
-            [{ fragment_id: 'a', field: 'productDescription', find: 'text {{old-placeholder}} more text', replace: 'new-placeholder' }],
+            [{ fragment_id: 'a', field: 'cardTitle', find: 'text {{old-placeholder}} more text', replace: 'new-placeholder' }],
             { matchCase: false, searchFind: 'old-placeholder' },
         );
         expect(result.fields[0].values[0]).to.equal('text {{new-placeholder}} more text');
@@ -166,14 +166,14 @@ describe('bulk-edit/replace: applyReplacementsToFragment', () => {
             },
             [
                 { fragment_id: 'a', field: 'key', find: 'ilyas-find-replace-firefly', replace: 'Firefly' },
-                { fragment_id: 'a', field: 'placeholderValue', find: 'Adobe firefly pro', replace: 'Firefly' },
+                { fragment_id: 'a', field: 'value', find: 'Adobe firefly pro', replace: 'Firefly' },
             ],
             { matchCase: false, searchFind: 'firefly' },
         );
         expect(result.fields.find((f) => f.name === 'key').values[0]).to.equal('ilyas-find-replace-firefly');
         expect(result.fields.find((f) => f.name === 'value').values[0]).to.equal('Adobe Firefly pro');
         expect(result.rowStatuses.find((r) => r.field === 'key').status).to.equal('SKIPPED');
-        expect(result.rowStatuses.find((r) => r.field === 'placeholderValue').status).to.equal('REPLACED');
+        expect(result.rowStatuses.find((r) => r.field === 'value').status).to.equal('REPLACED');
         expect(result.changed).to.equal(true);
     });
 });

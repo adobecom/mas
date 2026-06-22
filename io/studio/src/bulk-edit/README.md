@@ -1,6 +1,6 @@
 # Bulk Find & Replace
 
-Search MAS fragments across a surface, export matches, edit replacements in CSV, and apply changes to Odin — all as async jobs on Adobe I/O Runtime.
+Search MAS **card and collection** fragments across a surface, export matches, edit replacements in CSV, and apply changes to Odin — all as async jobs on Adobe I/O Runtime. Dictionary entries are not searched or updated.
 
 Base path: `{host}/api/v1/web/MerchAtScaleStudio/`
 
@@ -23,8 +23,8 @@ Example requests live in [`io/studio/requests.http`](../../requests.http).
 Find (bulk-edit-find)
   1. POST  /bulk-edit-find              → start search (202 + jobId)
   2. GET   /bulk-edit-find?jobId={id}    → poll until done=true, exportReady=true (response includes exports.json + exports.csv)
-  3. Edit CSV locally                     → optional: select a subset of rows to replace
-  4. POST  /bulk-edit-find?jobId={id}    → optional: upload CSV to limit replace scope
+  3. Edit CSV locally                     → optional: delete rows you do not want replaced
+  4. POST  /bulk-edit-find?jobId={id}    → optional: upload CSV to limit replace scope to those rows
   4b.DELETE /bulk-edit-find?jobId={id}   → optional: remove upload, restore full exports
 
 Replace (bulk-edit-replace)
@@ -135,7 +135,7 @@ After a find completes, the full result set is retained internally. **Download J
 - **After CSV upload** — only rows present in the uploaded CSV (with `replace` values merged into the CSV export); upload response includes filtered `total` and `report`
 - **After CSV delete** — restored to the full unfiltered result set
 
-CSV upload: `Content-Type: text/csv` or `multipart/form-data` with a file part. Find job must be complete. Each row must match a `(fragment_id, field, find)` triple from the **full** find results (not only the currently filtered export). Rows in the upload define the filter — omitted find rows are excluded from exports until the upload is removed.
+CSV upload: `Content-Type: text/csv` or `multipart/form-data` with a file part. Find job must be complete. Each row must match a `(fragment_id, field, find)` triple from the **full** find results (not only the currently filtered export). **The upload defines replace scope:** rows present in the file are eligible for replace; rows omitted from the file are excluded from exports and from replace (they are not processed and do not appear in the replace report). Extra rows not in the original find results are rejected.
 
 Upload response:
 
@@ -164,7 +164,10 @@ Remove upload — `DELETE /bulk-edit-find?jobId={findJobId}`:
 
 ### Replace — `POST /bulk-edit-replace`
 
-Apply replacements for a completed find job. When no CSV is uploaded on the find job, **all find matches** are processed. An optional uploaded CSV limits replace to those rows only.
+Apply replacements for a completed find job.
+
+- **No CSV uploaded** — all find matches are processed.
+- **CSV uploaded on the find job** — only rows in that upload are processed. Other matches from the search are left unchanged and are not listed in the replace export.
 
 **Dry run** (preview, no Odin writes):
 
@@ -237,9 +240,9 @@ fragment_id,path,locale,field,find,replace,etag,status
 ```
 
 - One row per **match** (a fragment with two field hits → two rows)
-- `field` is the Odin field name (e.g. `cardTitle`, `value`, `subtitle`); legacy scope labels (e.g. `productDescription`) are still accepted on CSV upload
+- `field` is the Odin field name (e.g. `cardTitle`, `subtitle`, `callout`); legacy scope labels (e.g. `productDescription`) are still accepted on CSV upload
 - Leave `replace` empty on export; the replace text is supplied in `POST /bulk-edit-replace`
-- **Tags** can appear in find results but are never rewritten on replace (rows come back `SKIPPED`)
+- **Tags** can appear in find results but are never rewritten on replace (present rows come back `SKIPPED`)
 - `{{placeholder}}` references in card content may be updated when the search term matches inside them
 
 Row identity for validation: `fragment_id|field|find`.
@@ -262,12 +265,14 @@ Row identity for validation: `fragment_id|field|find`.
 
 ## Replace behavior
 
-1. Uploaded CSV rows are grouped by fragment; multiple field replacements on one fragment are applied in a single Odin PUT.
-2. Replace substitutes the **find search term** (from the find job), not the full matched value in each CSV row. Rows where `replace` equals the search term, unchanged text, or tag fields are **skipped**.
-3. **Dry run** — fetches each fragment from Odin, applies replacements in memory (no PUT), and exports JSON with full modified fragment payloads (`WOULD_REPLACE` items include `title`, `description`, `fields`). A `results-full.json` companion lists only modified fragments.
-4. **Live run** — statuses are `REPLACED`, `SKIPPED`, `FAILED`, or `CONFLICT` (fragment changed since find).
-5. Large replace jobs may run across multiple worker activations until complete.
-6. **Immutability** — a started dry or live replace job cannot be stopped or restarted for the same find run. Re-POST with the same `findJobId`, find `runId`, `dryRun`, uploaded CSV, and `replace` returns `{ reused: true }` while the job is `RUNNING` or `DONE`. Refresh the find job (`forceRefresh`) first to start a new replace.
+1. When a CSV is uploaded, replace uses **only those rows** — not the full find result set. When no CSV is uploaded, every find match is included.
+2. Uploaded CSV rows are grouped by fragment; multiple field replacements on one fragment are applied in a single Odin PUT.
+3. Replace substitutes the **find search term** (from the find job), not the full matched value in each CSV row.
+4. **Omitted vs skipped** — a row removed from the uploaded CSV is never processed (the field stays unchanged). A row that is processed but unchanged (e.g. tag field, text already matches, `replace` equals the search term) gets status `SKIPPED` in the replace export.
+5. **Dry run** — fetches each fragment from Odin, applies replacements in memory (no PUT), and exports JSON with full modified fragment payloads (`WOULD_REPLACE` items include `title`, `description`, `fields`). A `results-full.json` companion lists only modified fragments.
+6. **Live run** — statuses are `REPLACED`, `SKIPPED`, `FAILED`, or `CONFLICT` (fragment changed since find).
+7. Large replace jobs may run across multiple worker activations until complete.
+8. **Immutability** — a started dry or live replace job cannot be stopped or restarted for the same find run. Re-POST with the same `findJobId`, find `runId`, `dryRun`, uploaded CSV, and `replace` returns `{ reused: true }` while the job is `RUNNING` or `DONE`. Refresh the find job (`forceRefresh`) first to start a new replace.
 
 `matchCase` for replace is inherited from the original find job.
 
@@ -288,8 +293,9 @@ Product and UX edge cases to plan for in clients (e.g. MAS Studio). Not an exhau
 | Partial replace outcome | Review export statuses; adjust CSV and start a new replace run as needed. |
 | Re-upload CSV | Overwrites prior upload; exports re-filter; start a new replace job (dry run, then live). |
 | Remove uploaded CSV | `DELETE /bulk-edit-find?jobId=…` restores full find exports and `filteredByUpload: false`. |
-| Subset CSV upload | Upload defines the filter — exports include only uploaded rows; extra rows in the file are rejected. |
-| Tag matches in export | Informational only — replace always skips tag fields. |
+| Subset CSV upload | Upload defines replace scope — only uploaded rows are processed; omitted find rows are excluded from exports and replace. Extra rows in the file are rejected. |
+| Row omitted from uploaded CSV | Field is not touched; row does not appear in replace export (not the same as `SKIPPED`). |
+| Tag matches in export | Informational only — replace always skips tag fields (`SKIPPED` when the row is present). |
 | Following the redirect | Do not send the IMS `Authorization` header to presigned `exports` URLs — use auth only on the bulk-edit API poll call. |
 
 ---

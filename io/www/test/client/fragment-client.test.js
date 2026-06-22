@@ -1,6 +1,7 @@
 import { expect } from 'chai';
 import { clearCaches, previewFragment, previewStudioFragment } from '../../../../studio/libs/fragment-client.js';
 import { transformer as settingsTransformer } from '../../src/fragment/transformers/settings.js';
+import { resetCache as resetConfigCache } from '../../src/fragment/utils/configuration.js';
 import sinon from 'sinon';
 import mockCollectionData from '../fragment/mocks/preview-collection.json' with { type: 'json' };
 import expectedOutput from '../fragment/mocks/preview-expected-collection-output.json' with { type: 'json' };
@@ -225,6 +226,23 @@ describe('FragmentClient', () => {
 
         expect(fetchStub.calledWith(maskByPathUrl)).to.be.true;
         expect(result).to.have.property('fields');
+    });
+
+    it('merges configuration from state into context via loadConfiguration', async () => {
+        resetConfigCache();
+        storage['configuration'] = JSON.stringify({ networkConfig: { mainTimeout: 9999, fetchTimeout: 7777 } });
+        try {
+            const result = await previewFragment(mockCardFragment.id, {
+                surface: 'sandbox',
+                locale: 'en_US',
+                fullContext: true,
+            });
+            expect(result.networkConfig.mainTimeout).to.equal(9999);
+            expect(result.networkConfig.fetchTimeout).to.equal(7777);
+        } finally {
+            delete storage['configuration'];
+            resetConfigCache();
+        }
     });
 
     describe('previewStudioFragment', () => {

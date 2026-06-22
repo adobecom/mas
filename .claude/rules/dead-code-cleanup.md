@@ -6,7 +6,6 @@ After ANY file modification, check for and remove:
 - Orphaned helpers that lost their callers
 - Unreachable conditional branches
 - Console.logs or debugging code (unless intentional)
-- If you add or remove an import in `studio/src/swc.js`, update `studio/design-system/components.md` in the same PR
 
 ## Verification
 
@@ -14,3 +13,7 @@ After ANY file modification, check for and remove:
 2. Check if any imports are no longer needed
 3. Remove code that became obsolete due to your changes
 4. Run linter to catch missed unused variables
+
+## Design System Sync
+
+If you add or remove an import in `studio/src/swc.js`, update `studio/design-system/components.md` in the same PR.

@@ -1569,4 +1569,95 @@ describe('OstStore', () => {
             }
         });
     });
+
+    describe('autoResolveOsi', () => {
+        let originalFetch;
+        afterEach(() => {
+            if (originalFetch) window.fetch = originalFetch;
+            originalFetch = undefined;
+        });
+
+        it('sets the OSI to the offer_type for a fake offer without calling AOS', async () => {
+            originalFetch = window.fetch;
+            let fetched = false;
+            window.fetch = async () => {
+                fetched = true;
+                return { ok: true, json: async () => ({ id: 'should-not-be-used' }) };
+            };
+            await store.autoResolveOsi({ offer_type: 'fake-PHSP_BASE' });
+            expect(store.selectedOsi).to.equal('fake-PHSP_BASE');
+            expect(fetched).to.be.false;
+        });
+
+        it('resolves a real offer to the OSI returned by AOS', async () => {
+            originalFetch = window.fetch;
+            window.fetch = async () => ({ ok: true, json: async () => ({ id: 'resolved-osi' }) });
+            await store.autoResolveOsi({
+                offer_type: 'BASE',
+                product_arrangement_code: 'phsp',
+                market_segments: ['COM'],
+                commitment: 'YEAR',
+                term: 'MONTHLY',
+            });
+            expect(store.selectedOsi).to.equal('resolved-osi');
+        });
+
+        it('swallows AOS errors and leaves the OSI unchanged', async () => {
+            originalFetch = window.fetch;
+            window.fetch = async () => {
+                throw new Error('aos down');
+            };
+            store.setOsi('previous-osi');
+            await store.autoResolveOsi({ offer_type: 'BASE', product_arrangement_code: 'phsp' });
+            expect(store.selectedOsi).to.equal('previous-osi');
+        });
+    });
+
+    describe('autoFillBaseAndTrial', () => {
+        let originalFetch;
+        beforeEach(() => {
+            originalFetch = window.fetch;
+            window.fetch = async () => ({ ok: true, json: async () => ({ id: 'auto-base-osi' }) });
+        });
+        afterEach(() => {
+            window.fetch = originalFetch;
+            store.applyFlowSwitch('single', false);
+            store.selectedOffers = [];
+        });
+
+        const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+        it('does nothing when not in tryBuy flow', async () => {
+            store.applyFlowSwitch('single', false);
+            await store.autoFillBaseAndTrial([{ offer_id: 'B1', offer_type: 'BASE' }]);
+            expect(store.selectedOffers).to.have.length(0);
+        });
+
+        it('does nothing when there is not exactly one BASE candidate', async () => {
+            store.applyFlowSwitch('tryBuy', false);
+            await store.autoFillBaseAndTrial([
+                { offer_id: 'B1', offer_type: 'BASE' },
+                { offer_id: 'B2', offer_type: 'BASE' },
+            ]);
+            expect(store.selectedBaseOsi).to.be.null;
+        });
+
+        it('fills the base slot when exactly one BASE candidate exists', async () => {
+            store.applyFlowSwitch('tryBuy', false);
+            await store.autoFillBaseAndTrial([
+                { offer_id: 'B1', offer_type: 'BASE' },
+                { offer_id: 'T1', offer_type: 'TRIAL' },
+            ]);
+            await tick();
+            expect(store.selectedBaseOsi).to.equal('auto-base-osi');
+            expect(store.selectedBaseOffer.offer_id).to.equal('B1');
+        });
+
+        it('does not refill when a base offer is already selected', async () => {
+            store.applyFlowSwitch('tryBuy', false);
+            store.addOffer({ offer_id: 'EXISTING', offer_type: 'BASE' }, 'existing-osi', 'base');
+            await store.autoFillBaseAndTrial([{ offer_id: 'B1', offer_type: 'BASE' }]);
+            expect(store.selectedBaseOsi).to.equal('existing-osi');
+        });
+    });
 });

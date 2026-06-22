@@ -1,8 +1,9 @@
 const { Core } = require('@adobe/aio-sdk');
 const { getFragmentWithEtag, putToOdin, invokeAsyncAction, buildSiblingActionName } = require('../common.js');
-const { applyReplacementsToFragment, buildWorkPlan } = require('./replace.js');
-const { readJob, patchJob, readUserCsv, writeDryRun, writeReport } = require('./state.js');
-const { writeJobExports } = require('./export.js');
+const { applyReplacementsToFragment, buildWorkPlan, resolveReplaceRows } = require('./replace.js');
+const { resolveFindSourceItems } = require('./find-results.js');
+const { readJob, patchJob, readUserCsv, writeDryRun, writeReport, writeResults, JOB_CACHE_TTL, JOB_RUNNING_TTL } = require('./state.js');
+const { writeJobExports, writeFullExport } = require('./export.js');
 
 const logger = Core.Logger('bulk-edit-replace-worker', { level: 'info' });
 
@@ -60,6 +61,20 @@ function buildResult(item, status, error) {
     };
 }
 
+function buildDryRunResult(item, fragment, applied) {
+    return {
+        id: item.id,
+        path: item.path,
+        locale: item.locale,
+        etag: fragment.etag,
+        status: 'WOULD_REPLACE',
+        title: applied.title,
+        description: applied.description,
+        fields: applied.fields,
+        matches: item.rows.map((row) => ({ field: row.field, value: row.find })),
+    };
+}
+
 async function putOrThrow(odinEndpoint, id, authToken, applied, etag) {
     const res = await putToOdin(odinEndpoint, id, authToken, {
         title: applied.title,
@@ -70,12 +85,12 @@ async function putOrThrow(odinEndpoint, id, authToken, applied, etag) {
     if (!res.success) throw new Error(res.error || `PUT failed for ${id}`);
 }
 
-async function processFragment(item, { odinEndpoint, authToken, matchCase, dryRun }) {
+async function processFragment(item, { odinEndpoint, authToken, matchCase, dryRun, searchFind }) {
     try {
         const { fragment, etag } = await getFragmentWithEtag(odinEndpoint, item.id, authToken);
-        const applied = applyReplacementsToFragment(fragment, item.rows, { matchCase });
+        const applied = applyReplacementsToFragment(fragment, item.rows, { matchCase, searchFind });
         if (!applied.changed) return buildResult(item, 'SKIPPED');
-        if (dryRun) return buildResult(item, 'WOULD_REPLACE');
+        if (dryRun) return buildDryRunResult(item, fragment, applied);
 
         try {
             await putOrThrow(odinEndpoint, item.id, authToken, applied, etag);
@@ -83,7 +98,7 @@ async function processFragment(item, { odinEndpoint, authToken, matchCase, dryRu
         } catch (error) {
             if (!isConflict(error)) throw error;
             const fresh = await getFragmentWithEtag(odinEndpoint, item.id, authToken);
-            const reapplied = applyReplacementsToFragment(fresh.fragment, item.rows, { matchCase });
+            const reapplied = applyReplacementsToFragment(fresh.fragment, item.rows, { matchCase, searchFind });
             if (!reapplied.changed) return buildResult(item, 'SKIPPED');
             try {
                 await putOrThrow(odinEndpoint, item.id, authToken, reapplied, fresh.etag);
@@ -100,6 +115,7 @@ async function processFragment(item, { odinEndpoint, authToken, matchCase, dryRu
 }
 
 async function finalizeReplaceExport(jobId, results, status, report, { dryRun, totalRows }) {
+    await writeResults(jobId, results);
     const { exportedAt } = await writeJobExports(jobId, {
         items: results,
         report,
@@ -108,14 +124,24 @@ async function finalizeReplaceExport(jobId, results, status, report, { dryRun, t
         dryRun,
         userRows: null,
     });
-    await patchJob(jobId, {
-        status,
-        total: totalRows,
-        exportReady: true,
-        exportedAt,
-        results: [],
-        ...countCounters(results),
-    });
+    if (dryRun) {
+        const modifiedFragments = results.filter((result) => result.status === 'WOULD_REPLACE');
+        if (modifiedFragments.length) {
+            await writeFullExport(jobId, 'replace', modifiedFragments);
+        }
+    }
+    await patchJob(
+        jobId,
+        {
+            status,
+            total: totalRows,
+            exportReady: true,
+            exportedAt,
+            results: [],
+            ...countCounters(results),
+        },
+        JOB_CACHE_TTL,
+    );
 }
 
 async function resolveStop(jobId, runId) {
@@ -134,8 +160,11 @@ async function runReplaceWorker(jobId, { odinEndpoint, authToken, runId, params 
     const matchCase = !!job.matchCase;
     const startedAt = job.startedAt || new Date().toISOString();
     const userCsv = await readUserCsv(job.findJobId);
-    const userRows = userCsv?.rows || [];
-    const items = buildWorkPlan(userRows);
+    const findJob = await readJob(job.findJobId);
+    const findItems = await resolveFindSourceItems(job.findJobId, findJob || {});
+    const userRows = resolveReplaceRows(findItems, userCsv?.rows);
+    const searchFind = findJob?.params?.find;
+    const items = buildWorkPlan(userRows, job.replace, searchFind);
 
     const batchSize = Number.parseInt(params.batchSize, 10) || DEFAULT_BATCH_SIZE;
     const parsedBudget = Number.parseInt(params.softBudgetMs, 10);
@@ -151,7 +180,7 @@ async function runReplaceWorker(jobId, { odinEndpoint, authToken, runId, params 
             const batch = items.slice(i, i + batchSize);
             // eslint-disable-next-line no-await-in-loop
             const batchResults = await Promise.all(
-                batch.map((item) => processFragment(item, { odinEndpoint, authToken, matchCase, dryRun })),
+                batch.map((item) => processFragment(item, { odinEndpoint, authToken, matchCase, dryRun, searchFind })),
             );
             results = [...results, ...batchResults];
             cursor = i + batch.length;
@@ -169,15 +198,19 @@ async function runReplaceWorker(jobId, { odinEndpoint, authToken, runId, params 
 
             if (dryRun) {
                 // eslint-disable-next-line no-await-in-loop
-                await writeDryRun(jobId, results);
+                await writeDryRun(jobId, results, JOB_RUNNING_TTL);
             }
             // eslint-disable-next-line no-await-in-loop
-            await patchJob(jobId, {
-                cursor,
-                total: items.length,
-                ...countCounters(results),
-                ...(dryRun ? {} : { results }),
-            });
+            await patchJob(
+                jobId,
+                {
+                    cursor,
+                    total: items.length,
+                    ...countCounters(results),
+                    ...(dryRun ? {} : { results }),
+                },
+                JOB_RUNNING_TTL,
+            );
             logger.info(
                 JSON.stringify({
                     event: 'bulk-edit-replace-progress',
@@ -228,6 +261,7 @@ module.exports = {
     countCounters,
     buildReport,
     processFragment,
+    buildDryRunResult,
     finalizeReplaceExport,
 };
 exports.main = main;

@@ -4,6 +4,8 @@ const {
     replaceInValue,
     resolveReplaceTargets,
     applyReplacementsToFragment,
+    buildWorkPlan,
+    resolveReplaceRows,
 } = require('../../src/bulk-edit/replace.js');
 
 describe('bulk-edit/replace: replaceInValue', () => {
@@ -22,6 +24,16 @@ describe('bulk-edit/replace: replaceInValue', () => {
     it('escapes regex metacharacters in the find term', () => {
         expect(replaceInValue('price (USD)', '(USD)', '(EUR)', false)).to.equal('price (EUR)');
     });
+    it('replaces the search term inside placeholder references in card content', () => {
+        expect(replaceInValue('text {{old-placeholder}} more text', 'old-placeholder', 'new-placeholder', false)).to.equal(
+            'text {{new-placeholder}} more text',
+        );
+    });
+    it('replaces the search term inside a standalone placeholder reference', () => {
+        expect(replaceInValue('{{ilyas-find-replace-firefly}}', 'firefly', 'Firefly', false)).to.equal(
+            '{{ilyas-find-replace-Firefly}}',
+        );
+    });
     it('leaves non-string values untouched', () => {
         expect(replaceInValue(42, '4', 'x', true)).to.equal(42);
     });
@@ -37,6 +49,9 @@ describe('bulk-edit/replace: resolveReplaceTargets', () => {
     it('skips tags', () => {
         expect(resolveReplaceTargets('tags')).to.deep.equal([]);
     });
+    it('skips dictionary placeholder keys', () => {
+        expect(resolveReplaceTargets('key')).to.deep.equal([]);
+    });
     it('maps fragmentTitle to the title property', () => {
         expect(resolveReplaceTargets('fragmentTitle')).to.deep.equal([{ kind: 'property', name: 'title' }]);
     });
@@ -49,14 +64,24 @@ describe('bulk-edit/replace: resolveReplaceTargets', () => {
             { kind: 'property', name: 'description' },
         ]);
     });
-    it('expands a multi-field scope key (productText)', () => {
-        expect(resolveReplaceTargets('productText')).to.deep.equal([
+    it('expands promoText to promoText and promoCode', () => {
+        expect(resolveReplaceTargets('promoText')).to.deep.equal([
             { kind: 'field', name: 'promoText' },
+            { kind: 'field', name: 'promoCode' },
+        ]);
+    });
+    it('expands productDescription to cardTitle, description, features, compareChart, and shortDescription', () => {
+        expect(resolveReplaceTargets('productDescription')).to.deep.equal([
+            { kind: 'field', name: 'cardTitle' },
+            { kind: 'field', name: 'description' },
+            { kind: 'field', name: 'features' },
+            { kind: 'field', name: 'compareChart' },
             { kind: 'field', name: 'shortDescription' },
         ]);
     });
-    it('treats an unknown label as a raw field name', () => {
+    it('ignores unknown scope labels', () => {
         expect(resolveReplaceTargets('callout')).to.deep.equal([{ kind: 'field', name: 'callout' }]);
+        expect(resolveReplaceTargets('mnemonicIcon')).to.deep.equal([{ kind: 'field', name: 'mnemonicIcon' }]);
     });
 });
 
@@ -76,7 +101,7 @@ describe('bulk-edit/replace: applyReplacementsToFragment', () => {
         const result = applyReplacementsToFragment(
             fragment(),
             [{ fragment_id: 'a', field: 'subtitle', find: 'School', replace: 'Campus' }],
-            { matchCase: true },
+            { matchCase: true, searchFind: 'School' },
         );
         expect(result.changed).to.equal(true);
         expect(result.fields[0].values[0]).to.equal('Campus subtitle');
@@ -87,6 +112,7 @@ describe('bulk-edit/replace: applyReplacementsToFragment', () => {
         const input = fragment();
         applyReplacementsToFragment(input, [{ field: 'subtitle', find: 'School', replace: 'Campus' }], {
             matchCase: true,
+            searchFind: 'School',
         });
         expect(input.fields[0].values[0]).to.equal('School subtitle');
     });
@@ -101,7 +127,7 @@ describe('bulk-edit/replace: applyReplacementsToFragment', () => {
         const result = applyReplacementsToFragment(
             fragment(),
             [{ field: 'fragmentTitle', find: 'School', replace: 'Campus' }],
-            { matchCase: true },
+            { matchCase: true, searchFind: 'School' },
         );
         expect(result.title).to.equal('Campus plan');
         expect(result.changed).to.equal(true);
@@ -111,5 +137,79 @@ describe('bulk-edit/replace: applyReplacementsToFragment', () => {
         const result = applyReplacementsToFragment(fragment(), [{ field: 'tags', find: 'School', replace: 'x' }], {});
         expect(result.changed).to.equal(false);
         expect(result.rowStatuses[0].status).to.equal('SKIPPED');
+    });
+
+    it('updates placeholder references in card content', () => {
+        const result = applyReplacementsToFragment(
+            {
+                title: '',
+                description: '',
+                fields: [{ name: 'cardTitle', values: ['text {{old-placeholder}} more text'] }],
+            },
+            [{ fragment_id: 'a', field: 'productDescription', find: 'text {{old-placeholder}} more text', replace: 'new-placeholder' }],
+            { matchCase: false, searchFind: 'old-placeholder' },
+        );
+        expect(result.fields[0].values[0]).to.equal('text {{new-placeholder}} more text');
+        expect(result.changed).to.equal(true);
+        expect(result.rowStatuses[0].status).to.equal('REPLACED');
+    });
+
+    it('never rewrites dictionary placeholder keys', () => {
+        const result = applyReplacementsToFragment(
+            {
+                title: '',
+                description: '',
+                fields: [
+                    { name: 'key', values: ['ilyas-find-replace-firefly'] },
+                    { name: 'value', values: ['Adobe firefly pro'] },
+                ],
+            },
+            [
+                { fragment_id: 'a', field: 'key', find: 'ilyas-find-replace-firefly', replace: 'Firefly' },
+                { fragment_id: 'a', field: 'placeholderValue', find: 'Adobe firefly pro', replace: 'Firefly' },
+            ],
+            { matchCase: false, searchFind: 'firefly' },
+        );
+        expect(result.fields.find((f) => f.name === 'key').values[0]).to.equal('ilyas-find-replace-firefly');
+        expect(result.fields.find((f) => f.name === 'value').values[0]).to.equal('Adobe Firefly pro');
+        expect(result.rowStatuses.find((r) => r.field === 'key').status).to.equal('SKIPPED');
+        expect(result.rowStatuses.find((r) => r.field === 'placeholderValue').status).to.equal('REPLACED');
+        expect(result.changed).to.equal(true);
+    });
+});
+
+describe('bulk-edit/replace: resolveReplaceRows', () => {
+    it('uses find results when no CSV rows were uploaded', () => {
+        const rows = resolveReplaceRows(
+            [{ id: 'a', path: '/p/a', locale: 'en_US', etag: 'e1', status: 'DRAFT', matches: [{ field: 'subtitle', value: 'school' }] }],
+            null,
+        );
+        expect(rows).to.deep.equal([
+            {
+                fragment_id: 'a',
+                path: '/p/a',
+                locale: 'en_US',
+                field: 'subtitle',
+                find: 'school',
+                replace: '',
+                etag: 'e1',
+                status: 'DRAFT',
+            },
+        ]);
+    });
+});
+
+describe('bulk-edit/replace: buildWorkPlan', () => {
+    it('applies one replace value to all selected rows and groups by fragment', () => {
+        const plan = buildWorkPlan(
+            [
+                { fragment_id: 'b', path: '/p/b', locale: 'en_US', field: 'subtitle', find: 'firefly' },
+                { fragment_id: 'a', path: '/p/a', locale: 'en_US', field: 'subtitle', find: 'firefly' },
+            ],
+            'Firefly Pro',
+            'firefly',
+        );
+        expect(plan.map((item) => item.id)).to.deep.equal(['a', 'b']);
+        expect(plan[0].rows[0].replace).to.equal('Firefly Pro');
     });
 });

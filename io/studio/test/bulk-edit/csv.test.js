@@ -94,7 +94,7 @@ describe('bulk-edit/csv: flattenResultsToRows', () => {
         const rows = flattenResultsToRows([
             {
                 id: 'frag-1',
-                path: '/content/dam/mas/acom/en_US/foo',
+                path: '/content/dam/mas/sandbox/en_US/foo',
                 locale: 'en_US',
                 status: 'PUBLISHED',
                 etag: 'e1',
@@ -107,7 +107,7 @@ describe('bulk-edit/csv: flattenResultsToRows', () => {
         expect(rows).to.have.lengthOf(2);
         expect(rows[0]).to.deep.equal({
             fragment_id: 'frag-1',
-            path: '/content/dam/mas/acom/en_US/foo',
+            path: '/content/dam/mas/sandbox/en_US/foo',
             locale: 'en_US',
             field: 'subtitle',
             find: 'school sale',

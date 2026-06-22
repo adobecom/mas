@@ -1,6 +1,6 @@
 const { Core } = require('@adobe/aio-sdk');
 const { buildSearchQuery, buildSearchPaths, searchPages, findMatches, extractLocale } = require('./search.js');
-const { readJob, patchJob, writeReport, readUserCsv } = require('./state.js');
+const { readJob, patchJob, writeReport, readUserCsv, writeResults, JOB_CACHE_TTL, JOB_RUNNING_TTL } = require('./state.js');
 const { filterResultsByUserCsv } = require('./csv.js');
 const { writeJobExports, writeFindFullExport } = require('./export.js');
 
@@ -32,6 +32,7 @@ async function resolveStop(jobId, runId) {
 
 async function finalizeFindExport(jobId, results, status) {
     await writeFindFullExport(jobId, results);
+    await writeResults(jobId, results);
     const userCsv = await readUserCsv(jobId);
     const items = userCsv?.rows?.length ? filterResultsByUserCsv(results, userCsv.rows) : results;
     const report = buildFindReport(items);
@@ -43,13 +44,18 @@ async function finalizeFindExport(jobId, results, status) {
         dryRun: false,
         userRows: userCsv?.rows,
     });
-    await patchJob(jobId, {
-        status,
-        total: items.length,
-        exportReady: true,
-        exportedAt,
-        results: [],
-    });
+    await writeReport(jobId, report);
+    await patchJob(
+        jobId,
+        {
+            status,
+            total: items.length,
+            exportReady: true,
+            exportedAt,
+            results: [],
+        },
+        JOB_CACHE_TTL,
+    );
     return report;
 }
 
@@ -87,8 +93,8 @@ async function runFindWorker(jobId, { odinEndpoint, authToken, runId }) {
                 }
                 const stop = await resolveStop(jobId, runId);
                 if (stop) return finalizeStop(jobId, stop, results);
-                await patchJob(jobId, { results: [...results], total: results.length });
-                await writeReport(jobId, buildFindReport(results));
+                await patchJob(jobId, { results: [...results], total: results.length }, JOB_RUNNING_TTL);
+                await writeReport(jobId, buildFindReport(results), JOB_RUNNING_TTL);
             }
             const stop = await resolveStop(jobId, runId);
             if (stop) return finalizeStop(jobId, stop, results);

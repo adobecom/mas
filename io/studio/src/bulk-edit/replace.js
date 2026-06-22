@@ -1,4 +1,10 @@
+const { flattenResultsToRows } = require('./csv.js');
 const { SCOPE_FIELDS } = require('./search.js');
+
+function resolveReplaceRows(findItems, userCsvRows) {
+    if (userCsvRows?.length) return userCsvRows;
+    return flattenResultsToRows(findItems);
+}
 
 function escapeRegExp(str) {
     return String(str).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -12,7 +18,7 @@ function replaceInValue(value, find, replace, matchCase) {
 }
 
 function resolveReplaceTargets(field) {
-    if (field === 'tags') return [];
+    if (field === 'tags' || field === 'key') return [];
     if (field === 'title' || field === 'fragmentTitle') return [{ kind: 'property', name: 'title' }];
     if (field === 'fragmentDescription') return [{ kind: 'property', name: 'description' }];
     // '*'-mode matches label both the product-description field and the CF description
@@ -34,7 +40,7 @@ function resolveReplaceTargets(field) {
     return [{ kind: 'field', name: field }];
 }
 
-function applyReplacementsToFragment(fragment, rows, { matchCase = false } = {}) {
+function applyReplacementsToFragment(fragment, rows, { matchCase = false, searchFind } = {}) {
     const fields = (fragment.fields || []).map((field) => ({ ...field, values: [...(field.values || [])] }));
     const fieldByName = new Map(fields.map((field) => [field.name, field]));
     let { title, description } = fragment;
@@ -42,7 +48,7 @@ function applyReplacementsToFragment(fragment, rows, { matchCase = false } = {})
     const rowStatuses = [];
 
     for (const row of rows) {
-        const { find } = row;
+        const needle = searchFind ?? row.find;
         const replace = row.replace ?? '';
         let rowChanged = false;
         for (const target of resolveReplaceTargets(row.field)) {
@@ -50,20 +56,20 @@ function applyReplacementsToFragment(fragment, rows, { matchCase = false } = {})
                 const field = fieldByName.get(target.name);
                 if (!field) continue;
                 for (let i = 0; i < field.values.length; i += 1) {
-                    const next = replaceInValue(field.values[i], find, replace, matchCase);
+                    const next = replaceInValue(field.values[i], needle, replace, matchCase);
                     if (next !== field.values[i]) {
                         field.values[i] = next;
                         rowChanged = true;
                     }
                 }
             } else if (target.name === 'title') {
-                const next = replaceInValue(title, find, replace, matchCase);
+                const next = replaceInValue(title, needle, replace, matchCase);
                 if (next !== title) {
                     title = next;
                     rowChanged = true;
                 }
             } else if (target.name === 'description') {
-                const next = replaceInValue(description, find, replace, matchCase);
+                const next = replaceInValue(description, needle, replace, matchCase);
                 if (next !== description) {
                     description = next;
                     rowChanged = true;
@@ -74,7 +80,7 @@ function applyReplacementsToFragment(fragment, rows, { matchCase = false } = {})
         rowStatuses.push({
             fragment_id: row.fragment_id,
             field: row.field,
-            find,
+            find: row.find,
             status: rowChanged ? 'REPLACED' : 'SKIPPED',
         });
     }
@@ -82,11 +88,11 @@ function applyReplacementsToFragment(fragment, rows, { matchCase = false } = {})
     return { fields, title, description, changed, rowStatuses };
 }
 
-function buildWorkPlan(userRows) {
+function buildWorkPlan(userRows, replaceValue, searchFind) {
+    const replace = replaceValue ?? '';
+    if (!replace || !searchFind || replace === searchFind) return [];
     const byFragment = new Map();
     for (const row of userRows || []) {
-        const replace = row.replace ?? '';
-        if (!replace || replace === row.find) continue;
         let item = byFragment.get(row.fragment_id);
         if (!item) {
             item = { id: row.fragment_id, path: row.path, locale: row.locale, rows: [] };
@@ -101,6 +107,7 @@ module.exports = {
     escapeRegExp,
     replaceInValue,
     resolveReplaceTargets,
+    resolveReplaceRows,
     applyReplacementsToFragment,
     buildWorkPlan,
 };

@@ -33,7 +33,9 @@ async function writeJobExports(jobId, payload) {
         report: report || null,
     };
     await files.write(paths.json, JSON.stringify(document), { contentType: 'application/json' });
-    await files.write(paths.csv, buildCsvFromItems(items, userRows), { contentType: 'text/csv' });
+    if (type !== 'replace') {
+        await files.write(paths.csv, buildCsvFromItems(items, userRows), { contentType: 'text/csv' });
+    }
     return { exportedAt, paths };
 }
 
@@ -60,14 +62,14 @@ async function readExportFullItems(jobId) {
     }
 }
 
-async function writeFindFullExport(jobId, items) {
+async function writeFullExport(jobId, type, items) {
     const files = await filesInit();
     const paths = buildExportPaths(jobId);
-    await files.write(
-        paths.fullJson,
-        JSON.stringify({ jobId, type: 'find', items: items || [] }),
-        { contentType: 'application/json' },
-    );
+    await files.write(paths.fullJson, JSON.stringify({ jobId, type, items: items || [] }), { contentType: 'application/json' });
+}
+
+async function writeFindFullExport(jobId, items) {
+    await writeFullExport(jobId, 'find', items);
 }
 
 async function deleteJobExports(jobId) {
@@ -78,21 +80,35 @@ async function deleteJobExports(jobId) {
     );
 }
 
-async function exportDownloadResponse(jobId, format) {
+async function exportFileExists(jobId, format) {
     const files = await filesInit();
     const paths = buildExportPaths(jobId);
     const filePath = format === 'csv' ? paths.csv : paths.json;
-    const downloadUrl = await files.generatePresignURL(filePath, {
+    try {
+        const buffer = await files.read(filePath);
+        const text = Buffer.isBuffer(buffer) ? buffer.toString('utf8') : String(buffer ?? '');
+        return text.length > 0;
+    } catch {
+        return false;
+    }
+}
+
+async function exportPresignUrl(jobId, format) {
+    const files = await filesInit();
+    const paths = buildExportPaths(jobId);
+    const filePath = format === 'csv' ? paths.csv : paths.json;
+    return files.generatePresignURL(filePath, {
         expiryInSeconds: PRESIGN_TTL_SECONDS,
         permissions: 'r',
     });
+}
+
+async function exportRedirectResponse(jobId, format) {
+    const downloadUrl = await exportPresignUrl(jobId, format);
     return {
-        statusCode: 200,
-        body: {
-            jobId,
-            format,
-            downloadUrl,
-            expiresIn: PRESIGN_TTL_SECONDS,
+        statusCode: 302,
+        headers: {
+            Location: downloadUrl,
         },
     };
 }
@@ -102,11 +118,14 @@ module.exports = {
     PRESIGN_TTL_SECONDS,
     buildExportPaths,
     buildCsvFromItems,
+    writeFullExport,
     writeFindFullExport,
     readExportFullItems,
     readExportDocument,
     writeJobExports,
     readExportItems,
     deleteJobExports,
-    exportDownloadResponse,
+    exportFileExists,
+    exportPresignUrl,
+    exportRedirectResponse,
 };

@@ -34,7 +34,7 @@ describe('bulk-edit/export: buildExportPaths', () => {
 });
 
 describe('bulk-edit/export: writeJobExports', () => {
-    it('writes JSON and CSV with expected content types', async () => {
+    it('writes JSON and CSV for find jobs', async () => {
         const { mod, files, writes } = loadFilesStub();
         await mod.writeJobExports('job-1', {
             type: 'find',
@@ -60,6 +60,40 @@ describe('bulk-edit/export: writeJobExports', () => {
         expect(document.items).to.have.lengthOf(1);
         expect(writes['private/bulk-edit/job-1/results.csv']).to.include('fragment_id,path,locale');
     });
+
+    it('writes JSON only for replace jobs', async () => {
+        const { mod, files, writes } = loadFilesStub();
+        await mod.writeJobExports('job-1', {
+            type: 'replace',
+            items: [{ id: 'a', path: '/p/a', locale: 'en_US', status: 'REPLACED', matches: [{ field: 'subtitle', value: 'school' }] }],
+            report: { totalFragments: 1 },
+            filteredByUpload: false,
+            dryRun: false,
+        });
+        expect(files.write.callCount).to.equal(1);
+        expect(files.write.firstCall.args[2]).to.deep.equal({ contentType: 'application/json' });
+        expect(writes['private/bulk-edit/job-1/results.csv']).to.equal(undefined);
+    });
+
+    it('writeFullExport stores modified fragments for dry-run replace jobs', async () => {
+        const { mod, writes } = loadFilesStub();
+        await mod.writeFullExport('job-1', 'replace', [
+            {
+                id: 'a',
+                path: '/p/a',
+                locale: 'en_US',
+                status: 'WOULD_REPLACE',
+                title: 'T',
+                description: 'D',
+                fields: [{ name: 'subtitle', values: ['Campus offer'] }],
+                matches: [{ field: 'subtitle', value: 'School' }],
+            },
+        ]);
+        const document = JSON.parse(writes['private/bulk-edit/job-1/results-full.json']);
+        expect(document.type).to.equal('replace');
+        expect(document.items).to.have.lengthOf(1);
+        expect(document.items[0].fields[0].values[0]).to.equal('Campus offer');
+    });
 });
 
 describe('bulk-edit/export: readExportItems', () => {
@@ -72,21 +106,44 @@ describe('bulk-edit/export: readExportItems', () => {
     });
 });
 
-describe('bulk-edit/export: exportDownloadResponse', () => {
-    it('returns a download URL in the response body', async () => {
-        const { mod, files } = loadFilesStub();
-        const res = await mod.exportDownloadResponse('job-1', 'json');
-        expect(res.statusCode).to.equal(200);
-        expect(res.body).to.deep.equal({
-            jobId: 'job-1',
-            format: 'json',
-            downloadUrl: 'https://files.example/presigned',
-            expiresIn: mod.PRESIGN_TTL_SECONDS,
-        });
-        expect(files.generatePresignURL).to.have.been.calledWith('private/bulk-edit/job-1/results.json', {
-            expiryInSeconds: mod.PRESIGN_TTL_SECONDS,
-            permissions: 'r',
-        });
+describe('bulk-edit/export: exportFileExists', () => {
+    it('returns true when the export file is readable', async () => {
+        const { mod, writes } = loadFilesStub();
+        writes['private/bulk-edit/job-1/results.json'] = '{}';
+        expect(await mod.exportFileExists('job-1', 'json')).to.equal(true);
+    });
+    it('returns false when the export file is missing', async () => {
+        const { mod } = loadFilesStub();
+        expect(await mod.exportFileExists('job-1', 'json')).to.equal(false);
+    });
+});
+
+describe('bulk-edit/export: exportPresignUrl', () => {
+    it('returns a presigned URL for JSON or CSV paths', async () => {
+        const { mod, files, writes } = loadFilesStub();
+        writes['private/bulk-edit/job-1/results.json'] = '{}';
+        writes['private/bulk-edit/job-1/results.csv'] = 'fragment_id\n';
+        expect(await mod.exportPresignUrl('job-1', 'json')).to.equal('https://files.example/presigned');
+        expect(await mod.exportPresignUrl('job-1', 'csv')).to.equal('https://files.example/presigned');
+        expect(files.generatePresignURL.callCount).to.equal(2);
+    });
+});
+
+describe('bulk-edit/export: exportRedirectResponse', () => {
+    it('returns 302 with a presigned Location for JSON', async () => {
+        const { mod, files, writes } = loadFilesStub();
+        writes['private/bulk-edit/job-1/results.json'] = '{"jobId":"job-1"}';
+        const res = await mod.exportRedirectResponse('job-1', 'json');
+        expect(res.statusCode).to.equal(302);
+        expect(res.headers.Location).to.equal('https://files.example/presigned');
+        expect(files.generatePresignURL.firstCall.args[0]).to.equal('private/bulk-edit/job-1/results.json');
+    });
+    it('returns 302 with a presigned Location for CSV', async () => {
+        const { mod, files, writes } = loadFilesStub();
+        writes['private/bulk-edit/job-1/results.csv'] = 'fragment_id,path\n';
+        const res = await mod.exportRedirectResponse('job-1', 'csv');
+        expect(res.statusCode).to.equal(302);
+        expect(files.generatePresignURL.firstCall.args[0]).to.equal('private/bulk-edit/job-1/results.csv');
     });
 });
 

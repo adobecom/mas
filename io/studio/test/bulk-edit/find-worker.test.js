@@ -8,7 +8,7 @@ function load(overrides = {}) {
     const job =
         overrides.job === undefined
             ? {
-                  params: { find: 'school', surface: 'acom', searchIn: '*', matchCase: false },
+                  params: { find: 'school', surface: 'sandbox', searchIn: '*', matchCase: false },
                   authToken: 't',
                   status: 'RUNNING',
               }
@@ -16,7 +16,7 @@ function load(overrides = {}) {
     const stubs = {
         './search.js': {
             buildSearchQuery: ({ path }) => ({ sort: [], filter: { path } }),
-            buildSearchPaths: overrides.buildSearchPaths || (() => ['/content/dam/mas/acom']),
+            buildSearchPaths: overrides.buildSearchPaths || (() => ['/content/dam/mas/sandbox']),
             extractLocale: overrides.extractLocale || (() => 'en_US'),
             findMatches: (fragment) => (fragment.hit ? [{ field: 'subtitle', value: fragment.hit }] : []),
             async *searchPages({ query }) {
@@ -36,6 +36,11 @@ function load(overrides = {}) {
                 reports.push(report);
             },
             readUserCsv: async () => overrides.userCsv || null,
+            writeResults: async (jobId, items) => {
+                exports.push({ jobId, stateResults: items });
+            },
+            JOB_CACHE_TTL: 604800,
+            JOB_RUNNING_TTL: 1800,
             '@noCallThru': true,
         },
         './export.js': {
@@ -73,12 +78,14 @@ describe('bulk-edit/find-worker: runFindWorker', () => {
         expect(done.results).to.deep.equal([]);
         const exportPayload = exports.find((entry) => entry.payload)?.payload;
         expect(exportPayload.items.map((r) => r.id)).to.deep.equal(['a', 'b']);
+        const stateWrite = exports.find((entry) => entry.stateResults);
+        expect(stateWrite.stateResults.map((r) => r.id)).to.deep.equal(['a', 'b']);
     });
     it('returns the full Odin fragment with matches and locale', async () => {
         const cardModelId = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ';
         const fragment = {
             id: 'a',
-            path: '/content/dam/mas/acom/en_US/cards/foo',
+            path: '/content/dam/mas/sandbox/en_US/cards/foo',
             hit: 'A',
             title: 'Card title',
             status: 'PUBLISHED',
@@ -102,13 +109,13 @@ describe('bulk-edit/find-worker: runFindWorker', () => {
     });
     it('searches each locale path and merges results', async () => {
         const { mod, patches, exports } = load({
-            buildSearchPaths: () => ['/content/dam/mas/acom/en_US', '/content/dam/mas/acom/fr_FR'],
+            buildSearchPaths: () => ['/content/dam/mas/sandbox/en_US', '/content/dam/mas/sandbox/fr_FR'],
             pagesByPath: {
-                '/content/dam/mas/acom/en_US': [[{ id: 'en', path: '/p/en', hit: 'A' }]],
-                '/content/dam/mas/acom/fr_FR': [[{ id: 'fr', path: '/p/fr', hit: 'B' }]],
+                '/content/dam/mas/sandbox/en_US': [[{ id: 'en', path: '/p/en', hit: 'A' }]],
+                '/content/dam/mas/sandbox/fr_FR': [[{ id: 'fr', path: '/p/fr', hit: 'B' }]],
             },
             job: {
-                params: { find: 'school', surface: 'acom', locale: ['en_US', 'fr_FR'], searchIn: '*', matchCase: false },
+                params: { find: 'school', surface: 'sandbox', locale: ['en_US', 'fr_FR'], searchIn: '*', matchCase: false },
                 authToken: 't',
                 status: 'RUNNING',
             },
@@ -121,19 +128,19 @@ describe('bulk-edit/find-worker: runFindWorker', () => {
     });
     it('writes an incremental per-locale report as results accumulate', async () => {
         const { mod, reports } = load({
-            buildSearchPaths: () => ['/content/dam/mas/acom/en_US', '/content/dam/mas/acom/fr_FR'],
+            buildSearchPaths: () => ['/content/dam/mas/sandbox/en_US', '/content/dam/mas/sandbox/fr_FR'],
             pagesByPath: {
-                '/content/dam/mas/acom/en_US': [
+                '/content/dam/mas/sandbox/en_US': [
                     [
-                        { id: 'en1', path: '/content/dam/mas/acom/en_US/a', hit: 'A' },
-                        { id: 'en2', path: '/content/dam/mas/acom/en_US/b', hit: 'B' },
+                        { id: 'en1', path: '/content/dam/mas/sandbox/en_US/a', hit: 'A' },
+                        { id: 'en2', path: '/content/dam/mas/sandbox/en_US/b', hit: 'B' },
                     ],
                 ],
-                '/content/dam/mas/acom/fr_FR': [[{ id: 'fr1', path: '/content/dam/mas/acom/fr_FR/c', hit: 'C' }]],
+                '/content/dam/mas/sandbox/fr_FR': [[{ id: 'fr1', path: '/content/dam/mas/sandbox/fr_FR/c', hit: 'C' }]],
             },
-            extractLocale: (path) => path.match(/\/mas\/acom\/([^/]+)\//)?.[1] ?? null,
+            extractLocale: (path) => path.match(/\/mas\/sandbox\/([^/]+)\//)?.[1] ?? null,
             job: {
-                params: { find: 'school', surface: 'acom', locale: ['en_US', 'fr_FR'], searchIn: '*', matchCase: false },
+                params: { find: 'school', surface: 'sandbox', locale: ['en_US', 'fr_FR'], searchIn: '*', matchCase: false },
                 status: 'RUNNING',
             },
         });
@@ -194,7 +201,7 @@ describe('bulk-edit/find-worker: runFindWorker', () => {
         const { mod, patches } = load({
             pages: [[{ id: 'a', path: '/p/a', hit: 'A' }], [{ id: 'b', path: '/p/b', hit: 'B' }]],
             job: {
-                params: { find: 'school', surface: 'acom', searchIn: '*', matchCase: false },
+                params: { find: 'school', surface: 'sandbox', searchIn: '*', matchCase: false },
                 status: 'RUNNING',
                 runId: 'new-run',
             },
@@ -211,7 +218,7 @@ describe('bulk-edit/find-worker: runFindWorker', () => {
             readJob: async () => {
                 reads += 1;
                 return {
-                    params: { find: 'school', surface: 'acom', searchIn: '*', matchCase: false },
+                    params: { find: 'school', surface: 'sandbox', searchIn: '*', matchCase: false },
                     authToken: 't',
                     status: 'RUNNING',
                     cancelled: reads > 1,

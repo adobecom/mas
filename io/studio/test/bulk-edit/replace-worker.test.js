@@ -11,6 +11,7 @@ function load(overrides = {}) {
     const job = {
         type: 'replace',
         findJobId: 'find1',
+        replace: overrides.replace ?? 'Campus',
         dryRun: overrides.dryRun || false,
         matchCase: false,
         runId: 'run1',
@@ -20,8 +21,8 @@ function load(overrides = {}) {
         ...overrides.job,
     };
     const rows = overrides.rows || [
-        { fragment_id: 'a', path: '/p/a', locale: 'en_US', field: 'subtitle', find: 'School', replace: 'Campus' },
-        { fragment_id: 'b', path: '/p/b', locale: 'en_US', field: 'subtitle', find: 'School', replace: 'Campus' },
+        { fragment_id: 'a', path: '/p/a', locale: 'en_US', field: 'subtitle', find: 'School', replace: '' },
+        { fragment_id: 'b', path: '/p/b', locale: 'en_US', field: 'subtitle', find: 'School', replace: '' },
     ];
     const stubs = {
         '../common.js': {
@@ -43,7 +44,10 @@ function load(overrides = {}) {
         },
         './replace.js': require('../../src/bulk-edit/replace.js'),
         './state.js': {
-            readJob: overrides.readJob || (async () => job),
+            readJob: overrides.readJob || (async (id) => {
+                if (id === 'find1') return { params: { find: 'School' }, status: 'DONE' };
+                return job;
+            }),
             patchJob: async (jobId, patch) => {
                 patches.push(patch);
             },
@@ -54,10 +58,20 @@ function load(overrides = {}) {
             writeReport: async (jobId, report) => {
                 calls.reports.push(report);
             },
+            writeResults: async (jobId, items) => {
+                calls.results = items;
+            },
+            JOB_CACHE_TTL: 604800,
+            JOB_RUNNING_TTL: 1800,
             '@noCallThru': true,
         },
         './export.js': {
             writeJobExports: async () => ({ exportedAt: '2026-01-01T00:00:00.000Z' }),
+            writeFullExport: async () => {},
+            '@noCallThru': true,
+        },
+        './find-results.js': {
+            resolveFindSourceItems: async () => [],
             '@noCallThru': true,
         },
         '@adobe/aio-sdk': { Core: { Logger: () => ({ info() {}, error() {} }) }, '@noCallThru': true },
@@ -69,13 +83,40 @@ describe('bulk-edit/replace-worker: buildWorkPlan', () => {
     it('groups rows by fragment, drops no-op rows, and sorts by id', () => {
         const { mod } = load();
         const plan = mod.buildWorkPlan([
-            { fragment_id: 'b', field: 'subtitle', find: 'x', replace: 'y' },
-            { fragment_id: 'a', field: 'subtitle', find: 'x', replace: 'y' },
-            { fragment_id: 'a', field: 'title', find: 'z', replace: '' },
-            { fragment_id: 'a', field: 'callout', find: 'q', replace: 'q' },
-        ]);
+            { fragment_id: 'b', field: 'subtitle', find: 'x' },
+            { fragment_id: 'a', field: 'subtitle', find: 'x' },
+            { fragment_id: 'a', field: 'title', find: 'z' },
+            { fragment_id: 'a', field: 'callout', find: 'q' },
+        ], 'y', 'x');
         expect(plan.map((i) => i.id)).to.deep.equal(['a', 'b']);
-        expect(plan[0].rows).to.have.length(1);
+        expect(plan[0].rows).to.have.length(3);
+        expect(plan[1].rows).to.have.length(1);
+    });
+});
+
+describe('bulk-edit/replace-worker: buildDryRunResult', () => {
+    it('returns the modified fragment payload without persisting to Odin', () => {
+        const { mod } = load();
+        const item = { id: 'a', path: '/p/a', locale: 'en_US', rows: [{ field: 'subtitle', find: 'School' }] };
+        const fragment = { id: 'a', etag: 'e1', title: 'T', description: 'D', fields: [{ name: 'subtitle', values: ['School offer'] }] };
+        const applied = {
+            title: 'T',
+            description: 'D',
+            fields: [{ name: 'subtitle', values: ['Campus offer'] }],
+            changed: true,
+            rowStatuses: [],
+        };
+        expect(mod.buildDryRunResult(item, fragment, applied)).to.deep.equal({
+            id: 'a',
+            path: '/p/a',
+            locale: 'en_US',
+            etag: 'e1',
+            status: 'WOULD_REPLACE',
+            title: 'T',
+            description: 'D',
+            fields: [{ name: 'subtitle', values: ['Campus offer'] }],
+            matches: [{ field: 'subtitle', value: 'School' }],
+        });
     });
 });
 
@@ -91,7 +132,7 @@ describe('bulk-edit/replace-worker: runReplaceWorker', () => {
         expect(patches[patches.length - 1].results).to.deep.equal([]);
     });
 
-    it('dry-run makes no PUT, writes the dry-run list and a report', async () => {
+    it('dry-run applies replacements in memory, makes no PUT, and exports modified fragments', async () => {
         const { mod, calls } = load({ dryRun: true });
         const result = await mod.runReplaceWorker('job1', { odinEndpoint: 'https://odin', runId: 'run1' });
         expect(result.status).to.equal('DONE');
@@ -99,8 +140,11 @@ describe('bulk-edit/replace-worker: runReplaceWorker', () => {
         expect(calls.dryRun.length).to.be.greaterThan(0);
         const list = calls.dryRun[calls.dryRun.length - 1];
         expect(list.every((r) => r.status === 'WOULD_REPLACE')).to.equal(true);
+        expect(list[0].fields[0].values[0]).to.equal('Campus offer');
+        expect(list[0].title).to.equal('T');
         expect(calls.reports[0].dryRun).to.equal(true);
         expect(calls.reports[0].totalFragments).to.equal(2);
+        expect(calls.results).to.have.lengthOf(2);
     });
 
     it('retries once on 412 then records CONFLICT', async () => {
@@ -143,13 +187,17 @@ describe('bulk-edit/replace-worker: runReplaceWorker', () => {
 
     it('stops as SUPERSEDED without writing terminal status when runId changes', async () => {
         const { mod, patches } = load({
-            readJob: async () => ({
-                findJobId: 'find1',
-                runId: 'newer',
-                status: 'RUNNING',
-                results: [],
-                cursor: 0,
-            }),
+            readJob: async (id) => {
+                if (id === 'find1') return { params: { find: 'School' }, status: 'DONE' };
+                return {
+                    findJobId: 'find1',
+                    replace: 'Campus',
+                    runId: 'newer',
+                    status: 'RUNNING',
+                    results: [],
+                    cursor: 0,
+                };
+            },
         });
         const result = await mod.runReplaceWorker('job1', { odinEndpoint: 'https://odin', runId: 'run1' });
         expect(result.status).to.equal('SUPERSEDED');

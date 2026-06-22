@@ -15,19 +15,21 @@ function load({ existing = null, userCsv = null, allowed = true } = {}) {
     const deleteUserCsv = sinon.stub().resolves();
     const deleteJobExports = sinon.stub().resolves();
     const readDryRun = sinon.stub().resolves(null);
+    const readResults = sinon.stub().resolves(null);
     const readReport = sinon.stub().resolves(null);
-    const exportDownloadResponse = sinon.stub().resolves({
-        statusCode: 200,
-        body: {
-            jobId: 'job-1',
-            format: 'json',
-            downloadUrl: 'https://files.example/presigned',
-            expiresIn: 86400,
-        },
-    });
+    const touchJobCache = sinon.stub().resolves();
+    const exportPresignUrl = sinon.stub().callsFake(async (jobId, format) => `https://files.example/${jobId}.${format}`);
     const readExportFullItems = sinon.stub().resolves(existing?.results || doneJobResults);
     const readExportItems = sinon.stub().resolves(existing?.results || doneJobResults);
     const writeJobExports = sinon.stub().resolves({ exportedAt: '2026-01-01T00:00:00.000Z' });
+    const exportFileExists = sinon.stub().resolves(true);
+    const writeFullExport = sinon.stub().resolves();
+    const resolveFindSourceItems = sinon.stub().callsFake(async (jobId, job) => {
+        const state = await readResults(jobId);
+        if (state?.length) return state;
+        if (job?.results?.length) return job.results;
+        return doneJobResults;
+    });
     const mod = proxyquire('../../src/bulk-edit/bulk-edit.js', {
         '../../utils.js': {
             errorResponse: (statusCode, message) => ({ error: { statusCode, body: { error: message } } }),
@@ -49,15 +51,24 @@ function load({ existing = null, userCsv = null, allowed = true } = {}) {
             writeUserCsv,
             deleteUserCsv,
             readDryRun,
+            readResults,
             readReport,
+            touchJobCache,
+            JOB_CACHE_TTL: 7 * 24 * 60 * 60,
             '@noCallThru': true,
         },
         './export.js': {
-            exportDownloadResponse,
+            exportPresignUrl,
+            exportFileExists,
             deleteJobExports,
             readExportFullItems,
             readExportItems,
             writeJobExports,
+            writeFullExport,
+            '@noCallThru': true,
+        },
+        './find-results.js': {
+            resolveFindSourceItems,
             '@noCallThru': true,
         },
         '@adobe/aio-sdk': { Core: { Logger: () => ({ info() {}, error() {} }) }, '@noCallThru': true },
@@ -73,18 +84,23 @@ function load({ existing = null, userCsv = null, allowed = true } = {}) {
         deleteUserCsv,
         deleteJobExports,
         readDryRun,
+        readResults,
         readReport,
-        exportDownloadResponse,
+        touchJobCache,
+        exportPresignUrl,
+        exportFileExists,
         readExportFullItems,
         readExportItems,
         writeJobExports,
+        writeFullExport,
+        resolveFindSourceItems,
     };
 }
 
 const findParams = {
     type: 'find',
     find: 'school',
-    surface: 'acom',
+    surface: 'sandbox',
     searchIn: '*',
     odinEndpoint: 'https://odin.example',
 };
@@ -92,7 +108,7 @@ const findParams = {
 const doneJobResults = [
     {
         id: 'frag-1',
-        path: '/content/dam/mas/acom/en_US/foo',
+        path: '/content/dam/mas/sandbox/en_US/foo',
         locale: 'en_US',
         status: 'PUBLISHED',
         etag: 'e1',
@@ -103,7 +119,7 @@ const doneJobResults = [
     },
     {
         id: 'frag-2',
-        path: '/content/dam/mas/acom/en_US/bar',
+        path: '/content/dam/mas/sandbox/en_US/bar',
         locale: 'en_US',
         status: 'PUBLISHED',
         etag: 'e2',
@@ -114,7 +130,7 @@ const doneJobResults = [
 const doneJob = { status: 'DONE', total: 2, results: doneJobResults };
 
 const sampleCsvRow =
-    `${csvHeaderLine}\n` + 'frag-1,/content/dam/mas/acom/en_US/foo,en_US,subtitle,school,academy,e1,PUBLISHED\n';
+    `${csvHeaderLine}\n` + 'frag-1,/content/dam/mas/sandbox/en_US/foo,en_US,subtitle,school,academy,e1,PUBLISHED\n';
 
 describe('bulk-edit: computeJobId', () => {
     it('is stable for identical params and tag order', () => {
@@ -218,13 +234,13 @@ describe('bulk-edit: handlePost', () => {
     });
     it('400s an unsupported type', async () => {
         const { mod } = load();
-        const res = await mod.handlePost({ type: 'bogus', find: 'x', surface: 'acom' });
+        const res = await mod.handlePost({ type: 'bogus', find: 'x', surface: 'sandbox' });
         expect(res.error.statusCode).to.equal(400);
         expect(res.error.body.error).to.include("unsupported type 'bogus'");
     });
     it('400s missing required inputs', async () => {
         const { mod } = load();
-        const res = await mod.handlePost({ type: 'find', surface: 'acom' });
+        const res = await mod.handlePost({ type: 'find', surface: 'sandbox' });
         expect(res.error.statusCode).to.equal(400);
     });
     it('401s a disallowed caller', async () => {
@@ -306,6 +322,14 @@ describe('bulk-edit: handleGet', () => {
         expect(res.body.exportReady).to.equal(true);
         expect(res.body.items).to.equal(undefined);
     });
+    it('includes presigned export URLs on terminal find jobs', async () => {
+        const { mod } = load({ existing: { status: 'DONE', total: 1, exportReady: true, results: [] } });
+        const res = await mod.handleGet({ jobId: 'job-1' });
+        expect(res.body.exports).to.deep.equal({
+            json: 'https://files.example/job-1.json',
+            csv: 'https://files.example/job-1.csv',
+        });
+    });
     it('includes the per-locale find report when present', async () => {
         const { mod, readReport } = load({ existing: { status: 'RUNNING', total: 3, results: [{ id: 'a' }] } });
         readReport.resolves({ total: 3, byLocale: { en_US: 2, fr_FR: 1 } });
@@ -345,25 +369,34 @@ describe('bulk-edit: handleGet', () => {
         expect(res.body.filteredByUpload).to.equal(true);
         expect(res.body.items).to.equal(undefined);
     });
-    it('returns a download URL when jobId ends in .csv', async () => {
-        const { mod, exportDownloadResponse } = load({ existing: { ...doneJob, exportReady: true, results: [] } });
-        const res = await mod.handleGet({ jobId: 'job-1.csv' });
-        expect(res.statusCode).to.equal(200);
-        expect(res.body.downloadUrl).to.equal('https://files.example/presigned');
-        expect(exportDownloadResponse).to.have.been.calledWith('job-1', 'csv');
+    it('400s when jobId uses a .json or .csv suffix', async () => {
+        const { mod } = load({ existing: { ...doneJob, exportReady: true, results: [] } });
+        const jsonRes = await mod.handleGet({ jobId: 'job-1.json' });
+        const csvRes = await mod.handleGet({ jobId: 'job-1.csv' });
+        expect(jsonRes.error.statusCode).to.equal(400);
+        expect(csvRes.error.statusCode).to.equal(400);
+        expect(jsonRes.error.body.error).to.include('poll response');
     });
-    it('returns a download URL when jobId ends in .json', async () => {
-        const { mod, exportDownloadResponse } = load({ existing: { ...doneJob, exportReady: true, results: [] } });
-        const res = await mod.handleGet({ jobId: 'job-1.json' });
-        expect(res.statusCode).to.equal(200);
-        expect(res.body.downloadUrl).to.equal('https://files.example/presigned');
-        expect(exportDownloadResponse).to.have.been.calledWith('job-1', 'json');
+    it('refreshes cache TTL on terminal poll GET', async () => {
+        const { mod, touchJobCache } = load({ existing: { ...doneJob, exportReady: true, results: [] } });
+        await mod.handleGet({ jobId: 'job-1' });
+        expect(touchJobCache.callCount).to.equal(1);
     });
-    it('400s CSV download while job is still RUNNING', async () => {
-        const { mod } = load({ existing: { status: 'RUNNING', total: 0, results: [] } });
-        const res = await mod.handleGet({ jobId: 'job-1.csv' });
-        expect(res.error.statusCode).to.equal(400);
-        expect(res.error.body.error).to.include('not ready for export');
+    it('regenerates missing export files from state results on poll', async () => {
+        const ctx = load({ existing: { ...doneJob, exportReady: true, results: [] } });
+        let checked = false;
+        ctx.exportFileExists.callsFake(async () => {
+            if (!checked) {
+                checked = true;
+                return false;
+            }
+            return true;
+        });
+        ctx.readResults.resolves(doneJobResults);
+        const res = await ctx.mod.handleGet({ jobId: 'job-1' });
+        expect(res.statusCode).to.equal(200);
+        expect(ctx.writeJobExports.callCount).to.equal(1);
+        expect(res.body.exports.json).to.equal('https://files.example/job-1.json');
     });
 });
 
@@ -378,7 +411,7 @@ describe('bulk-edit: handleCsvUpload', () => {
         const uploadedRows = [
             {
                 fragment_id: 'frag-1',
-                path: '/content/dam/mas/acom/en_US/foo',
+                path: '/content/dam/mas/sandbox/en_US/foo',
                 locale: 'en_US',
                 field: 'subtitle',
                 find: 'school',
@@ -464,38 +497,59 @@ describe('bulk-edit: handleCsvDelete', () => {
     });
 });
 
-const findJobDone = { type: 'find', status: 'DONE', params: { matchCase: false }, results: doneJobResults };
+const findJobDone = { type: 'find', status: 'DONE', runId: 'find-run-1', params: { matchCase: false, find: 'school' }, results: doneJobResults };
 const replaceCsv = {
     uploadedAt: '2026-01-01T00:00:00.000Z',
     rows: [{ fragment_id: 'frag-1', path: '/p/foo', locale: 'en_US', field: 'subtitle', find: 'school', replace: 'academy' }],
 };
 
 describe('bulk-edit: computeReplaceJobId', () => {
+    const replaceValue = 'academy';
     it('produces a structured replace.{find12}.{mode}.{csv8} id', () => {
         const { mod } = load();
-        const id = mod.computeReplaceJobId('abcdef0123456789', { dryRun: false, userCsv: replaceCsv });
+        const id = mod.computeReplaceJobId('abcdef0123456789', { dryRun: false, userCsv: replaceCsv, replace: replaceValue });
         expect(id).to.match(/^replace\.abcdef012345\.live\.[0-9a-f]{8}$/);
     });
     it('distinguishes dry from live runs', () => {
         const { mod } = load();
-        const dry = mod.computeReplaceJobId('abcdef0123456789', { dryRun: true, userCsv: replaceCsv });
-        const live = mod.computeReplaceJobId('abcdef0123456789', { dryRun: false, userCsv: replaceCsv });
+        const dry = mod.computeReplaceJobId('abcdef0123456789', { dryRun: true, userCsv: replaceCsv, replace: replaceValue });
+        const live = mod.computeReplaceJobId('abcdef0123456789', { dryRun: false, userCsv: replaceCsv, replace: replaceValue });
         expect(dry).to.not.equal(live);
         expect(dry).to.include('.dry.');
     });
     it('changes when the CSV rows change', () => {
         const { mod } = load();
-        const a = mod.computeReplaceJobId('abcdef0123456789', { dryRun: false, userCsv: replaceCsv });
+        const a = mod.computeReplaceJobId('abcdef0123456789', { dryRun: false, userCsv: replaceCsv, replace: replaceValue });
         const b = mod.computeReplaceJobId('abcdef0123456789', {
             dryRun: false,
-            userCsv: { rows: [{ ...replaceCsv.rows[0], replace: 'campus' }] },
+            userCsv: { rows: [{ ...replaceCsv.rows[0], fragment_id: 'frag-2' }] },
+            replace: replaceValue,
         });
         expect(a).to.not.equal(b);
+    });
+    it('distinguishes all find results from an uploaded CSV subset', () => {
+        const { mod } = load();
+        const all = mod.computeReplaceJobId('abcdef0123456789', { dryRun: false, userCsv: null, replace: replaceValue });
+        const subset = mod.computeReplaceJobId('abcdef0123456789', { dryRun: false, userCsv: replaceCsv, replace: replaceValue });
+        expect(all).to.not.equal(subset);
+    });
+    it('changes when the replace value changes', () => {
+        const { mod } = load();
+        const a = mod.computeReplaceJobId('abcdef0123456789', { dryRun: false, userCsv: replaceCsv, replace: 'academy' });
+        const b = mod.computeReplaceJobId('abcdef0123456789', { dryRun: false, userCsv: replaceCsv, replace: 'campus' });
+        expect(a).to.not.equal(b);
+    });
+    it('changes when the find job run changes', () => {
+        const { mod } = load();
+        const base = { dryRun: false, userCsv: replaceCsv, replace: replaceValue };
+        const first = mod.computeReplaceJobId('abcdef0123456789', { ...base, findRunId: 'run-a' });
+        const renewed = mod.computeReplaceJobId('abcdef0123456789', { ...base, findRunId: 'run-b' });
+        expect(first).to.not.equal(renewed);
     });
 });
 
 describe('bulk-edit: handleReplacePost', () => {
-    const replaceParams = { type: 'replace', findJobId: 'find-1', odinEndpoint: 'https://odin.example' };
+    const replaceParams = { type: 'replace', findJobId: 'find-1', replace: 'academy', odinEndpoint: 'https://odin.example' };
 
     function loadReplace(extra = {}) {
         const ctx = load({ userCsv: replaceCsv, ...extra });
@@ -514,6 +568,7 @@ describe('bulk-edit: handleReplacePost', () => {
         const written = ctx.writeJob.firstCall.args[1];
         expect(written.type).to.equal('replace');
         expect(written.findJobId).to.equal('find-1');
+        expect(written.replace).to.equal('academy');
         expect(written.total).to.equal(1);
         expect(ctx.invokeAsyncAction.firstCall.args[0]).to.equal('MerchAtScaleStudio/bulk-edit-replace-worker');
     });
@@ -536,12 +591,33 @@ describe('bulk-edit: handleReplacePost', () => {
         expect(res.error.statusCode).to.equal(400);
         expect(res.error.body.error).to.include('not ready');
     });
-    it('400s when no replace values were uploaded', async () => {
+    it('uses full find results when no CSV was uploaded', async () => {
         const ctx = load({ userCsv: null });
         ctx.readJob.withArgs('find-1').resolves(findJobDone);
+        ctx.resolveFindSourceItems.resolves(doneJobResults);
+        const res = await ctx.mod.handlePost(replaceParams);
+        expect(res.statusCode).to.equal(202);
+        expect(ctx.writeJob.firstCall.args[1].total).to.equal(2);
+    });
+    it('400s when the find job has no results', async () => {
+        const ctx = load({ userCsv: null });
+        ctx.readJob.withArgs('find-1').resolves(findJobDone);
+        ctx.resolveFindSourceItems.resolves([]);
         const res = await ctx.mod.handlePost(replaceParams);
         expect(res.error.statusCode).to.equal(400);
-        expect(res.error.body.error).to.include('no replace values');
+        expect(res.error.body.error).to.include('no results');
+    });
+    it('400s when replace is missing', async () => {
+        const ctx = loadReplace();
+        const res = await ctx.mod.handlePost({ type: 'replace', findJobId: 'find-1', odinEndpoint: 'https://odin.example' });
+        expect(res.error.statusCode).to.equal(400);
+        expect(res.error.body.error).to.include('replace');
+    });
+    it('400s when replace would change nothing', async () => {
+        const ctx = loadReplace();
+        const res = await ctx.mod.handlePost({ ...replaceParams, replace: 'school' });
+        expect(res.error.statusCode).to.equal(400);
+        expect(res.error.body.error).to.include('no fragments would be changed');
     });
     it('400s when findJobId is missing', async () => {
         const { mod } = load();
@@ -552,11 +628,31 @@ describe('bulk-edit: handleReplacePost', () => {
     it('reuses an existing RUNNING replace job', async () => {
         const ctx = load({ userCsv: replaceCsv });
         ctx.readJob.withArgs('find-1').resolves(findJobDone);
-        ctx.readJob.resolves({ type: 'replace', status: 'RUNNING' });
+        const replaceJobId = ctx.mod.computeReplaceJobId('find-1', {
+            dryRun: false,
+            userCsv: replaceCsv,
+            replace: 'academy',
+            findRunId: findJobDone.runId,
+        });
+        ctx.readJob.withArgs(replaceJobId).resolves({ type: 'replace', status: 'RUNNING', findRunId: findJobDone.runId });
         const res = await ctx.mod.handlePost(replaceParams);
         expect(res.body.reused).to.equal(true);
         expect(ctx.writeJob.called).to.equal(false);
         expect(ctx.invokeAsyncAction.called).to.equal(false);
+    });
+    it('starts a new replace job when the find job was refreshed', async () => {
+        const ctx = loadReplace();
+        const replaceJobId = ctx.mod.computeReplaceJobId('find-1', {
+            dryRun: false,
+            userCsv: replaceCsv,
+            replace: 'academy',
+            findRunId: 'find-run-0',
+        });
+        ctx.readJob.withArgs(replaceJobId).resolves({ type: 'replace', status: 'DONE', findRunId: 'find-run-0' });
+        ctx.readJob.withArgs('find-1').resolves({ ...findJobDone, runId: 'find-run-2' });
+        const res = await ctx.mod.handlePost(replaceParams);
+        expect(res.body.reused).to.equal(false);
+        expect(ctx.writeJob.calledOnce).to.equal(true);
     });
 });
 
@@ -584,12 +680,45 @@ describe('bulk-edit: handleReplaceGet', () => {
         expect(res.body.report.totalFragments).to.equal(2);
         expect(res.body.items).to.equal(undefined);
     });
-    it('returns replace CSV download URL', async () => {
+    it('includes JSON export URL only on terminal replace jobs', async () => {
+        const job = { type: 'replace', dryRun: true, status: 'DONE', exportReady: true, results: [] };
+        const ctx = load({ existing: job });
+        ctx.readReport.resolves({ dryRun: true, totalFragments: 1 });
+        const res = await ctx.mod.handleGet({ jobId: 'replace.x.dry.y' });
+        expect(res.body.exports).to.deep.equal({ json: 'https://files.example/replace.x.dry.y.json' });
+        expect(res.body.exports.csv).to.equal(undefined);
+    });
+    it('400s when jobId uses a .json or .csv suffix', async () => {
         const job = { type: 'replace', dryRun: true, status: 'DONE', exportReady: true, results: [] };
         const ctx = load({ existing: job });
         const res = await ctx.mod.handleGet({ jobId: 'replace.x.dry.y.csv' });
+        expect(res.error.statusCode).to.equal(400);
+        expect(res.error.body.error).to.include('poll response');
+    });
+    it('regenerates missing replace export from state results on poll', async () => {
+        const job = { type: 'replace', dryRun: true, status: 'DONE', exportReady: true, results: [] };
+        const ctx = load({ existing: job });
+        ctx.exportFileExists.resolves(false);
+        ctx.readResults.resolves([
+            { id: 'a', path: '/p/a', locale: 'en_US', status: 'WOULD_REPLACE', matches: [{ field: 'subtitle', value: 'x' }] },
+        ]);
+        ctx.readReport.resolves({ dryRun: true, totalFragments: 1 });
+        const res = await ctx.mod.handleGet({ jobId: 'replace.x.dry.y' });
         expect(res.statusCode).to.equal(200);
-        expect(ctx.exportDownloadResponse).to.have.been.calledWith('replace.x.dry.y', 'csv');
+        expect(ctx.writeJobExports.callCount).to.equal(1);
+        expect(ctx.writeFullExport.callCount).to.equal(1);
+        expect(res.body.exports.json).to.equal('https://files.example/replace.x.dry.y.json');
+    });
+});
+
+describe('bulk-edit: resolveFindSourceItems', () => {
+    it('prefers state results over file exports', async () => {
+        const ctx = load({ existing: { ...doneJob, exportReady: true, results: [] } });
+        const stateItems = [{ id: 'state-1', matches: [{ field: 'subtitle', value: 'school' }] }];
+        ctx.readResults.resolves(stateItems);
+        const items = await ctx.mod.resolveFindSourceItems('job-1', { exportReady: true, results: [] });
+        expect(items).to.deep.equal(stateItems);
+        expect(ctx.readExportFullItems.called).to.equal(false);
     });
 });
 
@@ -650,7 +779,7 @@ describe('bulk-edit: main routing', () => {
             allowedClientId: 'mas-studio',
             odinEndpoint: 'https://odin.example',
             find: 'x',
-            surface: 'acom',
+            surface: 'sandbox',
         });
         expect(isAllowed.firstCall.args[1]).to.equal('mas-studio');
     });

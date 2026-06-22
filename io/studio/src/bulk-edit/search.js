@@ -23,15 +23,14 @@ const SCOPE_FIELDS = {
     prices: { fields: ['prices'] },
     ctas: { fields: ['ctas'] },
     calloutText: { fields: ['callout'] },
-    productDescription: { fields: ['description'] },
-    productText: { fields: ['promoText', 'shortDescription'] },
+    productDescription: { fields: ['cardTitle', 'description', 'features', 'compareChart', 'shortDescription'] },
+    promoText: { fields: ['promoText', 'promoCode'] },
     subtitle: { fields: ['subtitle'] },
     fragmentDescription: { properties: ['description'] },
     fragmentTitle: { properties: ['title'] },
+    placeholderValue: { fields: ['value', 'richTextValue'] },
     tags: { tags: true },
 };
-
-const NON_EDITABLE_FIELD_NAMES = new Set(['name']);
 
 function tagToString(tag) {
     if (typeof tag === 'string') return tag;
@@ -48,20 +47,8 @@ function matchTags(fragment, find, matchCase) {
 
 function matchEverywhere(fragment, find, matchCase) {
     const matches = [];
-    for (const field of fragment.fields || []) {
-        if (NON_EDITABLE_FIELD_NAMES.has(field.name)) continue;
-        for (const value of field.values || []) {
-            if (matchesText(value, find, matchCase)) {
-                matches.push({ field: field.name, value });
-                break;
-            }
-        }
-    }
-    if (matchesText(fragment.description, find, matchCase)) {
-        matches.push({ field: 'description', value: fragment.description });
-    }
-    if (matchesText(fragment.title, find, matchCase)) {
-        matches.push({ field: 'fragmentTitle', value: fragment.title });
+    for (const scope of Object.keys(SCOPE_FIELDS)) {
+        matches.push(...findMatchesInScope(fragment, scope, find, matchCase));
     }
     return matches;
 }
@@ -75,7 +62,10 @@ function findMatchesInScope(fragment, searchIn, find, matchCase) {
     for (const name of scope.fields || []) {
         const values = getValues(fragment, name)?.values ?? [];
         for (const value of values) {
-            if (matchesText(value, find, matchCase)) matches.push({ field: searchIn, value });
+            if (matchesText(value, find, matchCase)) {
+                matches.push({ field: searchIn, value });
+                break;
+            }
         }
     }
     for (const name of scope.properties || []) {
@@ -173,7 +163,6 @@ module.exports = {
     matchesText,
     extractLocale,
     SCOPE_FIELDS,
-    NON_EDITABLE_FIELD_NAMES,
     normalizeSearchIn,
     normalizeLocales,
     findMatchesInScope,

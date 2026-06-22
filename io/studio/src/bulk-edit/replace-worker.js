@@ -2,6 +2,7 @@ const { Core } = require('@adobe/aio-sdk');
 const { getFragmentWithEtag, putToOdin, invokeAsyncAction, buildSiblingActionName } = require('../common.js');
 const { applyReplacementsToFragment, buildWorkPlan } = require('./replace.js');
 const { readJob, patchJob, readUserCsv, writeDryRun, writeReport } = require('./state.js');
+const { writeJobExports } = require('./export.js');
 
 const logger = Core.Logger('bulk-edit-replace-worker', { level: 'info' });
 
@@ -98,6 +99,25 @@ async function processFragment(item, { odinEndpoint, authToken, matchCase, dryRu
     }
 }
 
+async function finalizeReplaceExport(jobId, results, status, report, { dryRun, totalRows }) {
+    const { exportedAt } = await writeJobExports(jobId, {
+        items: results,
+        report,
+        type: 'replace',
+        filteredByUpload: false,
+        dryRun,
+        userRows: null,
+    });
+    await patchJob(jobId, {
+        status,
+        total: totalRows,
+        exportReady: true,
+        exportedAt,
+        results: [],
+        ...countCounters(results),
+    });
+}
+
 async function resolveStop(jobId, runId) {
     const fresh = await readJob(jobId);
     if (!fresh || fresh.runId !== runId) return 'SUPERSEDED';
@@ -140,8 +160,9 @@ async function runReplaceWorker(jobId, { odinEndpoint, authToken, runId, params 
             const stop = await resolveStop(jobId, runId);
             if (stop) {
                 if (stop === 'CANCELLED') {
-                    // eslint-disable-next-line no-await-in-loop
-                    await patchJob(jobId, { status: 'CANCELLED', cursor, total: items.length, ...countCounters(results) });
+                    const report = buildReport(results, { dryRun, totalRows: userRows.length, startedAt });
+                    await writeReport(jobId, report);
+                    await finalizeReplaceExport(jobId, results, 'CANCELLED', report, { dryRun, totalRows: userRows.length });
                 }
                 return { status: stop, ...countCounters(results) };
             }
@@ -178,7 +199,7 @@ async function runReplaceWorker(jobId, { odinEndpoint, authToken, runId, params 
 
         const report = buildReport(results, { dryRun, totalRows: userRows.length, startedAt });
         await writeReport(jobId, report);
-        await patchJob(jobId, { status: 'DONE', cursor, total: items.length, ...countCounters(results) });
+        await finalizeReplaceExport(jobId, results, 'DONE', report, { dryRun, totalRows: userRows.length });
         logger.info(JSON.stringify({ event: 'bulk-edit-replace-worker-done', jobId, ...countCounters(results) }));
         return { status: 'DONE', ...countCounters(results) };
     } catch (error) {
@@ -207,5 +228,6 @@ module.exports = {
     countCounters,
     buildReport,
     processFragment,
+    finalizeReplaceExport,
 };
 exports.main = main;

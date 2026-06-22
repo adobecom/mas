@@ -13,8 +13,21 @@ function load({ existing = null, userCsv = null, allowed = true } = {}) {
     const readUserCsv = sinon.stub().resolves(userCsv);
     const writeUserCsv = sinon.stub().resolves();
     const deleteUserCsv = sinon.stub().resolves();
+    const deleteJobExports = sinon.stub().resolves();
     const readDryRun = sinon.stub().resolves(null);
     const readReport = sinon.stub().resolves(null);
+    const exportDownloadResponse = sinon.stub().resolves({
+        statusCode: 200,
+        body: {
+            jobId: 'job-1',
+            format: 'json',
+            downloadUrl: 'https://files.example/presigned',
+            expiresIn: 86400,
+        },
+    });
+    const readExportFullItems = sinon.stub().resolves(existing?.results || doneJobResults);
+    const readExportItems = sinon.stub().resolves(existing?.results || doneJobResults);
+    const writeJobExports = sinon.stub().resolves({ exportedAt: '2026-01-01T00:00:00.000Z' });
     const mod = proxyquire('../../src/bulk-edit/bulk-edit.js', {
         '../../utils.js': {
             errorResponse: (statusCode, message) => ({ error: { statusCode, body: { error: message } } }),
@@ -39,6 +52,14 @@ function load({ existing = null, userCsv = null, allowed = true } = {}) {
             readReport,
             '@noCallThru': true,
         },
+        './export.js': {
+            exportDownloadResponse,
+            deleteJobExports,
+            readExportFullItems,
+            readExportItems,
+            writeJobExports,
+            '@noCallThru': true,
+        },
         '@adobe/aio-sdk': { Core: { Logger: () => ({ info() {}, error() {} }) }, '@noCallThru': true },
     });
     return {
@@ -50,8 +71,13 @@ function load({ existing = null, userCsv = null, allowed = true } = {}) {
         readUserCsv,
         writeUserCsv,
         deleteUserCsv,
+        deleteJobExports,
         readDryRun,
         readReport,
+        exportDownloadResponse,
+        readExportFullItems,
+        readExportItems,
+        writeJobExports,
     };
 }
 
@@ -88,8 +114,7 @@ const doneJobResults = [
 const doneJob = { status: 'DONE', total: 2, results: doneJobResults };
 
 const sampleCsvRow =
-    `${csvHeaderLine}\n` +
-    'frag-1,/content/dam/mas/acom/en_US/foo,en_US,subtitle,school,academy,e1,PUBLISHED\n';
+    `${csvHeaderLine}\n` + 'frag-1,/content/dam/mas/acom/en_US/foo,en_US,subtitle,school,academy,e1,PUBLISHED\n';
 
 describe('bulk-edit: computeJobId', () => {
     it('is stable for identical params and tag order', () => {
@@ -229,13 +254,14 @@ describe('bulk-edit: handlePost', () => {
         expect(invokeAsyncAction.calledOnce).to.equal(true);
     });
     it('re-runs a DONE job when forceRefresh is true', async () => {
-        const { mod, invokeAsyncAction, writeJob, deleteUserCsv } = load({
+        const { mod, invokeAsyncAction, writeJob, deleteUserCsv, deleteJobExports } = load({
             existing: { status: 'DONE', results: [{ id: 'a' }], total: 1 },
         });
         const res = await mod.handlePost({ ...findParams, forceRefresh: true });
         expect(res.statusCode).to.equal(202);
         expect(res.body.reused).to.equal(false);
         expect(deleteUserCsv.calledOnceWith(res.body.jobId)).to.equal(true);
+        expect(deleteJobExports.calledOnceWith(res.body.jobId)).to.equal(true);
         expect(writeJob.calledOnce).to.equal(true);
         expect(invokeAsyncAction.calledOnce).to.equal(true);
     });
@@ -265,35 +291,26 @@ describe('bulk-edit: handlePost', () => {
 });
 
 describe('bulk-edit: handleGet', () => {
-    it('returns a page of items using offset and default limit', async () => {
+    it('returns a progress envelope without items while RUNNING', async () => {
         const { mod } = load({ existing: { status: 'RUNNING', total: 3, results: [{ id: 'a' }, { id: 'b' }, { id: 'c' }] } });
-        const res = await mod.handleGet({ jobId: 'j', offset: '1' });
+        const res = await mod.handleGet({ jobId: 'j' });
         expect(res.statusCode).to.equal(200);
         expect(res.body.done).to.equal(false);
-        expect(res.body.offset).to.equal(1);
-        expect(res.body.limit).to.equal(50);
-        expect(res.body.items.map((i) => i.id)).to.deep.equal(['b', 'c']);
+        expect(res.body.total).to.equal(3);
+        expect(res.body.items).to.equal(undefined);
     });
-    it('pages results with offset and limit like AEM fragment search', async () => {
-        const results = [{ id: 'a' }, { id: 'b' }, { id: 'c' }, { id: 'd' }, { id: 'e' }];
-        const { mod } = load({ existing: { status: 'DONE', total: 5, results } });
-        const first = await mod.handleGet({ jobId: 'j', offset: '0', limit: '2' });
-        expect(first.body.offset).to.equal(0);
-        expect(first.body.limit).to.equal(2);
-        expect(first.body.total).to.equal(5);
-        expect(first.body.items.map((i) => i.id)).to.deep.equal(['a', 'b']);
-        const second = await mod.handleGet({ jobId: 'j', offset: '2', limit: '2' });
-        expect(second.body.items.map((i) => i.id)).to.deep.equal(['c', 'd']);
-    });
-    it('caps limit at 50', async () => {
-        const { mod } = load({ existing: { status: 'DONE', total: 1, results: [{ id: 'a' }] } });
-        const res = await mod.handleGet({ jobId: 'j', limit: '200' });
-        expect(res.body.limit).to.equal(50);
-    });
-    it('returns done:true on DONE', async () => {
-        const { mod } = load({ existing: { status: 'DONE', total: 1, results: [{ id: 'a' }] } });
-        const res = await mod.handleGet({ jobId: 'j', offset: '0' });
+    it('returns done:true and exportReady on DONE', async () => {
+        const { mod } = load({ existing: { status: 'DONE', total: 1, exportReady: true, results: [] } });
+        const res = await mod.handleGet({ jobId: 'j' });
         expect(res.body.done).to.equal(true);
+        expect(res.body.exportReady).to.equal(true);
+        expect(res.body.items).to.equal(undefined);
+    });
+    it('includes the per-locale find report when present', async () => {
+        const { mod, readReport } = load({ existing: { status: 'RUNNING', total: 3, results: [{ id: 'a' }] } });
+        readReport.resolves({ total: 3, byLocale: { en_US: 2, fr_FR: 1 } });
+        const res = await mod.handleGet({ jobId: 'j' });
+        expect(res.body.report).to.deep.equal({ total: 3, byLocale: { en_US: 2, fr_FR: 1 } });
     });
     it('500s on FAILED with partial total', async () => {
         const { mod } = load({ existing: { status: 'FAILED', error: 'boom', total: 2 } });
@@ -302,8 +319,8 @@ describe('bulk-edit: handleGet', () => {
         expect(res.error.body.total).to.equal(2);
     });
     it('returns done:true on CANCELLED (200)', async () => {
-        const { mod } = load({ existing: { status: 'CANCELLED', total: 2, results: [{ id: 'a' }, { id: 'b' }] } });
-        const res = await mod.handleGet({ jobId: 'j', offset: '0' });
+        const { mod } = load({ existing: { status: 'CANCELLED', total: 2, exportReady: true, results: [] } });
+        const res = await mod.handleGet({ jobId: 'j' });
         expect(res.statusCode).to.equal(200);
         expect(res.body.done).to.equal(true);
     });
@@ -317,34 +334,36 @@ describe('bulk-edit: handleGet', () => {
         const res = await mod.handleGet({});
         expect(res.error.statusCode).to.equal(400);
     });
-    it('filters JSON items when a user CSV upload exists', async () => {
+    it('sets filteredByUpload when a user CSV upload exists', async () => {
         const { mod } = load({
-            existing: doneJob,
+            existing: { ...doneJob, exportReady: true, results: [] },
             userCsv: {
                 rows: [{ fragment_id: 'frag-1', field: 'subtitle', find: 'school' }],
             },
         });
         const res = await mod.handleGet({ jobId: 'job-1' });
         expect(res.body.filteredByUpload).to.equal(true);
-        expect(res.body.total).to.equal(1);
-        expect(res.body.items).to.have.lengthOf(1);
-        expect(res.body.items[0].matches).to.deep.equal([{ field: 'subtitle', value: 'school' }]);
+        expect(res.body.items).to.equal(undefined);
     });
-    it('returns CSV with Content-Disposition when jobId ends in .csv', async () => {
-        const { mod } = load({ existing: doneJob });
+    it('returns a download URL when jobId ends in .csv', async () => {
+        const { mod, exportDownloadResponse } = load({ existing: { ...doneJob, exportReady: true, results: [] } });
         const res = await mod.handleGet({ jobId: 'job-1.csv' });
         expect(res.statusCode).to.equal(200);
-        expect(res.headers['Content-Type']).to.equal('text/csv; charset=utf-8');
-        expect(res.headers['Content-Disposition']).to.equal('attachment; filename="job-1.csv"');
-        expect(res.body).to.include(csvHeaderLine);
-        expect(res.body).to.include('frag-1');
-        expect(res.body).to.include('school');
+        expect(res.body.downloadUrl).to.equal('https://files.example/presigned');
+        expect(exportDownloadResponse).to.have.been.calledWith('job-1', 'csv');
+    });
+    it('returns a download URL when jobId ends in .json', async () => {
+        const { mod, exportDownloadResponse } = load({ existing: { ...doneJob, exportReady: true, results: [] } });
+        const res = await mod.handleGet({ jobId: 'job-1.json' });
+        expect(res.statusCode).to.equal(200);
+        expect(res.body.downloadUrl).to.equal('https://files.example/presigned');
+        expect(exportDownloadResponse).to.have.been.calledWith('job-1', 'json');
     });
     it('400s CSV download while job is still RUNNING', async () => {
         const { mod } = load({ existing: { status: 'RUNNING', total: 0, results: [] } });
         const res = await mod.handleGet({ jobId: 'job-1.csv' });
         expect(res.error.statusCode).to.equal(400);
-        expect(res.error.body.error).to.include('not ready for CSV export');
+        expect(res.error.body.error).to.include('not ready for export');
     });
 });
 
@@ -355,14 +374,33 @@ describe('bulk-edit: handleCsvUpload', () => {
         __ow_headers: { authorization: 'Bearer token', 'content-type': 'text/csv' },
     };
 
-    it('stores parsed rows and returns 202', async () => {
-        const { mod, writeUserCsv } = load({ existing: doneJob });
+    it('stores parsed rows, refreshes filtered exports, and returns 202', async () => {
+        const uploadedRows = [
+            {
+                fragment_id: 'frag-1',
+                path: '/content/dam/mas/acom/en_US/foo',
+                locale: 'en_US',
+                field: 'subtitle',
+                find: 'school',
+                replace: 'academy',
+                etag: 'e1',
+                status: 'PUBLISHED',
+            },
+        ];
+        const { mod, writeUserCsv, writeJobExports, readUserCsv, patchJob } = load({ existing: doneJob });
+        readUserCsv.resolves({ rows: uploadedRows });
         const res = await mod.handleCsvUpload(csvPost);
         expect(res.statusCode).to.equal(202);
         expect(res.body.rowsAccepted).to.equal(1);
+        expect(res.body.filteredByUpload).to.equal(true);
+        expect(res.body.total).to.equal(1);
+        expect(res.body.report.total).to.equal(1);
+        expect(res.body.exportReady).to.equal(true);
         expect(writeUserCsv.calledOnce).to.equal(true);
-        expect(writeUserCsv.firstCall.args[0]).to.equal('job-1');
-        expect(writeUserCsv.firstCall.args[1].rows).to.have.lengthOf(1);
+        expect(writeJobExports.calledOnce).to.equal(true);
+        expect(writeJobExports.firstCall.args[1].filteredByUpload).to.equal(true);
+        expect(writeJobExports.firstCall.args[1].items).to.have.lengthOf(1);
+        expect(patchJob.called).to.equal(true);
     });
     it('400s when jobId is missing', async () => {
         const { mod } = load({ existing: doneJob });
@@ -394,6 +432,35 @@ describe('bulk-edit: handleCsvUpload', () => {
         const res = await mod.handlePost({ type: 'upload', jobId: 'job-1', csv: sampleCsvRow });
         expect(res.error.statusCode).to.equal(400);
         expect(res.error.body.error).to.include("unsupported type 'upload'");
+    });
+});
+
+describe('bulk-edit: handleCsvDelete', () => {
+    it('removes uploaded CSV and restores unfiltered exports', async () => {
+        const uploaded = {
+            rows: [{ fragment_id: 'frag-1', field: 'subtitle', find: 'school', replace: 'academy' }],
+        };
+        const { mod, deleteUserCsv, writeJobExports, readUserCsv, patchJob } = load({
+            existing: { ...doneJob, exportReady: true },
+            userCsv: uploaded,
+        });
+        readUserCsv.onFirstCall().resolves(uploaded);
+        readUserCsv.onSecondCall().resolves(null);
+        const res = await mod.handleCsvDelete({ jobId: 'job-1' });
+        expect(res.statusCode).to.equal(200);
+        expect(res.body.filteredByUpload).to.equal(false);
+        expect(res.body.total).to.equal(2);
+        expect(res.body.report.total).to.equal(2);
+        expect(deleteUserCsv.calledOnceWith('job-1')).to.equal(true);
+        expect(writeJobExports.calledOnce).to.equal(true);
+        expect(writeJobExports.firstCall.args[1].filteredByUpload).to.equal(false);
+        expect(writeJobExports.firstCall.args[1].items).to.have.lengthOf(2);
+        expect(patchJob.called).to.equal(true);
+    });
+    it('404s when no CSV was uploaded', async () => {
+        const { mod } = load({ existing: doneJob, userCsv: null });
+        const res = await mod.handleCsvDelete({ jobId: 'job-1' });
+        expect(res.error.statusCode).to.equal(404);
     });
 });
 
@@ -494,54 +561,61 @@ describe('bulk-edit: handleReplacePost', () => {
 });
 
 describe('bulk-edit: handleReplaceGet', () => {
-    it('paginates real-run results and exposes counters + report on DONE', async () => {
+    it('returns replace progress counters and report on DONE', async () => {
         const job = {
             type: 'replace',
             dryRun: false,
             status: 'DONE',
+            exportReady: true,
             processed: 2,
             succeeded: 1,
             skipped: 1,
             failed: 0,
             conflicts: 0,
-            results: [
-                { id: 'a', status: 'REPLACED' },
-                { id: 'b', status: 'SKIPPED' },
-            ],
+            total: 2,
+            results: [],
         };
         const ctx = load({ existing: job });
         ctx.readReport.resolves({ dryRun: false, totalFragments: 2 });
-        const res = await ctx.mod.handleGet({ jobId: 'replace.x.live.y', limit: '1' });
+        const res = await ctx.mod.handleGet({ jobId: 'replace.x.live.y' });
         expect(res.body.dryRun).to.equal(false);
         expect(res.body.total).to.equal(2);
-        expect(res.body.items.map((i) => i.id)).to.deep.equal(['a']);
         expect(res.body.succeeded).to.equal(1);
         expect(res.body.report.totalFragments).to.equal(2);
-        expect(ctx.readDryRun.called).to.equal(false);
+        expect(res.body.items).to.equal(undefined);
     });
-    it('sources items from the dry-run list for a dry-run job', async () => {
-        const job = { type: 'replace', dryRun: true, status: 'DONE', results: [] };
+    it('returns replace CSV download URL', async () => {
+        const job = { type: 'replace', dryRun: true, status: 'DONE', exportReady: true, results: [] };
         const ctx = load({ existing: job });
-        ctx.readDryRun.resolves([{ id: 'a', status: 'WOULD_REPLACE' }]);
-        const res = await ctx.mod.handleGet({ jobId: 'replace.x.dry.y' });
-        expect(ctx.readDryRun.calledOnce).to.equal(true);
-        expect(res.body.items[0].status).to.equal('WOULD_REPLACE');
-    });
-    it('exports the dry-run list as CSV with status populated', async () => {
-        const job = { type: 'replace', dryRun: true, status: 'DONE', results: [] };
-        const ctx = load({ existing: job });
-        ctx.readDryRun.resolves([
-            {
-                id: 'a',
-                path: '/p/a',
-                locale: 'en_US',
-                status: 'WOULD_REPLACE',
-                matches: [{ field: 'subtitle', value: 'school' }],
-            },
-        ]);
         const res = await ctx.mod.handleGet({ jobId: 'replace.x.dry.y.csv' });
-        expect(res.headers['Content-Type']).to.equal('text/csv; charset=utf-8');
-        expect(res.body).to.include('WOULD_REPLACE');
+        expect(res.statusCode).to.equal(200);
+        expect(ctx.exportDownloadResponse).to.have.been.calledWith('replace.x.dry.y', 'csv');
+    });
+});
+
+const findActionParams = { __ow_action_name: '/14257-MerchAtScaleStudio/bulk-edit-find' };
+const replaceActionParams = { __ow_action_name: '/14257-MerchAtScaleStudio/bulk-edit-replace' };
+
+describe('bulk-edit: resolveBulkEditMode', () => {
+    it('derives find from bulkEditMode input', () => {
+        const { mod } = load();
+        expect(mod.resolveBulkEditMode({ bulkEditMode: 'find' })).to.equal('find');
+    });
+    it('derives replace from bulkEditMode input', () => {
+        const { mod } = load();
+        expect(mod.resolveBulkEditMode({ bulkEditMode: 'replace' })).to.equal('replace');
+    });
+    it('derives find from __ow_action_name', () => {
+        const { mod } = load();
+        expect(mod.resolveBulkEditMode(findActionParams)).to.equal('find');
+    });
+    it('derives replace from __ow_action_name', () => {
+        const { mod } = load();
+        expect(mod.resolveBulkEditMode(replaceActionParams)).to.equal('replace');
+    });
+    it('returns null when action name is missing', () => {
+        const { mod } = load();
+        expect(mod.resolveBulkEditMode({})).to.equal(null);
     });
 });
 
@@ -572,9 +646,9 @@ describe('bulk-edit: main routing', () => {
         });
         await mod.main({
             __ow_method: 'post',
+            ...findActionParams,
             allowedClientId: 'mas-studio',
             odinEndpoint: 'https://odin.example',
-            type: 'find',
             find: 'x',
             surface: 'acom',
         });
@@ -582,13 +656,14 @@ describe('bulk-edit: main routing', () => {
     });
     it('routes POST to handlePost', async () => {
         const { mod } = load();
-        const res = await mod.main({ __ow_method: 'post', allowedClientId: 'mas-studio', ...findParams });
+        const res = await mod.main({ __ow_method: 'post', ...findActionParams, allowedClientId: 'mas-studio', ...findParams });
         expect(res.statusCode).to.equal(202);
     });
     it('routes text/csv POST to handleCsvUpload', async () => {
         const { mod, writeUserCsv } = load({ existing: doneJob });
         const res = await mod.main({
             __ow_method: 'post',
+            ...findActionParams,
             allowedClientId: 'mas-studio',
             jobId: 'job-1',
             __ow_body: sampleCsvRow,
@@ -608,6 +683,7 @@ describe('bulk-edit: main routing', () => {
             `------BulkEditFormBoundary--\r\n`;
         const res = await mod.main({
             __ow_method: 'post',
+            ...findActionParams,
             allowedClientId: 'mas-studio',
             jobId: 'job-1',
             __ow_body: body,
@@ -618,12 +694,71 @@ describe('bulk-edit: main routing', () => {
     });
     it('routes GET to handleGet', async () => {
         const { mod } = load({ existing: { status: 'RUNNING', total: 0, results: [] } });
-        const res = await mod.main({ __ow_method: 'get', jobId: 'j' });
+        const res = await mod.main({ __ow_method: 'get', ...findActionParams, jobId: 'j' });
         expect(res.statusCode).to.equal(200);
     });
-    it('405s an unsupported method', async () => {
+    it('400s when __ow_action_name is missing', async () => {
         const { mod } = load();
         const res = await mod.main({ __ow_method: 'delete' });
+        expect(res.error.statusCode).to.equal(400);
+    });
+});
+
+describe('bulk-edit: mode-specific endpoints', () => {
+    it('bulk-edit-find POST forces type find without type in body', async () => {
+        const { mod } = load();
+        const findMain = mod.createModeMain('find');
+        const { find, surface, odinEndpoint } = findParams;
+        const res = await findMain({
+            __ow_method: 'post',
+            allowedClientId: 'mas-studio',
+            find,
+            surface,
+            odinEndpoint,
+        });
+        expect(res.statusCode).to.equal(202);
+    });
+
+    it('bulk-edit-find GET rejects replace jobIds', async () => {
+        const { mod } = load({
+            existing: { type: 'replace', status: 'DONE', total: 1, exportReady: true },
+        });
+        const findMain = mod.createModeMain('find');
+        const res = await findMain({ __ow_method: 'get', jobId: 'replace.abc.dry.12345678' });
+        expect(res.error.statusCode).to.equal(400);
+        expect(res.error.body.error).to.include('bulk-edit-replace');
+    });
+
+    it('bulk-edit-replace GET rejects find jobIds', async () => {
+        const { mod } = load({ existing: { type: 'find', status: 'DONE', total: 1 } });
+        const replaceMain = mod.createModeMain('replace');
+        const res = await replaceMain({ __ow_method: 'get', jobId: 'abc123' });
+        expect(res.error.statusCode).to.equal(400);
+        expect(res.error.body.error).to.include('bulk-edit-find');
+    });
+
+    it('bulk-edit-replace rejects CSV upload', async () => {
+        const { mod } = load({ existing: doneJob });
+        const replaceMain = mod.createModeMain('replace');
+        const res = await replaceMain({
+            __ow_method: 'post',
+            allowedClientId: 'mas-studio',
+            jobId: 'job-1',
+            __ow_body: sampleCsvRow,
+            __ow_headers: { 'content-type': 'text/csv', authorization: 'Bearer token' },
+        });
         expect(res.error.statusCode).to.equal(405);
+    });
+
+    it('bulk-edit-find DELETE removes uploaded CSV', async () => {
+        const uploaded = { rows: [{ fragment_id: 'frag-1', field: 'subtitle', find: 'school', replace: 'x' }] };
+        const { mod, deleteUserCsv, readUserCsv } = load({ existing: doneJob, userCsv: uploaded });
+        readUserCsv.onFirstCall().resolves(uploaded);
+        readUserCsv.onSecondCall().resolves(null);
+        const findMain = mod.createModeMain('find');
+        const res = await findMain({ __ow_method: 'delete', jobId: 'job-1' });
+        expect(res.statusCode).to.equal(200);
+        expect(res.body.filteredByUpload).to.equal(false);
+        expect(deleteUserCsv.calledOnce).to.equal(true);
     });
 });

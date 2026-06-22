@@ -56,6 +56,10 @@ function load(overrides = {}) {
             },
             '@noCallThru': true,
         },
+        './export.js': {
+            writeJobExports: async () => ({ exportedAt: '2026-01-01T00:00:00.000Z' }),
+            '@noCallThru': true,
+        },
         '@adobe/aio-sdk': { Core: { Logger: () => ({ info() {}, error() {} }) }, '@noCallThru': true },
     };
     return { mod: proxyquire('../../src/bulk-edit/replace-worker.js', stubs), calls, patches, job };
@@ -83,6 +87,8 @@ describe('bulk-edit/replace-worker: runReplaceWorker', () => {
         expect(result.succeeded).to.equal(2);
         expect(calls.put).to.deep.equal(['a', 'b']);
         expect(patches[patches.length - 1].status).to.equal('DONE');
+        expect(patches[patches.length - 1].exportReady).to.equal(true);
+        expect(patches[patches.length - 1].results).to.deep.equal([]);
     });
 
     it('dry-run makes no PUT, writes the dry-run list and a report', async () => {

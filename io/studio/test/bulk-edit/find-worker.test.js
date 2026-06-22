@@ -3,6 +3,8 @@ const proxyquire = require('proxyquire');
 
 function load(overrides = {}) {
     const patches = [];
+    const reports = [];
+    const exports = [];
     const job =
         overrides.job === undefined
             ? {
@@ -15,7 +17,7 @@ function load(overrides = {}) {
         './search.js': {
             buildSearchQuery: ({ path }) => ({ sort: [], filter: { path } }),
             buildSearchPaths: overrides.buildSearchPaths || (() => ['/content/dam/mas/acom']),
-            extractLocale: () => 'en_US',
+            extractLocale: overrides.extractLocale || (() => 'en_US'),
             findMatches: (fragment) => (fragment.hit ? [{ field: 'subtitle', value: fragment.hit }] : []),
             async *searchPages({ query }) {
                 if (overrides.error) throw new Error('AEM boom');
@@ -30,17 +32,31 @@ function load(overrides = {}) {
                 patches.push(patch);
             },
             writeJob: async () => {},
+            writeReport: async (jobId, report) => {
+                reports.push(report);
+            },
+            readUserCsv: async () => overrides.userCsv || null,
+            '@noCallThru': true,
+        },
+        './export.js': {
+            writeJobExports: async (jobId, payload) => {
+                exports.push({ jobId, payload });
+                return { exportedAt: '2026-01-01T00:00:00.000Z' };
+            },
+            writeFindFullExport: async (jobId, items) => {
+                exports.push({ jobId, fullItems: items });
+            },
             '@noCallThru': true,
         },
         '../common.js': { fetchOdin: async () => ({}), '@noCallThru': true },
         '@adobe/aio-sdk': { Core: { Logger: () => ({ info() {}, error() {} }) }, '@noCallThru': true },
     };
-    return { mod: proxyquire('../../src/bulk-edit/find-worker.js', stubs), patches };
+    return { mod: proxyquire('../../src/bulk-edit/find-worker.js', stubs), patches, reports, exports };
 }
 
 describe('bulk-edit/find-worker: runFindWorker', () => {
     it('accumulates matches across pages and finishes DONE', async () => {
-        const { mod, patches } = load({
+        const { mod, patches, exports } = load({
             pages: [
                 [{ id: 'a', path: '/p/a', hit: 'A' }],
                 [
@@ -53,7 +69,10 @@ describe('bulk-edit/find-worker: runFindWorker', () => {
         const done = patches[patches.length - 1];
         expect(done.status).to.equal('DONE');
         expect(done.total).to.equal(2);
-        expect(done.results.map((r) => r.id)).to.deep.equal(['a', 'b']);
+        expect(done.exportReady).to.equal(true);
+        expect(done.results).to.deep.equal([]);
+        const exportPayload = exports.find((entry) => entry.payload)?.payload;
+        expect(exportPayload.items.map((r) => r.id)).to.deep.equal(['a', 'b']);
     });
     it('returns the full Odin fragment with matches and locale', async () => {
         const cardModelId = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ';
@@ -69,7 +88,8 @@ describe('bulk-edit/find-worker: runFindWorker', () => {
         };
         const { mod, patches } = load({ pages: [[fragment]] });
         await mod.runFindWorker('job1', { odinEndpoint: 'https://odin' });
-        const result = patches[patches.length - 1].results[0];
+        const progress = patches.find((p) => p.results?.length);
+        const result = progress.results[0];
         expect(result.id).to.equal(fragment.id);
         expect(result.path).to.equal(fragment.path);
         expect(result.title).to.equal(fragment.title);
@@ -81,7 +101,7 @@ describe('bulk-edit/find-worker: runFindWorker', () => {
         expect(result.matches).to.deep.equal([{ field: 'subtitle', value: fragment.hit }]);
     });
     it('searches each locale path and merges results', async () => {
-        const { mod, patches } = load({
+        const { mod, patches, exports } = load({
             buildSearchPaths: () => ['/content/dam/mas/acom/en_US', '/content/dam/mas/acom/fr_FR'],
             pagesByPath: {
                 '/content/dam/mas/acom/en_US': [[{ id: 'en', path: '/p/en', hit: 'A' }]],
@@ -96,7 +116,31 @@ describe('bulk-edit/find-worker: runFindWorker', () => {
         await mod.runFindWorker('job1', { odinEndpoint: 'https://odin' });
         const done = patches[patches.length - 1];
         expect(done.status).to.equal('DONE');
-        expect(done.results.map((r) => r.id)).to.deep.equal(['en', 'fr']);
+        const exportPayload = exports.find((entry) => entry.payload)?.payload;
+        expect(exportPayload.items.map((r) => r.id)).to.deep.equal(['en', 'fr']);
+    });
+    it('writes an incremental per-locale report as results accumulate', async () => {
+        const { mod, reports } = load({
+            buildSearchPaths: () => ['/content/dam/mas/acom/en_US', '/content/dam/mas/acom/fr_FR'],
+            pagesByPath: {
+                '/content/dam/mas/acom/en_US': [
+                    [
+                        { id: 'en1', path: '/content/dam/mas/acom/en_US/a', hit: 'A' },
+                        { id: 'en2', path: '/content/dam/mas/acom/en_US/b', hit: 'B' },
+                    ],
+                ],
+                '/content/dam/mas/acom/fr_FR': [[{ id: 'fr1', path: '/content/dam/mas/acom/fr_FR/c', hit: 'C' }]],
+            },
+            extractLocale: (path) => path.match(/\/mas\/acom\/([^/]+)\//)?.[1] ?? null,
+            job: {
+                params: { find: 'school', surface: 'acom', locale: ['en_US', 'fr_FR'], searchIn: '*', matchCase: false },
+                status: 'RUNNING',
+            },
+        });
+        await mod.runFindWorker('job1', { odinEndpoint: 'https://odin' });
+        const final = reports[reports.length - 1];
+        expect(final.total).to.equal(3);
+        expect(final.byLocale).to.deep.equal({ en_US: 2, fr_FR: 1 });
     });
     it('persists progress after each page', async () => {
         const { mod, patches } = load({
@@ -177,6 +221,7 @@ describe('bulk-edit/find-worker: runFindWorker', () => {
         const result = await mod.runFindWorker('job1', { odinEndpoint: 'https://odin' });
         expect(result.status).to.equal('CANCELLED');
         expect(patches[patches.length - 1].status).to.equal('CANCELLED');
+        expect(patches[patches.length - 1].exportReady).to.equal(true);
     });
 });
 

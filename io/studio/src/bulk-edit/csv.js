@@ -23,12 +23,15 @@ function unescape(value) {
 }
 
 function parseJobIdParam(raw) {
-    if (raw == null || raw === '') return { jobId: raw, wantsCsv: false };
+    if (raw == null || raw === '') return { jobId: raw, wantsCsv: false, wantsJson: false };
     const text = String(raw);
-    if (text.endsWith('.csv')) {
-        return { jobId: text.slice(0, -4), wantsCsv: true };
+    if (text.endsWith('.json')) {
+        return { jobId: text.slice(0, -5), wantsCsv: false, wantsJson: true };
     }
-    return { jobId: text, wantsCsv: false };
+    if (text.endsWith('.csv')) {
+        return { jobId: text.slice(0, -4), wantsCsv: true, wantsJson: false };
+    }
+    return { jobId: text, wantsCsv: false, wantsJson: false };
 }
 
 function rowKey({ fragment_id, field, find }) {

@@ -40,10 +40,21 @@ application:
                         function: src/members/list.js
                         web: 'yes'
                         runtime: nodejs:22
-                    bulk-edit:
+                    bulk-edit-find:
                         function: src/bulk-edit/bulk-edit.js
                         web: 'yes'
                         runtime: nodejs:22
+                        inputs:
+                            bulkEditMode: find
+                        annotations:
+                            require-adobe-auth: false
+                            final: true
+                    bulk-edit-replace:
+                        function: src/bulk-edit/bulk-edit.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        inputs:
+                            bulkEditMode: replace
                         annotations:
                             require-adobe-auth: false
                             final: true

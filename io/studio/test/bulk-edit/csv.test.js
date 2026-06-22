@@ -79,10 +79,13 @@ describe('bulk-edit/csv: multipart upload', () => {
 
 describe('bulk-edit/csv: parseJobIdParam', () => {
     it('detects a .csv suffix', () => {
-        expect(parseJobIdParam('abc123.csv')).to.deep.equal({ jobId: 'abc123', wantsCsv: true });
+        expect(parseJobIdParam('abc123.csv')).to.deep.equal({ jobId: 'abc123', wantsCsv: true, wantsJson: false });
     });
-    it('returns wantsCsv false for a plain jobId', () => {
-        expect(parseJobIdParam('abc123def')).to.deep.equal({ jobId: 'abc123def', wantsCsv: false });
+    it('detects a .json suffix', () => {
+        expect(parseJobIdParam('abc123.json')).to.deep.equal({ jobId: 'abc123', wantsCsv: false, wantsJson: true });
+    });
+    it('returns wantsCsv and wantsJson false for a plain jobId', () => {
+        expect(parseJobIdParam('abc123def')).to.deep.equal({ jobId: 'abc123def', wantsCsv: false, wantsJson: false });
     });
 });
 

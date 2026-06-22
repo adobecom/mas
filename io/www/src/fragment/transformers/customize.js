@@ -166,6 +166,8 @@ function findPromoVariation(root, customizeContext) {
     for (const { project } of promoProjects) {
         const defaultVar = project.defaultVariations?.[fragmentPath];
         const regionVar = project.regionVariations?.[fragmentPath];
+        logDebug(() => `findPromoVariation defaultVar: ${JSON.stringify(defaultVar)}`, customizeContext);
+        logDebug(() => `findPromoVariation regionVar: ${JSON.stringify(regionVar)}`, customizeContext);
         if (!defaultVar && !regionVar) continue;
         if (!defaultVar) return regionVar;
         if (!regionVar) return defaultVar;

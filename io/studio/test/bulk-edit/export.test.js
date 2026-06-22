@@ -65,7 +65,15 @@ describe('bulk-edit/export: writeJobExports', () => {
         const { mod, files, writes } = loadFilesStub();
         await mod.writeJobExports('job-1', {
             type: 'replace',
-            items: [{ id: 'a', path: '/p/a', locale: 'en_US', status: 'REPLACED', matches: [{ field: 'subtitle', value: 'school' }] }],
+            items: [
+                {
+                    id: 'a',
+                    path: '/p/a',
+                    locale: 'en_US',
+                    status: 'REPLACED',
+                    matches: [{ field: 'subtitle', value: 'school' }],
+                },
+            ],
             report: { totalFragments: 1 },
             filteredByUpload: false,
             dryRun: false,

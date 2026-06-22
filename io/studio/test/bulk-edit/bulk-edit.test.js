@@ -497,7 +497,13 @@ describe('bulk-edit: handleCsvDelete', () => {
     });
 });
 
-const findJobDone = { type: 'find', status: 'DONE', runId: 'find-run-1', params: { matchCase: false, find: 'school' }, results: doneJobResults };
+const findJobDone = {
+    type: 'find',
+    status: 'DONE',
+    runId: 'find-run-1',
+    params: { matchCase: false, find: 'school' },
+    results: doneJobResults,
+};
 const replaceCsv = {
     uploadedAt: '2026-01-01T00:00:00.000Z',
     rows: [{ fragment_id: 'frag-1', path: '/p/foo', locale: 'en_US', field: 'subtitle', find: 'school', replace: 'academy' }],
@@ -530,7 +536,11 @@ describe('bulk-edit: computeReplaceJobId', () => {
     it('distinguishes all find results from an uploaded CSV subset', () => {
         const { mod } = load();
         const all = mod.computeReplaceJobId('abcdef0123456789', { dryRun: false, userCsv: null, replace: replaceValue });
-        const subset = mod.computeReplaceJobId('abcdef0123456789', { dryRun: false, userCsv: replaceCsv, replace: replaceValue });
+        const subset = mod.computeReplaceJobId('abcdef0123456789', {
+            dryRun: false,
+            userCsv: replaceCsv,
+            replace: replaceValue,
+        });
         expect(all).to.not.equal(subset);
     });
     it('changes when the replace value changes', () => {

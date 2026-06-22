@@ -44,10 +44,12 @@ function load(overrides = {}) {
         },
         './replace.js': require('../../src/bulk-edit/replace.js'),
         './state.js': {
-            readJob: overrides.readJob || (async (id) => {
-                if (id === 'find1') return { params: { find: 'School' }, status: 'DONE' };
-                return job;
-            }),
+            readJob:
+                overrides.readJob ||
+                (async (id) => {
+                    if (id === 'find1') return { params: { find: 'School' }, status: 'DONE' };
+                    return job;
+                }),
             patchJob: async (jobId, patch) => {
                 patches.push(patch);
             },
@@ -82,12 +84,16 @@ function load(overrides = {}) {
 describe('bulk-edit/replace-worker: buildWorkPlan', () => {
     it('groups rows by fragment, drops no-op rows, and sorts by id', () => {
         const { mod } = load();
-        const plan = mod.buildWorkPlan([
-            { fragment_id: 'b', field: 'subtitle', find: 'x' },
-            { fragment_id: 'a', field: 'subtitle', find: 'x' },
-            { fragment_id: 'a', field: 'title', find: 'z' },
-            { fragment_id: 'a', field: 'callout', find: 'q' },
-        ], 'y', 'x');
+        const plan = mod.buildWorkPlan(
+            [
+                { fragment_id: 'b', field: 'subtitle', find: 'x' },
+                { fragment_id: 'a', field: 'subtitle', find: 'x' },
+                { fragment_id: 'a', field: 'title', find: 'z' },
+                { fragment_id: 'a', field: 'callout', find: 'q' },
+            ],
+            'y',
+            'x',
+        );
         expect(plan.map((i) => i.id)).to.deep.equal(['a', 'b']);
         expect(plan[0].rows).to.have.length(3);
         expect(plan[1].rows).to.have.length(1);
@@ -98,7 +104,13 @@ describe('bulk-edit/replace-worker: buildDryRunResult', () => {
     it('returns the modified fragment payload without persisting to Odin', () => {
         const { mod } = load();
         const item = { id: 'a', path: '/p/a', locale: 'en_US', rows: [{ field: 'subtitle', find: 'School' }] };
-        const fragment = { id: 'a', etag: 'e1', title: 'T', description: 'D', fields: [{ name: 'subtitle', values: ['School offer'] }] };
+        const fragment = {
+            id: 'a',
+            etag: 'e1',
+            title: 'T',
+            description: 'D',
+            fields: [{ name: 'subtitle', values: ['School offer'] }],
+        };
         const applied = {
             title: 'T',
             description: 'D',

@@ -181,7 +181,16 @@ describe('bulk-edit/replace: applyReplacementsToFragment', () => {
 describe('bulk-edit/replace: resolveReplaceRows', () => {
     it('uses find results when no CSV rows were uploaded', () => {
         const rows = resolveReplaceRows(
-            [{ id: 'a', path: '/p/a', locale: 'en_US', etag: 'e1', status: 'DRAFT', matches: [{ field: 'subtitle', value: 'school' }] }],
+            [
+                {
+                    id: 'a',
+                    path: '/p/a',
+                    locale: 'en_US',
+                    etag: 'e1',
+                    status: 'DRAFT',
+                    matches: [{ field: 'subtitle', value: 'school' }],
+                },
+            ],
             null,
         );
         expect(rows).to.deep.equal([

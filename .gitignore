@@ -52,7 +52,7 @@ masStudio-*.json
 .aio
 .cursor
 .superpowers/
-requests.http
+*.http
 *.csv
 
 

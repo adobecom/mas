@@ -20,14 +20,14 @@ function extractLocale(path = '') {
 }
 
 const SCOPE_FIELDS = {
-    price: { fields: ['prices'] },
-    buttonText: { fields: ['ctas'] },
+    prices: { fields: ['prices'] },
+    ctas: { fields: ['ctas'] },
     calloutText: { fields: ['callout'] },
     productDescription: { fields: ['description'] },
     productText: { fields: ['promoText', 'shortDescription'] },
     subtitle: { fields: ['subtitle'] },
-    fragmentDescription: { top: ['description'] },
-    fragmentTitle: { top: ['title'] },
+    fragmentDescription: { properties: ['description'] },
+    fragmentTitle: { properties: ['title'] },
     tags: { tags: true },
 };
 
@@ -78,9 +78,9 @@ function findMatchesInScope(fragment, searchIn, find, matchCase) {
             if (matchesText(value, find, matchCase)) matches.push({ field: searchIn, value });
         }
     }
-    for (const prop of scope.top || []) {
-        if (matchesText(fragment[prop], find, matchCase)) {
-            matches.push({ field: searchIn, value: fragment[prop] });
+    for (const name of scope.properties || []) {
+        if (matchesText(fragment[name], find, matchCase)) {
+            matches.push({ field: searchIn, value: fragment[name] });
         }
     }
     return matches;

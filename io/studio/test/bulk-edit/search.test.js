@@ -61,9 +61,9 @@ describe('bulk-edit/search: findMatches', () => {
         ]);
     });
     it('matches button text inside the ctas field', () => {
-        const m = svc.findMatches(fragment, 'buttonText', 'buy now', false);
+        const m = svc.findMatches(fragment, 'ctas', 'buy now', false);
         expect(m).to.have.lengthOf(1);
-        expect(m[0].field).to.equal('buttonText');
+        expect(m[0].field).to.equal('ctas');
     });
     it('matches fragment title via the fragmentTitle scope', () => {
         expect(svc.findMatches(fragment, 'fragmentTitle', 'all apps', false)).to.deep.equal([

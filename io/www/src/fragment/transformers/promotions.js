@@ -118,21 +118,20 @@ function toInstant(value) {
 const PROMO_TAG_PREFIX = 'mas:promotion/';
 
 /**
- * Parses offer substitution lines of the form "substitute:<baseOsi>:<substituteOsi>:<geo>".
- * The geo suffix is a CQ tag (e.g. "mas:locale/en_AU" or "mas:country/cr"). Geo is required;
- * lines without a geo are stored with geo=null and skipped by buildSubstituteMap.
+ * Parses offer substitution lines of the form "substitute:<baseOsi>:<substituteOsi>:<geo>[,<geo>...]".
+ * Geos are comma-separated CQ tags (e.g. "mas:locale/en_AU,mas:country/au").
+ * Lines without a geo are stored with geos=[] and skipped by buildSubstituteMap.
  * @param {string[]} lines
- * @returns {{ baseOsi: string, substituteOsi: string, geo: string|null }[]}
+ * @returns {{ baseOsi: string, substituteOsi: string, geos: string[] }[]}
  */
 function parseOfferSubstitutions(lines) {
     return lines
         .map((line) => {
-            if (!line.startsWith('substitute:')) return null;
-            const parts = line.split(':');
-            if (parts.length < 3) return null;
-            const [, baseOsi, substituteOsi, ...geoParts] = parts;
+            if (!line.startsWith('substitute|')) return null;
+            const [, baseOsi, substituteOsi, geoStr = ''] = line.split('|');
             if (!baseOsi || !substituteOsi) return null;
-            return { baseOsi, substituteOsi, geo: geoParts.join(':') || null };
+            const geos = geoStr.split(',');
+            return { baseOsi, substituteOsi, geos };
         })
         .filter(Boolean);
 }
@@ -146,7 +145,7 @@ function parseOfferSubstitutions(lines) {
 function buildSubstituteMap(substitutions, { regionLocale, country }) {
     const map = {};
     for (const sub of substitutions) {
-        if (matchesGeo([sub.geo], { regionLocale, country })) {
+        if (matchesGeo(sub.geos, { regionLocale, country })) {
             map[sub.baseOsi] = sub.substituteOsi;
         }
     }
@@ -163,25 +162,15 @@ function buildSubstituteMap(substitutions, { regionLocale, country }) {
 function parseOfferOverrides(lines) {
     return lines
         .map((line) => {
-            if (line.startsWith('substitute:')) return null;
+            if (line.startsWith('substitute|')) return null;
             const parts = line.split(':');
             const [osisPart, promoCode] = parts;
             const geosPart = parts.slice(2).join(':');
             if (!promoCode?.trim()) return null;
             return {
-                osis: osisPart
-                    ? osisPart
-                          .split(',')
-                          .map((s) => s.trim())
-                          .filter(Boolean)
-                    : [],
-                promoCode: promoCode.trim(),
-                geos: geosPart
-                    ? geosPart
-                          .split(',')
-                          .map((s) => s.trim())
-                          .filter(Boolean)
-                    : [],
+                osis: osisPart ? osisPart.split(',') : [],
+                promoCode,
+                geos: geosPart ? geosPart.split(',') : [],
             };
         })
         .filter(Boolean);

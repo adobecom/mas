@@ -111,7 +111,7 @@ describe('promotion-editor-utils', () => {
         });
 
         it('ignores promo exception and substitution lines when comparing saved offers', () => {
-            const p = makePromotionFragment({ offers: ['osi-1', 'osi-1:CODE:US', 'substitute:osi-1:osi-2:CA_en'] });
+            const p = makePromotionFragment({ offers: ['osi-1', 'osi-1:CODE:US', 'substitute|osi-1|osi-2|CA_en'] });
             expect(isPromotionOffersSelectionDirty(p, ['osi-1'])).to.be.false;
             expect(isPromotionOffersSelectionDirty(p, ['osi-1', 'osi-2'])).to.be.true;
         });
@@ -120,13 +120,13 @@ describe('promotion-editor-utils', () => {
     describe('buildPromotionOffersFieldValues', () => {
         it('preserves promo exceptions and substitutions while updating selected offer ids', () => {
             const p = makePromotionFragment({
-                offers: ['osi-1', 'osi-1:CODE:US', 'substitute:osi-1:osi-2:CA_en'],
+                offers: ['osi-1', 'osi-1:CODE:US', 'substitute|osi-1|osi-2|CA_en'],
             });
             const values = buildPromotionOffersFieldValues(p, ['osi-1', 'osi-3']);
             expect(values).to.include('osi-1');
             expect(values).to.include('osi-3');
             expect(values).to.include('osi-1:CODE:US');
-            expect(values).to.include('substitute:osi-1:osi-2:CA_en');
+            expect(values).to.include('substitute|osi-1|osi-2|CA_en');
         });
 
         it('removes promo exceptions for geos no longer in the geos field', () => {
@@ -143,20 +143,20 @@ describe('promotion-editor-utils', () => {
         it('removes substitutions for geos no longer in the geos field', () => {
             const p = makePromotionFragment({
                 geos: ['mas:locale/en_AU'],
-                offers: ['substitute:osi-1:osi-2:en_AU', 'substitute:osi-1:osi-3:en_GB'],
+                offers: ['substitute|osi-1|osi-2|en_AU', 'substitute|osi-1|osi-3|en_GB'],
             });
             const values = buildPromotionOffersFieldValues(p, []);
-            expect(values).to.include('substitute:osi-1:osi-2:mas:locale/en_AU');
-            expect(values).to.not.include('substitute:osi-1:osi-3:en_GB');
+            expect(values).to.include('substitute|osi-1|osi-2|mas:locale/en_AU');
+            expect(values).to.not.include('substitute|osi-1|osi-3|en_GB');
         });
 
         it('does not filter when geos field is empty', () => {
             const p = makePromotionFragment({
-                offers: ['osi-1:CODE:US', 'substitute:osi-1:osi-2:CA_en'],
+                offers: ['osi-1:CODE:US', 'substitute|osi-1|osi-2|CA_en'],
             });
             const values = buildPromotionOffersFieldValues(p, ['osi-1']);
             expect(values).to.include('osi-1:CODE:US');
-            expect(values).to.include('substitute:osi-1:osi-2:CA_en');
+            expect(values).to.include('substitute|osi-1|osi-2|CA_en');
         });
     });
 
@@ -488,14 +488,14 @@ describe('promotion-editor-utils', () => {
         it('parsePromotionOffersField splits promo and offer substitution lines', () => {
             const { promoExceptions, offerSubstitutions } = parsePromotionOffersField([
                 'offer-1:OVERRIDE:CA_en',
-                'substitute:offer-1:regional-osi:US',
+                'substitute|offer-1|regional-osi|US',
             ]);
             expect(promoExceptions.get('offer-1|CA_en')).to.equal('OVERRIDE');
             expect(offerSubstitutions.get('offer-1|US')).to.equal('regional-osi');
         });
 
         it('parsePromoCodeExceptions ignores offer substitution lines', () => {
-            const map = parsePromoCodeExceptions(['substitute:offer-1:regional-osi:US', 'offer-1:CODE:CA_en']);
+            const map = parsePromoCodeExceptions(['substitute|offer-1|regional-osi|US', 'offer-1:CODE:CA_en']);
             expect(map.size).to.equal(1);
             expect(map.get('offer-1|CA_en')).to.equal('CODE');
         });
@@ -524,7 +524,7 @@ describe('promotion-editor-utils', () => {
         });
 
         it('parseSelectedOfferIdsFromOffersField ignores exception and substitution lines', () => {
-            const ids = parseSelectedOfferIdsFromOffersField(['osi-1:CODE:CA_en', 'substitute:osi-1:osi-2:US']);
+            const ids = parseSelectedOfferIdsFromOffersField(['osi-1:CODE:CA_en', 'substitute|osi-1|osi-2|US']);
             expect(ids).to.deep.equal([]);
         });
 
@@ -537,15 +537,15 @@ describe('promotion-editor-utils', () => {
         });
 
         it('getEffectiveSubstituteOffer returns substitute selector id', () => {
-            const subs = parseOfferSubstitutions(['substitute:offer-1:regional-osi:IN']);
+            const subs = parseOfferSubstitutions(['substitute|offer-1|regional-osi|IN']);
             expect(getEffectiveSubstituteOffer(subs, 'offer-1', 'IN')).to.equal('regional-osi');
             expect(getEffectiveSubstituteOffer(subs, 'offer-1', 'US')).to.be.null;
         });
 
         it('groupOfferSubstitutionsForOffer groups countries by substitute label', () => {
             const subs = parseOfferSubstitutions([
-                'substitute:offer-1:regional-osi:IN',
-                'substitute:offer-1:regional-osi:CA_en',
+                'substitute|offer-1|regional-osi|IN',
+                'substitute|offer-1|regional-osi|CA_en',
             ]);
             const groups = groupOfferSubstitutionsForOffer(subs, ['offer-1'], ['IN', 'CA_en', 'US'], (id) =>
                 id === 'regional-osi' ? 'Regional CC Pro' : id,
@@ -1012,7 +1012,7 @@ describe('promotion-editor-utils', () => {
 
     describe('isPromotionOfferSubstitutionEntry', () => {
         it('returns true for a string starting with substitute:', () => {
-            expect(isPromotionOfferSubstitutionEntry('substitute:OSI-A:OSI-B:US')).to.be.true;
+            expect(isPromotionOfferSubstitutionEntry('substitute|OSI-A|OSI-B|US')).to.be.true;
         });
 
         it('returns false for a string starting with offer-cache:', () => {

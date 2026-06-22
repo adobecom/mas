@@ -481,7 +481,7 @@ export async function handlePromotionOstOfferSelect({ detail: { offerSelectorId,
 const PROMOTION_OFFER_SUBSTITUTION_PREFIX = 'substitute';
 
 export function isPromotionOfferSubstitutionEntry(entry) {
-    return typeof entry === 'string' && entry.startsWith(`${PROMOTION_OFFER_SUBSTITUTION_PREFIX}:`);
+    return typeof entry === 'string' && entry.startsWith(`${PROMOTION_OFFER_SUBSTITUTION_PREFIX}|`);
 }
 
 export function promotionOfferRecordHasDisplayName(cacheEntry) {
@@ -497,10 +497,8 @@ export function parsePromotionOffersField(values) {
     for (const entry of values) {
         if (!entry) continue;
         if (isPromotionOfferSubstitutionEntry(entry)) {
-            const parts = entry.split(':');
-            if (parts.length < 4) continue;
-            const [, baseOfferId, substituteSelectorId, ...geoParts] = parts;
-            const country = formatGeoDisplayLabel(geoParts.join(':')) || geoParts.join(':');
+            const [, baseOfferId, substituteSelectorId, geoStr = ''] = entry.split('|');
+            const country = formatGeoDisplayLabel(geoStr) || geoStr;
             if (baseOfferId && substituteSelectorId && country) {
                 offerSubstitutions.set(`${baseOfferId}|${country}`, substituteSelectorId);
             }
@@ -538,14 +536,14 @@ export function serializeOfferSubstitutions(map, displayToCq) {
     return [...map.entries()].map(([key, substituteSelectorId]) => {
         const [baseOfferId, label] = key.split('|');
         const geoTag = displayToCq?.get(label) ?? label;
-        return `${PROMOTION_OFFER_SUBSTITUTION_PREFIX}:${baseOfferId}:${substituteSelectorId}:${geoTag}`;
+        return `${PROMOTION_OFFER_SUBSTITUTION_PREFIX}|${baseOfferId}|${substituteSelectorId}|${geoTag}`;
     });
 }
 
 export function parseSelectedOfferIdsFromOffersField(values) {
     if (!Array.isArray(values)) return [];
     return values
-        .filter((entry) => entry && !String(entry).includes(':'))
+        .filter((entry) => entry && !String(entry).includes(':') && !String(entry).includes('|'))
         .map((entry) => String(entry).trim())
         .filter(Boolean);
 }

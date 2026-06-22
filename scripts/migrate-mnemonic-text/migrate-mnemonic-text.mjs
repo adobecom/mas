@@ -38,6 +38,7 @@ const { values: args } = parseArgs({
         surface: { type: 'string' },
         locale: { type: 'string' },
         fragment: { type: 'string' },
+        'no-skipped': { type: 'boolean', default: false },
         debug: { type: 'boolean', default: false },
         help: { type: 'boolean', default: false },
     },
@@ -58,6 +59,7 @@ Options:
                         Path: /content/dam/mas/<surface>[/<locale>]
   --locale <locales>    Comma-separated locale codes, or "all" (default: English only)
   --fragment <id|path>  Process a single fragment only (for testing)
+  --no-skipped          Omit skipped items from the CSV report
   --debug               Print raw field names and types for each fragment
   --help                Show this message
 
@@ -70,6 +72,7 @@ const HOST = args.host.replace(/\/$/, '');
 const TOKEN = args.token;
 const APPLY = args.apply;
 const DEBUG = args.debug;
+const NO_SKIPPED = args['no-skipped'];
 const SINGLE_FRAGMENT = args.fragment;
 const SURFACE_ARG = args.surface;
 const LOCALES_ARG = args.locale;
@@ -132,7 +135,7 @@ let csvStream = null;
 if (!SINGLE_FRAGMENT) {
     const csvFile = `mnemonic-migration-${surfaceTag}-${localeTag}-${modeTag}-${ts}.csv`;
     csvStream = createWriteStream(csvFile, { flags: 'w' });
-    csvStream.write('id,title,status,fields_changed,reason\n');
+    csvStream.write('id,path,title,status,fields_changed,reason\n');
     console.log(`CSV report: ${csvFile}`);
 }
 
@@ -141,8 +144,8 @@ function csvEscape(val) {
     return str.includes(',') || str.includes('"') || str.includes('\n') ? `"${str.replace(/"/g, '""')}"` : str;
 }
 
-function recordCsv(id, title, status, fieldsChanged, reason) {
-    csvStream?.write(`${[id, title, status, fieldsChanged, reason].map(csvEscape).join(',')}\n`);
+function recordCsv(id, path, title, status, fieldsChanged, reason) {
+    csvStream?.write(`${[id, path, title, status, fieldsChanged, reason].map(csvEscape).join(',')}\n`);
 }
 
 function log(...parts) {
@@ -277,8 +280,8 @@ class ETagConflict extends Error {}
  * Returns a result object describing what was found/changed.
  */
 async function processFragment(fragment) {
-    const { id, title, fields } = fragment;
-    const result = { id, title: title || id, fieldsChanged: [], skipped: false, error: null };
+    const { id, title, fields, path } = fragment;
+    const result = { id, path: path || '', title: title || id, fieldsChanged: [], skipped: false, error: null };
 
     if (!fields?.length) {
         result.skipped = true;
@@ -406,16 +409,19 @@ async function main() {
                     if (result.error) {
                         stats.errors++;
                         logError(`  ✗ [${result.id}] ${result.title}: ${result.error}`);
-                        recordCsv(result.id, result.title, 'error', '', result.error);
+                        recordCsv(result.id, result.path, result.title, 'error', '', result.error);
                     } else if (result.skipped) {
                         stats.skipped++;
-                        recordCsv(result.id, result.title, 'skipped', '', 'no mnemonic-text found');
+                        if (!NO_SKIPPED) {
+                            recordCsv(result.id, result.path, result.title, 'skipped', '', 'no mnemonic-text found');
+                        }
                     } else {
                         stats.converted++;
                         const action = APPLY ? '✓' : '~';
                         log(`  ${action} [${result.id}] ${result.title} — fields: ${result.fieldsChanged.join(', ')}`);
                         recordCsv(
                             result.id,
+                            result.path,
                             result.title,
                             APPLY ? 'converted' : 'would-convert',
                             result.fieldsChanged.join(';'),

@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>M@S Studio — Dialog Pattern</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@spectrum-css/tokens@14.6.0/dist/index.css" />
+    <script type="importmap">{"imports":{"@spectrum-web-components/":"https://cdn.jsdelivr.net/npm/@spectrum-web-components/"}}</script>
+    <script type="module">
+        import '@spectrum-web-components/theme/sp-theme.js';
+        import '@spectrum-web-components/theme/spectrum-two/scale-medium-core-tokens.js';
+        import '@spectrum-web-components/theme/spectrum-two/theme-light-core-tokens.js';
+        import '@spectrum-web-components/button/sp-button.js';
+        import '@spectrum-web-components/field-label/sp-field-label.js';
+        import '@spectrum-web-components/help-text/sp-help-text.js';
+        import '@spectrum-web-components/picker/sp-picker.js';
+        import '@spectrum-web-components/menu/sp-menu-item.js';
+        import '@spectrum-web-components/textfield/sp-textfield.js';
+        import '@spectrum-web-components/progress-circle/sp-progress-circle.js';
+    </script>
+    <style>
+        body { margin: 0; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; min-height: 100vh; font-family: var(--spectrum-font-family-base); }
+        .dialog-container { background: var(--spectrum-white); border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,0.2); padding: var(--spectrum-spacing-600); min-width: 400px; }
+        .dialog-header { font-size: 18px; font-weight: 600; margin-bottom: var(--spectrum-spacing-600); padding-bottom: var(--spectrum-spacing-400); border-bottom: 1px solid var(--spectrum-gray-200); }
+        .dialog-footer { display: flex; justify-content: flex-end; gap: var(--spectrum-spacing-300); margin-top: var(--spectrum-spacing-600); }
+        .form-field { margin-bottom: var(--spectrum-spacing-500); }
+        sp-field-label { display: block; margin-bottom: var(--spectrum-spacing-200); }
+        sp-picker, sp-textfield { width: 100%; }
+    </style>
+</head>
+<body>
+<sp-theme system="spectrum-two" color="light" scale="medium">
+    <!-- Pattern: mas-create-dialog — sourced from mas-create-dialog.js:251-310 -->
+    <div class="dialog-container">
+        <div class="dialog-header">Create New Merch Card</div>
+        <div class="dialog-content">
+            <div class="form-field">
+                <sp-field-label for="fragment-title" required>Internal title</sp-field-label>
+                <sp-textfield
+                    id="fragment-title"
+                    placeholder="Enter internal fragment title"
+                    required
+                ></sp-textfield>
+                <sp-help-text slot="help-text">Used internally — not shown to customers</sp-help-text>
+            </div>
+            <div class="form-field">
+                <sp-field-label for="content-type">Content type</sp-field-label>
+                <sp-picker id="content-type" label="Select type">
+                    <sp-menu-item value="merch-card">Merch Card</sp-menu-item>
+                    <sp-menu-item value="merch-card-collection">Merch Card Collection</sp-menu-item>
+                </sp-picker>
+            </div>
+        </div>
+        <div class="dialog-footer">
+            <sp-button variant="secondary">Cancel</sp-button>
+            <sp-button variant="accent">Create</sp-button>
+        </div>
+    </div>
+</sp-theme>
+</body>
+</html>

@@ -1,6 +1,6 @@
 const crypto = require('crypto');
 const { Core } = require('@adobe/aio-sdk');
-const { errorResponse, getBearerToken, isAllowed, parseOwBody, parseCsvUploadBody, isCsvUpload } = require('../../utils.js');
+const { errorResponse, getBearerToken, isAllowed, parseOwBody } = require('../../utils.js');
 const { invokeAsyncAction, buildSiblingActionName } = require('../common.js');
 const { readJob, writeJob, patchJob, readUserCsv, writeUserCsv, deleteUserCsv, readDryRun, readReport } = require('./state.js');
 const { normalizeLocales } = require('./search.js');
@@ -13,6 +13,9 @@ const {
     rowKey,
     toCsv,
     fromCsv,
+    parseCsvUploadBody,
+    isCsvUpload,
+    applyUserReplaceValues,
 } = require('./csv.js');
 
 const logger = Core.Logger('bulk-edit', { level: 'info' });
@@ -45,9 +48,8 @@ function normalizeLocalesKey(locale) {
     return locales.length === 1 ? locales[0] : locales;
 }
 
-function canonicalSearchKey(params) {
-    const tags = Array.isArray(params.tags) ? [...params.tags].sort() : [];
-    return JSON.stringify({
+function buildSearchKey(params) {
+    return {
         type: params.type,
         find: params.find,
         surface: params.surface,
@@ -55,8 +57,14 @@ function canonicalSearchKey(params) {
         matchCase: !!params.matchCase,
         status: params.status || null,
         locale: normalizeLocalesKey(params.locale),
-        tags,
-    });
+        tags: Array.isArray(params.tags) ? params.tags : [],
+    };
+}
+
+function canonicalSearchKey(params) {
+    const key = buildSearchKey(params);
+    key.tags = [...key.tags].sort();
+    return JSON.stringify(key);
 }
 
 function computeJobId(params) {
@@ -95,16 +103,7 @@ async function handlePost(params) {
 
     if (params.type === 'replace') return handleReplacePost(params, authToken);
 
-    const searchKey = {
-        type: params.type,
-        find: params.find,
-        surface: params.surface,
-        searchIn: normalizeSearchInKey(params.searchIn),
-        matchCase: !!params.matchCase,
-        status: params.status || null,
-        locale: normalizeLocalesKey(params.locale),
-        tags: Array.isArray(params.tags) ? params.tags : [],
-    };
+    const searchKey = buildSearchKey(params);
     const jobId = computeJobId(searchKey);
 
     if (params.supersedes && params.supersedes !== jobId) {
@@ -313,13 +312,7 @@ async function handleGet(params) {
     const { items, filteredByUpload } = applyUserCsvFilter(job.results, userCsv);
 
     if (wantsCsv) {
-        const rows = flattenResultsToRows(items);
-        if (userCsv?.rows?.length) {
-            const replaceByKey = new Map(userCsv.rows.map((row) => [rowKey(row), row.replace ?? '']));
-            for (const row of rows) {
-                row.replace = replaceByKey.get(rowKey(row)) ?? row.replace;
-            }
-        }
+        const rows = applyUserReplaceValues(flattenResultsToRows(items), userCsv?.rows);
         return {
             statusCode: 200,
             headers: {

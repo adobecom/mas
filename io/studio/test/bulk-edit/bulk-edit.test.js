@@ -1,8 +1,9 @@
 const { expect } = require('chai');
 const proxyquire = require('proxyquire');
 const sinon = require('sinon');
+const { HEADERS } = require('../../src/bulk-edit/csv.js');
 
-const realUtils = require('../../utils.js');
+const csvHeaderLine = HEADERS.join(',');
 
 function load({ existing = null, userCsv = null, allowed = true } = {}) {
     const invokeAsyncAction = sinon.stub().resolves({ activationId: 'act-1' });
@@ -20,10 +21,6 @@ function load({ existing = null, userCsv = null, allowed = true } = {}) {
             getBearerToken: () => 'token',
             isAllowed: async () => allowed,
             parseOwBody: (p) => p,
-            parseRawBody: realUtils.parseRawBody,
-            parseCsvUploadBody: realUtils.parseCsvUploadBody,
-            isCsvContentType: realUtils.isCsvContentType,
-            isCsvUpload: realUtils.isCsvUpload,
             '@noCallThru': true,
         },
         '../common.js': {
@@ -91,7 +88,7 @@ const doneJobResults = [
 const doneJob = { status: 'DONE', total: 2, results: doneJobResults };
 
 const sampleCsvRow =
-    'fragment_id,path,locale,field,find,replace,etag,status\n' +
+    `${csvHeaderLine}\n` +
     'frag-1,/content/dam/mas/acom/en_US/foo,en_US,subtitle,school,academy,e1,PUBLISHED\n';
 
 describe('bulk-edit: computeJobId', () => {
@@ -339,7 +336,7 @@ describe('bulk-edit: handleGet', () => {
         expect(res.statusCode).to.equal(200);
         expect(res.headers['Content-Type']).to.equal('text/csv; charset=utf-8');
         expect(res.headers['Content-Disposition']).to.equal('attachment; filename="job-1.csv"');
-        expect(res.body).to.include('fragment_id,path,locale,field,find,replace,etag,status');
+        expect(res.body).to.include(csvHeaderLine);
         expect(res.body).to.include('frag-1');
         expect(res.body).to.include('school');
     });
@@ -381,8 +378,7 @@ describe('bulk-edit: handleCsvUpload', () => {
     });
     it('400s when a CSV row is not in the original job', async () => {
         const { mod } = load({ existing: doneJob });
-        const badCsv =
-            'fragment_id,path,locale,field,find,replace,etag,status\n' + 'missing,/p,en_US,subtitle,x,,e1,PUBLISHED\n';
+        const badCsv = `${csvHeaderLine}\nmissing,/p,en_US,subtitle,x,,e1,PUBLISHED\n`;
         const res = await mod.handleCsvUpload({ jobId: 'job-1', __ow_body: badCsv });
         expect(res.error.statusCode).to.equal(400);
         expect(res.error.body.error).to.include('not found in job results');
@@ -558,10 +554,6 @@ describe('bulk-edit: main routing', () => {
                 getBearerToken: () => 'token',
                 isAllowed,
                 parseOwBody: (p) => ({ ...p, allowedClientId: 'attacker-client' }),
-                parseRawBody: realUtils.parseRawBody,
-                parseCsvUploadBody: realUtils.parseCsvUploadBody,
-                isCsvContentType: realUtils.isCsvContentType,
-                isCsvUpload: realUtils.isCsvUpload,
                 '@noCallThru': true,
             },
             '../common.js': {

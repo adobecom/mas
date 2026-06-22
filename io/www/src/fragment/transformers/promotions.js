@@ -130,9 +130,9 @@ function parseOfferSubstitutions(lines) {
             if (!line.startsWith('substitute:')) return null;
             const parts = line.split(':');
             if (parts.length < 3) return null;
-            const [, baseOsi, substituteOsi, geo] = parts;
+            const [, baseOsi, substituteOsi, ...geoParts] = parts;
             if (!baseOsi || !substituteOsi) return null;
-            return { baseOsi, substituteOsi, geo: geo || null };
+            return { baseOsi, substituteOsi, geo: geoParts.join(':') || null };
         })
         .filter(Boolean);
 }
@@ -146,10 +146,17 @@ function parseOfferSubstitutions(lines) {
 function buildSubstituteMap(substitutions, { regionLocale, country }) {
     const map = {};
     for (const sub of substitutions) {
-        if (
-            !sub.geo ||
-            matchesGeo([sub.geo.includes('_') ? `mas:locale/${sub.geo}` : `mas:country/${sub.geo}`], { regionLocale, country })
-        ) {
+        if (!sub.geo) {
+            map[sub.baseOsi] = sub.substituteOsi;
+            continue;
+        }
+        const cqGeo =
+            sub.geo.startsWith('mas:') || sub.geo.startsWith('/content/')
+                ? sub.geo
+                : sub.geo.includes('_')
+                  ? `mas:locale/${sub.geo}`
+                  : `mas:country/${sub.geo}`;
+        if (matchesGeo([cqGeo], { regionLocale, country })) {
             map[sub.baseOsi] = sub.substituteOsi;
         }
     }

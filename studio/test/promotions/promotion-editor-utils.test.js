@@ -135,8 +135,8 @@ describe('promotion-editor-utils', () => {
                 offers: ['osi-1:CCI_AU:en_AU', 'osi-1:CCI_UK:en_GB', 'osi-1:OLD:au'],
             });
             const values = buildPromotionOffersFieldValues(p, ['osi-1']);
-            expect(values).to.include('osi-1:CCI_AU:en_AU');
-            expect(values).to.include('osi-1:CCI_UK:en_GB');
+            expect(values).to.include('osi-1:CCI_AU:mas:locale/en_AU');
+            expect(values).to.include('osi-1:CCI_UK:mas:locale/en_GB');
             expect(values).to.not.include('osi-1:OLD:au');
         });
 
@@ -146,7 +146,7 @@ describe('promotion-editor-utils', () => {
                 offers: ['substitute:osi-1:osi-2:en_AU', 'substitute:osi-1:osi-3:en_GB'],
             });
             const values = buildPromotionOffersFieldValues(p, []);
-            expect(values).to.include('substitute:osi-1:osi-2:en_AU');
+            expect(values).to.include('substitute:osi-1:osi-2:mas:locale/en_AU');
             expect(values).to.not.include('substitute:osi-1:osi-3:en_GB');
         });
 

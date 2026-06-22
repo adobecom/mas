@@ -499,7 +499,8 @@ export function parsePromotionOffersField(values) {
         if (isPromotionOfferSubstitutionEntry(entry)) {
             const parts = entry.split(':');
             if (parts.length < 4) continue;
-            const [, baseOfferId, substituteSelectorId, country] = parts;
+            const [, baseOfferId, substituteSelectorId, ...geoParts] = parts;
+            const country = formatGeoDisplayLabel(geoParts.join(':')) || geoParts.join(':');
             if (baseOfferId && substituteSelectorId && country) {
                 offerSubstitutions.set(`${baseOfferId}|${country}`, substituteSelectorId);
             }
@@ -507,7 +508,8 @@ export function parsePromotionOffersField(values) {
         }
         const parts = entry.split(':');
         if (parts.length < 3) continue;
-        const [offerId, promoCode, country] = parts;
+        const [offerId, promoCode, ...geoParts] = parts;
+        const country = formatGeoDisplayLabel(geoParts.join(':')) || geoParts.join(':');
         if (!offerId || !promoCode || !country) continue;
         promoExceptions.set(`${offerId}|${country}`, promoCode);
     }
@@ -522,19 +524,21 @@ export function parseOfferSubstitutions(values) {
     return parsePromotionOffersField(values).offerSubstitutions;
 }
 
-export function serializePromoCodeExceptions(map) {
+export function serializePromoCodeExceptions(map, displayToCq) {
     if (!map?.size) return [];
     return [...map.entries()].map(([key, code]) => {
-        const [offerId, country] = key.split('|');
-        return `${offerId}:${code}:${country}`;
+        const [offerId, label] = key.split('|');
+        const geoTag = displayToCq?.get(label) ?? label;
+        return `${offerId}:${code}:${geoTag}`;
     });
 }
 
-export function serializeOfferSubstitutions(map) {
+export function serializeOfferSubstitutions(map, displayToCq) {
     if (!map?.size) return [];
     return [...map.entries()].map(([key, substituteSelectorId]) => {
-        const [baseOfferId, country] = key.split('|');
-        return `${PROMOTION_OFFER_SUBSTITUTION_PREFIX}:${baseOfferId}:${substituteSelectorId}:${country}`;
+        const [baseOfferId, label] = key.split('|');
+        const geoTag = displayToCq?.get(label) ?? label;
+        return `${PROMOTION_OFFER_SUBSTITUTION_PREFIX}:${baseOfferId}:${substituteSelectorId}:${geoTag}`;
     });
 }
 
@@ -546,12 +550,12 @@ export function parseSelectedOfferIdsFromOffersField(values) {
         .filter(Boolean);
 }
 
-export function serializePromotionOffersField(promoExceptions, offerSubstitutions, selectedOfferIds) {
+export function serializePromotionOffersField(promoExceptions, offerSubstitutions, selectedOfferIds, displayToCq) {
     const selectedLines = Array.isArray(selectedOfferIds) ? selectedOfferIds.filter(Boolean) : [];
     return [
         ...selectedLines,
-        ...serializePromoCodeExceptions(promoExceptions),
-        ...serializeOfferSubstitutions(offerSubstitutions),
+        ...serializePromoCodeExceptions(promoExceptions, displayToCq),
+        ...serializeOfferSubstitutions(offerSubstitutions, displayToCq),
     ];
 }
 
@@ -645,13 +649,14 @@ export function buildPromotionOffersFieldValues(promotionFragment, selectedOffer
     let promoExceptions = overrides.promoExceptions ?? parsed.promoExceptions;
     let offerSubstitutions = overrides.offerSubstitutions ?? parsed.offerSubstitutions;
     const geos = promotionFragment?.getFieldValues?.('geos') ?? [];
+    const displayToCq = new Map(geos.map((g) => [formatGeoDisplayLabel(g), g]).filter(([label]) => label));
     if (geos.length) {
-        const valid = new Set(parseCountriesFromGeos(geos));
+        const valid = new Set(displayToCq.keys());
         const isValid = (key) => valid.has(key.split('|')[1]);
         promoExceptions = new Map([...promoExceptions].filter(([k]) => isValid(k)));
         offerSubstitutions = new Map([...offerSubstitutions].filter(([k]) => isValid(k)));
     }
-    return serializePromotionOffersField(promoExceptions, offerSubstitutions, selectedOfferIds);
+    return serializePromotionOffersField(promoExceptions, offerSubstitutions, selectedOfferIds, displayToCq);
 }
 
 export function getEffectiveSubstituteOffer(offerSubstitutions, baseOfferId, country) {

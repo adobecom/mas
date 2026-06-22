@@ -1082,6 +1082,28 @@ describe('parseOfferOverrides and substituteMap after OSI substitution refactor'
         expect(noMatch.promoProjects[0].substituteMap).to.deep.equal({ 'OSI-2': 'OSI-WILD' });
     });
 
+    it('applies substituteMap when geo is a CQ locale tag (mas:locale/...)', async () => {
+        const result = await promotionsTransformer.process(
+            createContext({
+                regionLocale: 'en_AU',
+                promises: {
+                    promotions: Promise.resolve({
+                        status: 200,
+                        activeProjects: [
+                            {
+                                fragmentPaths: [],
+                                offerOverrides: [],
+                                offerSubstitutions: [{ baseOsi: 'OSI-1', substituteOsi: 'OSI-AU', geo: 'mas:locale/en_AU' }],
+                                promoCode: null,
+                            },
+                        ],
+                    }),
+                },
+            }),
+        );
+        expect(result.promoProjects[0].substituteMap).to.deep.equal({ 'OSI-1': 'OSI-AU' });
+    });
+
     it('treats trailing colon in substitute line as wildcard geo', async () => {
         const project = makeProject({ surfaces: ['acom'], geos: [] });
         const hydrated = makeHydratedProject({ offers: ['substitute:OSI-1:OSI-X:'] });

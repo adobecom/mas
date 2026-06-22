@@ -163,10 +163,8 @@ function parseOfferOverrides(lines) {
     return lines
         .map((line) => {
             if (line.startsWith('substitute|')) return null;
-            const parts = line.split(':');
-            const [osisPart, promoCode] = parts;
-            const geosPart = parts.slice(2).join(':');
-            if (!promoCode?.trim()) return null;
+            const [osisPart, promoCode, geosPart = ''] = line.split('|');
+            if (!promoCode) return null;
             return {
                 osis: osisPart ? osisPart.split(',') : [],
                 promoCode,

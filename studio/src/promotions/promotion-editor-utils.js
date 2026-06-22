@@ -504,10 +504,8 @@ export function parsePromotionOffersField(values) {
             }
             continue;
         }
-        const parts = entry.split(':');
-        if (parts.length < 3) continue;
-        const [offerId, promoCode, ...geoParts] = parts;
-        const country = formatGeoDisplayLabel(geoParts.join(':')) || geoParts.join(':');
+        const [offerId, promoCode, geoStr = ''] = entry.split('|');
+        const country = formatGeoDisplayLabel(geoStr) || geoStr;
         if (!offerId || !promoCode || !country) continue;
         promoExceptions.set(`${offerId}|${country}`, promoCode);
     }
@@ -527,7 +525,7 @@ export function serializePromoCodeExceptions(map, displayToCq) {
     return [...map.entries()].map(([key, code]) => {
         const [offerId, label] = key.split('|');
         const geoTag = displayToCq?.get(label) ?? label;
-        return `${offerId}:${code}:${geoTag}`;
+        return `${offerId}|${code}|${geoTag}`;
     });
 }
 

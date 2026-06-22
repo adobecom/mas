@@ -199,7 +199,7 @@ describe('MasPromotionsItemsTable', () => {
                 .type=${TABLE_TYPE.OFFERS}
                 .defaultPromoCode=${'DEFAULT'}
                 .geos=${['mas:locale/CA_en', 'mas:locale/US']}
-                .promoCodeExceptions=${['offer-1:OVERRIDE:CA_en']}
+                .promoCodeExceptions=${['offer-1|OVERRIDE|CA_en']}
             ></mas-promotions-items-table>
         `);
         await el.updateComplete;
@@ -217,7 +217,7 @@ describe('MasPromotionsItemsTable', () => {
                 .type=${TABLE_TYPE.OFFERS}
                 .defaultPromoCode=${'DEFAULT-CODE'}
                 .geos=${['mas:locale/US', 'mas:locale/CA_en']}
-                .promoCodeExceptions=${['offer-expand:US-OVERRIDE:US', 'offer-expand:CA-OVERRIDE:CA_en']}
+                .promoCodeExceptions=${['offer-expand|US-OVERRIDE|US', 'offer-expand|CA-OVERRIDE|CA_en']}
             ></mas-promotions-items-table>
         `);
         await el.updateComplete;

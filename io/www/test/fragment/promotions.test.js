@@ -822,9 +822,9 @@ describe('promotions', () => {
             const project = makeProject({ surfaces: ['acom'], geos: [] });
             const hydrated = makeHydratedProject({
                 offers: [
-                    'OSI-1:BLACKFRIDAY:/content/cq:tags/mas/country/US,/content/cq:tags/mas/country/CA',
-                    ':GLOBAL:',
-                    'OSI-2:SPECIAL:',
+                    'OSI-1|BLACKFRIDAY|/content/cq:tags/mas/country/US,/content/cq:tags/mas/country/CA',
+                    '|GLOBAL|',
+                    'OSI-2|SPECIAL|',
                 ],
             });
             fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
@@ -880,7 +880,7 @@ describe('promotions', () => {
         it('skips offerLines with missing promoCode', async () => {
             fetchStub = sinon.stub(globalThis, 'fetch');
             const project = makeProject({ surfaces: ['acom'], geos: [] });
-            const hydrated = makeHydratedProject({ offers: ['OSI-1:', 'OSI-2:VALID'] });
+            const hydrated = makeHydratedProject({ offers: ['OSI-1|', 'OSI-2|VALID'] });
             fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
             fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
 
@@ -895,7 +895,7 @@ describe('promotions', () => {
             fetchStub = sinon.stub(globalThis, 'fetch');
             const project = makeProject({ surfaces: ['acom'], geos: [] });
             const hydrated = makeHydratedProject({
-                offers: ['substitute|OSI-A|OSI-B', 'OSI-1:BLACKFRIDAY:/content/cq:tags/mas/country/US'],
+                offers: ['substitute|OSI-A|OSI-B', 'OSI-1|BLACKFRIDAY|/content/cq:tags/mas/country/US'],
             });
             fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
             fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
@@ -982,7 +982,7 @@ describe('parseOfferOverrides and substituteMap after OSI substitution refactor'
 
     it('parses normal offer override lines correctly when no substitute lines are present', async () => {
         const project = makeProject({ surfaces: ['acom'], geos: [] });
-        const hydrated = makeHydratedProject({ offers: ['OSI-1:BLACKFRIDAY', ':GLOBAL:'] });
+        const hydrated = makeHydratedProject({ offers: ['OSI-1|BLACKFRIDAY', '|GLOBAL|'] });
         fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
         fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
 
@@ -1147,7 +1147,7 @@ describe('parseOfferOverrides and substituteMap after OSI substitution refactor'
 
     it('normal offer overrides still build promoMap correctly when substitute lines are also present', async () => {
         const project = makeProject({ surfaces: ['acom'], geos: [] });
-        const hydrated = makeHydratedProject({ offers: ['substitute|OSI-A|OSI-B|mas:country/us', 'OSI-1:BLACKFRIDAY'] });
+        const hydrated = makeHydratedProject({ offers: ['substitute|OSI-A|OSI-B|mas:country/us', 'OSI-1|BLACKFRIDAY'] });
         fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
         fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
 

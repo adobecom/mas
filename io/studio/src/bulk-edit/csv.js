@@ -1,4 +1,5 @@
 const HEADERS = ['fragment_id', 'path', 'locale', 'field', 'find', 'replace', 'etag', 'status'];
+const CSV_MARKER = HEADERS[0];
 
 const FORMULA_LEAD = /^['=+\-@\t\r]/;
 
@@ -80,6 +81,15 @@ function buildResultRowKeys(results) {
     return keys;
 }
 
+function applyUserReplaceValues(rows, userRows) {
+    if (!userRows?.length) return rows;
+    const replaceByKey = new Map(userRows.map((row) => [rowKey(row), row.replace ?? '']));
+    for (const row of rows) {
+        row.replace = replaceByKey.get(rowKey(row)) ?? row.replace;
+    }
+    return rows;
+}
+
 function toCsv(rows) {
     const header = HEADERS.join(',');
     const body = (rows || []).map((row) => HEADERS.map((name) => escape(row[name])).join(','));
@@ -136,6 +146,88 @@ function fromCsv(text) {
     });
 }
 
+function contentType(params) {
+    return (params.__ow_headers?.['content-type'] || '').split(';')[0].trim().toLowerCase();
+}
+
+function readOwBodyString(params) {
+    if (params.__ow_body == null) return '';
+    const body = params.__ow_body;
+    if (Buffer.isBuffer(body)) return body.toString('utf8');
+    if (typeof body !== 'string') return String(body);
+    return body;
+}
+
+function tryDecodeBase64(body, isValid) {
+    try {
+        const decoded = Buffer.from(body, 'base64').toString('utf8');
+        if (isValid(decoded)) return decoded;
+    } catch {}
+    return body;
+}
+
+function parseRawBody(params) {
+    const body = readOwBodyString(params);
+    if (!body) return '';
+    const trimmed = body.trim();
+    if (trimmed.startsWith('\uFEFF') || trimmed.startsWith(CSV_MARKER)) return body;
+    return tryDecodeBase64(body, (decoded) => decoded.includes(CSV_MARKER));
+}
+
+function isCsvContentType(params) {
+    return contentType(params) === 'text/csv';
+}
+
+function isMultipartContentType(params) {
+    return contentType(params) === 'multipart/form-data';
+}
+
+function parseMultipartBoundary(contentType) {
+    const match = /boundary=([^;]+)/i.exec(contentType || '');
+    if (!match) return null;
+    return match[1].trim().replace(/^"|"$/g, '');
+}
+
+function parseMultipartRawBody(params) {
+    const body = readOwBodyString(params);
+    if (!body) return '';
+    if (body.trimStart().startsWith('--')) return body;
+    return tryDecodeBase64(body, (decoded) => decoded.trimStart().startsWith('--'));
+}
+
+function extractCsvFromMultipart(body, contentType) {
+    const boundary = parseMultipartBoundary(contentType);
+    if (!boundary) return '';
+    const delimiter = `--${boundary}`;
+    for (const section of body.split(delimiter)) {
+        const trimmed = section.replace(/^\r?\n/, '').replace(/\r?\n--?\s*$/, '');
+        if (!trimmed || trimmed === '--') continue;
+        const splitAt = trimmed.indexOf('\r\n\r\n');
+        let content;
+        if (splitAt >= 0) {
+            content = trimmed.slice(splitAt + 4);
+        } else {
+            const lfSplit = trimmed.indexOf('\n\n');
+            content = lfSplit >= 0 ? trimmed.slice(lfSplit + 2) : trimmed;
+        }
+        content = content.replace(/\r?\n--\s*$/, '').trim();
+        if (content.includes(CSV_MARKER)) return content;
+    }
+    return '';
+}
+
+function parseCsvUploadBody(params) {
+    const ct = params.__ow_headers?.['content-type'] || '';
+    if (isMultipartContentType(params)) {
+        return extractCsvFromMultipart(parseMultipartRawBody(params), ct);
+    }
+    return parseRawBody(params);
+}
+
+function isCsvUpload(params) {
+    return isCsvContentType(params) || isMultipartContentType(params);
+}
+
 module.exports = {
     HEADERS,
     parseJobIdParam,
@@ -143,6 +235,14 @@ module.exports = {
     flattenResultsToRows,
     filterResultsByUserCsv,
     buildResultRowKeys,
+    applyUserReplaceValues,
     toCsv,
     fromCsv,
+    parseRawBody,
+    parseCsvUploadBody,
+    parseMultipartRawBody,
+    extractCsvFromMultipart,
+    isCsvContentType,
+    isMultipartContentType,
+    isCsvUpload,
 };

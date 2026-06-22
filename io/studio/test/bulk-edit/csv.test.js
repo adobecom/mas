@@ -8,7 +8,74 @@ const {
     toCsv,
     fromCsv,
     buildResultRowKeys,
+    applyUserReplaceValues,
+    parseRawBody,
+    parseCsvUploadBody,
+    extractCsvFromMultipart,
+    isCsvContentType,
+    isMultipartContentType,
+    isCsvUpload,
 } = require('../../src/bulk-edit/csv.js');
+
+const sampleCsv = `${HEADERS.join(',')}\na,/p/a,en_US,subtitle,school,,e1,PUBLISHED\n`;
+
+describe('bulk-edit/csv: parseRawBody', () => {
+    it('returns an empty string when __ow_body is missing', () => {
+        expect(parseRawBody({})).to.equal('');
+    });
+    it('returns plain text bodies as-is', () => {
+        const csv = 'fragment_id,path\na,/p/a\n';
+        expect(parseRawBody({ __ow_body: csv })).to.equal(csv);
+    });
+    it('decodes base64-encoded bodies', () => {
+        const csv = 'fragment_id,path\na,/p/a\n';
+        expect(parseRawBody({ __ow_body: Buffer.from(csv, 'utf8').toString('base64') })).to.equal(csv);
+    });
+});
+
+describe('bulk-edit/csv: isCsvContentType', () => {
+    it('detects text/csv', () => {
+        expect(isCsvContentType({ __ow_headers: { 'content-type': 'text/csv' } })).to.equal(true);
+    });
+    it('detects text/csv with charset', () => {
+        expect(isCsvContentType({ __ow_headers: { 'content-type': 'text/csv; charset=utf-8' } })).to.equal(true);
+    });
+    it('returns false for application/json', () => {
+        expect(isCsvContentType({ __ow_headers: { 'content-type': 'application/json' } })).to.equal(false);
+    });
+});
+
+describe('bulk-edit/csv: multipart upload', () => {
+    const boundary = '----BulkEditFormBoundary';
+    const multipartBody =
+        `------BulkEditFormBoundary\r\n` +
+        `Content-Disposition: form-data; name="file"; filename="demo.csv"\r\n` +
+        `Content-Type: text/csv\r\n\r\n` +
+        `${sampleCsv}\r\n` +
+        `------BulkEditFormBoundary--\r\n`;
+
+    it('detects multipart/form-data', () => {
+        expect(
+            isMultipartContentType({
+                __ow_headers: { 'content-type': 'multipart/form-data; boundary=----BulkEditFormBoundary' },
+            }),
+        ).to.equal(true);
+    });
+    it('isCsvUpload accepts multipart', () => {
+        expect(isCsvUpload({ __ow_headers: { 'content-type': `multipart/form-data; boundary=${boundary}` } })).to.equal(true);
+    });
+    it('extracts CSV from a multipart body', () => {
+        const csv = extractCsvFromMultipart(multipartBody, `multipart/form-data; boundary=${boundary}`);
+        expect(csv).to.equal(sampleCsv.trim());
+    });
+    it('parseCsvUploadBody reads CSV from multipart params', () => {
+        const csv = parseCsvUploadBody({
+            __ow_body: multipartBody,
+            __ow_headers: { 'content-type': `multipart/form-data; boundary=${boundary}` },
+        });
+        expect(csv).to.equal(sampleCsv.trim());
+    });
+});
 
 describe('bulk-edit/csv: parseJobIdParam', () => {
     it('detects a .csv suffix', () => {
@@ -131,6 +198,32 @@ describe('bulk-edit/csv: round-trip', () => {
         expect(dataLine).to.include("'=1+2");
         expect(dataLine).to.include("'@SUM(A1)");
         expect(fromCsv(text)).to.deep.equal(rows);
+    });
+});
+
+describe('bulk-edit/csv: applyUserReplaceValues', () => {
+    it('merges replace values from uploaded rows by row key', () => {
+        const rows = [
+            {
+                fragment_id: 'a',
+                path: '/p/a',
+                locale: 'en_US',
+                field: 'subtitle',
+                find: 'school',
+                replace: '',
+                etag: 'e1',
+                status: 'PUBLISHED',
+            },
+        ];
+        const userRows = [{ fragment_id: 'a', field: 'subtitle', find: 'school', replace: 'academy' }];
+        applyUserReplaceValues(rows, userRows);
+        expect(rows[0].replace).to.equal('academy');
+    });
+
+    it('returns rows unchanged when userRows is empty', () => {
+        const rows = [{ fragment_id: 'a', field: 'subtitle', find: 'school', replace: '' }];
+        expect(applyUserReplaceValues(rows, [])).to.equal(rows);
+        expect(rows[0].replace).to.equal('');
     });
 });
 

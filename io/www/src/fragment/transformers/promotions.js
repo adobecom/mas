@@ -103,7 +103,6 @@ async function fetchProjects(context) {
         startDate: fields?.startDate ?? null,
         endDate: fields?.endDate ?? null,
         tags: fields?.tags ?? [],
-        offerLines: fields?.offers ?? [],
     }));
 
     return cacheProjects(context.preview, projects);
@@ -119,10 +118,11 @@ function toInstant(value) {
 const PROMO_TAG_PREFIX = 'mas:promotion/';
 
 /**
- * Parses offer substitution lines of the form "substitute:<baseOsi>:<substituteOsi>".
- * Each line overrides one OSI with another; geo targeting is inherited from the project's geos field.
+ * Parses offer substitution lines of the form "substitute:<baseOsi>:<substituteOsi>[:<geo>]".
+ * The optional geo suffix is a raw locale (e.g. "es_CO") or country code (e.g. "co").
+ * Omitting the geo suffix makes the substitution a wildcard (applies to all geos).
  * @param {string[]} lines
- * @returns {{ baseOsi: string, substituteOsi: string }[]}
+ * @returns {{ baseOsi: string, substituteOsi: string, geo: string|null }[]}
  */
 function parseOfferSubstitutions(lines) {
     return lines
@@ -130,9 +130,9 @@ function parseOfferSubstitutions(lines) {
             if (!line.startsWith('substitute:')) return null;
             const parts = line.split(':');
             if (parts.length < 3) return null;
-            const [, baseOsi, substituteOsi] = parts;
+            const [, baseOsi, substituteOsi, geo] = parts;
             if (!baseOsi?.trim() || !substituteOsi?.trim()) return null;
-            return { baseOsi: baseOsi.trim(), substituteOsi: substituteOsi.trim() };
+            return { baseOsi: baseOsi.trim(), substituteOsi: substituteOsi.trim(), geo: geo?.trim() || null };
         })
         .filter(Boolean);
 }
@@ -146,7 +146,10 @@ function parseOfferSubstitutions(lines) {
 function buildSubstituteMap(substitutions, { regionLocale, country }) {
     const map = {};
     for (const sub of substitutions) {
-        if (!sub.geos?.length || matchesGeo(sub.geos, { regionLocale, country })) {
+        if (
+            !sub.geo ||
+            matchesGeo([sub.geo.includes('_') ? `mas:locale/${sub.geo}` : `mas:country/${sub.geo}`], { regionLocale, country })
+        ) {
             map[sub.baseOsi] = sub.substituteOsi;
         }
     }
@@ -342,8 +345,9 @@ async function hydrateProject(project, { baseUrl, surface, defaultLocale, resolv
 
     const hydratedProject = hydrateResponse.body;
     const fragmentPaths = parseFragmentPaths(hydratedProject);
-    const offerOverrides = parseOfferOverrides(project.offerLines);
-    const offerSubstitutions = parseOfferSubstitutions(project.offerLines).map((sub) => ({ ...sub, geos: project.geos }));
+    const offerLines = hydratedProject.fields?.offers ?? [];
+    const offerOverrides = parseOfferOverrides(offerLines);
+    const offerSubstitutions = parseOfferSubstitutions(offerLines);
     const promoCode = hydratedProject.fields?.promoCode ?? null;
     if (!fragmentPaths.length && !offerOverrides.length && !offerSubstitutions.length) {
         logDebug(() => `Promotion project ${project.id} has no fragments or offer overrides, skipping`, context);

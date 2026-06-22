@@ -45,18 +45,18 @@ function makeProject({
     startDate = START,
     endDate = END,
     tags = [PROMO_TAG],
-    offers = [],
 } = {}) {
-    return { id, path, fields: { surfaces, geos, startDate, endDate, tags, offers } };
+    return { id, path, fields: { surfaces, geos, startDate, endDate, tags } };
 }
 
 function makeHydratedProject({
     fragmentId = 'frag-1',
     fragmentPath = '/content/dam/mas/acom/en_US/offers/offer-1',
     promoCode = 'PROMO10',
+    offers = [],
 } = {}) {
     return {
-        fields: { fragments: [fragmentId], promoCode },
+        fields: { fragments: [fragmentId], promoCode, offers },
         references: {
             [fragmentId]: {
                 type: 'content-fragment',
@@ -778,18 +778,16 @@ describe('promotions', () => {
             expect(firstPromoMap(result)).to.deep.equal({ 'OSI-1': 'AU-PROMO' });
         });
 
-        it('parses offerLines from project folder and includes offerOverrides on activeProjects', async () => {
+        it('parses offerLines from hydrated project and includes offerOverrides on activeProjects', async () => {
             fetchStub = sinon.stub(globalThis, 'fetch');
-            const project = makeProject({
-                surfaces: ['acom'],
-                geos: [],
+            const project = makeProject({ surfaces: ['acom'], geos: [] });
+            const hydrated = makeHydratedProject({
                 offers: [
                     'OSI-1:BLACKFRIDAY:/content/cq:tags/mas/country/US,/content/cq:tags/mas/country/CA',
                     ':GLOBAL:',
                     'OSI-2:SPECIAL:',
                 ],
             });
-            const hydrated = makeHydratedProject();
             fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
             fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
 
@@ -810,12 +808,10 @@ describe('promotions', () => {
 
         it('parses substitute lines and builds geo-scoped substituteMap', async () => {
             fetchStub = sinon.stub(globalThis, 'fetch');
-            const project = makeProject({
-                surfaces: ['acom'],
-                geos: [],
+            const project = makeProject({ surfaces: ['acom'], geos: [] });
+            const hydrated = makeHydratedProject({
                 offers: ['substitute:OSI-1:OSI-DE', 'substitute:OSI-2:OSI-US', 'substitute::bad', 'substitute:only-two-parts'],
             });
-            const hydrated = makeHydratedProject({ fragmentPaths: ['offers/offer-1'] });
             fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
             fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
 
@@ -824,8 +820,8 @@ describe('promotions', () => {
             clearPromoCache();
 
             expect(initResult.activeProjects[0].offerSubstitutions).to.deep.equal([
-                { baseOsi: 'OSI-1', substituteOsi: 'OSI-DE', geos: [] },
-                { baseOsi: 'OSI-2', substituteOsi: 'OSI-US', geos: [] },
+                { baseOsi: 'OSI-1', substituteOsi: 'OSI-DE', geo: null },
+                { baseOsi: 'OSI-2', substituteOsi: 'OSI-US', geo: null },
             ]);
 
             const processResult = await promotionsTransformer.process(
@@ -839,8 +835,8 @@ describe('promotions', () => {
 
         it('skips offerLines with missing promoCode', async () => {
             fetchStub = sinon.stub(globalThis, 'fetch');
-            const project = makeProject({ surfaces: ['acom'], geos: [], offers: ['OSI-1:', 'OSI-2:VALID'] });
-            const hydrated = makeHydratedProject();
+            const project = makeProject({ surfaces: ['acom'], geos: [] });
+            const hydrated = makeHydratedProject({ offers: ['OSI-1:', 'OSI-2:VALID'] });
             fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
             fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
 
@@ -853,12 +849,10 @@ describe('promotions', () => {
 
         it('does not treat substitute: lines as offer overrides when both are present', async () => {
             fetchStub = sinon.stub(globalThis, 'fetch');
-            const project = makeProject({
-                surfaces: ['acom'],
-                geos: [],
+            const project = makeProject({ surfaces: ['acom'], geos: [] });
+            const hydrated = makeHydratedProject({
                 offers: ['substitute:OSI-A:OSI-B', 'OSI-1:BLACKFRIDAY:/content/cq:tags/mas/country/US'],
             });
-            const hydrated = makeHydratedProject();
             fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
             fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
 
@@ -943,12 +937,8 @@ describe('parseOfferOverrides and substituteMap after OSI substitution refactor'
     });
 
     it('parses normal offer override lines correctly when no substitute lines are present', async () => {
-        const project = makeProject({
-            surfaces: ['acom'],
-            geos: [],
-            offers: ['OSI-1:BLACKFRIDAY', ':GLOBAL:'],
-        });
-        const hydrated = makeHydratedProject({ fragmentPaths: ['offers/offer-1'] });
+        const project = makeProject({ surfaces: ['acom'], geos: [] });
+        const hydrated = makeHydratedProject({ offers: ['OSI-1:BLACKFRIDAY', ':GLOBAL:'] });
         fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
         fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
 
@@ -988,9 +978,7 @@ describe('parseOfferOverrides and substituteMap after OSI substitution refactor'
                             {
                                 fragmentPaths: [],
                                 offerOverrides: [],
-                                offerSubstitutions: [
-                                    { baseOsi: 'OSI-1', substituteOsi: 'OSI-DE', geos: ['/content/cq:tags/mas/country/DE'] },
-                                ],
+                                offerSubstitutions: [{ baseOsi: 'OSI-1', substituteOsi: 'OSI-DE', geo: 'de' }],
                                 promoCode: null,
                             },
                         ],
@@ -1012,9 +1000,7 @@ describe('parseOfferOverrides and substituteMap after OSI substitution refactor'
                             {
                                 fragmentPaths: [],
                                 offerOverrides: [],
-                                offerSubstitutions: [
-                                    { baseOsi: 'OSI-1', substituteOsi: 'OSI-DE', geos: ['/content/cq:tags/mas/country/DE'] },
-                                ],
+                                offerSubstitutions: [{ baseOsi: 'OSI-1', substituteOsi: 'OSI-DE', geo: 'de' }],
                                 promoCode: null,
                             },
                         ],
@@ -1025,13 +1011,53 @@ describe('parseOfferOverrides and substituteMap after OSI substitution refactor'
         expect(result.promoProjects[0].substituteMap).to.deep.equal({ 'OSI-1': 'OSI-DE' });
     });
 
+    it('applies locale-style geo substitution only when regionLocale matches', async () => {
+        const subs = [
+            { baseOsi: 'OSI-1', substituteOsi: 'OSI-CO', geo: 'es_CO' },
+            { baseOsi: 'OSI-2', substituteOsi: 'OSI-WILD', geo: null },
+        ];
+        const match = await promotionsTransformer.process(
+            createContext({
+                regionLocale: 'es_CO',
+                promises: {
+                    promotions: Promise.resolve({
+                        status: 200,
+                        activeProjects: [{ fragmentPaths: [], offerOverrides: [], offerSubstitutions: subs, promoCode: null }],
+                    }),
+                },
+            }),
+        );
+        expect(match.promoProjects[0].substituteMap).to.deep.equal({ 'OSI-1': 'OSI-CO', 'OSI-2': 'OSI-WILD' });
+
+        const noMatch = await promotionsTransformer.process(
+            createContext({
+                regionLocale: 'fr_FR',
+                promises: {
+                    promotions: Promise.resolve({
+                        status: 200,
+                        activeProjects: [{ fragmentPaths: [], offerOverrides: [], offerSubstitutions: subs, promoCode: null }],
+                    }),
+                },
+            }),
+        );
+        expect(noMatch.promoProjects[0].substituteMap).to.deep.equal({ 'OSI-2': 'OSI-WILD' });
+    });
+
+    it('treats trailing colon in substitute line as wildcard geo', async () => {
+        const project = makeProject({ surfaces: ['acom'], geos: [] });
+        const hydrated = makeHydratedProject({ offers: ['substitute:OSI-1:OSI-X:'] });
+        fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+        fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
+        const initResult = await promotionsTransformer.init(createContext());
+        clearPromoCache();
+        expect(initResult.activeProjects[0].offerSubstitutions).to.deep.equal([
+            { baseOsi: 'OSI-1', substituteOsi: 'OSI-X', geo: null },
+        ]);
+    });
+
     it('normal offer overrides still build promoMap correctly when substitute lines are also present', async () => {
-        const project = makeProject({
-            surfaces: ['acom'],
-            geos: [],
-            offers: ['substitute:OSI-A:OSI-B', 'OSI-1:BLACKFRIDAY'],
-        });
-        const hydrated = makeHydratedProject({ fragmentPaths: ['offers/offer-1'] });
+        const project = makeProject({ surfaces: ['acom'], geos: [] });
+        const hydrated = makeHydratedProject({ offers: ['substitute:OSI-A:OSI-B', 'OSI-1:BLACKFRIDAY'] });
         fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
         fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
 

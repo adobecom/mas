@@ -1,4 +1,7 @@
 import { build } from 'esbuild';
+import { execFileSync } from 'child_process';
+import { fileURLToPath } from 'url';
+import { dirname, resolve } from 'path';
 
 const defaults = {
     alias: { react: '../mocks/react.js' },
@@ -29,10 +32,6 @@ await build({
     entryPoints: ['src/spectrum.css.js'],
     outfile: 'libs/spectrum.js',
 });
-
-import { execFileSync } from 'child_process';
-import { fileURLToPath } from 'url';
-import { dirname, resolve } from 'path';
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 execFileSync('node', ['studio/design-system/scripts/sync.js'], {

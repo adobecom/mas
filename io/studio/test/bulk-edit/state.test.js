@@ -102,7 +102,7 @@ describe('bulk-edit/state: user CSV', () => {
         await mod.writeUserCsv('abc', value);
         expect(await mod.readUserCsv('abc')).to.deep.equal(value);
     });
-    it('uses MAX_TTL for user CSV writes', async () => {
+    it('uses JOB_CACHE_TTL for user CSV writes', async () => {
         const puts = [];
         const fakeState = {
             put: async (key, value, opts) => {
@@ -116,7 +116,7 @@ describe('bulk-edit/state: user CSV', () => {
         });
         await mod.writeUserCsv('abc', { rows: [] });
         expect(puts[0].key).to.equal('bulk-edit.abc.csv');
-        expect(puts[0].opts.ttl).to.equal(31536000);
+        expect(puts[0].opts.ttl).to.equal(mod.JOB_CACHE_TTL);
     });
     it('deleteUserCsv removes the stored upload', async () => {
         const { mod, store } = load();
@@ -124,5 +124,59 @@ describe('bulk-edit/state: user CSV', () => {
         await mod.deleteUserCsv('abc');
         expect(store['bulk-edit.abc.csv']).to.equal(undefined);
         expect(await mod.readUserCsv('abc')).to.equal(null);
+    });
+});
+
+describe('bulk-edit/state: report', () => {
+    it('keys the report as bulk-edit.{jobId}.report and stores plain JSON', async () => {
+        const { mod, store } = load();
+        const report = { dryRun: true, totalFragments: 3, failed: 0 };
+        await mod.writeReport('abc', report);
+        expect(store['bulk-edit.abc.report']).to.equal(JSON.stringify(report));
+        expect(await mod.readReport('abc')).to.deep.equal(report);
+    });
+    it('returns null for an unknown report', async () => {
+        const { mod } = load();
+        expect(await mod.readReport('missing')).to.equal(null);
+    });
+});
+
+describe('bulk-edit/state: results', () => {
+    it('keys results as bulk-edit.{jobId}.results and stores brotli', async () => {
+        const { mod, store } = load();
+        const items = [{ id: 'f1', matches: [{ field: 'subtitle', value: 'x' }] }];
+        await mod.writeResults('abc', items);
+        expect(store['bulk-edit.abc.results']).to.not.equal(JSON.stringify(items));
+        expect(await mod.readResults('abc')).to.deep.equal(items);
+    });
+    it('uses JOB_CACHE_TTL for terminal patchJob', async () => {
+        const puts = [];
+        const fakeState = {
+            put: async (key, value, opts) => {
+                puts.push({ key, value, opts });
+            },
+            get: async () => ({ value: mod.encodeStateValue({ status: 'RUNNING' }) }),
+            delete: async () => {},
+        };
+        const mod = proxyquire('../../src/bulk-edit/state.js', {
+            '@adobe/aio-lib-state': { init: async () => fakeState, '@noCallThru': true },
+        });
+        await mod.patchJob('abc', { status: 'DONE' }, mod.JOB_CACHE_TTL);
+        expect(puts[puts.length - 1].opts.ttl).to.equal(mod.JOB_CACHE_TTL);
+    });
+});
+
+describe('bulk-edit/state: dry-run list', () => {
+    it('keys the list as bulk-edit.{jobId}.dry-run and stores brotli, not plain JSON', async () => {
+        const { mod, store } = load();
+        const list = [{ id: 'f1', status: 'WOULD_REPLACE', matches: [{ field: 'subtitle', value: 'x' }] }];
+        await mod.writeDryRun('abc', list);
+        expect(store['bulk-edit.abc.dry-run']).to.not.equal(JSON.stringify(list));
+        expect(mod.decodeStateValue(store['bulk-edit.abc.dry-run'])).to.deep.equal(list);
+        expect(await mod.readDryRun('abc')).to.deep.equal(list);
+    });
+    it('returns null for an unknown dry-run list', async () => {
+        const { mod } = load();
+        expect(await mod.readDryRun('missing')).to.equal(null);
     });
 });

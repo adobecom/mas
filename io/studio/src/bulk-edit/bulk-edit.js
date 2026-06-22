@@ -2,19 +2,34 @@ const crypto = require('crypto');
 const { Core } = require('@adobe/aio-sdk');
 const { errorResponse, getBearerToken, isAllowed, parseOwBody } = require('../../utils.js');
 const { invokeAsyncAction, buildSiblingActionName } = require('../common.js');
-const { readJob, writeJob, patchJob, readUserCsv, writeUserCsv, deleteUserCsv } = require('./state.js');
+const {
+    readJob,
+    writeJob,
+    patchJob,
+    readUserCsv,
+    writeUserCsv,
+    deleteUserCsv,
+    readReport,
+    touchJobCache,
+    JOB_CACHE_TTL,
+} = require('./state.js');
 const { normalizeLocales } = require('./search.js');
+const { buildFindReport } = require('./find-worker.js');
+const {
+    exportFileExists,
+    exportPresignUrl,
+    deleteJobExports,
+    writeJobExports,
+} = require('./export.js');
+const { resolveFindSourceItems } = require('./find-results.js');
 const {
     parseJobIdParam,
     filterResultsByUserCsv,
-    flattenResultsToRows,
     buildResultRowKeys,
     rowKey,
-    toCsv,
     fromCsv,
     parseCsvUploadBody,
     isCsvUpload,
-    applyUserReplaceValues,
 } = require('./csv.js');
 
 const logger = Core.Logger('bulk-edit', { level: 'info' });
@@ -22,16 +37,6 @@ const logger = Core.Logger('bulk-edit', { level: 'info' });
 const WORKER_ACTIONS = { find: 'bulk-edit-find-worker' };
 const REQUIRED_INPUTS = { find: ['find', 'surface'] };
 const TERMINAL_STATUSES = new Set(['DONE', 'CANCELLED']);
-const DEFAULT_PAGE_LIMIT = 50;
-const MAX_PAGE_LIMIT = 50;
-
-function parsePageParams(params) {
-    const offset = Math.max(0, Number.parseInt(params.offset, 10) || 0);
-    let limit = Number.parseInt(params.limit, 10);
-    if (!Number.isFinite(limit) || limit <= 0) limit = DEFAULT_PAGE_LIMIT;
-    if (limit > MAX_PAGE_LIMIT) limit = MAX_PAGE_LIMIT;
-    return { offset, limit };
-}
 
 function normalizeSearchInKey(searchIn) {
     if (searchIn == null || searchIn === '' || searchIn === '*') return '*';
@@ -91,7 +96,7 @@ async function handlePost(params) {
     if (!required) return errorResponse(400, `unsupported type '${params.type}'`, logger);
 
     const missing = required.filter((key) => params[key] === undefined || params[key] === '');
-    if (missing.length) return errorResponse(400, `missing parameter(s) '${missing}'`, logger);
+    if (missing.length) return errorResponse(400, `missing parameter(s) '${missing.join(', ')}'`, logger);
 
     const searchKey = buildSearchKey(params);
     const jobId = computeJobId(searchKey);
@@ -113,10 +118,9 @@ async function handlePost(params) {
 
     if (forceRefresh) {
         await deleteUserCsv(jobId);
+        await deleteJobExports(jobId);
     }
 
-    // runId supersedes any worker still running under this jobId: a forced refresh writes a fresh
-    // runId, and the previous worker stops (without clobbering state) when it sees the mismatch.
     const runId = crypto.randomUUID();
     await writeJob(jobId, {
         type: params.type,
@@ -134,12 +138,60 @@ async function handlePost(params) {
     return { statusCode: 202, body: { jobId, reused: false } };
 }
 
-function applyUserCsvFilter(results, userCsv) {
-    if (!userCsv?.rows?.length) {
-        return { items: results || [], filteredByUpload: false };
+function isTerminalJob(job) {
+    return TERMINAL_STATUSES.has(job.status);
+}
+
+async function buildProgressResponse(jobId, job, extras = {}) {
+    const body = {
+        jobId,
+        type: 'find',
+        status: job.status,
+        done: isTerminalJob(job),
+        total: job.total ?? 0,
+        ...extras,
+    };
+    if (job.exportReady) {
+        body.exportReady = true;
+        const exports = await resolveExportUrls(jobId, job);
+        if (exports) body.exports = exports;
     }
-    const items = filterResultsByUserCsv(results, userCsv.rows);
-    return { items, filteredByUpload: true };
+    if (job.error) body.error = job.error;
+    return { statusCode: 200, body };
+}
+
+async function resolveExportUrls(jobId, job) {
+    if (!job.exportReady || !isTerminalJob(job)) return null;
+    if (!(await exportFileExists(jobId, 'json'))) {
+        if (!(await refreshFindExports(jobId, job))) return null;
+    }
+    if (!(await exportFileExists(jobId, 'csv'))) {
+        if (!(await refreshFindExports(jobId, job))) return null;
+    }
+    return {
+        json: await exportPresignUrl(jobId, 'json'),
+        csv: await exportPresignUrl(jobId, 'csv'),
+    };
+}
+
+async function refreshFindExports(jobId, job) {
+    const resolvedJob = job || (await readJob(jobId));
+    const sourceItems = await resolveFindSourceItems(jobId, resolvedJob || {});
+    if (!sourceItems.length) return null;
+    const userCsv = await readUserCsv(jobId);
+    const userRows = userCsv?.rows;
+    const items = userRows?.length ? filterResultsByUserCsv(sourceItems, userRows) : sourceItems;
+    const report = buildFindReport(items);
+    const { exportedAt } = await writeJobExports(jobId, {
+        items,
+        report,
+        type: 'find',
+        filteredByUpload: !!userRows?.length,
+        dryRun: false,
+        userRows,
+    });
+    await patchJob(jobId, { total: items.length, exportedAt, exportReady: true }, JOB_CACHE_TTL);
+    return { report, filteredByUpload: !!userRows?.length };
 }
 
 async function handleCsvUpload(params) {
@@ -167,7 +219,7 @@ async function handleCsvUpload(params) {
         return errorResponse(400, error.message || 'invalid CSV', logger);
     }
 
-    const allowedKeys = buildResultRowKeys(job.results);
+    const allowedKeys = buildResultRowKeys(await resolveFindSourceItems(jobId, job));
     for (const row of rows) {
         if (!allowedKeys.has(rowKey(row))) {
             return errorResponse(400, `CSV row not found in job results: ${rowKey(row)}`, logger);
@@ -180,9 +232,53 @@ async function handleCsvUpload(params) {
         rows,
     });
 
+    const { report, filteredByUpload } = await refreshFindExports(jobId, job);
+
     return {
         statusCode: 202,
-        body: { jobId, rowsAccepted: rows.length, filteredByUpload: true },
+        body: {
+            jobId,
+            rowsAccepted: rows.length,
+            filteredByUpload,
+            total: report.total,
+            report,
+            exportReady: true,
+        },
+    };
+}
+
+async function handleCsvDelete(params) {
+    const authToken = getBearerToken(params);
+    if (!(await isAllowed(authToken, params.allowedClientId))) {
+        return errorResponse(401, 'Authorization failed', logger);
+    }
+
+    const { jobId } = params;
+    if (!jobId) return errorResponse(400, "missing parameter(s) 'jobId'", logger);
+
+    const job = await readJob(jobId);
+    if (!job) return errorResponse(404, `bulk-edit job ${jobId} not found`, logger);
+    if (!TERMINAL_STATUSES.has(job.status)) {
+        return errorResponse(400, `bulk-edit job ${jobId} is not ready (status: ${job.status})`, logger);
+    }
+
+    const userCsv = await readUserCsv(jobId);
+    if (!userCsv?.rows?.length) {
+        return errorResponse(404, `no uploaded CSV for job ${jobId}`, logger);
+    }
+
+    await deleteUserCsv(jobId);
+    const { report, filteredByUpload } = await refreshFindExports(jobId, job);
+
+    return {
+        statusCode: 200,
+        body: {
+            jobId,
+            filteredByUpload,
+            total: report.total,
+            report,
+            exportReady: true,
+        },
     };
 }
 
@@ -195,8 +291,11 @@ async function handleGet(params) {
     const rawJobId = params.jobId;
     if (!rawJobId) return errorResponse(400, "missing parameter(s) 'jobId'", logger);
 
-    const { jobId, wantsCsv } = parseJobIdParam(rawJobId);
+    const { jobId, wantsCsv, wantsJson } = parseJobIdParam(rawJobId);
     if (!jobId) return errorResponse(400, "missing parameter(s) 'jobId'", logger);
+    if (wantsCsv || wantsJson) {
+        return errorResponse(400, 'jobId suffix .json or .csv is not supported — export URLs are in the poll response', logger);
+    }
 
     const job = await readJob(jobId);
     if (!job) return errorResponse(404, `bulk-edit job ${jobId} not found`, logger);
@@ -205,39 +304,16 @@ async function handleGet(params) {
         return { error: { statusCode: 500, body: { status: 'FAILED', error: job.error, total: job.total } } };
     }
 
-    if (wantsCsv && !TERMINAL_STATUSES.has(job.status)) {
-        return errorResponse(400, `bulk-edit job ${jobId} is not ready for CSV export (status: ${job.status})`, logger);
+    if (isTerminalJob(job)) {
+        await touchJobCache(jobId, job);
     }
 
     const userCsv = await readUserCsv(jobId);
-    const { items, filteredByUpload } = applyUserCsvFilter(job.results, userCsv);
-
-    if (wantsCsv) {
-        const rows = applyUserReplaceValues(flattenResultsToRows(items), userCsv?.rows);
-        return {
-            statusCode: 200,
-            headers: {
-                'Content-Type': 'text/csv; charset=utf-8',
-                'Content-Disposition': `attachment; filename="${jobId}.csv"`,
-            },
-            body: toCsv(rows),
-        };
-    }
-
-    const { offset, limit } = parsePageParams(params);
-    const page = items.slice(offset, offset + limit);
-    return {
-        statusCode: 200,
-        body: {
-            status: job.status,
-            total: items.length,
-            offset,
-            limit,
-            done: job.status === 'DONE' || job.status === 'CANCELLED',
-            filteredByUpload,
-            items: page,
-        },
-    };
+    const report = await readReport(jobId);
+    return buildProgressResponse(jobId, job, {
+        filteredByUpload: !!userCsv?.rows?.length,
+        report,
+    });
 }
 
 async function main(params) {
@@ -251,9 +327,17 @@ async function main(params) {
             body.allowedClientId = params.allowedClientId;
             body.odinEndpoint = params.odinEndpoint;
             body.__ow_headers = params.__ow_headers;
+            body.type = 'find';
             return await handlePost(body);
         }
         if (method === 'get') return await handleGet(params);
+        if (method === 'delete') {
+            const authToken = getBearerToken(params);
+            if (!(await isAllowed(authToken, params.allowedClientId))) {
+                return errorResponse(401, 'Authorization failed', logger);
+            }
+            return await handleCsvDelete({ ...params, allowedClientId: params.allowedClientId });
+        }
         return errorResponse(405, `method '${method}' not allowed`, logger);
     } catch (error) {
         logger.error(JSON.stringify({ event: 'bulk-edit-error', error: error.message }));
@@ -266,15 +350,17 @@ module.exports = {
     handlePost,
     handleGet,
     handleCsvUpload,
-    applyUserCsvFilter,
+    handleCsvDelete,
+    refreshFindExports,
+    resolveFindSourceItems,
+    resolveExportUrls,
+    isTerminalJob,
+    buildProgressResponse,
     canonicalSearchKey,
     computeJobId,
     normalizeSearchInKey,
     normalizeLocalesKey,
     isForceRefresh,
-    parsePageParams,
-    DEFAULT_PAGE_LIMIT,
-    MAX_PAGE_LIMIT,
     WORKER_ACTIONS,
 };
 exports.main = main;

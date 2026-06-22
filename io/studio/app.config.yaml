@@ -40,10 +40,12 @@ application:
                         function: src/members/list.js
                         web: 'yes'
                         runtime: nodejs:22
-                    bulk-edit:
+                    bulk-edit-find:
                         function: src/bulk-edit/bulk-edit.js
                         web: 'yes'
                         runtime: nodejs:22
+                        inputs:
+                            bulkEditMode: find
                         annotations:
                             require-adobe-auth: false
                             final: true
@@ -53,7 +55,7 @@ application:
                         inputs:
                             odinEndpoint: $ODIN_ENDPOINT
                         limits:
-                            timeout: 1800000
+                            timeout: 3600000 # ms — 60 min (async worker max 3 h)
                         annotations:
                             require-adobe-auth: false
                             final: true

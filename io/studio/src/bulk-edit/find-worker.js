@@ -1,6 +1,8 @@
 const { Core } = require('@adobe/aio-sdk');
 const { buildSearchQuery, buildSearchPaths, searchPages, findMatches, extractLocale } = require('./search.js');
-const { readJob, patchJob } = require('./state.js');
+const { readJob, patchJob, writeReport, readUserCsv, writeResults, JOB_CACHE_TTL, JOB_RUNNING_TTL } = require('./state.js');
+const { filterResultsByUserCsv } = require('./csv.js');
+const { writeJobExports, writeFindFullExport } = require('./export.js');
 
 const logger = Core.Logger('bulk-edit-find-worker', { level: 'info' });
 
@@ -12,6 +14,15 @@ function buildFindResult(fragment, matches) {
     };
 }
 
+function buildFindReport(results) {
+    const byLocale = {};
+    for (const result of results) {
+        const locale = result.locale || 'unknown';
+        byLocale[locale] = (byLocale[locale] || 0) + 1;
+    }
+    return { total: results.length, byLocale };
+}
+
 async function resolveStop(jobId, runId) {
     const fresh = await readJob(jobId);
     if (!fresh || fresh.runId !== runId) return 'SUPERSEDED';
@@ -19,9 +30,38 @@ async function resolveStop(jobId, runId) {
     return null;
 }
 
+async function finalizeFindExport(jobId, results, status) {
+    await writeFindFullExport(jobId, results);
+    await writeResults(jobId, results);
+    const userCsv = await readUserCsv(jobId);
+    const items = userCsv?.rows?.length ? filterResultsByUserCsv(results, userCsv.rows) : results;
+    const report = buildFindReport(items);
+    const { exportedAt } = await writeJobExports(jobId, {
+        items,
+        report,
+        type: 'find',
+        filteredByUpload: !!userCsv?.rows?.length,
+        dryRun: false,
+        userRows: userCsv?.rows,
+    });
+    await writeReport(jobId, report);
+    await patchJob(
+        jobId,
+        {
+            status,
+            total: items.length,
+            exportReady: true,
+            exportedAt,
+            results: [],
+        },
+        JOB_CACHE_TTL,
+    );
+    return report;
+}
+
 async function finalizeStop(jobId, stop, results) {
     if (stop === 'CANCELLED') {
-        await patchJob(jobId, { status: 'CANCELLED', total: results.length });
+        await finalizeFindExport(jobId, results, 'CANCELLED');
     }
     return { status: stop, total: results.length };
 }
@@ -53,12 +93,13 @@ async function runFindWorker(jobId, { odinEndpoint, authToken, runId }) {
                 }
                 const stop = await resolveStop(jobId, runId);
                 if (stop) return finalizeStop(jobId, stop, results);
-                await patchJob(jobId, { results: [...results], total: results.length });
+                await patchJob(jobId, { results: [...results], total: results.length }, JOB_RUNNING_TTL);
+                await writeReport(jobId, buildFindReport(results), JOB_RUNNING_TTL);
             }
             const stop = await resolveStop(jobId, runId);
             if (stop) return finalizeStop(jobId, stop, results);
         }
-        await patchJob(jobId, { status: 'DONE', results, total: results.length });
+        await finalizeFindExport(jobId, results, 'DONE');
         return { status: 'DONE', total: results.length };
     } catch (error) {
         if ((await resolveStop(jobId, runId)) === null) {
@@ -79,5 +120,5 @@ async function main(params) {
     }
 }
 
-module.exports = { main, runFindWorker, buildFindResult };
+module.exports = { main, runFindWorker, buildFindResult, buildFindReport, finalizeFindExport };
 exports.main = main;

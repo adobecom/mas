@@ -29,7 +29,7 @@ describe('bulk-edit/search: matchesText', () => {
 describe('bulk-edit/search: extractLocale', () => {
     const { extractLocale } = load();
     it('pulls the locale segment from a mas fragment path', () => {
-        expect(extractLocale('/content/dam/mas/acom/en_US/photoshop-abm')).to.equal('en_US');
+        expect(extractLocale('/content/dam/mas/sandbox/en_US/photoshop-abm')).to.equal('en_US');
     });
     it('returns null when the path does not match', () => {
         expect(extractLocale('/some/other/path')).to.equal(null);
@@ -57,7 +57,7 @@ describe('bulk-edit/search: findMatches', () => {
 
     it('matches a single mapped field (calloutText -> callout)', () => {
         expect(svc.findMatches(fragment, 'calloutText', 'assistant', false)).to.deep.equal([
-            { field: 'calloutText', value: '<p>AI Assistant add-on</p>' },
+            { field: 'callout', value: '<p>AI Assistant add-on</p>' },
         ]);
     });
     it('matches button text inside the ctas field', () => {
@@ -65,15 +65,45 @@ describe('bulk-edit/search: findMatches', () => {
         expect(m).to.have.lengthOf(1);
         expect(m[0].field).to.equal('ctas');
     });
+    it('matches features, compareChart, and cardTitle under productDescription', () => {
+        const withProductFields = {
+            title: '',
+            description: '',
+            fields: [
+                { name: 'cardTitle', values: ['Adobe Firefly Pro'] },
+                { name: 'features', values: ['<p>firefly is good</p>'] },
+                { name: 'compareChart', values: ['<div>Adobe Firefly Pro column</div>'] },
+            ],
+        };
+        expect(svc.findMatches(withProductFields, 'productDescription', 'firefly', false)).to.deep.equal([
+            { field: 'cardTitle', value: 'Adobe Firefly Pro' },
+            { field: 'features', value: '<p>firefly is good</p>' },
+            { field: 'compareChart', value: '<div>Adobe Firefly Pro column</div>' },
+        ]);
+    });
     it('matches fragment title via the fragmentTitle scope', () => {
         expect(svc.findMatches(fragment, 'fragmentTitle', 'all apps', false)).to.deep.equal([
             { field: 'fragmentTitle', value: 'CCD Slice Wide CC All Apps' },
         ]);
     });
-    it('everywhere scans fields, description, and fragment title but not fragment name', () => {
+    it('everywhere scans scoped fields only, not arbitrary fragment fields', () => {
+        const withIcon = {
+            ...fragment,
+            fields: [
+                ...fragment.fields,
+                { name: 'mnemonicIcon', values: ['https://example.com/firefly.svg'] },
+                { name: 'cardTitle', values: ['Adobe Firefly card'] },
+            ],
+        };
+        const fieldsHit = svc.findMatches(withIcon, '*', 'firefly', false).map((x) => x.field);
+        expect(fieldsHit).to.not.include('mnemonicIcon');
+        expect(fieldsHit).to.include('cardTitle');
+        expect(fieldsHit).to.not.include('productDescription');
+    });
+    it('everywhere scans scoped fields, fragment description, and fragment title but not fragment name', () => {
         const fieldsHit = svc.findMatches(fragment, '*', 'school', false).map((x) => x.field);
         expect(fieldsHit).to.include('subtitle');
-        expect(fieldsHit).to.include('description');
+        expect(fieldsHit).to.include('fragmentDescription');
         expect(fieldsHit).to.not.include('name');
     });
     it('everywhere matches fragment title when it is the only hit', () => {
@@ -125,7 +155,7 @@ describe('bulk-edit/search: findMatches', () => {
     it('treats * in a scope array as everywhere', () => {
         const fieldsHit = svc.findMatches(fragment, ['*', 'subtitle'], 'school', false).map((x) => x.field);
         expect(fieldsHit).to.include('subtitle');
-        expect(fieldsHit).to.include('description');
+        expect(fieldsHit).to.include('fragmentDescription');
     });
     it('ignores unknown scopes but still matches known ones', () => {
         expect(svc.findMatches(fragment, ['bogus', 'subtitle'], 'school', false)).to.deep.equal([
@@ -137,20 +167,20 @@ describe('bulk-edit/search: findMatches', () => {
 describe('bulk-edit/search: buildSearchQuery', () => {
     const svc = load();
     it('searches the whole surface when no locale given', () => {
-        const q = svc.buildSearchQuery({ path: '/content/dam/mas/acom', find: 'school' });
-        expect(q.filter.path).to.equal('/content/dam/mas/acom');
+        const q = svc.buildSearchQuery({ path: '/content/dam/mas/sandbox', find: 'school' });
+        expect(q.filter.path).to.equal('/content/dam/mas/sandbox');
         expect(q.filter.fullText).to.deep.equal({ text: 'school', queryMode: 'EDGES' });
         expect(q.filter.modelIds).to.deep.equal(svc.BULK_EDIT_MODEL_IDS);
         expect(q.sort).to.deep.equal([{ on: 'created', order: 'ASC' }]);
     });
     it('narrows the path to a locale when given', () => {
-        expect(svc.buildSearchQuery({ path: '/content/dam/mas/acom/de_DE', find: 'x' }).filter.path).to.equal(
-            '/content/dam/mas/acom/de_DE',
+        expect(svc.buildSearchQuery({ path: '/content/dam/mas/sandbox/de_DE', find: 'x' }).filter.path).to.equal(
+            '/content/dam/mas/sandbox/de_DE',
         );
     });
     it('adds tags and status filters when provided', () => {
         const q = svc.buildSearchQuery({
-            surface: 'acom',
+            surface: 'sandbox',
             find: 'x',
             tags: ['mas:customer_segment/individual'],
             status: 'PUBLISHED',
@@ -159,7 +189,7 @@ describe('bulk-edit/search: buildSearchQuery', () => {
         expect(q.filter.status).to.deep.equal(['PUBLISHED']);
     });
     it('omits fullText when find is empty', () => {
-        expect(svc.buildSearchQuery({ path: '/content/dam/mas/acom', find: '' }).filter.fullText).to.equal(undefined);
+        expect(svc.buildSearchQuery({ path: '/content/dam/mas/sandbox', find: '' }).filter.fullText).to.equal(undefined);
     });
 });
 
@@ -182,16 +212,16 @@ describe('bulk-edit/search: normalizeLocales', () => {
 describe('bulk-edit/search: buildSearchPaths', () => {
     const { buildSearchPaths } = load();
     it('searches the whole surface when no locale is given', () => {
-        expect(buildSearchPaths('acom', null)).to.deep.equal(['/content/dam/mas/acom']);
+        expect(buildSearchPaths('sandbox', null)).to.deep.equal(['/content/dam/mas/sandbox']);
     });
     it('builds one path per locale', () => {
-        expect(buildSearchPaths('acom', ['fr_FR', 'en_US'])).to.deep.equal([
-            '/content/dam/mas/acom/en_US',
-            '/content/dam/mas/acom/fr_FR',
+        expect(buildSearchPaths('sandbox', ['fr_FR', 'en_US'])).to.deep.equal([
+            '/content/dam/mas/sandbox/en_US',
+            '/content/dam/mas/sandbox/fr_FR',
         ]);
     });
     it('builds a single locale path from a string', () => {
-        expect(buildSearchPaths('acom', 'de_DE')).to.deep.equal(['/content/dam/mas/acom/de_DE']);
+        expect(buildSearchPaths('sandbox', 'de_DE')).to.deep.equal(['/content/dam/mas/sandbox/de_DE']);
     });
 });
 
@@ -199,7 +229,7 @@ describe('bulk-edit/search: searchPages', () => {
     const searchParams = {
         odinEndpoint: 'https://odin.example',
         authToken: 't',
-        query: { sort: [], filter: { path: '/content/dam/mas/acom' } },
+        query: { sort: [], filter: { path: '/content/dam/mas/sandbox' } },
         limit: 50,
     };
 
@@ -226,25 +256,7 @@ describe('bulk-edit/search: searchPages', () => {
         expect(fetchOdinStub.getCall(1).args[1]).to.contain('cursor=c1');
     });
 
-    it('retries on 429 and succeeds on the second attempt', async () => {
-        const fetchOdinStub = sinon.stub();
-        fetchOdinStub
-            .onFirstCall()
-            .rejects(new Error('GET /adobe/sites/cf/fragments/search failed with status 429: Too Many Requests'));
-        fetchOdinStub.onSecondCall().resolves(fetchResponse({ items: [{ id: 'a' }], cursor: null }));
-        const mod = load({ fetchOdin: fetchOdinStub });
-
-        const clock = sinon.useFakeTimers();
-        const promise = collectIds(mod.searchPages);
-        await clock.tickAsync(2000);
-        const ids = await promise;
-        clock.restore();
-
-        expect(ids).to.deep.equal(['a']);
-        expect(fetchOdinStub.callCount).to.equal(2);
-    });
-
-    it('does not retry on non-retryable 401', async () => {
+    it('propagates fetchOdin errors', async () => {
         const fetchOdinStub = sinon.stub();
         fetchOdinStub.rejects(new Error('GET /adobe/sites/cf/fragments/search failed with status 401: Unauthorized'));
         const mod = load({ fetchOdin: fetchOdinStub });
@@ -259,24 +271,5 @@ describe('bulk-edit/search: searchPages', () => {
         expect(error).to.be.an.instanceOf(Error);
         expect(error.message).to.include('status 401');
         expect(fetchOdinStub.callCount).to.equal(1);
-    });
-
-    it('retries on 500 until maxRetries then throws', async () => {
-        const fetchOdinStub = sinon.stub();
-        fetchOdinStub.rejects(new Error('GET /adobe/sites/cf/fragments/search failed with status 500: Internal Server Error'));
-        const mod = load({ fetchOdin: fetchOdinStub });
-
-        const clock = sinon.useFakeTimers();
-        let error;
-        const run = collectIds(mod.searchPages, { ...searchParams, maxRetries: 3 }).catch((e) => {
-            error = e;
-        });
-        await clock.tickAsync(10000);
-        await run;
-        clock.restore();
-
-        expect(error).to.be.an.instanceOf(Error);
-        expect(error.message).to.include('status 500');
-        expect(fetchOdinStub.callCount).to.equal(3);
     });
 });

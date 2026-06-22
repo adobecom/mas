@@ -79,10 +79,13 @@ describe('bulk-edit/csv: multipart upload', () => {
 
 describe('bulk-edit/csv: parseJobIdParam', () => {
     it('detects a .csv suffix', () => {
-        expect(parseJobIdParam('abc123.csv')).to.deep.equal({ jobId: 'abc123', wantsCsv: true });
+        expect(parseJobIdParam('abc123.csv')).to.deep.equal({ jobId: 'abc123', wantsCsv: true, wantsJson: false });
     });
-    it('returns wantsCsv false for a plain jobId', () => {
-        expect(parseJobIdParam('abc123def')).to.deep.equal({ jobId: 'abc123def', wantsCsv: false });
+    it('detects a .json suffix', () => {
+        expect(parseJobIdParam('abc123.json')).to.deep.equal({ jobId: 'abc123', wantsCsv: false, wantsJson: true });
+    });
+    it('returns wantsCsv and wantsJson false for a plain jobId', () => {
+        expect(parseJobIdParam('abc123def')).to.deep.equal({ jobId: 'abc123def', wantsCsv: false, wantsJson: false });
     });
 });
 
@@ -91,7 +94,7 @@ describe('bulk-edit/csv: flattenResultsToRows', () => {
         const rows = flattenResultsToRows([
             {
                 id: 'frag-1',
-                path: '/content/dam/mas/acom/en_US/foo',
+                path: '/content/dam/mas/sandbox/en_US/foo',
                 locale: 'en_US',
                 status: 'PUBLISHED',
                 etag: 'e1',
@@ -104,7 +107,7 @@ describe('bulk-edit/csv: flattenResultsToRows', () => {
         expect(rows).to.have.lengthOf(2);
         expect(rows[0]).to.deep.equal({
             fragment_id: 'frag-1',
-            path: '/content/dam/mas/acom/en_US/foo',
+            path: '/content/dam/mas/sandbox/en_US/foo',
             locale: 'en_US',
             field: 'subtitle',
             find: 'school sale',
@@ -154,6 +157,47 @@ describe('bulk-edit/csv: filterResultsByUserCsv', () => {
 
     it('returns all results when userRows is empty', () => {
         expect(filterResultsByUserCsv(results, [])).to.deep.equal(results);
+    });
+
+    it('accepts legacy scope names in uploaded rows', () => {
+        const userRows = [
+            {
+                fragment_id: 'a',
+                field: 'productDescription',
+                find: 'school',
+            },
+        ];
+        const productResults = [
+            {
+                id: 'a',
+                path: '/p/a',
+                locale: 'en_US',
+                etag: 'e1',
+                status: 'PUBLISHED',
+                matches: [{ field: 'subtitle', value: 'school' }],
+            },
+        ];
+        const filtered = filterResultsByUserCsv(productResults, userRows);
+        expect(filtered).to.have.lengthOf(0);
+
+        const cardResults = [
+            {
+                id: 'a',
+                path: '/p/a',
+                locale: 'en_US',
+                etag: 'e1',
+                status: 'PUBLISHED',
+                matches: [{ field: 'cardTitle', value: 'Adobe Firefly Pro' }],
+            },
+        ];
+        const cardUserRows = [
+            {
+                fragment_id: 'a',
+                field: 'productDescription',
+                find: 'Adobe Firefly Pro',
+            },
+        ];
+        expect(filterResultsByUserCsv(cardResults, cardUserRows)).to.deep.equal(cardResults);
     });
 });
 
@@ -236,5 +280,16 @@ describe('bulk-edit/csv: buildResultRowKeys', () => {
             },
         ]);
         expect(keys.has(rowKey({ fragment_id: 'a', field: 'subtitle', find: 'school' }))).to.equal(true);
+    });
+
+    it('includes legacy scope aliases for Odin field matches', () => {
+        const keys = buildResultRowKeys([
+            {
+                id: 'a',
+                matches: [{ field: 'cardTitle', value: 'Adobe Firefly Pro' }],
+            },
+        ]);
+        expect(keys.has(rowKey({ fragment_id: 'a', field: 'cardTitle', find: 'Adobe Firefly Pro' }))).to.equal(true);
+        expect(keys.has(rowKey({ fragment_id: 'a', field: 'productDescription', find: 'Adobe Firefly Pro' }))).to.equal(true);
     });
 });

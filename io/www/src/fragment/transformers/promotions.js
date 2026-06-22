@@ -118,9 +118,9 @@ function toInstant(value) {
 const PROMO_TAG_PREFIX = 'mas:promotion/';
 
 /**
- * Parses offer substitution lines of the form "substitute:<baseOsi>:<substituteOsi>[:<geo>]".
- * The optional geo suffix is a raw locale (e.g. "es_CO") or country code (e.g. "co").
- * Omitting the geo suffix makes the substitution a wildcard (applies to all geos).
+ * Parses offer substitution lines of the form "substitute:<baseOsi>:<substituteOsi>:<geo>".
+ * The geo suffix is a CQ tag (e.g. "mas:locale/en_AU" or "mas:country/cr"). Geo is required;
+ * lines without a geo are stored with geo=null and skipped by buildSubstituteMap.
  * @param {string[]} lines
  * @returns {{ baseOsi: string, substituteOsi: string, geo: string|null }[]}
  */
@@ -146,17 +146,7 @@ function parseOfferSubstitutions(lines) {
 function buildSubstituteMap(substitutions, { regionLocale, country }) {
     const map = {};
     for (const sub of substitutions) {
-        if (!sub.geo) {
-            map[sub.baseOsi] = sub.substituteOsi;
-            continue;
-        }
-        const cqGeo =
-            sub.geo.startsWith('mas:') || sub.geo.startsWith('/content/')
-                ? sub.geo
-                : sub.geo.includes('_')
-                  ? `mas:locale/${sub.geo}`
-                  : `mas:country/${sub.geo}`;
-        if (matchesGeo([cqGeo], { regionLocale, country })) {
+        if (matchesGeo([sub.geo], { regionLocale, country })) {
             map[sub.baseOsi] = sub.substituteOsi;
         }
     }
@@ -450,16 +440,7 @@ function buildPromoMap(offerOverrides, { regionLocale, country }, projectPromoCo
         map['*'] = projectPromoCode;
     }
     for (const override of offerOverrides) {
-        if (override.geos?.length) {
-            const cqGeos = override.geos.map((g) =>
-                g.startsWith('mas:') || g.startsWith('/content/')
-                    ? g
-                    : g.includes('_')
-                      ? `mas:locale/${g}`
-                      : `mas:country/${g}`,
-            );
-            if (!matchesGeo(cqGeos, { regionLocale, country })) continue;
-        }
+        if (override.geos?.length && !matchesGeo(override.geos, { regionLocale, country })) continue;
         if (override.osis.length === 0) {
             if (map['*'] && map['*'] !== override.promoCode) {
                 log(`Project promoCode "${map['*']}" overridden by wildcard offer override "${override.promoCode}"`, context);

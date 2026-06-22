@@ -38,7 +38,7 @@ Every component in this file is registered in `studio/src/swc.js`. Claude Design
 
 ## sp-button
 - Attributes: variant (accent/primary/secondary/negative/cta), size, quiet, disabled, pending
-- Real usage: `mas-create-dialog.js:297` — `<sp-button variant="accent" @click=${this.handleSubmit}>Create</sp-button>`
+- Real usage: `mas-create-dialog.js:295` — `<sp-button variant="accent" @click=${this.handleSubmit}>Create</sp-button>`
 - Notes: never use `<button>` directly in Studio UI; use `variant="secondary"` for cancel actions
 
 ## sp-button-group
@@ -70,7 +70,7 @@ Every component in this file is registered in `studio/src/swc.js`. Claude Design
 
 ## sp-field-label
 - Attributes: for, required, size
-- Real usage: `mas-create-dialog.js:279` — `<sp-field-label for="fragment-title" required>Internal title</sp-field-label>`
+- Real usage: `mas-create-dialog.js:268` — `<sp-field-label for="fragment-title" required>Internal title</sp-field-label>`
 - Notes: always pair with `sp-textfield`, `sp-number-field`, or `sp-picker`
 
 ## sp-help-text
@@ -166,17 +166,17 @@ Every component in this file is registered in `studio/src/swc.js`. Claude Design
 
 ## sp-tab
 - Attributes: value, label, disabled
-- Real usage: `mas-fragment-variations.js:455` — `<sp-tab value="locale" label="Locale">Locale</sp-tab>`
+- Real usage: `mas-fragment-variations.js:442` — `<sp-tab value="locale" label="Locale">Locale</sp-tab>`
 - Notes: must be direct child of `sp-tabs`; value must match `sp-tab-panel` value
 
 ## sp-tab-panel
 - Attributes: value
-- Real usage: `mas-fragment-variations.js:458` — `<sp-tab-panel value="locale">${this.localeVariationsTemplate}</sp-tab-panel>`
+- Real usage: `mas-fragment-variations.js:445` — `<sp-tab-panel value="locale">${this.localeVariationsTemplate}</sp-tab-panel>`
 - Notes: must be direct child of `sp-tabs`; value must match `sp-tab` value
 
 ## sp-tabs
 - Attributes: selected, quiet, direction (horizontal/vertical)
-- Real usage: `mas-fragment-variations.js:454` — `<sp-tabs selected="locale" quiet>`
+- Real usage: `mas-fragment-variations.js:441` — `<sp-tabs selected="locale" quiet>`
 
 ## sp-tag
 - Attributes: deletable, disabled
@@ -187,7 +187,7 @@ Every component in this file is registered in `studio/src/swc.js`. Claude Design
 
 ## sp-textfield
 - Attributes: value, placeholder, required, disabled, multiline, rows, size, type
-- Real usage: `mas-create-dialog.js:281` — `<sp-textfield id="fragment-title" placeholder="Enter internal fragment title" value=${this.title}>`
+- Real usage: `mas-create-dialog.js:269` — `<sp-textfield id="fragment-title" placeholder="Enter internal fragment title" value=${this.title}>`
 - Notes: always pair with `sp-field-label` and `sp-help-text`; never use `<input>`
 
 ## sp-theme

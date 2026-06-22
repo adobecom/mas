@@ -2,7 +2,16 @@ const { Core } = require('@adobe/aio-sdk');
 const { getFragmentWithEtag, putToOdin, invokeAsyncAction, buildSiblingActionName } = require('../common.js');
 const { applyReplacementsToFragment, buildWorkPlan, resolveReplaceRows } = require('./replace.js');
 const { resolveFindSourceItems } = require('./find-results.js');
-const { readJob, patchJob, readUserCsv, writeDryRun, writeReport, writeResults, JOB_CACHE_TTL, JOB_RUNNING_TTL } = require('./state.js');
+const {
+    readJob,
+    patchJob,
+    readUserCsv,
+    writeDryRun,
+    writeReport,
+    writeResults,
+    JOB_CACHE_TTL,
+    JOB_RUNNING_TTL,
+} = require('./state.js');
 const { writeJobExports, writeFullExport } = require('./export.js');
 
 const logger = Core.Logger('bulk-edit-replace-worker', { level: 'info' });
@@ -178,14 +187,13 @@ async function runReplaceWorker(jobId, { odinEndpoint, authToken, runId, params 
     try {
         for (let i = cursor; i < items.length; i += batchSize) {
             const batch = items.slice(i, i + batchSize);
-            // eslint-disable-next-line no-await-in-loop
+
             const batchResults = await Promise.all(
                 batch.map((item) => processFragment(item, { odinEndpoint, authToken, matchCase, dryRun, searchFind })),
             );
             results = [...results, ...batchResults];
             cursor = i + batch.length;
 
-            // eslint-disable-next-line no-await-in-loop
             const stop = await resolveStop(jobId, runId);
             if (stop) {
                 if (stop === 'CANCELLED') {
@@ -197,10 +205,9 @@ async function runReplaceWorker(jobId, { odinEndpoint, authToken, runId, params 
             }
 
             if (dryRun) {
-                // eslint-disable-next-line no-await-in-loop
                 await writeDryRun(jobId, results, JOB_RUNNING_TTL);
             }
-            // eslint-disable-next-line no-await-in-loop
+
             await patchJob(
                 jobId,
                 {
@@ -223,7 +230,7 @@ async function runReplaceWorker(jobId, { odinEndpoint, authToken, runId, params 
 
             if (Date.now() - runStart >= softBudgetMs && cursor < items.length) {
                 const action = buildSiblingActionName(params, WORKER_ACTION);
-                // eslint-disable-next-line no-await-in-loop
+
                 await invokeAsyncAction(action, { jobId, authToken, runId }, params);
                 logger.info(JSON.stringify({ event: 'bulk-edit-replace-continued', jobId, cursor }));
                 return { status: 'RUNNING', continued: true, ...countCounters(results) };

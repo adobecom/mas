@@ -2,7 +2,19 @@ const crypto = require('crypto');
 const { Core } = require('@adobe/aio-sdk');
 const { errorResponse, getBearerToken, isAllowed, parseOwBody } = require('../../utils.js');
 const { invokeAsyncAction, buildSiblingActionName } = require('../common.js');
-const { readJob, writeJob, patchJob, readUserCsv, writeUserCsv, deleteUserCsv, readReport, readResults, readDryRun, touchJobCache, JOB_CACHE_TTL } = require('./state.js');
+const {
+    readJob,
+    writeJob,
+    patchJob,
+    readUserCsv,
+    writeUserCsv,
+    deleteUserCsv,
+    readReport,
+    readResults,
+    readDryRun,
+    touchJobCache,
+    JOB_CACHE_TTL,
+} = require('./state.js');
 const { normalizeLocales } = require('./search.js');
 const { buildWorkPlan, resolveReplaceRows } = require('./replace.js');
 const { buildReport } = require('./replace-worker.js');
@@ -271,9 +283,7 @@ async function resolveJobResultItems(jobId, job) {
 
 async function resolveExportUrls(jobId, job) {
     if (!job.exportReady || !isJobTerminalForDownload(job)) return null;
-    const refresh = job.type === 'replace'
-        ? () => refreshReplaceExports(jobId, job)
-        : () => refreshFindExports(jobId, job);
+    const refresh = job.type === 'replace' ? () => refreshReplaceExports(jobId, job) : () => refreshFindExports(jobId, job);
     if (!(await exportFileExists(jobId, 'json'))) {
         if (!(await refresh())) return null;
     }

@@ -2,8 +2,9 @@ const crypto = require('crypto');
 const { Core } = require('@adobe/aio-sdk');
 const { errorResponse, getBearerToken, isAllowed, parseOwBody, parseCsvUploadBody, isCsvUpload } = require('../../utils.js');
 const { invokeAsyncAction, buildSiblingActionName } = require('../common.js');
-const { readJob, writeJob, patchJob, readUserCsv, writeUserCsv, deleteUserCsv } = require('./state.js');
+const { readJob, writeJob, patchJob, readUserCsv, writeUserCsv, deleteUserCsv, readDryRun, readReport } = require('./state.js');
 const { normalizeLocales } = require('./search.js');
+const { buildWorkPlan } = require('./replace.js');
 const {
     parseJobIdParam,
     filterResultsByUserCsv,
@@ -16,8 +17,8 @@ const {
 
 const logger = Core.Logger('bulk-edit', { level: 'info' });
 
-const WORKER_ACTIONS = { find: 'bulk-edit-find-worker' };
-const REQUIRED_INPUTS = { find: ['find', 'surface'] };
+const WORKER_ACTIONS = { find: 'bulk-edit-find-worker', replace: 'bulk-edit-replace-worker' };
+const REQUIRED_INPUTS = { find: ['find', 'surface'], replace: ['findJobId'] };
 const TERMINAL_STATUSES = new Set(['DONE', 'CANCELLED']);
 const DEFAULT_PAGE_LIMIT = 50;
 const MAX_PAGE_LIMIT = 50;
@@ -62,6 +63,13 @@ function computeJobId(params) {
     return crypto.createHash('sha256').update(canonicalSearchKey(params)).digest('hex');
 }
 
+function computeReplaceJobId(findJobId, { dryRun, userCsv }) {
+    const find12 = String(findJobId).slice(0, 12);
+    const mode = dryRun ? 'dry' : 'live';
+    const csv8 = crypto.createHash('sha256').update(JSON.stringify(userCsv.rows)).digest('hex').slice(0, 8);
+    return `replace.${find12}.${mode}.${csv8}`;
+}
+
 async function cancelJob(jobId) {
     const job = await readJob(jobId);
     if (job && job.status === 'RUNNING') {
@@ -84,6 +92,8 @@ async function handlePost(params) {
 
     const missing = required.filter((key) => params[key] === undefined || params[key] === '');
     if (missing.length) return errorResponse(400, `missing parameter(s) '${missing}'`, logger);
+
+    if (params.type === 'replace') return handleReplacePost(params, authToken);
 
     const searchKey = {
         type: params.type,
@@ -133,6 +143,57 @@ async function handlePost(params) {
     await invokeAsyncAction(workerAction, { jobId, authToken, runId }, params);
 
     return { statusCode: 202, body: { jobId, reused: false } };
+}
+
+const TERMINAL_REPLACE_STATUSES = new Set(['DONE']);
+
+async function handleReplacePost(params, authToken) {
+    if (!params.odinEndpoint) return errorResponse(400, 'missing parameter(s) odinEndpoint', logger);
+
+    const findJob = await readJob(params.findJobId);
+    if (!findJob) return errorResponse(404, `bulk-edit job ${params.findJobId} not found`, logger);
+    if (findJob.status !== 'DONE') {
+        return errorResponse(400, `find job ${params.findJobId} is not ready (status: ${findJob.status})`, logger);
+    }
+
+    const userCsv = await readUserCsv(params.findJobId);
+    if (!userCsv?.rows?.length) {
+        return errorResponse(400, `no replace values uploaded for job ${params.findJobId}`, logger);
+    }
+
+    const dryRun = isForceRefresh(params.dryRun);
+    const jobId = computeReplaceJobId(params.findJobId, { dryRun, userCsv });
+
+    const existing = await readJob(jobId);
+    if (existing && !existing.cancelled && (existing.status === 'RUNNING' || TERMINAL_REPLACE_STATUSES.has(existing.status))) {
+        return { statusCode: 202, body: { jobId, reused: true, dryRun } };
+    }
+
+    const now = new Date().toISOString();
+    const runId = crypto.randomUUID();
+    await writeJob(jobId, {
+        type: 'replace',
+        findJobId: params.findJobId,
+        dryRun,
+        matchCase: !!findJob.params?.matchCase,
+        runId,
+        status: 'RUNNING',
+        results: [],
+        cursor: 0,
+        total: buildWorkPlan(userCsv.rows).length,
+        processed: 0,
+        succeeded: 0,
+        skipped: 0,
+        failed: 0,
+        conflicts: 0,
+        startedAt: now,
+        requestedAt: now,
+    });
+
+    const workerAction = buildSiblingActionName(params, WORKER_ACTIONS.replace);
+    await invokeAsyncAction(workerAction, { jobId, authToken, runId }, params);
+
+    return { statusCode: 202, body: { jobId, reused: false, dryRun } };
 }
 
 function applyUserCsvFilter(results, userCsv) {
@@ -187,6 +248,42 @@ async function handleCsvUpload(params) {
     };
 }
 
+async function handleReplaceGet(params, job, jobId, wantsCsv) {
+    const items = job.dryRun ? (await readDryRun(jobId)) || [] : job.results || [];
+
+    if (wantsCsv) {
+        return {
+            statusCode: 200,
+            headers: {
+                'Content-Type': 'text/csv; charset=utf-8',
+                'Content-Disposition': `attachment; filename="${jobId}.csv"`,
+            },
+            body: toCsv(flattenResultsToRows(items)),
+        };
+    }
+
+    const { offset, limit } = parsePageParams(params);
+    const report = job.status === 'DONE' ? await readReport(jobId) : null;
+    return {
+        statusCode: 200,
+        body: {
+            status: job.status,
+            dryRun: !!job.dryRun,
+            total: items.length,
+            offset,
+            limit,
+            done: TERMINAL_STATUSES.has(job.status),
+            processed: job.processed,
+            succeeded: job.succeeded,
+            skipped: job.skipped,
+            failed: job.failed,
+            conflicts: job.conflicts,
+            report,
+            items: items.slice(offset, offset + limit),
+        },
+    };
+}
+
 async function handleGet(params) {
     const authToken = getBearerToken(params);
     if (!(await isAllowed(authToken, params.allowedClientId))) {
@@ -209,6 +306,8 @@ async function handleGet(params) {
     if (wantsCsv && !TERMINAL_STATUSES.has(job.status)) {
         return errorResponse(400, `bulk-edit job ${jobId} is not ready for CSV export (status: ${job.status})`, logger);
     }
+
+    if (job.type === 'replace') return handleReplaceGet(params, job, jobId, wantsCsv);
 
     const userCsv = await readUserCsv(jobId);
     const { items, filteredByUpload } = applyUserCsvFilter(job.results, userCsv);
@@ -271,11 +370,14 @@ async function main(params) {
 module.exports = {
     main,
     handlePost,
+    handleReplacePost,
     handleGet,
+    handleReplaceGet,
     handleCsvUpload,
     applyUserCsvFilter,
     canonicalSearchKey,
     computeJobId,
+    computeReplaceJobId,
     normalizeSearchInKey,
     normalizeLocalesKey,
     isForceRefresh,

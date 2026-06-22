@@ -12,6 +12,8 @@ function load({ existing = null, userCsv = null, allowed = true } = {}) {
     const readUserCsv = sinon.stub().resolves(userCsv);
     const writeUserCsv = sinon.stub().resolves();
     const deleteUserCsv = sinon.stub().resolves();
+    const readDryRun = sinon.stub().resolves(null);
+    const readReport = sinon.stub().resolves(null);
     const mod = proxyquire('../../src/bulk-edit/bulk-edit.js', {
         '../../utils.js': {
             errorResponse: (statusCode, message) => ({ error: { statusCode, body: { error: message } } }),
@@ -29,10 +31,31 @@ function load({ existing = null, userCsv = null, allowed = true } = {}) {
             buildSiblingActionName: (params, name) => `MerchAtScaleStudio/${name}`,
             '@noCallThru': true,
         },
-        './state.js': { readJob, writeJob, patchJob, readUserCsv, writeUserCsv, deleteUserCsv, '@noCallThru': true },
+        './state.js': {
+            readJob,
+            writeJob,
+            patchJob,
+            readUserCsv,
+            writeUserCsv,
+            deleteUserCsv,
+            readDryRun,
+            readReport,
+            '@noCallThru': true,
+        },
         '@adobe/aio-sdk': { Core: { Logger: () => ({ info() {}, error() {} }) }, '@noCallThru': true },
     });
-    return { mod, invokeAsyncAction, writeJob, readJob, patchJob, readUserCsv, writeUserCsv, deleteUserCsv };
+    return {
+        mod,
+        invokeAsyncAction,
+        writeJob,
+        readJob,
+        patchJob,
+        readUserCsv,
+        writeUserCsv,
+        deleteUserCsv,
+        readDryRun,
+        readReport,
+    };
 }
 
 const findParams = {
@@ -173,8 +196,9 @@ describe('bulk-edit: handlePost', () => {
     });
     it('400s an unsupported type', async () => {
         const { mod } = load();
-        const res = await mod.handlePost({ type: 'replace', find: 'x', surface: 'acom' });
+        const res = await mod.handlePost({ type: 'bogus', find: 'x', surface: 'acom' });
         expect(res.error.statusCode).to.equal(400);
+        expect(res.error.body.error).to.include("unsupported type 'bogus'");
     });
     it('400s missing required inputs', async () => {
         const { mod } = load();
@@ -374,6 +398,154 @@ describe('bulk-edit: handleCsvUpload', () => {
         const res = await mod.handlePost({ type: 'upload', jobId: 'job-1', csv: sampleCsvRow });
         expect(res.error.statusCode).to.equal(400);
         expect(res.error.body.error).to.include("unsupported type 'upload'");
+    });
+});
+
+const findJobDone = { type: 'find', status: 'DONE', params: { matchCase: false }, results: doneJobResults };
+const replaceCsv = {
+    uploadedAt: '2026-01-01T00:00:00.000Z',
+    rows: [{ fragment_id: 'frag-1', path: '/p/foo', locale: 'en_US', field: 'subtitle', find: 'school', replace: 'academy' }],
+};
+
+describe('bulk-edit: computeReplaceJobId', () => {
+    it('produces a structured replace.{find12}.{mode}.{csv8} id', () => {
+        const { mod } = load();
+        const id = mod.computeReplaceJobId('abcdef0123456789', { dryRun: false, userCsv: replaceCsv });
+        expect(id).to.match(/^replace\.abcdef012345\.live\.[0-9a-f]{8}$/);
+    });
+    it('distinguishes dry from live runs', () => {
+        const { mod } = load();
+        const dry = mod.computeReplaceJobId('abcdef0123456789', { dryRun: true, userCsv: replaceCsv });
+        const live = mod.computeReplaceJobId('abcdef0123456789', { dryRun: false, userCsv: replaceCsv });
+        expect(dry).to.not.equal(live);
+        expect(dry).to.include('.dry.');
+    });
+    it('changes when the CSV rows change', () => {
+        const { mod } = load();
+        const a = mod.computeReplaceJobId('abcdef0123456789', { dryRun: false, userCsv: replaceCsv });
+        const b = mod.computeReplaceJobId('abcdef0123456789', {
+            dryRun: false,
+            userCsv: { rows: [{ ...replaceCsv.rows[0], replace: 'campus' }] },
+        });
+        expect(a).to.not.equal(b);
+    });
+});
+
+describe('bulk-edit: handleReplacePost', () => {
+    const replaceParams = { type: 'replace', findJobId: 'find-1', odinEndpoint: 'https://odin.example' };
+
+    function loadReplace(extra = {}) {
+        const ctx = load({ userCsv: replaceCsv, ...extra });
+        ctx.readJob.withArgs('find-1').resolves(findJobDone);
+        return ctx;
+    }
+
+    it('creates a replace job and invokes the replace worker', async () => {
+        const ctx = loadReplace();
+        const res = await ctx.mod.handlePost(replaceParams);
+        expect(res.statusCode).to.equal(202);
+        expect(res.body.reused).to.equal(false);
+        expect(res.body.dryRun).to.equal(false);
+        expect(res.body.jobId).to.match(/^replace\./);
+        expect(ctx.writeJob.calledOnce).to.equal(true);
+        const written = ctx.writeJob.firstCall.args[1];
+        expect(written.type).to.equal('replace');
+        expect(written.findJobId).to.equal('find-1');
+        expect(written.total).to.equal(1);
+        expect(ctx.invokeAsyncAction.firstCall.args[0]).to.equal('MerchAtScaleStudio/bulk-edit-replace-worker');
+    });
+    it('passes dryRun through and marks the job', async () => {
+        const ctx = loadReplace();
+        const res = await ctx.mod.handlePost({ ...replaceParams, dryRun: true });
+        expect(res.body.dryRun).to.equal(true);
+        expect(ctx.writeJob.firstCall.args[1].dryRun).to.equal(true);
+    });
+    it('404s when the find job is missing', async () => {
+        const ctx = load({ userCsv: replaceCsv });
+        ctx.readJob.withArgs('find-1').resolves(null);
+        const res = await ctx.mod.handlePost(replaceParams);
+        expect(res.error.statusCode).to.equal(404);
+    });
+    it('400s when the find job is not DONE', async () => {
+        const ctx = load({ userCsv: replaceCsv });
+        ctx.readJob.withArgs('find-1').resolves({ status: 'RUNNING' });
+        const res = await ctx.mod.handlePost(replaceParams);
+        expect(res.error.statusCode).to.equal(400);
+        expect(res.error.body.error).to.include('not ready');
+    });
+    it('400s when no replace values were uploaded', async () => {
+        const ctx = load({ userCsv: null });
+        ctx.readJob.withArgs('find-1').resolves(findJobDone);
+        const res = await ctx.mod.handlePost(replaceParams);
+        expect(res.error.statusCode).to.equal(400);
+        expect(res.error.body.error).to.include('no replace values');
+    });
+    it('400s when findJobId is missing', async () => {
+        const { mod } = load();
+        const res = await mod.handlePost({ type: 'replace', odinEndpoint: 'https://odin.example' });
+        expect(res.error.statusCode).to.equal(400);
+        expect(res.error.body.error).to.include('findJobId');
+    });
+    it('reuses an existing RUNNING replace job', async () => {
+        const ctx = load({ userCsv: replaceCsv });
+        ctx.readJob.withArgs('find-1').resolves(findJobDone);
+        ctx.readJob.resolves({ type: 'replace', status: 'RUNNING' });
+        const res = await ctx.mod.handlePost(replaceParams);
+        expect(res.body.reused).to.equal(true);
+        expect(ctx.writeJob.called).to.equal(false);
+        expect(ctx.invokeAsyncAction.called).to.equal(false);
+    });
+});
+
+describe('bulk-edit: handleReplaceGet', () => {
+    it('paginates real-run results and exposes counters + report on DONE', async () => {
+        const job = {
+            type: 'replace',
+            dryRun: false,
+            status: 'DONE',
+            processed: 2,
+            succeeded: 1,
+            skipped: 1,
+            failed: 0,
+            conflicts: 0,
+            results: [
+                { id: 'a', status: 'REPLACED' },
+                { id: 'b', status: 'SKIPPED' },
+            ],
+        };
+        const ctx = load({ existing: job });
+        ctx.readReport.resolves({ dryRun: false, totalFragments: 2 });
+        const res = await ctx.mod.handleGet({ jobId: 'replace.x.live.y', limit: '1' });
+        expect(res.body.dryRun).to.equal(false);
+        expect(res.body.total).to.equal(2);
+        expect(res.body.items.map((i) => i.id)).to.deep.equal(['a']);
+        expect(res.body.succeeded).to.equal(1);
+        expect(res.body.report.totalFragments).to.equal(2);
+        expect(ctx.readDryRun.called).to.equal(false);
+    });
+    it('sources items from the dry-run list for a dry-run job', async () => {
+        const job = { type: 'replace', dryRun: true, status: 'DONE', results: [] };
+        const ctx = load({ existing: job });
+        ctx.readDryRun.resolves([{ id: 'a', status: 'WOULD_REPLACE' }]);
+        const res = await ctx.mod.handleGet({ jobId: 'replace.x.dry.y' });
+        expect(ctx.readDryRun.calledOnce).to.equal(true);
+        expect(res.body.items[0].status).to.equal('WOULD_REPLACE');
+    });
+    it('exports the dry-run list as CSV with status populated', async () => {
+        const job = { type: 'replace', dryRun: true, status: 'DONE', results: [] };
+        const ctx = load({ existing: job });
+        ctx.readDryRun.resolves([
+            {
+                id: 'a',
+                path: '/p/a',
+                locale: 'en_US',
+                status: 'WOULD_REPLACE',
+                matches: [{ field: 'subtitle', value: 'school' }],
+            },
+        ]);
+        const res = await ctx.mod.handleGet({ jobId: 'replace.x.dry.y.csv' });
+        expect(res.headers['Content-Type']).to.equal('text/csv; charset=utf-8');
+        expect(res.body).to.include('WOULD_REPLACE');
     });
 });
 

@@ -13,6 +13,14 @@ function buildUserCsvKey(jobId) {
     return `bulk-edit.${jobId}.csv`;
 }
 
+function buildReportKey(jobId) {
+    return `bulk-edit.${jobId}.report`;
+}
+
+function buildDryRunKey(jobId) {
+    return `bulk-edit.${jobId}.dry-run`;
+}
+
 function encodeStateValue(value) {
     return zlib.brotliCompressSync(JSON.stringify(value)).toString('base64');
 }
@@ -57,11 +65,39 @@ async function deleteUserCsv(jobId) {
     await state.delete(buildUserCsvKey(jobId));
 }
 
+async function writeReport(jobId, value, ttl = JOB_TTL) {
+    const state = await init();
+    await state.put(buildReportKey(jobId), JSON.stringify(value), { ttl });
+    return value;
+}
+
+async function readReport(jobId) {
+    const state = await init();
+    const result = await state.get(buildReportKey(jobId));
+    if (!result?.value) return null;
+    return JSON.parse(result.value);
+}
+
+async function writeDryRun(jobId, value, ttl = JOB_TTL) {
+    const state = await init();
+    await state.put(buildDryRunKey(jobId), encodeStateValue(value), { ttl });
+    return value;
+}
+
+async function readDryRun(jobId) {
+    const state = await init();
+    const result = await state.get(buildDryRunKey(jobId));
+    if (!result?.value) return null;
+    return decodeStateValue(result.value);
+}
+
 module.exports = {
     JOB_TTL,
     USER_CSV_TTL,
     buildJobKey,
     buildUserCsvKey,
+    buildReportKey,
+    buildDryRunKey,
     encodeStateValue,
     decodeStateValue,
     writeJob,
@@ -70,4 +106,8 @@ module.exports = {
     writeUserCsv,
     readUserCsv,
     deleteUserCsv,
+    writeReport,
+    readReport,
+    writeDryRun,
+    readDryRun,
 };

@@ -126,3 +126,32 @@ describe('bulk-edit/state: user CSV', () => {
         expect(await mod.readUserCsv('abc')).to.equal(null);
     });
 });
+
+describe('bulk-edit/state: report', () => {
+    it('keys the report as bulk-edit.{jobId}.report and stores plain JSON', async () => {
+        const { mod, store } = load();
+        const report = { dryRun: true, totalFragments: 3, failed: 0 };
+        await mod.writeReport('abc', report);
+        expect(store['bulk-edit.abc.report']).to.equal(JSON.stringify(report));
+        expect(await mod.readReport('abc')).to.deep.equal(report);
+    });
+    it('returns null for an unknown report', async () => {
+        const { mod } = load();
+        expect(await mod.readReport('missing')).to.equal(null);
+    });
+});
+
+describe('bulk-edit/state: dry-run list', () => {
+    it('keys the list as bulk-edit.{jobId}.dry-run and stores brotli, not plain JSON', async () => {
+        const { mod, store } = load();
+        const list = [{ id: 'f1', status: 'WOULD_REPLACE', matches: [{ field: 'subtitle', value: 'x' }] }];
+        await mod.writeDryRun('abc', list);
+        expect(store['bulk-edit.abc.dry-run']).to.not.equal(JSON.stringify(list));
+        expect(mod.decodeStateValue(store['bulk-edit.abc.dry-run'])).to.deep.equal(list);
+        expect(await mod.readDryRun('abc')).to.deep.equal(list);
+    });
+    it('returns null for an unknown dry-run list', async () => {
+        const { mod } = load();
+        expect(await mod.readDryRun('missing')).to.equal(null);
+    });
+});

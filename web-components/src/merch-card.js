@@ -239,7 +239,21 @@ export class MerchCard extends LitElement {
 
     static getCollectionOptions = getCollectionOptions;
 
-    contextPromotionCode;
+    #contextPromotionCode;
+
+    get contextPromotionCode() {
+        return this.#contextPromotionCode;
+    }
+
+    set contextPromotionCode(value) {
+        this.#contextPromotionCode = value;
+        if (value) {
+            this.setAttribute('data-promotion-code', value);
+        } else {
+            this.removeAttribute('data-promotion-code');
+        }
+    }
+
     #durationMarkName;
     #internalId; // internal unique card identifier
     #log;

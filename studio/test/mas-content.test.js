@@ -209,6 +209,28 @@ describe('MasContent table + personalization grouping', () => {
         Store.selection.set([]);
     });
 
+    it('refreshTableSelection toggles tableSelects off then back to multiple', async () => {
+        const frag = makeFragment({ id: 'sel-1', path: '/content/dam/mas/acom/en_US/cards/sel-1' });
+        Store.renderMode.set('table');
+        Store.fragments.list.data.value = [makeStore(frag)];
+        Store.filters.set({ locale: 'en_US', personalizationFilterEnabled: false, tags: '' });
+
+        const el = await fixture(html`<mas-content></mas-content>`);
+        Store.selecting.set(true);
+        await el.updateComplete;
+        expect(el.tableSelects).to.equal('multiple');
+
+        const refreshPromise = el.refreshTableSelection();
+        expect(el.tableSelects).to.equal(undefined);
+        await refreshPromise;
+        await el.updateComplete;
+
+        expect(el.tableSelects).to.equal('multiple');
+
+        Store.selecting.set(false);
+        Store.selection.set([]);
+    });
+
     it('refreshTableSelection no-ops while the fragment list is loading', async () => {
         const frag = makeFragment({ id: 'sel-1', path: '/content/dam/mas/acom/en_US/cards/sel-1' });
         Store.renderMode.set('table');

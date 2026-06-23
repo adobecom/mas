@@ -158,10 +158,6 @@ export class MasCollapsibleTableRow extends LitElement {
         return this.groupedVariationPaths.some((p) => this.selectedCards.includes(p));
     }
 
-    get hydratedTopLevelCard() {
-        return new Fragment({ ...this.topLevelCard, references: this.promoVariations });
-    }
-
     get groupedVariationTabTemplate() {
         if (this.isLoadingGroupedVariations) {
             return html` <div class="loading-container--flex">

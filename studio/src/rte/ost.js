@@ -101,6 +101,7 @@ const OST_OPTION_ATTRIBUTE_MAPPING = {
     displayOldPrice: 'data-display-old-price',
     displayPerUnit: 'data-display-per-unit',
     displayRecurrence: 'data-display-recurrence',
+    displayPlanType: 'data-display-plan-type',
     displayTax: 'data-display-tax',
     forceTaxExclusive: 'data-force-tax-exclusive',
     isPerpetual: 'data-perpetual',

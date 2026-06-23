@@ -263,6 +263,15 @@ describe('class "InlinePrice"', () => {
         expect(inlinePrice.outerHTML).to.be.html(snapshots.taxExclusive);
     });
 
+    it('auto-resolves plan type for a legal placeholder on an ABM offer', async () => {
+        await initMasCommerceService();
+        const inlinePrice = mockInlinePrice('legalAbm', 'abm-mult', {
+            template: 'legal',
+        });
+        await inlinePrice.onceSettled();
+        expect(inlinePrice.textContent).to.contain('Annual, billed monthly');
+    });
+
     it('renders discount percentage', async () => {
         await initMasCommerceService();
         const inlinePrice = mockInlinePrice('discount', 'abm-promo');

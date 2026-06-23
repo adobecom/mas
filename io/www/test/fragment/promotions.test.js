@@ -45,18 +45,18 @@ function makeProject({
     startDate = START,
     endDate = END,
     tags = [PROMO_TAG],
-    offers = [],
 } = {}) {
-    return { id, path, fields: { surfaces, geos, startDate, endDate, tags, offers } };
+    return { id, path, fields: { surfaces, geos, startDate, endDate, tags } };
 }
 
 function makeHydratedProject({
     fragmentId = 'frag-1',
     fragmentPath = '/content/dam/mas/acom/en_US/offers/offer-1',
     promoCode = 'PROMO10',
+    offers = [],
 } = {}) {
     return {
-        fields: { fragments: [fragmentId], promoCode },
+        fields: { fragments: [fragmentId], promoCode, offers },
         references: {
             [fragmentId]: {
                 type: 'content-fragment',
@@ -694,67 +694,139 @@ describe('promotions', () => {
             return result.promoProjects[0].promoMap;
         }
 
-        it('maps specific OSI override when OSI and country match', async () => {
+        it('maps specific OSI override when OSI and geo match', async () => {
             const result = await promotionsTransformer.process(
-                makeCtx('US', [{ osis: ['OSI-1'], promoCode: 'OVERRIDE', countries: ['US'] }]),
+                makeCtx('US', [{ osis: ['OSI-1'], promoCode: 'OVERRIDE', geos: ['/content/cq:tags/mas/country/US'] }]),
             );
             expect(firstPromoMap(result)).to.deep.equal({ 'OSI-1': 'OVERRIDE' });
         });
 
-        it('maps specific OSI override when countries is empty (any country)', async () => {
+        it('maps specific OSI override when geos is empty (any geo)', async () => {
             const result = await promotionsTransformer.process(
-                makeCtx('DE', [{ osis: ['OSI-1'], promoCode: 'GLOBAL', countries: [] }]),
+                makeCtx('DE', [{ osis: ['OSI-1'], promoCode: 'GLOBAL', geos: [] }]),
             );
             expect(firstPromoMap(result)).to.deep.equal({ 'OSI-1': 'GLOBAL' });
         });
 
-        it('maps wildcard when osis is empty and country matches', async () => {
+        it('maps wildcard when osis is empty and geo matches', async () => {
             const result = await promotionsTransformer.process(
-                makeCtx('FR', [{ osis: [], promoCode: 'FRANCE', countries: ['FR'] }]),
+                makeCtx('FR', [{ osis: [], promoCode: 'FRANCE', geos: ['/content/cq:tags/mas/country/FR'] }]),
             );
             expect(firstPromoMap(result)).to.deep.equal({ '*': 'FRANCE' });
         });
 
-        it('maps wildcard when both osis and countries are empty', async () => {
+        it('maps wildcard when both osis and geos are empty', async () => {
             const result = await promotionsTransformer.process(
-                makeCtx(undefined, [{ osis: [], promoCode: 'UNIVERSAL', countries: [] }]),
+                makeCtx(undefined, [{ osis: [], promoCode: 'UNIVERSAL', geos: [] }]),
             );
             expect(firstPromoMap(result)).to.deep.equal({ '*': 'UNIVERSAL' });
         });
 
-        it('skips override when country does not match', async () => {
+        it('skips override when geo does not match', async () => {
             const result = await promotionsTransformer.process(
-                makeCtx('CA', [{ osis: ['OSI-1'], promoCode: 'NOPE', countries: ['US'] }]),
+                makeCtx('CA', [{ osis: ['OSI-1'], promoCode: 'NOPE', geos: ['/content/cq:tags/mas/country/US'] }]),
             );
             expect(firstPromoMap(result)).to.deep.equal({});
         });
 
         it('override takes priority over project-level promoCode for same OSI', async () => {
             const result = await promotionsTransformer.process(
-                makeCtx('US', [{ osis: ['OSI-1'], promoCode: 'OVERRIDE', countries: ['US'] }], 'DEFAULT'),
+                makeCtx(
+                    'US',
+                    [{ osis: ['OSI-1'], promoCode: 'OVERRIDE', geos: ['/content/cq:tags/mas/country/US'] }],
+                    'DEFAULT',
+                ),
             );
             const promoMap = firstPromoMap(result);
             expect(promoMap['OSI-1']).to.equal('OVERRIDE');
             expect(promoMap['*']).to.equal('DEFAULT');
         });
 
-        it('falls back to project-level promoCode when override country does not match', async () => {
+        it('falls back to project-level promoCode when override geo does not match', async () => {
             const result = await promotionsTransformer.process(
-                makeCtx('CA', [{ osis: ['OSI-1'], promoCode: 'US-ONLY', countries: ['US'] }], 'DEFAULT'),
+                makeCtx(
+                    'CA',
+                    [{ osis: ['OSI-1'], promoCode: 'US-ONLY', geos: ['/content/cq:tags/mas/country/US'] }],
+                    'DEFAULT',
+                ),
             );
             const promoMap = firstPromoMap(result);
             expect(promoMap['OSI-1']).to.be.undefined;
             expect(promoMap['*']).to.equal('DEFAULT');
         });
 
-        it('parses offerLines from project folder and includes offerOverrides on activeProjects', async () => {
+        it('matches override geo by regionLocale when country is absent', async () => {
+            const result = await promotionsTransformer.process(
+                createContext({
+                    regionLocale: 'en_AU',
+                    promises: {
+                        promotions: Promise.resolve({
+                            status: 200,
+                            activeProjects: [
+                                {
+                                    id: 'proj-1',
+                                    fragmentPaths: [],
+                                    offerOverrides: [
+                                        { osis: ['OSI-1'], promoCode: 'AU-PROMO', geos: ['/content/cq:tags/mas/locale/en_AU'] },
+                                    ],
+                                },
+                            ],
+                        }),
+                    },
+                }),
+            );
+            expect(firstPromoMap(result)).to.deep.equal({ 'OSI-1': 'AU-PROMO' });
+        });
+
+        it('maps OSI override when geo is CQ locale tag (mas:locale/en_AU)', async () => {
+            const result = await promotionsTransformer.process(
+                createContext({
+                    country: 'AU',
+                    regionLocale: 'en_AU',
+                    promises: {
+                        promotions: Promise.resolve({
+                            status: 200,
+                            activeProjects: [
+                                {
+                                    id: 'proj-1',
+                                    fragmentPaths: [],
+                                    offerOverrides: [{ osis: ['OSI-1'], promoCode: 'AU-PROMO', geos: ['mas:locale/en_AU'] }],
+                                    promoCode: 'GLOBAL',
+                                },
+                            ],
+                        }),
+                    },
+                }),
+            );
+            const promoMap = firstPromoMap(result);
+            expect(promoMap['OSI-1']).to.equal('AU-PROMO');
+            expect(promoMap['*']).to.equal('GLOBAL');
+        });
+
+        it('maps wildcard override when geo is CQ country tag (mas:pzn/country/cr)', async () => {
+            const result = await promotionsTransformer.process(
+                makeCtx('CR', [{ osis: [], promoCode: 'CR-PROMO', geos: ['mas:pzn/country/cr'] }], 'GLOBAL'),
+            );
+            expect(firstPromoMap(result)).to.deep.equal({ '*': 'CR-PROMO' });
+        });
+
+        it('skips CQ geo override when country does not match', async () => {
+            const result = await promotionsTransformer.process(
+                makeCtx('DE', [{ osis: ['OSI-1'], promoCode: 'AU-PROMO', geos: ['mas:locale/en_AU'] }]),
+            );
+            expect(firstPromoMap(result)).to.deep.equal({});
+        });
+
+        it('parses offerLines from hydrated project and includes offerOverrides on activeProjects', async () => {
             fetchStub = sinon.stub(globalThis, 'fetch');
-            const project = makeProject({
-                surfaces: ['acom'],
-                geos: [],
-                offers: ['OSI-1:BLACKFRIDAY:US,CA', ':GLOBAL:', 'OSI-2:SPECIAL:'],
+            const project = makeProject({ surfaces: ['acom'], geos: [] });
+            const hydrated = makeHydratedProject({
+                offers: [
+                    'OSI-1|BLACKFRIDAY|/content/cq:tags/mas/country/US,/content/cq:tags/mas/country/CA',
+                    '|GLOBAL|',
+                    'OSI-2|SPECIAL|',
+                ],
             });
-            const hydrated = makeHydratedProject();
             fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
             fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
 
@@ -763,16 +835,68 @@ describe('promotions', () => {
             clearPromoCache();
 
             expect(result.activeProjects[0].offerOverrides).to.deep.equal([
-                { osis: ['OSI-1'], promoCode: 'BLACKFRIDAY', countries: ['US', 'CA'] },
-                { osis: [], promoCode: 'GLOBAL', countries: [] },
-                { osis: ['OSI-2'], promoCode: 'SPECIAL', countries: [] },
+                {
+                    osis: ['OSI-1'],
+                    promoCode: 'BLACKFRIDAY',
+                    geos: ['/content/cq:tags/mas/country/US', '/content/cq:tags/mas/country/CA'],
+                },
+                { osis: [], promoCode: 'GLOBAL', geos: [] },
+                { osis: ['OSI-2'], promoCode: 'SPECIAL', geos: [] },
             ]);
+        });
+
+        it('parses substitute lines and builds geo-scoped substituteMap', async () => {
+            fetchStub = sinon.stub(globalThis, 'fetch');
+            const project = makeProject({ surfaces: ['acom'], geos: [] });
+            const hydrated = makeHydratedProject({
+                offers: [
+                    'substitute|OSI-1|OSI-DE|mas:country/de',
+                    'substitute|OSI-2|OSI-US|mas:country/us',
+                    'substitute||bad',
+                    'substitute|only-two-parts',
+                ],
+            });
+            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+            fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
+
+            const initResult = await promotionsTransformer.init(createContext());
+            fetchStub.restore();
+            clearPromoCache();
+
+            expect(initResult.activeProjects[0].offerSubstitutions).to.deep.equal([
+                { baseOsi: 'OSI-1', substituteOsi: 'OSI-DE', geos: ['mas:country/de'] },
+                { baseOsi: 'OSI-2', substituteOsi: 'OSI-US', geos: ['mas:country/us'] },
+            ]);
+
+            const processResult = await promotionsTransformer.process(
+                createContext({
+                    country: 'DE',
+                    promises: { promotions: Promise.resolve({ status: 200, activeProjects: [initResult.activeProjects[0]] }) },
+                }),
+            );
+            expect(processResult.promoProjects[0].substituteMap).to.deep.equal({ 'OSI-1': 'OSI-DE' });
         });
 
         it('skips offerLines with missing promoCode', async () => {
             fetchStub = sinon.stub(globalThis, 'fetch');
-            const project = makeProject({ surfaces: ['acom'], geos: [], offers: ['OSI-1::US', 'OSI-2:VALID:'] });
-            const hydrated = makeHydratedProject();
+            const project = makeProject({ surfaces: ['acom'], geos: [] });
+            const hydrated = makeHydratedProject({ offers: ['OSI-1|', 'OSI-2|VALID'] });
+            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+            fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
+
+            const result = await promotionsTransformer.init(createContext());
+            fetchStub.restore();
+            clearPromoCache();
+
+            expect(result.activeProjects[0].offerOverrides).to.deep.equal([{ osis: ['OSI-2'], promoCode: 'VALID', geos: [] }]);
+        });
+
+        it('does not treat substitute: lines as offer overrides when both are present', async () => {
+            fetchStub = sinon.stub(globalThis, 'fetch');
+            const project = makeProject({ surfaces: ['acom'], geos: [] });
+            const hydrated = makeHydratedProject({
+                offers: ['substitute|OSI-A|OSI-B', 'OSI-1|BLACKFRIDAY|/content/cq:tags/mas/country/US'],
+            });
             fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
             fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
 
@@ -781,14 +905,14 @@ describe('promotions', () => {
             clearPromoCache();
 
             expect(result.activeProjects[0].offerOverrides).to.deep.equal([
-                { osis: ['OSI-2'], promoCode: 'VALID', countries: [] },
+                { osis: ['OSI-1'], promoCode: 'BLACKFRIDAY', geos: ['/content/cq:tags/mas/country/US'] },
             ]);
         });
 
         it('logs when wildcard override shadows project-level promoCode with a different value', async () => {
             const logStub = sinon.stub(console, 'log');
             const result = await promotionsTransformer.process(
-                makeCtx(undefined, [{ osis: [], promoCode: 'OOPS', countries: [] }], 'PROJ'),
+                makeCtx(undefined, [{ osis: [], promoCode: 'OOPS', geos: [] }], 'PROJ'),
             );
             expect(firstPromoMap(result)).to.deep.equal({ '*': 'OOPS' });
             expect(
@@ -800,7 +924,7 @@ describe('promotions', () => {
         it('does not log when wildcard override equals project-level promoCode', async () => {
             const logStub = sinon.stub(console, 'log');
             const result = await promotionsTransformer.process(
-                makeCtx(undefined, [{ osis: [], promoCode: 'SAME', countries: [] }], 'SAME'),
+                makeCtx(undefined, [{ osis: [], promoCode: 'SAME', geos: [] }], 'SAME'),
             );
             expect(firstPromoMap(result)).to.deep.equal({ '*': 'SAME' });
             expect(logStub.calledWithMatch(sinon.match(/overridden by wildcard/))).to.be.false;
@@ -840,5 +964,203 @@ describe('promotions', () => {
                 expect(result.activeProjects).to.have.length(1);
             });
         }
+    });
+});
+
+describe('parseOfferOverrides and substituteMap after OSI substitution refactor', () => {
+    let fetchStub;
+
+    beforeEach(() => {
+        fetchStub = sinon.stub(globalThis, 'fetch');
+        fetchStub.returns(createResponse(404, null, 'Not Found'));
+    });
+
+    afterEach(() => {
+        fetchStub.restore();
+        clearPromoCache();
+    });
+
+    it('parses normal offer override lines correctly when no substitute lines are present', async () => {
+        const project = makeProject({ surfaces: ['acom'], geos: [] });
+        const hydrated = makeHydratedProject({ offers: ['OSI-1|BLACKFRIDAY', '|GLOBAL|'] });
+        fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+        fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
+
+        const result = await promotionsTransformer.init(createContext());
+        clearPromoCache();
+
+        expect(result.activeProjects[0].offerOverrides).to.deep.equal([
+            { osis: ['OSI-1'], promoCode: 'BLACKFRIDAY', geos: [] },
+            { osis: [], promoCode: 'GLOBAL', geos: [] },
+        ]);
+        expect(result.activeProjects[0].offerSubstitutions).to.deep.equal([]);
+    });
+
+    it('produces empty substituteMap when active project has no offerSubstitutions', async () => {
+        const result = await promotionsTransformer.process(
+            createContext({
+                country: 'US',
+                promises: {
+                    promotions: Promise.resolve({
+                        status: 200,
+                        activeProjects: [{ fragmentPaths: [], offerOverrides: [], promoCode: null }],
+                    }),
+                },
+            }),
+        );
+        expect(result.promoProjects[0].substituteMap).to.deep.equal({});
+    });
+
+    it('produces empty substituteMap when geo does not match any substitution', async () => {
+        const result = await promotionsTransformer.process(
+            createContext({
+                country: 'FR',
+                promises: {
+                    promotions: Promise.resolve({
+                        status: 200,
+                        activeProjects: [
+                            {
+                                fragmentPaths: [],
+                                offerOverrides: [],
+                                offerSubstitutions: [{ baseOsi: 'OSI-1', substituteOsi: 'OSI-DE', geos: ['mas:country/de'] }],
+                                promoCode: null,
+                            },
+                        ],
+                    }),
+                },
+            }),
+        );
+        expect(result.promoProjects[0].substituteMap).to.deep.equal({});
+    });
+
+    it('applies substituteMap when geo matches substitution', async () => {
+        const result = await promotionsTransformer.process(
+            createContext({
+                country: 'DE',
+                promises: {
+                    promotions: Promise.resolve({
+                        status: 200,
+                        activeProjects: [
+                            {
+                                fragmentPaths: [],
+                                offerOverrides: [],
+                                offerSubstitutions: [{ baseOsi: 'OSI-1', substituteOsi: 'OSI-DE', geos: ['mas:country/de'] }],
+                                promoCode: null,
+                            },
+                        ],
+                    }),
+                },
+            }),
+        );
+        expect(result.promoProjects[0].substituteMap).to.deep.equal({ 'OSI-1': 'OSI-DE' });
+    });
+
+    it('applies locale-style geo substitution only when regionLocale matches', async () => {
+        const subs = [{ baseOsi: 'OSI-1', substituteOsi: 'OSI-CO', geos: ['mas:locale/es_CO'] }];
+        const match = await promotionsTransformer.process(
+            createContext({
+                regionLocale: 'es_CO',
+                promises: {
+                    promotions: Promise.resolve({
+                        status: 200,
+                        activeProjects: [{ fragmentPaths: [], offerOverrides: [], offerSubstitutions: subs, promoCode: null }],
+                    }),
+                },
+            }),
+        );
+        expect(match.promoProjects[0].substituteMap).to.deep.equal({ 'OSI-1': 'OSI-CO' });
+
+        const noMatch = await promotionsTransformer.process(
+            createContext({
+                regionLocale: 'fr_FR',
+                promises: {
+                    promotions: Promise.resolve({
+                        status: 200,
+                        activeProjects: [{ fragmentPaths: [], offerOverrides: [], offerSubstitutions: subs, promoCode: null }],
+                    }),
+                },
+            }),
+        );
+        expect(noMatch.promoProjects[0].substituteMap).to.deep.equal({});
+    });
+
+    it('applies substituteMap when geo is a CQ locale tag (mas:locale/...)', async () => {
+        const result = await promotionsTransformer.process(
+            createContext({
+                regionLocale: 'en_AU',
+                promises: {
+                    promotions: Promise.resolve({
+                        status: 200,
+                        activeProjects: [
+                            {
+                                fragmentPaths: [],
+                                offerOverrides: [],
+                                offerSubstitutions: [{ baseOsi: 'OSI-1', substituteOsi: 'OSI-AU', geos: ['mas:locale/en_AU'] }],
+                                promoCode: null,
+                            },
+                        ],
+                    }),
+                },
+            }),
+        );
+        expect(result.promoProjects[0].substituteMap).to.deep.equal({ 'OSI-1': 'OSI-AU' });
+    });
+
+    it('parses substitute line with multiple comma-separated CQ geo tags', async () => {
+        const project = makeProject({ surfaces: ['acom'], geos: [] });
+        const hydrated = makeHydratedProject({
+            offers: ['substitute|OSI-1|OSI-AU|mas:country/au,mas:locale/en_AU'],
+        });
+        fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+        fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
+        const initResult = await promotionsTransformer.init(createContext());
+        clearPromoCache();
+
+        expect(initResult.activeProjects[0].offerSubstitutions).to.deep.equal([
+            { baseOsi: 'OSI-1', substituteOsi: 'OSI-AU', geos: ['mas:country/au', 'mas:locale/en_AU'] },
+        ]);
+
+        const matchCountry = await promotionsTransformer.process(
+            createContext({
+                country: 'AU',
+                promises: { promotions: Promise.resolve({ status: 200, activeProjects: [initResult.activeProjects[0]] }) },
+            }),
+        );
+        expect(matchCountry.promoProjects[0].substituteMap).to.deep.equal({ 'OSI-1': 'OSI-AU' });
+
+        const matchLocale = await promotionsTransformer.process(
+            createContext({
+                regionLocale: 'en_AU',
+                promises: { promotions: Promise.resolve({ status: 200, activeProjects: [initResult.activeProjects[0]] }) },
+            }),
+        );
+        expect(matchLocale.promoProjects[0].substituteMap).to.deep.equal({ 'OSI-1': 'OSI-AU' });
+
+        const noMatch = await promotionsTransformer.process(
+            createContext({
+                country: 'DE',
+                promises: { promotions: Promise.resolve({ status: 200, activeProjects: [initResult.activeProjects[0]] }) },
+            }),
+        );
+        expect(noMatch.promoProjects[0].substituteMap).to.deep.equal({});
+    });
+
+    it('normal offer overrides still build promoMap correctly when substitute lines are also present', async () => {
+        const project = makeProject({ surfaces: ['acom'], geos: [] });
+        const hydrated = makeHydratedProject({ offers: ['substitute|OSI-A|OSI-B|mas:country/us', 'OSI-1|BLACKFRIDAY'] });
+        fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+        fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
+
+        const initResult = await promotionsTransformer.init(createContext());
+        clearPromoCache();
+
+        const processResult = await promotionsTransformer.process(
+            createContext({
+                country: 'US',
+                promises: { promotions: Promise.resolve({ status: 200, activeProjects: [initResult.activeProjects[0]] }) },
+            }),
+        );
+        expect(processResult.promoProjects[0].promoMap).to.deep.include({ 'OSI-1': 'BLACKFRIDAY' });
+        expect(processResult.promoProjects[0].substituteMap).to.deep.equal({ 'OSI-A': 'OSI-B' });
     });
 });

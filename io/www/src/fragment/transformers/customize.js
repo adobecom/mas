@@ -166,6 +166,8 @@ function findPromoVariation(root, customizeContext) {
     for (const { project } of promoProjects) {
         const defaultVar = project.defaultVariations?.[fragmentPath];
         const regionVar = project.regionVariations?.[fragmentPath];
+        logDebug(() => `findPromoVariation defaultVar: ${JSON.stringify(defaultVar)}`, customizeContext);
+        logDebug(() => `findPromoVariation regionVar: ${JSON.stringify(regionVar)}`, customizeContext);
         if (!defaultVar && !regionVar) continue;
         if (!defaultVar) return regionVar;
         if (!regionVar) return defaultVar;
@@ -180,8 +182,8 @@ function findPromoMapForFragment(root, customizeContext) {
     const match = PATH_TOKENS.exec(root.path);
     if (!match?.groups) return null;
     const { fragmentPath } = match.groups;
-    for (const { promoMap, fragmentPaths } of promoProjects) {
-        if (fragmentPaths.has(fragmentPath)) return promoMap;
+    for (const { promoMap, substituteMap, fragmentPaths } of promoProjects) {
+        if (fragmentPaths.has(fragmentPath)) return { promoMap, substituteMap };
     }
     return null;
 }
@@ -224,12 +226,13 @@ function mergeVariations(root, customizeContext) {
     return root;
 }
 
-function applyPromoCode(fragment, promoMap, context) {
+function applyPromoCode(fragment, promoMap, substituteMap, context) {
     const fragOsi = fragment.fields?.osi;
     if (!fragOsi) return;
     const osis = Array.isArray(fragOsi) ? fragOsi : [fragOsi];
+    const effectiveOsis = osis.map((o) => substituteMap?.[o] ?? o);
     let promoCode = promoMap['*'];
-    for (const osi of osis) {
+    for (const osi of effectiveOsis) {
         if (promoMap[osi]) {
             promoCode = promoMap[osi];
             break;
@@ -291,9 +294,9 @@ function adaptReferencesTree(referencesTree, customizedRoot) {
 function customizeTree(root, referencesTree = [], customizeContext) {
     //start by merging current fragment with its regional variation, and promos if any
     const customizedRoot = mergeVariations(root, customizeContext);
-    const promoMap = findPromoMapForFragment(root, customizeContext);
-    if (promoMap) {
-        applyPromoCode(customizedRoot, promoMap, customizeContext);
+    const promoEntry = findPromoMapForFragment(root, customizeContext);
+    if (promoEntry) {
+        applyPromoCode(customizedRoot, promoEntry.promoMap, promoEntry.substituteMap, customizeContext);
     }
 
     //adapt referencesTree to match the customized root's cards/collections

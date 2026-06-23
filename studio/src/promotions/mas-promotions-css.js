@@ -63,6 +63,16 @@ export const styles = css`
     .promotions-table sp-table-cell:last-child {
         justify-content: center;
     }
+
+    .duplicating-overlay {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(255, 255, 255, 0.7);
+        z-index: 10;
+    }
 `;
 
 export default styles;

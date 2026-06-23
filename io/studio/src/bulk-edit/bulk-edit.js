@@ -1,5 +1,6 @@
 const crypto = require('crypto');
 const { Core } = require('@adobe/aio-sdk');
+const { init: filesInit } = require('@adobe/aio-lib-files');
 const { errorResponse, getBearerToken, isAllowed, parseOwBody } = require('../../utils.js');
 const { invokeAsyncAction, buildSiblingActionName } = require('../common.js');
 const {
@@ -10,22 +11,17 @@ const {
     writeUserCsv,
     deleteUserCsv,
     readReport,
+    readResults,
     touchJobCache,
     JOB_CACHE_TTL,
 } = require('./state.js');
 const { normalizeLocales } = require('./search.js');
-const { buildFindReport } = require('./find-worker.js');
-const {
-    exportFileExists,
-    exportPresignUrl,
-    deleteJobExports,
-    writeJobExports,
-} = require('./export.js');
-const { resolveFindSourceItems } = require('./find-results.js');
 const {
     parseJobIdParam,
     filterResultsByUserCsv,
     buildResultRowKeys,
+    buildCsvRowsFromFindResults,
+    toCsv,
     rowKey,
     fromCsv,
     parseCsvUploadBody,
@@ -37,6 +33,142 @@ const logger = Core.Logger('bulk-edit', { level: 'info' });
 const WORKER_ACTIONS = { find: 'bulk-edit-find-worker' };
 const REQUIRED_INPUTS = { find: ['find', 'replace', 'surface'] };
 const TERMINAL_STATUSES = new Set(['DONE', 'CANCELLED']);
+const EXPORT_ROOT = 'private/bulk-edit';
+const PRESIGN_TTL_SECONDS = 24 * 60 * 60;
+
+function buildFindReport(results) {
+    const byLocale = {};
+    for (const result of results) {
+        const locale = result.locale || 'unknown';
+        byLocale[locale] = (byLocale[locale] || 0) + 1;
+    }
+    return { total: results.length, byLocale };
+}
+
+function buildExportPaths(jobId) {
+    const base = `${EXPORT_ROOT}/${jobId}`;
+    return {
+        json: `${base}/results.json`,
+        csv: `${base}/results.csv`,
+        fullJson: `${base}/results-full.json`,
+    };
+}
+
+function buildCsvFromItems(items, userRows) {
+    const rows = buildCsvRowsFromFindResults(items, userRows);
+    return toCsv(rows);
+}
+
+async function writeJobExports(jobId, payload) {
+    const files = await filesInit();
+    const paths = buildExportPaths(jobId);
+    const { items, report, type, filteredByUpload, dryRun, userRows } = payload;
+    const exportedAt = new Date().toISOString();
+    const document = {
+        jobId,
+        type,
+        exportedAt,
+        filteredByUpload: !!filteredByUpload,
+        dryRun: !!dryRun,
+        items: items || [],
+        report: report || null,
+    };
+    await files.write(paths.json, JSON.stringify(document), { contentType: 'application/json' });
+    if (type !== 'replace') {
+        await files.write(paths.csv, buildCsvFromItems(items, userRows), { contentType: 'text/csv' });
+    }
+    return { exportedAt, paths };
+}
+
+async function readExportDocument(jobId, pathKey) {
+    const files = await filesInit();
+    const paths = buildExportPaths(jobId);
+    const filePath = paths[pathKey];
+    const buffer = await files.read(filePath);
+    const text = Buffer.isBuffer(buffer) ? buffer.toString('utf8') : String(buffer);
+    return JSON.parse(text);
+}
+
+async function readExportItems(jobId) {
+    const document = await readExportDocument(jobId, 'json');
+    return document.items || [];
+}
+
+async function readExportFullItems(jobId) {
+    try {
+        const document = await readExportDocument(jobId, 'fullJson');
+        return document.items || [];
+    } catch {
+        return [];
+    }
+}
+
+async function writeFullExport(jobId, type, items) {
+    const files = await filesInit();
+    const paths = buildExportPaths(jobId);
+    await files.write(paths.fullJson, JSON.stringify({ jobId, type, items: items || [] }), { contentType: 'application/json' });
+}
+
+async function writeFindFullExport(jobId, items) {
+    await writeFullExport(jobId, 'find', items);
+}
+
+async function deleteJobExports(jobId) {
+    const files = await filesInit();
+    const paths = buildExportPaths(jobId);
+    await Promise.all(
+        [files.delete(paths.json), files.delete(paths.csv), files.delete(paths.fullJson)].map((p) => p.catch(() => {})),
+    );
+}
+
+async function exportFileExists(jobId, format) {
+    const files = await filesInit();
+    const paths = buildExportPaths(jobId);
+    const filePath = format === 'csv' ? paths.csv : paths.json;
+    try {
+        const buffer = await files.read(filePath);
+        const text = Buffer.isBuffer(buffer) ? buffer.toString('utf8') : String(buffer ?? '');
+        return text.length > 0;
+    } catch {
+        return false;
+    }
+}
+
+async function exportPresignUrl(jobId, format) {
+    const files = await filesInit();
+    const paths = buildExportPaths(jobId);
+    const filePath = format === 'csv' ? paths.csv : paths.json;
+    return files.generatePresignURL(filePath, {
+        expiryInSeconds: PRESIGN_TTL_SECONDS,
+        permissions: 'r',
+    });
+}
+
+async function exportRedirectResponse(jobId, format) {
+    const downloadUrl = await exportPresignUrl(jobId, format);
+    return {
+        statusCode: 302,
+        headers: {
+            Location: downloadUrl,
+        },
+    };
+}
+
+async function resolveFindSourceItems(jobId, job) {
+    const stateResults = await readResults(jobId);
+    if (stateResults?.length) return stateResults;
+    const fullItems = await readExportFullItems(jobId);
+    if (fullItems.length) return fullItems;
+    if (job?.results?.length) return job.results;
+    if (job?.exportReady) {
+        try {
+            return await readExportItems(jobId);
+        } catch {
+            return [];
+        }
+    }
+    return [];
+}
 
 function normalizeSearchInKey(searchIn) {
     if (searchIn == null || searchIn === '' || searchIn === '*') return '*';
@@ -357,11 +489,26 @@ module.exports = {
     resolveExportUrls,
     isTerminalJob,
     buildProgressResponse,
+    buildFindReport,
     canonicalSearchKey,
     computeJobId,
     normalizeSearchInKey,
     normalizeLocalesKey,
     isForceRefresh,
     WORKER_ACTIONS,
+    EXPORT_ROOT,
+    PRESIGN_TTL_SECONDS,
+    buildExportPaths,
+    buildCsvFromItems,
+    writeFullExport,
+    writeFindFullExport,
+    readExportFullItems,
+    readExportDocument,
+    writeJobExports,
+    readExportItems,
+    deleteJobExports,
+    exportFileExists,
+    exportPresignUrl,
+    exportRedirectResponse,
 };
 exports.main = main;

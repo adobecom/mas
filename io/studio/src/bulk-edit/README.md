@@ -30,56 +30,56 @@ Start a search. **`replace` is required** — it is stored on the find job for u
 
 ```json
 {
-  "surface": "sandbox",
-  "find": "firefly",
-  "replace": "Firefly Pro",
-  "searchIn": "*",
-  "matchCase": false,
-  "locale": ["en_US"],
-  "tags": ["mas:plan_type/abc"],
-  "status": "PUBLISHED",
-  "forceRefresh": false
+    "surface": "sandbox",
+    "find": "firefly",
+    "replace": "Firefly Pro",
+    "searchIn": "*",
+    "matchCase": false,
+    "locale": ["en_US"],
+    "tags": ["mas:plan_type/abc"],
+    "status": "PUBLISHED",
+    "forceRefresh": false
 }
 ```
 
-| Field | Required | Notes |
-|-------|----------|-------|
-| `surface` | yes | e.g. `sandbox`, `acom` |
-| `find` | yes | Text to search for |
-| `replace` | yes | Replacement text paired with this find job (used at replace time, not in CSV) |
-| `searchIn` | no | Field scope or `"*"` for all scopes in `SCOPE_FIELDS` (`prices`, `ctas`, `calloutText`, `productDescription`, `promoText`, `subtitle`, `fragmentDescription`, `fragmentTitle`, `tags`) |
-| `matchCase` | no | Default `false` |
-| `locale` | no | String or array; omit for all locales |
-| `tags` | no | Filter by fragment tags |
-| `status` | no | e.g. `PUBLISHED`, `DRAFT` |
-| `forceRefresh` | no | Re-run even if a cached job exists |
+| Field          | Required | Notes                                                                                                                                                                                  |
+| -------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `surface`      | yes      | e.g. `sandbox`, `acom`                                                                                                                                                                 |
+| `find`         | yes      | Text to search for                                                                                                                                                                     |
+| `replace`      | yes      | Replacement text paired with this find job (used at replace time, not in CSV)                                                                                                          |
+| `searchIn`     | no       | Field scope or `"*"` for all scopes in `SCOPE_FIELDS` (`prices`, `ctas`, `calloutText`, `productDescription`, `promoText`, `subtitle`, `fragmentDescription`, `fragmentTitle`, `tags`) |
+| `matchCase`    | no       | Default `false`                                                                                                                                                                        |
+| `locale`       | no       | String or array; omit for all locales                                                                                                                                                  |
+| `tags`         | no       | Filter by fragment tags                                                                                                                                                                |
+| `status`       | no       | e.g. `PUBLISHED`, `DRAFT`                                                                                                                                                              |
+| `forceRefresh` | no       | Re-run even if a cached job exists                                                                                                                                                     |
 
 Response: `202 { jobId, reused }`
 
 ### Poll / upload / delete
 
-| Method | URL | Purpose |
-|--------|-----|---------|
-| `GET` | `/bulk-edit-find?jobId={id}` | Progress envelope; when `exportReady`, includes `exports.json` and `exports.csv` presigned URLs |
-| `POST` | `/bulk-edit-find?jobId={findJobId}` | Upload CSV subset (filters exports) |
-| `DELETE` | `/bulk-edit-find?jobId={findJobId}` | Remove uploaded CSV (restore full exports) |
+| Method   | URL                                 | Purpose                                                                                         |
+| -------- | ----------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `GET`    | `/bulk-edit-find?jobId={id}`        | Progress envelope; when `exportReady`, includes `exports.json` and `exports.csv` presigned URLs |
+| `POST`   | `/bulk-edit-find?jobId={findJobId}` | Upload CSV subset (filters exports)                                                             |
+| `DELETE` | `/bulk-edit-find?jobId={findJobId}` | Remove uploaded CSV (restore full exports)                                                      |
 
 Progress response (download result rows via `exports` URLs when ready):
 
 ```json
 {
-  "jobId": "abc…",
-  "type": "find",
-  "status": "DONE",
-  "done": true,
-  "total": 42,
-  "report": { "total": 42, "byLocale": { "en_US": 30, "fr_FR": 12 } },
-  "filteredByUpload": false,
-  "exportReady": true,
-  "exports": {
-    "json": "https://…presigned…",
-    "csv": "https://…presigned…"
-  }
+    "jobId": "abc…",
+    "type": "find",
+    "status": "DONE",
+    "done": true,
+    "total": 42,
+    "report": { "total": 42, "byLocale": { "en_US": 30, "fr_FR": 12 } },
+    "filteredByUpload": false,
+    "exportReady": true,
+    "exports": {
+        "json": "https://…presigned…",
+        "csv": "https://…presigned…"
+    }
 }
 ```
 

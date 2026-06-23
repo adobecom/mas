@@ -36,6 +36,7 @@ class MasItemsSelector extends LitElement {
         /** @type {(fragmentData: object) => string} */
         getDisplayName: { type: Function },
         renderFragmentStatusCell: { type: Function },
+        hidePromoVariations: { type: Boolean, attribute: 'hide-promo-variations' },
     };
 
     constructor() {
@@ -53,6 +54,7 @@ class MasItemsSelector extends LitElement {
         this.disableLocaleVariations = false;
         this.getDisplayName = getStudioFragmentDisplayPath;
         this.renderFragmentStatusCell = renderFragmentStatusCell;
+        this.hidePromoVariations = false;
     }
 
     connectedCallback() {
@@ -207,6 +209,7 @@ class MasItemsSelector extends LitElement {
                 .disableLocaleVariations=${this.disableLocaleVariations}
                 .getDisplayName=${this.getDisplayName}
                 .renderFragmentStatusCell=${this.renderFragmentStatusCell}
+                .hidePromoVariations=${this.hidePromoVariations}
                 @show-toast=${this.#showToast}
             ></mas-select-items-table>
         `;

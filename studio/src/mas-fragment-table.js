@@ -222,24 +222,34 @@ class MasFragmentTable extends LitElement {
                 value="${this.nested ? '' : data.id}"
                 class="${this.expanded ? 'expanded' : ''} ${this.failedPrice ? 'price-failed' : ''}"
             >
-                ${this.nested
+                ${this.nested && this.toggleExpand && Store.selecting.get()
+                    ? html`<sp-table-cell class="variation-checkbox-cell" @click=${(e) => e.stopPropagation()}>
+                          <sp-checkbox
+                              ?checked=${this.isVariationSelected}
+                              @change=${this.handleVariationSelect}
+                              @click=${(e) => e.stopPropagation()}
+                          ></sp-checkbox>
+                      </sp-table-cell>`
+                    : ''}
+                ${this.nested && !this.toggleExpand
                     ? ''
                     : html`<sp-table-cell class="expand-cell" @click=${this.toggleExpand}>
                           <button class="expand-button" aria-label="${this.expanded ? 'Collapse' : 'Expand'} row">
+                              <!-- audit-ok: icon-only expand toggle, no Spectrum equivalent for this pattern -->
                               ${this.expanded
                                   ? html`<sp-icon-chevron-down></sp-icon-chevron-down>`
                                   : html`<sp-icon-chevron-right></sp-icon-chevron-right>`}
                           </button>
                       </sp-table-cell>`}
                 <sp-table-cell class="name">
-                    ${this.nested && Store.selecting.get()
+                    ${this.nested && !this.toggleExpand && Store.selecting.get()
                         ? html`<sp-checkbox
                               ?checked=${this.isVariationSelected}
                               @change=${this.handleVariationSelect}
                               @click=${(e) => e.stopPropagation()}
                           ></sp-checkbox>`
                         : ''}
-                    ${this.nested
+                    ${this.nested && !this.toggleExpand
                         ? html`${data.locale}`
                         : html`<div class="icon">${this.icon}</div>
                               ${getFragmentName(data)}`}

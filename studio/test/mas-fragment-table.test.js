@@ -251,4 +251,94 @@ describe('MasFragmentTable', () => {
             expect(Store.selection.get()).to.deep.equal([]);
         });
     });
+
+    describe('grouped/promo variation selection', () => {
+        let selectingSnapshot;
+        let selectionSnapshot;
+
+        beforeEach(() => {
+            selectingSnapshot = Store.selecting.get();
+            selectionSnapshot = Store.selection.get();
+        });
+
+        afterEach(() => {
+            Store.selecting.set(selectingSnapshot);
+            Store.selection.set(selectionSnapshot);
+        });
+
+        it('shows expand-cell when nested and toggleExpand is provided', async () => {
+            const fragmentStore = createFragmentStore({ id: 'grouped-1' });
+            const toggleExpand = sandbox.stub();
+            const el = await fixture(
+                html`<mas-fragment-table
+                    .fragmentStore=${fragmentStore}
+                    .nested=${true}
+                    .toggleExpand=${toggleExpand}
+                ></mas-fragment-table>`,
+            );
+            await el.updateComplete;
+
+            expect(el.querySelector('sp-table-cell.expand-cell')).to.exist;
+        });
+
+        it('shows checkbox in a separate cell before expand-cell when selecting is active', async () => {
+            Store.selecting.set(true);
+            const fragmentStore = createFragmentStore({ id: 'grouped-1' });
+            const toggleExpand = sandbox.stub();
+            const el = await fixture(
+                html`<mas-fragment-table
+                    .fragmentStore=${fragmentStore}
+                    .nested=${true}
+                    .toggleExpand=${toggleExpand}
+                ></mas-fragment-table>`,
+            );
+            await el.updateComplete;
+
+            const checkboxCell = el.querySelector('sp-table-cell.variation-checkbox-cell');
+            expect(checkboxCell).to.exist;
+            expect(checkboxCell.querySelector('sp-checkbox')).to.exist;
+
+            const cells = el.querySelectorAll('sp-table-cell');
+            const checkboxIndex = Array.from(cells).indexOf(checkboxCell);
+            const expandCell = el.querySelector('sp-table-cell.expand-cell');
+            const expandIndex = Array.from(cells).indexOf(expandCell);
+            expect(checkboxIndex).to.be.lessThan(expandIndex);
+        });
+
+        it('shows fragment name instead of locale when nested with toggleExpand', async () => {
+            const fragmentStore = createFragmentStore({ id: 'grouped-1', title: 'Grouped Fragment', locale: 'fr_FR' });
+            const toggleExpand = sandbox.stub();
+            const el = await fixture(
+                html`<mas-fragment-table
+                    .fragmentStore=${fragmentStore}
+                    .nested=${true}
+                    .toggleExpand=${toggleExpand}
+                ></mas-fragment-table>`,
+            );
+            await el.updateComplete;
+
+            const nameCell = el.querySelector('sp-table-cell.name');
+            expect(nameCell.textContent).not.to.include('fr_FR');
+        });
+
+        it('toggles Store.selection when grouped variation checkbox changes', async () => {
+            Store.selecting.set(true);
+            const fragmentStore = createFragmentStore({ id: 'grouped-1' });
+            const toggleExpand = sandbox.stub();
+            const el = await fixture(
+                html`<mas-fragment-table
+                    .fragmentStore=${fragmentStore}
+                    .nested=${true}
+                    .toggleExpand=${toggleExpand}
+                ></mas-fragment-table>`,
+            );
+            await el.updateComplete;
+
+            el.handleVariationSelect({ stopPropagation: sandbox.stub() });
+            expect(Store.selection.get()).to.deep.equal(['grouped-1']);
+
+            el.handleVariationSelect({ stopPropagation: sandbox.stub() });
+            expect(Store.selection.get()).to.deep.equal([]);
+        });
+    });
 });

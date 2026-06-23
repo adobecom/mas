@@ -369,6 +369,7 @@ class MasFragmentVariations extends LitElement {
                                 .fragmentStore=${fragmentStore}
                                 .editFragmentStore=${editStore}
                                 .canCreateVariation=${false}
+                                .nested=${true}
                                 .expanded=${isExpanded}
                                 .toggleExpand=${() => this.toggleGroupedVariation(variationFragment.id)}
                                 @dblclick=${() => this.handleEdit(editStore)}
@@ -442,6 +443,7 @@ class MasFragmentVariations extends LitElement {
                                 .fragmentStore=${fragmentStore}
                                 .editFragmentStore=${editStore}
                                 .canCreateVariation=${false}
+                                .nested=${true}
                                 .expanded=${isExpanded}
                                 .toggleExpand=${() => this.togglePromoVariation(variationFragment.id)}
                                 @dblclick=${() => this.handleEdit(editStore)}

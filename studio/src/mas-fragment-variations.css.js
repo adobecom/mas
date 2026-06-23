@@ -63,6 +63,12 @@ export const styles = `
     flex-shrink: 0;
 }
 
+#content .expanded-content .nested-fragment sp-table-cell.variation-checkbox-cell {
+    max-width: 40px;
+    min-width: 40px;
+    justify-content: center;
+}
+
 /* Grouped variation expanded section */
 .grouped-variation-expanded {
     display: flex;

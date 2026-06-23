@@ -8,7 +8,7 @@ function load(overrides = {}) {
     const job =
         overrides.job === undefined
             ? {
-                  params: { find: 'school', surface: 'sandbox', searchIn: '*', matchCase: false },
+                  params: { find: 'school', replace: 'academy', surface: 'sandbox', searchIn: '*', matchCase: false },
                   authToken: 't',
                   status: 'RUNNING',
               }
@@ -201,7 +201,7 @@ describe('bulk-edit/find-worker: runFindWorker', () => {
         const { mod, patches } = load({
             pages: [[{ id: 'a', path: '/p/a', hit: 'A' }], [{ id: 'b', path: '/p/b', hit: 'B' }]],
             job: {
-                params: { find: 'school', surface: 'sandbox', searchIn: '*', matchCase: false },
+                params: { find: 'school', replace: 'academy', surface: 'sandbox', searchIn: '*', matchCase: false },
                 status: 'RUNNING',
                 runId: 'new-run',
             },
@@ -218,7 +218,7 @@ describe('bulk-edit/find-worker: runFindWorker', () => {
             readJob: async () => {
                 reads += 1;
                 return {
-                    params: { find: 'school', surface: 'sandbox', searchIn: '*', matchCase: false },
+                    params: { find: 'school', replace: 'academy', surface: 'sandbox', searchIn: '*', matchCase: false },
                     authToken: 't',
                     status: 'RUNNING',
                     cancelled: reads > 1,

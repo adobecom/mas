@@ -1,5 +1,5 @@
 const { init: filesInit } = require('@adobe/aio-lib-files');
-const { flattenResultsToRows, applyUserReplaceValues, toCsv } = require('./csv.js');
+const { buildCsvRowsFromFindResults, toCsv } = require('./csv.js');
 
 const EXPORT_ROOT = 'private/bulk-edit';
 const PRESIGN_TTL_SECONDS = 24 * 60 * 60;
@@ -14,7 +14,7 @@ function buildExportPaths(jobId) {
 }
 
 function buildCsvFromItems(items, userRows) {
-    const rows = applyUserReplaceValues(flattenResultsToRows(items), userRows);
+    const rows = buildCsvRowsFromFindResults(items, userRows);
     return toCsv(rows);
 }
 

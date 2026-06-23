@@ -1,6 +1,6 @@
 # Bulk Find & Replace
 
-Search MAS **card and collection** fragments across a surface, export matches, edit replacements in CSV, and apply changes to Odin — all as async jobs on Adobe I/O Runtime. Dictionary entries are not searched or updated.
+Search MAS **card and collection** fragments across a surface, export matches, optionally filter via CSV upload, and apply changes to Odin — all as async jobs on Adobe I/O Runtime. Dictionary entries are not searched or updated.
 
 Base path: `{host}/api/v1/web/MerchAtScaleStudio/`
 
@@ -8,7 +8,7 @@ Base path: `{host}/api/v1/web/MerchAtScaleStudio/`
 
 | URL path            | Role                                                                          |
 | ------------------- | ----------------------------------------------------------------------------- |
-| `bulk-edit-find`    | Start find jobs, poll progress, upload edited CSV, download find exports      |
+| `bulk-edit-find`    | Start find jobs, poll progress, upload CSV subset, download find exports      |
 | `bulk-edit-replace` | Start replace jobs (dry run or live), poll progress, download replace exports |
 
 Both web actions share one Runtime function (`bulk-edit.js`). Find vs replace is selected via the action's `bulkEditMode` input (`find` or `replace`).
@@ -21,43 +21,15 @@ Example requests live in [`io/studio/requests.http`](../../requests.http).
 
 ```
 Find (bulk-edit-find)
-  1. POST  /bulk-edit-find              → start search (202 + jobId)
-  2. GET   /bulk-edit-find?jobId={id}    → poll until done=true, exportReady=true (response includes exports.json + exports.csv)
-  3. Edit CSV locally                     → optional: delete rows you do not want replaced
+  1. POST  /bulk-edit-find              → start search with find + replace (202 + jobId)
+  2. GET   /bulk-edit-find?jobId={id}    → poll until done=true, exportReady=true (exports.csv lists matches)
+  3. Edit CSV locally                     → optional: delete rows to limit replace scope
   4. POST  /bulk-edit-find?jobId={id}    → optional: upload CSV to limit replace scope to those rows
   4b.DELETE /bulk-edit-find?jobId={id}   → optional: remove upload, restore full exports
 
 Replace (bulk-edit-replace)
-  5. POST  /bulk-edit-replace             → { findJobId, replace, dryRun? } — dry run first, then live
+  5. POST  /bulk-edit-replace             → { findJobId, dryRun? } — dry run first, then live
   6. GET   /bulk-edit-replace?jobId={id}  → poll until done=true, exportReady=true (response includes exports.json)
-```
-
-```mermaid
-sequenceDiagram
-    participant Client
-    participant Find as bulk-edit-find
-    participant Replace as bulk-edit-replace
-    participant FindWorker as find-worker
-    participant ReplaceWorker as replace-worker
-    participant Odin
-
-    Client->>Find: POST start search
-    Find->>FindWorker: invoke async
-    loop while searching
-        FindWorker->>Odin: paginate fragments
-        Client->>Find: GET jobId
-        Find-->>Client: progress envelope
-    end
-    Client->>Find: GET jobId (poll)
-    Find-->>Client: progress + exports.csv/json URLs
-    Client->>Find: POST upload CSV
-    Client->>Replace: POST replace (dryRun:true)
-    Replace->>ReplaceWorker: invoke async
-    ReplaceWorker->>Odin: GET/PUT fragments
-    Client->>Replace: GET jobId (poll)
-    Replace-->>Client: progress + exports.json URL
-    Client->>Replace: POST replace (live)
-    Client->>Replace: GET jobId (poll)
 ```
 
 Use the find endpoints for find jobs and the replace endpoints for replace jobs. Using the wrong endpoint for a `jobId` returns `400`.
@@ -70,12 +42,13 @@ All requests require a valid `Authorization: Bearer <IMS token>`.
 
 ### Find — `POST /bulk-edit-find`
 
-Start a search.
+Start a search. **`replace` is required** — it defines the replacement text applied to each match at replace time (not stored in the CSV).
 
 ```json
 {
     "surface": "sandbox",
     "find": "firefly",
+    "replace": "Firefly Pro",
     "searchIn": "*",
     "matchCase": false,
     "locale": ["en_US"],
@@ -89,6 +62,7 @@ Start a search.
 | -------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `surface`      | yes      | e.g. `sandbox`, `acom`                                                                                                                                                                                             |
 | `find`         | yes      | Text to search for                                                                                                                                                                                                 |
+| `replace`      | yes      | Replacement text applied within each match at replace time                                                                                                                                                         |
 | `searchIn`     | no       | Field scope or `"*"` for all scopes in `SCOPE_FIELDS` (`prices`, `ctas`, `calloutText`, `productDescription`, `promoText`, `subtitle`, `fragmentDescription`, `fragmentTitle`, `tags`) — not arbitrary Odin fields |
 | `matchCase`    | no       | Default `false`                                                                                                                                                                                                    |
 | `locale`       | no       | String or array; omit for all locales                                                                                                                                                                              |
@@ -103,7 +77,7 @@ Response: `202 { jobId, reused }`
 | Method   | URL                                 | Purpose                                                                                         |
 | -------- | ----------------------------------- | ----------------------------------------------------------------------------------------------- |
 | `GET`    | `/bulk-edit-find?jobId={id}`        | Progress envelope; when `exportReady`, includes `exports.json` and `exports.csv` presigned URLs |
-| `POST`   | `/bulk-edit-find?jobId={findJobId}` | Upload edited CSV (filters exports)                                                             |
+| `POST`   | `/bulk-edit-find?jobId={findJobId}` | Upload CSV subset (filters exports and replace scope)                                           |
 | `DELETE` | `/bulk-edit-find?jobId={findJobId}` | Remove uploaded CSV (restore full exports)                                                      |
 
 Progress response (result rows are not included — download via `exports` URLs when ready):
@@ -132,7 +106,7 @@ Allowed when `status` is `DONE` or `CANCELLED`.
 After a find completes, the full result set is retained internally. **Download JSON/CSV** (`results.json` / `results.csv`) reflects the current view:
 
 - **No upload** — all matches from the search
-- **After CSV upload** — only rows present in the uploaded CSV (with `replace` values merged into the CSV export); upload response includes filtered `total` and `report`
+- **After CSV upload** — only rows present in the uploaded CSV; upload response includes filtered `total` and `report`
 - **After CSV delete** — restored to the full unfiltered result set
 
 CSV upload: `Content-Type: text/csv` or `multipart/form-data` with a file part. Find job must be complete. Each row must match a `(fragment_id, field, find)` triple from the **full** find results (not only the currently filtered export). **The upload defines replace scope:** rows present in the file are eligible for replace; rows omitted from the file are excluded from exports and from replace (they are not processed and do not appear in the replace report). Extra rows not in the original find results are rejected.
@@ -164,9 +138,9 @@ Remove upload — `DELETE /bulk-edit-find?jobId={findJobId}`:
 
 ### Replace — `POST /bulk-edit-replace`
 
-Apply replacements for a completed find job.
+Apply replacements for a completed find job. Replace values are computed from the find job's `find` and `replace` params; the CSV (generated or uploaded) defines which rows are in scope.
 
-- **No CSV uploaded** — all find matches are processed.
+- **No CSV uploaded** — all find matches where the computed replacement differs from `find` are processed.
 - **CSV uploaded on the find job** — only rows in that upload are processed. Other matches from the search are left unchanged and are not listed in the replace export.
 
 **Dry run** (preview, no Odin writes):
@@ -174,7 +148,6 @@ Apply replacements for a completed find job.
 ```json
 {
     "findJobId": "abc…",
-    "replace": "Firefly Pro",
     "dryRun": true
 }
 ```
@@ -183,16 +156,14 @@ Apply replacements for a completed find job.
 
 ```json
 {
-    "findJobId": "abc…",
-    "replace": "Firefly Pro"
+    "findJobId": "abc…"
 }
 ```
 
-| Field       | Required | Notes                                                                   |
-| ----------- | -------- | ----------------------------------------------------------------------- |
-| `findJobId` | yes      | Completed find job (`DONE`)                                             |
-| `replace`   | yes      | Replacement text substituted for the find search term within each match |
-| `dryRun`    | no       | `true` / `"true"` — preview only                                        |
+| Field       | Required | Notes                            |
+| ----------- | -------- | -------------------------------- |
+| `findJobId` | yes      | Completed find job (`DONE`)      |
+| `dryRun`    | no       | `true` / `"true"` — preview only |
 
 Response: `202 { jobId, reused, dryRun }`
 
@@ -236,14 +207,16 @@ Poll until `done: true` and `exportReady: true`. Export URLs appear when `status
 Fixed header (order matters):
 
 ```
-fragment_id,path,locale,field,find,replace,etag,status
+fragment_id,path,locale,field,find,etag,status
+06171e68-…,/content/dam/mas/sandbox/en_US/foo,en_US,subtitle,school offer,"""abc123""",PUBLISHED
 ```
 
 - One row per **match** (a fragment with two field hits → two rows)
 - `field` is the Odin field name (e.g. `cardTitle`, `subtitle`, `callout`); legacy scope labels (e.g. `productDescription`) are still accepted on CSV upload
-- Leave `replace` empty on export; the replace text is supplied in `POST /bulk-edit-replace`
+- `find` — matched value at find time
+- `etag` — fragment etag at find time; replace skips the write when the server etag differs (`SKIPPED`, `reason: etag_mismatch`)
 - **Tags** can appear in find results but are never rewritten on replace (present rows come back `SKIPPED`)
-- `{{placeholder}}` references in card content may be updated when the search term matches inside them
+- Legacy CSV headers that include a `replace` column are **rejected**
 
 Row identity for validation: `fragment_id|field|find`.
 
@@ -251,9 +224,9 @@ Row identity for validation: `fragment_id|field|find`.
 
 ## Job IDs and caching
 
-**Find jobs** — derived from the normalized search parameters. Identical searches reuse the same `jobId` and return `{ reused: true }` while the job is still active or cached.
+**Find jobs** — derived from the normalized search parameters (including `replace`). Identical find+replace intents reuse the same `jobId` and return `{ reused: true }` while the job is still active or cached.
 
-**Replace jobs** — a separate id tied to the find job, find run (`runId`), dry/live mode, uploaded CSV selection, and `replace` value. Refreshing a find job (new `runId`) produces a new replace id even when search params and replace text are unchanged. Changing the CSV, replace text, or toggling dry/live also produces a new id. Once a replace job is `RUNNING` or `DONE`, an identical POST returns `{ reused: true }` and does not restart the worker.
+**Replace jobs** — a separate id tied to the find job, find run (`runId`), dry/live mode, and the actionable CSV rows (fragment, field, find, etag). Replace values come from the find job params, not the CSV. Refreshing a find job (new `runId`) produces a new replace id. Changing CSV rows or toggling dry/live also produces a new id. Once a replace job is `RUNNING` or `DONE`, an identical POST returns `{ reused: true }` and does not restart the worker.
 
 **Force refresh** — `forceRefresh: true` on find clears prior uploads and exports, then re-runs the search.
 
@@ -265,14 +238,17 @@ Row identity for validation: `fragment_id|field|find`.
 
 ## Replace behavior
 
-1. When a CSV is uploaded, replace uses **only those rows** — not the full find result set. When no CSV is uploaded, every find match is included.
-2. Uploaded CSV rows are grouped by fragment; multiple field replacements on one fragment are applied in a single Odin PUT.
-3. Replace substitutes the **find search term** (from the find job), not the full matched value in each CSV row.
-4. **Omitted vs skipped** — a row removed from the uploaded CSV is never processed (the field stays unchanged). A row that is processed but unchanged (e.g. tag field, text already matches, `replace` equals the search term) gets status `SKIPPED` in the replace export.
-5. **Dry run** — fetches each fragment from Odin, applies replacements in memory (no PUT), and exports JSON with full modified fragment payloads (`WOULD_REPLACE` items include `title`, `description`, `fields`). A `results-full.json` companion lists only modified fragments.
-6. **Live run** — statuses are `REPLACED`, `SKIPPED`, `FAILED`, or `CONFLICT` (fragment changed since find).
-7. Large replace jobs may run across multiple worker activations until complete.
-8. **Immutability** — a started dry or live replace job cannot be stopped or restarted for the same find run. Re-POST with the same `findJobId`, find `runId`, `dryRun`, uploaded CSV, and `replace` returns `{ reused: true }` while the job is `RUNNING` or `DONE`. Refresh the find job (`forceRefresh`) first to start a new replace.
+1. Replace reads CSV rows for scope — generated from find results or from an uploaded CSV subset.
+2. Rows are grouped by fragment; multiple field updates on one fragment are applied in a single Odin PATCH.
+3. Replace computes the write value from the find job's `find` and `replace` params when the current field value still matches `find`.
+4. **Etag guard** — before writing, the worker compares the CSV `etag` to the live server etag. If they differ, the fragment is **skipped** with `reason: etag_mismatch` (no write, no retry).
+5. **Partial PATCH** — only changed fields/properties are patched, not the full fragment.
+6. **Omitted vs skipped** — a row removed from the uploaded CSV is never processed. A row that is processed but unchanged (e.g. tag field, find no longer matches, etag mismatch) gets status `SKIPPED` in the replace export.
+7. **Dry run** — fetches each fragment from Odin, applies changes in memory (no PATCH), and exports JSON with modified fragment payloads (`WOULD_REPLACE`).
+8. **Live run** — statuses are `REPLACED`, `SKIPPED`, or `FAILED`.
+9. **429 rate limits** — PATCH retries with exponential backoff (after `fetchOdin`'s per-request retries). Persistent 429 marks the fragment `FAILED`; other fragments continue.
+10. Large replace jobs may run across multiple worker activations until complete.
+11. **Immutability** — a started dry or live replace job cannot be stopped or restarted for the same find run and CSV rows. Re-POST with the same inputs returns `{ reused: true }` while the job is `RUNNING` or `DONE`. Refresh the find job (`forceRefresh`) first to start a new replace.
 
 `matchCase` for replace is inherited from the original find job.
 
@@ -289,7 +265,7 @@ Product and UX edge cases to plan for in clients (e.g. MAS Studio). Not an exhau
 | Job no longer found (`404`)    | Cache expired after 7 days — re-run find with the same search parameters; re-upload CSV if needed.                                                             |
 | Stale find results             | Use `forceRefresh: true` on find before replace if content may have changed in Odin. A refreshed find gets a new `runId` and a new replace job id.             |
 | Incomplete find (`CANCELLED`)  | Download partial results or refresh the search.                                                                                                                |
-| Fragment edited after find     | Replace may report `CONFLICT` or `SKIPPED` — refresh find and update CSV.                                                                                      |
+| Fragment edited after find     | Replace reports `SKIPPED` with `reason: etag_mismatch` — refresh find (re-upload CSV subset if used).                                                          |
 | Partial replace outcome        | Review export statuses; adjust CSV and start a new replace run as needed.                                                                                      |
 | Re-upload CSV                  | Overwrites prior upload; exports re-filter; start a new replace job (dry run, then live).                                                                      |
 | Remove uploaded CSV            | `DELETE /bulk-edit-find?jobId=…` restores full find exports and `filteredByUpload: false`.                                                                     |

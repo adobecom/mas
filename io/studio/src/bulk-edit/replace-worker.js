@@ -1,6 +1,12 @@
 const { Core } = require('@adobe/aio-sdk');
-const { getFragmentWithEtag, putToOdin, invokeAsyncAction, buildSiblingActionName } = require('../common.js');
-const { applyReplacementsToFragment, buildWorkPlan, resolveReplaceRows } = require('./replace.js');
+const {
+    getFragmentWithEtag,
+    patchToOdin,
+    invokeAsyncAction,
+    buildSiblingActionName,
+    isOdinRateLimitError,
+} = require('../common.js');
+const { applyCsvValuesToFragment, buildWorkPlan, resolveReplaceRows, normalizeEtag } = require('./replace.js');
 const { resolveFindSourceItems } = require('./find-results.js');
 const {
     readJob,
@@ -19,6 +25,13 @@ const logger = Core.Logger('bulk-edit-replace-worker', { level: 'info' });
 const WORKER_ACTION = 'bulk-edit-replace-worker';
 const DEFAULT_BATCH_SIZE = 10;
 const DEFAULT_SOFT_BUDGET_MS = 25 * 60 * 1000;
+const PATCH_429_MAX_RETRIES = 5;
+const PATCH_429_BASE_DELAY_MS = 1000;
+const PATCH_429_MAX_DELAY_MS = 30000;
+
+function sleep(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 function countCounters(results) {
     const counts = { processed: results.length, succeeded: 0, skipped: 0, failed: 0, conflicts: 0 };
@@ -59,14 +72,14 @@ function isConflict(error) {
     return /status 412/.test(error.message || '');
 }
 
-function buildResult(item, status, error) {
+function buildResult(item, status, extras = {}) {
     return {
         id: item.id,
         path: item.path,
         locale: item.locale,
         status,
         matches: item.rows.map((row) => ({ field: row.field, value: row.find })),
-        ...(error ? { error } : {}),
+        ...extras,
     };
 }
 
@@ -84,42 +97,62 @@ function buildDryRunResult(item, fragment, applied) {
     };
 }
 
-async function putOrThrow(odinEndpoint, id, authToken, applied, etag) {
-    const res = await putToOdin(odinEndpoint, id, authToken, {
-        title: applied.title,
-        description: applied.description,
-        fields: applied.fields,
-        etag,
+function etagMismatchResult(item, csvEtag, serverEtag) {
+    return buildResult(item, 'SKIPPED', {
+        reason: 'etag_mismatch',
+        csvEtag,
+        serverEtag,
     });
-    if (!res.success) throw new Error(res.error || `PUT failed for ${id}`);
 }
 
-async function processFragment(item, { odinEndpoint, authToken, matchCase, dryRun, searchFind }) {
+async function patchOrThrow(odinEndpoint, id, authToken, patchBody, etag) {
+    let lastError;
+    for (let attempt = 1; attempt <= PATCH_429_MAX_RETRIES; attempt++) {
+        try {
+            const res = await patchToOdin(odinEndpoint, id, authToken, patchBody, etag);
+            if (!res.success) throw new Error(res.error || `PATCH failed for ${id}`);
+            return;
+        } catch (error) {
+            lastError = error;
+            if (!isOdinRateLimitError(error) || attempt === PATCH_429_MAX_RETRIES) throw error;
+            const delayMs = Math.min(PATCH_429_BASE_DELAY_MS * 2 ** (attempt - 1), PATCH_429_MAX_DELAY_MS);
+            logger.warn(
+                JSON.stringify({
+                    event: 'bulk-edit-replace-patch-429',
+                    fragmentId: id,
+                    attempt,
+                    maxAttempts: PATCH_429_MAX_RETRIES,
+                    delayMs,
+                }),
+            );
+            await sleep(delayMs);
+        }
+    }
+    throw lastError;
+}
+
+async function processFragment(item, { odinEndpoint, authToken, matchCase, dryRun }) {
     try {
-        const { fragment, etag } = await getFragmentWithEtag(odinEndpoint, item.id, authToken);
-        const applied = applyReplacementsToFragment(fragment, item.rows, { matchCase, searchFind });
-        if (!applied.changed) return buildResult(item, 'SKIPPED');
+        const { fragment, etag: serverEtag } = await getFragmentWithEtag(odinEndpoint, item.id, authToken);
+        const csvEtag = item.etag;
+        if (normalizeEtag(serverEtag) !== normalizeEtag(csvEtag)) {
+            return etagMismatchResult(item, csvEtag, serverEtag);
+        }
+
+        const applied = applyCsvValuesToFragment(fragment, item.rows, { matchCase });
+        if (!applied.changed) return buildResult(item, 'SKIPPED', { reason: 'unchanged' });
         if (dryRun) return buildDryRunResult(item, fragment, applied);
 
         try {
-            await putOrThrow(odinEndpoint, item.id, authToken, applied, etag);
+            await patchOrThrow(odinEndpoint, item.id, authToken, applied.patches, csvEtag);
             return buildResult(item, 'REPLACED');
         } catch (error) {
-            if (!isConflict(error)) throw error;
-            const fresh = await getFragmentWithEtag(odinEndpoint, item.id, authToken);
-            const reapplied = applyReplacementsToFragment(fresh.fragment, item.rows, { matchCase, searchFind });
-            if (!reapplied.changed) return buildResult(item, 'SKIPPED');
-            try {
-                await putOrThrow(odinEndpoint, item.id, authToken, reapplied, fresh.etag);
-                return buildResult(item, 'REPLACED');
-            } catch (retryError) {
-                if (isConflict(retryError)) return buildResult(item, 'CONFLICT');
-                throw retryError;
-            }
+            if (isConflict(error)) return etagMismatchResult(item, csvEtag, serverEtag);
+            throw error;
         }
     } catch (error) {
         logger.error(JSON.stringify({ event: 'bulk-edit-replace-fragment-error', fragmentId: item.id, error: error.message }));
-        return buildResult(item, 'FAILED', error.message);
+        return buildResult(item, 'FAILED', { error: error.message });
     }
 }
 
@@ -171,9 +204,9 @@ async function runReplaceWorker(jobId, { odinEndpoint, authToken, runId, params 
     const userCsv = await readUserCsv(job.findJobId);
     const findJob = await readJob(job.findJobId);
     const findItems = await resolveFindSourceItems(job.findJobId, findJob || {});
-    const userRows = resolveReplaceRows(findItems, userCsv?.rows);
-    const searchFind = findJob?.params?.find;
-    const items = buildWorkPlan(userRows, job.replace, searchFind);
+    const findParams = findJob?.params || {};
+    const userRows = resolveReplaceRows(findItems, userCsv?.rows, findParams);
+    const items = buildWorkPlan(userRows);
 
     const batchSize = Number.parseInt(params.batchSize, 10) || DEFAULT_BATCH_SIZE;
     const parsedBudget = Number.parseInt(params.softBudgetMs, 10);
@@ -189,7 +222,7 @@ async function runReplaceWorker(jobId, { odinEndpoint, authToken, runId, params 
             const batch = items.slice(i, i + batchSize);
 
             const batchResults = await Promise.all(
-                batch.map((item) => processFragment(item, { odinEndpoint, authToken, matchCase, dryRun, searchFind })),
+                batch.map((item) => processFragment(item, { odinEndpoint, authToken, matchCase, dryRun })),
             );
             results = [...results, ...batchResults];
             cursor = i + batch.length;
@@ -269,6 +302,8 @@ module.exports = {
     buildReport,
     processFragment,
     buildDryRunResult,
+    etagMismatchResult,
     finalizeReplaceExport,
+    patchOrThrow,
 };
 exports.main = main;

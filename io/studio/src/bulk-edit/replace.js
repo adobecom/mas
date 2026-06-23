@@ -1,9 +1,9 @@
-const { flattenResultsToRows } = require('./csv.js');
+const { buildReplaceRowsFromFindResults } = require('./csv.js');
+const { getValues } = require('../common.js');
 const { SCOPE_FIELDS } = require('./search.js');
 
-function resolveReplaceRows(findItems, userCsvRows) {
-    if (userCsvRows?.length) return userCsvRows;
-    return flattenResultsToRows(findItems);
+function resolveReplaceRows(findItems, userCsvRows, findParams = {}) {
+    return buildReplaceRowsFromFindResults(findItems, userCsvRows, findParams);
 }
 
 function escapeRegExp(str) {
@@ -17,12 +17,23 @@ function replaceInValue(value, find, replace, matchCase) {
     return value.replace(new RegExp(escapeRegExp(find), 'gi'), replacement);
 }
 
+function normalizeEtag(etag) {
+    if (etag == null || etag === '') return '';
+    const text = String(etag).trim();
+    if (text.startsWith('"') && text.endsWith('"')) return text.slice(1, -1);
+    return text;
+}
+
+function valuesMatch(current, expected, matchCase) {
+    if (typeof current !== 'string' || typeof expected !== 'string') return false;
+    if (matchCase) return current === expected;
+    return current.toLowerCase() === expected.toLowerCase();
+}
+
 function resolveReplaceTargets(field) {
     if (field === 'tags' || field === 'key') return [];
     if (field === 'title' || field === 'fragmentTitle') return [{ kind: 'property', name: 'title' }];
     if (field === 'fragmentDescription') return [{ kind: 'property', name: 'description' }];
-    // '*'-mode matches label both the product-description field and the CF description
-    // property as 'description'; rewrite either wherever `find` occurs.
     if (field === 'description') {
         return [
             { kind: 'field', name: 'description' },
@@ -40,43 +51,48 @@ function resolveReplaceTargets(field) {
     return [{ kind: 'field', name: field }];
 }
 
-function applyReplacementsToFragment(fragment, rows, { matchCase = false, searchFind } = {}) {
+function applyCsvValuesToFragment(fragment, rows, { matchCase = false } = {}) {
     const fields = (fragment.fields || []).map((field) => ({ ...field, values: [...(field.values || [])] }));
     const fieldByName = new Map(fields.map((field) => [field.name, field]));
     let { title, description } = fragment;
-    let changed = false;
     const rowStatuses = [];
 
     for (const row of rows) {
-        const needle = searchFind ?? row.find;
         const replace = row.replace ?? '';
+        const targets = resolveReplaceTargets(row.field);
+        if (!replace || !targets.length) {
+            rowStatuses.push({
+                fragment_id: row.fragment_id,
+                field: row.field,
+                find: row.find,
+                status: 'SKIPPED',
+            });
+            continue;
+        }
         let rowChanged = false;
-        for (const target of resolveReplaceTargets(row.field)) {
+        for (const target of targets) {
             if (target.kind === 'field') {
                 const field = fieldByName.get(target.name);
                 if (!field) continue;
                 for (let i = 0; i < field.values.length; i += 1) {
-                    const next = replaceInValue(field.values[i], needle, replace, matchCase);
-                    if (next !== field.values[i]) {
-                        field.values[i] = next;
+                    if (!valuesMatch(field.values[i], row.find, matchCase)) continue;
+                    if (field.values[i] !== replace) {
+                        field.values[i] = replace;
                         rowChanged = true;
                     }
                 }
             } else if (target.name === 'title') {
-                const next = replaceInValue(title, needle, replace, matchCase);
-                if (next !== title) {
-                    title = next;
+                if (valuesMatch(title, row.find, matchCase) && title !== replace) {
+                    title = replace;
                     rowChanged = true;
                 }
             } else if (target.name === 'description') {
-                const next = replaceInValue(description, needle, replace, matchCase);
-                if (next !== description) {
-                    description = next;
+                if (valuesMatch(description, row.find, matchCase) && description !== replace) {
+                    description = replace;
                     rowChanged = true;
                 }
             }
         }
-        if (rowChanged) changed = true;
         rowStatuses.push({
             fragment_id: row.fragment_id,
             field: row.field,
@@ -85,20 +101,47 @@ function applyReplacementsToFragment(fragment, rows, { matchCase = false, search
         });
     }
 
-    return { fields, title, description, changed, rowStatuses };
+    const patches = buildPatchBody(fragment, { fields, title, description });
+    return { fields, title, description, patches, changed: patches.length > 0, rowStatuses };
 }
 
-function buildWorkPlan(userRows, replaceValue, searchFind) {
-    const replace = replaceValue ?? '';
-    if (!replace || !searchFind || replace === searchFind) return [];
+function buildPatchBody(original, applied) {
+    const ops = [];
+    for (const field of applied.fields || []) {
+        const orig = (original.fields || []).find((item) => item.name === field.name);
+        const origValues = orig?.values || [];
+        if (JSON.stringify(origValues) !== JSON.stringify(field.values)) {
+            const located = getValues(original, field.name);
+            if (located?.path) {
+                ops.push({ op: 'replace', path: `${located.path}/values`, value: field.values });
+            }
+        }
+    }
+    if (original.title !== applied.title) {
+        ops.push({ op: 'replace', path: '/title', value: applied.title ?? '' });
+    }
+    if (original.description !== applied.description) {
+        ops.push({ op: 'replace', path: '/description', value: applied.description ?? '' });
+    }
+    return ops;
+}
+
+function buildWorkPlan(userRows) {
     const byFragment = new Map();
     for (const row of userRows || []) {
+        const replace = row.replace ?? '';
+        if (!replace || replace === row.find) continue;
         let item = byFragment.get(row.fragment_id);
         if (!item) {
-            item = { id: row.fragment_id, path: row.path, locale: row.locale, rows: [] };
+            item = { id: row.fragment_id, path: row.path, locale: row.locale, etag: row.etag, rows: [] };
             byFragment.set(row.fragment_id, item);
         }
-        item.rows.push({ fragment_id: row.fragment_id, field: row.field, find: row.find, replace });
+        item.rows.push({
+            fragment_id: row.fragment_id,
+            field: row.field,
+            find: row.find,
+            replace,
+        });
     }
     return [...byFragment.values()].sort((a, b) => a.id.localeCompare(b.id));
 }
@@ -106,8 +149,12 @@ function buildWorkPlan(userRows, replaceValue, searchFind) {
 module.exports = {
     escapeRegExp,
     replaceInValue,
+    normalizeEtag,
+    valuesMatch,
     resolveReplaceTargets,
     resolveReplaceRows,
-    applyReplacementsToFragment,
+    applyCsvValuesToFragment,
+    applyReplacementsToFragment: applyCsvValuesToFragment,
+    buildPatchBody,
     buildWorkPlan,
 };

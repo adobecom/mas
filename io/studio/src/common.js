@@ -441,6 +441,19 @@ async function deleteFragmentById(odinEndpoint, fragmentId, authToken, etag) {
     });
 }
 
+function parseOdinHttpStatus(error) {
+    const text = String(error?.message || error || '');
+    const statusMatch = text.match(/status (\d{3})/);
+    if (statusMatch) return Number(statusMatch[1]);
+    const colonMatch = text.match(/: (\d{3}): /);
+    if (colonMatch) return Number(colonMatch[1]);
+    return 0;
+}
+
+function isOdinRateLimitError(error) {
+    return parseOdinHttpStatus(error) === 429;
+}
+
 module.exports = {
     DEFAULT_PACKAGE_NAME,
     buildSiblingActionName,
@@ -460,4 +473,6 @@ module.exports = {
     putToOdin,
     getFragmentWithEtag,
     deleteFragmentById,
+    parseOdinHttpStatus,
+    isOdinRateLimitError,
 };

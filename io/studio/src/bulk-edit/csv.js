@@ -1,6 +1,6 @@
 const { SCOPE_FIELDS } = require('./search.js');
 
-const HEADERS = ['fragment_id', 'path', 'locale', 'field', 'find', 'replace', 'etag', 'status'];
+const HEADERS = ['fragment_id', 'path', 'locale', 'field', 'find', 'etag', 'status'];
 const CSV_MARKER = HEADERS[0];
 
 const FIELD_TO_SCOPE = new Map();
@@ -86,7 +86,6 @@ function flattenResultsToRows(results) {
                 locale: item.locale,
                 field: match.field,
                 find: match.value,
-                replace: '',
                 etag: item.etag,
                 status: item.status,
             });
@@ -121,13 +120,18 @@ function buildResultRowKeys(results) {
     return keys;
 }
 
-function applyUserReplaceValues(rows, userRows) {
-    if (!userRows?.length) return rows;
-    for (const row of rows) {
-        const userRow = userRows.find((candidate) =>
-            uploadRowMatchesMatch(row.fragment_id, { field: row.field, value: row.find }, candidate),
-        );
-        if (userRow) row.replace = userRow.replace ?? '';
+function buildCsvRowsFromFindResults(items, userRows) {
+    const filtered = userRows?.length ? filterResultsByUserCsv(items, userRows) : items;
+    return flattenResultsToRows(filtered);
+}
+
+function buildReplaceRowsFromFindResults(items, userRows, { find, replace, matchCase } = {}) {
+    const rows = buildCsvRowsFromFindResults(items, userRows);
+    if (find && replace && replace !== find) {
+        const { replaceInValue } = require('./replace.js');
+        for (const row of rows) {
+            row.replace = replaceInValue(row.find, find, replace, !!matchCase);
+        }
     }
     return rows;
 }
@@ -279,7 +283,8 @@ module.exports = {
     flattenResultsToRows,
     filterResultsByUserCsv,
     buildResultRowKeys,
-    applyUserReplaceValues,
+    buildCsvRowsFromFindResults,
+    buildReplaceRowsFromFindResults,
     toCsv,
     fromCsv,
     parseRawBody,

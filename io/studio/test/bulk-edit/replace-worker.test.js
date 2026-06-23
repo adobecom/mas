@@ -1,17 +1,23 @@
 const { expect } = require('chai');
 const proxyquire = require('proxyquire');
+const sinon = require('sinon');
+const common = require('../../src/common.js');
 
 function frag(id, value = 'School offer') {
-    return { id, title: 'T', description: 'D', fields: [{ name: 'subtitle', values: [value] }] };
+    return {
+        id,
+        title: 'T',
+        description: 'D',
+        fields: [{ name: 'subtitle', values: [value], path: '/fields/0' }],
+    };
 }
 
 function load(overrides = {}) {
-    const calls = { put: [], get: [], dryRun: [], reports: [], invokes: [] };
+    const calls = { patch: [], get: [], dryRun: [], reports: [], invokes: [] };
     const patches = [];
     const job = {
         type: 'replace',
         findJobId: 'find1',
-        replace: overrides.replace ?? 'Campus',
         dryRun: overrides.dryRun || false,
         matchCase: false,
         runId: 'run1',
@@ -21,25 +27,54 @@ function load(overrides = {}) {
         ...overrides.job,
     };
     const rows = overrides.rows || [
-        { fragment_id: 'a', path: '/p/a', locale: 'en_US', field: 'subtitle', find: 'School', replace: '' },
-        { fragment_id: 'b', path: '/p/b', locale: 'en_US', field: 'subtitle', find: 'School', replace: '' },
+        {
+            fragment_id: 'a',
+            path: '/p/a',
+            locale: 'en_US',
+            field: 'subtitle',
+            find: 'School offer',
+            replace: 'Campus offer',
+            etag: 'etag-a',
+        },
+        {
+            fragment_id: 'b',
+            path: '/p/b',
+            locale: 'en_US',
+            field: 'subtitle',
+            find: 'School offer',
+            replace: 'Campus offer',
+            etag: 'etag-b',
+        },
     ];
     const stubs = {
         '../common.js': {
             getFragmentWithEtag: async (endpoint, id) => {
                 calls.get.push(id);
                 if (overrides.getThrows?.[id]) throw new Error(overrides.getThrows[id]);
-                return { fragment: frag(id), etag: `etag-${id}-${calls.get.length}` };
+                const etag = id === 'a' ? 'etag-a' : 'etag-b';
+                return { fragment: frag(id), etag: overrides.serverEtags?.[id] ?? etag };
             },
-            putToOdin: async (endpoint, id) => {
-                calls.put.push(id);
-                if (overrides.putThrows) throw new Error(overrides.putThrows);
+            patchToOdin: async (endpoint, id, authToken, patchBody, etag) => {
+                calls.patch.push({ id, patchBody, etag });
+                calls.patchAttempts = (calls.patchAttempts || 0) + 1;
+                if (overrides.patch429OncePerId) {
+                    calls.patch429Once = calls.patch429Once || new Set();
+                    if (!calls.patch429Once.has(id)) {
+                        calls.patch429Once.add(id);
+                        throw new Error(`PATCH request failed for fragment ${id}: 429: Too Many Requests`);
+                    }
+                }
+                if (overrides.patch429Always) {
+                    throw new Error(`PATCH request failed for fragment ${id}: 429: Too Many Requests`);
+                }
+                if (overrides.patchThrows) throw new Error(overrides.patchThrows);
                 return { success: true };
             },
             invokeAsyncAction: async (action, p) => {
                 calls.invokes.push({ action, p });
             },
             buildSiblingActionName: () => 'pkg/bulk-edit-replace-worker',
+            isOdinRateLimitError: common.isOdinRateLimitError,
             '@noCallThru': true,
         },
         './replace.js': require('../../src/bulk-edit/replace.js'),
@@ -47,7 +82,9 @@ function load(overrides = {}) {
             readJob:
                 overrides.readJob ||
                 (async (id) => {
-                    if (id === 'find1') return { params: { find: 'School' }, status: 'DONE' };
+                    if (id === 'find1') {
+                        return { params: { find: 'School', replace: 'Campus' }, status: 'DONE' };
+                    }
                     return job;
                 }),
             patchJob: async (jobId, patch) => {
@@ -73,7 +110,24 @@ function load(overrides = {}) {
             '@noCallThru': true,
         },
         './find-results.js': {
-            resolveFindSourceItems: async () => [],
+            resolveFindSourceItems: async () => [
+                {
+                    id: 'a',
+                    path: '/p/a',
+                    locale: 'en_US',
+                    etag: 'etag-a',
+                    status: 'DRAFT',
+                    matches: [{ field: 'subtitle', value: 'School offer' }],
+                },
+                {
+                    id: 'b',
+                    path: '/p/b',
+                    locale: 'en_US',
+                    etag: 'etag-b',
+                    status: 'DRAFT',
+                    matches: [{ field: 'subtitle', value: 'School offer' }],
+                },
+            ],
             '@noCallThru': true,
         },
         '@adobe/aio-sdk': { Core: { Logger: () => ({ info() {}, error() {} }) }, '@noCallThru': true },
@@ -81,29 +135,118 @@ function load(overrides = {}) {
     return { mod: proxyquire('../../src/bulk-edit/replace-worker.js', stubs), calls, patches, job };
 }
 
+describe('bulk-edit/replace-worker: patchOrThrow', () => {
+    beforeEach(() => {
+        sinon.stub(global, 'setTimeout').callsFake((fn) => {
+            fn();
+            return 1;
+        });
+    });
+
+    afterEach(() => {
+        sinon.restore();
+    });
+
+    it('retries PATCH on 429 and succeeds', async () => {
+        let calls = 0;
+        const patchToOdin = async () => {
+            calls += 1;
+            if (calls === 1) {
+                return { success: false, error: 'PATCH request failed for fragment a: 429: Too Many Requests' };
+            }
+            return { success: true };
+        };
+        const mod = proxyquire('../../src/bulk-edit/replace-worker.js', {
+            '../common.js': { patchToOdin, isOdinRateLimitError: common.isOdinRateLimitError, '@noCallThru': true },
+            '@adobe/aio-sdk': { Core: { Logger: () => ({ info() {}, error() {}, warn() {} }) }, '@noCallThru': true },
+        });
+        await mod.patchOrThrow('https://odin', 'a', 'token', [{ op: 'replace', path: '/x', value: 'y' }], 'etag-a');
+        expect(calls).to.equal(2);
+    });
+
+    it('does not retry non-429 PATCH failures', async () => {
+        let calls = 0;
+        const patchToOdin = async () => {
+            calls += 1;
+            return { success: false, error: 'PATCH request failed for fragment a: 500: Server Error' };
+        };
+        const mod = proxyquire('../../src/bulk-edit/replace-worker.js', {
+            '../common.js': { patchToOdin, isOdinRateLimitError: common.isOdinRateLimitError, '@noCallThru': true },
+            '@adobe/aio-sdk': { Core: { Logger: () => ({ info() {}, error() {}, warn() {} }) }, '@noCallThru': true },
+        });
+        try {
+            await mod.patchOrThrow('https://odin', 'a', 'token', [], 'etag-a');
+            expect.fail('expected throw');
+        } catch (error) {
+            expect(calls).to.equal(1);
+            expect(error.message).to.include('500');
+        }
+    });
+});
+
 describe('bulk-edit/replace-worker: buildWorkPlan', () => {
-    it('groups rows by fragment, drops no-op rows, and sorts by id', () => {
+    it('groups rows by fragment and excludes no-op rows', () => {
         const { mod } = load();
-        const plan = mod.buildWorkPlan(
-            [
-                { fragment_id: 'b', field: 'subtitle', find: 'x' },
-                { fragment_id: 'a', field: 'subtitle', find: 'x' },
-                { fragment_id: 'a', field: 'title', find: 'z' },
-                { fragment_id: 'a', field: 'callout', find: 'q' },
-            ],
-            'y',
-            'x',
-        );
+        const plan = mod.buildWorkPlan([
+            {
+                fragment_id: 'b',
+                path: '/p/b',
+                locale: 'en_US',
+                field: 'subtitle',
+                find: 'x',
+                replace: 'y',
+                etag: 'e2',
+            },
+            {
+                fragment_id: 'a',
+                path: '/p/a',
+                locale: 'en_US',
+                field: 'subtitle',
+                find: 'x',
+                replace: 'y',
+                etag: 'e1',
+            },
+            {
+                fragment_id: 'a',
+                path: '/p/a',
+                locale: 'en_US',
+                field: 'title',
+                find: 'z',
+                replace: 'q',
+                etag: 'e1',
+            },
+        ]);
         expect(plan.map((i) => i.id)).to.deep.equal(['a', 'b']);
-        expect(plan[0].rows).to.have.length(3);
+        expect(plan[0].rows).to.have.length(2);
         expect(plan[1].rows).to.have.length(1);
+    });
+});
+
+describe('bulk-edit/replace-worker: processFragment', () => {
+    it('skips with etag_mismatch when server etag differs from CSV', async () => {
+        const { mod } = load({ serverEtags: { a: 'etag-stale' } });
+        const item = {
+            id: 'a',
+            path: '/p/a',
+            locale: 'en_US',
+            etag: 'etag-a',
+            rows: [{ field: 'subtitle', find: 'School offer', replace: 'Campus offer' }],
+        };
+        const result = await mod.processFragment(item, {
+            odinEndpoint: 'https://odin',
+            authToken: 'token',
+            matchCase: false,
+            dryRun: false,
+        });
+        expect(result.status).to.equal('SKIPPED');
+        expect(result.reason).to.equal('etag_mismatch');
     });
 });
 
 describe('bulk-edit/replace-worker: buildDryRunResult', () => {
     it('returns the modified fragment payload without persisting to Odin', () => {
         const { mod } = load();
-        const item = { id: 'a', path: '/p/a', locale: 'en_US', rows: [{ field: 'subtitle', find: 'School' }] };
+        const item = { id: 'a', path: '/p/a', locale: 'en_US', rows: [{ field: 'subtitle', find: 'School offer' }] };
         const fragment = {
             id: 'a',
             etag: 'e1',
@@ -117,6 +260,7 @@ describe('bulk-edit/replace-worker: buildDryRunResult', () => {
             fields: [{ name: 'subtitle', values: ['Campus offer'] }],
             changed: true,
             rowStatuses: [],
+            patches: [],
         };
         expect(mod.buildDryRunResult(item, fragment, applied)).to.deep.equal({
             id: 'a',
@@ -127,44 +271,71 @@ describe('bulk-edit/replace-worker: buildDryRunResult', () => {
             title: 'T',
             description: 'D',
             fields: [{ name: 'subtitle', values: ['Campus offer'] }],
-            matches: [{ field: 'subtitle', value: 'School' }],
+            matches: [{ field: 'subtitle', value: 'School offer' }],
         });
     });
 });
 
 describe('bulk-edit/replace-worker: runReplaceWorker', () => {
-    it('replaces each fragment and finishes DONE', async () => {
+    it('patches each fragment and finishes DONE', async () => {
         const { mod, calls, patches } = load();
         const result = await mod.runReplaceWorker('job1', { odinEndpoint: 'https://odin', runId: 'run1' });
         expect(result.status).to.equal('DONE');
         expect(result.succeeded).to.equal(2);
-        expect(calls.put).to.deep.equal(['a', 'b']);
+        expect(calls.patch.map((entry) => entry.id)).to.deep.equal(['a', 'b']);
         expect(patches[patches.length - 1].status).to.equal('DONE');
         expect(patches[patches.length - 1].exportReady).to.equal(true);
-        expect(patches[patches.length - 1].results).to.deep.equal([]);
     });
 
-    it('dry-run applies replacements in memory, makes no PUT, and exports modified fragments', async () => {
+    it('dry-run applies replacements in memory, makes no PATCH, and exports modified fragments', async () => {
         const { mod, calls } = load({ dryRun: true });
         const result = await mod.runReplaceWorker('job1', { odinEndpoint: 'https://odin', runId: 'run1' });
         expect(result.status).to.equal('DONE');
-        expect(calls.put).to.deep.equal([]);
+        expect(calls.patch).to.deep.equal([]);
         expect(calls.dryRun.length).to.be.greaterThan(0);
         const list = calls.dryRun[calls.dryRun.length - 1];
         expect(list.every((r) => r.status === 'WOULD_REPLACE')).to.equal(true);
         expect(list[0].fields[0].values[0]).to.equal('Campus offer');
-        expect(list[0].title).to.equal('T');
-        expect(calls.reports[0].dryRun).to.equal(true);
-        expect(calls.reports[0].totalFragments).to.equal(2);
-        expect(calls.results).to.have.lengthOf(2);
     });
 
-    it('retries once on 412 then records CONFLICT', async () => {
-        const { mod, calls } = load({ putThrows: 'PUT /x failed with status 412: Precondition Failed' });
+    it('records SKIPPED on 412 without retrying', async () => {
+        const { mod, calls } = load({ patchThrows: 'PATCH /x failed with status 412: Precondition Failed' });
         const result = await mod.runReplaceWorker('job1', { odinEndpoint: 'https://odin', runId: 'run1' });
         expect(result.status).to.equal('DONE');
-        expect(result.conflicts).to.equal(2);
-        expect(calls.put).to.have.length(4);
+        expect(result.skipped).to.equal(2);
+        expect(calls.patch).to.have.length(2);
+    });
+
+    it('retries PATCH on 429 and completes successfully', async () => {
+        sinon.stub(global, 'setTimeout').callsFake((fn) => {
+            fn();
+            return 1;
+        });
+        try {
+            const { mod, calls } = load({ patch429OncePerId: true });
+            const result = await mod.runReplaceWorker('job1', { odinEndpoint: 'https://odin', runId: 'run1' });
+            expect(result.status).to.equal('DONE');
+            expect(result.succeeded).to.equal(2);
+            expect(calls.patchAttempts).to.equal(4);
+        } finally {
+            sinon.restore();
+        }
+    });
+
+    it('marks FAILED after exhausting PATCH 429 retries', async () => {
+        sinon.stub(global, 'setTimeout').callsFake((fn) => {
+            fn();
+            return 1;
+        });
+        try {
+            const { mod, calls } = load({ patch429Always: true });
+            const result = await mod.runReplaceWorker('job1', { odinEndpoint: 'https://odin', runId: 'run1' });
+            expect(result.status).to.equal('DONE');
+            expect(result.failed).to.equal(2);
+            expect(calls.patchAttempts).to.equal(10);
+        } finally {
+            sinon.restore();
+        }
     });
 
     it('isolates a single fragment failure and keeps going', async () => {
@@ -182,7 +353,7 @@ describe('bulk-edit/replace-worker: runReplaceWorker', () => {
         const { mod, calls } = load({ cursor: 1, results: [prior] });
         await mod.runReplaceWorker('job1', { odinEndpoint: 'https://odin', runId: 'run1' });
         expect(calls.get).to.deep.equal(['b']);
-        expect(calls.put).to.deep.equal(['b']);
+        expect(calls.patch.map((entry) => entry.id)).to.deep.equal(['b']);
     });
 
     it('self-continues when the soft time budget is exceeded', async () => {
@@ -200,10 +371,9 @@ describe('bulk-edit/replace-worker: runReplaceWorker', () => {
     it('stops as SUPERSEDED without writing terminal status when runId changes', async () => {
         const { mod, patches } = load({
             readJob: async (id) => {
-                if (id === 'find1') return { params: { find: 'School' }, status: 'DONE' };
+                if (id === 'find1') return { params: { find: 'School', replace: 'Campus' }, status: 'DONE' };
                 return {
                     findJobId: 'find1',
-                    replace: 'Campus',
                     runId: 'newer',
                     status: 'RUNNING',
                     results: [],

@@ -42,7 +42,7 @@ const {
 const logger = Core.Logger('bulk-edit', { level: 'info' });
 
 const WORKER_ACTIONS = { find: 'bulk-edit-find-worker', replace: 'bulk-edit-replace-worker' };
-const REQUIRED_INPUTS = { find: ['find', 'surface'], replace: ['findJobId', 'replace'] };
+const REQUIRED_INPUTS = { find: ['find', 'replace', 'surface'], replace: ['findJobId'] };
 const TERMINAL_STATUSES = new Set(['DONE', 'CANCELLED']);
 const DEFAULT_PAGE_LIMIT = 50;
 const MAX_PAGE_LIMIT = 50;
@@ -73,6 +73,7 @@ function buildSearchKey(params) {
     return {
         type: params.type,
         find: params.find,
+        replace: params.replace,
         surface: params.surface,
         searchIn: normalizeSearchInKey(params.searchIn),
         matchCase: !!params.matchCase,
@@ -92,18 +93,27 @@ function computeJobId(params) {
     return crypto.createHash('sha256').update(canonicalSearchKey(params)).digest('hex');
 }
 
-function computeReplaceJobId(findJobId, { dryRun, userCsv, replace, findRunId }) {
+function computeReplaceJobId(findJobId, { dryRun, actionableRows, findRunId }) {
     const find12 = String(findJobId).slice(0, 12);
     const mode = dryRun ? 'dry' : 'live';
-    const allMatches = !userCsv?.rows?.length;
     const payload = {
-        allMatches,
-        rows: allMatches ? [] : userCsv.rows,
-        replace: String(replace ?? ''),
+        rows: (actionableRows || []).map((row) => ({
+            fragment_id: row.fragment_id,
+            field: row.field,
+            find: row.find,
+            etag: row.etag,
+        })),
         findRunId: findRunId ?? '',
     };
     const csv8 = crypto.createHash('sha256').update(JSON.stringify(payload)).digest('hex').slice(0, 8);
     return `replace.${find12}.${mode}.${csv8}`;
+}
+
+function actionableReplaceRows(rows) {
+    return (rows || []).filter((row) => {
+        const replace = row.replace ?? '';
+        return replace && replace !== row.find;
+    });
 }
 
 async function cancelJob(jobId) {
@@ -194,15 +204,19 @@ async function handleReplacePost(params, authToken) {
         return errorResponse(400, `find job ${params.findJobId} has no results`, logger);
     }
 
-    const replace = String(params.replace);
-    const replaceRows = resolveReplaceRows(findItems, userCsv?.rows);
-    const workPlan = buildWorkPlan(replaceRows, replace, findJob.params?.find);
+    const findParams = findJob.params || {};
+    const replaceRows = resolveReplaceRows(findItems, userCsv?.rows, findParams);
+    const workPlan = buildWorkPlan(replaceRows);
     if (!workPlan.length) {
-        return errorResponse(400, 'no fragments would be changed with this replace value', logger);
+        return errorResponse(400, 'no rows with replace values would change fragments', logger);
     }
 
     const dryRun = isForceRefresh(params.dryRun);
-    const jobId = computeReplaceJobId(params.findJobId, { dryRun, userCsv, replace, findRunId: findJob.runId });
+    const jobId = computeReplaceJobId(params.findJobId, {
+        dryRun,
+        actionableRows: actionableReplaceRows(replaceRows),
+        findRunId: findJob.runId,
+    });
 
     const existing = await readJob(jobId);
     if (existing && !existing.cancelled && (existing.status === 'RUNNING' || TERMINAL_REPLACE_STATUSES.has(existing.status))) {
@@ -215,7 +229,6 @@ async function handleReplacePost(params, authToken) {
         type: 'replace',
         findJobId: params.findJobId,
         findRunId: findJob.runId,
-        replace,
         dryRun,
         matchCase: !!findJob.params?.matchCase,
         runId,
@@ -612,6 +625,7 @@ module.exports = {
     canonicalSearchKey,
     computeJobId,
     computeReplaceJobId,
+    actionableReplaceRows,
     normalizeSearchInKey,
     normalizeLocalesKey,
     isForceRefresh,

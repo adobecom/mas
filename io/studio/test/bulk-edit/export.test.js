@@ -59,6 +59,7 @@ describe('bulk-edit/export: writeJobExports', () => {
         expect(document.jobId).to.equal('job-1');
         expect(document.items).to.have.lengthOf(1);
         expect(writes['private/bulk-edit/job-1/results.csv']).to.include('fragment_id,path,locale');
+        expect(writes['private/bulk-edit/job-1/results.csv']).to.not.include(',replace,');
     });
 
     it('writes JSON only for replace jobs', async () => {

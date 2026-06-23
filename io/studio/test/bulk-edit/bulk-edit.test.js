@@ -100,6 +100,7 @@ function load({ existing = null, userCsv = null, allowed = true } = {}) {
 const findParams = {
     type: 'find',
     find: 'school',
+    replace: 'academy',
     surface: 'sandbox',
     searchIn: '*',
     odinEndpoint: 'https://odin.example',
@@ -129,8 +130,7 @@ const doneJobResults = [
 
 const doneJob = { status: 'DONE', total: 2, results: doneJobResults };
 
-const sampleCsvRow =
-    `${csvHeaderLine}\n` + 'frag-1,/content/dam/mas/sandbox/en_US/foo,en_US,subtitle,school,academy,e1,PUBLISHED\n';
+const sampleCsvRow = `${csvHeaderLine}\n` + 'frag-1,/content/dam/mas/sandbox/en_US/foo,en_US,subtitle,school,e1,PUBLISHED\n';
 
 describe('bulk-edit: computeJobId', () => {
     it('is stable for identical params and tag order', () => {
@@ -138,6 +138,10 @@ describe('bulk-edit: computeJobId', () => {
         const a = mod.computeJobId({ ...findParams, tags: ['b', 'a'] });
         const b = mod.computeJobId({ ...findParams, tags: ['a', 'b'] });
         expect(a).to.equal(b);
+    });
+    it('changes when replace changes', () => {
+        const { mod } = load();
+        expect(mod.computeJobId(findParams)).to.not.equal(mod.computeJobId({ ...findParams, replace: 'campus' }));
     });
     it('changes when a search field changes', () => {
         const { mod } = load();
@@ -415,7 +419,6 @@ describe('bulk-edit: handleCsvUpload', () => {
                 locale: 'en_US',
                 field: 'subtitle',
                 find: 'school',
-                replace: 'academy',
                 etag: 'e1',
                 status: 'PUBLISHED',
             },
@@ -449,7 +452,7 @@ describe('bulk-edit: handleCsvUpload', () => {
     });
     it('400s when a CSV row is not in the original job', async () => {
         const { mod } = load({ existing: doneJob });
-        const badCsv = `${csvHeaderLine}\nmissing,/p,en_US,subtitle,x,,e1,PUBLISHED\n`;
+        const badCsv = `${csvHeaderLine}\nmissing,/p,en_US,subtitle,x,e1,PUBLISHED\n`;
         const res = await mod.handleCsvUpload({ jobId: 'job-1', __ow_body: badCsv });
         expect(res.error.statusCode).to.equal(400);
         expect(res.error.body.error).to.include('not found in job results');
@@ -471,7 +474,7 @@ describe('bulk-edit: handleCsvUpload', () => {
 describe('bulk-edit: handleCsvDelete', () => {
     it('removes uploaded CSV and restores unfiltered exports', async () => {
         const uploaded = {
-            rows: [{ fragment_id: 'frag-1', field: 'subtitle', find: 'school', replace: 'academy' }],
+            rows: [{ fragment_id: 'frag-1', field: 'subtitle', find: 'school' }],
         };
         const { mod, deleteUserCsv, writeJobExports, readUserCsv, patchJob } = load({
             existing: { ...doneJob, exportReady: true },
@@ -501,57 +504,51 @@ const findJobDone = {
     type: 'find',
     status: 'DONE',
     runId: 'find-run-1',
-    params: { matchCase: false, find: 'school' },
+    params: { matchCase: false, find: 'school', replace: 'academy' },
     results: doneJobResults,
 };
 const replaceCsv = {
     uploadedAt: '2026-01-01T00:00:00.000Z',
-    rows: [{ fragment_id: 'frag-1', path: '/p/foo', locale: 'en_US', field: 'subtitle', find: 'school', replace: 'academy' }],
+    rows: [{ fragment_id: 'frag-1', path: '/p/foo', locale: 'en_US', field: 'subtitle', find: 'school' }],
 };
 
 describe('bulk-edit: computeReplaceJobId', () => {
-    const replaceValue = 'academy';
+    const actionableRows = [{ fragment_id: 'frag-1', field: 'subtitle', find: 'school', replace: 'academy', etag: 'e1' }];
     it('produces a structured replace.{find12}.{mode}.{csv8} id', () => {
         const { mod } = load();
-        const id = mod.computeReplaceJobId('abcdef0123456789', { dryRun: false, userCsv: replaceCsv, replace: replaceValue });
+        const id = mod.computeReplaceJobId('abcdef0123456789', { dryRun: false, actionableRows, findRunId: 'run-1' });
         expect(id).to.match(/^replace\.abcdef012345\.live\.[0-9a-f]{8}$/);
     });
     it('distinguishes dry from live runs', () => {
         const { mod } = load();
-        const dry = mod.computeReplaceJobId('abcdef0123456789', { dryRun: true, userCsv: replaceCsv, replace: replaceValue });
-        const live = mod.computeReplaceJobId('abcdef0123456789', { dryRun: false, userCsv: replaceCsv, replace: replaceValue });
+        const dry = mod.computeReplaceJobId('abcdef0123456789', { dryRun: true, actionableRows, findRunId: 'run-1' });
+        const live = mod.computeReplaceJobId('abcdef0123456789', { dryRun: false, actionableRows, findRunId: 'run-1' });
         expect(dry).to.not.equal(live);
         expect(dry).to.include('.dry.');
     });
     it('changes when the CSV rows change', () => {
         const { mod } = load();
-        const a = mod.computeReplaceJobId('abcdef0123456789', { dryRun: false, userCsv: replaceCsv, replace: replaceValue });
+        const a = mod.computeReplaceJobId('abcdef0123456789', { dryRun: false, actionableRows, findRunId: 'run-1' });
         const b = mod.computeReplaceJobId('abcdef0123456789', {
             dryRun: false,
-            userCsv: { rows: [{ ...replaceCsv.rows[0], fragment_id: 'frag-2' }] },
-            replace: replaceValue,
+            actionableRows: [{ ...actionableRows[0], fragment_id: 'frag-2' }],
+            findRunId: 'run-1',
         });
         expect(a).to.not.equal(b);
     });
-    it('distinguishes all find results from an uploaded CSV subset', () => {
+    it('does not change when only replace values differ', () => {
         const { mod } = load();
-        const all = mod.computeReplaceJobId('abcdef0123456789', { dryRun: false, userCsv: null, replace: replaceValue });
-        const subset = mod.computeReplaceJobId('abcdef0123456789', {
+        const a = mod.computeReplaceJobId('abcdef0123456789', { dryRun: false, actionableRows, findRunId: 'run-1' });
+        const b = mod.computeReplaceJobId('abcdef0123456789', {
             dryRun: false,
-            userCsv: replaceCsv,
-            replace: replaceValue,
+            actionableRows: [{ ...actionableRows[0], replace: 'campus' }],
+            findRunId: 'run-1',
         });
-        expect(all).to.not.equal(subset);
-    });
-    it('changes when the replace value changes', () => {
-        const { mod } = load();
-        const a = mod.computeReplaceJobId('abcdef0123456789', { dryRun: false, userCsv: replaceCsv, replace: 'academy' });
-        const b = mod.computeReplaceJobId('abcdef0123456789', { dryRun: false, userCsv: replaceCsv, replace: 'campus' });
-        expect(a).to.not.equal(b);
+        expect(a).to.equal(b);
     });
     it('changes when the find job run changes', () => {
         const { mod } = load();
-        const base = { dryRun: false, userCsv: replaceCsv, replace: replaceValue };
+        const base = { dryRun: false, actionableRows };
         const first = mod.computeReplaceJobId('abcdef0123456789', { ...base, findRunId: 'run-a' });
         const renewed = mod.computeReplaceJobId('abcdef0123456789', { ...base, findRunId: 'run-b' });
         expect(first).to.not.equal(renewed);
@@ -559,7 +556,7 @@ describe('bulk-edit: computeReplaceJobId', () => {
 });
 
 describe('bulk-edit: handleReplacePost', () => {
-    const replaceParams = { type: 'replace', findJobId: 'find-1', replace: 'academy', odinEndpoint: 'https://odin.example' };
+    const replaceParams = { type: 'replace', findJobId: 'find-1', odinEndpoint: 'https://odin.example' };
 
     function loadReplace(extra = {}) {
         const ctx = load({ userCsv: replaceCsv, ...extra });
@@ -578,7 +575,6 @@ describe('bulk-edit: handleReplacePost', () => {
         const written = ctx.writeJob.firstCall.args[1];
         expect(written.type).to.equal('replace');
         expect(written.findJobId).to.equal('find-1');
-        expect(written.replace).to.equal('academy');
         expect(written.total).to.equal(1);
         expect(ctx.invokeAsyncAction.firstCall.args[0]).to.equal('MerchAtScaleStudio/bulk-edit-replace-worker');
     });
@@ -601,13 +597,13 @@ describe('bulk-edit: handleReplacePost', () => {
         expect(res.error.statusCode).to.equal(400);
         expect(res.error.body.error).to.include('not ready');
     });
-    it('uses full find results when no CSV was uploaded', async () => {
+    it('uses generated CSV rows when no CSV was uploaded', async () => {
         const ctx = load({ userCsv: null });
         ctx.readJob.withArgs('find-1').resolves(findJobDone);
         ctx.resolveFindSourceItems.resolves(doneJobResults);
         const res = await ctx.mod.handlePost(replaceParams);
         expect(res.statusCode).to.equal(202);
-        expect(ctx.writeJob.firstCall.args[1].total).to.equal(2);
+        expect(ctx.writeJob.firstCall.args[1].total).to.equal(1);
     });
     it('400s when the find job has no results', async () => {
         const ctx = load({ userCsv: null });
@@ -617,17 +613,15 @@ describe('bulk-edit: handleReplacePost', () => {
         expect(res.error.statusCode).to.equal(400);
         expect(res.error.body.error).to.include('no results');
     });
-    it('400s when replace is missing', async () => {
-        const ctx = loadReplace();
-        const res = await ctx.mod.handlePost({ type: 'replace', findJobId: 'find-1', odinEndpoint: 'https://odin.example' });
+    it('400s when no rows would change fragments', async () => {
+        const ctx = load({ userCsv: null });
+        ctx.readJob.withArgs('find-1').resolves({
+            ...findJobDone,
+            params: { matchCase: false, find: 'school', replace: 'school' },
+        });
+        const res = await ctx.mod.handlePost(replaceParams);
         expect(res.error.statusCode).to.equal(400);
-        expect(res.error.body.error).to.include('replace');
-    });
-    it('400s when replace would change nothing', async () => {
-        const ctx = loadReplace();
-        const res = await ctx.mod.handlePost({ ...replaceParams, replace: 'school' });
-        expect(res.error.statusCode).to.equal(400);
-        expect(res.error.body.error).to.include('no fragments would be changed');
+        expect(res.error.body.error).to.include('no rows with replace values');
     });
     it('400s when findJobId is missing', async () => {
         const { mod } = load();
@@ -640,8 +634,7 @@ describe('bulk-edit: handleReplacePost', () => {
         ctx.readJob.withArgs('find-1').resolves(findJobDone);
         const replaceJobId = ctx.mod.computeReplaceJobId('find-1', {
             dryRun: false,
-            userCsv: replaceCsv,
-            replace: 'academy',
+            actionableRows: [{ fragment_id: 'frag-1', field: 'subtitle', find: 'school', replace: 'academy', etag: 'e1' }],
             findRunId: findJobDone.runId,
         });
         ctx.readJob.withArgs(replaceJobId).resolves({ type: 'replace', status: 'RUNNING', findRunId: findJobDone.runId });
@@ -654,8 +647,7 @@ describe('bulk-edit: handleReplacePost', () => {
         const ctx = loadReplace();
         const replaceJobId = ctx.mod.computeReplaceJobId('find-1', {
             dryRun: false,
-            userCsv: replaceCsv,
-            replace: 'academy',
+            actionableRows: [{ fragment_id: 'frag-1', field: 'subtitle', find: 'school', replace: 'academy', etag: 'e1' }],
             findRunId: 'find-run-0',
         });
         ctx.readJob.withArgs(replaceJobId).resolves({ type: 'replace', status: 'DONE', findRunId: 'find-run-0' });
@@ -847,11 +839,12 @@ describe('bulk-edit: mode-specific endpoints', () => {
     it('bulk-edit-find POST forces type find without type in body', async () => {
         const { mod } = load();
         const findMain = mod.createModeMain('find');
-        const { find, surface, odinEndpoint } = findParams;
+        const { find, replace, surface, odinEndpoint } = findParams;
         const res = await findMain({
             __ow_method: 'post',
             allowedClientId: 'mas-studio',
             find,
+            replace,
             surface,
             odinEndpoint,
         });
@@ -890,7 +883,7 @@ describe('bulk-edit: mode-specific endpoints', () => {
     });
 
     it('bulk-edit-find DELETE removes uploaded CSV', async () => {
-        const uploaded = { rows: [{ fragment_id: 'frag-1', field: 'subtitle', find: 'school', replace: 'x' }] };
+        const uploaded = { rows: [{ fragment_id: 'frag-1', field: 'subtitle', find: 'school' }] };
         const { mod, deleteUserCsv, readUserCsv } = load({ existing: doneJob, userCsv: uploaded });
         readUserCsv.onFirstCall().resolves(uploaded);
         readUserCsv.onSecondCall().resolves(null);

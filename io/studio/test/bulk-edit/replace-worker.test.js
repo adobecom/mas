@@ -131,7 +131,7 @@ function load(overrides = {}) {
             ],
             '@noCallThru': true,
         },
-        '@adobe/aio-sdk': { Core: { Logger: () => ({ info() {}, error() {} }) }, '@noCallThru': true },
+        '@adobe/aio-sdk': { Core: { Logger: () => ({ info() {}, error() {}, warn() {} }) }, '@noCallThru': true },
     };
     return { mod: proxyquire('../../src/bulk-edit/replace-worker.js', stubs), calls, patches, job };
 }
@@ -314,6 +314,20 @@ describe('bulk-edit/replace-worker: runReplaceWorker', () => {
         expect(result.status).to.equal('DONE');
         expect(result.skipped).to.equal(2);
         expect(calls.patch).to.have.length(2);
+    });
+
+    it('patchOrThrow retries 429 through the load stub', async () => {
+        sinon.stub(global, 'setTimeout').callsFake((fn) => {
+            fn();
+            return 1;
+        });
+        try {
+            const { mod, calls } = load({ patch429OncePerId: true });
+            await mod.patchOrThrow('https://odin', 'a', 'token', [{ op: 'replace', path: '/x', value: 'y' }], 'etag-a');
+            expect(calls.patchAttempts).to.equal(2);
+        } finally {
+            sinon.restore();
+        }
     });
 
     it('retries PATCH on 429 and completes successfully', async () => {

@@ -21,6 +21,7 @@ import {
     getPromoNameFromTag,
     getPromotionTagFromFragment,
     isPromoVariationPath,
+    getPromotionInfo,
 } from './promotions/promotion-model.js';
 import { getPromotionProjectsForProbe } from './promotions/promotions-repository.js';
 
@@ -207,16 +208,6 @@ class MasFragmentVariations extends LitElement {
 
     isPromoVariationExpanded(fragmentId) {
         return this.expandedPromoVariations.has(fragmentId);
-    }
-
-    getPromotionInfo(variationFragment) {
-        const promotionTagId = getPromotionTagFromFragment(variationFragment);
-        const promoProject = getPromoNameFromTag(promotionTagId) || '';
-        const promotionName = variationFragment.tags?.find((tag) => tag.id === promotionTagId)?.title || promoProject;
-        return {
-            promotionName: promotionName || '-',
-            promoProject: promoProject || '-',
-        };
     }
 
     openDuplicateDialog(variationFragment) {
@@ -433,7 +424,7 @@ class MasFragmentVariations extends LitElement {
                         const editStore = generateFragmentStore(variationFragment, this.fragment);
                         const isExpanded = this.isPromoVariationExpanded(variationFragment.id);
                         const isHighlighted = this.isVariationHighlighted(variationFragment.id);
-                        const { promotionName, promoProject } = this.getPromotionInfo(variationFragment);
+                        const { promotionName, promoProject } = getPromotionInfo(variationFragment);
                         return html`
                             <mas-fragment-table
                                 class="mas-fragment nested-fragment ${isExpanded ? 'expanded' : ''} ${isHighlighted

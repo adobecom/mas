@@ -49,6 +49,14 @@ export class BizPro extends VariantLayout {
     #sizeObserver = null;
     lastSyncKey = null;
 
+    constructor(card) {
+        super(card);
+        this.updatePriceQuantity = this.updatePriceQuantity.bind(this);
+        // Restore expanded state persisted on the card element (survives layout
+        // recreation caused by fragment hydration resetting card.variant).
+        this.expanded = card._bizproExpanded ?? false;
+    }
+
     getGlobalCSS() {
         return CSS;
     }
@@ -114,6 +122,15 @@ export class BizPro extends VariantLayout {
         const planType = legalPrice?.querySelector('.price-plan-type');
         if (!planType) return;
         planType.textContent = text;
+        // The legal template appends ". " between the tax label and plan type, but
+        // only when it rendered the plan type itself; we inject it, so add the same
+        // separator so injected and WCS-sourced lines read alike (MWPW-198626).
+        const tax = legalPrice.querySelector(
+            '.price-tax-inclusivity:not(.disabled)',
+        );
+        if (tax?.textContent && !/\s$/.test(tax.textContent)) {
+            tax.textContent += '. ';
+        }
     }
 
     get hasWhatsIncluded() {
@@ -154,6 +171,14 @@ export class BizPro extends VariantLayout {
         return this.card.querySelector(
             `[slot="heading-m"] ${SELECTOR_MAS_INLINE_PRICE}[data-template="price"]`,
         );
+    }
+
+    // Push the selected license quantity onto the main price so WCS re-prices
+    // (volume promo). Mirrors mini-compare-chart — bizpro previously only
+    // dispatched the event for checkout-link wiring, leaving the price at qty 1.
+    updatePriceQuantity({ detail }) {
+        if (!this.mainPrice || !detail?.option) return;
+        this.mainPrice.dataset.quantity = detail.option;
     }
 
     async adjustAddon() {
@@ -264,6 +289,10 @@ export class BizPro extends VariantLayout {
             EVENT_MERCH_CARD_QUANTITY_CHANGE,
             this.#onModalQuantityChange,
         );
+        this.card.addEventListener(
+            EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
+            this.updatePriceQuantity,
+        );
         if (typeof ResizeObserver === 'undefined') return;
         this.#sizeObserver = new ResizeObserver(() => this.resyncOnReflow());
         this.#sizeObserver.observe(this.card);
@@ -272,6 +301,10 @@ export class BizPro extends VariantLayout {
     }
 
     disconnectedCallbackHook() {
+        this.card?.removeEventListener(
+            EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
+            this.updatePriceQuantity,
+        );
         this.#removeLicenseDocListener();
         this.#sizeObserver?.disconnect();
         this.card?.removeEventListener(
@@ -351,6 +384,7 @@ export class BizPro extends VariantLayout {
             const layout = card.variantLayout;
             if (!(layout instanceof BizPro)) continue;
             layout.expanded = expanded;
+            card._bizproExpanded = expanded;
             card.requestUpdate();
         }
     };

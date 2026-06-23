@@ -103,7 +103,6 @@ async function fetchProjects(context) {
         startDate: fields?.startDate ?? null,
         endDate: fields?.endDate ?? null,
         tags: fields?.tags ?? [],
-        offerLines: fields?.offers ?? [],
     }));
 
     return cacheProjects(context.preview, projects);
@@ -119,30 +118,57 @@ function toInstant(value) {
 const PROMO_TAG_PREFIX = 'mas:promotion/';
 
 /**
- * Parses project-level offer override lines of the form "<osis>:<promocode>:<countries>"
- * where osis and countries are comma-separated lists (may be empty), promoCode is required.
+ * Parses offer substitution lines of the form "substitute:<baseOsi>:<substituteOsi>:<geo>[,<geo>...]".
+ * Geos are comma-separated CQ tags (e.g. "mas:locale/en_AU,mas:country/au").
+ * Lines without a geo are stored with geos=[] and skipped by buildSubstituteMap.
  * @param {string[]} lines
- * @returns {{ osis: string[], promoCode: string, countries: string[] }[]}
+ * @returns {{ baseOsi: string, substituteOsi: string, geos: string[] }[]}
+ */
+function parseOfferSubstitutions(lines) {
+    return lines
+        .map((line) => {
+            if (!line.startsWith('substitute|')) return null;
+            const [, baseOsi, substituteOsi, geoStr = ''] = line.split('|');
+            if (!baseOsi || !substituteOsi) return null;
+            const geos = geoStr.split(',');
+            return { baseOsi, substituteOsi, geos };
+        })
+        .filter(Boolean);
+}
+
+/**
+ * Builds a flat baseOsi → substituteOsi lookup for the current geo.
+ * @param {{ baseOsi: string, substituteOsi: string, geos: string[] }[]} substitutions
+ * @param {{ regionLocale: string, country: string }} geoContext
+ * @returns {Object}
+ */
+function buildSubstituteMap(substitutions, { regionLocale, country }) {
+    const map = {};
+    for (const sub of substitutions) {
+        if (matchesGeo(sub.geos, { regionLocale, country })) {
+            map[sub.baseOsi] = sub.substituteOsi;
+        }
+    }
+    return map;
+}
+
+/**
+ * Parses project-level offer override lines of the form "<osis>:<promocode>:<geo1>,<geo2>,..."
+ * where osis is a comma-separated list (may be empty), promoCode is required,
+ * and geos is a comma-separated list of geo tags (may be empty = wildcard).
+ * @param {string[]} lines
+ * @returns {{ osis: string[], promoCode: string, geos: string[] }[]}
  */
 function parseOfferOverrides(lines) {
     return lines
         .map((line) => {
-            const [osisPart, promoCode, countriesPart] = line.split(':');
-            if (!promoCode?.trim()) return null;
+            if (line.startsWith('substitute|')) return null;
+            const [osisPart, promoCode, geosPart = ''] = line.split('|');
+            if (!promoCode) return null;
             return {
-                osis: osisPart
-                    ? osisPart
-                          .split(',')
-                          .map((s) => s.trim())
-                          .filter(Boolean)
-                    : [],
-                promoCode: promoCode.trim(),
-                countries: countriesPart
-                    ? countriesPart
-                          .split(',')
-                          .map((s) => s.trim())
-                          .filter(Boolean)
-                    : [],
+                osis: osisPart ? osisPart.split(',') : [],
+                promoCode,
+                geos: geosPart ? geosPart.split(',') : [],
             };
         })
         .filter(Boolean);
@@ -303,9 +329,11 @@ async function hydrateProject(project, { baseUrl, surface, defaultLocale, resolv
 
     const hydratedProject = hydrateResponse.body;
     const fragmentPaths = parseFragmentPaths(hydratedProject);
-    const offerOverrides = parseOfferOverrides(project.offerLines);
+    const offerLines = hydratedProject.fields?.offers ?? [];
+    const offerOverrides = parseOfferOverrides(offerLines);
+    const offerSubstitutions = parseOfferSubstitutions(offerLines);
     const promoCode = hydratedProject.fields?.promoCode ?? null;
-    if (!fragmentPaths.length && !offerOverrides.length) {
+    if (!fragmentPaths.length && !offerOverrides.length && !offerSubstitutions.length) {
         logDebug(() => `Promotion project ${project.id} has no fragments or offer overrides, skipping`, context);
         return null;
     }
@@ -321,6 +349,7 @@ async function hydrateProject(project, { baseUrl, surface, defaultLocale, resolv
         promoCode,
         fragmentPaths,
         offerOverrides,
+        offerSubstitutions,
         defaultVariations,
         regionVariations,
     };
@@ -392,14 +421,13 @@ async function init(context) {
  * Overrides can target specific OSIs or act as wildcards (empty osis list).
  * Specific OSI overrides take priority over the wildcard.
  */
-function buildPromoMap(offerOverrides, country, projectPromoCode, context) {
+function buildPromoMap(offerOverrides, { regionLocale, country }, projectPromoCode, context) {
     const map = {};
     if (projectPromoCode) {
         map['*'] = projectPromoCode;
     }
     for (const override of offerOverrides) {
-        const countryMatch = override.countries.length === 0 || (country && override.countries.includes(country));
-        if (!countryMatch) continue;
+        if (override.geos?.length && !matchesGeo(override.geos, { regionLocale, country })) continue;
         if (override.osis.length === 0) {
             if (map['*'] && map['*'] !== override.promoCode) {
                 log(`Project promoCode "${map['*']}" overridden by wildcard offer override "${override.promoCode}"`, context);
@@ -423,12 +451,21 @@ function buildPromoMap(offerOverrides, country, projectPromoCode, context) {
  */
 async function promotions(context) {
     const { activeProjects = [] } = (await context.promises?.promotions) ?? {};
+    const { regionLocale, country } = context;
     const promoProjects = activeProjects.map((project) => ({
         project,
-        promoMap: buildPromoMap(project.offerOverrides, context.country, project.promoCode, context),
+        promoMap: buildPromoMap(project.offerOverrides, { regionLocale, country }, project.promoCode, context),
+        substituteMap: buildSubstituteMap(project.offerSubstitutions ?? [], { regionLocale, country }),
         fragmentPaths: new Set(project.fragmentPaths),
     }));
-    return { ...context, status: 200, promoProjects };
+    const substituteMap = Object.assign({}, ...promoProjects.map((p) => p.substituteMap));
+    promoProjects.forEach(({ project, promoMap, substituteMap: sm }) => {
+        logDebug(
+            () => `Project "${project.id}" promoMap: ${JSON.stringify(promoMap)}, substituteMap: ${JSON.stringify(sm)}`,
+            context,
+        );
+    });
+    return { ...context, status: 200, promoProjects, substituteMap };
 }
 
 export const transformer = {

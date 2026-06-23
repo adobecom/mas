@@ -59,13 +59,22 @@ describe('bulk-edit/export: writeJobExports', () => {
         expect(document.jobId).to.equal('job-1');
         expect(document.items).to.have.lengthOf(1);
         expect(writes['private/bulk-edit/job-1/results.csv']).to.include('fragment_id,path,locale');
+        expect(writes['private/bulk-edit/job-1/results.csv']).to.not.include(',replace,');
     });
 
     it('writes JSON only for replace jobs', async () => {
         const { mod, files, writes } = loadFilesStub();
         await mod.writeJobExports('job-1', {
             type: 'replace',
-            items: [{ id: 'a', path: '/p/a', locale: 'en_US', status: 'REPLACED', matches: [{ field: 'subtitle', value: 'school' }] }],
+            items: [
+                {
+                    id: 'a',
+                    path: '/p/a',
+                    locale: 'en_US',
+                    status: 'REPLACED',
+                    matches: [{ field: 'subtitle', value: 'school' }],
+                },
+            ],
             report: { totalFragments: 1 },
             filteredByUpload: false,
             dryRun: false,

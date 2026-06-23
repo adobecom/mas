@@ -1,6 +1,6 @@
 const { SCOPE_FIELDS } = require('./search.js');
 
-const HEADERS = ['fragment_id', 'path', 'locale', 'field', 'find', 'replace', 'etag', 'status'];
+const HEADERS = ['fragment_id', 'path', 'locale', 'field', 'find', 'etag', 'status'];
 const CSV_MARKER = HEADERS[0];
 
 const FIELD_TO_SCOPE = new Map();
@@ -15,8 +15,6 @@ const FORMULA_LEAD = /^['=+\-@\t\r]/;
 function escape(value) {
     if (value === null || value === undefined) return '';
     let str = String(value);
-    // Spreadsheet apps execute cells starting with =,+,-,@ as formulas. Prefix a quote to
-    // neutralize; unescape() reverses it so the find-key round-trip stays exact.
     if (FORMULA_LEAD.test(str)) str = `'${str}`;
     if (/[",\n]/.test(str)) {
         return `"${str.replace(/"/g, '""')}"`;
@@ -86,7 +84,6 @@ function flattenResultsToRows(results) {
                 locale: item.locale,
                 field: match.field,
                 find: match.value,
-                replace: '',
                 etag: item.etag,
                 status: item.status,
             });
@@ -121,15 +118,9 @@ function buildResultRowKeys(results) {
     return keys;
 }
 
-function applyUserReplaceValues(rows, userRows) {
-    if (!userRows?.length) return rows;
-    for (const row of rows) {
-        const userRow = userRows.find((candidate) =>
-            uploadRowMatchesMatch(row.fragment_id, { field: row.field, value: row.find }, candidate),
-        );
-        if (userRow) row.replace = userRow.replace ?? '';
-    }
-    return rows;
+function buildCsvRowsFromFindResults(items, userRows) {
+    const filtered = userRows?.length ? filterResultsByUserCsv(items, userRows) : items;
+    return flattenResultsToRows(filtered);
 }
 
 function toCsv(rows) {
@@ -279,7 +270,7 @@ module.exports = {
     flattenResultsToRows,
     filterResultsByUserCsv,
     buildResultRowKeys,
-    applyUserReplaceValues,
+    buildCsvRowsFromFindResults,
     toCsv,
     fromCsv,
     parseRawBody,

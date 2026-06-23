@@ -8,7 +8,7 @@ const {
     toCsv,
     fromCsv,
     buildResultRowKeys,
-    applyUserReplaceValues,
+    buildCsvRowsFromFindResults,
     parseRawBody,
     parseCsvUploadBody,
     extractCsvFromMultipart,
@@ -17,7 +17,8 @@ const {
     isCsvUpload,
 } = require('../../src/bulk-edit/csv.js');
 
-const sampleCsv = `${HEADERS.join(',')}\na,/p/a,en_US,subtitle,school,,e1,PUBLISHED\n`;
+const sampleCsv = `${HEADERS.join(',')}\na,/p/a,en_US,subtitle,school,e1,PUBLISHED\n`;
+const legacyHeader = 'fragment_id,path,locale,field,find,replace,etag,status';
 
 describe('bulk-edit/csv: parseRawBody', () => {
     it('returns an empty string when __ow_body is missing', () => {
@@ -111,7 +112,6 @@ describe('bulk-edit/csv: flattenResultsToRows', () => {
             locale: 'en_US',
             field: 'subtitle',
             find: 'school sale',
-            replace: '',
             etag: 'e1',
             status: 'PUBLISHED',
         });
@@ -210,7 +210,6 @@ describe('bulk-edit/csv: round-trip', () => {
                 locale: 'en_US',
                 field: 'subtitle',
                 find: 'say "hello", world',
-                replace: 'hi',
                 etag: 'e1',
                 status: 'PUBLISHED',
             },
@@ -224,6 +223,10 @@ describe('bulk-edit/csv: round-trip', () => {
         expect(() => fromCsv('bad,headers\n1,2')).to.throw(/header/i);
     });
 
+    it('rejects legacy headers that include replace', () => {
+        expect(() => fromCsv(`${legacyHeader}\na,/p/a,en_US,subtitle,school,x,e1,PUBLISHED\n`)).to.throw(/header/i);
+    });
+
     it('neutralizes leading formula characters and reverses them on parse', () => {
         const rows = [
             {
@@ -232,7 +235,6 @@ describe('bulk-edit/csv: round-trip', () => {
                 locale: 'en_US',
                 field: 'subtitle',
                 find: '=1+2',
-                replace: '@SUM(A1)',
                 etag: 'e1',
                 status: 'PUBLISHED',
             },
@@ -240,34 +242,44 @@ describe('bulk-edit/csv: round-trip', () => {
         const text = toCsv(rows);
         const dataLine = text.split('\n')[1];
         expect(dataLine).to.include("'=1+2");
-        expect(dataLine).to.include("'@SUM(A1)");
         expect(fromCsv(text)).to.deep.equal(rows);
     });
 });
 
-describe('bulk-edit/csv: applyUserReplaceValues', () => {
-    it('merges replace values from uploaded rows by row key', () => {
-        const rows = [
-            {
-                fragment_id: 'a',
-                path: '/p/a',
-                locale: 'en_US',
-                field: 'subtitle',
-                find: 'school',
-                replace: '',
-                etag: 'e1',
-                status: 'PUBLISHED',
-            },
-        ];
-        const userRows = [{ fragment_id: 'a', field: 'subtitle', find: 'school', replace: 'academy' }];
-        applyUserReplaceValues(rows, userRows);
-        expect(rows[0].replace).to.equal('academy');
+describe('bulk-edit/csv: buildCsvRowsFromFindResults', () => {
+    const items = [
+        {
+            id: 'a',
+            path: '/p/a',
+            locale: 'en_US',
+            etag: 'e1',
+            status: 'PUBLISHED',
+            matches: [{ field: 'subtitle', value: 'school offer' }],
+        },
+    ];
+
+    it('returns flattened rows without replace', () => {
+        const rows = buildCsvRowsFromFindResults(items, null);
+        expect(rows[0]).to.not.have.property('replace');
+        expect(rows[0].find).to.equal('school offer');
     });
 
-    it('returns rows unchanged when userRows is empty', () => {
-        const rows = [{ fragment_id: 'a', field: 'subtitle', find: 'school', replace: '' }];
-        expect(applyUserReplaceValues(rows, [])).to.equal(rows);
-        expect(rows[0].replace).to.equal('');
+    it('filters to uploaded row scope', () => {
+        const allItems = [
+            ...items,
+            {
+                id: 'b',
+                path: '/p/b',
+                locale: 'en_US',
+                etag: 'e2',
+                status: 'PUBLISHED',
+                matches: [{ field: 'subtitle', value: 'academy' }],
+            },
+        ];
+        const userRows = [{ fragment_id: 'a', field: 'subtitle', find: 'school offer' }];
+        const rows = buildCsvRowsFromFindResults(allItems, userRows);
+        expect(rows).to.have.lengthOf(1);
+        expect(rows[0].fragment_id).to.equal('a');
     });
 });
 

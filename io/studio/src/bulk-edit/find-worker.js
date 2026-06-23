@@ -30,7 +30,7 @@ async function resolveStop(jobId, runId) {
     return null;
 }
 
-async function finalizeFindExport(jobId, results, status) {
+async function finalizeFindExport(jobId, results, status, jobParams = {}) {
     await writeFindFullExport(jobId, results);
     await writeResults(jobId, results);
     const userCsv = await readUserCsv(jobId);
@@ -59,9 +59,9 @@ async function finalizeFindExport(jobId, results, status) {
     return report;
 }
 
-async function finalizeStop(jobId, stop, results) {
+async function finalizeStop(jobId, stop, results, jobParams) {
     if (stop === 'CANCELLED') {
-        await finalizeFindExport(jobId, results, 'CANCELLED');
+        await finalizeFindExport(jobId, results, 'CANCELLED', jobParams);
     }
     return { status: stop, total: results.length };
 }
@@ -92,14 +92,14 @@ async function runFindWorker(jobId, { odinEndpoint, authToken, runId }) {
                     }
                 }
                 const stop = await resolveStop(jobId, runId);
-                if (stop) return finalizeStop(jobId, stop, results);
+                if (stop) return finalizeStop(jobId, stop, results, params);
                 await patchJob(jobId, { results: [...results], total: results.length }, JOB_RUNNING_TTL);
                 await writeReport(jobId, buildFindReport(results), JOB_RUNNING_TTL);
             }
             const stop = await resolveStop(jobId, runId);
-            if (stop) return finalizeStop(jobId, stop, results);
+            if (stop) return finalizeStop(jobId, stop, results, params);
         }
-        await finalizeFindExport(jobId, results, 'DONE');
+        await finalizeFindExport(jobId, results, 'DONE', params);
         return { status: 'DONE', total: results.length };
     } catch (error) {
         if ((await resolveStop(jobId, runId)) === null) {

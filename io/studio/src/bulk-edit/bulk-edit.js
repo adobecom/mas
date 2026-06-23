@@ -35,7 +35,7 @@ const {
 const logger = Core.Logger('bulk-edit', { level: 'info' });
 
 const WORKER_ACTIONS = { find: 'bulk-edit-find-worker' };
-const REQUIRED_INPUTS = { find: ['find', 'surface'] };
+const REQUIRED_INPUTS = { find: ['find', 'replace', 'surface'] };
 const TERMINAL_STATUSES = new Set(['DONE', 'CANCELLED']);
 
 function normalizeSearchInKey(searchIn) {
@@ -56,6 +56,7 @@ function buildSearchKey(params) {
     return {
         type: params.type,
         find: params.find,
+        replace: params.replace,
         surface: params.surface,
         searchIn: normalizeSearchInKey(params.searchIn),
         matchCase: !!params.matchCase,

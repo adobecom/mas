@@ -100,6 +100,7 @@ function load({ existing = null, userCsv = null, allowed = true } = {}) {
 const findParams = {
     type: 'find',
     find: 'school',
+    replace: 'academy',
     surface: 'sandbox',
     searchIn: '*',
     odinEndpoint: 'https://odin.example',
@@ -130,7 +131,7 @@ const doneJobResults = [
 const doneJob = { status: 'DONE', total: 2, results: doneJobResults };
 
 const sampleCsvRow =
-    `${csvHeaderLine}\n` + 'frag-1,/content/dam/mas/sandbox/en_US/foo,en_US,subtitle,school,academy,e1,PUBLISHED\n';
+    `${csvHeaderLine}\n` + 'frag-1,/content/dam/mas/sandbox/en_US/foo,en_US,subtitle,school,e1,PUBLISHED\n';
 
 describe('bulk-edit: computeJobId', () => {
     it('is stable for identical params and tag order', () => {
@@ -138,6 +139,12 @@ describe('bulk-edit: computeJobId', () => {
         const a = mod.computeJobId({ ...findParams, tags: ['b', 'a'] });
         const b = mod.computeJobId({ ...findParams, tags: ['a', 'b'] });
         expect(a).to.equal(b);
+    });
+    it('changes when replace changes', () => {
+        const { mod } = load();
+        expect(mod.computeJobId(findParams)).to.not.equal(
+            mod.computeJobId({ ...findParams, replace: 'campus' }),
+        );
     });
     it('changes when a search field changes', () => {
         const { mod } = load();
@@ -415,7 +422,6 @@ describe('bulk-edit: handleCsvUpload', () => {
                 locale: 'en_US',
                 field: 'subtitle',
                 find: 'school',
-                replace: 'academy',
                 etag: 'e1',
                 status: 'PUBLISHED',
             },
@@ -449,7 +455,7 @@ describe('bulk-edit: handleCsvUpload', () => {
     });
     it('400s when a CSV row is not in the original job', async () => {
         const { mod } = load({ existing: doneJob });
-        const badCsv = `${csvHeaderLine}\nmissing,/p,en_US,subtitle,x,,e1,PUBLISHED\n`;
+        const badCsv = `${csvHeaderLine}\nmissing,/p,en_US,subtitle,x,e1,PUBLISHED\n`;
         const res = await mod.handleCsvUpload({ jobId: 'job-1', __ow_body: badCsv });
         expect(res.error.statusCode).to.equal(400);
         expect(res.error.body.error).to.include('not found in job results');
@@ -471,7 +477,7 @@ describe('bulk-edit: handleCsvUpload', () => {
 describe('bulk-edit: handleCsvDelete', () => {
     it('removes uploaded CSV and restores unfiltered exports', async () => {
         const uploaded = {
-            rows: [{ fragment_id: 'frag-1', field: 'subtitle', find: 'school', replace: 'academy' }],
+            rows: [{ fragment_id: 'frag-1', field: 'subtitle', find: 'school' }],
         };
         const { mod, deleteUserCsv, writeJobExports, readUserCsv, patchJob } = load({
             existing: { ...doneJob, exportReady: true },
@@ -497,11 +503,6 @@ describe('bulk-edit: handleCsvDelete', () => {
     });
 });
 
-const findJobDone = { type: 'find', status: 'DONE', runId: 'find-run-1', params: { matchCase: false, find: 'school' }, results: doneJobResults };
-const replaceCsv = {
-    uploadedAt: '2026-01-01T00:00:00.000Z',
-    rows: [{ fragment_id: 'frag-1', path: '/p/foo', locale: 'en_US', field: 'subtitle', find: 'school', replace: 'academy' }],
-};
 describe('bulk-edit: resolveFindSourceItems', () => {
     it('prefers state results over file exports', async () => {
         const ctx = load({ existing: { ...doneJob, exportReady: true, results: [] } });
@@ -590,7 +591,7 @@ describe('bulk-edit: main routing', () => {
     });
     it('routes DELETE to handleCsvDelete', async () => {
         const uploaded = {
-            rows: [{ fragment_id: 'frag-1', field: 'subtitle', find: 'school', replace: 'academy' }],
+            rows: [{ fragment_id: 'frag-1', field: 'subtitle', find: 'school' }],
         };
         const { mod, deleteUserCsv } = load({ existing: { ...doneJob, exportReady: true }, userCsv: uploaded });
         const res = await mod.main({ __ow_method: 'delete', allowedClientId: 'mas-studio', jobId: 'job-1' });

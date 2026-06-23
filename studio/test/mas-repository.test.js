@@ -449,6 +449,28 @@ describe('MasRepository dictionary helpers', () => {
             }
         });
 
+        it('loadAllCollections in PROMOTIONS_EDITOR searches without locale in path', async () => {
+            const repository = createFullRepository();
+            const { default: Store } = await import('../src/store.js');
+            const { setItemsSelectionStore } = await import('../src/common/items-selection-store.js');
+            const originalFilters = structuredClone(Store.filters.get());
+            Store.filters.set({ ...originalFilters, locale: 'en_US' });
+            repository.page = { value: PAGE_NAMES.PROMOTIONS_EDITOR };
+            Store.promotions.itemPickerSurface.set('acom');
+            repository.searchFragmentList = sandbox.stub().resolves([]);
+            setItemsSelectionStore(Store.promotions);
+            try {
+                await repository.loadAllCollections();
+                const searchPath = repository.searchFragmentList.firstCall.args[0].path;
+                expect(searchPath).to.equal('/content/dam/mas/acom');
+                expect(searchPath).to.not.include('en_US');
+            } finally {
+                Store.filters.set(originalFilters);
+                Store.promotions.itemPickerSurface.set(null);
+                setItemsSelectionStore(null);
+            }
+        });
+
         it('calls loadTranslationProjects for TRANSLATIONS page', async () => {
             const repository = createRepository();
             const { default: Store } = await import('../src/store.js');

@@ -1,5 +1,5 @@
 import { html, nothing } from 'lit';
-import { FRAGMENT_STATUS, CARD_MODEL_PATH, COLLECTION_MODEL_PATH, PAGE_NAMES } from '../../constants.js';
+import { FRAGMENT_STATUS, CARD_MODEL_PATH, COLLECTION_MODEL_PATH, PAGE_NAMES, DICTIONARY_MODEL_PATH } from '../../constants.js';
 import { Fragment } from '../../aem/fragment.js';
 import Store from '../../store.js';
 import { generateCodeToUse, extractSurfaceFromPath } from '../../utils.js';
@@ -76,7 +76,7 @@ export function renderPromotionStatusCell(promotionStatus) {
 export function getItemTypeLabel(item) {
     if (!item) return 'Unknown';
     if (Fragment.isGroupedVariationPath(item.path)) return 'Grouped variation';
-    if (item.model?.path?.includes('/dictionnary')) return 'Placeholder';
+    if (item.model?.path?.includes(DICTIONARY_MODEL_PATH)) return 'Placeholder';
     if (item.model?.path === COLLECTION_MODEL_PATH) return 'Collection';
     if (item.model?.path === CARD_MODEL_PATH) return 'Default';
     return 'Unknown';

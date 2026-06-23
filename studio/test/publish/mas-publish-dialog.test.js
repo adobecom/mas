@@ -1,10 +1,14 @@
-import { expect, fixture, html } from '@open-wc/testing';
+import { expect } from '@esm-bundle/chai';
+import { html } from 'lit';
+import { fixture, fixtureCleanup } from '@open-wc/testing-helpers/pure';
 import { MasPublishDialog } from '../../src/publish/mas-publish-dialog.js';
 
 const VARIATION = { id: 'var-1', path: '/content/dam/mas/sandbox/en_GB/my-fragment', status: 'DRAFT' };
 const CARD = { id: 'card-1', path: '/content/dam/mas/sandbox/en_US/some-card', status: 'UNPUBLISHED' };
 
 describe('MasPublishDialog', () => {
+    afterEach(() => fixtureCleanup());
+
     it('renders nothing when open is false', async () => {
         const el = await fixture(html`<mas-publish-dialog></mas-publish-dialog>`);
         expect(el.shadowRoot.querySelector('sp-dialog')).to.be.null;

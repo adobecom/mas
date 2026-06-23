@@ -1,46 +1,9 @@
 const { Core } = require('@adobe/aio-sdk');
 const { errorResponse, checkMissingRequestInputs, getBearerToken, isAllowed, parseOwBody } = require('../../utils.js');
-const { resolvePaths } = require('./resolver.js');
-const { publishChunk } = require('./publisher.js');
-const { createSnapshot } = require('./snapshot.js');
-const {
-    PROJECT_STATUS,
-    readProjectFragment,
-    updateProjectFragment,
-    getProjectPaths,
-    getProjectLocales,
-    getProjectTitle,
-    getProjectSnapshots,
-} = require('./project.js');
+const { invokeAsyncAction, buildSiblingActionName } = require('../common.js');
 
 const logger = Core.Logger('bulk-publish', { level: 'info' });
-const MAX_PATHS = 500;
-const MAX_LOCALES = 200;
-const MAX_RESOLVED = 5000;
-const MAX_CHUNK_SIZE = 50;
-const PATH_PREFIX = '/content/dam/mas/';
-const LOCALE_REGEX = /^\/content\/dam\/mas\/[\w-_]+\/(?<locale>[\w-_]+)\//;
-const STATUS = { PUBLISHED: 'published', SKIPPED: 'skipped', FAILED: 'failed' };
-
-function hasPendingSnapshot(entries) {
-    if (!entries.length) return false;
-    try {
-        return entries.some((e) => JSON.parse(e).publishComplete === false);
-    } catch {
-        return false;
-    }
-}
-
-function addPendingMarker(entries) {
-    return entries.map((e) => JSON.stringify({ ...JSON.parse(e), publishComplete: false }));
-}
-
-function removePendingMarker(entries) {
-    return entries.map((e) => {
-        const { publishComplete, ...rest } = JSON.parse(e);
-        return JSON.stringify(rest);
-    });
-}
+const WORKER_ACTION_NAME = 'bulk-publish-worker';
 
 function getSnapshotPaths(entries) {
     try {
@@ -51,82 +14,33 @@ function getSnapshotPaths(entries) {
 }
 
 async function main(params) {
-    if (!params.projectId && !params.paths) params = parseOwBody(params);
-    return run(params);
-}
-
-async function run(params) {
+    if (!params.projectId) params = parseOwBody(params);
     try {
-        logger.info(JSON.stringify({ event: 'run-start' }));
-
         const odinEndpoint = params.aemOdinEndpoint || params.odinEndpoint;
-        if (!odinEndpoint) {
-            return errorResponse(400, 'missing parameter(s) [aemOdinEndpoint|odinEndpoint]', logger);
-        }
+        if (!odinEndpoint) return errorResponse(400, 'missing parameter(s) [aemOdinEndpoint|odinEndpoint]', logger);
+
+        const missing = checkMissingRequestInputs(params, ['projectId'], ['Authorization']);
+        if (missing) return errorResponse(400, missing, logger);
 
         const authToken = getBearerToken(params);
         const allowed = await isAllowed(authToken, params.allowedClientId);
-        if (!allowed) {
-            return errorResponse(401, 'Authorization failed', logger);
-        }
+        if (!allowed) return errorResponse(401, 'Authorization failed', logger);
 
-        if (params.projectId) {
-            return runWithProject(params, odinEndpoint, authToken);
-        }
+        const workerActionName = buildSiblingActionName(params, WORKER_ACTION_NAME, {
+            overrideParamName: 'bulkPublishWorkerActionName',
+        });
+        const workerResult = await invokeAsyncAction(
+            workerActionName,
+            { projectId: params.projectId, publishedBy: params.publishedBy || '', authToken },
+            params,
+        );
 
-        const requiredHeaders = ['Authorization'];
-        const requiredParams = ['paths'];
-        const missing = checkMissingRequestInputs(params, requiredParams, requiredHeaders);
-        if (missing) {
-            return errorResponse(400, missing, logger);
-        }
-
-        if (!Array.isArray(params.paths) || params.paths.length === 0) {
-            return errorResponse(400, 'paths must be a non-empty array', logger);
-        }
-        if (params.paths.length > MAX_PATHS) {
-            return errorResponse(400, `paths exceeds maximum of ${MAX_PATHS}`, logger);
-        }
-        const invalidPath = params.paths.find((p) => typeof p !== 'string' || !p.startsWith(PATH_PREFIX));
-        if (invalidPath !== undefined) {
-            return errorResponse(400, `path must be a non-empty string starting with ${PATH_PREFIX}: ${invalidPath}`, logger);
-        }
-        if (params.locales !== undefined && !Array.isArray(params.locales)) {
-            return errorResponse(400, 'locales must be an array when provided', logger);
-        }
-        if (Array.isArray(params.locales) && params.locales.length > MAX_LOCALES) {
-            return errorResponse(400, `locales exceeds maximum of ${MAX_LOCALES}`, logger);
-        }
-
-        const resolved = resolvePaths(params.paths, params.locales);
-        if (resolved.length === 0) {
-            return errorResponse(400, 'No valid paths after resolution', logger);
-        }
-        if (resolved.length > MAX_RESOLVED) {
-            return errorResponse(400, `Resolved ${resolved.length} paths exceeds maximum of ${MAX_RESOLVED}`, logger);
-        }
-
-        const includeRefs = params.includeVariations || params.includeCards;
-        const filterReferencesByStatus = includeRefs ? ['DRAFT', 'MODIFIED', 'UNPUBLISHED'] : [];
-
-        const chunks = groupAndChunk(resolved, MAX_CHUNK_SIZE);
-        logger.info(JSON.stringify({ event: 'resolved', total: resolved.length, chunks: chunks.length }));
-
-        const details = [];
-        for (const chunk of chunks) {
-            const chunkResults = await publishOneChunk(chunk, odinEndpoint, authToken, filterReferencesByStatus);
-            details.push(...chunkResults);
-        }
-
-        const summary = buildSummary(details);
-        logger.info(JSON.stringify({ event: 'run-complete', summary }));
-
-        return {
-            statusCode: 200,
-            body: { summary, details },
-        };
+        logger.info(
+            JSON.stringify({ event: 'dispatched', projectId: params.projectId, activationId: workerResult?.activationId }),
+        );
+        return { statusCode: 202, body: { accepted: true, activationId: workerResult?.activationId || null } };
     } catch (error) {
-        logger.error(JSON.stringify({ event: 'run-error', error: error.message || String(error) }));
+        logger.error(JSON.stringify({ event: 'dispatch-error', error: error.message || String(error) }));
         return errorResponse(500, 'Internal server error', logger);
     }
 }
@@ -303,5 +217,6 @@ async function runWithProject(params, odinEndpoint, authToken) {
         body: { status: finalStatus, lastError, snapshots: finalSnapshots, publishedAt, publishedBy, summary, details },
     };
 }
+
 
 exports.main = main;

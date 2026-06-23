@@ -79,6 +79,8 @@ class MasSearchAndFilters extends LitElement {
         defaultTemplateFilter: { type: String, attribute: 'default-template-filter' },
         promotionSurfaceOptions: { type: Array },
         promotionSurface: { type: String },
+        offerFilterOptions: { type: Array },
+        offerFilterValue: { type: String },
     };
 
     constructor() {
@@ -107,6 +109,8 @@ class MasSearchAndFilters extends LitElement {
         this.defaultTemplateFilter = '';
         this.promotionSurfaceOptions = [];
         this.promotionSurface = '';
+        this.offerFilterOptions = [];
+        this.offerFilterValue = '';
     }
 
     get #isTemplateFilterLocked() {
@@ -800,6 +804,29 @@ class MasSearchAndFilters extends LitElement {
         `;
     }
 
+    #renderOfferPicker() {
+        if (!this.offerFilterOptions?.length || this.offerFilterOptions.length < 2) return nothing;
+        return html`<sp-picker
+            class="offer-filter"
+            size="m"
+            label="Offer"
+            .value=${this.offerFilterValue}
+            @change=${(e) => {
+                e.stopPropagation();
+                this.dispatchEvent(
+                    new CustomEvent('offer-filter-change', {
+                        detail: { value: e.target.value },
+                        bubbles: true,
+                        composed: true,
+                    }),
+                );
+            }}
+        >
+            <sp-menu-item value="all">All offers</sp-menu-item>
+            ${this.offerFilterOptions.map(({ id, label }) => html`<sp-menu-item value=${id}>${label}</sp-menu-item>`)}
+        </sp-picker>`;
+    }
+
     #fragmentMatchesAnyTag(fragment, selectedIds) {
         return fragment.tags?.some((tag) => selectedIds.some((sel) => tag.id === sel || tag.id?.startsWith(`${sel}/`)));
     }
@@ -917,7 +944,8 @@ class MasSearchAndFilters extends LitElement {
                 ${this.#renderTagPicker('Product Code', 'product_code', this.productFilter, FILTER_TYPE.PRODUCT)}
                 ${this.#renderTagPicker('Tag', 'custom', this.tagFilter, FILTER_TYPE.TAG)}
                 ${this.#renderFilterPicker('Status', this.statusOptions, this.statusFilter, FILTER_TYPE.STATUS)}
-                ${this.#renderTagPicker('Personalization', 'pzn', this.pznFilter, FILTER_TYPE.PZN)} ${surfacePicker}
+                ${this.#renderTagPicker('Personalization', 'pzn', this.pznFilter, FILTER_TYPE.PZN)} ${this.#renderOfferPicker()}
+                ${surfacePicker}
             </div>
             ${this.#renderAppliedFilters()}
         `;

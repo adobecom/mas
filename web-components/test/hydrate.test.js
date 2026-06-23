@@ -35,6 +35,7 @@ import { withWcs } from './mocks/wcs.js';
 import { delay } from './utils.js';
 import { PLANS_AEM_FRAGMENT_MAPPING } from '../src/variants/plans.js';
 import { MINI_COMPARE_CHART_AEM_FRAGMENT_MAPPING } from '../src/variants/mini-compare-chart.js';
+import { COMPARE_CHART_COLUMN_AEM_FRAGMENT_MAPPING } from '../src/variants/compare-chart-column.js';
 import { COMPAT_VERSION_GLOBAL_PROMO_CODE } from '../src/compat-version.js';
 
 function getFooterElement(merchCard) {
@@ -607,6 +608,27 @@ describe('processFeatures', () => {
         expect(slot.querySelectorAll('p[name]')).to.have.length(2);
         merchCard.remove();
     });
+
+    it('transforms checkout links in the features slot', () => {
+        const merchCard = mockMerchCard();
+        processFeatures(
+            {
+                features: [
+                    {
+                        value: '<p name="cta@buy"><a data-wcs-osi="abm" class="accent">Buy</a></p>',
+                        mimeType: 'text/html',
+                    },
+                ],
+            },
+            merchCard,
+            COMPARE_CHART_COLUMN_AEM_FRAGMENT_MAPPING,
+        );
+        const slot = merchCard.querySelector('[slot="features"]');
+        const button = slot.querySelector('button[data-wcs-osi="abm"]');
+        expect(button).to.exist;
+        expect(button.classList.contains('spectrum-Button--accent')).to.be.true;
+        merchCard.remove();
+    });
 });
 
 describe('hydrate', () => {
@@ -895,6 +917,43 @@ describe('MerchCard fragment promo on prices via checkReady', () => {
 
         expect(ownPromoPrice.options.promotionCode).to.equal('OWN_PROMO');
         expect(plainPrice.options.promotionCode).to.equal('CTX_PROMO');
+    });
+});
+
+describe('MerchCard data-promotion-code attribute', () => {
+    let card;
+
+    beforeEach(async () => {
+        await customElements.whenDefined('merch-card');
+        card = document.createElement('merch-card');
+        document.body.appendChild(card);
+    });
+
+    afterEach(() => {
+        card.remove();
+    });
+
+    it('sets data-promotion-code attribute when contextPromotionCode is assigned', () => {
+        card.contextPromotionCode = 'SUMMER_PROMO';
+        expect(card.getAttribute('data-promotion-code')).to.equal(
+            'SUMMER_PROMO',
+        );
+    });
+
+    it('does not have data-promotion-code attribute when contextPromotionCode is not set', () => {
+        expect(card.hasAttribute('data-promotion-code')).to.be.false;
+    });
+
+    it('removes data-promotion-code attribute when contextPromotionCode is cleared', () => {
+        card.contextPromotionCode = 'SUMMER_PROMO';
+        card.contextPromotionCode = undefined;
+        expect(card.hasAttribute('data-promotion-code')).to.be.false;
+    });
+
+    it('updates data-promotion-code attribute when contextPromotionCode changes at runtime', () => {
+        card.contextPromotionCode = 'PROMO_A';
+        card.contextPromotionCode = 'PROMO_B';
+        expect(card.getAttribute('data-promotion-code')).to.equal('PROMO_B');
     });
 });
 

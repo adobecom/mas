@@ -7,7 +7,9 @@ import { getItemsSelectionStore } from '../common/items-selection-store.js';
 import { loadCardVariations, fetchVariationByPath, enrichPromoVariations } from '../common/utils/items-loader.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 import { mergePromoReferencesIntoFragmentData } from '../promotions/promotions-repository.js';
-import { getPromotionInfo } from '../promotions/promotion-model.js';
+import { getPromotionInfo, getPromotionTagFromFragment, findPromotionProjectIdByTag } from '../promotions/promotion-model.js';
+import Store from '../store.js';
+import { PAGE_NAMES } from '../constants.js';
 
 export class MasCollapsibleTableRow extends LitElement {
     static styles = styles;
@@ -469,9 +471,10 @@ export class MasCollapsibleTableRow extends LitElement {
         this.#promoActiveLoadCount++;
         this.isLoadingPromoVariations = true;
         mergePromoReferencesIntoFragmentData(this.repository.aem, this.topLevelCard, () => this.repository.loadPromotions())
-            .then(async ({ references }) => {
+            .then(async (mergedFragmentData) => {
                 if (token !== this.#loadToken) return;
-                const enriched = await enrichPromoVariations(references || [], this.topLevelCard, {
+                const promoOnly = new Fragment(mergedFragmentData).listPromoVariations();
+                const enriched = await enrichPromoVariations(promoOnly, this.topLevelCard, {
                     getDisplayName: this.getDisplayName,
                 });
                 if (token !== this.#loadToken) return;
@@ -563,8 +566,22 @@ export class MasCollapsibleTableRow extends LitElement {
               </sp-table-row>`;
     }
 
+    #getPromoProjectUrl(variation) {
+        const promotionTagId = getPromotionTagFromFragment(variation);
+        if (!promotionTagId) return null;
+        const projects =
+            Store.promotions.list.data
+                .get()
+                ?.map((store) => store.get())
+                .filter(Boolean) || [];
+        const id = findPromotionProjectIdByTag(promotionTagId, projects);
+        if (!id) return null;
+        return `#page=${PAGE_NAMES.PROMOTIONS_EDITOR}&promotionId=${encodeURIComponent(id)}`;
+    }
+
     renderPromoVariationDetailsRow(variation) {
         const { promotionName, promoProject } = getPromotionInfo(variation);
+        const promoProjectUrl = this.#getPromoProjectUrl(variation);
         return html`<sp-table-row class="variation-details-row">
             <sp-table-cell class="table-icon-cell"></sp-table-cell>
             <sp-table-cell class="table-icon-cell"></sp-table-cell>
@@ -575,7 +592,11 @@ export class MasCollapsibleTableRow extends LitElement {
             <sp-table-cell></sp-table-cell>
             <sp-table-cell class="details-cell">
                 <div class="details-label">Promotion project</div>
-                <div>${promoProject}</div>
+                <div>
+                    ${promoProjectUrl
+                        ? html`<a href=${promoProjectUrl} target="_blank" rel="noopener noreferrer">${promoProject}</a>`
+                        : promoProject}
+                </div>
             </sp-table-cell>
             <sp-table-cell></sp-table-cell>
             <sp-table-cell></sp-table-cell>

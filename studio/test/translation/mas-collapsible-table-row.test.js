@@ -1158,6 +1158,72 @@ describe('MasCollapsibleTableRow', () => {
         });
     });
 
+    describe('#loadPromoVariations filter behavior', () => {
+        const localeRefPath = '/content/dam/mas/acom/fr_FR/cards/test';
+        const promoRefPath = '/content/dam/mas/acom/en_US/promotions/black-friday/promo-card';
+
+        const makeRef = (path, tags = []) => ({ id: path, path, tags, fields: [] });
+
+        const setupWithRefs = async (references) => {
+            const topLevelCard = {
+                ...createMockTopLevelCard(),
+                id: 'frag-load-promo',
+                references,
+            };
+            const el = await fixture(
+                html`<mas-collapsible-table-row .topLevelCard=${topLevelCard}></mas-collapsible-table-row>`,
+            );
+            el.repository = {
+                aem: {},
+                loadPromotions: sandbox.stub().resolves(),
+            };
+            return el;
+        };
+
+        const triggerPromoLoad = async (el) => {
+            el.selectedTabKey = 'promotion';
+            el.shadowRoot.querySelector('.expand-button').click();
+            await el.updateComplete;
+            await new Promise((resolve) => setTimeout(resolve, 50));
+            await el.updateComplete;
+        };
+
+        beforeEach(() => {
+            sandbox.stub(window, 'fetch').resolves({
+                ok: true,
+                headers: { get: () => null },
+                json: async () => ({ offers: [] }),
+            });
+        });
+
+        it('excludes locale references from promoVariations when references contain mixed types', async () => {
+            const el = await setupWithRefs([makeRef(localeRefPath), makeRef(promoRefPath)]);
+            await triggerPromoLoad(el);
+            const paths = el.promoVariations.map((v) => v.path);
+            expect(paths).to.not.include(localeRefPath);
+        });
+
+        it('includes promo references in promoVariations when references contain mixed types', async () => {
+            const el = await setupWithRefs([makeRef(localeRefPath), makeRef(promoRefPath)]);
+            await triggerPromoLoad(el);
+            const paths = el.promoVariations.map((v) => v.path);
+            expect(paths).to.include(promoRefPath);
+        });
+
+        it('calls Fragment.listPromoVariations on the merged fragment data', async () => {
+            const listPromoStub = sandbox.stub(Fragment.prototype, 'listPromoVariations').returns([]);
+            const el = await setupWithRefs([makeRef(localeRefPath), makeRef(promoRefPath)]);
+            await triggerPromoLoad(el);
+            expect(listPromoStub.called).to.be.true;
+        });
+
+        it('results in empty promoVariations when references contain only locale refs', async () => {
+            const el = await setupWithRefs([makeRef(localeRefPath)]);
+            await triggerPromoLoad(el);
+            expect(el.promoVariations).to.deep.equal([]);
+        });
+    });
+
     describe('promo variation selection', () => {
         const promoPath1 = '/content/dam/mas/acom/en_US/promotions/black-friday/card1';
         const promoPath2 = '/content/dam/mas/acom/en_US/promotions/black-friday/card2';
@@ -1240,6 +1306,105 @@ describe('MasCollapsibleTableRow', () => {
             await el.updateComplete;
             expect(Store.translationProjects.selectedCards.value).to.not.include(promoPath1);
             expect(Store.translationProjects.selectedCards.value).to.not.include(promoPath2);
+        });
+    });
+
+    describe('renderPromoVariationDetailsRow', () => {
+        const promoPath = '/content/dam/mas/acom/en_US/promotions/black-friday/promo-card';
+        const promoTagId = 'mas:promotion/black-friday';
+        const promoProjectId = 'promo-project-uuid-123';
+
+        const makePromoVariation = (tagId) => ({
+            path: promoPath,
+            title: 'Promo Card',
+            studioPath: 'promo/path',
+            tags: tagId ? [{ id: tagId, title: 'Black Friday' }] : [],
+            offerData: null,
+        });
+
+        const setupPromoProject = (id) => {
+            Store.promotions.list.data.set([{ get: () => ({ id, tags: [{ id: promoTagId }] }) }]);
+        };
+
+        afterEach(() => {
+            Store.promotions.list.data.set([]);
+        });
+
+        it('renders a clickable link when a matching promotion project is found in the store', async () => {
+            setupPromoProject(promoProjectId);
+            const topLevelCard = createMockTopLevelCard();
+            const el = await fixture(
+                html`<mas-collapsible-table-row
+                    .topLevelCard=${topLevelCard}
+                    .isTopLevelExpanded=${true}
+                ></mas-collapsible-table-row>`,
+            );
+            el.promoVariations = [makePromoVariation(promoTagId)];
+            el.expandedVariationsPaths = new Set([promoPath]);
+            el.selectedTabKey = 'promotion';
+            await el.updateComplete;
+            const link = el.shadowRoot.querySelector('.variation-details-row a');
+            expect(link).to.exist;
+            expect(link.getAttribute('href')).to.equal(
+                `#page=promotions-editor&promotionId=${encodeURIComponent(promoProjectId)}`,
+            );
+            expect(link.getAttribute('target')).to.equal('_blank');
+            expect(link.textContent.trim()).to.equal('black-friday');
+        });
+
+        it('renders plain text when the promotion project is not found in the store', async () => {
+            Store.promotions.list.data.set([]);
+            const topLevelCard = createMockTopLevelCard();
+            const el = await fixture(
+                html`<mas-collapsible-table-row
+                    .topLevelCard=${topLevelCard}
+                    .isTopLevelExpanded=${true}
+                ></mas-collapsible-table-row>`,
+            );
+            el.promoVariations = [makePromoVariation(promoTagId)];
+            el.expandedVariationsPaths = new Set([promoPath]);
+            el.selectedTabKey = 'promotion';
+            await el.updateComplete;
+            const link = el.shadowRoot.querySelector('.variation-details-row a');
+            expect(link).to.be.null;
+            const shadowText = el.shadowRoot?.textContent || '';
+            expect(shadowText).to.include('black-friday');
+        });
+
+        it('renders plain text when the variation has no promotion tag', async () => {
+            setupPromoProject(promoProjectId);
+            const topLevelCard = createMockTopLevelCard();
+            const el = await fixture(
+                html`<mas-collapsible-table-row
+                    .topLevelCard=${topLevelCard}
+                    .isTopLevelExpanded=${true}
+                ></mas-collapsible-table-row>`,
+            );
+            el.promoVariations = [makePromoVariation(null)];
+            el.expandedVariationsPaths = new Set([promoPath]);
+            el.selectedTabKey = 'promotion';
+            await el.updateComplete;
+            const link = el.shadowRoot.querySelector('.variation-details-row a');
+            expect(link).to.be.null;
+        });
+
+        it('encodes special characters in promotionId in the link href', async () => {
+            const specialId = 'id with spaces & symbols';
+            setupPromoProject(specialId);
+            const topLevelCard = createMockTopLevelCard();
+            const el = await fixture(
+                html`<mas-collapsible-table-row
+                    .topLevelCard=${topLevelCard}
+                    .isTopLevelExpanded=${true}
+                ></mas-collapsible-table-row>`,
+            );
+            el.promoVariations = [makePromoVariation(promoTagId)];
+            el.expandedVariationsPaths = new Set([promoPath]);
+            el.selectedTabKey = 'promotion';
+            await el.updateComplete;
+            const link = el.shadowRoot.querySelector('.variation-details-row a');
+            expect(link).to.exist;
+            expect(link.getAttribute('href')).to.equal(`#page=promotions-editor&promotionId=${encodeURIComponent(specialId)}`);
         });
     });
 

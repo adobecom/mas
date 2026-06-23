@@ -5,7 +5,12 @@ const { HEADERS } = require('../../src/bulk-edit/csv.js');
 
 const csvHeaderLine = HEADERS.join(',');
 
-function load({ existing = null, userCsv = null, allowed = true } = {}) {
+function seedExportFiles(writes, jobId) {
+    writes[`private/bulk-edit/${jobId}/results.json`] = JSON.stringify({ items: [] });
+    writes[`private/bulk-edit/${jobId}/results.csv`] = 'fragment_id,path\n';
+}
+
+function load({ existing = null, userCsv = null, allowed = true, seedExports = undefined } = {}) {
     const invokeAsyncAction = sinon.stub().resolves({ activationId: 'act-1' });
     const writeJob = sinon.stub().resolves();
     const readJob = sinon.stub().resolves(existing);
@@ -13,23 +18,30 @@ function load({ existing = null, userCsv = null, allowed = true } = {}) {
     const readUserCsv = sinon.stub().resolves(userCsv);
     const writeUserCsv = sinon.stub().resolves();
     const deleteUserCsv = sinon.stub().resolves();
-    const deleteJobExports = sinon.stub().resolves();
     const readDryRun = sinon.stub().resolves(null);
     const readResults = sinon.stub().resolves(null);
     const readReport = sinon.stub().resolves(null);
     const touchJobCache = sinon.stub().resolves();
-    const exportPresignUrl = sinon.stub().callsFake(async (jobId, format) => `https://files.example/${jobId}.${format}`);
-    const readExportFullItems = sinon.stub().resolves(existing?.results || doneJobResults);
-    const readExportItems = sinon.stub().resolves(existing?.results || doneJobResults);
-    const writeJobExports = sinon.stub().resolves({ exportedAt: '2026-01-01T00:00:00.000Z' });
-    const exportFileExists = sinon.stub().resolves(true);
-    const writeFullExport = sinon.stub().resolves();
-    const resolveFindSourceItems = sinon.stub().callsFake(async (jobId, job) => {
-        const state = await readResults(jobId);
-        if (state?.length) return state;
-        if (job?.results?.length) return job.results;
-        return doneJobResults;
-    });
+    const writes = {};
+    const deleted = [];
+    if (seedExports === true || (seedExports !== false && existing?.exportReady)) {
+        seedExportFiles(writes, 'job-1');
+    }
+    const files = {
+        write: sinon.stub().callsFake(async (path, content) => {
+            writes[path] = content;
+        }),
+        read: sinon.stub().callsFake(async (path) => Buffer.from(writes[path] || '')),
+        delete: sinon.stub().callsFake(async (path) => {
+            deleted.push(path);
+            delete writes[path];
+        }),
+        generatePresignURL: sinon.stub().callsFake((path) => {
+            const format = path.endsWith('.csv') ? 'csv' : 'json';
+            const jobId = path.match(/bulk-edit\/([^/]+)/)?.[1] || 'job';
+            return Promise.resolve(`https://files.example/${jobId}.${format}`);
+        }),
+    };
     const mod = proxyquire('../../src/bulk-edit/bulk-edit.js', {
         '../../utils.js': {
             errorResponse: (statusCode, message) => ({ error: { statusCode, body: { error: message } } }),
@@ -57,20 +69,7 @@ function load({ existing = null, userCsv = null, allowed = true } = {}) {
             JOB_CACHE_TTL: 7 * 24 * 60 * 60,
             '@noCallThru': true,
         },
-        './export.js': {
-            exportPresignUrl,
-            exportFileExists,
-            deleteJobExports,
-            readExportFullItems,
-            readExportItems,
-            writeJobExports,
-            writeFullExport,
-            '@noCallThru': true,
-        },
-        './find-results.js': {
-            resolveFindSourceItems,
-            '@noCallThru': true,
-        },
+        '@adobe/aio-lib-files': { init: async () => files },
         '@adobe/aio-sdk': { Core: { Logger: () => ({ info() {}, error() {} }) }, '@noCallThru': true },
     });
     return {
@@ -82,18 +81,13 @@ function load({ existing = null, userCsv = null, allowed = true } = {}) {
         readUserCsv,
         writeUserCsv,
         deleteUserCsv,
-        deleteJobExports,
         readDryRun,
         readResults,
         readReport,
         touchJobCache,
-        exportPresignUrl,
-        exportFileExists,
-        readExportFullItems,
-        readExportItems,
-        writeJobExports,
-        writeFullExport,
-        resolveFindSourceItems,
+        files,
+        writes,
+        deleted,
     };
 }
 
@@ -274,14 +268,14 @@ describe('bulk-edit: handlePost', () => {
         expect(invokeAsyncAction.calledOnce).to.equal(true);
     });
     it('re-runs a DONE job when forceRefresh is true', async () => {
-        const { mod, invokeAsyncAction, writeJob, deleteUserCsv, deleteJobExports } = load({
+        const { mod, invokeAsyncAction, writeJob, deleteUserCsv, deleted } = load({
             existing: { status: 'DONE', results: [{ id: 'a' }], total: 1 },
         });
         const res = await mod.handlePost({ ...findParams, forceRefresh: true });
         expect(res.statusCode).to.equal(202);
         expect(res.body.reused).to.equal(false);
         expect(deleteUserCsv.calledOnceWith(res.body.jobId)).to.equal(true);
-        expect(deleteJobExports.calledOnceWith(res.body.jobId)).to.equal(true);
+        expect(deleted.some((path) => path.includes(res.body.jobId))).to.equal(true);
         expect(writeJob.calledOnce).to.equal(true);
         expect(invokeAsyncAction.calledOnce).to.equal(true);
     });
@@ -387,19 +381,11 @@ describe('bulk-edit: handleGet', () => {
         expect(touchJobCache.callCount).to.equal(1);
     });
     it('regenerates missing export files from state results on poll', async () => {
-        const ctx = load({ existing: { ...doneJob, exportReady: true, results: [] } });
-        let checked = false;
-        ctx.exportFileExists.callsFake(async () => {
-            if (!checked) {
-                checked = true;
-                return false;
-            }
-            return true;
-        });
+        const ctx = load({ existing: { ...doneJob, exportReady: true, results: [] }, seedExports: false });
         ctx.readResults.resolves(doneJobResults);
         const res = await ctx.mod.handleGet({ jobId: 'job-1' });
         expect(res.statusCode).to.equal(200);
-        expect(ctx.writeJobExports.callCount).to.equal(1);
+        expect(ctx.files.write.callCount).to.be.greaterThan(0);
         expect(res.body.exports.json).to.equal('https://files.example/job-1.json');
     });
 });
@@ -423,7 +409,7 @@ describe('bulk-edit: handleCsvUpload', () => {
                 status: 'PUBLISHED',
             },
         ];
-        const { mod, writeUserCsv, writeJobExports, readUserCsv, patchJob } = load({ existing: doneJob });
+        const { mod, writeUserCsv, files, writes, readUserCsv, patchJob } = load({ existing: doneJob });
         readUserCsv.resolves({ rows: uploadedRows });
         const res = await mod.handleCsvUpload(csvPost);
         expect(res.statusCode).to.equal(202);
@@ -433,9 +419,10 @@ describe('bulk-edit: handleCsvUpload', () => {
         expect(res.body.report.total).to.equal(1);
         expect(res.body.exportReady).to.equal(true);
         expect(writeUserCsv.calledOnce).to.equal(true);
-        expect(writeJobExports.calledOnce).to.equal(true);
-        expect(writeJobExports.firstCall.args[1].filteredByUpload).to.equal(true);
-        expect(writeJobExports.firstCall.args[1].items).to.have.lengthOf(1);
+        expect(files.write.callCount).to.be.greaterThan(0);
+        const exportPayload = JSON.parse(writes['private/bulk-edit/job-1/results.json']);
+        expect(exportPayload.filteredByUpload).to.equal(true);
+        expect(exportPayload.items).to.have.lengthOf(1);
         expect(patchJob.called).to.equal(true);
     });
     it('400s when jobId is missing', async () => {
@@ -476,7 +463,7 @@ describe('bulk-edit: handleCsvDelete', () => {
         const uploaded = {
             rows: [{ fragment_id: 'frag-1', field: 'subtitle', find: 'school' }],
         };
-        const { mod, deleteUserCsv, writeJobExports, readUserCsv, patchJob } = load({
+        const { mod, deleteUserCsv, files, writes, readUserCsv, patchJob } = load({
             existing: { ...doneJob, exportReady: true },
             userCsv: uploaded,
         });
@@ -488,9 +475,10 @@ describe('bulk-edit: handleCsvDelete', () => {
         expect(res.body.total).to.equal(2);
         expect(res.body.report.total).to.equal(2);
         expect(deleteUserCsv.calledOnceWith('job-1')).to.equal(true);
-        expect(writeJobExports.calledOnce).to.equal(true);
-        expect(writeJobExports.firstCall.args[1].filteredByUpload).to.equal(false);
-        expect(writeJobExports.firstCall.args[1].items).to.have.lengthOf(2);
+        expect(files.write.callCount).to.be.greaterThan(0);
+        const exportPayload = JSON.parse(writes['private/bulk-edit/job-1/results.json']);
+        expect(exportPayload.filteredByUpload).to.equal(false);
+        expect(exportPayload.items).to.have.lengthOf(2);
         expect(patchJob.called).to.equal(true);
     });
     it('404s when no CSV was uploaded', async () => {
@@ -600,15 +588,14 @@ describe('bulk-edit: handleReplacePost', () => {
     it('uses generated CSV rows when no CSV was uploaded', async () => {
         const ctx = load({ userCsv: null });
         ctx.readJob.withArgs('find-1').resolves(findJobDone);
-        ctx.resolveFindSourceItems.resolves(doneJobResults);
         const res = await ctx.mod.handlePost(replaceParams);
         expect(res.statusCode).to.equal(202);
         expect(ctx.writeJob.firstCall.args[1].total).to.equal(1);
     });
     it('400s when the find job has no results', async () => {
         const ctx = load({ userCsv: null });
-        ctx.readJob.withArgs('find-1').resolves(findJobDone);
-        ctx.resolveFindSourceItems.resolves([]);
+        ctx.readJob.withArgs('find-1').resolves({ ...findJobDone, results: [] });
+        ctx.readResults.resolves([]);
         const res = await ctx.mod.handlePost(replaceParams);
         expect(res.error.statusCode).to.equal(400);
         expect(res.error.body.error).to.include('no results');
@@ -683,11 +670,13 @@ describe('bulk-edit: handleReplaceGet', () => {
         expect(res.body.items).to.equal(undefined);
     });
     it('includes JSON export URL only on terminal replace jobs', async () => {
+        const jobId = 'replace.x.dry.y';
         const job = { type: 'replace', dryRun: true, status: 'DONE', exportReady: true, results: [] };
-        const ctx = load({ existing: job });
+        const ctx = load({ existing: job, seedExports: false });
+        ctx.writes[`private/bulk-edit/${jobId}/results.json`] = JSON.stringify({ items: [] });
         ctx.readReport.resolves({ dryRun: true, totalFragments: 1 });
-        const res = await ctx.mod.handleGet({ jobId: 'replace.x.dry.y' });
-        expect(res.body.exports).to.deep.equal({ json: 'https://files.example/replace.x.dry.y.json' });
+        const res = await ctx.mod.handleGet({ jobId });
+        expect(res.body.exports).to.deep.equal({ json: `https://files.example/${jobId}.json` });
         expect(res.body.exports.csv).to.equal(undefined);
     });
     it('400s when jobId uses a .json or .csv suffix', async () => {
@@ -698,18 +687,17 @@ describe('bulk-edit: handleReplaceGet', () => {
         expect(res.error.body.error).to.include('poll response');
     });
     it('regenerates missing replace export from state results on poll', async () => {
+        const jobId = 'replace.x.dry.y';
         const job = { type: 'replace', dryRun: true, status: 'DONE', exportReady: true, results: [] };
-        const ctx = load({ existing: job });
-        ctx.exportFileExists.resolves(false);
+        const ctx = load({ existing: job, seedExports: false });
         ctx.readResults.resolves([
             { id: 'a', path: '/p/a', locale: 'en_US', status: 'WOULD_REPLACE', matches: [{ field: 'subtitle', value: 'x' }] },
         ]);
         ctx.readReport.resolves({ dryRun: true, totalFragments: 1 });
-        const res = await ctx.mod.handleGet({ jobId: 'replace.x.dry.y' });
+        const res = await ctx.mod.handleGet({ jobId });
         expect(res.statusCode).to.equal(200);
-        expect(ctx.writeJobExports.callCount).to.equal(1);
-        expect(ctx.writeFullExport.callCount).to.equal(1);
-        expect(res.body.exports.json).to.equal('https://files.example/replace.x.dry.y.json');
+        expect(ctx.files.write.callCount).to.be.greaterThan(0);
+        expect(res.body.exports.json).to.equal(`https://files.example/${jobId}.json`);
     });
 });
 
@@ -720,7 +708,6 @@ describe('bulk-edit: resolveFindSourceItems', () => {
         ctx.readResults.resolves(stateItems);
         const items = await ctx.mod.resolveFindSourceItems('job-1', { exportReady: true, results: [] });
         expect(items).to.deep.equal(stateItems);
-        expect(ctx.readExportFullItems.called).to.equal(false);
     });
 });
 
@@ -892,5 +879,139 @@ describe('bulk-edit: mode-specific endpoints', () => {
         expect(res.statusCode).to.equal(200);
         expect(res.body.filteredByUpload).to.equal(false);
         expect(deleteUserCsv.calledOnce).to.equal(true);
+    });
+});
+
+describe('bulk-edit: export helpers', () => {
+    it('places files under private/bulk-edit/{jobId}/', () => {
+        const { mod } = load();
+        expect(mod.buildExportPaths('abc123')).to.deep.equal({
+            json: 'private/bulk-edit/abc123/results.json',
+            csv: 'private/bulk-edit/abc123/results.csv',
+            fullJson: 'private/bulk-edit/abc123/results-full.json',
+        });
+    });
+
+    it('writeJobExports writes JSON and CSV for find jobs', async () => {
+        const { mod, files, writes } = load();
+        await mod.writeJobExports('job-1', {
+            type: 'find',
+            items: [
+                {
+                    id: 'a',
+                    path: '/p/a',
+                    locale: 'en_US',
+                    etag: 'e1',
+                    status: 'PUBLISHED',
+                    matches: [{ field: 'subtitle', value: 'school' }],
+                },
+            ],
+            report: { total: 1, byLocale: { en_US: 1 } },
+            filteredByUpload: false,
+            dryRun: false,
+        });
+        expect(files.write.callCount).to.equal(2);
+        expect(files.write.firstCall.args[2]).to.deep.equal({ contentType: 'application/json' });
+        expect(files.write.secondCall.args[2]).to.deep.equal({ contentType: 'text/csv' });
+        const document = JSON.parse(writes['private/bulk-edit/job-1/results.json']);
+        expect(document.jobId).to.equal('job-1');
+        expect(document.items).to.have.lengthOf(1);
+        expect(writes['private/bulk-edit/job-1/results.csv']).to.include('fragment_id,path,locale');
+        expect(writes['private/bulk-edit/job-1/results.csv']).to.not.include(',replace,');
+    });
+
+    it('writeJobExports writes JSON only for replace jobs', async () => {
+        const { mod, files, writes } = load();
+        await mod.writeJobExports('job-1', {
+            type: 'replace',
+            items: [
+                {
+                    id: 'a',
+                    path: '/p/a',
+                    locale: 'en_US',
+                    status: 'REPLACED',
+                    matches: [{ field: 'subtitle', value: 'school' }],
+                },
+            ],
+            report: { totalFragments: 1 },
+            filteredByUpload: false,
+            dryRun: false,
+        });
+        expect(files.write.callCount).to.equal(1);
+        expect(files.write.firstCall.args[2]).to.deep.equal({ contentType: 'application/json' });
+        expect(writes['private/bulk-edit/job-1/results.csv']).to.equal(undefined);
+    });
+
+    it('writeFullExport stores modified fragments for dry-run replace jobs', async () => {
+        const { mod, writes } = load();
+        await mod.writeFullExport('job-1', 'replace', [
+            {
+                id: 'a',
+                path: '/p/a',
+                locale: 'en_US',
+                status: 'WOULD_REPLACE',
+                title: 'T',
+                description: 'D',
+                fields: [{ name: 'subtitle', values: ['Campus offer'] }],
+                matches: [{ field: 'subtitle', value: 'School' }],
+            },
+        ]);
+        const document = JSON.parse(writes['private/bulk-edit/job-1/results-full.json']);
+        expect(document.type).to.equal('replace');
+        expect(document.items).to.have.lengthOf(1);
+        expect(document.items[0].fields[0].values[0]).to.equal('Campus offer');
+    });
+
+    it('readExportItems returns items from the exported JSON document', async () => {
+        const { mod, writes } = load();
+        const items = [{ id: 'a' }];
+        writes['private/bulk-edit/job-1/results.json'] = JSON.stringify({ items });
+        const read = await mod.readExportItems('job-1');
+        expect(read).to.deep.equal(items);
+    });
+
+    it('exportFileExists returns true when the export file is readable', async () => {
+        const { mod, writes } = load();
+        writes['private/bulk-edit/job-1/results.json'] = '{}';
+        expect(await mod.exportFileExists('job-1', 'json')).to.equal(true);
+    });
+
+    it('exportFileExists returns false when the export file is missing', async () => {
+        const { mod } = load();
+        expect(await mod.exportFileExists('job-1', 'json')).to.equal(false);
+    });
+
+    it('exportPresignUrl returns a presigned URL for JSON or CSV paths', async () => {
+        const { mod, files, writes } = load();
+        writes['private/bulk-edit/job-1/results.json'] = '{}';
+        writes['private/bulk-edit/job-1/results.csv'] = 'fragment_id\n';
+        expect(await mod.exportPresignUrl('job-1', 'json')).to.equal('https://files.example/job-1.json');
+        expect(await mod.exportPresignUrl('job-1', 'csv')).to.equal('https://files.example/job-1.csv');
+        expect(files.generatePresignURL.callCount).to.equal(2);
+    });
+
+    it('exportRedirectResponse returns 302 with a presigned Location for JSON', async () => {
+        const { mod, files, writes } = load();
+        writes['private/bulk-edit/job-1/results.json'] = '{"jobId":"job-1"}';
+        const res = await mod.exportRedirectResponse('job-1', 'json');
+        expect(res.statusCode).to.equal(302);
+        expect(res.headers.Location).to.equal('https://files.example/job-1.json');
+        expect(files.generatePresignURL.firstCall.args[0]).to.equal('private/bulk-edit/job-1/results.json');
+    });
+
+    it('exportRedirectResponse returns 302 with a presigned Location for CSV', async () => {
+        const { mod, files, writes } = load();
+        writes['private/bulk-edit/job-1/results.csv'] = 'fragment_id,path\n';
+        const res = await mod.exportRedirectResponse('job-1', 'csv');
+        expect(res.statusCode).to.equal(302);
+        expect(files.generatePresignURL.firstCall.args[0]).to.equal('private/bulk-edit/job-1/results.csv');
+    });
+
+    it('deleteJobExports deletes all export files', async () => {
+        const { mod, deleted } = load();
+        await mod.deleteJobExports('job-1');
+        expect(deleted).to.include('private/bulk-edit/job-1/results.json');
+        expect(deleted).to.include('private/bulk-edit/job-1/results.csv');
+        expect(deleted).to.include('private/bulk-edit/job-1/results-full.json');
     });
 });

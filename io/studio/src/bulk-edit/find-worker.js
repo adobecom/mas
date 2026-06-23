@@ -2,7 +2,7 @@ const { Core } = require('@adobe/aio-sdk');
 const { buildSearchQuery, buildSearchPaths, searchPages, findMatches, extractLocale } = require('./search.js');
 const { readJob, patchJob, writeReport, readUserCsv, writeResults, JOB_CACHE_TTL, JOB_RUNNING_TTL } = require('./state.js');
 const { filterResultsByUserCsv } = require('./csv.js');
-const { writeJobExports, writeFindFullExport } = require('./export.js');
+const { writeJobExports, writeFindFullExport, buildFindReport } = require('./bulk-edit.js');
 
 const logger = Core.Logger('bulk-edit-find-worker', { level: 'info' });
 
@@ -12,15 +12,6 @@ function buildFindResult(fragment, matches) {
         locale: extractLocale(fragment.path),
         matches,
     };
-}
-
-function buildFindReport(results) {
-    const byLocale = {};
-    for (const result of results) {
-        const locale = result.locale || 'unknown';
-        byLocale[locale] = (byLocale[locale] || 0) + 1;
-    }
-    return { total: results.length, byLocale };
 }
 
 async function resolveStop(jobId, runId) {

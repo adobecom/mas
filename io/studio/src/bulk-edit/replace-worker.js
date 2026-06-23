@@ -7,7 +7,7 @@ const {
     isOdinRateLimitError,
 } = require('../common.js');
 const { applyCsvValuesToFragment, buildWorkPlan, resolveReplaceRows, normalizeEtag } = require('./replace.js');
-const { resolveFindSourceItems } = require('./find-results.js');
+const { resolveFindSourceItems, writeJobExports, writeFullExport } = require('./bulk-edit.js');
 const {
     readJob,
     patchJob,
@@ -18,7 +18,6 @@ const {
     JOB_CACHE_TTL,
     JOB_RUNNING_TTL,
 } = require('./state.js');
-const { writeJobExports, writeFullExport } = require('./export.js');
 
 const logger = Core.Logger('bulk-edit-replace-worker', { level: 'info' });
 

@@ -105,12 +105,7 @@ function load(overrides = {}) {
             JOB_RUNNING_TTL: 1800,
             '@noCallThru': true,
         },
-        './export.js': {
-            writeJobExports: async () => ({ exportedAt: '2026-01-01T00:00:00.000Z' }),
-            writeFullExport: async () => {},
-            '@noCallThru': true,
-        },
-        './find-results.js': {
+        './bulk-edit.js': {
             resolveFindSourceItems: async () => [
                 {
                     id: 'a',
@@ -129,6 +124,8 @@ function load(overrides = {}) {
                     matches: [{ field: 'subtitle', value: 'School offer' }],
                 },
             ],
+            writeJobExports: async () => ({ exportedAt: '2026-01-01T00:00:00.000Z' }),
+            writeFullExport: async () => {},
             '@noCallThru': true,
         },
         '@adobe/aio-sdk': { Core: { Logger: () => ({ info() {}, error() {}, warn() {} }) }, '@noCallThru': true },

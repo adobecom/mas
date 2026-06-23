@@ -43,13 +43,21 @@ function load(overrides = {}) {
             JOB_RUNNING_TTL: 1800,
             '@noCallThru': true,
         },
-        './export.js': {
+        './bulk-edit.js': {
             writeJobExports: async (jobId, payload) => {
                 exports.push({ jobId, payload });
                 return { exportedAt: '2026-01-01T00:00:00.000Z' };
             },
             writeFindFullExport: async (jobId, items) => {
                 exports.push({ jobId, fullItems: items });
+            },
+            buildFindReport: (results) => {
+                const byLocale = {};
+                for (const result of results) {
+                    const locale = result.locale || 'unknown';
+                    byLocale[locale] = (byLocale[locale] || 0) + 1;
+                }
+                return { total: results.length, byLocale };
             },
             '@noCallThru': true,
         },

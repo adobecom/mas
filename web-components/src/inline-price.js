@@ -377,9 +377,6 @@ export class InlinePrice extends HTMLSpanElement {
                     options.displayPerUnit =
                         offer.customerSegment !== 'INDIVIDUAL';
                 }
-                if (priceOptions.displayPlanType === undefined) {
-                    options.displayPlanType = Boolean(offer.planType);
-                }
                 // if displayTax or forceTaxExclusive is not set, we need to resolve the values based on the geo and segment
                 if (
                     priceOptions.displayTax === undefined ||

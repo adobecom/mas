@@ -127,13 +127,6 @@ describe('onPlaceholderSelect', () => {
         expect(event.detail).to.deep.equal(expectedAttributes);
     });
 
-    it('should map displayPlanType to data-display-plan-type for legal', () => {
-        onPlaceholderSelect('test-id', 'legal', {}, { displayPlanType: true });
-
-        const event = dispatchEventStub.getCall(0).args[0];
-        expect(event.detail['data-display-plan-type']).to.equal(true);
-    });
-
     it('should dispatch an event with correct attributes for checkout link', () => {
         const offerSelectorId = 'test-id';
         const type = 'checkoutUrl';

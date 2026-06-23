@@ -1194,3 +1194,49 @@ describe('bizpro add-on theming', () => {
         expect(styles.backgroundImage).to.contain('rgb(235, 16, 0)');
     });
 });
+
+describe('bizpro quantity selector repricing', () => {
+    // Price lives in slot="heading-m" for bizpro (see BIZPRO_AEM_FRAGMENT_MAPPING).
+    const PRICE =
+        '<p slot="heading-m"><span is="inline-price" data-wcs-osi="abc" data-template="price"></span></p>';
+    const QS =
+        '<div slot="quantity-select"><merch-quantity-select title="License" min="1" max="10" step="1"></merch-quantity-select></div>';
+    let card;
+    afterEach(() => {
+        card?.remove();
+        card = undefined;
+    });
+
+    it('pushes the selected quantity onto the main price on a selector change', async () => {
+        card = await renderCard(PRICE + QS);
+        const variantLayout = card.variantLayout;
+        expect(variantLayout.updatePriceQuantity).to.be.a('function');
+        const mainPrice = variantLayout.mainPrice;
+        expect(mainPrice, 'price must resolve in slot heading-m').to.exist;
+
+        card.dispatchEvent(
+            new CustomEvent(EVENT_MERCH_QUANTITY_SELECTOR_CHANGE, {
+                detail: { option: '7' },
+                bubbles: true,
+            }),
+        );
+
+        expect(mainPrice.dataset.quantity).to.equal('7');
+    });
+
+    it('leaves the price untouched without a main price or a usable option', () => {
+        const layout = Object.create(BizPro.prototype);
+        // No main price → no-op, no throw.
+        layout.card = { querySelector: () => null };
+        expect(() =>
+            layout.updatePriceQuantity({ detail: { option: 5 } }),
+        ).to.not.throw();
+        // Main price present but empty/absent detail → quantity stays unset.
+        const price = { dataset: {} };
+        layout.card = { querySelector: () => price };
+        layout.updatePriceQuantity({ detail: null });
+        layout.updatePriceQuantity({});
+        layout.updatePriceQuantity({ detail: {} });
+        expect(price.dataset.quantity).to.be.undefined;
+    });
+});

@@ -730,10 +730,6 @@ export class MiniCompareChart extends VariantLayout {
             font-size: 14px;
         }
 
-        :host([variant='mini-compare-chart']) ::slotted(h3[slot='heading-xs']) {
-            max-width: var(--consonant-merch-card-heading-xs-max-width, 100%);
-        }
-
         :host([variant='mini-compare-chart'].bullet-list)
             .mini-compare-chart-badge {
             padding: 2px 10px 3px 10px;

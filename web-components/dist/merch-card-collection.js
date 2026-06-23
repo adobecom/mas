@@ -1231,10 +1231,6 @@ merch-card[variant="mini-compare-chart"] merch-mnemonic-list:nth-child(8) {
             font-size: 14px;
         }
 
-        :host([variant='mini-compare-chart']) ::slotted(h3[slot='heading-xs']) {
-            max-width: var(--consonant-merch-card-heading-xs-max-width, 100%);
-        }
-
         :host([variant='mini-compare-chart'].bullet-list)
             .mini-compare-chart-badge {
             padding: 2px 10px 3px 10px;
@@ -2505,11 +2501,6 @@ merch-card .footer-row-cell:nth-child(8) {
             #badge.spectrum-red-700-plans {
             background-color: #eb1000;
             color: #ffffff;
-        }
-
-        :host([variant='mini-compare-chart-mweb'])
-            ::slotted(h3[slot='heading-xs']) {
-            max-width: var(--consonant-merch-card-heading-xs-max-width, 100%);
         }
 
         :host([variant='mini-compare-chart-mweb']) .footer-rows-container {

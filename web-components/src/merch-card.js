@@ -50,8 +50,6 @@ const VARIANTS_WITH_HEIGHT_SYNC = [
 const VARIANTS_WITH_WIDTH_BADGE_SYNC = [
     'segment',
     'product',
-    'mini-compare-chart',
-    'mini-compare-chart-mweb',
     'plans-education',
 ];
 
@@ -116,8 +114,7 @@ const intersectionObserver = new IntersectionObserver((entries) => {
             if (entry.boundingClientRect.width === 0) return;
             if (
                 (card.variant === 'product' ||
-                    card.variant === 'plans-education' ||
-                    card.variant.startsWith('mini-compare-chart')) &&
+                    card.variant === 'plans-education') &&
                 card.querySelector('merch-icon[slot="icons"]')
             ) {
                 intersectionObserver.unobserve(card);

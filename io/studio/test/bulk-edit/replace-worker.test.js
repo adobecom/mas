@@ -13,6 +13,7 @@ function frag(id, value = 'School offer') {
 }
 
 function load(overrides = {}) {
+    delete require.cache[require.resolve('../../src/bulk-edit/replace-worker.js')];
     const calls = { patch: [], get: [], dryRun: [], reports: [], invokes: [] };
     const patches = [];
     const job = {
@@ -137,6 +138,7 @@ function load(overrides = {}) {
 
 describe('bulk-edit/replace-worker: patchOrThrow', () => {
     beforeEach(() => {
+        delete require.cache[require.resolve('../../src/bulk-edit/replace-worker.js')];
         sinon.stub(global, 'setTimeout').callsFake((fn) => {
             fn();
             return 1;
@@ -157,7 +159,11 @@ describe('bulk-edit/replace-worker: patchOrThrow', () => {
             return { success: true };
         };
         const mod = proxyquire('../../src/bulk-edit/replace-worker.js', {
-            '../common.js': { patchToOdin, isOdinRateLimitError: common.isOdinRateLimitError, '@noCallThru': true },
+            '../common.js': {
+                ...common,
+                patchToOdin,
+                '@noCallThru': true,
+            },
             '@adobe/aio-sdk': { Core: { Logger: () => ({ info() {}, error() {}, warn() {} }) }, '@noCallThru': true },
         });
         await mod.patchOrThrow('https://odin', 'a', 'token', [{ op: 'replace', path: '/x', value: 'y' }], 'etag-a');
@@ -171,7 +177,11 @@ describe('bulk-edit/replace-worker: patchOrThrow', () => {
             return { success: false, error: 'PATCH request failed for fragment a: 500: Server Error' };
         };
         const mod = proxyquire('../../src/bulk-edit/replace-worker.js', {
-            '../common.js': { patchToOdin, isOdinRateLimitError: common.isOdinRateLimitError, '@noCallThru': true },
+            '../common.js': {
+                ...common,
+                patchToOdin,
+                '@noCallThru': true,
+            },
             '@adobe/aio-sdk': { Core: { Logger: () => ({ info() {}, error() {}, warn() {} }) }, '@noCallThru': true },
         });
         try {

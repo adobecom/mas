@@ -235,7 +235,6 @@ class MasFragmentTable extends LitElement {
                     ? ''
                     : html`<sp-table-cell class="expand-cell" @click=${this.toggleExpand}>
                           <button class="expand-button" aria-label="${this.expanded ? 'Collapse' : 'Expand'} row">
-                              <!-- audit-ok: icon-only expand toggle, no Spectrum equivalent for this pattern -->
                               ${this.expanded
                                   ? html`<sp-icon-chevron-down></sp-icon-chevron-down>`
                                   : html`<sp-icon-chevron-right></sp-icon-chevron-right>`}

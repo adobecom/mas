@@ -121,6 +121,11 @@ export class OstLivePreview extends LitElement {
     }
 
     willUpdate() {
+        // Resolve geo-aware tax defaults for the selected offer (idempotent per
+        // offer+country). Updates the shared store, which re-renders this row
+        // and the "Disable" checkboxes with the correct DE/EU tax label state.
+        const offer = this.effectiveOffer;
+        if (offer) store.applyGeoTaxDefaults(offer);
         const built = this.#buildPlaceholder();
         this.#staticDiscount = built?.staticDiscount ?? false;
         this.#placeholderNode = built?.node ?? null;
@@ -159,6 +164,7 @@ export class OstLivePreview extends LitElement {
             clientId: store.checkoutClientId,
             country: store.country,
             landscape: store.landscape,
+            'mas-ff-defaults': true,
         };
 
         if (checkoutCtrl) {

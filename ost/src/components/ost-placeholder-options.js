@@ -80,7 +80,7 @@ export class OstPlaceholderOptions extends LitElement {
     }
 
     toggle(key, checked) {
-        store.setPlaceholderOptions({ ...store.placeholderOptions, [key]: !checked });
+        store.toggleOption(key, !checked);
     }
 
     render() {

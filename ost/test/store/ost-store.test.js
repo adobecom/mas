@@ -164,6 +164,49 @@ describe('OstStore', () => {
         expect(effective.displayPlanType).to.be.true;
     });
 
+    describe('applyGeoTaxDefaults', () => {
+        const offer = (id) => ({ offer_id: id, customer_segment: 'INDIVIDUAL', market_segments: ['COM'] });
+        function mockService(flags) {
+            return { resolvePriceTaxFlags: async () => flags };
+        }
+
+        it('seeds displayTax/forceTaxExclusive from the geo-resolved flags', async () => {
+            store.country = 'DE';
+            store.masCommerceService = mockService({ displayTax: true, forceTaxExclusive: false });
+            await store.applyGeoTaxDefaults(offer('A'));
+            expect(store.placeholderOptions.displayTax).to.be.true;
+            expect(store.placeholderOptions.forceTaxExclusive).to.be.false;
+        });
+
+        it('does not overwrite a tax flag the user explicitly toggled', async () => {
+            store.country = 'DE';
+            store.masCommerceService = mockService({ displayTax: true, forceTaxExclusive: false });
+            store.toggleOption('displayTax', false);
+            await store.applyGeoTaxDefaults(offer('B'));
+            expect(store.placeholderOptions.displayTax).to.be.false;
+        });
+
+        it('no-ops without a service or offer', async () => {
+            store.masCommerceService = null;
+            await store.applyGeoTaxDefaults(offer('C'));
+            expect(store.placeholderOptions.displayTax).to.be.false;
+        });
+
+        it('resolves only once per offer and country', async () => {
+            store.country = 'DE';
+            let calls = 0;
+            store.masCommerceService = {
+                resolvePriceTaxFlags: async () => {
+                    calls += 1;
+                    return { displayTax: true };
+                },
+            };
+            await store.applyGeoTaxDefaults(offer('D'));
+            await store.applyGeoTaxDefaults(offer('D'));
+            expect(calls).to.equal(1);
+        });
+    });
+
     it('resets placeholderOptions to defaults on init', () => {
         store.setPlaceholderOptions({ ...store.placeholderOptions, displayTax: true });
         store.init({});

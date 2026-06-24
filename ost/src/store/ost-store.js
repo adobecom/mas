@@ -120,6 +120,11 @@ export class OstStore extends EventTarget {
     #batchedDuringRun = false;
     #offersKey = null;
     #trialAutoFillPending = false;
+    // Tax/display flags the user explicitly toggled via the "Disable" options.
+    // Geo defaults (applyGeoTaxDefaults) never overwrite a user-touched flag.
+    #userToggledOptionKeys = new Set();
+    // (offer, country) the geo tax defaults were last resolved for — resolve once.
+    #geoResolvedKey = null;
     // True once the user clicks a try/buy slot to target it; consumed (and
     // reset) by the next addOffer so an explicit target wins over type routing
     // exactly once, then type routing resumes.
@@ -923,6 +928,45 @@ export class OstStore extends EventTarget {
 
     setPlaceholderOptions(options) {
         this.placeholderOptions = { ...options };
+    }
+
+    // User toggled a display flag via the "Disable" options. Record it so a
+    // later geo-default resolution won't overwrite the user's explicit choice.
+    toggleOption(key, value) {
+        this.#userToggledOptionKeys.add(key);
+        this.placeholderOptions = { ...this.placeholderOptions, [key]: value };
+    }
+
+    // Seed geo-aware tax defaults from the selected offer. The legacy OST got
+    // DE/EU tax labels because the price auto-resolved displayTax per geo; the
+    // new OST hardcoded displayTax:false, suppressing it. Resolve the real
+    // defaults from the commerce service and merge them in for any flag the
+    // user has not explicitly toggled.
+    async applyGeoTaxDefaults(offer) {
+        const service = this.masCommerceService;
+        if (!service?.resolvePriceTaxFlags || !offer || !this.country) return;
+        // Resolve once per (offer, country) so repeated render-time calls from
+        // the preview rows don't re-fetch or fight each other.
+        const guardKey = `${offer.offer_id ?? offer.id ?? ''}-${this.country}`;
+        if (this.#geoResolvedKey === guardKey) return;
+        this.#geoResolvedKey = guardKey;
+        const flags = await service.resolvePriceTaxFlags(
+            this.country,
+            this.language,
+            offer.customer_segment,
+            offer.market_segments?.[0],
+        );
+        if (!flags) return;
+        const next = { ...this.placeholderOptions };
+        let changed = false;
+        for (const key of ['displayTax', 'forceTaxExclusive']) {
+            if (this.#userToggledOptionKeys.has(key)) continue;
+            if (flags[key] !== undefined && next[key] !== flags[key]) {
+                next[key] = flags[key];
+                changed = true;
+            }
+        }
+        if (changed) this.placeholderOptions = next;
     }
 
     getEffectiveOptions(type) {

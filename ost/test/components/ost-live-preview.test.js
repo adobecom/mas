@@ -49,6 +49,12 @@ describe('ost-live-preview', () => {
         expect(result.placeholderOptions.country).to.equal('GB');
     });
 
+    it('enables mas-ff-defaults so the preview resolves geo defaults (e.g. DE tax label)', async () => {
+        const preview = await getPreview();
+        const result = preview.buildPlaceholderOptions();
+        expect(result.placeholderOptions['mas-ff-defaults']).to.equal(true);
+    });
+
     it('passes the store landscape into placeholderOptions', async () => {
         store.landscape = 'DRAFT';
         const preview = await getPreview();

@@ -1,8 +1,8 @@
 import { PAGE_NAMES, SORT_COLUMNS, WCS_LANDSCAPE_PUBLISHED, COLLECTION_MODEL_PATH } from './constants.js';
 import Store from './store.js';
-import { isPromotionItemSelectionDirty } from './promotions/promotion-editor-utils.js';
+import { isPromotionItemSelectionDirty, isPromotionOffersSelectionDirty } from './promotions/promotion-editor-utils.js';
 import { debounce, hasNonEmptyCompareChart } from './utils.js';
-import { canAccessSettings } from './groups.js';
+import { canAccessSettings, canAccessMasks } from './groups.js';
 import { getDefaultLocaleCode } from '../../io/www/src/fragment/locales.js';
 
 const STORE_SEARCH_HASH_KEYS = ['path', 'query', 'region'];
@@ -18,14 +18,13 @@ const STORE_SEARCH_HASH_DEFAULT = {};
  * @param {string} idKey hash key identifying the edited record (must stay unchanged)
  * @returns {boolean}
  */
-function editorHashIsSearchSync(previousHash, nextHash, page, idKey) {
+function editorHashIsSearchSync(previousHash, nextHash, page, idKey, ignorable = new Set(['query', 'path', 'region'])) {
     const toParams = (h) => new URLSearchParams(h?.startsWith('#') ? h.slice(1) : h || '');
     const prev = toParams(previousHash);
     const next = toParams(nextHash);
     if (next.get('page') !== page) return false;
     if (prev.get('page') && prev.get('page') !== page) return false;
     if (prev.get(idKey) !== next.get(idKey)) return false;
-    const ignorable = new Set(['query', 'path', 'region']);
     const keys = new Set([...prev.keys(), ...next.keys()]);
     for (const key of keys) {
         if (ignorable.has(key)) continue;
@@ -35,7 +34,13 @@ function editorHashIsSearchSync(previousHash, nextHash, page, idKey) {
 }
 
 export function promoHashIsSearchSync(previousHash, nextHash) {
-    return editorHashIsSearchSync(previousHash, nextHash, PAGE_NAMES.PROMOTIONS_EDITOR, 'promotionId');
+    return editorHashIsSearchSync(
+        previousHash,
+        nextHash,
+        PAGE_NAMES.PROMOTIONS_EDITOR,
+        'promotionId',
+        new Set(['query', 'path', 'tags', 'locale', 'personalizationFilterEnabled', 'region']),
+    );
 }
 
 export function translationHashIsSearchSync(previousHash, nextHash) {
@@ -134,11 +139,13 @@ export class Router extends EventTarget {
         if (!inEdit) return false;
         if (inEdit.hasChanges) return true;
 
-        return isPromotionItemSelectionDirty(
-            inEdit,
-            Store.promotions.selectedCards.value,
-            Store.promotions.selectedCollections.value,
-            Store.promotions.itemHydrateUnreachablePaths.value,
+        return (
+            isPromotionItemSelectionDirty(
+                inEdit,
+                Store.promotions.selectedCards.value,
+                Store.promotions.selectedCollections.value,
+                Store.promotions.itemHydrateUnreachablePaths.value,
+            ) || isPromotionOffersSelectionDirty(inEdit, Store.promotions.selectedOffers.value)
         );
     }
 
@@ -205,8 +212,10 @@ export class Router extends EventTarget {
         Store.promotions.inEdit.set(null);
         Store.promotions.showSelected.set(false);
         Store.promotions.selectedCards.set([]);
+        Store.promotions.selectedOffers.set([]);
         Store.promotions.selectedCollections.set([]);
         Store.promotions.selectedPlaceholders.set([]);
+        Store.filters.set((prev) => ({ ...prev, tags: undefined }));
     }
 
     #clearsPromotionContextOnNavigateTo(targetPage) {
@@ -264,6 +273,15 @@ export class Router extends EventTarget {
                     ) {
                         Store.settings.creating.set(false);
                         Store.settings.fragmentId.set(null);
+                    }
+                    if (
+                        (Store.page.value === PAGE_NAMES.MASKS || Store.page.value === PAGE_NAMES.MASKS_EDITOR) &&
+                        targetPage !== PAGE_NAMES.MASKS_EDITOR
+                    ) {
+                        Store.masks.creating.set(false);
+                        Store.masks.fragmentId.set(null);
+                        Store.masks.editing.set(null);
+                        Store.masks.editingName.set('');
                     }
                     if (options.bulkPublishProjectId !== undefined) {
                         Store.bulkPublishProjects.projectId.set(options.bulkPublishProjectId);
@@ -547,7 +565,7 @@ export class Router extends EventTarget {
 
     start() {
         this.currentParams = new URLSearchParams(this.#hashValue());
-        const normalizedOnStart = this.#normalizeSettingsEditorRoute();
+        const normalizedOnStart = this.#normalizeSettingsEditorRoute() || this.#normalizeMasksEditorRoute();
         this.linkStoreToHash(Store.page, 'page', PAGE_NAMES.WELCOME);
         this.linkStoreToHash(Store.search, STORE_SEARCH_HASH_KEYS, STORE_SEARCH_HASH_DEFAULT);
         this.linkStoreToHash(Store.filters, ['locale', 'tags', 'personalizationFilterEnabled'], {
@@ -563,6 +581,7 @@ export class Router extends EventTarget {
         this.linkStoreToHash(Store.translationProjects.translationProjectId, 'translationProjectId');
         this.linkStoreToHash(Store.bulkPublishProjects.projectId, 'bulkPublishProjectId');
         this.linkStoreToHash(Store.settings.fragmentId, 'fragmentId');
+        this.linkStoreToHash(Store.masks.editingName, 'maskName');
         const redirectedOnStart = this.#enforceSettingsAccessFromParams();
         const normalizedLocaleRegionOnStart = this.#normalizeLocaleRegionFromHash();
         if (normalizedOnStart || redirectedOnStart || normalizedLocaleRegionOnStart) {
@@ -617,7 +636,7 @@ export class Router extends EventTarget {
             if (!path && Store.search.value.path) {
                 this.currentParams.set('path', Store.search.value.path);
             }
-            const normalizedSettingsRoute = this.#normalizeSettingsEditorRoute();
+            const normalizedSettingsRoute = this.#normalizeSettingsEditorRoute() || this.#normalizeMasksEditorRoute();
             this.#syncSearchStoreFromHashParams();
             const redirectedSettingsRoute = this.#enforceSettingsAccessFromParams();
             if (normalizedSettingsRoute || redirectedSettingsRoute) {
@@ -721,18 +740,31 @@ export class Router extends EventTarget {
         return page === PAGE_NAMES.SETTINGS || page === PAGE_NAMES.SETTINGS_EDITOR;
     }
 
+    #isMasksPage(page) {
+        return page === PAGE_NAMES.MASKS || page === PAGE_NAMES.MASKS_EDITOR;
+    }
+
     #syncSearchStoreFromHashParams() {
         const currentValue = Store.search.get();
         this.syncStoreFromHash(Store.search, currentValue, true, STORE_SEARCH_HASH_KEYS, STORE_SEARCH_HASH_DEFAULT);
     }
 
     #getAuthorizedPage(page) {
-        if (!this.#isSettingsPage(page)) return page;
-        if (!Store.users.getMeta('loaded')) return page;
-        if (canAccessSettings(Store.surface())) return page;
-        Store.settings.creating.set(false);
-        Store.settings.fragmentId.set(null);
-        return PAGE_NAMES.WELCOME;
+        if (this.#isSettingsPage(page)) {
+            if (!Store.users.getMeta('loaded')) return page;
+            if (canAccessSettings(Store.surface())) return page;
+            Store.settings.creating.set(false);
+            Store.settings.fragmentId.set(null);
+            return PAGE_NAMES.WELCOME;
+        }
+        if (this.#isMasksPage(page)) {
+            if (!Store.users.getMeta('loaded')) return page;
+            if (canAccessMasks(Store.surface())) return page;
+            Store.masks.creating.set(false);
+            Store.masks.fragmentId.set(null);
+            return PAGE_NAMES.WELCOME;
+        }
+        return page;
     }
 
     #normalizeSettingsEditorRoute() {
@@ -740,6 +772,14 @@ export class Router extends EventTarget {
         if (this.currentParams.get('fragmentId')) return false;
         if (Store.settings.creating.get()) return false;
         this.currentParams.set('page', PAGE_NAMES.SETTINGS);
+        return true;
+    }
+
+    #normalizeMasksEditorRoute() {
+        if (this.currentParams.get('page') !== PAGE_NAMES.MASKS_EDITOR) return false;
+        if (this.currentParams.get('maskName')) return false;
+        if (Store.masks.creating.get()) return false;
+        this.currentParams.set('page', PAGE_NAMES.MASKS);
         return true;
     }
 

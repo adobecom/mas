@@ -942,6 +942,56 @@ describe('Router', () => {
         });
     });
 
+    describe('masks route and editor branches', () => {
+        let originalMasksCreating;
+        let originalMasksFragmentId;
+
+        beforeEach(() => {
+            originalMasksCreating = Store.masks.creating.get();
+            originalMasksFragmentId = Store.masks.fragmentId.get();
+        });
+
+        afterEach(() => {
+            Store.masks.creating.set(originalMasksCreating);
+            Store.masks.fragmentId.set(originalMasksFragmentId);
+        });
+
+        it('normalizes masks-editor to masks on start when no maskName and not creating', async () => {
+            mockLocation.hash = '#page=masks-editor&path=acom';
+            router.start();
+            expect(Store.page.get()).to.equal(PAGE_NAMES.MASKS);
+            await new Promise((resolve) => setTimeout(resolve, 100));
+            expect(mockLocation.hash).to.include('page=masks');
+            expect(mockLocation.hash).to.not.include('page=masks-editor');
+        });
+
+        it('keeps masks-editor on start when maskName is present', () => {
+            mockLocation.hash = '#page=masks-editor&path=acom&maskName=promo';
+            router.start();
+            expect(Store.page.get()).to.equal(PAGE_NAMES.MASKS_EDITOR);
+        });
+
+        it('keeps masks-editor on start when creating is true', () => {
+            Store.masks.creating.set(true);
+            mockLocation.hash = '#page=masks-editor&path=acom';
+            router.start();
+            expect(Store.page.get()).to.equal(PAGE_NAMES.MASKS_EDITOR);
+        });
+
+        it('should block unauthorized masks page navigation and redirect to welcome', async () => {
+            Store.page.set(PAGE_NAMES.WELCOME);
+            Store.profile.set({});
+            Store.users.set([]);
+            Store.masks.creating.set(true);
+            Store.masks.fragmentId.set('mask-id');
+
+            await router.navigateToPage(PAGE_NAMES.MASKS)();
+            expect(Store.page.get()).to.equal(PAGE_NAMES.WELCOME);
+            expect(Store.masks.creating.get()).to.equal(false);
+            expect(Store.masks.fragmentId.get()).to.equal(null);
+        });
+    });
+
     describe('promoHashIsSearchSync', () => {
         it('returns true when only query is added on promotions-editor', () => {
             const prev = '#page=promotions-editor&path=sandbox';
@@ -965,6 +1015,18 @@ describe('Router', () => {
             const prev = '#page=promotions-editor&promotionId=a&path=sandbox';
             const next = '#page=promotions-editor&promotionId=b&path=sandbox&query=x';
             expect(promoHashIsSearchSync(prev, next)).to.be.false;
+        });
+
+        it('returns true when only tags change on promotions-editor', () => {
+            const prev = '#page=promotions-editor&path=sandbox';
+            const next = '#page=promotions-editor&path=sandbox&tags=mas:product_code/ffsa';
+            expect(promoHashIsSearchSync(prev, next)).to.be.true;
+        });
+
+        it('returns true when tags are removed after closing the promotion item picker', () => {
+            const prev = '#page=promotions-editor&path=sandbox&tags=mas:product_code/ffsa';
+            const next = '#page=promotions-editor&path=sandbox';
+            expect(promoHashIsSearchSync(prev, next)).to.be.true;
         });
     });
 
@@ -992,24 +1054,19 @@ describe('Router', () => {
         let originalPromotionsInEdit;
         let originalPromotionsSelectedCards;
         let originalPromotionsSelectedCollections;
-        let originalItemHydrateUnreachablePaths;
-
         beforeEach(() => {
             originalPromotionsInEdit = Store.promotions.inEdit.get();
             originalPromotionsSelectedCards = [...(Store.promotions.selectedCards.value || [])];
             originalPromotionsSelectedCollections = [...(Store.promotions.selectedCollections.value || [])];
-            originalItemHydrateUnreachablePaths = [...(Store.promotions.itemHydrateUnreachablePaths.value || [])];
             Store.promotions.inEdit.set(null);
             Store.promotions.selectedCards.set([]);
             Store.promotions.selectedCollections.set([]);
-            Store.promotions.itemHydrateUnreachablePaths.set([]);
         });
 
         afterEach(() => {
             Store.promotions.inEdit.set(originalPromotionsInEdit);
             Store.promotions.selectedCards.set(originalPromotionsSelectedCards);
             Store.promotions.selectedCollections.set(originalPromotionsSelectedCollections);
-            Store.promotions.itemHydrateUnreachablePaths.set(originalItemHydrateUnreachablePaths);
         });
 
         it('returns false when there is no promotion in edit', () => {
@@ -1048,14 +1105,13 @@ describe('Router', () => {
             expect(router.promotionsEditorHasUnsavedChanges()).to.be.false;
         });
 
-        it('returns false when saved paths missing from selection are hydrate-unreachable', () => {
+        it('returns false when store includes failed-fetch fallback paths from saved fragments', () => {
             const resolved = '/content/dam/mas/promotions/test-items/resolved-card-fragment';
             const fetchFailed = '/content/dam/mas/promotions/test-items/fetch-failed-card-fragment';
 
             Store.promotions.inEdit.set(createPromotionInEditStore({ fragments: [resolved, fetchFailed], hasChanges: false }));
-            Store.promotions.selectedCards.set([resolved]);
+            Store.promotions.selectedCards.set([resolved, fetchFailed]);
             Store.promotions.selectedCollections.set([]);
-            Store.promotions.itemHydrateUnreachablePaths.set([fetchFailed]);
             expect(router.promotionsEditorHasUnsavedChanges()).to.be.false;
         });
     });

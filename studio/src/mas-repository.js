@@ -33,6 +33,7 @@ import {
     MAS_PRODUCT_CODE_PREFIX,
     PZN_FOLDER,
     SURFACES,
+    BULK_PUBLISH_PROJECTS_FOLDER,
     COMPARE_CHART_FIELD,
     TAG_COMPARE_CHART,
     TAG_MERCH_CARD_COLLECTION,
@@ -1055,8 +1056,9 @@ export class MasRepository extends LitElement {
 
             const damPath = getDamPath(surfaceKey);
             const locale = this.filters.value.locale;
+            const searchPath = this.page.value === PAGE_NAMES.PROMOTIONS_EDITOR ? damPath : `${damPath}/${locale}`;
             const searchOptions = {
-                path: `${damPath}/${locale}`,
+                path: searchPath,
                 modelIds: [TAG_MODEL_ID_MAPPING[TAG_MERCH_CARD_COLLECTION]],
                 sort: [{ on: 'modifiedOrCreated', order: 'DESC' }],
             };
@@ -1189,9 +1191,13 @@ export class MasRepository extends LitElement {
         }
     }
 
+    getBulkPublishParentPath(surface) {
+        return `${getDamPath(surface?.toLowerCase())}/${BULK_PUBLISH_PROJECTS_FOLDER}`;
+    }
+
     getBulkPublishProjectsPath() {
         const surface = this.search.value.path?.split('/').filter(Boolean)[0]?.toLowerCase() ?? 'sandbox';
-        return `/content/dam/mas/bulk-publish-projects/${surface}`;
+        return this.getBulkPublishParentPath(surface);
     }
 
     async loadBulkPublishProjects() {

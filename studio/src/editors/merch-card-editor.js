@@ -13,6 +13,7 @@ import '../fields/plan-type-field.js';
 import '../fields/quantity-select-settings-field.js';
 import { getFragmentMapping, showToast } from '../utils.js';
 import '../fields/addon-field.js';
+import { parseBadgeHtml, serializeBadgeHtml } from '../fields/badge-section.js';
 import { createQuantitySelectValue, parseQuantitySelectValue, QUANTITY_SELECT_TAG } from '../common/fields/quantity-select.js';
 import Store from '../store.js';
 import Events from '../events.js';
@@ -1297,48 +1298,7 @@ class MerchCardEditor extends LitElement {
                     </mas-multifield>
                     ${this.renderMnemonicsStatusIndicator()}
                 </sp-field-group>
-                <div class="two-column-grid">
-                    <sp-field-group class="toggle" id="badge">
-                        <sp-field-label for="card-badge">Badge</sp-field-label>
-                        <rte-field
-                            id="card-badge"
-                            inline
-                            hide-format-buttons
-                            data-field="badge"
-                            data-field-state="${this.getBadgeComponentState('badge', 'text')}"
-                            .osi="${form.osi.values[0]}"
-                            .value="${this.badge.text}"
-                            @change="${this.#updateBadgeText}"
-                        ></rte-field>
-                        ${this.renderBadgeComponentOverrideIndicator('badge', 'text')}
-                    </sp-field-group>
-                    <sp-field-group class="toggle" id="trialBadge">
-                        <sp-field-label for="card-trial-badge">Trial Badge</sp-field-label>
-                        <rte-field
-                            id="card-trial-badge"
-                            inline
-                            hide-format-buttons
-                            data-field="trialBadge"
-                            data-field-state="${this.getBadgeComponentState('trialBadge', 'text')}"
-                            .osi="${form.osi.values[0]}"
-                            .value="${this.trialBadge.text}"
-                            @change="${this.#updateTrialBadgeText}"
-                        ></rte-field>
-                        ${this.renderBadgeComponentOverrideIndicator('trialBadge', 'text')}
-                    </sp-field-group>
-                    <sp-field-group class="toggle" id="badgeIcon">
-                        <mas-mnemonic-field
-                            .icon="${this.badge.icon}"
-                            .iconLibrary="${true}"
-                            .variant="${this.getEffectiveFieldValue('variant')}"
-                            data-field-state="${this.getBadgeComponentState('badge', 'icon')}"
-                            style="display: ${this.badge.text ? 'block' : 'none'};"
-                            @change=${this.#updateBadgeIcon}
-                        ></mas-mnemonic-field>
-                        ${this.renderBadgeComponentOverrideIndicator('badge', 'icon')}
-                    </sp-field-group>
-                </div>
-                ${this.#renderBadgeColors()} ${this.#renderTrialBadgeColors()}
+                ${this.badgeSectionTemplate(form)}
                 <div class="two-column-grid">
                     ${this.#renderColorPicker(
                         'border-color',
@@ -2116,107 +2076,12 @@ class MerchCardEditor extends LitElement {
         return this.getEffectiveFieldValue('badge', 0) || '';
     }
 
-    get badgeElement() {
-        const badgeHtml = this.badgeText;
-
-        if (!badgeHtml) return undefined;
-
-        if (badgeHtml?.startsWith('<merch-badge')) {
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(badgeHtml, 'text/html');
-            return doc.querySelector('merch-badge');
-        }
-
-        return {
-            textContent: badgeHtml,
-        };
-    }
-
     get isPlans() {
         return this.fragment.variant?.startsWith('plans');
     }
 
-    get badge() {
-        if (!this.supportsBadgeColors) {
-            return {
-                text: this.badgeText,
-            };
-        }
-
-        const badgeEl = this.badgeElement;
-        const hasInlinePrice = badgeEl?.querySelector?.('span[is="inline-price"]');
-        const text = hasInlinePrice ? badgeEl.innerHTML : badgeEl?.textContent || '';
-        const bgColorAttr = this.badgeElement?.getAttribute?.('background-color');
-        const bgColor = bgColorAttr?.toLowerCase();
-
-        const borderColorAttr = this.badgeElement?.getAttribute?.('border-color');
-        const borderColor = borderColorAttr?.toLowerCase();
-        const icon = this.badgeElement?.getAttribute?.('icon');
-
-        return {
-            text,
-            bgColor,
-            borderColor,
-            icon,
-        };
-    }
-
     get trialBadgeText() {
         return this.getEffectiveFieldValue('trialBadge', 0) || '';
-    }
-
-    get trialBadgeElement() {
-        const trialBadgeHtml = this.trialBadgeText;
-
-        if (!trialBadgeHtml) return undefined;
-
-        if (trialBadgeHtml?.startsWith('<merch-badge')) {
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(trialBadgeHtml, 'text/html');
-            return doc.querySelector('merch-badge');
-        }
-
-        return {
-            textContent: trialBadgeHtml,
-        };
-    }
-
-    get trialBadge() {
-        if (!this.supportsBadgeColors) {
-            return {
-                text: this.trialBadgeText,
-            };
-        }
-
-        const hasInlinePrice = this.trialBadgeElement?.querySelector?.('span[is="inline-price"]');
-        const text = hasInlinePrice ? this.trialBadgeElement.innerHTML : this.trialBadgeElement?.textContent || '';
-        const bgColorAttr = this.trialBadgeElement?.getAttribute?.('background-color');
-        const bgColor = bgColorAttr?.toLowerCase();
-
-        const borderColorAttr = this.trialBadgeElement?.getAttribute?.('border-color');
-        const borderColor = borderColorAttr?.toLowerCase();
-
-        return {
-            text,
-            bgColor,
-            borderColor,
-        };
-    }
-
-    #parseBadgeHtml(html) {
-        if (!html) return { text: '', bgColor: '', borderColor: '' };
-        if (html.startsWith('<merch-badge')) {
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(html, 'text/html');
-            const el = doc.querySelector('merch-badge');
-            return {
-                text: el?.textContent?.trim() || '',
-                bgColor: el?.getAttribute('background-color')?.toLowerCase() || '',
-                borderColor: el?.getAttribute('border-color')?.toLowerCase() || '',
-                icon: el?.getAttribute('icon') || '',
-            };
-        }
-        return { text: html.trim(), bgColor: '', borderColor: '' };
     }
 
     #getCompositeComponentState(fieldName, parser, component, getOwnHtml) {
@@ -2260,120 +2125,27 @@ class MerchCardEditor extends LitElement {
     getBadgeComponentState(fieldName, component) {
         return this.#getCompositeComponentState(
             fieldName,
-            this.#parseBadgeHtml.bind(this),
+            parseBadgeHtml,
             component,
             () => this.getEffectiveFieldValue(fieldName, 0) || '',
         );
     }
 
-    #getColorPickerFieldState(dataField, isBadgeColor, isBadgeBorderColor) {
-        if (isBadgeColor) {
-            const fieldName = dataField === 'badgeColor' ? 'badge' : 'trialBadge';
-            return this.getBadgeComponentState(fieldName, 'bgColor');
-        }
-        if (isBadgeBorderColor) {
-            const fieldName = dataField === 'badgeBorderColor' ? 'badge' : 'trialBadge';
-            return this.getBadgeComponentState(fieldName, 'borderColor');
-        }
+    #getColorPickerFieldState(dataField) {
         if (dataField === 'whatsIncludedDividerColor') {
             return this.getFieldState(WHAT_IS_INCLUDED);
         }
         return this.getFieldState(dataField);
     }
 
-    renderBadgeComponentOverrideIndicator(fieldName, component) {
-        if (!this.effectiveIsVariation) return nothing;
-        if (this.getBadgeComponentState(fieldName, component) !== 'overridden') return nothing;
-        return this.#renderOverrideIndicatorLink(() => this.resetBadgeComponentToParent(fieldName, component));
-    }
-
     async resetBadgeComponentToParent(fieldName, component) {
-        const parentHtml = this.localeDefaultFragment?.getFieldValue(fieldName, 0) || '';
-        const parentParsed = this.#parseBadgeHtml(parentHtml);
-
-        if (fieldName === 'badge') {
-            if (component === 'text') {
-                this.#updateBadge(parentParsed.text, this.badge.bgColor, this.badge.borderColor, this.badge.icon);
-            } else if (component === 'bgColor') {
-                this.#updateBadge(this.badge.text, parentParsed.bgColor, this.badge.borderColor, this.badge.icon);
-            } else if (component === 'borderColor') {
-                this.#updateBadge(this.badge.text, this.badge.bgColor, parentParsed.borderColor, this.badge.icon);
-            } else if (component === 'icon') {
-                this.#updateBadge(this.badge.text, this.badge.bgColor, this.badge.borderColor, parentParsed.icon);
-            }
-        } else if (fieldName === 'trialBadge') {
-            if (component === 'text') {
-                this.#updateTrialBadge(parentParsed.text, this.trialBadge.bgColor, this.trialBadge.borderColor);
-            } else if (component === 'bgColor') {
-                this.#updateTrialBadge(this.trialBadge.text, parentParsed.bgColor, this.trialBadge.borderColor);
-            } else if (component === 'borderColor') {
-                this.#updateTrialBadge(this.trialBadge.text, this.trialBadge.bgColor, parentParsed.borderColor);
-            }
-        }
+        const parentParsed = parseBadgeHtml(this.localeDefaultFragment?.getFieldValue(fieldName, 0) || '');
+        const ownParsed = parseBadgeHtml(this.getEffectiveFieldValue(fieldName, 0) || '');
+        const merged = { ...ownParsed, [component]: parentParsed[component] };
+        const value = serializeBadgeHtml({ ...merged, variant: this.getEffectiveFieldValue('variant') });
+        this.fragmentStore.updateField(fieldName, [value]);
         showToast('Field restored to parent value', 'positive');
     }
-
-    #createBadgeElement(text, bgColor, borderColor, icon) {
-        if (!text) return;
-
-        const element = document.createElement('merch-badge');
-        if (bgColor) {
-            element.setAttribute('background-color', bgColor);
-            if (bgColor.includes('-green-900-') || bgColor.includes('-gray-700-') || bgColor === 'gradient-purple-blue')
-                element.setAttribute('color', '#fff');
-        }
-        if (borderColor && borderColor !== 'Default') {
-            element.setAttribute('border-color', borderColor);
-        }
-        if (icon) {
-            element.setAttribute('icon', icon);
-        }
-        element.setAttribute('variant', this.getEffectiveFieldValue('variant'));
-        element.innerHTML = text;
-        return element;
-    }
-
-    #updateBadgeText(event) {
-        const text = event.target.value || '';
-        const icon = this.badge.icon;
-        this.#updateBadgeTextAndIcon(text, icon);
-    }
-
-    #updateBadgeIcon(event) {
-        const text = this.badge.text;
-        const icon = event.detail.icon;
-        this.#updateBadgeTextAndIcon(text, icon);
-    }
-
-    #updateBadgeTextAndIcon(text, icon) {
-        this.#displayBadgeIconField(text);
-        if (this.supportsBadgeColors) {
-            this.#displayBadgeColorFields(text);
-            this.#updateBadge(text, this.badge.bgColor, this.badge.borderColor, icon);
-        } else {
-            this.fragmentStore.updateField('badge', [text]);
-        }
-    }
-
-    #updateTrialBadgeText(event) {
-        const text = event.target.value || '';
-        if (this.supportsBadgeColors) {
-            this.#displayTrialBadgeColorFields(text);
-            this.#updateTrialBadge(text, this.trialBadge.bgColor, this.trialBadge.borderColor);
-        } else {
-            this.fragmentStore.updateField('trialBadge', [text]);
-        }
-    }
-
-    #updateBadge = (text, bgColor, borderColor, icon) => {
-        const element = this.#createBadgeElement(text, bgColor, borderColor, icon);
-        this.fragmentStore.updateField('badge', [element?.outerHTML || '']);
-    };
-
-    #updateTrialBadge = (text, bgColor, borderColor) => {
-        const element = this.#createBadgeElement(text, bgColor, borderColor);
-        this.fragmentStore.updateField('trialBadge', [element?.outerHTML || '']);
-    };
 
     #displayTrialBadgeColorFields(text) {
         if (!this.supportsBadgeColors) return;
@@ -2412,49 +2184,51 @@ class MerchCardEditor extends LitElement {
         return colors.filter((color) => !color.startsWith('gradient-'));
     }
 
-    #renderBadgeColors() {
-        if (!this.supportsBadgeColors) return;
-
+    badgeSectionTemplate(form) {
+        if (!this.currentVariantMapping) return nothing;
+        const variant = this.getEffectiveFieldValue('variant');
+        const osi = form.osi?.values[0] ?? '';
         return html`
-            <div class="two-column-grid">
-                ${this.#renderColorPicker(
-                    'badgeColor',
-                    'Badge Color',
-                    this.availableBadgeColors,
-                    this.badge.bgColor,
-                    'badgeColor',
-                )}
-                ${this.#renderColorPicker(
-                    'badgeBorderColor',
-                    'Badge Border Color',
-                    this.#removeGradientColors(this.availableBadgeColors),
-                    this.badge.borderColor,
-                    'badgeBorderColor',
-                )}
-            </div>
-        `;
-    }
-
-    #renderTrialBadgeColors() {
-        if (!this.supportsBadgeColors) return;
-
-        return html`
-            <div class="two-column-grid">
-                ${this.#renderColorPicker(
-                    'trialBadgeColor',
-                    'Trial Badge Color',
-                    this.availableBadgeColors,
-                    this.trialBadge.bgColor,
-                    'trialBadgeColor',
-                )}
-                ${this.#renderColorPicker(
-                    'trialBadgeBorderColor',
-                    'Trial Badge Border Color',
-                    this.availableBadgeColors,
-                    this.trialBadge.borderColor,
-                    'trialBadgeBorderColor',
-                )}
-            </div>
+            ${this.currentVariantMapping.badge
+                ? html`<badge-section
+                      field="badge"
+                      ?show-icon=${!!this.currentVariantMapping.badgeIcon}
+                      .value=${this.getEffectiveFieldValue('badge', 0) || ''}
+                      .colors=${this.availableBadgeColors}
+                      .borderColors=${this.#removeGradientColors(this.availableBadgeColors)}
+                      .showColors=${this.supportsBadgeColors}
+                      .variant=${variant}
+                      .osi=${osi}
+                      .isVariation=${this.effectiveIsVariation}
+                      .fieldStates=${{
+                          text: this.getBadgeComponentState('badge', 'text'),
+                          icon: this.getBadgeComponentState('badge', 'icon'),
+                          bgColor: this.getBadgeComponentState('badge', 'bgColor'),
+                          borderColor: this.getBadgeComponentState('badge', 'borderColor'),
+                      }}
+                      @change=${(e) => this.fragmentStore.updateField('badge', [e.detail.value])}
+                      @restore=${(e) => this.resetBadgeComponentToParent(e.detail.field, e.detail.component)}
+                  ></badge-section>`
+                : nothing}
+            ${this.currentVariantMapping.trialBadge
+                ? html`<badge-section
+                      field="trialBadge"
+                      .value=${this.getEffectiveFieldValue('trialBadge', 0) || ''}
+                      .colors=${this.availableBadgeColors}
+                      .borderColors=${this.availableBadgeColors}
+                      .showColors=${this.supportsBadgeColors}
+                      .variant=${variant}
+                      .osi=${osi}
+                      .isVariation=${this.effectiveIsVariation}
+                      .fieldStates=${{
+                          text: this.getBadgeComponentState('trialBadge', 'text'),
+                          bgColor: this.getBadgeComponentState('trialBadge', 'bgColor'),
+                          borderColor: this.getBadgeComponentState('trialBadge', 'borderColor'),
+                      }}
+                      @change=${(e) => this.fragmentStore.updateField('trialBadge', [e.detail.value])}
+                      @restore=${(e) => this.resetBadgeComponentToParent(e.detail.field, e.detail.component)}
+                  ></badge-section>`
+                : nothing}
         `;
     }
 
@@ -2493,131 +2267,66 @@ class MerchCardEditor extends LitElement {
     };
 
     #renderColorPicker(id, label, colors, selectedValue, dataField, onChange) {
-        const isBackground = dataField === 'backgroundColor';
-        const isBorder = dataField === 'borderColor';
         const isDividerField = dataField === 'whatsIncludedDividerColor';
-        const isBadgeColor = dataField === 'badgeColor' || dataField === 'trialBadgeColor';
-        const isBadgeBorderColor = dataField === 'badgeBorderColor' || dataField === 'trialBadgeBorderColor';
 
         const showAllSpectrum = this.currentVariantMapping?.showAllSpectrumColors;
 
         let colorArray = Array.isArray(colors) ? colors : Object.keys(colors || {});
 
         let variantSpecialValues = {};
-        if (this.fragment && (isBorder || isDividerField) && this.currentVariantMapping) {
+        if (this.fragment && this.currentVariantMapping) {
             const variant = this.currentVariantMapping;
-            const colorConfig = isBorder ? variant.borderColor : variant.whatsIncludedDividerColor;
+            const colorConfig = isDividerField ? variant.whatsIncludedDividerColor : variant.borderColor;
             variantSpecialValues = colorConfig?.specialValues || {};
             if (showAllSpectrum && Object.keys(variantSpecialValues).length > 0) {
                 colorArray = [...colorArray, ...Object.keys(variantSpecialValues)];
             }
         }
 
-        const isSpecialValue = (color) => (isBorder || isDividerField) && Object.keys(variantSpecialValues).includes(color);
+        const isSpecialValue = (color) => Object.keys(variantSpecialValues).includes(color);
 
         let displaySelectedValue = selectedValue;
-        if ((isBorder || isDividerField) && variantSpecialValues && selectedValue) {
+        if (selectedValue) {
             const specialValueKey = Object.entries(variantSpecialValues).find(([, val]) => val === selectedValue)?.[0];
-
             if (specialValueKey) {
                 displaySelectedValue = specialValueKey;
             }
         }
 
-        const hasNoExplicitColor = !selectedValue || selectedValue === '';
-        const isTransparent = selectedValue === 'transparent';
-
-        if (hasNoExplicitColor && (isBadgeColor || isBadgeBorderColor || isBorder || isDividerField)) {
+        if (!selectedValue) {
             displaySelectedValue = 'Default';
-        } else if (isTransparent) {
+        } else if (selectedValue === 'transparent') {
             displaySelectedValue = 'Transparent';
         }
 
-        const options = isBackground
-            ? ['Default', 'Transparent', ...colorArray]
-            : [
-                  'Default',
-                  'Transparent',
-                  ...((isBorder || isDividerField) && !showAllSpectrum ? Object.keys(variantSpecialValues) : []),
-                  ...colorArray,
-              ];
+        const options = [
+            'Default',
+            'Transparent',
+            ...(!showAllSpectrum ? Object.keys(variantSpecialValues) : []),
+            ...colorArray,
+        ];
+
+        const persist = (value) => {
+            const fragment = this.fragmentStore.get();
+            fragment.updateField(dataField, [value]);
+            this.fragmentStore.set(fragment);
+        };
 
         const handleChange = (e) => {
             const value = e.target.value;
-
             if (value === 'Default') {
-                if (isBadgeColor) {
-                    if (dataField === 'badgeColor') {
-                        this.#updateBadge(this.badge.text, '', this.badge.borderColor, this.badge.icon);
-                    } else if (dataField === 'trialBadgeColor') {
-                        this.#updateTrialBadge(this.trialBadge.text, '', this.trialBadge.borderColor);
-                    }
-                } else if (isBadgeBorderColor) {
-                    if (dataField === 'badgeBorderColor') {
-                        this.#updateBadge(this.badge.text, this.badge.bgColor, '', this.badge.icon);
-                    } else if (dataField === 'trialBadgeBorderColor') {
-                        this.#updateTrialBadge(this.trialBadge.text, this.trialBadge.bgColor, '');
-                    }
-                } else if (isDividerField) {
-                    this.#persistWhatsIncludedDividerColor('');
-                } else if (isBorder) {
-                    const fragment = this.fragmentStore.get();
-                    fragment.updateField(dataField, ['Default']);
-                    this.fragmentStore.set(fragment);
-                } else if (isBackground) {
-                    const fragment = this.fragmentStore.get();
-                    fragment.updateField(dataField, ['Default']);
-                    this.fragmentStore.set(fragment);
-                }
+                isDividerField ? this.#persistWhatsIncludedDividerColor('') : persist('Default');
             } else if (value === 'Transparent') {
-                if (isBadgeColor) {
-                    if (dataField === 'badgeColor') {
-                        this.#updateBadge(this.badge.text, 'transparent', this.badge.borderColor, this.badge.icon);
-                    } else if (dataField === 'trialBadgeColor') {
-                        this.#updateTrialBadge(this.trialBadge.text, 'transparent', this.trialBadge.borderColor);
-                    }
-                } else if (isBadgeBorderColor) {
-                    if (dataField === 'badgeBorderColor') {
-                        this.#updateBadge(this.badge.text, this.badge.bgColor, 'transparent', this.badge.icon);
-                    } else if (dataField === 'trialBadgeBorderColor') {
-                        this.#updateTrialBadge(this.trialBadge.text, this.trialBadge.bgColor, 'transparent');
-                    }
-                } else if (isDividerField) {
-                    this.#persistWhatsIncludedDividerColor('transparent');
-                } else if (isBorder) {
-                    const fragment = this.fragmentStore.get();
-                    fragment.updateField(dataField, ['transparent']);
-                    this.fragmentStore.set(fragment);
-                }
-            } else if ((isBorder || isDividerField) && isSpecialValue(value)) {
+                isDividerField ? this.#persistWhatsIncludedDividerColor('transparent') : persist('transparent');
+            } else if (isSpecialValue(value)) {
                 const actualValue = variantSpecialValues[value];
-                if (isDividerField) {
-                    this.#persistWhatsIncludedDividerColor(actualValue);
-                } else {
-                    const fragment = this.fragmentStore.get();
-                    fragment.updateField(dataField, [actualValue]);
-                    this.fragmentStore.set(fragment);
-                }
-            } else if (isBadgeColor) {
-                if (dataField === 'badgeColor') {
-                    this.#updateBadge(this.badge.text, value, this.badge.borderColor, this.badge.icon);
-                } else if (dataField === 'trialBadgeColor') {
-                    this.#updateTrialBadge(this.trialBadge.text, value, this.trialBadge.borderColor);
-                }
-            } else if (isBadgeBorderColor) {
-                if (dataField === 'badgeBorderColor') {
-                    this.#updateBadge(this.badge.text, this.badge.bgColor, value, this.badge.icon);
-                } else if (dataField === 'trialBadgeBorderColor') {
-                    this.#updateTrialBadge(this.trialBadge.text, this.trialBadge.bgColor, value);
-                }
+                isDividerField ? this.#persistWhatsIncludedDividerColor(actualValue) : persist(actualValue);
             } else if (isDividerField) {
                 this.#persistWhatsIncludedDividerColor(value);
+            } else if (onChange) {
+                onChange(e);
             } else {
-                if (onChange) {
-                    onChange(e);
-                } else {
-                    this.#handleFragmentUpdate(e);
-                }
+                this.#handleFragmentUpdate(e);
             }
         };
 
@@ -2627,12 +2336,9 @@ class MerchCardEditor extends LitElement {
                 <sp-picker
                     id="${id}"
                     data-field="${dataField}"
-                    data-field-state="${this.#getColorPickerFieldState(dataField, isBadgeColor, isBadgeBorderColor)}"
-                    value="${displaySelectedValue ||
-                    (isBackground || isBadgeColor || isBadgeBorderColor || isBorder || isDividerField ? 'Default' : '')}"
-                    data-default-value="${isBackground || isBadgeColor || isBadgeBorderColor || isBorder || isDividerField
-                        ? 'Default'
-                        : ''}"
+                    data-field-state="${this.#getColorPickerFieldState(dataField)}"
+                    value="${displaySelectedValue || 'Default'}"
+                    data-default-value="Default"
                     @change="${handleChange}"
                 >
                     ${options.map(
@@ -2643,49 +2349,32 @@ class MerchCardEditor extends LitElement {
                                         ? html`<span>Default</span>`
                                         : color === 'Transparent'
                                           ? html`<span>Transparent</span>`
-                                          : color
-                                            ? html`
-                                                  ${!isBackground && !isSpecialValue(color)
-                                                      ? html`
-                                                            <div
-                                                                class="color-swatch"
-                                                                style="--swatch-bg: var(--${color})"
-                                                            ></div>
-                                                        `
-                                                      : isSpecialValue(color)
-                                                        ? html`
-                                                              <div
-                                                                  class="color-swatch"
-                                                                  style="--swatch-bg: ${variantSpecialValues[color]}"
-                                                              ></div>
-                                                          `
-                                                        : nothing}
-                                                  <span
-                                                      class="color-name-text"
-                                                      title="${isBackground
-                                                          ? this.#formatName(color)
-                                                          : isSpecialValue(color)
-                                                            ? this.#formatName(color)
-                                                            : this.#formatColorName(color)}"
-                                                      >${isBackground
-                                                          ? this.#formatName(color)
-                                                          : isSpecialValue(color)
-                                                            ? this.#formatName(color)
-                                                            : this.#formatColorName(color)}</span
-                                                  >
-                                              `
-                                            : html` <span>Transparent</span> `}
+                                          : html`
+                                                ${isSpecialValue(color)
+                                                    ? html`<div
+                                                          class="color-swatch"
+                                                          style="--swatch-bg: ${variantSpecialValues[color]}"
+                                                      ></div>`
+                                                    : html`<div
+                                                          class="color-swatch"
+                                                          style="--swatch-bg: var(--${color})"
+                                                      ></div>`}
+                                                <span
+                                                    class="color-name-text"
+                                                    title="${isSpecialValue(color)
+                                                        ? this.#formatName(color)
+                                                        : this.#formatColorName(color)}"
+                                                    >${isSpecialValue(color)
+                                                        ? this.#formatName(color)
+                                                        : this.#formatColorName(color)}</span
+                                                >
+                                            `}
                                 </div>
                             </sp-menu-item>
                         `,
                     )}
                 </sp-picker>
-                ${isBadgeColor || isBadgeBorderColor
-                    ? this.renderBadgeComponentOverrideIndicator(
-                          dataField === 'badgeColor' || dataField === 'badgeBorderColor' ? 'badge' : 'trialBadge',
-                          isBadgeBorderColor ? 'borderColor' : 'bgColor',
-                      )
-                    : this.renderFieldStatusIndicator(dataField)}
+                ${this.renderFieldStatusIndicator(dataField)}
             </sp-field-group>
         `;
     }

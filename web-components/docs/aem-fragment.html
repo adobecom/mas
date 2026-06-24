@@ -76,6 +76,18 @@ It features a caching mechanism, supports retrying on fetch errors, and can serv
 <td></td>
 <td><code>false</code></td>
 </tr>
+<tr>
+<td><code>mask</code></td>
+<td>Name of a mask to overlay onto the fragment. The pipeline resolves the mask card fragment from <code>&lt;surface&gt;/&lt;locale&gt;/masks/&lt;name&gt;</code> and deep-merges it on top of card fragments. Included in the cache key.</td>
+<td></td>
+<td><code>false</code></td>
+</tr>
+<tr>
+<td><code>pzn</code></td>
+<td>Personalization identifier forwarded to the pipeline as the <code>pzn</code> query parameter. Included in the cache key.</td>
+<td></td>
+<td><code>false</code></td>
+</tr>
 </tbody>
 </table>
 <h2 id="properties" tabindex="-1">Properties <a class="header-anchor" href="#properties" href="#properties" title="Permalink to this heading">#</a></h2>

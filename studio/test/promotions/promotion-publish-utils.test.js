@@ -3,12 +3,15 @@ import sinon from 'sinon';
 import { OPERATIONS } from '../../src/constants.js';
 import {
     UNPUBLISHED_PROMO_VARIATIONS_DIALOG,
+    canPublishPromotionNow,
+    canSchedulePromotion,
     confirmPublishDespiteUnpublishedPromoVariations,
     isPromotionExpiredForPublish,
     publishPromotionProject,
     PROMOTION_EXPIRED_PUBLISH_MESSAGE,
     PROMOTION_PUBLISH_ERROR_MESSAGE,
     PROMOTION_PUBLISH_SUCCESS_MESSAGE,
+    PROMOTION_SAVE_BEFORE_PUBLISH_MESSAGE,
     promotionPublishShortfallMessage,
     unpublishedPromoVariationsPublishMessage,
 } from '../../src/promotions/promotion-publish-utils.js';
@@ -27,6 +30,44 @@ describe('promotion-publish-utils', () => {
     it('exposes promotion publish success and error messages', () => {
         expect(PROMOTION_PUBLISH_SUCCESS_MESSAGE).to.equal('Project successfully published.');
         expect(PROMOTION_PUBLISH_ERROR_MESSAGE).to.equal('Failed to publish project.');
+        expect(PROMOTION_SAVE_BEFORE_PUBLISH_MESSAGE).to.equal('Save your changes before publishing.');
+    });
+
+    it('canSchedulePromotion requires saved promotion with future start date', () => {
+        const futureFragment = {
+            id: 'promo-1',
+            promotionStatus: 'active',
+            isPromotionPublished: false,
+            isPromotionModified: false,
+            getFieldValue: () => '2030-01-01T00:00:00.000Z',
+        };
+        expect(canSchedulePromotion(futureFragment, { now: new Date('2026-01-01') })).to.be.true;
+        expect(canSchedulePromotion(futureFragment, { hasUnsavedChanges: true })).to.be.false;
+        expect(canPublishPromotionNow(futureFragment, { now: new Date('2026-01-01') })).to.be.false;
+    });
+
+    it('canPublishPromotionNow requires start date that has begun', () => {
+        const fragment = {
+            id: 'promo-1',
+            promotionStatus: 'active',
+            isPromotionPublished: false,
+            isPromotionModified: false,
+            getFieldValue: () => '2026-01-01T00:00:00.000Z',
+        };
+        expect(canPublishPromotionNow(fragment, { now: new Date('2026-06-01') })).to.be.true;
+        expect(canSchedulePromotion(fragment, { now: new Date('2026-06-01') })).to.be.false;
+    });
+
+    it('canPublishPromotionNow and canSchedulePromotion both return false when startDate is missing', () => {
+        const noStartDate = {
+            id: 'promo-1',
+            promotionStatus: 'active',
+            isPromotionPublished: false,
+            isPromotionModified: false,
+            getFieldValue: () => '',
+        };
+        expect(canPublishPromotionNow(noStartDate)).to.be.false;
+        expect(canSchedulePromotion(noStartDate)).to.be.false;
     });
 
     it('exposes shortfall message when some promo variations are omitted from publish', () => {

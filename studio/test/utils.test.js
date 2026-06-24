@@ -148,6 +148,14 @@ describe('generateCodeToUse', () => {
         const result = generateCodeToUse(fragment, '/acom', 'content');
         expect(result.href).to.include('content-type=merch-card-collection');
     });
+
+    it('keeps merch-card-collection when the compareChart field exists but is empty', () => {
+        const fragment = mockFragment(COLLECTION_MODEL_PATH, 'frag-789', {
+            [COMPARE_CHART_FIELD]: { values: [''] },
+        });
+        const result = generateCodeToUse(fragment, '/acom', 'content');
+        expect(result.href).to.include('content-type=merch-card-collection');
+    });
 });
 
 describe('camelToTitle', () => {

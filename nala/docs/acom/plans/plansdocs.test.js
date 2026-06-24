@@ -177,9 +177,8 @@ test.describe('ACOM MAS cards feature test suite', () => {
                 const cards = [...document.querySelectorAll('merch-card[variant="plans"]')].filter(
                     (c) => c.getBoundingClientRect().width > 2,
                 );
-                const containerVar = cards[0]
-                    ?.closest('merch-card-collection, [class*="-merch-cards"]')
-                    ?.style.getPropertyValue(cssVar) ?? '';
+                const containerVar =
+                    cards[0]?.closest('merch-card-collection, [class*="-merch-cards"]')?.style.getPropertyValue(cssVar) ?? '';
                 const cardVars = cards.map((c) => c.style.getPropertyValue(cssVar));
                 return { containerVar, cardVars, cardCount: cards.length };
             });
@@ -225,7 +224,11 @@ test.describe('ACOM MAS cards feature test suite', () => {
                 const allIdentical = rowHeights.every((h) => h === rowHeights[0]);
                 // It's valid for rows to share a value by coincidence, but we assert each row
                 // computed its own value (checked above per-row). Log for visibility.
-                console.info('[Row height sync] Row heights per row:', rowHeights, allIdentical ? '(coincidentally equal)' : '(independent values confirmed)');
+                console.info(
+                    '[Row height sync] Row heights per row:',
+                    rowHeights,
+                    allIdentical ? '(coincidentally equal)' : '(independent values confirmed)',
+                );
             }
         });
     });

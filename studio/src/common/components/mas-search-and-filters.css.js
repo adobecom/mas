@@ -74,4 +74,9 @@ export const styles = css`
         flex-wrap: wrap;
         gap: 8px;
     }
+
+    .offer-filter {
+        width: fit-content;
+        --mod-picker-inline-size: auto;
+    }
 `;

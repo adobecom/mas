@@ -12,26 +12,34 @@ async function readProjectFragment(odinEndpoint, projectId, authToken) {
     return getFragmentWithEtag(odinEndpoint, projectId, authToken);
 }
 
-async function updateProjectFragment(odinEndpoint, projectId, authToken, fieldUpdates) {
-    const { fragment, etag } = await getFragmentWithEtag(odinEndpoint, projectId, authToken);
-    const fields = fragment.fields.map((field) => {
-        if (field.name in fieldUpdates) {
-            const v = fieldUpdates[field.name];
-            return { ...field, values: Array.isArray(v) ? v : [v] };
+async function updateProjectFragment(odinEndpoint, projectId, authToken, fieldUpdates, maxRetries = 3) {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        const { fragment, etag } = await getFragmentWithEtag(odinEndpoint, projectId, authToken);
+        const fields = fragment.fields.map((field) => {
+            if (field.name in fieldUpdates) {
+                const v = fieldUpdates[field.name];
+                return { ...field, values: Array.isArray(v) ? v : [v] };
+            }
+            return field;
+        });
+        for (const [name, v] of Object.entries(fieldUpdates)) {
+            if (!fields.find((f) => f.name === name)) {
+                fields.push({ name, values: Array.isArray(v) ? v : [v] });
+            }
         }
-        return field;
-    });
-    for (const [name, v] of Object.entries(fieldUpdates)) {
-        if (!fields.find((f) => f.name === name)) {
-            fields.push({ name, values: Array.isArray(v) ? v : [v] });
+        try {
+            await putToOdin(odinEndpoint, projectId, authToken, {
+                title: fragment.title ?? '',
+                description: fragment.description ?? '',
+                fields,
+                etag,
+            });
+            return;
+        } catch (error) {
+            const conflict = /status 412/.test(error?.message || '');
+            if (!conflict || attempt === maxRetries) throw error;
         }
     }
-    await putToOdin(odinEndpoint, projectId, authToken, {
-        title: fragment.title ?? '',
-        description: fragment.description ?? '',
-        fields,
-        etag,
-    });
 }
 
 function getProjectPaths(fragment) {

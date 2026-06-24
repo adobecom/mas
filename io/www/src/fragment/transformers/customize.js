@@ -171,17 +171,34 @@ function findPersonalizationVariation(variations, customizeContext) {
 }
 
 function findPromoVariation(root, customizeContext) {
-    if (!customizeContext.promos) return null;
+    const promoProjects = customizeContext.promoProjects;
+    if (!promoProjects?.length) return null;
     const match = PATH_TOKENS.exec(root.path);
-    if (!match) return null;
+    if (!match?.groups) return null;
     const { fragmentPath } = match.groups;
-    const { activeProject } = customizeContext.promos;
-    const defaultVar = activeProject.defaultVariations?.[fragmentPath];
-    const regionVar = activeProject.regionVariations?.[fragmentPath];
-    if (!defaultVar && !regionVar) return null;
-    if (!defaultVar) return regionVar;
-    if (!regionVar) return defaultVar;
-    return deepMerge(defaultVar, regionVar);
+    for (const { project } of promoProjects) {
+        const defaultVar = project.defaultVariations?.[fragmentPath];
+        const regionVar = project.regionVariations?.[fragmentPath];
+        logDebug(() => `findPromoVariation defaultVar: ${JSON.stringify(defaultVar)}`, customizeContext);
+        logDebug(() => `findPromoVariation regionVar: ${JSON.stringify(regionVar)}`, customizeContext);
+        if (!defaultVar && !regionVar) continue;
+        if (!defaultVar) return regionVar;
+        if (!regionVar) return defaultVar;
+        return deepMerge(defaultVar, regionVar);
+    }
+    return null;
+}
+
+function findPromoMapForFragment(root, customizeContext) {
+    const promoProjects = customizeContext.promoProjects;
+    if (!promoProjects?.length) return null;
+    const match = PATH_TOKENS.exec(root.path);
+    if (!match?.groups) return null;
+    const { fragmentPath } = match.groups;
+    for (const { promoMap, substituteMap, fragmentPaths } of promoProjects) {
+        if (fragmentPaths.has(fragmentPath)) return { promoMap, substituteMap };
+    }
+    return null;
 }
 
 function mergeVariations(root, customizeContext) {
@@ -222,12 +239,13 @@ function mergeVariations(root, customizeContext) {
     return root;
 }
 
-function applyPromoCode(fragment, promoMap, context) {
+function applyPromoCode(fragment, promoMap, substituteMap, context) {
     const fragOsi = fragment.fields?.osi;
     if (!fragOsi) return;
     const osis = Array.isArray(fragOsi) ? fragOsi : [fragOsi];
+    const effectiveOsis = osis.map((o) => substituteMap?.[o] ?? o);
     let promoCode = promoMap['*'];
-    for (const osi of osis) {
+    for (const osi of effectiveOsis) {
         if (promoMap[osi]) {
             promoCode = promoMap[osi];
             break;
@@ -289,8 +307,9 @@ function adaptReferencesTree(referencesTree, customizedRoot) {
 function customizeTree(root, referencesTree = [], customizeContext) {
     //start by merging current fragment with its regional variation, and promos if any
     const customizedRoot = mergeVariations(root, customizeContext);
-    if (customizeContext.promos?.fragmentPaths.has(PATH_TOKENS.exec(root.path)?.groups.fragmentPath)) {
-        applyPromoCode(customizedRoot, customizeContext.promos.promoMap, customizeContext);
+    const promoEntry = findPromoMapForFragment(root, customizeContext);
+    if (promoEntry) {
+        applyPromoCode(customizedRoot, promoEntry.promoMap, promoEntry.substituteMap, customizeContext);
     }
 
     //adapt referencesTree to match the customized root's cards/collections
@@ -341,11 +360,7 @@ async function customize(context) {
     const { surface } = requestInfos;
     const fragmentInit = await resolveFragmentInit(context, requestInfos);
     const { body, defaultLocale, status, message, regionLocale: regionLocaleFromInit } = fragmentInit;
-    const promosResult = await context.promises?.promotions;
-    const activeProject = promosResult?.activeProject;
-    const promos = activeProject
-        ? { activeProject, promoMap: context.promoMap ?? {}, fragmentPaths: context.promoFragmentPaths ?? new Set() }
-        : null;
+    const promoProjects = context.promoProjects ?? [];
     const { maskFragment, pzn } = context;
 
     if (status != 200) {
@@ -359,7 +374,7 @@ async function customize(context) {
         ...context,
         defaultLocale,
         isRegionLocale,
-        promos,
+        promoProjects,
         regionLocale,
         references,
         surface,

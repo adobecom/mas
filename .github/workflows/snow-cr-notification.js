@@ -1,4 +1,4 @@
-import { slackNotification, getLocalConfigs } from './helpers.js';
+import { slackNotification, getLocalConfigs, getSnowCmrUrl } from './helpers.js';
 
 async function main({
     github = getLocalConfigs().github,
@@ -30,21 +30,22 @@ async function main({
           pathLabel +
           ': Transaction ID: ' +
           transaction_id +
-          '\n: Planned start: ' +
+          '\nPlanned start: ' +
           planned_start_time +
           ' | end: ' +
           planned_end_time +
-          ' | '
+          '\n'
         : ':servicenow_logo: ServiceNow Change Request Closed' +
           envLabel +
           pathLabel +
-          ': Search for Change Record by Change ID: ' +
-          change_id +
-          ' or search for it by planned start, end time\n:';
+          '\n' +
+          (change_id && change_id !== 'None'
+              ? 'Change ID (CMR): ' + change_id + ', ' + getSnowCmrUrl(change_id) + '\n'
+              : 'Change ID (CMR): unknown. Search for it by planned start and end time\n');
 
     console.log(`Sending SNOW CR notification for PR #${number}: ${title}${pathLabel}`);
 
-    await slackNotification(`${prefix} <${html_url}|#${number}>.`, process.env.SLACK_WEBHOOK_URL);
+    await slackNotification(`${prefix}<${html_url}|PR #${number}>: ${title}.`, process.env.SLACK_WEBHOOK_URL);
 }
 
 export default main;

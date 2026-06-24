@@ -1825,6 +1825,61 @@ describe('customize mask overlay', function () {
         expect(result.status).to.equal(200);
         expect(result.body.fields.badge).to.equal('ORIGINAL');
     });
+
+    it('should apply pzn then mask: mask fields win, pzn-only fields preserved, variationId and maskId both set, model.id preserved', async function () {
+        const pznVarId = 'pzn-edu-card';
+        const maskFragment = { id: 'mask-001', fields: { badge: 'MASK BADGE', cta: 'Buy now' } };
+        const result = await process({
+            ...FAKE_CONTEXT,
+            fragmentPath: 'phsp-individual',
+            locale: 'en_US',
+            parsedLocale: 'en_US',
+            pzn: 'edu',
+            maskFragment,
+            body: {
+                path: '/content/dam/mas/sandbox/en_US/phsp-individual',
+                id: 'root-card',
+                model: CARD_MODEL,
+                fields: {
+                    badge: 'DEFAULT BADGE',
+                    cta: 'Try free',
+                    variations: [pznVarId],
+                },
+                references: {
+                    [pznVarId]: {
+                        type: 'content-fragment',
+                        value: {
+                            path: '/content/dam/mas/sandbox/en_US/phsp_direct_individual/pzn/phsp-edu',
+                            id: pznVarId,
+                            model: CARD_MODEL,
+                            fields: {
+                                pznTags: ['mas:pzn/edu'],
+                                badge: 'EDU BADGE',
+                                description: 'EDU description',
+                            },
+                        },
+                    },
+                },
+                referencesTree: [],
+            },
+        });
+
+        expect(result.status).to.equal(200);
+        // pzn variation was selected
+        expect(result.body.variationId).to.equal(pznVarId);
+        // mask was applied on top
+        expect(result.body.maskId).to.equal('mask-001');
+        // mask badge wins over pzn badge
+        expect(result.body.fields.badge).to.equal('MASK BADGE');
+        // mask cta wins over root cta
+        expect(result.body.fields.cta).to.equal('Buy now');
+        // pzn-only field not touched by mask is preserved
+        expect(result.body.fields.description).to.equal('EDU description');
+        // root id preserved (DO_NOT_MERGE_KEYS at top level)
+        expect(result.body.id).to.equal('root-card');
+        // nested model.id preserved through both merges
+        expect(result.body.model.id).to.equal(CARD_MODEL_ID);
+    });
 });
 
 describe('customize promoCode application', function () {

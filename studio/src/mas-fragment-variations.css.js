@@ -44,12 +44,6 @@ export const styles = `
     color: var(--spectrum-gray-600);
 }
 
-.expanded-content .tab-content-placeholder p {
-    font-size: 14px;
-    color: var(--spectrum-gray-600);
-    margin: 0;
-}
-
 /* Nested table rows styling */
 #content .expanded-content .nested-fragment sp-table-row {
     background-color: var(--spectrum-blue-200);
@@ -58,6 +52,11 @@ export const styles = `
 
 #content .expanded-content .nested-fragment sp-table-row:hover {
     background-color: var(--spectrum-blue-400);
+}
+
+.nested-fragment.variation-search-highlight sp-table-row {
+    outline: 2px solid var(--spectrum-blue-800);
+    outline-offset: -2px;
 }
 
 /* Grouped variation expanded section */

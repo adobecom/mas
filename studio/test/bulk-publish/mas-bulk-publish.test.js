@@ -28,6 +28,39 @@ describe('mas-bulk-publish (overview)', () => {
         expect(rows).to.have.lengthOf(2);
     });
 
+    it('counts items from the fragments field when items metadata is absent', async () => {
+        Store.bulkPublishProjects.list.data.set([
+            makeProjectStore({
+                items: undefined,
+                fragments: ['/content/dam/mas/acom/en_US/card1', '/content/dam/mas/acom/en_US/dictionary/ph1'],
+            }),
+        ]);
+        const el = await fixture(html`<mas-bulk-publish></mas-bulk-publish>`);
+        await el.updateComplete;
+        const cells = el.shadowRoot.querySelectorAll('[data-testid="project-row"] sp-table-cell.center');
+        expect(cells[0].textContent.trim()).to.equal('1');
+        expect(cells[1].textContent.trim()).to.equal('0');
+        expect(cells[2].textContent.trim()).to.equal('1');
+    });
+
+    it('prefers items metadata over fragments paths for counts', async () => {
+        Store.bulkPublishProjects.list.data.set([
+            makeProjectStore({
+                items: JSON.stringify([
+                    { path: '/content/dam/mas/acom/en_US/col1', type: 'collection', status: 'valid' },
+                    { path: '/content/dam/mas/acom/en_US/card1', type: 'fragment', status: 'valid' },
+                ]),
+                fragments: ['/content/dam/mas/acom/en_US/col1', '/content/dam/mas/acom/en_US/card1'],
+            }),
+        ]);
+        const el = await fixture(html`<mas-bulk-publish></mas-bulk-publish>`);
+        await el.updateComplete;
+        const cells = el.shadowRoot.querySelectorAll('[data-testid="project-row"] sp-table-cell.center');
+        expect(cells[0].textContent.trim()).to.equal('1');
+        expect(cells[1].textContent.trim()).to.equal('1');
+        expect(cells[2].textContent.trim()).to.equal('0');
+    });
+
     it('dispatches create-project when CTA clicked', async () => {
         const el = await fixture(html`<mas-bulk-publish></mas-bulk-publish>`);
         await el.updateComplete;
@@ -68,6 +101,9 @@ describe('mas-bulk-publish (methods)', () => {
         sandbox.stub(router, 'navigateToPage').callsFake(navigateStub);
 
         repositoryEl = document.createElement('mas-repository');
+        repositoryEl.getBulkPublishParentPath = sandbox
+            .stub()
+            .callsFake((surface) => `/content/dam/mas/${surface}/bulk-publish-projects`);
         document.body.appendChild(repositoryEl);
     });
 
@@ -153,6 +189,25 @@ describe('mas-bulk-publish (methods)', () => {
         const [payload] = repositoryEl.createFragment.firstCall.args;
         const localesField = payload.fields.find((f) => f.name === 'locales');
         expect(localesField.values).to.deep.equal(['en_US', 'fr_FR']);
+    });
+
+    it('handleDuplicateConfirmed copies the fragments field to the new project', async () => {
+        const el = await fixture(html`<mas-bulk-publish></mas-bulk-publish>`);
+        await el.updateComplete;
+
+        const fragments = ['/content/dam/mas/acom/en_US/card1', '/content/dam/mas/acom/en_US/dictionary/ph1'];
+        const ps = makeProjectStore({ title: 'Original', items: '[]', locales: [], fragments });
+        el.duplicatePending = { projectStore: ps, proposedTitle: 'Original (Copy)' };
+
+        repositoryEl.createFragment = sandbox.stub().resolves({ id: 'new-id', path: '/x', fields: [], status: 'Draft' });
+        Store.search.set({ path: 'sandbox' });
+
+        await el.handleDuplicateConfirmed({ detail: { title: 'My Copy' } });
+
+        const [payload] = repositoryEl.createFragment.firstCall.args;
+        const fragmentsField = payload.fields.find((f) => f.name === 'fragments');
+        expect(fragmentsField.values).to.deep.equal(fragments);
+        expect(fragmentsField.multiple).to.equal(true);
     });
 
     it('handleDeleteConfirmed removes project from list', async () => {
@@ -302,6 +357,53 @@ describe('mas-bulk-publish (pure methods)', () => {
     });
 });
 
+describe('mas-bulk-publish (··· menu for PUBLISHED projects)', () => {
+    afterEach(() => {
+        Store.bulkPublishProjects.list.data.set([]);
+        Store.bulkPublishProjects.list.loading.set(false);
+    });
+
+    it('"Revert" appears in ··· popover for PUBLISHED projects', async () => {
+        Store.bulkPublishProjects.list.data.set([makeProjectStore({ status: BULK_PUBLISH_STATUS.PUBLISHED })]);
+        const el = await fixture(html`<mas-bulk-publish></mas-bulk-publish>`);
+        await el.updateComplete;
+        const row = el.shadowRoot.querySelector('[data-testid="project-row"]');
+        const menuItems = [...row.querySelectorAll('sp-menu-item')];
+        const labels = menuItems.map((m) => m.textContent.trim());
+        expect(labels.some((l) => l.includes('Revert'))).to.equal(true);
+    });
+
+    it('"Edit" is present for PUBLISHED projects', async () => {
+        Store.bulkPublishProjects.list.data.set([makeProjectStore({ status: BULK_PUBLISH_STATUS.PUBLISHED })]);
+        const el = await fixture(html`<mas-bulk-publish></mas-bulk-publish>`);
+        await el.updateComplete;
+        const row = el.shadowRoot.querySelector('[data-testid="project-row"]');
+        const menuItems = [...row.querySelectorAll('sp-menu-item')];
+        const labels = menuItems.map((m) => m.textContent.trim());
+        expect(labels.some((l) => l.includes('Edit'))).to.equal(true);
+    });
+
+    it('"Publish" is absent for PUBLISHED projects', async () => {
+        Store.bulkPublishProjects.list.data.set([makeProjectStore({ status: BULK_PUBLISH_STATUS.PUBLISHED })]);
+        const el = await fixture(html`<mas-bulk-publish></mas-bulk-publish>`);
+        await el.updateComplete;
+        const row = el.shadowRoot.querySelector('[data-testid="project-row"]');
+        const menuItems = [...row.querySelectorAll('sp-menu-item')];
+        const labels = menuItems.map((m) => m.textContent.trim());
+        expect(labels.some((l) => l.includes('Publish'))).to.equal(false);
+    });
+
+    it('"Revert" is absent for DRAFT projects', async () => {
+        Store.bulkPublishProjects.list.data.set([makeProjectStore({ status: BULK_PUBLISH_STATUS.DRAFT })]);
+        const el = await fixture(html`<mas-bulk-publish></mas-bulk-publish>`);
+        await el.updateComplete;
+        const row = el.shadowRoot.querySelector('[data-testid="project-row"]');
+        const menuItems = [...row.querySelectorAll('sp-menu-item')];
+        const labels = menuItems.map((m) => m.textContent.trim());
+        expect(labels.some((l) => l.includes('Revert'))).to.equal(false);
+    });
+});
+
 describe('mas-bulk-publish (render)', () => {
     afterEach(() => {
         Store.bulkPublishProjects.list.data.set([]);
@@ -313,7 +415,7 @@ describe('mas-bulk-publish (render)', () => {
         Store.bulkPublishProjects.list.data.set([makeProjectStore()]);
         const el = await fixture(html`<mas-bulk-publish></mas-bulk-publish>`);
         await el.updateComplete;
-        const skeletons = el.shadowRoot.querySelectorAll('.skeleton-row');
+        const skeletons = el.shadowRoot.querySelectorAll('sp-table-body sp-table-row');
         expect(skeletons.length).to.be.greaterThan(0);
     });
 

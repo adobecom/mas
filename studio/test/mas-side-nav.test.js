@@ -1265,7 +1265,7 @@ describe('MasSideNav – Copy Field', () => {
 
             expect(el.variationDataLoading).to.be.false;
             expect(updateStoresStub.called).to.be.true;
-            expect(updateStoresStub.firstCall.args[0]).to.have.length(7);
+            expect(updateStoresStub.firstCall.args[0]).to.have.length(8);
         });
 
         it('should subscribe to previewStore updates when fragment enters edit', () => {
@@ -1282,38 +1282,59 @@ describe('MasSideNav – Copy Field', () => {
     });
 
     describe('handleStoreChanges', () => {
-        it('should redirect away from translations when disabled', () => {
-            const setPageStub = sandbox.stub(Store.page, 'set');
-            sandbox.stub(Store.page, 'get').returns(PAGE_NAMES.TRANSLATIONS);
+        it('should call updateVariationLoadingState', () => {
             sandbox.stub(el, 'updateVariationLoadingState');
-            sandbox.stub(el, 'isTranslationEnabled').get(() => false);
 
             el.handleStoreChanges();
 
-            expect(setPageStub.calledOnceWithExactly(PAGE_NAMES.CONTENT)).to.be.true;
             expect(el.updateVariationLoadingState.calledOnce).to.be.true;
         });
+    });
+});
 
-        it('should redirect away from translation editor when disabled', () => {
-            const setPageStub = sandbox.stub(Store.page, 'set');
-            sandbox.stub(Store.page, 'get').returns(PAGE_NAMES.TRANSLATION_EDITOR);
-            sandbox.stub(el, 'updateVariationLoadingState');
-            sandbox.stub(el, 'isTranslationEnabled').get(() => false);
+describe('MasSideNav - Promotions nav item', () => {
+    let originalProfile;
+    let originalUsers;
+    let originalViewMode;
+    let originalPage;
+    let el;
 
-            el.handleStoreChanges();
+    beforeEach(() => {
+        originalProfile = structuredClone(Store.profile.get());
+        originalUsers = structuredClone(Store.users.get());
+        originalViewMode = Store.viewMode.value;
+        originalPage = Store.page.value;
+        Store.viewMode.set('default');
+        Store.page.set(PAGE_NAMES.CONTENT);
+        el = document.createElement('mas-side-nav');
+        document.body.appendChild(el);
+    });
 
-            expect(setPageStub.calledOnceWithExactly(PAGE_NAMES.CONTENT)).to.be.true;
-        });
+    afterEach(() => {
+        el.remove();
+        Store.profile.set(originalProfile);
+        Store.users.set(originalUsers);
+        Store.viewMode.set(originalViewMode);
+        Store.page.set(originalPage);
+    });
 
-        it('should not redirect when translations are enabled', () => {
-            const setPageStub = sandbox.stub(Store.page, 'set');
-            sandbox.stub(Store.page, 'get').returns(PAGE_NAMES.TRANSLATIONS);
-            sandbox.stub(el, 'updateVariationLoadingState');
-            sandbox.stub(el, 'isTranslationEnabled').get(() => true);
+    it('hides Promotions for non-admin users', async () => {
+        Store.profile.set({ email: 'user@adobe.com' });
+        Store.users.set([{ userPrincipalName: 'user@adobe.com', groups: ['GRP-ODIN-MAS-ACOM-POWERUSERS'] }]);
+        await el.updateComplete;
+        const items = el.shadowRoot.querySelectorAll('mas-side-nav-item');
+        const promotions = [...items].find((n) => n.label === 'Promotions');
+        expect(promotions).to.be.undefined;
+        expect([...items].some((n) => n.label === 'Collections')).to.be.true;
+    });
 
-            el.handleStoreChanges();
-
-            expect(setPageStub.called).to.be.false;
-        });
+    it('shows Promotions for MAS admin users', async () => {
+        Store.profile.set({ email: 'admin@adobe.com' });
+        Store.users.set([{ userPrincipalName: 'admin@adobe.com', groups: ['GRP-ODIN-MAS-ADMINS'] }]);
+        await el.updateComplete;
+        const items = el.shadowRoot.querySelectorAll('mas-side-nav-item');
+        const promotions = [...items].find((n) => n.label === 'Promotions');
+        expect(promotions).to.exist;
+        expect(promotions.hasAttribute('disabled')).to.be.false;
     });
 });

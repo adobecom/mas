@@ -11,9 +11,6 @@ const TRANSFORMER_NAME = 'fetchFragment';
  */
 async function fetchRequestInfosPhase1(initContext) {
     const { id, locale, fragmentsIds, preview } = initContext;
-    if (!(id && locale)) {
-        return { status: 400, message: 'requested parameters id & locale are not present' };
-    }
     const toFetchId = fragmentsIds?.['default-locale-id'] || id;
     const path = odinReferences(toFetchId, true, preview);
     const response = await fetch(path, initContext, 'fragment');

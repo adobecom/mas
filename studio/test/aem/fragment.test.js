@@ -194,6 +194,29 @@ describe('Fragment', () => {
             expect(fragment.listLocaleVariations()).to.have.lengthOf(0);
         });
 
+        it('lists promo variations from references by path without parent variations field', () => {
+            const promoPath = '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card';
+            const fragment = new Fragment(
+                createFragmentConfig({
+                    path: '/content/dam/mas/sandbox/en_US/my-card',
+                    references: [
+                        {
+                            id: 'ref-promo',
+                            path: promoPath,
+                            tags: [{ id: `${TAG_PROMOTION_PREFIX}black-friday` }],
+                        },
+                    ],
+                    fields: [
+                        { name: 'title', values: ['Card'] },
+                        { name: 'variations', values: [] },
+                    ],
+                }),
+            );
+
+            expect(fragment.listPromoVariations()).to.have.lengthOf(1);
+            expect(fragment.listPromoVariations()[0].path).to.equal(promoPath);
+        });
+
         it('does not classify out-of-family grouped paths as promo or locale', () => {
             const outOfFamilyGroupedPath = '/content/dam/mas/sandbox/fr_FR/pzn/my-fragment';
             const fragment = new Fragment(

@@ -243,6 +243,10 @@ export class MiniCompareChartMweb extends VariantLayout {
         titleEl.replaceWith(titleDiv);
     }
 
+    get legalDisplayDot() {
+        return false;
+    }
+
     get mainPrice() {
         return this.card.querySelector(
             `[slot="heading-m-price"] ${SELECTOR_MAS_INLINE_PRICE}[data-template="price"]`,
@@ -310,7 +314,7 @@ export class MiniCompareChartMweb extends VariantLayout {
     }
 
     async postCardUpdateHook() {
-        await Promise.all(this.card.prices.map((price) => price.onceSettled()));
+        await super.postCardUpdateHook();
         if (!this.legalAdjusted) {
             await this.adjustLegal();
         }
@@ -591,6 +595,11 @@ export class MiniCompareChartMweb extends VariantLayout {
             #badge.spectrum-red-700-plans {
             background-color: #eb1000;
             color: #ffffff;
+        }
+
+        :host([variant='mini-compare-chart-mweb'])
+            ::slotted(h3[slot='heading-xs']) {
+            max-width: var(--consonant-merch-card-heading-xs-max-width, 100%);
         }
 
         :host([variant='mini-compare-chart-mweb']) .footer-rows-container {

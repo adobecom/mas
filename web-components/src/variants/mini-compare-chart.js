@@ -536,7 +536,7 @@ export class MiniCompareChart extends VariantLayout {
         const price = this.mainPrice;
         let planType = this.card.planType;
         if (price) {
-            await price.onceSettled();
+            await price.onceSettled?.();
             planType = price.value?.[0]?.planType;
         }
         if (!planType) return;
@@ -666,7 +666,7 @@ export class MiniCompareChart extends VariantLayout {
     }
 
     async postCardUpdateHook() {
-        await Promise.all(this.card.prices.map((price) => price.onceSettled()));
+        await super.postCardUpdateHook();
         if (this.isNewVariant) {
             if (!this.legalAdjusted) {
                 await this.adjustLegal();

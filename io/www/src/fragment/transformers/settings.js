@@ -1,9 +1,8 @@
 import { odinUrl, odinReferences } from '../utils/paths.js';
-import { fetch, getFragmentId, getRequestInfos } from '../utils/common.js';
+import { COLLECTION_MODEL_ID, fetch, getFragmentId, getRegionalLocale, getRequestInfos } from '../utils/common.js';
 import { logDebug } from '../utils/log.js';
 
 const SETTINGS_ID_PATH = 'settings/index';
-const COLLECTION_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24';
 const CONFIG_CACHE_TTL = 5 * 60 * 1000;
 
 /**
@@ -16,6 +15,7 @@ export const SETTING_NAME_DEFINITIONS = [
     { name: 'displayPlanType', valueType: 'boolean', propertyName: 'showPlanType' },
     { name: 'quantitySelect', valueType: 'optional-text', editor: 'quantity-select' },
     { name: 'hideTrialCTAs', valueType: 'boolean' },
+    { name: 'additionalModalTriggers', valueType: 'boolean' },
 ];
 
 export const SETTING_NAME_BY_VALUE = new Map(SETTING_NAME_DEFINITIONS.map((definition) => [definition.name, definition]));
@@ -283,7 +283,8 @@ async function settings(context) {
 
     logDebug(() => `Settings transformer: fetched settings ${JSON.stringify(settings)}`, context);
 
-    const { body, locale } = context;
+    const { body } = context;
+    const locale = getRegionalLocale(context);
 
     if (settings) {
         if (body?.model?.id === COLLECTION_MODEL_ID) {

@@ -82,6 +82,12 @@ export const CSS = `
     min-width: 1px;
   }
 
+  merch-card[variant="mini-compare-chart-mweb"] merch-badge span,
+  merch-card[variant="mini-compare-chart-mweb"] merch-badge [is="inline-price"] {
+    line-height: 1;
+    min-height: auto;
+  }
+
   merch-card[variant="mini-compare-chart-mweb"] .price-unit-type.disabled,
   merch-card[variant="mini-compare-chart-mweb"] .price-tax-inclusivity.disabled {
     display: none;

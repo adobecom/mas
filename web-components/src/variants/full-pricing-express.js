@@ -70,6 +70,13 @@ export const FULL_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING = {
 };
 
 export class FullPricingExpress extends VariantLayout {
+    static SYNCED_SECTIONS = [
+        'header',
+        'short-description',
+        'price-container',
+        'cta',
+    ];
+
     getGlobalCSS() {
         return CSS;
     }
@@ -97,38 +104,58 @@ export class FullPricingExpress extends VariantLayout {
         `;
     }
 
-    syncHeights() {
-        if (this.card.getBoundingClientRect().width <= 2) return;
-
-        const shadow = this.card.shadowRoot;
-        if (!shadow) return;
-
-        ['header', 'short-description', 'price-container', 'cta'].forEach(
-            (className) =>
-                this.updateCardElementMinHeight(
-                    shadow.querySelector(`.${className}`),
-                    className,
-                ),
-        );
+    async waitForTitleFont() {
+        const title = this.card.querySelector(this.headingSelector);
+        if (title && document.fonts?.load) {
+            const style = window.getComputedStyle(title);
+            const font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+            await document.fonts
+                .load(font, title.textContent)
+                .catch(() => null);
+        }
+        await document.fonts.ready;
     }
 
-    resyncSiblings() {
+    async syncHeights() {
+        await this.waitForTitleFont();
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+        if (this.card.getBoundingClientRect().width <= 2) return;
+        const sectionEntries = FullPricingExpress.SYNCED_SECTIONS.map(
+            (name) => ({
+                name,
+                getElement: (card) =>
+                    card.shadowRoot?.querySelector(`.${name}`),
+            }),
+        );
         const container = this.getContainer();
-        if (!container) return;
-        container
-            .querySelectorAll(`merch-card[variant="${this.card.variant}"]`)
-            .forEach((card) => card.variantLayout?.syncHeights?.());
+        const cards = container
+            ? container.querySelectorAll(
+                  `merch-card[variant="${this.card.variant}"]`,
+              )
+            : [this.card];
+        const descriptionRowSelector = '[slot="body-s"] > *';
+        const descriptionRows = Math.max(
+            0,
+            ...Array.from(
+                cards,
+                (card) => card.querySelectorAll(descriptionRowSelector).length,
+            ),
+        );
+        const rowEntries = Array.from(
+            { length: descriptionRows },
+            (_, index) => ({
+                name: `description-row-${index}`,
+                getElement: (card) =>
+                    card.querySelectorAll(descriptionRowSelector)[index],
+            }),
+        );
+        this.syncRowHeights([...sectionEntries, ...rowEntries]);
     }
 
     async postCardUpdateHook() {
         if (!this.card.isConnected) return;
-
-        await this.card.updateComplete;
-        if (this.card.prices?.length) {
-            await Promise.all(
-                this.card.prices.map((price) => price.onceSettled()),
-            );
-        }
+        await super.postCardUpdateHook();
 
         const container = this.getContainer();
         if (container) {
@@ -151,20 +178,30 @@ export class FullPricingExpress extends VariantLayout {
         }
 
         if (window.matchMedia('(min-width: 768px)').matches) {
-            this.resyncSiblings();
+            this.syncHeights();
         }
+    }
+
+    resyncOnReflow() {
+        const width = this.card.getBoundingClientRect().width;
+        if (width <= 2) return;
+        const title = this.card.querySelector(this.headingSelector);
+        const titleHeight = title
+            ? Math.round(title.getBoundingClientRect().height)
+            : 0;
+        const key = `${Math.round(width)}:${titleHeight}`;
+        if (key === this.lastSyncedKey) return;
+        this.lastSyncedKey = key;
+        this.syncHeights();
     }
 
     connectedCallbackHook() {
         if (!this.card || typeof ResizeObserver === 'undefined') return;
-        this.lastSyncedWidth = 0;
-        this.sizeObserver = new ResizeObserver(() => {
-            const width = this.card.getBoundingClientRect().width;
-            if (width <= 2 || width === this.lastSyncedWidth) return;
-            this.lastSyncedWidth = width;
-            this.resyncSiblings();
-        });
+        this.lastSyncedKey = '';
+        this.sizeObserver = new ResizeObserver(() => this.resyncOnReflow());
         this.sizeObserver.observe(this.card);
+        const title = this.card.querySelector(this.headingSelector);
+        if (title) this.sizeObserver.observe(title);
     }
 
     disconnectedCallbackHook() {

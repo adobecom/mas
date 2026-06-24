@@ -15,6 +15,38 @@ import {
 } from './item-loading.js';
 
 /**
+ * Resolves WCS offer data for a view-only table row: uses the fragment's own OSI, or parent card OSI when the row is a grouped variation without OSI.
+ * Honors a caller-provided `fallbackWcsOsi` to avoid re-fetching a parent whose OSI is already known.
+ * @param {Object} options
+ * @param {Object} options.card - Fragment payload (may be a parent card or a /pzn/ variation)
+ * @param {Object} options.repository - MasRepository
+ * @param {Map} [options.cache] - Offer data cache
+ * @param {AbortSignal} [options.signal] - Abort signal
+ * @param {string} [options.fallbackWcsOsi] - Parent OSI supplied by caller; skips the parent round trip
+ * @returns {Promise<Object|null>}
+ */
+async function loadOfferDataForViewOnlyCard({ card, repository, cache = new Map(), signal, fallbackWcsOsi } = {}) {
+    if (!repository || !card) return null;
+
+    const ownOsi = new Fragment(card).getFieldValue('osi');
+    if (ownOsi) {
+        return loadOfferData(card, { cache, signal });
+    }
+
+    let resolvedFallbackWcsOsi = fallbackWcsOsi;
+    if (!resolvedFallbackWcsOsi && repository.resolveHydratedParentFragment && Fragment.isGroupedVariationPath(card.path)) {
+        try {
+            const parentFromAem = await repository.resolveHydratedParentFragment(card.path);
+            resolvedFallbackWcsOsi = new Fragment(parentFromAem).getFieldValue('osi');
+        } catch (err) {
+            console.warn(`Failed to load parent fragment for grouped variation ${card.id}:`, err.message);
+        }
+    }
+
+    return loadOfferData(card, { cache, signal, fallbackWcsOsi: resolvedFallbackWcsOsi });
+}
+
+/**
  * Loads grouped variations for a card fragment
  * @param {Object} card - Card object with path, references, fields
  * @param {Object} repository - MasRepository instance with aem.getFragmentByPath
@@ -45,9 +77,16 @@ async function loadGroupedVariations(card, repository, signal, getDisplayName) {
         (variation) => variation && Array.isArray(variation.fieldTags) && variation.fieldTags.length > 0,
     );
 
+    const parentWcsOsi = new Fragment(card).getFieldValue('osi');
+
     const offerDataResults = await processConcurrently(
         validVariations,
-        (variation) => loadOfferData(variation, { cache: getItemsSelectionStore().offerDataCache, signal }),
+        (variation) =>
+            loadOfferData(variation, {
+                cache: getItemsSelectionStore().offerDataCache,
+                signal,
+                fallbackWcsOsi: parentWcsOsi,
+            }),
         VARIATIONS_CONCURRENCY_LIMIT,
     );
 
@@ -75,7 +114,11 @@ export async function fetchVariationByPath(variationPath, repository, { getDispl
         const variation = await repository.aem.getFragmentByPath(variationPath);
         if (!variation || !Array.isArray(variation.fieldTags) || variation.fieldTags.length === 0) return false;
 
-        const offerData = await loadOfferData(variation, { cache: getItemsSelectionStore().offerDataCache });
+        const parentWcsOsi = await resolveParentWcsOsi(variation, parentCardPath, repository);
+        const offerData = await loadOfferData(variation, {
+            cache: getItemsSelectionStore().offerDataCache,
+            fallbackWcsOsi: parentWcsOsi,
+        });
         const enriched = {
             ...variation,
             studioPath: getDisplayName(new Fragment(variation)),
@@ -120,9 +163,14 @@ async function processCardsData(allCards, repository, state, getDisplayName) {
     }
     state.isProcessingCards = true;
     const signal = state.abortController?.signal;
+    const store = getItemsSelectionStore({ allowUnset: true });
+    if (!store) {
+        state.isProcessingCards = false;
+        return;
+    }
 
     try {
-        const existingCards = getItemsSelectionStore().allCards.get() || [];
+        const existingCards = store.allCards.get() || [];
         const existingOfferDataByPath = new Map(
             existingCards.filter((card) => card.offerData !== undefined).map((card) => [card.path, card.offerData]),
         );
@@ -136,7 +184,7 @@ async function processCardsData(allCards, repository, state, getDisplayName) {
         if (cardsNeedingOfferData.length > 0) {
             const offerDataResults = await processConcurrently(
                 cardsNeedingOfferData,
-                (card) => loadOfferData(card, { cache: getItemsSelectionStore().offerDataCache, signal }),
+                (card) => loadOfferData(card, { cache: store.offerDataCache, signal }),
                 OFFER_DATA_CONCURRENCY_LIMIT,
             );
             if (signal?.aborted) return;
@@ -173,23 +221,26 @@ async function processCardsData(allCards, repository, state, getDisplayName) {
         }
         if (signal?.aborted) return;
 
-        const cardsByPaths = new Map(enrichedCards.map((card) => [card.path, card]));
+        if (getItemsSelectionStore({ allowUnset: true }) !== store) return;
+        const cardsByPaths = new Map(store.cardsByPaths.get() || []);
+        enrichedCards.forEach((card) => cardsByPaths.set(card.path, card));
+        const displayCards = enrichedCards;
         const prefetchedVariations = new Map(
             enrichedCards
                 .filter((card) => card.groupedVariations?.length)
                 .map((card) => [card.path, new Map(card.groupedVariations.map((v) => [v.path, v]))]),
         );
         if (prefetchedVariations.size > 0) {
-            const existing = getItemsSelectionStore().groupedVariationsByParent.value || new Map();
+            const existing = store.groupedVariationsByParent.value || new Map();
             const merged = new Map(existing);
             for (const [cardPath, varMap] of prefetchedVariations) {
                 merged.set(cardPath, varMap);
             }
             setCardVariationsByPaths(merged);
         }
-        getItemsSelectionStore().displayCards.set(enrichedCards);
-        getItemsSelectionStore().allCards.set(enrichedCards);
-        getItemsSelectionStore().cardsByPaths.set(cardsByPaths);
+        store.displayCards.set(displayCards);
+        store.allCards.set(displayCards);
+        store.cardsByPaths.set(cardsByPaths);
     } finally {
         state.isProcessingCards = false;
         if (state.pendingCards && !signal?.aborted) {
@@ -294,7 +345,7 @@ export function loadSelectedPlaceholders(selectedPaths, onItems) {
  */
 export async function loadSelectedFragments(selectedPaths, type, repository, options = {}) {
     const { signal, onItems, getDisplayName } = options;
-    if (!repository || !selectedPaths?.length) {
+    if (!repository || !selectedPaths?.length || !getDisplayName) {
         if (onItems) onItems([]);
         return;
     }
@@ -323,7 +374,7 @@ export async function loadSelectedFragments(selectedPaths, type, repository, opt
         if (type === TABLE_TYPE.CARDS) {
             const enriched = await enrichCards(validFragments, {
                 getByPath: repository.aem.getFragmentByPath,
-                getOfferData: loadOfferData,
+                getOfferData: (card, options) => loadOfferDataForViewOnlyCard({ card, repository, ...options }),
                 signal,
                 getDisplayName,
                 offerDataCache: getItemsSelectionStore().offerDataCache,
@@ -405,9 +456,15 @@ export async function loadCardVariations(cardPath, variationPaths, repository, {
             (variation) => variation && Array.isArray(variation.fieldTags) && variation.fieldTags.length > 0,
         );
 
+        const parentWcsOsi = await resolveParentWcsOsiForVariations(validVariations, cardPath, repository);
+
         const offerDataResults = await processConcurrently(
             validVariations,
-            (variation) => loadOfferData(variation, { cache: getItemsSelectionStore().offerDataCache }),
+            (variation) =>
+                loadOfferData(variation, {
+                    cache: getItemsSelectionStore().offerDataCache,
+                    fallbackWcsOsi: parentWcsOsi,
+                }),
             VARIATIONS_CONCURRENCY_LIMIT,
         );
 
@@ -428,5 +485,82 @@ export async function loadCardVariations(cardPath, variationPaths, repository, {
         setCardVariationsByPaths(merged);
     } catch (error) {
         console.error('Failed to fetch variations for the fragment at path:', cardPath, error);
+    }
+}
+
+/**
+ * Enriches raw promo variation references with studioPath and offerData.
+ * @param {Array<Object>} promoVariations - Raw AEM fragment references
+ * @param {Object} parentCard - Parent card fragment (source of fallback OSI)
+ * @param {Function} options.getDisplayName - Display label for a Fragment
+ * @returns {Promise<Array<Object>>}
+ */
+export async function enrichPromoVariations(promoVariations, parentCard, { getDisplayName } = {}) {
+    if (!promoVariations?.length || !parentCard) return [];
+
+    const parentWcsOsi = new Fragment(parentCard).getFieldValue('osi');
+    const store = getItemsSelectionStore({ allowUnset: true });
+    const cache = store?.offerDataCache;
+
+    const offerDataResults = await processConcurrently(
+        promoVariations,
+        (variation) =>
+            loadOfferData(variation, {
+                cache,
+                fallbackWcsOsi: parentWcsOsi,
+            }),
+        VARIATIONS_CONCURRENCY_LIMIT,
+    );
+
+    return promoVariations.map((variation, i) => ({
+        ...variation,
+        studioPath: getDisplayName(new Fragment(variation)),
+        offerData: offerDataResults[i] ?? null,
+    }));
+}
+
+/**
+ * Resolves the parent card's WCS OSI for fallback. Checks the cards cache first,
+ * then fetches the parent from AEM if needed (single fetch).
+ * @param {Object} variation - Variation fragment payload
+ * @param {string} parentCardPath - Path of the parent card
+ * @param {Object} repository - MasRepository instance
+ * @returns {Promise<string|undefined>}
+ */
+async function resolveParentWcsOsi(variation, parentCardPath, repository) {
+    const cachedParent = getItemsSelectionStore().cardsByPaths.value?.get(parentCardPath);
+    if (cachedParent) return new Fragment(cachedParent).getFieldValue('osi');
+    if (new Fragment(variation).getFieldValue('osi')) return undefined;
+
+    try {
+        const fetchedParent = await repository.aem.getFragmentByPath(parentCardPath);
+        return fetchedParent ? new Fragment(fetchedParent).getFieldValue('osi') : undefined;
+    } catch (err) {
+        console.warn(`Failed to fetch parent fragment at ${parentCardPath}:`, err.message);
+        return undefined;
+    }
+}
+
+/**
+ * Resolves the parent card's WCS OSI for a batch of variations. Fetches the parent
+ * from AEM at most once when the cache misses and any variation lacks its own OSI.
+ * @param {Array<Object>} validVariations - Variation fragment payloads
+ * @param {string} parentCardPath - Path of the parent card
+ * @param {Object} repository - MasRepository instance
+ * @returns {Promise<string|undefined>}
+ */
+async function resolveParentWcsOsiForVariations(validVariations, parentCardPath, repository) {
+    const cachedParent = getItemsSelectionStore().cardsByPaths.value?.get(parentCardPath);
+    if (cachedParent) return new Fragment(cachedParent).getFieldValue('osi');
+
+    const anyVariationNeedsFallback = validVariations.some((variation) => !new Fragment(variation).getFieldValue('osi'));
+    if (!anyVariationNeedsFallback) return undefined;
+
+    try {
+        const fetchedParent = await repository.aem.getFragmentByPath(parentCardPath);
+        return fetchedParent ? new Fragment(fetchedParent).getFieldValue('osi') : undefined;
+    } catch (err) {
+        console.warn(`Failed to fetch parent fragment at ${parentCardPath}:`, err.message);
+        return undefined;
     }
 }

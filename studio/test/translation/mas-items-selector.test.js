@@ -4,17 +4,23 @@ import { fixture, fixtureCleanup } from '@open-wc/testing-helpers/pure';
 import sinon from 'sinon';
 import Store from '../../src/store.js';
 import { setItemsSelectionStore } from '../../src/common/items-selection-store.js';
-import { TABLE_TYPE } from '../../src/constants.js';
+import { stubAemTagQueryFetch } from '../helpers/aem-tag-fetch.js';
+import { resetTagCache } from '../helpers/tag-cache.js';
+import { CARD_MODEL_PATH, FRAGMENT_STATUS, TABLE_TYPE } from '../../src/constants.js';
 import '../../src/swc.js';
 import '../../src/common/components/mas-items-selector.js';
 import { TABS } from '../../src/common/components/mas-items-selector.js';
+
+const MAS_TAG_NAMESPACE = '/content/cq:tags/mas';
 
 describe('MasItemsSelector', () => {
     let sandbox;
 
     beforeEach(() => {
         sandbox = sinon.createSandbox();
+        stubAemTagQueryFetch(sandbox);
         setItemsSelectionStore(Store.translationProjects);
+        resetTagCache(MAS_TAG_NAMESPACE);
         Store.translationProjects.inEdit.set(null);
         Store.translationProjects.showSelected.set(false);
         Store.translationProjects.selectedCards.set([]);
@@ -31,6 +37,7 @@ describe('MasItemsSelector', () => {
         Store.translationProjects.selectedCollections.set([]);
         Store.translationProjects.selectedPlaceholders.set([]);
         setItemsSelectionStore(null);
+        resetTagCache(MAS_TAG_NAMESPACE);
     });
 
     describe('TABS constant', () => {
@@ -489,6 +496,84 @@ describe('MasItemsSelector', () => {
             el.viewOnly = false;
             await el.updateComplete;
             expect(el.shadowRoot.querySelectorAll('mas-search-and-filters').length).to.equal(3);
+        });
+    });
+
+    describe('Select All integration', () => {
+        it('selecting all on cards tab updates the dialog selected count', async () => {
+            const cards = [
+                {
+                    path: '/p/a',
+                    title: 'A',
+                    studioPath: 'merch-card: ACOM / A',
+                    status: FRAGMENT_STATUS.PUBLISHED,
+                    model: { path: CARD_MODEL_PATH },
+                    tags: [],
+                    fields: [],
+                    offerData: null,
+                },
+                {
+                    path: '/p/b',
+                    title: 'B',
+                    studioPath: 'merch-card: ACOM / B',
+                    status: FRAGMENT_STATUS.PUBLISHED,
+                    model: { path: CARD_MODEL_PATH },
+                    tags: [],
+                    fields: [],
+                    offerData: null,
+                },
+            ];
+            Store.translationProjects.allCards.set(cards);
+            Store.translationProjects.cardsByPaths.set(new Map(cards.map((c) => [c.path, c])));
+            Store.translationProjects.displayCards.set([...cards]);
+            Store.translationProjects.selectedCards.set([]);
+            Store.fragments.list.firstPageLoaded.set(true);
+            const el = await fixture(html`<mas-items-selector></mas-items-selector>`);
+            await el.updateComplete;
+
+            const tablePanels = el.shadowRoot.querySelectorAll('mas-select-items-table');
+            const cardsTable = Array.from(tablePanels).find((t) => t.type === TABLE_TYPE.CARDS);
+            cardsTable.dataReady = true;
+            await cardsTable.updateComplete;
+
+            const cb = cardsTable.shadowRoot.querySelector(
+                'sp-table-head-cell sp-checkbox[aria-label="Select all loaded items"]',
+            );
+            expect(cb, 'header checkbox must exist').to.not.equal(null);
+            cb.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+            await el.updateComplete;
+
+            expect(el.selectedCount).to.equal(2);
+        });
+
+        it('selections in one tab do not affect another tab', async () => {
+            const cards = [
+                {
+                    path: '/p/a',
+                    title: 'A',
+                    studioPath: 'merch-card: ACOM / A',
+                    status: FRAGMENT_STATUS.PUBLISHED,
+                    model: { path: CARD_MODEL_PATH },
+                    tags: [],
+                    fields: [],
+                    offerData: null,
+                },
+            ];
+            const placeholders = [{ path: '/ph/a', key: 'KEY_A', value: 'v', status: FRAGMENT_STATUS.PUBLISHED }];
+            Store.translationProjects.allCards.set(cards);
+            Store.translationProjects.cardsByPaths.set(new Map(cards.map((c) => [c.path, c])));
+            Store.translationProjects.displayCards.set([...cards]);
+            Store.translationProjects.allPlaceholders.set(placeholders);
+            Store.translationProjects.placeholdersByPaths.set(new Map(placeholders.map((p) => [p.path, p])));
+            Store.translationProjects.displayPlaceholders.set([...placeholders]);
+            Store.translationProjects.selectedCards.set(['/p/a']);
+            Store.translationProjects.selectedPlaceholders.set([]);
+            Store.fragments.list.firstPageLoaded.set(true);
+            const el = await fixture(html`<mas-items-selector></mas-items-selector>`);
+            await el.updateComplete;
+
+            expect(Store.translationProjects.selectedCards.get()).to.deep.equal(['/p/a']);
+            expect(Store.translationProjects.selectedPlaceholders.get()).to.deep.equal([]);
         });
     });
 });

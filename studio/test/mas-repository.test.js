@@ -69,370 +69,6 @@ describe('MasRepository dictionary helpers', () => {
         ...overrides,
     });
 
-    const dictPath = (surface, locale = 'en_US') => `${ROOT_PATH}/${surface}/${locale}/dictionary`;
-    const indexPath = (dictPath) => `${dictPath}/index`;
-
-    describe('parseDictionaryPath', () => {
-        it('extracts locale and surface path for a valid dictionary path', () => {
-            const repository = createRepository();
-            const dictionaryPath = `${ROOT_PATH}/${SURFACES.ACOM.name}/surface/segment/en_US/dictionary`;
-
-            const result = repository.parseDictionaryPath(dictionaryPath);
-
-            expect(result).to.deep.equal({
-                locale: 'en_US',
-                surfacePath: `${SURFACES.ACOM.name}/surface/segment`,
-                surfaceRoot: SURFACES.ACOM.name,
-            });
-        });
-
-        it('returns an empty object when the path is not under the root', () => {
-            const repository = createRepository();
-
-            expect(repository.parseDictionaryPath('/not/the/root')).to.deep.equal({});
-        });
-    });
-
-    describe('getDictionaryFolderPath', () => {
-        it('builds folder path and handles edge cases', () => {
-            const repository = createRepository();
-
-            expect(repository.getDictionaryFolderPath(`${SURFACES.ACOM.name}/surface`, 'fr_FR')).to.equal(
-                `${ROOT_PATH}/${SURFACES.ACOM.name}/surface/fr_FR/dictionary`,
-            );
-            expect(repository.getDictionaryFolderPath(`/${SURFACES.ACOM.name}/`, 'en_US')).to.equal(
-                `${ROOT_PATH}/${SURFACES.ACOM.name}/en_US/dictionary`,
-            );
-            expect(repository.getDictionaryFolderPath('', 'en_US')).to.equal(`${ROOT_PATH}/en_US/dictionary`);
-            expect(repository.getDictionaryFolderPath(SURFACES.ACOM.name, null)).to.be.null;
-        });
-    });
-
-    describe('ensureDictionaryFolder', () => {
-        it('handles invalid paths and existing folders', async () => {
-            const repository = createRepository();
-            const dictionaryPath = '/content/dam/mas/acom/en_US/dictionary';
-            const parentPath = '/content/dam/mas/acom/en_US';
-
-            repository.aem = createAemMock();
-            expect(await repository.ensureDictionaryFolder(null)).to.be.false;
-            expect(await repository.ensureDictionaryFolder('')).to.be.false;
-
-            repository.aem = createAemMock({
-                folders: {
-                    list: sandbox.stub().resolves({
-                        children: [{ name: 'dictionary', path: dictionaryPath }],
-                    }),
-                },
-            });
-            expect(await repository.ensureDictionaryFolder(dictionaryPath)).to.be.true;
-            expect(repository.aem.folders.create.called).to.be.false;
-        });
-
-        it('creates dictionary folder and handles errors without creating locale folder', async () => {
-            const repository = createRepository();
-            const dictionaryPath = '/content/dam/mas/acom/en_US/dictionary';
-            const parentPath = '/content/dam/mas/acom/en_US';
-            const grandParentPath = '/content/dam/mas/acom';
-
-            // Successful creation
-            repository.aem = createAemMock({
-                folders: {
-                    list: sandbox.stub().resolves({ children: [] }),
-                    create: sandbox.stub().resolves({}),
-                },
-            });
-            expect(await repository.ensureDictionaryFolder(dictionaryPath)).to.be.true;
-            expect(repository.aem.folders.create.calledWith(parentPath, 'dictionary', 'dictionary')).to.be.true;
-            expect(repository.aem.folders.create.calledWith(grandParentPath, 'en_US', 'en_US')).to.be.false;
-
-            // Error handling
-            const consoleWarnStub = sandbox.stub(console, 'warn');
-            repository.aem = createAemMock({
-                folders: {
-                    list: sandbox.stub().rejects(new Error('Parent folder not found')),
-                },
-            });
-            expect(await repository.ensureDictionaryFolder(dictionaryPath)).to.be.false;
-            expect(consoleWarnStub.calledOnce).to.be.true;
-            expect(consoleWarnStub.firstCall.args[0]).to.include('Placeholder feature may be degraded');
-        });
-    });
-
-    describe('ensureReferenceField', () => {
-        it('adds a missing reference field', () => {
-            const repository = createRepository();
-            const parentPath = '/content/dam/mas/acom/en_US/dictionary/index';
-            const { fields: updatedFields, changed } = repository.ensureReferenceField([], 'parent', parentPath);
-
-            expect(changed).to.be.true;
-            expect(updatedFields).to.have.lengthOf(1);
-            expect(updatedFields[0]).to.include({
-                name: 'parent',
-                type: 'content-fragment',
-                multiple: false,
-            });
-            expect(updatedFields[0].values).to.deep.equal([parentPath]);
-        });
-
-        it('does not update the field when values already match', () => {
-            const repository = createRepository();
-            const fields = [
-                {
-                    name: 'parent',
-                    type: 'content-fragment',
-                    multiple: false,
-                    locked: false,
-                    values: ['/existing'],
-                },
-            ];
-
-            const result = repository.ensureReferenceField(fields, 'parent', '/existing');
-
-            expect(result.changed).to.be.false;
-            expect(result.fields[0].values).to.deep.equal(['/existing']);
-        });
-    });
-
-    describe('ensureIndexFallbackFields', () => {
-        it('saves when the parent field needs to be updated', async () => {
-            const repository = createRepository();
-            const original = createFragment({ id: 'index-id', path: '/index' });
-            const savedFragment = { ...original, fields: [{ name: 'parent', values: ['/parent'] }] };
-
-            repository.aem = createAemMock({
-                fragments: {
-                    save: sandbox.stub().resolves(savedFragment),
-                },
-            });
-            sandbox.stub(repository, 'ensureReferenceField').callsFake((fields, fieldName, value) => {
-                fields.push({ name: fieldName, type: 'content-fragment', multiple: false, locked: false, values: [value] });
-                return { fields, changed: true };
-            });
-
-            const result = await repository.ensureIndexFallbackFields(original, '/parent');
-
-            expect(repository.aem.sites.cf.fragments.save.calledOnce).to.be.true;
-            expect(result).to.equal(savedFragment);
-        });
-
-        it('skips saving when there are no changes', async () => {
-            const repository = createRepository();
-            const original = createFragment({ id: 'index-id', path: '/index' });
-
-            repository.aem = createAemMock({
-                fragments: {
-                    getById: sandbox.stub().resolves(original),
-                },
-            });
-            sandbox.stub(repository, 'ensureReferenceField').returns({ fields: [], changed: false });
-
-            const result = await repository.ensureIndexFallbackFields(original, '/parent');
-
-            expect(repository.aem.sites.cf.fragments.save.called).to.be.false;
-            expect(result).to.equal(original);
-        });
-    });
-
-    describe('createDictionaryIndexFragment', () => {
-        it('creates dictionary index with parent reference and handles publishing', async () => {
-            const repository = createRepository();
-            const createdFragment = createFragment({ id: '123', path: '/index' });
-            const createStub = sandbox.stub().resolves(createdFragment);
-
-            repository.aem = createAemMock({ fragments: { create: createStub } });
-            repository.publishFragment = sandbox.stub().resolves();
-
-            const result = await repository.createDictionaryIndexFragment({
-                parentPath: dictPath('acom'),
-                parentReference: '/parent/index',
-            });
-
-            const payload = createStub.firstCall.args[0];
-            expect(payload.fields).to.have.lengthOf(2);
-            expect(payload.fields[0].values).to.deep.equal(['/parent/index']);
-            expect(payload.fields[1].values).to.deep.equal([]);
-            expect(repository.publishFragment.called).to.be.true;
-            expect(result).to.equal(createdFragment);
-
-            // Skip publishing when publish is false
-            repository.publishFragment = sandbox.stub().resolves();
-            await repository.createDictionaryIndexFragment({
-                parentPath: dictPath('acom'),
-                parentReference: '/parent/index',
-                publish: false,
-            });
-            expect(repository.publishFragment.called).to.be.false;
-        });
-    });
-
-    describe('ensureDictionaryIndex', () => {
-        const createFolderListStub = (pathsWithChildren = {}) =>
-            sandbox.stub().callsFake(async (path) => ({
-                children: pathsWithChildren[path]?.map((name) => ({ name, path: `${path}/${name}` })) || [],
-            }));
-
-        // Test: When creating a dictionary index (e.g., acom/surface/fr_CA), if the same-surface fallback exists
-        // (e.g., acom/surface/fr_FR), it should use that as the parent reference.
-        it('creates a missing index using a same-surface fallback locale', async () => {
-            const repository = createRepository();
-            const dictionaryPath = dictPath(`${SURFACES.ACOM.name}/surface`, 'fr_CA');
-            const fallbackDictPath = dictPath(`${SURFACES.ACOM.name}/surface`, 'fr_FR');
-            const fallbackIndex = createFragment({ id: 'fallback', path: indexPath(fallbackDictPath) });
-            const createdIndex = createFragment({ id: 'new-index', path: indexPath(dictionaryPath) });
-            const parentPath = dictionaryPath.replace(/\/dictionary$/, '');
-
-            repository.aem = createAemMock({
-                folders: {
-                    list: createFolderListStub({ [fallbackDictPath.replace(/\/dictionary$/, '')]: ['dictionary'] }),
-                    create: sandbox.stub().resolves({}),
-                },
-            });
-            sandbox
-                .stub(repository, 'fetchIndexFragment')
-                .callsFake(async (path) => (path === indexPath(fallbackDictPath) ? fallbackIndex : null));
-            sandbox.stub(repository, 'ensureIndexFallbackFields').resolvesArg(0);
-            const createStub = sandbox.stub(repository, 'createDictionaryIndexFragment').resolves(createdIndex);
-
-            const result = await repository.ensureDictionaryIndex(dictionaryPath);
-
-            expect(createStub.calledOnce).to.be.true;
-            expect(createStub.firstCall.args[0]).to.deep.include({
-                parentPath: dictionaryPath,
-                parentReference: fallbackIndex.path,
-            });
-            expect(result).to.equal(createdIndex);
-            expect(repository.aem.folders.list.calledWith(parentPath)).to.be.true;
-            expect(repository.aem.folders.create.calledWith(parentPath, 'dictionary', 'dictionary')).to.be.true;
-        });
-
-        // Test: When creating a dictionary index (e.g., ccd/fr_CA), if the same-surface fallback doesn't exist
-        // (e.g., ccd/fr_FR), it should recursively create it first. During that creation, since fr_FR has no
-        // fallback locale, it should use the ACOM fallback (acom/fr_FR) as parent. Then ccd/fr_CA uses ccd/fr_FR.
-        it('recursively creates surface fallback when missing, then uses ACOM fallback for it', async () => {
-            const repository = createRepository();
-            const dictionaryPath = dictPath(SURFACES.CCD.name, 'fr_CA');
-            const fallbackDictPath = dictPath(SURFACES.CCD.name, 'fr_FR');
-            const acomDictPath = dictPath(SURFACES.ACOM.name, 'fr_FR');
-            const acomIndex = createFragment({ id: 'acom-index', path: indexPath(acomDictPath) });
-            const createdFallbackIndex = createFragment({ id: 'fallback-index', path: indexPath(fallbackDictPath) });
-            const createdIndex = createFragment({ id: 'ccd-index', path: indexPath(dictionaryPath) });
-            const fallbackParentPath = fallbackDictPath.replace(/\/dictionary$/, '');
-
-            repository.aem = createAemMock({
-                folders: {
-                    list: createFolderListStub({
-                        [acomDictPath.replace(/\/dictionary$/, '')]: ['dictionary'],
-                    }),
-                    create: sandbox.stub().resolves({}),
-                },
-            });
-            // Surface fallback (ccd/fr_FR) doesn't exist, only ACOM fallback (acom/fr_FR) exists
-            sandbox.stub(repository, 'fetchIndexFragment').callsFake(async (path) => {
-                if (path === indexPath(acomDictPath)) return acomIndex;
-                return null; // ccd/fr_FR doesn't exist yet
-            });
-            sandbox.stub(repository, 'ensureIndexFallbackFields').resolvesArg(0);
-            const createStub = sandbox.stub(repository, 'createDictionaryIndexFragment').callsFake(async (args) => {
-                if (args.parentPath === fallbackDictPath) return createdFallbackIndex;
-                return createdIndex;
-            });
-
-            const result = await repository.ensureDictionaryIndex(dictionaryPath);
-
-            // First creates ccd/fr_FR with acom/fr_FR as parent (step 3)
-            expect(createStub.calledTwice).to.be.true;
-            expect(createStub.firstCall.args[0]).to.deep.include({
-                parentPath: fallbackDictPath,
-                parentReference: acomIndex.path,
-            });
-            // Then creates ccd/fr_CA with ccd/fr_FR as parent (step 2)
-            expect(createStub.secondCall.args[0]).to.deep.include({
-                parentPath: dictionaryPath,
-                parentReference: createdFallbackIndex.path,
-            });
-            expect(result).to.equal(createdIndex);
-            expect(repository.aem.folders.list.calledWith(fallbackParentPath)).to.be.true;
-            expect(repository.aem.folders.create.calledWith(fallbackParentPath, 'dictionary', 'dictionary')).to.be.true;
-        });
-
-        // Test: When a dictionary index already exists and has a parent reference set, we should return it
-        // immediately without checking folders or creating anything. This is the happy path optimization.
-        it('returns existing index without touching folders when parent reference is present', async () => {
-            const repository = createRepository();
-            const dictionaryPath = dictPath(`${SURFACES.ACOM.name}/surface`, 'en_US');
-            const existingIndex = createFragment({
-                id: 'existing',
-                path: indexPath(dictionaryPath),
-                fields: [{ name: 'parent', values: [indexPath(dictionaryPath)] }],
-            });
-
-            repository.aem = createAemMock({
-                folders: {
-                    list: sandbox.stub().rejects(new Error('should not be called')),
-                    create: sandbox.stub().rejects(new Error('should not be called')),
-                },
-            });
-            sandbox.stub(repository, 'fetchIndexFragment').resolves(existingIndex);
-            const ensureFallbackFieldsStub = sandbox.stub(repository, 'ensureIndexFallbackFields');
-            const createIndexStub = sandbox.stub(repository, 'createDictionaryIndexFragment');
-
-            const result = await repository.ensureDictionaryIndex(dictionaryPath);
-
-            expect(result).to.equal(existingIndex);
-            expect(ensureFallbackFieldsStub.called).to.be.false;
-            expect(createIndexStub.called).to.be.false;
-            expect(repository.aem.folders.list.called).to.be.false;
-            expect(repository.aem.folders.create.called).to.be.false;
-        });
-
-        // Test: When dictionary indices exist but are missing parent references in the fallback chain,
-        // it should repair the entire chain. For example, if ccd/fr_LU exists but has no parent,
-        // and ccd/fr_FR exists but has no parent, it should:
-        // 1. First repair ccd/fr_FR to point to acom/fr_FR
-        // 2. Then repair ccd/fr_LU to point to ccd/fr_FR
-        // This ensures the complete fallback chain is properly linked.
-        it('repairs missing parent references up to ACOM without publishing', async () => {
-            const repository = createRepository();
-            const surfacePath = SURFACES.CCD.name;
-            const dictionaryPath = dictPath(surfacePath, 'fr_LU');
-            const fallbackDictPath = dictPath(surfacePath, 'fr_FR');
-            const acomDictPath = dictPath(SURFACES.ACOM.name, 'fr_FR');
-
-            const frLuIndex = createFragment({ id: 'fr_LU', path: indexPath(dictionaryPath) });
-            const frFrIndex = createFragment({ id: 'fr_FR', path: indexPath(fallbackDictPath) });
-            const acomIndex = createFragment({
-                id: 'acom',
-                path: indexPath(acomDictPath),
-                fields: [{ name: 'parent', values: [indexPath(acomDictPath)] }],
-            });
-
-            const indexMap = {
-                [indexPath(dictionaryPath)]: frLuIndex,
-                [indexPath(fallbackDictPath)]: frFrIndex,
-                [indexPath(acomDictPath)]: acomIndex,
-            };
-            repository.aem = createAemMock({ folders: {} });
-            sandbox.stub(repository, 'fetchIndexFragment').callsFake(async (path) => indexMap[path] || null);
-            sandbox.stub(repository, 'ensureDictionaryFolder').resolves(false);
-            const ensureFallbackFieldsStub = sandbox
-                .stub(repository, 'ensureIndexFallbackFields')
-                .callsFake(async (index, parentRef) => ({ ...index, fields: [{ name: 'parent', values: [parentRef] }] }));
-            sandbox.stub(repository, 'createDictionaryIndexFragment').rejects(new Error('should not create'));
-            sandbox.stub(repository, 'publishFragment');
-
-            const result = await repository.ensureDictionaryIndex(dictionaryPath);
-
-            expect(result.fields[0].values[0]).to.equal(indexPath(fallbackDictPath));
-            expect(ensureFallbackFieldsStub.callCount).to.equal(2);
-            expect(ensureFallbackFieldsStub.firstCall.args).to.deep.equal([frFrIndex, indexPath(acomDictPath)]);
-            expect(ensureFallbackFieldsStub.secondCall.args).to.deep.equal([frLuIndex, indexPath(fallbackDictPath)]);
-            expect(repository.createDictionaryIndexFragment.called).to.be.false;
-            expect(repository.ensureDictionaryFolder.called).to.be.false;
-            expect(repository.publishFragment.called).to.be.false;
-        });
-    });
-
     describe('loadFolders', () => {
         it('should filter out images, promotions and bulk-publish-projects by default', async () => {
             const repository = createRepository();
@@ -590,10 +226,12 @@ describe('MasRepository dictionary helpers', () => {
             repository.page = { value: PAGE_NAMES.CONTENT };
             repository.searchFragments = sandbox.stub();
             repository.loadPreviewPlaceholders = sandbox.stub();
+            repository.loadPromotions = sandbox.stub();
             try {
                 repository.handleSearch();
                 expect(repository.searchFragments.calledOnce).to.be.true;
                 expect(repository.loadPreviewPlaceholders.calledOnce).to.be.true;
+                expect(repository.loadPromotions.calledOnce).to.be.true;
             } finally {
                 Store.profile.set(originalProfile);
             }
@@ -660,6 +298,176 @@ describe('MasRepository dictionary helpers', () => {
                 expect(repository.loadPromotions.calledOnce).to.be.true;
             } finally {
                 Store.profile.set(originalProfile);
+            }
+        });
+
+        it('calls searchFragments for PROMOTIONS_EDITOR page', async () => {
+            const repository = createRepository();
+            const { default: Store } = await import('../src/store.js');
+            const originalProfile = Store.profile.value;
+            Store.profile.set({ name: 'test-user' });
+            repository.page = { value: PAGE_NAMES.PROMOTIONS_EDITOR };
+            repository.searchFragments = sandbox.stub();
+            try {
+                repository.handleSearch();
+                expect(repository.searchFragments.calledOnce).to.be.true;
+            } finally {
+                Store.profile.set(originalProfile);
+            }
+        });
+
+        it('getPromotionsPath returns promotions folder under root', () => {
+            const repository = createRepository();
+            expect(repository.getPromotionsPath()).to.equal(`${ROOT_PATH}/promotions`);
+        });
+
+        it('loadPromotions populates list from searchFragmentList', async () => {
+            const repository = createFullRepository();
+            const { default: Store } = await import('../src/store.js');
+            const promoFragment = {
+                id: 'promo-1',
+                etag: 'e',
+                model: { id: 'promotion-model' },
+                path: '/content/dam/mas/promotions/promo-1',
+                title: 'T',
+                description: '',
+                status: 'DRAFT',
+                created: { by: 'u', fullName: 'U', at: '2024-01-01T00:00:00.000Z' },
+                modified: { by: 'u', fullName: 'U', at: '2024-01-02T00:00:00.000Z' },
+                fields: [
+                    { name: 'title', type: 'text', values: ['T'] },
+                    { name: 'promoCode', type: 'text', values: ['X'] },
+                    { name: 'startDate', type: 'date-time', values: ['2024-01-01T00:00:00.000Z'] },
+                    { name: 'endDate', type: 'date-time', values: ['2024-12-31T23:59:59.999Z'] },
+                    { name: 'tags', type: 'tag', values: [] },
+                    { name: 'surfaces', type: 'text', values: [] },
+                ],
+                tags: [],
+            };
+            repository.searchFragmentList = sandbox.stub().resolves([promoFragment]);
+            Store.promotions.list.data.set([]);
+            await repository.loadPromotions();
+            expect(repository.searchFragmentList.calledOnce).to.be.true;
+            expect(Store.promotions.list.data.get().length).to.equal(1);
+            expect(Store.promotions.list.loading.get()).to.be.false;
+        });
+
+        it('loadPromotions auto-unpublishes expired published promotions and refreshes the row', async () => {
+            const repository = createFullRepository();
+            const { default: Store } = await import('../src/store.js');
+            const expiredPublished = {
+                id: 'promo-exp',
+                etag: 'e',
+                model: { id: 'promotion-model' },
+                path: '/content/dam/mas/promotions/promo-exp',
+                title: 'Expired Pub',
+                description: '',
+                status: 'PUBLISHED',
+                created: { by: 'u', fullName: 'U', at: '2020-01-01T00:00:00.000Z' },
+                modified: { by: 'u', fullName: 'U', at: '2020-01-02T00:00:00.000Z' },
+                fields: [
+                    { name: 'title', type: 'text', values: ['Expired Pub'] },
+                    { name: 'promoCode', type: 'text', values: ['X'] },
+                    { name: 'startDate', type: 'date-time', values: ['2020-01-01T00:00:00.000Z'] },
+                    { name: 'endDate', type: 'date-time', values: ['2020-02-01T00:00:00.000Z'] },
+                    { name: 'tags', type: 'tag', values: ['mas:status/published'] },
+                    { name: 'surfaces', type: 'text', values: [] },
+                ],
+                tags: [],
+            };
+            const refreshed = {
+                ...expiredPublished,
+                status: 'DRAFT',
+                fields: expiredPublished.fields.map((f) => (f.name === 'tags' ? { ...f, values: [] } : f)),
+            };
+            let refreshComplete;
+            const refreshCompletePromise = new Promise((resolve) => {
+                refreshComplete = resolve;
+            });
+            repository.aem = createAemMock();
+            repository.searchFragmentList = sandbox.stub().resolves([expiredPublished]);
+            const unpublishStub = sandbox.stub(repository, 'unpublishFragment').resolves(true);
+            repository.aem.sites.cf.fragments.getById.callsFake(async () => {
+                refreshComplete();
+                return refreshed;
+            });
+            Store.promotions.list.data.set([]);
+            await repository.loadPromotions();
+            await refreshCompletePromise;
+            expect(unpublishStub.calledOnceWithExactly(sinon.match.has('id', 'promo-exp'), false)).to.be.true;
+            expect(repository.aem.sites.cf.fragments.getById.calledWith('promo-exp')).to.be.true;
+            const row = Store.promotions.list.data.get()[0].get();
+            expect(row.isPromotionPublished).to.be.false;
+        });
+
+        it('loadPromotions calls processError when searchFragmentList rejects', async () => {
+            const repository = createFullRepository();
+            const { default: Store } = await import('../src/store.js');
+            repository.searchFragmentList = sandbox.stub().rejects(new Error('network'));
+            sandbox.stub(repository, 'processError');
+            Store.promotions.list.data.set([]);
+            await repository.loadPromotions();
+            expect(repository.processError.calledOnce).to.be.true;
+            expect(repository.processError.firstCall.args[1]).to.equal('Could not load promotions.');
+            expect(Store.promotions.list.loading.get()).to.be.false;
+        });
+
+        it('loadAllCollections skips writing stores when items selection store unset after fetch', async () => {
+            const repository = createFullRepository();
+            const { default: Store } = await import('../src/store.js');
+            const { setItemsSelectionStore } = await import('../src/common/items-selection-store.js');
+            const originalSearch = structuredClone(Store.search.get());
+            const originalFilters = structuredClone(Store.filters.get());
+            Store.search.set({ ...originalSearch, path: 'acom' });
+            Store.filters.set({ ...originalFilters, locale: 'en_US' });
+            let resolveList;
+            const deferred = new Promise((r) => {
+                resolveList = r;
+            });
+            repository.searchFragmentList = sandbox.stub().returns(deferred);
+            Store.translationProjects.allCollections.set([]);
+            const collectionsSnapshot = Store.translationProjects.allCollections.get();
+            setItemsSelectionStore(Store.translationProjects);
+            try {
+                const loadP = repository.loadAllCollections();
+                await Promise.resolve();
+                setItemsSelectionStore(null);
+                resolveList([
+                    {
+                        path: '/content/dam/mas/acom/en_US/collections/c1',
+                        title: 'C1',
+                        fields: [],
+                        model: { path: COLLECTION_MODEL_PATH },
+                    },
+                ]);
+                await loadP;
+                expect(Store.translationProjects.allCollections.get()).to.equal(collectionsSnapshot);
+            } finally {
+                Store.search.set(originalSearch);
+                Store.filters.set(originalFilters);
+                setItemsSelectionStore(null);
+            }
+        });
+
+        it('loadAllCollections in PROMOTIONS_EDITOR searches without locale in path', async () => {
+            const repository = createFullRepository();
+            const { default: Store } = await import('../src/store.js');
+            const { setItemsSelectionStore } = await import('../src/common/items-selection-store.js');
+            const originalFilters = structuredClone(Store.filters.get());
+            Store.filters.set({ ...originalFilters, locale: 'en_US' });
+            repository.page = { value: PAGE_NAMES.PROMOTIONS_EDITOR };
+            Store.promotions.itemPickerSurface.set('acom');
+            repository.searchFragmentList = sandbox.stub().resolves([]);
+            setItemsSelectionStore(Store.promotions);
+            try {
+                await repository.loadAllCollections();
+                const searchPath = repository.searchFragmentList.firstCall.args[0].path;
+                expect(searchPath).to.equal('/content/dam/mas/acom');
+                expect(searchPath).to.not.include('en_US');
+            } finally {
+                Store.filters.set(originalFilters);
+                Store.promotions.itemPickerSurface.set(null);
+                setItemsSelectionStore(null);
             }
         });
 
@@ -810,6 +618,67 @@ describe('MasRepository dictionary helpers', () => {
             });
             await repository.searchFragments();
             expect(searchStub.called).to.be.false;
+        });
+
+        it('executes search when page is PROMOTIONS_EDITOR and item picker surface is set', async () => {
+            const repository = createFullRepository();
+            repository.page = { value: PAGE_NAMES.PROMOTIONS_EDITOR };
+            repository.search = { value: { path: 'acom', query: '' } };
+            repository.filters = { value: { locale: 'en_US', tags: '', personalizationFilterEnabled: false } };
+            const cursor = createMockCursor([[]]);
+            const searchStub = sandbox.stub().resolves(cursor);
+            repository.aem = createAemMock({ fragments: { search: searchStub } });
+            const { default: Store } = await import('../src/store.js');
+            const originalProfile = Store.profile.value;
+            const originalPickerSurface = Store.promotions.itemPickerSurface.get();
+            Store.profile.set({ name: 'test-user' });
+            Store.promotions.itemPickerSurface.set('acom');
+            const mockDataStore = {
+                get: sandbox.stub().returns([]),
+                getMeta: sandbox.stub().returns(null),
+                set: sandbox.stub(),
+                setMeta: sandbox.stub(),
+            };
+            const originalData = Store.fragments.list.data;
+            Store.fragments.list.data = mockDataStore;
+            try {
+                await repository.searchFragments();
+                expect(searchStub.called).to.be.true;
+            } finally {
+                Store.profile.set(originalProfile);
+                Store.promotions.itemPickerSurface.set(originalPickerSurface);
+                Store.fragments.list.data = originalData;
+            }
+        });
+
+        it('returns early on PROMOTIONS_EDITOR when item picker surface is not set', async () => {
+            const repository = createFullRepository();
+            repository.page = { value: PAGE_NAMES.PROMOTIONS_EDITOR };
+            repository.search = { value: { path: 'acom', query: '' } };
+            const searchStub = sandbox.stub();
+            repository.aem = createAemMock({ fragments: { search: searchStub } });
+            const { default: Store } = await import('../src/store.js');
+            const originalProfile = Store.profile.value;
+            const originalPickerSurface = Store.promotions.itemPickerSurface.get();
+            Store.profile.set({ name: 'test-user' });
+            Store.promotions.itemPickerSurface.set(null);
+            const mockDataStore = {
+                get: sandbox.stub().returns([{ get: () => ({ path: '/x' }) }]),
+                getMeta: sandbox.stub().returns(null),
+                set: sandbox.stub(),
+                setMeta: sandbox.stub(),
+            };
+            const originalData = Store.fragments.list.data;
+            Store.fragments.list.data = mockDataStore;
+            try {
+                await repository.searchFragments();
+                expect(searchStub.called).to.be.false;
+                expect(mockDataStore.set.called).to.be.true;
+            } finally {
+                Store.profile.set(originalProfile);
+                Store.promotions.itemPickerSurface.set(originalPickerSurface);
+                Store.fragments.list.data = originalData;
+            }
         });
 
         it('returns early when profile is not set', async () => {
@@ -975,6 +844,47 @@ describe('MasRepository dictionary helpers', () => {
                 expect(callArg.query).to.equal('photoshop');
             } finally {
                 Store.profile.set(originalProfile);
+                Store.fragments.list.data = originalData;
+            }
+        });
+
+        it('clears variation search stores when switching to text search', async () => {
+            const repository = createFullRepository();
+            repository.page = { value: PAGE_NAMES.CONTENT };
+            repository.search = { value: { path: 'acom', query: 'photoshop' } };
+            repository.filters = { value: { locale: 'en_US', tags: '' } };
+            const searchStub = sandbox.stub().returns(createMockCursor([[]]));
+            repository.aem = createAemMock({
+                fragments: { search: searchStub },
+            });
+            const { default: Store } = await import('../src/store.js');
+            const originalProfile = Store.profile.value;
+            const originalExpandedId = Store.fragments.expandedId.get();
+            const originalHighlightedId = Store.fragments.highlightedVariationId.get();
+            const originalVariationTab = Store.fragments.variationSearchTab.get();
+            Store.profile.set({ name: 'test-user' });
+            Store.fragments.expandedId.set('parent-uuid');
+            Store.fragments.highlightedVariationId.set('variation-uuid');
+            Store.fragments.variationSearchTab.set('grouped');
+            const mockDataStore = {
+                get: sandbox.stub().returns([]),
+                getMeta: sandbox.stub().returns(null),
+                set: sandbox.stub(),
+                setMeta: sandbox.stub(),
+            };
+            const originalData = Store.fragments.list.data;
+            Store.fragments.list.data = mockDataStore;
+            try {
+                await repository.searchFragments();
+                expect(searchStub.calledOnce).to.be.true;
+                expect(Store.fragments.expandedId.get()).to.be.null;
+                expect(Store.fragments.highlightedVariationId.get()).to.be.null;
+                expect(Store.fragments.variationSearchTab.get()).to.be.null;
+            } finally {
+                Store.profile.set(originalProfile);
+                Store.fragments.expandedId.set(originalExpandedId);
+                Store.fragments.highlightedVariationId.set(originalHighlightedId);
+                Store.fragments.variationSearchTab.set(originalVariationTab);
                 Store.fragments.list.data = originalData;
             }
         });
@@ -1324,6 +1234,216 @@ describe('MasRepository dictionary helpers', () => {
             }
         });
 
+        describe('variation UUID search', () => {
+            const variationUuid = '5f16bf69-4dd2-4788-a163-8d33c7d68906';
+            const parentUuid = '55df6f26-c5ad-4f83-a4d3-d5e25c99059b';
+
+            const setupVariationUuidSearch = async () => {
+                const { default: Store } = await import('../src/store.js');
+                const originalProfile = Store.profile.value;
+                const originalSearch = structuredClone(Store.search.get());
+                const originalFilters = structuredClone(Store.filters.get());
+                const originalExpandedId = Store.fragments.expandedId.get();
+                const originalHighlightedId = Store.fragments.highlightedVariationId.get();
+                const originalVariationTab = Store.fragments.variationSearchTab.get();
+                const originalUuidSearchQuery = Store.search.getMeta('uuid-query');
+                const originalUuidPath = Store.search.getMeta('uuid-path');
+                const originalUuidQuery = Store.filters.getMeta('uuid-query');
+                const originalUuidLocale = Store.filters.getMeta('uuid-locale');
+                Store.profile.set({ name: 'test-user' });
+                let dataValue = [];
+                const mockDataStore = {
+                    get: sandbox.stub().callsFake(() => dataValue),
+                    getMeta: sandbox.stub().returns(null),
+                    set: sandbox.stub().callsFake((value) => {
+                        dataValue = value;
+                    }),
+                    setMeta: sandbox.stub(),
+                };
+                const originalData = Store.fragments.list.data;
+                Store.fragments.list.data = mockDataStore;
+                return {
+                    Store,
+                    mockDataStore,
+                    restore: () => {
+                        Store.profile.set(originalProfile);
+                        Store.search.set(originalSearch);
+                        Store.filters.set(originalFilters);
+                        Store.fragments.expandedId.set(originalExpandedId);
+                        Store.fragments.highlightedVariationId.set(originalHighlightedId);
+                        Store.fragments.variationSearchTab.set(originalVariationTab);
+                        if (originalUuidSearchQuery === null) Store.search.removeMeta('uuid-query');
+                        else Store.search.setMeta('uuid-query', originalUuidSearchQuery);
+                        if (originalUuidPath === null) Store.search.removeMeta('uuid-path');
+                        else Store.search.setMeta('uuid-path', originalUuidPath);
+                        if (originalUuidQuery === null) Store.filters.removeMeta('uuid-query');
+                        else Store.filters.setMeta('uuid-query', originalUuidQuery);
+                        if (originalUuidLocale === null) Store.filters.removeMeta('uuid-locale');
+                        else Store.filters.setMeta('uuid-locale', originalUuidLocale);
+                        Store.fragments.list.data = originalData;
+                    },
+                };
+            };
+
+            it('resolves parent and sets expand/highlight stores for grouped variation UUID', async () => {
+                const repository = createFullRepository();
+                repository.page = { value: PAGE_NAMES.CONTENT };
+                const variationPath = `${ROOT_PATH}/acom/en_US/photoshop/pzn/my-card`;
+                const parentPath = `${ROOT_PATH}/acom/en_US/my-card`;
+                const variationFragment = createFragment({ id: variationUuid, path: variationPath, fields: [] });
+                const parentFragment = createFragment({
+                    id: parentUuid,
+                    path: parentPath,
+                    fields: [{ name: 'variations', values: [variationPath] }],
+                });
+                repository.search = { value: { path: 'ccd', query: variationUuid } };
+                repository.filters = { value: { locale: 'en_US', tags: '' } };
+                const getByIdStub = sandbox.stub();
+                getByIdStub.withArgs(variationUuid).resolves(variationFragment);
+                getByIdStub.withArgs(parentUuid).resolves(parentFragment);
+                sandbox.stub(repository, 'resolveHydratedParentFragment').resolves(parentFragment);
+                repository.aem = createAemMock({ fragments: { getById: getByIdStub, search: sandbox.stub() } });
+                const { Store, mockDataStore, restore } = await setupVariationUuidSearch();
+                try {
+                    await repository.searchFragments();
+                    expect(Store.search.get().path).to.equal('acom');
+                    expect(mockDataStore.set.secondCall.args[0][0].get().id).to.equal(parentUuid);
+                    expect(Store.fragments.expandedId.get()).to.equal(parentUuid);
+                    expect(Store.fragments.highlightedVariationId.get()).to.equal(variationUuid);
+                    expect(Store.fragments.variationSearchTab.get()).to.equal('grouped');
+                } finally {
+                    restore();
+                }
+            });
+
+            it('resolves parent for locale variation UUID via getByPath', async () => {
+                const repository = createFullRepository();
+                repository.page = { value: PAGE_NAMES.CONTENT };
+                const variationPath = `${ROOT_PATH}/acom/fr_CA/my-card`;
+                const parentPath = `${ROOT_PATH}/acom/fr_FR/my-card`;
+                const variationFragment = createFragment({ id: variationUuid, path: variationPath, fields: [] });
+                const parentFragment = createFragment({ id: parentUuid, path: parentPath, fields: [] });
+                repository.search = { value: { path: 'acom', query: variationUuid } };
+                repository.filters = { value: { locale: 'fr_FR', tags: '' } };
+                const getByIdStub = sandbox.stub().resolves(variationFragment);
+                const getByPathStub = sandbox.stub().resolves(parentFragment);
+                repository.aem = createAemMock({
+                    fragments: { getById: getByIdStub, getByPath: getByPathStub, search: sandbox.stub() },
+                });
+                const { Store, mockDataStore, restore } = await setupVariationUuidSearch();
+                try {
+                    await repository.searchFragments();
+                    expect(getByPathStub.calledOnceWith(parentPath)).to.be.true;
+                    expect(mockDataStore.set.secondCall.args[0][0].get().id).to.equal(parentUuid);
+                    expect(Store.fragments.expandedId.get()).to.equal(parentUuid);
+                    expect(Store.fragments.highlightedVariationId.get()).to.equal(variationUuid);
+                    expect(Store.fragments.variationSearchTab.get()).to.equal('locale');
+                } finally {
+                    restore();
+                }
+            });
+
+            it('resolves parent for promo variation UUID via getByPath', async () => {
+                const repository = createFullRepository();
+                repository.page = { value: PAGE_NAMES.CONTENT };
+                const variationPath = `${ROOT_PATH}/acom/en_US/promotions/summer-sale/my-card`;
+                const parentPath = `${ROOT_PATH}/acom/en_US/my-card`;
+                const variationFragment = createFragment({ id: variationUuid, path: variationPath, fields: [] });
+                const parentFragment = createFragment({ id: parentUuid, path: parentPath, fields: [] });
+                repository.search = { value: { path: 'acom', query: variationUuid } };
+                repository.filters = { value: { locale: 'en_US', tags: '' } };
+                const getByIdStub = sandbox.stub().resolves(variationFragment);
+                const getByPathStub = sandbox.stub().resolves(parentFragment);
+                repository.aem = createAemMock({
+                    fragments: { getById: getByIdStub, getByPath: getByPathStub, search: sandbox.stub() },
+                });
+                const { Store, mockDataStore, restore } = await setupVariationUuidSearch();
+                try {
+                    await repository.searchFragments();
+                    expect(getByPathStub.calledOnceWith(parentPath)).to.be.true;
+                    expect(mockDataStore.set.secondCall.args[0][0].get().id).to.equal(parentUuid);
+                    expect(Store.fragments.expandedId.get()).to.equal(parentUuid);
+                    expect(Store.fragments.highlightedVariationId.get()).to.equal(variationUuid);
+                    expect(Store.fragments.variationSearchTab.get()).to.equal('promotion');
+                } finally {
+                    restore();
+                }
+            });
+
+            it('clears list and stores when variation UUID parent is not found', async () => {
+                const repository = createFullRepository();
+                repository.page = { value: PAGE_NAMES.CONTENT };
+                const variationPath = `${ROOT_PATH}/acom/fr_CA/my-card`;
+                const variationFragment = createFragment({ id: variationUuid, path: variationPath, fields: [] });
+                repository.search = { value: { path: 'acom', query: variationUuid } };
+                repository.filters = { value: { locale: 'fr_FR', tags: '' } };
+                const getByIdStub = sandbox.stub().resolves(variationFragment);
+                const getByPathStub = sandbox.stub().resolves(null);
+                repository.aem = createAemMock({
+                    fragments: { getById: getByIdStub, getByPath: getByPathStub, search: sandbox.stub() },
+                });
+                const { Store, mockDataStore, restore } = await setupVariationUuidSearch();
+                try {
+                    await repository.searchFragments();
+                    expect(mockDataStore.set.called).to.be.true;
+                    expect(mockDataStore.get()).to.deep.equal([]);
+                    expect(Store.fragments.expandedId.get()).to.be.null;
+                    expect(Store.fragments.highlightedVariationId.get()).to.be.null;
+                    expect(Store.fragments.variationSearchTab.get()).to.be.null;
+                } finally {
+                    restore();
+                }
+            });
+
+            it('ignores stale variation parent resolution when search is superseded', async () => {
+                const repository = createFullRepository();
+                repository.page = { value: PAGE_NAMES.CONTENT };
+                const variationPath = `${ROOT_PATH}/acom/en_US/photoshop/pzn/my-card`;
+                const variationFragment = createFragment({ id: variationUuid, path: variationPath, fields: [] });
+                const parentFragment = createFragment({
+                    id: parentUuid,
+                    path: `${ROOT_PATH}/acom/en_US/my-card`,
+                    fields: [{ name: 'variations', values: [variationPath] }],
+                });
+
+                let resolveStaleParent;
+                const staleParentPromise = new Promise((resolve) => {
+                    resolveStaleParent = resolve;
+                });
+
+                repository.search = { value: { path: 'ccd', query: variationUuid } };
+                repository.filters = { value: { locale: 'en_US', tags: '' } };
+
+                const getByIdStub = sandbox.stub();
+                getByIdStub.withArgs(variationUuid).resolves(variationFragment);
+                sandbox.stub(repository, 'resolveHydratedParentFragment').returns(staleParentPromise);
+
+                const searchStub = sandbox.stub().returns(createMockCursor([[]]));
+                repository.aem = createAemMock({ fragments: { getById: getByIdStub, search: searchStub } });
+
+                const { Store, restore } = await setupVariationUuidSearch();
+                try {
+                    const staleSearch = repository.searchFragments();
+
+                    repository.search = { value: { path: 'acom', query: 'photoshop' } };
+                    const freshSearch = repository.searchFragments();
+
+                    await freshSearch;
+                    expect(Store.fragments.highlightedVariationId.get()).to.be.null;
+                    expect(Store.fragments.expandedId.get()).to.be.null;
+
+                    resolveStaleParent(parentFragment);
+                    await staleSearch;
+
+                    expect(Store.fragments.highlightedVariationId.get()).to.be.null;
+                    expect(Store.fragments.expandedId.get()).to.be.null;
+                    expect(Store.fragments.variationSearchTab.get()).to.be.null;
+                } finally {
+                    restore();
+                }
+            });
+        });
+
         it('performs regular search when query is not a UUID', async () => {
             const repository = createFullRepository();
             repository.page = { value: PAGE_NAMES.CONTENT };
@@ -1665,6 +1785,60 @@ describe('MasRepository dictionary helpers', () => {
                 const passedStores = mockDataStore.set.lastCall.args[0];
                 expect(passedStores).to.have.lengthOf(1);
                 expect(passedStores[0].get().id).to.equal('coll-plain');
+            } finally {
+                Store.profile.set(originalProfile);
+                Store.fragments.list.data = originalData;
+            }
+        });
+
+        it('excludes promo variation fragments from CONTENT list', async () => {
+            const repository = createFullRepository();
+            repository.page = { value: PAGE_NAMES.CONTENT };
+            repository.search = { value: { path: 'acom', query: '' } };
+            repository.filters = {
+                value: {
+                    locale: 'en_US',
+                    tags: '',
+                    personalizationFilterEnabled: false,
+                },
+            };
+            const promoVariation = createFragment({
+                id: 'promo-var-1',
+                path: `${ROOT_PATH}/acom/en_US/promotions/back-to-school/cards/a`,
+                tags: [{ id: 'mas:promotion/back-to-school' }],
+                fields: [],
+            });
+            const plainFragment = createFragment({
+                id: 'plain-2',
+                path: `${ROOT_PATH}/acom/en_US/cards/b`,
+                tags: [{ id: 'mas:product/x' }],
+                fields: [],
+            });
+            const mockCursor = createMockCursor([[promoVariation, plainFragment]]);
+            const searchStub = sandbox.stub().resolves(mockCursor);
+            repository.aem = createAemMock({
+                fragments: {
+                    search: searchStub,
+                },
+            });
+            const { default: Store } = await import('../src/store.js');
+            const originalProfile = Store.profile.value;
+            Store.profile.set({ name: 'test-user' });
+            Store.createdByUsers.set([]);
+            const mockDataStore = {
+                get: sandbox.stub().returns([]),
+                getMeta: sandbox.stub().returns(null),
+                set: sandbox.stub(),
+                setMeta: sandbox.stub(),
+            };
+            const originalData = Store.fragments.list.data;
+            Store.fragments.list.data = mockDataStore;
+            try {
+                await repository.searchFragments();
+                expect(mockDataStore.set.called).to.be.true;
+                const passedStores = mockDataStore.set.lastCall.args[0];
+                expect(passedStores).to.have.lengthOf(1);
+                expect(passedStores[0].get().id).to.equal('plain-2');
             } finally {
                 Store.profile.set(originalProfile);
                 Store.fragments.list.data = originalData;
@@ -3662,44 +3836,6 @@ describe('MasRepository dictionary helpers', () => {
 
             expect(warnSpy.calledOnce).to.be.true;
             expect(warnSpy.firstCall.args[0]).to.include('Failed to refresh parent fragment store after variation save');
-        });
-    });
-
-    describe('loadPreviewPlaceholders', () => {
-        let previousSearch;
-        let previousFilters;
-        let previousPreview;
-
-        beforeEach(() => {
-            previousSearch = structuredClone(Store.search.get());
-            previousFilters = structuredClone(Store.filters.get());
-            previousPreview = Store.placeholders.previewByLocale.get();
-        });
-
-        afterEach(() => {
-            Store.search.value = previousSearch;
-            Store.filters.value = previousFilters;
-            Store.placeholders.previewByLocale.value = previousPreview;
-        });
-
-        it('uses Store.localeOrRegion() for cache key and fetchDictionary locale', async () => {
-            const repository = createFullRepository();
-            repository.dictionaryCache.clear();
-
-            Store.search.value = { path: 'sandbox' };
-            Store.filters.value = { locale: 'en_US' };
-            Store.search.set((prev) => ({ ...prev, region: 'fr_FR' }));
-            // Unconnected repo: StoreController does not receive Store updates unless we sync.
-            repository.search.value = Store.search.get();
-
-            const fetchStub = sandbox.stub(repository, 'fetchDictionary').resolves({ dictKey: 'dictVal' });
-
-            await repository.loadPreviewPlaceholders();
-
-            expect(fetchStub.calledOnce).to.be.true;
-            expect(fetchStub.firstCall.args[1]).to.equal('fr_FR');
-            expect(repository.dictionaryCache.has('fr_FR_sandbox')).to.be.true;
-            expect(Store.placeholders.previewByLocale.get().fr_FR).to.deep.equal({ dictKey: 'dictVal' });
         });
     });
 

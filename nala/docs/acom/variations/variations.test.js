@@ -11,7 +11,7 @@ const workerSetup = createWorkerPageSetup({
         { name: 'GR_EN', url: DOCS_GALLERY_PATH.PLANS_COLLECTION.GR_EN },
         { name: 'AR_co', url: DOCS_GALLERY_PATH.PLANS_COLLECTION.AR_co },
         { name: 'AR_ES', url: DOCS_GALLERY_PATH.PLANS_COLLECTION.AR_ES },
-        { name: 'AR', url: DOCS_GALLERY_PATH.PLANS_COLLECTION.AR },
+        { name: 'AR_ES_co', url: DOCS_GALLERY_PATH.PLANS_COLLECTION.AR_ES_co },
     ],
 });
 
@@ -228,19 +228,19 @@ test.describe('ACOM MAS Variations feature test suite', () => {
             await expect(acomPage.getCardSubtitle(data.cardid)).toContainText(data.subtitle);
             await expect(acomPage.getCardBadge(data.cardid)).toHaveCSS('background-color', data.badgeColor);
             await expect(acomPage.getCollection(data.collection_id)).toBeVisible();
-            await expect(acomPage.getCardPrice(data.cardid)).toContainText(data.price.ar);
+            await expect(acomPage.getCardPrice(data.cardid)).toContainText(data.price);
         });
 
-        await test.step('step-2: Verify translated grouped card variation on AR', async () => {
-            const page = workerSetup.getPage('AR');
+        await test.step('step-2: Verify translated grouped card variation on AR_co', async () => {
+            const page = workerSetup.getPage('AR_ES_co');
             const acomPage = new MasPlans(page);
-            await workerSetup.verifyPageURL('AR', DOCS_GALLERY_PATH.PLANS_COLLECTION.AR, expect);
+            await workerSetup.verifyPageURL('AR_ES_co', DOCS_GALLERY_PATH.PLANS_COLLECTION.AR_ES_co, expect);
             await expect(acomPage.getCard(data.cardid)).toBeVisible();
             await expect(acomPage.getCard(data.cardid)).toHaveAttribute('variation-id', data.variation_card_id);
             await expect(acomPage.getCardSubtitle(data.cardid)).toContainText(data.subtitle);
             await expect(acomPage.getCardBadge(data.cardid)).toHaveCSS('background-color', data.badgeColor);
             await expect(acomPage.getCollection(data.collection_id)).toBeVisible();
-            await expect(acomPage.getCardPrice(data.cardid)).toContainText(data.price.ar_en);
+            await expect(acomPage.getCardPrice(data.cardid)).toContainText(data.price);
         });
     });
 
@@ -256,18 +256,51 @@ test.describe('ACOM MAS Variations feature test suite', () => {
             await expect(acomPage.getCard(data.cardid)).toHaveAttribute('variation-id', data.variation_card_id);
             await expect(acomPage.getCardSubtitle(data.cardid)).toContainText(data.subtitle);
             await expect(acomPage.getCollection(data.collection_id)).toBeVisible();
-            await expect(acomPage.getCardPrice(data.cardid)).toContainText(data.price.ar);
+            await expect(acomPage.getCardPrice(data.cardid)).toContainText(data.price);
         });
 
-        await test.step('step-2: Verify translated regional card variation on AR', async () => {
-            const page = workerSetup.getPage('AR');
+        await test.step('step-2: Verify translated regional card variation on AR_co', async () => {
+            const page = workerSetup.getPage('AR_ES_co');
             const acomPage = new MasPlans(page);
-            await workerSetup.verifyPageURL('AR', DOCS_GALLERY_PATH.PLANS_COLLECTION.AR, expect);
+            await workerSetup.verifyPageURL('AR_ES_co', DOCS_GALLERY_PATH.PLANS_COLLECTION.AR_ES_co, expect);
             await expect(acomPage.getCard(data.cardid)).toBeVisible();
             await expect(acomPage.getCard(data.cardid)).toHaveAttribute('variation-id', data.variation_card_id);
             await expect(acomPage.getCardSubtitle(data.cardid)).toContainText(data.subtitle);
             await expect(acomPage.getCollection(data.collection_id)).toBeVisible();
-            await expect(acomPage.getCardPrice(data.cardid)).toContainText(data.price.ar_en);
+            await expect(acomPage.getCardPrice(data.cardid)).toContainText(data.price);
+        });
+    });
+
+    // @MAS-Translated-Card-Regional-Variation-in-Translated-Collection-Grouped-Variation
+    test(`${features[8].name},${features[8].tags}`, async () => {
+        const { data } = features[8];
+
+        await test.step('step-1: Verify translated regional card variation in grouped collection on AR_ES_co', async () => {
+            const page = workerSetup.getPage('AR_ES_co');
+            const acomPage = new MasPlans(page);
+            await workerSetup.verifyPageURL('AR_ES_co', DOCS_GALLERY_PATH.PLANS_COLLECTION.AR_ES_co, expect);
+            await expect(acomPage.getCard(data.cardid)).toBeVisible();
+            await expect(acomPage.getCard(data.cardid)).toHaveAttribute('variation-id', data.variation_card_id);
+            await expect(acomPage.getCardSubtitle(data.cardid)).toContainText(data.subtitle);
+            await expect(acomPage.getCollection(data.collection_id)).toBeVisible();
+            await expect(acomPage.getCollection(data.collection_id)).toHaveAttribute(
+                'variation-id',
+                data.variation_collection_id,
+            );
+        });
+
+        await test.step('step-2: Verify translated regional card variation in grouped collection on AR_ES', async () => {
+            const page = workerSetup.getPage('AR_ES');
+            const acomPage = new MasPlans(page);
+            await workerSetup.verifyPageURL('AR_ES', DOCS_GALLERY_PATH.PLANS_COLLECTION.AR_ES, expect);
+            await expect(acomPage.getCard(data.cardid)).toBeVisible();
+            await expect(acomPage.getCard(data.cardid)).toHaveAttribute('variation-id', data.variation_card_id);
+            await expect(acomPage.getCardSubtitle(data.cardid)).toContainText(data.subtitle);
+            await expect(acomPage.getCollection(data.collection_id)).toBeVisible();
+            await expect(acomPage.getCollection(data.collection_id)).toHaveAttribute(
+                'variation-id',
+                data.variation_collection_id,
+            );
         });
     });
 });

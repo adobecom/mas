@@ -9,21 +9,9 @@ const {
     getValues,
     localeFromPath,
 } = require('../common');
-const { ACOM, CCD, EXPRESS, ADOBE_HOME, COMMERCE } = require('../../../www/src/locales.json');
+const { DEFAULT_LOCALES } = require('../locales.js');
 
 const logger = Core.Logger('cleanup-variations', { level: 'info' });
-
-const DEFAULT_LOCALES = {
-    acom: ACOM,
-    'acom-cc': ACOM,
-    'acom-dc': ACOM,
-    nala: ACOM,
-    sandbox: ACOM,
-    ccd: CCD,
-    express: EXPRESS,
-    'adobe-home': ADOBE_HOME,
-    commerce: COMMERCE,
-};
 
 /**
  * Returns the set of valid variation locale codes for a given fragment locale on a surface.

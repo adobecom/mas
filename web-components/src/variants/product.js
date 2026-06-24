@@ -23,6 +23,7 @@ export const PRODUCT_AEM_FRAGMENT_MAPPING = {
     secureLabel: true,
     planType: true,
     addon: true,
+    addonBackground: true,
     badgeIcon: true,
     badge: {
         tag: 'div',
@@ -158,9 +159,13 @@ export class Product extends VariantLayout {
     }
 
     adjustShortDescription() {
-        const shortDescEl = this.card.querySelector('[slot="short-description"]');
+        const shortDescEl = this.card.querySelector(
+            '[slot="short-description"]',
+        );
         if (!shortDescEl?.textContent?.trim()) return;
-        const legalPrice = this.card.querySelector('span[data-template="legal"]');
+        const legalPrice = this.card.querySelector(
+            'span[data-template="legal"]',
+        );
         if (!legalPrice) return;
         legalPrice.querySelector('.merch-short-description')?.remove();
         const span = document.createElement('span');

@@ -1,4 +1,4 @@
-import { TABLET_UP, DESKTOP_UP } from '../media.js';
+import { TABLET_UP, DESKTOP_UP, TABLET_DOWN } from '../media.js';
 export const CSS = `
 :root {
   --consonant-merch-card-product-width: 300px;
@@ -64,9 +64,14 @@ merch-card-collection.product merch-card {
     padding-bottom: 8px;
     padding-right: 8px;
     border-radius: .5rem;
+    background: var(--merch-addon-background);
     font-family: var(--merch-body-font-family, 'Adobe Clean');
     font-size: var(--consonant-merch-card-body-xs-font-size);
     line-height: var(--consonant-merch-card-body-xs-line-height);
+  }
+
+  merch-card[variant="product"] [slot="body-xs"] [is="inline-price"] {
+    font-weight: 400;
   }
 
   merch-card[variant="product"] merch-addon [is="inline-price"] {
@@ -188,6 +193,27 @@ merch-card[variant="product"] .merch-short-description .icon-button::after {
 merch-card[variant="product"] .merch-short-description .icon-button.tooltip-visible::before,
 merch-card[variant="product"] .merch-short-description .icon-button.tooltip-visible::after {
     display: block;
+}
+
+@media screen and ${TABLET_DOWN} {
+    merch-card[variant="product"] .merch-short-description .icon-button::before {
+        top: unset;
+        left: calc(50% - 120px);
+        transform: none;
+        margin-left: 0;
+        bottom: 100%;
+        margin-bottom: 8px;
+    }
+
+    merch-card[variant="product"] .merch-short-description .icon-button::after {
+        top: unset;
+        left: 50%;
+        margin-left: -8px;
+        transform: none;
+        bottom: calc(100% - 8px);
+        border-color: #0469E3 transparent transparent transparent;
+        border-right-color: transparent;
+    }
 }
 
 `;

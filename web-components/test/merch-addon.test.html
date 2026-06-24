@@ -75,6 +75,31 @@
                     beforeEach(() => {
                         container.innerHTML = '';
                     });
+                    it('should set --merch-addon-background CSS var when background attribute is present', async () => {
+                        const el = document.createElement('merch-addon');
+                        const gradient =
+                            'linear-gradient(211deg, rgb(245, 246, 253) 33.52%, rgb(248, 241, 248) 67.33%, rgb(249, 233, 237) 110.37%)';
+                        el.setAttribute('background', gradient);
+                        container.append(el);
+                        await el.updateComplete;
+                        expect(
+                            el.style.getPropertyValue(
+                                '--merch-addon-background',
+                            ),
+                        ).to.equal(gradient);
+                    });
+
+                    it('should not set --merch-addon-background when no background attribute', async () => {
+                        const el = document.createElement('merch-addon');
+                        container.append(el);
+                        await el.updateComplete;
+                        expect(
+                            el.style.getPropertyValue(
+                                '--merch-addon-background',
+                            ),
+                        ).to.equal('');
+                    });
+
                     it('should render addon checkbox and update on plan type change', async () => {
                         const [masCommerceService, ai] =
                             getTemplateContent('ai');

@@ -972,7 +972,14 @@ export class OstStore extends EventTarget {
     getEffectiveOptions(type) {
         const typeConfig = this.placeholderTypes.find((t) => t.type === type);
         const overrides = typeConfig?.overrides || {};
-        return { ...this.placeholderOptions, ...overrides };
+        const effective = { ...this.placeholderOptions, ...overrides };
+        // The geo tax default (applyGeoTaxDefaults) turns displayTax on for the
+        // price in DE/EU; the legal disclaimer keeps its own default-off tax
+        // display unless the user explicitly toggled the Tax Label option.
+        if (type === 'legal' && !this.#userToggledOptionKeys.has('displayTax')) {
+            effective.displayTax = this.defaultPlaceholderOptions.displayTax;
+        }
+        return effective;
     }
 
     get effectivePromoCode() {

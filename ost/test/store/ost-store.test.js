@@ -164,6 +164,17 @@ describe('OstStore', () => {
         expect(effective.displayPlanType).to.be.true;
     });
 
+    it('legal disclaimer keeps tax off when geo defaults (not the user) turn displayTax on', () => {
+        store.setPlaceholderOptions({ ...store.placeholderOptions, displayTax: true });
+        expect(store.getEffectiveOptions('price').displayTax).to.be.true;
+        expect(store.getEffectiveOptions('legal').displayTax).to.be.false;
+    });
+
+    it('legal disclaimer honors an explicit user tax toggle', () => {
+        store.toggleOption('displayTax', true);
+        expect(store.getEffectiveOptions('legal').displayTax).to.be.true;
+    });
+
     describe('applyGeoTaxDefaults', () => {
         const offer = (id) => ({ offer_id: id, customer_segment: 'INDIVIDUAL', market_segments: ['COM'] });
         function mockService(flags) {

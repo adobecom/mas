@@ -5,9 +5,12 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+import { throttleOdinGap, isOdinHost } from './eds-throttle.js';
 
 const DEFAULT_TRACKED_URLS = {
     ODIN_AEM: 'https://author-p22655-e59433.adobeaemcloud.com',
+    ODIN_PREVIEW: 'https://odinpreview.corp.adobe.com',
+    ODIN_PUBLISHED: 'https://odin.adobe.com',
     // Future: Add more services
     // WCS: 'https://www.adobe.com/web_commerce_artifact',
     // MAS_IO: 'https://mas.adobe.com/io',
@@ -63,6 +66,35 @@ class GlobalRequestCounter {
                 }
             }
         });
+
+        // ODIN throttle — separate chain from EDS so page loads are not slowed down.
+        // ODIN rate-limits per User-Agent; with multiple workers sharing one UA this cap
+        // prevents 429s / silent timeouts from ODIN under concurrent load.
+        const odinMaxRps = (() => {
+            if (process.env.NALA_EDS_THROTTLE_DISABLED === '1') return 0;
+            const workers = Number.parseInt(process.env.NALA_WORKER_COUNT ?? '1', 10);
+            const n = Number.isFinite(workers) && workers > 0 ? workers : 1;
+            const totalLimit = Number.parseInt(process.env.NALA_ODIN_MAX_RPS ?? '20', 10);
+            return Math.max(1, Math.floor(totalLimit / n));
+        })();
+
+        if (odinMaxRps > 0) {
+            if (!globalThis.odinThrottleLogged) {
+                globalThis.odinThrottleLogged = true;
+                const workers = process.env.NALA_WORKER_COUNT ?? '?';
+                const total = odinMaxRps * Number(workers || 1);
+                console.info(
+                    `[NALA] ODIN throttle active: ~${odinMaxRps} rps/worker × ${workers} workers = ~${total} rps combined (limit ${process.env.NALA_ODIN_MAX_RPS ?? '20'}). Set NALA_ODIN_MAX_RPS to override.\n`,
+                );
+            }
+            await page.route(
+                (url) => isOdinHost(url),
+                async (route) => {
+                    await throttleOdinGap(odinMaxRps);
+                    await route.continue();
+                },
+            );
+        }
     }
 
     /**

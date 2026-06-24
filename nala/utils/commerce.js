@@ -1,5 +1,5 @@
 import { test } from '@playwright/test';
-import { installEdsThrottleOnPage } from '../libs/eds-throttle.js';
+import { installEdsThrottleOnContext } from '../libs/eds-throttle.js';
 
 const MILO_LIBS = process.env.MILO_LIBS || '';
 const MAS_LIBS = process.env.MAS_LIBS || '';
@@ -338,6 +338,7 @@ function createWorkerPageSetup(config = {}) {
         test.setTimeout(setupTimeout);
 
         workerContext = await browser.newContext({ extraHTTPHeaders });
+        await installEdsThrottleOnContext(workerContext);
 
         consoleErrors = [];
         masRequestErrors = [];
@@ -363,8 +364,6 @@ function createWorkerPageSetup(config = {}) {
             // Set up console listener
             const consoleListener = await setupMasConsoleListener(consoleErrors);
             page.on('console', consoleListener);
-
-            await installEdsThrottleOnPage(page);
 
             // Load the page
             await page.goto(fullUrl);

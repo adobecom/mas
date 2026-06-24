@@ -1,7 +1,8 @@
 import { devices } from '@playwright/test';
 
-const USER_AGENT_DESKTOP =
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.6900.0 Safari/537.36 NALA-MAS';
+// NALA_SHARD_ID gives each shard a distinct UA so ODIN rate-limits them separately.
+const shardSuffix = process.env.NALA_SHARD_ID ? `-${process.env.NALA_SHARD_ID}` : '';
+const USER_AGENT_DESKTOP = `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.6900.0 Safari/537.36 NALA-MAS${shardSuffix}`;
 
 /**
  * @see https://playwright.dev/docs/test-configuration
@@ -29,14 +30,16 @@ const config = {
     /* Retry on CI only */
     retries: process.env.CI ? 1 : 0,
     /*
-     * EDS (~200 rps / hostname). EDS pacing in nala/libs/eds-throttle.js is per *worker*; multiple
-     * workers multiply traffic to the same preview host → 429s. Default CI workers=1; override
-     * with NALA_PLAYWRIGHT_WORKERS only if EDS grants a higher automation cap.
+     * Worker count drives the EDS throttle: eds-throttle.js derives per-worker RPS as
+     * min(floor(180 / workers), 45). NALA_PLAYWRIGHT_WORKERS is set per-job in the workflow
+     * to match each runner's EDS budget. SJ and Oregon runners are independent (own IP, 4 workers).
+     * Noida runner shares its IP with nala-docs (studio: 3 workers + docs: 1 worker = 180 RPS).
      */
     workers: (() => {
         const fromEnv = Number.parseInt(process.env.NALA_PLAYWRIGHT_WORKERS ?? '', 10);
-        if (Number.isFinite(fromEnv) && fromEnv > 0) return fromEnv;
-        return process.env.CI ? 2 : 3;
+        const workers = Number.isFinite(fromEnv) && fromEnv > 0 ? fromEnv : process.env.CI ? 4 : 3;
+        process.env.NALA_WORKER_COUNT = String(workers);
+        return workers;
     })(),
     /* Reporter to use. */
     reporter: process.env.CI

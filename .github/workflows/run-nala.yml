@@ -26,23 +26,59 @@ jobs:
                   exit 1
 
     run-nala-studio-tests:
-        name: Running Nala Studio E2E UI Tests
+        name: Running Nala Studio [${{ matrix.shard }}] E2E UI Tests
         needs: nala-gate
-        # Run when PR is opened (no label needed) OR when 'run nala' label exists
-        # This covers: opened (always), synchronize (if label exists), labeled (if label exists)
         if: |
             github.event.action == 'opened' ||
             contains(github.event.pull_request.labels.*.name, 'run nala')
-        runs-on: [self-hosted, Linux, X64]
-        timeout-minutes: 30 # Prevent hanging jobs
+        runs-on: [self-hosted, Linux, X64, '${{ matrix.runner }}']
+        timeout-minutes: 30
+        # Each shard is pinned to its runner via matrix.runner (unique label per machine).
+        # SJ and Oregon have independent IPs and full EDS budgets.
+        # Noida runner shares its IP with the nala-docs runner — workers split accordingly.
         strategy:
+            fail-fast: false
             matrix:
-                node-version: [20.x]
+                include:
+                    - shard: acom-ahome
+                      node-version: 20.x
+                      dirs: nala/studio/acom nala/studio/ahome
+                      runner: nala-studio-sj # San Jose — own IP, full budget
+                      workers: 4
+                    - shard: ccd-commerce
+                      node-version: 20.x
+                      dirs: nala/studio/ccd nala/studio/commerce
+                      runner: nala-studio-oregon # Oregon — own IP, full budget
+                      workers: 4
+                    - shard: rest
+                      node-version: 20.x
+                      runner: nala-studio-noida # Noida — shares IP with nala-docs (3+1=4×45=180 RPS)
+                      workers: 3
+                      # dirs intentionally omitted — auto-discovered at runtime
         steps:
             - name: Checkout repository
               uses: actions/checkout@v4
               with:
                   fetch-depth: 2
+
+            - name: Resolve shard directories
+              run: |
+                  if [ -n "${{ matrix.dirs }}" ]; then
+                    echo "SHARD_DIRS=${{ matrix.dirs }}" >> $GITHUB_ENV
+                  else
+                    # Shard 3 catch-all: every studio dir/file not claimed by shards 1-2.
+                    # New directories are automatically included here — no workflow change needed.
+                    CLAIMED="nala/studio/acom nala/studio/ahome nala/studio/ccd nala/studio/commerce"
+                    DIRS=""
+                    for path in nala/studio/*/; do
+                      dir="${path%/}"
+                      echo "$CLAIMED" | grep -qw "$dir" || DIRS="$DIRS $dir"
+                    done
+                    for f in nala/studio/*.test.js; do
+                      [ -f "$f" ] && DIRS="$DIRS $f"
+                    done
+                    echo "SHARD_DIRS=$(echo $DIRS | xargs)" >> $GITHUB_ENV
+                  fi
 
             - name: Set up Node.js ${{ matrix.node-version }}
               uses: actions/setup-node@v4
@@ -69,8 +105,6 @@ jobs:
 
             - name: Install/verify Playwright browsers
               run: |
-                  # Always run this - it's idempotent and fast when browsers are already correct
-                  # It checks version compatibility and only installs if browsers are missing or outdated
                   npx playwright install
 
             - name: Set execute permission for gh.run.sh
@@ -91,9 +125,10 @@ jobs:
                   IMS_EMAIL: ${{ secrets.IMS_EMAIL }}
                   IMS_PASS: ${{ secrets.IMS_PASS }}
                   FORCE_COLOR: 3 # Force color output
-                  # studio:3 + docs:1 = 4 workers × 45 RPS = 180 RPS, safely under 200 RPS EDS limit.
-                  # Both jobs share the same self-hosted runner pool — 4 total workers = 4 vCPUs.
-                  NALA_PLAYWRIGHT_WORKERS: 3
+                  # Workers per shard declared in matrix (see above). Noida shard shares IP with nala-docs.
+                  NALA_PLAYWRIGHT_WORKERS: ${{ matrix.workers }}
+                  # Unique UA per shard so ODIN rate-limits each shard independently.
+                  NALA_SHARD_ID: ${{ matrix.shard }}
 
             - name: Cleanup cloned cards
               if: always()
@@ -117,7 +152,7 @@ jobs:
         if: |
             github.event.action == 'opened' ||
             contains(github.event.pull_request.labels.*.name, 'run nala')
-        runs-on: [self-hosted, Linux, X64]
+        runs-on: [self-hosted, Linux, X64, nala-docs]
         timeout-minutes: 20 # Prevent hanging jobs
         strategy:
             matrix:
@@ -204,4 +239,5 @@ jobs:
                   prBaseBranch: ${{ github.event.pull_request.base.ref }}
                   GITHUB_ACTION_PATH: ${{ github.workspace }}
                   FORCE_COLOR: 3 # Force color output
+                  # Noida runner shares IP with nala-studio-noida shard (3+1=4 workers × 45 = 180 RPS from Noida IP).
                   NALA_PLAYWRIGHT_WORKERS: 1

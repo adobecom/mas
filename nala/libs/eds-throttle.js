@@ -2,22 +2,32 @@
  * Pace requests to EDS / Helix preview hosts (~200 rps tenant limit).
  *
  * Throttle state is per Playwright *worker process*. Multiple workers each run their own chain,
- * so effective RPS to the same hostname is multiplied — use workers=1 on CI (see playwright.config.js).
- *
- * Auth setup loads studio.html before GlobalRequestCounter runs; call installEdsThrottleOnPage(page)
- * there so the first navigation is paced too.
+ * so effective RPS to the same hostname is multiplied.
+ * playwright.config.js sets NALA_WORKER_COUNT so per-worker RPS is derived automatically:
+ *   perWorkerRps = floor(180 / workers)  e.g. 4 workers → 45 rps each → 180 rps combined
+ * Override env vars:
+ *   NALA_EDS_THROTTLE_DISABLED=1   disable entirely
+ *   NALA_EDS_MAX_RPS=<n>           force a specific per-worker cap
  */
 
-/** Default CI cap: 45 rps/worker × 4 workers (studio:3 + docs:1) = 180 rps, under 200 rps EDS limit. */
-const DEFAULT_CI_EDS_MAX_RPS = 45;
+/** Combined RPS budget with headroom under the 200 rps/hostname tenant limit. */
+const EDS_SAFE_TOTAL_RPS = 180;
+
+/** Maximum RPS a single worker should ever use, regardless of how few workers are running. */
+const EDS_MAX_RPS_PER_WORKER = 45;
 
 export function resolveEdsMaxRps() {
     if (process.env.NALA_EDS_THROTTLE_DISABLED === '1') return 0;
     if (process.env.NALA_EDS_MAX_RPS !== undefined && process.env.NALA_EDS_MAX_RPS !== '') {
         const v = Number.parseInt(process.env.NALA_EDS_MAX_RPS, 10);
-        return Number.isFinite(v) && v > 0 ? v : 0;
+        if (Number.isFinite(v) && v > 0) return v;
+        console.warn(
+            `[NALA] NALA_EDS_MAX_RPS="${process.env.NALA_EDS_MAX_RPS}" is not a positive integer — ignoring, falling back to worker-derived default.\n`,
+        );
     }
-    return process.env.CI === 'true' ? DEFAULT_CI_EDS_MAX_RPS : 0;
+    const workers = Number.parseInt(process.env.NALA_WORKER_COUNT ?? '1', 10);
+    const n = Number.isFinite(workers) && workers > 0 ? workers : 1;
+    return Math.min(Math.floor(EDS_SAFE_TOTAL_RPS / n), EDS_MAX_RPS_PER_WORKER);
 }
 
 export function isEdsEdgeHost(url) {
@@ -34,50 +44,80 @@ export function isEdsEdgeHost(url) {
     }
 }
 
-/**
- * Serialize route.continue() for EDS hosts with a minimum gap (per worker).
- * @param {number} maxRps
- */
-export function throttleEdsGap(maxRps) {
+export function isOdinHost(url) {
+    try {
+        const { hostname } = new URL(url);
+        return (
+            hostname.endsWith('adobeaemcloud.com') || hostname === 'odinpreview.corp.adobe.com' || hostname === 'odin.adobe.com'
+        );
+    } catch {
+        return false;
+    }
+}
+
+/** Separate throttle chain for ODIN (AEM author + preview) — independent of EDS chain. */
+export function throttleOdinGap(maxRps) {
     const minGapMs = 1000 / maxRps;
-    if (!globalThis._edsThrottleChain) {
-        globalThis._edsThrottleChain = Promise.resolve();
+    if (!globalThis.odinThrottleChain) {
+        globalThis.odinThrottleChain = Promise.resolve();
     }
 
-    const next = globalThis._edsThrottleChain.then(async () => {
-        const last = globalThis._edsThrottleLastContinueAt ?? 0;
+    const next = globalThis.odinThrottleChain.then(async () => {
+        const last = globalThis.odinThrottleLastContinueAt ?? 0;
         const now = Date.now();
         const wait = Math.max(0, minGapMs - (now - last));
         if (wait > 0) {
             await new Promise((r) => setTimeout(r, wait));
         }
-        globalThis._edsThrottleLastContinueAt = Date.now();
+        globalThis.odinThrottleLastContinueAt = Date.now();
     });
 
-    globalThis._edsThrottleChain = next.catch(() => {});
+    globalThis.odinThrottleChain = next.catch(() => {});
+    return next;
+}
+
+export function throttleEdsGap(maxRps) {
+    const minGapMs = 1000 / maxRps;
+    if (!globalThis.edsThrottleChain) {
+        globalThis.edsThrottleChain = Promise.resolve();
+    }
+
+    const next = globalThis.edsThrottleChain.then(async () => {
+        const last = globalThis.edsThrottleLastContinueAt ?? 0;
+        const now = Date.now();
+        const wait = Math.max(0, minGapMs - (now - last));
+        if (wait > 0) {
+            await new Promise((r) => setTimeout(r, wait));
+        }
+        globalThis.edsThrottleLastContinueAt = Date.now();
+    });
+
+    globalThis.edsThrottleChain = next.catch(() => {});
     return next;
 }
 
 export function logEdsThrottleOnce(edsMaxRps) {
-    if (edsMaxRps <= 0 || globalThis._edsThrottleLogged) return;
-    globalThis._edsThrottleLogged = true;
+    if (edsMaxRps <= 0 || globalThis.edsThrottleLogged) return;
+    globalThis.edsThrottleLogged = true;
+    const workers = process.env.NALA_WORKER_COUNT ?? '?';
     console.info(
-        `[NALA] EDS request pacing ~${edsMaxRps} rps per worker for .aem.live / hlx hosts. ` +
-            `NALA_EDS_THROTTLE_DISABLED=1 disables; NALA_EDS_MAX_RPS sets cap. Use one Playwright worker on CI so pacing is not multiplied.\n`,
+        `[NALA] EDS throttle active: ~${edsMaxRps} rps/worker × ${workers} workers = ` +
+            `~${edsMaxRps * Number(workers || 1)} rps combined (budget ${EDS_SAFE_TOTAL_RPS}). ` +
+            'Set NALA_EDS_THROTTLE_DISABLED=1 to disable or NALA_EDS_MAX_RPS to override.\n',
     );
 }
 
 /**
- * Register a route handler that paces EDS-bound requests (auth / any page without GlobalRequestCounter).
- * @param {import('@playwright/test').Page} page
+ * Register a route handler that paces EDS-bound requests on a Playwright browser context.
+ * Covers all pages in the context, including those created after this call.
+ * @param {import('@playwright/test').BrowserContext} context
  */
-export async function installEdsThrottleOnPage(page) {
+export async function installEdsThrottleOnContext(context) {
     const edsMaxRps = resolveEdsMaxRps();
     if (edsMaxRps <= 0) return;
     logEdsThrottleOnce(edsMaxRps);
-    await page.route('**/*', async (route) => {
-        const url = route.request().url();
-        if (isEdsEdgeHost(url)) {
+    await context.route('**/*', async (route) => {
+        if (isEdsEdgeHost(route.request().url())) {
             await throttleEdsGap(edsMaxRps);
         }
         await route.continue();

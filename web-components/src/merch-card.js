@@ -51,6 +51,7 @@ const VARIANTS_WITH_WIDTH_BADGE_SYNC = [
     'segment',
     'product',
     'plans-education',
+    'mini-compare-chart-mweb',
 ];
 
 function priceOptionsProvider(element, options) {
@@ -114,6 +115,7 @@ const intersectionObserver = new IntersectionObserver((entries) => {
             if (entry.boundingClientRect.width === 0) return;
             if (
                 (card.variant === 'product' ||
+                    card.variant === 'mini-compare-chart-mweb' ||
                     card.variant === 'plans-education') &&
                 card.querySelector('merch-icon[slot="icons"]')
             ) {

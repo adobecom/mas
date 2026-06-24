@@ -15,7 +15,6 @@ import {
 } from './constants.js';
 import router from './router.js';
 import { VARIANTS } from './editors/variant-picker.js';
-import { getActiveMerchCardEditor } from './editors/merch-card-editor.js';
 import {
     extractLocaleFromPath,
     extractSurfaceFromPath,
@@ -37,12 +36,11 @@ import {
 import { splitPromotionTagsFieldValues } from './promotions/promotion-editor-utils.js';
 import * as promotionsRepository from './promotions/promotions-repository.js';
 import { normalizeTagId } from './aem/tag-id-utils.js';
-import './editors/merch-card-editor.js';
-import './editors/merch-card-collection-editor.js';
-import './editors/mas-compare-chart-editor.js';
 import './mas-variation-dialog.js';
 import { getCountryName, getDefaultLocaleCode, getLocaleByCode } from '../../io/www/src/fragment/locales.js';
+import Events from './events.js';
 import { branch2Icon } from './icons.js';
+import { getActiveMerchCardEditor } from './editors/editor-utils.js';
 
 const MODEL_WEB_COMPONENT_MAPPING = {
     [CARD_MODEL_PATH]: 'merch-card',
@@ -671,6 +669,42 @@ export default class MasFragmentEditor extends LitElement {
         // Guard against re-entering initFragment() on every store-driven rerender while loading.
         if (this.#shouldInitFragment()) {
             this.initFragment();
+        }
+    }
+
+    updated(changedProperties) {
+        super.updated?.(changedProperties);
+        this.#preloadEditorModule();
+    }
+
+    #preloadEditorModule() {
+        switch (this.fragment?.model?.path) {
+            case CARD_MODEL_PATH:
+                if (!customElements.get('merch-card-editor')) {
+                    import('./editors/merch-card-editor.js')
+                        .then(() => this.requestUpdate())
+                        .catch(() => Events.toast.emit({ variant: 'negative', content: 'Failed to load merch card editor' }));
+                }
+                break;
+            case COLLECTION_MODEL_PATH:
+                if (this.isCompareChart) {
+                    if (!customElements.get('mas-compare-chart-editor')) {
+                        import('./editors/mas-compare-chart-editor.js')
+                            .then(() => this.requestUpdate())
+                            .catch(() =>
+                                Events.toast.emit({ variant: 'negative', content: 'Failed to load compare chart editor' }),
+                            );
+                    }
+                } else {
+                    if (!customElements.get('merch-card-collection-editor')) {
+                        import('./editors/merch-card-collection-editor.js')
+                            .then(() => this.requestUpdate())
+                            .catch(() =>
+                                Events.toast.emit({ variant: 'negative', content: 'Failed to load collection editor' }),
+                            );
+                    }
+                }
+                break;
         }
     }
 

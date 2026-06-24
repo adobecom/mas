@@ -41,7 +41,7 @@ export function getFragmentPartsToUse(store, fragment) {
                 customerSegment: fragment?.getTagTitle('customer_segment'),
                 product_code:
                     fragment?.getCurrentTagTitle?.(MAS_PRODUCT_CODE_PREFIX) || fragment?.getTagTitle?.('mas:product/'),
-                promotion: fragment?.getTagTitle(TAG_PROMOTION_PREFIX),
+                promotion: fragment?.getCurrentTagTitle?.(TAG_PROMOTION_PREFIX),
             };
 
             VARIANTS.forEach((variant) => {
@@ -1112,12 +1112,20 @@ export default class EditorPanel extends LitElement {
         if (this.showEditor) {
             switch (this.fragment.model.path) {
                 case COLLECTION_MODEL_PATH:
-                    editor = html` <merch-card-collection-editor
-                        .fragmentStore=${this.fragmentStore}
-                        .updateFragment=${this.updateFragment}
-                        .localeDefaultFragment=${this.localeDefaultFragment}
-                        .isVariation=${this.editorContextStore.isVariation(this.fragment?.id)}
-                    ></merch-card-collection-editor>`;
+                    if (!customElements.get('merch-card-collection-editor')) {
+                        import('./editors/merch-card-collection-editor.js')
+                            .then(() => this.requestUpdate())
+                            .catch(() => {
+                                Events.toast.emit({ variant: 'negative', content: 'Failed to load collection editor' });
+                            });
+                    } else {
+                        editor = html` <merch-card-collection-editor
+                            .fragmentStore=${this.fragmentStore}
+                            .updateFragment=${this.updateFragment}
+                            .localeDefaultFragment=${this.localeDefaultFragment}
+                            .isVariation=${this.editorContextStore.isVariation(this.fragment?.id)}
+                        ></merch-card-collection-editor>`;
+                    }
                     break;
             }
         }

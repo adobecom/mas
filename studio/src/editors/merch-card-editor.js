@@ -26,6 +26,7 @@ import { getGlobalSettingsDefaults } from '../settings/settings-store.js';
 import { fieldStatusStyles } from '../common/fields/field-status.css.js';
 import { getLocaleByCode } from '../../../io/www/src/fragment/locales.js';
 import { parseBizProWhatsIncluded, serializeBizProWhatsIncluded } from '../utils/bizpro-whats-included.js';
+import { getActiveMerchCardEditor } from './editor-utils.js';
 
 const QUANTITY_MODEL = 'quantitySelect';
 const WHAT_IS_INCLUDED = 'whatsIncluded';
@@ -37,10 +38,6 @@ function isEditorPriceElement(element) {
     if (element.closest('#preview-wrapper')) return true;
     const host = element.getRootNode()?.host;
     return host?.nodeName === 'RTE-FIELD' && !!host.closest('merch-card-editor');
-}
-
-export function getActiveMerchCardEditor() {
-    return document.querySelector('merch-card-editor');
 }
 
 function groupedPreviewLocaleProvider(element, options) {

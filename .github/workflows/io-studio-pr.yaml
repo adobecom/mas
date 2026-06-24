@@ -4,6 +4,7 @@ on:
         types: [opened, synchronize, reopened]
         paths:
             - 'io/studio/**'
+            - '.github/workflows/io-studio-pr.yaml'
 
 jobs:
     tests:

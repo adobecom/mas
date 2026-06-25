@@ -661,7 +661,7 @@ export class MasRepository extends LitElement {
                     Store.fragments.highlightedVariationId.set(query);
                     Store.fragments.variationSearchTab.set(tab);
                 } else {
-                    Store.fragments.expandedId.set(null);
+                    Store.fragments.expandedId.set(fragmentData?.id ?? null);
                     Store.fragments.highlightedVariationId.set(null);
                     Store.fragments.variationSearchTab.set(null);
                 }

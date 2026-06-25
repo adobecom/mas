@@ -20,12 +20,13 @@ import {
     extractSurfaceFromPath,
     generateCodeToUse,
     getFragmentMapping,
+    getFragmentPartsToUse,
     hasNonEmptyCompareChart,
     replaceLocaleInPath,
     showToast,
+    MODEL_WEB_COMPONENT_MAPPING,
 } from './utils.js';
 import { getSpectrumVersion } from './constants/icon-library.js';
-import { getFragmentPartsToUse } from './editor-panel.js';
 import {
     getPromotionTagFromFragment,
     getPromoNameFromTag,
@@ -40,12 +41,6 @@ import './mas-variation-dialog.js';
 import { getCountryName, getDefaultLocaleCode, getLocaleByCode } from '../../io/www/src/fragment/locales.js';
 import Events from './events.js';
 import { branch2Icon } from './icons.js';
-import { getActiveMerchCardEditor } from './editors/editor-utils.js';
-
-const MODEL_WEB_COMPONENT_MAPPING = {
-    [CARD_MODEL_PATH]: 'merch-card',
-    [COLLECTION_MODEL_PATH]: 'merch-card-collection',
-};
 
 // Returns locale codes extracted from the fragment's pznTags field.
 export function getGroupedPreviewLocaleCodes(fragment) {
@@ -83,7 +78,7 @@ export function syncGroupedVariationRegion(fragment, parentLocale) {
         changed = true;
     }
 
-    const editor = getActiveMerchCardEditor();
+    const editor = document.querySelector('merch-card-editor');
     if (editor && editor.previewLocaleOverride !== previewLocale) {
         editor.previewLocaleOverride = previewLocale;
         changed = true;
@@ -1404,7 +1399,7 @@ export default class MasFragmentEditor extends LitElement {
 
         this.fragmentStore.updateField(fieldName, value);
         if (fieldName === 'promoCode') {
-            getActiveMerchCardEditor()?.refreshRenderedPrices?.();
+            this.querySelector('merch-card-editor')?.refreshRenderedPrices?.();
         }
     }
 
@@ -1799,7 +1794,7 @@ export default class MasFragmentEditor extends LitElement {
     }
 
     #handleGroupedPreviewLocaleChange = (event) => {
-        const editor = getActiveMerchCardEditor();
+        const editor = document.querySelector('merch-card-editor');
         if (!editor) return;
         const previewLocale = event.target.value || null;
         editor.previewLocaleOverride = previewLocale;
@@ -1826,7 +1821,7 @@ export default class MasFragmentEditor extends LitElement {
     };
 
     get groupedPreviewLocaleSelector() {
-        const editor = getActiveMerchCardEditor();
+        const editor = document.querySelector('merch-card-editor');
         const locales = editor?.groupedPreviewLocales || [];
         if (!locales.length) return nothing;
 
@@ -1986,7 +1981,7 @@ export default class MasFragmentEditor extends LitElement {
                 const surface = searchSurface || surfaceFromPath;
                 fragmentParts = surface ? `${surface} / ${this.localeDefaultFragment.title}` : this.localeDefaultFragment.title;
             } else {
-                fragmentParts = getFragmentPartsToUse(Store, this.fragment).fragmentParts || '';
+                fragmentParts = getFragmentPartsToUse(this.fragment, Store.search.value.path).fragmentParts || '';
             }
             if (!fragmentParts) return nothing;
             return html`<p id="author-path">${modelName}: ${fragmentParts}</p>`;

@@ -5511,8 +5511,15 @@ merch-card[variant="product"] a.spectrum-Link--secondary {
   color: inherit;
 }
 
+merch-card[variant="product"] a.secondary-link {
+  color: #000;
+  text-decoration: underline;
+}
+
 merch-card[variant="product"][id] span[data-template="legal"] {
-    display: block;
+    display: flex;
+    flex-direction: column;
+    margin-top: 8px;
     color: var(----merch-color-grey-80);
     font-size: 14px;
     font-style: italic;
@@ -5521,7 +5528,7 @@ merch-card[variant="product"][id] span[data-template="legal"] {
 }
 
 merch-card[variant="product"][id] .price-unit-type:not(.disabled)::before {
-    content: "";
+    content: "\xA0";
 }
 
 merch-card[variant="product"] [slot="footer"] a.con-button.primary {
@@ -5621,6 +5628,12 @@ merch-card[variant="product"] {
     }
 }
 
+merch-card[variant="product"] .merch-short-description {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
 merch-card[variant="product"] .merch-short-description .icon-button {
     position: relative;
     display: inline-flex;
@@ -5678,6 +5691,14 @@ merch-card[variant="product"] .merch-short-description .icon-button.tooltip-visi
 }
 
 @media screen and ${X} {
+    merch-card[variant="product"] .merch-short-description {
+        display: inline-block;
+    }
+
+    merch-card[variant="product"] .merch-short-description .icon-button {
+        vertical-align: middle;
+    }
+
     merch-card[variant="product"] .merch-short-description .icon-button::before {
         top: unset;
         left: calc(50% - 120px);
@@ -5702,7 +5723,6 @@ merch-card[variant="product"] .merch-short-description .icon-button.tooltip-visi
             <div class="body" aria-live="polite">
                 <slot name="icons"></slot>
                 <slot name="heading-xs"></slot>
-                <slot name="body-xxs"></slot>
                 ${this.promoBottom?"":Ea`<slot name="promo-text"></slot>`}
                 <slot name="body-xs"></slot>
                 <slot name="addon"></slot>
@@ -5714,7 +5734,7 @@ merch-card[variant="product"] .merch-short-description .icon-button.tooltip-visi
                 <slot name="badge"></slot>
             </div>
             <hr />
-            ${this.secureLabelFooter}`}connectedCallbackHook(){this.handleResize=()=>{v(this,we)&&cancelAnimationFrame(v(this,we)),L(this,we,requestAnimationFrame(()=>{L(this,we,null),this.postCardUpdateHook()}))},this.adjustShortDescriptionBound=this.adjustShortDescription.bind(this),window.addEventListener("resize",this.handleResize),this.card.addEventListener(ae,this.updatePriceQuantity),this.card.addEventListener(cr,this.adjustShortDescriptionBound)}disconnectedCallbackHook(){this.handleResize&&(window.removeEventListener("resize",this.handleResize),this.handleResize=null),v(this,we)&&(cancelAnimationFrame(v(this,we)),L(this,we,null)),this.card.removeEventListener(ae,this.updatePriceQuantity),this.card.removeEventListener(cr,this.adjustShortDescriptionBound)}adjustShortDescription(){let t=this.card.querySelector('[slot="short-description"]');if(!t?.textContent?.trim())return;let a=this.card.querySelector('span[data-template="legal"]');if(!a)return;a.querySelector(".merch-short-description")?.remove();let i=document.createElement("span");i.className="merch-short-description";let n=t.querySelector("p")??t;i.innerHTML=`\xA0${n.innerHTML}`,i.querySelectorAll(".icon-button").forEach(o=>{o.dataset.eventsWired||(o.dataset.eventsWired="1",["mouseenter","focus"].forEach(c=>o.addEventListener(c,()=>o.classList.add("tooltip-visible"))),["mouseleave","blur"].forEach(c=>o.addEventListener(c,()=>o.classList.remove("tooltip-visible"))),o.addEventListener("keydown",c=>{c.key==="Escape"&&o.classList.remove("tooltip-visible")}))});let s=a.querySelector(".price-plan-type");s?s.after(i):a.appendChild(i)}async postCardUpdateHook(){this.card.isConnected&&(this.adjustAddon(),k.isMobile||this.adjustProductBodySlots(),this.legalAdjusted||await this.adjustLegal(),await super.postCardUpdateHook())}async adjustLegal(){if(!(this.legalAdjusted||!this.card.id))try{this.legalAdjusted=!0,await this.card.updateComplete,await customElements.whenDefined("inline-price");let t=this.mainPrice;if(!t)return;let a=t.cloneNode(!0);if(await t.onceSettled(),!t?.options)return;t.options.displayPerUnit&&(t.dataset.displayPerUnit="false"),t.options.displayTax&&(t.dataset.displayTax="false"),t.options.displayPlanType&&(t.dataset.displayPlanType="false"),a.setAttribute("data-template","legal"),t.closest('[slot="heading-xs"]').appendChild(a),await a.onceSettled()}catch{}}get headingXSSlot(){return this.card.shadowRoot.querySelector('slot[name="heading-xs"]').assignedElements()[0]}get mainPrice(){return this.card.querySelector(`[slot="heading-xs"] ${W}[data-template="price"]`)}updatePriceQuantity({detail:t}){!this.mainPrice||!t?.option||(this.mainPrice.dataset.quantity=t.option)}toggleAddon(t){let a=this.mainPrice,i=this.headingXSSlot;if(!a&&i){let n=t?.getAttribute("plan-type"),s=null;if(t&&n&&(s=t.querySelector(`p[data-plan-type="${n}"]`)?.querySelector('span[is="inline-price"]')),this.card.querySelectorAll('p[slot="heading-xs"]').forEach(o=>o.remove()),t.checked){if(s){let o=xe("p",{class:"addon-heading-xs-price-addon",slot:"heading-xs"},s.innerHTML);this.card.appendChild(o)}}else{let o=xe("p",{class:"card-heading",id:"free",slot:"heading-xs"},"Free");this.card.appendChild(o)}}}async adjustAddon(){await this.card.updateComplete;let t=this.card.addon;if(!t)return;let a=this.mainPrice,i=this.card.planType;a&&(await a.onceSettled?.(),i=a.value?.[0]?.planType),i&&(t.planType=i)}};we=new WeakMap,g(st,"variantStyle",hc`
+            ${this.secureLabelFooter}`}connectedCallbackHook(){this.handleResize=()=>{v(this,we)&&cancelAnimationFrame(v(this,we)),L(this,we,requestAnimationFrame(()=>{L(this,we,null),this.postCardUpdateHook()}))},this.adjustShortDescriptionBound=this.adjustShortDescription.bind(this),window.addEventListener("resize",this.handleResize),this.card.addEventListener(ae,this.updatePriceQuantity),this.card.addEventListener(cr,this.adjustShortDescriptionBound)}disconnectedCallbackHook(){this.handleResize&&(window.removeEventListener("resize",this.handleResize),this.handleResize=null),v(this,we)&&(cancelAnimationFrame(v(this,we)),L(this,we,null)),this.card.removeEventListener(ae,this.updatePriceQuantity),this.card.removeEventListener(cr,this.adjustShortDescriptionBound)}adjustShortDescription(){let t=this.card.querySelector('[slot="short-description"]');if(!t?.textContent?.trim())return;let a=this.card.querySelector('span[data-template="legal"]');if(!a)return;a.querySelector(".merch-short-description")?.remove();let i=document.createElement("span");i.className="merch-short-description";let n=t.querySelector("p")??t;i.innerHTML=n.innerHTML,i.querySelectorAll(".icon-button").forEach(o=>{o.dataset.eventsWired||(o.dataset.eventsWired="1",["mouseenter","focus"].forEach(c=>o.addEventListener(c,()=>o.classList.add("tooltip-visible"))),["mouseleave","blur"].forEach(c=>o.addEventListener(c,()=>o.classList.remove("tooltip-visible"))),o.addEventListener("keydown",c=>{c.key==="Escape"&&o.classList.remove("tooltip-visible")}))});let s=a.querySelector(".price-plan-type");s?s.after(i):a.appendChild(i)}async postCardUpdateHook(){this.card.isConnected&&(this.adjustAddon(),k.isMobile||this.adjustProductBodySlots(),this.legalAdjusted||await this.adjustLegal(),await super.postCardUpdateHook())}async adjustLegal(){if(!(this.legalAdjusted||!this.card.id))try{this.legalAdjusted=!0,await this.card.updateComplete,await customElements.whenDefined("inline-price");let t=this.mainPrice;if(!t)return;let a=t.cloneNode(!0);if(await t.onceSettled(),!t?.options)return;t.options.displayTax&&(t.dataset.displayTax="false"),t.options.displayPlanType&&(t.dataset.displayPlanType="false"),a.setAttribute("data-template","legal"),t.closest('[slot="heading-xs"]').appendChild(a),await a.onceSettled(),a.querySelector(".price-unit-type")?.remove()}catch{}}get headingXSSlot(){return this.card.shadowRoot.querySelector('slot[name="heading-xs"]').assignedElements()[0]}get mainPrice(){return this.card.querySelector(`[slot="heading-xs"] ${W}[data-template="price"]`)}updatePriceQuantity({detail:t}){!this.mainPrice||!t?.option||(this.mainPrice.dataset.quantity=t.option)}toggleAddon(t){let a=this.mainPrice,i=this.headingXSSlot;if(!a&&i){let n=t?.getAttribute("plan-type"),s=null;if(t&&n&&(s=t.querySelector(`p[data-plan-type="${n}"]`)?.querySelector('span[is="inline-price"]')),this.card.querySelectorAll('p[slot="heading-xs"]').forEach(o=>o.remove()),t.checked){if(s){let o=xe("p",{class:"addon-heading-xs-price-addon",slot:"heading-xs"},s.innerHTML);this.card.appendChild(o)}}else{let o=xe("p",{class:"card-heading",id:"free",slot:"heading-xs"},"Free");this.card.appendChild(o)}}}async adjustAddon(){await this.card.updateComplete;let t=this.card.addon;if(!t)return;let a=this.mainPrice,i=this.card.planType;a&&(await a.onceSettled?.(),i=a.value?.[0]?.planType),i&&(t.planType=i)}};we=new WeakMap,g(st,"variantStyle",hc`
         :host([variant='product']) {
             background:
                 linear-gradient(white, white) padding-box,

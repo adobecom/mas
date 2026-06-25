@@ -101,7 +101,6 @@ export class Product extends VariantLayout {
             <div class="body" aria-live="polite">
                 <slot name="icons"></slot>
                 <slot name="heading-xs"></slot>
-                <slot name="body-xxs"></slot>
                 ${!this.promoBottom
                     ? html`<slot name="promo-text"></slot>`
                     : ''}
@@ -171,7 +170,7 @@ export class Product extends VariantLayout {
         const span = document.createElement('span');
         span.className = 'merch-short-description';
         const inner = shortDescEl.querySelector('p') ?? shortDescEl;
-        span.innerHTML = ` ${inner.innerHTML}`;
+        span.innerHTML = inner.innerHTML;
         span.querySelectorAll('.icon-button').forEach((btn) => {
             if (btn.dataset.eventsWired) return;
             btn.dataset.eventsWired = '1';
@@ -225,8 +224,6 @@ export class Product extends VariantLayout {
 
             if (!headingPrice?.options) return;
 
-            if (headingPrice.options.displayPerUnit)
-                headingPrice.dataset.displayPerUnit = 'false';
             if (headingPrice.options.displayTax)
                 headingPrice.dataset.displayTax = 'false';
             if (headingPrice.options.displayPlanType)
@@ -235,6 +232,7 @@ export class Product extends VariantLayout {
             legal.setAttribute('data-template', 'legal');
             headingPrice.closest('[slot="heading-xs"]').appendChild(legal);
             await legal.onceSettled();
+            legal.querySelector('.price-unit-type')?.remove();
         } catch {
             // Proceed with other adjustments
         }

@@ -29,8 +29,15 @@ merch-card[variant="product"] a.spectrum-Link--secondary {
   color: inherit;
 }
 
+merch-card[variant="product"] a.secondary-link {
+  color: #000;
+  text-decoration: underline;
+}
+
 merch-card[variant="product"][id] span[data-template="legal"] {
-    display: block;
+    display: flex;
+    flex-direction: column;
+    margin-top: 8px;
     color: var(----merch-color-grey-80);
     font-size: 14px;
     font-style: italic;
@@ -39,7 +46,7 @@ merch-card[variant="product"][id] span[data-template="legal"] {
 }
 
 merch-card[variant="product"][id] .price-unit-type:not(.disabled)::before {
-    content: "";
+    content: " ";
 }
 
 merch-card[variant="product"] [slot="footer"] a.con-button.primary {
@@ -139,6 +146,12 @@ merch-card[variant="product"] {
     }
 }
 
+merch-card[variant="product"] .merch-short-description {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
 merch-card[variant="product"] .merch-short-description .icon-button {
     position: relative;
     display: inline-flex;
@@ -196,6 +209,14 @@ merch-card[variant="product"] .merch-short-description .icon-button.tooltip-visi
 }
 
 @media screen and ${TABLET_DOWN} {
+    merch-card[variant="product"] .merch-short-description {
+        display: inline-block;
+    }
+
+    merch-card[variant="product"] .merch-short-description .icon-button {
+        vertical-align: middle;
+    }
+
     merch-card[variant="product"] .merch-short-description .icon-button::before {
         top: unset;
         left: calc(50% - 120px);

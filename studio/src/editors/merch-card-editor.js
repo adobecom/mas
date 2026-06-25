@@ -2269,7 +2269,7 @@ class MerchCardEditor extends LitElement {
 
     static #ADDON_GRADIENT =
         'linear-gradient(211deg, rgb(245, 246, 253) 33.52%, rgb(248, 241, 248) 67.33%, rgb(249, 233, 237) 110.37%)';
-    static #ADDON_GREY = 'var(--consonant-merch-card-border-color)';
+    static #ADDON_GREY = '#dadada';
 
     #getAddonBackground(addonHtml) {
         if (!addonHtml) return undefined;
@@ -2319,10 +2319,7 @@ class MerchCardEditor extends LitElement {
                     </sp-menu-item>
                     <sp-menu-item value="Grey">
                         <div class="menu-item-container">
-                            <div
-                                class="color-swatch"
-                                style="--swatch-bg: var(--consonant-merch-card-border-color, #dadada)"
-                            ></div>
+                            <div class="color-swatch" style="--swatch-bg: #dadada"></div>
                             <span class="color-name-text">Grey</span>
                         </div>
                     </sp-menu-item>

@@ -246,6 +246,14 @@ export const styles = css`
         gap: 8px;
     }
 
+    ::slotted(.modal-trigger) {
+        cursor: pointer;
+    }
+
+    ::slotted(.modal-trigger:hover) {
+        text-decoration: underline;
+    }
+
     ::slotted([slot='price']) {
         color: var(--consonant-merch-card-price-color);
     }

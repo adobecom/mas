@@ -3,6 +3,7 @@ import ReactiveController from './reactivity/reactive-controller.js';
 import { extractLocaleFromPath, generateCodeToUse, getService, showToast, previewFragmentOnPage } from './utils.js';
 import { getFragmentName } from './translation/translation-utils.js';
 import Store, { toggleSelection } from './store.js';
+import { shouldIgnoreRowClickForSelection } from './common/utils/render-utils.js';
 import { closePreview, openPreview } from './mas-card-preview.js';
 import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH } from './constants.js';
 import { MasRepository } from './mas-repository.js';
@@ -186,6 +187,12 @@ class MasFragmentTable extends LitElement {
         toggleSelection(this.fragmentStore.value.id);
     }
 
+    handleNestedRowClick(event) {
+        if (!this.nested || !Store.selecting.get()) return;
+        if (shouldIgnoreRowClickForSelection(event)) return;
+        toggleSelection(this.fragmentStore.value.id);
+    }
+
     getTruncatedOfferId() {
         const offerId = this.offerData?.offerId;
         if (!offerId || offerId.length <= 5) return offerId;
@@ -220,21 +227,27 @@ class MasFragmentTable extends LitElement {
                 : ''}
             <sp-table-row
                 value="${this.nested ? '' : data.id}"
-                class="${this.expanded ? 'expanded' : ''} ${this.failedPrice ? 'price-failed' : ''}"
+                class="${this.expanded ? 'expanded' : ''} ${this.failedPrice ? 'price-failed' : ''} ${this.nested &&
+                Store.selecting.get()
+                    ? 'selectable-row'
+                    : ''}"
+                @click=${this.handleNestedRowClick}
             >
-                ${this.nested && this.toggleExpand && Store.selecting.get()
-                    ? html`<sp-table-cell class="variation-checkbox-cell" @click=${(e) => e.stopPropagation()}>
-                          <sp-checkbox
-                              ?checked=${this.isVariationSelected}
-                              @change=${this.handleVariationSelect}
-                              @click=${(e) => e.stopPropagation()}
-                          ></sp-checkbox>
-                      </sp-table-cell>`
-                    : ''}
                 ${this.nested && !this.toggleExpand
                     ? ''
-                    : html`<sp-table-cell class="expand-cell" @click=${this.toggleExpand}>
-                          <button class="expand-button" aria-label="${this.expanded ? 'Collapse' : 'Expand'} row">
+                    : html`<sp-table-cell class="expand-cell">
+                          ${this.nested && this.toggleExpand && Store.selecting.get()
+                              ? html`<sp-checkbox
+                                    ?checked=${this.isVariationSelected}
+                                    @change=${this.handleVariationSelect}
+                                    @click=${(e) => e.stopPropagation()}
+                                ></sp-checkbox>`
+                              : ''}
+                          <button
+                              class="expand-button"
+                              aria-label="${this.expanded ? 'Collapse' : 'Expand'} row"
+                              @click=${this.toggleExpand}
+                          >
                               ${this.expanded
                                   ? html`<sp-icon-chevron-down></sp-icon-chevron-down>`
                                   : html`<sp-icon-chevron-right></sp-icon-chevron-right>`}

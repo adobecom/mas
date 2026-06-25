@@ -250,6 +250,40 @@ describe('MasFragmentTable', () => {
             el.handleVariationSelect({ stopPropagation: sandbox.stub() });
             expect(Store.selection.get()).to.deep.equal([]);
         });
+
+        it('toggles Store.selection when clicking the nested row', async () => {
+            Store.selecting.set(true);
+            const fragmentStore = createFragmentStore({ id: 'variation-1', locale: 'en_CA' });
+            const el = await fixture(
+                html`<mas-fragment-table .fragmentStore=${fragmentStore} .nested=${true}></mas-fragment-table>`,
+            );
+            await el.updateComplete;
+
+            const titleCell = el.querySelector('sp-table-cell.title');
+            el.handleNestedRowClick({ composedPath: () => [titleCell] });
+            expect(Store.selection.get()).to.deep.equal(['variation-1']);
+
+            el.handleNestedRowClick({ composedPath: () => [titleCell] });
+            expect(Store.selection.get()).to.deep.equal([]);
+        });
+
+        it('does not toggle Store.selection when clicking the expand button', async () => {
+            Store.selecting.set(true);
+            const fragmentStore = createFragmentStore({ id: 'grouped-1' });
+            const toggleExpand = sandbox.stub();
+            const el = await fixture(
+                html`<mas-fragment-table
+                    .fragmentStore=${fragmentStore}
+                    .nested=${true}
+                    .toggleExpand=${toggleExpand}
+                ></mas-fragment-table>`,
+            );
+            await el.updateComplete;
+
+            const expandButton = el.querySelector('.expand-button');
+            el.handleNestedRowClick({ composedPath: () => [expandButton] });
+            expect(Store.selection.get()).to.deep.equal([]);
+        });
     });
 
     describe('grouped/promo variation selection', () => {
@@ -281,7 +315,7 @@ describe('MasFragmentTable', () => {
             expect(el.querySelector('sp-table-cell.expand-cell')).to.exist;
         });
 
-        it('shows checkbox in a separate cell before expand-cell when selecting is active', async () => {
+        it('shows checkbox before expand button in expand-cell when selecting is active', async () => {
             Store.selecting.set(true);
             const fragmentStore = createFragmentStore({ id: 'grouped-1' });
             const toggleExpand = sandbox.stub();
@@ -294,15 +328,17 @@ describe('MasFragmentTable', () => {
             );
             await el.updateComplete;
 
-            const checkboxCell = el.querySelector('sp-table-cell.variation-checkbox-cell');
-            expect(checkboxCell).to.exist;
-            expect(checkboxCell.querySelector('sp-checkbox')).to.exist;
+            expect(el.querySelector('sp-table-cell.variation-checkbox-cell')).to.not.exist;
+            expect(el.querySelector('sp-table-cell.name sp-checkbox')).to.not.exist;
 
-            const cells = el.querySelectorAll('sp-table-cell');
-            const checkboxIndex = Array.from(cells).indexOf(checkboxCell);
             const expandCell = el.querySelector('sp-table-cell.expand-cell');
-            const expandIndex = Array.from(cells).indexOf(expandCell);
-            expect(checkboxIndex).to.be.lessThan(expandIndex);
+            const checkbox = expandCell.querySelector('sp-checkbox');
+            const expandButton = expandCell.querySelector('.expand-button');
+            expect(checkbox).to.exist;
+            expect(expandButton).to.exist;
+
+            const expandChildren = Array.from(expandCell.children);
+            expect(expandChildren.indexOf(checkbox)).to.be.lessThan(expandChildren.indexOf(expandButton));
         });
 
         it('shows fragment name instead of locale when nested with toggleExpand', async () => {
@@ -339,6 +375,24 @@ describe('MasFragmentTable', () => {
 
             el.handleVariationSelect({ stopPropagation: sandbox.stub() });
             expect(Store.selection.get()).to.deep.equal([]);
+        });
+
+        it('toggles Store.selection when clicking a grouped variation row', async () => {
+            Store.selecting.set(true);
+            const fragmentStore = createFragmentStore({ id: 'grouped-1' });
+            const toggleExpand = sandbox.stub();
+            const el = await fixture(
+                html`<mas-fragment-table
+                    .fragmentStore=${fragmentStore}
+                    .nested=${true}
+                    .toggleExpand=${toggleExpand}
+                ></mas-fragment-table>`,
+            );
+            await el.updateComplete;
+
+            const titleCell = el.querySelector('sp-table-cell.title');
+            el.handleNestedRowClick({ composedPath: () => [titleCell] });
+            expect(Store.selection.get()).to.deep.equal(['grouped-1']);
         });
     });
 });

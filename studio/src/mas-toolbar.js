@@ -221,15 +221,16 @@ class MasToolbar extends LitElement {
     }
 
     async openCreateDialog() {
-        if (customElements.get('mas-create-dialog')) return;
-        import('./mas-create-dialog.js')
-            .then(() => {
+        if (!customElements.get('mas-create-dialog')) {
+            try {
+                await import('./mas-create-dialog.js');
                 this.requestUpdate();
-                this.createDialogOpen = true;
-            })
-            .catch(() => {
+            } catch {
                 Events.toast.emit({ variant: 'negative', content: 'Failed to load create dialog' });
-            });
+                return;
+            }
+        }
+        this.createDialogOpen = true;
     }
 
     handleSearchSubmit(ev) {

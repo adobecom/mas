@@ -18,10 +18,8 @@ describe('MasToolbar – openCreateDialog', () => {
 
     it('returns early without modifying state when mas-create-dialog is already registered', async () => {
         sandbox.stub(customElements, 'get').returns(class extends HTMLElement {});
-
         await el.openCreateDialog();
-
-        expect(el.createDialogOpen).to.be.false;
+        expect(el.createDialogOpen).to.be.true;
     });
 
     it('emits a negative toast when the dynamic import fails', async () => {

@@ -1,6 +1,5 @@
 import { LitElement, html, css } from 'lit';
 import { ADOBE_PRODUCTS } from '../constants/adobe-products.js';
-import './rte-field.js';
 
 class RteMnemonicEditor extends LitElement {
     static properties = {

@@ -206,9 +206,7 @@ async function main() {
     // 6. link variations to card-3
     console.log('Linking variations to card-3...');
     const card3Fresh = await getFragmentWithEtag(card3.id);
-    await updateFields(card3Fresh, [
-        { name: 'variations', values: [card3VarCa.path, card3VarIe.path] },
-    ]);
+    await updateFields(card3Fresh, [{ name: 'variations', values: [card3VarCa.path, card3VarIe.path] }]);
 
     await sleep(500);
 

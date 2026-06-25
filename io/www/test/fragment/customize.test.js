@@ -2073,6 +2073,32 @@ describe('customize OSI substitution', function () {
         expect(result.body.fields.promoCode).to.equal('PROMO-FOR-SUB');
     });
 
+    it('should apply promoCode when promoMap is keyed by original (base) OSI — real AEM pattern', async function () {
+        const result = await processWithPromoProjects(
+            {
+                ...FAKE_CONTEXT,
+                fragmentPath: 'test-card',
+                body: {
+                    path: '/content/dam/mas/sandbox/en_US/test-card',
+                    id: 'test-card',
+                    fields: { osi: 'r_BASE-OSI' },
+                    references: {},
+                    referencesTree: [],
+                },
+            },
+            [
+                {
+                    project: MINIMAL_PROJECT,
+                    promoMap: { '*': 'NICOPROMO', 'r_BASE-OSI': 'IPCCSN55P12MINA' },
+                    substituteMap: { 'r_BASE-OSI': 'PW3K57bKr9oyfdtwhnFN' },
+                    fragmentPaths: new Set(['test-card']),
+                },
+            ],
+        );
+        expect(result.status).to.equal(200);
+        expect(result.body.fields.promoCode).to.equal('IPCCSN55P12MINA');
+    });
+
     it('should apply promoCode via substituteMap for array OSI', async function () {
         const result = await processWithPromoProjects(
             {

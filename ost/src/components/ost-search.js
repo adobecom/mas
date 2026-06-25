@@ -165,12 +165,24 @@ export class OstSearch extends LitElement {
             const code = offer?.product_arrangement_code;
             if (code) {
                 store.setSearch(code, 'product');
-                store.setAosParams({
-                    customerSegment: offer.customer_segment,
-                    marketSegment: Array.isArray(offer.market_segments) ? offer.market_segments[0] : offer.market_segment,
-                    offerType: offer.offer_type,
+                store.clearSelectedOffer();
+                // Keep every filter at its "All" default: the resolved offer's
+                // attributes are stashed for autoSelectByInitialOsi instead of
+                // narrowing the visible filter pickers to stale values.
+                store.initialOfferId = offer.offer_id;
+                store.initialOsiAttributes = {
+                    customer_segment: offer.customer_segment,
+                    market_segment: Array.isArray(offer.market_segments) ? offer.market_segments[0] : offer.market_segment,
+                    offer_type: offer.offer_type,
                     commitment: offer.commitment,
                     term: offer.term,
+                };
+                store.setAosParams({
+                    customerSegment: '',
+                    marketSegment: '',
+                    offerType: '',
+                    commitment: '',
+                    term: '',
                 });
                 this.selectProductByCode(code);
             }

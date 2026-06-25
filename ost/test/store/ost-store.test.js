@@ -347,6 +347,32 @@ describe('OstStore', () => {
             expect(store.autoSelectByInitialOsi(segmented)).to.be.true;
             expect(store.selectedOffer.offer_id).to.equal('EDU');
         });
+
+        it('matches by an offer-ID deep link and mints a fresh OSI for the chosen offer', () => {
+            store.initialOsi = undefined;
+            store.initialOfferId = 'B1';
+            store.initialOsiAttributes = {
+                offer_type: 'BASE',
+                commitment: 'YEAR',
+                term: 'MONTHLY',
+                customer_segment: 'INDIVIDUAL',
+            };
+            let resolvedFor;
+            store.autoResolveOsi = (offer) => {
+                resolvedFor = offer;
+            };
+            expect(store.autoSelectByInitialOsi(offers)).to.be.true;
+            expect(store.selectedOffer.offer_id).to.equal('B1');
+            expect(resolvedFor.offer_id).to.equal('B1');
+        });
+
+        it('clearInitialOsi drops a stashed offer-ID deep link so it cannot linger', () => {
+            store.initialOfferId = 'B1';
+            store.initialOsiAttributes = { offer_type: 'BASE' };
+            store.clearInitialOsi();
+            expect(store.initialOfferId).to.equal(undefined);
+            expect(store.autoSelectByInitialOsi(offers)).to.be.false;
+        });
     });
 
     describe('tryBuy trial auto-fill', () => {

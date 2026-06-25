@@ -83,6 +83,10 @@ const SLICES = [
     // commitment, term, segments) — used by autoSelectByInitialOsi to pick the
     // matching offer without narrowing the visible filters away from "All".
     ['initialOsiAttributes', undefined],
+    // Offer ID searched directly (no OSI to reuse) — autoSelectByInitialOsi
+    // matches its attributes like a deep-linked OSI but mints a fresh OSI for
+    // the chosen offer instead of reusing one. Cleared on init/manual select.
+    ['initialOfferId', undefined],
     // Tracks the offer the user had selected before clicking Back/Change so the
     // offer-card render can highlight it as a "previously used" choice.
     ['lastSelectedOfferId', undefined],
@@ -327,6 +331,7 @@ export class OstStore extends EventTarget {
         this.selectedOsi = undefined;
         this.initialOsi = undefined;
         this.initialOsiAttributes = undefined;
+        this.initialOfferId = undefined;
         // 'single' is the safe default: it matches the most common caller
         // (RTE double-click on an existing CTA) and is overridden below for
         // multiSelect / bundleSelect / explicit authoringFlow.
@@ -600,10 +605,13 @@ export class OstStore extends EventTarget {
     // then reuse the searched OSI directly. Returns true when it selected one.
     // This is the single store-owned deep-link/search offer-selection path.
     autoSelectByInitialOsi(offers) {
-        if (!this.initialOsi || offers.length === 0) return false;
+        if ((!this.initialOsi && !this.initialOfferId) || offers.length === 0) return false;
         const attrs = this.initialOsiAttributes;
         let match;
-        if (attrs) {
+        if (this.initialOfferId) {
+            match = offers.find((o) => o.offer_id === this.initialOfferId);
+        }
+        if (!match && attrs) {
             const segmentOf = (o) => (Array.isArray(o.market_segments) ? o.market_segments[0] : o.market_segment);
             const segmentMatches = (o) => !attrs.market_segment || segmentOf(o) === attrs.market_segment;
             // Relax the match progressively — the user may have changed plan
@@ -637,7 +645,11 @@ export class OstStore extends EventTarget {
         const chosen = match ?? (offers.length === 1 ? offers[0] : undefined);
         if (!chosen) return false;
         this.setOffer(chosen);
-        this.setOsi(this.initialOsi);
+        if (this.initialOsi) {
+            this.setOsi(this.initialOsi);
+        } else {
+            this.autoResolveOsi(chosen);
+        }
         return true;
     }
 
@@ -762,6 +774,7 @@ export class OstStore extends EventTarget {
         this.#batch(() => {
             this.initialOsi = undefined;
             this.initialOsiAttributes = undefined;
+            this.initialOfferId = undefined;
         });
     }
 
@@ -864,6 +877,7 @@ export class OstStore extends EventTarget {
 
         this.initialOsi = undefined;
         this.initialOsiAttributes = undefined;
+        this.initialOfferId = undefined;
 
         if (this.authoringFlow === 'single') {
             this.selectedOffer = offer;

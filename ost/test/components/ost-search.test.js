@@ -207,10 +207,11 @@ describe('ost-search', () => {
         expect(store.selectedOsi).to.equal(undefined);
     });
 
-    it('resolveOfferId maps offer fields to AOS params and selects the product', async () => {
+    it('resolveOfferId resets segment filters to All and stashes the offer attributes for auto-select', async () => {
         const el = await fixture(html`<ost-search></ost-search>`);
         const product = { arrangement_code: 'offer-arr', name: 'Acrobat' };
         store.allProducts = [['acro', product]];
+        store.setAosParams({ customerSegment: 'TEAM', marketSegment: 'EDU', offerType: 'TRIAL' });
         window.fetch = async () => ({
             ok: true,
             json: async () => [
@@ -227,9 +228,18 @@ describe('ost-search', () => {
         await el.resolveOfferId('257E1D82082387D152029F93C1030624');
         expect(store.searchQuery).to.equal('offer-arr');
         expect(store.searchType).to.equal('product');
-        expect(store.aosParams.customerSegment).to.equal('INDIVIDUAL');
-        expect(store.aosParams.marketSegment).to.equal('COM');
-        expect(store.aosParams.offerType).to.equal('BASE');
+        expect(store.aosParams.customerSegment).to.equal('');
+        expect(store.aosParams.marketSegment).to.equal('');
+        expect(store.aosParams.offerType).to.equal('');
+        expect(store.aosParams.commitment).to.equal('');
+        expect(store.aosParams.term).to.equal('');
+        expect(store.initialOsiAttributes).to.deep.equal({
+            customer_segment: 'INDIVIDUAL',
+            market_segment: 'COM',
+            offer_type: 'BASE',
+            commitment: 'YEAR',
+            term: 'MONTHLY',
+        });
         expect(store.selectedProduct).to.equal(product);
     });
 

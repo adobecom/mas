@@ -102,14 +102,15 @@ export async function getOfferById(offerId, country, config) {
     const { accessToken, apiKey, baseUrl, env = 'PRODUCTION', environment = 'PRODUCTION', landscape = 'PUBLISHED' } = config;
 
     const base = getBaseUrl(env, baseUrl);
+    // Single-offer lookup is the path form /offers/{id}; the /offers?offer_id=
+    // query param is ignored by AOS and returns an unrelated catalog page.
     const queryParams = {
-        offer_id: offerId,
         country,
         api_key: apiKey,
         environment: normalizeEnvironment(environment),
         landscape,
     };
-    const url = `${base}/offers?${toSearchParams(queryParams)}`;
+    const url = `${base}/offers/${encodeURIComponent(offerId)}?${toSearchParams(queryParams)}`;
 
     const response = await fetch(url, {
         headers: buildHeaders({ accessToken, apiKey }),

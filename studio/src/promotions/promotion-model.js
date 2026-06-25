@@ -137,6 +137,21 @@ export function getPromoNameFromPromoVariationPath(promoPath) {
 }
 
 /**
+ * Extracts promotion name and projectfrom a promo variation fragment.
+ * @param {{ path?: string, tags?: Array<{ id?: string }|string>, getFieldValues?: (name: string) => unknown[] }} variationFragment
+ * @returns {promotionName: string, promoProject: string}
+ */
+export function getPromotionInfo(variationFragment) {
+    const promotionTagId = getPromotionTagFromFragment(variationFragment);
+    const promoProject = getPromoNameFromTag(promotionTagId) || '';
+    const promotionName = variationFragment.tags?.find((tag) => tag.id === promotionTagId)?.title || promoProject;
+    return {
+        promotionName: promotionName || '-',
+        promoProject: promoProject || '-',
+    };
+}
+
+/**
  * True when a fragment is a promo variation by path or mas:promotion/ tag.
  * @param {{ path?: string, tags?: Array<{ id?: string }|string>, getFieldValues?: (name: string) => unknown[] }} fragment
  * @returns {boolean}

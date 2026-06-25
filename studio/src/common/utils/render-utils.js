@@ -3,6 +3,7 @@ import { FRAGMENT_STATUS, CARD_MODEL_PATH, COLLECTION_MODEL_PATH, PAGE_NAMES, DI
 import { Fragment } from '../../aem/fragment.js';
 import Store from '../../store.js';
 import { generateCodeToUse, extractSurfaceFromPath } from '../../utils.js';
+import { isPromoVariationPath } from '../../promotions/promotion-model.js';
 
 /**
  * Studio display path for an item-picker row's "Path" column: the same
@@ -76,6 +77,7 @@ export function renderPromotionStatusCell(promotionStatus) {
 export function getItemTypeLabel(item) {
     if (!item) return 'Unknown';
     if (Fragment.isGroupedVariationPath(item.path)) return 'Grouped variation';
+    if (isPromoVariationPath(item.path)) return 'Promotion';
     if (item.model?.path?.includes(DICTIONARY_MODEL_PATH)) return 'Placeholder';
     if (item.model?.path === COLLECTION_MODEL_PATH) return 'Collection';
     if (item.model?.path === CARD_MODEL_PATH) return 'Default';

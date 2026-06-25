@@ -13,6 +13,7 @@ import {
     loadSelectedFragments,
 } from '../utils/items-loader.js';
 import { shouldIgnoreRowClickForSelection, getStudioFragmentDisplayPath } from '../utils/render-utils.js';
+import { fragmentIsPromoVariation } from '../../promotions/promotion-model.js';
 
 class MasSelectItemsTable extends LitElement {
     static styles = styles;
@@ -30,6 +31,7 @@ class MasSelectItemsTable extends LitElement {
         disableGroupedVariationSelection: { type: Boolean },
         hideLocaleTab: { type: Boolean },
         disableLocaleVariations: { type: Boolean },
+        hidePromoVariations: { type: Boolean },
     };
 
     hasMore = new StoreController(this, Store.fragments.list.hasMore);
@@ -59,6 +61,7 @@ class MasSelectItemsTable extends LitElement {
         this.disableGroupedVariationSelection = false;
         this.hideLocaleTab = false;
         this.disableLocaleVariations = false;
+        this.hidePromoVariations = false;
     }
 
     connectedCallback() {
@@ -198,10 +201,8 @@ class MasSelectItemsTable extends LitElement {
     get itemsToDisplay() {
         const store = getItemsSelectionStore({ allowUnset: true });
         if (!store) return [];
-        if (this.viewOnly) {
-            return this.viewOnlyFragments;
-        }
-        return store[`display${this.typeUppercased}`].value;
+        const items = this.viewOnly ? this.viewOnlyFragments : store[`display${this.typeUppercased}`].value;
+        return this.hidePromoVariations ? items.filter((item) => !fragmentIsPromoVariation(item)) : items;
     }
 
     get selectedInTable() {

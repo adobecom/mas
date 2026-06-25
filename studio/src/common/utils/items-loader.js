@@ -489,6 +489,37 @@ export async function loadCardVariations(cardPath, variationPaths, repository, {
 }
 
 /**
+ * Enriches raw promo variation references with studioPath and offerData.
+ * @param {Array<Object>} promoVariations - Raw AEM fragment references
+ * @param {Object} parentCard - Parent card fragment (source of fallback OSI)
+ * @param {Function} options.getDisplayName - Display label for a Fragment
+ * @returns {Promise<Array<Object>>}
+ */
+export async function enrichPromoVariations(promoVariations, parentCard, { getDisplayName } = {}) {
+    if (!promoVariations?.length || !parentCard) return [];
+
+    const parentWcsOsi = new Fragment(parentCard).getFieldValue('osi');
+    const store = getItemsSelectionStore({ allowUnset: true });
+    const cache = store?.offerDataCache;
+
+    const offerDataResults = await processConcurrently(
+        promoVariations,
+        (variation) =>
+            loadOfferData(variation, {
+                cache,
+                fallbackWcsOsi: parentWcsOsi,
+            }),
+        VARIATIONS_CONCURRENCY_LIMIT,
+    );
+
+    return promoVariations.map((variation, i) => ({
+        ...variation,
+        studioPath: getDisplayName(new Fragment(variation)),
+        offerData: offerDataResults[i] ?? null,
+    }));
+}
+
+/**
  * Resolves the parent card's WCS OSI for fallback. Checks the cards cache first,
  * then fetches the parent from AEM if needed (single fetch).
  * @param {Object} variation - Variation fragment payload

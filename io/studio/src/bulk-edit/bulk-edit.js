@@ -48,9 +48,9 @@ function buildFindReport(results) {
 function buildExportPaths(jobId) {
     const base = `${EXPORT_ROOT}/${jobId}`;
     return {
-        json: `${base}/results.json`,
-        csv: `${base}/results.csv`,
-        fullJson: `${base}/results-full.json`,
+        json: `${base}.json`,
+        csv: `${base}.csv`,
+        fullJson: `${base}-full.json`,
     };
 }
 
@@ -456,12 +456,12 @@ async function main(params) {
             if (isCsvUpload(params)) {
                 return handleCsvUpload({ ...params, allowedClientId: params.allowedClientId });
             }
-            const body = parseOwBody(params);
-            body.allowedClientId = params.allowedClientId;
-            body.odinEndpoint = params.odinEndpoint;
-            body.__ow_headers = params.__ow_headers;
-            body.type = 'find';
-            return await handlePost(body);
+            const request = parseOwBody(params);
+            request.allowedClientId = params.allowedClientId;
+            request.odinEndpoint = params.odinEndpoint;
+            request.__ow_headers = params.__ow_headers;
+            request.type = 'find';
+            return await handlePost(request);
         }
         if (method === 'get') return await handleGet(params);
         if (method === 'delete') {
@@ -511,4 +511,3 @@ module.exports = {
     exportPresignUrl,
     exportRedirectResponse,
 };
-exports.main = main;

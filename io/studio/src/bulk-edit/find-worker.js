@@ -112,4 +112,3 @@ async function main(params) {
 }
 
 module.exports = { main, runFindWorker, buildFindResult, buildFindReport, finalizeFindExport };
-exports.main = main;

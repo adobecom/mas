@@ -6,7 +6,8 @@ function fetchResponse(body) {
     return { ok: true, status: 200, statusText: 'OK', json: async () => body };
 }
 
-const commonStub = { fetchOdin: async () => ({}), getValues: () => null };
+const { CARD_MODEL_ID, COLLECTION_MODEL_ID } = require('../../src/common.js');
+const commonStub = { fetchOdin: async () => ({}), getValues: () => null, CARD_MODEL_ID, COLLECTION_MODEL_ID };
 const load = (overrides = {}) =>
     proxyquire('../../src/bulk-edit/search.js', { '../common.js': { ...commonStub, ...overrides } });
 
@@ -254,6 +255,16 @@ describe('bulk-edit/search: searchPages', () => {
         expect(fetchOdinStub.getCall(0).args[1]).to.contain('/adobe/sites/cf/fragments/search?');
         expect(fetchOdinStub.getCall(0).args[1]).to.contain('query=');
         expect(fetchOdinStub.getCall(1).args[1]).to.contain('cursor=c1');
+    });
+
+    it('sends the bulk-edit User-Agent on recall requests', async () => {
+        const fetchOdinStub = sinon.stub();
+        fetchOdinStub.onCall(0).resolves(fetchResponse({ items: [{ id: 'a' }], cursor: null }));
+        const mod = load({ fetchOdin: fetchOdinStub });
+
+        await collectIds(mod.searchPages);
+
+        expect(fetchOdinStub.getCall(0).args[3]).to.deep.equal({ userAgent: 'mas-bulk-edit' });
     });
 
     it('propagates fetchOdin errors', async () => {

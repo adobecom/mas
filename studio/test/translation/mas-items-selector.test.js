@@ -543,7 +543,7 @@ describe('MasItemsSelector', () => {
             const search = el.shadowRoot.querySelector('sp-search');
             search.value = value;
             search.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
-            await new Promise((resolve) => setTimeout(resolve, 0));
+            await Promise.resolve();
             await el.updateComplete;
         };
 

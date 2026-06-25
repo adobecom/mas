@@ -35,6 +35,7 @@ import {
     isPromoVariationPath,
 } from './promotions/promotion-model.js';
 import { splitPromotionTagsFieldValues } from './promotions/promotion-editor-utils.js';
+import { applySearchSurfaceFromPath } from './common/utils/render-utils.js';
 import * as promotionsRepository from './promotions/promotions-repository.js';
 import { normalizeTagId } from './aem/tag-id-utils.js';
 import './editors/merch-card-editor.js';
@@ -1305,8 +1306,7 @@ export default class MasFragmentEditor extends LitElement {
         // Reset changes to avoid discard dialog since we're navigating to the parent
         Store.editor.resetChanges();
         Store.promotions.promotionId.set(null);
-        const surface = extractSurfaceFromPath(parentPath);
-        if (surface) Store.search.set((prev) => ({ ...prev, path: surface }));
+        applySearchSurfaceFromPath(parentPath);
         if (parentLocale) {
             Store.removeRegionOverride();
             // Also update the locale filter to match the parent fragment's locale

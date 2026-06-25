@@ -2,7 +2,7 @@ import { LitElement, html, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import ReactiveController from '../../reactivity/reactive-controller.js';
 import { getItemsSelectionStore } from '../items-selection-store.js';
-import { CARD_MODEL_PATH, TABLE_TYPE } from '../../constants.js';
+import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, TABLE_TYPE } from '../../constants.js';
 import { toggleSidebarIcon } from '../../icons.js';
 import { Fragment } from '../../aem/fragment.js';
 import { renderFragmentStatusCell, getStudioFragmentDisplayPath } from '../utils/render-utils.js';
@@ -10,7 +10,7 @@ import './mas-select-items-table.js';
 import './mas-selected-items.js';
 import './mas-search-and-filters.js';
 import { styles } from './mas-items-selector.css.js';
-import { debounce } from '../../utils.js';
+import { debounce, parseStudioDeepLinksFromText } from '../../utils.js';
 
 export const TABS = [
     { value: TABLE_TYPE.CARDS, label: 'Fragments' },
@@ -97,22 +97,6 @@ class MasItemsSelector extends LitElement {
         return type.charAt(0).toUpperCase() + type.slice(1);
     }
 
-    #queryFromMerchCardStudioUrl(value) {
-        const trimmed = String(value || '').trim();
-        if (!trimmed) return '';
-        let url;
-        try {
-            url = new URL(trimmed, window.location.origin);
-        } catch {
-            return '';
-        }
-        const hash = url.hash?.replace(/^#/, '');
-        if (!hash) return '';
-        const params = new URLSearchParams(hash);
-        if (params.get('content-type') !== 'merch-card') return '';
-        return params.get('query')?.trim() || '';
-    }
-
     #upsertDisplayCard(fragmentData) {
         if (!fragmentData?.path || fragmentData.model?.path !== CARD_MODEL_PATH) return;
         const store = getItemsSelectionStore();
@@ -128,24 +112,74 @@ class MasItemsSelector extends LitElement {
     }
 
     #appendSelectedCard(fragment) {
-        if (!fragment?.path) return;
+        if (!fragment?.path) return false;
         const store = getItemsSelectionStore();
         const selectedCards = store.selectedCards.value || [];
-        if (selectedCards.includes(fragment.path)) return;
+        if (selectedCards.includes(fragment.path)) return false;
         if (selectedCards.length >= this.maxSelectedCards) {
             this.#openToast(`You can select up to ${this.maxSelectedCards} cards.`, 'negative');
-            return;
+            return false;
         }
         store.selectedCards.set([...selectedCards, fragment.path]);
+        return true;
     }
 
-    async #handleMerchCardUrl(value, search) {
-        const id = this.#queryFromMerchCardStudioUrl(value);
-        if (!id) return false;
+    #upsertDisplayCollection(fragmentData) {
+        if (!fragmentData?.path || fragmentData.model?.path !== COLLECTION_MODEL_PATH) return;
+        const store = getItemsSelectionStore();
+        const fragment = {
+            ...fragmentData,
+            studioPath: this.getDisplayName(new Fragment(fragmentData)),
+        };
+        const upsert = (items = []) => [fragment, ...items.filter((item) => item.path !== fragment.path)];
+        store.collectionsByPaths.set(new Map(store.collectionsByPaths.value).set(fragment.path, fragment));
+        store.displayCollections.set(upsert(store.displayCollections.value));
+        store.allCollections.set(upsert(store.allCollections.value));
+        return fragment;
+    }
+
+    #appendSelectedCollection(fragment) {
+        if (!fragment?.path) return false;
+        const store = getItemsSelectionStore();
+        const selectedCollections = store.selectedCollections.value || [];
+        if (selectedCollections.includes(fragment.path)) return false;
+        store.selectedCollections.set([...selectedCollections, fragment.path]);
+        return true;
+    }
+
+    async #handleStudioUrls(value, search) {
+        const all = parseStudioDeepLinksFromText(value);
+        if (!all.length) return false;
+        const parsed = all.filter(({ contentType }) =>
+            this.allowedTypes.includes(contentType === 'merch-card' ? TABLE_TYPE.CARDS : TABLE_TYPE.COLLECTIONS),
+        );
         search.value = '';
         this.searchQuery = '';
-        const fragment = await this.repository?.aem?.sites?.cf?.fragments?.getById?.(id);
-        this.#appendSelectedCard(this.#upsertDisplayCard(fragment));
+        if (!parsed.length) {
+            this.#openToast('URL type not supported', 'negative');
+            return true;
+        }
+        let added = 0;
+        let failed = 0;
+        await Promise.all(
+            parsed.map(async ({ contentType, fragmentId }) => {
+                try {
+                    const fragment = await this.repository?.aem?.sites?.cf?.fragments?.getById?.(fragmentId);
+                    const isCard = contentType === 'merch-card';
+                    const display = isCard ? this.#upsertDisplayCard(fragment) : this.#upsertDisplayCollection(fragment);
+                    if (isCard ? this.#appendSelectedCard(display) : this.#appendSelectedCollection(display)) added++;
+                } catch {
+                    failed++;
+                }
+            }),
+        );
+        if (added > 0 && failed === 0) {
+            this.#openToast(added === 1 ? 'Fragment added' : `${added} fragments added`, 'positive');
+        } else if (added > 0 && failed > 0) {
+            this.#openToast(`${added} added, ${failed} not found`, 'negative');
+        } else if (failed > 0) {
+            this.#openToast(failed === 1 ? 'Fragment not found' : `${failed} fragments not found`, 'negative');
+        }
         return true;
     }
 
@@ -160,7 +194,7 @@ class MasItemsSelector extends LitElement {
     async #handleSearchInput(e) {
         const search = e.currentTarget;
         const value = search?.value ?? '';
-        if (this.selectedTab === TABLE_TYPE.CARDS && (await this.#handleMerchCardUrl(value, search))) return;
+        if (await this.#handleStudioUrls(value, search)) return;
         this.#setSearchQuery(value);
     }
 
@@ -168,7 +202,7 @@ class MasItemsSelector extends LitElement {
         e.preventDefault();
         const search = e.currentTarget;
         const value = search?.value ?? '';
-        if (this.selectedTab === TABLE_TYPE.CARDS && (await this.#handleMerchCardUrl(value, search))) return;
+        if (await this.#handleStudioUrls(value, search)) return;
         this.searchQuery = value;
     }
 
@@ -185,7 +219,9 @@ class MasItemsSelector extends LitElement {
     }
 
     #openToast(text, variant = 'info') {
-        const toast = this.shadowRoot.querySelector('sp-toast');
+        const toast =
+            this.shadowRoot.querySelector(`sp-tab-panel[value="${this.selectedTab}"] sp-toast`) ??
+            this.shadowRoot.querySelector('sp-toast');
         if (toast) {
             toast.textContent = text;
             toast.variant = variant;

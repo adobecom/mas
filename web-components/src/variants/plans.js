@@ -431,6 +431,10 @@ export class Plans extends VariantLayout {
             min-height: unset;
         }
 
+        :host([variant='plans-education']) ::slotted(h3[slot='heading-s']) {
+            max-width: var(--consonant-merch-card-heading-xs-max-width, 100%);
+        }
+
         :host([variant='plans-education']) ::slotted([slot='subtitle']) {
             font-size: var(--consonant-merch-card-heading-xxxs-font-size);
             line-height: var(--consonant-merch-card-heading-xxxs-line-height);

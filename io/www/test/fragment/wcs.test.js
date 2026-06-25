@@ -394,9 +394,7 @@ describe('wcs OSI substitution', function () {
         };
         context.substituteMap = { 'BASE-OSI': 'SUB-OSI' };
         fetchStub
-            .withArgs(
-                sinon.match((url) => url.includes('offer_selector_ids=SUB-OSI') && url.includes('promotion_code=PROMO1')),
-            )
+            .withArgs(sinon.match((url) => url.includes('offer_selector_ids=SUB-OSI') && url.includes('promotion_code=PROMO1')))
             .returns(createResponse(200, stubbedOffer('promo')));
 
         context = await wcs.process(context);
@@ -419,9 +417,7 @@ describe('wcs OSI substitution', function () {
         };
         context.substituteMap = { 'BASE-OSI': 'SUB-OSI' };
         fetchStub
-            .withArgs(
-                sinon.match((url) => url.includes('offer_selector_ids=SUB-OSI') && url.includes('promotion_code=PROMO1')),
-            )
+            .withArgs(sinon.match((url) => url.includes('offer_selector_ids=SUB-OSI') && url.includes('promotion_code=PROMO1')))
             .returns(createResponse(200, stubbedOffer('promo')));
 
         context = await wcs.process(context);

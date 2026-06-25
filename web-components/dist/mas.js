@@ -1586,6 +1586,10 @@ merch-card[variant="catalog"] [slot="footer"] .spectrum-Link--primary {
 		font-weight: normal;
   }
 
+  merch-card[variant="mini-compare-chart"] [slot="heading-m-price"] .price-plan-type p {
+    display: inline;
+  }
+
   merch-card[variant="mini-compare-chart"] [slot="callout-content"] {
     padding: var(--consonant-merch-spacing-xs) var(--consonant-merch-spacing-s) 0px;
   }

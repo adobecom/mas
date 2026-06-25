@@ -16,9 +16,18 @@ export function getStudioFragmentDisplayPath(fragment) {
     const page = Store.page.get();
     const path =
         page === PAGE_NAMES.PROMOTIONS_EDITOR
-            ? (Store.promotions.itemPickerSurface.get() ?? extractSurfaceFromPath(fragment?.path) ?? Store.search.get().path)
+            ? Store.promotions.itemPickerSurface.get() || extractSurfaceFromPath(fragment?.path) || Store.search.get().path
             : Store.search.get().path;
     return generateCodeToUse(fragment, path, page)?.authorPath || '';
+}
+
+/**
+ * Extracts the surface from a fragment path and applies it to the search store.
+ * @param {string} path
+ */
+export function applySearchSurfaceFromPath(path) {
+    const surface = extractSurfaceFromPath(path);
+    if (surface) Store.search.set((prev) => ({ ...prev, path: surface }));
 }
 
 /**

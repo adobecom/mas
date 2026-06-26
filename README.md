@@ -82,5 +82,3 @@ nvm uninstall 22.2.0
 ```
 
 restart IDE.
-
-TEST, REMOVE ME

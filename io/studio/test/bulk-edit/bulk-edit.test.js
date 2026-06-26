@@ -672,7 +672,7 @@ describe('bulk-edit: handleReplaceGet', () => {
         const jobId = 'replace.x.dry.y';
         const job = { type: 'replace', dryRun: true, status: 'DONE', exportReady: true, results: [] };
         const ctx = load({ existing: job, seedExports: false });
-        ctx.writes[`private/bulk-edit/${jobId}/results.json`] = JSON.stringify({ items: [] });
+        ctx.writes[`private/bulk-edit/${jobId}.json`] = JSON.stringify({ items: [] });
         ctx.readReport.resolves({ dryRun: true, totalFragments: 1 });
         const res = await ctx.mod.handleGet({ jobId });
         expect(res.body.exports).to.deep.equal({ json: `https://files.example/${jobId}.json` });

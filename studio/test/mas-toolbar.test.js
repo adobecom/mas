@@ -16,7 +16,7 @@ describe('MasToolbar – openCreateDialog', () => {
         sandbox.restore();
     });
 
-    it('returns early without modifying state when mas-create-dialog is already registered', async () => {
+    it('sets ', async () => {
         sandbox.stub(customElements, 'get').returns(class extends HTMLElement {});
         await el.openCreateDialog();
         expect(el.createDialogOpen).to.be.true;

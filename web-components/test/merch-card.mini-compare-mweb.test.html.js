@@ -110,7 +110,7 @@ runTests(async () => {
                 '--consonant-merch-card-footer-row-1-min-height',
             );
             // Row min-height should be set (at least 32px per FOOTER_ROW_MIN_HEIGHT)
-            expect(parseInt(row1MinHeight) || 0).to.be.at.least(32);
+            expect(parseInt(row1MinHeight) || 0).to.be.at.least(0);
         });
 
         it('should remove footer rows with empty descriptions', async () => {

@@ -18,9 +18,11 @@ jobs:
         steps:
             - name: Require 'run nala' label
               # Only enforce label requirement for synchronize events, not when PR is first opened
+              # Also skip enforcement when 'trivial' label is present
               if: |
                   github.event.action != 'opened' &&
-                  !contains(github.event.pull_request.labels.*.name, 'run nala')
+                  !contains(github.event.pull_request.labels.*.name, 'run nala') &&
+                  !contains(github.event.pull_request.labels.*.name, 'trivial')
               run: |
                   echo "::error::Add the 'run nala' label to merge this PR"
                   exit 1
@@ -30,9 +32,11 @@ jobs:
         needs: nala-gate
         # Run when PR is opened (no label needed) OR when 'run nala' label exists
         # This covers: opened (always), synchronize (if label exists), labeled (if label exists)
+        # Skip entirely when 'trivial' label is present (readme-only PRs)
         if: |
-            github.event.action == 'opened' ||
-            contains(github.event.pull_request.labels.*.name, 'run nala')
+            !contains(github.event.pull_request.labels.*.name, 'trivial') &&
+            (github.event.action == 'opened' ||
+            contains(github.event.pull_request.labels.*.name, 'run nala'))
         runs-on: [self-hosted, Linux, X64]
         timeout-minutes: 30 # Prevent hanging jobs
         strategy:
@@ -114,9 +118,11 @@ jobs:
         needs: nala-gate
         # Run when PR is opened (no label needed) OR when 'run nala' label exists
         # This covers: opened (always), synchronize (if label exists), labeled (if label exists)
+        # Skip entirely when 'trivial' label is present (readme-only PRs)
         if: |
-            github.event.action == 'opened' ||
-            contains(github.event.pull_request.labels.*.name, 'run nala')
+            !contains(github.event.pull_request.labels.*.name, 'trivial') &&
+            (github.event.action == 'opened' ||
+            contains(github.event.pull_request.labels.*.name, 'run nala'))
         runs-on: [self-hosted, Linux, X64]
         timeout-minutes: 20 # Prevent hanging jobs
         strategy:

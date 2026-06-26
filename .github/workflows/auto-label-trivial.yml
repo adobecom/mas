@@ -1,0 +1,57 @@
+name: Auto-label trivial PRs
+
+on:
+    pull_request:
+        branches:
+            - main
+        types: [opened, synchronize]
+
+permissions:
+    pull-requests: write
+    contents: read
+
+jobs:
+    label-trivial:
+        name: Detect readme-only changes
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+
+            - name: Fetch base branch
+              run: git fetch origin ${{ github.event.pull_request.base.ref }}
+
+            - name: Check if PR only changes readme files
+              id: check
+              run: |
+                  CHANGED=$(git diff --name-only origin/${{ github.event.pull_request.base.ref }}...HEAD)
+                  if [ -z "$CHANGED" ]; then
+                      echo "trivial=false" >> $GITHUB_OUTPUT
+                      exit 0
+                  fi
+                  NON_README=$(echo "$CHANGED" | grep -viE '^(.+/)?readme\.md$' || true)
+                  if [ -z "$NON_README" ]; then
+                      echo "trivial=true" >> $GITHUB_OUTPUT
+                  else
+                      echo "trivial=false" >> $GITHUB_OUTPUT
+                  fi
+
+            - name: Ensure trivial label exists in repo
+              if: steps.check.outputs.trivial == 'true'
+              run: gh label create "trivial" --color "#e4e669" --description "PR only contains readme changes" 2>/dev/null || true
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+            - name: Add trivial label
+              if: steps.check.outputs.trivial == 'true'
+              run: gh pr edit ${{ github.event.pull_request.number }} --add-label "trivial"
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+            - name: Remove trivial label if PR is no longer readme-only
+              if: steps.check.outputs.trivial == 'false'
+              run: gh pr edit ${{ github.event.pull_request.number }} --remove-label "trivial" 2>/dev/null || true
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

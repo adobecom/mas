@@ -11,8 +11,19 @@ jobs:
         steps:
             - name: Checkout repository
               uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
 
-            - name: Run actionlint
+            - name: Install actionlint
+              run: bash <(curl -Ls https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash)
+
+            - name: Lint changed workflow files
               run: |
-                  bash <(curl -Ls https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash)
-                  ./actionlint -color
+                  git fetch origin ${{ github.event.pull_request.base.ref }} --depth=1
+                  CHANGED=$(git diff --name-only "origin/${{ github.event.pull_request.base.ref }}...HEAD" -- '.github/workflows/' | grep -E '\.(yml|yaml)$' || true)
+                  if [ -z "$CHANGED" ]; then
+                      echo "No workflow files changed, skipping lint"
+                      exit 0
+                  fi
+                  echo "Linting: $CHANGED"
+                  echo "$CHANGED" | xargs ./actionlint -color

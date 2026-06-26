@@ -28,14 +28,14 @@ jobs:
               run: |
                   CHANGED=$(git diff --name-only origin/${{ github.event.pull_request.base.ref }}...HEAD)
                   if [ -z "$CHANGED" ]; then
-                      echo "trivial=false" >> $GITHUB_OUTPUT
+                      echo "trivial=false" >> "$GITHUB_OUTPUT"
                       exit 0
                   fi
                   NON_README=$(echo "$CHANGED" | grep -viE '^(.+/)?readme\.md$' || true)
                   if [ -z "$NON_README" ]; then
-                      echo "trivial=true" >> $GITHUB_OUTPUT
+                      echo "trivial=true" >> "$GITHUB_OUTPUT"
                   else
-                      echo "trivial=false" >> $GITHUB_OUTPUT
+                      echo "trivial=false" >> "$GITHUB_OUTPUT"
                   fi
 
             - name: Ensure trivial label exists in repo

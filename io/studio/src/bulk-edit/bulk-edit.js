@@ -60,9 +60,9 @@ function buildFindReport(results) {
 function buildExportPaths(jobId) {
     const base = `${EXPORT_ROOT}/${jobId}`;
     return {
-        json: `${base}/results.json`,
-        csv: `${base}/results.csv`,
-        fullJson: `${base}/results-full.json`,
+        json: `${base}.json`,
+        csv: `${base}.csv`,
+        fullJson: `${base}-full.json`,
     };
 }
 
@@ -210,14 +210,16 @@ function buildSearchKey(params) {
     };
 }
 
-function canonicalSearchKey(params) {
-    const key = buildSearchKey(params);
-    key.tags = [...key.tags].sort();
-    return JSON.stringify(key);
+function canonicalSearchKey(searchKey) {
+    return JSON.stringify({ ...searchKey, tags: [...searchKey.tags].sort() });
+}
+
+function hashSearchKey(searchKey) {
+    return crypto.createHash('sha256').update(canonicalSearchKey(searchKey)).digest('hex');
 }
 
 function computeJobId(params) {
-    return crypto.createHash('sha256').update(canonicalSearchKey(params)).digest('hex');
+    return hashSearchKey(buildSearchKey(params));
 }
 
 function computeReplaceJobId(findJobId, { dryRun, actionableRows, findRunId }) {
@@ -269,7 +271,7 @@ async function handlePost(params) {
     if (params.type === 'replace') return handleReplacePost(params, authToken);
 
     const searchKey = buildSearchKey(params);
-    const jobId = computeJobId(searchKey);
+    const jobId = hashSearchKey(searchKey);
 
     if (params.supersedes && params.supersedes !== jobId) {
         await cancelJob(params.supersedes);
@@ -777,4 +779,3 @@ module.exports = {
     exportPresignUrl,
     exportRedirectResponse,
 };
-exports.main = main;

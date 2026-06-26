@@ -1,7 +1,6 @@
-const { fetchOdin, getValues } = require('../common.js');
+const { fetchOdin, getValues, CARD_MODEL_ID, COLLECTION_MODEL_ID } = require('../common.js');
 
-const CARD_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ';
-const COLLECTION_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24';
+const BULK_EDIT_USER_AGENT = 'mas-bulk-edit';
 
 const BULK_EDIT_MODEL_IDS = [CARD_MODEL_ID, COLLECTION_MODEL_ID];
 
@@ -123,7 +122,9 @@ async function* searchPages({ odinEndpoint, authToken, query, limit = 50 }) {
         const params = { query: JSON.stringify(query), limit: String(limit) };
         if (cursor) params.cursor = cursor;
         const qs = new URLSearchParams(params).toString();
-        const response = await fetchOdin(odinEndpoint, `/adobe/sites/cf/fragments/search?${qs}`, authToken);
+        const response = await fetchOdin(odinEndpoint, `/adobe/sites/cf/fragments/search?${qs}`, authToken, {
+            userAgent: BULK_EDIT_USER_AGENT,
+        });
         const { items = [], cursor: next } = await response.json();
         yield items;
         cursor = next;

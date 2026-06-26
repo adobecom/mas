@@ -33,19 +33,25 @@ async function resolveFragmentInit(context, requestInfos) {
 }
 
 function deepMerge(...objects) {
+    return _deepMerge(true, ...objects);
+}
+
+function _deepMerge(topLevel, ...objects) {
     const result = {};
-    MERGE_CONFIG.DO_NOT_MERGE_KEYS.map((key) => {
-        if (objects[0]?.[key] !== undefined) {
-            result[key] = objects[0][key];
-        }
-    });
+    if (topLevel) {
+        MERGE_CONFIG.DO_NOT_MERGE_KEYS.map((key) => {
+            if (objects[0]?.[key] !== undefined) {
+                result[key] = objects[0][key];
+            }
+        });
+    }
     for (const obj of objects) {
         for (const key in obj) {
-            if (MERGE_CONFIG.DO_NOT_MERGE_KEYS.includes(key)) {
+            if (topLevel && MERGE_CONFIG.DO_NOT_MERGE_KEYS.includes(key)) {
                 continue;
             }
             if (typeof obj[key] === 'object' && obj[key] !== null && !Array.isArray(obj[key])) {
-                result[key] = deepMerge(result[key] || {}, obj[key]);
+                result[key] = _deepMerge(false, result[key] || {}, obj[key]);
             } else {
                 if (!Array.isArray(obj[key]) || obj[key].length > 0) {
                     // Preserve left value when right is undefined; only overwrite for '' (explicit clear) or other defined values
@@ -94,10 +100,17 @@ function parsePznTokens(pzn) {
         .filter(Boolean);
 }
 
+const PZN_TAG_RE = /(?:^|[/:])pzn\/(.+)$/i;
+
 function countMatchedPznTokens(tags, tokens) {
     let n = 0;
     for (const token of tokens) {
-        if (tags.some((tag) => Boolean(tag && token && tag.endsWith(`${PZN_FOLDER}${token}`)))) {
+        if (
+            tags.some((tag) => {
+                const match = tag && PZN_TAG_RE.exec(tag);
+                return match && match[1].toLowerCase() === token.toLowerCase();
+            })
+        ) {
             n += 1;
         }
     }
@@ -166,6 +179,8 @@ function findPromoVariation(root, customizeContext) {
     for (const { project } of promoProjects) {
         const defaultVar = project.defaultVariations?.[fragmentPath];
         const regionVar = project.regionVariations?.[fragmentPath];
+        logDebug(() => `findPromoVariation defaultVar: ${JSON.stringify(defaultVar)}`, customizeContext);
+        logDebug(() => `findPromoVariation regionVar: ${JSON.stringify(regionVar)}`, customizeContext);
         if (!defaultVar && !regionVar) continue;
         if (!defaultVar) return regionVar;
         if (!regionVar) return defaultVar;
@@ -180,8 +195,8 @@ function findPromoMapForFragment(root, customizeContext) {
     const match = PATH_TOKENS.exec(root.path);
     if (!match?.groups) return null;
     const { fragmentPath } = match.groups;
-    for (const { promoMap, fragmentPaths } of promoProjects) {
-        if (fragmentPaths.has(fragmentPath)) return promoMap;
+    for (const { promoMap, substituteMap, fragmentPaths } of promoProjects) {
+        if (fragmentPaths.has(fragmentPath)) return { promoMap, substituteMap };
     }
     return null;
 }
@@ -224,12 +239,13 @@ function mergeVariations(root, customizeContext) {
     return root;
 }
 
-function applyPromoCode(fragment, promoMap, context) {
+function applyPromoCode(fragment, promoMap, substituteMap, context) {
     const fragOsi = fragment.fields?.osi;
     if (!fragOsi) return;
     const osis = Array.isArray(fragOsi) ? fragOsi : [fragOsi];
+    const effectiveOsis = osis.map((o) => substituteMap?.[o] ?? o);
     let promoCode = promoMap['*'];
-    for (const osi of osis) {
+    for (const osi of effectiveOsis) {
         if (promoMap[osi]) {
             promoCode = promoMap[osi];
             break;
@@ -291,9 +307,9 @@ function adaptReferencesTree(referencesTree, customizedRoot) {
 function customizeTree(root, referencesTree = [], customizeContext) {
     //start by merging current fragment with its regional variation, and promos if any
     const customizedRoot = mergeVariations(root, customizeContext);
-    const promoMap = findPromoMapForFragment(root, customizeContext);
-    if (promoMap) {
-        applyPromoCode(customizedRoot, promoMap, customizeContext);
+    const promoEntry = findPromoMapForFragment(root, customizeContext);
+    if (promoEntry) {
+        applyPromoCode(customizedRoot, promoEntry.promoMap, promoEntry.substituteMap, customizeContext);
     }
 
     //adapt referencesTree to match the customized root's cards/collections

@@ -67,6 +67,7 @@ async function runFindWorker(jobId, { odinEndpoint, authToken, runId }) {
     const paths = buildSearchPaths(params.surface, params.locale);
 
     const results = [];
+    const byLocale = {};
     try {
         for (const path of paths) {
             const query = buildSearchQuery({
@@ -79,13 +80,16 @@ async function runFindWorker(jobId, { odinEndpoint, authToken, runId }) {
                 for (const fragment of items) {
                     const matches = findMatches(fragment, params.searchIn || '*', params.find, !!params.matchCase);
                     if (matches.length) {
-                        results.push(buildFindResult(fragment, matches));
+                        const result = buildFindResult(fragment, matches);
+                        results.push(result);
+                        const locale = result.locale || 'unknown';
+                        byLocale[locale] = (byLocale[locale] || 0) + 1;
                     }
                 }
                 const stop = await resolveStop(jobId, runId);
                 if (stop) return finalizeStop(jobId, stop, results, params);
-                await patchJob(jobId, { results: [...results], total: results.length }, JOB_RUNNING_TTL);
-                await writeReport(jobId, buildFindReport(results), JOB_RUNNING_TTL);
+                await patchJob(jobId, { total: results.length }, JOB_RUNNING_TTL);
+                await writeReport(jobId, { total: results.length, byLocale: { ...byLocale } }, JOB_RUNNING_TTL);
             }
             const stop = await resolveStop(jobId, runId);
             if (stop) return finalizeStop(jobId, stop, results, params);
@@ -112,4 +116,3 @@ async function main(params) {
 }
 
 module.exports = { main, runFindWorker, buildFindResult, buildFindReport, finalizeFindExport };
-exports.main = main;

@@ -101,10 +101,9 @@ describe('bulk-edit/find-worker: runFindWorker', () => {
             model: { id: cardModelId },
             fields: [{ name: 'subtitle', values: ['School discount'] }],
         };
-        const { mod, patches } = load({ pages: [[fragment]] });
+        const { mod, exports } = load({ pages: [[fragment]] });
         await mod.runFindWorker('job1', { odinEndpoint: 'https://odin' });
-        const progress = patches.find((p) => p.results?.length);
-        const result = progress.results[0];
+        const result = exports.find((entry) => entry.stateResults)?.stateResults[0];
         expect(result.id).to.equal(fragment.id);
         expect(result.path).to.equal(fragment.path);
         expect(result.title).to.equal(fragment.title);

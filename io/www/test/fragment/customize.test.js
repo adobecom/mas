@@ -70,6 +70,18 @@ describe('customize collections', function () {
         expect(result).to.deep.equal(expected);
     });
 
+    it('should preserve nested id and path fields (e.g. model.id after pzn merge)', function () {
+        const root = { id: 'root-id', path: '/root', model: { id: 'model-id', title: 'Card' } };
+        const variation = { id: 'var-id', path: '/var', model: { title: 'Card Variation' } };
+        const result = deepMerge(root, variation);
+        // top-level id/path come from root (DO_NOT_MERGE_KEYS)
+        expect(result.id).to.equal('root-id');
+        expect(result.path).to.equal('/root');
+        // nested model.id must be preserved — not dropped by DO_NOT_MERGE_KEYS recursion
+        expect(result.model.id).to.equal('model-id');
+        expect(result.model.title).to.equal('Card Variation');
+    });
+
     it('should preserve left value when right has undefined (e.g. fields.variant)', function () {
         const left = { fields: { variant: 'regional-variant', title: 'Root' } };
         const right = { fields: { variant: undefined, title: 'Regional' } };
@@ -654,6 +666,47 @@ describe('customize collections', function () {
 
         expect(result.status).to.equal(200);
         expect(result.body.fields.badge).to.equal('Gold tier PZN');
+    });
+
+    it('should match pzn tag when pzn is the top-level namespace (mas:pzn/edu, no intermediate folder)', async function () {
+        const pznVariationId = 'pzn-var-edu';
+        const bodyWithPzn = {
+            path: '/content/dam/mas/sandbox/en_US/cc-plans-photoshop-individuals-default',
+            id: 'root-fragment',
+            title: 'Root',
+            fields: {
+                badge: 'default badge',
+                variations: [pznVariationId],
+            },
+            references: {
+                [pznVariationId]: {
+                    type: 'content-fragment',
+                    value: {
+                        path: '/content/dam/mas/sandbox/en_US/phsp_direct_individual/pzn/photoshop-individual-edu',
+                        id: pznVariationId,
+                        title: 'EDU variation',
+                        fields: {
+                            pznTags: ['mas:pzn/edu'],
+                            badge: 'Students badge',
+                        },
+                    },
+                },
+            },
+            referencesTree: [],
+        };
+
+        const result = await process({
+            ...FAKE_CONTEXT,
+            fragmentPath: 'cc-plans-photoshop-individuals-default',
+            locale: 'en_US',
+            parsedLocale: 'en_US',
+            pzn: 'edu',
+            body: bodyWithPzn,
+        });
+
+        expect(result.status).to.equal(200);
+        expect(result.body.fields.badge).to.equal('Students badge');
+        expect(result.body.variationId).to.equal(pznVariationId);
     });
 
     it('should coerce non-string pzn to string for token matching', async function () {
@@ -1772,6 +1825,61 @@ describe('customize mask overlay', function () {
         expect(result.status).to.equal(200);
         expect(result.body.fields.badge).to.equal('ORIGINAL');
     });
+
+    it('should apply pzn then mask: mask fields win, pzn-only fields preserved, variationId and maskId both set, model.id preserved', async function () {
+        const pznVarId = 'pzn-edu-card';
+        const maskFragment = { id: 'mask-001', fields: { badge: 'MASK BADGE', cta: 'Buy now' } };
+        const result = await process({
+            ...FAKE_CONTEXT,
+            fragmentPath: 'phsp-individual',
+            locale: 'en_US',
+            parsedLocale: 'en_US',
+            pzn: 'edu',
+            maskFragment,
+            body: {
+                path: '/content/dam/mas/sandbox/en_US/phsp-individual',
+                id: 'root-card',
+                model: CARD_MODEL,
+                fields: {
+                    badge: 'DEFAULT BADGE',
+                    cta: 'Try free',
+                    variations: [pznVarId],
+                },
+                references: {
+                    [pznVarId]: {
+                        type: 'content-fragment',
+                        value: {
+                            path: '/content/dam/mas/sandbox/en_US/phsp_direct_individual/pzn/phsp-edu',
+                            id: pznVarId,
+                            model: CARD_MODEL,
+                            fields: {
+                                pznTags: ['mas:pzn/edu'],
+                                badge: 'EDU BADGE',
+                                description: 'EDU description',
+                            },
+                        },
+                    },
+                },
+                referencesTree: [],
+            },
+        });
+
+        expect(result.status).to.equal(200);
+        // pzn variation was selected
+        expect(result.body.variationId).to.equal(pznVarId);
+        // mask was applied on top
+        expect(result.body.maskId).to.equal('mask-001');
+        // mask badge wins over pzn badge
+        expect(result.body.fields.badge).to.equal('MASK BADGE');
+        // mask cta wins over root cta
+        expect(result.body.fields.cta).to.equal('Buy now');
+        // pzn-only field not touched by mask is preserved
+        expect(result.body.fields.description).to.equal('EDU description');
+        // root id preserved (DO_NOT_MERGE_KEYS at top level)
+        expect(result.body.id).to.equal('root-card');
+        // nested model.id preserved through both merges
+        expect(result.body.model.id).to.equal(CARD_MODEL_ID);
+    });
 });
 
 describe('customize promoCode application', function () {
@@ -2035,5 +2143,67 @@ describe('customize with multiple active promotion projects', function () {
         expect(result.status).to.equal(200);
         expect(result.body.variationId).to.equal('var-x');
         expect(result.body.fields.promoCode).to.equal('FROM-PROMO-PROJECT');
+    });
+});
+
+describe('customize OSI substitution', function () {
+    const MINIMAL_PROJECT = {
+        id: 'sub-proj',
+        path: '/content/dam/mas/promotions/test',
+        defaultVariations: {},
+        regionVariations: {},
+    };
+
+    it('should apply promoCode via substituteMap for scalar OSI', async function () {
+        const result = await processWithPromoProjects(
+            {
+                ...FAKE_CONTEXT,
+                fragmentPath: 'test-card',
+                body: {
+                    path: '/content/dam/mas/sandbox/en_US/test-card',
+                    id: 'test-card',
+                    fields: { osi: 'BASE-OSI' },
+                    references: {},
+                    referencesTree: [],
+                },
+            },
+            [
+                {
+                    project: MINIMAL_PROJECT,
+                    promoMap: { 'SUB-OSI': 'PROMO-FOR-SUB' },
+                    substituteMap: { 'BASE-OSI': 'SUB-OSI' },
+                    fragmentPaths: new Set(['test-card']),
+                },
+            ],
+        );
+        expect(result.status).to.equal(200);
+        expect(result.body.fields.osi).to.equal('BASE-OSI');
+        expect(result.body.fields.promoCode).to.equal('PROMO-FOR-SUB');
+    });
+
+    it('should apply promoCode via substituteMap for array OSI', async function () {
+        const result = await processWithPromoProjects(
+            {
+                ...FAKE_CONTEXT,
+                fragmentPath: 'test-card',
+                body: {
+                    path: '/content/dam/mas/sandbox/en_US/test-card',
+                    id: 'test-card',
+                    fields: { osi: ['OSI-A', 'OSI-B'] },
+                    references: {},
+                    referencesTree: [],
+                },
+            },
+            [
+                {
+                    project: MINIMAL_PROJECT,
+                    promoMap: { 'OSI-B-SUB': 'ARRAY-PROMO' },
+                    substituteMap: { 'OSI-B': 'OSI-B-SUB' },
+                    fragmentPaths: new Set(['test-card']),
+                },
+            ],
+        );
+        expect(result.status).to.equal(200);
+        expect(result.body.fields.promoCode).to.equal('ARRAY-PROMO');
     });
 });

@@ -33,7 +33,7 @@ jobs:
 
             - name: Install AIO CLI
               if: success()
-              run: npm install -g @adobe/aio-cli@11.1.0
+              run: npm install -g @adobe/aio-cli@11.1.2
 
             - name: Prepare .aio and .env files
               env:

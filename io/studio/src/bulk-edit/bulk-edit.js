@@ -198,14 +198,16 @@ function buildSearchKey(params) {
     };
 }
 
-function canonicalSearchKey(params) {
-    const key = buildSearchKey(params);
-    key.tags = [...key.tags].sort();
-    return JSON.stringify(key);
+function canonicalSearchKey(searchKey) {
+    return JSON.stringify({ ...searchKey, tags: [...searchKey.tags].sort() });
+}
+
+function hashSearchKey(searchKey) {
+    return crypto.createHash('sha256').update(canonicalSearchKey(searchKey)).digest('hex');
 }
 
 function computeJobId(params) {
-    return crypto.createHash('sha256').update(canonicalSearchKey(params)).digest('hex');
+    return hashSearchKey(buildSearchKey(params));
 }
 
 async function cancelJob(jobId) {
@@ -232,7 +234,7 @@ async function handlePost(params) {
     if (missing.length) return errorResponse(400, `missing parameter(s) '${missing.join(', ')}'`, logger);
 
     const searchKey = buildSearchKey(params);
-    const jobId = computeJobId(searchKey);
+    const jobId = hashSearchKey(searchKey);
 
     if (params.supersedes && params.supersedes !== jobId) {
         await cancelJob(params.supersedes);

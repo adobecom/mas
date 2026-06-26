@@ -909,6 +909,41 @@ describe('MasItemsSelector', () => {
             expect(Store.translationProjects.selectedCards.get()).to.not.include(card2.path);
         });
 
+        it('removes all imported collection URLs and clears selectedCollections when Remove All is clicked', async () => {
+            const uuid1 = 'cccccccc-dddd-eeee-ffff-aaaaaaaaaaaa';
+            const uuid2 = 'dddddddd-eeee-ffff-0000-bbbbbbbbbbbb';
+            const makeCollection = (path, id) => ({
+                id,
+                path,
+                title: 'Test Collection',
+                model: { path: COLLECTION_MODEL_PATH },
+                status: FRAGMENT_STATUS.PUBLISHED,
+                tags: [],
+                fields: [],
+            });
+            mockRepository.aem.sites.cf.fragments.getById
+                .withArgs(uuid1)
+                .resolves(makeCollection('/content/dam/mas/sandbox/en_US/col-1', uuid1))
+                .withArgs(uuid2)
+                .resolves(makeCollection('/content/dam/mas/sandbox/en_US/col-2', uuid2));
+
+            const el = await fixture(html`<mas-items-selector></mas-items-selector>`);
+            await importViaUrl(
+                el,
+                `https://mas.adobe.com/studio.html#content-type=merch-card-collection&page=content&path=sandbox&query=${uuid1} https://mas.adobe.com/studio.html#content-type=merch-card-collection&page=content&path=sandbox&query=${uuid2}`,
+            );
+
+            expect(el.importedUrls).to.have.length(2);
+            expect(Store.translationProjects.selectedCollections.get()).to.have.length(2);
+
+            const removeAllBtn = el.shadowRoot.querySelector('.import-footer-row sp-action-button');
+            removeAllBtn.click();
+            await el.updateComplete;
+
+            expect(el.importedUrls).to.have.length(0);
+            expect(Store.translationProjects.selectedCollections.get()).to.have.length(0);
+        });
+
         it('ignores collection URLs when allowedTypes restricts to cards only', async () => {
             const uuid = 'cccccccc-dddd-eeee-ffff-aaaaaaaaaaaa';
             mockRepository.aem.sites.cf.fragments.getById.resolves({
@@ -929,6 +964,22 @@ describe('MasItemsSelector', () => {
 
             expect(Store.translationProjects.selectedCollections.get()).to.have.length(0);
             expect(mockRepository.aem.sites.cf.fragments.getById.called).to.be.false;
+        });
+    });
+
+    describe('import mode tab-switch', () => {
+        it('clears importedUrls and exits import mode when a tab is clicked while in import mode', async () => {
+            const el = await fixture(html`<mas-items-selector></mas-items-selector>`);
+            el.shadowRoot.querySelector('sp-button.import-url-btn').click();
+            await el.updateComplete;
+            expect(el.importMode).to.be.true;
+
+            el.shadowRoot.querySelector('sp-tab[value="collections"]').click();
+            await el.updateComplete;
+
+            expect(el.importMode).to.be.false;
+            expect(el.importedUrls).to.have.length(0);
+            expect(el.selectedTab).to.equal('collections');
         });
     });
 

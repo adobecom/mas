@@ -10,7 +10,9 @@ import './mas-select-items-table.js';
 import './mas-selected-items.js';
 import './mas-search-and-filters.js';
 import { styles } from './mas-items-selector.css.js';
-import { debounce, parseStudioDeepLinksFromText } from '../../utils.js';
+import { debounce, isUUID } from '../../utils.js';
+
+const IMPORT_CONTENT_TYPES = ['merch-card', 'merch-card-collection', 'mas-compare-chart'];
 
 export const TABS = [
     { value: TABLE_TYPE.CARDS, label: 'Fragments' },
@@ -178,15 +180,22 @@ class MasItemsSelector extends LitElement {
     async #processUrlText(text) {
         const lines = text.split(/\s+/).filter(Boolean);
         const allParsed = [];
-        for (const line of lines) {
-            const parsed = parseStudioDeepLinksFromText(line);
-            if (!parsed.length) continue;
-            const { fragmentId, contentType } = parsed[0];
+        for (const url of lines) {
+            let parsedUrl;
+            try {
+                parsedUrl = new URL(url);
+            } catch {
+                continue;
+            }
+            const params = new URLSearchParams(parsedUrl.hash.slice(1));
+            const contentType = params.get('content-type');
+            const fragmentId = params.get('query');
+            if (!fragmentId || !isUUID(fragmentId) || !IMPORT_CONTENT_TYPES.includes(contentType)) continue;
             if (this.importedUrls.some((item) => item.fragmentId === fragmentId)) continue;
             const allowed = this.allowedTypes.includes(
                 contentType === 'merch-card' ? TABLE_TYPE.CARDS : TABLE_TYPE.COLLECTIONS,
             );
-            allParsed.push({ url: line, fragmentId, contentType, allowed });
+            allParsed.push({ url, fragmentId, contentType, allowed });
         }
 
         if (!allParsed.length) {
@@ -219,6 +228,11 @@ class MasItemsSelector extends LitElement {
                     const fragment = await this.repository?.aem?.sites?.cf?.fragments?.getById?.(item.fragmentId);
                     const isCard = item.contentType === 'merch-card';
                     const display = isCard ? this.#upsertDisplayCard(fragment) : this.#upsertDisplayCollection(fragment);
+                    if (!display) {
+                        failed++;
+                        this.#setImportedUrlStatus(item.fragmentId, 'error', 'Fragment type not supported', null);
+                        return;
+                    }
                     if (isCard ? this.#appendSelectedCard(display) : this.#appendSelectedCollection(display)) added++;
                     const displayName = this.getDisplayName(new Fragment(fragment)) || fragment.path;
                     this.#setImportedUrlStatus(item.fragmentId, 'valid', null, fragment.path, displayName);
@@ -246,13 +260,13 @@ class MasItemsSelector extends LitElement {
         await this.#processUrlText(text);
     }
 
-    #handleImportKeydown(e) {
+    async #handleImportKeydown(e) {
         if (e.key !== 'Enter' || e.shiftKey) return;
         e.preventDefault();
         const text = e.target.value.trim();
         if (!text) return;
         e.target.value = '';
-        this.#processUrlText(text);
+        await this.#processUrlText(text);
     }
 
     #toggleImportMode() {
@@ -435,6 +449,7 @@ class MasItemsSelector extends LitElement {
                                                   <a
                                                       href=${item.url}
                                                       target="_blank"
+                                                      rel="noopener noreferrer"
                                                       class="import-item-link"
                                                       @click=${(e) => e.stopPropagation()}
                                                       >${item.displayName || item.path || item.url}</a

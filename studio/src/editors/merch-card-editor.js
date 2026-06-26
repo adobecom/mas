@@ -90,7 +90,7 @@ class MerchCardEditor extends LitElement {
     };
 
     static SECTION_FIELDS = {
-        Visuals: ['mnemonics', 'badge', 'trialBadge', 'border-color'],
+        Visuals: ['mnemonics', 'badge', 'trialBadge', 'border-color', 'addonBackground'],
         "What's included": ['whatsIncluded', 'whatsIncludedIconPicker', 'whats-included-divider-color'],
         'Product details': ['description', 'shortDescription', 'callout'],
         'Footer rows': ['footerRows'],
@@ -1313,6 +1313,7 @@ class MerchCardEditor extends LitElement {
                         'backgroundColor',
                     )}
                 </div>
+                ${this.#renderAddonBackgroundPicker(form)}
                 <sp-field-group class="toggle" id="whatsIncluded">
                     <div class="section-title">What's included</div>
                     <sp-textfield
@@ -1530,6 +1531,7 @@ class MerchCardEditor extends LitElement {
                         upt-link
                         list
                         mnemonic
+                        icon
                         data-field="shortDescription"
                         data-field-state="${this.getFieldState('shortDescription')}"
                         .osi=${form.osi.values[0]}
@@ -1676,11 +1678,10 @@ class MerchCardEditor extends LitElement {
         if (!alt.startsWith('<p>')) return false;
 
         const doc = new DOMParser().parseFromString(alt, 'text/html');
-        const t = doc
-            .querySelector('p')
-            ?.textContent.replace(/\u00a0/g, ' ')
-            .trim();
-        return !t;
+        const p = doc.querySelector('p');
+        const t = p?.textContent.replace(/\u00a0/g, ' ').trim();
+        if (t) return false;
+        return !p?.querySelector('.icon-button');
     }
 
     createMnemonicList(value, isBullet) {
@@ -2266,6 +2267,68 @@ class MerchCardEditor extends LitElement {
         this.#handleFragmentUpdate(syntheticEvent);
     };
 
+    static #ADDON_GRADIENT =
+        'linear-gradient(211deg, rgb(245, 246, 253) 33.52%, rgb(248, 241, 248) 67.33%, rgb(249, 233, 237) 110.37%)';
+    static #ADDON_GREY = '#dadada';
+
+    #getAddonBackground(addonHtml) {
+        if (!addonHtml) return undefined;
+        const temp = document.createElement('div');
+        temp.innerHTML = addonHtml;
+        const first = temp.firstElementChild;
+        return first?.tagName?.toLowerCase() === 'merch-addon' ? first.getAttribute('background') || undefined : undefined;
+    }
+
+    #renderAddonBackgroundPicker(form) {
+        const addonHtml = form.addon?.values[0] || '';
+        const currentBg = this.#getAddonBackground(addonHtml);
+        const gradient = MerchCardEditor.#ADDON_GRADIENT;
+        const grey = MerchCardEditor.#ADDON_GREY;
+        const options = { Gradient: gradient, Grey: grey };
+        const selectedKey = Object.entries(options).find(([, v]) => v === currentBg)?.[0] ?? 'Default';
+
+        const handleChange = (e) => {
+            const bgValue = options[e.target.value];
+            const temp = document.createElement('div');
+            temp.innerHTML = addonHtml;
+            const first = temp.firstElementChild;
+            const innerContent = first?.tagName?.toLowerCase() === 'merch-addon' ? first.innerHTML : addonHtml;
+            const newAddonHtml = bgValue ? `<merch-addon background="${bgValue}">${innerContent}</merch-addon>` : innerContent;
+            const fragment = this.fragmentStore.get();
+            fragment.updateField('addon', [newAddonHtml]);
+            this.fragmentStore.set(fragment);
+        };
+
+        return html`
+            <sp-field-group class="toggle" id="addonBackground">
+                <sp-field-label for="addonBackground">Addon Background</sp-field-label>
+                <sp-picker
+                    id="addonBackground"
+                    data-field-state="${this.getFieldState('addon')}"
+                    value="${selectedKey}"
+                    @change="${handleChange}"
+                >
+                    <sp-menu-item value="Default">
+                        <div class="menu-item-container"><span>Default</span></div>
+                    </sp-menu-item>
+                    <sp-menu-item value="Gradient">
+                        <div class="menu-item-container">
+                            <div class="color-swatch" style="--swatch-bg: ${gradient}"></div>
+                            <span class="color-name-text">Gradient</span>
+                        </div>
+                    </sp-menu-item>
+                    <sp-menu-item value="Grey">
+                        <div class="menu-item-container">
+                            <div class="color-swatch" style="--swatch-bg: #dadada"></div>
+                            <span class="color-name-text">Grey</span>
+                        </div>
+                    </sp-menu-item>
+                </sp-picker>
+                ${this.renderFieldStatusIndicator('addon')}
+            </sp-field-group>
+        `;
+    }
+
     #renderColorPicker(id, label, colors, selectedValue, dataField, onChange) {
         const isDividerField = dataField === 'whatsIncludedDividerColor';
 
@@ -2276,7 +2339,11 @@ class MerchCardEditor extends LitElement {
         let variantSpecialValues = {};
         if (this.fragment && this.currentVariantMapping) {
             const variant = this.currentVariantMapping;
-            const colorConfig = isDividerField ? variant.whatsIncludedDividerColor : variant.borderColor;
+            const colorConfig = isDividerField
+                ? variant.whatsIncludedDividerColor
+                : typeof variant[dataField] === 'object'
+                  ? variant[dataField]
+                  : variant.borderColor;
             variantSpecialValues = colorConfig?.specialValues || {};
             if (showAllSpectrum && Object.keys(variantSpecialValues).length > 0) {
                 colorArray = [...colorArray, ...Object.keys(variantSpecialValues)];

@@ -1427,6 +1427,7 @@ class RteField extends LitElement {
     }
 
     #handleIconSave(event) {
+        event.stopPropagation();
         const { tooltip } = event.detail;
         const { state, dispatch } = this.editorView;
         const { selection } = state;

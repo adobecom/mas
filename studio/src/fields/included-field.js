@@ -1,4 +1,5 @@
 import { css, html, LitElement, nothing } from 'lit';
+import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import { EVENT_CHANGE } from '../constants.js';
 import { renderSpIcon } from '../constants/icon-library.js';
 import { VARIANT_NAMES } from '../editors/variant-picker.js';
@@ -88,6 +89,17 @@ class IncludedField extends LitElement {
             border: 2px solid var(--spectrum-blue-400);
             background-color: var(--spectrum-blue-100);
         }
+
+        .value .icon-button {
+            display: inline-flex;
+            min-width: 14px;
+            min-height: 14px;
+            vertical-align: middle;
+            background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" height="14" width="14"><path d="M7 .778A6.222 6.222 0 1 0 13.222 7 6.222 6.222 0 0 0 7 .778zM6.883 2.45a1.057 1.057 0 0 1 1.113.998q.003.05.001.1a1.036 1.036 0 0 1-1.114 1.114A1.052 1.052 0 0 1 5.77 3.547 1.057 1.057 0 0 1 6.784 2.45q.05-.002.1.001zm1.673 8.05a.389.389 0 0 1-.39.389H5.834a.389.389 0 0 1-.389-.389v-.778a.389.389 0 0 1 .39-.389h.388V7h-.389a.389.389 0 0 1-.389-.389v-.778a.389.389 0 0 1 .39-.389h1.555a.389.389 0 0 1 .389.39v3.5h.389a.389.389 0 0 1 .389.388z"/></svg>');
+            background-size: 14px;
+            background-repeat: no-repeat;
+            background-position: center;
+        }
     `;
 
     constructor() {
@@ -113,11 +125,10 @@ class IncludedField extends LitElement {
         if (!raw) return false;
         if (raw.startsWith('<p>')) {
             const doc = new DOMParser().parseFromString(raw, 'text/html');
-            const txt = doc
-                .querySelector('p')
-                ?.textContent?.replace(/\u00a0/g, ' ')
-                .trim();
-            return !!txt;
+            const p = doc.querySelector('p');
+            const txt = p?.textContent?.replace(/\u00a0/g, ' ').trim();
+            if (txt) return true;
+            return !!p?.querySelector('.icon-button');
         }
         return true;
     }
@@ -185,6 +196,15 @@ class IncludedField extends LitElement {
         return value || html`<span class="empty">${placeholder}</span>`;
     }
 
+    #renderDescription() {
+        if (this.alt?.startsWith('<p>')) {
+            const doc = new DOMParser().parseFromString(this.alt, 'text/html');
+            const innerHTML = doc.querySelector('p')?.innerHTML?.trim();
+            if (innerHTML) return unsafeHTML(innerHTML);
+        }
+        return this.#getDisplayText(this.parseTextFromHtml(this.alt) || this.#getIconName(), 'No icon selected');
+    }
+
     parseTextFromHtml(htmlMarkup) {
         if (!htmlMarkup || !htmlMarkup.startsWith('<p>')) return htmlMarkup;
 
@@ -239,9 +259,7 @@ class IncludedField extends LitElement {
                 </div>
 
                 <div class="included-info">
-                    <div class="value">
-                        ${this.#getDisplayText(this.parseTextFromHtml(this.alt) || this.#getIconName(), 'No icon selected')}
-                    </div>
+                    <div class="value">${this.#renderDescription()}</div>
                 </div>
 
                 <sp-action-menu class="action-menu" quiet size="s" placement="bottom-end" @change=${this.#handleMenuChange}>

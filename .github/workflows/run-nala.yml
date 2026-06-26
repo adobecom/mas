@@ -118,7 +118,7 @@ jobs:
         needs: nala-gate
         # Run when PR is opened (no label needed) OR when 'run nala' label exists
         # This covers: opened (always), synchronize (if label exists), labeled (if label exists)
-        # Skip entirely when 'trivial' label is present (readme-only PRs)
+        # Skip entirely when 'trivial' label is present
         if: |
             !contains(github.event.pull_request.labels.*.name, 'trivial') &&
             (github.event.action == 'opened' ||

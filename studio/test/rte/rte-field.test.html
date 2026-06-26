@@ -95,8 +95,21 @@
                     await rte.linkEditorElement.updateComplete;
                 };
 
+                const openIconEditor = async function (rte) {
+                    rte.iconEditorButtonElement.click();
+                    rte.requestUpdate();
+                    await rte.updateComplete;
+                    rte.iconEditorElement.requestUpdate();
+                    await rte.iconEditorElement.updateComplete;
+                };
+
                 const clickSave = (rte) => {
                     const saveButton = rte.linkEditorElement.shadowRoot.getElementById('saveButton');
+                    saveButton.click();
+                };
+
+                const clickIconSave = (rte) => {
+                    const saveButton = rte.iconEditorElement.shadowRoot.getElementById('saveButton');
                     saveButton.click();
                 };
 
@@ -198,6 +211,40 @@
                         expect(small.textContent).to.equal('Small');
                         expect(smallButton.selected).to.be.true;
                         expect(rte.value).to.equal('<p><small>Small</small></p>');
+                    });
+                });
+
+                describe('RTE Field: icon features', () => {
+                    let rte;
+
+                    const firstIcon = () => rte.shadowRoot.querySelector('.ProseMirror .icon-button');
+
+                    it('should open the icon editor on icon click and support update', async function () {
+                        rte = await createFromTemplate('rte-icon', this.test.title);
+                        rte.selectLink(1);
+                        await delay(100);
+                        await openIconEditor(rte);
+                        const { tooltip } = rte.iconEditorElement;
+                        expect(tooltip).to.equal('Info tooltip');
+                        rte.iconEditorElement.tooltip = 'New info tooltip';
+                        rte.iconEditorElement.requestUpdate();
+                        await rte.iconEditorElement.updateComplete;
+                        clickIconSave(rte);
+                        await delay(100);
+                        const tt = firstIcon().getAttribute('data-tooltip');
+                        expect(tt).to.equal('New info tooltip');
+                    });
+
+                    it('should open the icon editor and support inserting icon', async function () {
+                        rte = await createFromTemplate('rte', this.test.title);
+                        await openIconEditor(rte);
+                        rte.iconEditorElement.tooltip = 'My info tooltip';
+                        rte.iconEditorElement.requestUpdate();
+                        await rte.iconEditorElement.updateComplete;
+                        clickSave(rte);
+                        await delay(100);
+                        const tt = firstIcon().getAttribute('data-tooltip');
+                        expect(tt).to.equal('My info tooltip');
                     });
                 });
 
@@ -503,7 +550,7 @@
             <sp-theme system="spectrum-two" color="light" scale="medium"> </sp-theme>
         </main>
         <template id="rte">
-            <rte-field link>
+            <rte-field link icon>
                 <p>Text only</p>
             </rte-field>
         </template>
@@ -613,6 +660,11 @@
         </template>
         <template id="rte-small">
             <rte-field styling marks="small"> Small </rte-field>
+        </template>
+        <template id="rte-icon">
+            <rte-field icon>
+                <span class="icon-button" tabindex="0" role="button" data-tooltip="Info tooltip"></span>
+            </rte-field>
         </template>
     </body>
 </html>

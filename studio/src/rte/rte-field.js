@@ -1895,6 +1895,10 @@ class RteField extends LitElement {
         return this.shadowRoot.querySelector('rte-mnemonic-editor');
     }
 
+    get iconEditorButtonElement() {
+        return this.shadowRoot.querySelector('#addIconButton');
+    }
+
     render() {
         const lengthExceeded = this.length > this.maxLength;
         return html`

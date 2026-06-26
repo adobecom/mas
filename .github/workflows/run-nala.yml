@@ -141,13 +141,13 @@ jobs:
               id: filter
               run: |
                   if git diff --quiet origin/${{ github.event.pull_request.base.ref }}...HEAD -- io/www/ 2>/dev/null; then
-                      echo "io-www=false" >> $GITHUB_OUTPUT
+                      echo "io-www=false" >> "$GITHUB_OUTPUT"
                   else
                       status=$?
                       if [ "$status" -eq 1 ]; then
-                          echo "io-www=true" >> $GITHUB_OUTPUT
+                          echo "io-www=true" >> "$GITHUB_OUTPUT"
                       else
-                          echo "io-www=false" >> $GITHUB_OUTPUT
+                          echo "io-www=false" >> "$GITHUB_OUTPUT"
                       fi
                   fi
 
@@ -195,7 +195,7 @@ jobs:
                   fi
                   ACTOR_NS="${{ secrets.AIO_WWW_NS }}-${{ github.event.pull_request.user.login }}"
                   echo "Using AIO namespace: PR author (${{ github.event.pull_request.user.login }})"
-                  echo "MAS_IO_URL=?mas-io-url=https://${ACTOR_NS}.adobeioruntime.net/api/v1/web/MerchAtScale" >> $GITHUB_ENV
+                  echo "MAS_IO_URL=?mas-io-url=https://${ACTOR_NS}.adobeioruntime.net/api/v1/web/MerchAtScale" >> "$GITHUB_ENV"
 
             - name: Run Nala Docs Tests via gh.run.sh
               run: ./nala/utils/gh.run.sh

@@ -855,6 +855,18 @@ describe('bulk-edit: mode-specific endpoints', () => {
         expect(res.error.body.error).to.include('bulk-edit-find');
     });
 
+    it('bulk-edit-replace POST 401s a disallowed caller', async () => {
+        const { mod } = load({ allowed: false });
+        const replaceMain = mod.createModeMain('replace');
+        const res = await replaceMain({
+            __ow_method: 'post',
+            allowedClientId: 'mas-studio',
+            findJobId: 'find-1',
+            odinEndpoint: 'https://odin.example',
+        });
+        expect(res.error.statusCode).to.equal(401);
+    });
+
     it('bulk-edit-replace rejects CSV upload', async () => {
         const { mod } = load({ existing: doneJob });
         const replaceMain = mod.createModeMain('replace');

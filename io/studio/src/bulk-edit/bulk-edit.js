@@ -315,6 +315,9 @@ async function handlePost(params) {
 const TERMINAL_REPLACE_STATUSES = new Set(['DONE']);
 
 async function handleReplacePost(params, authToken) {
+    if (!(await isAllowed(authToken, params.allowedClientId))) {
+        return errorResponse(401, 'Authorization failed', logger);
+    }
     if (!params.odinEndpoint) return errorResponse(400, 'missing parameter(s) odinEndpoint', logger);
 
     const required = REQUIRED_INPUTS.replace;

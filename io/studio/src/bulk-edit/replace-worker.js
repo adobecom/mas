@@ -210,6 +210,9 @@ async function runReplaceWorker(jobId, { odinEndpoint, authToken, runId, params 
     const batchSize = Number.parseInt(params.batchSize, 10) || DEFAULT_BATCH_SIZE;
     const parsedBudget = Number.parseInt(params.softBudgetMs, 10);
     const softBudgetMs = Number.isFinite(parsedBudget) ? parsedBudget : DEFAULT_SOFT_BUDGET_MS;
+    const parsedRps = Number.parseInt(params.rpsLimit, 10);
+    const rpsLimit = Number.isFinite(parsedRps) && parsedRps > 0 ? parsedRps : null;
+    const minBatchMs = rpsLimit ? (batchSize / rpsLimit) * 1000 : 0;
     const runStart = Date.now();
 
     let results = job.results || [];
@@ -218,6 +221,7 @@ async function runReplaceWorker(jobId, { odinEndpoint, authToken, runId, params 
 
     try {
         for (let i = cursor; i < items.length; i += batchSize) {
+            const batchStart = Date.now();
             const batch = items.slice(i, i + batchSize);
 
             const batchResults = await Promise.all(
@@ -266,6 +270,13 @@ async function runReplaceWorker(jobId, { odinEndpoint, authToken, runId, params 
                 await invokeAsyncAction(action, { jobId, authToken, runId }, params);
                 logger.info(JSON.stringify({ event: 'bulk-edit-replace-continued', jobId, cursor }));
                 return { status: 'RUNNING', continued: true, ...countCounters(results) };
+            }
+
+            // Proactively cap sustained PATCH rate so a steadily rate-limited Odin can't stall the
+            // run for minutes via reactive 429 backoff alone; mirrors processBatchWithConcurrency.
+            if (minBatchMs > 0) {
+                const wait = minBatchMs - (Date.now() - batchStart);
+                if (wait > 0) await sleep(wait);
             }
         }
 

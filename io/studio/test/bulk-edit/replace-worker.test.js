@@ -389,6 +389,47 @@ describe('bulk-edit/replace-worker: runReplaceWorker', () => {
         expect(calls.invokes[0].p).to.deep.include({ jobId: 'job1', runId: 'run1' });
     });
 
+    it('throttles between batches to honor rpsLimit', async () => {
+        const delays = [];
+        sinon.stub(global, 'setTimeout').callsFake((fn, ms) => {
+            delays.push(ms);
+            fn();
+            return 1;
+        });
+        try {
+            const { mod } = load();
+            const result = await mod.runReplaceWorker('job1', {
+                odinEndpoint: 'https://odin',
+                runId: 'run1',
+                params: { batchSize: '1', rpsLimit: '1' },
+            });
+            expect(result.status).to.equal('DONE');
+            expect(delays.some((ms) => ms >= 900)).to.equal(true);
+        } finally {
+            sinon.restore();
+        }
+    });
+
+    it('does not throttle when rpsLimit is unset', async () => {
+        const delays = [];
+        sinon.stub(global, 'setTimeout').callsFake((fn, ms) => {
+            delays.push(ms);
+            fn();
+            return 1;
+        });
+        try {
+            const { mod } = load();
+            await mod.runReplaceWorker('job1', {
+                odinEndpoint: 'https://odin',
+                runId: 'run1',
+                params: { batchSize: '1' },
+            });
+            expect(delays.some((ms) => ms >= 900)).to.equal(false);
+        } finally {
+            sinon.restore();
+        }
+    });
+
     it('stops as SUPERSEDED without writing terminal status when runId changes', async () => {
         const { mod, patches } = load({
             readJob: async (id) => {

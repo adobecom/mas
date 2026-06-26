@@ -13,4 +13,6 @@ jobs:
               uses: actions/checkout@v4
 
             - name: Run actionlint
-              uses: rhysd/actionlint@v1
+              run: |
+                  bash <(curl -Ls https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash)
+                  ./actionlint -color

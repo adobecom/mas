@@ -539,15 +539,19 @@ describe('MasItemsSelector', () => {
             });
         });
 
-        const pasteIntoSearch = async (el, value) => {
-            const search = el.shadowRoot.querySelector('sp-search');
-            search.value = value;
-            search.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
-            await Promise.resolve();
+        const importViaUrl = async (el, value) => {
+            const btn = el.shadowRoot.querySelector('sp-button.import-url-btn');
+            btn.click();
+            await el.updateComplete;
+            const textarea = el.shadowRoot.querySelector('textarea.import-url-input');
+            const dt = new DataTransfer();
+            dt.setData('text/plain', value);
+            textarea.dispatchEvent(new ClipboardEvent('paste', { bubbles: true, clipboardData: dt }));
+            await new Promise((resolve) => setTimeout(resolve, 0));
             await el.updateComplete;
         };
 
-        const getToast = (el) => el.shadowRoot.querySelector('sp-toast');
+        const getToast = (el) => el.shadowRoot.querySelector('.import-url-view sp-toast');
 
         it('shows a positive toast when a copy-code URL is pasted and fragment is found', async () => {
             const uuid = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
@@ -555,7 +559,7 @@ describe('MasItemsSelector', () => {
             mockRepository.aem.sites.cf.fragments.getById.resolves(card);
 
             const el = await fixture(html`<mas-items-selector></mas-items-selector>`);
-            await pasteIntoSearch(el, COPY_CODE_URL(uuid));
+            await importViaUrl(el, COPY_CODE_URL(uuid));
 
             const toast = getToast(el);
             expect(toast.open).to.be.true;
@@ -569,21 +573,21 @@ describe('MasItemsSelector', () => {
             mockRepository.aem.sites.cf.fragments.getById.resolves(card);
 
             const el = await fixture(html`<mas-items-selector></mas-items-selector>`);
-            await pasteIntoSearch(el, COPY_CODE_URL(uuid));
+            await importViaUrl(el, COPY_CODE_URL(uuid));
 
             expect(Store.translationProjects.selectedCards.get()).to.include(card.path);
         });
 
-        it('clears the search field after a URL is detected', async () => {
+        it('shows URL item with valid status after fragment is added', async () => {
             const uuid = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
             const card = mockCard('/content/dam/mas/sandbox/en_US/test-card', uuid);
             mockRepository.aem.sites.cf.fragments.getById.resolves(card);
 
             const el = await fixture(html`<mas-items-selector></mas-items-selector>`);
-            await pasteIntoSearch(el, COPY_CODE_URL(uuid));
+            await importViaUrl(el, COPY_CODE_URL(uuid));
 
-            const search = el.shadowRoot.querySelector('sp-search');
-            expect(search.value).to.equal('');
+            expect(el.importedUrls).to.have.length(1);
+            expect(el.importedUrls[0].status).to.equal('valid');
         });
 
         it('shows a negative toast when a copy-code URL is pasted but fragment is not found', async () => {
@@ -593,7 +597,7 @@ describe('MasItemsSelector', () => {
             );
 
             const el = await fixture(html`<mas-items-selector></mas-items-selector>`);
-            await pasteIntoSearch(el, COPY_CODE_URL(uuid));
+            await importViaUrl(el, COPY_CODE_URL(uuid));
 
             const toast = getToast(el);
             expect(toast.open).to.be.true;
@@ -608,7 +612,7 @@ describe('MasItemsSelector', () => {
             mockRepository.aem.sites.cf.fragments.getById.withArgs(uuid1).resolves(card1).withArgs(uuid2).resolves(card2);
 
             const el = await fixture(html`<mas-items-selector></mas-items-selector>`);
-            await pasteIntoSearch(el, `${COPY_CODE_URL(uuid1)} ${COPY_CODE_URL(uuid2)}`);
+            await importViaUrl(el, `${COPY_CODE_URL(uuid1)} ${COPY_CODE_URL(uuid2)}`);
 
             const selected = Store.translationProjects.selectedCards.get();
             expect(selected).to.include(card1.path);
@@ -623,7 +627,7 @@ describe('MasItemsSelector', () => {
             mockRepository.aem.sites.cf.fragments.getById.withArgs(uuid1).resolves(card1).withArgs(uuid2).resolves(card2);
 
             const el = await fixture(html`<mas-items-selector></mas-items-selector>`);
-            await pasteIntoSearch(el, `${COPY_CODE_URL(uuid1)} ${COPY_CODE_URL(uuid2)}`);
+            await importViaUrl(el, `${COPY_CODE_URL(uuid1)} ${COPY_CODE_URL(uuid2)}`);
 
             const toast = getToast(el);
             expect(toast.open).to.be.true;
@@ -645,7 +649,7 @@ describe('MasItemsSelector', () => {
             mockRepository.aem.sites.cf.fragments.getById.resolves(collection);
 
             const el = await fixture(html`<mas-items-selector></mas-items-selector>`);
-            await pasteIntoSearch(
+            await importViaUrl(
                 el,
                 `https://mas.adobe.com/studio.html#content-type=merch-card-collection&page=content&path=sandbox&query=${uuid}`,
             );
@@ -667,7 +671,7 @@ describe('MasItemsSelector', () => {
             mockRepository.aem.sites.cf.fragments.getById.resolves(compareChart);
 
             const el = await fixture(html`<mas-items-selector></mas-items-selector>`);
-            await pasteIntoSearch(
+            await importViaUrl(
                 el,
                 `https://mas.adobe.com/studio.html#content-type=mas-compare-chart&page=content&path=sandbox&query=${uuid}`,
             );
@@ -695,7 +699,7 @@ describe('MasItemsSelector', () => {
                 .resolves(collection);
 
             const el = await fixture(html`<mas-items-selector></mas-items-selector>`);
-            await pasteIntoSearch(
+            await importViaUrl(
                 el,
                 `${COPY_CODE_URL(cardUuid)} https://mas.adobe.com/studio.html#content-type=merch-card-collection&page=content&path=sandbox&query=${collectionUuid}`,
             );
@@ -704,7 +708,7 @@ describe('MasItemsSelector', () => {
             expect(Store.translationProjects.selectedCollections.get()).to.include(collection.path);
         });
 
-        it('handles URL paste on the Collections tab (not gated by active tab)', async () => {
+        it('imports fragments when Import via URL is opened from the Collections tab', async () => {
             const uuid = 'cccccccc-dddd-eeee-ffff-aaaaaaaaaaaa';
             const collection = {
                 id: uuid,
@@ -718,11 +722,10 @@ describe('MasItemsSelector', () => {
             mockRepository.aem.sites.cf.fragments.getById.resolves(collection);
 
             const el = await fixture(html`<mas-items-selector></mas-items-selector>`);
-            const collectionsTab = el.shadowRoot.querySelector(`sp-tab[value="${TABLE_TYPE.COLLECTIONS}"]`);
-            collectionsTab.click();
+            el.shadowRoot.querySelector('sp-tab[value="collections"]').click();
             await el.updateComplete;
 
-            await pasteIntoSearch(
+            await importViaUrl(
                 el,
                 `https://mas.adobe.com/studio.html#content-type=merch-card-collection&page=content&path=sandbox&query=${uuid}`,
             );
@@ -730,7 +733,7 @@ describe('MasItemsSelector', () => {
             expect(Store.translationProjects.selectedCollections.get()).to.include(collection.path);
         });
 
-        it('shows toast on the Collections tab panel when pasting a collection URL on the Collections tab', async () => {
+        it('shows toast in the import panel when a collection URL is added', async () => {
             const uuid = 'cccccccc-dddd-eeee-ffff-aaaaaaaaaaaa';
             const collection = {
                 id: uuid,
@@ -744,18 +747,14 @@ describe('MasItemsSelector', () => {
             mockRepository.aem.sites.cf.fragments.getById.resolves(collection);
 
             const el = await fixture(html`<mas-items-selector></mas-items-selector>`);
-            const collectionsTab = el.shadowRoot.querySelector(`sp-tab[value="${TABLE_TYPE.COLLECTIONS}"]`);
-            collectionsTab.click();
-            await el.updateComplete;
-
-            await pasteIntoSearch(
+            await importViaUrl(
                 el,
                 `https://mas.adobe.com/studio.html#content-type=merch-card-collection&page=content&path=sandbox&query=${uuid}`,
             );
 
-            const collectionsToast = el.shadowRoot.querySelector(`sp-tab-panel[value="${TABLE_TYPE.COLLECTIONS}"] sp-toast`);
-            expect(collectionsToast.open).to.be.true;
-            expect(collectionsToast.variant).to.equal('positive');
+            const toast = getToast(el);
+            expect(toast.open).to.be.true;
+            expect(toast.variant).to.equal('positive');
         });
 
         it('shows a combined negative toast when some URLs succeed and some fail', async () => {
@@ -769,7 +768,7 @@ describe('MasItemsSelector', () => {
                 .rejects(Object.assign(new Error('Not found'), { response: { status: 404 } }));
 
             const el = await fixture(html`<mas-items-selector></mas-items-selector>`);
-            await pasteIntoSearch(el, `${COPY_CODE_URL(goodUuid)} ${COPY_CODE_URL(badUuid)}`);
+            await importViaUrl(el, `${COPY_CODE_URL(goodUuid)} ${COPY_CODE_URL(badUuid)}`);
 
             const toast = getToast(el);
             expect(toast.open).to.be.true;
@@ -781,7 +780,7 @@ describe('MasItemsSelector', () => {
         it('shows a negative toast when all pasted URLs are filtered by allowedTypes', async () => {
             const uuid = 'cccccccc-dddd-eeee-ffff-aaaaaaaaaaaa';
             const el = await fixture(html`<mas-items-selector .allowedTypes=${[TABLE_TYPE.CARDS]}></mas-items-selector>`);
-            await pasteIntoSearch(
+            await importViaUrl(
                 el,
                 `https://mas.adobe.com/studio.html#content-type=merch-card-collection&page=content&path=sandbox&query=${uuid}`,
             );
@@ -789,6 +788,125 @@ describe('MasItemsSelector', () => {
             const toast = getToast(el);
             expect(toast.open).to.be.true;
             expect(toast.variant).to.equal('negative');
+        });
+
+        it('does not add a duplicate URL that was already imported', async () => {
+            const uuid = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
+            const card = mockCard('/content/dam/mas/sandbox/en_US/test-card', uuid);
+            mockRepository.aem.sites.cf.fragments.getById.resolves(card);
+
+            const el = await fixture(html`<mas-items-selector></mas-items-selector>`);
+            await importViaUrl(el, COPY_CODE_URL(uuid));
+
+            const textarea = el.shadowRoot.querySelector('textarea.import-url-input');
+            const dt = new DataTransfer();
+            dt.setData('text/plain', COPY_CODE_URL(uuid));
+            textarea.dispatchEvent(new ClipboardEvent('paste', { bubbles: true, clipboardData: dt }));
+            await new Promise((resolve) => setTimeout(resolve, 0));
+            await el.updateComplete;
+
+            expect(el.importedUrls).to.have.length(1);
+            expect(Store.translationProjects.selectedCards.get()).to.have.length(1);
+        });
+
+        it('shows URL item with error status when fragment is not found', async () => {
+            const uuid = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
+            mockRepository.aem.sites.cf.fragments.getById.rejects(
+                Object.assign(new Error('Not found'), { response: { status: 404 } }),
+            );
+
+            const el = await fixture(html`<mas-items-selector></mas-items-selector>`);
+            await importViaUrl(el, COPY_CODE_URL(uuid));
+
+            expect(el.importedUrls).to.have.length(1);
+            expect(el.importedUrls[0].status).to.equal('error');
+        });
+
+        it('adds fragment to store when Enter key is pressed in the textarea', async () => {
+            const uuid = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
+            const card = mockCard('/content/dam/mas/sandbox/en_US/test-card', uuid);
+            mockRepository.aem.sites.cf.fragments.getById.resolves(card);
+
+            const el = await fixture(html`<mas-items-selector></mas-items-selector>`);
+            el.shadowRoot.querySelector('sp-button.import-url-btn').click();
+            await el.updateComplete;
+
+            const textarea = el.shadowRoot.querySelector('textarea.import-url-input');
+            textarea.value = COPY_CODE_URL(uuid);
+            textarea.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+            await new Promise((resolve) => setTimeout(resolve, 0));
+            await el.updateComplete;
+
+            expect(Store.translationProjects.selectedCards.get()).to.include(card.path);
+        });
+
+        it('removes a URL item and deselects its fragment when the remove button is clicked', async () => {
+            const uuid = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
+            const card = mockCard('/content/dam/mas/sandbox/en_US/test-card', uuid);
+            mockRepository.aem.sites.cf.fragments.getById.resolves(card);
+
+            const el = await fixture(html`<mas-items-selector></mas-items-selector>`);
+            await importViaUrl(el, COPY_CODE_URL(uuid));
+
+            expect(el.importedUrls).to.have.length(1);
+            expect(Store.translationProjects.selectedCards.get()).to.include(card.path);
+
+            const removeBtn = el.shadowRoot.querySelector('.import-item-row sp-action-button');
+            removeBtn.click();
+            await el.updateComplete;
+
+            expect(el.importedUrls).to.have.length(0);
+            expect(Store.translationProjects.selectedCards.get()).to.not.include(card.path);
+        });
+
+        it('shows the fragment path in the URL list row instead of the raw MAS URL', async () => {
+            const uuid = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
+            const card = mockCard('/content/dam/mas/sandbox/en_US/test-card', uuid);
+            mockRepository.aem.sites.cf.fragments.getById.resolves(card);
+
+            const el = await fixture(html`<mas-items-selector></mas-items-selector>`);
+            await importViaUrl(el, COPY_CODE_URL(uuid));
+
+            const link = el.shadowRoot.querySelector('.import-item-row a');
+            expect(link).to.exist;
+            expect(el.importedUrls[0].path).to.equal(card.path);
+            expect(link.textContent.trim()).to.not.equal(COPY_CODE_URL(uuid));
+        });
+
+        it('shows the count of imported URLs in the footer row', async () => {
+            const uuid1 = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
+            const uuid2 = '11111111-2222-3333-4444-555555555555';
+            const card1 = mockCard('/content/dam/mas/sandbox/en_US/card-1', uuid1);
+            const card2 = mockCard('/content/dam/mas/sandbox/en_US/card-2', uuid2);
+            mockRepository.aem.sites.cf.fragments.getById.withArgs(uuid1).resolves(card1).withArgs(uuid2).resolves(card2);
+
+            const el = await fixture(html`<mas-items-selector></mas-items-selector>`);
+            await importViaUrl(el, `${COPY_CODE_URL(uuid1)} ${COPY_CODE_URL(uuid2)}`);
+
+            const footerCount = el.shadowRoot.querySelector('.import-footer-row .footer-count');
+            expect(footerCount).to.exist;
+            expect(footerCount.textContent.trim()).to.include('2');
+        });
+
+        it('removes all imported URLs and deselects their fragments when Remove All is clicked', async () => {
+            const uuid1 = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
+            const uuid2 = '11111111-2222-3333-4444-555555555555';
+            const card1 = mockCard('/content/dam/mas/sandbox/en_US/card-1', uuid1);
+            const card2 = mockCard('/content/dam/mas/sandbox/en_US/card-2', uuid2);
+            mockRepository.aem.sites.cf.fragments.getById.withArgs(uuid1).resolves(card1).withArgs(uuid2).resolves(card2);
+
+            const el = await fixture(html`<mas-items-selector></mas-items-selector>`);
+            await importViaUrl(el, `${COPY_CODE_URL(uuid1)} ${COPY_CODE_URL(uuid2)}`);
+
+            expect(el.importedUrls).to.have.length(2);
+
+            const removeAllBtn = el.shadowRoot.querySelector('.import-footer-row sp-action-button');
+            removeAllBtn.click();
+            await el.updateComplete;
+
+            expect(el.importedUrls).to.have.length(0);
+            expect(Store.translationProjects.selectedCards.get()).to.not.include(card1.path);
+            expect(Store.translationProjects.selectedCards.get()).to.not.include(card2.path);
         });
 
         it('ignores collection URLs when allowedTypes restricts to cards only', async () => {
@@ -804,7 +922,7 @@ describe('MasItemsSelector', () => {
             });
 
             const el = await fixture(html`<mas-items-selector .allowedTypes=${[TABLE_TYPE.CARDS]}></mas-items-selector>`);
-            await pasteIntoSearch(
+            await importViaUrl(
                 el,
                 `https://mas.adobe.com/studio.html#content-type=merch-card-collection&page=content&path=sandbox&query=${uuid}`,
             );

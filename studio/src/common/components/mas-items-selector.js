@@ -3,7 +3,7 @@ import { repeat } from 'lit/directives/repeat.js';
 import ReactiveController from '../../reactivity/reactive-controller.js';
 import { getItemsSelectionStore } from '../items-selection-store.js';
 import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, TABLE_TYPE } from '../../constants.js';
-import { toggleSidebarIcon } from '../../icons.js';
+import { toggleSidebarIcon, uploadIcon, noItemsSelectedIcon } from '../../icons.js';
 import { Fragment } from '../../aem/fragment.js';
 import { renderFragmentStatusCell, getStudioFragmentDisplayPath } from '../utils/render-utils.js';
 import './mas-select-items-table.js';
@@ -26,6 +26,8 @@ class MasItemsSelector extends LitElement {
         hideSelectedToggle: { type: Boolean, attribute: 'hide-selected-toggle' },
         searchQuery: { type: String, state: true },
         selectedTab: { type: String, state: true },
+        importMode: { type: Boolean, state: true },
+        importedUrls: { type: Array, state: true },
         allowedTypes: { type: Array, attribute: false },
         maxSelectedCards: { type: Number, attribute: 'max-selected-cards' },
         lockedTemplateFilter: { type: String, attribute: 'locked-template-filter' },
@@ -55,6 +57,8 @@ class MasItemsSelector extends LitElement {
         this.getDisplayName = getStudioFragmentDisplayPath;
         this.renderFragmentStatusCell = renderFragmentStatusCell;
         this.hidePromoVariations = false;
+        this.importMode = false;
+        this.importedUrls = [];
     }
 
     connectedCallback() {
@@ -147,32 +151,84 @@ class MasItemsSelector extends LitElement {
         return true;
     }
 
-    async #handleStudioUrls(value, search) {
-        const all = parseStudioDeepLinksFromText(value);
-        if (!all.length) return false;
-        const parsed = all.filter(({ contentType }) =>
-            this.allowedTypes.includes(contentType === 'merch-card' ? TABLE_TYPE.CARDS : TABLE_TYPE.COLLECTIONS),
+    #setImportedUrlStatus(fragmentId, status, errorMessage, path = null, displayName = null) {
+        this.importedUrls = this.importedUrls.map((item) =>
+            item.fragmentId === fragmentId ? { ...item, status, errorMessage, path, displayName } : item,
         );
-        search.value = '';
-        this.searchQuery = '';
-        if (!parsed.length) {
-            this.#openToast('URL type not supported', 'negative');
-            return true;
+    }
+
+    #removeAllImportedUrls() {
+        const store = getItemsSelectionStore();
+        const valid = this.importedUrls.filter((i) => i.status === 'valid');
+        const cardPaths = valid.filter((i) => i.contentType === 'merch-card').map((i) => i.path);
+        const collectionPaths = valid.filter((i) => i.contentType !== 'merch-card').map((i) => i.path);
+        store.selectedCards.set(store.selectedCards.value.filter((p) => !cardPaths.includes(p)));
+        store.selectedCollections.set(store.selectedCollections.value.filter((p) => !collectionPaths.includes(p)));
+        this.importedUrls = [];
+    }
+
+    #removeImportedUrl(item) {
+        this.importedUrls = this.importedUrls.filter((i) => i.fragmentId !== item.fragmentId);
+        if (item.status !== 'valid') return;
+        const store = getItemsSelectionStore();
+        const key = item.contentType === 'merch-card' ? 'selectedCards' : 'selectedCollections';
+        store[key].set(store[key].value.filter((p) => p !== item.path));
+    }
+
+    async #processUrlText(text) {
+        const lines = text.split(/\s+/).filter(Boolean);
+        const allParsed = [];
+        for (const line of lines) {
+            const parsed = parseStudioDeepLinksFromText(line);
+            if (!parsed.length) continue;
+            const { fragmentId, contentType } = parsed[0];
+            if (this.importedUrls.some((item) => item.fragmentId === fragmentId)) continue;
+            const allowed = this.allowedTypes.includes(
+                contentType === 'merch-card' ? TABLE_TYPE.CARDS : TABLE_TYPE.COLLECTIONS,
+            );
+            allParsed.push({ url: line, fragmentId, contentType, allowed });
         }
+
+        if (!allParsed.length) {
+            this.#openToast('No valid URLs found', 'negative');
+            return;
+        }
+
+        const newItems = allParsed.map(({ url, fragmentId, contentType, allowed }) => ({
+            url,
+            fragmentId,
+            contentType,
+            status: allowed ? 'loading' : 'error',
+            errorMessage: allowed ? null : 'URL type not supported',
+            path: null,
+        }));
+
+        this.importedUrls = [...this.importedUrls, ...newItems];
+
+        const fetchable = newItems.filter((item) => item.status === 'loading');
+        if (!fetchable.length) {
+            this.#openToast('URL type not supported', 'negative');
+            return;
+        }
+
         let added = 0;
         let failed = 0;
         await Promise.all(
-            parsed.map(async ({ contentType, fragmentId }) => {
+            fetchable.map(async (item) => {
                 try {
-                    const fragment = await this.repository?.aem?.sites?.cf?.fragments?.getById?.(fragmentId);
-                    const isCard = contentType === 'merch-card';
+                    const fragment = await this.repository?.aem?.sites?.cf?.fragments?.getById?.(item.fragmentId);
+                    const isCard = item.contentType === 'merch-card';
                     const display = isCard ? this.#upsertDisplayCard(fragment) : this.#upsertDisplayCollection(fragment);
                     if (isCard ? this.#appendSelectedCard(display) : this.#appendSelectedCollection(display)) added++;
+                    const displayName = this.getDisplayName(new Fragment(fragment)) || fragment.path;
+                    this.#setImportedUrlStatus(item.fragmentId, 'valid', null, fragment.path, displayName);
                 } catch {
                     failed++;
+                    this.#setImportedUrlStatus(item.fragmentId, 'error', 'Fragment not found', null);
                 }
             }),
         );
+
         if (added > 0 && failed === 0) {
             this.#openToast(added === 1 ? 'Fragment added' : `${added} fragments added`, 'positive');
         } else if (added > 0 && failed > 0) {
@@ -180,7 +236,31 @@ class MasItemsSelector extends LitElement {
         } else if (failed > 0) {
             this.#openToast(failed === 1 ? 'Fragment not found' : `${failed} fragments not found`, 'negative');
         }
-        return true;
+    }
+
+    async #handleUrlPaste(e) {
+        const text = (e.clipboardData?.getData('text') || '').trim();
+        if (!text) return;
+        e.preventDefault();
+        if (e.target?.value !== undefined) e.target.value = '';
+        await this.#processUrlText(text);
+    }
+
+    #handleImportKeydown(e) {
+        if (e.key !== 'Enter' || e.shiftKey) return;
+        e.preventDefault();
+        const text = e.target.value.trim();
+        if (!text) return;
+        e.target.value = '';
+        this.#processUrlText(text);
+    }
+
+    #toggleImportMode() {
+        this.importMode = !this.importMode;
+        this.importedUrls = [];
+        if (this.importMode) {
+            getItemsSelectionStore().showSelected.set(true);
+        }
     }
 
     #toggleShowSelected() {
@@ -191,22 +271,20 @@ class MasItemsSelector extends LitElement {
         this.searchQuery = value;
     }, 300);
 
-    async #handleSearchInput(e) {
-        const search = e.currentTarget;
-        const value = search?.value ?? '';
-        if (await this.#handleStudioUrls(value, search)) return;
-        this.#setSearchQuery(value);
+    #handleSearchInput(e) {
+        this.#setSearchQuery(e.currentTarget?.value ?? '');
     }
 
-    async #handleSearchSubmit(e) {
+    #handleSearchSubmit(e) {
         e.preventDefault();
-        const search = e.currentTarget;
-        const value = search?.value ?? '';
-        if (await this.#handleStudioUrls(value, search)) return;
-        this.searchQuery = value;
+        this.searchQuery = e.currentTarget?.value ?? '';
     }
 
     #handleTabChange({ target: { selected } }) {
+        if (this.importMode) {
+            this.importMode = false;
+            this.importedUrls = [];
+        }
         this.selectedTab = selected;
     }
 
@@ -257,6 +335,172 @@ class MasItemsSelector extends LitElement {
         if (next !== this.selectedTab) this.selectedTab = next;
     }
 
+    #renderTabs(tabs, showingSelection) {
+        return html`
+            <div class="tabs-container">
+                <sp-tabs quiet .selected=${this.selectedTab} @change=${this.#handleTabChange}>
+                    ${repeat(
+                        tabs,
+                        (tab) => tab.value,
+                        (tab) => html`<sp-tab value=${tab.value} label=${tab.label}>${this.#getTabLabel(tab)}</sp-tab>`,
+                    )}
+                    ${repeat(
+                        tabs,
+                        (tab) => tab.value,
+                        (tab) => html`
+                            <sp-tab-panel value=${tab.value} class=${this.viewOnly ? 'view-only' : ''}>
+                                ${this.viewOnly
+                                    ? nothing
+                                    : html`
+                                          <mas-search-and-filters
+                                              .type=${tab.value}
+                                              .searchQuery=${tab.value === this.selectedTab ? this.searchQuery : ''}
+                                              .searchOnly=${[TABLE_TYPE.PLACEHOLDERS, TABLE_TYPE.COLLECTIONS].includes(
+                                                  tab.value,
+                                              )}
+                                              .lockedTemplateFilter=${tab.value === TABLE_TYPE.CARDS
+                                                  ? this.lockedTemplateFilter
+                                                  : ''}
+                                              .defaultTemplateFilter=${tab.value === TABLE_TYPE.CARDS
+                                                  ? this.defaultTemplateFilter
+                                                  : ''}
+                                          ></mas-search-and-filters>
+                                      `}
+                                <div
+                                    class="container ${this.viewOnly ? 'view-only' : ''} ${showingSelection
+                                        ? 'show-selected'
+                                        : ''}"
+                                >
+                                    ${this.#renderItemsTable(tab.value)}
+                                    ${this.viewOnly
+                                        ? nothing
+                                        : html`<mas-selected-items
+                                              .getDisplayName=${this.getDisplayName}
+                                          ></mas-selected-items>`}
+                                </div>
+                                <sp-toast timeout="6000" @close=${(event) => event.stopPropagation()}></sp-toast>
+                            </sp-tab-panel>
+                        `,
+                    )}
+                </sp-tabs>
+                ${this.viewOnly
+                    ? nothing
+                    : html`
+                          <sp-button variant="secondary" class="import-url-btn" @click=${this.#toggleImportMode}>
+                              <sp-icon slot="icon">${uploadIcon}</sp-icon>
+                              Import via URL
+                          </sp-button>
+                      `}
+            </div>
+        `;
+    }
+
+    #renderImportStatusCell(item) {
+        if (item.status === 'loading') {
+            return html`<span class="import-item-status status-pending">Loading…</span>`;
+        }
+        if (item.status === 'valid') {
+            return html`<span class="import-item-status status-valid">
+                <sp-icon-checkmark-circle></sp-icon-checkmark-circle>
+                Validated
+            </span>`;
+        }
+        return html`<span class="import-item-status status-error">
+            <sp-icon-alert></sp-icon-alert>
+            ${item.errorMessage || 'Error'}
+        </span>`;
+    }
+
+    #renderImportPanel() {
+        const hasItems = this.selectedCount > 0;
+        const count = this.importedUrls.length;
+        return html`
+            <div class="import-url-view">
+                <h3 class="import-url-heading">Import from URL</h3>
+                <div class="import-url-content">
+                    <div class="import-url-left">
+                        ${count > 0
+                            ? html`<div class="import-items-box">
+                                  <div class="import-items-header">
+                                      <span>URL</span>
+                                      <span>Status</span>
+                                      <span>Actions</span>
+                                  </div>
+                                  <ul class="import-items-list">
+                                      ${repeat(
+                                          this.importedUrls,
+                                          (item) => item.fragmentId,
+                                          (item) => html`
+                                              <li class="import-item-row">
+                                                  <a
+                                                      href=${item.url}
+                                                      target="_blank"
+                                                      class="import-item-link"
+                                                      @click=${(e) => e.stopPropagation()}
+                                                      >${item.displayName || item.path || item.url}</a
+                                                  >
+                                                  ${this.#renderImportStatusCell(item)}
+                                                  <span class="import-actions-cell">
+                                                      <sp-action-button
+                                                          quiet
+                                                          size="xs"
+                                                          @click=${() => this.#removeImportedUrl(item)}
+                                                      >
+                                                          <sp-icon-delete slot="icon"></sp-icon-delete>
+                                                          Remove
+                                                      </sp-action-button>
+                                                  </span>
+                                              </li>
+                                          `,
+                                      )}
+                                      <li class="import-footer-row">
+                                          <span class="footer-count">${count} URL${count !== 1 ? 's' : ''}</span>
+                                          <span></span>
+                                          <span class="import-actions-cell">
+                                              <sp-action-button
+                                                  quiet
+                                                  size="xs"
+                                                  label="Remove all"
+                                                  @click=${this.#removeAllImportedUrls}
+                                              >
+                                                  <sp-icon-delete slot="icon"></sp-icon-delete>
+                                                  Remove all
+                                              </sp-action-button>
+                                          </span>
+                                      </li>
+                                  </ul>
+                              </div>`
+                            : nothing}
+                        <div class="import-url-input-section">
+                            <p class="import-url-label">Enter URLs (one per line)</p>
+                            <textarea
+                                class="import-url-input"
+                                placeholder="https://mas.adobe.com/studio.html#..."
+                                @paste=${this.#handleUrlPaste}
+                                @keydown=${this.#handleImportKeydown}
+                            ></textarea>
+                        </div>
+                    </div>
+                    ${this.showSelected
+                        ? html`
+                              <div class="import-selected-panel">
+                                  ${hasItems
+                                      ? html`<mas-selected-items .getDisplayName=${this.getDisplayName}></mas-selected-items>`
+                                      : html`
+                                            <div class="import-empty-state">
+                                                <sp-icon label="No items selected">${noItemsSelectedIcon}</sp-icon>
+                                                <p>No items selected yet</p>
+                                            </div>
+                                        `}
+                              </div>
+                          `
+                        : nothing}
+                </div>
+                <sp-toast timeout="6000" @close=${(event) => event.stopPropagation()}></sp-toast>
+            </div>
+        `;
+    }
+
     render() {
         const count = this.selectedCount;
         const showingSelection = this.showSelected && count;
@@ -268,54 +512,35 @@ class MasItemsSelector extends LitElement {
                 : html`
                       <div class="dialog-header">
                           <h2>Select items</h2>
-                          <sp-search
-                              size="m"
-                              placeholder="Search..."
-                              @input=${this.#handleSearchInput}
-                              @submit=${this.#handleSearchSubmit}
-                          ></sp-search>
+                          ${this.importMode
+                              ? nothing
+                              : html`<sp-search
+                                    size="m"
+                                    placeholder="Search..."
+                                    @input=${this.#handleSearchInput}
+                                    @submit=${this.#handleSearchSubmit}
+                                ></sp-search>`}
                       </div>
                   `}
-            <sp-tabs quiet .selected=${this.selectedTab} @change=${this.#handleTabChange}>
-                ${repeat(
-                    tabs,
-                    (tab) => tab.value,
-                    (tab) => html`<sp-tab value=${tab.value} label=${tab.label}>${this.#getTabLabel(tab)}</sp-tab>`,
-                )}
-                ${repeat(
-                    tabs,
-                    (tab) => tab.value,
-                    (tab) => html`
-                        <sp-tab-panel value=${tab.value} class=${this.viewOnly ? 'view-only' : ''}>
-                            ${this.viewOnly
-                                ? nothing
-                                : html`
-                                      <mas-search-and-filters
-                                          .type=${tab.value}
-                                          .searchQuery=${tab.value === this.selectedTab ? this.searchQuery : ''}
-                                          .searchOnly=${[TABLE_TYPE.PLACEHOLDERS, TABLE_TYPE.COLLECTIONS].includes(tab.value)}
-                                          .lockedTemplateFilter=${tab.value === TABLE_TYPE.CARDS
-                                              ? this.lockedTemplateFilter
-                                              : ''}
-                                          .defaultTemplateFilter=${tab.value === TABLE_TYPE.CARDS
-                                              ? this.defaultTemplateFilter
-                                              : ''}
-                                      ></mas-search-and-filters>
-                                  `}
-                            <div
-                                class="container ${this.viewOnly ? 'view-only' : ''} ${showingSelection ? 'show-selected' : ''}"
-                            >
-                                ${this.#renderItemsTable(tab.value)}
-                                ${this.viewOnly
-                                    ? nothing
-                                    : html`<mas-selected-items .getDisplayName=${this.getDisplayName}></mas-selected-items>`}
-                            </div>
-                            <sp-toast timeout="6000" @close=${(event) => event.stopPropagation()}></sp-toast>
-                        </sp-tab-panel>
-                    `,
-                )}
-            </sp-tabs>
-
+            ${this.importMode
+                ? html`
+                      <div class="tabs-container import-mode">
+                          <sp-tabs quiet .selected=${''} @change=${this.#handleTabChange}>
+                              ${repeat(
+                                  tabs,
+                                  (tab) => tab.value,
+                                  (tab) =>
+                                      html`<sp-tab value=${tab.value} label=${tab.label}>${this.#getTabLabel(tab)}</sp-tab>`,
+                              )}
+                          </sp-tabs>
+                          <sp-button variant="secondary" class="import-url-btn" @click=${this.#toggleImportMode}>
+                              <sp-icon slot="icon">${uploadIcon}</sp-icon>
+                              Import via URL
+                          </sp-button>
+                      </div>
+                      ${this.#renderImportPanel()}
+                  `
+                : this.#renderTabs(tabs, showingSelection)}
             ${this.viewOnly || this.hideSelectedToggle
                 ? nothing
                 : html`

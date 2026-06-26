@@ -47,6 +47,7 @@
             import '../../src/swc.js';
             import '../../src/rte/rte-field.js';
             import '../../src/rte/rte-link-editor.js';
+            import '../../src/rte/rte-icon-editor.js';
             import '../../../web-components/dist/mas.js';
             import { mockFetch } from '../../../web-components/test/mocks/fetch.js';
             import { withWcs } from '../../../web-components/test/mocks/wcs.js';
@@ -111,6 +112,11 @@
                 const clickIconSave = (rte) => {
                     const saveButton = rte.iconEditorElement.shadowRoot.getElementById('saveButton');
                     saveButton.click();
+                };
+
+                const clickIconCancel = (rte) => {
+                    const cancelButton = rte.iconEditorElement.shadowRoot.getElementById('cancelButton');
+                    cancelButton.click();
                 };
 
                 describe('RTE Field', () => {
@@ -216,7 +222,6 @@
 
                 describe('RTE Field: icon features', () => {
                     let rte;
-
                     const firstIcon = () => rte.shadowRoot.querySelector('.ProseMirror .icon-button');
 
                     it('should open the icon editor on icon click and support update', async function () {
@@ -237,11 +242,12 @@
 
                     it('should open the icon editor and support inserting icon', async function () {
                         rte = await createFromTemplate('rte', this.test.title);
+                        await delay(100);
                         await openIconEditor(rte);
                         rte.iconEditorElement.tooltip = 'My info tooltip';
                         rte.iconEditorElement.requestUpdate();
                         await rte.iconEditorElement.updateComplete;
-                        clickSave(rte);
+                        clickIconSave(rte);
                         await delay(100);
                         const tt = firstIcon().getAttribute('data-tooltip');
                         expect(tt).to.equal('My info tooltip');

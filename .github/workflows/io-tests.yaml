@@ -14,8 +14,7 @@ jobs:
                   HEALTH_CHECK_URL: https://${{ secrets.workspace }}.adobeioruntime.net/api/v1/web/MerchAtScale/health-check
               run: |
                   echo "Running health check test on $HEALTH_CHECK_URL"
-                  curl -sf -o /dev/null -w "%{http_code}\n" "$HEALTH_CHECK_URL"
-                  if [ $? -ne 0 ]; then
+                  if ! curl -sf -o /dev/null -w "%{http_code}\n" "$HEALTH_CHECK_URL"; then
                       echo "Health check test failed"
                       exit 1
                   fi

@@ -72,9 +72,12 @@ jobs:
 
             - name: Detect changed paths and set SNOW Instance ID
               id: set-instance-id
+              env:
+                  BASE_SHA: ${{ github.event.pull_request.base.sha }}
+                  HEAD_SHA: ${{ github.event.pull_request.head.sha }}
               run: |
                   # Get the list of changed files in the PR
-                  CHANGED_FILES=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }})
+                  CHANGED_FILES=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA")
 
                   echo "Changed files:"
                   echo "$CHANGED_FILES"
@@ -95,13 +98,13 @@ jobs:
 
                   # Set SNOW Instance ID based on which paths changed
                   if [[ "$IO_CHANGED" == "true" && "$STUDIO_CHANGED" == "true" ]]; then
-                    echo "changed_path=both" >> $GITHUB_OUTPUT
+                    echo "changed_path=both" >> "$GITHUB_OUTPUT"
                     echo "Setting changed_path to both (IO and Studio)"
                   elif [[ "$IO_CHANGED" == "true" ]]; then
-                    echo "changed_path=io" >> $GITHUB_OUTPUT
+                    echo "changed_path=io" >> "$GITHUB_OUTPUT"
                     echo "Setting changed_path to io"
                   elif [[ "$STUDIO_CHANGED" == "true" ]]; then
-                    echo "changed_path=studio" >> $GITHUB_OUTPUT
+                    echo "changed_path=studio" >> "$GITHUB_OUTPUT"
                     echo "Setting changed_path to studio"
                   else
                     echo "::error::ERROR: Workflow was triggered but no changes detected in io/ or studio/ paths. This should not happen given the path filters in the workflow trigger."
@@ -144,7 +147,7 @@ jobs:
                   python -m pip install --upgrade pip requests timedelta
 
             - name: Retrieve transaction ID from PR Comments (${{ matrix.path }})
-              id: retrieve-transactionId-step
+              id: retrieve-transactionid-step
               if: steps.cmr_row.outcome == 'success'
               uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea
               with:
@@ -160,7 +163,7 @@ jobs:
               id: create-close-cmr-step
               if: steps.cmr_row.outcome == 'success'
               env:
-                  RETRIEVED_TRANSACTION_ID: ${{ steps['retrieve-transactionId-step'].outputs.retrieved_transaction_id }}
+                  RETRIEVED_TRANSACTION_ID: ${{ steps['retrieve-transactionid-step'].outputs.retrieved_transaction_id }}
                   SNOW_INSTANCE_ID: ${{ github.event.pull_request.state == 'open' && (matrix.path == 'io' && secrets.SNOW_INSTANCE_ID_IO || secrets.SNOW_INSTANCE_ID_STUDIO) || '' }}
                   CMR_PATH: ${{ matrix.path }}
               run: |
@@ -187,10 +190,10 @@ jobs:
                   ${{ steps.cmr_row.outcome == 'success'
                   && ((github.event.pull_request.state == 'open' && steps['create-close-cmr-step'].outputs.transaction_id)
                   || (github.event.pull_request.state == 'closed' && github.event.pull_request.merged == true
-                  && steps['retrieve-transactionId-step'].outputs.retrieved_transaction_id)) }}
+                  && steps['retrieve-transactionid-step'].outputs.retrieved_transaction_id)) }}
               uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea
               env:
-                  RETRIEVED_TRANSACTION_ID: ${{ steps['retrieve-transactionId-step'].outputs.retrieved_transaction_id }}
+                  RETRIEVED_TRANSACTION_ID: ${{ steps['retrieve-transactionid-step'].outputs.retrieved_transaction_id }}
                   TRANSACTION_ID: ${{ steps['create-close-cmr-step'].outputs.transaction_id }}
                   CHANGE_ID: ${{ steps['create-close-cmr-step'].outputs.change_id }}
                   PLANNED_START_TIME: ${{ steps['create-close-cmr-step'].outputs.planned_start_time }}

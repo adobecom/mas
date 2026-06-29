@@ -64,6 +64,7 @@ jobs:
         name: Running Nala Studio E2E UI Tests
         needs: [nala-gate, check-paths]
         if: |
+            needs.nala-gate.result == 'success' &&
             needs.check-paths.outputs.readme-only != 'true' &&
             (github.event.action == 'opened' ||
             contains(github.event.pull_request.labels.*.name, 'run nala'))
@@ -147,6 +148,7 @@ jobs:
         name: Running Nala Docs E2E UI Tests
         needs: [nala-gate, check-paths]
         if: |
+            needs.nala-gate.result == 'success' &&
             needs.check-paths.outputs.readme-only != 'true' &&
             (github.event.action == 'opened' ||
             contains(github.event.pull_request.labels.*.name, 'run nala'))
@@ -171,15 +173,14 @@ jobs:
               env:
                   BASE_REF: ${{ github.event.pull_request.base.ref }}
               run: |
-                  if git diff --quiet "origin/${BASE_REF}...HEAD" -- io/www/ 2>/dev/null; then
+                  git diff --quiet "origin/${BASE_REF}...HEAD" -- io/www/ 2>/dev/null
+                  status=$?
+                  if [ "$status" -eq 0 ]; then
                       echo "io-www=false" >> "$GITHUB_OUTPUT"
+                  elif [ "$status" -eq 1 ]; then
+                      echo "io-www=true" >> "$GITHUB_OUTPUT"
                   else
-                      status=$?
-                      if [ "$status" -eq 1 ]; then
-                          echo "io-www=true" >> "$GITHUB_OUTPUT"
-                      else
-                          echo "io-www=false" >> "$GITHUB_OUTPUT"
-                      fi
+                      echo "io-www=false" >> "$GITHUB_OUTPUT"
                   fi
 
             - name: Set up Node.js ${{ matrix.node-version }}

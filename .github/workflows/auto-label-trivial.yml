@@ -25,6 +25,7 @@ jobs:
               env:
                   BASE_REF: ${{ github.event.pull_request.base.ref }}
               run: |
+                  git fetch origin "${BASE_REF}"
                   CHANGED=$(git diff --name-only "origin/${BASE_REF}...HEAD")
                   if [ -z "$CHANGED" ]; then
                       echo "trivial=false" >> "$GITHUB_OUTPUT"
@@ -37,22 +38,17 @@ jobs:
                       fi
                   fi
 
-            - name: Ensure trivial label exists in repo
-              if: steps.check.outputs.trivial == 'true'
-              run: |
-                  gh label create "trivial" --color "#e4e669" --description "PR only contains readme changes" --force
-              env:
-                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
             - name: Add trivial label
               if: steps.check.outputs.trivial == 'true'
               env:
                   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
                   PR_NUMBER: ${{ github.event.pull_request.number }}
-              run: gh pr edit "$PR_NUMBER" --add-label "trivial"
+              run: |
+                  gh label create "trivial" --color "#e4e669" --description "PR only contains readme changes" --force
+                  gh pr edit "$PR_NUMBER" --add-label "trivial"
 
             - name: Remove trivial label if PR is no longer readme-only
-              if: steps.check.outcome == 'success' && steps.check.outputs.trivial == 'false'
+              if: steps.check.outputs.trivial == 'false'
               env:
                   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
                   PR_NUMBER: ${{ github.event.pull_request.number }}

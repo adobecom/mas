@@ -19,28 +19,8 @@ function getTargetPath(path, locale) {
     return `/content/dam/mas/${surface}/${locale}/${fragmentPath}`;
 }
 
-async function postToOdinWithRetry(odinEndpoint, URI, authToken, payload, maxRetries = 3) {
-    let lastError = null;
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-        try {
-            await postToOdin(odinEndpoint, URI, authToken, payload);
-            return true;
-        } catch (error) {
-            lastError = error.message || error.toString();
-            logger.warn(`Error POSTing ${URI} (attempt ${attempt}/${maxRetries}): ${lastError}`);
-            // 429 retries are already handled inside fetchOdin; don't add backoff retries on top
-            const statusMatch = lastError.match(/status (\d{3})/);
-            const httpStatus = statusMatch ? Number(statusMatch[1]) : 0;
-            if (httpStatus === 429) break;
-            if (attempt < maxRetries) {
-                const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
-                logger.info(`Waiting ${delay}ms before retry...`);
-                await new Promise((resolve) => setTimeout(resolve, delay));
-                continue;
-            }
-        }
-    }
-    throw new Error(`Failed to POST to ${URI} after ${maxRetries} attempts: ${lastError}`);
+function localeFromPath(path) {
+    return path?.match(PATH_TOKENS)?.groups?.parsedLocale ?? null;
 }
 
 function findFieldIndex(fragment, fieldName) {
@@ -132,10 +112,11 @@ async function invokeAsyncAction(actionName, actionParams, params = {}, options 
     });
 }
 
-async function postToOdin(odinEndpoint, URI, authToken, payload) {
+async function postToOdin(odinEndpoint, URI, authToken, payload, maxRetries = 3) {
     return fetchOdin(odinEndpoint, URI, authToken, {
         method: 'POST',
         body: JSON.stringify(payload),
+        maxRetries,
     });
 }
 
@@ -296,6 +277,7 @@ async function fetchOdin(
         ignoreErrors = [],
         max429Retries = 3,
         retryAfterFallbackSecs = 65,
+        maxRetries = 1,
     } = {},
 ) {
     const startTime = performance.now();
@@ -311,20 +293,38 @@ async function fetchOdin(
         headers['Content-Type'] = contentType || 'application/json';
     }
 
-    let response;
-    for (let attempt = 1; attempt <= max429Retries; attempt++) {
-        // eslint-disable-next-line no-await-in-loop
-        response = await fetch(path, { headers, method, body });
-        if (response.status !== 429 || attempt === max429Retries) break;
-        const retryAfterSecs = parseRetryAfter(response.headers.get('Retry-After'), retryAfterFallbackSecs);
-        logger.warn(
-            `${method} ${URI}: 429 Too Many Requests (attempt ${attempt}/${max429Retries}), waiting ${retryAfterSecs}s before retry`,
-        );
-        // eslint-disable-next-line no-await-in-loop
-        await new Promise((resolve) => setTimeout(resolve, retryAfterSecs * 1000));
-    }
+    let lastErrorStatus = 0;
+    let lastErrorText = '';
 
-    if (!response.ok && !ignoreErrors.includes(response.status)) {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        let response;
+        for (let i429 = 1; i429 <= max429Retries; i429++) {
+            // eslint-disable-next-line no-await-in-loop
+            response = await fetch(path, { headers, method, body });
+            if (response.status !== 429 || i429 === max429Retries) break;
+            const retryAfterSecs = parseRetryAfter(response.headers.get('Retry-After'), retryAfterFallbackSecs);
+            logger.warn(
+                `${method} ${URI}: 429 Too Many Requests (attempt ${i429}/${max429Retries}), waiting ${retryAfterSecs}s before retry`,
+            );
+            // eslint-disable-next-line no-await-in-loop
+            await new Promise((resolve) => setTimeout(resolve, retryAfterSecs * 1000));
+        }
+
+        if (response.ok || ignoreErrors.includes(response.status)) {
+            const duration = (performance.now() - startTime).toFixed(2);
+            logger.info(
+                `${method} ${URI}: ${response.status} (${response.statusText}) (etag: ${response?.headers?.get('etag')}) - ${duration}ms`,
+            );
+            return response;
+        }
+
+        // 429 exhausted by inner loop — outer retry would re-run it; break instead
+        if (response.status === 429) {
+            lastErrorStatus = 429;
+            lastErrorText = response.statusText;
+            break;
+        }
+
         let errorBody = {};
         try {
             errorBody = await response.json();
@@ -333,13 +333,18 @@ async function fetchOdin(
         }
         const errorMessage = errorBody && Object.keys(errorBody).length > 0 ? ` - ${JSON.stringify(errorBody)}` : '';
         logger.error(`${method} ${URI}: ${response.status} (${response.statusText}${errorMessage})`);
-        throw new Error(`${method} ${URI} failed with status ${response.status}: ${response.statusText}`);
+        lastErrorStatus = response.status;
+        lastErrorText = response.statusText;
+
+        if (attempt < maxRetries) {
+            const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
+            logger.warn(`${method} ${URI}: attempt ${attempt}/${maxRetries} failed, retrying in ${delay}ms...`);
+            // eslint-disable-next-line no-await-in-loop
+            await new Promise((resolve) => setTimeout(resolve, delay));
+        }
     }
-    const duration = (performance.now() - startTime).toFixed(2);
-    logger.info(
-        `${method} ${URI}: ${response.status} (${response.statusText}) (etag: ${response?.headers?.get('etag')}) - ${duration}ms`,
-    );
-    return response;
+
+    throw new Error(`${method} ${URI} failed with status ${lastErrorStatus}: ${lastErrorText}`);
 }
 
 /**
@@ -350,7 +355,7 @@ async function fetchOdin(
  * @param {Object} payload - { title, description, fields, etag }
  * @returns {Promise<{ success: boolean, error?: string }>}
  */
-async function putToOdin(odinEndpoint, fragmentId, authToken, { title, description, fields, etag }) {
+async function putToOdin(odinEndpoint, fragmentId, authToken, { title, description, fields, etag }, maxRetries = 3) {
     const response = await fetchOdin(odinEndpoint, `/adobe/sites/cf/fragments/${fragmentId}`, authToken, {
         method: 'PUT',
         contentType: 'application/json',
@@ -360,6 +365,7 @@ async function putToOdin(odinEndpoint, fragmentId, authToken, { title, descripti
             description: description ?? '',
             fields,
         }),
+        maxRetries,
     });
 
     if (!response.ok) {
@@ -372,6 +378,15 @@ async function putToOdin(odinEndpoint, fragmentId, authToken, { title, descripti
     return { success: true };
 }
 
+/**
+ * Update a content fragment with retry logic (PUT with exponential backoff).
+ * @param {string} odinEndpoint - Odin API base URL
+ * @param {string} fragmentId - Fragment ID
+ * @param {string} authToken - Bearer token
+ * @param {Object} payload - { title, description, fields, etag }
+ * @param {number} maxRetries - Maximum number of attempts (default 3)
+ * @returns {Promise<true>}
+ */
 /**
  * Patch a content fragment with JSON Patch (e.g. replace a field).
  * @param {string} odinEndpoint - Odin API base URL
@@ -455,7 +470,8 @@ module.exports = {
     getVariationParent,
     invokeAsyncAction,
     patchToOdin,
-    postToOdinWithRetry,
+    localeFromPath,
+    postToOdin,
     processBatchWithConcurrency,
     putToOdin,
     getFragmentWithEtag,

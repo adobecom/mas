@@ -1208,6 +1208,18 @@ describe('MasFragmentEditor', () => {
             expect(navigateSpy.calledWith('parent-id')).to.be.true;
         });
 
+        it('sets Store.search.path to parent surface on navigateToLocaleDefaultFragment', async () => {
+            el.localeDefaultFragment = { id: 'parent-id', path: '/content/dam/mas/nala/en_US/parent-card' };
+            sandbox.stub(router, 'navigateToFragmentEditor').resolves();
+            const searchSetSpy = sandbox.stub(Store.search, 'set');
+            await el.navigateToLocaleDefaultFragment();
+            const pathCall = searchSetSpy.getCalls().find((call) => {
+                const result = call.args[0]({ path: 'sandbox' });
+                return result?.path === 'nala';
+            });
+            expect(pathCall, 'Store.search.set should be called with path=nala').to.not.be.undefined;
+        });
+
         it('navigates to variations table', async () => {
             const navigateSpy = sandbox.stub(router, 'navigateToVariationsTable');
             sandbox.stub(el.editorContextStore, 'isVariation').returns(false);

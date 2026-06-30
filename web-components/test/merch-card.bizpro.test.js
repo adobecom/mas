@@ -2,7 +2,10 @@ import { expect } from '@esm-bundle/chai';
 import sinon from 'sinon';
 // mas.js first to break the circular dep between variant-layout and variants
 import '../src/mas.js';
-import { EVENT_MERCH_QUANTITY_SELECTOR_CHANGE } from '../src/constants.js';
+import {
+    EVENT_MERCH_CARD_QUANTITY_CHANGE,
+    EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
+} from '../src/constants.js';
 
 let BizPro;
 
@@ -350,6 +353,73 @@ describe('bizpro short description plan type override', () => {
     });
 });
 
+describe('bizpro short description tax spacing', () => {
+    let card;
+    afterEach(() => card?.remove());
+
+    // Legal price as it resolves on a VAT card where the plan type comes from
+    // the authored short description: tax label is set, plan-type span is empty,
+    // so the legal template never added its ". " separator (MWPW-198626).
+    const legalWithTax = (taxText) =>
+        '<p slot="heading-m"><span is="inline-price" data-template="legal">' +
+        '<span class="price price-legal">' +
+        '<span class="price-unit-type disabled"></span>' +
+        `<span class="price-tax-inclusivity">${taxText}</span>` +
+        '<span class="price-plan-type disabled"></span>' +
+        '</span></span></p>';
+
+    it('inserts the ". " separator between the tax label and the injected plan type', async () => {
+        card = await renderCard(
+            `${legalWithTax('excl. VAT')}<div slot="legal-text">Annual, billed monthly</div>`,
+        );
+        card.variantLayout.adjustShortDescription();
+        // Matches the template's WCS path ("incl. VAT. Annual…") so injected and
+        // WCS-sourced plan types read identically.
+        expect(card.querySelector('.price-legal').textContent).to.equal(
+            'excl. VAT. Annual, billed monthly',
+        );
+    });
+
+    it('does not double the separator when the tax label already ends in space', async () => {
+        card = await renderCard(
+            `${legalWithTax('incl. VAT. ')}<div slot="legal-text">Annual, billed monthly</div>`,
+        );
+        card.variantLayout.adjustShortDescription();
+        expect(card.querySelector('.price-legal').textContent).to.equal(
+            'incl. VAT. Annual, billed monthly',
+        );
+    });
+
+    it('adds no separator when there is no tax label (e.g. en-US)', async () => {
+        const noTax =
+            '<p slot="heading-m"><span is="inline-price" data-template="legal">' +
+            '<span class="price price-legal">' +
+            '<span class="price-unit-type disabled"></span>' +
+            '<span class="price-tax-inclusivity disabled"></span>' +
+            '<span class="price-plan-type disabled"></span>' +
+            '</span></span></p>';
+        card = await renderCard(
+            `${noTax}<div slot="legal-text">Annual, billed monthly</div>`,
+        );
+        card.variantLayout.adjustShortDescription();
+        expect(card.querySelector('.price-legal').textContent).to.equal(
+            'Annual, billed monthly',
+        );
+    });
+
+    it('stays idempotent across repeated re-resolves (no accumulating spaces)', async () => {
+        card = await renderCard(
+            `${legalWithTax('excl. VAT')}<div slot="legal-text">Annual, billed monthly</div>`,
+        );
+        card.variantLayout.adjustShortDescription();
+        card.variantLayout.adjustShortDescription();
+        card.variantLayout.adjustShortDescription();
+        expect(card.querySelector('.price-legal').textContent).to.equal(
+            'excl. VAT. Annual, billed monthly',
+        );
+    });
+});
+
 describe('bizpro whats-included toggle interaction', () => {
     let card;
     afterEach(() => card?.remove());
@@ -508,6 +578,54 @@ describe('bizpro license dropdown interaction', () => {
                 .querySelector('#license-popover')
                 .hasAttribute('hidden'),
         ).to.be.true;
+    });
+});
+
+describe('bizpro license sync from the 3-in-1 modal', () => {
+    let card;
+    afterEach(() => card?.remove());
+
+    const QS =
+        '<div slot="quantity-select"><merch-quantity-select title="License" min="1" max="10" step="1" default-value="2"></merch-quantity-select></div>';
+
+    const value = () =>
+        card.shadowRoot
+            .querySelector('.license-select-value')
+            .textContent.trim();
+
+    // merch-card.handleAddonAndQuantityUpdate fires this on the quantity-select
+    // when the 3-in-1 modal closes with a new license count (MWPW-198372).
+    const modalQuantityChange = (quantity) =>
+        card.querySelector('merch-quantity-select').dispatchEvent(
+            new CustomEvent(EVENT_MERCH_CARD_QUANTITY_CHANGE, {
+                detail: { quantity },
+                bubbles: true,
+                composed: true,
+            }),
+        );
+
+    it('reflects a modal license change in the custom selector', async () => {
+        card = await renderCard(QS);
+        expect(value()).to.equal('2');
+
+        modalQuantityChange(6);
+        await card.updateComplete;
+
+        expect(value()).to.equal('6');
+        expect(
+            card.shadowRoot
+                .querySelector('.license-select-option.selected')
+                .textContent.trim(),
+        ).to.equal('6');
+    });
+
+    it('ignores a modal quantity outside the configured range', async () => {
+        card = await renderCard(QS);
+
+        modalQuantityChange(99);
+        await card.updateComplete;
+
+        expect(value()).to.equal('2');
     });
 });
 
@@ -792,68 +910,197 @@ describe('bizpro resize handling', () => {
 
     const flushFrames = () => frames.splice(0).forEach((cb) => cb?.());
 
-    it('debounces resize events into a single height sync', async () => {
-        card = await renderCard('<h3 slot="heading-xs">Title</h3>');
-        const layout = card.variantLayout;
-        const sync = sinon.spy(layout, 'syncHeights');
+    // syncHeights now awaits document.fonts (which settle on a macrotask) before
+    // the double rAF, so deterministic driving needs real macrotask yields
+    // between frame flushes, not just microtask drains.
+    const flushUntilCalled = async (spy) => {
+        for (let i = 0; i < 30 && !spy.called; i += 1) {
+            await new Promise((resolve) => setTimeout(resolve, 0));
+            flushFrames();
+        }
+    };
 
-        frames.length = 0;
-        // The second call must cancel the first scheduled frame (debounce).
-        layout.handleResize();
-        layout.handleResize();
-        flushFrames();
-
-        expect(sync.callCount).to.equal(1);
-    });
-
-    it('cancels a pending resize frame on disconnect', async () => {
-        card = await renderCard('<h3 slot="heading-xs">Title</h3>');
-        const layout = card.variantLayout;
-        const sync = sinon.spy(layout, 'syncHeights');
-
-        frames.length = 0;
-        layout.handleResize();
-        card.remove();
-        flushFrames();
-
-        expect(sync.called).to.be.false;
-    });
-
-    it('re-syncs heights once the card first becomes visible', async () => {
-        const callbacks = [];
-        const RealObserver = window.IntersectionObserver;
+    it('observes the card on connect and re-syncs on reflow', async () => {
+        const observers = [];
+        const RealObserver = window.ResizeObserver;
         class FakeObserver {
             constructor(callback) {
-                callbacks.push(callback);
+                this.callback = callback;
+                observers.push(this);
             }
             observe() {}
-            disconnect() {}
+            disconnect() {
+                this.disconnected = true;
+            }
         }
-        window.IntersectionObserver = FakeObserver;
+        window.ResizeObserver = FakeObserver;
+        try {
+            card = await renderCard('<div slot="body-xs">desc</div>');
+            const layout = card.variantLayout;
+            const resync = sinon.stub(layout, 'resyncOnReflow');
+            // The surviving layout (card.variantLayout) owns the last observer.
+            const obs = observers[observers.length - 1];
+            expect(obs, 'observes on connect').to.exist;
+            obs.callback();
+            expect(resync.calledOnce, 'a reflow re-runs the sync').to.be.true;
+        } finally {
+            window.ResizeObserver = RealObserver;
+        }
+    });
+
+    it('re-syncs on a real reflow but dedupes unchanged geometry', async () => {
+        // resyncOnReflow keys on width:descriptionHeight so a genuine reflow
+        // (mount at 0 → width, or a font swap changing the description height)
+        // re-syncs, while publishing the min-height (a top-card height change)
+        // leaves the key unchanged and can't loop the observer.
+        const layout = Object.create(BizPro.prototype);
+        const rect = { width: 0, top: 0, height: 0 };
+        let descHeight = 18;
+        const desc = { getBoundingClientRect: () => ({ height: descHeight }) };
+        layout.card = {
+            getBoundingClientRect: () => rect,
+            querySelector: (sel) => (sel.includes('body-xs') ? desc : null),
+        };
+        const sync = sinon.stub(layout, 'syncHeights').resolves();
+
+        layout.resyncOnReflow();
+        expect(sync.called, 'no sync while width 0').to.be.false;
+
+        rect.width = 300;
+        layout.resyncOnReflow();
+        expect(sync.calledOnce, 'syncs when width becomes real').to.be.true;
+
+        layout.resyncOnReflow();
+        expect(sync.calledOnce, 'deduped on unchanged geometry').to.be.true;
+
+        descHeight = 36;
+        layout.resyncOnReflow();
+        expect(sync.calledTwice, 're-syncs when the description reflows').to.be
+            .true;
+    });
+
+    it('disconnects its resize observer when the card is removed', async () => {
+        // A card torn down while still collapsed must clean up its observer.
+        const observers = [];
+        const RealObserver = window.ResizeObserver;
+        class FakeObserver {
+            constructor(callback) {
+                this.callback = callback;
+                observers.push(this);
+            }
+            observe() {}
+            disconnect() {
+                this.disconnected = true;
+            }
+        }
+        window.ResizeObserver = FakeObserver;
         try {
             card = await renderCard('<h3 slot="heading-xs">Title</h3>');
-            const sync = sinon.spy(card.variantLayout, 'syncHeights');
-            // The card's observer is the last one created during render.
-            const onVisibility = callbacks[callbacks.length - 1];
+            // connectedCallbackHook observes the card on connect.
+            expect(observers.length, 'observes on connect').to.be.greaterThan(
+                0,
+            );
 
-            frames.length = 0;
-            // Hidden (zero-height) and off-screen entries must not sync.
-            onVisibility([
-                { boundingClientRect: { height: 0 }, isIntersecting: true },
-            ]);
-            onVisibility([
-                { boundingClientRect: { height: 10 }, isIntersecting: false },
-            ]);
-            flushFrames();
-            expect(sync.called).to.be.false;
-
-            onVisibility([
-                { boundingClientRect: { height: 10 }, isIntersecting: true },
-            ]);
-            flushFrames();
-            expect(sync.callCount).to.equal(1);
+            card.remove();
+            expect(
+                observers.some((o) => o.disconnected),
+                'observer cleaned up on remove',
+            ).to.be.true;
         } finally {
-            window.IntersectionObserver = RealObserver;
+            window.ResizeObserver = RealObserver;
+        }
+    });
+
+    it('waits for the web fonts to settle before measuring the row', async () => {
+        // The .top-card height is driven by the heading/description, which
+        // reflow when the Adobe Clean fonts swap in; measuring before the swap
+        // publishes a stale row max. syncHeights must defer until
+        // document.fonts.ready + a frame, matching full-pricing-express.
+        // Isolated instance so a render-triggered sync can't pollute the count.
+        const layout = Object.create(BizPro.prototype);
+        layout.card = {
+            getBoundingClientRect: () => ({ width: 300, top: 0, height: 400 }),
+            querySelector: () => null,
+            variant: 'bizpro',
+        };
+        // getContainer is the first thing touched once measuring begins.
+        const getContainer = sinon.stub(layout, 'getContainer').returns(null);
+
+        const done = layout.syncHeights();
+        // Regression: the old code measured right here, before the font swap.
+        expect(getContainer.called, 'must not measure before fonts settle').to
+            .be.false;
+
+        await flushUntilCalled(getContainer);
+        await done;
+        expect(getContainer.calledOnce, 'measures once fonts settle').to.be
+            .true;
+    });
+
+    it('groups rows by offsetTop, immune to the entrance animation transform', async () => {
+        // The tab-switch entrance animation translateY-staggers the cards, so
+        // their painted tops (getBoundingClientRect) drift apart while offsetTop
+        // holds still. Grouping by offsetTop keeps same-row cards together —
+        // grouping on the drifted top would split the row and publish a wrong
+        // per-card height (the flicker).
+        const prop = '--consonant-merch-card-bizpro-top-card-height';
+        const makeCard = (offsetTop, topCardHeight) => {
+            const topCard = { __h: topCardHeight };
+            const styles = {};
+            const card = {
+                offsetTop,
+                variant: 'bizpro',
+                getBoundingClientRect: () => ({ width: 300 }),
+                shadowRoot: { querySelector: () => topCard },
+                style: {
+                    setProperty: (k, v) => (styles[k] = v),
+                    removeProperty: (k) => delete styles[k],
+                    getPropertyValue: (k) => styles[k] ?? '',
+                },
+                __styles: styles,
+            };
+            card.variantLayout = { card };
+            return card;
+        };
+        // Row A (offsetTop 0): 200 & 260 → max 260. Row B (offsetTop 500): a
+        // lone card keeps its natural height (no var published).
+        const a1 = makeCard(0, 200);
+        const a2 = makeCard(0, 260);
+        const b1 = makeCard(500, 180);
+        const cards = [a1, a2, b1];
+
+        const layout = Object.create(BizPro.prototype);
+        layout.card = a1;
+        sinon.stub(layout, 'waitForContentFonts').resolves();
+        sinon
+            .stub(layout, 'getContainer')
+            .returns({ querySelectorAll: () => cards });
+        const gcs = sinon
+            .stub(window, 'getComputedStyle')
+            .callsFake((el) =>
+                el && '__h' in el ? { height: `${el.__h}px` } : { height: '' },
+            );
+        try {
+            const done = layout.syncHeights();
+            await flushUntilCalled({
+                get called() {
+                    return a1.__styles[prop] !== undefined;
+                },
+            });
+            await done;
+            expect(
+                a1.__styles[prop],
+                'shorter card pulled to row max',
+            ).to.equal('260px');
+            expect(a2.__styles[prop], 'tallest card sets the row max').to.equal(
+                '260px',
+            );
+            expect(
+                b1.__styles[prop],
+                'lone card on its own row keeps natural height',
+            ).to.be.undefined;
+        } finally {
+            gcs.restore();
         }
     });
 });
@@ -945,5 +1192,51 @@ describe('bizpro add-on theming', () => {
         expect(styles.borderTopColor).to.equal('rgba(0, 0, 0, 0)');
         expect(styles.backgroundImage).to.contain('rgb(141, 136, 242)');
         expect(styles.backgroundImage).to.contain('rgb(235, 16, 0)');
+    });
+});
+
+describe('bizpro quantity selector repricing', () => {
+    // Price lives in slot="heading-m" for bizpro (see BIZPRO_AEM_FRAGMENT_MAPPING).
+    const PRICE =
+        '<p slot="heading-m"><span is="inline-price" data-wcs-osi="abc" data-template="price"></span></p>';
+    const QS =
+        '<div slot="quantity-select"><merch-quantity-select title="License" min="1" max="10" step="1"></merch-quantity-select></div>';
+    let card;
+    afterEach(() => {
+        card?.remove();
+        card = undefined;
+    });
+
+    it('pushes the selected quantity onto the main price on a selector change', async () => {
+        card = await renderCard(PRICE + QS);
+        const variantLayout = card.variantLayout;
+        expect(variantLayout.updatePriceQuantity).to.be.a('function');
+        const mainPrice = variantLayout.mainPrice;
+        expect(mainPrice, 'price must resolve in slot heading-m').to.exist;
+
+        card.dispatchEvent(
+            new CustomEvent(EVENT_MERCH_QUANTITY_SELECTOR_CHANGE, {
+                detail: { option: '7' },
+                bubbles: true,
+            }),
+        );
+
+        expect(mainPrice.dataset.quantity).to.equal('7');
+    });
+
+    it('leaves the price untouched without a main price or a usable option', () => {
+        const layout = Object.create(BizPro.prototype);
+        // No main price → no-op, no throw.
+        layout.card = { querySelector: () => null };
+        expect(() =>
+            layout.updatePriceQuantity({ detail: { option: 5 } }),
+        ).to.not.throw();
+        // Main price present but empty/absent detail → quantity stays unset.
+        const price = { dataset: {} };
+        layout.card = { querySelector: () => price };
+        layout.updatePriceQuantity({ detail: null });
+        layout.updatePriceQuantity({});
+        layout.updatePriceQuantity({ detail: {} });
+        expect(price.dataset.quantity).to.be.undefined;
     });
 });

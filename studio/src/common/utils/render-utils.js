@@ -1,6 +1,20 @@
 import { html, nothing } from 'lit';
-import { FRAGMENT_STATUS, CARD_MODEL_PATH, COLLECTION_MODEL_PATH } from '../../constants.js';
+import { FRAGMENT_STATUS, CARD_MODEL_PATH, COLLECTION_MODEL_PATH, DICTIONARY_MODEL_PATH } from '../../constants.js';
 import { Fragment } from '../../aem/fragment.js';
+import Store from '../../store.js';
+import { generateCodeToUse } from '../../utils.js';
+import { isPromoVariationPath } from '../../promotions/promotion-model.js';
+
+/**
+ * Studio display path for an item-picker row's "Path" column: the same
+ * `authorPath` (`<web-component>: <surface> / <name>`) the content table view shows,
+ * resolved against the active search surface and page.
+ * @param {object} fragment - Fragment payload or Fragment instance
+ * @returns {string}
+ */
+export function getStudioFragmentDisplayPath(fragment) {
+    return generateCodeToUse(fragment, Store.search.get().path, Store.page.get())?.authorPath || '';
+}
 
 /**
  * Renders a fragment status cell with a colored dot and label.
@@ -9,14 +23,14 @@ import { Fragment } from '../../aem/fragment.js';
  */
 export function renderFragmentStatusCell(status) {
     if (!status) return nothing;
-    let statusClass = '';
-    if (status === FRAGMENT_STATUS.PUBLISHED) {
-        statusClass = 'green';
-    } else if (status === FRAGMENT_STATUS.MODIFIED) {
-        statusClass = 'blue';
-    }
+    const statusVariant =
+        {
+            [FRAGMENT_STATUS.PUBLISHED]: 'positive',
+            [FRAGMENT_STATUS.MODIFIED]: 'yellow',
+            [FRAGMENT_STATUS.DRAFT]: 'info',
+        }[status] || 'neutral';
     return html`<sp-table-cell class="status-cell">
-        <div class="status-dot ${statusClass}"></div>
+        <sp-status-light size="s" variant=${statusVariant}></sp-status-light>
         ${status.charAt(0).toUpperCase()}${status.slice(1).toLowerCase()}
     </sp-table-cell>`;
 }
@@ -58,7 +72,8 @@ export function renderPromotionStatusCell(promotionStatus) {
 export function getItemTypeLabel(item) {
     if (!item) return 'Unknown';
     if (Fragment.isGroupedVariationPath(item.path)) return 'Grouped variation';
-    if (item.model?.path?.includes('/dictionnary')) return 'Placeholder';
+    if (isPromoVariationPath(item.path)) return 'Promotion';
+    if (item.model?.path?.includes(DICTIONARY_MODEL_PATH)) return 'Placeholder';
     if (item.model?.path === COLLECTION_MODEL_PATH) return 'Collection';
     if (item.model?.path === CARD_MODEL_PATH) return 'Default';
     return 'Unknown';

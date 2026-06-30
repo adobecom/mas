@@ -408,6 +408,60 @@ export function processPrices(fields, merchCard, mapping) {
     appendSlot('prices', fields, merchCard, mapping);
 }
 
+/**
+ * Flattens `fields.features` from MAS IO / author payloads into HTML strings.
+ * Handles strings, arrays, `{ value }` / `{ value: string[] }`, and richtext
+ * `{ content }` / `{ html }` wrappers.
+ */
+function coerceMultivalueFeatureField(raw) {
+    if (raw == null || raw === '') return [];
+    if (typeof raw === 'string') return raw.trim() ? [raw] : [];
+    if (Array.isArray(raw)) return raw.flatMap(coerceMultivalueFeatureField);
+    if (typeof raw === 'object') {
+        if (typeof raw.value === 'string') {
+            return raw.value.trim() ? [raw.value] : [];
+        }
+        if (Array.isArray(raw.value)) {
+            return raw.value.flatMap(coerceMultivalueFeatureField);
+        }
+        if (typeof raw.content === 'string') {
+            return raw.content.trim() ? [raw.content] : [];
+        }
+        if (typeof raw.html === 'string') {
+            return raw.html.trim() ? [raw.html] : [];
+        }
+    }
+    return [];
+}
+
+export function processFeatures(fields, merchCard, mapping) {
+    const values = coerceMultivalueFeatureField(fields.features).filter(
+        (html) => html.trim(),
+    );
+    if (!values.length) return;
+    const container = createTag('div', {
+        slot: mapping?.features?.slot ?? 'features',
+        hidden: '',
+        'data-compare-chart-features': '',
+    });
+    values.forEach((value) => {
+        let doc;
+        try {
+            doc = new DOMParser().parseFromString(value, 'text/html');
+        } catch {
+            return;
+        }
+        const p = doc.body.querySelector('p[name]');
+        if (p) {
+            container.append(p);
+            return;
+        }
+        container.insertAdjacentHTML('beforeend', value);
+    });
+    if (container.children.length) merchCard.append(container);
+    processFeaturesLinks(merchCard, mapping);
+}
+
 function transformLinkToButton(linkElement, merchCard, aemFragmentMapping) {
     const isCheckoutLink =
         linkElement.hasAttribute('data-wcs-osi') &&
@@ -469,6 +523,16 @@ function transformLinkToButton(linkElement, merchCard, aemFragmentMapping) {
 
 function processDescriptionLinks(merchCard, aemFragmentMapping) {
     const { slot } = aemFragmentMapping?.description;
+    processLinks(merchCard, aemFragmentMapping, slot);
+}
+
+function processFeaturesLinks(merchCard, aemFragmentMapping) {
+    const slot = aemFragmentMapping?.features?.slot;
+    if (!slot) return;
+    processLinks(merchCard, aemFragmentMapping, slot);
+}
+
+function processLinks(merchCard, aemFragmentMapping, slot) {
     const links = merchCard.querySelectorAll(
         `[slot="${slot}"] a[data-wcs-osi]`,
     );
@@ -525,7 +589,18 @@ export function processAddon(fields, merchCard, mapping, settings = {}) {
     const addonField = addonSource?.replace(/[{}]/g, '');
     if (!addonField) return;
     if (/disabled/.test(addonField)) return;
-    const addon = createTag('merch-addon', { slot: 'addon' }, addonField);
+    let background;
+    let innerContent = addonField;
+    const temp = document.createElement('div');
+    temp.innerHTML = addonField;
+    const firstEl = temp.firstElementChild;
+    if (firstEl?.tagName?.toLowerCase() === 'merch-addon') {
+        background = firstEl.getAttribute('background') || undefined;
+        innerContent = firstEl.innerHTML;
+    }
+    const attrs = { slot: 'addon' };
+    if (background) attrs.background = background;
+    const addon = createTag('merch-addon', attrs, innerContent);
     [...addon.querySelectorAll(SELECTOR_MAS_INLINE_PRICE)].forEach((span) => {
         const parent = span.parentElement;
         if (parent?.nodeName !== 'P') return;
@@ -843,15 +918,36 @@ export function processAnalytics(fields, merchCard) {
     });
 }
 
+function replaceAnchorWithSpLink(link, className, variant) {
+    const attrs = {};
+    const classes = [...link.classList].filter((c) => c !== className);
+    for (const attr of link.attributes) {
+        if (attr.name === 'class') continue;
+        attrs[attr.name] = attr.value;
+    }
+    if (classes.length) attrs.class = classes.join(' ');
+    if (variant === 'secondary') attrs.variant = 'secondary';
+    link.replaceWith(createTag('sp-link', attrs, link.innerHTML));
+}
+
 export function updateLinksCSS(merchCard) {
-    if (merchCard.spectrum !== 'css') return;
+    if (merchCard.consonant) return;
+    const { spectrum } = merchCard;
+    if (spectrum !== 'css' && spectrum !== 'swc') return;
     [
         ['primary-link', 'primary'],
         ['secondary-link', 'secondary'],
     ].forEach(([className, variant]) => {
         merchCard.querySelectorAll(`a.${className}`).forEach((link) => {
-            link.classList.remove(className);
-            link.classList.add('spectrum-Link', `spectrum-Link--${variant}`);
+            if (spectrum === 'swc') {
+                replaceAnchorWithSpLink(link, className, variant);
+            } else {
+                link.classList.remove(className);
+                link.classList.add(
+                    'spectrum-Link',
+                    `spectrum-Link--${variant}`,
+                );
+            }
         });
     });
 }
@@ -906,7 +1002,8 @@ export async function hydrate(fragment, merchCard) {
 
     const { id, fields, settings = {}, priceLiterals } = fragment;
     const { variant } = fields;
-    if (!variant) throw new Error(`hydrate: no variant found in payload ${id}`);
+    if (!variant)
+        throw new Error(`hydrate: no template found in payload ${id}`);
     cleanup(merchCard);
     merchCard.compatVersion = fields.compatVersion;
     merchCard.contextPromotionCode = fields.promoCode;
@@ -914,7 +1011,8 @@ export async function hydrate(fragment, merchCard) {
     if (priceLiterals) merchCard.priceLiterals = priceLiterals;
     merchCard.id ??= fragment.id;
     if (fragment.variationId)
-        merchCard.setAttribute('variation-id', fragment.variationId ?? '');
+        merchCard.setAttribute('variation-id', fragment.variationId);
+    if (fragment.maskId) merchCard.setAttribute('mask-id', fragment.maskId);
     merchCard.variant = variant;
     await merchCard.updateComplete;
 
@@ -942,6 +1040,7 @@ export async function hydrate(fragment, merchCard) {
     );
     processBorderColor(fields, merchCard, mapping);
     processDescription(fields, merchCard, mapping, settings);
+    processFeatures(fields, merchCard, mapping);
     processWhatsIncludedDividerColor(fields, merchCard, mapping);
     processAddon(fields, merchCard, mapping, settings);
     processAddonConfirmation(fields, merchCard, mapping);

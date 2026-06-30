@@ -1,9 +1,15 @@
 import {
     CARD_MODEL_PATH,
     COLLECTION_MODEL_PATH,
+    COMPARE_CHART_FIELD,
     MAS_PRODUCT_CODE_PREFIX,
     TAG_PROMOTION_PREFIX,
     STATUS_PUBLISHED,
+    TAG_MERCH_CARD,
+    TAG_COMPARE_CHART,
+    TAG_MERCH_CARD_COLLECTION,
+    TAG_STUDIO_CONTENT_TYPE,
+    TAG_MODEL_ID_MAPPING,
 } from './constants.js';
 import { VARIANTS } from './editors/variant-picker.js';
 import Events from './events.js';
@@ -199,6 +205,13 @@ export const MODEL_WEB_COMPONENT_MAPPING = {
     [COLLECTION_MODEL_PATH]: 'merch-card-collection',
 };
 
+function getWebComponentName(fragment) {
+    if (fragment?.model?.path === COLLECTION_MODEL_PATH && hasNonEmptyCompareChart(fragment)) {
+        return 'mas-compare-chart';
+    }
+    return MODEL_WEB_COMPONENT_MAPPING[fragment?.model?.path];
+}
+
 export function getFragmentPartsToUse(fragment, path) {
     let fragmentParts = '';
     let title = '';
@@ -238,7 +251,7 @@ export function getFragmentPartsToUse(fragment, path) {
 
 export function generateCodeToUse(fragment, path, page, failMessage) {
     const { fragmentParts, title } = getFragmentPartsToUse(fragment, path);
-    const webComponentName = MODEL_WEB_COMPONENT_MAPPING[fragment?.model?.path];
+    const webComponentName = getWebComponentName(fragment);
     if (!webComponentName) {
         if (failMessage)
             Events.toast.emit({
@@ -327,7 +340,7 @@ export function generateFieldLink(fragment, path, page, fieldName) {
     const resolvedFieldName = fieldName ?? page;
     const resolvedPage = fieldName ? page : 'content';
     const { fragmentParts } = getFragmentPartsToUse(fragment, path);
-    const webComponentName = MODEL_WEB_COMPONENT_MAPPING[fragment?.model?.path];
+    const webComponentName = getWebComponentName(fragment);
     if (!webComponentName) return null;
     const displayText = `mas-field: ${fragmentParts} → ${resolvedFieldName}`;
     const href = buildStudioFragmentHref({
@@ -343,7 +356,7 @@ export function generateFieldLink(fragment, path, page, fieldName) {
 
 export function generateJsonLdLink(fragment, path, page) {
     const { fragmentParts } = getFragmentPartsToUse(fragment, path);
-    const webComponentName = MODEL_WEB_COMPONENT_MAPPING[fragment?.model?.path];
+    const webComponentName = getWebComponentName(fragment);
     if (!webComponentName) return null;
     const displayText = `mas-field: ${fragmentParts} → jsonLdSchema`;
     const baseHref = buildStudioFragmentHref({
@@ -458,4 +471,41 @@ export function replaceLocaleInPath(fragmentPath, newLocale) {
 
 export function deepEquals(a, b) {
     return JSON.stringify(a) === JSON.stringify(b);
+}
+
+export function hasNonEmptyCompareChart(item) {
+    const values =
+        item?.getFieldValues?.(COMPARE_CHART_FIELD) ||
+        item?.getField?.(COMPARE_CHART_FIELD)?.values ||
+        item?.fields?.find((field) => field.name === COMPARE_CHART_FIELD)?.values ||
+        [];
+    return values.some((value) => {
+        if (typeof value === 'string') return value.trim() !== '';
+        return value !== null && value !== undefined && value !== '';
+    });
+}
+
+export function matchesContentTypeFilter(contentTypes, item) {
+    if (!contentTypes.length) return true;
+    const modelPath = item?.model?.path;
+    if (modelPath === CARD_MODEL_PATH) return contentTypes.includes(TAG_MERCH_CARD);
+    if (modelPath === COLLECTION_MODEL_PATH) {
+        const isCompareChart = hasNonEmptyCompareChart(item);
+        return isCompareChart ? contentTypes.includes(TAG_COMPARE_CHART) : contentTypes.includes(TAG_MERCH_CARD_COLLECTION);
+    }
+    return false;
+}
+
+export function resolveContentTypeFilters(tags) {
+    const contentTypes = tags.filter((tag) => tag.startsWith(TAG_STUDIO_CONTENT_TYPE));
+    const modelIds = [
+        ...new Set(
+            contentTypes
+                .map((tag) =>
+                    tag === TAG_COMPARE_CHART ? TAG_MODEL_ID_MAPPING[TAG_MERCH_CARD_COLLECTION] : TAG_MODEL_ID_MAPPING[tag],
+                )
+                .filter(Boolean),
+        ),
+    ];
+    return { contentTypes, modelIds };
 }

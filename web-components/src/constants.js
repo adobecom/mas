@@ -100,6 +100,8 @@ export const EVENT_AEM_LOAD = 'aem:load';
 export const EVENT_AEM_ERROR = 'aem:error';
 export const EVENT_MAS_READY = 'mas:ready';
 export const EVENT_MAS_ERROR = 'mas:error';
+export const EVENT_COMPARE_CHART_REHYDRATE = 'mas-compare-chart:rehydrate';
+export const EVENT_EXPANDED_GROUPS_CHANGE = 'expanded-groups-change';
 
 export const CLASS_NAME_FAILED = 'placeholder-failed';
 export const CLASS_NAME_PENDING = 'placeholder-pending';

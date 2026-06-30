@@ -17,6 +17,8 @@ export const CSS = `
     --consonant-merch-card-bizpro-text-muted-color: #000000a3;
     --consonant-merch-card-bizpro-text-inverse-color: #fff;
     --consonant-merch-card-bizpro-cta-accent-color: #3b63fb;
+    --consonant-merch-card-bizpro-cta-accent-hover-color: #274dea;
+    --consonant-merch-card-bizpro-cta-outline-hover-color: #ebebeb;
     --consonant-merch-card-bizpro-divider-color: #0000001f;
 }
 
@@ -272,12 +274,29 @@ merch-card[variant="bizpro"] [slot="footer"] [data-button-type="accent"] {
     border: none;
 }
 
+/* Hover (S2A): the accent button darkens; the outline button gets a subtle
+   gray fill while its border and text stay unchanged. Selectors mirror the
+   base rules above so hover applies to the same buttons. */
+merch-card[variant="bizpro"] [slot="footer"] .con-button.blue:hover,
+merch-card[variant="bizpro"] [slot="footer"] a.accent:hover,
+merch-card[variant="bizpro"] [slot="footer"] [data-button-type="accent"]:hover {
+    background-color: var(--consonant-merch-card-bizpro-cta-accent-hover-color);
+}
+
 merch-card[variant="bizpro"] [slot="footer"] .con-button.outline,
+merch-card[variant="bizpro"] [slot="footer"] .con-button.primary,
 merch-card[variant="bizpro"] [slot="footer"] a.outline,
 merch-card[variant="bizpro"] [slot="footer"] [data-button-type="primary"] {
     background: transparent;
     color: var(--consonant-merch-card-bizpro-text-color);
     border: 2px solid var(--consonant-merch-card-bizpro-text-color);
+}
+
+merch-card[variant="bizpro"] [slot="footer"] .con-button.outline:hover,
+merch-card[variant="bizpro"] [slot="footer"] .con-button.primary:hover,
+merch-card[variant="bizpro"] [slot="footer"] a.outline:hover,
+merch-card[variant="bizpro"] [slot="footer"] [data-button-type="primary"]:hover {
+    background-color: var(--consonant-merch-card-bizpro-cta-outline-hover-color);
 }
 
 /* heading-m holds the price. inline-price cards are covered by the .price-span
@@ -387,6 +406,16 @@ merch-card[variant="bizpro"] [slot="heading-m"] .price.price-legal {
     color: var(--consonant-merch-card-bizpro-text-muted-color);
 }
 
+/* The legal line opens with an empty unit-type, so the tax label's leading
+   ::before nbsp turns into a spurious indent and the line no longer aligns with
+   the price above it; drop it when nothing precedes the tax label (MWPW-198626). */
+merch-card[variant="bizpro"]
+    .price-legal
+    .price-unit-type.disabled
+    + .price-tax-inclusivity:not(.disabled)::before {
+    content: none;
+}
+
 /* Collection grid — C2 breakpoints only (768, 1280).
    - Mobile: single column, full width.
    - Tablet (≥768): 2-column grid for 2/3/4 cards.
@@ -441,9 +470,26 @@ merch-card-collection.plans:is(.one-merch-card, .two-merch-cards, .three-merch-c
 }
 
 @media screen and ${MOBILE_LANDSCAPE} {
+    /* Mobile (320–767px): the default track caps cards at 394px, leaving side
+       margins wider than the 24px gutter. Collapse to a single 1fr track and
+       drop the card cap so cards fill the available width. */
+    merch-card-collection.plans:is(.one-merch-card, .two-merch-cards, .three-merch-cards, .four-merch-cards):has(merch-card[variant="bizpro"]) {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
     merch-card[variant="bizpro"] {
         width: 100%;
-        max-width: var(--consonant-merch-card-bizpro-max-width);
+        max-width: none;
+    }
+
+    /* A collection inside a Milo .section.container inherits its 24px page
+       gutter; one dropped straight into a plain section gets none, so the
+       now-full-width cards bleed to the viewport edge. Restore the gutter on
+       the collection itself for that case only. The > .content > chain pins
+       this to the collection's own section, so it never doubles up where a
+       .container already supplies the gutter. */
+    .section:not(.container) > .content > .collection-container.plans:has(merch-card[variant="bizpro"]) {
+        padding-inline: 24px;
     }
 }
 

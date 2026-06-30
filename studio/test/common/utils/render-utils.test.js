@@ -6,8 +6,11 @@ import {
     getItemTypeLabel,
     getItemTitle,
     shouldIgnoreRowClickForSelection,
+    getStudioFragmentDisplayPath,
 } from '../../../src/common/utils/render-utils.js';
-import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, FRAGMENT_STATUS } from '../../../src/constants.js';
+import { generateCodeToUse } from '../../../src/utils.js';
+import Store from '../../../src/store.js';
+import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, DICTIONARY_MODEL_PATH, FRAGMENT_STATUS } from '../../../src/constants.js';
 
 describe('render-utils', () => {
     describe('renderFragmentStatusCell', () => {
@@ -19,16 +22,16 @@ describe('render-utils', () => {
         it('renders published status with green class', () => {
             const container = document.createElement('div');
             render(renderFragmentStatusCell(FRAGMENT_STATUS.PUBLISHED), container);
-            const dot = container.querySelector('.status-dot');
-            expect(dot?.classList.contains('green')).to.be.true;
+            const statusLight = container.querySelector('sp-status-light');
+            expect(statusLight?.getAttribute('variant')).to.equal('positive');
             expect(container.textContent).to.include('Published');
         });
 
         it('renders modified status with blue class', () => {
             const container = document.createElement('div');
             render(renderFragmentStatusCell(FRAGMENT_STATUS.MODIFIED), container);
-            const dot = container.querySelector('.status-dot');
-            expect(dot?.classList.contains('blue')).to.be.true;
+            const statusLight = container.querySelector('sp-status-light');
+            expect(statusLight?.getAttribute('variant')).to.equal('yellow');
             expect(container.textContent).to.include('Modified');
         });
     });
@@ -77,8 +80,14 @@ describe('render-utils', () => {
             expect(getItemTypeLabel({ path: '/content/x/pzn/y/var' })).to.equal('Grouped variation');
         });
 
+        it('returns Promotion for promo variation paths', () => {
+            expect(getItemTypeLabel({ path: '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card' })).to.equal(
+                'Promotion',
+            );
+        });
+
         it('returns Placeholder for dictionary model', () => {
-            expect(getItemTypeLabel({ model: { path: '/conf/.../dictionnary/foo' } })).to.equal('Placeholder');
+            expect(getItemTypeLabel({ model: { path: `${DICTIONARY_MODEL_PATH}/foo` } })).to.equal('Placeholder');
         });
 
         it('returns Collection for collection model', () => {
@@ -111,6 +120,36 @@ describe('render-utils', () => {
                     getFieldValue: (f) => (f === 'key' ? 'from-field' : ''),
                 }),
             ).to.equal('from-field');
+        });
+    });
+
+    describe('getStudioFragmentDisplayPath', () => {
+        const mockCardFragment = () => ({
+            id: 'frag-123',
+            model: { path: CARD_MODEL_PATH },
+            title: 'CC Plans',
+            getField: (name) =>
+                ({
+                    name: { values: ['card-name'] },
+                    cardTitle: { values: ['Creative Cloud'] },
+                    variant: { values: ['plans'] },
+                })[name] || null,
+            getTagTitle: () => null,
+        });
+
+        it('returns the prefixed studio path (authorPath) for the active surface', () => {
+            Store.search.set({ ...Store.search.get(), path: 'acom' });
+            Store.page.set('content');
+            const fragment = mockCardFragment();
+            expect(getStudioFragmentDisplayPath(fragment)).to.equal(generateCodeToUse(fragment, 'acom', 'content').authorPath);
+            expect(getStudioFragmentDisplayPath(fragment)).to.include('merch-card:');
+        });
+
+        it('returns an empty string when no web component maps to the model', () => {
+            Store.search.set({ ...Store.search.get(), path: 'acom' });
+            Store.page.set('content');
+            const fragment = { id: 'x', model: { path: '/unknown/model' }, path: '/content/dam/mas/acom/en_US/x' };
+            expect(getStudioFragmentDisplayPath(fragment)).to.equal('');
         });
     });
 

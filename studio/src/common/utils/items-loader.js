@@ -163,9 +163,14 @@ async function processCardsData(allCards, repository, state, getDisplayName) {
     }
     state.isProcessingCards = true;
     const signal = state.abortController?.signal;
+    const store = getItemsSelectionStore({ allowUnset: true });
+    if (!store) {
+        state.isProcessingCards = false;
+        return;
+    }
 
     try {
-        const existingCards = getItemsSelectionStore().allCards.get() || [];
+        const existingCards = store.allCards.get() || [];
         const existingOfferDataByPath = new Map(
             existingCards.filter((card) => card.offerData !== undefined).map((card) => [card.path, card.offerData]),
         );
@@ -179,7 +184,7 @@ async function processCardsData(allCards, repository, state, getDisplayName) {
         if (cardsNeedingOfferData.length > 0) {
             const offerDataResults = await processConcurrently(
                 cardsNeedingOfferData,
-                (card) => loadOfferData(card, { cache: getItemsSelectionStore().offerDataCache, signal }),
+                (card) => loadOfferData(card, { cache: store.offerDataCache, signal }),
                 OFFER_DATA_CONCURRENCY_LIMIT,
             );
             if (signal?.aborted) return;
@@ -216,23 +221,26 @@ async function processCardsData(allCards, repository, state, getDisplayName) {
         }
         if (signal?.aborted) return;
 
-        const cardsByPaths = new Map(enrichedCards.map((card) => [card.path, card]));
+        if (getItemsSelectionStore({ allowUnset: true }) !== store) return;
+        const cardsByPaths = new Map(store.cardsByPaths.get() || []);
+        enrichedCards.forEach((card) => cardsByPaths.set(card.path, card));
+        const displayCards = enrichedCards;
         const prefetchedVariations = new Map(
             enrichedCards
                 .filter((card) => card.groupedVariations?.length)
                 .map((card) => [card.path, new Map(card.groupedVariations.map((v) => [v.path, v]))]),
         );
         if (prefetchedVariations.size > 0) {
-            const existing = getItemsSelectionStore().groupedVariationsByParent.value || new Map();
+            const existing = store.groupedVariationsByParent.value || new Map();
             const merged = new Map(existing);
             for (const [cardPath, varMap] of prefetchedVariations) {
                 merged.set(cardPath, varMap);
             }
             setCardVariationsByPaths(merged);
         }
-        getItemsSelectionStore().displayCards.set(enrichedCards);
-        getItemsSelectionStore().allCards.set(enrichedCards);
-        getItemsSelectionStore().cardsByPaths.set(cardsByPaths);
+        store.displayCards.set(displayCards);
+        store.allCards.set(displayCards);
+        store.cardsByPaths.set(cardsByPaths);
     } finally {
         state.isProcessingCards = false;
         if (state.pendingCards && !signal?.aborted) {
@@ -478,6 +486,37 @@ export async function loadCardVariations(cardPath, variationPaths, repository, {
     } catch (error) {
         console.error('Failed to fetch variations for the fragment at path:', cardPath, error);
     }
+}
+
+/**
+ * Enriches raw promo variation references with studioPath and offerData.
+ * @param {Array<Object>} promoVariations - Raw AEM fragment references
+ * @param {Object} parentCard - Parent card fragment (source of fallback OSI)
+ * @param {Function} options.getDisplayName - Display label for a Fragment
+ * @returns {Promise<Array<Object>>}
+ */
+export async function enrichPromoVariations(promoVariations, parentCard, { getDisplayName } = {}) {
+    if (!promoVariations?.length || !parentCard) return [];
+
+    const parentWcsOsi = new Fragment(parentCard).getFieldValue('osi');
+    const store = getItemsSelectionStore({ allowUnset: true });
+    const cache = store?.offerDataCache;
+
+    const offerDataResults = await processConcurrently(
+        promoVariations,
+        (variation) =>
+            loadOfferData(variation, {
+                cache,
+                fallbackWcsOsi: parentWcsOsi,
+            }),
+        VARIATIONS_CONCURRENCY_LIMIT,
+    );
+
+    return promoVariations.map((variation, i) => ({
+        ...variation,
+        studioPath: getDisplayName(new Fragment(variation)),
+        offerData: offerDataResults[i] ?? null,
+    }));
 }
 
 /**

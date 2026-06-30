@@ -2,6 +2,7 @@ import { PAGE_NAMES, SORT_COLUMNS, WCS_LANDSCAPE_DRAFT, WCS_LANDSCAPE_PUBLISHED 
 import { ReactiveStore } from './reactivity/reactive-store.js';
 import { EditorContextStore } from './reactivity/editor-context-store.js';
 import { SettingsStore } from './settings/settings-store.js';
+import { MasksStore } from './masks/masks-store.js';
 
 let editorContextInstance = null;
 
@@ -21,6 +22,8 @@ const Store = {
         },
         inEdit: new ReactiveStore(null),
         expandedId: new ReactiveStore(null), // Fragment ID to auto-expand in variations table
+        highlightedVariationId: new ReactiveStore(null), // Variation ID to highlight after UUID variation search
+        variationSearchTab: new ReactiveStore(null), // 'locale' | 'promotion' | 'grouped' tab to open in variations panel
     },
     fragmentEditor: {
         fragmentId: new ReactiveStore(null),
@@ -35,14 +38,20 @@ const Store = {
     },
     operation: new ReactiveStore(),
     editor: {
+        referencedFragmentStoresHaveChanges: new ReactiveStore(false),
         resetChanges() {
             const fragmentData = Store.fragments.inEdit.get()?.get();
             if (fragmentData) {
                 fragmentData.hasChanges = false;
             }
+            Store.editor.referencedFragmentStoresHaveChanges.set(false);
         },
         get hasChanges() {
-            return Store.fragments.inEdit.get()?.get()?.hasChanges || false;
+            return (
+                Store.fragments.inEdit.get()?.get()?.hasChanges ||
+                Store.editor.referencedFragmentStoresHaveChanges.get() ||
+                false
+            );
         },
     },
     folders: {
@@ -74,6 +83,7 @@ const Store = {
         previewByLocale: new ReactiveStore({}),
     },
     settings: new SettingsStore(),
+    masks: new MasksStore(),
     profile: new ReactiveStore({}),
     createdByUsers: new ReactiveStore([]),
     users: new ReactiveStore([]),
@@ -100,10 +110,16 @@ const Store = {
         inEdit: new ReactiveStore(null),
         promotionId: new ReactiveStore(null),
 
+        // Local search/filters for the editor's item picker, kept off the router
+        // hash so the picker never dirties the URL.
+        search: new ReactiveStore({}),
+        filters: new ReactiveStore({ locale: 'en_US' }, filtersValidator),
+
         allCards: new ReactiveStore([]),
         cardsByPaths: new ReactiveStore(new Map()),
         displayCards: new ReactiveStore([]),
         selectedCards: new ReactiveStore([]),
+        selectedOffers: new ReactiveStore([]),
         offerDataCache: new Map(),
         groupedVariationsByParent: new ReactiveStore(new Map()),
         groupedVariationsData: new ReactiveStore(new Map()),
@@ -152,6 +168,11 @@ const Store = {
         translationProjectId: new ReactiveStore(null),
         prefill: new ReactiveStore(null),
 
+        // Local search/filters for the editor's item picker, kept off the router
+        // hash so the picker never dirties the URL.
+        search: new ReactiveStore({}),
+        filters: new ReactiveStore({ locale: 'en_US' }, filtersValidator),
+
         allCards: new ReactiveStore([]),
         cardsByPaths: new ReactiveStore(new Map()),
         displayCards: new ReactiveStore([]),
@@ -182,6 +203,10 @@ const Store = {
         inEdit: new ReactiveStore(null),
         projectId: new ReactiveStore(null),
         publishing: new ReactiveStore({}),
+        // Local search/filters for the add-items picker, kept off the router hash
+        // so the picker never dirties the URL.
+        search: new ReactiveStore({}),
+        filters: new ReactiveStore({ locale: 'en_US' }, filtersValidator),
         allCards: new ReactiveStore([]),
         cardsByPaths: new ReactiveStore(new Map()),
         displayCards: new ReactiveStore([]),
@@ -200,6 +225,29 @@ const Store = {
         targetLocales: new ReactiveStore([]),
         showSelected: new ReactiveStore(false),
         projectType: new ReactiveStore(null),
+    },
+    compareChart: {
+        // Local search/filters for the editor's item picker, kept off the router
+        // hash so the picker never dirties the URL.
+        search: new ReactiveStore({}),
+        filters: new ReactiveStore({ locale: 'en_US' }, filtersValidator),
+        inEdit: new ReactiveStore(null),
+        allCards: new ReactiveStore([]),
+        cardsByPaths: new ReactiveStore(new Map()),
+        displayCards: new ReactiveStore([]),
+        selectedCards: new ReactiveStore([]),
+        offerDataCache: new Map(),
+        groupedVariationsByParent: new ReactiveStore(new Map()),
+        groupedVariationsData: new ReactiveStore(new Map()),
+        allCollections: new ReactiveStore([]),
+        collectionsByPaths: new ReactiveStore(new Map()),
+        displayCollections: new ReactiveStore([]),
+        selectedCollections: new ReactiveStore([]),
+        allPlaceholders: new ReactiveStore([]),
+        placeholdersByPaths: new ReactiveStore(new Map()),
+        displayPlaceholders: new ReactiveStore([]),
+        selectedPlaceholders: new ReactiveStore([]),
+        showSelected: new ReactiveStore(false),
     },
 };
 
@@ -248,6 +296,8 @@ function pageValidator(value) {
         PAGE_NAMES.BULK_PUBLISH,
         PAGE_NAMES.BULK_PUBLISH_EDITOR,
         PAGE_NAMES.ADVANCED_TOOLS,
+        PAGE_NAMES.MASKS,
+        PAGE_NAMES.MASKS_EDITOR,
     ];
     return validPages.includes(value) ? value : PAGE_NAMES.WELCOME;
 }

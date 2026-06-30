@@ -4,24 +4,28 @@ import { VARIANTS } from '../../editors/variant-picker.js';
 import { styles } from './mas-search-and-filters.css.js';
 import Store from '../../store.js';
 import { getItemsSelectionStore } from '../items-selection-store.js';
-import { FILTER_TYPE, TABLE_TYPE, FRAGMENT_STATUS } from '../../constants.js';
+import { AEM_TAG_PATH_PRODUCT_CODE_ROOT, FILTER_TYPE, FRAGMENT_STATUS, PAGE_NAMES, TABLE_TYPE } from '../../constants.js';
 import ReactiveController from '../../reactivity/reactive-controller.js';
 import { AEM } from '../../aem/aem.js';
-import { getNamespaceCache, setNamespaceCache } from '../../aem/tag-cache.js';
-import { toAttribute } from '../../aem/tag-path-utils.js';
-import { isPznCountryTagPath } from '../utils/personalization-utils.js';
+import { ensureNamespaceTags, getNamespaceCache, getNamespaceInflight } from '../../aem/tag-cache.js';
+import '../../aem/aem-tag-picker-field.js';
 
 const MAS_TAG_NAMESPACE = '/content/cq:tags/mas';
-
-const TAXONOMY_FILTERS = [
-    { optionsProp: 'marketSegmentOptions', root: 'market_segments' },
-    { optionsProp: 'customerSegmentOptions', root: 'customer_segment' },
-    { optionsProp: 'productOptions', root: 'product_code', directChildrenOnly: true },
-    { optionsProp: 'offerTypeOptions', root: 'offer_type' },
-    { optionsProp: 'planTypeOptions', root: 'plan_type' },
-    { optionsProp: 'pznOptions', root: 'pzn', exclude: isPznCountryTagPath },
-    { optionsProp: 'tagOptions', root: 'custom' },
-];
+const VARIANT_TAG_PREFIX = 'mas:variant/';
+const EMPTY_TAGS_BY_TYPE = {
+    offer_type: [],
+    plan_type: [],
+    market_segments: [],
+    customer_segment: [],
+    product_code: [],
+    pzn: [],
+    status: [],
+    variant: [],
+    'studio/content-type': [],
+    custom: [],
+};
+const SELECTOR_FILTER_TYPES = ['market_segments', 'customer_segment', 'product_code', 'variant'];
+const STRIPPED_FILTER_TYPES = [...SELECTOR_FILTER_TYPES, 'studio/content-type'];
 
 const STATUS_OPTIONS = [
     { id: FRAGMENT_STATUS.PUBLISHED, title: 'Published' },
@@ -34,6 +38,18 @@ class MasSearchAndFilters extends LitElement {
 
     #savedSearch = null;
     #savedFilters = null;
+    #lastForcedSearchSignature = null;
+    #defaultTemplateFilterApplied = false;
+    #tagCachePromise = null;
+    // Search/filters come from the active items-selection store when it provides them
+    // (e.g. the compare-chart picker), else the global stores. Resolved at connect.
+    #searchStore = Store.search;
+    #filtersStore = Store.filters;
+
+    // Overlay open/close events from the internal filter popovers are an
+    // implementation detail; stop them at the host so ancestor overlays
+    // (e.g. the promotions add-items overlay) never see them.
+    #stopOverlayEventPropagation = (event) => event.stopPropagation();
 
     static properties = {
         type: { type: String }, // 'cards' | 'collections' | 'placeholders'
@@ -57,8 +73,14 @@ class MasSearchAndFilters extends LitElement {
         tagOptions: { type: Array },
         statusOptions: { type: Array },
         searchOnly: { type: Boolean, reflect: true },
+        /** When set, preselects this template variant and prevents changing the Template filter. */
+        lockedTemplateFilter: { type: String, attribute: 'locked-template-filter' },
+        /** When set, preselects this template variant initially while still allowing it to be changed. */
+        defaultTemplateFilter: { type: String, attribute: 'default-template-filter' },
         promotionSurfaceOptions: { type: Array },
         promotionSurface: { type: String },
+        offerFilterOptions: { type: Array },
+        offerFilterValue: { type: String },
     };
 
     constructor() {
@@ -83,17 +105,174 @@ class MasSearchAndFilters extends LitElement {
         this.tagOptions = [];
         this.statusOptions = [];
         this.dataSubscription = null;
+        this.lockedTemplateFilter = '';
+        this.defaultTemplateFilter = '';
         this.promotionSurfaceOptions = [];
         this.promotionSurface = '';
+        this.offerFilterOptions = [];
+        this.offerFilterValue = '';
+    }
+
+    get #isTemplateFilterLocked() {
+        return Boolean(this.lockedTemplateFilter);
+    }
+
+    #syncLockedTemplateFilter() {
+        if (!this.#isTemplateFilterLocked) return;
+        if (this.templateFilter.length === 1 && this.templateFilter[0] === this.lockedTemplateFilter) return;
+        this.templateFilter = [this.lockedTemplateFilter];
+    }
+
+    #applyDefaultTemplateFilter() {
+        if (this.#isTemplateFilterLocked || !this.defaultTemplateFilter) return;
+        if (this.#defaultTemplateFilterApplied) return;
+        this.#defaultTemplateFilterApplied = true;
+        if (this.templateFilter.length) return;
+        this.templateFilter = [this.defaultTemplateFilter];
+    }
+
+    #tagsList(tags) {
+        if (Array.isArray(tags)) return tags.filter(Boolean);
+        if (typeof tags === 'string') return tags.split(',').filter(Boolean);
+        return [];
+    }
+
+    #tagsByType(tags) {
+        return this.#tagsList(tags).reduce(
+            (acc, tag) => {
+                const tagPath = tag.replace('mas:', '');
+                const parts = tagPath.split('/');
+                let type = parts[0];
+
+                for (let i = 1; i < parts.length; i++) {
+                    const potentialType = parts.slice(0, i + 1).join('/');
+                    if (potentialType in EMPTY_TAGS_BY_TYPE) type = potentialType;
+                }
+
+                return {
+                    ...acc,
+                    [type]: [...(acc[type] || []), tag],
+                };
+            },
+            { ...EMPTY_TAGS_BY_TYPE },
+        );
+    }
+
+    #isManagedTag(tag) {
+        const tagPath = tag.replace('mas:', '');
+        return STRIPPED_FILTER_TYPES.some((type) => tagPath === type || tagPath.startsWith(`${type}/`));
+    }
+
+    #setFilterIfChanged(property, values) {
+        const current = this[property] || [];
+        if (current.length === values.length && current.every((value, index) => value === values[index])) return;
+        this[property] = values;
+    }
+
+    #syncFiltersFromStore() {
+        if (this.type !== TABLE_TYPE.CARDS) return;
+        const tagsByType = this.#tagsByType(this.#filtersStore.get()?.tags);
+        if (!this.#isTemplateFilterLocked) {
+            this.#setFilterIfChanged(
+                'templateFilter',
+                tagsByType.variant.map((tag) => tag.replace(VARIANT_TAG_PREFIX, '')),
+            );
+        }
+        this.#setFilterIfChanged('marketSegmentFilter', tagsByType.market_segments);
+        this.#setFilterIfChanged('customerSegmentFilter', tagsByType.customer_segment);
+        this.#setFilterIfChanged('productFilter', tagsByType.product_code);
+    }
+
+    #syncRepositorySearch() {
+        if (this.type !== TABLE_TYPE.CARDS) return;
+
+        const nextQuery = this.searchQuery?.trim() || undefined;
+        const currentSearch = this.#searchStore.get() || {};
+        const currentQuery = currentSearch.query || undefined;
+        if (currentQuery !== nextQuery) {
+            const nextSearch = { ...currentSearch };
+            if (nextQuery) {
+                nextSearch.query = nextQuery;
+            } else {
+                delete nextSearch.query;
+            }
+            this.#searchStore.set(nextSearch);
+        }
+
+        const currentFilters = this.#filtersStore.get() || {};
+        const unmanagedTags = this.#tagsList(currentFilters.tags).filter((tag) => !this.#isManagedTag(tag));
+        const variantTags = (this.templateFilter || []).filter(Boolean).map((template) => `${VARIANT_TAG_PREFIX}${template}`);
+        const nextTags = [
+            ...unmanagedTags,
+            ...(this.marketSegmentFilter || []),
+            ...(this.customerSegmentFilter || []),
+            ...(this.productFilter || []),
+            ...variantTags,
+        ].join(',');
+        const currentTags = this.#tagsList(currentFilters.tags).join(',');
+        if (currentTags !== nextTags) {
+            this.#filtersStore.set({
+                ...currentFilters,
+                tags: nextTags || undefined,
+            });
+        }
+
+        this.#forceRepositorySearchInFragmentEditor(nextQuery, nextTags);
+    }
+
+    #forceRepositorySearchInFragmentEditor(query, tags) {
+        if (Store.page.get() !== PAGE_NAMES.FRAGMENT_EDITOR) return;
+        const signature = `${query || ''}\0${tags}`;
+        if (this.#lastForcedSearchSignature === signature) return;
+        this.#lastForcedSearchSignature = signature;
+        document.querySelector('mas-repository')?.searchFragments?.({ force: true, query, tags });
+    }
+
+    #refreshOptionsAfterTagCacheLoad(cachePromise) {
+        if (this.#tagCachePromise === cachePromise) return;
+        this.#tagCachePromise = cachePromise;
+        cachePromise.finally(() => {
+            if (!this.isConnected) return;
+            this.#tagCachePromise = null;
+            if (!this.searchOnly) this.#extractFilterOptions();
+            this.requestUpdate();
+        });
+    }
+
+    #loadTagOptions() {
+        if (getNamespaceCache(MAS_TAG_NAMESPACE)) return;
+
+        const inflightLoad = getNamespaceInflight(MAS_TAG_NAMESPACE);
+        if (inflightLoad) {
+            this.#refreshOptionsAfterTagCacheLoad(inflightLoad);
+            return;
+        }
+
+        const baseUrl = document.querySelector('meta[name="aem-base-url"]')?.content;
+        if (!baseUrl) return;
+
+        const loadPromise = ensureNamespaceTags(MAS_TAG_NAMESPACE, (namespace) => new AEM(null, baseUrl).tags.list(namespace));
+        this.#refreshOptionsAfterTagCacheLoad(loadPromise);
     }
 
     connectedCallback() {
         super.connectedCallback();
-        if (this.type === TABLE_TYPE.CARDS) {
-            this.#savedSearch = Store.search.get();
-            this.#savedFilters = Store.filters.get();
-        }
+        this.addEventListener('sp-opened', this.#stopOverlayEventPropagation);
+        this.addEventListener('sp-closed', this.#stopOverlayEventPropagation);
         const selectionStore = getItemsSelectionStore();
+        this.#searchStore = selectionStore.search;
+        this.#filtersStore = selectionStore.filters;
+        if (this.type === TABLE_TYPE.CARDS) {
+            this.#savedSearch = this.#searchStore.get();
+            this.#savedFilters = this.#filtersStore.get();
+            this.#syncFiltersFromStore();
+            this.#syncLockedTemplateFilter();
+            this.#applyDefaultTemplateFilter();
+            this.#syncRepositorySearch();
+            if (!this.searchOnly) this.#loadTagOptions();
+        } else {
+            this.#syncLockedTemplateFilter();
+        }
         this.commonDataController = new ReactiveController(this, [
             selectionStore[`all${this.typeUppercased}`],
             selectionStore[`display${this.typeUppercased}`],
@@ -101,6 +280,9 @@ class MasSearchAndFilters extends LitElement {
             ...(this.type !== TABLE_TYPE.PLACEHOLDERS ? [Store.fragments.list.firstPageLoaded] : []),
         ]);
         const dataCallback = () => {
+            if (!this.searchOnly) {
+                this.#extractFilterOptions();
+            }
             this.#applyFilters();
             this.requestUpdate();
         };
@@ -109,17 +291,14 @@ class MasSearchAndFilters extends LitElement {
             unsubscribe: () => selectionStore[`all${this.typeUppercased}`].unsubscribe(dataCallback),
         };
         if (!this.searchOnly && this.type !== TABLE_TYPE.PLACEHOLDERS) {
-            this.templateOptions = VARIANTS.filter((variant) => variant.label.toLowerCase() !== 'all').map((variant) => ({
-                id: variant.value,
-                title: variant.label,
-            }));
             this.statusOptions = STATUS_OPTIONS;
-            this.#loadTaxonomyFilterOptions();
         }
     }
 
     disconnectedCallback() {
         super.disconnectedCallback();
+        this.removeEventListener('sp-opened', this.#stopOverlayEventPropagation);
+        this.removeEventListener('sp-closed', this.#stopOverlayEventPropagation);
         const selectionStore = getItemsSelectionStore({ allowUnset: true });
         if (selectionStore) {
             selectionStore[`display${this.typeUppercased}`].set(selectionStore[`all${this.typeUppercased}`].value);
@@ -127,10 +306,10 @@ class MasSearchAndFilters extends LitElement {
         this.dataSubscription?.unsubscribe();
         if (this.type === TABLE_TYPE.CARDS) {
             if (this.#savedSearch !== null) {
-                Store.search.set(this.#savedSearch);
+                this.#searchStore.set(this.#savedSearch);
             }
             if (this.#savedFilters !== null) {
-                Store.filters.set(this.#savedFilters);
+                this.#filtersStore.set(this.#savedFilters);
             }
         }
     }
@@ -200,42 +379,125 @@ class MasSearchAndFilters extends LitElement {
         return filters;
     }
 
-    async #loadTaxonomyFilterOptions() {
-        let data = getNamespaceCache(MAS_TAG_NAMESPACE);
-        if (!data) {
-            const aem = new AEM(null, document.querySelector('meta[name="aem-base-url"]')?.content);
-            let resolveNamespace;
-            setNamespaceCache(MAS_TAG_NAMESPACE, new Promise((resolve) => (resolveNamespace = resolve)));
-            try {
-                const rawTags = await aem.tags.list(MAS_TAG_NAMESPACE);
-                data = new Map(rawTags.hits.map((tag) => [tag.path, tag]));
-                setNamespaceCache(MAS_TAG_NAMESPACE, data);
-            } catch {
-                setNamespaceCache(MAS_TAG_NAMESPACE, undefined);
-                return;
-            }
-            resolveNamespace();
-        } else if (data instanceof Promise) {
-            await data;
-            data = getNamespaceCache(MAS_TAG_NAMESPACE);
-        }
-        if (!data || data instanceof Promise) return;
-        const tags = [...data.values()];
-        for (const { optionsProp, root, exclude, directChildrenOnly } of TAXONOMY_FILTERS) {
-            const rootPath = `${MAS_TAG_NAMESPACE}/${root}/`;
-            const matching = tags.filter((tag) => {
-                if (!tag.path.startsWith(rootPath)) return false;
-                if (exclude && exclude(tag.path)) return false;
-                if (directChildrenOnly && tag.path.slice(rootPath.length).includes('/')) return false;
-                return true;
-            });
-            this[optionsProp] = matching
-                .map((tag) => ({ id: toAttribute([tag.path]), title: tag.title || tag.name || tag.path.split('/').pop() }))
-                .sort((a, b) => a.title.localeCompare(b.title));
+    #tagPathToId(path) {
+        if (!path?.startsWith(`${MAS_TAG_NAMESPACE}/`)) return '';
+        return `mas:${path.replace(`${MAS_TAG_NAMESPACE}/`, '')}`;
+    }
+
+    #tagIdToPath(tagId) {
+        if (!tagId?.startsWith('mas:')) return '';
+        return `${MAS_TAG_NAMESPACE}/${tagId.replace('mas:', '')}`;
+    }
+
+    #tagTitleFallback(tagId) {
+        return tagId?.split('/').pop() || '';
+    }
+
+    #setOption(options, id, title = '') {
+        if (!id) return;
+        options.set(id, { id, title: title || this.#tagTitleFallback(id) });
+    }
+
+    #productParentTagId(tagId) {
+        if (!tagId?.startsWith('mas:product_code/')) return tagId;
+        const [type, product] = tagId.split('/');
+        return product ? `${type}/${product}` : tagId;
+    }
+
+    #setOptionFromTagId(maps, tagId, title) {
+        if (tagId.startsWith('mas:market_segments/')) {
+            this.#setOption(maps.marketSegments, tagId, title);
+        } else if (tagId.startsWith('mas:customer_segment/')) {
+            this.#setOption(maps.customerSegments, tagId, title);
+        } else if (tagId.startsWith('mas:product_code/')) {
+            const productTagId = this.#productParentTagId(tagId);
+            const cachedTitle = getNamespaceCache(MAS_TAG_NAMESPACE)?.get?.(this.#tagIdToPath(productTagId))?.title;
+            this.#setOption(maps.products, productTagId, cachedTitle || (productTagId === tagId ? title : ''));
+        } else if (tagId.startsWith('mas:offer_type/')) {
+            this.#setOption(maps.offerTypes, tagId, title);
+        } else if (tagId.startsWith('mas:plan_type/')) {
+            this.#setOption(maps.planTypes, tagId, title);
+        } else if (tagId.startsWith('mas:pzn/')) {
+            this.#setOption(maps.pzns, tagId, title);
+        } else if (tagId.startsWith('mas:custom/')) {
+            this.#setOption(maps.customs, tagId, title);
         }
     }
 
+    #addSelectedFilterOptions(optionMaps) {
+        [
+            ...(this.marketSegmentFilter || []),
+            ...(this.customerSegmentFilter || []),
+            ...(this.productFilter || []),
+            ...(this.offerTypeFilter || []),
+            ...(this.planTypeFilter || []),
+            ...(this.pznFilter || []),
+            ...(this.tagFilter || []),
+        ].forEach((tagId) => {
+            const cachedTag = getNamespaceCache(MAS_TAG_NAMESPACE)?.get?.(this.#tagIdToPath(tagId));
+            this.#setOptionFromTagId(optionMaps, tagId, cachedTag?.title);
+        });
+    }
+
+    #addCachedFilterOptions(optionMaps) {
+        const cachedTags = getNamespaceCache(MAS_TAG_NAMESPACE);
+        if (!cachedTags) {
+            const inflightLoad = getNamespaceInflight(MAS_TAG_NAMESPACE);
+            if (inflightLoad) this.#refreshOptionsAfterTagCacheLoad(inflightLoad);
+            return;
+        }
+        if (!cachedTags.values) return;
+
+        for (const tag of cachedTags.values()) {
+            if (!tag?.path) continue;
+            if (tag.path.startsWith(`${AEM_TAG_PATH_PRODUCT_CODE_ROOT}/`)) {
+                const relativeProductPath = tag.path.replace(`${AEM_TAG_PATH_PRODUCT_CODE_ROOT}/`, '');
+                if (relativeProductPath.includes('/')) continue;
+            }
+            this.#setOptionFromTagId(optionMaps, this.#tagPathToId(tag.path), tag.title || tag.name);
+        }
+    }
+
+    #extractFilterOptions() {
+        const optionMaps = {
+            marketSegments: new Map(),
+            customerSegments: new Map(),
+            products: new Map(),
+            offerTypes: new Map(),
+            planTypes: new Map(),
+            pzns: new Map(),
+            customs: new Map(),
+        };
+        this.#addSelectedFilterOptions(optionMaps);
+        for (const fragment of getItemsSelectionStore()[`all${this.typeUppercased}`].value) {
+            if (!fragment.tags) continue;
+
+            for (const tag of fragment.tags) {
+                const tagId = tag.id || '';
+                const tagTitle = tag.title || tagId.split('/').pop() || '';
+                this.#setOptionFromTagId(optionMaps, tagId, tagTitle);
+            }
+        }
+        this.#addCachedFilterOptions(optionMaps);
+
+        const toSortedOptions = (map) => Array.from(map.values()).sort((a, b) => a.title.localeCompare(b.title));
+        this.templateOptions = VARIANTS.filter((variant) => variant.label.toLowerCase() !== 'all').map((variant) => ({
+            id: variant.value,
+            title: variant.label,
+        }));
+        this.marketSegmentOptions = toSortedOptions(optionMaps.marketSegments);
+        this.customerSegmentOptions = toSortedOptions(optionMaps.customerSegments);
+        this.productOptions = toSortedOptions(optionMaps.products);
+        this.offerTypeOptions = toSortedOptions(optionMaps.offerTypes);
+        this.planTypeOptions = toSortedOptions(optionMaps.planTypes);
+        this.pznOptions = toSortedOptions(optionMaps.pzns);
+        this.tagOptions = toSortedOptions(optionMaps.customs);
+    }
+
     willUpdate(changed) {
+        if (changed.has('lockedTemplateFilter') || (changed.has('templateFilter') && this.#isTemplateFilterLocked)) {
+            this.#syncLockedTemplateFilter();
+        }
         if (
             changed.has('searchQuery') ||
             changed.has('templateFilter') ||
@@ -248,12 +510,23 @@ class MasSearchAndFilters extends LitElement {
             changed.has('tagFilter') ||
             changed.has('statusFilter')
         ) {
+            if (
+                changed.has('searchQuery') ||
+                changed.has('templateFilter') ||
+                changed.has('lockedTemplateFilter') ||
+                changed.has('marketSegmentFilter') ||
+                changed.has('customerSegmentFilter') ||
+                changed.has('productFilter')
+            ) {
+                this.#syncRepositorySearch();
+            }
             this.#applyFilters();
         }
     }
 
     #handleCheckboxChange(filterType, optionId, e) {
         e.stopPropagation();
+        if (filterType === FILTER_TYPE.TEMPLATE && this.#isTemplateFilterLocked) return;
         let currentValues;
         switch (filterType) {
             case FILTER_TYPE.TEMPLATE:
@@ -326,6 +599,38 @@ class MasSearchAndFilters extends LitElement {
         }
     }
 
+    #selectedTagPaths(selectedValues) {
+        return (selectedValues || []).map((tagId) => this.#tagIdToPath(tagId)).filter(Boolean);
+    }
+
+    #handleTagPickerChange(filterType, e) {
+        e.stopPropagation();
+        const selectedTagIds = (e.currentTarget.value || []).map((path) => this.#tagPathToId(path)).filter(Boolean);
+        switch (filterType) {
+            case FILTER_TYPE.MARKET_SEGMENT:
+                this.marketSegmentFilter = selectedTagIds;
+                break;
+            case FILTER_TYPE.CUSTOMER_SEGMENT:
+                this.customerSegmentFilter = selectedTagIds;
+                break;
+            case FILTER_TYPE.PRODUCT:
+                this.productFilter = selectedTagIds.map((tagId) => this.#productParentTagId(tagId));
+                break;
+            case FILTER_TYPE.OFFER_TYPE:
+                this.offerTypeFilter = selectedTagIds;
+                break;
+            case FILTER_TYPE.PLAN_TYPE:
+                this.planTypeFilter = selectedTagIds;
+                break;
+            case FILTER_TYPE.PZN:
+                this.pznFilter = selectedTagIds;
+                break;
+            case FILTER_TYPE.TAG:
+                this.tagFilter = selectedTagIds;
+                break;
+        }
+    }
+
     #handleTagDelete({
         target: {
             value: { type, id },
@@ -333,6 +638,7 @@ class MasSearchAndFilters extends LitElement {
     }) {
         switch (type) {
             case FILTER_TYPE.TEMPLATE:
+                if (this.#isTemplateFilterLocked) return;
                 this.templateFilter = this.templateFilter.filter((filterId) => filterId !== id);
                 break;
             case FILTER_TYPE.MARKET_SEGMENT:
@@ -363,7 +669,11 @@ class MasSearchAndFilters extends LitElement {
     }
 
     #clearAllFilters() {
-        this.templateFilter = [];
+        if (this.#isTemplateFilterLocked) {
+            this.#syncLockedTemplateFilter();
+        } else {
+            this.templateFilter = [];
+        }
         this.marketSegmentFilter = [];
         this.customerSegmentFilter = [];
         this.productFilter = [];
@@ -390,7 +700,7 @@ class MasSearchAndFilters extends LitElement {
                         (filter) => html`
                             <sp-tag
                                 size="s"
-                                deletable
+                                ?deletable=${!(filter.type === FILTER_TYPE.TEMPLATE && this.#isTemplateFilterLocked)}
                                 .value=${{ type: filter.type, id: filter.id }}
                                 @delete=${this.#handleTagDelete}
                             >
@@ -404,14 +714,14 @@ class MasSearchAndFilters extends LitElement {
         `;
     }
 
-    #renderFilterPicker(label, options, selectedValues, filterType) {
+    #renderFilterPicker(label, options, selectedValues, filterType, { locked = false } = {}) {
         if (!options.length) return nothing;
         const selectedCount = selectedValues.length;
         const displayLabel = selectedCount > 0 ? `${label} (${selectedCount})` : label;
 
         return html`
-            <overlay-trigger placement="bottom-start" @sp-closed=${(e) => e.stopPropagation()}>
-                <sp-action-button slot="trigger" class="filter-trigger" quiet .disabled=${this.isLoading}>
+            <overlay-trigger placement="bottom-start" ?disabled=${locked}>
+                <sp-action-button class="template-filter" dir="ltr" slot="trigger" .disabled=${this.isLoading || locked}>
                     ${displayLabel}
                     <sp-icon-chevron-down slot="icon"></sp-icon-chevron-down>
                 </sp-action-button>
@@ -424,6 +734,7 @@ class MasSearchAndFilters extends LitElement {
                                 <sp-checkbox
                                     value=${optionId}
                                     ?checked=${isChecked}
+                                    ?disabled=${locked}
                                     @change=${(e) => this.#handleCheckboxChange(filterType, optionId, e)}
                                 >
                                     ${option.title || option.label}
@@ -436,6 +747,22 @@ class MasSearchAndFilters extends LitElement {
         `;
     }
 
+    #renderTagPicker(label, top, selectedValues, filterType) {
+        return html`
+            <aem-tag-picker-field
+                namespace=${MAS_TAG_NAMESPACE}
+                top=${top}
+                label=${label}
+                multiple
+                selection="checkbox"
+                .quiet=${false}
+                .value=${this.#selectedTagPaths(selectedValues)}
+                ?disabled=${this.isLoading}
+                @change=${(e) => this.#handleTagPickerChange(filterType, e)}
+            ></aem-tag-picker-field>
+        `;
+    }
+
     #renderPromotionSurfacePicker() {
         if (!this.promotionSurfaceOptions?.length || this.promotionSurfaceOptions.length <= 1) {
             return nothing;
@@ -443,8 +770,8 @@ class MasSearchAndFilters extends LitElement {
         const displayLabel = 'Surface';
 
         return html`
-            <overlay-trigger placement="bottom-start" @sp-closed=${(e) => e.stopPropagation()}>
-                <sp-action-button slot="trigger" class="filter-trigger" quiet .disabled=${this.isLoading}>
+            <overlay-trigger placement="bottom-start">
+                <sp-action-button slot="trigger" .disabled=${this.isLoading}>
                     ${displayLabel}
                     <sp-icon-chevron-down slot="icon"></sp-icon-chevron-down>
                 </sp-action-button>
@@ -475,6 +802,29 @@ class MasSearchAndFilters extends LitElement {
                 </sp-popover>
             </overlay-trigger>
         `;
+    }
+
+    #renderOfferPicker() {
+        if (!this.offerFilterOptions?.length || this.offerFilterOptions.length < 2) return nothing;
+        return html`<sp-picker
+            class="offer-filter"
+            size="m"
+            label="Offer"
+            .value=${this.offerFilterValue}
+            @change=${(e) => {
+                e.stopPropagation();
+                this.dispatchEvent(
+                    new CustomEvent('offer-filter-change', {
+                        detail: { value: e.target.value },
+                        bubbles: true,
+                        composed: true,
+                    }),
+                );
+            }}
+        >
+            <sp-menu-item value="all">All offers</sp-menu-item>
+            ${this.offerFilterOptions.map(({ id, label }) => html`<sp-menu-item value=${id}>${label}</sp-menu-item>`)}
+        </sp-picker>`;
     }
 
     #fragmentMatchesAnyTag(fragment, selectedIds) {
@@ -574,25 +924,27 @@ class MasSearchAndFilters extends LitElement {
         return html`
             <div class="filters">
                 ${this.renderCount()}
-                ${this.#renderFilterPicker('Template', this.templateOptions, this.templateFilter, FILTER_TYPE.TEMPLATE)}
-                ${this.#renderFilterPicker('Offer Type', this.offerTypeOptions, this.offerTypeFilter, FILTER_TYPE.OFFER_TYPE)}
-                ${this.#renderFilterPicker('Plan Type', this.planTypeOptions, this.planTypeFilter, FILTER_TYPE.PLAN_TYPE)}
-                ${this.#renderFilterPicker(
+                ${this.#renderFilterPicker('Template', this.templateOptions, this.templateFilter, FILTER_TYPE.TEMPLATE, {
+                    locked: this.#isTemplateFilterLocked,
+                })}
+                ${this.#renderTagPicker('Offer Type', 'offer_type', this.offerTypeFilter, FILTER_TYPE.OFFER_TYPE)}
+                ${this.#renderTagPicker('Plan Type', 'plan_type', this.planTypeFilter, FILTER_TYPE.PLAN_TYPE)}
+                ${this.#renderTagPicker(
                     'Market Segment',
-                    this.marketSegmentOptions,
+                    'market_segments',
                     this.marketSegmentFilter,
                     FILTER_TYPE.MARKET_SEGMENT,
                 )}
-                ${this.#renderFilterPicker(
+                ${this.#renderTagPicker(
                     'Customer Segment',
-                    this.customerSegmentOptions,
+                    'customer_segment',
                     this.customerSegmentFilter,
                     FILTER_TYPE.CUSTOMER_SEGMENT,
                 )}
-                ${this.#renderFilterPicker('Product Code', this.productOptions, this.productFilter, FILTER_TYPE.PRODUCT)}
-                ${this.#renderFilterPicker('Tag', this.tagOptions, this.tagFilter, FILTER_TYPE.TAG)}
+                ${this.#renderTagPicker('Product Code', 'product_code', this.productFilter, FILTER_TYPE.PRODUCT)}
+                ${this.#renderTagPicker('Tag', 'custom', this.tagFilter, FILTER_TYPE.TAG)}
                 ${this.#renderFilterPicker('Status', this.statusOptions, this.statusFilter, FILTER_TYPE.STATUS)}
-                ${this.#renderFilterPicker('Personalization', this.pznOptions, this.pznFilter, FILTER_TYPE.PZN)}
+                ${this.#renderTagPicker('Personalization', 'pzn', this.pznFilter, FILTER_TYPE.PZN)} ${this.#renderOfferPicker()}
                 ${surfacePicker}
             </div>
             ${this.#renderAppliedFilters()}

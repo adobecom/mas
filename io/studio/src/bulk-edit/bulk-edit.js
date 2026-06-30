@@ -15,7 +15,7 @@ const {
     touchJobCache,
     JOB_CACHE_TTL,
 } = require('./state.js');
-const { normalizeLocales } = require('./search.js');
+const { normalizeLocales, invalidSearchScopes, VALID_SEARCH_SCOPES } = require('./search.js');
 const {
     parseJobIdParam,
     filterResultsByUserCsv,
@@ -232,6 +232,15 @@ async function handlePost(params) {
 
     const missing = required.filter((key) => params[key] === undefined || params[key] === '');
     if (missing.length) return errorResponse(400, `missing parameter(s) '${missing.join(', ')}'`, logger);
+
+    const badScopes = invalidSearchScopes(params.searchIn);
+    if (badScopes.length) {
+        return errorResponse(
+            400,
+            `invalid searchIn scope(s) '${badScopes.join(', ')}' — valid: ${VALID_SEARCH_SCOPES.join(', ')}`,
+            logger,
+        );
+    }
 
     const searchKey = buildSearchKey(params);
     const jobId = hashSearchKey(searchKey);

@@ -29,6 +29,14 @@ const SCOPE_FIELDS = {
     tags: { tags: true },
 };
 
+const VALID_SEARCH_SCOPES = [...Object.keys(SCOPE_FIELDS), '*'];
+
+function invalidSearchScopes(searchIn) {
+    if (searchIn == null || searchIn === '') return [];
+    const list = Array.isArray(searchIn) ? searchIn : [searchIn];
+    return list.filter(Boolean).filter((scope) => !VALID_SEARCH_SCOPES.includes(scope));
+}
+
 function tagToString(tag) {
     if (typeof tag === 'string') return tag;
     return tag?.id || tag?.title || '';
@@ -112,7 +120,7 @@ function buildSearchQuery({ path, tags = [], status, find }) {
     const filter = { path, modelIds: BULK_EDIT_MODEL_IDS };
     if (find) filter.fullText = { text: find, queryMode: 'EDGES' };
     if (tags.length) filter.tags = tags;
-    if (status) filter.status = [status];
+    if (status?.length) filter.status = Array.isArray(status) ? status : [status];
     return { sort: DEFAULT_SORT, filter };
 }
 
@@ -138,6 +146,8 @@ module.exports = {
     matchesText,
     extractLocale,
     SCOPE_FIELDS,
+    VALID_SEARCH_SCOPES,
+    invalidSearchScopes,
     normalizeSearchIn,
     normalizeLocales,
     findMatchesInScope,

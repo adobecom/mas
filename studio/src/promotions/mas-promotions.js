@@ -219,8 +219,10 @@ class MasPromotions extends LitElement {
                             >
                                 <sp-table-cell>${promo.title}</sp-table-cell>
                                 <sp-table-cell>
-                                    ${promo.timeline}
-                                    ${promo.isEvergreen ? html`<span class="evergreen-badge">Evergreen</span>` : nothing}
+                                    <span class="timeline-cell">
+                                        ${promo.timeline}
+                                        ${promo.isEvergreen ? html`<span class="evergreen-badge">Evergreen</span>` : nothing}
+                                    </span>
                                 </sp-table-cell>
                                 ${renderPromotionStatusCell(promo.promotionStatus)}
                                 <sp-table-cell>${promo.createdBy}</sp-table-cell>

@@ -64,15 +64,20 @@ export const styles = css`
         justify-content: center;
     }
 
+    .timeline-cell {
+        display: grid;
+        grid-template-columns: 140px auto;
+        align-items: center;
+        gap: var(--spectrum-spacing-100, 8px);
+    }
+
     .evergreen-badge {
-        display: inline-block;
-        margin-left: var(--spectrum-spacing-100, 8px);
-        vertical-align: middle;
         background-color: #ffeccf;
         color: #000000;
         font-weight: 500;
         padding: 2px 8px;
         border-radius: 4px;
+        white-space: nowrap;
     }
 
     .duplicating-overlay {

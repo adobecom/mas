@@ -655,6 +655,37 @@ describe('MasPromotionsItemsTable', () => {
         expect(navStub.firstCall.args[0]).to.equal('nav-id');
     });
 
+    it('sets Store.search.path to fragment surface on Edit fragment click', async () => {
+        const router = (await import('../../src/router.js')).default;
+        sandbox.stub(router, 'navigateToFragmentEditor').resolves();
+        const searchSetSpy = sandbox.stub(Store.search, 'set');
+
+        const el = await fixture(html`<mas-promotions-items-table .type=${TABLE_TYPE.CARDS}></mas-promotions-items-table>`);
+        el.viewOnlyFragments = [
+            {
+                path: '/content/dam/mas/nala/en_US/my-card',
+                id: 'nala-id',
+                title: 'Nala Card',
+                studioPath: '/content/dam/mas/nala/en_US/my-card',
+                status: 'PUBLISHED',
+                model: { path: CARD_MODEL_PATH },
+                fields: [],
+                tags: [],
+            },
+        ];
+        await el.updateComplete;
+        const editItem = Array.from(el.shadowRoot.querySelectorAll('sp-menu-item')).find((item) =>
+            item.textContent.trim().includes('Edit fragment'),
+        );
+        editItem.dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
+        await new Promise((r) => setTimeout(r, 10));
+        const pathCall = searchSetSpy.getCalls().find((call) => {
+            const result = call.args[0]({ path: 'sandbox' });
+            return result?.path === 'nala';
+        });
+        expect(pathCall, 'Store.search.set should be called with path=nala').to.not.be.undefined;
+    });
+
     it('opens default fragment editor on Edit fragment even when a promo variation exists', async () => {
         const router = (await import('../../src/router.js')).default;
         const navStub = sandbox.stub(router, 'navigateToFragmentEditor').resolves();
@@ -846,6 +877,61 @@ describe('MasPromotionsItemsTable', () => {
         el.remove();
         Store.promotions.inEdit.set(null);
         Store.promotions.selectedCards.set([]);
+    });
+
+    it('sets Store.search.path to promo variation surface on View promo variation click', async () => {
+        const router = (await import('../../src/router.js')).default;
+        sandbox.stub(router, 'navigateToFragmentEditor').resolves();
+        const searchSetSpy = sandbox.stub(Store.search, 'set');
+        const defaultPath = '/content/dam/mas/nala/en_US/my-card';
+        const promoVariationPath = '/content/dam/mas/nala/en_US/promotions/summer-sale/my-card';
+        const promotion = new Fragment({
+            path: '/content/dam/mas/promotions/summer-sale',
+            fields: [{ name: 'tags', values: ['mas:promotion/summer-sale'], multiple: true }],
+        });
+        Store.promotions.inEdit.set(new FragmentStore(promotion));
+
+        const el = await fixture(html`<mas-promotions-items-table .type=${TABLE_TYPE.CARDS}></mas-promotions-items-table>`);
+        el.existingPromoVariationDefaultPaths = new Set([defaultPath]);
+        el.viewOnlyFragments = [
+            {
+                path: defaultPath,
+                id: 'nala-card-id',
+                title: 'Nala Card',
+                studioPath: defaultPath,
+                status: 'PUBLISHED',
+                model: { path: CARD_MODEL_PATH },
+                fields: [],
+                tags: [],
+            },
+        ];
+        sandbox.stub(el, 'repository').get(() => ({
+            aem: {
+                sites: {
+                    cf: {
+                        fragments: {
+                            getByPath: sandbox.stub().withArgs(promoVariationPath).resolves({
+                                id: 'promo-var-nala-id',
+                                path: promoVariationPath,
+                            }),
+                        },
+                    },
+                },
+            },
+        }));
+        await el.updateComplete;
+
+        const viewItem = Array.from(el.shadowRoot.querySelectorAll('sp-menu-item')).find((item) =>
+            item.textContent.trim().includes('View promo variation'),
+        );
+        viewItem.dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
+        await new Promise((r) => setTimeout(r, 10));
+        const pathCall = searchSetSpy.getCalls().find((call) => {
+            const result = call.args[0]({ path: 'sandbox' });
+            return result?.path === 'nala';
+        });
+        expect(pathCall, 'Store.search.set should be called with path=nala').to.not.be.undefined;
+        Store.promotions.inEdit.set(null);
     });
 
     it('shows a missing-variation message when View promo variation is clicked but variation was removed', async () => {

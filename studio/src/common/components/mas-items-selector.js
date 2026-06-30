@@ -3,7 +3,7 @@ import { repeat } from 'lit/directives/repeat.js';
 import ReactiveController from '../../reactivity/reactive-controller.js';
 import { getItemsSelectionStore } from '../items-selection-store.js';
 import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, TABLE_TYPE } from '../../constants.js';
-import { toggleSidebarIcon, uploadIcon, noItemsSelectedIcon } from '../../icons.js';
+import { toggleSidebarIcon, uploadIcon } from '../../icons.js';
 import { Fragment } from '../../aem/fragment.js';
 import { renderFragmentStatusCell, getStudioFragmentDisplayPath } from '../utils/render-utils.js';
 import './mas-select-items-table.js';
@@ -270,11 +270,14 @@ class MasItemsSelector extends LitElement {
     }
 
     #toggleImportMode() {
-        this.importMode = !this.importMode;
+        if (this.importMode) return;
+        this.importMode = true;
         this.importedUrls = [];
-        if (this.importMode) {
-            getItemsSelectionStore().showSelected.set(true);
-        }
+        getItemsSelectionStore().showSelected.set(true);
+    }
+
+    #handleSelectedItemRemoved({ detail: { path } }) {
+        this.importedUrls = this.importedUrls.filter((i) => i.path !== path);
     }
 
     #toggleShowSelected() {
@@ -426,8 +429,8 @@ class MasItemsSelector extends LitElement {
     }
 
     #renderImportPanel() {
-        const hasItems = this.selectedCount > 0;
         const count = this.importedUrls.length;
+        const isLoading = this.importedUrls.some((i) => i.status === 'loading');
         return html`
             <div class="import-url-view">
                 <h3 class="import-url-heading">Import from URL</h3>
@@ -497,18 +500,13 @@ class MasItemsSelector extends LitElement {
                         </div>
                     </div>
                     ${this.showSelected
-                        ? html`
-                              <div class="import-selected-panel">
-                                  ${hasItems
-                                      ? html`<mas-selected-items .getDisplayName=${this.getDisplayName}></mas-selected-items>`
-                                      : html`
-                                            <div class="import-empty-state">
-                                                <sp-icon label="No items selected">${noItemsSelectedIcon}</sp-icon>
-                                                <p>No items selected yet</p>
-                                            </div>
-                                        `}
-                              </div>
-                          `
+                        ? html`<div class="import-selected-panel">
+                              <mas-selected-items
+                                  .getDisplayName=${this.getDisplayName}
+                                  .loading=${isLoading}
+                                  @selected-item-removed=${this.#handleSelectedItemRemoved}
+                              ></mas-selected-items>
+                          </div>`
                         : nothing}
                 </div>
                 <sp-toast timeout="6000" @close=${(event) => event.stopPropagation()}></sp-toast>

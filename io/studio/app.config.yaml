@@ -134,4 +134,4 @@ application:
                         limits:
                             timeout: 3600000
                         annotations:
-                            require-adobe-auth: true
+                            require-adobe-auth: false

@@ -14,6 +14,8 @@ export default class EditorPage {
 
         this.badge = this.panel.locator('sp-field-group#badge rte-field#card-badge div.ProseMirror');
         this.badgeFieldGroup = this.panel.locator('sp-field-group#badge');
+        this.badgeIconField = this.panel.locator('sp-field-group#badgeIcon mas-mnemonic-field');
+        this.badgeIconMenu = this.panel.locator('sp-field-group#badgeIcon sp-action-menu');
         this.badgeBorderColor = this.panel.locator('sp-picker#badgeBorderColor');
         this.badgeBorderColorFieldGroup = this.panel.locator('sp-field-group#badgeBorderColor');
         this.badgeColor = this.panel.locator('sp-picker#badgeColor');
@@ -36,6 +38,8 @@ export default class EditorPage {
         this.mnemonicAddVisual = this.panel.locator('#mnemonics sp-icon-add');
         this.mnemonicEditMenu = page.locator('mas-multifield#mnemonics sp-action-menu').first();
         this.mnemonicEditButton = page.locator('sp-menu sp-menu-item:has-text("Edit")');
+        this.mnemonicBadgeEditButton = page.locator('sp-field-group#badgeIcon sp-menu sp-menu-item:has-text("Edit")');
+        this.mnemonicBadgeDeleteButton = page.locator('sp-field-group#badgeIcon sp-menu sp-menu-item:has-text("Delete")');
         this.mnemonicDeleteButton = page.locator('sp-menu sp-menu-item:has-text("Delete")');
         this.mnemonicModal = page.locator('mas-mnemonic-modal[open]');
         this.mnemonicProductTab = this.mnemonicModal.locator('sp-tab[value="product-icon"]');
@@ -90,6 +94,7 @@ export default class EditorPage {
         this.whatsIncludedDeleteButton = page.locator('sp-menu sp-menu-item:has-text("Delete")');
         this.whatsIncludedLabel = this.panel.locator('#whatsIncludedLabel input');
         this.whatsIncludedAddedIcon = this.panel.locator('#whatsIncluded mas-included-field');
+        this.whatsIncludedAddBullet = this.panel.locator('#whatsIncluded sp-action-button:has-text("Add bullet")');
 
         // Discard dialog
         // this.closeEditor = this.panel.locator('div[id="editor-toolbar"] >> sp-action-button[value="close"]');
@@ -189,6 +194,13 @@ export default class EditorPage {
         await expect(iconItem).toBeVisible();
         await iconItem.click();
     }
+
+    async selectProductIconByIndex(idx) {
+        await this.mnemonicProductTab.click();
+        const iconItem = this.page.locator(`mas-mnemonic-modal[open] .icon-item:nth-child(${idx})`);
+        await expect(iconItem).toBeVisible();
+        await iconItem.click();
+    }    
 
     async setMnemonicURL(url, alt = '', link = '') {
         await this.mnemonicUrlTab.click();

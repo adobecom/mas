@@ -200,7 +200,7 @@ export default class EditorPage {
         const iconItem = this.page.locator(`mas-mnemonic-modal[open] .icon-item:nth-child(${idx})`);
         await expect(iconItem).toBeVisible();
         await iconItem.click();
-    }    
+    }
 
     async setMnemonicURL(url, alt = '', link = '') {
         await this.mnemonicUrlTab.click();

@@ -35,8 +35,10 @@ import {
     SURFACES,
     BULK_PUBLISH_PROJECTS_FOLDER,
     COMPARE_CHART_FIELD,
+    DICTIONARY_ENTRY_MODEL_ID,
     TAG_COMPARE_CHART,
     TAG_MERCH_CARD_COLLECTION,
+    TAG_STATUS_DRAFT,
 } from './constants.js';
 import { applyFragmentListFilters } from './fragments/fragment-list-filters.js';
 import * as promotionsRepository from './promotions/promotions-repository.js';
@@ -60,6 +62,7 @@ import {
     VARIATION_SEARCH_TABS,
 } from './utils/variation-search.js';
 import { Promotion } from './aem/promotion.js';
+import { Placeholder } from './aem/placeholder.js';
 
 let fragmentCache;
 
@@ -1479,10 +1482,23 @@ export class MasRepository extends LitElement {
      * @param {boolean} withToast Whether or not to display toasts
      * @returns {Promise<boolean>} Whether or not it was successful
      */
-    async publishFragment(fragment, publishReferencesWithStatus = ['DRAFT', 'UNPUBLISHED'], withToast = true) {
+    async publishFragment(fragment, options = {}, withToast = true) {
+        const { selectedRefIds = null, allSelected = false } = options;
         try {
             this.operation.set(OPERATIONS.PUBLISH);
-            await this.aem.sites.cf.fragments.publish(fragment, publishReferencesWithStatus);
+
+            if (allSelected) {
+                await this.aem.sites.cf.fragments.publish(fragment, ['DRAFT', 'MODIFIED', 'UNPUBLISHED']);
+                const { variations = [], cards = [] } = fragment.getPublishableReferences?.() ?? {};
+                const allRefIds = [...variations, ...cards].map((r) => r.id);
+                if (allRefIds.length) await this.#publishRefIds(allRefIds);
+            } else {
+                await this.aem.sites.cf.fragments.publish(fragment, []);
+                if (selectedRefIds?.length) {
+                    await this.#publishRefIds(selectedRefIds);
+                }
+            }
+
             if (withToast) {
                 const message =
                     fragment instanceof Promotion ? 'Project successfully published.' : 'Fragment successfully published.';
@@ -1495,6 +1511,21 @@ export class MasRepository extends LitElement {
             return false;
         } finally {
             this.operation.set(null);
+        }
+    }
+
+    async #publishRefIds(refIds) {
+        const CHUNK_SIZE = 10;
+        const valid = [];
+        for (let i = 0; i < refIds.length; i += CHUNK_SIZE) {
+            const chunk = refIds.slice(i, i + CHUNK_SIZE);
+            const fetched = await Promise.all(chunk.map((id) => this.aem.sites.cf.fragments.getWithEtag(id).catch(() => null)));
+            valid.push(...fetched.filter(Boolean));
+        }
+        if (valid.length === 0) throw new Error('Failed to fetch any ref for publishing');
+        for (let i = 0; i < valid.length; i += CHUNK_SIZE) {
+            const chunk = valid.slice(i, i + CHUNK_SIZE);
+            await Promise.all(chunk.map((ref) => this.aem.sites.cf.fragments.publish(ref, [])));
         }
     }
 
@@ -1526,7 +1557,7 @@ export class MasRepository extends LitElement {
      * @returns {Promise<boolean>} Whether or not it was successful
      */
     async bulkPublishFragments(fragmentIds, options = {}) {
-        const { publishReferencesWithStatus = ['DRAFT', 'UNPUBLISHED'], withToast = true } = options;
+        const { selectedRefIds = null, allSelected = false, withToast = true } = options;
 
         if (!fragmentIds || fragmentIds.length === 0) {
             if (withToast) showToast('No fragments selected to publish.', 'negative');
@@ -1537,7 +1568,6 @@ export class MasRepository extends LitElement {
             this.operation.set(OPERATIONS.PUBLISH);
             if (withToast) showToast(`Publishing ${fragmentIds.length} fragment(s)...`);
 
-            // Get fragment objects from the store
             const fragments = fragmentIds
                 .map((id) => {
                     const store = Store.fragments.list.data.get().find((fragmentStore) => fragmentStore.get()?.id === id);
@@ -1550,8 +1580,14 @@ export class MasRepository extends LitElement {
                 return false;
             }
 
-            // Publish all fragments in a single request
-            await this.aem.sites.cf.fragments.publishFragments(fragments, publishReferencesWithStatus);
+            if (allSelected) {
+                await this.aem.sites.cf.fragments.publishFragments(fragments, ['DRAFT', 'MODIFIED', 'UNPUBLISHED']);
+            } else {
+                await this.aem.sites.cf.fragments.publishFragments(fragments, []);
+                if (selectedRefIds?.length) {
+                    await this.#publishRefIds(selectedRefIds);
+                }
+            }
 
             // Refresh all published fragments
             const refreshPromises = fragmentIds.map((id) => {
@@ -2149,6 +2185,157 @@ export class MasRepository extends LitElement {
         }
 
         return createdFragment;
+    }
+
+    async createPlaceholder(placeholder) {
+        try {
+            const folderPath = this.search.value.path;
+            const locale = this.filters.value.locale;
+            if (!folderPath || !locale) return false;
+
+            const dictionaryPath = this.getDictionaryPath();
+
+            const typeMap = {
+                richTextValue: 'long-text',
+                locReady: 'boolean',
+            };
+
+            const fields = {
+                key: placeholder.key,
+                value: placeholder.isRichText ? '' : placeholder.value,
+                richTextValue: placeholder.isRichText ? placeholder.value : '',
+                locReady: true,
+            };
+
+            const payload = {
+                name: placeholder.key,
+                parentPath: dictionaryPath,
+                modelId: DICTIONARY_ENTRY_MODEL_ID,
+                title: placeholder.key,
+                description: `Placeholder for ${placeholder.key}`,
+                fields: Object.keys(fields).map((key) => ({
+                    name: key,
+                    type: typeMap[key] || 'text',
+                    values: [fields[key]],
+                })),
+            };
+
+            const fragment = await this.createFragment(payload, false);
+            const newPlaceholder = new Placeholder(fragment);
+            newPlaceholder.updateField('tags', [TAG_STATUS_DRAFT]);
+            await this.aem.saveTags(newPlaceholder);
+
+            const addedToIndex = await this.addToIndexFragment(newPlaceholder);
+            if (!addedToIndex) throw new Error('Failed to update index fragment with new placeholder reference');
+
+            Store.placeholders.list.data.set((prev) => [...prev, new FragmentStore(newPlaceholder)]);
+
+            return true;
+        } catch (error) {
+            this.processError(error, 'Failed to create');
+            return false;
+        }
+    }
+
+    /**
+     * @param {Fragment} fragment
+     * @returns {{ parentPath: string, fragmentPath: string }}
+     */
+    getParentPath(fragment) {
+        const parentPath = fragment.path.substring(0, fragment.path.lastIndexOf('/'));
+        if (!parentPath) throw new Error(`Failed to determine dictionary path from fragment path: ${fragment.path}`);
+        return parentPath;
+    }
+
+    /**
+     * @param {string} path
+     * @returns {Promise<Fragment | null>}
+     */
+    async getIndexFragment(path) {
+        try {
+            const indexFragment = await this.aem.sites.cf.fragments.getByPath(path);
+            return new Fragment(indexFragment);
+        } catch (error) {
+            return null;
+        }
+    }
+
+    async addToIndexFragment(fragment) {
+        const parentPath = this.getParentPath(fragment);
+
+        const indexPath = `${parentPath}/index`;
+
+        const indexFragment = await this.getIndexFragment(indexPath);
+        if (!indexFragment) {
+            console.error(`Index fragment does not exist at ${indexPath}.`);
+            return false;
+        }
+
+        try {
+            const entriesField = indexFragment.getField('entries');
+            if (!entriesField) {
+                console.error(`Index fragment at ${indexPath} is missing entries field`);
+                return false;
+            }
+
+            const shouldUpdate = !entriesField.values.includes(fragment.path);
+
+            let updatedIndexFragment = indexFragment;
+            if (shouldUpdate) {
+                indexFragment.updateField('entries', [...entriesField.values, fragment.path]);
+                updatedIndexFragment = await this.aem.sites.cf.fragments.save(indexFragment);
+            } else {
+                console.info(`Fragment already added to index: ${fragment.path}`);
+            }
+
+            await this.publishFragment(updatedIndexFragment, {}, false);
+
+            return true;
+        } catch (error) {
+            this.processError(error, 'Failed to add fragment to index.');
+            return false;
+        }
+    }
+
+    async removeFromIndexFragment(fragments) {
+        const fragmentsToRemove = !Array.isArray(fragments) ? [fragments] : fragments;
+
+        const parentPath = this.getParentPath(fragmentsToRemove[0]);
+
+        const indexPath = `${parentPath}/index`;
+
+        const indexFragment = await this.getIndexFragment(indexPath);
+        if (!indexFragment) return false;
+
+        try {
+            const entries = indexFragment.getField('entries');
+            let shouldUpdate = false;
+            for (const fragment of fragmentsToRemove) {
+                if (entries.values.includes(fragment.path)) {
+                    shouldUpdate = true;
+                    break;
+                }
+            }
+
+            let updatedIndexFragment = indexFragment;
+            if (shouldUpdate) {
+                const fragmentPaths = fragmentsToRemove.map((fragment) => fragment.path);
+                indexFragment.updateField(
+                    'entries',
+                    entries.values.filter((entry) => !fragmentPaths.includes(entry)),
+                );
+                updatedIndexFragment = await this.aem.sites.cf.fragments.save(indexFragment);
+            } else {
+                console.info(`Fragment(s) already added to index.`);
+            }
+
+            await this.publishFragment(updatedIndexFragment, {}, false);
+
+            return true;
+        } catch (error) {
+            this.processError(error, 'Failed to add fragment(s) to index.');
+            return false;
+        }
     }
 
     /**

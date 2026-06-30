@@ -333,7 +333,9 @@ async function fetchOdin(
         }
         const errorMessage = errorBody && Object.keys(errorBody).length > 0 ? ` - ${JSON.stringify(errorBody)}` : '';
         logger.error(`${method} ${URI}: ${response.status} (${response.statusText}${errorMessage})`);
-        throw new Error(`${method} ${URI} failed with status ${response.status}: ${response.statusText}`);
+        const error = new Error(`${method} ${URI} failed with status ${response.status}: ${response.statusText}`);
+        error.status = response.status;
+        throw error;
     }
     const duration = (performance.now() - startTime).toFixed(2);
     logger.info(

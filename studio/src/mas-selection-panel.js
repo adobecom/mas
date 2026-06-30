@@ -91,7 +91,7 @@ class MasSelectionPanel extends LitElement {
         this.onCopyToFolder(fragment);
     }
 
-    async handlePublish(event) {
+    async handlePublish() {
         if (!this.repository) {
             console.error('Repository not found');
             return;
@@ -100,7 +100,6 @@ class MasSelectionPanel extends LitElement {
         const selection = this.selection;
         if (!selection || selection.length === 0) return;
 
-        // Extract fragment IDs from selection (selection can be IDs or fragment objects)
         const fragmentIds = selection
             .map((item) => {
                 if (typeof item === 'string') return item;
@@ -112,9 +111,41 @@ class MasSelectionPanel extends LitElement {
 
         if (fragmentIds.length === 0) return;
 
-        const success = await this.repository.bulkPublishFragments(fragmentIds);
+        // Collect publishable references from all selected fragments (deduplicated)
+        const allVariations = [];
+        const allCards = [];
+        const seen = new Set();
+        for (const id of fragmentIds) {
+            const store = Store.fragments.list.data.get().find((s) => s.get()?.id === id);
+            const fragment = store?.get();
+            if (!fragment) continue;
+            const refs = fragment.getPublishableReferences?.() ?? { variations: [], cards: [] };
+            for (const ref of refs.variations) {
+                if (!seen.has(ref.id)) {
+                    seen.add(ref.id);
+                    allVariations.push(ref);
+                }
+            }
+            for (const ref of refs.cards) {
+                if (!seen.has(ref.id)) {
+                    seen.add(ref.id);
+                    allCards.push(ref);
+                }
+            }
+        }
+
+        let selectedRefIds = [];
+        let allSelected = false;
+        if (allVariations.length || allCards.length) {
+            const { MasPublishDialog } = await import('./publish/mas-publish-dialog.js');
+            const result = await MasPublishDialog.show({ variations: allVariations, cards: allCards });
+            if (!result.confirmed) return;
+            selectedRefIds = result.selectedIds;
+            allSelected = result.allSelected;
+        }
+
+        const success = await this.repository.bulkPublishFragments(fragmentIds, { selectedRefIds, allSelected });
         if (success) {
-            // Clear selection after successful publish
             this.selectionStore.set([]);
         }
     }

@@ -209,22 +209,25 @@ class MasPromotions extends LitElement {
             <sp-table emphasized scroller @change=${this.updateTableSelection} class="promotions-table">
                 ${this.renderTableHeader(columns)}
                 <sp-table-body>
-                    ${repeat(
-                        filteredPromotions,
-                        (promotion) => html`
+                    ${repeat(filteredPromotions, (promotion) => {
+                        const promo = promotion.get();
+                        return html`
                             <sp-table-row
-                                value=${promotion.get().path}
-                                data-id=${promotion.get().id}
+                                value=${promo.path}
+                                data-id=${promo.id}
                                 @dblclick=${(e) => this.#handlePromotionRowDblClick(e, promotion)}
                             >
-                                <sp-table-cell>${promotion.get().title}</sp-table-cell>
-                                <sp-table-cell>${promotion.get().timeline}</sp-table-cell>
-                                ${renderPromotionStatusCell(promotion.get().promotionStatus)}
-                                <sp-table-cell>${promotion.get().createdBy}</sp-table-cell>
+                                <sp-table-cell>${promo.title}</sp-table-cell>
+                                <sp-table-cell>
+                                    ${promo.timeline}
+                                    ${promo.isEvergreen ? html`<span class="evergreen-badge">Evergreen</span>` : nothing}
+                                </sp-table-cell>
+                                ${renderPromotionStatusCell(promo.promotionStatus)}
+                                <sp-table-cell>${promo.createdBy}</sp-table-cell>
                                 ${this.renderActionCell(promotion)}
                             </sp-table-row>
-                        `,
-                    )}
+                        `;
+                    })}
                 </sp-table-body>
             </sp-table>
         `;

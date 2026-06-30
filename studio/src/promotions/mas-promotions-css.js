@@ -64,6 +64,17 @@ export const styles = css`
         justify-content: center;
     }
 
+    .evergreen-badge {
+        display: inline-block;
+        margin-left: var(--spectrum-spacing-100, 8px);
+        vertical-align: middle;
+        background-color: #ffeccf;
+        color: #000000;
+        font-weight: 500;
+        padding: 2px 8px;
+        border-radius: 4px;
+    }
+
     .duplicating-overlay {
         position: absolute;
         inset: 0;

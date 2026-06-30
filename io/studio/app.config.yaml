@@ -144,3 +144,13 @@ application:
                             timeout: 60000
                         annotations:
                             require-adobe-auth: false
+                    cleanup-variations:
+                        function: src/cleanup-variations/index.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        inputs:
+                            odinEndpoint: $ODIN_ENDPOINT
+                        limits:
+                            timeout: 3600000
+                        annotations:
+                            require-adobe-auth: false

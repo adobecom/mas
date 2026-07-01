@@ -623,22 +623,34 @@ describe('promotions', () => {
             fetchStub
                 .withArgs(hydrateUrl('seasonal-1'))
                 .returns(
-                    createResponse(200, makeHydratedProject({ fragmentId: 'f1', fragmentPath: '/content/dam/mas/acom/en_US/offers/a' })),
+                    createResponse(
+                        200,
+                        makeHydratedProject({ fragmentId: 'f1', fragmentPath: '/content/dam/mas/acom/en_US/offers/a' }),
+                    ),
                 );
             fetchStub
                 .withArgs(hydrateUrl('evergreen-1'))
                 .returns(
-                    createResponse(200, makeHydratedProject({ fragmentId: 'f2', fragmentPath: '/content/dam/mas/acom/en_US/offers/b' })),
+                    createResponse(
+                        200,
+                        makeHydratedProject({ fragmentId: 'f2', fragmentPath: '/content/dam/mas/acom/en_US/offers/b' }),
+                    ),
                 );
             fetchStub
                 .withArgs(hydrateUrl('seasonal-2'))
                 .returns(
-                    createResponse(200, makeHydratedProject({ fragmentId: 'f3', fragmentPath: '/content/dam/mas/acom/en_US/offers/c' })),
+                    createResponse(
+                        200,
+                        makeHydratedProject({ fragmentId: 'f3', fragmentPath: '/content/dam/mas/acom/en_US/offers/c' }),
+                    ),
                 );
             fetchStub
                 .withArgs(hydrateUrl('evergreen-2'))
                 .returns(
-                    createResponse(200, makeHydratedProject({ fragmentId: 'f4', fragmentPath: '/content/dam/mas/acom/en_US/offers/d' })),
+                    createResponse(
+                        200,
+                        makeHydratedProject({ fragmentId: 'f4', fragmentPath: '/content/dam/mas/acom/en_US/offers/d' }),
+                    ),
                 );
 
             const result = await promotionsTransformer.init(createContext());

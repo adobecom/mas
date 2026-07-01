@@ -5,6 +5,7 @@ import { MockState } from './mocks/MockState.js';
 import { CARD_MODEL_ID, COLLECTION_MODEL_ID } from '../../src/fragment/utils/common.js';
 import { deepMerge, transformer as customize } from '../../src/fragment/transformers/customize.js';
 import { transformer as defaultLanguage } from '../../src/fragment/transformers/defaultLanguage.js';
+import { EXPLICIT_EMPTY_SENTINEL } from '../../src/fragment/utils/explicit-empty.js';
 import FRAGMENT_RESPONSE_FR from './mocks/fragment-fr.json' with { type: 'json' };
 import FRAGMENT_COLL_RESPONSE_US from './mocks/collection-customization.json' with { type: 'json' };
 
@@ -1171,6 +1172,40 @@ describe('customize collections', function () {
 
         expect(result.status).to.equal(200);
         expect(result.body.fields.badge).to.equal('default badge');
+    });
+
+    it('should normalize explicit_empty sentinel to empty string after regional variation merge', async function () {
+        const regionVariationId = 'badge-clear-en-kw';
+        const body = {
+            path: '/content/dam/mas/sandbox/en_US/badge-sentinel-test',
+            id: 'badge-sentinel-test',
+            fields: {
+                badge: 'Sale',
+                variations: [regionVariationId],
+            },
+            references: {
+                [regionVariationId]: {
+                    type: 'content-fragment',
+                    value: {
+                        path: '/content/dam/mas/sandbox/en_KW/badge-sentinel-test',
+                        id: regionVariationId,
+                        fields: { badge: EXPLICIT_EMPTY_SENTINEL },
+                    },
+                },
+            },
+            referencesTree: [],
+        };
+
+        const result = await process({
+            ...FAKE_CONTEXT,
+            fragmentPath: 'badge-sentinel-test',
+            locale: 'en_KW',
+            parsedLocale: 'en_US',
+            body,
+        });
+
+        expect(result.status).to.equal(200);
+        expect(result.body.fields.badge).to.equal('');
     });
 });
 

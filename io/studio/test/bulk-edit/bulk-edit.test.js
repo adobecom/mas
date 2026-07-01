@@ -240,6 +240,14 @@ describe('bulk-edit: handlePost', () => {
         const res = await mod.handlePost({ type: 'find', surface: 'sandbox' });
         expect(res.error.statusCode).to.equal(400);
     });
+    it('400s an invalid searchIn scope without persisting a job', async () => {
+        const { mod, invokeAsyncAction, writeJob } = load();
+        const res = await mod.handlePost({ ...findParams, searchIn: 'cardTitle' });
+        expect(res.error.statusCode).to.equal(400);
+        expect(res.error.body.error).to.include('cardTitle');
+        expect(writeJob.called).to.equal(false);
+        expect(invokeAsyncAction.called).to.equal(false);
+    });
     it('401s a disallowed caller', async () => {
         const { mod } = load({ allowed: false });
         const res = await mod.handlePost(findParams);

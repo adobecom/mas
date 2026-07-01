@@ -192,6 +192,30 @@ describe('bulk-edit/search: buildSearchQuery', () => {
     it('omits fullText when find is empty', () => {
         expect(svc.buildSearchQuery({ path: '/content/dam/mas/sandbox', find: '' }).filter.fullText).to.equal(undefined);
     });
+    it('does not double-wrap an array status', () => {
+        const q = svc.buildSearchQuery({ surface: 'sandbox', find: 'x', status: ['PUBLISHED'] });
+        expect(q.filter.status).to.deep.equal(['PUBLISHED']);
+    });
+    it('omits status when given an empty array', () => {
+        expect(svc.buildSearchQuery({ surface: 'sandbox', find: 'x', status: [] }).filter.status).to.equal(undefined);
+    });
+});
+
+describe('bulk-edit/search: invalidSearchScopes', () => {
+    const { invalidSearchScopes, VALID_SEARCH_SCOPES } = load();
+    it('exposes the logical scope keys plus wildcard', () => {
+        expect(VALID_SEARCH_SCOPES).to.include.members(['productDescription', 'fragmentTitle', '*']);
+    });
+    it('returns no invalid scopes for valid keys or wildcard', () => {
+        expect(invalidSearchScopes('*')).to.deep.equal([]);
+        expect(invalidSearchScopes('productDescription')).to.deep.equal([]);
+        expect(invalidSearchScopes(['fragmentTitle', 'prices'])).to.deep.equal([]);
+        expect(invalidSearchScopes(null)).to.deep.equal([]);
+    });
+    it('flags an Odin field name that is not a logical scope key', () => {
+        expect(invalidSearchScopes('cardTitle')).to.deep.equal(['cardTitle']);
+        expect(invalidSearchScopes(['prices', 'cardTitle'])).to.deep.equal(['cardTitle']);
+    });
 });
 
 describe('bulk-edit/search: normalizeLocales', () => {

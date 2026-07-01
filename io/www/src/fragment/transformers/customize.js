@@ -243,11 +243,15 @@ function applyPromoCode(fragment, promoMap, substituteMap, context) {
     const fragOsi = fragment.fields?.osi;
     if (!fragOsi) return;
     const osis = Array.isArray(fragOsi) ? fragOsi : [fragOsi];
-    const effectiveOsis = osis.map((o) => substituteMap?.[o] ?? o);
     let promoCode = promoMap['*'];
-    for (const osi of effectiveOsis) {
+    for (const osi of osis) {
         if (promoMap[osi]) {
             promoCode = promoMap[osi];
+            break;
+        }
+        const substituted = substituteMap?.[osi];
+        if (substituted && promoMap[substituted]) {
+            promoCode = promoMap[substituted];
             break;
         }
     }

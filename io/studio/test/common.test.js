@@ -79,6 +79,23 @@ describe('common.js - fetchOdin', () => {
             expect(result).to.equal(mockResponse);
         });
 
+        it('should override the User-Agent header when userAgent is provided', async () => {
+            const mockResponse = {
+                ok: true,
+                status: 200,
+                statusText: 'OK',
+                headers: { get: sinon.stub().returns(null) },
+            };
+            fetchStub.resolves(mockResponse);
+
+            await common.fetchOdin(odinEndpoint, '/api/test', authToken, { userAgent: 'mas-bulk-edit' });
+
+            expect(fetchStub).to.have.been.calledWith(
+                'https://test-odin.example.com/api/test',
+                sinon.match({ headers: { 'User-Agent': 'mas-bulk-edit' } }),
+            );
+        });
+
         it('should make a POST request with body and Content-Type header', async () => {
             const mockResponse = {
                 ok: true,

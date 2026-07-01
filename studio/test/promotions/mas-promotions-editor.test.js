@@ -59,17 +59,24 @@ describe('MasPromotionsEditor', () => {
     let originalSelectedCards;
     let originalSelectedOffers;
     let originalSelectedCollections;
+    let originalProfile;
+    let originalUsers;
     beforeEach(() => {
         sandbox = sinon.createSandbox();
         originalInEdit = Store.promotions.inEdit.get();
         originalSelectedCards = [...Store.promotions.selectedCards.value];
         originalSelectedOffers = [...Store.promotions.selectedOffers.value];
         originalSelectedCollections = [...Store.promotions.selectedCollections.value];
+        originalProfile = structuredClone(Store.profile.get());
+        originalUsers = structuredClone(Store.users.get());
         Store.promotions.inEdit.set(null);
         Store.promotions.selectedCards.set([]);
         Store.promotions.selectedOffers.set([]);
         Store.promotions.selectedCollections.set([]);
         Store.promotions.promotionId.set(null);
+        // Default to a promotions editor so mutating UI renders; viewer cases override this.
+        Store.profile.set({ email: 'editor@adobe.com' });
+        Store.users.set([{ userPrincipalName: 'editor@adobe.com', groups: ['GRP-ODIN-MAS-PROMO-EDITORS'] }]);
         setItemsSelectionStore(Store.promotions);
     });
 
@@ -86,6 +93,8 @@ describe('MasPromotionsEditor', () => {
         Store.promotions.selectedOffers.set(originalSelectedOffers);
         Store.promotions.selectedCollections.set(originalSelectedCollections);
         Store.promotions.promotionId.set(null);
+        Store.profile.set(originalProfile);
+        Store.users.set(originalUsers);
         setItemsSelectionStore(null);
     });
 
@@ -502,6 +511,29 @@ describe('MasPromotionsEditor', () => {
             ]);
             expect(isPromotionQuickActionDisabled(el, 'Save')).to.be.true;
             expect(isPromotionQuickActionDisabled(el, 'Unpublish')).to.be.true;
+        });
+
+        it('disables every quick action for a non-editor (view-only)', async () => {
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            Store.profile.set({ email: 'viewer@adobe.com' });
+            Store.users.set([{ userPrincipalName: 'viewer@adobe.com', groups: ['GRP-ODIN-MAS-ACOM-POWERUSERS'] }]);
+            Store.promotions.inEdit.set(
+                new FragmentStore(
+                    makePromotion({
+                        id: 'promo-view',
+                        title: 'View promo',
+                        startDate: '2026-01-01T00:00:00.000Z',
+                        endDate: '2027-07-20T23:59:59.000Z',
+                        status: 'MODIFIED',
+                    }),
+                ),
+            );
+            const el = await mountEditor();
+            el.isNewPromotion = false;
+            await el.updateComplete;
+            for (const title of getPromotionQuickActionTitles(el)) {
+                expect(isPromotionQuickActionDisabled(el, title), title).to.be.true;
+            }
         });
 
         it('shows Publish and Unpublish when promotion is modified', async () => {

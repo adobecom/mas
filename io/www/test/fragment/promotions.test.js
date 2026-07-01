@@ -663,6 +663,47 @@ describe('promotions', () => {
                 'evergreen-2',
             ]);
         });
+
+        it('does not reorder folder order when all matched projects are evergreen', async () => {
+            const evergreen1 = makeProject({
+                id: 'evergreen-1',
+                path: '/content/dam/mas/promotions/evergreen-1',
+                surfaces: ['acom'],
+                geos: [],
+                startDate: START,
+                endDate: null,
+                tags: ['mas:promotion/evergreen-1'],
+            });
+            const evergreen2 = makeProject({
+                id: 'evergreen-2',
+                path: '/content/dam/mas/promotions/evergreen-2',
+                surfaces: ['acom'],
+                geos: [],
+                startDate: START,
+                endDate: null,
+                tags: ['mas:promotion/evergreen-2'],
+            });
+            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [evergreen1, evergreen2] }));
+            fetchStub
+                .withArgs(hydrateUrl('evergreen-1'))
+                .returns(
+                    createResponse(
+                        200,
+                        makeHydratedProject({ fragmentId: 'f1', fragmentPath: '/content/dam/mas/acom/en_US/offers/a' }),
+                    ),
+                );
+            fetchStub
+                .withArgs(hydrateUrl('evergreen-2'))
+                .returns(
+                    createResponse(
+                        200,
+                        makeHydratedProject({ fragmentId: 'f2', fragmentPath: '/content/dam/mas/acom/en_US/offers/b' }),
+                    ),
+                );
+
+            const result = await promotionsTransformer.init(createContext());
+            expect(result.activeProjects.map((p) => p.id)).to.deep.equal(['evergreen-1', 'evergreen-2']);
+        });
     });
 
     describe('preview mode', () => {

@@ -4,11 +4,42 @@ on:
         types: [opened, synchronize, reopened]
         paths:
             - 'io/studio/**'
-            - '.github/workflows/io-studio-pr.yaml'
 
 jobs:
+    preflight:
+        runs-on: self-hosted
+        steps:
+            # Fail fast: confirm Vault is reachable and the PR author's path is seeded.
+            # KV v2 data read, status only — the response body (secret values) is sent to
+            # /dev/null, never stored or logged. Uses the data-read permission deploy needs.
+            - name: Check Vault path exists
+              env:
+                  VAULT_ADDR: https://vault-amer.adobe.net
+                  ROLE_ID: ${{ secrets.VAULT_ROLE_ID }}
+                  SECRET_ID: ${{ secrets.VAULT_SECRET_ID }}
+                  SECRET_PATH: merch-at-scale/aio-studio/${{ github.event.pull_request.user.login }}
+              run: |
+                  set -euo pipefail
+                  path=$(printf '%s' "$SECRET_PATH" | tr '[:upper:]' '[:lower:]')
+
+                  token=$(curl -sf --request POST \
+                      --data "{\"role_id\":\"$ROLE_ID\",\"secret_id\":\"$SECRET_ID\"}" \
+                      "$VAULT_ADDR/v1/auth/approle/login" \
+                      | sed -n 's/.*"client_token":"\([^"]*\)".*/\1/p')
+                  if [ -z "$token" ]; then echo "::error::Vault AppRole login failed"; exit 1; fi
+                  echo "::add-mask::$token"
+
+                  status=$(curl -s -o /dev/null -w '%{http_code}' \
+                      -H "X-Vault-Token: $token" \
+                      "$VAULT_ADDR/v1/cloudtech_wcms/data/$path")
+                  if [ "$status" != "200" ]; then
+                      echo "::error::No Vault secrets at 'cloudtech_wcms/$path' (HTTP $status). Seed your personal workspace secrets in Vault before opening this PR (see io/studio/README.md)."
+                      exit 1
+                  fi
+                  echo "Vault path 'cloudtech_wcms/$path' exists."
+
     tests:
-        runs-on: [self-hosted, hwong-vault-test]
+        runs-on: ubuntu-latest
         defaults:
             run:
                 working-directory: io/studio
@@ -16,25 +47,6 @@ jobs:
         steps:
             - name: Checkout repository
               uses: actions/checkout@v4
-
-            # TEMPORARY: Vault AppRole smoke test (MWPW-198877). Remove before rollout.
-            - name: Fetch dummy secret from Vault
-              uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc
-              with:
-                  url: https://vault-amer.adobe.net
-                  method: approle
-                  roleId: ${{ secrets.VAULT_ROLE_ID }}
-                  secretId: ${{ secrets.VAULT_SECRET_ID }}
-                  secrets: |
-                      cloudtech_wcms/data/merch-at-scale/aio-studio/honstar dummy | DUMMY
-
-            # TEMPORARY: log the fetched value. vault-action masks secrets in logs,
-            # so the space-trick below reveals it for this verification only.
-            - name: Log dummy secret
-              working-directory: ${{ github.workspace }}
-              run: |
-                  echo "DUMMY length: ${#DUMMY}"
-                  echo "DUMMY value: $(printf '%s' "$DUMMY" | sed 's/./& /g')"
 
             - name: Set up Node.js 22
               uses: actions/setup-node@v4
@@ -50,19 +62,16 @@ jobs:
               run: npm test
 
     deploy:
-        if: false # TEMPORARY: skipped during Vault smoke test (MWPW-198877)
-        needs: tests
+        needs: [preflight, tests]
         uses: ./.github/workflows/io-studio-deploy.yaml
         with:
             run_tests: false
-        secrets:
-            ENV: ${{ secrets[format('AIO_STUDIO_ENV_{0}', github.event.pull_request.user.login)] }}
-            AIO: ${{ secrets[format('AIO_STUDIO_AIO_{0}', github.event.pull_request.user.login)] }}
-            ODIN_BUCKET: ${{ secrets.ODIN_BUCKET_QA }}
+            vault-path: merch-at-scale/aio-studio/${{ github.event.pull_request.user.login }}
+            odin-bucket-path: merch-at-scale/aio-studio/qa
+        secrets: inherit
 
     test-deployed:
-        if: false # TEMPORARY: skipped during Vault smoke test (MWPW-198877)
         needs: deploy
         uses: ./.github/workflows/io-studio-tests.yaml
-        secrets:
-            workspace: ${{ secrets[format('AIO_STUDIO_NS_{0}', github.event.pull_request.user.login)] }}
+        with:
+            namespace: ${{ needs.deploy.outputs.namespace }}

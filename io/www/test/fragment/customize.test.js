@@ -2144,6 +2144,47 @@ describe('customize with multiple active promotion projects', function () {
         expect(result.body.variationId).to.equal('var-x');
         expect(result.body.fields.promoCode).to.equal('FROM-PROMO-PROJECT');
     });
+
+    it('seasonal promo are over evergreen promo targeting the same fragment', async function () {
+        const seasonalProject = {
+            id: 'proj-seasonal',
+            path: '/content/dam/mas/promotions/seasonal',
+            defaultVariations: {
+                'card-a': {
+                    id: 'var-seasonal',
+                    path: '/content/dam/mas/sandbox/en_US/promotions/seasonal/card-a',
+                    fields: { title: 'Seasonal variation' },
+                },
+            },
+            regionVariations: {},
+        };
+        const evergreenProject = {
+            id: 'proj-evergreen',
+            path: '/content/dam/mas/promotions/evergreen',
+            defaultVariations: {
+                'card-a': {
+                    id: 'var-evergreen',
+                    path: '/content/dam/mas/sandbox/en_US/promotions/evergreen/card-a',
+                    fields: { title: 'Evergreen variation' },
+                },
+            },
+            regionVariations: {},
+        };
+        const rootFragment = {
+            id: 'card-a',
+            path: '/content/dam/mas/sandbox/en_US/card-a',
+            fields: { osi: 'OSI-A', title: 'Original A' },
+            references: {},
+            referencesTree: [],
+        };
+        const result = await processWithPromoProjects({ ...FAKE_CONTEXT, fragmentPath: 'card-a', body: rootFragment }, [
+            { project: seasonalProject, promoMap: { 'OSI-A': 'SEASONAL-CODE' }, fragmentPaths: new Set(['card-a']) },
+            { project: evergreenProject, promoMap: { 'OSI-A': 'EVERGREEN-CODE' }, fragmentPaths: new Set(['card-a']) },
+        ]);
+        expect(result.status).to.equal(200);
+        expect(result.body.variationId).to.equal('var-seasonal');
+        expect(result.body.fields.promoCode).to.equal('SEASONAL-CODE');
+    });
 });
 
 describe('customize OSI substitution', function () {

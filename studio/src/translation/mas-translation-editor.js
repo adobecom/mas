@@ -643,16 +643,6 @@ class MasTranslationEditor extends LitElement {
         }
     };
 
-    // Flag stays sticky across the duplicate close event sp-dialog-wrapper emits after confirm/cancel;
-    // it's cleared on the next #openAddItemsOverlay so a re-opened dialog starts fresh.
-    #restoreItemsSnapshot = () => {
-        if (this.#itemsConfirmed) return;
-        Store.translationProjects.selectedCards.set(this.#cardsSnapshot);
-        Store.translationProjects.selectedCollections.set(this.#collectionsSnapshot);
-        Store.translationProjects.selectedPlaceholders.set(this.#placeholdersSnapshot);
-        this.showSelectedEmptyState = this.selectedCount === 0;
-    };
-
     #dispatchDialogEvent = (name) => {
         const wrapper = this.renderRoot.querySelector('.add-items-dialog');
         wrapper?.dispatchEvent(new CustomEvent(name, { bubbles: true, composed: true }));
@@ -663,6 +653,16 @@ class MasTranslationEditor extends LitElement {
         const h2 = wrapper?.shadowRoot?.querySelector('h2[slot="heading"]');
         if (h2) h2.style.paddingBottom = '32px';
     }
+
+    // Flag stays sticky across the duplicate close event sp-dialog-wrapper emits after confirm/cancel;
+    // it's cleared on the next #openAddItemsOverlay so a re-opened dialog starts fresh.
+    #restoreItemsSnapshot = () => {
+        if (this.#itemsConfirmed) return;
+        Store.translationProjects.selectedCards.set(this.#cardsSnapshot);
+        Store.translationProjects.selectedCollections.set(this.#collectionsSnapshot);
+        Store.translationProjects.selectedPlaceholders.set(this.#placeholdersSnapshot);
+        this.showSelectedEmptyState = this.selectedCount === 0;
+    };
 
     renderAddLanguagesDialog() {
         return html`
@@ -831,9 +831,15 @@ class MasTranslationEditor extends LitElement {
                                               @sp-opened=${this.#openAddLanguagesOverlay}
                                           >
                                               ${this.renderAddLanguagesDialog()}
-                                              <sp-icon slot="trigger" class="empty-state-plus" label="Add Languages">
-                                                  ${addPlusIcon}
-                                              </sp-icon>
+                                              <sp-button
+                                                  slot="trigger"
+                                                  variant="secondary"
+                                                  size="xl"
+                                                  icon-only
+                                                  class="ghost-button empty-state-plus"
+                                              >
+                                                  <sp-icon slot="icon" label="Add Languages">${addPlusIcon}</sp-icon>
+                                              </sp-button>
                                           </overlay-trigger>
                                       </div>
                                       <div class="label">
@@ -863,11 +869,14 @@ class MasTranslationEditor extends LitElement {
                                                 </sp-action-button>
                                             </overlay-trigger>`
                                           : nothing}
-                                      <sp-action-button quiet class="toggle-btn ${this.isSelectedLangsOpen ? 'is-open' : ''}">
+                                      <sp-button
+                                          icon-only
+                                          class="toggle-btn ghost-button ${this.isSelectedLangsOpen ? 'is-open' : ''}"
+                                      >
                                           ${this.isSelectedLangsOpen
                                               ? html`<sp-icon-chevron-up slot="icon" label="Close"></sp-icon-chevron-up>`
                                               : html`<sp-icon-chevron-down slot="icon" label="Open"></sp-icon-chevron-down>`}
-                                      </sp-action-button>
+                                      </sp-button>
                                   </div>
                               </div>
                               ${this.isSelectedLangsOpen
@@ -895,9 +904,15 @@ class MasTranslationEditor extends LitElement {
                                               @sp-opened=${this.#openAddItemsOverlay}
                                           >
                                               ${this.renderAddItemsDialog()}
-                                              <sp-icon slot="trigger" class="empty-state-plus" label="Add Items">
-                                                  ${addPlusIcon}
-                                              </sp-icon>
+                                              <sp-button
+                                                  slot="trigger"
+                                                  variant="secondary"
+                                                  size="xl"
+                                                  icon-only
+                                                  class="ghost-button empty-state-plus"
+                                              >
+                                                  <sp-icon slot="icon" label="Add Items">${addPlusIcon}</sp-icon>
+                                              </sp-button>
                                           </overlay-trigger>
                                       </div>
                                       <div class="label">
@@ -929,11 +944,14 @@ class MasTranslationEditor extends LitElement {
                                                 </sp-action-button>
                                             </overlay-trigger>`
                                           : nothing}
-                                      <sp-action-button quiet class="toggle-btn ${this.isSelectedItemsOpen ? 'is-open' : ''}">
+                                      <sp-button
+                                          icon-only
+                                          class="toggle-btn ghost-button ${this.isSelectedItemsOpen ? 'is-open' : ''}"
+                                      >
                                           ${this.isSelectedItemsOpen
                                               ? html`<sp-icon-chevron-up slot="icon" label="Close"></sp-icon-chevron-up>`
                                               : html`<sp-icon-chevron-down slot="icon" label="Open"></sp-icon-chevron-down>`}
-                                      </sp-action-button>
+                                      </sp-button>
                                   </div>
                               </div>
                               ${this.isSelectedItemsOpen

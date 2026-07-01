@@ -302,25 +302,25 @@ All three actions log via `@adobe/aio-sdk`'s `Core.Logger`, one JSON-stringified
 
 ### Finding these logs in Splunk
 
-Two separate log planes exist for any Adobe I/O Runtime action, including these ([source: Runtime Ops - Logging](https://wiki.corp.adobe.com/spaces/AdobeCloudPlatform/pages/1393382896/Runtime+Ops+-+Logging)):
+Two separate log planes exist:
 
-1. **Action-emitted logs** (the `logger.*` calls above, i.e. this code's actual output) — a separate **Splunk Cloud** instance at [adobeiort.splunkcloud.com](https://adobeiort.splunkcloud.com), `index="runtime_prod_ext"` (prod/beta namespaces) or `index="runtime_nonprod_ext"` (non-prod). **7-day retention.** Fields include `namespace`, `action`, `activation_id` (underscore, not `activationId`), and `log_message` (the raw JSON line).
-2. **Platform/system logs** (routing, activation lifecycle — not this code's output) — Splunk Enterprise at `splunk-adobeio.corp.adobe.com` (`app_ioruntime`), `index="adobeio_runtime"`, sourcetypes `controller`, `nginx`/`apigateway*`, `invoker-*`. **30-day retention.**
+1. **Action-emitted logs** (the `logger.*` calls above, i.e. this code's actual output) — MAS forwards these to **`splunk-us.corp.adobe.com`**, not the generic Adobe I/O Runtime Splunk Cloud instance most org-wide Runtime docs point to. Ask a MAS teammate or check onboarding docs for the current index/sourcetype if you don't already have it — treat `<mas-actions-index>` below as a placeholder, not a confirmed value.
+2. **Platform/system logs** (routing, activation lifecycle — not this code's output) — Splunk Enterprise at `splunk-adobeio.corp.adobe.com` (`app_ioruntime`), `index="adobeio_runtime"`, sourcetypes `controller`, `nginx`/`apigateway*`, `invoker-*`. 30-day retention. ([source: Runtime Ops - Logging](https://wiki.corp.adobe.com/spaces/AdobeCloudPlatform/pages/1393382896/Runtime+Ops+-+Logging))
 
-There is no MerchAtScaleStudio-specific saved search or dashboard as of this writing — start from the generic Runtime index and narrow down:
+There is no MerchAtScaleStudio-specific saved search or dashboard as of this writing. Query shape once you have the real index:
 
 ```spl
 # All bulk-edit-replace-worker activity for the namespace
-index="runtime_prod_ext" namespace="<mas-namespace>" action="*/MerchAtScaleStudio/bulk-edit-replace-worker*"
+index="<mas-actions-index>" namespace="<mas-namespace>" action="*/MerchAtScaleStudio/bulk-edit-replace-worker*"
 
 # A specific job — jobId is embedded in the JSON log_message, not a top-level field
-index="runtime_prod_ext" namespace="<mas-namespace>" log_message="*<jobId>*"
+index="<mas-actions-index>" namespace="<mas-namespace>" log_message="*<jobId>*"
 
 # Just the 429-cooldown events, to check whether Odin rate-limiting is happening
-index="runtime_prod_ext" namespace="<mas-namespace>" log_message="*bulk-edit-replace-429-cooldown*"
+index="<mas-actions-index>" namespace="<mas-namespace>" log_message="*bulk-edit-replace-429-cooldown*"
 
 # A known activation ID (from the action's HTTP response or `aio app logs`)
-index="runtime_prod_ext" activation_id="<activation-id>"
+index="<mas-actions-index>" activation_id="<activation-id>"
 ```
 
 Find `<mas-namespace>` via `aio app info` or the `AIO_RUNTIME_NAMESPACE` value in `.env`. Runtime activation Splunk access is sometimes restricted to IO Runtime engineers/DevOps — if a query returns nothing and you believe logs exist, that may be an access-policy issue (log forwarding not enabled for the namespace) rather than missing data; file an IOEXT ticket with the namespace, action name, and timeframe.

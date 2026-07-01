@@ -72,8 +72,8 @@ export const styles = css`
     }
 
     .evergreen-badge {
-        background-color: #ffeccf;
-        color: #000000;
+        background-color: var(--spectrum-orange-200);
+        color: var(--spectrum-gray-900);
         font-weight: 500;
         padding: 2px 8px;
         border-radius: 4px;

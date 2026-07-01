@@ -63,7 +63,7 @@ Using Github workflows, the CI/CD of I/O studio is automated. Deployment secrets
 - detect PRs touching `io/studio/**`
 - **preflight**: confirm the PR author's Vault path exists, failing fast if it isn't seeded yet
 - build and run tests
-- auto-deploy the I/O studio actions to the personal I/O runtime workspace of the person who opened the PR (`github.event.pull_request.user.login`), reading that workspace's `env`/`aio`/`namespace` from their Vault path and the `odin_bucket` from the shared QA path
+- auto-deploy the I/O studio actions to the personal I/O runtime workspace of the person who opened the PR (`github.event.pull_request.user.login`), reading that workspace's `env`/`aio` from their Vault path and the `odin_bucket` from the shared QA path
 - run a health-check against the deployed workspace
 - on merge, auto-deploy to stage (with health-check) then prod, reading each environment's secrets from its own Vault path
 
@@ -82,13 +82,14 @@ Beyond that, each developer who wants PR auto-deploy to their personal workspace
 
 ## Seed your Vault secrets
 
-Your personal workspace secrets live in Vault at `cloudtech_wcms/merch-at-scale/aio-studio/<gh_user_id>` (the path is lowercased and matches your GitHub username / personal workspace name). Seed it with the contents of your local `.env` and `.aio` files plus your namespace:
+Your personal workspace secrets live in Vault at `cloudtech_wcms/merch-at-scale/aio-studio/<gh_user_id>` (the path is lowercased and matches your GitHub username / personal workspace name). Seed it with the contents of your local `.env` and `.aio` files:
 
-| Field       | Value                                            |
-| ----------- | ------------------------------------------------ |
-| `env`       | contents of your local `.env` file               |
-| `aio`       | contents of your local `.aio` file               |
-| `namespace` | your `AIO_runtime_namespace` value (from `.env`) |
+| Field | Value                              |
+| ----- | ---------------------------------- |
+| `env` | contents of your local `.env` file |
+| `aio` | contents of your local `.aio` file |
+
+The workspace **namespace** is read from the `.env` blob (`AIO_runtime_namespace`) at deploy time, so it does **not** need its own field.
 
 The field names are `env` and `aio` — **no leading dot**. The dot-prefixed filenames (`.env`, `.aio`) are produced by CI when it writes the files at deploy time; the Vault field name is just an identifier.
 
@@ -99,8 +100,7 @@ Using the Vault CLI (after `export VAULT_ADDR=https://vault-amer.adobe.net` or `
 ```bash
 vault kv put cloudtech_wcms/merch-at-scale/aio-studio/<gh_user_id> \
   env=@.env \
-  aio=@.aio \
-  namespace=<your-namespace>
+  aio=@.aio
 ```
 
 Once seeded, opening a PR against `io/studio` deploys to your personal workspace.
@@ -125,28 +125,28 @@ At least one of `file-fields` / `env-fields` must be provided.
 ### How secrets are exposed
 
 - **`file-fields`** → **files.** Each `field=filename` writes that field's value verbatim to `working-directory/filename`. Used for whole-file blobs (`env=.env,aio=.aio` recreates the `.env` and `.aio` files `aio app deploy` expects). Writing blobs to files avoids multi-line-env masking pitfalls.
-- **`env-fields`** → **environment variables.** Each field is exported to `$GITHUB_ENV` as a **masked** variable named after the field, **UPPERCASED**: `namespace` → `$NAMESPACE`, `odin_bucket` → `$ODIN_BUCKET`, `aos_url` → `$AOS_URL`. Used for scalar values. These are available to **every subsequent step in the same job**.
+- **`env-fields`** → **environment variables.** Each field is exported to `$GITHUB_ENV` as a **masked** variable named after the field, **UPPERCASED**: `odin_bucket` → `$ODIN_BUCKET`, `aos_url` → `$AOS_URL`. Used for scalar values. These are available to **every subsequent step in the same job**. Because they are masked, they cannot be reliably passed to a *different* job via job outputs (GitHub empties masked outputs) — derive such values from a non-masked source instead (see the namespace note below).
 
 All fetched values — and the Vault token — are masked in the workflow logs.
 
-### Example (from the deploy job)
+### Example
 
 ```yaml
 - uses: ./.github/actions/vault-secrets
   with:
       role-id: ${{ secrets.VAULT_ROLE_ID }}
       secret-id: ${{ secrets.VAULT_SECRET_ID }}
-      path: merch-at-scale/aio-studio/<gh_user>
+      path: merch-at-scale/aio-studio/<path>
       file-fields: env=.env,aio=.aio # → io/studio/.env and io/studio/.aio
-      env-fields: namespace # → $NAMESPACE
+      env-fields: odin_bucket # → $ODIN_BUCKET
       working-directory: io/studio
 ```
 
 ### Notes
 
-- **Same job only.** The files and env vars live on that job's runner and do not cross to other jobs. That's why the deploy job re-emits `namespace` as a job **output** for the separate health-check job to consume.
+- **Same job only.** The files and env vars live on that job's runner and do not cross to other jobs. The separate health-check job gets the `namespace` it needs via a job **output**: the deploy job reads `AIO_runtime_namespace` from the deployed `.env` and emits it. It deliberately does **not** fetch `namespace` as a masked Vault field, because GitHub empties job outputs whose value is a masked secret.
 - **Precedence over `.env`.** Env vars exported here win over values in the `.env` file — `aio`'s dotenv loader does not override variables already set in the environment. This is how CI forces the QA `odin_bucket` (→ `ODIN_ENDPOINT`) and the shared AOS/OST credentials regardless of what a developer put in their `.env`.
-- The deploy job calls the action **three times**: workspace creds (`env`/`aio` files + `namespace`) from the workspace path, `odin_bucket` from the environment path (QA for PRs, stage/prod on merge), and the AOS/OST creds from the shared `common` path.
+- The deploy job calls the action **three times**: workspace creds (`env`/`aio` files) from the workspace path, `odin_bucket` from the environment path (QA for PRs, stage/prod on merge), and the AOS/OST creds from the shared `common` path.
 
 ## Local Dev
 

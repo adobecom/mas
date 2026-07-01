@@ -22,7 +22,7 @@ on:
                 required: false
                 default: 2
             vault-path:
-                description: 'Vault secret path (relative to the cloudtech_wcms mount) holding the workspace creds: env, aio, namespace'
+                description: 'Vault secret path (relative to the cloudtech_wcms mount) holding the workspace creds: env, aio'
                 type: string
                 required: true
             odin-bucket-path:
@@ -98,7 +98,6 @@ jobs:
                   secret-id: ${{ secrets.VAULT_SECRET_ID }}
                   path: ${{ inputs.vault-path }}
                   file-fields: env=.env,aio=.aio
-                  env-fields: namespace
                   working-directory: io/studio
 
             # odin_bucket is environment-level (QA for PRs, stage/prod on merge), not
@@ -121,9 +120,15 @@ jobs:
                   path: merch-at-scale/aio-studio/common
                   env-fields: aos_url,aos_api_key,ost_write_api_key
 
+            # Derive namespace from the deployed .env (AIO_runtime_namespace). We must NOT
+            # source it from a masked Vault field: GitHub empties job outputs whose value is
+            # a masked secret, so it would arrive blank in the health-check job.
             - name: Capture namespace
               id: ns
-              run: echo "namespace=$NAMESPACE" >> "$GITHUB_OUTPUT"
+              run: |
+                  ns=$(grep -E '^AIO_runtime_namespace=' .env | head -n1 | cut -d= -f2-)
+                  if [ -z "$ns" ]; then echo "::error::AIO_runtime_namespace not found in .env"; exit 1; fi
+                  echo "namespace=$ns" >> "$GITHUB_OUTPUT"
 
             - name: Deploy
               env:

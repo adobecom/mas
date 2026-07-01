@@ -127,15 +127,16 @@ function load(overrides = {}) {
 }
 
 describe('bulk-edit/replace-worker: patchOrThrow', () => {
-    it('attempts once and trips the shared gate on a 429', async () => {
+    it('attempts once, trips the shared gate, and logs the cooldown on a 429', async () => {
         let calls = 0;
         const patchToOdin = async () => {
             calls += 1;
             throw new Error('PATCH request failed for fragment a: 429: Too Many Requests');
         };
+        const warn = sinon.stub();
         const mod = proxyquire('../../src/bulk-edit/replace-worker.js', {
             '../common.js': { ...common, patchToOdin, '@noCallThru': true },
-            '@adobe/aio-sdk': { Core: { Logger: () => ({ info() {}, error() {}, warn() {} }) }, '@noCallThru': true },
+            '@adobe/aio-sdk': { Core: { Logger: () => ({ info() {}, error() {}, warn }) }, '@noCallThru': true },
         });
         const gate = mod.createRateLimitGate();
         try {
@@ -146,6 +147,9 @@ describe('bulk-edit/replace-worker: patchOrThrow', () => {
             expect(error.message).to.include('429');
         }
         expect(gate.cooldownUntil).to.be.greaterThan(Date.now());
+        expect(warn.calledOnce).to.equal(true);
+        const logged = JSON.parse(warn.firstCall.args[0]);
+        expect(logged.event).to.equal('bulk-edit-replace-429-cooldown');
     });
 
     it('does not retry and does not trip the gate on a non-429 failure', async () => {

@@ -55,7 +55,16 @@ async function runGated(gate, fn) {
     try {
         return await fn();
     } catch (error) {
-        if (isOdinRateLimitError(error)) tripRateLimitGate(gate);
+        if (isOdinRateLimitError(error)) {
+            tripRateLimitGate(gate);
+            logger.warn(
+                JSON.stringify({
+                    event: 'bulk-edit-replace-429-cooldown',
+                    cooldownUntil: new Date(gate.cooldownUntil).toISOString(),
+                    error: error.message,
+                }),
+            );
+        }
         throw error;
     }
 }

@@ -276,6 +276,57 @@ Product and UX edge cases to plan for in clients (e.g. MAS Studio). Not an exhau
 
 ---
 
+## Logging & Splunk
+
+All three actions log via `@adobe/aio-sdk`'s `Core.Logger`, one JSON-stringified event per line:
+
+| Logger name                | File                |
+| -------------------------- | ------------------- |
+| `bulk-edit`                | `bulk-edit.js`      |
+| `bulk-edit-find-worker`    | `find-worker.js`    |
+| `bulk-edit-replace-worker` | `replace-worker.js` |
+
+### Events
+
+| `event`                            | Level | Fields                                                                                 | Emitted when                                                                                                             |
+| ---------------------------------- | ----- | -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `bulk-edit-error`                  | error | `mode`, `error`                                                                        | Any uncaught exception in a web action's `find`/`replace` handler                                                        |
+| `bulk-edit-find-worker-error`      | error | `jobId`, `error`                                                                       | Find worker invocation throws                                                                                            |
+| `bulk-edit-replace-worker-start`   | info  | `jobId`, `total`, `dryRun`, `cursor`                                                   | Replace worker invocation begins/resumes                                                                                 |
+| `bulk-edit-replace-progress`       | info  | `jobId`, `cursor`, `total`, `processed`, `succeeded`, `skipped`, `failed`, `conflicts` | After each processed batch                                                                                               |
+| `bulk-edit-replace-429-cooldown`   | warn  | `cooldownUntil`, `error`                                                               | Odin returns 429 on a GET or PATCH; the worker-wide rate-limit gate trips (see [Replace behavior](#replace-behavior) #9) |
+| `bulk-edit-replace-fragment-error` | error | `fragmentId`, `error`                                                                  | A single fragment's replace fails; other fragments continue                                                              |
+| `bulk-edit-replace-continued`      | info  | `jobId`, `cursor`                                                                      | Soft time budget hit; worker re-invokes itself and returns                                                               |
+| `bulk-edit-replace-worker-done`    | info  | `jobId`, `processed`, `succeeded`, `skipped`, `failed`, `conflicts`                    | Worker finishes this invocation's items (job may still be `RUNNING` if continued)                                        |
+| `bulk-edit-replace-worker-error`   | error | `jobId`, `error`                                                                       | Replace worker invocation throws (surfaces as a `500` from `main`)                                                       |
+
+### Finding these logs in Splunk
+
+Two separate log planes exist for any Adobe I/O Runtime action, including these:
+
+1. **Action-emitted logs** (the `logger.*` calls above) — Runtime Splunk instance, `index="runtime_prod_ext"`. Fields include `namespace`, `action`, `activation_id` (underscore, not `activationId`), and `log_message` (the raw JSON line).
+2. **Platform/system logs** (routing, activation lifecycle, not this code's output) — `index="adobeio_runtime"` in the Adobe I/O Runtime Splunk app, sourcetypes `controller` and `nginx`.
+
+There is no MerchAtScaleStudio-specific saved search or dashboard as of this writing — start from the generic Runtime index and narrow down:
+
+```spl
+# All bulk-edit-replace-worker activity for the namespace
+index="runtime_prod_ext" namespace="<mas-namespace>" action="*/MerchAtScaleStudio/bulk-edit-replace-worker*"
+
+# A specific job — jobId is embedded in the JSON log_message, not a top-level field
+index="runtime_prod_ext" namespace="<mas-namespace>" log_message="*<jobId>*"
+
+# Just the 429-cooldown events, to check whether Odin rate-limiting is happening
+index="runtime_prod_ext" namespace="<mas-namespace>" log_message="*bulk-edit-replace-429-cooldown*"
+
+# A known activation ID (from the action's HTTP response or `aio app logs`)
+index="runtime_prod_ext" activation_id="<activation-id>"
+```
+
+Find `<mas-namespace>` via `aio app info` or the `AIO_RUNTIME_NAMESPACE` value in `.env`. Runtime activation Splunk access is sometimes restricted to IO Runtime engineers/DevOps — if a query returns nothing and you believe logs exist, that may be an access-policy issue (log forwarding not enabled for the namespace) rather than missing data; file an IOEXT ticket with the namespace, action name, and timeframe.
+
+---
+
 ## Tests
 
 ```bash

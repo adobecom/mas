@@ -35,6 +35,7 @@ import {
     isPromoVariationPath,
 } from './promotions/promotion-model.js';
 import { splitPromotionTagsFieldValues } from './promotions/promotion-editor-utils.js';
+import { applySearchSurfaceFromPath } from './common/utils/render-utils.js';
 import * as promotionsRepository from './promotions/promotions-repository.js';
 import { normalizeTagId } from './aem/tag-id-utils.js';
 import './mas-variation-dialog.js';
@@ -1329,10 +1330,12 @@ export default class MasFragmentEditor extends LitElement {
 
     async navigateToLocaleDefaultFragment() {
         if (!this.localeDefaultFragment) return;
-        const parentLocale = extractLocaleFromPath(this.localeDefaultFragment.path);
+        const parentPath = this.localeDefaultFragment.path;
+        const parentLocale = extractLocaleFromPath(parentPath);
         // Reset changes to avoid discard dialog since we're navigating to the parent
         Store.editor.resetChanges();
         Store.promotions.promotionId.set(null);
+        applySearchSurfaceFromPath(parentPath);
         if (parentLocale) {
             Store.removeRegionOverride();
             // Also update the locale filter to match the parent fragment's locale

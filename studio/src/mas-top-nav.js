@@ -23,6 +23,7 @@ class MasTopNav extends LitElement {
     translationProjects = Store.translationProjects;
     bulkPublishProjects = Store.bulkPublishProjects;
     masks = Store.masks;
+    sideNavCollapsed = Store.sideNavCollapsed;
 
     reactiveController = new ReactiveController(this, [
         this.page,
@@ -41,7 +42,12 @@ class MasTopNav extends LitElement {
         this.bulkPublishProjects.projectId,
         this.masks.fragmentId,
         this.masks.creating,
+        this.sideNavCollapsed,
     ]);
+
+    toggleSideNav = () => Store.sideNavCollapsed.set((v) => !v);
+    historyBack = () => window.history.back();
+    historyForward = () => window.history.forward();
 
     createRenderRoot() {
         return this;
@@ -60,6 +66,20 @@ class MasTopNav extends LitElement {
             const { displayName, email } = profiles.ims;
             const { user } = profiles.io;
             const { avatar } = user;
+            // Persist the avatar URL so the next session can render it from
+            // the first paint while profileBuilder() refreshes in the
+            // background — eliminating the visible gray-placeholder phase
+            // for return visits. Also preload the bytes now so the <img>
+            // we're about to mount paints synchronously.
+            if (avatar) {
+                try {
+                    localStorage.setItem('mas-studio:avatar-url', avatar);
+                } catch {
+                    /* localStorage unavailable (private mode etc.) — ignore. */
+                }
+                const preloader = new Image();
+                preloader.src = avatar;
+            }
             const profileEl = document.createElement('div');
             profileEl.classList.add('profile');
             profileEl.innerHTML = `
@@ -125,16 +145,58 @@ class MasTopNav extends LitElement {
         });
     }
 
+    connectedCallback() {
+        super.connectedCallback();
+        // Kick off the IMS + IO profile fetches as soon as the element
+        // connects (before first render). The avatar img can then mount
+        // with its src already resolved — and ideally with the image
+        // already in the browser cache — eliminating the visible
+        // gray-placeholder → avatar transition.
+        this.#warmProfile();
+    }
+
+    #warmProfile() {
+        if (this.profileTemplatePromise) return;
+        // profileBuilder() itself preloads the avatar URL into the browser
+        // cache the moment it's known (see the Image() preloader inside it).
+        this.profileTemplatePromise = this.profileBuilder().then((profile) => html`${profile}`);
+    }
+
+    // Placeholder rendered while profileBuilder() is in flight. On return
+    // visits localStorage has the avatar URL from the previous session, so
+    // we paint the real image immediately and the user never sees a gray
+    // circle. First-ever visit falls back to a plain gray placeholder.
+    get #avatarPlaceholder() {
+        let cachedAvatar = null;
+        try {
+            cachedAvatar = localStorage.getItem('mas-studio:avatar-url');
+        } catch {
+            /* localStorage unavailable — fall through to plain placeholder. */
+        }
+        if (cachedAvatar) {
+            return html`
+                <div class="profile-placeholder" aria-hidden="true">
+                    <img src=${cachedAvatar} alt="" />
+                </div>
+            `;
+        }
+        return html`<div class="profile-placeholder" aria-hidden="true"></div>`;
+    }
+
     willUpdate(changedProperties) {
-        if (changedProperties.has('aemEnv')) {
+        // Only refetch when aemEnv genuinely changes after the first render.
+        // On the very first update changedProperties contains every property
+        // (with an old value of undefined) — without the hasUpdated guard,
+        // that would cause profileBuilder to run twice: once from
+        // connectedCallback's #warmProfile, and again here.
+        if (this.hasUpdated && changedProperties.has('aemEnv')) {
             this.profileTemplatePromise = null;
+            this.#warmProfile();
         }
     }
 
     getProfileTemplate() {
-        if (!this.profileTemplatePromise) {
-            this.profileTemplatePromise = this.profileBuilder().then((profile) => html`${profile}`);
-        }
+        if (!this.profileTemplatePromise) this.#warmProfile();
         return this.profileTemplatePromise;
     }
 
@@ -404,13 +466,27 @@ class MasTopNav extends LitElement {
     get historyNavigationTemplate() {
         return html`
             <div class="history-navigation" aria-label="History navigation">
-                <button class="history-nav-button" type="button" aria-label="Back" @click=${() => history.back()}>
+                <button class="history-nav-button" type="button" aria-label="Back" @click=${this.historyBack}>
                     <sp-icon-chevron-left size="s"></sp-icon-chevron-left>
                 </button>
-                <button class="history-nav-button" type="button" aria-label="Forward" @click=${() => history.forward()}>
+                <button class="history-nav-button" type="button" aria-label="Forward" @click=${this.historyForward}>
                     <sp-icon-chevron-right size="s"></sp-icon-chevron-right>
                 </button>
             </div>
+        `;
+    }
+
+    get hamburgerTemplate() {
+        return html`
+            <button
+                class="hamburger-button"
+                type="button"
+                aria-label="Toggle navigation"
+                aria-expanded=${!Store.sideNavCollapsed.get()}
+                @click=${this.toggleSideNav}
+            >
+                <sp-icon-show-menu size="m"></sp-icon-show-menu>
+            </button>
         `;
     }
 
@@ -418,6 +494,7 @@ class MasTopNav extends LitElement {
         return html`
             <nav>
                 <div class="left-section">
+                    ${this.hamburgerTemplate}
                     <a id="brand" href="#page=welcome">
                         <svg
                             id="logo"
@@ -484,7 +561,7 @@ class MasTopNav extends LitElement {
                               </div>
                           `
                         : ''}
-                    ${until(this.getProfileTemplate())}
+                    ${until(this.getProfileTemplate(), this.#avatarPlaceholder)}
                 </div>
             </nav>
         `;

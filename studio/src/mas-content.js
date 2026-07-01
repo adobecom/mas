@@ -222,10 +222,10 @@ class MasContent extends LitElement {
                 <sp-table-head>
                     <sp-table-head-cell class="expand-cell"></sp-table-head-cell>
                     <sp-table-head-cell class="name">Path</sp-table-head-cell>
-                    <sp-table-head-cell class="title">Fragment Title</sp-table-head-cell>
+                    <sp-table-head-cell class="title">Fragment title</sp-table-head-cell>
                     <sp-table-head-cell class="offer-id">Offer ID</sp-table-head-cell>
-                    <sp-table-head-cell class="offer-type">Offer Type</sp-table-head-cell>
-                    <sp-table-head-cell class="last-modified-by">Last Modified By</sp-table-head-cell>
+                    <sp-table-head-cell class="offer-type">Offer type</sp-table-head-cell>
+                    <sp-table-head-cell class="last-modified-by">Last modified by</sp-table-head-cell>
                     <sp-table-head-cell class="price">Price</sp-table-head-cell>
                     <sp-table-head-cell class="status">Status</sp-table-head-cell>
                     <sp-table-head-cell class="actions">Actions</sp-table-head-cell>
@@ -254,10 +254,10 @@ class MasContent extends LitElement {
                 <sp-table-head>
                     <sp-table-head-cell class="expand-cell"></sp-table-head-cell>
                     <sp-table-head-cell sortable class="name">Path</sp-table-head-cell>
-                    <sp-table-head-cell sortable class="title">Fragment Title</sp-table-head-cell>
+                    <sp-table-head-cell sortable class="title">Fragment title</sp-table-head-cell>
                     <sp-table-head-cell sortable class="offer-id">Offer ID</sp-table-head-cell>
-                    <sp-table-head-cell sortable class="offer-type">Offer Type</sp-table-head-cell>
-                    <sp-table-head-cell sortable class="last-modified-by">Last Modified By</sp-table-head-cell>
+                    <sp-table-head-cell sortable class="offer-type">Offer type</sp-table-head-cell>
+                    <sp-table-head-cell sortable class="last-modified-by">Last modified by</sp-table-head-cell>
                     <sp-table-head-cell sortable class="price">Price</sp-table-head-cell>
                     <sp-table-head-cell sortable class="status">Status</sp-table-head-cell>
                     <sp-table-head-cell class="actions">Actions</sp-table-head-cell>
@@ -280,6 +280,7 @@ class MasContent extends LitElement {
     }
 
     updated() {
+        this.#revealHeadersAfterReady();
         const loadingJustCompleted = this.wasLoading && !this.loading.value;
         this.wasLoading = this.loading.value;
 
@@ -351,6 +352,24 @@ class MasContent extends LitElement {
         }
         return html`<div id="content">${this.hasEmptySearchResult ? this.emptyState : view}</div>
             ${this.hasMore.value ? html`<div class="scroll-sentinel"></div>` : nothing} ${this.pageLoadingSkeletons}`;
+    }
+
+    // Wait for every sp-table-head-cell to finish its internal Spectrum render
+    // (the sortable variant injects a button asynchronously), then flip the
+    // table to `headers-ready`. CSS uses that class to make the header row
+    // visible. Avoids inline-style JS overrides — typography is driven by
+    // Title-S tokens in style.css.
+    async #revealHeadersAfterReady() {
+        await this.updateComplete;
+        const tables = this.querySelectorAll('sp-table');
+        for (const table of tables) {
+            if (table.classList.contains('headers-ready')) continue;
+            const headCells = table.querySelectorAll('sp-table-head-cell');
+            await Promise.all([...headCells].map((c) => c.updateComplete?.catch?.(() => {})));
+            // One more frame to let Spectrum paint its shadow-DOM render.
+            await new Promise((r) => requestAnimationFrame(r));
+            table.classList.add('headers-ready');
+        }
     }
 }
 

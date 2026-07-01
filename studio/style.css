@@ -403,23 +403,134 @@ mas-content {
     justify-content: center;
     flex-wrap: wrap;
     padding-bottom: 30px;
+
+    /* Shared column grid — every sp-table inside #content (including nested
+       variation tables) inherits this template, so cells line up cell-for-cell.
+       Narrow columns are fixed pixels (Hug to header text + 40px padding) so
+       their widths can't drift between parent and variation containers; the
+       three text columns (Path / Fragment title / Offer ID) absorb the rest. */
+    --mas-table-columns: 60px /* 1.  expand-cell */ minmax(0, 1.4fr) /* 2.  Path */ minmax(0, 1fr) /* 3.  Fragment title */
+        minmax(0, 1fr) /* 4.  Offer ID */ 110px /* 5.  Offer type */ 160px /* 6.  Last modified by */ 120px /* 7.  Price */
+        120px /* 8.  Status */ 92px /* 9.  Actions */ 96px; /* 10. Preview */
+
+    /* Variation rows: 10 tracks. A leading 30px helper track makes the
+       Path cell (which spans tracks 1+2 via grid-column: 1/3) exactly
+       30px wider than the parent's Path track. With the helper track
+       included, the variation's fr-pool equals the parent's fr-pool
+       (W − 758), so Title / Offer ID / fixed columns line up cell-for-
+       cell with the parent. Preview track is 76px (vs the parent's
+       96px) so its right edge sits 20px before .expanded-content's
+       right padding. */
+    --mas-table-columns-variation: 30px /* 1a. leading offset for Path (= parent track 2 +30px) */ minmax(0, 1.4fr)
+        /* 1b. Path (spans 1a + 1b) */ minmax(0, 1fr) /* 2.  Title */ minmax(0, 1fr) /* 3.  Offer ID */ 110px
+        /* 4.  Offer type */ 160px /* 5.  Last modified by */ 120px /* 6.  Price */ 120px /* 7.  Status */ 92px
+        /* 8.  Actions */ 76px; /* 9.  Preview */
 }
 
 #content sp-table {
     --table-content-name-flex-grow: 1.4;
-    --table-content-title-flex-grow: 1.6;
-    --table-content-offer-id-flex-grow: 0.3;
+    --table-content-title-flex-grow: 1;
+    --table-content-offer-id-flex-grow: 1;
     --table-content-offer-type-flex-grow: 0.4;
     --table-content-last-modified-by-flex-grow: 0.7;
     --table-content-price-flex-grow: 0.7;
-    --table-content-status-flex-grow: 0.3;
-    --table-content-actions-flex-grow: 0.2;
-    --table-content-preview-flex-grow: 0.2;
+    --table-content-status-flex-grow: 0.45;
+    --table-content-actions-flex-grow: 0.4;
+    --table-content-preview-flex-grow: 0.4;
+
+    /* NOTE: --mas-table-columns is defined on #content above with minmax()
+       tracks (px minimums on the fixed columns). Do NOT redefine it here
+       with simple fr values — that previously broke alignment between the
+       parent rows and the variation rows because the parent's Offer type /
+       Last modified by / Price / Status / Actions / Preview tracks were
+       using fr ratios while the variation tracks used px minimums. */
+
     width: 100%;
     border-radius: 4px;
     overflow: hidden;
     border: 1px solid var(--spectrum-gray-100);
     --spectrum-table-cell-background-color: transparent;
+}
+
+/* Parent table grid — every row (head + body) shares the same column template. */
+#content sp-table-row,
+#content sp-table-head {
+    display: grid !important;
+    grid-template-columns: var(--mas-table-columns);
+    align-items: stretch;
+}
+
+/* Variation rows use their own 9-track template — no empty leading track.
+   The first cell (Path/en_EG) sits in track 1 at the row's left edge, which
+   coincides with the Locale tab above thanks to .expanded-content's 30px
+   left padding. Row background is transparent so cells carry their own.
+   Selector starts with #content so it beats the parent grid rule above. */
+#content .expanded-content sp-table-row,
+#content .expanded-content sp-table-head {
+    display: grid !important;
+    grid-template-columns: var(--mas-table-columns-variation) !important;
+    align-items: stretch;
+    background-color: transparent !important;
+}
+/* First cell (Path/en_EG) — spans the 30px helper track + the 1.4fr Path
+   track. 50px padding-left puts the text content at x=80 from the page
+   edge (30 expanded-content pad + 50 cell pad), the same x as the parent
+   row's Path text (60 track start + 20 default cell pad). */
+#content .expanded-content sp-table-row > sp-table-cell:first-child {
+    grid-column: 1 / 3 !important;
+    padding-left: 50px !important;
+}
+.expanded-content sp-table-row > sp-table-cell {
+    background-color: #ffffff;
+}
+.expanded-content sp-table-row:hover > sp-table-cell {
+    background-color: var(--spectrum-gray-100, #e9e9e9);
+}
+.expanded-content sp-table-row[selected] > sp-table-cell {
+    background-color: #ebeeff;
+}
+.expanded-content sp-table-row[selected]:hover > sp-table-cell {
+    background-color: #d8deff;
+}
+
+/* Right-edge anchoring — the three rightmost columns are pinned by negative
+   grid lines so they share the exact same vertical track in every row, even
+   if a row is in a different container with shifted left padding. */
+sp-table-cell.preview,
+sp-table-head-cell.preview {
+    grid-column: -2 / -1;
+}
+sp-table-cell.actions,
+sp-table-head-cell.actions {
+    grid-column: -3 / -2;
+}
+sp-table-cell.status,
+sp-table-head-cell.status {
+    grid-column: -4 / -3;
+}
+
+/* Preview / Actions: headers stay left-aligned; body icons centred. */
+sp-table-head-cell.preview,
+sp-table-head-cell.actions {
+    display: flex !important;
+    justify-content: flex-start !important;
+    align-items: center !important;
+    text-align: left !important;
+}
+sp-table-cell.preview,
+sp-table-cell.actions {
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+}
+
+/* Remove the extra inner empty space — drop the 20px horizontal padding on
+   Preview / Actions body cells so the icon sits flush at the cell's left
+   edge with no padding gap to its right. */
+sp-table-cell.preview,
+sp-table-cell.actions {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
 }
 
 #content sp-table-body {
@@ -499,8 +610,91 @@ mas-content {
     }
 }
 
+sp-table,
+sp-table[emphasized] {
+    border: 0 !important;
+    border-radius: 0 !important;
+}
+
+sp-table-body {
+    border-radius: 0 !important;
+    border-top: 0 !important;
+}
+
 sp-table-row {
+    box-sizing: border-box;
+    min-height: 68px;
     border-bottom: 1px solid var(--spectrum-gray-100);
+    background-color: #ffffff;
+    border-radius: 0;
+    transition: none !important;
+    --spectrum-table-cell-background-color: #ffffff;
+    --spectrum-table-cell-background-color-default: #ffffff;
+}
+
+sp-table-row,
+sp-table-row *,
+sp-table-cell,
+sp-table-cell * {
+    transition: none !important;
+}
+
+/* Strip every rounded corner inside a row — Spectrum's internal pseudo /
+   child elements draw the hover background and inherit a radius. */
+sp-table-row,
+sp-table-row::before,
+sp-table-row::after,
+sp-table-row *,
+sp-table-row *::before,
+sp-table-row *::after {
+    border-radius: 0 !important;
+}
+
+sp-table-row:hover {
+    background-color: var(--spectrum-gray-100, #e9e9e9);
+    --spectrum-table-cell-background-color: var(--spectrum-gray-100, #e9e9e9);
+    --spectrum-table-cell-background-color-hover: var(--spectrum-gray-100, #e9e9e9);
+}
+
+sp-table-row[selected] {
+    background-color: #ebeeff;
+    --spectrum-table-cell-background-color: #ebeeff;
+    --spectrum-table-cell-background-color-default: #ebeeff;
+    --spectrum-table-cell-background-color-selected: #ebeeff;
+}
+
+sp-table-row[selected]:hover {
+    background-color: #d8deff;
+    --spectrum-table-cell-background-color: #d8deff;
+    --spectrum-table-cell-background-color-hover: #d8deff;
+    --spectrum-table-cell-background-color-selected-hover: #d8deff;
+}
+
+/* Copy Offer ID button — selected-row state colours. */
+sp-table-row[selected] .copy-icon-button:hover {
+    background-color: #d8deff;
+}
+sp-table-row[selected] .copy-icon-button:hover .copy-icon {
+    color: var(--spectrum-gray-900, #131313);
+}
+sp-table-row[selected] .copy-icon-button:active {
+    background-color: #c0c9ff;
+}
+sp-table-row[selected] .copy-icon-button:active .copy-icon {
+    color: var(--spectrum-gray-900, #131313);
+}
+
+/* Actions menu button — selected-row state colours. */
+sp-table-row[selected] sp-table-cell.actions sp-action-menu {
+    --mod-actionbutton-background-color-hover: #d8deff;
+    --mod-actionbutton-background-color-down: #c0c9ff;
+    --mod-actionbutton-background-color-key-focus: #d8deff;
+}
+
+/* No bottom border on the very last data row (corner radius is applied on the
+   table body so it works regardless of which row sits last). */
+sp-table-body sp-table-row:last-child {
+    border-bottom: 0;
 }
 
 #content sp-table[emphasized] sp-table-body sp-table-row.fragment-group-header {
@@ -526,21 +720,56 @@ sp-table-row {
     border: none;
 }
 
+/* Figma error row — Alias/background/semantic/negative-subdued + #d73220 price text. */
 sp-table-row.price-failed {
-    background-color: var(--merch-color-error-background);
+    background-color: #ffebe8 !important;
+    --spectrum-table-cell-background-color: #ffebe8;
+    --spectrum-table-cell-background-color-default: #ffebe8;
+}
+
+sp-table-row.price-failed:hover {
+    /* One tone darker than negative-subdued/default. */
+    background-color: #ffd5d2 !important;
+    --spectrum-table-cell-background-color: #ffd5d2;
+    --spectrum-table-cell-background-color-hover: #ffd5d2;
+}
+
+sp-table-row.price-failed .price-error-title,
+sp-table-row.price-failed .price-error-icon,
+sp-table-cell.price .price-error-title,
+sp-table-cell.actions .price-error-icon {
+    color: #d73220 !important;
 }
 
 sp-table-cell {
+    box-sizing: border-box;
+    flex-basis: 0;
+    min-width: 0;
+    overflow: hidden;
     display: flex;
     align-items: center;
     justify-content: flex-start;
     padding: 16px 20px;
+    /* Figma Detail M: Adobe Clean Spectrum VF, 14px / 18px, Medium (500). */
+    font-family: 'Adobe Clean Spectrum VF', 'Adobe Clean', sans-serif;
+    font-size: 14px;
     line-height: 18px;
+    font-weight: 500;
+    color: var(--spectrum-gray-800, #292929);
+
+    /* Empty-cell placeholder hyphen — Figma Detail M, #222222. */
+    .cell-empty {
+        font-family: 'Adobe Clean Spectrum VF', 'Adobe Clean', sans-serif;
+        font-size: 14px;
+        line-height: 18px;
+        font-weight: 500;
+        color: #222222;
+    }
 
     &.expand-cell {
         justify-content: center;
-        max-width: 40px;
-        min-width: 40px;
+        max-width: 60px;
+        min-width: 60px;
 
         .expand-button {
             background: none;
@@ -572,6 +801,22 @@ sp-table-cell {
             height: 24px;
             object-fit: contain;
         }
+
+        /* Path text — Figma Detail M, clamped to 2 lines with ellipsis. */
+        .path-text {
+            flex: 1 1 0;
+            min-width: 0;
+            font-family: 'Adobe Clean Spectrum VF', 'Adobe Clean', sans-serif;
+            font-size: 14px;
+            line-height: 18px;
+            font-weight: 500;
+            color: #222222;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            word-break: break-all;
+        }
     }
 
     &.title {
@@ -591,16 +836,48 @@ sp-table-cell {
 
     &.price {
         flex-grow: var(--table-content-price-flex-grow);
+        /* Figma Detail M: Adobe Clean Spectrum VF, 14px / 18px, Medium (500), #222222. */
+        font-family: 'Adobe Clean Spectrum VF', 'Adobe Clean', sans-serif;
+        font-size: 14px;
+        line-height: 18px;
+        font-weight: 500;
+        color: #222222;
+
+        /* inline-price web component renders nested spans with font-weight 700;
+           force Medium on every descendant in this cell. */
+        span,
+        span[is='inline-price'],
+        .price,
+        .price-currency-symbol,
+        .price-currency-space,
+        .price-integer,
+        .price-decimals-delimiter,
+        .price-decimals,
+        .price-recurrence,
+        .price-unit-type,
+        .price-tax-inclusivity {
+            font-weight: 500 !important;
+            font-family: 'Adobe Clean Spectrum VF', 'Adobe Clean', sans-serif !important;
+            font-size: 14px !important;
+            line-height: 18px !important;
+            color: #222222 !important;
+        }
     }
 
     &.offer-id {
         flex-grow: var(--table-content-offer-id-flex-grow);
         gap: 8px;
 
+        /* Figma "Action button (M)" — 32×32 button, 8px radius,
+           6px padding, 20×20 icon. State colours per Figma. */
         .copy-icon-button {
-            background: none;
+            box-sizing: border-box;
+            width: 32px;
+            height: 32px;
+            padding: 6px;
+            border-radius: 8px !important;
+            background: transparent;
             border: none;
-            padding: 0;
             cursor: pointer;
             display: flex;
             align-items: center;
@@ -608,13 +885,25 @@ sp-table-cell {
             flex-shrink: 0;
 
             .copy-icon {
-                color: var(--spectrum-gray-600);
+                color: var(--spectrum-gray-800, #292929);
                 width: 20px;
                 height: 20px;
             }
 
+            /* Hover */
+            &:hover {
+                background-color: var(--spectrum-gray-200, #e1e1e1);
+            }
             &:hover .copy-icon {
-                color: var(--spectrum-gray-800);
+                color: var(--spectrum-gray-900, #131313);
+            }
+
+            /* Down (mouse active) */
+            &:active {
+                background-color: var(--spectrum-gray-300, #dadada);
+            }
+            &:active .copy-icon {
+                color: var(--spectrum-gray-900, #131313);
             }
         }
     }
@@ -623,26 +912,48 @@ sp-table-cell {
         flex-grow: var(--table-content-status-flex-grow);
         gap: 6px;
         justify-content: flex-start;
-        min-width: 100px;
 
         .status-dot {
             width: 8px;
             height: 8px;
-            border-radius: 50%;
+            border-radius: 50% !important;
             flex-shrink: 0;
         }
 
+        /* Status dot colours — Figma tokens. */
         &.new-cell .status-dot,
+        &.scheduled-cell .status-dot,
+        &.in-progress-cell .status-dot {
+            /* informative blue */
+            background-color: #4b75ff;
+        }
+
+        &.active-cell .status-dot,
+        &.completed-cell .status-dot,
+        &.published-cell .status-dot {
+            /* positive green */
+            background-color: #079355;
+        }
+
+        &.expired-cell .status-dot,
         &.draft-cell .status-dot {
-            background-color: var(--spectrum-blue-800);
+            /* non-semantic silver */
+            background-color: #808080;
+        }
+
+        &.archived-cell .status-dot {
+            /* non-semantic brown */
+            background-color: #9a7b4d;
+        }
+
+        &.unpublished-cell .status-dot {
+            /* negative red */
+            background-color: #f03823;
         }
 
         &.modified-cell .status-dot {
-            background-color: var(--spectrum-yellow-600);
-        }
-
-        &.published-cell .status-dot {
-            background-color: var(--spectrum-green-700);
+            /* non-semantic yellow */
+            background-color: #d29500;
         }
 
         &.unpublished-cell .status-dot {
@@ -655,16 +966,21 @@ sp-table-cell {
         justify-content: center;
 
         sp-action-menu {
+            /* Default state: transparent. */
             --mod-actionbutton-background-color-default: transparent;
+            /* Hover: gray-200. */
+            --mod-actionbutton-background-color-hover: #e1e1e1;
+            /* Down (mouse-down): gray-300. */
+            --mod-actionbutton-background-color-down: #dadada;
+            --mod-actionbutton-background-color-key-focus: #e1e1e1;
+            /* Disabled. */
+            --mod-actionbutton-background-color-disabled: transparent;
+            --mod-actionbutton-content-color-disabled: #c6c6c6;
 
             &::part(button) {
                 width: 32px;
                 height: 32px;
-                border-radius: 4px;
-            }
-
-            &:hover::part(button) {
-                background-color: #f8f8f8;
+                border-radius: 4px !important;
             }
         }
     }
@@ -672,7 +988,7 @@ sp-table-cell {
     &.preview {
         /* padding-right: 10px; */
         flex-grow: var(--table-content-preview-flex-grow);
-        justify-content: flex-end;
+        justify-content: center;
         cursor: pointer;
 
         sp-icon-preview {
@@ -685,18 +1001,60 @@ sp-table-cell {
 }
 
 sp-table-head-cell {
-    padding: 16px 20px;
-    background-color: var(--spectrum-gray-50);
+    box-sizing: border-box;
+    flex-basis: 0;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    /* Figma Title S head row: exactly 44px tall. */
+    height: 44px !important;
+    min-height: 44px !important;
+    max-height: 44px !important;
+    padding: 0 20px;
+    /* Figma Title S via Spectrum tokens — falls back to literal values. */
+    font-family: var(--spectrum-sans-font-family-stack, 'Adobe Clean Spectrum VF', 'Adobe Clean', sans-serif) !important;
+    font-size: var(--spectrum-font-size-100, 14px) !important;
+    line-height: var(--spectrum-line-height-100, 18px) !important;
+    font-weight: 700 !important;
+    background-color: var(--spectrum-gray-75, #f3f3f3);
     display: flex;
     align-items: center;
     justify-content: flex-start;
+}
 
+/* Sortable head cells wrap the label in a button — force the same typography
+   (Title S tokens) so the header looks identical to the non-sortable render. */
+sp-table-head-cell,
+sp-table-head-cell[sortable],
+sp-table-head-cell button,
+sp-table-head-cell *,
+sp-table-head-cell::part(button),
+sp-table-head-cell::part(label) {
+    font-family: var(--spectrum-sans-font-family-stack, 'Adobe Clean Spectrum VF', 'Adobe Clean', sans-serif) !important;
+    font-size: var(--spectrum-font-size-100, 14px) !important;
+    line-height: var(--spectrum-line-height-100, 18px) !important;
+    font-weight: 700 !important;
+}
+
+/* Header visibility gate — hide the sortable header row until Spectrum has
+   finished its async internal render. mas-content.#revealHeadersAfterReady()
+   adds .headers-ready once cells (and their shadow DOM) are stable, so the
+   final Title-S typography appears in one frame with no Bold->Medium flicker. */
+sp-table sp-table-head {
+    visibility: hidden;
+}
+sp-table.headers-ready sp-table-head {
+    visibility: visible;
+}
+
+sp-table-head-cell {
     &.expand-cell {
         /* padding-left: 12px;
         padding-right: 8px;
         flex-shrink: 0; */
-        max-width: 40px;
-        min-width: 40px;
+        max-width: 60px;
+        min-width: 60px;
         /* justify-content: center; */
     }
 
@@ -726,7 +1084,6 @@ sp-table-head-cell {
 
     &.status {
         flex-grow: var(--table-content-status-flex-grow);
-        min-width: 100px;
     }
 
     &.actions {
@@ -736,6 +1093,22 @@ sp-table-head-cell {
     &.preview {
         flex-grow: var(--table-content-preview-flex-grow);
     }
+}
+
+/* Header row border — continuous gray-300 outline. */
+sp-table-head sp-table-head-cell {
+    border-top: 1px solid var(--spectrum-gray-300, #dadada);
+    border-bottom: 1px solid var(--spectrum-gray-300, #dadada);
+}
+
+sp-table-head sp-table-head-cell:first-child {
+    border-top-left-radius: 12px;
+    border-left: 1px solid var(--spectrum-gray-300, #dadada);
+}
+
+sp-table-head sp-table-head-cell:last-child {
+    border-top-right-radius: 12px;
+    border-right: 1px solid var(--spectrum-gray-300, #dadada);
 }
 
 /* Splash styles */
@@ -908,9 +1281,11 @@ sp-underlay + sp-dialog {
     z-index: 9999;
     overflow: hidden;
     animation: fadeIn 0.2s ease;
-    /* Center vertically in viewport */
+    /* Center horizontally and vertically in the viewport. */
     top: 50% !important;
-    transform: translateY(-50%);
+    left: 50% !important;
+    right: auto !important;
+    transform: translate(-50%, -50%);
 }
 
 .preview-popover.position-left {
@@ -1057,6 +1432,23 @@ sp-progress-circle.preview {
     sp-table-cell.offer-id {
         word-break: break-all;
     }
+}
+
+/* Offer ID — display across at most 2 lines, ellipsis past that.
+   Hover underlines the text and switches to neutral/hover color. */
+sp-table-cell.offer-id .offer-id-text {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    word-break: break-all;
+    color: var(--spectrum-gray-800, #292929);
+    cursor: pointer;
+}
+
+sp-table-cell.offer-id .offer-id-text:hover {
+    text-decoration: underline;
+    color: var(--spectrum-gray-900, #131313);
 }
 
 .loading-container {

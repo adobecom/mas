@@ -12,7 +12,7 @@ permissions:
 
 jobs:
     label-trivial:
-        name: Detect readme-only changes
+        name: Detect trivial changes
         runs-on: ubuntu-latest
         steps:
             - name: Checkout repository
@@ -20,23 +20,11 @@ jobs:
               with:
                   fetch-depth: 0
 
-            - name: Check if PR only changes readme files
+            - name: Check if PR only changes trivial paths
               id: check
-              env:
-                  BASE_REF: ${{ github.event.pull_request.base.ref }}
-              run: |
-                  git fetch origin "${BASE_REF}"
-                  CHANGED=$(git diff --name-only "origin/${BASE_REF}...HEAD")
-                  if [ -z "$CHANGED" ]; then
-                      echo "trivial=false" >> "$GITHUB_OUTPUT"
-                  else
-                      NON_README=$(echo "$CHANGED" | grep -vE '^(.*\/)?[Rr][Ee][Aa][Dd][Mm][Ee]\.md$' || true)
-                      if [ -z "$NON_README" ]; then
-                          echo "trivial=true" >> "$GITHUB_OUTPUT"
-                      else
-                          echo "trivial=false" >> "$GITHUB_OUTPUT"
-                      fi
-                  fi
+              uses: ./.github/actions/detect-trivial
+              with:
+                  base-ref: ${{ github.event.pull_request.base.ref }}
 
             - name: Add trivial label
               if: steps.check.outputs.trivial == 'true'
@@ -44,10 +32,10 @@ jobs:
                   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
                   PR_NUMBER: ${{ github.event.pull_request.number }}
               run: |
-                  gh label create "trivial" --color "#e4e669" --description "PR only contains readme changes" --force
+                  gh label create "trivial" --color "#e4e669" --description "PR only contains trivial changes (docs, config, workflows)" --force
                   gh pr edit "$PR_NUMBER" --add-label "trivial"
 
-            - name: Remove trivial label if PR is no longer readme-only
+            - name: Remove trivial label if PR is no longer trivial
               if: steps.check.outputs.trivial == 'false'
               env:
                   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -16,25 +16,16 @@ jobs:
         name: Check Changed Paths
         runs-on: ubuntu-latest
         outputs:
-            readme-only: ${{ steps.filter.outputs.readme-only }}
+            is-trivial: ${{ steps.filter.outputs.trivial }}
         steps:
             - uses: actions/checkout@v4
               with:
                   fetch-depth: 0
-            - name: Detect README-only changes
+            - name: Detect trivial-only changes
               id: filter
-              env:
-                  BASE_REF: ${{ github.event.pull_request.base.ref }}
-              run: |
-                  git fetch origin "${BASE_REF}"
-                  changed=$(git diff --name-only "origin/${BASE_REF}...HEAD")
-                  if [ -z "$changed" ]; then
-                      echo "readme-only=false" >> "$GITHUB_OUTPUT"
-                  elif echo "$changed" | grep -qvE '^(.*\/)?[Rr][Ee][Aa][Dd][Mm][Ee]\.md$'; then
-                      echo "readme-only=false" >> "$GITHUB_OUTPUT"
-                  else
-                      echo "readme-only=true" >> "$GITHUB_OUTPUT"
-                  fi
+              uses: ./.github/actions/detect-trivial
+              with:
+                  base-ref: ${{ github.event.pull_request.base.ref }}
 
     nala-gate:
         name: Nala Gate
@@ -47,13 +38,13 @@ jobs:
               run: |
                   echo "::error::check-paths job did not succeed (result: ${{ needs.check-paths.result }})"
                   exit 1
-            - name: Pass gate for README-only PRs
-              if: needs.check-paths.outputs.readme-only == 'true'
-              run: echo "README-only PR — skipping Nala gate"
+            - name: Pass gate for trivial PRs
+              if: needs.check-paths.outputs.is-trivial == 'true'
+              run: echo "Trivial PR — skipping Nala gate"
             - name: Require 'run nala' label
-              # Bypass only via git-computed readme-only (check-paths), not the mutable 'trivial' label.
+              # Bypass only via git-computed is-trivial (check-paths), not the mutable 'trivial' label.
               if: |
-                  needs.check-paths.outputs.readme-only != 'true' &&
+                  needs.check-paths.outputs.is-trivial != 'true' &&
                   github.event.action != 'opened' &&
                   !contains(github.event.pull_request.labels.*.name, 'run nala')
               run: |
@@ -65,7 +56,7 @@ jobs:
         needs: [nala-gate, check-paths]
         if: |
             needs.nala-gate.result == 'success' &&
-            needs.check-paths.outputs.readme-only != 'true' &&
+            needs.check-paths.outputs.is-trivial != 'true' &&
             (github.event.action == 'opened' ||
             contains(github.event.pull_request.labels.*.name, 'run nala'))
         runs-on: [self-hosted, Linux, X64]
@@ -149,7 +140,7 @@ jobs:
         needs: [nala-gate, check-paths]
         if: |
             needs.nala-gate.result == 'success' &&
-            needs.check-paths.outputs.readme-only != 'true' &&
+            needs.check-paths.outputs.is-trivial != 'true' &&
             (github.event.action == 'opened' ||
             contains(github.event.pull_request.labels.*.name, 'run nala'))
         runs-on: [self-hosted, Linux, X64]

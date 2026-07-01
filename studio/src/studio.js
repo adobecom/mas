@@ -34,7 +34,7 @@ import './version-page.js';
 import StoreController from './reactivity/store-controller.js';
 import Store from './store.js';
 import router from './router.js';
-import { CONSUMER_FEATURE_FLAGS, PAGE_NAMES, WCS_ENV_PROD } from './constants.js';
+import { CONSUMER_FEATURE_FLAGS, PAGE_NAMES, PICKERS, WCS_ENV_PROD } from './constants.js';
 import './utils/price-error-handler.js';
 
 const BUCKET_TO_ENV = {
@@ -213,6 +213,13 @@ class MasStudio extends LitElement {
         return html`<mas-advanced-tools></mas-advanced-tools>`;
     }
 
+    get pickersToHide() {
+        if ([PAGE_NAMES.PROMOTIONS_EDITOR, PAGE_NAMES.PROMOTIONS].includes(this.page.value)) {
+            return [PICKERS.FOLDER, PICKERS.LOCALE];
+        }
+        return [];
+    }
+
     renderCommerceService() {
         const ffDefaults = CONSUMER_FEATURE_FLAGS[Store.surface()]?.['mas-ff-defaults'] ?? 'on';
         this.commerceService.outerHTML = `<mas-commerce-service env="${WCS_ENV_PROD}" locale="${Store.localeOrRegion()}" data-mas-ff-defaults="${ffDefaults}" preview="true"></mas-commerce-service>`;
@@ -244,7 +251,7 @@ class MasStudio extends LitElement {
     }
 
     get topNav() {
-        return html`<mas-top-nav aem-env="${this.aemEnv}" show-pickers></mas-top-nav>`;
+        return html`<mas-top-nav aem-env="${this.aemEnv}" .pickersToHide="${this.pickersToHide}"></mas-top-nav>`;
     }
 
     get sideNav() {

@@ -602,8 +602,10 @@ export class MiniCompareChart extends VariantLayout {
             this.shortDescriptionSource = bodyXxs;
             bodyXxs.remove();
         }
-        const text = this.shortDescriptionSource.textContent?.trim();
-        if (!text) return;
+        const source = this.shortDescriptionSource;
+        const text = source.textContent?.trim();
+        const hasIconButton = !!source.querySelector('.icon-button');
+        if (!text && !hasIconButton) return;
         const legalPrice = this.card.querySelector(
             '[slot="heading-m-price"] [data-template="legal"]',
         );
@@ -611,7 +613,7 @@ export class MiniCompareChart extends VariantLayout {
         if (!planType) return;
         if (planType.querySelector('em')) return;
         const em = document.createElement('em');
-        em.textContent = ` ${text}`;
+        em.innerHTML = ` ${source.innerHTML}`;
         planType.appendChild(em);
     }
 

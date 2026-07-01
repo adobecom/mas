@@ -97,7 +97,7 @@ const Store = {
         list: {
             loading: new ReactiveStore(true),
             data: new ReactiveStore([]),
-            filter: new ReactiveStore('scheduled'),
+            filter: new ReactiveStore('active'),
             filterOptions: new ReactiveStore([
                 { value: 'all', label: 'All' },
                 { value: 'draft', label: 'Draft' },
@@ -119,6 +119,7 @@ const Store = {
         cardsByPaths: new ReactiveStore(new Map()),
         displayCards: new ReactiveStore([]),
         selectedCards: new ReactiveStore([]),
+        selectedOffers: new ReactiveStore([]),
         offerDataCache: new Map(),
         groupedVariationsByParent: new ReactiveStore(new Map()),
         groupedVariationsData: new ReactiveStore(new Map()),

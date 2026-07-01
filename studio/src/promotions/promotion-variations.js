@@ -5,6 +5,7 @@ import { processConcurrently, VARIATIONS_CONCURRENCY_LIMIT } from '../common/uti
 import {
     buildPromoVariationPath,
     buildPromoVariationPathForTag,
+    getFragmentByPathOrNull,
     getPromoNameFromTag,
     getPromotionTagFromFragment,
     isPromoVariationPath,
@@ -38,7 +39,7 @@ export async function createPromoVariation(aem, sourceFragmentId, promoTagId) {
         throw new UserFriendlyError('Could not determine promo variation path from fragment path');
     }
 
-    const existingFragment = await aem.sites.cf.fragments.getByPath(targetPath).catch(() => null);
+    const existingFragment = await getFragmentByPathOrNull(aem.sites.cf.fragments, targetPath);
     if (existingFragment) {
         throw new UserFriendlyError('Promo variation already exists for this fragment in this promotion project.');
     }
@@ -102,7 +103,7 @@ export async function probePromoVariationReferences(aem, defaultPath, promotionP
             const tagId = getPromotionTagFromFragment(project);
             const targetPath = tagId ? buildPromoVariationPathForTag(defaultPath, tagId) : null;
             if (!targetPath) return null;
-            const variation = await aem.sites.cf.fragments.getByPath(targetPath).catch(() => null);
+            const variation = await getFragmentByPathOrNull(aem.sites.cf.fragments, targetPath);
             return variation?.id && variation?.path ? variation : null;
         },
         VARIATIONS_CONCURRENCY_LIMIT,
@@ -140,7 +141,7 @@ export async function resolveDefaultFragmentForPromoVariation(aem, promoVariatio
     if (!promoName) return null;
     const parentPath = resolveDefaultPathFromPromoVariation(promoVariationPath, promoName);
     if (!parentPath) return null;
-    return aem.sites.cf.fragments.getByPath(parentPath).catch(() => null);
+    return getFragmentByPathOrNull(aem.sites.cf.fragments, parentPath);
 }
 
 /**
@@ -162,7 +163,7 @@ export async function getUnpublishedAttachedPromoVariations(aem, promotionFragme
         async (parentPath) => {
             const variationPath = buildPromoVariationPathForTag(parentPath, promotionTagId);
             if (!variationPath) return null;
-            const variation = await aem.sites.cf.fragments.getByPath(variationPath).catch(() => null);
+            const variation = await getFragmentByPathOrNull(aem.sites.cf.fragments, variationPath);
             if (!variation) return null;
             if (variation.status === STATUS_PUBLISHED) return null;
             return {

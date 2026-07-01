@@ -403,7 +403,7 @@ export default {
                     original: 'yIcVsmjmQCHKQ-TvUJxH3-kop4ifvwoMBBzVg3qfaTg',
                     updated: 'r_JXAnlFI7xD6FxWKl2ODvZriLYBoSL701Kd1hRyhe8',
                 },
-                legalDisclaimer: 'per licenseAnnual, billed monthly',
+                legalDisclaimer: 'per license',
                 cardLegalDisclaimer: 'per license',
             },
             browserParams: '#page=fragment-editor&path=nala&fragmentId=',

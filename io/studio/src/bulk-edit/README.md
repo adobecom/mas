@@ -302,28 +302,13 @@ All three actions log via `@adobe/aio-sdk`'s `Core.Logger`, one JSON-stringified
 
 ### Finding these logs in Splunk
 
-Two separate log planes exist:
-
-1. **Action-emitted logs** (the `logger.*` calls above, i.e. this code's actual output) — MAS forwards these to **`splunk-us.corp.adobe.com`**, not the generic Adobe I/O Runtime Splunk Cloud instance most org-wide Runtime docs point to. Ask a MAS teammate or check onboarding docs for the current index/sourcetype if you don't already have it — treat `<mas-actions-index>` below as a placeholder, not a confirmed value.
-2. **Platform/system logs** (routing, activation lifecycle — not this code's output) — Splunk Enterprise at `splunk-adobeio.corp.adobe.com` (`app_ioruntime`), `index="adobeio_runtime"`, sourcetypes `controller`, `nginx`/`apigateway*`, `invoker-*`. 30-day retention. ([source: Runtime Ops - Logging](https://wiki.corp.adobe.com/spaces/AdobeCloudPlatform/pages/1393382896/Runtime+Ops+-+Logging))
-
-There is no MerchAtScaleStudio-specific saved search or dashboard as of this writing. Query shape once you have the real index:
+The `logger.*` calls above land in `splunk-us.corp.adobe.com`, index `adobeio_events_processing_nonprod` (or `_prod`). Example:
 
 ```spl
-# All bulk-edit-replace-worker activity for the namespace
-index="<mas-actions-index>" namespace="<mas-namespace>" action="*/MerchAtScaleStudio/bulk-edit-replace-worker*"
-
-# A specific job — jobId is embedded in the JSON log_message, not a top-level field
-index="<mas-actions-index>" namespace="<mas-namespace>" log_message="*<jobId>*"
-
-# Just the 429-cooldown events, to check whether Odin rate-limiting is happening
-index="<mas-actions-index>" namespace="<mas-namespace>" log_message="*bulk-edit-replace-429-cooldown*"
-
-# A known activation ID (from the action's HTTP response or `aio app logs`)
-index="<mas-actions-index>" activation_id="<activation-id>"
+index="adobeio_events_processing_nonprod" action="/14257-masstudio-yesil/MerchAtScaleStudio/bulk-edit-replace-worker"
 ```
 
-Find `<mas-namespace>` via `aio app info` or the `AIO_RUNTIME_NAMESPACE` value in `.env`. Runtime activation Splunk access is sometimes restricted to IO Runtime engineers/DevOps — if a query returns nothing and you believe logs exist, that may be an access-policy issue (log forwarding not enabled for the namespace) rather than missing data; file an IOEXT ticket with the namespace, action name, and timeframe.
+Add `"*<jobId>*"` or `"*bulk-edit-replace-429-cooldown*"` to narrow to a specific job or event.
 
 ---
 

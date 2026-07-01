@@ -4,6 +4,8 @@ const logger = Core.Logger('common', { level: 'info' });
 
 const DEFAULT_PACKAGE_NAME = 'MerchAtScaleStudio';
 const PATH_TOKENS = /\/content\/dam\/mas\/(?<surface>[\w-_]+)\/(?<parsedLocale>[\w-_]+)\/(?<fragmentPath>.+)/;
+const CARD_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ';
+const COLLECTION_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24';
 
 /**
  * Returns the target path for the given path and locale.
@@ -277,6 +279,7 @@ async function fetchOdin(
         ignoreErrors = [],
         max429Retries = 3,
         retryAfterFallbackSecs = 65,
+        userAgent = 'mas-translation-project',
         maxRetries = 1,
     } = {},
 ) {
@@ -284,7 +287,7 @@ async function fetchOdin(
     const path = `${odinEndpoint}${URI}`;
     const headers = {
         Authorization: `Bearer ${authToken}`,
-        'User-Agent': 'mas-translation-project',
+        'User-Agent': userAgent,
     };
     if (etag) {
         headers['If-Match'] = etag;
@@ -458,6 +461,8 @@ async function deleteFragmentById(odinEndpoint, fragmentId, authToken, etag) {
 
 module.exports = {
     DEFAULT_PACKAGE_NAME,
+    CARD_MODEL_ID,
+    COLLECTION_MODEL_ID,
     buildSiblingActionName,
     createRuntimeClient,
     fetchFragmentByPath,

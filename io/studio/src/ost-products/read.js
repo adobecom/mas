@@ -18,7 +18,7 @@ async function main({ __ow_headers }) {
         if (!(await authorize(__ow_headers))) {
             return {
                 statusCode: 401,
-                body: 'Unauthorized: Bearer token is missing or invalid',
+                body: 'Unauthorized. Bearer token is missing or invalid.',
             };
         }
         const state = await stateLib.init();

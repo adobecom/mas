@@ -4,7 +4,11 @@ import { styles as tableStyles } from '../common/components/mas-select-items-tab
 import { getItemsSelectionStore } from '../common/items-selection-store.js';
 import { loadSelectedFragments } from '../common/utils/items-loader.js';
 import { TABLE_TYPE, CARD_MODEL_PATH } from '../constants.js';
-import { getItemTypeLabel, shouldIgnoreRowClickForSelection } from '../common/utils/render-utils.js';
+import {
+    applySearchSurfaceFromPath,
+    getItemTypeLabel,
+    shouldIgnoreRowClickForSelection,
+} from '../common/utils/render-utils.js';
 import { closePreview, openPreview } from '../mas-card-preview.js';
 import router from '../router.js';
 import { extractLocaleFromPath, showToast } from '../utils.js';
@@ -738,6 +742,7 @@ class MasPromotionsItemsTable extends LitElement {
         if (promotionId) {
             Store.promotions.promotionId.set(promotionId);
         }
+        applySearchSurfaceFromPath(path);
         const locale = extractLocaleFromPath(path);
         await router.navigateToFragmentEditor(fragmentId, { locale });
         if (promotionId) {
@@ -749,6 +754,7 @@ class MasPromotionsItemsTable extends LitElement {
         e.stopPropagation();
         if (!item?.id || !item?.path) return;
         Store.promotions.promotionId.set(null);
+        applySearchSurfaceFromPath(item.path);
         const locale = extractLocaleFromPath(item.path);
         await router.navigateToFragmentEditor(item.id, { locale });
     }

@@ -1,6 +1,6 @@
 import Store from '../store.js';
 import { FragmentStore } from './fragment-store.js';
-import { previewStudioFragment } from 'fragment-client';
+import { previewStudioFragment } from '../../libs/fragment-client.js';
 import { Fragment } from '../aem/fragment.js';
 import { ODIN_PREVIEW_FRAGMENTS_URL } from '../constants.js';
 

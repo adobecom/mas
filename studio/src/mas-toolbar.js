@@ -6,8 +6,8 @@ import { buildCardsDeepLink, showToast } from './utils.js';
 import './mas-folder-picker.js';
 import './aem/mas-filter-panel.js';
 import './mas-selection-panel.js';
-import './mas-create-dialog.js';
 import './mas-copy-dialog.js';
+import Events from './events.js';
 
 const renderModes = [
     {
@@ -214,13 +214,22 @@ class MasToolbar extends LitElement {
         return this.shadowRoot.querySelector('sp-popover');
     }
 
-    selectContentType(type) {
+    async selectContentType(type) {
         this.selectedContentType = type;
         this.popover.open = false;
-        this.openCreateDialog();
+        await this.openCreateDialog();
     }
 
-    openCreateDialog() {
+    async openCreateDialog() {
+        if (!customElements.get('mas-create-dialog')) {
+            try {
+                await import('./mas-create-dialog.js');
+                this.requestUpdate();
+            } catch {
+                Events.toast.emit({ variant: 'negative', content: 'Failed to load create dialog' });
+                return;
+            }
+        }
         this.createDialogOpen = true;
     }
 

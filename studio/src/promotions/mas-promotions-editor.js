@@ -50,6 +50,7 @@ import {
 } from './promotion-publish-utils.js';
 import { renderFragmentStatusCell } from '../common/utils/render-utils.js';
 import { clearCaches } from '../../libs/fragment-client.js';
+import { canEditPromotions } from '../groups.js';
 
 function getPromotionPickerFragmentLabel(data) {
     const webComponentName = MODEL_WEB_COMPONENT_MAPPING[data?.model?.path];
@@ -242,18 +243,20 @@ class MasPromotionsEditor extends LitElement {
     }
 
     get canManagePromoCodes() {
+        if (!canEditPromotions()) return false;
         const geos = this.fragment?.getFieldValues('geos') ?? [];
         const hasOffers = Store.promotions.selectedOffers.value.length > 0 || Store.promotions.selectedCards.value.length > 0;
         return hasOffers && geos.length > 0;
     }
 
     get canManagePromoCodesInEmptyState() {
+        if (!canEditPromotions()) return false;
         const geos = this.fragment?.getFieldValues('geos') ?? [];
         return this.hasSelectedOffers && geos.length > 0;
     }
 
     get canEditPromotionItemsInEmptyState() {
-        return this.hasSelectedOffers;
+        return canEditPromotions() && this.hasSelectedOffers;
     }
 
     #mapPromotionOfferSelectorToRow(selectorId) {
@@ -801,6 +804,10 @@ class MasPromotionsEditor extends LitElement {
 
     get disabledPromotionQuickActions() {
         const disabled = new Set([QUICK_ACTION.LOCK]);
+        if (!canEditPromotions()) {
+            PROMOTION_QUICK_ACTIONS.forEach((action) => disabled.add(action));
+            return disabled;
+        }
         const publishOptions = this.#promotionPublishOptions;
         if (this.loadingPromotion) {
             PROMOTION_QUICK_ACTIONS.forEach((action) => disabled.add(action));
@@ -1055,7 +1062,7 @@ class MasPromotionsEditor extends LitElement {
     #renderPromotionOffersEmptyPanel() {
         return html`<div class="offers-empty-state">
             <div class="icon">
-                <sp-button variant="secondary" @click=${this.#openPromotionsOst}>
+                <sp-button variant="secondary" ?disabled=${!canEditPromotions()} @click=${this.#openPromotionsOst}>
                     <sp-icon-add size="xxl"></sp-icon-add>
                 </sp-button>
             </div>
@@ -1096,7 +1103,7 @@ class MasPromotionsEditor extends LitElement {
     #renderPromotionEmptyToolbarActions() {
         return html`
             ${this.promotionEmptyItemsTab === TABLE_TYPE.OFFERS
-                ? html`<sp-action-button quiet @click=${this.#openPromotionsOst}>
+                ? html`<sp-action-button quiet ?disabled=${!canEditPromotions()} @click=${this.#openPromotionsOst}>
                       <sp-icon-add slot="icon" label="Add offer"></sp-icon-add>
                       Add offer
                   </sp-action-button>`
@@ -1256,7 +1263,7 @@ class MasPromotionsEditor extends LitElement {
         if (this.fragment) {
             form = Object.fromEntries([...this.fragment.fields.map((f) => [f.name, f])]);
         }
-        const canOpenItemPicker = this.promotionPickerSurfaces.length > 0;
+        const canOpenItemPicker = canEditPromotions() && this.promotionPickerSurfaces.length > 0;
         return html`
             ${this.confirmDialog}
             ${this.duplicating
@@ -1409,7 +1416,11 @@ class MasPromotionsEditor extends LitElement {
                                       </h2>
                                       <div>
                                           ${this.selectedItemsViewTab === TABLE_TYPE.OFFERS
-                                              ? html`<sp-action-button quiet @click=${this.#openPromotionsOst}>
+                                              ? html`<sp-action-button
+                                                    quiet
+                                                    ?disabled=${!canEditPromotions()}
+                                                    @click=${this.#openPromotionsOst}
+                                                >
                                                     <sp-icon-add slot="icon" label="Add offer"></sp-icon-add>
                                                     Add offer
                                                 </sp-action-button>`

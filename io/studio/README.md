@@ -38,17 +38,17 @@ aio context -s <string_from_above_command>
 
 Ask a colleague for secret values and add them to your `.env` file:
 
-| Name | Description | Default | Required |
-| ---- | ----------- | ------- | -------- |
-| `ODIN_ENDPOINT` | AEM author API base URL | — | Local dev only¹ |
-| `AOS_URL` | Adobe OST service URL | — | Local dev only² |
-| `AOS_API_KEY` | Adobe OST service API key | — | Local dev only² |
-| `OST_WRITE_API_KEY` | API key used to authenticate inbound requests to `ost-products-write` | — | Local dev only² |
-| `TRANSLATION_JOB_PAYLOAD_TTL` | TTL in seconds for translation job payloads in the state store | `86400` (24 h) | No |
-| `TRANSLATION_PROJECT_SUMMARY_TTL` | TTL in seconds for translation project summaries in the state store | `2592000` (30 days) | No |
-| `WORKER_CONCURRENCY` | Max concurrent translation worker slots | `2` | No |
-| `BATCH_SIZE` | Fragments processed per batch in the translation worker | `2` | No |
-| `RPS_LIMIT` | Max Odin API requests per second in the translation worker | `2` | No |
+| Name                              | Description                                                           | Default             | Required        |
+| --------------------------------- | --------------------------------------------------------------------- | ------------------- | --------------- |
+| `ODIN_ENDPOINT`                   | AEM author API base URL                                               | —                   | Local dev only¹ |
+| `AOS_URL`                         | Adobe OST service URL                                                 | —                   | Local dev only² |
+| `AOS_API_KEY`                     | Adobe OST service API key                                             | —                   | Local dev only² |
+| `OST_WRITE_API_KEY`               | API key used to authenticate inbound requests to `ost-products-write` | —                   | Local dev only² |
+| `TRANSLATION_JOB_PAYLOAD_TTL`     | TTL in seconds for translation job payloads in the state store        | `86400` (24 h)      | No              |
+| `TRANSLATION_PROJECT_SUMMARY_TTL` | TTL in seconds for translation project summaries in the state store   | `2592000` (30 days) | No              |
+| `WORKER_CONCURRENCY`              | Max concurrent translation worker slots                               | `2`                 | No              |
+| `BATCH_SIZE`                      | Fragments processed per batch in the translation worker               | `2`                 | No              |
+| `RPS_LIMIT`                       | Max Odin API requests per second in the translation worker            | `2`                 | No              |
 
 ¹ For CI deployments, `ODIN_ENDPOINT` is set automatically from the target environment's `odin_bucket` (QA for PR deploys, stage/prod on merge), so it does **not** need to be present in the `.env` stored in Vault. Add it only for running the actions locally.
 
@@ -73,8 +73,8 @@ There is no QA fallback: if your personal Vault path is missing, the PR run fail
 
 Two repository-level GitHub secrets provide Vault access (set once, shared by every workflow — independent of team size):
 
-| Name              | Value             |
-| ----------------- | ----------------- |
+| Name              | Value               |
+| ----------------- | ------------------- |
 | `VAULT_ROLE_ID`   | AppRole `role_id`   |
 | `VAULT_SECRET_ID` | AppRole `secret_id` |
 
@@ -84,11 +84,11 @@ Beyond that, each developer who wants PR auto-deploy to their personal workspace
 
 Your personal workspace secrets live in Vault at `cloudtech_wcms/merch-at-scale/aio-studio/<gh_user_id>` (the path is lowercased and matches your GitHub username / personal workspace name). Seed it with the contents of your local `.env` and `.aio` files plus your namespace:
 
-| Field       | Value                                              |
-| ----------- | -------------------------------------------------- |
-| `env`       | contents of your local `.env` file                 |
-| `aio`       | contents of your local `.aio` file                 |
-| `namespace` | your `AIO_runtime_namespace` value (from `.env`)   |
+| Field       | Value                                            |
+| ----------- | ------------------------------------------------ |
+| `env`       | contents of your local `.env` file               |
+| `aio`       | contents of your local `.aio` file               |
+| `namespace` | your `AIO_runtime_namespace` value (from `.env`) |
 
 The field names are `env` and `aio` — **no leading dot**. The dot-prefixed filenames (`.env`, `.aio`) are produced by CI when it writes the files at deploy time; the Vault field name is just an identifier.
 
@@ -111,14 +111,14 @@ CI fetches secrets through the reusable composite action `.github/actions/vault-
 
 ### Inputs
 
-| Input               | Description                                                                          |
-| ------------------- | ------------------------------------------------------------------------------------ |
-| `role-id`           | AppRole `role_id` (from the `VAULT_ROLE_ID` GH secret)                                |
-| `secret-id`         | AppRole `secret_id` (from the `VAULT_SECRET_ID` GH secret)                            |
-| `path`              | Secret path relative to the `cloudtech_wcms` mount (lowercased before lookup)         |
-| `file-fields`       | Comma-separated `field=filename` pairs — written verbatim as files                    |
-| `env-fields`        | Comma-separated field names — exported as environment variables                       |
-| `working-directory` | Directory the `file-fields` files are written to (default: repo root)                 |
+| Input               | Description                                                                   |
+| ------------------- | ----------------------------------------------------------------------------- |
+| `role-id`           | AppRole `role_id` (from the `VAULT_ROLE_ID` GH secret)                        |
+| `secret-id`         | AppRole `secret_id` (from the `VAULT_SECRET_ID` GH secret)                    |
+| `path`              | Secret path relative to the `cloudtech_wcms` mount (lowercased before lookup) |
+| `file-fields`       | Comma-separated `field=filename` pairs — written verbatim as files            |
+| `env-fields`        | Comma-separated field names — exported as environment variables               |
+| `working-directory` | Directory the `file-fields` files are written to (default: repo root)         |
 
 At least one of `file-fields` / `env-fields` must be provided.
 
@@ -137,8 +137,8 @@ All fetched values — and the Vault token — are masked in the workflow logs.
       role-id: ${{ secrets.VAULT_ROLE_ID }}
       secret-id: ${{ secrets.VAULT_SECRET_ID }}
       path: merch-at-scale/aio-studio/<gh_user>
-      file-fields: env=.env,aio=.aio      # → io/studio/.env and io/studio/.aio
-      env-fields: namespace               # → $NAMESPACE
+      file-fields: env=.env,aio=.aio # → io/studio/.env and io/studio/.aio
+      env-fields: namespace # → $NAMESPACE
       working-directory: io/studio
 ```
 

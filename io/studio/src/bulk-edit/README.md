@@ -302,10 +302,10 @@ All three actions log via `@adobe/aio-sdk`'s `Core.Logger`, one JSON-stringified
 
 ### Finding these logs in Splunk
 
-Two separate log planes exist for any Adobe I/O Runtime action, including these:
+Two separate log planes exist for any Adobe I/O Runtime action, including these ([source: Runtime Ops - Logging](https://wiki.corp.adobe.com/spaces/AdobeCloudPlatform/pages/1393382896/Runtime+Ops+-+Logging)):
 
-1. **Action-emitted logs** (the `logger.*` calls above) — Runtime Splunk instance, `index="runtime_prod_ext"`. Fields include `namespace`, `action`, `activation_id` (underscore, not `activationId`), and `log_message` (the raw JSON line).
-2. **Platform/system logs** (routing, activation lifecycle, not this code's output) — `index="adobeio_runtime"` in the Adobe I/O Runtime Splunk app, sourcetypes `controller` and `nginx`.
+1. **Action-emitted logs** (the `logger.*` calls above, i.e. this code's actual output) — a separate **Splunk Cloud** instance at [adobeiort.splunkcloud.com](https://adobeiort.splunkcloud.com), `index="runtime_prod_ext"` (prod/beta namespaces) or `index="runtime_nonprod_ext"` (non-prod). **7-day retention.** Fields include `namespace`, `action`, `activation_id` (underscore, not `activationId`), and `log_message` (the raw JSON line).
+2. **Platform/system logs** (routing, activation lifecycle — not this code's output) — Splunk Enterprise at `splunk-adobeio.corp.adobe.com` (`app_ioruntime`), `index="adobeio_runtime"`, sourcetypes `controller`, `nginx`/`apigateway*`, `invoker-*`. **30-day retention.**
 
 There is no MerchAtScaleStudio-specific saved search or dashboard as of this writing — start from the generic Runtime index and narrow down:
 

@@ -15,8 +15,11 @@ import { transformer as customize } from '../../io/www/src/fragment/transformers
 import { clearPromoCache, transformer as promotions } from '../../io/www/src/fragment/transformers/promotions.js';
 import { transformer as mask } from '../../io/www/src/fragment/transformers/mask.js';
 import { ODIN_PREVIEW_FRAGMENTS_URL } from '../src/constants.js';
+import { transformer as wcs } from '../../io/www/src/fragment/transformers/wcs.js';
+import { loadConfiguration } from '../../io/www/src/fragment/utils/configuration.js';
+import { mark } from '../../io/www/src/fragment/utils/common.js';
 
-const PIPELINE = [fetchFragment, defaultLanguage, promotions, mask, customize, settings, replace, corrector];
+const PIPELINE = [fetchFragment, defaultLanguage, promotions, mask, customize, settings, replace, corrector, wcs];
 class LocaleStorageState {
     constructor() {        
     }
@@ -71,7 +74,9 @@ async function previewFragment(id, options) {
     const locale = serviceElement?.getAttribute('locale');
     const country = serviceElement?.getAttribute('country');
     let context = { ...DEFAULT_CONTEXT, locale, country, ...options, id, api_key: 'fragment-client' };
-    const initPromises = {};    
+    const initPromises = {};
+    const now = mark(context, 'config-check');
+    context = await loadConfiguration(context, now);
     const cachedMetadata = await getRequestMetadata(context);
     const metadataContext = extractContextFromMetadata(cachedMetadata);
     context = { ...context, ...metadataContext };

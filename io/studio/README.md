@@ -125,7 +125,7 @@ At least one of `file-fields` / `env-fields` must be provided.
 ### How secrets are exposed
 
 - **`file-fields`** → **files.** Each `field=filename` writes that field's value verbatim to `working-directory/filename`. Used for whole-file blobs (`env=.env,aio=.aio` recreates the `.env` and `.aio` files `aio app deploy` expects). Writing blobs to files avoids multi-line-env masking pitfalls.
-- **`env-fields`** → **environment variables.** Each field is exported to `$GITHUB_ENV` as a **masked** variable named after the field, **UPPERCASED**: `odin_bucket` → `$ODIN_BUCKET`, `aos_url` → `$AOS_URL`. Used for scalar values. These are available to **every subsequent step in the same job**. Because they are masked, they cannot be reliably passed to a *different* job via job outputs (GitHub empties masked outputs) — derive such values from a non-masked source instead (see the namespace note below).
+- **`env-fields`** → **environment variables.** Each field is exported to `$GITHUB_ENV` as a **masked** variable named after the field, **UPPERCASED**: `odin_bucket` → `$ODIN_BUCKET`, `aos_url` → `$AOS_URL`. Used for scalar values. These are available to **every subsequent step in the same job**. Because they are masked, they cannot be reliably passed to a _different_ job via job outputs (GitHub empties masked outputs) — derive such values from a non-masked source instead (see the namespace note below).
 
 All fetched values — and the Vault token — are masked in the workflow logs.
 

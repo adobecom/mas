@@ -39,7 +39,7 @@ class MasPromotions extends LitElement {
     constructor() {
         super();
 
-        this.filter = Store.promotions?.list?.filter?.get() || 'scheduled';
+        this.filter = Store.promotions?.list?.filter?.get() || 'active';
         this.filterOptions = Store.promotions?.list?.filterOptions?.get() || [];
         this.sortField = 'key';
         this.sortDirection = 'asc';

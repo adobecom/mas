@@ -21,10 +21,10 @@
  *   - Awaits `defaultLanguage` to resolve `defaultLocale` / `regionLocale`.
  *   - Hydrates ALL matched projects in parallel (for fragment OSI/promoCode data) and
  *     folder-searches their promo variations for `defaultLocale` and `regionLocale`.
- *   - Returns `{ activeProjects }` — array preserving the delivery listing (creation) order,
- *     which is the precedence order. Each project carries its own `defaultVariations` /
- *     `regionVariations` maps (keyed by fragmentPath). `customize` picks the first applicable
- *     project per fragment.
+ *   - Returns `{ activeProjects }` — seasonal promos (with endDate) first, then evergreen
+ *     promos (no endDate); folder order preserved within each group. Each project carries its
+ *     own `defaultVariations` / `regionVariations` maps (keyed by fragmentPath). `customize`
+ *     picks the first applicable project per fragment.
  *
  * **`process`** runs sequentially before `customize`:
  *   - For each active project, builds its own `promoMap` (OSI → promoCode) from its
@@ -32,7 +32,7 @@
  *   - Wildcard overrides (empty osis) are stored under the `'*'` key.
  *   - Places `context.promoProjects` (array of `{ project, promoMap, fragmentPaths }`).
  *   - `customize` walks this array per fragment and applies the first applicable
- *     project's variation / promoCode (folder order = priority).
+ *     project's variation / promoCode (seasonal-first, then folder order = priority).
  */
 import { FRAGMENT_URL_PREFIX, MAS_ROOT, PATH_TOKENS, odinReferences } from '../utils/paths.js';
 import { fetch, getRequestInfos, matchesGeo } from '../utils/common.js';
@@ -386,9 +386,11 @@ async function init(context) {
     const { locale, country } = context;
     const effectiveRegionLocale = resolvedRegionLocale ?? locale;
 
-    const matched = projects.filter((project) =>
-        matchesProject(project, { surface, locale, country, regionLocale: effectiveRegionLocale, instant }, context),
-    );
+    const matched = projects
+        .filter((project) =>
+            matchesProject(project, { surface, locale, country, regionLocale: effectiveRegionLocale, instant }, context),
+        )
+        .sort((a, b) => (a.endDate ? 0 : 1) - (b.endDate ? 0 : 1));
     if (!matched.length) return { status: 200, activeProjects: [] };
 
     log(

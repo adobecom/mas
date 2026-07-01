@@ -58,13 +58,6 @@ function load(overrides = {}) {
             patchToOdin: async (endpoint, id, authToken, patchBody, etag) => {
                 calls.patch.push({ id, patchBody, etag });
                 calls.patchAttempts = (calls.patchAttempts || 0) + 1;
-                if (overrides.patch429OncePerId) {
-                    calls.patch429Once = calls.patch429Once || new Set();
-                    if (!calls.patch429Once.has(id)) {
-                        calls.patch429Once.add(id);
-                        throw new Error(`PATCH request failed for fragment ${id}: 429: Too Many Requests`);
-                    }
-                }
                 if (overrides.patch429Always) {
                     throw new Error(`PATCH request failed for fragment ${id}: 429: Too Many Requests`);
                 }
@@ -134,59 +127,65 @@ function load(overrides = {}) {
 }
 
 describe('bulk-edit/replace-worker: patchOrThrow', () => {
-    beforeEach(() => {
-        delete require.cache[require.resolve('../../src/bulk-edit/replace-worker.js')];
-        sinon.stub(global, 'setTimeout').callsFake((fn) => {
-            fn();
-            return 1;
-        });
-    });
-
-    afterEach(() => {
-        sinon.restore();
-    });
-
-    it('retries PATCH on 429 and succeeds', async () => {
+    it('attempts once and trips the shared gate on a 429', async () => {
         let calls = 0;
         const patchToOdin = async () => {
             calls += 1;
-            if (calls === 1) {
-                return { success: false, error: 'PATCH request failed for fragment a: 429: Too Many Requests' };
-            }
-            return { success: true };
+            throw new Error('PATCH request failed for fragment a: 429: Too Many Requests');
         };
         const mod = proxyquire('../../src/bulk-edit/replace-worker.js', {
-            '../common.js': {
-                ...common,
-                patchToOdin,
-                '@noCallThru': true,
-            },
+            '../common.js': { ...common, patchToOdin, '@noCallThru': true },
             '@adobe/aio-sdk': { Core: { Logger: () => ({ info() {}, error() {}, warn() {} }) }, '@noCallThru': true },
         });
-        await mod.patchOrThrow('https://odin', 'a', 'token', [{ op: 'replace', path: '/x', value: 'y' }], 'etag-a');
-        expect(calls).to.equal(2);
-    });
-
-    it('does not retry non-429 PATCH failures', async () => {
-        let calls = 0;
-        const patchToOdin = async () => {
-            calls += 1;
-            return { success: false, error: 'PATCH request failed for fragment a: 500: Server Error' };
-        };
-        const mod = proxyquire('../../src/bulk-edit/replace-worker.js', {
-            '../common.js': {
-                ...common,
-                patchToOdin,
-                '@noCallThru': true,
-            },
-            '@adobe/aio-sdk': { Core: { Logger: () => ({ info() {}, error() {}, warn() {} }) }, '@noCallThru': true },
-        });
+        const gate = mod.createRateLimitGate();
         try {
-            await mod.patchOrThrow('https://odin', 'a', 'token', [], 'etag-a');
+            await mod.patchOrThrow('https://odin', 'a', 'token', [], 'etag-a', gate);
+            expect.fail('expected throw');
+        } catch (error) {
+            expect(calls).to.equal(1);
+            expect(error.message).to.include('429');
+        }
+        expect(gate.cooldownUntil).to.be.greaterThan(Date.now());
+    });
+
+    it('does not retry and does not trip the gate on a non-429 failure', async () => {
+        let calls = 0;
+        const patchToOdin = async () => {
+            calls += 1;
+            throw new Error('PATCH request failed for fragment a: 500: Server Error');
+        };
+        const mod = proxyquire('../../src/bulk-edit/replace-worker.js', {
+            '../common.js': { ...common, patchToOdin, '@noCallThru': true },
+            '@adobe/aio-sdk': { Core: { Logger: () => ({ info() {}, error() {}, warn() {} }) }, '@noCallThru': true },
+        });
+        const gate = mod.createRateLimitGate();
+        try {
+            await mod.patchOrThrow('https://odin', 'a', 'token', [], 'etag-a', gate);
             expect.fail('expected throw');
         } catch (error) {
             expect(calls).to.equal(1);
             expect(error.message).to.include('500');
+        }
+        expect(gate.cooldownUntil).to.equal(0);
+    });
+
+    it('a tripped gate makes the next call wait out the cooldown before attempting', async () => {
+        const setTimeoutStub = sinon.stub(global, 'setTimeout').callsFake((fn) => {
+            fn();
+            return 1;
+        });
+        try {
+            const mod = proxyquire('../../src/bulk-edit/replace-worker.js', {
+                '../common.js': { ...common, patchToOdin: async () => ({ success: true }), '@noCallThru': true },
+                '@adobe/aio-sdk': { Core: { Logger: () => ({ info() {}, error() {}, warn() {} }) }, '@noCallThru': true },
+            });
+            const gate = mod.createRateLimitGate();
+            mod.tripRateLimitGate(gate);
+            await mod.patchOrThrow('https://odin', 'a', 'token', [], 'etag-a', gate);
+            const delays = setTimeoutStub.getCalls().map((call) => call.args[1]);
+            expect(delays.some((ms) => ms >= 60000)).to.equal(true);
+        } finally {
+            setTimeoutStub.restore();
         }
     });
 });
@@ -313,47 +312,31 @@ describe('bulk-edit/replace-worker: runReplaceWorker', () => {
         expect(calls.patch).to.have.length(2);
     });
 
-    it('patchOrThrow retries 429 through the load stub', async () => {
-        sinon.stub(global, 'setTimeout').callsFake((fn) => {
-            fn();
-            return 1;
-        });
-        try {
-            const { mod, calls } = load({ patch429OncePerId: true });
-            await mod.patchOrThrow('https://odin', 'a', 'token', [{ op: 'replace', path: '/x', value: 'y' }], 'etag-a');
-            expect(calls.patchAttempts).to.equal(2);
-        } finally {
-            sinon.restore();
-        }
+    it('marks fragments FAILED on 429 without retrying (no doomed backoff attempts)', async () => {
+        const { mod, calls } = load({ patch429Always: true });
+        const result = await mod.runReplaceWorker('job1', { odinEndpoint: 'https://odin', runId: 'run1' });
+        expect(result.status).to.equal('DONE');
+        expect(result.failed).to.equal(2);
+        expect(calls.patchAttempts).to.equal(2);
     });
 
-    it('retries PATCH on 429 and completes successfully', async () => {
-        sinon.stub(global, 'setTimeout').callsFake((fn) => {
-            fn();
-            return 1;
-        });
-        try {
-            const { mod, calls } = load({ patch429OncePerId: true });
-            const result = await mod.runReplaceWorker('job1', { odinEndpoint: 'https://odin', runId: 'run1' });
-            expect(result.status).to.equal('DONE');
-            expect(result.succeeded).to.equal(2);
-            expect(calls.patchAttempts).to.equal(4);
-        } finally {
-            sinon.restore();
-        }
-    });
-
-    it('marks FAILED after exhausting PATCH 429 retries', async () => {
-        sinon.stub(global, 'setTimeout').callsFake((fn) => {
+    it('gates a later fragment instead of hammering Odin again after a 429', async () => {
+        const delays = [];
+        sinon.stub(global, 'setTimeout').callsFake((fn, ms) => {
+            delays.push(ms);
             fn();
             return 1;
         });
         try {
             const { mod, calls } = load({ patch429Always: true });
-            const result = await mod.runReplaceWorker('job1', { odinEndpoint: 'https://odin', runId: 'run1' });
-            expect(result.status).to.equal('DONE');
+            const result = await mod.runReplaceWorker('job1', {
+                odinEndpoint: 'https://odin',
+                runId: 'run1',
+                params: { batchSize: '1' },
+            });
             expect(result.failed).to.equal(2);
-            expect(calls.patchAttempts).to.equal(10);
+            expect(calls.patchAttempts).to.equal(2);
+            expect(delays.some((ms) => ms >= 60000)).to.equal(true);
         } finally {
             sinon.restore();
         }

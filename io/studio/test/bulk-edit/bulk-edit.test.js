@@ -706,6 +706,36 @@ describe('bulk-edit: handleReplaceGet', () => {
         expect(ctx.files.write.callCount).to.be.greaterThan(0);
         expect(res.body.exports.json).to.equal(`https://files.example/${jobId}.json`);
     });
+    it('reports done:true, touches the cache, and includes the report for a CANCELLED replace job', async () => {
+        const job = {
+            type: 'replace',
+            dryRun: false,
+            status: 'CANCELLED',
+            exportReady: true,
+            processed: 1,
+            succeeded: 1,
+            skipped: 0,
+            failed: 0,
+            conflicts: 0,
+            total: 2,
+            results: [],
+        };
+        const ctx = load({ existing: job });
+        ctx.readReport.resolves({ dryRun: false, totalFragments: 1 });
+        const res = await ctx.mod.handleGet({ jobId: 'replace.x.live.y' });
+        expect(res.body.done).to.equal(true);
+        expect(res.body.report.totalFragments).to.equal(1);
+        expect(ctx.touchJobCache.calledOnce).to.equal(true);
+    });
+    it('resolves the export URL for a CANCELLED replace job', async () => {
+        const jobId = 'replace.x.live.y';
+        const job = { type: 'replace', dryRun: false, status: 'CANCELLED', exportReady: true, results: [] };
+        const ctx = load({ existing: job, seedExports: false });
+        ctx.writes[`private/bulk-edit/${jobId}.json`] = JSON.stringify({ items: [] });
+        ctx.readReport.resolves({ dryRun: false, totalFragments: 0 });
+        const res = await ctx.mod.handleGet({ jobId });
+        expect(res.body.exports).to.deep.equal({ json: `https://files.example/${jobId}.json` });
+    });
 });
 
 describe('bulk-edit: resolveFindSourceItems', () => {

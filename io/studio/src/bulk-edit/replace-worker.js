@@ -24,12 +24,40 @@ const logger = Core.Logger('bulk-edit-replace-worker', { level: 'info' });
 const WORKER_ACTION = 'bulk-edit-replace-worker';
 const DEFAULT_BATCH_SIZE = 10;
 const DEFAULT_SOFT_BUDGET_MS = 25 * 60 * 1000;
-const PATCH_429_MAX_RETRIES = 5;
-const PATCH_429_BASE_DELAY_MS = 1000;
-const PATCH_429_MAX_DELAY_MS = 30000;
+const ODIN_429_COOLDOWN_MS = 60000;
+const ODIN_429_JITTER_MS = 5000;
 
 function sleep(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// Odin enforces a static ~60s cooldown once it starts 429ing a client. A per-fragment retry loop
+// with its own backoff always lands inside that window and just burns attempts; worse, a batch of
+// concurrent fragments all discover the 429 independently and all retry in lockstep. This gate is
+// shared across one worker invocation's fragments so the first 429 makes everyone else wait out
+// the real cooldown instead of re-tripping it.
+function createRateLimitGate() {
+    return { cooldownUntil: 0 };
+}
+
+async function awaitRateLimitGate(gate) {
+    const wait = gate.cooldownUntil - Date.now();
+    if (wait > 0) await sleep(wait);
+}
+
+function tripRateLimitGate(gate) {
+    const cooldown = Date.now() + ODIN_429_COOLDOWN_MS + Math.floor(Math.random() * ODIN_429_JITTER_MS);
+    gate.cooldownUntil = Math.max(gate.cooldownUntil, cooldown);
+}
+
+async function runGated(gate, fn) {
+    await awaitRateLimitGate(gate);
+    try {
+        return await fn();
+    } catch (error) {
+        if (isOdinRateLimitError(error)) tripRateLimitGate(gate);
+        throw error;
+    }
 }
 
 function countCounters(results) {
@@ -104,35 +132,18 @@ function etagMismatchResult(item, csvEtag, serverEtag) {
     });
 }
 
-async function patchOrThrow(odinEndpoint, id, authToken, patchBody, etag) {
-    let lastError;
-    for (let attempt = 1; attempt <= PATCH_429_MAX_RETRIES; attempt++) {
-        try {
-            const res = await patchToOdin(odinEndpoint, id, authToken, patchBody, etag);
-            if (!res.success) throw new Error(res.error || `PATCH failed for ${id}`);
-            return;
-        } catch (error) {
-            lastError = error;
-            if (!isOdinRateLimitError(error) || attempt === PATCH_429_MAX_RETRIES) throw error;
-            const delayMs = Math.min(PATCH_429_BASE_DELAY_MS * 2 ** (attempt - 1), PATCH_429_MAX_DELAY_MS);
-            logger.warn(
-                JSON.stringify({
-                    event: 'bulk-edit-replace-patch-429',
-                    fragmentId: id,
-                    attempt,
-                    maxAttempts: PATCH_429_MAX_RETRIES,
-                    delayMs,
-                }),
-            );
-            await sleep(delayMs);
-        }
-    }
-    throw lastError;
+async function patchOrThrow(odinEndpoint, id, authToken, patchBody, etag, gate = createRateLimitGate()) {
+    await runGated(gate, async () => {
+        const res = await patchToOdin(odinEndpoint, id, authToken, patchBody, etag);
+        if (!res.success) throw new Error(res.error || `PATCH failed for ${id}`);
+    });
 }
 
-async function processFragment(item, { odinEndpoint, authToken, matchCase, dryRun }) {
+async function processFragment(item, { odinEndpoint, authToken, matchCase, dryRun, gate = createRateLimitGate() }) {
     try {
-        const { fragment, etag: serverEtag } = await getFragmentWithEtag(odinEndpoint, item.id, authToken);
+        const { fragment, etag: serverEtag } = await runGated(gate, () =>
+            getFragmentWithEtag(odinEndpoint, item.id, authToken),
+        );
         const csvEtag = item.etag;
         if (normalizeEtag(serverEtag) !== normalizeEtag(csvEtag)) {
             return etagMismatchResult(item, csvEtag, serverEtag);
@@ -143,7 +154,7 @@ async function processFragment(item, { odinEndpoint, authToken, matchCase, dryRu
         if (dryRun) return buildDryRunResult(item, fragment, applied);
 
         try {
-            await patchOrThrow(odinEndpoint, item.id, authToken, applied.patches, csvEtag);
+            await patchOrThrow(odinEndpoint, item.id, authToken, applied.patches, csvEtag, gate);
             return buildResult(item, 'REPLACED');
         } catch (error) {
             if (isConflict(error)) return etagMismatchResult(item, csvEtag, serverEtag);
@@ -217,6 +228,7 @@ async function runReplaceWorker(jobId, { odinEndpoint, authToken, runId, params 
 
     let results = job.results || [];
     let cursor = job.cursor || 0;
+    const gate = createRateLimitGate();
     logger.info(JSON.stringify({ event: 'bulk-edit-replace-worker-start', jobId, total: items.length, dryRun, cursor }));
 
     try {
@@ -225,7 +237,7 @@ async function runReplaceWorker(jobId, { odinEndpoint, authToken, runId, params 
             const batch = items.slice(i, i + batchSize);
 
             const batchResults = await Promise.all(
-                batch.map((item) => processFragment(item, { odinEndpoint, authToken, matchCase, dryRun })),
+                batch.map((item) => processFragment(item, { odinEndpoint, authToken, matchCase, dryRun, gate })),
             );
             results = [...results, ...batchResults];
             cursor = i + batch.length;
@@ -315,5 +327,7 @@ module.exports = {
     etagMismatchResult,
     finalizeReplaceExport,
     patchOrThrow,
+    createRateLimitGate,
+    tripRateLimitGate,
 };
 exports.main = main;

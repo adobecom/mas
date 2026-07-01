@@ -35,18 +35,8 @@ const logger = Core.Logger('bulk-edit', { level: 'info' });
 const WORKER_ACTIONS = { find: 'bulk-edit-find-worker', replace: 'bulk-edit-replace-worker' };
 const REQUIRED_INPUTS = { find: ['find', 'replace', 'surface'], replace: ['findJobId'] };
 const TERMINAL_STATUSES = new Set(['DONE', 'CANCELLED']);
-const DEFAULT_PAGE_LIMIT = 50;
-const MAX_PAGE_LIMIT = 50;
 const EXPORT_ROOT = 'private/bulk-edit';
 const PRESIGN_TTL_SECONDS = 24 * 60 * 60;
-
-function parsePageParams(params) {
-    const offset = Math.max(0, Number.parseInt(params.offset, 10) || 0);
-    let limit = Number.parseInt(params.limit, 10);
-    if (!Number.isFinite(limit) || limit <= 0) limit = DEFAULT_PAGE_LIMIT;
-    if (limit > MAX_PAGE_LIMIT) limit = MAX_PAGE_LIMIT;
-    return { offset, limit };
-}
 
 function buildFindReport(results) {
     const byLocale = {};
@@ -321,8 +311,6 @@ async function handlePost(params) {
     return { statusCode: 202, body: { jobId, reused: false } };
 }
 
-const TERMINAL_REPLACE_STATUSES = new Set(['DONE']);
-
 async function handleReplacePost(params, authToken) {
     if (!(await isAllowed(authToken, params.allowedClientId))) {
         return errorResponse(401, 'Authorization failed', logger);
@@ -360,7 +348,7 @@ async function handleReplacePost(params, authToken) {
     });
 
     const existing = await readJob(jobId);
-    if (existing && !existing.cancelled && (existing.status === 'RUNNING' || TERMINAL_REPLACE_STATUSES.has(existing.status))) {
+    if (existing && !existing.cancelled && (existing.status === 'RUNNING' || existing.status === 'DONE')) {
         return { statusCode: 202, body: { jobId, reused: true, dryRun } };
     }
 
@@ -393,12 +381,11 @@ async function handleReplacePost(params, authToken) {
 }
 
 function isJobTerminalForDownload(job) {
-    if (job.type === 'replace') return job.status === 'DONE';
     return TERMINAL_STATUSES.has(job.status);
 }
 
 async function buildProgressResponse(jobId, job, extras = {}) {
-    const done = job.type === 'replace' ? TERMINAL_REPLACE_STATUSES.has(job.status) : TERMINAL_STATUSES.has(job.status);
+    const done = TERMINAL_STATUSES.has(job.status);
     const body = {
         jobId,
         type: job.type || 'find',
@@ -425,14 +412,7 @@ async function buildProgressResponse(jobId, job, extras = {}) {
 }
 
 function isTerminalJob(job) {
-    if (job.type === 'replace') return TERMINAL_REPLACE_STATUSES.has(job.status);
     return TERMINAL_STATUSES.has(job.status);
-}
-
-async function resolveJobResultItems(jobId, job) {
-    if (job.results?.length) return job.results;
-    if (job.exportReady) return readExportItems(jobId);
-    return [];
 }
 
 async function resolveExportUrls(jobId, job) {
@@ -607,7 +587,7 @@ async function handleCsvDelete(params) {
 }
 
 async function handleReplaceGet(job, jobId) {
-    const report = job.status === 'DONE' ? await readReport(jobId) : null;
+    const report = TERMINAL_STATUSES.has(job.status) ? await readReport(jobId) : null;
     return buildProgressResponse(jobId, job, { report });
 }
 
@@ -762,7 +742,6 @@ module.exports = {
     resolveReplaceSourceItems,
     isTerminalJob,
     buildProgressResponse,
-    resolveJobResultItems,
     isJobTerminalForDownload,
     buildFindReport,
     canonicalSearchKey,
@@ -772,9 +751,6 @@ module.exports = {
     normalizeSearchInKey,
     normalizeLocalesKey,
     isForceRefresh,
-    parsePageParams,
-    DEFAULT_PAGE_LIMIT,
-    MAX_PAGE_LIMIT,
     WORKER_ACTIONS,
     EXPORT_ROOT,
     PRESIGN_TTL_SECONDS,

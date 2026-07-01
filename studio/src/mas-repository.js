@@ -687,6 +687,15 @@ export class MasRepository extends LitElement {
                     resolvedLocale = canSyncLocale ? fragmentLocale || locale : locale;
                     resolvedPath = canSyncSurface ? fragmentSurface || path : path;
                     applyCorrectorToFragment(displayFragment, fragmentSurface);
+                    displayFragment = await promotionsRepository.mergePromoReferencesIntoFragmentData(
+                        this.aem,
+                        displayFragment,
+                        () => this.loadPromotions(),
+                    );
+                    if (this.#abortControllers.search !== searchController) {
+                        Store.fragments.list.loading.set(false);
+                        return;
+                    }
                     const fragment = await this.#addToCache(displayFragment);
                     const sourceStore = generateFragmentStore(fragment, null, { lazy: true });
                     dataStore.set(this.#applyFragmentListFilters([sourceStore]));
@@ -731,9 +740,33 @@ export class MasRepository extends LitElement {
                 Store.fragments.expandedId.set(null);
                 Store.fragments.highlightedVariationId.set(null);
                 Store.fragments.variationSearchTab.set(null);
-                const cursor = await this.aem.sites.cf.fragments.search(localSearch, null, this.#abortControllers.search);
                 const surface = path?.split('/').filter(Boolean)[0]?.toLowerCase();
                 const fragmentStores = [];
+                if (lowerClientQuery.trim().includes(' ')) {
+                    // first try to find the card that matches the full query
+                    const reducedQuery = localSearch.query;
+                    localSearch.query = lowerClientQuery;
+                    const cursorExact = await this.aem.sites.cf.fragments.search(
+                        localSearch,
+                        null,
+                        this.#abortControllers.search,
+                    );
+                    await this.#fillPage(
+                        cursorExact,
+                        variants,
+                        contentTypes,
+                        surface,
+                        fragmentStores,
+                        lowerClientQuery,
+                        searchController.signal,
+                    );
+                    Store.fragments.list.data.set([...this.#applyFragmentListFilters(fragmentStores)]);
+                    Store.fragments.list.firstPageLoaded.set(true);
+                    // then load cards that contain the longest word and do the filtering
+                    localSearch.query = reducedQuery;
+                }
+
+                const cursor = await this.aem.sites.cf.fragments.search(localSearch, null, this.#abortControllers.search);
                 const done = await this.#fillPage(
                     cursor,
                     variants,
@@ -813,18 +846,50 @@ export class MasRepository extends LitElement {
      */
     static MAX_REFILL_ROUNDS = 20;
 
+    /**
+     * If card content matches the query in exact order the card will be displayed in top results
+     * If card content contains all words from the query in at least one field, in any order
+     * the card will be displayed after top results.
+     */
+    #queryMatches(query, item) {
+        if (!query) return { exact: false };
+
+        const haystack = this.#queryHaystack(item);
+        if (haystack.includes(query)) {
+            return { exact: true };
+        }
+
+        const queryArray = query.split(' ');
+        const match = haystack.split('\n').some((hs) => queryArray.every((q) => hs.includes(q)));
+        if (match) {
+            return { exact: false };
+        }
+
+        return null;
+    }
+
     async #fillPage(cursor, variants, contentTypes, surface, fragmentStores, lowerClientQuery, signal) {
         if (signal?.aborted) return false;
         const page = await cursor.next();
         if (page.done) return true;
+        const fgStores = [];
         for await (const item of page.value) {
             if (this.#skipVariant(variants, item)) continue;
             if (!matchesContentTypeFilter(contentTypes, item)) continue;
-            if (this.#skipQuery(lowerClientQuery, item)) continue;
+            const match = this.#queryMatches(lowerClientQuery, item);
+            if (!match) continue;
             applyCorrectorToFragment(item, surface);
-            const fragment = await this.#addToCache(item);
-            fragmentStores.push(generateFragmentStore(fragment, null, { lazy: true }));
+            if (!fragmentStores.some((f) => f.value.id === item.id)) {
+                const fragment = await this.#addToCache(item);
+                const fgStore = generateFragmentStore(fragment, null, { lazy: true });
+                if (match.exact) {
+                    fgStores.unshift(fgStore);
+                } else {
+                    fgStores.push(fgStore);
+                }
+            }
         }
+        fragmentStores.push(...fgStores);
         return false;
     }
 
@@ -1883,7 +1948,7 @@ export class MasRepository extends LitElement {
         if (tab === VARIATION_SEARCH_TABS.PROMOTION) {
             const parentPath = resolvePromoVariationParentPath(path);
             if (!parentPath) return null;
-            return await this.aem.sites.cf.fragments.getByPath(parentPath);
+            return await this.aem.sites.cf.fragments.getByPath(parentPath, { references: 'direct-hydrated' });
         }
         if (tab === VARIATION_SEARCH_TABS.LOCALE) {
             const parentPath = resolveLocaleVariationParentPath(path);

@@ -40,6 +40,25 @@ application:
                         function: src/members/list.js
                         web: 'yes'
                         runtime: nodejs:22
+                    bulk-edit-find:
+                        function: src/bulk-edit/bulk-edit.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        inputs:
+                            bulkEditMode: find
+                        annotations:
+                            require-adobe-auth: false
+                            final: true
+                    bulk-edit-find-worker:
+                        function: src/bulk-edit/find-worker.js
+                        runtime: nodejs:22
+                        inputs:
+                            odinEndpoint: $ODIN_ENDPOINT
+                        limits:
+                            timeout: 3600000 # ms — 60 min (async worker max 3 h)
+                        annotations:
+                            require-adobe-auth: false
+                            final: true
                     translation-project-start:
                         function: src/translation/project-start.js
                         web: 'yes'

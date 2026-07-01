@@ -48,6 +48,21 @@ if (keyPath && certPath) {
 function requestHandler(req, res) {
     const { method, headers, url } = req;
 
+    if (method === 'GET' && url === '/__studio__/health') {
+        res.writeHead(200, {
+            'content-type': 'application/json',
+            ...corsHeaders,
+        });
+        res.end(
+            JSON.stringify({
+                port: serverPort,
+                protocol: serverProtocol,
+                targetOrigin,
+            }),
+        );
+        return;
+    }
+
     if (method === 'OPTIONS') {
         // Handle OPTIONS request directly
         res.writeHead(200, {

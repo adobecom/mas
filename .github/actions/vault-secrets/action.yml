@@ -48,14 +48,15 @@ runs:
                   [ -z "$p" ] && continue
                   key="${p%%=*}"
                   upper=$(printf '%s' "$key" | tr '[:lower:]' '[:upper:]')
-                  mapping+="$base $key | VAULT_FILE_$upper"$'\n'
+                  # vault-action separates entries with ';', not newlines
+                  mapping+="$base $key | VAULT_FILE_$upper ;"$'\n'
               done
 
               IFS=',' read -ra ef <<< "$ENV_FIELDS" || true
               for key in "${ef[@]:-}"; do
                   [ -z "$key" ] && continue
                   upper=$(printf '%s' "$key" | tr '[:lower:]' '[:upper:]')
-                  mapping+="$base $key | $upper"$'\n'
+                  mapping+="$base $key | $upper ;"$'\n'
               done
 
               if [ -z "$mapping" ]; then

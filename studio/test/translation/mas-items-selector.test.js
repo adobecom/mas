@@ -604,6 +604,50 @@ describe('MasItemsSelector', () => {
             expect(toast.variant).to.equal('negative');
         });
 
+        it('shows a "Fragment not found." message when a fragment is not found', async () => {
+            const uuid = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
+            mockRepository.aem.sites.cf.fragments.getById.rejects(
+                Object.assign(new Error('Not found'), { response: { status: 404 } }),
+            );
+
+            const el = await fixture(html`<mas-items-selector></mas-items-selector>`);
+            await importViaUrl(el, COPY_CODE_URL(uuid));
+
+            const status = el.shadowRoot.querySelector('.import-item-status.status-error');
+            expect(status.textContent).to.match(/Fragment not found\./);
+        });
+
+        it('shows a warning suggesting to cancel or proceed with valid items only when some items are invalid', async () => {
+            const validUuid = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
+            const invalidUuid = '11111111-2222-3333-4444-555555555555';
+            const card = mockCard('/content/dam/mas/sandbox/en_US/test-card', validUuid);
+            mockRepository.aem.sites.cf.fragments.getById
+                .withArgs(validUuid)
+                .resolves(card)
+                .withArgs(invalidUuid)
+                .rejects(Object.assign(new Error('Not found'), { response: { status: 404 } }));
+
+            const el = await fixture(html`<mas-items-selector></mas-items-selector>`);
+            await importViaUrl(el, `${COPY_CODE_URL(validUuid)} ${COPY_CODE_URL(invalidUuid)}`);
+
+            const warning = el.shadowRoot.querySelector('.import-invalid-warning');
+            expect(warning).to.exist;
+            expect(warning.textContent).to.match(/1.*invalid/i);
+            expect(warning.textContent).to.match(/cancel/i);
+            expect(warning.textContent).to.match(/valid/i);
+        });
+
+        it('does not show the invalid-items warning when every pasted item is valid', async () => {
+            const uuid = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
+            const card = mockCard('/content/dam/mas/sandbox/en_US/test-card', uuid);
+            mockRepository.aem.sites.cf.fragments.getById.resolves(card);
+
+            const el = await fixture(html`<mas-items-selector></mas-items-selector>`);
+            await importViaUrl(el, COPY_CODE_URL(uuid));
+
+            expect(el.shadowRoot.querySelector('.import-invalid-warning')).to.not.exist;
+        });
+
         it('adds all fragments when multiple copy-code URLs are pasted (space-separated)', async () => {
             const uuid1 = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
             const uuid2 = '11111111-2222-3333-4444-555555555555';
@@ -633,6 +677,37 @@ describe('MasItemsSelector', () => {
             expect(toast.open).to.be.true;
             expect(toast.variant).to.equal('positive');
             expect(toast.textContent).to.match(/2.*fragment/i);
+        });
+
+        it('marks the item invalid and does not select it when the fragment surface does not match the project surface', async () => {
+            const uuid = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
+            const card = mockCard('/content/dam/mas/nala/en_US/test-card', uuid);
+            mockRepository.aem.sites.cf.fragments.getById.resolves(card);
+
+            const el = await fixture(html`<mas-items-selector restrict-import-surface="sandbox"></mas-items-selector>`);
+            await importViaUrl(el, COPY_CODE_URL(uuid));
+
+            expect(el.importedUrls[0].status).to.equal('error');
+            expect(Store.translationProjects.selectedCards.get()).to.not.include(card.path);
+
+            const status = el.shadowRoot.querySelector('.import-item-status.status-error');
+            expect(status.textContent).to.match(/Nala not allowed here\./);
+
+            const link = el.shadowRoot.querySelector('.import-item-row a');
+            expect(el.importedUrls[0].path).to.equal(card.path);
+            expect(link.textContent.trim()).to.not.equal(COPY_CODE_URL(uuid));
+        });
+
+        it('allows a fragment whose surface matches the project surface', async () => {
+            const uuid = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
+            const card = mockCard('/content/dam/mas/sandbox/en_US/test-card', uuid);
+            mockRepository.aem.sites.cf.fragments.getById.resolves(card);
+
+            const el = await fixture(html`<mas-items-selector restrict-import-surface="sandbox"></mas-items-selector>`);
+            await importViaUrl(el, COPY_CODE_URL(uuid));
+
+            expect(el.importedUrls[0].status).to.equal('valid');
+            expect(Store.translationProjects.selectedCards.get()).to.include(card.path);
         });
 
         it('adds a collection when a merch-card-collection URL is pasted', async () => {
@@ -809,6 +884,112 @@ describe('MasItemsSelector', () => {
             expect(Store.translationProjects.selectedCards.get()).to.have.length(1);
         });
 
+        it('shows an "Already added" toast when pasting a URL that was already imported', async () => {
+            const uuid = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
+            const card = mockCard('/content/dam/mas/sandbox/en_US/test-card', uuid);
+            mockRepository.aem.sites.cf.fragments.getById.resolves(card);
+
+            const el = await fixture(html`<mas-items-selector></mas-items-selector>`);
+            await importViaUrl(el, COPY_CODE_URL(uuid));
+            await importViaUrl(el, COPY_CODE_URL(uuid));
+
+            const toast = getToast(el);
+            expect(toast.open).to.be.true;
+            expect(toast.textContent).to.match(/already added/i);
+        });
+
+        it('shows a "Type not allowed here." message and the formatted path when the content type is filtered by allowedTypes', async () => {
+            const uuid = 'cccccccc-dddd-eeee-ffff-aaaaaaaaaaaa';
+            const collection = {
+                id: uuid,
+                path: '/content/dam/mas/sandbox/en_US/test-collection',
+                title: 'Test Collection',
+                model: { path: COLLECTION_MODEL_PATH },
+                status: FRAGMENT_STATUS.PUBLISHED,
+                tags: [],
+                fields: [],
+            };
+            mockRepository.aem.sites.cf.fragments.getById.resolves(collection);
+
+            const el = await fixture(html`<mas-items-selector .allowedTypes=${[TABLE_TYPE.CARDS]}></mas-items-selector>`);
+            const url = `https://mas.adobe.com/studio.html#content-type=merch-card-collection&page=content&path=sandbox&query=${uuid}`;
+            await importViaUrl(el, url);
+
+            const status = el.shadowRoot.querySelector('.import-item-status.status-error');
+            expect(status.textContent).to.match(/Type not allowed here\./);
+
+            const link = el.shadowRoot.querySelector('.import-item-row a');
+            expect(link.textContent.trim()).to.not.equal(url);
+            expect(el.importedUrls[0].path).to.equal(collection.path);
+        });
+
+        it('shows an "Unsupported fragment type." message when the fetched fragment model does not match', async () => {
+            const uuid = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
+            mockRepository.aem.sites.cf.fragments.getById.resolves({
+                id: uuid,
+                path: '/content/dam/mas/sandbox/en_US/test-card',
+                title: 'Test Card',
+                model: { path: '/some/other/model' },
+                status: FRAGMENT_STATUS.PUBLISHED,
+                tags: [],
+                fields: [],
+            });
+
+            const el = await fixture(html`<mas-items-selector></mas-items-selector>`);
+            await importViaUrl(el, COPY_CODE_URL(uuid));
+
+            const status = el.shadowRoot.querySelector('.import-item-status.status-error');
+            expect(status.textContent).to.match(/Unsupported fragment type\./);
+
+            const link = el.shadowRoot.querySelector('.import-item-row a');
+            expect(el.importedUrls[0].path).to.equal('/content/dam/mas/sandbox/en_US/test-card');
+            expect(link.textContent.trim()).to.not.equal(COPY_CODE_URL(uuid));
+        });
+
+        it('only marks the first maxSelectedCards fragments valid and flags the rest with a limit message', async () => {
+            const uuids = [
+                'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
+                '11111111-2222-3333-4444-555555555555',
+                '22222222-3333-4444-5555-666666666666',
+                '33333333-4444-5555-6666-777777777777',
+                '44444444-5555-6666-7777-888888888888',
+            ];
+            const cardsById = Object.fromEntries(
+                uuids.map((uuid, i) => [uuid, mockCard(`/content/dam/mas/sandbox/en_US/card-${i}`, uuid)]),
+            );
+            mockRepository.aem.sites.cf.fragments.getById.callsFake((id) => Promise.resolve(cardsById[id]));
+
+            const el = await fixture(html`<mas-items-selector .maxSelectedCards=${4}></mas-items-selector>`);
+            await importViaUrl(el, uuids.map(COPY_CODE_URL).join(' '));
+
+            const statuses = el.importedUrls.map((i) => i.status);
+            expect(statuses.filter((s) => s === 'valid')).to.have.length(4);
+            expect(statuses.filter((s) => s === 'error')).to.have.length(1);
+            expect(Store.translationProjects.selectedCards.get()).to.have.length(4);
+
+            const rejected = el.importedUrls[4];
+            expect(rejected.status).to.equal('error');
+            expect(rejected.errorMessage).to.match(/4/);
+            expect(rejected.path).to.equal(cardsById[uuids[4]].path);
+        });
+
+        it('does not reject fragments when the selection is already below maxSelectedCards from a previous batch', async () => {
+            const first = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
+            const second = '11111111-2222-3333-4444-555555555555';
+            mockRepository.aem.sites.cf.fragments.getById
+                .withArgs(first)
+                .resolves(mockCard('/content/dam/mas/sandbox/en_US/card-0', first))
+                .withArgs(second)
+                .resolves(mockCard('/content/dam/mas/sandbox/en_US/card-1', second));
+
+            const el = await fixture(html`<mas-items-selector .maxSelectedCards=${4}></mas-items-selector>`);
+            await importViaUrl(el, COPY_CODE_URL(first));
+            await importViaUrl(el, COPY_CODE_URL(second));
+
+            expect(el.importedUrls.map((i) => i.status)).to.deep.equal(['valid', 'valid']);
+            expect(Store.translationProjects.selectedCards.get()).to.have.length(2);
+        });
+
         it('shows URL item with error status when fragment is not found', async () => {
             const uuid = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
             mockRepository.aem.sites.cf.fragments.getById.rejects(
@@ -963,7 +1144,7 @@ describe('MasItemsSelector', () => {
             );
 
             expect(Store.translationProjects.selectedCollections.get()).to.have.length(0);
-            expect(mockRepository.aem.sites.cf.fragments.getById.called).to.be.false;
+            expect(mockRepository.aem.sites.cf.fragments.getById.called).to.be.true;
         });
     });
 

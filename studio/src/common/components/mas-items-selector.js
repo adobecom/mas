@@ -2,7 +2,7 @@ import { LitElement, html, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import ReactiveController from '../../reactivity/reactive-controller.js';
 import { getItemsSelectionStore } from '../items-selection-store.js';
-import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, TABLE_TYPE } from '../../constants.js';
+import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, SURFACES, TABLE_TYPE } from '../../constants.js';
 import { toggleSidebarIcon, uploadIcon } from '../../icons.js';
 import { Fragment } from '../../aem/fragment.js';
 import { renderFragmentStatusCell, getStudioFragmentDisplayPath } from '../utils/render-utils.js';
@@ -10,7 +10,7 @@ import './mas-select-items-table.js';
 import './mas-selected-items.js';
 import './mas-search-and-filters.js';
 import { styles } from './mas-items-selector.css.js';
-import { debounce, isUUID } from '../../utils.js';
+import { debounce, isUUID, extractSurfaceFromPath } from '../../utils.js';
 
 const IMPORT_CONTENT_TYPES = ['merch-card', 'merch-card-collection', 'mas-compare-chart'];
 
@@ -41,6 +41,7 @@ class MasItemsSelector extends LitElement {
         getDisplayName: { type: Function },
         renderFragmentStatusCell: { type: Function },
         hidePromoVariations: { type: Boolean, attribute: 'hide-promo-variations' },
+        restrictImportSurface: { type: String, attribute: 'restrict-import-surface' },
     };
 
     constructor() {
@@ -61,6 +62,7 @@ class MasItemsSelector extends LitElement {
         this.hidePromoVariations = false;
         this.importMode = false;
         this.importedUrls = [];
+        this.restrictImportSurface = '';
     }
 
     connectedCallback() {
@@ -122,10 +124,7 @@ class MasItemsSelector extends LitElement {
         const store = getItemsSelectionStore();
         const selectedCards = store.selectedCards.value || [];
         if (selectedCards.includes(fragment.path)) return false;
-        if (selectedCards.length >= this.maxSelectedCards) {
-            this.#openToast(`You can select up to ${this.maxSelectedCards} cards.`, 'negative');
-            return false;
-        }
+        if (selectedCards.length >= this.maxSelectedCards) return false;
         store.selectedCards.set([...selectedCards, fragment.path]);
         return true;
     }
@@ -153,10 +152,15 @@ class MasItemsSelector extends LitElement {
         return true;
     }
 
-    #setImportedUrlStatus(fragmentId, status, errorMessage, path = null, displayName = null) {
+    #setImportedUrlStatus(fragmentId, status, errorMessage = null, path = null, displayName = null) {
         this.importedUrls = this.importedUrls.map((item) =>
             item.fragmentId === fragmentId ? { ...item, status, errorMessage, path, displayName } : item,
         );
+    }
+
+    #surfaceLabel(surfaceKey) {
+        const entry = Object.values(SURFACES).find((s) => s.name === surfaceKey);
+        return entry?.label ?? surfaceKey ?? 'This surface';
     }
 
     #removeAllImportedUrls() {
@@ -180,6 +184,7 @@ class MasItemsSelector extends LitElement {
     async #processUrlText(text) {
         const lines = text.split(/\s+/).filter(Boolean);
         const allParsed = [];
+        let duplicates = 0;
         for (const url of lines) {
             let parsedUrl;
             try {
@@ -191,7 +196,10 @@ class MasItemsSelector extends LitElement {
             const contentType = params.get('content-type');
             const fragmentId = params.get('query');
             if (!fragmentId || !isUUID(fragmentId) || !IMPORT_CONTENT_TYPES.includes(contentType)) continue;
-            if (this.importedUrls.some((item) => item.fragmentId === fragmentId)) continue;
+            if (this.importedUrls.some((item) => item.fragmentId === fragmentId)) {
+                duplicates++;
+                continue;
+            }
             const allowed = this.allowedTypes.includes(
                 contentType === 'merch-card' ? TABLE_TYPE.CARDS : TABLE_TYPE.COLLECTIONS,
             );
@@ -199,7 +207,11 @@ class MasItemsSelector extends LitElement {
         }
 
         if (!allParsed.length) {
-            this.#openToast('No valid URLs found', 'negative');
+            if (duplicates > 0) {
+                this.#openToast(duplicates === 1 ? 'Already added' : `${duplicates} already added`, 'negative');
+            } else {
+                this.#openToast('No valid URLs found', 'negative');
+            }
             return;
         }
 
@@ -207,41 +219,77 @@ class MasItemsSelector extends LitElement {
             url,
             fragmentId,
             contentType,
-            status: allowed ? 'loading' : 'error',
-            errorMessage: allowed ? null : 'URL type not supported',
+            allowed,
+            status: 'loading',
+            errorMessage: null,
             path: null,
         }));
 
         this.importedUrls = [...this.importedUrls, ...newItems];
 
-        const fetchable = newItems.filter((item) => item.status === 'loading');
-        if (!fetchable.length) {
-            this.#openToast('URL type not supported', 'negative');
-            return;
-        }
-
-        let added = 0;
-        let failed = 0;
-        await Promise.all(
-            fetchable.map(async (item) => {
+        // Resolve every URL concurrently (fast), then decide inclusion sequentially in the
+        // original paste order (deterministic) so limits like maxSelectedCards apply predictably.
+        const resolved = await Promise.all(
+            newItems.map(async (item) => {
                 try {
                     const fragment = await this.repository?.aem?.sites?.cf?.fragments?.getById?.(item.fragmentId);
-                    const isCard = item.contentType === 'merch-card';
-                    const display = isCard ? this.#upsertDisplayCard(fragment) : this.#upsertDisplayCollection(fragment);
-                    if (!display) {
-                        failed++;
-                        this.#setImportedUrlStatus(item.fragmentId, 'error', 'Fragment type not supported', null);
-                        return;
-                    }
-                    if (isCard ? this.#appendSelectedCard(display) : this.#appendSelectedCollection(display)) added++;
-                    const displayName = this.getDisplayName(new Fragment(fragment)) || fragment.path;
-                    this.#setImportedUrlStatus(item.fragmentId, 'valid', null, fragment.path, displayName);
+                    return { item, fragment: fragment ?? null };
                 } catch {
-                    failed++;
-                    this.#setImportedUrlStatus(item.fragmentId, 'error', 'Fragment not found', null);
+                    return { item, fragment: null };
                 }
             }),
         );
+
+        let added = 0;
+        let failed = 0;
+        for (const { item, fragment } of resolved) {
+            const displayName = fragment ? this.getDisplayName(new Fragment(fragment)) || fragment.path : null;
+            const path = fragment?.path ?? null;
+
+            if (!item.allowed) {
+                failed++;
+                this.#setImportedUrlStatus(item.fragmentId, 'error', 'Type not allowed here.', path, displayName);
+                continue;
+            }
+            if (!fragment) {
+                failed++;
+                this.#setImportedUrlStatus(item.fragmentId, 'error', 'Fragment not found.');
+                continue;
+            }
+            const surface = extractSurfaceFromPath(fragment.path);
+            if (this.restrictImportSurface && surface !== this.restrictImportSurface) {
+                failed++;
+                this.#setImportedUrlStatus(
+                    item.fragmentId,
+                    'error',
+                    `${this.#surfaceLabel(surface)} not allowed here.`,
+                    path,
+                    displayName,
+                );
+                continue;
+            }
+            const isCard = item.contentType === 'merch-card';
+            const display = isCard ? this.#upsertDisplayCard(fragment) : this.#upsertDisplayCollection(fragment);
+            if (!display) {
+                failed++;
+                this.#setImportedUrlStatus(item.fragmentId, 'error', 'Unsupported fragment type.', path, displayName);
+                continue;
+            }
+            const appended = isCard ? this.#appendSelectedCard(display) : this.#appendSelectedCollection(display);
+            if (!appended) {
+                failed++;
+                this.#setImportedUrlStatus(
+                    item.fragmentId,
+                    'error',
+                    `Max ${this.maxSelectedCards} fragments reached.`,
+                    path,
+                    displayName,
+                );
+                continue;
+            }
+            added++;
+            this.#setImportedUrlStatus(item.fragmentId, 'valid', null, path, displayName);
+        }
 
         if (added > 0 && failed === 0) {
             this.#openToast(added === 1 ? 'Fragment added' : `${added} fragments added`, 'positive');
@@ -403,7 +451,7 @@ class MasItemsSelector extends LitElement {
                 ${this.viewOnly
                     ? nothing
                     : html`
-                          <sp-button variant="secondary" class="import-url-btn" @click=${this.#toggleImportMode}>
+                          <sp-button variant="secondary" class="import-url-btn ghost-button" @click=${this.#toggleImportMode}>
                               <sp-icon slot="icon">${uploadIcon}</sp-icon>
                               Import via URL
                           </sp-button>
@@ -424,8 +472,18 @@ class MasItemsSelector extends LitElement {
         }
         return html`<span class="import-item-status status-error">
             <sp-icon-alert></sp-icon-alert>
-            ${item.errorMessage || 'Error'}
+            ${item.errorMessage || 'Invalid.'}
         </span>`;
+    }
+
+    #renderInvalidItemsWarning() {
+        const invalidCount = this.importedUrls.filter((i) => i.status === 'error').length;
+        if (!invalidCount) return nothing;
+        return html`<p class="import-invalid-warning">
+            <sp-icon-alert></sp-icon-alert>
+            ${invalidCount} ${invalidCount === 1 ? 'item is' : 'items are'} invalid and won't be added. Cancel to review the
+            links, or continue to add only the valid items.
+        </p>`;
     }
 
     #renderImportPanel() {
@@ -489,6 +547,7 @@ class MasItemsSelector extends LitElement {
                                   </ul>
                               </div>`
                             : nothing}
+                        ${this.#renderInvalidItemsWarning()}
                         <div class="import-url-input-section">
                             <p class="import-url-label">Enter URLs (one per line)</p>
                             <textarea

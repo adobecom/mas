@@ -243,11 +243,20 @@ export const styles = [
         }
 
         .status-error {
-            color: var(--spectrum-orange-600, #d45b00);
+            color: var(--spectrum-red-600, #d31510);
         }
 
         .status-pending {
             color: var(--spectrum-gray-600, #505050);
+        }
+
+        .import-invalid-warning {
+            display: flex;
+            align-items: flex-start;
+            gap: 6px;
+            margin: 0 0 12px;
+            font-size: 12px;
+            color: var(--spectrum-red-600, #d31510);
         }
 
         .import-items-header > span:last-child {

@@ -137,8 +137,6 @@ A card's `variant` field selects its layout and which fields are meaningful. The
 `headless`, `mini`, `image`, `mini-compare-chart`, `mini-compare-chart-mweb`,
 `simplified-pricing-express`, `full-pricing-express`, `compare-chart-column`, `fries`, `inline-heading`.
 
-For per-variant field and slot details, see the `card-variant-registry` skill.
-
 ## 9. Language ↔ locale mapping (locale-variation targets)
 
 The **default locale** column is the parent fragment's locale. The **regional variation locales** column

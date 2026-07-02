@@ -1866,28 +1866,6 @@
 }
 
 /* Chat Drawer */
-@keyframes drawerSlideIn {
-    from {
-        transform: translateX(100%);
-        opacity: 0;
-    }
-    to {
-        transform: translateX(0);
-        opacity: 1;
-    }
-}
-
-@keyframes drawerSlideOut {
-    from {
-        transform: translateX(0);
-        opacity: 1;
-    }
-    to {
-        transform: translateX(100%);
-        opacity: 0;
-    }
-}
-
 @keyframes fabPopIn {
     from {
         transform: scale(0);
@@ -1911,11 +1889,6 @@
     display: flex;
     flex-direction: column;
     box-shadow: -8px 0 32px rgba(0, 0, 0, 0.18);
-    animation: drawerSlideIn 0.25s ease-out;
-}
-
-.chat-drawer-closing {
-    animation: drawerSlideOut 0.2s ease-in forwards;
 }
 
 .chat-drawer-resize {
@@ -2504,4 +2477,94 @@ body.chat-resizing {
 
 .chat-drawer-body {
     background: var(--mas-chat-surface);
+}
+
+/* ==========================================================================
+   FAB-to-drawer morph with blurred backdrop (MWPW-183572)
+   ========================================================================== */
+.chat-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 998;
+    background: rgba(40, 40, 70, 0.16);
+    backdrop-filter: blur(2.5px);
+    animation: backdropIn 240ms ease forwards;
+}
+
+.chat-backdrop-closing {
+    animation: backdropOut 240ms ease forwards;
+}
+
+@keyframes backdropIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes backdropOut {
+    from {
+        opacity: 1;
+    }
+    to {
+        opacity: 0;
+    }
+}
+
+.chat-drawer {
+    transform-origin: calc(100% - 40px) calc(100% - 40px);
+    animation: drawerMorphIn 380ms var(--mas-ease-out) forwards;
+}
+
+.chat-drawer-closing {
+    animation: drawerMorphOut 280ms var(--mas-ease-out) forwards;
+}
+
+@keyframes drawerMorphIn {
+    0% {
+        transform: scale(0.06);
+        opacity: 0;
+        border-radius: 50%;
+    }
+    35% {
+        opacity: 1;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+        border-radius: 12px;
+    }
+}
+
+@keyframes drawerMorphOut {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+        border-radius: 12px;
+    }
+    65% {
+        opacity: 1;
+    }
+    100% {
+        transform: scale(0.06);
+        opacity: 0;
+        border-radius: 50%;
+    }
+}
+
+.chat-fab {
+    transition:
+        transform 140ms var(--mas-ease-out),
+        box-shadow 140ms var(--mas-ease-out);
+}
+
+.chat-fab:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(90, 79, 245, 0.45);
+}
+
+.chat-fab:active {
+    transform: scale(0.95);
 }

@@ -5,7 +5,7 @@ import './mas-chat-session-selector.js';
 const STORAGE_KEY = 'mas-chat-drawer-width';
 const MIN_WIDTH = 320;
 const MAX_WIDTH_RATIO = 0.8;
-const CLOSE_DURATION = 200;
+const CLOSE_DURATION = 300;
 
 export class MasChatDrawer extends LitElement {
     static properties = {
@@ -86,6 +86,7 @@ export class MasChatDrawer extends LitElement {
         if (!this.open && !this.closing) return nothing;
 
         return html`
+            <div class="chat-backdrop ${this.closing ? 'chat-backdrop-closing' : ''}" @click=${this.close}></div>
             <div
                 class="chat-drawer ${this.closing ? 'chat-drawer-closing' : ''}"
                 style="--chat-drawer-width: ${this.drawerWidth}px"

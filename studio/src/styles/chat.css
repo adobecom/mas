@@ -2891,3 +2891,45 @@ body.chat-resizing {
         transform: none;
     }
 }
+
+/* ==========================================================================
+   Reduced motion support (MWPW-183572)
+   ========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+    .chat-backdrop,
+    .chat-backdrop-closing,
+    .chat-drawer,
+    .chat-drawer-closing,
+    .welcome-greeting,
+    .msg-bloom .message-avatar,
+    .msg-bloom .message-card,
+    .msg-rise,
+    .welcome-chips sp-action-button,
+    .sources-list {
+        animation-name: reducedFade;
+        animation-duration: 120ms;
+        animation-timing-function: ease;
+    }
+
+    .welcome-halo,
+    .welcome-orb,
+    .typing-indicator::before,
+    .reveal-caret {
+        animation: none;
+    }
+
+    .reveal-word {
+        animation: none;
+        opacity: 1;
+        filter: none;
+    }
+}
+
+@keyframes reducedFade {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}

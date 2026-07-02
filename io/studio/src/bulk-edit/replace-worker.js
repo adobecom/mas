@@ -12,6 +12,7 @@ const {
     readJob,
     patchJob,
     readUserCsv,
+    readDryRun,
     writeDryRun,
     writeReport,
     writeResults,
@@ -235,8 +236,13 @@ async function runReplaceWorker(jobId, { odinEndpoint, authToken, runId, params 
     const minBatchMs = rpsLimit ? (batchSize / rpsLimit) * 1000 : 0;
     const runStart = Date.now();
 
-    let results = job.results || [];
     let cursor = job.cursor || 0;
+    // Dry-run batches are persisted to the dry-run store, not job.results (patchJob omits results
+    // for dry-runs), so a continued run must restore prior batches from there or it drops them.
+    let results = job.results || [];
+    if (dryRun && cursor > 0) {
+        results = (await readDryRun(jobId)) || results;
+    }
     const gate = createRateLimitGate();
     logger.info(JSON.stringify({ event: 'bulk-edit-replace-worker-start', jobId, total: items.length, dryRun, cursor }));
 

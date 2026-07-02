@@ -85,6 +85,7 @@ function load(overrides = {}) {
                 patches.push(patch);
             },
             readUserCsv: async () => ({ rows }),
+            readDryRun: async () => overrides.dryRunStore ?? null,
             writeDryRun: async (jobId, list) => {
                 calls.dryRun.push(list);
             },
@@ -362,6 +363,23 @@ describe('bulk-edit/replace-worker: runReplaceWorker', () => {
         await mod.runReplaceWorker('job1', { odinEndpoint: 'https://odin', runId: 'run1' });
         expect(calls.get).to.deep.equal(['b']);
         expect(calls.patch.map((entry) => entry.id)).to.deep.equal(['b']);
+    });
+
+    it('resumes a dry-run from the persisted dry-run store, not job.results', async () => {
+        const priorA = {
+            id: 'a',
+            path: '/p/a',
+            locale: 'en_US',
+            etag: 'etag-a',
+            status: 'WOULD_REPLACE',
+            matches: [{ field: 'subtitle', value: 'School offer' }],
+        };
+        const { mod, calls } = load({ dryRun: true, cursor: 1, results: [], dryRunStore: [priorA] });
+        const result = await mod.runReplaceWorker('job1', { odinEndpoint: 'https://odin', runId: 'run1' });
+        expect(calls.get).to.deep.equal(['b']);
+        expect(result.processed).to.equal(2);
+        expect(calls.results.map((item) => item.id)).to.deep.equal(['a', 'b']);
+        expect(calls.reports[calls.reports.length - 1].totalFragments).to.equal(2);
     });
 
     it('self-continues when the soft time budget is exceeded', async () => {

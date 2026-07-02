@@ -143,6 +143,7 @@ module.exports = {
     CARD_MODEL_ID,
     COLLECTION_MODEL_ID,
     BULK_EDIT_MODEL_IDS,
+    BULK_EDIT_USER_AGENT,
     matchesText,
     extractLocale,
     SCOPE_FIELDS,

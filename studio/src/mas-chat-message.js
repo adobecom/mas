@@ -10,6 +10,7 @@ import './mas-chat-product-cards.js';
 import './mas-chat-confirmation-summary.js';
 import { parseMarkdown } from './utils/markdown-parser.js';
 import { buildStudioFragmentHref, showToast } from './utils.js';
+import { prepareTextReveal } from './utils/text-reveal.js';
 import Store from './store.js';
 
 /**
@@ -27,10 +28,41 @@ export class MasChatMessage extends LitElement {
         super();
         this.sourcesExpanded = false;
         this.titleCache = new WeakMap();
+        this.revealDone = false;
     }
 
     createRenderRoot() {
         return this;
+    }
+
+    updated(changed) {
+        super.updated?.(changed);
+        this.maybeRevealText();
+    }
+
+    maybeRevealText() {
+        if (this.revealDone || !this.message?.fresh) return;
+        if (this.message.role !== 'assistant' || this.message.isLoading) return;
+        if (this.message.mcpOperation || this.message.buttonGroup || this.message.cardConfig || this.message.operationResult)
+            return;
+        const bubble = this.querySelector('.message-card');
+        if (!bubble) return;
+        this.revealDone = true;
+        const { totalDuration, cleanup } = prepareTextReveal(bubble);
+        if (totalDuration === 0) return;
+        const caret = document.createElement('span');
+        caret.className = 'reveal-caret';
+        bubble.appendChild(caret);
+        this.classList.add('footer-delayed');
+        this.revealCleanupTimer = setTimeout(() => {
+            cleanup();
+            this.classList.remove('footer-delayed');
+        }, totalDuration + 250);
+    }
+
+    disconnectedCallback() {
+        super.disconnectedCallback();
+        clearTimeout(this.revealCleanupTimer);
     }
 
     handleCardAction(action) {

@@ -2747,3 +2747,49 @@ body.chat-resizing {
         transform: none;
     }
 }
+
+.reveal-word {
+    display: inline-block;
+    opacity: 0;
+    animation: wordIn 180ms var(--mas-ease-out) both;
+}
+
+@keyframes wordIn {
+    from {
+        opacity: 0;
+        filter: blur(4px);
+        transform: translateY(2px);
+    }
+    to {
+        opacity: 1;
+        filter: blur(0);
+        transform: none;
+    }
+}
+
+.reveal-caret {
+    display: inline-block;
+    width: 2px;
+    height: 1em;
+    margin-left: 2px;
+    vertical-align: text-bottom;
+    background: linear-gradient(var(--mas-chat-gradient-start), var(--mas-chat-gradient-end));
+    animation: caretBlink 1s steps(2) infinite;
+}
+
+@keyframes caretBlink {
+    50% {
+        opacity: 0;
+    }
+}
+
+.footer-delayed .message-feedback,
+.footer-delayed .message-sources {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.message-feedback,
+.message-sources {
+    transition: opacity 240ms var(--mas-ease-out);
+}

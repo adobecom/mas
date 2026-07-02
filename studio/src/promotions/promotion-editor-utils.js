@@ -153,9 +153,6 @@ export function getPromotionRequiredFieldsValidation(fragment, itemCount) {
     if (!fragment.getFieldValue('title')) {
         return 'Please enter a Title.';
     }
-    if (!fragment.getFieldValue('promoCode')) {
-        return 'Please enter a Promo Code.';
-    }
     if (!fragment.getFieldValue('startDate')) {
         return 'Please set a Start Date.';
     }

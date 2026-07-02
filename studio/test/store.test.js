@@ -120,4 +120,23 @@ describe('store', () => {
             Store.productCatalog.search.unsubscribe(spy);
         });
     });
+
+    describe('compareChart slice', () => {
+        it('exposes local search and filters defaulting to the globals', () => {
+            expect(Store.compareChart.search.get()).to.deep.equal({});
+            expect(Store.compareChart.filters.get().locale).to.equal('en_US');
+        });
+
+        it('exposes the items-selection stores used by the picker', () => {
+            expect(Store.compareChart.selectedCards.get()).to.deep.equal([]);
+            expect(Store.compareChart.cardsByPaths.get()).to.be.instanceOf(Map);
+            expect(Store.compareChart.offerDataCache).to.be.instanceOf(Map);
+        });
+
+        it('applies the filters validator to its local filters (array tags -> csv)', () => {
+            Store.compareChart.filters.set({ locale: 'fr_FR', tags: ['a', 'b'] });
+            expect(Store.compareChart.filters.get().tags).to.equal('a,b');
+            Store.compareChart.filters.set({ locale: 'en_US' });
+        });
+    });
 });

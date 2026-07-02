@@ -201,6 +201,17 @@ describe('Included field', () => {
         expect(el.link).to.equal('');
     });
 
+    it('renders library icons in the spectrum system for the bizpro variant', async () => {
+        const el = await fixture(
+            html`<mas-included-field data-field-state="bullet" icon="sp-icon-lock" variant="bizpro"></mas-included-field>`,
+            { parentNode: spTheme() },
+        );
+
+        expect(el.variant).to.equal('bizpro');
+        const theme = el.shadowRoot.querySelector('sp-theme');
+        expect(theme.getAttribute('system')).to.equal('spectrum');
+    });
+
     it('should return correct value object', async () => {
         const el = await fixture(
             html`
@@ -218,5 +229,30 @@ describe('Included field', () => {
             alt: 'Alt',
             link: 'https://example.com',
         });
+    });
+
+    it('should not dispatch delete-field when modal closes and alt contains only an icon-button', async () => {
+        const el = await fixture(html`<mas-included-field></mas-included-field>`, { parentNode: spTheme() });
+        el.alt = '<p><span class="icon-button" data-tooltip="Info"></span></p>';
+        el.modalOpen = true;
+        await el.updateComplete;
+
+        let deleteFired = false;
+        el.addEventListener('delete-field', () => {
+            deleteFired = true;
+        });
+
+        el.dispatchEvent(new CustomEvent('modal-close', { bubbles: true }));
+        await el.updateComplete;
+
+        expect(deleteFired).to.be.false;
+    });
+
+    it('should render icon-button HTML in the value area when alt contains one', async () => {
+        const el = await fixture(html`<mas-included-field></mas-included-field>`, { parentNode: spTheme() });
+        el.alt = '<p>Details <span class="icon-button" data-tooltip="More"></span></p>';
+        await el.updateComplete;
+        const valueEl = el.shadowRoot.querySelector('.included-info .value');
+        expect(valueEl.querySelector('.icon-button')).to.exist;
     });
 });

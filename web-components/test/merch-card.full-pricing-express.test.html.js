@@ -9,6 +9,9 @@ import { appendMiloStyles, delay } from './utils.js';
 import { mockIms } from './mocks/ims.js';
 import { withWcs } from './mocks/wcs.js';
 
+import '@spectrum-web-components/tooltip/sp-tooltip.js';
+import '@spectrum-web-components/overlay/overlay-trigger.js';
+
 const skipTests = sessionStorage.getItem('skipTests');
 
 runTests(async () => {
@@ -472,6 +475,46 @@ runTests(async () => {
                 expect(descriptionHeight).to.equal('');
             });
 
+            it('should observe the card for resync after font reflow', async () => {
+                const card = document.querySelector(
+                    'merch-card[variant="full-pricing-express"]',
+                );
+                await card.updateComplete;
+                expect(card.variantLayout.sizeObserver).to.be.an.instanceof(
+                    ResizeObserver,
+                );
+            });
+
+            it('should resync siblings when its title reflows', async () => {
+                const card = document.querySelector(
+                    'merch-card[variant="full-pricing-express"]',
+                );
+                await card.updateComplete;
+                const spy = sinon.spy(card.variantLayout, 'syncHeights');
+                card.variantLayout.lastSyncedKey = '';
+                const title = card.querySelector(
+                    card.variantLayout.headingSelector,
+                );
+                title.style.minHeight = '200px';
+                card.variantLayout.resyncOnReflow();
+                expect(spy.called).to.be.true;
+                title.style.minHeight = '';
+                spy.restore();
+            });
+
+            it('should disconnect the observer on disconnect', async () => {
+                const card = document.querySelector(
+                    'merch-card[variant="full-pricing-express"]',
+                );
+                await card.updateComplete;
+                const observer = card.variantLayout.sizeObserver;
+                const disconnectSpy = sinon.spy(observer, 'disconnect');
+                card.variantLayout.disconnectedCallbackHook();
+                expect(disconnectSpy.called).to.be.true;
+                expect(card.variantLayout.sizeObserver).to.equal(null);
+                card.variantLayout.connectedCallbackHook();
+            });
+
             it('should apply flexbox to short-description for alignment', async () => {
                 const card = document.querySelector(
                     'merch-card[variant="full-pricing-express"]',
@@ -557,6 +600,18 @@ runTests(async () => {
                 const aemFragment = card.querySelector('aem-fragment');
                 expect(aemFragment).to.exist;
                 expect(aemFragment.hasAttribute('fragment')).to.be.true;
+            });
+        });
+
+        describe('Spectrum tooltip', () => {
+            it('should use spectrum for tooltip', async () => {
+                const card = document.querySelector(
+                    'merch-card[id="025dfceb-c035-45b7-8ea1-8feed25c8009"]',
+                );
+                const overlayTrigger = card
+                    .querySelector('mas-mnemonic')
+                    .shadowRoot?.querySelector('overlay-trigger');
+                expect(overlayTrigger).to.exist;
             });
         });
     });

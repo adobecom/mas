@@ -3,6 +3,7 @@
     "version": "0.0.1",
     "private": true,
     "dependencies": {
+        "@adobe/aio-lib-files": "^4",
         "@adobe/aio-lib-ims": "^7.0.2",
         "@adobe/aio-lib-state": "^5.1.0",
         "@adobe/aio-sdk": "^6",
@@ -11,7 +12,7 @@
         "cloudevents": "^4.0.2",
         "node-fetch": "^2.6.0",
         "regenerator-runtime": "^0.13.5",
-        "uuid": "^8.0.0"
+        "uuid": "^14.0.0"
     },
     "devDependencies": {
         "@adobe/aio-cli": "^11.0.1",

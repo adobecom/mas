@@ -8,7 +8,6 @@ const TOOLS_REQUIRING_FRAGMENT_ID = new Set([
     'publish_card',
     'unpublish_card',
     'update_card',
-    'delete_card',
     'copy_card',
     'link_card_to_offer',
     'validate_card_offer',
@@ -20,10 +19,8 @@ const TOOLS_REQUIRING_FRAGMENT_ID = new Set([
     'create_grouped_variation',
     'bulk_update_cards',
     'bulk_publish_cards',
-    'bulk_delete_cards',
     'preview_bulk_update',
     'preview_bulk_publish',
-    'preview_bulk_delete',
     'list_context_cards',
     'add_cards_to_collection',
 ]);

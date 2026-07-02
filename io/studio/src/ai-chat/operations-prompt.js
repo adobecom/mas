@@ -637,7 +637,7 @@ When the source is missing or empty, respond with a \`message\` asking the user 
 }
 \`\`\`
 
-This applies to all bulk operations (\`bulk_update_cards\`, \`bulk_publish_cards\`, \`bulk_delete_cards\`, \`preview_bulk_update\`, \`preview_bulk_publish\`, \`preview_bulk_delete\`, \`list_context_cards\`) and to single-card operations that take an \`id\` parameter.
+This applies to all bulk operations (\`bulk_update_cards\`, \`bulk_publish_cards\`, \`preview_bulk_update\`, \`preview_bulk_publish\`, \`list_context_cards\`) and to single-card operations that take an \`id\` parameter.
 
 **IMPORTANT**: You MUST use the exact format below. Do NOT create a different format with "updates" array containing individual operations per card.
 

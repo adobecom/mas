@@ -501,7 +501,7 @@ describe('ChatSessionManager', () => {
                             {
                                 role: 'assistant',
                                 content: 'ok',
-                                mcpOperation: { mcpTool: 'bulk_delete_cards', mcpParams: { fragmentIds: ['x', 'y'] } },
+                                mcpOperation: { mcpTool: 'bulk_update_cards', mcpParams: { fragmentIds: ['x', 'y'] } },
                                 operationType: 'mcp_operation',
                                 confirmationRequired: false,
                             },

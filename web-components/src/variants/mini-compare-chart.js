@@ -536,7 +536,7 @@ export class MiniCompareChart extends VariantLayout {
         const price = this.mainPrice;
         let planType = this.card.planType;
         if (price) {
-            await price.onceSettled();
+            await price.onceSettled?.();
             planType = price.value?.[0]?.planType;
         }
         if (!planType) return;
@@ -602,8 +602,10 @@ export class MiniCompareChart extends VariantLayout {
             this.shortDescriptionSource = bodyXxs;
             bodyXxs.remove();
         }
-        const text = this.shortDescriptionSource.textContent?.trim();
-        if (!text) return;
+        const source = this.shortDescriptionSource;
+        const text = source.textContent?.trim();
+        const hasIconButton = !!source.querySelector('.icon-button');
+        if (!text && !hasIconButton) return;
         const legalPrice = this.card.querySelector(
             '[slot="heading-m-price"] [data-template="legal"]',
         );
@@ -611,7 +613,7 @@ export class MiniCompareChart extends VariantLayout {
         if (!planType) return;
         if (planType.querySelector('em')) return;
         const em = document.createElement('em');
-        em.textContent = ` ${text}`;
+        em.innerHTML = ` ${source.innerHTML}`;
         planType.appendChild(em);
     }
 
@@ -666,7 +668,7 @@ export class MiniCompareChart extends VariantLayout {
     }
 
     async postCardUpdateHook() {
-        await Promise.all(this.card.prices.map((price) => price.onceSettled()));
+        await super.postCardUpdateHook();
         if (this.isNewVariant) {
             if (!this.legalAdjusted) {
                 await this.adjustLegal();

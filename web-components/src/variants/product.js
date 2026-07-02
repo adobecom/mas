@@ -7,6 +7,7 @@ import {
     SELECTOR_MAS_INLINE_PRICE,
     TEMPLATE_PRICE_LEGAL,
     EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
+    EVENT_MAS_READY,
 } from '../constants.js';
 
 export const PRODUCT_AEM_FRAGMENT_MAPPING = {
@@ -15,11 +16,14 @@ export const PRODUCT_AEM_FRAGMENT_MAPPING = {
     prices: { tag: 'p', slot: 'heading-xs' },
     promoText: { tag: 'p', slot: 'promo-text' },
     description: { tag: 'div', slot: 'body-xs' },
+    shortDescription: { tag: 'div', slot: 'short-description' },
     mnemonics: { size: 'l' },
     callout: { tag: 'div', slot: 'callout-content' },
     quantitySelect: { tag: 'div', slot: 'quantity-select' },
     secureLabel: true,
     planType: true,
+    addon: true,
+    addonBackground: true,
     badgeIcon: true,
     badge: {
         tag: 'div',
@@ -47,6 +51,8 @@ export const PRODUCT_AEM_FRAGMENT_MAPPING = {
 };
 
 export class Product extends VariantLayout {
+    #resizeFrame;
+
     constructor(card) {
         super(card);
         this.postCardUpdateHook = this.postCardUpdateHook.bind(this);
@@ -95,16 +101,15 @@ export class Product extends VariantLayout {
             <div class="body" aria-live="polite">
                 <slot name="icons"></slot>
                 <slot name="heading-xs"></slot>
-                <slot name="body-xxs"></slot>
                 ${!this.promoBottom
                     ? html`<slot name="promo-text"></slot>`
                     : ''}
                 <slot name="body-xs"></slot>
+                <slot name="addon"></slot>
                 ${this.promoBottom ? html`<slot name="promo-text"></slot>` : ''}
                 <slot name="whats-included"></slot>
                 <slot name="callout-content"></slot>
                 <slot name="quantity-select"></slot>
-                <slot name="addon"></slot>
                 <slot name="body-lower"></slot>
                 <slot name="badge"></slot>
             </div>
@@ -113,19 +118,82 @@ export class Product extends VariantLayout {
     }
 
     connectedCallbackHook() {
-        window.addEventListener('resize', this.postCardUpdateHook);
+        this.handleResize = () => {
+            if (this.#resizeFrame) cancelAnimationFrame(this.#resizeFrame);
+            this.#resizeFrame = requestAnimationFrame(() => {
+                this.#resizeFrame = null;
+                this.postCardUpdateHook();
+            });
+        };
+        this.adjustShortDescriptionBound =
+            this.adjustShortDescription.bind(this);
+        window.addEventListener('resize', this.handleResize);
         this.card.addEventListener(
             EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
             this.updatePriceQuantity,
         );
+        this.card.addEventListener(
+            EVENT_MAS_READY,
+            this.adjustShortDescriptionBound,
+        );
     }
 
     disconnectedCallbackHook() {
-        window.removeEventListener('resize', this.postCardUpdateHook);
+        if (this.handleResize) {
+            window.removeEventListener('resize', this.handleResize);
+            this.handleResize = null;
+        }
+        if (this.#resizeFrame) {
+            cancelAnimationFrame(this.#resizeFrame);
+            this.#resizeFrame = null;
+        }
         this.card.removeEventListener(
             EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
             this.updatePriceQuantity,
         );
+        this.card.removeEventListener(
+            EVENT_MAS_READY,
+            this.adjustShortDescriptionBound,
+        );
+    }
+
+    adjustShortDescription() {
+        const shortDescEl = this.card.querySelector(
+            '[slot="short-description"]',
+        );
+        if (!shortDescEl?.textContent?.trim()) return;
+        const legalPrice = this.card.querySelector(
+            'span[data-template="legal"]',
+        );
+        if (!legalPrice) return;
+        legalPrice.querySelector('.merch-short-description')?.remove();
+        const span = document.createElement('span');
+        span.className = 'merch-short-description';
+        const inner = shortDescEl.querySelector('p') ?? shortDescEl;
+        span.innerHTML = inner.innerHTML;
+        span.querySelectorAll('.icon-button').forEach((btn) => {
+            if (btn.dataset.eventsWired) return;
+            btn.dataset.eventsWired = '1';
+            ['mouseenter', 'focus'].forEach((evt) =>
+                btn.addEventListener(evt, () =>
+                    btn.classList.add('tooltip-visible'),
+                ),
+            );
+            ['mouseleave', 'blur'].forEach((evt) =>
+                btn.addEventListener(evt, () =>
+                    btn.classList.remove('tooltip-visible'),
+                ),
+            );
+            btn.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') btn.classList.remove('tooltip-visible');
+            });
+        });
+        const planType = legalPrice.querySelector('.price-plan-type');
+        if (planType) {
+            planType.after(span);
+        } else {
+            legalPrice.appendChild(span);
+        }
     }
 
     async postCardUpdateHook() {
@@ -137,6 +205,7 @@ export class Product extends VariantLayout {
         if (!this.legalAdjusted) {
             await this.adjustLegal();
         }
+        await super.postCardUpdateHook();
     }
 
     async adjustLegal() {
@@ -155,19 +224,15 @@ export class Product extends VariantLayout {
 
             if (!headingPrice?.options) return;
 
-            if (headingPrice.options.displayPerUnit)
-                headingPrice.dataset.displayPerUnit = 'false';
             if (headingPrice.options.displayTax)
                 headingPrice.dataset.displayTax = 'false';
             if (headingPrice.options.displayPlanType)
                 headingPrice.dataset.displayPlanType = 'false';
 
             legal.setAttribute('data-template', 'legal');
-            headingPrice.parentNode.insertBefore(
-                legal,
-                headingPrice.nextSibling,
-            );
+            headingPrice.closest('[slot="heading-xs"]').appendChild(legal);
             await legal.onceSettled();
+            legal.querySelector('.price-unit-type')?.remove();
         } catch {
             // Proceed with other adjustments
         }
@@ -238,7 +303,7 @@ export class Product extends VariantLayout {
         const price = this.mainPrice;
         let planType = this.card.planType;
         if (price) {
-            await price.onceSettled();
+            await price.onceSettled?.();
             planType = price.value?.[0]?.planType;
         }
         if (!planType) return;

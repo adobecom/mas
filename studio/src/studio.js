@@ -6,8 +6,8 @@ import './mas-top-nav.js';
 import './mas-side-nav.js';
 import './mas-toolbar.js';
 import './mas-content.js';
-import './mas-promotions.js';
-import './mas-promotions-editor.js';
+import './promotions/mas-promotions.js';
+import './promotions/mas-promotions-editor.js';
 import './translation/mas-translation.js';
 import './translation/mas-translation-editor.js';
 import './bulk-publish/mas-bulk-publish.js';
@@ -27,6 +27,7 @@ import './editors/merch-card-collection-editor.js';
 import { initUsers } from './users.js';
 import './placeholders/mas-placeholders.js';
 import './settings/mas-settings.js';
+import './masks/mas-masks.js';
 import './mas-advanced-tools.js';
 import './mas-confirm-dialog.js';
 import './mas-card-preview.js';
@@ -158,6 +159,11 @@ class MasStudio extends LitElement {
         return html`<mas-settings bucket=${this.bucket} base-url=${this.baseUrl}></mas-settings>`;
     }
 
+    get masks() {
+        if (this.page.value !== PAGE_NAMES.MASKS && this.page.value !== PAGE_NAMES.MASKS_EDITOR) return nothing;
+        return html`<mas-masks bucket=${this.bucket} base-url=${this.baseUrl}></mas-masks>`;
+    }
+
     get splashScreen() {
         if (this.page.value !== PAGE_NAMES.WELCOME) return nothing;
         return html`<mas-splash-screen base-url=${this.baseUrl}></mas-splash-screen>`;
@@ -210,7 +216,7 @@ class MasStudio extends LitElement {
 
     renderCommerceService() {
         const ffDefaults = CONSUMER_FEATURE_FLAGS[Store.surface()]?.['mas-ff-defaults'] ?? 'on';
-        this.commerceService.outerHTML = `<mas-commerce-service env="${WCS_ENV_PROD}" locale="${Store.localeOrRegion()}" data-mas-ff-defaults="${ffDefaults}"></mas-commerce-service>`;
+        this.commerceService.outerHTML = `<mas-commerce-service env="${WCS_ENV_PROD}" locale="${Store.localeOrRegion()}" data-mas-ff-defaults="${ffDefaults}" preview="true"></mas-commerce-service>`;
 
         // Update service landscape settings based on Store.landscape
         if (this.commerceService?.settings && Store.landscape.value) {
@@ -231,9 +237,11 @@ class MasStudio extends LitElement {
         }
     }
 
-    update() {
-        super.update();
-        this.renderCommerceService();
+    update(changedProperties) {
+        super.update(changedProperties);
+        if (changedProperties.has('masJsReady') && this.masJsReady) {
+            this.renderCommerceService();
+        }
     }
 
     get topNav() {
@@ -260,7 +268,7 @@ class MasStudio extends LitElement {
                           ${this.splashScreen} ${this.content} ${this.placeholders} ${this.fragmentEditor} ${this.promotions}
                           ${this.promotionsEditor} ${this.versionPage} ${this.translation} ${this.translationEditor}
                           ${renderChatPages(this.page.value)} ${this.bulkPublish} ${this.bulkPublishEditor}
-                          ${this.advancedTools} ${this.editorPanel} ${this.settings}
+                          ${this.advancedTools} ${this.editorPanel} ${this.settings} ${this.masks}
                       </div>`
                     : nothing}
             </div>

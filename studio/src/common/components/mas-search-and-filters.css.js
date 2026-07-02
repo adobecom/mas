@@ -9,6 +9,14 @@ export const styles = css`
         display: none;
     }
 
+    :host([searchonly]) {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 8px;
+        flex-wrap: wrap;
+    }
+
     .result-count {
         display: flex;
         align-items: center;
@@ -20,19 +28,18 @@ export const styles = css`
 
     .filters {
         display: flex;
-        align-items: center;
         gap: 12px;
         margin-bottom: 8px;
         flex-wrap: wrap;
     }
 
-    .filter-trigger {
-        border: 1px solid var(--spectrum-gray-300);
-        border-radius: 12px;
-        justify-content: start;
-        sp-icon-chevron-down {
-            order: 2;
-        }
+    sp-action-button {
+        display: flex;
+        flex-direction: row-reverse;
+    }
+
+    sp-action-button.template-filter {
+        height: 32px;
     }
 
     .filter-popover {
@@ -66,5 +73,10 @@ export const styles = css`
         display: flex;
         flex-wrap: wrap;
         gap: 8px;
+    }
+
+    .offer-filter {
+        width: fit-content;
+        --mod-picker-inline-size: auto;
     }
 `;

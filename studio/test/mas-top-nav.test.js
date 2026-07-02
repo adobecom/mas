@@ -19,6 +19,8 @@ describe('MasTopNav', () => {
     let originalPromotionId;
     let originalTranslationProjectId;
     let originalTranslationInEdit;
+    let originalMasksFragmentId;
+    let originalMasksCreating;
 
     beforeEach(() => {
         sandbox = sinon.createSandbox();
@@ -30,6 +32,8 @@ describe('MasTopNav', () => {
         originalPromotionId = Store.promotions.promotionId.value;
         originalTranslationProjectId = Store.translationProjects.translationProjectId.value;
         originalTranslationInEdit = Store.translationProjects.inEdit.value;
+        originalMasksFragmentId = Store.masks.fragmentId.value;
+        originalMasksCreating = Store.masks.creating.value;
         window.adobeIMS = {
             getAccessToken: () => ({ token: 'mock-token' }),
             getProfile: () => Promise.resolve({ displayName: 'Test User', email: 'test@example.com' }),
@@ -52,6 +56,8 @@ describe('MasTopNav', () => {
         Store.promotions.promotionId.value = originalPromotionId;
         Store.translationProjects.translationProjectId.value = originalTranslationProjectId;
         Store.translationProjects.inEdit.value = originalTranslationInEdit;
+        Store.masks.fragmentId.value = originalMasksFragmentId;
+        Store.masks.creating.value = originalMasksCreating;
         delete window.adobeIMS;
     });
 
@@ -100,6 +106,7 @@ describe('MasTopNav', () => {
     describe('breadcrumbs', () => {
         it('should render fragment editor breadcrumbs and navigate to content from first crumb', async () => {
             Store.page.value = PAGE_NAMES.FRAGMENT_EDITOR;
+            Store.promotions.promotionId.value = null;
             const navigateStub = sandbox.stub(router, 'navigateToPage').returns(() => {});
             const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
             const items = [...el.querySelectorAll('.nav-breadcrumbs sp-breadcrumb-item')].map((item) =>
@@ -109,6 +116,19 @@ describe('MasTopNav', () => {
             expect(items).to.deep.equal(['Fragments', 'Editor']);
             el.querySelector('.nav-breadcrumbs sp-breadcrumb-item').click();
             expect(navigateStub.calledWith(PAGE_NAMES.CONTENT)).to.be.true;
+        });
+
+        it('should render promotion breadcrumbs on fragment editor when promotionId is set', async () => {
+            Store.page.value = PAGE_NAMES.FRAGMENT_EDITOR;
+            Store.promotions.promotionId.value = 'promo-1';
+            const navigateStub = sandbox.stub(router, 'navigateToPage').returns(() => {});
+            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
+            const breadcrumbs = [...el.querySelectorAll('.nav-breadcrumbs sp-breadcrumb-item')];
+            const items = breadcrumbs.map((item) => item.textContent.trim());
+
+            expect(items).to.deep.equal(['Promotions', 'Edit promotion project', 'Edit promotion variation']);
+            breadcrumbs[1].click();
+            expect(navigateStub.calledWith(PAGE_NAMES.PROMOTIONS_EDITOR)).to.be.true;
         });
 
         it('should render version breadcrumbs and navigate to editor from second crumb', async () => {
@@ -173,7 +193,7 @@ describe('MasTopNav', () => {
             const items = [...el.querySelectorAll('.nav-breadcrumbs sp-breadcrumb-item')].map((item) =>
                 item.textContent.trim(),
             );
-            expect(items).to.deep.equal(['Promotions', 'Edit project']);
+            expect(items).to.deep.equal(['Promotions', 'Edit promotion project']);
         });
 
         it('should render promotions editor breadcrumbs and label for create flow', async () => {
@@ -183,7 +203,7 @@ describe('MasTopNav', () => {
             const items = [...el.querySelectorAll('.nav-breadcrumbs sp-breadcrumb-item')].map((item) =>
                 item.textContent.trim(),
             );
-            expect(items).to.deep.equal(['Promotions', 'Create new project']);
+            expect(items).to.deep.equal(['Promotions', 'Create new promotion project']);
         });
 
         it('should navigate to promotions page when promotions breadcrumb is clicked', async () => {
@@ -296,12 +316,43 @@ describe('MasTopNav', () => {
     });
 
     describe('history navigation visuals', () => {
-        it('should render history navigation buttons with forward disabled', async () => {
+        it('should render history navigation buttons with neither disabled', async () => {
             const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
             const buttons = el.querySelectorAll('.history-navigation .history-nav-button');
             expect(buttons.length).to.equal(2);
             expect(buttons[0].hasAttribute('disabled')).to.be.false;
-            expect(buttons[1].hasAttribute('disabled')).to.be.true;
+            expect(buttons[1].hasAttribute('disabled')).to.be.false;
+        });
+    });
+
+    describe('masks editor breadcrumbs', () => {
+        it('shows Masks > Editor breadcrumbs on MASKS_EDITOR page', async () => {
+            Store.page.value = PAGE_NAMES.MASKS_EDITOR;
+            Store.masks.creating.value = false;
+            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
+            await el.updateComplete;
+            const items = [...el.querySelectorAll('.nav-breadcrumbs sp-breadcrumb-item')];
+            expect(items.map((i) => i.textContent.trim())).to.deep.equal(['Masks', 'Editor']);
+        });
+
+        it('shows New mask label when creating is true', async () => {
+            Store.page.value = PAGE_NAMES.MASKS_EDITOR;
+            Store.masks.creating.value = true;
+            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
+            await el.updateComplete;
+            const items = [...el.querySelectorAll('.nav-breadcrumbs sp-breadcrumb-item')];
+            expect(items[1].textContent.trim()).to.equal('New mask');
+        });
+
+        it('Masks crumb navigates to MASKS page on click', async () => {
+            Store.page.value = PAGE_NAMES.MASKS_EDITOR;
+            Store.masks.creating.value = false;
+            const navigateStub = sandbox.stub(router, 'navigateToPage').returns(() => {});
+            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
+            await el.updateComplete;
+            const firstItem = el.querySelector('.nav-breadcrumbs sp-breadcrumb-item');
+            firstItem.click();
+            expect(navigateStub.calledWith(PAGE_NAMES.MASKS)).to.be.true;
         });
     });
 
@@ -335,6 +386,24 @@ describe('MasTopNav', () => {
 
         it('should disable folder picker on bulk publish editor page', async () => {
             Store.page.value = PAGE_NAMES.BULK_PUBLISH_EDITOR;
+            const el = await fixture(html`<mas-top-nav show-pickers></mas-top-nav>`);
+            await el.updateComplete;
+            const folderPicker = el.querySelector('mas-nav-folder-picker');
+            expect(folderPicker).to.exist;
+            expect(folderPicker.hasAttribute('disabled')).to.be.true;
+        });
+
+        it('should disable folder picker on promotions list page', async () => {
+            Store.page.value = PAGE_NAMES.PROMOTIONS;
+            const el = await fixture(html`<mas-top-nav show-pickers></mas-top-nav>`);
+            await el.updateComplete;
+            const folderPicker = el.querySelector('mas-nav-folder-picker');
+            expect(folderPicker).to.exist;
+            expect(folderPicker.hasAttribute('disabled')).to.be.true;
+        });
+
+        it('should disable folder picker on promotions editor page', async () => {
+            Store.page.value = PAGE_NAMES.PROMOTIONS_EDITOR;
             const el = await fixture(html`<mas-top-nav show-pickers></mas-top-nav>`);
             await el.updateComplete;
             const folderPicker = el.querySelector('mas-nav-folder-picker');
@@ -564,7 +633,7 @@ describe('MasTopNav', () => {
 
             await el.onLocaleChanged({ detail: { locale: 'tr_TR', fragmentId: null } });
 
-            expect(navigateSpy.calledWith('test-id')).to.be.true;
+            expect(navigateSpy.called).to.be.false;
             expect(Store.search.value.region).to.equal('tr_TR');
         });
     });

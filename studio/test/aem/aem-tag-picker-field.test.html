@@ -339,6 +339,15 @@
                         expect(triggerButton.hasAttribute('quiet')).to.be.false;
                     });
 
+                    it('quiet attribute takes precedence over checkbox-tags mode', async function () {
+                        const aemTagPicker = initElementFromTemplate('tagPicker9Quiet', this.test.title);
+                        await aemTagPicker.loadTags();
+                        await aemTagPicker.updateComplete;
+
+                        const triggerButton = aemTagPicker.shadowRoot.querySelector('sp-action-button[slot="trigger"]');
+                        expect(triggerButton.hasAttribute('quiet')).to.be.true;
+                    });
+
                     it('renders selected tags with sp-tags and no trigger count', async function () {
                         const aemTagPicker = initElementFromTemplate('tagPicker9', this.test.title);
                         await aemTagPicker.loadTags();
@@ -853,6 +862,14 @@
                 namespace="/content/cq:tags/mas"
                 top="status"
                 selection="checkbox-tags"
+            ></aem-tag-picker-field>
+        </template>
+        <template id="tagPicker9Quiet">
+            <aem-tag-picker-field
+                namespace="/content/cq:tags/mas"
+                top="status"
+                selection="checkbox-tags"
+                quiet
             ></aem-tag-picker-field>
         </template>
         <template id="tagPicker10">

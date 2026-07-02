@@ -1,5 +1,5 @@
-import { fetch } from '../utils/common.js';
-import { log, logError } from '../utils/log.js';
+import { fetch, getCountry, getRegionalLocale } from '../utils/common.js';
+import { log, logDebug, logError } from '../utils/log.js';
 
 const MAS_ELEMENT_REGEXP = /<[^>]+data-wcs-osi=\\"(?<osi>[^\\]+)\\"[^>]*?>/gm;
 const PROMOCODE_REGEXP = /(?<promo>data-promotion-code=\\"(?<promotionCode>[^\\]+)\\")/;
@@ -60,28 +60,49 @@ async function computeCache(tokens, wcsContext) {
     return cache;
 }
 
-async function getWcsConfigurations(context) {
-    if (context.wcsConfiguration) {
-        return context.wcsConfiguration.filter((config) => config.api_keys?.includes(context.api_key));
-    }
-    return null;
-}
-
 async function wcs(context) {
-    const wcsConfigs = await getWcsConfigurations(context);
-    if (!wcsConfigs || wcsConfigs.length === 0) {
-        log(`No WCS configurations found for API key ${context.api_key}`, context);
-        return context;
-    }
-    const { body, locale } = context;
+    const { body } = context;
     const bodyString = JSON.stringify(body);
     const matches = [...bodyString.matchAll(MAS_ELEMENT_REGEXP)];
+
+    const parts = [];
+    let lastEnd = 0;
+    matches.forEach((match) => {
+        const originalOsi = match.groups.osi;
+        const substitutedOsi = context.substituteMap?.[originalOsi];
+        if (substitutedOsi) {
+            logDebug(() => `Substituting OSI ${originalOsi} with ${substitutedOsi}`, context);
+            parts.push(bodyString.slice(lastEnd, match.index));
+            parts.push(match[0].replace(`\\"${originalOsi}\\"`, `\\"${substitutedOsi}\\"`));
+            lastEnd = match.index + match[0].length;
+        }
+    });
+    if (parts.length > 0) {
+        parts.push(bodyString.slice(lastEnd));
+        try {
+            context.body = JSON.parse(parts.join(''));
+        } catch (error) {
+            logError(`Failed to rewrite body with substituted OSIs: ${error.message}`, context);
+        }
+    }
+    if (context.body.fields?.osi) {
+        const substitutedOsi = context.substituteMap?.[context.body.fields.osi] ?? context.body.fields.osi;
+        if (substitutedOsi !== context.body.fields.osi) {
+            context.body.fields.osi = substitutedOsi;
+        }
+    }
+
+    const wcsConfigs = context.wcsConfiguration;
+    if (!wcsConfigs || wcsConfigs.length === 0) {
+        log('No WCS configurations available', context);
+        return context;
+    }
     if (matches.length > 0) {
         const tokenMap = new Map();
         const tokenKey = ({ osi, promotionCode }) => `${osi}-${promotionCode || ''}`;
         matches.forEach((match) => {
             const token = {
-                osi: match.groups.osi,
+                osi: context.substituteMap?.[match.groups.osi] ?? match.groups.osi,
             };
             const promoMatch = match[0].match(PROMOCODE_REGEXP);
             if (promoMatch && promoMatch.groups?.promotionCode) {
@@ -90,19 +111,19 @@ async function wcs(context) {
             tokenMap.set(tokenKey(token), token);
         });
 
-        if (body.fields.osi) {
+        if (context.body.fields?.osi) {
             const token = {
-                osi: body.fields.osi,
-                promotionCode: body.fields.promoCode,
+                osi: context.substituteMap?.[context.body.fields.osi] ?? context.body.fields.osi,
+                promotionCode: context.body.fields.promoCode,
             };
             tokenMap.set(tokenKey(token), token);
         }
 
         // Convert Map values back to array
         const tokens = Array.from(tokenMap.values());
-        const country = context.country || locale.split('_')[1];
+        const country = getCountry(context);
         const wcsContext = {
-            locale,
+            locale: getRegionalLocale(context),
             country,
             context,
         };

@@ -1,5 +1,6 @@
 import { html, nothing } from 'lit';
 import { getFragmentMapping } from './variants';
+import { MERCH_CARD_LOAD_TIMEOUT } from '../constants.js';
 
 export class VariantLayout {
     static styleMap = {};
@@ -78,26 +79,27 @@ export class VariantLayout {
         for (const rowCards of rows.values()) {
             for (const { name, getElement } of entries) {
                 const prop = `--consonant-merch-card-${variant}-${name}-height`;
+                const previous = rowCards.map((card) =>
+                    card.style.getPropertyValue(prop),
+                );
                 let max = 0;
-                const cardHeights = [];
                 for (const card of rowCards) {
                     card.style.removeProperty(prop);
                     const el = getElement(card);
-                    if (!el) {
-                        cardHeights.push({ card, height: 0 });
-                        continue;
-                    }
+                    if (!el) continue;
                     const height = Math.max(
                         0,
                         parseInt(window.getComputedStyle(el).height) || 0,
                     );
-                    cardHeights.push({ card, height });
                     if (height > max) max = height;
                 }
-                if (max <= 0) continue;
-                for (const { card } of cardHeights) {
-                    card.style.setProperty(prop, `${max}px`);
-                }
+                rowCards.forEach((card, index) => {
+                    if (max > 0) {
+                        card.style.setProperty(prop, `${max}px`);
+                    } else if (previous[index]) {
+                        card.style.setProperty(prop, previous[index]);
+                    }
+                });
             }
         }
     }
@@ -180,7 +182,21 @@ export class VariantLayout {
     }
 
     async postCardUpdateHook() {
-        //nothing to do by default
+        if (!this.card.isConnected) return;
+        await this.card.updateComplete;
+        if (this.card.prices?.length > 0) {
+            const settle = Promise.allSettled(
+                this.card.prices.map(
+                    (price) => price.onceSettled?.() || Promise.resolve(),
+                ),
+            );
+            let timeoutId;
+            const timeout = new Promise((resolve) => {
+                timeoutId = setTimeout(resolve, MERCH_CARD_LOAD_TIMEOUT);
+            });
+            await Promise.race([settle, timeout]);
+            clearTimeout(timeoutId);
+        }
     }
 
     connectedCallbackHook() {

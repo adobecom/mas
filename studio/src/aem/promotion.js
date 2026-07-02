@@ -1,3 +1,4 @@
+import { FRAGMENT_STATUS } from '../constants.js';
 import { Fragment } from './fragment.js';
 
 export class Promotion extends Fragment {
@@ -25,6 +26,14 @@ export class Promotion extends Fragment {
         return this.created?.fullName || 'Unknown';
     }
 
+    get isPromotionPublished() {
+        return this.status === FRAGMENT_STATUS.PUBLISHED || this.status === FRAGMENT_STATUS.MODIFIED;
+    }
+
+    get isPromotionModified() {
+        return this.status === FRAGMENT_STATUS.MODIFIED;
+    }
+
     get promotionStatus() {
         if (!this.startDateValue || !this.endDateValue) {
             return 'unknown';
@@ -34,22 +43,39 @@ export class Promotion extends Fragment {
         const startDate = new Date(this.startDateValue);
         const endDate = new Date(this.endDateValue);
 
-        // Check if dates are valid
         if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
             return 'unknown';
         }
 
-        // Active: current time is between startDate and endDate
-        if (now >= startDate && now <= endDate) {
-            return 'active';
-        }
-
-        // Expired: endDate is in the past
         if (now > endDate) {
             return 'expired';
         }
 
-        // Scheduled: startDate and endDate are in the future
-        return 'scheduled';
+        if (this.status === FRAGMENT_STATUS.MODIFIED) {
+            return 'modified';
+        }
+
+        if (!this.isPromotionPublished) {
+            return 'draft';
+        }
+
+        if (now < startDate) {
+            return 'scheduled';
+        }
+
+        return 'active';
+    }
+
+    get promotionListFilterKey() {
+        const displayStatus = this.promotionStatus;
+        if (displayStatus !== 'modified') {
+            return displayStatus;
+        }
+        const startDate = new Date(this.startDateValue);
+        const now = new Date();
+        if (!isNaN(startDate.getTime()) && now < startDate) {
+            return 'scheduled';
+        }
+        return 'active';
     }
 }

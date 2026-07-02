@@ -338,7 +338,7 @@ describe('mcp-client', () => {
             });
 
             try {
-                await executeStudioOperationWithProgress('bulk_delete_cards', { ids: [] }, null, 10);
+                await executeStudioOperationWithProgress('bulk_update_cards', { ids: [] }, null, 10);
                 expect.fail('Should have rejected');
             } catch (error) {
                 expect(error.message).to.equal('Bulk operation failed');
@@ -450,27 +450,6 @@ describe('mcp-client', () => {
 
             expect(result.results).to.deep.equal(cards);
             expect(result.count).to.equal(1);
-        });
-
-        it('maps delete_card result correctly', async () => {
-            fetchStub.resolves({
-                ok: true,
-                json: () =>
-                    Promise.resolve({
-                        id: 'frag-99',
-                        title: 'Deleted Card',
-                    }),
-            });
-
-            const result = await executeStudioOperation('delete_card', {
-                id: 'frag-99',
-            });
-
-            expect(result.success).to.be.true;
-            expect(result.operation).to.equal('delete');
-            expect(result.fragmentId).to.equal('frag-99');
-            expect(result.fragmentTitle).to.equal('Deleted Card');
-            expect(result.message).to.include('deleted');
         });
 
         it('maps unpublish_card result correctly', async () => {
@@ -607,7 +586,7 @@ describe('mcp-client', () => {
 
             const result = await executeStudioOperation('some_tool', {});
 
-            expect(result.message).to.equal('Operation completed');
+            expect(result.message).to.equal('some tool completed.');
             expect(result.count).to.equal(0);
         });
 
@@ -618,7 +597,7 @@ describe('mcp-client', () => {
             });
             const warnSpy = sandbox.stub(console, 'warn');
             const result = await executeStudioOperation('future_tool', {});
-            expect(result.message).to.equal('Operation completed');
+            expect(result.message).to.equal('future tool completed — 3 results.');
             expect(result.message).to.not.include('created');
             expect(warnSpy.calledOnce).to.be.true;
             expect(warnSpy.firstCall.args[0]).to.include('future_tool');

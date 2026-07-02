@@ -22,6 +22,7 @@ class MasTopNav extends LitElement {
     promotions = Store.promotions;
     translationProjects = Store.translationProjects;
     bulkPublishProjects = Store.bulkPublishProjects;
+    masks = Store.masks;
 
     reactiveController = new ReactiveController(this, [
         this.page,
@@ -39,6 +40,8 @@ class MasTopNav extends LitElement {
         Store.productCatalog.search,
         this.bulkPublishProjects.inEdit,
         this.bulkPublishProjects.projectId,
+        this.masks.fragmentId,
+        this.masks.creating,
     ]);
 
     createRenderRoot() {
@@ -184,11 +187,28 @@ class MasTopNav extends LitElement {
         return this.page.value === PAGE_NAMES.BULK_PUBLISH_EDITOR;
     }
 
+    get isPromotionsPage() {
+        return this.page.value === PAGE_NAMES.PROMOTIONS;
+    }
+
+    get isPromotionsEditorPage() {
+        return this.page.value === PAGE_NAMES.PROMOTIONS_EDITOR;
+    }
+
+    get isMasksEditorPage() {
+        return this.page.value === PAGE_NAMES.MASKS_EDITOR;
+    }
+
+    get masksEditorBreadcrumbLabel() {
+        return this.masks.creating.get() ? 'New mask' : 'Editor';
+    }
+
     get topNavLocale() {
         if (this.isFragmentEditorPage) {
             const fragmentId = this.inEdit.get()?.get()?.id;
             if (this.editorContext.isGroupedVariationByPath) {
-                return Store.localeOrRegion();
+                const locale = Store.filters.value.locale;
+                return getDefaultLocaleCode(Store.surface(), locale) || locale;
             }
             if (this.editorContext.isVariation(fragmentId) && this.editorContext.localeDefaultFragment?.path) {
                 return extractLocaleFromPath(this.editorContext.localeDefaultFragment.path);
@@ -250,7 +270,9 @@ class MasTopNav extends LitElement {
                     const translatedLocales = Store.fragmentEditor.translatedLocales.get();
                     const enUsTranslation = translatedLocales?.find((t) => t.locale === 'en_US');
                     const enUsFragmentId = enUsTranslation?.id || currentFragment?.id;
-                    router.navigateToFragmentEditor(enUsFragmentId);
+                    if (enUsFragmentId && enUsFragmentId !== currentFragment?.id) {
+                        router.navigateToFragmentEditor(enUsFragmentId);
+                    }
                 }
             }
             return;
@@ -270,7 +292,7 @@ class MasTopNav extends LitElement {
     }
 
     get promotionsEditorBreadcrumbLabel() {
-        return this.promotions.promotionId.get() ? 'Edit project' : 'Create new project';
+        return this.promotions.promotionId.get() ? 'Edit promotion project' : 'Create new promotion project';
     }
 
     get translationEditorBreadcrumbLabel() {
@@ -302,6 +324,21 @@ class MasTopNav extends LitElement {
         };
 
         if (this.page.value === PAGE_NAMES.FRAGMENT_EDITOR) {
+            const promotionId = this.promotions.promotionId.get();
+            if (promotionId) {
+                return [
+                    { label: 'Promotions', handler: handlers.promotions },
+                    {
+                        label: this.promotionsEditorBreadcrumbLabel,
+                        handler: () => {
+                            const id = this.promotions.promotionId.get();
+                            if (id) Store.promotions.promotionId.set(id);
+                            router.navigateToPage(PAGE_NAMES.PROMOTIONS_EDITOR)();
+                        },
+                    },
+                    { label: 'Edit promotion variation' },
+                ];
+            }
             return [{ label: 'Fragments', handler: handlers.content }, { label: 'Editor' }];
         }
         if (this.page.value === PAGE_NAMES.VERSION) {
@@ -344,6 +381,12 @@ class MasTopNav extends LitElement {
                 { label: this.bulkPublishEditorBreadcrumbLabel },
             ];
         }
+        if (this.page.value === PAGE_NAMES.MASKS_EDITOR) {
+            return [
+                { label: 'Masks', handler: () => router.navigateToPage(PAGE_NAMES.MASKS)() },
+                { label: this.masksEditorBreadcrumbLabel },
+            ];
+        }
 
         return [];
     }
@@ -370,10 +413,10 @@ class MasTopNav extends LitElement {
     get historyNavigationTemplate() {
         return html`
             <div class="history-navigation" aria-label="History navigation">
-                <button class="history-nav-button" type="button" aria-label="Back">
+                <button class="history-nav-button" type="button" aria-label="Back" @click=${() => history.back()}>
                     <sp-icon-chevron-left size="s"></sp-icon-chevron-left>
                 </button>
-                <button class="history-nav-button" type="button" aria-label="Forward" disabled>
+                <button class="history-nav-button" type="button" aria-label="Forward" @click=${() => history.forward()}>
                     <sp-icon-chevron-right size="s"></sp-icon-chevron-right>
                 </button>
             </div>
@@ -426,7 +469,9 @@ class MasTopNav extends LitElement {
                                   ?disabled=${this.isFragmentEditorPage ||
                                   this.isTranslationEditorPage ||
                                   this.isSettingsEditorPage ||
-                                  this.isBulkPublishEditorPage}
+                                  this.isBulkPublishEditorPage ||
+                                  this.isPromotionsPage ||
+                                  this.isPromotionsEditorPage}
                               ></mas-nav-folder-picker>
                               <mas-locale-picker
                                   displayMode="strong"

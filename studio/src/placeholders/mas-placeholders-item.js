@@ -3,6 +3,7 @@ import { STATUS_PUBLISHED, TAG_STATUS_DRAFT } from '../constants.js';
 import Store from '../store.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 import { MasRepository } from '../mas-repository.js';
+import { removeFromIndexFragment, publishPlaceholder } from './mas-placeholders-repository.js';
 import { confirmation } from '../mas-confirm-dialog.js';
 import { showToast } from '../utils.js';
 import { FragmentStore } from '../reactivity/fragment-store.js';
@@ -109,7 +110,7 @@ class MasPlaceholdersItem extends LitElement {
         });
         if (!confirmed) return;
         showToast('Deleting placeholder...');
-        if (!(await this.repository.removeFromIndexFragment(this.placeholder))) return;
+        if (!(await removeFromIndexFragment(this.placeholder))) return;
         this.repository.deleteFragment(this.placeholder, {
             startToast: false,
             endToast: false,
@@ -120,12 +121,14 @@ class MasPlaceholdersItem extends LitElement {
         if (this.placeholder.status === STATUS_PUBLISHED) return;
         this.toggleDropdown(this.placeholder.key, event);
         showToast('Publishing placeholder...');
-        await this.repository.publishFragment(this.placeholder);
-        const updatedPlaceholder = {
-            ...this.placeholder,
-            status: STATUS_PUBLISHED,
-        };
-        this.placeholderStore.refreshFrom(updatedPlaceholder);
+        const success = await publishPlaceholder(this.placeholder);
+        if (success) {
+            const updatedPlaceholder = {
+                ...this.placeholder,
+                status: STATUS_PUBLISHED,
+            };
+            this.placeholderStore.refreshFrom(updatedPlaceholder);
+        }
     }
 
     preventSelection(event) {

@@ -2485,7 +2485,7 @@ body.chat-resizing {
 .chat-backdrop {
     position: fixed;
     inset: 0;
-    z-index: 998;
+    z-index: 959;
     background: rgba(40, 40, 70, 0.16);
     backdrop-filter: blur(2.5px);
     animation: backdropIn 240ms ease forwards;

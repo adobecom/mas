@@ -515,7 +515,8 @@ export class MasChatMessage extends LitElement {
                 ? rawContent.replace(/<use_mcp_tool>[\s\S]*?<\/use_mcp_tool>/g, '').trim()
                 : rawContent;
 
-        const messageClass = `chat-message chat-message-${role}`;
+        const entranceClass = this.message.fresh ? (role === 'assistant' ? 'msg-bloom' : 'msg-rise') : '';
+        const messageClass = `chat-message chat-message-${role} ${entranceClass}`.trim();
         const isUser = role === 'user';
 
         const hasDisplayableContent =

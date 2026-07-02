@@ -353,6 +353,7 @@ export class MasChat extends LitElement {
                         openOst: true,
                         ostSearchParams: searchParams,
                         timestamp: Date.now(),
+                        fresh: true,
                     },
                 ];
             } else {
@@ -467,7 +468,7 @@ export class MasChat extends LitElement {
             this.selectedReleaseTrialOffer = context.trialOffer;
         }
 
-        this.messages = [...this.messages, userMessage];
+        this.messages = [...this.messages, { ...userMessage, fresh: true }];
 
         this.isLoading = true;
         this.error = null;
@@ -559,6 +560,7 @@ export class MasChat extends LitElement {
                     content: response.message || 'Processing your request...',
                     confirmationRequired: requiresConfirmation,
                     timestamp: Date.now(),
+                    fresh: true,
                 };
 
                 if (response.type === 'mcp_operation') {
@@ -597,6 +599,7 @@ export class MasChat extends LitElement {
                         isCreatingDraft: true,
                         validation: response.validation,
                         timestamp: Date.now(),
+                        fresh: true,
                     },
                 ];
 
@@ -642,6 +645,7 @@ export class MasChat extends LitElement {
                         collectionConfig: response.collectionConfig,
                         validation: response.validation,
                         timestamp: Date.now(),
+                        fresh: true,
                     },
                 ];
             } else if (response.type === 'guided_step') {
@@ -671,6 +675,7 @@ export class MasChat extends LitElement {
                         buttonGroup: guidedStep.buttonGroup,
                         productCards: guidedStep.productCards,
                         timestamp: Date.now(),
+                        fresh: true,
                         ...attachOst,
                     },
                 ];
@@ -729,6 +734,7 @@ export class MasChat extends LitElement {
                                 ],
                             },
                             timestamp: Date.now(),
+                            fresh: true,
                         },
                     ];
                     return;
@@ -755,6 +761,7 @@ export class MasChat extends LitElement {
                         openOst: true,
                         ostSearchParams: searchParams,
                         timestamp: Date.now(),
+                        fresh: true,
                     },
                 ];
             } else if (response.type === 'release_confirmation') {
@@ -767,6 +774,7 @@ export class MasChat extends LitElement {
                         confirmationSummary,
                         confirmationRequired: true,
                         timestamp: Date.now(),
+                        fresh: true,
                     },
                 ];
             } else if (response.type === 'release_cards') {
@@ -786,6 +794,7 @@ export class MasChat extends LitElement {
                             fragmentIds: response.fragmentIds,
                             suggestedTitle: response.suggestedTitle,
                             timestamp: Date.now(),
+                            fresh: true,
                         },
                     ];
                 }
@@ -803,6 +812,7 @@ export class MasChat extends LitElement {
                     role: 'error',
                     content: `Sorry, I encountered an error: ${error.message}`,
                     timestamp: Date.now(),
+                    fresh: true,
                 },
             ];
         } finally {
@@ -841,7 +851,7 @@ export class MasChat extends LitElement {
                     envelope.clarification_question || `I need a bit more information: ${envelope.missing_slots.join(', ')}.`;
                 this.messages = [
                     ...this.messages,
-                    { role: 'assistant', content: text, sources: response.sources, timestamp: Date.now() },
+                    { role: 'assistant', content: text, sources: response.sources, timestamp: Date.now(), fresh: true },
                 ];
                 return true;
             }
@@ -890,6 +900,7 @@ export class MasChat extends LitElement {
                     mcpOperation: { mcpTool, mcpParams },
                     operationType: 'mcp_operation',
                     timestamp: Date.now(),
+                    fresh: true,
                 },
             ];
 
@@ -923,7 +934,10 @@ export class MasChat extends LitElement {
         if (intent === 'ASK_USER') {
             const text =
                 envelope.clarification_question || envelope.user_message || 'Could you clarify what you would like me to do?';
-            this.messages = [...this.messages, { role: 'assistant', content: text, sources, timestamp: Date.now() }];
+            this.messages = [
+                ...this.messages,
+                { role: 'assistant', content: text, sources, timestamp: Date.now(), fresh: true },
+            ];
             return true;
         }
 
@@ -938,7 +952,7 @@ export class MasChat extends LitElement {
             this.selectedReleaseTrialOsi = null;
             this.trialCtaAsked = false;
             const text = envelope.user_message || 'Cancelled. What would you like to do next?';
-            this.messages = [...this.messages, { role: 'assistant', content: text, timestamp: Date.now() }];
+            this.messages = [...this.messages, { role: 'assistant', content: text, timestamp: Date.now(), fresh: true }];
             return true;
         }
 
@@ -961,13 +975,16 @@ export class MasChat extends LitElement {
 
         if (intent === 'SHOW_HELP') {
             const text = envelope.user_message || 'Here are some things I can help with.';
-            this.messages = [...this.messages, { role: 'assistant', content: text, sources, timestamp: Date.now() }];
+            this.messages = [
+                ...this.messages,
+                { role: 'assistant', content: text, sources, timestamp: Date.now(), fresh: true },
+            ];
             return true;
         }
 
         if (intent === 'REPORT_ERROR') {
             const text = envelope.user_message || envelope.slots?.message || 'An error occurred.';
-            this.messages = [...this.messages, { role: 'error', content: text, timestamp: Date.now() }];
+            this.messages = [...this.messages, { role: 'error', content: text, timestamp: Date.now(), fresh: true }];
             return true;
         }
 
@@ -1010,6 +1027,7 @@ export class MasChat extends LitElement {
                     role: 'assistant',
                     content: classified.missingSlot.prompt,
                     timestamp: Date.now(),
+                    fresh: true,
                 },
             ];
             return true;
@@ -1124,6 +1142,7 @@ export class MasChat extends LitElement {
                 role: 'assistant',
                 content: lines.join('\n\n'),
                 timestamp: Date.now(),
+                fresh: true,
             },
         ];
     }
@@ -1245,6 +1264,7 @@ export class MasChat extends LitElement {
                     role: 'assistant',
                     content: `✓ Card saved to AEM at: ${newFragment.path}`,
                     timestamp: Date.now(),
+                    fresh: true,
                 },
             ];
         } catch (error) {
@@ -1256,6 +1276,7 @@ export class MasChat extends LitElement {
                     role: 'error',
                     content: `Failed to save: ${error.message}`,
                     timestamp: Date.now(),
+                    fresh: true,
                 },
             ];
         } finally {
@@ -1344,6 +1365,7 @@ export class MasChat extends LitElement {
                     role: 'error',
                     content: 'No card configurations were provided for the release.',
                     timestamp: Date.now(),
+                    fresh: true,
                 },
             ];
             return;
@@ -1361,6 +1383,7 @@ export class MasChat extends LitElement {
                 operationLoading: true,
                 operationType: 'create_release_cards',
                 timestamp: Date.now(),
+                fresh: true,
             },
         ];
 
@@ -1469,6 +1492,7 @@ export class MasChat extends LitElement {
                     role: 'assistant',
                     content: `✓ Card "${fragment.title}" has been published to production.`,
                     timestamp: Date.now(),
+                    fresh: true,
                 },
             ];
         } catch (error) {
@@ -1522,6 +1546,7 @@ export class MasChat extends LitElement {
                     role: 'assistant',
                     content: `Collection saved with ${savedCards.length} cards in ${this.capitalize(Store.search.value.path)} folder, ${Store.filters.value.locale || 'en_US'} locale.`,
                     timestamp: Date.now(),
+                    fresh: true,
                 },
             ];
         } catch (error) {
@@ -1533,6 +1558,7 @@ export class MasChat extends LitElement {
                     role: 'error',
                     content: `Failed to save collection: ${error.message}`,
                     timestamp: Date.now(),
+                    fresh: true,
                 },
             ];
         } finally {
@@ -1583,6 +1609,7 @@ export class MasChat extends LitElement {
                     role: 'assistant',
                     content: `Collection "${title}" created with ${cardIds.length} cards in ${this.capitalize(Store.search.value.path)} folder, ${Store.filters.value.locale || 'en_US'} locale.`,
                     timestamp: Date.now(),
+                    fresh: true,
                 },
             ];
 
@@ -1595,6 +1622,7 @@ export class MasChat extends LitElement {
                     role: 'error',
                     content: `Failed to create collection: ${error.message}`,
                     timestamp: Date.now(),
+                    fresh: true,
                 },
             ];
             showToast(`Failed to create collection: ${error.message}`, 'negative');
@@ -1621,6 +1649,7 @@ export class MasChat extends LitElement {
                     role: 'assistant',
                     content: 'Operation cancelled.',
                     timestamp: Date.now(),
+                    fresh: true,
                 },
             ];
         }
@@ -1634,7 +1663,7 @@ export class MasChat extends LitElement {
         const validation = validateFragmentIds(operationType, operation.mcpParams);
         if (!validation.ok) {
             const content = fragmentIdGuardMessage(validation.invalid);
-            this.messages = [...this.messages, { role: 'error', content, timestamp: Date.now() }];
+            this.messages = [...this.messages, { role: 'error', content, timestamp: Date.now(), fresh: true }];
             showToast(content, 'negative');
             this.isLoading = false;
             return;
@@ -1669,6 +1698,7 @@ export class MasChat extends LitElement {
                     previewOperation: operationType,
                     previewParams: operation.mcpParams,
                     timestamp: Date.now(),
+                    fresh: true,
                 },
             ];
         } catch (error) {
@@ -1679,6 +1709,7 @@ export class MasChat extends LitElement {
                     role: 'error',
                     content: `Failed to generate preview: ${error.message}`,
                     timestamp: Date.now(),
+                    fresh: true,
                 },
             ];
             showToast(`Failed to generate preview: ${error.message}`, 'negative');
@@ -1717,6 +1748,7 @@ export class MasChat extends LitElement {
                 role: 'assistant',
                 content: 'Starting bulk operation...',
                 timestamp: Date.now(),
+                fresh: true,
             },
         ];
 
@@ -1732,6 +1764,7 @@ export class MasChat extends LitElement {
                 role: 'assistant',
                 content: 'Preview cancelled. No changes were made.',
                 timestamp: Date.now(),
+                fresh: true,
             },
         ];
 
@@ -1751,6 +1784,7 @@ export class MasChat extends LitElement {
             progress: { current: 0, total: operation.mcpParams.fragmentIds?.length || 0 },
             timestamp: Date.now(),
             messageId,
+            fresh: true,
         };
 
         this.messages = [...this.messages, loadingMessageObj];
@@ -1814,6 +1848,7 @@ export class MasChat extends LitElement {
             operationLoading: true,
             operationType,
             timestamp: Date.now(),
+            fresh: true,
         };
 
         this.messages = [...this.messages, loadingMessageObj];
@@ -1941,6 +1976,7 @@ export class MasChat extends LitElement {
                         ],
                     },
                     timestamp: Date.now(),
+                    fresh: true,
                 },
             ];
             return;
@@ -1972,6 +2008,7 @@ export class MasChat extends LitElement {
                 productCards,
                 productCardsSelectedValue: productCards[0].value,
                 timestamp: Date.now(),
+                fresh: true,
             },
         ];
 
@@ -2038,6 +2075,7 @@ export class MasChat extends LitElement {
                     content: response.message,
                     confirmationRequired: requiresConfirmation,
                     timestamp: Date.now(),
+                    fresh: true,
                 };
                 if (response.type === 'mcp_operation') {
                     messageData.mcpOperation = { mcpTool: response.mcpTool, mcpParams: response.mcpParams };
@@ -2078,6 +2116,7 @@ export class MasChat extends LitElement {
                         buttonGroup: guidedStep.buttonGroup,
                         productCards: guidedStep.productCards,
                         timestamp: Date.now(),
+                        fresh: true,
                         ...attachOst,
                     },
                 ];
@@ -2121,6 +2160,7 @@ export class MasChat extends LitElement {
                         confirmationSummary,
                         confirmationRequired: true,
                         timestamp: Date.now(),
+                        fresh: true,
                     },
                 ];
             } else if (response.type === 'release_cards') {
@@ -2134,6 +2174,7 @@ export class MasChat extends LitElement {
                         type: response.type,
                         sources: response.sources || [],
                         timestamp: Date.now(),
+                        fresh: true,
                     },
                 ];
             }
@@ -2141,7 +2182,12 @@ export class MasChat extends LitElement {
             logError('Continue with MCP result error', error);
             this.messages = [
                 ...this.messages,
-                { role: 'error', content: `Failed to process product data: ${error.message}`, timestamp: Date.now() },
+                {
+                    role: 'error',
+                    content: `Failed to process product data: ${error.message}`,
+                    timestamp: Date.now(),
+                    fresh: true,
+                },
             ];
         } finally {
             this.isLoading = false;
@@ -2239,6 +2285,7 @@ export class MasChat extends LitElement {
                         },
                         productCards: products,
                         timestamp: Date.now(),
+                        fresh: true,
                     },
                 ];
             } else {
@@ -2248,6 +2295,7 @@ export class MasChat extends LitElement {
                         role: 'assistant',
                         content: `No products found matching "${searchText}". Please try a different name or check the spelling.`,
                         timestamp: Date.now(),
+                        fresh: true,
                     },
                 ];
             }
@@ -2258,6 +2306,7 @@ export class MasChat extends LitElement {
                     role: 'assistant',
                     content: `Couldn't look up "${searchText}" right now. Please try again.`,
                     timestamp: Date.now(),
+                    fresh: true,
                 },
             ];
         }

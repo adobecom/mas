@@ -2700,3 +2700,50 @@ body.chat-resizing {
 .input-actions sp-button[variant='accent']:active {
     transform: scale(0.95);
 }
+
+.msg-bloom .message-avatar {
+    animation: avatarPop 300ms var(--mas-ease-spring) both;
+}
+
+@keyframes avatarPop {
+    0% {
+        transform: scale(0);
+    }
+    60% {
+        transform: scale(1.15);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+.msg-bloom .message-card {
+    transform-origin: bottom left;
+    animation: bubbleBloom 340ms var(--mas-ease-out) 60ms both;
+}
+
+@keyframes bubbleBloom {
+    0% {
+        transform: scale(0.6);
+        opacity: 0;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.msg-rise {
+    animation: msgRise 240ms var(--mas-ease-out) both;
+}
+
+@keyframes msgRise {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}

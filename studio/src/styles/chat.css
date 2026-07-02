@@ -2793,3 +2793,101 @@ body.chat-resizing {
 .message-sources {
     transition: opacity 240ms var(--mas-ease-out);
 }
+
+/* ==========================================================================
+   Thinking glow, chip stagger, micro-interactions, sources expand (MWPW-183572)
+   ========================================================================== */
+.typing-indicator {
+    position: relative;
+}
+
+.typing-indicator::before {
+    content: '';
+    position: absolute;
+    inset: -6px;
+    border-radius: 18px;
+    background: radial-gradient(closest-side, var(--mas-chat-glow), transparent);
+    animation: thinkingGlow 1.8s ease-in-out infinite;
+}
+
+@keyframes thinkingGlow {
+    0%,
+    100% {
+        opacity: 0.4;
+        transform: scale(0.92);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.05);
+    }
+}
+
+.typing-dot {
+    background: linear-gradient(135deg, var(--mas-chat-gradient-start), var(--mas-chat-gradient-end));
+}
+
+.welcome-chips sp-action-button {
+    animation: chipIn 320ms var(--mas-ease-spring) both;
+    transition:
+        transform 140ms var(--mas-ease-out),
+        box-shadow 140ms var(--mas-ease-out);
+}
+
+.welcome-chips sp-action-button:nth-child(1) {
+    animation-delay: 0ms;
+}
+
+.welcome-chips sp-action-button:nth-child(2) {
+    animation-delay: 90ms;
+}
+
+.welcome-chips sp-action-button:nth-child(3) {
+    animation-delay: 180ms;
+}
+
+.welcome-chips sp-action-button:nth-child(4) {
+    animation-delay: 270ms;
+}
+
+.welcome-chips sp-action-button:nth-child(5) {
+    animation-delay: 360ms;
+}
+
+.welcome-chips sp-action-button:nth-child(n + 6) {
+    animation-delay: 450ms;
+}
+
+@keyframes chipIn {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+.welcome-chips sp-action-button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(80, 63, 252, 0.18);
+}
+
+.welcome-chips sp-action-button:active {
+    transform: scale(0.97);
+}
+
+.sources-list {
+    animation: sourcesListIn 240ms var(--mas-ease-out) both;
+}
+
+@keyframes sourcesListIn {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}

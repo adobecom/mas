@@ -2681,6 +2681,12 @@ body.chat-resizing {
 }
 
 .input-actions sp-button[variant='accent'] {
+    --mod-button-background-color-default: transparent;
+    --mod-button-background-color-hover: transparent;
+    --mod-button-background-color-down: transparent;
+    --mod-button-background-color-focus: transparent;
+    background: linear-gradient(135deg, var(--mas-chat-gradient-start), var(--mas-chat-gradient-end));
+    border-radius: 999px;
     transition:
         transform 140ms var(--mas-ease-out),
         box-shadow 140ms var(--mas-ease-out);

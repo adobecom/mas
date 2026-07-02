@@ -1,0 +1,35 @@
+name: Detect trivial PR
+description: >
+    Checks whether a PR only touches trivial paths (docs, .github/, .claude/,
+    gitignore/gitattributes). Requires the repo to already be checked out with
+    fetch-depth: 0.
+
+inputs:
+    base-ref:
+        description: Base branch ref to diff against (e.g. github.event.pull_request.base.ref)
+        required: true
+
+outputs:
+    trivial:
+        description: "'true' if the PR only touches trivial paths, else 'false'"
+        value: ${{ steps.check.outputs.trivial }}
+
+runs:
+    using: composite
+    steps:
+        - name: Check changed paths against trivial pattern
+          id: check
+          shell: bash
+          env:
+              BASE_REF: ${{ inputs.base-ref }}
+          run: |
+              TRIVIAL_PATTERN='^(\.github/|\.claude/|\.gitignore$|\.gitattributes$|(.*/)?[Rr][Ee][Aa][Dd][Mm][Ee]\.md$)'
+              git fetch origin "${BASE_REF}"
+              CHANGED=$(git diff --name-only "origin/${BASE_REF}...HEAD")
+              if [ -z "$CHANGED" ]; then
+                  echo "trivial=false" >> "$GITHUB_OUTPUT"
+              elif echo "$CHANGED" | grep -qvE "$TRIVIAL_PATTERN"; then
+                  echo "trivial=false" >> "$GITHUB_OUTPUT"
+              else
+                  echo "trivial=true" >> "$GITHUB_OUTPUT"
+              fi

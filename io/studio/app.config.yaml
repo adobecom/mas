@@ -61,8 +61,6 @@ application:
                     bulk-edit-find-worker:
                         function: src/bulk-edit/find-worker.js
                         runtime: nodejs:22
-                        inputs:
-                            odinEndpoint: $ODIN_ENDPOINT
                         limits:
                             timeout: 3600000 # ms — 60 min (async worker max 3 h)
                         annotations:
@@ -72,7 +70,6 @@ application:
                         function: src/bulk-edit/replace-worker.js
                         runtime: nodejs:22
                         inputs:
-                            odinEndpoint: $ODIN_ENDPOINT
                             batchSize: $BATCH_SIZE
                             rpsLimit: $RPS_LIMIT
                         limits:

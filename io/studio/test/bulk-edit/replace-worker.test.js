@@ -49,14 +49,15 @@ function load(overrides = {}) {
     ];
     const stubs = {
         '../common.js': {
-            getFragmentWithEtag: async (endpoint, id) => {
+            getFragmentWithEtag: async (endpoint, id, authToken, userAgent) => {
                 calls.get.push(id);
+                calls.getUserAgent = userAgent;
                 if (overrides.getThrows?.[id]) throw new Error(overrides.getThrows[id]);
                 const etag = id === 'a' ? 'etag-a' : 'etag-b';
                 return { fragment: frag(id), etag: overrides.serverEtags?.[id] ?? etag };
             },
-            patchToOdin: async (endpoint, id, authToken, patchBody, etag) => {
-                calls.patch.push({ id, patchBody, etag });
+            patchToOdin: async (endpoint, id, authToken, patchBody, etag, userAgent) => {
+                calls.patch.push({ id, patchBody, etag, userAgent });
                 calls.patchAttempts = (calls.patchAttempts || 0) + 1;
                 if (overrides.patch429Always) {
                     throw new Error(`PATCH request failed for fragment ${id}: 429: Too Many Requests`);
@@ -296,6 +297,13 @@ describe('bulk-edit/replace-worker: runReplaceWorker', () => {
         expect(calls.patch.map((entry) => entry.id)).to.deep.equal(['a', 'b']);
         expect(patches[patches.length - 1].status).to.equal('DONE');
         expect(patches[patches.length - 1].exportReady).to.equal(true);
+    });
+
+    it('attributes Odin GET and PATCH to the bulk-edit user agent', async () => {
+        const { mod, calls } = load();
+        await mod.runReplaceWorker('job1', { odinEndpoint: 'https://odin', runId: 'run1' });
+        expect(calls.getUserAgent).to.equal('mas-bulk-edit');
+        expect(calls.patch.every((entry) => entry.userAgent === 'mas-bulk-edit')).to.equal(true);
     });
 
     it('dry-run applies replacements in memory, makes no PATCH, and exports modified fragments', async () => {

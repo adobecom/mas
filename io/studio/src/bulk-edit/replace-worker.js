@@ -8,6 +8,7 @@ const {
 } = require('../common.js');
 const { applyCsvValuesToFragment, buildWorkPlan, resolveReplaceRows, normalizeEtag } = require('./replace.js');
 const { resolveFindSourceItems, writeJobExports, writeFullExport } = require('./bulk-edit.js');
+const { BULK_EDIT_USER_AGENT } = require('./search.js');
 const {
     readJob,
     patchJob,
@@ -144,7 +145,7 @@ function etagMismatchResult(item, csvEtag, serverEtag) {
 
 async function patchOrThrow(odinEndpoint, id, authToken, patchBody, etag, gate = createRateLimitGate()) {
     await runGated(gate, async () => {
-        const res = await patchToOdin(odinEndpoint, id, authToken, patchBody, etag);
+        const res = await patchToOdin(odinEndpoint, id, authToken, patchBody, etag, BULK_EDIT_USER_AGENT);
         if (!res.success) throw new Error(res.error || `PATCH failed for ${id}`);
     });
 }
@@ -152,7 +153,7 @@ async function patchOrThrow(odinEndpoint, id, authToken, patchBody, etag, gate =
 async function processFragment(item, { odinEndpoint, authToken, matchCase, dryRun, gate = createRateLimitGate() }) {
     try {
         const { fragment, etag: serverEtag } = await runGated(gate, () =>
-            getFragmentWithEtag(odinEndpoint, item.id, authToken),
+            getFragmentWithEtag(odinEndpoint, item.id, authToken, BULK_EDIT_USER_AGENT),
         );
         const csvEtag = item.etag;
         if (normalizeEtag(serverEtag) !== normalizeEtag(csvEtag)) {

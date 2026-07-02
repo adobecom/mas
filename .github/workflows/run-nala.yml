@@ -52,7 +52,7 @@ jobs:
                   exit 1
 
     run-nala-studio-tests:
-        name: Running Nala Studio E2E UI Tests
+        name: Running Nala Studio E2E UI Tests ${{ matrix.node-version }}
         needs: [nala-gate, check-paths]
         if: |
             needs.nala-gate.result == 'success' &&
@@ -136,7 +136,7 @@ jobs:
                   IMS_PASS: ${{ secrets.IMS_PASS }}
 
     run-nala-docs-tests:
-        name: Running Nala Docs E2E UI Tests
+        name: Running Nala Docs E2E UI Tests ${{ matrix.node-version }}
         needs: [nala-gate, check-paths]
         if: |
             needs.nala-gate.result == 'success' &&

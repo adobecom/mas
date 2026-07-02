@@ -2509,7 +2509,7 @@ export class MasChat extends LitElement {
         };
     }
 
-    getRecentFragments(limit = 50) {
+    getRecentFragments(limit = 10) {
         return this.messages
             .filter((m) => m.operationResult)
             .slice(-3)

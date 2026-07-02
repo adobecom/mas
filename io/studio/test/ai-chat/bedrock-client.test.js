@@ -29,7 +29,8 @@ describe('ai-chat/bedrock-client', () => {
 
     async function captureSystemPrompt(client, context) {
         await client.sendWithContext([], 'hello', 'BASE PROMPT', context);
-        return client.sendMessage.firstCall.args[1];
+        const system = client.sendMessage.firstCall.args[1];
+        return Array.isArray(system) ? system.map((block) => block.text).join('\n') : system;
     }
 
     describe('wrapUntrusted helper', () => {
@@ -177,7 +178,9 @@ describe('ai-chat/bedrock-client', () => {
         it('handles empty/null context gracefully', async () => {
             const client = makeClient();
             await client.sendWithContext([], 'hello', 'BASE', null);
-            expect(client.sendMessage.firstCall.args[1]).to.equal('BASE');
+            expect(client.sendMessage.firstCall.args[1]).to.deep.equal([
+                { type: 'text', text: 'BASE', cache_control: { type: 'ephemeral' } },
+            ]);
         });
 
         it('does not throw on missing optional context fields', async () => {
@@ -206,6 +209,34 @@ describe('ai-chat/bedrock-client', () => {
             expect(prompt).to.match(/<untrusted-fragment-id>clean-id<\/untrusted-fragment-id>/);
         });
 
+        it('injects the flow context line into the dynamic block', async () => {
+            const client = makeClient();
+            const prompt = await captureSystemPrompt(client, {
+                flowContext: 'CURRENT FLOW: release_create, step: awaiting_commitment.',
+            });
+            expect(prompt).to.include('CURRENT FLOW: release_create');
+        });
+
+        it('injects retrieved RAG context into the dynamic block wrapped in sentinels', async () => {
+            const client = makeClient();
+            const prompt = await captureSystemPrompt(client, {
+                ragContext: 'Odin is the AEM headless content store.',
+            });
+            expect(prompt).to.include('<untrusted-rag-context>');
+            expect(prompt).to.include('Odin is the AEM headless content store.');
+        });
+
+        it('caps oversized RAG context', async () => {
+            const client = makeClient();
+            const prompt = await captureSystemPrompt(client, {
+                ragContext: 'k'.repeat(10000),
+            });
+            const match = prompt.match(/<untrusted-rag-context>([\s\S]*?)<\/untrusted-rag-context>/);
+            expect(match).to.not.equal(null);
+            expect(match[1].length).to.be.at.most(6144 + 20);
+            expect(match[1]).to.include('...[truncated]');
+        });
+
         it('normalises context.cards to an array when given a single object', async () => {
             const client = makeClient();
             const prompt = await captureSystemPrompt(client, {
@@ -214,6 +245,74 @@ describe('ai-chat/bedrock-client', () => {
             expect(prompt).to.include('=== USER-ATTACHED CARDS ===');
             expect(prompt).to.include('The user has attached 1 card(s)');
             expect(prompt).to.match(/<untrusted-fragment-id>lone-card<\/untrusted-fragment-id>/);
+        });
+    });
+
+    describe('sendWithContext prompt caching', () => {
+        it('sends the static system prompt as a cached block with dynamic context after it', async () => {
+            const client = makeClient();
+            await client.sendWithContext([], 'hello', 'BASE PROMPT', {
+                surface: 'acom',
+                currentLocale: 'en_US',
+            });
+            const system = client.sendMessage.firstCall.args[1];
+            expect(system).to.be.an('array');
+            expect(system[0].text).to.equal('BASE PROMPT');
+            expect(system[0].cache_control).to.deep.equal({ type: 'ephemeral' });
+            expect(system[1].text).to.include('acom');
+            expect(system[1].cache_control).to.equal(undefined);
+        });
+
+        it('marks the last history message as a cache point', async () => {
+            const client = makeClient();
+            const history = [
+                { role: 'user', content: 'find cards' },
+                { role: 'assistant', content: 'Here are your cards.' },
+            ];
+            await client.sendWithContext(history, 'next question', 'BASE', null);
+            const messages = client.sendMessage.firstCall.args[0];
+            expect(messages[0]).to.deep.equal({ role: 'user', content: 'find cards' });
+            expect(messages[1]).to.deep.equal({
+                role: 'assistant',
+                content: [{ type: 'text', text: 'Here are your cards.', cache_control: { type: 'ephemeral' } }],
+            });
+            expect(messages[2]).to.deep.equal({ role: 'user', content: 'next question' });
+        });
+
+        it('does not mutate the caller-provided history array', async () => {
+            const client = makeClient();
+            const history = [{ role: 'assistant', content: 'prior reply' }];
+            await client.sendWithContext(history, 'next', 'BASE', null);
+            expect(history[0].content).to.equal('prior reply');
+        });
+
+        it('sends only the new user message on the first turn', async () => {
+            const client = makeClient();
+            await client.sendWithContext([], 'hello', 'BASE', null);
+            const messages = client.sendMessage.firstCall.args[0];
+            expect(messages).to.deep.equal([{ role: 'user', content: 'hello' }]);
+        });
+
+        it('falls back to a plain string system when caching is disabled', async () => {
+            process.env.BEDROCK_PROMPT_CACHE = 'off';
+            try {
+                const client = makeClient();
+                await client.sendWithContext([], 'hello', 'BASE', { surface: 'acom' });
+                const system = client.sendMessage.firstCall.args[1];
+                expect(system).to.be.a('string');
+                expect(system).to.include('BASE');
+                expect(system).to.include('acom');
+            } finally {
+                delete process.env.BEDROCK_PROMPT_CACHE;
+            }
+        });
+    });
+
+    describe('constructor model selection', () => {
+        it('builds the invoke endpoint from the provided modelId', () => {
+            const client = new BedrockClient({ bearerToken: 'test-token-not-real', modelId: 'us.test.model-1' });
+            expect(client.modelId).to.equal('us.test.model-1');
+            expect(client.endpoint).to.include(encodeURIComponent('us.test.model-1'));
         });
     });
 

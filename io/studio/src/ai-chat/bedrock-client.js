@@ -29,6 +29,7 @@ const UNTRUSTED_LENGTH_CAPS = {
     'offer-id': 64,
     osi: 64,
     'rag-chunk': 2048,
+    'rag-context': 6144,
     surface: 32,
     locale: 16,
     path: 256,
@@ -112,7 +113,19 @@ function sumUsage(first = {}, second = {}) {
     return {
         input_tokens: (first.input_tokens || 0) + (second.input_tokens || 0),
         output_tokens: (first.output_tokens || 0) + (second.output_tokens || 0),
+        cache_read_input_tokens: (first.cache_read_input_tokens || 0) + (second.cache_read_input_tokens || 0),
+        cache_creation_input_tokens: (first.cache_creation_input_tokens || 0) + (second.cache_creation_input_tokens || 0),
     };
+}
+
+function markHistoryCachePoint(history) {
+    if (!history.length) return history;
+    const last = history[history.length - 1];
+    if (typeof last.content !== 'string') return history;
+    return [
+        ...history.slice(0, -1),
+        { ...last, content: [{ type: 'text', text: last.content, cache_control: { type: 'ephemeral' } }] },
+    ];
 }
 
 export class BedrockClient {
@@ -251,31 +264,39 @@ export class BedrockClient {
      * @returns {Promise<Object>} - Claude response
      */
     async sendWithContext(conversationHistory, userMessage, system, context = null, maxTokens = 4096) {
-        let enhancedSystem = system;
+        let contextBlock = '';
 
         if (context) {
-            enhancedSystem += `\n${UNTRUSTED_PREAMBLE}\n=== CURRENT CONTEXT ===\n`;
+            contextBlock += `\n${UNTRUSTED_PREAMBLE}\n=== CURRENT CONTEXT ===\n`;
 
             if (context.surface) {
-                enhancedSystem += `Current surface: ${wrapUntrusted('surface', context.surface)}\n`;
+                contextBlock += `Current surface: ${wrapUntrusted('surface', context.surface)}\n`;
             }
             if (context.currentLocale) {
-                enhancedSystem += `Current locale: ${wrapUntrusted('locale', context.currentLocale)}\n`;
+                contextBlock += `Current locale: ${wrapUntrusted('locale', context.currentLocale)}\n`;
             }
             if (context.currentPath) {
-                enhancedSystem += `Current path: ${wrapUntrusted('path', context.currentPath)}\n`;
+                contextBlock += `Current path: ${wrapUntrusted('path', context.currentPath)}\n`;
+            }
+
+            if (context.flowContext) {
+                contextBlock += `\n${context.flowContext}\n`;
+            }
+
+            if (context.ragContext) {
+                contextBlock += `\n${wrapUntrusted('rag-context', context.ragContext)}\n`;
             }
 
             if (context.lastOperation) {
-                enhancedSystem += '\nLast operation:\n';
-                enhancedSystem += `  Type: ${wrapUntrusted('operation-type', context.lastOperation.type)}\n`;
-                enhancedSystem += `  Fragment IDs: ${JSON.stringify(context.lastOperation.fragmentIds)}\n`;
-                enhancedSystem += `  Count: ${context.lastOperation.count}\n`;
-                enhancedSystem += `  Timestamp: ${context.lastOperation.timestamp}\n`;
+                contextBlock += '\nLast operation:\n';
+                contextBlock += `  Type: ${wrapUntrusted('operation-type', context.lastOperation.type)}\n`;
+                contextBlock += `  Fragment IDs: ${JSON.stringify(context.lastOperation.fragmentIds)}\n`;
+                contextBlock += `  Count: ${context.lastOperation.count}\n`;
+                contextBlock += `  Timestamp: ${context.lastOperation.timestamp}\n`;
             }
 
             if (context.workingSet && context.workingSet.length > 0) {
-                enhancedSystem += `\nWorking set (${context.workingSet.length} items):\n`;
+                contextBlock += `\nWorking set (${context.workingSet.length} items):\n`;
                 context.workingSet.forEach((item, i) => {
                     const title = wrapUntrusted('fragment-title', item.title);
                     const variant = wrapUntrusted('fragment-variant', item.variant);
@@ -284,41 +305,41 @@ export class BedrockClient {
                     if (item.osi) {
                         line += ` osi:${wrapUntrusted('osi', item.osi)}`;
                     }
-                    enhancedSystem += `${line}\n`;
+                    contextBlock += `${line}\n`;
                 });
             }
 
             if (context.osi) {
-                enhancedSystem += '\n=== ATTACHED OFFER ===\n';
-                enhancedSystem += `Offer Selector ID: ${wrapUntrusted('osi', context.osi)}\n`;
+                contextBlock += '\n=== ATTACHED OFFER ===\n';
+                contextBlock += `Offer Selector ID: ${wrapUntrusted('osi', context.osi)}\n`;
 
                 if (context.offer) {
-                    enhancedSystem += `Product: ${wrapUntrusted('product-name', context.offer.productName || 'Unknown')}\n`;
+                    contextBlock += `Product: ${wrapUntrusted('product-name', context.offer.productName || 'Unknown')}\n`;
                     if (context.offer.name) {
-                        enhancedSystem += `Offer Name: ${wrapUntrusted('offer-name', context.offer.name)}\n`;
+                        contextBlock += `Offer Name: ${wrapUntrusted('offer-name', context.offer.name)}\n`;
                     }
                     if (context.offer.offer_type) {
-                        enhancedSystem += `Offer Type: ${wrapUntrusted('offer-type', context.offer.offer_type)}\n`;
+                        contextBlock += `Offer Type: ${wrapUntrusted('offer-type', context.offer.offer_type)}\n`;
                     }
                     if (context.offer.commitment) {
-                        enhancedSystem += `Commitment: ${wrapUntrusted('offer-commitment', context.offer.commitment)}\n`;
+                        contextBlock += `Commitment: ${wrapUntrusted('offer-commitment', context.offer.commitment)}\n`;
                     }
                 }
-                enhancedSystem += '\nIMPORTANT: This is an Offer Selector ID from OST.\n';
-                enhancedSystem += `- To get offer details: Use resolve_offer_selector with mcpParams.offerSelectorId = ${wrapUntrusted('osi', context.osi)}\n`;
-                enhancedSystem += `- Do NOT use get_offer_by_id (that requires a direct Offer ID)\n`;
+                contextBlock += '\nIMPORTANT: This is an Offer Selector ID from OST.\n';
+                contextBlock += `- To get offer details: Use resolve_offer_selector with mcpParams.offerSelectorId = ${wrapUntrusted('osi', context.osi)}\n`;
+                contextBlock += `- Do NOT use get_offer_by_id (that requires a direct Offer ID)\n`;
             }
 
             const cards = Array.isArray(context.cards) ? context.cards : context.cards ? [context.cards] : [];
             if (cards.length > 0) {
-                enhancedSystem += '\n=== USER-ATTACHED CARDS ===\n';
-                enhancedSystem += `The user has attached ${cards.length} card(s) to their message:\n`;
+                contextBlock += '\n=== USER-ATTACHED CARDS ===\n';
+                contextBlock += `The user has attached ${cards.length} card(s) to their message:\n`;
                 cards.forEach((card, i) => {
                     const cardId = typeof card === 'string' ? card : card.id;
                     const osi = typeof card === 'object' ? card.osi : null;
                     const wrappedId = wrapUntrusted('fragment-id', cardId);
                     const wrappedOsi = osi ? `, OSI=${wrapUntrusted('osi', osi)}` : '';
-                    enhancedSystem += `  Card ${i + 1}: ID=${wrappedId}${wrappedOsi}\n`;
+                    contextBlock += `  Card ${i + 1}: ID=${wrappedId}${wrappedOsi}\n`;
                 });
 
                 const firstCard = cards[0];
@@ -327,33 +348,49 @@ export class BedrockClient {
                 const wrappedIds = cards.map((c) => wrapUntrusted('fragment-id', typeof c === 'string' ? c : c.id));
                 const wrappedIdsArrayLiteral = `[${wrappedIds.map((id) => `"${id}"`).join(', ')}]`;
 
-                enhancedSystem +=
+                contextBlock +=
                     '\nIMPORTANT: When user says "this card" or asks about attached cards, use these IDs directly:\n';
-                enhancedSystem += `- For get_card: use mcpParams.id = ${wrapUntrusted('fragment-id', firstId)}\n`;
-                enhancedSystem += `- For bulk operations: use mcpParams.fragmentIds = ${wrappedIdsArrayLiteral}\n`;
+                contextBlock += `- For get_card: use mcpParams.id = ${wrapUntrusted('fragment-id', firstId)}\n`;
+                contextBlock += `- For bulk operations: use mcpParams.fragmentIds = ${wrappedIdsArrayLiteral}\n`;
 
                 if (firstOsi) {
-                    enhancedSystem += `- For offer/pricing queries: Use resolve_offer_selector with mcpParams.offerSelectorId = ${wrapUntrusted('osi', firstOsi)}\n`;
+                    contextBlock += `- For offer/pricing queries: Use resolve_offer_selector with mcpParams.offerSelectorId = ${wrapUntrusted('osi', firstOsi)}\n`;
                 } else {
-                    enhancedSystem += `- For offer/pricing queries: OSI not available. Call get_card first to get the OSI.\n`;
+                    contextBlock += `- For offer/pricing queries: OSI not available. Call get_card first to get the OSI.\n`;
                 }
             }
         }
 
+        // Static prompt first with a cache breakpoint, volatile context after
+        // it, and a second breakpoint on the last history message so the
+        // conversation prefix accrues cache hits turn over turn. The escape
+        // hatch (BEDROCK_PROMPT_CACHE=off) restores the pre-caching payload.
+        const cachingEnabled = process.env.BEDROCK_PROMPT_CACHE !== 'off';
+        let systemPayload;
+        if (cachingEnabled) {
+            systemPayload = [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }];
+            if (contextBlock) {
+                systemPayload.push({ type: 'text', text: contextBlock });
+            }
+        } else {
+            systemPayload = contextBlock ? system + contextBlock : system;
+        }
+
         const truncated = truncateHistory(conversationHistory);
+        const history = cachingEnabled ? markHistoryCachePoint(truncated) : truncated;
         const messages = [
-            ...truncated,
+            ...history,
             {
                 role: 'user',
                 content: userMessage,
             },
         ];
 
-        const response = await this.sendMessage(messages, enhancedSystem, maxTokens);
+        const response = await this.sendMessage(messages, systemPayload, maxTokens);
         if (response.success && response.stopReason === 'max_tokens' && maxTokens < MAX_TRUNCATION_RETRY_TOKENS) {
             const retryTokens = Math.min(maxTokens * 2, MAX_TRUNCATION_RETRY_TOKENS);
             console.warn(`Bedrock response truncated at ${maxTokens} tokens; retrying once at ${retryTokens}`);
-            const retry = await this.sendMessage(messages, enhancedSystem, retryTokens);
+            const retry = await this.sendMessage(messages, systemPayload, retryTokens);
             if (retry.success) {
                 return { ...retry, usage: sumUsage(response.usage, retry.usage) };
             }

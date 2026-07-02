@@ -70,29 +70,15 @@ function intentBlock(intent) {
     return `- \`${intent.name}\` (${intent.category}) — ${intent.description} [${required}${optional}]`;
 }
 
-export function buildPrompt(context = {}) {
-    if (context === null) context = {};
+/**
+ * The static registry prompt. Deliberately context-free: it is sent as the
+ * cached system block, so any per-turn byte (path, locale, working set,
+ * flow step) would invalidate the prompt cache. Per-turn context travels in
+ * the dynamic block built by bedrock-client sendWithContext; the flow line
+ * comes from buildFlowContext below.
+ */
+export function buildPrompt() {
     const intentsList = INTENTS.map(intentBlock).join('\n');
-
-    let contextBlock = '';
-    if (context.flow?.active) {
-        const flow = getFlow(context.flow.active);
-        const step = flow?.steps.find((s) => s.name === context.flow.step);
-        const legal = step ? step.next_intents.join(', ') : '(unknown step)';
-        contextBlock += `\n\nCURRENT FLOW: ${context.flow.active}, step: ${context.flow.step}. The ONLY legal next intents are: ${legal}.`;
-    }
-    if (context.lastOperation?.fragmentIds?.length) {
-        contextBlock += `\n\nlastOperation.fragmentIds (use these as fragmentIds when the user refers to "those cards" / "them" / etc.): ${JSON.stringify(context.lastOperation.fragmentIds)}`;
-    }
-    if (context.workingSet?.length) {
-        contextBlock += `\n\nworkingSet (ids visible in chat now): ${JSON.stringify(context.workingSet.map((w) => w.id).filter(Boolean))}`;
-    }
-    if (context.currentPath) {
-        contextBlock += `\n\ncontext.currentPath: ${context.currentPath}`;
-    }
-    if (context.currentLocale) {
-        contextBlock += `\n\ncontext.currentLocale: ${context.currentLocale}`;
-    }
 
     return `You are the MAS Studio AI Assistant.
 
@@ -101,6 +87,20 @@ ${intentsList}
 ${ASK_USER_BLOCK}
 ${SLOT_VOCABULARIES}
 ${ENVELOPE_CONTRACT}
-${contextBlock}
 `;
+}
+
+/**
+ * Per-turn flow line for the dynamic context block. Only registry-validated
+ * names are echoed — a flow or step that isn't in the registry is dropped,
+ * so frontend-supplied values can't inject prompt text.
+ */
+export function buildFlowContext(flow) {
+    if (!flow?.active) return '';
+    const flowDef = getFlow(flow.active);
+    if (!flowDef) return '';
+    const step = flowDef.steps.find((s) => s.name === flow.step);
+    const stepName = step ? step.name : '(unknown step)';
+    const legal = step ? step.next_intents.join(', ') : '(unknown step)';
+    return `CURRENT FLOW: ${flowDef.name}, step: ${stepName}. The ONLY legal next intents are: ${legal}.`;
 }

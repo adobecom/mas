@@ -28,7 +28,7 @@ import { getVariantConfig, VARIANT_METADATA, getVariantsForSurface } from './var
 import { buildVariantRAGQuery } from './variant-knowledge-builder.js';
 import { KnowledgeClient } from './knowledge-client.js';
 import { classifyIntent, createClassifierClient } from './intent-classifier.js';
-import { buildPrompt } from './prompt-builder.js';
+import { buildPrompt, buildFlowContext } from './prompt-builder.js';
 import { validateEnvelope } from './envelope-validator.js';
 
 /**
@@ -169,14 +169,23 @@ async function generateSessionTitle(params) {
     }
 
     try {
-        const { AWS_BEARER_TOKEN_BEDROCK, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION, BEDROCK_MODEL_ID } = params;
+        const {
+            AWS_BEARER_TOKEN_BEDROCK,
+            AWS_ACCESS_KEY_ID,
+            AWS_SECRET_ACCESS_KEY,
+            AWS_REGION,
+            BEDROCK_MODEL_ID,
+            HAIKU_MODEL_ID,
+        } = params;
 
+        // Session titles are a 40-token completion — Haiku-tier work. Fall
+        // back to the default model when no Haiku model is configured.
         const bedrockClient = new BedrockClient({
             bearerToken: AWS_BEARER_TOKEN_BEDROCK,
             accessKeyId: AWS_ACCESS_KEY_ID,
             secretAccessKey: AWS_SECRET_ACCESS_KEY,
             region: AWS_REGION,
-            modelId: BEDROCK_MODEL_ID,
+            modelId: HAIKU_MODEL_ID || BEDROCK_MODEL_ID,
         });
 
         const systemPrompt =
@@ -191,6 +200,7 @@ async function generateSessionTitle(params) {
 
         const result = await bedrockClient.sendMessage([{ role: 'user', content: userContent }], systemPrompt, 40);
         logShadowValidation(result, params);
+        logUsageMetric(result, params, bedrockClient.modelId);
 
         if (!result.success) {
             return {
@@ -370,15 +380,15 @@ function createKnowledgeClient(params) {
  * @param {string|null} options.detectedVariant - Detected variant from message
  * @returns {Promise<{prompt: string, sources: Array}>} - Enhanced system prompt and sources
  */
-async function enhanceWithRAG(systemPrompt, message, knowledgeClient, options = {}) {
+export async function retrieveRAGContext(message, knowledgeClient, options = {}) {
     const { isDocumentation = false, ragVariantDetails = false, detectedVariant = null } = options;
 
     if (!knowledgeClient) {
-        return { prompt: systemPrompt, sources: [] };
+        return { ragContext: '', sources: [] };
     }
 
     const allSources = [];
-    let enhancedPrompt = systemPrompt;
+    let ragContext = '';
 
     if (isDocumentation) {
         try {
@@ -389,7 +399,7 @@ async function enhanceWithRAG(systemPrompt, message, knowledgeClient, options = 
 
             if (context) {
                 console.log('[RAG] Retrieved documentation knowledge, sources:', sources.length);
-                enhancedPrompt = `${enhancedPrompt}\n\n${context}`;
+                ragContext += `${context}\n`;
                 allSources.push(...sources);
             }
         } catch (error) {
@@ -409,7 +419,7 @@ async function enhanceWithRAG(systemPrompt, message, knowledgeClient, options = 
 
             if (context) {
                 console.log('[RAG] Retrieved variant field details, sources:', sources.length);
-                enhancedPrompt = `${enhancedPrompt}\n\n=== VARIANT FIELD DETAILS FOR ${detectedVariant.toUpperCase()} ===\n${context}`;
+                ragContext += `\n=== VARIANT FIELD DETAILS FOR ${detectedVariant.toUpperCase()} ===\n${context}\n`;
                 allSources.push(...sources);
             }
         } catch (error) {
@@ -417,7 +427,7 @@ async function enhanceWithRAG(systemPrompt, message, knowledgeClient, options = 
         }
     }
 
-    return { prompt: enhancedPrompt, sources: allSources };
+    return { ragContext, sources: allSources };
 }
 
 /**
@@ -661,34 +671,39 @@ async function main(params) {
             console.log('[RAG] Detected variant from message:', detectedVariant);
         }
 
-        const { prompt: systemPrompt, sources: ragSources } = await enhanceWithRAG(effectivePrompt, message, knowledgeClient, {
+        // Retrieved knowledge rides in the dynamic (uncached) context block —
+        // appending it to the system prompt would invalidate the prompt cache
+        // on every distinct documentation query.
+        const { ragContext, sources: ragSources } = await retrieveRAGContext(message, knowledgeClient, {
             isDocumentation,
             ragVariantDetails,
             detectedVariant,
         });
+        if (ragContext) {
+            enrichedContext.ragContext = ragContext;
+        }
+
+        const flowContext = buildFlowContext(params.context?.flow ?? null);
+        if (flowContext) {
+            enrichedContext.flowContext = flowContext;
+        }
 
         let registryPrompt = null;
         try {
-            registryPrompt = buildPrompt({
-                flow: params.context?.flow ?? null,
-                lastOperation: params.context?.lastOperation,
-                workingSet: params.context?.workingSet,
-                currentPath: params.context?.currentPath,
-                currentLocale: params.context?.currentLocale,
-            });
+            registryPrompt = buildPrompt();
             console.log(
                 JSON.stringify({
                     phase: 'shadow-prompt',
                     req: params.requestId ?? null,
                     newPromptLength: registryPrompt.length,
-                    oldPromptLength: typeof systemPrompt === 'string' ? systemPrompt.length : null,
+                    oldPromptLength: typeof effectivePrompt === 'string' ? effectivePrompt.length : null,
                 }),
             );
         } catch (shadowErr) {
             console.log(JSON.stringify({ phase: 'shadow-prompt', req: params.requestId ?? null, error: shadowErr.message }));
         }
 
-        const effectiveSystemPrompt = registryPrompt !== null ? registryPrompt : systemPrompt;
+        const effectiveSystemPrompt = registryPrompt !== null ? registryPrompt : effectivePrompt;
         if (registryPrompt !== null) {
             console.log(JSON.stringify({ phase: 'shadow-primary', req: params.requestId ?? null, used: true }));
         }
@@ -703,6 +718,7 @@ async function main(params) {
             maxTokens,
         );
         const shadowValidation = logShadowValidation(response, params);
+        logUsageMetric(response, params, bedrockClient.modelId);
         const envelopePayload =
             shadowValidation !== null
                 ? { envelope: shadowValidation.ok ? shadowValidation.envelope : shadowValidation.coerced }
@@ -786,6 +802,7 @@ async function main(params) {
                     2048,
                 );
                 logShadowValidation(retryResponse, params);
+                logUsageMetric(retryResponse, params, bedrockClient.modelId);
 
                 if (retryResponse.success) {
                     const retryParsed = parseAIResponse(retryResponse.message);
@@ -1108,6 +1125,22 @@ function logShadowValidation(bedrockResponse, params) {
  * @param {string[]} errors - Validation errors from validateAIConfig
  * @returns {string} - Corrective prompt to send as the next user turn
  */
+export function logUsageMetric(response, params, modelId) {
+    const usage = response?.usage;
+    if (!usage) return;
+    console.log(
+        JSON.stringify({
+            phase: 'usage',
+            req: params?.requestId ?? null,
+            model: modelId ?? null,
+            input_tokens: usage.input_tokens ?? 0,
+            output_tokens: usage.output_tokens ?? 0,
+            cache_read_input_tokens: usage.cache_read_input_tokens ?? 0,
+            cache_creation_input_tokens: usage.cache_creation_input_tokens ?? 0,
+        }),
+    );
+}
+
 export function buildCorrectivePrompt(cardConfig, errors) {
     const errorList = errors.map((e) => `- ${e}`).join('\n');
     return `Your previous card response for the "${cardConfig?.variant}" variant was missing required fields. Please generate a corrected card JSON that includes all required fields.\n\nMissing or invalid:\n${errorList}\n\nReturn only the corrected JSON code block, no additional explanation.`;

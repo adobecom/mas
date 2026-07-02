@@ -5,8 +5,9 @@
  * animation delay so the answer appears to generate live even though it
  * arrived whole. The per-word delay is the duration cap divided by the
  * word count, ceilinged at maxWordDelay so short answers do not crawl;
- * the full reveal never exceeds maxDuration. cleanup() restores the
- * original DOM, keeping selection and copy/paste clean after the animation.
+ * the full reveal never exceeds maxDuration. cleanup() unwraps the reveal
+ * spans in place (rather than restoring innerHTML), keeping selection,
+ * copy/paste, and any listeners/markers outside the reveal spans intact.
  */
 
 const noop = () => {};
@@ -18,7 +19,6 @@ export function prepareTextReveal(rootEl, options = {}) {
     if (!rootEl || typeof rootEl.querySelectorAll !== 'function') return SKIP_RESULT;
     if (window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches) return SKIP_RESULT;
 
-    const originalHTML = rootEl.innerHTML;
     const walker = document.createTreeWalker(rootEl, NodeFilter.SHOW_TEXT);
     const textNodes = [];
     let wordCount = 0;
@@ -55,7 +55,13 @@ export function prepareTextReveal(rootEl, options = {}) {
         wordCount,
         totalDuration: Math.round(index * wordDelay),
         cleanup() {
-            rootEl.innerHTML = originalHTML;
+            for (const span of rootEl.querySelectorAll('.reveal-word')) {
+                span.replaceWith(document.createTextNode(span.textContent));
+            }
+            for (const caret of rootEl.querySelectorAll('.reveal-caret')) {
+                caret.remove();
+            }
+            rootEl.normalize();
         },
     };
 }

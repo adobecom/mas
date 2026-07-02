@@ -2664,14 +2664,14 @@ body.chat-resizing {
     background: var(--mas-chat-glass-bg);
     border: 1px solid var(--mas-chat-glass-border);
     box-shadow: var(--mas-chat-glass-shadow);
-    border-radius: 16px 16px 4px 16px;
+    border-radius: 16px 16px 16px 4px;
 }
 
 .chat-message-user .message-card {
     background: linear-gradient(135deg, var(--mas-chat-gradient-start), #5a4ff5);
     color: #fff;
     box-shadow: 0 4px 14px rgba(59, 99, 251, 0.35);
-    border-radius: 16px 16px 16px 4px;
+    border-radius: 16px 16px 4px 16px;
 }
 
 .input-row {
@@ -2901,6 +2901,7 @@ body.chat-resizing {
     .chat-drawer,
     .chat-drawer-closing,
     .welcome-greeting,
+    .chat-message,
     .msg-bloom .message-avatar,
     .msg-bloom .message-card,
     .msg-rise,

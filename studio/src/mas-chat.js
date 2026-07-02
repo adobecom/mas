@@ -202,7 +202,11 @@ export class MasChat extends LitElement {
         }
 
         sessionManager.updateSessionDebounced(this.currentSessionId, {
-            messages: this.messages,
+            messages: this.messages.map((message) => {
+                const persisted = { ...message };
+                delete persisted.fresh;
+                return persisted;
+            }),
             conversationHistory: this.conversationHistory,
         });
 

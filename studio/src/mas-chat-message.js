@@ -43,16 +43,28 @@ export class MasChatMessage extends LitElement {
     maybeRevealText() {
         if (this.revealDone || !this.message?.fresh) return;
         if (this.message.role !== 'assistant' || this.message.isLoading) return;
-        if (this.message.mcpOperation || this.message.buttonGroup || this.message.cardConfig || this.message.operationResult)
+        if (
+            this.message.mcpOperation ||
+            this.message.buttonGroup ||
+            this.message.cardConfig ||
+            this.message.operationResult ||
+            this.message.confirmationSummary ||
+            this.message.previewData ||
+            this.message.operation ||
+            this.message.openOst ||
+            this.message.productCards ||
+            this.message.collectionConfig ||
+            this.message.operationLoading
+        )
             return;
-        const bubble = this.querySelector('.message-card');
-        if (!bubble) return;
+        const textEl = this.querySelector('.message-text');
+        if (!textEl) return;
         this.revealDone = true;
-        const { totalDuration, cleanup } = prepareTextReveal(bubble);
+        const { totalDuration, cleanup } = prepareTextReveal(textEl);
         if (totalDuration === 0) return;
         const caret = document.createElement('span');
         caret.className = 'reveal-caret';
-        bubble.appendChild(caret);
+        textEl.appendChild(caret);
         this.classList.add('footer-delayed');
         this.revealCleanupTimer = setTimeout(() => {
             cleanup();

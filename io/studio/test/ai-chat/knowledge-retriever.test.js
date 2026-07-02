@@ -69,6 +69,7 @@ describe('ai-chat/knowledge-retriever', () => {
         expect(context).to.include('New Project');
         expect(context).to.include('RELEVANT KNOWLEDGE');
         expect(sources[0].title).to.include('translation project');
+        expect(sources[0].section).to.equal('How do I create a translation project?');
     });
 
     it('ranks the most specific chunk first', async () => {

@@ -202,6 +202,7 @@ export class LocalKnowledgeRetriever {
             id: chunk.id,
             topic: chunk.topic,
             title: `${chunk.title} — ${chunk.section}`,
+            section: chunk.section,
             score: Number(coverage.toFixed(3)),
         }));
         return { context, sources };

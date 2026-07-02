@@ -451,6 +451,20 @@ describe('Fragment', () => {
                 const prepared = variation.prepareVariationForSave(parent);
                 expect(prepared.getFieldValues('badge')).to.deep.equal([EXPLICIT_EMPTY_SENTINEL]);
             });
+
+            it('does not mark changes for a non-badge single-value field going from [] to [""] when parent has content', () => {
+                const parent = new Fragment(
+                    createFragmentConfig({
+                        fields: [{ name: 'description', values: ['Parent description'], multiple: false }],
+                    }),
+                );
+                const variation = new Fragment(
+                    createFragmentConfig({ fields: [{ name: 'description', values: [], multiple: false }] }),
+                );
+                expect(variation.updateField('description', [''], parent)).to.be.false;
+                expect(variation.getFieldValues('description')).to.deep.equal([]);
+                expect(variation.hasChanges).to.be.false;
+            });
         });
 
         describe('new field creation', () => {

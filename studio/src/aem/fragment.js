@@ -200,7 +200,11 @@ export class Fragment {
 
         const isSingleEmptyString = encodedValues.length === 1 && encodedValues[0] === '';
         const allowVariationInheritEmptyWrite =
-            parentFragment && isSingleEmptyString && !isMultiple && parentValuesHaveContent(parentValues);
+            parentFragment &&
+            isExplicitEmptyField(fieldName) &&
+            isSingleEmptyString &&
+            !isMultiple &&
+            parentValuesHaveContent(parentValues);
 
         // For variations: if values match parent exactly, reset to inherited state
         if (parentFragment) {

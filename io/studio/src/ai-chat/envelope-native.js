@@ -15,6 +15,11 @@ import { ENVELOPE_TOOL_NAME } from './tool-definitions.js';
 
 const GENERIC_CLARIFICATION = 'Could you clarify what you would like me to do?';
 
+function normalizeEscapedText(text) {
+    if (typeof text !== 'string' || !text.includes('\\n') || text.includes('\n')) return text;
+    return text.replace(/\\n/g, '\n').replace(/\\t/g, '\t').replace(/\\"/g, '"');
+}
+
 export function extractToolEnvelope(response) {
     if (!response?.success) return null;
     if (!response.toolUse || response.toolUse.name !== ENVELOPE_TOOL_NAME) return null;
@@ -31,13 +36,16 @@ export function buildEnvelopeResponseBody(envelope) {
             type: 'mcp_operation',
             mcpTool: intentDef.tool_target,
             mcpParams: envelope.slots ?? {},
-            message: envelope.user_message || '',
+            message: normalizeEscapedText(envelope.user_message) || '',
             confirmationRequired: isStateChanging(envelope.intent),
         };
     }
 
     return {
         type: 'message',
-        message: envelope.user_message || envelope.clarification_question || GENERIC_CLARIFICATION,
+        message:
+            normalizeEscapedText(envelope.user_message) ||
+            normalizeEscapedText(envelope.clarification_question) ||
+            GENERIC_CLARIFICATION,
     };
 }

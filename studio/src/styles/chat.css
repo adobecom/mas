@@ -2581,8 +2581,8 @@ body.chat-resizing {
     width: 260px;
     height: 260px;
     left: 50%;
-    top: -30px;
-    transform: translateX(-50%);
+    top: 50%;
+    transform: translate(-50%, -60%);
     border-radius: 50%;
     pointer-events: none;
     background: radial-gradient(circle, var(--mas-chat-glow), rgba(59, 99, 251, 0.14) 55%, transparent 70%);
@@ -2592,11 +2592,11 @@ body.chat-resizing {
 @keyframes haloBreathe {
     0%,
     100% {
-        transform: translateX(-50%) scale(1);
+        transform: translate(-50%, -60%) scale(1);
         opacity: 0.8;
     }
     50% {
-        transform: translateX(-50%) scale(1.18);
+        transform: translate(-50%, -60%) scale(1.18);
         opacity: 1;
     }
 }

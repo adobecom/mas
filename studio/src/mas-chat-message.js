@@ -723,7 +723,7 @@ export class MasChatMessage extends LitElement {
                               .displayContext=${operationDisplayContext || null}
                           ></mas-operation-result>`
                         : nothing}
-                    ${this.renderFeedbackFooter()}
+                    ${this.renderSources()} ${this.renderFeedbackFooter()}
                 </div>
             </div>
         `;

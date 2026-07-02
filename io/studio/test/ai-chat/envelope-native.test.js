@@ -85,6 +85,37 @@ describe('ai-chat/envelope-native', () => {
             expect(body.message.length).to.be.greaterThan(10);
         });
 
+        it('normalizes a fully double-escaped model message into real newlines, tabs, and quotes', () => {
+            const body = buildEnvelopeResponseBody({
+                intent: 'ASK_USER',
+                slots: {},
+                confidence: 1,
+                user_message: 'Line one.\\n\\nKey concepts:\\n- item with \\"quotes\\" and\\ta tab.',
+            });
+            expect(body.message).to.equal('Line one.\n\nKey concepts:\n- item with "quotes" and\ta tab.');
+        });
+
+        it('leaves messages with real newlines untouched even if they mention escape sequences', () => {
+            const body = buildEnvelopeResponseBody({
+                intent: 'ASK_USER',
+                slots: {},
+                confidence: 1,
+                user_message: 'Use \\n to insert a newline.\nSecond line.',
+            });
+            expect(body.message).to.equal('Use \\n to insert a newline.\nSecond line.');
+        });
+
+        it('normalizes the message on the mcp_operation branch too', () => {
+            const body = buildEnvelopeResponseBody({
+                intent: 'get_card',
+                slots: { id: 'abc' },
+                confidence: 0.95,
+                user_message: 'Fetching the card.\\n\\nOne moment.',
+            });
+            expect(body.type).to.equal('mcp_operation');
+            expect(body.message).to.equal('Fetching the card.\n\nOne moment.');
+        });
+
         it('returns a message body for intents without an MCP tool target', () => {
             const body = buildEnvelopeResponseBody({
                 intent: 'open_ost',

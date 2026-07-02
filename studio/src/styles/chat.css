@@ -2486,3 +2486,22 @@ body.chat-resizing {
     cursor: col-resize;
     user-select: none;
 }
+
+/* ==========================================================================
+   Glass & Glow — design tokens and motion foundation (MWPW-183572)
+   ========================================================================== */
+:root {
+    --mas-chat-gradient-start: #3b63fb;
+    --mas-chat-gradient-end: #8a3ffc;
+    --mas-chat-surface: linear-gradient(155deg, #eef1ff 0%, #f6effe 55%, #eefaff 100%);
+    --mas-chat-glass-bg: rgba(255, 255, 255, 0.62);
+    --mas-chat-glass-border: rgba(255, 255, 255, 0.9);
+    --mas-chat-glass-shadow: 0 4px 18px rgba(80, 63, 252, 0.14);
+    --mas-chat-glow: rgba(138, 63, 252, 0.28);
+    --mas-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --mas-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.chat-drawer-body {
+    background: var(--mas-chat-surface);
+}

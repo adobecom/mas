@@ -244,20 +244,20 @@ class MasPromotionsEditor extends LitElement {
     }
 
     get canManagePromoCodes() {
-        if (!canEditPromotions()) return false;
+        if (!this.canEdit) return false;
         const geos = this.fragment?.getFieldValues('geos') ?? [];
         const hasOffers = Store.promotions.selectedOffers.value.length > 0 || Store.promotions.selectedCards.value.length > 0;
         return hasOffers && geos.length > 0;
     }
 
     get canManagePromoCodesInEmptyState() {
-        if (!canEditPromotions()) return false;
+        if (!this.canEdit) return false;
         const geos = this.fragment?.getFieldValues('geos') ?? [];
         return this.hasSelectedOffers && geos.length > 0;
     }
 
     get canEditPromotionItemsInEmptyState() {
-        return canEditPromotions() && this.hasSelectedOffers;
+        return this.canEdit && this.hasSelectedOffers;
     }
 
     #mapPromotionOfferSelectorToRow(selectorId) {
@@ -805,7 +805,7 @@ class MasPromotionsEditor extends LitElement {
 
     get disabledPromotionQuickActions() {
         const disabled = new Set([QUICK_ACTION.LOCK]);
-        if (!canEditPromotions()) {
+        if (!this.canEdit) {
             PROMOTION_QUICK_ACTIONS.forEach((action) => disabled.add(action));
             return disabled;
         }
@@ -1063,7 +1063,7 @@ class MasPromotionsEditor extends LitElement {
     #renderPromotionOffersEmptyPanel() {
         return html`<div class="offers-empty-state">
             <div class="icon">
-                <sp-button variant="secondary" ?disabled=${!canEditPromotions()} @click=${this.#openPromotionsOst}>
+                <sp-button variant="secondary" ?disabled=${!this.canEdit} @click=${this.#openPromotionsOst}>
                     <sp-icon-add size="xxl"></sp-icon-add>
                 </sp-button>
             </div>
@@ -1104,7 +1104,7 @@ class MasPromotionsEditor extends LitElement {
     #renderPromotionEmptyToolbarActions() {
         return html`
             ${this.promotionEmptyItemsTab === TABLE_TYPE.OFFERS
-                ? html`<sp-action-button quiet ?disabled=${!canEditPromotions()} @click=${this.#openPromotionsOst}>
+                ? html`<sp-action-button quiet ?disabled=${!this.canEdit} @click=${this.#openPromotionsOst}>
                       <sp-icon-add slot="icon" label="Add offer"></sp-icon-add>
                       Add offer
                   </sp-action-button>`
@@ -1259,14 +1259,17 @@ class MasPromotionsEditor extends LitElement {
         `;
     }
 
+    willUpdate() {
+        this.canEdit = canEditPromotions();
+    }
+
     render() {
         let form = nothing;
         if (this.fragment) {
             form = Object.fromEntries([...this.fragment.fields.map((f) => [f.name, f])]);
         }
-        const canEdit = canEditPromotions();
-        const readOnly = !canEdit;
-        const canOpenItemPicker = canEdit && this.promotionPickerSurfaces.length > 0;
+        const readOnly = !this.canEdit;
+        const canOpenItemPicker = this.canEdit && this.promotionPickerSurfaces.length > 0;
         return html`
             ${this.confirmDialog}
             ${this.duplicating
@@ -1432,7 +1435,7 @@ class MasPromotionsEditor extends LitElement {
                                           ${this.selectedItemsViewTab === TABLE_TYPE.OFFERS
                                               ? html`<sp-action-button
                                                     quiet
-                                                    ?disabled=${!canEditPromotions()}
+                                                    ?disabled=${readOnly}
                                                     @click=${this.#openPromotionsOst}
                                                 >
                                                     <sp-icon-add slot="icon" label="Add offer"></sp-icon-add>

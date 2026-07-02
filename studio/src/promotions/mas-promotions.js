@@ -232,12 +232,16 @@ class MasPromotions extends LitElement {
         `;
     }
 
+    willUpdate() {
+        this.canEdit = canEditPromotions();
+    }
+
     render() {
         return html`
             <div class="promotions-container">
                 <div class="promotions-header">
                     <sp-search size="m" placeholder="Search"></sp-search>
-                    ${canEditPromotions()
+                    ${this.canEdit
                         ? html`<sp-button variant="accent" @click=${() => this.#handleAddPromotion()} class="create-button">
                               <sp-icon-add slot="icon"></sp-icon-add>
                               Create promotion project
@@ -310,7 +314,7 @@ class MasPromotions extends LitElement {
     }
 
     renderActionCell(promotion) {
-        if (!canEditPromotions()) {
+        if (!this.canEdit) {
             return html`
                 <sp-table-cell>
                     <sp-action-menu size="m">

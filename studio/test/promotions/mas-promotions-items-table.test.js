@@ -4,7 +4,7 @@ import { fixture, fixtureCleanup } from '@open-wc/testing-helpers/pure';
 import sinon from 'sinon';
 import Store from '../../src/store.js';
 import { setItemsSelectionStore } from '../../src/common/items-selection-store.js';
-import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, TABLE_TYPE } from '../../src/constants.js';
+import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, PAGE_NAMES, TABLE_TYPE } from '../../src/constants.js';
 import { FragmentStore } from '../../src/reactivity/fragment-store.js';
 import { Fragment } from '../../src/aem/fragment.js';
 import Events from '../../src/events.js';
@@ -1080,6 +1080,84 @@ describe('MasPromotionsItemsTable', () => {
         const createItem = Array.from(menuItems).find((item) => item.textContent.trim().includes('Create promo variation'));
         expect(createItem).to.be.undefined;
         Store.promotions.inEdit.set(null);
+    });
+
+    it('builds a search url with surface, default locale and no region when locale is already the default', async () => {
+        const el = await fixture(html`<mas-promotions-items-table .type=${TABLE_TYPE.CARDS}></mas-promotions-items-table>`);
+        el.viewOnlyFragments = [
+            {
+                path: '/content/dam/mas/acom/en_US/card-search',
+                id: 'search-id',
+                title: 'Search Card',
+                studioPath: '/content/dam/mas/acom/en_US/card-search',
+                status: 'DRAFT',
+                model: { path: CARD_MODEL_PATH },
+                fields: [],
+                tags: [],
+            },
+        ];
+        await el.updateComplete;
+        const link = Array.from(el.shadowRoot.querySelectorAll('sp-link')).find((l) =>
+            l.textContent.trim().includes('View default fragment'),
+        );
+        expect(link).to.not.be.undefined;
+        const hash = link.getAttribute('href').split('#')[1];
+        const params = new URLSearchParams(hash);
+        expect(params.get('page')).to.equal(PAGE_NAMES.CONTENT);
+        expect(params.get('query')).to.equal('search-id');
+        expect(params.get('path')).to.equal('acom');
+        expect(params.get('locale')).to.equal('en_US');
+        expect(params.has('region')).to.be.false;
+    });
+
+    it('builds a search url with a region param when the fragment locale differs from the surface default', async () => {
+        const el = await fixture(
+            html`<mas-promotions-items-table .type=${TABLE_TYPE.COLLECTIONS}></mas-promotions-items-table>`,
+        );
+        el.viewOnlyFragments = [
+            {
+                path: '/content/dam/mas/acom/en_CA/col-search',
+                id: 'search-col-id',
+                title: 'Search Collection',
+                studioPath: '/content/dam/mas/acom/en_CA/col-search',
+                status: 'DRAFT',
+                model: { path: COLLECTION_MODEL_PATH },
+                fields: [],
+                tags: [],
+            },
+        ];
+        await el.updateComplete;
+        const link = Array.from(el.shadowRoot.querySelectorAll('sp-link')).find((l) =>
+            l.textContent.trim().includes('View default collection'),
+        );
+        expect(link).to.not.be.undefined;
+        const hash = link.getAttribute('href').split('#')[1];
+        const params = new URLSearchParams(hash);
+        expect(params.get('path')).to.equal('acom');
+        expect(params.get('locale')).to.equal('en_US');
+        expect(params.get('region')).to.equal('en_CA');
+    });
+
+    it('returns an empty search url when the item has no id or path', async () => {
+        const el = await fixture(html`<mas-promotions-items-table .type=${TABLE_TYPE.CARDS}></mas-promotions-items-table>`);
+        el.viewOnlyFragments = [
+            {
+                path: '',
+                id: '',
+                title: 'No Id Card',
+                studioPath: '',
+                status: 'DRAFT',
+                model: { path: CARD_MODEL_PATH },
+                fields: [],
+                tags: [],
+            },
+        ];
+        await el.updateComplete;
+        const link = Array.from(el.shadowRoot.querySelectorAll('sp-link')).find((l) =>
+            l.textContent.trim().includes('View default fragment'),
+        );
+        expect(link).to.not.be.undefined;
+        expect(link.getAttribute('href')).to.equal('');
     });
 
     it('skips reload when selected paths have not changed', async () => {

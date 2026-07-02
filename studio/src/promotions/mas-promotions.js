@@ -56,6 +56,7 @@ class MasPromotions extends LitElement {
             Store.promotions?.list?.loading,
             Store.promotions?.list?.filter,
             Store.promotions?.list?.filterOptions,
+            Store.users,
         ]);
     }
 

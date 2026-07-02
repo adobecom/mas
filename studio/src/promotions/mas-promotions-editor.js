@@ -194,6 +194,7 @@ class MasPromotionsEditor extends LitElement {
             Store.promotions.selectedCards,
             Store.promotions.selectedCollections,
             Store.promotions.selectedOffers,
+            Store.users,
         ]);
     }
 
@@ -1263,7 +1264,9 @@ class MasPromotionsEditor extends LitElement {
         if (this.fragment) {
             form = Object.fromEntries([...this.fragment.fields.map((f) => [f.name, f])]);
         }
-        const canOpenItemPicker = canEditPromotions() && this.promotionPickerSurfaces.length > 0;
+        const canEdit = canEditPromotions();
+        const readOnly = !canEdit;
+        const canOpenItemPicker = canEdit && this.promotionPickerSurfaces.length > 0;
         return html`
             ${this.confirmDialog}
             ${this.duplicating
@@ -1299,6 +1302,7 @@ class MasPromotionsEditor extends LitElement {
                                 id="campaignTitle"
                                 data-field="title"
                                 value="${form.title?.values[0]}"
+                                ?disabled=${readOnly}
                                 @input=${this.#handleFragmentUpdate}
                             ></sp-textfield>
                             <sp-field-label for="promoCode" required>Promo Code</sp-field-label>
@@ -1306,6 +1310,7 @@ class MasPromotionsEditor extends LitElement {
                                 id="promoCode"
                                 data-field="promoCode"
                                 value="${form.promoCode?.values[0]}"
+                                ?disabled=${readOnly}
                                 @input=${this.#handleFragmentUpdate}
                             ></sp-textfield>
                             <sp-field-label for="startDate" required>Start Date (UTC)</sp-field-label>
@@ -1314,6 +1319,7 @@ class MasPromotionsEditor extends LitElement {
                                 id="startDate"
                                 value="${form.startDate?.values[0]?.slice(0, 16) ?? ''}"
                                 data-field="startDate"
+                                ?disabled=${readOnly}
                                 @change=${this.#handleDateUpdate}
                             />
                             <sp-field-label for="endDate" required>End Date (UTC)</sp-field-label>
@@ -1322,6 +1328,7 @@ class MasPromotionsEditor extends LitElement {
                                 id="endDate"
                                 value="${form.endDate?.values[0]?.slice(0, 16) ?? ''}"
                                 data-field="endDate"
+                                ?disabled=${readOnly}
                                 @change=${this.#handleDateUpdate}
                             />
                             <sp-field-label required>Promotion tags</sp-field-label>
@@ -1330,6 +1337,7 @@ class MasPromotionsEditor extends LitElement {
                                 namespace="/content/cq:tags/mas"
                                 top="promotion"
                                 multiple
+                                ?disabled=${readOnly}
                                 value="${splitPromotionTagsFieldValues(form.tags?.values).promotion.join(',') || ''}"
                                 @change=${this.#handeTagsChange}
                             ></aem-tag-picker-field>
@@ -1342,6 +1350,7 @@ class MasPromotionsEditor extends LitElement {
                                     namespace="/content/cq:tags/mas"
                                     top="locale,pzn"
                                     multiple
+                                    ?disabled=${readOnly}
                                     value="${form.geos?.values.join(',') || ''}"
                                     @change=${this.#handleGeosChange}
                                 ></aem-tag-picker-field>
@@ -1357,7 +1366,7 @@ class MasPromotionsEditor extends LitElement {
                                               <div class="icon">
                                                   <overlay-trigger type="modal" id="add-surfaces-overlay">
                                                       ${this.addSurfacesDialog}
-                                                      <sp-button slot="trigger" variant="secondary">
+                                                      <sp-button slot="trigger" variant="secondary" ?disabled=${readOnly}>
                                                           <sp-icon-add size="xxl"></sp-icon-add>
                                                       </sp-button>
                                                   </overlay-trigger>
@@ -1381,7 +1390,7 @@ class MasPromotionsEditor extends LitElement {
                                                           return html`
                                                               <sp-tag
                                                                   value="${surface}"
-                                                                  deletable
+                                                                  ?deletable=${!readOnly}
                                                                   @delete=${this.#handleSurfaceDelete}
                                                               >
                                                                   ${surfaceLabel}
@@ -1391,7 +1400,12 @@ class MasPromotionsEditor extends LitElement {
                                                   )}
                                                   <overlay-trigger type="modal" id="add-surfaces-overlay">
                                                       ${this.addSurfacesDialog}
-                                                      <sp-button slot="trigger" variant="secondary" icon-only>
+                                                      <sp-button
+                                                          slot="trigger"
+                                                          variant="secondary"
+                                                          icon-only
+                                                          ?disabled=${readOnly}
+                                                      >
                                                           <sp-icon-add slot="icon" size="m"></sp-icon-add>
                                                       </sp-button>
                                                   </overlay-trigger>

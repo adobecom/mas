@@ -536,6 +536,25 @@ describe('MasPromotionsEditor', () => {
             }
         });
 
+        it('disables general info fields and surface controls for a non-editor (view-only)', async () => {
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            Store.profile.set({ email: 'viewer@adobe.com' });
+            Store.users.set([{ userPrincipalName: 'viewer@adobe.com', groups: ['GRP-ODIN-MAS-ACOM-POWERUSERS'] }]);
+            Store.promotions.inEdit.set(
+                new FragmentStore(makePromotion({ id: 'promo-view', title: 'View promo', surfaces: ['sandbox'] })),
+            );
+            const el = await mountEditor();
+            await el.updateComplete;
+            expect(el.renderRoot.querySelector('sp-textfield[data-field="title"]').hasAttribute('disabled')).to.be.true;
+            expect(el.renderRoot.querySelector('sp-textfield[data-field="promoCode"]').hasAttribute('disabled')).to.be.true;
+            expect(el.renderRoot.querySelector('input[data-field="startDate"]').disabled).to.be.true;
+            expect(el.renderRoot.querySelector('input[data-field="endDate"]').disabled).to.be.true;
+            for (const picker of el.renderRoot.querySelectorAll('aem-tag-picker-field')) {
+                expect(picker.hasAttribute('disabled')).to.be.true;
+            }
+            expect(el.renderRoot.querySelector('sp-tag[deletable]')).to.be.null;
+        });
+
         it('shows Publish and Unpublish when promotion is modified', async () => {
             const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
             Store.promotions.inEdit.set(

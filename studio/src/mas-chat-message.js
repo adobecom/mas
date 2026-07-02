@@ -610,14 +610,17 @@ export class MasChatMessage extends LitElement {
                         : operationResult && content === operationResult.message
                           ? nothing
                           : content || this.showSuggestions
-                            ? html`<div class="message-content">
-                                  <div class="message-text">
-                                      ${role === 'error'
-                                          ? html`<sp-icon-alert size="s" class="error-icon"></sp-icon-alert> `
-                                          : nothing}${isUser ? content : unsafeHTML(parseMarkdown(content))}
-                                  </div>
-                                  ${this.showSuggestions ? html`<mas-prompt-suggestions></mas-prompt-suggestions>` : nothing}
-                              </div>`
+                            ? html`${role === 'assistant' ? html`<div class="message-avatar">✦</div>` : nothing}
+                                  <div class="message-content">
+                                      <div class="message-text">
+                                          ${role === 'error'
+                                              ? html`<sp-icon-alert size="s" class="error-icon"></sp-icon-alert> `
+                                              : nothing}${isUser ? content : unsafeHTML(parseMarkdown(content))}
+                                      </div>
+                                      ${this.showSuggestions
+                                          ? html`<mas-prompt-suggestions></mas-prompt-suggestions>`
+                                          : nothing}
+                                  </div>`
                             : nothing}
                     ${this.message.productCards
                         ? html`<mas-chat-product-cards

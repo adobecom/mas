@@ -2640,3 +2640,57 @@ body.chat-resizing {
         transform: none;
     }
 }
+
+/* ==========================================================================
+   Glass restyle — bubbles, identity avatar, send button (MWPW-183572)
+   ========================================================================== */
+.message-avatar {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    color: #fff;
+    background: linear-gradient(135deg, var(--mas-chat-gradient-start), var(--mas-chat-gradient-end));
+    box-shadow:
+        0 0 0 1.5px rgba(138, 63, 252, 0.45),
+        0 0 14px rgba(59, 99, 251, 0.35);
+}
+
+.chat-message-assistant .message-card {
+    background: var(--mas-chat-glass-bg);
+    border: 1px solid var(--mas-chat-glass-border);
+    box-shadow: var(--mas-chat-glass-shadow);
+    border-radius: 16px 16px 4px 16px;
+}
+
+.chat-message-user .message-card {
+    background: linear-gradient(135deg, var(--mas-chat-gradient-start), #5a4ff5);
+    color: #fff;
+    box-shadow: 0 4px 14px rgba(59, 99, 251, 0.35);
+    border-radius: 16px 16px 16px 4px;
+}
+
+.input-row {
+    background: rgba(255, 255, 255, 0.7);
+    border: 1px solid var(--mas-chat-glass-border);
+    box-shadow: var(--mas-chat-glass-shadow);
+}
+
+.input-actions sp-button[variant='accent'] {
+    transition:
+        transform 140ms var(--mas-ease-out),
+        box-shadow 140ms var(--mas-ease-out);
+}
+
+.input-actions sp-button[variant='accent']:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(90, 79, 245, 0.5);
+}
+
+.input-actions sp-button[variant='accent']:active {
+    transform: scale(0.95);
+}

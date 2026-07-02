@@ -316,12 +316,102 @@ describe('ai-chat/bedrock-client', () => {
         });
     });
 
+    describe('sendMessage native tool use', () => {
+        const toolUseResponse = () => ({
+            ok: true,
+            json: async () => ({
+                content: [
+                    {
+                        type: 'tool_use',
+                        id: 'toolu_1',
+                        name: 'emit_envelope',
+                        input: { intent: 'search_cards', slots: { surface: 'acom' }, confidence: 0.9 },
+                    },
+                ],
+                usage: { input_tokens: 50, output_tokens: 30 },
+                stop_reason: 'tool_use',
+            }),
+        });
+
+        it('includes tools and tool_choice in the payload when provided', async () => {
+            const client = new BedrockClient({ bearerToken: 'test-token-not-real' });
+            const fetchStub = sandbox.stub(global, 'fetch').resolves(toolUseResponse());
+            const tool = { name: 'emit_envelope', input_schema: { type: 'object' } };
+
+            await client.sendMessage([{ role: 'user', content: 'hi' }], 'BASE', 256, {
+                tools: [tool],
+                toolChoice: { type: 'tool', name: 'emit_envelope' },
+            });
+
+            const payload = JSON.parse(fetchStub.firstCall.args[1].body);
+            expect(payload.tools).to.deep.equal([tool]);
+            expect(payload.tool_choice).to.deep.equal({ type: 'tool', name: 'emit_envelope' });
+        });
+
+        it('omits tools keys from the payload when not provided', async () => {
+            const client = new BedrockClient({ bearerToken: 'test-token-not-real' });
+            const fetchStub = sandbox.stub(global, 'fetch').resolves(toolUseResponse());
+
+            await client.sendMessage([{ role: 'user', content: 'hi' }], 'BASE', 256);
+
+            const payload = JSON.parse(fetchStub.firstCall.args[1].body);
+            expect(payload).to.not.have.property('tools');
+            expect(payload).to.not.have.property('tool_choice');
+        });
+
+        it('parses the tool_use block into result.toolUse', async () => {
+            const client = new BedrockClient({ bearerToken: 'test-token-not-real' });
+            sandbox.stub(global, 'fetch').resolves(toolUseResponse());
+
+            const result = await client.sendMessage([{ role: 'user', content: 'hi' }], 'BASE', 256);
+
+            expect(result.success).to.equal(true);
+            expect(result.toolUse).to.deep.equal({
+                name: 'emit_envelope',
+                input: { intent: 'search_cards', slots: { surface: 'acom' }, confidence: 0.9 },
+            });
+            expect(result.stopReason).to.equal('tool_use');
+        });
+
+        it('returns both text and toolUse when the model emits prose alongside the call', async () => {
+            const client = new BedrockClient({ bearerToken: 'test-token-not-real' });
+            sandbox.stub(global, 'fetch').resolves({
+                ok: true,
+                json: async () => ({
+                    content: [
+                        { type: 'text', text: 'Routing your request.' },
+                        { type: 'tool_use', id: 'toolu_2', name: 'emit_envelope', input: { intent: 'ASK_USER' } },
+                    ],
+                    usage: { input_tokens: 5, output_tokens: 5 },
+                    stop_reason: 'tool_use',
+                }),
+            });
+
+            const result = await client.sendMessage([{ role: 'user', content: 'hi' }], 'BASE', 256);
+
+            expect(result.message).to.equal('Routing your request.');
+            expect(result.toolUse.name).to.equal('emit_envelope');
+        });
+
+        it('forwards tool options through sendWithContext', async () => {
+            const client = makeClient();
+            const tool = { name: 'emit_envelope', input_schema: { type: 'object' } };
+            await client.sendWithContext([], 'hello', 'BASE', null, 1024, {
+                tools: [tool],
+                toolChoice: { type: 'tool', name: 'emit_envelope' },
+            });
+            const options = client.sendMessage.firstCall.args[3];
+            expect(options.tools).to.deep.equal([tool]);
+            expect(options.toolChoice).to.deep.equal({ type: 'tool', name: 'emit_envelope' });
+        });
+    });
+
     describe('sendMessage retry on transient Bedrock errors', () => {
         const errResponse = (status) => ({ ok: false, status, text: async () => 'upstream error' });
         const okResponse = () => ({
             ok: true,
             json: async () => ({
-                content: [{ text: 'hi' }],
+                content: [{ type: 'text', text: 'hi' }],
                 usage: { input_tokens: 5, output_tokens: 3 },
                 stop_reason: 'end_turn',
             }),

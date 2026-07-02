@@ -46,6 +46,16 @@ describe('prompt-builder', () => {
         expect(prompt).to.include('per turn');
     });
 
+    it('states the assistant identity and off-topic policy', () => {
+        const prompt = buildPrompt();
+        const lower = prompt.toLowerCase();
+        expect(lower).to.include('off-topic');
+        expect(lower).to.include('unrelated');
+        expect(prompt).to.include('ASK_USER');
+        expect(lower).to.include('never emit an operation');
+        expect(lower).to.match(/answer questions.*and.*perform/i);
+    });
+
     it('is byte-stable regardless of context so the cached prefix never invalidates', () => {
         const withContext = buildPrompt({
             flow: { active: 'release_create', step: 'awaiting_commitment' },

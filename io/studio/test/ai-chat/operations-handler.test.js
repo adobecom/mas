@@ -80,7 +80,7 @@ describe('ai-chat/operations-handler', () => {
             const result = validateOperation({
                 type: 'mcp_operation',
                 mcpTool: 'publish_card',
-                mcpParams: { id: 'frag-1' },
+                mcpParams: { id: '0a0eed5c-cb62-4cfa-b7bf-d45b0b5845cf' },
             });
             expect(result.valid).to.equal(true);
         });
@@ -89,7 +89,7 @@ describe('ai-chat/operations-handler', () => {
             const result = validateOperation({
                 type: 'mcp_operation',
                 mcpTool: 'evil_tool',
-                mcpParams: { id: 'frag-1' },
+                mcpParams: { id: '0a0eed5c-cb62-4cfa-b7bf-d45b0b5845cf' },
             });
             expect(result.valid).to.equal(false);
             expect(result.error).to.include('Invalid MCP tool');
@@ -99,7 +99,7 @@ describe('ai-chat/operations-handler', () => {
             const op = {
                 type: 'mcp_operation',
                 mcpTool: 'studio_publish_card',
-                mcpParams: { id: 'frag-1' },
+                mcpParams: { id: '0a0eed5c-cb62-4cfa-b7bf-d45b0b5845cf' },
             };
             const result = validateOperation(op);
             expect(result.valid).to.equal(true);
@@ -113,7 +113,8 @@ describe('ai-chat/operations-handler', () => {
         });
 
         it('processes a valid MCP operation', () => {
-            const text = '```json\n{"type":"mcp_operation","mcpTool":"get_card","mcpParams":{"id":"frag-1"}}\n```';
+            const text =
+                '```json\n{"type":"mcp_operation","mcpTool":"get_card","mcpParams":{"id":"0a0eed5c-cb62-4cfa-b7bf-d45b0b5845cf"}}\n```';
             const result = handleOperation(text);
             expect(result).to.not.equal(null);
             expect(result.type).to.equal('mcp_operation');
@@ -143,5 +144,77 @@ describe('ai-chat/operations-handler', () => {
             expect(extractOperationMessage(null)).to.equal('');
             expect(extractOperationMessage('')).to.equal('');
         });
+    });
+});
+
+describe('ai-chat/operations-handler server-authoritative hardening', () => {
+    let handleOperationFn;
+    let validateOperationFn;
+
+    before(async () => {
+        const mod = await import('../../src/ai-chat/operations-handler.js');
+        handleOperationFn = mod.handleOperation;
+        validateOperationFn = mod.validateOperation;
+    });
+
+    const UUID = '0a0eed5c-cb62-4cfa-b7bf-d45b0b5845cf';
+    const opText = (tool, params, extra = '') =>
+        `\`\`\`json\n{"type":"mcp_operation","mcpTool":"${tool}","mcpParams":${JSON.stringify(params)}${extra}}\n\`\`\``;
+
+    it('forces confirmation for state-changing tools even when the model says false', () => {
+        const result = handleOperationFn(
+            opText('bulk_publish_cards', { fragmentIds: [UUID] }, ',"confirmationRequired":false'),
+        );
+        expect(result.type).to.equal('mcp_operation');
+        expect(result.confirmationRequired).to.equal(true);
+    });
+
+    it('forces confirmation for publish_card', () => {
+        const result = handleOperationFn(opText('publish_card', { id: UUID }));
+        expect(result.confirmationRequired).to.equal(true);
+    });
+
+    it('forces confirmation for create_release_cards', () => {
+        const result = handleOperationFn(
+            opText('create_release_cards', {
+                arrangement_code: 'phsp_direct_individual',
+                variants: ['catalog'],
+                parentPath: '/content/dam/mas/sandbox',
+            }),
+        );
+        expect(result.confirmationRequired).to.equal(true);
+    });
+
+    it('keeps read-only operations unconfirmed', () => {
+        const result = handleOperationFn(opText('get_card', { id: UUID }));
+        expect(result.confirmationRequired).to.equal(false);
+    });
+
+    it('rejects params whose values fail registry slot validation', () => {
+        const validation = validateOperationFn({
+            type: 'mcp_operation',
+            mcpTool: 'get_card',
+            mcpParams: { id: 'not-a-uuid' },
+        });
+        expect(validation.valid).to.equal(false);
+        expect(validation.error).to.include('id');
+    });
+
+    it('rejects bulk operations with malformed fragment IDs', () => {
+        const validation = validateOperationFn({
+            type: 'mcp_operation',
+            mcpTool: 'bulk_publish_cards',
+            mcpParams: { fragmentIds: ['definitely-not-a-uuid'] },
+        });
+        expect(validation.valid).to.equal(false);
+    });
+
+    it('accepts operations with registry-valid param values', () => {
+        const validation = validateOperationFn({
+            type: 'mcp_operation',
+            mcpTool: 'get_card',
+            mcpParams: { id: UUID },
+        });
+        expect(validation.valid).to.equal(true);
     });
 });

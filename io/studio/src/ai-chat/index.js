@@ -29,6 +29,8 @@ import { buildVariantRAGQuery } from './variant-knowledge-builder.js';
 import { KnowledgeClient } from './knowledge-client.js';
 import { classifyIntent, createClassifierClient } from './intent-classifier.js';
 import { buildPrompt, buildFlowContext } from './prompt-builder.js';
+import { buildEnvelopeTool, ENVELOPE_TOOL_CHOICE, ENVELOPE_TOOL_NAME } from './tool-definitions.js';
+import { extractToolEnvelope, buildEnvelopeResponseBody } from './envelope-native.js';
 import { validateEnvelope } from './envelope-validator.js';
 
 /**
@@ -511,6 +513,20 @@ async function main(params) {
         const releaseIntent = isReleaseIntent(message, conversationHistory);
         const effectivePrompt = releaseIntent ? `${basePrompt}\n\n${GUIDED_CARD_CREATION_PROMPT}` : basePrompt;
 
+        // Native envelope routing applies only to the free-routing surface.
+        // Guided flows, release, and card creation stay on the text path —
+        // their rich UI payloads (buttonGroup, productCards, cardConfigs)
+        // are emitted as JSON in prose, which forced tool use would suppress.
+        // Rollback: set NATIVE_ENVELOPE=off.
+        const nativeEnvelopeEligible =
+            params.NATIVE_ENVELOPE !== 'off' &&
+            !intentHint &&
+            !releaseIntent &&
+            !isCardCreation &&
+            !params.context?.flow?.active &&
+            !inferGuidedFlowFromHistory(conversationHistory);
+        const toolOptions = nativeEnvelopeEligible ? { tools: [buildEnvelopeTool()], toolChoice: ENVELOPE_TOOL_CHOICE } : {};
+
         // Deterministic identifier shortcut: when the user message is a bare
         // identifier, classify it by shape and emit the correct MCP operation
         // without consulting the LLM. The LLM misroutes ~all of these because
@@ -716,13 +732,9 @@ async function main(params) {
             effectiveSystemPrompt,
             enrichedContext,
             maxTokens,
+            toolOptions,
         );
-        const shadowValidation = logShadowValidation(response, params);
         logUsageMetric(response, params, bedrockClient.modelId);
-        const envelopePayload =
-            shadowValidation !== null
-                ? { envelope: shadowValidation.ok ? shadowValidation.envelope : shadowValidation.coerced }
-                : {};
 
         if (!response.success) {
             console.error('Bedrock request failed', { errorType: response.errorType, error: response.error });
@@ -736,6 +748,78 @@ async function main(params) {
                 },
             };
         }
+
+        if (nativeEnvelopeEligible && (response.toolUse || !response.message)) {
+            const flow = params.context?.flow ?? null;
+            let usage = response.usage;
+            let validation = validateEnvelope(extractToolEnvelope(response), { flow });
+            let retried = false;
+
+            if (!validation.ok) {
+                retried = true;
+                const debugDetail = validation.coerced?.debug ?? {};
+                const detail = debugDetail.slot
+                    ? ` — slot "${debugDetail.slot}" had invalid value ${JSON.stringify(debugDetail.value)}`
+                    : debugDetail.attempted
+                      ? ` — intent "${debugDetail.attempted}" is not registered`
+                      : '';
+                const corrective = `Your previous envelope was invalid (${validation.reason}${detail}). Call ${ENVELOPE_TOOL_NAME} again with a corrected envelope for the same user request, using the exact slot names and types from the system prompt.`;
+                const retryResponse = await bedrockClient.sendWithContext(
+                    [...conversationHistory, { role: 'user', content: message }],
+                    corrective,
+                    effectiveSystemPrompt,
+                    enrichedContext,
+                    maxTokens,
+                    toolOptions,
+                );
+                logUsageMetric(retryResponse, params, bedrockClient.modelId);
+                if (retryResponse.success) {
+                    usage = retryResponse.usage;
+                    const retryValidation = validateEnvelope(extractToolEnvelope(retryResponse), { flow });
+                    if (retryValidation.ok) {
+                        validation = retryValidation;
+                    }
+                }
+            }
+
+            const finalEnvelope = validation.ok ? validation.envelope : validation.coerced;
+            console.log(
+                JSON.stringify({
+                    phase: 'envelope-validation',
+                    req: params.requestId ?? null,
+                    native: true,
+                    ok: validation.ok,
+                    reason: validation.reason ?? null,
+                    intent: finalEnvelope?.intent ?? null,
+                    retried,
+                }),
+            );
+
+            const envelopeBody = buildEnvelopeResponseBody(finalEnvelope);
+            return {
+                statusCode: 200,
+                headers: {
+                    ...getResponseHeaders(),
+                },
+                body: {
+                    envelope: finalEnvelope,
+                    ...envelopeBody,
+                    sources: ragSources,
+                    usage,
+                    conversationHistory: [
+                        ...conversationHistory,
+                        { role: 'user', content: message },
+                        { role: 'assistant', content: JSON.stringify(finalEnvelope) },
+                    ],
+                },
+            };
+        }
+
+        const shadowValidation = logShadowValidation(response, params);
+        const envelopePayload =
+            shadowValidation !== null
+                ? { envelope: shadowValidation.ok ? shadowValidation.envelope : shadowValidation.coerced }
+                : {};
 
         const operationResult = handleOperation(response.message, enrichedContext);
 

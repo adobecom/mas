@@ -9,7 +9,35 @@
  * and formats them for MCP execution in the frontend.
  */
 
+import { getIntent, isStateChanging, SLOT_VALIDATORS } from './intent-registry.js';
+
 const MAX_RESPONSE_LENGTH = 64 * 1024;
+
+/**
+ * Tools that must always be confirmed but have no registry intent entry
+ * (they are created through guided flows rather than direct envelopes).
+ */
+const FORCED_CONFIRMATION_TOOLS = new Set(['create_release_cards']);
+
+/**
+ * Confirmation is a server decision derived from the intent registry —
+ * never trust the model-emitted confirmationRequired flag to opt out.
+ */
+function requiresServerConfirmation(mcpTool) {
+    return FORCED_CONFIRMATION_TOOLS.has(mcpTool) || isStateChanging(mcpTool);
+}
+
+function validateParamValues(mcpTool, mcpParams) {
+    const registered = getIntent(mcpTool);
+    if (!registered) return { valid: true };
+    for (const [param, value] of Object.entries(mcpParams)) {
+        const validator = SLOT_VALIDATORS[registered.slot_validators?.[param]];
+        if (validator && value != null && !validator(value)) {
+            return { valid: false, error: `Invalid value for mcpParams.${param}` };
+        }
+    }
+    return { valid: true };
+}
 
 /**
  * Walk brace depth from `startIdx` (which must point at a `{`) and return the
@@ -315,7 +343,7 @@ function validateMCPOperation(operation) {
             break;
     }
 
-    return { valid: true };
+    return validateParamValues(operation.mcpTool, operation.mcpParams);
 }
 
 /**
@@ -340,7 +368,7 @@ export function processOperation(operation, message) {
         mcpTool: operation.mcpTool,
         mcpParams: operation.mcpParams,
         message: message || operation.message || `Executing ${operation.mcpTool} operation...`,
-        confirmationRequired: operation.confirmationRequired || false,
+        confirmationRequired: requiresServerConfirmation(operation.mcpTool) || operation.confirmationRequired || false,
     };
 }
 

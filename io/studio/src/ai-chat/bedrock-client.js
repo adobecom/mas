@@ -167,13 +167,19 @@ export class BedrockClient {
      * @param {number} maxTokens - Maximum tokens to generate
      * @returns {Promise<Object>} - Claude response
      */
-    async sendMessage(messages, system, maxTokens = 4096) {
+    async sendMessage(messages, system, maxTokens = 4096, options = {}) {
         const payload = {
             anthropic_version: 'bedrock-2023-05-31',
             max_tokens: maxTokens,
             system,
             messages,
         };
+        if (options.tools) {
+            payload.tools = options.tools;
+        }
+        if (options.toolChoice) {
+            payload.tool_choice = options.toolChoice;
+        }
 
         const maxRetries = Number(process.env.BEDROCK_MAX_RETRIES ?? 2);
         const baseDelayMs = Number(process.env.BEDROCK_RETRY_BASE_DELAY_MS) || 500;
@@ -185,9 +191,14 @@ export class BedrockClient {
                 const responseBody =
                     this.authMode === 'bearer' ? await this.#invokeBearerToken(payload) : await this.#invokeSdk(payload);
 
+                const content = Array.isArray(responseBody.content) ? responseBody.content : [];
+                const textBlock = content.find((block) => block.type === 'text') ?? content[0];
+                const toolUseBlock = content.find((block) => block.type === 'tool_use');
+
                 return {
                     success: true,
-                    message: responseBody.content[0].text,
+                    message: textBlock?.text ?? '',
+                    toolUse: toolUseBlock ? { name: toolUseBlock.name, input: toolUseBlock.input } : null,
                     usage: responseBody.usage,
                     stopReason: responseBody.stop_reason,
                 };
@@ -263,7 +274,7 @@ export class BedrockClient {
      * @param {Object} context - Additional context (current card config, etc.)
      * @returns {Promise<Object>} - Claude response
      */
-    async sendWithContext(conversationHistory, userMessage, system, context = null, maxTokens = 4096) {
+    async sendWithContext(conversationHistory, userMessage, system, context = null, maxTokens = 4096, options = {}) {
         let contextBlock = '';
 
         if (context) {
@@ -386,11 +397,11 @@ export class BedrockClient {
             },
         ];
 
-        const response = await this.sendMessage(messages, systemPayload, maxTokens);
+        const response = await this.sendMessage(messages, systemPayload, maxTokens, options);
         if (response.success && response.stopReason === 'max_tokens' && maxTokens < MAX_TRUNCATION_RETRY_TOKENS) {
             const retryTokens = Math.min(maxTokens * 2, MAX_TRUNCATION_RETRY_TOKENS);
             console.warn(`Bedrock response truncated at ${maxTokens} tokens; retrying once at ${retryTokens}`);
-            const retry = await this.sendMessage(messages, systemPayload, retryTokens);
+            const retry = await this.sendMessage(messages, systemPayload, retryTokens, options);
             if (retry.success) {
                 return { ...retry, usage: sumUsage(response.usage, retry.usage) };
             }

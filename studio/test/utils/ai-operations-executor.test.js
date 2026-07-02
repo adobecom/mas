@@ -8,6 +8,7 @@ describe('ai-operations-executor', () => {
             expect(DESTRUCTIVE_TOOLS.has('bulk_update_cards')).to.be.true;
             expect(DESTRUCTIVE_TOOLS.has('unpublish_card')).to.be.true;
             expect(DESTRUCTIVE_TOOLS.has('create_release_cards')).to.be.true;
+            expect(DESTRUCTIVE_TOOLS.has('publish_card')).to.be.true;
         });
 
         it('does not include read-only or preview tools', () => {

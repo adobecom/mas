@@ -42,10 +42,7 @@ function loadDotEnv() {
             if (eq <= 0) continue;
             const key = trimmed.slice(0, eq).trim();
             let value = trimmed.slice(eq + 1).trim();
-            if (
-                (value.startsWith('"') && value.endsWith('"')) ||
-                (value.startsWith("'") && value.endsWith("'"))
-            ) {
+            if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
                 value = value.slice(1, -1);
             }
             if (!process.env[key]) process.env[key] = value;
@@ -190,16 +187,17 @@ const CASES = [
     {
         id: 'help-button',
         message: 'How merch cards work',
-        history: [
-            { role: 'assistant', content: '{"type":"guided_step","flowId":"guided_help","buttonGroup":{}}' },
-        ],
+        history: [{ role: 'assistant', content: '{"type":"guided_step","flowId":"guided_help","buttonGroup":{}}' }],
         expected: 'guided_help',
     },
     {
         id: 'help-followup',
         message: 'tell me more',
         history: [
-            { role: 'assistant', content: '{"type":"guided_step","flowId":"guided_help","message":"What do you want to learn?"}' },
+            {
+                role: 'assistant',
+                content: '{"type":"guided_step","flowId":"guided_help","message":"What do you want to learn?"}',
+            },
         ],
         expected: 'guided_help',
         tolerable: 'documentation',

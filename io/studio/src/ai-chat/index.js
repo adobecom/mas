@@ -26,7 +26,8 @@ import { handleOperation } from './operations-handler.js';
 import { validateAIConfig } from './validation.js';
 import { getVariantConfig, VARIANT_METADATA, getVariantsForSurface } from './variant-configs.js';
 import { buildVariantRAGQuery } from './variant-knowledge-builder.js';
-import { KnowledgeClient } from './knowledge-client.js';
+import { LocalKnowledgeRetriever } from './knowledge-retriever.js';
+import { KNOWLEDGE_CHUNKS } from './knowledge-corpus.js';
 import { classifyIntent, createClassifierClient } from './intent-classifier.js';
 import { buildPrompt, buildFlowContext } from './prompt-builder.js';
 import { buildEnvelopeTool, ENVELOPE_TOOL_CHOICE, ENVELOPE_TOOL_NAME } from './tool-definitions.js';
@@ -352,23 +353,17 @@ async function authorize(headers) {
 }
 
 /**
- * Create Knowledge Service client if RAG is enabled
+ * Knowledge retrieval runs in-process over the bundled corpus — zero
+ * external infrastructure, so it is on by default. RAG_ENABLED=false is
+ * the opt-out.
  * @param {Object} params - Action parameters
- * @returns {KnowledgeClient|null} - Knowledge client instance or null
+ * @returns {LocalKnowledgeRetriever|null}
  */
 function createKnowledgeClient(params) {
-    const { RAG_ENABLED, KNOWLEDGE_SERVICE_URL } = params;
-
-    if (RAG_ENABLED !== 'true') {
+    if (params.RAG_ENABLED === 'false') {
         return null;
     }
-
-    try {
-        return new KnowledgeClient(KNOWLEDGE_SERVICE_URL);
-    } catch (error) {
-        console.warn('Failed to create Knowledge client:', error.message);
-        return null;
-    }
+    return new LocalKnowledgeRetriever(KNOWLEDGE_CHUNKS);
 }
 
 /**

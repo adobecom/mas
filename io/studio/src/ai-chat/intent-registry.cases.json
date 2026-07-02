@@ -348,6 +348,57 @@
             "expect": {
                 "intent": "ASK_USER"
             }
+        },
+        {
+            "id": "doc-translations",
+            "intent_under_test": "SHOW_HELP",
+            "context": {
+                "flow": null,
+                "lastOperation": null,
+                "workingSet": []
+            },
+            "conversationHistory": [],
+            "user_message": "How do I create a translation project?",
+            "expect": {
+                "intent_one_of": [
+                    "SHOW_HELP",
+                    "ASK_USER"
+                ]
+            }
+        },
+        {
+            "id": "doc-bulk-publishing",
+            "intent_under_test": "SHOW_HELP",
+            "context": {
+                "flow": null,
+                "lastOperation": null,
+                "workingSet": []
+            },
+            "conversationHistory": [],
+            "user_message": "How does bulk publishing work?",
+            "expect": {
+                "intent_one_of": [
+                    "SHOW_HELP",
+                    "ASK_USER"
+                ]
+            }
+        },
+        {
+            "id": "doc-promotions",
+            "intent_under_test": "SHOW_HELP",
+            "context": {
+                "flow": null,
+                "lastOperation": null,
+                "workingSet": []
+            },
+            "conversationHistory": [],
+            "user_message": "What are promotions in MAS Studio?",
+            "expect": {
+                "intent_one_of": [
+                    "SHOW_HELP",
+                    "ASK_USER"
+                ]
+            }
         }
     ]
 }

@@ -5,94 +5,13 @@
  * Routes to appropriate knowledge domains and provides comprehensive answers.
  */
 
-import { ARCHITECTURE_KNOWLEDGE } from './architecture-knowledge.js';
-import { DEVELOPER_KNOWLEDGE } from './developer-knowledge.js';
-import { AUTHORING_KNOWLEDGE } from './authoring-knowledge.js';
-import { TROUBLESHOOTING_KNOWLEDGE } from './troubleshooting-knowledge.js';
-
 /**
- * Determines which knowledge domains are relevant for a query
- * @param {string} message - User's question
- * @returns {string[]} - Array of relevant knowledge domain names
+ * Builds the documentation system prompt. Product knowledge now lives in
+ * the retrieval corpus (src/ai-chat/knowledge/*.md) and is injected into
+ * the dynamic context block per query — not baked into the prompt.
  */
-export function getRelevantKnowledgeDomains(message) {
-    const msg = message.toLowerCase();
-    const domains = [];
-
-    // Architecture keywords
-    if (
-        msg.match(/\b(odin|freyja|wcs|aos|architecture|platform|pipeline|fragment|delivery|system|how.*work|what is|explain)/i)
-    ) {
-        domains.push('architecture');
-    }
-
-    // Developer keywords
-    if (
-        msg.match(
-            /\b(setup|install|deploy|test|nala|repository|repo|github|development|develop|build|local|branch|git|npm|aio|cli|command)/i,
-        )
-    ) {
-        domains.push('developer');
-    }
-
-    // Authoring keywords
-    if (
-        msg.match(
-            /\b(studio|create|author|ost|offer selector|publish|card|collection|permission|iam|gallery|tag|metadata|locale)/i,
-        )
-    ) {
-        domains.push('authoring');
-    }
-
-    // Troubleshooting keywords
-    if (
-        msg.match(
-            /\b(error|issue|problem|bug|troubleshoot|debug|not working|broken|fail|fix|help|slow|timeout|401|403|404|429|500|splunk|monitoring)/i,
-        )
-    ) {
-        domains.push('troubleshooting');
-    }
-
-    // Support keywords
-    if (msg.match(/\b(support|contact|slack|channel|help|who|ask|escalate|jira|ticket)/i)) {
-        domains.push('troubleshooting');
-    }
-
-    // If no specific domain detected, let RAG handle it
-    if (domains.length === 0) {
-        return [];
-    }
-
-    return [...new Set(domains)]; // Remove duplicates
-}
-
-/**
- * Builds the documentation system prompt with relevant knowledge domains
- * @param {string} message - User's question
- * @returns {string} - Complete system prompt with relevant knowledge
- */
-export function buildDocumentationPrompt(message) {
-    const relevantDomains = getRelevantKnowledgeDomains(message);
-
-    let knowledgeBase = '';
-
-    if (relevantDomains.includes('architecture')) {
-        knowledgeBase += `\n\n${ARCHITECTURE_KNOWLEDGE}\n`;
-    }
-
-    if (relevantDomains.includes('developer')) {
-        knowledgeBase += `\n\n${DEVELOPER_KNOWLEDGE}\n`;
-    }
-
-    if (relevantDomains.includes('authoring')) {
-        knowledgeBase += `\n\n${AUTHORING_KNOWLEDGE}\n`;
-    }
-
-    if (relevantDomains.includes('troubleshooting')) {
-        knowledgeBase += `\n\n${TROUBLESHOOTING_KNOWLEDGE}\n`;
-    }
-
-    return `${DOCUMENTATION_SYSTEM_PROMPT}\n${knowledgeBase}`;
+export function buildDocumentationPrompt() {
+    return DOCUMENTATION_SYSTEM_PROMPT;
 }
 
 export const DOCUMENTATION_SYSTEM_PROMPT = `You are the M@S (Merch at Scale) AI assistant. You can answer questions about the platform AND perform card operations — they are the same assistant. This turn is about answering a documentation-style question, but if the user asks you to *do* something (create, find, update, publish, delete cards, etc.), you can do that on subsequent turns.

@@ -1,0 +1,29 @@
+---
+topic: cards
+keywords: card, merch card, variant, create card, publish, unpublish, edit fields, draft, modified, surface
+---
+# Cards and Publishing in MAS Studio
+
+## How do I create a card in MAS Studio?
+Open MAS Studio at https://mas.adobe.com/studio.html, navigate the folder tree to the surface and folder where the card should live, and click Create. Pick the card variant that fits your surface and use case, then fill in the fields in the editor panel: title, description, prices, CTAs, and optional extras such as a badge, mnemonics (product icons), or a background image. The editor shows a live preview as you type. Saving stores the card as a content fragment in Draft status; it is not visible to end users until you publish it. You can also describe the card you want to the AI assistant in the chat panel, or duplicate an existing card and edit the copy — the assistant can duplicate a card for you if you give it the card ID.
+
+## Which card variants exist and which surfaces use them?
+Each surface supports a specific set of card variants. Adobe.com (acom) uses plans, plans-students, plans-education, catalog, special-offers, mini, and simplified-pricing-express. Creative Cloud Desktop (ccd) uses ccd-slice and ccd-suggested. The commerce surface (Unified Checkout) uses fries, a horizontal commerce-focused card. Adobe Home uses ah-try-buy-widget and ah-promoted-plans. Adobe Express uses full-pricing-express and simplified-pricing-express. Variants differ in layout, required fields, and CTA styling: plans cards require a title, prices, and CTAs and use primary-outline CTAs, while fries cards require a title, description, and CTAs and use primary CTAs. Choose the variant first, because it determines which fields the editor offers.
+
+## What is a surface and how does it affect my card?
+A surface is a destination where merch cards render: acom (adobe.com pages), ccd (Creative Cloud Desktop), commerce (Unified Checkout), adobe-home (Adobe Home), and express (Adobe Express). There is also a sandbox area for testing. Card content is stored under the /content/dam/mas/ path in AEM, organized into folders per surface, so the folder where you create a card determines its surface, and the surface determines which variants are valid. The AI assistant detects the surface from the folder you are currently browsing and suggests matching variants, and card searches can be filtered by surface and locale.
+
+## How do I publish a card?
+Open the card in the editor, make sure there are no validation errors and all required fields for the variant are filled, then use the Publish action and confirm. The card status changes from Draft to Published and the fragment becomes available to consuming pages through the delivery API. You can also select multiple cards in the table view and publish them together. The AI assistant can publish a card if you ask (for example "publish this card"); it always asks for your confirmation before publishing, and for multiple cards it can first show a preview of exactly which cards would be affected before running the job.
+
+## What happens when I edit a card that is already published?
+Cards have three statuses in Studio: Draft, Published, and Modified. When you edit and save a card that was already published, its status becomes Modified, meaning it has unpublished changes. Publish the card again so the live version picks up your edits. The status indicator in the content table shows where each card stands: Draft (never published), Published (live and unchanged), or Modified (live but with pending changes).
+
+## How do I unpublish a card and what happens to pages using it?
+Unpublishing removes a card from delivery, so any live page that references the fragment stops rendering it. Typical reasons to unpublish are an ended promotion, outdated content, or deprecating a card. Open the card and use the Unpublish action, or select several cards and unpublish in bulk. The AI assistant can unpublish a single card or a batch of cards by ID; because this changes production it always asks you to confirm first. After unpublishing, remember to update any pages that referenced the card.
+
+## Can the AI assistant edit cards for me?
+Yes. The assistant can update fields on a single card, run a bulk update across many cards (including text replacements), duplicate a card, open a card in the Studio editor for you, and copy a deep link to a card. Before any bulk update it can show a dry-run preview of exactly what would change on each card, and every change requires your explicit confirmation before it runs. It can also search cards by title, content, tags, surface, locale, or linked offer ID, and fetch a card's full contents when you just want to read it.
+
+## How do locale variations of a card work?
+A card has a locale-default parent fragment, and each locale can have exactly one variation of it — attempting to create a second variation for the same locale fails. Variations carry translated or region-specific content while staying linked to the parent. The AI assistant can show a card's full variation tree, list which locales already have variations, find the parent of a variation, and create a new locale variation of a card (with confirmation). To find gaps, ask it to list cards that are missing a variation for a target locale.

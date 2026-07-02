@@ -37,6 +37,11 @@ function runUnit() {
             failures.push(`case ${c.id}: intent_under_test ${c.intent_under_test} not in registry`);
         if (!c.user_message) failures.push(`case ${c.id}: missing user_message`);
         if (!c.expect) failures.push(`case ${c.id}: missing expect`);
+        if (c.expect && !c.expect.intent && !Array.isArray(c.expect.intent_one_of))
+            failures.push(`case ${c.id}: expect needs intent or intent_one_of`);
+        for (const name of c.expect?.intent_one_of ?? []) {
+            if (!knownNames.has(name)) failures.push(`case ${c.id}: intent_one_of ${name} not in registry`);
+        }
     }
 
     if (failures.length) {
@@ -46,9 +51,13 @@ function runUnit() {
     exitWith(0, `--unit PASS (${cases.length} cases, ${INTENTS.length} intents, ${FLOWS.length} flows)`);
 }
 
+function acceptedIntents(c) {
+    return c.expect.intent_one_of ?? [c.expect.intent];
+}
+
 function expectedEnvelopeFromCase(c) {
     return {
-        intent: c.expect.intent,
+        intent: acceptedIntents(c)[0],
         slots: c.expect.slots_include ?? {},
         confidence: 'high',
         missing_slots: [],
@@ -83,7 +92,7 @@ function runMockLlm() {
         const mockEnvelope = expectedEnvelopeFromCase(c);
         const result = validateEnvelope(mockEnvelope, c.context || {});
 
-        const expectedIntent = c.expect.intent;
+        const expectedIntent = acceptedIntents(c)[0];
 
         if (expectedIntent === 'ASK_USER') {
             const got = result.ok ? result.envelope?.intent : result.coerced?.intent;
@@ -185,9 +194,10 @@ async function runLiveLlm() {
             continue;
         }
 
-        if (envelope.intent !== c.expect.intent) {
+        const accepted = acceptedIntents(c);
+        if (!accepted.includes(envelope.intent)) {
             fail += 1;
-            failures.push(`${c.id}: expected intent ${c.expect.intent}, got ${envelope.intent}`);
+            failures.push(`${c.id}: expected intent ${accepted.join('|')}, got ${envelope.intent}`);
             continue;
         }
 

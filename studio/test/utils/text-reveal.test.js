@@ -38,7 +38,15 @@ describe('text-reveal', () => {
         const longText = Array.from({ length: 200 }, (i, n) => `word${n}`).join(' ');
         const el = bubble(`<p>${longText}</p>`);
         const { totalDuration } = prepareTextReveal(el, { maxDuration: 1200 });
-        expect(totalDuration).to.be.at.most(1200 + 180);
+        expect(totalDuration).to.be.at.most(1200);
+    });
+
+    it('ceilings the per-word delay for short answers', () => {
+        const el = bubble('<p>one two three four five</p>');
+        const { totalDuration } = prepareTextReveal(el);
+        const delays = [...el.querySelectorAll('.reveal-word')].map((w) => parseFloat(w.style.animationDelay));
+        expect(delays).to.deep.equal([0, 90, 180, 270, 360]);
+        expect(totalDuration).to.equal(450);
     });
 
     it('skips very long content entirely', () => {

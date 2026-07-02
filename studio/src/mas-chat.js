@@ -26,6 +26,10 @@ import {
     isSegmentSelectionStep as isSegmentSelectionStepFn,
     getAutoSelectedSegmentOption as getAutoSelectedSegmentOptionFn,
     extractKnownSurfaceFromPath,
+    composeChatRequestSignal,
+    isChatRequestTimeout,
+    CHAT_REQUEST_TIMEOUT_MS,
+    CHAT_TIMEOUT_MESSAGE,
 } from './utils/mas-chat-helpers.js';
 import { classifySearchIntent, resumeWithSlot } from './utils/ai-chat-search-router.js';
 import { isDeterministicSearchEnabled, recordSearchIntentTelemetry } from './utils/ai-chat-search-telemetry.js';
@@ -39,6 +43,7 @@ import { getDamPath } from './mas-repository.js';
 import { openOfferSelectorTool } from './rte/ost.js';
 import sessionManager from './services/chat-session-manager.js';
 import { fetchProducts, fetchProductDetail } from './services/product-api.js';
+import { routerAction, nextGuidedFlowState, resolveIntentHint } from './utils/ai-chat-flow-state.js';
 
 const RECENT_MCS_PRODUCT_LIMIT = 6;
 
@@ -51,11 +56,6 @@ const RECENT_MCS_PRODUCT_LIMIT = 6;
  */
 const GUIDED_FLOW_HINTS = new Set(['guided_search', 'guided_offer_search', 'guided_help', 'release', 'collection']);
 
-/**
- * Backend response types that mark a guided flow as resolved (no further
- * sticky-intent forwarding needed).
- */
-const FLOW_TERMINAL_RESPONSE_TYPES = new Set(['mcp_operation', 'card', 'message']);
 const PRODUCT_TIMESTAMP_PATHS = [
     ['createdAt'],
     ['created_at'],
@@ -111,6 +111,7 @@ export class MasChat extends LitElement {
         this.trialCtaAsked = false;
         this.pendingSearchIntent = null;
         this.activeGuidedFlow = null;
+        this.guidedFlowTurns = 0;
     }
 
     #repositoryEl = null;
@@ -304,6 +305,7 @@ export class MasChat extends LitElement {
         this.trialCtaAsked = false;
         this.pendingSearchIntent = null;
         this.activeGuidedFlow = null;
+        this.guidedFlowTurns = 0;
     }
 
     handlePromptSelected(event) {
@@ -312,6 +314,7 @@ export class MasChat extends LitElement {
         this.showWelcomeScreen = false;
         if (intentHint && GUIDED_FLOW_HINTS.has(intentHint)) {
             this.activeGuidedFlow = intentHint;
+            this.guidedFlowTurns = 0;
         }
         this.handleSendMessage({ detail: { message: prompt, context: { intentHint } } });
     }
@@ -469,15 +472,19 @@ export class MasChat extends LitElement {
         this.isLoading = true;
         this.error = null;
 
-        // Skip the deterministic search router whenever a guided flow is
-        // active (release / guided_help / guided_search / collection). The
-        // flow's LLM prompt is the canonical interpreter inside the flow —
-        // e.g., a release-flow turn that types "PA-1375" means "this is the
-        // product I'm answering with", not "look up an OSI". Letting the
-        // router fire here would hijack the flow into a card search.
-        if (isDeterministicSearchEnabled() && !context?.skipDeterministicRouter && !this.activeGuidedFlow) {
+        // Inside a guided flow the flow's LLM prompt stays the canonical
+        // interpreter — e.g., a release-flow turn that types "PA-1375" means
+        // "this is the product I'm answering with", not "look up an OSI".
+        // The router therefore only fires mid-flow for unambiguous lookups
+        // (confidence >= 0.9, e.g. a pasted UUID), which double as the
+        // user's escape hatch out of a drifting flow.
+        if (isDeterministicSearchEnabled() && !context?.skipDeterministicRouter) {
             const handled = await this.tryDeterministicSearch(message);
             if (handled) {
+                if (this.activeGuidedFlow) {
+                    this.activeGuidedFlow = null;
+                    this.guidedFlowTurns = 0;
+                }
                 this.isLoading = false;
                 return;
             }
@@ -506,7 +513,7 @@ export class MasChat extends LitElement {
                 message: messageForBackend,
                 conversationHistory: this.conversationHistory,
                 context: enrichedContext,
-                intentHint: enrichedContext.intentHint || null,
+                intentHint: resolveIntentHint(enrichedContext.intentHint, this.activeGuidedFlow),
             });
 
             // Envelope-first dispatcher (Stage 3.2). When the backend
@@ -522,15 +529,17 @@ export class MasChat extends LitElement {
                 return;
             }
 
-            // If the assistant resolved into a terminal action (operation,
-            // card creation, plain message), the guided flow has completed —
-            // clear the sticky intent so subsequent turns are classified
-            // freshly. Keep it set when the response is another guided_step
-            // so the next button click stays in the same flow.
-            if (this.activeGuidedFlow && response?.type && response.type !== 'guided_step') {
-                if (FLOW_TERMINAL_RESPONSE_TYPES.has(response.type) || response.type === 'operation') {
-                    this.activeGuidedFlow = null;
-                }
+            // Update guided-flow bookkeeping from the response type: terminal
+            // types (operation, card creation, plain message) end the flow,
+            // non-terminal turns count toward the cap so a drifting flow can
+            // never trap the user indefinitely.
+            if (response?.type) {
+                const flowState = nextGuidedFlowState(
+                    { flow: this.activeGuidedFlow, turns: this.guidedFlowTurns },
+                    response.type,
+                );
+                this.activeGuidedFlow = flowState.flow;
+                this.guidedFlowTurns = flowState.turns;
             }
 
             if (response.type === 'operation' || response.type === 'mcp_operation') {
@@ -891,6 +900,7 @@ export class MasChat extends LitElement {
 
             if (this.activeGuidedFlow) {
                 this.activeGuidedFlow = null;
+                this.guidedFlowTurns = 0;
             }
 
             return true;
@@ -916,6 +926,7 @@ export class MasChat extends LitElement {
 
         if (intent === 'ABORT') {
             this.activeGuidedFlow = null;
+            this.guidedFlowTurns = 0;
             this.pendingSearchIntent = null;
             this.selectedReleaseProduct = null;
             this.selectedReleaseOffer = null;
@@ -930,6 +941,7 @@ export class MasChat extends LitElement {
 
         if (intent === 'START_OVER') {
             this.activeGuidedFlow = null;
+            this.guidedFlowTurns = 0;
             this.pendingSearchIntent = null;
             this.selectedReleaseProduct = null;
             this.selectedReleaseOffer = null;
@@ -985,7 +997,9 @@ export class MasChat extends LitElement {
             tool: classified.dispatch?.mcpTool || null,
         });
 
-        if (classified.missingSlot) {
+        const action = routerAction(classified, this.activeGuidedFlow);
+
+        if (action === 'prompt-slot') {
             this.pendingSearchIntent = classified;
             this.messages = [
                 ...this.messages,
@@ -998,7 +1012,7 @@ export class MasChat extends LitElement {
             return true;
         }
 
-        if (classified.dispatch) {
+        if (action === 'dispatch') {
             this.pendingSearchIntent = null;
             await this.executeOperation({
                 type: 'mcp_operation',
@@ -1124,16 +1138,24 @@ export class MasChat extends LitElement {
         const aioBaseURL = AI_CHAT_BASE_URL;
         const actionUrl = `${aioBaseURL}/ai-chat`;
 
-        const response = await fetch(actionUrl, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${accessTokenObj.token}`,
-                'x-api-key': window.adobeIMS?.adobeIdData?.client_id || '',
-            },
-            body: JSON.stringify(params),
-            signal: this.abortController?.signal,
-        });
+        let response;
+        try {
+            response = await fetch(actionUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${accessTokenObj.token}`,
+                    'x-api-key': window.adobeIMS?.adobeIdData?.client_id || '',
+                },
+                body: JSON.stringify(params),
+                signal: composeChatRequestSignal(CHAT_REQUEST_TIMEOUT_MS, this.abortController?.signal),
+            });
+        } catch (error) {
+            if (isChatRequestTimeout(error)) {
+                throw new Error(CHAT_TIMEOUT_MESSAGE);
+            }
+            throw error;
+        }
 
         if (!response.ok) {
             const error = await response.json().catch(() => ({}));

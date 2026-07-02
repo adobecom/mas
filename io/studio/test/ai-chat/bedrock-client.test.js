@@ -216,4 +216,135 @@ describe('ai-chat/bedrock-client', () => {
             expect(prompt).to.match(/<untrusted-fragment-id>lone-card<\/untrusted-fragment-id>/);
         });
     });
+
+    describe('sendMessage retry on transient Bedrock errors', () => {
+        const errResponse = (status) => ({ ok: false, status, text: async () => 'upstream error' });
+        const okResponse = () => ({
+            ok: true,
+            json: async () => ({
+                content: [{ text: 'hi' }],
+                usage: { input_tokens: 5, output_tokens: 3 },
+                stop_reason: 'end_turn',
+            }),
+        });
+
+        beforeEach(() => {
+            process.env.BEDROCK_RETRY_BASE_DELAY_MS = '1';
+        });
+
+        afterEach(() => {
+            delete process.env.BEDROCK_RETRY_BASE_DELAY_MS;
+        });
+
+        it('retries a 429 response and succeeds on the second attempt', async () => {
+            const client = new BedrockClient({ bearerToken: 'test-token-not-real' });
+            const fetchStub = sandbox.stub(global, 'fetch');
+            fetchStub.onCall(0).resolves(errResponse(429));
+            fetchStub.onCall(1).resolves(okResponse());
+
+            const result = await client.sendMessage([{ role: 'user', content: 'hi' }], 'BASE', 256);
+
+            expect(result.success).to.equal(true);
+            expect(result.message).to.equal('hi');
+            expect(fetchStub.callCount).to.equal(2);
+        });
+
+        it('does not retry a 400 client error', async () => {
+            const client = new BedrockClient({ bearerToken: 'test-token-not-real' });
+            const fetchStub = sandbox.stub(global, 'fetch');
+            fetchStub.resolves(errResponse(400));
+
+            const result = await client.sendMessage([{ role: 'user', content: 'hi' }], 'BASE', 256);
+
+            expect(result.success).to.equal(false);
+            expect(fetchStub.callCount).to.equal(1);
+        });
+
+        it('gives up after two retries on persistent 500s', async () => {
+            const client = new BedrockClient({ bearerToken: 'test-token-not-real' });
+            const fetchStub = sandbox.stub(global, 'fetch');
+            fetchStub.resolves(errResponse(500));
+
+            const result = await client.sendMessage([{ role: 'user', content: 'hi' }], 'BASE', 256);
+
+            expect(result.success).to.equal(false);
+            expect(fetchStub.callCount).to.equal(3);
+        });
+    });
+
+    describe('sendWithContext truncation retry', () => {
+        it('retries once at a doubled token budget when the response is truncated', async () => {
+            const client = new BedrockClient({ bearerToken: 'test-token-not-real' });
+            const stub = sandbox.stub(client, 'sendMessage');
+            stub.onCall(0).resolves({
+                success: true,
+                message: '{"type":"card"',
+                stopReason: 'max_tokens',
+                usage: { input_tokens: 10, output_tokens: 1024 },
+            });
+            stub.onCall(1).resolves({
+                success: true,
+                message: '{"type":"card","variant":"catalog"}',
+                stopReason: 'end_turn',
+                usage: { input_tokens: 10, output_tokens: 1100 },
+            });
+
+            const result = await client.sendWithContext([], 'make a card', 'BASE', null, 1024);
+
+            expect(stub.callCount).to.equal(2);
+            expect(stub.secondCall.args[2]).to.equal(2048);
+            expect(result.stopReason).to.equal('end_turn');
+            expect(result.usage.output_tokens).to.equal(2124);
+            expect(result.usage.input_tokens).to.equal(20);
+        });
+
+        it('does not retry more than once when responses stay truncated', async () => {
+            const client = new BedrockClient({ bearerToken: 'test-token-not-real' });
+            const stub = sandbox.stub(client, 'sendMessage');
+            stub.resolves({
+                success: true,
+                message: '{"type":"card"',
+                stopReason: 'max_tokens',
+                usage: { input_tokens: 10, output_tokens: 2048 },
+            });
+
+            const result = await client.sendWithContext([], 'make a card', 'BASE', null, 1024);
+
+            expect(stub.callCount).to.equal(2);
+            expect(result.stopReason).to.equal('max_tokens');
+        });
+
+        it('does not retry truncation when already at the maximum budget', async () => {
+            const client = new BedrockClient({ bearerToken: 'test-token-not-real' });
+            const stub = sandbox.stub(client, 'sendMessage');
+            stub.resolves({
+                success: true,
+                message: 'long response',
+                stopReason: 'max_tokens',
+                usage: { input_tokens: 10, output_tokens: 4096 },
+            });
+
+            const result = await client.sendWithContext([], 'make a card', 'BASE', null, 4096);
+
+            expect(stub.callCount).to.equal(1);
+            expect(result.stopReason).to.equal('max_tokens');
+        });
+
+        it('keeps the original truncated response when the retry fails outright', async () => {
+            const client = new BedrockClient({ bearerToken: 'test-token-not-real' });
+            const stub = sandbox.stub(client, 'sendMessage');
+            stub.onCall(0).resolves({
+                success: true,
+                message: 'partial answer',
+                stopReason: 'max_tokens',
+                usage: { input_tokens: 10, output_tokens: 1024 },
+            });
+            stub.onCall(1).resolves({ success: false, error: 'boom', errorType: 'Error' });
+
+            const result = await client.sendWithContext([], 'make a card', 'BASE', null, 1024);
+
+            expect(result.success).to.equal(true);
+            expect(result.message).to.equal('partial answer');
+        });
+    });
 });

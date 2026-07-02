@@ -1,0 +1,132 @@
+const { expect } = require('chai');
+
+let extractJSON;
+let extractConversationalText;
+let parseAIResponse;
+
+describe('ai-chat/response-parser', () => {
+    before(async () => {
+        const mod = await import('../../src/ai-chat/response-parser.js');
+        extractJSON = mod.extractJSON;
+        extractConversationalText = mod.extractConversationalText;
+        parseAIResponse = mod.parseAIResponse;
+    });
+
+    describe('extractJSON', () => {
+        it('parses JSON inside a markdown code fence', () => {
+            const text = '```json\n{"type":"guided_step","message":"pick one"}\n```';
+            const result = extractJSON(text);
+            expect(result).to.deep.equal({ type: 'guided_step', message: 'pick one' });
+        });
+
+        it('returns the first parseable object when the text contains multiple JSON objects', () => {
+            const text = 'Here you go {"type":"guided_step","message":"pick"} and also {"type":"card","variant":"catalog"}';
+            const result = extractJSON(text);
+            expect(result).to.deep.equal({ type: 'guided_step', message: 'pick' });
+        });
+
+        it('parses an object even when later prose contains a stray closing brace', () => {
+            const text = 'Result: {"count":2} — remember to close with } in templates.';
+            const result = extractJSON(text);
+            expect(result).to.deep.equal({ count: 2 });
+        });
+
+        it('skips non-JSON brace regions and parses the real object after them', () => {
+            const text = 'Use {placeholder} syntax. {"type":"open_ost","searchParams":{"q":"ps"}}';
+            const result = extractJSON(text);
+            expect(result).to.deep.equal({ type: 'open_ost', searchParams: { q: 'ps' } });
+        });
+
+        it('returns null for truncated JSON that never balances', () => {
+            const text = '{"type":"card","variant":"catalog","title":"Photosho';
+            expect(extractJSON(text)).to.equal(null);
+        });
+
+        it('normalizes literal newlines inside string values', () => {
+            const text = '{"type":"guided_step","message":"line one\nline two"}';
+            const result = extractJSON(text);
+            expect(result.message).to.equal('line one\nline two');
+        });
+    });
+
+    describe('extractConversationalText', () => {
+        it('strips every JSON object while preserving prose between them', () => {
+            const text = 'Alpha {"x":1} Beta {"y":2} Gamma';
+            const result = extractConversationalText(text);
+            expect(result).to.include('Alpha');
+            expect(result).to.include('Beta');
+            expect(result).to.include('Gamma');
+            expect(result).to.not.include('{');
+            expect(result).to.not.include('}');
+        });
+
+        it('returns plain text untouched', () => {
+            expect(extractConversationalText('Just a normal reply.')).to.equal('Just a normal reply.');
+        });
+    });
+
+    describe('parseAIResponse', () => {
+        it('returns a friendly parse error instead of echoing truncated JSON to the user', () => {
+            const text = '```json\n{"type":"card","variant":"catalog","title":"Photo';
+            const result = parseAIResponse(text);
+            expect(result.type).to.equal('message');
+            expect(result.parseError).to.equal(true);
+            expect(result.message).to.not.include('{');
+            expect(result.message).to.not.include('```');
+        });
+
+        it('flags a parse error for bare truncated JSON with key/value shape', () => {
+            const text =
+                '{"type":"release_cards","parentPath":"/content/dam/mas/acom","cardConfigs":[{"variant":"catalog","title":"Unfinished';
+            const result = parseAIResponse(text);
+            expect(result.type).to.equal('message');
+            expect(result.parseError).to.equal(true);
+            expect(result.message).to.not.include('parentPath');
+        });
+
+        it('passes plain conversational text through unchanged', () => {
+            const text = 'Sure — publishing a card pushes it live to the surface it belongs to.';
+            const result = parseAIResponse(text);
+            expect(result.type).to.equal('message');
+            expect(result.message).to.equal(text);
+            expect(result.parseError).to.equal(undefined);
+        });
+
+        it('does not treat prose containing a small placeholder brace as a parse error', () => {
+            const text = 'Wrap the value in {braces} when using templates.';
+            const result = parseAIResponse(text);
+            expect(result.type).to.equal('message');
+            expect(result.message).to.equal(text);
+            expect(result.parseError).to.equal(undefined);
+        });
+
+        it('does not force-cast unrecognized structured objects to card', () => {
+            const text = '{"intent":"SEARCH_CARDS","slots":{"surface":"acom"}}';
+            const result = parseAIResponse(text);
+            expect(result.type).to.equal('message');
+            expect(result.cardConfig).to.equal(undefined);
+        });
+
+        it('still returns card for a variant-bearing config without an explicit type', () => {
+            const text = '{"variant":"catalog","title":"Photoshop"}';
+            const result = parseAIResponse(text);
+            expect(result.type).to.equal('card');
+            expect(result.cardConfig.variant).to.equal('catalog');
+        });
+
+        it('still returns card for a config with card-shaped keys so validation retry can fix it', () => {
+            const text = '{"title":"Photoshop","fields":{"description":"x"}}';
+            const result = parseAIResponse(text);
+            expect(result.type).to.equal('card');
+        });
+
+        it('keeps surrounding prose as the message for recognized types with multiple brace regions', () => {
+            const text = 'Intro. {"type":"guided_step","message":"pick"} Outro.';
+            const result = parseAIResponse(text);
+            expect(result.type).to.equal('guided_step');
+            expect(result.message).to.include('Intro');
+            expect(result.message).to.include('Outro');
+            expect(result.message).to.not.include('{');
+        });
+    });
+});

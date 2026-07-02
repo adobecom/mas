@@ -5,6 +5,14 @@
  * and handles conversational responses.
  */
 
+import { extractBalancedObject } from './operations-handler.js';
+
+const PARSE_ERROR_MESSAGE = 'I had trouble formatting that response. Please try asking again.';
+
+const UNRECOGNIZED_RESPONSE_MESSAGE = "I couldn't turn that into an action. Could you rephrase your request?";
+
+const CARD_HINT_KEYS = ['variant', 'title', 'fields', 'size'];
+
 /**
  * JSON strings must not contain raw newlines, carriage returns, or tabs.
  * Claude occasionally emits JSON with literal newlines inside the "message"
@@ -84,10 +92,15 @@ export function extractJSON(responseText) {
         console.error('Failed to parse JSON from code block');
     }
 
-    const bareMatch = responseText.match(/(\{[\s\S]*\})/);
-    if (bareMatch) {
-        const parsed = tryParse(bareMatch[1]);
-        if (parsed) return parsed;
+    let cursor = 0;
+    while (cursor < responseText.length) {
+        const braceIdx = responseText.indexOf('{', cursor);
+        if (braceIdx === -1) return null;
+        const candidate = extractBalancedObject(responseText, braceIdx);
+        if (!candidate) return null;
+        const parsed = tryParse(candidate);
+        if (parsed && typeof parsed === 'object') return parsed;
+        cursor = braceIdx + 1;
     }
 
     return null;
@@ -104,9 +117,30 @@ export function extractConversationalText(responseText) {
 
     let text = responseText.replace(/```json[\s\S]*?```/g, '').trim();
 
-    text = text.replace(/\{[\s\S]*\}/, '').trim();
+    let cursor = 0;
+    while (cursor < text.length) {
+        const braceIdx = text.indexOf('{', cursor);
+        if (braceIdx === -1) break;
+        const candidate = extractBalancedObject(text, braceIdx);
+        if (candidate && tryParse(candidate)) {
+            text = text.slice(0, braceIdx) + text.slice(braceIdx + candidate.length);
+            cursor = braceIdx;
+        } else {
+            cursor = braceIdx + 1;
+        }
+    }
 
-    return text;
+    return text.trim();
+}
+
+/**
+ * Detect responses that attempted to emit JSON but failed to parse —
+ * a code fence with an opening brace, or a bare object with key/value shape.
+ * Used to avoid echoing broken JSON back to the user.
+ */
+function looksLikeAttemptedJson(responseText) {
+    if (/```(?:json)?/.test(responseText) && responseText.includes('{')) return true;
+    return /\{\s*"[^"]+"\s*:/.test(responseText);
 }
 
 /**
@@ -180,10 +214,26 @@ export function parseAIResponse(responseText) {
             };
         }
 
+        if (CARD_HINT_KEYS.some((key) => cardConfig[key] !== undefined)) {
+            return {
+                type: 'card',
+                message: conversationalText || "Here's your card:",
+                cardConfig,
+            };
+        }
+
         return {
-            type: 'card',
-            message: conversationalText || "Here's your card:",
-            cardConfig,
+            type: 'message',
+            message: conversationalText || cardConfig.message || UNRECOGNIZED_RESPONSE_MESSAGE,
+        };
+    }
+
+    if (looksLikeAttemptedJson(responseText)) {
+        console.error('AI response contained unparseable JSON:', responseText.slice(0, 500));
+        return {
+            type: 'message',
+            message: PARSE_ERROR_MESSAGE,
+            parseError: true,
         };
     }
 

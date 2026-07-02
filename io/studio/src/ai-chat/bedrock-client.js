@@ -91,6 +91,30 @@ function truncateHistory(conversationHistory) {
     return [firstMessage, ...recentMessages];
 }
 
+const RETRYABLE_STATUS_CODES = new Set([429, 500, 502, 503, 529]);
+const RETRYABLE_ERROR_NAMES = new Set([
+    'ThrottlingException',
+    'ServiceUnavailableException',
+    'InternalServerException',
+    'ModelNotReadyException',
+]);
+const MAX_TRUNCATION_RETRY_TOKENS = 4096;
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+function isRetryableBedrockError(error) {
+    if (RETRYABLE_STATUS_CODES.has(error?.status)) return true;
+    if (RETRYABLE_STATUS_CODES.has(error?.$metadata?.httpStatusCode)) return true;
+    return RETRYABLE_ERROR_NAMES.has(error?.name);
+}
+
+function sumUsage(first = {}, second = {}) {
+    return {
+        input_tokens: (first.input_tokens || 0) + (second.input_tokens || 0),
+        output_tokens: (first.output_tokens || 0) + (second.output_tokens || 0),
+    };
+}
+
 export class BedrockClient {
     constructor(credentials = {}) {
         const bearerToken = credentials.bearerToken || process.env.AWS_BEARER_TOKEN_BEDROCK;
@@ -136,26 +160,39 @@ export class BedrockClient {
             max_tokens: maxTokens,
             system,
             messages,
-            temperature: 0.7,
         };
 
-        try {
-            const responseBody =
-                this.authMode === 'bearer' ? await this.#invokeBearerToken(payload) : await this.#invokeSdk(payload);
+        const maxRetries = Number(process.env.BEDROCK_MAX_RETRIES ?? 2);
+        const baseDelayMs = Number(process.env.BEDROCK_RETRY_BASE_DELAY_MS) || 500;
+        const totalBudgetMs = Number(process.env.BEDROCK_TOTAL_BUDGET_MS) || 55000;
+        const startedAt = Date.now();
 
-            return {
-                success: true,
-                message: responseBody.content[0].text,
-                usage: responseBody.usage,
-                stopReason: responseBody.stop_reason,
-            };
-        } catch (error) {
-            console.error('Bedrock API Error:', error);
-            return {
-                success: false,
-                error: error.message,
-                errorType: error.name,
-            };
+        for (let attempt = 0; ; attempt += 1) {
+            try {
+                const responseBody =
+                    this.authMode === 'bearer' ? await this.#invokeBearerToken(payload) : await this.#invokeSdk(payload);
+
+                return {
+                    success: true,
+                    message: responseBody.content[0].text,
+                    usage: responseBody.usage,
+                    stopReason: responseBody.stop_reason,
+                };
+            } catch (error) {
+                const delayMs = baseDelayMs * 2 ** attempt + Math.floor(Math.random() * (baseDelayMs / 2));
+                const withinBudget = Date.now() - startedAt + delayMs < totalBudgetMs;
+                if (attempt < maxRetries && withinBudget && isRetryableBedrockError(error)) {
+                    console.warn(`Bedrock retryable error (attempt ${attempt + 1}/${maxRetries}): ${error.message}`);
+                    await sleep(delayMs);
+                    continue;
+                }
+                console.error('Bedrock API Error:', error);
+                return {
+                    success: false,
+                    error: error.message,
+                    errorType: error.name,
+                };
+            }
         }
     }
 
@@ -177,7 +214,9 @@ export class BedrockClient {
 
             if (!response.ok) {
                 const body = await response.text();
-                throw new Error(`Bedrock API returned ${response.status}: ${body}`);
+                const error = new Error(`Bedrock API returned ${response.status}: ${body}`);
+                error.status = response.status;
+                throw error;
             }
 
             return response.json();
@@ -310,6 +349,15 @@ export class BedrockClient {
             },
         ];
 
-        return this.sendMessage(messages, enhancedSystem, maxTokens);
+        const response = await this.sendMessage(messages, enhancedSystem, maxTokens);
+        if (response.success && response.stopReason === 'max_tokens' && maxTokens < MAX_TRUNCATION_RETRY_TOKENS) {
+            const retryTokens = Math.min(maxTokens * 2, MAX_TRUNCATION_RETRY_TOKENS);
+            console.warn(`Bedrock response truncated at ${maxTokens} tokens; retrying once at ${retryTokens}`);
+            const retry = await this.sendMessage(messages, enhancedSystem, retryTokens);
+            if (retry.success) {
+                return { ...retry, usage: sumUsage(response.usage, retry.usage) };
+            }
+        }
+        return response;
     }
 }

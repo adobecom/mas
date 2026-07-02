@@ -162,3 +162,16 @@ export function extractKnownSurfaceFromPath(path) {
     if (masMatch && KNOWN_SURFACES.has(masMatch[1])) return masMatch[1];
     return null;
 }
+
+export const CHAT_REQUEST_TIMEOUT_MS = 55000;
+
+export const CHAT_TIMEOUT_MESSAGE = 'The AI service took too long to respond. Please try again.';
+
+export function composeChatRequestSignal(timeoutMs, componentSignal) {
+    const timeoutSignal = AbortSignal.timeout(timeoutMs);
+    return componentSignal ? AbortSignal.any([timeoutSignal, componentSignal]) : timeoutSignal;
+}
+
+export function isChatRequestTimeout(error) {
+    return error?.name === 'TimeoutError';
+}

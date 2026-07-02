@@ -1061,7 +1061,20 @@ function tryExtractEnvelopeFromLLMText(text) {
     try {
         return JSON.parse(candidate);
     } catch {
-        return null;
+        // The model replied conversationally instead of emitting an envelope
+        // (common for greetings and small talk). Rather than surfacing a
+        // "trouble understanding" error, treat the prose as an ASK_USER turn
+        // and carry it through as the user-facing message.
+        const prose = text.trim();
+        if (!prose) return null;
+        return {
+            intent: 'ASK_USER',
+            slots: {},
+            confidence: 'low',
+            missing_slots: [],
+            clarification_question: null,
+            user_message: prose,
+        };
     }
 }
 
@@ -1109,20 +1122,24 @@ export function buildCorrectivePrompt(cardConfig, errors) {
  * (e.g. an older deployed frontend, or a future guided menu type that
  * forgets to wire the hint through).
  */
-function inferGuidedFlowFromHistory(conversationHistory) {
+export function inferGuidedFlowFromHistory(conversationHistory) {
     if (!Array.isArray(conversationHistory) || conversationHistory.length === 0) {
         return null;
     }
-    for (let i = conversationHistory.length - 1; i >= 0; i -= 1) {
+    const knownFlows = ['guided_search', 'guided_offer_search', 'guided_help', 'release', 'collection'];
+    const terminalPattern = /"(?:mcpTool|cardConfigs?)"\s*:|"type"\s*:\s*"(?:mcp_operation|card|collection|release_cards)"/;
+    let scanned = 0;
+    for (let i = conversationHistory.length - 1; i >= 0 && scanned < 4; i -= 1) {
         const msg = conversationHistory[i];
         if (msg.role !== 'assistant' || typeof msg.content !== 'string') continue;
+        scanned += 1;
         const match = msg.content.match(/"flowId"\s*:\s*"([a-z_]+)"/);
-        if (match && ['guided_search', 'guided_offer_search', 'guided_help', 'release', 'collection'].includes(match[1])) {
+        if (match && knownFlows.includes(match[1])) {
             return match[1];
         }
-        // Stop at the first assistant message — only the most recent one
-        // determines the active flow.
-        return null;
+        // A terminal response (operation/card/collection) means the flow
+        // concluded — do not resurrect an older guided step past it.
+        if (terminalPattern.test(msg.content)) return null;
     }
     return null;
 }

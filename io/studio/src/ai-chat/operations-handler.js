@@ -15,9 +15,9 @@ const MAX_RESPONSE_LENGTH = 64 * 1024;
  * Walk brace depth from `startIdx` (which must point at a `{`) and return the
  * substring that ends at the matching `}`, respecting string literals and
  * escapes. Returns null if the braces never balance.
- * @private
+ * Shared with response-parser.js so both parsers extract JSON the same way.
  */
-function extractBalancedObject(text, startIdx) {
+export function extractBalancedObject(text, startIdx) {
     let depth = 0;
     let inString = false;
     let escaped = false;

@@ -246,3 +246,40 @@ describe('mas-chat-helpers', () => {
         });
     });
 });
+
+import { composeChatRequestSignal, isChatRequestTimeout, CHAT_TIMEOUT_MESSAGE } from '../../src/utils/mas-chat-helpers.js';
+
+describe('chat request timeout helpers', () => {
+    it('aborts with a timeout reason after the deadline', async () => {
+        const signal = composeChatRequestSignal(20, undefined);
+        expect(signal.aborted).to.equal(false);
+        await new Promise((resolve) => signal.addEventListener('abort', resolve));
+        expect(signal.aborted).to.equal(true);
+        expect(isChatRequestTimeout(signal.reason)).to.equal(true);
+    });
+
+    it('aborts when the component-level signal aborts first', () => {
+        const controller = new AbortController();
+        const signal = composeChatRequestSignal(60000, controller.signal);
+        controller.abort();
+        expect(signal.aborted).to.equal(true);
+        expect(isChatRequestTimeout(signal.reason)).to.equal(false);
+    });
+
+    it('stays pending without a component signal before the deadline', () => {
+        const signal = composeChatRequestSignal(60000, undefined);
+        expect(signal.aborted).to.equal(false);
+    });
+
+    it('recognizes only TimeoutError reasons', () => {
+        expect(isChatRequestTimeout(new DOMException('t', 'TimeoutError'))).to.equal(true);
+        expect(isChatRequestTimeout(new DOMException('a', 'AbortError'))).to.equal(false);
+        expect(isChatRequestTimeout(new Error('x'))).to.equal(false);
+        expect(isChatRequestTimeout(null)).to.equal(false);
+    });
+
+    it('exposes a friendly timeout message', () => {
+        expect(CHAT_TIMEOUT_MESSAGE).to.not.include('TimeoutError');
+        expect(CHAT_TIMEOUT_MESSAGE.length).to.be.greaterThan(10);
+    });
+});

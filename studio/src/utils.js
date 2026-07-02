@@ -304,10 +304,7 @@ export function buildCardsDeepLink(fragment, path, page = 'content') {
  */
 export function parseStudioDeepLinksFromText(text) {
     if (!text || typeof text !== 'string') return [];
-    const lines = text
-        .split(/\r?\n/)
-        .map((l) => l.trim())
-        .filter(Boolean);
+    const lines = text.split(/\s+/).filter(Boolean);
     const out = [];
     for (const line of lines) {
         const hashIdx = line.indexOf('#');
@@ -317,7 +314,8 @@ export function parseStudioDeepLinksFromText(text) {
             const contentType = params.get('content-type');
             const query = params.get('query');
             if (!query || !isUUID(query)) continue;
-            if (contentType !== 'merch-card' && contentType !== 'merch-card-collection') continue;
+            if (contentType !== 'merch-card' && contentType !== 'merch-card-collection' && contentType !== 'mas-compare-chart')
+                continue;
             out.push({ contentType, fragmentId: query });
         } catch {
             /* skip invalid entries */

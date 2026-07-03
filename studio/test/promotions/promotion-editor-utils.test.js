@@ -333,6 +333,12 @@ describe('promotion-editor-utils', () => {
             expect(normalizePromotionSearchInput(line)).to.equal(id);
         });
 
+        it('extracts fragment id from a merch-card-collection deep link', () => {
+            const id = '00000000-1111-2222-3333-444444444444';
+            const line = `https://mas.adobe.com/studio.html#content-type=merch-card-collection&query=${id}`;
+            expect(normalizePromotionSearchInput(line)).to.equal(id);
+        });
+
         it('strips query/hash from pasted full DAM path', () => {
             const path = '/content/dam/mas/surface/en_US/foo';
             expect(normalizePromotionSearchInput(`${path}?x=1`)).to.equal(path);

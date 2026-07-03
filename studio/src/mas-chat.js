@@ -794,7 +794,6 @@ export class MasChat extends LitElement {
                             role: 'assistant',
                             content: response.message || 'I processed your request but have nothing further to add.',
                             type: response.type,
-                            sources: response.sources || [],
                             fragmentIds: response.fragmentIds,
                             suggestedTitle: response.suggestedTitle,
                             timestamp: Date.now(),
@@ -847,16 +846,13 @@ export class MasChat extends LitElement {
             const category = classifyEnvelopeIntent(envelope);
 
             if (category === 'meta') {
-                return this.dispatchMetaEnvelope(envelope, response.sources);
+                return this.dispatchMetaEnvelope(envelope);
             }
 
             if (envelope.clarification_question || envelope.missing_slots?.length) {
                 const text =
                     envelope.clarification_question || `I need a bit more information: ${envelope.missing_slots.join(', ')}.`;
-                this.messages = [
-                    ...this.messages,
-                    { role: 'assistant', content: text, sources: response.sources, timestamp: Date.now(), fresh: true },
-                ];
+                this.messages = [...this.messages, { role: 'assistant', content: text, timestamp: Date.now(), fresh: true }];
                 return true;
             }
 
@@ -932,16 +928,13 @@ export class MasChat extends LitElement {
      * Handle meta intents (ASK_USER / ABORT / START_OVER / SHOW_HELP /
      * REPORT_ERROR). Returns true — meta is always terminal for the turn.
      */
-    dispatchMetaEnvelope(envelope, sources) {
+    dispatchMetaEnvelope(envelope) {
         const { intent } = envelope;
 
         if (intent === 'ASK_USER') {
             const text =
                 envelope.clarification_question || envelope.user_message || 'Could you clarify what you would like me to do?';
-            this.messages = [
-                ...this.messages,
-                { role: 'assistant', content: text, sources, timestamp: Date.now(), fresh: true },
-            ];
+            this.messages = [...this.messages, { role: 'assistant', content: text, timestamp: Date.now(), fresh: true }];
             return true;
         }
 
@@ -979,10 +972,7 @@ export class MasChat extends LitElement {
 
         if (intent === 'SHOW_HELP') {
             const text = envelope.user_message || 'Here are some things I can help with.';
-            this.messages = [
-                ...this.messages,
-                { role: 'assistant', content: text, sources, timestamp: Date.now(), fresh: true },
-            ];
+            this.messages = [...this.messages, { role: 'assistant', content: text, timestamp: Date.now(), fresh: true }];
             return true;
         }
 
@@ -2176,7 +2166,6 @@ export class MasChat extends LitElement {
                         role: 'assistant',
                         content: response.message,
                         type: response.type,
-                        sources: response.sources || [],
                         timestamp: Date.now(),
                         fresh: true,
                     },

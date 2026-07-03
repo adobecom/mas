@@ -1728,93 +1728,6 @@
     color: var(--spectrum-global-color-gray-400, #b1b1b1);
 }
 
-/* RAG Sources */
-.message-sources {
-    margin-top: var(--spectrum-global-dimension-size-200, 16px);
-    padding-top: var(--spectrum-global-dimension-size-150, 12px);
-    border-top: 1px solid var(--spectrum-global-color-gray-200, #e6e6e6);
-}
-
-.sources-toggle {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 12px;
-    background: var(--spectrum-global-color-gray-75, #fdfdfd);
-    border: 1px solid var(--spectrum-global-color-gray-300, #d5d5d5);
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--spectrum-global-color-gray-700, #464646);
-    width: 100%;
-    font-family: inherit;
-}
-
-.sources-toggle:hover {
-    background: var(--spectrum-global-color-gray-100, #f8f8f8);
-}
-
-.sources-toggle sp-icon-info {
-    color: var(--spectrum-global-color-blue-600, #0d66d0);
-}
-
-.sources-toggle sp-icon-chevron-down {
-    margin-left: auto;
-    transition: transform 0.2s ease;
-}
-
-.sources-toggle.expanded sp-icon-chevron-down {
-    transform: rotate(180deg);
-}
-
-.sources-list {
-    margin-top: 8px;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-}
-
-.source-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 8px 12px;
-    background: var(--spectrum-global-color-gray-50, #ffffff);
-    border-radius: 4px;
-    font-size: 13px;
-}
-
-.source-section {
-    color: var(--spectrum-global-color-gray-800, #222222);
-}
-
-.source-link {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    color: var(--spectrum-global-color-blue-700, #095aba);
-    text-decoration: none;
-    font-weight: 500;
-}
-
-.source-link:hover {
-    text-decoration: underline;
-    color: var(--spectrum-global-color-blue-800, #0d66d0);
-}
-
-.source-link sp-icon-link-out {
-    opacity: 0.7;
-}
-
-.source-score {
-    font-size: 11px;
-    color: var(--spectrum-global-color-gray-600, #6d6d6d);
-    padding: 2px 6px;
-    background: var(--spectrum-global-color-gray-200, #e6e6e6);
-    border-radius: 4px;
-}
-
 /* Floating Action Button */
 .chat-fab {
     position: fixed;
@@ -2684,19 +2597,17 @@ body.chat-resizing {
     }
 }
 
-.footer-delayed .message-feedback,
-.footer-delayed .message-sources {
+.footer-delayed .message-feedback {
     opacity: 0;
     pointer-events: none;
 }
 
-.message-feedback,
-.message-sources {
+.message-feedback {
     transition: opacity 240ms var(--mas-ease-out);
 }
 
 /* ==========================================================================
-   Thinking glow, chip stagger, micro-interactions, sources expand (MWPW-183572)
+   Thinking glow, chip stagger, micro-interactions (MWPW-183572)
    ========================================================================== */
 .typing-indicator-row {
     display: flex;
@@ -2788,21 +2699,6 @@ body.chat-resizing {
     transform: scale(0.97);
 }
 
-.sources-list {
-    animation: sourcesListIn 240ms var(--mas-ease-out) both;
-}
-
-@keyframes sourcesListIn {
-    from {
-        opacity: 0;
-        transform: translateY(-4px);
-    }
-    to {
-        opacity: 1;
-        transform: none;
-    }
-}
-
 /* ==========================================================================
    Reduced motion support (MWPW-183572)
    ========================================================================== */
@@ -2817,8 +2713,7 @@ body.chat-resizing {
     .msg-bloom .message-card,
     .msg-rise,
     .typing-indicator-row .message-avatar,
-    .welcome-chips sp-action-button,
-    .sources-list {
+    .welcome-chips sp-action-button {
         animation-name: reducedFade;
         animation-duration: 120ms;
         animation-timing-function: ease;

@@ -2606,8 +2606,6 @@ export class MasChat extends LitElement {
                 </div>
 
                 <div class="welcome-content">
-                    <div class="welcome-halo"></div>
-                    <div class="welcome-orb">✦</div>
                     <div class="welcome-greeting">
                         <h1>How can I help?</h1>
                     </div>

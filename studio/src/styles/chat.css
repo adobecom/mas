@@ -2524,62 +2524,8 @@ body.chat-resizing {
 }
 
 /* ==========================================================================
-   Welcome screen gradient halo hero (MWPW-183572)
+   Welcome screen entrance (MWPW-183572)
    ========================================================================== */
-.welcome-content {
-    position: relative;
-}
-
-.welcome-halo {
-    position: absolute;
-    width: 260px;
-    height: 260px;
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%, -60%);
-    border-radius: 50%;
-    pointer-events: none;
-    background: radial-gradient(circle, var(--mas-chat-glow), rgba(59, 99, 251, 0.14) 55%, transparent 70%);
-    animation: haloBreathe 6s ease-in-out infinite;
-}
-
-@keyframes haloBreathe {
-    0%,
-    100% {
-        transform: translate(-50%, -60%) scale(1);
-        opacity: 0.8;
-    }
-    50% {
-        transform: translate(-50%, -60%) scale(1.18);
-        opacity: 1;
-    }
-}
-
-.welcome-orb {
-    width: 48px;
-    height: 48px;
-    margin: 0 auto 4px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 22px;
-    color: #fff;
-    background: linear-gradient(135deg, var(--mas-chat-gradient-start), var(--mas-chat-gradient-end));
-    box-shadow: 0 6px 22px rgba(90, 79, 245, 0.45);
-    animation: orbFloat 6s ease-in-out infinite;
-}
-
-@keyframes orbFloat {
-    0%,
-    100% {
-        transform: translateY(0);
-    }
-    50% {
-        transform: translateY(-5px);
-    }
-}
-
 .welcome-greeting {
     animation: fadeUpOnce 400ms var(--mas-ease-out) both;
 }
@@ -2878,8 +2824,6 @@ body.chat-resizing {
         animation-timing-function: ease;
     }
 
-    .welcome-halo,
-    .welcome-orb,
     .typing-indicator::before,
     .reveal-caret {
         animation: none;

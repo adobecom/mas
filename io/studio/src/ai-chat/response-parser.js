@@ -67,12 +67,13 @@ function normalizeJsonString(raw) {
 /**
  * The model sometimes double-escapes control characters inside JSON string
  * values (writing \\n in the JSON source), so the parsed string carries a
- * literal backslash-n instead of a newline. Only rewrite when the text has
- * escape sequences and no real newlines — a fully double-escaped payload —
- * so answers that legitimately mention "\n" stay untouched.
+ * literal backslash-n instead of a newline — often mixed with correctly
+ * escaped breaks in the same message. Literal backslash-n is never
+ * legitimate content in these user-facing messages, so any occurrence
+ * signals double escaping and all escape sequences are unescaped.
  */
 export function normalizeEscapedText(text) {
-    if (typeof text !== 'string' || !text.includes('\\n') || text.includes('\n')) return text;
+    if (typeof text !== 'string' || !text.includes('\\n')) return text;
     return text.replace(/\\n/g, '\n').replace(/\\t/g, '\t').replace(/\\"/g, '"');
 }
 

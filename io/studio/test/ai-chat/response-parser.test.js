@@ -19,8 +19,10 @@ describe('ai-chat/response-parser', () => {
             expect(normalizeEscapedText('a\\n\\nb with \\"q\\" and\\tc')).to.equal('a\n\nb with "q" and\tc');
         });
 
-        it('leaves text containing real newlines untouched', () => {
-            expect(normalizeEscapedText('mention \\n here\nreal break')).to.equal('mention \\n here\nreal break');
+        it('converts literal escapes even when real newlines are also present (mixed escaping)', () => {
+            expect(normalizeEscapedText('It carries:\\n\\n- item one\nreal break')).to.equal(
+                'It carries:\n\n- item one\nreal break',
+            );
         });
 
         it('passes through non-strings and text without escapes', () => {

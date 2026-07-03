@@ -120,14 +120,14 @@ describe('ai-chat/envelope-native', () => {
             expect(body.message).to.equal('Line one.\n\nKey concepts:\n- item with "quotes" and\ta tab.');
         });
 
-        it('leaves messages with real newlines untouched even if they mention escape sequences', () => {
+        it('converts literal escapes in messages that mix real and escaped newlines', () => {
             const body = buildEnvelopeResponseBody({
                 intent: 'ASK_USER',
                 slots: {},
                 confidence: 1,
-                user_message: 'Use \\n to insert a newline.\nSecond line.',
+                user_message: 'It has:\\n- a title\nAnd a real break.',
             });
-            expect(body.message).to.equal('Use \\n to insert a newline.\nSecond line.');
+            expect(body.message).to.equal('It has:\n- a title\nAnd a real break.');
         });
 
         it('normalizes the message on the mcp_operation branch too', () => {

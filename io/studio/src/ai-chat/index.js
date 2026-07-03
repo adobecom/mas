@@ -390,6 +390,16 @@ function createKnowledgeClient(params) {
  * @param {string|null} options.detectedVariant - Detected variant from message
  * @returns {Promise<{prompt: string, sources: Array}>} - Enhanced system prompt and sources
  */
+export function isQuestionShaped(message) {
+    if (typeof message !== 'string') return false;
+    const lower = message.toLowerCase().trim();
+    if (!lower) return false;
+    return (
+        lower.endsWith('?') ||
+        /^(what|how|why|where|when|which|who|can|does|do|is|are|should|could|explain|tell me)\b/.test(lower)
+    );
+}
+
 export async function retrieveRAGContext(message, knowledgeClient, options = {}) {
     const { isDocumentation = false, ragVariantDetails = false, detectedVariant = null } = options;
 
@@ -701,8 +711,13 @@ async function main(params) {
         // Retrieved knowledge rides in the dynamic (uncached) context block —
         // appending it to the system prompt would invalidate the prompt cache
         // on every distinct documentation query.
+        // Question-shaped messages get documentation context even when the
+        // keyword classifier routes them operationally ("How does bulk
+        // publishing work?" contains 'publish'): the native envelope path
+        // classifies the real intent, but retrieval runs before the model
+        // and ungrounded feature answers contradict the docs.
         const { ragContext, sources: ragSources } = await retrieveRAGContext(message, knowledgeClient, {
-            isDocumentation,
+            isDocumentation: isDocumentation || isQuestionShaped(message),
             ragVariantDetails,
             detectedVariant,
         });

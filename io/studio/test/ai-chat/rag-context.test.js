@@ -1,11 +1,13 @@
 const { expect } = require('chai');
 
 let retrieveRAGContext;
+let isQuestionShaped;
 
 describe('ai-chat/retrieveRAGContext', () => {
     before(async () => {
         const mod = await import('../../src/ai-chat/index.js');
         retrieveRAGContext = mod.retrieveRAGContext;
+        isQuestionShaped = mod.isQuestionShaped;
     });
 
     const fakeClient = (result) => ({
@@ -59,5 +61,25 @@ describe('ai-chat/retrieveRAGContext', () => {
         };
         const result = await retrieveRAGContext('what is odin?', client, { isDocumentation: true });
         expect(result).to.deep.equal({ ragContext: '', sources: [] });
+    });
+
+    describe('isQuestionShaped', () => {
+        it('recognizes interrogative questions about operations as questions', () => {
+            expect(isQuestionShaped('How does bulk publishing work?')).to.equal(true);
+            expect(isQuestionShaped('can I revert a bulk publish')).to.equal(true);
+            expect(isQuestionShaped('what is a bulk publish project')).to.equal(true);
+            expect(isQuestionShaped('where do I find bulk publish')).to.equal(true);
+        });
+
+        it('does not flag imperative operation requests', () => {
+            expect(isQuestionShaped('publish these cards')).to.equal(false);
+            expect(isQuestionShaped('bulk publish the cards from my search')).to.equal(false);
+            expect(isQuestionShaped('create release cards for firefly pro')).to.equal(false);
+        });
+
+        it('handles non-string input safely', () => {
+            expect(isQuestionShaped(null)).to.equal(false);
+            expect(isQuestionShaped('')).to.equal(false);
+        });
     });
 });

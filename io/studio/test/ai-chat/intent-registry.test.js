@@ -8,6 +8,7 @@ let getIntent;
 let getFlow;
 let getNextIntentsForFlowStep;
 let isStateChanging;
+let getFlowForIntent;
 
 describe('intent-registry', () => {
     before(async () => {
@@ -19,6 +20,7 @@ describe('intent-registry', () => {
         getIntent = mod.getIntent;
         getFlow = mod.getFlow;
         getNextIntentsForFlowStep = mod.getNextIntentsForFlowStep;
+        getFlowForIntent = mod.getFlowForIntent;
         isStateChanging = mod.isStateChanging;
     });
 
@@ -142,6 +144,18 @@ describe('intent-registry', () => {
                     }
                 }
             }
+        });
+    });
+    describe('getFlowForIntent', () => {
+        it('maps flow-step intents to their flow name', () => {
+            expect(getFlowForIntent('release_create.start')).to.equal('release_create');
+            expect(getFlowForIntent('release_create.set_commitment')).to.equal('release_create');
+        });
+
+        it('returns null for non-flow intents', () => {
+            expect(getFlowForIntent('get_card')).to.equal(null);
+            expect(getFlowForIntent('ASK_USER')).to.equal(null);
+            expect(getFlowForIntent(null)).to.equal(null);
         });
     });
 });

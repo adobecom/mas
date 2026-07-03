@@ -640,3 +640,9 @@ export function isStateChanging(intentName) {
     const intent = getIntent(intentName);
     return intent?.category === 'state-changing';
 }
+
+export function getFlowForIntent(intentName) {
+    if (typeof intentName !== 'string') return null;
+    const flow = FLOWS.find((f) => intentName.startsWith(`${f.name}.`));
+    return flow ? flow.name : null;
+}

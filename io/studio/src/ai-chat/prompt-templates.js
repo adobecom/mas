@@ -10,6 +10,8 @@ export const GUIDED_CARD_CREATION_PROMPT = `
 
 When a user triggers the card-creation flow (via the "Create cards" chip or a message about a new product release), follow this exact step-by-step guided flow. Each step returns a structured JSON response that the frontend renders as interactive UI elements.
 
+FORMAT RULE: in this flow you only ever emit the JSON shapes shown below ("type": "guided_step", "mcp_operation", "release_confirmation", "release_cards", or "open_ost"). NEVER emit intent-envelope JSON ({"intent": ..., "slots": ..., "user_message": ...}) — that format belongs to a different mode and the flow cannot execute it, even if earlier assistant messages in this conversation used it.
+
 ## Step 1: Product Selection
 
 CRITICAL: You MUST respond with ONLY a JSON code block in the exact structure below — no conversational preamble, no text outside the JSON block. A response that starts with "I'll help you..." or any similar prose before the JSON is a failure. The frontend renders the JSON directly; plain text is not shown.

@@ -32,6 +32,7 @@ import { classifyIntent, createClassifierClient } from './intent-classifier.js';
 import { buildPrompt, buildFlowContext } from './prompt-builder.js';
 import { buildEnvelopeTool, ENVELOPE_TOOL_CHOICE, ENVELOPE_TOOL_NAME } from './tool-definitions.js';
 import { extractToolEnvelope, buildEnvelopeResponseBody, normalizeEnvelopeText } from './envelope-native.js';
+import { getFlowForIntent } from './intent-registry.js';
 import { buildFeedbackEntry, appendFeedbackEntry } from './feedback-store.js';
 import { validateEnvelope } from './envelope-validator.js';
 
@@ -517,8 +518,11 @@ async function main(params) {
             params,
         });
 
+        // The guided prompt must stand alone: basePrompt carries the envelope
+        // output contract, and combining the two makes the model emit
+        // envelope JSON that the guided flow cannot execute.
         const releaseIntent = isReleaseIntent(message, conversationHistory);
-        const effectivePrompt = releaseIntent ? `${basePrompt}\n\n${GUIDED_CARD_CREATION_PROMPT}` : basePrompt;
+        const effectivePrompt = releaseIntent ? GUIDED_CARD_CREATION_PROMPT : basePrompt;
 
         // Native envelope routing applies only to the free-routing surface.
         // Guided flows, release, and card creation stay on the text path —
@@ -733,7 +737,7 @@ async function main(params) {
 
         const maxTokens = isDocumentation ? 2048 : isCardCreation ? 2048 : 1024;
 
-        const response = await bedrockClient.sendWithContext(
+        let response = await bedrockClient.sendWithContext(
             conversationHistory,
             message,
             effectiveSystemPrompt,
@@ -802,24 +806,55 @@ async function main(params) {
                 }),
             );
 
-            const envelopeBody = buildEnvelopeResponseBody(finalEnvelope);
-            return {
-                statusCode: 200,
-                headers: {
-                    ...getResponseHeaders(),
-                },
-                body: {
-                    envelope: finalEnvelope,
-                    ...envelopeBody,
-                    sources: ragSources,
-                    usage,
-                    conversationHistory: [
-                        ...conversationHistory,
-                        { role: 'user', content: message },
-                        { role: 'assistant', content: JSON.stringify(finalEnvelope) },
-                    ],
-                },
-            };
+            // When the envelope classifies a guided-flow intent, hand the
+            // turn to the guided text prompt instead of returning the
+            // envelope: guided flows carry rich UI payloads (guided_step,
+            // productCards) the envelope cannot express, and stringified
+            // envelopes in history teach later turns the wrong format.
+            let handedOff = false;
+            if (getFlowForIntent(finalEnvelope?.intent) === 'release_create') {
+                const guidedResponse = await bedrockClient.sendWithContext(
+                    conversationHistory,
+                    message,
+                    GUIDED_CARD_CREATION_PROMPT,
+                    enrichedContext,
+                    2048,
+                    {},
+                );
+                logUsageMetric(guidedResponse, params, bedrockClient.modelId);
+                if (guidedResponse.success && guidedResponse.message) {
+                    console.log(
+                        JSON.stringify({
+                            phase: 'flow-handoff',
+                            req: params.requestId ?? null,
+                            intent: finalEnvelope.intent,
+                        }),
+                    );
+                    response = guidedResponse;
+                    handedOff = true;
+                }
+            }
+
+            if (!handedOff) {
+                const envelopeBody = buildEnvelopeResponseBody(finalEnvelope);
+                return {
+                    statusCode: 200,
+                    headers: {
+                        ...getResponseHeaders(),
+                    },
+                    body: {
+                        envelope: finalEnvelope,
+                        ...envelopeBody,
+                        sources: ragSources,
+                        usage,
+                        conversationHistory: [
+                            ...conversationHistory,
+                            { role: 'user', content: message },
+                            { role: 'assistant', content: JSON.stringify(finalEnvelope) },
+                        ],
+                    },
+                };
+            }
         }
 
         const shadowValidation = logShadowValidation(response, params);

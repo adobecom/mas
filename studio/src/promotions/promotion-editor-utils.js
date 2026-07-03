@@ -154,7 +154,7 @@ export async function classifyPromotionPathsForSelection(
  * @param {number} itemCount Selected cards + collections count
  * @returns {string|null}
  */
-export function getPromotionRequiredFieldsValidation(fragment, itemCount) {
+export function getPromotionRequiredFieldsValidation(fragment, itemCount, isEvergreen = fragment.isEvergreen) {
     if (!fragment.getFieldValue('title')) {
         return 'Please enter a Title.';
     }
@@ -164,7 +164,7 @@ export function getPromotionRequiredFieldsValidation(fragment, itemCount) {
     if (!fragment.getFieldValue('startDate')) {
         return 'Please set a Start Date.';
     }
-    if (!fragment.getFieldValue('endDate')) {
+    if (!isEvergreen && !fragment.getFieldValue('endDate')) {
         return 'Please set an End Date.';
     }
     if (splitPromotionTagsFieldValues(fragment.getFieldValues('tags')).promotion.length === 0) {

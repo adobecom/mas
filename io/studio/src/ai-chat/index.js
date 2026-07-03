@@ -730,8 +730,15 @@ async function main(params) {
             console.log(JSON.stringify({ phase: 'shadow-prompt', req: params.requestId ?? null, error: shadowErr.message }));
         }
 
-        const effectiveSystemPrompt = registryPrompt !== null ? registryPrompt : effectivePrompt;
-        if (registryPrompt !== null) {
+        // The registry prompt carries the envelope output contract, so it is
+        // only the right system prompt when the turn actually runs in
+        // envelope mode. Text-path turns (guided flows, release, card
+        // creation, any intentHint) keep their specialized prompt —
+        // overriding those makes the model emit envelopes the text path
+        // cannot execute.
+        const useRegistryPrompt = nativeEnvelopeEligible && registryPrompt !== null;
+        const effectiveSystemPrompt = useRegistryPrompt ? registryPrompt : effectivePrompt;
+        if (useRegistryPrompt) {
             console.log(JSON.stringify({ phase: 'shadow-primary', req: params.requestId ?? null, used: true }));
         }
 

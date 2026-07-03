@@ -577,6 +577,7 @@ class MasTranslationEditor extends LitElement {
                     .renderFragmentStatusCell=${renderFragmentStatusCell}
                     .disableLocaleVariations=${true}
                     .hidePromoVariations=${true}
+                    .restrictImportSurface=${Store.surface()}
                 ></mas-items-selector>
             </sp-dialog-wrapper>
         `;

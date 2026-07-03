@@ -50,6 +50,7 @@ import {
 } from './promotion-publish-utils.js';
 import { renderFragmentStatusCell } from '../common/utils/render-utils.js';
 import { clearCaches } from '../../libs/fragment-client.js';
+import { canEditPromotions } from '../groups.js';
 
 function getPromotionPickerFragmentLabel(data) {
     const webComponentName = MODEL_WEB_COMPONENT_MAPPING[data?.model?.path];
@@ -185,6 +186,7 @@ class MasPromotionsEditor extends LitElement {
             Store.promotions.selectedCards,
             Store.promotions.selectedCollections,
             Store.promotions.selectedOffers,
+            Store.users,
         ]);
     }
 
@@ -234,18 +236,20 @@ class MasPromotionsEditor extends LitElement {
     }
 
     get canManagePromoCodes() {
+        if (!this.canEdit) return false;
         const geos = this.fragment?.getFieldValues('geos') ?? [];
         const hasOffers = Store.promotions.selectedOffers.value.length > 0 || Store.promotions.selectedCards.value.length > 0;
         return hasOffers && geos.length > 0;
     }
 
     get canManagePromoCodesInEmptyState() {
+        if (!this.canEdit) return false;
         const geos = this.fragment?.getFieldValues('geos') ?? [];
         return this.hasSelectedOffers && geos.length > 0;
     }
 
     get canEditPromotionItemsInEmptyState() {
-        return this.hasSelectedOffers;
+        return this.canEdit && this.hasSelectedOffers;
     }
 
     #mapPromotionOfferSelectorToRow(selectorId) {
@@ -793,6 +797,10 @@ class MasPromotionsEditor extends LitElement {
 
     get disabledPromotionQuickActions() {
         const disabled = new Set([QUICK_ACTION.LOCK]);
+        if (!this.canEdit) {
+            PROMOTION_QUICK_ACTIONS.forEach((action) => disabled.add(action));
+            return disabled;
+        }
         const publishOptions = this.#promotionPublishOptions;
         if (this.loadingPromotion) {
             PROMOTION_QUICK_ACTIONS.forEach((action) => disabled.add(action));
@@ -1047,7 +1055,7 @@ class MasPromotionsEditor extends LitElement {
     #renderPromotionOffersEmptyPanel() {
         return html`<div class="offers-empty-state">
             <div class="icon">
-                <sp-button variant="secondary" @click=${this.#openPromotionsOst}>
+                <sp-button variant="secondary" ?disabled=${!this.canEdit} @click=${this.#openPromotionsOst}>
                     <sp-icon-add size="xxl"></sp-icon-add>
                 </sp-button>
             </div>
@@ -1088,7 +1096,7 @@ class MasPromotionsEditor extends LitElement {
     #renderPromotionEmptyToolbarActions() {
         return html`
             ${this.promotionEmptyItemsTab === TABLE_TYPE.OFFERS
-                ? html`<sp-action-button quiet @click=${this.#openPromotionsOst}>
+                ? html`<sp-action-button quiet ?disabled=${!this.canEdit} @click=${this.#openPromotionsOst}>
                       <sp-icon-add slot="icon" label="Add offer"></sp-icon-add>
                       Add offer
                   </sp-action-button>`
@@ -1243,12 +1251,17 @@ class MasPromotionsEditor extends LitElement {
         `;
     }
 
+    willUpdate() {
+        this.canEdit = canEditPromotions();
+    }
+
     render() {
         let form = nothing;
         if (this.fragment) {
             form = Object.fromEntries([...this.fragment.fields.map((f) => [f.name, f])]);
         }
-        const canOpenItemPicker = this.promotionPickerSurfaces.length > 0;
+        const readOnly = !this.canEdit;
+        const canOpenItemPicker = this.canEdit && this.promotionPickerSurfaces.length > 0;
         return html`
             ${this.confirmDialog}
             ${this.duplicating
@@ -1284,6 +1297,7 @@ class MasPromotionsEditor extends LitElement {
                                 id="campaignTitle"
                                 data-field="title"
                                 value="${form.title?.values[0]}"
+                                ?disabled=${readOnly}
                                 @input=${this.#handleFragmentUpdate}
                             ></sp-textfield>
                             <sp-field-label for="promoCode" required>Promo Code</sp-field-label>
@@ -1291,6 +1305,7 @@ class MasPromotionsEditor extends LitElement {
                                 id="promoCode"
                                 data-field="promoCode"
                                 value="${form.promoCode?.values[0]}"
+                                ?disabled=${readOnly}
                                 @input=${this.#handleFragmentUpdate}
                             ></sp-textfield>
                             <sp-field-label for="startDate" required>Start Date (UTC)</sp-field-label>
@@ -1299,6 +1314,7 @@ class MasPromotionsEditor extends LitElement {
                                 id="startDate"
                                 value="${form.startDate?.values[0]?.slice(0, 16) ?? ''}"
                                 data-field="startDate"
+                                ?disabled=${readOnly}
                                 @change=${this.#handleDateUpdate}
                             />
                             <sp-field-label for="endDate" required>End Date (UTC)</sp-field-label>
@@ -1307,6 +1323,7 @@ class MasPromotionsEditor extends LitElement {
                                 id="endDate"
                                 value="${form.endDate?.values[0]?.slice(0, 16) ?? ''}"
                                 data-field="endDate"
+                                ?disabled=${readOnly}
                                 @change=${this.#handleDateUpdate}
                             />
                             <sp-field-label required>Promotion tags</sp-field-label>
@@ -1315,6 +1332,7 @@ class MasPromotionsEditor extends LitElement {
                                 namespace="/content/cq:tags/mas"
                                 top="promotion"
                                 multiple
+                                ?disabled=${readOnly}
                                 value="${splitPromotionTagsFieldValues(form.tags?.values).promotion.join(',') || ''}"
                                 @change=${this.#handeTagsChange}
                             ></aem-tag-picker-field>
@@ -1327,6 +1345,7 @@ class MasPromotionsEditor extends LitElement {
                                     namespace="/content/cq:tags/mas"
                                     top="locale,pzn"
                                     multiple
+                                    ?disabled=${readOnly}
                                     value="${form.geos?.values.join(',') || ''}"
                                     @change=${this.#handleGeosChange}
                                 ></aem-tag-picker-field>
@@ -1342,7 +1361,7 @@ class MasPromotionsEditor extends LitElement {
                                               <div class="icon">
                                                   <overlay-trigger type="modal" id="add-surfaces-overlay">
                                                       ${this.addSurfacesDialog}
-                                                      <sp-button slot="trigger" variant="secondary">
+                                                      <sp-button slot="trigger" variant="secondary" ?disabled=${readOnly}>
                                                           <sp-icon-add size="xxl"></sp-icon-add>
                                                       </sp-button>
                                                   </overlay-trigger>
@@ -1366,7 +1385,7 @@ class MasPromotionsEditor extends LitElement {
                                                           return html`
                                                               <sp-tag
                                                                   value="${surface}"
-                                                                  deletable
+                                                                  ?deletable=${!readOnly}
                                                                   @delete=${this.#handleSurfaceDelete}
                                                               >
                                                                   ${surfaceLabel}
@@ -1376,7 +1395,12 @@ class MasPromotionsEditor extends LitElement {
                                                   )}
                                                   <overlay-trigger type="modal" id="add-surfaces-overlay">
                                                       ${this.addSurfacesDialog}
-                                                      <sp-button slot="trigger" variant="secondary" icon-only>
+                                                      <sp-button
+                                                          slot="trigger"
+                                                          variant="secondary"
+                                                          icon-only
+                                                          ?disabled=${readOnly}
+                                                      >
                                                           <sp-icon-add slot="icon" size="m"></sp-icon-add>
                                                       </sp-button>
                                                   </overlay-trigger>
@@ -1401,7 +1425,11 @@ class MasPromotionsEditor extends LitElement {
                                       </h2>
                                       <div>
                                           ${this.selectedItemsViewTab === TABLE_TYPE.OFFERS
-                                              ? html`<sp-action-button quiet @click=${this.#openPromotionsOst}>
+                                              ? html`<sp-action-button
+                                                    quiet
+                                                    ?disabled=${readOnly}
+                                                    @click=${this.#openPromotionsOst}
+                                                >
                                                     <sp-icon-add slot="icon" label="Add offer"></sp-icon-add>
                                                     Add offer
                                                 </sp-action-button>`

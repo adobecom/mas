@@ -11,6 +11,28 @@ export const styles = [
             max-height: 100%;
         }
 
+        .empty-state {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: var(--spectrum-gray-75, #f8f8f8);
+            border-radius: 8px;
+            gap: 12px;
+            color: var(--spectrum-gray-700, #464646);
+
+            p {
+                margin: 0;
+                font-size: 14px;
+            }
+
+            sp-icon {
+                width: 48px;
+                height: 48px;
+            }
+        }
+
         .selected-items {
             box-sizing: border-box;
             display: flex;

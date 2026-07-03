@@ -9,6 +9,7 @@ import { normalizeKey, showToast } from '../utils.js';
 import { clearCaches } from '../../libs/fragment-client.js';
 import './mas-promotion-duplicate-dialog.js';
 import { renderPromotionStatusCell } from '../common/utils/render-utils.js';
+import { canEditPromotions } from '../groups.js';
 import {
     canPublishPromotionNow,
     canSchedulePromotion,
@@ -55,6 +56,7 @@ class MasPromotions extends LitElement {
             Store.promotions?.list?.loading,
             Store.promotions?.list?.filter,
             Store.promotions?.list?.filterOptions,
+            Store.users,
         ]);
     }
 
@@ -235,15 +237,21 @@ class MasPromotions extends LitElement {
         `;
     }
 
+    willUpdate() {
+        this.canEdit = canEditPromotions();
+    }
+
     render() {
         return html`
             <div class="promotions-container">
                 <div class="promotions-header">
                     <sp-search size="m" placeholder="Search"></sp-search>
-                    <sp-button variant="accent" @click=${() => this.#handleAddPromotion()} class="create-button">
-                        <sp-icon-add slot="icon"></sp-icon-add>
-                        Create promotion project
-                    </sp-button>
+                    ${this.canEdit
+                        ? html`<sp-button variant="accent" @click=${() => this.#handleAddPromotion()} class="create-button">
+                              <sp-icon-add slot="icon"></sp-icon-add>
+                              Create promotion project
+                          </sp-button>`
+                        : nothing}
                 </div>
 
                 ${this.renderError()}
@@ -311,6 +319,18 @@ class MasPromotions extends LitElement {
     }
 
     renderActionCell(promotion) {
+        if (!this.canEdit) {
+            return html`
+                <sp-table-cell>
+                    <sp-action-menu size="m">
+                        <sp-menu-item @click="${() => this.#handleEditPromotion(promotion)}">
+                            <sp-icon-preview slot="icon"></sp-icon-preview>
+                            View
+                        </sp-menu-item>
+                    </sp-action-menu>
+                </sp-table-cell>
+            `;
+        }
         return html`
             <sp-table-cell>
                 <sp-action-menu size="m">

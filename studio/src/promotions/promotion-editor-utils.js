@@ -29,7 +29,12 @@ export function normalizePromotionSearchInput(raw) {
     const trimmed = raw.trim();
     if (!trimmed) return '';
     const deepLinks = parseStudioDeepLinksFromText(trimmed);
-    if (deepLinks.length && deepLinks[0].fragmentId) return deepLinks[0].fragmentId;
+    if (
+        deepLinks.length &&
+        ['merch-card', 'merch-card-collection'].includes(deepLinks[0].contentType) &&
+        deepLinks[0].fragmentId
+    )
+        return deepLinks[0].fragmentId;
     if (isUUID(trimmed)) return trimmed;
     const marker = ROOT_PATH;
     const idx = trimmed.indexOf(marker);

@@ -1,4 +1,144 @@
-var de=Object.defineProperty;var Tt=p=>{throw TypeError(p)};var he=(p,m,t)=>m in p?de(p,m,{enumerable:!0,configurable:!0,writable:!0,value:t}):p[m]=t;var st=(p,m,t)=>he(p,typeof m!="symbol"?m+"":m,t),nt=(p,m,t)=>m.has(p)||Tt("Cannot "+t);var a=(p,m,t)=>(nt(p,m,"read from private field"),t?t.call(p):m.get(p)),u=(p,m,t)=>m.has(p)?Tt("Cannot add the same private member more than once"):m instanceof WeakSet?m.add(p):m.set(p,t),d=(p,m,t,e)=>(nt(p,m,"write to private field"),e?e.call(p,t):m.set(p,t),t),s=(p,m,t)=>(nt(p,m,"access private method"),t);import{html as A,LitElement as Ee,nothing as b}from"./lit-all.min.js";import{repeat as ht}from"./lit-all.min.js";import{unsafeHTML as Ot}from"./lit-all.min.js";var Le=Object.freeze({MONTH:"MONTH",YEAR:"YEAR",TWO_YEARS:"TWO_YEARS",THREE_YEARS:"THREE_YEARS",PERPETUAL:"PERPETUAL",TERM_LICENSE:"TERM_LICENSE",ACCESS_PASS:"ACCESS_PASS",THREE_MONTHS:"THREE_MONTHS",SIX_MONTHS:"SIX_MONTHS"}),Me=Object.freeze({ANNUAL:"ANNUAL",MONTHLY:"MONTHLY",TWO_YEARS:"TWO_YEARS",THREE_YEARS:"THREE_YEARS",P1D:"P1D",P1Y:"P1Y",P3Y:"P3Y",P10Y:"P10Y",P15Y:"P15Y",P3D:"P3D",P7D:"P7D",P30D:"P30D",HALF_YEARLY:"HALF_YEARLY",QUARTERLY:"QUARTERLY"});var me='span[is="inline-price"][data-wcs-osi]',ue='a[is="checkout-link"][data-wcs-osi],button[is="checkout-button"][data-wcs-osi]';var ge='a[is="upt-link"]',Oe=`${me},${ue},${ge}`;var ct="aem:load",lt="aem:error",pt="mas:ready";var dt="mas-compare-chart:rehydrate",St="expanded-groups-change";var Pe=Object.freeze({SEGMENTATION:"segmentation",BUNDLE:"bundle",COMMITMENT:"commitment",RECOMMENDATION:"recommendation",EMAIL:"email",PAYMENT:"payment",CHANGE_PLAN_TEAM_PLANS:"change-plan/team-upgrade/plans",CHANGE_PLAN_TEAM_PAYMENT:"change-plan/team-upgrade/payment"});var Ie=Object.freeze({STAGE:"STAGE",PRODUCTION:"PRODUCTION",LOCAL:"LOCAL"});var fe=p=>String(p||"").normalize("NFKD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[/&]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/-+/g,"-").replace(/^-+|-+$/g,"")||"item",Nt=p=>Array.from(p.childNodes).map(m=>m.nodeType===Node.TEXT_NODE?m.textContent:m.nodeType===Node.ELEMENT_NODE?m.outerHTML:"").join("").replace(/\s+/g," ").trim(),xe=p=>{let m=p.querySelector("[aria-label]")?.getAttribute("aria-label")?.trim().toLowerCase();return m==="yes"?"\u2713":m==="no"?"\u2717":p.querySelector(".icon-checkmark-no-fill, .icon-checkmark")?"\u2713":p.querySelector(".icon-crossmark")?"\u2717":Nt(p)},kt=p=>Nt(p).replace(/\s+/g," ").trim(),ye=p=>(p.querySelector(".ctv2-th-header")?.textContent||p.textContent||"").replace(/:$/,"").replace(/\s+/g," ").trim(),Rt=(p,m)=>{let t=fe(p),e=t,o=2;for(;m.has(e);)e=`${t}-${o}`,o+=1;return m.add(e),e},Lt=p=>{let m=new Set;return Array.from(p.querySelectorAll(":scope > table")).map(t=>{let e=Array.from(t.querySelectorAll(":scope > thead > tr:first-child > th")),o=e[0],i=(o?.textContent||"").replace(/\s+/g," ").trim(),l=e.slice(1).map(h=>h.textContent.replace(/\s+/g," ").trim()),n=new Set,c=Array.from(t.querySelectorAll(":scope > tbody > tr")).map(h=>{let g=Array.from(h.children),x=g.find(f=>f.matches('th[scope="row"], th'))||g[0],y=ye(x);return{name:Rt(y,n),html:kt(x),cells:g.slice(g.indexOf(x)+1).map(xe)}});return{name:Rt(i,m),label:i,labelHtml:o?kt(o):i,columns:l,rows:c}})};import{css as be}from"./lit-all.min.js";var Mt=be`
+var __defProp = Object.defineProperty;
+var __typeError = (msg) => {
+  throw TypeError(msg);
+};
+var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
+var __accessCheck = (obj, member, msg) => member.has(obj) || __typeError("Cannot " + msg);
+var __privateGet = (obj, member, getter) => (__accessCheck(obj, member, "read from private field"), getter ? getter.call(obj) : member.get(obj));
+var __privateAdd = (obj, member, value) => member.has(obj) ? __typeError("Cannot add the same private member more than once") : member instanceof WeakSet ? member.add(obj) : member.set(obj, value);
+var __privateSet = (obj, member, value, setter) => (__accessCheck(obj, member, "write to private field"), setter ? setter.call(obj, value) : member.set(obj, value), value);
+var __privateMethod = (obj, member, method) => (__accessCheck(obj, member, "access private method"), method);
+
+// src/mas-compare-chart.js
+import { html, LitElement, nothing } from "./lit-all.min.js";
+import { repeat } from "./lit-all.min.js";
+import { unsafeHTML } from "./lit-all.min.js";
+
+// src/constants.js
+var Commitment = Object.freeze({
+  MONTH: "MONTH",
+  YEAR: "YEAR",
+  TWO_YEARS: "TWO_YEARS",
+  THREE_YEARS: "THREE_YEARS",
+  PERPETUAL: "PERPETUAL",
+  TERM_LICENSE: "TERM_LICENSE",
+  ACCESS_PASS: "ACCESS_PASS",
+  THREE_MONTHS: "THREE_MONTHS",
+  SIX_MONTHS: "SIX_MONTHS"
+});
+var Term = Object.freeze({
+  ANNUAL: "ANNUAL",
+  MONTHLY: "MONTHLY",
+  TWO_YEARS: "TWO_YEARS",
+  THREE_YEARS: "THREE_YEARS",
+  P1D: "P1D",
+  P1Y: "P1Y",
+  P3Y: "P3Y",
+  P10Y: "P10Y",
+  P15Y: "P15Y",
+  P3D: "P3D",
+  P7D: "P7D",
+  P30D: "P30D",
+  HALF_YEARLY: "HALF_YEARLY",
+  QUARTERLY: "QUARTERLY"
+});
+var SELECTOR_MAS_INLINE_PRICE = 'span[is="inline-price"][data-wcs-osi]';
+var SELECTOR_MAS_CHECKOUT_LINK = 'a[is="checkout-link"][data-wcs-osi],button[is="checkout-button"][data-wcs-osi]';
+var SELECTOR_MAS_UPT_LINK = 'a[is="upt-link"]';
+var SELECTOR_MAS_ELEMENT = `${SELECTOR_MAS_INLINE_PRICE},${SELECTOR_MAS_CHECKOUT_LINK},${SELECTOR_MAS_UPT_LINK}`;
+var EVENT_AEM_LOAD = "aem:load";
+var EVENT_AEM_ERROR = "aem:error";
+var EVENT_MAS_READY = "mas:ready";
+var EVENT_COMPARE_CHART_REHYDRATE = "mas-compare-chart:rehydrate";
+var EVENT_EXPANDED_GROUPS_CHANGE = "expanded-groups-change";
+var CheckoutWorkflowStep = Object.freeze({
+  SEGMENTATION: "segmentation",
+  BUNDLE: "bundle",
+  COMMITMENT: "commitment",
+  RECOMMENDATION: "recommendation",
+  EMAIL: "email",
+  PAYMENT: "payment",
+  CHANGE_PLAN_TEAM_PLANS: "change-plan/team-upgrade/plans",
+  CHANGE_PLAN_TEAM_PAYMENT: "change-plan/team-upgrade/payment"
+});
+var Env = Object.freeze({
+  STAGE: "STAGE",
+  PRODUCTION: "PRODUCTION",
+  LOCAL: "LOCAL"
+});
+
+// src/compare-chart-table-parser.js
+var normalizeCompareChartKey = (value) => {
+  const normalized = String(value || "").normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[/&]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/-+/g, "-").replace(/^-+|-+$/g, "");
+  return normalized || "item";
+};
+var htmlFromCell = (cell) => Array.from(cell.childNodes).map((node) => {
+  if (node.nodeType === Node.TEXT_NODE) return node.textContent;
+  if (node.nodeType === Node.ELEMENT_NODE) return node.outerHTML;
+  return "";
+}).join("").replace(/\s+/g, " ").trim();
+var cellValueFromTableCell = (cell) => {
+  const aria = cell.querySelector("[aria-label]")?.getAttribute("aria-label")?.trim().toLowerCase();
+  if (aria === "yes") return "\u2713";
+  if (aria === "no") return "\u2717";
+  if (cell.querySelector(".icon-checkmark-no-fill, .icon-checkmark")) {
+    return "\u2713";
+  }
+  if (cell.querySelector(".icon-crossmark")) return "\u2717";
+  return htmlFromCell(cell);
+};
+var rowHeaderHtml = (cell) => htmlFromCell(cell).replace(/\s+/g, " ").trim();
+var rowHeaderLabel = (cell) => {
+  const header = cell.querySelector(".ctv2-th-header");
+  return (header?.textContent || cell.textContent || "").replace(/:$/, "").replace(/\s+/g, " ").trim();
+};
+var uniqueKey = (base, used) => {
+  const normalizedBase = normalizeCompareChartKey(base);
+  let key = normalizedBase;
+  let index = 2;
+  while (used.has(key)) {
+    key = `${normalizedBase}-${index}`;
+    index += 1;
+  }
+  used.add(key);
+  return key;
+};
+var parseCompareChartTables = (root) => {
+  const usedGroupNames = /* @__PURE__ */ new Set();
+  return Array.from(root.querySelectorAll(":scope > table")).map((table) => {
+    const headerCells = Array.from(
+      table.querySelectorAll(":scope > thead > tr:first-child > th")
+    );
+    const sectionHeader = headerCells[0];
+    const label = (sectionHeader?.textContent || "").replace(/\s+/g, " ").trim();
+    const columns = headerCells.slice(1).map((cell) => cell.textContent.replace(/\s+/g, " ").trim());
+    const usedRowNames = /* @__PURE__ */ new Set();
+    const rows = Array.from(
+      table.querySelectorAll(":scope > tbody > tr")
+    ).map((tr) => {
+      const cells = Array.from(tr.children);
+      const rowHeader = cells.find((cell) => cell.matches('th[scope="row"], th')) || cells[0];
+      const labelText = rowHeaderLabel(rowHeader);
+      return {
+        name: uniqueKey(labelText, usedRowNames),
+        html: rowHeaderHtml(rowHeader),
+        cells: cells.slice(cells.indexOf(rowHeader) + 1).map(cellValueFromTableCell)
+      };
+    });
+    return {
+      name: uniqueKey(label, usedGroupNames),
+      label,
+      labelHtml: sectionHeader ? rowHeaderHtml(sectionHeader) : label,
+      columns,
+      rows
+    };
+  });
+};
+
+// src/mas-compare-chart.css.js
+import { css } from "./lit-all.min.js";
+var styles = css`
     :host {
         --comparison-border-radius: 8px;
         --comparison-desktop-max-width: 1200px;
@@ -949,7 +1089,164 @@ var de=Object.defineProperty;var Tt=p=>{throw TypeError(p)};var he=(p,m,t)=>m in
     :host([data-dark]) .header-content.is-stuck {
         background: #2c2c2c;
     }
-`;var Pt="mas-compare-chart",ve=3e4,tt=4,Ae=900,we=64,Ce=40,_e=["icons","header","badge","price","description","detail","cta"],M={included:["\u2713","\u2714","\u2705"],excluded:["\u2717","\u2718","\u2716","\xD7"],notApplicable:["\u2014","-"]},Te=p=>M.included.includes(p),Se=p=>M.excluded.includes(p),ke=p=>!p||M.notApplicable.includes(p)||/^-+$/.test(p),F,E,S,k,R,_,$,O,v,G,T,w,C,V,Y,N,P,I,q,H,D,j,K,W,Z,X,Q,r,mt,ut,gt,It,$t,Ht,Dt,Ut,Ft,Gt,B,Vt,Yt,zt,et,Bt,ft,qt,jt,xt,yt,Kt,rt,bt,Re,ot,Et,vt,Wt,Zt,Xt,At,Qt,Jt,at,it,wt,Ct,te,ee,re,oe,U,ae,L,ie,se,ne,ce,le,pe,_t,z=class extends Ee{constructor(){super();u(this,r);u(this,F);u(this,E,[]);u(this,S,[]);u(this,k,new Map);u(this,R,new Map);u(this,_,[]);u(this,$,[]);u(this,O,new Map);u(this,v,new Set);u(this,G);u(this,T,!1);u(this,w,0);u(this,C,1);u(this,V,!1);u(this,Y,!1);u(this,N,0);u(this,P,null);u(this,I,null);u(this,q,!1);u(this,H,null);u(this,D,null);u(this,j,!1);u(this,K,!1);u(this,W,t=>{let e=t.target;if(e?.parentElement===this){s(this,r,Ft).call(this,t.detail,e);return}e?.closest?.("merch-card")?.parentElement===this&&s(this,r,mt).call(this)});u(this,Z,t=>{var e;t.target?.parentElement===this&&(d(this,_,[]),d(this,$,[]),d(this,S,[]),d(this,E,[]),a(this,k).clear(),a(this,R).clear(),a(this,O).clear(),d(this,v,new Set),this.requestUpdate(),(e=a(this,I))==null||e.call(this,!1),d(this,P,null),d(this,I,null))});u(this,X,()=>s(this,r,B).call(this));u(this,Q,t=>{t.target?.parentElement===this&&s(this,r,mt).call(this)});d(this,F,this.attachInternals?.()),a(this,F)&&(a(this,F).role="table")}connectedCallback(){super.connectedCallback(),this.addEventListener(dt,a(this,X)),this.addEventListener(ct,a(this,W)),this.addEventListener(lt,a(this,Z)),this.addEventListener(pt,a(this,Q)),d(this,G,new ResizeObserver(()=>s(this,r,bt).call(this))),a(this,G).observe(this),s(this,r,At).call(this),s(this,r,at).call(this)}disconnectedCallback(){super.disconnectedCallback(),this.removeEventListener(dt,a(this,X)),this.removeEventListener(ct,a(this,W)),this.removeEventListener(lt,a(this,Z)),this.removeEventListener(pt,a(this,Q)),a(this,G)?.disconnect(),a(this,N)&&(cancelAnimationFrame(a(this,N)),d(this,N,0)),s(this,r,wt).call(this)}firstUpdated(){s(this,r,B).call(this),s(this,r,it).call(this)}willUpdate(t){t.has("expandedGroups")&&s(this,r,ft).call(this)}updated(t){(t.has("consonant")||t.has("spectrum"))&&s(this,r,gt).call(this),(t.has("stickyOffset")||t.has("mobileStickyOffset")||t.has("stickyTop")||t.has("collapsed")||t.has("nonSticky"))&&(s(this,r,at).call(this),s(this,r,it).call(this))}checkReady(){if(!this.querySelector(":scope > aem-fragment"))return Promise.resolve(!0);s(this,r,ut).call(this);let e=new Promise(o=>setTimeout(()=>o(!1),ve));return Promise.race([a(this,P),e])}render(){return this.collapsed?b:A`
+`;
+
+// src/mas-compare-chart.js
+var MAS_COMPARE_CHART = "mas-compare-chart";
+var MAS_COMPARE_CHART_LOAD_TIMEOUT = 3e4;
+var MAX_COMPARE_CHART_CARDS = 4;
+var MOBILE_BREAKPOINT = 900;
+var DEFAULT_STICKY_OFFSET = 64;
+var DEFAULT_MOBILE_STICKY_OFFSET = 40;
+var CARD_SOURCE_SLOTS = [
+  "icons",
+  "header",
+  "badge",
+  "price",
+  "description",
+  "detail",
+  "cta"
+];
+var GLYPH_ALIASES = {
+  included: ["\u2713", "\u2714", "\u2705"],
+  excluded: ["\u2717", "\u2718", "\u2716", "\xD7"],
+  notApplicable: ["\u2014", "-"]
+};
+var isIncluded = (t) => GLYPH_ALIASES.included.includes(t);
+var isExcluded = (t) => GLYPH_ALIASES.excluded.includes(t);
+var isNotApplicable = (t) => !t || GLYPH_ALIASES.notApplicable.includes(t) || /^-+$/.test(t);
+var _internals, _cards, _cardHeaders, _cellsByRow, _rowMeta, _groups, _tableGroups, _rowSlotIndex, _expandedGroupIndices, _resizeObserver, _isMobile, _selectionA, _selectionB, _hydrating, _hydratingFromFragment, _hydrateRaf, _hydrationReady, _resolveHydrationReady, _isStickyHeaderActive, _stickyTopObserver, _stickyBottomObserver, _stickyPastTop, _stickyBeforeBottom, _handleAemLoad, _handleAemError, _handleRehydrate, _handleNestedCardReady, _MasCompareChart_instances, scheduleHydrate_fn, ensureHydrationReady_fn, propagateCardDisplayProperties_fn, fieldValue_fn, fieldValues_fn, referenceEntries_fn, orderedCardReferences_fn, applyChartMarkupAttributes_fn, hydrateFromFragment_fn, runHydrateFromFragment_fn, hydrate_fn, indexCards_fn, extractCardHeader_fn, cloneCtaChildren_fn, stripInlineStyles_fn, indexRows_fn, parseExpanded_fn, serializeExpanded_fn, captureContent_fn, extractTooltipTitle_fn, decorateCell_fn, layoutChip_fn, wrapGlyphs_fn, applyResponsive_fn, visibleCardIds_fn, visibleCardIdList_fn, visibleCardHeaders_fn, enterMobile_fn, clampMobileSelections_fn, exitMobile_fn, applyColumnSelection_fn, setStickyTopOffset_fn, resolveStickyOffsetRaw_fn, resolveMobileStickyOffsetRaw_fn, applyStickyOffset_fn, refreshStickyObservers_fn, teardownStickyObservers_fn, updateStuckState_fn, setStickyHeaderActive_fn, toggleGroup_fn, scrollOpenedGroupToTop_fn, renderHeaderGrid_fn, renderHeaderRow_fn, visibleSlotPresence_fn, renderCardSlot_fn, renderHeaderSegment_fn, renderColumnPicker_fn, renderGroup_fn, syntheticNotApplicableCell_fn, renderRow_fn, renderCell_fn, renderTooltip_fn;
+var MasCompareChart = class extends LitElement {
+  constructor() {
+    super();
+    __privateAdd(this, _MasCompareChart_instances);
+    __privateAdd(this, _internals);
+    __privateAdd(this, _cards, []);
+    // canonical column-major order (hydrated merch-card sources)
+    __privateAdd(this, _cardHeaders, []);
+    // table-rendered header data extracted from merch-card sources
+    __privateAdd(this, _cellsByRow, /* @__PURE__ */ new Map());
+    // rowSlot -> [{ cardId, col, isCellPrimary, html, ariaLabel }]
+    __privateAdd(this, _rowMeta, /* @__PURE__ */ new Map());
+    // rowSlot -> { labelHTML, tooltipHTML? }
+    __privateAdd(this, _groups, []);
+    // [{ heading, groupIndex, rows: [{ slot, rowIndex }] }]
+    __privateAdd(this, _tableGroups, []);
+    __privateAdd(this, _rowSlotIndex, /* @__PURE__ */ new Map());
+    // 'pdf-tools@view' -> { rowIndex, groupIndex }
+    __privateAdd(this, _expandedGroupIndices, /* @__PURE__ */ new Set());
+    __privateAdd(this, _resizeObserver);
+    __privateAdd(this, _isMobile, false);
+    __privateAdd(this, _selectionA, 0);
+    __privateAdd(this, _selectionB, 1);
+    __privateAdd(this, _hydrating, false);
+    __privateAdd(this, _hydratingFromFragment, false);
+    __privateAdd(this, _hydrateRaf, 0);
+    __privateAdd(this, _hydrationReady, null);
+    __privateAdd(this, _resolveHydrationReady, null);
+    __privateAdd(this, _isStickyHeaderActive, false);
+    __privateAdd(this, _stickyTopObserver, null);
+    __privateAdd(this, _stickyBottomObserver, null);
+    __privateAdd(this, _stickyPastTop, false);
+    __privateAdd(this, _stickyBeforeBottom, false);
+    /* ---------- hydration ---------- */
+    __privateAdd(this, _handleAemLoad, (event) => {
+      const source = event.target;
+      if (source?.parentElement === this) {
+        __privateMethod(this, _MasCompareChart_instances, hydrateFromFragment_fn).call(this, event.detail, source);
+        return;
+      }
+      if (source?.closest?.("merch-card")?.parentElement === this) {
+        __privateMethod(this, _MasCompareChart_instances, scheduleHydrate_fn).call(this);
+      }
+    });
+    __privateAdd(this, _handleAemError, (event) => {
+      var _a;
+      if (event.target?.parentElement === this) {
+        __privateSet(this, _groups, []);
+        __privateSet(this, _tableGroups, []);
+        __privateSet(this, _cardHeaders, []);
+        __privateSet(this, _cards, []);
+        __privateGet(this, _cellsByRow).clear();
+        __privateGet(this, _rowMeta).clear();
+        __privateGet(this, _rowSlotIndex).clear();
+        __privateSet(this, _expandedGroupIndices, /* @__PURE__ */ new Set());
+        this.requestUpdate();
+        (_a = __privateGet(this, _resolveHydrationReady)) == null ? void 0 : _a.call(this, false);
+        __privateSet(this, _hydrationReady, null);
+        __privateSet(this, _resolveHydrationReady, null);
+      }
+    });
+    __privateAdd(this, _handleRehydrate, () => __privateMethod(this, _MasCompareChart_instances, hydrate_fn).call(this));
+    __privateAdd(this, _handleNestedCardReady, (event) => {
+      if (event.target?.parentElement === this) __privateMethod(this, _MasCompareChart_instances, scheduleHydrate_fn).call(this);
+    });
+    __privateSet(this, _internals, this.attachInternals?.());
+    if (__privateGet(this, _internals)) __privateGet(this, _internals).role = "table";
+  }
+  connectedCallback() {
+    super.connectedCallback();
+    this.addEventListener(
+      EVENT_COMPARE_CHART_REHYDRATE,
+      __privateGet(this, _handleRehydrate)
+    );
+    this.addEventListener(EVENT_AEM_LOAD, __privateGet(this, _handleAemLoad));
+    this.addEventListener(EVENT_AEM_ERROR, __privateGet(this, _handleAemError));
+    this.addEventListener(EVENT_MAS_READY, __privateGet(this, _handleNestedCardReady));
+    __privateSet(this, _resizeObserver, new ResizeObserver(
+      () => __privateMethod(this, _MasCompareChart_instances, applyResponsive_fn).call(this)
+    ));
+    __privateGet(this, _resizeObserver).observe(this);
+    __privateMethod(this, _MasCompareChart_instances, setStickyTopOffset_fn).call(this);
+    __privateMethod(this, _MasCompareChart_instances, applyStickyOffset_fn).call(this);
+  }
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    this.removeEventListener(
+      EVENT_COMPARE_CHART_REHYDRATE,
+      __privateGet(this, _handleRehydrate)
+    );
+    this.removeEventListener(EVENT_AEM_LOAD, __privateGet(this, _handleAemLoad));
+    this.removeEventListener(EVENT_AEM_ERROR, __privateGet(this, _handleAemError));
+    this.removeEventListener(EVENT_MAS_READY, __privateGet(this, _handleNestedCardReady));
+    __privateGet(this, _resizeObserver)?.disconnect();
+    if (__privateGet(this, _hydrateRaf)) {
+      cancelAnimationFrame(__privateGet(this, _hydrateRaf));
+      __privateSet(this, _hydrateRaf, 0);
+    }
+    __privateMethod(this, _MasCompareChart_instances, teardownStickyObservers_fn).call(this);
+  }
+  firstUpdated() {
+    __privateMethod(this, _MasCompareChart_instances, hydrate_fn).call(this);
+    __privateMethod(this, _MasCompareChart_instances, refreshStickyObservers_fn).call(this);
+  }
+  willUpdate(changed) {
+    if (changed.has("expandedGroups")) __privateMethod(this, _MasCompareChart_instances, parseExpanded_fn).call(this);
+  }
+  updated(changed) {
+    if (changed.has("consonant") || changed.has("spectrum")) {
+      __privateMethod(this, _MasCompareChart_instances, propagateCardDisplayProperties_fn).call(this);
+    }
+    if (changed.has("stickyOffset") || changed.has("mobileStickyOffset") || changed.has("stickyTop") || changed.has("collapsed") || changed.has("nonSticky")) {
+      __privateMethod(this, _MasCompareChart_instances, applyStickyOffset_fn).call(this);
+      __privateMethod(this, _MasCompareChart_instances, refreshStickyObservers_fn).call(this);
+    }
+  }
+  checkReady() {
+    const aemFragment = this.querySelector(":scope > aem-fragment");
+    if (!aemFragment) return Promise.resolve(true);
+    __privateMethod(this, _MasCompareChart_instances, ensureHydrationReady_fn).call(this);
+    const timeoutPromise = new Promise(
+      (resolve) => setTimeout(() => resolve(false), MAS_COMPARE_CHART_LOAD_TIMEOUT)
+    );
+    return Promise.race([__privateGet(this, _hydrationReady), timeoutPromise]);
+  }
+  /* ---------- render ---------- */
+  render() {
+    if (this.collapsed) {
+      return nothing;
+    }
+    return html`
             <div
                 class="sticky-sentinel sticky-sentinel-top"
                 aria-hidden="true"
@@ -957,7 +1254,7 @@ var de=Object.defineProperty;var Tt=p=>{throw TypeError(p)};var he=(p,m,t)=>m in
             <div class="sticky-header-spacer" aria-hidden="true"></div>
             <div class="header-content sticky-header">
                 <div class="sticky-header-wrapper">
-                    ${s(this,r,oe).call(this)}
+                    ${__privateMethod(this, _MasCompareChart_instances, renderHeaderGrid_fn).call(this)}
                 </div>
             </div>
             <slot name="cards" hidden></slot>
@@ -966,99 +1263,944 @@ var de=Object.defineProperty;var Tt=p=>{throw TypeError(p)};var he=(p,m,t)=>m in
                 aria-hidden="false"
                 role="row"
             >
-                ${s(this,r,Et).call(this).map(t=>A`<span role="columnheader">${t.title}</span>`)}
+                ${__privateMethod(this, _MasCompareChart_instances, visibleCardHeaders_fn).call(this).map(
+      (c) => html`<span role="columnheader">${c.title}</span>`
+    )}
             </div>
-            ${ht(a(this,_),(t,e)=>`${t.groupIndex}:${e}`,t=>s(this,r,ne).call(this,t))}
+            ${repeat(
+      __privateGet(this, _groups),
+      (g, i) => `${g.groupIndex}:${i}`,
+      (g) => __privateMethod(this, _MasCompareChart_instances, renderGroup_fn).call(this, g)
+    )}
             <div
                 class="sticky-sentinel sticky-sentinel-bottom"
                 aria-hidden="true"
             ></div>
-        `}};F=new WeakMap,E=new WeakMap,S=new WeakMap,k=new WeakMap,R=new WeakMap,_=new WeakMap,$=new WeakMap,O=new WeakMap,v=new WeakMap,G=new WeakMap,T=new WeakMap,w=new WeakMap,C=new WeakMap,V=new WeakMap,Y=new WeakMap,N=new WeakMap,P=new WeakMap,I=new WeakMap,q=new WeakMap,H=new WeakMap,D=new WeakMap,j=new WeakMap,K=new WeakMap,W=new WeakMap,Z=new WeakMap,X=new WeakMap,Q=new WeakMap,r=new WeakSet,mt=function(){a(this,N)||d(this,N,requestAnimationFrame(()=>{d(this,N,0),s(this,r,B).call(this)}))},ut=function(){a(this,P)||d(this,P,new Promise(t=>{d(this,I,t)}))},gt=function(t=a(this,E)){t.forEach(e=>{e.consonant=this.consonant,e.toggleAttribute("consonant",!!this.consonant),this.spectrum?(e.spectrum=this.spectrum,e.setAttribute("spectrum",this.spectrum)):e.removeAttribute("spectrum")})},It=function(t,e){let o=t?.fields||{};if(Array.isArray(o)){let l=o.find(n=>n.name===e);return l?.multiple?l.values||[]:l?.values?.[0]||""}let i=o[e];return Array.isArray(i)?i[0]||"":i?.value??i??""},$t=function(t,e){let o=t?.fields||{};if(Array.isArray(o))return o.find(l=>l.name===e)?.values||[];let i=o[e];return Array.isArray(i)?i:i==null||i===""?[]:[i?.value??i]},Ht=function(t){let e=t?.references||{};return Array.isArray(e)?e.map(o=>({identifier:o.identifier||o.id||o.path,value:o.value||o})).filter(o=>o.value):Object.entries(e).map(([o,i])=>({identifier:o,value:i?.value||i})).filter(o=>o.value)},Dt=function(t){let e=s(this,r,Ht).call(this,t),o=n=>e.find(({identifier:c,value:h})=>c===n||h.id===n||h.path===n)?.value,i=s(this,r,$t).call(this,t,"cards").map(o).filter(Boolean);if(i.length)return i.slice(0,tt);let l=(t.referencesTree||[]).filter(n=>n.fieldName==="cards").map(n=>o(n.identifier)).filter(Boolean);return l.length?l.slice(0,tt):e.map(({value:n})=>n).filter(n=>n?.fields).slice(0,tt)},Ut=function(t){if(t?.getAttributeNames)for(let e of t.getAttributeNames()){let o=t.getAttribute(e);o==null?this.removeAttribute(e):this.setAttribute(e,o)}},Ft=async function(t,e){if(t&&!a(this,Y)){d(this,Y,!0);try{await s(this,r,Gt).call(this,t,e)}finally{d(this,Y,!1)}}},Gt=async function(t,e){var x;s(this,r,ut).call(this),this.querySelectorAll("[data-compare-chart-generated]").forEach(y=>y.remove());let o=new DOMParser,i=s(this,r,It).call(this,t,"compareChart"),l=o.parseFromString(i||"","text/html"),n=l.body.querySelector("mas-compare-chart")||l.body;s(this,r,Ut).call(this,n),n.querySelectorAll(":scope > div[name]").forEach(y=>{let f=y.cloneNode(!0);f.dataset.compareChartGenerated="true",this.append(f)});let c=e?.hasAttribute("author"),h=s(this,r,Dt).call(this,t),g=[];h.forEach(y=>{e?.cache?.add(y);let f=document.createElement("merch-card");f.setAttribute("slot","cards"),f.dataset.compareChartGenerated="true",s(this,r,gt).call(this,[f]);let J=document.createElement("aem-fragment");J.setAttribute("fragment",y.id),c&&J.setAttribute("author",""),J.setAttribute("loading","cache"),f.append(J),this.append(f),g.push(f)}),await Promise.all(g.map(y=>y.checkReady?.().catch(()=>!1))),s(this,r,B).call(this),(x=a(this,I))==null||x.call(this,!0),d(this,P,null),d(this,I,null)},B=function(){if(!a(this,V)){d(this,V,!0);try{s(this,r,Vt).call(this),s(this,r,Bt).call(this),s(this,r,ft).call(this),s(this,r,jt).call(this),s(this,r,bt).call(this),this.requestUpdate()}finally{d(this,V,!1)}}},Vt=function(){let t=Array.from(this.querySelectorAll(':scope > merch-card[slot="cards"]')).slice(0,tt);this.querySelectorAll(":scope > [data-compare-chart-slot]").forEach(o=>o.remove());let e=[];t.forEach((o,i)=>{let l=`card-${i+1}`;o.dataset.cardId=l,o.dataset.columnIndex=String(i+1),o.style.setProperty("--col",i+1);let n=o.getAttribute("cell-color")??"default";e.push(s(this,r,Yt).call(this,o,l,i,n))}),d(this,E,t),d(this,S,e),this.setAttribute("data-child-count",String(t.length)),this.style.setProperty("--compare-chart-cols",t.length)},Yt=function(t,e,o,i){let l={},n=new Set;for(let h of _e){let g=`${e}-${h}`;if(l[h]=g,!t)continue;let x=Array.from(t.querySelectorAll(`:scope > [slot="${h}"]`));x.length&&n.add(h);for(let y of x){if(h==="cta"){s(this,r,zt).call(this,y,g);continue}let f=y.cloneNode(!0);f.setAttribute("slot",g),f.toggleAttribute("data-compare-chart-slot",!0),s(this,r,et).call(this,f),this.appendChild(f)}}t&&(t.hidden=!0,t.setAttribute("aria-hidden","true"),t.dataset.cellColor=i);let c=Array.from(this.querySelectorAll(`:scope > [slot="${l.header}"]`)).map(h=>h.textContent.trim()).filter(Boolean).join(" ");return{cardId:e,col:o+1,cellColor:i,slots:l,presentSlots:n,title:c||`Card ${o+1}`}},zt=function(t,e){let o=t.matches("a,button")?[t]:Array.from(t.querySelectorAll("a,button"));if(!o.length){let i=t.cloneNode(!0);i.setAttribute("slot",e),i.toggleAttribute("data-compare-chart-slot",!0),s(this,r,et).call(this,i),this.appendChild(i);return}for(let i of o){let l=i.cloneNode(!0);l.setAttribute("slot",e),l.toggleAttribute("data-compare-chart-slot",!0),s(this,r,et).call(this,l),this.appendChild(l)}},et=function(t){t.removeAttribute("style"),t.querySelectorAll("[style]").forEach(e=>e.removeAttribute("style"))},Bt=function(){d(this,_,[]),d(this,$,Lt(this)),a(this,O).clear();let t=1;Array.from(this.querySelectorAll(":scope > div[name]")).forEach((e,o)=>{let i=e.getAttribute("name"),l=e.querySelector(":scope > h4")?.textContent.trim()??"",n=o+1,c={heading:l,groupIndex:n,groupKey:i,rows:[]};a(this,_).push(c);let h=new Map;e.querySelectorAll(":scope > p[name]").forEach(g=>{h.set(g.getAttribute("name"),g)}),h.forEach((g,x)=>{let y=`${i}@${x}`;t++,c.rows.push({slot:y,rowIndex:t}),a(this,O).set(y,{rowIndex:t,groupIndex:n})})}),a(this,$).forEach(e=>{let o=a(this,_).length+1,i={heading:e.label,groupIndex:o,groupKey:e.name,rows:[]};a(this,_).push(i),e.rows.forEach(l=>{let n=`${e.name}@${l.name}`;t++,i.rows.push({slot:n,rowIndex:t}),a(this,O).set(n,{rowIndex:t,groupIndex:o})})})},ft=function(){let t=(this.expandedGroups??"").trim(),e=a(this,_).length;if(d(this,v,new Set),!t)e>0&&a(this,v).add(1);else if(t==="all")for(let o=1;o<=e;o+=1)a(this,v).add(o);else{if(t==="none")return;t.split(",").map(o=>parseInt(o.trim(),10)).filter(o=>!isNaN(o)&&o>=1&&o<=e).forEach(o=>a(this,v).add(o))}},qt=function(){let t=a(this,_).length;return a(this,v).size?t&&a(this,v).size===t?"all":[...a(this,v)].sort((e,o)=>e-o).join(","):"none"},jt=function(){a(this,R).clear(),a(this,k).clear(),Array.from(this.querySelectorAll(":scope > div[name]")).forEach(t=>{let e=t.getAttribute("name"),o=new Map;t.querySelectorAll(":scope > p[name]").forEach(i=>{o.set(i.getAttribute("name"),i)}),o.forEach((i,l)=>{let n=`${e}@${l}`,c=i.cloneNode(!0),h=s(this,r,xt).call(this,c);a(this,R).set(n,{labelHTML:c.innerHTML,title:h,tooltipPosition:i.getAttribute("data-tooltip-position")??"top-center",isItemRow:i.hasAttribute("item")})})}),Array.from(this.querySelectorAll(':scope > merch-card[slot="cards"]')).forEach(t=>{let e=t.dataset.cardId,o=parseInt(t.dataset.columnIndex,10),i=new Map;t.querySelectorAll(':scope > p[name], :scope > [slot="features"] p[name]').forEach(l=>{let n=l.getAttribute("name");!n||!n.includes("@")||i.set(n,l)});for(let[l,n]of i){if(!a(this,O).has(l))continue;let c=n.cloneNode(!0),h=c.textContent.includes("\u2705"),g=c.hasAttribute("primary");g&&c.classList.add("primary-cell"),h&&c.classList.add("emoji-primary-cell");let x=c.hasAttribute("item");x&&c.classList.add("item-cell");let y=s(this,r,xt).call(this,c);s(this,r,yt).call(this,c);let f=a(this,k).get(l)??[];f.push({cardId:e,col:o,isCellPrimary:g,isEmojiPrimary:h,isItem:x,title:y,tooltipPosition:c.getAttribute("data-tooltip-position")??"top-center",html:c.innerHTML,ariaLabel:c.getAttribute("aria-label")}),a(this,k).set(l,f)}});for(let t of a(this,$))t.rows.forEach(e=>{let o=`${t.name}@${e.name}`;a(this,R).set(o,{labelHTML:e.html,title:void 0,tooltipPosition:"top-center",isItemRow:!1});let i=e.cells.map((l,n)=>{let c=document.createElement("p");return c.innerHTML=l,s(this,r,yt).call(this,c),{cardId:a(this,E)[n]?.dataset.cardId,col:n+1,isCellPrimary:!1,isEmojiPrimary:l.includes("\u2705"),isItem:!1,title:void 0,tooltipPosition:"top-center",html:c.innerHTML,ariaLabel:c.getAttribute("aria-label")}}).filter(l=>l.cardId);a(this,k).set(o,i)})},xt=function(t){let e=t.querySelector(":scope > a.secondary-link[title]"),o=e?.getAttribute("title")||t.getAttribute("title")||void 0;return e?.remove(),o&&t.removeAttribute("title"),o},yt=function(t){let e=t.textContent.trim();if(Te(e))t.setAttribute("aria-label",this.getAttribute("included-text")??"Included"),s(this,r,rt).call(this,t);else if(Se(e))t.setAttribute("aria-label",this.getAttribute("not-included-text")??"Not included"),s(this,r,rt).call(this,t);else if(ke(e)){if(t.setAttribute("aria-label",this.getAttribute("not-applicable-text")??"Not applicable"),!e){let o=document.createElement("span");o.className="empty-cell-sr",o.textContent=this.getAttribute("sr-only-not-applicable-text")??this.getAttribute("not-applicable-text")??"Not applicable",t.textContent="\u2014";let i=document.createElement("span");i.setAttribute("aria-hidden","true"),i.textContent="\u2014",t.replaceChildren(i,o)}}else t.removeAttribute("aria-label"),s(this,r,rt).call(this,t);s(this,r,Kt).call(this,t)},Kt=function(t){if(t.classList.contains("item-cell"))return;let e=document.createElement("span");e.className="compare-chart-chip";let o=Array.from(t.childNodes);for(let i of o){if(i.nodeType===Node.ELEMENT_NODE&&i.tagName==="SMALL")break;e.appendChild(i)}t.insertBefore(e,t.firstChild)},rt=function(t){let e=[...M.included,...M.excluded,...M.notApplicable],o=t.classList.contains("primary-cell");Array.from(t.childNodes).forEach(i=>{if(i.nodeType!==Node.TEXT_NODE)return;let l=i.textContent;if(!e.some(c=>l.includes(c)))return;let n=document.createDocumentFragment();for(let c of l)if(e.includes(c)){let h=document.createElement("span");h.setAttribute("aria-hidden","true"),h.classList.add("compare-chart-glyph"),h.textContent=c==="\u2705"?"\u2713":c,M.included.includes(c)&&h.classList.add("included"),M.excluded.includes(c)&&h.classList.add("excluded"),(o||c==="\u2705")&&h.classList.add("primary"),n.appendChild(h)}else n.appendChild(document.createTextNode(c));i.replaceWith(n)})},bt=function(){let t=this.getBoundingClientRect().width||this.offsetWidth||window.innerWidth,e=t>0&&t<Ae,o=e!==a(this,T);d(this,T,e),this.toggleAttribute("data-mobile",e),e?s(this,r,vt).call(this):s(this,r,Zt).call(this),s(this,r,At).call(this),s(this,r,at).call(this),s(this,r,it).call(this),o&&this.requestUpdate()},Re=function(){return new Set(s(this,r,ot).call(this))},ot=function(){return!a(this,T)||a(this,E).length<=2?a(this,E).map(t=>t.dataset.cardId):[a(this,E)[a(this,w)],a(this,E)[a(this,C)]].filter(Boolean).map(t=>t.dataset.cardId)},Et=function(){return s(this,r,ot).call(this).map(t=>a(this,S).find(e=>e.cardId===t)).filter(Boolean)},vt=function(){this.style.setProperty("--compare-chart-cols",2),!(a(this,E).length<=2)&&s(this,r,Wt).call(this)},Wt=function(){let t=a(this,E).length;t<=2||(a(this,w)>=t&&d(this,w,0),a(this,C)>=t&&d(this,C,Math.min(1,t-1)),a(this,w)===a(this,C)&&d(this,C,(a(this,w)+1)%t))},Zt=function(){this.style.setProperty("--compare-chart-cols",a(this,E).length)},Xt=function(t,e){t==="A"?(e===a(this,C)&&d(this,C,a(this,w)),d(this,w,e)):(e===a(this,w)&&d(this,w,a(this,C)),d(this,C,e)),s(this,r,vt).call(this),this.requestUpdate()},At=function(){if(a(this,T)){this.style.setProperty("--compare-chart-sticky-top","0px");return}},Qt=function(){return this.stickyOffset??this.getAttribute("sticky-offset")??this.stickyTop??this.getAttribute("sticky-top")},Jt=function(){return this.mobileStickyOffset??this.getAttribute("mobile-sticky-offset")},at=function(){let t=a(this,T)?s(this,r,Jt).call(this):s(this,r,Qt).call(this),e=a(this,T)?Ce:we,o=t!=null?String(t).trim():"",i=o?/^\d+$/.test(o)?`${o}px`:o:`${e}px`;this.style.setProperty("--compare-chart-sticky-offset",i)},it=function(){if(s(this,r,wt).call(this),this.nonSticky||this.collapsed||!this.isConnected)return;let t=this.shadowRoot,e=t?.querySelector(".header-content"),o=t?.querySelector(".sticky-sentinel-top"),i=t?.querySelector(".sticky-sentinel-bottom");if(!e||!o||!i)return;let l=parseFloat(getComputedStyle(e).top)||0,n=e.getBoundingClientRect().height;d(this,H,new IntersectionObserver(([c])=>{d(this,j,c.boundingClientRect.bottom<=l),s(this,r,Ct).call(this)},{threshold:[0],rootMargin:`${-l}px 0px 0px 0px`})),a(this,H).observe(o),d(this,D,new IntersectionObserver(([c])=>{d(this,K,c.boundingClientRect.top>l+n),s(this,r,Ct).call(this)},{threshold:[0],rootMargin:`${-(l+n)}px 0px 0px 0px`})),a(this,D).observe(i)},wt=function(){a(this,H)?.disconnect(),a(this,D)?.disconnect(),d(this,H,null),d(this,D,null)},Ct=function(){s(this,r,te).call(this,a(this,j)&&a(this,K))},te=function(t){let e=this.shadowRoot?.querySelector(".header-content");if(t!==a(this,q)){if(t){let o=e?.getBoundingClientRect().height??0;this.style.setProperty("--compare-chart-sticky-spacer-height",`${o}px`)}else this.style.removeProperty("--compare-chart-sticky-spacer-height");d(this,q,t),this.toggleAttribute("data-sticky-header",t),e?.classList.toggle("sticky",t),e?.classList.toggle("is-stuck",t)}},ee=function(t){let e=!1;a(this,v).has(t)?a(this,v).delete(t):(d(this,v,new Set([t])),e=!0),this.expandedGroups=s(this,r,qt).call(this),this.dispatchEvent(new CustomEvent(St,{detail:{value:this.expandedGroups},bubbles:!0,composed:!0})),this.requestUpdate(),e&&this.updateComplete.then(()=>s(this,r,re).call(this,t))},re=function(t){if(this.collapsed)return;let e=this.shadowRoot?.querySelector(`.table-container[data-group-index="${String(t)}"]`);if(!e)return;let o=this.shadowRoot?.querySelector(".header-content"),i=getComputedStyle(this),l=parseFloat(i.getPropertyValue("--compare-chart-sticky-top"))||0,n=i.getPropertyValue("--compare-chart-sticky-offset").trim(),c=n&&parseFloat(n)||0,h=o?.getBoundingClientRect().height??0,g=l+c+h,x=e.style.scrollMarginTop;e.style.scrollMarginTop=`${g}px`,e.scrollIntoView({block:"start",behavior:"smooth"}),requestAnimationFrame(()=>{e.style.scrollMarginTop=x})},oe=function(){let t=s(this,r,Et).call(this),e=s(this,r,ae).call(this,t),o=1;return A`
-            ${s(this,r,U).call(this,t,"header",o++,e)}
-            ${e.has("price")?s(this,r,U).call(this,t,"price",o++,e):b}
-            ${e.has("description")?s(this,r,U).call(this,t,"description",o++,e):b}
-            ${e.has("detail")?s(this,r,U).call(this,t,"detail",o++,e):b}
-            ${e.has("cta")?s(this,r,U).call(this,t,"cta",o++,e):b}
-        `},U=function(t,e,o,i){return A`
+        `;
+  }
+};
+_internals = new WeakMap();
+_cards = new WeakMap();
+_cardHeaders = new WeakMap();
+_cellsByRow = new WeakMap();
+_rowMeta = new WeakMap();
+_groups = new WeakMap();
+_tableGroups = new WeakMap();
+_rowSlotIndex = new WeakMap();
+_expandedGroupIndices = new WeakMap();
+_resizeObserver = new WeakMap();
+_isMobile = new WeakMap();
+_selectionA = new WeakMap();
+_selectionB = new WeakMap();
+_hydrating = new WeakMap();
+_hydratingFromFragment = new WeakMap();
+_hydrateRaf = new WeakMap();
+_hydrationReady = new WeakMap();
+_resolveHydrationReady = new WeakMap();
+_isStickyHeaderActive = new WeakMap();
+_stickyTopObserver = new WeakMap();
+_stickyBottomObserver = new WeakMap();
+_stickyPastTop = new WeakMap();
+_stickyBeforeBottom = new WeakMap();
+_handleAemLoad = new WeakMap();
+_handleAemError = new WeakMap();
+_handleRehydrate = new WeakMap();
+_handleNestedCardReady = new WeakMap();
+_MasCompareChart_instances = new WeakSet();
+// Card-ready events arrive one per card across separate microtasks; coalesce
+// them into a single rebuild per frame instead of N full re-indexes.
+scheduleHydrate_fn = function() {
+  if (__privateGet(this, _hydrateRaf)) return;
+  __privateSet(this, _hydrateRaf, requestAnimationFrame(() => {
+    __privateSet(this, _hydrateRaf, 0);
+    __privateMethod(this, _MasCompareChart_instances, hydrate_fn).call(this);
+  }));
+};
+ensureHydrationReady_fn = function() {
+  if (__privateGet(this, _hydrationReady)) return;
+  __privateSet(this, _hydrationReady, new Promise((resolve) => {
+    __privateSet(this, _resolveHydrationReady, resolve);
+  }));
+};
+propagateCardDisplayProperties_fn = function(cards = __privateGet(this, _cards)) {
+  cards.forEach((card) => {
+    card.consonant = this.consonant;
+    card.toggleAttribute("consonant", Boolean(this.consonant));
+    if (this.spectrum) {
+      card.spectrum = this.spectrum;
+      card.setAttribute("spectrum", this.spectrum);
+    } else {
+      card.removeAttribute("spectrum");
+    }
+  });
+};
+fieldValue_fn = function(fragment, name) {
+  const fields = fragment?.fields || {};
+  if (Array.isArray(fields)) {
+    const field = fields.find((item) => item.name === name);
+    return field?.multiple ? field.values || [] : field?.values?.[0] || "";
+  }
+  const value = fields[name];
+  if (Array.isArray(value)) return value[0] || "";
+  return value?.value ?? value ?? "";
+};
+fieldValues_fn = function(fragment, name) {
+  const fields = fragment?.fields || {};
+  if (Array.isArray(fields)) {
+    return fields.find((item) => item.name === name)?.values || [];
+  }
+  const value = fields[name];
+  if (Array.isArray(value)) return value;
+  if (value == null || value === "") return [];
+  return [value?.value ?? value];
+};
+referenceEntries_fn = function(fragment) {
+  const refs = fragment?.references || {};
+  if (Array.isArray(refs)) {
+    return refs.map((ref) => ({
+      identifier: ref.identifier || ref.id || ref.path,
+      value: ref.value || ref
+    })).filter((ref) => ref.value);
+  }
+  return Object.entries(refs).map(([identifier, ref]) => ({
+    identifier,
+    value: ref?.value || ref
+  })).filter((ref) => ref.value);
+};
+orderedCardReferences_fn = function(fragment) {
+  const entries = __privateMethod(this, _MasCompareChart_instances, referenceEntries_fn).call(this, fragment);
+  const byReference = (reference) => entries.find(
+    ({ identifier, value }) => identifier === reference || value.id === reference || value.path === reference
+  )?.value;
+  const orderedReferences = __privateMethod(this, _MasCompareChart_instances, fieldValues_fn).call(this, fragment, "cards").map(byReference).filter(Boolean);
+  if (orderedReferences.length) {
+    return orderedReferences.slice(0, MAX_COMPARE_CHART_CARDS);
+  }
+  const treeReferences = (fragment.referencesTree || []).filter((reference) => reference.fieldName === "cards").map((reference) => byReference(reference.identifier)).filter(Boolean);
+  if (treeReferences.length) {
+    return treeReferences.slice(0, MAX_COMPARE_CHART_CARDS);
+  }
+  return entries.map(({ value }) => value).filter((ref) => ref?.fields).slice(0, MAX_COMPARE_CHART_CARDS);
+};
+applyChartMarkupAttributes_fn = function(table) {
+  if (!table?.getAttributeNames) return;
+  for (const name of table.getAttributeNames()) {
+    const value = table.getAttribute(name);
+    if (value == null) this.removeAttribute(name);
+    else this.setAttribute(name, value);
+  }
+};
+hydrateFromFragment_fn = async function(fragment, sourceAemFragment) {
+  if (!fragment) return;
+  if (__privateGet(this, _hydratingFromFragment)) return;
+  __privateSet(this, _hydratingFromFragment, true);
+  try {
+    await __privateMethod(this, _MasCompareChart_instances, runHydrateFromFragment_fn).call(this, fragment, sourceAemFragment);
+  } finally {
+    __privateSet(this, _hydratingFromFragment, false);
+  }
+};
+runHydrateFromFragment_fn = async function(fragment, sourceAemFragment) {
+  var _a;
+  __privateMethod(this, _MasCompareChart_instances, ensureHydrationReady_fn).call(this);
+  this.querySelectorAll("[data-compare-chart-generated]").forEach(
+    (node) => node.remove()
+  );
+  const parser = new DOMParser();
+  const chartMarkup = __privateMethod(this, _MasCompareChart_instances, fieldValue_fn).call(this, fragment, "compareChart");
+  const doc = parser.parseFromString(chartMarkup || "", "text/html");
+  const table = doc.body.querySelector("mas-compare-chart") || doc.body;
+  __privateMethod(this, _MasCompareChart_instances, applyChartMarkupAttributes_fn).call(this, table);
+  table.querySelectorAll(":scope > div[name]").forEach((group) => {
+    const clone = group.cloneNode(true);
+    clone.dataset.compareChartGenerated = "true";
+    this.append(clone);
+  });
+  const author = sourceAemFragment?.hasAttribute("author");
+  const cardReferences = __privateMethod(this, _MasCompareChart_instances, orderedCardReferences_fn).call(this, fragment);
+  const cards = [];
+  cardReferences.forEach((cardFragment) => {
+    sourceAemFragment?.cache?.add(cardFragment);
+    const card = document.createElement("merch-card");
+    card.setAttribute("slot", "cards");
+    card.dataset.compareChartGenerated = "true";
+    __privateMethod(this, _MasCompareChart_instances, propagateCardDisplayProperties_fn).call(this, [card]);
+    const aemFragment = document.createElement("aem-fragment");
+    aemFragment.setAttribute("fragment", cardFragment.id);
+    if (author) aemFragment.setAttribute("author", "");
+    aemFragment.setAttribute("loading", "cache");
+    card.append(aemFragment);
+    this.append(card);
+    cards.push(card);
+  });
+  await Promise.all(
+    cards.map((card) => card.checkReady?.().catch(() => false))
+  );
+  __privateMethod(this, _MasCompareChart_instances, hydrate_fn).call(this);
+  (_a = __privateGet(this, _resolveHydrationReady)) == null ? void 0 : _a.call(this, true);
+  __privateSet(this, _hydrationReady, null);
+  __privateSet(this, _resolveHydrationReady, null);
+};
+hydrate_fn = function() {
+  if (__privateGet(this, _hydrating)) return;
+  __privateSet(this, _hydrating, true);
+  try {
+    __privateMethod(this, _MasCompareChart_instances, indexCards_fn).call(this);
+    __privateMethod(this, _MasCompareChart_instances, indexRows_fn).call(this);
+    __privateMethod(this, _MasCompareChart_instances, parseExpanded_fn).call(this);
+    __privateMethod(this, _MasCompareChart_instances, captureContent_fn).call(this);
+    __privateMethod(this, _MasCompareChart_instances, applyResponsive_fn).call(this);
+    this.requestUpdate();
+  } finally {
+    __privateSet(this, _hydrating, false);
+  }
+};
+indexCards_fn = function() {
+  const sourceCards = Array.from(
+    this.querySelectorAll(':scope > merch-card[slot="cards"]')
+  ).slice(0, MAX_COMPARE_CHART_CARDS);
+  this.querySelectorAll(":scope > [data-compare-chart-slot]").forEach(
+    (node) => node.remove()
+  );
+  const cardHeaders = [];
+  sourceCards.forEach((sourceCard, i) => {
+    const cardId = `card-${i + 1}`;
+    sourceCard.dataset.cardId = cardId;
+    sourceCard.dataset.columnIndex = String(i + 1);
+    sourceCard.style.setProperty("--col", i + 1);
+    const cellColor = sourceCard.getAttribute("cell-color") ?? "default";
+    cardHeaders.push(
+      __privateMethod(this, _MasCompareChart_instances, extractCardHeader_fn).call(this, sourceCard, cardId, i, cellColor)
+    );
+  });
+  __privateSet(this, _cards, sourceCards);
+  __privateSet(this, _cardHeaders, cardHeaders);
+  this.setAttribute("data-child-count", String(sourceCards.length));
+  this.style.setProperty("--compare-chart-cols", sourceCards.length);
+};
+extractCardHeader_fn = function(sourceCard, cardId, index, cellColor) {
+  const slots = {};
+  const presentSlots = /* @__PURE__ */ new Set();
+  for (const sourceSlot of CARD_SOURCE_SLOTS) {
+    const targetSlot = `${cardId}-${sourceSlot}`;
+    slots[sourceSlot] = targetSlot;
+    if (!sourceCard) continue;
+    const children = Array.from(
+      sourceCard.querySelectorAll(`:scope > [slot="${sourceSlot}"]`)
+    );
+    if (children.length) presentSlots.add(sourceSlot);
+    for (const child of children) {
+      if (sourceSlot === "cta") {
+        __privateMethod(this, _MasCompareChart_instances, cloneCtaChildren_fn).call(this, child, targetSlot);
+        continue;
+      }
+      const clone = child.cloneNode(true);
+      clone.setAttribute("slot", targetSlot);
+      clone.toggleAttribute("data-compare-chart-slot", true);
+      __privateMethod(this, _MasCompareChart_instances, stripInlineStyles_fn).call(this, clone);
+      this.appendChild(clone);
+    }
+  }
+  if (sourceCard) {
+    sourceCard.hidden = true;
+    sourceCard.setAttribute("aria-hidden", "true");
+    sourceCard.dataset.cellColor = cellColor;
+  }
+  const title = Array.from(
+    this.querySelectorAll(`:scope > [slot="${slots.header}"]`)
+  ).map((el) => el.textContent.trim()).filter(Boolean).join(" ");
+  return {
+    cardId,
+    col: index + 1,
+    cellColor,
+    slots,
+    presentSlots,
+    title: title || `Card ${index + 1}`
+  };
+};
+cloneCtaChildren_fn = function(root, targetSlot) {
+  const actions = root.matches("a,button") ? [root] : Array.from(root.querySelectorAll("a,button"));
+  if (!actions.length) {
+    const clone = root.cloneNode(true);
+    clone.setAttribute("slot", targetSlot);
+    clone.toggleAttribute("data-compare-chart-slot", true);
+    __privateMethod(this, _MasCompareChart_instances, stripInlineStyles_fn).call(this, clone);
+    this.appendChild(clone);
+    return;
+  }
+  for (const action of actions) {
+    const clone = action.cloneNode(true);
+    clone.setAttribute("slot", targetSlot);
+    clone.toggleAttribute("data-compare-chart-slot", true);
+    __privateMethod(this, _MasCompareChart_instances, stripInlineStyles_fn).call(this, clone);
+    this.appendChild(clone);
+  }
+};
+stripInlineStyles_fn = function(root) {
+  root.removeAttribute("style");
+  root.querySelectorAll("[style]").forEach(
+    (el) => el.removeAttribute("style")
+  );
+};
+indexRows_fn = function() {
+  __privateSet(this, _groups, []);
+  __privateSet(this, _tableGroups, parseCompareChartTables(this));
+  __privateGet(this, _rowSlotIndex).clear();
+  let rowIndex = 1;
+  Array.from(this.querySelectorAll(":scope > div[name]")).forEach(
+    (groupDiv, gi) => {
+      const groupKey = groupDiv.getAttribute("name");
+      const heading = groupDiv.querySelector(":scope > h4")?.textContent.trim() ?? "";
+      const groupIndex = gi + 1;
+      const group = { heading, groupIndex, groupKey, rows: [] };
+      __privateGet(this, _groups).push(group);
+      const lastByFeature = /* @__PURE__ */ new Map();
+      groupDiv.querySelectorAll(":scope > p[name]").forEach((p) => {
+        lastByFeature.set(p.getAttribute("name"), p);
+      });
+      lastByFeature.forEach((p, featureKey) => {
+        const key = `${groupKey}@${featureKey}`;
+        rowIndex++;
+        group.rows.push({ slot: key, rowIndex });
+        __privateGet(this, _rowSlotIndex).set(key, { rowIndex, groupIndex });
+      });
+    }
+  );
+  __privateGet(this, _tableGroups).forEach((tableGroup) => {
+    const groupIndex = __privateGet(this, _groups).length + 1;
+    const group = {
+      heading: tableGroup.label,
+      groupIndex,
+      groupKey: tableGroup.name,
+      rows: []
+    };
+    __privateGet(this, _groups).push(group);
+    tableGroup.rows.forEach((row) => {
+      const key = `${tableGroup.name}@${row.name}`;
+      rowIndex++;
+      group.rows.push({ slot: key, rowIndex });
+      __privateGet(this, _rowSlotIndex).set(key, { rowIndex, groupIndex });
+    });
+  });
+};
+parseExpanded_fn = function() {
+  const v = (this.expandedGroups ?? "").trim();
+  const total = __privateGet(this, _groups).length;
+  __privateSet(this, _expandedGroupIndices, /* @__PURE__ */ new Set());
+  if (!v) {
+    if (total > 0) __privateGet(this, _expandedGroupIndices).add(1);
+  } else if (v === "all") {
+    for (let i = 1; i <= total; i += 1) {
+      __privateGet(this, _expandedGroupIndices).add(i);
+    }
+  } else if (v === "none") {
+    return;
+  } else {
+    v.split(",").map((s) => parseInt(s.trim(), 10)).filter((n) => !isNaN(n) && n >= 1 && n <= total).forEach((n) => __privateGet(this, _expandedGroupIndices).add(n));
+  }
+};
+serializeExpanded_fn = function() {
+  const total = __privateGet(this, _groups).length;
+  if (!__privateGet(this, _expandedGroupIndices).size) return "none";
+  if (total && __privateGet(this, _expandedGroupIndices).size === total) return "all";
+  return [...__privateGet(this, _expandedGroupIndices)].sort((a, b) => a - b).join(",");
+};
+/**
+ * One-shot capture: read every authored row label / tooltip / cell out
+ * of the light DOM into JS-side maps.
+ * The shadow renderer consumes these maps directly — no per-row named
+ * slots, no light-DOM <-> shadow projection thrash.
+ */
+captureContent_fn = function() {
+  __privateGet(this, _rowMeta).clear();
+  __privateGet(this, _cellsByRow).clear();
+  Array.from(this.querySelectorAll(":scope > div[name]")).forEach(
+    (groupDiv) => {
+      const groupKey = groupDiv.getAttribute("name");
+      const lastByFeature = /* @__PURE__ */ new Map();
+      groupDiv.querySelectorAll(":scope > p[name]").forEach((p) => {
+        lastByFeature.set(p.getAttribute("name"), p);
+      });
+      lastByFeature.forEach((p, featureKey) => {
+        const key = `${groupKey}@${featureKey}`;
+        const clone = p.cloneNode(true);
+        const title = __privateMethod(this, _MasCompareChart_instances, extractTooltipTitle_fn).call(this, clone);
+        __privateGet(this, _rowMeta).set(key, {
+          labelHTML: clone.innerHTML,
+          title,
+          tooltipPosition: p.getAttribute("data-tooltip-position") ?? "top-center",
+          isItemRow: p.hasAttribute("item")
+        });
+      });
+    }
+  );
+  Array.from(
+    this.querySelectorAll(':scope > merch-card[slot="cards"]')
+  ).forEach((card) => {
+    const cardId = card.dataset.cardId;
+    const col = parseInt(card.dataset.columnIndex, 10);
+    const lastByKey = /* @__PURE__ */ new Map();
+    card.querySelectorAll(
+      ':scope > p[name], :scope > [slot="features"] p[name]'
+    ).forEach((p) => {
+      const key = p.getAttribute("name");
+      if (!key || !key.includes("@")) return;
+      lastByKey.set(key, p);
+    });
+    for (const [key, source] of lastByKey) {
+      if (!__privateGet(this, _rowSlotIndex).has(key)) {
+        continue;
+      }
+      const p = source.cloneNode(true);
+      const isEmojiPrimary = p.textContent.includes("\u2705");
+      const cellPrimary = p.hasAttribute("primary");
+      if (cellPrimary) p.classList.add("primary-cell");
+      if (isEmojiPrimary) p.classList.add("emoji-primary-cell");
+      const isItem = p.hasAttribute("item");
+      if (isItem) p.classList.add("item-cell");
+      const cellTitle = __privateMethod(this, _MasCompareChart_instances, extractTooltipTitle_fn).call(this, p);
+      __privateMethod(this, _MasCompareChart_instances, decorateCell_fn).call(this, p);
+      const arr = __privateGet(this, _cellsByRow).get(key) ?? [];
+      arr.push({
+        cardId,
+        col,
+        isCellPrimary: cellPrimary,
+        isEmojiPrimary,
+        isItem,
+        title: cellTitle,
+        tooltipPosition: p.getAttribute("data-tooltip-position") ?? "top-center",
+        html: p.innerHTML,
+        ariaLabel: p.getAttribute("aria-label")
+      });
+      __privateGet(this, _cellsByRow).set(key, arr);
+    }
+  });
+  for (const tableGroup of __privateGet(this, _tableGroups)) {
+    tableGroup.rows.forEach((row) => {
+      const key = `${tableGroup.name}@${row.name}`;
+      __privateGet(this, _rowMeta).set(key, {
+        labelHTML: row.html,
+        title: void 0,
+        tooltipPosition: "top-center",
+        isItemRow: false
+      });
+      const cells = row.cells.map((value, index) => {
+        const p = document.createElement("p");
+        p.innerHTML = value;
+        __privateMethod(this, _MasCompareChart_instances, decorateCell_fn).call(this, p);
+        return {
+          cardId: __privateGet(this, _cards)[index]?.dataset.cardId,
+          col: index + 1,
+          isCellPrimary: false,
+          isEmojiPrimary: value.includes("\u2705"),
+          isItem: false,
+          title: void 0,
+          tooltipPosition: "top-center",
+          html: p.innerHTML,
+          ariaLabel: p.getAttribute("aria-label")
+        };
+      }).filter((cell) => cell.cardId);
+      __privateGet(this, _cellsByRow).set(key, cells);
+    });
+  }
+};
+extractTooltipTitle_fn = function(p) {
+  const tooltipLink = p.querySelector(":scope > a.secondary-link[title]");
+  const title = tooltipLink?.getAttribute("title") || p.getAttribute("title") || void 0;
+  tooltipLink?.remove();
+  if (title) p.removeAttribute("title");
+  return title;
+};
+decorateCell_fn = function(p) {
+  const text = p.textContent.trim();
+  if (isIncluded(text)) {
+    p.setAttribute(
+      "aria-label",
+      this.getAttribute("included-text") ?? "Included"
+    );
+    __privateMethod(this, _MasCompareChart_instances, wrapGlyphs_fn).call(this, p);
+  } else if (isExcluded(text)) {
+    p.setAttribute(
+      "aria-label",
+      this.getAttribute("not-included-text") ?? "Not included"
+    );
+    __privateMethod(this, _MasCompareChart_instances, wrapGlyphs_fn).call(this, p);
+  } else if (isNotApplicable(text)) {
+    p.setAttribute(
+      "aria-label",
+      this.getAttribute("not-applicable-text") ?? "Not applicable"
+    );
+    if (!text) {
+      const sr = document.createElement("span");
+      sr.className = "empty-cell-sr";
+      sr.textContent = this.getAttribute("sr-only-not-applicable-text") ?? this.getAttribute("not-applicable-text") ?? "Not applicable";
+      p.textContent = "\u2014";
+      const glyph = document.createElement("span");
+      glyph.setAttribute("aria-hidden", "true");
+      glyph.textContent = "\u2014";
+      p.replaceChildren(glyph, sr);
+    }
+  } else {
+    p.removeAttribute("aria-label");
+    __privateMethod(this, _MasCompareChart_instances, wrapGlyphs_fn).call(this, p);
+  }
+  __privateMethod(this, _MasCompareChart_instances, layoutChip_fn).call(this, p);
+};
+/**
+ * Visually splits the cell into a bordered "chip" containing the glyph
+ * (and any inline non-`<small>` content) plus caption text rendered
+ * below the chip. Implemented by wrapping the chip portion in a
+ * `<span class="compare-chart-chip">` so the cell `<p>` itself can be a
+ * borderless flex column.
+ */
+layoutChip_fn = function(p) {
+  if (p.classList.contains("item-cell")) {
+    return;
+  }
+  const chip = document.createElement("span");
+  chip.className = "compare-chart-chip";
+  const nodes = Array.from(p.childNodes);
+  for (const n of nodes) {
+    if (n.nodeType === Node.ELEMENT_NODE && n.tagName === "SMALL") {
+      break;
+    }
+    chip.appendChild(n);
+  }
+  p.insertBefore(chip, p.firstChild);
+};
+wrapGlyphs_fn = function(p) {
+  const all = [
+    ...GLYPH_ALIASES.included,
+    ...GLYPH_ALIASES.excluded,
+    ...GLYPH_ALIASES.notApplicable
+  ];
+  const isPrimary = p.classList.contains("primary-cell");
+  Array.from(p.childNodes).forEach((node) => {
+    if (node.nodeType !== Node.TEXT_NODE) return;
+    const t = node.textContent;
+    if (!all.some((g) => t.includes(g))) return;
+    const frag = document.createDocumentFragment();
+    for (const ch of t) {
+      if (all.includes(ch)) {
+        const span = document.createElement("span");
+        span.setAttribute("aria-hidden", "true");
+        span.classList.add("compare-chart-glyph");
+        span.textContent = ch === "\u2705" ? "\u2713" : ch;
+        if (GLYPH_ALIASES.included.includes(ch))
+          span.classList.add("included");
+        if (GLYPH_ALIASES.excluded.includes(ch))
+          span.classList.add("excluded");
+        if (isPrimary || ch === "\u2705") span.classList.add("primary");
+        frag.appendChild(span);
+      } else {
+        frag.appendChild(document.createTextNode(ch));
+      }
+    }
+    node.replaceWith(frag);
+  });
+};
+/* ---------- responsive ---------- */
+applyResponsive_fn = function() {
+  const w = this.getBoundingClientRect().width || this.offsetWidth || window.innerWidth;
+  const isMobile = w > 0 && w < MOBILE_BREAKPOINT;
+  const changed = isMobile !== __privateGet(this, _isMobile);
+  __privateSet(this, _isMobile, isMobile);
+  this.toggleAttribute("data-mobile", isMobile);
+  if (isMobile) __privateMethod(this, _MasCompareChart_instances, enterMobile_fn).call(this);
+  else __privateMethod(this, _MasCompareChart_instances, exitMobile_fn).call(this);
+  __privateMethod(this, _MasCompareChart_instances, setStickyTopOffset_fn).call(this);
+  __privateMethod(this, _MasCompareChart_instances, applyStickyOffset_fn).call(this);
+  __privateMethod(this, _MasCompareChart_instances, refreshStickyObservers_fn).call(this);
+  if (changed) this.requestUpdate();
+};
+visibleCardIds_fn = function() {
+  return new Set(__privateMethod(this, _MasCompareChart_instances, visibleCardIdList_fn).call(this));
+};
+visibleCardIdList_fn = function() {
+  if (!__privateGet(this, _isMobile) || __privateGet(this, _cards).length <= 2) {
+    return __privateGet(this, _cards).map((w) => w.dataset.cardId);
+  }
+  return [__privateGet(this, _cards)[__privateGet(this, _selectionA)], __privateGet(this, _cards)[__privateGet(this, _selectionB)]].filter(Boolean).map((w) => w.dataset.cardId);
+};
+visibleCardHeaders_fn = function() {
+  return __privateMethod(this, _MasCompareChart_instances, visibleCardIdList_fn).call(this).map(
+    (cardId) => __privateGet(this, _cardHeaders).find((card) => card.cardId === cardId)
+  ).filter(Boolean);
+};
+enterMobile_fn = function() {
+  this.style.setProperty("--compare-chart-cols", 2);
+  const n = __privateGet(this, _cards).length;
+  if (n <= 2) return;
+  __privateMethod(this, _MasCompareChart_instances, clampMobileSelections_fn).call(this);
+};
+clampMobileSelections_fn = function() {
+  const n = __privateGet(this, _cards).length;
+  if (n <= 2) return;
+  if (__privateGet(this, _selectionA) >= n) __privateSet(this, _selectionA, 0);
+  if (__privateGet(this, _selectionB) >= n) __privateSet(this, _selectionB, Math.min(1, n - 1));
+  if (__privateGet(this, _selectionA) === __privateGet(this, _selectionB)) {
+    __privateSet(this, _selectionB, (__privateGet(this, _selectionA) + 1) % n);
+  }
+};
+exitMobile_fn = function() {
+  this.style.setProperty("--compare-chart-cols", __privateGet(this, _cards).length);
+};
+applyColumnSelection_fn = function(side, idx) {
+  if (side === "A") {
+    if (idx === __privateGet(this, _selectionB)) __privateSet(this, _selectionB, __privateGet(this, _selectionA));
+    __privateSet(this, _selectionA, idx);
+  } else {
+    if (idx === __privateGet(this, _selectionA)) __privateSet(this, _selectionA, __privateGet(this, _selectionB));
+    __privateSet(this, _selectionB, idx);
+  }
+  __privateMethod(this, _MasCompareChart_instances, enterMobile_fn).call(this);
+  this.requestUpdate();
+};
+/* ---------- sticky ---------- */
+setStickyTopOffset_fn = function() {
+  if (__privateGet(this, _isMobile)) {
+    this.style.setProperty("--compare-chart-sticky-top", "0px");
+    return;
+  }
+};
+resolveStickyOffsetRaw_fn = function() {
+  return this.stickyOffset ?? this.getAttribute("sticky-offset") ?? this.stickyTop ?? this.getAttribute("sticky-top");
+};
+resolveMobileStickyOffsetRaw_fn = function() {
+  return this.mobileStickyOffset ?? this.getAttribute("mobile-sticky-offset");
+};
+applyStickyOffset_fn = function() {
+  const raw = __privateGet(this, _isMobile) ? __privateMethod(this, _MasCompareChart_instances, resolveMobileStickyOffsetRaw_fn).call(this) : __privateMethod(this, _MasCompareChart_instances, resolveStickyOffsetRaw_fn).call(this);
+  const fallback = __privateGet(this, _isMobile) ? DEFAULT_MOBILE_STICKY_OFFSET : DEFAULT_STICKY_OFFSET;
+  const trimmed = raw != null ? String(raw).trim() : "";
+  const offset = trimmed ? /^\d+$/.test(trimmed) ? `${trimmed}px` : trimmed : `${fallback}px`;
+  this.style.setProperty("--compare-chart-sticky-offset", offset);
+};
+refreshStickyObservers_fn = function() {
+  __privateMethod(this, _MasCompareChart_instances, teardownStickyObservers_fn).call(this);
+  if (this.nonSticky || this.collapsed || !this.isConnected) return;
+  const sr = this.shadowRoot;
+  const headerContent = sr?.querySelector(".header-content");
+  const topSentinel = sr?.querySelector(".sticky-sentinel-top");
+  const bottomSentinel = sr?.querySelector(".sticky-sentinel-bottom");
+  if (!headerContent || !topSentinel || !bottomSentinel) return;
+  const top = parseFloat(getComputedStyle(headerContent).top) || 0;
+  const headerHeight = headerContent.getBoundingClientRect().height;
+  __privateSet(this, _stickyTopObserver, new IntersectionObserver(
+    ([entry]) => {
+      __privateSet(this, _stickyPastTop, entry.boundingClientRect.bottom <= top);
+      __privateMethod(this, _MasCompareChart_instances, updateStuckState_fn).call(this);
+    },
+    { threshold: [0], rootMargin: `${-top}px 0px 0px 0px` }
+  ));
+  __privateGet(this, _stickyTopObserver).observe(topSentinel);
+  __privateSet(this, _stickyBottomObserver, new IntersectionObserver(
+    ([entry]) => {
+      __privateSet(this, _stickyBeforeBottom, entry.boundingClientRect.top > top + headerHeight);
+      __privateMethod(this, _MasCompareChart_instances, updateStuckState_fn).call(this);
+    },
+    {
+      threshold: [0],
+      rootMargin: `${-(top + headerHeight)}px 0px 0px 0px`
+    }
+  ));
+  __privateGet(this, _stickyBottomObserver).observe(bottomSentinel);
+};
+teardownStickyObservers_fn = function() {
+  __privateGet(this, _stickyTopObserver)?.disconnect();
+  __privateGet(this, _stickyBottomObserver)?.disconnect();
+  __privateSet(this, _stickyTopObserver, null);
+  __privateSet(this, _stickyBottomObserver, null);
+};
+updateStuckState_fn = function() {
+  __privateMethod(this, _MasCompareChart_instances, setStickyHeaderActive_fn).call(this, __privateGet(this, _stickyPastTop) && __privateGet(this, _stickyBeforeBottom));
+};
+setStickyHeaderActive_fn = function(active) {
+  const headerContent = this.shadowRoot?.querySelector(".header-content");
+  if (active === __privateGet(this, _isStickyHeaderActive)) return;
+  if (active) {
+    const headerHeight = headerContent?.getBoundingClientRect().height ?? 0;
+    this.style.setProperty(
+      "--compare-chart-sticky-spacer-height",
+      `${headerHeight}px`
+    );
+  } else {
+    this.style.removeProperty("--compare-chart-sticky-spacer-height");
+  }
+  __privateSet(this, _isStickyHeaderActive, active);
+  this.toggleAttribute("data-sticky-header", active);
+  headerContent?.classList.toggle("sticky", active);
+  headerContent?.classList.toggle("is-stuck", active);
+};
+/* ---------- accordion ---------- */
+toggleGroup_fn = function(groupIndex) {
+  let opened = false;
+  if (__privateGet(this, _expandedGroupIndices).has(groupIndex)) {
+    __privateGet(this, _expandedGroupIndices).delete(groupIndex);
+  } else {
+    __privateSet(this, _expandedGroupIndices, /* @__PURE__ */ new Set([groupIndex]));
+    opened = true;
+  }
+  this.expandedGroups = __privateMethod(this, _MasCompareChart_instances, serializeExpanded_fn).call(this);
+  this.dispatchEvent(
+    new CustomEvent(EVENT_EXPANDED_GROUPS_CHANGE, {
+      detail: { value: this.expandedGroups },
+      bubbles: true,
+      composed: true
+    })
+  );
+  this.requestUpdate();
+  if (opened) {
+    void this.updateComplete.then(
+      () => __privateMethod(this, _MasCompareChart_instances, scrollOpenedGroupToTop_fn).call(this, groupIndex)
+    );
+  }
+};
+/** Scroll the opened accordion section to the top of the scrollport, below sticky chrome. */
+scrollOpenedGroupToTop_fn = function(groupIndex) {
+  if (this.collapsed) return;
+  const container = this.shadowRoot?.querySelector(
+    `.table-container[data-group-index="${String(groupIndex)}"]`
+  );
+  if (!container) return;
+  const headerBand = this.shadowRoot?.querySelector(".header-content");
+  const cs = getComputedStyle(this);
+  const stickyTop = parseFloat(cs.getPropertyValue("--compare-chart-sticky-top")) || 0;
+  const offsetRaw = cs.getPropertyValue("--compare-chart-sticky-offset").trim();
+  const stickyOffset = offsetRaw ? parseFloat(offsetRaw) || 0 : 0;
+  const headerH = headerBand?.getBoundingClientRect().height ?? 0;
+  const margin = stickyTop + stickyOffset + headerH;
+  const prevMargin = container.style.scrollMarginTop;
+  container.style.scrollMarginTop = `${margin}px`;
+  container.scrollIntoView({ block: "start", behavior: "smooth" });
+  requestAnimationFrame(() => {
+    container.style.scrollMarginTop = prevMargin;
+  });
+};
+renderHeaderGrid_fn = function() {
+  const cards = __privateMethod(this, _MasCompareChart_instances, visibleCardHeaders_fn).call(this);
+  const visibleSlots = __privateMethod(this, _MasCompareChart_instances, visibleSlotPresence_fn).call(this, cards);
+  let row = 1;
+  return html`
+            ${__privateMethod(this, _MasCompareChart_instances, renderHeaderRow_fn).call(this, cards, "header", row++, visibleSlots)}
+            ${visibleSlots.has("price") ? __privateMethod(this, _MasCompareChart_instances, renderHeaderRow_fn).call(this, cards, "price", row++, visibleSlots) : nothing}
+            ${visibleSlots.has("description") ? __privateMethod(this, _MasCompareChart_instances, renderHeaderRow_fn).call(this, cards, "description", row++, visibleSlots) : nothing}
+            ${visibleSlots.has("detail") ? __privateMethod(this, _MasCompareChart_instances, renderHeaderRow_fn).call(this, cards, "detail", row++, visibleSlots) : nothing}
+            ${visibleSlots.has("cta") ? __privateMethod(this, _MasCompareChart_instances, renderHeaderRow_fn).call(this, cards, "cta", row++, visibleSlots) : nothing}
+        `;
+};
+renderHeaderRow_fn = function(cards, segment, row, visibleSlots) {
+  return html`
             <div
-                class="header-leading header-leading-${e}"
-                style="--row: ${o};"
+                class="header-leading header-leading-${segment}"
+                style="--row: ${row};"
             ></div>
-            ${t.map((l,n)=>s(this,r,ie).call(this,l,e,n+1,n,o,i))}
-        `},ae=function(t){let e=new Set;for(let o of t)for(let i of o.presentSlots)e.add(i);return e},L=function(t,e,o){return o.has(e)?A`<slot name=${t.slots[e]}></slot>`:b},ie=function(t,e,o,i,l,n){let c=["header-card-segment",`${e}-segment`],h=t.cellColor;return A`<div
-            class=${c.join(" ")}
-            data-card-id=${t.cardId}
-            data-card-index=${t.col-1}
-            data-cell-color=${h}
-            style="--col: ${o}; --row: ${l};"
+            ${cards.map(
+    (card, i) => __privateMethod(this, _MasCompareChart_instances, renderHeaderSegment_fn).call(this, card, segment, i + 1, i, row, visibleSlots)
+  )}
+        `;
+};
+visibleSlotPresence_fn = function(cards) {
+  const visibleSlots = /* @__PURE__ */ new Set();
+  for (const card of cards) {
+    for (const slotName of card.presentSlots) {
+      visibleSlots.add(slotName);
+    }
+  }
+  return visibleSlots;
+};
+renderCardSlot_fn = function(card, sourceSlot, visibleSlots) {
+  if (!visibleSlots.has(sourceSlot)) return nothing;
+  return html`<slot name=${card.slots[sourceSlot]}></slot>`;
+};
+renderHeaderSegment_fn = function(card, segment, visibleCol, visibleIndex, row, visibleSlots) {
+  const classes = ["header-card-segment", `${segment}-segment`];
+  const dataCellColor = card.cellColor;
+  return html`<div
+            class=${classes.join(" ")}
+            data-card-id=${card.cardId}
+            data-card-index=${card.col - 1}
+            data-cell-color=${dataCellColor}
+            style="--col: ${visibleCol}; --row: ${row};"
         >
-            ${e==="header"?A`
-                      ${s(this,r,L).call(this,t,"icons",n)}
-                      ${s(this,r,L).call(this,t,"header",n)}
-                      ${s(this,r,L).call(this,t,"badge",n)}
-                      ${s(this,r,se).call(this,t,i)}
-                  `:b}
-            ${e==="price"?s(this,r,L).call(this,t,"price",n):b}
-            ${e==="description"?s(this,r,L).call(this,t,"description",n):b}
-            ${e==="detail"?s(this,r,L).call(this,t,"detail",n):b}
-            ${e==="cta"?s(this,r,L).call(this,t,"cta",n):b}
-        </div>`},se=function(t,e){if(!a(this,T)||a(this,S).length<=2)return b;let o=a(this,S).findIndex(n=>n.cardId===t.cardId),i=e===0?"A":"B",l=i==="A"?a(this,C):a(this,w);return A`<select
+            ${segment === "header" ? html`
+                      ${__privateMethod(this, _MasCompareChart_instances, renderCardSlot_fn).call(this, card, "icons", visibleSlots)}
+                      ${__privateMethod(this, _MasCompareChart_instances, renderCardSlot_fn).call(this, card, "header", visibleSlots)}
+                      ${__privateMethod(this, _MasCompareChart_instances, renderCardSlot_fn).call(this, card, "badge", visibleSlots)}
+                      ${__privateMethod(this, _MasCompareChart_instances, renderColumnPicker_fn).call(this, card, visibleIndex)}
+                  ` : nothing}
+            ${segment === "price" ? __privateMethod(this, _MasCompareChart_instances, renderCardSlot_fn).call(this, card, "price", visibleSlots) : nothing}
+            ${segment === "description" ? __privateMethod(this, _MasCompareChart_instances, renderCardSlot_fn).call(this, card, "description", visibleSlots) : nothing}
+            ${segment === "detail" ? __privateMethod(this, _MasCompareChart_instances, renderCardSlot_fn).call(this, card, "detail", visibleSlots) : nothing}
+            ${segment === "cta" ? __privateMethod(this, _MasCompareChart_instances, renderCardSlot_fn).call(this, card, "cta", visibleSlots) : nothing}
+        </div>`;
+};
+renderColumnPicker_fn = function(card, visibleIndex) {
+  if (!__privateGet(this, _isMobile) || __privateGet(this, _cardHeaders).length <= 2) return nothing;
+  const selectedIdx = __privateGet(this, _cardHeaders).findIndex(
+    (header) => header.cardId === card.cardId
+  );
+  const side = visibleIndex === 0 ? "A" : "B";
+  const otherIdx = side === "A" ? __privateGet(this, _selectionB) : __privateGet(this, _selectionA);
+  return html`<select
             class="mobile-filter-select"
             name="column-filter"
-            aria-label=${this.getAttribute("choose-table-column-text")??"Choose column"}
-            .value=${String(o)}
-            @change=${n=>s(this,r,Xt).call(this,i,parseInt(n.target.value,10))}
+            aria-label=${this.getAttribute("choose-table-column-text") ?? "Choose column"}
+            .value=${String(selectedIdx)}
+            @change=${(event) => __privateMethod(this, _MasCompareChart_instances, applyColumnSelection_fn).call(this, side, parseInt(event.target.value, 10))}
         >
-            ${a(this,S).map((n,c)=>c===l?b:A`<option
-                    value=${c}
-                    ?selected=${c===o}
+            ${__privateGet(this, _cardHeaders).map((header, index) => {
+    if (index === otherIdx) return nothing;
+    return html`<option
+                    value=${index}
+                    ?selected=${index === selectedIdx}
                 >
-                    ${n.title}
-                </option>`)}
-        </select>`},ne=function(t){let e=a(this,v).has(t.groupIndex);return A`
-            <div class="table-container" data-group-index=${t.groupIndex}>
+                    ${header.title}
+                </option>`;
+  })}
+        </select>`;
+};
+renderGroup_fn = function(g) {
+  const expanded = __privateGet(this, _expandedGroupIndices).has(g.groupIndex);
+  return html`
+            <div class="table-container" data-group-index=${g.groupIndex}>
                 <button
                     class="table-column-header"
-                    aria-expanded=${e}
-                    aria-controls="g-${t.groupIndex}"
-                    @click=${()=>s(this,r,ee).call(this,t.groupIndex)}
+                    aria-expanded=${expanded}
+                    aria-controls="g-${g.groupIndex}"
+                    @click=${() => __privateMethod(this, _MasCompareChart_instances, toggleGroup_fn).call(this, g.groupIndex)}
                 >
-                    <span class="group-title">${t.heading}</span>
+                    <span class="group-title">${g.heading}</span>
                     <span
-                        class="toggle-icon ${e?"is-expanded":""}"
+                        class="toggle-icon ${expanded ? "is-expanded" : ""}"
                         aria-hidden="true"
                     ></span>
                 </button>
                 <div
-                    id="g-${t.groupIndex}"
-                    class="table-body ${e?"":"hide"}"
+                    id="g-${g.groupIndex}"
+                    class="table-body ${expanded ? "" : "hide"}"
                     role="rowgroup"
-                    aria-label=${t.heading}
+                    aria-label=${g.heading}
                 >
-                    ${ht(t.rows,(o,i)=>`${o.slot}:${i}`,o=>s(this,r,le).call(this,o))}
+                    ${repeat(
+    g.rows,
+    (r, i) => `${r.slot}:${i}`,
+    (r) => __privateMethod(this, _MasCompareChart_instances, renderRow_fn).call(this, r)
+  )}
                 </div>
             </div>
-        `},ce=function(t,e){return{cardId:t,col:e,isCellPrimary:!1,isEmojiPrimary:!1,isItem:!1,title:void 0,tooltipPosition:"top-center",html:'<span class="compare-chart-chip"><span class="compare-chart-glyph" aria-hidden="true">\u2014</span></span>',ariaLabel:this.getAttribute("not-applicable-text")??"Not applicable"}},le=function(t){let e=a(this,R).get(t.slot)??{},o=new Map((a(this,k).get(t.slot)??[]).map(c=>[c.cardId,c])),i=s(this,r,ot).call(this),l=i.map(c=>o.get(c)).filter(Boolean);!l.length&&i.length>0&&a(this,R).has(t.slot)&&(l=i.map(c=>{let h=a(this,E).find(x=>x.dataset.cardId===c),g=parseInt(h?.dataset.columnIndex??"1",10);return s(this,r,ce).call(this,c,g)}));let n=["table-row"];return e.isItemRow&&n.push("description-row"),A`
-            <div class=${n.join(" ")} role="row">
+        `;
+};
+/** When column card fragments omit `features`, still render a full row grid. */
+syntheticNotApplicableCell_fn = function(cardId, col) {
+  return {
+    cardId,
+    col,
+    isCellPrimary: false,
+    isEmojiPrimary: false,
+    isItem: false,
+    title: void 0,
+    tooltipPosition: "top-center",
+    html: '<span class="compare-chart-chip"><span class="compare-chart-glyph" aria-hidden="true">\u2014</span></span>',
+    ariaLabel: this.getAttribute("not-applicable-text") ?? "Not applicable"
+  };
+};
+renderRow_fn = function(r) {
+  const meta = __privateGet(this, _rowMeta).get(r.slot) ?? {};
+  const cellsByCardId = new Map(
+    (__privateGet(this, _cellsByRow).get(r.slot) ?? []).map((cell) => [
+      cell.cardId,
+      cell
+    ])
+  );
+  const visibleIds = __privateMethod(this, _MasCompareChart_instances, visibleCardIdList_fn).call(this);
+  let cells = visibleIds.map((cardId) => cellsByCardId.get(cardId)).filter(Boolean);
+  if (!cells.length && visibleIds.length > 0 && __privateGet(this, _rowMeta).has(r.slot)) {
+    cells = visibleIds.map((cardId) => {
+      const card = __privateGet(this, _cards).find(
+        (c) => c.dataset.cardId === cardId
+      );
+      const col = parseInt(card?.dataset.columnIndex ?? "1", 10);
+      return __privateMethod(this, _MasCompareChart_instances, syntheticNotApplicableCell_fn).call(this, cardId, col);
+    });
+  }
+  const rowClasses = ["table-row"];
+  if (meta.isItemRow) rowClasses.push("description-row");
+  return html`
+            <div class=${rowClasses.join(" ")} role="row">
                 <div class="row-header" role="rowheader">
                     <span class="row-label"
-                        >${Ot(e.labelHTML??"")}</span
+                        >${unsafeHTML(meta.labelHTML ?? "")}</span
                     >
-                    ${s(this,r,_t).call(this,e.title,e.tooltipPosition)}
+                    ${__privateMethod(this, _MasCompareChart_instances, renderTooltip_fn).call(this, meta.title, meta.tooltipPosition)}
                 </div>
-                ${ht(l,(c,h)=>`${c.cardId}:${h}`,c=>s(this,r,pe).call(this,c))}
+                ${repeat(
+    cells,
+    (c, i) => `${c.cardId}:${i}`,
+    (c) => __privateMethod(this, _MasCompareChart_instances, renderCell_fn).call(this, c)
+  )}
             </div>
-        `},pe=function(t){let e=["cell"];return t.isCellPrimary&&e.push("primary-cell"),t.isEmojiPrimary&&e.push("emoji-primary-cell"),t.isItem&&e.push("item-cell"),A`<p
+        `;
+};
+renderCell_fn = function(c) {
+  const classes = ["cell"];
+  if (c.isCellPrimary) classes.push("primary-cell");
+  if (c.isEmojiPrimary) classes.push("emoji-primary-cell");
+  if (c.isItem) classes.push("item-cell");
+  return html`<p
             role="cell"
-            class=${e.join(" ")}
-            data-card-id=${t.cardId}
-            style="--col: ${t.col};"
-            aria-label=${t.ariaLabel??b}
+            class=${classes.join(" ")}
+            data-card-id=${c.cardId}
+            style="--col: ${c.col};"
+            aria-label=${c.ariaLabel ?? nothing}
         >
-            ${Ot(t.html)}${s(this,r,_t).call(this,t.title,t.tooltipPosition)}
-        </p>`},_t=function(t,e){return t?A`<span class="tooltip-wrapper" data-tooltip-position=${e||"top-center"}>
+            ${unsafeHTML(c.html)}${__privateMethod(this, _MasCompareChart_instances, renderTooltip_fn).call(this, c.title, c.tooltipPosition)}
+        </p>`;
+};
+/** Custom black popover tooltip (Figma: Table tool tip).
+ * 7 positions; default top-center. Source is the `title` attribute on
+ * the authored `<p>` (label or cell). Native `title` is stripped at
+ * capture so the browser's hover-box never fires. */
+renderTooltip_fn = function(text, position) {
+  if (!text) return nothing;
+  const pos = position || "top-center";
+  return html`<span class="tooltip-wrapper" data-tooltip-position=${pos}>
             <button class="tooltip-trigger" aria-label="More info" tabindex="0">
                 <span aria-hidden="true">i</span>
             </button>
-            <span class="tooltip-popover" role="tooltip">${t}</span>
-        </span>`:b},st(z,"properties",{expandedGroups:{type:String,attribute:"expanded-groups",reflect:!0},collapsed:{type:Boolean,attribute:"collapsed",reflect:!0},consonant:{type:Boolean,attribute:"consonant"},spectrum:{type:String,attribute:"spectrum"},stickyOffset:{type:String,attribute:"sticky-offset"},mobileStickyOffset:{type:String,attribute:"mobile-sticky-offset"},stickyTop:{type:String,attribute:"sticky-top"},nonSticky:{type:Boolean,attribute:"non-sticky"}}),st(z,"styles",Mt);customElements.get(Pt)||customElements.define(Pt,z);export{z as MasCompareChart};
+            <span class="tooltip-popover" role="tooltip">${text}</span>
+        </span>`;
+};
+__publicField(MasCompareChart, "properties", {
+  expandedGroups: {
+    type: String,
+    attribute: "expanded-groups",
+    reflect: true
+  },
+  collapsed: {
+    type: Boolean,
+    attribute: "collapsed",
+    reflect: true
+  },
+  consonant: { type: Boolean, attribute: "consonant" },
+  spectrum: { type: String, attribute: "spectrum" },
+  /** Viewport offset (px) from the top edge to the sticky header. */
+  stickyOffset: { type: String, attribute: "sticky-offset" },
+  /** Viewport offset (px) to the sticky header in mobile layout. */
+  mobileStickyOffset: {
+    type: String,
+    attribute: "mobile-sticky-offset"
+  },
+  /** @deprecated Use `sticky-offset`. */
+  stickyTop: { type: String, attribute: "sticky-top" },
+  /** Disables the sticky-header behavior entirely (used by the Studio editor preview). */
+  nonSticky: { type: Boolean, attribute: "non-sticky" }
+});
+__publicField(MasCompareChart, "styles", styles);
+if (!customElements.get(MAS_COMPARE_CHART)) {
+  customElements.define(MAS_COMPARE_CHART, MasCompareChart);
+}
+export {
+  MasCompareChart
+};
+//# sourceMappingURL=mas-compare-chart.js.map

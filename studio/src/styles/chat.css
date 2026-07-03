@@ -213,18 +213,6 @@
 .chat-message {
     display: flex;
     padding: var(--spectrum-global-dimension-size-100, 8px) 0;
-    animation: slideIn 0.2s ease-out;
-}
-
-@keyframes slideIn {
-    from {
-        opacity: 0;
-        transform: translateY(6px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
 }
 
 /* Message Card */
@@ -2397,7 +2385,8 @@ body.chat-resizing {
 
 .chat-drawer {
     transform-origin: calc(100% - 40px) calc(100% - 40px);
-    animation: drawerMorphIn 380ms var(--mas-ease-out) forwards;
+    border-radius: 12px;
+    animation: drawerMorphIn 380ms var(--mas-ease-out) backwards;
 }
 
 .chat-drawer-closing {
@@ -2533,7 +2522,7 @@ body.chat-resizing {
 
 .msg-bloom .message-card {
     transform-origin: bottom left;
-    animation: bubbleBloom 340ms var(--mas-ease-out) 60ms both;
+    animation: bubbleBloom 340ms var(--mas-ease-out) 60ms backwards;
 }
 
 @keyframes bubbleBloom {
@@ -2548,7 +2537,7 @@ body.chat-resizing {
 }
 
 .msg-rise {
-    animation: msgRise 240ms var(--mas-ease-out) both;
+    animation: msgRise 240ms var(--mas-ease-out) backwards;
 }
 
 @keyframes msgRise {

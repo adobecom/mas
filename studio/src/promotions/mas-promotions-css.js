@@ -64,6 +64,22 @@ export const styles = css`
         justify-content: center;
     }
 
+    .timeline-cell {
+        display: grid;
+        grid-template-columns: 140px auto;
+        align-items: center;
+        gap: var(--spectrum-spacing-100, 8px);
+    }
+
+    .evergreen-badge {
+        background-color: var(--spectrum-orange-200);
+        color: var(--spectrum-gray-900);
+        font-weight: 500;
+        padding: 2px 8px;
+        border-radius: 4px;
+        white-space: nowrap;
+    }
+
     .duplicating-overlay {
         position: absolute;
         inset: 0;

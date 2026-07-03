@@ -9,6 +9,7 @@ import { normalizeKey, showToast } from '../utils.js';
 import { clearCaches } from '../../libs/fragment-client.js';
 import './mas-promotion-duplicate-dialog.js';
 import { renderPromotionStatusCell } from '../common/utils/render-utils.js';
+import { canEditPromotions } from '../groups.js';
 import {
     canPublishPromotionNow,
     canSchedulePromotion,
@@ -55,6 +56,7 @@ class MasPromotions extends LitElement {
             Store.promotions?.list?.loading,
             Store.promotions?.list?.filter,
             Store.promotions?.list?.filterOptions,
+            Store.users,
         ]);
     }
 
@@ -209,25 +211,34 @@ class MasPromotions extends LitElement {
             <sp-table emphasized scroller @change=${this.updateTableSelection} class="promotions-table">
                 ${this.renderTableHeader(columns)}
                 <sp-table-body>
-                    ${repeat(
-                        filteredPromotions,
-                        (promotion) => html`
+                    ${repeat(filteredPromotions, (promotion) => {
+                        const promo = promotion.get();
+                        return html`
                             <sp-table-row
-                                value=${promotion.get().path}
-                                data-id=${promotion.get().id}
+                                value=${promo.path}
+                                data-id=${promo.id}
                                 @dblclick=${(e) => this.#handlePromotionRowDblClick(e, promotion)}
                             >
-                                <sp-table-cell>${promotion.get().title}</sp-table-cell>
-                                <sp-table-cell>${promotion.get().timeline}</sp-table-cell>
-                                ${renderPromotionStatusCell(promotion.get().promotionStatus)}
-                                <sp-table-cell>${promotion.get().createdBy}</sp-table-cell>
+                                <sp-table-cell>${promo.title}</sp-table-cell>
+                                <sp-table-cell>
+                                    <span class="timeline-cell">
+                                        ${promo.timeline}
+                                        ${promo.isEvergreen ? html`<span class="evergreen-badge">Evergreen</span>` : nothing}
+                                    </span>
+                                </sp-table-cell>
+                                ${renderPromotionStatusCell(promo.promotionStatus)}
+                                <sp-table-cell>${promo.createdBy}</sp-table-cell>
                                 ${this.renderActionCell(promotion)}
                             </sp-table-row>
-                        `,
-                    )}
+                        `;
+                    })}
                 </sp-table-body>
             </sp-table>
         `;
+    }
+
+    willUpdate() {
+        this.canEdit = canEditPromotions();
     }
 
     render() {
@@ -235,10 +246,12 @@ class MasPromotions extends LitElement {
             <div class="promotions-container">
                 <div class="promotions-header">
                     <sp-search size="m" placeholder="Search"></sp-search>
-                    <sp-button variant="accent" @click=${() => this.#handleAddPromotion()} class="create-button">
-                        <sp-icon-add slot="icon"></sp-icon-add>
-                        Create promotion project
-                    </sp-button>
+                    ${this.canEdit
+                        ? html`<sp-button variant="accent" @click=${() => this.#handleAddPromotion()} class="create-button">
+                              <sp-icon-add slot="icon"></sp-icon-add>
+                              Create promotion project
+                          </sp-button>`
+                        : nothing}
                 </div>
 
                 ${this.renderError()}
@@ -306,6 +319,18 @@ class MasPromotions extends LitElement {
     }
 
     renderActionCell(promotion) {
+        if (!this.canEdit) {
+            return html`
+                <sp-table-cell>
+                    <sp-action-menu size="m">
+                        <sp-menu-item @click="${() => this.#handleEditPromotion(promotion)}">
+                            <sp-icon-preview slot="icon"></sp-icon-preview>
+                            View
+                        </sp-menu-item>
+                    </sp-action-menu>
+                </sp-table-cell>
+            `;
+        }
         return html`
             <sp-table-cell>
                 <sp-action-menu size="m">

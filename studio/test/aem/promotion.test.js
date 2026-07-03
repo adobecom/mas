@@ -205,12 +205,12 @@ describe('Promotion', () => {
             expect(promotion.promotionStatus).to.equal('unknown');
         });
 
-        it('should return "unknown" when endDate is missing', () => {
+        it('returns draft for unpublished promotion with empty endDate (evergreen)', () => {
             mockFragmentData.fields[3].values = [''];
 
             const promotion = new Promotion(mockFragmentData);
 
-            expect(promotion.promotionStatus).to.equal('unknown');
+            expect(promotion.promotionStatus).to.equal('draft');
         });
 
         it('should return "unknown" when dates are invalid', () => {
@@ -309,6 +309,85 @@ describe('Promotion', () => {
             const promotion = new Promotion(mockFragmentData);
 
             expect(promotion.promotionListFilterKey).to.equal(promotion.promotionStatus);
+        });
+    });
+
+    describe('isEvergreen getter', () => {
+        it('returns true when endDate is empty string', () => {
+            mockFragmentData.fields[3].values = [''];
+            const promotion = new Promotion(mockFragmentData);
+            expect(promotion.isEvergreen).to.be.true;
+        });
+
+        it('returns false when endDate has a value', () => {
+            const promotion = new Promotion(mockFragmentData);
+            expect(promotion.isEvergreen).to.be.false;
+        });
+    });
+
+    describe('timeline getter — evergreen', () => {
+        it('shows "Always on" instead of end date when endDate is empty', () => {
+            mockFragmentData.fields[2].values = ['2025-06-01T00:00:00.000Z'];
+            mockFragmentData.fields[3].values = [''];
+            const promotion = new Promotion(mockFragmentData);
+            expect(promotion.timeline).to.equal('Jun 01 - Always on');
+        });
+    });
+
+    describe('promotionStatus getter — evergreen', () => {
+        let now;
+
+        beforeEach(() => {
+            now = new Date();
+        });
+
+        it('returns draft for unpublished evergreen with past start date', () => {
+            const yesterday = new Date(now);
+            yesterday.setDate(yesterday.getDate() - 1);
+            mockFragmentData.fields[2].values = [yesterday.toISOString()];
+            mockFragmentData.fields[3].values = [''];
+            const promotion = new Promotion(mockFragmentData);
+            expect(promotion.promotionStatus).to.equal('draft');
+        });
+
+        it('returns active for published evergreen with past start date', () => {
+            const yesterday = new Date(now);
+            yesterday.setDate(yesterday.getDate() - 1);
+            mockFragmentData.fields[2].values = [yesterday.toISOString()];
+            mockFragmentData.fields[3].values = [''];
+            mockFragmentData.status = 'PUBLISHED';
+            const promotion = new Promotion(mockFragmentData);
+            expect(promotion.promotionStatus).to.equal('active');
+        });
+
+        it('returns scheduled for published evergreen with future start date', () => {
+            const tomorrow = new Date(now);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            mockFragmentData.fields[2].values = [tomorrow.toISOString()];
+            mockFragmentData.fields[3].values = [''];
+            mockFragmentData.status = 'PUBLISHED';
+            const promotion = new Promotion(mockFragmentData);
+            expect(promotion.promotionStatus).to.equal('scheduled');
+        });
+
+        it('never returns expired for evergreen', () => {
+            const lastYear = new Date(now);
+            lastYear.setFullYear(lastYear.getFullYear() - 1);
+            mockFragmentData.fields[2].values = [lastYear.toISOString()];
+            mockFragmentData.fields[3].values = [''];
+            mockFragmentData.status = 'PUBLISHED';
+            const promotion = new Promotion(mockFragmentData);
+            expect(promotion.promotionStatus).to.equal('active');
+        });
+
+        it('returns modified for published evergreen with unsaved changes', () => {
+            const yesterday = new Date(now);
+            yesterday.setDate(yesterday.getDate() - 1);
+            mockFragmentData.fields[2].values = [yesterday.toISOString()];
+            mockFragmentData.fields[3].values = [''];
+            mockFragmentData.status = 'MODIFIED';
+            const promotion = new Promotion(mockFragmentData);
+            expect(promotion.promotionStatus).to.equal('modified');
         });
     });
 

@@ -331,6 +331,18 @@
                         expect(chart.shadowRoot.querySelectorAll('.tooltip-trigger').length).to.be.greaterThan(10);
                     });
 
+                    it('restricts the items selector import to the active search surface', async () => {
+                        const previousPath = Store.search.get().path;
+                        Store.search.set({ path: 'sandbox' });
+                        try {
+                            const el = await mountEditor();
+                            const selector = el.shadowRoot.querySelector('mas-items-selector');
+                            expect(selector.restrictImportSurface).to.equal('sandbox');
+                        } finally {
+                            Store.search.set({ path: previousPath });
+                        }
+                    });
+
                     it('marks referenced changes dirty when a cell edit is staged and clears them on discard', async () => {
                         const el = await mountEditor();
                         Store.editor.referencedFragmentStoresHaveChanges.set(false);

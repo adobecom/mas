@@ -333,6 +333,12 @@ describe('promotion-editor-utils', () => {
             expect(normalizePromotionSearchInput(line)).to.equal(id);
         });
 
+        it('extracts fragment id from a merch-card-collection deep link', () => {
+            const id = '00000000-1111-2222-3333-444444444444';
+            const line = `https://mas.adobe.com/studio.html#content-type=merch-card-collection&query=${id}`;
+            expect(normalizePromotionSearchInput(line)).to.equal(id);
+        });
+
         it('strips query/hash from pasted full DAM path', () => {
             const path = '/content/dam/mas/surface/en_US/foo';
             expect(normalizePromotionSearchInput(`${path}?x=1`)).to.equal(path);
@@ -458,6 +464,23 @@ describe('promotion-editor-utils', () => {
                 },
             };
             expect(getPromotionRequiredFieldsValidation(f, 1)).to.equal('Please add at least one Promotion tag.');
+        });
+
+        it('does not require end date when isEvergreen is passed explicitly as true', () => {
+            const f = {
+                ...baseFragment(),
+                getFieldValue: (name) => (name === 'endDate' ? '' : baseFragment().getFieldValue(name)),
+            };
+            expect(getPromotionRequiredFieldsValidation(f, 1, true)).to.be.null;
+        });
+
+        it('does not require end date when fragment is evergreen', () => {
+            const f = {
+                ...baseFragment(),
+                isEvergreen: true,
+                getFieldValue: (name) => (name === 'endDate' ? '' : baseFragment().getFieldValue(name)),
+            };
+            expect(getPromotionRequiredFieldsValidation(f, 1)).to.be.null;
         });
     });
 

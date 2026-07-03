@@ -864,11 +864,12 @@ async function main(params) {
             }
         }
 
+        // Attach the shadow envelope only when the text actually contained a
+        // valid one: guided-flow JSON has no intent field, so its coerced
+        // ASK_USER fallback must never ship — the frontend dispatcher would
+        // prefer it over the real guided payload and hijack the turn.
         const shadowValidation = logShadowValidation(response, params);
-        const envelopePayload =
-            shadowValidation !== null
-                ? { envelope: shadowValidation.ok ? shadowValidation.envelope : shadowValidation.coerced }
-                : {};
+        const envelopePayload = shadowValidation?.ok ? { envelope: shadowValidation.envelope } : {};
 
         const operationResult = handleOperation(response.message, enrichedContext);
 

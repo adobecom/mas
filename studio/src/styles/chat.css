@@ -2178,10 +2178,22 @@ mas-chat {
 }
 
 .release-card-preview {
-    display: flex;
-    justify-content: center;
+    display: block;
     margin: 12px 0;
     zoom: 0.7;
+}
+
+/* The card's own resize logic writes grid-alignment height vars as inline
+   styles; in this narrow zoomed preview they undersize the host while the
+   wrapped content grows taller, so the footer CTAs spill out of the card.
+   Grow the host with its content and neutralize the inline vars
+   (!important is required to beat the inline style attribute). */
+.release-card-preview merch-card {
+    height: fit-content;
+    min-height: auto;
+    margin: 0 auto;
+    --consonant-merch-card-plans-v2-body-height: initial !important;
+    --consonant-merch-card-plans-v2-footer-height: initial !important;
 }
 
 .message-operation-request {

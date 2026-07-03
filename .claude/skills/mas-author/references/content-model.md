@@ -14,9 +14,9 @@ traverse the whole graph through Odin MCP.
 
 ## 2. Content-fragment models
 
-A model **ID is the Base64 of its model path** (no padding). So if you know the path you can derive the
-ID, and vice-versa. One spelling trap: the placeholder *entry* model path ends in `dictionnary`
-(double-n), while the *index* model path ends in `dictionary` (single-n).
+**Copy the exact model ID from the table below verbatim** — do not derive or reconstruct it; the trailing
+`=` padding varies by model. One spelling trap when matching by path: the placeholder *entry* model path
+ends in `dictionnary` (double-n), while the *index* model path ends in `dictionary` (single-n).
 
 | Model | Model path | Model ID | Purpose |
 |---|---|---|---|

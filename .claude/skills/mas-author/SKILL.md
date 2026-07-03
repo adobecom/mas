@@ -22,7 +22,9 @@ with this skill).
 
 ## The stop rule (read first)
 
-> **If the answer is a stored fragment field or a fragment-lifecycle action, do it.** > **If the answer must be computed by MAS Studio or the MAS IO pipeline — rendering, price/offer
+> **If the answer is a stored fragment field or a fragment-lifecycle action, do it.**
+>
+> **If the answer must be computed by MAS Studio or the MAS IO pipeline — rendering, price/offer
 > resolution, placeholder substitution, locale fallback, where-used, or business-rule validation —
 > STOP. Do not approximate it with raw fragment data. Tell the user to use MAS Studio.**
 
@@ -45,14 +47,16 @@ might want to open; and whenever the user **directly asks** to open a fragment o
 fragment `{id}` in studio", "give me the studio link for …"). That direct request is workflow **I** below.
 Never hand back a raw AEM author/editor URL for opening a fragment.
 
-The shape is always:
+The shape is:
 
 ```
 https://mas.adobe.com/studio.html#page={page}&{id-param}={id}&path={surface}
 ```
 
 - `{surface}` — the current or target surface: the first path segment after `/content/dam/mas/`, e.g.
-  `sandbox`, `acom`, `ccd`.
+  `sandbox`, `acom`, `ccd`. Studio's own copy-link buttons omit `path` (it defaults to the surface already
+  loaded), but **always include it** here — you're handing the user a cold link and the id alone doesn't
+  carry the surface.
 - `{page}` and `{id-param}` depend on the kind of fragment:
 
 | Fragment kind       | `page`               | id param               | id value                                                                                                                                 |

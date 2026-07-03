@@ -6,7 +6,7 @@ keywords: bulk, bulk update, bulk publish, bulk unpublish, publish multiple, bat
 
 ## How do I update many cards at once with the AI assistant?
 
-Search first, then ask for the change. For example: "find cards with '20+ apps'", then "change 20+ apps to 30+ apps". The assistant applies the change to the cards from your last search using the bulk_update_cards operation. A bulk update can carry common field updates applied to every card, text find-and-replace operations, or both. The assistant always generates a preview first and waits for your approval before anything is modified. Outside of chat, Studio's table view also supports bulk actions: select cards with the checkboxes and use the bulk actions menu.
+Search first, then ask for the change. For example: "find cards with '20+ apps'", then "change 20+ apps to 30+ apps". The assistant applies the change to the cards from your last search using the bulk_update_cards operation. A bulk update can carry common field updates applied to every card, text find-and-replace operations, or both. The assistant always generates a preview first and waits for your approval before anything is modified. Outside of chat, use the Select button in the Fragments toolbar to multi-select cards, or a bulk publish project under Advanced tools for large batches.
 
 ## How does the preview and approval workflow for bulk operations work?
 
@@ -22,7 +22,7 @@ Each text replacement specifies the text to find, the text to replace it with, a
 
 ## How do I bulk publish or unpublish cards?
 
-After a search, ask the assistant to "publish these cards", "publish all", or "unpublish those cards". The bulk_publish_cards operation takes the card IDs from your search context plus an action of publish or unpublish. As with updates, the assistant first shows a preview via preview_bulk_publish listing the cards that would be published or unpublished, and executes only after you approve, with a final confirmation like "Publish N cards to production?". In Studio itself you can also select cards in the table view with checkboxes and choose "Publish selected" from the bulk actions menu.
+After a search, ask the assistant to "publish these cards", "publish all", or "unpublish those cards". The bulk_publish_cards operation takes the card IDs from your search context plus an action of publish or unpublish. As with updates, the assistant first shows a preview via preview_bulk_publish listing the cards that would be published or unpublished, and executes only after you approve, with a final confirmation like "Publish N cards to production?". In Studio itself, large-scale publishing runs through bulk publish projects: open Advanced tools, choose Bulk publish, and build a project.
 
 ## Can I bulk delete cards?
 
@@ -30,7 +30,7 @@ No. Bulk deletion is not supported by the AI assistant, and it will not emit a b
 
 ## What is the Bulk Publishing page in Studio?
 
-Separate from the chat-based bulk tools, Studio has a bulk publishing feature built around bulk publish projects: a saved project holds a list of fragment paths and target locales. Publishing a project dispatches an asynchronous backend worker (the request is accepted immediately and runs in the background) that resolves every path in every selected locale, takes a snapshot of the current published state, and then publishes the resolved fragments. The project ends in one of three statuses: Published, Partially published, or Failed. Fragments that do not exist in a target locale are reported as not localized rather than failing silently. Because a snapshot is taken before publishing, a bulk publish can be reverted, and Studio checks whether entries were modified after the snapshot before allowing a revert.
+Separate from the chat-based bulk tools, Studio has a bulk publishing feature built around bulk publish projects, reached from Advanced tools in the side navigation. A saved project holds a list of fragment paths and target locales; its items are picked with an items selector spanning cards, collections, and placeholders, and items already in the project are skipped with a warning. Publishing a project dispatches an asynchronous backend worker (the request is accepted immediately and runs in the background) that resolves every path in every selected locale, takes a snapshot of the current published state, and then publishes the resolved fragments. The project ends in one of three statuses: Published, Partially published, or Failed. Fragments that do not exist in a target locale are reported as not localized rather than failing silently. Because a snapshot is taken before publishing, a bulk publish can be reverted, and Studio checks whether entries were modified after the snapshot before allowing a revert.
 
 ## How do I see the cards from my last bulk operation?
 

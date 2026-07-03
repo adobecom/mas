@@ -1,6 +1,6 @@
 ---
 topic: studio
-keywords: MAS, Merch at Scale, Studio, Odin, AEM, fragment, surface, locale, adobe.com, architecture
+keywords: MAS, Merch at Scale, Studio, Odin, AEM, fragment, surface, locale, adobe.com, architecture, features, navigation, side nav, pages, product catalog, permissions, admin
 ---
 # MAS Studio Basics
 
@@ -18,6 +18,15 @@ First, an author creates and publishes the card in MAS Studio, which publishes t
 
 ## What are surfaces and locales in MAS?
 Surfaces are the destinations where cards render: acom (adobe.com), ccd (Creative Cloud Desktop), adobe-home (Adobe Home), commerce (Unified Checkout), and express (Adobe Express), plus a sandbox area for testing. Locales use codes like en_US or fr_FR (language plus country), and content folders follow the pattern /content/dam/mas/ then surface then locale. A card has a locale-default parent fragment, and each locale can hold exactly one variation of it for translated or region-specific content. Prices localize automatically through the offer system, but card text does not — translated text requires locale variations, which can be produced through translation projects.
+
+## What features does Merch at Scale Studio have?
+MAS Studio covers the full merchandising content workflow. You can author and publish merch cards on the Fragments page, group cards into collections, create locale variations for regional content and grouped personalization variations, localize content with translation projects on the Translations page, manage placeholders — reusable text strings resolved into cards per surface and locale — on the Placeholders page, and manage promotions with promo codes, schedules, geos, and attached offers and cards on the Promotions page (admin-only). You can publish content at scale with bulk publish projects under Advanced tools, browse the product catalog and create cards for a product from its detail page, attach live pricing through the Offer Selector Tool, and use the AI assistant to search, publish, update, and create content conversationally. Global settings and masks are additional permission-gated tools under Advanced tools.
+
+## What pages are in the Studio side navigation?
+The side navigation contains Home (quick actions and recently updated cards), Product Catalog, Fragments (the card content table), Collections (currently disabled — collections are managed from the Fragments page), Promotions, Placeholders, Translations, AI Assistant, and Advanced tools. The Promotions page only appears for members of the MAS admins group. Advanced tools contains three tools: Bulk publish (available to everyone), Global settings (admins and surface power users; on the sandbox, commerce, and nala surfaces it is admin-only), and Masks (permission-gated, for authoring reusable card overlays applied at delivery time). If a page you expect is missing from your side navigation, you are most likely missing the corresponding group membership.
+
+## How do I browse the product catalog?
+The Product Catalog page lists Adobe products in a sortable table with columns for name, product code, arrangement code, product family, customer segment, markets, and plan types, plus facet filters for markets, plan types, customer segments, and product families and a text search. Clicking a product opens its detail page. From the product detail page you can create a card for that product: pick the surface, locale, and one or more card variants, and Studio opens the Offer Selector Tool pre-filtered to the product's arrangement code so you can pick the offer that prices the card.
 
 ## What can the AI assistant in Studio do?
 The assistant can search cards by title, content, tags, surface, locale, or linked offer ID; fetch a card's contents; open a card in the editor; and copy a deep link to a card. It can publish, unpublish, update, and duplicate cards, run bulk updates and bulk publishes with dry-run previews, create and inspect locale variations, create collections and add cards to them, and create tags. On the commerce side it can search products and offers, resolve OSIs, create offer selectors, link offers to cards, and validate card-offer consistency. It also supports translation coverage reports, finding untranslated cards, translation projects, a guided flow for creating new product release cards, and opening the Offer Selector Tool. Every state-changing action asks for your explicit confirmation before it runs.

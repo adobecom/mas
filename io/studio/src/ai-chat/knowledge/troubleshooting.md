@@ -13,6 +13,9 @@ Prices are fetched at render time from the Web Commerce Service (WCS) using the 
 ## Why can't I publish my card?
 The most common causes are missing permissions, validation errors, or a temporary backend issue. Publishing requires a publisher role through your IAM group membership — being able to edit does not imply being able to publish. Validation errors also block publishing: check for red error indicators and fill all required fields for the card's variant. If permissions and validation are fine, it may be a temporary issue in the AEM backend; retry later, and if it persists ask in the #merch-at-scale Slack channel. For publishing many cards, the AI assistant can show a preview of exactly which cards a bulk publish would affect before running it.
 
+## Why don't I see Promotions or Global settings in the side navigation?
+Those pages are group-gated, not broken. Promotions is only rendered for members of the MAS admins group. Global settings requires admin membership or the surface's power-users group, and on the sandbox, commerce, and nala surfaces it is admin-only; Masks is gated the same way. Collections appears in the navigation but is currently disabled for everyone. If you need one of these pages, request the matching group through IAM, then sign out of Studio and back in so the new membership is picked up.
+
 ## What do 401 and 403 errors mean?
 A 401 means your IMS session token is expired or invalid: sign out of Studio and sign back in; clearing the browser's session storage for the site also helps. A 403 means you are authenticated but lack permission for the action: check your IAM group membership. If you can log in but see no content at all, you are likely missing the surface-specific author group for the surface you are browsing. Request the needed groups through Adobe's IAM system, allow time for provisioning, then log out and back in.
 

@@ -6,7 +6,7 @@ keywords: collection, merch card collection, variation, locale variation, groupe
 
 ## What is a card collection?
 
-A collection is an AEM content fragment that groups merch cards. It uses the dedicated collection fragment model and is tagged mas:studio/content-type/merch-card-collection. The collection stores references to its member cards in a multi-value field along with a display label. Collections live in the same surface and locale folder structure as cards, and they can be attached to promotions alongside individual cards. Grouped (personalization) variations can also be created for collections, not only for cards.
+A collection is an AEM content fragment that groups merch cards. It uses the dedicated collection fragment model and is tagged mas:studio/content-type/merch-card-collection. The collection stores references to its member cards in a multi-value field along with a display label. Collections live in the same surface and locale folder structure as cards, and they can be attached to promotions alongside individual cards. Grouped (personalization) variations can also be created for collections, not only for cards. In the collection editor, member cards are added by pasting Studio card links into the cards list — pasted links are de-duplicated against the existing members — and removed line by line; there is no drag-and-drop reordering.
 
 ## How do I create a collection with the AI assistant?
 

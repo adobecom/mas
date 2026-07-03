@@ -34,6 +34,7 @@ import { buildEnvelopeTool, ENVELOPE_TOOL_CHOICE, ENVELOPE_TOOL_NAME } from './t
 import { extractToolEnvelope, buildEnvelopeResponseBody, normalizeEnvelopeText } from './envelope-native.js';
 import { getFlowForIntent } from './intent-registry.js';
 import { buildFeedbackEntry, appendFeedbackEntry } from './feedback-store.js';
+import { replaceStudioLinksWithFragmentIds } from './studio-links.js';
 import { validateEnvelope } from './envelope-validator.js';
 
 /**
@@ -480,7 +481,10 @@ async function main(params) {
         };
     }
 
-    const { message, conversationHistory = [], context = null, intentHint = null, requestType = null } = params;
+    const { conversationHistory = [], context = null, intentHint = null, requestType = null } = params;
+    // Pasted Studio card links carry the fragment UUID in their hash; the
+    // UUID is what every downstream identifier path understands.
+    const message = replaceStudioLinksWithFragmentIds(params.message);
 
     if (requestType === 'title') {
         return generateSessionTitle(params);
@@ -561,6 +565,34 @@ async function main(params) {
         //                          >=22 (real OSIs are base64-shaped and
         //                          ~32–48 chars, not short lowercase names).
         //                          Route to resolve_offer_selector.
+        // Bare fragment UUID (typically a pasted Studio card link) — fetch the
+        // card deterministically; the LLM adds nothing to an exact identifier.
+        const bareFragmentId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.exec(message.trim());
+        if (bareFragmentId) {
+            const fragmentId = bareFragmentId[0].toLowerCase();
+            console.log(`[Backend] Deterministic fragment-link bypass: ${fragmentId}`);
+            return {
+                statusCode: 200,
+                headers: { ...getResponseHeaders() },
+                body: {
+                    type: 'mcp_operation',
+                    mcpTool: 'get_card',
+                    mcpParams: { id: fragmentId },
+                    message: 'Fetching that card...',
+                    confirmationRequired: false,
+                    envelope: {
+                        intent: 'get_card',
+                        slots: { id: fragmentId },
+                        confidence: 'high',
+                        missing_slots: [],
+                        clarification_question: null,
+                        user_message: null,
+                    },
+                    conversationHistory: [...conversationHistory, { role: 'user', content: message }],
+                },
+            };
+        }
+
         const searchIntent = /\b(find|show|search|which|get|look\s*up|cards?)\b/i.test(message);
 
         // Abstain from the deterministic title-search bypass when the message starts with a

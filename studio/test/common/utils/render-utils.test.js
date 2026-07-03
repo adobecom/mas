@@ -156,6 +156,15 @@ describe('render-utils', () => {
             expect(getStudioFragmentDisplayPath(fragment)).to.equal('');
         });
 
+        it('uses the surface from the fragment path when it differs from the active search surface', () => {
+            Store.search.set({ ...Store.search.get(), path: 'sandbox' });
+            Store.page.set('content');
+            const fragment = { ...mockCardFragment(), path: '/content/dam/mas/nala/en_US/some-card' };
+            const result = getStudioFragmentDisplayPath(fragment);
+            expect(result).to.include('NALA');
+            expect(result).not.to.include('SANDBOX');
+        });
+
         it('uses itemPickerSurface instead of search path on promotions-editor page', () => {
             Store.search.set({ ...Store.search.get(), path: 'sandbox' });
             Store.page.set('promotions-editor');

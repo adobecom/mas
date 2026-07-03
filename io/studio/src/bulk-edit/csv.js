@@ -15,6 +15,8 @@ const FORMULA_LEAD = /^['=+\-@\t\r]/;
 function escape(value) {
     if (value === null || value === undefined) return '';
     let str = String(value);
+    // Spreadsheet apps execute cells starting with =,+,-,@ as formulas. Prefix a quote to
+    // neutralize; unescape() reverses it so the find-key round-trip stays exact.
     if (FORMULA_LEAD.test(str)) str = `'${str}`;
     if (/[",\n]/.test(str)) {
         return `"${str.replace(/"/g, '""')}"`;
@@ -121,6 +123,17 @@ function buildResultRowKeys(results) {
 function buildCsvRowsFromFindResults(items, userRows) {
     const filtered = userRows?.length ? filterResultsByUserCsv(items, userRows) : items;
     return flattenResultsToRows(filtered);
+}
+
+function buildReplaceRowsFromFindResults(items, userRows, { find, replace, matchCase } = {}) {
+    const rows = buildCsvRowsFromFindResults(items, userRows);
+    if (find && replace && replace !== find) {
+        const { replaceInValue } = require('./replace.js');
+        for (const row of rows) {
+            row.replace = replaceInValue(row.find, find, replace, !!matchCase);
+        }
+    }
+    return rows;
 }
 
 function toCsv(rows) {
@@ -271,6 +284,7 @@ module.exports = {
     filterResultsByUserCsv,
     buildResultRowKeys,
     buildCsvRowsFromFindResults,
+    buildReplaceRowsFromFindResults,
     toCsv,
     fromCsv,
     parseRawBody,

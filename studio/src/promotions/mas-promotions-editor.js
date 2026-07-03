@@ -1351,7 +1351,10 @@ class MasPromotionsEditor extends LitElement {
                                     ?disabled=${readOnly || this.evergreenEnabled}
                                     @change=${this.#handleDateUpdate}
                                 />
-                                <sp-switch ?checked=${this.evergreenEnabled} ?disabled=${readOnly} @change=${this.#handleEvergreenToggle}
+                                <sp-switch
+                                    ?checked=${this.evergreenEnabled}
+                                    ?disabled=${readOnly}
+                                    @change=${this.#handleEvergreenToggle}
                                     >Evergreen promo</sp-switch
                                 >
                             </div>

@@ -12,12 +12,19 @@
 
 import { getIntent, isStateChanging, META_INTENTS } from './intent-registry.js';
 import { ENVELOPE_TOOL_NAME } from './tool-definitions.js';
+import { normalizeEscapedText } from './response-parser.js';
 
 const GENERIC_CLARIFICATION = 'Could you clarify what you would like me to do?';
 
-function normalizeEscapedText(text) {
-    if (typeof text !== 'string' || !text.includes('\\n') || text.includes('\n')) return text;
-    return text.replace(/\\n/g, '\n').replace(/\\t/g, '\t').replace(/\\"/g, '"');
+export function normalizeEnvelopeText(envelope) {
+    if (!envelope) return envelope;
+    const normalized = { ...envelope };
+    for (const key of ['user_message', 'clarification_question']) {
+        if (typeof normalized[key] === 'string') {
+            normalized[key] = normalizeEscapedText(normalized[key]);
+        }
+    }
+    return normalized;
 }
 
 export function extractToolEnvelope(response) {

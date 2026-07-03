@@ -64,6 +64,18 @@ function normalizeJsonString(raw) {
     return out;
 }
 
+/**
+ * The model sometimes double-escapes control characters inside JSON string
+ * values (writing \\n in the JSON source), so the parsed string carries a
+ * literal backslash-n instead of a newline. Only rewrite when the text has
+ * escape sequences and no real newlines — a fully double-escaped payload —
+ * so answers that legitimately mention "\n" stay untouched.
+ */
+export function normalizeEscapedText(text) {
+    if (typeof text !== 'string' || !text.includes('\\n') || text.includes('\n')) return text;
+    return text.replace(/\\n/g, '\n').replace(/\\t/g, '\t').replace(/\\"/g, '"');
+}
+
 function tryParse(candidate) {
     try {
         return JSON.parse(candidate);
@@ -151,6 +163,10 @@ function looksLikeAttemptedJson(responseText) {
 export function parseAIResponse(responseText) {
     const cardConfig = extractJSON(responseText);
     const conversationalText = extractConversationalText(responseText);
+
+    if (typeof cardConfig?.message === 'string') {
+        cardConfig.message = normalizeEscapedText(cardConfig.message);
+    }
 
     if (cardConfig) {
         if (cardConfig.type === 'collection-selection') {

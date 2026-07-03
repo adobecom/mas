@@ -31,7 +31,7 @@ import { KNOWLEDGE_CHUNKS } from './knowledge-corpus.js';
 import { classifyIntent, createClassifierClient } from './intent-classifier.js';
 import { buildPrompt, buildFlowContext } from './prompt-builder.js';
 import { buildEnvelopeTool, ENVELOPE_TOOL_CHOICE, ENVELOPE_TOOL_NAME } from './tool-definitions.js';
-import { extractToolEnvelope, buildEnvelopeResponseBody } from './envelope-native.js';
+import { extractToolEnvelope, buildEnvelopeResponseBody, normalizeEnvelopeText } from './envelope-native.js';
 import { validateEnvelope } from './envelope-validator.js';
 
 /**
@@ -777,7 +777,7 @@ async function main(params) {
                 }
             }
 
-            const finalEnvelope = validation.ok ? validation.envelope : validation.coerced;
+            const finalEnvelope = normalizeEnvelopeText(validation.ok ? validation.envelope : validation.coerced);
             console.log(
                 JSON.stringify({
                     phase: 'envelope-validation',

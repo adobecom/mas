@@ -2,12 +2,37 @@ const { expect } = require('chai');
 
 let extractToolEnvelope;
 let buildEnvelopeResponseBody;
+let normalizeEnvelopeText;
 
 describe('ai-chat/envelope-native', () => {
     before(async () => {
         const mod = await import('../../src/ai-chat/envelope-native.js');
         extractToolEnvelope = mod.extractToolEnvelope;
         buildEnvelopeResponseBody = mod.buildEnvelopeResponseBody;
+        normalizeEnvelopeText = mod.normalizeEnvelopeText;
+    });
+
+    describe('normalizeEnvelopeText', () => {
+        it('normalizes double-escaped user_message and clarification_question in place of the raw envelope', () => {
+            const envelope = {
+                intent: 'SHOW_HELP',
+                slots: { id: 'keep\\nliteral' },
+                confidence: 'high',
+                user_message: 'I can help with:\\n\\n- Cards\\n- Offers',
+                clarification_question: 'Which one?\\n\\nPick a topic.',
+            };
+            const normalized = normalizeEnvelopeText(envelope);
+            expect(normalized.user_message).to.equal('I can help with:\n\n- Cards\n- Offers');
+            expect(normalized.clarification_question).to.equal('Which one?\n\nPick a topic.');
+            expect(normalized.slots).to.deep.equal({ id: 'keep\\nliteral' });
+            expect(envelope.user_message).to.equal('I can help with:\\n\\n- Cards\\n- Offers');
+        });
+
+        it('passes through null and envelopes without text fields', () => {
+            expect(normalizeEnvelopeText(null)).to.equal(null);
+            const bare = { intent: 'get_card', slots: {}, confidence: 'high' };
+            expect(normalizeEnvelopeText(bare)).to.deep.equal(bare);
+        });
     });
 
     describe('extractToolEnvelope', () => {

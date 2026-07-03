@@ -3,6 +3,7 @@ const { expect } = require('chai');
 let extractJSON;
 let extractConversationalText;
 let parseAIResponse;
+let normalizeEscapedText;
 
 describe('ai-chat/response-parser', () => {
     before(async () => {
@@ -10,6 +11,22 @@ describe('ai-chat/response-parser', () => {
         extractJSON = mod.extractJSON;
         extractConversationalText = mod.extractConversationalText;
         parseAIResponse = mod.parseAIResponse;
+        normalizeEscapedText = mod.normalizeEscapedText;
+    });
+
+    describe('normalizeEscapedText', () => {
+        it('rewrites fully double-escaped text into real newlines, tabs, and quotes', () => {
+            expect(normalizeEscapedText('a\\n\\nb with \\"q\\" and\\tc')).to.equal('a\n\nb with "q" and\tc');
+        });
+
+        it('leaves text containing real newlines untouched', () => {
+            expect(normalizeEscapedText('mention \\n here\nreal break')).to.equal('mention \\n here\nreal break');
+        });
+
+        it('passes through non-strings and text without escapes', () => {
+            expect(normalizeEscapedText(null)).to.equal(null);
+            expect(normalizeEscapedText('plain')).to.equal('plain');
+        });
     });
 
     describe('extractJSON', () => {
@@ -118,6 +135,13 @@ describe('ai-chat/response-parser', () => {
             const text = '{"title":"Photoshop","fields":{"description":"x"}}';
             const result = parseAIResponse(text);
             expect(result.type).to.equal('card');
+        });
+
+        it('normalizes double-escaped newlines in a JSON message payload', () => {
+            const text = '{"type":"message","message":"Line one.\\\\n\\\\nLine two."}';
+            const result = parseAIResponse(text);
+            expect(result.type).to.equal('message');
+            expect(result.message).to.equal('Line one.\n\nLine two.');
         });
 
         it('keeps surrounding prose as the message for recognized types with multiple brace regions', () => {

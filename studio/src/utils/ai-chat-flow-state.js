@@ -38,3 +38,9 @@ export function nextGuidedFlowState(state, responseType) {
 export function resolveIntentHint(contextIntentHint, activeGuidedFlow) {
     return contextIntentHint || activeGuidedFlow || null;
 }
+
+export function guidedFlowHintForIntent(intent) {
+    if (typeof intent !== 'string') return null;
+    if (intent.startsWith('release_create')) return 'release';
+    return null;
+}

@@ -231,6 +231,13 @@ export function parseAIResponse(responseText) {
             };
         }
 
+        if (typeof cardConfig.intent === 'string' && (cardConfig.user_message || cardConfig.clarification_question)) {
+            return {
+                type: 'message',
+                message: normalizeEscapedText(cardConfig.user_message || cardConfig.clarification_question),
+            };
+        }
+
         if (CARD_HINT_KEYS.some((key) => cardConfig[key] !== undefined)) {
             return {
                 type: 'card',

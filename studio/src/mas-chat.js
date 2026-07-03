@@ -43,7 +43,7 @@ import { getDamPath } from './mas-repository.js';
 import { openOfferSelectorTool } from './rte/ost.js';
 import sessionManager from './services/chat-session-manager.js';
 import { fetchProducts, fetchProductDetail } from './services/product-api.js';
-import { routerAction, nextGuidedFlowState, resolveIntentHint } from './utils/ai-chat-flow-state.js';
+import { routerAction, nextGuidedFlowState, resolveIntentHint, guidedFlowHintForIntent } from './utils/ai-chat-flow-state.js';
 
 const RECENT_MCS_PRODUCT_LIMIT = 6;
 
@@ -843,6 +843,12 @@ export class MasChat extends LitElement {
             return false;
         }
         try {
+            const flowHint = guidedFlowHintForIntent(envelope.intent);
+            if (flowHint) {
+                this.activeGuidedFlow = flowHint;
+                this.guidedFlowTurns = 0;
+            }
+
             const category = classifyEnvelopeIntent(envelope);
 
             if (category === 'meta') {
@@ -2055,6 +2061,7 @@ export class MasChat extends LitElement {
                     currentPath: currentPath ? `/content/dam/mas/${currentPath}` : null,
                     currentLocale: Store.filters?.value?.locale || 'en_US',
                 },
+                intentHint: resolveIntentHint(null, this.activeGuidedFlow),
             });
 
             this.conversationHistory = response.conversationHistory || [];

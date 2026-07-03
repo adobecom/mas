@@ -4,6 +4,7 @@ import {
     routerAction,
     nextGuidedFlowState,
     resolveIntentHint,
+    guidedFlowHintForIntent,
 } from '../../src/utils/ai-chat-flow-state.js';
 
 const dispatchResult = (confidence) => ({
@@ -80,6 +81,19 @@ describe('ai-chat-flow-state', () => {
                 flow: 'release',
                 turns: 2,
             });
+        });
+    });
+
+    describe('guidedFlowHintForIntent', () => {
+        it('maps release_create flow intents to the release hint', () => {
+            expect(guidedFlowHintForIntent('release_create.start')).to.equal('release');
+            expect(guidedFlowHintForIntent('release_create.set_product')).to.equal('release');
+        });
+
+        it('returns null for non-flow intents', () => {
+            expect(guidedFlowHintForIntent('get_card')).to.equal(null);
+            expect(guidedFlowHintForIntent('ASK_USER')).to.equal(null);
+            expect(guidedFlowHintForIntent(null)).to.equal(null);
         });
     });
 

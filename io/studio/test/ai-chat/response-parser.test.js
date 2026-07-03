@@ -146,6 +146,14 @@ describe('ai-chat/response-parser', () => {
             expect(result.message).to.equal('Line one.\n\nLine two.');
         });
 
+        it('renders the user_message when the model emits an intent envelope on the text path', () => {
+            const text =
+                '{"intent":"ASK_USER","slots":{},"confidence":"medium","user_message":"Here are the matching products I found."}';
+            const result = parseAIResponse(text);
+            expect(result.type).to.equal('message');
+            expect(result.message).to.equal('Here are the matching products I found.');
+        });
+
         it('keeps surrounding prose as the message for recognized types with multiple brace regions', () => {
             const text = 'Intro. {"type":"guided_step","message":"pick"} Outro.';
             const result = parseAIResponse(text);

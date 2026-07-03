@@ -180,7 +180,14 @@ export class LocalKnowledgeRetriever {
 
     async queryWithSources(query, options = {}) {
         const { topK = 3, minScore = 0.6 } = options;
-        const queryTerms = [...new Set(tokenize(query))].filter((t) => !STOPWORDS.has(t) && t.length > 1);
+        // Terms the corpus has never seen carry no discriminative signal for
+        // retrieval within it, but their fallback idf is the largest weight
+        // in the query — one novel word ("explain", "management") would sink
+        // coverage below the gate for every chunk. Score over seen terms
+        // only; a query with no seen terms is off-corpus and returns nothing.
+        const queryTerms = [...new Set(tokenize(query))]
+            .filter((t) => !STOPWORDS.has(t) && t.length > 1)
+            .filter((t) => this.documentFrequency.has(t));
         if (queryTerms.length === 0 || this.chunks.length === 0) {
             return { context: '', sources: [] };
         }

@@ -112,6 +112,22 @@ describe('ai-chat/knowledge-retriever', () => {
         expect(sources.map((s) => s.id)).to.include('placeholders.md#0');
     });
 
+    it('is not poisoned by query words the corpus has never seen', async () => {
+        const { sources } = await makeRetriever().queryWithSources('explain how promotions work', {
+            topK: 2,
+            minScore: 0.6,
+        });
+        expect(sources.map((s) => s.id)).to.include('promotions.md#0');
+    });
+
+    it('retrieves the topic chunk when a novel qualifier accompanies a corpus term', async () => {
+        const { sources } = await makeRetriever().queryWithSources('promotions management', {
+            topK: 2,
+            minScore: 0.6,
+        });
+        expect(sources.map((s) => s.id)).to.include('promotions.md#0');
+    });
+
     it('returns empty results for off-corpus questions', async () => {
         const { context, sources } = await makeRetriever().queryWithSources('what is the weather in paris today?', {
             topK: 3,

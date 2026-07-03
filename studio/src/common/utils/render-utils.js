@@ -17,7 +17,7 @@ export function getStudioFragmentDisplayPath(fragment) {
     const path =
         page === PAGE_NAMES.PROMOTIONS_EDITOR
             ? Store.promotions.itemPickerSurface.get() || extractSurfaceFromPath(fragment?.path) || Store.search.get().path
-            : Store.search.get().path;
+            : extractSurfaceFromPath(fragment?.path) || Store.search.get().path;
     return generateCodeToUse(fragment, path, page)?.authorPath || '';
 }
 

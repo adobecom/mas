@@ -2674,10 +2674,13 @@ export class MasChat extends LitElement {
                             )}
                         ${this.isLoading
                             ? html`
-                                  <div class="typing-indicator">
-                                      <div class="typing-dot"></div>
-                                      <div class="typing-dot"></div>
-                                      <div class="typing-dot"></div>
+                                  <div class="typing-indicator-row">
+                                      <div class="message-avatar">✦</div>
+                                      <div class="typing-indicator">
+                                          <div class="typing-dot"></div>
+                                          <div class="typing-dot"></div>
+                                          <div class="typing-dot"></div>
+                                      </div>
                                   </div>
                               `
                             : nothing}

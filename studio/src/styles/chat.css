@@ -241,18 +241,6 @@
     justify-content: flex-end;
 }
 
-.chat-message-user .message-card {
-    background: var(--spectrum-global-color-blue-500, #1473e6);
-    border: none;
-    border-radius: 16px 16px 4px 16px;
-}
-
-.chat-message-assistant .message-card {
-    background: var(--spectrum-global-color-gray-75, #fdfdfd);
-    border-color: var(--spectrum-global-color-gray-200, #e6e6e6);
-    border-radius: 16px 16px 16px 4px;
-}
-
 .chat-message-error .message-card {
     background: var(--spectrum-global-color-red-100, #ffdddd);
     border-color: var(--spectrum-global-color-red-300, #f29b9b);
@@ -1845,14 +1833,19 @@
     --spectrum-actionbutton-icon-color-default: white;
     --spectrum-actionbutton-icon-color-hover: white;
     transition:
-        transform 0.2s ease,
-        box-shadow 0.2s ease;
+        transform 140ms var(--mas-ease-out),
+        box-shadow 140ms var(--mas-ease-out),
+        opacity 140ms var(--mas-ease-out);
     animation: fabPopIn 0.3s ease-out;
 }
 
 .chat-fab:hover {
-    transform: scale(1.05);
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(90, 79, 245, 0.45);
+}
+
+.chat-fab:active {
+    transform: scale(0.95);
 }
 
 .chat-fab sp-icon-chat,
@@ -1861,8 +1854,9 @@
 }
 
 .chat-fab-active {
-    --mod-actionbutton-background-color-default: var(--spectrum-global-color-gray-600, #6d6d6d);
-    --mod-actionbutton-background-color-hover: var(--spectrum-global-color-gray-700, #464646);
+    opacity: 0;
+    transform: scale(0.5);
+    pointer-events: none;
 }
 
 /* Chat Drawer */
@@ -2218,31 +2212,6 @@ mas-chat {
     color: var(--spectrum-gray-600, #6d6d6d);
 }
 
-.message-avatar {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-}
-
-.message-avatar-user {
-    background: var(--spectrum-indigo-300, #d3d5ff);
-    color: var(--spectrum-indigo-900, #5258e4);
-}
-
-.message-avatar-assistant {
-    background: linear-gradient(135deg, var(--spectrum-purple-100, #f6e0ff), var(--spectrum-purple-200, #e6b0f5));
-    color: var(--spectrum-purple-700, #8b3ab5);
-}
-
-.message-avatar-error {
-    background: var(--spectrum-red-100, #ffdddd);
-    color: var(--spectrum-red-700, #c9252d);
-}
-
 .chat-message-user .message-card .message-content,
 .chat-message-user .message-card .message-text,
 .chat-message-user .message-card .message-text p,
@@ -2554,21 +2523,6 @@ body.chat-resizing {
     }
 }
 
-.chat-fab {
-    transition:
-        transform 140ms var(--mas-ease-out),
-        box-shadow 140ms var(--mas-ease-out);
-}
-
-.chat-fab:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 18px rgba(90, 79, 245, 0.45);
-}
-
-.chat-fab:active {
-    transform: scale(0.95);
-}
-
 /* ==========================================================================
    Welcome screen gradient halo hero (MWPW-183572)
    ========================================================================== */
@@ -2670,6 +2624,7 @@ body.chat-resizing {
 .chat-message-user .message-card {
     background: linear-gradient(135deg, var(--mas-chat-gradient-start), #5a4ff5);
     color: #fff;
+    border: none;
     box-shadow: 0 4px 14px rgba(59, 99, 251, 0.35);
     border-radius: 16px 16px 4px 16px;
 }
@@ -2797,6 +2752,16 @@ body.chat-resizing {
 /* ==========================================================================
    Thinking glow, chip stagger, micro-interactions, sources expand (MWPW-183572)
    ========================================================================== */
+.typing-indicator-row {
+    display: flex;
+    align-items: flex-end;
+    gap: var(--spectrum-global-dimension-size-100, 8px);
+}
+
+.typing-indicator-row .message-avatar {
+    animation: avatarPop 300ms var(--mas-ease-spring) both;
+}
+
 .typing-indicator {
     position: relative;
 }
@@ -2905,6 +2870,7 @@ body.chat-resizing {
     .msg-bloom .message-avatar,
     .msg-bloom .message-card,
     .msg-rise,
+    .typing-indicator-row .message-avatar,
     .welcome-chips sp-action-button,
     .sources-list {
         animation-name: reducedFade;

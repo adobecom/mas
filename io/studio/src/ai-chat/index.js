@@ -32,6 +32,7 @@ import { classifyIntent, createClassifierClient } from './intent-classifier.js';
 import { buildPrompt, buildFlowContext } from './prompt-builder.js';
 import { buildEnvelopeTool, ENVELOPE_TOOL_CHOICE, ENVELOPE_TOOL_NAME } from './tool-definitions.js';
 import { extractToolEnvelope, buildEnvelopeResponseBody, normalizeEnvelopeText } from './envelope-native.js';
+import { buildFeedbackEntry, appendFeedbackEntry } from './feedback-store.js';
 import { validateEnvelope } from './envelope-validator.js';
 
 /**
@@ -147,10 +148,21 @@ async function recordChatFeedback(params) {
         }),
     );
 
+    let stored = false;
+    try {
+        const stateLib = await import('@adobe/aio-lib-state');
+        const state = await stateLib.init();
+        const now = Date.now();
+        await appendFeedbackEntry(state, buildFeedbackEntry(params, now), now);
+        stored = true;
+    } catch (error) {
+        console.warn('[ai-chat feedback] state write failed:', error.message);
+    }
+
     return {
         statusCode: 200,
         headers: { ...getResponseHeaders() },
-        body: { ok: true },
+        body: { ok: true, stored },
     };
 }
 

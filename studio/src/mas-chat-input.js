@@ -2,6 +2,7 @@ import { LitElement, html, nothing } from 'lit';
 import { openOfferSelectorTool, closeOfferSelectorTool } from './rte/ost.js';
 import { EVENT_OST_OFFER_SELECT, EVENT_OST_MULTI_OFFER_SELECT, EVENT_OST_SELECT } from './constants.js';
 import './rte/rte-field.js';
+import { pasteTextFromClipboardHtml } from './utils/chat-paste.js';
 
 /**
  * Chat Input Component
@@ -30,6 +31,7 @@ export class MasChatInput extends LitElement {
         this.boundHandleMultiOfferSelect = this.handleMultiOfferSelect.bind(this);
         this.boundHandleEscKey = this.handleEscKey.bind(this);
         this.boundHandleRteChange = this.handleRteChange.bind(this);
+        this.boundHandlePaste = this.handlePaste.bind(this);
     }
 
     createRenderRoot() {
@@ -44,6 +46,7 @@ export class MasChatInput extends LitElement {
         document.addEventListener('keydown', this.boundHandleEscKey, { capture: true });
         this.addEventListener('change', this.boundHandleRteChange);
         this.addEventListener('keyup', this.boundHandleRteChange);
+        this.addEventListener('paste', this.boundHandlePaste, { capture: true });
     }
 
     disconnectedCallback() {
@@ -54,6 +57,7 @@ export class MasChatInput extends LitElement {
         document.removeEventListener('keydown', this.boundHandleEscKey, { capture: true });
         this.removeEventListener('change', this.boundHandleRteChange);
         this.removeEventListener('keyup', this.boundHandleRteChange);
+        this.removeEventListener('paste', this.boundHandlePaste, { capture: true });
     }
 
     handleOstSelect(event) {
@@ -146,6 +150,21 @@ export class MasChatInput extends LitElement {
         );
         this.selectedOsi = null;
         this.selectedOffer = null;
+    }
+
+    handlePaste(event) {
+        // Rich clipboard content from Studio "copy link" carries the URL only
+        // in the HTML flavor; the plain flavor is the human label. Substitute
+        // anchors with their hrefs so the link survives the paste.
+        const html = event.clipboardData?.getData('text/html');
+        const replacement = pasteTextFromClipboardHtml(html);
+        if (!replacement) return;
+        const view = this.querySelector('rte-field')?.editorView;
+        if (!view) return;
+        event.preventDefault();
+        event.stopPropagation();
+        view.dispatch(view.state.tr.insertText(replacement));
+        view.focus();
     }
 
     handleEscKey(event) {

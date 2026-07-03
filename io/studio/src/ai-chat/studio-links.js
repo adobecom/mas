@@ -8,12 +8,16 @@
  * resolved to their UUIDs before routing.
  */
 
-const STUDIO_LINK_PATTERN = /https?:\/\/\S*studio\.html\S*/gi;
+// Chat messages arrive as the RTE's serialized inline HTML, so links can be
+// entity-escaped (&amp;) and bounded by markup or attribute quotes — stop the
+// match at whitespace, angle brackets, and quotes.
+const STUDIO_LINK_PATTERN = /https?:\/\/[^\s<>"']*studio\.html[^\s<>"']*/gi;
 const FRAGMENT_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function fragmentIdFromLink(link) {
-    const hashIndex = link.indexOf('#');
-    const hashParams = hashIndex >= 0 ? new URLSearchParams(link.slice(hashIndex + 1)) : null;
+    const decoded = link.replace(/&amp;/gi, '&');
+    const hashIndex = decoded.indexOf('#');
+    const hashParams = hashIndex >= 0 ? new URLSearchParams(decoded.slice(hashIndex + 1)) : null;
     const candidate = hashParams?.get('query');
     return candidate && FRAGMENT_UUID.test(candidate) ? candidate.toLowerCase() : null;
 }

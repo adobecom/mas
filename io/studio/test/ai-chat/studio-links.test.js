@@ -42,6 +42,25 @@ describe('ai-chat/studio-links', () => {
         });
     });
 
+    describe('HTML-serialized messages (RTE output)', () => {
+        it('extracts from links whose ampersands are HTML-escaped', () => {
+            const escaped = `https://mas.adobe.com/studio.html#content-type=merch-card&amp;page=content&amp;query=${ID}`;
+            expect(extractStudioFragmentIds(escaped)).to.deep.equal([ID]);
+            expect(replaceStudioLinksWithFragmentIds(escaped)).to.equal(ID);
+        });
+
+        it('does not swallow trailing markup after the link', () => {
+            const html = `<p>https://mas.adobe.com/studio.html#page=content&query=${ID}</p>`;
+            expect(extractStudioFragmentIds(html)).to.deep.equal([ID]);
+            expect(replaceStudioLinksWithFragmentIds(html)).to.equal(`<p>${ID}</p>`);
+        });
+
+        it('extracts the href from a pasted rich anchor', () => {
+            const html = `<a href="https://mas.adobe.com/studio.html#page=content&amp;query=${ID}">merch-card: SANDBOX / Mini</a>`;
+            expect(extractStudioFragmentIds(html)).to.deep.equal([ID]);
+        });
+    });
+
     describe('replaceStudioLinksWithFragmentIds', () => {
         it('replaces a bare pasted link with its fragment UUID', () => {
             expect(replaceStudioLinksWithFragmentIds(PROD_LINK)).to.equal(ID);

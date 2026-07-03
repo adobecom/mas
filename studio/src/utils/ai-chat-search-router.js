@@ -64,8 +64,55 @@ const OSI_KEYWORD_RE = /\b(?:osi|offer\s+selector|os-id|wcs-osi)\b/i;
 const OFFER_KEYWORD_RE = /\b(?:offer\s*id|offer-id)\b/i;
 // Anchor words that signal the user wants the *variation graph* of a UUID,
 // not just the card itself. Same UUID + this anchor → get_variations.
-const VARIATIONS_ANCHOR_RE =
-    /\b(?:variations?\s+of|variations?\s+from|grouped\s+variations?|from\s+parent|child(?:ren)?\s+of)\b/i;
+const VARIATIONS_ANCHOR_RE = /\b(?:variations?|from\s+parent|child(?:ren)?\s+of|locale\s+versions?)\b/i;
+// Mutation verbs beside a UUID mean the user wants to CHANGE the card —
+// hijacking those into a read (get_card / get_variations) silently drops
+// the request. The model owns mutations.
+const ID_MUTATION_RE =
+    /\b(?:create|update|edit|change|modify|set|publish|unpublish|delete|remove|duplicate|copy|rename|translate|tag|link|add)\b/i;
+// Vocabulary of a plain "fetch this card" ask. A UUID accompanied by words
+// outside this list carries semantics the router cannot model — abstain and
+// let the model pick the right intent for the id.
+const ID_LOOKUP_WORDS = new Set([
+    'get',
+    'show',
+    'open',
+    'fetch',
+    'view',
+    'load',
+    'find',
+    'look',
+    'at',
+    'up',
+    'lookup',
+    'card',
+    'fragment',
+    'the',
+    'this',
+    'that',
+    'a',
+    'an',
+    'me',
+    'please',
+    'details',
+    'info',
+    'of',
+    'for',
+    'id',
+    'uuid',
+]);
+
+function isPlainIdLookup(text) {
+    // URLs and quoted names are descriptive, not semantic: a pasted link
+    // holds the UUID and a quoted string is just the card's title.
+    const rest = text
+        .replace(/https?:\/\/[^\s<>"']*/gi, ' ')
+        .replace(/"[^"]*"|'[^']*'/g, ' ')
+        .replace(new RegExp(UUID_RE.source, 'gi'), ' ')
+        .toLowerCase()
+        .match(/[a-z]+/g);
+    return (rest ?? []).every((word) => ID_LOOKUP_WORDS.has(word));
+}
 const ALL_LOCALES_RE = /\b(?:in|across|for|over)\s+(?:all|every|each)\s+locales?\b/i;
 const LOCALE_RE = /\b(?:in|for)\s+([a-z]{2}_[A-Z]{2,4})\b/;
 // Trailing "in <surface>" / "for <surface>" so the user can override the
@@ -200,6 +247,9 @@ export function classifySearchIntent(message, context = {}) {
         if (countMatches(trimmed, new RegExp(UUID_RE.source, 'gi')) > 1) {
             return { ...empty, confidence: 0.7 };
         }
+        if (ID_MUTATION_RE.test(trimmed)) {
+            return { ...empty, confidence: 0.7 };
+        }
         // UUID + variation anchor → variation graph lookup, not a single card.
         if (VARIATIONS_ANCHOR_RE.test(trimmed)) {
             return {
@@ -213,16 +263,20 @@ export function classifySearchIntent(message, context = {}) {
                 },
             };
         }
-        return {
-            intent: 'id-lookup',
-            slots: { id: uuidMatch[1], locale },
-            confidence: 0.99,
-            missingSlot: null,
-            dispatch: {
-                mcpTool: 'get_card',
-                mcpParams: { id: uuidMatch[1] },
-            },
-        };
+        if (isPlainIdLookup(trimmed)) {
+            return {
+                intent: 'id-lookup',
+                slots: { id: uuidMatch[1], locale },
+                confidence: 0.99,
+                missingSlot: null,
+                dispatch: {
+                    mcpTool: 'get_card',
+                    mcpParams: { id: uuidMatch[1] },
+                },
+            };
+        }
+        // UUID plus semantics the router cannot model — the model routes it.
+        return { ...empty, confidence: 0.7 };
     }
 
     const offerIdMatch = trimmed.match(OFFER_ID_RE);

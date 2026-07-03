@@ -68,6 +68,23 @@ describe('ai-chat-search-router', () => {
             expect(result.intent).to.equal('id-lookup');
             expect(result.dispatch.mcpTool).to.equal('get_card');
         });
+
+        it('classifies "does this card have variations? <UUID>" as variations-lookup', () => {
+            const result = classifySearchIntent(`does this card have variations? ${UUID}`);
+            expect(result.intent).to.equal('variations-lookup');
+            expect(result.dispatch.mcpTool).to.equal('get_variations');
+        });
+
+        it('abstains on mutation verbs with a UUID so the model routes them', () => {
+            expect(classifySearchIntent(`publish ${UUID}`).dispatch).to.equal(null);
+            expect(classifySearchIntent(`create a variation of ${UUID}`).dispatch).to.equal(null);
+            expect(classifySearchIntent(`duplicate ${UUID} into fr_FR`).dispatch).to.equal(null);
+        });
+
+        it('abstains on UUID questions it cannot model instead of hijacking to get_card', () => {
+            expect(classifySearchIntent(`what collections reference ${UUID}?`).dispatch).to.equal(null);
+            expect(classifySearchIntent(`is ${UUID} published on acom?`).dispatch).to.equal(null);
+        });
     });
 
     describe('OSI detection (osi-lookup)', () => {

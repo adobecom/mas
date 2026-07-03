@@ -297,8 +297,13 @@ export function openOfferSelectorTool(triggerElement, offerElement, initialSearc
         const isChatOsiAttach = (chatTag === 'MAS-CHAT-INPUT' || chatTag === 'MAS-CHAT') && !isMultiSelectRequested;
         // AI-chat surfaces benefit from seeing both DRAFT + PUBLISHED offers
         // at once. Studio-side Store.landscape is 2-state (Published/Draft);
-        // OST accepts a third 'BOTH' value that merges the two result sets.
-        const chatLandscape = chatTag === 'MAS-CHAT-INPUT' || chatTag === 'MAS-CHAT' ? 'BOTH' : landscape;
+        // only the Spectrum 2 OST (studio/ost/ost-new.js, detected via its
+        // mas-ost-app element) understands the merged 'BOTH' value — the
+        // legacy tacocat bundle passes it straight to AOS, which rejects it
+        // with a 400 and the offer list comes back empty.
+        const supportsMergedLandscape = Boolean(customElements.get('mas-ost-app'));
+        const chatLandscape =
+            supportsMergedLandscape && (chatTag === 'MAS-CHAT-INPUT' || chatTag === 'MAS-CHAT') ? 'BOTH' : landscape;
         const authoringLocale = Store.localeOrRegion();
         const localeMeta = getLocaleByCode(authoringLocale);
         const ostCloseFunction = window.ost.openOfferSelectorTool({

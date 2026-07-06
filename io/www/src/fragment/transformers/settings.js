@@ -166,7 +166,18 @@ export function resolveSettingEntry(fragment, locale, setting) {
     const defaultEntry = setting.default;
     if (!defaultEntry) return null;
     const template = fragment.fields?.variant;
-    if (defaultEntry.templates?.length > 0 && !defaultEntry.templates.includes(template)) return null;
+    if (defaultEntry.templates?.length > 0 && !defaultEntry.templates.includes(template)) {
+        const definition = SETTING_NAME_BY_VALUE.get(defaultEntry.name);
+        const fragmentValue = fragment.fields[definition.propertyName || definition.name];
+        if (typeof fragmentValue !== 'undefined') {
+            return {
+                ...defaultEntry,
+                templates: [],
+                booleanValue: fragmentValue,
+            };
+        }
+        return null;
+    }
     const fragmentTags = fragment.fields?.tags ?? [];
     const filtered = setting.override.filter((overrideSetting) => {
         const localeOk =

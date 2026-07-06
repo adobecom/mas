@@ -854,10 +854,28 @@ describe('mas-bulk-publish-editor (handleConfirmPublish)', () => {
         el.confirmOpen = true;
 
         const publishStub = sinon.stub(el, 'publish').resolves();
-        el.handleConfirmPublish();
+        el.handleConfirmPublish(new CustomEvent('publish-confirmed', { detail: {} }));
 
         expect(el.confirmOpen).to.equal(false);
         expect(publishStub.calledOnce).to.equal(true);
+        publishStub.restore();
+    });
+
+    it('handleConfirmPublish forwards includeVariations and includeCards from event detail', async () => {
+        const el = await makeEditor();
+        seedNew();
+        await el.updateComplete;
+        el.localItems = [{ status: 'valid' }];
+        el.confirmOpen = true;
+
+        const publishStub = sinon.stub(el, 'publish').resolves();
+        el.handleConfirmPublish(
+            new CustomEvent('publish-confirmed', {
+                detail: { includeVariations: true, includeCards: true },
+            }),
+        );
+
+        expect(publishStub.calledWith(true, true)).to.equal(true);
         publishStub.restore();
     });
 });

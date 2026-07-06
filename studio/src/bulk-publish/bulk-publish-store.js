@@ -23,6 +23,8 @@ export async function startPublishing({
     pollIntervalMs = 2000,
     maxPolls = 150,
     sleepFn = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+    includeVariations = false,
+    includeCards = false,
 }) {
     const fn = publishFn ?? (await import('./bulk-publish-client.js')).publishBulk;
     const profile = await window.adobeIMS?.getProfile?.().catch(() => null);
@@ -38,7 +40,7 @@ export async function startPublishing({
         BULK_PUBLISH_STATUS.FAILED,
     ]);
     try {
-        await fn({ ioBaseUrl, projectId: project.id, publishedBy, token });
+        await fn({ ioBaseUrl, projectId: project.id, publishedBy, token, includeVariations, includeCards });
         let interval = pollIntervalMs;
         for (let i = 0; i < maxPolls; i++) {
             await repository.refreshFragment(project).catch(() => {});

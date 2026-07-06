@@ -453,9 +453,10 @@ class MasBulkPublishEditor extends LitElement {
         this.confirmOpen = false;
     }
 
-    handleConfirmPublish() {
+    handleConfirmPublish(e) {
         this.confirmOpen = false;
-        this.publish();
+        const { includeVariations = false, includeCards = false } = e?.detail ?? {};
+        this.publish(includeVariations, includeCards);
     }
 
     setProjectField(name, value) {
@@ -849,7 +850,7 @@ class MasBulkPublishEditor extends LitElement {
         }
     }
 
-    async publish() {
+    async publish(includeVariations = false, includeCards = false) {
         if (this.hasChanges) await this.saveBulkProject();
         if (!this.canStartPublishing) return;
         try {
@@ -860,6 +861,8 @@ class MasBulkPublishEditor extends LitElement {
                     token: this.token,
                     ioBaseUrl: this.ioBaseUrl,
                     repository: this.repository,
+                    includeVariations,
+                    includeCards,
                 });
             });
             this.requestUpdate();

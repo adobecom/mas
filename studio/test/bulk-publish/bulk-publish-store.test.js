@@ -53,6 +53,22 @@ describe('startPublishing()', () => {
         expect(publishFn.firstCall.args[0]).to.include({ projectId: 'proj-1', publishedBy: 'user@example.com' });
     });
 
+    it('forwards includeVariations and includeCards to publishFn', async () => {
+        const publishFn = sinon.stub().resolves({ accepted: true });
+        await startPublishing({
+            project,
+            token,
+            ioBaseUrl,
+            repository: repo,
+            publishFn,
+            pollIntervalMs: 1,
+            maxPolls: 5,
+            includeVariations: true,
+            includeCards: true,
+        });
+        expect(publishFn.firstCall.args[0]).to.include({ includeVariations: true, includeCards: true });
+    });
+
     it('calls repository.refreshFragment after successful publish', async () => {
         const publishFn = sinon.stub().resolves({ accepted: true });
         await startPublishing({ project, token, ioBaseUrl, repository: repo, publishFn, pollIntervalMs: 1, maxPolls: 5 });

@@ -1013,6 +1013,13 @@ export async function hydrate(fragment, merchCard) {
     if (fragment.variationId)
         merchCard.setAttribute('variation-id', fragment.variationId);
     if (fragment.maskId) merchCard.setAttribute('mask-id', fragment.maskId);
+    if (fragment.promoProject)
+        merchCard.setAttribute('data-promotion-project', fragment.promoProject);
+    if (fragment.promoVariationProject)
+        merchCard.setAttribute(
+            'data-promotion-variation-project',
+            fragment.promoVariationProject,
+        );
     merchCard.variant = variant;
     await merchCard.updateComplete;
 

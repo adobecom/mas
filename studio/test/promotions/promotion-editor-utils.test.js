@@ -409,12 +409,12 @@ describe('promotion-editor-utils', () => {
             );
         });
 
-        it('returns a message when promo code is missing', () => {
+        it('is valid when promo code is missing (promo code is optional)', () => {
             const f = {
                 ...baseFragment(),
                 getFieldValue: (name) => (name === 'promoCode' ? '' : baseFragment().getFieldValue(name)),
             };
-            expect(getPromotionRequiredFieldsValidation(f, 1)).to.equal('Please enter a Promo Code.');
+            expect(getPromotionRequiredFieldsValidation(f, 1)).to.be.null;
         });
 
         it('returns a message when start date is missing', () => {

@@ -98,17 +98,42 @@ async function wcs(context) {
         return context;
     }
     if (matches.length > 0) {
+        // Promo codes applied to referenced cards live on each card's fields.promoCode (keyed by its base osi),
+        // not in the price HTML nor on the collection root. Build a base-osi -> promoCode lookup to fill the cache
+        // with the right promotion_code for each card's offer. The same osi may be used by several cards with
+        // different promo treatments (e.g. one with a promo, one without), so also track osis used without a promo
+        // to fill their plain (no promo) entry too.
+        const promoCodeByOsi = {};
+        const noPromoOsis = new Set();
+        for (const ref of Object.values(context.body.references ?? {})) {
+            const fields = ref?.value?.fields;
+            if (!fields?.osi) continue;
+            const { osi } = fields;
+            if (fields.promoCode) {
+                promoCodeByOsi[osi] = fields.promoCode;
+            } else {
+                noPromoOsis.add(osi);
+            }
+        }
         const tokenMap = new Map();
         const tokenKey = ({ osi, promotionCode }) => `${osi}-${promotionCode || ''}`;
+        const addToken = (token) => {
+            const key = tokenKey(token);
+            if (!tokenMap.has(key)) tokenMap.set(key, token);
+        };
         matches.forEach((match) => {
-            const token = {
-                osi: context.substituteMap?.[match.groups.osi] ?? match.groups.osi,
-            };
+            const baseOsi = match.groups.osi;
+            const osi = context.substituteMap?.[baseOsi] ?? baseOsi;
             const promoMatch = match[0].match(PROMOCODE_REGEXP);
             if (promoMatch && promoMatch.groups?.promotionCode) {
-                token.promotionCode = promoMatch.groups.promotionCode;
+                addToken({ osi, promotionCode: promoMatch.groups.promotionCode });
+                return;
             }
-            tokenMap.set(tokenKey(token), token);
+            const promoCode = promoCodeByOsi[baseOsi];
+            if (promoCode) addToken({ osi, promotionCode: promoCode });
+            // Cache the plain (no promo) offer when no card promotes this osi, or when a card shares
+            // this osi without a promo of its own (mixed case) — otherwise that card would miss the cache.
+            if (!promoCode || noPromoOsis.has(baseOsi)) addToken({ osi });
         });
 
         if (context.body.fields?.osi) {

@@ -164,14 +164,10 @@ jobs:
               env:
                   BASE_REF: ${{ github.event.pull_request.base.ref }}
               run: |
-                  git diff --quiet "origin/${BASE_REF}...HEAD" -- io/www/ 2>/dev/null
-                  status=$?
-                  if [ "$status" -eq 0 ]; then
+                  if git diff --quiet "origin/${BASE_REF}...HEAD" -- io/www/ 2>/dev/null; then
                       echo "io-www=false" >> "$GITHUB_OUTPUT"
-                  elif [ "$status" -eq 1 ]; then
-                      echo "io-www=true" >> "$GITHUB_OUTPUT"
                   else
-                      echo "io-www=false" >> "$GITHUB_OUTPUT"
+                      echo "io-www=true" >> "$GITHUB_OUTPUT"
                   fi
 
             - name: Set up Node.js ${{ matrix.node-version }}

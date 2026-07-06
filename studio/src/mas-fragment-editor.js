@@ -2121,7 +2121,7 @@ export default class MasFragmentEditor extends LitElement {
             if (!this.editorContextStore.isFragmentTranslatable) return null;
 
             let hasVariation = false;
-            if (this.editorContextStore.isGroupedVariationByPath) {
+            if (this.editorContextStore.isGroupedVariationByPath || this.editorContextStore.isPromoVariationByPath) {
                 const translatedLocales = Store.fragmentEditor.translatedLocales.get();
                 if (!translatedLocales) return null;
                 hasVariation = translatedLocales.some((t) => t.locale === currentLocale);

@@ -122,6 +122,79 @@ describe('Reactivity Stores', () => {
                 store.defaultLocaleId = null;
                 expect(store.isVariation('any-id')).to.not.be.ok;
             });
+
+            it('should always treat a promo variation as a variation, regardless of its path locale', () => {
+                store.isPromoVariationByPath = true;
+
+                store.isVariationByPath = false;
+                expect(store.isVariation('promo-fragment-id')).to.be.true;
+
+                store.isVariationByPath = true;
+                expect(store.isVariation('promo-fragment-id')).to.be.true;
+            });
+        });
+
+        describe('isLocaleVariation', () => {
+            beforeEach(() => {
+                store = new EditorContextStore(null);
+            });
+
+            it('delegates to isVariation for non-promo fragments', () => {
+                store.defaultLocaleId = 'parent-fragment-id';
+                expect(store.isLocaleVariation('different-id')).to.be.true;
+                expect(store.isLocaleVariation('parent-fragment-id')).to.be.false;
+            });
+
+            it('treats a promo variation as a locale variation only when its own path locale differs from the surface default', () => {
+                store.isPromoVariationByPath = true;
+
+                store.isVariationByPath = false;
+                expect(store.isLocaleVariation('promo-fragment-id')).to.be.false;
+
+                store.isVariationByPath = true;
+                expect(store.isLocaleVariation('promo-fragment-id')).to.be.true;
+            });
+
+            it('ignores the field-inheritance defaultLocaleId when deciding promo variation locale state', () => {
+                store.isPromoVariationByPath = true;
+                store.isVariationByPath = false;
+                store.defaultLocaleId = 'unrelated-base-card-id';
+
+                expect(store.isLocaleVariation('promo-fragment-id')).to.be.false;
+            });
+        });
+
+        describe('isFragmentTranslatable', () => {
+            beforeEach(() => {
+                store = new EditorContextStore(null);
+            });
+
+            it('is translatable for a regular default-locale fragment', () => {
+                expect(store.isFragmentTranslatable).to.be.true;
+            });
+
+            it('is not translatable for a locale-variation fragment', () => {
+                store.isVariationByPath = true;
+                expect(store.isFragmentTranslatable).to.be.false;
+            });
+
+            it('is translatable for a grouped variation regardless of path locale', () => {
+                store.isVariationByPath = true;
+                store.isGroupedVariationByPath = true;
+                expect(store.isFragmentTranslatable).to.be.true;
+            });
+
+            it('is translatable for a promo variation at the default locale', () => {
+                store.isPromoVariationByPath = true;
+                store.isVariationByPath = false;
+                expect(store.isFragmentTranslatable).to.be.true;
+            });
+
+            it('is not translatable for a promo variation at a non-default locale', () => {
+                store.isPromoVariationByPath = true;
+                store.isVariationByPath = true;
+                expect(store.isFragmentTranslatable).to.be.false;
+            });
         });
 
         describe('detectVariationFromPath', () => {

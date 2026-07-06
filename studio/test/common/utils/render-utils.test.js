@@ -137,6 +137,10 @@ describe('render-utils', () => {
             getTagTitle: () => null,
         });
 
+        afterEach(() => {
+            Store.promotions.itemPickerSurface.set(null);
+        });
+
         it('returns the prefixed studio path (authorPath) for the active surface', () => {
             Store.search.set({ ...Store.search.get(), path: 'acom' });
             Store.page.set('content');
@@ -150,6 +154,47 @@ describe('render-utils', () => {
             Store.page.set('content');
             const fragment = { id: 'x', model: { path: '/unknown/model' }, path: '/content/dam/mas/acom/en_US/x' };
             expect(getStudioFragmentDisplayPath(fragment)).to.equal('');
+        });
+
+        it('uses the surface from the fragment path when it differs from the active search surface', () => {
+            Store.search.set({ ...Store.search.get(), path: 'sandbox' });
+            Store.page.set('content');
+            const fragment = { ...mockCardFragment(), path: '/content/dam/mas/nala/en_US/some-card' };
+            const result = getStudioFragmentDisplayPath(fragment);
+            expect(result).to.include('NALA');
+            expect(result).not.to.include('SANDBOX');
+        });
+
+        it('uses itemPickerSurface instead of search path on promotions-editor page', () => {
+            Store.search.set({ ...Store.search.get(), path: 'sandbox' });
+            Store.page.set('promotions-editor');
+            Store.promotions.itemPickerSurface.set('commerce');
+            const fragment = mockCardFragment();
+            const result = getStudioFragmentDisplayPath(fragment);
+            expect(result).to.include('COMMERCE');
+            expect(result).not.to.include('SANDBOX');
+        });
+
+        it('falls back to search path on promotions-editor when itemPickerSurface is null and fragment has no path', () => {
+            Store.search.set({ ...Store.search.get(), path: 'sandbox' });
+            Store.page.set('promotions-editor');
+            Store.promotions.itemPickerSurface.set(null);
+            const fragment = mockCardFragment();
+            const result = getStudioFragmentDisplayPath(fragment);
+            expect(result).to.include('SANDBOX');
+        });
+
+        it('uses the surface from fragment path in view-only mode (itemPickerSurface null)', () => {
+            Store.search.set({ ...Store.search.get(), path: 'sandbox' });
+            Store.page.set('promotions-editor');
+            Store.promotions.itemPickerSurface.set(null);
+            const fragment = {
+                ...mockCardFragment(),
+                path: '/content/dam/mas/express/en_US/some-card',
+            };
+            const result = getStudioFragmentDisplayPath(fragment);
+            expect(result).to.include('EXPRESS');
+            expect(result).not.to.include('SANDBOX');
         });
     });
 

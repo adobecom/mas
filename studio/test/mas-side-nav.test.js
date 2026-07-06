@@ -1318,14 +1318,14 @@ describe('MasSideNav - Promotions nav item', () => {
         Store.page.set(originalPage);
     });
 
-    it('hides Promotions for non-admin users', async () => {
+    it('shows Promotions for non-admin users (editing is gated downstream)', async () => {
         Store.profile.set({ email: 'user@adobe.com' });
         Store.users.set([{ userPrincipalName: 'user@adobe.com', groups: ['GRP-ODIN-MAS-ACOM-POWERUSERS'] }]);
         await el.updateComplete;
         const items = el.shadowRoot.querySelectorAll('mas-side-nav-item');
         const promotions = [...items].find((n) => n.label === 'Promotions');
-        expect(promotions).to.be.undefined;
-        expect([...items].some((n) => n.label === 'Collections')).to.be.true;
+        expect(promotions).to.exist;
+        expect(promotions.hasAttribute('disabled')).to.be.false;
     });
 
     it('shows Promotions for MAS admin users', async () => {

@@ -101,6 +101,7 @@ class MasPromotionsEditor extends LitElement {
         duplicateDialogOpen: { type: Boolean, state: true },
         duplicating: { type: Boolean, state: true },
         promotionItemsPickerOpen: { type: Boolean, state: true },
+        evergreenEnabled: { type: Boolean, state: true },
     };
 
     #promotionItemsReactive;
@@ -135,6 +136,7 @@ class MasPromotionsEditor extends LitElement {
         this.duplicateDialogOpen = false;
         this.duplicating = false;
         this.promotionItemsPickerOpen = false;
+        this.evergreenEnabled = true;
     }
 
     async connectedCallback() {
@@ -181,6 +183,7 @@ class MasPromotionsEditor extends LitElement {
 
         if (this.fragmentStore) {
             this.storeController = new StoreController(this, this.fragmentStore);
+            this.evergreenEnabled = this.fragment?.isEvergreen ?? true;
         }
         this.#promotionItemsReactive = new ReactiveController(this, [
             Store.promotions.selectedCards,
@@ -453,6 +456,7 @@ class MasPromotionsEditor extends LitElement {
             this.fragmentStore = new FragmentStore(promotion);
             this.storeController = new StoreController(this, this.fragmentStore);
             this.storeController.hostConnected();
+            this.evergreenEnabled = this.fragment?.isEvergreen ?? true;
             await this.#hydratePromotionItemSelectionFromFragment();
         } catch (error) {
             console.error(error);
@@ -599,6 +603,11 @@ class MasPromotionsEditor extends LitElement {
         this.fragmentStore.updateField(fieldName, value);
     }
 
+    #handleEvergreenToggle = ({ target }) => {
+        this.evergreenEnabled = target.checked;
+        this.fragmentStore.updateField('endDate', ['']);
+    };
+
     #handleDateUpdate({ target }) {
         const fieldName = target.dataset.field;
         const raw = target.value?.trim() ?? '';
@@ -622,6 +631,8 @@ class MasPromotionsEditor extends LitElement {
 
     #getPayloadValues(field) {
         switch (field.name) {
+            case 'endDate':
+                return this.evergreenEnabled ? [] : field.values;
             case 'surfaces':
                 return serializePromotionSurfacesForAem(field.values);
             case 'fragments':
@@ -679,6 +690,10 @@ class MasPromotionsEditor extends LitElement {
             return;
         }
         this.fragment.updateFieldInternal('title', this.fragment.getFieldValue('title'));
+        if (this.evergreenEnabled) {
+            const endDateField = this.fragment.getField('endDate');
+            if (endDateField) endDateField.values = [];
+        }
         this.#patchPromotionSurfacesFieldForAem();
         this.#syncPromotionSelectionFieldsToFragment();
         showToast('Saving project...');
@@ -756,6 +771,7 @@ class MasPromotionsEditor extends LitElement {
             this.storeController?.hostDisconnected();
             this.storeController = new StoreController(this, this.fragmentStore);
             this.storeController.hostConnected();
+            this.evergreenEnabled = this.fragment?.isEvergreen ?? true;
             this.#resetPromotionItemStores();
             await this.#hydratePromotionItemSelectionFromFragment();
         } catch (error) {
@@ -839,7 +855,7 @@ class MasPromotionsEditor extends LitElement {
 
     #getRequiredFieldsValidation(fragment = {}) {
         const itemCount = Store.promotions.selectedCards.value.length + Store.promotions.selectedCollections.value.length;
-        return getPromotionRequiredFieldsValidation(fragment, itemCount);
+        return getPromotionRequiredFieldsValidation(fragment, itemCount, this.evergreenEnabled);
     }
 
     /**
@@ -1317,15 +1333,23 @@ class MasPromotionsEditor extends LitElement {
                                 ?disabled=${readOnly}
                                 @change=${this.#handleDateUpdate}
                             />
-                            <sp-field-label for="endDate" required>End Date (UTC)</sp-field-label>
-                            <input
-                                type="datetime-local"
-                                id="endDate"
-                                value="${form.endDate?.values[0]?.slice(0, 16) ?? ''}"
-                                data-field="endDate"
-                                ?disabled=${readOnly}
-                                @change=${this.#handleDateUpdate}
-                            />
+                            <sp-field-label for="endDate" ?required=${!this.evergreenEnabled}>End Date (UTC)</sp-field-label>
+                            <div class="end-date-row">
+                                <input
+                                    type="datetime-local"
+                                    id="endDate"
+                                    value="${form.endDate?.values[0]?.slice(0, 16) ?? ''}"
+                                    data-field="endDate"
+                                    ?disabled=${readOnly || this.evergreenEnabled}
+                                    @change=${this.#handleDateUpdate}
+                                />
+                                <sp-switch
+                                    ?checked=${this.evergreenEnabled}
+                                    ?disabled=${readOnly}
+                                    @change=${this.#handleEvergreenToggle}
+                                    >Evergreen promo</sp-switch
+                                >
+                            </div>
                             <sp-field-label required>Promotion tags</sp-field-label>
                             <aem-tag-picker-field
                                 label="Promotion tags"

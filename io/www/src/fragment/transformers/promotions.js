@@ -390,9 +390,11 @@ async function init(context) {
     const { locale, country } = context;
     const effectiveRegionLocale = resolvedRegionLocale ?? locale;
 
-    const matched = projects.filter((project) =>
-        matchesProject(project, { surface, locale, country, regionLocale: effectiveRegionLocale, instant }, context),
-    );
+    const matched = projects
+        .filter((project) =>
+            matchesProject(project, { surface, locale, country, regionLocale: effectiveRegionLocale, instant }, context),
+        )
+        .sort((a, b) => (a.endDate ? 0 : 1) - (b.endDate ? 0 : 1));
     if (!matched.length) return { status: 200, activeProjects: [] };
 
     log(

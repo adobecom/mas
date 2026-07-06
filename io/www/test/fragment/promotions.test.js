@@ -54,9 +54,10 @@ function makeHydratedProject({
     fragmentPath = '/content/dam/mas/acom/en_US/offers/offer-1',
     promoCode = 'PROMO10',
     offers = [],
+    title = null,
 } = {}) {
     return {
-        fields: { fragments: [fragmentId], promoCode, offers },
+        fields: { fragments: [fragmentId], promoCode, offers, title },
         references: {
             [fragmentId]: {
                 type: 'content-fragment',
@@ -159,6 +160,16 @@ describe('promotions', () => {
             expect(result.activeProjects[0].id).to.equal('proj-1');
             expect(result.activeProjects[0].fragmentPaths).to.have.length(1);
             expect(result.activeProjects[0].promoCode).to.equal('SAVE20');
+        });
+
+        it('carries the project title through hydration', async () => {
+            const project = makeProject({ id: 'proj-1', surfaces: ['acom'], geos: ['/content/cq:tags/mas/locale/en_US'] });
+            const hydrated = makeHydratedProject({ title: 'Summer Sale 2026' });
+            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+            fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
+
+            const result = await promotionsTransformer.init(createContext({ regionLocale: 'en_US' }));
+            expect(result.activeProjects[0].title).to.equal('Summer Sale 2026');
         });
 
         it('ignores instant when not in preview mode', async () => {

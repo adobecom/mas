@@ -1497,7 +1497,7 @@ export class MasRepository extends LitElement {
             this.operation.set(OPERATIONS.PUBLISH);
 
             if (allSelected) {
-                await this.aem.sites.cf.fragments.publish(fragment, ['DRAFT', 'MODIFIED', 'UNPUBLISHED']);
+                await this.aem.sites.cf.fragments.publish(fragment, []);
                 const { variations = [], cards = [] } = fragment.getPublishableReferences?.() ?? {};
                 const allRefIds = [...variations, ...cards].map((r) => r.id);
                 if (allRefIds.length) await this.#publishRefIds(allRefIds);
@@ -1526,10 +1526,17 @@ export class MasRepository extends LitElement {
     async #publishRefIds(refIds) {
         const CHUNK_SIZE = 10;
         const valid = [];
+        let failedCount = 0;
         for (let i = 0; i < refIds.length; i += CHUNK_SIZE) {
             const chunk = refIds.slice(i, i + CHUNK_SIZE);
             const fetched = await Promise.all(chunk.map((id) => this.aem.sites.cf.fragments.getWithEtag(id).catch(() => null)));
-            valid.push(...fetched.filter(Boolean));
+            fetched.forEach((result) => {
+                if (result) valid.push(result);
+                else failedCount++;
+            });
+        }
+        if (failedCount > 0) {
+            throw new Error(`Failed to fetch ${failedCount} of ${refIds.length} refs for publishing`);
         }
         if (valid.length === 0) throw new Error('Failed to fetch any ref for publishing');
         for (let i = 0; i < valid.length; i += CHUNK_SIZE) {

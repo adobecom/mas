@@ -4038,10 +4038,11 @@ describe('MasRepository publishFragment', () => {
         expect(repo.aem.sites.cf.fragments.publishFragments.called).to.be.false;
     });
 
-    it('uses DRAFT/MODIFIED/UNPUBLISHED filter in a single call when allSelected is true', async () => {
+    it('publishes parent with [] (no cascade) when allSelected is true and no refs present', async () => {
         const repo = makeRepo();
         await repo.publishFragment(fragment, { allSelected: true });
-        expect(repo.aem.sites.cf.fragments.publish.calledWith(fragment, ['DRAFT', 'MODIFIED', 'UNPUBLISHED'])).to.be.true;
+        expect(repo.aem.sites.cf.fragments.publish.calledWith(fragment, [])).to.be.true;
+        expect(repo.aem.sites.cf.fragments.publish.callCount).to.equal(1);
         expect(repo.aem.sites.cf.fragments.publishFragments.called).to.be.false;
     });
 
@@ -4087,8 +4088,9 @@ describe('MasRepository publishFragment', () => {
             }),
         };
         await repo.publishFragment(fragWithMixedRefs, { allSelected: true });
-        expect(repo.aem.sites.cf.fragments.publish.calledWith(fragWithMixedRefs, ['DRAFT', 'MODIFIED', 'UNPUBLISHED'])).to.be
-            .true;
+        expect(repo.aem.sites.cf.fragments.publish.calledWith(fragWithMixedRefs, [])).to.be.true;
+        expect(repo.aem.sites.cf.fragments.publish.neverCalledWith(fragWithMixedRefs, ['DRAFT', 'MODIFIED', 'UNPUBLISHED'])).to
+            .be.true;
         expect(repo.aem.sites.cf.fragments.publish.calledWith(pubVar, [])).to.be.true;
         expect(repo.aem.sites.cf.fragments.publish.calledWith(draftVar, [])).to.be.true;
         expect(repo.aem.sites.cf.fragments.publish.calledWith(newCard, [])).to.be.true;
@@ -4125,6 +4127,21 @@ describe('MasRepository #publishRefIds (via publishFragment selectedRefIds)', ()
         const repo = makeRepo();
         const fragment = { id: 'frag-1', path: '/content/dam/mas/sandbox/en_US/card' };
         const result = await repo.publishFragment(fragment, { selectedRefIds: ['ref-x'] });
+        expect(result).to.be.false;
+        expect(repo.processError.called).to.be.true;
+    });
+
+    it('reports failure when some (but not all) getWithEtag calls fail', async () => {
+        const repo = makeRepo();
+        const refA = { id: 'ref-a', path: '/a', etag: 'e1' };
+        repo.aem.sites.cf.fragments.getWithEtag = sandbox
+            .stub()
+            .onFirstCall()
+            .resolves(refA)
+            .onSecondCall()
+            .rejects(new Error('not found'));
+        const fragment = { id: 'frag-1', path: '/content/dam/mas/sandbox/en_US/card' };
+        const result = await repo.publishFragment(fragment, { selectedRefIds: ['ref-a', 'ref-b'] });
         expect(result).to.be.false;
         expect(repo.processError.called).to.be.true;
     });

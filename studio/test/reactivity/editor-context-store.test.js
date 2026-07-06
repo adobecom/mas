@@ -95,6 +95,42 @@ describe('Reactivity Stores', () => {
 
                 expect(store.loading).to.be.false;
             });
+
+            it('does not flag a promo variation as a locale variation when its locale has no known default', async () => {
+                store = new EditorContextStore(null);
+                sandbox.stub(Store, 'surface').returns('sandbox');
+                const getByPathStub = sandbox.stub().rejects(new Error('not found'));
+                document.querySelector = (selector) => {
+                    if (selector === 'mas-repository')
+                        return { aem: { sites: { cf: { fragments: { getByPath: getByPathStub } } } } };
+                    return originalQuerySelector.call(document, selector);
+                };
+                const fragmentPath = '/content/dam/mas/sandbox/fil_PH/promotions/cyber-monday/card';
+
+                await store.loadFragmentContext('test-id', fragmentPath);
+
+                expect(store.isPromoVariationByPath).to.be.true;
+                expect(store.isVariationByPath).to.be.false;
+                expect(store.expectedDefaultLocale).to.be.null;
+            });
+
+            it('flags a promo variation as a locale variation when its locale is a known regional variant of a default locale', async () => {
+                store = new EditorContextStore(null);
+                sandbox.stub(Store, 'surface').returns('sandbox');
+                const getByPathStub = sandbox.stub().rejects(new Error('not found'));
+                document.querySelector = (selector) => {
+                    if (selector === 'mas-repository')
+                        return { aem: { sites: { cf: { fragments: { getByPath: getByPathStub } } } } };
+                    return originalQuerySelector.call(document, selector);
+                };
+                const fragmentPath = '/content/dam/mas/sandbox/zh_HK/promotions/cyber-monday/card';
+
+                await store.loadFragmentContext('test-id', fragmentPath);
+
+                expect(store.isPromoVariationByPath).to.be.true;
+                expect(store.isVariationByPath).to.be.true;
+                expect(store.expectedDefaultLocale).to.equal('zh_TW');
+            });
         });
 
         describe('Locale Default Fragment Methods', () => {

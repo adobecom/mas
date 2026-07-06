@@ -29,7 +29,12 @@ export function normalizePromotionSearchInput(raw) {
     const trimmed = raw.trim();
     if (!trimmed) return '';
     const deepLinks = parseStudioDeepLinksFromText(trimmed);
-    if (deepLinks.length && deepLinks[0].fragmentId) return deepLinks[0].fragmentId;
+    if (
+        deepLinks.length &&
+        ['merch-card', 'merch-card-collection'].includes(deepLinks[0].contentType) &&
+        deepLinks[0].fragmentId
+    )
+        return deepLinks[0].fragmentId;
     if (isUUID(trimmed)) return trimmed;
     const marker = ROOT_PATH;
     const idx = trimmed.indexOf(marker);
@@ -149,17 +154,14 @@ export async function classifyPromotionPathsForSelection(
  * @param {number} itemCount Selected cards + collections count
  * @returns {string|null}
  */
-export function getPromotionRequiredFieldsValidation(fragment, itemCount) {
+export function getPromotionRequiredFieldsValidation(fragment, itemCount, isEvergreen = fragment.isEvergreen) {
     if (!fragment.getFieldValue('title')) {
         return 'Please enter a Title.';
-    }
-    if (!fragment.getFieldValue('promoCode')) {
-        return 'Please enter a Promo Code.';
     }
     if (!fragment.getFieldValue('startDate')) {
         return 'Please set a Start Date.';
     }
-    if (!fragment.getFieldValue('endDate')) {
+    if (!isEvergreen && !fragment.getFieldValue('endDate')) {
         return 'Please set an End Date.';
     }
     if (splitPromotionTagsFieldValues(fragment.getFieldValues('tags')).promotion.length === 0) {

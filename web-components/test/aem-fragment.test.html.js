@@ -178,6 +178,37 @@ runTests(async () => {
                 expect(slotElements).to.have.length(4);
             });
 
+            it('passes promoProject and promoVariationProject through to the merch-card', async () => {
+                const promoFragment = {
+                    ...cc,
+                    id: 'fragment-cc-all-apps-promo',
+                    promoProject: 'GlobalIntroPricing',
+                    promoVariationProject: 'GlobalIntroPricing',
+                };
+                cache.add(promoFragment);
+
+                const promoCard = document.createElement('merch-card');
+                const promoAemFragment = document.createElement('aem-fragment');
+                promoAemFragment.setAttribute(
+                    'fragment',
+                    'fragment-cc-all-apps-promo',
+                );
+                promoCard.append(promoAemFragment);
+                spTheme.append(promoCard);
+
+                await promoAemFragment.updateComplete;
+                await promoCard.updateComplete;
+
+                expect(
+                    promoCard.getAttribute('data-promotion-project'),
+                ).to.equal('GlobalIntroPricing');
+                expect(
+                    promoCard.getAttribute('data-promotion-variation-project'),
+                ).to.equal('GlobalIntroPricing');
+
+                promoCard.remove();
+            });
+
             it('re-renders a card after clearing the cache', async () => {
                 const [, , ccCard] = getTemplateContent('cards');
                 spTheme.append(ccCard);

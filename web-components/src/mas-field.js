@@ -148,8 +148,18 @@ class MasField extends HTMLElement {
     #setFragmentIds() {
         if (!this.aemFragment) return;
         this.setAttribute('fragment-id', this.aemFragment.data?.id);
-        const variationId = this.aemFragment.data?.variationId;
-        if (variationId) this.setAttribute('variation-id', variationId);
+        const fragment = this.aemFragment.data;
+        if (!fragment) return;
+        if (fragment.variationId)
+            this.setAttribute('variation-id', fragment.variationId);
+        if (fragment.maskId) this.setAttribute('mask-id', fragment.maskId);
+        if (fragment.promoProject)
+            this.setAttribute('data-promotion-project', fragment.promoProject);
+        if (fragment.promoVariationProject)
+            this.setAttribute(
+                'data-promotion-variation-project',
+                fragment.promoVariationProject,
+            );
     }
 
     #renderField() {

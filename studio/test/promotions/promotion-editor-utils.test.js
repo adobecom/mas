@@ -465,6 +465,23 @@ describe('promotion-editor-utils', () => {
             };
             expect(getPromotionRequiredFieldsValidation(f, 1)).to.equal('Please add at least one Promotion tag.');
         });
+
+        it('does not require end date when isEvergreen is passed explicitly as true', () => {
+            const f = {
+                ...baseFragment(),
+                getFieldValue: (name) => (name === 'endDate' ? '' : baseFragment().getFieldValue(name)),
+            };
+            expect(getPromotionRequiredFieldsValidation(f, 1, true)).to.be.null;
+        });
+
+        it('does not require end date when fragment is evergreen', () => {
+            const f = {
+                ...baseFragment(),
+                isEvergreen: true,
+                getFieldValue: (name) => (name === 'endDate' ? '' : baseFragment().getFieldValue(name)),
+            };
+            expect(getPromotionRequiredFieldsValidation(f, 1)).to.be.null;
+        });
     });
 
     describe('promo code exceptions', () => {

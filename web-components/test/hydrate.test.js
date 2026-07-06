@@ -695,6 +695,35 @@ describe('hydrate', () => {
         );
     });
 
+    it('sets data-promotion-project and data-promotion-variation-project independently', async () => {
+        const fragment = {
+            promoProject: 'Summer Sale 2026',
+            promoVariationProject: 'Layout Experiment A',
+            fields: {
+                variant: 'ccd-slice',
+                mnemonicIcon: ['test/mocks/img/photoshop.svg'],
+                mnemonicAlt: [],
+                mnemonicLink: ['www.adobe.com'],
+                backgroundImage: 'test/mocks/img/photoshop.svg',
+                ctas: '<a is="checkout-link" data-wcs-osi="abm" class="accent" data-analytics-id="buy-now">Click me</a>',
+                tags: ['mas:term/montly', 'mas:product_code/ccsn'],
+            },
+            settings: {
+                secureLabel: 'Secure Label',
+            },
+        };
+        merchCard.variantLayout = {
+            aemFragmentMapping: CCD_SLICE_AEM_FRAGMENT_MAPPING,
+        };
+        await hydrate(fragment, merchCard);
+        expect(merchCard.getAttribute('data-promotion-project')).to.equal(
+            'Summer Sale 2026',
+        );
+        expect(
+            merchCard.getAttribute('data-promotion-variation-project'),
+        ).to.equal('Layout Experiment A');
+    });
+
     it('hydrates MerchCard with variationId and merch-addon for plans variant', async () => {
         const litCard = document.createElement('merch-card');
         document.body.appendChild(litCard);

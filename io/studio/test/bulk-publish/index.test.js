@@ -73,4 +73,12 @@ describe('bulk-publish/index.js — dispatcher', () => {
         expect(res.statusCode).to.equal(500);
         expect(res.body.error).to.equal('Internal server error');
     });
+
+    it('forwards includeCards and includeVariations to the worker', async () => {
+        const params = { ...valid, includeCards: true, includeVariations: false };
+        await action.main(params);
+        const [, workerParams] = invokeAsyncActionStub.firstCall.args;
+        expect(workerParams.includeCards).to.equal(true);
+        expect(workerParams.includeVariations).to.equal(false);
+    });
 });

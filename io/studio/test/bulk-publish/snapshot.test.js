@@ -65,8 +65,8 @@ describe('bulk-publish/snapshot.js', () => {
                 authToken,
             });
 
-            expect(results).to.have.length(1);
-            const entry = JSON.parse(results[0]);
+            expect(results.entries).to.have.length(1);
+            const entry = JSON.parse(results.entries[0]);
             expect(entry).to.have.property('fragmentId', 'frag-1');
             expect(entry).to.have.property('versionId', 'ver-abc');
             expect(entry).to.have.property('wasPublished');
@@ -89,7 +89,7 @@ describe('bulk-publish/snapshot.js', () => {
                 authToken,
             });
 
-            expect(JSON.parse(results[0]).wasPublished).to.be.true;
+            expect(JSON.parse(results.entries[0]).wasPublished).to.be.true;
         });
 
         it('sets wasPublished: true for Modified status', async () => {
@@ -108,7 +108,7 @@ describe('bulk-publish/snapshot.js', () => {
                 authToken,
             });
 
-            expect(JSON.parse(results[0]).wasPublished).to.be.true;
+            expect(JSON.parse(results.entries[0]).wasPublished).to.be.true;
         });
 
         it('sets wasPublished: false for Draft status', async () => {
@@ -127,7 +127,7 @@ describe('bulk-publish/snapshot.js', () => {
                 authToken,
             });
 
-            expect(JSON.parse(results[0]).wasPublished).to.be.false;
+            expect(JSON.parse(results.entries[0]).wasPublished).to.be.false;
         });
 
         it('throws if fragment not found at path (items empty)', async () => {
@@ -216,7 +216,7 @@ describe('bulk-publish/snapshot.js', () => {
                 includeCards: true,
             });
 
-            const fragmentIds = results.map((r) => JSON.parse(r).fragmentId);
+            const fragmentIds = results.entries.map((r) => JSON.parse(r).fragmentId);
             expect(fragmentIds).to.include('frag-coll');
             expect(fragmentIds).to.not.include('frag-card');
         });
@@ -260,7 +260,7 @@ describe('bulk-publish/snapshot.js', () => {
                 includeCards: true,
             });
 
-            const fragmentIds = results.map((r) => JSON.parse(r).fragmentId);
+            const fragmentIds = results.entries.map((r) => JSON.parse(r).fragmentId);
             expect(fragmentIds).to.include.members(['frag-coll', 'frag-card']);
             expect(fragmentIds).to.not.include('frag-var');
         });
@@ -304,7 +304,7 @@ describe('bulk-publish/snapshot.js', () => {
                 includeVariations: true,
             });
 
-            const fragmentIds = results.map((r) => JSON.parse(r).fragmentId);
+            const fragmentIds = results.entries.map((r) => JSON.parse(r).fragmentId);
             expect(fragmentIds).to.include.members(['frag-main', 'frag-var']);
             expect(fragmentIds).to.not.include('frag-card');
         });
@@ -347,7 +347,7 @@ describe('bulk-publish/snapshot.js', () => {
                 includeVariations: true,
             });
 
-            const fragmentIds = results.map((r) => JSON.parse(r).fragmentId);
+            const fragmentIds = results.entries.map((r) => JSON.parse(r).fragmentId);
             expect(fragmentIds).to.include.members(['frag-coll', 'frag-card', 'frag-var']);
         });
 
@@ -387,7 +387,7 @@ describe('bulk-publish/snapshot.js', () => {
                 includeCards: true,
             });
 
-            const fragmentIds = results.map((r) => JSON.parse(r).fragmentId);
+            const fragmentIds = results.entries.map((r) => JSON.parse(r).fragmentId);
             expect(fragmentIds).to.include.members(['frag-coll', 'frag-sub-coll', 'frag-card']);
         });
 
@@ -428,8 +428,8 @@ describe('bulk-publish/snapshot.js', () => {
                 includeCards: true,
             });
 
-            expect(results).to.have.length(3);
-            const fragmentIds = results.map((r) => JSON.parse(r).fragmentId);
+            expect(results.entries).to.have.length(3);
+            const fragmentIds = results.entries.map((r) => JSON.parse(r).fragmentId);
             expect(fragmentIds.filter((id) => id === 'frag-shared')).to.have.length(1);
         });
 
@@ -466,8 +466,8 @@ describe('bulk-publish/snapshot.js', () => {
                 includeCards: true,
             });
 
-            expect(results).to.have.length(1);
-            expect(JSON.parse(results[0]).fragmentId).to.equal('frag-coll');
+            expect(results.entries).to.have.length(1);
+            expect(JSON.parse(results.entries[0]).fragmentId).to.equal('frag-coll');
             // External path must NOT have been fetched
             const calledUris = fetchOdinStub.args.map(([, uri]) => uri);
             expect(calledUris.some((u) => u.includes('other/private-card'))).to.be.false;
@@ -506,8 +506,8 @@ describe('bulk-publish/snapshot.js', () => {
                 includeCards: true,
             });
 
-            expect(results).to.have.length(1);
-            expect(JSON.parse(results[0]).fragmentId).to.equal('frag-coll');
+            expect(results.entries).to.have.length(1);
+            expect(JSON.parse(results.entries[0]).fragmentId).to.equal('frag-coll');
         });
 
         it('does not re-snapshot a reference path already in the main paths list', async () => {
@@ -539,7 +539,7 @@ describe('bulk-publish/snapshot.js', () => {
                 includeCards: true,
             });
 
-            expect(results).to.have.length(1);
+            expect(results.entries).to.have.length(1);
         });
 
         it('default (no flags): does not snapshot any sub-items', async () => {
@@ -574,8 +574,8 @@ describe('bulk-publish/snapshot.js', () => {
                 authToken,
             });
 
-            expect(results).to.have.length(1);
-            expect(JSON.parse(results[0]).fragmentId).to.equal('frag-main');
+            expect(results.entries).to.have.length(1);
+            expect(JSON.parse(results.entries[0]).fragmentId).to.equal('frag-main');
         });
 
         it('all entries share the same createdAt timestamp (multi-path)', async () => {
@@ -600,9 +600,69 @@ describe('bulk-publish/snapshot.js', () => {
                 authToken,
             });
 
-            expect(results).to.have.length(2);
-            const timestamps = results.map((r) => JSON.parse(r).createdAt);
+            expect(results.entries).to.have.length(2);
+            const timestamps = results.entries.map((r) => JSON.parse(r).createdAt);
             expect(timestamps[0]).to.equal(timestamps[1]);
+        });
+
+        it('returns expandedPaths containing all paths visited during traversal', async () => {
+            const collPath = '/content/dam/mas/acom/en_US/coll';
+            const cardPath = '/content/dam/mas/acom/en_US/card-1';
+            fetchOdinStub.callsFake((endpoint, uri) => {
+                if (uri.includes('/adobe/sites/cf/fragments?path=')) {
+                    const path = decodeURIComponent(uri.split('path=')[1]);
+                    if (path === collPath) {
+                        return fetchResponse({
+                            items: [{ id: 'frag-coll', path, status: 'PUBLISHED', fields: [{ name: 'cards', values: [cardPath] }] }],
+                        });
+                    }
+                    if (path === cardPath) {
+                        return fetchResponse({ items: [{ id: 'frag-card', path, status: 'PUBLISHED', fields: [] }] });
+                    }
+                }
+                if (uri.includes('/versions')) {
+                    const fragId = uri.split('/fragments/')[1].split('/')[0];
+                    return fetchResponse({}, { location: `/versions/ver-${fragId}` });
+                }
+                return fetchResponse({});
+            });
+
+            const results = await snapshot.createSnapshot({
+                paths: [collPath],
+                projectId: 'p1',
+                projectTitle: 'T',
+                odinEndpoint,
+                authToken,
+                includeCards: true,
+            });
+
+            expect(results.expandedPaths).to.include(collPath);
+            expect(results.expandedPaths).to.include(cardPath);
+        });
+
+        it('returns expandedPaths equal to input paths when no flags set', async () => {
+            const path = '/content/dam/mas/acom/en_US/frag';
+            fetchOdinStub.callsFake((endpoint, uri) => {
+                if (uri.includes('/adobe/sites/cf/fragments?path=')) {
+                    return fetchResponse({
+                        items: [{ id: 'frag-1', path, status: 'PUBLISHED', fields: [{ name: 'cards', values: ['/content/dam/mas/acom/en_US/card'] }] }],
+                    });
+                }
+                if (uri.includes('/versions')) {
+                    return fetchResponse({}, { location: '/versions/ver-1' });
+                }
+                return fetchResponse({});
+            });
+
+            const results = await snapshot.createSnapshot({
+                paths: [path],
+                projectId: 'p1',
+                projectTitle: 'T',
+                odinEndpoint,
+                authToken,
+            });
+
+            expect(results.expandedPaths).to.deep.equal([path]);
         });
     });
 

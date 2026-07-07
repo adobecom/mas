@@ -149,7 +149,7 @@ async function createSnapshot({
     };
 
     logger.info(JSON.stringify({ event: 'snapshot-complete', projectId, count: allEntries.length }));
-    return serializeEntries(snapshot);
+    return { entries: serializeEntries(snapshot), expandedPaths: Array.from(visited) };
 }
 
 async function revertSnapshot({ entries, odinEndpoint, authToken }) {

@@ -15,7 +15,7 @@ describe('bulk-publish-worker — runWorker', () => {
             getProjectTitle: sinon.stub().returns('Proj'),
             getProjectSnapshots: sinon.stub().returns([]),
             publishResolved: sinon.stub(),
-            createSnapshot: sinon.stub().resolves(['{"fragmentId":"f1"}']),
+            createSnapshot: sinon.stub().resolves({ entries: ['{"fragmentId":"f1"}'], expandedPaths: [] }),
             updateProjectFragment: sinon.stub().resolves(),
             now: () => new Date('2026-06-04T00:00:00.000Z'),
             logger: { info: sinon.stub(), warn: sinon.stub(), error: sinon.stub() },
@@ -124,6 +124,44 @@ describe('bulk-publish-worker — runWorker', () => {
         expect(firstUpdate).to.not.have.property('snapshots');
         const finalSnapshots = deps.updateProjectFragment.lastCall.args[3].snapshots;
         expect(finalSnapshots[0]).to.not.include('publishComplete');
+    });
+
+    it('publishes expanded paths (cards) when includeCards is true', async () => {
+        const collPath = '/content/dam/mas/acom/en_US/coll';
+        const cardPath = '/content/dam/mas/acom/en_US/card-1';
+        deps.getProjectPaths.returns([collPath]);
+        deps.getProjectLocales.returns([]);
+        deps.createSnapshot.resolves({
+            entries: ['{"fragmentId":"f-coll"}'],
+            expandedPaths: [collPath, cardPath],
+        });
+        deps.publishResolved.resolves([
+            { path: collPath, status: 'published' },
+            { path: cardPath, status: 'published' },
+        ]);
+
+        await worker.runWorker({ projectId: 'proj-1', odinEndpoint: 'https://odin', authToken: 't', publishedBy: '', includeCards: true }, deps);
+
+        const publishedPaths = deps.publishResolved.firstCall.args[0];
+        expect(publishedPaths).to.include(collPath);
+        expect(publishedPaths).to.include(cardPath);
+    });
+
+    it('publishes only top-level paths when includeCards and includeVariations are both false', async () => {
+        const collPath = '/content/dam/mas/acom/en_US/coll';
+        const cardPath = '/content/dam/mas/acom/en_US/card-1';
+        deps.getProjectPaths.returns([collPath]);
+        deps.getProjectLocales.returns([]);
+        deps.createSnapshot.resolves({
+            entries: ['{"fragmentId":"f-coll"}'],
+            expandedPaths: [collPath, cardPath],
+        });
+        deps.publishResolved.resolves([{ path: collPath, status: 'published' }]);
+
+        await worker.runWorker({ projectId: 'proj-1', odinEndpoint: 'https://odin', authToken: 't', publishedBy: '', includeCards: false, includeVariations: false }, deps);
+
+        const publishedPaths = deps.publishResolved.firstCall.args[0];
+        expect(publishedPaths).to.deep.equal([collPath]);
     });
 
     it('ignores a fully-complete existing snapshot and takes a fresh one', async () => {

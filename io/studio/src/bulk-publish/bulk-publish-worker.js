@@ -62,7 +62,7 @@ async function runWorker(input, deps = {}) {
     const resolve = deps.resolvePaths || resolvePaths;
     const now = deps.now || (() => new Date());
 
-    const { projectId, odinEndpoint, authToken, publishedBy = '' } = input;
+    const { projectId, odinEndpoint, authToken, publishedBy = '', includeCards = false, includeVariations = false } = input;
     const startedAt = now().toISOString();
 
     const { fragment } = await readProject(odinEndpoint, projectId, authToken);
@@ -72,20 +72,23 @@ async function runWorker(input, deps = {}) {
     const existingSnapshots = projSnapshots(fragment);
 
     let snapshotEntries;
+    let expandedPaths = null;
     if (hasPendingSnapshot(existingSnapshots)) {
         snapshotEntries = existingSnapshots;
         await updateProject(odinEndpoint, projectId, authToken, { status: PROJECT_STATUS.PUBLISHING, lastError: '' });
     } else {
-        const fresh = await snapshot({ paths, projectId, projectTitle: title, odinEndpoint, authToken });
-        snapshotEntries = fresh;
+        const fresh = await snapshot({ paths, projectId, projectTitle: title, odinEndpoint, authToken, includeCards, includeVariations });
+        snapshotEntries = fresh.entries;
+        expandedPaths = fresh.expandedPaths;
         await updateProject(odinEndpoint, projectId, authToken, {
             status: PROJECT_STATUS.PUBLISHING,
-            snapshots: addPendingMarker(fresh),
+            snapshots: addPendingMarker(snapshotEntries),
             lastError: '',
         });
     }
 
-    const resolved = resolve(paths, locales);
+    const publishPaths = (includeCards || includeVariations) && expandedPaths ? expandedPaths : paths;
+    const resolved = resolve(publishPaths, locales);
     const details = await publish(resolved, odinEndpoint, authToken, logger);
     relabelNotLocalized(details);
 

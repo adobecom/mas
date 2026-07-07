@@ -50,6 +50,7 @@ import {
     loadPreviewPlaceholders,
 } from './placeholders/mas-placeholders-repository.js';
 import { fragmentHasPersonalizationTag, isPznCountryTagId, PZN_TAG_ID_PREFIX } from './common/utils/personalization-utils.js';
+import { findFragmentDataById, findFragmentStoreById } from './common/utils/fragment-selection-utils.js';
 import { getFragmentName } from './translation/translation-utils.js';
 import { getItemsSelectionStore } from './common/items-selection-store.js';
 import generateFragmentStore from './reactivity/source-fragment-store.js';
@@ -664,7 +665,7 @@ export class MasRepository extends LitElement {
                     Store.fragments.highlightedVariationId.set(query);
                     Store.fragments.variationSearchTab.set(tab);
                 } else {
-                    Store.fragments.expandedId.set(null);
+                    Store.fragments.expandedId.set(fragmentData?.id ?? null);
                     Store.fragments.highlightedVariationId.set(null);
                     Store.fragments.variationSearchTab.set(null);
                 }
@@ -1573,7 +1574,7 @@ export class MasRepository extends LitElement {
      * @returns {Promise<boolean>} Whether or not it was successful
      */
     async bulkPublishFragments(fragmentIds, options = {}) {
-        const { selectedRefIds = null, allSelected = false, withToast = true } = options;
+        const { publishReferencesWithStatus, withToast = true } = options;
 
         if (!fragmentIds || fragmentIds.length === 0) {
             if (withToast) showToast('No fragments selected to publish.', 'negative');
@@ -1584,30 +1585,30 @@ export class MasRepository extends LitElement {
             this.operation.set(OPERATIONS.PUBLISH);
             if (withToast) showToast(`Publishing ${fragmentIds.length} fragment(s)...`);
 
-            const fragments = fragmentIds
-                .map((id) => {
-                    const store = Store.fragments.list.data.get().find((fragmentStore) => fragmentStore.get()?.id === id);
-                    return store?.get();
-                })
-                .filter(Boolean);
+            const listStores = Store.fragments.list.data.get();
+            const fragments = [];
+            for (const id of fragmentIds) {
+                let fragment = findFragmentDataById(id, listStores);
+                if (!fragment?.etag) {
+                    try {
+                        fragment = await this.aem.sites.cf.fragments.getById(id);
+                    } catch {
+                        fragment = null;
+                    }
+                }
+                if (fragment) fragments.push(fragment);
+            }
 
             if (fragments.length === 0) {
                 if (withToast) showToast('No valid fragments found to publish.', 'negative');
                 return false;
             }
 
-            if (allSelected) {
-                await this.aem.sites.cf.fragments.publishFragments(fragments, ['DRAFT', 'MODIFIED', 'UNPUBLISHED']);
-            } else {
-                await this.aem.sites.cf.fragments.publishFragments(fragments, []);
-                if (selectedRefIds?.length) {
-                    await this.#publishRefIds(selectedRefIds);
-                }
-            }
+            await this.aem.sites.cf.fragments.publishFragments(fragments, publishReferencesWithStatus);
 
-            // Refresh all published fragments (skip promo probe — not needed in bulk publish context)
+
             const refreshPromises = fragmentIds.map((id) => {
-                const store = Store.fragments.list.data.get().find((fragmentStore) => fragmentStore.get()?.id === id);
+                const store = findFragmentStoreById(id, listStores);
                 if (store) {
                     return this.refreshFragment(store, { skipPromoMerge: true });
                 }

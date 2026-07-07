@@ -23,7 +23,7 @@ export default class StudioPage {
         this.renderViewOption = this.previewMenu.locator('sp-menu-item[value="render"]');
         this.tableViewOption = this.previewMenu.locator('sp-menu-item[value="table"]');
         this.renderView = page.locator('#render:not(.next-page-skeletons)');
-        this.tableView = page.locator('sp-table');
+        this.tableView = page.locator('.content > sp-table');
         this.contentTableBody = page.locator('#content sp-table-body');
         this.tableViewHeaders = page.locator('sp-table-head');
         this.tableViewRows = this.tableView.locator('sp-table-row');

@@ -182,4 +182,27 @@ describe('bulk-publish-worker — main', () => {
         expect(res.statusCode).to.equal(500);
         expect(res.body.error).to.be.a('string');
     });
+
+    it('updates project status to Failed when runWorker throws', async () => {
+        const updateProjectFragment = sinon.stub().resolves();
+        const runWorkerStub = sinon.stub().rejects(new Error('snapshot failed'));
+        const res = await main(
+            { projectId: 'proj-1', odinEndpoint: 'https://odin', authToken: 't' },
+            { runWorker: runWorkerStub, updateProjectFragment },
+        );
+        expect(res.statusCode).to.equal(500);
+        expect(updateProjectFragment).to.have.been.calledOnce;
+        expect(updateProjectFragment.firstCall.args[3]).to.deep.include({ status: 'Failed' });
+    });
+
+    it('does not throw if updateProjectFragment also fails during error recovery', async () => {
+        const updateProjectFragment = sinon.stub().rejects(new Error('update failed'));
+        const runWorkerStub = sinon.stub().rejects(new Error('worker error'));
+        const res = await main(
+            { projectId: 'proj-1', odinEndpoint: 'https://odin', authToken: 't' },
+            { runWorker: runWorkerStub, updateProjectFragment },
+        );
+        expect(res.statusCode).to.equal(500);
+        expect(res.body.error).to.equal('worker error');
+    });
 });

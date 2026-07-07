@@ -108,18 +108,31 @@ async function runWorker(input, deps = {}) {
     return result;
 }
 
-async function main(params) {
-    const logger = Core.Logger('bulk-publish-worker', { level: 'info' });
+async function main(params, deps = {}) {
+    const logger = deps.logger || Core.Logger('bulk-publish-worker', { level: 'info' });
+    const doRunWorker = deps.runWorker || runWorker;
+    const doUpdateProject = deps.updateProjectFragment || updateProjectFragment;
+    const odinEndpoint = params.aemOdinEndpoint || params.odinEndpoint;
     try {
-        const result = await runWorker({
+        const result = await doRunWorker({
             projectId: params.projectId,
-            odinEndpoint: params.aemOdinEndpoint || params.odinEndpoint,
+            odinEndpoint,
             authToken: params.authToken,
             publishedBy: params.publishedBy || '',
         });
         return { statusCode: 200, body: result };
     } catch (error) {
         logger.error(JSON.stringify({ event: 'worker-error', error: error.message || String(error) }));
+        if (odinEndpoint && params.projectId && params.authToken) {
+            try {
+                await doUpdateProject(odinEndpoint, params.projectId, params.authToken, {
+                    status: WORKER_STATUS.FAILED,
+                    lastError: error.message || 'Unexpected error',
+                });
+            } catch (updateErr) {
+                logger.error(JSON.stringify({ event: 'status-update-failed', error: updateErr.message }));
+            }
+        }
         return { statusCode: 500, body: { error: error.message } };
     }
 }

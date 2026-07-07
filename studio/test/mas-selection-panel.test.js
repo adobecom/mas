@@ -162,6 +162,24 @@ describe('MasSelectionPanel', () => {
             expect(plainText).to.include('content-type=merch-card');
         });
 
+        it('looks up variation fragment from parent references when item is a string ID', async () => {
+            const variation = makeCardFragment('variation-1');
+            Store.fragments.list.data.set([
+                makeFragmentStore({
+                    id: 'parent-1',
+                    references: [variation],
+                }),
+            ]);
+            sandbox.stub(Events.toast, 'emit');
+
+            const el = await createPanel(['variation-1']);
+            await el.handleCopyFragmentUrls();
+
+            const [item] = clipboardStub.write.firstCall.args[0];
+            const plainText = await item.data['text/plain'].text();
+            expect(plainText).to.include('query=variation-1');
+        });
+
         it('looks up fragment from Store when item is a string ID', async () => {
             Store.fragments.list.data.set([makeFragmentStore(makeCardFragment('uuid-lookup'))]);
             sandbox.stub(Events.toast, 'emit');

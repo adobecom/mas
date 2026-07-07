@@ -327,12 +327,13 @@ export class Router extends EventTarget {
             const leavingFragmentEditor =
                 Store.page.value === PAGE_NAMES.FRAGMENT_EDITOR || Store.page.value === PAGE_NAMES.VERSION;
 
-            // Set the fragment ID to be expanded
             Store.fragments.expandedId.set(fragmentId);
 
+            // Clear fragment editor state
             Store.fragmentEditor.fragmentId.set(null);
             Store.fragmentEditor.loading.set(false);
             Store.fragments.inEdit.set();
+            Store.search.set((prev) => ({ ...prev, query: fragmentId }));
 
             Store.viewMode.set('default');
             Store.renderMode.set('table');

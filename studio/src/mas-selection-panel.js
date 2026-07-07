@@ -3,6 +3,7 @@ import { EVENT_KEYDOWN, PAGE_NAMES } from './constants.js';
 import Events from './events.js';
 import ReactiveController from './reactivity/reactive-controller.js';
 import Store from './store.js';
+import { findFragmentDataById, resolveFragmentsFromSelection } from './common/utils/fragment-selection-utils.js';
 import { generateCodeToUse } from './utils.js';
 
 class MasSelectionPanel extends LitElement {
@@ -83,11 +84,15 @@ class MasSelectionPanel extends LitElement {
             return this.onCopyToFolder(firstSelection.get());
         }
 
-        const fragmentStore = Store.fragments.list.data
-            .get()
-            .find((store) => store.get().id === firstSelection || store.get().id === firstSelection?.id);
+        const fragment =
+            firstSelection?.id && typeof firstSelection !== 'string'
+                ? firstSelection
+                : findFragmentDataById(
+                      typeof firstSelection === 'string' ? firstSelection : firstSelection?.id,
+                      Store.fragments.list.data.get(),
+                  );
 
-        const fragment = fragmentStore?.get() || firstSelection;
+        if (!fragment) return;
         this.onCopyToFolder(fragment);
     }
 
@@ -132,19 +137,7 @@ class MasSelectionPanel extends LitElement {
         if (!selection || selection.length === 0) return;
 
         const path = Store.search.get().path;
-        const fragments = selection
-            .map((item) => {
-                if (item?.get) return item.get();
-                if (item?.id) return item;
-                const id = typeof item === 'string' ? item : null;
-                return (
-                    Store.fragments.list.data
-                        .get()
-                        .find((s) => s.get().id === id)
-                        ?.get() ?? null
-                );
-            })
-            .filter(Boolean);
+        const fragments = resolveFragmentsFromSelection(selection, Store.fragments.list.data.get());
 
         const results = fragments
             .map((fragment) => generateCodeToUse(fragment, path, PAGE_NAMES.CONTENT))

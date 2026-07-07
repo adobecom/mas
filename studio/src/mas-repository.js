@@ -1606,7 +1606,6 @@ export class MasRepository extends LitElement {
 
             await this.aem.sites.cf.fragments.publishFragments(fragments, publishReferencesWithStatus);
 
-
             const refreshPromises = fragmentIds.map((id) => {
                 const store = findFragmentStoreById(id, listStores);
                 if (store) {
@@ -2364,7 +2363,9 @@ export class MasRepository extends LitElement {
         const id = store.get().id;
         let latest = await this.aem.sites.cf.fragments.getById(id);
         if (!skipPromoMerge) {
-            latest = await promotionsRepository.mergePromoReferencesIntoFragmentData(this.aem, latest, () => this.loadPromotions());
+            latest = await promotionsRepository.mergePromoReferencesIntoFragmentData(this.aem, latest, () =>
+                this.loadPromotions(),
+            );
         }
 
         // Apply corrector transformer before refreshing

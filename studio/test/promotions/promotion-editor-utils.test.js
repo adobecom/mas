@@ -409,12 +409,12 @@ describe('promotion-editor-utils', () => {
             );
         });
 
-        it('returns a message when promo code is missing', () => {
+        it('is valid when promo code is missing (promo code is optional)', () => {
             const f = {
                 ...baseFragment(),
                 getFieldValue: (name) => (name === 'promoCode' ? '' : baseFragment().getFieldValue(name)),
             };
-            expect(getPromotionRequiredFieldsValidation(f, 1)).to.equal('Please enter a Promo Code.');
+            expect(getPromotionRequiredFieldsValidation(f, 1)).to.be.null;
         });
 
         it('returns a message when start date is missing', () => {
@@ -464,6 +464,23 @@ describe('promotion-editor-utils', () => {
                 },
             };
             expect(getPromotionRequiredFieldsValidation(f, 1)).to.equal('Please add at least one Promotion tag.');
+        });
+
+        it('does not require end date when isEvergreen is passed explicitly as true', () => {
+            const f = {
+                ...baseFragment(),
+                getFieldValue: (name) => (name === 'endDate' ? '' : baseFragment().getFieldValue(name)),
+            };
+            expect(getPromotionRequiredFieldsValidation(f, 1, true)).to.be.null;
+        });
+
+        it('does not require end date when fragment is evergreen', () => {
+            const f = {
+                ...baseFragment(),
+                isEvergreen: true,
+                getFieldValue: (name) => (name === 'endDate' ? '' : baseFragment().getFieldValue(name)),
+            };
+            expect(getPromotionRequiredFieldsValidation(f, 1)).to.be.null;
         });
     });
 

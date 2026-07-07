@@ -186,7 +186,11 @@ export function resolveSettingEntry(fragment, locale, setting) {
             !overrideSetting.tags ||
             overrideSetting.tags.length === 0 ||
             overrideSetting.tags.some((tag) => fragmentTags.includes(tag));
-        return localeOk && tagsOk;
+        const templateOk =
+            !overrideSetting.templates ||
+            overrideSetting.templates.length === 0 ||
+            overrideSetting.templates.includes(template);
+        return localeOk && tagsOk && templateOk;
     });
     if (filtered.length === 0) return defaultEntry;
     let bestMatch = defaultEntry;

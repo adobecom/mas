@@ -1,7 +1,11 @@
 @import './mas-fragment-render.css';
 
 :root {
-    --mas-nav-height: 50px;
+    /* Must match the explicit mas-top-nav height below — studio-content's
+       calc(100vh − var(--mas-nav-height)) sets the side-nav's height, and
+       a mismatch makes the side-nav (and its bottom-anchored Advanced
+       tools button) shift vertically as layout reflows. */
+    --mas-nav-height: 56px;
 }
 
 body {
@@ -36,7 +40,7 @@ mas-studio {
 
 .studio-content {
     display: grid;
-    grid-template-columns: 75px 1fr;
+    grid-template-columns: auto 1fr;
     grid-template-rows: 1fr;
     grid-row: 2 / 3;
     width: 100%;
@@ -46,6 +50,18 @@ mas-studio {
 mas-side-nav {
     grid-column: 1 / 2;
     grid-row: 1 / 2;
+    display: flex;
+    flex-direction: column;
+    /* 180px (vs the Figma's nominal 160px) so "Advanced tools" fits with
+       symmetric 12px item padding and the icon stays vertically aligned
+       with the other rows. Still within Figma's max-w-[260px] allowance. */
+    width: 180px;
+    background-color: var(--alias-background-app-frame-layer-1, #f8f8f8);
+    transition: width 0.2s ease;
+    overflow: hidden;
+}
+mas-side-nav[collapsed] {
+    width: 56px;
 }
 
 side-nav sp-sidenav {
@@ -90,13 +106,10 @@ sp-sidenav-item sp-icon {
     display: flex;
     flex-direction: column;
     height: auto;
-    margin-block-start: 16px;
-    margin-block-end: 0;
-    margin-inline: 12px;
+    margin: 0 12px 0 0;
     border-radius: 16px 16px 0 0;
     background: var(--spectrum-white);
     border: 1px solid var(--spectrum-gray-75, #f3f3f3);
-    box-shadow: 0 0 4px 0 rgba(0, 0, 0, 0.1);
     overflow-y: auto;
 }
 
@@ -1073,24 +1086,24 @@ sp-progress-circle.preview {
     color: var(--spectrum-global-color-gray-700);
 }
 
-/* mas-top-nav styles */
+/* mas-top-nav styles — per Figma 15382:308970.
+   Background matches the side-nav (#f8f8f8) so the two form one app-frame
+   layer; no bottom border. */
 mas-top-nav {
     width: 100%;
     height: 56px;
-    background-color: var(--spectrum-gray-50, #ffffff);
-    border-bottom: 1px solid var(--spectrum-gray-300, #dadada);
+    background-color: var(--alias-background-app-frame-layer-1, #f8f8f8);
     display: block;
 }
 
 mas-top-nav nav {
     display: flex;
-    padding-block: 12px;
-    padding-inline: 30px;
+    padding: 12px;
     gap: 20px;
     align-items: center;
     height: 100%;
     box-sizing: border-box;
-    background-color: var(--spectrum-white);
+    background-color: transparent;
 }
 
 mas-top-nav #brand {
@@ -1114,21 +1127,39 @@ mas-top-nav .history-navigation {
     gap: 4px;
 }
 
+/* Adobe Spectrum 2 action-button (M) quiet — matches Figma top-nav spec.
+   32x32 hit area, 8px radius, 20px icon, neutral icon color. */
 mas-top-nav .history-nav-button {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 24px;
-    height: 24px;
-    padding: 0;
+    width: 32px;
+    height: 32px;
+    padding: 6px;
     border: 0;
-    border-radius: 6px;
+    border-radius: 8px;
     background: transparent;
-    color: var(--spectrum-gray-700, #464646);
+    color: var(--alias-content-neutral-default, #292929);
+    cursor: pointer;
+    transition: background-color 0.1s ease;
+}
+
+mas-top-nav .history-nav-button:hover:not([disabled]) {
+    background-color: var(--spectrum-gray-200, #e1e1e1);
+}
+
+mas-top-nav .history-nav-button:active:not([disabled]) {
+    background-color: var(--spectrum-gray-300, #dadada);
+}
+
+mas-top-nav .history-nav-button:focus-visible {
+    outline: 2px solid var(--spectrum-blue-800, #2680eb);
+    outline-offset: 2px;
 }
 
 mas-top-nav .history-nav-button[disabled] {
-    color: var(--spectrum-gray-500, #909090);
+    color: var(--alias-content-disabled-default, #c6c6c6);
+    cursor: not-allowed;
 }
 
 mas-top-nav .nav-breadcrumbs {
@@ -1161,14 +1192,43 @@ mas-top-nav #logo {
     height: 32px;
 }
 
+/* "Merch At Scale Studio" brand text per Figma 9427:145386 —
+   Component/M/Bold. */
 mas-top-nav #mas-studio {
-    font-size: 18px;
-    font-weight: 800;
-    line-height: 22px;
-    color: var(--spectrum-gray-800, #292929);
-    display: flex;
+    display: inline-flex;
     align-self: center;
-    font-family: 'Adobe Clean', sans-serif;
+    font-family: var(--spectrum-sans-font-family-stack, 'Adobe Clean', sans-serif);
+    font-size: var(--spectrum-font-size-100, 14px);
+    line-height: var(--spectrum-line-height-100, 18px);
+    font-weight: var(--spectrum-bold-font-weight, 700);
+    letter-spacing: 0;
+    color: var(--alias-content-neutral-default, #292929);
+    white-space: nowrap;
+}
+
+mas-top-nav .hamburger-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 6px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--alias-content-neutral-default, #292929);
+    cursor: pointer;
+    transition: background-color 0.1s ease;
+}
+mas-top-nav .hamburger-button:hover {
+    background-color: var(--spectrum-gray-200, #e1e1e1);
+}
+mas-top-nav .hamburger-button:active {
+    background-color: var(--spectrum-gray-300, #dadada);
+}
+mas-top-nav .hamburger-button:focus-visible {
+    outline: 2px solid var(--spectrum-blue-800, #2680eb);
+    outline-offset: 2px;
 }
 
 mas-top-nav a {
@@ -1207,6 +1267,15 @@ mas-top-nav .icon-button sp-icon-bell {
     color: var(--spectrum-gray-800, #292929);
 }
 
+/* "Draft landscape offer" switch sits in the same .right-section flex row
+   as the locale button (left) and the universal-elements cluster (right).
+   That row has gap:12px, but Figma 15382:308970 calls for 32px around the
+   switch — adding 20px of inline margin on each side brings the visible
+   gap to 12 + 20 = 32px on both sides. */
+mas-top-nav .landscape-switch {
+    margin-inline: 20px;
+}
+
 mas-top-nav .divider {
     width: 1px;
     height: 32px;
@@ -1220,18 +1289,52 @@ mas-top-nav .universal-elements {
     gap: 8px;
 }
 
+/* Skeleton while profileBuilder() is fetching the IMS profile — reserves
+   the same 32x32 footprint as the avatar button so the surrounding nav
+   row doesn't shift right when the avatar arrives. On return visits we
+   render the cached avatar URL as an <img> inside this placeholder, so
+   the user sees the real avatar from the first paint. */
+mas-top-nav .profile-placeholder {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background-color: var(--spectrum-gray-100, #e9e9e9);
+    overflow: hidden;
+    /* Center the inner avatar img — matches .profile-button's flex
+       centering so the avatar doesn't appear to shift from top-left
+       to center when profileBuilder swaps the placeholder for the
+       real button. */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+/* Match the .profile-button img size (24x24) so the avatar doesn't appear
+   enlarged in the placeholder phase and then shrink when profileBuilder
+   swaps in the real button. */
+mas-top-nav .profile-placeholder img {
+    width: 24px;
+    height: 24px;
+    border-radius: 12px;
+    object-fit: cover;
+    display: block;
+}
+
 mas-top-nav .profile-button {
     padding: 0;
     cursor: pointer;
     border: 0;
-    background: 0;
+    /* Gray circle behind the avatar img so the button looks like the
+       placeholder until the img bytes finish loading from the network —
+       the img then covers this background once it paints. */
+    background-color: var(--spectrum-gray-100, #e9e9e9);
     position: relative;
-    border-radius: 8px;
+    border-radius: 50%;
     width: 32px;
     height: 32px;
     display: flex;
     align-items: center;
     justify-content: center;
+    overflow: hidden;
 }
 
 mas-top-nav .profile-button:hover {
@@ -1311,6 +1414,39 @@ merch-card-editor .color-swatch {
 
 mas-mnemonic-field sp-action-menu sp-overlay sp-popover sp-menu {
     min-width: auto;
+}
+
+/* Folder-picker dropdown popover per Figma 22245:321219. */
+sp-popover:has(.folder-picker-menu) {
+    background-color: var(--alias-background-app-frame-elevated, #ffffff) !important;
+    border: 1px solid transparent !important;
+    border-radius: 10px !important;
+    padding-top: 8px !important;
+    padding-right: 8px !important;
+    padding-bottom: 8px !important;
+    padding-left: 8px !important;
+    box-shadow:
+        0 0 2px rgba(0, 0, 0, 0.12),
+        0 2px 6px rgba(0, 0, 0, 0.04),
+        0 4px 12px rgba(0, 0, 0, 0.08) !important;
+}
+mas-top-nav sp-overlay sp-menu {
+    padding: 0 !important;
+}
+mas-top-nav sp-overlay sp-menu-item {
+    --mod-menu-item-label-inline-edge-to-content: 12px;
+    --mod-menu-item-min-height: 32px;
+    --mod-menu-item-label-font-size: 14px;
+    --mod-menu-item-label-line-height: 18px;
+    --mod-menu-item-label-content-color-default: var(--alias-content-neutral-default, #292929);
+    padding-inline-start: 12px !important;
+    padding-inline-end: 12px !important;
+    border-radius: 8px;
+    font-weight: 500;
+    margin: 0 !important;
+}
+mas-top-nav sp-overlay sp-menu-item + sp-menu-item {
+    margin-top: 4px !important;
 }
 
 /* Price error styling (authoring only) */

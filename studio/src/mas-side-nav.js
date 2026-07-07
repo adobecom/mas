@@ -34,10 +34,10 @@ class MasSideNav extends LitElement {
         :host {
             display: flex;
             flex-direction: column;
-            height: calc(100% - 35px);
-            width: 68px;
-            padding: 32px 12px 12px 5px;
-            box-sizing: content-box;
+            height: 100%;
+            width: 100%;
+            padding-block: 12px;
+            box-sizing: border-box;
             overflow-y: auto;
         }
 
@@ -46,6 +46,7 @@ class MasSideNav extends LitElement {
             flex-direction: column;
             flex: 1;
             min-height: 0;
+            width: 100%;
         }
 
         .nav-items {
@@ -53,7 +54,19 @@ class MasSideNav extends LitElement {
             flex-direction: column;
             flex: 1;
             position: relative;
-            padding-bottom: 116px;
+            gap: 8px;
+            padding-inline: 6px 10px;
+            /* Padding stays constant — the icon ends up centered in the
+               collapsed 56px nav purely because of the geometry: item-left
+               (6) + item-padding (12) = 18 from nav-left, which puts the
+               icon's center at 28 = nav center. No padding flip needed. */
+        }
+
+        /* Bottom-anchored items (Advanced tools, Support) sit at the end of the
+           items column instead of absolutely-positioned, so the column flows
+           naturally and respects the collapsed width. */
+        mas-side-nav-item.bottom {
+            margin-top: auto;
         }
 
         .side-nav-new-window {
@@ -148,6 +161,7 @@ class MasSideNav extends LitElement {
             Store.editor.referencedFragmentStoresHaveChanges,
             Store.profile,
             Store.users,
+            Store.sideNavCollapsed,
         ],
         this.handleStoreChanges,
     );
@@ -214,6 +228,7 @@ class MasSideNav extends LitElement {
             Store.editor.referencedFragmentStoresHaveChanges,
             Store.profile,
             Store.users,
+            Store.sideNavCollapsed,
         ];
         if (fragmentStore) {
             stores.push(fragmentStore);
@@ -932,11 +947,17 @@ class MasSideNav extends LitElement {
 
     render() {
         const isEditMode = Store.viewMode.value === 'editing';
+        const collapsed = Store.sideNavCollapsed.value;
+        this.toggleAttribute('collapsed', collapsed);
 
         return html`<div class="nav-container">
             <div class="nav-items">${isEditMode ? this.editNavigation : this.defaultNavigation}</div>
         </div>`;
     }
+
+    /* No per-item collapsed propagation — items keep their expanded layout
+       in both modes and the nav's overflow:hidden + width transition handles
+       the visual collapse. See mas-side-nav-item.js for the geometry. */
 }
 
 customElements.define('mas-side-nav', MasSideNav);

@@ -63,6 +63,7 @@ const Store = {
     sort: new ReactiveStore({}),
     renderMode: new ReactiveStore(localStorage.getItem('mas-render-mode') || 'render'),
     viewMode: new ReactiveStore('default'),
+    sideNavCollapsed: new ReactiveStore(true),
     selecting: new ReactiveStore(false),
     selection: new ReactiveStore([]),
     page: new ReactiveStore(PAGE_NAMES.WELCOME, pageValidator),

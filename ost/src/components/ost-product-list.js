@@ -48,8 +48,7 @@ export class OstProductList extends LitElement {
         }
 
         .product-card[selected] {
-            border-left-color: var(--spectrum-blue-900);
-            background: var(--spectrum-blue-100);
+            background: var(--spectrum-gray-200);
         }
 
         .product-icon {

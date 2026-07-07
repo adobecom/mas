@@ -1382,6 +1382,121 @@ describe('MasPromotionsEditor', () => {
         });
     });
 
+    describe('copy variation links quick action', () => {
+        function stubClipboard() {
+            const state = { copied: null, rejects: false };
+            const origDescriptor = Object.getOwnPropertyDescriptor(navigator, 'clipboard');
+            Object.defineProperty(navigator, 'clipboard', {
+                value: {
+                    writeText: (text) => {
+                        if (state.rejects) return Promise.reject(new Error('denied'));
+                        state.copied = text;
+                        return Promise.resolve();
+                    },
+                },
+                configurable: true,
+            });
+            return {
+                state,
+                restore: () => {
+                    if (origDescriptor) Object.defineProperty(navigator, 'clipboard', origDescriptor);
+                },
+            };
+        }
+
+        it('copies deep links for all attached variations, including published ones', async () => {
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            Store.promotions.inEdit.set(new FragmentStore(makePromotion({ id: 'promo-id', title: 'Campaign' })));
+            const variationPath = '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card';
+            const { el } = await mountEditorWithRepo({
+                aem: {
+                    sites: {
+                        cf: {
+                            fragments: {
+                                getById: sandbox.stub().resolves(null),
+                                getByPath: sandbox
+                                    .stub()
+                                    .withArgs(variationPath)
+                                    .resolves({
+                                        id: 'variation-id',
+                                        path: variationPath,
+                                        status: 'PUBLISHED',
+                                        title: 'Variation',
+                                        model: { path: CARD_MODEL_PATH },
+                                    }),
+                            },
+                        },
+                    },
+                },
+            });
+            el.fragmentStore.updateField('tags', ['mas:promotion/black-friday']);
+            el.fragmentStore.updateField('fragments', ['/content/dam/mas/sandbox/en_US/my-card']);
+            await el.updateComplete;
+            const clipboard = stubClipboard();
+            try {
+                clickPromotionQuickAction(el, 'Copy variation links');
+                await new Promise((r) => setTimeout(r, 0));
+                expect(clipboard.state.copied).to.include('variation-id');
+            } finally {
+                clipboard.restore();
+            }
+        });
+
+        it('shows an info toast and does not touch the clipboard when there are no variations', async () => {
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            Store.promotions.inEdit.set(new FragmentStore(makePromotion({ id: 'promo-id-empty', title: 'Campaign' })));
+            const { el } = await mountEditorWithRepo();
+            await el.updateComplete;
+            const clipboard = stubClipboard();
+            try {
+                clickPromotionQuickAction(el, 'Copy variation links');
+                await new Promise((r) => setTimeout(r, 0));
+                expect(clipboard.state.copied).to.equal(null);
+            } finally {
+                clipboard.restore();
+            }
+        });
+
+        it('shows a negative toast when the clipboard write fails', async () => {
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            Store.promotions.inEdit.set(new FragmentStore(makePromotion({ id: 'promo-id-fail', title: 'Campaign' })));
+            const variationPath = '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card';
+            const { el } = await mountEditorWithRepo({
+                aem: {
+                    sites: {
+                        cf: {
+                            fragments: {
+                                getById: sandbox.stub().resolves(null),
+                                getByPath: sandbox
+                                    .stub()
+                                    .withArgs(variationPath)
+                                    .resolves({
+                                        id: 'variation-id',
+                                        path: variationPath,
+                                        status: 'DRAFT',
+                                        title: 'Variation',
+                                        model: { path: CARD_MODEL_PATH },
+                                    }),
+                            },
+                        },
+                    },
+                },
+            });
+            el.fragmentStore.updateField('tags', ['mas:promotion/black-friday']);
+            el.fragmentStore.updateField('fragments', ['/content/dam/mas/sandbox/en_US/my-card']);
+            await el.updateComplete;
+            const clipboard = stubClipboard();
+            clipboard.state.rejects = true;
+            try {
+                clickPromotionQuickAction(el, 'Copy variation links');
+                await new Promise((r) => setTimeout(r, 0));
+                expect(clipboard.state.copied).to.equal(null);
+            } finally {
+                clipboard.restore();
+            }
+        });
+    });
+
     describe('reopening the add-items dialog', () => {
         it('clears the cards search cache on close so results reload next open, preserving the selection', async () => {
             const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');

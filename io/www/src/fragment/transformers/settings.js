@@ -168,13 +168,16 @@ export function resolveSettingEntry(fragment, locale, setting) {
     const template = fragment.fields?.variant;
     if (defaultEntry.templates?.length > 0 && !defaultEntry.templates.includes(template)) {
         const definition = SETTING_NAME_BY_VALUE.get(defaultEntry.name);
-        const fragmentValue = fragment.fields[definition.propertyName || definition.name];
+        const fragmentValue = fragment.fields[definition?.propertyName || definition?.name];
         if (typeof fragmentValue !== 'undefined') {
-            return {
+            const isBoolean = definition.valueType === 'boolean';
+            const entry = {
                 ...defaultEntry,
                 templates: [],
-                booleanValue: fragmentValue,
+                [isBoolean ? 'booleanValue' : 'textValue']: fragmentValue,
             };
+            if (!isBoolean) entry.booleanValue = true;
+            return entry;
         }
         return null;
     }

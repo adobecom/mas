@@ -105,7 +105,6 @@ class MasFragment extends LitElement {
         }
 
         const fragment = this.fragmentStore.value;
-        // Fetch references only when expanding and references are not yet loaded
         if (newExpandedState && this.repository && !fragment.references?.length) {
             this.loadingReferences = true;
 
@@ -118,6 +117,10 @@ class MasFragment extends LitElement {
             } finally {
                 this.loadingReferences = false;
             }
+        }
+
+        if (Store.selecting.get()) {
+            this.dispatchEvent(new CustomEvent('table-selection-refresh', { bubbles: true, composed: true }));
         }
     }
 

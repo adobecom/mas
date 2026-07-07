@@ -9,6 +9,11 @@ AIO_runtime_apihost=https://adobeioruntime.net
  # odin author
 ODIN_ENDPOINT=https://author-p22655-xxxx.adobeaemcloud.com
 
+# ost-products-write action
+AOS_URL=
+AOS_API_KEY=
+OST_WRITE_API_KEY=
+
 # batch size of concurrent requests to send to odin loc v2 API ODIN_ENDPOINT (default: 2, QA-safe)
 BATCH_SIZE=2
 
@@ -21,3 +26,7 @@ RPS_LIMIT=2
 # Maximum number of translation workers running in parallel against Odin authoring (default: 2).
 # Stage/prod values are set via the io-studio-merge.yaml workflow, not this file.
 WORKER_CONCURRENCY=2
+
+# translation state TTLs (package-level inputs)
+TRANSLATION_JOB_PAYLOAD_TTL=
+TRANSLATION_PROJECT_SUMMARY_TTL=

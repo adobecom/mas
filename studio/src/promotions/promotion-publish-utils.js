@@ -27,7 +27,7 @@ export function isPromotionExpiredForPublish(promotionFragment) {
  * @returns {Date|null}
  */
 function getPromotionStartDate(promotionFragment) {
-    const raw = promotionFragment?.getFieldValue?.('startDate') ?? promotionFragment?.startDateValue;
+    const raw = promotionFragment?.getFieldValue?.('startDate');
     if (!raw) return null;
     const startDate = new Date(raw);
     return Number.isNaN(startDate.getTime()) ? null : startDate;

@@ -13,6 +13,11 @@ import {
     isPznCountryTagId,
     PZN_TAG_ID_PREFIX,
 } from './common/utils/personalization-utils.js';
+import {
+    getParentRowSelection,
+    mergeParentTableSelection,
+    stripNestedVariationSelectControls,
+} from './mas-content-table-selection.js';
 
 const variantValues = VARIANTS.map((v) => v.value);
 
@@ -37,6 +42,10 @@ const tableSkeletonRow = () =>
         <sp-table-cell class="preview"><div class="skeleton-element skeleton-table-cell"></div></sp-table-cell>
     </sp-table-row>`;
 class MasContent extends LitElement {
+    static properties = {
+        tableSelects: { type: String, state: true },
+    };
+
     createRenderRoot() {
         return this;
     }
@@ -49,12 +58,22 @@ class MasContent extends LitElement {
         this.wasLoading = false;
     }
 
+    #handleTableSelectionRefresh = () => {
+        if (Store.selecting.get() && !this.loading.value && this.firstPageLoaded.value) {
+            void this.refreshTableSelection();
+        }
+    };
+
+    #refreshInProgress = false;
+    #fragmentsChangedWhileSelecting = false;
+    #filtersChangedWhileSelecting = false;
+    #refreshSelectionGeneration = 0;
+
     loading = new StoreController(this, Store.fragments.list.loading);
     firstPageLoaded = new StoreController(this, Store.fragments.list.firstPageLoaded);
     fragments = new StoreController(this, Store.fragments.list.data);
     hasMore = new StoreController(this, Store.fragments.list.hasMore);
     renderMode = new StoreController(this, Store.renderMode);
-    selecting = new StoreController(this, Store.selecting);
     selection = new StoreController(this, Store.selection);
     search = new StoreController(this, Store.search);
     filters = new StoreController(this, Store.filters);
@@ -63,16 +82,28 @@ class MasContent extends LitElement {
         super.connectedCallback();
         Events.fragmentAdded.subscribe(this.goToFragment);
         Events.fragmentDeleted.subscribe(this.onFragmentDeleted);
+        this.addEventListener('table-selection-refresh', this.#handleTableSelectionRefresh);
 
         this.subscriptions.push(
             Store.fragments.list.data.subscribe(() => {
-                this.requestUpdate();
+                if (Store.selecting.get()) this.#fragmentsChangedWhileSelecting = true;
             }),
         );
 
         this.subscriptions.push(
             Store.filters.subscribe(() => {
-                this.requestUpdate();
+                if (Store.selecting.get()) this.#filtersChangedWhileSelecting = true;
+            }),
+        );
+
+        this.subscriptions.push(
+            Store.selecting.subscribe((selecting) => {
+                this.tableSelects = selecting ? 'multiple' : undefined;
+                this.#fragmentsChangedWhileSelecting = false;
+                this.#filtersChangedWhileSelecting = false;
+                if (selecting) {
+                    void this.updateComplete.then(() => stripNestedVariationSelectControls(this));
+                }
             }),
         );
 
@@ -90,6 +121,7 @@ class MasContent extends LitElement {
         super.disconnectedCallback();
         Events.fragmentAdded.unsubscribe(this.goToFragment);
         Events.fragmentDeleted.unsubscribe(this.onFragmentDeleted);
+        this.removeEventListener('table-selection-refresh', this.#handleTableSelectionRefresh);
         this.scrollObserver?.disconnect();
         this.observedSentinel = null;
         this.wasLoading = false;
@@ -159,11 +191,52 @@ class MasContent extends LitElement {
         `;
     }
 
-    updateTableSelection(event) {
-        Store.selection.set(Array.from(event.target.selectedSet));
+    get parentRowSelection() {
+        return getParentRowSelection(this.fragments.value, this.selection.value);
     }
 
-    /** @param {import('./reactivity/fragment-store.js').FragmentStore[]} fragmentStores */
+    updateTableSelection(event) {
+        if (this.#refreshInProgress) return;
+        if (event.target !== event.currentTarget) return;
+
+        Store.selection.set(mergeParentTableSelection(event.target.selectedSet, this.fragments.value, this.selection.value));
+    }
+
+    /**
+     * Re-applies sp-table checkbox cells after rows are added or removed.
+     * Spectrum sp-table only injects checkboxes when `selects` toggles.
+     */
+    async refreshTableSelection() {
+        if (!Store.selecting.get()) {
+            this.tableSelects = undefined;
+            return;
+        }
+        if (this.loading.value || !this.firstPageLoaded.value || this.#refreshInProgress) return;
+
+        const generation = ++this.#refreshSelectionGeneration;
+        this.#refreshInProgress = true;
+        try {
+            this.tableSelects = undefined;
+            await this.updateComplete;
+            if (generation !== this.#refreshSelectionGeneration || !Store.selecting.get()) return;
+            if (this.loading.value || !this.firstPageLoaded.value) return;
+
+            this.tableSelects = 'multiple';
+            await this.updateComplete;
+            stripNestedVariationSelectControls(this);
+        } finally {
+            this.#refreshInProgress = false;
+        }
+    }
+
+    #maybeRefreshTableSelection(loadingJustCompleted) {
+        if (!Store.selecting.get() || this.loading.value || !this.firstPageLoaded.value) return;
+        if (!loadingJustCompleted && !this.#fragmentsChangedWhileSelecting && !this.#filtersChangedWhileSelecting) return;
+        this.#fragmentsChangedWhileSelecting = false;
+        this.#filtersChangedWhileSelecting = false;
+        void this.refreshTableSelection();
+    }
+
     /** Non-country mas:pzn tag ids selected in the filter panel (narrow the Personalization group only). */
     #getSelectedPersonalizationTagIds() {
         const raw = Store.filters.get().tags;
@@ -247,8 +320,8 @@ class MasContent extends LitElement {
         return html`<sp-table
                 emphasized
                 scroller
-                selects=${this.selecting.value ? 'multiple' : undefined}
-                selected=${JSON.stringify(this.selection.value)}
+                selects=${this.tableSelects}
+                selected=${JSON.stringify(this.parentRowSelection)}
                 @change=${this.updateTableSelection}
             >
                 <sp-table-head>
@@ -282,6 +355,10 @@ class MasContent extends LitElement {
     updated() {
         const loadingJustCompleted = this.wasLoading && !this.loading.value;
         this.wasLoading = this.loading.value;
+
+        if (Store.selecting.get() && !this.loading.value && this.firstPageLoaded.value) {
+            this.#maybeRefreshTableSelection(loadingJustCompleted);
+        }
 
         const sentinel = this.querySelector('.scroll-sentinel');
         if (sentinel && sentinel !== this.observedSentinel) {

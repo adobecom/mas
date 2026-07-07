@@ -122,6 +122,8 @@ async function main(params, deps = {}) {
             odinEndpoint,
             authToken: params.authToken,
             publishedBy: params.publishedBy || '',
+            includeCards: params.includeCards || false,
+            includeVariations: params.includeVariations || false,
         });
         return { statusCode: 200, body: result };
     } catch (error) {

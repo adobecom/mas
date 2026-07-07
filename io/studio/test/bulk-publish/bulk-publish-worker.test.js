@@ -233,6 +233,17 @@ describe('bulk-publish-worker — main', () => {
         expect(updateProjectFragment.firstCall.args[3]).to.deep.include({ status: 'Failed' });
     });
 
+    it('forwards includeCards and includeVariations from params to runWorker', async () => {
+        const runWorkerStub = sinon.stub().resolves({ published: 1, failed: 0 });
+        await main(
+            { projectId: 'proj-1', odinEndpoint: 'https://odin', authToken: 't', includeCards: true, includeVariations: true },
+            { runWorker: runWorkerStub },
+        );
+        const input = runWorkerStub.firstCall.args[0];
+        expect(input.includeCards).to.equal(true);
+        expect(input.includeVariations).to.equal(true);
+    });
+
     it('does not throw if updateProjectFragment also fails during error recovery', async () => {
         const updateProjectFragment = sinon.stub().rejects(new Error('update failed'));
         const runWorkerStub = sinon.stub().rejects(new Error('worker error'));

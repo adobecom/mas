@@ -506,6 +506,7 @@ describe('MasPromotionsEditor', () => {
                 'Publish',
                 'Unpublish',
                 'Copy link',
+                'Copy variation links',
                 'Lock project',
                 'Delete',
             ]);

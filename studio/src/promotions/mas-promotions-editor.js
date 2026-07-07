@@ -10,7 +10,7 @@ import styles from './mas-promotions-editor-css.js';
 import { SURFACES, PAGE_NAMES, PROMOTION_MODEL_ID, TABLE_TYPE, QUICK_ACTION, EVENT_OST_OFFER_SELECT } from '../constants.js';
 import '../mas-quick-actions.js';
 import { SAVE_SVG, CLONE_SVG, PUBLISH_SVG, COPY_SVG, LOCK_SVG, DELETE_SVG } from '../bulk-publish/bulk-publish-icons.js';
-import { normalizeKey, showToast, extractSurfaceFromPath } from '../utils.js';
+import { normalizeKey, showToast, extractSurfaceFromPath, buildCardsDeepLink } from '../utils.js';
 import { getFragmentPartsToUse, MODEL_WEB_COMPONENT_MAPPING } from '../editor-panel.js';
 import { Promotion } from '../aem/promotion.js';
 import './mas-promotions-items-selector.js';
@@ -51,6 +51,7 @@ import {
 import { renderFragmentStatusCell } from '../common/utils/render-utils.js';
 import { clearCaches } from '../../libs/fragment-client.js';
 import { canEditPromotions } from '../groups.js';
+import { getAllAttachedPromoVariations } from './promotions-repository.js';
 
 function getPromotionPickerFragmentLabel(data) {
     const webComponentName = MODEL_WEB_COMPONENT_MAPPING[data?.model?.path];
@@ -75,6 +76,7 @@ const PROMOTION_QUICK_ACTIONS = [
     QUICK_ACTION.PUBLISH,
     QUICK_ACTION.UNPUBLISH,
     QUICK_ACTION.COPY,
+    QUICK_ACTION.LINK,
     QUICK_ACTION.LOCK,
     QUICK_ACTION.DELETE,
 ];
@@ -86,6 +88,7 @@ const PROMOTION_QUICK_ACTION_ICON_OVERRIDES = {
     [QUICK_ACTION.PUBLISH]: { icon: PUBLISH_SVG, title: 'Publish' },
     [QUICK_ACTION.UNPUBLISH]: { icon: 'sp-icon-publish-remove', title: 'Unpublish' },
     [QUICK_ACTION.COPY]: { icon: COPY_SVG, title: 'Copy link' },
+    [QUICK_ACTION.LINK]: { icon: 'sp-icon-copy', title: 'Copy variation links' },
     [QUICK_ACTION.LOCK]: { icon: LOCK_SVG, title: 'Lock project' },
     [QUICK_ACTION.DELETE]: { icon: DELETE_SVG, title: 'Delete', className: 'delete-action' },
 };
@@ -733,6 +736,24 @@ class MasPromotionsEditor extends LitElement {
         }
     }
 
+    async #handleCopyVariationsList() {
+        if (!this.fragment || !this.repository?.aem) return;
+        const variations = await getAllAttachedPromoVariations(this.repository.aem, this.fragment);
+        const links = variations
+            .map((variation) => buildCardsDeepLink(variation, extractSurfaceFromPath(variation.path)))
+            .filter(Boolean);
+        if (!links.length) {
+            showToast('No variations found for this promotion project.', 'info');
+            return;
+        }
+        try {
+            await navigator.clipboard.writeText(links.join('\n'));
+            showToast('Variation links copied to clipboard.', 'positive');
+        } catch {
+            showToast('Failed to copy variation links.', 'negative');
+        }
+    }
+
     #buildPromotionFragmentPayload(title) {
         return {
             name: normalizeKey(title),
@@ -836,6 +857,7 @@ class MasPromotionsEditor extends LitElement {
             disabled.add(QUICK_ACTION.PUBLISH);
             disabled.add(QUICK_ACTION.UNPUBLISH);
             disabled.add(QUICK_ACTION.COPY);
+            disabled.add(QUICK_ACTION.LINK);
             disabled.add(QUICK_ACTION.DELETE);
             return disabled;
         }
@@ -844,6 +866,7 @@ class MasPromotionsEditor extends LitElement {
         }
         if (!this.fragment?.id) {
             disabled.add(QUICK_ACTION.COPY);
+            disabled.add(QUICK_ACTION.LINK);
             disabled.add(QUICK_ACTION.DELETE);
             disabled.add(QUICK_ACTION.DUPLICATE);
         } else if (publishOptions.hasUnsavedChanges) {
@@ -1535,6 +1558,7 @@ class MasPromotionsEditor extends LitElement {
                       @publish=${this.#handlePublishPromotion}
                       @unpublish=${this.#handleUnpublishPromotion}
                       @copy=${this.#handleCopyPromotionLink}
+                      @link=${this.#handleCopyVariationsList}
                       @lock=${this.#handleLockPromotion}
                       @delete=${this.#handleDeletePromotion}
                   ></mas-quick-actions>`

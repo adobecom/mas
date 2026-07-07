@@ -145,13 +145,14 @@ export async function resolveDefaultFragmentForPromoVariation(aem, promoVariatio
 }
 
 /**
- * Returns unpublished promo variations for fragments attached to a promotion project.
+ * Resolves promo variations for fragments attached to a promotion project.
  * Discovered via project promo tag + buildPromoVariationPathForTag (not parent variations field).
  * @param {import('../aem/aem.js').AEM} aem
  * @param {Object} promotionFragment
+ * @param {{ onlyUnpublished?: boolean }} [options]
  * @returns {Promise<Array<{ path: string, status: string, title: string, parentPath: string }>>}
  */
-export async function getUnpublishedAttachedPromoVariations(aem, promotionFragment) {
+async function collectAttachedPromoVariations(aem, promotionFragment, { onlyUnpublished = false } = {}) {
     const promotionTagId = getPromotionTagFromFragment(promotionFragment);
     if (!promotionTagId) return [];
 
@@ -165,11 +166,13 @@ export async function getUnpublishedAttachedPromoVariations(aem, promotionFragme
             if (!variationPath) return null;
             const variation = await getFragmentByPathOrNull(aem.sites.cf.fragments, variationPath);
             if (!variation) return null;
-            if (variation.status === STATUS_PUBLISHED) return null;
+            if (onlyUnpublished && variation.status === STATUS_PUBLISHED) return null;
             return {
+                id: variation.id,
                 path: variationPath,
                 status: variation.status,
                 title: variation.title,
+                model: variation.model,
                 parentPath,
             };
         },
@@ -177,4 +180,24 @@ export async function getUnpublishedAttachedPromoVariations(aem, promotionFragme
     );
 
     return results.filter(Boolean);
+}
+
+/**
+ * Returns unpublished promo variations for fragments attached to a promotion project.
+ * @param {import('../aem/aem.js').AEM} aem
+ * @param {Object} promotionFragment
+ * @returns {Promise<Array<{ path: string, status: string, title: string, parentPath: string }>>}
+ */
+export async function getUnpublishedAttachedPromoVariations(aem, promotionFragment) {
+    return collectAttachedPromoVariations(aem, promotionFragment, { onlyUnpublished: true });
+}
+
+/**
+ * Returns all promo variations (any status) for fragments attached to a promotion project.
+ * @param {import('../aem/aem.js').AEM} aem
+ * @param {Object} promotionFragment
+ * @returns {Promise<Array<{ path: string, status: string, title: string, parentPath: string }>>}
+ */
+export async function getAllAttachedPromoVariations(aem, promotionFragment) {
+    return collectAttachedPromoVariations(aem, promotionFragment);
 }

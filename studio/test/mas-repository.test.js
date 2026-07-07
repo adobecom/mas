@@ -4237,6 +4237,13 @@ describe('MasRepository bulkPublishFragments', () => {
         expect(result).to.be.false;
         expect(repo.aem.sites.cf.fragments.publishFragments.called).to.be.false;
     });
+
+    it('calls refreshFragment with skipPromoMerge:true for each published fragment', async () => {
+        await repo.bulkPublishFragments(['frag-1', 'frag-2'], { withToast: false });
+        expect(repo.refreshFragment.calledTwice).to.be.true;
+        expect(repo.refreshFragment.firstCall.args[1]).to.deep.equal({ skipPromoMerge: true });
+        expect(repo.refreshFragment.secondCall.args[1]).to.deep.equal({ skipPromoMerge: true });
+    });
 });
 
 describe('MasRepository getParentPath', () => {

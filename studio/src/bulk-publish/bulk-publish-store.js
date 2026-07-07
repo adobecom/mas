@@ -43,7 +43,7 @@ export async function startPublishing({
         await fn({ ioBaseUrl, projectId: project.id, publishedBy, token, includeVariations, includeCards });
         let interval = pollIntervalMs;
         for (let i = 0; i < maxPolls; i++) {
-            await repository.refreshFragment(project).catch(() => {});
+            await repository.refreshFragment(project, { skipPromoMerge: true }).catch(() => {});
             const statusField = project.get()?.fields?.find((f) => f.name === 'status');
             const status = statusField?.values?.[0];
             if (terminalStatuses.has(status)) return { status };
@@ -62,7 +62,7 @@ export async function startReverting({ project, token, ioBaseUrl, repository }) 
     const { revertAction } = await import('./bulk-publish-client.js');
     const result = await revertAction({ ioBaseUrl, projectId: project.id, token });
     patchProjectStore(project, { status: result.status });
-    repository.refreshFragment(project).catch(() => {});
+    repository.refreshFragment(project, { skipPromoMerge: true }).catch(() => {});
     const current = Store.bulkPublishProjects.list.data.get() ?? [];
     Store.bulkPublishProjects.list.data.set([...current]);
     return result;

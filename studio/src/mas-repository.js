@@ -1605,11 +1605,11 @@ export class MasRepository extends LitElement {
                 }
             }
 
-            // Refresh all published fragments
+            // Refresh all published fragments (skip promo probe — not needed in bulk publish context)
             const refreshPromises = fragmentIds.map((id) => {
                 const store = Store.fragments.list.data.get().find((fragmentStore) => fragmentStore.get()?.id === id);
                 if (store) {
-                    return this.refreshFragment(store);
+                    return this.refreshFragment(store, { skipPromoMerge: true });
                 }
                 return Promise.resolve();
             });
@@ -2358,11 +2358,13 @@ export class MasRepository extends LitElement {
      * Updates a given fragment store with the latest data
      * @param {FragmentStore} store
      */
-    async refreshFragment(store) {
+    async refreshFragment(store, { skipPromoMerge = false } = {}) {
         store.setLoading(true);
         const id = store.get().id;
         let latest = await this.aem.sites.cf.fragments.getById(id);
-        latest = await promotionsRepository.mergePromoReferencesIntoFragmentData(this.aem, latest, () => this.loadPromotions());
+        if (!skipPromoMerge) {
+            latest = await promotionsRepository.mergePromoReferencesIntoFragmentData(this.aem, latest, () => this.loadPromotions());
+        }
 
         // Apply corrector transformer before refreshing
         const surface = this.search.value.path?.split('/').filter(Boolean)[0]?.toLowerCase();

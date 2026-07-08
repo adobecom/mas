@@ -1201,7 +1201,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
     // @studio-plans-individuals-edit-discard-cta-ost - Validate edit CTA for plans individuals card in mas studio
     test(`${features[21].name},${features[21].tags}`, async ({ page, baseURL }) => {
         const { data } = features[21];
-        const testPage = `${baseURL}${features[21].path}${miloLibs}${features[21].browserParams}${data.cardid}`;
+        const testPage = withOstFlag(baseURL, features[21].path, `${features[21].browserParams}${data.cardid}`);
         setTestPage(testPage);
         const individualsCard = await studio.getCard(data.cardid);
 

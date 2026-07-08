@@ -528,7 +528,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
     // @studio-plans-individuals-save-add-description-price-legal-disclamer - Validate save adding legal disclamer in description for plans individuals card in mas studio
     test(`${features[6].name},${features[6].tags}`, async ({ page, baseURL }) => {
         const { data } = features[6];
-        const testPage = `${baseURL}${features[6].path}${miloLibs}${features[6].browserParams}${data.cardid}`;
+        const testPage = withOstFlag(baseURL, features[6].path, `${features[6].browserParams}${data.cardid}`);
         setTestPage(testPage);
         let clonedCard;
 

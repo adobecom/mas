@@ -288,6 +288,44 @@ describe('ost-code-output', () => {
             }
         });
 
+        it('passes the cancel-context sentinel through to app.select when context promo is cancelled', async () => {
+            const original = navigator.clipboard?.writeText;
+            Object.defineProperty(navigator, 'clipboard', {
+                value: { writeText: async () => {} },
+                configurable: true,
+            });
+
+            const ostApp = document.createElement('div');
+            Object.defineProperty(ostApp, 'tagName', { value: 'OST-APP' });
+            ostApp.attachShadow({ mode: 'open' });
+            document.body.appendChild(ostApp);
+
+            const panel = document.createElement('ost-placeholder-panel');
+            ostApp.shadowRoot.appendChild(panel);
+            await panel.updateComplete;
+
+            store.storedPromoOverride = 'cancel-context';
+            store.promotionCode = 'BLACK_FRIDAY';
+
+            let captured;
+            ostApp.select = (arg) => {
+                captured = arg;
+            };
+            const codeOutput = panel.shadowRoot.querySelector('ost-code-output');
+            await codeOutput.handleUse();
+            expect(captured.promoOverride).to.equal('cancel-context');
+
+            store.storedPromoOverride = undefined;
+            store.promotionCode = undefined;
+            ostApp.remove();
+            if (original) {
+                Object.defineProperty(navigator, 'clipboard', {
+                    value: { writeText: original },
+                    configurable: true,
+                });
+            }
+        });
+
         it('combines base OSI with referenceOsi when type is discount', async () => {
             const original = navigator.clipboard?.writeText;
             Object.defineProperty(navigator, 'clipboard', {

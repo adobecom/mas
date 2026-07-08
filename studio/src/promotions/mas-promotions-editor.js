@@ -10,7 +10,14 @@ import styles from './mas-promotions-editor-css.js';
 import { SURFACES, PAGE_NAMES, PROMOTION_MODEL_ID, TABLE_TYPE, QUICK_ACTION, EVENT_OST_OFFER_SELECT } from '../constants.js';
 import '../mas-quick-actions.js';
 import { SAVE_SVG, CLONE_SVG, PUBLISH_SVG, COPY_SVG, LOCK_SVG, DELETE_SVG } from '../bulk-publish/bulk-publish-icons.js';
-import { normalizeKey, showToast, extractSurfaceFromPath, generateCodeToUse, getFragmentPartsToUse, MODEL_WEB_COMPONENT_MAPPING } from '../utils.js';
+import {
+    normalizeKey,
+    showToast,
+    extractSurfaceFromPath,
+    generateCodeToUse,
+    getFragmentPartsToUse,
+    MODEL_WEB_COMPONENT_MAPPING,
+} from '../utils.js';
 import { Fragment } from '../aem/fragment.js';
 import { Promotion } from '../aem/promotion.js';
 import './mas-promotions-items-selector.js';

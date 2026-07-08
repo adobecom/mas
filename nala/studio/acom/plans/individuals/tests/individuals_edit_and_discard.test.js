@@ -1,4 +1,15 @@
-import { test, expect, studio, editor, plans, ost, webUtil, miloLibs, setTestPage } from '../../../../../libs/mas-test.js';
+import {
+    test,
+    expect,
+    studio,
+    editor,
+    plans,
+    ost,
+    webUtil,
+    miloLibs,
+    setTestPage,
+    withOstFlag,
+} from '../../../../../libs/mas-test.js';
 import ACOMPlansIndividualsSpec from '../specs/individuals_edit_and_discard.spec.js';
 
 const { features } = ACOMPlansIndividualsSpec;
@@ -459,7 +470,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
     // @studio-plans-individuals-edit-discard-price - Validate edit price for plans individuals card in mas studio
     test(`${features[9].name},${features[9].tags}`, async ({ page, baseURL }) => {
         const { data } = features[9];
-        const testPage = `${baseURL}${features[9].path}${miloLibs}${features[9].browserParams}${data.cardid}`;
+        const testPage = withOstFlag(baseURL, features[9].path, `${features[9].browserParams}${data.cardid}`);
         setTestPage(testPage);
         const individualsCard = await studio.getCard(data.cardid);
 
@@ -543,7 +554,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
     // @studio-plans-individuals-edit-discard-osi - Validate edit OSI for plans individuals card in mas studio
     test(`${features[10].name},${features[10].tags}`, async ({ page, baseURL }) => {
         const { data } = features[10];
-        const testPage = `${baseURL}${features[10].path}${miloLibs}${features[10].browserParams}${data.cardid}`;
+        const testPage = withOstFlag(baseURL, features[10].path, `${features[10].browserParams}${data.cardid}`);
         setTestPage(testPage);
         const individualsCard = await studio.getCard(data.cardid);
 
@@ -960,7 +971,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
     // @studio-plans-individuals-edit-discard-promo-price - Validate edit price promo for plans individuals card in mas studio
     test(`${features[17].name},${features[17].tags}`, async ({ page, baseURL }) => {
         const { data } = features[17];
-        const testPage = `${baseURL}${features[17].path}${miloLibs}${features[17].browserParams}${data.cardid}`;
+        const testPage = withOstFlag(baseURL, features[17].path, `${features[17].browserParams}${data.cardid}`);
         setTestPage(testPage);
         const individualsCard = await studio.getCard(data.cardid);
 
@@ -1337,7 +1348,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
     // @studio-plans-individuals-edit-discard-cta-promo - Validate edit cta promo for plans individuals card in mas studio
     test(`${features[23].name},${features[23].tags}`, async ({ page, baseURL }) => {
         const { data } = features[23];
-        const testPage = `${baseURL}${features[23].path}${miloLibs}${features[23].browserParams}${data.cardid}`;
+        const testPage = withOstFlag(baseURL, features[23].path, `${features[23].browserParams}${data.cardid}`);
         setTestPage(testPage);
         const individualsCard = await studio.getCard(data.cardid);
 
@@ -1438,7 +1449,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
     // @studio-plans-individuals-add-description-price-legal-disclamer - Validate adding legal disclamer in description for plans individuals card in mas studio
     test(`${features[24].name},${features[24].tags}`, async ({ page, baseURL }) => {
         const { data } = features[24];
-        const testPage = `${baseURL}${features[24].path}${miloLibs}${features[24].browserParams}${data.cardid}`;
+        const testPage = withOstFlag(baseURL, features[24].path, `${features[24].browserParams}${data.cardid}`);
         setTestPage(testPage);
         const individualsCard = await studio.getCard(data.cardid);
 

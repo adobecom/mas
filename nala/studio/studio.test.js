@@ -1,4 +1,4 @@
-import { test, expect, studio, editor, miloLibs, setTestPage } from '../libs/mas-test.js';
+import { test, expect, studio, editor, miloLibs, setTestPage, withOstFlag } from '../libs/mas-test.js';
 import { getTitle } from '../utils/fragment-tracker.js';
 import StudioSpec from './studio.spec.js';
 
@@ -252,7 +252,7 @@ test.describe('M@S Studio feature test suite', () => {
     // @studio-create-fragment - Validate creating a new fragment
     test(`${features[9].name},${features[9].tags}`, async ({ page, baseURL }) => {
         const { data } = features[9];
-        const testPage = `${baseURL}${features[9].path}${miloLibs}${features[9].browserParams}`;
+        const testPage = withOstFlag(baseURL, features[9].path, features[9].browserParams);
         setTestPage(testPage);
         let fragmentId;
         const expectedTitle = getTitle();

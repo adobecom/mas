@@ -10,6 +10,7 @@ import {
     webUtil,
     miloLibs,
     setTestPage,
+    withOstFlag,
 } from '../../../../../libs/mas-test.js';
 import ACOMPlansIndividualsSpec from '../specs/individuals_save.spec.js';
 
@@ -94,7 +95,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
     // Combines: title, badge, description, mnemonic, callout, promo text, OSI, stock checkbox, what's included, UPT link and color changes
     test(`${features[2].name},${features[2].tags}`, async ({ page, baseURL }) => {
         const { data } = features[2];
-        const testPage = `${baseURL}${features[2].path}${miloLibs}${features[2].browserParams}${data.cardid}`;
+        const testPage = withOstFlag(baseURL, features[2].path, `${features[2].browserParams}${data.cardid}`);
         setTestPage(testPage);
         let clonedCard;
 
@@ -357,7 +358,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
     // @studio-plans-individuals-save-edited-price - Validate saving card after editing price
     test(`${features[3].name},${features[3].tags}`, async ({ page, baseURL }) => {
         const { data } = features[3];
-        const testPage = `${baseURL}${features[3].path}${miloLibs}${features[3].browserParams}${data.cardid}`;
+        const testPage = withOstFlag(baseURL, features[3].path, `${features[3].browserParams}${data.cardid}`);
         setTestPage(testPage);
         let clonedCard;
 

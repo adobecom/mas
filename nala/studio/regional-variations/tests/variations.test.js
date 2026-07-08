@@ -1,4 +1,15 @@
-import { test, expect, studio, editor, plans, ost, webUtil, miloLibs, setTestPage } from '../../../libs/mas-test.js';
+import {
+    test,
+    expect,
+    studio,
+    editor,
+    plans,
+    ost,
+    webUtil,
+    miloLibs,
+    setTestPage,
+    withOstFlag,
+} from '../../../libs/mas-test.js';
 import VariationsSpec from '../specs/variations.spec.js';
 
 const { features } = VariationsSpec;
@@ -140,7 +151,7 @@ test.describe('M@S Studio - Variations Page test suite', () => {
     // @studio-create-variation-new-fragment - Validate creating a variation from new fragment
     test(`${features[2].name},${features[2].tags}`, async ({ page, baseURL }) => {
         const { data } = features[2];
-        const testPage = `${baseURL}${features[2].path}${miloLibs}${features[2].browserParams}`;
+        const testPage = withOstFlag(baseURL, features[2].path, features[2].browserParams);
         setTestPage(testPage);
         let newFragmentId;
         let variationId;
@@ -348,7 +359,7 @@ test.describe('M@S Studio - Variations Page test suite', () => {
     // @studio-variation-override-restore - Per-field steps (edit → verify preview → click restore → verify original), run in serial
     test(`${features[6].name},${features[6].tags}`, async ({ page, baseURL }) => {
         const { data } = features[6];
-        const testPage = `${baseURL}${features[6].path}${miloLibs}${features[6].browserParams}${data.cardid}`;
+        const testPage = withOstFlag(baseURL, features[6].path, `${features[6].browserParams}${data.cardid}`);
         setTestPage(testPage);
         const { original } = data;
 
@@ -596,7 +607,7 @@ test.describe('M@S Studio - Variations Page test suite', () => {
     // @studio-create-variation-GB - Validate creating a variation from GB locale
     test(`${features[7].name},${features[7].tags}`, async ({ page, baseURL }) => {
         const { data } = features[7];
-        const testPage = `${baseURL}${features[7].path}${miloLibs}${features[7].browserParams}`;
+        const testPage = withOstFlag(baseURL, features[7].path, features[7].browserParams);
         setTestPage(testPage);
         let newFragmentId;
         let variationId;

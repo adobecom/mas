@@ -11,14 +11,14 @@
  * Every entry in the spec's `features` array maps 1:1 to exactly one test() block
  * (afmicka rule). The deep-link + Back test (tcid 14) is the Bug 7 guarantee.
  */
-import { test, expect, studio, editor, miloLibs, setTestPage } from '../../../libs/mas-test.js';
+import { test, expect, studio, editor, withOstFlag, setTestPage } from '../../../libs/mas-test.js';
 import OSTPage from '../../ost.page.js';
 import OSTSpec, { OST_FR_FRAGMENT } from '../specs/ost.spec.js';
 
 const { features } = OSTSpec;
 
 const editorUrl = (baseURL, feature, fragmentId) =>
-    `${baseURL}${feature.path}${miloLibs}#locale=fr_FR&page=fragment-editor&path=nala&fragmentId=${fragmentId}`;
+    withOstFlag(baseURL, feature.path, `#locale=fr_FR&page=fragment-editor&path=nala&fragmentId=${fragmentId}`);
 
 const openEditor = async (page, baseURL, feature, fragmentId) => {
     const testPage = editorUrl(baseURL, feature, fragmentId);

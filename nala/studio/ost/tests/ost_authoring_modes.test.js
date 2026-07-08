@@ -12,14 +12,14 @@
  * Requires the dedicated fr_FR OST fragment and a healthy NALA Studio env.
  * Run: npm run nala -- --grep @ost-authoring-modes
  */
-import { test, expect, studio, editor, miloLibs, setTestPage } from '../../../libs/mas-test.js';
+import { test, expect, studio, editor, withOstFlag, setTestPage } from '../../../libs/mas-test.js';
 import OSTPage from '../../ost.page.js';
 import OSTSpec, { OST_FR_FRAGMENT } from '../specs/ost_authoring_modes.spec.js';
 
 const { features } = OSTSpec;
 
 const editorUrl = (baseURL, feature, fragmentId) =>
-    `${baseURL}${feature.path}${miloLibs}#locale=fr_FR&page=fragment-editor&path=nala&fragmentId=${fragmentId}`;
+    withOstFlag(baseURL, feature.path, `#locale=fr_FR&page=fragment-editor&path=nala&fragmentId=${fragmentId}`);
 
 const openEditor = async (page, baseURL, feature, fragmentId) => {
     const testPage = editorUrl(baseURL, feature, fragmentId);

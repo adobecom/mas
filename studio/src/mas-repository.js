@@ -1102,6 +1102,12 @@ export class MasRepository extends LitElement {
     }
 
     async loadPromotions() {
+        if (this.#abortControllers.promotions) this.#abortControllers.promotions.abort();
+        const abortController = new AbortController();
+        this.#abortControllers.promotions = abortController;
+
+        Store.promotions.list.loading.set(true);
+
         try {
             const promotionsPath = this.getPromotionsPath();
 
@@ -1110,15 +1116,9 @@ export class MasRepository extends LitElement {
                 sort: [{ on: 'created', order: 'ASC' }],
             };
 
-            if (this.#abortControllers.promotions) this.#abortControllers.promotions.abort();
-            this.#abortControllers.promotions = new AbortController();
-
-            Store.promotions.list.loading.set(true);
-
-            const fragments = await this.searchFragmentList(searchOptions, 50, this.#abortControllers.promotions);
+            const fragments = await this.searchFragmentList(searchOptions, 50, abortController);
 
             const promotions = fragments.map((fragment) => new FragmentStore(new Promotion(fragment)));
-            const signal = this.#abortControllers.promotions.signal;
             const expiredPublished = promotions.filter((store) => {
                 const p = store.get();
                 return p?.promotionStatus === 'expired' && p.isPromotionPublished;
@@ -1127,13 +1127,15 @@ export class MasRepository extends LitElement {
             Store.promotions.list.data.set(promotions);
 
             if (expiredPublished.length) {
-                void this.#unpublishExpiredPromotions(expiredPublished, signal);
+                void this.#unpublishExpiredPromotions(expiredPublished, abortController.signal);
             }
         } catch (error) {
             this.processError(error, 'Could not load promotions.');
         } finally {
-            Store.promotions.list.data.setMeta('listFetched', true);
-            Store.promotions.list.loading.set(false);
+            if (this.#abortControllers.promotions === abortController) {
+                Store.promotions.list.data.setMeta('listFetched', true);
+                Store.promotions.list.loading.set(false);
+            }
         }
     }
 

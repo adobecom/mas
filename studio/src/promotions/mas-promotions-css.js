@@ -89,6 +89,13 @@ export const styles = css`
         background: rgba(255, 255, 255, 0.7);
         z-index: 10;
     }
+
+    .loading-container {
+        display: flex;
+        justify-content: center;
+        padding: 10px;
+        width: 100%;
+    }
 `;
 
 export default styles;

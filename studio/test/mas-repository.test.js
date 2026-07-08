@@ -412,6 +412,71 @@ describe('MasRepository dictionary helpers', () => {
             expect(Store.promotions.list.loading.get()).to.be.false;
         });
 
+        it('loadPromotions ignores a superseded (aborted) request in its finally block', async () => {
+            // Regression test: an in-flight loadPromotions() call that gets aborted by a
+            // newer overlapping call must not flip Store loading back to false (or mark
+            // listFetched) while the newer call is still resolving - otherwise the UI
+            // briefly renders "no promotions" with stale/empty data before the real
+            // results land.
+            const repository = createFullRepository();
+            const { default: Store } = await import('../src/store.js');
+            Store.promotions.list.data.set([]);
+            Store.promotions.list.loading.set(false);
+
+            const promoFragment = {
+                id: 'promo-1',
+                etag: 'e',
+                model: { id: 'promotion-model' },
+                path: '/content/dam/mas/promotions/promo-1',
+                title: 'T',
+                description: '',
+                status: 'DRAFT',
+                created: { by: 'u', fullName: 'U', at: '2024-01-01T00:00:00.000Z' },
+                modified: { by: 'u', fullName: 'U', at: '2024-01-02T00:00:00.000Z' },
+                fields: [
+                    { name: 'title', type: 'text', values: ['T'] },
+                    { name: 'promoCode', type: 'text', values: ['X'] },
+                    { name: 'startDate', type: 'date-time', values: ['2024-01-01T00:00:00.000Z'] },
+                    { name: 'endDate', type: 'date-time', values: ['2024-12-31T23:59:59.999Z'] },
+                    { name: 'tags', type: 'tag', values: [] },
+                    { name: 'surfaces', type: 'text', values: [] },
+                ],
+                tags: [],
+            };
+
+            let rejectFirst;
+            let resolveSecond;
+            const firstFetch = new Promise((_resolve, reject) => {
+                rejectFirst = reject;
+            });
+            const secondFetch = new Promise((resolve) => {
+                resolveSecond = resolve;
+            });
+            let call = 0;
+            repository.searchFragmentList = sandbox.stub().callsFake(() => {
+                call += 1;
+                return call === 1 ? firstFetch : secondFetch;
+            });
+
+            const firstCall = repository.loadPromotions();
+            const secondCall = repository.loadPromotions();
+
+            const abortError = new Error('aborted');
+            abortError.name = 'AbortError';
+            rejectFirst(abortError);
+            await firstCall;
+
+            // The superseded call's finally must be a no-op: the winning call is still in flight.
+            expect(Store.promotions.list.loading.get()).to.be.true;
+            expect(Store.promotions.list.data.get()).to.deep.equal([]);
+
+            resolveSecond([promoFragment]);
+            await secondCall;
+
+            expect(Store.promotions.list.loading.get()).to.be.false;
+            expect(Store.promotions.list.data.get().length).to.equal(1);
+        });
+
         it('loadAllCollections skips writing stores when items selection store unset after fetch', async () => {
             const repository = createFullRepository();
             const { default: Store } = await import('../src/store.js');

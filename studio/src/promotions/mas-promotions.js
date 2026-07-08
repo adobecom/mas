@@ -29,8 +29,6 @@ class MasPromotions extends LitElement {
         sortField: { type: String, state: true },
         sortDirection: { type: String, state: true },
         error: { type: String, state: true },
-        promotionsData: { type: Array, state: true },
-        promotionsLoading: { type: Boolean, state: true },
         isDialogOpen: { type: Boolean, state: true },
         confirmDialogConfig: { type: Object, state: true },
         duplicateDialogOpen: { type: Boolean, state: true },
@@ -45,8 +43,6 @@ class MasPromotions extends LitElement {
         this.sortField = 'key';
         this.sortDirection = 'asc';
         this.error = null;
-        this.promotionsData = Store.promotions?.list?.data?.get() || [];
-        this.promotionsLoading = Store.promotions?.list?.loading?.get() || false;
         this.isDialogOpen = false;
         this.confirmDialogConfig = null;
         this.duplicateDialogOpen = false;
@@ -96,8 +92,6 @@ class MasPromotions extends LitElement {
             this.error = 'Repository component not found';
             return;
         }
-        this.promotionsData = Store.promotions?.list?.data?.get() || [];
-
         Store.promotions.list.loading.set(true);
         await this.loadPromotions();
     }
@@ -118,7 +112,7 @@ class MasPromotions extends LitElement {
     }
 
     get loading() {
-        return this.promotionsLoading;
+        return Store.promotions?.list?.loading?.get() || false;
     }
 
     get loadingIndicator() {
@@ -127,14 +121,17 @@ class MasPromotions extends LitElement {
     }
 
     set loading(value = true) {
-        this.promotionsLoading = value;
         Store.promotions.list.loading.set(value);
     }
 
     async loadPromotions() {
         await this.repository.loadPromotions();
-        this.promotionsData = Store.promotions.list.data.get() || [];
-        this.promotionsLoading = Store.promotions.list.loading.get() || false;
+    }
+
+    get filteredPromotions() {
+        const promotions = Store.promotions?.list?.data?.get() || [];
+        if (this.filter === 'all') return promotions;
+        return promotions.filter((promotion) => promotion.value?.promotionListFilterKey === this.filter);
     }
 
     /**
@@ -170,7 +167,7 @@ class MasPromotions extends LitElement {
     }
 
     renderPromotionsContent() {
-        if (this.promotionsLoading) {
+        if (this.loading) {
             return html`<div class="loading-container">${this.loadingIndicator}</div>`;
         }
 
@@ -178,8 +175,7 @@ class MasPromotions extends LitElement {
     }
 
     renderPromotionsTable() {
-        this.#handleFilterPromotions(this.filter);
-        const filteredPromotions = this.promotionsData;
+        const filteredPromotions = this.filteredPromotions;
 
         const columns = [
             { key: 'title', label: 'Promotion' },
@@ -287,7 +283,7 @@ class MasPromotions extends LitElement {
 
                 <div class="promotions-filters-container">
                     <div class="filters-container"><sp-icon-filter></sp-icon-filter><span>Filters:</span></div>
-                    <div class="result-count-container">${(this.promotionsData || []).length} results</div>
+                    <div class="result-count-container">${this.filteredPromotions.length} results</div>
                 </div>
 
                 <div class="promotions-content">${this.renderPromotionsContent()}</div>
@@ -492,8 +488,7 @@ class MasPromotions extends LitElement {
             this.loading = true;
             showToast('Deleting promotion campaign...');
             await this.repository.deleteFragment(promotion, { startToast: false, endToast: false });
-            const updatedPromotions = this.promotionsData.filter((p) => p.get().id !== promotion.get().id);
-            this.promotionsData = updatedPromotions;
+            const updatedPromotions = (Store.promotions.list.data.get() || []).filter((p) => p.get().id !== promotion.get().id);
             Store.promotions.list.data.set(updatedPromotions);
             showToast('Promotion campaign successfully deleted.', 'positive');
         } catch (error) {
@@ -544,18 +539,11 @@ class MasPromotions extends LitElement {
     };
 
     #handleFilterPromotions(filter) {
-        // reset promotions data
-        this.promotionsData = Store.promotions.list.data.get() || [];
         this.filter = filter;
         Store.promotions.list.filter.set(filter);
-
-        if (filter !== 'all') {
-            const filteredPromotions = this.promotionsData.filter(
-                (promotion) => promotion.value?.promotionListFilterKey === filter,
-            );
-            this.promotionsData = filteredPromotions;
-        }
     }
 }
 
 customElements.define('mas-promotions', MasPromotions);
+
+export default MasPromotions;

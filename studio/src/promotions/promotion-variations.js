@@ -150,7 +150,7 @@ export async function resolveDefaultFragmentForPromoVariation(aem, promoVariatio
  * @param {import('../aem/aem.js').AEM} aem
  * @param {Object} promotionFragment
  * @param {{ onlyUnpublished?: boolean }} [options]
- * @returns {Promise<Array<{ path: string, status: string, title: string, parentPath: string }>>}
+ * @returns {Promise<Array<{ path: string, status: string, title: string, parentPath: string, fields: Array, tags: Array }>>}
  */
 async function collectAttachedPromoVariations(aem, promotionFragment, { onlyUnpublished = false } = {}) {
     const promotionTagId = getPromotionTagFromFragment(promotionFragment);
@@ -173,6 +173,8 @@ async function collectAttachedPromoVariations(aem, promotionFragment, { onlyUnpu
                 status: variation.status,
                 title: variation.title,
                 model: variation.model,
+                fields: variation.fields,
+                tags: variation.tags,
                 parentPath,
             };
         },

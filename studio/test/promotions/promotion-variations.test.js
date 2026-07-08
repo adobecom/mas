@@ -207,6 +207,8 @@ describe('promotion-variations', () => {
                             status: 'PUBLISHED',
                             title: 'Promo Card',
                             model: { path: '/conf/mas/settings/dam/cfm/models/card' },
+                            fields: [{ name: 'cardTitle', values: ['Promo Card'] }],
+                            tags: [],
                         }),
                 },
             });
@@ -219,6 +221,8 @@ describe('promotion-variations', () => {
                 status: 'PUBLISHED',
                 title: 'Promo Card',
                 model: { path: '/conf/mas/settings/dam/cfm/models/card' },
+                fields: [{ name: 'cardTitle', values: ['Promo Card'] }],
+                tags: [],
                 parentPath: '/content/dam/mas/sandbox/en_US/my-card',
             });
         });

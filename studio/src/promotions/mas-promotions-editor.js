@@ -10,7 +10,8 @@ import styles from './mas-promotions-editor-css.js';
 import { SURFACES, PAGE_NAMES, PROMOTION_MODEL_ID, TABLE_TYPE, QUICK_ACTION, EVENT_OST_OFFER_SELECT } from '../constants.js';
 import '../mas-quick-actions.js';
 import { SAVE_SVG, CLONE_SVG, PUBLISH_SVG, COPY_SVG, LOCK_SVG, DELETE_SVG } from '../bulk-publish/bulk-publish-icons.js';
-import { normalizeKey, showToast, extractSurfaceFromPath, buildCardsDeepLink } from '../utils.js';
+import { normalizeKey, showToast, extractSurfaceFromPath, generateCodeToUse } from '../utils.js';
+import { Fragment } from '../aem/fragment.js';
 import { getFragmentPartsToUse, MODEL_WEB_COMPONENT_MAPPING } from '../editor-panel.js';
 import { Promotion } from '../aem/promotion.js';
 import './mas-promotions-items-selector.js';
@@ -738,17 +739,34 @@ class MasPromotionsEditor extends LitElement {
 
     async #handleCopyVariationsList() {
         if (!this.fragment || !this.repository?.aem) return;
-        const variations = await getAllAttachedPromoVariations(this.repository.aem, this.fragment);
-        const links = variations
-            .map((variation) => buildCardsDeepLink(variation, extractSurfaceFromPath(variation.path)))
-            .filter(Boolean);
-        if (!links.length) {
-            showToast('No variations found for this promotion project.', 'info');
-            return;
-        }
         try {
-            await navigator.clipboard.writeText(links.join('\n'));
-            showToast('Variation links copied to clipboard.', 'positive');
+            const variations = await getAllAttachedPromoVariations(this.repository.aem, this.fragment);
+            const results = variations
+                .map((variation) =>
+                    generateCodeToUse(new Fragment(variation), extractSurfaceFromPath(variation.path), PAGE_NAMES.CONTENT),
+                )
+                .filter((result) => result?.href && result?.richText);
+            if (!results.length) {
+                showToast(
+                    variations.length
+                        ? 'No links could be copied for these variations.'
+                        : 'No variations found for this promotion project.',
+                    'info',
+                );
+                return;
+            }
+            await navigator.clipboard.write([
+                new ClipboardItem({
+                    'text/plain': new Blob([results.map(({ href }) => href).join('\n')], { type: 'text/plain' }),
+                    'text/html': new Blob([results.map(({ richText }) => richText).join('<br>')], { type: 'text/html' }),
+                }),
+            ]);
+            showToast(
+                results.length < variations.length
+                    ? `Copied ${results.length} of ${variations.length} variation links to clipboard.`
+                    : 'Variation links copied to clipboard.',
+                'positive',
+            );
         } catch {
             showToast('Failed to copy variation links.', 'negative');
         }

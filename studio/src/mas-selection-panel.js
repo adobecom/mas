@@ -116,41 +116,9 @@ class MasSelectionPanel extends LitElement {
 
         if (fragmentIds.length === 0) return;
 
-        // Collect publishable references from all selected fragments (deduplicated)
-        const allVariations = [];
-        const allCards = [];
-        const seen = new Set();
-        for (const id of fragmentIds) {
-            const store = Store.fragments.list.data.get().find((s) => s.get()?.id === id);
-            const fragment = store?.get();
-            if (!fragment) continue;
-            const refs = fragment.getPublishableReferences?.() ?? { variations: [], cards: [] };
-            for (const ref of refs.variations) {
-                if (!seen.has(ref.id)) {
-                    seen.add(ref.id);
-                    allVariations.push(ref);
-                }
-            }
-            for (const ref of refs.cards) {
-                if (!seen.has(ref.id)) {
-                    seen.add(ref.id);
-                    allCards.push(ref);
-                }
-            }
-        }
-
-        let selectedRefIds = [];
-        let allSelected = false;
-        if (allVariations.length || allCards.length) {
-            const { MasPublishDialog } = await import('./publish/mas-publish-dialog.js');
-            const result = await MasPublishDialog.show({ variations: allVariations, cards: allCards });
-            if (!result.confirmed) return;
-            selectedRefIds = result.selectedIds;
-            allSelected = result.allSelected;
-        }
-
-        const success = await this.repository.bulkPublishFragments(fragmentIds, { selectedRefIds, allSelected });
+        const success = await this.repository.bulkPublishFragments(fragmentIds);
         if (success) {
+            // Clear selection after successful publish
             this.selectionStore.set([]);
         }
     }

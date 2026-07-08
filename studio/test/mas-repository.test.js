@@ -4179,8 +4179,8 @@ describe('MasRepository bulkPublishFragments', () => {
     let repo;
     let originalStoreData;
 
-    const frag1 = { id: 'frag-1', path: '/content/dam/mas/sandbox/en_US/card-1' };
-    const frag2 = { id: 'frag-2', path: '/content/dam/mas/sandbox/en_US/card-2' };
+    const frag1 = { id: 'frag-1', path: '/content/dam/mas/sandbox/en_US/card-1', etag: 'etag-1' };
+    const frag2 = { id: 'frag-2', path: '/content/dam/mas/sandbox/en_US/card-2', etag: 'etag-2' };
 
     beforeEach(() => {
         sandbox = sinon.createSandbox();
@@ -4211,28 +4211,14 @@ describe('MasRepository bulkPublishFragments', () => {
         sandbox.restore();
     });
 
-    it('calls publishFragments with cascade statuses when allSelected is true', async () => {
-        await repo.bulkPublishFragments(['frag-1', 'frag-2'], { allSelected: true, withToast: false });
-        expect(repo.aem.sites.cf.fragments.publishFragments.calledWith([frag1, frag2], ['DRAFT', 'MODIFIED', 'UNPUBLISHED'])).to
-            .be.true;
+    it('calls publishFragments with default statuses when no options given', async () => {
+        await repo.bulkPublishFragments(['frag-1', 'frag-2'], { withToast: false });
+        expect(repo.aem.sites.cf.fragments.publishFragments.calledWith([frag1, frag2], ['DRAFT', 'UNPUBLISHED'])).to.be.true;
     });
 
-    it('calls publishFragments with empty filter when allSelected is false', async () => {
-        await repo.bulkPublishFragments(['frag-1'], { withToast: false });
+    it('calls publishFragments with custom publishReferencesWithStatus when provided', async () => {
+        await repo.bulkPublishFragments(['frag-1'], { publishReferencesWithStatus: [], withToast: false });
         expect(repo.aem.sites.cf.fragments.publishFragments.calledWith([frag1], [])).to.be.true;
-    });
-
-    it('publishes selectedRefIds individually after main fragments when provided', async () => {
-        await repo.bulkPublishFragments(['frag-1'], { selectedRefIds: ['ref-a'], withToast: false });
-        expect(repo.aem.sites.cf.fragments.getWithEtag.calledWith('ref-a')).to.be.true;
-        expect(repo.aem.sites.cf.fragments.publishFragments.callCount).to.equal(1);
-        expect(repo.aem.sites.cf.fragments.publish.calledWith({ id: 'ref-a' }, [])).to.be.true;
-    });
-
-    it('skips ref publish when selectedRefIds is absent', async () => {
-        await repo.bulkPublishFragments(['frag-1'], { withToast: false });
-        expect(repo.aem.sites.cf.fragments.getWithEtag.called).to.be.false;
-        expect(repo.aem.sites.cf.fragments.publishFragments.callCount).to.equal(1);
     });
 
     it('returns false without publishing when no fragment IDs given', async () => {
@@ -4241,11 +4227,9 @@ describe('MasRepository bulkPublishFragments', () => {
         expect(repo.aem.sites.cf.fragments.publishFragments.called).to.be.false;
     });
 
-    it('calls refreshFragment with skipPromoMerge:true for each published fragment', async () => {
+    it('calls refreshFragment for each published fragment', async () => {
         await repo.bulkPublishFragments(['frag-1', 'frag-2'], { withToast: false });
         expect(repo.refreshFragment.calledTwice).to.be.true;
-        expect(repo.refreshFragment.firstCall.args[1]).to.deep.equal({ skipPromoMerge: true });
-        expect(repo.refreshFragment.secondCall.args[1]).to.deep.equal({ skipPromoMerge: true });
     });
 });
 

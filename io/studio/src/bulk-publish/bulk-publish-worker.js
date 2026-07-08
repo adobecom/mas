@@ -77,7 +77,15 @@ async function runWorker(input, deps = {}) {
         snapshotEntries = existingSnapshots;
         await updateProject(odinEndpoint, projectId, authToken, { status: PROJECT_STATUS.PUBLISHING, lastError: '' });
     } else {
-        const fresh = await snapshot({ paths, projectId, projectTitle: title, odinEndpoint, authToken, includeCards, includeVariations });
+        const fresh = await snapshot({
+            paths,
+            projectId,
+            projectTitle: title,
+            odinEndpoint,
+            authToken,
+            includeCards,
+            includeVariations,
+        });
         snapshotEntries = fresh.entries;
         expandedPaths = fresh.expandedPaths;
         await updateProject(odinEndpoint, projectId, authToken, {

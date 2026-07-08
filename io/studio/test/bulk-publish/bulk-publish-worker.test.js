@@ -140,7 +140,10 @@ describe('bulk-publish-worker — runWorker', () => {
             { path: cardPath, status: 'published' },
         ]);
 
-        await worker.runWorker({ projectId: 'proj-1', odinEndpoint: 'https://odin', authToken: 't', publishedBy: '', includeCards: true }, deps);
+        await worker.runWorker(
+            { projectId: 'proj-1', odinEndpoint: 'https://odin', authToken: 't', publishedBy: '', includeCards: true },
+            deps,
+        );
 
         const publishedPaths = deps.publishResolved.firstCall.args[0];
         expect(publishedPaths).to.include(collPath);
@@ -158,7 +161,17 @@ describe('bulk-publish-worker — runWorker', () => {
         });
         deps.publishResolved.resolves([{ path: collPath, status: 'published' }]);
 
-        await worker.runWorker({ projectId: 'proj-1', odinEndpoint: 'https://odin', authToken: 't', publishedBy: '', includeCards: false, includeVariations: false }, deps);
+        await worker.runWorker(
+            {
+                projectId: 'proj-1',
+                odinEndpoint: 'https://odin',
+                authToken: 't',
+                publishedBy: '',
+                includeCards: false,
+                includeVariations: false,
+            },
+            deps,
+        );
 
         const publishedPaths = deps.publishResolved.firstCall.args[0];
         expect(publishedPaths).to.deep.equal([collPath]);

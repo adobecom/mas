@@ -1574,7 +1574,7 @@ export class MasRepository extends LitElement {
      * @returns {Promise<boolean>} Whether or not it was successful
      */
     async bulkPublishFragments(fragmentIds, options = {}) {
-        const { publishReferencesWithStatus, withToast = true } = options;
+        const { publishReferencesWithStatus = ['DRAFT', 'UNPUBLISHED'], withToast = true } = options;
 
         if (!fragmentIds || fragmentIds.length === 0) {
             if (withToast) showToast('No fragments selected to publish.', 'negative');
@@ -1609,7 +1609,7 @@ export class MasRepository extends LitElement {
             const refreshPromises = fragmentIds.map((id) => {
                 const store = findFragmentStoreById(id, listStores);
                 if (store) {
-                    return this.refreshFragment(store, { skipPromoMerge: true });
+                    return this.refreshFragment(store);
                 }
                 return Promise.resolve();
             });

@@ -613,7 +613,9 @@ describe('bulk-publish/snapshot.js', () => {
                     const path = decodeURIComponent(uri.split('path=')[1]);
                     if (path === collPath) {
                         return fetchResponse({
-                            items: [{ id: 'frag-coll', path, status: 'PUBLISHED', fields: [{ name: 'cards', values: [cardPath] }] }],
+                            items: [
+                                { id: 'frag-coll', path, status: 'PUBLISHED', fields: [{ name: 'cards', values: [cardPath] }] },
+                            ],
                         });
                     }
                     if (path === cardPath) {
@@ -645,7 +647,14 @@ describe('bulk-publish/snapshot.js', () => {
             fetchOdinStub.callsFake((endpoint, uri) => {
                 if (uri.includes('/adobe/sites/cf/fragments?path=')) {
                     return fetchResponse({
-                        items: [{ id: 'frag-1', path, status: 'PUBLISHED', fields: [{ name: 'cards', values: ['/content/dam/mas/acom/en_US/card'] }] }],
+                        items: [
+                            {
+                                id: 'frag-1',
+                                path,
+                                status: 'PUBLISHED',
+                                fields: [{ name: 'cards', values: ['/content/dam/mas/acom/en_US/card'] }],
+                            },
+                        ],
                     });
                 }
                 if (uri.includes('/versions')) {

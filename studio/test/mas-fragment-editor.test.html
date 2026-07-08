@@ -1224,6 +1224,8 @@
                             document.body.appendChild(el);
 
                             await el.updateComplete;
+                            await customElements.whenDefined('mas-compare-chart-editor');
+                            await el.updateComplete;
 
                             expect(el.querySelector('#fragment-editor').classList.contains('compare-chart-editor')).to.be.true;
                             expect(el.querySelector('#editor-content').classList.contains('compare-chart-content')).to.be.true;

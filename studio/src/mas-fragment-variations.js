@@ -26,8 +26,11 @@ import {
 import { getPromotionProjectsForProbe } from './promotions/promotions-repository.js';
 
 const styleElement = document.createElement('style');
+styleElement.setAttribute('data-mas-fragment-variations', '');
 styleElement.textContent = styles;
-document.head.appendChild(styleElement);
+if (!document.head.querySelector('[data-mas-fragment-variations]')) {
+    document.head.appendChild(styleElement);
+}
 
 class MasFragmentVariations extends LitElement {
     static properties = {
@@ -80,12 +83,6 @@ class MasFragmentVariations extends LitElement {
         }
     }
 
-    disconnectedCallback() {
-        super.disconnectedCallback();
-        this.#unsubscribeFragmentStore?.();
-        this.#unsubscribeFragmentStore = null;
-    }
-
     updated(changedProperties) {
         super.updated(changedProperties);
         const searchTab = Store.fragments.variationSearchTab.get();
@@ -96,6 +93,12 @@ class MasFragmentVariations extends LitElement {
         if (highlightId && this.#hasVariationInParent(highlightId)) {
             this.scrollToHighlightedVariation();
         }
+    }
+
+    disconnectedCallback() {
+        super.disconnectedCallback();
+        this.#unsubscribeFragmentStore?.();
+        this.#unsubscribeFragmentStore = null;
     }
 
     handleTabChange({ target: { selected } }) {
@@ -357,6 +360,7 @@ class MasFragmentVariations extends LitElement {
                                 .fragmentStore=${fragmentStore}
                                 .editFragmentStore=${editStore}
                                 .canCreateVariation=${false}
+                                .nested=${true}
                                 .expanded=${isExpanded}
                                 .toggleExpand=${() => this.toggleGroupedVariation(variationFragment.id)}
                                 @dblclick=${() => this.handleEdit(editStore)}
@@ -430,6 +434,7 @@ class MasFragmentVariations extends LitElement {
                                 .fragmentStore=${fragmentStore}
                                 .editFragmentStore=${editStore}
                                 .canCreateVariation=${false}
+                                .nested=${true}
                                 .expanded=${isExpanded}
                                 .toggleExpand=${() => this.togglePromoVariation(variationFragment.id)}
                                 @dblclick=${() => this.handleEdit(editStore)}

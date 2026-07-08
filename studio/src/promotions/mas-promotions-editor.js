@@ -2,12 +2,21 @@ import { LitElement, html, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import { MasRepository } from '../mas-repository.js';
 import '../aem/aem-tag-picker-field.js';
+import { toAttribute } from '../aem/tag-path-utils.js';
 import Store from '../store.js';
 import StoreController from '../reactivity/store-controller.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 import { FragmentStore } from '../reactivity/fragment-store.js';
 import styles from './mas-promotions-editor-css.js';
-import { SURFACES, PAGE_NAMES, PROMOTION_MODEL_ID, TABLE_TYPE, QUICK_ACTION, EVENT_OST_OFFER_SELECT } from '../constants.js';
+import {
+    SURFACES,
+    PAGE_NAMES,
+    PROMOTION_MODEL_ID,
+    TABLE_TYPE,
+    QUICK_ACTION,
+    EVENT_OST_OFFER_SELECT,
+    TAG_PROMOTION_PREFIX,
+} from '../constants.js';
 import '../mas-quick-actions.js';
 import { SAVE_SVG, CLONE_SVG, PUBLISH_SVG, COPY_SVG, LOCK_SVG, DELETE_SVG } from '../bulk-publish/bulk-publish-icons.js';
 import { normalizeKey, showToast, extractSurfaceFromPath } from '../utils.js';
@@ -35,6 +44,7 @@ import {
     splitPromotionTagsFieldValues,
     PROMOTION_FIELD_TYPE_MAP,
 } from './promotion-editor-utils.js';
+import { getPromotionTagFromFragment } from './promotion-model.js';
 import './mas-promo-codes-manager.js';
 import { MANAGE_PROMO_CODES_AND_OFFERS_LABEL } from './mas-promo-codes-manager.js';
 import './mas-promotion-duplicate-dialog.js';
@@ -253,6 +263,10 @@ class MasPromotionsEditor extends LitElement {
 
     get canEditPromotionItemsInEmptyState() {
         return this.canEdit && this.hasSelectedOffers;
+    }
+
+    get promotionTag() {
+        return toAttribute(getPromotionTagFromFragment(this.fragment) ?? '');
     }
 
     #mapPromotionOfferSelectorToRow(selectorId) {
@@ -540,18 +554,6 @@ class MasPromotionsEditor extends LitElement {
         });
     }
 
-    #handeTagsChange = (event) => {
-        const tags = event.target.getAttribute('value');
-        const fromPicker = tags
-            ? tags
-                  .split(',')
-                  .map((s) => s.trim())
-                  .filter(Boolean)
-            : [];
-        const { retained } = splitPromotionTagsFieldValues(this.fragment.getFieldValues('tags'));
-        this.fragmentStore.updateField('tags', [...retained, ...fromPicker]);
-    };
-
     #handleGeosChange = (event) => {
         const value = event.target.getAttribute('value');
         const newGeos = value ? value.split(',') : [];
@@ -601,6 +603,10 @@ class MasPromotionsEditor extends LitElement {
             value = target.multiline ? value?.split(',') : [value ?? ''];
         }
         this.fragmentStore.updateField(fieldName, value);
+        if (fieldName === 'title' && this.isNewPromotion) {
+            const slug = normalizeKey(value[0].trim());
+            this.fragmentStore.updateField('tags', slug ? [`${TAG_PROMOTION_PREFIX}${slug}`] : []);
+        }
     }
 
     #handleEvergreenToggle = ({ target }) => {
@@ -629,7 +635,7 @@ class MasPromotionsEditor extends LitElement {
         this.fragment.hasChanges = true;
     }
 
-    #getPayloadValues(field) {
+    #getPayloadValues(field, title) {
         switch (field.name) {
             case 'endDate':
                 return this.evergreenEnabled ? [] : field.values;
@@ -639,6 +645,11 @@ class MasPromotionsEditor extends LitElement {
                 return [...Store.promotions.selectedCards.value, ...Store.promotions.selectedCollections.value];
             case 'offers':
                 return buildPromotionOffersFieldValues(this.fragment, Store.promotions.selectedOffers.value);
+            case 'tags': {
+                const { retained } = splitPromotionTagsFieldValues(field.values);
+                const slug = normalizeKey(title?.trim());
+                return slug ? [...retained, `${TAG_PROMOTION_PREFIX}${slug}`] : retained;
+            }
             default:
                 return field.values;
         }
@@ -737,7 +748,7 @@ class MasPromotionsEditor extends LitElement {
                     name: field.name,
                     type: PROMOTION_FIELD_TYPE_MAP[field.name]?.type ?? field.type,
                     multiple: PROMOTION_FIELD_TYPE_MAP[field.name]?.multiple ?? field.multiple ?? false,
-                    values: field.name === 'title' ? [title] : this.#getPayloadValues(field),
+                    values: field.name === 'title' ? [title] : this.#getPayloadValues(field, title),
                 })),
         };
     }
@@ -753,7 +764,7 @@ class MasPromotionsEditor extends LitElement {
             showToast(validationMessage, 'negative');
             return;
         }
-        this.#duplicateProposedTitle = `${this.fragment.getFieldValue('title')} copy`;
+        this.#duplicateProposedTitle = `${this.fragment.getFieldValue('title').trim()} copy`;
         this.duplicateDialogOpen = true;
     }
 
@@ -1309,13 +1320,15 @@ class MasPromotionsEditor extends LitElement {
                     <div class="promotions-form-panel-content">
                         <div class="promotions-form-fields">
                             <sp-field-label for="campaignTitle" required>Title</sp-field-label>
-                            <sp-textfield
-                                id="campaignTitle"
-                                data-field="title"
-                                value="${form.title?.values[0]}"
-                                ?disabled=${readOnly}
-                                @input=${this.#handleFragmentUpdate}
-                            ></sp-textfield>
+                            ${this.isNewPromotion
+                                ? html`<sp-textfield
+                                      id="campaignTitle"
+                                      data-field="title"
+                                      value="${form.title?.values[0]}"
+                                      ?disabled=${readOnly || !this.isNewPromotion}
+                                      @input=${this.#handleFragmentUpdate}
+                                  ></sp-textfield>`
+                                : html`<p>${this.fragment.getFieldValues('title')[0]}</p>`}
                             <sp-field-label for="promoCode">Promo Code</sp-field-label>
                             <sp-textfield
                                 id="promoCode"
@@ -1350,15 +1363,16 @@ class MasPromotionsEditor extends LitElement {
                                     >Evergreen promo</sp-switch
                                 >
                             </div>
-                            <sp-field-label required>Promotion tags</sp-field-label>
+                            <sp-field-label required>Promotion tag</sp-field-label>
                             <aem-tag-picker-field
-                                label="Promotion tags"
+                                label="Promotion tag"
                                 namespace="/content/cq:tags/mas"
                                 top="promotion"
-                                multiple
-                                ?disabled=${readOnly}
-                                value="${splitPromotionTagsFieldValues(form.tags?.values).promotion.join(',') || ''}"
-                                @change=${this.#handeTagsChange}
+                                readonly
+                                quiet
+                                disabled
+                                value="${this.promotionTag}"
+                                class="promotion-tag-field"
                             ></aem-tag-picker-field>
                             <sp-field-group id="promotion-geos-tags">
                                 <sp-field-label required>Geos</sp-field-label>

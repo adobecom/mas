@@ -95,6 +95,7 @@ runTests(async () => {
 
             const card1 = cards[0];
             const variantLayout = card1.variantLayout;
+            variantLayout.syncHeights();
 
             // getRowMinHeightPropertyName should return the expected CSS var name
             expect(variantLayout.getRowMinHeightPropertyName(1)).to.equal(
@@ -110,7 +111,7 @@ runTests(async () => {
                 '--consonant-merch-card-footer-row-1-min-height',
             );
             // Row min-height should be set (at least 32px per FOOTER_ROW_MIN_HEIGHT)
-            expect(parseInt(row1MinHeight) || 0).to.be.at.least(0);
+            expect(parseInt(row1MinHeight) || 0).to.be.at.least(32);
         });
 
         it('should remove footer rows with empty descriptions', async () => {

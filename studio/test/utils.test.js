@@ -340,6 +340,28 @@ describe('parseStudioDeepLinksFromText', () => {
             '88888888-8888-4888-8888-888888888888',
         ]);
     });
+
+    it('parses a mas-compare-chart entry', () => {
+        const text = hashLine('mas-compare-chart', '99999999-9999-4999-8999-999999999999');
+        const parsed = parseStudioDeepLinksFromText(text);
+        expect(parsed).to.have.length(1);
+        expect(parsed[0]).to.deep.equal({
+            contentType: 'mas-compare-chart',
+            fragmentId: '99999999-9999-4999-8999-999999999999',
+        });
+    });
+
+    it('parses space-separated URLs (single-line input paste)', () => {
+        const url1 = `https://mas.adobe.com/studio.html#content-type=merch-card&query=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa`;
+        const url2 = `https://mas.adobe.com/studio.html#content-type=merch-card-collection&query=bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb`;
+        const parsed = parseStudioDeepLinksFromText(`${url1} ${url2}`);
+        expect(parsed).to.have.length(2);
+        expect(parsed[0]).to.deep.equal({ contentType: 'merch-card', fragmentId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' });
+        expect(parsed[1]).to.deep.equal({
+            contentType: 'merch-card-collection',
+            fragmentId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+        });
+    });
 });
 
 describe('content-type-utils', () => {

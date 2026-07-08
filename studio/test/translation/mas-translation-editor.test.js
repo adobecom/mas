@@ -143,6 +143,14 @@ describe('MasTranslationEditor', () => {
             expect(el.showLangSelectedEmptyState).to.be.true;
         });
 
+        it('restricts the items selector import to the active search surface', async () => {
+            Store.translationProjects.translationProjectId.set(null);
+            Store.search.set({ path: SURFACES.NALA.name });
+            const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
+            const itemsSelector = el.shadowRoot.querySelector('mas-items-selector');
+            expect(itemsSelector.restrictImportSurface).to.equal(SURFACES.NALA.name);
+        });
+
         it('should initialize with prefill data if present', async () => {
             Store.translationProjects.translationProjectId.set(null);
             Store.translationProjects.prefill.set({

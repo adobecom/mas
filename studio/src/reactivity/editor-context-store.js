@@ -1,5 +1,5 @@
 import { ReactiveStore } from './reactive-store.js';
-import { previewFragment } from 'fragment-client';
+import { previewFragment } from '../../libs/fragment-client.js';
 import { getDefaultLocaleCode } from '../../../io/www/src/fragment/locales.js';
 import Store from '../store.js';
 import { Fragment } from '../aem/fragment.js';

@@ -1328,7 +1328,7 @@ class MasPromotionsEditor extends LitElement {
                                       ?disabled=${readOnly || !this.isNewPromotion}
                                       @input=${this.#handleFragmentUpdate}
                                   ></sp-textfield>`
-                                : html`<p>${this.fragment.getFieldValues('title')[0]}</p>`}
+                                : html`<p>${this.fragment?.getFieldValues('title')?.[0]}</p>`}
                             <sp-field-label for="promoCode">Promo Code</sp-field-label>
                             <sp-textfield
                                 id="promoCode"

@@ -547,7 +547,7 @@ describe('MasPromotionsEditor', () => {
             );
             const el = await mountEditor();
             await el.updateComplete;
-            expect(el.renderRoot.querySelector('sp-textfield[data-field="title"]').hasAttribute('disabled')).to.be.true;
+            expect(el.renderRoot.querySelector('sp-textfield[data-field="title"]')).to.be.null;
             expect(el.renderRoot.querySelector('sp-textfield[data-field="promoCode"]').hasAttribute('disabled')).to.be.true;
             expect(el.renderRoot.querySelector('input[data-field="startDate"]').disabled).to.be.true;
             expect(el.renderRoot.querySelector('input[data-field="endDate"]').disabled).to.be.true;

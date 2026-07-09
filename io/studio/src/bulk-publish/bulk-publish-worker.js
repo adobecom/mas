@@ -2,7 +2,7 @@ const { Core } = require('@adobe/aio-sdk');
 const { publishResolved, publishDictionaryIndexes } = require('./publish-core.js');
 const { resolvePaths } = require('./resolver.js');
 const { buildResult } = require('./summary.js');
-const { createSnapshot } = require('./snapshot.js');
+const { createSnapshot, recordSnapshot } = require('./snapshot.js');
 const {
     PROJECT_STATUS,
     readProjectFragment,
@@ -22,6 +22,39 @@ function relabelNotLocalized(details) {
     }
 }
 
+function hasPendingSnapshot(entries) {
+    if (!entries.length) return false;
+    try {
+        return entries.some((e) => JSON.parse(e).publishComplete === false);
+    } catch {
+        return false;
+    }
+}
+
+function hasValidPreRecordedSnapshot(entries) {
+    if (!entries.length) return false;
+    try {
+        return entries.every((e) => {
+            const parsed = JSON.parse(e);
+            return parsed.versionId && parsed.publishComplete === undefined;
+        });
+    } catch {
+        return false;
+    }
+}
+
+function addPendingMarker(entries) {
+    return entries.map((e) => JSON.stringify({ ...JSON.parse(e), publishComplete: false }));
+}
+
+function removePendingMarker(entries) {
+    return entries.map((e) => {
+        const { publishComplete, ...rest } = JSON.parse(e);
+        return JSON.stringify(rest);
+    });
+}
+
+
 function terminalStatus(result) {
     if (result.total === 0) return PROJECT_STATUS.PUBLISHED;
     if (result.published === 0) return PROJECT_STATUS.FAILED;
@@ -39,6 +72,7 @@ async function runWorker(input, deps = {}) {
     const publish = deps.publishResolved || publishResolved;
     const publishIndexes = deps.publishDictionaryIndexes || publishDictionaryIndexes;
     const snapshot = deps.createSnapshot || createSnapshot;
+    const record = deps.recordSnapshot || recordSnapshot;
     const updateProject = deps.updateProjectFragment || updateProjectFragment;
     const resolve = deps.resolvePaths || resolvePaths;
     const now = deps.now || (() => new Date());
@@ -76,8 +110,18 @@ async function runWorker(input, deps = {}) {
         snapshotEntries = existingSnapshots;
         expandedPaths = existingSnapshots.map((e) => JSON.parse(e).path);
         await updateProject(odinEndpoint, projectId, authToken, { status: PROJECT_STATUS.PUBLISHING, lastError: '' });
+    } else if (hasValidPreRecordedSnapshot(existingSnapshots)) {
+        snapshotEntries = existingSnapshots;
+        await snapshot({ paths, projectId, projectTitle: title, odinEndpoint, authToken });
+        await updateProject(odinEndpoint, projectId, authToken, {
+            status: PROJECT_STATUS.PUBLISHING,
+            snapshots: addPendingMarker(existingSnapshots),
+            lastError: '',
+        });
     } else {
-        const fresh = await snapshot({
+        const fresh = await record({ paths, odinEndpoint, authToken });
+        snapshotEntries = fresh;
+        const { expandedPaths: snapExpanded } = await snapshot({
             paths,
             projectId,
             projectTitle: title,
@@ -86,8 +130,7 @@ async function runWorker(input, deps = {}) {
             includeCards,
             includeVariations,
         });
-        snapshotEntries = fresh.entries;
-        expandedPaths = fresh.expandedPaths;
+        expandedPaths = snapExpanded;
         await updateProject(odinEndpoint, projectId, authToken, {
             status: PROJECT_STATUS.PUBLISHING,
             snapshots: addPendingMarker(snapshotEntries),

@@ -12,7 +12,7 @@
  * (afmicka rule). The deep-link + Back test (tcid 14) is the Bug 7 guarantee.
  */
 import { test, expect, studio, editor, miloLibs, setTestPage } from '../../../libs/mas-test.js';
-import OSTPage from '../../ost.page.js';
+import OSTNewPage from '../ost-new.page.js';
 import OSTSpec, { OST_FR_FRAGMENT } from '../specs/ost.spec.js';
 
 const { features } = OSTSpec;
@@ -32,7 +32,7 @@ const openEditor = async (page, baseURL, feature, fragmentId) => {
 };
 
 const openOSTFromPrice = async (page) => {
-    const ost = new OSTPage(page);
+    const ost = new OSTNewPage(page);
     await editor.prices.scrollIntoViewIfNeeded();
     await editor.prices.locator(editor.regularPrice).dblclick();
     await expect(await ost.popup).toBeVisible();

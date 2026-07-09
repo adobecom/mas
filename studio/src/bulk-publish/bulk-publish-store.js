@@ -65,3 +65,9 @@ export async function startReverting({ project, token, ioBaseUrl, repository }) 
     Store.bulkPublishProjects.list.data.set([...current]);
     return result;
 }
+
+export async function saveSnapshot({ project, token, ioBaseUrl, saveSnapshotFn }) {
+    if (!project?.id) return;
+    const fn = saveSnapshotFn ?? (await import('./bulk-publish-client.js')).saveSnapshotAction;
+    await fn({ ioBaseUrl, projectId: project.id, token });
+}

@@ -2,7 +2,7 @@ import { expect } from '@open-wc/testing';
 import sinon from 'sinon';
 import Store from '../../src/store.js';
 import { BULK_PUBLISH_STATUS } from '../../src/constants.js';
-import { startPublishing, startReverting } from '../../src/bulk-publish/bulk-publish-store.js';
+import { startPublishing, startReverting, saveSnapshot } from '../../src/bulk-publish/bulk-publish-store.js';
 
 function makeProject(id = 'proj-1') {
     let status = BULK_PUBLISH_STATUS.PUBLISHING;
@@ -283,5 +283,37 @@ describe('startPublishing (async dispatch + poll)', () => {
         });
         expect(delays.length).to.be.greaterThan(1);
         expect(delays[1]).to.be.greaterThan(delays[0]);
+    });
+});
+
+describe('saveSnapshot()', () => {
+    let saveSnapshotActionStub;
+
+    beforeEach(() => {
+        saveSnapshotActionStub = sinon.stub().resolves({ entries: [] });
+    });
+
+    afterEach(() => sinon.restore());
+
+    it('calls saveSnapshotFn with projectId, token, ioBaseUrl', async () => {
+        const project = { id: 'proj-123' };
+        await saveSnapshot({
+            project,
+            token: 'tok',
+            ioBaseUrl: 'https://io.example',
+            saveSnapshotFn: saveSnapshotActionStub,
+        });
+
+        expect(saveSnapshotActionStub.calledOnce).to.equal(true);
+        const args = saveSnapshotActionStub.firstCall.args[0];
+        expect(args.projectId).to.equal('proj-123');
+        expect(args.token).to.equal('tok');
+        expect(args.ioBaseUrl).to.equal('https://io.example');
+    });
+
+    it('does nothing when project has no id (new unsaved project)', async () => {
+        const project = { id: null };
+        await saveSnapshot({ project, token: 'tok', ioBaseUrl: 'https://io.example', saveSnapshotFn: saveSnapshotActionStub });
+        expect(saveSnapshotActionStub.called).to.equal(false);
     });
 });

@@ -1,6 +1,7 @@
 const ENDPOINT = '/bulk-publish';
 const REVERT_ENDPOINT = '/bulk-revert';
 const CHECK_MODIFICATIONS_ENDPOINT = '/bulk-check-modifications';
+const SAVE_SNAPSHOT_ENDPOINT = '/bulk-save-snapshot';
 
 export class BulkPublishError extends Error {
     constructor(message, { status = null, body = null } = {}) {
@@ -52,4 +53,9 @@ export async function revertAction({ ioBaseUrl, projectId, token }) {
 
 export async function checkModificationsAction({ ioBaseUrl, entries, token }) {
     return callAction(ioBaseUrl, CHECK_MODIFICATIONS_ENDPOINT, { entries }, token);
+}
+
+export async function saveSnapshotAction({ ioBaseUrl, projectId, token }) {
+    if (!projectId) throw new BulkPublishError('projectId is required');
+    return callAction(ioBaseUrl, SAVE_SNAPSHOT_ENDPOINT, { projectId }, token);
 }

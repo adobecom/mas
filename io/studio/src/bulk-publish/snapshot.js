@@ -64,6 +64,25 @@ function getReferencePaths(fragment, { includeCards = false, includeVariations =
     return paths;
 }
 
+function isTranslationVersion(version) {
+    return version.createdBy === 'odin-cf-versioning-user' || (version.comment ?? '').startsWith('Pre-rollout snapshot');
+}
+
+async function fetchVersionHistory(odinEndpoint, fragmentId, authToken) {
+    const response = await fetchOdin(odinEndpoint, `/adobe/sites/cf/fragments/${fragmentId}/versions`, authToken, {
+        ignoreErrors: [404],
+    });
+    if (!response.ok) return [];
+    const data = await response.json();
+    return data?.items ?? [];
+}
+
+async function findNonTranslationVersion(odinEndpoint, fragmentId, authToken) {
+    const versions = await fetchVersionHistory(odinEndpoint, fragmentId, authToken);
+    const found = versions.find((v) => !isTranslationVersion(v));
+    return found?.id ?? null;
+}
+
 function serializeEntries(snapshot) {
     return Object.entries(snapshot.fragments).map(([fragmentId, entry]) =>
         JSON.stringify({
@@ -206,4 +225,4 @@ async function checkModifications({ entries, odinEndpoint, authToken }) {
     return results.sort((a, b) => a.path.localeCompare(b.path));
 }
 
-module.exports = { createSnapshot, revertSnapshot, checkModifications };
+module.exports = { createSnapshot, revertSnapshot, checkModifications, isTranslationVersion, findNonTranslationVersion };

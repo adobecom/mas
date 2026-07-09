@@ -197,7 +197,7 @@ class MasTopNav extends LitElement {
                 const locale = Store.filters.value.locale;
                 return getDefaultLocaleCode(Store.surface(), locale) || locale;
             }
-            if (this.editorContext.isVariation(fragmentId) && this.editorContext.localeDefaultFragment?.path) {
+            if (this.editorContext.isLocaleVariation(fragmentId) && this.editorContext.localeDefaultFragment?.path) {
                 return extractLocaleFromPath(this.editorContext.localeDefaultFragment.path);
             }
         }
@@ -214,7 +214,7 @@ class MasTopNav extends LitElement {
             // so users can browse to locale variations
             const fragmentId = this.inEdit.get()?.get()?.id;
             if (this.editorContext.isGroupedVariationByPath) return false;
-            return this.editorContext.isVariation(fragmentId);
+            return this.editorContext.isLocaleVariation(fragmentId);
         }
         return true;
     }

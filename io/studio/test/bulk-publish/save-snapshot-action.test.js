@@ -12,6 +12,10 @@ describe('bulk-publish/save-snapshot-action.js', () => {
     let readProjectStub;
     let updateProjectStub;
     let getProjectPathsStub;
+    let getBearerTokenStub;
+    let isAllowedStub;
+    let parseOwBodyStub;
+    let errorResponseStub;
 
     const odinEndpoint = 'https://odin.example';
     const authToken = 'token';
@@ -22,6 +26,10 @@ describe('bulk-publish/save-snapshot-action.js', () => {
         readProjectStub = sinon.stub();
         updateProjectStub = sinon.stub().resolves();
         getProjectPathsStub = sinon.stub();
+        getBearerTokenStub = sinon.stub().returns(authToken);
+        isAllowedStub = sinon.stub().resolves(true);
+        parseOwBodyStub = sinon.stub().callsFake((p) => p);
+        errorResponseStub = sinon.stub().callsFake((code, msg) => ({ statusCode: code, body: { error: msg } }));
 
         action = proxyquire('../../src/bulk-publish/save-snapshot-action.js', {
             './snapshot.js': { '@noCallThru': true, recordSnapshot: recordSnapshotStub },
@@ -31,21 +39,35 @@ describe('bulk-publish/save-snapshot-action.js', () => {
                 updateProjectFragment: updateProjectStub,
                 getProjectPaths: getProjectPathsStub,
             },
+            '../../utils.js': {
+                '@noCallThru': true,
+                getBearerToken: getBearerTokenStub,
+                isAllowed: isAllowedStub,
+                parseOwBody: parseOwBodyStub,
+                errorResponse: errorResponseStub,
+            },
         });
     });
 
     afterEach(() => sinon.restore());
 
-    it('returns 400 when projectId is missing', async () => {
-        const result = await action.main({ authToken, aemOdinEndpoint: odinEndpoint });
+    it('returns 400 when odinEndpoint is missing', async () => {
+        const result = await action.main({ projectId, allowedClientId: 'cid' });
         expect(result.statusCode).to.equal(400);
-        expect(result.body.error).to.match(/projectId/);
+        expect(result.body.error).to.match(/odinEndpoint/);
     });
 
-    it('returns 400 when authToken is missing', async () => {
-        const result = await action.main({ projectId, aemOdinEndpoint: odinEndpoint });
+    it('returns 401 when isAllowed returns false', async () => {
+        isAllowedStub.resolves(false);
+        const result = await action.main({ projectId, aemOdinEndpoint: odinEndpoint, allowedClientId: 'cid' });
+        expect(result.statusCode).to.equal(401);
+    });
+
+    it('returns 400 when projectId is missing after parseOwBody', async () => {
+        parseOwBodyStub.returns({ aemOdinEndpoint: odinEndpoint });
+        const result = await action.main({});
         expect(result.statusCode).to.equal(400);
-        expect(result.body.error).to.match(/authToken/);
+        expect(result.body.error).to.match(/projectId/);
     });
 
     it('returns 200 with entries and calls updateProjectFragment with snapshots', async () => {
@@ -54,7 +76,7 @@ describe('bulk-publish/save-snapshot-action.js', () => {
         const entries = ['{"fragmentId":"f1","versionId":"v-green","wasPublished":true,"createdAt":"2026-01-01T00:00:00Z"}'];
         recordSnapshotStub.resolves(entries);
 
-        const result = await action.main({ projectId, authToken, aemOdinEndpoint: odinEndpoint });
+        const result = await action.main({ projectId, aemOdinEndpoint: odinEndpoint, allowedClientId: 'cid' });
 
         expect(result.statusCode).to.equal(200);
         expect(result.body.entries).to.deep.equal(entries);
@@ -66,7 +88,7 @@ describe('bulk-publish/save-snapshot-action.js', () => {
         readProjectStub.resolves({ fragment: { fields: [] } });
         getProjectPathsStub.returns([]);
 
-        const result = await action.main({ projectId, authToken, aemOdinEndpoint: odinEndpoint });
+        const result = await action.main({ projectId, aemOdinEndpoint: odinEndpoint, allowedClientId: 'cid' });
 
         expect(result.statusCode).to.equal(200);
         expect(result.body.entries).to.deep.equal([]);
@@ -77,9 +99,19 @@ describe('bulk-publish/save-snapshot-action.js', () => {
     it('returns 500 on unexpected error', async () => {
         readProjectStub.rejects(new Error('network failure'));
 
-        const result = await action.main({ projectId, authToken, aemOdinEndpoint: odinEndpoint });
+        const result = await action.main({ projectId, aemOdinEndpoint: odinEndpoint, allowedClientId: 'cid' });
 
         expect(result.statusCode).to.equal(500);
         expect(result.body.error).to.equal('network failure');
+    });
+
+    it('calls parseOwBody when projectId is absent from raw params', async () => {
+        parseOwBodyStub.returns({ projectId, aemOdinEndpoint: odinEndpoint });
+        readProjectStub.resolves({ fragment: { fields: [] } });
+        getProjectPathsStub.returns([]);
+
+        const result = await action.main({});
+        expect(parseOwBodyStub).to.have.been.calledOnce;
+        expect(result.statusCode).to.equal(200);
     });
 });

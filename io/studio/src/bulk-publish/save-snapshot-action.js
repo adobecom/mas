@@ -1,17 +1,24 @@
 const { Core } = require('@adobe/aio-sdk');
+const { errorResponse, getBearerToken, isAllowed, parseOwBody } = require('../../utils.js');
 const { recordSnapshot } = require('./snapshot.js');
 const { readProjectFragment, updateProjectFragment, getProjectPaths } = require('./project.js');
 
 const logger = Core.Logger('bulk-save-snapshot', { level: 'info' });
 
 async function main(params) {
-    const { projectId, authToken } = params;
-    const odinEndpoint = params.aemOdinEndpoint || params.odinEndpoint;
-
-    if (!projectId) return { statusCode: 400, body: { error: 'projectId is required' } };
-    if (!authToken) return { statusCode: 400, body: { error: 'authToken is required' } };
-
+    if (!params.projectId) params = parseOwBody(params);
     try {
+        const odinEndpoint = params.aemOdinEndpoint || params.odinEndpoint;
+        if (!odinEndpoint) return errorResponse(400, 'missing odinEndpoint', logger);
+
+        const authToken = getBearerToken(params);
+        if (!(await isAllowed(authToken, params.allowedClientId))) {
+            return errorResponse(401, 'Authorization failed', logger);
+        }
+
+        const { projectId } = params;
+        if (!projectId) return errorResponse(400, 'projectId is required', logger);
+
         const { fragment } = await readProjectFragment(odinEndpoint, projectId, authToken);
         const paths = getProjectPaths(fragment);
 
@@ -25,9 +32,9 @@ async function main(params) {
         logger.info(JSON.stringify({ event: 'save-snapshot-complete', projectId, count: entries.length }));
         return { statusCode: 200, body: { entries } };
     } catch (error) {
-        logger.error(JSON.stringify({ event: 'save-snapshot-error', projectId, error: error.message }));
-        return { statusCode: 500, body: { error: error.message } };
+        logger.error(JSON.stringify({ event: 'save-snapshot-error', error: error.message }));
+        return errorResponse(500, error.message || 'Internal server error', logger);
     }
 }
 
-module.exports = { main };
+exports.main = main;

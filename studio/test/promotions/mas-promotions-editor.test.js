@@ -5,6 +5,7 @@ import { setItemsSelectionStore } from '../../src/common/items-selection-store.j
 import MasPromotionsEditor from '../../src/promotions/mas-promotions-editor.js';
 import { Promotion } from '../../src/aem/promotion.js';
 import { CARD_MODEL_PATH, EVENT_OST_OFFER_SELECT, PAGE_NAMES, TABLE_TYPE } from '../../src/constants.js';
+import Events from '../../src/events.js';
 
 function makeFragmentData(overrides = {}) {
     return {
@@ -838,6 +839,29 @@ describe('MasPromotionsEditor', () => {
             clickPromotionQuickAction(el, 'Save');
             await el.updateComplete;
             expect(el.isCreated).to.be.false;
+        });
+
+        it('shows generic error toast when create fails for a non-conflict reason', async () => {
+            const toastEmitStub = sandbox.stub(Events.toast, 'emit');
+            const { el } = await mountEditorWithRepo({
+                createFragment: sandbox.stub().rejects(new Error('create failed')),
+            });
+            await fillValidFields(el);
+            clickPromotionQuickAction(el, 'Save');
+            await el.updateComplete;
+            expect(toastEmitStub.calledWith({ variant: 'negative', content: 'Failed to create project.' })).to.be.true;
+        });
+
+        it('shows a duplicate-name error toast when create fails with a 409 Conflict', async () => {
+            const toastEmitStub = sandbox.stub(Events.toast, 'emit');
+            const { el } = await mountEditorWithRepo({
+                createFragment: sandbox.stub().rejects(new Error('Failed to create fragment: 409 Conflict')),
+            });
+            await fillValidFields(el);
+            clickPromotionQuickAction(el, 'Save');
+            await el.updateComplete;
+            expect(toastEmitStub.calledWith({ variant: 'negative', content: 'Project with this name already exists.' })).to.be
+                .true;
         });
     });
 

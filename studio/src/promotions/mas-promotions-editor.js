@@ -10,7 +10,7 @@ import styles from './mas-promotions-editor-css.js';
 import { SURFACES, PAGE_NAMES, PROMOTION_MODEL_ID, TABLE_TYPE, QUICK_ACTION, EVENT_OST_OFFER_SELECT } from '../constants.js';
 import '../mas-quick-actions.js';
 import { SAVE_SVG, CLONE_SVG, PUBLISH_SVG, COPY_SVG, LOCK_SVG, DELETE_SVG } from '../bulk-publish/bulk-publish-icons.js';
-import { normalizeKey, showToast, extractSurfaceFromPath } from '../utils.js';
+import { normalizeKey, showToast, extractSurfaceFromPath, getCreateProjectErrorMessage } from '../utils.js';
 import { getFragmentPartsToUse, MODEL_WEB_COMPONENT_MAPPING } from '../utils.js';
 import { Promotion } from '../aem/promotion.js';
 import './mas-promotions-items-selector.js';
@@ -678,8 +678,7 @@ class MasPromotionsEditor extends LitElement {
             this.storeController = new StoreController(this, this.fragmentStore);
             this.storeController.hostConnected();
         } catch (error) {
-            showToast('Failed to create project.', 'negative');
-            return;
+            showToast(getCreateProjectErrorMessage(error), 'negative');
         }
     }
 

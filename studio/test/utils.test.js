@@ -11,6 +11,7 @@ import {
     hasNonEmptyCompareChart,
     matchesContentTypeFilter,
     resolveContentTypeFilters,
+    getCreateProjectErrorMessage,
 } from '../src/utils.js';
 import {
     CARD_MODEL_PATH,
@@ -526,5 +527,30 @@ describe('getFragmentPartsToUse', () => {
         const fragment = makeCard();
         const { fragmentParts } = getFragmentPartsToUse(fragment, 'accom');
         expect(fragmentParts.startsWith('ACCOM')).to.be.true;
+    });
+});
+
+describe('getCreateProjectErrorMessage', () => {
+    it('returns the duplicate-name message for a 409 conflict', () => {
+        const error = new Error('Failed to create fragment: 409 Conflict');
+        expect(getCreateProjectErrorMessage(error)).to.equal('Project with this name already exists.');
+    });
+
+    it('matches a 409 conflict regardless of the HTTP reason phrase', () => {
+        const error = new Error('Failed to create fragment: 409 ');
+        expect(getCreateProjectErrorMessage(error)).to.equal('Project with this name already exists.');
+    });
+
+    it('returns the generic message for a non-409 error', () => {
+        const error = new Error('Failed to create fragment: 500 Internal Server Error');
+        expect(getCreateProjectErrorMessage(error)).to.equal('Failed to create project.');
+    });
+
+    it('returns the generic message when error has no message', () => {
+        expect(getCreateProjectErrorMessage(new Error())).to.equal('Failed to create project.');
+    });
+
+    it('returns the generic message when error is undefined', () => {
+        expect(getCreateProjectErrorMessage(undefined)).to.equal('Failed to create project.');
     });
 });

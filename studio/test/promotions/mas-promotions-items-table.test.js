@@ -4,7 +4,7 @@ import { fixture, fixtureCleanup } from '@open-wc/testing-helpers/pure';
 import sinon from 'sinon';
 import Store from '../../src/store.js';
 import { setItemsSelectionStore } from '../../src/common/items-selection-store.js';
-import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, TABLE_TYPE } from '../../src/constants.js';
+import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, PAGE_NAMES, TABLE_TYPE } from '../../src/constants.js';
 import { FragmentStore } from '../../src/reactivity/fragment-store.js';
 import { Fragment } from '../../src/aem/fragment.js';
 import Events from '../../src/events.js';
@@ -626,102 +626,6 @@ describe('MasPromotionsItemsTable', () => {
         }
     });
 
-    it('navigates to fragment editor on Edit fragment click', async () => {
-        const router = (await import('../../src/router.js')).default;
-        const navStub = sandbox.stub(router, 'navigateToFragmentEditor').resolves();
-        Store.promotions.promotionId.set('promo-to-clear');
-
-        const el = await fixture(html`<mas-promotions-items-table .type=${TABLE_TYPE.CARDS}></mas-promotions-items-table>`);
-        el.viewOnlyFragments = [
-            {
-                path: '/content/dam/mas/acom/en_US/card-nav',
-                id: 'nav-id',
-                title: 'Nav Card',
-                studioPath: '/content/dam/mas/acom/en_US/card-nav',
-                status: 'DRAFT',
-                model: { path: CARD_MODEL_PATH },
-                fields: [],
-                tags: [],
-            },
-        ];
-        await el.updateComplete;
-        const menuItems = el.shadowRoot.querySelectorAll('sp-menu-item');
-        const editItem = Array.from(menuItems).find((item) => item.textContent.trim().includes('Edit fragment'));
-        expect(editItem).to.not.be.null;
-        editItem.dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
-        await new Promise((r) => setTimeout(r, 10));
-        expect(Store.promotions.promotionId.get()).to.be.null;
-        expect(navStub.calledOnce).to.be.true;
-        expect(navStub.firstCall.args[0]).to.equal('nav-id');
-    });
-
-    it('sets Store.search.path to fragment surface on Edit fragment click', async () => {
-        const router = (await import('../../src/router.js')).default;
-        sandbox.stub(router, 'navigateToFragmentEditor').resolves();
-        const searchSetSpy = sandbox.stub(Store.search, 'set');
-
-        const el = await fixture(html`<mas-promotions-items-table .type=${TABLE_TYPE.CARDS}></mas-promotions-items-table>`);
-        el.viewOnlyFragments = [
-            {
-                path: '/content/dam/mas/nala/en_US/my-card',
-                id: 'nala-id',
-                title: 'Nala Card',
-                studioPath: '/content/dam/mas/nala/en_US/my-card',
-                status: 'PUBLISHED',
-                model: { path: CARD_MODEL_PATH },
-                fields: [],
-                tags: [],
-            },
-        ];
-        await el.updateComplete;
-        const editItem = Array.from(el.shadowRoot.querySelectorAll('sp-menu-item')).find((item) =>
-            item.textContent.trim().includes('Edit fragment'),
-        );
-        editItem.dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
-        await new Promise((r) => setTimeout(r, 10));
-        const pathCall = searchSetSpy.getCalls().find((call) => {
-            const result = call.args[0]({ path: 'sandbox' });
-            return result?.path === 'nala';
-        });
-        expect(pathCall, 'Store.search.set should be called with path=nala').to.not.be.undefined;
-    });
-
-    it('opens default fragment editor on Edit fragment even when a promo variation exists', async () => {
-        const router = (await import('../../src/router.js')).default;
-        const navStub = sandbox.stub(router, 'navigateToFragmentEditor').resolves();
-        const defaultPath = '/content/dam/mas/sandbox/en_US/my-card';
-        const promotion = new Fragment({
-            path: '/content/dam/mas/promotions/black-friday',
-            fields: [{ name: 'tags', values: ['mas:promotion/black-friday'], multiple: true }],
-        });
-        Store.promotions.inEdit.set(new FragmentStore(promotion));
-
-        const el = await fixture(html`<mas-promotions-items-table .type=${TABLE_TYPE.CARDS}></mas-promotions-items-table>`);
-        el.existingPromoVariationDefaultPaths = new Set([defaultPath]);
-        el.viewOnlyFragments = [
-            {
-                path: defaultPath,
-                id: 'default-card-id',
-                title: 'Default Card',
-                studioPath: defaultPath,
-                status: 'PUBLISHED',
-                model: { path: CARD_MODEL_PATH },
-                fields: [],
-                tags: [],
-            },
-        ];
-        await el.updateComplete;
-        const editItem = Array.from(el.shadowRoot.querySelectorAll('sp-menu-item')).find((item) =>
-            item.textContent.trim().includes('Edit fragment'),
-        );
-        editItem.dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
-        await new Promise((r) => setTimeout(r, 10));
-        expect(navStub.calledOnce).to.be.true;
-        expect(navStub.firstCall.args[0]).to.equal('default-card-id');
-        expect(Store.promotions.promotionId.get()).to.be.null;
-        Store.promotions.inEdit.set(null);
-    });
-
     it('aborts loading when disconnected before fetch completes', async () => {
         Store.promotions.selectedCards.set(['/content/dam/mas/card-abort']);
         const abortSpy = sandbox.spy(AbortController.prototype, 'abort');
@@ -1080,6 +984,84 @@ describe('MasPromotionsItemsTable', () => {
         const createItem = Array.from(menuItems).find((item) => item.textContent.trim().includes('Create promo variation'));
         expect(createItem).to.be.undefined;
         Store.promotions.inEdit.set(null);
+    });
+
+    it('builds a search url with surface, default locale and no region when locale is already the default', async () => {
+        const el = await fixture(html`<mas-promotions-items-table .type=${TABLE_TYPE.CARDS}></mas-promotions-items-table>`);
+        el.viewOnlyFragments = [
+            {
+                path: '/content/dam/mas/acom/en_US/card-search',
+                id: 'search-id',
+                title: 'Search Card',
+                studioPath: '/content/dam/mas/acom/en_US/card-search',
+                status: 'DRAFT',
+                model: { path: CARD_MODEL_PATH },
+                fields: [],
+                tags: [],
+            },
+        ];
+        await el.updateComplete;
+        const link = Array.from(el.shadowRoot.querySelectorAll('sp-link')).find((l) =>
+            l.textContent.trim().includes('View default fragment'),
+        );
+        expect(link).to.not.be.undefined;
+        const hash = link.getAttribute('href').split('#')[1];
+        const params = new URLSearchParams(hash);
+        expect(params.get('page')).to.equal(PAGE_NAMES.CONTENT);
+        expect(params.get('query')).to.equal('search-id');
+        expect(params.get('path')).to.equal('acom');
+        expect(params.get('locale')).to.equal('en_US');
+        expect(params.has('region')).to.be.false;
+    });
+
+    it('builds a search url with a region param when the fragment locale differs from the surface default', async () => {
+        const el = await fixture(
+            html`<mas-promotions-items-table .type=${TABLE_TYPE.COLLECTIONS}></mas-promotions-items-table>`,
+        );
+        el.viewOnlyFragments = [
+            {
+                path: '/content/dam/mas/acom/en_CA/col-search',
+                id: 'search-col-id',
+                title: 'Search Collection',
+                studioPath: '/content/dam/mas/acom/en_CA/col-search',
+                status: 'DRAFT',
+                model: { path: COLLECTION_MODEL_PATH },
+                fields: [],
+                tags: [],
+            },
+        ];
+        await el.updateComplete;
+        const link = Array.from(el.shadowRoot.querySelectorAll('sp-link')).find((l) =>
+            l.textContent.trim().includes('View default collection'),
+        );
+        expect(link).to.not.be.undefined;
+        const hash = link.getAttribute('href').split('#')[1];
+        const params = new URLSearchParams(hash);
+        expect(params.get('path')).to.equal('acom');
+        expect(params.get('locale')).to.equal('en_US');
+        expect(params.get('region')).to.equal('en_CA');
+    });
+
+    it('returns an empty search url when the item has no id or path', async () => {
+        const el = await fixture(html`<mas-promotions-items-table .type=${TABLE_TYPE.CARDS}></mas-promotions-items-table>`);
+        el.viewOnlyFragments = [
+            {
+                path: '',
+                id: '',
+                title: 'No Id Card',
+                studioPath: '',
+                status: 'DRAFT',
+                model: { path: CARD_MODEL_PATH },
+                fields: [],
+                tags: [],
+            },
+        ];
+        await el.updateComplete;
+        const link = Array.from(el.shadowRoot.querySelectorAll('sp-link')).find((l) =>
+            l.textContent.trim().includes('View default fragment'),
+        );
+        expect(link).to.not.be.undefined;
+        expect(link.getAttribute('href')).to.equal('');
     });
 
     it('skips reload when selected paths have not changed', async () => {

@@ -1,15 +1,4 @@
-import {
-    test,
-    expect,
-    studio,
-    editor,
-    plans,
-    ost,
-    webUtil,
-    miloLibs,
-    setTestPage,
-    withOstFlag,
-} from '../../../../../libs/mas-test.js';
+import { test, expect, studio, editor, plans, ost, webUtil, miloLibs, setTestPage } from '../../../../../libs/mas-test.js';
 import ACOMPlansIndividualsSpec from '../specs/individuals_edit_and_discard.spec.js';
 
 const { features } = ACOMPlansIndividualsSpec;
@@ -470,7 +459,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
     // @studio-plans-individuals-edit-discard-price - Validate edit price for plans individuals card in mas studio
     test(`${features[9].name},${features[9].tags}`, async ({ page, baseURL }) => {
         const { data } = features[9];
-        const testPage = withOstFlag(baseURL, features[9].path, `${features[9].browserParams}${data.cardid}`);
+        const testPage = `${baseURL}${features[9].path}${miloLibs}${features[9].browserParams}${data.cardid}`;
         setTestPage(testPage);
         const individualsCard = await studio.getCard(data.cardid);
 
@@ -506,7 +495,6 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await expect(await ost.promoField).toHaveValue(data.promo);
 
             await expect(await ost.priceUse).toBeVisible();
-            await ost.expandOptions();
             await expect(await ost.unitCheckbox).toBeVisible();
             await ost.unitCheckbox.click();
             await expect(await ost.price).toContainText(data.price.updated);
@@ -554,7 +542,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
     // @studio-plans-individuals-edit-discard-osi - Validate edit OSI for plans individuals card in mas studio
     test(`${features[10].name},${features[10].tags}`, async ({ page, baseURL }) => {
         const { data } = features[10];
-        const testPage = withOstFlag(baseURL, features[10].path, `${features[10].browserParams}${data.cardid}`);
+        const testPage = `${baseURL}${features[10].path}${miloLibs}${features[10].browserParams}${data.cardid}`;
         setTestPage(testPage);
         const individualsCard = await studio.getCard(data.cardid);
 
@@ -578,9 +566,8 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await page.waitForTimeout(2000);
             await expect(await ost.searchField).toBeVisible();
             await ost.searchField.fill(data.osi.updated);
-            await expect(await ost.nextButton).toBeEnabled();
             await (await ost.nextButton).click();
-            await expect(await ost.priceUse).toBeEnabled();
+            await expect(await ost.priceUse).toBeVisible();
             await ost.priceUse.click();
         });
 
@@ -618,7 +605,6 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         const { data } = features[11];
         const testPage = `${baseURL}${features[11].path}${miloLibs}${features[11].browserParams}${data.cardid}`;
         setTestPage(testPage);
-        const individualsCard = await studio.getCard(data.cardid);
 
         await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
             await page.goto(testPage);
@@ -971,7 +957,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
     // @studio-plans-individuals-edit-discard-promo-price - Validate edit price promo for plans individuals card in mas studio
     test(`${features[17].name},${features[17].tags}`, async ({ page, baseURL }) => {
         const { data } = features[17];
-        const testPage = withOstFlag(baseURL, features[17].path, `${features[17].browserParams}${data.cardid}`);
+        const testPage = `${baseURL}${features[17].path}${miloLibs}${features[17].browserParams}${data.cardid}`;
         setTestPage(testPage);
         const individualsCard = await studio.getCard(data.cardid);
 
@@ -1201,7 +1187,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
     // @studio-plans-individuals-edit-discard-cta-ost - Validate edit CTA for plans individuals card in mas studio
     test(`${features[21].name},${features[21].tags}`, async ({ page, baseURL }) => {
         const { data } = features[21];
-        const testPage = withOstFlag(baseURL, features[21].path, `${features[21].browserParams}${data.cardid}`);
+        const testPage = `${baseURL}${features[21].path}${miloLibs}${features[21].browserParams}${data.cardid}`;
         setTestPage(testPage);
         const individualsCard = await studio.getCard(data.cardid);
 
@@ -1253,11 +1239,19 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
                 .click();
             await expect(async () => {
                 await ost.workflowMenu.click();
-                await expect(page.locator(`sp-menu-item[value="${data.cta.updated.workflowStep}"]`)).toBeVisible({
+                await expect(
+                    page.locator('div[role="option"]', {
+                        hasText: `${data.cta.updated.workflowStep}`,
+                    }),
+                ).toBeVisible({
                     timeout: 500,
                 });
             }).toPass();
-            await page.locator(`sp-menu-item[value="${data.cta.updated.workflowStep}"]`).click();
+            await page
+                .locator('div[role="option"]', {
+                    hasText: `${data.cta.updated.workflowOption}`,
+                })
+                .click();
             await expect(await ost.checkoutLink).toHaveAttribute('data-checkout-workflow-step', data.cta.updated.workflowStep);
             await ost.checkoutLinkUse.click();
             await page.waitForTimeout(1000);
@@ -1348,7 +1342,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
     // @studio-plans-individuals-edit-discard-cta-promo - Validate edit cta promo for plans individuals card in mas studio
     test(`${features[23].name},${features[23].tags}`, async ({ page, baseURL }) => {
         const { data } = features[23];
-        const testPage = withOstFlag(baseURL, features[23].path, `${features[23].browserParams}${data.cardid}`);
+        const testPage = `${baseURL}${features[23].path}${miloLibs}${features[23].browserParams}${data.cardid}`;
         setTestPage(testPage);
         const individualsCard = await studio.getCard(data.cardid);
 
@@ -1367,7 +1361,6 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
                 'data-promotion-code',
                 data.promo.original,
             );
-            await expect(await individualsCard.locator(plans.cardCTA)).toHaveAttribute('href', /commerce\.adobe\.com/);
 
             const CTAhref = await individualsCard.locator(plans.cardCTA).getAttribute('href');
             const workflowStep = decodeURI(CTAhref).split('?')[0];
@@ -1402,28 +1395,22 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-3: Validate edited CTA promo in Editor panel', async () => {
-            const editedCTA = editor.panel.locator('sp-field-group#ctas a[data-wcs-osi]');
-            await expect(editedCTA).toHaveAttribute('data-promotion-code', data.promo.updated);
+            await expect(await editor.CTA).toHaveAttribute('data-promotion-code', data.promo.updated);
         });
 
         await test.step('step-4: Validate edited CTA promo on the card', async () => {
             const newCTA = await individualsCard.locator(plans.cardCTA);
-            // The edited promotion code propagates to the card's checkout link.
-            // The resolved `apc` URL param only appears while the promo is active
-            // (commerce-service drops an inactive promotionCode), so assert the
-            // attribute — not the apc — to stay independent of promo date windows.
             await expect(newCTA).toHaveAttribute('data-promotion-code', data.promo.updated);
             await expect(newCTA).toHaveAttribute('href', new RegExp(`${data.ucv3}`));
             await expect(newCTA).toHaveAttribute('href', new RegExp(`co=${data.country}`));
             await expect(newCTA).toHaveAttribute('href', new RegExp(`ctx=${data.ctx}`));
             await expect(newCTA).toHaveAttribute('href', new RegExp(`lang=${data.lang}`));
             await expect(newCTA).toHaveAttribute('href', new RegExp(`cli=${data.client}`));
+            await expect(newCTA).toHaveAttribute('href', new RegExp(`apc=${data.promo.updated}`));
         });
 
         await test.step('step-5: Remove promo', async () => {
-            const editedCTA = editor.panel.locator('sp-field-group#ctas a[data-wcs-osi]');
-            await editedCTA.scrollIntoViewIfNeeded();
-            await editedCTA.dblclick();
+            await (await editor.CTA).dblclick();
             await expect(await ost.checkoutTab).toBeVisible();
             await expect(await ost.promoField).toBeVisible();
             await expect(await ost.promoLabel).toBeVisible();
@@ -1435,9 +1422,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-6: Validate promo removed in Editor panel', async () => {
-            await expect(editor.panel.locator('sp-field-group#ctas a[data-wcs-osi]')).not.toHaveAttribute(
-                'data-promotion-code',
-            );
+            await expect(await editor.CTA).not.toHaveAttribute('data-promotion-code');
         });
 
         await test.step('step-7: Validate CTA promo removed from the card', async () => {
@@ -1449,7 +1434,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
     // @studio-plans-individuals-add-description-price-legal-disclamer - Validate adding legal disclamer in description for plans individuals card in mas studio
     test(`${features[24].name},${features[24].tags}`, async ({ page, baseURL }) => {
         const { data } = features[24];
-        const testPage = withOstFlag(baseURL, features[24].path, `${features[24].browserParams}${data.cardid}`);
+        const testPage = `${baseURL}${features[24].path}${miloLibs}${features[24].browserParams}${data.cardid}`;
         setTestPage(testPage);
         const individualsCard = await studio.getCard(data.cardid);
 
@@ -1469,16 +1454,11 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await page.waitForTimeout(2000);
             await expect(await ost.searchField).toBeVisible();
             await ost.searchField.fill(data.osi.updated);
-            await expect(await ost.nextButton).toBeEnabled();
             await (await ost.nextButton).click();
-            await ost.legalChip.click();
             await ost.legalDisclaimer.scrollIntoViewIfNeeded();
-            await ost.expandOptions();
+            await expect(await ost.legalDisclaimer).not.toContainText(data.cardLegalDisclaimer);
             await expect(await ost.unitCheckbox).toBeVisible();
-            await ost.waitForLegalResolved();
-            if (!(await ost.legalDisclaimer.textContent())?.includes(data.cardLegalDisclaimer)) {
-                await ost.unitCheckbox.click();
-            }
+            await ost.unitCheckbox.click();
             await expect(await ost.legalDisclaimer).toContainText(data.cardLegalDisclaimer);
             await expect(await ost.legalDisclaimerUse).toBeVisible();
             await ost.legalDisclaimerUse.click();

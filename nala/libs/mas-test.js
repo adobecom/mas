@@ -42,14 +42,6 @@ let currentTestPage = '';
 const miloLibs = process.env.MILO_LIBS || '';
 const masIOUrl = process.env.MAS_IO_URL || '';
 
-// Studio defaults to the legacy OST; ?ost=new selects the new Lit OST the
-// studio E2E specs are written against. Inject it as the first query param and
-// re-key any MILO_LIBS query onto & so the two never collide.
-function withOstFlag(baseURL, path, browserParams = '') {
-    const libs = miloLibs ? `&${miloLibs.replace(/^[?&]/, '')}` : '';
-    return `${baseURL}${path}?ost=new${libs}${browserParams}`;
-}
-
 /**
  * Extended Playwright test that automatically handles common MAS test operations
  */
@@ -150,7 +142,6 @@ export {
     setTestPage,
     miloLibs,
     masIOUrl,
-    withOstFlag,
 };
 
 export { masTest as test };

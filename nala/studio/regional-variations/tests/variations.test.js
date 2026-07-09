@@ -1,15 +1,4 @@
-import {
-    test,
-    expect,
-    studio,
-    editor,
-    plans,
-    ost,
-    webUtil,
-    miloLibs,
-    setTestPage,
-    withOstFlag,
-} from '../../../libs/mas-test.js';
+import { test, expect, studio, editor, plans, ost, webUtil, miloLibs, setTestPage } from '../../../libs/mas-test.js';
 import VariationsSpec from '../specs/variations.spec.js';
 
 const { features } = VariationsSpec;
@@ -151,7 +140,7 @@ test.describe('M@S Studio - Variations Page test suite', () => {
     // @studio-create-variation-new-fragment - Validate creating a variation from new fragment
     test(`${features[2].name},${features[2].tags}`, async ({ page, baseURL }) => {
         const { data } = features[2];
-        const testPage = withOstFlag(baseURL, features[2].path, features[2].browserParams);
+        const testPage = `${baseURL}${features[2].path}${miloLibs}${features[2].browserParams}`;
         setTestPage(testPage);
         let newFragmentId;
         let variationId;
@@ -359,7 +348,7 @@ test.describe('M@S Studio - Variations Page test suite', () => {
     // @studio-variation-override-restore - Per-field steps (edit → verify preview → click restore → verify original), run in serial
     test(`${features[6].name},${features[6].tags}`, async ({ page, baseURL }) => {
         const { data } = features[6];
-        const testPage = withOstFlag(baseURL, features[6].path, `${features[6].browserParams}${data.cardid}`);
+        const testPage = `${baseURL}${features[6].path}${miloLibs}${features[6].browserParams}${data.cardid}`;
         setTestPage(testPage);
         const { original } = data;
 
@@ -517,20 +506,8 @@ test.describe('M@S Studio - Variations Page test suite', () => {
                 test.step('field: price (OST) — edit, verify preview, click restore, verify original', async () => {
                     await expect(await editor.prices).toBeVisible();
                     await editor.prices.locator(editor.regularPrice).dblclick();
-                    // New tabbed OST: the price-row preview renders only after an
-                    // offer is selected, and the option toggles live in the
-                    // collapsed "Options" section.
-                    if (
-                        await ost.offerCard
-                            .first()
-                            .isVisible()
-                            .catch(() => false)
-                    ) {
-                        await ost.selectFirstOffer();
-                    }
                     await expect(await ost.price).toBeVisible();
                     await expect(await ost.priceUse).toBeVisible();
-                    await ost.expandOptions();
                     await expect(await ost.unitCheckbox).toBeVisible();
                     await ost.unitCheckbox.click();
                     await ost.priceUse.click();
@@ -575,11 +552,7 @@ test.describe('M@S Studio - Variations Page test suite', () => {
                     await expect(await ost.searchField).toBeVisible();
                     await ost.searchField.fill(data.osi);
                     await (await ost.nextButton).click();
-                    // New tabbed OST: a searched OSI auto-resolves its offer (and
-                    // preserves the deep-linked OSI). Wait for that async
-                    // resolution to render the price row — do NOT click an offer
-                    // card here, as that mints a fresh OSI and loses data.osi.
-                    await expect(ost.priceUse).toBeVisible({ timeout: 15000 });
+                    await expect(ost.priceUse).toBeVisible();
                     await ost.priceUse.click();
                     await page.waitForTimeout(400);
                     await expect(await editor.OSI).toContainText(data.osi);
@@ -607,7 +580,7 @@ test.describe('M@S Studio - Variations Page test suite', () => {
     // @studio-create-variation-GB - Validate creating a variation from GB locale
     test(`${features[7].name},${features[7].tags}`, async ({ page, baseURL }) => {
         const { data } = features[7];
-        const testPage = withOstFlag(baseURL, features[7].path, features[7].browserParams);
+        const testPage = `${baseURL}${features[7].path}${miloLibs}${features[7].browserParams}`;
         setTestPage(testPage);
         let newFragmentId;
         let variationId;

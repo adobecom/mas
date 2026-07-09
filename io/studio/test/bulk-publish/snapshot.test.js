@@ -316,6 +316,115 @@ describe('bulk-publish/snapshot.js', () => {
         });
     });
 
+    // ── isTranslationVersion ──────────────────────────────────────────────────
+
+    describe('isTranslationVersion()', () => {
+        it('returns true when createdBy is odin-cf-versioning-user', () => {
+            expect(snapshot.isTranslationVersion({ createdBy: 'odin-cf-versioning-user', comment: '' })).to.be.true;
+        });
+
+        it('returns true when comment starts with Pre-rollout snapshot', () => {
+            expect(
+                snapshot.isTranslationVersion({
+                    createdBy: 'someone',
+                    comment: 'Pre-rollout snapshot — source CF: /content/dam/foo',
+                }),
+            ).to.be.true;
+        });
+
+        it('returns false for a normal user-authored version', () => {
+            expect(
+                snapshot.isTranslationVersion({
+                    createdBy: 'author@adobe.com',
+                    comment: 'Pre-publish - My Project',
+                }),
+            ).to.be.false;
+        });
+
+        it('returns false when comment is undefined', () => {
+            expect(snapshot.isTranslationVersion({ createdBy: 'author@adobe.com' })).to.be.false;
+        });
+    });
+
+    // ── findNonTranslationVersion ────────────────────────────────────────────
+
+    describe('findNonTranslationVersion()', () => {
+        it('returns id of first non-translation version (skips translation versions at top)', async () => {
+            fetchOdinStub.callsFake((endpoint, uri) => {
+                if (uri.includes('/versions')) {
+                    return fetchResponse({
+                        items: [
+                            {
+                                id: 'v-trans',
+                                createdBy: 'odin-cf-versioning-user',
+                                comment: 'Pre-rollout snapshot — source CF: /x',
+                            },
+                            { id: 'v-green', createdBy: 'author@adobe.com', comment: 'Pre-publish - Project' },
+                        ],
+                    });
+                }
+                return fetchResponse({});
+            });
+
+            const result = await snapshot.findNonTranslationVersion(odinEndpoint, 'frag-1', authToken);
+            expect(result).to.equal('v-green');
+        });
+
+        it('returns the first version when no translation versions exist', async () => {
+            fetchOdinStub.callsFake((endpoint, uri) => {
+                if (uri.includes('/versions')) {
+                    return fetchResponse({
+                        items: [
+                            { id: 'v-latest', createdBy: 'author@adobe.com', comment: 'Latest' },
+                            { id: 'v-older', createdBy: 'author@adobe.com', comment: 'Older' },
+                        ],
+                    });
+                }
+                return fetchResponse({});
+            });
+
+            const result = await snapshot.findNonTranslationVersion(odinEndpoint, 'frag-1', authToken);
+            expect(result).to.equal('v-latest');
+        });
+
+        it('returns null when all versions are translation versions', async () => {
+            fetchOdinStub.callsFake((endpoint, uri) => {
+                if (uri.includes('/versions')) {
+                    return fetchResponse({
+                        items: [{ id: 'v-t1', createdBy: 'odin-cf-versioning-user', comment: '' }],
+                    });
+                }
+                return fetchResponse({});
+            });
+
+            const result = await snapshot.findNonTranslationVersion(odinEndpoint, 'frag-1', authToken);
+            expect(result).to.be.null;
+        });
+
+        it('returns null when version history is empty', async () => {
+            fetchOdinStub.callsFake((endpoint, uri) => {
+                if (uri.includes('/versions')) {
+                    return fetchResponse({ items: [] });
+                }
+                return fetchResponse({});
+            });
+
+            const result = await snapshot.findNonTranslationVersion(odinEndpoint, 'frag-1', authToken);
+            expect(result).to.be.null;
+        });
+
+        it('calls GET /adobe/sites/cf/fragments/{id}/versions', async () => {
+            fetchOdinStub.resolves(fetchResponse({ items: [] }));
+            await snapshot.findNonTranslationVersion(odinEndpoint, 'frag-abc', authToken);
+            expect(fetchOdinStub).to.have.been.calledWith(
+                odinEndpoint,
+                '/adobe/sites/cf/fragments/frag-abc/versions',
+                authToken,
+                sinon.match.object,
+            );
+        });
+    });
+
     // ── checkModifications ───────────────────────────────────────────────────
 
     describe('checkModifications()', () => {

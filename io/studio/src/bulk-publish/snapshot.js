@@ -154,6 +154,30 @@ async function revertSnapshot({ entries, odinEndpoint, authToken }) {
     return { failures, skipped };
 }
 
+async function recordSnapshot({ paths, odinEndpoint, authToken }) {
+    const timestamp = Date.now();
+    const createdAt = new Date(timestamp).toISOString();
+
+    logger.info(JSON.stringify({ event: 'record-snapshot-start', count: paths.length }));
+
+    const entries = await processBatchWithConcurrency(paths, FRAGMENT_CONCURRENCY, async (path) => {
+        const fragment = await getFragmentByPath(odinEndpoint, path, authToken);
+        if (!fragment) throw new Error(`Fragment not found at path: ${path}`);
+        const wasPublished = fragment.status === STATUS_PUBLISHED || fragment.status === STATUS_MODIFIED;
+        const versionId = await findNonTranslationVersion(odinEndpoint, fragment.id, authToken);
+        if (!versionId) throw new Error(`No non-translation version found for fragment: ${path}`);
+        return [fragment.id, { path: fragment.path, versionId, wasPublished }];
+    });
+
+    const snap = {
+        createdAt,
+        fragments: Object.fromEntries(entries),
+    };
+
+    logger.info(JSON.stringify({ event: 'record-snapshot-complete', count: paths.length }));
+    return serializeEntries(snap);
+}
+
 async function checkModifications({ entries, odinEndpoint, authToken }) {
     const snapshot = deserializeEntries(entries);
     const snapshotTime = new Date(snapshot.createdAt).getTime();
@@ -176,4 +200,11 @@ async function checkModifications({ entries, odinEndpoint, authToken }) {
     return results.sort((a, b) => a.path.localeCompare(b.path));
 }
 
-module.exports = { createSnapshot, revertSnapshot, checkModifications, isTranslationVersion, findNonTranslationVersion };
+module.exports = {
+    createSnapshot,
+    revertSnapshot,
+    checkModifications,
+    isTranslationVersion,
+    findNonTranslationVersion,
+    recordSnapshot,
+};

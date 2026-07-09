@@ -425,6 +425,99 @@ describe('bulk-publish/snapshot.js', () => {
         });
     });
 
+    // ── recordSnapshot ────────────────────────────────────────────────────────
+
+    describe('recordSnapshot()', () => {
+        it('returns entries with non-translation versionId and does NOT POST to /versions', async () => {
+            fetchOdinStub.callsFake((endpoint, uri) => {
+                if (uri.includes('/adobe/sites/cf/fragments?path=')) {
+                    return fetchResponse({ items: [{ id: 'frag-1', path: '/content/dam/a', status: 'PUBLISHED' }] });
+                }
+                if (uri.includes('/versions')) {
+                    return fetchResponse({
+                        items: [
+                            {
+                                id: 'v-trans',
+                                createdBy: 'odin-cf-versioning-user',
+                                comment: 'Pre-rollout snapshot — source CF: /x',
+                            },
+                            { id: 'v-green', createdBy: 'author@adobe.com', comment: 'Manual edit' },
+                        ],
+                    });
+                }
+                return fetchResponse({});
+            });
+
+            const results = await snapshot.recordSnapshot({ paths: ['/content/dam/a'], odinEndpoint, authToken });
+
+            expect(results).to.have.length(1);
+            const entry = JSON.parse(results[0]);
+            expect(entry.fragmentId).to.equal('frag-1');
+            expect(entry.versionId).to.equal('v-green');
+            expect(entry.wasPublished).to.be.true;
+            expect(entry.createdAt).to.be.a('string');
+
+            const postVersionCall = fetchOdinStub.args.find(
+                ([, uri, , opts]) => uri.includes('/versions') && opts?.method === 'POST',
+            );
+            expect(postVersionCall).to.not.exist;
+        });
+
+        it('sets wasPublished: false for DRAFT status', async () => {
+            fetchOdinStub.callsFake((endpoint, uri) => {
+                if (uri.includes('/adobe/sites/cf/fragments?path=')) {
+                    return fetchResponse({ items: [{ id: 'frag-d', path: '/content/dam/d', status: 'DRAFT' }] });
+                }
+                if (uri.includes('/versions')) {
+                    return fetchResponse({ items: [{ id: 'v-1', createdBy: 'author@adobe.com', comment: '' }] });
+                }
+                return fetchResponse({});
+            });
+
+            const results = await snapshot.recordSnapshot({ paths: ['/content/dam/d'], odinEndpoint, authToken });
+            expect(JSON.parse(results[0]).wasPublished).to.be.false;
+        });
+
+        it('throws when fragment not found at path', async () => {
+            fetchOdinStub.callsFake((endpoint, uri) => {
+                if (uri.includes('/adobe/sites/cf/fragments?path=')) {
+                    return fetchResponse({ items: [] });
+                }
+                return fetchResponse({});
+            });
+
+            let err;
+            try {
+                await snapshot.recordSnapshot({ paths: ['/content/dam/missing'], odinEndpoint, authToken });
+            } catch (e) {
+                err = e;
+            }
+            expect(err).to.exist;
+            expect(err.message).to.match(/Fragment not found at path/);
+        });
+
+        it('throws when no non-translation version exists', async () => {
+            fetchOdinStub.callsFake((endpoint, uri) => {
+                if (uri.includes('/adobe/sites/cf/fragments?path=')) {
+                    return fetchResponse({ items: [{ id: 'frag-t', path: '/content/dam/t', status: 'PUBLISHED' }] });
+                }
+                if (uri.includes('/versions')) {
+                    return fetchResponse({ items: [{ id: 'v-t', createdBy: 'odin-cf-versioning-user', comment: '' }] });
+                }
+                return fetchResponse({});
+            });
+
+            let err;
+            try {
+                await snapshot.recordSnapshot({ paths: ['/content/dam/t'], odinEndpoint, authToken });
+            } catch (e) {
+                err = e;
+            }
+            expect(err).to.exist;
+            expect(err.message).to.match(/No non-translation version found/);
+        });
+    });
+
     // ── checkModifications ───────────────────────────────────────────────────
 
     describe('checkModifications()', () => {

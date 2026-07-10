@@ -6,7 +6,6 @@ import { setItemsSelectionStore } from '../../src/common/items-selection-store.j
 import MasPromotionsEditor from '../../src/promotions/mas-promotions-editor.js';
 import { Promotion } from '../../src/aem/promotion.js';
 import { CARD_MODEL_PATH, EVENT_OST_OFFER_SELECT, PAGE_NAMES, TABLE_TYPE } from '../../src/constants.js';
-import Events from '../../src/events.js';
 
 function makeFragmentData(overrides = {}) {
     return {

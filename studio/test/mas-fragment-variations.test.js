@@ -439,8 +439,50 @@ describe('MasFragmentVariations', () => {
 
             expect(el.textContent).to.include('Promotion');
             expect(el.textContent).to.include('Back to School');
-            expect(el.textContent).to.include('Promotion project');
-            expect(el.textContent).to.include('back-to-school');
+            expect(el.textContent).to.include('Geos variation tags');
+            const picker = el.querySelector('aem-tag-picker-field');
+            expect(picker.getAttribute('value')).to.equal(getGroupedVariationTagsValue(promoVariation));
+        });
+
+        it('falls back to the promotion project geos when a promo variation has no pznTags of its own', async () => {
+            const promoVariation = createVariationFragment({
+                id: 'promo-var-legacy',
+                path: '/content/dam/mas/sandbox/en_US/promotions/cyber-monday/my-card',
+                tags: [{ id: 'mas:promotion/cyber-monday', title: 'Cyber Monday' }],
+                fields: [],
+            });
+            const fragment = {
+                listLocaleVariations: () => [],
+                listPromoVariations: () => [promoVariation],
+                listGroupedVariations: () => [],
+            };
+            const loadPromotions = sandbox.stub().callsFake(async () => {
+                Store.promotions.list.data.set([
+                    {
+                        get: () => ({
+                            id: 'promo-project-1',
+                            getFieldValues: (name) =>
+                                name === 'tags'
+                                    ? ['mas:promotion/cyber-monday']
+                                    : name === 'geos'
+                                      ? ['mas:locale/de_AT', 'mas:locale/en_NG']
+                                      : [],
+                        }),
+                    },
+                ]);
+                Store.promotions.list.loading.set(false);
+            });
+
+            const el = await fixture(html`<mas-fragment-variations .fragment=${fragment}></mas-fragment-variations>`);
+            sandbox.stub(el, 'repository').get(() => ({ loadPromotions }));
+            el.togglePromoVariation('promo-var-legacy');
+            await el.updateComplete;
+            await new Promise((r) => setTimeout(r, 10));
+            await el.updateComplete;
+
+            const picker = el.querySelector('aem-tag-picker-field');
+            expect(picker.getAttribute('value')).to.equal('mas:locale/de_AT,mas:locale/en_NG');
+            Store.promotions.list.data.set([]);
         });
 
         it('sets promotionId when opening a promo variation from the promotion tab', async () => {

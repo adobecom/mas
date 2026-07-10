@@ -150,7 +150,7 @@ export class EditorContextStore extends ReactiveStore {
         if (!aem || !fragmentPath) return;
         const promoName = getPromoNameFromPromoVariationPath(fragmentPath);
         if (!promoName) return;
-        const parentPath = resolveDefaultPathFromPromoVariation(fragmentPath, promoName);
+        const [parentPath] = resolveDefaultPathFromPromoVariation(fragmentPath, promoName);
         if (!parentPath) return;
         this.parentFetchPromise = aem.sites.cf.fragments
             .getByPath(parentPath)

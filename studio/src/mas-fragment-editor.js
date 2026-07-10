@@ -24,6 +24,7 @@ import {
     hasNonEmptyCompareChart,
     replaceLocaleInPath,
     showToast,
+    createKeyedAsyncLoader,
 } from './utils.js';
 import { getSpectrumVersion } from './constants/icon-library.js';
 import { getFragmentPartsToUse } from './editor-panel.js';
@@ -269,9 +270,14 @@ export default class MasFragmentEditor extends LitElement {
             display: flex;
             align-items: center;
             justify-content: space-between;
+            flex-wrap: wrap;
             padding: 16px 16px 0 16px;
             width: 100%;
             box-sizing: border-box;
+        }
+
+        .preview-header-geos {
+            flex-basis: 100%;
         }
 
         .preview-header-title {
@@ -583,6 +589,8 @@ export default class MasFragmentEditor extends LitElement {
         variationsToDelete: { type: Array, state: true },
         initState: { type: String, state: true },
         groupedVariationOrphanMessage: { type: String, state: true },
+        promotionGeoOptions: { type: Array, state: true },
+        disabledPromoGeoOptions: { type: Array, state: true },
     };
 
     page = new StoreController(this, Store.page);
@@ -618,6 +626,8 @@ export default class MasFragmentEditor extends LitElement {
     #pendingDiscardPromise = null;
     #translatedLocalesRequest = null;
     #pendingVariationParents = new Map();
+    #promotionGeoOptionsLoader = createKeyedAsyncLoader();
+    #disabledPromoGeoOptionsLoader = createKeyedAsyncLoader();
     titleClone = '';
     tagsClone = [];
     osiClone = null;
@@ -635,6 +645,8 @@ export default class MasFragmentEditor extends LitElement {
         this.variationsToDelete = [];
         this.initState = MasFragmentEditor.INIT_STATE.IDLE;
         this.groupedVariationOrphanMessage = null;
+        this.promotionGeoOptions = [];
+        this.disabledPromoGeoOptions = [];
 
         this.updateFragment = this.updateFragment.bind(this);
         this.deleteFragment = this.deleteFragment.bind(this);
@@ -673,6 +685,53 @@ export default class MasFragmentEditor extends LitElement {
         if (this.#shouldInitFragment()) {
             this.initFragment();
         }
+
+        void this.#loadPromotionGeoOptions();
+        void this.#loadDisabledPromoGeoOptions();
+    }
+
+    async #loadDisabledPromoGeoOptions() {
+        await this.#disabledPromoGeoOptionsLoader({
+            guard: () => Boolean(this.fragment && this.isPromoVariationFragment() && this.localeDefaultFragment?.path),
+            computeKey: () => `${this.fragment.id}:${this.localeDefaultFragment.path}`,
+            load: async () => {
+                const promoTagId = getPromotionTagFromFragment(this.fragment) || this.getActivePromotionTagId();
+                if (!promoTagId) return [];
+                const siblings = await promotionsRepository.probePromoVariationsForFragment(
+                    this.repository.aem,
+                    this.localeDefaultFragment.path,
+                    promoTagId,
+                );
+                return siblings
+                    .filter((variation) => variation.id !== this.fragment.id)
+                    .flatMap((variation) => variation.pznTags || []);
+            },
+            apply: (geos) => {
+                this.disabledPromoGeoOptions = geos;
+            },
+            reset: () => {
+                if (this.disabledPromoGeoOptions.length) this.disabledPromoGeoOptions = [];
+            },
+        });
+    }
+
+    async #loadPromotionGeoOptions() {
+        await this.#promotionGeoOptionsLoader({
+            guard: () => Boolean(this.fragment && this.isPromoVariationFragment()),
+            computeKey: () => this.fragment.id,
+            load: async () => {
+                const promotionId = Store.promotions.inEdit.get()?.get?.()?.id || Store.promotions.promotionId.get();
+                if (!promotionId) return [];
+                const promotion = await this.repository.aem.sites.cf.fragments.getById(promotionId);
+                return promotion?.fields?.find((field) => field.name === 'geos')?.values || [];
+            },
+            apply: (geos) => {
+                this.promotionGeoOptions = geos;
+            },
+            reset: () => {
+                if (this.promotionGeoOptions.length) this.promotionGeoOptions = [];
+            },
+        });
     }
 
     // Returns true when editor should lazily initialize the fragment for the current route.
@@ -1389,6 +1448,7 @@ export default class MasFragmentEditor extends LitElement {
     async confirmDelete() {
         this.deleteInProgress = true;
         showToast('Deleting fragment...');
+        const wasPromoVariation = this.isPromoVariationFragment();
         try {
             if (this.editorContextStore.isVariation(this.fragment.id)) {
                 const localeDefaultFragment = await this.editorContextStore.getLocaleDefaultFragmentAsync();
@@ -1402,7 +1462,7 @@ export default class MasFragmentEditor extends LitElement {
             showToast('Fragment successfully deleted.', 'positive');
             Store.fragments.inEdit.set(null);
             Store.viewMode.set('default');
-            await router.navigateToPage(PAGE_NAMES.CONTENT)();
+            await router.navigateToPage(wasPromoVariation ? PAGE_NAMES.PROMOTIONS_EDITOR : PAGE_NAMES.CONTENT)();
         } catch (error) {
             console.error('Error deleting fragment:', error);
             showToast('Failed to delete fragment', 'negative');
@@ -1720,6 +1780,11 @@ export default class MasFragmentEditor extends LitElement {
             .join(' ');
     }
 
+    #promoVariationGeoCodes() {
+        const pznTags = this.fragment.getFieldValues('pznTags') || [];
+        return pznTags.map((tag) => tag.split('/').pop());
+    }
+
     displayPromoVariationInfo(clazz) {
         const promotionTagId = getPromotionTagFromFragment(this.fragment) || this.getActivePromotionTagId();
         const promotionName =
@@ -1728,8 +1793,20 @@ export default class MasFragmentEditor extends LitElement {
             this.#formatPromoLabel(getPromoNameFromPromoVariationPath(this.fragment.path)) ||
             Store.promotions.inEdit.get()?.get?.()?.title ||
             'Promotion';
+        const geoCodes = this.#promoVariationGeoCodes();
         return html`<div class="${clazz}">
             <span>Promo variation: <strong>${promotionName}</strong></span>
+            ${geoCodes.length
+                ? html`<span class="preview-header-geos">Geos: <strong>${geoCodes.join(', ')}</strong></span>`
+                : nothing}
+        </div>`;
+    }
+
+    displayPromoVariationGeos(clazz) {
+        const geoCodes = this.#promoVariationGeoCodes();
+        if (!geoCodes.length) return nothing;
+        return html`<div class="${clazz}">
+            <span>Geos: <strong>${geoCodes.join(', ')}</strong></span>
         </div>`;
     }
 
@@ -1758,8 +1835,11 @@ export default class MasFragmentEditor extends LitElement {
     }
 
     get localeVariationHeader() {
-        if (!this.fragment || this.isPromoVariationFragment()) {
+        if (!this.fragment) {
             return nothing;
+        }
+        if (this.isPromoVariationFragment()) {
+            return this.displayPromoVariationGeos('locale-variation-header');
         }
         if (!this.editorContextStore.isVariation(this.fragment.id)) {
             return nothing;
@@ -1994,6 +2074,8 @@ export default class MasFragmentEditor extends LitElement {
                         .updateFragment=${this.updateFragment}
                         .localeDefaultFragment=${this.localeDefaultFragment}
                         .isVariation=${this.editorContextStore.isVariation(this.fragment?.id)}
+                        .promotionGeoOptions=${this.promotionGeoOptions}
+                        .disabledPromoGeoOptions=${this.disabledPromoGeoOptions}
                         @preview-locale-change=${this.#handlePreviewLocaleChange}
                     ></merch-card-editor>
                 `;

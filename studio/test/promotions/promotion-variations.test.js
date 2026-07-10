@@ -2,9 +2,13 @@ import { expect } from '@esm-bundle/chai';
 import sinon from 'sinon';
 import {
     createPromoVariation,
+    findOverlappingGeoTags,
+    getNextAvailablePromoVariationIndex,
+    MAX_PROMO_VARIATIONS_PER_FRAGMENT,
     mergePromoVariationReferences,
     mergePromoReferencesForDefaultFragment,
     probePromoVariationReferences,
+    probePromoVariationsForFragment,
     getUnpublishedAttachedPromoVariations,
     resolveDefaultFragmentForPromoVariation,
 } from '../../src/promotions/promotion-variations.js';
@@ -52,19 +56,104 @@ describe('promotion-variations', () => {
         const promoTag = 'mas:promotion/black-friday';
         const targetPath = '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card';
 
-        it('creates promo variation without updating parent variations field', async () => {
+        it('creates the first (unsuffixed) promo variation and writes the given geo tags', async () => {
             const createdDraft = { id: 'new-promo-var-id' };
             const createdFragment = { id: 'new-promo-var-id', path: targetPath };
+            const createFragmentCopy = sandbox.stub().resolves(createdDraft);
             const aem = createAemMock({
                 fragments: {
                     getById: sandbox.stub().resolves(parentFragment),
                     getByPath: sandbox.stub().resolves(null),
                     pollCreatedFragment: sandbox.stub().resolves(createdFragment),
                 },
+                createFragmentCopy,
             });
 
-            const result = await createPromoVariation(aem, parentFragment.id, promoTag);
+            const result = await createPromoVariation(aem, parentFragment.id, promoTag, ['mas:pzn/country/ar']);
             expect(result).to.deep.equal(createdFragment);
+            const [fragmentForCopy] = createFragmentCopy.firstCall.args;
+            const pznTagsField = fragmentForCopy.fields.find((field) => field.name === 'pznTags');
+            expect(pznTagsField).to.deep.equal({
+                name: 'pznTags',
+                type: 'tag',
+                multiple: true,
+                values: ['mas:pzn/country/ar'],
+            });
+        });
+
+        it('creates a second variation with a suffixed path when the first already exists', async () => {
+            const variation1Path = targetPath;
+            const variation2Path = '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card-2';
+            const getByPath = sandbox.stub();
+            getByPath.withArgs(variation1Path).resolves({
+                id: 'var-1',
+                path: variation1Path,
+                fields: [{ name: 'pznTags', values: ['mas:pzn/country/ar'] }],
+            });
+            getByPath.resolves(null);
+            const createdDraft = { id: 'new-promo-var-2' };
+            const createdFragment = { id: 'new-promo-var-2', path: variation2Path };
+            const aem = createAemMock({
+                fragments: {
+                    getById: sandbox.stub().resolves(parentFragment),
+                    getByPath,
+                    pollCreatedFragment: sandbox.stub().resolves(createdFragment),
+                },
+                createFragmentCopy: sandbox.stub().resolves(createdDraft),
+            });
+
+            const result = await createPromoVariation(aem, parentFragment.id, promoTag, ['mas:pzn/country/fr']);
+            expect(result).to.deep.equal(createdFragment);
+        });
+
+        it('throws when the requested geo tags overlap with a sibling variation', async () => {
+            const getByPath = sandbox.stub();
+            getByPath.withArgs(targetPath).resolves({
+                id: 'var-1',
+                path: targetPath,
+                fields: [{ name: 'pznTags', values: ['mas:pzn/country/ar'] }],
+            });
+            getByPath.resolves(null);
+            const aem = createAemMock({
+                fragments: { getById: sandbox.stub().resolves(parentFragment), getByPath },
+            });
+
+            try {
+                await createPromoVariation(aem, parentFragment.id, promoTag, ['mas:pzn/country/ar']);
+                expect.fail('Should have thrown');
+            } catch (err) {
+                expect(err.message).to.include('mas:pzn/country/ar');
+            }
+        });
+
+        it('skips a suffix index that collides with another attached fragment in the same project', async () => {
+            const variation1Path = targetPath;
+            const collidingAttachedPath = '/content/dam/mas/sandbox/en_US/my-card-2';
+            const variation3Path = '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card-3';
+            const getByPath = sandbox.stub();
+            getByPath.withArgs(variation1Path).resolves({
+                id: 'var-1',
+                path: variation1Path,
+                fields: [{ name: 'pznTags', values: ['mas:pzn/country/ar'] }],
+            });
+            getByPath.resolves(null);
+            const aem = createAemMock({
+                fragments: {
+                    getById: sandbox.stub().resolves(parentFragment),
+                    getByPath,
+                    pollCreatedFragment: sandbox.stub().resolves({ id: 'new-promo-var-3', path: variation3Path }),
+                },
+                createFragmentCopy: sandbox.stub().resolves({ id: 'new-promo-var-3' }),
+            });
+
+            const result = await createPromoVariation(
+                aem,
+                parentFragment.id,
+                promoTag,
+                ['mas:pzn/country/fr'],
+                [collidingAttachedPath],
+            );
+            expect(result).to.deep.equal({ id: 'new-promo-var-3', path: variation3Path });
         });
 
         it('throws when promotion tag resolves to an unsafe promo folder name', async () => {
@@ -82,11 +171,10 @@ describe('promotion-variations', () => {
             }
         });
 
-        it('throws when promo variation already exists at target path', async () => {
+        it('throws when creating a promo variation from an existing promo variation', async () => {
             const aem = createAemMock({
                 fragments: {
-                    getById: sandbox.stub().resolves(parentFragment),
-                    getByPath: sandbox.stub().resolves({ id: 'existing', path: targetPath }),
+                    getById: sandbox.stub().resolves({ ...parentFragment, path: targetPath }),
                 },
             });
 
@@ -94,7 +182,209 @@ describe('promotion-variations', () => {
                 await createPromoVariation(aem, parentFragment.id, promoTag);
                 expect.fail('Should have thrown');
             } catch (err) {
-                expect(err.message).to.include('already exists');
+                expect(err.message).to.include('Cannot create a promo variation from a promo variation');
+            }
+        });
+
+        it('throws when creating a promo variation from a grouped variation', async () => {
+            const groupedSourcePath = '/content/dam/mas/sandbox/en_US/PA-123/pzn/my-card-grouped';
+            const aem = createAemMock({
+                fragments: {
+                    getById: sandbox.stub().resolves({ ...parentFragment, path: groupedSourcePath }),
+                },
+            });
+
+            try {
+                await createPromoVariation(aem, parentFragment.id, promoTag);
+                expect.fail('Should have thrown');
+            } catch (err) {
+                expect(err.message).to.include('Cannot create a promo variation from a grouped variation');
+            }
+        });
+
+        it('throws a plain Error when the source fragment cannot be fetched', async () => {
+            const aem = createAemMock({
+                fragments: { getById: sandbox.stub().resolves(null) },
+            });
+
+            try {
+                await createPromoVariation(aem, parentFragment.id, promoTag);
+                expect.fail('Should have thrown');
+            } catch (err) {
+                expect(err.message).to.equal('Failed to fetch source fragment');
+            }
+        });
+
+        it('throws when the source fragment path cannot be parsed into a promo variation path', async () => {
+            const unparsablePath = 'not-a-dam-path';
+            const aem = createAemMock({
+                fragments: {
+                    getById: sandbox.stub().resolves({ ...parentFragment, path: unparsablePath }),
+                    getByPath: sandbox.stub().resolves(null),
+                },
+            });
+
+            try {
+                await createPromoVariation(aem, parentFragment.id, promoTag);
+                expect.fail('Should have thrown');
+            } catch (err) {
+                expect(err.message).to.include('Could not determine promo variation path from fragment path');
+            }
+        });
+
+        it('throws a plain Error when the created fragment cannot be polled back', async () => {
+            const aem = createAemMock({
+                fragments: {
+                    getById: sandbox.stub().resolves(parentFragment),
+                    getByPath: sandbox.stub().resolves(null),
+                    pollCreatedFragment: sandbox.stub().resolves(null),
+                },
+                createFragmentCopy: sandbox.stub().resolves({ id: 'new-promo-var-id' }),
+            });
+
+            try {
+                await createPromoVariation(aem, parentFragment.id, promoTag);
+                expect.fail('Should have thrown');
+            } catch (err) {
+                expect(err.message).to.equal('Failed to create promo variation');
+            }
+        });
+
+        it('creates a variation and copies no promotion tags when the source fragment has no tags', async () => {
+            const createdFragment = { id: 'new-promo-var-id', path: targetPath };
+            const aem = createAemMock({
+                fragments: {
+                    getById: sandbox.stub().resolves({ ...parentFragment, tags: undefined }),
+                    getByPath: sandbox.stub().resolves(null),
+                    pollCreatedFragment: sandbox.stub().resolves(createdFragment),
+                },
+                createFragmentCopy: sandbox.stub().resolves({ id: 'new-promo-var-id' }),
+            });
+
+            const result = await createPromoVariation(aem, parentFragment.id, promoTag);
+            expect(result).to.deep.equal(createdFragment);
+            expect(aem.saveTags.firstCall.args[0].newTags).to.deep.equal([promoTag]);
+        });
+    });
+
+    describe('probePromoVariationsForFragment', () => {
+        const defaultPath = '/content/dam/mas/sandbox/en_US/my-card';
+        const promoTag = 'mas:promotion/black-friday';
+
+        it('returns an empty array when aem, defaultPath or promoTagId is missing', async () => {
+            expect(await probePromoVariationsForFragment(null, defaultPath, promoTag)).to.deep.equal([]);
+            expect(await probePromoVariationsForFragment(createAemMock(), '', promoTag)).to.deep.equal([]);
+            expect(await probePromoVariationsForFragment(createAemMock(), defaultPath, '')).to.deep.equal([]);
+        });
+
+        it('returns an empty array when the unsuffixed variation does not exist', async () => {
+            const aem = createAemMock({
+                fragments: { getByPath: sandbox.stub().resolves(null) },
+            });
+            const result = await probePromoVariationsForFragment(aem, defaultPath, promoTag);
+            expect(result).to.deep.equal([]);
+        });
+
+        it('returns one entry for the unsuffixed variation and stops at the first missing suffix', async () => {
+            const variation1Path = '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card';
+            const getByPath = sandbox.stub();
+            getByPath.withArgs(variation1Path).resolves({
+                id: 'var-1',
+                path: variation1Path,
+                fields: [{ name: 'pznTags', values: ['mas:pzn/country/ar'] }],
+            });
+            getByPath.resolves(null);
+            const aem = createAemMock({ fragments: { getByPath } });
+
+            const result = await probePromoVariationsForFragment(aem, defaultPath, promoTag);
+            expect(result).to.have.lengthOf(1);
+            expect(result[0]).to.deep.equal({
+                path: variation1Path,
+                index: 1,
+                id: 'var-1',
+                pznTags: ['mas:pzn/country/ar'],
+            });
+        });
+
+        it('finds multiple suffixed variations in order and stops at the first missing one', async () => {
+            const variation1Path = '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card';
+            const variation2Path = '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card-2';
+            const getByPath = sandbox.stub();
+            getByPath.withArgs(variation1Path).resolves({
+                id: 'var-1',
+                path: variation1Path,
+                fields: [{ name: 'pznTags', values: ['mas:pzn/country/ar'] }],
+            });
+            getByPath.withArgs(variation2Path).resolves({
+                id: 'var-2',
+                path: variation2Path,
+                fields: [{ name: 'pznTags', values: ['mas:pzn/country/fr'] }],
+            });
+            getByPath.resolves(null);
+            const aem = createAemMock({ fragments: { getByPath } });
+
+            const result = await probePromoVariationsForFragment(aem, defaultPath, promoTag);
+            expect(result).to.have.lengthOf(2);
+            expect(result[0].index).to.equal(1);
+            expect(result[1]).to.deep.equal({
+                path: variation2Path,
+                index: 2,
+                id: 'var-2',
+                pznTags: ['mas:pzn/country/fr'],
+            });
+        });
+    });
+
+    describe('findOverlappingGeoTags', () => {
+        it('returns geo tags already used by a sibling variation', () => {
+            const existing = [{ pznTags: ['mas:pzn/country/ar', 'mas:pzn/country/ae'] }];
+            expect(findOverlappingGeoTags(existing, ['mas:pzn/country/ae', 'mas:pzn/country/fr'])).to.deep.equal([
+                'mas:pzn/country/ae',
+            ]);
+        });
+
+        it('returns an empty array when there is no overlap', () => {
+            const existing = [{ pznTags: ['mas:pzn/country/ar'] }];
+            expect(findOverlappingGeoTags(existing, ['mas:pzn/country/fr'])).to.deep.equal([]);
+        });
+
+        it('returns an empty array when there are no existing variations', () => {
+            expect(findOverlappingGeoTags([], ['mas:pzn/country/fr'])).to.deep.equal([]);
+        });
+
+        it('returns an empty array when newGeoTags is not provided', () => {
+            expect(findOverlappingGeoTags([{ pznTags: ['mas:pzn/country/ar'] }])).to.deep.equal([]);
+        });
+    });
+
+    describe('getNextAvailablePromoVariationIndex', () => {
+        const defaultPath = '/content/dam/mas/sandbox/en_US/my-card';
+
+        it('returns 1 when there are no existing variations, regardless of attached fragments', () => {
+            expect(getNextAvailablePromoVariationIndex(0, defaultPath, ['/content/dam/mas/sandbox/en_US/my-card-2'])).to.equal(
+                1,
+            );
+        });
+
+        it('returns existingCount + 1 when that index does not collide with an attached fragment', () => {
+            expect(getNextAvailablePromoVariationIndex(1, defaultPath, [])).to.equal(2);
+        });
+
+        it('skips an index that would collide with another attached fragment in the same project', () => {
+            const attached = ['/content/dam/mas/sandbox/en_US/my-card-2'];
+            expect(getNextAvailablePromoVariationIndex(1, defaultPath, attached)).to.equal(3);
+        });
+
+        it('throws when every index up to the safety cap collides with an attached fragment', () => {
+            const attached = [];
+            for (let index = 2; index <= MAX_PROMO_VARIATIONS_PER_FRAGMENT; index += 1) {
+                attached.push(`/content/dam/mas/sandbox/en_US/my-card-${index}`);
+            }
+            try {
+                getNextAvailablePromoVariationIndex(1, defaultPath, attached);
+                expect.fail('Should have thrown');
+            } catch (err) {
+                expect(err.message).to.include('Too many promo variations for this fragment');
             }
         });
     });
@@ -183,6 +473,45 @@ describe('promotion-variations', () => {
             const result = await getUnpublishedAttachedPromoVariations(aem, promotionFragment);
             expect(result).to.deep.equal([]);
         });
+
+        it('returns empty array when the promotion has no attached fragments', async () => {
+            const promotionFragment = {
+                getFieldValues: sandbox.stub().callsFake((name) => {
+                    if (name === 'fragments') return [];
+                    return undefined;
+                }),
+                tags: [{ id: 'mas:promotion/black-friday' }],
+            };
+            const aem = createAemMock();
+            const result = await getUnpublishedAttachedPromoVariations(aem, promotionFragment);
+            expect(result).to.deep.equal([]);
+        });
+
+        it('skips an attached path that cannot be turned into a promo variation path', async () => {
+            const promotionFragment = {
+                getFieldValues: sandbox.stub().callsFake((name) => {
+                    if (name === 'fragments') return ['not-a-dam-path'];
+                    return undefined;
+                }),
+                tags: [{ id: 'mas:promotion/black-friday' }],
+            };
+            const aem = createAemMock();
+            const result = await getUnpublishedAttachedPromoVariations(aem, promotionFragment);
+            expect(result).to.deep.equal([]);
+        });
+
+        it('skips an attached fragment whose promo variation does not exist', async () => {
+            const promotionFragment = {
+                getFieldValues: sandbox.stub().callsFake((name) => {
+                    if (name === 'fragments') return ['/content/dam/mas/sandbox/en_US/my-card'];
+                    return undefined;
+                }),
+                tags: [{ id: 'mas:promotion/black-friday' }],
+            };
+            const aem = createAemMock({ fragments: { getByPath: sandbox.stub().resolves(null) } });
+            const result = await getUnpublishedAttachedPromoVariations(aem, promotionFragment);
+            expect(result).to.deep.equal([]);
+        });
     });
 
     describe('probePromoVariationReferences', () => {
@@ -209,6 +538,28 @@ describe('promotion-variations', () => {
             expect(refs).to.have.lengthOf(1);
             expect(refs[0].path).to.equal(promoPath);
         });
+
+        it('returns an empty array when aem, defaultPath, or promotionProjects is missing/empty', async () => {
+            expect(await probePromoVariationReferences(null, defaultPath, [{ tags: [] }])).to.deep.equal([]);
+            expect(await probePromoVariationReferences(createAemMock(), '', [{ tags: [] }])).to.deep.equal([]);
+            expect(await probePromoVariationReferences(createAemMock(), defaultPath, [])).to.deep.equal([]);
+        });
+
+        it('returns an empty array when defaultPath is already a promo variation path', async () => {
+            const result = await probePromoVariationReferences(createAemMock(), promoPath, [{ tags: [] }]);
+            expect(result).to.deep.equal([]);
+        });
+
+        it('excludes a project whose variation exists but is missing an id', async () => {
+            const aem = createAemMock({
+                fragments: { getByPath: sandbox.stub().withArgs(promoPath).resolves({ path: promoPath }) },
+            });
+
+            const refs = await probePromoVariationReferences(aem, defaultPath, [
+                { tags: [{ id: 'mas:promotion/back-to-school' }] },
+            ]);
+            expect(refs).to.deep.equal([]);
+        });
     });
 
     describe('mergePromoVariationReferences', () => {
@@ -223,9 +574,30 @@ describe('promotion-variations', () => {
             ]);
             expect(merged.references).to.have.lengthOf(2);
         });
+
+        it('returns fragmentData unchanged when there is nothing discovered', () => {
+            const fragmentData = { path: '/content/dam/mas/sandbox/en_US/my-card', references: [] };
+            expect(mergePromoVariationReferences(fragmentData, [])).to.equal(fragmentData);
+            expect(mergePromoVariationReferences(null, [{ path: '/x' }])).to.be.null;
+        });
+
+        it('treats a missing references array on fragmentData as empty', () => {
+            const fragmentData = { path: '/content/dam/mas/sandbox/en_US/my-card' };
+            const merged = mergePromoVariationReferences(fragmentData, [
+                { id: 'new', path: '/content/dam/mas/sandbox/en_US/promotions/back-to-school/my-card' },
+            ]);
+            expect(merged.references).to.have.lengthOf(1);
+        });
     });
 
     describe('mergePromoReferencesForDefaultFragment', () => {
+        it('returns fragmentData unchanged when it has no path or is itself a promo variation', async () => {
+            const aem = createAemMock();
+            expect(await mergePromoReferencesForDefaultFragment(aem, { references: [] }, [])).to.deep.equal({ references: [] });
+            const promoData = { path: '/content/dam/mas/sandbox/en_US/promotions/sale/my-card', references: [] };
+            expect(await mergePromoReferencesForDefaultFragment(aem, promoData, [])).to.equal(promoData);
+        });
+
         it('merges probed promo references into fragment payload', async () => {
             const defaultPath = '/content/dam/mas/sandbox/en_US/my-card';
             const promoPath = '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card';
@@ -244,9 +616,34 @@ describe('promotion-variations', () => {
     });
 
     describe('resolveDefaultFragmentForPromoVariation', () => {
+        const promoPath = '/content/dam/mas/sandbox/en_US/promotions/back-to-school/my-card';
+        const parentPath = '/content/dam/mas/sandbox/en_US/my-card';
+
+        it('returns null when promoVariationId is not provided', async () => {
+            const aem = createAemMock();
+            const result = await resolveDefaultFragmentForPromoVariation(aem, promoPath);
+            expect(result).to.be.null;
+        });
+
+        it('returns null when the variation path does not resolve to any candidate for the promo name', async () => {
+            const aem = createAemMock({
+                fragments: {
+                    getById: sandbox.stub().resolves({
+                        id: 'promo-var',
+                        path: '/content/dam/mas/sandbox/en_US/my-card',
+                        tags: [{ id: 'mas:promotion/back-to-school' }],
+                    }),
+                },
+            });
+            const result = await resolveDefaultFragmentForPromoVariation(
+                aem,
+                '/content/dam/mas/sandbox/en_US/my-card',
+                'promo-var',
+            );
+            expect(result).to.be.null;
+        });
+
         it('resolves default fragment path from promo variation path and tag', async () => {
-            const promoPath = '/content/dam/mas/sandbox/en_US/promotions/back-to-school/my-card';
-            const parentPath = '/content/dam/mas/sandbox/en_US/my-card';
             const parentData = { id: 'default-id', path: parentPath };
             const aem = createAemMock({
                 fragments: {
@@ -261,6 +658,69 @@ describe('promotion-variations', () => {
 
             const result = await resolveDefaultFragmentForPromoVariation(aem, promoPath, 'promo-var');
             expect(result).to.deep.equal(parentData);
+        });
+
+        it('prefers the candidate listed in attachedFragmentPaths when the leaf has a numeric suffix', async () => {
+            const suffixedPromoPath = '/content/dam/mas/sandbox/en_US/promotions/back-to-school/my-card-2';
+            const unstrippedCandidate = '/content/dam/mas/sandbox/en_US/my-card-2';
+            const strippedCandidate = '/content/dam/mas/sandbox/en_US/my-card';
+            const strippedData = { id: 'default-id', path: strippedCandidate };
+            const getByPath = sandbox.stub();
+            getByPath.withArgs(unstrippedCandidate).resolves({ id: 'wrong-match', path: unstrippedCandidate });
+            getByPath.withArgs(strippedCandidate).resolves(strippedData);
+            const aem = createAemMock({
+                fragments: {
+                    getById: sandbox.stub().resolves({
+                        id: 'promo-var-2',
+                        path: suffixedPromoPath,
+                        tags: [{ id: 'mas:promotion/back-to-school' }],
+                    }),
+                    getByPath,
+                },
+            });
+
+            const result = await resolveDefaultFragmentForPromoVariation(aem, suffixedPromoPath, 'promo-var-2', [
+                strippedCandidate,
+            ]);
+            expect(result).to.deep.equal(strippedData);
+        });
+
+        it('falls back to the first candidate that resolves when none match attachedFragmentPaths', async () => {
+            const suffixedPromoPath = '/content/dam/mas/sandbox/en_US/promotions/back-to-school/my-card-2';
+            const unstrippedCandidate = '/content/dam/mas/sandbox/en_US/my-card-2';
+            const unstrippedData = { id: 'default-id', path: unstrippedCandidate };
+            const getByPath = sandbox.stub();
+            getByPath.withArgs(unstrippedCandidate).resolves(unstrippedData);
+            getByPath.resolves(null);
+            const aem = createAemMock({
+                fragments: {
+                    getById: sandbox.stub().resolves({
+                        id: 'promo-var-2',
+                        path: suffixedPromoPath,
+                        tags: [{ id: 'mas:promotion/back-to-school' }],
+                    }),
+                    getByPath,
+                },
+            });
+
+            const result = await resolveDefaultFragmentForPromoVariation(aem, suffixedPromoPath, 'promo-var-2', []);
+            expect(result).to.deep.equal(unstrippedData);
+        });
+
+        it('returns null when no candidate default path resolves to a real fragment', async () => {
+            const aem = createAemMock({
+                fragments: {
+                    getById: sandbox.stub().resolves({
+                        id: 'promo-var',
+                        path: promoPath,
+                        tags: [{ id: 'mas:promotion/back-to-school' }],
+                    }),
+                    getByPath: sandbox.stub().resolves(null),
+                },
+            });
+
+            const result = await resolveDefaultFragmentForPromoVariation(aem, promoPath, 'promo-var');
+            expect(result).to.be.null;
         });
     });
 });

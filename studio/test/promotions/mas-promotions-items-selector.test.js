@@ -47,6 +47,15 @@ describe('MasPromotionsItemsSelector', () => {
         expect(el.shadowRoot.querySelectorAll('sp-tab').length).to.equal(2);
     });
 
+    it('forwards hidePromoVariations, tabs, and nonSelectableVariations to mas-select-items-table', async () => {
+        const el = await fixture(html`<mas-promotions-items-selector></mas-promotions-items-selector>`);
+        await el.updateComplete;
+        const selectItemsTable = el.shadowRoot.querySelector('mas-select-items-table');
+        expect(selectItemsTable.hidePromoVariations).to.be.true;
+        expect(selectItemsTable.tabs).to.deep.equal([{ label: 'Promotion', key: 'promotion' }]);
+        expect(selectItemsTable.nonSelectableVariations).to.deep.equal(['promotion']);
+    });
+
     it('renders three view-only tabs for offers, fragments, and collections', async () => {
         const el = await fixture(html`<mas-promotions-items-selector .viewOnly=${true}></mas-promotions-items-selector>`);
         expect(el.shadowRoot.querySelectorAll('sp-tab').length).to.equal(3);

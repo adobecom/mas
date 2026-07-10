@@ -6,6 +6,7 @@ import {
     mergePromoReferencesForDefaultFragment,
     probePromoVariationReferences,
     getUnpublishedAttachedPromoVariations,
+    getAllAttachedPromoVariations,
     resolveDefaultFragmentForPromoVariation,
 } from '../../src/promotions/promotion-variations.js';
 
@@ -181,6 +182,61 @@ describe('promotion-variations', () => {
             };
             const aem = createAemMock();
             const result = await getUnpublishedAttachedPromoVariations(aem, promotionFragment);
+            expect(result).to.deep.equal([]);
+        });
+    });
+
+    describe('getAllAttachedPromoVariations', () => {
+        it('includes published promo variations', async () => {
+            const promotionFragment = {
+                getFieldValues: sandbox.stub().callsFake((name) => {
+                    if (name === 'fragments') return ['/content/dam/mas/sandbox/en_US/my-card'];
+                    return undefined;
+                }),
+                tags: [{ id: 'mas:promotion/black-friday' }],
+            };
+            const promoPath = '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card';
+            const aem = createAemMock({
+                fragments: {
+                    getByPath: sandbox
+                        .stub()
+                        .withArgs(promoPath)
+                        .resolves({
+                            id: 'promo-var-id',
+                            path: promoPath,
+                            status: 'PUBLISHED',
+                            title: 'Promo Card',
+                            model: { path: '/conf/mas/settings/dam/cfm/models/card' },
+                            fields: [{ name: 'cardTitle', values: ['Promo Card'] }],
+                            tags: [],
+                        }),
+                },
+            });
+
+            const result = await getAllAttachedPromoVariations(aem, promotionFragment);
+            expect(result).to.have.lengthOf(1);
+            expect(result[0]).to.deep.equal({
+                id: 'promo-var-id',
+                path: promoPath,
+                status: 'PUBLISHED',
+                title: 'Promo Card',
+                model: { path: '/conf/mas/settings/dam/cfm/models/card' },
+                fields: [{ name: 'cardTitle', values: ['Promo Card'] }],
+                tags: [],
+                parentPath: '/content/dam/mas/sandbox/en_US/my-card',
+            });
+        });
+
+        it('returns empty array when promotion has no promotion tag', async () => {
+            const promotionFragment = {
+                getFieldValues: sandbox.stub().callsFake((name) => {
+                    if (name === 'fragments') return ['/content/dam/mas/sandbox/en_US/my-card'];
+                    return undefined;
+                }),
+                tags: [],
+            };
+            const aem = createAemMock();
+            const result = await getAllAttachedPromoVariations(aem, promotionFragment);
             expect(result).to.deep.equal([]);
         });
     });

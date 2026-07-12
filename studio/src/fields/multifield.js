@@ -11,6 +11,8 @@ class MasMultifield extends LitElement {
             buttonLabel: { type: String, attribute: 'button-label' },
             fieldState: { type: String, attribute: 'data-field-state', reflect: true },
             variant: { type: String, reflect: true },
+            osi: { type: String, attribute: 'osi' },
+            dispatchOnAdd: { type: Boolean, attribute: 'dispatch-on-add' },
         };
     }
 
@@ -140,6 +142,9 @@ class MasMultifield extends LitElement {
     async addField() {
         this.value = [...this.value, {}];
         await this.updateComplete;
+        if (this.dispatchOnAdd) {
+            this.#dispatchEvent();
+        }
         const fields = this.shadowRoot.querySelectorAll('.field-wrapper');
         const newItem = fields[fields.length - 1]?.firstElementChild;
         if (newItem?.openModal) {
@@ -267,6 +272,9 @@ class MasMultifield extends LitElement {
         }
         if (this.variant) {
             fieldEl.setAttribute('variant', this.variant);
+        }
+        if (this.osi) {
+            fieldEl.setAttribute('osi', this.osi);
         }
 
         return html`

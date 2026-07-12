@@ -26,6 +26,7 @@ export const HEADLESS_AEM_FRAGMENT_MAPPING = {
     backgroundColor: { attribute: 'background-color' },
     size: [],
     mnemonics: { size: 'm' },
+    customFields: { tag: 'div', slot: 'custom-fields' },
 };
 
 /**
@@ -50,6 +51,7 @@ const HEADLESS_FIELDS = [
     { slot: 'whats-included', label: "What's included" },
     { slot: 'addon-confirmation', label: 'Addon confirmation' },
     { slot: 'footer', label: 'CTAs' },
+    { slot: 'custom-fields', label: 'Custom fields' },
 ];
 
 export class Headless extends VariantLayout {

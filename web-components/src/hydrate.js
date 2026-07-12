@@ -615,6 +615,20 @@ export function processAddonConfirmation(fields, merchCard, mapping) {
     }
 }
 
+export function processCustomFields(fields, merchCard, mapping) {
+    const config = mapping?.customFields;
+    if (!config) return;
+    const values = Array.isArray(fields.customFields)
+        ? fields.customFields
+        : fields.customFields
+          ? [fields.customFields]
+          : [];
+    values.filter(Boolean).forEach((html) => {
+        const el = createTag(config.tag, { slot: config.slot }, html);
+        merchCard.append(el);
+    });
+}
+
 function processSecureLabel(fields, merchCard, aemFragmentMapping, settings) {
     if (settings?.secureLabel && aemFragmentMapping?.secureLabel) {
         merchCard.setAttribute('secure-label', settings.secureLabel);
@@ -1051,6 +1065,7 @@ export async function hydrate(fragment, merchCard) {
     processWhatsIncludedDividerColor(fields, merchCard, mapping);
     processAddon(fields, merchCard, mapping, settings);
     processAddonConfirmation(fields, merchCard, mapping);
+    processCustomFields(fields, merchCard, mapping);
     processSecureLabel(fields, merchCard, mapping, settings);
     try {
         processUptLinks(fields, merchCard);

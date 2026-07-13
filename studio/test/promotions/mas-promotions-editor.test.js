@@ -1,6 +1,7 @@
 import { expect } from '@esm-bundle/chai';
 import sinon from 'sinon';
 import Store from '../../src/store.js';
+import Events from '../../src/events.js';
 import { setItemsSelectionStore } from '../../src/common/items-selection-store.js';
 import MasPromotionsEditor from '../../src/promotions/mas-promotions-editor.js';
 import { Promotion } from '../../src/aem/promotion.js';
@@ -59,17 +60,24 @@ describe('MasPromotionsEditor', () => {
     let originalSelectedCards;
     let originalSelectedOffers;
     let originalSelectedCollections;
+    let originalProfile;
+    let originalUsers;
     beforeEach(() => {
         sandbox = sinon.createSandbox();
         originalInEdit = Store.promotions.inEdit.get();
         originalSelectedCards = [...Store.promotions.selectedCards.value];
         originalSelectedOffers = [...Store.promotions.selectedOffers.value];
         originalSelectedCollections = [...Store.promotions.selectedCollections.value];
+        originalProfile = structuredClone(Store.profile.get());
+        originalUsers = structuredClone(Store.users.get());
         Store.promotions.inEdit.set(null);
         Store.promotions.selectedCards.set([]);
         Store.promotions.selectedOffers.set([]);
         Store.promotions.selectedCollections.set([]);
         Store.promotions.promotionId.set(null);
+        // Default to a promotions editor so mutating UI renders; viewer cases override this.
+        Store.profile.set({ email: 'editor@adobe.com' });
+        Store.users.set([{ userPrincipalName: 'editor@adobe.com', groups: ['GRP-ODIN-MAS-PROMO-EDITORS'] }]);
         setItemsSelectionStore(Store.promotions);
     });
 
@@ -86,6 +94,8 @@ describe('MasPromotionsEditor', () => {
         Store.promotions.selectedOffers.set(originalSelectedOffers);
         Store.promotions.selectedCollections.set(originalSelectedCollections);
         Store.promotions.promotionId.set(null);
+        Store.profile.set(originalProfile);
+        Store.users.set(originalUsers);
         setItemsSelectionStore(null);
     });
 
@@ -497,11 +507,54 @@ describe('MasPromotionsEditor', () => {
                 'Publish',
                 'Unpublish',
                 'Copy link',
+                'Copy variation links',
                 'Lock project',
                 'Delete',
             ]);
             expect(isPromotionQuickActionDisabled(el, 'Save')).to.be.true;
             expect(isPromotionQuickActionDisabled(el, 'Unpublish')).to.be.true;
+        });
+
+        it('disables every quick action for a non-editor (view-only)', async () => {
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            Store.profile.set({ email: 'viewer@adobe.com' });
+            Store.users.set([{ userPrincipalName: 'viewer@adobe.com', groups: ['GRP-ODIN-MAS-ACOM-POWERUSERS'] }]);
+            Store.promotions.inEdit.set(
+                new FragmentStore(
+                    makePromotion({
+                        id: 'promo-view',
+                        title: 'View promo',
+                        startDate: '2026-01-01T00:00:00.000Z',
+                        endDate: '2027-07-20T23:59:59.000Z',
+                        status: 'MODIFIED',
+                    }),
+                ),
+            );
+            const el = await mountEditor();
+            el.isNewPromotion = false;
+            await el.updateComplete;
+            for (const title of getPromotionQuickActionTitles(el)) {
+                expect(isPromotionQuickActionDisabled(el, title), title).to.be.true;
+            }
+        });
+
+        it('disables general info fields and surface controls for a non-editor (view-only)', async () => {
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            Store.profile.set({ email: 'viewer@adobe.com' });
+            Store.users.set([{ userPrincipalName: 'viewer@adobe.com', groups: ['GRP-ODIN-MAS-ACOM-POWERUSERS'] }]);
+            Store.promotions.inEdit.set(
+                new FragmentStore(makePromotion({ id: 'promo-view', title: 'View promo', surfaces: ['sandbox'] })),
+            );
+            const el = await mountEditor();
+            await el.updateComplete;
+            expect(el.renderRoot.querySelector('sp-textfield[data-field="title"]').hasAttribute('disabled')).to.be.true;
+            expect(el.renderRoot.querySelector('sp-textfield[data-field="promoCode"]').hasAttribute('disabled')).to.be.true;
+            expect(el.renderRoot.querySelector('input[data-field="startDate"]').disabled).to.be.true;
+            expect(el.renderRoot.querySelector('input[data-field="endDate"]').disabled).to.be.true;
+            for (const picker of el.renderRoot.querySelectorAll('aem-tag-picker-field')) {
+                expect(picker.hasAttribute('disabled')).to.be.true;
+            }
+            expect(el.renderRoot.querySelector('sp-tag[deletable]')).to.be.null;
         });
 
         it('shows Publish and Unpublish when promotion is modified', async () => {
@@ -1326,6 +1379,285 @@ describe('MasPromotionsEditor', () => {
                 if (origDescriptor) {
                     Object.defineProperty(navigator, 'clipboard', origDescriptor);
                 }
+            }
+        });
+    });
+
+    describe('copy variation links quick action', () => {
+        let originalClipboardItem;
+
+        function stubClipboard({ rejects = false } = {}) {
+            const origDescriptor = Object.getOwnPropertyDescriptor(navigator, 'clipboard');
+            const write = rejects ? sandbox.stub().rejects(new Error('denied')) : sandbox.stub().resolves();
+            Object.defineProperty(navigator, 'clipboard', {
+                value: { write },
+                configurable: true,
+            });
+            originalClipboardItem = globalThis.ClipboardItem;
+            globalThis.ClipboardItem = class ClipboardItemMock {
+                constructor(data) {
+                    this.data = data;
+                }
+            };
+            return {
+                write,
+                restore: () => {
+                    if (origDescriptor) Object.defineProperty(navigator, 'clipboard', origDescriptor);
+                    globalThis.ClipboardItem = originalClipboardItem;
+                },
+            };
+        }
+
+        it('copies a nice title and deep link for all attached variations, including published ones', async () => {
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            Store.promotions.inEdit.set(new FragmentStore(makePromotion({ id: 'promo-id', title: 'Campaign' })));
+            const variationPath = '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card';
+            const { el } = await mountEditorWithRepo({
+                aem: {
+                    sites: {
+                        cf: {
+                            fragments: {
+                                getById: sandbox.stub().resolves(null),
+                                getByPath: sandbox
+                                    .stub()
+                                    .withArgs(variationPath)
+                                    .resolves({
+                                        id: 'variation-id',
+                                        path: variationPath,
+                                        status: 'PUBLISHED',
+                                        title: 'Variation',
+                                        model: { path: CARD_MODEL_PATH },
+                                        tags: [],
+                                        fields: [],
+                                    }),
+                            },
+                        },
+                    },
+                },
+            });
+            el.fragmentStore.updateField('tags', ['mas:promotion/black-friday']);
+            el.fragmentStore.updateField('fragments', ['/content/dam/mas/sandbox/en_US/my-card']);
+            await el.updateComplete;
+            const clipboard = stubClipboard();
+            try {
+                clickPromotionQuickAction(el, 'Copy variation links');
+                await new Promise((r) => setTimeout(r, 0));
+                expect(clipboard.write.calledOnce).to.be.true;
+                const [item] = clipboard.write.firstCall.args[0];
+                const plainText = await item.data['text/plain'].text();
+                const htmlText = await item.data['text/html'].text();
+                expect(plainText).to.include('query=variation-id');
+                expect(htmlText).to.include('<a href=');
+                expect(htmlText).to.include('query=variation-id');
+                expect(htmlText).to.include('merch-card: SANDBOX : Variation');
+            } finally {
+                clipboard.restore();
+            }
+        });
+
+        it('shows an info toast and does not touch the clipboard when there are no variations', async () => {
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            Store.promotions.inEdit.set(new FragmentStore(makePromotion({ id: 'promo-id-empty', title: 'Campaign' })));
+            const { el } = await mountEditorWithRepo();
+            await el.updateComplete;
+            const clipboard = stubClipboard();
+            const toastStub = sandbox.stub(Events.toast, 'emit');
+            try {
+                clickPromotionQuickAction(el, 'Copy variation links');
+                await new Promise((r) => setTimeout(r, 0));
+                expect(clipboard.write.called).to.be.false;
+                expect(
+                    toastStub.calledWith(
+                        sinon.match({ variant: 'info', content: 'No variations found for this promotion project.' }),
+                    ),
+                ).to.be.true;
+            } finally {
+                clipboard.restore();
+            }
+        });
+
+        it('shows a negative toast when the clipboard write fails', async () => {
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            Store.promotions.inEdit.set(new FragmentStore(makePromotion({ id: 'promo-id-fail', title: 'Campaign' })));
+            const variationPath = '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card';
+            const { el } = await mountEditorWithRepo({
+                aem: {
+                    sites: {
+                        cf: {
+                            fragments: {
+                                getById: sandbox.stub().resolves(null),
+                                getByPath: sandbox
+                                    .stub()
+                                    .withArgs(variationPath)
+                                    .resolves({
+                                        id: 'variation-id',
+                                        path: variationPath,
+                                        status: 'DRAFT',
+                                        title: 'Variation',
+                                        model: { path: CARD_MODEL_PATH },
+                                        tags: [],
+                                        fields: [],
+                                    }),
+                            },
+                        },
+                    },
+                },
+            });
+            el.fragmentStore.updateField('tags', ['mas:promotion/black-friday']);
+            el.fragmentStore.updateField('fragments', ['/content/dam/mas/sandbox/en_US/my-card']);
+            await el.updateComplete;
+            const clipboard = stubClipboard({ rejects: true });
+            const toastStub = sandbox.stub(Events.toast, 'emit');
+            try {
+                clickPromotionQuickAction(el, 'Copy variation links');
+                await new Promise((r) => setTimeout(r, 0));
+                expect(clipboard.write.calledOnce).to.be.true;
+                expect(toastStub.calledWith(sinon.match({ variant: 'negative', content: 'Failed to copy variation links.' })))
+                    .to.be.true;
+            } finally {
+                clipboard.restore();
+            }
+        });
+
+        it('shows a negative toast instead of crashing when a variation is missing tags/fields', async () => {
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            Store.promotions.inEdit.set(new FragmentStore(makePromotion({ id: 'promo-id-malformed', title: 'Campaign' })));
+            const variationPath = '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card';
+            const { el } = await mountEditorWithRepo({
+                aem: {
+                    sites: {
+                        cf: {
+                            fragments: {
+                                getById: sandbox.stub().resolves(null),
+                                // Simulates an AEM response missing `tags`/`fields`, which used to throw
+                                // inside Fragment.getTagTitle() outside the try/catch.
+                                getByPath: sandbox
+                                    .stub()
+                                    .withArgs(variationPath)
+                                    .resolves({
+                                        id: 'variation-id',
+                                        path: variationPath,
+                                        status: 'PUBLISHED',
+                                        title: 'Variation',
+                                        model: { path: CARD_MODEL_PATH },
+                                    }),
+                            },
+                        },
+                    },
+                },
+            });
+            el.fragmentStore.updateField('tags', ['mas:promotion/black-friday']);
+            el.fragmentStore.updateField('fragments', ['/content/dam/mas/sandbox/en_US/my-card']);
+            await el.updateComplete;
+            const clipboard = stubClipboard();
+            const toastStub = sandbox.stub(Events.toast, 'emit');
+            try {
+                clickPromotionQuickAction(el, 'Copy variation links');
+                await new Promise((r) => setTimeout(r, 0));
+                expect(clipboard.write.called).to.be.false;
+                expect(toastStub.calledWith(sinon.match({ variant: 'negative', content: 'Failed to copy variation links.' })))
+                    .to.be.true;
+            } finally {
+                clipboard.restore();
+            }
+        });
+
+        it('copies only the supported variations and reports a partial count when some model paths are unsupported', async () => {
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            Store.promotions.inEdit.set(new FragmentStore(makePromotion({ id: 'promo-id-partial', title: 'Campaign' })));
+            const supportedPath = '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card';
+            const unsupportedPath = '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card-2';
+            const getByPath = sandbox.stub();
+            getByPath.withArgs(supportedPath).resolves({
+                id: 'variation-id',
+                path: supportedPath,
+                status: 'PUBLISHED',
+                title: 'Variation',
+                model: { path: CARD_MODEL_PATH },
+                tags: [],
+                fields: [],
+            });
+            getByPath.withArgs(unsupportedPath).resolves({
+                id: 'variation-id-2',
+                path: unsupportedPath,
+                status: 'PUBLISHED',
+                title: 'Variation 2',
+                model: { path: '/conf/mas/settings/dam/cfm/models/unknown' },
+                tags: [],
+                fields: [],
+            });
+            const { el } = await mountEditorWithRepo({
+                aem: { sites: { cf: { fragments: { getById: sandbox.stub().resolves(null), getByPath } } } },
+            });
+            el.fragmentStore.updateField('tags', ['mas:promotion/black-friday']);
+            el.fragmentStore.updateField('fragments', [
+                '/content/dam/mas/sandbox/en_US/my-card',
+                '/content/dam/mas/sandbox/en_US/my-card-2',
+            ]);
+            await el.updateComplete;
+            const clipboard = stubClipboard();
+            const toastStub = sandbox.stub(Events.toast, 'emit');
+            try {
+                clickPromotionQuickAction(el, 'Copy variation links');
+                await new Promise((r) => setTimeout(r, 0));
+                expect(clipboard.write.calledOnce).to.be.true;
+                const [item] = clipboard.write.firstCall.args[0];
+                const plainText = await item.data['text/plain'].text();
+                expect(plainText).to.include('query=variation-id');
+                expect(plainText).to.not.include('query=variation-id-2');
+                expect(
+                    toastStub.calledWith(
+                        sinon.match({ variant: 'positive', content: 'Copied 1 of 2 variation links to clipboard.' }),
+                    ),
+                ).to.be.true;
+            } finally {
+                clipboard.restore();
+            }
+        });
+
+        it('shows a distinct info toast when variations exist but none have a copyable model path', async () => {
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            Store.promotions.inEdit.set(new FragmentStore(makePromotion({ id: 'promo-id-unsupported', title: 'Campaign' })));
+            const variationPath = '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card';
+            const { el } = await mountEditorWithRepo({
+                aem: {
+                    sites: {
+                        cf: {
+                            fragments: {
+                                getById: sandbox.stub().resolves(null),
+                                getByPath: sandbox
+                                    .stub()
+                                    .withArgs(variationPath)
+                                    .resolves({
+                                        id: 'variation-id',
+                                        path: variationPath,
+                                        status: 'PUBLISHED',
+                                        title: 'Variation',
+                                        model: { path: '/conf/mas/settings/dam/cfm/models/unknown' },
+                                        tags: [],
+                                        fields: [],
+                                    }),
+                            },
+                        },
+                    },
+                },
+            });
+            el.fragmentStore.updateField('tags', ['mas:promotion/black-friday']);
+            el.fragmentStore.updateField('fragments', ['/content/dam/mas/sandbox/en_US/my-card']);
+            await el.updateComplete;
+            const clipboard = stubClipboard();
+            const toastStub = sandbox.stub(Events.toast, 'emit');
+            try {
+                clickPromotionQuickAction(el, 'Copy variation links');
+                await new Promise((r) => setTimeout(r, 0));
+                expect(clipboard.write.called).to.be.false;
+                expect(
+                    toastStub.calledWith(
+                        sinon.match({ variant: 'info', content: 'No links could be copied for these variations.' }),
+                    ),
+                ).to.be.true;
+            } finally {
+                clipboard.restore();
             }
         });
     });

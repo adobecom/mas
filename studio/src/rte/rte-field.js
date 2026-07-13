@@ -12,6 +12,8 @@ import prosemirrorStyles from './prosemirror.css.js';
 import { EVENT_OST_SELECT } from '../constants.js';
 import throttle from '../utils/throttle.js';
 import './rte-mnemonic-editor.js';
+import './rte-link-editor.js';
+import './rte-icon-editor.js';
 
 const CUSTOM_ELEMENT_CHECKOUT_LINK = 'checkout-link';
 const CUSTOM_ELEMENT_INLINE_PRICE = 'inline-price';
@@ -1425,6 +1427,7 @@ class RteField extends LitElement {
     }
 
     #handleIconSave(event) {
+        event.stopPropagation();
         const { tooltip } = event.detail;
         const { state, dispatch } = this.editorView;
         const { selection } = state;

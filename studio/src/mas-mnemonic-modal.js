@@ -1,6 +1,7 @@
 import { LitElement, html, css } from 'lit';
 import { ADOBE_PRODUCTS } from './constants/adobe-products.js';
 import { ICON_LIBRARY, renderSpIcon } from './constants/icon-library.js';
+import './rte/rte-field.js';
 
 class MasMnemonicModal extends LitElement {
     #originalIcon = '';
@@ -264,11 +265,10 @@ class MasMnemonicModal extends LitElement {
         if (!raw) return false;
         if (raw.startsWith('<p>')) {
             const doc = new DOMParser().parseFromString(raw, 'text/html');
-            const txt = doc
-                .querySelector('p')
-                ?.textContent?.replace(/\u00a0/g, ' ')
-                .trim();
-            return !!txt;
+            const p = doc.querySelector('p');
+            const txt = p?.textContent?.replace(/\u00a0/g, ' ').trim();
+            if (txt) return true;
+            return !!p?.querySelector('.icon-button');
         }
         return true;
     }
@@ -350,6 +350,7 @@ class MasMnemonicModal extends LitElement {
                               <rte-field
                                   id="description"
                                   link
+                                  icon
                                   .value=${this.alt || ''}
                                   @change=${(e) => (this.altHtml = e.target.value)}
                               ></rte-field>
@@ -400,6 +401,7 @@ class MasMnemonicModal extends LitElement {
                               <rte-field
                                   id="url-description"
                                   link
+                                  icon
                                   .value=${this.alt || ''}
                                   @change=${(e) => (this.altHtml = e.target.value)}
                               ></rte-field>

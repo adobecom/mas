@@ -6,6 +6,38 @@ on:
             - 'io/studio/**'
 
 jobs:
+    preflight:
+        runs-on: self-hosted
+        steps:
+            # Fail fast: confirm Vault is reachable and the PR author's path is seeded.
+            # KV v2 data read, status only — the response body (secret values) is sent to
+            # /dev/null, never stored or logged. Uses the data-read permission deploy needs.
+            - name: Check Vault path exists
+              env:
+                  VAULT_ADDR: https://vault-amer.adobe.net
+                  ROLE_ID: ${{ secrets.VAULT_ROLE_ID }}
+                  SECRET_ID: ${{ secrets.VAULT_SECRET_ID }}
+                  SECRET_PATH: merch-at-scale/aio-studio/${{ github.event.pull_request.user.login }}
+              run: |
+                  set -euo pipefail
+                  path=$(printf '%s' "$SECRET_PATH" | tr '[:upper:]' '[:lower:]')
+
+                  token=$(curl -sf --request POST \
+                      --data "{\"role_id\":\"$ROLE_ID\",\"secret_id\":\"$SECRET_ID\"}" \
+                      "$VAULT_ADDR/v1/auth/approle/login" \
+                      | sed -n 's/.*"client_token":"\([^"]*\)".*/\1/p')
+                  if [ -z "$token" ]; then echo "::error::Vault AppRole login failed"; exit 1; fi
+                  echo "::add-mask::$token"
+
+                  status=$(curl -s -o /dev/null -w '%{http_code}' \
+                      -H "X-Vault-Token: $token" \
+                      "$VAULT_ADDR/v1/cloudtech_wcms/data/$path")
+                  if [ "$status" != "200" ]; then
+                      echo "::error::No Vault secrets at 'cloudtech_wcms/$path' (HTTP $status). Seed your personal workspace secrets in Vault before opening this PR (see io/studio/README.md)."
+                      exit 1
+                  fi
+                  echo "Vault path 'cloudtech_wcms/$path' exists."
+
     tests:
         runs-on: ubuntu-latest
         defaults:
@@ -16,10 +48,12 @@ jobs:
             - name: Checkout repository
               uses: actions/checkout@v4
 
-            - name: Set up Node.js 22
+            - name: Set up Node.js 22.23.1
               uses: actions/setup-node@v4
               with:
-                  node-version: 22
+                  # Pinned: 22.23.1 fixes the node-fetch v2 gzip / ERR_STREAM_PREMATURE_CLOSE
+                  # regression introduced in 22.23.0.
+                  node-version: '22.23.1'
                   cache: 'npm'
                   cache-dependency-path: package-lock.json
 
@@ -30,17 +64,16 @@ jobs:
               run: npm test
 
     deploy:
-        needs: tests
+        needs: [preflight, tests]
         uses: ./.github/workflows/io-studio-deploy.yaml
         with:
             run_tests: false
-        secrets:
-            ENV: ${{ secrets[format('AIO_STUDIO_ENV_{0}', github.event.pull_request.user.login)] }}
-            AIO: ${{ secrets[format('AIO_STUDIO_AIO_{0}', github.event.pull_request.user.login)] }}
-            ODIN_BUCKET: ${{ secrets.ODIN_BUCKET_QA }}
+            vault-path: merch-at-scale/aio-studio/${{ github.event.pull_request.user.login }}
+            odin-bucket-path: merch-at-scale/aio-studio/qa
+        secrets: inherit
 
     test-deployed:
         needs: deploy
         uses: ./.github/workflows/io-studio-tests.yaml
-        secrets:
-            workspace: ${{ secrets[format('AIO_STUDIO_NS_{0}', github.event.pull_request.user.login)] }}
+        with:
+            namespace: ${{ needs.deploy.outputs.namespace }}

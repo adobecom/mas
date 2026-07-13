@@ -81,6 +81,7 @@ class MasMultifield extends LitElement {
     }
 
     #initialized = false;
+    #internalUpdate = false;
 
     shouldUpdate(changedProperties) {
         // Always allow render until fully initialized
@@ -88,6 +89,11 @@ class MasMultifield extends LitElement {
         // Always re-render when field state changes (to update child field styling)
         if (changedProperties.has('fieldState')) return true;
         if (changedProperties.has('value')) {
+            // Internal mutations (add/delete) must always re-render.
+            // External value updates from the parent should be skipped while a child
+            // has focus — renderField clones fresh DOM from the template each time,
+            // which would destroy the focused element mid-typing.
+            if (!this.#internalUpdate && this.shadowRoot?.activeElement) return false;
             const oldValue = changedProperties.get('value');
             const newValue = this.value;
             // Skip render if value content is the same (prevents blinking on unrelated updates)
@@ -140,8 +146,10 @@ class MasMultifield extends LitElement {
     }
 
     async addField() {
+        this.#internalUpdate = true;
         this.value = [...this.value, {}];
         await this.updateComplete;
+        this.#internalUpdate = false;
         if (this.dispatchOnAdd) {
             this.#dispatchEvent();
         }
@@ -157,8 +165,11 @@ class MasMultifield extends LitElement {
     }
 
     // Remove a field by its index
-    removeField(index) {
+    async removeField(index) {
+        this.#internalUpdate = true;
         this.value = this.value.filter((_, i) => i !== index);
+        await this.updateComplete;
+        this.#internalUpdate = false;
         this.#dispatchEvent();
     }
 

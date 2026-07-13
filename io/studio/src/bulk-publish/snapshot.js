@@ -128,7 +128,13 @@ async function createSnapshot({
             return null;
         }
         const wasPublished = fragment.status === STATUS_PUBLISHED || fragment.status === STATUS_MODIFIED;
-        const versionId = await createVersion(odinEndpoint, fragment.id, label, snapshotId, authToken);
+        const versionId = await createVersion(
+            odinEndpoint,
+            fragment.id,
+            `Pre-bulk-publish - ${projectTitle}`,
+            snapshotId,
+            authToken,
+        );
         if (!versionId) {
             if (required) throw new Error(`Failed to create version for fragment: ${path}`);
             return null;

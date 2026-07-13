@@ -204,7 +204,5 @@ module.exports = {
     createSnapshot,
     revertSnapshot,
     checkModifications,
-    isTranslationVersion,
-    findNonTranslationVersion,
     recordSnapshot,
 };

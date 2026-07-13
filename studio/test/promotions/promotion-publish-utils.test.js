@@ -91,12 +91,12 @@ describe('promotion-publish-utils', () => {
     it('shows dialog and returns not confirmed when user cancels', async () => {
         const parentPath = '/content/dam/mas/sandbox/en_US/my-card';
         const promoPath = '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card';
+        const getByPath = sinon.stub().resolves(null);
+        getByPath.withArgs(promoPath).resolves({ id: 'promo-var-id', path: promoPath, status: 'DRAFT', title: 'V1' });
         const aem = {
             sites: {
                 cf: {
-                    fragments: {
-                        getByPath: sinon.stub().withArgs(promoPath).resolves({ path: promoPath, status: 'DRAFT', title: 'V1' }),
-                    },
+                    fragments: { getByPath },
                 },
             },
         };
@@ -128,8 +128,8 @@ describe('promotion-publish-utils', () => {
                 cf: {
                     fragments: {
                         getByPath: sinon.stub().callsFake(async (path) => {
-                            if (path === path1) return { path: path1, status: 'DRAFT', title: 'V1' };
-                            if (path === path2) return { path: path2, status: 'DRAFT', title: 'V2' };
+                            if (path === path1) return { id: 'variation-id-1', path: path1, status: 'DRAFT', title: 'V1' };
+                            if (path === path2) return { id: 'variation-id-2', path: path2, status: 'DRAFT', title: 'V2' };
                             return null;
                         }),
                     },

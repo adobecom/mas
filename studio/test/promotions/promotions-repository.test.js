@@ -206,15 +206,14 @@ describe('promotions-repository', () => {
                 tags: [{ id: 'mas:promotion/black-friday' }],
             };
             const promoPath = '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card';
+            const getByPath = sandbox.stub().resolves(null);
+            getByPath
+                .withArgs(promoPath)
+                .resolves({ id: 'promo-var-id', path: promoPath, status: 'DRAFT', title: 'Promo Card' });
             const aem = {
                 sites: {
                     cf: {
-                        fragments: {
-                            getByPath: sandbox
-                                .stub()
-                                .withArgs(promoPath)
-                                .resolves({ path: promoPath, status: 'DRAFT', title: 'Promo Card' }),
-                        },
+                        fragments: { getByPath },
                     },
                 },
             };

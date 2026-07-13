@@ -1311,6 +1311,24 @@ describe('MasPromotionsItemsTable', () => {
             expect(findCreateMenuItem(el)).to.be.undefined;
         });
 
+        it('hides Create promo variation when an existing variation has no geo restriction (empty pznTags)', async () => {
+            const promotion = new Fragment({
+                path: '/content/dam/mas/promotions/black-friday',
+                fields: [
+                    { name: 'tags', values: [promoTag], multiple: true },
+                    { name: 'geos', values: ['mas:locale/de_AT', 'mas:locale/en_NG'], multiple: true },
+                ],
+            });
+            Store.promotions.inEdit.set(new FragmentStore(promotion));
+
+            const el = await fixture(html`<mas-promotions-items-table .type=${TABLE_TYPE.CARDS}></mas-promotions-items-table>`);
+            el.existingPromoVariationGeosByPath = new Map([[defaultPath, []]]);
+            el.viewOnlyFragments = [cardFragment];
+            await el.updateComplete;
+
+            expect(findCreateMenuItem(el)).to.be.undefined;
+        });
+
         it('shows a toast and does not create when no geo is selected', async () => {
             const toastStub = sandbox.stub(Events.toast, 'emit');
             setupPromotionInEdit();

@@ -59,6 +59,7 @@ class MasPromoVariationGeos extends LitElement {
     }
 
     selectAll(e) {
+        e.stopPropagation();
         this.emitChange(e.target.checked ? [...this.selectableGeos] : []);
     }
 

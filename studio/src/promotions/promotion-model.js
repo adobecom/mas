@@ -228,13 +228,14 @@ export function isFragmentNotFoundError(error) {
 }
 
 /**
- * @param {{ getByPath: (path: string) => Promise<unknown> }} fragmentsApi
+ * @param {{ getByPath: (path: string, options?: object) => Promise<unknown> }} fragmentsApi
  * @param {string} path
+ * @param {object} [options]
  * @returns {Promise<object|null>}
  */
-export async function getFragmentByPathOrNull(fragmentsApi, path) {
+export async function getFragmentByPathOrNull(fragmentsApi, path, options) {
     try {
-        return (await fragmentsApi.getByPath(path)) ?? null;
+        return (await fragmentsApi.getByPath(path, options)) ?? null;
     } catch (error) {
         if (isFragmentNotFoundError(error)) return null;
         throw error;

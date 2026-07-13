@@ -54,16 +54,14 @@ export function resolveLocaleVariationParentPath(path) {
 }
 
 /**
- * Picks one candidate parent path for a promo variation, without checking it against AEM.
- * The caller fetches this path directly;
- * if it's the wrong candidate, that fetch fails with no retry on the other one.
+ * Returns all candidate parent paths for a promo variation, ordered most-likely-first.
+ * The caller should try each in turn and fall back to the next on a missing fragment.
  * @param {string} path
- * @returns {string|null}
+ * @returns {string[]}
  */
 export function resolvePromoVariationParentPath(path) {
-    if (!path) return null;
+    if (!path) return [];
     const promoName = getPromoNameFromPromoVariationPath(path);
-    if (!promoName) return null;
-    const [candidate] = resolveDefaultPathFromPromoVariation(path, promoName);
-    return candidate ?? null;
+    if (!promoName) return [];
+    return resolveDefaultPathFromPromoVariation(path, promoName);
 }

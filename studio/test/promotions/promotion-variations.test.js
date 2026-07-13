@@ -304,6 +304,11 @@ describe('promotion-variations', () => {
                 index: 1,
                 id: 'var-1',
                 pznTags: ['mas:pzn/country/ar'],
+                status: undefined,
+                title: undefined,
+                model: undefined,
+                fields: [{ name: 'pznTags', values: ['mas:pzn/country/ar'] }],
+                tags: undefined,
             });
         });
 
@@ -332,6 +337,11 @@ describe('promotion-variations', () => {
                 index: 2,
                 id: 'var-2',
                 pznTags: ['mas:pzn/country/fr'],
+                status: undefined,
+                title: undefined,
+                model: undefined,
+                fields: [{ name: 'pznTags', values: ['mas:pzn/country/fr'] }],
+                tags: undefined,
             });
         });
     });
@@ -400,15 +410,14 @@ describe('promotion-variations', () => {
                 tags: [{ id: 'mas:promotion/black-friday' }],
             };
             const promoPath = '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card';
-            const aem = createAemMock({
-                fragments: {
-                    getByPath: sandbox.stub().withArgs(promoPath).resolves({
-                        path: promoPath,
-                        status: 'DRAFT',
-                        title: 'Promo Card',
-                    }),
-                },
+            const getByPath = sandbox.stub().resolves(null);
+            getByPath.withArgs(promoPath).resolves({
+                id: 'promo-var-id',
+                path: promoPath,
+                status: 'DRAFT',
+                title: 'Promo Card',
             });
+            const aem = createAemMock({ fragments: { getByPath } });
 
             const result = await getUnpublishedAttachedPromoVariations(aem, promotionFragment);
             expect(result).to.have.lengthOf(1);
@@ -424,15 +433,14 @@ describe('promotion-variations', () => {
                 tags: [{ id: 'mas:promotion/black-friday' }],
             };
             const promoPath = '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card';
-            const aem = createAemMock({
-                fragments: {
-                    getByPath: sandbox.stub().withArgs(promoPath).resolves({
-                        path: promoPath,
-                        status: 'MODIFIED',
-                        title: 'Promo Card',
-                    }),
-                },
+            const getByPath = sandbox.stub().resolves(null);
+            getByPath.withArgs(promoPath).resolves({
+                id: 'promo-var-id',
+                path: promoPath,
+                status: 'MODIFIED',
+                title: 'Promo Card',
             });
+            const aem = createAemMock({ fragments: { getByPath } });
 
             const result = await getUnpublishedAttachedPromoVariations(aem, promotionFragment);
             expect(result).to.have.lengthOf(1);
@@ -448,15 +456,14 @@ describe('promotion-variations', () => {
                 tags: [{ id: 'mas:promotion/black-friday' }],
             };
             const promoPath = '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card';
-            const aem = createAemMock({
-                fragments: {
-                    getByPath: sandbox.stub().withArgs(promoPath).resolves({
-                        path: promoPath,
-                        status: 'PUBLISHED',
-                        title: 'Promo Card',
-                    }),
-                },
+            const getByPath = sandbox.stub().resolves(null);
+            getByPath.withArgs(promoPath).resolves({
+                id: 'promo-var-id',
+                path: promoPath,
+                status: 'PUBLISHED',
+                title: 'Promo Card',
             });
+            const aem = createAemMock({ fragments: { getByPath } });
 
             const result = await getUnpublishedAttachedPromoVariations(aem, promotionFragment);
             expect(result).to.deep.equal([]);
@@ -513,6 +520,26 @@ describe('promotion-variations', () => {
             const result = await getUnpublishedAttachedPromoVariations(aem, promotionFragment);
             expect(result).to.deep.equal([]);
         });
+
+        it('detects an unpublished second (suffixed) variation even when the first variation is published', async () => {
+            const promotionFragment = {
+                getFieldValues: sandbox.stub().callsFake((name) => {
+                    if (name === 'fragments') return ['/content/dam/mas/sandbox/en_US/my-card'];
+                    return undefined;
+                }),
+                tags: [{ id: 'mas:promotion/black-friday' }],
+            };
+            const variation1Path = '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card';
+            const variation2Path = '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card-2';
+            const getByPath = sandbox.stub().resolves(null);
+            getByPath.withArgs(variation1Path).resolves({ id: 'var-1', path: variation1Path, status: 'PUBLISHED' });
+            getByPath.withArgs(variation2Path).resolves({ id: 'var-2', path: variation2Path, status: 'DRAFT' });
+            const aem = createAemMock({ fragments: { getByPath } });
+
+            const result = await getUnpublishedAttachedPromoVariations(aem, promotionFragment);
+            expect(result).to.have.lengthOf(1);
+            expect(result[0].path).to.equal(variation2Path);
+        });
     });
 
     describe('getAllAttachedPromoVariations', () => {
@@ -525,26 +552,23 @@ describe('promotion-variations', () => {
                 tags: [{ id: 'mas:promotion/black-friday' }],
             };
             const promoPath = '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card';
-            const aem = createAemMock({
-                fragments: {
-                    getByPath: sandbox
-                        .stub()
-                        .withArgs(promoPath)
-                        .resolves({
-                            id: 'promo-var-id',
-                            path: promoPath,
-                            status: 'PUBLISHED',
-                            title: 'Promo Card',
-                            model: { path: '/conf/mas/settings/dam/cfm/models/card' },
-                            fields: [{ name: 'cardTitle', values: ['Promo Card'] }],
-                            tags: [],
-                        }),
-                },
+            const getByPath = sandbox.stub().resolves(null);
+            getByPath.withArgs(promoPath).resolves({
+                id: 'promo-var-id',
+                path: promoPath,
+                status: 'PUBLISHED',
+                title: 'Promo Card',
+                model: { path: '/conf/mas/settings/dam/cfm/models/card' },
+                fields: [{ name: 'cardTitle', values: ['Promo Card'] }],
+                tags: [],
             });
+            const aem = createAemMock({ fragments: { getByPath } });
 
             const result = await getAllAttachedPromoVariations(aem, promotionFragment);
             expect(result).to.have.lengthOf(1);
             expect(result[0]).to.deep.equal({
+                index: 1,
+                pznTags: [],
                 id: 'promo-var-id',
                 path: promoPath,
                 status: 'PUBLISHED',
@@ -554,6 +578,26 @@ describe('promotion-variations', () => {
                 tags: [],
                 parentPath: '/content/dam/mas/sandbox/en_US/my-card',
             });
+        });
+
+        it('includes multiple suffixed variations attached to the same parent fragment', async () => {
+            const promotionFragment = {
+                getFieldValues: sandbox.stub().callsFake((name) => {
+                    if (name === 'fragments') return ['/content/dam/mas/sandbox/en_US/my-card'];
+                    return undefined;
+                }),
+                tags: [{ id: 'mas:promotion/black-friday' }],
+            };
+            const variation1Path = '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card';
+            const variation2Path = '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card-2';
+            const getByPath = sandbox.stub().resolves(null);
+            getByPath.withArgs(variation1Path).resolves({ id: 'var-1', path: variation1Path, status: 'PUBLISHED' });
+            getByPath.withArgs(variation2Path).resolves({ id: 'var-2', path: variation2Path, status: 'DRAFT' });
+            const aem = createAemMock({ fragments: { getByPath } });
+
+            const result = await getAllAttachedPromoVariations(aem, promotionFragment);
+            expect(result).to.have.lengthOf(2);
+            expect(result.map((variation) => variation.path)).to.deep.equal([variation1Path, variation2Path]);
         });
 
         it('returns empty array when promotion has no promotion tag', async () => {

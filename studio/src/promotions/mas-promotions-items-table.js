@@ -29,7 +29,7 @@ import {
     getPromotionItemsRemovedByOfferRemoval,
     pruneOrphanedPromotionSelectionAfterOfferRemoval,
 } from './promotion-editor-utils.js';
-import { buildPromoVariationPathForTag, getFragmentByPathOrNull, isPromoVariationPath } from './promotion-model.js';
+import { isPromoVariationPath } from './promotion-model.js';
 import { createPromoVariation, probePromoVariationsForFragment } from './promotions-repository.js';
 import './mas-promo-variation-geos.js';
 import { openOfferSelectorTool } from '../rte/ost.js';
@@ -781,8 +781,9 @@ class MasPromotionsItemsTable extends LitElement {
     #canCreatePromoVariation(item) {
         if (!item?.id || !item?.path || !this.#promotionTagId) return false;
         if (isPromoVariationPath(item.path)) return false;
+        if (!this.existingPromoVariationGeosByPath.has(item.path)) return true;
         const usedGeos = this.existingPromoVariationGeosByPath.get(item.path);
-        if (!usedGeos) return true;
+        if (!usedGeos.length) return false;
         return this.#geoValues.some((geo) => !usedGeos.includes(geo));
     }
 
@@ -795,17 +796,16 @@ class MasPromotionsItemsTable extends LitElement {
     async #viewPromoVariation(e, item) {
         e.stopPropagation();
         const promoTag = this.#promotionTagId;
-        const targetPath = promoTag ? buildPromoVariationPathForTag(item.path, promoTag) : null;
-        if (!targetPath) return;
+        if (!this.repository?.aem) return;
 
-        const fragmentsApi = this.repository?.aem?.sites?.cf?.fragments;
-        let variation;
+        let variations;
         try {
-            variation = fragmentsApi ? await getFragmentByPathOrNull(fragmentsApi, targetPath) : null;
+            variations = await probePromoVariationsForFragment(this.repository.aem, item.path, promoTag);
         } catch {
             showToast(PROMO_VARIATION_LOOKUP_FAILED_MESSAGE, 'negative');
             return;
         }
+        const variation = variations[0];
         if (!variation?.id) {
             showToast(PROMO_VARIATION_MISSING_MESSAGE, 'negative');
             this.existingPromoVariationDefaultPaths = new Set(
@@ -838,13 +838,16 @@ class MasPromotionsItemsTable extends LitElement {
 
         this.promoVariationSelectedGeos = [];
         this.promoVariationDisabledGeos = [];
-        this.promoVariationGeosDialogItem = item;
+        this.createPromoVariationLoading = true;
 
         try {
             const existingVariations = await probePromoVariationsForFragment(this.repository.aem, item.path, promoTag);
             this.promoVariationDisabledGeos = existingVariations.flatMap((variation) => variation.pznTags || []);
+            this.promoVariationGeosDialogItem = item;
         } catch {
-            this.promoVariationDisabledGeos = [];
+            showToast(PROMO_VARIATION_LOOKUP_FAILED_MESSAGE, 'negative');
+        } finally {
+            this.createPromoVariationLoading = false;
         }
     }
 

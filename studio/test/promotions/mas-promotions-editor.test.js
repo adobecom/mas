@@ -1110,6 +1110,13 @@ describe('MasPromotionsEditor', () => {
                 ],
             });
             Store.promotions.inEdit.set(new FragmentStore(promotion));
+            const getByPath = sandbox.stub().resolves(null);
+            getByPath.withArgs(promoVarPath).resolves({
+                id: 'promo-var-id',
+                path: promoVarPath,
+                status: 'DRAFT',
+                title: 'Unpublished variation',
+            });
             const { el, repo } = await mountEditorWithRepo({
                 aem: {
                     getFragmentByPath: sandbox.stub().resolves({
@@ -1123,11 +1130,7 @@ describe('MasPromotionsEditor', () => {
                                 publish: sandbox.stub().resolves(),
                                 publishFragments: sandbox.stub().resolves(),
                                 getWithEtag: sandbox.stub(),
-                                getByPath: sandbox.stub().withArgs(promoVarPath).resolves({
-                                    path: promoVarPath,
-                                    status: 'DRAFT',
-                                    title: 'Unpublished variation',
-                                }),
+                                getByPath,
                             },
                         },
                     },
@@ -1566,7 +1569,7 @@ describe('MasPromotionsEditor', () => {
             const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
             Store.promotions.inEdit.set(new FragmentStore(makePromotion({ id: 'promo-id-partial', title: 'Campaign' })));
             const supportedPath = '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card';
-            const unsupportedPath = '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card-2';
+            const unsupportedPath = '/content/dam/mas/sandbox/en_US/promotions/black-friday/other-card';
             const getByPath = sandbox.stub();
             getByPath.withArgs(supportedPath).resolves({
                 id: 'variation-id',
@@ -1592,7 +1595,7 @@ describe('MasPromotionsEditor', () => {
             el.fragmentStore.updateField('tags', ['mas:promotion/black-friday']);
             el.fragmentStore.updateField('fragments', [
                 '/content/dam/mas/sandbox/en_US/my-card',
-                '/content/dam/mas/sandbox/en_US/my-card-2',
+                '/content/dam/mas/sandbox/en_US/other-card',
             ]);
             await el.updateComplete;
             const clipboard = stubClipboard();

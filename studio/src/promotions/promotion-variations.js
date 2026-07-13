@@ -32,7 +32,7 @@ function readPznTags(fragment) {
  * @param {import('../aem/aem.js').AEM} aem
  * @param {string} defaultPath
  * @param {string} promoTagId
- * @returns {Promise<Array<{ path: string, index: number, id: string, pznTags: string[] }>>}
+ * @returns {Promise<Array<{ path: string, index: number, id: string, pznTags: string[], status: string, title: string, model: string, fields: Array, tags: Array }>>}
  */
 export async function probePromoVariationsForFragment(aem, defaultPath, promoTagId) {
     if (!aem || !defaultPath || !promoTagId) return [];
@@ -43,7 +43,17 @@ export async function probePromoVariationsForFragment(aem, defaultPath, promoTag
         if (!targetPath) break;
         const variation = await getFragmentByPathOrNull(aem.sites.cf.fragments, targetPath);
         if (!variation?.id) break;
-        found.push({ path: targetPath, index, id: variation.id, pznTags: readPznTags(variation) });
+        found.push({
+            path: targetPath,
+            index,
+            id: variation.id,
+            pznTags: readPznTags(variation),
+            status: variation.status,
+            title: variation.title,
+            model: variation.model,
+            fields: variation.fields,
+            tags: variation.tags,
+        });
     }
     return found;
 }
@@ -262,29 +272,18 @@ async function collectAttachedPromoVariations(aem, promotionFragment, { onlyUnpu
     const attachedPaths = Array.from(new Set(promotionFragment.getFieldValues?.('fragments') || []));
     if (!attachedPaths.length) return [];
 
-    const results = await processConcurrently(
+    const resultsPerPath = await processConcurrently(
         attachedPaths,
         async (parentPath) => {
-            const variationPath = buildPromoVariationPathForTag(parentPath, promotionTagId);
-            if (!variationPath) return null;
-            const variation = await getFragmentByPathOrNull(aem.sites.cf.fragments, variationPath);
-            if (!variation) return null;
-            if (onlyUnpublished && variation.status === STATUS_PUBLISHED) return null;
-            return {
-                id: variation.id,
-                path: variationPath,
-                status: variation.status,
-                title: variation.title,
-                model: variation.model,
-                fields: variation.fields,
-                tags: variation.tags,
-                parentPath,
-            };
+            const variations = await probePromoVariationsForFragment(aem, parentPath, promotionTagId);
+            return variations
+                .filter((variation) => !onlyUnpublished || variation.status !== STATUS_PUBLISHED)
+                .map((variation) => ({ ...variation, parentPath }));
         },
         VARIATIONS_CONCURRENCY_LIMIT,
     );
 
-    return results.filter(Boolean);
+    return resultsPerPath.flat();
 }
 
 /**

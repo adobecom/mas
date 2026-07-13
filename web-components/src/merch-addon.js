@@ -10,6 +10,7 @@ export default class MerchAddon extends LitElement {
             attribute: 'custom-checkbox',
             reflect: true,
         },
+        background: { type: String, attribute: 'background' },
     };
 
     constructor() {
@@ -44,6 +45,9 @@ export default class MerchAddon extends LitElement {
     connectedCallback() {
         super.connectedCallback();
         this.addEventListener(EVENT_TYPE_RESOLVED, this.updatePlanType);
+        if (this.background) {
+            this.style.setProperty('--merch-addon-background', this.background);
+        }
     }
 
     disconnectedCallback() {

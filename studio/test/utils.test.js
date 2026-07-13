@@ -3,6 +3,7 @@ import {
     buildCardsDeepLink,
     generateCodeToUse,
     generateFieldLink,
+    getFragmentPartsToUse,
     camelToTitle,
     stripHtml,
     previewValue,
@@ -340,6 +341,28 @@ describe('parseStudioDeepLinksFromText', () => {
             '88888888-8888-4888-8888-888888888888',
         ]);
     });
+
+    it('parses a mas-compare-chart entry', () => {
+        const text = hashLine('mas-compare-chart', '99999999-9999-4999-8999-999999999999');
+        const parsed = parseStudioDeepLinksFromText(text);
+        expect(parsed).to.have.length(1);
+        expect(parsed[0]).to.deep.equal({
+            contentType: 'mas-compare-chart',
+            fragmentId: '99999999-9999-4999-8999-999999999999',
+        });
+    });
+
+    it('parses space-separated URLs (single-line input paste)', () => {
+        const url1 = `https://mas.adobe.com/studio.html#content-type=merch-card&query=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa`;
+        const url2 = `https://mas.adobe.com/studio.html#content-type=merch-card-collection&query=bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb`;
+        const parsed = parseStudioDeepLinksFromText(`${url1} ${url2}`);
+        expect(parsed).to.have.length(2);
+        expect(parsed[0]).to.deep.equal({ contentType: 'merch-card', fragmentId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' });
+        expect(parsed[1]).to.deep.equal({
+            contentType: 'merch-card-collection',
+            fragmentId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+        });
+    });
 });
 
 describe('content-type-utils', () => {
@@ -409,5 +432,99 @@ describe('content-type-utils', () => {
                 modelIds: [],
             });
         });
+    });
+});
+
+describe('getFragmentPartsToUse', () => {
+    function makeCard({ variantCode = 'catalog', cardTitle = 'My Card', getTagTitle = () => null, getCurrentTagTitle } = {}) {
+        return {
+            model: { path: CARD_MODEL_PATH },
+            title: cardTitle,
+            getField: (name) => {
+                const fields = {
+                    name: { values: ['card-slug'] },
+                    cardTitle: { values: [cardTitle] },
+                    variant: { values: [variantCode] },
+                };
+                return fields[name] || null;
+            },
+            getTagTitle,
+            getCurrentTagTitle: getCurrentTagTitle || (() => null),
+        };
+    }
+
+    it('returns surface + variant label for a catalog card', () => {
+        const fragment = makeCard({ variantCode: 'catalog' });
+        const { fragmentParts, title } = getFragmentPartsToUse(fragment, 'acom');
+        expect(fragmentParts).to.equal('ACOM / Catalog');
+        expect(title).to.equal('My Card');
+    });
+
+    it('returns surface + variant label for a plans card', () => {
+        const fragment = makeCard({ variantCode: 'plans' });
+        const { fragmentParts } = getFragmentPartsToUse(fragment, 'acom');
+        expect(fragmentParts).to.include('ACOM');
+        expect(fragmentParts).to.include('Plans');
+    });
+
+    it('appends customerSegment and marketSegment when present', () => {
+        const fragment = makeCard({
+            getTagTitle: (prefix) => {
+                if (prefix === 'customer_segment') return 'Teams';
+                if (prefix === 'market_segment') return 'SMB';
+                return null;
+            },
+        });
+        const { fragmentParts } = getFragmentPartsToUse(fragment, 'acom');
+        expect(fragmentParts).to.include('Teams');
+        expect(fragmentParts).to.include('SMB');
+    });
+
+    it('appends promotion label when getCurrentTagTitle returns one', () => {
+        const fragment = makeCard({
+            getCurrentTagTitle: () => 'Summer Sale',
+        });
+        const { fragmentParts } = getFragmentPartsToUse(fragment, 'acom');
+        expect(fragmentParts).to.include('Summer Sale');
+    });
+
+    it('falls back to getTagTitle for product_code when getCurrentTagTitle returns null', () => {
+        const fragment = makeCard({
+            getCurrentTagTitle: (prefix) => (prefix === 'mas:product_code/' ? null : null),
+            getTagTitle: (prefix) => (prefix === 'mas:product/' ? 'acrobat' : null),
+        });
+        const { fragmentParts } = getFragmentPartsToUse(fragment, 'acom');
+        expect(fragmentParts).to.include('acrobat');
+    });
+
+    it('returns surface / title for a collection fragment', () => {
+        const fragment = {
+            model: { path: COLLECTION_MODEL_PATH },
+            title: 'Creative Suite',
+            getField: () => null,
+            getTagTitle: () => null,
+        };
+        const { fragmentParts, title } = getFragmentPartsToUse(fragment, 'ccd');
+        expect(fragmentParts).to.equal('CCD / Creative Suite');
+        expect(title).to.equal('Creative Suite');
+    });
+
+    it('returns empty strings for an unknown model path', () => {
+        const fragment = { model: { path: '/unknown/path' }, title: 'Irrelevant' };
+        const { fragmentParts, title } = getFragmentPartsToUse(fragment, 'acom');
+        expect(fragmentParts).to.equal('');
+        expect(title).to.equal('');
+    });
+
+    it('handles null fragment gracefully', () => {
+        const { fragmentParts, title } = getFragmentPartsToUse(null, 'acom');
+        expect(fragmentParts).to.equal('');
+        expect(title).to.equal('');
+    });
+
+    it('uppercases the path for the surface label', () => {
+        const fragment = makeCard();
+        const { fragmentParts } = getFragmentPartsToUse(fragment, 'accom');
+        expect(fragmentParts.startsWith('ACCOM')).to.be.true;
     });
 });

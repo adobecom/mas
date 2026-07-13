@@ -4,7 +4,9 @@ import Store from '../../src/store.js';
 import {
     buildPromoVariationParentRefreshCallback,
     createPromoVariation,
+    deleteAttachedPromoVariations,
     getPromotionProjectsForProbe,
+    getPublishedAttachedPromoVariations,
     getUnpublishedAttachedPromoVariations,
     mergePromoReferencesIntoFragmentData,
     probePromoVariationsForFragment,
@@ -71,12 +73,12 @@ describe('promotions-repository', () => {
                 },
             ]);
             Store.promotions.list.loading.set(false);
+            const getByPath = sandbox.stub().resolves(null);
+            getByPath.withArgs(promoPath).resolves({ id: 'promo-var', path: promoPath });
             const aem = {
                 sites: {
                     cf: {
-                        fragments: {
-                            getByPath: sandbox.stub().withArgs(promoPath).resolves({ id: 'promo-var', path: promoPath }),
-                        },
+                        fragments: { getByPath },
                     },
                 },
             };
@@ -222,6 +224,56 @@ describe('promotions-repository', () => {
 
             expect(result).to.have.lengthOf(1);
             expect(result[0].path).to.equal(promoPath);
+        });
+    });
+
+    describe('getPublishedAttachedPromoVariations', () => {
+        it('delegates to the promotion-variations model layer and returns its result', async () => {
+            const promotionFragment = {
+                getFieldValues: (name) => (name === 'fragments' ? ['/content/dam/mas/sandbox/en_US/my-card'] : undefined),
+                tags: [{ id: 'mas:promotion/black-friday' }],
+            };
+            const promoPath = '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card';
+            const getByPath = sandbox.stub().resolves(null);
+            getByPath
+                .withArgs(promoPath)
+                .resolves({ id: 'promo-var-id', path: promoPath, status: 'PUBLISHED', title: 'Promo Card' });
+            const aem = {
+                sites: {
+                    cf: {
+                        fragments: { getByPath },
+                    },
+                },
+            };
+
+            const result = await getPublishedAttachedPromoVariations(aem, promotionFragment);
+
+            expect(result).to.have.lengthOf(1);
+            expect(result[0].path).to.equal(promoPath);
+        });
+    });
+
+    describe('deleteAttachedPromoVariations', () => {
+        it('delegates to the promotion-variations model layer', async () => {
+            const promotionFragment = {
+                getFieldValues: (name) => (name === 'fragments' ? ['/content/dam/mas/sandbox/en_US/my-card'] : undefined),
+                tags: [{ id: 'mas:promotion/black-friday' }],
+            };
+            const promoPath = '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card';
+            const getByPath = sandbox.stub().resolves(null);
+            getByPath.withArgs(promoPath).resolves({ id: 'promo-var-id', path: promoPath, status: 'DRAFT' });
+            const forceDelete = sandbox.stub().resolves();
+            const aem = {
+                sites: {
+                    cf: {
+                        fragments: { getByPath, forceDelete },
+                    },
+                },
+            };
+
+            await deleteAttachedPromoVariations(aem, promotionFragment);
+
+            expect(forceDelete.calledOnceWith({ path: promoPath })).to.be.true;
         });
     });
 

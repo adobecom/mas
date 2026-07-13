@@ -1044,7 +1044,7 @@ describe('MasPromotionsEditor', () => {
     });
 
     describe('unpublish quick action', () => {
-        it('unpublishes when Unpublish is clicked on a published promotion', async () => {
+        it('unpublishes when Unpublish is clicked on a published promotion with no attached promo variations', async () => {
             const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
             Store.promotions.inEdit.set(
                 new FragmentStore(
@@ -1057,9 +1057,9 @@ describe('MasPromotionsEditor', () => {
                     }),
                 ),
             );
-            const unpublishFragment = sandbox.stub().resolves(true);
-            const { el } = await mountEditorWithRepo({
-                unpublishFragment,
+            const unpublish = sandbox.stub().resolves();
+            const getWithEtag = sandbox.stub().withArgs('pub-1').resolves({ id: 'pub-1', etag: 'etag-promo' });
+            const { el, repo } = await mountEditorWithRepo({
                 aem: {
                     sites: {
                         cf: {
@@ -1073,6 +1073,8 @@ describe('MasPromotionsEditor', () => {
                                     }),
                                 ),
                                 getByPath: sandbox.stub().resolves(null),
+                                getWithEtag,
+                                unpublish,
                             },
                         },
                     },
@@ -1082,7 +1084,69 @@ describe('MasPromotionsEditor', () => {
             await el.updateComplete;
             clickPromotionQuickAction(el, 'Unpublish');
             await new Promise((resolve) => setTimeout(resolve, 0));
-            expect(unpublishFragment.calledOnce).to.be.true;
+            expect(unpublish.calledOnceWith({ id: 'pub-1', etag: 'etag-promo' })).to.be.true;
+            expect(repo.operation.set.firstCall.args[0]).to.equal('unpublish');
+        });
+    });
+
+    describe('unpublish reminder flow', () => {
+        it('prompts before unpublish when attached promo variations are published', async () => {
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            const parentPath = '/content/dam/mas/sandbox/en_US/my-card';
+            const promoVarPath = '/content/dam/mas/sandbox/en_US/promotions/code-test/my-card';
+            const promotion = makePromotion({
+                id: 'promo-1',
+                title: 'Test Promotion',
+                startDate: '2020-01-01T00:00:00.000Z',
+                endDate: '2030-12-31T00:00:00.000Z',
+                status: 'PUBLISHED',
+                fields: [
+                    { name: 'title', type: 'text', values: ['Test Promotion'] },
+                    { name: 'promoCode', type: 'text', values: ['TEST'] },
+                    { name: 'startDate', values: ['2020-01-01T00:00:00.000Z'] },
+                    { name: 'endDate', values: ['2030-12-31T00:00:00.000Z'] },
+                    { name: 'tags', values: ['mas:promotion/code-test'], multiple: true },
+                    { name: 'surfaces', type: 'text', multiple: false, values: ['sandbox'] },
+                    { name: 'geos', type: 'tag', multiple: true, values: ['mas:locale/us'] },
+                    { name: 'fragments', type: 'content-fragment', multiple: true, values: [parentPath] },
+                ],
+            });
+            Store.promotions.inEdit.set(new FragmentStore(promotion));
+            const getByPath = sandbox.stub().resolves(null);
+            getByPath.withArgs(promoVarPath).resolves({
+                id: 'promo-var-id',
+                path: promoVarPath,
+                status: 'PUBLISHED',
+                title: 'Published variation',
+            });
+            const unpublish = sandbox.stub().resolves();
+            const { el, repo } = await mountEditorWithRepo({
+                aem: {
+                    getFragmentByPath: sandbox.stub().resolves({
+                        path: parentPath,
+                        model: { path: CARD_MODEL_PATH },
+                    }),
+                    sites: {
+                        cf: {
+                            fragments: {
+                                getById: sandbox.stub().resolves(null),
+                                getWithEtag: sandbox.stub(),
+                                getByPath,
+                                unpublish,
+                            },
+                        },
+                    },
+                },
+            });
+            Store.promotions.selectedCollections.set([]);
+            await el.updateComplete;
+
+            clickPromotionQuickAction(el, 'Unpublish');
+            await new Promise((resolve) => setTimeout(resolve, 0));
+            await el.updateComplete;
+
+            expect(repo.aem.sites.cf.fragments.getByPath.calledWith(promoVarPath)).to.be.true;
+            expect(repo.aem.sites.cf.fragments.unpublish.called).to.be.false;
         });
     });
 
@@ -1254,9 +1318,45 @@ describe('MasPromotionsEditor', () => {
             });
             await el.updateComplete;
             clickPromotionQuickAction(el, 'Delete');
+            await new Promise((r) => setTimeout(r, 0));
             await el.updateComplete;
             expect(el.isDialogOpen).to.be.true;
             expect(el.confirmDialogConfig?.title).to.equal('Confirm Delete');
+            expect(el.confirmDialogConfig?.message).to.equal(
+                'Are you sure you want to delete the promotion project "To Delete"? This action cannot be undone.',
+            );
+        });
+
+        it('mentions attached promo variations in the confirm message when the project has them', async () => {
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            const parentPath = '/content/dam/mas/sandbox/en_US/my-card';
+            const promoVarPath = '/content/dam/mas/sandbox/en_US/promotions/code-test/my-card';
+            Store.promotions.inEdit.set(
+                new FragmentStore(
+                    makePromotion({
+                        id: 'del-1b',
+                        title: 'To Delete',
+                        fields: [
+                            { name: 'title', type: 'text', values: ['To Delete'] },
+                            { name: 'tags', values: ['mas:promotion/code-test'], multiple: true },
+                            { name: 'fragments', type: 'content-fragment', multiple: true, values: [parentPath] },
+                        ],
+                    }),
+                ),
+            );
+            const getByPath = sandbox.stub().resolves(null);
+            getByPath.withArgs(promoVarPath).resolves({ id: 'promo-var-id', path: promoVarPath, status: 'DRAFT' });
+            const { el } = await mountEditorWithRepo({
+                deleteFragment: sandbox.stub().resolves(true),
+                aem: { sites: { cf: { fragments: { getByPath, getById: sandbox.stub().resolves(null) } } } },
+            });
+            await el.updateComplete;
+            clickPromotionQuickAction(el, 'Delete');
+            await new Promise((r) => setTimeout(r, 0));
+            await el.updateComplete;
+            expect(el.confirmDialogConfig?.message).to.equal(
+                'Are you sure you want to delete the promotion project "To Delete"? This action cannot be undone. 1 promo variation(s) will also be deleted.',
+            );
         });
 
         it('calls deleteFragment when delete dialog is confirmed', async () => {
@@ -1266,12 +1366,53 @@ describe('MasPromotionsEditor', () => {
             const { el, repo } = await mountEditorWithRepo({ deleteFragment });
             await el.updateComplete;
             clickPromotionQuickAction(el, 'Delete');
+            await new Promise((r) => setTimeout(r, 0));
             await el.updateComplete;
             el.renderRoot
                 .querySelector('#promotion-unsaved-changes-dialog')
                 .dispatchEvent(new CustomEvent('confirm', { bubbles: true, composed: true }));
             await new Promise((r) => setTimeout(r, 0));
             expect(repo.deleteFragment.calledOnce).to.be.true;
+        });
+
+        it('deletes attached promo variations before deleting the project', async () => {
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            const parentPath = '/content/dam/mas/sandbox/en_US/my-card';
+            const promoVarPath = '/content/dam/mas/sandbox/en_US/promotions/code-test/my-card';
+            Store.promotions.inEdit.set(
+                new FragmentStore(
+                    makePromotion({
+                        id: 'del-3',
+                        title: 'Deletable',
+                        fields: [
+                            { name: 'title', type: 'text', values: ['Deletable'] },
+                            { name: 'tags', values: ['mas:promotion/code-test'], multiple: true },
+                            { name: 'fragments', type: 'content-fragment', multiple: true, values: [parentPath] },
+                        ],
+                    }),
+                ),
+            );
+            const getByPath = sandbox.stub().resolves(null);
+            getByPath.withArgs(promoVarPath).resolves({ id: 'promo-var-id', path: promoVarPath, status: 'DRAFT' });
+            const forceDelete = sandbox.stub().resolves();
+            const deleteFragment = sandbox.stub().resolves(true);
+            const { el, repo } = await mountEditorWithRepo({
+                deleteFragment,
+                aem: {
+                    sites: { cf: { fragments: { getByPath, getById: sandbox.stub().resolves(null), forceDelete } } },
+                },
+            });
+            await el.updateComplete;
+            clickPromotionQuickAction(el, 'Delete');
+            await new Promise((r) => setTimeout(r, 0));
+            await el.updateComplete;
+            el.renderRoot
+                .querySelector('#promotion-unsaved-changes-dialog')
+                .dispatchEvent(new CustomEvent('confirm', { bubbles: true, composed: true }));
+            await new Promise((r) => setTimeout(r, 20));
+            expect(forceDelete.calledOnceWith({ path: promoVarPath })).to.be.true;
+            expect(repo.deleteFragment.calledOnce).to.be.true;
+            expect(forceDelete.calledBefore(repo.deleteFragment)).to.be.true;
         });
     });
 

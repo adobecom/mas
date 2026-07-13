@@ -1,4 +1,4 @@
-import { STATUS_PUBLISHED, TAG_PROMOTION_PREFIX } from '../constants.js';
+import { STATUS_PUBLISHED, STATUS_DRAFT, TAG_PROMOTION_PREFIX } from '../constants.js';
 import { normalizeTagId } from '../aem/tag-id-utils.js';
 import { UserFriendlyError } from '../utils.js';
 import { Fragment } from '../aem/fragment.js';
@@ -184,7 +184,8 @@ export function mergePromoVariationReferences(fragmentData, discovered) {
 }
 
 /**
- * Probes deterministic promo variation paths for known promotion projects (tag + path; not parent variations field).
+ * Probes every promo variation path for known promotion projects (tag + path; not parent variations field).
+ * A single project can have more than one geo-specific variation, so each project is probed for all indices.
  * @param {import('../aem/aem.js').AEM} aem
  * @param {string} defaultPath
  * @param {Array<Object>} promotionProjects
@@ -193,18 +194,16 @@ export function mergePromoVariationReferences(fragmentData, discovered) {
 export async function probePromoVariationReferences(aem, defaultPath, promotionProjects = []) {
     if (!aem || !defaultPath || isPromoVariationPath(defaultPath) || !promotionProjects.length) return [];
 
-    const refs = await processConcurrently(
+    const refsPerProject = await processConcurrently(
         promotionProjects,
         async (project) => {
             const tagId = getPromotionTagFromFragment(project);
-            const targetPath = tagId ? buildPromoVariationPathForTag(defaultPath, tagId) : null;
-            if (!targetPath) return null;
-            const variation = await getFragmentByPathOrNull(aem.sites.cf.fragments, targetPath);
-            return variation?.id && variation?.path ? variation : null;
+            if (!tagId) return [];
+            return probePromoVariationsForFragment(aem, defaultPath, tagId);
         },
         VARIATIONS_CONCURRENCY_LIMIT,
     );
-    return refs.filter(Boolean);
+    return refsPerProject.flat();
 }
 
 /**
@@ -262,10 +261,10 @@ export async function resolveDefaultFragmentForPromoVariation(
  * Discovered via project promo tag + buildPromoVariationPathForTag (not parent variations field).
  * @param {import('../aem/aem.js').AEM} aem
  * @param {Object} promotionFragment
- * @param {{ onlyUnpublished?: boolean }} [options]
+ * @param {{ onlyUnpublished?: boolean, onlyPublished?: boolean }} [options]
  * @returns {Promise<Array<{ path: string, status: string, title: string, parentPath: string, fields: Array, tags: Array }>>}
  */
-async function collectAttachedPromoVariations(aem, promotionFragment, { onlyUnpublished = false } = {}) {
+async function collectAttachedPromoVariations(aem, promotionFragment, { onlyUnpublished = false, onlyPublished = false } = {}) {
     const promotionTagId = getPromotionTagFromFragment(promotionFragment);
     if (!promotionTagId) return [];
 
@@ -277,7 +276,11 @@ async function collectAttachedPromoVariations(aem, promotionFragment, { onlyUnpu
         async (parentPath) => {
             const variations = await probePromoVariationsForFragment(aem, parentPath, promotionTagId);
             return variations
-                .filter((variation) => !onlyUnpublished || variation.status !== STATUS_PUBLISHED)
+                .filter((variation) => {
+                    if (onlyUnpublished) return variation.status !== STATUS_PUBLISHED;
+                    if (onlyPublished) return variation.status !== STATUS_DRAFT;
+                    return true;
+                })
                 .map((variation) => ({ ...variation, parentPath }));
         },
         VARIATIONS_CONCURRENCY_LIMIT,
@@ -294,6 +297,38 @@ async function collectAttachedPromoVariations(aem, promotionFragment, { onlyUnpu
  */
 export async function getUnpublishedAttachedPromoVariations(aem, promotionFragment) {
     return collectAttachedPromoVariations(aem, promotionFragment, { onlyUnpublished: true });
+}
+
+/**
+ * Returns published promo variations for fragments attached to a promotion project.
+ * @param {import('../aem/aem.js').AEM} aem
+ * @param {Object} promotionFragment
+ * @returns {Promise<Array<{ path: string, status: string, title: string, parentPath: string }>>}
+ */
+export async function getPublishedAttachedPromoVariations(aem, promotionFragment) {
+    return collectAttachedPromoVariations(aem, promotionFragment, { onlyPublished: true });
+}
+
+/**
+ * Deletes every promo variation attached to a promotion project's fragments, regardless of status.
+ * Live variations (PUBLISHED or MODIFIED) are unpublished first.
+ * @param {import('../aem/aem.js').AEM} aem
+ * @param {Object} promotionFragment
+ * @returns {Promise<void>}
+ */
+export async function deleteAttachedPromoVariations(aem, promotionFragment) {
+    const variations = await collectAttachedPromoVariations(aem, promotionFragment);
+    for (const variation of variations) {
+        try {
+            if (variation.status !== STATUS_DRAFT) {
+                const variationWithEtag = await aem.sites.cf.fragments.getWithEtag(variation.id);
+                if (variationWithEtag) await aem.sites.cf.fragments.unpublish(variationWithEtag);
+            }
+            await aem.sites.cf.fragments.forceDelete({ path: variation.path });
+        } catch (error) {
+            console.error(`Failed to delete promo variation ${variation.path}:`, error);
+        }
+    }
 }
 
 /**

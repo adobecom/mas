@@ -96,6 +96,24 @@ export async function getUnpublishedAttachedPromoVariations(aem, promotionFragme
  * @param {Object} promotionFragment
  * @returns {Promise<Array<{ path: string, status: string, title: string, parentPath: string }>>}
  */
+export async function getPublishedAttachedPromoVariations(aem, promotionFragment) {
+    return promotionVariations.getPublishedAttachedPromoVariations(aem, promotionFragment);
+}
+
+/**
+ * @param {import('../aem/aem.js').AEM} aem
+ * @param {Object} promotionFragment
+ * @returns {Promise<void>}
+ */
+export async function deleteAttachedPromoVariations(aem, promotionFragment) {
+    return promotionVariations.deleteAttachedPromoVariations(aem, promotionFragment);
+}
+
+/**
+ * @param {import('../aem/aem.js').AEM} aem
+ * @param {Object} promotionFragment
+ * @returns {Promise<Array<{ path: string, status: string, title: string, parentPath: string }>>}
+ */
 export async function getAllAttachedPromoVariations(aem, promotionFragment) {
     return promotionVariations.getAllAttachedPromoVariations(aem, promotionFragment);
 }

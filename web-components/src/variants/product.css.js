@@ -150,6 +150,10 @@ merch-card[variant="product"] .merch-short-description {
     display: flex;
     align-items: center;
     gap: 4px;
+    font-size: 14px;
+    font-style: italic;
+    font-weight: 400;
+    line-height: 21px;
 }
 
 merch-card[variant="product"] .merch-short-description .icon-button {

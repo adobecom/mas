@@ -173,7 +173,7 @@ class MasBulkPublishEditor extends LitElement {
                 if (signal.aborted) return;
                 const batch = paths.slice(i, i + CONCURRENCY);
                 const results = await Promise.all(
-                    batch.map(async (path, j) => {
+                    batch.map(async (path) => {
                         try {
                             const rawFragment = await this.repository.aem.sites.cf.fragments.getByPath(path);
                             const fragment = new Fragment(rawFragment);

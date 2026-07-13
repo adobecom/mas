@@ -32,25 +32,30 @@ export const styles = css`
         gap: 6px;
         margin-bottom: 8px;
     }
+
     .ref-item {
         background: var(--spectrum-blue-100, #e8f0fe);
         border-radius: 8px;
         padding: 10px 12px;
     }
+
     .ref-path {
         font-size: 12px;
         color: var(--spectrum-global-color-gray-700);
         margin-left: 24px;
     }
+
     .select-all-row {
         margin-bottom: 12px;
         padding-bottom: 8px;
         border-bottom: 1px solid var(--spectrum-global-color-gray-300);
     }
+
     .intro {
         margin-bottom: 12px;
         color: var(--spectrum-global-color-gray-800);
     }
+
     h2 {
         padding-block-end: 0;
     }

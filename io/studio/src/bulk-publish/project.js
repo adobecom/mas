@@ -1,4 +1,4 @@
-const { getFragmentWithEtag, getValue, getValues, putToOdin } = require('../common.js');
+const { getFragmentWithEtag, getValue, getValues, putToOdin, parseOdinHttpStatus } = require('../common.js');
 
 const PROJECT_STATUS = {
     DRAFT: 'Draft',
@@ -38,7 +38,7 @@ async function updateProjectFragment(odinEndpoint, projectId, authToken, fieldUp
             return;
         } catch (err) {
             lastError = err;
-            const status = String(err.status ?? '');
+            const status = String(parseOdinHttpStatus(err));
             if (status !== '412' && status !== '500') throw err;
             if (attempt < maxRetries) await new Promise((r) => setTimeout(r, 500 * attempt));
         }

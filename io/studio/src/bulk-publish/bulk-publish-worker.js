@@ -75,6 +75,7 @@ async function runWorker(input, deps = {}) {
     let expandedPaths = null;
     if (hasPendingSnapshot(existingSnapshots)) {
         snapshotEntries = existingSnapshots;
+        expandedPaths = existingSnapshots.map((e) => JSON.parse(e).path);
         await updateProject(odinEndpoint, projectId, authToken, { status: PROJECT_STATUS.PUBLISHING, lastError: '' });
     } else {
         const fresh = await snapshot({

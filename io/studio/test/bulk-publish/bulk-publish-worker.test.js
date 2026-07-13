@@ -187,6 +187,46 @@ describe('bulk-publish-worker — runWorker', () => {
         expect(deps.createSnapshot).to.have.been.calledOnce;
     });
 
+    it('publishes card paths recovered from pending snapshot entries on resume with includeCards', async () => {
+        const collPath = '/content/dam/mas/acom/en_US/coll';
+        const cardPath = '/content/dam/mas/acom/en_US/card-1';
+        const pendingEntries = [
+            JSON.stringify({
+                fragmentId: 'f-coll',
+                path: collPath,
+                versionId: 'v1',
+                wasPublished: true,
+                createdAt: '2026-01-01T00:00:00.000Z',
+                publishComplete: false,
+            }),
+            JSON.stringify({
+                fragmentId: 'f-card',
+                path: cardPath,
+                versionId: 'v2',
+                wasPublished: false,
+                createdAt: '2026-01-01T00:00:00.000Z',
+                publishComplete: false,
+            }),
+        ];
+        deps.getProjectSnapshots.returns(pendingEntries);
+        deps.getProjectPaths.returns([collPath]);
+        deps.getProjectLocales.returns([]);
+        deps.publishResolved.resolves([
+            { path: collPath, status: 'published' },
+            { path: cardPath, status: 'published' },
+        ]);
+
+        await worker.runWorker(
+            { projectId: 'proj-1', odinEndpoint: 'https://odin', authToken: 't', publishedBy: '', includeCards: true },
+            deps,
+        );
+
+        const publishedPaths = deps.publishResolved.firstCall.args[0];
+        expect(publishedPaths).to.include(collPath);
+        expect(publishedPaths).to.include(cardPath);
+        expect(deps.createSnapshot).to.not.have.been.called;
+    });
+
     it('treats a malformed snapshot entry as not-pending and takes a fresh snapshot', async () => {
         deps.getProjectSnapshots.returns(['not-json']);
         deps.publishResolved.resolves([{ path: '/content/dam/mas/acom/en_US/a', status: 'published' }]);

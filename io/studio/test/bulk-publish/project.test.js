@@ -21,6 +21,7 @@ describe('project.js', () => {
                 putToOdin: putToOdinStub,
                 getValue: require('../../src/common.js').getValue,
                 getValues: require('../../src/common.js').getValues,
+                parseOdinHttpStatus: require('../../src/common.js').parseOdinHttpStatus,
             },
         });
     });
@@ -155,6 +156,20 @@ describe('project.js', () => {
             getFragmentWithEtagStub.resolves({ fragment, etag: '"etag-fresh"' });
             const err412 = new Error('PUT /fragments/proj-1 failed with status 412: Precondition Failed');
             err412.status = 412;
+            putToOdinStub.onFirstCall().rejects(err412);
+            putToOdinStub.onSecondCall().resolves({ success: true });
+
+            await mod.updateProjectFragment('https://odin.example', 'proj-1', 'token', { status: 'Published' });
+
+            expect(putToOdinStub.calledTwice).to.be.true;
+            expect(getFragmentWithEtagStub.calledTwice).to.be.true;
+        });
+
+        it('retries on 412 when error has no .status property but message contains the status code', async () => {
+            const fragment = makeFragment([{ name: 'status', type: 'text', values: ['Draft'] }]);
+            getFragmentWithEtagStub.resolves({ fragment, etag: '"etag-fresh"' });
+            const err412 = new Error('PUT /fragments/proj-1 failed with status 412: Precondition Failed');
+            // No .status property — matches what fetchOdin actually throws
             putToOdinStub.onFirstCall().rejects(err412);
             putToOdinStub.onSecondCall().resolves({ success: true });
 

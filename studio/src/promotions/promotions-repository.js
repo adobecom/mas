@@ -92,6 +92,15 @@ export async function getUnpublishedAttachedPromoVariations(aem, promotionFragme
 }
 
 /**
+ * @param {import('../aem/aem.js').AEM} aem
+ * @param {Object} promotionFragment
+ * @returns {Promise<Array<{ path: string, status: string, title: string, parentPath: string }>>}
+ */
+export async function getAllAttachedPromoVariations(aem, promotionFragment) {
+    return promotionVariations.getAllAttachedPromoVariations(aem, promotionFragment);
+}
+
+/**
  * @param {string} sourceFragmentId
  * @param {(store: import('../reactivity/fragment-store.js').FragmentStore) => Promise<void>} refreshFragment
  * @returns {(created: Object) => Promise<void>}

@@ -1,6 +1,7 @@
 import { LitElement, html, css } from 'lit';
 import { ADOBE_PRODUCTS } from './constants/adobe-products.js';
 import { ICON_LIBRARY, renderSpIcon } from './constants/icon-library.js';
+import './rte/rte-field.js';
 
 class MasIconPickerModal extends LitElement {
     #originalIcon = '';

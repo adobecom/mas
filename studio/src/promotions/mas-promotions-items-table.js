@@ -3,7 +3,7 @@ import { repeat } from 'lit/directives/repeat.js';
 import { styles as tableStyles } from '../common/components/mas-select-items-table.css.js';
 import { getItemsSelectionStore } from '../common/items-selection-store.js';
 import { loadSelectedFragments } from '../common/utils/items-loader.js';
-import { TABLE_TYPE, CARD_MODEL_PATH } from '../constants.js';
+import { PAGE_NAMES, TABLE_TYPE, CARD_MODEL_PATH } from '../constants.js';
 import {
     applySearchSurfaceFromPath,
     getItemTypeLabel,
@@ -11,7 +11,8 @@ import {
 } from '../common/utils/render-utils.js';
 import { closePreview, openPreview } from '../mas-card-preview.js';
 import router from '../router.js';
-import { extractLocaleFromPath, showToast } from '../utils.js';
+import { extractLocaleFromPath, extractSurfaceFromPath, showToast } from '../utils.js';
+import { getDefaultLocaleCode } from '../../../io/www/src/fragment/locales.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 import Store from '../store.js';
 import { normalizeTagId } from '../aem/tag-id-utils.js';
@@ -765,13 +766,16 @@ class MasPromotionsItemsTable extends LitElement {
         }
     }
 
-    async #editFragment(e, item) {
-        e.stopPropagation();
-        if (!item?.id || !item?.path) return;
-        Store.promotions.promotionId.set(null);
-        applySearchSurfaceFromPath(item.path);
+    #getSearchUrl(item) {
+        if (!item?.id || !item?.path) return '';
+        const surface = extractSurfaceFromPath(item.path);
         const locale = extractLocaleFromPath(item.path);
-        await router.navigateToFragmentEditor(item.id, { locale });
+        const catalogLocale = (surface && getDefaultLocaleCode(surface, locale)) || locale;
+        const params = new URLSearchParams({ page: PAGE_NAMES.CONTENT, query: item.id });
+        if (surface) params.set('path', surface);
+        if (catalogLocale) params.set('locale', catalogLocale);
+        if (locale && locale !== catalogLocale) params.set('region', locale);
+        return `${window.location.pathname}${window.location.search}#${params.toString()}`;
     }
 
     #canCreatePromoVariation(item) {
@@ -1098,9 +1102,17 @@ class MasPromotionsItemsTable extends LitElement {
                           <sp-icon-delete slot="icon"></sp-icon-delete>
                           Remove from list
                       </sp-menu-item>`
-                    : html`<sp-menu-item @click=${(e) => this.#editFragment(e, item)}>
-                              <sp-icon-edit slot="icon"></sp-icon-edit>
-                              ${this.type === TABLE_TYPE.COLLECTIONS ? 'Edit collection' : 'Edit fragment'}
+                    : html`<sp-menu-item>
+                              <sp-icon-open-in slot="icon"></sp-icon-open-in>
+                              <sp-link
+                                  quiet
+                                  variant="secondary"
+                                  href=${this.#getSearchUrl(item)}
+                                  target="_blank"
+                                  rel="noopener"
+                              >
+                                  ${this.type === TABLE_TYPE.COLLECTIONS ? 'View default collection' : 'View default fragment'}
+                              </sp-link>
                           </sp-menu-item>
                           <sp-menu-item @click=${(e) => this.#removeFromList(e, item)}>
                               <sp-icon-delete slot="icon"></sp-icon-delete>

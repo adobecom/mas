@@ -7,6 +7,7 @@ import '../aem/aem-tag-picker-field.js';
 import '../promotions/mas-promo-variation-geos.js';
 import { isPromoVariationPath } from '../promotions/promotion-model.js';
 import './variant-picker.js';
+import '../rte/rte-field.js';
 import { SPECTRUM_COLORS } from '../utils/spectrum-colors.js';
 import '../rte/osi-field.js';
 import { CARD_MODEL_PATH, COMPAT_VERSION } from '../constants.js';
@@ -41,13 +42,10 @@ function isEditorPriceElement(element) {
     return host?.nodeName === 'RTE-FIELD' && !!host.closest('merch-card-editor');
 }
 
-export function getActiveMerchCardEditor() {
-    return document.querySelector('merch-card-editor');
-}
-
 function groupedPreviewLocaleProvider(element, options) {
     if (!isEditorPriceElement(element)) return;
-    const localeCode = getActiveMerchCardEditor()?.previewLocaleOverride;
+    const merchCardEditor = document.querySelector('merch-card-editor');
+    const localeCode = merchCardEditor?.previewLocaleOverride;
     if (!localeCode) return;
 
     const locale = getLocaleByCode(localeCode);
@@ -60,14 +58,16 @@ function groupedPreviewLocaleProvider(element, options) {
 
 function editorPromoCodeProvider(element, options) {
     if (!isEditorPriceElement(element)) return;
-    const promoCode = getActiveMerchCardEditor()?.getEffectiveFieldValue('promoCode', 0);
+    const merchCardEditor = document.querySelector('merch-card-editor');
+    const promoCode = merchCardEditor?.getEffectiveFieldValue('promoCode', 0);
     if (!promoCode) return;
     options.promotionCode = promoCode;
 }
 
 function checkoutOptionsProvider(element, options) {
     if (!isEditorPriceElement(element)) return;
-    const promoCode = getActiveMerchCardEditor()?.getEffectiveFieldValue('promoCode', 0);
+    const merchCardEditor = document.querySelector('merch-card-editor');
+    const promoCode = merchCardEditor?.getEffectiveFieldValue('promoCode', 0);
     if (!promoCode) return;
     options.promotionCode = promoCode;
 }

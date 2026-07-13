@@ -15,18 +15,18 @@ import {
 } from './constants.js';
 import router from './router.js';
 import { VARIANTS } from './editors/variant-picker.js';
-import { getActiveMerchCardEditor } from './editors/merch-card-editor.js';
 import {
     extractLocaleFromPath,
     extractSurfaceFromPath,
     generateCodeToUse,
     getFragmentMapping,
+    getFragmentPartsToUse,
     hasNonEmptyCompareChart,
     replaceLocaleInPath,
     showToast,
+    MODEL_WEB_COMPONENT_MAPPING,
 } from './utils.js';
 import { getSpectrumVersion } from './constants/icon-library.js';
-import { getFragmentPartsToUse } from './editor-panel.js';
 import {
     getPromotionTagFromFragment,
     getPromoNameFromTag,
@@ -38,17 +38,10 @@ import { splitPromotionTagsFieldValues } from './promotions/promotion-editor-uti
 import { applySearchSurfaceFromPath } from './common/utils/render-utils.js';
 import * as promotionsRepository from './promotions/promotions-repository.js';
 import { normalizeTagId } from './aem/tag-id-utils.js';
-import './editors/merch-card-editor.js';
-import './editors/merch-card-collection-editor.js';
-import './editors/mas-compare-chart-editor.js';
 import './mas-variation-dialog.js';
 import { getCountryName, getDefaultLocaleCode, getLocaleByCode } from '../../io/www/src/fragment/locales.js';
+import Events from './events.js';
 import { branch2Icon } from './icons.js';
-
-const MODEL_WEB_COMPONENT_MAPPING = {
-    [CARD_MODEL_PATH]: 'merch-card',
-    [COLLECTION_MODEL_PATH]: 'merch-card-collection',
-};
 
 // Returns locale codes extracted from the fragment's pznTags field.
 export function getGroupedPreviewLocaleCodes(fragment) {
@@ -86,7 +79,7 @@ export function syncGroupedVariationRegion(fragment, parentLocale) {
         changed = true;
     }
 
-    const editor = getActiveMerchCardEditor();
+    const editor = document.querySelector('merch-card-editor');
     if (editor && editor.previewLocaleOverride !== previewLocale) {
         editor.previewLocaleOverride = previewLocale;
         changed = true;
@@ -672,6 +665,42 @@ export default class MasFragmentEditor extends LitElement {
         // Guard against re-entering initFragment() on every store-driven rerender while loading.
         if (this.#shouldInitFragment()) {
             this.initFragment();
+        }
+    }
+
+    updated(changedProperties) {
+        super.updated?.(changedProperties);
+        this.#preloadEditorModule();
+    }
+
+    #preloadEditorModule() {
+        switch (this.fragment?.model?.path) {
+            case CARD_MODEL_PATH:
+                if (!customElements.get('merch-card-editor')) {
+                    import('./editors/merch-card-editor.js')
+                        .then(() => this.requestUpdate())
+                        .catch(() => Events.toast.emit({ variant: 'negative', content: 'Failed to load merch card editor' }));
+                }
+                break;
+            case COLLECTION_MODEL_PATH:
+                if (this.isCompareChart) {
+                    if (!customElements.get('mas-compare-chart-editor')) {
+                        import('./editors/mas-compare-chart-editor.js')
+                            .then(() => this.requestUpdate())
+                            .catch(() =>
+                                Events.toast.emit({ variant: 'negative', content: 'Failed to load compare chart editor' }),
+                            );
+                    }
+                } else {
+                    if (!customElements.get('merch-card-collection-editor')) {
+                        import('./editors/merch-card-collection-editor.js')
+                            .then(() => this.requestUpdate())
+                            .catch(() =>
+                                Events.toast.emit({ variant: 'negative', content: 'Failed to load collection editor' }),
+                            );
+                    }
+                }
+                break;
         }
     }
 
@@ -1373,7 +1402,7 @@ export default class MasFragmentEditor extends LitElement {
 
         this.fragmentStore.updateField(fieldName, value);
         if (fieldName === 'promoCode') {
-            getActiveMerchCardEditor()?.refreshRenderedPrices?.();
+            this.querySelector('merch-card-editor')?.refreshRenderedPrices?.();
         }
     }
 
@@ -1768,7 +1797,7 @@ export default class MasFragmentEditor extends LitElement {
     }
 
     #handleGroupedPreviewLocaleChange = (event) => {
-        const editor = getActiveMerchCardEditor();
+        const editor = document.querySelector('merch-card-editor');
         if (!editor) return;
         const previewLocale = event.target.value || null;
         editor.previewLocaleOverride = previewLocale;
@@ -1795,7 +1824,7 @@ export default class MasFragmentEditor extends LitElement {
     };
 
     get groupedPreviewLocaleSelector() {
-        const editor = getActiveMerchCardEditor();
+        const editor = document.querySelector('merch-card-editor');
         const locales = editor?.groupedPreviewLocales || [];
         if (!locales.length) return nothing;
 
@@ -1955,7 +1984,7 @@ export default class MasFragmentEditor extends LitElement {
                 const surface = searchSurface || surfaceFromPath;
                 fragmentParts = surface ? `${surface} / ${this.localeDefaultFragment.title}` : this.localeDefaultFragment.title;
             } else {
-                fragmentParts = getFragmentPartsToUse(Store, this.fragment).fragmentParts || '';
+                fragmentParts = getFragmentPartsToUse(this.fragment, Store.search.value.path).fragmentParts || '';
             }
             if (!fragmentParts) return nothing;
             return html`<p id="author-path">${modelName}: ${fragmentParts}</p>`;
@@ -2121,7 +2150,7 @@ export default class MasFragmentEditor extends LitElement {
             if (!this.editorContextStore.isFragmentTranslatable) return null;
 
             let hasVariation = false;
-            if (this.editorContextStore.isGroupedVariationByPath) {
+            if (this.editorContextStore.isGroupedVariationByPath || this.editorContextStore.isPromoVariationByPath) {
                 const translatedLocales = Store.fragmentEditor.translatedLocales.get();
                 if (!translatedLocales) return null;
                 hasVariation = translatedLocales.some((t) => t.locale === currentLocale);

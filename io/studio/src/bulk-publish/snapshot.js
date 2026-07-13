@@ -104,7 +104,7 @@ async function createSnapshot({ paths, projectId, projectTitle, odinEndpoint, au
         const versionId = await createVersion(
             odinEndpoint,
             fragment.id,
-            `Pre-publish - ${projectTitle}`,
+            `Pre-bulk-publish - ${projectTitle}`,
             snapshotId,
             authToken,
         );

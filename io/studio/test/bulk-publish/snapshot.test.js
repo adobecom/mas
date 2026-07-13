@@ -336,7 +336,7 @@ describe('bulk-publish/snapshot.js', () => {
             expect(
                 snapshot.isTranslationVersion({
                     createdBy: 'author@adobe.com',
-                    comment: 'Pre-publish - My Project',
+                    comment: 'Pre-bulk-publish - My Project',
                 }),
             ).to.be.false;
         });
@@ -359,7 +359,7 @@ describe('bulk-publish/snapshot.js', () => {
                                 createdBy: 'odin-cf-versioning-user',
                                 comment: 'Pre-rollout snapshot — source CF: /x',
                             },
-                            { id: 'v-green', createdBy: 'author@adobe.com', comment: 'Pre-publish - Project' },
+                            { id: 'v-green', createdBy: 'author@adobe.com', comment: 'Pre-bulk-publish - Project' },
                         ],
                     });
                 }

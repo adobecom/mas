@@ -125,11 +125,25 @@ class MasField extends HTMLElement {
         return value;
     }
 
-    /** Parses "ctas[0]" into { fieldName: "ctas", index: 0 }, or { fieldName, index: null } for plain names. */
+    /** Parses "ctas[1]" → { fieldName: "ctas", index: 1, labelKey: null },
+     *  "customFields[My Label]" → { fieldName: "customFields", index: null, labelKey: "My Label" },
+     *  or plain names → { fieldName, index: null, labelKey: null }. */
     #parseFieldAndIndex(field) {
-        const match = field?.match(/^(.+)\[(\d+)\]$/);
-        if (!match) return { fieldName: field, index: null };
-        return { fieldName: match[1], index: parseInt(match[2], 10) };
+        const numericMatch = field?.match(/^(.+)\[(\d+)\]$/);
+        if (numericMatch)
+            return {
+                fieldName: numericMatch[1],
+                index: parseInt(numericMatch[2], 10),
+                labelKey: null,
+            };
+        const labelMatch = field?.match(/^(.+)\[(.+)\]$/);
+        if (labelMatch)
+            return {
+                fieldName: labelMatch[1],
+                index: null,
+                labelKey: labelMatch[2],
+            };
+        return { fieldName: field, index: null, labelKey: null };
     }
 
     /** Extracts the Nth anchor from CTA HTML, stripping only CSS classes so Milo can restyle it.
@@ -164,7 +178,34 @@ class MasField extends HTMLElement {
 
     #renderField() {
         if (!this.#fields || !this.#field) return;
-        const { fieldName, index } = this.#parseFieldAndIndex(this.#field);
+        const { fieldName, index, labelKey } = this.#parseFieldAndIndex(
+            this.#field,
+        );
+
+        if (labelKey !== null) {
+            const labelsFieldName = `${fieldName.replace(/s$/, '')}Labels`;
+            const labelsRaw = this.#fields[labelsFieldName];
+            const labels = Array.isArray(labelsRaw)
+                ? labelsRaw
+                : labelsRaw
+                  ? [labelsRaw]
+                  : [];
+            const labelIndex = labels.indexOf(labelKey);
+            if (labelIndex === -1) return;
+            const valuesRaw = this.#fields[fieldName];
+            const values = Array.isArray(valuesRaw)
+                ? valuesRaw
+                : valuesRaw
+                  ? [valuesRaw]
+                  : [];
+            const html = this.#normalizeFieldValue(values[labelIndex]);
+            if (!html) return;
+            this.#setFragmentIds();
+            const content = this.#ensureContentElement();
+            content.innerHTML = this.#unwrapSingleParagraph(html) ?? '';
+            return;
+        }
+
         const fieldValue = this.#normalizeFieldValue(this.#fields[fieldName]);
         if (fieldValue === undefined) return;
         this.#setFragmentIds();

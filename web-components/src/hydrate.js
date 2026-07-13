@@ -623,8 +623,18 @@ export function processCustomFields(fields, merchCard, mapping) {
         : fields.customFields
           ? [fields.customFields]
           : [];
-    values.filter(Boolean).forEach((html) => {
-        const el = createTag(config.tag, { slot: config.slot }, html);
+    const labels = Array.isArray(fields.customFieldLabels)
+        ? fields.customFieldLabels
+        : fields.customFieldLabels
+          ? [fields.customFieldLabels]
+          : [];
+    values.filter(Boolean).forEach((html, i) => {
+        const label = labels[i];
+        const el = createTag(
+            config.tag,
+            { slot: `custom-field-${i}`, 'data-label': label || '' },
+            html,
+        );
         merchCard.append(el);
     });
 }

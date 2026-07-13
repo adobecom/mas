@@ -374,8 +374,7 @@ describe('bulk-publish/snapshot.js', () => {
             fetchOdinStub.callsFake((endpoint, uri) => {
                 if (uri.includes('/fragments?path='))
                     return fetchResponse({ items: [{ id: 'frag-1', path: '/a', status: 'PUBLISHED' }] });
-                if (uri.includes('/versions'))
-                    return fetchResponse({ items: [{ id: 'v-1', createdBy: 'author@adobe.com' }] });
+                if (uri.includes('/versions')) return fetchResponse({ items: [{ id: 'v-1', createdBy: 'author@adobe.com' }] });
                 return fetchResponse({});
             });
             const results = await snapshot.recordSnapshot({ paths: ['/a'], odinEndpoint, authToken });

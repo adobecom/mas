@@ -170,7 +170,7 @@ export function resolveSettingEntry(fragment, locale, setting) {
         const definition = SETTING_NAME_BY_VALUE.get(defaultEntry.name);
         const fragmentValue = fragment.fields[definition?.propertyName || definition?.name];
         if (typeof fragmentValue !== 'undefined') {
-            const isBoolean = 'boolean' === typeof fragmentValue;
+            const isBoolean = 'boolean' === typeof normalizeBoolean(fragmentValue);
             const entry = {
                 ...defaultEntry,
                 templates: [],

@@ -34,8 +34,31 @@ async function main(params) {
         });
         const urlBuilder = new StudioURLBuilder(studioBaseUrl);
 
-        const selector = await aosClient.getOfferSelector(offerSelectorId, country);
         const offers = await aosClient.resolveOfferSelector(offerSelectorId, country);
+
+        if (offers.length === 0) {
+            return {
+                statusCode: 404,
+                body: {
+                    error: `Offer selector ${offerSelectorId} did not resolve to any offers`,
+                    code: 'OFFER_SELECTOR_NOT_FOUND',
+                    offerSelectorId,
+                },
+            };
+        }
+
+        // AOS exposes no selector-metadata endpoint; the resolved offers carry
+        // the same fields, so derive the selector summary from the first one.
+        const [first] = offers;
+        const selector = {
+            offer_selector_id: offerSelectorId,
+            product_arrangement_code: first.product_arrangement_code,
+            customer_segment: first.customer_segment,
+            offer_type: first.offer_type,
+            market_segments: first.market_segments,
+            commitment: first.commitment,
+            term: first.term,
+        };
 
         const checkoutUrl = aosClient.getCheckoutUrl(offerSelectorId);
 
@@ -50,6 +73,7 @@ async function main(params) {
             body: {
                 success: true,
                 operation: 'resolve_offer_selector',
+                offerSelectorId,
                 offers,
                 selector,
                 checkoutUrl,
@@ -60,7 +84,7 @@ async function main(params) {
         console.error('Resolve offer selector error:', error);
         return {
             statusCode: 500,
-            body: { error: error.message },
+            body: { error: error.message, code: 'RESOLVE_OFFER_SELECTOR_FAILED' },
         };
     }
 }

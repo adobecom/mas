@@ -138,7 +138,10 @@ export class AOSClient {
                     if (response.ok) {
                         const data = await response.json();
                         const list = Array.isArray(data) ? data : data?.data || [];
-                        const match = list.find((o) => o.offer_id === offerId) || list[0];
+                        // Exact match only — AOS ignores unknown offer_id
+                        // filters and returns an unfiltered list, so taking
+                        // list[0] would fabricate a wrong answer.
+                        const match = list.find((o) => o.offer_id === offerId);
                         if (match) return this.enrichOffersWithPlanType([match])[0];
                     } else {
                         lastStatus = response.status;
@@ -216,105 +219,53 @@ export class AOSClient {
         return { id: data.data.id };
     }
 
-    async getOfferSelector(offerSelectorId, country) {
-        // AOS GET for an OSI has two accepted path shapes depending on the
-        // deployment: `/offer_selectors/{id}` (legacy, underscore path — used
-        // by the MAS OST browser client) and `/v3/offer-selectors/{id}`
-        // (v3 API, hyphenated). The same aos.adobe.io host serves both but
-        // not all OSIs are indexed on both endpoints, so we try legacy first
-        // (it's the shape that works for the OSIs our UI surfaces). We also
-        // iterate (landscape × country) to cover DRAFT + PUBLISHED across
-        // storefronts. Stops on first 200; propagates non-404 errors.
-        const authHeader = await this.authManager.getAuthHeader();
-        const encodedId = encodeURIComponent(offerSelectorId);
-
-        const countryAttempts = [null];
-        const countryCandidates = [country, 'US', 'CA', 'IN', 'GB', 'DE', 'FR', 'JP', 'AU', 'ES', 'IT', 'NL', 'BR', 'MX'];
-        const seenCountry = new Set();
-        for (const c of countryCandidates) {
-            if (!c || seenCountry.has(c)) continue;
-            seenCountry.add(c);
-            countryAttempts.push(c);
-        }
-
-        const landscapeAttempts = [null, 'PUBLISHED', 'DRAFT'];
-        const pathShapes = [`${this.baseUrl}/offer_selectors/${encodedId}`, `${this.baseUrl}/v3/offer-selectors/${encodedId}`];
-
-        let lastStatus = 0;
-        let lastError = null;
-        const tried = [];
-        for (const pathBase of pathShapes) {
-            for (const landscape of landscapeAttempts) {
-                for (const countryCode of countryAttempts) {
-                    const params = new URLSearchParams({ api_key: this.apiKey });
-                    if (countryCode) params.set('country', countryCode);
-                    if (landscape) params.set('landscape', landscape);
-                    const url = `${pathBase}?${params.toString()}`;
-                    let response;
-                    try {
-                        response = await fetch(url, {
-                            method: 'GET',
-                            headers: {
-                                Authorization: authHeader,
-                                'X-Api-Key': this.apiKey,
-                                'x-api-key': this.apiKey,
-                            },
-                        });
-                    } catch (err) {
-                        lastError = err;
-                        tried.push(
-                            `${pathBase.includes('/v3/') ? 'v3' : 'legacy'}/${landscape || '-'}/${countryCode || '-'}:net`,
-                        );
-                        continue;
-                    }
-                    if (response.ok) {
-                        const data = await response.json();
-                        return data.data || data;
-                    }
-                    lastStatus = response.status;
-                    lastError = await response.json().catch(async () => {
-                        const text = await response.text().catch(() => response.statusText);
-                        return { message: text };
-                    });
-                    tried.push(
-                        `${pathBase.includes('/v3/') ? 'v3' : 'legacy'}/${landscape || '-'}/${countryCode || '-'}:${response.status}`,
-                    );
-                    if (response.status !== 404) {
-                        throw new Error(`Failed to get offer selector: ${lastError.message || response.statusText}`);
-                    }
-                }
-            }
-        }
-        console.error(`[AOS] OSI ${offerSelectorId} not found. Attempts:`, tried.join(', '));
-        console.error('[AOS] last error body:', JSON.stringify(lastError));
-        const msg = lastError?.message || (lastStatus === 404 ? 'Not Found' : 'Unknown error');
-        throw new Error(`Failed to get offer selector: ${msg}`);
-    }
-
     async resolveOfferSelector(offerSelectorId, country) {
-        try {
-            const selector = await this.getOfferSelector(offerSelectorId, country);
-            const offers = await this.searchOffers({
-                arrangementCode: selector.product_arrangement_code,
-                commitment: selector.commitment,
-                term: selector.term,
-                customerSegment: selector.customer_segment,
-                marketSegment: selector.market_segment,
-                offerType: selector.offer_type,
-                country: country || 'US',
-            });
-            return offers;
-        } catch (err) {
-            // OST occasionally populates data-wcs-osi with a 32-char hex
-            // Offer ID instead of a selector ID (draft/unindexed offers). If
-            // the selector lookup 404s across every shape and the ID matches
-            // the canonical Offer ID form, fall back to getOffer.
-            const isOfferIdShape = /^[0-9A-F]{32}$/.test(offerSelectorId);
-            const is404 = /not found/i.test(err?.message || '');
-            if (!isOfferIdShape || !is404) throw err;
-            const offer = await this.getOffer(offerSelectorId, country);
-            return [offer];
+        // AOS has no GET-selector-by-id route (`/offer_selectors/{id}` and
+        // `/v3/offer-selectors/{id}` both 404 at the proxy). The supported way
+        // to resolve an OSI is the same GET /offers endpoint used for search,
+        // filtered by offer_selector_ids — it returns the full offer set with
+        // merchandising copy, arrangement code, and pricing in one call.
+        const authHeader = await this.authManager.getAuthHeader();
+        const params = new URLSearchParams({
+            offer_selector_ids: offerSelectorId,
+            country: country || 'US',
+            locale: 'en_US',
+            service_providers: 'MERCHANDISING,PRODUCT_ARRANGEMENT_V2,PRICING',
+            api_key: this.apiKey,
+        });
+        const url = `${this.baseUrl}/offers?${params.toString()}`;
+
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: {
+                Authorization: authHeader,
+                'X-Api-Key': this.apiKey,
+                'x-api-key': this.apiKey,
+            },
+        });
+
+        if (response.status === 404) {
+            return [];
         }
+        if (!response.ok) {
+            const error = await response.json().catch(() => ({ message: response.statusText }));
+            throw new Error(`Failed to resolve offer selector: ${error.message || response.statusText}`);
+        }
+
+        const data = await response.json();
+        const offers = Array.isArray(data) ? data : data?.data || [];
+        if (offers.length === 0) {
+            // OST occasionally populates data-wcs-osi with a 32-char hex
+            // Offer ID instead of a selector ID (draft/unindexed offers).
+            // If the OSI query matched nothing and the ID has the canonical
+            // Offer ID form, fall back to a direct offer lookup.
+            if (/^[0-9A-F]{32}$/.test(offerSelectorId)) {
+                const offer = await this.getOffer(offerSelectorId, country).catch(() => null);
+                if (offer) return [offer];
+            }
+            return [];
+        }
+        return this.enrichOffersWithPlanType(offers);
     }
 
     enrichOffersWithPlanType(offers) {

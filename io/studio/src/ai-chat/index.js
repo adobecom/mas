@@ -21,7 +21,7 @@ import {
 } from './prompt-templates.js';
 import { buildOperationsPrompt } from './operations-prompt.js';
 import { buildDocumentationPrompt } from './docs/documentation-prompt.js';
-import { parseAIResponse, validateCollectionConfig } from './response-parser.js';
+import { parseAIResponse, validateCollectionConfig, extractJSON } from './response-parser.js';
 import { handleOperation } from './operations-handler.js';
 import { validateAIConfig } from './validation.js';
 import { getVariantConfig, VARIANT_METADATA, getVariantsForSurface } from './variant-configs.js';
@@ -1252,28 +1252,29 @@ function buildDeterministicEnvelope(intent, slots) {
  * Looks for a fenced ```json``` block first, then tries the bare text.
  * Returns null if no parseable JSON is found.
  */
-function tryExtractEnvelopeFromLLMText(text) {
+export function tryExtractEnvelopeFromLLMText(text) {
     if (!text || typeof text !== 'string') return null;
-    const fence = text.match(/```(?:json)?\s*([\s\S]*?)```/);
-    const candidate = fence ? fence[1] : text;
-    try {
-        return JSON.parse(candidate);
-    } catch {
-        // The model replied conversationally instead of emitting an envelope
-        // (common for greetings and small talk). Rather than surfacing a
-        // "trouble understanding" error, treat the prose as an ASK_USER turn
-        // and carry it through as the user-facing message.
-        const prose = text.trim();
-        if (!prose) return null;
-        return {
-            intent: 'ASK_USER',
-            slots: {},
-            confidence: 'low',
-            missing_slots: [],
-            clarification_question: null,
-            user_message: prose,
-        };
-    }
+    // extractJSON shares the same hardened recovery as parseAIResponse: it
+    // tolerates literal newlines and unescaped quotes the model leaves inside
+    // string values. Without it, a guided_step envelope whose message contains
+    // `"Photoshop"` throws on JSON.parse and is misread as ASK_USER prose —
+    // shipping a shadow envelope that hijacks the guided render on the client.
+    const parsed = extractJSON(text);
+    if (parsed && typeof parsed === 'object') return parsed;
+    // The model replied conversationally instead of emitting an envelope
+    // (common for greetings and small talk). Rather than surfacing a
+    // "trouble understanding" error, treat the prose as an ASK_USER turn
+    // and carry it through as the user-facing message.
+    const prose = text.trim();
+    if (!prose) return null;
+    return {
+        intent: 'ASK_USER',
+        slots: {},
+        confidence: 'low',
+        missing_slots: [],
+        clarification_question: null,
+        user_message: prose,
+    };
 }
 
 function logShadowValidation(bedrockResponse, params) {

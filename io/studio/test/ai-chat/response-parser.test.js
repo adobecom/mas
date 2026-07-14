@@ -66,6 +66,30 @@ describe('ai-chat/response-parser', () => {
             const result = extractJSON(text);
             expect(result.message).to.equal('line one\nline two');
         });
+
+        it('escapes unescaped double-quotes inside a string value', () => {
+            const text = '{"type":"guided_step","message":"e.g. "Photoshop" or "Creative Cloud""}';
+            const result = extractJSON(text);
+            expect(result.type).to.equal('guided_step');
+            expect(result.message).to.equal('e.g. "Photoshop" or "Creative Cloud"');
+        });
+
+        it('parses a guided_step whose message has embedded quotes and literal newlines', () => {
+            const text = [
+                '{',
+                '    "type": "guided_step",',
+                '    "message": "Which product? Provide any of:',
+                '',
+                '- Product name (e.g. "Photoshop", "Creative Cloud Pro")',
+                '- Arrangement code (e.g. "PA-1636")",',
+                '    "buttonGroup": { "label": "Product" }',
+                '}',
+            ].join('\n');
+            const result = extractJSON(text);
+            expect(result.type).to.equal('guided_step');
+            expect(result.buttonGroup).to.deep.equal({ label: 'Product' });
+            expect(result.message).to.include('Photoshop');
+        });
     });
 
     describe('extractConversationalText', () => {
@@ -152,6 +176,27 @@ describe('ai-chat/response-parser', () => {
             const result = parseAIResponse(text);
             expect(result.type).to.equal('message');
             expect(result.message).to.equal('Here are the matching products I found.');
+        });
+
+        it('returns the guided_step (not raw JSON) when the message has embedded quotes and newlines', () => {
+            const text = [
+                '{',
+                '    "type": "guided_step",',
+                '    "message": "Which product is this release for? Provide any of:',
+                '',
+                '- Product name (e.g. "Photoshop", "Creative Cloud Pro")',
+                '- Arrangement code (e.g. "PA-1636")",',
+                '    "buttonGroup": { "label": "Product", "inputHint": "Type a product name..." }',
+                '}',
+            ].join('\n');
+            const result = parseAIResponse(text);
+            expect(result.type).to.equal('guided_step');
+            expect(result.message).to.not.include('"type"');
+            expect(result.message).to.not.include('buttonGroup');
+            expect(result.buttonGroup).to.deep.equal({
+                label: 'Product',
+                inputHint: 'Type a product name...',
+            });
         });
 
         it('keeps surrounding prose as the message for recognized types with multiple brace regions', () => {

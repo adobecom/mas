@@ -13,18 +13,62 @@ const UNRECOGNIZED_RESPONSE_MESSAGE = "I couldn't turn that into an action. Coul
 
 const CARD_HINT_KEYS = ['variant', 'title', 'fields', 'size'];
 
+function nextSignificant(raw, from) {
+    for (let i = from; i < raw.length; i += 1) {
+        const ch = raw[i];
+        if (ch !== ' ' && ch !== '\n' && ch !== '\r' && ch !== '\t') return { ch, index: i };
+    }
+    return { ch: '', index: raw.length };
+}
+
 /**
- * JSON strings must not contain raw newlines, carriage returns, or tabs.
- * Claude occasionally emits JSON with literal newlines inside the "message"
- * field, which makes JSON.parse throw. Walk the candidate once, escape
- * raw control chars that appear INSIDE double-quoted string literals, and
- * leave whitespace between tokens untouched.
+ * Decide whether the `"` at quoteIdx really closes the current string, or is
+ * content the model failed to escape (e.g. `(e.g. "Photoshop", "CC Pro")`
+ * inside a message value). A KEY string closes before a `:`. A VALUE string
+ * closes at end-of-input, before `}`/`]`, or before a `,` that is followed by
+ * the next `"key":` pair — never before a `,` that resumes bare quoted text,
+ * which is how embedded lists like `"a", "b"` masquerade as a real close.
+ */
+function closesString(raw, quoteIdx, isKey) {
+    const after = nextSignificant(raw, quoteIdx + 1);
+    if (isKey) return after.ch === ':';
+    if (after.ch === '' || after.ch === '}' || after.ch === ']') return true;
+    if (after.ch !== ',') return false;
+    const afterComma = nextSignificant(raw, after.index + 1);
+    if (afterComma.ch === '}' || afterComma.ch === ']') return true;
+    if (afterComma.ch !== '"') return false;
+    let j = afterComma.index + 1;
+    let escaped = false;
+    for (; j < raw.length; j += 1) {
+        const ch = raw[j];
+        if (escaped) {
+            escaped = false;
+            continue;
+        }
+        if (ch === '\\') {
+            escaped = true;
+            continue;
+        }
+        if (ch === '"') break;
+    }
+    return nextSignificant(raw, j + 1).ch === ':';
+}
+
+/**
+ * JSON strings must not contain raw newlines, carriage returns, tabs, or
+ * unescaped double-quotes. Claude occasionally emits JSON with literal
+ * control chars or embedded quotes inside the "message" field, which makes
+ * JSON.parse throw. Walk the candidate once, escape those characters when
+ * they appear INSIDE double-quoted string literals, and leave whitespace
+ * between tokens untouched.
  */
 function normalizeJsonString(raw) {
     if (!raw || typeof raw !== 'string') return raw;
     let out = '';
     let inString = false;
     let escaped = false;
+    let isKey = false;
+    let lastSignificant = '';
     for (let i = 0; i < raw.length; i += 1) {
         const ch = raw[i];
         if (inString) {
@@ -39,8 +83,12 @@ function normalizeJsonString(raw) {
                 continue;
             }
             if (ch === '"') {
-                out += ch;
-                inString = false;
+                if (closesString(raw, i, isKey)) {
+                    out += ch;
+                    inString = false;
+                } else {
+                    out += '\\"';
+                }
                 continue;
             }
             if (ch === '\n') {
@@ -58,7 +106,12 @@ function normalizeJsonString(raw) {
             out += ch;
         } else {
             out += ch;
-            if (ch === '"') inString = true;
+            if (ch === '"') {
+                inString = true;
+                isKey = lastSignificant !== ':';
+            } else if (ch !== ' ' && ch !== '\n' && ch !== '\r' && ch !== '\t') {
+                lastSignificant = ch;
+            }
         }
     }
     return out;

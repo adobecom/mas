@@ -83,8 +83,8 @@
                 const useNew = (search || hash) === 'new';
                 const newJs = 'studio/ost/ost-new.js';
                 const newCss = './studio/ost/index.css';
-                const legacyJs = 'https://main--mas--adobecom.aem.live/studio/ost/index.js';
-                const legacyCss = 'https://main--mas--adobecom.aem.live/studio/ost/index.css';
+                const legacyJs = 'studio/ost/index.js';
+                const legacyCss = 'studio/ost/index.css';
                 const js = useNew ? newJs : legacyJs;
                 const css = useNew ? newCss : legacyCss;
                 document.write(`<script src="${js}" defer><\/script>`);

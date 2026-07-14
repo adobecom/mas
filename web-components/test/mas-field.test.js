@@ -150,9 +150,10 @@ describe('mas-field – ctas rendering', () => {
 });
 
 describe('mas-field – indexed CTA fields (ctas[N])', () => {
-    const TWO_CTAS =
+    const THREE_CTAS =
         '<a is="checkout-link" class="accent" href="" data-wcs-osi="osi1">Buy now</a>' +
-        '<a is="checkout-link" class="primary-outline" href="" data-wcs-osi="osi2">Free trial</a>';
+        '<a is="checkout-link" class="primary-outline" href="" data-wcs-osi="osi2">Free trial</a>' +
+        '<a is="checkout-link" class="primary-outline" href="" data-wcs-osi="osi3" data-key="abc123xyz">Save now</a>';
 
     afterEach(() => {
         document.body
@@ -176,42 +177,49 @@ describe('mas-field – indexed CTA fields (ctas[N])', () => {
     }
 
     it('ctas[1] renders the first anchor', () => {
-        const el = makeIndexedField(1, TWO_CTAS);
+        const el = makeIndexedField(1, THREE_CTAS);
         const a = el.querySelector('[data-role="mas-field-content"] a');
         expect(a).to.exist;
         expect(a.textContent).to.equal('Buy now');
     });
 
     it('ctas[2] renders the second anchor', () => {
-        const el = makeIndexedField(2, TWO_CTAS);
+        const el = makeIndexedField(2, THREE_CTAS);
         const a = el.querySelector('[data-role="mas-field-content"] a');
         expect(a).to.exist;
         expect(a.textContent).to.equal('Free trial');
     });
 
     it('strips class attribute from extracted anchor', () => {
-        const el = makeIndexedField(1, TWO_CTAS);
+        const el = makeIndexedField(1, THREE_CTAS);
         const a = el.querySelector('[data-role="mas-field-content"] a');
         expect(a.hasAttribute('class')).to.be.false;
     });
 
     it('preserves data-wcs-osi and is attributes', () => {
-        const el = makeIndexedField(1, TWO_CTAS);
+        const el = makeIndexedField(1, THREE_CTAS);
         const a = el.querySelector('[data-role="mas-field-content"] a');
         expect(a.getAttribute('data-wcs-osi')).to.equal('osi1');
         expect(a.getAttribute('is')).to.equal('checkout-link');
     });
 
     it('does not create a slot="footer" wrapper', () => {
-        const el = makeIndexedField(1, TWO_CTAS);
+        const el = makeIndexedField(1, THREE_CTAS);
         expect(el.querySelector('[slot="footer"]')).to.be.null;
     });
 
     it('renders nothing when index is out of bounds', () => {
-        const el = makeIndexedField(99, TWO_CTAS);
+        const el = makeIndexedField(99, THREE_CTAS);
         expect(
             el.querySelector('[data-role="mas-field-content"]').innerHTML,
         ).to.equal('');
+    });
+
+    it('ctas[abc123xyz] renders the third anchor', () => {
+        const el = makeIndexedField('abc123xyz', THREE_CTAS);
+        const a = el.querySelector('[data-role="mas-field-content"] a');
+        expect(a).to.exist;
+        expect(a.textContent).to.equal('Save now');
     });
 
     it('renders nothing when ctas field is absent', () => {

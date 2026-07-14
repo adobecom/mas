@@ -759,12 +759,22 @@ class MasSideNav extends LitElement {
         }
     }
 
+    #getCtaKey(fragment, index) {
+        const html = fragment.getFieldValue('ctas');
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        const ctas = doc.querySelectorAll('a');
+        const cta = ctas[index - 1];
+        return cta.getAttribute('data-key') || index;
+    }
+
     /** Copies an indexed ctas field link to the clipboard (mas-field: … → ctas[N] format). */
     async copyCtaItem(text, index, sourceFragment = this.fragmentEditor?.fragment) {
         const fragment = sourceFragment;
         if (!fragment) return;
+        const ctaId = this.#getCtaKey(fragment, index);
         const path = Store.search.get().path;
-        const fieldName = `ctas[${index}]`;
+        const fieldName = `ctas[${ctaId}]`;
         const link = generateFieldLink(fragment, path, PAGE_NAMES.CONTENT, fieldName);
         if (!link) return;
         try {

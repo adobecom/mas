@@ -1036,6 +1036,7 @@ class RteField extends LitElement {
                 attrs: {
                     class: { default: null },
                     href: { default: '' },
+                    'data-key': { default: null },
                     'data-checkout-workflow': { default: null },
                     'data-checkout-workflow-step': { default: null },
                     'data-extra-options': { default: null },
@@ -1185,6 +1186,16 @@ class RteField extends LitElement {
         return element;
     }
 
+    #generateLinkKey() {
+        let suffix = '';
+        const characters = 'abcdefghijklmnopqrstuvwxyz0123456789';
+        const charactersLength = characters.length;
+        for (let i = 0; i < 10; i++) {
+            suffix += characters.charAt(Math.floor(Math.random() * charactersLength));
+        }
+        return suffix;
+    }
+
     #createLinkElement(node) {
         const element = document.createElement('a');
 
@@ -1194,6 +1205,11 @@ class RteField extends LitElement {
                 element.setAttribute(key, value);
             }
         }
+
+        if (this.id === 'ctas' && !element.getAttribute('data-key')) {
+            element.setAttribute('data-key', this.#generateLinkKey());
+        }
+
         if (!element.title) element.removeAttribute('title');
         // Serialize and append child nodes (content)
         const fragment = this.#serializer.serializeFragment(node.content);

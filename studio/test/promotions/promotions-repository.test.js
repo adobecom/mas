@@ -164,6 +164,37 @@ describe('promotions-repository', () => {
 
             expect(aem.sites.cf.fragments.getByPath.calledWith(targetPath)).to.be.true;
         });
+
+        it('passes the matching promo project geos through, so a legacy sibling (no pznTags) blocks every project geo', async () => {
+            const getByPath = sandbox.stub();
+            getByPath.withArgs(targetPath).resolves({ id: 'existing-var', path: targetPath, fields: [] });
+            getByPath.resolves(null);
+            const aem = {
+                sites: {
+                    cf: {
+                        fragments: { getById: sandbox.stub().resolves(parentFragment), getByPath },
+                    },
+                },
+            };
+            Store.promotions.list.data.set([
+                {
+                    get: () => ({
+                        getFieldValues: (name) => {
+                            if (name === 'tags') return ['mas:promotion/black-friday'];
+                            if (name === 'geos') return ['mas:pzn/country/fr'];
+                            return [];
+                        },
+                    }),
+                },
+            ]);
+
+            try {
+                await createPromoVariation(aem, parentFragment.id, promoTag, ['mas:pzn/country/fr']);
+                expect.fail('Should have thrown');
+            } catch (err) {
+                expect(err.message).to.include('mas:pzn/country/fr');
+            }
+        });
     });
 
     describe('resolveDefaultFragmentForPromoVariation', () => {

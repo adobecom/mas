@@ -30,6 +30,17 @@ function getAttachedFragmentPathsForTag(projects, promoTagId) {
 }
 
 /**
+ * @param {Array<Object>} projects
+ * @param {string} promoTagId
+ * @returns {string[]}
+ */
+function getProjectGeosForTag(projects, promoTagId) {
+    const normalized = normalizeTagId(promoTagId);
+    const project = projects.find((candidate) => getPromotionTagFromFragment(candidate) === normalized);
+    return project?.getFieldValues?.('geos') ?? [];
+}
+
+/**
  * @param {() => Promise<void>} loadPromotions
  * @returns {Promise<Array<Object>>}
  */
@@ -146,6 +157,7 @@ export function buildPromoVariationParentRefreshCallback(sourceFragmentId, refre
 export async function createPromoVariation(aem, sourceFragmentId, promoTagId, geoTags = [], refreshFragment) {
     const projects = readPromotionProjectsFromStore();
     const attachedFragmentPaths = getAttachedFragmentPathsForTag(projects, promoTagId);
+    const projectGeos = getProjectGeosForTag(projects, promoTagId);
     const onCreated = refreshFragment ? buildPromoVariationParentRefreshCallback(sourceFragmentId, refreshFragment) : undefined;
     const createdFragment = await promotionVariations.createPromoVariation(
         aem,
@@ -153,6 +165,7 @@ export async function createPromoVariation(aem, sourceFragmentId, promoTagId, ge
         promoTagId,
         geoTags,
         attachedFragmentPaths,
+        projectGeos,
     );
     if (onCreated) await onCreated(createdFragment);
     return createdFragment;

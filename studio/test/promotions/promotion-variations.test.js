@@ -129,6 +129,33 @@ describe('promotion-variations', () => {
             }
         });
 
+        it('throws when a sibling has no pznTags (legacy variation covering the whole project) and any project geo is requested', async () => {
+            const getByPath = sandbox.stub();
+            getByPath.withArgs(targetPath).resolves({
+                id: 'var-1',
+                path: targetPath,
+                fields: [],
+            });
+            getByPath.resolves(null);
+            const aem = createAemMock({
+                fragments: { getById: sandbox.stub().resolves(parentFragment), getByPath },
+            });
+
+            try {
+                await createPromoVariation(
+                    aem,
+                    parentFragment.id,
+                    promoTag,
+                    ['mas:pzn/country/fr'],
+                    [],
+                    ['mas:pzn/country/ar', 'mas:pzn/country/fr'],
+                );
+                expect.fail('Should have thrown');
+            } catch (err) {
+                expect(err.message).to.include('mas:pzn/country/fr');
+            }
+        });
+
         it('skips a suffix index that collides with another attached fragment in the same project', async () => {
             const variation1Path = targetPath;
             const collidingAttachedPath = '/content/dam/mas/sandbox/en_US/my-card-2';
@@ -367,6 +394,18 @@ describe('promotion-variations', () => {
 
         it('returns an empty array when newGeoTags is not provided', () => {
             expect(findOverlappingGeoTags([{ pznTags: ['mas:pzn/country/ar'] }])).to.deep.equal([]);
+        });
+
+        it('treats a sibling with no pznTags as covering every project geo (legacy variation)', () => {
+            const existing = [{ pznTags: [] }];
+            const projectGeos = ['mas:pzn/country/ar', 'mas:pzn/country/fr'];
+            expect(findOverlappingGeoTags(existing, ['mas:pzn/country/fr'], projectGeos)).to.deep.equal(['mas:pzn/country/fr']);
+        });
+
+        it('does not use projectGeos as a fallback for a sibling that has its own pznTags', () => {
+            const existing = [{ pznTags: ['mas:pzn/country/ar'] }];
+            const projectGeos = ['mas:pzn/country/ar', 'mas:pzn/country/fr'];
+            expect(findOverlappingGeoTags(existing, ['mas:pzn/country/fr'], projectGeos)).to.deep.equal([]);
         });
     });
 

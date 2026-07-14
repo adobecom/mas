@@ -679,8 +679,7 @@ export default class MasFragmentEditor extends LitElement {
             this.initFragment();
         }
 
-        void this.#loadPromotionGeoOptions();
-        void this.#loadDisabledPromoGeoOptions();
+        void this.#loadPromotionGeoOptions().then(() => this.#loadDisabledPromoGeoOptions());
     }
 
     async #loadDisabledPromoGeoOptions() {
@@ -697,7 +696,7 @@ export default class MasFragmentEditor extends LitElement {
                 );
                 return siblings
                     .filter((variation) => variation.id !== this.fragment.id)
-                    .flatMap((variation) => variation.pznTags || []);
+                    .flatMap((variation) => (variation.pznTags?.length ? variation.pznTags : this.promotionGeoOptions));
             },
             apply: (geos) => {
                 this.disabledPromoGeoOptions = geos;

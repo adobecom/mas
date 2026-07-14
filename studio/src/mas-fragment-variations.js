@@ -119,7 +119,11 @@ class MasFragmentVariations extends LitElement {
                 const projects = await getPromotionProjectsForProbe(() => this.repository.loadPromotions());
                 const geosByTag = new Map(this.promotionGeosByTag);
                 for (const tag of tagsNeeded) {
-                    const project = projects.find((candidate) => getPromotionTagFromFragment(candidate) === tag);
+                    const project = projects.find(
+                        (candidate) =>
+                            getPromotionTagFromFragment(candidate) === tag &&
+                            (candidate.getFieldValues?.('fragments') ?? []).includes(this.fragment.path),
+                    );
                     geosByTag.set(tag, project?.getFieldValues?.('geos') || []);
                 }
                 return geosByTag;

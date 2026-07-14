@@ -59,12 +59,18 @@ export async function probePromoVariationsForFragment(aem, defaultPath, promoTag
 }
 
 /**
+ * A sibling variation with no pznTags of its own predates per-variation geo scoping —
+ * back then a promo variation applied to every geo the promotion project covered, so it
+ * must be treated as covering all of `projectGeos`, not zero geos.
  * @param {Array<{ pznTags: string[] }>} existingVariations
  * @param {string[]} newGeoTags
+ * @param {string[]} [projectGeos]
  * @returns {string[]}
  */
-export function findOverlappingGeoTags(existingVariations, newGeoTags) {
-    const used = new Set(existingVariations.flatMap((variation) => variation.pznTags || []));
+export function findOverlappingGeoTags(existingVariations, newGeoTags, projectGeos = []) {
+    const used = new Set(
+        existingVariations.flatMap((variation) => (variation.pznTags?.length ? variation.pznTags : projectGeos)),
+    );
     return (newGeoTags || []).filter((tag) => used.has(tag));
 }
 
@@ -96,9 +102,17 @@ export function getNextAvailablePromoVariationIndex(existingCount, defaultPath, 
  * @param {string} promoTagId
  * @param {string[]} [geoTags]
  * @param {string[]} [attachedFragmentPaths]
+ * @param {string[]} [projectGeos]
  * @returns {Promise<Object>}
  */
-export async function createPromoVariation(aem, sourceFragmentId, promoTagId, geoTags = [], attachedFragmentPaths = []) {
+export async function createPromoVariation(
+    aem,
+    sourceFragmentId,
+    promoTagId,
+    geoTags = [],
+    attachedFragmentPaths = [],
+    projectGeos = [],
+) {
     const promoName = getPromoNameFromTag(promoTagId);
     if (!promoName) {
         throw new UserFriendlyError('Invalid promotion tag');
@@ -116,7 +130,7 @@ export async function createPromoVariation(aem, sourceFragmentId, promoTagId, ge
     }
 
     const existingVariations = await probePromoVariationsForFragment(aem, sourceFragment.path, promoTagId);
-    const overlapping = findOverlappingGeoTags(existingVariations, geoTags);
+    const overlapping = findOverlappingGeoTags(existingVariations, geoTags, projectGeos);
     if (overlapping.length) {
         throw new UserFriendlyError(
             `These geos are already used by another variation of this fragment: ${overlapping.join(', ')}`,

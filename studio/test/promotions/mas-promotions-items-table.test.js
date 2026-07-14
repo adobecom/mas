@@ -1275,6 +1275,84 @@ describe('MasPromotionsItemsTable', () => {
             expect(el.promoVariationDisabledGeos).to.deep.equal(['mas:pzn/country/ar']);
         });
 
+        it('treats a sibling with no pznTags (legacy variation) as covering every project geo, disabling all of them', async () => {
+            const promotion = new Fragment({
+                path: '/content/dam/mas/promotions/black-friday',
+                fields: [
+                    { name: 'tags', values: [promoTag], multiple: true },
+                    { name: 'geos', values: ['mas:locale/de_AT', 'mas:locale/en_NG'], multiple: true },
+                ],
+            });
+            Store.promotions.inEdit.set(new FragmentStore(promotion));
+
+            const el = await fixture(html`<mas-promotions-items-table .type=${TABLE_TYPE.CARDS}></mas-promotions-items-table>`);
+            sandbox.stub(el, 'repository').get(() => ({
+                refreshFragment: sandbox.stub().resolves(),
+                aem: {
+                    sites: {
+                        cf: {
+                            fragments: {
+                                getByPath: sandbox
+                                    .stub()
+                                    .callsFake((path) =>
+                                        path === promoVariationPath
+                                            ? Promise.resolve({ id: 'existing-var', path: promoVariationPath, fields: [] })
+                                            : Promise.resolve(null),
+                                    ),
+                            },
+                        },
+                    },
+                },
+            }));
+            el.viewOnlyFragments = [cardFragment];
+            await el.updateComplete;
+
+            await clickCreateAndWaitForDialog(el);
+
+            expect(el.promoVariationDisabledGeos).to.deep.equal(['mas:locale/de_AT', 'mas:locale/en_NG']);
+        });
+
+        it('hides Create promo variation when a sibling with no pznTags (legacy variation) already exists', async () => {
+            const promotion = new Fragment({
+                path: '/content/dam/mas/promotions/black-friday',
+                fields: [
+                    { name: 'tags', values: [promoTag], multiple: true },
+                    { name: 'geos', values: ['mas:locale/de_AT', 'mas:locale/en_NG'], multiple: true },
+                ],
+            });
+            Store.promotions.inEdit.set(new FragmentStore(promotion));
+            Store.promotions.selectedCards.set([defaultPath]);
+
+            const el = new MasPromotionsItemsTable();
+            el.type = TABLE_TYPE.CARDS;
+            sandbox.stub(el, 'repository').get(() => ({
+                aem: {
+                    getFragmentByPath: sandbox.stub().resolves(cardFragment),
+                    sites: {
+                        cf: {
+                            fragments: {
+                                getByPath: sandbox
+                                    .stub()
+                                    .callsFake((path) =>
+                                        path === promoVariationPath
+                                            ? Promise.resolve({ id: 'existing-var', path: promoVariationPath, fields: [] })
+                                            : Promise.resolve(null),
+                                    ),
+                            },
+                        },
+                    },
+                },
+            }));
+            document.body.appendChild(el);
+            await el.updateComplete;
+            await new Promise((r) => setTimeout(r, 80));
+            await el.updateComplete;
+
+            expect(findCreateMenuItem(el)).to.be.undefined;
+            el.remove();
+            Store.promotions.selectedCards.set([]);
+        });
+
         it('shows Create promo variation when the project still has an unused geo', async () => {
             const promotion = new Fragment({
                 path: '/content/dam/mas/promotions/black-friday',

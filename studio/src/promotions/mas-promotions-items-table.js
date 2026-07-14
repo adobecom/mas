@@ -706,7 +706,9 @@ class MasPromotionsItemsTable extends LitElement {
                         existingPaths.add(item.path);
                         geosByPath.set(
                             item.path,
-                            variations.flatMap((variation) => variation.pznTags || []),
+                            variations.flatMap((variation) =>
+                                variation.pznTags?.length ? variation.pznTags : this.#geoValues,
+                            ),
                         );
                     }
                 } catch {
@@ -842,7 +844,9 @@ class MasPromotionsItemsTable extends LitElement {
 
         try {
             const existingVariations = await probePromoVariationsForFragment(this.repository.aem, item.path, promoTag);
-            this.promoVariationDisabledGeos = existingVariations.flatMap((variation) => variation.pznTags || []);
+            this.promoVariationDisabledGeos = existingVariations.flatMap((variation) =>
+                variation.pznTags?.length ? variation.pznTags : this.#geoValues,
+            );
             this.promoVariationGeosDialogItem = item;
         } catch {
             showToast(PROMO_VARIATION_LOOKUP_FAILED_MESSAGE, 'negative');

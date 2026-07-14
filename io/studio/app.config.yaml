@@ -121,6 +121,7 @@ application:
                             HAIKU_MODEL_ID: $HAIKU_MODEL_ID
                             NATIVE_ENVELOPE: $NATIVE_ENVELOPE
                             TEXT_PARSE_RETRY: $TEXT_PARSE_RETRY
+                            NATIVE_GUIDED: $NATIVE_GUIDED
                         annotations:
                             require-adobe-auth: false
                             final: true

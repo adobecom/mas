@@ -76,4 +76,28 @@ describe('ai-chat/inferGuidedFlowFromHistory', () => {
         expect(inferGuidedFlowFromHistory(null)).to.equal(null);
         expect(inferGuidedFlowFromHistory([{ role: 'assistant', content: 42 }])).to.equal(null);
     });
+
+    it('recognizes the fenced pretty-printed serialization of a guided tool call', () => {
+        const serialized = {
+            role: 'assistant',
+            content: `\`\`\`json\n${JSON.stringify(
+                { flowId: 'release', message: 'Select one:', type: 'guided_step' },
+                null,
+                2,
+            )}\n\`\`\``,
+        };
+        expect(inferGuidedFlowFromHistory([serialized])).to.equal('release');
+    });
+
+    it('treats a serialized guided mcp_operation tool call as terminal', () => {
+        const serialized = {
+            role: 'assistant',
+            content: `\`\`\`json\n${JSON.stringify(
+                { mcpTool: 'list_products', mcpParams: { searchText: 'x' }, message: 'Looking up…', type: 'mcp_operation' },
+                null,
+                2,
+            )}\n\`\`\``,
+        };
+        expect(inferGuidedFlowFromHistory([serialized])).to.equal(null);
+    });
 });

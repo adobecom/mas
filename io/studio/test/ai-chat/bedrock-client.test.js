@@ -348,6 +348,24 @@ describe('ai-chat/bedrock-client', () => {
             expect(payload.tool_choice).to.deep.equal({ type: 'tool', name: 'emit_envelope' });
         });
 
+        it('forwards multiple tools with tool_choice any for guided-tool turns', async () => {
+            const client = new BedrockClient({ bearerToken: 'test-token-not-real' });
+            const fetchStub = sandbox.stub(global, 'fetch').resolves(toolUseResponse());
+            const tools = [
+                { name: 'emit_guided_step', input_schema: { type: 'object' } },
+                { name: 'emit_mcp_operation', input_schema: { type: 'object' } },
+            ];
+
+            await client.sendMessage([{ role: 'user', content: 'hi' }], 'BASE', 256, {
+                tools,
+                toolChoice: { type: 'any' },
+            });
+
+            const payload = JSON.parse(fetchStub.firstCall.args[1].body);
+            expect(payload.tools).to.have.length(2);
+            expect(payload.tool_choice).to.deep.equal({ type: 'any' });
+        });
+
         it('omits tools keys from the payload when not provided', async () => {
             const client = new BedrockClient({ bearerToken: 'test-token-not-real' });
             const fetchStub = sandbox.stub(global, 'fetch').resolves(toolUseResponse());

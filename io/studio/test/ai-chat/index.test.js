@@ -312,6 +312,103 @@ describe('ai-chat/index main handler', () => {
         });
     });
 
+    describe('native guided tools (release flow)', () => {
+        function guidedToolResponse(name, input) {
+            return {
+                success: true,
+                message: '',
+                toolUse: { name, input },
+                usage: { inputTokens: 10, outputTokens: 5 },
+            };
+        }
+
+        it('answers a release turn through a guided tool and renders it as a guided_step', async () => {
+            sendStub.resolves(
+                guidedToolResponse('emit_guided_step', {
+                    flowId: 'release',
+                    message: 'I found multiple products matching "creative cloud pro". Select one:',
+                    productCards: [
+                        { label: 'Creative Cloud Pro', value: 'ccpro_direct_indirect', segments: ['INDIVIDUAL', 'TEAM'] },
+                    ],
+                }),
+            );
+            const result = await main(makeParams({ message: 'creative cloud pro', intentHint: 'release' }));
+            expect(result.statusCode).to.equal(200);
+            expect(result.body.type).to.equal('guided_step');
+            expect(result.body.productCards[0].segments).to.deep.equal(['INDIVIDUAL', 'TEAM']);
+            const sendOptions = sendStub.firstCall.args[5];
+            expect(sendOptions.toolChoice).to.deep.equal({ type: 'any' });
+            expect(sendOptions.tools.map((tool) => tool.name)).to.include('emit_guided_step');
+            const historyTail = result.body.conversationHistory.at(-1);
+            expect(historyTail.role).to.equal('assistant');
+            expect(historyTail.content).to.include('"flowId": "release"');
+            expect(historyTail.content).to.include('```json');
+        });
+
+        it('executes an mcp_operation emitted through a guided tool', async () => {
+            sendStub.resolves(
+                guidedToolResponse('emit_mcp_operation', {
+                    mcpTool: 'list_products',
+                    mcpParams: { searchText: 'creative cloud pro' },
+                    message: 'Looking up creative cloud pro in the catalog...',
+                }),
+            );
+            const result = await main(makeParams({ message: 'creative cloud pro', intentHint: 'release' }));
+            expect(result.statusCode).to.equal(200);
+            expect(result.body.type).to.equal('mcp_operation');
+            expect(result.body.mcpTool).to.equal('list_products');
+            expect(result.body.mcpParams.searchText).to.equal('creative cloud pro');
+        });
+
+        it('stays on the plain text path when NATIVE_GUIDED is off', async () => {
+            sendStub.resolves(
+                textResponse('```json\n{"type": "guided_step", "message": "Select one:", "productCards": []}\n```'),
+            );
+            const result = await main(
+                makeParams({ message: 'creative cloud pro', intentHint: 'release', NATIVE_GUIDED: 'off' }),
+            );
+            expect(result.statusCode).to.equal(200);
+            expect(result.body.type).to.equal('guided_step');
+            const sendOptions = sendStub.firstCall.args[5];
+            expect(sendOptions?.tools).to.equal(undefined);
+        });
+
+        it('recovers through the parse retry when the model calls an unknown tool', async () => {
+            sendStub.onCall(0).resolves(guidedToolResponse('emit_envelope', { intent: 'get_card', slots: {} }));
+            sendStub.onCall(1).resolves(textResponse('```json\n{"type": "guided_step", "message": "Select one:"}\n```'));
+            const result = await main(makeParams({ message: 'creative cloud pro', intentHint: 'release' }));
+            expect(result.statusCode).to.equal(200);
+            expect(result.body.type).to.equal('guided_step');
+            expect(sendStub.callCount).to.equal(2);
+        });
+
+        it('hands an envelope-classified release intent off to the guided tools', async () => {
+            sendStub.onCall(0).resolves(
+                toolResponse({
+                    intent: 'release_create.start',
+                    slots: {},
+                    confidence: 'high',
+                    missing_slots: [],
+                    clarification_question: null,
+                    user_message: null,
+                }),
+            );
+            sendStub.onCall(1).resolves(
+                guidedToolResponse('emit_guided_step', {
+                    flowId: 'release',
+                    message: 'Which product is this release for?',
+                    buttonGroup: { label: 'Product', inputHint: 'Type a product name...' },
+                }),
+            );
+            const result = await main(makeParams({ message: 'tell me about yourself' }));
+            expect(result.statusCode).to.equal(200);
+            expect(result.body.type).to.equal('guided_step');
+            expect(result.body.message).to.include('Which product is this release for');
+            const handoffOptions = sendStub.secondCall.args[5];
+            expect(handoffOptions.toolChoice).to.deep.equal({ type: 'any' });
+        });
+    });
+
     describe('error containment', () => {
         it('turns an unexpected handler throw into a 500 with a generic body', async () => {
             const result = await main(makeParams({ conversationHistory: 42 }));

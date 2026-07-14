@@ -15,6 +15,7 @@ import { BedrockClient } from './bedrock-client.js';
 import {
     COLLECTION_CREATION_SYSTEM_PROMPT,
     GUIDED_CARD_CREATION_PROMPT,
+    GUIDED_CARD_CREATION_TOOL_PROMPT,
     GUIDED_SEARCH_PROMPT,
     GUIDED_OFFER_SEARCH_PROMPT,
     GUIDED_HELP_PROMPT,
@@ -31,6 +32,7 @@ import { KNOWLEDGE_CHUNKS } from './knowledge-corpus.js';
 import { classifyIntent, createClassifierClient } from './intent-classifier.js';
 import { buildPrompt, buildFlowContext } from './prompt-builder.js';
 import { buildEnvelopeTool, ENVELOPE_TOOL_CHOICE, ENVELOPE_TOOL_NAME } from './tool-definitions.js';
+import { buildGuidedTools, GUIDED_TOOL_CHOICE, extractGuidedTool } from './guided-tool-definitions.js';
 import { extractToolEnvelope, buildEnvelopeResponseBody, normalizeEnvelopeText } from './envelope-native.js';
 import { getFlowForIntent } from './intent-registry.js';
 import { buildFeedbackEntry, appendFeedbackEntry } from './feedback-store.js';
@@ -550,7 +552,7 @@ async function main(params) {
             !isCardCreation &&
             !params.context?.flow?.active &&
             !inferGuidedFlowFromHistory(conversationHistory);
-        const toolOptions = nativeEnvelopeEligible ? { tools: [buildEnvelopeTool()], toolChoice: ENVELOPE_TOOL_CHOICE } : {};
+        let toolOptions = nativeEnvelopeEligible ? { tools: [buildEnvelopeTool()], toolChoice: ENVELOPE_TOOL_CHOICE } : {};
 
         // Deterministic identifier shortcut: when the user message is a bare
         // identifier, classify it by shape and emit the correct MCP operation
@@ -784,9 +786,20 @@ async function main(params) {
         // overriding those makes the model emit envelopes the text path
         // cannot execute.
         const useRegistryPrompt = nativeEnvelopeEligible && registryPrompt !== null;
-        const effectiveSystemPrompt = useRegistryPrompt ? registryPrompt : effectivePrompt;
+        let effectiveSystemPrompt = useRegistryPrompt ? registryPrompt : effectivePrompt;
         if (useRegistryPrompt) {
             console.log(JSON.stringify({ phase: 'shadow-primary', req: params.requestId ?? null, used: true }));
+        }
+
+        // Native guided tools: release-flow turns swap hand-written fenced
+        // JSON for schema-validated tool calls. Mutually exclusive with the
+        // envelope path by construction — nativeEnvelopeEligible already
+        // excludes every release turn. Rollback: NATIVE_GUIDED=off.
+        const nativeGuidedEnabled = params.NATIVE_GUIDED !== 'off';
+        let guidedToolMode = nativeGuidedEnabled && effectiveSystemPrompt === GUIDED_CARD_CREATION_PROMPT;
+        if (guidedToolMode) {
+            effectiveSystemPrompt = GUIDED_CARD_CREATION_TOOL_PROMPT;
+            toolOptions = { tools: buildGuidedTools(), toolChoice: GUIDED_TOOL_CHOICE };
         }
 
         const maxTokens = isDocumentation ? 2048 : isCardCreation ? 2048 : 1024;
@@ -870,13 +883,13 @@ async function main(params) {
                 const guidedResponse = await bedrockClient.sendWithContext(
                     conversationHistory,
                     message,
-                    GUIDED_CARD_CREATION_PROMPT,
+                    nativeGuidedEnabled ? GUIDED_CARD_CREATION_TOOL_PROMPT : GUIDED_CARD_CREATION_PROMPT,
                     enrichedContext,
                     2048,
-                    {},
+                    nativeGuidedEnabled ? { tools: buildGuidedTools(), toolChoice: GUIDED_TOOL_CHOICE } : {},
                 );
                 logUsageMetric(guidedResponse, params, bedrockClient.modelId);
-                if (guidedResponse.success && guidedResponse.message) {
+                if (guidedResponse.success && (guidedResponse.message || guidedResponse.toolUse)) {
                     console.log(
                         JSON.stringify({
                             phase: 'flow-handoff',
@@ -886,6 +899,7 @@ async function main(params) {
                     );
                     response = guidedResponse;
                     handedOff = true;
+                    guidedToolMode = guidedToolMode || nativeGuidedEnabled;
                 }
             }
 
@@ -911,19 +925,40 @@ async function main(params) {
             }
         }
 
+        // A guided tool call carries a schema-validated payload. Serialize it
+        // back into the message as fenced JSON — guaranteed parseable — so the
+        // whole existing text pipeline (operation validation, parsing, history,
+        // flow inference) consumes it unchanged. An unmapped tool name falls
+        // through as its raw input, where the parse retry picks it up.
+        if (guidedToolMode && response.toolUse) {
+            const guidedPayload = extractGuidedTool(response);
+            console.log(
+                JSON.stringify({
+                    phase: 'guided-tool',
+                    req: params.requestId ?? null,
+                    tool: response.toolUse.name,
+                    mapped: Boolean(guidedPayload),
+                }),
+            );
+            const payload = guidedPayload ?? response.toolUse.input ?? {};
+            response = { ...response, message: `\`\`\`json\n${JSON.stringify(payload, null, 2)}\n\`\`\`` };
+        }
+
         let parsedResponse = parseAIResponse(response.message);
         let totalUsage = response.usage;
 
         // Text-path parity with the envelope and card-config corrective
         // retries: when the model's JSON is broken beyond the in-parser
         // repair, re-ask once with the concrete parse error instead of
-        // surfacing the failure to the user. Rollback: TEXT_PARSE_RETRY=off.
+        // surfacing the failure to the user. The retry always runs in text
+        // mode, so guided tool turns fall back to the plain guided prompt.
+        // Rollback: TEXT_PARSE_RETRY=off.
         if (parsedResponse.parseError && params.TEXT_PARSE_RETRY !== 'off') {
             const failureMode = parsedResponse.parseFailureMode ?? 'unparseable-json';
             const retryResponse = await bedrockClient.sendWithContext(
                 [...conversationHistory, { role: 'user', content: message }, { role: 'assistant', content: response.message }],
                 buildParseCorrectivePrompt(failureMode, parsedResponse.parseErrorDetail),
-                effectiveSystemPrompt,
+                guidedToolMode ? GUIDED_CARD_CREATION_PROMPT : effectiveSystemPrompt,
                 enrichedContext,
                 maxTokens,
             );

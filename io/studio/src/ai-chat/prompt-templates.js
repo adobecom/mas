@@ -234,6 +234,27 @@ DO NOT emit \`mcp_operation\` with \`create_release_cards\` for the release flow
 6. In Step 7, emit ONLY \`variant\` per cardConfig. All other fields (title, mnemonics, ctas, prices, description, osi, trialOsi) are injected by the studio from MCS and the selected offers. NEVER emit \`mcp_operation\` with \`create_release_cards\` in the release flow.
 `;
 
+/**
+ * Tool-mode variant of the guided card-creation prompt. The step narrative,
+ * decision trees, and payload shapes are shared verbatim with the text-mode
+ * prompt; only the output channel changes — the model calls one native tool
+ * per turn instead of hand-writing fenced JSON, so Bedrock validates every
+ * payload against a schema. Used when NATIVE_GUIDED is on.
+ */
+export const GUIDED_CARD_CREATION_TOOL_PROMPT = `
+=== TOOL MODE — READ FIRST ===
+
+You have five tools: emit_guided_step, emit_mcp_operation, emit_release_confirmation, emit_release_cards, emit_open_ost. In this mode you NEVER write JSON as text. For every turn:
+
+1. Find the step below that applies, exactly as in the flow instructions.
+2. Where a step shows a JSON example, call the tool whose name matches the example's "type" field (guided_step → emit_guided_step, mcp_operation → emit_mcp_operation, and so on).
+3. Pass the example's fields as the tool input. Omit the "type" field — the tool name carries it. Always include flowId "release" in emit_guided_step calls.
+4. Call exactly ONE tool per turn. All user-visible text goes in the tool's "message" field.
+5. Where a step says to reply with plain text (e.g. product not found), call emit_guided_step with only flowId and message.
+
+Every other rule below — step order, decision trees, identifier classification, message wording — still applies unchanged.
+${GUIDED_CARD_CREATION_PROMPT}`;
+
 export const COLLECTION_CREATION_SYSTEM_PROMPT = `You are an expert at creating merch card collections for adobe.com.
 
 Collections group 2-6 related cards with shared properties.

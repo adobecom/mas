@@ -830,10 +830,11 @@
     display: flex;
     align-items: center;
     gap: var(--spectrum-global-dimension-size-100, 8px);
-    border: 1px solid var(--spectrum-global-color-gray-200, #e6e6e6);
+    border: 2px solid var(--spectrum-global-color-blue-300, #4b9eff);
     border-radius: 20px;
     padding: var(--spectrum-global-dimension-size-75, 6px) var(--spectrum-global-dimension-size-150, 12px);
     background: var(--spectrum-global-color-gray-50, #ffffff);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
     transition:
         border-color 0.2s ease,
         box-shadow 0.2s ease,
@@ -842,7 +843,9 @@
 
 .input-row:focus-within {
     border-color: var(--spectrum-global-color-blue-400, #2680eb);
-    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+    box-shadow:
+        0 0 0 2px rgba(59, 130, 246, 0.15),
+        0 4px 12px rgba(0, 0, 0, 0.15);
     background: var(--spectrum-white, #ffffff);
 }
 
@@ -1556,6 +1559,12 @@
 .welcome-input-wrapper {
     width: 100%;
     max-width: 700px;
+}
+
+.welcome-content mas-chat-input .input-row,
+mas-chat-input .input-row {
+    border: 1px solid var(--spectrum-global-color-gray-400, #b1b1b1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .welcome-input-wrapper .ProseMirror {

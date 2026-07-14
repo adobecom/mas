@@ -416,6 +416,16 @@ export function showToast(message, variant = 'info') {
 }
 
 /**
+ * Builds the error message for a failed project create, distinguishing a
+ * duplicate-name conflict (HTTP 409) from other failures.
+ * @param {Error} error - The error thrown by repository.createFragment
+ * @returns {string}
+ */
+export function getCreateProjectErrorMessage(error) {
+    return error?.message?.includes(': 409') ? 'Project with this name already exists.' : 'Failed to create project.';
+}
+
+/**
  * Extracts the surface from a fragment path
  * Path format: /content/dam/mas/{surface}/{locale}/{fragment-name}
  * @param {string} fragmentPath - The full AEM fragment path

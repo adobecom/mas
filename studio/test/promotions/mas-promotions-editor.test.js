@@ -841,6 +841,29 @@ describe('MasPromotionsEditor', () => {
             await el.updateComplete;
             expect(el.isCreated).to.be.false;
         });
+
+        it('shows generic error toast when create fails for a non-conflict reason', async () => {
+            const toastEmitStub = sandbox.stub(Events.toast, 'emit');
+            const { el } = await mountEditorWithRepo({
+                createFragment: sandbox.stub().rejects(new Error('create failed')),
+            });
+            await fillValidFields(el);
+            clickPromotionQuickAction(el, 'Save');
+            await el.updateComplete;
+            expect(toastEmitStub.calledWith({ variant: 'negative', content: 'Failed to create project.' })).to.be.true;
+        });
+
+        it('shows a duplicate-name error toast when create fails with a 409 Conflict', async () => {
+            const toastEmitStub = sandbox.stub(Events.toast, 'emit');
+            const { el } = await mountEditorWithRepo({
+                createFragment: sandbox.stub().rejects(new Error('Failed to create fragment: 409 Conflict')),
+            });
+            await fillValidFields(el);
+            clickPromotionQuickAction(el, 'Save');
+            await el.updateComplete;
+            expect(toastEmitStub.calledWith({ variant: 'negative', content: 'Project with this name already exists.' })).to.be
+                .true;
+        });
     });
 
     describe('update flow', () => {

@@ -1109,10 +1109,38 @@ describe('MasTranslationEditor', () => {
             expect(
                 toastEmitStub.calledWith({
                     variant: 'negative',
-                    content: 'Failed to create translation project.',
+                    content: 'Failed to create project.',
                 }),
             ).to.be.true;
             expect(consoleErrorStub.called).to.be.true;
+        });
+
+        it('should show a duplicate-name error when create fails with a 409 Conflict', async () => {
+            const mockRepository = createMockRepository();
+            mockRepository.createFragment.rejects(new Error('Failed to create fragment: 409 Conflict'));
+            querySelectorStub.callsFake((selector) => {
+                if (selector === 'mas-repository') return mockRepository;
+                return originalQuerySelector(selector);
+            });
+            Store.translationProjects.translationProjectId.set(null);
+            Store.translationProjects.targetLocales.set(['pl_PL']);
+            Store.translationProjects.selectedCards.set(['card1']);
+            const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
+            await el.updateComplete;
+            const titleField = el.shadowRoot.querySelector('#title');
+            titleField.value = 'Valid-Title';
+            titleField.dispatchEvent(new Event('input', { bubbles: true }));
+            await el.updateComplete;
+            const quickActions = el.shadowRoot.querySelector('mas-quick-actions');
+            quickActions.dispatchEvent(new CustomEvent('save'));
+            await new Promise((resolve) => setTimeout(resolve, 100));
+            await el.updateComplete;
+            expect(
+                toastEmitStub.calledWith({
+                    variant: 'negative',
+                    content: 'Project with this name already exists.',
+                }),
+            ).to.be.true;
         });
     });
 

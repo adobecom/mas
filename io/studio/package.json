@@ -29,8 +29,9 @@
   },
   "scripts": {
     "eval": "node test/ai-chat-eval.mjs",
-    "test": "c8 mocha --recursive --ignore 'test/ai-chat-eval.mjs' ./test",
-    "test:ci": "c8 mocha --recursive --ignore 'test/ai-chat-eval.mjs' ./test",
+    "test": "c8 mocha --recursive --ignore 'test/ai-chat-eval.mjs' ./test && npm run test:classifier-dry",
+    "test:ci": "c8 mocha --recursive --ignore 'test/ai-chat-eval.mjs' ./test && npm run test:classifier-dry",
+    "test:classifier-dry": "node src/ai-chat/intent-classifier.test.js --dry",
     "test:watch": "mocha --watch --recursive --ignore 'test/ai-chat-eval.mjs' ./test",
     "test:file": "mocha --watch --recursive --ignore 'test/ai-chat-eval.mjs' --grep",
     "test:coverage": "c8 mocha --recursive --ignore 'test/ai-chat-eval.mjs' ./test",

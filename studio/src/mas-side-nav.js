@@ -760,7 +760,8 @@ class MasSideNav extends LitElement {
     }
 
     #getCtaKey(fragment, index) {
-        const html = fragment.getFieldValue('ctas');
+        const html = fragment.getFieldValue?.('ctas');
+        if (!html) return index;
         const parser = new DOMParser();
         const doc = parser.parseFromString(html, 'text/html');
         const ctas = doc.querySelectorAll('a');

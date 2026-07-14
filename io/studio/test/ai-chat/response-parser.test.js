@@ -147,6 +147,30 @@ describe('ai-chat/response-parser', () => {
             expect(result.message).to.not.include('```');
         });
 
+        it('describes an unparseable failure so a corrective retry can quote the reason', () => {
+            const text = '```json\n{"type": guided_step broken here}\n```';
+            const result = parseAIResponse(text);
+            expect(result.parseError).to.equal(true);
+            expect(result.parseFailureMode).to.equal('unparseable-json');
+            expect(result.parseErrorDetail).to.be.a('string').and.to.have.length.greaterThan(0);
+        });
+
+        it('flags an unrecognized structured object with nothing salvageable as a parse failure', () => {
+            const text = '{"intent":"SEARCH_CARDS","slots":{"surface":"acom"}}';
+            const result = parseAIResponse(text);
+            expect(result.type).to.equal('message');
+            expect(result.parseError).to.equal(true);
+            expect(result.parseFailureMode).to.equal('unrecognized-shape');
+        });
+
+        it('does not flag an unrecognized object whose message field was salvaged', () => {
+            const text = '{"type":"weird_type","message":"Here is what I found."}';
+            const result = parseAIResponse(text);
+            expect(result.type).to.equal('message');
+            expect(result.message).to.equal('Here is what I found.');
+            expect(result.parseError).to.equal(undefined);
+        });
+
         it('flags a parse error for bare truncated JSON with key/value shape', () => {
             const text =
                 '{"type":"release_cards","parentPath":"/content/dam/mas/acom","cardConfigs":[{"variant":"catalog","title":"Unfinished';

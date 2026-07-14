@@ -911,6 +911,46 @@ async function main(params) {
             }
         }
 
+        let parsedResponse = parseAIResponse(response.message);
+        let totalUsage = response.usage;
+
+        // Text-path parity with the envelope and card-config corrective
+        // retries: when the model's JSON is broken beyond the in-parser
+        // repair, re-ask once with the concrete parse error instead of
+        // surfacing the failure to the user. Rollback: TEXT_PARSE_RETRY=off.
+        if (parsedResponse.parseError && params.TEXT_PARSE_RETRY !== 'off') {
+            const failureMode = parsedResponse.parseFailureMode ?? 'unparseable-json';
+            const retryResponse = await bedrockClient.sendWithContext(
+                [...conversationHistory, { role: 'user', content: message }, { role: 'assistant', content: response.message }],
+                buildParseCorrectivePrompt(failureMode, parsedResponse.parseErrorDetail),
+                effectiveSystemPrompt,
+                enrichedContext,
+                maxTokens,
+            );
+            logUsageMetric(retryResponse, params, bedrockClient.modelId);
+            let recovered = false;
+            if (retryResponse.success && retryResponse.message) {
+                const retryParsed = parseAIResponse(retryResponse.message);
+                if (!retryParsed.parseError) {
+                    parsedResponse = retryParsed;
+                    response = retryResponse;
+                    recovered = true;
+                    totalUsage = {
+                        inputTokens: (totalUsage?.inputTokens || 0) + (retryResponse.usage?.inputTokens || 0),
+                        outputTokens: (totalUsage?.outputTokens || 0) + (retryResponse.usage?.outputTokens || 0),
+                    };
+                }
+            }
+            console.log(
+                JSON.stringify({
+                    phase: 'text-parse-retry',
+                    req: params.requestId ?? null,
+                    mode: failureMode,
+                    recovered,
+                }),
+            );
+        }
+
         // Attach the shadow envelope only when the text actually contained a
         // valid one: guided-flow JSON has no intent field, so its coerced
         // ASK_USER fallback must never ship — the frontend dispatcher would
@@ -934,7 +974,7 @@ async function main(params) {
                         mcpParams: operationResult.mcpParams,
                         message: operationResult.message,
                         confirmationRequired: operationResult.confirmationRequired,
-                        usage: response.usage,
+                        usage: totalUsage,
                         conversationHistory: [
                             ...conversationHistory,
                             { role: 'user', content: message },
@@ -952,7 +992,7 @@ async function main(params) {
                 body: {
                     ...envelopePayload,
                     ...operationResult,
-                    usage: response.usage,
+                    usage: totalUsage,
                     conversationHistory: [
                         ...conversationHistory,
                         { role: 'user', content: message },
@@ -961,9 +1001,6 @@ async function main(params) {
                 },
             };
         }
-
-        let parsedResponse = parseAIResponse(response.message);
-        let totalUsage = response.usage;
 
         if (parsedResponse.type === 'card' && parsedResponse.cardConfig) {
             const variantConfig = getVariantConfig(parsedResponse.cardConfig.variant);
@@ -1320,6 +1357,19 @@ export function logUsageMetric(response, params, modelId) {
             cache_read_input_tokens: usage.cache_read_input_tokens ?? 0,
             cache_creation_input_tokens: usage.cache_creation_input_tokens ?? 0,
         }),
+    );
+}
+
+/**
+ * Corrective prompt for text-path parse failures. Quotes the concrete
+ * parse reason so the model fixes the actual defect instead of guessing.
+ */
+export function buildParseCorrectivePrompt(failureMode, detail) {
+    const reason = detail ? `${failureMode}: ${detail}` : failureMode;
+    return (
+        `Your previous reply could not be parsed as the required JSON (${reason}). ` +
+        'Re-emit the same content as exactly ONE valid JSON code block with no text outside it. ' +
+        'Escape every double quote inside string values as \\" and keep each string value on a single line.'
     );
 }
 

@@ -260,11 +260,53 @@ describe('ai-chat/index main handler', () => {
             expect(result.body.productCards[0].segments).to.deep.equal(['INDIVIDUAL', 'TEAM']);
         });
 
-        it('surfaces the parse-error message without retrying when JSON is unrecoverable', async () => {
+        it('recovers a broken guided_step through one corrective parse retry', async () => {
+            sendStub.onCall(0).resolves(textResponse('```json\n{"type": guided_step broken here}\n```'));
+            sendStub
+                .onCall(1)
+                .resolves(
+                    textResponse(
+                        '```json\n{"type": "guided_step", "flowId": "release", "message": "Select one:", "productCards": [{"label": "Creative Cloud Pro", "value": "PA-1636"}]}\n```',
+                    ),
+                );
+            const result = await main(makeParams({ message: 'please continue from before' }));
+            expect(result.statusCode).to.equal(200);
+            expect(result.body.type).to.equal('guided_step');
+            expect(result.body.productCards).to.have.length(1);
+            expect(sendStub.callCount).to.equal(2);
+            const correctiveMessage = sendStub.secondCall.args[1];
+            expect(correctiveMessage).to.include('could not be parsed');
+        });
+
+        it('executes an mcp_operation produced by the corrective parse retry', async () => {
+            sendStub.onCall(0).resolves(textResponse('```json\n{"type": guided_step broken here}\n```'));
+            sendStub
+                .onCall(1)
+                .resolves(
+                    textResponse(
+                        '```json\n{"type": "mcp_operation", "mcpTool": "list_products", "mcpParams": {"searchText": "creative cloud pro"}, "message": "Looking up creative cloud pro in the catalog..."}\n```',
+                    ),
+                );
+            const result = await main(makeParams({ message: 'please continue from before' }));
+            expect(result.statusCode).to.equal(200);
+            expect(result.body.type).to.equal('mcp_operation');
+            expect(result.body.mcpTool).to.equal('list_products');
+            expect(sendStub.callCount).to.equal(2);
+        });
+
+        it('retries once and still surfaces the parse-error message when the retry also fails', async () => {
             sendStub.resolves(textResponse('```json\n{"type": guided_step broken here}\n```'));
             const result = await main(makeParams({ message: 'please continue from before' }));
             expect(result.statusCode).to.equal(200);
             expect(result.body.type).to.equal('message');
+            expect(result.body.message).to.equal(PARSE_ERROR_MESSAGE);
+            expect(sendStub.callCount).to.equal(2);
+        });
+
+        it('does not retry parse failures when TEXT_PARSE_RETRY is off', async () => {
+            sendStub.resolves(textResponse('```json\n{"type": guided_step broken here}\n```'));
+            const result = await main(makeParams({ message: 'please continue from before', TEXT_PARSE_RETRY: 'off' }));
+            expect(result.statusCode).to.equal(200);
             expect(result.body.message).to.equal(PARSE_ERROR_MESSAGE);
             expect(sendStub.callCount).to.equal(1);
         });

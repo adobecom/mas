@@ -120,6 +120,7 @@ application:
                             USE_LLM_CLASSIFIER: $USE_LLM_CLASSIFIER
                             HAIKU_MODEL_ID: $HAIKU_MODEL_ID
                             NATIVE_ENVELOPE: $NATIVE_ENVELOPE
+                            TEXT_PARSE_RETRY: $TEXT_PARSE_RETRY
                         annotations:
                             require-adobe-auth: false
                             final: true

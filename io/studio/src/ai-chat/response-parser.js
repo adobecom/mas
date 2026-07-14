@@ -221,6 +221,21 @@ function looksLikeAttemptedJson(responseText) {
 }
 
 /**
+ * Produce the JSON.parse error for a failed response so the corrective
+ * retry prompt can quote the concrete reason back to the model.
+ */
+function describeParseFailure(responseText) {
+    const jsonBlockMatch = responseText.match(/```(?:json)?\s*([\s\S]*?)\s*(?:```|$)/);
+    const candidate = jsonBlockMatch ? jsonBlockMatch[1] : responseText;
+    try {
+        JSON.parse(candidate);
+        return 'the JSON did not match any supported response shape';
+    } catch (error) {
+        return error.message;
+    }
+}
+
+/**
  * Parse AI response into structured format
  * @param {string} responseText - Raw AI response from Claude
  * @returns {Object} - {type, message, cardConfig, collectionConfig, fragmentIds}
@@ -310,9 +325,19 @@ export function parseAIResponse(responseText) {
             };
         }
 
+        const salvagedText = conversationalText || cardConfig.message;
+        if (salvagedText) {
+            return {
+                type: 'message',
+                message: salvagedText,
+            };
+        }
+
         return {
             type: 'message',
-            message: conversationalText || cardConfig.message || UNRECOGNIZED_RESPONSE_MESSAGE,
+            message: UNRECOGNIZED_RESPONSE_MESSAGE,
+            parseError: true,
+            parseFailureMode: 'unrecognized-shape',
         };
     }
 
@@ -322,6 +347,8 @@ export function parseAIResponse(responseText) {
             type: 'message',
             message: PARSE_ERROR_MESSAGE,
             parseError: true,
+            parseFailureMode: 'unparseable-json',
+            parseErrorDetail: describeParseFailure(responseText),
         };
     }
 

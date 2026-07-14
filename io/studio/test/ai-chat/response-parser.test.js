@@ -90,6 +90,35 @@ describe('ai-chat/response-parser', () => {
             expect(result.buttonGroup).to.deep.equal({ label: 'Product' });
             expect(result.message).to.include('Photoshop');
         });
+
+        it('preserves a string-array while recovering an embedded quote elsewhere in the same object', () => {
+            const text = [
+                '```json',
+                '{',
+                '  "type": "guided_step",',
+                '  "message": "I found multiple products matching "creative cloud pro". Select one:",',
+                '  "productCards": [',
+                '    { "label": "Creative Cloud Pro", "value": "ccpro", "segments": ["INDIVIDUAL", "TEAM"] }',
+                '  ]',
+                '}',
+                '```',
+            ].join('\n');
+            const result = extractJSON(text);
+            expect(result.type).to.equal('guided_step');
+            expect(result.productCards[0].segments).to.deep.equal(['INDIVIDUAL', 'TEAM']);
+            expect(result.message).to.include('creative cloud pro');
+        });
+
+        it('does not split an object value that embeds a comma-separated quoted list', () => {
+            const text =
+                '{"type":"guided_step","message":"pick","productCards":[' +
+                '{"label":"CC Pro","description":"Includes "Photoshop", "Illustrator", and "Premiere Pro".",' +
+                '"segments":["INDIVIDUAL","TEAM"]}]}';
+            const result = extractJSON(text);
+            expect(result.type).to.equal('guided_step');
+            expect(result.productCards[0].description).to.include('Illustrator');
+            expect(result.productCards[0].segments).to.deep.equal(['INDIVIDUAL', 'TEAM']);
+        });
     });
 
     describe('extractConversationalText', () => {

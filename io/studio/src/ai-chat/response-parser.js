@@ -26,10 +26,12 @@ function nextSignificant(raw, from) {
  * content the model failed to escape (e.g. `(e.g. "Photoshop", "CC Pro")`
  * inside a message value). A KEY string closes before a `:`. A VALUE string
  * closes at end-of-input, before `}`/`]`, or before a `,` that is followed by
- * the next `"key":` pair — never before a `,` that resumes bare quoted text,
- * which is how embedded lists like `"a", "b"` masquerade as a real close.
+ * the next `"key":` pair. Inside an ARRAY it may also close before a `,` that
+ * resumes a sibling element — a `"…"` whose own terminator is `,` or `]`. It
+ * never closes before a `,` that resumes bare quoted text inside an OBJECT
+ * value, which is how embedded lists like `"a", "b"` masquerade as a close.
  */
-function closesString(raw, quoteIdx, isKey) {
+function closesString(raw, quoteIdx, isKey, inArray) {
     const after = nextSignificant(raw, quoteIdx + 1);
     if (isKey) return after.ch === ':';
     if (after.ch === '' || after.ch === '}' || after.ch === ']') return true;
@@ -51,7 +53,9 @@ function closesString(raw, quoteIdx, isKey) {
         }
         if (ch === '"') break;
     }
-    return nextSignificant(raw, j + 1).ch === ':';
+    const afterNext = nextSignificant(raw, j + 1).ch;
+    if (afterNext === ':') return true;
+    return inArray && (afterNext === ',' || afterNext === ']');
 }
 
 /**
@@ -69,6 +73,7 @@ function normalizeJsonString(raw) {
     let escaped = false;
     let isKey = false;
     let lastSignificant = '';
+    const containers = [];
     for (let i = 0; i < raw.length; i += 1) {
         const ch = raw[i];
         if (inString) {
@@ -83,7 +88,7 @@ function normalizeJsonString(raw) {
                 continue;
             }
             if (ch === '"') {
-                if (closesString(raw, i, isKey)) {
+                if (closesString(raw, i, isKey, containers[containers.length - 1] === '[')) {
                     out += ch;
                     inString = false;
                 } else {
@@ -108,7 +113,13 @@ function normalizeJsonString(raw) {
             out += ch;
             if (ch === '"') {
                 inString = true;
-                isKey = lastSignificant !== ':';
+                isKey = containers[containers.length - 1] === '{' && lastSignificant !== ':';
+            } else if (ch === '{' || ch === '[') {
+                containers.push(ch);
+                lastSignificant = ch;
+            } else if (ch === '}' || ch === ']') {
+                containers.pop();
+                lastSignificant = ch;
             } else if (ch !== ' ' && ch !== '\n' && ch !== '\r' && ch !== '\t') {
                 lastSignificant = ch;
             }

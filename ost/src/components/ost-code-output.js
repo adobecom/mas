@@ -1,6 +1,6 @@
 import { LitElement, html, css } from 'lit';
 import { store } from '../store/ost-store.js';
-import { computePromoStatus } from '@dexter/tacocat-core/src/promotion.js';
+import { computePromoStatus, PROMO_CONTEXT_CANCEL_VALUE } from '@dexter/tacocat-core/src/promotion.js';
 
 export class OstCodeOutput extends LitElement {
     static properties = {
@@ -140,6 +140,13 @@ export class OstCodeOutput extends LitElement {
 
         const promoStatus = computePromoStatus(store.storedPromoOverride, store.promotionCode);
 
+        // Persist the literal cancel value
+        // effectivePromoCode would lose it (collapses to undefined)
+        const promoOverride =
+            store.storedPromoOverride === PROMO_CONTEXT_CANCEL_VALUE
+                ? PROMO_CONTEXT_CANCEL_VALUE
+                : promoStatus.effectivePromoCode;
+
         let node = this.getRootNode();
         while (node?.host && node.host.tagName !== 'OST-APP') {
             node = node.host.getRootNode();
@@ -151,7 +158,7 @@ export class OstCodeOutput extends LitElement {
                 type,
                 offer: this.effectiveOffer,
                 options,
-                promoOverride: promoStatus.effectivePromoCode,
+                promoOverride,
                 country: store.country,
             });
         }

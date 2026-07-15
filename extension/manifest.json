@@ -1,0 +1,50 @@
+{
+    "manifest_version": 3,
+    "name": "Merch @ Scale Display",
+    "version": "1.0.0",
+    "description": "Detect, inspect, and edit content from Merch At Scale Studio in any page",
+    "content_security_policy": {
+        "extension_pages": "script-src 'self'; object-src 'none'; base-uri 'none'; connect-src https://mas.adobe.com https://www.adobe.com;"
+    },
+    "permissions": ["storage", "tabs"],
+    "host_permissions": ["https://mas.adobe.com/*", "https://www.adobe.com/*"],
+    "background": {
+        "service_worker": "background.js"
+    },
+    "content_scripts": [
+        {
+            "matches": ["https://*.adobe.com/*", "https://mas.adobe.com/*"],
+            "js": [
+                "utils/escape.js",
+                "utils/icons.js",
+                "utils/locales.js",
+                "utils/card-detector.js",
+                "utils/studio-linker.js",
+                "utils/fragment-parser.js",
+                "content/overlay.js",
+                "content/content.js"
+            ],
+            "css": ["vendor/spectrum/spectrum.css", "content/content.css"],
+            "run_at": "document_idle"
+        }
+    ],
+    "action": {
+        "default_popup": "popup/popup.html",
+        "default_icon": {
+            "16": "icons/icon16.png",
+            "48": "icons/icon48.png",
+            "128": "icons/icon128.png"
+        }
+    },
+    "icons": {
+        "16": "icons/icon16.png",
+        "48": "icons/icon48.png",
+        "128": "icons/icon128.png"
+    },
+    "web_accessible_resources": [
+        {
+            "resources": ["content/content.css"],
+            "matches": ["https://*.adobe.com/*", "https://mas.adobe.com/*"]
+        }
+    ]
+}

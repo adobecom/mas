@@ -1,0 +1,522 @@
+.mas-ext-badge {
+    position: fixed;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px 4px 8px;
+    background: #1473e6;
+    color: #fff;
+    border-radius: 12px;
+    font-family:
+        'adobe-clean',
+        -apple-system,
+        BlinkMacSystemFont,
+        'Segoe UI',
+        system-ui,
+        sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
+    cursor: pointer;
+    z-index: 1000000;
+    user-select: none;
+    transition:
+        background-color 120ms ease,
+        transform 120ms ease;
+}
+
+.mas-ext-badge:hover {
+    background: #0d66d0;
+    transform: translateY(-1px);
+}
+
+.mas-ext-badge[data-element-type='collection'] {
+    background: #d83790;
+}
+
+.mas-ext-badge[data-element-type='collection']:hover {
+    background: #b81c70;
+}
+
+.mas-ext-badge-icon {
+    display: inline-flex;
+    align-items: center;
+    --iconPrimary: #fff;
+}
+
+.mas-ext-badge-icon svg {
+    display: block;
+}
+
+.mas-ext-badge-variant {
+    line-height: 1;
+}
+
+.mas-ext-panel {
+    position: fixed;
+    width: 380px;
+    max-height: 80vh;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+    z-index: 1000000;
+    font-family:
+        'adobe-clean',
+        -apple-system,
+        BlinkMacSystemFont,
+        'Segoe UI',
+        system-ui,
+        sans-serif;
+    font-size: 13px;
+    line-height: 1.4;
+    color: #292929;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.mas-ext-panel * {
+    box-sizing: border-box;
+}
+
+.mas-ext-panel-header {
+    padding: 12px 16px;
+    border-bottom: 1px solid #e8e8e8;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.mas-ext-panel-header h3 {
+    margin: 0;
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 16px;
+    font-weight: 700;
+    font-family: inherit;
+    color: #292929;
+}
+
+.mas-ext-panel-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 20px;
+    min-height: 0;
+}
+
+.mas-ext-panel-footer {
+    padding: 12px 16px;
+    border-top: 1px solid #e8e8e8;
+    background: #fafafa;
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    flex-shrink: 0;
+}
+
+.mas-ext-section {
+    margin-bottom: 12px;
+}
+
+.mas-ext-section:last-child {
+    margin-bottom: 0;
+}
+
+.mas-ext-section-title {
+    margin: 0 0 8px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #6e6e6e;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    font-family: inherit;
+    line-height: 1.4;
+}
+
+.mas-ext-field {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 0;
+    border-bottom: 1px solid #f5f5f5;
+}
+
+.mas-ext-field:last-child {
+    border-bottom: none;
+}
+
+.mas-ext-field-label {
+    font-size: 12px;
+    color: #6e6e6e;
+    flex-shrink: 0;
+    min-width: 88px;
+    font-family: inherit;
+}
+
+.mas-ext-field-value {
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: right;
+    font-size: 12px;
+    font-family: inherit;
+    color: #292929;
+}
+
+.mas-ext-mono {
+    font-family: ui-monospace, 'SF Mono', Consolas, monospace !important;
+    font-size: 11px;
+    color: #505050;
+    font-feature-settings: normal;
+    font-variant-ligatures: none;
+}
+
+.mas-ext-copy-btn {
+    flex-shrink: 0;
+}
+
+.mas-ext-copy-success {
+    background: #2d9d78 !important;
+    color: #fff !important;
+}
+
+.mas-ext-chevron {
+    display: inline-flex;
+    transition: transform 150ms ease;
+    --iconPrimary: #6e6e6e;
+}
+
+.mas-ext-section-expandable:not(.mas-ext-collapsed) .mas-ext-chevron {
+    transform: rotate(90deg);
+}
+
+.mas-ext-section-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+}
+
+.mas-ext-collapsed .mas-ext-section-content {
+    display: none;
+}
+
+.mas-ext-loading,
+.mas-ext-error {
+    padding: 12px;
+    text-align: center;
+    color: #6e6e6e;
+    font-size: 12px;
+    font-family: inherit;
+}
+
+.mas-ext-error {
+    color: #d7373f;
+    background: #fef0f0;
+    border-radius: 8px;
+}
+
+.mas-ext-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 16px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.4;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition:
+        background-color 120ms ease,
+        border-color 120ms ease,
+        color 120ms ease;
+    --iconPrimary: currentColor;
+}
+
+.mas-ext-btn:focus {
+    outline: 2px solid #1473e6;
+    outline-offset: 2px;
+}
+
+.mas-ext-btn-accent {
+    background: #1473e6;
+    color: #fff;
+    border-color: #1473e6;
+}
+
+.mas-ext-btn-accent:hover {
+    background: #0d66d0;
+    border-color: #0d66d0;
+}
+
+.mas-ext-btn-secondary {
+    background: #fff;
+    color: #292929;
+    border-color: #cacaca;
+}
+
+.mas-ext-btn-secondary:hover {
+    background: #f5f5f5;
+    border-color: #909090;
+}
+
+.mas-ext-btn svg {
+    flex-shrink: 0;
+}
+
+.mas-ext-icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    border-radius: 6px;
+    color: #292929;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition:
+        background-color 120ms ease,
+        color 120ms ease;
+    --iconPrimary: currentColor;
+}
+
+.mas-ext-icon-btn:hover {
+    background: #ebebeb;
+}
+
+.mas-ext-icon-btn:focus {
+    outline: 2px solid #1473e6;
+    outline-offset: 1px;
+}
+
+.mas-ext-icon-btn svg {
+    display: block;
+}
+
+.mas-ext-tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 10px;
+    background: #e6f0fc;
+    color: #0d66d0;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.4;
+    border-radius: 12px;
+    font-family: inherit;
+    white-space: nowrap;
+    letter-spacing: 0.2px;
+}
+
+.mas-ext-divider {
+    margin: 12px 0;
+    border: none;
+    border-top: 1px solid #e8e8e8;
+    height: 0;
+}
+
+.mas-ext-subsection {
+    margin-top: 16px;
+}
+
+.mas-ext-subsection:first-child {
+    margin-top: 0;
+}
+
+.mas-ext-subsection h5 {
+    margin: 0 0 8px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #6e6e6e;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    font-family: inherit;
+    line-height: 1.4;
+}
+
+.mas-ext-subsection .mas-ext-field label {
+    font-size: 12px;
+    color: #6e6e6e;
+    font-family: inherit;
+    flex-shrink: 0;
+    min-width: 88px;
+    display: inline-block;
+}
+
+.mas-ext-subsection .mas-ext-field .mas-ext-value {
+    flex: 1;
+    min-width: 0;
+    font-size: 12px;
+    font-family: inherit;
+    color: #292929;
+    word-break: break-word;
+    text-align: left;
+}
+
+.mas-ext-expand-btn {
+    display: inline-block;
+    margin-left: 4px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    color: #1473e6;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.mas-ext-expand-btn:hover {
+    color: #0d66d0;
+}
+
+.mas-ext-expandable[data-expanded='true'] .mas-ext-expand-btn::after {
+    content: '';
+}
+
+.mas-ext-variation-badge,
+.mas-ext-locale-default-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    border-radius: 12px;
+    background: #e7f4ec;
+    color: #0d6e3a;
+    font-family: inherit;
+}
+
+.mas-ext-parent-link,
+.mas-ext-variation-link {
+    color: #1473e6;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.mas-ext-parent-link:hover,
+.mas-ext-variation-link:hover {
+    text-decoration: underline;
+}
+
+.mas-ext-variation-links {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+    min-width: 0;
+    text-align: left;
+}
+
+.mas-ext-variations-list {
+    align-items: flex-start;
+}
+
+.mas-ext-panel.spectrum--dark {
+    background: #1e1e1e;
+    color: #d3d3d3;
+}
+
+.mas-ext-panel.spectrum--dark .mas-ext-panel-header h3 {
+    color: #d3d3d3;
+}
+
+.mas-ext-panel.spectrum--dark .mas-ext-panel-footer {
+    background: #161616;
+    border-top-color: #2c2c2c;
+}
+
+.mas-ext-panel.spectrum--dark .mas-ext-panel-header {
+    border-bottom-color: #2c2c2c;
+}
+
+.mas-ext-panel.spectrum--dark .mas-ext-field {
+    border-bottom-color: #2c2c2c;
+}
+
+.mas-ext-panel.spectrum--dark .mas-ext-field-label,
+.mas-ext-panel.spectrum--dark .mas-ext-field-value {
+    color: #d3d3d3;
+}
+
+.mas-ext-panel.spectrum--dark .mas-ext-section-title {
+    color: #909090;
+}
+
+.mas-ext-panel.spectrum--dark .mas-ext-mono {
+    color: #909090;
+}
+
+.mas-ext-panel.spectrum--dark .mas-ext-icon-btn {
+    color: #d3d3d3;
+}
+
+.mas-ext-panel.spectrum--dark .mas-ext-icon-btn:hover {
+    background: #2c2c2c;
+}
+
+.mas-ext-panel.spectrum--dark .mas-ext-btn-secondary {
+    background: #2c2c2c;
+    color: #d3d3d3;
+    border-color: #4b4b4b;
+}
+
+.mas-ext-panel.spectrum--dark .mas-ext-btn-secondary:hover {
+    background: #3b3b3b;
+    border-color: #6e6e6e;
+}
+
+.mas-ext-panel.spectrum--dark .mas-ext-tag {
+    background: #1d3a5c;
+    color: #74b1f2;
+}
+
+.mas-ext-panel.spectrum--dark .mas-ext-divider {
+    border-top-color: #2c2c2c;
+}
+
+.mas-ext-panel.spectrum--dark .mas-ext-subsection h5 {
+    color: #909090;
+}
+
+.mas-ext-panel.spectrum--dark .mas-ext-subsection .mas-ext-field label {
+    color: #909090;
+}
+
+.mas-ext-panel.spectrum--dark .mas-ext-subsection .mas-ext-field .mas-ext-value {
+    color: #d3d3d3;
+}
+
+.mas-ext-panel.spectrum--dark .mas-ext-variation-badge,
+.mas-ext-panel.spectrum--dark .mas-ext-locale-default-badge {
+    background: #1d3a2c;
+    color: #6dc88f;
+}
+
+.mas-ext-panel.spectrum--dark .mas-ext-parent-link,
+.mas-ext-panel.spectrum--dark .mas-ext-variation-link,
+.mas-ext-panel.spectrum--dark .mas-ext-expand-btn {
+    color: #5a8dee;
+}
+
+.mas-ext-panel.spectrum--dark .mas-ext-parent-link:hover,
+.mas-ext-panel.spectrum--dark .mas-ext-variation-link:hover,
+.mas-ext-panel.spectrum--dark .mas-ext-expand-btn:hover {
+    color: #7fa9f4;
+}

@@ -124,6 +124,24 @@ describe('ai-chat/index main handler', () => {
             expect(sendStub.called).to.equal(false);
         });
 
+        it('falls through to the model when the bypass envelope is illegal for the active flow', async () => {
+            sendStub.resolves(textResponse('Let me help with the current flow instead.'));
+            const result = await main(
+                makeParams({
+                    message: 'f2f0a049-4b13-4592-9a1c-a0e6c962e21b',
+                    context: { flow: { active: 'release_create', step: 'confirming' } },
+                }),
+            );
+            expect(result.statusCode).to.equal(200);
+            expect(result.body.mcpTool).to.equal(undefined);
+            expect(sendStub.called).to.equal(true);
+            const bypassLine = console.log.args
+                .map((args) => args[0])
+                .filter((arg) => typeof arg === 'string')
+                .find((arg) => arg.includes('"phase":"bypass-validation-failed"'));
+            expect(bypassLine).to.be.a('string');
+        });
+
         it('routes a bare mixed-case OSI to resolve_offer_selector inside a release turn', async () => {
             const osi = 'AbC123xYz456QrS7uVw8';
             const result = await main(

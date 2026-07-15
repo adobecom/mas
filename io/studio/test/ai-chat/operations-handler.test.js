@@ -14,6 +14,56 @@ describe('ai-chat/operations-handler', () => {
         handleOperation = mod.handleOperation;
     });
 
+    describe('registry-derived MCP tool allowlist', () => {
+        const LEGACY_HARDCODED_TOOLS = [
+            'publish_card',
+            'unpublish_card',
+            'get_card',
+            'search_cards',
+            'copy_card',
+            'update_card',
+            'bulk_update_cards',
+            'bulk_publish_cards',
+            'preview_bulk_update',
+            'preview_bulk_publish',
+            'get_variations',
+            'resolve_offer_selector',
+            'get_offer_by_id',
+            'search_offers',
+            'list_products',
+            'get_product_by_arrangement_code',
+            'create_release_cards',
+            'create_tags',
+            'create_offer_selector',
+        ];
+
+        function toolNameVerdict(mcpTool) {
+            const result = validateOperation({ type: 'mcp_operation', mcpTool, mcpParams: { any: true } });
+            return result.error ?? '';
+        }
+
+        it('keeps accepting every tool from the previous hardcoded list', () => {
+            for (const tool of LEGACY_HARDCODED_TOOLS) {
+                expect(toolNameVerdict(tool), tool).to.not.include('Invalid MCP tool');
+            }
+        });
+
+        it('accepts registry tools the hardcoded list forgot', () => {
+            for (const tool of [
+                'search_collections',
+                'compare_offers',
+                'find_untranslated_cards',
+                'create_translation_project',
+            ]) {
+                expect(toolNameVerdict(tool), tool).to.not.include('Invalid MCP tool');
+            }
+        });
+
+        it('still rejects tools that exist nowhere', () => {
+            expect(toolNameVerdict('totally_fake_tool')).to.include('Invalid MCP tool');
+        });
+    });
+
     describe('parseOperationRequest', () => {
         it('returns null for empty input', () => {
             expect(parseOperationRequest('')).to.equal(null);

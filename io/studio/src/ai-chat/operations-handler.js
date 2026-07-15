@@ -9,7 +9,16 @@
  * and formats them for MCP execution in the frontend.
  */
 
-import { getIntent, isStateChanging, SLOT_VALIDATORS } from './intent-registry.js';
+import { getIntent, isStateChanging, INTENTS, SLOT_VALIDATORS } from './intent-registry.js';
+
+/**
+ * MCP tool allowlist, derived from the intent registry so the two can never
+ * drift — every registered tool_target is a valid prose-path operation.
+ * LEGACY_MCP_TOOLS covers tools the prompts still reference but the registry
+ * does not map to an intent.
+ */
+const LEGACY_MCP_TOOLS = ['create_release_cards'];
+const VALID_MCP_TOOLS = new Set([...INTENTS.map((intent) => intent.tool_target).filter(Boolean), ...LEGACY_MCP_TOOLS]);
 
 const MAX_RESPONSE_LENGTH = 64 * 1024;
 
@@ -220,29 +229,7 @@ function validateMCPOperation(operation) {
 
     operation.mcpTool = normalizeMCPToolName(operation.mcpTool);
 
-    const validMCPTools = [
-        'publish_card',
-        'unpublish_card',
-        'get_card',
-        'search_cards',
-        'copy_card',
-        'update_card',
-        'bulk_update_cards',
-        'bulk_publish_cards',
-        'preview_bulk_update',
-        'preview_bulk_publish',
-        'get_variations',
-        'resolve_offer_selector',
-        'get_offer_by_id',
-        'search_offers',
-        'list_products',
-        'get_product_by_arrangement_code',
-        'create_release_cards',
-        'create_tags',
-        'create_offer_selector',
-    ];
-
-    if (!validMCPTools.includes(operation.mcpTool)) {
+    if (!VALID_MCP_TOOLS.has(operation.mcpTool)) {
         return { valid: false, error: `Invalid MCP tool: ${operation.mcpTool}` };
     }
 

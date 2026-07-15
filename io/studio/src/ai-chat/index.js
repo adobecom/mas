@@ -513,6 +513,25 @@ async function main(params) {
     // parse-failure capture so field reports are greppable.
     const requestId = params.requestId ?? process.env.__OW_ACTIVATION_ID ?? null;
 
+    // Deterministic bypasses build envelopes from regex captures; run them
+    // through the same validator as model output. A failure means either a
+    // code bug or an active flow where the shortcut is illegal — the normal
+    // LLM path is the safe degradation, never a malformed envelope.
+    const bypassEnvelopeValid = (envelope) => {
+        const validation = validateEnvelope(envelope, { flow: params.context?.flow ?? null });
+        if (!validation.ok) {
+            console.log(
+                JSON.stringify({
+                    phase: 'bypass-validation-failed',
+                    req: requestId,
+                    reason: validation.reason,
+                    intent: envelope?.intent ?? null,
+                }),
+            );
+        }
+        return validation.ok;
+    };
+
     try {
         const { AWS_BEARER_TOKEN_BEDROCK, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION, BEDROCK_MODEL_ID } = params;
 
@@ -577,27 +596,23 @@ async function main(params) {
         const bareFragmentId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.exec(message.trim());
         if (bareFragmentId) {
             const fragmentId = bareFragmentId[0].toLowerCase();
-            console.log(`[Backend] Deterministic fragment-link bypass: ${fragmentId}`);
-            return {
-                statusCode: 200,
-                headers: { ...getResponseHeaders() },
-                body: {
-                    type: 'mcp_operation',
-                    mcpTool: 'get_card',
-                    mcpParams: { id: fragmentId },
-                    message: 'Fetching that card...',
-                    confirmationRequired: false,
-                    envelope: {
-                        intent: 'get_card',
-                        slots: { id: fragmentId },
-                        confidence: 'high',
-                        missing_slots: [],
-                        clarification_question: null,
-                        user_message: null,
+            const envelope = buildDeterministicEnvelope('get_card', { id: fragmentId });
+            if (bypassEnvelopeValid(envelope)) {
+                console.log(`[Backend] Deterministic fragment-link bypass: ${fragmentId}`);
+                return {
+                    statusCode: 200,
+                    headers: { ...getResponseHeaders() },
+                    body: {
+                        type: 'mcp_operation',
+                        mcpTool: 'get_card',
+                        mcpParams: { id: fragmentId },
+                        message: 'Fetching that card...',
+                        confirmationRequired: false,
+                        envelope,
+                        conversationHistory: [...conversationHistory, { role: 'user', content: message }],
                     },
-                    conversationHistory: [...conversationHistory, { role: 'user', content: message }],
-                },
-            };
+                };
+            }
         }
 
         const searchIntent = /\b(find|show|search|which|get|look\s*up|cards?)\b/i.test(message);
@@ -643,11 +658,13 @@ async function main(params) {
                     clarification_question: null,
                     user_message: null,
                 };
-                return {
-                    statusCode: 200,
-                    headers: { ...getResponseHeaders() },
-                    body: titleSearchBody,
-                };
+                if (bypassEnvelopeValid(titleSearchBody.envelope)) {
+                    return {
+                        statusCode: 200,
+                        headers: { ...getResponseHeaders() },
+                        body: titleSearchBody,
+                    };
+                }
             }
         }
 
@@ -672,67 +689,52 @@ async function main(params) {
                 osiCandidate &&
                 !/^[a-fA-F0-9]{32}$/.test(osiCandidate) &&
                 (osiHasMixedCase || osiCandidate.length >= 22);
-            if (looksLikeOfferId) {
-                const id = bareOfferId[1];
-                return {
-                    statusCode: 200,
-                    headers: { ...getResponseHeaders() },
-                    body: {
-                        envelope: buildDeterministicEnvelope('get_offer_by_id', { offerId: id }),
-                        type: 'mcp_operation',
-                        mcpTool: 'get_offer_by_id',
-                        mcpParams: { offerId: id },
-                        message: `Resolving offer ${id} to its product...`,
-                        confirmationRequired: false,
-                        conversationHistory: [...conversationHistory, { role: 'user', content: message }],
-                    },
-                };
-            }
-            if (looksLikeArrangement) {
-                return {
-                    statusCode: 200,
-                    headers: { ...getResponseHeaders() },
-                    body: {
-                        envelope: buildDeterministicEnvelope('get_product_by_arrangement_code', { arrangementCode }),
-                        type: 'mcp_operation',
-                        mcpTool: 'get_product_by_arrangement_code',
+            const identifierBypass = looksLikeOfferId
+                ? {
+                      intent: 'get_offer_by_id',
+                      slots: { offerId: bareOfferId[1] },
+                      mcpParams: { offerId: bareOfferId[1] },
+                      message: `Resolving offer ${bareOfferId[1]} to its product...`,
+                  }
+                : looksLikeArrangement
+                  ? {
+                        intent: 'get_product_by_arrangement_code',
+                        slots: { arrangementCode },
                         mcpParams: { arrangementCode },
                         message: `Looking up product for arrangement code ${arrangementCode}...`,
-                        confirmationRequired: false,
-                        conversationHistory: [...conversationHistory, { role: 'user', content: message }],
-                    },
-                };
-            }
-            if (looksLikeOsi) {
-                const wantsCards = /\b(cards?|find|show|which|search|using)\b/i.test(trimmed);
-                if (wantsCards) {
+                    }
+                  : looksLikeOsi
+                    ? /\b(cards?|find|show|which|search|using)\b/i.test(trimmed)
+                        ? {
+                              intent: 'search_cards',
+                              slots: { osi: osiCandidate },
+                              mcpParams: { osi: osiCandidate },
+                              message: `Searching for all cards using OSI ${osiCandidate}...`,
+                          }
+                        : {
+                              intent: 'resolve_offer_selector',
+                              slots: { offerSelectorId: osiCandidate },
+                              mcpParams: { offerSelectorId: osiCandidate },
+                              message: `Resolving OSI ${osiCandidate} to its product...`,
+                          }
+                    : null;
+            if (identifierBypass) {
+                const envelope = buildDeterministicEnvelope(identifierBypass.intent, identifierBypass.slots);
+                if (bypassEnvelopeValid(envelope)) {
                     return {
                         statusCode: 200,
                         headers: { ...getResponseHeaders() },
                         body: {
-                            envelope: buildDeterministicEnvelope('search_cards', { osi: osiCandidate }),
+                            envelope,
                             type: 'mcp_operation',
-                            mcpTool: 'search_cards',
-                            mcpParams: { osi: osiCandidate },
-                            message: `Searching for all cards using OSI ${osiCandidate}...`,
+                            mcpTool: identifierBypass.intent,
+                            mcpParams: identifierBypass.mcpParams,
+                            message: identifierBypass.message,
                             confirmationRequired: false,
                             conversationHistory: [...conversationHistory, { role: 'user', content: message }],
                         },
                     };
                 }
-                return {
-                    statusCode: 200,
-                    headers: { ...getResponseHeaders() },
-                    body: {
-                        envelope: buildDeterministicEnvelope('resolve_offer_selector', { offerSelectorId: osiCandidate }),
-                        type: 'mcp_operation',
-                        mcpTool: 'resolve_offer_selector',
-                        mcpParams: { offerSelectorId: osiCandidate },
-                        message: `Resolving OSI ${osiCandidate} to its product...`,
-                        confirmationRequired: false,
-                        conversationHistory: [...conversationHistory, { role: 'user', content: message }],
-                    },
-                };
             }
         }
 

@@ -865,6 +865,7 @@ describe('MasPromotionsEditor', () => {
             await fillValidFields(el);
             clickPromotionQuickAction(el, 'Save');
             await el.updateComplete;
+            await flushPromises();
             expect(toastEmitStub.calledWith({ variant: 'negative', content: 'Failed to create project.' })).to.be.true;
         });
 
@@ -876,6 +877,7 @@ describe('MasPromotionsEditor', () => {
             await fillValidFields(el);
             clickPromotionQuickAction(el, 'Save');
             await el.updateComplete;
+            await flushPromises();
             expect(toastEmitStub.calledWith({ variant: 'negative', content: 'Project with this name already exists.' })).to.be
                 .true;
         });
@@ -998,7 +1000,8 @@ describe('MasPromotionsEditor', () => {
             expect(tagsField.values).to.deep.equal([`${TAG_PROMOTION_PREFIX}${normalizeKey(title.trim())}`]);
         });
 
-        it('produces an empty tags array in the create payload when the title normalizes to an empty slug', async () => {
+        it('blocks create with a validation toast when the title normalizes to an empty slug', async () => {
+            const toastEmitStub = sandbox.stub(Events.toast, 'emit');
             const { el, repo } = await mountEditorWithRepo();
             await fillValidFields(el);
             const title = '!!!';
@@ -1007,10 +1010,8 @@ describe('MasPromotionsEditor', () => {
             expect(normalizeKey(title)).to.equal('');
             clickPromotionQuickAction(el, 'Save');
             await el.updateComplete;
-            expect(repo.createFragment.calledOnce).to.be.true;
-            const payload = repo.createFragment.firstCall.args[0];
-            const tagsField = payload.fields.find((f) => f.name === 'tags');
-            expect(tagsField.values).to.deep.equal([]);
+            expect(repo.createFragment.called).to.be.false;
+            expect(toastEmitStub.calledWith({ variant: 'negative', content: 'Please enter a title.' })).to.be.true;
         });
 
         it('passes promoCode field values through unchanged in the create payload', async () => {

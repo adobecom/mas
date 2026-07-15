@@ -534,7 +534,16 @@ export class MasChatMessage extends LitElement {
             this.message.mcpOperation ||
             this.showSuggestions;
 
-        if (!hasDisplayableContent && !isUser) return nothing;
+        if (!hasDisplayableContent && !isUser) {
+            console.warn('[mas-chat] assistant message had no displayable content', type);
+            return html`
+                <div class=${messageClass}>
+                    <div class="message-card">
+                        <p>I finished processing but had nothing to display. Please try rephrasing.</p>
+                    </div>
+                </div>
+            `;
+        }
 
         if (type === 'collection-selection') {
             return html`

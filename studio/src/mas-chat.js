@@ -788,11 +788,17 @@ export class MasChat extends LitElement {
                 if (response.type === 'message' && prevAssistant?.buttonGroup?.label === 'Product') {
                     await this.recoverProductLookup(message);
                 } else {
+                    if (response.type !== 'message') {
+                        console.warn('[mas-chat] unhandled response type', response.type);
+                    }
                     this.messages = [
                         ...this.messages,
                         {
                             role: 'assistant',
-                            content: response.message || 'I processed your request but have nothing further to add.',
+                            content:
+                                response.message ||
+                                response.user_message ||
+                                'I processed your request but have nothing further to add.',
                             type: response.type,
                             fragmentIds: response.fragmentIds,
                             suggestedTitle: response.suggestedTitle,
@@ -1184,7 +1190,14 @@ export class MasChat extends LitElement {
             throw new Error(error.error || 'Failed to communicate with AI service');
         }
 
-        return response.json();
+        try {
+            return await response.json();
+        } catch (error) {
+            logError('AI response body was not valid JSON', error);
+            throw new Error(
+                `The assistant service returned an unreadable response (HTTP ${response.status}). Please try again.`,
+            );
+        }
     }
 
     handleOpenOstFromResponse(event) {

@@ -277,6 +277,11 @@ merch-card[variant^="plans"]:not([size]) {
     merch-whats-included [slot="heading"] {
         width: 100%;
     }
+
+    merch-whats-included merch-mnemonic-list:not(:has([slot="description"] span:not(:empty))) {
+        width: auto;
+        margin-right: unset;
+    }
 }
 
 .tab-content-container.red-strikethrough-price merch-card[variant^="plans"] [slot="heading-m"] .price-strikethrough {
@@ -409,6 +414,11 @@ merch-card-collection:has([slot="subtitle"]) merch-card {
     merch-whats-included merch-mnemonic-list,
     merch-whats-included [slot="heading"] {
         width: 100%;
+    }
+
+    merch-whats-included merch-mnemonic-list:not(:has([slot="description"] span:not(:empty))) {
+        width: auto;
+        margin-right: unset;
     }
 
     merch-card[variant="plans-education"] .spacer {

@@ -12,6 +12,7 @@ import ReactiveController from '../reactivity/reactive-controller.js';
 import { parseStudioDeepLinksFromText, showToast } from '../utils.js';
 import { applyCorrectorToFragment } from '../utils/corrector-helper.js';
 import { renderSpIcon } from '../constants/icon-library.js';
+import '../fields/mnemonic-field.js';
 
 const CARDS_SECTION = 'cards-section';
 
@@ -1435,6 +1436,56 @@ class MerchCardCollectionEditor extends LitElement {
         `;
     }
 
+    #updateLocReady() {
+        this.fragmentStore.updateField('locReady', [!this.fragment.getField('locReady').values[0]]);
+    }
+
+    #updateFragmentInternal({ target }) {
+        this.fragmentStore.updateFieldInternal(target.dataset.field, target.value);
+    }
+
+    get #fragmentEditor() {
+        return html`
+            ${this.fragment
+                ? html`
+                      <div class="form-container">
+                          <h2>Fragment details (not shown on the card)</h2>
+                          <div class="form-row">
+                              <sp-field-label for="fragment-title">Fragment Title</sp-field-label>
+                              <sp-textfield
+                                  placeholder="Enter fragment title"
+                                  id="fragment-title"
+                                  data-field="title"
+                                  value="${this.fragment.title}"
+                                  @input=${this.#updateFragmentInternal}
+                              ></sp-textfield>
+                          </div>
+                          <div class="form-row">
+                              <sp-field-label for="fragment-description">Fragment Description</sp-field-label>
+                              <sp-textfield
+                                  placeholder="Enter fragment description"
+                                  id="fragment-description"
+                                  data-field="description"
+                                  multiline
+                                  value="${this.fragment.description}"
+                                  @input=${this.#updateFragmentInternal}
+                              >
+                              </sp-textfield>
+                          </div>
+                          <div class="form-row">
+                              <sp-switch
+                                  ?checked="${this.fragment.getField('locReady')?.values[0]}"
+                                  @change="${this.#updateLocReady}"
+                              >
+                                  Send to translation
+                              </sp-switch>
+                          </div>
+                      </div>
+                  `
+                : nothing}
+        `;
+    }
+
     render() {
         const hasCards =
             (this.fragment?.getEffectiveFieldValues('cards', this.localeDefaultFragment, this.isVariation) ?? []).length > 0;
@@ -1443,7 +1494,7 @@ class MerchCardCollectionEditor extends LitElement {
         return html`<div class="editor-container">
             ${this.#form} ${hasCards && supportsDefault ? this.#defaultCardDropZone : nothing}
             <div data-field-name="${CARDS_SECTION}">${this.#cards}</div>
-            ${this.#collections} ${this.#tip} ${this.#sidenav}
+            ${this.#collections} ${this.#tip} ${this.#sidenav} ${this.#fragmentEditor}
         </div>`;
     }
 }

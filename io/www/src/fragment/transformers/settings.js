@@ -1,9 +1,8 @@
 import { odinUrl, odinReferences } from '../utils/paths.js';
-import { fetch, getFragmentId, getRequestInfos } from '../utils/common.js';
+import { COLLECTION_MODEL_ID, fetch, getFragmentId, getRegionalLocale, getRequestInfos } from '../utils/common.js';
 import { logDebug } from '../utils/log.js';
 
 const SETTINGS_ID_PATH = 'settings/index';
-const COLLECTION_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24';
 const CONFIG_CACHE_TTL = 5 * 60 * 1000;
 
 /**
@@ -16,6 +15,7 @@ export const SETTING_NAME_DEFINITIONS = [
     { name: 'displayPlanType', valueType: 'boolean', propertyName: 'showPlanType' },
     { name: 'quantitySelect', valueType: 'optional-text', editor: 'quantity-select' },
     { name: 'hideTrialCTAs', valueType: 'boolean' },
+    { name: 'additionalModalTriggers', valueType: 'boolean' },
 ];
 
 export const SETTING_NAME_BY_VALUE = new Map(SETTING_NAME_DEFINITIONS.map((definition) => [definition.name, definition]));
@@ -166,7 +166,21 @@ export function resolveSettingEntry(fragment, locale, setting) {
     const defaultEntry = setting.default;
     if (!defaultEntry) return null;
     const template = fragment.fields?.variant;
-    if (defaultEntry.templates?.length > 0 && !defaultEntry.templates.includes(template)) return null;
+    if (defaultEntry.templates?.length > 0 && !defaultEntry.templates.includes(template)) {
+        const definition = SETTING_NAME_BY_VALUE.get(defaultEntry.name);
+        const fragmentValue = fragment.fields[definition?.propertyName || definition?.name];
+        if (typeof fragmentValue !== 'undefined') {
+            const isBoolean = 'boolean' === typeof normalizeBoolean(fragmentValue);
+            const entry = {
+                ...defaultEntry,
+                templates: [],
+                [isBoolean ? 'booleanValue' : 'textValue']: fragmentValue,
+            };
+            if (!isBoolean) entry.booleanValue = true;
+            return entry;
+        }
+        return null;
+    }
     const fragmentTags = fragment.fields?.tags ?? [];
     const filtered = setting.override.filter((overrideSetting) => {
         const localeOk =
@@ -175,7 +189,11 @@ export function resolveSettingEntry(fragment, locale, setting) {
             !overrideSetting.tags ||
             overrideSetting.tags.length === 0 ||
             overrideSetting.tags.some((tag) => fragmentTags.includes(tag));
-        return localeOk && tagsOk;
+        const templateOk =
+            !overrideSetting.templates ||
+            overrideSetting.templates.length === 0 ||
+            overrideSetting.templates.includes(template);
+        return localeOk && tagsOk && templateOk;
     });
     if (filtered.length === 0) return defaultEntry;
     let bestMatch = defaultEntry;
@@ -283,7 +301,8 @@ async function settings(context) {
 
     logDebug(() => `Settings transformer: fetched settings ${JSON.stringify(settings)}`, context);
 
-    const { body, locale } = context;
+    const { body } = context;
+    const locale = getRegionalLocale(context);
 
     if (settings) {
         if (body?.model?.id === COLLECTION_MODEL_ID) {

@@ -1,4 +1,4 @@
-import { ENVS, EnvColorCode, WCS_LANDSCAPE_DRAFT, WCS_LANDSCAPE_PUBLISHED, PAGE_NAMES } from './constants.js';
+import { ENVS, EnvColorCode, WCS_LANDSCAPE_DRAFT, WCS_LANDSCAPE_PUBLISHED, PAGE_NAMES, PICKERS } from './constants.js';
 import { LitElement, html, nothing } from 'lit';
 import { keyed } from 'lit/directives/keyed.js';
 import { until } from 'lit/directives/until.js';
@@ -22,6 +22,7 @@ class MasTopNav extends LitElement {
     promotions = Store.promotions;
     translationProjects = Store.translationProjects;
     bulkPublishProjects = Store.bulkPublishProjects;
+    masks = Store.masks;
 
     reactiveController = new ReactiveController(this, [
         this.page,
@@ -38,6 +39,8 @@ class MasTopNav extends LitElement {
         this.translationProjects.inEdit,
         this.bulkPublishProjects.inEdit,
         this.bulkPublishProjects.projectId,
+        this.masks.fragmentId,
+        this.masks.creating,
     ]);
 
     createRenderRoot() {
@@ -108,7 +111,7 @@ class MasTopNav extends LitElement {
 
     static properties = {
         aemEnv: { type: String, attribute: 'aem-env' },
-        showPickers: { type: Boolean, attribute: 'show-pickers' },
+        pickersToHide: { type: Array, attribute: 'pickers-to-hide' },
     };
 
     profileTemplatePromise = null;
@@ -116,7 +119,7 @@ class MasTopNav extends LitElement {
     constructor() {
         super();
         this.aemEnv = 'prod';
-        this.showPickers = true;
+        this.pickersToHide = [];
         this.search.subscribe(() => {
             this.requestUpdate();
         });
@@ -133,10 +136,6 @@ class MasTopNav extends LitElement {
             this.profileTemplatePromise = this.profileBuilder().then((profile) => html`${profile}`);
         }
         return this.profileTemplatePromise;
-    }
-
-    get shouldShowPickers() {
-        return this.showPickers;
     }
 
     get isContentPage() {
@@ -175,13 +174,30 @@ class MasTopNav extends LitElement {
         return this.page.value === PAGE_NAMES.BULK_PUBLISH_EDITOR;
     }
 
+    get isPromotionsPage() {
+        return this.page.value === PAGE_NAMES.PROMOTIONS;
+    }
+
+    get isPromotionsEditorPage() {
+        return this.page.value === PAGE_NAMES.PROMOTIONS_EDITOR;
+    }
+
+    get isMasksEditorPage() {
+        return this.page.value === PAGE_NAMES.MASKS_EDITOR;
+    }
+
+    get masksEditorBreadcrumbLabel() {
+        return this.masks.creating.get() ? 'New mask' : 'Editor';
+    }
+
     get topNavLocale() {
         if (this.isFragmentEditorPage) {
             const fragmentId = this.inEdit.get()?.get()?.id;
             if (this.editorContext.isGroupedVariationByPath) {
-                return Store.localeOrRegion();
+                const locale = Store.filters.value.locale;
+                return getDefaultLocaleCode(Store.surface(), locale) || locale;
             }
-            if (this.editorContext.isVariation(fragmentId) && this.editorContext.localeDefaultFragment?.path) {
+            if (this.editorContext.isLocaleVariation(fragmentId) && this.editorContext.localeDefaultFragment?.path) {
                 return extractLocaleFromPath(this.editorContext.localeDefaultFragment.path);
             }
         }
@@ -198,7 +214,7 @@ class MasTopNav extends LitElement {
             // so users can browse to locale variations
             const fragmentId = this.inEdit.get()?.get()?.id;
             if (this.editorContext.isGroupedVariationByPath) return false;
-            return this.editorContext.isVariation(fragmentId);
+            return this.editorContext.isLocaleVariation(fragmentId);
         }
         return true;
     }
@@ -241,7 +257,9 @@ class MasTopNav extends LitElement {
                     const translatedLocales = Store.fragmentEditor.translatedLocales.get();
                     const enUsTranslation = translatedLocales?.find((t) => t.locale === 'en_US');
                     const enUsFragmentId = enUsTranslation?.id || currentFragment?.id;
-                    router.navigateToFragmentEditor(enUsFragmentId);
+                    if (enUsFragmentId && enUsFragmentId !== currentFragment?.id) {
+                        router.navigateToFragmentEditor(enUsFragmentId);
+                    }
                 }
             }
             return;
@@ -261,7 +279,7 @@ class MasTopNav extends LitElement {
     }
 
     get promotionsEditorBreadcrumbLabel() {
-        return this.promotions.promotionId.get() ? 'Edit project' : 'Create new project';
+        return this.promotions.promotionId.get() ? 'Edit promotion project' : 'Create new promotion project';
     }
 
     get translationEditorBreadcrumbLabel() {
@@ -293,6 +311,21 @@ class MasTopNav extends LitElement {
         };
 
         if (this.page.value === PAGE_NAMES.FRAGMENT_EDITOR) {
+            const promotionId = this.promotions.promotionId.get();
+            if (promotionId) {
+                return [
+                    { label: 'Promotions', handler: handlers.promotions },
+                    {
+                        label: this.promotionsEditorBreadcrumbLabel,
+                        handler: () => {
+                            const id = this.promotions.promotionId.get();
+                            if (id) Store.promotions.promotionId.set(id);
+                            router.navigateToPage(PAGE_NAMES.PROMOTIONS_EDITOR)();
+                        },
+                    },
+                    { label: 'Edit promotion variation' },
+                ];
+            }
             return [{ label: 'Fragments', handler: handlers.content }, { label: 'Editor' }];
         }
         if (this.page.value === PAGE_NAMES.VERSION) {
@@ -335,6 +368,12 @@ class MasTopNav extends LitElement {
                 { label: this.bulkPublishEditorBreadcrumbLabel },
             ];
         }
+        if (this.page.value === PAGE_NAMES.MASKS_EDITOR) {
+            return [
+                { label: 'Masks', handler: () => router.navigateToPage(PAGE_NAMES.MASKS)() },
+                { label: this.masksEditorBreadcrumbLabel },
+            ];
+        }
 
         return [];
     }
@@ -361,10 +400,10 @@ class MasTopNav extends LitElement {
     get historyNavigationTemplate() {
         return html`
             <div class="history-navigation" aria-label="History navigation">
-                <button class="history-nav-button" type="button" aria-label="Back">
+                <button class="history-nav-button" type="button" aria-label="Back" @click=${() => history.back()}>
                     <sp-icon-chevron-left size="s"></sp-icon-chevron-left>
                 </button>
-                <button class="history-nav-button" type="button" aria-label="Forward" disabled>
+                <button class="history-nav-button" type="button" aria-label="Forward" @click=${() => history.forward()}>
                     <sp-icon-chevron-right size="s"></sp-icon-chevron-right>
                 </button>
             </div>
@@ -403,22 +442,27 @@ class MasTopNav extends LitElement {
                 <div class="spacer"></div>
 
                 <div class="right-section">
-                    ${this.shouldShowPickers
-                        ? html`
-                              <mas-nav-folder-picker
-                                  ?disabled=${this.isFragmentEditorPage ||
-                                  this.isTranslationEditorPage ||
-                                  this.isSettingsEditorPage ||
-                                  this.isBulkPublishEditorPage}
-                              ></mas-nav-folder-picker>
-                              <mas-locale-picker
-                                  displayMode="strong"
-                                  @locale-changed=${this.onLocaleChanged}
-                                  ?disabled=${this.isLocalePickerDisabled}
-                                  surface=${Store.surface()}
-                                  locale=${this.topNavLocale}
-                              ></mas-locale-picker>
-                              <sp-switch
+                    ${!this.pickersToHide.includes(PICKERS.FOLDER)
+                        ? html` <mas-nav-folder-picker
+                              ?disabled=${this.isFragmentEditorPage ||
+                              this.isTranslationEditorPage ||
+                              this.isSettingsEditorPage ||
+                              this.isBulkPublishEditorPage ||
+                              this.isPromotionsPage ||
+                              this.isPromotionsEditorPage}
+                          ></mas-nav-folder-picker>`
+                        : nothing}
+                    ${!this.pickersToHide.includes(PICKERS.LOCALE)
+                        ? html` <mas-locale-picker
+                              displayMode="strong"
+                              @locale-changed=${this.onLocaleChanged}
+                              ?disabled=${this.isLocalePickerDisabled}
+                              surface=${Store.surface()}
+                              locale=${this.topNavLocale}
+                          ></mas-locale-picker>`
+                        : nothing}
+                    ${!this.pickersToHide.includes(PICKERS.LANDSCAPE)
+                        ? html` <sp-switch
                                   class="landscape-switch"
                                   size="m"
                                   ?checked=${this.isDraftLandscape}
@@ -436,9 +480,8 @@ class MasTopNav extends LitElement {
                                   <button class="icon-button" title="Notifications">
                                       <sp-icon-bell size="m"></sp-icon-bell>
                                   </button>
-                              </div>
-                          `
-                        : ''}
+                              </div>`
+                        : nothing}
                     ${until(this.getProfileTemplate())}
                 </div>
             </nav>

@@ -253,8 +253,8 @@ merch-card[variant="full-pricing-express"] [slot="price"] {
     justify-content: center;
 }
 
-merch-card[id][variant="full-pricing-express"] [data-template="price"] .price-strikethrough span:is(.price-tax-inclusivity, .price-recurrence, .price-unit-type),
-merch-card[id][variant="full-pricing-express"] [data-template="strikethrough"]:has(+ [data-template="price"]) span:is(.price-tax-inclusivity, .price-recurrence, .price-unit-type) {
+merch-card[variant="full-pricing-express"] [data-template="price"] .price-strikethrough span.price-recurrence,
+merch-card[variant="full-pricing-express"] [data-template="strikethrough"]:has(+ [data-template="price"]) span.price-recurrence {
     display: none;
 }
 
@@ -600,6 +600,43 @@ merch-card[variant="full-pricing-express"] mas-mnemonic {
     merch-card[variant="full-pricing-express"] [slot="body-s"] > p:last-child {
         margin-top: 0;
         margin-bottom: 0;
+    }
+
+    merch-card[variant="full-pricing-express"] [slot="body-s"] > *:nth-child(1) {
+        min-height: var(--consonant-merch-card-full-pricing-express-description-row-0-height);
+    }
+    merch-card[variant="full-pricing-express"] [slot="body-s"] > *:nth-child(2) {
+        min-height: var(--consonant-merch-card-full-pricing-express-description-row-1-height);
+    }
+    merch-card[variant="full-pricing-express"] [slot="body-s"] > *:nth-child(3) {
+        min-height: var(--consonant-merch-card-full-pricing-express-description-row-2-height);
+    }
+    merch-card[variant="full-pricing-express"] [slot="body-s"] > *:nth-child(4) {
+        min-height: var(--consonant-merch-card-full-pricing-express-description-row-3-height);
+    }
+    merch-card[variant="full-pricing-express"] [slot="body-s"] > *:nth-child(5) {
+        min-height: var(--consonant-merch-card-full-pricing-express-description-row-4-height);
+    }
+    merch-card[variant="full-pricing-express"] [slot="body-s"] > *:nth-child(6) {
+        min-height: var(--consonant-merch-card-full-pricing-express-description-row-5-height);
+    }
+    merch-card[variant="full-pricing-express"] [slot="body-s"] > *:nth-child(7) {
+        min-height: var(--consonant-merch-card-full-pricing-express-description-row-6-height);
+    }
+    merch-card[variant="full-pricing-express"] [slot="body-s"] > *:nth-child(8) {
+        min-height: var(--consonant-merch-card-full-pricing-express-description-row-7-height);
+    }
+    merch-card[variant="full-pricing-express"] [slot="body-s"] > *:nth-child(9) {
+        min-height: var(--consonant-merch-card-full-pricing-express-description-row-8-height);
+    }
+    merch-card[variant="full-pricing-express"] [slot="body-s"] > *:nth-child(10) {
+        min-height: var(--consonant-merch-card-full-pricing-express-description-row-9-height);
+    }
+    merch-card[variant="full-pricing-express"] [slot="body-s"] > *:nth-child(11) {
+        min-height: var(--consonant-merch-card-full-pricing-express-description-row-10-height);
+    }
+    merch-card[variant="full-pricing-express"] [slot="body-s"] > *:nth-child(12) {
+        min-height: var(--consonant-merch-card-full-pricing-express-description-row-11-height);
     }
 }
 `;

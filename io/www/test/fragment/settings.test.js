@@ -1,5 +1,6 @@
 import { expect } from 'chai';
 import sinon from 'sinon';
+import { COLLECTION_MODEL_ID } from '../../src/fragment/utils/common.js';
 import {
     transformer as settings,
     getSettings,
@@ -339,7 +340,7 @@ describe('settings', () => {
             const context = {
                 locale: 'fr_FR',
                 body: {
-                    model: { id: 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24' },
+                    model: { id: COLLECTION_MODEL_ID },
                     references: {
                         ref1: {
                             type: 'content-fragment',
@@ -395,6 +396,58 @@ describe('settings', () => {
             };
             const result = await settings.process(context);
             expect(result.body.settings).to.be.undefined;
+        });
+
+        it('falls back to default quantitySelect when enabled in card fragment', async () => {
+            const context = {
+                locale: 'en_US',
+                body: { fields: { variant: 'plans', tags: [] } },
+                promises: {
+                    settings: Promise.resolve({
+                        addon: {
+                            default: {
+                                name: 'quantitySelect',
+                                templates: ['plans'],
+                                locales: [],
+                                tags: [],
+                                valuetype: 'optional-text',
+                                textValue:
+                                    '<merch-quantity-select title=\"Select quantity\" min=\"2\" default-value=\"3\" max=\"10\" step=\"1\"></merch-quantity-select>',
+                                booleanValue: true,
+                            },
+                            override: [],
+                        },
+                    }),
+                },
+            };
+            const result = await settings.process(context);
+            expect(result.body.settings.quantitySelect).to.equal(
+                '<merch-quantity-select title=\"Select quantity\" min=\"2\" default-value=\"3\" max=\"10\" step=\"1\"></merch-quantity-select>',
+            );
+        });
+
+        it('falls back to default additionalModalTriggers when enabled in card fragment', async () => {
+            const context = {
+                locale: 'en_US',
+                body: { fields: { variant: 'plans', tags: [] } },
+                promises: {
+                    settings: Promise.resolve({
+                        addon: {
+                            default: {
+                                name: 'additionalModalTriggers',
+                                templates: ['plans'],
+                                locales: [],
+                                tags: [],
+                                valuetype: 'boolean',
+                                booleanValue: true,
+                            },
+                            override: [],
+                        },
+                    }),
+                },
+            };
+            const result = await settings.process(context);
+            expect(result.body.settings.additionalModalTriggers).to.be.true;
         });
 
         it('handles missing body', async () => {

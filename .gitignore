@@ -32,6 +32,7 @@ nala/.auth/
 !.claude/commands/**
 extension/.claude/
 .logs/
+.scout
 .specify/
 .worktrees/
 .pids
@@ -40,6 +41,9 @@ extension/.claude/
 reports/
 /.superpowers
 .logs
+.scout
+.scout/**
+
 
 # IO Runtime Config
 config.json
@@ -50,8 +54,9 @@ masStudio-*.json
 .cursor
 .superpowers/
 
+
 # Worktree documentation (per-ticket, not committed)
-docs/
+/docs/
 
 # web-components specific
 !web-components/dist

@@ -1,13 +1,18 @@
 import { LitElement, html, css, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import { AEM } from './aem.js';
-import { AEM_TAG_PATH_PRODUCT_CODE_ROOT, EVENT_OST_OFFER_SELECT } from '../constants.js';
+import {
+    AEM_TAG_PATH_PRODUCT_CODE_ROOT,
+    COMPARE_CHART_CREATE_TYPE,
+    EVENT_OST_OFFER_SELECT,
+    TAG_COMPARE_CHART_PATH,
+} from '../constants.js';
 import { isPznCountryTagPath } from '../common/utils/personalization-utils.js';
 import { VARIANTS } from '../editors/variant-picker.js';
 import { getItemFieldState } from '../utils/field-state.js';
 import { getService } from '../utils.js';
 import { AEM_TAG_PATTERN, fromAttribute, toAttribute } from './tag-path-utils.js';
-import { getNamespaceCache, setNamespaceCache } from './tag-cache.js';
+import { ensureNamespaceTags, getNamespaceCache } from './tag-cache.js';
 
 const PRODUCT_CODE_TAG_PREFIX = `${AEM_TAG_PATH_PRODUCT_CODE_ROOT}/`;
 const SELECTION_CHECKBOX = 'checkbox';
@@ -56,6 +61,8 @@ class AemTagPickerField extends LitElement {
         personalizationEnabled: { type: Boolean, attribute: 'personalization-enabled' },
         /** When true, all interactive controls (trigger, search, checkboxes, reset/apply) are locked. */
         disabled: { type: Boolean, reflect: true },
+        /** When set, overrides the selection-derived quiet styling of the trigger button. */
+        quiet: { type: Boolean },
     };
 
     static styles = css`
@@ -110,10 +117,6 @@ class AemTagPickerField extends LitElement {
         sp-action-button {
             display: flex;
             flex-direction: row-reverse;
-        }
-
-        sp-action-button[slot='trigger'] {
-            --mod-actionbutton-border-radius: 16px;
         }
 
         sp-popover.checkbox-popover {
@@ -252,9 +255,7 @@ class AemTagPickerField extends LitElement {
 
     #onOstSelect = async ({ detail: { offerSelectorId, offer } }) => {
         if (!offer) return;
-        if (this.#data instanceof Promise) {
-            await this.#data;
-        }
+        await this.#ensureNamespaceLoaded();
         const productArrangementCode = await this.#getOfferProductArrangementCode(offerSelectorId, offer);
         const extractedOffer = {
             offer_type: offer.offer_type,
@@ -346,7 +347,10 @@ class AemTagPickerField extends LitElement {
     }
 
     get selectedTags() {
-        return this.#asValueArray().map((path) => this.#data.get(path));
+        if (!this.ready) return [];
+        return this.#asValueArray()
+            .map((path) => this.#data.get(path))
+            .filter(Boolean);
     }
 
     clear() {
@@ -368,23 +372,27 @@ class AemTagPickerField extends LitElement {
         });
     }
 
+    addContentTypeTags() {
+        if (this.top !== 'studio/content-type') return;
+        // AEM may not have the compare-chart content-type tag yet, but Studio can create and filter it.
+        this.#data.set(TAG_COMPARE_CHART_PATH, {
+            name: COMPARE_CHART_CREATE_TYPE,
+            title: 'Compare chart',
+            path: TAG_COMPARE_CHART_PATH,
+        });
+    }
+
+    async #ensureNamespaceLoaded() {
+        if (getNamespaceCache(this.namespace)) return;
+        await ensureNamespaceTags(this.namespace, (ns) => this.#aem.tags.list(ns));
+    }
+
     async loadTags() {
-        if (!this.#data) {
-            let resolveNamespace;
-            setNamespaceCache(
-                this.namespace,
-                new Promise((resolve) => {
-                    resolveNamespace = resolve;
-                }),
-            );
-            const rawTags = await this.#aem.tags.list(this.namespace);
-            if (!rawTags) return;
-            setNamespaceCache(this.namespace, new Map(rawTags.hits.map((tag) => [tag.path, tag])));
-            resolveNamespace();
-        } else if (this.#data instanceof Promise) {
-            // If still loading, wait
-            await this.#data;
+        if (!getNamespaceCache(this.namespace)) {
+            await ensureNamespaceTags(this.namespace, (ns) => this.#aem.tags.list(ns));
         }
+
+        this.addContentTypeTags();
 
         let allTags = [...this.#data.values()].filter((tag) => this.#tagRoots.some((root) => tag.path.startsWith(root)));
         if (this.top === 'pzn') {
@@ -469,7 +477,7 @@ class AemTagPickerField extends LitElement {
 
     // For hierarchical or single-click modes
     async toggleTag(path) {
-        await this.#data; // ensure data is loaded first
+        await this.#ensureNamespaceLoaded();
         let currentValue = [...this.#asValueArray()];
         const storedPath = this.#toStoredValue(path);
         const equivalentPath = this.#toPath(path);
@@ -688,8 +696,11 @@ class AemTagPickerField extends LitElement {
     // Keep the internal state & notify on changes
     updated(changedProperties) {
         if (changedProperties.has('value')) {
+            const previousValue = this.#asValueArray(changedProperties.get('value'));
             const currentValue = this.#asValueArray();
-            this.tempValue = this.isCheckboxTagsMode ? this.#selectedPaths(currentValue) : [...currentValue];
+            if (!this.#hasSameSelections(previousValue, currentValue)) {
+                this.tempValue = this.isCheckboxTagsMode ? this.#selectedPaths(currentValue) : [...currentValue];
+            }
         }
         this.#updateMargin();
     }
@@ -732,6 +743,10 @@ class AemTagPickerField extends LitElement {
 
     get isCheckboxTagsMode() {
         return this.selection === SELECTION_CHECKBOX_TAGS;
+    }
+
+    get #triggerQuiet() {
+        return this.quiet ?? !this.isCheckboxTagsMode;
     }
 
     get #checkboxListDisabled() {
@@ -910,7 +925,7 @@ class AemTagPickerField extends LitElement {
             <overlay-trigger placement="bottom" @sp-closed=${this.#handleCheckoxMenuClose}>
                 <sp-action-button
                     slot="trigger"
-                    ?quiet=${!this.isCheckboxTagsMode}
+                    ?quiet=${this.#triggerQuiet}
                     aria-label=${this.triggerLabel}
                     ?disabled=${this.disabled}
                 >

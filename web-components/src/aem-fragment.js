@@ -14,6 +14,8 @@ const ATTRIBUTE_FRAGMENT = 'fragment';
 const ATTRIBUTE_AUTHOR = 'author';
 const ATTRIBUTE_PREVIEW = 'preview';
 const ATTRIBUTE_LOADING = 'loading';
+const ATTRIBUTE_MASK = 'mask';
+const ATTRIBUTE_PZN = 'pzn';
 const ATTRIBUTE_TIMEOUT = 'timeout';
 const AEM_FRAGMENT_TAG_NAME = 'aem-fragment';
 const LOADING_EAGER = 'eager';
@@ -111,8 +113,8 @@ class FragmentCache {
         return promise;
     }
 
-    getFetchInfo(fragmentId) {
-        let fetchInfo = this.#fetchInfos.get(fragmentId);
+    getFetchInfo(cacheKey) {
+        let fetchInfo = this.#fetchInfos.get(cacheKey);
         if (!fetchInfo) {
             fetchInfo = {
                 url: null,
@@ -121,9 +123,17 @@ class FragmentCache {
                 measure: null,
                 status: null,
             };
-            this.#fetchInfos.set(fragmentId, fetchInfo);
+            this.#fetchInfos.set(cacheKey, fetchInfo);
         }
         return fetchInfo;
+    }
+
+    set(key, fragment) {
+        this.#fragmentCache.set(key, fragment);
+        if (this.#promises.has(key)) {
+            const [, resolve] = this.#promises.get(key);
+            resolve();
+        }
     }
 
     remove(fragmentId) {
@@ -156,6 +166,8 @@ export class AemFragment extends HTMLElement {
     #fragmentId;
     #fetchInfo;
     #loading = LOADING_EAGER;
+    #mask;
+    #pzn;
     #timeout = 5000;
 
     /**
@@ -175,13 +187,25 @@ export class AemFragment extends HTMLElement {
             ATTRIBUTE_TIMEOUT,
             ATTRIBUTE_AUTHOR,
             ATTRIBUTE_PREVIEW,
+            ATTRIBUTE_MASK,
+            ATTRIBUTE_PZN,
         ];
+    }
+
+    cacheKey() {
+        return `${this.#fragmentId}${this.#pzn ? `-p_${this.#pzn}` : ''}${this.#mask ? `-m_${this.#mask}` : ''}`;
     }
 
     attributeChangedCallback(name, oldValue, newValue) {
         if (name === ATTRIBUTE_FRAGMENT) {
             this.#fragmentId = newValue;
-            this.#fetchInfo = cache.getFetchInfo(newValue);
+            this.#fetchInfo = cache.getFetchInfo(this.cacheKey());
+        }
+        if (name === ATTRIBUTE_MASK) {
+            this.#mask = newValue;
+        }
+        if (name === ATTRIBUTE_PZN) {
+            this.#pzn = newValue;
         }
         if (name === ATTRIBUTE_LOADING && LOADING_VALUES.includes(newValue)) {
             this.#loading = newValue;
@@ -222,15 +246,13 @@ export class AemFragment extends HTMLElement {
     }
 
     /**
-     * Get fragment by ID
+     * Get fragment
      * @param {string} endpoint url to fetch fragment from
-     * @param {string} id fragment id
-     * @param {string} startMark performance mark to measure duration
      * @returns {Promise<Object>} the raw fragment item
      */
-    async #getFragmentById(endpoint) {
+    async #getFragment(endpoint) {
         this.#fetchCount++;
-        const markPrefix = `${AEM_FRAGMENT_TAG_NAME}:${this.#fragmentId}:${this.#fetchCount}`;
+        const markPrefix = `${AEM_FRAGMENT_TAG_NAME}:${this.cacheKey()}:${this.#fetchCount}`;
         const startMarkName = `${markPrefix}${MARK_START_SUFFIX}`;
         const measureName = `${markPrefix}${MARK_DURATION_SUFFIX}`;
         if (this.#preview) {
@@ -294,11 +316,11 @@ export class AemFragment extends HTMLElement {
             if (!ready) return; // already fetching data
         }
         if (flushCache) {
-            cache.remove(this.#fragmentId);
+            cache.remove(this.cacheKey());
         }
         if (this.#loading === LOADING_CACHE) {
             await Promise.race([
-                cache.getAsPromise(this.#fragmentId),
+                cache.getAsPromise(this.cacheKey()),
                 new Promise((resolve) => setTimeout(resolve, this.#timeout)),
             ]);
         }
@@ -353,7 +375,7 @@ export class AemFragment extends HTMLElement {
     async #fetchData() {
         this.classList.remove('error');
         this.#data = null;
-        let fragment = cache.get(this.#fragmentId);
+        let fragment = cache.get(this.cacheKey());
         if (fragment) {
             this.#rawData = fragment;
             return true;
@@ -364,9 +386,21 @@ export class AemFragment extends HTMLElement {
             endpoint += `&country=${country}`;
         }
 
-        fragment = await this.#getFragmentById(endpoint);
+        if (this.#mask) {
+            endpoint += `&mask=${this.#mask}`;
+        }
+
+        if (this.#pzn) {
+            endpoint += `&pzn=${this.#pzn}`;
+        }
+
+        fragment = await this.#getFragment(endpoint);
         fragment.fields.originalId ??= this.#fragmentId;
-        cache.add(fragment);
+        if (this.#mask || this.#pzn) {
+            cache.set(this.cacheKey(), fragment);
+        } else {
+            cache.add(fragment);
+        }
         this.#rawData = fragment;
         return true;
     }
@@ -396,8 +430,11 @@ export class AemFragment extends HTMLElement {
         const {
             fields,
             id,
+            maskId,
             tags,
             variationId,
+            promoProject,
+            promoVariationProject,
             settings = {},
             priceLiterals = {},
             dictionary = {},
@@ -415,13 +452,17 @@ export class AemFragment extends HTMLElement {
                 settings,
                 priceLiterals,
                 dictionary,
+                maskId,
                 placeholders,
                 variationId,
+                promoProject,
+                promoVariationProject,
             },
         );
     }
 
     transformPublishData() {
+        if (!this.#rawData) return;
         const {
             fields,
             id,
@@ -429,8 +470,11 @@ export class AemFragment extends HTMLElement {
             settings = {},
             priceLiterals = {},
             dictionary = {},
+            maskId,
             placeholders = {},
             variationId,
+            promoProject,
+            promoVariationProject,
         } = this.#rawData;
         this.#data = Object.entries(fields).reduce(
             (acc, [key, value]) => {
@@ -444,8 +488,11 @@ export class AemFragment extends HTMLElement {
                 settings,
                 priceLiterals,
                 dictionary,
+                maskId,
                 placeholders,
                 variationId,
+                promoProject,
+                promoVariationProject,
             },
         );
     }
@@ -479,7 +526,7 @@ export class AemFragment extends HTMLElement {
     async generatePreview() {
         const fragmentClientUrl = this.getFragmentClientUrl();
         const { previewFragment } = await import(fragmentClientUrl);
-        const options = {
+        const defaultOptions = {
             locale: this.#service.settings.locale,
             apiKey: this.#service.settings.wcsApiKey,
             fullContext: true,
@@ -487,9 +534,12 @@ export class AemFragment extends HTMLElement {
         const instant =
             new URLSearchParams(window.location.search).get('instant') ??
             this.#service.settings.instant;
-        if (instant) {
-            options.instant = instant;
-        }
+        const options = {
+            ...defaultOptions,
+            ...(instant != null ? { instant } : {}),
+            ...(this.#mask != null ? { mask: this.#mask } : {}),
+            ...(this.#pzn != null ? { pzn: this.#pzn } : {}),
+        };
         const data = await previewFragment(this.#fragmentId, options);
         return data;
     }

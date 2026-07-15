@@ -1,5 +1,6 @@
 import { expect } from 'chai';
 import sinon from 'sinon';
+import { CARD_MODEL_ID } from '../../src/fragment/utils/common.js';
 import { resetCache } from '../../src/fragment/pipeline.js';
 import { clearSettingsCache } from '../../src/fragment/transformers/settings.js';
 import { clearPromoCache } from '../../src/fragment/transformers/promotions.js';
@@ -109,7 +110,7 @@ describe('pipeline end to end', () => {
         });
         expect(result.statusCode).to.equal(200);
         expect(result.body).to.deep.include({
-            path: '/content/dam/mas/sandbox/fr_CA/ccd-slice-wide-cc-all-app',
+            path: '/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app',
             id: 'some-fr-fr-fragment',
         });
         expect(result.headers).to.have.property('Last-Modified');
@@ -140,16 +141,156 @@ describe('pipeline end to end', () => {
         });
         expect(result.statusCode).to.equal(200);
         expect(result.body).to.deep.include({
-            path: '/content/dam/mas/sandbox/fr_CA/ccd-slice-wide-cc-all-app',
+            path: '/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app',
             id: 'some-fr-fr-fragment',
         });
         expect(result.headers).to.have.property('Last-Modified');
         expect(result.headers).to.have.property('ETag');
         expect(Object.keys(state.store).length).to.equal(1);
-        expect(state.store).to.have.property('req-some-en-us-fragment-fr_CA');
-        const json = JSON.parse(state.store['req-some-en-us-fragment-fr_CA']);
+        expect(state.store).to.have.property('req-some-en-us-fragment-fr_FR-CA');
+        const json = JSON.parse(state.store['req-some-en-us-fragment-fr_FR-CA']);
         expect(json.fragmentsIds['dictionary-id']).to.not.equal('sandbox_fr_FR_dictionary');
         expect(json.fragmentsIds['default-locale-id']).to.equal('some-fr-fr-fragment');
+    });
+
+    it('should fetch dictionary from regional path when locale=fr_FR + country=BE', async () => {
+        setupFragmentMocks(fetchStub, { id: 'some-en-us-fragment', path: 'someFragment' });
+        // Override the fr_FR dictionary stub from setupFragmentMocks → empty response to ensure
+        // a fr_FR fetch would NOT yield a dictionary-id (forces the regression test to be honest).
+        fetchStub
+            .withArgs(
+                'https://odin.adobe.com/adobe/contentFragments/byPath?path=/content/dam/mas/sandbox/fr_FR/dictionary/index',
+            )
+            .returns(createResponse(200, {}));
+        // Mock fr_BE dictionary explicitly.
+        fetchStub
+            .withArgs(
+                'https://odin.adobe.com/adobe/contentFragments/byPath?path=/content/dam/mas/sandbox/fr_BE/dictionary/index',
+            )
+            .returns(createResponse(200, { id: 'sandbox_fr_BE_dictionary' }));
+        fetchStub
+            .withArgs('https://odin.adobe.com/adobe/contentFragments/sandbox_fr_BE_dictionary?references=all-hydrated')
+            .returns(createResponse(200, { id: 'sandbox_fr_BE_dictionary', references: {} }));
+        const state = new MockState();
+        const result = await getFragment({
+            id: 'some-en-us-fragment',
+            state,
+            locale: 'fr_FR',
+            country: 'BE',
+        });
+        expect(result.statusCode).to.equal(200);
+        expect(state.store).to.have.property('req-some-en-us-fragment-fr_FR-BE');
+        const json = JSON.parse(state.store['req-some-en-us-fragment-fr_FR-BE']);
+        expect(json.fragmentsIds['dictionary-id']).to.equal('sandbox_fr_BE_dictionary');
+    });
+
+    it('should NOT apply fr_FR settings override when country=CA forces regionLocale=fr_CA', async () => {
+        setupFragmentMocks(fetchStub, { id: 'some-en-us-fragment', path: 'someFragment' });
+        const state = new MockState();
+        const result = await getFragment({
+            id: 'some-en-us-fragment',
+            state,
+            locale: 'fr_FR',
+            country: 'CA',
+        });
+        expect(result.statusCode).to.equal(200);
+        // Override `secureLabel` locales = ["fr_FR","fr_BE","fr_CH"] (NOT fr_CA). When the regional
+        // locale is fr_CA, the override must NOT fire — default booleanValue=false → optional-text
+        // returns ''. If settings see the request locale (fr_FR) by mistake, override fires and
+        // secureLabel becomes '{{secure-label}}' (or 'secure-label' after replace).
+        expect(result.body.settings?.secureLabel).to.equal('');
+    });
+
+    it('should include pzn segment in cache key when pzn is provided', async () => {
+        setupFragmentMocks(fetchStub, {
+            id: 'some-en-us-fragment',
+            path: 'someFragment',
+        });
+        const state = new MockState();
+        const result = await getFragment({
+            id: 'some-en-us-fragment',
+            state: state,
+            locale: 'fr_FR',
+            pzn: 'segment-A',
+        });
+        expect(result.statusCode).to.equal(200);
+        expect(state.store).to.have.property('req-some-en-us-fragment-fr_FR-p_segment-A');
+    });
+
+    function stubMask(fetchStub) {
+        // Mask fragment: variables map 'promo-label' to '{{select}}', a key already in the
+        // dictionary mock — replace resolves the nested placeholder in a second pass.
+        fetchStub
+            .withArgs(
+                'https://odin.adobe.com/adobe/contentFragments/byPath?path=/content/dam/mas/sandbox/fr_FR/masks/black-friday',
+            )
+            .returns(createResponse(200, { id: 'mask-holiday-id' }));
+        fetchStub
+            .withArgs('https://odin.adobe.com/adobe/contentFragments/byPath?path=/content/dam/mas/sandbox/fr_FR/masks/holiday')
+            .returns(createResponse(200, { id: 'mask-holiday-id' }));
+        fetchStub.withArgs('https://odin.adobe.com/adobe/contentFragments/mask-holiday-id').returns(
+            createResponse(200, {
+                id: 'mask-holiday-id',
+                path: '/content/dam/mas/sandbox/fr_FR/masks/holiday',
+                model: { id: CARD_MODEL_ID },
+                fields: { variables: ['promo-label:{{select}}'] },
+                references: {},
+            }),
+        );
+    }
+
+    it('should include mask segment in cache key when mask is provided', async () => {
+        setupFragmentMocks(fetchStub, {
+            id: 'some-en-us-fragment',
+            path: 'someFragment',
+        });
+        const state = new MockState();
+        stubMask(fetchStub);
+        const result = await getFragment({
+            id: 'some-en-us-fragment',
+            state: state,
+            locale: 'fr_FR',
+            mask: 'black-friday',
+        });
+        expect(result.statusCode).to.equal(200);
+        expect(result.body.id).to.equal('some-fr-fr-fragment');
+        expect(result.body.path).to.equal('/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app');
+        expect(result.body.maskId).to.equal('mask-holiday-id');
+        expect(state.store).to.have.property('req-some-en-us-fragment-fr_FR-m_black-friday');
+    });
+
+    it('should replace fragment placeholders with values from mask variables', async () => {
+        setupFragmentMocks(fetchStub, { id: 'some-en-us-fragment', path: 'someFragment' });
+
+        // Override the fr fragment: badge field contains a placeholder solved by the mask's variables
+        fetchStub.withArgs('https://odin.adobe.com/adobe/contentFragments/some-fr-fr-fragment?references=all-hydrated').returns(
+            createResponse(200, {
+                path: '/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app',
+                id: 'some-fr-fr-fragment',
+                model: { id: CARD_MODEL_ID },
+                fields: {
+                    variant: 'plans',
+                    osi: 'Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ',
+                    badge: { value: '{{promo-label}}', mimeType: 'text/html' },
+                },
+                references: {},
+                referencesTree: [],
+            }),
+        );
+
+        stubMask(fetchStub);
+
+        const state = new MockState();
+        const result = await getFragment({
+            id: 'some-en-us-fragment',
+            state,
+            locale: 'fr_FR',
+            mask: 'holiday',
+        });
+
+        expect(result.statusCode).to.equal(200);
+        // {{promo-label}} → {{select}} (from mask variables) → 'Select' (from dictionary)
+        expect(result.body.fields.badge.value).to.equal('Select');
     });
 
     it('should fix corrupted data-extra-options in adobe-home fragment', async () => {
@@ -265,7 +406,7 @@ describe('pipeline end to end', () => {
 
         // Promo variation folder — fr_FR default locale variation
         const variationFolderUrl =
-            'https://odin.adobe.com/adobe/contentFragments/?path=/content/dam/mas/sandbox/fr_FR/promotions/black-friday';
+            'https://odin.adobe.com/adobe/contentFragments/?path=/content/dam/mas/sandbox/fr_FR/promotions/black-friday&limit=50';
         fetchStub.withArgs(variationFolderUrl).returns(
             createResponse(200, {
                 items: [

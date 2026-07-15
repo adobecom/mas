@@ -4,6 +4,7 @@ import { styles } from './mas-select-items-table.css.js';
 import Store from '../../store.js';
 import { getItemsSelectionStore } from '../items-selection-store.js';
 import StoreController from '../../reactivity/store-controller.js';
+import '../../translation/mas-collapsible-table-row.js';
 import { TABLE_TYPE } from '../../constants.js';
 import ReactiveController from '../../reactivity/reactive-controller.js';
 import {
@@ -12,6 +13,8 @@ import {
     loadSelectedPlaceholders,
     loadSelectedFragments,
 } from '../utils/items-loader.js';
+import { shouldIgnoreRowClickForSelection, getStudioFragmentDisplayPath } from '../utils/render-utils.js';
+import { fragmentIsPromoVariation } from '../../promotions/promotion-model.js';
 
 class MasSelectItemsTable extends LitElement {
     static styles = styles;
@@ -22,8 +25,14 @@ class MasSelectItemsTable extends LitElement {
         viewOnlyLoading: { type: Boolean, state: true },
         viewOnlyFragments: { type: Array, state: true },
         dataReady: { type: Boolean, state: true },
+        maxSelectedCards: { type: Number },
         getDisplayName: { type: Function },
         renderFragmentStatusCell: { type: Function },
+        disableCardExpansion: { type: Boolean },
+        disableGroupedVariationSelection: { type: Boolean },
+        hideLocaleTab: { type: Boolean },
+        disableLocaleVariations: { type: Boolean },
+        hidePromoVariations: { type: Boolean },
     };
 
     hasMore = new StoreController(this, Store.fragments.list.hasMore);
@@ -46,8 +55,14 @@ class MasSelectItemsTable extends LitElement {
         this.selectedPlaceholdersStoreController = null;
         this.wasLoading = false;
         this.dataReady = false;
-        this.getDisplayName = (fragmentData) => fragmentData?.path ?? '';
+        this.maxSelectedCards = Infinity;
+        this.getDisplayName = getStudioFragmentDisplayPath;
         this.renderFragmentStatusCell = () => nothing;
+        this.disableCardExpansion = false;
+        this.disableGroupedVariationSelection = false;
+        this.hideLocaleTab = false;
+        this.disableLocaleVariations = false;
+        this.hidePromoVariations = false;
     }
 
     connectedCallback() {
@@ -56,7 +71,7 @@ class MasSelectItemsTable extends LitElement {
         this.dataState.isProcessingCards = false;
         this.dataState.pendingCards = null;
         if (this.viewOnly) {
-            if (this.type === TABLE_TYPE.PLACEHOLDERS) {
+            if (this.effectiveType === TABLE_TYPE.PLACEHOLDERS) {
                 this.viewOnlyLoading = !!getItemsSelectionStore().selectedPlaceholders.value?.length;
                 this.dataSubscription = loadSelectedPlaceholders(
                     getItemsSelectionStore().selectedPlaceholders.value,
@@ -72,7 +87,7 @@ class MasSelectItemsTable extends LitElement {
                 this.processAbortController = new AbortController();
                 loadSelectedFragments(
                     getItemsSelectionStore()[`selected${this.typeUppercased}`].value,
-                    this.type,
+                    this.effectiveType,
                     this.repository,
                     {
                         signal: this.processAbortController.signal,
@@ -86,9 +101,9 @@ class MasSelectItemsTable extends LitElement {
                 });
             }
         } else {
-            if (this.type === TABLE_TYPE.PLACEHOLDERS) {
+            if (this.effectiveType === TABLE_TYPE.PLACEHOLDERS) {
                 this.dataSubscription = loadAllPlaceholders();
-            } else if (this.type === TABLE_TYPE.COLLECTIONS) {
+            } else if (this.effectiveType === TABLE_TYPE.COLLECTIONS) {
                 const collectionsStore = getItemsSelectionStore().allCollections;
                 if (collectionsStore.getMeta('loaded') || collectionsStore.get()?.length > 0) {
                     this.dataReady = true;
@@ -102,11 +117,11 @@ class MasSelectItemsTable extends LitElement {
                     this.#collectionsReadyUnsub = onCollectionsLoaded;
                     collectionsStore.subscribe(onCollectionsLoaded);
                 }
-                this.dataSubscription = loadAllFragments(this.type, this.repository, this.dataState, {
+                this.dataSubscription = loadAllFragments(this.effectiveType, this.repository, this.dataState, {
                     getDisplayName: this.getDisplayName,
                 });
             } else {
-                this.dataSubscription = loadAllFragments(this.type, this.repository, this.dataState, {
+                this.dataSubscription = loadAllFragments(this.effectiveType, this.repository, this.dataState, {
                     getDisplayName: this.getDisplayName,
                     onReady: () => {
                         this.dataReady = true;
@@ -127,7 +142,7 @@ class MasSelectItemsTable extends LitElement {
     updated(changedProperties) {
         if (
             this.viewOnly &&
-            this.type === TABLE_TYPE.PLACEHOLDERS &&
+            this.effectiveType === TABLE_TYPE.PLACEHOLDERS &&
             this.viewOnlyLoading &&
             !Store.placeholders.list.loading.get()
         ) {
@@ -137,7 +152,7 @@ class MasSelectItemsTable extends LitElement {
         const loadingJustCompleted = this.wasLoading && !this.loading.value;
         this.wasLoading = this.loading.value;
 
-        if (loadingJustCompleted && this.hasMore.value && !this.viewOnly && this.type !== TABLE_TYPE.PLACEHOLDERS) {
+        if (loadingJustCompleted && this.hasMore.value && !this.viewOnly && this.effectiveType !== TABLE_TYPE.PLACEHOLDERS) {
             this.repository?.loadNextPage();
         }
     }
@@ -149,7 +164,8 @@ class MasSelectItemsTable extends LitElement {
         this.processAbortController?.abort();
         this.processAbortController = null;
         if (this.#collectionsReadyUnsub) {
-            getItemsSelectionStore().allCollections.unsubscribe(this.#collectionsReadyUnsub);
+            const selectionStore = getItemsSelectionStore({ allowUnset: true });
+            selectionStore?.allCollections.unsubscribe(this.#collectionsReadyUnsub);
             this.#collectionsReadyUnsub = null;
         }
     }
@@ -160,19 +176,23 @@ class MasSelectItemsTable extends LitElement {
     }
 
     get typeUppercased() {
-        return this.type.charAt(0).toUpperCase() + this.type.slice(1);
+        return this.effectiveType.charAt(0).toUpperCase() + this.effectiveType.slice(1);
+    }
+
+    get effectiveType() {
+        return this.type || this.getAttribute('type') || TABLE_TYPE.CARDS;
     }
 
     get isLoading() {
-        if (this.type === TABLE_TYPE.CARDS) {
-            if (this.viewOnly) return this.viewOnlyLoading;
-            return !this.dataReady || Store.fragments.list.firstPageLoaded.get() === false;
-        }
-        if (this.type === TABLE_TYPE.COLLECTIONS) {
+        if (this.effectiveType === TABLE_TYPE.CARDS) {
             if (this.viewOnly) return this.viewOnlyLoading;
             return !this.dataReady;
         }
-        if (this.type === TABLE_TYPE.PLACEHOLDERS) {
+        if (this.effectiveType === TABLE_TYPE.COLLECTIONS) {
+            if (this.viewOnly) return this.viewOnlyLoading;
+            return !this.dataReady;
+        }
+        if (this.effectiveType === TABLE_TYPE.PLACEHOLDERS) {
             if (this.viewOnly) return this.viewOnlyLoading;
             return Store.placeholders.list.loading.get();
         }
@@ -180,14 +200,51 @@ class MasSelectItemsTable extends LitElement {
     }
 
     get itemsToDisplay() {
-        if (this.viewOnly) {
-            return this.viewOnlyFragments;
-        }
-        return getItemsSelectionStore()[`display${this.typeUppercased}`].value;
+        const store = getItemsSelectionStore({ allowUnset: true });
+        if (!store) return [];
+        const items = this.viewOnly ? this.viewOnlyFragments : store[`display${this.typeUppercased}`].value;
+        return this.hidePromoVariations ? items.filter((item) => !fragmentIsPromoVariation(item)) : items;
     }
 
     get selectedInTable() {
-        return new Set(getItemsSelectionStore()[`selected${this.typeUppercased}`].value);
+        const store = getItemsSelectionStore({ allowUnset: true });
+        return new Set(store?.[`selected${this.typeUppercased}`].value || []);
+    }
+
+    get loadedPaths() {
+        return this.itemsToDisplay.map((item) => item.path);
+    }
+
+    get selectAllDisabled() {
+        return this.viewOnly || this.isLoading || this.itemsToDisplay.length === 0;
+    }
+
+    get selectAllChecked() {
+        if (this.selectAllDisabled) return false;
+        const selected = this.selectedInTable;
+        return this.loadedPaths.every((p) => selected.has(p));
+    }
+
+    get selectAllIndeterminate() {
+        if (this.selectAllDisabled || this.selectAllChecked) return false;
+        const selected = this.selectedInTable;
+        return this.loadedPaths.some((p) => selected.has(p));
+    }
+
+    #toggleSelectAll(e) {
+        e.stopPropagation();
+        const store = getItemsSelectionStore()[`selected${this.typeUppercased}`];
+        const current = new Set(store.value);
+        if (this.selectAllChecked) {
+            this.loadedPaths.forEach((p) => current.delete(p));
+        } else {
+            this.loadedPaths.forEach((p) => current.add(p));
+        }
+        store.set([...current]);
+    }
+
+    __test_toggleSelectAll(e) {
+        return this.#toggleSelectAll(e);
     }
 
     get tableColumns() {
@@ -239,19 +296,24 @@ class MasSelectItemsTable extends LitElement {
                 ],
             },
         };
-        return TABLE_COLUMNS[this.type][this.viewOnly ? 'viewOnly' : 'selectable'];
+        return TABLE_COLUMNS[this.effectiveType][this.viewOnly ? 'viewOnly' : 'selectable'];
     }
 
     #toggleSelected(e, path) {
         e.stopPropagation();
         const newSelected = this.selectedInTable.has(path)
-            ? [...this.selectedInTable].filter((p) => p !== path)
+            ? [...this.selectedInTable].filter((selectedPath) => selectedPath !== path)
             : [...this.selectedInTable, path];
         getItemsSelectionStore()[`selected${this.typeUppercased}`].set(newSelected);
     }
 
+    #onRowClickForSelection(e, path) {
+        if (shouldIgnoreRowClickForSelection(e)) return;
+        this.#toggleSelected(e, path);
+    }
+
     #renderTableBody() {
-        switch (this.type) {
+        switch (this.effectiveType) {
             case TABLE_TYPE.CARDS:
                 return html` ${repeat(
                     this.itemsToDisplay,
@@ -260,6 +322,11 @@ class MasSelectItemsTable extends LitElement {
                         html`<mas-collapsible-table-row
                             .topLevelCard=${fragment}
                             .viewOnly=${this.viewOnly}
+                            .maxSelectedCards=${this.maxSelectedCards}
+                            .disableCardExpansion=${this.disableCardExpansion}
+                            .disableGroupedVariationSelection=${this.disableGroupedVariationSelection}
+                            .hideLocaleTab=${this.hideLocaleTab}
+                            .disableLocaleVariations=${this.disableLocaleVariations}
                             .getDisplayName=${this.getDisplayName}
                             .renderFragmentStatusCell=${this.renderFragmentStatusCell}
                         ></mas-collapsible-table-row>`,
@@ -273,6 +340,7 @@ class MasSelectItemsTable extends LitElement {
                             value=${fragment.path}
                             ?selected=${!this.viewOnly && this.selectedInTable.has(fragment.path)}
                             aria-selected=${!this.viewOnly && this.selectedInTable.has(fragment.path) ? 'true' : 'false'}
+                            @click=${!this.viewOnly ? (e) => this.#onRowClickForSelection(e, fragment.path) : nothing}
                         >
                             ${!this.viewOnly
                                 ? html`
@@ -299,6 +367,7 @@ class MasSelectItemsTable extends LitElement {
                             value=${fragment.path}
                             ?selected=${!this.viewOnly && this.selectedInTable.has(fragment.path)}
                             aria-selected=${!this.viewOnly && this.selectedInTable.has(fragment.path) ? 'true' : 'false'}
+                            @click=${!this.viewOnly ? (e) => this.#onRowClickForSelection(e, fragment.path) : nothing}
                         >
                             ${!this.viewOnly
                                 ? html`<sp-table-cell class="table-icon-cell table-icon-cell--checkbox">
@@ -348,9 +417,11 @@ class MasSelectItemsTable extends LitElement {
     }
 
     render() {
-        const showSkeleton = this.isLoading;
+        const fetching = this.loading.value;
+        const loadingFirstPage = fetching && !this.firstPageLoaded.value;
+        const showSkeleton = this.isLoading || loadingFirstPage;
         const showEmpty = !showSkeleton && this.itemsToDisplay.length === 0;
-        const showTable = showSkeleton || this.itemsToDisplay.length > 0;
+        const showTable = !showEmpty && (showSkeleton || !this.isLoading);
 
         return html`
             ${showEmpty ? html`<p>No items found.</p>` : nothing}
@@ -361,9 +432,19 @@ class MasSelectItemsTable extends LitElement {
                               this.tableColumns,
                               (column) => column.key,
                               (column) =>
-                                  html`<sp-table-head-cell class=${column.class ? column.class : ''}>
-                                      ${column.label}
-                                  </sp-table-head-cell>`,
+                                  column.key === 'checkbox' && !this.viewOnly
+                                      ? html`<sp-table-head-cell class=${column.class ?? ''}>
+                                            <sp-checkbox
+                                                ?checked=${this.selectAllChecked}
+                                                ?indeterminate=${this.selectAllIndeterminate}
+                                                ?disabled=${this.selectAllDisabled}
+                                                @change=${(e) => this.#toggleSelectAll(e)}
+                                                aria-label="Select all loaded items"
+                                            ></sp-checkbox>
+                                        </sp-table-head-cell>`
+                                      : html`<sp-table-head-cell class=${column.class ?? ''}>
+                                            ${column.label}
+                                        </sp-table-head-cell>`,
                           )}
                       </sp-table-head>
                       <sp-table-body>${showSkeleton ? this.#renderSkeletonRows() : this.#renderTableBody()}</sp-table-body>

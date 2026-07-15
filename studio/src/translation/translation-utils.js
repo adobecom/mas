@@ -1,7 +1,7 @@
 import { html, nothing } from 'lit';
 import { FRAGMENT_STATUS } from '../constants.js';
 import Store from '../store.js';
-import { getFragmentPartsToUse, MODEL_WEB_COMPONENT_MAPPING } from '../editor-panel.js';
+import { getFragmentPartsToUse, MODEL_WEB_COMPONENT_MAPPING } from '../utils.js';
 
 export const ODIN_LOC_TASK_NAME_MAX_LENGTH = 255;
 
@@ -39,7 +39,7 @@ export function getOdinLocTaskNameValidationError(value) {
  */
 export function getFragmentName(data) {
     const webComponentName = MODEL_WEB_COMPONENT_MAPPING[data?.model?.path];
-    const { fragmentParts } = getFragmentPartsToUse(Store, data);
+    const { fragmentParts } = getFragmentPartsToUse(data, Store.search.value.path);
     return `${webComponentName}: ${fragmentParts}`;
 }
 

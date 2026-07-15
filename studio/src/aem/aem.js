@@ -101,7 +101,7 @@ class AEM {
         };
         if (query) {
             filter.fullText = {
-                text: encodeURIComponent(query),
+                text: query,
                 // For info about modes: https://adobe-sites.redoc.ly/tag/Search#operation/fragments/search!path=query/filter/fullText/queryMode&t=request
                 queryMode: 'EDGES',
             };
@@ -233,10 +233,18 @@ class AEM {
 
         const { title, description, fields } = fragment;
 
-        const fieldsWithType = fields.map((field) => ({
-            ...field,
-            type: field.type || 'text',
-        }));
+        const isReferenceType = (type) => type === 'content-fragment' || type === 'content-reference';
+        const fieldsWithType = fields.map((field) => {
+            const type = field.type || 'text';
+            // Multi-value reference fields use [''] as an internal "explicitly cleared" sentinel,
+            // but AEM rejects '' for references (it wants a path/UUID) — send an empty list instead.
+            // Non-reference fields keep [''] so variation clear-overrides round-trip correctly.
+            const values =
+                field.multiple && isReferenceType(type)
+                    ? (field.values || []).filter((value) => value != null && value !== '')
+                    : field.values;
+            return { ...field, type, values };
+        });
 
         const response = await fetch(`${this.cfFragmentsUrl}/${fragment.id}`, {
             method: 'PUT',
@@ -361,7 +369,7 @@ class AEM {
             method: 'POST',
             headers: {
                 ...this.headers,
-                'csrf-token': csrfToken,
+                'CSRF-Token': csrfToken,
             },
             body: formData,
         }).catch((err) => {
@@ -1185,7 +1193,31 @@ class AEM {
             throw new Error(`Failed to create fragment version: ${response.status} ${response.statusText}`);
         }
 
-        return await response.json();
+        const location = response.headers.get('Location') ?? '';
+        return location.split('/').pop();
+    }
+
+    /**
+     * Restore a fragment to a previously saved version
+     * @param {string} fragmentId - Fragment ID
+     * @param {string} versionId - Version ID to restore
+     * @returns {Promise<void>}
+     */
+    async restoreFragmentVersion(fragmentId, versionId) {
+        if (!fragmentId || !versionId) {
+            throw new Error('Fragment ID and Version ID are required');
+        }
+
+        const response = await fetch(`${this.cfFragmentsUrl}/${fragmentId}/versions/restore/${versionId}`, {
+            method: 'POST',
+            headers: this.headers,
+        }).catch((err) => {
+            throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
+        });
+
+        if (!response.ok) {
+            throw new Error(`Failed to restore fragment version: ${response.status} ${response.statusText}`);
+        }
     }
 
     /**
@@ -1339,6 +1371,10 @@ class AEM {
                  * @see AEM#createFragmentVersion
                  */
                 createVersion: this.createFragmentVersion.bind(this),
+                /**
+                 * @see AEM#restoreFragmentVersion
+                 */
+                restoreVersion: this.restoreFragmentVersion.bind(this),
                 /**
                  * @see AEM#updateFragmentVersion
                  */

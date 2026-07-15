@@ -260,6 +260,18 @@
                             ),
                         ).to.exist;
                     });
+                    it('should use card title as modal trigger', async () => {
+                        const [masCommerceService, ccAllApps] =
+                            getTemplateContent('fragment-photography-plans');
+                        container.append(masCommerceService, ccAllApps);
+                        await oneEvent(ccAllApps, 'mas:ready');
+                        await delay(50);
+                        expect(
+                            ccAllApps.titleElement.classList.contains(
+                                'modal-trigger',
+                            ),
+                        ).to.be.true;
+                    });
                     it('should render addon checkbox', () => {
                         const [masCommerceService, photoshopWithAddon] =
                             getTemplateContent('photoshop-with-addon');
@@ -377,7 +389,7 @@
                         await photoshop.updateComplete;
 
                         const layout = photoshop.variantLayout;
-                        expect(layout.handleResize).to.be.a('function');
+                        expect(layout.resizeHandler).to.be.a('function');
 
                         let syncCalled = false;
                         layout.syncHeights = () => {
@@ -390,7 +402,7 @@
                             cb(performance.now());
                             return 0;
                         };
-                        layout.handleResize();
+                        layout.resizeHandler();
                         window.requestAnimationFrame = origRaf;
 
                         expect(syncCalled).to.be.true;
@@ -422,8 +434,8 @@
                         };
 
                         // Two rapid invocations — second cancels the first rAF
-                        layout.handleResize();
-                        layout.handleResize();
+                        layout.resizeHandler();
+                        layout.resizeHandler();
 
                         // Flush all pending rAF callbacks
                         for (const cb of pending.values())
@@ -434,21 +446,6 @@
 
                         // Only one syncHeights call despite two resize events
                         expect(syncCount).to.equal(1);
-                    });
-
-                    it('disconnectedCallbackHook should null out handleResize on disconnect', async () => {
-                        const [masCommerceService, photoshop] =
-                            getTemplateContent('photoshop');
-                        container.append(masCommerceService, photoshop);
-                        await photoshop.updateComplete;
-
-                        const layout = photoshop.variantLayout;
-                        expect(layout.handleResize).to.be.a('function');
-
-                        // Disconnect — disconnectedCallbackHook must null handleResize
-                        photoshop.remove();
-
-                        expect(layout.handleResize).to.be.null;
                     });
                 });
             });

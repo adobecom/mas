@@ -23,11 +23,12 @@ export default class StudioPage {
         this.renderViewOption = this.previewMenu.locator('sp-menu-item[value="render"]');
         this.tableViewOption = this.previewMenu.locator('sp-menu-item[value="table"]');
         this.renderView = page.locator('#render:not(.next-page-skeletons)');
-        this.tableView = page.locator('sp-table');
+        this.tableView = page.locator('#content > sp-table');
         this.contentTableBody = page.locator('#content sp-table-body');
         this.tableViewHeaders = page.locator('sp-table-head');
         this.tableViewRows = this.tableView.locator('sp-table-row');
         this.tableViewFragmentTable = (fragmentId) => this.tableView.locator(`mas-fragment-table[data-id="${fragmentId}"]`);
+        this.expandButton = (fragmentId) => this.tableViewFragmentTable(fragmentId).locator('button.expand-button');
         this.groupedVariationsTab = (parentFragmentId) =>
             this.tableView.locator(
                 `mas-fragment:has(mas-fragment-table[data-id="${parentFragmentId}"]) mas-fragment-variations sp-tab[value="grouped"]`,
@@ -48,7 +49,10 @@ export default class StudioPage {
             this.tableView.locator(
                 `mas-fragment:has(mas-fragment-table[data-id="${parentFragmentId}"]) mas-fragment-variations sp-tab-panel[value="grouped"] mas-fragment-table`,
             );
-        this.tableViewRowByFragmentId = (fragmentId) => this.tableView.locator(`sp-table-row[value="${fragmentId}"]`);
+        this.tableViewRowByFragmentId = (fragmentId) =>
+            this.tableView.locator(
+                `sp-table-row[value="${fragmentId}"], mas-fragment-table[data-id="${fragmentId}"] sp-table-row`,
+            );
         this.tableViewPathCell = (row) => row.locator('sp-table-cell.name');
         this.tableViewTitleCell = (row) => row.locator('sp-table-cell.title');
         this.tableViewPriceCell = (row) => row.locator('sp-table-cell.price');
@@ -622,6 +626,12 @@ export default class StudioPage {
         await this.tableViewOption.click();
         await this.page.waitForTimeout(2000);
         await expect(this.tableView).toBeVisible({ timeout: 15000 });
+    }
+
+    async expandRowIfCollapsed(fragmentId) {
+        const expandButton = this.expandButton(fragmentId);
+        const isCollapsed = await expandButton.locator('> sp-icon-chevron-right').count();
+        if (isCollapsed) await expandButton.click();
     }
 
     /**

@@ -1,7 +1,8 @@
 import { LitElement, html } from 'lit';
-import { MasRepository } from '../mas-repository.js';
+import { createPlaceholder } from './mas-placeholders-repository.js';
 import { normalizeKey, showToast } from '../utils.js';
 import Store from '../store.js';
+import '../rte/rte-field.js';
 
 const initialPlaceholder = {
     key: '',
@@ -25,11 +26,6 @@ class MasPlaceholdersCreationModal extends LitElement {
         this.onClose = null;
         this.placeholder = initialPlaceholder;
         this.saving = false;
-    }
-
-    /** @type {MasRepository} */
-    get repository() {
-        return document.querySelector('mas-repository');
     }
 
     handleKeyChange(event) {
@@ -68,7 +64,7 @@ class MasPlaceholdersCreationModal extends LitElement {
         }
         showToast('Creating placeholder...');
         this.saving = true;
-        const success = await this.repository.createPlaceholder(this.placeholder);
+        const success = await createPlaceholder(this.placeholder);
         this.saving = false;
         if (!success) return;
         this.dispatchEvent(new CustomEvent('save'));

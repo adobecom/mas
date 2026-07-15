@@ -202,15 +202,7 @@ export class PlansV2 extends VariantLayout {
             await this.adjustLegal();
         }
 
-        // Wait for card and prices to be ready
-        await this.card.updateComplete;
-        if (this.card.prices?.length > 0) {
-            await Promise.all(
-                this.card.prices.map(
-                    (price) => price.onceSettled?.() || Promise.resolve(),
-                ),
-            );
-        }
+        await super.postCardUpdateHook();
 
         if (window.matchMedia('(min-width: 768px)').matches) {
             requestAnimationFrame(() => {
@@ -287,7 +279,7 @@ export class PlansV2 extends VariantLayout {
         const price = this.mainPrice;
         if (!price) return;
 
-        await price.onceSettled();
+        await price.onceSettled?.();
         const planType = price.value?.[0]?.planType;
         if (planType) addon.planType = planType;
     }

@@ -182,6 +182,7 @@ export class MiniCompareChart extends VariantLayout {
 
         const slots = [
             'heading-m',
+            'heading-xs',
             'subtitle',
             'body-m',
             'heading-m-price',
@@ -829,6 +830,11 @@ export class MiniCompareChart extends VariantLayout {
         :host([variant='mini-compare-chart']) slot[name='heading-m'] {
             min-height: var(
                 --consonant-merch-card-mini-compare-chart-heading-m-height
+            );
+        }
+        :host([variant='mini-compare-chart']) slot[name='heading-xs'] {
+            min-height: var(
+                --consonant-merch-card-mini-compare-chart-heading-xs-height
             );
         }
         :host([variant='mini-compare-chart']) slot[name='subtitle'] {

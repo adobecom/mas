@@ -113,7 +113,8 @@
                             changeCount += 1;
                         });
 
-                        rte.value = '<a class="accent" data-key="abc1234xyz" data-checkout-workflow="UCv3" data-wcs-osi="abm">Buy now</a>';
+                        rte.value =
+                            '<a class="accent" data-key="abc1234xyz" data-checkout-workflow="UCv3" data-wcs-osi="abm">Buy now</a>';
                         await delay(100);
 
                         expect(changeCount).to.equal(0);

@@ -5,12 +5,13 @@ import router from '../router.js';
 import { styles } from './mas-bulk-publish.css.js';
 import { BULK_PUBLISH_STATUS, BULK_PUBLISH_PROJECT_MODEL_ID, PAGE_NAMES } from '../constants.js';
 import { normalizeKey, showToast } from '../utils.js';
-import { startReverting } from './bulk-publish-store.js';
+import { startReverting, resetToDraft } from './bulk-publish-store.js';
 import { PUBLISH_SVG } from './bulk-publish-icons.js';
 import { getProjectField, getProjectFieldList, itemTypeFromPath } from './bulk-publish-utils.js';
 import './mas-bulk-publish-duplicate-dialog.js';
 import './mas-bulk-publish-delete-dialog.js';
 import './mas-bulk-publish-revert-dialog.js';
+import './mas-bulk-publish-reset-dialog.js';
 
 const STATUS_VARIANT = {
     [BULK_PUBLISH_STATUS.DRAFT]: { label: 'Draft', className: 'draft' },
@@ -40,6 +41,7 @@ class MasBulkPublish extends LitElement {
         duplicating: { state: true },
         deletePending: { state: true },
         revertPending: { state: true },
+        resetPending: { state: true },
     };
 
     list = new StoreController(this, Store.bulkPublishProjects.list.data);
@@ -51,6 +53,7 @@ class MasBulkPublish extends LitElement {
         this.duplicating = false;
         this.deletePending = null;
         this.revertPending = null;
+        this.resetPending = null;
     }
 
     onCreate() {
@@ -115,6 +118,29 @@ class MasBulkPublish extends LitElement {
             showToast('Project reverted successfully.', 'positive');
         } else {
             showToast('Revert failed. Check project for details.', 'negative');
+        }
+    }
+
+    openResetDialog(projectStore) {
+        const title = getProjectField(projectStore.get(), 'title', 'Untitled project');
+        this.resetPending = { projectStore, title };
+    }
+
+    handleResetCancel() {
+        this.resetPending = null;
+    }
+
+    async handleResetConfirmed() {
+        const { projectStore } = this.resetPending;
+        this.resetPending = null;
+        const token = window.adobeIMS?.getAccessToken()?.token;
+        const ioBaseUrl = document.querySelector('meta[name="io-base-url"]')?.content;
+        try {
+            await resetToDraft({ project: projectStore, token, ioBaseUrl, repository: this.repository });
+            showToast('Project reset to Draft.', 'positive');
+        } catch (err) {
+            console.error('Failed to reset bulk publish project:', err);
+            showToast('Reset failed. Check project for details.', 'negative');
         }
     }
 
@@ -211,6 +237,7 @@ class MasBulkPublish extends LitElement {
         const isPublished = status === BULK_PUBLISH_STATUS.PUBLISHED;
         const canRevert = status === BULK_PUBLISH_STATUS.PUBLISHED || status === BULK_PUBLISH_STATUS.PARTIALLY_PUBLISHED;
         const isPublishing = status === BULK_PUBLISH_STATUS.PUBLISHING;
+        const canReset = isPublishing || status === BULK_PUBLISH_STATUS.FAILED;
         return html`
             <overlay-trigger placement="bottom-end" offset="4">
                 <sp-action-button slot="trigger" quiet aria-label="More actions">
@@ -231,6 +258,12 @@ class MasBulkPublish extends LitElement {
                             ? html`<sp-menu-item @click=${() => this.openRevertDialog(projectStore)}>
                                   <sp-icon-undo slot="icon"></sp-icon-undo>
                                   Revert
+                              </sp-menu-item>`
+                            : nothing}
+                        ${canReset
+                            ? html`<sp-menu-item @click=${() => this.openResetDialog(projectStore)}>
+                                  <sp-icon-refresh slot="icon"></sp-icon-refresh>
+                                  Reset to Draft
                               </sp-menu-item>`
                             : nothing}
                         <sp-menu-item @click=${() => this.openDuplicateDialog(projectStore)}>
@@ -337,6 +370,14 @@ class MasBulkPublish extends LitElement {
                       @revert-confirmed=${this.handleRevertConfirmed}
                       @revert-cancelled=${this.handleRevertCancel}
                   ></mas-bulk-publish-revert-dialog>`
+                : nothing}
+            ${this.resetPending
+                ? html`<mas-bulk-publish-reset-dialog
+                      open
+                      .projectTitle=${this.resetPending.title}
+                      @reset-confirmed=${this.handleResetConfirmed}
+                      @reset-cancelled=${this.handleResetCancel}
+                  ></mas-bulk-publish-reset-dialog>`
                 : nothing}
             ${this.duplicating
                 ? html`<div class="duplicating-overlay">

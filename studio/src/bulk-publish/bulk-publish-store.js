@@ -56,6 +56,16 @@ export async function startPublishing({
     }
 }
 
+export async function resetToDraft({ project, token, ioBaseUrl, repository }) {
+    const { resetAction } = await import('./bulk-publish-client.js');
+    const result = await resetAction({ ioBaseUrl, projectId: project.id, token });
+    patchProjectStore(project, { status: result.status });
+    repository.refreshFragment(project).catch(() => {});
+    const current = Store.bulkPublishProjects.list.data.get() ?? [];
+    Store.bulkPublishProjects.list.data.set([...current]);
+    return result;
+}
+
 export async function startReverting({ project, token, ioBaseUrl, repository }) {
     const { revertAction } = await import('./bulk-publish-client.js');
     const result = await revertAction({ ioBaseUrl, projectId: project.id, token });

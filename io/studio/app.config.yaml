@@ -154,6 +154,14 @@ application:
                             timeout: 300000 # ms — 5 min
                         annotations:
                             require-adobe-auth: false
+                    bulk-publish-reset:
+                        function: src/bulk-publish/reset-action.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        limits:
+                            timeout: 300000 # ms — 5 min
+                        annotations:
+                            require-adobe-auth: false
                     bulk-check-modifications:
                         function: src/bulk-publish/check-modifications-action.js
                         web: 'yes'

@@ -1934,7 +1934,11 @@ export class MasChat extends LitElement {
         if (operationType === 'list_products' && operationResult?.success) {
             this.recentProducts = operationResult.rawResult?.products ?? null;
             this.messages = this.messages.filter((msg) => msg.operationResult !== operationResult);
-            await this.continueWithMCPResult('list_products', operationResult.rawResult);
+            if (this.activeGuidedFlow === 'release') {
+                await this.presentProductSelection(operationResult.rawResult, operation.mcpParams?.searchText);
+            } else {
+                await this.continueWithMCPResult('list_products', operationResult.rawResult);
+            }
         }
 
         // After get_offer_by_id or resolve_offer_selector succeed, the release
@@ -2278,6 +2282,86 @@ export class MasChat extends LitElement {
                 mcpParams.query = 'backgroundImage:*';
             }
         }
+    }
+
+    /**
+     * Deterministic Step 3 for the release flow: the client already holds the
+     * list_products result, so rendering the selection locally skips the
+     * second Bedrock round trip that used to re-type every product (10-25s of
+     * latency) and sometimes dropped the cards entirely. Synthetic history
+     * turns keep the model's context coherent (alternating roles, flowId
+     * stickiness) — the model rejoins the flow at the next step, where it is
+     * actually needed. guided_search keeps continueWithMCPResult: its second
+     * hop (list_products → search_cards) is a real model decision.
+     */
+    async presentProductSelection(result, searchText) {
+        const label = searchText || 'your search';
+        const rawProducts = result?.products || [];
+        if (!rawProducts.length) {
+            const message = `No products found matching "${label}". Please try a different name or check the spelling.`;
+            this.messages = [...this.messages, { role: 'assistant', content: message, timestamp: Date.now(), fresh: true }];
+            this.appendLocalGuidedTurns(`[0 products retrieved for "${label}"]`, message);
+            return;
+        }
+
+        const products = rawProducts.map((p) => this.mapProductToChatCard(p));
+
+        if (products.length === 1) {
+            const only = products[0];
+            this.selectedReleaseProduct = {
+                arrangement_code: only.arrangement_code || only.value,
+                name: only.label,
+                icon: only.icon,
+            };
+            this.messages = [
+                ...this.messages,
+                {
+                    role: 'assistant',
+                    content: 'Found your product:',
+                    productCards: products,
+                    productCardsSelectedValue: only.value ?? only.arrangement_code,
+                    timestamp: Date.now(),
+                    fresh: true,
+                },
+            ];
+            this.appendLocalGuidedTurns(`[1 product retrieved for "${label}"]`, 'Found your product:');
+            await this.handleSendMessage({
+                detail: {
+                    message: `Selected product: ${only.label} (arrangement_code: ${only.arrangement_code || only.value})`,
+                    context: { hidden: true, selectedProduct: this.selectedReleaseProduct },
+                },
+            });
+            return;
+        }
+
+        const message = `I found ${products.length} products matching "${label}". Review the details and select one:`;
+        this.messages = [
+            ...this.messages,
+            {
+                role: 'assistant',
+                content: message,
+                productCards: products,
+                buttonGroup: { label: 'Product', inputHint: 'Or type a product name to search...' },
+                timestamp: Date.now(),
+                fresh: true,
+            },
+        ];
+        this.appendLocalGuidedTurns(`[${products.length} products retrieved for "${label}"]`, message);
+    }
+
+    /**
+     * Synthetic history for locally rendered guided steps. The user marker
+     * keeps roles alternating (Bedrock rejects consecutive same-role turns);
+     * the fenced guided_step JSON carries flowId so flow inference and the
+     * model's format expectations stay identical to a model-produced turn.
+     */
+    appendLocalGuidedTurns(userMarker, message) {
+        const guidedStep = { type: 'guided_step', flowId: 'release', message };
+        this.conversationHistory = [
+            ...this.conversationHistory,
+            { role: 'user', content: userMarker },
+            { role: 'assistant', content: `\`\`\`json\n${JSON.stringify(guidedStep, null, 2)}\n\`\`\`` },
+        ];
     }
 
     /**

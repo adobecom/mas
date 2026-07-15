@@ -25,6 +25,7 @@ import {
     extractSurfaceFromPath,
     generateCodeToUse,
     getFragmentPartsToUse,
+    getCreateProjectErrorMessage,
     MODEL_WEB_COMPONENT_MAPPING,
     UserFriendlyError,
 } from '../utils.js';
@@ -721,8 +722,7 @@ class MasPromotionsEditor extends LitElement {
             this.storeController = new StoreController(this, this.fragmentStore);
             this.storeController.hostConnected();
         } catch (error) {
-            showToast('Failed to create project.', 'negative');
-            return;
+            showToast(getCreateProjectErrorMessage(error), 'negative');
         }
     }
 

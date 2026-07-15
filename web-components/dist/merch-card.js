@@ -6545,6 +6545,10 @@ merch-card[variant="segment"][id] span[data-template="legal"] {
     line-height: 21px;
 }
 
+merch-card[variant="segment"][id] span.price-unit-type {
+    display: block;
+}
+
 merch-card[variant="segment"][id] .price-unit-type:not(.disabled)::before {
     content: "";
 }

@@ -109,7 +109,7 @@ function isRetryableBedrockError(error) {
     return RETRYABLE_ERROR_NAMES.has(error?.name);
 }
 
-function sumUsage(first = {}, second = {}) {
+export function sumUsage(first = {}, second = {}) {
     return {
         input_tokens: (first.input_tokens || 0) + (second.input_tokens || 0),
         output_tokens: (first.output_tokens || 0) + (second.output_tokens || 0),

@@ -11,7 +11,7 @@
  */
 
 import { Ims } from '@adobe/aio-lib-ims';
-import { BedrockClient } from './bedrock-client.js';
+import { BedrockClient, sumUsage } from './bedrock-client.js';
 import {
     COLLECTION_CREATION_SYSTEM_PROMPT,
     GUIDED_CARD_CREATION_PROMPT,
@@ -997,10 +997,7 @@ async function main(params) {
                         parsedResponse = retryParsed;
                         response = retryResponse;
                         recovered = true;
-                        totalUsage = {
-                            inputTokens: (totalUsage?.inputTokens || 0) + (retryResponse.usage?.inputTokens || 0),
-                            outputTokens: (totalUsage?.outputTokens || 0) + (retryResponse.usage?.outputTokens || 0),
-                        };
+                        totalUsage = sumUsage(totalUsage, retryResponse.usage);
                     }
                 }
                 console.log(
@@ -1093,10 +1090,7 @@ async function main(params) {
                     if (retryParsed.type === 'card' && retryParsed.cardConfig) {
                         parsedResponse = retryParsed;
                         validation = validateAIConfig(parsedResponse.cardConfig, variantConfig);
-                        totalUsage = {
-                            inputTokens: (totalUsage?.inputTokens || 0) + (retryResponse.usage?.inputTokens || 0),
-                            outputTokens: (totalUsage?.outputTokens || 0) + (retryResponse.usage?.outputTokens || 0),
-                        };
+                        totalUsage = sumUsage(totalUsage, retryResponse.usage);
                     }
                 }
             }

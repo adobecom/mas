@@ -422,7 +422,7 @@ describe('promotion-editor-utils', () => {
                     return [];
                 },
             };
-            expect(getPromotionRequiredFieldsValidation(f, 1)).to.equal('Please add at least one Surface.');
+            expect(getPromotionRequiredFieldsValidation(f, 1)).to.equal('Please add at least one surface.');
         });
 
         it('returns a fragments message when item count is zero', () => {
@@ -444,7 +444,7 @@ describe('promotion-editor-utils', () => {
                 ...baseFragment(),
                 getFieldValue: (name) => (name === 'startDate' ? '' : baseFragment().getFieldValue(name)),
             };
-            expect(getPromotionRequiredFieldsValidation(f, 1)).to.equal('Please set a Start Date.');
+            expect(getPromotionRequiredFieldsValidation(f, 1)).to.equal('Please set a start date.');
         });
 
         it('returns a message when end date is missing', () => {
@@ -452,7 +452,7 @@ describe('promotion-editor-utils', () => {
                 ...baseFragment(),
                 getFieldValue: (name) => (name === 'endDate' ? '' : baseFragment().getFieldValue(name)),
             };
-            expect(getPromotionRequiredFieldsValidation(f, 1)).to.equal('Please set an End Date.');
+            expect(getPromotionRequiredFieldsValidation(f, 1)).to.equal('Please set an end date.');
         });
 
         it('returns a message when title is missing', () => {
@@ -460,7 +460,23 @@ describe('promotion-editor-utils', () => {
                 ...baseFragment(),
                 getFieldValue: (name) => (name === 'title' ? '' : baseFragment().getFieldValue(name)),
             };
-            expect(getPromotionRequiredFieldsValidation(f, 1)).to.equal('Please enter a Title.');
+            expect(getPromotionRequiredFieldsValidation(f, 1)).to.equal('Please enter a title.');
+        });
+
+        it('returns a message when title is whitespace-only', () => {
+            const f = {
+                ...baseFragment(),
+                getFieldValue: (name) => (name === 'title' ? '   ' : baseFragment().getFieldValue(name)),
+            };
+            expect(getPromotionRequiredFieldsValidation(f, 1)).to.equal('Please enter a title.');
+        });
+
+        it('returns a message when title has no normalizable characters', () => {
+            const f = {
+                ...baseFragment(),
+                getFieldValue: (name) => (name === 'title' ? '!!!' : baseFragment().getFieldValue(name)),
+            };
+            expect(getPromotionRequiredFieldsValidation(f, 1)).to.equal('Please enter a title.');
         });
 
         it('returns a message when geos are missing', () => {
@@ -472,7 +488,7 @@ describe('promotion-editor-utils', () => {
                     return [];
                 },
             };
-            expect(getPromotionRequiredFieldsValidation(f, 1)).to.equal('Please add at least one Geo.');
+            expect(getPromotionRequiredFieldsValidation(f, 1)).to.equal('Please add at least one geo.');
         });
 
         it('returns a message when no promotion classification tag', () => {
@@ -485,7 +501,7 @@ describe('promotion-editor-utils', () => {
                     return [];
                 },
             };
-            expect(getPromotionRequiredFieldsValidation(f, 1)).to.equal('Please add at least one Promotion tag.');
+            expect(getPromotionRequiredFieldsValidation(f, 1)).to.equal('Please add at least one promotion tag.');
         });
 
         it('does not require end date when isEvergreen is passed explicitly as true', () => {

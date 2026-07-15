@@ -168,23 +168,23 @@ export async function classifyPromotionPathsForSelection(
  * @returns {string|null}
  */
 export function getPromotionRequiredFieldsValidation(fragment, itemCount, isEvergreen = fragment.isEvergreen) {
-    if (!fragment.getFieldValue('title')) {
-        return 'Please enter a Title.';
+    if (!normalizeKey(fragment.getFieldValue('title').trim())) {
+        return 'Please enter a title.';
     }
     if (!fragment.getFieldValue('startDate')) {
-        return 'Please set a Start Date.';
+        return 'Please set a start date.';
     }
     if (!isEvergreen && !fragment.getFieldValue('endDate')) {
-        return 'Please set an End Date.';
+        return 'Please set an end date.';
     }
     if (splitPromotionTagsFieldValues(fragment.getFieldValues('tags')).promotion.length === 0) {
-        return 'Please add at least one Promotion tag.';
+        return 'Please add at least one promotion tag.';
     }
     if (!fragment.getFieldValues('geos').length) {
-        return 'Please add at least one Geo.';
+        return 'Please add at least one geo.';
     }
     if (!parsePromotionSurfacesFieldValues(fragment.getFieldValues('surfaces')).length) {
-        return 'Please add at least one Surface.';
+        return 'Please add at least one surface.';
     }
     if (itemCount <= 0) {
         return 'Please add at least one fragment or collection.';

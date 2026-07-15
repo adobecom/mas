@@ -2,7 +2,7 @@ import { LitElement, html, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import { MasRepository } from '../mas-repository.js';
 import '../aem/aem-tag-picker-field.js';
-import { toAttribute } from '../aem/tag-path-utils.js';
+import { fromAttribute, toAttribute } from '../aem/tag-path-utils.js';
 import Store from '../store.js';
 import StoreController from '../reactivity/store-controller.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
@@ -697,6 +697,12 @@ class MasPromotionsEditor extends LitElement {
             );
             if (!newPromotion) {
                 showToast('Failed to create project.', 'negative');
+                try {
+                    await this.repository.aem.tags.delete(tag.tagPath);
+                } catch (error) {
+                    console.error('Failed to delete the tag:', error);
+                    return;
+                }
                 return;
             }
             this.isCreated = true;
@@ -870,9 +876,12 @@ class MasPromotionsEditor extends LitElement {
             },
         );
         if (!confirmed) return;
+        const tagId = getPromotionTagFromFragment(this.fragmentStore.get());
+        const [tagPath] = tagId ? fromAttribute(tagId) : [];
         try {
             showToast('Deleting promotion campaign...');
             await this.repository.deleteFragment(this.fragmentStore, { startToast: false, endToast: false });
+            if (tagPath) await this.repository.aem.tags.delete(tagPath);
             showToast('Promotion campaign successfully deleted.', 'positive');
             Store.promotions.inEdit.set();
             Store.promotions.promotionId.set(null);

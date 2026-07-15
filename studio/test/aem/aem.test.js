@@ -147,7 +147,7 @@ describe('aem.js', () => {
                 expect.fail('Should have thrown an error');
             } catch (error) {
                 expect(error).to.be.instanceOf(UserFriendlyError);
-                expect(error.message).to.equal('A project with this name already exists.');
+                expect(error.message).to.equal('Tag already exists.');
             }
 
             expect(calls.length).to.equal(1);
@@ -202,6 +202,75 @@ describe('aem.js', () => {
                 expect.fail('Should have thrown an error');
             } catch (error) {
                 expect(error.message).to.be.a('string');
+            }
+        });
+    });
+
+    describe('method: deleteTag', () => {
+        let originalGetCsrfToken;
+
+        beforeEach(() => {
+            originalGetCsrfToken = aem.getCsrfToken;
+        });
+
+        afterEach(() => {
+            aem.getCsrfToken = originalGetCsrfToken;
+            delete window.fetch;
+        });
+
+        it('fetches a CSRF token and deletes the tag', async () => {
+            const calls = [];
+            window.fetch = async (url, options) => {
+                calls.push({ url, options });
+                return { ok: true, status: 200 };
+            };
+            aem.getCsrfToken = async () => 'csrf-123';
+
+            const response = await aem.deleteTag('/content/cq:tags/mas/promotions/my-promo');
+
+            expect(calls.length).to.equal(1);
+            expect(calls[0].url).to.equal(`${aem.baseUrl}/content/cq:tags/mas/promotions/my-promo`);
+            expect(calls[0].options.method).to.equal('POST');
+            expect(calls[0].options.headers['CSRF-Token']).to.equal('csrf-123');
+            expect(response.ok).to.be.true;
+        });
+
+        it('throws when the delete POST fails', async () => {
+            window.fetch = async () => ({ ok: false, status: 500, statusText: 'Server Error' });
+            aem.getCsrfToken = async () => 'csrf-123';
+
+            try {
+                await aem.deleteTag('/content/cq:tags/mas/promotions/my-promo');
+                expect.fail('Should have thrown an error');
+            } catch (error) {
+                expect(error.message).to.equal('Failed to delete tag: 500 Server Error');
+            }
+        });
+
+        it('throws on a network error during delete', async () => {
+            window.fetch = async () => {
+                throw new Error('Network down');
+            };
+            aem.getCsrfToken = async () => 'csrf-123';
+
+            try {
+                await aem.deleteTag('/content/cq:tags/mas/promotions/my-promo');
+                expect.fail('Should have thrown an error');
+            } catch (error) {
+                expect(error.message).to.include('Network down');
+            }
+        });
+
+        it('propagates an error when fetching the CSRF token fails', async () => {
+            aem.getCsrfToken = async () => {
+                throw new Error('CSRF fetch failed');
+            };
+
+            try {
+                await aem.deleteTag('/content/cq:tags/mas/promotions/my-promo');
+                expect.fail('Should have thrown an error');
+            } catch (error) {
+                expect(error.message).to.include('CSRF fetch failed');
             }
         });
     });

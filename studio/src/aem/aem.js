@@ -1093,7 +1093,7 @@ class AEM {
         });
 
         if (response.ok) {
-            throw new UserFriendlyError('A project with this name already exists.');
+            throw new UserFriendlyError('Tag already exists.');
         }
 
         if (response.status !== 404) {
@@ -1121,6 +1121,33 @@ class AEM {
         }
 
         return createResponse;
+    }
+
+    /**
+     * Deletes the AEM tag
+     * @param {string} tagPath - Path of the tag to delete
+     * @returns {Promise<Response>} - The delete response
+     */
+    async deleteTag(tagPath) {
+        const csrfToken = await this.getCsrfToken();
+        const formData = new FormData();
+        formData.append(':operation', 'delete');
+
+        const deleteResponse = await fetch(`${this.baseUrl}${tagPath}`, {
+            method: 'POST',
+            headers: {
+                ...this.headers,
+                'CSRF-Token': csrfToken,
+            },
+            body: formData,
+        }).catch((err) => {
+            throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
+        });
+
+        if (!deleteResponse.ok) {
+            throw new Error(`Failed to delete tag: ${deleteResponse.status} ${deleteResponse.statusText}`);
+        }
+        return deleteResponse;
     }
 
     /**
@@ -1468,6 +1495,10 @@ class AEM {
          * @see AEM#createTag
          */
         create: this.createTag.bind(this),
+        /**
+         * @see AEM#deleteTag
+         */
+        delete: this.deleteTag.bind(this),
     };
     folders = {
         /**

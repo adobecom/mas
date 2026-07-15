@@ -873,7 +873,7 @@ describe('MasPromotionsEditor', () => {
         });
 
         it('aborts creation and shows the user-friendly message when tag creation rejects with a UserFriendlyError', async () => {
-            const message = 'A project with this name already exists.';
+            const message = 'Tag already exists.';
             const { el, repo } = await mountEditorWithRepo({
                 aem: {
                     tags: { create: sandbox.stub().rejects(new UserFriendlyError(message)) },

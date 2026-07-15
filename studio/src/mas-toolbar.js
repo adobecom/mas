@@ -2,12 +2,13 @@ import { LitElement, html, css, nothing } from 'lit';
 import StoreController from './reactivity/store-controller.js';
 import Store from './store.js';
 import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, COMPARE_CHART_CREATE_TYPE } from './constants.js';
+import { findFragmentDataById, resolveFragmentsFromSelection } from './common/utils/fragment-selection-utils.js';
 import { buildCardsDeepLink, showToast } from './utils.js';
 import './mas-folder-picker.js';
 import './aem/mas-filter-panel.js';
 import './mas-selection-panel.js';
-import './mas-create-dialog.js';
 import './mas-copy-dialog.js';
+import Events from './events.js';
 
 const renderModes = [
     {
@@ -214,13 +215,22 @@ class MasToolbar extends LitElement {
         return this.shadowRoot.querySelector('sp-popover');
     }
 
-    selectContentType(type) {
+    async selectContentType(type) {
         this.selectedContentType = type;
         this.popover.open = false;
-        this.openCreateDialog();
+        await this.openCreateDialog();
     }
 
-    openCreateDialog() {
+    async openCreateDialog() {
+        if (!customElements.get('mas-create-dialog')) {
+            try {
+                await import('./mas-create-dialog.js');
+                this.requestUpdate();
+            } catch {
+                Events.toast.emit({ variant: 'negative', content: 'Failed to load create dialog' });
+                return;
+            }
+        }
         this.createDialogOpen = true;
     }
 
@@ -316,12 +326,8 @@ class MasToolbar extends LitElement {
 
         if (!item) return;
 
-        const fragment = item?.id
-            ? item
-            : Store.fragments.list.data
-                  .get()
-                  .find((store) => store.get().id === item)
-                  ?.get();
+        const listStores = Store.fragments.list.data.get();
+        const fragment = item?.id ? item : findFragmentDataById(item, listStores);
 
         if (!fragment) {
             console.error('Could not find fragment:', item);
@@ -341,14 +347,7 @@ class MasToolbar extends LitElement {
 
     /** @param {string[]} selection */
     #fragmentsFromToolbarSelection(selection) {
-        const list = Store.fragments.list.data.get() || [];
-        return selection
-            .map((item) => {
-                const id = typeof item === 'string' ? item : item?.id;
-                if (!id) return null;
-                return list.find((store) => store.get()?.id === id)?.get() || null;
-            })
-            .filter(Boolean);
+        return resolveFragmentsFromSelection(selection, Store.fragments.list.data.get() || []);
     }
 
     /** @param {string[]} selection */

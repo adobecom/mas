@@ -9,6 +9,7 @@ import {
     getFragmentByPathOrNull,
     getPromoNameFromPromoVariationPath,
     getPromoNameFromTag,
+    getPromotionInfo,
     getPromotionTagFromFragment,
     isFragmentNotFoundError,
     isPromoVariationPath,
@@ -175,6 +176,41 @@ describe('promotion-model', () => {
         it('returns false for other errors', () => {
             expect(isFragmentNotFoundError(new Error('network timeout'))).to.be.false;
             expect(isFragmentNotFoundError({ status: 500 })).to.be.false;
+        });
+    });
+
+    describe('getPromotionInfo', () => {
+        it('returns promotionName from tag title and promoProject from the tag id', () => {
+            const fragment = {
+                tags: [{ id: 'mas:promotion/black-friday', title: 'Black Friday Campaign' }],
+            };
+            const { promotionName, promoProject } = getPromotionInfo(fragment);
+            expect(promoProject).to.equal('black-friday');
+            expect(promotionName).to.equal('Black Friday Campaign');
+        });
+
+        it('falls back to promoProject as promotionName when the tag has no title', () => {
+            const fragment = { tags: [{ id: 'mas:promotion/summer-sale' }] };
+            const { promotionName, promoProject } = getPromotionInfo(fragment);
+            expect(promoProject).to.equal('summer-sale');
+            expect(promotionName).to.equal('summer-sale');
+        });
+
+        it('returns dashes for both fields when no promotion tag exists', () => {
+            const fragment = { tags: [{ id: 'mas:status/draft' }] };
+            const { promotionName, promoProject } = getPromotionInfo(fragment);
+            expect(promotionName).to.equal('-');
+            expect(promoProject).to.equal('-');
+        });
+
+        it('reads promotion tag from getFieldValues when available', () => {
+            const fragment = {
+                getFieldValues: (name) => (name === 'tags' ? ['mas:promotion/cyber-monday'] : []),
+                tags: [{ id: 'mas:promotion/cyber-monday', title: 'Cyber Monday' }],
+            };
+            const { promotionName, promoProject } = getPromotionInfo(fragment);
+            expect(promoProject).to.equal('cyber-monday');
+            expect(promotionName).to.equal('Cyber Monday');
         });
     });
 

@@ -166,7 +166,7 @@ export function extractJSON(responseText) {
     if (jsonBlockMatch) {
         const parsed = tryParse(jsonBlockMatch[1]);
         if (parsed) return parsed;
-        console.error('Failed to parse JSON from code block');
+        console.error('Failed to parse JSON from code block', jsonBlockMatch[1].slice(0, 2000));
     }
 
     let cursor = 0;

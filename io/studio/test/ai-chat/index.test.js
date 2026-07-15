@@ -146,6 +146,24 @@ describe('ai-chat/index main handler', () => {
             expect(result.statusCode).to.equal(502);
             expect(result.body.error).to.equal('Failed to get AI response');
         });
+
+        it('carries the requestId and errorType in the 502 body', async () => {
+            sendStub.resolves({ success: false, errorType: 'ThrottlingException', error: 'throttled' });
+            const result = await main(makeParams({ message: 'tell me about yourself', requestId: 'req-1' }));
+            expect(result.body.requestId).to.equal('req-1');
+            expect(result.body.errorType).to.equal('ThrottlingException');
+        });
+
+        it('falls back to the activation id when no requestId param is given', async () => {
+            process.env.__OW_ACTIVATION_ID = 'activation-42';
+            try {
+                sendStub.resolves({ success: false, errorType: 'ThrottlingException', error: 'throttled' });
+                const result = await main(makeParams({ message: 'tell me about yourself' }));
+                expect(result.body.requestId).to.equal('activation-42');
+            } finally {
+                delete process.env.__OW_ACTIVATION_ID;
+            }
+        });
     });
 
     describe('native envelope path', () => {
@@ -193,6 +211,20 @@ describe('ai-chat/index main handler', () => {
             expect(result.statusCode).to.equal(200);
             expect(result.body.envelope.intent).to.equal('ASK_USER');
             expect(sendStub.callCount).to.equal(2);
+        });
+
+        it('captures the rejected envelope payload when both validations fail', async () => {
+            sendStub.onCall(0).resolves(toolResponse({ intent: 'bogus_intent', slots: {}, confidence: 'high' }));
+            sendStub.onCall(1).resolves(toolResponse({ intent: 'still_bogus', slots: {}, confidence: 'high' }));
+            await main(makeParams({ message: 'tell me about yourself', requestId: 'req-env' }));
+            const parseFailureLine = console.log.args
+                .map((args) => args[0])
+                .filter((arg) => typeof arg === 'string')
+                .find((arg) => arg.includes('"phase":"parse-failure"'));
+            expect(parseFailureLine).to.be.a('string');
+            const logged = JSON.parse(parseFailureLine);
+            expect(logged.req).to.equal('req-env');
+            expect(logged.raw).to.include('still_bogus');
         });
 
         it('hands a guided-flow intent off to the guided card-creation prompt', async () => {
@@ -310,6 +342,23 @@ describe('ai-chat/index main handler', () => {
             expect(result.body.message).to.equal(PARSE_ERROR_MESSAGE);
             expect(sendStub.callCount).to.equal(1);
         });
+
+        it('captures the raw model output and requestId when the parse retry also fails', async () => {
+            const brokenText = '```json\n{"type": guided_step broken here}\n```';
+            sendStub.resolves(textResponse(brokenText));
+            const result = await main(makeParams({ message: 'please continue from before', requestId: 'req-9' }));
+            expect(result.body.requestId).to.equal('req-9');
+            const parseFailureLine = console.log.args
+                .map((args) => args[0])
+                .filter((arg) => typeof arg === 'string')
+                .find((arg) => arg.includes('"phase":"parse-failure"'));
+            expect(parseFailureLine).to.be.a('string');
+            const logged = JSON.parse(parseFailureLine);
+            expect(logged.req).to.equal('req-9');
+            expect(logged.raw).to.include('guided_step broken here');
+            expect(logged.retried).to.equal(true);
+            expect(logged.recovered).to.equal(false);
+        });
     });
 
     describe('native guided tools (release flow)', () => {
@@ -414,6 +463,13 @@ describe('ai-chat/index main handler', () => {
             const result = await main(makeParams({ conversationHistory: 42 }));
             expect(result.statusCode).to.equal(500);
             expect(result.body.error).to.equal('Internal server error');
+        });
+
+        it('includes the requestId in the 500 body without leaking the error detail', async () => {
+            const result = await main(makeParams({ conversationHistory: 42, requestId: 'req-500' }));
+            expect(result.statusCode).to.equal(500);
+            expect(result.body.requestId).to.equal('req-500');
+            expect(JSON.stringify(result.body)).to.not.include('is not iterable');
         });
     });
 });

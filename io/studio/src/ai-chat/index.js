@@ -508,6 +508,11 @@ async function main(params) {
         };
     }
 
+    // Correlates user-facing errors with activation logs: surfaced in error
+    // bodies (the client shows it as "Reference: <id>") and stamped on every
+    // parse-failure capture so field reports are greppable.
+    const requestId = params.requestId ?? process.env.__OW_ACTIVATION_ID ?? null;
+
     try {
         const { AWS_BEARER_TOKEN_BEDROCK, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION, BEDROCK_MODEL_ID } = params;
 
@@ -770,13 +775,13 @@ async function main(params) {
             console.log(
                 JSON.stringify({
                     phase: 'shadow-prompt',
-                    req: params.requestId ?? null,
+                    req: requestId,
                     newPromptLength: registryPrompt.length,
                     oldPromptLength: typeof effectivePrompt === 'string' ? effectivePrompt.length : null,
                 }),
             );
         } catch (shadowErr) {
-            console.log(JSON.stringify({ phase: 'shadow-prompt', req: params.requestId ?? null, error: shadowErr.message }));
+            console.log(JSON.stringify({ phase: 'shadow-prompt', req: requestId, error: shadowErr.message }));
         }
 
         // The registry prompt carries the envelope output contract, so it is
@@ -788,7 +793,7 @@ async function main(params) {
         const useRegistryPrompt = nativeEnvelopeEligible && registryPrompt !== null;
         let effectiveSystemPrompt = useRegistryPrompt ? registryPrompt : effectivePrompt;
         if (useRegistryPrompt) {
-            console.log(JSON.stringify({ phase: 'shadow-primary', req: params.requestId ?? null, used: true }));
+            console.log(JSON.stringify({ phase: 'shadow-primary', req: requestId, used: true }));
         }
 
         // Native guided tools: release-flow turns swap hand-written fenced
@@ -823,6 +828,8 @@ async function main(params) {
                 },
                 body: {
                     error: 'Failed to get AI response',
+                    errorType: response.errorType ?? null,
+                    requestId,
                 },
             };
         }
@@ -832,9 +839,11 @@ async function main(params) {
             let usage = response.usage;
             let validation = validateEnvelope(extractToolEnvelope(response), { flow });
             let retried = false;
+            let rejectedRaw = null;
 
             if (!validation.ok) {
                 retried = true;
+                rejectedRaw = JSON.stringify(response.toolUse?.input ?? response.message ?? '');
                 const debugDetail = validation.coerced?.debug ?? {};
                 const detail = debugDetail.slot
                     ? ` — slot "${debugDetail.slot}" had invalid value ${JSON.stringify(debugDetail.value)}`
@@ -856,15 +865,24 @@ async function main(params) {
                     const retryValidation = validateEnvelope(extractToolEnvelope(retryResponse), { flow });
                     if (retryValidation.ok) {
                         validation = retryValidation;
+                    } else {
+                        rejectedRaw = JSON.stringify(retryResponse.toolUse?.input ?? retryResponse.message ?? '');
                     }
                 }
+            }
+
+            if (!validation.ok) {
+                logParseFailure(requestId, `envelope-${validation.reason}`, rejectedRaw, {
+                    retried,
+                    recovered: false,
+                });
             }
 
             const finalEnvelope = normalizeEnvelopeText(validation.ok ? validation.envelope : validation.coerced);
             console.log(
                 JSON.stringify({
                     phase: 'envelope-validation',
-                    req: params.requestId ?? null,
+                    req: requestId,
                     native: true,
                     ok: validation.ok,
                     reason: validation.reason ?? null,
@@ -893,7 +911,7 @@ async function main(params) {
                     console.log(
                         JSON.stringify({
                             phase: 'flow-handoff',
-                            req: params.requestId ?? null,
+                            req: requestId,
                             intent: finalEnvelope.intent,
                         }),
                     );
@@ -935,7 +953,7 @@ async function main(params) {
             console.log(
                 JSON.stringify({
                     phase: 'guided-tool',
-                    req: params.requestId ?? null,
+                    req: requestId,
                     tool: response.toolUse.name,
                     mapped: Boolean(guidedPayload),
                 }),
@@ -953,37 +971,48 @@ async function main(params) {
         // surfacing the failure to the user. The retry always runs in text
         // mode, so guided tool turns fall back to the plain guided prompt.
         // Rollback: TEXT_PARSE_RETRY=off.
-        if (parsedResponse.parseError && params.TEXT_PARSE_RETRY !== 'off') {
+        if (parsedResponse.parseError) {
             const failureMode = parsedResponse.parseFailureMode ?? 'unparseable-json';
-            const retryResponse = await bedrockClient.sendWithContext(
-                [...conversationHistory, { role: 'user', content: message }, { role: 'assistant', content: response.message }],
-                buildParseCorrectivePrompt(failureMode, parsedResponse.parseErrorDetail),
-                guidedToolMode ? GUIDED_CARD_CREATION_PROMPT : effectiveSystemPrompt,
-                enrichedContext,
-                maxTokens,
-            );
-            logUsageMetric(retryResponse, params, bedrockClient.modelId);
-            let recovered = false;
-            if (retryResponse.success && retryResponse.message) {
-                const retryParsed = parseAIResponse(retryResponse.message);
-                if (!retryParsed.parseError) {
-                    parsedResponse = retryParsed;
-                    response = retryResponse;
-                    recovered = true;
-                    totalUsage = {
-                        inputTokens: (totalUsage?.inputTokens || 0) + (retryResponse.usage?.inputTokens || 0),
-                        outputTokens: (totalUsage?.outputTokens || 0) + (retryResponse.usage?.outputTokens || 0),
-                    };
+            const originalRaw = response.message;
+            const retryEnabled = params.TEXT_PARSE_RETRY !== 'off';
+            if (retryEnabled) {
+                const retryResponse = await bedrockClient.sendWithContext(
+                    [
+                        ...conversationHistory,
+                        { role: 'user', content: message },
+                        { role: 'assistant', content: response.message },
+                    ],
+                    buildParseCorrectivePrompt(failureMode, parsedResponse.parseErrorDetail),
+                    guidedToolMode ? GUIDED_CARD_CREATION_PROMPT : effectiveSystemPrompt,
+                    enrichedContext,
+                    maxTokens,
+                );
+                logUsageMetric(retryResponse, params, bedrockClient.modelId);
+                let recovered = false;
+                if (retryResponse.success && retryResponse.message) {
+                    const retryParsed = parseAIResponse(retryResponse.message);
+                    if (!retryParsed.parseError) {
+                        parsedResponse = retryParsed;
+                        response = retryResponse;
+                        recovered = true;
+                        totalUsage = {
+                            inputTokens: (totalUsage?.inputTokens || 0) + (retryResponse.usage?.inputTokens || 0),
+                            outputTokens: (totalUsage?.outputTokens || 0) + (retryResponse.usage?.outputTokens || 0),
+                        };
+                    }
                 }
+                console.log(
+                    JSON.stringify({
+                        phase: 'text-parse-retry',
+                        req: requestId,
+                        mode: failureMode,
+                        recovered,
+                    }),
+                );
             }
-            console.log(
-                JSON.stringify({
-                    phase: 'text-parse-retry',
-                    req: params.requestId ?? null,
-                    mode: failureMode,
-                    recovered,
-                }),
-            );
+            if (parsedResponse.parseError) {
+                logParseFailure(requestId, failureMode, originalRaw, { retried: retryEnabled, recovered: false });
+            }
         }
 
         // Attach the shadow envelope only when the text actually contained a
@@ -1277,10 +1306,11 @@ async function main(params) {
             },
             body: {
                 ...envelopePayload,
+                ...(parsedResponse.parseError ? { requestId } : {}),
                 type: 'message',
                 message: parsedResponse.message,
                 sources: ragSources,
-                usage: response.usage,
+                usage: totalUsage,
                 conversationHistory: [
                     ...conversationHistory,
                     { role: 'user', content: message },
@@ -1297,6 +1327,7 @@ async function main(params) {
             },
             body: {
                 error: 'Internal server error',
+                requestId,
             },
         };
     }
@@ -1347,6 +1378,26 @@ export function tryExtractEnvelopeFromLLMText(text) {
         clarification_question: null,
         user_message: prose,
     };
+}
+
+/**
+ * Full-fidelity capture of a model output that defeated both the parser and
+ * the corrective retry. The 8KB cap keeps the line within IO Runtime log
+ * limits while capturing whole envelopes — the old 500-char console.error
+ * prefix routinely cut off the defect.
+ */
+function logParseFailure(requestId, mode, rawText, { retried, recovered }) {
+    console.log(
+        JSON.stringify({
+            phase: 'parse-failure',
+            req: requestId,
+            mode,
+            retried,
+            recovered,
+            rawLength: rawText?.length ?? 0,
+            raw: (rawText ?? '').slice(0, 8000),
+        }),
+    );
 }
 
 function logShadowValidation(bedrockResponse, params) {

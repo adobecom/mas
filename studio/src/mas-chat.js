@@ -1187,7 +1187,8 @@ export class MasChat extends LitElement {
 
         if (!response.ok) {
             const error = await response.json().catch(() => ({}));
-            throw new Error(error.error || 'Failed to communicate with AI service');
+            const reference = error.requestId ? ` (Reference: ${error.requestId})` : '';
+            throw new Error(`${error.error || 'Failed to communicate with AI service'}${reference}`);
         }
 
         try {

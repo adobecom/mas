@@ -147,6 +147,20 @@ describe('ai-chat/response-parser', () => {
             expect(result.message).to.not.include('```');
         });
 
+        it('logs a slice of the failing fenced block so field failures are diagnosable', () => {
+            const consoleError = console.error;
+            const captured = [];
+            console.error = (...args) => captured.push(args);
+            try {
+                parseAIResponse('```json\n{"type": guided_step broken here}\n```');
+            } finally {
+                console.error = consoleError;
+            }
+            const blockLine = captured.find((args) => String(args[0]).includes('Failed to parse JSON from code block'));
+            expect(blockLine).to.not.equal(undefined);
+            expect(String(blockLine[1])).to.include('guided_step broken here');
+        });
+
         it('describes an unparseable failure so a corrective retry can quote the reason', () => {
             const text = '```json\n{"type": guided_step broken here}\n```';
             const result = parseAIResponse(text);

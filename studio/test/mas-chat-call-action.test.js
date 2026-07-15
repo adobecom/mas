@@ -42,6 +42,20 @@ describe('MasChat callAIChatAction response guarding', () => {
         }
     });
 
+    it('appends the server reference id to the error when the body carries one', async () => {
+        sinon.stub(window, 'fetch').resolves(
+            new Response(JSON.stringify({ error: 'Failed to get AI response', requestId: 'act-123' }), {
+                status: 502,
+            }),
+        );
+        try {
+            await el.callAIChatAction({ message: 'hi' });
+            throw new Error('expected callAIChatAction to throw');
+        } catch (error) {
+            expect(error.message).to.include('Reference: act-123');
+        }
+    });
+
     it('returns the parsed body for a healthy response', async () => {
         sinon
             .stub(window, 'fetch')

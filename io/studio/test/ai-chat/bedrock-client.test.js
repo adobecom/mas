@@ -316,6 +316,109 @@ describe('ai-chat/bedrock-client', () => {
         });
     });
 
+    describe('sendMessage retry and timeout behavior', () => {
+        const okResponse = () => ({
+            ok: true,
+            json: async () => ({
+                content: [{ type: 'text', text: 'recovered' }],
+                usage: { input_tokens: 10, output_tokens: 5 },
+                stop_reason: 'end_turn',
+            }),
+        });
+        const errorResponse = (status) => ({ ok: false, status, text: async () => 'upstream error' });
+
+        beforeEach(() => {
+            process.env.BEDROCK_RETRY_BASE_DELAY_MS = '1';
+            sandbox.stub(console, 'warn');
+            sandbox.stub(console, 'error');
+        });
+
+        afterEach(() => {
+            delete process.env.BEDROCK_RETRY_BASE_DELAY_MS;
+            delete process.env.BEDROCK_MAX_RETRIES;
+            delete process.env.BEDROCK_FETCH_TIMEOUT_MS;
+        });
+
+        it('retries a throttled request and succeeds on the second attempt', async () => {
+            const client = new BedrockClient({ bearerToken: 'test-token-not-real' });
+            const fetchStub = sandbox.stub(global, 'fetch');
+            fetchStub.onCall(0).resolves(errorResponse(429));
+            fetchStub.onCall(1).resolves(okResponse());
+
+            const result = await client.sendMessage([{ role: 'user', content: 'hi' }], 'BASE', 256);
+
+            expect(result.success).to.equal(true);
+            expect(result.message).to.equal('recovered');
+            expect(fetchStub.callCount).to.equal(2);
+        });
+
+        it('does not retry a non-retryable status', async () => {
+            const client = new BedrockClient({ bearerToken: 'test-token-not-real' });
+            const fetchStub = sandbox.stub(global, 'fetch').resolves(errorResponse(400));
+
+            const result = await client.sendMessage([{ role: 'user', content: 'hi' }], 'BASE', 256);
+
+            expect(result.success).to.equal(false);
+            expect(result.error).to.include('400');
+            expect(fetchStub.callCount).to.equal(1);
+        });
+
+        it('gives up after the configured retry budget', async () => {
+            process.env.BEDROCK_MAX_RETRIES = '1';
+            const client = new BedrockClient({ bearerToken: 'test-token-not-real' });
+            const fetchStub = sandbox.stub(global, 'fetch').resolves(errorResponse(503));
+
+            const result = await client.sendMessage([{ role: 'user', content: 'hi' }], 'BASE', 256);
+
+            expect(result.success).to.equal(false);
+            expect(fetchStub.callCount).to.equal(2);
+        });
+
+        it('aborts a hung request after the fetch timeout and reports the abort', async () => {
+            process.env.BEDROCK_FETCH_TIMEOUT_MS = '10';
+            const client = new BedrockClient({ bearerToken: 'test-token-not-real' });
+            sandbox.stub(global, 'fetch').callsFake(
+                (url, options) =>
+                    new Promise((resolve, reject) => {
+                        options.signal.addEventListener('abort', () => {
+                            const abortError = new Error('The user aborted a request.');
+                            abortError.name = 'AbortError';
+                            reject(abortError);
+                        });
+                    }),
+            );
+
+            const result = await client.sendMessage([{ role: 'user', content: 'hi' }], 'BASE', 256);
+
+            expect(result.success).to.equal(false);
+            expect(result.error).to.include('aborted after 10ms');
+        });
+
+        it('retries a max_tokens truncation once at double the budget and sums usage', async () => {
+            const client = new BedrockClient({ bearerToken: 'test-token-not-real' });
+            const sendStub = sandbox.stub(client, 'sendMessage');
+            sendStub.onCall(0).resolves({
+                success: true,
+                message: 'partial',
+                stopReason: 'max_tokens',
+                usage: { input_tokens: 10, output_tokens: 5 },
+            });
+            sendStub.onCall(1).resolves({
+                success: true,
+                message: 'complete answer',
+                stopReason: 'end_turn',
+                usage: { input_tokens: 12, output_tokens: 20 },
+            });
+
+            const result = await client.sendWithContext([], 'hi', 'BASE', null, 1024);
+
+            expect(result.message).to.equal('complete answer');
+            expect(sendStub.secondCall.args[2]).to.equal(2048);
+            expect(result.usage.input_tokens).to.equal(22);
+            expect(result.usage.output_tokens).to.equal(25);
+        });
+    });
+
     describe('sendMessage native tool use', () => {
         const toolUseResponse = () => ({
             ok: true,

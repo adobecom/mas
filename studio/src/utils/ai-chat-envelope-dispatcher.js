@@ -25,7 +25,6 @@ export const META_INTENTS = new Set(['ASK_USER', 'ABORT', 'START_OVER', 'SHOW_HE
  * frontend-only handlers and never dispatch an MCP tool.
  */
 export const NON_MCP_INTENTS = new Set([
-    'list_context_cards',
     'attach_offer',
     'copy_card_link',
     'open_card_editor',

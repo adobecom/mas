@@ -14,11 +14,8 @@ import { getIntent, isStateChanging, INTENTS, SLOT_VALIDATORS } from './intent-r
 /**
  * MCP tool allowlist, derived from the intent registry so the two can never
  * drift — every registered tool_target is a valid prose-path operation.
- * LEGACY_MCP_TOOLS covers tools the prompts still reference but the registry
- * does not map to an intent.
  */
-const LEGACY_MCP_TOOLS = ['create_release_cards'];
-const VALID_MCP_TOOLS = new Set([...INTENTS.map((intent) => intent.tool_target).filter(Boolean), ...LEGACY_MCP_TOOLS]);
+const VALID_MCP_TOOLS = new Set(INTENTS.map((intent) => intent.tool_target).filter(Boolean));
 
 const MAX_RESPONSE_LENGTH = 64 * 1024;
 

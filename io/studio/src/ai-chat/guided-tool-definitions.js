@@ -29,7 +29,9 @@ export function buildGuidedTools() {
             description:
                 'Render an interactive guided-flow step: a question with a button group, product preview cards, ' +
                 'or a plain flow message. Use this for every step that needs user input and for plain-text replies ' +
-                'inside the flow (e.g. "product not found").',
+                'inside the flow (e.g. "product not found"). When your message presents product matches, ' +
+                'productCards is MANDATORY — include one entry per product from the lookup result; a match ' +
+                'announcement without productCards leaves the user with nothing to select.',
             input_schema: {
                 type: 'object',
                 properties: {

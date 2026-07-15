@@ -1932,6 +1932,7 @@ export class MasChat extends LitElement {
         }
 
         if (operationType === 'list_products' && operationResult?.success) {
+            this.recentProducts = operationResult.rawResult?.products ?? null;
             this.messages = this.messages.filter((msg) => msg.operationResult !== operationResult);
             await this.continueWithMCPResult('list_products', operationResult.rawResult);
         }
@@ -2279,8 +2280,23 @@ export class MasChat extends LitElement {
         }
     }
 
+    /**
+     * The model sometimes emits the product-selection step without echoing
+     * the productCards array (valid JSON, so no server retry fires), which
+     * strands the user with "select one:" and nothing to select. The client
+     * just executed list_products and still holds the results — inject them.
+     * Consumed on use so remembered products never leak into later steps.
+     */
     async enrichGuidedStepWithRecentProducts(response) {
-        return response;
+        if (response.productCards?.length || response.buttonGroup) return response;
+        if (!this.recentProducts?.length) return response;
+        if (!/product/i.test(response.message || '')) return response;
+        const products = this.recentProducts;
+        this.recentProducts = null;
+        return {
+            ...response,
+            productCards: products.map((p) => this.mapProductToChatCard(p)),
+        };
     }
 
     async recoverProductLookup(searchText) {

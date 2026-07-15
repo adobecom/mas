@@ -16,6 +16,7 @@ function mockFragment(fields = [], overrides = {}) {
     fragment.fields = overrides.fields ?? fields;
     fragment.isValueEmpty = (val) => !val || val.length === 0 || val.every((v) => !v);
     fragment.getField = (name) => fragment.fields.find((f) => f.name === name) || null;
+    fragment.getFieldValue = (name) => fragment.fields.find((f) => f.name === name)?.values[0] || null;
     fragment.getTagTitle = () => null;
     return fragment;
 }

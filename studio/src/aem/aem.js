@@ -1079,6 +1079,51 @@ class AEM {
     }
 
     /**
+     * Create a new AEM tag, failing if one already exists at the given path
+     * @param {string} tagPath - Path of the tag to create
+     * @param {string} title - Title of the tag
+     * @returns {Promise<Response>} - The create response
+     */
+    async createTag(tagPath, title) {
+        const response = await fetch(`${this.baseUrl}${tagPath}.json`, {
+            method: 'GET',
+            headers: this.headers,
+        }).catch((err) => {
+            throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
+        });
+
+        if (response.ok) {
+            throw new UserFriendlyError('A project with this name already exists.');
+        }
+
+        if (response.status !== 404) {
+            throw new Error(`Failed to check tag: ${response.status} ${response.statusText}`);
+        }
+
+        const csrfToken = await this.getCsrfToken();
+        const formData = new FormData();
+        formData.append('jcr:primaryType', 'cq:Tag');
+        formData.append('jcr:title', title);
+
+        const createResponse = await fetch(`${this.baseUrl}${tagPath}`, {
+            method: 'POST',
+            headers: {
+                ...this.headers,
+                'CSRF-Token': csrfToken,
+            },
+            body: formData,
+        }).catch((err) => {
+            throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
+        });
+
+        if (!createResponse.ok) {
+            throw new Error(`Failed to create tag: ${createResponse.status} ${createResponse.statusText}`);
+        }
+
+        return createResponse;
+    }
+
+    /**
      * Get fragment by ID with its ETag in a single operation
      * @param {string} id - Fragment ID
      * @returns {Promise<Object>} - Fragment with its etag
@@ -1419,6 +1464,10 @@ class AEM {
          * @see AEM#listTags
          */
         list: this.listTags.bind(this),
+        /**
+         * @see AEM#createTag
+         */
+        create: this.createTag.bind(this),
     };
     folders = {
         /**

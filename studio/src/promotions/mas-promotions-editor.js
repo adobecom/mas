@@ -26,6 +26,7 @@ import {
     generateCodeToUse,
     getFragmentPartsToUse,
     MODEL_WEB_COMPONENT_MAPPING,
+    UserFriendlyError,
 } from '../utils.js';
 import { Fragment } from '../aem/fragment.js';
 import { Promotion } from '../aem/promotion.js';
@@ -35,6 +36,7 @@ import { getItemsSelectionStore, setItemsSelectionStore } from '../common/items-
 import {
     applyPromotionItemSelectionToFragment,
     buildPromotionOffersFieldValues,
+    buildPromotionTagPath,
     classifyPromotionPathsForSelection,
     hydratePromotionOfferRecords,
     isPromotionItemSelectionDirty,
@@ -674,6 +676,20 @@ class MasPromotionsEditor extends LitElement {
 
         showToast('Creating project...');
         this.#syncPromotionSelectionFieldsToFragment();
+
+        const title = this.fragment.getFieldValue('title');
+        const tag = buildPromotionTagPath(title);
+        if (tag) {
+            try {
+                await this.repository.aem.tags.create(tag.tagPath, tag.slug);
+            } catch (error) {
+                console.error('Failed to create promotion tag:', error);
+                const message = error instanceof UserFriendlyError ? error.message : 'Failed to create promotion tag.';
+                showToast(message, 'negative');
+                return;
+            }
+        }
+
         try {
             const newPromotion = await this.repository.createFragment(
                 this.#buildPromotionFragmentPayload(this.fragment.getFieldValue('title')),

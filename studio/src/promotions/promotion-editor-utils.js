@@ -2,10 +2,11 @@ import { isPznCountryTagId, tagRefToTagId } from '../common/utils/personalizatio
 import { buildOfferTags, resolveOfferMnemonicIconUrl } from './offer-utils.js';
 import { COLLECTION_MODEL_PATH, ROOT_PATH, TAG_PROMOTION_PREFIX } from '../constants.js';
 import { normalizeTagId } from '../aem/tag-id-utils.js';
+import { fromAttribute } from '../aem/tag-path-utils.js';
 import { getItemsSelectionStore } from '../common/items-selection-store.js';
 import Store from '../store.js';
 import { closeOfferSelectorTool } from '../rte/ost.js';
-import { getService, isUUID, parseStudioDeepLinksFromText } from '../utils.js';
+import { getService, isUUID, normalizeKey, parseStudioDeepLinksFromText } from '../utils.js';
 
 export const PROMOTION_FIELD_TYPE_MAP = {
     title: { type: 'text' },
@@ -86,6 +87,18 @@ export function splitPromotionTagsFieldValues(allValues) {
         else retained.push(t);
     }
     return { promotion, retained };
+}
+
+/**
+ * Derives a promotion tag slug/path from a title.
+ * @param {string} [title]
+ * @returns {{ slug: string, tagPath: string }|null}
+ */
+export function buildPromotionTagPath(title) {
+    const slug = normalizeKey(title?.trim());
+    if (!slug) return null;
+    const [tagPath] = fromAttribute(`${TAG_PROMOTION_PREFIX}${slug}`);
+    return tagPath ? { slug, tagPath } : null;
 }
 
 export function serializePromotionSurfacesForAem(values) {

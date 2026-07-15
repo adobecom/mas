@@ -6,8 +6,8 @@ import { setItemsSelectionStore } from '../../src/common/items-selection-store.j
 import MasPromotionsEditor from '../../src/promotions/mas-promotions-editor.js';
 import { Promotion } from '../../src/aem/promotion.js';
 import { CARD_MODEL_PATH, EVENT_OST_OFFER_SELECT, PAGE_NAMES, TABLE_TYPE, TAG_PROMOTION_PREFIX } from '../../src/constants.js';
-import { normalizeKey } from '../../src/utils.js';
-import { serializePromotionSurfacesForAem } from '../../src/promotions/promotion-editor-utils.js';
+import { normalizeKey, UserFriendlyError } from '../../src/utils.js';
+import { buildPromotionTagPath, serializePromotionSurfacesForAem } from '../../src/promotions/promotion-editor-utils.js';
 
 function makeFragmentData(overrides = {}) {
     return {
@@ -143,6 +143,9 @@ describe('MasPromotionsEditor', () => {
                     },
                 },
                 getFragmentByPath: null,
+                tags: {
+                    create: sandbox.stub().resolves(),
+                },
             },
             ...overrides,
         };
@@ -838,6 +841,8 @@ describe('MasPromotionsEditor', () => {
             await fillValidFields(el);
             clickPromotionQuickAction(el, 'Save');
             await el.updateComplete;
+            await flushPromises();
+            await el.updateComplete;
             expect(repo.createFragment.calledOnce).to.be.true;
             expect(el.isCreated).to.be.true;
         });
@@ -850,6 +855,53 @@ describe('MasPromotionsEditor', () => {
             clickPromotionQuickAction(el, 'Save');
             await el.updateComplete;
             expect(el.isCreated).to.be.false;
+        });
+    });
+
+    describe('promotion tag creation on create flow', () => {
+        it('creates the promotion tag before creating the fragment', async () => {
+            const { el, repo } = await mountEditorWithRepo();
+            await fillValidFields(el);
+            const title = el.fragment.getFieldValue('title');
+            const tag = buildPromotionTagPath(title);
+            clickPromotionQuickAction(el, 'Save');
+            await el.updateComplete;
+            expect(repo.aem.tags.create.calledOnce).to.be.true;
+            expect(repo.aem.tags.create.firstCall.args).to.deep.equal([tag.tagPath, tag.slug]);
+            expect(repo.createFragment.calledOnce).to.be.true;
+            expect(repo.aem.tags.create.calledBefore(repo.createFragment)).to.be.true;
+        });
+
+        it('aborts creation and shows the user-friendly message when tag creation rejects with a UserFriendlyError', async () => {
+            const message = 'A project with this name already exists.';
+            const { el, repo } = await mountEditorWithRepo({
+                aem: {
+                    tags: { create: sandbox.stub().rejects(new UserFriendlyError(message)) },
+                },
+            });
+            await fillValidFields(el);
+            const toastStub = sandbox.stub(Events.toast, 'emit');
+            clickPromotionQuickAction(el, 'Save');
+            await el.updateComplete;
+            expect(repo.createFragment.called).to.be.false;
+            expect(el.isCreated).to.be.false;
+            expect(toastStub.calledWith(sinon.match({ variant: 'negative', content: message }))).to.be.true;
+        });
+
+        it('aborts creation and shows a generic message when tag creation rejects with a generic Error', async () => {
+            const { el, repo } = await mountEditorWithRepo({
+                aem: {
+                    tags: { create: sandbox.stub().rejects(new Error('boom')) },
+                },
+            });
+            await fillValidFields(el);
+            const toastStub = sandbox.stub(Events.toast, 'emit');
+            clickPromotionQuickAction(el, 'Save');
+            await el.updateComplete;
+            expect(repo.createFragment.called).to.be.false;
+            expect(el.isCreated).to.be.false;
+            expect(toastStub.calledWith(sinon.match({ variant: 'negative', content: 'Failed to create promotion tag.' }))).to.be
+                .true;
         });
     });
 

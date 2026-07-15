@@ -1,5 +1,6 @@
 import { expect } from '@esm-bundle/chai';
 import { AEM, filterByTags } from '../../src/aem/aem.js';
+import { UserFriendlyError } from '../../src/utils.js';
 
 describe('aem.js', () => {
     const aem = new AEM('test');
@@ -119,6 +120,89 @@ describe('aem.js', () => {
             expect(byName('collections').values).to.deep.equal([]);
             expect(byName('features').values).to.deep.equal(['']);
             expect(byName('title').values).to.deep.equal(['']);
+        });
+    });
+
+    describe('method: createTag', () => {
+        let originalGetCsrfToken;
+
+        beforeEach(() => {
+            originalGetCsrfToken = aem.getCsrfToken;
+        });
+
+        afterEach(() => {
+            aem.getCsrfToken = originalGetCsrfToken;
+            delete window.fetch;
+        });
+
+        it('throws a UserFriendlyError and does not create the tag when it already exists', async () => {
+            const calls = [];
+            window.fetch = async (url, options) => {
+                calls.push({ url, options });
+                return { ok: true, status: 200 };
+            };
+
+            try {
+                await aem.createTag('/content/cq:tags/mas/promotions/my-promo', 'My Promo');
+                expect.fail('Should have thrown an error');
+            } catch (error) {
+                expect(error).to.be.instanceOf(UserFriendlyError);
+                expect(error.message).to.equal('A project with this name already exists.');
+            }
+
+            expect(calls.length).to.equal(1);
+            expect(calls[0].url).to.equal(`${aem.baseUrl}/content/cq:tags/mas/promotions/my-promo.json`);
+            expect(calls[0].options.method).to.equal('GET');
+        });
+
+        it('fetches a CSRF token and creates the tag when it does not exist (404)', async () => {
+            const calls = [];
+            window.fetch = async (url, options) => {
+                calls.push({ url, options });
+                if (options.method === 'GET') {
+                    return { ok: false, status: 404 };
+                }
+                return { ok: true, status: 201 };
+            };
+            aem.getCsrfToken = async () => 'csrf-123';
+
+            await aem.createTag('/content/cq:tags/mas/promotions/my-promo', 'My Promo');
+
+            expect(calls.length).to.equal(2);
+            const postCall = calls[1];
+            expect(postCall.url).to.equal(`${aem.baseUrl}/content/cq:tags/mas/promotions/my-promo`);
+            expect(postCall.options.method).to.equal('POST');
+            expect(postCall.options.headers['CSRF-Token']).to.equal('csrf-123');
+            expect(postCall.options.body.get('jcr:primaryType')).to.equal('cq:Tag');
+            expect(postCall.options.body.get('jcr:title')).to.equal('My Promo');
+        });
+
+        it('throws when the tag creation POST fails', async () => {
+            window.fetch = async (url, options) => {
+                if (options.method === 'GET') {
+                    return { ok: false, status: 404 };
+                }
+                throw new Error('Network down');
+            };
+            aem.getCsrfToken = async () => 'csrf-123';
+
+            try {
+                await aem.createTag('/content/cq:tags/mas/promotions/my-promo', 'My Promo');
+                expect.fail('Should have thrown an error');
+            } catch (error) {
+                expect(error.message).to.include('Network down');
+            }
+        });
+
+        it('throws when the tag existence check returns an unexpected status', async () => {
+            window.fetch = async () => ({ ok: false, status: 500, statusText: 'Server Error' });
+
+            try {
+                await aem.createTag('/content/cq:tags/mas/promotions/my-promo', 'My Promo');
+                expect.fail('Should have thrown an error');
+            } catch (error) {
+                expect(error.message).to.be.a('string');
+            }
         });
     });
 });

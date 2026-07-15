@@ -7,6 +7,7 @@ import {
     countDistinctPromoCodesForOffer,
     addPromotionOfferFromOst,
     buildPromotionOfferRecord,
+    buildPromotionTagPath,
     applyPromotionItemSelectionToFragment,
     buildPromotionOffersFieldValues,
     hydratePromotionOfferRecords,
@@ -364,6 +365,27 @@ describe('promotion-editor-utils', () => {
 
         it('promotion slice is empty when no mas:promotion tag', () => {
             expect(splitPromotionTagsFieldValues(['mas:status/published']).promotion).to.deep.equal([]);
+        });
+    });
+
+    describe('buildPromotionTagPath', () => {
+        it('derives slug and tagPath from a normal title', () => {
+            expect(buildPromotionTagPath('Summer Sale')).to.deep.equal({
+                slug: 'summer-sale',
+                tagPath: '/content/cq:tags/mas/promotion/summer-sale',
+            });
+        });
+
+        it('returns null for an empty string title', () => {
+            expect(buildPromotionTagPath('')).to.be.null;
+        });
+
+        it('returns null for a whitespace-only title', () => {
+            expect(buildPromotionTagPath('   ')).to.be.null;
+        });
+
+        it('returns null for an undefined title', () => {
+            expect(buildPromotionTagPath(undefined)).to.be.null;
         });
     });
 

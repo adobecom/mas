@@ -1,40 +1,21 @@
 import { html, LitElement, nothing } from 'lit';
-import './rte/rte-field.js';
-import './rte/rte-link-editor.js';
-import './rte/rte-icon-editor.js';
 import './mas-top-nav.js';
 import './mas-side-nav.js';
 import './mas-toolbar.js';
 import './mas-content.js';
-import './promotions/mas-promotions.js';
-import './promotions/mas-promotions-editor.js';
-import './translation/mas-translation.js';
-import './translation/mas-translation-editor.js';
-import './bulk-publish/mas-bulk-publish.js';
-import './bulk-publish/mas-bulk-publish-editor.js';
 import './mas-repository.js';
 import './mas-toast.js';
-import './mas-splash-screen.js';
 import './fields/user-picker.js';
 import './common/fields/tree-picker-field.js';
 import './mas-recently-updated.js';
 import './mas-nav-folder-picker.js';
-import './mas-fragment-editor.js';
-import './editor-panel.js';
-import './editors/merch-card-editor.js';
-import './editors/merch-card-collection-editor.js';
 import { initUsers } from './users.js';
-import './placeholders/mas-placeholders.js';
-import './settings/mas-settings.js';
-import './masks/mas-masks.js';
-import './mas-advanced-tools.js';
 import './mas-confirm-dialog.js';
 import './mas-card-preview.js';
-import './version-page.js';
 import StoreController from './reactivity/store-controller.js';
 import Store from './store.js';
 import router from './router.js';
-import { CONSUMER_FEATURE_FLAGS, PAGE_NAMES, WCS_ENV_PROD } from './constants.js';
+import { CONSUMER_FEATURE_FLAGS, PAGE_NAMES, PICKERS, WCS_ENV_PROD } from './constants.js';
 import './utils/price-error-handler.js';
 
 const BUCKET_TO_ENV = {
@@ -55,6 +36,8 @@ class MasStudio extends LitElement {
     #unsubscribeLocaleObserver;
     #unsubscribeLandscapeObserver;
     #unsubscribeConsumerObserver;
+    #pendingImports = new Set();
+    #failedImports = new Set();
     constructor() {
         super();
         this.bucket = 'e59433';
@@ -126,10 +109,28 @@ class MasStudio extends LitElement {
         this.#unsubscribeLandscapeObserver();
         this.#unsubscribeConsumerObserver();
         this.removeEventListener('fragment-loaded', this.handleFragmentLoaded);
+        this.#pendingImports = new Set();
+        this.#failedImports = new Set();
     }
 
     createRenderRoot() {
         return this;
+    }
+
+    #lazyLoad(elementName, importPath) {
+        if (customElements.get(elementName)) return true;
+        if (this.#failedImports.has(elementName)) return false;
+        if (!this.#pendingImports.has(elementName)) {
+            this.#pendingImports.add(elementName);
+            import(importPath).catch(() => {
+                this.#pendingImports.delete(elementName);
+                this.#failedImports.add(elementName);
+                console.error(`Failed to load ${elementName} from ${importPath}`);
+                Events.toast.emit({ variant: 'negative', content: `Failed to load page` });
+            });
+            customElements.whenDefined(elementName).then(() => this.requestUpdate());
+        }
+        return false;
     }
 
     get aemEnv() {
@@ -150,67 +151,87 @@ class MasStudio extends LitElement {
 
     get placeholders() {
         if (this.page.value !== PAGE_NAMES.PLACEHOLDERS) return nothing;
+        if (!this.#lazyLoad('mas-placeholders', './placeholders/mas-placeholders.js')) return nothing;
         return html` <mas-placeholders></mas-placeholders> `;
     }
 
     get settings() {
         if (this.page.value !== PAGE_NAMES.SETTINGS && this.page.value !== PAGE_NAMES.SETTINGS_EDITOR) return nothing;
+        if (!this.#lazyLoad('mas-settings', './settings/mas-settings.js')) return nothing;
         return html`<mas-settings bucket=${this.bucket} base-url=${this.baseUrl}></mas-settings>`;
     }
 
     get masks() {
         if (this.page.value !== PAGE_NAMES.MASKS && this.page.value !== PAGE_NAMES.MASKS_EDITOR) return nothing;
+        if (!this.#lazyLoad('mas-masks', './masks/mas-masks.js')) return nothing;
         return html`<mas-masks bucket=${this.bucket} base-url=${this.baseUrl}></mas-masks>`;
     }
 
     get splashScreen() {
         if (this.page.value !== PAGE_NAMES.WELCOME) return nothing;
+        if (!this.#lazyLoad('mas-splash-screen', './mas-splash-screen.js')) return nothing;
         return html`<mas-splash-screen base-url=${this.baseUrl}></mas-splash-screen>`;
     }
 
     get versionPage() {
         if (this.page.value !== PAGE_NAMES.VERSION) return nothing;
+        if (!this.#lazyLoad('version-page', './version-page.js')) return nothing;
         return html`<version-page></version-page>`;
     }
 
     get fragmentEditor() {
         if (this.page.value !== PAGE_NAMES.FRAGMENT_EDITOR) return nothing;
+        if (!this.#lazyLoad('mas-fragment-editor', './mas-fragment-editor.js')) return nothing;
         return html`<mas-fragment-editor></mas-fragment-editor>`;
     }
 
     get promotions() {
         if (this.page.value !== PAGE_NAMES.PROMOTIONS) return nothing;
+        if (!this.#lazyLoad('mas-promotions', './promotions/mas-promotions.js')) return nothing;
         return html`<mas-promotions></mas-promotions>`;
     }
 
     get promotionsEditor() {
         if (this.page.value !== PAGE_NAMES.PROMOTIONS_EDITOR) return nothing;
+        if (!this.#lazyLoad('mas-promotions-editor', './promotions/mas-promotions-editor.js')) return nothing;
         return html`<mas-promotions-editor></mas-promotions-editor>`;
     }
 
     get translation() {
         if (this.page.value !== PAGE_NAMES.TRANSLATIONS) return nothing;
+        if (!this.#lazyLoad('mas-translation', './translation/mas-translation.js')) return nothing;
         return html`<mas-translation></mas-translation>`;
     }
 
     get translationEditor() {
         if (this.page.value !== PAGE_NAMES.TRANSLATION_EDITOR) return nothing;
+        if (!this.#lazyLoad('mas-translation-editor', './translation/mas-translation-editor.js')) return nothing;
         return html`<mas-translation-editor></mas-translation-editor>`;
     }
 
     get bulkPublish() {
         if (this.page.value !== PAGE_NAMES.BULK_PUBLISH) return nothing;
+        if (!this.#lazyLoad('mas-bulk-publish', './bulk-publish/mas-bulk-publish.js')) return nothing;
         return html`<mas-bulk-publish></mas-bulk-publish>`;
     }
 
     get bulkPublishEditor() {
         if (this.page.value !== PAGE_NAMES.BULK_PUBLISH_EDITOR) return nothing;
+        if (!this.#lazyLoad('mas-bulk-publish-editor', './bulk-publish/mas-bulk-publish-editor.js')) return nothing;
         return html`<mas-bulk-publish-editor></mas-bulk-publish-editor>`;
     }
 
     get advancedTools() {
         if (this.page.value !== PAGE_NAMES.ADVANCED_TOOLS) return nothing;
+        if (!this.#lazyLoad('mas-advanced-tools', './mas-advanced-tools.js')) return nothing;
         return html`<mas-advanced-tools></mas-advanced-tools>`;
+    }
+
+    get pickersToHide() {
+        if ([PAGE_NAMES.PROMOTIONS_EDITOR, PAGE_NAMES.PROMOTIONS].includes(this.page.value)) {
+            return [PICKERS.FOLDER, PICKERS.LOCALE];
+        }
+        return [];
     }
 
     renderCommerceService() {
@@ -244,7 +265,7 @@ class MasStudio extends LitElement {
     }
 
     get topNav() {
-        return html`<mas-top-nav aem-env="${this.aemEnv}" show-pickers></mas-top-nav>`;
+        return html`<mas-top-nav aem-env="${this.aemEnv}" .pickersToHide="${this.pickersToHide}"></mas-top-nav>`;
     }
 
     get sideNav() {
@@ -253,6 +274,7 @@ class MasStudio extends LitElement {
 
     get editorPanel() {
         if (this.page.value !== PAGE_NAMES.CONTENT) return nothing;
+        if (!this.#lazyLoad('editor-panel', './editor-panel.js')) return nothing;
         return html`<editor-panel></editor-panel>`;
     }
 

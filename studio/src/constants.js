@@ -114,6 +114,12 @@ export const STATUS_PUBLISHED = 'PUBLISHED';
 export const STATUS_DRAFT = 'DRAFT';
 export const STATUS_MODIFIED = 'MODIFIED';
 
+export const PICKERS = {
+    FOLDER: 'folder',
+    LOCALE: 'locale',
+    LANDSCAPE: 'landscape',
+};
+
 export const PAGE_NAMES = {
     WELCOME: 'welcome',
     PLACEHOLDERS: 'placeholders',

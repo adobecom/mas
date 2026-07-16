@@ -71,4 +71,51 @@ describe('offerFilter', () => {
         const result = offerFilter(/nomatch/, 'PUBLISHED', makeAos({ arrangementCode: 'OTHER' }), makeOffer());
         expect(result).to.be.false;
     });
+
+    it('U2 filters by customer segment dimension: keeps matching, excludes non-matching', () => {
+        const aos = makeAos({ customerSegment: 'TEAM' });
+        const matching = makeOffer({ customerSegments: { INDIVIDUAL: false, TEAM: true } });
+        const nonMatching = makeOffer({ customerSegments: { INDIVIDUAL: true, TEAM: false } });
+
+        const kept = offerFilter(null, 'PUBLISHED', aos, matching);
+        const excluded = offerFilter(null, 'PUBLISHED', aos, nonMatching);
+
+        expect(kept).to.be.true;
+        expect(excluded).to.be.false;
+    });
+
+    it('U2 filters by market segment dimension: keeps matching, excludes non-matching', () => {
+        const aos = makeAos({ marketSegment: 'EDU' });
+        const matching = makeOffer({ marketSegments: { COM: false, EDU: true } });
+        const nonMatching = makeOffer({ marketSegments: { COM: true, EDU: false } });
+
+        const kept = offerFilter(null, 'PUBLISHED', aos, matching);
+        const excluded = offerFilter(null, 'PUBLISHED', aos, nonMatching);
+
+        expect(kept).to.be.true;
+        expect(excluded).to.be.false;
+    });
+
+    it('U2 filters by offer type dimension: PUBLISHED landscape keeps live offers, excludes drafts', () => {
+        const liveOffer = makeOffer({ draft: false });
+        const draftOffer = makeOffer({ draft: true });
+
+        const kept = offerFilter(null, 'PUBLISHED', makeAos(), liveOffer);
+        const excluded = offerFilter(null, 'PUBLISHED', makeAos(), draftOffer);
+
+        expect(kept).to.be.true;
+        expect(excluded).to.be.false;
+    });
+
+    it('U2 filters by plan type dimension: criteria matches arrangement code, excludes mismatched plan', () => {
+        const aos = makeAos({ arrangementCode: 'OTHER' });
+        const matchingPlan = makeOffer({ arrangement_code: 'ARRANGEMENT_1', name: 'Photoshop' });
+        const mismatchedPlan = makeOffer({ arrangement_code: 'ARRANGEMENT_2', name: 'Photoshop' });
+
+        const kept = offerFilter(/ARRANGEMENT_1/, 'PUBLISHED', aos, matchingPlan);
+        const excluded = offerFilter(/ARRANGEMENT_1/, 'PUBLISHED', aos, mismatchedPlan);
+
+        expect(kept).to.be.true;
+        expect(excluded).to.be.false;
+    });
 });

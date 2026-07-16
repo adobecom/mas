@@ -1,7 +1,7 @@
 class AEMClient {
     constructor() {
         this.masIOUrl = 'https://www.adobe.com/mas/io';
-        this.wcsApiKey = 'wcms-commerce-ims-user-prod';
+        this.wcsApiKey = 'wcms-commerce-ims-ro-user-milo';
         this.defaultLocale = 'en_US';
     }
 
@@ -71,4 +71,8 @@ class AEMClient {
 
 if (typeof self !== 'undefined') {
     self.AEMClient = AEMClient;
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = { AEMClient };
 }

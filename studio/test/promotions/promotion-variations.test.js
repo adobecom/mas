@@ -3,6 +3,7 @@ import sinon from 'sinon';
 import {
     createPromoVariation,
     findOverlappingGeoTags,
+    getUsedGeoTags,
     getNextAvailablePromoVariationIndex,
     MAX_PROMO_VARIATIONS_PER_FRAGMENT,
     mergePromoVariationReferences,
@@ -129,7 +130,8 @@ describe('promotion-variations', () => {
             }
         });
 
-        it('throws when a sibling has no pznTags (legacy variation covering the whole project) and any project geo is requested', async () => {
+        it('creates a geo-specific variation alongside a sibling with no pznTags (legacy fallback variation)', async () => {
+            const variation2Path = '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card-2';
             const getByPath = sandbox.stub();
             getByPath.withArgs(targetPath).resolves({
                 id: 'var-1',
@@ -137,23 +139,18 @@ describe('promotion-variations', () => {
                 fields: [],
             });
             getByPath.resolves(null);
+            const createdFragment = { id: 'new-promo-var-2', path: variation2Path };
             const aem = createAemMock({
-                fragments: { getById: sandbox.stub().resolves(parentFragment), getByPath },
+                fragments: {
+                    getById: sandbox.stub().resolves(parentFragment),
+                    getByPath,
+                    pollCreatedFragment: sandbox.stub().resolves(createdFragment),
+                },
+                createFragmentCopy: sandbox.stub().resolves({ id: 'new-promo-var-2' }),
             });
 
-            try {
-                await createPromoVariation(
-                    aem,
-                    parentFragment.id,
-                    promoTag,
-                    ['mas:pzn/country/fr'],
-                    [],
-                    ['mas:pzn/country/ar', 'mas:pzn/country/fr'],
-                );
-                expect.fail('Should have thrown');
-            } catch (err) {
-                expect(err.message).to.include('mas:pzn/country/fr');
-            }
+            const result = await createPromoVariation(aem, parentFragment.id, promoTag, ['mas:pzn/country/fr']);
+            expect(result).to.deep.equal(createdFragment);
         });
 
         it('skips a suffix index that collides with another attached fragment in the same project', async () => {
@@ -396,16 +393,25 @@ describe('promotion-variations', () => {
             expect(findOverlappingGeoTags([{ pznTags: ['mas:pzn/country/ar'] }])).to.deep.equal([]);
         });
 
-        it('treats a sibling with no pznTags as covering every project geo (legacy variation)', () => {
+        it('does not treat a sibling with no pznTags as covering any geo (legacy fallback variation)', () => {
             const existing = [{ pznTags: [] }];
-            const projectGeos = ['mas:pzn/country/ar', 'mas:pzn/country/fr'];
-            expect(findOverlappingGeoTags(existing, ['mas:pzn/country/fr'], projectGeos)).to.deep.equal(['mas:pzn/country/fr']);
+            expect(findOverlappingGeoTags(existing, ['mas:pzn/country/fr'])).to.deep.equal([]);
+        });
+    });
+
+    describe('getUsedGeoTags', () => {
+        it('collects pznTags from every variation that has them', () => {
+            const existing = [{ pznTags: ['mas:pzn/country/ar'] }, { pznTags: ['mas:pzn/country/fr'] }];
+            expect(getUsedGeoTags(existing)).to.deep.equal(['mas:pzn/country/ar', 'mas:pzn/country/fr']);
         });
 
-        it('does not use projectGeos as a fallback for a sibling that has its own pznTags', () => {
-            const existing = [{ pznTags: ['mas:pzn/country/ar'] }];
-            const projectGeos = ['mas:pzn/country/ar', 'mas:pzn/country/fr'];
-            expect(findOverlappingGeoTags(existing, ['mas:pzn/country/fr'], projectGeos)).to.deep.equal([]);
+        it('excludes a legacy variation with no pznTags from the used set', () => {
+            const existing = [{ pznTags: [] }, { pznTags: ['mas:pzn/country/ar'] }];
+            expect(getUsedGeoTags(existing)).to.deep.equal(['mas:pzn/country/ar']);
+        });
+
+        it('returns an empty array when there are no variations', () => {
+            expect(getUsedGeoTags([])).to.deep.equal([]);
         });
     });
 

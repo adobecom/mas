@@ -165,16 +165,27 @@ describe('promotions-repository', () => {
             expect(aem.sites.cf.fragments.getByPath.calledWith(targetPath)).to.be.true;
         });
 
-        it('passes the matching promo project geos through, so a legacy sibling (no pznTags) blocks every project geo', async () => {
+        it('creates a geo-specific variation even when a legacy sibling (no pznTags) already exists', async () => {
+            const variation2Path = '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card-2';
             const getByPath = sandbox.stub();
             getByPath.withArgs(targetPath).resolves({ id: 'existing-var', path: targetPath, fields: [] });
             getByPath.resolves(null);
+            const createdFragment = { id: 'new-promo-var-2', path: variation2Path };
             const aem = {
                 sites: {
                     cf: {
-                        fragments: { getById: sandbox.stub().resolves(parentFragment), getByPath },
+                        fragments: {
+                            getById: sandbox.stub().resolves(parentFragment),
+                            getByPath,
+                            ensureFolderExists: sandbox.stub().resolves(),
+                            pollCreatedFragment: sandbox.stub().resolves(createdFragment),
+                        },
                     },
                 },
+                getCsrfToken: sandbox.stub().resolves('csrf-token'),
+                createFragmentCopy: sandbox.stub().resolves({ id: 'new-promo-var-2' }),
+                wait: sandbox.stub().resolves(),
+                saveTags: sandbox.stub().resolves(),
             };
             Store.promotions.list.data.set([
                 {
@@ -188,12 +199,9 @@ describe('promotions-repository', () => {
                 },
             ]);
 
-            try {
-                await createPromoVariation(aem, parentFragment.id, promoTag, ['mas:pzn/country/fr']);
-                expect.fail('Should have thrown');
-            } catch (err) {
-                expect(err.message).to.include('mas:pzn/country/fr');
-            }
+            const result = await createPromoVariation(aem, parentFragment.id, promoTag, ['mas:pzn/country/fr']);
+
+            expect(result).to.deep.equal(createdFragment);
         });
     });
 

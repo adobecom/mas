@@ -1275,7 +1275,7 @@ describe('MasPromotionsItemsTable', () => {
             expect(el.promoVariationDisabledGeos).to.deep.equal(['mas:pzn/country/ar']);
         });
 
-        it('treats a sibling with no pznTags (legacy variation) as covering every project geo, disabling all of them', async () => {
+        it('does not disable any geo because of a sibling with no pznTags (legacy fallback variation)', async () => {
             const promotion = new Fragment({
                 path: '/content/dam/mas/promotions/black-friday',
                 fields: [
@@ -1309,10 +1309,10 @@ describe('MasPromotionsItemsTable', () => {
 
             await clickCreateAndWaitForDialog(el);
 
-            expect(el.promoVariationDisabledGeos).to.deep.equal(['mas:locale/de_AT', 'mas:locale/en_NG']);
+            expect(el.promoVariationDisabledGeos).to.deep.equal([]);
         });
 
-        it('hides Create promo variation when a sibling with no pznTags (legacy variation) already exists', async () => {
+        it('shows Create promo variation alongside View promo variation when a sibling with no pznTags (legacy variation) already exists', async () => {
             const promotion = new Fragment({
                 path: '/content/dam/mas/promotions/black-friday',
                 fields: [
@@ -1348,7 +1348,9 @@ describe('MasPromotionsItemsTable', () => {
             await new Promise((r) => setTimeout(r, 80));
             await el.updateComplete;
 
-            expect(findCreateMenuItem(el)).to.be.undefined;
+            const menuItems = Array.from(el.shadowRoot.querySelectorAll('sp-menu-item'));
+            expect(menuItems.some((item) => item.textContent.trim().includes('Create promo variation'))).to.be.true;
+            expect(menuItems.some((item) => item.textContent.trim().includes('View promo variation'))).to.be.true;
             el.remove();
             Store.promotions.selectedCards.set([]);
         });
@@ -1389,7 +1391,7 @@ describe('MasPromotionsItemsTable', () => {
             expect(findCreateMenuItem(el)).to.be.undefined;
         });
 
-        it('hides Create promo variation when an existing variation has no geo restriction (empty pznTags)', async () => {
+        it('shows Create promo variation when the only recorded geos are from a legacy variation (empty pznTags)', async () => {
             const promotion = new Fragment({
                 path: '/content/dam/mas/promotions/black-friday',
                 fields: [
@@ -1404,7 +1406,7 @@ describe('MasPromotionsItemsTable', () => {
             el.viewOnlyFragments = [cardFragment];
             await el.updateComplete;
 
-            expect(findCreateMenuItem(el)).to.be.undefined;
+            expect(findCreateMenuItem(el)).to.not.be.undefined;
         });
 
         it('shows a toast and does not create when no geo is selected', async () => {

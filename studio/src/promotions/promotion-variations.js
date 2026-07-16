@@ -59,18 +59,23 @@ export async function probePromoVariationsForFragment(aem, defaultPath, promoTag
 }
 
 /**
- * A sibling variation with no pznTags of its own predates per-variation geo scoping —
- * back then a promo variation applied to every geo the promotion project covered, so it
- * must be treated as covering all of `projectGeos`, not zero geos.
+ * Collects the geo tags already claimed by sibling promo variations. A sibling with no
+ * pznTags of its own predates per-variation geo scoping and is a geo-less fallback
+ * variation — it does not claim any geo, so it never blocks a new geo-specific sibling.
  * @param {Array<{ pznTags: string[] }>} existingVariations
- * @param {string[]} newGeoTags
- * @param {string[]} [projectGeos]
  * @returns {string[]}
  */
-export function findOverlappingGeoTags(existingVariations, newGeoTags, projectGeos = []) {
-    const used = new Set(
-        existingVariations.flatMap((variation) => (variation.pznTags?.length ? variation.pznTags : projectGeos)),
-    );
+export function getUsedGeoTags(existingVariations) {
+    return existingVariations.flatMap((variation) => variation.pznTags || []);
+}
+
+/**
+ * @param {Array<{ pznTags: string[] }>} existingVariations
+ * @param {string[]} newGeoTags
+ * @returns {string[]}
+ */
+export function findOverlappingGeoTags(existingVariations, newGeoTags) {
+    const used = new Set(getUsedGeoTags(existingVariations));
     return (newGeoTags || []).filter((tag) => used.has(tag));
 }
 
@@ -102,17 +107,9 @@ export function getNextAvailablePromoVariationIndex(existingCount, defaultPath, 
  * @param {string} promoTagId
  * @param {string[]} [geoTags]
  * @param {string[]} [attachedFragmentPaths]
- * @param {string[]} [projectGeos]
  * @returns {Promise<Object>}
  */
-export async function createPromoVariation(
-    aem,
-    sourceFragmentId,
-    promoTagId,
-    geoTags = [],
-    attachedFragmentPaths = [],
-    projectGeos = [],
-) {
+export async function createPromoVariation(aem, sourceFragmentId, promoTagId, geoTags = [], attachedFragmentPaths = []) {
     const promoName = getPromoNameFromTag(promoTagId);
     if (!promoName) {
         throw new UserFriendlyError('Invalid promotion tag');
@@ -130,7 +127,7 @@ export async function createPromoVariation(
     }
 
     const existingVariations = await probePromoVariationsForFragment(aem, sourceFragment.path, promoTagId);
-    const overlapping = findOverlappingGeoTags(existingVariations, geoTags, projectGeos);
+    const overlapping = findOverlappingGeoTags(existingVariations, geoTags);
     if (overlapping.length) {
         throw new UserFriendlyError(
             `These geos are already used by another variation of this fragment: ${overlapping.join(', ')}`,

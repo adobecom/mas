@@ -30,6 +30,7 @@ import {
     pruneOrphanedPromotionSelectionAfterOfferRemoval,
 } from './promotion-editor-utils.js';
 import { isPromoVariationPath } from './promotion-model.js';
+import { getUsedGeoTags } from './promotion-variations.js';
 import { createPromoVariation, probePromoVariationsForFragment } from './promotions-repository.js';
 import './mas-promo-variation-geos.js';
 import { openOfferSelectorTool } from '../rte/ost.js';
@@ -704,12 +705,7 @@ class MasPromotionsItemsTable extends LitElement {
                     const variations = await probePromoVariationsForFragment(this.repository.aem, item.path, promoTag);
                     if (variations.length) {
                         existingPaths.add(item.path);
-                        geosByPath.set(
-                            item.path,
-                            variations.flatMap((variation) =>
-                                variation.pznTags?.length ? variation.pznTags : this.#geoValues,
-                            ),
-                        );
+                        geosByPath.set(item.path, getUsedGeoTags(variations));
                     }
                 } catch {
                     if (previousPaths.has(item.path)) {
@@ -785,7 +781,6 @@ class MasPromotionsItemsTable extends LitElement {
         if (isPromoVariationPath(item.path)) return false;
         if (!this.existingPromoVariationGeosByPath.has(item.path)) return true;
         const usedGeos = this.existingPromoVariationGeosByPath.get(item.path);
-        if (!usedGeos.length) return false;
         return this.#geoValues.some((geo) => !usedGeos.includes(geo));
     }
 
@@ -844,9 +839,7 @@ class MasPromotionsItemsTable extends LitElement {
 
         try {
             const existingVariations = await probePromoVariationsForFragment(this.repository.aem, item.path, promoTag);
-            this.promoVariationDisabledGeos = existingVariations.flatMap((variation) =>
-                variation.pznTags?.length ? variation.pznTags : this.#geoValues,
-            );
+            this.promoVariationDisabledGeos = getUsedGeoTags(existingVariations);
             this.promoVariationGeosDialogItem = item;
         } catch {
             showToast(PROMO_VARIATION_LOOKUP_FAILED_MESSAGE, 'negative');

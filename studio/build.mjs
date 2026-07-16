@@ -29,3 +29,10 @@ await build({
     entryPoints: ['src/spectrum.css.js'],
     outfile: 'libs/spectrum.js',
 });
+
+await build({
+    ...defaults,
+    entryPoints: ['../ost/src/global.js'],
+    outfile: 'ost/ost-new.js',
+    sourcemap: false,
+});

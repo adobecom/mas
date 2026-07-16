@@ -292,11 +292,13 @@ export class OstCheckoutOptions extends LitElement {
                           </button>
                           ${this.ctaDropdownOpen
                               ? html`
-                                    <div class="cta-dropdown">
+                                    <div class="cta-dropdown" role="listbox">
                                         ${ctaTexts.map(
                                             (t) => html`
                                                 <div
                                                     class="cta-option"
+                                                    role="option"
+                                                    aria-selected=${t.id === currentCta}
                                                     ?data-selected=${t.id === currentCta}
                                                     @click=${() => this.selectCta(t.id)}
                                                 >

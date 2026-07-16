@@ -54,6 +54,7 @@ test.describe('ACOM MAS Promotions feature test suite', () => {
             await workerSetup.verifyPageURL('US', DOCS_GALLERY_PATH.PLANS_COLLECTION.US, expect);
             await expect(acomPage.getCard(data.id)).toBeVisible();
             await expect(acomPage.getCard(data.id)).toHaveAttribute('variation-id', data.variation_id);
+            await expect(acomPage.getCard(data.id)).toHaveAttribute('data-promotion-project', /.+/);
             await expect(acomPage.getCardBadge(data.id)).toContainText(data.badgeText);
             await expect(acomPage.getCardBadge(data.id)).toHaveCSS('background-color', data.badgeColor);
             await expect(acomPage.getCardPrice(data.id)).toContainText(data.promoPrice);
@@ -67,6 +68,7 @@ test.describe('ACOM MAS Promotions feature test suite', () => {
             await workerSetup.verifyPageURL('US_base', DOCS_GALLERY_PATH.PLANS_COLLECTION.US, expect);
             await expect(acomPage.getCard(data.id)).toBeVisible();
             await expect(acomPage.getCard(data.id)).toHaveAttribute('variation-id', data.variation_id);
+            await expect(acomPage.getCard(data.id)).toHaveAttribute('data-promotion-project', /.+/);
             await expect(acomPage.getCardBadge(data.id)).toContainText(data.badgeText);
             await expect(acomPage.getCardBadge(data.id)).toHaveCSS('background-color', data.badgeColor);
             await expect(acomPage.getCardPrice(data.id)).toContainText(data.promoPrice);
@@ -102,6 +104,7 @@ test.describe('ACOM MAS Promotions feature test suite', () => {
             await workerSetup.verifyPageURL('GR_EN', DOCS_GALLERY_PATH.PLANS_COLLECTION.GR_EN, expect);
             await expect(acomPage.getCard(data.id)).toBeVisible();
             await expect(acomPage.getCard(data.id)).toHaveAttribute('variation-id', data.variation_id);
+            await expect(acomPage.getCard(data.id)).toHaveAttribute('data-promotion-project', /.+/);
             await expect(acomPage.getCardBadge(data.id)).toContainText(data.badgeText);
             await expect(acomPage.getCardBadge(data.id)).toHaveCSS('background-color', data.badgeColor);
             await expect(acomPage.getCardBadge(data.id)).toHaveCSS('border-color', data.badgeBorderColor);
@@ -117,6 +120,7 @@ test.describe('ACOM MAS Promotions feature test suite', () => {
             await workerSetup.verifyPageURL('GR_co_base', DOCS_GALLERY_PATH.PLANS_COLLECTION.GR_co, expect);
             await expect(acomPage.getCard(data.id)).toBeVisible();
             await expect(acomPage.getCard(data.id)).toHaveAttribute('variation-id', data.variation_id);
+            await expect(acomPage.getCard(data.id)).toHaveAttribute('data-promotion-project', /.+/);
             await expect(acomPage.getCardBadge(data.id)).toContainText(data.badgeText);
             await expect(acomPage.getCardBadge(data.id)).toHaveCSS('background-color', data.badgeColor);
             await expect(acomPage.getCardBadge(data.id)).toHaveCSS('border-color', data.badgeBorderColor);
@@ -131,6 +135,7 @@ test.describe('ACOM MAS Promotions feature test suite', () => {
             await workerSetup.verifyPageURL('GR_EN_base', DOCS_GALLERY_PATH.PLANS_COLLECTION.GR_EN, expect);
             await expect(acomPage.getCard(data.id)).toBeVisible();
             await expect(acomPage.getCard(data.id)).toHaveAttribute('variation-id', data.variation_id);
+            await expect(acomPage.getCard(data.id)).toHaveAttribute('data-promotion-project', /.+/);
             await expect(acomPage.getCardBadge(data.id)).toContainText(data.badgeText);
             await expect(acomPage.getCardBadge(data.id)).toHaveCSS('background-color', data.badgeColor);
             await expect(acomPage.getCardBadge(data.id)).toHaveCSS('border-color', data.badgeBorderColor);
@@ -165,6 +170,7 @@ test.describe('ACOM MAS Promotions feature test suite', () => {
             await workerSetup.verifyPageURL('GR_EN', DOCS_GALLERY_PATH.PLANS_COLLECTION.GR_EN, expect);
             await expect(acomPage.getCard(data.id)).toBeVisible();
             await expect(acomPage.getCard(data.id)).toHaveAttribute('variation-id', data.variation_id);
+            await expect(acomPage.getCard(data.id)).toHaveAttribute('data-promotion-project', /.+/);
             await expect(acomPage.getCardBadge(data.id)).toContainText(data.badgeText);
             await expect(acomPage.getCardBadge(data.id)).toHaveCSS('background-color', data.badgeColor);
             await expect(acomPage.getCardBadge(data.id)).toHaveCSS('border-color', data.badgeBorderColor);
@@ -193,6 +199,7 @@ test.describe('ACOM MAS Promotions feature test suite', () => {
             await workerSetup.verifyPageURL('GR_EN_base', DOCS_GALLERY_PATH.PLANS_COLLECTION.GR_EN, expect);
             await expect(acomPage.getCard(data.id)).toBeVisible();
             await expect(acomPage.getCard(data.id)).toHaveAttribute('variation-id', data.variation_id);
+            await expect(acomPage.getCard(data.id)).toHaveAttribute('data-promotion-project', /.+/);
             await expect(acomPage.getCardBadge(data.id)).toContainText(data.badgeText);
             await expect(acomPage.getCardBadge(data.id)).toHaveCSS('background-color', data.badgeColor);
             await expect(acomPage.getCardBadge(data.id)).toHaveCSS('border-color', data.badgeBorderColor);
@@ -225,6 +232,7 @@ test.describe('ACOM MAS Promotions feature test suite', () => {
             await workerSetup.verifyPageURL('GR_EN', DOCS_GALLERY_PATH.PLANS_COLLECTION.GR_EN, expect);
             await expect(acomPage.getCard(data.id)).toBeVisible();
             await expect(acomPage.getCard(data.id)).toHaveAttribute('variation-id', data.variation_id);
+            await expect(acomPage.getCard(data.id)).toHaveAttribute('data-promotion-project', /.+/);
             await expect(acomPage.getCollection(data.collection_id)).toHaveAttribute(
                 'variation-id',
                 data.variation_collection_id,
@@ -253,6 +261,7 @@ test.describe('ACOM MAS Promotions feature test suite', () => {
             await workerSetup.verifyPageURL('GR_EN_base', DOCS_GALLERY_PATH.PLANS_COLLECTION.GR_EN, expect);
             await expect(acomPage.getCard(data.id)).toBeVisible();
             await expect(acomPage.getCard(data.id)).toHaveAttribute('variation-id', data.variation_id);
+            await expect(acomPage.getCard(data.id)).toHaveAttribute('data-promotion-project', /.+/);
             await expect(acomPage.getCollection(data.collection_id)).toHaveAttribute(
                 'variation-id',
                 data.variation_collection_id,
@@ -286,6 +295,7 @@ test.describe('ACOM MAS Promotions feature test suite', () => {
             await workerSetup.verifyPageURL('GR_EN', DOCS_GALLERY_PATH.PLANS_COLLECTION.GR_EN, expect);
             await expect(acomPage.getCard(data.id)).toBeVisible();
             await expect(acomPage.getCard(data.id)).toHaveAttribute('variation-id', data.variation_id);
+            await expect(acomPage.getCard(data.id)).toHaveAttribute('data-promotion-project', /.+/);
             await expect(acomPage.getCollection(data.collection_id)).toHaveAttribute(
                 'variation-id',
                 data.variation_collection_id,
@@ -314,6 +324,7 @@ test.describe('ACOM MAS Promotions feature test suite', () => {
             await workerSetup.verifyPageURL('GR_EN_base', DOCS_GALLERY_PATH.PLANS_COLLECTION.GR_EN, expect);
             await expect(acomPage.getCard(data.id)).toBeVisible();
             await expect(acomPage.getCard(data.id)).toHaveAttribute('variation-id', data.variation_id);
+            await expect(acomPage.getCard(data.id)).toHaveAttribute('data-promotion-project', /.+/);
             await expect(acomPage.getCollection(data.collection_id)).toHaveAttribute(
                 'variation-id',
                 data.variation_collection_id,
@@ -347,6 +358,7 @@ test.describe('ACOM MAS Promotions feature test suite', () => {
             await workerSetup.verifyPageURL('AR_ES', DOCS_GALLERY_PATH.PLANS_COLLECTION.AR_ES, expect);
             await expect(acomPage.getCard(data.id)).toBeVisible();
             await expect(acomPage.getCard(data.id)).toHaveAttribute('variation-id', data.variation_id);
+            await expect(acomPage.getCard(data.id)).toHaveAttribute('data-promotion-project', /.+/);
             await expect(acomPage.getCollection(data.collection_id)).toHaveAttribute(
                 'variation-id',
                 data.variation_collection_id,
@@ -376,6 +388,7 @@ test.describe('ACOM MAS Promotions feature test suite', () => {
             await workerSetup.verifyPageURL('AR_ES_base', DOCS_GALLERY_PATH.PLANS_COLLECTION.AR_ES, expect);
             await expect(acomPage.getCard(data.id)).toBeVisible();
             await expect(acomPage.getCard(data.id)).toHaveAttribute('variation-id', data.variation_id);
+            await expect(acomPage.getCard(data.id)).toHaveAttribute('data-promotion-project', /.+/);
             await expect(acomPage.getCollection(data.collection_id)).toHaveAttribute(
                 'variation-id',
                 data.variation_collection_id,

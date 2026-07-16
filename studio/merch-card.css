@@ -33,11 +33,6 @@ merch-card:hover:not(.selected) sp-icon-add {
     min-width: 874px;
 }
 
-.mas-fragment merch-card [slot='callout-content'] .icon-button::before,
-.mas-fragment merch-card [slot='callout-content'] .icon-button::after {
-    display: block;
-}
-
 .mas-fragment .render-fragment-content merch-card[variant='media'] {
     width: 600px;
 }

@@ -1,6 +1,7 @@
 import { expect } from '@esm-bundle/chai';
 import sinon from 'sinon';
 import '@spectrum-web-components/button/sp-button.js';
+import '@spectrum-web-components/link/sp-link.js';
 import '../src/mas.js';
 import {
     hydrate,
@@ -24,6 +25,8 @@ import {
     appendSlot,
     processAddon,
     processTrialBadge,
+    processFeatures,
+    normalizeVariant,
 } from '../src/hydrate.js';
 import { CCD_SLICE_AEM_FRAGMENT_MAPPING } from '../src/variants/ccd-slice.js';
 
@@ -32,6 +35,7 @@ import { withWcs } from './mocks/wcs.js';
 import { delay } from './utils.js';
 import { PLANS_AEM_FRAGMENT_MAPPING } from '../src/variants/plans.js';
 import { MINI_COMPARE_CHART_AEM_FRAGMENT_MAPPING } from '../src/variants/mini-compare-chart.js';
+import { COMPARE_CHART_COLUMN_AEM_FRAGMENT_MAPPING } from '../src/variants/compare-chart-column.js';
 import { COMPAT_VERSION_GLOBAL_PROMO_CODE } from '../src/compat-version.js';
 
 function getFooterElement(merchCard) {
@@ -62,6 +66,24 @@ const mockMerchCard = () => {
 await mockFetch(withWcs);
 
 document.head.appendChild(document.createElement('mas-commerce-service'));
+
+describe('normalizeVariant', () => {
+    it('normalizes any plans* variant to plans', () => {
+        expect(normalizeVariant('plans')).to.equal('plans');
+        expect(normalizeVariant('plans-students')).to.equal('plans');
+        expect(normalizeVariant('plans-education')).to.equal('plans');
+        expect(normalizeVariant('plans-v2')).to.equal('plans');
+    });
+
+    it('normalizes bizpro to plans for shared collection styling', () => {
+        expect(normalizeVariant('bizpro')).to.equal('plans');
+    });
+
+    it('leaves unrelated variants untouched', () => {
+        expect(normalizeVariant('catalog')).to.equal('catalog');
+        expect(normalizeVariant('')).to.equal('');
+    });
+});
 
 describe('processMnemonics', async () => {
     it('should process mnemonics', async () => {
@@ -541,6 +563,74 @@ describe('processAnalytics', () => {
     });
 });
 
+describe('processFeatures', () => {
+    it('unwraps author-style { value, mimeType } entries for compare-chart cells', () => {
+        const merchCard = document.createElement('merch-card');
+        document.body.appendChild(merchCard);
+        processFeatures(
+            {
+                features: [
+                    {
+                        value: '<p name="group@a">✓</p>',
+                        mimeType: 'text/html',
+                    },
+                    {
+                        value: '<p name="group@b">—</p>',
+                        mimeType: 'text/html',
+                    },
+                ],
+            },
+            merchCard,
+        );
+        const slot = merchCard.querySelector(':scope > [slot="features"]');
+        expect(slot).to.exist;
+        expect(slot.querySelectorAll('p[name]')).to.have.length(2);
+        expect(
+            slot.querySelector('p[name="group@a"]').textContent.trim(),
+        ).to.equal('✓');
+        merchCard.remove();
+    });
+
+    it('unwraps publish-style features envelope { value: string[] }', () => {
+        const merchCard = document.createElement('merch-card');
+        document.body.appendChild(merchCard);
+        processFeatures(
+            {
+                features: {
+                    mimeType: 'text/html',
+                    value: ['<p name="g@x">✓</p>', '<p name="g@y">—</p>'],
+                },
+            },
+            merchCard,
+        );
+        const slot = merchCard.querySelector(':scope > [slot="features"]');
+        expect(slot).to.exist;
+        expect(slot.querySelectorAll('p[name]')).to.have.length(2);
+        merchCard.remove();
+    });
+
+    it('transforms checkout links in the features slot', () => {
+        const merchCard = mockMerchCard();
+        processFeatures(
+            {
+                features: [
+                    {
+                        value: '<p name="cta@buy"><a data-wcs-osi="abm" class="accent">Buy</a></p>',
+                        mimeType: 'text/html',
+                    },
+                ],
+            },
+            merchCard,
+            COMPARE_CHART_COLUMN_AEM_FRAGMENT_MAPPING,
+        );
+        const slot = merchCard.querySelector('[slot="features"]');
+        const button = slot.querySelector('button[data-wcs-osi="abm"]');
+        expect(button).to.exist;
+        expect(button.classList.contains('spectrum-Button--accent')).to.be.true;
+        merchCard.remove();
+    });
+});
+
 describe('hydrate', () => {
     let merchCard;
 
@@ -605,6 +695,35 @@ describe('hydrate', () => {
         );
     });
 
+    it('sets data-promotion-project and data-promotion-variation-project independently', async () => {
+        const fragment = {
+            promoProject: 'Summer Sale 2026',
+            promoVariationProject: 'Layout Experiment A',
+            fields: {
+                variant: 'ccd-slice',
+                mnemonicIcon: ['test/mocks/img/photoshop.svg'],
+                mnemonicAlt: [],
+                mnemonicLink: ['www.adobe.com'],
+                backgroundImage: 'test/mocks/img/photoshop.svg',
+                ctas: '<a is="checkout-link" data-wcs-osi="abm" class="accent" data-analytics-id="buy-now">Click me</a>',
+                tags: ['mas:term/montly', 'mas:product_code/ccsn'],
+            },
+            settings: {
+                secureLabel: 'Secure Label',
+            },
+        };
+        merchCard.variantLayout = {
+            aemFragmentMapping: CCD_SLICE_AEM_FRAGMENT_MAPPING,
+        };
+        await hydrate(fragment, merchCard);
+        expect(merchCard.getAttribute('data-promotion-project')).to.equal(
+            'Summer Sale 2026',
+        );
+        expect(
+            merchCard.getAttribute('data-promotion-variation-project'),
+        ).to.equal('Layout Experiment A');
+    });
+
     it('hydrates MerchCard with variationId and merch-addon for plans variant', async () => {
         const litCard = document.createElement('merch-card');
         document.body.appendChild(litCard);
@@ -626,6 +745,29 @@ describe('hydrate', () => {
         expect(litCard.getAttribute('variation-id')).to.equal(
             'plans-variation-99',
         );
+        expect(litCard.addon).to.exist;
+        expect(litCard.addon.tagName.toLowerCase()).to.equal('merch-addon');
+        expect(litCard.addon.getAttribute('slot')).to.equal('addon');
+        litCard.remove();
+    });
+
+    it('injects merch-addon at slot="addon" for bizpro variant', async () => {
+        const litCard = document.createElement('merch-card');
+        document.body.appendChild(litCard);
+        await customElements.whenDefined('merch-card');
+
+        const addonHtml = `<p><strong>Add Acrobat AI Assistant to your plan for </strong><span is="inline-price" data-template="price" data-wcs-osi="ai"></span></p>`;
+        const fragment = {
+            id: 'bizpro-addon',
+            fields: {
+                variant: 'bizpro',
+                cardTitle: 'Creative Cloud Pro',
+                prices: '<p><span is="inline-price" data-template="price" data-wcs-osi="main"></span></p>',
+                ctas: '<a class="accent" data-wcs-osi="main">Buy</a>',
+                addon: addonHtml,
+            },
+        };
+        await hydrate(fragment, litCard);
         expect(litCard.addon).to.exist;
         expect(litCard.addon.tagName.toLowerCase()).to.equal('merch-addon');
         expect(litCard.addon.getAttribute('slot')).to.equal('addon');
@@ -716,13 +858,12 @@ describe('MerchCard promotionCode getter', () => {
     });
 
     function addPriceChild(promotionCode) {
-        const span = document.createElement('span');
+        const span = document.createElement('span', { is: 'inline-price' });
         span.setAttribute('is', 'inline-price');
         span.dataset.wcsOsi = 'abm';
         if (promotionCode !== undefined)
             span.dataset.promotionCode = promotionCode;
         card.appendChild(span);
-        return span;
     }
 
     it('returns contextPromotionCode when no descendant carries a promotion code', () => {
@@ -808,6 +949,43 @@ describe('MerchCard fragment promo on prices via checkReady', () => {
     });
 });
 
+describe('MerchCard data-promotion-code attribute', () => {
+    let card;
+
+    beforeEach(async () => {
+        await customElements.whenDefined('merch-card');
+        card = document.createElement('merch-card');
+        document.body.appendChild(card);
+    });
+
+    afterEach(() => {
+        card.remove();
+    });
+
+    it('sets data-promotion-code attribute when contextPromotionCode is assigned', () => {
+        card.contextPromotionCode = 'SUMMER_PROMO';
+        expect(card.getAttribute('data-promotion-code')).to.equal(
+            'SUMMER_PROMO',
+        );
+    });
+
+    it('does not have data-promotion-code attribute when contextPromotionCode is not set', () => {
+        expect(card.hasAttribute('data-promotion-code')).to.be.false;
+    });
+
+    it('removes data-promotion-code attribute when contextPromotionCode is cleared', () => {
+        card.contextPromotionCode = 'SUMMER_PROMO';
+        card.contextPromotionCode = undefined;
+        expect(card.hasAttribute('data-promotion-code')).to.be.false;
+    });
+
+    it('updates data-promotion-code attribute when contextPromotionCode changes at runtime', () => {
+        card.contextPromotionCode = 'PROMO_A';
+        card.contextPromotionCode = 'PROMO_B';
+        expect(card.getAttribute('data-promotion-code')).to.equal('PROMO_B');
+    });
+});
+
 describe('processDescription', async () => {
     let merchCard;
     let aemFragmentMapping;
@@ -886,6 +1064,44 @@ describe('processDescription', async () => {
         );
     });
 
+    it('should convert primary-link and secondary-link to sp-link when spectrum is swc', async () => {
+        const fields = {
+            description: `See <a href="#" class="primary-link">Primary</a> and <a href="#" class="secondary-link">Secondary</a>`,
+        };
+        merchCard.spectrum = 'swc';
+
+        processDescription(fields, merchCard, aemFragmentMapping);
+        updateLinksCSS(merchCard);
+
+        const primary = merchCard.querySelector('sp-link[href="#"]');
+        const secondary = merchCard.querySelector(
+            'sp-link[variant="secondary"]',
+        );
+        expect(primary).to.exist;
+        expect(primary.tagName.toLowerCase()).to.equal('sp-link');
+        expect(primary.hasAttribute('variant')).to.be.false;
+        expect(primary.textContent.trim()).to.equal('Primary');
+        expect(secondary).to.exist;
+        expect(secondary.textContent.trim()).to.equal('Secondary');
+        expect(merchCard.querySelector('a.primary-link')).to.be.null;
+        expect(merchCard.querySelector('a.secondary-link')).to.be.null;
+    });
+
+    it('should preserve primary-link and secondary-link on consonant cards', async () => {
+        const fields = {
+            description: `See <a href="#" class="primary-link">Primary</a> and <a href="#" class="secondary-link">Secondary</a>`,
+        };
+        merchCard.consonant = true;
+        merchCard.spectrum = 'swc';
+
+        processDescription(fields, merchCard, aemFragmentMapping);
+        updateLinksCSS(merchCard);
+
+        expect(merchCard.querySelector('a.primary-link')).to.exist;
+        expect(merchCard.querySelector('a.secondary-link')).to.exist;
+        expect(merchCard.querySelector('sp-link')).to.be.null;
+    });
+
     it('should process promo and callout', async () => {
         const fields = {
             promoText: `Save over 30% with an annual plan.`,
@@ -948,6 +1164,36 @@ describe('processAddon', async () => {
         const addon = merchCard.querySelector('merch-addon');
         expect(addon).to.exist;
         expect(addon.innerHTML).to.equal('<p>Fragment addon</p>');
+    });
+
+    it('should extract background from merch-addon wrapper and set it as attribute', () => {
+        const gradient =
+            'linear-gradient(211deg, rgb(245, 246, 253) 33.52%, rgb(248, 241, 248) 67.33%, rgb(249, 233, 237) 110.37%)';
+        processAddon(
+            {
+                addon: `<merch-addon background="${gradient}"><p>Add Lightroom</p></merch-addon>`,
+            },
+            merchCard,
+            PLANS_AEM_FRAGMENT_MAPPING,
+        );
+
+        const addon = merchCard.querySelector('merch-addon');
+        expect(addon).to.exist;
+        expect(addon.getAttribute('background')).to.equal(gradient);
+        expect(addon.innerHTML).to.equal('<p>Add Lightroom</p>');
+    });
+
+    it('should not set background attribute when no wrapper is present', () => {
+        processAddon(
+            { addon: '<p>Add Lightroom</p>' },
+            merchCard,
+            PLANS_AEM_FRAGMENT_MAPPING,
+        );
+
+        const addon = merchCard.querySelector('merch-addon');
+        expect(addon).to.exist;
+        expect(addon.getAttribute('background')).to.be.null;
+        expect(addon.innerHTML).to.equal('<p>Add Lightroom</p>');
     });
 });
 

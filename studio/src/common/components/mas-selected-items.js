@@ -1,17 +1,18 @@
 import { LitElement, html, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import { styles } from './mas-selected-items.css.js';
-import Store from '../../store.js';
 import { getItemsSelectionStore } from '../items-selection-store.js';
 import ReactiveController from '../../reactivity/reactive-controller.js';
 import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH } from '../../constants.js';
 import { getItemTypeLabel } from '../utils/render-utils.js';
 import { fetchUnresolvedVariations } from '../utils/items-loader.js';
+import { noItemsSelectedIcon } from '../../icons.js';
 
 class MasSelectedItems extends LitElement {
     static styles = styles;
     static properties = {
         getDisplayName: { type: Function },
+        loading: { type: Boolean },
     };
 
     #lastFetchedSelectedCardsKey = null;
@@ -19,14 +20,17 @@ class MasSelectedItems extends LitElement {
     constructor() {
         super();
         this.getDisplayName = (fragmentData) => fragmentData?.path ?? '';
+        this.loading = false;
         this.storeController = new ReactiveController(this, [
             getItemsSelectionStore().showSelected,
             getItemsSelectionStore().selectedCards,
             getItemsSelectionStore().selectedCollections,
             getItemsSelectionStore().selectedPlaceholders,
             getItemsSelectionStore().groupedVariationsByParent,
-            Store.fragments.list.loading,
-            Store.placeholders.list.loading,
+            getItemsSelectionStore().cardsByPaths,
+            getItemsSelectionStore().groupedVariationsData,
+            getItemsSelectionStore().collectionsByPaths,
+            getItemsSelectionStore().placeholdersByPaths,
         ]);
         this.fetchController = new ReactiveController(
             this,
@@ -84,10 +88,6 @@ class MasSelectedItems extends LitElement {
         return getItemsSelectionStore().showSelected.value;
     }
 
-    get isLoadingItems() {
-        return Store.fragments.list.loading.get() || Store.placeholders.list.loading.get();
-    }
-
     getType(item) {
         return getItemTypeLabel(item);
     }
@@ -121,35 +121,48 @@ class MasSelectedItems extends LitElement {
         getItemsSelectionStore()[`selected${type}`].set(
             getItemsSelectionStore()[`selected${type}`].value?.filter((selectedPath) => selectedPath !== item.path),
         );
+        this.dispatchEvent(
+            new CustomEvent('selected-item-removed', {
+                bubbles: true,
+                composed: true,
+                detail: { path: item.path },
+            }),
+        );
     }
 
     render() {
-        return html`${this.showSelected && this.selectedItems.length > 0
-            ? html`<ul
-                  class="selected-items"
-                  style="margin-left: ${this.showSelected && this.selectedItems.length > 0 ? '12px' : '0'}"
-              >
-                  ${repeat(
-                      this.selectedItems,
-                      (item) => item.path,
-                      (item) =>
-                          html`<li class="item">
-                              <h3 class="title">${this.getTitle(item)}</h3>
-                              <div class="type">${this.getType(item)}</div>
-                              <sp-button
-                                  class="remove-button ghost-button"
-                                  variant="secondary"
-                                  size="l"
-                                  icon-only
-                                  @click=${() => this.removeItem(item)}
-                                  ?disabled=${this.isLoadingItems}
-                              >
-                                  <sp-icon-close slot="icon"></sp-icon-close>
-                              </sp-button>
-                          </li>`,
-                  )}
-              </ul>`
-            : nothing} `;
+        if (!this.showSelected) return nothing;
+        if (this.loading) {
+            return html`<div class="empty-state"><sp-progress-circle indeterminate size="m"></sp-progress-circle></div>`;
+        }
+        if (this.selectedItems.length === 0) {
+            return html`
+                <div class="empty-state">
+                    <sp-icon label="No items selected">${noItemsSelectedIcon}</sp-icon>
+                    <p>No items selected yet</p>
+                </div>
+            `;
+        }
+        return html`<ul class="selected-items">
+            ${repeat(
+                this.selectedItems,
+                (item) => item.path,
+                (item) =>
+                    html`<li class="item">
+                        <h3 class="title">${this.getTitle(item)}</h3>
+                        <div class="type">${this.getType(item)}</div>
+                        <sp-button
+                            class="remove-button ghost-button"
+                            variant="secondary"
+                            size="l"
+                            icon-only
+                            @click=${() => this.removeItem(item)}
+                        >
+                            <sp-icon-close slot="icon"></sp-icon-close>
+                        </sp-button>
+                    </li>`,
+            )}
+        </ul>`;
     }
 }
 

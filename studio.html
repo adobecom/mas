@@ -53,8 +53,7 @@
             let bucket;
             let baseUrl;
             if (isLocal) {
-                const aemPort = parseInt(window.location.port || '3000', 10);
-                const proxyPort = params.get('proxy.port') || aemPort + 5080;
+                const proxyPort = params.get('proxy.port') || 8080;
                 baseUrl = `http://localhost:${proxyPort}`;
             } else {
                 bucket = envOverride && BUCKETS[envOverride] ? BUCKETS[envOverride] : BUCKETS.prod;
@@ -72,10 +71,23 @@
         <script src="../web-components/dist/mas.js" type="module"></script>
         <script src="studio/libs/swc.js" type="module"></script>
 
-        <!-- OST -->
-        <script src="studio/ost/index.js"></script>
+        <!-- OST: legacy tacocat bundle by default; ?ost=new (or #ost=new) loads the new Lit OST from the same deployment. -->
+        <script>
+            (function () {
+                const search = new URLSearchParams(location.search).get('ost');
+                const hash = (location.hash.match(/(?:^#|&)ost=([^&]+)/) || [])[1];
+                const useNew = (search || hash) === 'new';
+                const newJs = 'studio/ost/ost-new.js';
+                const newCss = './studio/ost/index.css';
+                const legacyJs = 'studio/ost/index.js';
+                const legacyCss = 'studio/ost/index.css';
+                const js = useNew ? newJs : legacyJs;
+                const css = useNew ? newCss : legacyCss;
+                document.write(`<script src="${js}" defer><\/script>`);
+                document.write(`<link rel="stylesheet" href="${css}" />`);
+            })();
+        </script>
         <link rel="stylesheet" href="studio/libs/spectrum.css" />
-        <link rel="stylesheet" href="./studio/ost/index.css" />
         <link rel="stylesheet" href="./studio/style.css" />
         <link rel="stylesheet" href="./studio/merch-card.css" />
         <link rel="stylesheet" href="./studio/con-button.css" />

@@ -4,9 +4,8 @@ import { MAS_ELEMENT_REGEXP, transformer as wcs } from '../../src/fragment/trans
 import { createResponse } from './mocks/MockFetch.js';
 import FRAGMENT from './mocks/fragment.json' with { type: 'json' };
 
-const CONFIGURATION = (keys = ['foo', 'testing_wcs', 'bar']) => [
+const CONFIGURATION = () => [
     {
-        api_keys: keys,
         wcsURL: 'https://www.adobe.com/web_commerce_artifact',
         env: 'prod',
     },
@@ -191,21 +190,9 @@ describe('wcs corner cases', function () {
         expect(context.body?.wcs).to.be.undefined;
     });
 
-    it('should not do much if bad configuration is is found', async function () {
-        context.wcsConfiguration = 'unexpected string';
-        context = wcs.process(context);
-        expect(context.body?.wcs).to.be.undefined;
-    });
-
     it('should not do much if no wcs placeholder is found', async function () {
         context.body = { content: '<p>no wcs placeholder here</p>' };
         context.wcsConfiguration = CONFIGURATION();
-        context = wcs.process(context);
-        expect(context.body?.wcs).to.be.undefined;
-    });
-
-    it('should not do much if no api key is found', async function () {
-        context.wcsConfiguration = CONFIGURATION(['some-other-key']);
         context = wcs.process(context);
         expect(context.body?.wcs).to.be.undefined;
     });
@@ -252,5 +239,267 @@ describe('wcs corner cases', function () {
                 ],
             },
         });
+    });
+});
+
+describe('wcs OSI substitution', function () {
+    let context = {};
+    let fetchStub;
+
+    const stubbedOffer = (name) => ({ resolvedOffers: [{ name }] });
+
+    beforeEach(function () {
+        fetchStub = sinon.stub(globalThis, 'fetch');
+        fetchStub.resolves(createResponse(200, stubbedOffer('default')));
+        context = {
+            api_key: 'testing_wcs',
+            locale: 'en_US',
+            wcsConfiguration: CONFIGURATION(),
+        };
+    });
+
+    afterEach(function () {
+        fetchStub.restore();
+    });
+
+    it('substitutes OSI from data-wcs-osi HTML content when substituteMap is provided', async function () {
+        context.body = {
+            prices: '<span data-wcs-osi="BASE-OSI"></span>',
+            fields: {},
+        };
+        context.substituteMap = { 'BASE-OSI': 'SUB-OSI' };
+        fetchStub
+            .withArgs(sinon.match((url) => url.includes('offer_selector_ids=SUB-OSI')))
+            .returns(createResponse(200, stubbedOffer('substituted')));
+
+        context = await wcs.process(context);
+
+        expect(context.body.wcs.prod).to.have.property('SUB-OSI-us-mult');
+        expect(context.body.wcs.prod).to.not.have.property('BASE-OSI-us-mult');
+    });
+
+    it('substitutes OSI from fields.osi when substituteMap is provided', async function () {
+        context.body = {
+            prices: '<span data-wcs-osi="BASE-OSI"></span>',
+            fields: { osi: 'BASE-OSI' },
+        };
+        context.substituteMap = { 'BASE-OSI': 'SUB-OSI' };
+        fetchStub
+            .withArgs(sinon.match((url) => url.includes('offer_selector_ids=SUB-OSI')))
+            .returns(createResponse(200, stubbedOffer('substituted')));
+
+        context = await wcs.process(context);
+
+        expect(context.body.wcs.prod).to.have.property('SUB-OSI-us-mult');
+        expect(context.body.wcs.prod).to.not.have.property('BASE-OSI-us-mult');
+    });
+
+    it('leaves OSI unchanged when no substituteMap is present', async function () {
+        context.body = {
+            prices: '<span data-wcs-osi="ORIG-OSI"></span>',
+            fields: { osi: 'ORIG-OSI' },
+        };
+        fetchStub
+            .withArgs(sinon.match((url) => url.includes('offer_selector_ids=ORIG-OSI')))
+            .returns(createResponse(200, stubbedOffer('original')));
+
+        context = await wcs.process(context);
+
+        expect(context.body.wcs.prod).to.have.property('ORIG-OSI-us-mult');
+    });
+
+    it('leaves OSI unchanged when substituteMap has no matching entry', async function () {
+        context.body = {
+            prices: '<span data-wcs-osi="ORIG-OSI"></span>',
+            fields: { osi: 'ORIG-OSI' },
+        };
+        context.substituteMap = { 'OTHER-OSI': 'SUB-OSI' };
+        fetchStub
+            .withArgs(sinon.match((url) => url.includes('offer_selector_ids=ORIG-OSI')))
+            .returns(createResponse(200, stubbedOffer('original')));
+
+        context = await wcs.process(context);
+
+        expect(context.body.wcs.prod).to.have.property('ORIG-OSI-us-mult');
+        expect(context.body.wcs.prod).to.not.have.property('OTHER-OSI-us-mult');
+    });
+
+    it('rewrites body HTML with substituted OSI', async function () {
+        context.body = {
+            prices: '<span data-wcs-osi="BASE-OSI"></span>',
+            fields: {},
+        };
+        context.substituteMap = { 'BASE-OSI': 'SUB-OSI' };
+        fetchStub
+            .withArgs(sinon.match((url) => url.includes('offer_selector_ids=SUB-OSI')))
+            .returns(createResponse(200, stubbedOffer('substituted')));
+
+        context = await wcs.process(context);
+
+        expect(context.body.prices).to.include('data-wcs-osi="SUB-OSI"');
+        expect(context.body.prices).to.not.include('data-wcs-osi="BASE-OSI"');
+    });
+
+    it('rewrites body fields.osi with substituted OSI', async function () {
+        context.body = {
+            prices: '<span data-wcs-osi="HTML-OSI"></span>',
+            fields: { osi: 'FIELD-OSI' },
+        };
+        context.substituteMap = { 'FIELD-OSI': 'SUB-FIELD-OSI' };
+        fetchStub
+            .withArgs(sinon.match((url) => url.includes('offer_selector_ids=SUB-FIELD-OSI')))
+            .returns(createResponse(200, stubbedOffer('substituted')));
+
+        context = await wcs.process(context);
+
+        expect(context.body.fields.osi).to.equal('SUB-FIELD-OSI');
+    });
+
+    it('rewrites body HTML even when no wcsConfiguration is available', async function () {
+        context.body = {
+            prices: '<span data-wcs-osi="BASE-OSI"></span>',
+            fields: {},
+        };
+        context.substituteMap = { 'BASE-OSI': 'SUB-OSI' };
+        delete context.wcsConfiguration;
+
+        context = await wcs.process(context);
+
+        expect(context.body.prices).to.include('data-wcs-osi="SUB-OSI"');
+        expect(context.body.prices).to.not.include('data-wcs-osi="BASE-OSI"');
+        expect(context.body.wcs).to.be.undefined;
+    });
+
+    it('leaves body unchanged and logs error if rewritten bodyString is invalid JSON', async function () {
+        const originalPrices = '<span data-wcs-osi="OSI-A"></span>';
+        context.body = { prices: originalPrices, fields: {} };
+        context.substituteMap = { 'OSI-A': 'INVALID"OSI' };
+
+        context = await wcs.process(context);
+
+        expect(context.body.prices).to.equal(originalPrices);
+    });
+
+    it('fills the cache with the promo code from a referenced card (keyed by its base osi)', async function () {
+        context.body = {
+            prices: '<span data-wcs-osi="BASE-OSI"></span>',
+            fields: {},
+            references: {
+                card1: {
+                    value: {
+                        fields: { osi: 'BASE-OSI', promoCode: 'PROMO1' },
+                    },
+                },
+            },
+        };
+        context.substituteMap = { 'BASE-OSI': 'SUB-OSI' };
+        fetchStub
+            .withArgs(sinon.match((url) => url.includes('offer_selector_ids=SUB-OSI') && url.includes('promotion_code=PROMO1')))
+            .returns(createResponse(200, stubbedOffer('promo')));
+
+        context = await wcs.process(context);
+
+        expect(context.body.wcs.prod).to.have.property('SUB-OSI-us-mult-promo1');
+        expect(context.body.wcs.prod).to.not.have.property('SUB-OSI-us-mult');
+    });
+
+    it('fills the cache with the promo code when the referenced card osi is an array', async function () {
+        context.body = {
+            prices: '<span data-wcs-osi="BASE-OSI"></span>',
+            fields: {},
+            references: {
+                card1: {
+                    value: {
+                        fields: { osi: ['BASE-OSI'], promoCode: 'PROMO1' },
+                    },
+                },
+            },
+        };
+        context.substituteMap = { 'BASE-OSI': 'SUB-OSI' };
+        fetchStub
+            .withArgs(sinon.match((url) => url.includes('offer_selector_ids=SUB-OSI') && url.includes('promotion_code=PROMO1')))
+            .returns(createResponse(200, stubbedOffer('promo')));
+
+        context = await wcs.process(context);
+
+        expect(context.body.wcs.prod).to.have.property('SUB-OSI-us-mult-promo1');
+    });
+
+    it('only applies the promo code to the card that has one when osis differ', async function () {
+        context.body = {
+            prices: '<span data-wcs-osi="OSI-A"></span><span data-wcs-osi="OSI-B"></span>',
+            fields: {},
+            references: {
+                card1: { value: { fields: { osi: 'OSI-A', promoCode: 'PROMO1' } } },
+                card2: { value: { fields: { osi: 'OSI-B' } } },
+            },
+        };
+
+        context = await wcs.process(context);
+
+        expect(context.body.wcs.prod).to.have.property('OSI-A-us-mult-promo1');
+        expect(context.body.wcs.prod).to.have.property('OSI-B-us-mult');
+        expect(context.body.wcs.prod).to.not.have.property('OSI-A-us-mult');
+        expect(context.body.wcs.prod).to.not.have.property('OSI-B-us-mult-promo1');
+    });
+
+    it('caches both promo and plain offers when two cards share an osi but only one has a promo', async function () {
+        context.body = {
+            prices: '<span data-wcs-osi="OSI-A"></span><span data-wcs-osi="OSI-A"></span>',
+            fields: {},
+            references: {
+                card1: { value: { fields: { osi: 'OSI-A', promoCode: 'PROMO1' } } },
+                card2: { value: { fields: { osi: 'OSI-A' } } },
+            },
+        };
+
+        context = await wcs.process(context);
+
+        expect(context.body.wcs.prod).to.have.property('OSI-A-us-mult-promo1');
+        expect(context.body.wcs.prod).to.have.property('OSI-A-us-mult');
+    });
+
+    it('does not add a promo code when the referenced card has none', async function () {
+        context.body = {
+            prices: '<span data-wcs-osi="BASE-OSI"></span>',
+            fields: {},
+            references: {
+                card1: {
+                    value: {
+                        fields: { osi: 'BASE-OSI' },
+                    },
+                },
+            },
+        };
+        fetchStub
+            .withArgs(sinon.match((url) => url.includes('offer_selector_ids=BASE-OSI') && !url.includes('promotion_code')))
+            .returns(createResponse(200, stubbedOffer('no-promo')));
+
+        context = await wcs.process(context);
+
+        expect(context.body.wcs.prod).to.have.property('BASE-OSI-us-mult');
+    });
+
+    it('rewrites body HTML with multiple data-wcs-osi placeholders', async function () {
+        context.body = {
+            prices: '<span data-wcs-osi="OSI-A"></span><span data-wcs-osi="OSI-B"></span>',
+            fields: {},
+        };
+        context.substituteMap = { 'OSI-A': 'SUBSTITUTED-OSI-A', 'OSI-B': 'B' };
+        fetchStub
+            .withArgs(sinon.match((url) => url.includes('offer_selector_ids=SUBSTITUTED-OSI-A')))
+            .returns(createResponse(200, stubbedOffer('sub-a')));
+        fetchStub
+            .withArgs(sinon.match((url) => url.includes('offer_selector_ids=B')))
+            .returns(createResponse(200, stubbedOffer('sub-b')));
+
+        context = await wcs.process(context);
+
+        expect(context.body.prices).to.include('data-wcs-osi="SUBSTITUTED-OSI-A"');
+        expect(context.body.prices).to.include('data-wcs-osi="B"');
+        expect(context.body.prices).to.not.include('data-wcs-osi="OSI-A"');
+        expect(context.body.prices).to.not.include('data-wcs-osi="OSI-B"');
+        expect(context.body.wcs.prod).to.have.property('SUBSTITUTED-OSI-A-us-mult');
+        expect(context.body.wcs.prod).to.have.property('B-us-mult');
     });
 });

@@ -7,17 +7,16 @@ const {
     getValue,
     getValues,
     getVariationParent,
-    postToOdinWithRetry,
+    postToOdin,
     processBatchWithConcurrency,
     putToOdin,
     patchToOdin,
 } = require('../common.js');
 
 const ODIN_PATH = (surface, locale, fragmentPath) => `/content/dam/mas/${surface}/${locale}/${fragmentPath}`;
-const PATH_TOKENS = /\/content\/dam\/mas\/(?<surface>[\w-_]+)\/(?<parsedLocale>[\w-_]+)\/(?<fragmentPath>.+)/;
 const logger = Core.Logger('translation', { level: 'info' });
-const DEFAULT_BATCH_SIZE = 10;
-const DEFAULT_RPS_LIMIT = 10;
+const DEFAULT_BATCH_SIZE = 2;
+const DEFAULT_RPS_LIMIT = 2;
 const ODIN_LOC_TASK_NAME_MAX_LENGTH = 255;
 
 function getOdinLocTaskNameValidationError(value) {
@@ -79,11 +78,7 @@ async function prepareProjectStart(params, options = {}) {
     };
 }
 
-async function runVersioningStage(context, options = {}) {
-    return versionTargetFragments(context, options);
-}
-
-async function runPostVersioningStage(context) {
+async function runSyncAndLocStage(context) {
     const syncResult = await sendSyncRequests(
         context.translationData.itemsToSync,
         context.authToken,
@@ -137,22 +132,6 @@ async function finalizeProjectStart(context) {
     };
 }
 
-function getVersioningTargets(translationData) {
-    const { itemsToTranslate, itemsToSync, locales } = translationData;
-    const itemsToVersion = itemsToTranslate.flatMap((item) => {
-        const { surface, fragmentPath } = item.match(PATH_TOKENS)?.groups || {};
-        return locales.map((locale) => ({
-            path: `/content/dam/mas/${surface}/${locale}/${fragmentPath}`,
-        }));
-    });
-    itemsToVersion.push(...itemsToSync);
-    return itemsToVersion;
-}
-
-function getVersioningItemCount(translationData) {
-    return getVersioningTargets(translationData).length;
-}
-
 function createProjectStartError(statusCode, message, options = {}) {
     const error = new Error(message);
     error.statusCode = statusCode;
@@ -201,11 +180,12 @@ async function getTranslationData(authToken, projectCF, surface, translationFlow
         itemsToSync,
         locales,
         surface,
-        translationFlow: translationFlow
-            ? {
-                  [translationFlow]: true,
-              }
-            : {},
+        translationFlow:
+            translationFlow && translationFlow !== 'humanTranslation'
+                ? {
+                      [translationFlow]: true,
+                  }
+                : {},
     };
 }
 
@@ -285,85 +265,12 @@ function getPznVariations(projectCF) {
     return getValues(projectCF, 'fragments')?.values?.filter((path) => path?.includes('/pzn/')) || [];
 }
 
-async function versionTargetFragment(fragmentToVersion, { authToken, title, params }) {
-    const { path } = fragmentToVersion;
-    try {
-        let id = fragmentToVersion.id;
-        if (!id) {
-            const { status, fragment } = await fetchFragmentByPath(params.odinEndpoint, path, authToken);
-            if (status === 404) {
-                logger.info(`Fragment not found for path ${path}, skipping versioning`);
-                return { success: true, item: path };
-            }
-            ({ id } = fragment);
-        }
-        await postToOdinWithRetry(params.odinEndpoint, `/adobe/sites/cf/fragments/${id}/versions`, authToken, {
-            label: 'Pre-translation version',
-            comment: `Pre-translation project "${title}" (${params.projectId})`,
-        });
-        return { success: true, item: path };
-    } catch (error) {
-        logger.error(`Error versioning fragment ${path}: ${error}`);
-        return { success: false, item: path, error: error.message || error.toString() };
-    }
-}
-
-async function versionTargetFragments(context, options = {}) {
-    const { translationData, authToken, batchSize, rpsLimit, params } = context;
-    const itemsToVersion = getVersioningTargets(translationData);
-    const onBatchCompleted = options.onBatchCompleted;
-    logger.info(`Versioning target items for ${itemsToVersion.length} items`);
-    const config = { authToken, title: translationData.title, params };
-
-    let runningCompleted = 0;
-    let runningFailed = 0;
-
-    const results = await processBatchWithConcurrency(
-        itemsToVersion,
-        batchSize,
-        (item) => versionTargetFragment(item, config),
-        rpsLimit,
-        onBatchCompleted &&
-            (async (batchResults) => {
-                runningCompleted += batchResults.filter((r) => r.success).length;
-                runningFailed += batchResults.filter((r) => !r.success).length;
-                await onBatchCompleted({
-                    completedItemCount: runningCompleted,
-                    failedItemCount: runningFailed,
-                    itemCount: itemsToVersion.length,
-                });
-            }),
-    );
-
-    const failures = results.filter((result) => !result.success);
-    const completedItemCount = results.length - failures.length;
-    const failedItemCount = failures.length;
-
-    if (failedItemCount > 0) {
-        logger.error(`${failures.length} request(s) failed: ${failures.map((failure) => failure.item).join(', ')}`);
-    }
-
-    logger.info(`Successfully versioned ${results.length} target fragments`);
-    return {
-        success: failedItemCount === 0,
-        itemCount: itemsToVersion.length,
-        completedItemCount,
-        failedItemCount,
-    };
-}
-
 async function sendLocRequestWithRetry(config) {
     try {
-        const { authToken, odinEndpoint, locPayload, maxRetries = 3 } = config;
+        const { authToken, odinEndpoint, locPayload } = config;
         logger.info('Sending loc request');
-        const success = await postToOdinWithRetry(
-            odinEndpoint,
-            '/bin/sendToLocalisationAsync',
-            authToken,
-            locPayload,
-            maxRetries,
-        );
-        return { success };
+        await postToOdin(odinEndpoint, '/bin/sendToLocalisationAsync', authToken, locPayload);
+        return { success: true };
     } catch (error) {
         const lastError = error.message || error.toString();
         logger.error(`Failed to send loc request after retries: ${lastError}`);
@@ -474,7 +381,6 @@ async function startTranslationProject(translationData = {}, authToken, params =
         authToken,
         odinEndpoint: params.odinEndpoint,
         locPayload,
-        maxRetries: 3,
     };
 
     const result = await sendLocRequestWithRetry(config);
@@ -507,7 +413,6 @@ async function startRolloutOnlyProject(translationData, authToken, params = {}) 
         authToken,
         odinEndpoint: params.odinEndpoint,
         locPayload,
-        maxRetries: 3,
     };
 
     const result = await sendRolloutRequestWithRetry(config);
@@ -522,10 +427,10 @@ async function startRolloutOnlyProject(translationData, authToken, params = {}) 
 
 async function sendRolloutRequestWithRetry(config) {
     try {
-        const { authToken, odinEndpoint, locPayload, maxRetries = 3 } = config;
+        const { authToken, odinEndpoint, locPayload } = config;
         logger.info('Sending rollout request');
-        const success = await postToOdinWithRetry(odinEndpoint, '/bin/localeSync', authToken, locPayload, maxRetries);
-        return { success };
+        await postToOdin(odinEndpoint, '/bin/localeSync', authToken, locPayload);
+        return { success: true };
     } catch (error) {
         const lastError = error.message || error.toString();
         logger.error(`Failed to send rollout request after retries: ${lastError}`);
@@ -580,10 +485,8 @@ async function updateProjectStatus(projectId, status, authToken, params = {}, et
 
 module.exports = {
     prepareProjectStart,
-    runVersioningStage,
-    runPostVersioningStage,
+    runSyncAndLocStage,
     finalizeProjectStart,
-    getVersioningItemCount,
     createProjectStartError,
     isProjectStartError,
     updateProjectStatus,

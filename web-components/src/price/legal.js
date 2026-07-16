@@ -24,12 +24,13 @@ function renderContainer(
     cssClass,
     { perUnitLabel, taxInclusivityLabel, planTypeLabel },
     attributes = {},
+    displayDot = true,
 ) {
     let markup = '';
     markup += renderSpan(cssClassNames.unitType, perUnitLabel, null, true);
 
-    if (taxInclusivityLabel && planTypeLabel) {
-        taxInclusivityLabel += '. ';
+    if (taxInclusivityLabel && planTypeLabel && displayDot) {
+        taxInclusivityLabel += taxInclusivityLabel.endsWith('.') ? ' ' : '. ';
     }
     markup += renderSpan(
         cssClassNames.taxInclusivity,
@@ -49,6 +50,7 @@ const legalTemplate = (
         displayPerUnit = false,
         displayTax = false,
         displayPlanType = false,
+        displayDot = true,
         language,
         literals: priceLiterals = {},
     } = {},
@@ -112,6 +114,7 @@ const legalTemplate = (
             planTypeLabel,
         },
         attributes,
+        displayDot,
     );
 };
 

@@ -263,10 +263,13 @@ export class Plans extends VariantLayout {
             await this.adjustLegal();
             await this.adjustEduLists();
         }
+        await super.postCardUpdateHook();
         if (window.matchMedia('(min-width: 768px)').matches) {
-            requestAnimationFrame(() => {
-                this.syncHeights();
-            });
+            if (this.card === this.card.parentElement.firstElementChild) {
+                requestAnimationFrame(() => {
+                    this.syncHeights();
+                });
+            }
         }
     }
 
@@ -325,7 +328,7 @@ export class Plans extends VariantLayout {
         addon.setAttribute('custom-checkbox', '');
         const price = this.mainPrice;
         if (!price) return;
-        await price.onceSettled();
+        await price.onceSettled?.();
         const planType = price.value?.[0]?.planType;
         if (!planType) return;
         addon.planType = planType;
@@ -350,19 +353,19 @@ export class Plans extends VariantLayout {
         return html`<slot name="icons"></slot>`;
     }
 
+    resizeHandler() {
+        if (this.#resizeFrame) cancelAnimationFrame(this.#resizeFrame);
+        this.#resizeFrame = requestAnimationFrame(() => {
+            this.#resizeFrame = null;
+            if (window.matchMedia('(min-width: 768px)').matches) {
+                this.syncHeights();
+            }
+        });
+    }
+
     connectedCallbackHook() {
         Media.matchMobile.addEventListener('change', this.adaptForMedia);
         Media.matchDesktopOrUp.addEventListener('change', this.adaptForMedia);
-        this.handleResize = () => {
-            if (this.#resizeFrame) cancelAnimationFrame(this.#resizeFrame);
-            this.#resizeFrame = requestAnimationFrame(() => {
-                this.#resizeFrame = null;
-                if (window.matchMedia('(min-width: 768px)').matches) {
-                    this.syncHeights();
-                }
-            });
-        };
-        window.addEventListener('resize', this.handleResize);
     }
 
     disconnectedCallbackHook() {
@@ -373,10 +376,6 @@ export class Plans extends VariantLayout {
         );
         this.#syncObserver?.disconnect();
         this.#syncObserver = null;
-        if (this.handleResize) {
-            window.removeEventListener('resize', this.handleResize);
-            this.handleResize = null;
-        }
         if (this.#resizeFrame) {
             cancelAnimationFrame(this.#resizeFrame);
             this.#resizeFrame = null;
@@ -430,6 +429,10 @@ export class Plans extends VariantLayout {
 
         :host([variant='plans-education']) {
             min-height: unset;
+        }
+
+        :host([variant='plans-education']) ::slotted(h3[slot='heading-s']) {
+            max-width: var(--consonant-merch-card-heading-xs-max-width, 100%);
         }
 
         :host([variant='plans-education']) ::slotted([slot='subtitle']) {

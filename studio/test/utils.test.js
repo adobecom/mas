@@ -1,30 +1,71 @@
 import { expect } from '@open-wc/testing';
 import {
     buildCardsDeepLink,
+    generateCodeToUse,
     generateFieldLink,
+    getFragmentPartsToUse,
     camelToTitle,
     stripHtml,
     previewValue,
     parseStudioDeepLinksFromText,
+    hasNonEmptyCompareChart,
+    matchesContentTypeFilter,
+    resolveContentTypeFilters,
+    getCreateProjectErrorMessage,
 } from '../src/utils.js';
-import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH } from '../src/constants.js';
+import {
+    CARD_MODEL_PATH,
+    COLLECTION_MODEL_PATH,
+    COMPARE_CHART_FIELD,
+    TAG_MERCH_CARD,
+    TAG_COMPARE_CHART,
+    TAG_MERCH_CARD_COLLECTION,
+    TAG_MODEL_ID_MAPPING,
+} from '../src/constants.js';
+
+function mockFragmentForCode(modelPath, id = 'frag-123', title = 'CC Plans Merch Card: CC Pro: Business') {
+    return {
+        id,
+        model: { path: modelPath },
+        title,
+        getField: (name) => {
+            const fields = {
+                name: { values: ['card-name'] },
+                cardTitle: { values: ['Creative Cloud'] },
+                variant: { values: ['plans'] },
+            };
+            return fields[name] || null;
+        },
+        getTagTitle: () => null,
+    };
+}
+
+describe('generateCodeToUse', () => {
+    it('appends fragment title to richText link text for cards', () => {
+        const fragment = mockFragmentForCode(CARD_MODEL_PATH);
+        const { authorPath, richText, href } = generateCodeToUse(fragment, 'acom', 'content');
+        expect(authorPath).to.not.include('CC Plans Merch Card');
+        expect(richText).to.include(`${authorPath} : ${fragment.title}`);
+        expect(richText).to.include(href);
+    });
+
+    it('appends fragment title to richText link text for collections', () => {
+        const fragment = mockFragmentForCode(COLLECTION_MODEL_PATH, 'frag-456', 'My Collection Title');
+        const { authorPath, richText } = generateCodeToUse(fragment, 'acom', 'content');
+        expect(authorPath).to.include('My Collection Title');
+        expect(richText).to.include(`${authorPath} : ${fragment.title}`);
+    });
+
+    it('leaves richText unchanged when fragment has no title', () => {
+        const fragment = mockFragmentForCode(CARD_MODEL_PATH, 'frag-123', '');
+        const { authorPath, richText, href } = generateCodeToUse(fragment, 'acom', 'content');
+        expect(richText).to.equal(`<a href="${href}" target="_blank">${authorPath}</a>`);
+    });
+});
 
 describe('generateFieldLink', () => {
     function mockFragment(modelPath, id = 'frag-123') {
-        return {
-            id,
-            model: { path: modelPath },
-            title: 'Test Collection',
-            getField: (name) => {
-                const fields = {
-                    name: { values: ['card-name'] },
-                    cardTitle: { values: ['Creative Cloud'] },
-                    variant: { values: ['plans'] },
-                };
-                return fields[name] || null;
-            },
-            getTagTitle: () => null,
-        };
+        return mockFragmentForCode(modelPath, id, 'Test Collection');
     }
 
     it('returns null for unknown model path', () => {
@@ -73,6 +114,49 @@ describe('generateFieldLink', () => {
 
     it('returns null when fragment is null', () => {
         expect(generateFieldLink(null, '/acom', 'prices')).to.be.null;
+    });
+});
+
+describe('generateCodeToUse', () => {
+    function mockFragment(modelPath, id = 'frag-123', fields = {}) {
+        return {
+            id,
+            model: { path: modelPath },
+            title: 'Test Collection',
+            getField: (name) => {
+                const valuesByField = {
+                    name: { values: ['card-name'] },
+                    cardTitle: { values: ['Creative Cloud'] },
+                    variant: { values: ['plans'] },
+                    ...fields,
+                };
+                return valuesByField[name] || null;
+            },
+            getTagTitle: () => null,
+        };
+    }
+
+    it('uses mas-compare-chart as content type for compare chart fragments', () => {
+        const fragment = mockFragment(COLLECTION_MODEL_PATH, 'chart-123', {
+            [COMPARE_CHART_FIELD]: { values: ['<mas-compare-chart></mas-compare-chart>'] },
+        });
+        const result = generateCodeToUse(fragment, '/acom', 'content');
+        expect(result.href).to.include('content-type=mas-compare-chart');
+        expect(result.href).to.include('query=chart-123');
+    });
+
+    it('keeps merch-card-collection as content type for regular collection fragments', () => {
+        const fragment = mockFragment(COLLECTION_MODEL_PATH);
+        const result = generateCodeToUse(fragment, '/acom', 'content');
+        expect(result.href).to.include('content-type=merch-card-collection');
+    });
+
+    it('keeps merch-card-collection when the compareChart field exists but is empty', () => {
+        const fragment = mockFragment(COLLECTION_MODEL_PATH, 'frag-789', {
+            [COMPARE_CHART_FIELD]: { values: [''] },
+        });
+        const result = generateCodeToUse(fragment, '/acom', 'content');
+        expect(result.href).to.include('content-type=merch-card-collection');
     });
 });
 
@@ -148,14 +232,14 @@ describe('buildCardsDeepLink', () => {
     it('builds merch-card URL', () => {
         const href = buildCardsDeepLink({ id: uuid, model: { path: CARD_MODEL_PATH } }, 'sandbox', 'content');
         expect(href).to.include('content-type=merch-card');
-        expect(href).to.include('query=' + uuid);
+        expect(href).to.include(`query=${uuid}`);
         expect(href).to.include('path=sandbox');
     });
 
     it('builds merch-card-collection URL', () => {
         const href = buildCardsDeepLink({ id: uuid, model: { path: COLLECTION_MODEL_PATH } }, 'sandbox', 'content');
         expect(href).to.include('content-type=merch-card-collection');
-        expect(href).to.include('query=' + uuid);
+        expect(href).to.include(`query=${uuid}`);
     });
 
     it('returns null when fragment id is missing', () => {
@@ -257,5 +341,216 @@ describe('parseStudioDeepLinksFromText', () => {
             '77777777-7777-4777-8777-777777777777',
             '88888888-8888-4888-8888-888888888888',
         ]);
+    });
+
+    it('parses a mas-compare-chart entry', () => {
+        const text = hashLine('mas-compare-chart', '99999999-9999-4999-8999-999999999999');
+        const parsed = parseStudioDeepLinksFromText(text);
+        expect(parsed).to.have.length(1);
+        expect(parsed[0]).to.deep.equal({
+            contentType: 'mas-compare-chart',
+            fragmentId: '99999999-9999-4999-8999-999999999999',
+        });
+    });
+
+    it('parses space-separated URLs (single-line input paste)', () => {
+        const url1 = `https://mas.adobe.com/studio.html#content-type=merch-card&query=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa`;
+        const url2 = `https://mas.adobe.com/studio.html#content-type=merch-card-collection&query=bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb`;
+        const parsed = parseStudioDeepLinksFromText(`${url1} ${url2}`);
+        expect(parsed).to.have.length(2);
+        expect(parsed[0]).to.deep.equal({ contentType: 'merch-card', fragmentId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' });
+        expect(parsed[1]).to.deep.equal({
+            contentType: 'merch-card-collection',
+            fragmentId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+        });
+    });
+});
+
+describe('content-type-utils', () => {
+    describe('hasNonEmptyCompareChart', () => {
+        it('reads via getFieldValues, getField().values, and fields[]', () => {
+            expect(hasNonEmptyCompareChart({ getFieldValues: (n) => (n === COMPARE_CHART_FIELD ? ['<table>'] : []) })).to.be
+                .true;
+            expect(hasNonEmptyCompareChart({ getField: (n) => (n === COMPARE_CHART_FIELD ? { values: ['<table>'] } : null) }))
+                .to.be.true;
+            expect(hasNonEmptyCompareChart({ fields: [{ name: COMPARE_CHART_FIELD, values: ['<table>'] }] })).to.be.true;
+        });
+
+        it('is false for empty, missing, or whitespace-only values', () => {
+            expect(hasNonEmptyCompareChart(undefined)).to.be.false;
+            expect(hasNonEmptyCompareChart({ fields: [] })).to.be.false;
+            expect(hasNonEmptyCompareChart({ fields: [{ name: COMPARE_CHART_FIELD, values: ['   '] }] })).to.be.false;
+        });
+    });
+
+    describe('matchesContentTypeFilter', () => {
+        it('passes everything when no content-type filter is set', () => {
+            expect(matchesContentTypeFilter([], { model: { path: '/whatever' } })).to.be.true;
+        });
+
+        it('classifies a card by model path', () => {
+            const card = { model: { path: CARD_MODEL_PATH } };
+            expect(matchesContentTypeFilter([TAG_MERCH_CARD], card)).to.be.true;
+            expect(matchesContentTypeFilter([TAG_COMPARE_CHART], card)).to.be.false;
+        });
+
+        it('distinguishes compare-chart collections from plain collections', () => {
+            const compareChart = {
+                model: { path: COLLECTION_MODEL_PATH },
+                fields: [{ name: COMPARE_CHART_FIELD, values: ['<table>'] }],
+            };
+            const collection = { model: { path: COLLECTION_MODEL_PATH }, fields: [] };
+            expect(matchesContentTypeFilter([TAG_COMPARE_CHART], compareChart)).to.be.true;
+            expect(matchesContentTypeFilter([TAG_MERCH_CARD_COLLECTION], compareChart)).to.be.false;
+            expect(matchesContentTypeFilter([TAG_MERCH_CARD_COLLECTION], collection)).to.be.true;
+            expect(matchesContentTypeFilter([TAG_COMPARE_CHART], collection)).to.be.false;
+        });
+
+        it('rejects unknown model paths', () => {
+            expect(matchesContentTypeFilter([TAG_MERCH_CARD], { model: { path: '/unknown' } })).to.be.false;
+        });
+    });
+
+    describe('resolveContentTypeFilters', () => {
+        it('keeps only content-type tags', () => {
+            const { contentTypes } = resolveContentTypeFilters([TAG_MERCH_CARD, 'mas:variant/catalog', 'mas:custom/x']);
+            expect(contentTypes).to.deep.equal([TAG_MERCH_CARD]);
+        });
+
+        it('maps compare-chart to the collection model id and de-dupes', () => {
+            const { modelIds } = resolveContentTypeFilters([TAG_COMPARE_CHART, TAG_MERCH_CARD_COLLECTION]);
+            expect(modelIds).to.deep.equal([TAG_MODEL_ID_MAPPING[TAG_MERCH_CARD_COLLECTION]]);
+        });
+
+        it('maps merch-card to its own model id', () => {
+            const { modelIds } = resolveContentTypeFilters([TAG_MERCH_CARD]);
+            expect(modelIds).to.deep.equal([TAG_MODEL_ID_MAPPING[TAG_MERCH_CARD]]);
+        });
+
+        it('returns empty for no content-type tags', () => {
+            expect(resolveContentTypeFilters(['mas:variant/x', 'mas:custom/y'])).to.deep.equal({
+                contentTypes: [],
+                modelIds: [],
+            });
+        });
+    });
+});
+
+describe('getFragmentPartsToUse', () => {
+    function makeCard({ variantCode = 'catalog', cardTitle = 'My Card', getTagTitle = () => null, getCurrentTagTitle } = {}) {
+        return {
+            model: { path: CARD_MODEL_PATH },
+            title: cardTitle,
+            getField: (name) => {
+                const fields = {
+                    name: { values: ['card-slug'] },
+                    cardTitle: { values: [cardTitle] },
+                    variant: { values: [variantCode] },
+                };
+                return fields[name] || null;
+            },
+            getTagTitle,
+            getCurrentTagTitle: getCurrentTagTitle || (() => null),
+        };
+    }
+
+    it('returns surface + variant label for a catalog card', () => {
+        const fragment = makeCard({ variantCode: 'catalog' });
+        const { fragmentParts, title } = getFragmentPartsToUse(fragment, 'acom');
+        expect(fragmentParts).to.equal('ACOM / Catalog');
+        expect(title).to.equal('My Card');
+    });
+
+    it('returns surface + variant label for a plans card', () => {
+        const fragment = makeCard({ variantCode: 'plans' });
+        const { fragmentParts } = getFragmentPartsToUse(fragment, 'acom');
+        expect(fragmentParts).to.include('ACOM');
+        expect(fragmentParts).to.include('Plans');
+    });
+
+    it('appends customerSegment and marketSegment when present', () => {
+        const fragment = makeCard({
+            getTagTitle: (prefix) => {
+                if (prefix === 'customer_segment') return 'Teams';
+                if (prefix === 'market_segment') return 'SMB';
+                return null;
+            },
+        });
+        const { fragmentParts } = getFragmentPartsToUse(fragment, 'acom');
+        expect(fragmentParts).to.include('Teams');
+        expect(fragmentParts).to.include('SMB');
+    });
+
+    it('appends promotion label when getCurrentTagTitle returns one', () => {
+        const fragment = makeCard({
+            getCurrentTagTitle: () => 'Summer Sale',
+        });
+        const { fragmentParts } = getFragmentPartsToUse(fragment, 'acom');
+        expect(fragmentParts).to.include('Summer Sale');
+    });
+
+    it('falls back to getTagTitle for product_code when getCurrentTagTitle returns null', () => {
+        const fragment = makeCard({
+            getCurrentTagTitle: (prefix) => (prefix === 'mas:product_code/' ? null : null),
+            getTagTitle: (prefix) => (prefix === 'mas:product/' ? 'acrobat' : null),
+        });
+        const { fragmentParts } = getFragmentPartsToUse(fragment, 'acom');
+        expect(fragmentParts).to.include('acrobat');
+    });
+
+    it('returns surface / title for a collection fragment', () => {
+        const fragment = {
+            model: { path: COLLECTION_MODEL_PATH },
+            title: 'Creative Suite',
+            getField: () => null,
+            getTagTitle: () => null,
+        };
+        const { fragmentParts, title } = getFragmentPartsToUse(fragment, 'ccd');
+        expect(fragmentParts).to.equal('CCD / Creative Suite');
+        expect(title).to.equal('Creative Suite');
+    });
+
+    it('returns empty strings for an unknown model path', () => {
+        const fragment = { model: { path: '/unknown/path' }, title: 'Irrelevant' };
+        const { fragmentParts, title } = getFragmentPartsToUse(fragment, 'acom');
+        expect(fragmentParts).to.equal('');
+        expect(title).to.equal('');
+    });
+
+    it('handles null fragment gracefully', () => {
+        const { fragmentParts, title } = getFragmentPartsToUse(null, 'acom');
+        expect(fragmentParts).to.equal('');
+        expect(title).to.equal('');
+    });
+
+    it('uppercases the path for the surface label', () => {
+        const fragment = makeCard();
+        const { fragmentParts } = getFragmentPartsToUse(fragment, 'accom');
+        expect(fragmentParts.startsWith('ACCOM')).to.be.true;
+    });
+});
+
+describe('getCreateProjectErrorMessage', () => {
+    it('returns the duplicate-name message for a 409 conflict', () => {
+        const error = new Error('Failed to create fragment: 409 Conflict');
+        expect(getCreateProjectErrorMessage(error)).to.equal('Project with this name already exists.');
+    });
+
+    it('matches a 409 conflict regardless of the HTTP reason phrase', () => {
+        const error = new Error('Failed to create fragment: 409 ');
+        expect(getCreateProjectErrorMessage(error)).to.equal('Project with this name already exists.');
+    });
+
+    it('returns the generic message for a non-409 error', () => {
+        const error = new Error('Failed to create fragment: 500 Internal Server Error');
+        expect(getCreateProjectErrorMessage(error)).to.equal('Failed to create project.');
+    });
+
+    it('returns the generic message when error has no message', () => {
+        expect(getCreateProjectErrorMessage(new Error())).to.equal('Failed to create project.');
+    });
+
+    it('returns the generic message when error is undefined', () => {
+        expect(getCreateProjectErrorMessage(undefined)).to.equal('Failed to create project.');
     });
 });

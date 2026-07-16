@@ -30,7 +30,7 @@ describe('Promotion', () => {
                 { name: 'startDate', type: 'date-time', values: ['2024-01-01T00:00:00.000Z'] },
                 { name: 'endDate', type: 'date-time', values: ['2024-12-31T23:59:59.999Z'] },
                 { name: 'tags', type: 'tag', values: [] },
-                { name: 'surfaces', type: 'long-text', values: [] },
+                { name: 'surfaces', type: 'text', values: [] },
             ],
             tags: [],
         };
@@ -105,12 +105,42 @@ describe('Promotion', () => {
         let now;
 
         beforeEach(() => {
-            // Save original Date
             now = new Date();
+            mockFragmentData.status = 'DRAFT';
         });
 
-        it('should return "active" when promotion is currently running', () => {
-            // Set dates so promotion is active now
+        it('returns modified when published with unpublished AEM changes', () => {
+            const yesterday = new Date(now);
+            yesterday.setDate(yesterday.getDate() - 1);
+            const tomorrow = new Date(now);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+
+            mockFragmentData.fields[2].values = [yesterday.toISOString()];
+            mockFragmentData.fields[3].values = [tomorrow.toISOString()];
+            mockFragmentData.status = 'MODIFIED';
+
+            const promotion = new Promotion(mockFragmentData);
+
+            expect(promotion.promotionStatus).to.equal('modified');
+            expect(promotion.isPromotionPublished).to.be.true;
+        });
+
+        it('returns active when in date range and published', () => {
+            const yesterday = new Date(now);
+            yesterday.setDate(yesterday.getDate() - 1);
+            const tomorrow = new Date(now);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+
+            mockFragmentData.fields[2].values = [yesterday.toISOString()];
+            mockFragmentData.fields[3].values = [tomorrow.toISOString()];
+            mockFragmentData.status = 'PUBLISHED';
+
+            const promotion = new Promotion(mockFragmentData);
+
+            expect(promotion.promotionStatus).to.equal('active');
+        });
+
+        it('returns draft when in date range but not published', () => {
             const yesterday = new Date(now);
             yesterday.setDate(yesterday.getDate() - 1);
             const tomorrow = new Date(now);
@@ -121,10 +151,10 @@ describe('Promotion', () => {
 
             const promotion = new Promotion(mockFragmentData);
 
-            expect(promotion.promotionStatus).to.equal('active');
+            expect(promotion.promotionStatus).to.equal('draft');
         });
 
-        it('should return "expired" when promotion end date is in the past', () => {
+        it('returns expired when promotion end date is in the past', () => {
             const lastWeek = new Date(now);
             lastWeek.setDate(lastWeek.getDate() - 7);
             const yesterday = new Date(now);
@@ -138,7 +168,22 @@ describe('Promotion', () => {
             expect(promotion.promotionStatus).to.equal('expired');
         });
 
-        it('should return "scheduled" when promotion dates are in the future', () => {
+        it('returns scheduled when published and start is in the future', () => {
+            const tomorrow = new Date(now);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            const nextWeek = new Date(now);
+            nextWeek.setDate(nextWeek.getDate() + 7);
+
+            mockFragmentData.fields[2].values = [tomorrow.toISOString()];
+            mockFragmentData.fields[3].values = [nextWeek.toISOString()];
+            mockFragmentData.status = 'PUBLISHED';
+
+            const promotion = new Promotion(mockFragmentData);
+
+            expect(promotion.promotionStatus).to.equal('scheduled');
+        });
+
+        it('returns draft when dates are in the future but not published', () => {
             const tomorrow = new Date(now);
             tomorrow.setDate(tomorrow.getDate() + 1);
             const nextWeek = new Date(now);
@@ -149,7 +194,7 @@ describe('Promotion', () => {
 
             const promotion = new Promotion(mockFragmentData);
 
-            expect(promotion.promotionStatus).to.equal('scheduled');
+            expect(promotion.promotionStatus).to.equal('draft');
         });
 
         it('should return "unknown" when startDate is missing', () => {
@@ -160,12 +205,12 @@ describe('Promotion', () => {
             expect(promotion.promotionStatus).to.equal('unknown');
         });
 
-        it('should return "unknown" when endDate is missing', () => {
+        it('returns draft for unpublished promotion with empty endDate (evergreen)', () => {
             mockFragmentData.fields[3].values = [''];
 
             const promotion = new Promotion(mockFragmentData);
 
-            expect(promotion.promotionStatus).to.equal('unknown');
+            expect(promotion.promotionStatus).to.equal('draft');
         });
 
         it('should return "unknown" when dates are invalid', () => {
@@ -177,7 +222,7 @@ describe('Promotion', () => {
             expect(promotion.promotionStatus).to.equal('unknown');
         });
 
-        it('should handle edge case when current time equals start date', () => {
+        it('returns draft when current time equals start date and not published', () => {
             const nowISO = now.toISOString();
             const tomorrow = new Date(now);
             tomorrow.setDate(tomorrow.getDate() + 1);
@@ -187,21 +232,176 @@ describe('Promotion', () => {
 
             const promotion = new Promotion(mockFragmentData);
 
-            expect(promotion.promotionStatus).to.equal('active');
+            expect(promotion.promotionStatus).to.equal('draft');
+        });
+    });
+
+    describe('isPromotionPublished getter', () => {
+        it('returns false when only published tag is set', () => {
+            const tagsField = mockFragmentData.fields.find((f) => f.name === 'tags');
+            tagsField.values = ['mas:status/published'];
+            const promotion = new Promotion(mockFragmentData);
+            expect(promotion.isPromotionPublished).to.be.false;
         });
 
-        it('should handle edge case when current time equals end date', () => {
+        it('returns true when fragment status is PUBLISHED', () => {
+            mockFragmentData.status = 'PUBLISHED';
+            const promotion = new Promotion(mockFragmentData);
+            expect(promotion.isPromotionPublished).to.be.true;
+        });
+
+        it('returns true when fragment status is MODIFIED', () => {
+            mockFragmentData.status = 'MODIFIED';
+            const promotion = new Promotion(mockFragmentData);
+            expect(promotion.isPromotionPublished).to.be.true;
+        });
+    });
+
+    describe('promotionListFilterKey getter', () => {
+        let now;
+
+        beforeEach(() => {
+            now = new Date();
+        });
+
+        it('returns active for modified promotion within active date range', () => {
             const yesterday = new Date(now);
             yesterday.setDate(yesterday.getDate() - 1);
-            // Set end date slightly in the future to account for test execution time
-            const nearNow = new Date(now.getTime() + 1000); // 1 second in future
+            const tomorrow = new Date(now);
+            tomorrow.setDate(tomorrow.getDate() + 1);
 
             mockFragmentData.fields[2].values = [yesterday.toISOString()];
-            mockFragmentData.fields[3].values = [nearNow.toISOString()];
+            mockFragmentData.fields[3].values = [tomorrow.toISOString()];
+            mockFragmentData.status = 'MODIFIED';
 
             const promotion = new Promotion(mockFragmentData);
 
+            expect(promotion.promotionStatus).to.equal('modified');
+            expect(promotion.promotionListFilterKey).to.equal('active');
+        });
+
+        it('returns scheduled for modified promotion before start date', () => {
+            const tomorrow = new Date(now);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            const nextWeek = new Date(now);
+            nextWeek.setDate(nextWeek.getDate() + 7);
+
+            mockFragmentData.fields[2].values = [tomorrow.toISOString()];
+            mockFragmentData.fields[3].values = [nextWeek.toISOString()];
+            mockFragmentData.status = 'MODIFIED';
+
+            const promotion = new Promotion(mockFragmentData);
+
+            expect(promotion.promotionStatus).to.equal('modified');
+            expect(promotion.promotionListFilterKey).to.equal('scheduled');
+        });
+
+        it('matches promotionStatus when not modified', () => {
+            const yesterday = new Date(now);
+            yesterday.setDate(yesterday.getDate() - 1);
+            const tomorrow = new Date(now);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+
+            mockFragmentData.fields[2].values = [yesterday.toISOString()];
+            mockFragmentData.fields[3].values = [tomorrow.toISOString()];
+            mockFragmentData.status = 'PUBLISHED';
+
+            const promotion = new Promotion(mockFragmentData);
+
+            expect(promotion.promotionListFilterKey).to.equal(promotion.promotionStatus);
+        });
+    });
+
+    describe('isEvergreen getter', () => {
+        it('returns true when endDate is empty string', () => {
+            mockFragmentData.fields[3].values = [''];
+            const promotion = new Promotion(mockFragmentData);
+            expect(promotion.isEvergreen).to.be.true;
+        });
+
+        it('returns false when endDate has a value', () => {
+            const promotion = new Promotion(mockFragmentData);
+            expect(promotion.isEvergreen).to.be.false;
+        });
+    });
+
+    describe('timeline getter — evergreen', () => {
+        it('shows "Always on" instead of end date when endDate is empty', () => {
+            mockFragmentData.fields[2].values = ['2025-06-01T00:00:00.000Z'];
+            mockFragmentData.fields[3].values = [''];
+            const promotion = new Promotion(mockFragmentData);
+            expect(promotion.timeline).to.equal('Jun 01 - Always on');
+        });
+    });
+
+    describe('promotionStatus getter — evergreen', () => {
+        let now;
+
+        beforeEach(() => {
+            now = new Date();
+        });
+
+        it('returns draft for unpublished evergreen with past start date', () => {
+            const yesterday = new Date(now);
+            yesterday.setDate(yesterday.getDate() - 1);
+            mockFragmentData.fields[2].values = [yesterday.toISOString()];
+            mockFragmentData.fields[3].values = [''];
+            const promotion = new Promotion(mockFragmentData);
+            expect(promotion.promotionStatus).to.equal('draft');
+        });
+
+        it('returns active for published evergreen with past start date', () => {
+            const yesterday = new Date(now);
+            yesterday.setDate(yesterday.getDate() - 1);
+            mockFragmentData.fields[2].values = [yesterday.toISOString()];
+            mockFragmentData.fields[3].values = [''];
+            mockFragmentData.status = 'PUBLISHED';
+            const promotion = new Promotion(mockFragmentData);
             expect(promotion.promotionStatus).to.equal('active');
+        });
+
+        it('returns scheduled for published evergreen with future start date', () => {
+            const tomorrow = new Date(now);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            mockFragmentData.fields[2].values = [tomorrow.toISOString()];
+            mockFragmentData.fields[3].values = [''];
+            mockFragmentData.status = 'PUBLISHED';
+            const promotion = new Promotion(mockFragmentData);
+            expect(promotion.promotionStatus).to.equal('scheduled');
+        });
+
+        it('never returns expired for evergreen', () => {
+            const lastYear = new Date(now);
+            lastYear.setFullYear(lastYear.getFullYear() - 1);
+            mockFragmentData.fields[2].values = [lastYear.toISOString()];
+            mockFragmentData.fields[3].values = [''];
+            mockFragmentData.status = 'PUBLISHED';
+            const promotion = new Promotion(mockFragmentData);
+            expect(promotion.promotionStatus).to.equal('active');
+        });
+
+        it('returns modified for published evergreen with unsaved changes', () => {
+            const yesterday = new Date(now);
+            yesterday.setDate(yesterday.getDate() - 1);
+            mockFragmentData.fields[2].values = [yesterday.toISOString()];
+            mockFragmentData.fields[3].values = [''];
+            mockFragmentData.status = 'MODIFIED';
+            const promotion = new Promotion(mockFragmentData);
+            expect(promotion.promotionStatus).to.equal('modified');
+        });
+    });
+
+    describe('isPromotionModified', () => {
+        it('returns true when fragment status is MODIFIED', () => {
+            mockFragmentData.status = 'MODIFIED';
+            const promotion = new Promotion(mockFragmentData);
+            expect(promotion.isPromotionModified).to.be.true;
+        });
+
+        it('returns false when fragment status is PUBLISHED', () => {
+            mockFragmentData.status = 'PUBLISHED';
+            const promotion = new Promotion(mockFragmentData);
+            expect(promotion.isPromotionModified).to.be.false;
         });
     });
 

@@ -12,9 +12,13 @@ import prosemirrorStyles from './prosemirror.css.js';
 import { EVENT_OST_SELECT } from '../constants.js';
 import throttle from '../utils/throttle.js';
 import './rte-mnemonic-editor.js';
+import './rte-link-editor.js';
+import './rte-icon-editor.js';
 
 const CUSTOM_ELEMENT_CHECKOUT_LINK = 'checkout-link';
 const CUSTOM_ELEMENT_INLINE_PRICE = 'inline-price';
+
+const DEFAULT_EMOJIS = ['ℹ️', '✅', '✓', '✔', '❌', '✗', '✘', '✖', '×', '—', '-'];
 
 // Function to check if a node is a checkout link
 const isNodeCheckoutLink = (node) => {
@@ -37,6 +41,7 @@ const CUSTOM_MARKS_DATA = [
     [],
     ['text-s', 'Text S'],
     ['text-l', 'Text L'],
+    ['small', 'Small'],
     [],
     ['promo-text', 'Promo text'],
     ['promo-duration-text', 'Promo duration text'],
@@ -176,6 +181,7 @@ class RteField extends LitElement {
         icon: { type: Boolean, attribute: 'icon' },
         mnemonic: { type: Boolean, attribute: 'mnemonic' },
         divider: { type: Boolean, attribute: 'divider' },
+        emoji: { type: Boolean, attribute: 'emoji' },
         marks: {
             type: Array,
             attribute: 'marks',
@@ -185,6 +191,7 @@ class RteField extends LitElement {
         },
         uptLink: { type: Boolean, attribute: 'upt-link' },
         isLinkSelected: { type: Boolean, state: true },
+        smallActive: { type: Boolean, state: true },
         priceSelected: { type: Boolean, state: true },
         readOnly: { type: Boolean, attribute: 'readonly' },
         showLinkEditor: { type: Boolean, state: true },
@@ -195,6 +202,7 @@ class RteField extends LitElement {
         length: { type: Number, state: true },
         hideOfferSelector: { type: Boolean, attribute: 'hide-offer-selector' },
         hideFormatButtons: { type: Boolean, attribute: 'hide-format-buttons' },
+        floatingToolbar: { type: Boolean, attribute: 'floating-toolbar' },
         osi: { type: String },
         value: { type: String },
     };
@@ -230,9 +238,12 @@ class RteField extends LitElement {
                 :host([hide-format-buttons]) #editor {
                     height: 32px;
                     min-height: 32px;
-                    padding: 0;
-                    display: flex;
-                    align-items: center;
+                    /* Vertically center the single line via line-height, NOT flex:
+                       Firefox cannot map a click to a caret position inside a
+                       vertically-centered flex contenteditable, collapsing the caret
+                       to the start of the text. Block layout keeps click-to-caret correct. */
+                    padding: 0 4px;
+                    line-height: 28px;
                     font-size: var(--spectrum-font-size-100);
                 }
 
@@ -256,6 +267,80 @@ class RteField extends LitElement {
                     display: flex;
                     align-items: center;
                     gap: 8px;
+                }
+
+                :host([floating-toolbar]) {
+                    display: block;
+                    gap: 0;
+                }
+
+                :host([floating-toolbar]) sp-action-group[aria-label='RTE toolbar actions'] {
+                    position: fixed;
+                    top: var(--rte-toolbar-top, 8px);
+                    left: var(--rte-toolbar-left, 8px);
+                    z-index: 1000;
+                    box-sizing: border-box;
+                    max-width: calc(100vw - 16px);
+                    padding: 4px;
+                    border: 1px solid var(--spectrum-gray-300);
+                    border-radius: 8px;
+                    background: var(--spectrum-white);
+                    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+                }
+
+                :host([floating-toolbar]) #editor-row {
+                    align-items: stretch;
+                    gap: 0;
+                }
+
+                :host([floating-toolbar]) #editor {
+                    align-items: center;
+                    box-sizing: border-box;
+                    display: flex;
+                    line-height: inherit;
+                    min-height: inherit;
+                    padding: 0;
+                    border: 0;
+                    border-radius: 0;
+                    background: transparent;
+                    color: inherit;
+                    outline: none;
+                    outline-offset: 0;
+                }
+
+                :host([floating-toolbar]) .ProseMirror {
+                    box-sizing: border-box;
+                    display: block;
+                    line-height: inherit;
+                    min-height: inherit;
+                    min-width: 0;
+                    overflow-wrap: anywhere;
+                    padding: 4px;
+                    transform: translate(-4px, 1px);
+                    width: 100%;
+                    word-break: break-word;
+                }
+
+                :host([floating-toolbar]) .ProseMirror p {
+                    max-width: 100%;
+                    min-height: 1em;
+                    min-width: 1px;
+                    overflow-wrap: anywhere;
+                    word-break: break-word;
+                }
+
+                :host([floating-toolbar]) .ProseMirror:empty::before,
+                :host([floating-toolbar]) .ProseMirror:has(> br.ProseMirror-trailingBreak)::before {
+                    content: '\\200b';
+                }
+
+                :host([floating-toolbar][focused]) #editor {
+                    outline: none;
+                    outline-offset: 0;
+                }
+
+                :host([floating-toolbar]) #counter {
+                    display: none;
                 }
 
                 #editor-row #editor {
@@ -422,6 +507,7 @@ class RteField extends LitElement {
                     display: block;
                 }
 
+                div.ProseMirror-focused .icon-button.ProseMirror-selectednode,
                 div.ProseMirror-focused span[is='inline-price'].ProseMirror-selectednode,
                 div.ProseMirror-focused a.ProseMirror-selectednode,
                 div.ProseMirror-focused a.ProseMirror-selectednode,
@@ -624,6 +710,12 @@ class RteField extends LitElement {
                     font-size: 14px;
                     font-weight: bold;
                 }
+
+                .small-icon {
+                    font-family: sans-serif;
+                    font-size: 12px;
+                    font-weight: bold;
+                }
             `,
             prosemirrorStyles,
         ];
@@ -641,6 +733,7 @@ class RteField extends LitElement {
         super();
         this.readOnly = false;
         this.isLinkSelected = false;
+        this.smallActive = false;
         this.priceSelected = false;
         this.showLinkEditor = false;
         this.showIconEditor = false;
@@ -652,9 +745,11 @@ class RteField extends LitElement {
         this.uptLink = false;
         this.mnemonic = false;
         this.divider = false;
+        this.emoji = false;
         this.maxLength = 70;
         this.length = 0;
         this.hideOfferSelector = false;
+        this.floatingToolbar = false;
         this.osi = '';
         this.marks = ['heading-xxxs', 'heading-xxs', 'heading-xs', 'heading-s', 'heading-m', 'promo-text', 'mnemonic-text'];
         this.#boundHandlers = {
@@ -709,6 +804,16 @@ class RteField extends LitElement {
     }
 
     getStylingMark(stylingType, ariaLevel) {
+        if (stylingType === 'small') {
+            return {
+                small: {
+                    group: 'styling',
+                    parseDOM: [{ tag: 'small' }],
+                    toDOM: () => ['small', 0],
+                },
+            };
+        }
+
         return {
             [stylingType]: {
                 attrs: {
@@ -813,7 +918,7 @@ class RteField extends LitElement {
                                 alt: domNode.getAttribute('alt'),
                                 size: domNode.getAttribute('size') || 'xs',
                                 class: 'mnemonic',
-                                mnemonicText: domNode.getAttribute('mnemonic-text'),
+                                mnemonicText: domNode.textContent?.trim() || domNode.getAttribute('mnemonic-text'),
                                 mnemonicPlacement: domNode.getAttribute('mnemonic-placement') || 'top',
                             };
                         },
@@ -915,8 +1020,8 @@ class RteField extends LitElement {
                     };
                     if (alt) attrs.alt = alt;
                     if (mnemonicText && mnemonicText.trim() !== '') {
-                        attrs['mnemonic-text'] = mnemonicText.trim();
                         attrs['mnemonic-placement'] = mnemonicPlacement || 'top';
+                        return ['mas-mnemonic', attrs, mnemonicText.trim()];
                     }
                     return ['mas-mnemonic', attrs];
                 },
@@ -1323,13 +1428,19 @@ class RteField extends LitElement {
     }
 
     #handleIconSave(event) {
+        event.stopPropagation();
         const { tooltip } = event.detail;
         const { state, dispatch } = this.editorView;
         const { selection } = state;
 
         const node = state.schema.nodes.icon.create({ title: tooltip || '' });
-        const tr = state.tr.insert(selection.from, node);
-        dispatch(tr);
+        if (selection.node?.type?.name === 'icon') {
+            const tr = state.tr.replaceWith(selection.from, selection.to, node);
+            dispatch(tr);
+        } else {
+            const tr = state.tr.insert(selection.from, node);
+            dispatch(tr);
+        }
 
         this.showIconEditor = false;
     }
@@ -1429,13 +1540,49 @@ class RteField extends LitElement {
             ...attributes,
         };
 
-        const content =
-            attributes.is === CUSTOM_ELEMENT_CHECKOUT_LINK && attributes.text ? state.schema.text(attributes.text) : null;
+        // Preserve the CTA label when editing a checkout link whose text the OST
+        // did not change (e.g. a promo-only edit). The multi-step OST flow collapses
+        // the editor selection before the checkout-link event arrives, so fall back
+        // to the label captured when the CTA was double-clicked.
+        const selectedText = selection.node?.type === state.schema.nodes.link ? selection.node.textContent : '';
+        const ctaText = attributes.text || selectedText || this.ostTargetText || '';
+        const content = attributes.is === CUSTOM_ELEMENT_CHECKOUT_LINK && ctaText ? state.schema.text(ctaText) : null;
 
         const node = nodeType.create(mergedAttributes, content, selection.node?.marks);
-        const tr = selection.empty
-            ? state.tr.insert(selection.from, node)
-            : state.tr.replaceWith(selection.from, selection.to, node);
+
+        // If the cursor is sitting inside an existing link node (cursor placed
+        // mid-link or right at its boundary), inserting a sibling link splits
+        // the host link and leaves a phantom empty <a></a> behind. Lift the
+        // insertion position OUT of the host link so the new node lands as a
+        // proper sibling. Only does anything when there's no selected range
+        // (a range selection already replaces the host content cleanly).
+        let from = selection.from;
+        let to = selection.to;
+        if (selection.empty) {
+            const $pos = state.doc.resolve(selection.from);
+            for (let depth = $pos.depth; depth > 0; depth--) {
+                if ($pos.node(depth).type === state.schema.nodes.link) {
+                    from = $pos.after(depth);
+                    to = from;
+                    break;
+                }
+            }
+        }
+
+        const tr = from === to ? state.tr.insert(from, node) : state.tr.replaceWith(from, to, node);
+
+        // Editing an existing checkout-link via a multi-step OST flow can leave an
+        // empty <a> behind (the host link split on insert). Remove any link node
+        // that ended up with no content and no offer so the editor doesn't keep a
+        // phantom CTA. Walk descending positions so earlier deletes don't shift
+        // the positions of not-yet-removed nodes.
+        const emptyLinkRanges = [];
+        tr.doc.descendants((descNode, pos) => {
+            const isLink = descNode.type === state.schema.nodes.link;
+            const isEmpty = descNode.content.size === 0 && !descNode.attrs?.['data-wcs-osi'];
+            if (isLink && isEmpty) emptyLinkRanges.push({ from: pos, to: pos + descNode.nodeSize });
+        });
+        emptyLinkRanges.sort((a, b) => b.from - a.from).forEach((range) => tr.delete(range.from, range.to));
 
         dispatch(tr);
         this.showOfferSelector = false;
@@ -1530,6 +1677,18 @@ class RteField extends LitElement {
     #updateSelection(state) {
         const { selection } = state;
         this.isLinkSelected = selection.node?.type.name === 'link' && !selection.node.attrs['data-wcs-osi'];
+        this.smallActive = this.#isMarkActive(state, 'small');
+    }
+
+    #isMarkActive(state, markName) {
+        const markType = state.schema.marks[markName];
+        if (!markType) return false;
+
+        const { empty, from, to, $from } = state.selection;
+        if (empty) {
+            return Boolean((state.storedMarks || $from.marks()).some((mark) => mark.type === markType));
+        }
+        return state.doc.rangeHasMark(from, to, markType);
     }
 
     #updateLength() {
@@ -1571,12 +1730,27 @@ class RteField extends LitElement {
     async openIconEditor() {
         this.showIconEditor = true;
         await this.updateComplete;
-        Object.assign(this.iconEditorElement, { open: true });
+
+        const { state } = this.editorView;
+        const {
+            selection: { from, to },
+        } = state;
+
+        let tooltip = '';
+        state.doc.nodesBetween(from, to, (node) => {
+            if (node.type?.name === 'icon') {
+                tooltip = node.attrs?.title;
+            }
+        });
+        Object.assign(this.iconEditorElement, { open: true, tooltip });
     }
 
     handleOpenOfferSelector(event, element) {
         ostRteFieldSource = this;
         this.showOfferSelector = true;
+        // A toolbar/button open (real event) is a fresh insert, not an edit of a
+        // double-clicked CTA — forget any remembered label.
+        if (event) this.ostTargetText = null;
         if (!element && this.osi) {
             element = this.selectedMerchLink;
             if (!element) {
@@ -1656,8 +1830,13 @@ class RteField extends LitElement {
         if (osiDomTarget) {
             const prosemirrorNodeAtClick = view.state.doc.nodeAt(nodePos);
             if (prosemirrorNodeAtClick && prosemirrorNodeAtClick.attrs['data-wcs-osi']) {
-                ostRteFieldSource = this;
-                this.showOfferSelector = true;
+                const selection = NodeSelection.create(view.state.doc, nodePos);
+                view.dispatch(view.state.tr.setSelection(selection));
+                // Remember the CTA label so a promo-only OST edit can restore it
+                // (the multi-step flow collapses the selection before "Use").
+                // handleOpenOfferSelector(null, …) sets ostRteFieldSource and
+                // showOfferSelector; passing null preserves the label above.
+                this.ostTargetText = prosemirrorNodeAtClick.textContent || '';
                 this.handleOpenOfferSelector(null, osiDomTarget);
                 return true;
             }
@@ -1671,6 +1850,13 @@ class RteField extends LitElement {
             // --- Restore selection and modal opening ---
             this.selectMnemonic(nodePos);
             this.openMnemonicEditorForExisting(node);
+            return true;
+        }
+
+        if (node?.type.name === 'icon') {
+            event.stopPropagation();
+            event.preventDefault();
+            this.openIconEditor();
             return true;
         }
 
@@ -1738,6 +1924,10 @@ class RteField extends LitElement {
         return this.shadowRoot.querySelector('rte-mnemonic-editor');
     }
 
+    get iconEditorButtonElement() {
+        return this.shadowRoot.querySelector('#addIconButton');
+    }
+
     render() {
         const lengthExceeded = this.length > this.maxLength;
         return html`
@@ -1746,7 +1936,7 @@ class RteField extends LitElement {
                 : html`<sp-action-group quiet size="m" aria-label="RTE toolbar actions">
                       ${this.#formatButtons} ${this.stylingButton} ${this.#listButtons} ${this.#linkEditorButton}
                       ${this.#unlinkEditorButton} ${this.#toolbarOfferSelectorButton} ${this.#iconsButton}
-                      ${this.#uptLinkButton} ${this.#mnemonicButton} ${this.#dividerButton}
+                      ${this.#uptLinkButton} ${this.#mnemonicButton} ${this.#dividerButton} ${this.#emojiButton}
                   </sp-action-group>`}
             <div id="editor-row">
                 <div id="editor"></div>
@@ -1785,6 +1975,16 @@ class RteField extends LitElement {
             <sp-action-button emphasized id="addDividerButton" @click=${this.addDivider} title="Add Divider">
                 <sp-icon-stroke-solid slot="icon"></sp-icon-stroke-solid>
             </sp-action-button>
+        `;
+    }
+
+    get #emojiButton() {
+        if (!this.emoji) return nothing;
+        return html`
+            <sp-action-menu id="emojiMenu" title="Insert Emoji" placement="bottom">
+                <span slot="icon">ℹ️</span>
+                ${DEFAULT_EMOJIS.map((e) => html`<sp-menu-item @click=${() => this.#insertEmoji(e)}>${e}</sp-menu-item>`)}
+            </sp-action-menu>
         `;
     }
 
@@ -1870,6 +2070,18 @@ class RteField extends LitElement {
             >
                 <span slot="icon" class="superscript-icon">x²</span>
             </sp-action-button>
+            ${this.marks?.includes('small')
+                ? html`<sp-action-button
+                      id="smallButton"
+                      ?selected=${this.smallActive}
+                      aria-pressed=${this.smallActive ? 'true' : 'false'}
+                      @click=${() => this.handleStylingAction('small')}
+                      @mousedown=${(e) => e.preventDefault()}
+                      title="Small"
+                  >
+                      <span slot="icon" class="small-icon">S</span>
+                  </sp-action-button>`
+                : nothing}
         `;
     }
 
@@ -1941,6 +2153,14 @@ class RteField extends LitElement {
             mnemonicText: '', // Ensure mnemonic fields are reset too
             mnemonicPlacement: 'top',
         });
+    }
+
+    #insertEmoji(emoji) {
+        const { state, dispatch } = this.editorView;
+        const { selection } = state;
+        const tr = state.tr.insertText(emoji, selection.from, selection.to);
+        dispatch(tr);
+        this.editorView.focus();
     }
 
     addDivider() {

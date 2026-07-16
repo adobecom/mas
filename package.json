@@ -7,7 +7,9 @@
     "workspaces": [
         "studio",
         "web-components",
-        "io/studio"
+        "io/studio",
+        "ost",
+        "scripts/content"
     ],
     "scripts": {
         "lint": "eslint --fix web-components studio",

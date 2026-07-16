@@ -396,11 +396,38 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await expect(await individualsCard.locator(plans.cardCallout)).toContainText(data.calloutText.updated);
         });
 
-        await test.step('step-6: Close the editor and verify discard is triggered', async () => {
+        await test.step('step-6: Add and update info icon', async () => {
+            await editor.calloutRTE.click();
+            await page.waitForTimeout(200);
+            await editor.calloutRTEIconBtn.click();
+            await page.waitForTimeout(500);
+            const ttField = page.locator('rte-icon-editor input[type="text"]');
+            await expect(ttField).toBeVisible();
+            await ttField.fill(data.calloutText.tooltipText);
+            await page.waitForTimeout(200);
+            await editor.rteIconEditorSaveBtn.click();
+            await page.waitForTimeout(500);
+            await expect(await editor.calloutRTEIcon).toHaveAttribute('data-tooltip', data.calloutText.tooltipText);
+            await editor.calloutRTEIcon.click();
+            await editor.calloutRTEIconBtn.click();
+            await page.waitForTimeout(500);
+            await expect(await editor.rteIconEditorInput).toHaveValue(data.calloutText.tooltipText);
+            const ttField2 = page.locator('rte-icon-editor input[type="text"]');
+            await expect(ttField2).toBeVisible();
+            await ttField2.fill(data.calloutText.tooltipTextUpdated);
+            await page.waitForTimeout(200);
+            await editor.rteIconEditorSaveBtn.click();
+            await page.waitForTimeout(200);
+            await expect(await editor.calloutRTEIcon).toHaveAttribute('data-tooltip', data.calloutText.tooltipTextUpdated);
+            await expect(await editor.calloutRTEIcon).not.toHaveAttribute('data-tooltip', data.calloutText.tooltipText);
+            await expect(await editor.rteIconEditor).not.toBeVisible();
+        });
+
+        await test.step('step-7: Close the editor and verify discard is triggered', async () => {
             await studio.discardEditorChanges(editor);
         });
 
-        await test.step('step-7: Validate callout field not updated', async () => {
+        await test.step('step-8: Validate callout field not updated', async () => {
             await expect(await individualsCard.locator(plans.cardCallout)).toBeVisible();
             await expect(await individualsCard.locator(plans.cardCallout)).toContainText(data.calloutText.original);
         });
@@ -498,14 +525,16 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await expect(await ost.unitCheckbox).toBeVisible();
             await ost.unitCheckbox.click();
             await expect(await ost.price).toContainText(data.price.updated);
-            await expect(await ost.price).toContainText(data.strikethroughPrice.updated);
+            await expect(await ost.price).toContainText(data.strikethroughPrice.original);
+            await expect(await ost.price).not.toContainText(data.strikethroughPrice.updated);
             await expect(await ost.pricePromoStrikethrough).toHaveCSS('text-decoration-line', 'line-through');
             await ost.priceUse.click();
         });
 
         await test.step('step-3: Validate edited price in Editor panel', async () => {
             await expect(await editor.prices).toContainText(data.price.updated);
-            await expect(await editor.prices).toContainText(data.strikethroughPrice.updated);
+            await expect(await editor.prices).toContainText(data.strikethroughPrice.original);
+            await expect(await editor.prices).not.toContainText(data.strikethroughPrice.updated);
             await expect(await editor.prices.locator(editor.promoStrikethroughPrice)).toHaveCSS(
                 'text-decoration-line',
                 'line-through',

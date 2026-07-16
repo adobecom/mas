@@ -1,7 +1,7 @@
 import { LitElement, html, css, nothing } from 'lit';
 import router from './router.js';
 import Store from './store.js';
-import { PAGE_NAMES, SURFACES, TRANSLATIONS_ALLOWED_SURFACES } from './constants.js';
+import { PAGE_NAMES, SURFACES } from './constants.js';
 import Events from './events.js';
 import { generateFieldLink, generateJsonLdLink, camelToTitle, previewValue, previewFragmentOnPage } from './utils.js';
 import './mas-side-nav-item.js';
@@ -145,6 +145,7 @@ class MasSideNav extends LitElement {
             Store.viewMode,
             Store.fragmentEditor.editorContext,
             Store.fragmentEditor.loading,
+            Store.editor.referencedFragmentStoresHaveChanges,
             Store.profile,
             Store.users,
         ],
@@ -210,6 +211,7 @@ class MasSideNav extends LitElement {
             Store.viewMode,
             Store.fragmentEditor.editorContext,
             Store.fragmentEditor.loading,
+            Store.editor.referencedFragmentStoresHaveChanges,
             Store.profile,
             Store.users,
         ];
@@ -228,10 +230,6 @@ class MasSideNav extends LitElement {
     };
 
     handleStoreChanges() {
-        // Redirect away from the translation page when it becomes disabled
-        if (!this.isTranslationEnabled && [PAGE_NAMES.TRANSLATIONS, PAGE_NAMES.TRANSLATION_EDITOR].includes(Store.page.get())) {
-            Store.page.set(PAGE_NAMES.CONTENT);
-        }
         this.updateVariationLoadingState();
     }
 
@@ -272,11 +270,6 @@ class MasSideNav extends LitElement {
 
     get fragmentEditor() {
         return document.querySelector('mas-fragment-editor');
-    }
-
-    get isTranslationEnabled() {
-        const surface = Store.search.value?.path?.split('/').filter(Boolean)[0]?.toLowerCase();
-        return TRANSLATIONS_ALLOWED_SURFACES.includes(surface);
     }
 
     async saveFragment() {
@@ -851,7 +844,11 @@ class MasSideNav extends LitElement {
             <mas-side-nav-item label="Collections" disabled>
                 <sp-icon-aspect-ratio slot="icon"></sp-icon-aspect-ratio>
             </mas-side-nav-item>
-            <mas-side-nav-item label="Promotions" disabled>
+            <mas-side-nav-item
+                label="Promotions"
+                ?selected=${[PAGE_NAMES.PROMOTIONS, PAGE_NAMES.PROMOTIONS_EDITOR].includes(Store.page.get())}
+                @nav-click="${router.navigateToPage(PAGE_NAMES.PROMOTIONS)}"
+            >
                 <sp-icon-promote slot="icon"></sp-icon-promote>
             </mas-side-nav-item>
             <mas-side-nav-item label="Offers" disabled>
@@ -867,7 +864,7 @@ class MasSideNav extends LitElement {
             <mas-side-nav-item
                 label="Translations"
                 ?selected=${Store.page.get() === PAGE_NAMES.TRANSLATIONS}
-                @nav-click=${this.isTranslationEnabled ? router.navigateToPage(PAGE_NAMES.TRANSLATIONS) : nothing}
+                @nav-click=${router.navigateToPage(PAGE_NAMES.TRANSLATIONS)}
             >
                 <sp-icon-translate slot="icon"></sp-icon-translate>
             </mas-side-nav-item>

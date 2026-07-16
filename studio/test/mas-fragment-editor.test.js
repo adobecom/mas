@@ -1,15 +1,21 @@
 import { expect, fixture, html } from '@open-wc/testing';
 import sinon from 'sinon';
 import '../src/mas-fragment-editor.js';
-import MasFragmentEditor from '../src/mas-fragment-editor.js';
+import MasFragmentEditor, { snapFilterToPathDefault, syncGroupedVariationRegion } from '../src/mas-fragment-editor.js';
 import Store from '../src/store.js';
 import { Fragment } from '../src/aem/fragment.js';
 import generateFragmentStore from '../src/reactivity/source-fragment-store.js';
-import { PAGE_NAMES, CARD_MODEL_PATH, COLLECTION_MODEL_PATH, ODIN_PREVIEW_ORIGIN } from '../src/constants.js';
+import {
+    PAGE_NAMES,
+    CARD_MODEL_PATH,
+    COLLECTION_MODEL_PATH,
+    ODIN_PREVIEW_ORIGIN,
+    COMPARE_CHART_FIELD,
+} from '../src/constants.js';
 import router from '../src/router.js';
 import Events from '../src/events.js';
 import { extractLocaleFromPath } from '../src/utils.js';
-import { nothing } from 'lit';
+import { nothing, render } from 'lit';
 
 describe('MasFragmentEditor', () => {
     let sandbox;
@@ -23,10 +29,12 @@ describe('MasFragmentEditor', () => {
         sandbox.restore();
     });
 
-    function createEditor({ resolveHydratedParentFragment, getLocaleDefaultFragmentAsync } = {}) {
+    function createEditor({ resolveHydratedParentFragment, aem, getLocaleDefaultFragmentAsync } = {}) {
         const editor = new MasFragmentEditor();
         const repository = {
             resolveHydratedParentFragment: resolveHydratedParentFragment || sandbox.stub().resolves(null),
+            aem: aem || { sites: { cf: { fragments: {} } } },
+            loadPromotions: sandbox.stub().resolves(),
         };
 
         sandbox.stub(editor, 'repository').get(() => repository);
@@ -50,6 +58,37 @@ describe('MasFragmentEditor', () => {
     }
 
     describe('grouped variation parent resolution', () => {
+        it('resolves parent through promo variation resolver for promo paths', async () => {
+            const promoPath = '/content/dam/mas/sandbox/en_US/promotions/back-to-school/my-card';
+            const parentPath = '/content/dam/mas/sandbox/en_US/my-card';
+            const parentData = { id: 'default-id', path: parentPath };
+            const resolveGroupedStub = sandbox.stub().resolves(null);
+            const { editor } = createEditor({
+                resolveHydratedParentFragment: resolveGroupedStub,
+                aem: {
+                    sites: {
+                        cf: {
+                            fragments: {
+                                getById: sandbox.stub().resolves({
+                                    id: 'promo-var-id',
+                                    path: promoPath,
+                                    tags: [{ id: 'mas:promotion/back-to-school' }],
+                                }),
+                                getByPath: sandbox.stub().withArgs(parentPath).resolves(parentData),
+                            },
+                        },
+                    },
+                },
+            });
+            editor.inEdit.value = { get: () => ({ id: 'promo-var-id' }) };
+
+            const result = await editor.resolveVariationParentFragment(promoPath);
+
+            expect(result).to.deep.equal(parentData);
+            expect(resolveGroupedStub.called).to.be.false;
+            expect(editor.editorContextStore.defaultLocaleId).to.equal('default-id');
+        });
+
         it('polls grouped references every second for up to 15 seconds', async () => {
             const clock = sandbox.useFakeTimers();
             const resolveHydratedParentFragment = sandbox.stub().resolves(null);
@@ -93,6 +132,18 @@ describe('MasFragmentEditor', () => {
             expect(editor.groupedVariationOrphanMessage).to.equal(
                 'No default-locale fragment currently references this grouped variation. Inheritance cannot be resolved, and this fragment may be orphaned.',
             );
+        });
+
+        it('clears orphan message when resolving a locale variation path', async () => {
+            const localePath = '/content/dam/mas/sandbox/de_DE/my-card';
+            const { editor } = createEditor();
+            editor.groupedVariationOrphanMessage =
+                'No default-locale fragment currently references this grouped variation. Inheritance cannot be resolved, and this fragment may be orphaned.';
+
+            const result = await editor.resolveVariationParentFragment(localePath);
+
+            expect(result).to.be.null;
+            expect(editor.groupedVariationOrphanMessage).to.be.null;
         });
 
         it('renders orphan grouped-variation state as a panel', () => {
@@ -288,6 +339,7 @@ describe('MasFragmentEditor', () => {
             mockRepo = {
                 refreshFragment: sandbox.stub().resolves(),
                 loadPreviewPlaceholders: sandbox.stub().resolves(),
+                loadPromotions: sandbox.stub().resolves(),
                 search: { value: { path: 'sandbox' } },
                 aem: {
                     sites: {
@@ -514,7 +566,9 @@ describe('MasFragmentEditor', () => {
                 },
             });
 
-            expect(navigateSpy.calledOnceWith('new-variation-id')).to.be.true;
+            expect(navigateSpy.calledOnce).to.be.true;
+            expect(navigateSpy.firstCall.args[0]).to.equal('new-variation-id');
+            expect(navigateSpy.firstCall.args[1]).to.deep.equal({ viewPage: false });
 
             Store.fragmentEditor.fragmentId.value = 'new-variation-id';
             await el.initFragment();
@@ -1106,6 +1160,20 @@ describe('MasFragmentEditor', () => {
             expect(state.strings.join('')).to.contain('id="missing-variation-panel"');
         });
 
+        it('does not show missing variation when grouped preview locale is in pzn tags', () => {
+            Store.search.set({ path: 'sandbox', region: 'fr_CA' });
+            Store.filters.set({ locale: 'fr_FR' });
+            sandbox.stub(el.editorContextStore, 'isGroupedVariationByPath').value(true);
+            const groupedFragment = new Fragment({
+                id: 'grouped-id',
+                path: '/content/dam/mas/sandbox/fr_FR/pac/pzn/grouped',
+                fields: [{ name: 'pznTags', values: ['/content/cq:tags/mas/locale/fr_CA'] }],
+            });
+            el.inEdit.value = { get: () => groupedFragment };
+            Store.fragmentEditor.fragmentId.set('grouped-id');
+            expect(el.missingVariationState).to.be.null;
+        });
+
         it('viewSourceFragment resets region and sets locale to en_US', () => {
             const searchSetSpy = sandbox.stub(Store.search, 'set');
             const filtersSetSpy = sandbox.stub(Store.filters, 'set');
@@ -1144,6 +1212,18 @@ describe('MasFragmentEditor', () => {
             const navigateSpy = sandbox.stub(router, 'navigateToFragmentEditor');
             await el.navigateToLocaleDefaultFragment();
             expect(navigateSpy.calledWith('parent-id')).to.be.true;
+        });
+
+        it('sets Store.search.path to parent surface on navigateToLocaleDefaultFragment', async () => {
+            el.localeDefaultFragment = { id: 'parent-id', path: '/content/dam/mas/nala/en_US/parent-card' };
+            sandbox.stub(router, 'navigateToFragmentEditor').resolves();
+            const searchSetSpy = sandbox.stub(Store.search, 'set');
+            await el.navigateToLocaleDefaultFragment();
+            const pathCall = searchSetSpy.getCalls().find((call) => {
+                const result = call.args[0]({ path: 'sandbox' });
+                return result?.path === 'nala';
+            });
+            expect(pathCall, 'Store.search.set should be called with path=nala').to.not.be.undefined;
         });
 
         it('navigates to variations table', async () => {
@@ -1197,6 +1277,92 @@ describe('MasFragmentEditor', () => {
             sandbox.stub(el.editorContextStore, 'isVariation').returns(true);
             const header = el.localeVariationHeader;
             expect(header).to.not.equal(nothing);
+        });
+
+        it('renders promo variation header in preview for promo paths', () => {
+            const promoPath = '/content/dam/mas/sandbox/en_US/promotions/back-to-school/my-card';
+            const fragment = new Fragment({
+                id: 'promo-var-id',
+                path: promoPath,
+                model: { path: CARD_MODEL_PATH },
+                tags: [],
+                fields: [],
+            });
+            el.inEdit.value = { get: () => fragment };
+            sandbox.stub(el.editorContextStore, 'isVariation').returns(false);
+
+            const leftContainer = document.createElement('div');
+            render(el.localeVariationHeader, leftContainer);
+            expect(leftContainer.textContent).to.not.include('Promo variation');
+
+            const previewContainer = document.createElement('div');
+            render(el.previewVariationHeader, previewContainer);
+            expect(previewContainer.textContent).to.include('Promo variation:');
+            expect(previewContainer.textContent).to.include('Back To School');
+            expect(previewContainer.textContent).to.not.include('Regional variation');
+        });
+
+        it('renders promo variation preview header from path when mas:promotion tag is missing', () => {
+            const promoPath = '/content/dam/mas/sandbox/en_US/promotions/back-to-school/my-card';
+            const fragment = new Fragment({
+                id: 'promo-var-id',
+                path: promoPath,
+                model: { path: CARD_MODEL_PATH },
+                tags: [{ id: 'mas:status/draft' }],
+                fields: [],
+            });
+            el.inEdit.value = { get: () => fragment };
+            sandbox.stub(el.editorContextStore, 'isVariation').returns(false);
+
+            const leftContainer = document.createElement('div');
+            render(el.localeVariationHeader, leftContainer);
+            expect(leftContainer.textContent).to.not.include('Promo variation');
+
+            const previewContainer = document.createElement('div');
+            render(el.previewVariationHeader, previewContainer);
+            expect(previewContainer.textContent).to.include('Promo variation:');
+            expect(previewContainer.textContent).to.include('Back To School');
+        });
+
+        it('does not render promo variation preview header on default fragment opened from promotion project', () => {
+            const defaultPath = '/content/dam/mas/sandbox/en_US/my-card';
+            const fragment = new Fragment({
+                id: 'default-card-id',
+                path: defaultPath,
+                model: { path: CARD_MODEL_PATH },
+                fields: [],
+                tags: [],
+            });
+            el.inEdit.value = { get: () => fragment };
+            el.editorContextStore.localeDefaultFragment = null;
+            sandbox.stub(el.editorContextStore, 'isVariation').returns(false);
+            Store.promotions.promotionId.set('promo-project-id');
+
+            const leftContainer = document.createElement('div');
+            render(el.localeVariationHeader, leftContainer);
+            expect(leftContainer.textContent).to.not.include('Promo variation');
+
+            const previewContainer = document.createElement('div');
+            render(el.previewVariationHeader, previewContainer);
+            expect(previewContainer.textContent).to.not.include('Promo variation');
+            Store.promotions.promotionId.set(null);
+        });
+
+        it('renders regional variation header for non-promo locale variations', () => {
+            const fragment = new Fragment({
+                id: 'locale-var-id',
+                path: '/content/dam/mas/sandbox/en_QA/my-card',
+                model: { path: CARD_MODEL_PATH },
+                fields: [],
+                tags: [],
+            });
+            el.inEdit.value = { get: () => fragment };
+            sandbox.stub(el.editorContextStore, 'isVariation').returns(true);
+
+            const container = document.createElement('div');
+            render(el.localeVariationHeader, container);
+            expect(container.textContent).to.include('Regional variation:');
+            expect(container.textContent).to.not.include('Promo variation');
         });
 
         it('renders derived from container', async () => {
@@ -1345,5 +1511,206 @@ describe('MasFragmentEditor', () => {
             expect(attrs.gradientBorder).to.be.true;
             expect(attrs.borderColor).to.equal('blue-gradient');
         });
+    });
+
+    describe('snapFilterToPathDefault', () => {
+        let savedSearch;
+        let savedFilters;
+
+        beforeEach(() => {
+            savedSearch = structuredClone(Store.search.get());
+            savedFilters = structuredClone(Store.filters.get());
+        });
+
+        afterEach(() => {
+            Store.search.set(savedSearch);
+            Store.filters.set(savedFilters);
+        });
+
+        it('syncs locale filter to path default when filter and path defaults differ', () => {
+            Store.search.set({ path: 'sandbox' });
+            Store.filters.set({ locale: 'it_IT' });
+            const path = '/content/dam/mas/sandbox/fr_FR/some/pzn/card';
+            expect(snapFilterToPathDefault(path)).to.be.true;
+            expect(Store.filters.get().locale).to.equal('fr_FR');
+            expect(Store.search.get().region).to.be.null;
+        });
+
+        it('moves regional hash locale to region when path is a regional variation of same catalog', () => {
+            Store.search.set({ path: 'sandbox' });
+            Store.filters.set({ locale: 'en_BE' });
+            const path = '/content/dam/mas/sandbox/en_BE/some/pzn/card';
+            expect(snapFilterToPathDefault(path)).to.be.true;
+            expect(Store.filters.get().locale).to.equal('en_US');
+            expect(Store.search.get().region).to.equal('en_BE');
+        });
+
+        it('sets region when filter is default catalog and path is regional variation', () => {
+            Store.search.set({ path: 'sandbox' });
+            Store.filters.set({ locale: 'en_US' });
+            const path = '/content/dam/mas/sandbox/en_BE/some/pzn/card';
+            expect(snapFilterToPathDefault(path)).to.be.true;
+            expect(Store.filters.get().locale).to.equal('en_US');
+            expect(Store.search.get().region).to.equal('en_BE');
+        });
+    });
+
+    describe('syncGroupedVariationRegion', () => {
+        let savedSearch;
+        let savedFilters;
+
+        beforeEach(() => {
+            savedSearch = structuredClone(Store.search.get());
+            savedFilters = structuredClone(Store.filters.get());
+            Store.search.set({ path: 'sandbox' });
+            Store.filters.set({ locale: 'fr_FR' });
+        });
+
+        afterEach(() => {
+            Store.search.set(savedSearch);
+            Store.filters.set(savedFilters);
+        });
+
+        it('sets region from pzn tags when parent catalog is fr_FR', () => {
+            const fragment = new Fragment({
+                id: 'grouped',
+                path: '/content/dam/mas/sandbox/fr_FR/pac/pzn/grouped',
+                fields: [{ name: 'pznTags', values: ['/content/cq:tags/mas/locale/fr_CA'] }],
+            });
+            expect(syncGroupedVariationRegion(fragment, 'fr_FR')).to.be.true;
+            expect(Store.search.get().region).to.equal('fr_CA');
+        });
+
+        it('keeps region from URL when it matches a pzn tag', () => {
+            Store.search.set({ path: 'sandbox', region: 'fr_CA' });
+            const fragment = new Fragment({
+                id: 'grouped',
+                path: '/content/dam/mas/sandbox/fr_FR/pac/pzn/grouped',
+                fields: [
+                    {
+                        name: 'pznTags',
+                        values: ['/content/cq:tags/mas/locale/fr_FR', '/content/cq:tags/mas/locale/fr_CA'],
+                    },
+                ],
+            });
+            expect(syncGroupedVariationRegion(fragment, 'fr_FR')).to.be.false;
+            expect(Store.search.get().region).to.equal('fr_CA');
+        });
+    });
+});
+
+describe('MasFragmentEditor – #preloadEditorModule', () => {
+    let sandbox;
+    let savedInEdit;
+
+    beforeEach(() => {
+        sandbox = sinon.createSandbox();
+        savedInEdit = Store.fragments.inEdit.value;
+    });
+
+    afterEach(() => {
+        sandbox.restore();
+        Store.fragments.inEdit.value = savedInEdit;
+    });
+
+    function makeEditorWithFragment(modelPath, extraFields = []) {
+        const editor = new MasFragmentEditor();
+        const fragment = new Fragment({
+            id: 'test-frag',
+            path: '/content/dam/mas/acom/en_US/test',
+            model: { path: modelPath, id: 'test-model' },
+            fields: extraFields,
+        });
+        editor.inEdit.value = { get: () => fragment };
+        return { editor, fragment };
+    }
+
+    it('checks customElements.get for merch-card-editor on CARD_MODEL_PATH fragment', () => {
+        const getStub = sandbox.stub(customElements, 'get').returns(class extends HTMLElement {});
+        const { editor } = makeEditorWithFragment(CARD_MODEL_PATH);
+
+        editor.updated(new Map([['fragment', undefined]]));
+
+        expect(getStub.calledWith('merch-card-editor')).to.be.true;
+    });
+
+    it('skips import for CARD_MODEL_PATH when merch-card-editor is already defined', () => {
+        sandbox.stub(customElements, 'get').returns(class extends HTMLElement {});
+        const toastSpy = sandbox.spy(Events.toast, 'emit');
+        const { editor } = makeEditorWithFragment(CARD_MODEL_PATH);
+
+        editor.updated(new Map([['fragment', undefined]]));
+
+        expect(toastSpy.called).to.be.false;
+    });
+
+    it('starts import for CARD_MODEL_PATH when merch-card-editor is not yet defined', () => {
+        const getStub = sandbox.stub(customElements, 'get').returns(undefined);
+        const { editor } = makeEditorWithFragment(CARD_MODEL_PATH);
+
+        editor.updated(new Map([['fragment', undefined]]));
+
+        expect(getStub.calledWith('merch-card-editor')).to.be.true;
+    });
+
+    it('checks for mas-compare-chart-editor on compare-chart COLLECTION_MODEL_PATH', () => {
+        const getStub = sandbox.stub(customElements, 'get').returns(class extends HTMLElement {});
+        const { editor } = makeEditorWithFragment(COLLECTION_MODEL_PATH, [
+            { name: COMPARE_CHART_FIELD, values: ['<mas-compare-chart></mas-compare-chart>'] },
+        ]);
+
+        editor.updated(new Map([['fragment', undefined]]));
+
+        expect(getStub.calledWith('mas-compare-chart-editor')).to.be.true;
+    });
+
+    it('checks for merch-card-collection-editor on non-compare COLLECTION_MODEL_PATH', () => {
+        const getStub = sandbox.stub(customElements, 'get').returns(class extends HTMLElement {});
+        const { editor } = makeEditorWithFragment(COLLECTION_MODEL_PATH);
+
+        editor.updated(new Map([['fragment', undefined]]));
+
+        expect(getStub.calledWith('merch-card-collection-editor')).to.be.true;
+    });
+
+    it('emits negative toast when merch-card-editor import fails', async () => {
+        sandbox.stub(customElements, 'get').returns(undefined);
+        const toastSpy = sandbox.spy(Events.toast, 'emit');
+        const { editor } = makeEditorWithFragment(CARD_MODEL_PATH);
+
+        editor.updated = function () {
+            if (this.fragment?.model?.path === CARD_MODEL_PATH) {
+                if (!customElements.get('merch-card-editor')) {
+                    Promise.reject(new Error('load failed'))
+                        .then(() => this.requestUpdate())
+                        .catch(() =>
+                            Events.toast.emit({
+                                variant: 'negative',
+                                content: 'Failed to load merch card editor',
+                            }),
+                        );
+                }
+            }
+        };
+
+        editor.updated(new Map());
+        await new Promise((r) => setTimeout(r, 0));
+
+        expect(toastSpy.calledOnce).to.be.true;
+        expect(toastSpy.firstCall.args[0]).to.deep.equal({
+            variant: 'negative',
+            content: 'Failed to load merch card editor',
+        });
+    });
+
+    it('does not check for editor elements when fragment has unknown model path', () => {
+        const getSpy = sandbox.spy(customElements, 'get');
+        const { editor } = makeEditorWithFragment('/some/unknown/model');
+
+        editor.updated(new Map([['fragment', undefined]]));
+
+        expect(getSpy.calledWith('merch-card-editor')).to.be.false;
+        expect(getSpy.calledWith('merch-card-collection-editor')).to.be.false;
+        expect(getSpy.calledWith('mas-compare-chart-editor')).to.be.false;
     });
 });

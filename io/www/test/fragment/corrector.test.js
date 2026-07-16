@@ -641,5 +641,34 @@ describe('corrector', () => {
             expect(injectPromoCodeInValue(undefined)).to.equal(undefined);
             expect(injectPromoCodeInValue(null)).to.equal(null);
         });
+
+        it('returns the value unchanged when there are no price tags at all', () => {
+            const input = '<p>plain text</p>';
+            expect(injectPromoCodeInValue(input)).to.equal(input);
+        });
+
+        it('uses the first code seen for an osi when multiple sibling tags already carry their own code', () => {
+            const input =
+                '<span data-wcs-osi="OSI_A" data-promotion-code="promo-1"></span>' +
+                '<span data-wcs-osi="OSI_A" data-promotion-code="promo-2"></span>' +
+                '<span data-wcs-osi="OSI_A" data-template="discount"></span>';
+            const out = injectPromoCodeInValue(input);
+            expect(out).to.equal(
+                '<span data-wcs-osi="OSI_A" data-promotion-code="promo-1"></span>' +
+                    '<span data-wcs-osi="OSI_A" data-promotion-code="promo-2"></span>' +
+                    '<span data-promotion-code="promo-1" data-wcs-osi="OSI_A" data-template="discount"></span>',
+            );
+        });
+
+        it('inserts the promo code right after the tag name when the tag has no is= attribute', () => {
+            const input =
+                '<span data-template="discount" data-wcs-osi="OSI_A"></span>' +
+                '<span data-wcs-osi="OSI_A" data-promotion-code="cancel-context"></span>';
+            const out = injectPromoCodeInValue(input);
+            expect(out).to.equal(
+                '<span data-promotion-code="cancel-context" data-template="discount" data-wcs-osi="OSI_A"></span>' +
+                    '<span data-wcs-osi="OSI_A" data-promotion-code="cancel-context"></span>',
+            );
+        });
     });
 });

@@ -1,5 +1,5 @@
 import { expect } from '@open-wc/testing';
-import { searchOffers, createOfferSelector } from '../../src/utils/aos-client.js';
+import { searchOffers, createOfferSelector, getOfferById } from '../../src/utils/aos-client.js';
 
 let fetchCalls = [];
 let fetchResponse = {};
@@ -66,6 +66,9 @@ describe('aos-client', () => {
             expect(call.url).to.include('api_key=test-key');
             expect(call.url).to.include('landscape=DRAFT');
             expect(call.url).to.include('page_size=1000');
+            // AOS rejects environment=PRODUCTION with HTTP 400; it must be normalized to PROD.
+            expect(call.url).to.include('environment=PROD');
+            expect(call.url).to.not.include('environment=PRODUCTION');
             expect(call.options.headers['Authorization']).to.equal('Bearer test-token');
             expect(call.options.headers['X-Api-Key']).to.equal('test-key');
             expect(result.data).to.deep.equal(fetchResponse);
@@ -158,6 +161,30 @@ describe('aos-client', () => {
                 expect(err.message).to.include('403');
                 expect(err.message).to.include('Forbidden');
             }
+        });
+    });
+
+    describe('getOfferById', () => {
+        it('looks up a single offer via the path form, not the ignored offer_id query param', async () => {
+            fetchResponse = [{ offer_id: '040DCF1A11122A9096E4756473D186AF', product_arrangement_code: 'PA-954' }];
+
+            await getOfferById('040DCF1A11122A9096E4756473D186AF', 'AU', {
+                accessToken: 'test-token',
+                apiKey: 'test-key',
+                env: 'PRODUCTION',
+                environment: 'PRODUCTION',
+                landscape: 'PUBLISHED',
+            });
+
+            expect(fetchCalls.length).to.equal(1);
+            const call = fetchCalls[0];
+            expect(call.url).to.include('https://aos.adobe.io/offers/040DCF1A11122A9096E4756473D186AF?');
+            expect(call.url).to.not.include('offer_id=');
+            expect(call.url).to.include('country=AU');
+            expect(call.url).to.include('api_key=test-key');
+            expect(call.url).to.include('landscape=PUBLISHED');
+            expect(call.url).to.include('environment=PROD');
+            expect(call.options.headers['Authorization']).to.equal('Bearer test-token');
         });
     });
 });

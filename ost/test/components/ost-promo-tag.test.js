@@ -14,14 +14,39 @@ describe('ost-promo-tag', () => {
         store.promotionCode = undefined;
     });
 
-    it('renders the section label, badge, textfield, and clear button', async () => {
+    it('renders an inline "Promotion:" label, badge, textfield, and clear button', async () => {
         const el = await fixture(html`<ost-promo-tag></ost-promo-tag>`);
-        const label = el.shadowRoot.querySelector('.section-label');
+        const label = el.shadowRoot.querySelector('.promo-label');
         expect(label).to.exist;
-        expect(label.textContent.trim()).to.equal('Promotion');
+        expect(label.textContent.trim()).to.equal('Promotion:');
         expect(el.shadowRoot.querySelector('sp-badge')).to.exist;
         expect(el.shadowRoot.querySelector('sp-textfield')).to.exist;
-        expect(el.shadowRoot.querySelector('sp-action-button')).to.exist;
+        expect(el.shadowRoot.querySelector('[data-testid="ost-promo-clear"]')).to.exist;
+    });
+
+    it('lays out everything in a single horizontal row', async () => {
+        const el = await fixture(html`<ost-promo-tag></ost-promo-tag>`);
+        expect(el.shadowRoot.querySelector('.promo-row')).to.exist;
+        expect(el.shadowRoot.querySelector('.section-label')).to.not.exist;
+    });
+
+    it('renders an Undo icon inside the Clear button', async () => {
+        const el = await fixture(html`<ost-promo-tag></ost-promo-tag>`);
+        const clearBtn = el.shadowRoot.querySelector('[data-testid="ost-promo-clear"]');
+        expect(clearBtn.querySelector('sp-icon-undo')).to.exist;
+    });
+
+    it('hides the Cancel context button when no context promo exists', async () => {
+        const el = await fixture(html`<ost-promo-tag></ost-promo-tag>`);
+        expect(el.shadowRoot.querySelector('[data-testid="ost-promo-cancel-context"]')).to.not.exist;
+    });
+
+    it('renders a Cancel icon button when a context promo exists', async () => {
+        store.promotionCode = 'CTX';
+        const el = await fixture(html`<ost-promo-tag></ost-promo-tag>`);
+        const cancelBtn = el.shadowRoot.querySelector('[data-testid="ost-promo-cancel-context"]');
+        expect(cancelBtn).to.exist;
+        expect(cancelBtn.querySelector('sp-icon-cancel')).to.exist;
     });
 
     it('shows "no promo" badge with neutral variant when nothing is set', async () => {
@@ -87,7 +112,7 @@ describe('ost-promo-tag', () => {
             orig(v);
         };
         const el = await fixture(html`<ost-promo-tag></ost-promo-tag>`);
-        const clearBtn = el.shadowRoot.querySelector('sp-action-button');
+        const clearBtn = el.shadowRoot.querySelector('[data-testid="ost-promo-clear"]');
         clearBtn.click();
         expect(calls).to.include(undefined);
         store.setPromoCode = orig;

@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { transformer } from '../../src/fragment/transformers/corrector.js';
+import { transformer, injectPromoCodeInValue } from '../../src/fragment/transformers/corrector.js';
 
 describe('corrector', () => {
     describe('price literals cleanup', () => {
@@ -601,6 +601,45 @@ describe('corrector', () => {
             expect(result.body.fields.shortDescription.value).to.include(
                 'data-extra-options="{&quot;actionId&quot;:&quot;info&quot;}"',
             );
+        });
+    });
+
+    describe('injectPromoCodeInValue', () => {
+        it('copies promo code from a same-osi sibling onto a bare discount tag', () => {
+            const input =
+                '<span is="inline-price" data-template="discount" data-wcs-osi="OSI_A"></span>' +
+                '<span is="inline-price" data-template="price" data-wcs-osi="OSI_A" data-promotion-code="cancel-context"></span>';
+            const out = injectPromoCodeInValue(input);
+            expect(out).to.equal(
+                '<span is="inline-price" data-promotion-code="cancel-context" data-template="discount" data-wcs-osi="OSI_A"></span>' +
+                    '<span is="inline-price" data-template="price" data-wcs-osi="OSI_A" data-promotion-code="cancel-context"></span>',
+            );
+        });
+
+        it('leaves a tag that already has its own promo code untouched', () => {
+            const input =
+                '<span data-wcs-osi="OSI_A" data-promotion-code="own"></span>' +
+                '<span data-wcs-osi="OSI_A" data-promotion-code="cancel-context"></span>';
+            expect(injectPromoCodeInValue(input)).to.equal(input);
+        });
+
+        it('leaves tags unchanged when no sibling carries a promo code', () => {
+            const input =
+                '<span data-wcs-osi="OSI_A" data-template="discount"></span>' +
+                '<span data-wcs-osi="OSI_A" data-template="price"></span>';
+            expect(injectPromoCodeInValue(input)).to.equal(input);
+        });
+
+        it('does not cross-apply codes between different osis', () => {
+            const input =
+                '<span data-wcs-osi="OSI_A" data-template="discount"></span>' +
+                '<span data-wcs-osi="OSI_B" data-promotion-code="promo-b"></span>';
+            expect(injectPromoCodeInValue(input)).to.equal(input);
+        });
+
+        it('returns non-string input unchanged', () => {
+            expect(injectPromoCodeInValue(undefined)).to.equal(undefined);
+            expect(injectPromoCodeInValue(null)).to.equal(null);
         });
     });
 });

@@ -671,4 +671,65 @@ describe('corrector', () => {
             );
         });
     });
+
+    describe('promo code propagation into prices field', () => {
+        it('injects sibling promo code into the discount price during corrector()', async () => {
+            const context = {
+                surface: 'da-cc',
+                body: {
+                    priceLiterals: {},
+                    fields: {
+                        prices: {
+                            value:
+                                '<span is="inline-price" data-template="discount" data-wcs-osi="OSI_A"></span>' +
+                                '<span is="inline-price" data-template="price" data-wcs-osi="OSI_A" data-promotion-code="cancel-context"></span>',
+                            mimeType: 'text/html',
+                        },
+                    },
+                },
+            };
+            await transformer.process(context);
+            expect(context.body.fields.prices.value).to.equal(
+                '<span is="inline-price" data-promotion-code="cancel-context" data-template="discount" data-wcs-osi="OSI_A"></span>' +
+                    '<span is="inline-price" data-template="price" data-wcs-osi="OSI_A" data-promotion-code="cancel-context"></span>',
+            );
+        });
+
+        it('runs regardless of surface (not gated by shouldApplyCorrector)', async () => {
+            const context = {
+                surface: 'acom',
+                body: {
+                    priceLiterals: {},
+                    fields: {
+                        prices:
+                            '<span data-wcs-osi="OSI_A" data-template="discount"></span>' +
+                            '<span data-wcs-osi="OSI_A" data-promotion-code="promo-x"></span>',
+                    },
+                },
+            };
+            await transformer.process(context);
+            expect(context.body.fields.prices).to.equal(
+                '<span data-promotion-code="promo-x" data-wcs-osi="OSI_A" data-template="discount"></span>' +
+                    '<span data-wcs-osi="OSI_A" data-promotion-code="promo-x"></span>',
+            );
+        });
+
+        it('leaves fields without price tags untouched', async () => {
+            const context = {
+                surface: 'da-cc',
+                body: {
+                    priceLiterals: {},
+                    fields: { prices: { value: '<p>no price here</p>' } },
+                },
+            };
+            await transformer.process(context);
+            expect(context.body.fields.prices.value).to.equal('<p>no price here</p>');
+        });
+
+        it('handles missing prices field', async () => {
+            const context = { surface: 'da-cc', body: { priceLiterals: {}, fields: {} } };
+            const result = await transformer.process(context);
+            expect(result).to.equal(context);
+        });
+    });
 });

@@ -72,6 +72,26 @@ export function injectPromoCodeInValue(fieldValue) {
 }
 
 /**
+ * Copies sibling promo codes onto bare same-osi inline-price tags across price-bearing fields
+ * @param {object} context - Context object with body.fields structure
+ */
+export function applyPromoCodeToPrices(context) {
+    const priceFields = ['prices', 'ctas', 'description', 'shortDescription'];
+    for (const fieldName of priceFields) {
+        const field = context.body?.fields?.[fieldName];
+        const fieldValue = typeof field === 'string' ? field : field?.value;
+        if (typeof fieldValue !== 'string') continue;
+        const injected = injectPromoCodeInValue(fieldValue);
+        if (injected === fieldValue) continue;
+        if (typeof field === 'string') {
+            context.body.fields[fieldName] = injected;
+        } else {
+            context.body.fields[fieldName].value = injected;
+        }
+    }
+}
+
+/**
  * Fixes data-extra-options attributes in all relevant fields
  * @param {object} context - Context object with body.fields structure
  */
@@ -107,6 +127,7 @@ async function corrector(context) {
             delete context.body.priceLiterals[key];
         }
     }
+    applyPromoCodeToPrices(context);
     if (shouldApplyCorrector(surface)) {
         fixFieldsDataExtraOptions(context);
     }

@@ -443,6 +443,49 @@ describe('mas-field – non-string field values', () => {
     });
 });
 
+describe('mas-field – fragment context promo code', () => {
+    afterEach(() => {
+        document.body
+            .querySelectorAll('mas-field')
+            .forEach((el) => el.remove());
+    });
+
+    it('sets data-promotion-code from the loaded fragment promoCode', () => {
+        const el = document.createElement('mas-field');
+        el.setAttribute('field', 'prices');
+        const fragment = document.createElement('aem-fragment');
+        el.append(fragment);
+        document.body.append(el);
+        fragment.data = {
+            id: 'fragment-id',
+            fields: { promoCode: 'PROMO123' },
+        };
+        fragment.dispatchEvent(
+            new CustomEvent('aem:load', {
+                bubbles: true,
+                detail: { fields: { prices: '<p>$9.99</p>' } },
+            }),
+        );
+        expect(el.getAttribute('data-promotion-code')).to.equal('PROMO123');
+    });
+
+    it('does not set data-promotion-code when fragment has no promoCode', () => {
+        const el = document.createElement('mas-field');
+        el.setAttribute('field', 'prices');
+        const fragment = document.createElement('aem-fragment');
+        el.append(fragment);
+        document.body.append(el);
+        fragment.data = { id: 'fragment-id', fields: {} };
+        fragment.dispatchEvent(
+            new CustomEvent('aem:load', {
+                bubbles: true,
+                detail: { fields: { prices: '<p>$9.99</p>' } },
+            }),
+        );
+        expect(el.hasAttribute('data-promotion-code')).to.be.false;
+    });
+});
+
 describe('mas-field – price options provider (locale defaults)', () => {
     afterEach(() => {
         document.body
@@ -476,5 +519,43 @@ describe('mas-field – price options provider (locale defaults)', () => {
         const options = {};
         expect(() => priceOptionsProvider(null, options)).to.not.throw();
         expect(options[FF_DEFAULTS]).to.be.undefined;
+    });
+
+    it('sets options.promotionCode from the enclosing mas-field data-promotion-code', () => {
+        const masField = document.createElement('mas-field');
+        masField.setAttribute('data-promotion-code', 'PROMO123');
+        const inline = document.createElement('span');
+        inline.setAttribute('is', 'inline-price');
+        masField.append(inline);
+        document.body.append(masField);
+
+        const options = {};
+        priceOptionsProvider(inline, options);
+        expect(options.promotionCode).to.equal('PROMO123');
+    });
+
+    it('does not override an existing options.promotionCode', () => {
+        const masField = document.createElement('mas-field');
+        masField.setAttribute('data-promotion-code', 'PROMO123');
+        const inline = document.createElement('span');
+        inline.setAttribute('is', 'inline-price');
+        masField.append(inline);
+        document.body.append(masField);
+
+        const options = { promotionCode: 'OWN-CODE' };
+        priceOptionsProvider(inline, options);
+        expect(options.promotionCode).to.equal('OWN-CODE');
+    });
+
+    it('leaves options.promotionCode unset when mas-field has no promo code', () => {
+        const masField = document.createElement('mas-field');
+        const inline = document.createElement('span');
+        inline.setAttribute('is', 'inline-price');
+        masField.append(inline);
+        document.body.append(masField);
+
+        const options = {};
+        priceOptionsProvider(inline, options);
+        expect(options.promotionCode).to.be.undefined;
     });
 });

@@ -12,12 +12,18 @@ const CHECKOUT_STYLE_PATTERN = /(accent|primary|secondary)(-(outline|link))?/;
  * locale-driven labels like the FR_fr "TTC" tax indicator.
  */
 export function priceOptionsProvider(element, options) {
-    if (!element?.closest?.(MAS_FIELD_TAG)) return options;
+    const masField = element?.closest?.(MAS_FIELD_TAG);
+    if (!masField) return options;
     options[FF_DEFAULTS] = true;
 
     if (shouldHideStPriceLabels(element)) {
         options.displayPerUnit = false;
         options.displayTax = false;
+    }
+
+    if (!options.promotionCode) {
+        const promotionCode = masField.getAttribute('data-promotion-code');
+        if (promotionCode) options.promotionCode = promotionCode;
     }
 }
 
@@ -160,6 +166,8 @@ class MasField extends HTMLElement {
                 'data-promotion-variation-project',
                 fragment.promoVariationProject,
             );
+        if (fragment.fields?.promoCode)
+            this.setAttribute('data-promotion-code', fragment.fields.promoCode);
     }
 
     #renderField() {

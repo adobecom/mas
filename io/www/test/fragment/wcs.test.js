@@ -58,7 +58,7 @@ describe('wcs typical cases', function () {
                         url.includes('landscape=PUBLISHED') &&
                         url.includes('api_key=testing_wcs') &&
                         url.includes('language=MULT') &&
-                        !url.includes('promotion_code'),
+                        url.includes('promotion_code=UPT_PROMO-1'),
                 ),
             )
             .returns(createResponse(200, { resolvedOffers: [{ blah: 'blah' }] }));
@@ -98,7 +98,7 @@ describe('wcs typical cases', function () {
         context = await wcs.process(context);
         expect(context.body.wcs).to.deep.equal({
             prod: {
-                'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M-us-mult': [
+                'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M-us-mult-upt_promo-1': [
                     {
                         blah: 'blah',
                     },
@@ -115,6 +115,73 @@ describe('wcs typical cases', function () {
                 ],
             },
         });
+        delete context.body.fields.osi;
+        delete context.body.fields.promoCode;
+    });
+
+    it('falls back to the top-level fragment promoCode for a bare markup OSI with no matching reference', async function () {
+        fetchStub
+            .withArgs(
+                sinon.match(
+                    (url) =>
+                        url.includes('web_commerce_artifact') &&
+                        url.includes('offer_selector_ids=A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M') &&
+                        url.includes('promotion_code=CTX_PROMO'),
+                ),
+            )
+            .returns(createResponse(200, { resolvedOffers: [{ blah: 'blah' }] }));
+        fetchStub
+            .withArgs(
+                sinon.match(
+                    (url) =>
+                        url.includes('web_commerce_artifact') &&
+                        url.includes('offer_selector_ids=Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ') &&
+                        url.includes('promotion_code=NICOPROMO'),
+                ),
+            )
+            .returns(createResponse(200, { resolvedOffers: [{ foo: 'bar' }] }));
+        context.wcsConfiguration = CONFIGURATION();
+        context.body.fields.promoCode = 'CTX_PROMO';
+        context = await wcs.process(context);
+        expect(context.body.wcs.prod).to.have.property('A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M-us-mult-ctx_promo');
+        expect(context.body.wcs.prod).to.not.have.property('A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M-us-mult');
+        expect(context.body.wcs.prod).to.have.property('Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ-us-mult-nicopromo');
+        delete context.body.fields.promoCode;
+    });
+
+    it('reference-map promo code takes precedence over the top-level fragment promoCode', async function () {
+        context.body.references.card1 = {
+            value: {
+                fields: { osi: 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M', promoCode: 'REF_PROMO' },
+            },
+        };
+        fetchStub
+            .withArgs(
+                sinon.match(
+                    (url) =>
+                        url.includes('web_commerce_artifact') &&
+                        url.includes('offer_selector_ids=A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M') &&
+                        url.includes('promotion_code=REF_PROMO'),
+                ),
+            )
+            .returns(createResponse(200, { resolvedOffers: [{ blah: 'blah' }] }));
+        fetchStub
+            .withArgs(
+                sinon.match(
+                    (url) =>
+                        url.includes('web_commerce_artifact') &&
+                        url.includes('offer_selector_ids=Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ') &&
+                        url.includes('promotion_code=NICOPROMO'),
+                ),
+            )
+            .returns(createResponse(200, { resolvedOffers: [{ foo: 'bar' }] }));
+        context.wcsConfiguration = CONFIGURATION();
+        context.body.fields.promoCode = 'CTX_PROMO';
+        context = await wcs.process(context);
+        expect(context.body.wcs.prod).to.have.property('A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M-us-mult-ref_promo');
+        expect(context.body.wcs.prod).to.not.have.property('A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M-us-mult-ctx_promo');
+        delete context.body.fields.promoCode;
+        delete context.body.references.card1;
     });
 
     it('should parse fragment and call related items  with en_GB, putting them in a map with right env', async function () {

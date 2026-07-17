@@ -917,7 +917,7 @@ describe('MasSideNav – Copy Field', () => {
                 el.textContent.startsWith('CTA '),
             );
             expect(ctaValueLabels).to.have.length(1);
-            expect(ctaValueLabels[0].textContent).to.equal('CTA 1');
+            expect(ctaValueLabels[0].textContent).to.equal('CTA - 1');
 
             // The combined 'ctas' field row must NOT appear — CTAs are shown as individual items only
             const fieldLabels = [...container.querySelectorAll('.field-label')].filter((el) => el.textContent === 'CTAs');
@@ -973,8 +973,8 @@ describe('MasSideNav – Copy Field', () => {
 
             const ctaLabels = [...container.querySelectorAll('.field-label')].filter((el) => el.textContent.startsWith('CTA '));
             expect(ctaLabels).to.have.length(2);
-            expect(ctaLabels[0].textContent).to.equal('CTA 1');
-            expect(ctaLabels[1].textContent).to.equal('CTA 2');
+            expect(ctaLabels[0].textContent).to.equal('CTA - 1');
+            expect(ctaLabels[1].textContent).to.equal('CTA - 2');
         });
 
         it('should not render CTAs section when no ctas in fragment', () => {

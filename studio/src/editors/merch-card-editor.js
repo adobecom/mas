@@ -4,6 +4,8 @@ import '../fields/included-field.js';
 import '../fields/icon-picker-field.js';
 import '../fields/mnemonic-field.js';
 import '../aem/aem-tag-picker-field.js';
+import '../promotions/mas-promo-variation-geos.js';
+import { isPromoVariationPath } from '../promotions/promotion-model.js';
 import './variant-picker.js';
 import '../rte/rte-field.js';
 import { SPECTRUM_COLORS } from '../utils/spectrum-colors.js';
@@ -85,6 +87,8 @@ class MerchCardEditor extends LitElement {
         updateFragment: { type: Function },
         localeDefaultFragment: { type: Object, attribute: false },
         isVariation: { type: Boolean, attribute: false },
+        promotionGeoOptions: { type: Array, attribute: false },
+        disabledPromoGeoOptions: { type: Array, attribute: false },
         fieldsReady: { type: Boolean, state: true },
         previewLocaleOverride: { type: String, state: true },
     };
@@ -117,6 +121,8 @@ class MerchCardEditor extends LitElement {
         this.currentVariantMapping = null;
         this.localeDefaultFragment = null;
         this.isVariation = false;
+        this.promotionGeoOptions = [];
+        this.disabledPromoGeoOptions = [];
         this.lastMnemonicState = null;
         this.fieldsReady = false;
         this.previewLocaleOverride = null;
@@ -219,6 +225,57 @@ class MerchCardEditor extends LitElement {
                     value="${this.pznTagsValue}"
                     @change=${this.#handlePznTagsChange}
                 ></aem-tag-picker-field>
+            </sp-field-group>
+        `;
+    }
+
+    get isPromoVariation() {
+        return isPromoVariationPath(this.fragment?.path);
+    }
+
+    get promoGeoTags() {
+        return (this.fragment.getFieldValues('pznTags') || []).filter(Boolean);
+    }
+
+    #removePromoGeoTag(tag) {
+        this.fragmentStore.updateField(
+            'pznTags',
+            this.promoGeoTags.filter((existing) => existing !== tag),
+        );
+    }
+
+    #handlePromoGeoTagsChange(e) {
+        this.fragmentStore.updateField('pznTags', e.detail.value);
+    }
+
+    get promoVariationGeoTagsTemplate() {
+        if (!this.isPromoVariation) return nothing;
+        return html`
+            <sp-field-group id="promo-geo-tags">
+                <sp-field-label>Geos tags</sp-field-label>
+                <sp-tags>
+                    ${this.promoGeoTags.map(
+                        (tag) => html`
+                            <sp-tag deletable @delete=${(e) => (e.preventDefault(), this.#removePromoGeoTag(tag))}>
+                                ${tag.split('/').pop()}
+                            </sp-tag>
+                        `,
+                    )}
+                    <overlay-trigger placement="bottom">
+                        <sp-action-button slot="trigger" quiet size="m">
+                            <sp-icon-add slot="icon"></sp-icon-add>
+                        </sp-action-button>
+                        <sp-popover slot="click-content">
+                            <mas-promo-variation-geos
+                                compact
+                                .geos=${this.promotionGeoOptions}
+                                .disabledGeos=${this.disabledPromoGeoOptions}
+                                .value=${this.promoGeoTags}
+                                @change=${(e) => this.#handlePromoGeoTagsChange(e)}
+                            ></mas-promo-variation-geos>
+                        </sp-popover>
+                    </overlay-trigger>
+                </sp-tags>
             </sp-field-group>
         `;
     }
@@ -1281,7 +1338,7 @@ class MerchCardEditor extends LitElement {
                     ></aem-tag-picker-field>
                     ${this.renderTagsStatusIndicator()}
                 </sp-field-group>
-                ${this.groupedVariationTagsTemplate}
+                ${this.groupedVariationTagsTemplate} ${this.promoVariationGeoTagsTemplate}
                 <div class="section-title">Visuals</div>
                 <sp-field-group class="toggle" id="mnemonics">
                     <mas-multifield

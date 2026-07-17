@@ -52,14 +52,17 @@ import {
     canPublishPromotionNow,
     canSchedulePromotion,
     confirmPublishDespiteUnpublishedPromoVariations,
+    confirmUnpublishAlongsidePromoVariations,
     publishPromotionProject,
+    unpublishPromotionProject,
+    promotionDeleteConfirmMessage,
     PROMOTION_EXPIRED_PUBLISH_MESSAGE,
     PROMOTION_SAVE_BEFORE_PUBLISH_MESSAGE,
 } from './promotion-publish-utils.js';
 import { renderFragmentStatusCell } from '../common/utils/render-utils.js';
 import { clearCaches } from '../../libs/fragment-client.js';
 import { canEditPromotions } from '../groups.js';
-import { getAllAttachedPromoVariations } from './promotions-repository.js';
+import { deleteAttachedPromoVariations, getAllAttachedPromoVariations } from './promotions-repository.js';
 
 function getPromotionPickerFragmentLabel(data) {
     const webComponentName = MODEL_WEB_COMPONENT_MAPPING[data?.model?.path];
@@ -524,9 +527,15 @@ class MasPromotionsEditor extends LitElement {
             showToast('This promotion is not published.', 'info');
             return;
         }
+        const { confirmed, variationPaths } = await confirmUnpublishAlongsidePromoVariations(
+            this.repository.aem,
+            this.fragment,
+            (title, message, options) => this.#showDialog(title, message, options),
+        );
+        if (!confirmed) return;
         this.promotionPublish = true;
         try {
-            const ok = await this.repository.unpublishFragment(this.fragment, true);
+            const ok = await unpublishPromotionProject(this.repository, this.fragment, variationPaths);
             if (ok) await this.#reloadPromotionFromServer();
         } finally {
             this.promotionPublish = false;
@@ -833,9 +842,10 @@ class MasPromotionsEditor extends LitElement {
 
     async #handleDeletePromotion() {
         if (!this.fragment?.id || this.isNewPromotion) return;
+        const attachedVariations = await getAllAttachedPromoVariations(this.repository.aem, this.fragment);
         const confirmed = await this.#showDialog(
             'Confirm Delete',
-            `Are you sure you want to delete the promotion project "${this.fragment.title}"? This action cannot be undone.`,
+            promotionDeleteConfirmMessage(this.fragment.title, attachedVariations.length),
             {
                 confirmText: 'Delete',
                 cancelText: 'Cancel',
@@ -845,6 +855,7 @@ class MasPromotionsEditor extends LitElement {
         if (!confirmed) return;
         try {
             showToast('Deleting promotion campaign...');
+            await deleteAttachedPromoVariations(this.repository.aem, this.fragment);
             await this.repository.deleteFragment(this.fragmentStore, { startToast: false, endToast: false });
             showToast('Promotion campaign successfully deleted.', 'positive');
             Store.promotions.inEdit.set();

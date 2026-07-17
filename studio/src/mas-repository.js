@@ -60,6 +60,7 @@ import {
     resolvePromoVariationParentPath,
     VARIATION_SEARCH_TABS,
 } from './utils/variation-search.js';
+import { getFragmentByPathOrNull } from './promotions/promotion-model.js';
 import { Promotion } from './aem/promotion.js';
 
 let fragmentCache;
@@ -1951,9 +1952,14 @@ export class MasRepository extends LitElement {
             return await this.resolveHydratedParentFragment(path);
         }
         if (tab === VARIATION_SEARCH_TABS.PROMOTION) {
-            const parentPath = resolvePromoVariationParentPath(path);
-            if (!parentPath) return null;
-            return await this.aem.sites.cf.fragments.getByPath(parentPath, { references: 'direct-hydrated' });
+            const candidates = resolvePromoVariationParentPath(path);
+            for (const candidatePath of candidates) {
+                const fragment = await getFragmentByPathOrNull(this.aem.sites.cf.fragments, candidatePath, {
+                    references: 'direct-hydrated',
+                });
+                if (fragment) return fragment;
+            }
+            return null;
         }
         if (tab === VARIATION_SEARCH_TABS.LOCALE) {
             const parentPath = resolveLocaleVariationParentPath(path);

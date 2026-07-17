@@ -44,4 +44,20 @@ describe('fragment-list-filters', () => {
 
         expect(filtered).to.have.lengthOf(1);
     });
+
+    it('does not filter promo variations on PROMOTIONS_EDITOR page (Select items picker)', () => {
+        const stores = [
+            makeStore({
+                path: '/content/dam/mas/acom/en_US/promotions/sale/card',
+                tags: [{ id: 'mas:promotion/sale' }],
+            }),
+        ];
+
+        const filtered = applyFragmentListFilters(stores, {
+            page: PAGE_NAMES.PROMOTIONS_EDITOR,
+            personalizationFilterEnabled: false,
+        });
+
+        expect(filtered).to.have.lengthOf(1);
+    });
 });

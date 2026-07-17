@@ -1324,6 +1324,54 @@ describe('MasFragmentEditor', () => {
             expect(previewContainer.textContent).to.include('Back To School');
         });
 
+        it('treats a sibling with no pznTags as covering every promotion project geo (legacy variation)', async () => {
+            const promoPath = '/content/dam/mas/sandbox/en_US/promotions/back-to-school/my-card';
+            const siblingPath = '/content/dam/mas/sandbox/en_US/promotions/back-to-school/my-card-2';
+            const parentPath = '/content/dam/mas/sandbox/en_US/my-card';
+            const fragment = new Fragment({
+                id: 'promo-var-id',
+                path: promoPath,
+                model: { path: CARD_MODEL_PATH },
+                tags: [{ id: 'mas:promotion/back-to-school' }],
+                fields: [{ name: 'tags', values: ['mas:promotion/back-to-school'] }],
+            });
+            el.inEdit.value = { get: () => fragment };
+            el.editorContextStore.localeDefaultFragment = { id: 'parent-id', path: parentPath };
+            Store.promotions.promotionId.set('promo-project-id');
+            const originalFragmentId = Store.fragmentEditor.fragmentId.value;
+            Store.fragmentEditor.fragmentId.value = fragment.id;
+
+            const getByPath = sandbox.stub().callsFake((path) => {
+                if (path === promoPath) return Promise.resolve({ id: 'promo-var-id', path: promoPath, fields: [] });
+                if (path === siblingPath) return Promise.resolve({ id: 'sibling-id', path: siblingPath, fields: [] });
+                return Promise.resolve(null);
+            });
+            const mockRepo = {
+                aem: {
+                    sites: {
+                        cf: {
+                            fragments: {
+                                getById: sandbox.stub().resolves({
+                                    id: 'promo-project-id',
+                                    fields: [{ name: 'geos', values: ['mas:locale/de_AT', 'mas:locale/en_NG'] }],
+                                }),
+                                getByPath,
+                            },
+                        },
+                    },
+                },
+            };
+            sandbox.stub(el, 'repository').get(() => mockRepo);
+
+            el.willUpdate(new Map());
+            await new Promise((resolve) => setTimeout(resolve, 20));
+
+            expect(el.disabledPromoGeoOptions).to.deep.equal(['mas:locale/de_AT', 'mas:locale/en_NG']);
+
+            Store.promotions.promotionId.set(null);
+            Store.fragmentEditor.fragmentId.value = originalFragmentId;
+        });
+
         it('does not render promo variation preview header on default fragment opened from promotion project', () => {
             const defaultPath = '/content/dam/mas/sandbox/en_US/my-card';
             const fragment = new Fragment({

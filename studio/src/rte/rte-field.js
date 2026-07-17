@@ -507,6 +507,7 @@ class RteField extends LitElement {
                     display: block;
                 }
 
+                div.ProseMirror-focused .icon-button.ProseMirror-selectednode,
                 div.ProseMirror-focused span[is='inline-price'].ProseMirror-selectednode,
                 div.ProseMirror-focused a.ProseMirror-selectednode,
                 div.ProseMirror-focused a.ProseMirror-selectednode,
@@ -1433,8 +1434,13 @@ class RteField extends LitElement {
         const { selection } = state;
 
         const node = state.schema.nodes.icon.create({ title: tooltip || '' });
-        const tr = state.tr.insert(selection.from, node);
-        dispatch(tr);
+        if (selection.node?.type?.name === 'icon') {
+            const tr = state.tr.replaceWith(selection.from, selection.to, node);
+            dispatch(tr);
+        } else {
+            const tr = state.tr.insert(selection.from, node);
+            dispatch(tr);
+        }
 
         this.showIconEditor = false;
     }
@@ -1724,7 +1730,19 @@ class RteField extends LitElement {
     async openIconEditor() {
         this.showIconEditor = true;
         await this.updateComplete;
-        Object.assign(this.iconEditorElement, { open: true });
+
+        const { state } = this.editorView;
+        const {
+            selection: { from, to },
+        } = state;
+
+        let tooltip = '';
+        state.doc.nodesBetween(from, to, (node) => {
+            if (node.type?.name === 'icon') {
+                tooltip = node.attrs?.title;
+            }
+        });
+        Object.assign(this.iconEditorElement, { open: true, tooltip });
     }
 
     handleOpenOfferSelector(event, element) {
@@ -1835,6 +1853,13 @@ class RteField extends LitElement {
             return true;
         }
 
+        if (node?.type.name === 'icon') {
+            event.stopPropagation();
+            event.preventDefault();
+            this.openIconEditor();
+            return true;
+        }
+
         return false;
     }
 
@@ -1897,6 +1922,10 @@ class RteField extends LitElement {
 
     get mnemonicEditorElement() {
         return this.shadowRoot.querySelector('rte-mnemonic-editor');
+    }
+
+    get iconEditorButtonElement() {
+        return this.shadowRoot.querySelector('#addIconButton');
     }
 
     render() {

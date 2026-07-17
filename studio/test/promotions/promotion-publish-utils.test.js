@@ -3,17 +3,25 @@ import sinon from 'sinon';
 import { OPERATIONS } from '../../src/constants.js';
 import {
     UNPUBLISHED_PROMO_VARIATIONS_DIALOG,
+    PUBLISHED_PROMO_VARIATIONS_DIALOG,
     canPublishPromotionNow,
     canSchedulePromotion,
     confirmPublishDespiteUnpublishedPromoVariations,
+    confirmUnpublishAlongsidePromoVariations,
     isPromotionExpiredForPublish,
     publishPromotionProject,
+    unpublishPromotionProject,
     PROMOTION_EXPIRED_PUBLISH_MESSAGE,
     PROMOTION_PUBLISH_ERROR_MESSAGE,
     PROMOTION_PUBLISH_SUCCESS_MESSAGE,
     PROMOTION_SAVE_BEFORE_PUBLISH_MESSAGE,
+    PROMOTION_UNPUBLISH_ERROR_MESSAGE,
+    PROMOTION_UNPUBLISH_SUCCESS_MESSAGE,
     promotionPublishShortfallMessage,
+    promotionUnpublishShortfallMessage,
     unpublishedPromoVariationsPublishMessage,
+    publishedPromoVariationsUnpublishMessage,
+    promotionDeleteConfirmMessage,
 } from '../../src/promotions/promotion-publish-utils.js';
 
 describe('promotion-publish-utils', () => {
@@ -91,12 +99,12 @@ describe('promotion-publish-utils', () => {
     it('shows dialog and returns not confirmed when user cancels', async () => {
         const parentPath = '/content/dam/mas/sandbox/en_US/my-card';
         const promoPath = '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card';
+        const getByPath = sinon.stub().resolves(null);
+        getByPath.withArgs(promoPath).resolves({ id: 'promo-var-id', path: promoPath, status: 'DRAFT', title: 'V1' });
         const aem = {
             sites: {
                 cf: {
-                    fragments: {
-                        getByPath: sinon.stub().withArgs(promoPath).resolves({ path: promoPath, status: 'DRAFT', title: 'V1' }),
-                    },
+                    fragments: { getByPath },
                 },
             },
         };
@@ -128,8 +136,8 @@ describe('promotion-publish-utils', () => {
                 cf: {
                     fragments: {
                         getByPath: sinon.stub().callsFake(async (path) => {
-                            if (path === path1) return { path: path1, status: 'DRAFT', title: 'V1' };
-                            if (path === path2) return { path: path2, status: 'DRAFT', title: 'V2' };
+                            if (path === path1) return { id: 'variation-id-1', path: path1, status: 'DRAFT', title: 'V1' };
+                            if (path === path2) return { id: 'variation-id-2', path: path2, status: 'DRAFT', title: 'V2' };
                             return null;
                         }),
                     },
@@ -147,6 +155,97 @@ describe('promotion-publish-utils', () => {
         const result = await confirmPublishDespiteUnpublishedPromoVariations(aem, promotionFragment, showDialog);
         expect(result).to.deep.equal({ confirmed: true, variationPaths: [path1, path2] });
         expect(showDialog.firstCall.args[1]).to.equal(unpublishedPromoVariationsPublishMessage(2));
+    });
+
+    it('exposes shortfall message when some promo variations are omitted from unpublish', () => {
+        expect(promotionUnpublishShortfallMessage(2)).to.equal(
+            'Project unpublished, but 2 promo variation(s) could not be included.',
+        );
+    });
+
+    it('builds the delete confirm message without a promo variations note when there are none', () => {
+        expect(promotionDeleteConfirmMessage('Black Friday', 0)).to.equal(
+            'Are you sure you want to delete the promotion project "Black Friday"? This action cannot be undone.',
+        );
+    });
+
+    it('builds the delete confirm message with a promo variations note when some are attached', () => {
+        expect(promotionDeleteConfirmMessage('Black Friday', 3)).to.equal(
+            'Are you sure you want to delete the promotion project "Black Friday"? This action cannot be undone. 3 promo variation(s) will also be deleted.',
+        );
+    });
+
+    it('returns confirmed without dialog when there are no published variations', async () => {
+        const aem = { sites: { cf: { fragments: { getByPath: sinon.stub().resolves(null) } } } };
+        const showDialog = sinon.stub().resolves(true);
+        const result = await confirmUnpublishAlongsidePromoVariations(
+            aem,
+            { id: 'p1', getFieldValues: () => [], tags: [] },
+            showDialog,
+        );
+        expect(result).to.deep.equal({ confirmed: true, variationPaths: [] });
+        expect(showDialog.called).to.be.false;
+    });
+
+    it('shows unpublish dialog and returns not confirmed when user cancels', async () => {
+        const parentPath = '/content/dam/mas/sandbox/en_US/my-card';
+        const promoPath = '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card';
+        const getByPath = sinon.stub().resolves(null);
+        getByPath.withArgs(promoPath).resolves({ id: 'promo-var-id', path: promoPath, status: 'PUBLISHED', title: 'V1' });
+        const aem = {
+            sites: {
+                cf: {
+                    fragments: { getByPath },
+                },
+            },
+        };
+        const promotionFragment = {
+            getFieldValues: sinon.stub().callsFake((name) => {
+                if (name === 'fragments') return [parentPath];
+                return undefined;
+            }),
+            tags: [{ id: 'mas:promotion/black-friday' }],
+        };
+        const showDialog = sinon.stub().resolves(false);
+        const result = await confirmUnpublishAlongsidePromoVariations(aem, promotionFragment, showDialog);
+        expect(result).to.deep.equal({ confirmed: false, variationPaths: [] });
+        expect(showDialog.calledOnce).to.be.true;
+        const [title, message, options] = showDialog.firstCall.args;
+        expect(title).to.equal(PUBLISHED_PROMO_VARIATIONS_DIALOG.title);
+        expect(message).to.equal(publishedPromoVariationsUnpublishMessage(1));
+        expect(options.confirmText).to.equal('Unpublish together');
+        expect(options.cancelText).to.equal('Cancel');
+        expect(options.variant).to.equal('confirmation');
+    });
+
+    it('returns variation paths when user confirms unpublish together, including modified ones', async () => {
+        const parentPaths = ['/content/dam/mas/sandbox/en_US/card-a', '/content/dam/mas/sandbox/en_US/card-b'];
+        const path1 = '/content/dam/mas/sandbox/en_US/promotions/black-friday/card-a';
+        const path2 = '/content/dam/mas/sandbox/en_US/promotions/black-friday/card-b';
+        const aem = {
+            sites: {
+                cf: {
+                    fragments: {
+                        getByPath: sinon.stub().callsFake(async (path) => {
+                            if (path === path1) return { id: 'variation-id-1', path: path1, status: 'PUBLISHED', title: 'V1' };
+                            if (path === path2) return { id: 'variation-id-2', path: path2, status: 'MODIFIED', title: 'V2' };
+                            return null;
+                        }),
+                    },
+                },
+            },
+        };
+        const promotionFragment = {
+            getFieldValues: sinon.stub().callsFake((name) => {
+                if (name === 'fragments') return parentPaths;
+                return undefined;
+            }),
+            tags: [{ id: 'mas:promotion/black-friday' }],
+        };
+        const showDialog = sinon.stub().resolves(true);
+        const result = await confirmUnpublishAlongsidePromoVariations(aem, promotionFragment, showDialog);
+        expect(result).to.deep.equal({ confirmed: true, variationPaths: [path1, path2] });
+        expect(showDialog.firstCall.args[1]).to.equal(publishedPromoVariationsUnpublishMessage(2));
     });
 
     describe('publishPromotionProject', () => {
@@ -258,6 +357,91 @@ describe('promotion-publish-utils', () => {
             expect(fragments).to.have.lengthOf(2);
             expect(fragments[0].path).to.equal(promotionPath);
             expect(fragments[1].path).to.equal(foundPath);
+        });
+    });
+
+    describe('unpublishPromotionProject', () => {
+        it('unpublishes only the promotion when there are no variation paths', async () => {
+            const unpublish = sinon.stub().resolves();
+            const getWithEtag = sinon.stub().withArgs('promo-1').resolves({ id: 'promo-1', etag: 'etag-promo' });
+            const repo = {
+                operation: { set: sinon.stub() },
+                aem: { sites: { cf: { fragments: { unpublish, getWithEtag } } } },
+                processError: sinon.stub(),
+            };
+            const promotion = { id: 'promo-1', path: '/content/dam/mas/promotions/project' };
+
+            const ok = await unpublishPromotionProject(repo, promotion, []);
+
+            expect(ok).to.be.true;
+            expect(unpublish.calledOnceWith({ id: 'promo-1', etag: 'etag-promo' })).to.be.true;
+            expect(repo.operation.set.firstCall.args[0]).to.equal(OPERATIONS.UNPUBLISH);
+            expect(repo.operation.set.lastCall.args[0]).to.equal(null);
+        });
+
+        it('calls processError with project message when unpublish fails', async () => {
+            const unpublishError = new Error('unpublish failed');
+            const getWithEtag = sinon.stub().withArgs('promo-1').resolves({ id: 'promo-1', etag: 'etag-promo' });
+            const unpublish = sinon.stub().rejects(unpublishError);
+            const processError = sinon.stub();
+            const repo = {
+                operation: { set: sinon.stub() },
+                aem: { sites: { cf: { fragments: { unpublish, getWithEtag } } } },
+                processError,
+            };
+            const promotion = { id: 'promo-1', path: '/content/dam/mas/promotions/project' };
+
+            const ok = await unpublishPromotionProject(repo, promotion, []);
+
+            expect(ok).to.be.false;
+            expect(processError.calledOnceWith(unpublishError, PROMOTION_UNPUBLISH_ERROR_MESSAGE)).to.be.true;
+            expect(repo.operation.set.lastCall.args[0]).to.equal(null);
+        });
+
+        it('unpublishes promotion and its promo variations together', async () => {
+            const variationPath = '/content/dam/mas/acom/en_US/promotions/sale/card';
+            const unpublish = sinon.stub().resolves();
+            const getWithEtag = sinon.stub();
+            getWithEtag.withArgs('promo-1').resolves({ id: 'promo-1', etag: 'etag-promo' });
+            getWithEtag.withArgs('var-1').resolves({ id: 'var-1', etag: 'etag-var' });
+            const getByPath = sinon.stub().withArgs(variationPath).resolves({ id: 'var-1', path: variationPath });
+            const repo = {
+                operation: { set: sinon.stub() },
+                aem: { sites: { cf: { fragments: { unpublish, getWithEtag, getByPath } } } },
+                processError: sinon.stub(),
+            };
+            const promotion = { id: 'promo-1', path: '/content/dam/mas/promotions/project' };
+
+            const ok = await unpublishPromotionProject(repo, promotion, [variationPath]);
+
+            expect(ok).to.be.true;
+            expect(unpublish.calledTwice).to.be.true;
+            expect(unpublish.firstCall.calledWith({ id: 'promo-1', etag: 'etag-promo' })).to.be.true;
+            expect(unpublish.secondCall.calledWith({ id: 'var-1', etag: 'etag-var' })).to.be.true;
+        });
+
+        it('unpublishes only resolved variations and reports a shortfall when some lookups fail', async () => {
+            const foundPath = '/content/dam/mas/acom/en_US/promotions/sale/card-a';
+            const missingPath = '/content/dam/mas/acom/en_US/promotions/sale/card-b';
+            const unpublish = sinon.stub().resolves();
+            const getWithEtag = sinon.stub();
+            getWithEtag.withArgs('promo-1').resolves({ id: 'promo-1', etag: 'etag-promo' });
+            getWithEtag.withArgs('var-a').resolves({ id: 'var-a', etag: 'etag-a' });
+            const getByPath = sinon.stub();
+            getByPath.withArgs(foundPath).resolves({ id: 'var-a', path: foundPath });
+            getByPath.withArgs(missingPath).rejects(new Error('not found'));
+            const repo = {
+                operation: { set: sinon.stub() },
+                aem: { sites: { cf: { fragments: { unpublish, getWithEtag, getByPath } } } },
+                processError: sinon.stub(),
+            };
+            const promotion = { id: 'promo-1', path: '/content/dam/mas/promotions/project' };
+
+            const ok = await unpublishPromotionProject(repo, promotion, [foundPath, missingPath]);
+
+            expect(ok).to.be.true;
+            expect(unpublish.calledTwice).to.be.true;
+            expect(unpublish.secondCall.calledWith({ id: 'var-a', etag: 'etag-a' })).to.be.true;
         });
     });
 });

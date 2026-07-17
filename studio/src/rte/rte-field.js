@@ -17,6 +17,7 @@ import './rte-icon-editor.js';
 
 const CUSTOM_ELEMENT_CHECKOUT_LINK = 'checkout-link';
 const CUSTOM_ELEMENT_INLINE_PRICE = 'inline-price';
+const LINK_KEY_ATTR = 'data-key';
 
 const DEFAULT_EMOJIS = ['ℹ️', '✅', '✓', '✔', '❌', '✗', '✘', '✖', '×', '—', '-'];
 
@@ -73,6 +74,7 @@ class LinkNodeView {
         if (node.type !== this.node.type) {
             return false;
         }
+        node.attrs[LINK_KEY_ATTR] = this.dom.getAttribute(LINK_KEY_ATTR);
         this.node = node;
 
         // Update attributes (excluding 'text')
@@ -1206,8 +1208,8 @@ class RteField extends LitElement {
             }
         }
 
-        if (this.id === 'ctas' && !element.getAttribute('data-key')) {
-            element.setAttribute('data-key', this.#generateLinkKey());
+        if (this.id === 'ctas' && !element.getAttribute(LINK_KEY_ATTR)) {
+            element.setAttribute(LINK_KEY_ATTR, this.#generateLinkKey());
         }
 
         if (!element.title) element.removeAttribute('title');

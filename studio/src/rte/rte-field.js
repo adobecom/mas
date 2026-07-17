@@ -74,7 +74,8 @@ class LinkNodeView {
         if (node.type !== this.node.type) {
             return false;
         }
-        node.attrs[LINK_KEY_ATTR] = this.dom.getAttribute(LINK_KEY_ATTR);
+        const oldKey = this.dom.getAttribute(LINK_KEY_ATTR);
+        if (oldKey) node.attrs[LINK_KEY_ATTR] = oldKey;
         this.node = node;
 
         // Update attributes (excluding 'text')

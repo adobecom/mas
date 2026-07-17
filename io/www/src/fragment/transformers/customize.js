@@ -178,15 +178,61 @@ function promoProjectLabel(project) {
     return project.title ?? project.id;
 }
 
+// Upper bound for probing suffixed promo variation paths (`-2`, `-3`, ...) per fragment.
+const MAX_PROMO_VARIATIONS_PER_FRAGMENT = 50;
+
+// Collects same fragment geo promos to select the best match.
+function collectPromoVariationCandidates(variationsByPath, fragmentPath) {
+    const candidates = [];
+    if (variationsByPath[fragmentPath]) candidates.push(variationsByPath[fragmentPath]);
+    for (let index = 2; index <= MAX_PROMO_VARIATIONS_PER_FRAGMENT; index += 1) {
+        const candidate = variationsByPath[`${fragmentPath}-${index}`];
+        if (candidate) candidates.push(candidate);
+    }
+    return candidates;
+}
+
+/**
+ * Picks the best geo match for a fragment.
+ * Candidates without pznTags act as fallbacks for legacy, non geo scoped promos.
+ */
+function selectBestPromoVariation(candidates, { regionLocale, country }) {
+    let fallback = null;
+    let best = null;
+    let bestScore = 0;
+    for (const candidate of candidates) {
+        const pznTags = candidate.fields?.pznTags;
+        if (!Array.isArray(pznTags) || pznTags.length === 0) {
+            fallback ??= candidate;
+            continue;
+        }
+        const geo = matchesGeo(pznTags, { regionLocale, country });
+        if (!geo) continue;
+        const score = (geo.region ? 2 : 0) + (geo.country ? 1 : 0);
+        if (score > bestScore) {
+            bestScore = score;
+            best = candidate;
+        }
+    }
+    return best || fallback;
+}
+
 function findPromoVariation(root, customizeContext) {
     const promoProjects = customizeContext.promoProjects;
     if (!promoProjects?.length) return null;
     const match = PATH_TOKENS.exec(root.path);
     if (!match?.groups) return null;
     const { fragmentPath } = match.groups;
+    const { regionLocale, country } = customizeContext;
     for (const { project } of promoProjects) {
-        const defaultVar = project.defaultVariations?.[fragmentPath];
-        const regionVar = project.regionVariations?.[fragmentPath];
+        const defaultVar = selectBestPromoVariation(collectPromoVariationCandidates(project.defaultVariations, fragmentPath), {
+            regionLocale,
+            country,
+        });
+        const regionVar = selectBestPromoVariation(collectPromoVariationCandidates(project.regionVariations, fragmentPath), {
+            regionLocale,
+            country,
+        });
         logDebug(() => `findPromoVariation defaultVar: ${JSON.stringify(defaultVar)}`, customizeContext);
         logDebug(() => `findPromoVariation regionVar: ${JSON.stringify(regionVar)}`, customizeContext);
         if (!defaultVar && !regionVar) continue;

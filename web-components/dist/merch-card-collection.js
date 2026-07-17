@@ -1708,6 +1708,7 @@ merch-card[variant="mini-compare-chart"] merch-mnemonic-list:nth-child(8) {
     list-style: none;
     padding: 0;
     margin-bottom: 8px;
+    width: 100%;
   }
 
   merch-card[variant="mini-compare-chart-mweb"] ul li::before {
@@ -2794,8 +2795,7 @@ merch-card[variant^="plans"] [slot='callout-content'] > div > div > div {
     color: #000;
 }
 
-merch-card[variant^="plans"] [slot="callout-content"] img,
-merch-card[variant^="plans"] [slot="callout-content"] .icon-button {
+merch-card[variant^="plans"] [slot="callout-content"] img {
     margin: 1.5px 0 1.5px 8px;
 }
 
@@ -5551,10 +5551,6 @@ merch-card[variant="product"] [slot="callout-content"] > p:has(> .icon-button) {
   padding-inline-end: 36px;
 }
 
-merch-card[variant="product"] [slot="callout-content"] .icon-button {
-  margin: 1.5px 0 1.5px 8px;
-}
-
 merch-card[variant="product"] a.spectrum-Link--secondary {
   color: inherit;
 }
@@ -5907,10 +5903,6 @@ merch-card[variant="segment"] [slot="callout-content"] > p:has(> .icon-button) {
   padding-inline-end: 36px;
 }
 
-merch-card[variant="segment"] [slot="callout-content"] .icon-button {
-  margin: 1.5px 0 1.5px 8px;
-}
-
 merch-card[variant="segment"] a.spectrum-Link--secondary {
   color: inherit;
 }
@@ -5922,6 +5914,10 @@ merch-card[variant="segment"][id] span[data-template="legal"] {
     font-style: italic;
     font-weight: 400;
     line-height: 21px;
+}
+
+merch-card[variant="segment"][id] .price-legal span.price-unit-type {
+    display: block;
 }
 
 merch-card[variant="segment"][id] .price-unit-type:not(.disabled)::before {

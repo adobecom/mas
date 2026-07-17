@@ -606,19 +606,19 @@ class MasSideNav extends LitElement {
         return [...currentFields, ...inheritedFields];
     }
 
-    getCtaInfo(cta) {
-        if (cta.key) {
-            const button = document.querySelector(`.preview-content [data-key="${cta.key}"]`);
-            if (!button || !button.masElement) return cta.index;
+    getCtaInfo(key) {
+        if (key) {
+            const button = document.querySelector(`.preview-content [data-key="${key}"]`);
+            if (!button || !button.masElement) return '';
 
             const masElement = button.masElement;
             const text = button.textContent;
             const wfStep = masElement.options.checkoutWorkflowStep;
             const modalText = !!masElement.options.modal ? ' - modal' : '';
-            return `${wfStep}${modalText} `;
+            return `${wfStep}${modalText}`;
         }
 
-        return cta.index;
+        return '';
     }
 
     /** Copy Field popover listing fragment fields with preview values. */
@@ -714,7 +714,9 @@ class MasSideNav extends LitElement {
                                                           ? 'field-entry-overridden'
                                                           : ''}"
                                                   >
-                                                      <span class="field-label">CTA - ${this.getCtaInfo(cta)}</span>
+                                                      <span class="field-label"
+                                                          >CTA - ${this.getCtaInfo(cta.key) || cta.index}</span
+                                                      >
                                                       <span class="field-value">${cta.text || cta.href}</span>
                                                   </div>
                                               </sp-menu-item>
@@ -734,7 +736,9 @@ class MasSideNav extends LitElement {
                                                                 this.copyCtaItem(cta.text, cta.index, cta.sourceFragment)}
                                                         >
                                                             <div class="field-entry">
-                                                                <span class="field-label">CTA - ${this.getCtaInfo(cta)}</span>
+                                                                <span class="field-label"
+                                                                    >CTA - ${this.getCtaInfo(cta.key) || cta.index}</span
+                                                                >
                                                                 <span class="field-value">${cta.text || cta.href}</span>
                                                             </div>
                                                         </sp-menu-item>
@@ -791,7 +795,9 @@ class MasSideNav extends LitElement {
         const ctaId = this.#getCtaKey(fragment, index);
         const path = Store.search.get().path;
         const fieldName = `ctas[${ctaId}]`;
-        const fieldText = `ctas[${text}]`;
+        const ctaInfo = this.getCtaInfo(ctaId);
+        const dashCtaInfo = ctaInfo ? ` - ${ctaInfo}` : '';
+        const fieldText = `ctas[${text}${dashCtaInfo}]`;
         const link = generateFieldLink(fragment, path, PAGE_NAMES.CONTENT, fieldName, fieldText);
         if (!link) return;
         try {

@@ -3,6 +3,8 @@ import { logDebug } from './log.js';
 
 const HARDCODED_API_KEYS = [
     'wcms-commerce-ims-ro-user-milo',
+    'wcms-commerce-ims-ro-user-milo-dc',
+    'wcms-commerce-ims-ro-user-milo-cc',
     /^CreativeCloud_v\d+_\d+$/,
     'AdobeExpressWeb',
     'unified_checkout_client_v3',

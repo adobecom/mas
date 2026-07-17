@@ -1,9 +1,6 @@
 import { getRequestInfos } from '../utils/common.js';
 import { logDebug } from '../utils/log.js';
 const DATA_EXTRA_OPTIONS_REGEX = /data-extra-options="(\{[^}]*\})"/g;
-const INLINE_PRICE_TAG_REGEX = /<(?<tag>[a-zA-Z][\w-]*)\b[^>]*\bdata-wcs-osi="(?<osi>[^"]+)"[^>]*>/g;
-const OWN_PROMO_REGEX = /\bdata-promotion-code="[^"]+"/;
-const PROMO_CODE_REGEX = /\bdata-promotion-code="(?<code>[^"]+)"/;
 
 const SURFACES_TO_CORRECT = ['adobe-home', 'sandbox', 'ccd'];
 
@@ -31,64 +28,6 @@ export function fixDataExtraOptionsInValue(fieldValue) {
         return `data-extra-options="${fixedJson}"`;
     });
     return fixedValue;
-}
-
-/**
- * Copies a promo code onto same-osi inline-price tags that are missing one
- * @param {string} fieldValue - The field value to fix
- * @returns {string} - The fixed field value
- */
-export function injectPromoCodeInValue(fieldValue) {
-    if (typeof fieldValue !== 'string') return fieldValue;
-    const tags = [...fieldValue.matchAll(INLINE_PRICE_TAG_REGEX)];
-    if (tags.length === 0) return fieldValue;
-    const osiToCode = {};
-    for (const match of tags) {
-        const { osi } = match.groups;
-        const codeMatch = match[0].match(PROMO_CODE_REGEX);
-        if (codeMatch && !(osi in osiToCode)) {
-            osiToCode[osi] = codeMatch.groups.code;
-        }
-    }
-    let result = '';
-    let lastIndex = 0;
-    for (const match of tags) {
-        const { osi, tag } = match.groups;
-        const start = match.index;
-        const original = match[0];
-        result += fieldValue.slice(lastIndex, start);
-        lastIndex = start + original.length;
-        const code = osiToCode[osi];
-        if (code && !OWN_PROMO_REGEX.test(original)) {
-            const isMatch = original.match(/^<[a-zA-Z][\w-]*\s+is="[^"]*"/);
-            const insertAt = isMatch ? isMatch[0].length : `<${tag}`.length;
-            result += `${original.slice(0, insertAt)} data-promotion-code="${code}"${original.slice(insertAt)}`;
-        } else {
-            result += original;
-        }
-    }
-    result += fieldValue.slice(lastIndex);
-    return result;
-}
-
-/**
- * Copies sibling promo codes onto bare same-osi inline-price tags across price-bearing fields
- * @param {object} context - Context object with body.fields structure
- */
-export function applyPromoCodeToPrices(context) {
-    const priceFields = ['prices', 'ctas', 'description', 'shortDescription'];
-    for (const fieldName of priceFields) {
-        const field = context.body?.fields?.[fieldName];
-        const fieldValue = typeof field === 'string' ? field : field?.value;
-        if (typeof fieldValue !== 'string') continue;
-        const injected = injectPromoCodeInValue(fieldValue);
-        if (injected === fieldValue) continue;
-        if (typeof field === 'string') {
-            context.body.fields[fieldName] = injected;
-        } else {
-            context.body.fields[fieldName].value = injected;
-        }
-    }
 }
 
 /**
@@ -127,7 +66,6 @@ async function corrector(context) {
             delete context.body.priceLiterals[key];
         }
     }
-    applyPromoCodeToPrices(context);
     if (shouldApplyCorrector(surface)) {
         fixFieldsDataExtraOptions(context);
     }

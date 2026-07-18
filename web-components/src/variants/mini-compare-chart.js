@@ -75,15 +75,12 @@ export class MiniCompareChart extends VariantLayout {
                 '[slot="heading-m-price"] [is="inline-price"][data-template="legal"]',
             );
             if (legal) {
-                if (!this.legalResolvedHandler) {
-                    this.legalResolvedHandler = () =>
-                        this.adjustShortDescription();
-                    legal.addEventListener(
-                        EVENT_TYPE_RESOLVED,
-                        this.legalResolvedHandler,
-                    );
-                    this.legalElement = legal;
-                }
+                this.legalResolvedHandler = () => this.adjustShortDescription();
+                legal.addEventListener(
+                    EVENT_TYPE_RESOLVED,
+                    this.legalResolvedHandler,
+                );
+                this.legalElement = legal;
                 this.legalObserver = new MutationObserver(() =>
                     this.adjustShortDescription(),
                 );
@@ -609,6 +606,15 @@ export class MiniCompareChart extends VariantLayout {
                         this.legalResolvedHandler,
                     );
                     this.legalElement = existingLegal;
+                }
+                if (!this.legalObserver) {
+                    this.legalObserver = new MutationObserver(() =>
+                        this.adjustShortDescription(),
+                    );
+                    this.legalObserver.observe(existingLegal, {
+                        childList: true,
+                        subtree: true,
+                    });
                 }
                 return;
             }

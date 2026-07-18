@@ -1,8 +1,10 @@
 name: IO Studio Tests
 on:
     workflow_call:
-        secrets:
-            workspace:
+        inputs:
+            namespace:
+                description: 'I/O runtime workspace namespace to health-check'
+                type: string
                 required: true
 
 jobs:
@@ -11,7 +13,7 @@ jobs:
         steps:
             - name: Health Check test
               env:
-                  HEALTH_CHECK_URL: https://${{ secrets.workspace }}.adobeioruntime.net/api/v1/web/MerchAtScaleStudio/health-check
+                  HEALTH_CHECK_URL: https://${{ inputs.namespace }}.adobeioruntime.net/api/v1/web/MerchAtScaleStudio/health-check
               run: |
                   echo "Running health check test on $HEALTH_CHECK_URL"
                   curl -sf -o /dev/null -w "%{http_code}\n" "$HEALTH_CHECK_URL"

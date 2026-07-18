@@ -102,14 +102,16 @@ describe('VariantPicker', () => {
             expect(names).to.include('product');
             expect(names).to.include('segment');
             expect(names).to.include('mini-compare-chart');
+            expect(names).to.include('mini-compare-chart-mweb');
             expect(names).to.include('image');
             expect(names).to.include('special-offers');
+            expect(names).to.include('headless');
             expect(names).to.include('compare-chart-column');
             expect(names).to.include('bizpro');
             expect(names).to.not.include('plans');
             expect(names).to.not.include('catalog');
             expect(names).to.not.include('ccd-slice');
-            expect(names.length).to.equal(7);
+            expect(names.length).to.equal(9);
         });
 
         it('should return only DC templates for acom-dc surface', () => {
@@ -119,11 +121,13 @@ describe('VariantPicker', () => {
             expect(names).to.include('segment');
             expect(names).to.include('mini-compare-chart');
             expect(names).to.include('image');
+            expect(names).to.include('headless');
             expect(names).to.include('compare-chart-column');
             expect(names).to.include('bizpro');
             expect(names).to.not.include('special-offers');
             expect(names).to.not.include('plans');
-            expect(names.length).to.equal(6);
+            expect(names).to.not.include('mini-compare-chart-mweb');
+            expect(names.length).to.equal(7);
         });
 
         it('should return only plans/catalog templates for acom surface', () => {

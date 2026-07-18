@@ -97,7 +97,7 @@ const Store = {
         list: {
             loading: new ReactiveStore(true),
             data: new ReactiveStore([]),
-            filter: new ReactiveStore('scheduled'),
+            filter: new ReactiveStore('active'),
             filterOptions: new ReactiveStore([
                 { value: 'all', label: 'All' },
                 { value: 'draft', label: 'Draft' },

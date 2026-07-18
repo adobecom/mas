@@ -80,4 +80,26 @@ test.describe('Product gallery feature test suite', () => {
             }
         });
     });
+
+    test(`${features[2].name},${features[2].tags}`, async () => {
+        const { data } = features[2];
+
+        await test.step('step-1: Go to Product gallery page', async () => {
+            const page = workerSetup.getPage('US');
+            galleryPage = new MasProduct(page);
+            await workerSetup.verifyPageURL('US', DOCS_GALLERY_PATH.PRODUCT, expect);
+        });
+
+        await test.step('step-2: Verify that Product card title and icon act as modal triggers', async () => {
+            const card = galleryPage.getCard(data.id);
+            await expect(card).toBeVisible();
+            await expect(card).toHaveAttribute('variant', data.variant);
+            const titleEl = card.locator('h3');
+            const cardIcon = card.locator('merch-icon[slot="icons"]');
+            await expect(titleEl).toHaveAttribute('class', 'modal-trigger');
+            await expect(titleEl).toHaveAttribute('role', 'link');
+            await expect(cardIcon).toHaveAttribute('class', 'modal-trigger');
+            await expect(cardIcon).toHaveAttribute('role', 'link');
+        });
+    });
 });

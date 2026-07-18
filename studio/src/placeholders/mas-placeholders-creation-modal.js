@@ -2,6 +2,7 @@ import { LitElement, html } from 'lit';
 import { createPlaceholder } from './mas-placeholders-repository.js';
 import { normalizeKey, showToast } from '../utils.js';
 import Store from '../store.js';
+import '../rte/rte-field.js';
 
 const initialPlaceholder = {
     key: '',

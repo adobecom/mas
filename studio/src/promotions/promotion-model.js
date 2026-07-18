@@ -38,6 +38,19 @@ export function getPromoNameFromTag(tagId) {
 }
 
 /**
+ * Suffixes a fragment path with a number to differentiate duplicate variations in the same project.
+ * @param {string} fragmentPath
+ * @param {number} [index]
+ * @returns {string}
+ */
+export function appendSuffixToLeaf(fragmentPath, index) {
+    if (!fragmentPath || !index || index < 2) return fragmentPath;
+    const segments = fragmentPath.split('/');
+    const leaf = segments.pop();
+    return [...segments, `${leaf}-${index}`].join('/');
+}
+
+/**
  * Rejects path traversal or absolute segments in promo folder names (from mas:promotion/ tags).
  * @param {string} promoName
  * @returns {boolean}
@@ -66,45 +79,81 @@ export function findPromotionProjectIdByTag(promotionTagId, promotionProjects = 
  * Builds the DAM path for a promo variation from a default fragment path and promo name.
  * @param {string} defaultPath
  * @param {string} promoName
+ * Suffix added to the last segment (if >= 2) to avoid duplicate paths.
+ * @param {number} [suffixIndex]
  * @returns {string|null}
  */
-export function buildPromoVariationPath(defaultPath, promoName) {
+export function buildPromoVariationPath(defaultPath, promoName, suffixIndex) {
     if (!defaultPath || !promoName) return null;
     const match = PATH_TOKENS.exec(defaultPath);
     if (!match?.groups) return null;
     const { surface, parsedLocale, fragmentPath } = match.groups;
     if (fragmentPath.startsWith(PROMOTIONS_PATH_PREFIX)) return null;
-    return `${ROOT_PATH}/${surface}/${parsedLocale}/${PROMOTIONS_PATH_PREFIX}${promoName}/${fragmentPath}`;
+    const leafPath = appendSuffixToLeaf(fragmentPath, suffixIndex);
+    return `${ROOT_PATH}/${surface}/${parsedLocale}/${PROMOTIONS_PATH_PREFIX}${promoName}/${leafPath}`;
 }
 
 /**
  * Builds the promo variation DAM path from a default fragment path and mas:promotion/ tag.
  * @param {string} defaultPath
  * @param {string} promoTagId
+ * @param {number} [suffixIndex]
  * @returns {string|null}
  */
-export function buildPromoVariationPathForTag(defaultPath, promoTagId) {
+export function buildPromoVariationPathForTag(defaultPath, promoTagId, suffixIndex) {
     const promoName = getPromoNameFromTag(promoTagId);
     if (!promoName) return null;
-    return buildPromoVariationPath(defaultPath, promoName);
+    return buildPromoVariationPath(defaultPath, promoName, suffixIndex);
 }
 
 /**
- * Resolves the default fragment path from a promo variation path and promo name.
- * @param {string} promoPath
- * @param {string} promoName
+ * Generates the potential collision path for a suffixed promo variation.
+ * Used to check for naming conflicts when creating variations or attaching new fragments.
+ * @param {string} defaultPath
+ * @param {number} index
  * @returns {string|null}
  */
+export function buildCandidateCollisionPath(defaultPath, index) {
+    if (!defaultPath) return null;
+    const match = PATH_TOKENS.exec(defaultPath);
+    if (!match?.groups) return null;
+    const { surface, parsedLocale, fragmentPath } = match.groups;
+    return `${ROOT_PATH}/${surface}/${parsedLocale}/${appendSuffixToLeaf(fragmentPath, index)}`;
+}
+
+/**
+ * Generates candidate source paths for a variation (original path first, stripped suffix version second).
+ * Used to resolve the actual source fragment from the project data.
+ * @param {string} fragmentPath
+ * @returns {string[]}
+ */
+export function getCandidateDefaultLeaves(fragmentPath) {
+    if (!fragmentPath) return [];
+    const segments = fragmentPath.split('/');
+    const leaf = segments.pop();
+    const match = /^(.*)-(\d+)$/.exec(leaf);
+    if (!match) return [fragmentPath];
+    const strippedLeaf = match[1];
+    const stripped = [...segments, strippedLeaf].join('/');
+    return [fragmentPath, stripped];
+}
+
+/**
+ * Returns candidate default fragment paths for a promo variation path and promo name.
+ * @param {string} promoPath
+ * @param {string} promoName
+ * @returns {string[]}
+ */
 export function resolveDefaultPathFromPromoVariation(promoPath, promoName) {
-    if (!promoPath || !promoName) return null;
+    if (!promoPath || !promoName) return [];
     const match = PATH_TOKENS.exec(promoPath);
-    if (!match?.groups?.fragmentPath) return null;
+    if (!match?.groups?.fragmentPath) return [];
     const { surface, parsedLocale, fragmentPath } = match.groups;
     const prefix = `${PROMOTIONS_PATH_PREFIX}${promoName}/`;
-    if (!fragmentPath.startsWith(prefix)) return null;
+    if (!fragmentPath.startsWith(prefix)) return [];
     const relativePath = fragmentPath.slice(prefix.length);
-    if (!relativePath) return null;
-    return `${ROOT_PATH}/${surface}/${parsedLocale}/${relativePath}`;
+    if (!relativePath) return [];
+    return getCandidateDefaultLeaves(relativePath).map((leaf) => `${ROOT_PATH}/${surface}/${parsedLocale}/${leaf}`);
 }
 
 /**
@@ -137,6 +186,21 @@ export function getPromoNameFromPromoVariationPath(promoPath) {
 }
 
 /**
+ * Extracts promotion name and projectfrom a promo variation fragment.
+ * @param {{ path?: string, tags?: Array<{ id?: string }|string>, getFieldValues?: (name: string) => unknown[] }} variationFragment
+ * @returns {promotionName: string, promoProject: string}
+ */
+export function getPromotionInfo(variationFragment) {
+    const promotionTagId = getPromotionTagFromFragment(variationFragment);
+    const promoProject = getPromoNameFromTag(promotionTagId) || '';
+    const promotionName = variationFragment.tags?.find((tag) => tag.id === promotionTagId)?.title || promoProject;
+    return {
+        promotionName: promotionName || '-',
+        promoProject: promoProject || '-',
+    };
+}
+
+/**
  * True when a fragment is a promo variation by path or mas:promotion/ tag.
  * @param {{ path?: string, tags?: Array<{ id?: string }|string>, getFieldValues?: (name: string) => unknown[] }} fragment
  * @returns {boolean}
@@ -164,13 +228,14 @@ export function isFragmentNotFoundError(error) {
 }
 
 /**
- * @param {{ getByPath: (path: string) => Promise<unknown> }} fragmentsApi
+ * @param {{ getByPath: (path: string, options?: object) => Promise<unknown> }} fragmentsApi
  * @param {string} path
+ * @param {object} [options]
  * @returns {Promise<object|null>}
  */
-export async function getFragmentByPathOrNull(fragmentsApi, path) {
+export async function getFragmentByPathOrNull(fragmentsApi, path, options) {
     try {
-        return (await fragmentsApi.getByPath(path)) ?? null;
+        return (await fragmentsApi.getByPath(path, options)) ?? null;
     } catch (error) {
         if (isFragmentNotFoundError(error)) return null;
         throw error;

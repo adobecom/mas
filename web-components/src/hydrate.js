@@ -589,7 +589,18 @@ export function processAddon(fields, merchCard, mapping, settings = {}) {
     const addonField = addonSource?.replace(/[{}]/g, '');
     if (!addonField) return;
     if (/disabled/.test(addonField)) return;
-    const addon = createTag('merch-addon', { slot: 'addon' }, addonField);
+    let background;
+    let innerContent = addonField;
+    const temp = document.createElement('div');
+    temp.innerHTML = addonField;
+    const firstEl = temp.firstElementChild;
+    if (firstEl?.tagName?.toLowerCase() === 'merch-addon') {
+        background = firstEl.getAttribute('background') || undefined;
+        innerContent = firstEl.innerHTML;
+    }
+    const attrs = { slot: 'addon' };
+    if (background) attrs.background = background;
+    const addon = createTag('merch-addon', attrs, innerContent);
     [...addon.querySelectorAll(SELECTOR_MAS_INLINE_PRICE)].forEach((span) => {
         const parent = span.parentElement;
         if (parent?.nodeName !== 'P') return;
@@ -1002,6 +1013,13 @@ export async function hydrate(fragment, merchCard) {
     if (fragment.variationId)
         merchCard.setAttribute('variation-id', fragment.variationId);
     if (fragment.maskId) merchCard.setAttribute('mask-id', fragment.maskId);
+    if (fragment.promoProject)
+        merchCard.setAttribute('data-promotion-project', fragment.promoProject);
+    if (fragment.promoVariationProject)
+        merchCard.setAttribute(
+            'data-promotion-variation-project',
+            fragment.promoVariationProject,
+        );
     merchCard.variant = variant;
     await merchCard.updateComplete;
 

@@ -109,7 +109,7 @@ export const VARIANTS = [
     {
         label: 'Headless',
         value: VARIANT_NAMES.HEADLESS,
-        surfaces: [SURFACES.SANDBOX],
+        surfaces: [SURFACES.SANDBOX, SURFACES.ACOM_CC, SURFACES.ACOM_DC],
     },
     {
         label: 'Mini Compare Chart',
@@ -119,7 +119,7 @@ export const VARIANTS = [
     {
         label: 'Mini Compare Chart Mweb',
         value: VARIANT_NAMES.MINI_COMPARE_CHART_MWEB,
-        surfaces: [SURFACES.ACOM],
+        surfaces: [SURFACES.ACOM, SURFACES.ACOM_CC],
     },
     {
         label: 'Compare Chart Column',

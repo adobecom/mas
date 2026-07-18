@@ -13,16 +13,14 @@ jobs:
             batch_size: 5
             rps_limit: 5
             worker_concurrency: 2
-        secrets:
-            ENV: ${{ secrets.AIO_STUDIO_ENV_STAGE }}
-            AIO: ${{  secrets.AIO_STUDIO_AIO_STAGE }}
-            ODIN_BUCKET: ${{ secrets.ODIN_BUCKET_STAGE }}
+            vault-path: merch-at-scale/aio-studio/stage
+        secrets: inherit
 
     test_stage:
         needs: deploy_stage
         uses: ./.github/workflows/io-studio-tests.yaml
-        secrets:
-            workspace: ${{ secrets.AIO_STUDIO_NS_STAGE }}
+        with:
+            namespace: ${{ needs.deploy_stage.outputs.namespace }}
 
     deploy_production:
         needs: test_stage
@@ -31,13 +29,11 @@ jobs:
             batch_size: 5
             rps_limit: 5
             worker_concurrency: 2
-        secrets:
-            ENV: ${{ secrets.AIO_STUDIO_ENV_PROD }}
-            AIO: ${{  secrets.AIO_STUDIO_AIO_PROD }}
-            ODIN_BUCKET: ${{ secrets.ODIN_BUCKET_PROD }}
+            vault-path: merch-at-scale/aio-studio/prod
+        secrets: inherit
 
     test_production:
         needs: deploy_production
         uses: ./.github/workflows/io-studio-tests.yaml
-        secrets:
-            workspace: ${{ secrets.AIO_STUDIO_NS_PROD }}
+        with:
+            namespace: ${{ needs.deploy_production.outputs.namespace }}

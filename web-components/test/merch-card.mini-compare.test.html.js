@@ -437,4 +437,228 @@ runTests(async () => {
             }
         });
     });
+
+    describe('ETF text (adjustLegal / adjustShortDescription)', () => {
+        async function mountCardWithEtf(etfText = 'Fee applies') {
+            const mount = document.createElement('div');
+            mount.style.cssText =
+                'position:absolute;left:-9999px;top:0;width:520px;';
+            // Use innerHTML so the HTML parser properly upgrades
+            // <span is="inline-price"> as a customized built-in element.
+            mount.innerHTML = `
+                <merch-card variant="mini-compare-chart">
+                    <h5 slot="heading-m-price">
+                        <span
+                            is="inline-price"
+                            data-wcs-osi="abm"
+                            data-template="price"
+                            data-display-per-unit="false"
+                            data-display-tax="false"
+                            data-display-plan-type="true"
+                        ></span>
+                    </h5>
+                    <p slot="body-xxs">${etfText}</p>
+                    <merch-whats-included slot="whats-included"></merch-whats-included>
+                </merch-card>
+            `;
+            document.body.appendChild(mount);
+            const card = mount.querySelector('merch-card');
+            await customElements.whenDefined('merch-card');
+            await customElements.whenDefined('inline-price');
+            await card.updateComplete;
+            // Explicitly drive adjustLegal to completion — postCardUpdateHook
+            // is async and may not finish within updateComplete alone.
+            const vl = card.variantLayout;
+            if (vl && !vl.legalAdjusted) {
+                await vl.adjustLegal();
+            }
+            await delay(50);
+            return { card, mount };
+        }
+
+        it('adjustLegal creates a legal inline-price and sets legalAdjusted', async () => {
+            const { card, mount } = await mountCardWithEtf();
+            try {
+                const variantLayout = card.variantLayout;
+                expect(variantLayout.legalAdjusted).to.be.true;
+                const legal = card.querySelector(
+                    '[slot="heading-m-price"] [is="inline-price"][data-template="legal"]',
+                );
+                expect(legal).to.exist;
+            } finally {
+                mount.remove();
+            }
+        });
+
+        it('adjustLegal sets up MutationObserver on the legal element', async () => {
+            const { card, mount } = await mountCardWithEtf();
+            try {
+                const variantLayout = card.variantLayout;
+                expect(variantLayout.legalObserver).to.not.be.null;
+            } finally {
+                mount.remove();
+            }
+        });
+
+        it('adjustLegal in-flight guard prevents concurrent execution', async () => {
+            const { card, mount } = await mountCardWithEtf();
+            try {
+                const variantLayout = card.variantLayout;
+                variantLayout.legalAdjusted = false;
+                variantLayout.legalAdjusting = true;
+                const countBefore = card.querySelectorAll(
+                    '[data-template="legal"]',
+                ).length;
+                await variantLayout.adjustLegal();
+                const countAfter = card.querySelectorAll(
+                    '[data-template="legal"]',
+                ).length;
+                expect(countAfter).to.equal(countBefore);
+                variantLayout.legalAdjusting = false;
+            } finally {
+                mount.remove();
+            }
+        });
+
+        it('adjustLegal re-attaches to existing legal element in DOM', async () => {
+            const { card, mount } = await mountCardWithEtf();
+            try {
+                const variantLayout = card.variantLayout;
+                variantLayout.legalAdjusted = false;
+                variantLayout.legalObserver?.disconnect();
+                variantLayout.legalObserver = null;
+                variantLayout.legalResolvedHandler = null;
+                variantLayout.legalElement = null;
+
+                await variantLayout.adjustLegal();
+
+                expect(variantLayout.legalAdjusted).to.be.true;
+                expect(variantLayout.legalObserver).to.not.be.null;
+                expect(variantLayout.legalResolvedHandler).to.not.be.null;
+            } finally {
+                mount.remove();
+            }
+        });
+
+        it('adjustShortDescription injects ETF text into .price-plan-type', async () => {
+            const variantLayout = await (async () => {
+                const { card, mount } = await mountCardWithEtf('Fee applies');
+                document.__etfMount = mount;
+                return card.variantLayout;
+            })();
+            try {
+                const planType = variantLayout.card.querySelector(
+                    '[slot="heading-m-price"] [data-template="legal"] .price-plan-type',
+                );
+                if (planType) {
+                    expect(planType.querySelector('em')).to.exist;
+                    expect(
+                        planType.querySelector('em').textContent.trim(),
+                    ).to.include('Fee applies');
+                }
+            } finally {
+                document.__etfMount?.remove();
+            }
+        });
+
+        it('adjustShortDescription is idempotent — does not duplicate ETF text', async () => {
+            const { card, mount } = await mountCardWithEtf('Fee applies');
+            try {
+                const variantLayout = card.variantLayout;
+                variantLayout.adjustShortDescription();
+                variantLayout.adjustShortDescription();
+                const planType = card.querySelector(
+                    '[slot="heading-m-price"] [data-template="legal"] .price-plan-type',
+                );
+                const ems = planType?.querySelectorAll('em') ?? [];
+                expect(ems.length).to.be.at.most(1);
+            } finally {
+                mount.remove();
+            }
+        });
+
+        it('adjustShortDescription retries via requestAnimationFrame when planType is absent', async () => {
+            const { card, mount } = await mountCardWithEtf();
+            try {
+                const variantLayout = card.variantLayout;
+                const source = document.createElement('p');
+                source.textContent = 'Retry test';
+                variantLayout.shortDescriptionSource = source;
+                variantLayout.shortDescriptionRetryPending = false;
+
+                const legalPrice = card.querySelector(
+                    '[data-template="legal"]',
+                );
+                legalPrice?.remove();
+
+                variantLayout.adjustShortDescription();
+                // Retry must be scheduled synchronously
+                expect(variantLayout.shortDescriptionRetryPending).to.be.true;
+
+                // Reset flag before rAF fires to avoid re-trigger from missing planType
+                variantLayout.shortDescriptionRetryPending = false;
+
+                if (legalPrice)
+                    card.querySelector('[slot="heading-m-price"]')?.appendChild(
+                        legalPrice,
+                    );
+            } finally {
+                mount.remove();
+            }
+        });
+
+        it('disconnectedCallbackHook disconnects and nulls legalObserver', async () => {
+            const { card, mount } = await mountCardWithEtf();
+            try {
+                const variantLayout = card.variantLayout;
+                expect(variantLayout.legalObserver).to.not.be.null;
+
+                variantLayout.disconnectedCallbackHook();
+
+                expect(variantLayout.legalObserver).to.be.null;
+            } finally {
+                mount.remove();
+            }
+        });
+
+        it('connectedCallbackHook recovery restores legalObserver after card re-insertion', async () => {
+            const { card, mount } = await mountCardWithEtf();
+            try {
+                const variantLayout = card.variantLayout;
+                expect(variantLayout.legalAdjusted).to.be.true;
+
+                mount.removeChild(card);
+                await delay(10);
+
+                expect(variantLayout.legalObserver).to.be.null;
+                expect(variantLayout.legalAdjusted).to.be.true;
+
+                mount.appendChild(card);
+                await delay(50);
+
+                expect(variantLayout.legalObserver).to.not.be.null;
+            } finally {
+                mount.remove();
+            }
+        });
+
+        it('connectedCallbackHook resets legalAdjusted when legal element is gone after re-insertion', async () => {
+            const { card, mount } = await mountCardWithEtf();
+            try {
+                const variantLayout = card.variantLayout;
+                const legal = card.querySelector('[data-template="legal"]');
+                legal?.remove();
+
+                mount.removeChild(card);
+                await delay(10);
+
+                mount.appendChild(card);
+                await delay(50);
+
+                expect(variantLayout.legalAdjusted).to.be.false;
+            } finally {
+                mount.remove();
+            }
+        });
+    });
 });

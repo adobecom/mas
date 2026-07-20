@@ -208,6 +208,7 @@ export class MiniCompareChart extends VariantLayout {
 
         const slots = [
             'heading-m',
+            'heading-xs',
             'subtitle',
             'body-m',
             'heading-m-price',
@@ -642,8 +643,10 @@ export class MiniCompareChart extends VariantLayout {
             this.shortDescriptionSource = bodyXxs;
             bodyXxs.remove();
         }
-        const text = this.shortDescriptionSource.textContent?.trim();
-        if (!text) return;
+        const source = this.shortDescriptionSource;
+        const text = source.textContent?.trim();
+        const hasIconButton = !!source.querySelector('.icon-button');
+        if (!text && !hasIconButton) return;
         const legalPrice = this.card.querySelector(
             '[slot="heading-m-price"] [data-template="legal"]',
         );
@@ -651,7 +654,7 @@ export class MiniCompareChart extends VariantLayout {
         if (!planType) return;
         if (planType.querySelector('em')) return;
         const em = document.createElement('em');
-        em.textContent = ` ${text}`;
+        em.innerHTML = ` ${source.innerHTML}`;
         planType.appendChild(em);
     }
 
@@ -867,6 +870,11 @@ export class MiniCompareChart extends VariantLayout {
         :host([variant='mini-compare-chart']) slot[name='heading-m'] {
             min-height: var(
                 --consonant-merch-card-mini-compare-chart-heading-m-height
+            );
+        }
+        :host([variant='mini-compare-chart']) slot[name='heading-xs'] {
+            min-height: var(
+                --consonant-merch-card-mini-compare-chart-heading-xs-height
             );
         }
         :host([variant='mini-compare-chart']) slot[name='subtitle'] {

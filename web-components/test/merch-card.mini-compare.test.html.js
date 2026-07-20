@@ -450,7 +450,7 @@ runTests(async () => {
                     <h5 slot="heading-m-price">
                         <span
                             is="inline-price"
-                            data-wcs-osi="abm"
+                            data-wcs-osi="abm-mult"
                             data-template="price"
                             data-display-per-unit="false"
                             data-display-tax="false"
@@ -463,16 +463,12 @@ runTests(async () => {
             `;
             document.body.appendChild(mount);
             const card = mount.querySelector('merch-card');
-            await customElements.whenDefined('merch-card');
-            await customElements.whenDefined('inline-price');
-            await card.updateComplete;
-            // Explicitly drive adjustLegal to completion — postCardUpdateHook
-            // is async and may not finish within updateComplete alone.
+            await card.checkReady();
             const vl = card.variantLayout;
             if (vl && !vl.legalAdjusted) {
                 await vl.adjustLegal();
             }
-            await delay(50);
+            await card.checkReady();
             return { card, mount };
         }
 
@@ -521,23 +517,18 @@ runTests(async () => {
         });
 
         it('adjustShortDescription injects ETF text into .price-plan-type', async () => {
-            const variantLayout = await (async () => {
-                const { card, mount } = await mountCardWithEtf('Fee applies');
-                document.__etfMount = mount;
-                return card.variantLayout;
-            })();
+            const { card, mount } = await mountCardWithEtf('Fee applies');
             try {
-                const planType = variantLayout.card.querySelector(
+                const planType = card.querySelector(
                     '[slot="heading-m-price"] [data-template="legal"] .price-plan-type',
                 );
-                if (planType) {
-                    expect(planType.querySelector('em')).to.exist;
-                    expect(
-                        planType.querySelector('em').textContent.trim(),
-                    ).to.include('Fee applies');
-                }
+                expect(planType).to.exist;
+                expect(planType.querySelector('em')).to.exist;
+                expect(
+                    planType.querySelector('em').textContent.trim(),
+                ).to.include('Fee applies');
             } finally {
-                document.__etfMount?.remove();
+                mount.remove();
             }
         });
 
@@ -578,13 +569,13 @@ runTests(async () => {
                 expect(variantLayout.legalAdjusted).to.be.true;
 
                 mount.removeChild(card);
-                await delay(10);
+                await card.updateComplete;
 
                 expect(variantLayout.legalObserver).to.be.null;
                 expect(variantLayout.legalAdjusted).to.be.true;
 
                 mount.appendChild(card);
-                await delay(50);
+                await card.checkReady();
 
                 expect(variantLayout.legalObserver).to.not.be.null;
             } finally {
@@ -600,10 +591,10 @@ runTests(async () => {
                 legal?.remove();
 
                 mount.removeChild(card);
-                await delay(10);
+                await card.updateComplete;
 
                 mount.appendChild(card);
-                await delay(50);
+                await card.checkReady();
 
                 expect(variantLayout.legalAdjusted).to.be.false;
             } finally {

@@ -583,6 +583,7 @@ export class MiniCompareChart extends VariantLayout {
         if (this.legalAdjusted || this.legalAdjusting) return;
         this.legalAdjusting = true;
 
+        let legal;
         try {
             await this.card.updateComplete;
             await customElements.whenDefined('inline-price');
@@ -594,7 +595,7 @@ export class MiniCompareChart extends VariantLayout {
 
             if (!headingPrice?.options) return;
 
-            const legal = headingPrice.cloneNode(true);
+            legal = headingPrice.cloneNode(true);
 
             if (headingPrice.options.displayPerUnit)
                 headingPrice.dataset.displayPerUnit = 'false';
@@ -630,7 +631,12 @@ export class MiniCompareChart extends VariantLayout {
                 subtree: true,
             });
         } catch {
-            // allow retry on next postCardUpdateHook
+            if (legal?.parentNode) {
+                legal.parentNode.removeChild(legal);
+                this.legalAdjusted = false;
+                this.legalResolvedHandler = null;
+                this.legalElement = null;
+            }
         } finally {
             this.legalAdjusting = false;
         }

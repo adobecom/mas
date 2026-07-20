@@ -251,35 +251,6 @@ describe('MiniCompareChart.adjustShortDescription', () => {
         expect(em.textContent).to.include('Great value');
     });
 
-    it('preserves icon-button HTML when appending to .price-plan-type', () => {
-        const planType = document.createElement('span');
-        const bodyXxs = document.createElement('div');
-        bodyXxs.innerHTML =
-            '<p>See details <span class="icon-button" data-tooltip="More info"></span></p>';
-        bodyXxs.remove = () => {};
-        const layout = makeLayout({ bodyXxs, planType });
-        layout.adjustShortDescription();
-        const em = planType.querySelector('em');
-        expect(em).to.exist;
-        expect(em.querySelector('.icon-button')).to.exist;
-        expect(em.querySelector('.icon-button').dataset.tooltip).to.equal(
-            'More info',
-        );
-    });
-
-    it('appends icon-button even when there is no text content', () => {
-        const planType = document.createElement('span');
-        const bodyXxs = document.createElement('div');
-        bodyXxs.innerHTML =
-            '<p><span class="icon-button" data-tooltip="Info"></span></p>';
-        bodyXxs.remove = () => {};
-        const layout = makeLayout({ bodyXxs, planType });
-        layout.adjustShortDescription();
-        const em = planType.querySelector('em');
-        expect(em).to.exist;
-        expect(em.querySelector('.icon-button')).to.exist;
-    });
-
     it('does not append twice when called a second time', () => {
         const planType = document.createElement('span');
         const bodyXxs = document.createElement('div');

@@ -520,26 +520,6 @@ runTests(async () => {
             }
         });
 
-        it('adjustLegal re-attaches to existing legal element in DOM', async () => {
-            const { card, mount } = await mountCardWithEtf();
-            try {
-                const variantLayout = card.variantLayout;
-                variantLayout.legalAdjusted = false;
-                variantLayout.legalObserver?.disconnect();
-                variantLayout.legalObserver = null;
-                variantLayout.legalResolvedHandler = null;
-                variantLayout.legalElement = null;
-
-                await variantLayout.adjustLegal();
-
-                expect(variantLayout.legalAdjusted).to.be.true;
-                expect(variantLayout.legalObserver).to.not.be.null;
-                expect(variantLayout.legalResolvedHandler).to.not.be.null;
-            } finally {
-                mount.remove();
-            }
-        });
-
         it('adjustShortDescription injects ETF text into .price-plan-type', async () => {
             const variantLayout = await (async () => {
                 const { card, mount } = await mountCardWithEtf('Fee applies');
@@ -572,36 +552,6 @@ runTests(async () => {
                 );
                 const ems = planType?.querySelectorAll('em') ?? [];
                 expect(ems.length).to.be.at.most(1);
-            } finally {
-                mount.remove();
-            }
-        });
-
-        it('adjustShortDescription retries via requestAnimationFrame when planType is absent', async () => {
-            const { card, mount } = await mountCardWithEtf();
-            try {
-                const variantLayout = card.variantLayout;
-                const source = document.createElement('p');
-                source.textContent = 'Retry test';
-                variantLayout.shortDescriptionSource = source;
-                variantLayout.shortDescriptionRetryPending = false;
-
-                const legalPrice = card.querySelector(
-                    '[data-template="legal"]',
-                );
-                legalPrice?.remove();
-
-                variantLayout.adjustShortDescription();
-                // Retry must be scheduled synchronously
-                expect(variantLayout.shortDescriptionRetryPending).to.be.true;
-
-                // Reset flag before rAF fires to avoid re-trigger from missing planType
-                variantLayout.shortDescriptionRetryPending = false;
-
-                if (legalPrice)
-                    card.querySelector('[slot="heading-m-price"]')?.appendChild(
-                        legalPrice,
-                    );
             } finally {
                 mount.remove();
             }

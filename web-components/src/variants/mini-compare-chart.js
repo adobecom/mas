@@ -208,7 +208,6 @@ export class MiniCompareChart extends VariantLayout {
 
         const slots = [
             'heading-m',
-            'heading-xs',
             'subtitle',
             'body-m',
             'heading-m-price',
@@ -594,32 +593,6 @@ export class MiniCompareChart extends VariantLayout {
 
             if (!headingPrice?.options) return;
 
-            const existingLegal = headingPrice.parentNode.querySelector(
-                `[is="inline-price"][data-template="legal"]`,
-            );
-            if (existingLegal) {
-                this.legalAdjusted = true;
-                if (!this.legalResolvedHandler) {
-                    this.legalResolvedHandler = () =>
-                        this.adjustShortDescription();
-                    existingLegal.addEventListener(
-                        EVENT_TYPE_RESOLVED,
-                        this.legalResolvedHandler,
-                    );
-                    this.legalElement = existingLegal;
-                }
-                if (!this.legalObserver) {
-                    this.legalObserver = new MutationObserver(() =>
-                        this.adjustShortDescription(),
-                    );
-                    this.legalObserver.observe(existingLegal, {
-                        childList: true,
-                        subtree: true,
-                    });
-                }
-                return;
-            }
-
             const legal = headingPrice.cloneNode(true);
 
             if (headingPrice.options.displayPerUnit)
@@ -669,27 +642,16 @@ export class MiniCompareChart extends VariantLayout {
             this.shortDescriptionSource = bodyXxs;
             bodyXxs.remove();
         }
-        const source = this.shortDescriptionSource;
-        const text = source.textContent?.trim();
-        const hasIconButton = !!source.querySelector('.icon-button');
-        if (!text && !hasIconButton) return;
+        const text = this.shortDescriptionSource.textContent?.trim();
+        if (!text) return;
         const legalPrice = this.card.querySelector(
             '[slot="heading-m-price"] [data-template="legal"]',
         );
         const planType = legalPrice?.querySelector('.price-plan-type');
-        if (!planType) {
-            if (!this.shortDescriptionRetryPending) {
-                this.shortDescriptionRetryPending = true;
-                requestAnimationFrame(() => {
-                    this.shortDescriptionRetryPending = false;
-                    this.adjustShortDescription();
-                });
-            }
-            return;
-        }
+        if (!planType) return;
         if (planType.querySelector('em')) return;
         const em = document.createElement('em');
-        em.innerHTML = ` ${source.innerHTML}`;
+        em.textContent = ` ${text}`;
         planType.appendChild(em);
     }
 
@@ -905,11 +867,6 @@ export class MiniCompareChart extends VariantLayout {
         :host([variant='mini-compare-chart']) slot[name='heading-m'] {
             min-height: var(
                 --consonant-merch-card-mini-compare-chart-heading-m-height
-            );
-        }
-        :host([variant='mini-compare-chart']) slot[name='heading-xs'] {
-            min-height: var(
-                --consonant-merch-card-mini-compare-chart-heading-xs-height
             );
         }
         :host([variant='mini-compare-chart']) slot[name='subtitle'] {

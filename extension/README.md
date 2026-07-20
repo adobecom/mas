@@ -34,7 +34,7 @@ Try it against a page with merch cards, e.g. `https://www.adobe.com/creativeclou
 
 ## Authentication
 
-There is none, by design. Fragment data comes from the public M@S IO endpoint using the public `wcms-commerce-ims-ro-user-milo` API key, so the extension reads only what is already published. It requests no Adobe credentials and holds no tokens.
+There is none, by design. Fragment data comes from the public M@S IO endpoint using the public `wcms-commerce-ims-ro-user-milo-extension` API key, so the extension reads only what is already published. It requests no Adobe credentials and holds no tokens.
 
 Consequently it needs just two permissions — `storage` (remembers the on/off toggle) and `tabs` (opens Studio deep links) — plus host access to `mas.adobe.com` and `www.adobe.com`.
 
@@ -59,5 +59,5 @@ No build system, no bundler, no npm dependencies. Everything must be browser-com
 ## API endpoint
 
 ```
-GET https://www.adobe.com/mas/io/fragment?id={fragmentId}&api_key=wcms-commerce-ims-ro-user-milo&locale={locale}
+GET https://www.adobe.com/mas/io/fragment?id={fragmentId}&api_key=wcms-commerce-ims-ro-user-milo-extension&locale={locale}
 ```

@@ -2,8 +2,8 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { AEMClient } = require('../../api/aem-client.js');
 
-test('uses the same WCS API key as the MAS bundle', () => {
-    assert.equal(new AEMClient().wcsApiKey, 'wcms-commerce-ims-ro-user-milo');
+test('uses the extension WCS API key', () => {
+    assert.equal(new AEMClient().wcsApiKey, 'wcms-commerce-ims-ro-user-milo-extension');
 });
 
 test('fragment URL carries id, api_key and locale', async () => {
@@ -18,7 +18,7 @@ test('fragment URL carries id, api_key and locale', async () => {
 
     const params = new URL(requested).searchParams;
     assert.equal(params.get('id'), '86248907-1cb6-4d1e-8b3f-a42dee95d9bc');
-    assert.equal(params.get('api_key'), 'wcms-commerce-ims-ro-user-milo');
+    assert.equal(params.get('api_key'), 'wcms-commerce-ims-ro-user-milo-extension');
     assert.equal(params.get('locale'), 'en_US');
 });
 

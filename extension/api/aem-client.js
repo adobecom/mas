@@ -1,7 +1,7 @@
 class AEMClient {
     constructor() {
         this.masIOUrl = 'https://www.adobe.com/mas/io';
-        this.wcsApiKey = 'wcms-commerce-ims-ro-user-milo';
+        this.wcsApiKey = 'wcms-commerce-ims-ro-user-milo-extension';
         this.defaultLocale = 'en_US';
     }
 

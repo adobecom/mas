@@ -1,4 +1,4 @@
-import { LitElement, html, css } from 'lit';
+import { LitElement, html, css, nothing } from 'lit';
 import { store } from '../store/ost-store.js';
 import { computePromoStatus, PROMO_CONTEXT_CANCEL_VALUE } from '@dexter/tacocat-core/src/promotion.js';
 
@@ -12,20 +12,21 @@ export class OstPromoTag extends LitElement {
             margin-top: 8px;
         }
 
-        .section-label {
-            font-size: 11px;
-            font-weight: 700;
-            color: var(--spectrum-gray-600);
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            margin-bottom: 8px;
-        }
-
         .promo-row {
             display: flex;
             align-items: center;
             gap: 8px;
-            flex-wrap: wrap;
+        }
+
+        .promo-label {
+            font-size: 13px;
+            color: var(--spectrum-gray-800);
+            white-space: nowrap;
+        }
+
+        .promo-row sp-textfield {
+            flex: 1;
+            min-width: 0;
         }
     `;
 
@@ -57,9 +58,23 @@ export class OstPromoTag extends LitElement {
         const hasContextualPromo = !!store.promotionCode;
         const isCancelled = store.storedPromoOverride === PROMO_CONTEXT_CANCEL_VALUE;
         return html`
-            <div class="section-label">Promotion</div>
             <div class="promo-row">
+                <span class="promo-label">Promotion:</span>
                 <sp-badge data-testid="ost-promo-label" variant=${status.variant}>${status.text}</sp-badge>
+                ${hasContextualPromo
+                    ? html`
+                          <sp-action-button
+                              data-testid="ost-promo-cancel-context"
+                              quiet
+                              size="s"
+                              label=${isCancelled ? 'Restore context promo' : 'Cancel context promo'}
+                              ?selected=${isCancelled}
+                              @click=${() => store.setPromoCode(isCancelled ? undefined : PROMO_CONTEXT_CANCEL_VALUE)}
+                          >
+                              <sp-icon-cancel slot="icon"></sp-icon-cancel>
+                          </sp-action-button>
+                      `
+                    : nothing}
                 <sp-textfield
                     data-testid="ost-promo-override-input"
                     label="Override"
@@ -67,22 +82,15 @@ export class OstPromoTag extends LitElement {
                     value=${isCancelled ? '' : store.storedPromoOverride || ''}
                     @input=${(e) => store.setPromoCode(e.target.value)}
                 ></sp-textfield>
-                <sp-action-button data-testid="ost-promo-clear" quiet size="s" @click=${() => store.setPromoCode(undefined)}>
-                    Clear
+                <sp-action-button
+                    data-testid="ost-promo-clear"
+                    quiet
+                    size="s"
+                    label="Clear"
+                    @click=${() => store.setPromoCode(undefined)}
+                >
+                    <sp-icon-undo slot="icon"></sp-icon-undo>
                 </sp-action-button>
-                ${hasContextualPromo
-                    ? html`
-                          <sp-action-button
-                              data-testid="ost-promo-cancel-context"
-                              quiet
-                              size="s"
-                              ?selected=${isCancelled}
-                              @click=${() => store.setPromoCode(isCancelled ? undefined : PROMO_CONTEXT_CANCEL_VALUE)}
-                          >
-                              ${isCancelled ? 'Restore context promo' : 'Cancel context promo'}
-                          </sp-action-button>
-                      `
-                    : ''}
             </div>
         `;
     }

@@ -6545,7 +6545,7 @@ merch-card[variant="segment"][id] .price-unit-type:not(.disabled)::before {
     content: "";
 }
 
-merch-card[variant="segment"][id] .price-unit-type:not(.disabled)::after {
+merch-card[variant="segment"][id] .price-legal .price-unit-type:not(.disabled)::after {
   content: "\\00a0";
 }
 

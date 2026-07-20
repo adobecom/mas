@@ -10,8 +10,16 @@ import styles from './mas-promotions-editor-css.js';
 import { SURFACES, PAGE_NAMES, PROMOTION_MODEL_ID, TABLE_TYPE, QUICK_ACTION, EVENT_OST_OFFER_SELECT } from '../constants.js';
 import '../mas-quick-actions.js';
 import { SAVE_SVG, CLONE_SVG, PUBLISH_SVG, COPY_SVG, LOCK_SVG, DELETE_SVG } from '../bulk-publish/bulk-publish-icons.js';
-import { normalizeKey, showToast, extractSurfaceFromPath } from '../utils.js';
-import { getFragmentPartsToUse, MODEL_WEB_COMPONENT_MAPPING } from '../editor-panel.js';
+import {
+    normalizeKey,
+    showToast,
+    extractSurfaceFromPath,
+    generateCodeToUse,
+    getFragmentPartsToUse,
+    getCreateProjectErrorMessage,
+    MODEL_WEB_COMPONENT_MAPPING,
+} from '../utils.js';
+import { Fragment } from '../aem/fragment.js';
 import { Promotion } from '../aem/promotion.js';
 import './mas-promotions-items-selector.js';
 import './mas-promotions-items-table.js';
@@ -44,27 +52,24 @@ import {
     canPublishPromotionNow,
     canSchedulePromotion,
     confirmPublishDespiteUnpublishedPromoVariations,
+    confirmUnpublishAlongsidePromoVariations,
     publishPromotionProject,
+    unpublishPromotionProject,
+    promotionDeleteConfirmMessage,
     PROMOTION_EXPIRED_PUBLISH_MESSAGE,
     PROMOTION_SAVE_BEFORE_PUBLISH_MESSAGE,
 } from './promotion-publish-utils.js';
 import { renderFragmentStatusCell } from '../common/utils/render-utils.js';
 import { clearCaches } from '../../libs/fragment-client.js';
+import { canEditPromotions } from '../groups.js';
+import { deleteAttachedPromoVariations, getAllAttachedPromoVariations } from './promotions-repository.js';
 
 function getPromotionPickerFragmentLabel(data) {
     const webComponentName = MODEL_WEB_COMPONENT_MAPPING[data?.model?.path];
     const fragmentPath = typeof data?.path === 'string' ? data.path : data?.get?.()?.path;
     const pathSurface = extractSurfaceFromPath(fragmentPath);
     const searchSnapshot = Store.search.get();
-    const storeLike = {
-        search: {
-            value: {
-                ...searchSnapshot,
-                path: pathSurface ?? searchSnapshot.path,
-            },
-        },
-    };
-    const { fragmentParts } = getFragmentPartsToUse(storeLike, data);
+    const { fragmentParts } = getFragmentPartsToUse(data, pathSurface ?? searchSnapshot.path);
     return `${webComponentName}: ${fragmentParts}`;
 }
 
@@ -74,6 +79,7 @@ const PROMOTION_QUICK_ACTIONS = [
     QUICK_ACTION.PUBLISH,
     QUICK_ACTION.UNPUBLISH,
     QUICK_ACTION.COPY,
+    QUICK_ACTION.LINK,
     QUICK_ACTION.LOCK,
     QUICK_ACTION.DELETE,
 ];
@@ -85,6 +91,7 @@ const PROMOTION_QUICK_ACTION_ICON_OVERRIDES = {
     [QUICK_ACTION.PUBLISH]: { icon: PUBLISH_SVG, title: 'Publish' },
     [QUICK_ACTION.UNPUBLISH]: { icon: 'sp-icon-publish-remove', title: 'Unpublish' },
     [QUICK_ACTION.COPY]: { icon: COPY_SVG, title: 'Copy link' },
+    [QUICK_ACTION.LINK]: { icon: 'sp-icon-copy', title: 'Copy variation links' },
     [QUICK_ACTION.LOCK]: { icon: LOCK_SVG, title: 'Lock project' },
     [QUICK_ACTION.DELETE]: { icon: DELETE_SVG, title: 'Delete', className: 'delete-action' },
 };
@@ -108,6 +115,7 @@ class MasPromotionsEditor extends LitElement {
         duplicateDialogOpen: { type: Boolean, state: true },
         duplicating: { type: Boolean, state: true },
         promotionItemsPickerOpen: { type: Boolean, state: true },
+        evergreenEnabled: { type: Boolean, state: true },
     };
 
     #promotionItemsReactive;
@@ -142,6 +150,7 @@ class MasPromotionsEditor extends LitElement {
         this.duplicateDialogOpen = false;
         this.duplicating = false;
         this.promotionItemsPickerOpen = false;
+        this.evergreenEnabled = true;
     }
 
     async connectedCallback() {
@@ -188,11 +197,13 @@ class MasPromotionsEditor extends LitElement {
 
         if (this.fragmentStore) {
             this.storeController = new StoreController(this, this.fragmentStore);
+            this.evergreenEnabled = this.fragment?.isEvergreen ?? true;
         }
         this.#promotionItemsReactive = new ReactiveController(this, [
             Store.promotions.selectedCards,
             Store.promotions.selectedCollections,
             Store.promotions.selectedOffers,
+            Store.users,
         ]);
     }
 
@@ -242,18 +253,20 @@ class MasPromotionsEditor extends LitElement {
     }
 
     get canManagePromoCodes() {
+        if (!this.canEdit) return false;
         const geos = this.fragment?.getFieldValues('geos') ?? [];
         const hasOffers = Store.promotions.selectedOffers.value.length > 0 || Store.promotions.selectedCards.value.length > 0;
         return hasOffers && geos.length > 0;
     }
 
     get canManagePromoCodesInEmptyState() {
+        if (!this.canEdit) return false;
         const geos = this.fragment?.getFieldValues('geos') ?? [];
         return this.hasSelectedOffers && geos.length > 0;
     }
 
     get canEditPromotionItemsInEmptyState() {
-        return this.hasSelectedOffers;
+        return this.canEdit && this.hasSelectedOffers;
     }
 
     #mapPromotionOfferSelectorToRow(selectorId) {
@@ -457,6 +470,7 @@ class MasPromotionsEditor extends LitElement {
             this.fragmentStore = new FragmentStore(promotion);
             this.storeController = new StoreController(this, this.fragmentStore);
             this.storeController.hostConnected();
+            this.evergreenEnabled = this.fragment?.isEvergreen ?? true;
             await this.#hydratePromotionItemSelectionFromFragment();
         } catch (error) {
             console.error(error);
@@ -513,9 +527,15 @@ class MasPromotionsEditor extends LitElement {
             showToast('This promotion is not published.', 'info');
             return;
         }
+        const { confirmed, variationPaths } = await confirmUnpublishAlongsidePromoVariations(
+            this.repository.aem,
+            this.fragment,
+            (title, message, options) => this.#showDialog(title, message, options),
+        );
+        if (!confirmed) return;
         this.promotionPublish = true;
         try {
-            const ok = await this.repository.unpublishFragment(this.fragment, true);
+            const ok = await unpublishPromotionProject(this.repository, this.fragment, variationPaths);
             if (ok) await this.#reloadPromotionFromServer();
         } finally {
             this.promotionPublish = false;
@@ -603,6 +623,11 @@ class MasPromotionsEditor extends LitElement {
         this.fragmentStore.updateField(fieldName, value);
     }
 
+    #handleEvergreenToggle = ({ target }) => {
+        this.evergreenEnabled = target.checked;
+        this.fragmentStore.updateField('endDate', ['']);
+    };
+
     #handleDateUpdate({ target }) {
         const fieldName = target.dataset.field;
         const raw = target.value?.trim() ?? '';
@@ -626,6 +651,8 @@ class MasPromotionsEditor extends LitElement {
 
     #getPayloadValues(field) {
         switch (field.name) {
+            case 'endDate':
+                return this.evergreenEnabled ? [] : field.values;
             case 'surfaces':
                 return serializePromotionSurfacesForAem(field.values);
             case 'fragments':
@@ -671,8 +698,7 @@ class MasPromotionsEditor extends LitElement {
             this.storeController = new StoreController(this, this.fragmentStore);
             this.storeController.hostConnected();
         } catch (error) {
-            showToast('Failed to create project.', 'negative');
-            return;
+            showToast(getCreateProjectErrorMessage(error), 'negative');
         }
     }
 
@@ -683,6 +709,10 @@ class MasPromotionsEditor extends LitElement {
             return;
         }
         this.fragment.updateFieldInternal('title', this.fragment.getFieldValue('title'));
+        if (this.evergreenEnabled) {
+            const endDateField = this.fragment.getField('endDate');
+            if (endDateField) endDateField.values = [];
+        }
         this.#patchPromotionSurfacesFieldForAem();
         this.#syncPromotionSelectionFieldsToFragment();
         showToast('Saving project...');
@@ -711,6 +741,41 @@ class MasPromotionsEditor extends LitElement {
             showToast('Link copied to clipboard.', 'positive');
         } catch {
             showToast('Failed to copy link.', 'negative');
+        }
+    }
+
+    async #handleCopyVariationsList() {
+        if (!this.fragment || !this.repository?.aem) return;
+        try {
+            const variations = await getAllAttachedPromoVariations(this.repository.aem, this.fragment);
+            const results = variations
+                .map((variation) =>
+                    generateCodeToUse(new Fragment(variation), extractSurfaceFromPath(variation.path), PAGE_NAMES.CONTENT),
+                )
+                .filter((result) => result?.href && result?.richText);
+            if (!results.length) {
+                showToast(
+                    variations.length
+                        ? 'No links could be copied for these variations.'
+                        : 'No variations found for this promotion project.',
+                    'info',
+                );
+                return;
+            }
+            await navigator.clipboard.write([
+                new ClipboardItem({
+                    'text/plain': new Blob([results.map(({ href }) => href).join('\n')], { type: 'text/plain' }),
+                    'text/html': new Blob([results.map(({ richText }) => richText).join('<br>')], { type: 'text/html' }),
+                }),
+            ]);
+            showToast(
+                results.length < variations.length
+                    ? `Copied ${results.length} of ${variations.length} variation links to clipboard.`
+                    : 'Variation links copied to clipboard.',
+                'positive',
+            );
+        } catch {
+            showToast('Failed to copy variation links.', 'negative');
         }
     }
 
@@ -760,6 +825,7 @@ class MasPromotionsEditor extends LitElement {
             this.storeController?.hostDisconnected();
             this.storeController = new StoreController(this, this.fragmentStore);
             this.storeController.hostConnected();
+            this.evergreenEnabled = this.fragment?.isEvergreen ?? true;
             this.#resetPromotionItemStores();
             await this.#hydratePromotionItemSelectionFromFragment();
         } catch (error) {
@@ -776,9 +842,10 @@ class MasPromotionsEditor extends LitElement {
 
     async #handleDeletePromotion() {
         if (!this.fragment?.id || this.isNewPromotion) return;
+        const attachedVariations = await getAllAttachedPromoVariations(this.repository.aem, this.fragment);
         const confirmed = await this.#showDialog(
             'Confirm Delete',
-            `Are you sure you want to delete the promotion project "${this.fragment.title}"? This action cannot be undone.`,
+            promotionDeleteConfirmMessage(this.fragment.title, attachedVariations.length),
             {
                 confirmText: 'Delete',
                 cancelText: 'Cancel',
@@ -788,6 +855,7 @@ class MasPromotionsEditor extends LitElement {
         if (!confirmed) return;
         try {
             showToast('Deleting promotion campaign...');
+            await deleteAttachedPromoVariations(this.repository.aem, this.fragment);
             await this.repository.deleteFragment(this.fragmentStore, { startToast: false, endToast: false });
             showToast('Promotion campaign successfully deleted.', 'positive');
             Store.promotions.inEdit.set();
@@ -801,6 +869,10 @@ class MasPromotionsEditor extends LitElement {
 
     get disabledPromotionQuickActions() {
         const disabled = new Set([QUICK_ACTION.LOCK]);
+        if (!this.canEdit) {
+            PROMOTION_QUICK_ACTIONS.forEach((action) => disabled.add(action));
+            return disabled;
+        }
         const publishOptions = this.#promotionPublishOptions;
         if (this.loadingPromotion) {
             PROMOTION_QUICK_ACTIONS.forEach((action) => disabled.add(action));
@@ -812,6 +884,7 @@ class MasPromotionsEditor extends LitElement {
             disabled.add(QUICK_ACTION.PUBLISH);
             disabled.add(QUICK_ACTION.UNPUBLISH);
             disabled.add(QUICK_ACTION.COPY);
+            disabled.add(QUICK_ACTION.LINK);
             disabled.add(QUICK_ACTION.DELETE);
             return disabled;
         }
@@ -820,6 +893,7 @@ class MasPromotionsEditor extends LitElement {
         }
         if (!this.fragment?.id) {
             disabled.add(QUICK_ACTION.COPY);
+            disabled.add(QUICK_ACTION.LINK);
             disabled.add(QUICK_ACTION.DELETE);
             disabled.add(QUICK_ACTION.DUPLICATE);
         } else if (publishOptions.hasUnsavedChanges) {
@@ -839,7 +913,7 @@ class MasPromotionsEditor extends LitElement {
 
     #getRequiredFieldsValidation(fragment = {}) {
         const itemCount = Store.promotions.selectedCards.value.length + Store.promotions.selectedCollections.value.length;
-        return getPromotionRequiredFieldsValidation(fragment, itemCount);
+        return getPromotionRequiredFieldsValidation(fragment, itemCount, this.evergreenEnabled);
     }
 
     /**
@@ -1055,7 +1129,7 @@ class MasPromotionsEditor extends LitElement {
     #renderPromotionOffersEmptyPanel() {
         return html`<div class="offers-empty-state">
             <div class="icon">
-                <sp-button variant="secondary" @click=${this.#openPromotionsOst}>
+                <sp-button variant="secondary" ?disabled=${!this.canEdit} @click=${this.#openPromotionsOst}>
                     <sp-icon-add size="xxl"></sp-icon-add>
                 </sp-button>
             </div>
@@ -1096,7 +1170,7 @@ class MasPromotionsEditor extends LitElement {
     #renderPromotionEmptyToolbarActions() {
         return html`
             ${this.promotionEmptyItemsTab === TABLE_TYPE.OFFERS
-                ? html`<sp-action-button quiet @click=${this.#openPromotionsOst}>
+                ? html`<sp-action-button quiet ?disabled=${!this.canEdit} @click=${this.#openPromotionsOst}>
                       <sp-icon-add slot="icon" label="Add offer"></sp-icon-add>
                       Add offer
                   </sp-action-button>`
@@ -1251,12 +1325,17 @@ class MasPromotionsEditor extends LitElement {
         `;
     }
 
+    willUpdate() {
+        this.canEdit = canEditPromotions();
+    }
+
     render() {
         let form = nothing;
         if (this.fragment) {
             form = Object.fromEntries([...this.fragment.fields.map((f) => [f.name, f])]);
         }
-        const canOpenItemPicker = this.promotionPickerSurfaces.length > 0;
+        const readOnly = !this.canEdit;
+        const canOpenItemPicker = this.canEdit && this.promotionPickerSurfaces.length > 0;
         return html`
             ${this.confirmDialog}
             ${this.duplicating
@@ -1292,13 +1371,15 @@ class MasPromotionsEditor extends LitElement {
                                 id="campaignTitle"
                                 data-field="title"
                                 value="${form.title?.values[0]}"
+                                ?disabled=${readOnly}
                                 @input=${this.#handleFragmentUpdate}
                             ></sp-textfield>
-                            <sp-field-label for="promoCode" required>Promo Code</sp-field-label>
+                            <sp-field-label for="promoCode">Promo Code</sp-field-label>
                             <sp-textfield
                                 id="promoCode"
                                 data-field="promoCode"
                                 value="${form.promoCode?.values[0]}"
+                                ?disabled=${readOnly}
                                 @input=${this.#handleFragmentUpdate}
                             ></sp-textfield>
                             <sp-field-label for="startDate" required>Start Date (UTC)</sp-field-label>
@@ -1307,22 +1388,33 @@ class MasPromotionsEditor extends LitElement {
                                 id="startDate"
                                 value="${form.startDate?.values[0]?.slice(0, 16) ?? ''}"
                                 data-field="startDate"
+                                ?disabled=${readOnly}
                                 @change=${this.#handleDateUpdate}
                             />
-                            <sp-field-label for="endDate" required>End Date (UTC)</sp-field-label>
-                            <input
-                                type="datetime-local"
-                                id="endDate"
-                                value="${form.endDate?.values[0]?.slice(0, 16) ?? ''}"
-                                data-field="endDate"
-                                @change=${this.#handleDateUpdate}
-                            />
+                            <sp-field-label for="endDate" ?required=${!this.evergreenEnabled}>End Date (UTC)</sp-field-label>
+                            <div class="end-date-row">
+                                <input
+                                    type="datetime-local"
+                                    id="endDate"
+                                    value="${form.endDate?.values[0]?.slice(0, 16) ?? ''}"
+                                    data-field="endDate"
+                                    ?disabled=${readOnly || this.evergreenEnabled}
+                                    @change=${this.#handleDateUpdate}
+                                />
+                                <sp-switch
+                                    ?checked=${this.evergreenEnabled}
+                                    ?disabled=${readOnly}
+                                    @change=${this.#handleEvergreenToggle}
+                                    >Evergreen promo</sp-switch
+                                >
+                            </div>
                             <sp-field-label required>Promotion tags</sp-field-label>
                             <aem-tag-picker-field
                                 label="Promotion tags"
                                 namespace="/content/cq:tags/mas"
                                 top="promotion"
                                 multiple
+                                ?disabled=${readOnly}
                                 value="${splitPromotionTagsFieldValues(form.tags?.values).promotion.join(',') || ''}"
                                 @change=${this.#handeTagsChange}
                             ></aem-tag-picker-field>
@@ -1335,6 +1427,7 @@ class MasPromotionsEditor extends LitElement {
                                     namespace="/content/cq:tags/mas"
                                     top="locale,pzn"
                                     multiple
+                                    ?disabled=${readOnly}
                                     value="${form.geos?.values.join(',') || ''}"
                                     @change=${this.#handleGeosChange}
                                 ></aem-tag-picker-field>
@@ -1350,7 +1443,7 @@ class MasPromotionsEditor extends LitElement {
                                               <div class="icon">
                                                   <overlay-trigger type="modal" id="add-surfaces-overlay">
                                                       ${this.addSurfacesDialog}
-                                                      <sp-button slot="trigger" variant="secondary">
+                                                      <sp-button slot="trigger" variant="secondary" ?disabled=${readOnly}>
                                                           <sp-icon-add size="xxl"></sp-icon-add>
                                                       </sp-button>
                                                   </overlay-trigger>
@@ -1374,7 +1467,7 @@ class MasPromotionsEditor extends LitElement {
                                                           return html`
                                                               <sp-tag
                                                                   value="${surface}"
-                                                                  deletable
+                                                                  ?deletable=${!readOnly}
                                                                   @delete=${this.#handleSurfaceDelete}
                                                               >
                                                                   ${surfaceLabel}
@@ -1384,7 +1477,12 @@ class MasPromotionsEditor extends LitElement {
                                                   )}
                                                   <overlay-trigger type="modal" id="add-surfaces-overlay">
                                                       ${this.addSurfacesDialog}
-                                                      <sp-button slot="trigger" variant="secondary" icon-only>
+                                                      <sp-button
+                                                          slot="trigger"
+                                                          variant="secondary"
+                                                          icon-only
+                                                          ?disabled=${readOnly}
+                                                      >
                                                           <sp-icon-add slot="icon" size="m"></sp-icon-add>
                                                       </sp-button>
                                                   </overlay-trigger>
@@ -1409,7 +1507,11 @@ class MasPromotionsEditor extends LitElement {
                                       </h2>
                                       <div>
                                           ${this.selectedItemsViewTab === TABLE_TYPE.OFFERS
-                                              ? html`<sp-action-button quiet @click=${this.#openPromotionsOst}>
+                                              ? html`<sp-action-button
+                                                    quiet
+                                                    ?disabled=${readOnly}
+                                                    @click=${this.#openPromotionsOst}
+                                                >
                                                     <sp-icon-add slot="icon" label="Add offer"></sp-icon-add>
                                                     Add offer
                                                 </sp-action-button>`
@@ -1483,6 +1585,7 @@ class MasPromotionsEditor extends LitElement {
                       @publish=${this.#handlePublishPromotion}
                       @unpublish=${this.#handleUnpublishPromotion}
                       @copy=${this.#handleCopyPromotionLink}
+                      @link=${this.#handleCopyVariationsList}
                       @lock=${this.#handleLockPromotion}
                       @delete=${this.#handleDeletePromotion}
                   ></mas-quick-actions>`

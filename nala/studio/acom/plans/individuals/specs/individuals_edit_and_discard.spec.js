@@ -98,6 +98,8 @@ export default {
                 calloutText: {
                     original: 'AI Assistant add-on available',
                     updated: 'New callout text',
+                    tooltipText: 'tooltip text',
+                    tooltipTextUpdated: 'new tooltip new text updated',
                 },
             },
             browserParams: '#page=fragment-editor&path=nala&fragmentId=',

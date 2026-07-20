@@ -6,6 +6,28 @@ function offerLabel(offer) {
     return offer.offer_id || offer.product_arrangement_code || '';
 }
 
+function offerPeriod(offer) {
+    if (offer.commitment === 'YEAR' || offer.term === 'ANNUAL') return '/yr';
+    if (offer.commitment === 'MONTH' || offer.term === 'MONTHLY') return '/mo';
+    return '';
+}
+
+// Richer slot descriptor for try/buy and bundle slots: the product name as the
+// primary line, a compact attribute string (plan · type · price) as secondary,
+// and the OSI kept as a muted third line. Falls back to the OSI as the name
+// when an offer carries no product name.
+export function offerSummary(offer) {
+    if (!offer) return { name: '', details: '', osi: '' };
+    const osi = offerLabel(offer);
+    const name = offer.name || osi;
+    const planType = offer.planType || offer.plan_type;
+    const priceValue = offer.pricing?.prices?.[0]?.price_details?.display_rules?.price;
+    const symbol = offer.pricing?.currency?.symbol;
+    const price = priceValue !== undefined && symbol ? `${symbol}${priceValue.toFixed(2)}${offerPeriod(offer)}` : '';
+    const details = [planType, offer.offer_type, price].filter(Boolean).join(' · ');
+    return { name, details, osi };
+}
+
 export class OstSelectionList extends LitElement {
     static styles = css`
         :host {
@@ -125,6 +147,22 @@ export class OstSelectionList extends LitElement {
             font-style: italic;
         }
 
+        .slot-details {
+            font-size: 12px;
+            color: var(--spectrum-gray-700);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .slot-osi {
+            font-size: 11px;
+            color: var(--spectrum-gray-500);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
         .slot-number {
             font-size: 12px;
             font-weight: 700;
@@ -153,27 +191,6 @@ export class OstSelectionList extends LitElement {
             padding: 6px 14px;
             font-style: italic;
         }
-
-        .confirm-bar {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 10px 14px;
-            border: 1px solid var(--spectrum-yellow-400, #e6a300);
-            border-radius: 8px;
-            background: var(--spectrum-yellow-100, #fff3cd);
-            margin-bottom: 8px;
-            font-size: 13px;
-            color: var(--spectrum-gray-900);
-        }
-
-        .confirm-bar .confirm-text {
-            flex: 1;
-        }
-
-        .confirm-bar sp-button {
-            flex-shrink: 0;
-        }
     `;
 
     constructor() {
@@ -195,21 +212,12 @@ export class OstSelectionList extends LitElement {
         this.requestUpdate();
     }
 
-    get confirmBar() {
-        if (!store.pendingFlowSwitch) return nothing;
-        const offerNames =
-            store.selectedOffers.length > 0
-                ? store.selectedOffers
-                      .map((o) => offerLabel(o.offer))
-                      .filter(Boolean)
-                      .join(', ')
-                : offerLabel(store.selectedOffer);
+    renderOfferSummary(offer) {
+        const { name, details, osi } = offerSummary(offer);
         return html`
-            <div class="confirm-bar">
-                <span class="confirm-text">Keep "${offerNames}" in your new selection?</span>
-                <sp-button size="s" variant="primary" @click=${() => store.confirmFlowSwitch(true)}>Keep</sp-button>
-                <sp-button size="s" variant="secondary" @click=${() => store.confirmFlowSwitch(false)}>Discard</sp-button>
-            </div>
+            <div class="slot-value">${name}</div>
+            ${details ? html`<div class="slot-details">${details}</div>` : nothing}
+            ${osi && osi !== name ? html`<div class="slot-osi">${osi}</div>` : nothing}
         `;
     }
 
@@ -219,7 +227,6 @@ export class OstSelectionList extends LitElement {
         const currentSlot = store.currentSlot;
 
         return html`
-            ${this.confirmBar}
             <div
                 class="selection-slot clickable ${currentSlot === 'trial' ? 'active' : ''} ${trialOffer ? 'filled' : ''}"
                 @click=${() => store.setCurrentSlot('trial')}
@@ -227,9 +234,9 @@ export class OstSelectionList extends LitElement {
                 ${trialOffer ? html`<span class="slot-check" aria-hidden="true">✓</span>` : nothing}
                 <div class="slot-content">
                     <div class="slot-label">Trial offer (Free trial CTA, optional)</div>
-                    <div class="slot-value ${trialOffer ? '' : 'empty'}">
-                        ${trialOffer ? offerLabel(trialOffer) : 'Click to target, then pick an offer below'}
-                    </div>
+                    ${trialOffer
+                        ? this.renderOfferSummary(trialOffer)
+                        : html`<div class="slot-value empty">Click to target, then pick an offer below</div>`}
                 </div>
                 ${trialOffer
                     ? html`<button
@@ -251,9 +258,9 @@ export class OstSelectionList extends LitElement {
                 ${baseOffer ? html`<span class="slot-check" aria-hidden="true">✓</span>` : nothing}
                 <div class="slot-content">
                     <div class="slot-label">Base offer (Buy CTA)</div>
-                    <div class="slot-value ${baseOffer ? '' : 'empty'}">
-                        ${baseOffer ? offerLabel(baseOffer) : 'Click to target, then pick an offer below'}
-                    </div>
+                    ${baseOffer
+                        ? this.renderOfferSummary(baseOffer)
+                        : html`<div class="slot-value empty">Click to target, then pick an offer below</div>`}
                 </div>
                 ${baseOffer
                     ? html`<button
@@ -274,15 +281,12 @@ export class OstSelectionList extends LitElement {
     get bundleContent() {
         const offers = store.selectedOffers;
         return html`
-            ${this.confirmBar}
             ${offers.map(
                 (entry, index) => html`
                     <div class="selection-slot filled">
                         <span class="slot-check" aria-hidden="true">✓</span>
                         <span class="slot-number">${index + 1}.</span>
-                        <div class="slot-content">
-                            <div class="slot-value">${offerLabel(entry.offer)}</div>
-                        </div>
+                        <div class="slot-content">${this.renderOfferSummary(entry.offer)}</div>
                         <button class="slot-clear" title="Remove offer" @click=${() => store.removeOffer(index)}>
                             &times;
                         </button>

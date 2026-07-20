@@ -304,10 +304,7 @@ export function buildCardsDeepLink(fragment, path, page = 'content') {
  */
 export function parseStudioDeepLinksFromText(text) {
     if (!text || typeof text !== 'string') return [];
-    const lines = text
-        .split(/\r?\n/)
-        .map((l) => l.trim())
-        .filter(Boolean);
+    const lines = text.split(/\s+/).filter(Boolean);
     const out = [];
     for (const line of lines) {
         const hashIdx = line.indexOf('#');
@@ -317,7 +314,8 @@ export function parseStudioDeepLinksFromText(text) {
             const contentType = params.get('content-type');
             const query = params.get('query');
             if (!query || !isUUID(query)) continue;
-            if (contentType !== 'merch-card' && contentType !== 'merch-card-collection') continue;
+            if (contentType !== 'merch-card' && contentType !== 'merch-card-collection' && contentType !== 'mas-compare-chart')
+                continue;
             out.push({ contentType, fragmentId: query });
         } catch {
             /* skip invalid entries */
@@ -418,6 +416,16 @@ export function showToast(message, variant = 'info') {
 }
 
 /**
+ * Builds the error message for a failed project create, distinguishing a
+ * duplicate-name conflict (HTTP 409) from other failures.
+ * @param {Error} error - The error thrown by repository.createFragment
+ * @returns {string}
+ */
+export function getCreateProjectErrorMessage(error) {
+    return error?.message?.includes(': 409') ? 'Project with this name already exists.' : 'Failed to create project.';
+}
+
+/**
  * Extracts the surface from a fragment path
  * Path format: /content/dam/mas/{surface}/{locale}/{fragment-name}
  * @param {string} fragmentPath - The full AEM fragment path
@@ -508,4 +516,30 @@ export function resolveContentTypeFilters(tags) {
         ),
     ];
     return { contentTypes, modelIds };
+}
+
+/**
+ * Runs `load` only when `computeKey()` differs from the last run — skips
+ * redundant re-fetches when the derived data would come out the same.
+ * @returns {(options: {
+ *   guard: () => boolean,
+ *   computeKey: () => unknown,
+ *   load: () => Promise<unknown>,
+ *   apply: (result: unknown) => void,
+ *   reset?: () => void,
+ * }) => Promise<void>}
+ */
+export function createKeyedAsyncLoader() {
+    let lastKey = null;
+    return async function runIfNeeded({ guard, computeKey, load, apply, reset }) {
+        if (!guard()) {
+            lastKey = null;
+            reset?.();
+            return;
+        }
+        const key = computeKey();
+        if (lastKey === key) return;
+        lastKey = key;
+        apply(await load());
+    };
 }

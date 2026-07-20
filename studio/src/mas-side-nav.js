@@ -4,7 +4,6 @@ import Store from './store.js';
 import { PAGE_NAMES, SURFACES } from './constants.js';
 import Events from './events.js';
 import { generateFieldLink, generateJsonLdLink, camelToTitle, previewValue, previewFragmentOnPage } from './utils.js';
-import { isMasAdmin } from './groups.js';
 import './mas-side-nav-item.js';
 import ReactiveController from './reactivity/reactive-controller.js';
 
@@ -845,17 +844,13 @@ class MasSideNav extends LitElement {
             <mas-side-nav-item label="Collections" disabled>
                 <sp-icon-aspect-ratio slot="icon"></sp-icon-aspect-ratio>
             </mas-side-nav-item>
-            ${isMasAdmin()
-                ? html`
-                      <mas-side-nav-item
-                          label="Promotions"
-                          ?selected=${[PAGE_NAMES.PROMOTIONS, PAGE_NAMES.PROMOTIONS_EDITOR].includes(Store.page.get())}
-                          @nav-click="${router.navigateToPage(PAGE_NAMES.PROMOTIONS)}"
-                      >
-                          <sp-icon-promote slot="icon"></sp-icon-promote>
-                      </mas-side-nav-item>
-                  `
-                : nothing}
+            <mas-side-nav-item
+                label="Promotions"
+                ?selected=${[PAGE_NAMES.PROMOTIONS, PAGE_NAMES.PROMOTIONS_EDITOR].includes(Store.page.get())}
+                @nav-click="${router.navigateToPage(PAGE_NAMES.PROMOTIONS)}"
+            >
+                <sp-icon-promote slot="icon"></sp-icon-promote>
+            </mas-side-nav-item>
             <mas-side-nav-item label="Offers" disabled>
                 <sp-icon-market slot="icon"></sp-icon-market>
             </mas-side-nav-item>

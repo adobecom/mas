@@ -27,6 +27,10 @@ export default class EditorPage {
         this.callout = this.panel.locator('sp-field-group#callout');
         this.calloutRTE = this.panel.locator('sp-field-group#callout div[contenteditable="true"]');
         this.calloutRTEIcon = this.panel.locator('sp-field-group#callout .icon-button');
+        this.calloutRTEIconBtn = this.panel.locator('sp-field-group#callout #addIconButton');
+        this.rteIconEditor = this.panel.locator('rte-icon-editor');
+        this.rteIconEditorInput = this.panel.locator('rte-icon-editor input[type="text"]');
+        this.rteIconEditorSaveBtn = this.panel.locator('rte-icon-editor #saveButton');
 
         this.descriptionFieldGroup = this.panel.locator('sp-field-group#description');
         this.description = this.panel.locator('sp-field-group#description div[contenteditable="true"]');

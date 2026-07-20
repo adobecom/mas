@@ -55,7 +55,7 @@
             import { expect } from '@esm-bundle/chai';
             import sinon from 'sinon';
             import { html } from 'lit';
-            import { fixture, oneEvent } from '@open-wc/testing-helpers';
+            import { fixture } from '@open-wc/testing-helpers';
             import '../src/swc.js';
             import '../src/rte/rte-field.js';
             import '../src/aem/aem-tag-picker-field.js';
@@ -98,6 +98,7 @@
                         editorPanel.repository.refreshFragment = async () => {};
                         editorPanel.repository.getFragment = async () => mockFragment;
                         editorPanel.repository.aem.getFragmentById = async () => mockFragment;
+                        sandbox.stub(editorPanel.editorContextStore, 'loadFragmentContext').resolves();
                         await editorPanel.editFragment(fragmentStore);
                         await editorPanel.updateComplete;
                         const store = Store.fragments.inEdit.get();

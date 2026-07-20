@@ -95,6 +95,42 @@ describe('Reactivity Stores', () => {
 
                 expect(store.loading).to.be.false;
             });
+
+            it('does not flag a promo variation as a locale variation when its locale has no known default', async () => {
+                store = new EditorContextStore(null);
+                sandbox.stub(Store, 'surface').returns('sandbox');
+                const getByPathStub = sandbox.stub().rejects(new Error('not found'));
+                document.querySelector = (selector) => {
+                    if (selector === 'mas-repository')
+                        return { aem: { sites: { cf: { fragments: { getByPath: getByPathStub } } } } };
+                    return originalQuerySelector.call(document, selector);
+                };
+                const fragmentPath = '/content/dam/mas/sandbox/fil_PH/promotions/cyber-monday/card';
+
+                await store.loadFragmentContext('test-id', fragmentPath);
+
+                expect(store.isPromoVariationByPath).to.be.true;
+                expect(store.isVariationByPath).to.be.false;
+                expect(store.expectedDefaultLocale).to.be.null;
+            });
+
+            it('flags a promo variation as a locale variation when its locale is a known regional variant of a default locale', async () => {
+                store = new EditorContextStore(null);
+                sandbox.stub(Store, 'surface').returns('sandbox');
+                const getByPathStub = sandbox.stub().rejects(new Error('not found'));
+                document.querySelector = (selector) => {
+                    if (selector === 'mas-repository')
+                        return { aem: { sites: { cf: { fragments: { getByPath: getByPathStub } } } } };
+                    return originalQuerySelector.call(document, selector);
+                };
+                const fragmentPath = '/content/dam/mas/sandbox/zh_HK/promotions/cyber-monday/card';
+
+                await store.loadFragmentContext('test-id', fragmentPath);
+
+                expect(store.isPromoVariationByPath).to.be.true;
+                expect(store.isVariationByPath).to.be.true;
+                expect(store.expectedDefaultLocale).to.equal('zh_TW');
+            });
         });
 
         describe('Locale Default Fragment Methods', () => {
@@ -121,6 +157,79 @@ describe('Reactivity Stores', () => {
 
                 store.defaultLocaleId = null;
                 expect(store.isVariation('any-id')).to.not.be.ok;
+            });
+
+            it('should always treat a promo variation as a variation, regardless of its path locale', () => {
+                store.isPromoVariationByPath = true;
+
+                store.isVariationByPath = false;
+                expect(store.isVariation('promo-fragment-id')).to.be.true;
+
+                store.isVariationByPath = true;
+                expect(store.isVariation('promo-fragment-id')).to.be.true;
+            });
+        });
+
+        describe('isLocaleVariation', () => {
+            beforeEach(() => {
+                store = new EditorContextStore(null);
+            });
+
+            it('delegates to isVariation for non-promo fragments', () => {
+                store.defaultLocaleId = 'parent-fragment-id';
+                expect(store.isLocaleVariation('different-id')).to.be.true;
+                expect(store.isLocaleVariation('parent-fragment-id')).to.be.false;
+            });
+
+            it('treats a promo variation as a locale variation only when its own path locale differs from the surface default', () => {
+                store.isPromoVariationByPath = true;
+
+                store.isVariationByPath = false;
+                expect(store.isLocaleVariation('promo-fragment-id')).to.be.false;
+
+                store.isVariationByPath = true;
+                expect(store.isLocaleVariation('promo-fragment-id')).to.be.true;
+            });
+
+            it('ignores the field-inheritance defaultLocaleId when deciding promo variation locale state', () => {
+                store.isPromoVariationByPath = true;
+                store.isVariationByPath = false;
+                store.defaultLocaleId = 'unrelated-base-card-id';
+
+                expect(store.isLocaleVariation('promo-fragment-id')).to.be.false;
+            });
+        });
+
+        describe('isFragmentTranslatable', () => {
+            beforeEach(() => {
+                store = new EditorContextStore(null);
+            });
+
+            it('is translatable for a regular default-locale fragment', () => {
+                expect(store.isFragmentTranslatable).to.be.true;
+            });
+
+            it('is not translatable for a locale-variation fragment', () => {
+                store.isVariationByPath = true;
+                expect(store.isFragmentTranslatable).to.be.false;
+            });
+
+            it('is translatable for a grouped variation regardless of path locale', () => {
+                store.isVariationByPath = true;
+                store.isGroupedVariationByPath = true;
+                expect(store.isFragmentTranslatable).to.be.true;
+            });
+
+            it('is translatable for a promo variation at the default locale', () => {
+                store.isPromoVariationByPath = true;
+                store.isVariationByPath = false;
+                expect(store.isFragmentTranslatable).to.be.true;
+            });
+
+            it('is not translatable for a promo variation at a non-default locale', () => {
+                store.isPromoVariationByPath = true;
+                store.isVariationByPath = true;
+                expect(store.isFragmentTranslatable).to.be.false;
             });
         });
 

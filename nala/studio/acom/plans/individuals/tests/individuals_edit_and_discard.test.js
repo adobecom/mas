@@ -439,11 +439,38 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await expect(await individualsCard.locator(plans.cardCallout)).toContainText(data.calloutText.updated);
         });
 
-        await test.step('step-6: Close the editor and verify discard is triggered', async () => {
+        await test.step('step-6: Add and update info icon', async () => {
+            await editor.calloutRTE.click();
+            await page.waitForTimeout(200);
+            await editor.calloutRTEIconBtn.click();
+            await page.waitForTimeout(500);
+            const ttField = page.locator('rte-icon-editor input[type="text"]');
+            await expect(ttField).toBeVisible();
+            await ttField.fill(data.calloutText.tooltipText);
+            await page.waitForTimeout(200);
+            await editor.rteIconEditorSaveBtn.click();
+            await page.waitForTimeout(500);
+            await expect(await editor.calloutRTEIcon).toHaveAttribute('data-tooltip', data.calloutText.tooltipText);
+            await editor.calloutRTEIcon.click();
+            await editor.calloutRTEIconBtn.click();
+            await page.waitForTimeout(500);
+            await expect(await editor.rteIconEditorInput).toHaveValue(data.calloutText.tooltipText);
+            const ttField2 = page.locator('rte-icon-editor input[type="text"]');
+            await expect(ttField2).toBeVisible();
+            await ttField2.fill(data.calloutText.tooltipTextUpdated);
+            await page.waitForTimeout(200);
+            await editor.rteIconEditorSaveBtn.click();
+            await page.waitForTimeout(200);
+            await expect(await editor.calloutRTEIcon).toHaveAttribute('data-tooltip', data.calloutText.tooltipTextUpdated);
+            await expect(await editor.calloutRTEIcon).not.toHaveAttribute('data-tooltip', data.calloutText.tooltipText);
+            await expect(await editor.rteIconEditor).not.toBeVisible();
+        });
+
+        await test.step('step-7: Close the editor and verify discard is triggered', async () => {
             await studio.discardEditorChanges(editor);
         });
 
-        await test.step('step-7: Validate callout field not updated', async () => {
+        await test.step('step-8: Validate callout field not updated', async () => {
             await expect(await individualsCard.locator(plans.cardCallout)).toBeVisible();
             await expect(await individualsCard.locator(plans.cardCallout)).toContainText(data.calloutText.original);
         });

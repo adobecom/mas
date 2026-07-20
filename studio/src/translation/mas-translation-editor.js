@@ -10,7 +10,7 @@ import '../common/components/mas-items-selector.js';
 import '../mas-quick-actions.js';
 import './mas-translation-languages.js';
 import router from '../router.js';
-import { normalizeKey, showToast } from '../utils.js';
+import { normalizeKey, showToast, getCreateProjectErrorMessage } from '../utils.js';
 import { PAGE_NAMES, TRANSLATION_PROJECT_MODEL_ID, QUICK_ACTION, TABLE_TYPE } from '../constants.js';
 import { getItemsSelectionStore, setItemsSelectionStore } from '../common/items-selection-store.js';
 import { renderFragmentStatusCell, getOdinLocTaskNameValidationError } from './translation-utils.js';
@@ -329,7 +329,7 @@ class MasTranslationEditor extends LitElement {
             }
         } catch (error) {
             console.error('Error creating translation project', error);
-            showToast('Failed to create translation project.', 'negative');
+            showToast(getCreateProjectErrorMessage(error), 'negative');
         }
     }
 
@@ -577,6 +577,7 @@ class MasTranslationEditor extends LitElement {
                     .renderFragmentStatusCell=${renderFragmentStatusCell}
                     .disableLocaleVariations=${true}
                     .hidePromoVariations=${true}
+                    .restrictImportSurface=${Store.surface()}
                 ></mas-items-selector>
             </sp-dialog-wrapper>
         `;

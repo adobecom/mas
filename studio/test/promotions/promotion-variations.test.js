@@ -292,6 +292,48 @@ describe('promotion-variations', () => {
             expect(result).to.deep.equal(createdFragment);
             expect(aem.saveTags.firstCall.args[0].newTags).to.deep.equal([promoTag]);
         });
+
+        it('does not block a later explicit-geo variation when a geo-less fallback sibling already exists', async () => {
+            const createdDraft = { id: 'fallback-var' };
+            const createdFragment = { id: 'fallback-var', path: targetPath };
+            const aemForFallback = createAemMock({
+                fragments: {
+                    getById: sandbox.stub().resolves(parentFragment),
+                    getByPath: sandbox.stub().resolves(null),
+                    pollCreatedFragment: sandbox.stub().resolves(createdFragment),
+                },
+                createFragmentCopy: sandbox.stub().resolves(createdDraft),
+            });
+
+            // Simulates Task 1's confirm handler: confirming with zero geos checked
+            // passes [] straight through, so createPromoVariation omits pznTags entirely.
+            await createPromoVariation(aemForFallback, parentFragment.id, promoTag, []);
+
+            const [fragmentForCopy] = aemForFallback.createFragmentCopy.firstCall.args;
+            expect(fragmentForCopy.fields.find((field) => field.name === 'pznTags')).to.be.undefined;
+
+            const existingVariations = [{ pznTags: [] }];
+            expect(findOverlappingGeoTags(existingVariations, ['mas:pzn/country/ar'])).to.deep.equal([]);
+
+            const secondVariationPath = '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card-2';
+            const getByPathForSecond = sandbox.stub();
+            getByPathForSecond.withArgs(targetPath).resolves({
+                id: 'fallback-var',
+                path: targetPath,
+                fields: [],
+            });
+            getByPathForSecond.resolves(null);
+            const aemForSecond = createAemMock({
+                fragments: {
+                    getById: sandbox.stub().resolves(parentFragment),
+                    getByPath: getByPathForSecond,
+                    pollCreatedFragment: sandbox.stub().resolves({ id: 'second-var', path: secondVariationPath }),
+                },
+            });
+
+            const result = await createPromoVariation(aemForSecond, parentFragment.id, promoTag, ['mas:pzn/country/ar']);
+            expect(result).to.deep.equal({ id: 'second-var', path: secondVariationPath });
+        });
     });
 
     describe('probePromoVariationsForFragment', () => {

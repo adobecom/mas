@@ -154,4 +154,47 @@ describe('MasPromoVariationGeos', () => {
             expect(el.selectAllIndeterminate).to.be.false;
         });
     });
+
+    describe('inherit hint', () => {
+        it('shows the informational hint when nothing is selected and there is no geo-less sibling', async () => {
+            const el = await fixture(html`<mas-promo-variation-geos .geos=${geos}></mas-promo-variation-geos>`);
+            expect(el.showInheritHint).to.be.true;
+            const hint = el.shadowRoot.querySelector('.inherit-hint');
+            expect(hint).to.exist;
+            expect(hint.classList.contains('blocked')).to.be.false;
+            expect(hint.textContent).to.include('all geos');
+        });
+
+        it('shows the blocked hint when nothing is selected and a geo-less sibling already exists', async () => {
+            const el = await fixture(
+                html`<mas-promo-variation-geos .geos=${geos} .hasEmptyGeosVariation=${true}></mas-promo-variation-geos>`,
+            );
+            expect(el.showInheritHint).to.be.true;
+            const hint = el.shadowRoot.querySelector('.inherit-hint');
+            expect(hint).to.exist;
+            expect(hint.classList.contains('blocked')).to.be.true;
+            expect(hint.textContent).to.include('already exists');
+        });
+
+        it('hides the hint once any geo is checked', async () => {
+            const el = await fixture(
+                html`<mas-promo-variation-geos .geos=${geos} .value=${['mas:pzn/country/ar']}></mas-promo-variation-geos>`,
+            );
+            expect(el.showInheritHint).to.be.false;
+            expect(el.shadowRoot.querySelector('.inherit-hint')).to.not.exist;
+        });
+
+        it('shows the hint even when every geo is already disabled (no selectable geos) — a geo-less variation is still valid', async () => {
+            const el = await fixture(
+                html`<mas-promo-variation-geos .geos=${geos} .disabledGeos=${geos}></mas-promo-variation-geos>`,
+            );
+            expect(el.showInheritHint).to.be.true;
+            expect(el.shadowRoot.querySelector('.inherit-hint')).to.exist;
+        });
+
+        it('hides the hint in compact mode', async () => {
+            const el = await fixture(html`<mas-promo-variation-geos .geos=${geos} compact></mas-promo-variation-geos>`);
+            expect(el.shadowRoot.querySelector('.inherit-hint')).to.not.exist;
+        });
+    });
 });

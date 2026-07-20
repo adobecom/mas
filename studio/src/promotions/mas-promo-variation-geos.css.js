@@ -53,6 +53,16 @@ export const styles = css`
         margin: 0;
     }
 
+    .inherit-hint {
+        color: var(--spectrum-gray-700, #505050);
+        font-size: 12px;
+        margin: 0;
+    }
+
+    .inherit-hint.blocked {
+        color: var(--spectrum-negative-color, #d7373f);
+    }
+
     :host([compact]) .select-geos-content {
         min-width: 220px;
         gap: 8px;

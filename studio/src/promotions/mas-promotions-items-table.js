@@ -29,8 +29,10 @@ import {
     getPromotionItemsRemovedByOfferRemoval,
     pruneOrphanedPromotionSelectionAfterOfferRemoval,
 } from './promotion-editor-utils.js';
-import { buildPromoVariationPathForTag, getFragmentByPathOrNull, isPromoVariationPath } from './promotion-model.js';
-import { createPromoVariation } from './promotions-repository.js';
+import { isPromoVariationPath } from './promotion-model.js';
+import { getUsedGeoTags } from './promotion-variations.js';
+import { createPromoVariation, probePromoVariationsForFragment } from './promotions-repository.js';
+import './mas-promo-variation-geos.js';
 import { openOfferSelectorTool } from '../rte/ost.js';
 
 const localStyles = css`
@@ -457,8 +459,6 @@ const localStyles = css`
     }
 `;
 
-const PROMO_VARIATION_EXISTS_MESSAGE =
-    'A promo variation already exists for this fragment in this promotion project. Use View promo variation to open it.';
 const PROMO_VARIATION_MISSING_MESSAGE =
     'The promo variation for this fragment could not be found. It may have been removed. Use Create promo variation to add it again.';
 const PROMO_VARIATION_LOOKUP_FAILED_MESSAGE = 'Could not verify the promo variation. Check your connection and try again.';
@@ -480,6 +480,10 @@ class MasPromotionsItemsTable extends LitElement {
         offerRemovalDialogOpen: { type: Boolean, state: true },
         createPromoVariationLoading: { type: Boolean, state: true },
         existingPromoVariationDefaultPaths: { type: Object, state: true },
+        existingPromoVariationGeosByPath: { type: Object, state: true },
+        promoVariationGeosDialogItem: { type: Object, state: true },
+        promoVariationSelectedGeos: { type: Array, state: true },
+        promoVariationDisabledGeos: { type: Array, state: true },
     };
 
     #loadedPathsKey = null;
@@ -494,6 +498,10 @@ class MasPromotionsItemsTable extends LitElement {
         this.offerRemovalDialogOpen = false;
         this.createPromoVariationLoading = false;
         this.existingPromoVariationDefaultPaths = new Set();
+        this.existingPromoVariationGeosByPath = new Map();
+        this.promoVariationGeosDialogItem = null;
+        this.promoVariationSelectedGeos = [];
+        this.promoVariationDisabledGeos = [];
         this.promoCodeExceptions = [];
         this.defaultPromoCode = '';
         this.geos = [];
@@ -683,28 +691,33 @@ class MasPromotionsItemsTable extends LitElement {
         if (!promoTag || !this.repository?.aem?.sites?.cf?.fragments?.getByPath) {
             if (signal.aborted) return;
             this.existingPromoVariationDefaultPaths = new Set();
+            this.existingPromoVariationGeosByPath = new Map();
             return;
         }
-        const previous = this.existingPromoVariationDefaultPaths;
-        const existing = new Set();
+        const previousPaths = this.existingPromoVariationDefaultPaths;
+        const previousGeos = this.existingPromoVariationGeosByPath;
+        const existingPaths = new Set();
+        const geosByPath = new Map();
         await Promise.all(
             items.map(async (item) => {
                 if (signal.aborted) return;
-                const targetPath = buildPromoVariationPathForTag(item.path, promoTag);
-                if (!targetPath) return;
                 try {
-                    const variation = await getFragmentByPathOrNull(this.repository.aem.sites.cf.fragments, targetPath);
-                    if (variation?.id) {
-                        existing.add(item.path);
-                        return;
+                    const variations = await probePromoVariationsForFragment(this.repository.aem, item.path, promoTag);
+                    if (variations.length) {
+                        existingPaths.add(item.path);
+                        geosByPath.set(item.path, getUsedGeoTags(variations));
                     }
                 } catch {
-                    if (previous.has(item.path)) existing.add(item.path);
+                    if (previousPaths.has(item.path)) {
+                        existingPaths.add(item.path);
+                        geosByPath.set(item.path, previousGeos.get(item.path) || []);
+                    }
                 }
             }),
         );
         if (signal.aborted) return;
-        this.existingPromoVariationDefaultPaths = existing;
+        this.existingPromoVariationDefaultPaths = existingPaths;
+        this.existingPromoVariationGeosByPath = geosByPath;
     }
 
     #showToast(text, variant) {
@@ -766,8 +779,9 @@ class MasPromotionsItemsTable extends LitElement {
     #canCreatePromoVariation(item) {
         if (!item?.id || !item?.path || !this.#promotionTagId) return false;
         if (isPromoVariationPath(item.path)) return false;
-        if (this.existingPromoVariationDefaultPaths.has(item.path)) return false;
-        return true;
+        if (!this.existingPromoVariationGeosByPath.has(item.path)) return true;
+        const usedGeos = this.existingPromoVariationGeosByPath.get(item.path);
+        return this.#geoValues.some((geo) => !usedGeos.includes(geo));
     }
 
     #hasPromoVariationForItem(item) {
@@ -779,17 +793,16 @@ class MasPromotionsItemsTable extends LitElement {
     async #viewPromoVariation(e, item) {
         e.stopPropagation();
         const promoTag = this.#promotionTagId;
-        const targetPath = promoTag ? buildPromoVariationPathForTag(item.path, promoTag) : null;
-        if (!targetPath) return;
+        if (!this.repository?.aem) return;
 
-        const fragmentsApi = this.repository?.aem?.sites?.cf?.fragments;
-        let variation;
+        let variations;
         try {
-            variation = fragmentsApi ? await getFragmentByPathOrNull(fragmentsApi, targetPath) : null;
+            variations = await probePromoVariationsForFragment(this.repository.aem, item.path, promoTag);
         } catch {
             showToast(PROMO_VARIATION_LOOKUP_FAILED_MESSAGE, 'negative');
             return;
         }
+        const variation = variations[0];
         if (!variation?.id) {
             showToast(PROMO_VARIATION_MISSING_MESSAGE, 'negative');
             this.existingPromoVariationDefaultPaths = new Set(
@@ -799,6 +812,40 @@ class MasPromotionsItemsTable extends LitElement {
         }
 
         await this.#navigateToFragmentEditorFromProject(variation.id, variation.path);
+    }
+
+    #closeConfirmDialog() {
+        this.confirmDialogConfig = null;
+    }
+
+    #closePromoVariationGeosDialog() {
+        this.promoVariationGeosDialogItem = null;
+        this.promoVariationSelectedGeos = [];
+        this.promoVariationDisabledGeos = [];
+    }
+
+    #handlePromoVariationGeosChange(e) {
+        this.promoVariationSelectedGeos = e.detail.value;
+    }
+
+    async #createPromoVariation(e, item) {
+        e.stopPropagation();
+        const promoTag = this.#promotionTagId;
+        if (!promoTag || !item?.id || !this.repository) return;
+
+        this.promoVariationSelectedGeos = [];
+        this.promoVariationDisabledGeos = [];
+        this.createPromoVariationLoading = true;
+
+        try {
+            const existingVariations = await probePromoVariationsForFragment(this.repository.aem, item.path, promoTag);
+            this.promoVariationDisabledGeos = getUsedGeoTags(existingVariations);
+            this.promoVariationGeosDialogItem = item;
+        } catch {
+            showToast(PROMO_VARIATION_LOOKUP_FAILED_MESSAGE, 'negative');
+        } finally {
+            this.createPromoVariationLoading = false;
+        }
     }
 
     #confirmCreatePromoVariation() {
@@ -816,27 +863,15 @@ class MasPromotionsItemsTable extends LitElement {
         });
     }
 
-    #closeConfirmDialog() {
-        this.confirmDialogConfig = null;
-    }
-
-    async #createPromoVariation(e, item) {
-        e.stopPropagation();
+    async #handlePromoVariationGeosConfirm() {
+        const item = this.promoVariationGeosDialogItem;
         const promoTag = this.#promotionTagId;
+        const geoTags = this.promoVariationSelectedGeos;
+        this.#closePromoVariationGeosDialog();
         if (!promoTag || !item?.id || !this.repository) return;
-
-        const targetPath = buildPromoVariationPathForTag(item.path, promoTag);
-        if (targetPath) {
-            try {
-                const existing = await getFragmentByPathOrNull(this.repository.aem.sites.cf.fragments, targetPath);
-                if (existing) {
-                    showToast(PROMO_VARIATION_EXISTS_MESSAGE, 'negative');
-                    return;
-                }
-            } catch {
-                showToast(PROMO_VARIATION_LOOKUP_FAILED_MESSAGE, 'negative');
-                return;
-            }
+        if (!geoTags.length) {
+            showToast('Select at least one geo to create the promo variation.', 'negative');
+            return;
         }
 
         const confirmed = await this.#confirmCreatePromoVariation();
@@ -845,11 +880,16 @@ class MasPromotionsItemsTable extends LitElement {
         try {
             this.createPromoVariationLoading = true;
             showToast('Creating promo variation...');
-            const created = await createPromoVariation(this.repository.aem, item.id, promoTag, (store) =>
+            const created = await createPromoVariation(this.repository.aem, item.id, promoTag, geoTags, (store) =>
                 this.repository.refreshFragment(store),
             );
             showToast('Promo variation created', 'positive');
             this.existingPromoVariationDefaultPaths = new Set([...this.existingPromoVariationDefaultPaths, item.path]);
+            const previousGeos = this.existingPromoVariationGeosByPath.get(item.path) || [];
+            this.existingPromoVariationGeosByPath = new Map(this.existingPromoVariationGeosByPath).set(item.path, [
+                ...previousGeos,
+                ...geoTags,
+            ]);
             await this.#navigateToFragmentEditorFromProject(created.id, created.path);
         } catch (err) {
             showToast(err.message || 'Failed to create promo variation', 'negative');
@@ -1007,6 +1047,31 @@ class MasPromotionsItemsTable extends LitElement {
                 }}
             >
                 <div>${message}</div>
+            </sp-dialog-wrapper>
+        `;
+    }
+
+    get promoVariationGeosDialogTemplate() {
+        if (!this.promoVariationGeosDialogItem) return nothing;
+        return html`
+            <sp-dialog-wrapper
+                open
+                underlay
+                mode="modal"
+                size="l"
+                headline="Select geos"
+                cancel-label="Cancel"
+                confirm-label="Continue"
+                @confirm=${() => this.#handlePromoVariationGeosConfirm()}
+                @cancel=${() => this.#closePromoVariationGeosDialog()}
+                @close=${() => this.#closePromoVariationGeosDialog()}
+            >
+                <mas-promo-variation-geos
+                    .geos=${this.#geoValues}
+                    .disabledGeos=${this.promoVariationDisabledGeos}
+                    .value=${this.promoVariationSelectedGeos}
+                    @change=${(e) => this.#handlePromoVariationGeosChange(e)}
+                ></mas-promo-variation-geos>
             </sp-dialog-wrapper>
         `;
     }
@@ -1297,7 +1362,8 @@ class MasPromotionsItemsTable extends LitElement {
         const showTable = showSkeleton || items.length > 0;
 
         return html`
-            ${this.confirmDialogTemplate} ${showEmpty ? html`<p>${this.#emptySelectionMessage}</p>` : nothing}
+            ${this.confirmDialogTemplate} ${this.promoVariationGeosDialogTemplate}
+            ${showEmpty ? html`<p>${this.#emptySelectionMessage}</p>` : nothing}
             ${showTable
                 ? html`<sp-table class="fragments-table item-table promotions-view-only ${this.#layoutClass}" emphasized>
                       <sp-table-head>

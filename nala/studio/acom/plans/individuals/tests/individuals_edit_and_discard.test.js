@@ -271,11 +271,54 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await expect(await individualsCard.locator(plans.cardBadge)).toHaveText(data.badge.updated);
         });
 
-        await test.step('step-6: Close the editor and verify discard is triggered', async () => {
+        await test.step('step-6: Validate badge icon set', async () => {
+            await editor.badgeIconMenu.click();
+            await page.waitForTimeout(500);
+            await expect(await editor.mnemonicBadgeEditButton).toBeVisible();
+            await editor.mnemonicBadgeEditButton.click();
+            await page.waitForTimeout(500);
+            await editor.selectProductIconByIndex(2);
+            await editor.saveMnemonicModal();
+            await expect(await individualsCard.locator(plans.cardBadge)).toHaveAttribute('icon', 'sp-icon-ribbon');
+        });
+
+        await test.step('step-7: Validate badge icon update', async () => {
+            await editor.badgeIconMenu.click();
+            await page.waitForTimeout(500);
+            await expect(await editor.mnemonicBadgeEditButton).toBeVisible();
+            await editor.mnemonicBadgeEditButton.click();
+            await page.waitForTimeout(500);
+            await editor.selectProductIconByIndex(3);
+            await editor.saveMnemonicModal();
+            await expect(await individualsCard.locator(plans.cardBadge)).toHaveAttribute('icon', 'sp-icon-page-rule');
+        });
+
+        await test.step('step-8: Validate badge icon delete', async () => {
+            await editor.badgeIconMenu.click();
+            await page.waitForTimeout(500);
+            await expect(await editor.mnemonicBadgeDeleteButton).toBeVisible();
+            await editor.mnemonicBadgeDeleteButton.click();
+            await page.waitForTimeout(500);
+            await expect(await individualsCard.locator(plans.cardBadge)).not.toHaveAttribute('icon');
+        });
+
+        await test.step('step-9: Validate badge icon URL update ', async () => {
+            await editor.badgeIconMenu.click();
+            await page.waitForTimeout(500);
+            await expect(await editor.mnemonicBadgeEditButton).toBeVisible();
+            await editor.mnemonicBadgeEditButton.click();
+            await page.waitForTimeout(500);
+            await editor.setMnemonicURL(data.badge.iconUrl);
+            await editor.saveMnemonicModal();
+            await page.waitForTimeout(500);
+            await expect(await individualsCard.locator(plans.cardBadge)).toHaveAttribute('icon', data.badge.iconUrl);
+        });
+
+        await test.step('step-10: Close the editor and verify discard is triggered', async () => {
             await studio.discardEditorChanges(editor);
         });
 
-        await test.step('step-7: Verify there is no changes of the card', async () => {
+        await test.step('step-11: Verify there is no changes of the card', async () => {
             await expect(await individualsCard.locator(plans.cardBadge)).toHaveText(data.badge.original);
         });
     });
@@ -827,11 +870,25 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await expect(await individualsCard.locator(plans.cardWhatsIncludedIconLabel)).not.toBeVisible();
         });
 
-        await test.step('step-10: Close the editor and verify discard is triggered', async () => {
+        await test.step('step-10: Add bullet to whats included', async () => {
+            await expect(await editor.whatsIncludedAddBullet).toBeVisible();
+            await editor.whatsIncludedAddBullet.click();
+            await expect(await editor.mnemonicProductTab).toBeVisible();
+            await editor.mnemonicProductTab.click();
+            await editor.selectProductIconByIndex(4);
+            await editor.saveMnemonicModal();
+        });
+
+        await test.step('step-11: Validate bullet added to whats included', async () => {
+            await expect(await individualsCard.locator(plans.cardWhatsIncludedBullet)).toBeVisible();
+            await expect(await individualsCard.locator(plans.cardWhatsIncludedBulletUpload)).toBeVisible();
+        });
+
+        await test.step('step-12: Close the editor and verify discard is triggered', async () => {
             await studio.discardEditorChanges(editor);
         });
 
-        await test.step('step-11: Verify whats included text not updated', async () => {
+        await test.step('step-13: Verify whats included text not updated', async () => {
             await expect(await individualsCard.locator(plans.cardWhatsIncluded)).not.toBeVisible();
         });
     });

@@ -12,6 +12,8 @@ import prosemirrorStyles from './prosemirror.css.js';
 import { EVENT_OST_SELECT } from '../constants.js';
 import throttle from '../utils/throttle.js';
 import './rte-mnemonic-editor.js';
+import './rte-link-editor.js';
+import './rte-icon-editor.js';
 
 const CUSTOM_ELEMENT_CHECKOUT_LINK = 'checkout-link';
 const CUSTOM_ELEMENT_INLINE_PRICE = 'inline-price';
@@ -505,6 +507,7 @@ class RteField extends LitElement {
                     display: block;
                 }
 
+                div.ProseMirror-focused .icon-button.ProseMirror-selectednode,
                 div.ProseMirror-focused span[is='inline-price'].ProseMirror-selectednode,
                 div.ProseMirror-focused a.ProseMirror-selectednode,
                 div.ProseMirror-focused a.ProseMirror-selectednode,
@@ -1431,8 +1434,13 @@ class RteField extends LitElement {
         const { selection } = state;
 
         const node = state.schema.nodes.icon.create({ title: tooltip || '' });
-        const tr = state.tr.insert(selection.from, node);
-        dispatch(tr);
+        if (selection.node?.type?.name === 'icon') {
+            const tr = state.tr.replaceWith(selection.from, selection.to, node);
+            dispatch(tr);
+        } else {
+            const tr = state.tr.insert(selection.from, node);
+            dispatch(tr);
+        }
 
         this.showIconEditor = false;
     }
@@ -1532,8 +1540,13 @@ class RteField extends LitElement {
             ...attributes,
         };
 
-        const content =
-            attributes.is === CUSTOM_ELEMENT_CHECKOUT_LINK && attributes.text ? state.schema.text(attributes.text) : null;
+        // Preserve the CTA label when editing a checkout link whose text the OST
+        // did not change (e.g. a promo-only edit). The multi-step OST flow collapses
+        // the editor selection before the checkout-link event arrives, so fall back
+        // to the label captured when the CTA was double-clicked.
+        const selectedText = selection.node?.type === state.schema.nodes.link ? selection.node.textContent : '';
+        const ctaText = attributes.text || selectedText || this.ostTargetText || '';
+        const content = attributes.is === CUSTOM_ELEMENT_CHECKOUT_LINK && ctaText ? state.schema.text(ctaText) : null;
 
         const node = nodeType.create(mergedAttributes, content, selection.node?.marks);
 
@@ -1557,6 +1570,19 @@ class RteField extends LitElement {
         }
 
         const tr = from === to ? state.tr.insert(from, node) : state.tr.replaceWith(from, to, node);
+
+        // Editing an existing checkout-link via a multi-step OST flow can leave an
+        // empty <a> behind (the host link split on insert). Remove any link node
+        // that ended up with no content and no offer so the editor doesn't keep a
+        // phantom CTA. Walk descending positions so earlier deletes don't shift
+        // the positions of not-yet-removed nodes.
+        const emptyLinkRanges = [];
+        tr.doc.descendants((descNode, pos) => {
+            const isLink = descNode.type === state.schema.nodes.link;
+            const isEmpty = descNode.content.size === 0 && !descNode.attrs?.['data-wcs-osi'];
+            if (isLink && isEmpty) emptyLinkRanges.push({ from: pos, to: pos + descNode.nodeSize });
+        });
+        emptyLinkRanges.sort((a, b) => b.from - a.from).forEach((range) => tr.delete(range.from, range.to));
 
         dispatch(tr);
         this.showOfferSelector = false;
@@ -1704,12 +1730,27 @@ class RteField extends LitElement {
     async openIconEditor() {
         this.showIconEditor = true;
         await this.updateComplete;
-        Object.assign(this.iconEditorElement, { open: true });
+
+        const { state } = this.editorView;
+        const {
+            selection: { from, to },
+        } = state;
+
+        let tooltip = '';
+        state.doc.nodesBetween(from, to, (node) => {
+            if (node.type?.name === 'icon') {
+                tooltip = node.attrs?.title;
+            }
+        });
+        Object.assign(this.iconEditorElement, { open: true, tooltip });
     }
 
     handleOpenOfferSelector(event, element) {
         ostRteFieldSource = this;
         this.showOfferSelector = true;
+        // A toolbar/button open (real event) is a fresh insert, not an edit of a
+        // double-clicked CTA — forget any remembered label.
+        if (event) this.ostTargetText = null;
         if (!element && this.osi) {
             element = this.selectedMerchLink;
             if (!element) {
@@ -1789,8 +1830,13 @@ class RteField extends LitElement {
         if (osiDomTarget) {
             const prosemirrorNodeAtClick = view.state.doc.nodeAt(nodePos);
             if (prosemirrorNodeAtClick && prosemirrorNodeAtClick.attrs['data-wcs-osi']) {
-                ostRteFieldSource = this;
-                this.showOfferSelector = true;
+                const selection = NodeSelection.create(view.state.doc, nodePos);
+                view.dispatch(view.state.tr.setSelection(selection));
+                // Remember the CTA label so a promo-only OST edit can restore it
+                // (the multi-step flow collapses the selection before "Use").
+                // handleOpenOfferSelector(null, …) sets ostRteFieldSource and
+                // showOfferSelector; passing null preserves the label above.
+                this.ostTargetText = prosemirrorNodeAtClick.textContent || '';
                 this.handleOpenOfferSelector(null, osiDomTarget);
                 return true;
             }
@@ -1804,6 +1850,13 @@ class RteField extends LitElement {
             // --- Restore selection and modal opening ---
             this.selectMnemonic(nodePos);
             this.openMnemonicEditorForExisting(node);
+            return true;
+        }
+
+        if (node?.type.name === 'icon') {
+            event.stopPropagation();
+            event.preventDefault();
+            this.openIconEditor();
             return true;
         }
 
@@ -1869,6 +1922,10 @@ class RteField extends LitElement {
 
     get mnemonicEditorElement() {
         return this.shadowRoot.querySelector('rte-mnemonic-editor');
+    }
+
+    get iconEditorButtonElement() {
+        return this.shadowRoot.querySelector('#addIconButton');
     }
 
     render() {

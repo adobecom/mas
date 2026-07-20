@@ -7,6 +7,7 @@ import { Fragment } from '../aem/fragment.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 import { normalizeKey } from '../utils.js';
 import { confirmation } from '../mas-confirm-dialog.js';
+import '../mas-quick-actions.js';
 import '../rte/rte-field.js';
 import '../rte/osi-field.js';
 import '../fields/badge-section.js';

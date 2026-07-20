@@ -4,6 +4,7 @@ import { styles } from './mas-select-items-table.css.js';
 import Store from '../../store.js';
 import { getItemsSelectionStore } from '../items-selection-store.js';
 import StoreController from '../../reactivity/store-controller.js';
+import '../../translation/mas-collapsible-table-row.js';
 import { TABLE_TYPE } from '../../constants.js';
 import ReactiveController from '../../reactivity/reactive-controller.js';
 import {

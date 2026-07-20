@@ -1,5 +1,5 @@
 import { ReactiveStore } from './reactive-store.js';
-import { previewFragment } from 'fragment-client';
+import { previewFragment } from '../../libs/fragment-client.js';
 import { getDefaultLocaleCode } from '../../../io/www/src/fragment/locales.js';
 import Store from '../store.js';
 import { Fragment } from '../aem/fragment.js';
@@ -109,6 +109,9 @@ export class EditorContextStore extends ReactiveStore {
             if (fragmentPath) {
                 if (this.isPromoVariationByPath) {
                     this.fetchParentForPromoVariation(fragmentPath);
+                    const pathDetection = this.detectVariationFromPath(fragmentPath);
+                    this.isVariationByPath = pathDetection.isVariation;
+                    this.expectedDefaultLocale = pathDetection.defaultLocale;
                     if (!notified) {
                         this.notify();
                         notified = true;
@@ -150,19 +153,27 @@ export class EditorContextStore extends ReactiveStore {
         if (!aem || !fragmentPath) return;
         const promoName = getPromoNameFromPromoVariationPath(fragmentPath);
         if (!promoName) return;
-        const parentPath = resolveDefaultPathFromPromoVariation(fragmentPath, promoName);
-        if (!parentPath) return;
-        this.parentFetchPromise = aem.sites.cf.fragments
-            .getByPath(parentPath)
-            .then((data) => {
-                if (data) {
-                    this.localeDefaultFragment = data;
-                    this.defaultLocaleId = data.id;
-                    this.notify();
-                }
+        const candidates = resolveDefaultPathFromPromoVariation(fragmentPath, promoName);
+        if (!candidates.length) return;
+        this.parentFetchPromise = this.#fetchFirstExistingFragment(aem, candidates);
+    }
+
+    async #fetchFirstExistingFragment(aem, candidatePaths) {
+        for (const candidatePath of candidatePaths) {
+            let data;
+            try {
+                data = await aem.sites.cf.fragments.getByPath(candidatePath);
+            } catch {
+                continue;
+            }
+            if (data) {
+                this.localeDefaultFragment = data;
+                this.defaultLocaleId = data.id;
+                this.notify();
                 return data;
-            })
-            .catch(() => null);
+            }
+        }
+        return null;
     }
 
     fetchParentByPath(fragmentPath, defaultLocale, pathLocale) {
@@ -214,8 +225,13 @@ export class EditorContextStore extends ReactiveStore {
         return this.defaultLocaleId !== fragmentId;
     }
 
+    isLocaleVariation(fragmentId) {
+        if (this.isPromoVariationByPath) return this.isVariationByPath;
+        return this.isVariation(fragmentId);
+    }
+
     get isFragmentTranslatable() {
-        return (!this.isVariationByPath && !this.isPromoVariationByPath) || this.isGroupedVariationByPath;
+        return this.isGroupedVariationByPath || !this.isVariationByPath;
     }
 
     reset() {

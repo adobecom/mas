@@ -22,17 +22,19 @@
  *   - Hydrates ALL matched projects in parallel (for fragment OSI/promoCode data) and
  *     folder-searches their promo variations for `defaultLocale` and `regionLocale`.
  *   - Returns `{ activeProjects }` — array preserving the delivery listing (creation) order,
- *     which is the precedence order. Each project carries its own `defaultVariations` /
- *     `regionVariations` maps (keyed by fragmentPath). `customize` picks the first applicable
- *     project per fragment.
+ *     which is the tie-break order. Each project carries its own `defaultVariations` /
+ *     `regionVariations` maps (keyed by fragmentPath). Multiple projects can target the same
+ *     fragment simultaneously; `customize` applies an explicit osi entry from whichever project
+ *     has one (folder order only breaking ties), so per-country projects coexist.
  *
  * **`process`** runs sequentially before `customize`:
  *   - For each active project, builds its own `promoMap` (OSI → promoCode) from its
  *     promoCode and offer overrides, resolved for the current country.
  *   - Wildcard overrides (empty osis) are stored under the `'*'` key.
  *   - Places `context.promoProjects` (array of `{ project, promoMap, fragmentPaths }`).
- *   - `customize` walks this array per fragment and applies the first applicable
- *     project's variation / promoCode (folder order = priority).
+ *   - `customize` walks this array per fragment: an explicit osi entry from any targeting
+ *     project wins (folder order breaks ties), else a project-level wildcard promoCode applies.
+ *     Projects with disjoint per-country entries therefore coexist on the same fragment.
  */
 import { FRAGMENT_URL_PREFIX, MAS_ROOT, PATH_TOKENS, odinReferences } from '../utils/paths.js';
 import { fetch, getRequestInfos, matchesGeo } from '../utils/common.js';
@@ -333,6 +335,7 @@ async function hydrateProject(project, { baseUrl, surface, defaultLocale, resolv
     const offerOverrides = parseOfferOverrides(offerLines);
     const offerSubstitutions = parseOfferSubstitutions(offerLines);
     const promoCode = hydratedProject.fields?.promoCode ?? null;
+    const title = hydratedProject.fields?.title ?? null;
     if (!fragmentPaths.length && !offerOverrides.length && !offerSubstitutions.length) {
         logDebug(() => `Promotion project ${project.id} has no fragments or offer overrides, skipping`, context);
         return null;
@@ -346,6 +349,7 @@ async function hydrateProject(project, { baseUrl, surface, defaultLocale, resolv
     return {
         id: project.id,
         path: project.path,
+        title,
         promoCode,
         fragmentPaths,
         offerOverrides,
@@ -386,9 +390,11 @@ async function init(context) {
     const { locale, country } = context;
     const effectiveRegionLocale = resolvedRegionLocale ?? locale;
 
-    const matched = projects.filter((project) =>
-        matchesProject(project, { surface, locale, country, regionLocale: effectiveRegionLocale, instant }, context),
-    );
+    const matched = projects
+        .filter((project) =>
+            matchesProject(project, { surface, locale, country, regionLocale: effectiveRegionLocale, instant }, context),
+        )
+        .sort((a, b) => (a.endDate ? 0 : 1) - (b.endDate ? 0 : 1));
     if (!matched.length) return { status: 200, activeProjects: [] };
 
     log(
@@ -446,7 +452,8 @@ function buildPromoMap(offerOverrides, { regionLocale, country }, projectPromoCo
  * For each active project, builds its own promoMap and fragmentPaths Set and
  * places the per-project array on context for the customize transformer to
  * walk per-fragment during tree traversal. Order is preserved (folder order
- * from Odin), and customize picks the first applicable project per fragment.
+ * from Odin) as a tie-break; customize applies an explicit osi entry from any
+ * targeting project, so projects with disjoint per-country entries coexist.
  * Matching is done by fragmentPath (locale-independent) so translated fragments are handled correctly.
  */
 async function promotions(context) {

@@ -105,6 +105,7 @@ export class Product extends VariantLayout {
                     ? html`<slot name="promo-text"></slot>`
                     : ''}
                 <slot name="body-xs"></slot>
+                <slot name="short-description"></slot>
                 <slot name="addon"></slot>
                 ${this.promoBottom ? html`<slot name="promo-text"></slot>` : ''}
                 <slot name="whats-included"></slot>
@@ -166,7 +167,7 @@ export class Product extends VariantLayout {
             'span[data-template="legal"]',
         );
         if (!legalPrice) return;
-        legalPrice.querySelector('.merch-short-description')?.remove();
+        this.card.querySelector('.merch-short-description')?.remove();
         const span = document.createElement('span');
         span.className = 'merch-short-description';
         const inner = shortDescEl.querySelector('p') ?? shortDescEl;
@@ -188,12 +189,8 @@ export class Product extends VariantLayout {
                 if (e.key === 'Escape') btn.classList.remove('tooltip-visible');
             });
         });
-        const planType = legalPrice.querySelector('.price-plan-type');
-        if (planType) {
-            planType.after(span);
-        } else {
-            legalPrice.appendChild(span);
-        }
+        legalPrice.after(span);
+        shortDescEl.hidden = true;
     }
 
     async postCardUpdateHook() {
@@ -341,6 +338,9 @@ export class Product extends VariantLayout {
             min-height: var(
                 --consonant-merch-card-product-callout-content-height
             );
+            display: block;
+        }
+        :host([variant='product']) slot[name='short-description'] {
             display: block;
         }
         :host([variant='product']) slot[name='addon'] {

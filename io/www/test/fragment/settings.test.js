@@ -398,6 +398,58 @@ describe('settings', () => {
             expect(result.body.settings).to.be.undefined;
         });
 
+        it('falls back to default quantitySelect when enabled in card fragment', async () => {
+            const context = {
+                locale: 'en_US',
+                body: { fields: { variant: 'plans', tags: [] } },
+                promises: {
+                    settings: Promise.resolve({
+                        addon: {
+                            default: {
+                                name: 'quantitySelect',
+                                templates: ['plans'],
+                                locales: [],
+                                tags: [],
+                                valuetype: 'optional-text',
+                                textValue:
+                                    '<merch-quantity-select title=\"Select quantity\" min=\"2\" default-value=\"3\" max=\"10\" step=\"1\"></merch-quantity-select>',
+                                booleanValue: true,
+                            },
+                            override: [],
+                        },
+                    }),
+                },
+            };
+            const result = await settings.process(context);
+            expect(result.body.settings.quantitySelect).to.equal(
+                '<merch-quantity-select title=\"Select quantity\" min=\"2\" default-value=\"3\" max=\"10\" step=\"1\"></merch-quantity-select>',
+            );
+        });
+
+        it('falls back to default additionalModalTriggers when enabled in card fragment', async () => {
+            const context = {
+                locale: 'en_US',
+                body: { fields: { variant: 'plans', tags: [] } },
+                promises: {
+                    settings: Promise.resolve({
+                        addon: {
+                            default: {
+                                name: 'additionalModalTriggers',
+                                templates: ['plans'],
+                                locales: [],
+                                tags: [],
+                                valuetype: 'boolean',
+                                booleanValue: true,
+                            },
+                            override: [],
+                        },
+                    }),
+                },
+            };
+            const result = await settings.process(context);
+            expect(result.body.settings.additionalModalTriggers).to.be.true;
+        });
+
         it('handles missing body', async () => {
             const context = { locale: 'en_US', promises: { settings: Promise.resolve({}) } };
             const result = await settings.process(context);

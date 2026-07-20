@@ -7053,7 +7053,7 @@ merch-card[variant="segment"][id] .price-unit-type:not(.disabled)::before {
     content: "";
 }
 
-merch-card[variant="segment"][id] .price-plan-type:not(.disabled)::before {
+merch-card[variant="segment"][id] .price-unit-type:not(.disabled)::after {
   content: "\\00a0";
 }
 

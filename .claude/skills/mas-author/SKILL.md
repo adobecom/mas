@@ -1,6 +1,8 @@
 ---
 name: mas-author
 description: Operating rules for authoring Merch-at-Scale (M@S) content through the Odin MCP. Odin MCP works on raw AEM content fragments only — it MUST NOT attempt any operation that needs MAS application code (MAS Studio or the MAS IO pipeline) to resolve, render, or compute data. Use this whenever creating, editing, tagging, publishing, deleting, varying, or translating M@S content via Odin MCP. Contains the explicit allow list, deny list, and the stop rule.
+model: sonnet
+effort: medium
 tags: [mas, merch, odin, aem, author, allow-list, deny-list, guardrail, publish, fragment]
 triggers:
     - 'mas'
@@ -128,6 +130,7 @@ locale path segment are in `references/content-model.md`. When a step below touc
 fragments: **publishing** many is one native call (`publish-aem-fragments` with an array of ids/paths);
 **patching or deleting** many is **not** batched — do each as its own reviewed call so the confirm gates
 and reference/index cleanup can't be skipped. Never use `aem_create_batch` for patch or delete.
+(`aem_create_batch` is the real Odin tool name — underscored, unlike the hyphenated `*-aem-*` tools; not a typo.)
 
 ### A. Publish safely
 

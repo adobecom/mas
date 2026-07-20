@@ -721,239 +721,6 @@ describe('MasPromotionsItemsTable', () => {
 
         const menuItems = Array.from(el.shadowRoot.querySelectorAll('sp-menu-item'));
         expect(menuItems.some((item) => item.textContent.trim().includes('Create promo variation'))).to.be.false;
-        expect(menuItems.some((item) => item.textContent.trim().includes('View promo variation'))).to.be.true;
-        el.remove();
-        Store.promotions.inEdit.set(null);
-        Store.promotions.selectedCards.set([]);
-    });
-
-    it('opens promo variation editor when View promo variation is clicked', async () => {
-        const router = (await import('../../src/router.js')).default;
-        const navStub = sandbox.stub(router, 'navigateToFragmentEditor').resolves();
-        const defaultPath = '/content/dam/mas/sandbox/en_US/my-card';
-        const promoVariationPath = '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card';
-        const promotion = new Fragment({
-            path: '/content/dam/mas/promotions/black-friday',
-            fields: [{ name: 'tags', values: ['mas:promotion/black-friday'], multiple: true }],
-        });
-        Store.promotions.inEdit.set(new FragmentStore(promotion));
-        Store.promotions.selectedCards.set([defaultPath]);
-
-        const el = new MasPromotionsItemsTable();
-        el.type = TABLE_TYPE.CARDS;
-        const fragment = {
-            path: defaultPath,
-            id: 'card-promo-id',
-            title: 'Promo Card',
-            studioPath: defaultPath,
-            status: 'DRAFT',
-            model: { path: CARD_MODEL_PATH },
-            fields: [],
-            tags: [],
-        };
-        sandbox.stub(el, 'repository').get(() => ({
-            aem: {
-                getFragmentByPath: sandbox.stub().resolves(fragment),
-                sites: {
-                    cf: {
-                        fragments: {
-                            getByPath: sandbox.stub().withArgs(promoVariationPath).resolves({
-                                id: 'promo-var-id',
-                                path: promoVariationPath,
-                            }),
-                        },
-                    },
-                },
-            },
-        }));
-        document.body.appendChild(el);
-        await el.updateComplete;
-        await new Promise((r) => setTimeout(r, 80));
-        await el.updateComplete;
-
-        const viewItem = Array.from(el.shadowRoot.querySelectorAll('sp-menu-item')).find((item) =>
-            item.textContent.trim().includes('View promo variation'),
-        );
-        viewItem.dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
-        await new Promise((r) => setTimeout(r, 10));
-        expect(navStub.calledOnce).to.be.true;
-        expect(navStub.firstCall.args[0]).to.equal('promo-var-id');
-        el.remove();
-        Store.promotions.inEdit.set(null);
-        Store.promotions.selectedCards.set([]);
-    });
-
-    it('sets Store.search.path to promo variation surface on View promo variation click', async () => {
-        const router = (await import('../../src/router.js')).default;
-        sandbox.stub(router, 'navigateToFragmentEditor').resolves();
-        const searchSetSpy = sandbox.stub(Store.search, 'set');
-        const defaultPath = '/content/dam/mas/nala/en_US/my-card';
-        const promoVariationPath = '/content/dam/mas/nala/en_US/promotions/summer-sale/my-card';
-        const promotion = new Fragment({
-            path: '/content/dam/mas/promotions/summer-sale',
-            fields: [{ name: 'tags', values: ['mas:promotion/summer-sale'], multiple: true }],
-        });
-        Store.promotions.inEdit.set(new FragmentStore(promotion));
-
-        const el = await fixture(html`<mas-promotions-items-table .type=${TABLE_TYPE.CARDS}></mas-promotions-items-table>`);
-        el.existingPromoVariationDefaultPaths = new Set([defaultPath]);
-        el.viewOnlyFragments = [
-            {
-                path: defaultPath,
-                id: 'nala-card-id',
-                title: 'Nala Card',
-                studioPath: defaultPath,
-                status: 'PUBLISHED',
-                model: { path: CARD_MODEL_PATH },
-                fields: [],
-                tags: [],
-            },
-        ];
-        sandbox.stub(el, 'repository').get(() => ({
-            aem: {
-                sites: {
-                    cf: {
-                        fragments: {
-                            getByPath: sandbox.stub().withArgs(promoVariationPath).resolves({
-                                id: 'promo-var-nala-id',
-                                path: promoVariationPath,
-                            }),
-                        },
-                    },
-                },
-            },
-        }));
-        await el.updateComplete;
-
-        const viewItem = Array.from(el.shadowRoot.querySelectorAll('sp-menu-item')).find((item) =>
-            item.textContent.trim().includes('View promo variation'),
-        );
-        viewItem.dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
-        await new Promise((r) => setTimeout(r, 10));
-        const pathCall = searchSetSpy.getCalls().find((call) => {
-            const result = call.args[0]({ path: 'sandbox' });
-            return result?.path === 'nala';
-        });
-        expect(pathCall, 'Store.search.set should be called with path=nala').to.not.be.undefined;
-        Store.promotions.inEdit.set(null);
-    });
-
-    it('shows a missing-variation message when View promo variation is clicked but variation was removed', async () => {
-        const toastStub = sandbox.stub(Events.toast, 'emit');
-        const defaultPath = '/content/dam/mas/sandbox/en_US/my-card';
-        const promoVariationPath = '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card';
-        const promotion = new Fragment({
-            path: '/content/dam/mas/promotions/black-friday',
-            fields: [{ name: 'tags', values: ['mas:promotion/black-friday'], multiple: true }],
-        });
-        Store.promotions.inEdit.set(new FragmentStore(promotion));
-        Store.promotions.selectedCards.set([defaultPath]);
-
-        const el = new MasPromotionsItemsTable();
-        el.type = TABLE_TYPE.CARDS;
-        const fragment = {
-            path: defaultPath,
-            id: 'card-promo-id',
-            title: 'Promo Card',
-            studioPath: defaultPath,
-            status: 'DRAFT',
-            model: { path: CARD_MODEL_PATH },
-            fields: [],
-            tags: [],
-        };
-        let promoPathLookupCount = 0;
-        sandbox.stub(el, 'repository').get(() => ({
-            aem: {
-                getFragmentByPath: sandbox.stub().resolves(fragment),
-                sites: {
-                    cf: {
-                        fragments: {
-                            getByPath: sandbox.stub().callsFake((path) => {
-                                if (path !== promoVariationPath) return Promise.resolve(null);
-                                promoPathLookupCount += 1;
-                                if (promoPathLookupCount === 1) {
-                                    return Promise.resolve({ id: 'promo-var-id', path: promoVariationPath });
-                                }
-                                return Promise.resolve(null);
-                            }),
-                        },
-                    },
-                },
-            },
-        }));
-        document.body.appendChild(el);
-        await el.updateComplete;
-        await new Promise((r) => setTimeout(r, 80));
-        await el.updateComplete;
-
-        const viewItem = Array.from(el.shadowRoot.querySelectorAll('sp-menu-item')).find((item) =>
-            item.textContent.trim().includes('View promo variation'),
-        );
-        viewItem.dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
-        await new Promise((r) => setTimeout(r, 10));
-        expect(toastStub.calledOnce).to.be.true;
-        expect(toastStub.firstCall.args[0].content).to.include('could not be found');
-        el.remove();
-        Store.promotions.inEdit.set(null);
-        Store.promotions.selectedCards.set([]);
-    });
-
-    it('shows lookup-failed message on View when getByPath fails with a non-404 error', async () => {
-        const toastStub = sandbox.stub(Events.toast, 'emit');
-        const defaultPath = '/content/dam/mas/sandbox/en_US/my-card';
-        const promoVariationPath = '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card';
-        const promotion = new Fragment({
-            path: '/content/dam/mas/promotions/black-friday',
-            fields: [{ name: 'tags', values: ['mas:promotion/black-friday'], multiple: true }],
-        });
-        Store.promotions.inEdit.set(new FragmentStore(promotion));
-        Store.promotions.selectedCards.set([defaultPath]);
-
-        const el = new MasPromotionsItemsTable();
-        el.type = TABLE_TYPE.CARDS;
-        const fragment = {
-            path: defaultPath,
-            id: 'card-promo-id',
-            title: 'Promo Card',
-            studioPath: defaultPath,
-            status: 'DRAFT',
-            model: { path: CARD_MODEL_PATH },
-            fields: [],
-            tags: [],
-        };
-        let promoPathLookupCount = 0;
-        sandbox.stub(el, 'repository').get(() => ({
-            aem: {
-                getFragmentByPath: sandbox.stub().resolves(fragment),
-                sites: {
-                    cf: {
-                        fragments: {
-                            getByPath: sandbox.stub().callsFake((path) => {
-                                if (path !== promoVariationPath) return Promise.resolve(null);
-                                promoPathLookupCount += 1;
-                                if (promoPathLookupCount === 1) {
-                                    return Promise.resolve({ id: 'promo-var-id', path: promoVariationPath });
-                                }
-                                return Promise.reject(new Error('Server error'));
-                            }),
-                        },
-                    },
-                },
-            },
-        }));
-        document.body.appendChild(el);
-        await el.updateComplete;
-        await new Promise((r) => setTimeout(r, 80));
-        await el.updateComplete;
-
-        const viewItem = Array.from(el.shadowRoot.querySelectorAll('sp-menu-item')).find((item) =>
-            item.textContent.trim().includes('View promo variation'),
-        );
-        viewItem.dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
-        await new Promise((r) => setTimeout(r, 10));
-        expect(toastStub.calledOnce).to.be.true;
-        expect(toastStub.firstCall.args[0].content).to.include('Could not verify the promo variation');
-        expect(el.existingPromoVariationDefaultPaths.has(defaultPath)).to.be.true;
         el.remove();
         Store.promotions.inEdit.set(null);
         Store.promotions.selectedCards.set([]);
@@ -1350,7 +1117,6 @@ describe('MasPromotionsItemsTable', () => {
 
             const menuItems = Array.from(el.shadowRoot.querySelectorAll('sp-menu-item'));
             expect(menuItems.some((item) => item.textContent.trim().includes('Create promo variation'))).to.be.true;
-            expect(menuItems.some((item) => item.textContent.trim().includes('View promo variation'))).to.be.true;
             el.remove();
             Store.promotions.selectedCards.set([]);
         });
@@ -1373,7 +1139,26 @@ describe('MasPromotionsItemsTable', () => {
             expect(findCreateMenuItem(el)).to.not.be.undefined;
         });
 
-        it('hides Create promo variation when every project geo is already used by existing variations', async () => {
+        it('hides Create promo variation when every project geo and the geo-less slot are already used', async () => {
+            const promotion = new Fragment({
+                path: '/content/dam/mas/promotions/black-friday',
+                fields: [
+                    { name: 'tags', values: [promoTag], multiple: true },
+                    { name: 'geos', values: ['mas:locale/de_AT', 'mas:locale/en_NG'], multiple: true },
+                ],
+            });
+            Store.promotions.inEdit.set(new FragmentStore(promotion));
+
+            const el = await fixture(html`<mas-promotions-items-table .type=${TABLE_TYPE.CARDS}></mas-promotions-items-table>`);
+            el.existingPromoVariationGeosByPath = new Map([[defaultPath, ['mas:locale/de_AT', 'mas:locale/en_NG']]]);
+            el.existingPromoVariationEmptyGeoPaths = new Set([defaultPath]);
+            el.viewOnlyFragments = [cardFragment];
+            await el.updateComplete;
+
+            expect(findCreateMenuItem(el)).to.be.undefined;
+        });
+
+        it('shows Create promo variation for the geo-less slot when every project geo is used but no geo-less variation exists yet', async () => {
             const promotion = new Fragment({
                 path: '/content/dam/mas/promotions/black-friday',
                 fields: [
@@ -1388,7 +1173,7 @@ describe('MasPromotionsItemsTable', () => {
             el.viewOnlyFragments = [cardFragment];
             await el.updateComplete;
 
-            expect(findCreateMenuItem(el)).to.be.undefined;
+            expect(findCreateMenuItem(el)).to.not.be.undefined;
         });
 
         it('shows Create promo variation when the only recorded geos are from a legacy variation (empty pznTags)', async () => {
@@ -1403,14 +1188,149 @@ describe('MasPromotionsItemsTable', () => {
 
             const el = await fixture(html`<mas-promotions-items-table .type=${TABLE_TYPE.CARDS}></mas-promotions-items-table>`);
             el.existingPromoVariationGeosByPath = new Map([[defaultPath, []]]);
+            el.existingPromoVariationEmptyGeoPaths = new Set([defaultPath]);
             el.viewOnlyFragments = [cardFragment];
             await el.updateComplete;
 
             expect(findCreateMenuItem(el)).to.not.be.undefined;
         });
 
-        it('shows a toast and does not create when no geo is selected', async () => {
+        it('creates a geo-less promo variation when nothing is checked and no empty-geo sibling exists', async () => {
+            const router = (await import('../../src/router.js')).default;
+            const navStub = sandbox.stub(router, 'navigateToFragmentEditor').resolves();
             const toastStub = sandbox.stub(Events.toast, 'emit');
+            const promotion = new Fragment({
+                path: '/content/dam/mas/promotions/black-friday',
+                id: 'promo-project-id',
+                fields: [
+                    { name: 'tags', values: [promoTag], multiple: true },
+                    { name: 'geos', values: ['mas:locale/de_AT', 'mas:locale/en_NG'], multiple: true },
+                ],
+            });
+            Store.promotions.inEdit.set(new FragmentStore(promotion));
+
+            const aem = createPromoVariationAem({
+                fragments: {
+                    getByPath: sandbox.stub().callsFake((path) =>
+                        path === promoVariationPath
+                            ? Promise.resolve({
+                                  id: 'existing-var',
+                                  path: promoVariationPath,
+                                  fields: [{ name: 'pznTags', values: ['mas:locale/de_AT'] }],
+                              })
+                            : Promise.resolve(null),
+                    ),
+                },
+            });
+            const el = await fixture(html`<mas-promotions-items-table .type=${TABLE_TYPE.CARDS}></mas-promotions-items-table>`);
+            sandbox.stub(el, 'repository').get(() => ({
+                refreshFragment: sandbox.stub().resolves(),
+                aem,
+            }));
+            el.viewOnlyFragments = [cardFragment];
+            await el.updateComplete;
+
+            await clickCreateAndWaitForDialog(el);
+            expect(el.promoVariationDisabledGeos).to.deep.equal(['mas:locale/de_AT']);
+            expect(el.promoVariationSelectedGeos).to.deep.equal([]);
+            expect(el.fragmentHasEmptyGeosVariation).to.be.false;
+
+            el.shadowRoot.querySelector('sp-dialog-wrapper').dispatchEvent(new CustomEvent('confirm'));
+            await el.updateComplete;
+            await new Promise((r) => setTimeout(r, 10));
+            el.shadowRoot.querySelector('sp-dialog-wrapper').dispatchEvent(new CustomEvent('confirm'));
+            await el.updateComplete;
+            await new Promise((r) => setTimeout(r, 10));
+
+            expect(toastStub.getCalls().some((call) => call.args[0].content?.includes('Select at least one geo'))).to.be.false;
+            expect(aem.createFragmentCopy.calledOnce).to.be.true;
+            const [fragmentForCopy] = aem.createFragmentCopy.firstCall.args;
+            expect(fragmentForCopy.fields.find((field) => field.name === 'pznTags')).to.be.undefined;
+            expect(el.existingPromoVariationGeosByPath.get(defaultPath)).to.deep.equal([]);
+            expect(navStub.calledOnce).to.be.true;
+        });
+
+        it('blocks with a toast when nothing is checked and a geo-less sibling variation already exists', async () => {
+            const toastStub = sandbox.stub(Events.toast, 'emit');
+            setupPromotionInEdit();
+
+            const aem = createPromoVariationAem({
+                fragments: {
+                    getByPath: sandbox.stub().callsFake((path) =>
+                        path === promoVariationPath
+                            ? Promise.resolve({
+                                  id: 'existing-var',
+                                  path: promoVariationPath,
+                                  fields: [{ name: 'title', values: ['Promo Card'] }],
+                              })
+                            : Promise.resolve(null),
+                    ),
+                },
+            });
+            const el = await fixture(html`<mas-promotions-items-table .type=${TABLE_TYPE.CARDS}></mas-promotions-items-table>`);
+            sandbox.stub(el, 'repository').get(() => ({
+                refreshFragment: sandbox.stub().resolves(),
+                aem,
+            }));
+            el.viewOnlyFragments = [cardFragment];
+            await el.updateComplete;
+
+            await clickCreateAndWaitForDialog(el);
+            expect(el.promoVariationDisabledGeos).to.deep.equal([]);
+            expect(el.fragmentHasEmptyGeosVariation).to.be.true;
+
+            el.shadowRoot.querySelector('sp-dialog-wrapper').dispatchEvent(new CustomEvent('confirm'));
+            await new Promise((r) => setTimeout(r, 20));
+            await el.updateComplete;
+
+            expect(aem.createFragmentCopy.called).to.be.false;
+            expect(toastStub.getCalls().some((call) => call.args[0].content?.includes('already exists'))).to.be.true;
+        });
+
+        it('disables Continue until a geo is checked when a geo-less sibling variation already exists', async () => {
+            setupPromotionInEdit();
+
+            const aem = createPromoVariationAem({
+                fragments: {
+                    getByPath: sandbox.stub().callsFake((path) =>
+                        path === promoVariationPath
+                            ? Promise.resolve({
+                                  id: 'existing-var',
+                                  path: promoVariationPath,
+                                  fields: [{ name: 'title', values: ['Promo Card'] }],
+                              })
+                            : Promise.resolve(null),
+                    ),
+                },
+            });
+            const el = await fixture(html`<mas-promotions-items-table .type=${TABLE_TYPE.CARDS}></mas-promotions-items-table>`);
+            sandbox.stub(el, 'repository').get(() => ({
+                refreshFragment: sandbox.stub().resolves(),
+                aem,
+            }));
+            el.viewOnlyFragments = [cardFragment];
+            await el.updateComplete;
+
+            await clickCreateAndWaitForDialog(el);
+            expect(el.fragmentHasEmptyGeosVariation).to.be.true;
+
+            const dialogWrapper = el.shadowRoot.querySelector('sp-dialog-wrapper.promo-variation-geos-dialog');
+            await dialogWrapper.updateComplete;
+            const confirmButton = dialogWrapper.shadowRoot.querySelector('sp-button[variant="accent"][slot="button"]');
+            expect(confirmButton.disabled).to.be.true;
+
+            el.promoVariationSelectedGeos = ['mas:pzn/country/ar'];
+            await el.updateComplete;
+            await dialogWrapper.updateComplete;
+            expect(confirmButton.disabled).to.be.false;
+
+            el.promoVariationSelectedGeos = [];
+            await el.updateComplete;
+            await dialogWrapper.updateComplete;
+            expect(confirmButton.disabled).to.be.true;
+        });
+
+        it('leaves Continue enabled when nothing is checked and there is no geo-less sibling', async () => {
             setupPromotionInEdit();
             const aem = createPromoVariationAem();
             const el = await fixture(html`<mas-promotions-items-table .type=${TABLE_TYPE.CARDS}></mas-promotions-items-table>`);
@@ -1422,12 +1342,12 @@ describe('MasPromotionsItemsTable', () => {
             await el.updateComplete;
 
             await clickCreateAndWaitForDialog(el);
-            el.shadowRoot.querySelector('sp-dialog-wrapper').dispatchEvent(new CustomEvent('confirm'));
-            await new Promise((r) => setTimeout(r, 20));
-            await el.updateComplete;
+            expect(el.fragmentHasEmptyGeosVariation).to.be.false;
 
-            expect(aem.createFragmentCopy.called).to.be.false;
-            expect(toastStub.getCalls().some((call) => call.args[0].content.includes('Select at least one geo'))).to.be.true;
+            const dialogWrapper = el.shadowRoot.querySelector('sp-dialog-wrapper.promo-variation-geos-dialog');
+            await dialogWrapper.updateComplete;
+            const confirmButton = dialogWrapper.shadowRoot.querySelector('sp-button[variant="accent"][slot="button"]');
+            expect(confirmButton.disabled).to.be.false;
         });
 
         it('shows error toast when createPromoVariation fails', async () => {

@@ -517,3 +517,29 @@ export function resolveContentTypeFilters(tags) {
     ];
     return { contentTypes, modelIds };
 }
+
+/**
+ * Runs `load` only when `computeKey()` differs from the last run — skips
+ * redundant re-fetches when the derived data would come out the same.
+ * @returns {(options: {
+ *   guard: () => boolean,
+ *   computeKey: () => unknown,
+ *   load: () => Promise<unknown>,
+ *   apply: (result: unknown) => void,
+ *   reset?: () => void,
+ * }) => Promise<void>}
+ */
+export function createKeyedAsyncLoader() {
+    let lastKey = null;
+    return async function runIfNeeded({ guard, computeKey, load, apply, reset }) {
+        if (!guard()) {
+            lastKey = null;
+            reset?.();
+            return;
+        }
+        const key = computeKey();
+        if (lastKey === key) return;
+        lastKey = key;
+        apply(await load());
+    };
+}

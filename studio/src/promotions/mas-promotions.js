@@ -14,10 +14,14 @@ import {
     canPublishPromotionNow,
     canSchedulePromotion,
     confirmPublishDespiteUnpublishedPromoVariations,
+    confirmUnpublishAlongsidePromoVariations,
     isPromotionExpiredForPublish,
     publishPromotionProject,
+    unpublishPromotionProject,
+    promotionDeleteConfirmMessage,
     PROMOTION_EXPIRED_PUBLISH_MESSAGE,
 } from './promotion-publish-utils.js';
+import { deleteAttachedPromoVariations, getAllAttachedPromoVariations } from './promotions-repository.js';
 import { PROMOTION_FIELD_TYPE_MAP } from './promotion-editor-utils.js';
 
 class MasPromotions extends LitElement {
@@ -465,9 +469,15 @@ class MasPromotions extends LitElement {
         if (!fragment.isPromotionPublished) {
             return;
         }
+        const { confirmed, variationPaths } = await confirmUnpublishAlongsidePromoVariations(
+            this.repository.aem,
+            fragment,
+            (title, message, options) => this.#showDialog(title, message, options),
+        );
+        if (!confirmed) return;
         try {
             this.loading = true;
-            const ok = await this.repository.unpublishFragment(fragment, true);
+            const ok = await unpublishPromotionProject(this.repository, fragment, variationPaths);
             if (ok) await this.loadPromotions();
         } finally {
             this.loading = false;
@@ -478,9 +488,11 @@ class MasPromotions extends LitElement {
         if (this.isDialogOpen) {
             return;
         }
+        const fragment = promotion.get();
+        const attachedVariations = await getAllAttachedPromoVariations(this.repository.aem, fragment);
         const confirmed = await this.#showDialog(
             'Confirm Delete',
-            `Are you sure you want to delete the promotion project "${promotion.get().title}"? This action cannot be undone.`,
+            promotionDeleteConfirmMessage(fragment.title, attachedVariations.length),
             {
                 confirmText: 'Delete',
                 cancelText: 'Cancel',
@@ -491,6 +503,7 @@ class MasPromotions extends LitElement {
         try {
             this.loading = true;
             showToast('Deleting promotion campaign...');
+            await deleteAttachedPromoVariations(this.repository.aem, fragment);
             await this.repository.deleteFragment(promotion, { startToast: false, endToast: false });
             const updatedPromotions = this.promotionsData.filter((p) => p.get().id !== promotion.get().id);
             this.promotionsData = updatedPromotions;

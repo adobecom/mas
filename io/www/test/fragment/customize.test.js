@@ -1758,6 +1758,129 @@ describe('customize promo variation', function () {
         expect(result.body.fields.title).to.equal('Region Only Title');
         expect(result.body.fields.badge).to.equal('REGION');
     });
+
+    it('should pick the geo-scoped sibling matching the request over an untagged (legacy) sibling', async function () {
+        const legacyVariation = {
+            id: 'legacy-var-id',
+            path: '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card',
+            fields: { title: 'Legacy Title', badge: 'LEGACY' },
+        };
+        const geoVariation = {
+            id: 'geo-var-id',
+            path: '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card-2',
+            fields: { title: 'Greece Title', badge: 'GEO', pznTags: ['mas:locale/en_GR'] },
+        };
+        const project = {
+            ...ACTIVE_PROJECT,
+            defaultVariations: { 'my-card': legacyVariation, 'my-card-2': geoVariation },
+            regionVariations: {},
+        };
+        const rootFragment = {
+            id: 'root-id',
+            path: '/content/dam/mas/sandbox/en_US/my-card',
+            fields: { title: 'Original Title', badge: 'ORIGINAL' },
+            references: {},
+            referencesTree: [],
+        };
+
+        const result = await processWithPromos(
+            {
+                ...FAKE_CONTEXT,
+                fragmentPath: 'my-card',
+                parsedLocale: 'en_US',
+                body: rootFragment,
+                locale: 'en_US',
+                country: 'GR',
+            },
+            project,
+        );
+
+        expect(result.status).to.equal(200);
+        expect(result.body.variationId).to.equal('geo-var-id');
+        expect(result.body.fields.title).to.equal('Greece Title');
+    });
+
+    it('should fall back to the untagged (legacy) sibling when no geo-scoped sibling matches the request', async function () {
+        const legacyVariation = {
+            id: 'legacy-var-id',
+            path: '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card',
+            fields: { title: 'Legacy Title', badge: 'LEGACY' },
+        };
+        const geoVariation = {
+            id: 'geo-var-id',
+            path: '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card-2',
+            fields: { title: 'Greece Title', badge: 'GEO', pznTags: ['mas:locale/en_GR'] },
+        };
+        const project = {
+            ...ACTIVE_PROJECT,
+            defaultVariations: { 'my-card': legacyVariation, 'my-card-2': geoVariation },
+            regionVariations: {},
+        };
+        const rootFragment = {
+            id: 'root-id',
+            path: '/content/dam/mas/sandbox/en_US/my-card',
+            fields: { title: 'Original Title', badge: 'ORIGINAL' },
+            references: {},
+            referencesTree: [],
+        };
+
+        const result = await processWithPromos(
+            {
+                ...FAKE_CONTEXT,
+                fragmentPath: 'my-card',
+                parsedLocale: 'en_US',
+                body: rootFragment,
+                locale: 'en_US',
+                country: 'FR',
+            },
+            project,
+        );
+
+        expect(result.status).to.equal(200);
+        expect(result.body.variationId).to.equal('legacy-var-id');
+        expect(result.body.fields.title).to.equal('Legacy Title');
+    });
+
+    it('should prefer a region-locale match over a country-only match among geo-scoped siblings', async function () {
+        const countryOnlyVariation = {
+            id: 'country-only-id',
+            path: '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card',
+            fields: { title: 'Country Only Title', pznTags: ['mas:country/GR'] },
+        };
+        const regionVariation = {
+            id: 'region-match-id',
+            path: '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card-2',
+            fields: { title: 'Region Match Title', pznTags: ['mas:locale/en_GR'] },
+        };
+        const project = {
+            ...ACTIVE_PROJECT,
+            defaultVariations: { 'my-card': countryOnlyVariation, 'my-card-2': regionVariation },
+            regionVariations: {},
+        };
+        const rootFragment = {
+            id: 'root-id',
+            path: '/content/dam/mas/sandbox/en_US/my-card',
+            fields: { title: 'Original Title', badge: 'ORIGINAL' },
+            references: {},
+            referencesTree: [],
+        };
+
+        const result = await processWithPromos(
+            {
+                ...FAKE_CONTEXT,
+                fragmentPath: 'my-card',
+                parsedLocale: 'en_US',
+                body: rootFragment,
+                locale: 'en_US',
+                country: 'GR',
+            },
+            project,
+        );
+
+        expect(result.status).to.equal(200);
+        expect(result.body.variationId).to.equal('region-match-id');
+        expect(result.body.fields.title).to.equal('Region Match Title');
+    });
 });
 
 const CARD_MODEL = { id: CARD_MODEL_ID };

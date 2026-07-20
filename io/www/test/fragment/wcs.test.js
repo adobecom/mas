@@ -570,3 +570,69 @@ describe('wcs OSI substitution', function () {
         expect(context.body.wcs.prod).to.have.property('B-us-mult');
     });
 });
+
+describe('wcs collection promos', function () {
+    let context = {};
+    let fetchStub;
+
+    const stubbedOffer = (name) => ({ resolvedOffers: [{ name }] });
+
+    beforeEach(function () {
+        fetchStub = sinon.stub(globalThis, 'fetch');
+        fetchStub.resolves(createResponse(200, stubbedOffer('default')));
+        context = {
+            api_key: 'testing_wcs',
+            locale: 'en_US',
+            wcsConfiguration: CONFIGURATION(),
+        };
+    });
+
+    afterEach(function () {
+        fetchStub.restore();
+    });
+
+    it('caches each card with its own promo when two cards have different promos', async function () {
+        context.body = {
+            prices: '<span data-wcs-osi="OSI-A"></span><span data-wcs-osi="OSI-B"></span>',
+            fields: {},
+            references: {
+                card1: { value: { fields: { osi: 'OSI-A', promoCode: 'PROMO_A' } } },
+                card2: { value: { fields: { osi: 'OSI-B', promoCode: 'PROMO_B' } } },
+            },
+        };
+        context = await wcs.process(context);
+        expect(context.body.wcs.prod).to.have.property('OSI-A-us-mult-promo_a');
+        expect(context.body.wcs.prod).to.have.property('OSI-B-us-mult-promo_b');
+        expect(context.body.wcs.prod).to.not.have.property('OSI-A-us-mult-promo_b');
+        expect(context.body.wcs.prod).to.not.have.property('OSI-B-us-mult-promo_a');
+    });
+
+    it('caches the plain offer for a no-promo card sharing a collection with a promoted card', async function () {
+        context.body = {
+            prices: '<span data-wcs-osi="OSI-A"></span><span data-wcs-osi="OSI-B"></span>',
+            fields: {},
+            references: {
+                card1: { value: { fields: { osi: 'OSI-A', promoCode: 'PROMO_A' } } },
+                card2: { value: { fields: { osi: 'OSI-B' } } },
+            },
+        };
+        context = await wcs.process(context);
+        expect(context.body.wcs.prod).to.have.property('OSI-A-us-mult-promo_a');
+        expect(context.body.wcs.prod).to.have.property('OSI-B-us-mult');
+        expect(context.body.wcs.prod).to.not.have.property('OSI-B-us-mult-promo_a');
+    });
+
+    it('never applies a collection card promo to a different cards bare osi', async function () {
+        context.body = {
+            prices: '<span data-wcs-osi="OSI-A"></span><span data-wcs-osi="OSI-BARE"></span>',
+            fields: {},
+            references: {
+                card1: { value: { fields: { osi: 'OSI-A', promoCode: 'PROMO_A' } } },
+            },
+        };
+        context = await wcs.process(context);
+        expect(context.body.wcs.prod).to.have.property('OSI-A-us-mult-promo_a');
+        expect(context.body.wcs.prod).to.have.property('OSI-BARE-us-mult');
+        expect(context.body.wcs.prod).to.not.have.property('OSI-BARE-us-mult-promo_a');
+    });
+});

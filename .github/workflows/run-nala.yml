@@ -208,22 +208,14 @@ jobs:
             - name: Set MAS_IO_URL when io/www has changes
               if: steps.filter.outputs.io-www == 'true'
               env:
-                  NS_OVERRIDE: ${{ secrets[format('AIO_WWW_NS_{0}', github.event.pull_request.user.login)] }}
-                  NS_PREFIX: ${{ secrets.AIO_WWW_NS }}
+                  ACTOR_NS: ${{ secrets[format('AIO_NS_{0}', github.event.pull_request.user.login)] }}
                   ACTOR_LOGIN: ${{ github.event.pull_request.user.login }}
               run: |
-                  if [ -n "$NS_OVERRIDE" ]; then
-                    ACTOR_NS="$NS_OVERRIDE"
-                    echo "Using AIO namespace: override for ${ACTOR_LOGIN}"
-                  else
-                    if [ -z "$NS_PREFIX" ]; then
-                      echo "::error::Missing required secret: AIO_WWW_NS"
-                      exit 1
-                    fi
-                    ACTOR_LOGIN_LC="$(printf '%s' "$ACTOR_LOGIN" | tr '[:upper:]' '[:lower:]')"
-                    ACTOR_NS="${NS_PREFIX}-${ACTOR_LOGIN_LC}"
-                    echo "Using AIO namespace: PR author (${ACTOR_LOGIN_LC})"
+                  if [ -z "$ACTOR_NS" ]; then
+                    echo "::error::Missing AIO namespace secret AIO_NS_${ACTOR_LOGIN} for PR author"
+                    exit 1
                   fi
+                  echo "Using AIO namespace for PR author ${ACTOR_LOGIN}"
                   echo "MAS_IO_URL=?mas-io-url=https://${ACTOR_NS}.adobeioruntime.net/api/v1/web/MerchAtScale" >> "$GITHUB_ENV"
 
             - name: Run Nala Docs Tests via gh.run.sh

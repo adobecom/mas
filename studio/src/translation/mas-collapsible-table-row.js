@@ -4,8 +4,12 @@ import { styles } from './mas-collapsible-table-row.css.js';
 import { Fragment } from '../aem/fragment.js';
 import { getItemTypeLabel, shouldIgnoreRowClickForSelection } from '../common/utils/render-utils.js';
 import { getItemsSelectionStore } from '../common/items-selection-store.js';
-import { loadCardVariations, fetchVariationByPath } from '../common/utils/items-loader.js';
+import { loadCardVariations, fetchVariationByPath, enrichPromoVariations } from '../common/utils/items-loader.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
+import { mergePromoReferencesIntoFragmentData } from '../promotions/promotions-repository.js';
+import { getPromotionInfo, getPromotionTagFromFragment, findPromotionProjectIdByTag } from '../promotions/promotion-model.js';
+import Store from '../store.js';
+import { PAGE_NAMES } from '../constants.js';
 
 export class MasCollapsibleTableRow extends LitElement {
     static styles = styles;
@@ -17,7 +21,8 @@ export class MasCollapsibleTableRow extends LitElement {
         viewOnly: { type: Boolean },
         isTopLevelExpanded: { type: Boolean },
         expandedVariationsPaths: { type: Set, state: true },
-        isLoadingVariations: { type: Boolean, state: true },
+        isLoadingGroupedVariations: { type: Boolean, state: true },
+        isLoadingPromoVariations: { type: Boolean, state: true },
         repository: { type: Object, state: true },
         getDisplayName: { type: Function },
         renderFragmentStatusCell: { type: Function },
@@ -25,7 +30,14 @@ export class MasCollapsibleTableRow extends LitElement {
         disableGroupedVariationSelection: { type: Boolean },
         hideLocaleTab: { type: Boolean },
         disableLocaleVariations: { type: Boolean },
+        promoVariations: { type: Array, state: true },
     };
+
+    #groupedActiveLoadCount = 0;
+    #promoActiveLoadCount = 0;
+    #promoLoadInProgress = false;
+    #loadToken = 0;
+    #referencesLoaded = false;
 
     constructor() {
         super();
@@ -35,11 +47,11 @@ export class MasCollapsibleTableRow extends LitElement {
         this.disableGroupedVariationSelection = false;
         this.hideLocaleTab = false;
         this.disableLocaleVariations = false;
-        this.referencesLoaded = false;
+        this.promoVariationsLoaded = false;
         if (!this.tabs) {
             this.tabs = [
                 { label: 'Locale', key: 'locale' },
-                { label: 'Promotion', key: 'promotion', disabled: true },
+                { label: 'Promotion', key: 'promotion' },
                 { label: 'Grouped variation', key: 'groupedVariation' },
             ];
         }
@@ -48,6 +60,7 @@ export class MasCollapsibleTableRow extends LitElement {
         this.expandedVariationsPaths = new Set();
         this.variationsController = new ReactiveController(this, [getItemsSelectionStore().groupedVariationsByParent]);
         this.selectedCardsController = new ReactiveController(this, [getItemsSelectionStore().selectedCards]);
+        this.promoVariations = [];
     }
 
     connectedCallback() {
@@ -62,8 +75,19 @@ export class MasCollapsibleTableRow extends LitElement {
         if (changedProperties.has('disableCardExpansion') && this.disableCardExpansion) {
             this.isTopLevelExpanded = false;
         }
-        if (changedProperties.has('isTopLevelExpanded') && this.isTopLevelExpanded) {
-            this.#loadReferencesIfNeeded();
+        if (changedProperties.has('topLevelCard')) {
+            const prev = changedProperties.get('topLevelCard');
+            if (prev?.id !== this.topLevelCard?.id) {
+                this.#loadToken++;
+                this.#referencesLoaded = false;
+                this.promoVariationsLoaded = false;
+                this.promoVariations = [];
+                this.#promoLoadInProgress = false;
+                this.#groupedActiveLoadCount = 0;
+                this.#promoActiveLoadCount = 0;
+                this.isLoadingGroupedVariations = false;
+                this.isLoadingPromoVariations = false;
+            }
         }
     }
 
@@ -81,8 +105,12 @@ export class MasCollapsibleTableRow extends LitElement {
         }
     }
 
+    get topLevelCardFragment() {
+        return new Fragment(this.topLevelCard);
+    }
+
     get variationPaths() {
-        return new Fragment(this.topLevelCard).getVariations() || [];
+        return this.topLevelCardFragment.getVariations() || [];
     }
 
     get topLevelCardVariationsByPaths() {
@@ -114,23 +142,26 @@ export class MasCollapsibleTableRow extends LitElement {
         return paths.length > 0 && paths.every((p) => this.selectedCards.includes(p));
     }
 
+    get promoVariationPaths() {
+        return this.promoVariations.map(({ path }) => path);
+    }
+
+    get somePromoVariationsSelected() {
+        return this.promoVariationPaths.some((path) => this.selectedCards.includes(path));
+    }
+
+    get allPromoVariationsSelected() {
+        return (
+            this.promoVariationPaths.length > 0 && this.promoVariationPaths.every((path) => this.selectedCards.includes(path))
+        );
+    }
+
     get someGroupedVariationsSelected() {
         return this.groupedVariationPaths.some((p) => this.selectedCards.includes(p));
     }
 
-    #toggleSelectAllGrouped(e) {
-        e.stopPropagation();
-        const paths = this.groupedVariationPaths;
-        const current = getItemsSelectionStore().selectedCards.value || [];
-        if (this.allGroupedVariationsSelected) {
-            getItemsSelectionStore().selectedCards.set(current.filter((p) => !paths.includes(p)));
-        } else {
-            getItemsSelectionStore().selectedCards.set([...new Set([...current, ...paths])]);
-        }
-    }
-
     get groupedVariationTabTemplate() {
-        if (this.isLoadingVariations) {
+        if (this.isLoadingGroupedVariations) {
             return html` <div class="loading-container--flex">
                 <sp-progress-circle label="Loading variations" indeterminate size="l"></sp-progress-circle>
             </div>`;
@@ -145,7 +176,7 @@ export class MasCollapsibleTableRow extends LitElement {
                               ?checked=${this.allGroupedVariationsSelected}
                               ?indeterminate=${!this.allGroupedVariationsSelected && this.someGroupedVariationsSelected}
                               ?disabled=${this.disableGroupedVariationSelection}
-                              @change=${this.#toggleSelectAllGrouped}
+                              @change=${(e) => this.#toggleSelectAllVariations(e, 'grouped')}
                           ></sp-checkbox>
                       </sp-table-cell>
                       <sp-table-cell class="select-all-label" colspan="5">
@@ -197,7 +228,7 @@ export class MasCollapsibleTableRow extends LitElement {
     }
 
     get localeTabTemplate() {
-        const localeVariations = this.disableLocaleVariations ? [] : new Fragment(this.topLevelCard).listLocaleVariations();
+        const localeVariations = this.disableLocaleVariations ? [] : this.topLevelCardFragment.listLocaleVariations();
         if (!localeVariations.length) {
             return html`<div class="empty-grouped-variations">No locale variations found</div>`;
         }
@@ -219,7 +250,65 @@ export class MasCollapsibleTableRow extends LitElement {
     }
 
     get promotionTabTemplate() {
-        return html`<div>To be implemented</div>`;
+        if (this.isLoadingPromoVariations) {
+            return html` <div class="loading-container--flex">
+                <sp-progress-circle label="Loading variations" indeterminate size="l"></sp-progress-circle>
+            </div>`;
+        }
+        return this.promoVariations.length === 0
+            ? html`<div class="empty-promotion-variations">No promotion variations found</div>`
+            : html`<sp-table>
+                  <sp-table-row class="select-all-row">
+                      <sp-table-cell class="table-icon-cell">
+                          <sp-checkbox
+                              ?checked=${this.allPromoVariationsSelected}
+                              ?indeterminate=${!this.allPromoVariationsSelected && this.somePromoVariationsSelected}
+                              @change=${(e) => this.#toggleSelectAllVariations(e, 'promo')}
+                          ></sp-checkbox>
+                      </sp-table-cell>
+                      <sp-table-cell class="select-all-label" colspan="5">
+                          <span>Select all</span>
+                          <span class="fragment-count">${this.promoVariationPaths.length} fragment(s)</span>
+                      </sp-table-cell>
+                  </sp-table-row>
+                  <sp-table-body>
+                      ${repeat(this.promoVariations, (variation) => {
+                          const { path } = variation;
+                          const isSelected = this.selectedCards.includes(path);
+                          const isExpanded = this.expandedVariationsPaths.has(path);
+                          return html` <sp-table-row
+                                  value=${path}
+                                  ?selected=${isSelected}
+                                  aria-selected=${isSelected ? 'true' : 'false'}
+                                  @click=${(event) => this.#onRowClickForSelection(event, path)}
+                              >
+                                  <sp-table-cell class="table-icon-cell">
+                                      <sp-button
+                                          class="expand-button"
+                                          icon-only
+                                          quiet
+                                          variant="secondary"
+                                          @click=${(e) => this.#toggleExpandVariation(e, path)}
+                                      >
+                                          ${isExpanded
+                                              ? html`<sp-icon-chevron-down></sp-icon-chevron-down>`
+                                              : html`<sp-icon-chevron-right></sp-icon-chevron-right>`}
+                                      </sp-button>
+                                  </sp-table-cell>
+                                  <sp-table-cell class="table-icon-cell">
+                                      <sp-checkbox
+                                          value=${path}
+                                          ?checked=${isSelected}
+                                          @change=${(event) => this.#toggleSelect(event, path)}
+                                      ></sp-checkbox>
+                                  </sp-table-cell>
+                                  ${repeat(this.cells, (cell) => this[`render${cell}`](variation) ?? nothing)}
+                              </sp-table-row>
+
+                              ${isExpanded ? this.renderPromoVariationDetailsRow(variation) : nothing}`;
+                      })}
+                  </sp-table-body>
+              </sp-table>`;
     }
 
     get viewOnlyTemplate() {
@@ -288,15 +377,18 @@ export class MasCollapsibleTableRow extends LitElement {
     renderTags(item) {
         const tagNames = item?.fieldTags?.map(({ name }) => name) || [];
         if (!tagNames.length) return html`<sp-table-cell>no tags</sp-table-cell>`;
-        return html` <sp-table-cell class="tags-cell">
-            <div class="tags-label">Grouped variation tags</div>
+        return html`<sp-table-cell class="details-cell">
+            <div class="details-label tags-label">Grouped variation tags</div>
             <sp-tags>${tagNames.map((tagName) => html`<sp-tag>${tagName}</sp-tag>`)}</sp-tags>
         </sp-table-cell>`;
     }
 
     renderPromoCode(item) {
         const code = item?.fields?.find((field) => field.name === 'promoCode')?.values[0] || 'no promo code';
-        return html`<sp-table-cell>${code}</sp-table-cell>`;
+        return html`<sp-table-cell class="details-cell">
+            <div class="details-label">Promo code</div>
+            <div>${code}</div>
+        </sp-table-cell>`;
     }
 
     renderStatus(item) {
@@ -345,26 +437,84 @@ export class MasCollapsibleTableRow extends LitElement {
         }
     };
 
-    #loadReferencesIfNeeded() {
-        if (this.disableLocaleVariations || this.referencesLoaded || !this.topLevelCard?.id) return;
-        this.referencesLoaded = true;
-        this.repository?.aem?.sites?.cf?.fragments?.getById?.(this.topLevelCard.id).then((hydrated) => {
-            if (hydrated) {
-                this.topLevelCard = { ...this.topLevelCard, ...hydrated };
-            }
-        });
+    #toggleSelectAllVariations(e, variationType) {
+        e.stopPropagation();
+        if (!['grouped', 'promo'].includes(variationType)) return;
+        const paths = this[`${variationType}VariationPaths`];
+        const current = getItemsSelectionStore().selectedCards.value || [];
+        if (this[`all${variationType.charAt(0).toUpperCase() + variationType.slice(1)}VariationsSelected`]) {
+            getItemsSelectionStore().selectedCards.set(current.filter((p) => !paths.includes(p)));
+        } else {
+            getItemsSelectionStore().selectedCards.set([...new Set([...current, ...paths])]);
+        }
+    }
+
+    #loadTopLevelFragmentReferences() {
+        if (this.disableLocaleVariations || this.#referencesLoaded || !this.topLevelCard?.id || !this.repository) return;
+        this.#referencesLoaded = true;
+        this.repository.aem.sites.cf.fragments
+            .getById(this.topLevelCard.id)
+            .then((hydrated) => {
+                if (hydrated) {
+                    this.topLevelCard = { ...this.topLevelCard, ...hydrated };
+                }
+            })
+            .catch(() => {
+                this.#referencesLoaded = false;
+            });
+    }
+
+    async #loadPromoVariations() {
+        if (this.promoVariationsLoaded || this.#promoLoadInProgress || !this.topLevelCard?.id) return;
+        const token = this.#loadToken;
+        this.#promoLoadInProgress = true;
+        this.#promoActiveLoadCount++;
+        this.isLoadingPromoVariations = true;
+        mergePromoReferencesIntoFragmentData(this.repository.aem, this.topLevelCard, () => this.repository.loadPromotions())
+            .then(async (mergedFragmentData) => {
+                if (token !== this.#loadToken) return;
+                const promoOnly = new Fragment(mergedFragmentData).listPromoVariations();
+                const enriched = await enrichPromoVariations(promoOnly, this.topLevelCard, {
+                    getDisplayName: this.getDisplayName,
+                });
+                if (token !== this.#loadToken) return;
+                this.promoVariationsLoaded = true;
+                this.promoVariations = enriched;
+                this.expandedVariationsPaths = new Set([...this.expandedVariationsPaths, ...this.promoVariationPaths]);
+            })
+            .catch((error) => {
+                if (token !== this.#loadToken) return;
+                console.error('Failed to load promotion variations:', error);
+                this.dispatchEvent(
+                    new CustomEvent('show-toast', {
+                        detail: { text: 'Failed to load promotion variations', variant: 'negative' },
+                        bubbles: true,
+                        composed: true,
+                    }),
+                );
+            })
+            .finally(() => {
+                if (token !== this.#loadToken) return;
+                this.#promoLoadInProgress = false;
+                this.isLoadingPromoVariations = --this.#promoActiveLoadCount > 0;
+            });
     }
 
     #toggleExpandTopLevel(e) {
         e.stopPropagation();
         this.isTopLevelExpanded = !this.isTopLevelExpanded;
+        if (this.isTopLevelExpanded && !this.viewOnly) {
+            this.selectedTabKey === 'promotion' ? this.#loadPromoVariations() : this.#loadTopLevelFragmentReferences();
+        }
+        if (!this.isTopLevelExpanded) return;
         if (this.isGroupedVariation) {
             if (getItemsSelectionStore().groupedVariationsData.value?.get(this.topLevelCard.path)) return;
-            this.isLoadingVariations = true;
+            this.#groupedActiveLoadCount++;
+            this.isLoadingGroupedVariations = true;
             fetchVariationByPath(this.topLevelCard.path, this.repository, {
                 getDisplayName: this.getDisplayName,
             }).finally(() => {
-                this.isLoadingVariations = false;
+                this.isLoadingGroupedVariations = --this.#groupedActiveLoadCount > 0;
             });
         } else {
             if (
@@ -372,11 +522,12 @@ export class MasCollapsibleTableRow extends LitElement {
                 !this.variationPaths.length
             )
                 return;
-            this.isLoadingVariations = true;
+            this.#groupedActiveLoadCount++;
+            this.isLoadingGroupedVariations = true;
             loadCardVariations(this.topLevelCard.path, this.variationPaths, this.repository, {
                 getDisplayName: this.getDisplayName,
             }).finally(() => {
-                this.isLoadingVariations = false;
+                this.isLoadingGroupedVariations = --this.#groupedActiveLoadCount > 0;
             });
         }
     }
@@ -394,7 +545,7 @@ export class MasCollapsibleTableRow extends LitElement {
     }
 
     renderGroupedVariationDetailsRow(variationPath) {
-        return this.isLoadingVariations
+        return this.isLoadingGroupedVariations
             ? html`<sp-table-row class="variation-details-row variation-details-row--loading">
                   <sp-table-cell class="table-icon-cell"></sp-table-cell>
                   <sp-table-cell class="table-icon-cell"></sp-table-cell>
@@ -415,8 +566,48 @@ export class MasCollapsibleTableRow extends LitElement {
               </sp-table-row>`;
     }
 
+    #getPromoProjectUrl(variation) {
+        const promotionTagId = getPromotionTagFromFragment(variation);
+        if (!promotionTagId) return null;
+        const projects =
+            Store.promotions.list.data
+                .get()
+                ?.map((store) => store.get())
+                .filter(Boolean) || [];
+        const id = findPromotionProjectIdByTag(promotionTagId, projects);
+        if (!id) return null;
+        return `#page=${PAGE_NAMES.PROMOTIONS_EDITOR}&promotionId=${encodeURIComponent(id)}`;
+    }
+
+    renderPromoVariationDetailsRow(variation) {
+        const { promotionName, promoProject } = getPromotionInfo(variation);
+        const promoProjectUrl = this.#getPromoProjectUrl(variation);
+        return html`<sp-table-row class="variation-details-row">
+            <sp-table-cell class="table-icon-cell"></sp-table-cell>
+            <sp-table-cell class="table-icon-cell"></sp-table-cell>
+            <sp-table-cell class="details-cell">
+                <div class="details-label">Promotion</div>
+                <div>${promotionName}</div>
+            </sp-table-cell>
+            <sp-table-cell></sp-table-cell>
+            <sp-table-cell class="details-cell">
+                <div class="details-label">Promotion project</div>
+                <div>
+                    ${promoProjectUrl
+                        ? html`<a href=${promoProjectUrl} target="_blank" rel="noopener noreferrer">${promoProject}</a>`
+                        : promoProject}
+                </div>
+            </sp-table-cell>
+            <sp-table-cell></sp-table-cell>
+            <sp-table-cell></sp-table-cell>
+        </sp-table-row>`;
+    }
+
     #handleTabChange({ target: { selected } }) {
         this.selectedTabKey = selected;
+        if (selected === 'promotion' && this.isTopLevelExpanded && !this.viewOnly) {
+            this.#loadPromoVariations();
+        }
     }
 
     render() {

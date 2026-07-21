@@ -313,6 +313,31 @@ describe('MasSelectItemsTable', () => {
             await el.updateComplete;
             expect(el.itemsToDisplay).to.deep.equal([]);
         });
+
+        it('should filter out promo variation items when hidePromoVariations is true', async () => {
+            const el = await fixture(
+                html`<mas-select-items-table type="cards" .hidePromoVariations=${true}></mas-select-items-table>`,
+            );
+            await el.updateComplete;
+            const promoCard = createMockCard('/content/dam/mas/acom/en_US/promotions/black-friday/promo-card', 'Promo Card');
+            const regularCard = createMockCard('/content/dam/mas/acom/en_US/cards/regular', 'Regular Card');
+            setupCardsInStore([promoCard, regularCard]);
+            await el.updateComplete;
+            expect(el.itemsToDisplay.length).to.equal(1);
+            expect(el.itemsToDisplay[0].path).to.equal(regularCard.path);
+        });
+
+        it('should include promo variation items when hidePromoVariations is false', async () => {
+            const el = await fixture(
+                html`<mas-select-items-table type="cards" .hidePromoVariations=${false}></mas-select-items-table>`,
+            );
+            await el.updateComplete;
+            const promoCard = createMockCard('/content/dam/mas/acom/en_US/promotions/black-friday/promo-card', 'Promo Card');
+            const regularCard = createMockCard('/content/dam/mas/acom/en_US/cards/regular', 'Regular Card');
+            setupCardsInStore([promoCard, regularCard]);
+            await el.updateComplete;
+            expect(el.itemsToDisplay.length).to.equal(2);
+        });
     });
 
     describe('rendering - loading state', () => {

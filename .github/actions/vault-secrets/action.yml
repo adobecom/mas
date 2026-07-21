@@ -1,0 +1,103 @@
+name: 'Vault secrets'
+description: 'Fetch secrets from the corporate Vault (AppRole auth, KV v2) into files and/or masked env vars, via hashicorp/vault-action'
+
+inputs:
+    role-id:
+        description: 'AppRole role_id'
+        required: true
+    secret-id:
+        description: 'AppRole secret_id'
+        required: true
+    path:
+        description: 'Secret path relative to the mount (no leading "data/"). Lowercased before lookup.'
+        required: true
+    file-fields:
+        description: 'Comma-separated field=filename pairs written verbatim as files (e.g. env=.env,aio=.aio).'
+        required: false
+        default: ''
+    env-fields:
+        description: 'Comma-separated field names exported as masked env vars (UPPERCASED field name, e.g. namespace,odin_bucket -> $NAMESPACE, $ODIN_BUCKET).'
+        required: false
+        default: ''
+    working-directory:
+        description: 'Directory the file-fields are written to'
+        required: false
+        default: '.'
+
+runs:
+    using: 'composite'
+    steps:
+        # Build the hashicorp/vault-action `secrets` mapping from the field lists.
+        # file-fields are fetched into temp $VAULT_FILE_<FIELD> vars (written to files
+        # in the last step); env-fields are fetched straight into $<FIELD> vars.
+        - name: Build Vault secrets mapping
+          id: build
+          shell: bash
+          env:
+              SECRET_PATH: ${{ inputs.path }}
+              FILE_FIELDS: ${{ inputs.file-fields }}
+              ENV_FIELDS: ${{ inputs.env-fields }}
+          run: |
+              set -euo pipefail
+              secret_path=$(printf '%s' "$SECRET_PATH" | tr '[:upper:]' '[:lower:]')
+              base="cloudtech_wcms/data/$secret_path"
+              mapping=""
+
+              IFS=',' read -ra ff <<< "$FILE_FIELDS" || true
+              for p in "${ff[@]:-}"; do
+                  [ -z "$p" ] && continue
+                  key="${p%%=*}"
+                  upper=$(printf '%s' "$key" | tr '[:lower:]' '[:upper:]')
+                  # vault-action separates entries with ';', not newlines
+                  mapping+="$base $key | VAULT_FILE_$upper ;"$'\n'
+              done
+
+              IFS=',' read -ra ef <<< "$ENV_FIELDS" || true
+              for key in "${ef[@]:-}"; do
+                  [ -z "$key" ] && continue
+                  upper=$(printf '%s' "$key" | tr '[:lower:]' '[:upper:]')
+                  mapping+="$base $key | $upper ;"$'\n'
+              done
+
+              if [ -z "$mapping" ]; then
+                  echo "::error::vault-secrets: provide at least one of file-fields or env-fields"
+                  exit 1
+              fi
+
+              {
+                  echo "mapping<<__VAULT_MAP_EOF__"
+                  printf '%s' "$mapping"
+                  echo "__VAULT_MAP_EOF__"
+              } >> "$GITHUB_OUTPUT"
+
+        # sha-commit is hashicorp/vault-action@v4.0.0
+        - name: Fetch secrets from Vault
+          uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc
+          with:
+              url: https://vault-amer.adobe.net
+              method: approle
+              roleId: ${{ inputs.role-id }}
+              secretId: ${{ inputs.secret-id }}
+              exportEnv: true
+              secrets: ${{ steps.build.outputs.mapping }}
+
+        # Write file-fields to disk, then clear their temp env vars.
+        - name: Write file-field secrets
+          if: ${{ inputs.file-fields != '' }}
+          shell: bash
+          working-directory: ${{ inputs.working-directory }}
+          env:
+              FILE_FIELDS: ${{ inputs.file-fields }}
+          run: |
+              set -eo pipefail
+              IFS=',' read -ra ff <<< "$FILE_FIELDS" || true
+              for p in "${ff[@]}"; do
+                  [ -z "$p" ] && continue
+                  key="${p%%=*}"
+                  fname="${p#*=}"
+                  upper=$(printf '%s' "$key" | tr '[:lower:]' '[:upper:]')
+                  var="VAULT_FILE_$upper"
+                  printf '%s' "${!var}" > "$fname"
+                  echo "Wrote Vault field '$key' to $(pwd)/$fname"
+                  echo "$var=" >> "$GITHUB_ENV"
+              done

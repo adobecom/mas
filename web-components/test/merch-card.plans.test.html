@@ -260,6 +260,18 @@
                             ),
                         ).to.exist;
                     });
+                    it('should use card title as modal trigger', async () => {
+                        const [masCommerceService, ccAllApps] =
+                            getTemplateContent('fragment-photography-plans');
+                        container.append(masCommerceService, ccAllApps);
+                        await oneEvent(ccAllApps, 'mas:ready');
+                        await delay(50);
+                        expect(
+                            ccAllApps.titleElement.classList.contains(
+                                'modal-trigger',
+                            ),
+                        ).to.be.true;
+                    });
                     it('should render addon checkbox', () => {
                         const [masCommerceService, photoshopWithAddon] =
                             getTemplateContent('photoshop-with-addon');

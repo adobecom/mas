@@ -367,6 +367,43 @@ describe('MAS Icon Picker Modal', () => {
         expect(saveFired).to.be.false;
     });
 
+    it('should dispatch save when altHtml contains only an icon-button', async () => {
+        const el = await fixture(html`<mas-icon-picker-modal open></mas-icon-picker-modal>`, {
+            parentNode: spTheme(),
+        });
+
+        el.selectedTab = 'icons';
+        el.selectedProductId = null;
+        el.alt = '';
+        el.altHtml = '<p><span class="icon-button" data-tooltip="Info"></span></p>';
+        await el.updateComplete;
+
+        const listener = oneEvent(el, 'save');
+        el.shadowRoot.querySelector('sp-button[variant="accent"]').click();
+        const event = await listener;
+
+        expect(event.detail.alt).to.include('icon-button');
+        expect(el.open).to.be.false;
+    });
+
+    it('should dispatch save from URL tab when altHtml contains only an icon-button', async () => {
+        const el = await fixture(html`<mas-icon-picker-modal open></mas-icon-picker-modal>`, {
+            parentNode: spTheme(),
+        });
+
+        el.selectedTab = 'url';
+        el.icon = '';
+        el.alt = '';
+        el.altHtml = '<p><span class="icon-button" data-tooltip="Info"></span></p>';
+        await el.updateComplete;
+
+        const listener = oneEvent(el, 'save');
+        el.shadowRoot.querySelector('sp-button[variant="accent"]').click();
+        const event = await listener;
+
+        expect(event.detail.alt).to.include('icon-button');
+    });
+
     it('should select a spectrum icon item from the grid', async () => {
         const el = await fixture(html`<mas-icon-picker-modal open></mas-icon-picker-modal>`, {
             parentNode: spTheme(),

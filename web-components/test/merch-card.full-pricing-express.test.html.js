@@ -9,6 +9,9 @@ import { appendMiloStyles, delay } from './utils.js';
 import { mockIms } from './mocks/ims.js';
 import { withWcs } from './mocks/wcs.js';
 
+import '@spectrum-web-components/tooltip/sp-tooltip.js';
+import '@spectrum-web-components/overlay/overlay-trigger.js';
+
 const skipTests = sessionStorage.getItem('skipTests');
 
 runTests(async () => {
@@ -597,6 +600,18 @@ runTests(async () => {
                 const aemFragment = card.querySelector('aem-fragment');
                 expect(aemFragment).to.exist;
                 expect(aemFragment.hasAttribute('fragment')).to.be.true;
+            });
+        });
+
+        describe('Spectrum tooltip', () => {
+            it('should use spectrum for tooltip', async () => {
+                const card = document.querySelector(
+                    'merch-card[id="025dfceb-c035-45b7-8ea1-8feed25c8009"]',
+                );
+                const overlayTrigger = card
+                    .querySelector('mas-mnemonic')
+                    .shadowRoot?.querySelector('overlay-trigger');
+                expect(overlayTrigger).to.exist;
             });
         });
     });

@@ -54,9 +54,10 @@ function makeHydratedProject({
     fragmentPath = '/content/dam/mas/acom/en_US/offers/offer-1',
     promoCode = 'PROMO10',
     offers = [],
+    title = null,
 } = {}) {
     return {
-        fields: { fragments: [fragmentId], promoCode, offers },
+        fields: { fragments: [fragmentId], promoCode, offers, title },
         references: {
             [fragmentId]: {
                 type: 'content-fragment',
@@ -159,6 +160,16 @@ describe('promotions', () => {
             expect(result.activeProjects[0].id).to.equal('proj-1');
             expect(result.activeProjects[0].fragmentPaths).to.have.length(1);
             expect(result.activeProjects[0].promoCode).to.equal('SAVE20');
+        });
+
+        it('carries the project title through hydration', async () => {
+            const project = makeProject({ id: 'proj-1', surfaces: ['acom'], geos: ['/content/cq:tags/mas/locale/en_US'] });
+            const hydrated = makeHydratedProject({ title: 'Summer Sale 2026' });
+            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+            fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
+
+            const result = await promotionsTransformer.init(createContext({ regionLocale: 'en_US' }));
+            expect(result.activeProjects[0].title).to.equal('Summer Sale 2026');
         });
 
         it('ignores instant when not in preview mode', async () => {
@@ -538,6 +549,206 @@ describe('promotions', () => {
 
             const result = await promotionsTransformer.init(createContext());
             expect(result.activeProjects[0].defaultVariations).to.have.keys(['card-1']);
+        });
+
+        it('places seasonal promos (with endDate) before evergreen promos (no endDate)', async () => {
+            const evergreen = makeProject({
+                id: 'proj-evergreen',
+                path: '/content/dam/mas/promotions/evergreen',
+                surfaces: ['acom'],
+                geos: [],
+                startDate: START,
+                endDate: null,
+                tags: ['mas:promotion/evergreen'],
+            });
+            const seasonal = makeProject({
+                id: 'proj-seasonal',
+                path: '/content/dam/mas/promotions/seasonal',
+                surfaces: ['acom'],
+                geos: [],
+                startDate: START,
+                endDate: END,
+                tags: ['mas:promotion/seasonal'],
+            });
+            const hydratedEvergreen = makeHydratedProject({
+                fragmentId: 'f-eg',
+                fragmentPath: '/content/dam/mas/acom/en_US/offers/evergreen-offer',
+            });
+            const hydratedSeasonal = makeHydratedProject({
+                fragmentId: 'f-s',
+                fragmentPath: '/content/dam/mas/acom/en_US/offers/seasonal-offer',
+            });
+            // Folder returns evergreen first (higher folder position), seasonal second
+            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [evergreen, seasonal] }));
+            fetchStub.withArgs(hydrateUrl('proj-evergreen')).returns(createResponse(200, hydratedEvergreen));
+            fetchStub.withArgs(hydrateUrl('proj-seasonal')).returns(createResponse(200, hydratedSeasonal));
+
+            const result = await promotionsTransformer.init(createContext());
+            expect(result.activeProjects).to.have.length(2);
+            // Seasonal must come first despite being second in folder order
+            expect(result.activeProjects[0].id).to.equal('proj-seasonal');
+            expect(result.activeProjects[1].id).to.equal('proj-evergreen');
+        });
+
+        it('preserves relative folder order within seasonal promos and within evergreen promos', async () => {
+            const seasonal1 = makeProject({
+                id: 'seasonal-1',
+                path: '/content/dam/mas/promotions/seasonal-1',
+                surfaces: ['acom'],
+                geos: [],
+                startDate: START,
+                endDate: END,
+                tags: ['mas:promotion/seasonal-1'],
+            });
+            const evergreen1 = makeProject({
+                id: 'evergreen-1',
+                path: '/content/dam/mas/promotions/evergreen-1',
+                surfaces: ['acom'],
+                geos: [],
+                startDate: START,
+                endDate: null,
+                tags: ['mas:promotion/evergreen-1'],
+            });
+            const seasonal2 = makeProject({
+                id: 'seasonal-2',
+                path: '/content/dam/mas/promotions/seasonal-2',
+                surfaces: ['acom'],
+                geos: [],
+                startDate: START,
+                endDate: END,
+                tags: ['mas:promotion/seasonal-2'],
+            });
+            const evergreen2 = makeProject({
+                id: 'evergreen-2',
+                path: '/content/dam/mas/promotions/evergreen-2',
+                surfaces: ['acom'],
+                geos: [],
+                startDate: START,
+                endDate: null,
+                tags: ['mas:promotion/evergreen-2'],
+            });
+            // Folder order: seasonal-1, evergreen-1, seasonal-2, evergreen-2
+            fetchStub
+                .withArgs(FOLDER_URL)
+                .returns(createResponse(200, { items: [seasonal1, evergreen1, seasonal2, evergreen2] }));
+            fetchStub
+                .withArgs(hydrateUrl('seasonal-1'))
+                .returns(
+                    createResponse(
+                        200,
+                        makeHydratedProject({ fragmentId: 'f1', fragmentPath: '/content/dam/mas/acom/en_US/offers/a' }),
+                    ),
+                );
+            fetchStub
+                .withArgs(hydrateUrl('evergreen-1'))
+                .returns(
+                    createResponse(
+                        200,
+                        makeHydratedProject({ fragmentId: 'f2', fragmentPath: '/content/dam/mas/acom/en_US/offers/b' }),
+                    ),
+                );
+            fetchStub
+                .withArgs(hydrateUrl('seasonal-2'))
+                .returns(
+                    createResponse(
+                        200,
+                        makeHydratedProject({ fragmentId: 'f3', fragmentPath: '/content/dam/mas/acom/en_US/offers/c' }),
+                    ),
+                );
+            fetchStub
+                .withArgs(hydrateUrl('evergreen-2'))
+                .returns(
+                    createResponse(
+                        200,
+                        makeHydratedProject({ fragmentId: 'f4', fragmentPath: '/content/dam/mas/acom/en_US/offers/d' }),
+                    ),
+                );
+
+            const result = await promotionsTransformer.init(createContext());
+            expect(result.activeProjects).to.have.length(4);
+            // Seasonal group first (folder order preserved within group), then evergreen group
+            expect(result.activeProjects.map((p) => p.id)).to.deep.equal([
+                'seasonal-1',
+                'seasonal-2',
+                'evergreen-1',
+                'evergreen-2',
+            ]);
+        });
+
+        it('does not reorder folder order when all matched projects are evergreen', async () => {
+            const evergreen1 = makeProject({
+                id: 'evergreen-1',
+                path: '/content/dam/mas/promotions/evergreen-1',
+                surfaces: ['acom'],
+                geos: [],
+                startDate: START,
+                endDate: null,
+                tags: ['mas:promotion/evergreen-1'],
+            });
+            const evergreen2 = makeProject({
+                id: 'evergreen-2',
+                path: '/content/dam/mas/promotions/evergreen-2',
+                surfaces: ['acom'],
+                geos: [],
+                startDate: START,
+                endDate: null,
+                tags: ['mas:promotion/evergreen-2'],
+            });
+            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [evergreen1, evergreen2] }));
+            fetchStub
+                .withArgs(hydrateUrl('evergreen-1'))
+                .returns(
+                    createResponse(
+                        200,
+                        makeHydratedProject({ fragmentId: 'f1', fragmentPath: '/content/dam/mas/acom/en_US/offers/a' }),
+                    ),
+                );
+            fetchStub
+                .withArgs(hydrateUrl('evergreen-2'))
+                .returns(
+                    createResponse(
+                        200,
+                        makeHydratedProject({ fragmentId: 'f2', fragmentPath: '/content/dam/mas/acom/en_US/offers/b' }),
+                    ),
+                );
+
+            const result = await promotionsTransformer.init(createContext());
+            expect(result.activeProjects.map((p) => p.id)).to.deep.equal(['evergreen-1', 'evergreen-2']);
+        });
+
+        it('sorts by most-recent startDate first, within both the seasonal and evergreen buckets', async () => {
+            const projects = ['seasonal', 'evergreen'].flatMap((bucket) =>
+                ['older', 'newer'].map((age) =>
+                    makeProject({
+                        id: `${bucket}-${age}`,
+                        path: `/content/dam/mas/promotions/${bucket}-${age}`,
+                        surfaces: ['acom'],
+                        geos: [],
+                        startDate: age === 'older' ? '2020-01-01T00:00:00Z' : '2022-06-01T00:00:00Z',
+                        endDate: bucket === 'seasonal' ? END : null,
+                        tags: [`mas:promotion/${bucket}-${age}`],
+                    }),
+                ),
+            );
+            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: projects }));
+            projects.forEach(({ id }) =>
+                fetchStub
+                    .withArgs(hydrateUrl(id))
+                    .returns(
+                        createResponse(
+                            200,
+                            makeHydratedProject({ fragmentId: id, fragmentPath: `/content/dam/mas/acom/en_US/offers/${id}` }),
+                        ),
+                    ),
+            );
+
+            const result = await promotionsTransformer.init(createContext());
+            expect(result.activeProjects.map((p) => p.id)).to.deep.equal([
+                'seasonal-newer',
+                'seasonal-older',
+                'evergreen-newer',
+                'evergreen-older',
+            ]);
         });
     });
 

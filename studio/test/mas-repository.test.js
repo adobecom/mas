@@ -909,6 +909,7 @@ describe('MasRepository dictionary helpers', () => {
             });
             const { default: Store } = await import('../src/store.js');
             const originalProfile = Store.profile.value;
+            const originalExpandedId = Store.fragments.expandedId.get();
             Store.profile.set({ name: 'test-user' });
             let dataValue = [];
             const mockDataStore = {
@@ -928,8 +929,10 @@ describe('MasRepository dictionary helpers', () => {
                 expect(getByIdStub.calledOnce).to.be.true;
                 expect(getByIdStub.firstCall.args[0]).to.equal('12345678-1234-1234-1234-123456789012');
                 expect(searchStub.called).to.be.false;
+                expect(Store.fragments.expandedId.get()).to.equal('12345678-1234-1234-1234-123456789012');
             } finally {
                 Store.profile.set(originalProfile);
+                Store.fragments.expandedId.set(originalExpandedId);
                 Store.fragments.list.data = originalData;
                 Store.folders.data.set(originalFolders);
             }
@@ -1370,6 +1373,32 @@ describe('MasRepository dictionary helpers', () => {
                 }
             });
 
+            it('fetches promo variation parent with references=direct-hydrated so Promotions tab is populated', async () => {
+                const repository = createFullRepository();
+                repository.page = { value: PAGE_NAMES.CONTENT };
+                const variationPath = `${ROOT_PATH}/acom/en_US/promotions/summer-sale/my-card`;
+                const parentPath = `${ROOT_PATH}/acom/en_US/my-card`;
+                const variationFragment = createFragment({ id: variationUuid, path: variationPath, fields: [] });
+                const parentFragment = createFragment({ id: parentUuid, path: parentPath, fields: [] });
+                repository.search = { value: { path: 'acom', query: variationUuid } };
+                repository.filters = { value: { locale: 'en_US', tags: '' } };
+                const getByIdStub = sandbox.stub().resolves(variationFragment);
+                const getByPathStub = sandbox.stub().resolves(parentFragment);
+                repository.aem = createAemMock({
+                    fragments: { getById: getByIdStub, getByPath: getByPathStub, search: sandbox.stub() },
+                });
+                const { restore } = await setupVariationUuidSearch();
+                try {
+                    await repository.searchFragments();
+                    expect(
+                        getByPathStub.calledOnceWith(parentPath, { references: 'direct-hydrated' }),
+                        'getByPath must be called with references=direct-hydrated for promo variation parent',
+                    ).to.be.true;
+                } finally {
+                    restore();
+                }
+            });
+
             it('clears list and stores when variation UUID parent is not found', async () => {
                 const repository = createFullRepository();
                 repository.page = { value: PAGE_NAMES.CONTENT };
@@ -1440,6 +1469,109 @@ describe('MasRepository dictionary helpers', () => {
                     expect(Store.fragments.variationSearchTab.get()).to.be.null;
                 } finally {
                     restore();
+                }
+            });
+
+            it('merges promo variation references when searching by parent fragment UUID', async () => {
+                const repository = createFullRepository();
+                repository.page = { value: PAGE_NAMES.CONTENT };
+                const uuid = '12345678-1234-1234-1234-123456789012';
+                const fragmentPath = `${ROOT_PATH}/acom/en_US/my-card`;
+                const promoVariationPath = `${ROOT_PATH}/acom/en_US/promotions/summer-sale/my-card`;
+
+                const mockFragment = createFragment({
+                    id: uuid,
+                    path: fragmentPath,
+                    references: [{ id: 'locale-ref', path: `${ROOT_PATH}/acom/fr_FR/my-card` }],
+                    fields: [],
+                });
+                const promoVariationFragment = createFragment({
+                    id: 'promo-var-1',
+                    path: promoVariationPath,
+                    fields: [],
+                });
+
+                repository.search = { value: { path: 'acom', query: uuid } };
+                repository.filters = { value: { locale: 'en_US', tags: '' } };
+                repository.loadPromotions = sandbox.stub().resolves();
+
+                const getByIdStub = sandbox.stub().resolves(mockFragment);
+                const getByPathStub = sandbox.stub().callsFake((path) => {
+                    if (path === promoVariationPath) return Promise.resolve(promoVariationFragment);
+                    return Promise.resolve(null);
+                });
+                repository.aem = createAemMock({
+                    fragments: { getById: getByIdStub, getByPath: getByPathStub, search: sandbox.stub() },
+                });
+
+                const mockPromoProject = {
+                    tags: [{ id: 'mas:promotion/summer-sale' }],
+                };
+                const { default: Store } = await import('../src/store.js');
+                const originalPromotions = Store.promotions.list.data.get();
+                const hadListFetched = Store.promotions.list.data.hasMeta('listFetched');
+                Store.promotions.list.data.set([{ get: () => mockPromoProject }]);
+                Store.promotions.list.data.setMeta('listFetched', true);
+
+                const { mockDataStore, restore } = await setupVariationUuidSearch();
+                try {
+                    await repository.searchFragments();
+                    expect(getByPathStub.calledWith(promoVariationPath), 'should probe the deterministic promo variation path')
+                        .to.be.true;
+                    const fragmentInStore = mockDataStore.set.lastCall?.args[0]?.[0]?.get?.();
+                    const promoRefs = (fragmentInStore?.references || []).filter((r) => r.path === promoVariationPath);
+                    expect(promoRefs.length, 'promo variation reference should be merged into fragment').to.equal(1);
+                } finally {
+                    restore();
+                    Store.promotions.list.data.set(originalPromotions);
+                    if (!hadListFetched) Store.promotions.list.data.removeMeta('listFetched');
+                }
+            });
+
+            it('ignores stale parent UUID search when promo merge is superseded by a new search', async () => {
+                const repository = createFullRepository();
+                repository.page = { value: PAGE_NAMES.CONTENT };
+                const uuid = '12345678-1234-1234-1234-123456789012';
+                const fragmentPath = `${ROOT_PATH}/acom/en_US/my-card`;
+                const mockFragment = createFragment({ id: uuid, path: fragmentPath, fields: [] });
+
+                let resolveLoadPromotions;
+                repository.loadPromotions = sandbox.stub().callsFake(
+                    () =>
+                        new Promise((resolve) => {
+                            resolveLoadPromotions = resolve;
+                        }),
+                );
+
+                const getByIdStub = sandbox.stub().resolves(mockFragment);
+                const searchStub = sandbox.stub().returns(createMockCursor([]));
+                repository.aem = createAemMock({ fragments: { getById: getByIdStub, search: searchStub } });
+
+                repository.search = { value: { path: 'acom', query: uuid } };
+                repository.filters = { value: { locale: 'en_US', tags: '' } };
+
+                const { Store, mockDataStore, restore } = await setupVariationUuidSearch();
+                const originalPromotions = Store.promotions.list.data.get();
+                const hadListFetched = Store.promotions.list.data.hasMeta('listFetched');
+                Store.promotions.list.data.set([]);
+                if (hadListFetched) Store.promotions.list.data.removeMeta('listFetched');
+
+                try {
+                    const staleSearch = repository.searchFragments();
+
+                    repository.search = { value: { path: 'acom', query: 'photoshop' } };
+                    const freshSearch = repository.searchFragments();
+                    await freshSearch;
+
+                    const countAfterFresh = mockDataStore.set.callCount;
+                    resolveLoadPromotions();
+                    await staleSearch;
+
+                    expect(mockDataStore.set.callCount).to.equal(countAfterFresh);
+                } finally {
+                    restore();
+                    Store.promotions.list.data.set(originalPromotions);
+                    if (hadListFetched) Store.promotions.list.data.setMeta('listFetched', true);
                 }
             });
         });

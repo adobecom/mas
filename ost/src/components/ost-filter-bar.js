@@ -1,7 +1,5 @@
 import { LitElement, html, css } from 'lit';
 import { store } from '../store/ost-store.js';
-import { HELP_TOOLTIPS } from '../data/help-content.js';
-import './ost-help-icon.js';
 
 const PLAN_TYPES = [
     { key: 'ALL', label: 'All plans' },
@@ -240,7 +238,7 @@ export class OstFilterBar extends LitElement {
             </div>
             <div class="filters-grid">
                 <div>
-                    <div class="field-label">Plan <ost-help-icon text="${HELP_TOOLTIPS.planType}"></ost-help-icon></div>
+                    <div class="field-label">Plan</div>
                     <sp-picker
                         data-testid="ost-filter-plan-type"
                         size="s"
@@ -251,7 +249,7 @@ export class OstFilterBar extends LitElement {
                     </sp-picker>
                 </div>
                 <div>
-                    <div class="field-label">Segment <ost-help-icon text="${HELP_TOOLTIPS.segment}"></ost-help-icon></div>
+                    <div class="field-label">Segment</div>
                     <sp-picker
                         data-testid="ost-filter-customer-segment"
                         size="s"
@@ -262,7 +260,7 @@ export class OstFilterBar extends LitElement {
                     </sp-picker>
                 </div>
                 <div>
-                    <div class="field-label">Market <ost-help-icon text="${HELP_TOOLTIPS.market}"></ost-help-icon></div>
+                    <div class="field-label">Market</div>
                     <sp-picker
                         data-testid="ost-filter-market-segment"
                         size="s"
@@ -273,7 +271,7 @@ export class OstFilterBar extends LitElement {
                     </sp-picker>
                 </div>
                 <div>
-                    <div class="field-label">Offer type <ost-help-icon text="${HELP_TOOLTIPS.offerType}"></ost-help-icon></div>
+                    <div class="field-label">Offer type</div>
                     <sp-picker
                         data-testid="ost-filter-offer-type"
                         size="s"

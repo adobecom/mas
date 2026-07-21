@@ -695,6 +695,35 @@ describe('hydrate', () => {
         );
     });
 
+    it('sets data-promotion-project and data-promotion-variation-project independently', async () => {
+        const fragment = {
+            promoProject: 'Summer Sale 2026',
+            promoVariationProject: 'Layout Experiment A',
+            fields: {
+                variant: 'ccd-slice',
+                mnemonicIcon: ['test/mocks/img/photoshop.svg'],
+                mnemonicAlt: [],
+                mnemonicLink: ['www.adobe.com'],
+                backgroundImage: 'test/mocks/img/photoshop.svg',
+                ctas: '<a is="checkout-link" data-wcs-osi="abm" class="accent" data-analytics-id="buy-now">Click me</a>',
+                tags: ['mas:term/montly', 'mas:product_code/ccsn'],
+            },
+            settings: {
+                secureLabel: 'Secure Label',
+            },
+        };
+        merchCard.variantLayout = {
+            aemFragmentMapping: CCD_SLICE_AEM_FRAGMENT_MAPPING,
+        };
+        await hydrate(fragment, merchCard);
+        expect(merchCard.getAttribute('data-promotion-project')).to.equal(
+            'Summer Sale 2026',
+        );
+        expect(
+            merchCard.getAttribute('data-promotion-variation-project'),
+        ).to.equal('Layout Experiment A');
+    });
+
     it('hydrates MerchCard with variationId and merch-addon for plans variant', async () => {
         const litCard = document.createElement('merch-card');
         document.body.appendChild(litCard);
@@ -920,6 +949,43 @@ describe('MerchCard fragment promo on prices via checkReady', () => {
     });
 });
 
+describe('MerchCard data-promotion-code attribute', () => {
+    let card;
+
+    beforeEach(async () => {
+        await customElements.whenDefined('merch-card');
+        card = document.createElement('merch-card');
+        document.body.appendChild(card);
+    });
+
+    afterEach(() => {
+        card.remove();
+    });
+
+    it('sets data-promotion-code attribute when contextPromotionCode is assigned', () => {
+        card.contextPromotionCode = 'SUMMER_PROMO';
+        expect(card.getAttribute('data-promotion-code')).to.equal(
+            'SUMMER_PROMO',
+        );
+    });
+
+    it('does not have data-promotion-code attribute when contextPromotionCode is not set', () => {
+        expect(card.hasAttribute('data-promotion-code')).to.be.false;
+    });
+
+    it('removes data-promotion-code attribute when contextPromotionCode is cleared', () => {
+        card.contextPromotionCode = 'SUMMER_PROMO';
+        card.contextPromotionCode = undefined;
+        expect(card.hasAttribute('data-promotion-code')).to.be.false;
+    });
+
+    it('updates data-promotion-code attribute when contextPromotionCode changes at runtime', () => {
+        card.contextPromotionCode = 'PROMO_A';
+        card.contextPromotionCode = 'PROMO_B';
+        expect(card.getAttribute('data-promotion-code')).to.equal('PROMO_B');
+    });
+});
+
 describe('processDescription', async () => {
     let merchCard;
     let aemFragmentMapping;
@@ -1098,6 +1164,36 @@ describe('processAddon', async () => {
         const addon = merchCard.querySelector('merch-addon');
         expect(addon).to.exist;
         expect(addon.innerHTML).to.equal('<p>Fragment addon</p>');
+    });
+
+    it('should extract background from merch-addon wrapper and set it as attribute', () => {
+        const gradient =
+            'linear-gradient(211deg, rgb(245, 246, 253) 33.52%, rgb(248, 241, 248) 67.33%, rgb(249, 233, 237) 110.37%)';
+        processAddon(
+            {
+                addon: `<merch-addon background="${gradient}"><p>Add Lightroom</p></merch-addon>`,
+            },
+            merchCard,
+            PLANS_AEM_FRAGMENT_MAPPING,
+        );
+
+        const addon = merchCard.querySelector('merch-addon');
+        expect(addon).to.exist;
+        expect(addon.getAttribute('background')).to.equal(gradient);
+        expect(addon.innerHTML).to.equal('<p>Add Lightroom</p>');
+    });
+
+    it('should not set background attribute when no wrapper is present', () => {
+        processAddon(
+            { addon: '<p>Add Lightroom</p>' },
+            merchCard,
+            PLANS_AEM_FRAGMENT_MAPPING,
+        );
+
+        const addon = merchCard.querySelector('merch-addon');
+        expect(addon).to.exist;
+        expect(addon.getAttribute('background')).to.be.null;
+        expect(addon.innerHTML).to.equal('<p>Add Lightroom</p>');
     });
 });
 

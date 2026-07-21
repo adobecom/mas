@@ -3,6 +3,8 @@ const { publishChunk } = require('./publisher.js');
 const MAX_CHUNK_SIZE = 50;
 const LOCALE_REGEX = /^\/content\/dam\/mas\/[\w-_]+\/(?<locale>[\w-_]+)\//;
 const STATUS = { PUBLISHED: 'published', SKIPPED: 'skipped', FAILED: 'failed' };
+const DICTIONARY_SEGMENT = '/dictionary/';
+const INDEX_SUFFIX = '/dictionary/index';
 
 function extractLocale(path) {
     if (typeof path !== 'string') return 'unknown';
@@ -53,4 +55,37 @@ async function publishResolved(resolved, odinEndpoint, authToken, logger) {
     return details;
 }
 
-module.exports = { publishResolved, extractLocale, groupAndChunk, STATUS, MAX_CHUNK_SIZE };
+function deriveIndexPaths(details) {
+    const publishedPaths = new Set();
+    for (const detail of details) {
+        if (detail.status === STATUS.PUBLISHED) publishedPaths.add(detail.path);
+    }
+    const indexPaths = new Set();
+    for (const path of publishedPaths) {
+        const segmentIndex = path.indexOf(DICTIONARY_SEGMENT);
+        if (segmentIndex === -1 || path.endsWith(INDEX_SUFFIX)) continue;
+        const indexPath = path.slice(0, segmentIndex) + INDEX_SUFFIX;
+        if (!publishedPaths.has(indexPath)) indexPaths.add(indexPath);
+    }
+    return Array.from(indexPaths);
+}
+
+async function publishDictionaryIndexes(details, odinEndpoint, authToken, logger) {
+    const indexPaths = deriveIndexPaths(details);
+    if (!indexPaths.length) return [];
+    logger.info(JSON.stringify({ event: 'index-publish-start', total: indexPaths.length }));
+    const indexDetails = [];
+    for (const chunk of groupAndChunk(indexPaths, MAX_CHUNK_SIZE)) {
+        const results = await publishChunk({
+            chunk: chunk.paths,
+            odinEndpoint,
+            authToken,
+            logger,
+            filterReferencesByStatus: [],
+        });
+        indexDetails.push(...results);
+    }
+    return indexDetails;
+}
+
+module.exports = { publishResolved, publishDictionaryIndexes, extractLocale, groupAndChunk, STATUS, MAX_CHUNK_SIZE };

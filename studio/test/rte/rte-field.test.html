@@ -50,7 +50,14 @@
             import { mockFetch } from '../../../web-components/test/mocks/fetch.js';
             import { withWcs } from '../../../web-components/test/mocks/wcs.js';
 
-            import { createFromTemplate, delay, applyChanges, selectNodeAtPos, selectWordsInTextNode } from '../utils.js';
+            import {
+                createFromTemplate,
+                delay,
+                applyChanges,
+                selectNodeAtPos,
+                selectWordsInTextNode,
+                triggerRteInput,
+            } from '../utils.js';
 
             runTests(async () => {
                 await mockFetch(withWcs);
@@ -138,6 +145,40 @@
                         expect(rte.value).to.equal(
                             '<p><a class="accent" data-key="abc1234xyz" data-checkout-workflow="UCv3" data-wcs-osi="abm">Buy now</a></p>',
                         );
+                    });
+                });
+
+                describe('RTE Field: character counter', () => {
+                    it('shows 0 for an empty field', async function () {
+                        const rte = await createFromTemplate('rte-empty', this.test.title);
+                        await delay(100);
+                        expect(rte.length).to.equal(0);
+                        const counter = rte.shadowRoot.getElementById('counter');
+                        expect(counter.textContent.replace(/\s/g, '')).to.equal('0/70');
+                    });
+
+                    it('shows 0 after all content is deleted', async function () {
+                        const rte = await createFromTemplate('rte', this.test.title);
+                        await delay(100);
+                        expect(rte.length).to.equal(9); // 'Text only'
+                        const view = rte.editorView;
+                        view.dispatch(view.state.tr.delete(0, view.state.doc.content.size));
+                        await delay(150);
+                        expect(rte.length).to.equal(0);
+                    });
+
+                    it('does not count paragraph breaks as characters', async function () {
+                        const rte = await createFromTemplate('rte-multiline', this.test.title);
+                        await delay(100);
+                        expect(rte.length).to.equal(6); // 'abc' + 'def'
+                    });
+
+                    it('counts author-typed spaces', async function () {
+                        const rte = await createFromTemplate('rte-empty', this.test.title);
+                        await delay(100);
+                        triggerRteInput(rte, ' abc ');
+                        await delay(150);
+                        expect(rte.length).to.equal(5);
                     });
                 });
 
@@ -678,6 +719,15 @@
                 <br />
                 <rte-field>some text</rte-field>
             </div>
+        </template>
+        <template id="rte-empty">
+            <rte-field><p></p></rte-field>
+        </template>
+        <template id="rte-multiline">
+            <rte-field
+                ><p>abc</p>
+                <p>def</p></rte-field
+            >
         </template>
         <template id="rte-marks">
             <rte-field styling marks="promo-text,promo-duration-text,renewal-text"> Styling </rte-field>

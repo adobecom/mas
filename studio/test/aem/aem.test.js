@@ -123,6 +123,77 @@ describe('aem.js', () => {
         });
     });
 
+    describe('method: postFormWithCsrf', () => {
+        let originalGetCsrfToken;
+
+        beforeEach(() => {
+            originalGetCsrfToken = aem.getCsrfToken;
+        });
+
+        afterEach(() => {
+            aem.getCsrfToken = originalGetCsrfToken;
+            delete window.fetch;
+        });
+
+        it('fetches a CSRF token and POSTs the form data to baseUrl + path', async () => {
+            const calls = [];
+            window.fetch = async (url, options) => {
+                calls.push({ url, options });
+                return { ok: true, status: 200 };
+            };
+            aem.getCsrfToken = async () => 'csrf-123';
+
+            const formData = new FormData();
+            formData.append('foo', 'bar');
+
+            const response = await aem.postFormWithCsrf('/content/cq:tags/mas/foo', formData);
+
+            expect(calls.length).to.equal(1);
+            expect(calls[0].url).to.equal(`${aem.baseUrl}/content/cq:tags/mas/foo`);
+            expect(calls[0].options.method).to.equal('POST');
+            expect(calls[0].options.headers['CSRF-Token']).to.equal('csrf-123');
+            expect(calls[0].options.body).to.equal(formData);
+            expect(response.ok).to.be.true;
+        });
+
+        it('does not throw when the response is not ok - callers are responsible for checking', async () => {
+            window.fetch = async () => ({ ok: false, status: 500, statusText: 'Server Error' });
+            aem.getCsrfToken = async () => 'csrf-123';
+
+            const response = await aem.postFormWithCsrf('/content/cq:tags/mas/foo', new FormData());
+
+            expect(response.ok).to.be.false;
+            expect(response.status).to.equal(500);
+        });
+
+        it('throws a wrapped network error when fetch fails', async () => {
+            window.fetch = async () => {
+                throw new Error('Network down');
+            };
+            aem.getCsrfToken = async () => 'csrf-123';
+
+            try {
+                await aem.postFormWithCsrf('/content/cq:tags/mas/foo', new FormData());
+                expect.fail('Should have thrown an error');
+            } catch (error) {
+                expect(error.message).to.equal('Network error: Network down');
+            }
+        });
+
+        it('propagates an error when fetching the CSRF token fails', async () => {
+            aem.getCsrfToken = async () => {
+                throw new Error('CSRF fetch failed');
+            };
+
+            try {
+                await aem.postFormWithCsrf('/content/cq:tags/mas/foo', new FormData());
+                expect.fail('Should have thrown an error');
+            } catch (error) {
+                expect(error.message).to.include('CSRF fetch failed');
+            }
+        });
+    });
+
     describe('method: createTag', () => {
         let originalGetCsrfToken;
 

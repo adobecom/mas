@@ -677,6 +677,14 @@ class MasPromotionsEditor extends LitElement {
         }
     }
 
+    async #deletePromotionTag(tag) {
+        try {
+            await this.repository.aem.tags.delete(tag.tagPath);
+        } catch (error) {
+            console.error('Failed to delete the tag:', error);
+        }
+    }
+
     async #handleCreatePromotion() {
         const validationMessage = this.#getRequiredFieldsValidation(this.fragment);
         if (validationMessage) {
@@ -707,12 +715,7 @@ class MasPromotionsEditor extends LitElement {
             );
             if (!newPromotion) {
                 showToast('Failed to create project.', 'negative');
-                try {
-                    await this.repository.aem.tags.delete(tag.tagPath);
-                } catch (error) {
-                    console.error('Failed to delete the tag:', error);
-                    return;
-                }
+                if (tag) await this.#deletePromotionTag(tag);
                 return;
             }
             this.isCreated = true;
@@ -732,6 +735,7 @@ class MasPromotionsEditor extends LitElement {
             this.storeController.hostConnected();
         } catch (error) {
             showToast(getCreateProjectErrorMessage(error), 'negative');
+            if (tag) await this.#deletePromotionTag(tag);
         }
     }
 
@@ -892,7 +896,14 @@ class MasPromotionsEditor extends LitElement {
             showToast('Deleting promotion campaign...');
             await deleteAttachedPromoVariations(this.repository.aem, this.fragment);
             await this.repository.deleteFragment(this.fragmentStore, { startToast: false, endToast: false });
-            if (tagPath) await this.repository.aem.tags.delete(tagPath);
+            if (tagPath) {
+                try {
+                    await this.repository.aem.tags.delete(tagPath);
+                } catch (error) {
+                    console.error('Error deleting promotion tag:', error);
+                    showToast('Failed to delete promotion tag.', 'negative');
+                }
+            }
             showToast('Promotion campaign successfully deleted.', 'positive');
             Store.promotions.inEdit.set();
             Store.promotions.promotionId.set(null);

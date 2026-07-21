@@ -86,6 +86,26 @@ class AEM {
     }
 
     /**
+     * POST a FormData body to a path with a fresh CSRF token attached.
+     * @param {string} path - Path appended to baseUrl
+     * @param {FormData} formData
+     * @returns {Promise<Response>}
+     */
+    async postFormWithCsrf(path, formData) {
+        const csrfToken = await this.getCsrfToken();
+        return fetch(`${this.baseUrl}${path}`, {
+            method: 'POST',
+            headers: {
+                ...this.headers,
+                'CSRF-Token': csrfToken,
+            },
+            body: formData,
+        }).catch((err) => {
+            throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
+        });
+    }
+
+    /**
      * Search for content fragments.
      * @param {Object} params - The search options
      * @param {string} [params.path] - The path to search in
@@ -1100,21 +1120,11 @@ class AEM {
             throw new Error(`Failed to check tag: ${response.status} ${response.statusText}`);
         }
 
-        const csrfToken = await this.getCsrfToken();
         const formData = new FormData();
         formData.append('jcr:primaryType', 'cq:Tag');
         formData.append('jcr:title', title);
 
-        const createResponse = await fetch(`${this.baseUrl}${tagPath}`, {
-            method: 'POST',
-            headers: {
-                ...this.headers,
-                'CSRF-Token': csrfToken,
-            },
-            body: formData,
-        }).catch((err) => {
-            throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
-        });
+        const createResponse = await this.postFormWithCsrf(tagPath, formData);
 
         if (!createResponse.ok) {
             throw new Error(`Failed to create tag: ${createResponse.status} ${createResponse.statusText}`);
@@ -1129,20 +1139,10 @@ class AEM {
      * @returns {Promise<Response>} - The delete response
      */
     async deleteTag(tagPath) {
-        const csrfToken = await this.getCsrfToken();
         const formData = new FormData();
         formData.append(':operation', 'delete');
 
-        const deleteResponse = await fetch(`${this.baseUrl}${tagPath}`, {
-            method: 'POST',
-            headers: {
-                ...this.headers,
-                'CSRF-Token': csrfToken,
-            },
-            body: formData,
-        }).catch((err) => {
-            throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
-        });
+        const deleteResponse = await this.postFormWithCsrf(tagPath, formData);
 
         if (!deleteResponse.ok) {
             throw new Error(`Failed to delete tag: ${deleteResponse.status} ${deleteResponse.statusText}`);

@@ -930,6 +930,52 @@ describe('MasPromotionsEditor', () => {
         });
     });
 
+    describe('promotion tag cleanup after a failed create', () => {
+        it('deletes the promotion tag when createFragment resolves falsy', async () => {
+            const { el, repo } = await mountEditorWithRepo({
+                createFragment: sandbox.stub().resolves(null),
+                aem: { tags: { create: sandbox.stub().resolves(), delete: sandbox.stub().resolves() } },
+            });
+            await fillValidFields(el);
+            const title = el.fragment.getFieldValue('title');
+            const tag = buildPromotionTagPath(title);
+            clickPromotionQuickAction(el, 'Save');
+            await el.updateComplete;
+            await flushPromises();
+            expect(repo.aem.tags.delete.calledOnceWith(tag.tagPath)).to.be.true;
+            expect(el.isCreated).to.be.false;
+        });
+
+        it('deletes the promotion tag when createFragment rejects', async () => {
+            const { el, repo } = await mountEditorWithRepo({
+                createFragment: sandbox.stub().rejects(new Error('create failed')),
+                aem: { tags: { create: sandbox.stub().resolves(), delete: sandbox.stub().resolves() } },
+            });
+            await fillValidFields(el);
+            const title = el.fragment.getFieldValue('title');
+            const tag = buildPromotionTagPath(title);
+            clickPromotionQuickAction(el, 'Save');
+            await el.updateComplete;
+            await flushPromises();
+            expect(repo.aem.tags.delete.calledOnceWith(tag.tagPath)).to.be.true;
+        });
+
+        it('swallows tag cleanup errors without blocking the create-failure toast', async () => {
+            const toastStub = sandbox.stub(Events.toast, 'emit');
+            const { el } = await mountEditorWithRepo({
+                createFragment: sandbox.stub().resolves(null),
+                aem: {
+                    tags: { create: sandbox.stub().resolves(), delete: sandbox.stub().rejects(new Error('delete failed')) },
+                },
+            });
+            await fillValidFields(el);
+            clickPromotionQuickAction(el, 'Save');
+            await el.updateComplete;
+            await flushPromises();
+            expect(toastStub.calledWith(sinon.match({ variant: 'negative', content: 'Failed to create project.' }))).to.be.true;
+        });
+    });
+
     describe('#getPayloadValues via create payload', () => {
         it('sets endDate to an empty array in the create payload when evergreen is enabled', async () => {
             const { el, repo } = await mountEditorWithRepo();
@@ -1596,6 +1642,48 @@ describe('MasPromotionsEditor', () => {
             expect(forceDelete.calledOnceWith({ path: promoVarPath })).to.be.true;
             expect(repo.deleteFragment.calledOnce).to.be.true;
             expect(forceDelete.calledBefore(repo.deleteFragment)).to.be.true;
+        });
+
+        it('shows a negative toast but still completes deletion when the promotion tag fails to delete', async () => {
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            Store.promotions.inEdit.set(
+                new FragmentStore(
+                    makePromotion({
+                        id: 'del-4',
+                        title: 'Deletable',
+                        fields: [
+                            { name: 'title', type: 'text', values: ['Deletable'] },
+                            { name: 'tags', values: ['mas:promotion/code-test'], multiple: true },
+                        ],
+                    }),
+                ),
+            );
+            const deleteFragment = sandbox.stub().resolves(true);
+            const toastStub = sandbox.stub(Events.toast, 'emit');
+            const { el, repo } = await mountEditorWithRepo({
+                deleteFragment,
+                aem: {
+                    sites: {
+                        cf: { fragments: { getByPath: sandbox.stub().resolves(null), getById: sandbox.stub().resolves(null) } },
+                    },
+                    tags: { delete: sandbox.stub().rejects(new Error('delete failed')) },
+                },
+            });
+            await el.updateComplete;
+            clickPromotionQuickAction(el, 'Delete');
+            await new Promise((r) => setTimeout(r, 0));
+            await el.updateComplete;
+            el.renderRoot
+                .querySelector('#promotion-unsaved-changes-dialog')
+                .dispatchEvent(new CustomEvent('confirm', { bubbles: true, composed: true }));
+            await new Promise((r) => setTimeout(r, 20));
+            expect(repo.aem.tags.delete.calledOnce).to.be.true;
+            expect(repo.deleteFragment.calledOnce).to.be.true;
+            expect(toastStub.calledWith(sinon.match({ variant: 'negative', content: 'Failed to delete promotion tag.' }))).to.be
+                .true;
+            expect(
+                toastStub.calledWith(sinon.match({ variant: 'positive', content: 'Promotion campaign successfully deleted.' })),
+            ).to.be.true;
         });
     });
 

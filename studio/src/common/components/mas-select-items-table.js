@@ -28,7 +28,7 @@ class MasSelectItemsTable extends LitElement {
         maxSelectedCards: { type: Number },
         getDisplayName: { type: Function },
         renderFragmentStatusCell: { type: Function },
-        nonSelectableVariations: { type: Boolean },
+        nonSelectableVariations: { type: Array },
         hidePromoVariations: { type: Boolean },
         tabs: { type: Array },
     };

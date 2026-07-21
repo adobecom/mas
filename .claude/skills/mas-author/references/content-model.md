@@ -90,6 +90,18 @@ grouped variations the product-arrangement-code is `merch-card-collection`.
 - A **locale variation**, by contrast, takes a **target locale** and is created at that locale's path in
   the same-language family (see the next subsection). No tags are involved in targeting it.
 
+**Promo variations** live under `{surface}/{locale}/promotions/{promo-name}/…`. Two things to expect when
+reading them through Odin MCP:
+
+- The `{locale}` may be `en_US` **or a regional locale** — promo content can be language-switched, so a
+  promo variation is not always at `en_US`.
+- One promo fragment can carry several **geo-specific** variants as sibling fragments whose **leaf segment
+  is suffixed** `-2`, `-3`, … (e.g. `…/promotions/cyber-monday/card`, `card-2`, `card-3`). Each variant is
+  distinguished by its **`pznTags`** field (the geos it targets); a variant with no `pznTags` is the
+  default/fallback. These suffixed siblings are intentional — do **not** treat them as duplicates to clean
+  up. **Which variant actually serves** is resolved by the MAS IO pipeline (deny list) — don't compute it
+  from the raw `pznTags`.
+
 ### Locale variations are same-language only
 
 A **locale variation can only target a country in the parent's own language family** — it keeps the
@@ -125,7 +137,7 @@ runtime resolves regional variations only within the parent's language family.
 | **Cards** | `card`-model fragments. The `variant` field picks layout + which fields apply (§8). |
 | **Collections** | `collection`-model fragments. Members are listed in `cards`; nested collections in `collections`; the default card in `defaultchild`. |
 | **Placeholders** | Per surface/locale dictionary. Each placeholder is a dictionary-**entry** fragment (`key`/`value`/`richTextValue`/`locReady`); the dictionary-**index** fragment lists them all in `entries`. A placeholder is only resolvable once it's in the index. |
-| **Promotions** | `promotion`-model fragments referencing `offers` (offer ids), `fragments` (the cards/collections), and tagged `mas:promotion/{name}`. Promo variations live under `promotions/`. |
+| **Promotions** | `promotion`-model fragments referencing `offers` (offer ids), `fragments` (the cards/collections), and tagged `mas:promotion/{name}`. Promo variations live under `promotions/`; geo-specific variants of one fragment appear as suffixed siblings (`card-2`, `card-3`, …) keyed by `pznTags` — see §5. |
 | **Translations** | Two distinct things. A **locale variation** is a same-language regional variant (e.g. `de_CH` of parent `de_DE`), listed in the parent's `variations` (see §5). A **translation** produces a *different-language* fragment (e.g. `de_DE` from `en_US` source) and is tracked by `translation-project` fragments — not created through the locale-variation flow. |
 | **Bulk** | A `bulk-publish-project` fragment stores a saved selection of fragments; bulk operations (publish / unpublish / edit / tag) run over that selection. |
 

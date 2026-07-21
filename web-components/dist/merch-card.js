@@ -2800,6 +2800,7 @@ merch-card[variant="mini-compare-chart-mweb"] .price-plan-type{
   .two-merch-cards.mini-compare-chart-mweb merch-card[variant="mini-compare-chart-mweb"],
   .two-merch-cards:has(merch-card[variant="mini-compare-chart-mweb"]) merch-card[variant="mini-compare-chart-mweb"] {
     max-width: var(--consonant-merch-card-mini-compare-chart-mweb-wide-width);
+    margin-inline: auto;
   }
 }
 

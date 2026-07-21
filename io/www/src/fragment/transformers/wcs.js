@@ -3,7 +3,6 @@ import { log, logDebug, logError } from '../utils/log.js';
 
 const MAS_ELEMENT_REGEXP = /<[^>]+data-wcs-osi=\\"(?<osi>[^\\]+)\\"[^>]*?>/gm;
 const PROMOCODE_REGEXP = /(?<promo>data-promotion-code=\\"(?<promotionCode>[^\\]+)\\")/;
-const CANCEL_CONTEXT = 'cancel-context';
 
 async function fetchArtifact(osi, promotionCode, wcsContext, idx) {
     const url = new URL(wcsContext.wcsURL);
@@ -71,7 +70,7 @@ async function wcs(context) {
     matches.forEach((match) => {
         const originalOsi = match.groups.osi;
         const substitutedOsi = context.substituteMap?.[originalOsi];
-        if (substitutedOsi && substitutedOsi !== CANCEL_CONTEXT) {
+        if (substitutedOsi) {
             logDebug(() => `Substituting OSI ${originalOsi} with ${substitutedOsi}`, context);
             parts.push(bodyString.slice(lastEnd, match.index));
             parts.push(match[0].replace(`\\"${originalOsi}\\"`, `\\"${substitutedOsi}\\"`));
@@ -88,7 +87,7 @@ async function wcs(context) {
     }
     if (context.body.fields?.osi) {
         const substitutedOsi = context.substituteMap?.[context.body.fields.osi] ?? context.body.fields.osi;
-        if (substitutedOsi !== context.body.fields.osi && substitutedOsi !== CANCEL_CONTEXT) {
+        if (substitutedOsi !== context.body.fields.osi) {
             context.body.fields.osi = substitutedOsi;
         }
     }
@@ -124,8 +123,7 @@ async function wcs(context) {
         };
         matches.forEach((match) => {
             const baseOsi = match.groups.osi;
-            const sub = context.substituteMap?.[baseOsi];
-            const osi = sub && sub !== CANCEL_CONTEXT ? sub : baseOsi;
+            const osi = context.substituteMap?.[baseOsi] ?? baseOsi;
             const promoMatch = match[0].match(PROMOCODE_REGEXP);
             if (promoMatch && promoMatch.groups?.promotionCode) {
                 addToken({ osi, promotionCode: promoMatch.groups.promotionCode });
@@ -140,7 +138,7 @@ async function wcs(context) {
 
         if (context.body.fields?.osi) {
             const token = {
-                osi: context.body.fields.osi,
+                osi: context.substituteMap?.[context.body.fields.osi] ?? context.body.fields.osi,
                 promotionCode: context.body.fields.promoCode,
             };
             tokenMap.set(tokenKey(token), token);

@@ -480,61 +480,6 @@ describe('wcs OSI substitution', function () {
         expect(context.body.wcs.prod).to.have.property('BASE-OSI-us-mult');
     });
 
-    it('keeps original OSI in HTML body when substituteOsi is cancel-context', async function () {
-        context.body = {
-            prices: '<span data-wcs-osi="BASE-OSI"></span>',
-            fields: {},
-        };
-        context.substituteMap = { 'BASE-OSI': 'cancel-context' };
-        fetchStub
-            .withArgs(sinon.match((url) => url.includes('offer_selector_ids=BASE-OSI')))
-            .returns(createResponse(200, stubbedOffer('original')));
-
-        context = await wcs.process(context);
-
-        expect(context.body.prices).to.include('data-wcs-osi="BASE-OSI"');
-        expect(context.body.prices).to.not.include('data-wcs-osi="cancel-context"');
-        expect(context.body.wcs.prod).to.have.property('BASE-OSI-us-mult');
-        expect(context.body.wcs.prod).to.not.have.property('cancel-context-us-mult');
-    });
-
-    it('keeps original fields.osi when substituteOsi is cancel-context', async function () {
-        context.body = {
-            prices: '<span data-wcs-osi="BASE-OSI"></span>',
-            fields: { osi: 'BASE-OSI' },
-        };
-        context.substituteMap = { 'BASE-OSI': 'cancel-context' };
-        fetchStub
-            .withArgs(sinon.match((url) => url.includes('offer_selector_ids=BASE-OSI')))
-            .returns(createResponse(200, stubbedOffer('original')));
-
-        context = await wcs.process(context);
-
-        expect(context.body.fields.osi).to.equal('BASE-OSI');
-        expect(context.body.wcs.prod).to.have.property('BASE-OSI-us-mult');
-    });
-
-    it('still substitutes other OSIs when only one entry is cancel-context', async function () {
-        context.body = {
-            prices: '<span data-wcs-osi="OSI-A"></span><span data-wcs-osi="OSI-B"></span>',
-            fields: {},
-        };
-        context.substituteMap = { 'OSI-A': 'cancel-context', 'OSI-B': 'SUB-OSI-B' };
-        fetchStub
-            .withArgs(sinon.match((url) => url.includes('offer_selector_ids=OSI-A')))
-            .returns(createResponse(200, stubbedOffer('original-a')));
-        fetchStub
-            .withArgs(sinon.match((url) => url.includes('offer_selector_ids=SUB-OSI-B')))
-            .returns(createResponse(200, stubbedOffer('substituted-b')));
-
-        context = await wcs.process(context);
-
-        expect(context.body.prices).to.include('data-wcs-osi="OSI-A"');
-        expect(context.body.prices).to.include('data-wcs-osi="SUB-OSI-B"');
-        expect(context.body.wcs.prod).to.have.property('OSI-A-us-mult');
-        expect(context.body.wcs.prod).to.have.property('SUB-OSI-B-us-mult');
-    });
-
     it('rewrites body HTML with multiple data-wcs-osi placeholders', async function () {
         context.body = {
             prices: '<span data-wcs-osi="OSI-A"></span><span data-wcs-osi="OSI-B"></span>',

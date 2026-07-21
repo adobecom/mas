@@ -130,12 +130,13 @@
                             changeCount += 1;
                         });
 
-                        rte.value = '<a class="accent" data-checkout-workflow="UCv3" data-wcs-osi="abm">Buy now</a>';
+                        rte.value =
+                            '<a class="accent" data-key="abc1234xyz" data-checkout-workflow="UCv3" data-wcs-osi="abm">Buy now</a>';
                         await delay(100);
 
                         expect(changeCount).to.equal(0);
                         expect(rte.value).to.equal(
-                            '<p><a class="accent" data-checkout-workflow="UCv3" data-wcs-osi="abm">Buy now</a></p>',
+                            '<p><a class="accent" data-key="abc1234xyz" data-checkout-workflow="UCv3" data-wcs-osi="abm">Buy now</a></p>',
                         );
                     });
                 });
@@ -564,7 +565,7 @@
             </rte-field>
         </template>
         <template id="rte-link">
-            <rte-field link><a href="https://www.adobe.com" title="adobe.com homepage">Adobe</a> </rte-field>
+            <rte-field id="ctas" link><a href="https://www.adobe.com" title="adobe.com homepage">Adobe</a> </rte-field>
         </template>
         <template id="rte-upt">
             <rte-field link upt-link><a class="upt-link" href="#" title="Terms link">See terms</a> </rte-field>

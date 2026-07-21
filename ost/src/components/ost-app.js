@@ -1,11 +1,11 @@
 import { LitElement, html, css } from 'lit';
 import './ost-entitlements-tab.js';
 import './ost-offer-tab.js';
-import './ost-help-banner.js';
 import { store } from '../store/ost-store.js';
 import { getOfferSelector } from '../utils/aos-client.js';
 
 const ADOBE_FONTS_URL = 'https://use.typekit.net/pps7abe.css';
+const OST_DOCS_URL = 'https://mas.adobe.com/docs/ost/new-ost';
 const PRODUCTS_ENDPOINT = 'https://14257-masstudio.adobeioruntime.net/api/v1/web/MerchAtScaleStudio/ost-products-read';
 
 export class OstApp extends LitElement {
@@ -145,12 +145,6 @@ export class OstApp extends LitElement {
             overflow: hidden;
         }
 
-        .ost-help-banner-wrapper {
-            padding: 0 24px;
-            background: var(--spectrum-gray-100);
-            flex-shrink: 0;
-        }
-
         .ost-close-btn {
             appearance: none;
             background: transparent;
@@ -183,6 +177,7 @@ export class OstApp extends LitElement {
         super();
         this.dialog = false;
         this.productsError = '';
+        this.reapplyingDeepLink = false;
         this.handleStoreChange = this.handleStoreChange.bind(this);
     }
 
@@ -211,7 +206,18 @@ export class OstApp extends LitElement {
     }
 
     handleStoreChange() {
+        this.maybeReapplyDeepLink();
         this.requestUpdate();
+    }
+
+    maybeReapplyDeepLink() {
+        if (this.reapplyingDeepLink) return;
+        if (store.wizardStep !== 'offer') return;
+        if (store.selectedOffer || !store.initialOsi) return;
+        this.reapplyingDeepLink = true;
+        this.resolveDeepLinkOffer(store.initialOsi).finally(() => {
+            this.reapplyingDeepLink = false;
+        });
     }
 
     updated(changed) {
@@ -227,48 +233,28 @@ export class OstApp extends LitElement {
         if (params) {
             store.applySearchParams(params);
         }
+        const bundleOsis = this.config?.bundleOsis;
         const osiId = this.config?.searchOfferSelectorId;
         const offerId = store.deepLink.offerId;
-        const hasDeepLinkIntent = osiId || offerId || store.deepLink.type || store.aosParams.arrangementCode;
+        const hasDeepLinkIntent =
+            (bundleOsis && bundleOsis.length) || osiId || offerId || store.deepLink.type || store.aosParams.arrangementCode;
         if (hasDeepLinkIntent && store.wizardStep !== 'offer') {
             // A deep-linked open (RTE double-click on an existing CTA, chat OSI
             // attach) already has its target chosen — land directly on Tab 2.
             store.wizardStep = 'offer';
             store.notify();
         }
-        if (osiId || offerId) {
+        if (bundleOsis && bundleOsis.length) {
+            this.resolveBundleDeepLink(bundleOsis);
+        } else if (osiId || offerId) {
             this.resolveDeepLinkOffer(osiId || offerId);
         } else if (store.aosParams.arrangementCode) {
-            this.resolveDeepLinkProduct(store.aosParams.arrangementCode);
+            store.autoSelectProductByArrangementCode(store.aosParams.arrangementCode);
         }
     }
 
-    resolveDeepLinkProduct(arrangementCode) {
-        const tryResolve = () => {
-            const match = store.allProducts.find(([, product]) => {
-                const code = product.arrangement_code || product.code || '';
-                return code === arrangementCode;
-            });
-            if (match) {
-                store.setProduct(match[1]);
-                return true;
-            }
-            return false;
-        };
-        if (tryResolve()) return;
-        const handler = () => {
-            if (store.allProducts.length > 0) {
-                // Detach BEFORE calling setProduct — setProduct synchronously
-                // fires state-changed, which would re-enter this handler and
-                // recurse infinitely on a "Maximum call stack size" error.
-                store.removeEventListener('state-changed', handler);
-                tryResolve();
-            }
-        };
-        store.addEventListener('state-changed', handler);
-    }
-
     async resolveDeepLinkOffer(id) {
+        store.initialOsi = id;
         try {
             const config = {
                 accessToken: store.accessToken,
@@ -277,37 +263,65 @@ export class OstApp extends LitElement {
                 env: store.env,
             };
             const result = await getOfferSelector(id, config);
+            // A newer deep link / search superseded this resolution mid-flight.
+            if (store.initialOsi !== id) return;
             const code = result?.product_arrangement_code || result?.arrangement_code;
             if (!code) return;
 
-            const aosUpdates = { arrangementCode: code };
-            if (result.commitment) aosUpdates.commitment = result.commitment;
-            if (result.term) aosUpdates.term = result.term;
-            if (result.customer_segment) aosUpdates.customerSegment = result.customer_segment;
-            if (result.market_segment) aosUpdates.marketSegment = result.market_segment;
-            if (result.offer_type) aosUpdates.offerType = result.offer_type;
-            store.setAosParams(aosUpdates);
-            store.setOsi(id);
-
-            this.resolveDeepLinkProduct(code);
-
-            const handler = () => {
-                if (store.offers.length > 0) {
-                    store.removeEventListener('state-changed', handler);
-                    const match = store.offers.find(
-                        (o) => o.offer_type === result.offer_type && o.price_point === result.price_point,
-                    );
-                    if (match) {
-                        store.setOffer(match);
-                    } else if (store.offers.length === 1) {
-                        store.setOffer(store.offers[0]);
-                    }
-                }
+            // Keep every segment filter at its "All" default: the resolved
+            // offer's attributes are stashed so autoSelectByInitialOsi can pick
+            // the matching offer out of the unfiltered list.
+            store.initialOsiAttributes = {
+                commitment: result.commitment,
+                term: result.term,
+                customer_segment: result.customer_segment,
+                market_segment: Array.isArray(result.market_segments) ? result.market_segments[0] : result.market_segment,
+                offer_type: result.offer_type,
             };
-            store.addEventListener('state-changed', handler);
+            store.setOsi(id);
+            store.setAosParams({ arrangementCode: code });
+            // setAosParams/setProduct trigger loadOffers, which selects the offer
+            // matching this OSI via autoSelectByInitialOsi — the single, store-owned
+            // resolution path (no competing state-changed listener that could
+            // re-select a previous product's offer after the user switches OSI).
+            store.autoSelectProductByArrangementCode(code);
         } catch {
             /* OSI resolution failed */
         }
+    }
+
+    // Reopen a soft-bundle placeholder: resolve each saved OSI back to an offer
+    // and add it to the bundle. OSIs that no longer resolve are skipped so the
+    // author still sees the surviving offers. The product list (Tab 1) is seeded
+    // from the first resolved OSI so "add more" works.
+    async resolveBundleDeepLink(osis) {
+        const config = {
+            accessToken: store.accessToken,
+            apiKey: store.apiKey,
+            baseUrl: store.baseUrl,
+            env: store.env,
+        };
+        let firstCode;
+        for (const osi of osis) {
+            try {
+                const result = await getOfferSelector(osi, config);
+                const code = result?.product_arrangement_code || result?.arrangement_code;
+                firstCode = firstCode || code;
+                const offer = {
+                    offer_id: osi,
+                    offer_type: result?.offer_type,
+                    planType: result?.plan_type,
+                    customer_segment: result?.customer_segment,
+                    market_segments: result?.market_segments,
+                    product_arrangement_code: code,
+                    name: result?.product_name || code || osi,
+                };
+                store.addOffer(offer, osi);
+            } catch {
+                /* this OSI no longer resolves — skip it */
+            }
+        }
+        if (firstCode) store.autoSelectProductByArrangementCode(firstCode);
     }
 
     async fetchProducts() {
@@ -387,25 +401,6 @@ export class OstApp extends LitElement {
         }
     }
 
-    selectMulti() {
-        if (!store.canConfirmMultiSelect) return;
-        const detail = {
-            base: store.selectedBaseOsi ? { osi: store.selectedBaseOsi, offer: store.selectedBaseOffer } : null,
-            trial: store.selectedTrialOsi ? { osi: store.selectedTrialOsi, offer: store.selectedTrialOffer } : null,
-            country: store.country,
-        };
-        this.dispatchEvent(
-            new CustomEvent('ost-multi-select', {
-                bubbles: true,
-                composed: true,
-                detail,
-            }),
-        );
-        if (typeof store.onMultiSelect === 'function') {
-            store.onMultiSelect(detail);
-        }
-    }
-
     cancel() {
         this.dispatchEvent(
             new CustomEvent('ost-cancel', {
@@ -464,45 +459,22 @@ export class OstApp extends LitElement {
     }
 
     handleFooterUse() {
-        const flow = store.authoringFlow;
-        if (flow === 'tryBuy') {
-            this.selectMulti();
-            return;
-        }
-        if (flow === 'bundle') {
-            this.selectBundle();
-            return;
-        }
-        if (flow === 'consult') {
+        if (store.authoringFlow === 'consult') {
             this.cancel();
             return;
         }
-        // The placeholder panel now lives inside ost-offer-tab; reach its
-        // code-output through the tab's shadow root.
+        // The footer Use emits the tab's PRIMARY placeholder type, once per offer
+        // group: 'price' on the Price tab, 'checkoutUrl' on the Checkout tab. The
+        // exotic price types (optical/annual/strikethrough/discount/legal) are
+        // placed only via their own per-row Use buttons, never the footer — so the
+        // footer must NOT fire every code-output (that would emit all 7 types).
+        // tryBuy yields two primary rows (trial + buy); single/bundle yield one.
         const tab = this.shadowRoot.querySelector('ost-offer-tab');
         const panel = tab?.shadowRoot?.querySelector('ost-placeholder-panel');
-        const codeOutput = panel?.shadowRoot?.querySelector('ost-code-output');
-        if (codeOutput) {
-            codeOutput.handleUse();
-        }
-    }
-
-    selectBundle() {
-        if (!store.canConfirm) return;
-        const detail = {
-            offers: store.selectedOffers.map((o) => ({ osi: o.osi, offer: o.offer })),
-            country: store.country,
-        };
-        this.dispatchEvent(
-            new CustomEvent('ost-bundle-select', {
-                bubbles: true,
-                composed: true,
-                detail,
-            }),
-        );
-        if (typeof store.onBundleSelect === 'function') {
-            store.onBundleSelect(detail);
-        }
+        if (!panel) return;
+        const primaryType = store.placeholderTab === 'checkout' ? 'checkoutUrl' : 'price';
+        const rows = panel.shadowRoot.querySelectorAll(`[data-testid^="ost-placeholder-row-${primaryType}"]`);
+        rows.forEach((row) => row.querySelector('ost-code-output')?.handleUse());
     }
 
     // Tab footers dispatch intent events; ost-app owns the handlers so the
@@ -552,8 +524,7 @@ export class OstApp extends LitElement {
                         quiet
                         size="s"
                         class="ost-help-toggle"
-                        ?selected=${store.helpMode}
-                        @click=${() => store.toggleHelp()}
+                        @click=${() => window.open(OST_DOCS_URL, '_blank', 'noopener')}
                     >
                         <sp-icon-info slot="icon"></sp-icon-info>
                         Help
@@ -588,7 +559,6 @@ export class OstApp extends LitElement {
                         ></sp-tab>
                     </sp-tabs>
                 </div>
-                ${store.helpMode ? html`<div class="ost-help-banner-wrapper"><ost-help-banner></ost-help-banner></div>` : ''}
                 <div class="ost-tab-body">${tabBody}</div>
             </div>
         `;

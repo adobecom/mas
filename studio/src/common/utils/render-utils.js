@@ -105,7 +105,9 @@ export function shouldIgnoreRowClickForSelection(event) {
         if (!(node instanceof Element)) return false;
         if (node.tagName === 'SP-CHECKBOX') return true;
         if (node.classList?.contains('expand-button')) return true;
+        if (node.classList?.contains('copy-icon-button')) return true;
         if (node.tagName === 'SP-ACTION-BUTTON') return true;
+        if (node.tagName === 'SP-ACTION-MENU') return true;
         return false;
     });
 }

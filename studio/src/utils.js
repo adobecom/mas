@@ -416,6 +416,16 @@ export function showToast(message, variant = 'info') {
 }
 
 /**
+ * Builds the error message for a failed project create, distinguishing a
+ * duplicate-name conflict (HTTP 409) from other failures.
+ * @param {Error} error - The error thrown by repository.createFragment
+ * @returns {string}
+ */
+export function getCreateProjectErrorMessage(error) {
+    return error?.message?.includes(': 409') ? 'Project with this name already exists.' : 'Failed to create project.';
+}
+
+/**
  * Extracts the surface from a fragment path
  * Path format: /content/dam/mas/{surface}/{locale}/{fragment-name}
  * @param {string} fragmentPath - The full AEM fragment path
@@ -506,4 +516,30 @@ export function resolveContentTypeFilters(tags) {
         ),
     ];
     return { contentTypes, modelIds };
+}
+
+/**
+ * Runs `load` only when `computeKey()` differs from the last run — skips
+ * redundant re-fetches when the derived data would come out the same.
+ * @returns {(options: {
+ *   guard: () => boolean,
+ *   computeKey: () => unknown,
+ *   load: () => Promise<unknown>,
+ *   apply: (result: unknown) => void,
+ *   reset?: () => void,
+ * }) => Promise<void>}
+ */
+export function createKeyedAsyncLoader() {
+    let lastKey = null;
+    return async function runIfNeeded({ guard, computeKey, load, apply, reset }) {
+        if (!guard()) {
+            lastKey = null;
+            reset?.();
+            return;
+        }
+        const key = computeKey();
+        if (lastKey === key) return;
+        lastKey = key;
+        apply(await load());
+    };
 }

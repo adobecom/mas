@@ -909,6 +909,7 @@ describe('MasRepository dictionary helpers', () => {
             });
             const { default: Store } = await import('../src/store.js');
             const originalProfile = Store.profile.value;
+            const originalExpandedId = Store.fragments.expandedId.get();
             Store.profile.set({ name: 'test-user' });
             let dataValue = [];
             const mockDataStore = {
@@ -928,8 +929,10 @@ describe('MasRepository dictionary helpers', () => {
                 expect(getByIdStub.calledOnce).to.be.true;
                 expect(getByIdStub.firstCall.args[0]).to.equal('12345678-1234-1234-1234-123456789012');
                 expect(searchStub.called).to.be.false;
+                expect(Store.fragments.expandedId.get()).to.equal('12345678-1234-1234-1234-123456789012');
             } finally {
                 Store.profile.set(originalProfile);
+                Store.fragments.expandedId.set(originalExpandedId);
                 Store.fragments.list.data = originalData;
                 Store.folders.data.set(originalFolders);
             }

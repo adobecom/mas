@@ -16,69 +16,70 @@ before(async () => {
 // ── Product.adjustShortDescription ───────────────────────────────────────────
 
 describe('Product.adjustShortDescription', () => {
-    function makeLayout({ shortDesc = null, legal = null } = {}) {
+    function makeContainer({ shortDesc = null, legal = null } = {}) {
+        const container = document.createElement('div');
+        if (legal) container.appendChild(legal);
         const layout = Object.create(Product.prototype);
         layout.card = {
             querySelector: (sel) => {
+                if (sel.includes('merch-short-description'))
+                    return container.querySelector('.merch-short-description');
                 if (sel.includes('short-description')) return shortDesc;
                 if (sel.includes('data-template="legal"')) return legal;
                 return null;
             },
         };
-        return layout;
+        return { layout, container };
     }
 
     it('does nothing when there is no short-description element', () => {
-        makeLayout().adjustShortDescription(); // must not throw
+        makeContainer().layout.adjustShortDescription(); // must not throw
     });
 
     it('does nothing when short-description has no text', () => {
         const shortDesc = document.createElement('div');
-        makeLayout({ shortDesc }).adjustShortDescription(); // must not throw
+        makeContainer({ shortDesc }).layout.adjustShortDescription(); // must not throw
     });
 
     it('does nothing when legal price element is missing', () => {
         const shortDesc = document.createElement('div');
         shortDesc.innerHTML = '<p>Annual subscription</p>';
-        makeLayout({ shortDesc }).adjustShortDescription(); // must not throw
+        makeContainer({ shortDesc }).layout.adjustShortDescription(); // must not throw
     });
 
-    it('appends .merch-short-description span into legal price', () => {
+    it('inserts .merch-short-description as sibling after legal price', () => {
         const shortDesc = document.createElement('div');
         shortDesc.innerHTML = '<p>Annual subscription</p>';
         const legal = document.createElement('span');
-        const layout = makeLayout({ shortDesc, legal });
+        const { layout, container } = makeContainer({ shortDesc, legal });
         layout.adjustShortDescription();
-        const span = legal.querySelector('.merch-short-description');
+        const span = container.querySelector('.merch-short-description');
         expect(span).to.exist;
         expect(span.textContent).to.include('Annual subscription');
+        expect(legal.contains(span)).to.be.false;
+        expect(span.previousElementSibling).to.equal(legal);
+    });
+
+    it('hides the short-description slot element after injection', () => {
+        const shortDesc = document.createElement('div');
+        shortDesc.innerHTML = '<p>Annual subscription</p>';
+        const legal = document.createElement('span');
+        const { layout } = makeContainer({ shortDesc, legal });
+        layout.adjustShortDescription();
+        expect(shortDesc.hidden).to.be.true;
     });
 
     it('removes existing .merch-short-description before re-appending', () => {
         const shortDesc = document.createElement('div');
         shortDesc.innerHTML = '<p>Annual subscription</p>';
         const legal = document.createElement('span');
-        const layout = makeLayout({ shortDesc, legal });
+        const { layout, container } = makeContainer({ shortDesc, legal });
         layout.adjustShortDescription();
+        shortDesc.hidden = false; // reset so second call can proceed
         layout.adjustShortDescription();
         expect(
-            legal.querySelectorAll('.merch-short-description').length,
+            container.querySelectorAll('.merch-short-description').length,
         ).to.equal(1);
-    });
-
-    it('inserts after .price-plan-type when present', () => {
-        const shortDesc = document.createElement('div');
-        shortDesc.innerHTML = '<p>Annual subscription</p>';
-        const legal = document.createElement('span');
-        const planType = document.createElement('span');
-        planType.className = 'price-plan-type';
-        legal.appendChild(planType);
-        const layout = makeLayout({ shortDesc, legal });
-        layout.adjustShortDescription();
-        const children = [...legal.children];
-        expect(children.indexOf(planType)).to.be.lessThan(
-            children.indexOf(legal.querySelector('.merch-short-description')),
-        );
     });
 
     it('wires tooltip events on .icon-button elements', () => {
@@ -86,9 +87,9 @@ describe('Product.adjustShortDescription', () => {
         shortDesc.innerHTML =
             '<p>See details <span class="icon-button" data-tooltip="More info"></span></p>';
         const legal = document.createElement('span');
-        const layout = makeLayout({ shortDesc, legal });
+        const { layout, container } = makeContainer({ shortDesc, legal });
         layout.adjustShortDescription();
-        const btn = legal.querySelector(
+        const btn = container.querySelector(
             '.merch-short-description .icon-button',
         );
         expect(btn).to.exist;
@@ -98,15 +99,31 @@ describe('Product.adjustShortDescription', () => {
         expect(btn.classList.contains('tooltip-visible')).to.be.false;
     });
 
+    it('hides tooltip on Escape keydown', () => {
+        const shortDesc = document.createElement('div');
+        shortDesc.innerHTML =
+            '<p>Info <span class="icon-button" data-tooltip="Tip"></span></p>';
+        const legal = document.createElement('span');
+        const { layout, container } = makeContainer({ shortDesc, legal });
+        layout.adjustShortDescription();
+        const btn = container.querySelector(
+            '.merch-short-description .icon-button',
+        );
+        btn.classList.add('tooltip-visible');
+        btn.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+        expect(btn.classList.contains('tooltip-visible')).to.be.false;
+    });
+
     it('does not wire events twice on the same button', () => {
         const shortDesc = document.createElement('div');
         shortDesc.innerHTML =
             '<p>Details <span class="icon-button" data-tooltip="Info"></span></p>';
         const legal = document.createElement('span');
-        const layout = makeLayout({ shortDesc, legal });
+        const { layout, container } = makeContainer({ shortDesc, legal });
         layout.adjustShortDescription();
+        shortDesc.hidden = false; // reset so second call can proceed
         layout.adjustShortDescription();
-        const btn = legal.querySelector(
+        const btn = container.querySelector(
             '.merch-short-description .icon-button',
         );
         btn.dispatchEvent(new Event('mouseenter'));

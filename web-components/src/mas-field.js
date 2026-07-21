@@ -127,9 +127,9 @@ class MasField extends HTMLElement {
 
     /** Parses "ctas[0]" into { fieldName: "ctas", index: 0 }, or { fieldName, index: null } for plain names. */
     #parseFieldAndIndex(field) {
-        const match = field?.match(/^(.+)\[(\d+)\]$/);
+        const match = field?.match(/^(.+)\[(.*?)\]$/);
         if (!match) return { fieldName: field, index: null };
-        return { fieldName: match[1], index: parseInt(match[2], 10) };
+        return { fieldName: match[1], index: match[2] };
     }
 
     /** Extracts the Nth anchor from CTA HTML, stripping only CSS classes so Milo can restyle it.
@@ -139,7 +139,14 @@ class MasField extends HTMLElement {
         if (typeof html !== 'string') return null;
         const template = document.createElement('template');
         template.innerHTML = html;
-        const anchor = [...template.content.querySelectorAll('a')][index - 1];
+        let anchor;
+        if (!isNaN(index)) {
+            const i = parseInt(index, 10);
+            anchor = [...template.content.querySelectorAll('a')][i - 1];
+        }
+        if (!anchor) {
+            anchor = template.content.querySelector(`a[data-key="${index}"]`);
+        }
         if (!anchor) return null;
         anchor.removeAttribute('class');
         return anchor.outerHTML;

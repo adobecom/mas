@@ -332,15 +332,16 @@ export function parseStudioDeepLinksFromText(text) {
  * @param {string} path - The current surface path (e.g. "/acom")
  * @param {string} page - The current Studio page (e.g. "content")
  * @param {string} fieldName - The field to link to (e.g. "prices", "description")
+ * @param {string} fieldNameText - Alternative value for fieldName
  * @returns {{ displayText: string, href: string, richText: string } | null}
  */
-export function generateFieldLink(fragment, path, page, fieldName) {
+export function generateFieldLink(fragment, path, page, fieldName, fieldNameText) {
     const resolvedFieldName = fieldName ?? page;
     const resolvedPage = fieldName ? page : 'content';
     const { fragmentParts } = getFragmentPartsToUse(fragment, path);
     const webComponentName = getWebComponentName(fragment);
     if (!webComponentName) return null;
-    const displayText = `mas-field: ${fragmentParts} → ${resolvedFieldName}`;
+    const displayText = `mas-field: ${fragmentParts} → ${fieldNameText ?? resolvedFieldName}`;
     const href = buildStudioFragmentHref({
         webComponentName,
         fragmentId: fragment?.id,

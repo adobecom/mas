@@ -139,9 +139,8 @@ async function wcs(context) {
         });
 
         if (context.body.fields?.osi) {
-            const fieldSub = context.substituteMap?.[context.body.fields.osi];
             const token = {
-                osi: fieldSub && fieldSub !== CANCEL_CONTEXT ? fieldSub : context.body.fields.osi,
+                osi: context.body.fields.osi,
                 promotionCode: context.body.fields.promoCode,
             };
             tokenMap.set(tokenKey(token), token);

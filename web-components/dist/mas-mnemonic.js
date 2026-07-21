@@ -1,43 +1,235 @@
-var O=Object.defineProperty;var z=(h,e,t)=>e in h?O(h,e,{enumerable:!0,configurable:!0,writable:!0,value:t}):h[e]=t;var y=(h,e,t)=>z(h,typeof e!="symbol"?e+"":e,t);import{LitElement as H,html as m,css as L,nothing as _}from"./lit-all.min.js";import{unsafeHTML as S}from"./lit-all.min.js";import{ifDefined as E}from"./lit-all.min.js";function V(){return customElements.get("sp-tooltip")!==void 0&&customElements.get("overlay-trigger")!==void 0&&document.querySelector("sp-theme")!==null}var o=class o extends H{constructor(){super(),this.content="",this.placement="top",this.variant="",this.size="xs",this.smartPlacement=!1,this.tooltipVisible=!1,this.lastPointerType=null,this.handleClickOutside=this.handleClickOutside.bind(this),this._tooltipTop=0,this._tooltipLeft=0,this._arrowOffset=0,this._computedPlacement="top"}connectedCallback(){super.connectedCallback(),window.addEventListener("mousedown",this.handleClickOutside),!this.smartPlacement&&this.closest('merch-card[variant="fries"]')&&(this.smartPlacement=!0)}disconnectedCallback(){super.disconnectedCallback(),window.removeEventListener("mousedown",this.handleClickOutside)}handleClickOutside(e){let t=e.composedPath();o.activeTooltip===this&&!t.includes(this)&&this.hideTooltip()}_computeTooltipPosition(){let e=this.shadowRoot?.querySelector(".css-tooltip");if(!e)return;let t=e.getBoundingClientRect(),x=window.innerWidth,f=window.innerHeight,s=14,p=200,d=60,a=this.shadowRoot?.querySelector(".css-tooltip-body"),n=a?a.offsetWidth:p,r=a?a.offsetHeight:d,i=this.effectivePlacement;i==="top"&&t.top-r-s<0?i="bottom":i==="bottom"&&t.bottom+r+s>f?i="top":i==="left"&&t.left-n-s<0?i="right":i==="right"&&t.right+n+s>x&&(i="left");let T=t.left+t.width/2,P=t.top+t.height/2,c=6,u=($,C,k)=>Math.max($,Math.min(C,k)),b,g,w;i==="top"||i==="bottom"?(b=i==="top"?t.top-r-s:t.bottom+s,g=u(0,x-n,T-n/2),w=u(c,n-c*2,T-g-c)):(g=i==="left"?t.left-n-s:t.right+s,b=u(0,f-r,P-r/2),w=u(c,r-c*2,P-b-c)),this._tooltipTop=b,this._tooltipLeft=g,this._arrowOffset=w,this._computedPlacement=i}showTooltip(){o.activeTooltip&&o.activeTooltip!==this&&(o.activeTooltip.closeOverlay(),o.activeTooltip.tooltipVisible=!1,o.activeTooltip.requestUpdate()),o.activeTooltip=this,this.smartPlacement&&this._computeTooltipPosition(),this.tooltipVisible=!0,this.smartPlacement&&this.updateComplete.then(()=>this._computeTooltipPosition())}hideTooltip(){o.activeTooltip===this&&(o.activeTooltip=null),this.tooltipVisible=!1}handleTap(e){e.preventDefault(),this.tooltipVisible?this.hideTooltip():this.showTooltip()}closeOverlay(){let e=this.shadowRoot?.querySelector("overlay-trigger");e?.open!==void 0&&(e.open=!1)}get effectiveContent(){return this.tooltipText||this.mnemonicText||this.content||this.textContent?.trim()||""}get effectivePlacement(){return this.tooltipPlacement||this.mnemonicPlacement||this.placement||"top"}renderIcon(){return this.src?m`<merch-icon
+var __defProp = Object.defineProperty;
+var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
+
+// src/mas-mnemonic.js
+import { LitElement, html, css, nothing } from "./lit-all.min.js";
+import { unsafeHTML } from "./lit-all.min.js";
+import { ifDefined } from "./lit-all.min.js";
+function hasSpectrumTooltip() {
+  return customElements.get("sp-tooltip") !== void 0 && customElements.get("overlay-trigger") !== void 0 && document.querySelector("sp-theme") !== null;
+}
+var _MasMnemonic = class _MasMnemonic extends LitElement {
+  constructor() {
+    super();
+    this.content = "";
+    this.placement = "top";
+    this.variant = "";
+    this.size = "xs";
+    this.smartPlacement = false;
+    this.tooltipVisible = false;
+    this.lastPointerType = null;
+    this.handleClickOutside = this.handleClickOutside.bind(this);
+    this._tooltipTop = 0;
+    this._tooltipLeft = 0;
+    this._arrowOffset = 0;
+    this._computedPlacement = "top";
+  }
+  connectedCallback() {
+    super.connectedCallback();
+    window.addEventListener("mousedown", this.handleClickOutside);
+    if (!this.smartPlacement && this.closest('merch-card[variant="fries"]')) {
+      this.smartPlacement = true;
+    }
+  }
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    window.removeEventListener("mousedown", this.handleClickOutside);
+  }
+  handleClickOutside(event) {
+    const path = event.composedPath();
+    if (_MasMnemonic.activeTooltip === this && !path.includes(this)) {
+      this.hideTooltip();
+    }
+  }
+  _computeTooltipPosition() {
+    const anchor = this.shadowRoot?.querySelector(".css-tooltip");
+    if (!anchor) return;
+    const rect = anchor.getBoundingClientRect();
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const gap = 14;
+    const tooltipMaxWidth = 200;
+    const tooltipEstHeight = 60;
+    const body = this.shadowRoot?.querySelector(".css-tooltip-body");
+    const tooltipW = body ? body.offsetWidth : tooltipMaxWidth;
+    const tooltipH = body ? body.offsetHeight : tooltipEstHeight;
+    const preferred = this.effectivePlacement;
+    let placement = preferred;
+    if (placement === "top" && rect.top - tooltipH - gap < 0)
+      placement = "bottom";
+    else if (placement === "bottom" && rect.bottom + tooltipH + gap > vh)
+      placement = "top";
+    else if (placement === "left" && rect.left - tooltipW - gap < 0)
+      placement = "right";
+    else if (placement === "right" && rect.right + tooltipW + gap > vw)
+      placement = "left";
+    const iconCenterX = rect.left + rect.width / 2;
+    const iconCenterY = rect.top + rect.height / 2;
+    const arrowSize = 6;
+    const clamp = (min, max, v) => Math.max(min, Math.min(max, v));
+    let top, left, arrowOffset;
+    if (placement === "top" || placement === "bottom") {
+      top = placement === "top" ? rect.top - tooltipH - gap : rect.bottom + gap;
+      left = clamp(0, vw - tooltipW, iconCenterX - tooltipW / 2);
+      arrowOffset = clamp(
+        arrowSize,
+        tooltipW - arrowSize * 2,
+        iconCenterX - left - arrowSize
+      );
+    } else {
+      left = placement === "left" ? rect.left - tooltipW - gap : rect.right + gap;
+      top = clamp(0, vh - tooltipH, iconCenterY - tooltipH / 2);
+      arrowOffset = clamp(
+        arrowSize,
+        tooltipH - arrowSize * 2,
+        iconCenterY - top - arrowSize
+      );
+    }
+    this._tooltipTop = top;
+    this._tooltipLeft = left;
+    this._arrowOffset = arrowOffset;
+    this._computedPlacement = placement;
+  }
+  showTooltip() {
+    if (_MasMnemonic.activeTooltip && _MasMnemonic.activeTooltip !== this) {
+      _MasMnemonic.activeTooltip.closeOverlay();
+      _MasMnemonic.activeTooltip.tooltipVisible = false;
+      _MasMnemonic.activeTooltip.requestUpdate();
+    }
+    _MasMnemonic.activeTooltip = this;
+    if (this.smartPlacement) {
+      this._computeTooltipPosition();
+    }
+    this.tooltipVisible = true;
+    if (this.smartPlacement) {
+      this.updateComplete.then(() => this._computeTooltipPosition());
+    }
+  }
+  hideTooltip() {
+    if (_MasMnemonic.activeTooltip === this) {
+      _MasMnemonic.activeTooltip = null;
+    }
+    this.tooltipVisible = false;
+  }
+  handleTap(e) {
+    e.preventDefault();
+    if (this.tooltipVisible) {
+      this.hideTooltip();
+    } else {
+      this.showTooltip();
+    }
+  }
+  closeOverlay() {
+    const trigger = this.shadowRoot?.querySelector("overlay-trigger");
+    if (trigger?.open !== void 0) {
+      trigger.open = false;
+    }
+  }
+  get effectiveContent() {
+    return this.tooltipText || this.mnemonicText || this.content || this.textContent?.trim() || "";
+  }
+  get effectivePlacement() {
+    return this.tooltipPlacement || this.mnemonicPlacement || this.placement || "top";
+  }
+  renderIcon() {
+    if (!this.src) return html`<slot></slot>`;
+    return html`<merch-icon
             src="${this.src}"
             size="${this.size}"
-        ></merch-icon>`:m`<slot></slot>`}render(){let e=this.effectiveContent,t=this.effectivePlacement;if(!e)return m`<span class="icon-only">${this.renderIcon()}</span>`;if(V())return m`
+        ></merch-icon>`;
+  }
+  render() {
+    const content = this.effectiveContent;
+    const placement = this.effectivePlacement;
+    if (!content) {
+      return html`<span class="icon-only">${this.renderIcon()}</span>`;
+    }
+    const useSpectrum = hasSpectrumTooltip();
+    if (useSpectrum) {
+      return html`
                 <overlay-trigger
-                    placement="${t}"
-                    @sp-opened=${()=>this.showTooltip()}
+                    placement="${placement}"
+                    @sp-opened=${() => this.showTooltip()}
                 >
                     <span slot="trigger">${this.renderIcon()}</span>
                     <sp-tooltip
                         slot="hover-content"
-                        placement="${t}"
+                        placement="${placement}"
                         variant="${this.variant}"
                     >
-                        ${S(e)}
+                        ${unsafeHTML(content)}
                     </sp-tooltip>
                 </overlay-trigger>
-            `;let f=e.replace(/<[^>]*>/g,""),s=this.tooltipVisible?"tooltip-visible":"",p={pointerdown:l=>{this.lastPointerType=l.pointerType},pointerenter:l=>l.pointerType!=="touch"&&this.showTooltip(),pointerleave:l=>l.pointerType!=="touch"&&this.hideTooltip(),click:l=>{this.lastPointerType==="touch"&&this.handleTap(l),this.lastPointerType=null}},d=this._computedPlacement,a=d==="top"||d==="bottom",n=this.smartPlacement?`top:${this._tooltipTop}px;left:${this._tooltipLeft}px;`:void 0,r=a?`left:${this._arrowOffset}px`:`top:${this._arrowOffset}px`;return m`
+            `;
+    }
+    const plainContent = content.replace(/<[^>]*>/g, "");
+    const visibleClass = this.tooltipVisible ? "tooltip-visible" : "";
+    const pointerHandlers = {
+      pointerdown: (e) => {
+        this.lastPointerType = e.pointerType;
+      },
+      pointerenter: (e) => e.pointerType !== "touch" && this.showTooltip(),
+      pointerleave: (e) => e.pointerType !== "touch" && this.hideTooltip(),
+      click: (e) => {
+        if (this.lastPointerType === "touch") this.handleTap(e);
+        this.lastPointerType = null;
+      }
+    };
+    const cp = this._computedPlacement;
+    const isHorizontal = cp === "top" || cp === "bottom";
+    const bodyStyle = this.smartPlacement ? `top:${this._tooltipTop}px;left:${this._tooltipLeft}px;` : void 0;
+    const tipOffset = isHorizontal ? `left:${this._arrowOffset}px` : `top:${this._arrowOffset}px`;
+    return html`
             <span
-                class="css-tooltip ${this.smartPlacement?"smart":t} ${s}"
+                class="css-tooltip ${this.smartPlacement ? "smart" : placement} ${visibleClass}"
                 tabindex="0"
                 role="img"
-                aria-label="${f}"
-                @pointerdown=${p.pointerdown}
-                @pointerenter=${p.pointerenter}
-                @pointerleave=${p.pointerleave}
-                @click=${p.click}
+                aria-label="${plainContent}"
+                @pointerdown=${pointerHandlers.pointerdown}
+                @pointerenter=${pointerHandlers.pointerenter}
+                @pointerleave=${pointerHandlers.pointerleave}
+                @click=${pointerHandlers.click}
             >
                 ${this.renderIcon()}
-                <span class="css-tooltip-body" style=${E(n)}>
-                    ${S(e)}
-                    ${this.smartPlacement?m`<span
+                <span class="css-tooltip-body" style=${ifDefined(bodyStyle)}>
+                    ${unsafeHTML(content)}
+                    ${this.smartPlacement ? html`<span
                               aria-hidden="true"
                               role="presentation"
-                              class="css-tooltip-tip ${d}"
-                              style="${r}"
-                          ></span>`:_}
+                              class="css-tooltip-tip ${cp}"
+                              style="${tipOffset}"
+                          ></span>` : nothing}
                 </span>
             </span>
-        `}};y(o,"activeTooltip",null),y(o,"properties",{content:{type:String},placement:{type:String},variant:{type:String},src:{type:String},size:{type:String},tooltipText:{type:String,attribute:"tooltip-text"},tooltipPlacement:{type:String,attribute:"tooltip-placement"},mnemonicText:{type:String,attribute:"mnemonic-text"},mnemonicPlacement:{type:String,attribute:"mnemonic-placement"},alt:{type:String},smartPlacement:{type:Boolean,attribute:"smart-placement"},tooltipVisible:{type:Boolean,state:!0},_tooltipTop:{type:Number,state:!0},_tooltipLeft:{type:Number,state:!0},_arrowOffset:{type:Number,state:!0},_computedPlacement:{type:String,state:!0}}),y(o,"styles",L`
+        `;
+  }
+};
+__publicField(_MasMnemonic, "activeTooltip", null);
+__publicField(_MasMnemonic, "properties", {
+  content: { type: String },
+  placement: { type: String },
+  variant: { type: String },
+  // Icon-based tooltip properties
+  src: { type: String },
+  size: { type: String },
+  tooltipText: { type: String, attribute: "tooltip-text" },
+  tooltipPlacement: { type: String, attribute: "tooltip-placement" },
+  // Support studio's mnemonic attribute names
+  mnemonicText: { type: String, attribute: "mnemonic-text" },
+  mnemonicPlacement: { type: String, attribute: "mnemonic-placement" },
+  alt: { type: String },
+  // Opt-in viewport-aware JS positioning (used by fries cards)
+  smartPlacement: { type: Boolean, attribute: "smart-placement" },
+  // Tooltip visibility state
+  tooltipVisible: { type: Boolean, state: true },
+  // Computed positioning state for CSS fallback tooltip
+  _tooltipTop: { type: Number, state: true },
+  _tooltipLeft: { type: Number, state: true },
+  _arrowOffset: { type: Number, state: true },
+  _computedPlacement: { type: String, state: true }
+});
+__publicField(_MasMnemonic, "styles", css`
         :host {
             display: contents;
             overflow: visible;
@@ -211,4 +403,10 @@ var O=Object.defineProperty;var z=(h,e,t)=>e in h?O(h,e,{enumerable:!0,configura
         .icon-only {
             display: inline-block;
         }
-    `);var v=o;customElements.define("mas-mnemonic",v);export{v as default};
+    `);
+var MasMnemonic = _MasMnemonic;
+customElements.define("mas-mnemonic", MasMnemonic);
+export {
+  MasMnemonic as default
+};
+//# sourceMappingURL=mas-mnemonic.js.map

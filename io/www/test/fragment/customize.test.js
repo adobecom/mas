@@ -1566,6 +1566,7 @@ describe('customize promo variation', function () {
     const ACTIVE_PROJECT = {
         id: 'promo-proj-id',
         path: '/content/dam/mas/promotions/black-friday',
+        fragmentPaths: ['my-card'],
         defaultVariations: { 'my-card': PROMO_VARIATION },
         regionVariations: {},
     };
@@ -1590,6 +1591,33 @@ describe('customize promo variation', function () {
         expect(result.body.variationId).to.equal('promo-var-id');
         expect(result.body.fields.title).to.equal('Promo Title');
         expect(result.body.fields.badge).to.equal('PROMO');
+    });
+
+    it("should NOT merge promo variation when the fragment is not in the project's fragmentPaths (offers)", async function () {
+        // A variation fragment can exist under the promo project's variations folder for a card
+        // the project was never actually authorized to target via its fragments/offers field —
+        // e.g. leftover/stray content. Folder presence alone must not be sufficient authorization.
+        const projectNotTargetingThisCard = {
+            ...ACTIVE_PROJECT,
+            fragmentPaths: ['some-other-card'],
+        };
+        const rootFragment = {
+            id: 'root-id',
+            path: '/content/dam/mas/sandbox/en_US/my-card',
+            fields: { title: 'Original Title', badge: 'ORIGINAL' },
+            references: {},
+            referencesTree: [],
+        };
+
+        const result = await processWithPromos(
+            { ...FAKE_CONTEXT, fragmentPath: 'my-card', parsedLocale: 'en_US', body: rootFragment },
+            projectNotTargetingThisCard,
+        );
+
+        expect(result.status).to.equal(200);
+        expect(result.body.variationId).to.be.undefined;
+        expect(result.body.fields.title).to.equal('Original Title');
+        expect(result.body.fields.badge).to.equal('ORIGINAL');
     });
 
     it('should merge region variation over default when both exist', async function () {
@@ -2372,14 +2400,17 @@ describe('customize with multiple active promotion projects', function () {
             referencesTree: [],
         };
         const result = await processWithPromoProjects({ ...FAKE_CONTEXT, fragmentPath: 'card-x', body: rootFragment }, [
-            { project: projectVariationOnly, promoMap: { 'OSI-X': 'FROM-VAR-PROJECT' }, fragmentPaths: new Set() },
+            // A is authorized for card-x (so its variation is allowed to apply) but supplies no
+            // osi entry of its own, so it never competes with B for the promoCode.
+            { project: projectVariationOnly, promoMap: {}, fragmentPaths: new Set(['card-x']) },
             { project: projectPromoOnly, promoMap: { 'OSI-X': 'FROM-PROMO-PROJECT' }, fragmentPaths: new Set(['card-x']) },
         ]);
         expect(result.status).to.equal(200);
         expect(result.body.variationId).to.equal('var-x');
         expect(result.body.fields.promoCode).to.equal('FROM-PROMO-PROJECT');
         // Variation and promoCode provenance are tracked on separate fields, so two different
-        // projects touching the same fragment are both recorded rather than clobbering each other.
+        // projects both authorized for the same fragment are both recorded rather than clobbering
+        // each other.
         expect(result.body.promoVariationProject).to.equal('proj-var');
         expect(result.body.promoProject).to.equal('proj-promo');
     });
@@ -2405,7 +2436,7 @@ describe('customize with multiple active promotion projects', function () {
             referencesTree: [],
         };
         const result = await processWithPromoProjects({ ...FAKE_CONTEXT, fragmentPath: 'card-y', body: rootFragment }, [
-            { project: projectVarOnly, promoMap: {}, fragmentPaths: new Set() },
+            { project: projectVarOnly, promoMap: {}, fragmentPaths: new Set(['card-y']) },
         ]);
         expect(result.status).to.equal(200);
         expect(result.body.variationId).to.equal('var-y');

@@ -224,7 +224,10 @@ function findPromoVariation(root, customizeContext) {
     if (!match?.groups) return null;
     const { fragmentPath } = match.groups;
     const { regionLocale, country } = customizeContext;
-    for (const { project } of promoProjects) {
+    for (const { project, fragmentPaths } of promoProjects) {
+        // target fragment must be in the project (fragmentPaths).
+        // orphaned variations are ignored.
+        if (!fragmentPaths.has(fragmentPath)) continue;
         const defaultVar = selectBestPromoVariation(collectPromoVariationCandidates(project.defaultVariations, fragmentPath), {
             regionLocale,
             country,
@@ -297,7 +300,8 @@ function applyPromoCode(fragment, promoEntries, context) {
     if (!fragOsi) return;
     const osis = Array.isArray(fragOsi) ? fragOsi : [fragOsi];
     // Several active projects can target the same fragment. An explicit osi (or substituted-osi)
-    // entry from any of them wins, folder order only breaking ties, so projects with disjoint
+    // entry from any of them wins, promoProjects order (earliest startDate first, seasonal
+    // projects floated to the top) only breaking ties, so projects with disjoint
     // per-country entries coexist (one applies for BR, another for MY). A project-level wildcard
     // ('*') is a last resort, applied only where no project has an explicit entry.
     let explicitPromoCode;

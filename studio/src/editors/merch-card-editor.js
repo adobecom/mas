@@ -295,7 +295,6 @@ class MerchCardEditor extends LitElement {
     }
 
     getFieldState(fieldName) {
-        console.log('you cant see the method?? ', fieldName);
         return this.fragment.getFieldState(fieldName, this.localeDefaultFragment, this.effectiveIsVariation);
     }
 

@@ -357,6 +357,7 @@
                     });
 
                     it('removes inherited mnemonic and restores it via override indicator', async () => {
+                        console.log('is it really possible???');
                         await setupTestEnvironment();
                         expect(editor.getFieldState('mnemonicIcon')).to.equal('inherited');
                         expect(editor.mnemonics).to.have.length(1);

@@ -126,7 +126,9 @@ describe('promotions-repository', () => {
             };
             sandbox.stub(Store.fragments.list.data, 'get').returns([parentStore]);
 
-            const result = await createPromoVariation(aem, parentFragment.id, promoTag, [], refreshFragment);
+            const result = await createPromoVariation(aem, parentFragment.id, promoTag, [], refreshFragment, () =>
+                Promise.resolve(),
+            );
 
             expect(result).to.deep.equal(createdFragment);
             expect(refreshFragment.calledOnceWith(parentStore)).to.be.true;

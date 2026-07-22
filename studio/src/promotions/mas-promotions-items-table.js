@@ -893,8 +893,13 @@ class MasPromotionsItemsTable extends LitElement {
         try {
             this.createPromoVariationLoading = true;
             showToast('Creating promo variation...');
-            const created = await createPromoVariation(this.repository.aem, item.id, promoTag, geoTags, (store) =>
-                this.repository.refreshFragment(store),
+            const created = await createPromoVariation(
+                this.repository.aem,
+                item.id,
+                promoTag,
+                geoTags,
+                (store) => this.repository.refreshFragment(store),
+                () => this.repository.loadPromotions(),
             );
             showToast('Promo variation created', 'positive');
             this.existingPromoVariationDefaultPaths = new Set([...this.existingPromoVariationDefaultPaths, item.path]);

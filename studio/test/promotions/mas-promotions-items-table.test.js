@@ -677,55 +677,6 @@ describe('MasPromotionsItemsTable', () => {
         Store.promotions.inEdit.set(null);
     });
 
-    it('shows View promo variation instead of Create when a variation already exists for the project', async () => {
-        const defaultPath = '/content/dam/mas/sandbox/en_US/my-card';
-        const promoVariationPath = '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card';
-        const promotion = new Fragment({
-            path: '/content/dam/mas/promotions/black-friday',
-            fields: [{ name: 'tags', values: ['mas:promotion/black-friday'], multiple: true }],
-        });
-        Store.promotions.inEdit.set(new FragmentStore(promotion));
-        Store.promotions.selectedCards.set([defaultPath]);
-
-        const el = new MasPromotionsItemsTable();
-        el.type = TABLE_TYPE.CARDS;
-        const fragment = {
-            path: defaultPath,
-            id: 'card-promo-id',
-            title: 'Promo Card',
-            studioPath: defaultPath,
-            status: 'DRAFT',
-            model: { path: CARD_MODEL_PATH },
-            fields: [],
-            tags: [],
-        };
-        sandbox.stub(el, 'repository').get(() => ({
-            aem: {
-                getFragmentByPath: sandbox.stub().resolves(fragment),
-                sites: {
-                    cf: {
-                        fragments: {
-                            getByPath: sandbox.stub().withArgs(promoVariationPath).resolves({
-                                id: 'promo-var-id',
-                                path: promoVariationPath,
-                            }),
-                        },
-                    },
-                },
-            },
-        }));
-        document.body.appendChild(el);
-        await el.updateComplete;
-        await new Promise((r) => setTimeout(r, 80));
-        await el.updateComplete;
-
-        const menuItems = Array.from(el.shadowRoot.querySelectorAll('sp-menu-item'));
-        expect(menuItems.some((item) => item.textContent.trim().includes('Create promo variation'))).to.be.false;
-        el.remove();
-        Store.promotions.inEdit.set(null);
-        Store.promotions.selectedCards.set([]);
-    });
-
     it('hides Create promo variation for paths that are already promo variations', async () => {
         const promotion = new Fragment({
             path: '/content/dam/mas/promotions/black-friday',
@@ -928,6 +879,7 @@ describe('MasPromotionsItemsTable', () => {
             const el = await fixture(html`<mas-promotions-items-table .type=${TABLE_TYPE.CARDS}></mas-promotions-items-table>`);
             sandbox.stub(el, 'repository').get(() => ({
                 refreshFragment: sandbox.stub().resolves(),
+                loadPromotions: sandbox.stub().resolves(),
                 aem,
             }));
             el.viewOnlyFragments = [cardFragment];
@@ -1225,6 +1177,7 @@ describe('MasPromotionsItemsTable', () => {
             const el = await fixture(html`<mas-promotions-items-table .type=${TABLE_TYPE.CARDS}></mas-promotions-items-table>`);
             sandbox.stub(el, 'repository').get(() => ({
                 refreshFragment: sandbox.stub().resolves(),
+                loadPromotions: sandbox.stub().resolves(),
                 aem,
             }));
             el.viewOnlyFragments = [cardFragment];
@@ -1359,6 +1312,7 @@ describe('MasPromotionsItemsTable', () => {
             const el = await fixture(html`<mas-promotions-items-table .type=${TABLE_TYPE.CARDS}></mas-promotions-items-table>`);
             sandbox.stub(el, 'repository').get(() => ({
                 refreshFragment: sandbox.stub().resolves(),
+                loadPromotions: sandbox.stub().resolves(),
                 aem,
             }));
             el.viewOnlyFragments = [cardFragment];

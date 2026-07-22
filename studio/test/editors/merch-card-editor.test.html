@@ -1026,22 +1026,24 @@
                                 parentOverrides: {
                                     showPlanType: ['true'],
                                     showSecureLabel: ['true'],
+                                    addon: ['{{addon-stock-trial}}'],
+                                },
+                                variationOverrides: {
                                     addon: ['{{addon-mili-test}}'],
                                 },
-                                variationOverrides: {},
                                 testId: 'variation-inherits-parent-visual-overrides',
                             });
 
                             expect(editor.isSettingOverridden('showPlanType')).to.be.false;
                             expect(editor.isSettingOverridden('showSecureLabel')).to.be.false;
-                            expect(editor.isSettingOverridden('addon')).to.be.false;
+                            expect(editor.isSettingOverridden('addon')).to.be.true;
                             expect(editor.getEffectiveSettingValue('showPlanType')).to.equal('true');
                             expect(editor.getEffectiveSettingValue('showSecureLabel')).to.equal('true');
                             expect(editor.getEffectiveSettingValue('addon')).to.equal('{{addon-mili-test}}');
 
                             expect(editor.isSettingVisuallyOverridden('showPlanType')).to.be.true;
                             expect(editor.isSettingVisuallyOverridden('showSecureLabel')).to.be.true;
-                            expect(editor.isSettingVisuallyOverridden('addon')).to.be.true;
+                            expect(editor.isAddonSettingVisuallyOverridden()).to.be.true;
 
                             const restoreAllLink = editor.querySelector('.restore-all-link');
                             expect(restoreAllLink).to.exist;

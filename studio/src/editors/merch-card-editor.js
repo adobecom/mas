@@ -647,7 +647,7 @@ class MerchCardEditor extends LitElement {
         return this.restoreSettingsToDefault(this.resetQuantitySettingToDefault, field);
     }
 
-    isAddonVariationOverridden() {
+    isAddonSettingVisuallyOverridden() {
         const addonFragment = this.fragment?.getFieldValue(ADDON, 0);
         if (!addonFragment) return false;
 
@@ -667,7 +667,7 @@ class MerchCardEditor extends LitElement {
     }
 
     renderSettingOverrideIndicator(fieldName) {
-        if (fieldName === ADDON && !this.isAddonVariationOverridden()) return nothing;
+        if (fieldName === ADDON && !this.isAddonSettingVisuallyOverridden()) return nothing;
         if (!this.isSettingVisuallyOverridden(fieldName)) return nothing;
         return this.restoreSettingsToDefault(this.resetSettingToDefault, fieldName);
     }
@@ -1717,7 +1717,7 @@ class MerchCardEditor extends LitElement {
                             id="addon-field"
                             label="Show Addon"
                             data-field="addon"
-                            data-field-state="${this.isAddonVariationOverridden() ? 'overridden' : 'default'}"
+                            data-field-state="${this.isAddonSettingVisuallyOverridden() ? 'overridden' : 'default'}"
                             .indicatorTemplate=${this.renderSettingOverrideIndicator(ADDON)}
                             .value="${this.getEffectiveSettingValue(ADDON)}"
                             @input="${this.#handleAddonChange}"

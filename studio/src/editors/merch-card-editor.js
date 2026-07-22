@@ -1927,6 +1927,11 @@ class MerchCardEditor extends LitElement {
         if (!Array.isArray(items)) return;
         const values = items.map((item) => item.value || '');
         const labels = items.map((item) => item.label || '');
+        const nonEmpty = labels.filter(Boolean);
+        if (nonEmpty.length !== new Set(nonEmpty).size) {
+            showToast('Custom field labels must be unique', 'negative');
+            return;
+        }
         this.fragmentStore.updateField('customFields', values);
         this.fragmentStore.updateField('customFieldLabels', labels);
     };

@@ -126,6 +126,17 @@ describe('bulk-publish/publish-core.js — publishDictionaryIndexes', () => {
         expect(results).to.deep.equal([{ path: '/content/dam/mas/acom/fr_FR/dictionary/index', status: 'published' }]);
     });
 
+    it('logs per-locale chunk events when publishing indexes', async () => {
+        const localLogger = { info: sinon.stub(), warn: sinon.stub(), error: sinon.stub() };
+        const details = [{ path: '/content/dam/mas/acom/en_US/dictionary/free', status: 'published' }];
+
+        await core.publishDictionaryIndexes(details, 'https://odin', 'token', localLogger);
+
+        const events = localLogger.info.getCalls().map((call) => JSON.parse(call.args[0]));
+        expect(events.some((e) => e.event === 'chunk-start' && e.locale === 'en_US')).to.be.true;
+        expect(events.some((e) => e.event === 'chunk-result' && e.locale === 'en_US')).to.be.true;
+    });
+
     it('skips published indexes while publishing the rest', async () => {
         fetchFragmentByPathStub.callsFake(async (endpoint, path) => {
             if (path.includes('/en_US/')) return { fragment: { status: 'PUBLISHED' }, status: 200 };

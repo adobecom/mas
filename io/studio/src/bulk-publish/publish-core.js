@@ -5,7 +5,7 @@ const MAX_CHUNK_SIZE = 50;
 const LOCALE_REGEX = /^\/content\/dam\/mas\/[\w-_]+\/(?<locale>[\w-_]+)\//;
 const STATUS = { PUBLISHED: 'published', SKIPPED: 'skipped', FAILED: 'failed' };
 const DICTIONARY_SEGMENT = '/dictionary/';
-const INDEX_SUFFIX = '/dictionary/index';
+const INDEX_SUFFIX = `${DICTIONARY_SEGMENT}index`;
 const FRAGMENT_STATUS_PUBLISHED = 'PUBLISHED';
 const INDEX_STATUS_CONCURRENCY = 5;
 
@@ -32,9 +32,9 @@ function groupAndChunk(paths, maxChunkSize) {
     return chunks;
 }
 
-async function publishOneChunk({ locale, paths }, odinEndpoint, authToken, logger) {
+async function publishOneChunk({ locale, paths }, odinEndpoint, authToken, logger, publishOptions = {}) {
     logger.info(JSON.stringify({ event: 'chunk-start', locale, size: paths.length }));
-    const results = await publishChunk({ chunk: paths, odinEndpoint, authToken, logger });
+    const results = await publishChunk({ chunk: paths, odinEndpoint, authToken, logger, ...publishOptions });
     const counts = results.reduce(
         (acc, r) => {
             if (r.status === STATUS.PUBLISHED) acc.published += 1;
@@ -95,13 +95,7 @@ async function publishDictionaryIndexes(details, odinEndpoint, authToken, logger
     if (!toPublish.length) return skipped;
     const indexDetails = [...skipped];
     for (const chunk of groupAndChunk(toPublish, MAX_CHUNK_SIZE)) {
-        const results = await publishChunk({
-            chunk: chunk.paths,
-            odinEndpoint,
-            authToken,
-            logger,
-            filterReferencesByStatus: [],
-        });
+        const results = await publishOneChunk(chunk, odinEndpoint, authToken, logger, { filterReferencesByStatus: [] });
         indexDetails.push(...results);
     }
     return indexDetails;

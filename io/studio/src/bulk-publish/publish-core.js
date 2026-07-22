@@ -1,10 +1,13 @@
 const { publishChunk } = require('./publisher.js');
+const { fetchFragmentByPath, processBatchWithConcurrency } = require('../common.js');
 
 const MAX_CHUNK_SIZE = 50;
 const LOCALE_REGEX = /^\/content\/dam\/mas\/[\w-_]+\/(?<locale>[\w-_]+)\//;
 const STATUS = { PUBLISHED: 'published', SKIPPED: 'skipped', FAILED: 'failed' };
 const DICTIONARY_SEGMENT = '/dictionary/';
 const INDEX_SUFFIX = '/dictionary/index';
+const FRAGMENT_STATUS_PUBLISHED = 'PUBLISHED';
+const INDEX_STATUS_CONCURRENCY = 5;
 
 function extractLocale(path) {
     if (typeof path !== 'string') return 'unknown';
@@ -70,12 +73,28 @@ function deriveIndexPaths(details) {
     return Array.from(indexPaths);
 }
 
+async function partitionIndexesByPublishState(indexPaths, odinEndpoint, authToken) {
+    const checks = await processBatchWithConcurrency(indexPaths, INDEX_STATUS_CONCURRENCY, async (path) => {
+        const { fragment } = await fetchFragmentByPath(odinEndpoint, path, authToken);
+        return { path, alreadyPublished: fragment?.status === FRAGMENT_STATUS_PUBLISHED };
+    });
+    const toPublish = [];
+    const skipped = [];
+    for (const { path, alreadyPublished } of checks) {
+        if (alreadyPublished) skipped.push({ path, status: STATUS.SKIPPED, reason: 'already-published' });
+        else toPublish.push(path);
+    }
+    return { toPublish, skipped };
+}
+
 async function publishDictionaryIndexes(details, odinEndpoint, authToken, logger) {
     const indexPaths = deriveIndexPaths(details);
     if (!indexPaths.length) return [];
-    logger.info(JSON.stringify({ event: 'index-publish-start', total: indexPaths.length }));
-    const indexDetails = [];
-    for (const chunk of groupAndChunk(indexPaths, MAX_CHUNK_SIZE)) {
+    const { toPublish, skipped } = await partitionIndexesByPublishState(indexPaths, odinEndpoint, authToken);
+    logger.info(JSON.stringify({ event: 'index-publish-start', total: indexPaths.length, skipped: skipped.length }));
+    if (!toPublish.length) return skipped;
+    const indexDetails = [...skipped];
+    for (const chunk of groupAndChunk(toPublish, MAX_CHUNK_SIZE)) {
         const results = await publishChunk({
             chunk: chunk.paths,
             odinEndpoint,

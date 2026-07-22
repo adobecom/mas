@@ -1,39 +1,20 @@
 import { LitElement, html, css } from 'lit';
 import { store } from '../store/ost-store.js';
-import { computePromoStatus } from '@dexter/tacocat-core/src/promotion.js';
+import { computePromoStatus, PROMO_CONTEXT_CANCEL_VALUE } from '@dexter/tacocat-core/src/promotion.js';
 
 export class OstCodeOutput extends LitElement {
     static properties = {
         buttonText: { type: String, state: true },
         placeholderType: { type: String },
         referenceOsi: { type: String },
+        osi: { type: String },
+        offer: { type: Object },
     };
 
     static styles = css`
         :host {
             font-family: inherit;
-            display: block;
-            min-width: 0;
-        }
-
-        .code-card {
-            background: var(--spectrum-gray-900, #1a1a1a);
-            border-radius: 8px;
-            padding: 16px;
-            display: flex;
-            align-items: center;
-            gap: 16px;
-        }
-
-        code {
-            flex: 1;
-            min-width: 0;
-            font-family: inherit;
-            font-size: 12px;
-            color: var(--spectrum-green-400, #2d9d78);
-            overflow-wrap: anywhere;
-            word-break: break-word;
-            white-space: pre-wrap;
+            display: inline-flex;
         }
     `;
 
@@ -57,23 +38,29 @@ export class OstCodeOutput extends LitElement {
         this.requestUpdate();
     }
 
-    get panel() {
-        const root = this.getRootNode();
-        return root?.host?.tagName === 'OST-PLACEHOLDER-PANEL' ? root.host : null;
+    get effectiveOsi() {
+        return this.osi || store.selectedOsi;
+    }
+
+    get effectiveOffer() {
+        return this.offer || store.selectedOffer;
+    }
+
+    // Scope the checkout controller to this row: tryBuy renders one checkout
+    // row per offer, each with its own ost-checkout-options.
+    get checkoutCtrl() {
+        return this.closest('.placeholder-row')?.querySelector('ost-checkout-options')?.checkout;
     }
 
     getCodeString() {
-        const panel = this.panel;
-        if (!panel) return '';
-
-        const baseOsi = store.selectedOsi;
+        const baseOsi = this.effectiveOsi;
         if (!baseOsi) return '';
 
-        const ctrl = panel.placeholderCtrl;
-        const type = this.placeholderType || ctrl.selectedType;
-        const options = ctrl.getEffectiveOptions();
+        const type = this.placeholderType;
+        if (!type) return '';
+        const options = store.getEffectiveOptions(type);
 
-        const checkoutCtrl = panel.shadowRoot?.querySelector('ost-checkout-options')?.checkout;
+        const checkoutCtrl = this.checkoutCtrl;
 
         const osi = type === 'discount' && this.referenceOsi ? `${baseOsi},${this.referenceOsi}` : baseOsi;
         const parts = [`osi="${osi}"`];
@@ -120,16 +107,13 @@ export class OstCodeOutput extends LitElement {
     }
 
     async handleUse() {
-        const panel = this.panel;
-        if (!panel) return;
-
-        const baseOsi = store.selectedOsi;
-        const ctrl = panel.placeholderCtrl;
-        const type = this.placeholderType || ctrl.selectedType;
+        const baseOsi = this.effectiveOsi;
+        const type = this.placeholderType;
+        if (!type) return;
         const osi = type === 'discount' && this.referenceOsi ? `${baseOsi},${this.referenceOsi}` : baseOsi;
-        const options = ctrl.serializeOptions();
+        const options = store.getEffectiveOptions(type);
 
-        const checkoutCtrl = panel.shadowRoot?.querySelector('ost-checkout-options')?.checkout;
+        const checkoutCtrl = this.checkoutCtrl;
 
         if (checkoutCtrl) {
             options.workflowStep = checkoutCtrl.workflowStep;
@@ -156,6 +140,13 @@ export class OstCodeOutput extends LitElement {
 
         const promoStatus = computePromoStatus(store.storedPromoOverride, store.promotionCode);
 
+        // Persist the literal cancel value
+        // effectivePromoCode would lose it (collapses to undefined)
+        const promoOverride =
+            store.storedPromoOverride === PROMO_CONTEXT_CANCEL_VALUE
+                ? PROMO_CONTEXT_CANCEL_VALUE
+                : promoStatus.effectivePromoCode;
+
         let node = this.getRootNode();
         while (node?.host && node.host.tagName !== 'OST-APP') {
             node = node.host.getRootNode();
@@ -165,9 +156,9 @@ export class OstCodeOutput extends LitElement {
             app.select({
                 osi,
                 type,
-                offer: store.selectedOffer,
+                offer: this.effectiveOffer,
                 options,
-                promoOverride: promoStatus.effectivePromoCode,
+                promoOverride,
                 country: store.country,
             });
         }
@@ -185,20 +176,16 @@ export class OstCodeOutput extends LitElement {
     }
 
     render() {
-        const code = this.getCodeString();
         return html`
-            <div class="code-card">
-                <code data-testid="ost-code-string">${code}</code>
-                <sp-button
-                    data-testid="ost-use-button"
-                    variant="accent"
-                    size="s"
-                    ?disabled=${!store.selectedOsi}
-                    @click=${() => this.handleUse()}
-                >
-                    ${this.buttonText}
-                </sp-button>
-            </div>
+            <sp-button
+                data-testid="ost-use-button"
+                variant="accent"
+                size="s"
+                ?disabled=${!this.effectiveOsi}
+                @click=${() => this.handleUse()}
+            >
+                ${this.buttonText}
+            </sp-button>
         `;
     }
 }

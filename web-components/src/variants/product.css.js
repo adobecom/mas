@@ -21,10 +21,6 @@ merch-card[variant="product"] [slot="callout-content"] > p:has(> .icon-button) {
   padding-inline-end: 36px;
 }
 
-merch-card[variant="product"] [slot="callout-content"] .icon-button {
-  margin: 1.5px 0 1.5px 8px;
-}
-
 merch-card[variant="product"] a.spectrum-Link--secondary {
   color: inherit;
 }
@@ -147,9 +143,13 @@ merch-card[variant="product"] {
 }
 
 merch-card[variant="product"] .merch-short-description {
-    display: flex;
+    display: inline-block;
     align-items: center;
     gap: 4px;
+    font-size: 14px;
+    font-style: italic;
+    font-weight: 400;
+    line-height: 21px;
 }
 
 merch-card[variant="product"] .merch-short-description .icon-button {

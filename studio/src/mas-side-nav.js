@@ -519,7 +519,7 @@ class MasSideNav extends LitElement {
         const template = document.createElement('template');
         template.innerHTML = html;
         return [...template.content.querySelectorAll('a')]
-            .map((a) => ({ text: a.textContent.trim(), href: a.getAttribute('href') || '' }))
+            .map((a) => ({ text: a.textContent.trim(), href: a.getAttribute('href') || '', key: a.getAttribute('data-key') }))
             .filter(({ text, href }) => text || href);
     }
 
@@ -604,6 +604,21 @@ class MasSideNav extends LitElement {
             .filter((f) => !!f.preview);
 
         return [...currentFields, ...inheritedFields];
+    }
+
+    getCtaInfo(key) {
+        if (key) {
+            const button = document.querySelector(`.preview-content [data-key="${key}"]`);
+            if (!button || !button.masElement) return '';
+
+            const masElement = button.masElement;
+            const text = button.textContent;
+            const wfStep = masElement.options.checkoutWorkflowStep;
+            const modalText = !!masElement.options.modal ? ' - modal' : '';
+            return `${wfStep}${modalText}`;
+        }
+
+        return '';
     }
 
     /** Copy Field popover listing fragment fields with preview values. */
@@ -703,7 +718,9 @@ class MasSideNav extends LitElement {
                                                           ? 'field-entry-overridden'
                                                           : ''}"
                                                   >
-                                                      <span class="field-label">CTA ${cta.index}</span>
+                                                      <span class="field-label"
+                                                          >CTA - ${this.getCtaInfo(cta.key) || cta.index}</span
+                                                      >
                                                       <span class="field-value">${cta.text || cta.href}</span>
                                                   </div>
                                               </sp-menu-item>
@@ -723,7 +740,9 @@ class MasSideNav extends LitElement {
                                                                 this.copyCtaItem(cta.text, cta.index, cta.sourceFragment)}
                                                         >
                                                             <div class="field-entry">
-                                                                <span class="field-label">CTA ${cta.index}</span>
+                                                                <span class="field-label"
+                                                                    >CTA - ${this.getCtaInfo(cta.key) || cta.index}</span
+                                                                >
                                                                 <span class="field-value">${cta.text || cta.href}</span>
                                                             </div>
                                                         </sp-menu-item>
@@ -852,13 +871,27 @@ class MasSideNav extends LitElement {
         return { current, inherited };
     }
 
+    #getCtaKey(fragment, index) {
+        const html = fragment.getFieldValue('ctas');
+        if (!html) return index;
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        const ctas = doc.querySelectorAll('a');
+        const cta = ctas[index - 1];
+        return cta.getAttribute('data-key') || index;
+    }
+
     /** Copies an indexed ctas field link to the clipboard (mas-field: … → ctas[N] format). */
     async copyCtaItem(text, index, sourceFragment = this.fragmentEditor?.fragment) {
         const fragment = sourceFragment;
         if (!fragment) return;
+        const ctaId = this.#getCtaKey(fragment, index);
         const path = Store.search.get().path;
-        const fieldName = `ctas[${index}]`;
-        const link = generateFieldLink(fragment, path, PAGE_NAMES.CONTENT, fieldName);
+        const fieldName = `ctas[${ctaId}]`;
+        const ctaInfo = this.getCtaInfo(ctaId);
+        const dashCtaInfo = ctaInfo ? ` - ${ctaInfo}` : '';
+        const fieldText = `ctas[${text}${dashCtaInfo}]`;
+        const link = generateFieldLink(fragment, path, PAGE_NAMES.CONTENT, fieldName, fieldText);
         if (!link) return;
         try {
             await navigator.clipboard.write([

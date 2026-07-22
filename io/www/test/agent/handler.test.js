@@ -61,7 +61,10 @@ describe('agent action main', () => {
 
     it('falls back to the packaged action name and nulls optional echoes when omitted', async () => {
         const invoke = sinon.stub().resolves({ statusCode: 200, body: ccProBody });
-        const res = await main({ productName: 'Creative Cloud Pro', locale: 'en_US' }, { openwhiskFactory: fakeFactory(invoke) });
+        const res = await main(
+            { productName: 'Creative Cloud Pro', locale: 'en_US' },
+            { openwhiskFactory: fakeFactory(invoke) },
+        );
         expect(res.statusCode).to.equal(200);
         expect(res.body.pzn).to.be.null;
         expect(res.body.country).to.be.null;
@@ -72,13 +75,19 @@ describe('agent action main', () => {
 
     it('propagates a non-200 fragment action status', async () => {
         const invoke = sinon.stub().resolves({ statusCode: 503, body: JSON.stringify({ message: 'down' }) });
-        const res = await main({ productName: 'Creative Cloud Pro', locale: 'en_US' }, { openwhiskFactory: fakeFactory(invoke) });
+        const res = await main(
+            { productName: 'Creative Cloud Pro', locale: 'en_US' },
+            { openwhiskFactory: fakeFactory(invoke) },
+        );
         expect(res.statusCode).to.equal(503);
     });
 
     it('returns 502 when the fragment action invocation fails', async () => {
         const invoke = sinon.stub().rejects(new Error('runtime down'));
-        const res = await main({ productName: 'Creative Cloud Pro', locale: 'en_US' }, { openwhiskFactory: fakeFactory(invoke) });
+        const res = await main(
+            { productName: 'Creative Cloud Pro', locale: 'en_US' },
+            { openwhiskFactory: fakeFactory(invoke) },
+        );
         expect(res.statusCode).to.equal(502);
     });
 });

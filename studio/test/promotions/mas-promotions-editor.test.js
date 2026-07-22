@@ -5,7 +5,9 @@ import Events from '../../src/events.js';
 import { setItemsSelectionStore } from '../../src/common/items-selection-store.js';
 import MasPromotionsEditor from '../../src/promotions/mas-promotions-editor.js';
 import { Promotion } from '../../src/aem/promotion.js';
-import { CARD_MODEL_PATH, EVENT_OST_OFFER_SELECT, PAGE_NAMES, TABLE_TYPE } from '../../src/constants.js';
+import { CARD_MODEL_PATH, EVENT_OST_OFFER_SELECT, PAGE_NAMES, TABLE_TYPE, TAG_PROMOTION_PREFIX } from '../../src/constants.js';
+import { normalizeKey, UserFriendlyError } from '../../src/utils.js';
+import { buildPromotionTagPath, serializePromotionSurfacesForAem } from '../../src/promotions/promotion-editor-utils.js';
 
 function makeFragmentData(overrides = {}) {
     return {
@@ -141,6 +143,9 @@ describe('MasPromotionsEditor', () => {
                     },
                 },
                 getFragmentByPath: null,
+                tags: {
+                    create: sandbox.stub().resolves(),
+                },
             },
             ...overrides,
         };
@@ -547,7 +552,7 @@ describe('MasPromotionsEditor', () => {
             );
             const el = await mountEditor();
             await el.updateComplete;
-            expect(el.renderRoot.querySelector('sp-textfield[data-field="title"]').hasAttribute('disabled')).to.be.true;
+            expect(el.renderRoot.querySelector('sp-textfield[data-field="title"]')).to.be.null;
             expect(el.renderRoot.querySelector('sp-textfield[data-field="promoCode"]').hasAttribute('disabled')).to.be.true;
             expect(el.renderRoot.querySelector('input[data-field="startDate"]').disabled).to.be.true;
             expect(el.renderRoot.querySelector('input[data-field="endDate"]').disabled).to.be.true;
@@ -756,26 +761,34 @@ describe('MasPromotionsEditor', () => {
             expect(tagsPicker.getAttribute('top')).to.equal('promotion');
         });
 
-        it('updates promotion tags via change on aem-tag-picker-field', async () => {
+        it('auto-generates the promotion tag from the title on a new promotion', async () => {
             const el = await mountEditor();
-            const tagsPicker = el.renderRoot.querySelectorAll('aem-tag-picker-field')[0];
-            expect(tagsPicker).to.not.be.null;
-            tagsPicker.setAttribute('value', 'mas:promotion/back-to-school');
-            tagsPicker.dispatchEvent(new Event('change', { bubbles: true }));
+            expect(el.isNewPromotion).to.be.true;
+            const titleField = el.renderRoot.querySelector('sp-textfield[data-field="title"]');
+            titleField.value = 'Back To School';
+            titleField.dispatchEvent(new Event('input', { bubbles: true }));
             await el.updateComplete;
-            const tags = el.fragment.getFieldValues('tags');
-            expect(tags).to.deep.equal(['mas:promotion/back-to-school']);
+            expect(el.fragment.getFieldValues('tags')).to.deep.equal(['mas:promotion/back-to-school']);
+            expect(el.promotionTag).to.equal('mas:promotion/back-to-school');
         });
 
-        it('merges promotion tag change while retaining non-promotion tags', async () => {
+        it('trims leading/trailing whitespace from the title before deriving the promotion tag', async () => {
             const el = await mountEditor();
-            el.fragmentStore.updateField('tags', ['mas:status/published', 'mas:promotion/old']);
+            const titleField = el.renderRoot.querySelector('sp-textfield[data-field="title"]');
+            titleField.value = '  Back To School  ';
+            titleField.dispatchEvent(new Event('input', { bubbles: true }));
             await el.updateComplete;
+            expect(el.fragment.getFieldValues('tags')).to.deep.equal(['mas:promotion/back-to-school']);
+        });
+
+        it('exposes the promotion tag to the readonly picker, ignoring non-promotion tags', async () => {
+            const el = await mountEditor();
+            el.fragmentStore.updateField('tags', ['mas:status/published', 'mas:promotion/new']);
+            await el.updateComplete;
+            expect(el.promotionTag).to.equal('mas:promotion/new');
             const tagsPicker = el.renderRoot.querySelectorAll('aem-tag-picker-field')[0];
-            tagsPicker.setAttribute('value', 'mas:promotion/new');
-            tagsPicker.dispatchEvent(new Event('change', { bubbles: true }));
-            await el.updateComplete;
-            expect(el.fragment.getFieldValues('tags')).to.deep.equal(['mas:status/published', 'mas:promotion/new']);
+            expect(tagsPicker.hasAttribute('readonly')).to.be.true;
+            expect(tagsPicker.getAttribute('value')).to.equal('mas:promotion/new');
         });
 
         it('updates geos via change on geos tag-picker-field', async () => {
@@ -828,6 +841,8 @@ describe('MasPromotionsEditor', () => {
             await fillValidFields(el);
             clickPromotionQuickAction(el, 'Save');
             await el.updateComplete;
+            await flushPromises();
+            await el.updateComplete;
             expect(repo.createFragment.calledOnce).to.be.true;
             expect(el.isCreated).to.be.true;
         });
@@ -850,6 +865,7 @@ describe('MasPromotionsEditor', () => {
             await fillValidFields(el);
             clickPromotionQuickAction(el, 'Save');
             await el.updateComplete;
+            await flushPromises();
             expect(toastEmitStub.calledWith({ variant: 'negative', content: 'Failed to create project.' })).to.be.true;
         });
 
@@ -861,8 +877,198 @@ describe('MasPromotionsEditor', () => {
             await fillValidFields(el);
             clickPromotionQuickAction(el, 'Save');
             await el.updateComplete;
+            await flushPromises();
             expect(toastEmitStub.calledWith({ variant: 'negative', content: 'Project with this name already exists.' })).to.be
                 .true;
+        });
+    });
+
+    describe('promotion tag creation on create flow', () => {
+        it('creates the promotion tag before creating the fragment', async () => {
+            const { el, repo } = await mountEditorWithRepo();
+            await fillValidFields(el);
+            const title = el.fragment.getFieldValue('title');
+            const tag = buildPromotionTagPath(title);
+            clickPromotionQuickAction(el, 'Save');
+            await el.updateComplete;
+            expect(repo.aem.tags.create.calledOnce).to.be.true;
+            expect(repo.aem.tags.create.firstCall.args).to.deep.equal([tag.tagPath, tag.slug]);
+            expect(repo.createFragment.calledOnce).to.be.true;
+            expect(repo.aem.tags.create.calledBefore(repo.createFragment)).to.be.true;
+        });
+
+        it('aborts creation and shows the user-friendly message when tag creation rejects with a UserFriendlyError', async () => {
+            const message = 'Tag already exists.';
+            const { el, repo } = await mountEditorWithRepo({
+                aem: {
+                    tags: { create: sandbox.stub().rejects(new UserFriendlyError(message)) },
+                },
+            });
+            await fillValidFields(el);
+            const toastStub = sandbox.stub(Events.toast, 'emit');
+            clickPromotionQuickAction(el, 'Save');
+            await el.updateComplete;
+            expect(repo.createFragment.called).to.be.false;
+            expect(el.isCreated).to.be.false;
+            expect(toastStub.calledWith(sinon.match({ variant: 'negative', content: message }))).to.be.true;
+        });
+
+        it('aborts creation and shows a generic message when tag creation rejects with a generic Error', async () => {
+            const { el, repo } = await mountEditorWithRepo({
+                aem: {
+                    tags: { create: sandbox.stub().rejects(new Error('boom')) },
+                },
+            });
+            await fillValidFields(el);
+            const toastStub = sandbox.stub(Events.toast, 'emit');
+            clickPromotionQuickAction(el, 'Save');
+            await el.updateComplete;
+            expect(repo.createFragment.called).to.be.false;
+            expect(el.isCreated).to.be.false;
+            expect(toastStub.calledWith(sinon.match({ variant: 'negative', content: 'Failed to create promotion tag.' }))).to.be
+                .true;
+        });
+    });
+
+    describe('promotion tag cleanup after a failed create', () => {
+        it('deletes the promotion tag when createFragment resolves falsy', async () => {
+            const { el, repo } = await mountEditorWithRepo({
+                createFragment: sandbox.stub().resolves(null),
+                aem: { tags: { create: sandbox.stub().resolves(), delete: sandbox.stub().resolves() } },
+            });
+            await fillValidFields(el);
+            const title = el.fragment.getFieldValue('title');
+            const tag = buildPromotionTagPath(title);
+            clickPromotionQuickAction(el, 'Save');
+            await el.updateComplete;
+            await flushPromises();
+            expect(repo.aem.tags.delete.calledOnceWith(tag.tagPath)).to.be.true;
+            expect(el.isCreated).to.be.false;
+        });
+
+        it('deletes the promotion tag when createFragment rejects', async () => {
+            const { el, repo } = await mountEditorWithRepo({
+                createFragment: sandbox.stub().rejects(new Error('create failed')),
+                aem: { tags: { create: sandbox.stub().resolves(), delete: sandbox.stub().resolves() } },
+            });
+            await fillValidFields(el);
+            const title = el.fragment.getFieldValue('title');
+            const tag = buildPromotionTagPath(title);
+            clickPromotionQuickAction(el, 'Save');
+            await el.updateComplete;
+            await flushPromises();
+            expect(repo.aem.tags.delete.calledOnceWith(tag.tagPath)).to.be.true;
+        });
+
+        it('swallows tag cleanup errors without blocking the create-failure toast', async () => {
+            const toastStub = sandbox.stub(Events.toast, 'emit');
+            const { el } = await mountEditorWithRepo({
+                createFragment: sandbox.stub().resolves(null),
+                aem: {
+                    tags: { create: sandbox.stub().resolves(), delete: sandbox.stub().rejects(new Error('delete failed')) },
+                },
+            });
+            await fillValidFields(el);
+            clickPromotionQuickAction(el, 'Save');
+            await el.updateComplete;
+            await flushPromises();
+            expect(toastStub.calledWith(sinon.match({ variant: 'negative', content: 'Failed to create project.' }))).to.be.true;
+        });
+    });
+
+    describe('#getPayloadValues via create payload', () => {
+        it('sets endDate to an empty array in the create payload when evergreen is enabled', async () => {
+            const { el, repo } = await mountEditorWithRepo();
+            await fillValidFields(el);
+            el.evergreenEnabled = true;
+            await el.updateComplete;
+            clickPromotionQuickAction(el, 'Save');
+            await el.updateComplete;
+            expect(repo.createFragment.calledOnce).to.be.true;
+            const payload = repo.createFragment.firstCall.args[0];
+            const endDateField = payload.fields.find((f) => f.name === 'endDate');
+            expect(endDateField.values).to.deep.equal([]);
+        });
+
+        it('keeps endDate values unchanged in the create payload when evergreen is disabled', async () => {
+            const { el, repo } = await mountEditorWithRepo();
+            await fillValidFields(el);
+            el.evergreenEnabled = false;
+            await el.updateComplete;
+            const expectedEndDate = el.fragment.getFieldValues('endDate');
+            clickPromotionQuickAction(el, 'Save');
+            await el.updateComplete;
+            expect(repo.createFragment.calledOnce).to.be.true;
+            const payload = repo.createFragment.firstCall.args[0];
+            const endDateField = payload.fields.find((f) => f.name === 'endDate');
+            expect(endDateField.values).to.deep.equal(expectedEndDate);
+        });
+
+        it('serializes surfaces field values for AEM in the create payload', async () => {
+            const { el, repo } = await mountEditorWithRepo();
+            await fillValidFields(el);
+            const rawSurfaces = ['Sandbox, sandbox , CCD'];
+            el.fragmentStore.updateField('surfaces', rawSurfaces);
+            await el.updateComplete;
+            clickPromotionQuickAction(el, 'Save');
+            await el.updateComplete;
+            expect(repo.createFragment.calledOnce).to.be.true;
+            const payload = repo.createFragment.firstCall.args[0];
+            const surfacesField = payload.fields.find((f) => f.name === 'surfaces');
+            expect(surfacesField.values).to.deep.equal(serializePromotionSurfacesForAem(rawSurfaces));
+        });
+
+        it('derives the promotion tag slug from the title in the create payload', async () => {
+            const { el, repo } = await mountEditorWithRepo();
+            await fillValidFields(el);
+            const title = 'Summer Sale 2026';
+            el.fragmentStore.updateField('title', [title]);
+            await el.updateComplete;
+            clickPromotionQuickAction(el, 'Save');
+            await el.updateComplete;
+            expect(repo.createFragment.calledOnce).to.be.true;
+            const payload = repo.createFragment.firstCall.args[0];
+            const tagsField = payload.fields.find((f) => f.name === 'tags');
+            expect(tagsField.values).to.deep.equal([`${TAG_PROMOTION_PREFIX}${normalizeKey(title)}`]);
+        });
+
+        it('trims leading/trailing whitespace from the title before deriving the promotion tag slug in the create payload', async () => {
+            const { el, repo } = await mountEditorWithRepo();
+            await fillValidFields(el);
+            const title = '  Summer Sale 2026  ';
+            el.fragmentStore.updateField('title', [title]);
+            await el.updateComplete;
+            clickPromotionQuickAction(el, 'Save');
+            await el.updateComplete;
+            expect(repo.createFragment.calledOnce).to.be.true;
+            const payload = repo.createFragment.firstCall.args[0];
+            const tagsField = payload.fields.find((f) => f.name === 'tags');
+            expect(tagsField.values).to.deep.equal([`${TAG_PROMOTION_PREFIX}${normalizeKey(title.trim())}`]);
+        });
+
+        it('blocks create with a validation toast when the title normalizes to an empty slug', async () => {
+            const toastEmitStub = sandbox.stub(Events.toast, 'emit');
+            const { el, repo } = await mountEditorWithRepo();
+            await fillValidFields(el);
+            const title = '!!!';
+            el.fragmentStore.updateField('title', [title]);
+            await el.updateComplete;
+            expect(normalizeKey(title)).to.equal('');
+            clickPromotionQuickAction(el, 'Save');
+            await el.updateComplete;
+            expect(repo.createFragment.called).to.be.false;
+            expect(toastEmitStub.calledWith({ variant: 'negative', content: 'Please enter a title.' })).to.be.true;
+        });
+
+        it('passes promoCode field values through unchanged in the create payload', async () => {
+            const { el, repo } = await mountEditorWithRepo();
+            await fillValidFields(el);
+            clickPromotionQuickAction(el, 'Save');
+            await el.updateComplete;
+            expect(repo.createFragment.calledOnce).to.be.true;
+            const payload = repo.createFragment.firstCall.args[0];
+            const promoCodeField = payload.fields.find((f) => f.name === 'promoCode');
+            expect(promoCodeField.values).to.deep.equal(['TEST-PROMO']);
         });
     });
 
@@ -1437,6 +1643,48 @@ describe('MasPromotionsEditor', () => {
             expect(repo.deleteFragment.calledOnce).to.be.true;
             expect(forceDelete.calledBefore(repo.deleteFragment)).to.be.true;
         });
+
+        it('shows a negative toast but still completes deletion when the promotion tag fails to delete', async () => {
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            Store.promotions.inEdit.set(
+                new FragmentStore(
+                    makePromotion({
+                        id: 'del-4',
+                        title: 'Deletable',
+                        fields: [
+                            { name: 'title', type: 'text', values: ['Deletable'] },
+                            { name: 'tags', values: ['mas:promotion/code-test'], multiple: true },
+                        ],
+                    }),
+                ),
+            );
+            const deleteFragment = sandbox.stub().resolves(true);
+            const toastStub = sandbox.stub(Events.toast, 'emit');
+            const { el, repo } = await mountEditorWithRepo({
+                deleteFragment,
+                aem: {
+                    sites: {
+                        cf: { fragments: { getByPath: sandbox.stub().resolves(null), getById: sandbox.stub().resolves(null) } },
+                    },
+                    tags: { delete: sandbox.stub().rejects(new Error('delete failed')) },
+                },
+            });
+            await el.updateComplete;
+            clickPromotionQuickAction(el, 'Delete');
+            await new Promise((r) => setTimeout(r, 0));
+            await el.updateComplete;
+            el.renderRoot
+                .querySelector('#promotion-unsaved-changes-dialog')
+                .dispatchEvent(new CustomEvent('confirm', { bubbles: true, composed: true }));
+            await new Promise((r) => setTimeout(r, 20));
+            expect(repo.aem.tags.delete.calledOnce).to.be.true;
+            expect(repo.deleteFragment.calledOnce).to.be.true;
+            expect(toastStub.calledWith(sinon.match({ variant: 'negative', content: 'Failed to delete promotion tag.' }))).to.be
+                .true;
+            expect(
+                toastStub.calledWith(sinon.match({ variant: 'positive', content: 'Promotion campaign successfully deleted.' })),
+            ).to.be.true;
+        });
     });
 
     describe('duplicate quick action', () => {
@@ -1518,6 +1766,47 @@ describe('MasPromotionsEditor', () => {
             expect(Store.promotions.selectedCards.value).to.deep.equal([]);
             expect(Store.promotions.selectedCollections.value).to.deep.equal([]);
             expect(Store.promotions.selectedOffers.value).to.deep.equal([dupOffer]);
+        });
+
+        it('preserves non-promotion tags and replaces the promotion tag when duplicating', async () => {
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            Store.promotions.inEdit.set(
+                new FragmentStore(
+                    makePromotion({
+                        id: 'dup-1',
+                        title: 'Original',
+                        fields: [
+                            { name: 'title', type: 'text', values: ['Original'] },
+                            { name: 'promoCode', type: 'text', values: ['CODE'] },
+                            { name: 'startDate', values: ['2024-01-01T00:00:00.000Z'] },
+                            { name: 'endDate', values: ['2024-12-31T00:00:00.000Z'] },
+                            { name: 'tags', values: ['mas:status/published', 'mas:promotion/original'] },
+                            { name: 'surfaces', type: 'text', multiple: false, values: [] },
+                            { name: 'geos', type: 'tag', multiple: true, values: [] },
+                            { name: 'fragments', type: 'content-fragment', multiple: true, values: [] },
+                        ],
+                    }),
+                ),
+            );
+            const { el, repo } = await mountEditorWithRepo();
+            await waitForEditorConnect(el);
+            el.duplicateDialogOpen = true;
+            await el.updateComplete;
+            el.renderRoot.querySelector('mas-promotion-duplicate-dialog').dispatchEvent(
+                new CustomEvent('duplicate-confirmed', {
+                    bubbles: true,
+                    composed: true,
+                    detail: { title: 'Original copy' },
+                }),
+            );
+            await new Promise((r) => setTimeout(r, 20));
+            expect(repo.createFragment.calledOnce).to.be.true;
+            const payload = repo.createFragment.firstCall.args[0];
+            const tagsField = payload.fields.find((f) => f.name === 'tags');
+            expect(tagsField.values).to.deep.equal([
+                'mas:status/published',
+                `${TAG_PROMOTION_PREFIX}${normalizeKey('Original copy')}`,
+            ]);
         });
     });
 

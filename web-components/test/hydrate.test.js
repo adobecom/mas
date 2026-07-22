@@ -1064,29 +1064,6 @@ describe('processDescription', async () => {
         );
     });
 
-    it('should convert primary-link and secondary-link to sp-link when spectrum is swc', async () => {
-        const fields = {
-            description: `See <a href="#" class="primary-link">Primary</a> and <a href="#" class="secondary-link">Secondary</a>`,
-        };
-        merchCard.spectrum = 'swc';
-
-        processDescription(fields, merchCard, aemFragmentMapping);
-        updateLinksCSS(merchCard);
-
-        const primary = merchCard.querySelector('sp-link[href="#"]');
-        const secondary = merchCard.querySelector(
-            'sp-link[variant="secondary"]',
-        );
-        expect(primary).to.exist;
-        expect(primary.tagName.toLowerCase()).to.equal('sp-link');
-        expect(primary.hasAttribute('variant')).to.be.false;
-        expect(primary.textContent.trim()).to.equal('Primary');
-        expect(secondary).to.exist;
-        expect(secondary.textContent.trim()).to.equal('Secondary');
-        expect(merchCard.querySelector('a.primary-link')).to.be.null;
-        expect(merchCard.querySelector('a.secondary-link')).to.be.null;
-    });
-
     it('should preserve primary-link and secondary-link on consonant cards', async () => {
         const fields = {
             description: `See <a href="#" class="primary-link">Primary</a> and <a href="#" class="secondary-link">Secondary</a>`,

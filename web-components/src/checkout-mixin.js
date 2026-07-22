@@ -7,6 +7,7 @@ import { applyPageLocaleToCheckoutUrl } from './buildCheckoutUrl.js';
 import { selectOffers, getService } from './utilities.js';
 import { isPromotionActive } from './price/utilities.js';
 import { MODAL_TYPE_3_IN_1 } from '../src/constants.js';
+import { PROMO_CONTEXT_CANCEL_VALUE } from '@dexter/tacocat-core';
 
 export const CLASS_NAME_DOWNLOAD = 'download';
 export const CLASS_NAME_UPGRADE = 'upgrade';
@@ -42,7 +43,10 @@ export function createCheckoutElement(Class, options = {}, innerHTML = '') {
         upgrade,
         modal,
         perpetual,
-        promotionCode,
+        promotionCode:
+            options.promotionCode === PROMO_CONTEXT_CANCEL_VALUE
+                ? PROMO_CONTEXT_CANCEL_VALUE
+                : promotionCode,
         quantity,
         wcsOsi,
         extraOptions,

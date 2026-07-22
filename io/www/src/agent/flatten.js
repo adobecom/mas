@@ -53,8 +53,7 @@ function flattenOffer(fragment) {
         wcs_osi: extractAttr(prices, 'data-wcs-osi'),
         checkout_osi: extractAttr(ctas, 'data-wcs-osi'),
         terms_url: extractTermsUrl(fieldValue(fields, 'description')),
-        promotion_code: fieldValue(fields, 'promoCode') || null,
-        promo_text: fieldValue(fields, 'promoText') || null,
+        promotion_code: extractAttr(prices, 'data-promotion-code'),
         ...parseTags(fields.tags),
     };
 }

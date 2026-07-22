@@ -1,40 +1,28 @@
+import { readFileSync } from 'fs';
 import { expect } from 'chai';
 import { flattenOffer } from '../../src/agent/flatten.js';
 
-const FRAGMENT = {
-    id: 'frag-1',
-    fields: {
-        variant: 'plans',
-        cardTitle: '  Photoshop ',
-        badge: { value: '<span>Save 25%</span>', mimeType: 'text/html' },
-        prices: { value: '<span is="inline-price" data-wcs-osi="OSI-PRICE"></span>', mimeType: 'text/html' },
-        ctas: { value: '<p><a data-wcs-osi="OSI-CTA">Buy now</a></p>', mimeType: 'text/html' },
-        description: {
-            value: '<p>Save. <a href="https://www.adobe.com/offer-terms/x.html">See terms.</a></p>',
-            mimeType: 'text/html',
-        },
-        promoCode: 'PROMO50',
-        promoText: 'Save 50%',
-        tags: ['mas:offer_type/base', 'mas:plan_type/abm', 'mas:product/cc/photoshop', 'invalid-tag'],
-    },
-};
+const ccPro = JSON.parse(readFileSync(new URL('./mocks/fragment-cc-pro.json', import.meta.url)));
 
 describe('flattenOffer', () => {
-    it('flattens identity, osis, terms, and tags from a resolved fragment', () => {
-        expect(flattenOffer(FRAGMENT)).to.deep.equal({
-            fragment: 'frag-1',
-            productName: 'Photoshop',
+    it('flattens a real Creative Cloud Pro fragment payload', () => {
+        expect(flattenOffer(ccPro)).to.deep.equal({
+            fragment: '2c5cd672-1db8-409c-96ff-46b1a1dfb7dc',
+            productName: 'Creative Cloud Pro',
             template: 'plans',
-            badge: 'Save 25%',
+            badge: 'Save 50%',
             cta_label: 'Buy now',
-            wcs_osi: 'OSI-PRICE',
-            checkout_osi: 'OSI-CTA',
-            terms_url: 'https://www.adobe.com/offer-terms/x.html',
-            promotion_code: 'PROMO50',
-            promo_text: 'Save 50%',
+            wcs_osi: 'r_JXAnlFI7xD6FxWKl2ODvZriLYBoSL701Kd1hRyhe8',
+            checkout_osi: 'r_JXAnlFI7xD6FxWKl2ODvZriLYBoSL701Kd1hRyhe8',
+            terms_url: 'https://www.adobe.com/offer-terms/cc_full_special_offer.html',
+            promotion_code: 'CCI_50_3_IP_US',
             offer_type: 'base',
+            product_code: 'ccsn',
+            cloud: 'creative',
+            commitment: 'year',
+            product_line: 'cc/creativecloud',
             plan_type: 'abm',
-            product_line: 'cc/photoshop',
+            customer_segment: 'individual',
         });
     });
 
@@ -53,7 +41,7 @@ describe('flattenOffer', () => {
         expect(flattenOffer(null).fragment).to.be.null;
     });
 
-    it('returns null for empty long-text fields and missing osi/terms', () => {
+    it('returns null for empty long-text fields, missing osi/terms, and skips malformed tags', () => {
         const offer = flattenOffer({
             id: 'frag-2',
             fields: {
@@ -61,12 +49,15 @@ describe('flattenOffer', () => {
                 ctas: { mimeType: 'text/html' },
                 prices: { value: '<span is="inline-price"></span>' },
                 description: { value: '<p>No terms here.</p>' },
+                tags: ['invalid-tag'],
             },
         });
         expect(offer.badge).to.be.null;
         expect(offer.cta_label).to.be.null;
         expect(offer.wcs_osi).to.be.null;
         expect(offer.checkout_osi).to.be.null;
+        expect(offer.promotion_code).to.be.null;
         expect(offer.terms_url).to.be.null;
+        expect(offer).to.not.have.property('offer_type');
     });
 });

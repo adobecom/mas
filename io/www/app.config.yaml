@@ -30,3 +30,12 @@ application:
                         annotations:
                             require-adobe-auth: false
                             final: true
+                    agent:
+                        function: src/agent/handler.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        inputs:
+                            FRAGMENT_ENDPOINT: $FRAGMENT_ENDPOINT
+                        annotations:
+                            require-adobe-auth: false
+                            final: true

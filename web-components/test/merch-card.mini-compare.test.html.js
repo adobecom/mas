@@ -478,7 +478,7 @@ runTests(async () => {
                 const variantLayout = card.variantLayout;
                 expect(variantLayout.legalAdjusted).to.be.true;
                 const legal = card.querySelector(
-                    '[slot="heading-m-price"] [is="inline-price"][data-template="legal"]',
+                    '[is="inline-price"][data-template="legal"]',
                 );
                 expect(legal).to.exist;
             } finally {
@@ -520,7 +520,7 @@ runTests(async () => {
             const { card, mount } = await mountCardWithEtf('Fee applies');
             try {
                 const planType = card.querySelector(
-                    '[slot="heading-m-price"] [data-template="legal"] .price-plan-type',
+                    '[is="inline-price"][data-template="legal"] .price-plan-type',
                 );
                 expect(planType).to.exist;
                 expect(planType.querySelector('em')).to.exist;
@@ -539,7 +539,7 @@ runTests(async () => {
                 variantLayout.adjustShortDescription();
                 variantLayout.adjustShortDescription();
                 const planType = card.querySelector(
-                    '[slot="heading-m-price"] [data-template="legal"] .price-plan-type',
+                    '[is="inline-price"][data-template="legal"] .price-plan-type',
                 );
                 const ems = planType?.querySelectorAll('em') ?? [];
                 expect(ems.length).to.be.at.most(1);

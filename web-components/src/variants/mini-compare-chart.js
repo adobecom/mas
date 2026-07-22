@@ -72,7 +72,7 @@ export class MiniCompareChart extends VariantLayout {
 
         if (this.legalAdjusted && !this.legalObserver) {
             const legal = this.card.querySelector(
-                '[slot="heading-m-price"] [is="inline-price"][data-template="legal"]',
+                '[is="inline-price"][data-template="legal"]',
             );
             if (legal) {
                 this.legalResolvedHandler = () => this.adjustShortDescription();
@@ -654,7 +654,7 @@ export class MiniCompareChart extends VariantLayout {
         const hasIconButton = !!source.querySelector('.icon-button');
         if (!text && !hasIconButton) return;
         const legalPrice = this.card.querySelector(
-            '[slot="heading-m-price"] [data-template="legal"]',
+            '[is="inline-price"][data-template="legal"]',
         );
         const planType = legalPrice?.querySelector('.price-plan-type');
         if (!planType) return;

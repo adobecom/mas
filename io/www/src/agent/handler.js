@@ -1,13 +1,17 @@
+import openwhisk from 'openwhisk';
 import { resolveFragmentId } from './product-fragment-map.js';
 import { flattenOffer } from './flatten.js';
-
-const DEFAULT_FRAGMENT_ENDPOINT = 'https://www.adobe.com/mas/io/fragment';
 
 function response(statusCode, body) {
     return { statusCode, headers: { 'Content-Type': 'application/json' }, body };
 }
 
-async function main(params) {
+function fragmentActionName(params) {
+    const current = params.__ow_action_name;
+    return current ? current.replace(/[^/]+$/, 'fragment') : 'MerchAtScale/fragment';
+}
+
+async function main(params, { openwhiskFactory = openwhisk } = {}) {
     const { productName, locale, pzn, country, api_key: apiKey } = params;
     if (!productName || !locale) {
         return response(400, { message: 'requested parameters productName & locale are not present' });
@@ -17,26 +21,34 @@ async function main(params) {
         return response(404, { message: `unknown product '${productName}'` });
     }
 
-    const url = new URL(params.FRAGMENT_ENDPOINT || DEFAULT_FRAGMENT_ENDPOINT);
-    url.searchParams.set('id', fragmentId);
-    url.searchParams.set('locale', locale);
-    if (apiKey) url.searchParams.set('api_key', apiKey);
-    if (pzn) url.searchParams.set('pzn', pzn);
-    if (country) url.searchParams.set('country', country);
+    const fragmentParams = { id: fragmentId, locale };
+    if (apiKey) fragmentParams.api_key = apiKey;
+    if (pzn) fragmentParams.pzn = pzn;
+    if (country) fragmentParams.country = country;
 
-    let fragment;
+    let result;
     try {
-        const res = await fetch(url.toString(), { headers: { Accept: 'application/json' } });
-        if (!res.ok) {
-            return response(res.status, { message: `fragment endpoint returned ${res.status}` });
-        }
-        fragment = await res.json();
+        const client = openwhiskFactory({
+            api_key: params.__ow_api_key,
+            apihost: params.__ow_api_host,
+            namespace: params.__ow_namespace,
+        });
+        result = await client.actions.invoke({
+            name: fragmentActionName(params),
+            params: fragmentParams,
+            blocking: true,
+            result: true,
+        });
     } catch (error) {
-        return response(502, { message: `failed to reach fragment endpoint: ${error.message}` });
+        return response(502, { message: `failed to invoke fragment action: ${error.message}` });
+    }
+
+    if (result.statusCode !== 200) {
+        return response(result.statusCode, { message: `fragment action returned ${result.statusCode}` });
     }
 
     return response(200, {
-        ...flattenOffer(fragment),
+        ...flattenOffer(JSON.parse(result.body)),
         product: productName,
         pzn: pzn ?? null,
         country: country ?? null,

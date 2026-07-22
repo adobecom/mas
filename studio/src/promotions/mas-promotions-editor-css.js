@@ -375,6 +375,11 @@ export const styles = [
         .end-date-row input[type='datetime-local']:disabled {
             opacity: 0.4;
         }
+
+        .promotion-tag-field {
+            align-items: flex-start;
+            justify-content: center;
+        }
     `,
 ];
 

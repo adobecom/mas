@@ -2,10 +2,11 @@ import { isPznCountryTagId, tagRefToTagId } from '../common/utils/personalizatio
 import { buildOfferTags, resolveOfferMnemonicIconUrl } from './offer-utils.js';
 import { COLLECTION_MODEL_PATH, ROOT_PATH, TAG_PROMOTION_PREFIX } from '../constants.js';
 import { normalizeTagId } from '../aem/tag-id-utils.js';
+import { fromAttribute } from '../aem/tag-path-utils.js';
 import { getItemsSelectionStore } from '../common/items-selection-store.js';
 import Store from '../store.js';
 import { closeOfferSelectorTool } from '../rte/ost.js';
-import { getService, isUUID, parseStudioDeepLinksFromText } from '../utils.js';
+import { getService, isUUID, normalizeKey, parseStudioDeepLinksFromText } from '../utils.js';
 
 export const PROMOTION_FIELD_TYPE_MAP = {
     title: { type: 'text' },
@@ -88,6 +89,18 @@ export function splitPromotionTagsFieldValues(allValues) {
     return { promotion, retained };
 }
 
+/**
+ * Derives a promotion tag slug/path from a title.
+ * @param {string} [title]
+ * @returns {{ slug: string, tagPath: string }|null}
+ */
+export function buildPromotionTagPath(title) {
+    const slug = normalizeKey(title?.trim());
+    if (!slug) return null;
+    const [tagPath] = fromAttribute(`${TAG_PROMOTION_PREFIX}${slug}`);
+    return tagPath ? { slug, tagPath } : null;
+}
+
 export function serializePromotionSurfacesForAem(values) {
     if (!Array.isArray(values) || !values.length) return [];
     const tokens = values.flatMap((v) =>
@@ -155,23 +168,23 @@ export async function classifyPromotionPathsForSelection(
  * @returns {string|null}
  */
 export function getPromotionRequiredFieldsValidation(fragment, itemCount, isEvergreen = fragment.isEvergreen) {
-    if (!fragment.getFieldValue('title')) {
-        return 'Please enter a Title.';
+    if (!normalizeKey(fragment.getFieldValue('title').trim())) {
+        return 'Please enter a title.';
     }
     if (!fragment.getFieldValue('startDate')) {
-        return 'Please set a Start Date.';
+        return 'Please set a start date.';
     }
     if (!isEvergreen && !fragment.getFieldValue('endDate')) {
-        return 'Please set an End Date.';
+        return 'Please set an end date.';
     }
     if (splitPromotionTagsFieldValues(fragment.getFieldValues('tags')).promotion.length === 0) {
-        return 'Please add at least one Promotion tag.';
+        return 'Please add at least one promotion tag.';
     }
     if (!fragment.getFieldValues('geos').length) {
-        return 'Please add at least one Geo.';
+        return 'Please add at least one geo.';
     }
     if (!parsePromotionSurfacesFieldValues(fragment.getFieldValues('surfaces')).length) {
-        return 'Please add at least one Surface.';
+        return 'Please add at least one surface.';
     }
     if (itemCount <= 0) {
         return 'Please add at least one fragment or collection.';

@@ -1,3 +1,11 @@
+const URL_SEGMENT_ALIASES = {
+    jp: { lang: 'ja' },
+    kr: { lang: 'ko' },
+    no: { lang: 'nb' },
+    tw: { lang: 'zh', country: 'TW' },
+    hk: { lang: 'zh', country: 'HK' },
+};
+
 class CardDetector {
     constructor() {
         this.detectedCards = new Map();
@@ -59,56 +67,17 @@ class CardDetector {
         const langSegment = segments[0].toLowerCase();
         if (!/^[a-z]{2,3}(_[a-z]{2})?$/.test(langSegment)) return null;
 
-        const langCountryDefaults = {
-            ar: 'SA',
-            bg: 'BG',
-            cs: 'CZ',
-            da: 'DK',
-            de: 'DE',
-            el: 'GR',
-            es: 'ES',
-            et: 'EE',
-            fi: 'FI',
-            fr: 'FR',
-            he: 'IL',
-            hi: 'IN',
-            hu: 'HU',
-            id: 'ID',
-            it: 'IT',
-            ja: 'JP',
-            jp: 'JP',
-            ko: 'KR',
-            kr: 'KR',
-            lt: 'LT',
-            lv: 'LV',
-            ms: 'MY',
-            nb: 'NO',
-            nl: 'NL',
-            no: 'NO',
-            pl: 'PL',
-            pt: 'BR',
-            ro: 'RO',
-            ru: 'RU',
-            sk: 'SK',
-            sl: 'SI',
-            sv: 'SE',
-            th: 'TH',
-            tr: 'TR',
-            uk: 'UA',
-            vi: 'VN',
-            zh: 'CN',
-            tw: 'TW',
-            hk: 'HK',
-            langstore: null,
-        };
+        if (langSegment === 'langstore') return null;
 
-        if (langSegment === 'langstore' || !(langSegment in langCountryDefaults)) return null;
-
-        let lang = langSegment;
-        let country = langCountryDefaults[lang];
+        const alias = URL_SEGMENT_ALIASES[langSegment];
+        const lang = alias?.lang || langSegment;
+        const locales = typeof window !== 'undefined' ? window.MASLocales : null;
+        const defaultLocale = locales?.getDefaultLocaleForLanguage(lang);
+        if (!defaultLocale) return null;
+        let country = alias?.country || defaultLocale.split('_')[1];
 
         const secondSegment = segments[1]?.toLowerCase();
-        if (secondSegment && /^[a-z]{2}$/.test(secondSegment) && secondSegment.length === 2) {
+        if (secondSegment && /^[a-z]{2}$/.test(secondSegment)) {
             const looksLikeCountry = [
                 'at',
                 'au',
@@ -128,9 +97,6 @@ class CardDetector {
             ].includes(secondSegment);
             if (looksLikeCountry) country = secondSegment.toUpperCase();
         }
-
-        if (lang === 'jp') lang = 'ja';
-        if (lang === 'kr') lang = 'ko';
 
         return { locale: `${lang}_${country}`, country };
     }
@@ -339,4 +305,8 @@ class CardDetector {
 
 if (typeof window !== 'undefined') {
     window.MASCardDetector = new CardDetector();
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = { CardDetector, URL_SEGMENT_ALIASES };
 }

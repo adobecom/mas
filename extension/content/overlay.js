@@ -192,6 +192,7 @@ class CardOverlay {
             overlayData.panel = panel;
         }
         this.expandedOverlays.add(cardData.fragmentId);
+        this.loadFragmentDetails(cardData.fragmentId);
     }
 
     positionPanel(panel, cardElement) {

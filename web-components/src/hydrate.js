@@ -919,9 +919,7 @@ export function processAnalytics(fields, merchCard) {
 }
 
 export function updateLinksCSS(merchCard) {
-    if (merchCard.consonant) return;
-    const { spectrum } = merchCard;
-    if (spectrum !== 'css' && spectrum !== 'swc') return;
+    if (merchCard.spectrum !== 'css') return;
     [
         ['primary-link', 'primary'],
         ['secondary-link', 'secondary'],

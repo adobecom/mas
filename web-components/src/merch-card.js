@@ -69,7 +69,8 @@ function priceOptionsProvider(element, options) {
 
     if (
         !options.promotionCode &&
-        card.compatVersion >= COMPAT_VERSION_GLOBAL_PROMO_CODE
+        (card.compatVersion >= COMPAT_VERSION_GLOBAL_PROMO_CODE ||
+            card.hasAttribute('data-promotion-project'))
     ) {
         options.promotionCode = card.contextPromotionCode;
     }
@@ -87,7 +88,8 @@ function checkoutOptionsProvider(element, options) {
     if (!card) return options;
     if (
         !options.promotionCode &&
-        card.compatVersion >= COMPAT_VERSION_GLOBAL_PROMO_CODE
+        (card.compatVersion >= COMPAT_VERSION_GLOBAL_PROMO_CODE ||
+            card.hasAttribute('data-promotion-project'))
     ) {
         options.promotionCode = card.contextPromotionCode;
     }

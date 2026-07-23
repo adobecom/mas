@@ -33,9 +33,7 @@
                 height: 80vh;
             }
         </style>
-        <!-- OST: load the new Lit bundle (ost-new.js) — this test asserts the
-             new OST's <ost-app> element + data-testid="ost-close-button". The
-             legacy bundle at studio/ost/index.js does not define these. -->
+        <!-- OST -->
         <script src="../../ost/ost-new.js"></script>
         <link rel="stylesheet" href="../../ost/index.css" />
     </head>
@@ -47,11 +45,19 @@
             import '../../src/swc.js';
             import '../../src/rte/rte-field.js';
             import '../../src/rte/rte-link-editor.js';
+            import '../../src/rte/rte-icon-editor.js';
             import '../../../web-components/dist/mas.js';
             import { mockFetch } from '../../../web-components/test/mocks/fetch.js';
             import { withWcs } from '../../../web-components/test/mocks/wcs.js';
 
-            import { createFromTemplate, delay, applyChanges, selectNodeAtPos, selectWordsInTextNode } from '../utils.js';
+            import {
+                createFromTemplate,
+                delay,
+                applyChanges,
+                selectNodeAtPos,
+                selectWordsInTextNode,
+                triggerRteInput,
+            } from '../utils.js';
 
             runTests(async () => {
                 await mockFetch(withWcs);
@@ -95,9 +101,27 @@
                     await rte.linkEditorElement.updateComplete;
                 };
 
+                const openIconEditor = async function (rte) {
+                    rte.iconEditorButtonElement.click();
+                    rte.requestUpdate();
+                    await rte.updateComplete;
+                    rte.iconEditorElement.requestUpdate();
+                    await rte.iconEditorElement.updateComplete;
+                };
+
                 const clickSave = (rte) => {
                     const saveButton = rte.linkEditorElement.shadowRoot.getElementById('saveButton');
                     saveButton.click();
+                };
+
+                const clickIconSave = (rte) => {
+                    const saveButton = rte.iconEditorElement.shadowRoot.getElementById('saveButton');
+                    saveButton.click();
+                };
+
+                const clickIconCancel = (rte) => {
+                    const cancelButton = rte.iconEditorElement.shadowRoot.getElementById('cancelButton');
+                    cancelButton.click();
                 };
 
                 describe('RTE Field', () => {
@@ -113,13 +137,48 @@
                             changeCount += 1;
                         });
 
-                        rte.value = '<a class="accent" data-checkout-workflow="UCv3" data-wcs-osi="abm">Buy now</a>';
+                        rte.value =
+                            '<a class="accent" data-key="abc1234xyz" data-checkout-workflow="UCv3" data-wcs-osi="abm">Buy now</a>';
                         await delay(100);
 
                         expect(changeCount).to.equal(0);
                         expect(rte.value).to.equal(
-                            '<p><a class="accent" data-checkout-workflow="UCv3" data-wcs-osi="abm">Buy now</a></p>',
+                            '<p><a class="accent" data-key="abc1234xyz" data-checkout-workflow="UCv3" data-wcs-osi="abm">Buy now</a></p>',
                         );
+                    });
+                });
+
+                describe('RTE Field: character counter', () => {
+                    it('shows 0 for an empty field', async function () {
+                        const rte = await createFromTemplate('rte-empty', this.test.title);
+                        await delay(100);
+                        expect(rte.length).to.equal(0);
+                        const counter = rte.shadowRoot.getElementById('counter');
+                        expect(counter.textContent.replace(/\s/g, '')).to.equal('0/70');
+                    });
+
+                    it('shows 0 after all content is deleted', async function () {
+                        const rte = await createFromTemplate('rte', this.test.title);
+                        await delay(100);
+                        expect(rte.length).to.equal(9); // 'Text only'
+                        const view = rte.editorView;
+                        view.dispatch(view.state.tr.delete(0, view.state.doc.content.size));
+                        await delay(150);
+                        expect(rte.length).to.equal(0);
+                    });
+
+                    it('does not count paragraph breaks as characters', async function () {
+                        const rte = await createFromTemplate('rte-multiline', this.test.title);
+                        await delay(100);
+                        expect(rte.length).to.equal(6); // 'abc' + 'def'
+                    });
+
+                    it('counts author-typed spaces', async function () {
+                        const rte = await createFromTemplate('rte-empty', this.test.title);
+                        await delay(100);
+                        triggerRteInput(rte, ' abc ');
+                        await delay(150);
+                        expect(rte.length).to.equal(5);
                     });
                 });
 
@@ -198,6 +257,40 @@
                         expect(small.textContent).to.equal('Small');
                         expect(smallButton.selected).to.be.true;
                         expect(rte.value).to.equal('<p><small>Small</small></p>');
+                    });
+                });
+
+                describe('RTE Field: icon features', () => {
+                    let rte;
+                    const firstIcon = () => rte.shadowRoot.querySelector('.ProseMirror .icon-button');
+
+                    it('should open the icon editor on icon click and support update', async function () {
+                        rte = await createFromTemplate('rte-icon', this.test.title);
+                        rte.selectLink(1);
+                        await delay(100);
+                        await openIconEditor(rte);
+                        const { tooltip } = rte.iconEditorElement;
+                        expect(tooltip).to.equal('Info tooltip');
+                        rte.iconEditorElement.tooltip = 'New info tooltip';
+                        rte.iconEditorElement.requestUpdate();
+                        await rte.iconEditorElement.updateComplete;
+                        clickIconSave(rte);
+                        await delay(100);
+                        const tt = firstIcon().getAttribute('data-tooltip');
+                        expect(tt).to.equal('New info tooltip');
+                    });
+
+                    it('should open the icon editor and support inserting icon', async function () {
+                        rte = await createFromTemplate('rte', this.test.title);
+                        await delay(100);
+                        await openIconEditor(rte);
+                        rte.iconEditorElement.tooltip = 'My info tooltip';
+                        rte.iconEditorElement.requestUpdate();
+                        await rte.iconEditorElement.updateComplete;
+                        clickIconSave(rte);
+                        await delay(100);
+                        const tt = firstIcon().getAttribute('data-tooltip');
+                        expect(tt).to.equal('My info tooltip');
                     });
                 });
 
@@ -503,7 +596,7 @@
             <sp-theme system="spectrum-two" color="light" scale="medium"> </sp-theme>
         </main>
         <template id="rte">
-            <rte-field link>
+            <rte-field link icon>
                 <p>Text only</p>
             </rte-field>
         </template>
@@ -513,7 +606,7 @@
             </rte-field>
         </template>
         <template id="rte-link">
-            <rte-field link><a href="https://www.adobe.com" title="adobe.com homepage">Adobe</a> </rte-field>
+            <rte-field id="ctas" link><a href="https://www.adobe.com" title="adobe.com homepage">Adobe</a> </rte-field>
         </template>
         <template id="rte-upt">
             <rte-field link upt-link><a class="upt-link" href="#" title="Terms link">See terms</a> </rte-field>
@@ -605,6 +698,15 @@
                 <rte-field>some text</rte-field>
             </div>
         </template>
+        <template id="rte-empty">
+            <rte-field><p></p></rte-field>
+        </template>
+        <template id="rte-multiline">
+            <rte-field
+                ><p>abc</p>
+                <p>def</p></rte-field
+            >
+        </template>
         <template id="rte-marks">
             <rte-field styling marks="promo-text,promo-duration-text,renewal-text"> Styling </rte-field>
         </template>
@@ -613,6 +715,11 @@
         </template>
         <template id="rte-small">
             <rte-field styling marks="small"> Small </rte-field>
+        </template>
+        <template id="rte-icon">
+            <rte-field icon>
+                <span class="icon-button" tabindex="0" role="button" data-tooltip="Info tooltip"></span>
+            </rte-field>
         </template>
     </body>
 </html>

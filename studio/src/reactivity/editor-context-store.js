@@ -153,19 +153,27 @@ export class EditorContextStore extends ReactiveStore {
         if (!aem || !fragmentPath) return;
         const promoName = getPromoNameFromPromoVariationPath(fragmentPath);
         if (!promoName) return;
-        const parentPath = resolveDefaultPathFromPromoVariation(fragmentPath, promoName);
-        if (!parentPath) return;
-        this.parentFetchPromise = aem.sites.cf.fragments
-            .getByPath(parentPath)
-            .then((data) => {
-                if (data) {
-                    this.localeDefaultFragment = data;
-                    this.defaultLocaleId = data.id;
-                    this.notify();
-                }
+        const candidates = resolveDefaultPathFromPromoVariation(fragmentPath, promoName);
+        if (!candidates.length) return;
+        this.parentFetchPromise = this.#fetchFirstExistingFragment(aem, candidates);
+    }
+
+    async #fetchFirstExistingFragment(aem, candidatePaths) {
+        for (const candidatePath of candidatePaths) {
+            let data;
+            try {
+                data = await aem.sites.cf.fragments.getByPath(candidatePath);
+            } catch {
+                continue;
+            }
+            if (data) {
+                this.localeDefaultFragment = data;
+                this.defaultLocaleId = data.id;
+                this.notify();
                 return data;
-            })
-            .catch(() => null);
+            }
+        }
+        return null;
     }
 
     fetchParentByPath(fragmentPath, defaultLocale, pathLocale) {

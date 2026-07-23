@@ -332,15 +332,16 @@ export function parseStudioDeepLinksFromText(text) {
  * @param {string} path - The current surface path (e.g. "/acom")
  * @param {string} page - The current Studio page (e.g. "content")
  * @param {string} fieldName - The field to link to (e.g. "prices", "description")
+ * @param {string} fieldNameText - Alternative value for fieldName
  * @returns {{ displayText: string, href: string, richText: string } | null}
  */
-export function generateFieldLink(fragment, path, page, fieldName) {
+export function generateFieldLink(fragment, path, page, fieldName, fieldNameText) {
     const resolvedFieldName = fieldName ?? page;
     const resolvedPage = fieldName ? page : 'content';
     const { fragmentParts } = getFragmentPartsToUse(fragment, path);
     const webComponentName = getWebComponentName(fragment);
     if (!webComponentName) return null;
-    const displayText = `mas-field: ${fragmentParts} → ${resolvedFieldName}`;
+    const displayText = `mas-field: ${fragmentParts} → ${fieldNameText ?? resolvedFieldName}`;
     const href = buildStudioFragmentHref({
         webComponentName,
         fragmentId: fragment?.id,
@@ -516,4 +517,30 @@ export function resolveContentTypeFilters(tags) {
         ),
     ];
     return { contentTypes, modelIds };
+}
+
+/**
+ * Runs `load` only when `computeKey()` differs from the last run — skips
+ * redundant re-fetches when the derived data would come out the same.
+ * @returns {(options: {
+ *   guard: () => boolean,
+ *   computeKey: () => unknown,
+ *   load: () => Promise<unknown>,
+ *   apply: (result: unknown) => void,
+ *   reset?: () => void,
+ * }) => Promise<void>}
+ */
+export function createKeyedAsyncLoader() {
+    let lastKey = null;
+    return async function runIfNeeded({ guard, computeKey, load, apply, reset }) {
+        if (!guard()) {
+            lastKey = null;
+            reset?.();
+            return;
+        }
+        const key = computeKey();
+        if (lastKey === key) return;
+        lastKey = key;
+        apply(await load());
+    };
 }

@@ -22,15 +22,19 @@ class MasSelectItemsTable extends LitElement {
     static properties = {
         type: { type: String },
         viewOnly: { type: Boolean },
-        viewOnlyLoading: { type: Boolean, state: true },
-        viewOnlyFragments: { type: Array, state: true },
+        viewOnlyLoading: { type: Boolean },
+        viewOnlyFragments: { type: Array },
+        viewOnlyTabs: { type: Array },
         dataReady: { type: Boolean, state: true },
         maxSelectedCards: { type: Number },
         getDisplayName: { type: Function },
         renderFragmentStatusCell: { type: Function },
-        nonSelectableVariations: { type: Array },
+        selectableTabs: { type: Array },
         hidePromoVariations: { type: Boolean },
         tabs: { type: Array },
+        renderActionsCell: { type: Function },
+        renderPreviewCell: { type: Function },
+        promoVariationsFetchedByParent: { type: Object },
     };
 
     hasMore = new StoreController(this, Store.fragments.list.hasMore);
@@ -56,6 +60,8 @@ class MasSelectItemsTable extends LitElement {
         this.maxSelectedCards = Infinity;
         this.getDisplayName = getStudioFragmentDisplayPath;
         this.renderFragmentStatusCell = () => nothing;
+        this.renderActionsCell = null;
+        this.renderPreviewCell = null;
         this.hidePromoVariations = false;
     }
 
@@ -64,7 +70,7 @@ class MasSelectItemsTable extends LitElement {
         this.dataState.abortController = new AbortController();
         this.dataState.isProcessingCards = false;
         this.dataState.pendingCards = null;
-        if (this.viewOnly) {
+        if (this.viewOnly && !this.viewOnlyFragments.length) {
             if (this.effectiveType === TABLE_TYPE.PLACEHOLDERS) {
                 this.viewOnlyLoading = !!getItemsSelectionStore().selectedPlaceholders.value?.length;
                 this.dataSubscription = loadSelectedPlaceholders(
@@ -290,7 +296,16 @@ class MasSelectItemsTable extends LitElement {
                 ],
             },
         };
-        return TABLE_COLUMNS[this.effectiveType][this.viewOnly ? 'viewOnly' : 'selectable'];
+        const base = TABLE_COLUMNS[this.effectiveType][this.viewOnly ? 'viewOnly' : 'selectable'];
+        const supportsExtraCells = this.viewOnly && [TABLE_TYPE.CARDS, TABLE_TYPE.COLLECTIONS].includes(this.effectiveType);
+        if (!supportsExtraCells) return base;
+        return [
+            ...base,
+            ...(this.effectiveType === TABLE_TYPE.CARDS && this.renderPreviewCell
+                ? [{ label: 'Preview', key: 'preview' }]
+                : []),
+            ...(this.renderActionsCell ? [{ label: 'Actions', key: 'actions' }] : []),
+        ];
     }
 
     #toggleSelected(e, path) {
@@ -316,11 +331,15 @@ class MasSelectItemsTable extends LitElement {
                         html`<mas-collapsible-table-row
                             .topLevelCard=${fragment}
                             .viewOnly=${this.viewOnly}
+                            .viewOnlyTabs=${this.viewOnlyTabs}
                             .maxSelectedCards=${this.maxSelectedCards}
-                            .nonSelectableVariations=${this.nonSelectableVariations}
+                            .selectableTabs=${this.selectableTabs}
                             .getDisplayName=${this.getDisplayName}
                             .renderFragmentStatusCell=${this.renderFragmentStatusCell}
                             .tabs=${this.tabs}
+                            .renderActionsCell=${this.renderActionsCell}
+                            .renderPreviewCell=${this.renderPreviewCell}
+                            .promoVariationsFetchedByParent=${this.promoVariationsFetchedByParent}
                         ></mas-collapsible-table-row>`,
                 )}`;
             case TABLE_TYPE.COLLECTIONS:
@@ -347,7 +366,7 @@ class MasSelectItemsTable extends LitElement {
                                 : nothing}
                             <sp-table-cell> ${fragment.title || '-'} </sp-table-cell>
                             <sp-table-cell>${fragment.studioPath}</sp-table-cell>
-                            ${this.renderFragmentStatusCell(fragment.status)}
+                            ${this.renderFragmentStatusCell?.(fragment.status)} ${this.renderActionsCell?.(fragment)}
                         </sp-table-row>`,
                 )}`;
             case TABLE_TYPE.PLACEHOLDERS:
@@ -410,7 +429,7 @@ class MasSelectItemsTable extends LitElement {
 
     render() {
         const fetching = this.loading.value;
-        const loadingFirstPage = fetching && !this.firstPageLoaded.value;
+        const loadingFirstPage = !this.viewOnly && fetching && !this.firstPageLoaded.value;
         const showSkeleton = this.isLoading || loadingFirstPage;
         const showEmpty = !showSkeleton && this.itemsToDisplay.length === 0;
         const showTable = !showEmpty && (showSkeleton || !this.isLoading);

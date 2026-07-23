@@ -152,7 +152,7 @@ class MasPromotionsEditor extends LitElement {
         this.isCreated = false;
         this.isDialogOpen = false;
         this.confirmDialogConfig = null;
-        this.isSelectedItemsOpen = false;
+        this.isSelectedItemsOpen = true;
         this.promoCodesManagerOpen = false;
         this.promoManagerOffers = [];
         this.promotionItemsAddButtonLabel = 'Add selected fragments';

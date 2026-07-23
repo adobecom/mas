@@ -575,10 +575,7 @@ class MasTranslationEditor extends LitElement {
             >
                 <mas-items-selector
                     .renderFragmentStatusCell=${renderFragmentStatusCell}
-                    .variationTabs=${[
-                        { label: 'Promotion', key: VARIATION_TAB_NAME.PROMOTION },
-                        { label: 'Grouped variation', key: VARIATION_TAB_NAME.GROUPED },
-                    ]}
+                    .variationTabs=${[VARIATION_TAB_NAME.PROMOTION, VARIATION_TAB_NAME.GROUPED]}
                     .hidePromoVariations=${true}
                     .restrictImportSurface=${Store.surface()}
                 ></mas-items-selector>

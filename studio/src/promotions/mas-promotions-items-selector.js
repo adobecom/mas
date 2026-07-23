@@ -360,8 +360,8 @@ class MasPromotionsItemsSelector extends LitElement {
                                           .getDisplayName=${this.getDisplayName}
                                           .renderFragmentStatusCell=${this.renderFragmentStatusCell}
                                           .hidePromoVariations=${true}
-                                          .tabs=${[{ label: 'Promotion', key: VARIATION_TAB_NAME.PROMOTION }]}
-                                          .nonSelectableVariations=${[VARIATION_TAB_NAME.PROMOTION]}
+                                          .tabs=${[VARIATION_TAB_NAME.PROMOTION]}
+                                          .selectableTabs="${[]}"
                                           @show-toast=${this.#showToast}
                                       ></mas-select-items-table>`}
                                 ${this.viewOnly

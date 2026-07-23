@@ -344,15 +344,13 @@ describe('Translation state helpers', () => {
                 expect(match).to.equal(`${prefix}*`);
                 return asyncIterFromKeys([keyA]);
             });
-            mockState.get
-                .withArgs(keyA)
-                .resolves({
-                    value: JSON.stringify({
-                        projectId: 'project-A',
-                        title: 'a-different-title',
-                        submittedAt: '2026-06-16T10:00:00Z',
-                    }),
-                });
+            mockState.get.withArgs(keyA).resolves({
+                value: JSON.stringify({
+                    projectId: 'project-A',
+                    title: 'a-different-title',
+                    submittedAt: '2026-06-16T10:00:00Z',
+                }),
+            });
 
             const result = await stateHelpers.listTaskIndexEntries(TITLE);
             expect(result).to.deep.equal([]);

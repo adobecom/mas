@@ -5921,12 +5921,12 @@ merch-card[variant="segment"][id] span[data-template="legal"] {
     line-height: 21px;
 }
 
-merch-card[variant="segment"][id] .price-legal span.price-unit-type {
-    display: block;
-}
-
 merch-card[variant="segment"][id] .price-unit-type:not(.disabled)::before {
     content: "";
+}
+
+merch-card[variant="segment"][id] .price-legal .price-unit-type:not(.disabled)::after {
+  content: "\\00a0";
 }
 
 merch-card[variant="segment"] [slot="footer"] a.con-button.primary {

@@ -220,7 +220,7 @@ export const resolvePriceTaxFlags = async (
     };
 };
 
-export class InlinePrice extends HTMLSpanElement {
+export class InlinePrice extends (globalThis.HTMLSpanElement ?? class {}) {
     static is = 'inline-price';
     static tag = 'span';
     static get observedAttributes() {
@@ -514,8 +514,11 @@ export class InlinePrice extends HTMLSpanElement {
 }
 
 // Define custom DOM element
-if (!window.customElements.get(InlinePrice.is)) {
-    window.customElements.define(InlinePrice.is, InlinePrice, {
+if (
+    globalThis.customElements &&
+    !globalThis.customElements.get(InlinePrice.is)
+) {
+    globalThis.customElements.define(InlinePrice.is, InlinePrice, {
         extends: InlinePrice.tag,
     });
 }

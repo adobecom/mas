@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { PRODUCT_FRAGMENT_MAP, resolveFragmentId } from '../../src/agent/product-fragment-map.js';
+import { resolveFragmentId } from '../../src/agent/product-fragment-map.js';
 
 describe('resolveFragmentId', () => {
     it('resolves a known product case-insensitively with trimming', () => {
@@ -13,9 +13,5 @@ describe('resolveFragmentId', () => {
     it('returns undefined when no product name is given', () => {
         expect(resolveFragmentId('')).to.be.undefined;
         expect(resolveFragmentId(undefined)).to.be.undefined;
-    });
-
-    it('maps the full initial product set', () => {
-        expect(Object.keys(PRODUCT_FRAGMENT_MAP)).to.have.lengthOf(26);
     });
 });

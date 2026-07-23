@@ -21,7 +21,6 @@ const PRODUCT_FRAGMENT_MAP = {
     'adobe substance 3d texturing': 'af758d54-3ab5-49ce-812b-476ebda02f9e',
     dreamweaver: '13bd2e38-5ef8-4ed3-a219-04f7e35c03ac',
     incopy: 'b0ff0368-02e9-46d3-8d65-12dd13abedc1',
-    'creative cloud standard': '65bc17bb-81c7-40d4-afd7-b7dbe2477ed3',
     'acrobat standard': '1b6df606-8549-4e03-9f89-e84778b0c1ff',
     'ai assistant for acrobat': 'a64812ba-f183-4364-a55a-9d45cc549be6',
     'adobe stock ai studio': '700a8624-cc27-43b5-a6d8-148221a06c61',

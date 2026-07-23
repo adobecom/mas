@@ -1,0 +1,71 @@
+{
+    "id": "mas-offer",
+    "kind": "api",
+    "tool_name": "resolve_offer",
+    "tool_description": "Resolve one Adobe plan offer for a product. Returns structured offer facts including RESOLVED prices (promoPrice, regularPrice, and a price-filled description) and emits an offer card shown to the user. State prices from promoPrice/regularPrice/description — do not invent numbers. Identify the promotion and its terms from badge/promoText/terms_url.",
+    "use_when": ["The user asks about pricing, plans, or buying a specific Adobe product."],
+    "avoid_when": ["No specific product is in scope."],
+    "progress_message": "Looking up the offer...",
+    "config": {
+        "endpoint": "https://<host>/mas/io/agent",
+        "method": "GET",
+        "query_template": {
+            "productName": "{{args.productName}}",
+            "pzn": "{{args.pzn}}",
+            "locale": "{{context.locale}}",
+            "country": "{{context.country}}",
+            "api_key": "{{env.MAS_IO_BCOS_API_KEY}}"
+        },
+        "input_schema": {
+            "type": "object",
+            "required": ["productName"],
+            "properties": {
+                "productName": {
+                    "type": "string",
+                    "description": "The Adobe product to resolve an offer for.",
+                    "enum": [
+                        "Creative Cloud Pro",
+                        "Photography",
+                        "Acrobat Studio",
+                        "Photoshop",
+                        "Adobe Firefly Pro",
+                        "Adobe Premiere",
+                        "Illustrator",
+                        "After Effects",
+                        "Adobe Express Premium",
+                        "Adobe Firefly Standard",
+                        "Adobe Firefly Pro Plus",
+                        "Adobe Firefly Premium",
+                        "InDesign",
+                        "Lightroom",
+                        "Acrobat Pro",
+                        "Acrobat Express",
+                        "Audition",
+                        "Animate",
+                        "Adobe Substance 3D Collection",
+                        "Adobe Substance 3D Texturing",
+                        "Dreamweaver",
+                        "InCopy",
+                        "Acrobat Standard",
+                        "AI Assistant for Acrobat",
+                        "Adobe Stock AI Studio"
+                    ]
+                },
+                "pzn": { "type": "string", "enum": ["edu"], "description": "Personalization; edu selects student offers." }
+            }
+        },
+        "multimodal": {
+            "enabled": true,
+            "max_cards": 1,
+            "record_paths": ["$"],
+            "template": {
+                "id": "{{record.fragment}}",
+                "entity_info": {
+                    "productName": "{{record.productName}}",
+                    "fragment": "{{record.fragment}}",
+                    "pzn": "{{record.pzn}}"
+                }
+            }
+        }
+    }
+}

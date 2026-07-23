@@ -1,4 +1,4 @@
-import { isPositiveFiniteNumber } from '@dexter/tacocat-core';
+import { isPositiveFiniteNumber } from '@dexter/tacocat-core/src/utilities.js';
 
 const getDiscount = (price, priceWithoutDiscount) => {
     if (!priceWithoutDiscount && isPositiveFiniteNumber(price)) return 0;

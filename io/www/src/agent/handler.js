@@ -1,3 +1,4 @@
+import zlib from 'zlib';
 import openwhisk from 'openwhisk';
 import { resolveFragmentId } from './product-fragment-map.js';
 import { flattenOffer } from './flatten.js';
@@ -9,6 +10,14 @@ function response(statusCode, body) {
 function fragmentActionName(params) {
     const current = params.__ow_action_name;
     return current ? current.replace(/[^/]+$/, 'fragment') : 'MerchAtScale/fragment';
+}
+
+function parseFragmentBody(result) {
+    const body =
+        result.headers?.['Content-Encoding'] === 'br'
+            ? zlib.brotliDecompressSync(Buffer.from(result.body, 'base64')).toString('utf-8')
+            : result.body;
+    return JSON.parse(body);
 }
 
 async function main(params, { openwhiskFactory = openwhisk } = {}) {
@@ -48,11 +57,8 @@ async function main(params, { openwhiskFactory = openwhisk } = {}) {
     }
 
     return response(200, {
-        ...flattenOffer(JSON.parse(result.body)),
-        product: productName,
+        ...(await flattenOffer(parseFragmentBody(result))),
         pzn: pzn ?? null,
-        country: country ?? null,
-        locale,
     });
 }
 

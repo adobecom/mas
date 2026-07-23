@@ -4,8 +4,8 @@ import {
     isNumber,
     isString,
     toBoolean,
-    createLog,
-} from '@dexter/tacocat-core';
+} from '@dexter/tacocat-core/src/utilities.js';
+import { createLog } from '../log.js';
 import IntlMessageFormat from 'intl-messageformat';
 import {
     formatOpticalPrice,

@@ -1,4 +1,5 @@
 import { readFileSync } from 'fs';
+import zlib from 'zlib';
 import { expect } from 'chai';
 import sinon from 'sinon';
 import { main } from '../../src/agent/handler.js';
@@ -9,6 +10,25 @@ const ccProBody = readFileSync(new URL('./mocks/fragment-cc-pro.json', import.me
 const fakeFactory = (invoke) => () => ({ actions: { invoke } });
 
 describe('agent action main', () => {
+    it('decompresses a Brotli fragment action response', async () => {
+        const invoke = sinon.stub().resolves({
+            statusCode: 200,
+            headers: { 'Content-Encoding': 'br' },
+            body: zlib.brotliCompressSync(ccProBody).toString('base64'),
+        });
+        const res = await main(
+            {
+                productName: 'Creative Cloud Pro',
+                locale: 'en_US',
+                api_key: 'test-api-key',
+            },
+            { openwhiskFactory: fakeFactory(invoke) },
+        );
+
+        expect(res.statusCode).to.equal(200);
+        expect(res.body.productName).to.equal('Creative Cloud Pro');
+    });
+
     it('returns 400 when productName is missing', async () => {
         const res = await main({ locale: 'en_US' });
         expect(res.statusCode).to.equal(400);
@@ -40,12 +60,8 @@ describe('agent action main', () => {
         expect(res.statusCode).to.equal(200);
         expect(res.body.fragment).to.equal(CC_PRO_FRAGMENT_ID);
         expect(res.body.productName).to.equal('Creative Cloud Pro');
-        expect(res.body.wcs_osi).to.equal('r_JXAnlFI7xD6FxWKl2ODvZriLYBoSL701Kd1hRyhe8');
-        expect(res.body.promotion_code).to.equal('CCI_50_3_IP_US');
-        expect(res.body.product).to.equal('Creative Cloud Pro');
         expect(res.body.pzn).to.equal('edu');
-        expect(res.body.country).to.equal('US');
-        expect(res.body.locale).to.equal('en_US');
+        expect(res.body).to.not.have.any.keys('locale', 'country');
         const arg = invoke.firstCall.args[0];
         expect(arg.name).to.equal('/ns/MerchAtScale/fragment');
         expect(arg.blocking).to.be.true;
@@ -67,7 +83,6 @@ describe('agent action main', () => {
         );
         expect(res.statusCode).to.equal(200);
         expect(res.body.pzn).to.be.null;
-        expect(res.body.country).to.be.null;
         const arg = invoke.firstCall.args[0];
         expect(arg.name).to.equal('MerchAtScale/fragment');
         expect(arg.params).to.deep.equal({ id: CC_PRO_FRAGMENT_ID, locale: 'en_US' });

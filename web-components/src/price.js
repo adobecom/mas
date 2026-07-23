@@ -17,9 +17,9 @@ import { discount } from './discount/index.js';
 
 import {
     omitProperties,
-    computePromoStatus,
     toBoolean,
-} from '@dexter/tacocat-core';
+} from '@dexter/tacocat-core/src/utilities.js';
+import { computePromoStatus } from '@dexter/tacocat-core/src/promotion.js';
 import { InlinePrice } from './inline-price.js';
 import { toOfferSelectorIds, toQuantity } from './utilities.js';
 

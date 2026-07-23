@@ -1,5 +1,9 @@
 import { LOG_NAMESPACE } from './constants.js';
-import { getParameter, isFunction, toBoolean } from '@dexter/tacocat-core';
+import {
+    getParameter,
+    isFunction,
+    toBoolean,
+} from '@dexter/tacocat-core/src/utilities.js';
 import { lanaAppender, updateConfig } from './lana.js';
 
 const HostEnv = {
@@ -56,7 +60,7 @@ function handleEntry(entry) {
     }
 }
 
-function createLog(namespace) {
+export function createLog(namespace) {
     const index = (loggerIndexes.get(namespace) ?? 0) + 1;
     loggerIndexes.set(namespace, index);
     const id = `${namespace} #${index}`;

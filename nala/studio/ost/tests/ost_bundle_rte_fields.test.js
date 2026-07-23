@@ -2,7 +2,7 @@
  * MAS Studio — soft-bundle authoring from every OST-enabled RTE field.
  *
  * Every RTE field in the merch-card editor (Title, Product price, Promo Text,
- * Description, Short Description, Callout, CTAs) exposes the OST toolbar cart
+ * Description, Callout, CTAs) exposes the OST toolbar cart
  * button, and its "Use" routes through the same onPlaceholderSelect path. This
  * suite opens the OST from each field, authors a Soft Bundle (2 offers), clicks
  * Use, and asserts a comma-joined data-wcs-osi inline-price lands in that field
@@ -75,10 +75,9 @@ test.describe('M@S Studio OST soft bundle across RTE fields', () => {
                 await ost.footerUseButton.click();
                 await expect(await ost.popup).not.toBeVisible();
                 const inserted = editor.panel
-                    .locator(`sp-field-group#${feature.data.fieldGroup} span[is="inline-price"]`)
+                    .locator(`sp-field-group#${feature.data.fieldGroup} span[is="inline-price"][data-wcs-osi*=","]`)
                     .first();
                 await expect(inserted).toBeVisible();
-                await expect(inserted).toHaveAttribute('data-wcs-osi', /,/);
             });
 
             await test.step('step-4: No market_segments crash during Use', async () => {

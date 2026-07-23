@@ -5,8 +5,8 @@
 // the market_segments crash (MWPW-200982). Reuses the fr_FR OST fragment.
 export { OST_FR_FRAGMENT } from './ost.spec.js';
 
-// One feature per RTE field. `field` = editor.page.js field-group id;
-// `contentSelector` = where the inserted inline-price span lands.
+// One feature per RTE field the fixture's variant renders. shortDescription is
+// excluded: its toggle field-group stays hidden for this fragment's variant.
 export default {
     FeatureName: 'M@S Studio OST Soft Bundle across RTE fields',
     features: [
@@ -40,20 +40,13 @@ export default {
         },
         {
             tcid: '4',
-            name: '@studio-ost-bundle-field-short-description',
-            path: '/studio.html',
-            data: { field: 'shortDescription', fieldGroup: 'shortDescription' },
-            tags: '@mas-studio @ost @ost-e2e @ost-bundle-rte-fields',
-        },
-        {
-            tcid: '5',
             name: '@studio-ost-bundle-field-callout',
             path: '/studio.html',
             data: { field: 'callout', fieldGroup: 'callout' },
             tags: '@mas-studio @ost @ost-e2e @ost-bundle-rte-fields',
         },
         {
-            tcid: '6',
+            tcid: '5',
             name: '@studio-ost-bundle-field-ctas',
             path: '/studio.html',
             data: { field: 'ctas', fieldGroup: 'ctas' },

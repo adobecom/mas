@@ -7,6 +7,7 @@ import {
     PLACEHOLDER_CTA_SURFACES,
 } from '../constants.js';
 import Store from '../store.js';
+import { getLocaleByCode } from '../locales.js';
 
 let ostRoot = document.getElementById('ost');
 let closeFunction;
@@ -156,9 +157,6 @@ export async function onPlaceholderSelect(offerSelectorId, type, offer, options,
         attributes['data-analytics-id'] = options.ctaText;
     }
 
-    if (promoOverride) {
-        attributes['data-promotion-code'] = promoOverride;
-    }
     if (!options.isPerpetual) {
         delete changes.isPerpetual;
     }
@@ -167,6 +165,12 @@ export async function onPlaceholderSelect(offerSelectorId, type, offer, options,
         if (attribute) {
             attributes[attribute] = value;
         }
+    }
+
+    if (promoOverride) {
+        attributes['data-promotion-code'] = promoOverride;
+    } else {
+        delete attributes['data-promotion-code'];
     }
 
     ostRoot.dispatchEvent(
@@ -206,7 +210,12 @@ export function openOfferSelectorTool(triggerElement, offerElement) {
         }
         let searchOfferSelectorId;
         let initialReferenceOsi;
-        const aosAccessToken = localStorage.getItem('masAccessToken') ?? window.adobeid.authorize();
+        let bundleOsis;
+        const aosAccessToken =
+            localStorage.getItem('masAccessToken') ??
+            sessionStorage.getItem('masAccessToken') ??
+            window.adobeIMS?.getAccessToken()?.token ??
+            window.adobeid?.authorize?.();
         const searchParameters = new URLSearchParams();
         const promotionCode = triggerElement?.closest('merch-card-editor')?.getEffectiveFieldValue('promoCode', 0)?.trim();
 
@@ -216,9 +225,18 @@ export function openOfferSelectorTool(triggerElement, offerElement) {
             if (!offerElement.isInlinePrice) {
                 searchParameters.append('text', offerElement.innerText);
             }
-            const osiParts = (offerElement.getAttribute('data-wcs-osi') ?? '').split(',');
-            searchOfferSelectorId = osiParts[0];
-            initialReferenceOsi = osiParts[1];
+            const osiParts = (offerElement.getAttribute('data-wcs-osi') ?? '').split(',').filter(Boolean);
+            const isDiscount = offerElement.getAttribute('data-template') === 'discount';
+            // A soft-bundle placeholder carries every bundled OSI comma-joined
+            // (and is not a discount, whose second OSI is a reference price).
+            // Reopen it in bundle mode with all offers so the author edits the
+            // whole bundle, not just its first offer.
+            if (osiParts.length > 1 && !isDiscount) {
+                bundleOsis = osiParts;
+            } else {
+                searchOfferSelectorId = osiParts[0];
+                initialReferenceOsi = osiParts[1];
+            }
 
             // Set search parameters
             offerElement.getAttributeNames().forEach((key) => {
@@ -248,6 +266,8 @@ export function openOfferSelectorTool(triggerElement, offerElement) {
                 if (value) searchParameters.append(key, value);
             });
         }
+        const authoringLocale = Store.localeOrRegion();
+        const localeMeta = getLocaleByCode(authoringLocale);
         const ostCloseFunction = window.ost.openOfferSelectorTool({
             aosApiKey: 'wcms-commerce-ims-user-prod',
             checkoutClientId: 'creative',
@@ -286,8 +306,10 @@ export function openOfferSelectorTool(triggerElement, offerElement) {
             searchParameters,
             searchOfferSelectorId,
             initialReferenceOsi,
-            country: masCommerceService.settings.country,
-            language: masCommerceService.settings.language,
+            bundleOsis,
+            authoringFlow: bundleOsis ? 'bundle' : undefined,
+            country: localeMeta?.country ?? masCommerceService.settings.country,
+            language: localeMeta?.lang ?? masCommerceService.settings.language,
             defaultPlaceholderOptions: ostDefaultSettings(),
             offerSelectorPlaceholderOptions,
             modalsAndEntitlements: ['acom', 'acom-cc', 'acom-dc', 'sandbox', 'nala'].includes(Store.search.get().path),
@@ -313,7 +335,16 @@ export function openOfferSelectorTool(triggerElement, offerElement) {
     }
 }
 
+function restoreAuthoringCommerceServiceLocale() {
+    const studio = document.querySelector('mas-studio');
+    if (!studio?.renderCommerceService) return;
+
+    studio.renderCommerceService();
+}
+
 export function closeOfferSelectorTool() {
-    closeFunction?.();
+    if (!closeFunction) return;
+    closeFunction();
     closeFunction = null;
+    restoreAuthoringCommerceServiceLocale();
 }

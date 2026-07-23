@@ -433,6 +433,8 @@ export class AemFragment extends HTMLElement {
             maskId,
             tags,
             variationId,
+            promoProject,
+            promoVariationProject,
             settings = {},
             priceLiterals = {},
             dictionary = {},
@@ -453,6 +455,8 @@ export class AemFragment extends HTMLElement {
                 maskId,
                 placeholders,
                 variationId,
+                promoProject,
+                promoVariationProject,
             },
         );
     }
@@ -469,6 +473,8 @@ export class AemFragment extends HTMLElement {
             maskId,
             placeholders = {},
             variationId,
+            promoProject,
+            promoVariationProject,
         } = this.#rawData;
         this.#data = Object.entries(fields).reduce(
             (acc, [key, value]) => {
@@ -485,6 +491,8 @@ export class AemFragment extends HTMLElement {
                 maskId,
                 placeholders,
                 variationId,
+                promoProject,
+                promoVariationProject,
             },
         );
     }

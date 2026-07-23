@@ -1,4 +1,5 @@
 import Store from '../store.js';
+import { BULK_PUBLISH_STATUS } from '../constants.js';
 
 function patchProjectStore(project, fields) {
     const snapshot = structuredClone(project.get());
@@ -10,8 +11,20 @@ function patchProjectStore(project, fields) {
     project.refreshFrom(snapshot);
 }
 
-export async function startPublishing({ project, token, ioBaseUrl, repository }) {
-    const { publishBulk } = await import('./bulk-publish-client.js');
+const POLL_BACKOFF_FACTOR = 1.5;
+const POLL_MAX_INTERVAL_MS = 30000;
+
+export async function startPublishing({
+    project,
+    token,
+    ioBaseUrl,
+    repository,
+    publishFn,
+    pollIntervalMs = 2000,
+    maxPolls = 150,
+    sleepFn = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+}) {
+    const fn = publishFn ?? (await import('./bulk-publish-client.js')).publishBulk;
     const profile = await window.adobeIMS?.getProfile?.().catch(() => null);
     const publishedBy = profile?.email ?? '';
 
@@ -19,15 +32,23 @@ export async function startPublishing({ project, token, ioBaseUrl, repository })
         ...Store.bulkPublishProjects.publishing.get(),
         [project.id]: true,
     });
+    const terminalStatuses = new Set([
+        BULK_PUBLISH_STATUS.PUBLISHED,
+        BULK_PUBLISH_STATUS.PARTIALLY_PUBLISHED,
+        BULK_PUBLISH_STATUS.FAILED,
+    ]);
     try {
-        const result = await publishBulk({ ioBaseUrl, projectId: project.id, publishedBy, token });
-        patchProjectStore(project, {
-            status: result.status,
-            publishedAt: result.publishedAt,
-            publishedBy: result.publishedBy,
-        });
-        repository.refreshFragment(project).catch(() => {});
-        return result;
+        await fn({ ioBaseUrl, projectId: project.id, publishedBy, token });
+        let interval = pollIntervalMs;
+        for (let i = 0; i < maxPolls; i++) {
+            await repository.refreshFragment(project).catch(() => {});
+            const statusField = project.get()?.fields?.find((f) => f.name === 'status');
+            const status = statusField?.values?.[0];
+            if (terminalStatuses.has(status)) return { status };
+            await sleepFn(interval);
+            interval = Math.min(interval * POLL_BACKOFF_FACTOR, POLL_MAX_INTERVAL_MS);
+        }
+        return { timedOut: true };
     } finally {
         const current = { ...Store.bulkPublishProjects.publishing.get() };
         delete current[project.id];

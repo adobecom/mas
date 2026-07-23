@@ -456,11 +456,10 @@ export function processFeatures(fields, merchCard, mapping) {
             container.append(p);
             return;
         }
-        // Trust boundary: features payload originates from AEM-authored
-        // fragments via IMS-gated write path. Do not call with untrusted input.
         container.insertAdjacentHTML('beforeend', value);
     });
     if (container.children.length) merchCard.append(container);
+    processFeaturesLinks(merchCard, mapping);
 }
 
 function transformLinkToButton(linkElement, merchCard, aemFragmentMapping) {
@@ -524,6 +523,16 @@ function transformLinkToButton(linkElement, merchCard, aemFragmentMapping) {
 
 function processDescriptionLinks(merchCard, aemFragmentMapping) {
     const { slot } = aemFragmentMapping?.description;
+    processLinks(merchCard, aemFragmentMapping, slot);
+}
+
+function processFeaturesLinks(merchCard, aemFragmentMapping) {
+    const slot = aemFragmentMapping?.features?.slot;
+    if (!slot) return;
+    processLinks(merchCard, aemFragmentMapping, slot);
+}
+
+function processLinks(merchCard, aemFragmentMapping, slot) {
     const links = merchCard.querySelectorAll(
         `[slot="${slot}"] a[data-wcs-osi]`,
     );
@@ -580,7 +589,18 @@ export function processAddon(fields, merchCard, mapping, settings = {}) {
     const addonField = addonSource?.replace(/[{}]/g, '');
     if (!addonField) return;
     if (/disabled/.test(addonField)) return;
-    const addon = createTag('merch-addon', { slot: 'addon' }, addonField);
+    let background;
+    let innerContent = addonField;
+    const temp = document.createElement('div');
+    temp.innerHTML = addonField;
+    const firstEl = temp.firstElementChild;
+    if (firstEl?.tagName?.toLowerCase() === 'merch-addon') {
+        background = firstEl.getAttribute('background') || undefined;
+        innerContent = firstEl.innerHTML;
+    }
+    const attrs = { slot: 'addon' };
+    if (background) attrs.background = background;
+    const addon = createTag('merch-addon', attrs, innerContent);
     [...addon.querySelectorAll(SELECTOR_MAS_INLINE_PRICE)].forEach((span) => {
         const parent = span.parentElement;
         if (parent?.nodeName !== 'P') return;
@@ -993,6 +1013,13 @@ export async function hydrate(fragment, merchCard) {
     if (fragment.variationId)
         merchCard.setAttribute('variation-id', fragment.variationId);
     if (fragment.maskId) merchCard.setAttribute('mask-id', fragment.maskId);
+    if (fragment.promoProject)
+        merchCard.setAttribute('data-promotion-project', fragment.promoProject);
+    if (fragment.promoVariationProject)
+        merchCard.setAttribute(
+            'data-promotion-variation-project',
+            fragment.promoVariationProject,
+        );
     merchCard.variant = variant;
     await merchCard.updateComplete;
 

@@ -63,6 +63,32 @@ export const styles = css`
     .promotions-table sp-table-cell:last-child {
         justify-content: center;
     }
+
+    .timeline-cell {
+        display: grid;
+        grid-template-columns: 140px auto;
+        align-items: center;
+        gap: var(--spectrum-spacing-100, 8px);
+    }
+
+    .evergreen-badge {
+        background-color: var(--spectrum-orange-200);
+        color: var(--spectrum-gray-900);
+        font-weight: 500;
+        padding: 2px 8px;
+        border-radius: 4px;
+        white-space: nowrap;
+    }
+
+    .duplicating-overlay {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(255, 255, 255, 0.7);
+        z-index: 10;
+    }
 `;
 
 export default styles;

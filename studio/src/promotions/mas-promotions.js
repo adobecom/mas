@@ -3,16 +3,28 @@ import { repeat } from 'lit/directives/repeat.js';
 import Store from '../store.js';
 import { MasRepository } from '../mas-repository.js';
 import styles from './mas-promotions-css.js';
-import { PAGE_NAMES } from '../constants.js';
+import { PAGE_NAMES, PROMOTION_MODEL_ID } from '../constants.js';
+import { fromAttribute } from '../aem/tag-path-utils.js';
+import { getPromotionTagFromFragment } from './promotion-model.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
-import { showToast } from '../utils.js';
+import { normalizeKey, showToast, UserFriendlyError } from '../utils.js';
+import { clearCaches } from '../../libs/fragment-client.js';
+import './mas-promotion-duplicate-dialog.js';
 import { renderPromotionStatusCell } from '../common/utils/render-utils.js';
+import { canEditPromotions } from '../groups.js';
 import {
+    canPublishPromotionNow,
+    canSchedulePromotion,
     confirmPublishDespiteUnpublishedPromoVariations,
+    confirmUnpublishAlongsidePromoVariations,
     isPromotionExpiredForPublish,
     publishPromotionProject,
+    unpublishPromotionProject,
+    promotionDeleteConfirmMessage,
     PROMOTION_EXPIRED_PUBLISH_MESSAGE,
 } from './promotion-publish-utils.js';
+import { deleteAttachedPromoVariations, getAllAttachedPromoVariations } from './promotions-repository.js';
+import { PROMOTION_FIELD_TYPE_MAP } from './promotion-editor-utils.js';
 
 class MasPromotions extends LitElement {
     static styles = styles;
@@ -27,12 +39,14 @@ class MasPromotions extends LitElement {
         promotionsLoading: { type: Boolean, state: true },
         isDialogOpen: { type: Boolean, state: true },
         confirmDialogConfig: { type: Object, state: true },
+        duplicateDialogOpen: { type: Boolean, state: true },
+        duplicating: { type: Boolean, state: true },
     };
 
     constructor() {
         super();
 
-        this.filter = Store.promotions?.list?.filter?.get() || 'scheduled';
+        this.filter = Store.promotions?.list?.filter?.get() || 'active';
         this.filterOptions = Store.promotions?.list?.filterOptions?.get() || [];
         this.sortField = 'key';
         this.sortDirection = 'asc';
@@ -41,13 +55,19 @@ class MasPromotions extends LitElement {
         this.promotionsLoading = Store.promotions?.list?.loading?.get() || false;
         this.isDialogOpen = false;
         this.confirmDialogConfig = null;
+        this.duplicateDialogOpen = false;
+        this.duplicating = false;
         this.reactiveController = new ReactiveController(this, [
             Store.promotions?.list?.data,
             Store.promotions?.list?.loading,
             Store.promotions?.list?.filter,
             Store.promotions?.list?.filterOptions,
+            Store.users,
         ]);
     }
+
+    #duplicateProposedTitle = '';
+    #duplicateFragment = null;
 
     /** @type {MasRepository} */
     get repository() {
@@ -121,7 +141,6 @@ class MasPromotions extends LitElement {
         await this.repository.loadPromotions();
         this.promotionsData = Store.promotions.list.data.get() || [];
         this.promotionsLoading = Store.promotions.list.loading.get() || false;
-        this.requestUpdate();
     }
 
     /**
@@ -198,25 +217,34 @@ class MasPromotions extends LitElement {
             <sp-table emphasized scroller @change=${this.updateTableSelection} class="promotions-table">
                 ${this.renderTableHeader(columns)}
                 <sp-table-body>
-                    ${repeat(
-                        filteredPromotions,
-                        (promotion) => html`
+                    ${repeat(filteredPromotions, (promotion) => {
+                        const promo = promotion.get();
+                        return html`
                             <sp-table-row
-                                value=${promotion.get().path}
-                                data-id=${promotion.get().id}
+                                value=${promo.path}
+                                data-id=${promo.id}
                                 @dblclick=${(e) => this.#handlePromotionRowDblClick(e, promotion)}
                             >
-                                <sp-table-cell>${promotion.get().title}</sp-table-cell>
-                                <sp-table-cell>${promotion.get().timeline}</sp-table-cell>
-                                ${renderPromotionStatusCell(promotion.get().promotionStatus)}
-                                <sp-table-cell>${promotion.get().createdBy}</sp-table-cell>
+                                <sp-table-cell>${promo.title}</sp-table-cell>
+                                <sp-table-cell>
+                                    <span class="timeline-cell">
+                                        ${promo.timeline}
+                                        ${promo.isEvergreen ? html`<span class="evergreen-badge">Evergreen</span>` : nothing}
+                                    </span>
+                                </sp-table-cell>
+                                ${renderPromotionStatusCell(promo.promotionStatus)}
+                                <sp-table-cell>${promo.createdBy}</sp-table-cell>
                                 ${this.renderActionCell(promotion)}
                             </sp-table-row>
-                        `,
-                    )}
+                        `;
+                    })}
                 </sp-table-body>
             </sp-table>
         `;
+    }
+
+    willUpdate() {
+        this.canEdit = canEditPromotions();
     }
 
     render() {
@@ -224,10 +252,12 @@ class MasPromotions extends LitElement {
             <div class="promotions-container">
                 <div class="promotions-header">
                     <sp-search size="m" placeholder="Search"></sp-search>
-                    <sp-button variant="accent" @click=${() => this.#handleAddPromotion()} class="create-button">
-                        <sp-icon-add slot="icon"></sp-icon-add>
-                        Create promotion project
-                    </sp-button>
+                    ${this.canEdit
+                        ? html`<sp-button variant="accent" @click=${() => this.#handleAddPromotion()} class="create-button">
+                              <sp-icon-add slot="icon"></sp-icon-add>
+                              Create promotion project
+                          </sp-button>`
+                        : nothing}
                 </div>
 
                 ${this.renderError()}
@@ -247,6 +277,19 @@ class MasPromotions extends LitElement {
                 </div>
 
                 ${this.renderConfirmDialog()}
+                ${this.duplicating
+                    ? html`<div class="duplicating-overlay">
+                          <sp-progress-circle label="Duplicating project" indeterminate size="l"></sp-progress-circle>
+                      </div>`
+                    : nothing}
+                <mas-promotion-duplicate-dialog
+                    .open=${this.duplicateDialogOpen}
+                    .proposedTitle=${this.#duplicateProposedTitle}
+                    @duplicate-confirmed=${this.#onDuplicateConfirmed}
+                    @duplicate-cancelled=${() => {
+                        this.duplicateDialogOpen = false;
+                    }}
+                ></mas-promotion-duplicate-dialog>
 
                 <div class="promotions-filters-container">
                     <div class="filters-container"><sp-icon-filter></sp-icon-filter><span>Filters:</span></div>
@@ -282,6 +325,18 @@ class MasPromotions extends LitElement {
     }
 
     renderActionCell(promotion) {
+        if (!this.canEdit) {
+            return html`
+                <sp-table-cell>
+                    <sp-action-menu size="m">
+                        <sp-menu-item @click="${() => this.#handleEditPromotion(promotion)}">
+                            <sp-icon-preview slot="icon"></sp-icon-preview>
+                            View
+                        </sp-menu-item>
+                    </sp-action-menu>
+                </sp-table-cell>
+            `;
+        }
         return html`
             <sp-table-cell>
                 <sp-action-menu size="m">
@@ -305,7 +360,7 @@ class MasPromotions extends LitElement {
                                   Unpublish
                               </sp-menu-item>`
                             : nothing}
-                        <sp-menu-item disabled>
+                        <sp-menu-item @click=${() => this.#handleDuplicatePromotionFromList(promotion)}>
                             <sp-icon-duplicate slot="icon"></sp-icon-duplicate>
                             Duplicate
                         </sp-menu-item>
@@ -389,12 +444,10 @@ class MasPromotions extends LitElement {
 
     async #handlePublishPromotionFromList(promotion) {
         const fragment = promotion.get();
-        if (!fragment?.id) return;
-        if (fragment.isPromotionPublished && !fragment.isPromotionModified) {
-            return;
-        }
-        if (isPromotionExpiredForPublish(fragment)) {
-            showToast(PROMOTION_EXPIRED_PUBLISH_MESSAGE, 'info');
+        if (!canPublishPromotionNow(fragment) && !canSchedulePromotion(fragment)) {
+            if (isPromotionExpiredForPublish(fragment)) {
+                showToast(PROMOTION_EXPIRED_PUBLISH_MESSAGE, 'info');
+            }
             return;
         }
         const { confirmed, variationPaths } = await confirmPublishDespiteUnpublishedPromoVariations(
@@ -418,9 +471,15 @@ class MasPromotions extends LitElement {
         if (!fragment.isPromotionPublished) {
             return;
         }
+        const { confirmed, variationPaths } = await confirmUnpublishAlongsidePromoVariations(
+            this.repository.aem,
+            fragment,
+            (title, message, options) => this.#showDialog(title, message, options),
+        );
+        if (!confirmed) return;
         try {
             this.loading = true;
-            const ok = await this.repository.unpublishFragment(fragment, true);
+            const ok = await unpublishPromotionProject(this.repository, fragment, variationPaths);
             if (ok) await this.loadPromotions();
         } finally {
             this.loading = false;
@@ -431,9 +490,11 @@ class MasPromotions extends LitElement {
         if (this.isDialogOpen) {
             return;
         }
+        const fragment = promotion.get();
+        const attachedVariations = await getAllAttachedPromoVariations(this.repository.aem, fragment);
         const confirmed = await this.#showDialog(
             'Confirm Delete',
-            `Are you sure you want to delete the promotion project "${promotion.get().title}"? This action cannot be undone.`,
+            promotionDeleteConfirmMessage(fragment.title, attachedVariations.length),
             {
                 confirmText: 'Delete',
                 cancelText: 'Cancel',
@@ -441,10 +502,14 @@ class MasPromotions extends LitElement {
             },
         );
         if (!confirmed) return;
+        const tagId = getPromotionTagFromFragment(promotion.get());
+        const [tagPath] = tagId ? fromAttribute(tagId) : [];
         try {
             this.loading = true;
             showToast('Deleting promotion campaign...');
+            await deleteAttachedPromoVariations(this.repository.aem, fragment);
             await this.repository.deleteFragment(promotion, { startToast: false, endToast: false });
+            if (tagPath) await this.repository.aem.tags.delete(tagPath);
             const updatedPromotions = this.promotionsData.filter((p) => p.get().id !== promotion.get().id);
             this.promotionsData = updatedPromotions;
             Store.promotions.list.data.set(updatedPromotions);
@@ -456,6 +521,45 @@ class MasPromotions extends LitElement {
             this.loading = false;
         }
     }
+
+    #handleDuplicatePromotionFromList(promotion) {
+        if (this.duplicating) return;
+        const fragment = promotion.get();
+        this.#duplicateProposedTitle = `${fragment.getFieldValue('title')} copy`;
+        this.#duplicateFragment = fragment;
+        this.duplicateDialogOpen = true;
+    }
+
+    #onDuplicateConfirmed = async ({ detail: { title } }) => {
+        const fragment = this.#duplicateFragment;
+        if (!fragment) return;
+        this.duplicateDialogOpen = false;
+        this.duplicating = true;
+        try {
+            const payload = {
+                name: normalizeKey(title),
+                parentPath: this.repository.getPromotionsPath(),
+                modelId: PROMOTION_MODEL_ID,
+                title,
+                fields: fragment.fields
+                    .filter((field) => field.name !== 'collections')
+                    .map((field) => ({
+                        name: field.name,
+                        type: PROMOTION_FIELD_TYPE_MAP[field.name]?.type ?? field.type,
+                        multiple: PROMOTION_FIELD_TYPE_MAP[field.name]?.multiple ?? field.multiple ?? false,
+                        values: field.name === 'title' ? [title] : field.values,
+                    })),
+            };
+            await this.repository.createFragment(payload, false);
+            clearCaches();
+            showToast('Project successfully duplicated.', 'positive');
+            await this.loadPromotions();
+        } catch {
+            showToast('Failed to duplicate project.', 'negative');
+        } finally {
+            this.duplicating = false;
+        }
+    };
 
     #handleFilterPromotions(filter) {
         // reset promotions data

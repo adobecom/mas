@@ -56,4 +56,28 @@ describe('mas-bulk-publish-success-banner', () => {
         const result = el.formatDate('not-a-date');
         expect(result).to.equal('not-a-date');
     });
+
+    it('renders partial summary with published and failed counts', async () => {
+        const result = {
+            published: 3,
+            failed: 2,
+            failures: [{ path: '/a', reason: 'not-localized' }],
+            failuresTruncated: false,
+        };
+        const el = await fixture(html`<mas-bulk-publish-success-banner .result=${result}></mas-bulk-publish-success-banner>`);
+        await el.updateComplete;
+        const text = el.shadowRoot.textContent;
+        expect(text).to.include('3');
+        expect(text).to.include('2');
+        expect(text).to.include('not-localized');
+        expect(el.getAttribute('variant')).to.equal('partial');
+    });
+
+    it('notes truncation when failuresTruncated', async () => {
+        const failures = Array.from({ length: 100 }, (v, i) => ({ path: `/p${i}`, reason: 'not-localized' }));
+        const result = { published: 100, failed: 100, failures, failuresTruncated: true };
+        const el = await fixture(html`<mas-bulk-publish-success-banner .result=${result}></mas-bulk-publish-success-banner>`);
+        await el.updateComplete;
+        expect(el.shadowRoot.textContent).to.include('100 of 100');
+    });
 });

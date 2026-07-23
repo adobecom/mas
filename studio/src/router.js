@@ -1,6 +1,6 @@
 import { PAGE_NAMES, SORT_COLUMNS, WCS_LANDSCAPE_PUBLISHED, COLLECTION_MODEL_PATH } from './constants.js';
 import Store from './store.js';
-import { isPromotionItemSelectionDirty } from './promotions/promotion-editor-utils.js';
+import { isPromotionItemSelectionDirty, isPromotionOffersSelectionDirty } from './promotions/promotion-editor-utils.js';
 import { debounce, hasNonEmptyCompareChart } from './utils.js';
 import { canAccessSettings, canAccessMasks } from './groups.js';
 import { getDefaultLocaleCode } from '../../io/www/src/fragment/locales.js';
@@ -18,14 +18,13 @@ const STORE_SEARCH_HASH_DEFAULT = {};
  * @param {string} idKey hash key identifying the edited record (must stay unchanged)
  * @returns {boolean}
  */
-function editorHashIsSearchSync(previousHash, nextHash, page, idKey) {
+function editorHashIsSearchSync(previousHash, nextHash, page, idKey, ignorable = new Set(['query', 'path', 'region'])) {
     const toParams = (h) => new URLSearchParams(h?.startsWith('#') ? h.slice(1) : h || '');
     const prev = toParams(previousHash);
     const next = toParams(nextHash);
     if (next.get('page') !== page) return false;
     if (prev.get('page') && prev.get('page') !== page) return false;
     if (prev.get(idKey) !== next.get(idKey)) return false;
-    const ignorable = new Set(['query', 'path', 'region']);
     const keys = new Set([...prev.keys(), ...next.keys()]);
     for (const key of keys) {
         if (ignorable.has(key)) continue;
@@ -35,7 +34,13 @@ function editorHashIsSearchSync(previousHash, nextHash, page, idKey) {
 }
 
 export function promoHashIsSearchSync(previousHash, nextHash) {
-    return editorHashIsSearchSync(previousHash, nextHash, PAGE_NAMES.PROMOTIONS_EDITOR, 'promotionId');
+    return editorHashIsSearchSync(
+        previousHash,
+        nextHash,
+        PAGE_NAMES.PROMOTIONS_EDITOR,
+        'promotionId',
+        new Set(['query', 'path', 'tags', 'locale', 'personalizationFilterEnabled', 'region']),
+    );
 }
 
 export function translationHashIsSearchSync(previousHash, nextHash) {
@@ -134,11 +139,13 @@ export class Router extends EventTarget {
         if (!inEdit) return false;
         if (inEdit.hasChanges) return true;
 
-        return isPromotionItemSelectionDirty(
-            inEdit,
-            Store.promotions.selectedCards.value,
-            Store.promotions.selectedCollections.value,
-            Store.promotions.itemHydrateUnreachablePaths.value,
+        return (
+            isPromotionItemSelectionDirty(
+                inEdit,
+                Store.promotions.selectedCards.value,
+                Store.promotions.selectedCollections.value,
+                Store.promotions.itemHydrateUnreachablePaths.value,
+            ) || isPromotionOffersSelectionDirty(inEdit, Store.promotions.selectedOffers.value)
         );
     }
 
@@ -205,8 +212,10 @@ export class Router extends EventTarget {
         Store.promotions.inEdit.set(null);
         Store.promotions.showSelected.set(false);
         Store.promotions.selectedCards.set([]);
+        Store.promotions.selectedOffers.set([]);
         Store.promotions.selectedCollections.set([]);
         Store.promotions.selectedPlaceholders.set([]);
+        Store.filters.set((prev) => ({ ...prev, tags: undefined }));
     }
 
     #clearsPromotionContextOnNavigateTo(targetPage) {
@@ -316,13 +325,11 @@ export class Router extends EventTarget {
             const leavingFragmentEditor =
                 Store.page.value === PAGE_NAMES.FRAGMENT_EDITOR || Store.page.value === PAGE_NAMES.VERSION;
 
-            // Set the fragment ID to be expanded
-            Store.fragments.expandedId.set(fragmentId);
-
             // Clear fragment editor state
             Store.fragmentEditor.fragmentId.set(null);
             Store.fragmentEditor.loading.set(false);
             Store.fragments.inEdit.set();
+            Store.search.set((prev) => ({ ...prev, query: fragmentId }));
 
             // Navigate to content page in table view
             Store.viewMode.set('default');

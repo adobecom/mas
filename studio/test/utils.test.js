@@ -3,6 +3,7 @@ import {
     buildCardsDeepLink,
     generateCodeToUse,
     generateFieldLink,
+    getFragmentPartsToUse,
     camelToTitle,
     stripHtml,
     previewValue,
@@ -10,6 +11,8 @@ import {
     hasNonEmptyCompareChart,
     matchesContentTypeFilter,
     resolveContentTypeFilters,
+    createKeyedAsyncLoader,
+    getCreateProjectErrorMessage,
 } from '../src/utils.js';
 import {
     CARD_MODEL_PATH,
@@ -145,6 +148,14 @@ describe('generateCodeToUse', () => {
 
     it('keeps merch-card-collection as content type for regular collection fragments', () => {
         const fragment = mockFragment(COLLECTION_MODEL_PATH);
+        const result = generateCodeToUse(fragment, '/acom', 'content');
+        expect(result.href).to.include('content-type=merch-card-collection');
+    });
+
+    it('keeps merch-card-collection when the compareChart field exists but is empty', () => {
+        const fragment = mockFragment(COLLECTION_MODEL_PATH, 'frag-789', {
+            [COMPARE_CHART_FIELD]: { values: [''] },
+        });
         const result = generateCodeToUse(fragment, '/acom', 'content');
         expect(result.href).to.include('content-type=merch-card-collection');
     });
@@ -332,6 +343,28 @@ describe('parseStudioDeepLinksFromText', () => {
             '88888888-8888-4888-8888-888888888888',
         ]);
     });
+
+    it('parses a mas-compare-chart entry', () => {
+        const text = hashLine('mas-compare-chart', '99999999-9999-4999-8999-999999999999');
+        const parsed = parseStudioDeepLinksFromText(text);
+        expect(parsed).to.have.length(1);
+        expect(parsed[0]).to.deep.equal({
+            contentType: 'mas-compare-chart',
+            fragmentId: '99999999-9999-4999-8999-999999999999',
+        });
+    });
+
+    it('parses space-separated URLs (single-line input paste)', () => {
+        const url1 = `https://mas.adobe.com/studio.html#content-type=merch-card&query=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa`;
+        const url2 = `https://mas.adobe.com/studio.html#content-type=merch-card-collection&query=bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb`;
+        const parsed = parseStudioDeepLinksFromText(`${url1} ${url2}`);
+        expect(parsed).to.have.length(2);
+        expect(parsed[0]).to.deep.equal({ contentType: 'merch-card', fragmentId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' });
+        expect(parsed[1]).to.deep.equal({
+            contentType: 'merch-card-collection',
+            fragmentId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+        });
+    });
 });
 
 describe('content-type-utils', () => {
@@ -401,5 +434,233 @@ describe('content-type-utils', () => {
                 modelIds: [],
             });
         });
+    });
+});
+
+describe('createKeyedAsyncLoader', () => {
+    it('loads and applies the result on first call', async () => {
+        const runIfNeeded = createKeyedAsyncLoader();
+        let applied = null;
+
+        await runIfNeeded({
+            guard: () => true,
+            computeKey: () => 'a',
+            load: async () => 'loaded-value',
+            apply: (value) => {
+                applied = value;
+            },
+        });
+
+        expect(applied).to.equal('loaded-value');
+    });
+
+    it('does not reload when the key is unchanged', async () => {
+        const runIfNeeded = createKeyedAsyncLoader();
+        let loadCount = 0;
+
+        const run = () =>
+            runIfNeeded({
+                guard: () => true,
+                computeKey: () => 'same-key',
+                load: async () => {
+                    loadCount += 1;
+                    return loadCount;
+                },
+                apply: () => {},
+            });
+
+        await run();
+        await run();
+
+        expect(loadCount).to.equal(1);
+    });
+
+    it('reloads when the key changes', async () => {
+        const runIfNeeded = createKeyedAsyncLoader();
+        let loadCount = 0;
+        let key = 'first';
+
+        const run = () =>
+            runIfNeeded({
+                guard: () => true,
+                computeKey: () => key,
+                load: async () => {
+                    loadCount += 1;
+                    return loadCount;
+                },
+                apply: () => {},
+            });
+
+        await run();
+        key = 'second';
+        await run();
+
+        expect(loadCount).to.equal(2);
+    });
+
+    it('calls reset and does not call load when guard is false', async () => {
+        const runIfNeeded = createKeyedAsyncLoader();
+        let loadCalled = false;
+        let resetCalled = false;
+
+        await runIfNeeded({
+            guard: () => false,
+            computeKey: () => 'a',
+            load: async () => {
+                loadCalled = true;
+                return 'x';
+            },
+            apply: () => {},
+            reset: () => {
+                resetCalled = true;
+            },
+        });
+
+        expect(loadCalled).to.be.false;
+        expect(resetCalled).to.be.true;
+    });
+
+    it('reloads for the same key after a guard-false call reset the tracked key', async () => {
+        const runIfNeeded = createKeyedAsyncLoader();
+        let loadCount = 0;
+        let guardValue = true;
+
+        const run = () =>
+            runIfNeeded({
+                guard: () => guardValue,
+                computeKey: () => 'same-key',
+                load: async () => {
+                    loadCount += 1;
+                    return loadCount;
+                },
+                apply: () => {},
+            });
+
+        await run();
+        guardValue = false;
+        await run();
+        guardValue = true;
+        await run();
+
+        expect(loadCount).to.equal(2);
+    });
+});
+
+describe('getFragmentPartsToUse', () => {
+    function makeCard({ variantCode = 'catalog', cardTitle = 'My Card', getTagTitle = () => null, getCurrentTagTitle } = {}) {
+        return {
+            model: { path: CARD_MODEL_PATH },
+            title: cardTitle,
+            getField: (name) => {
+                const fields = {
+                    name: { values: ['card-slug'] },
+                    cardTitle: { values: [cardTitle] },
+                    variant: { values: [variantCode] },
+                };
+                return fields[name] || null;
+            },
+            getTagTitle,
+            getCurrentTagTitle: getCurrentTagTitle || (() => null),
+        };
+    }
+
+    it('returns surface + variant label for a catalog card', () => {
+        const fragment = makeCard({ variantCode: 'catalog' });
+        const { fragmentParts, title } = getFragmentPartsToUse(fragment, 'acom');
+        expect(fragmentParts).to.equal('ACOM / Catalog');
+        expect(title).to.equal('My Card');
+    });
+
+    it('returns surface + variant label for a plans card', () => {
+        const fragment = makeCard({ variantCode: 'plans' });
+        const { fragmentParts } = getFragmentPartsToUse(fragment, 'acom');
+        expect(fragmentParts).to.include('ACOM');
+        expect(fragmentParts).to.include('Plans');
+    });
+
+    it('appends customerSegment and marketSegment when present', () => {
+        const fragment = makeCard({
+            getTagTitle: (prefix) => {
+                if (prefix === 'customer_segment') return 'Teams';
+                if (prefix === 'market_segment') return 'SMB';
+                return null;
+            },
+        });
+        const { fragmentParts } = getFragmentPartsToUse(fragment, 'acom');
+        expect(fragmentParts).to.include('Teams');
+        expect(fragmentParts).to.include('SMB');
+    });
+
+    it('appends promotion label when getCurrentTagTitle returns one', () => {
+        const fragment = makeCard({
+            getCurrentTagTitle: () => 'Summer Sale',
+        });
+        const { fragmentParts } = getFragmentPartsToUse(fragment, 'acom');
+        expect(fragmentParts).to.include('Summer Sale');
+    });
+
+    it('falls back to getTagTitle for product_code when getCurrentTagTitle returns null', () => {
+        const fragment = makeCard({
+            getCurrentTagTitle: (prefix) => (prefix === 'mas:product_code/' ? null : null),
+            getTagTitle: (prefix) => (prefix === 'mas:product/' ? 'acrobat' : null),
+        });
+        const { fragmentParts } = getFragmentPartsToUse(fragment, 'acom');
+        expect(fragmentParts).to.include('acrobat');
+    });
+
+    it('returns surface / title for a collection fragment', () => {
+        const fragment = {
+            model: { path: COLLECTION_MODEL_PATH },
+            title: 'Creative Suite',
+            getField: () => null,
+            getTagTitle: () => null,
+        };
+        const { fragmentParts, title } = getFragmentPartsToUse(fragment, 'ccd');
+        expect(fragmentParts).to.equal('CCD / Creative Suite');
+        expect(title).to.equal('Creative Suite');
+    });
+
+    it('returns empty strings for an unknown model path', () => {
+        const fragment = { model: { path: '/unknown/path' }, title: 'Irrelevant' };
+        const { fragmentParts, title } = getFragmentPartsToUse(fragment, 'acom');
+        expect(fragmentParts).to.equal('');
+        expect(title).to.equal('');
+    });
+
+    it('handles null fragment gracefully', () => {
+        const { fragmentParts, title } = getFragmentPartsToUse(null, 'acom');
+        expect(fragmentParts).to.equal('');
+        expect(title).to.equal('');
+    });
+
+    it('uppercases the path for the surface label', () => {
+        const fragment = makeCard();
+        const { fragmentParts } = getFragmentPartsToUse(fragment, 'accom');
+        expect(fragmentParts.startsWith('ACCOM')).to.be.true;
+    });
+});
+
+describe('getCreateProjectErrorMessage', () => {
+    it('returns the duplicate-name message for a 409 conflict', () => {
+        const error = new Error('Failed to create fragment: 409 Conflict');
+        expect(getCreateProjectErrorMessage(error)).to.equal('Project with this name already exists.');
+    });
+
+    it('matches a 409 conflict regardless of the HTTP reason phrase', () => {
+        const error = new Error('Failed to create fragment: 409 ');
+        expect(getCreateProjectErrorMessage(error)).to.equal('Project with this name already exists.');
+    });
+
+    it('returns the generic message for a non-409 error', () => {
+        const error = new Error('Failed to create fragment: 500 Internal Server Error');
+        expect(getCreateProjectErrorMessage(error)).to.equal('Failed to create project.');
+    });
+
+    it('returns the generic message when error has no message', () => {
+        expect(getCreateProjectErrorMessage(new Error())).to.equal('Failed to create project.');
+    });
+
+    it('returns the generic message when error is undefined', () => {
+        expect(getCreateProjectErrorMessage(undefined)).to.equal('Failed to create project.');
     });
 });

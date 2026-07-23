@@ -3,8 +3,9 @@ import sinon from 'sinon';
 import Store from '../../src/store.js';
 import router from '../../src/router.js';
 import { setItemsSelectionStore } from '../../src/common/items-selection-store.js';
-import { BULK_PUBLISH_STATUS, PAGE_NAMES, QUICK_ACTION } from '../../src/constants.js';
+import { BULK_PUBLISH_STATUS, COLLECTION_MODEL_PATH, PAGE_NAMES, QUICK_ACTION } from '../../src/constants.js';
 import '../../src/bulk-publish/mas-bulk-publish-editor.js';
+import { publishToast } from '../../src/bulk-publish/mas-bulk-publish-editor.js';
 
 function seedNew(data = {}) {
     const fields = { status: BULK_PUBLISH_STATUS.DRAFT, urls: '', items: '[]', locales: [], title: '', ...data };
@@ -48,6 +49,28 @@ async function makeEditor() {
     await el.updateComplete;
     return el;
 }
+
+describe('publishToast', () => {
+    it('signals "still publishing" when the poll window times out', () => {
+        expect(publishToast({ timedOut: true }, BULK_PUBLISH_STATUS.PUBLISHING)).to.deep.equal({
+            message: 'Still publishing — check back later.',
+            variant: 'info',
+        });
+    });
+
+    it('signals success when the project reached Published', () => {
+        expect(publishToast({ status: BULK_PUBLISH_STATUS.PUBLISHED }, BULK_PUBLISH_STATUS.PUBLISHED)).to.deep.equal({
+            message: 'Project published successfully.',
+            variant: 'positive',
+        });
+    });
+
+    it('stays silent for a non-terminal outcome that did not time out', () => {
+        expect(
+            publishToast({ status: BULK_PUBLISH_STATUS.PARTIALLY_PUBLISHED }, BULK_PUBLISH_STATUS.PARTIALLY_PUBLISHED),
+        ).to.equal(null);
+    });
+});
 
 describe('mas-bulk-publish-editor (computed getters)', () => {
     afterEach(() => Store.bulkPublishProjects.inEdit.set(null));
@@ -479,6 +502,88 @@ describe('mas-bulk-publish-editor (save/delete/lock with repository)', () => {
         const [payload] = repositoryEl.createFragment.firstCall.args;
         expect(payload.title).to.equal('My Project');
         expect(payload.parentPath).to.include('sandbox');
+    });
+
+    it('validate() tags items with type derived from the fetched fragment', async () => {
+        const el = await makeEditor();
+        const uuid = '0b2730a3-3d21-4ad9-b664-499612c07485';
+        seedNew({ title: 'x', urls: `https://studio.example/studio.html#query=${uuid}`, locales: [] });
+        await el.updateComplete;
+        Store.search.set({ path: 'sandbox' });
+        repositoryEl.getFragmentById = sandbox.stub().resolves({
+            id: uuid,
+            path: '/content/dam/mas/acom/en_US/col1',
+            status: 'DRAFT',
+            model: { path: COLLECTION_MODEL_PATH },
+            fields: [],
+        });
+
+        const items = await el.validate();
+
+        const item = items.find((i) => i.fragmentId === uuid);
+        expect(item.type).to.equal('collection');
+    });
+
+    it('items getter derives types from saved items metadata for fragments-based projects', async () => {
+        const el = await makeEditor();
+        const fs = makeFragmentStore({
+            title: 'x',
+            urls: '',
+            fragments: [
+                '/content/dam/mas/acom/en_US/col1',
+                '/content/dam/mas/acom/en_US/dictionary/ph1',
+                '/content/dam/mas/acom/en_US/card1',
+            ],
+            items: JSON.stringify([{ path: '/content/dam/mas/acom/en_US/col1', type: 'collection', status: 'valid' }]),
+            locales: [],
+        });
+        Store.bulkPublishProjects.inEdit.set(fs);
+        await el.updateComplete;
+
+        expect(el.items.map((i) => i.type)).to.deep.equal(['collection', 'placeholder', 'fragment']);
+    });
+
+    it('saveBulkProject persists items metadata with types for new projects', async () => {
+        const el = await makeEditor();
+        seedNew({ title: 'My Project', urls: '', locales: [] });
+        await el.updateComplete;
+        Store.search.set({ path: 'sandbox' });
+        el.localItems = [
+            { url: 'a', path: '/content/dam/mas/acom/en_US/card1', status: 'valid', type: 'fragment' },
+            { url: 'b', path: '/content/dam/mas/acom/en_US/col1', status: 'valid', type: 'collection' },
+            { url: 'c', path: '/content/dam/mas/acom/en_US/dictionary/ph1', status: 'valid' },
+            { url: 'd', path: '/bad', status: 'error' },
+        ];
+
+        repositoryEl.createFragment = sandbox.stub().resolves({ id: 'new-frag', path: '/x', fields: [] });
+
+        await el.saveBulkProject();
+
+        const [payload] = repositoryEl.createFragment.firstCall.args;
+        const itemsField = payload.fields.find((f) => f.name === 'items');
+        expect(JSON.parse(itemsField.values[0])).to.deep.equal([
+            { path: '/content/dam/mas/acom/en_US/card1', type: 'fragment', status: 'valid' },
+            { path: '/content/dam/mas/acom/en_US/col1', type: 'collection', status: 'valid' },
+            { path: '/content/dam/mas/acom/en_US/dictionary/ph1', type: 'placeholder', status: 'valid' },
+        ]);
+    });
+
+    it('saveBulkProject updates items metadata on existing projects', async () => {
+        const el = await makeEditor();
+        const fs = makeFragmentStore({ title: 'Existing', urls: '', items: '[]', locales: [] });
+        Store.bulkPublishProjects.inEdit.set(fs);
+        await el.updateComplete;
+        Store.search.set({ path: 'sandbox' });
+        el.localItems = [{ url: 'a', path: '/content/dam/mas/acom/en_US/dictionary/ph1', status: 'valid' }];
+
+        repositoryEl.saveFragment = sandbox.stub().resolves({ id: 'frag-id-1' });
+
+        await el.saveBulkProject();
+
+        const expected = JSON.stringify([
+            { path: '/content/dam/mas/acom/en_US/dictionary/ph1', type: 'placeholder', status: 'valid' },
+        ]);
+        expect(fs.updateField.calledWith('items', [expected])).to.equal(true);
     });
 
     it('saveBulkProject saves existing project', async () => {
@@ -1278,12 +1383,16 @@ describe('mas-bulk-publish-editor (publish)', () => {
         await el.updateComplete;
 
         const fetchStub = sandbox.stub(window, 'fetch').resolves(
-            new Response(JSON.stringify({ status: 'Published' }), {
-                status: 200,
+            new Response(JSON.stringify({ accepted: true }), {
+                status: 202,
                 headers: { 'content-type': 'application/json' },
             }),
         );
-        repositoryEl.refreshFragment = sandbox.stub().resolves();
+        let polledStatus = BULK_PUBLISH_STATUS.DRAFT;
+        repositoryEl.refreshFragment = sandbox.stub().callsFake(async () => {
+            polledStatus = BULK_PUBLISH_STATUS.PUBLISHED;
+        });
+        fs.get = () => ({ fields: [{ name: 'status', values: [polledStatus] }] });
 
         await el.publish();
 

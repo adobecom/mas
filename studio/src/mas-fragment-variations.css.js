@@ -59,6 +59,29 @@ export const styles = `
     outline-offset: -2px;
 }
 
+#content .expanded-content .nested-fragment sp-table-row.selectable-row {
+    cursor: pointer;
+}
+
+#content .expanded-content .nested-fragment sp-table-cell.name sp-checkbox {
+    flex-shrink: 0;
+}
+
+#content mas-fragment-variations sp-table-checkbox-cell {
+    display: none !important;
+}
+
+#content .expanded-content .nested-fragment sp-table-cell.expand-cell:has(sp-checkbox) {
+    max-width: none;
+    min-width: 72px;
+    justify-content: flex-start;
+    gap: 8px;
+}
+
+#content .expanded-content .nested-fragment sp-table-cell.expand-cell sp-checkbox {
+    flex-shrink: 0;
+}
+
 /* Grouped variation expanded section */
 .grouped-variation-expanded {
     display: flex;

@@ -1,8 +1,6 @@
-import { LitElement, html, css, nothing } from 'lit';
+import { LitElement, html, css } from 'lit';
 import { store } from '../store/ost-store.js';
 import { countries as staticCountries } from '../data/countries.js';
-import { HELP_TOOLTIPS } from '../data/help-content.js';
-import './ost-help-icon.js';
 
 const COUNTRIES_API = 'https://countries-stage.adobe.io/v2/countries?api_key=dexter-commerce-offers';
 
@@ -13,122 +11,77 @@ function mapCountries(data) {
 export class OstCountryPicker extends LitElement {
     static properties = {
         countries: { type: Array, state: true },
-        countryInput: { type: String, state: true },
-        showDropdown: { type: Boolean, state: true },
     };
 
     static styles = css`
         :host {
             font-family: inherit;
-            display: flex;
-            align-items: center;
-            gap: 16px;
+            display: block;
+        }
+
+        .picker-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+            align-items: end;
         }
 
         .picker-group {
             display: flex;
-            align-items: center;
-            gap: 8px;
+            flex-direction: column;
+            gap: 2px;
+            min-width: 0;
         }
 
         .picker-label {
-            font-size: 11px;
+            font-size: 10px;
             font-weight: 600;
-            color: var(--spectrum-gray-600);
-            text-transform: uppercase;
-            letter-spacing: 0.04em;
+            color: #6e6e6e;
         }
 
         sp-picker {
-            min-width: 80px;
+            width: 100%;
+        }
+
+        .picker-env {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 8px;
         }
 
         sp-switch {
             --spectrum-switch-font-size: 11px;
-        }
-
-        .country-wrapper {
-            position: relative;
-        }
-
-        .country-input {
-            width: 72px;
-            --mod-textfield-height: 28px;
-            --mod-textfield-font-size: 13px;
-            text-transform: uppercase;
-        }
-
-        .country-dropdown {
-            position: absolute;
-            top: 100%;
-            left: 0;
-            right: 0;
-            min-width: 80px;
-            max-height: 200px;
-            overflow-y: auto;
-            background: var(--spectrum-white, #fff);
-            border: 1px solid var(--spectrum-gray-300);
-            border-radius: 4px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-            z-index: 10;
-            margin-top: 2px;
-        }
-
-        .country-option {
-            padding: 6px 10px;
-            font-size: 13px;
-            cursor: pointer;
-            color: var(--spectrum-gray-800);
-        }
-
-        .country-option:hover,
-        .country-option[data-selected] {
-            background: var(--spectrum-blue-100);
-            color: var(--spectrum-blue-900);
-        }
-
-        .country-no-match {
-            padding: 8px 10px;
-            font-size: 12px;
-            color: var(--spectrum-gray-500);
-            font-style: italic;
         }
     `;
 
     constructor() {
         super();
         this.countries = mapCountries(staticCountries);
-        this.countryInput = '';
-        this.showDropdown = false;
         this.handleStoreChange = this.handleStoreChange.bind(this);
-        this.handleDocumentClick = this.handleDocumentClick.bind(this);
     }
 
     connectedCallback() {
         super.connectedCallback();
         store.subscribe(this.handleStoreChange);
         this.fetchCountries();
-        document.addEventListener('click', this.handleDocumentClick);
     }
 
     disconnectedCallback() {
         super.disconnectedCallback();
         store.unsubscribe(this.handleStoreChange);
-        document.removeEventListener('click', this.handleDocumentClick);
-    }
-
-    handleDocumentClick(e) {
-        if (this.showDropdown && !e.composedPath().includes(this)) {
-            this.showDropdown = false;
-        }
     }
 
     handleStoreChange() {
         this.requestUpdate();
     }
 
+    isLocalhost() {
+        return window.location.hostname === 'localhost';
+    }
+
     async fetchCountries() {
-        if (window.location.hostname === 'localhost') {
+        if (this.isLocalhost()) {
             return;
         }
         try {
@@ -153,41 +106,8 @@ export class OstCountryPicker extends LitElement {
         store.notify();
     }
 
-    handleCountryInputFocus() {
-        this.countryInput = '';
-        this.showDropdown = true;
-    }
-
-    handleCountryInput(e) {
-        this.countryInput = e.target.value.toUpperCase();
-        this.showDropdown = true;
-    }
-
-    selectCountry(code) {
-        store.setCountry(code);
-        this.countryInput = '';
-        this.showDropdown = false;
-    }
-
-    handleCountryKeydown(e) {
-        if (e.key === 'Escape') {
-            this.showDropdown = false;
-            return;
-        }
-        if (e.key === 'Enter') {
-            const filtered = this.getFilteredCountries();
-            if (filtered.length === 1) {
-                this.selectCountry(filtered[0]);
-            } else if (filtered.includes(this.countryInput)) {
-                this.selectCountry(this.countryInput);
-            }
-        }
-    }
-
-    getFilteredCountries() {
-        const query = this.countryInput;
-        if (!query) return this.countries;
-        return this.countries.filter((c) => c.startsWith(query));
+    handleCountryChange(e) {
+        store.setCountry(e.target.value);
     }
 
     handleEnvToggle(event) {
@@ -197,52 +117,39 @@ export class OstCountryPicker extends LitElement {
 
     render() {
         const isStage = store.env === 'STAGE';
-        const filtered = this.getFilteredCountries();
 
         return html`
-            <div class="picker-group">
-                <span class="picker-label">Landscape</span>
-                <sp-picker value=${store.landscape} size="s" label="Landscape" @change=${this.handleLandscapeChange}>
-                    <sp-menu-item value="PUBLISHED">Published</sp-menu-item>
-                    <sp-menu-item value="DRAFT">Draft</sp-menu-item>
-                    <sp-menu-item value="BOTH">Both (published + draft)</sp-menu-item>
-                </sp-picker>
-            </div>
-            <div class="picker-group">
-                <span class="picker-label">Country</span>
-                <div class="country-wrapper">
-                    <sp-textfield
-                        class="country-input"
+            <div class="picker-grid">
+                <div class="picker-group">
+                    <span class="picker-label">Landscape</span>
+                    <sp-picker
+                        data-testid="ost-filter-landscape"
+                        value=${store.landscape}
                         size="s"
-                        placeholder=${store.country}
-                        .value=${this.countryInput}
-                        @focus=${this.handleCountryInputFocus}
-                        @input=${this.handleCountryInput}
-                        @keydown=${this.handleCountryKeydown}
-                    ></sp-textfield>
-                    ${this.showDropdown
-                        ? html`
-                              <div class="country-dropdown">
-                                  ${filtered.length > 0
-                                      ? filtered.map(
-                                            (code) => html`
-                                                <div
-                                                    class="country-option"
-                                                    ?data-selected=${code === store.country}
-                                                    @click=${() => this.selectCountry(code)}
-                                                >
-                                                    ${code}
-                                                </div>
-                                            `,
-                                        )
-                                      : html`<div class="country-no-match">No match</div>`}
-                              </div>
-                          `
-                        : nothing}
+                        label="Landscape"
+                        @change=${this.handleLandscapeChange}
+                    >
+                        <sp-menu-item value="PUBLISHED">Published</sp-menu-item>
+                        <sp-menu-item value="DRAFT">Draft</sp-menu-item>
+                        <sp-menu-item value="BOTH">Both (published + draft)</sp-menu-item>
+                    </sp-picker>
+                </div>
+                <div class="picker-group">
+                    <span class="picker-label">Country</span>
+                    <sp-picker
+                        data-testid="ost-filter-country"
+                        size="s"
+                        label="Country"
+                        value=${store.country}
+                        @change=${this.handleCountryChange}
+                    >
+                        ${this.countries.map((code) => html`<sp-menu-item value=${code}>${code}</sp-menu-item>`)}
+                    </sp-picker>
                 </div>
             </div>
-            <sp-switch size="s" ?checked=${isStage} @change=${this.handleEnvToggle}>Stage</sp-switch>
-            <ost-help-icon text="${HELP_TOOLTIPS.landscapeEnv}"></ost-help-icon>
+            <div class="picker-env">
+                <sp-switch size="s" ?checked=${isStage} @change=${this.handleEnvToggle}>Stage</sp-switch>
+            </div>
         `;
     }
 }

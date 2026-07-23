@@ -45,18 +45,19 @@ function makeProject({
     startDate = START,
     endDate = END,
     tags = [PROMO_TAG],
-    offers = [],
 } = {}) {
-    return { id, path, fields: { surfaces, geos, startDate, endDate, tags, offers } };
+    return { id, path, fields: { surfaces, geos, startDate, endDate, tags } };
 }
 
 function makeHydratedProject({
     fragmentId = 'frag-1',
     fragmentPath = '/content/dam/mas/acom/en_US/offers/offer-1',
     promoCode = 'PROMO10',
+    offers = [],
+    title = null,
 } = {}) {
     return {
-        fields: { fragments: [fragmentId], promoCode },
+        fields: { fragments: [fragmentId], promoCode, offers, title },
         references: {
             [fragmentId]: {
                 type: 'content-fragment',
@@ -95,40 +96,40 @@ describe('promotions', () => {
             clearPromoCache();
         });
 
-        it('returns no active project when folder fetch fails', async () => {
+        it('returns no active projects when folder fetch fails', async () => {
             fetchStub.withArgs(FOLDER_URL).returns(createResponse(404, null, 'Not Found'));
             const result = await promotionsTransformer.init(createContext());
-            expect(result).to.deep.equal({ status: 200, activeProject: null });
+            expect(result).to.deep.equal({ status: 200, activeProjects: [] });
         });
 
-        it('returns no active project when folder is empty', async () => {
+        it('returns no active projects when folder is empty', async () => {
             fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [] }));
             const result = await promotionsTransformer.init(createContext());
-            expect(result).to.deep.equal({ status: 200, activeProject: null });
+            expect(result).to.deep.equal({ status: 200, activeProjects: [] });
         });
 
-        it('returns no active project when project has no promotion tag', async () => {
+        it('returns no active projects when project has no promotion tag', async () => {
             const project = makeProject({ tags: ['some-other-tag'] });
             fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
             const result = await promotionsTransformer.init(createContext());
-            expect(result).to.deep.equal({ status: 200, activeProject: null });
+            expect(result).to.deep.equal({ status: 200, activeProjects: [] });
         });
 
-        it('returns no active project when no project matches surface', async () => {
+        it('returns no active projects when no project matches surface', async () => {
             const project = makeProject({ surfaces: ['express'] });
             fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
             const result = await promotionsTransformer.init(createContext({ surface: 'acom' }));
-            expect(result).to.deep.equal({ status: 200, activeProject: null });
+            expect(result).to.deep.equal({ status: 200, activeProjects: [] });
         });
 
-        it('returns no active project when project end date has passed', async () => {
+        it('returns no active projects when project end date has passed', async () => {
             const project = makeProject({ surfaces: ['acom'], endDate: EXPIRED_END });
             fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
             const result = await promotionsTransformer.init(createContext());
-            expect(result).to.deep.equal({ status: 200, activeProject: null });
+            expect(result).to.deep.equal({ status: 200, activeProjects: [] });
         });
 
-        it('returns no active project when project start date is in the future', async () => {
+        it('returns no active projects when project start date is in the future', async () => {
             const project = makeProject({
                 surfaces: ['acom'],
                 geos: [],
@@ -137,14 +138,14 @@ describe('promotions', () => {
             });
             fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
             const result = await promotionsTransformer.init(createContext());
-            expect(result).to.deep.equal({ status: 200, activeProject: null });
+            expect(result).to.deep.equal({ status: 200, activeProjects: [] });
         });
 
-        it('returns no active project when geo does not match', async () => {
+        it('returns no active projects when geo does not match', async () => {
             const project = makeProject({ surfaces: ['acom'], geos: ['/content/cq:tags/mas/locale/fr_FR'] });
             fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
             const result = await promotionsTransformer.init(createContext({ regionLocale: 'en_US' }));
-            expect(result).to.deep.equal({ status: 200, activeProject: null });
+            expect(result).to.deep.equal({ status: 200, activeProjects: [] });
         });
 
         it('selects active project matching surface, geo and date range', async () => {
@@ -155,9 +156,20 @@ describe('promotions', () => {
 
             const result = await promotionsTransformer.init(createContext({ regionLocale: 'en_US' }));
             expect(result.status).to.equal(200);
-            expect(result.activeProject.id).to.equal('proj-1');
-            expect(result.activeProject.fragmentPaths).to.have.length(1);
-            expect(result.activeProject.promoCode).to.equal('SAVE20');
+            expect(result.activeProjects).to.have.length(1);
+            expect(result.activeProjects[0].id).to.equal('proj-1');
+            expect(result.activeProjects[0].fragmentPaths).to.have.length(1);
+            expect(result.activeProjects[0].promoCode).to.equal('SAVE20');
+        });
+
+        it('carries the project title through hydration', async () => {
+            const project = makeProject({ id: 'proj-1', surfaces: ['acom'], geos: ['/content/cq:tags/mas/locale/en_US'] });
+            const hydrated = makeHydratedProject({ title: 'Summer Sale 2026' });
+            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+            fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
+
+            const result = await promotionsTransformer.init(createContext({ regionLocale: 'en_US' }));
+            expect(result.activeProjects[0].title).to.equal('Summer Sale 2026');
         });
 
         it('ignores instant when not in preview mode', async () => {
@@ -166,7 +178,7 @@ describe('promotions', () => {
 
             // EXPIRED_END is in the past — without preview, instant is ignored and Date.now() is used
             const result = await promotionsTransformer.init(createContext({ instant: PREVIEW_INSTANT }));
-            expect(result).to.deep.equal({ status: 200, activeProject: null });
+            expect(result).to.deep.equal({ status: 200, activeProjects: [] });
         });
 
         it('matches project by country when locale does not match geos', async () => {
@@ -176,7 +188,7 @@ describe('promotions', () => {
             fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
 
             const result = await promotionsTransformer.init(createContext({ locale: 'fr_FR', country: 'CH' }));
-            expect(result.activeProject).to.not.be.null;
+            expect(result.activeProjects).to.have.length(1);
         });
 
         it('matches project by regionLocale resolved from defaultLanguage promise', async () => {
@@ -200,7 +212,7 @@ describe('promotions', () => {
                     },
                 }),
             );
-            expect(result.activeProject).to.not.be.null;
+            expect(result.activeProjects).to.have.length(1);
         });
 
         it('applies en_GR project when locale=en_US and country=GR (regionLocale resolved by defaultLanguage)', async () => {
@@ -223,7 +235,7 @@ describe('promotions', () => {
                     },
                 }),
             );
-            expect(result.activeProject).to.not.be.null;
+            expect(result.activeProjects).to.have.length(1);
         });
 
         it('does not apply en_US project when locale=en_US and country=GR', async () => {
@@ -244,46 +256,103 @@ describe('promotions', () => {
                     },
                 }),
             );
-            expect(result.activeProject).to.be.null;
+            expect(result.activeProjects).to.have.length(0);
         });
 
-        it('uses first match and logs warning when multiple projects match', async () => {
-            const logStub = sinon.stub(console, 'log');
-            try {
-                const p1 = makeProject({ id: 'proj-1', surfaces: ['acom'], geos: ['/content/cq:tags/mas/locale/en_US'] });
-                const p2 = makeProject({ id: 'proj-2', surfaces: ['acom'], geos: ['/content/cq:tags/mas/locale/en_US'] });
-                const hydrated = makeHydratedProject();
-                fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [p1, p2] }));
-                fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
+        it('returns all matching projects in folder order', async () => {
+            const p1 = makeProject({
+                id: 'proj-1',
+                path: '/content/dam/mas/promotions/p1',
+                surfaces: ['acom'],
+                geos: ['/content/cq:tags/mas/locale/en_US'],
+                tags: ['mas:promotion/p1'],
+            });
+            const p2 = makeProject({
+                id: 'proj-2',
+                path: '/content/dam/mas/promotions/p2',
+                surfaces: ['acom'],
+                geos: ['/content/cq:tags/mas/locale/en_US'],
+                tags: ['mas:promotion/p2'],
+            });
+            const hydrated1 = makeHydratedProject({ fragmentId: 'f1', fragmentPath: '/content/dam/mas/acom/en_US/offers/a' });
+            const hydrated2 = makeHydratedProject({ fragmentId: 'f2', fragmentPath: '/content/dam/mas/acom/en_US/offers/b' });
+            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [p1, p2] }));
+            fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated1));
+            fetchStub.withArgs(hydrateUrl('proj-2')).returns(createResponse(200, hydrated2));
 
-                const result = await promotionsTransformer.init(createContext({ regionLocale: 'en_US', debugLogs: true }));
-                expect(result.activeProject.id).to.equal('proj-1');
-                expect(logStub.calledWithMatch(sinon.match(/Multiple promotion projects matched/))).to.be.true;
-            } finally {
-                logStub.restore();
-            }
+            const result = await promotionsTransformer.init(createContext({ regionLocale: 'en_US' }));
+            expect(result.activeProjects).to.have.length(2);
+            expect(result.activeProjects.map((p) => p.id)).to.deep.equal(['proj-1', 'proj-2']);
+            expect(result.activeProjects[0].fragmentPaths).to.deep.equal(['offers/a']);
+            expect(result.activeProjects[1].fragmentPaths).to.deep.equal(['offers/b']);
         });
 
-        it('returns no active project when hydration fails', async () => {
+        it('skips a project whose hydration fails but keeps the others', async () => {
+            const p1 = makeProject({
+                id: 'proj-1',
+                surfaces: ['acom'],
+                geos: ['/content/cq:tags/mas/locale/en_US'],
+                tags: ['mas:promotion/p1'],
+            });
+            const p2 = makeProject({
+                id: 'proj-2',
+                path: '/content/dam/mas/promotions/p2',
+                surfaces: ['acom'],
+                geos: ['/content/cq:tags/mas/locale/en_US'],
+                tags: ['mas:promotion/p2'],
+            });
+            const hydrated2 = makeHydratedProject({ fragmentId: 'f2', fragmentPath: '/content/dam/mas/acom/en_US/offers/b' });
+            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [p1, p2] }));
+            fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(500, null, 'Error'));
+            fetchStub.withArgs(hydrateUrl('proj-2')).returns(createResponse(200, hydrated2));
+
+            const result = await promotionsTransformer.init(createContext({ regionLocale: 'en_US' }));
+            expect(result.activeProjects).to.have.length(1);
+            expect(result.activeProjects[0].id).to.equal('proj-2');
+        });
+
+        it('isolates a project whose hydration throws and still serves the others (allSettled)', async () => {
+            const p1 = makeProject({ id: 'proj-1', surfaces: ['acom'], geos: [], tags: ['mas:promotion/p1'] });
+            const p2 = makeProject({
+                id: 'proj-2',
+                path: '/content/dam/mas/promotions/p2',
+                surfaces: ['acom'],
+                geos: [],
+                tags: ['mas:promotion/p2'],
+            });
+            const good = makeHydratedProject({ fragmentId: 'f2', fragmentPath: '/content/dam/mas/acom/en_US/offers/b' });
+            // proj-1 hydrate is 200 but malformed (fragments is not an array) → parseFragmentPaths throws,
+            // so its hydrateProject promise rejects. allSettled keeps proj-2 served.
+            const malformed = { fields: { fragments: 'not-an-array' } };
+            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [p1, p2] }));
+            fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, malformed));
+            fetchStub.withArgs(hydrateUrl('proj-2')).returns(createResponse(200, good));
+
+            const result = await promotionsTransformer.init(createContext());
+            expect(result.activeProjects).to.have.length(1);
+            expect(result.activeProjects[0].id).to.equal('proj-2');
+        });
+
+        it('returns no active projects when hydration fails', async () => {
             const project = makeProject({ surfaces: ['acom'], geos: ['/content/cq:tags/mas/locale/en_US'] });
             fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
             fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(500, null, 'Error'));
 
             const result = await promotionsTransformer.init(createContext({ regionLocale: 'en_US' }));
-            expect(result).to.deep.equal({ status: 200, activeProject: null });
+            expect(result).to.deep.equal({ status: 200, activeProjects: [] });
         });
 
         it('handles folder response without items field', async () => {
             fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, {}));
             const result = await promotionsTransformer.init(createContext());
-            expect(result).to.deep.equal({ status: 200, activeProject: null });
+            expect(result).to.deep.equal({ status: 200, activeProjects: [] });
         });
 
         it('handles project items with missing fields', async () => {
             // Project with no fields — should not match any surface
             fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [{ id: 'proj-no-fields' }] }));
             const result = await promotionsTransformer.init(createContext());
-            expect(result).to.deep.equal({ status: 200, activeProject: null });
+            expect(result).to.deep.equal({ status: 200, activeProjects: [] });
         });
 
         it('uses Date.now() when instant is not provided', async () => {
@@ -301,7 +370,7 @@ describe('promotions', () => {
             const ctx = createContext();
             delete ctx.instant; // let toInstant fall back to Date.now()
             const result = await promotionsTransformer.init(ctx);
-            expect(result.activeProject).to.not.be.null;
+            expect(result.activeProjects).to.have.length(1);
         });
 
         it('handles project with null startDate and endDate', async () => {
@@ -311,7 +380,7 @@ describe('promotions', () => {
             fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
 
             const result = await promotionsTransformer.init(createContext());
-            expect(result.activeProject).to.not.be.null;
+            expect(result.activeProjects).to.have.length(1);
         });
 
         it('skips refs missing from references or with no parseable path', async () => {
@@ -339,29 +408,29 @@ describe('promotions', () => {
 
             const result = await promotionsTransformer.init(createContext());
             // valid-ref and no-fields-ref have parseable paths; missing-ref and no-path-ref are skipped
-            expect(result.activeProject.fragmentPaths).to.have.length(2);
-            expect(result.activeProject.fragmentPaths).to.include('offers/offer-1');
-            expect(result.activeProject.fragmentPaths).to.include('offers/offer-3');
+            expect(result.activeProjects[0].fragmentPaths).to.have.length(2);
+            expect(result.activeProjects[0].fragmentPaths).to.include('offers/offer-1');
+            expect(result.activeProjects[0].fragmentPaths).to.include('offers/offer-3');
         });
 
-        it('returns no active project when hydrated project has no fragments', async () => {
+        it('returns no active projects when hydrated project has no fragments', async () => {
             const hydrated = { fields: {}, references: {} };
             const project = makeProject({ surfaces: ['acom'], geos: [] });
             fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
             fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
 
             const result = await promotionsTransformer.init(createContext());
-            expect(result).to.deep.equal({ status: 200, activeProject: null });
+            expect(result).to.deep.equal({ status: 200, activeProjects: [] });
         });
 
-        it('returns no active project when hydrated project has empty fragments list', async () => {
+        it('returns no active projects when hydrated project has empty fragments list', async () => {
             const hydrated = { fields: { fragments: [] } };
             const project = makeProject({ surfaces: ['acom'], geos: [] });
             fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
             fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
 
             const result = await promotionsTransformer.init(createContext());
-            expect(result).to.deep.equal({ status: 200, activeProject: null });
+            expect(result).to.deep.equal({ status: 200, activeProjects: [] });
         });
 
         it('uses cache on second call without re-fetching folder', async () => {
@@ -389,10 +458,10 @@ describe('promotions', () => {
                     },
                 }),
             );
-            expect(result.activeProject).to.not.be.null;
+            expect(result.activeProjects).to.have.length(1);
         });
 
-        it('returns no active project when defaultLanguage resolves without defaultLocale', async () => {
+        it('returns no active projects when defaultLanguage resolves without defaultLocale', async () => {
             const project = makeProject({ surfaces: ['acom'], geos: [] });
             const hydrated = makeHydratedProject();
             fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
@@ -401,7 +470,7 @@ describe('promotions', () => {
             const result = await promotionsTransformer.init(
                 createContext({ promises: { defaultLanguage: Promise.resolve({ status: 200 }) } }),
             );
-            expect(result).to.deep.equal({ status: 200, activeProject: null });
+            expect(result).to.deep.equal({ status: 200, activeProjects: [] });
         });
 
         it('handles variation folder response with missing items field', async () => {
@@ -412,12 +481,12 @@ describe('promotions', () => {
 
             // Variation folder returns 200 but no items field
             const varUrl =
-                'https://odin.adobe.com/adobe/contentFragments/?path=/content/dam/mas/acom/en_US/promotions/black-friday';
+                'https://odin.adobe.com/adobe/contentFragments/?path=/content/dam/mas/acom/en_US/promotions/black-friday&limit=50';
             fetchStub.withArgs(varUrl).returns(createResponse(200, {}));
 
             const result = await promotionsTransformer.init(createContext());
-            expect(result.activeProject).to.not.be.null;
-            expect(result.activeProject.defaultVariations).to.deep.equal({});
+            expect(result.activeProjects).to.have.length(1);
+            expect(result.activeProjects[0].defaultVariations).to.deep.equal({});
         });
 
         it('fetches all pages when cursor is present in folder response', async () => {
@@ -429,7 +498,8 @@ describe('promotions', () => {
             fetchStub.withArgs(hydrateUrl('proj-2')).returns(createResponse(200, hydrated));
 
             const result = await promotionsTransformer.init(createContext());
-            expect(result.activeProject?.id).to.equal('proj-2');
+            expect(result.activeProjects).to.have.length(1);
+            expect(result.activeProjects[0].id).to.equal('proj-2');
         });
 
         it('finds matching project when it is the 51st item (beyond the old default limit)', async () => {
@@ -443,7 +513,242 @@ describe('promotions', () => {
             fetchStub.withArgs(hydrateUrl('proj-51')).returns(createResponse(200, hydrated));
 
             const result = await promotionsTransformer.init(createContext());
-            expect(result.activeProject?.id).to.equal('proj-51');
+            expect(result.activeProjects).to.have.length(1);
+            expect(result.activeProjects[0].id).to.equal('proj-51');
+        });
+
+        it('fetches all variation pages when cursor is present', async () => {
+            const project = makeProject({ surfaces: ['acom'], geos: [] });
+            const hydrated = makeHydratedProject();
+            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+            fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
+
+            const varBase =
+                'https://odin.adobe.com/adobe/contentFragments/?path=/content/dam/mas/acom/en_US/promotions/black-friday&limit=50';
+            const v1 = { id: 'v1', path: '/content/dam/mas/acom/en_US/promotions/black-friday/card-1', fields: {} };
+            const v2 = { id: 'v2', path: '/content/dam/mas/acom/en_US/promotions/black-friday/card-2', fields: {} };
+            fetchStub.withArgs(varBase).returns(createResponse(200, { items: [v1], cursor: 'vp2' }));
+            fetchStub.withArgs(`${varBase}&cursor=vp2`).returns(createResponse(200, { items: [v2] }));
+
+            const result = await promotionsTransformer.init(createContext());
+            expect(result.activeProjects[0].defaultVariations).to.have.keys(['card-1', 'card-2']);
+        });
+
+        it('keeps partial variation results when a later page fetch fails', async () => {
+            const project = makeProject({ surfaces: ['acom'], geos: [] });
+            const hydrated = makeHydratedProject();
+            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+            fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
+
+            const varBase =
+                'https://odin.adobe.com/adobe/contentFragments/?path=/content/dam/mas/acom/en_US/promotions/black-friday&limit=50';
+            const v1 = { id: 'v1', path: '/content/dam/mas/acom/en_US/promotions/black-friday/card-1', fields: {} };
+            // Page 1 succeeds with a cursor; page 2 fails → page-1 result is preserved (not discarded).
+            fetchStub.withArgs(varBase).returns(createResponse(200, { items: [v1], cursor: 'vp2' }));
+            fetchStub.withArgs(`${varBase}&cursor=vp2`).returns(createResponse(503, null, 'Error'));
+
+            const result = await promotionsTransformer.init(createContext());
+            expect(result.activeProjects[0].defaultVariations).to.have.keys(['card-1']);
+        });
+
+        it('places seasonal promos (with endDate) before evergreen promos (no endDate)', async () => {
+            const evergreen = makeProject({
+                id: 'proj-evergreen',
+                path: '/content/dam/mas/promotions/evergreen',
+                surfaces: ['acom'],
+                geos: [],
+                startDate: START,
+                endDate: null,
+                tags: ['mas:promotion/evergreen'],
+            });
+            const seasonal = makeProject({
+                id: 'proj-seasonal',
+                path: '/content/dam/mas/promotions/seasonal',
+                surfaces: ['acom'],
+                geos: [],
+                startDate: START,
+                endDate: END,
+                tags: ['mas:promotion/seasonal'],
+            });
+            const hydratedEvergreen = makeHydratedProject({
+                fragmentId: 'f-eg',
+                fragmentPath: '/content/dam/mas/acom/en_US/offers/evergreen-offer',
+            });
+            const hydratedSeasonal = makeHydratedProject({
+                fragmentId: 'f-s',
+                fragmentPath: '/content/dam/mas/acom/en_US/offers/seasonal-offer',
+            });
+            // Folder returns evergreen first (higher folder position), seasonal second
+            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [evergreen, seasonal] }));
+            fetchStub.withArgs(hydrateUrl('proj-evergreen')).returns(createResponse(200, hydratedEvergreen));
+            fetchStub.withArgs(hydrateUrl('proj-seasonal')).returns(createResponse(200, hydratedSeasonal));
+
+            const result = await promotionsTransformer.init(createContext());
+            expect(result.activeProjects).to.have.length(2);
+            // Seasonal must come first despite being second in folder order
+            expect(result.activeProjects[0].id).to.equal('proj-seasonal');
+            expect(result.activeProjects[1].id).to.equal('proj-evergreen');
+        });
+
+        it('preserves relative folder order within seasonal promos and within evergreen promos', async () => {
+            const seasonal1 = makeProject({
+                id: 'seasonal-1',
+                path: '/content/dam/mas/promotions/seasonal-1',
+                surfaces: ['acom'],
+                geos: [],
+                startDate: START,
+                endDate: END,
+                tags: ['mas:promotion/seasonal-1'],
+            });
+            const evergreen1 = makeProject({
+                id: 'evergreen-1',
+                path: '/content/dam/mas/promotions/evergreen-1',
+                surfaces: ['acom'],
+                geos: [],
+                startDate: START,
+                endDate: null,
+                tags: ['mas:promotion/evergreen-1'],
+            });
+            const seasonal2 = makeProject({
+                id: 'seasonal-2',
+                path: '/content/dam/mas/promotions/seasonal-2',
+                surfaces: ['acom'],
+                geos: [],
+                startDate: START,
+                endDate: END,
+                tags: ['mas:promotion/seasonal-2'],
+            });
+            const evergreen2 = makeProject({
+                id: 'evergreen-2',
+                path: '/content/dam/mas/promotions/evergreen-2',
+                surfaces: ['acom'],
+                geos: [],
+                startDate: START,
+                endDate: null,
+                tags: ['mas:promotion/evergreen-2'],
+            });
+            // Folder order: seasonal-1, evergreen-1, seasonal-2, evergreen-2
+            fetchStub
+                .withArgs(FOLDER_URL)
+                .returns(createResponse(200, { items: [seasonal1, evergreen1, seasonal2, evergreen2] }));
+            fetchStub
+                .withArgs(hydrateUrl('seasonal-1'))
+                .returns(
+                    createResponse(
+                        200,
+                        makeHydratedProject({ fragmentId: 'f1', fragmentPath: '/content/dam/mas/acom/en_US/offers/a' }),
+                    ),
+                );
+            fetchStub
+                .withArgs(hydrateUrl('evergreen-1'))
+                .returns(
+                    createResponse(
+                        200,
+                        makeHydratedProject({ fragmentId: 'f2', fragmentPath: '/content/dam/mas/acom/en_US/offers/b' }),
+                    ),
+                );
+            fetchStub
+                .withArgs(hydrateUrl('seasonal-2'))
+                .returns(
+                    createResponse(
+                        200,
+                        makeHydratedProject({ fragmentId: 'f3', fragmentPath: '/content/dam/mas/acom/en_US/offers/c' }),
+                    ),
+                );
+            fetchStub
+                .withArgs(hydrateUrl('evergreen-2'))
+                .returns(
+                    createResponse(
+                        200,
+                        makeHydratedProject({ fragmentId: 'f4', fragmentPath: '/content/dam/mas/acom/en_US/offers/d' }),
+                    ),
+                );
+
+            const result = await promotionsTransformer.init(createContext());
+            expect(result.activeProjects).to.have.length(4);
+            // Seasonal group first (folder order preserved within group), then evergreen group
+            expect(result.activeProjects.map((p) => p.id)).to.deep.equal([
+                'seasonal-1',
+                'seasonal-2',
+                'evergreen-1',
+                'evergreen-2',
+            ]);
+        });
+
+        it('does not reorder folder order when all matched projects are evergreen', async () => {
+            const evergreen1 = makeProject({
+                id: 'evergreen-1',
+                path: '/content/dam/mas/promotions/evergreen-1',
+                surfaces: ['acom'],
+                geos: [],
+                startDate: START,
+                endDate: null,
+                tags: ['mas:promotion/evergreen-1'],
+            });
+            const evergreen2 = makeProject({
+                id: 'evergreen-2',
+                path: '/content/dam/mas/promotions/evergreen-2',
+                surfaces: ['acom'],
+                geos: [],
+                startDate: START,
+                endDate: null,
+                tags: ['mas:promotion/evergreen-2'],
+            });
+            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [evergreen1, evergreen2] }));
+            fetchStub
+                .withArgs(hydrateUrl('evergreen-1'))
+                .returns(
+                    createResponse(
+                        200,
+                        makeHydratedProject({ fragmentId: 'f1', fragmentPath: '/content/dam/mas/acom/en_US/offers/a' }),
+                    ),
+                );
+            fetchStub
+                .withArgs(hydrateUrl('evergreen-2'))
+                .returns(
+                    createResponse(
+                        200,
+                        makeHydratedProject({ fragmentId: 'f2', fragmentPath: '/content/dam/mas/acom/en_US/offers/b' }),
+                    ),
+                );
+
+            const result = await promotionsTransformer.init(createContext());
+            expect(result.activeProjects.map((p) => p.id)).to.deep.equal(['evergreen-1', 'evergreen-2']);
+        });
+
+        it('sorts by most-recent startDate first, within both the seasonal and evergreen buckets', async () => {
+            const projects = ['seasonal', 'evergreen'].flatMap((bucket) =>
+                ['older', 'newer'].map((age) =>
+                    makeProject({
+                        id: `${bucket}-${age}`,
+                        path: `/content/dam/mas/promotions/${bucket}-${age}`,
+                        surfaces: ['acom'],
+                        geos: [],
+                        startDate: age === 'older' ? '2020-01-01T00:00:00Z' : '2022-06-01T00:00:00Z',
+                        endDate: bucket === 'seasonal' ? END : null,
+                        tags: [`mas:promotion/${bucket}-${age}`],
+                    }),
+                ),
+            );
+            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: projects }));
+            projects.forEach(({ id }) =>
+                fetchStub
+                    .withArgs(hydrateUrl(id))
+                    .returns(
+                        createResponse(
+                            200,
+                            makeHydratedProject({ fragmentId: id, fragmentPath: `/content/dam/mas/acom/en_US/offers/${id}` }),
+                        ),
+                    ),
+            );
+
+            const result = await promotionsTransformer.init(createContext());
+            expect(result.activeProjects.map((p) => p.id)).to.deep.equal([
+                'seasonal-newer',
+                'seasonal-older',
+                'evergreen-newer',
+                'evergreen-older',
+            ]);
         });
     });
 
@@ -469,8 +774,8 @@ describe('promotions', () => {
             fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
 
             const result = await promotionsTransformer.init(createContext({ preview: true, instant: PREVIEW_INSTANT }));
-            expect(result.activeProject).to.not.be.null;
-            expect(result.activeProject.id).to.equal('proj-1');
+            expect(result.activeProjects).to.have.length(1);
+            expect(result.activeProjects[0].id).to.equal('proj-1');
         });
 
         it('supports instant as an ISO string in preview mode', async () => {
@@ -480,7 +785,7 @@ describe('promotions', () => {
             fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
 
             const result = await promotionsTransformer.init(createContext({ preview: true, instant: '2020-02-01T00:00:00Z' }));
-            expect(result.activeProject).to.not.be.null;
+            expect(result.activeProjects).to.have.length(1);
         });
 
         it('uses localStorage cache in preview mode', async () => {
@@ -498,7 +803,7 @@ describe('promotions', () => {
 
             const result = await promotionsTransformer.init(previewCtx);
             expect(fetchStub.withArgs(FOLDER_URL).callCount).to.equal(1);
-            expect(result.activeProject).to.not.be.null;
+            expect(result.activeProjects).to.have.length(1);
 
             clearPromoCache(true);
             expect(storage['promotions']).to.be.undefined;
@@ -506,38 +811,60 @@ describe('promotions', () => {
     });
 
     describe('process', () => {
-        it('returns no promoMap when promises.promotions is absent', async () => {
+        it('returns empty promoProjects when promises.promotions is absent', async () => {
             const context = createContext({});
             const result = await promotionsTransformer.process(context);
             expect(result.status).to.equal(200);
-            expect(result.promoMap).to.be.undefined;
+            expect(result.promoProjects).to.deep.equal([]);
         });
 
-        it('returns no promoMap when no active project', async () => {
+        it('returns empty promoProjects when activeProjects is empty', async () => {
             const context = createContext({
-                promises: { promotions: Promise.resolve({ status: 200, activeProject: null }) },
+                promises: { promotions: Promise.resolve({ status: 200, activeProjects: [] }) },
             });
             const result = await promotionsTransformer.process(context);
             expect(result.status).to.equal(200);
-            expect(result.promoMap).to.be.undefined;
+            expect(result.promoProjects).to.deep.equal([]);
         });
 
-        it('builds promoMap from project promoCode and promoFragmentPaths from fragmentPaths', async () => {
+        it('builds per-project promoMap and fragmentPaths Set', async () => {
             const context = createContext({
                 promises: {
                     promotions: Promise.resolve({
                         status: 200,
-                        activeProject: {
-                            fragmentPaths: ['offers/offer-1', 'offers/offer-2'],
-                            offerOverrides: [],
-                            promoCode: 'SUMMER25',
-                        },
+                        activeProjects: [
+                            {
+                                id: 'proj-1',
+                                fragmentPaths: ['offers/offer-1', 'offers/offer-2'],
+                                offerOverrides: [],
+                                promoCode: 'SUMMER25',
+                            },
+                        ],
                     }),
                 },
             });
             const result = await promotionsTransformer.process(context);
-            expect(result.promoMap).to.deep.equal({ '*': 'SUMMER25' });
-            expect([...result.promoFragmentPaths]).to.have.members(['offers/offer-1', 'offers/offer-2']);
+            expect(result.promoProjects).to.have.length(1);
+            expect(result.promoProjects[0].promoMap).to.deep.equal({ '*': 'SUMMER25' });
+            expect([...result.promoProjects[0].fragmentPaths]).to.have.members(['offers/offer-1', 'offers/offer-2']);
+        });
+
+        it('preserves project order in promoProjects', async () => {
+            const context = createContext({
+                promises: {
+                    promotions: Promise.resolve({
+                        status: 200,
+                        activeProjects: [
+                            { id: 'proj-1', fragmentPaths: ['a'], offerOverrides: [], promoCode: 'A' },
+                            { id: 'proj-2', fragmentPaths: ['b'], offerOverrides: [], promoCode: 'B' },
+                        ],
+                    }),
+                },
+            });
+            const result = await promotionsTransformer.process(context);
+            expect(result.promoProjects.map((p) => p.project.id)).to.deep.equal(['proj-1', 'proj-2']);
+            expect(result.promoProjects[0].promoMap).to.deep.equal({ '*': 'A' });
+            expect(result.promoProjects[1].promoMap).to.deep.equal({ '*': 'B' });
         });
 
         it('uses project-level promoCode as wildcard in promoMap', async () => {
@@ -545,16 +872,19 @@ describe('promotions', () => {
                 promises: {
                     promotions: Promise.resolve({
                         status: 200,
-                        activeProject: {
-                            fragments: [],
-                            offerOverrides: [],
-                            promoCode: 'NICOPROMO',
-                        },
+                        activeProjects: [
+                            {
+                                id: 'proj-1',
+                                fragmentPaths: [],
+                                offerOverrides: [],
+                                promoCode: 'NICOPROMO',
+                            },
+                        ],
                     }),
                 },
             });
             const result = await promotionsTransformer.process(context);
-            expect(result.promoMap).to.deep.equal({ '*': 'NICOPROMO' });
+            expect(result.promoProjects[0].promoMap).to.deep.equal({ '*': 'NICOPROMO' });
         });
     });
 
@@ -565,71 +895,149 @@ describe('promotions', () => {
                 promises: {
                     promotions: Promise.resolve({
                         status: 200,
-                        activeProject: { fragmentPaths: [], offerOverrides, promoCode },
+                        activeProjects: [{ id: 'proj-1', fragmentPaths: [], offerOverrides, promoCode }],
                     }),
                 },
             });
         }
 
-        it('maps specific OSI override when OSI and country match', async () => {
+        function firstPromoMap(result) {
+            return result.promoProjects[0].promoMap;
+        }
+
+        it('maps specific OSI override when OSI and geo match', async () => {
             const result = await promotionsTransformer.process(
-                makeCtx('US', [{ osis: ['OSI-1'], promoCode: 'OVERRIDE', countries: ['US'] }]),
+                makeCtx('US', [{ osis: ['OSI-1'], promoCode: 'OVERRIDE', geos: ['/content/cq:tags/mas/country/US'] }]),
             );
-            expect(result.promoMap).to.deep.equal({ 'OSI-1': 'OVERRIDE' });
+            expect(firstPromoMap(result)).to.deep.equal({ 'OSI-1': 'OVERRIDE' });
         });
 
-        it('maps specific OSI override when countries is empty (any country)', async () => {
+        it('maps specific OSI override when geos is empty (any geo)', async () => {
             const result = await promotionsTransformer.process(
-                makeCtx('DE', [{ osis: ['OSI-1'], promoCode: 'GLOBAL', countries: [] }]),
+                makeCtx('DE', [{ osis: ['OSI-1'], promoCode: 'GLOBAL', geos: [] }]),
             );
-            expect(result.promoMap).to.deep.equal({ 'OSI-1': 'GLOBAL' });
+            expect(firstPromoMap(result)).to.deep.equal({ 'OSI-1': 'GLOBAL' });
         });
 
-        it('maps wildcard when osis is empty and country matches', async () => {
+        it('maps wildcard when osis is empty and geo matches', async () => {
             const result = await promotionsTransformer.process(
-                makeCtx('FR', [{ osis: [], promoCode: 'FRANCE', countries: ['FR'] }]),
+                makeCtx('FR', [{ osis: [], promoCode: 'FRANCE', geos: ['/content/cq:tags/mas/country/FR'] }]),
             );
-            expect(result.promoMap).to.deep.equal({ '*': 'FRANCE' });
+            expect(firstPromoMap(result)).to.deep.equal({ '*': 'FRANCE' });
         });
 
-        it('maps wildcard when both osis and countries are empty', async () => {
+        it('maps wildcard when both osis and geos are empty', async () => {
             const result = await promotionsTransformer.process(
-                makeCtx(undefined, [{ osis: [], promoCode: 'UNIVERSAL', countries: [] }]),
+                makeCtx(undefined, [{ osis: [], promoCode: 'UNIVERSAL', geos: [] }]),
             );
-            expect(result.promoMap).to.deep.equal({ '*': 'UNIVERSAL' });
+            expect(firstPromoMap(result)).to.deep.equal({ '*': 'UNIVERSAL' });
         });
 
-        it('skips override when country does not match', async () => {
+        it('skips override when geo does not match', async () => {
             const result = await promotionsTransformer.process(
-                makeCtx('CA', [{ osis: ['OSI-1'], promoCode: 'NOPE', countries: ['US'] }]),
+                makeCtx('CA', [{ osis: ['OSI-1'], promoCode: 'NOPE', geos: ['/content/cq:tags/mas/country/US'] }]),
             );
-            expect(result.promoMap).to.deep.equal({});
+            expect(firstPromoMap(result)).to.deep.equal({});
         });
 
         it('override takes priority over project-level promoCode for same OSI', async () => {
             const result = await promotionsTransformer.process(
-                makeCtx('US', [{ osis: ['OSI-1'], promoCode: 'OVERRIDE', countries: ['US'] }], 'DEFAULT'),
+                makeCtx(
+                    'US',
+                    [{ osis: ['OSI-1'], promoCode: 'OVERRIDE', geos: ['/content/cq:tags/mas/country/US'] }],
+                    'DEFAULT',
+                ),
             );
-            expect(result.promoMap['OSI-1']).to.equal('OVERRIDE');
-            expect(result.promoMap['*']).to.equal('DEFAULT');
+            const promoMap = firstPromoMap(result);
+            expect(promoMap['OSI-1']).to.equal('OVERRIDE');
+            expect(promoMap['*']).to.equal('DEFAULT');
         });
 
-        it('falls back to project-level promoCode when override country does not match', async () => {
+        it('falls back to project-level promoCode when override geo does not match', async () => {
             const result = await promotionsTransformer.process(
-                makeCtx('CA', [{ osis: ['OSI-1'], promoCode: 'US-ONLY', countries: ['US'] }], 'DEFAULT'),
+                makeCtx(
+                    'CA',
+                    [{ osis: ['OSI-1'], promoCode: 'US-ONLY', geos: ['/content/cq:tags/mas/country/US'] }],
+                    'DEFAULT',
+                ),
             );
-            expect(result.promoMap['OSI-1']).to.be.undefined;
-            expect(result.promoMap['*']).to.equal('DEFAULT');
+            const promoMap = firstPromoMap(result);
+            expect(promoMap['OSI-1']).to.be.undefined;
+            expect(promoMap['*']).to.equal('DEFAULT');
         });
 
-        it('parses offerLines from project folder and includes offerOverrides on activeProject', async () => {
+        it('matches override geo by regionLocale when country is absent', async () => {
+            const result = await promotionsTransformer.process(
+                createContext({
+                    regionLocale: 'en_AU',
+                    promises: {
+                        promotions: Promise.resolve({
+                            status: 200,
+                            activeProjects: [
+                                {
+                                    id: 'proj-1',
+                                    fragmentPaths: [],
+                                    offerOverrides: [
+                                        { osis: ['OSI-1'], promoCode: 'AU-PROMO', geos: ['/content/cq:tags/mas/locale/en_AU'] },
+                                    ],
+                                },
+                            ],
+                        }),
+                    },
+                }),
+            );
+            expect(firstPromoMap(result)).to.deep.equal({ 'OSI-1': 'AU-PROMO' });
+        });
+
+        it('maps OSI override when geo is CQ locale tag (mas:locale/en_AU)', async () => {
+            const result = await promotionsTransformer.process(
+                createContext({
+                    country: 'AU',
+                    regionLocale: 'en_AU',
+                    promises: {
+                        promotions: Promise.resolve({
+                            status: 200,
+                            activeProjects: [
+                                {
+                                    id: 'proj-1',
+                                    fragmentPaths: [],
+                                    offerOverrides: [{ osis: ['OSI-1'], promoCode: 'AU-PROMO', geos: ['mas:locale/en_AU'] }],
+                                    promoCode: 'GLOBAL',
+                                },
+                            ],
+                        }),
+                    },
+                }),
+            );
+            const promoMap = firstPromoMap(result);
+            expect(promoMap['OSI-1']).to.equal('AU-PROMO');
+            expect(promoMap['*']).to.equal('GLOBAL');
+        });
+
+        it('maps wildcard override when geo is CQ country tag (mas:pzn/country/cr)', async () => {
+            const result = await promotionsTransformer.process(
+                makeCtx('CR', [{ osis: [], promoCode: 'CR-PROMO', geos: ['mas:pzn/country/cr'] }], 'GLOBAL'),
+            );
+            expect(firstPromoMap(result)).to.deep.equal({ '*': 'CR-PROMO' });
+        });
+
+        it('skips CQ geo override when country does not match', async () => {
+            const result = await promotionsTransformer.process(
+                makeCtx('DE', [{ osis: ['OSI-1'], promoCode: 'AU-PROMO', geos: ['mas:locale/en_AU'] }]),
+            );
+            expect(firstPromoMap(result)).to.deep.equal({});
+        });
+
+        it('parses offerLines from hydrated project and includes offerOverrides on activeProjects', async () => {
             fetchStub = sinon.stub(globalThis, 'fetch');
-            const project = makeProject({
-                surfaces: ['acom'],
-                geos: [],
-                offers: ['OSI-1:BLACKFRIDAY:US,CA', ':GLOBAL:', 'OSI-2:SPECIAL:'],
+            const project = makeProject({ surfaces: ['acom'], geos: [] });
+            const hydrated = makeHydratedProject({
+                offers: [
+                    'OSI-1|BLACKFRIDAY|/content/cq:tags/mas/country/US,/content/cq:tags/mas/country/CA',
+                    '|GLOBAL|',
+                    'OSI-2|SPECIAL|',
+                ],
             });
-            const hydrated = makeHydratedProject();
             fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
             fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
 
@@ -637,17 +1045,53 @@ describe('promotions', () => {
             fetchStub.restore();
             clearPromoCache();
 
-            expect(result.activeProject.offerOverrides).to.deep.equal([
-                { osis: ['OSI-1'], promoCode: 'BLACKFRIDAY', countries: ['US', 'CA'] },
-                { osis: [], promoCode: 'GLOBAL', countries: [] },
-                { osis: ['OSI-2'], promoCode: 'SPECIAL', countries: [] },
+            expect(result.activeProjects[0].offerOverrides).to.deep.equal([
+                {
+                    osis: ['OSI-1'],
+                    promoCode: 'BLACKFRIDAY',
+                    geos: ['/content/cq:tags/mas/country/US', '/content/cq:tags/mas/country/CA'],
+                },
+                { osis: [], promoCode: 'GLOBAL', geos: [] },
+                { osis: ['OSI-2'], promoCode: 'SPECIAL', geos: [] },
             ]);
+        });
+
+        it('parses substitute lines and builds geo-scoped substituteMap', async () => {
+            fetchStub = sinon.stub(globalThis, 'fetch');
+            const project = makeProject({ surfaces: ['acom'], geos: [] });
+            const hydrated = makeHydratedProject({
+                offers: [
+                    'substitute|OSI-1|OSI-DE|mas:country/de',
+                    'substitute|OSI-2|OSI-US|mas:country/us',
+                    'substitute||bad',
+                    'substitute|only-two-parts',
+                ],
+            });
+            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+            fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
+
+            const initResult = await promotionsTransformer.init(createContext());
+            fetchStub.restore();
+            clearPromoCache();
+
+            expect(initResult.activeProjects[0].offerSubstitutions).to.deep.equal([
+                { baseOsi: 'OSI-1', substituteOsi: 'OSI-DE', geos: ['mas:country/de'] },
+                { baseOsi: 'OSI-2', substituteOsi: 'OSI-US', geos: ['mas:country/us'] },
+            ]);
+
+            const processResult = await promotionsTransformer.process(
+                createContext({
+                    country: 'DE',
+                    promises: { promotions: Promise.resolve({ status: 200, activeProjects: [initResult.activeProjects[0]] }) },
+                }),
+            );
+            expect(processResult.promoProjects[0].substituteMap).to.deep.equal({ 'OSI-1': 'OSI-DE' });
         });
 
         it('skips offerLines with missing promoCode', async () => {
             fetchStub = sinon.stub(globalThis, 'fetch');
-            const project = makeProject({ surfaces: ['acom'], geos: [], offers: ['OSI-1::US', 'OSI-2:VALID:'] });
-            const hydrated = makeHydratedProject();
+            const project = makeProject({ surfaces: ['acom'], geos: [] });
+            const hydrated = makeHydratedProject({ offers: ['OSI-1|', 'OSI-2|VALID'] });
             fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
             fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
 
@@ -655,15 +1099,33 @@ describe('promotions', () => {
             fetchStub.restore();
             clearPromoCache();
 
-            expect(result.activeProject.offerOverrides).to.deep.equal([{ osis: ['OSI-2'], promoCode: 'VALID', countries: [] }]);
+            expect(result.activeProjects[0].offerOverrides).to.deep.equal([{ osis: ['OSI-2'], promoCode: 'VALID', geos: [] }]);
+        });
+
+        it('does not treat substitute: lines as offer overrides when both are present', async () => {
+            fetchStub = sinon.stub(globalThis, 'fetch');
+            const project = makeProject({ surfaces: ['acom'], geos: [] });
+            const hydrated = makeHydratedProject({
+                offers: ['substitute|OSI-A|OSI-B', 'OSI-1|BLACKFRIDAY|/content/cq:tags/mas/country/US'],
+            });
+            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+            fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
+
+            const result = await promotionsTransformer.init(createContext());
+            fetchStub.restore();
+            clearPromoCache();
+
+            expect(result.activeProjects[0].offerOverrides).to.deep.equal([
+                { osis: ['OSI-1'], promoCode: 'BLACKFRIDAY', geos: ['/content/cq:tags/mas/country/US'] },
+            ]);
         });
 
         it('logs when wildcard override shadows project-level promoCode with a different value', async () => {
             const logStub = sinon.stub(console, 'log');
             const result = await promotionsTransformer.process(
-                makeCtx(undefined, [{ osis: [], promoCode: 'OOPS', countries: [] }], 'PROJ'),
+                makeCtx(undefined, [{ osis: [], promoCode: 'OOPS', geos: [] }], 'PROJ'),
             );
-            expect(result.promoMap).to.deep.equal({ '*': 'OOPS' });
+            expect(firstPromoMap(result)).to.deep.equal({ '*': 'OOPS' });
             expect(
                 logStub.calledWithMatch(sinon.match(/Project promoCode "PROJ" overridden by wildcard offer override "OOPS"/)),
             ).to.be.true;
@@ -673,9 +1135,9 @@ describe('promotions', () => {
         it('does not log when wildcard override equals project-level promoCode', async () => {
             const logStub = sinon.stub(console, 'log');
             const result = await promotionsTransformer.process(
-                makeCtx(undefined, [{ osis: [], promoCode: 'SAME', countries: [] }], 'SAME'),
+                makeCtx(undefined, [{ osis: [], promoCode: 'SAME', geos: [] }], 'SAME'),
             );
-            expect(result.promoMap).to.deep.equal({ '*': 'SAME' });
+            expect(firstPromoMap(result)).to.deep.equal({ '*': 'SAME' });
             expect(logStub.calledWithMatch(sinon.match(/overridden by wildcard/))).to.be.false;
             logStub.restore();
         });
@@ -710,8 +1172,206 @@ describe('promotions', () => {
         for (const garbage of ['lol', '2026-13-99', null]) {
             it(`falls back to Date.now() when instant is ${JSON.stringify(garbage)}`, async () => {
                 const result = await runInstant(garbage);
-                expect(result.activeProject).to.not.be.null;
+                expect(result.activeProjects).to.have.length(1);
             });
         }
+    });
+});
+
+describe('parseOfferOverrides and substituteMap after OSI substitution refactor', () => {
+    let fetchStub;
+
+    beforeEach(() => {
+        fetchStub = sinon.stub(globalThis, 'fetch');
+        fetchStub.returns(createResponse(404, null, 'Not Found'));
+    });
+
+    afterEach(() => {
+        fetchStub.restore();
+        clearPromoCache();
+    });
+
+    it('parses normal offer override lines correctly when no substitute lines are present', async () => {
+        const project = makeProject({ surfaces: ['acom'], geos: [] });
+        const hydrated = makeHydratedProject({ offers: ['OSI-1|BLACKFRIDAY', '|GLOBAL|'] });
+        fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+        fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
+
+        const result = await promotionsTransformer.init(createContext());
+        clearPromoCache();
+
+        expect(result.activeProjects[0].offerOverrides).to.deep.equal([
+            { osis: ['OSI-1'], promoCode: 'BLACKFRIDAY', geos: [] },
+            { osis: [], promoCode: 'GLOBAL', geos: [] },
+        ]);
+        expect(result.activeProjects[0].offerSubstitutions).to.deep.equal([]);
+    });
+
+    it('produces empty substituteMap when active project has no offerSubstitutions', async () => {
+        const result = await promotionsTransformer.process(
+            createContext({
+                country: 'US',
+                promises: {
+                    promotions: Promise.resolve({
+                        status: 200,
+                        activeProjects: [{ fragmentPaths: [], offerOverrides: [], promoCode: null }],
+                    }),
+                },
+            }),
+        );
+        expect(result.promoProjects[0].substituteMap).to.deep.equal({});
+    });
+
+    it('produces empty substituteMap when geo does not match any substitution', async () => {
+        const result = await promotionsTransformer.process(
+            createContext({
+                country: 'FR',
+                promises: {
+                    promotions: Promise.resolve({
+                        status: 200,
+                        activeProjects: [
+                            {
+                                fragmentPaths: [],
+                                offerOverrides: [],
+                                offerSubstitutions: [{ baseOsi: 'OSI-1', substituteOsi: 'OSI-DE', geos: ['mas:country/de'] }],
+                                promoCode: null,
+                            },
+                        ],
+                    }),
+                },
+            }),
+        );
+        expect(result.promoProjects[0].substituteMap).to.deep.equal({});
+    });
+
+    it('applies substituteMap when geo matches substitution', async () => {
+        const result = await promotionsTransformer.process(
+            createContext({
+                country: 'DE',
+                promises: {
+                    promotions: Promise.resolve({
+                        status: 200,
+                        activeProjects: [
+                            {
+                                fragmentPaths: [],
+                                offerOverrides: [],
+                                offerSubstitutions: [{ baseOsi: 'OSI-1', substituteOsi: 'OSI-DE', geos: ['mas:country/de'] }],
+                                promoCode: null,
+                            },
+                        ],
+                    }),
+                },
+            }),
+        );
+        expect(result.promoProjects[0].substituteMap).to.deep.equal({ 'OSI-1': 'OSI-DE' });
+    });
+
+    it('applies locale-style geo substitution only when regionLocale matches', async () => {
+        const subs = [{ baseOsi: 'OSI-1', substituteOsi: 'OSI-CO', geos: ['mas:locale/es_CO'] }];
+        const match = await promotionsTransformer.process(
+            createContext({
+                regionLocale: 'es_CO',
+                promises: {
+                    promotions: Promise.resolve({
+                        status: 200,
+                        activeProjects: [{ fragmentPaths: [], offerOverrides: [], offerSubstitutions: subs, promoCode: null }],
+                    }),
+                },
+            }),
+        );
+        expect(match.promoProjects[0].substituteMap).to.deep.equal({ 'OSI-1': 'OSI-CO' });
+
+        const noMatch = await promotionsTransformer.process(
+            createContext({
+                regionLocale: 'fr_FR',
+                promises: {
+                    promotions: Promise.resolve({
+                        status: 200,
+                        activeProjects: [{ fragmentPaths: [], offerOverrides: [], offerSubstitutions: subs, promoCode: null }],
+                    }),
+                },
+            }),
+        );
+        expect(noMatch.promoProjects[0].substituteMap).to.deep.equal({});
+    });
+
+    it('applies substituteMap when geo is a CQ locale tag (mas:locale/...)', async () => {
+        const result = await promotionsTransformer.process(
+            createContext({
+                regionLocale: 'en_AU',
+                promises: {
+                    promotions: Promise.resolve({
+                        status: 200,
+                        activeProjects: [
+                            {
+                                fragmentPaths: [],
+                                offerOverrides: [],
+                                offerSubstitutions: [{ baseOsi: 'OSI-1', substituteOsi: 'OSI-AU', geos: ['mas:locale/en_AU'] }],
+                                promoCode: null,
+                            },
+                        ],
+                    }),
+                },
+            }),
+        );
+        expect(result.promoProjects[0].substituteMap).to.deep.equal({ 'OSI-1': 'OSI-AU' });
+    });
+
+    it('parses substitute line with multiple comma-separated CQ geo tags', async () => {
+        const project = makeProject({ surfaces: ['acom'], geos: [] });
+        const hydrated = makeHydratedProject({
+            offers: ['substitute|OSI-1|OSI-AU|mas:country/au,mas:locale/en_AU'],
+        });
+        fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+        fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
+        const initResult = await promotionsTransformer.init(createContext());
+        clearPromoCache();
+
+        expect(initResult.activeProjects[0].offerSubstitutions).to.deep.equal([
+            { baseOsi: 'OSI-1', substituteOsi: 'OSI-AU', geos: ['mas:country/au', 'mas:locale/en_AU'] },
+        ]);
+
+        const matchCountry = await promotionsTransformer.process(
+            createContext({
+                country: 'AU',
+                promises: { promotions: Promise.resolve({ status: 200, activeProjects: [initResult.activeProjects[0]] }) },
+            }),
+        );
+        expect(matchCountry.promoProjects[0].substituteMap).to.deep.equal({ 'OSI-1': 'OSI-AU' });
+
+        const matchLocale = await promotionsTransformer.process(
+            createContext({
+                regionLocale: 'en_AU',
+                promises: { promotions: Promise.resolve({ status: 200, activeProjects: [initResult.activeProjects[0]] }) },
+            }),
+        );
+        expect(matchLocale.promoProjects[0].substituteMap).to.deep.equal({ 'OSI-1': 'OSI-AU' });
+
+        const noMatch = await promotionsTransformer.process(
+            createContext({
+                country: 'DE',
+                promises: { promotions: Promise.resolve({ status: 200, activeProjects: [initResult.activeProjects[0]] }) },
+            }),
+        );
+        expect(noMatch.promoProjects[0].substituteMap).to.deep.equal({});
+    });
+
+    it('normal offer overrides still build promoMap correctly when substitute lines are also present', async () => {
+        const project = makeProject({ surfaces: ['acom'], geos: [] });
+        const hydrated = makeHydratedProject({ offers: ['substitute|OSI-A|OSI-B|mas:country/us', 'OSI-1|BLACKFRIDAY'] });
+        fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+        fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
+
+        const initResult = await promotionsTransformer.init(createContext());
+        clearPromoCache();
+
+        const processResult = await promotionsTransformer.process(
+            createContext({
+                country: 'US',
+                promises: { promotions: Promise.resolve({ status: 200, activeProjects: [initResult.activeProjects[0]] }) },
+            }),
+        );
+        expect(processResult.promoProjects[0].promoMap).to.deep.include({ 'OSI-1': 'BLACKFRIDAY' });
+        expect(processResult.promoProjects[0].substituteMap).to.deep.equal({ 'OSI-A': 'OSI-B' });
     });
 });

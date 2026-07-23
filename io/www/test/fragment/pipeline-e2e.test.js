@@ -406,7 +406,7 @@ describe('pipeline end to end', () => {
 
         // Promo variation folder — fr_FR default locale variation
         const variationFolderUrl =
-            'https://odin.adobe.com/adobe/contentFragments/?path=/content/dam/mas/sandbox/fr_FR/promotions/black-friday';
+            'https://odin.adobe.com/adobe/contentFragments/?path=/content/dam/mas/sandbox/fr_FR/promotions/black-friday&limit=50';
         fetchStub.withArgs(variationFolderUrl).returns(
             createResponse(200, {
                 items: [

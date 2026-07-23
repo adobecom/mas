@@ -59,6 +59,23 @@ describe('translation-utils', () => {
             expect(name).to.equal('merch-card-collection: ACOM / My Collection');
         });
 
+        it('includes the promotion title when a promotion tag is present', () => {
+            const fragment = new Fragment({
+                path: '/content/dam/mas/acom/en_US/cards/promo-test',
+                model: { path: CARD_MODEL_PATH },
+                title: 'Promo Card',
+                fields: [
+                    { name: 'name', values: ['promo-card'] },
+                    { name: 'cardTitle', values: ['Promo Card'] },
+                    { name: 'variant', values: ['catalog'] },
+                    { name: 'tags', values: ['mas:promotion/holiday-sale'] },
+                ],
+                tags: [{ id: 'mas:promotion/holiday-sale', title: 'Holiday Sale' }],
+            });
+            const name = getFragmentName(fragment);
+            expect(name).to.include('Holiday Sale');
+        });
+
         it('returns format with undefined web component name when model path is unknown', () => {
             const fragment = new Fragment({
                 path: '/content/dam/mas/acom/test',

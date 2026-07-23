@@ -7,7 +7,7 @@ import { BULK_PUBLISH_STATUS, BULK_PUBLISH_PROJECT_MODEL_ID, PAGE_NAMES } from '
 import { normalizeKey, showToast } from '../utils.js';
 import { startReverting } from './bulk-publish-store.js';
 import { PUBLISH_SVG } from './bulk-publish-icons.js';
-import { getProjectField, getProjectFieldList } from './bulk-publish-utils.js';
+import { getProjectField, getProjectFieldList, itemTypeFromPath } from './bulk-publish-utils.js';
 import './mas-bulk-publish-duplicate-dialog.js';
 import './mas-bulk-publish-delete-dialog.js';
 import './mas-bulk-publish-revert-dialog.js';
@@ -17,6 +17,8 @@ const STATUS_VARIANT = {
     [BULK_PUBLISH_STATUS.LOCKED]: { label: 'Locked', className: 'locked' },
     [BULK_PUBLISH_STATUS.PUBLISHING]: { label: 'Publishing', className: 'publishing' },
     [BULK_PUBLISH_STATUS.PUBLISHED]: { label: 'Published', className: 'published' },
+    [BULK_PUBLISH_STATUS.PARTIALLY_PUBLISHED]: { label: 'Partially published', className: 'partial' },
+    [BULK_PUBLISH_STATUS.FAILED]: { label: 'Failed', className: 'failed' },
     [BULK_PUBLISH_STATUS.REVERTING]: { label: 'Reverting', className: 'reverting' },
     [BULK_PUBLISH_STATUS.REVERTED]: { label: 'Reverted', className: 'reverted' },
 };
@@ -132,6 +134,7 @@ class MasBulkPublish extends LitElement {
         const surface = Store.search.get()?.path?.split('/').filter(Boolean)[0]?.toLowerCase() ?? 'sandbox';
         const title = e.detail.title;
         const items = getProjectField(data, 'items', '[]');
+        const fragments = getProjectFieldList(data, 'fragments');
         const locales = getProjectFieldList(data, 'locales');
         this.duplicating = true;
         try {
@@ -145,6 +148,7 @@ class MasBulkPublish extends LitElement {
                     { name: 'status', type: 'text', values: [BULK_PUBLISH_STATUS.DRAFT] },
                     { name: 'urls', type: 'text', values: [''] },
                     { name: 'items', type: 'text', values: [items] },
+                    { name: 'fragments', type: 'content-fragment', multiple: true, values: fragments },
                     { name: 'locales', type: 'text', multiple: true, values: locales },
                 ],
             };
@@ -205,6 +209,7 @@ class MasBulkPublish extends LitElement {
     renderActions(projectStore) {
         const status = getProjectField(projectStore.get(), 'status', BULK_PUBLISH_STATUS.DRAFT);
         const isPublished = status === BULK_PUBLISH_STATUS.PUBLISHED;
+        const canRevert = status === BULK_PUBLISH_STATUS.PUBLISHED || status === BULK_PUBLISH_STATUS.PARTIALLY_PUBLISHED;
         const isPublishing = status === BULK_PUBLISH_STATUS.PUBLISHING;
         return html`
             <overlay-trigger placement="bottom-end" offset="4">
@@ -222,7 +227,7 @@ class MasBulkPublish extends LitElement {
                                   ${PUBLISH_SVG} Publish
                               </sp-menu-item>`
                             : nothing}
-                        ${isPublished
+                        ${canRevert
                             ? html`<sp-menu-item @click=${() => this.openRevertDialog(projectStore)}>
                                   <sp-icon-undo slot="icon"></sp-icon-undo>
                                   Revert
@@ -256,9 +261,19 @@ class MasBulkPublish extends LitElement {
         );
     }
 
+    projectItems(data) {
+        const items = this.parseItems(getProjectField(data, 'items'));
+        if (items.length) return items;
+        return getProjectFieldList(data, 'fragments').map((path) => ({
+            path,
+            status: 'valid',
+            type: itemTypeFromPath(path),
+        }));
+    }
+
     renderRow(projectStore) {
         const data = projectStore.get();
-        const counts = this.countByType(this.parseItems(getProjectField(data, 'items')));
+        const counts = this.countByType(this.projectItems(data));
         const title = getProjectField(data, 'title', '');
         const status = getProjectField(data, 'status', BULK_PUBLISH_STATUS.DRAFT);
         const createdBy = data.created?.fullName ?? data.created?.by ?? '—';

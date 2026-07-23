@@ -38,6 +38,37 @@
             ).then((response) => response.json());
 
             const fixtureHost = () => document.querySelector('sp-theme');
+            const testHosts = new Set();
+
+            const mountEditor = async () => {
+                const host = document.createElement('div');
+                host.className = 'compare-chart-test-host';
+                fixtureHost().appendChild(host);
+                testHosts.add(host);
+                const fragmentStore = generateFragmentStore(structuredClone(compareChartSeed));
+                const el = await fixture(
+                    html`<mas-compare-chart-editor .fragmentStore=${fragmentStore}></mas-compare-chart-editor>`,
+                    { parentNode: host },
+                );
+                for (let i = 0; i < 20; i += 1) {
+                    await el.updateComplete;
+                    const ready =
+                        el.shadowRoot.querySelectorAll('.compchart-card-row').length === 3 &&
+                        el.shadowRoot.querySelector('.compchart-cell .compchart-cell-value[data-rte-anchor-key]');
+                    if (ready) break;
+                }
+                return el;
+            };
+
+            const activateCellEditor = async (el) => {
+                const cell = el.shadowRoot.querySelector('.compchart-cell .compchart-cell-value[data-rte-anchor-key]');
+                cell.click();
+                for (let i = 0; i < 10; i += 1) {
+                    await el.updateComplete;
+                    if (el.activeRteCell) return { cell, key: el.activeRteCell };
+                }
+                return { cell, key: el.activeRteCell };
+            };
             const withWebComponentsMocks = (mock) => (originalFetch) =>
                 mock((resource, options) => {
                     const path = String(resource);
@@ -152,8 +183,14 @@
                     const originalLana = window.lana;
                     const originalFetch = window.fetch;
 
+                    const cleanupTestHosts = () => {
+                        testHosts.forEach((host) => host.remove());
+                        testHosts.clear();
+                    };
+
                     beforeEach(async () => {
                         sandbox = sinon.createSandbox();
+                        Store.editor.referencedFragmentStoresHaveChanges.set(false);
 
                         window.adobeIMS = {
                             initialized: true,
@@ -186,9 +223,11 @@
                     });
 
                     afterEach(() => {
+                        cleanupTestHosts();
                         sandbox.restore();
                         window.adobeIMS = originalAdobeIms;
                         window.lana = originalLana;
+                        Store.editor.referencedFragmentStoresHaveChanges.set(false);
                     });
 
                     it('renders three cards, sections, features, and authored feature tooltips', async () => {
@@ -292,30 +331,27 @@
                         expect(chart.shadowRoot.querySelectorAll('.tooltip-trigger').length).to.be.greaterThan(10);
                     });
 
+                    it('restricts the items selector import to the active search surface', async () => {
+                        const previousPath = Store.search.get().path;
+                        Store.search.set({ path: 'sandbox' });
+                        try {
+                            const el = await mountEditor();
+                            const selector = el.shadowRoot.querySelector('mas-items-selector');
+                            expect(selector.restrictImportSurface).to.equal('sandbox');
+                        } finally {
+                            Store.search.set({ path: previousPath });
+                        }
+                    });
+
                     it('marks referenced changes dirty when a cell edit is staged and clears them on discard', async () => {
-                        const fragmentStore = generateFragmentStore(structuredClone(compareChartSeed));
-                        const el = await fixture(
-                            html`<mas-compare-chart-editor .fragmentStore=${fragmentStore}></mas-compare-chart-editor>`,
-                            { parentNode: fixtureHost() },
-                        );
-                        for (let i = 0; i < 10; i += 1) {
-                            await el.updateComplete;
-                            if (el.shadowRoot.querySelectorAll('.compchart-card-row').length === 3) break;
-                        }
-
+                        const el = await mountEditor();
                         Store.editor.referencedFragmentStoresHaveChanges.set(false);
-                        const cell = el.shadowRoot.querySelector('.compchart-cell .compchart-cell-value[data-rte-anchor-key]');
-                        cell.click();
-                        let rteField;
-                        for (let i = 0; i < 10; i += 1) {
-                            await el.updateComplete;
-                            rteField = el.shadowRoot.querySelector('.compchart-cell .compchart-cell-value rte-field');
-                            if (rteField) break;
-                        }
-                        expect(rteField, 'inline rte-field').to.exist;
+                        const { cell } = await activateCellEditor(el);
+                        expect(el.activeRteCell).to.be.a('string');
 
-                        rteField.value = '<p>Staged edit value</p>';
-                        rteField.dispatchEvent(new Event('change', { bubbles: true }));
+                        const editor = cell.querySelector('rte-field');
+                        editor.value = '<p>Staged edit value</p>';
+                        editor.dispatchEvent(new Event('change', { bubbles: true }));
                         await el.updateComplete;
 
                         expect(Store.editor.referencedFragmentStoresHaveChanges.get()).to.be.true;
@@ -323,6 +359,64 @@
                         el.discardCardFragmentChanges();
                         await el.updateComplete;
                         expect(Store.editor.referencedFragmentStoresHaveChanges.get()).to.be.false;
+                    });
+
+                    it('keeps the active cell mounted on focusout while a modal editor flag is set', async () => {
+                        const el = await mountEditor();
+                        const { cell, key } = await activateCellEditor(el);
+                        const editor = cell.querySelector('rte-field');
+                        expect(editor).to.exist;
+
+                        editor.showOfferSelector = true;
+                        editor.dispatchEvent(
+                            new FocusEvent('focusout', { bubbles: true, composed: true, relatedTarget: null }),
+                        );
+                        await el.updateComplete;
+                        expect(el.activeRteCell).to.equal(key);
+
+                        editor.showOfferSelector = false;
+                        editor.showLinkEditor = true;
+                        editor.dispatchEvent(
+                            new FocusEvent('focusout', { bubbles: true, composed: true, relatedTarget: null }),
+                        );
+                        await el.updateComplete;
+                        expect(el.activeRteCell).to.equal(key);
+                    });
+
+                    it('deactivates the active cell on focusout when no modal editor flag is set', async () => {
+                        const el = await mountEditor();
+                        await activateCellEditor(el);
+                        const editor = el.shadowRoot.querySelector('rte-field');
+                        expect(editor).to.exist;
+
+                        editor.dispatchEvent(
+                            new FocusEvent('focusout', { bubbles: true, composed: true, relatedTarget: null }),
+                        );
+                        await el.updateComplete;
+                        expect(el.activeRteCell).to.be.null;
+                        expect(el.activeRteEditor).to.be.null;
+                    });
+
+                    it('reverts unsaved section title edits when Escape is pressed', async () => {
+                        const el = await mountEditor();
+                        const sectionAnchor = el.shadowRoot.querySelector('.compchart-group-title[data-rte-anchor-key]');
+                        sectionAnchor.click();
+                        await el.updateComplete;
+                        const editor = sectionAnchor.querySelector('rte-field');
+                        const initialValue = el.activeRteEditor.initialValue;
+                        expect(initialValue).to.be.a('string');
+
+                        editor.value = '<h4>Discarded section title</h4>';
+                        editor.dispatchEvent(new Event('change', { bubbles: true }));
+                        await el.updateComplete;
+                        expect(el.effectiveValue).to.include('Discarded section title');
+
+                        editor.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+                        await el.updateComplete;
+                        expect(el.activeRteCell).to.be.null;
+                        expect(el.effectiveValue).to.not.include('Discarded section title');
+                        const heading = new DOMParser().parseFromString(initialValue, 'text/html').body.textContent.trim();
+                        expect(el.effectiveValue).to.include(heading);
                     });
                 });
             });

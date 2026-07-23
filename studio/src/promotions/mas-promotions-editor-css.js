@@ -5,6 +5,12 @@ export const styles = [
     ghostButtonStyles,
     selectItemsFormSectionStyles,
     css`
+        :host {
+            display: block;
+            --promotion-section-gap: 20px;
+            padding-bottom: 88px;
+        }
+
         .promotions-form-container {
             background-color: var(--spectrum-white);
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -14,7 +20,7 @@ export const styles = [
             border-radius: 8px;
             display: flex;
             flex-direction: column;
-            gap: 20px;
+            gap: var(--promotion-section-gap);
         }
 
         .promotions-form-panel {
@@ -63,11 +69,10 @@ export const styles = [
             width: 100%;
         }
 
-        .promotions-form-buttons {
+        .promotions-form-items-outer {
             display: flex;
-            justify-content: flex-end;
-            gap: 12px;
-            padding-top: 0;
+            flex-direction: column;
+            gap: 20px;
         }
 
         .promotions-form-items-outer .form-field {
@@ -134,6 +139,169 @@ export const styles = [
             }
         }
 
+        .promotion-summary {
+            display: block;
+            width: 100%;
+        }
+
+        .promotion-summary-body {
+            display: grid;
+            grid-template-columns: minmax(148px, 196px) minmax(0, 1fr);
+            gap: 16px;
+            align-items: stretch;
+        }
+
+        .promotion-summary-stats {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .promotion-stat-card {
+            border: 1px solid var(--spectrum-gray-200);
+            border-radius: 8px;
+            padding: 16px;
+            background: var(--spectrum-white);
+            box-sizing: border-box;
+            flex: 1;
+        }
+
+        .promotion-stat-label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            color: var(--spectrum-gray-700);
+            margin-bottom: 8px;
+        }
+
+        .promotion-stat-value {
+            font-size: 28px;
+            font-weight: 700;
+            line-height: 1.1;
+            color: var(--spectrum-gray-900);
+        }
+
+        .promotion-codes-by-country {
+            border: 1px solid var(--spectrum-gray-200);
+            border-radius: 8px;
+            padding: 16px;
+            background: var(--spectrum-white);
+            box-sizing: border-box;
+            min-width: 0;
+            height: 100%;
+        }
+
+        .promotion-codes-title {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            font-weight: 400;
+            margin-bottom: 12px;
+            color: var(--spectrum-gray-700);
+        }
+
+        .promo-codes-summary-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        .promo-codes-summary-table th,
+        .promo-codes-summary-table td {
+            border: 1px solid var(--spectrum-gray-200);
+            padding: 8px 12px;
+            text-align: left;
+            vertical-align: top;
+        }
+
+        .promo-codes-summary-table th {
+            background: var(--spectrum-gray-75);
+            font-weight: 600;
+            color: var(--spectrum-gray-800);
+        }
+
+        .promo-codes-summary-table td:first-child {
+            font-family: var(--spectrum-code-font-family, monospace);
+            white-space: nowrap;
+        }
+
+        .promotion-items-empty {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .promotion-empty-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            width: 100%;
+        }
+
+        .promotion-empty-toolbar sp-tabs {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .promotion-empty-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+
+        .promotion-empty-panel {
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .offers-empty-state {
+            display: flex;
+            flex-direction: row;
+            gap: 12px;
+            padding: 12px 24px;
+            border: 1px dashed var(--spectrum-gray-800);
+            border-radius: 10px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .offers-empty-state .label {
+            align-content: center;
+        }
+
+        .offers-empty-state sp-button {
+            background: white;
+        }
+
+        .fragments-gated-empty-state {
+            display: flex;
+            flex-direction: row;
+            gap: 12px;
+            padding: 12px 24px;
+            border: 1px solid var(--spectrum-gray-300);
+            border-radius: 10px;
+            width: 100%;
+            box-sizing: border-box;
+            background: var(--spectrum-white);
+            align-items: flex-start;
+        }
+
+        .fragments-gated-empty-state sp-icon-apps {
+            flex-shrink: 0;
+            color: var(--spectrum-gray-600);
+        }
+
+        .fragments-gated-empty-state .label {
+            align-content: center;
+            color: var(--spectrum-gray-800);
+        }
+
         .selected-items {
             display: flex;
             flex-direction: column;
@@ -157,6 +325,14 @@ export const styles = [
                     --mod-button-content-color-default: var(--spectrum-gray-800);
                     --mod-button-content-color-hover: var(--spectrum-gray-900);
                 }
+
+                .toggle-btn sp-icon-chevron-down {
+                    transition: transform 0.2s;
+                }
+
+                .toggle-btn.is-expanded sp-icon-chevron-down {
+                    transform: rotate(180deg);
+                }
             }
 
             h2 sp-icon-asterisk100 {
@@ -179,6 +355,30 @@ export const styles = [
             sp-dialog-wrapper {
                 z-index: 11;
             }
+        }
+
+        .duplicating-overlay {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .end-date-row {
+            display: flex;
+            align-items: center;
+            gap: var(--spectrum-spacing-200, 16px);
+        }
+
+        .end-date-row input[type='datetime-local']:disabled {
+            opacity: 0.4;
+        }
+
+        .promotion-tag-field {
+            align-items: flex-start;
+            justify-content: center;
         }
     `,
 ];

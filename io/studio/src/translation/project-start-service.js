@@ -7,7 +7,7 @@ const {
     getValue,
     getValues,
     getVariationParent,
-    postToOdinWithRetry,
+    postToOdin,
     processBatchWithConcurrency,
     putToOdin,
     patchToOdin,
@@ -267,16 +267,10 @@ function getPznVariations(projectCF) {
 
 async function sendLocRequestWithRetry(config) {
     try {
-        const { authToken, odinEndpoint, locPayload, maxRetries = 3 } = config;
+        const { authToken, odinEndpoint, locPayload } = config;
         logger.info('Sending loc request');
-        const success = await postToOdinWithRetry(
-            odinEndpoint,
-            '/bin/sendToLocalisationAsync',
-            authToken,
-            locPayload,
-            maxRetries,
-        );
-        return { success };
+        await postToOdin(odinEndpoint, '/bin/sendToLocalisationAsync', authToken, locPayload);
+        return { success: true };
     } catch (error) {
         const lastError = error.message || error.toString();
         logger.error(`Failed to send loc request after retries: ${lastError}`);
@@ -387,7 +381,6 @@ async function startTranslationProject(translationData = {}, authToken, params =
         authToken,
         odinEndpoint: params.odinEndpoint,
         locPayload,
-        maxRetries: 3,
     };
 
     const result = await sendLocRequestWithRetry(config);
@@ -420,7 +413,6 @@ async function startRolloutOnlyProject(translationData, authToken, params = {}) 
         authToken,
         odinEndpoint: params.odinEndpoint,
         locPayload,
-        maxRetries: 3,
     };
 
     const result = await sendRolloutRequestWithRetry(config);
@@ -435,10 +427,10 @@ async function startRolloutOnlyProject(translationData, authToken, params = {}) 
 
 async function sendRolloutRequestWithRetry(config) {
     try {
-        const { authToken, odinEndpoint, locPayload, maxRetries = 3 } = config;
+        const { authToken, odinEndpoint, locPayload } = config;
         logger.info('Sending rollout request');
-        const success = await postToOdinWithRetry(odinEndpoint, '/bin/localeSync', authToken, locPayload, maxRetries);
-        return { success };
+        await postToOdin(odinEndpoint, '/bin/localeSync', authToken, locPayload);
+        return { success: true };
     } catch (error) {
         const lastError = error.message || error.toString();
         logger.error(`Failed to send rollout request after retries: ${lastError}`);

@@ -12,6 +12,7 @@ import {
     TAG_PROMOTION_PREFIX,
     TAG_STUDIO_CONTENT_TYPE,
     EVENT_CHANGE,
+    VARIATION_TAB_NAME,
 } from '../constants.js';
 import Store from '../store.js';
 import { generateCodeToUse, getService } from '../utils.js';
@@ -877,7 +878,7 @@ class MasCompareChartEditor extends LitElement {
     // call these helpers on untrusted input from other sources.
     #normalizeRowHtml(rawHtml) {
         const doc = new DOMParser().parseFromString(rawHtml || '', 'text/html');
-        const blocks = doc.body.querySelectorAll('p, div');
+        const blocks = doc.body.querySelectorAll('p, div, h4');
         if (blocks.length === 0) return doc.body.innerHTML.trim();
         return [...blocks]
             .map((b) => b.innerHTML)
@@ -1220,7 +1221,7 @@ class MasCompareChartEditor extends LitElement {
     async #activateRteCell(key, anchor, editor) {
         if (this.activeRteCell === key) return;
         this.activeRteCell = key;
-        this.activeRteEditor = { ...editor, key, toolbarTop: 8, toolbarLeft: 8 };
+        this.activeRteEditor = { ...editor, key, toolbarTop: 8, toolbarLeft: 8, initialValue: editor.value };
         await import('../rte/rte-field.js');
         const rteAnchor = anchor || this.#getRteAnchor(key);
         if (rteAnchor) this.#positionRteToolbar(key, rteAnchor);
@@ -1284,10 +1285,41 @@ class MasCompareChartEditor extends LitElement {
         this.#commitActiveRteCell(key, rteField);
     }
 
+    #cancelActiveRteCell(key, event) {
+        const currentTarget = event?.currentTarget;
+        if (this.#rteFieldHasOpenModal(currentTarget)) {
+            return;
+        }
+        const editor = this.activeRteEditor;
+        if (!editor || editor.key !== key) return;
+        const revertTarget = {
+            value: editor.initialValue ?? editor.value,
+            dataset: { rteKey: key },
+        };
+        if (editor.kind === 'section') {
+            this.#handleGroupLabelChange(editor.group, { target: revertTarget });
+        } else if (editor.kind === 'row') {
+            this.#handleRowLabelChange(editor.group, editor.feature, { target: revertTarget });
+        } else {
+            this.#handleCellChange(editor.group, editor.feature, editor.cardPath, { target: revertTarget });
+        }
+        this.activeRteCell = null;
+        this.activeRteEditor = null;
+    }
+
+    #rteFieldHasOpenModal(rteField) {
+        return Boolean(
+            rteField?.showOfferSelector || rteField?.showLinkEditor || rteField?.showIconEditor || rteField?.showMnemonicEditor,
+        );
+    }
+
     #deactivateRteCell(key, event) {
         const nextTarget = event?.relatedTarget || event?.detail?.relatedTarget;
         const currentTarget = event?.currentTarget;
         if (nextTarget && (currentTarget?.contains?.(nextTarget) || currentTarget?.shadowRoot?.contains?.(nextTarget))) {
+            return;
+        }
+        if (this.#rteFieldHasOpenModal(currentTarget)) {
             return;
         }
         if (this.activeRteCell === key) {
@@ -1712,7 +1744,8 @@ class MasCompareChartEditor extends LitElement {
                 .allowedTypes=${[TABLE_TYPE.CARDS]}
                 .maxSelectedCards=${MAX_COMPARE_CHART_CARDS}
                 .defaultTemplateFilter=${VARIANT_NAMES.COMPARE_CHART_COLUMN}
-                .disableGroupedVariationSelection=${true}
+                .nonSelectableVariations=${[VARIATION_TAB_NAME.GROUPED]}
+                .restrictImportSurface=${Store.surface()}
             ></mas-items-selector>
         </sp-dialog-wrapper> `;
     }
@@ -2196,9 +2229,12 @@ class MasCompareChartEditor extends LitElement {
                 .value=${activeEditor.value}
                 @change=${changeHandler}
                 @focusout=${(event) => this.#deactivateRteCell(key, event)}
-                @rte-focusout=${(event) => this.#deactivateRteCell(key, event)}
                 @keydown=${(event) => {
-                    if (event.key === 'Escape') this.#deactivateRteCell(key, event);
+                    if (event.key === 'Escape') {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        this.#cancelActiveRteCell(key, event);
+                    }
                 }}
             ></rte-field>
         `;

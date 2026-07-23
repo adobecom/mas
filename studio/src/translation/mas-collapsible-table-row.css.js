@@ -78,11 +78,15 @@ export const styles = [
             }
         }
 
-        .tags-cell {
+        .details-cell {
             display: flex;
             flex-direction: column;
             align-items: flex-start;
-            gap: 4px;
+            gap: 6px;
+        }
+
+        .details-label {
+            color: var(--spectrum-gray-700);
         }
 
         .tags-label {

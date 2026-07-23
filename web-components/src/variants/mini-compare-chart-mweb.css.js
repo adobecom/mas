@@ -213,6 +213,7 @@ export const CSS = `
     list-style: none;
     padding: 0;
     margin-bottom: 8px;
+    width: 100%;
   }
 
   merch-card[variant="mini-compare-chart-mweb"] ul li::before {

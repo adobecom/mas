@@ -98,6 +98,7 @@
                         editorPanel.repository.refreshFragment = async () => {};
                         editorPanel.repository.getFragment = async () => mockFragment;
                         editorPanel.repository.aem.getFragmentById = async () => mockFragment;
+                        sandbox.stub(editorPanel.editorContextStore, 'loadFragmentContext').resolves();
                         await editorPanel.editFragment(fragmentStore);
                         await editorPanel.updateComplete;
                         const store = Store.fragments.inEdit.get();

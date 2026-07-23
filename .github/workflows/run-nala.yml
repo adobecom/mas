@@ -60,7 +60,7 @@ jobs:
             (github.event.action == 'opened' ||
             contains(github.event.pull_request.labels.*.name, 'run nala'))
         runs-on: [self-hosted, Linux, X64]
-        timeout-minutes: 30 # Prevent hanging jobs
+        timeout-minutes: 45 # Prevent hanging jobs
         strategy:
             matrix:
                 node-version: [20.x]
@@ -207,13 +207,15 @@ jobs:
 
             - name: Set MAS_IO_URL when io/www has changes
               if: steps.filter.outputs.io-www == 'true'
+              env:
+                  ACTOR_NS: ${{ secrets[format('AIO_NS_{0}', github.event.pull_request.user.login)] }}
+                  ACTOR_LOGIN: ${{ github.event.pull_request.user.login }}
               run: |
-                  if [ -z "${{ secrets.AIO_WWW_NS }}" ]; then
-                    echo "::error::Missing required secret: AIO_WWW_NS"
+                  if [ -z "$ACTOR_NS" ]; then
+                    echo "::error::Missing AIO namespace secret AIO_NS_${ACTOR_LOGIN} for PR author"
                     exit 1
                   fi
-                  ACTOR_NS="${{ secrets.AIO_WWW_NS }}-${{ github.event.pull_request.user.login }}"
-                  echo "Using AIO namespace: PR author (${{ github.event.pull_request.user.login }})"
+                  echo "Using AIO namespace for PR author ${ACTOR_LOGIN}"
                   echo "MAS_IO_URL=?mas-io-url=https://${ACTOR_NS}.adobeioruntime.net/api/v1/web/MerchAtScale" >> "$GITHUB_ENV"
 
             - name: Run Nala Docs Tests via gh.run.sh

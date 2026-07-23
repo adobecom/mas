@@ -33,6 +33,11 @@
             "value": "<a class=\"accent\" data-wcs-osi=\"Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ\" target=\"_self\" data-analytics-id=\"buy-now\">{{select}}</a>",
             "mimeType": "text/html"
         },
+        "quantitySelect": {
+            "value": "<merch-quantity-select title=\"Select quantity card override\" min=\"2\" default-value=\"3\" max=\"10\" step=\"1\"></merch-quantity-select>",
+            "mimeType": "text/html"
+        },
+        "additionalModalTriggers": true,
         "tags": ["mas:plan_type/abm", "mas:offer_type/base", "mas:product_family", "mas:commitment/access_pass"],
         "variations": ["d99c359d-5349-43cc-95f4-8e388c299855", "d88c359d-5349-43cc-95f4-8e388c299855"]
     },

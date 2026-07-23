@@ -172,6 +172,55 @@
                     "booleanValue": true
                 }
             }
+        },
+        "adbe5cb5-d34f-45c8-84a0-3a20d56248dc": {
+            "type": "content-fragment",
+            "value": {
+                "path": "/content/dam/mas/sandbox/settings/quantityselect-all-product",
+                "name": "quantityselect-all-product",
+                "title": "quantitySelect",
+                "id": "adbe5cb5-d34f-45c8-84a0-3a20d56248dc",
+                "description": "",
+                "model": {
+                    "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL3NldHRpbmdzLWVudHJ5"
+                },
+                "fields": {
+                    "name": "quantitySelect",
+                    "templates": ["product"],
+                    "locales": [],
+                    "tags": [],
+                    "valuetype": "optional-text",
+                    "textValue": "<merch-quantity-select title=\"Select quantity\" min=\"2\" default-value=\"3\" max=\"10\" step=\"1\"></merch-quantity-select>",
+                    "richTextValue": {
+                        "mimeType": "text/html"
+                    },
+                    "booleanValue": true
+                }
+            }
+        },
+        "adbe5cb5-d34f-45c8-84a0-3a20d56248dd": {
+            "type": "content-fragment",
+            "value": {
+                "path": "/content/dam/mas/sandbox/settings/additionalModalTriggers-all-product",
+                "name": "additionalModalTriggers-all-product",
+                "title": "additionalModalTriggers",
+                "id": "adbe5cb5-d34f-45c8-84a0-3a20d56248dd",
+                "description": "",
+                "model": {
+                    "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL3NldHRpbmdzLWVudHJ5"
+                },
+                "fields": {
+                    "name": "additionalModalTriggers",
+                    "templates": ["product"],
+                    "locales": [],
+                    "tags": [],
+                    "valuetype": "boolean",
+                    "richTextValue": {
+                        "mimeType": "text/html"
+                    },
+                    "booleanValue": true
+                }
+            }
         }
     },
     "referencesTree": [

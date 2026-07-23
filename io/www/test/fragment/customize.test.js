@@ -1566,6 +1566,7 @@ describe('customize promo variation', function () {
     const ACTIVE_PROJECT = {
         id: 'promo-proj-id',
         path: '/content/dam/mas/promotions/black-friday',
+        fragmentPaths: ['my-card'],
         defaultVariations: { 'my-card': PROMO_VARIATION },
         regionVariations: {},
     };
@@ -1590,6 +1591,33 @@ describe('customize promo variation', function () {
         expect(result.body.variationId).to.equal('promo-var-id');
         expect(result.body.fields.title).to.equal('Promo Title');
         expect(result.body.fields.badge).to.equal('PROMO');
+    });
+
+    it("should NOT merge promo variation when the fragment is not in the project's fragmentPaths (offers)", async function () {
+        // A variation fragment can exist under the promo project's variations folder for a card
+        // the project was never actually authorized to target via its fragments/offers field —
+        // e.g. leftover/stray content. Folder presence alone must not be sufficient authorization.
+        const projectNotTargetingThisCard = {
+            ...ACTIVE_PROJECT,
+            fragmentPaths: ['some-other-card'],
+        };
+        const rootFragment = {
+            id: 'root-id',
+            path: '/content/dam/mas/sandbox/en_US/my-card',
+            fields: { title: 'Original Title', badge: 'ORIGINAL' },
+            references: {},
+            referencesTree: [],
+        };
+
+        const result = await processWithPromos(
+            { ...FAKE_CONTEXT, fragmentPath: 'my-card', parsedLocale: 'en_US', body: rootFragment },
+            projectNotTargetingThisCard,
+        );
+
+        expect(result.status).to.equal(200);
+        expect(result.body.variationId).to.be.undefined;
+        expect(result.body.fields.title).to.equal('Original Title');
+        expect(result.body.fields.badge).to.equal('ORIGINAL');
     });
 
     it('should merge region variation over default when both exist', async function () {
@@ -1722,6 +1750,129 @@ describe('customize promo variation', function () {
         expect(result.body.variationId).to.equal('region-only-id');
         expect(result.body.fields.title).to.equal('Region Only Title');
         expect(result.body.fields.badge).to.equal('REGION');
+    });
+
+    it('should pick the geo-scoped sibling matching the request over an untagged (legacy) sibling', async function () {
+        const legacyVariation = {
+            id: 'legacy-var-id',
+            path: '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card',
+            fields: { title: 'Legacy Title', badge: 'LEGACY' },
+        };
+        const geoVariation = {
+            id: 'geo-var-id',
+            path: '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card-2',
+            fields: { title: 'Greece Title', badge: 'GEO', pznTags: ['mas:locale/en_GR'] },
+        };
+        const project = {
+            ...ACTIVE_PROJECT,
+            defaultVariations: { 'my-card': legacyVariation, 'my-card-2': geoVariation },
+            regionVariations: {},
+        };
+        const rootFragment = {
+            id: 'root-id',
+            path: '/content/dam/mas/sandbox/en_US/my-card',
+            fields: { title: 'Original Title', badge: 'ORIGINAL' },
+            references: {},
+            referencesTree: [],
+        };
+
+        const result = await processWithPromos(
+            {
+                ...FAKE_CONTEXT,
+                fragmentPath: 'my-card',
+                parsedLocale: 'en_US',
+                body: rootFragment,
+                locale: 'en_US',
+                country: 'GR',
+            },
+            project,
+        );
+
+        expect(result.status).to.equal(200);
+        expect(result.body.variationId).to.equal('geo-var-id');
+        expect(result.body.fields.title).to.equal('Greece Title');
+    });
+
+    it('should fall back to the untagged (legacy) sibling when no geo-scoped sibling matches the request', async function () {
+        const legacyVariation = {
+            id: 'legacy-var-id',
+            path: '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card',
+            fields: { title: 'Legacy Title', badge: 'LEGACY' },
+        };
+        const geoVariation = {
+            id: 'geo-var-id',
+            path: '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card-2',
+            fields: { title: 'Greece Title', badge: 'GEO', pznTags: ['mas:locale/en_GR'] },
+        };
+        const project = {
+            ...ACTIVE_PROJECT,
+            defaultVariations: { 'my-card': legacyVariation, 'my-card-2': geoVariation },
+            regionVariations: {},
+        };
+        const rootFragment = {
+            id: 'root-id',
+            path: '/content/dam/mas/sandbox/en_US/my-card',
+            fields: { title: 'Original Title', badge: 'ORIGINAL' },
+            references: {},
+            referencesTree: [],
+        };
+
+        const result = await processWithPromos(
+            {
+                ...FAKE_CONTEXT,
+                fragmentPath: 'my-card',
+                parsedLocale: 'en_US',
+                body: rootFragment,
+                locale: 'en_US',
+                country: 'FR',
+            },
+            project,
+        );
+
+        expect(result.status).to.equal(200);
+        expect(result.body.variationId).to.equal('legacy-var-id');
+        expect(result.body.fields.title).to.equal('Legacy Title');
+    });
+
+    it('should prefer a region-locale match over a country-only match among geo-scoped siblings', async function () {
+        const countryOnlyVariation = {
+            id: 'country-only-id',
+            path: '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card',
+            fields: { title: 'Country Only Title', pznTags: ['mas:country/GR'] },
+        };
+        const regionVariation = {
+            id: 'region-match-id',
+            path: '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card-2',
+            fields: { title: 'Region Match Title', pznTags: ['mas:locale/en_GR'] },
+        };
+        const project = {
+            ...ACTIVE_PROJECT,
+            defaultVariations: { 'my-card': countryOnlyVariation, 'my-card-2': regionVariation },
+            regionVariations: {},
+        };
+        const rootFragment = {
+            id: 'root-id',
+            path: '/content/dam/mas/sandbox/en_US/my-card',
+            fields: { title: 'Original Title', badge: 'ORIGINAL' },
+            references: {},
+            referencesTree: [],
+        };
+
+        const result = await processWithPromos(
+            {
+                ...FAKE_CONTEXT,
+                fragmentPath: 'my-card',
+                parsedLocale: 'en_US',
+                body: rootFragment,
+                locale: 'en_US',
+                country: 'GR',
+            },
+            project,
+        );
+
+        expect(result.status).to.equal(200);
+        expect(result.body.variationId).to.equal('region-match-id');
+        expect(result.body.fields.title).to.equal('Region Match Title');
     });
 });
 
@@ -2249,14 +2400,17 @@ describe('customize with multiple active promotion projects', function () {
             referencesTree: [],
         };
         const result = await processWithPromoProjects({ ...FAKE_CONTEXT, fragmentPath: 'card-x', body: rootFragment }, [
-            { project: projectVariationOnly, promoMap: { 'OSI-X': 'FROM-VAR-PROJECT' }, fragmentPaths: new Set() },
+            // A is authorized for card-x (so its variation is allowed to apply) but supplies no
+            // osi entry of its own, so it never competes with B for the promoCode.
+            { project: projectVariationOnly, promoMap: {}, fragmentPaths: new Set(['card-x']) },
             { project: projectPromoOnly, promoMap: { 'OSI-X': 'FROM-PROMO-PROJECT' }, fragmentPaths: new Set(['card-x']) },
         ]);
         expect(result.status).to.equal(200);
         expect(result.body.variationId).to.equal('var-x');
         expect(result.body.fields.promoCode).to.equal('FROM-PROMO-PROJECT');
         // Variation and promoCode provenance are tracked on separate fields, so two different
-        // projects touching the same fragment are both recorded rather than clobbering each other.
+        // projects both authorized for the same fragment are both recorded rather than clobbering
+        // each other.
         expect(result.body.promoVariationProject).to.equal('proj-var');
         expect(result.body.promoProject).to.equal('proj-promo');
     });
@@ -2282,7 +2436,7 @@ describe('customize with multiple active promotion projects', function () {
             referencesTree: [],
         };
         const result = await processWithPromoProjects({ ...FAKE_CONTEXT, fragmentPath: 'card-y', body: rootFragment }, [
-            { project: projectVarOnly, promoMap: {}, fragmentPaths: new Set() },
+            { project: projectVarOnly, promoMap: {}, fragmentPaths: new Set(['card-y']) },
         ]);
         expect(result.status).to.equal(200);
         expect(result.body.variationId).to.equal('var-y');

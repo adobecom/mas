@@ -11,6 +11,8 @@ import {
     hasNonEmptyCompareChart,
     matchesContentTypeFilter,
     resolveContentTypeFilters,
+    createKeyedAsyncLoader,
+    getCreateProjectErrorMessage,
 } from '../src/utils.js';
 import {
     CARD_MODEL_PATH,
@@ -435,6 +437,115 @@ describe('content-type-utils', () => {
     });
 });
 
+describe('createKeyedAsyncLoader', () => {
+    it('loads and applies the result on first call', async () => {
+        const runIfNeeded = createKeyedAsyncLoader();
+        let applied = null;
+
+        await runIfNeeded({
+            guard: () => true,
+            computeKey: () => 'a',
+            load: async () => 'loaded-value',
+            apply: (value) => {
+                applied = value;
+            },
+        });
+
+        expect(applied).to.equal('loaded-value');
+    });
+
+    it('does not reload when the key is unchanged', async () => {
+        const runIfNeeded = createKeyedAsyncLoader();
+        let loadCount = 0;
+
+        const run = () =>
+            runIfNeeded({
+                guard: () => true,
+                computeKey: () => 'same-key',
+                load: async () => {
+                    loadCount += 1;
+                    return loadCount;
+                },
+                apply: () => {},
+            });
+
+        await run();
+        await run();
+
+        expect(loadCount).to.equal(1);
+    });
+
+    it('reloads when the key changes', async () => {
+        const runIfNeeded = createKeyedAsyncLoader();
+        let loadCount = 0;
+        let key = 'first';
+
+        const run = () =>
+            runIfNeeded({
+                guard: () => true,
+                computeKey: () => key,
+                load: async () => {
+                    loadCount += 1;
+                    return loadCount;
+                },
+                apply: () => {},
+            });
+
+        await run();
+        key = 'second';
+        await run();
+
+        expect(loadCount).to.equal(2);
+    });
+
+    it('calls reset and does not call load when guard is false', async () => {
+        const runIfNeeded = createKeyedAsyncLoader();
+        let loadCalled = false;
+        let resetCalled = false;
+
+        await runIfNeeded({
+            guard: () => false,
+            computeKey: () => 'a',
+            load: async () => {
+                loadCalled = true;
+                return 'x';
+            },
+            apply: () => {},
+            reset: () => {
+                resetCalled = true;
+            },
+        });
+
+        expect(loadCalled).to.be.false;
+        expect(resetCalled).to.be.true;
+    });
+
+    it('reloads for the same key after a guard-false call reset the tracked key', async () => {
+        const runIfNeeded = createKeyedAsyncLoader();
+        let loadCount = 0;
+        let guardValue = true;
+
+        const run = () =>
+            runIfNeeded({
+                guard: () => guardValue,
+                computeKey: () => 'same-key',
+                load: async () => {
+                    loadCount += 1;
+                    return loadCount;
+                },
+                apply: () => {},
+            });
+
+        await run();
+        guardValue = false;
+        await run();
+        guardValue = true;
+        await run();
+
+        expect(loadCount).to.equal(2);
+    });
+});
+
 describe('getFragmentPartsToUse', () => {
     function makeCard({ variantCode = 'catalog', cardTitle = 'My Card', getTagTitle = () => null, getCurrentTagTitle } = {}) {
         return {
@@ -526,5 +637,30 @@ describe('getFragmentPartsToUse', () => {
         const fragment = makeCard();
         const { fragmentParts } = getFragmentPartsToUse(fragment, 'accom');
         expect(fragmentParts.startsWith('ACCOM')).to.be.true;
+    });
+});
+
+describe('getCreateProjectErrorMessage', () => {
+    it('returns the duplicate-name message for a 409 conflict', () => {
+        const error = new Error('Failed to create fragment: 409 Conflict');
+        expect(getCreateProjectErrorMessage(error)).to.equal('Project with this name already exists.');
+    });
+
+    it('matches a 409 conflict regardless of the HTTP reason phrase', () => {
+        const error = new Error('Failed to create fragment: 409 ');
+        expect(getCreateProjectErrorMessage(error)).to.equal('Project with this name already exists.');
+    });
+
+    it('returns the generic message for a non-409 error', () => {
+        const error = new Error('Failed to create fragment: 500 Internal Server Error');
+        expect(getCreateProjectErrorMessage(error)).to.equal('Failed to create project.');
+    });
+
+    it('returns the generic message when error has no message', () => {
+        expect(getCreateProjectErrorMessage(new Error())).to.equal('Failed to create project.');
+    });
+
+    it('returns the generic message when error is undefined', () => {
+        expect(getCreateProjectErrorMessage(undefined)).to.equal('Failed to create project.');
     });
 });

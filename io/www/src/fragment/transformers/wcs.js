@@ -9,7 +9,7 @@ async function fetchArtifact(osi, promotionCode, wcsContext, idx) {
     url.searchParams.set('country', wcsContext.country);
     url.searchParams.set('locale', wcsContext.locale);
     url.searchParams.set('landscape', wcsContext.landscape);
-    url.searchParams.set('api_key', wcsContext.context.api_key);
+    url.searchParams.set('api_key', wcsContext.apiKey);
     if (wcsContext.language) {
         url.searchParams.set('language', wcsContext.language);
     }
@@ -155,6 +155,7 @@ async function wcs(context) {
         context.body.wcs ??= {};
         for (const config of wcsConfigs) {
             wcsContext.wcsURL = config.wcsURL;
+            wcsContext.apiKey = config.apiKey;
             wcsContext.landscape = config.landscape || 'PUBLISHED';
             if (country !== 'GB') wcsContext.language = 'MULT';
             context.body.wcs ??= {};

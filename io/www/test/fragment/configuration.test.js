@@ -3,7 +3,11 @@ import sinon from 'sinon';
 import { loadConfiguration, resetCache, validateApiKey } from '../../src/fragment/utils/configuration.js';
 import { MockState } from './mocks/MockState.js';
 
-const HARDCODED_PROD_WCS = { wcsURL: 'https://www.adobe.com/web_commerce_artifact', env: 'prod' };
+const HARDCODED_PROD_WCS = {
+    wcsURL: 'https://www.adobe.com/web_commerce_artifact',
+    env: 'prod',
+    apiKey: 'wcms-commerce-ims-ro-user-milo',
+};
 
 function makeContext(extra = {}) {
     return { state: new MockState(), debugLogs: true, ...extra };

@@ -19,7 +19,7 @@ import { log, logDebug, logError, getErrorMessage } from '../utils/log.js';
  * @property {string} locale - Original request locale (e.g. 'fr_FR'). Never mutated.
  * @property {string} [country] - Explicit country override from the request (e.g. 'LU').
  * @property {string} [pzn] - Personalization segment from the request.
- * @property {string} [api_key] - Client API key (selects WCS configuration).
+ * @property {string} [api_key] - Caller identity used for pipeline auth/logging (not the WCS auth key).
  * @property {boolean} [preview] - Whether the request targets preview Odin (studio-only).
  * @property {string} [surface] - Surface identifier (e.g. 'acom'), parsed from fragment path.
  * @property {string} [fragmentPath] - Fragment path under the surface (no locale prefix).

@@ -17,6 +17,7 @@ import './rte-icon-editor.js';
 
 const CUSTOM_ELEMENT_CHECKOUT_LINK = 'checkout-link';
 const CUSTOM_ELEMENT_INLINE_PRICE = 'inline-price';
+const LINK_KEY_ATTR = 'data-key';
 
 const DEFAULT_EMOJIS = ['ℹ️', '✅', '✓', '✔', '❌', '✗', '✘', '✖', '×', '—', '-'];
 
@@ -73,6 +74,8 @@ class LinkNodeView {
         if (node.type !== this.node.type) {
             return false;
         }
+        const oldKey = this.dom.getAttribute(LINK_KEY_ATTR);
+        if (oldKey) node.attrs[LINK_KEY_ATTR] = oldKey;
         this.node = node;
 
         // Update attributes (excluding 'text')
@@ -1037,6 +1040,7 @@ class RteField extends LitElement {
                 attrs: {
                     class: { default: null },
                     href: { default: '' },
+                    'data-key': { default: null },
                     'data-checkout-workflow': { default: null },
                     'data-checkout-workflow-step': { default: null },
                     'data-extra-options': { default: null },
@@ -1186,6 +1190,16 @@ class RteField extends LitElement {
         return element;
     }
 
+    #generateLinkKey() {
+        let suffix = '';
+        const characters = 'abcdefghijklmnopqrstuvwxyz0123456789';
+        const charactersLength = characters.length;
+        for (let i = 0; i < 10; i++) {
+            suffix += characters.charAt(Math.floor(Math.random() * charactersLength));
+        }
+        return suffix;
+    }
+
     #createLinkElement(node) {
         const element = document.createElement('a');
 
@@ -1195,6 +1209,11 @@ class RteField extends LitElement {
                 element.setAttribute(key, value);
             }
         }
+
+        if (this.id === 'ctas' && !element.getAttribute(LINK_KEY_ATTR)) {
+            element.setAttribute(LINK_KEY_ATTR, this.#generateLinkKey());
+        }
+
         if (!element.title) element.removeAttribute('title');
         // Serialize and append child nodes (content)
         const fragment = this.#serializer.serializeFragment(node.content);
@@ -1693,7 +1712,7 @@ class RteField extends LitElement {
 
     #updateLength() {
         if (this.editorView && this.editorView.dom) {
-            this.length = this.editorView.dom.innerText.length;
+            this.length = this.editorView.dom.innerText.replace(/\n/g, '').length;
         }
     }
 

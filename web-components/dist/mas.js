@@ -2221,6 +2221,15 @@ merch-card[variant="mini-compare-chart"].bullet-list [slot="price-commitment"] {
     grid-template-columns: repeat(3, var(--consonant-merch-card-mini-compare-chart-width));
     gap: var(--consonant-merch-spacing-m);
   }
+
+  /* Card fills the wider column in sparse layouts (one/two cards) */
+  .one-merch-card.mini-compare-chart merch-card[variant="mini-compare-chart"],
+  .one-merch-card:has(merch-card[variant="mini-compare-chart"]) merch-card[variant="mini-compare-chart"],
+  .two-merch-cards.mini-compare-chart merch-card[variant="mini-compare-chart"],
+  .two-merch-cards:has(merch-card[variant="mini-compare-chart"]) merch-card[variant="mini-compare-chart"] {
+    max-width: var(--consonant-merch-card-mini-compare-chart-wide-width);
+    margin-inline: auto;
+  }
 }
 
 @media screen and ${le} {

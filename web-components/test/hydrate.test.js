@@ -842,6 +842,29 @@ describe('hydrate', () => {
         expect(litCard.promotionCode).to.equal('CTX_PROMO');
         litCard.remove();
     });
+
+    it('keeps each collection card promoCode on its own card when two cards have different promos', async () => {
+        await customElements.whenDefined('merch-card');
+        const cardA = document.createElement('merch-card');
+        const cardB = document.createElement('merch-card');
+        document.body.append(cardA, cardB);
+        const makeFragment = (id, promoCode) => ({
+            id,
+            fields: {
+                variant: 'ccd-slice',
+                promoCode,
+                mnemonicIcon: [],
+                mnemonicAlt: [],
+                mnemonicLink: [],
+            },
+        });
+        await hydrate(makeFragment('collection-card-a', 'PROMO_A'), cardA);
+        await hydrate(makeFragment('collection-card-b', 'PROMO_B'), cardB);
+        expect(cardA.promotionCode).to.equal('PROMO_A');
+        expect(cardB.promotionCode).to.equal('PROMO_B');
+        cardA.remove();
+        cardB.remove();
+    });
 });
 
 describe('MerchCard promotionCode getter', () => {

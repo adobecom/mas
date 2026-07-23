@@ -1,4 +1,4 @@
-import { EVENT_AEM_LOAD, FF_DEFAULTS } from './constants.js';
+import { EVENT_AEM_LOAD, EVENT_MAS_READY, FF_DEFAULTS } from './constants.js';
 import { getService, shouldHideStPriceLabels } from './utils.js';
 
 const MAS_FIELD_TAG = 'mas-field';
@@ -103,6 +103,14 @@ class MasField extends HTMLElement {
         this.#fields = event.detail?.fields || null;
         this.#loaded = true;
         this.#renderField();
+        // Tell listeners this field finished loading and rendering.
+        this.dispatchEvent(
+            new CustomEvent(EVENT_MAS_READY, {
+                bubbles: true,
+                composed: true,
+                detail: event.detail,
+            }),
+        );
     };
 
     get aemFragment() {
@@ -138,10 +146,11 @@ class MasField extends HTMLElement {
         return { fieldName: match[1], index: match[2] };
     }
 
-    /** Extracts the Nth anchor from CTA HTML, stripping only CSS classes so Milo can restyle it.
-     *  Uses a <template> element so custom elements (e.g. checkout-link) are never upgraded
-     *  and their attributes (href, data-wcs-osi, etc.) are preserved exactly as stored. */
-    #extractIndexedAnchor(html, index) {
+    /** Returns the Nth link in the HTML. Strips its class unless keepClass —
+     *  ctas need the class (it's the button style), other fields don't.
+     *  Parses with <template> so a checkout-link stays plain HTML instead of
+     *  becoming a live element. */
+    #extractIndexedAnchor(html, index, keepClass) {
         if (typeof html !== 'string') return null;
         const template = document.createElement('template');
         template.innerHTML = html;
@@ -154,7 +163,7 @@ class MasField extends HTMLElement {
             anchor = template.content.querySelector(`a[data-key="${index}"]`);
         }
         if (!anchor) return null;
-        anchor.removeAttribute('class');
+        if (!keepClass) anchor.removeAttribute('class');
         return anchor.outerHTML;
     }
 
@@ -186,17 +195,29 @@ class MasField extends HTMLElement {
         const content = this.#ensureContentElement();
         let html;
         if (index !== null) {
-            html = this.#extractIndexedAnchor(fieldValue, index);
+            html = this.#extractIndexedAnchor(
+                fieldValue,
+                index,
+                fieldName === 'ctas',
+            );
             if (html === null) return;
         } else {
             html = this.#unwrapSingleParagraph(fieldValue);
         }
         if (typeof html === 'string') {
-            if (this.#field === 'ctas') {
-                const ctaEl = this.#renderCtaField(html);
-                if (ctaEl) {
-                    content.replaceChildren(ctaEl);
-                    return;
+            if (fieldName === 'ctas') {
+                if (index !== null) {
+                    const cta = this.#buildCtaFromHtml(html);
+                    if (cta) {
+                        content.replaceChildren(cta);
+                        return;
+                    }
+                } else {
+                    const ctaEl = this.#renderCtaField(html);
+                    if (ctaEl) {
+                        content.replaceChildren(ctaEl);
+                        return;
+                    }
                 }
             }
             content.innerHTML = html;
@@ -243,6 +264,14 @@ class MasField extends HTMLElement {
                 button.classList.add('fill');
         }
         return button;
+    }
+
+    /** Same as #renderCtaField, but for one inline link — no footer wrapper. */
+    #buildCtaFromHtml(html) {
+        const doc = new DOMParser().parseFromString(html, 'text/html');
+        const link = doc.body.querySelector('a');
+        if (!link) return null;
+        return this.#buildCtaButton(link);
     }
 
     /**

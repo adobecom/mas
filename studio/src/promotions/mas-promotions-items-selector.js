@@ -4,7 +4,7 @@ import ReactiveController from '../reactivity/reactive-controller.js';
 import StoreController from '../reactivity/store-controller.js';
 import Store from '../store.js';
 import { getItemsSelectionStore } from '../common/items-selection-store.js';
-import { SURFACES, TABLE_TYPE } from '../constants.js';
+import { SURFACES, TABLE_TYPE, VARIATION_TAB_NAME } from '../constants.js';
 import { toggleSidebarIcon } from '../icons.js';
 import '../common/components/mas-select-items-table.js';
 import './mas-promotions-items-table.js';
@@ -357,9 +357,11 @@ class MasPromotionsItemsSelector extends LitElement {
                                     : html`<mas-select-items-table
                                           .viewOnly=${false}
                                           .type=${tab.value}
-                                          .disableCardExpansion=${true}
                                           .getDisplayName=${this.getDisplayName}
                                           .renderFragmentStatusCell=${this.renderFragmentStatusCell}
+                                          .hidePromoVariations=${true}
+                                          .tabs=${[{ label: 'Promotion', key: VARIATION_TAB_NAME.PROMOTION }]}
+                                          .nonSelectableVariations=${[VARIATION_TAB_NAME.PROMOTION]}
                                           @show-toast=${this.#showToast}
                                       ></mas-select-items-table>`}
                                 ${this.viewOnly

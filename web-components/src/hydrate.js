@@ -918,36 +918,15 @@ export function processAnalytics(fields, merchCard) {
     });
 }
 
-function replaceAnchorWithSpLink(link, className, variant) {
-    const attrs = {};
-    const classes = [...link.classList].filter((c) => c !== className);
-    for (const attr of link.attributes) {
-        if (attr.name === 'class') continue;
-        attrs[attr.name] = attr.value;
-    }
-    if (classes.length) attrs.class = classes.join(' ');
-    if (variant === 'secondary') attrs.variant = 'secondary';
-    link.replaceWith(createTag('sp-link', attrs, link.innerHTML));
-}
-
 export function updateLinksCSS(merchCard) {
-    if (merchCard.consonant) return;
-    const { spectrum } = merchCard;
-    if (spectrum !== 'css' && spectrum !== 'swc') return;
+    if (merchCard.spectrum !== 'css') return;
     [
         ['primary-link', 'primary'],
         ['secondary-link', 'secondary'],
     ].forEach(([className, variant]) => {
         merchCard.querySelectorAll(`a.${className}`).forEach((link) => {
-            if (spectrum === 'swc') {
-                replaceAnchorWithSpLink(link, className, variant);
-            } else {
-                link.classList.remove(className);
-                link.classList.add(
-                    'spectrum-Link',
-                    `spectrum-Link--${variant}`,
-                );
-            }
+            link.classList.remove(className);
+            link.classList.add('spectrum-Link', `spectrum-Link--${variant}`);
         });
     });
 }

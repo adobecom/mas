@@ -700,6 +700,36 @@ describe('Fragment', () => {
             expect(fragment.hasChanges).to.be.false;
         });
 
+        it('replaceFrom excludes offerData and groupedVariations from the cloned data', () => {
+            const fragment = new Fragment(createFragmentConfig({ fields: [] }));
+
+            fragment.replaceFrom({
+                ...createFragmentConfig({ fields: [{ name: 'title', values: ['New'] }] }),
+                offerData: { offerId: 'abc' },
+                groupedVariations: [{ path: '/content/dam/mas/sandbox/en_US/pzn/var' }],
+            });
+
+            expect(fragment.getFieldValues('title')).to.deep.equal(['New']);
+            expect(fragment.offerData).to.be.undefined;
+            expect(fragment.groupedVariations).to.be.undefined;
+        });
+
+        it('refreshFrom excludes offerData and groupedVariations from initialValue', () => {
+            const fragment = new Fragment(
+                createFragmentConfig({
+                    fields: [{ name: 'title', values: ['Original'] }],
+                    offerData: { offerId: 'xyz' },
+                    groupedVariations: [{ path: '/content/dam/mas/sandbox/en_US/pzn/var' }],
+                }),
+            );
+
+            expect(fragment.offerData).to.be.undefined;
+            expect(fragment.groupedVariations).to.be.undefined;
+            expect(fragment.initialValue.offerData).to.be.undefined;
+            expect(fragment.initialValue.groupedVariations).to.be.undefined;
+            expect(fragment.initialValue.fields.find((f) => f.name === 'title').values).to.deep.equal(['Original']);
+        });
+
         it('generateFragmentStore maintains source/preview isolation', () => {
             const fragment = new Fragment(createFragmentConfig({ fields: [{ name: 'desc', values: [] }] }));
             const parent = new Fragment(createFragmentConfig({ fields: [{ name: 'desc', values: ['parent'] }] }));

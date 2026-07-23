@@ -141,7 +141,8 @@ export class Fragment {
      * @param {Boolean | undefined} hasChanges
      */
     replaceFrom(fragmentData, hasChanges) {
-        const clonedData = structuredClone(fragmentData);
+        const { offerData, groupedVariations, ...cloneableData } = fragmentData ?? {};
+        const clonedData = structuredClone(cloneableData);
         Object.assign(this, clonedData);
         if (hasChanges === undefined) return;
         this.hasChanges = hasChanges;
@@ -149,7 +150,8 @@ export class Fragment {
 
     refreshFrom(fragmentData) {
         this.replaceFrom(fragmentData, false);
-        this.initialValue = structuredClone(fragmentData);
+        const { offerData, groupedVariations, ...cloneableData } = fragmentData ?? {};
+        this.initialValue = structuredClone(cloneableData);
         this.newTags = undefined;
     }
 

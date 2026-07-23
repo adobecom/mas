@@ -421,6 +421,13 @@ export const CSS = `
   gap: var(--consonant-merch-spacing-xs);
 }
 
+/* Cap + center the lone card in its wide column at every width */
+.one-merch-card.mini-compare-chart merch-card[variant="mini-compare-chart"],
+.one-merch-card:has(merch-card[variant="mini-compare-chart"]) merch-card[variant="mini-compare-chart"] {
+  max-width: var(--consonant-merch-card-mini-compare-chart-wide-width);
+  margin-inline: auto;
+}
+
 .two-merch-cards:has(merch-card[variant="mini-compare-chart"]),
 .three-merch-cards:has(merch-card[variant="mini-compare-chart"]),
 .four-merch-cards:has(merch-card[variant="mini-compare-chart"]) {
@@ -726,12 +733,6 @@ merch-card[variant="mini-compare-chart"].bullet-list [slot="price-commitment"] {
     gap: var(--consonant-merch-spacing-xxs);
   }
 
-  /* Cap + center the lone card in its wide column, tablet and up */
-  .one-merch-card.mini-compare-chart merch-card[variant="mini-compare-chart"],
-  .one-merch-card:has(merch-card[variant="mini-compare-chart"]) merch-card[variant="mini-compare-chart"] {
-    max-width: var(--consonant-merch-card-mini-compare-chart-wide-width);
-    margin-inline: auto;
-  }
 }
 
 /* desktop */

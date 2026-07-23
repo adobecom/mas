@@ -3,18 +3,18 @@ import {
     expect,
     studio,
     editor,
-    bizpro,
+    pro,
     setClonedCardID,
     getClonedCardID,
     miloLibs,
     setTestPage,
 } from '../../../../libs/mas-test.js';
-import ACOMBizProSpec from '../specs/bizpro_save.spec.js';
+import ACOMProSpec from '../specs/pro_save.spec.js';
 
-const { features } = ACOMBizProSpec;
+const { features } = ACOMProSpec;
 
-test.describe('M@S Studio ACOM BizPro card test suite', () => {
-    // @studio-bizpro-save-edited-fields - Validate edits and save for bizpro card in mas studio
+test.describe('M@S Studio ACOM Pro card test suite', () => {
+    // @studio-pro-save-edited-fields - Validate edits and save for pro card in mas studio
     test(`${features[0].name},${features[0].tags}`, async ({ page, baseURL }) => {
         const { data } = features[0];
         const testPage = `${baseURL}${features[0].path}${miloLibs}${features[0].browserParams}${data.cardid}`;
@@ -33,7 +33,7 @@ test.describe('M@S Studio ACOM BizPro card test suite', () => {
             data.clonedCardID = getClonedCardID();
             await expect(await editor.panel).toBeVisible();
             await expect(await clonedCard).toBeVisible();
-            await expect(await clonedCard).toHaveAttribute('variant', 'bizpro');
+            await expect(await clonedCard).toHaveAttribute('variant', 'pro');
         });
 
         await test.step('step-3: Edit title field', async () => {
@@ -56,12 +56,12 @@ test.describe('M@S Studio ACOM BizPro card test suite', () => {
             const results = await Promise.allSettled([
                 test.step('Validation-1: Verify title saved', async () => {
                     await expect(await editor.title).toContainText(data.title);
-                    await expect(await clonedCard.locator(bizpro.cardTitle)).toHaveText(data.title);
+                    await expect(await clonedCard.locator(pro.cardTitle)).toHaveText(data.title);
                 }),
 
                 test.step('Validation-2: Verify whats included label saved', async () => {
                     await expect(await editor.whatsIncludedLabel).toHaveValue(data.whatsIncludedLabel);
-                    await expect(await clonedCard.locator(bizpro.cardWhatsIncludedToggleLabel)).toHaveText(
+                    await expect(await clonedCard.locator(pro.cardWhatsIncludedToggleLabel)).toHaveText(
                         data.whatsIncludedLabel,
                     );
                 }),
@@ -74,7 +74,7 @@ test.describe('M@S Studio ACOM BizPro card test suite', () => {
                 .map(({ result, index }) => `🔍 Validation-${index + 1} (${validationLabels[index]}) failed: ${result.reason}`);
 
             if (failures.length > 0) {
-                throw new Error(`\x1b[31m✘\x1b[0m BizPro card field save validation failures:\n${failures.join('\n')}`);
+                throw new Error(`\x1b[31m✘\x1b[0m Pro card field save validation failures:\n${failures.join('\n')}`);
             }
         });
     });

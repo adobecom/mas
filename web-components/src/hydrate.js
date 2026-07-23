@@ -23,15 +23,16 @@ const TRIAL_ANALYTICS_IDS = new Set([
 /**
  * Normalizes variant names for consistency.
  * Converts any variant starting with 'plans' to just 'plans'.
- * The 'bizpro' variant also normalizes to 'plans' so it shares the plans
- * merch-card-collection column classes and styling (it no longer carries the
- * 'plans' prefix after the rename, so it needs an explicit mapping).
+ * The 'pro' variant also normalizes to 'plans' so it shares the plans
+ * merch-card-collection column classes and styling (it does not carry the
+ * 'plans' prefix, so it needs an explicit mapping).
  * @param {string} variant - The variant name to normalize
  * @returns {string} The normalized variant name
  */
 export function normalizeVariant(variant) {
     if (!variant) return variant;
-    if (variant === 'bizpro') return 'plans';
+    if (variant === 'bizpro') variant = 'pro'; // TODO(MWPW-200587): remove after content migration
+    if (variant === 'pro') return 'plans';
     if (variant.startsWith('plans')) return 'plans';
     return variant;
 }
@@ -980,6 +981,7 @@ export async function hydrate(fragment, merchCard) {
     }
 
     const { id, fields, settings = {}, priceLiterals } = fragment;
+    if (fields.variant === 'bizpro') fields.variant = 'pro'; // TODO(MWPW-200587): remove after content migration
     const { variant } = fields;
     if (!variant)
         throw new Error(`hydrate: no template found in payload ${id}`);

@@ -2141,6 +2141,28 @@ describe('MasRepository dictionary helpers', () => {
             }
         });
 
+        it('matches stored bizpro cards when narrowing to the Pro variant', async () => {
+            const stores = [
+                makeFragmentStore({ id: 'legacy-pro', variant: 'bizpro' }),
+                makeFragmentStore({ id: 'catalog', variant: 'catalog' }),
+            ];
+            const searchStub = sandbox.stub();
+            const { repository, setStub, cleanup } = setupNarrowingFixture({ stores });
+            repository.aem.sites.cf.fragments.search = searchStub;
+            repository.search = { value: { path: 'acom', query: '' } };
+            repository.filters = {
+                value: { locale: 'en_US', tags: 'mas:variant/pro', personalizationFilterEnabled: false },
+            };
+            try {
+                await repository.searchFragments();
+                expect(searchStub.called).to.be.false;
+                expect(setStub.firstCall.args[0]).to.have.lengthOf(1);
+                expect(setStub.firstCall.args[0][0].get().id).to.equal('legacy-pro');
+            } finally {
+                cleanup();
+            }
+        });
+
         it('3. narrows by adding a non-variant tag without calling AEM', async () => {
             const stores = [
                 makeFragmentStore({ id: 'a', tags: [{ id: 'mas:custom/a' }, { id: 'mas:product/b' }] }),
@@ -2475,6 +2497,31 @@ describe('MasRepository dictionary helpers', () => {
                 const setCalls = Store.fragments.list.data.set.getCalls();
                 const lastCall = setCalls[setCalls.length - 1];
                 expect(lastCall.args[0].length).to.equal(11);
+            } finally {
+                cleanup();
+            }
+        });
+
+        it('finds both pro and stored bizpro cards for the Pro variant filter', async () => {
+            const fragments = [
+                createFragment({
+                    id: 'pro',
+                    path: `${ROOT_PATH}/acom/en_US/pro`,
+                    fields: [{ name: 'variant', values: ['pro'] }],
+                }),
+                createFragment({
+                    id: 'legacy-pro',
+                    path: `${ROOT_PATH}/acom/en_US/legacy-pro`,
+                    fields: [{ name: 'variant', values: ['bizpro'] }],
+                }),
+            ];
+            const mockCursor = createMockCursorFromPages([fragments]);
+            const { repository, searchStub, mockDataStore, cleanup } = await setupSearchTest(mockCursor, 'mas:variant/pro');
+            try {
+                await repository.searchFragments();
+                expect(searchStub.firstCall.args[0].query).to.equal('');
+                const populatedCalls = mockDataStore.set.getCalls().filter((call) => call.args[0]?.length);
+                expect(populatedCalls.at(-1).args[0]).to.have.lengthOf(2);
             } finally {
                 cleanup();
             }

@@ -993,6 +993,22 @@ describe('MasSearchAndFilters', () => {
             expect(Store.translationProjects.displayCards.get().length).to.equal(1);
         });
 
+        it('should match stored bizpro cards when the Pro template is selected', async () => {
+            const legacy = createMockFragment({
+                path: '/content/dam/mas/acom/en_US/legacy-pro',
+                fields: [{ name: 'variant', values: ['bizpro'] }],
+            });
+            Store.translationProjects.allCards.set([
+                legacy,
+                createMockFragment({ fields: [{ name: 'variant', values: ['catalog'] }] }),
+            ]);
+            const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${false}></mas-search-and-filters>`);
+            el.templateFilter = ['pro'];
+            await el.updateComplete;
+
+            expect(Store.translationProjects.displayCards.get()).to.deep.equal([legacy]);
+        });
+
         it('should filter by status', async () => {
             Store.translationProjects.allCards.set([
                 createMockFragment({ status: 'PUBLISHED' }),

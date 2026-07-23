@@ -7,7 +7,7 @@ import {
     EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
 } from '../src/constants.js';
 
-let BizPro;
+let Pro;
 
 before(async () => {
     // merch-card's connectedCallback needs a commerce service in the DOM,
@@ -18,12 +18,12 @@ before(async () => {
         );
     }
     await customElements.whenDefined('merch-card');
-    ({ BizPro } = await import('../src/variants/bizpro.js'));
+    ({ Pro } = await import('../src/variants/pro.js'));
 });
 
 async function renderCard(innerHTML) {
     const card = document.createElement('merch-card');
-    card.setAttribute('variant', 'bizpro');
+    card.setAttribute('variant', 'pro');
     card.innerHTML = innerHTML;
     document.body.appendChild(card);
     await card.updateComplete;
@@ -35,7 +35,7 @@ async function renderCard(innerHTML) {
     return card;
 }
 
-describe('bizpro add-on slot', () => {
+describe('pro add-on slot', () => {
     let card;
     afterEach(() => card?.remove());
 
@@ -50,9 +50,9 @@ describe('bizpro add-on slot', () => {
     });
 });
 
-describe('BizPro.adjustAddon', () => {
+describe('Pro.adjustAddon', () => {
     function makeLayout(cardOverrides = {}) {
-        const layout = Object.create(BizPro.prototype);
+        const layout = Object.create(Pro.prototype);
         layout.card = {
             updateComplete: Promise.resolve(),
             querySelector: () => null,
@@ -102,15 +102,15 @@ describe('BizPro.adjustAddon', () => {
     });
 });
 
-describe('bizpro plan type', () => {
+describe('pro plan type', () => {
     let card;
     afterEach(() => card?.remove());
 
     it('exposes planType in the AEM fragment mapping so the editor shows the toggle', async () => {
-        const { BIZPRO_AEM_FRAGMENT_MAPPING } = await import(
-            '../src/variants/bizpro.js'
+        const { PRO_AEM_FRAGMENT_MAPPING } = await import(
+            '../src/variants/pro.js'
         );
-        expect(BIZPRO_AEM_FRAGMENT_MAPPING.planType).to.be.true;
+        expect(PRO_AEM_FRAGMENT_MAPPING.planType).to.be.true;
     });
 
     it('forwards settings.displayPlanType to legal-template prices only', async () => {
@@ -144,7 +144,7 @@ describe('bizpro plan type', () => {
     });
 });
 
-describe('BizPro.adjustLegal', () => {
+describe('Pro.adjustLegal', () => {
     function makeFixture(priceOverrides = {}) {
         const clone = {
             setAttribute: sinon.spy(),
@@ -161,7 +161,7 @@ describe('BizPro.adjustLegal', () => {
             nextSibling: 'next-sibling',
             ...priceOverrides,
         };
-        const layout = Object.create(BizPro.prototype);
+        const layout = Object.create(Pro.prototype);
         layout.card = {
             updateComplete: Promise.resolve(),
             querySelector: (sel) =>
@@ -211,7 +211,7 @@ describe('BizPro.adjustLegal', () => {
     });
 });
 
-describe('bizpro license-zone gating', () => {
+describe('pro license-zone gating', () => {
     let card;
     afterEach(() => card?.remove());
 
@@ -239,7 +239,7 @@ describe('bizpro license-zone gating', () => {
     });
 });
 
-describe('bizpro whats-included toggle label', () => {
+describe('pro whats-included toggle label', () => {
     let card;
     afterEach(() => card?.remove());
 
@@ -273,7 +273,7 @@ describe('bizpro whats-included toggle label', () => {
     });
 });
 
-describe('bizpro short description plan type override', () => {
+describe('pro short description plan type override', () => {
     let card;
     afterEach(() => card?.remove());
 
@@ -308,7 +308,7 @@ describe('bizpro short description plan type override', () => {
         // re-resolves with the derived wording.
         card.querySelector('.price-plan-type').textContent =
             'Annual, billed monthly';
-        const freshLayout = Object.create(BizPro.prototype);
+        const freshLayout = Object.create(Pro.prototype);
         freshLayout.card = card;
         freshLayout.adjustShortDescription();
         expect(card.querySelector('.price-plan-type').textContent).to.equal(
@@ -353,7 +353,7 @@ describe('bizpro short description plan type override', () => {
     });
 });
 
-describe('bizpro short description tax spacing', () => {
+describe('pro short description tax spacing', () => {
     let card;
     afterEach(() => card?.remove());
 
@@ -420,7 +420,7 @@ describe('bizpro short description tax spacing', () => {
     });
 });
 
-describe('bizpro whats-included toggle interaction', () => {
+describe('pro whats-included toggle interaction', () => {
     let card;
     afterEach(() => card?.remove());
 
@@ -445,7 +445,7 @@ describe('bizpro whats-included toggle interaction', () => {
     });
 });
 
-describe('bizpro row-synced whats-included toggle', () => {
+describe('pro row-synced whats-included toggle', () => {
     let container;
     afterEach(() => container?.remove());
 
@@ -462,7 +462,7 @@ describe('bizpro row-synced whats-included toggle', () => {
         const cards = [];
         for (let i = 0; i < 2; i += 1) {
             const card = document.createElement('merch-card');
-            card.setAttribute('variant', 'bizpro');
+            card.setAttribute('variant', 'pro');
             card.innerHTML = `<div slot="whats-included">${SECTION}</div>`;
             container.appendChild(card);
             await card.updateComplete;
@@ -506,7 +506,7 @@ describe('bizpro row-synced whats-included toggle', () => {
     });
 });
 
-describe('bizpro license dropdown interaction', () => {
+describe('pro license dropdown interaction', () => {
     let card;
     afterEach(() => card?.remove());
 
@@ -581,7 +581,7 @@ describe('bizpro license dropdown interaction', () => {
     });
 });
 
-describe('bizpro license sync from the 3-in-1 modal', () => {
+describe('pro license sync from the 3-in-1 modal', () => {
     let card;
     afterEach(() => card?.remove());
 
@@ -629,7 +629,7 @@ describe('bizpro license sync from the 3-in-1 modal', () => {
     });
 });
 
-describe('bizpro license dropdown keyboard navigation', () => {
+describe('pro license dropdown keyboard navigation', () => {
     let card;
     afterEach(() => card?.remove());
 
@@ -839,7 +839,7 @@ describe('bizpro license dropdown keyboard navigation', () => {
     });
 });
 
-describe('bizpro license label pluralization', () => {
+describe('pro license label pluralization', () => {
     let card;
     afterEach(() => card?.remove());
 
@@ -884,7 +884,7 @@ describe('bizpro license label pluralization', () => {
     });
 });
 
-describe('bizpro resize handling', () => {
+describe('pro resize handling', () => {
     let card;
     // Real animation frames are throttled for backgrounded test pages, so the
     // frames are stubbed and flushed by hand to keep these deterministic.
@@ -953,7 +953,7 @@ describe('bizpro resize handling', () => {
         // (mount at 0 → width, or a font swap changing the description height)
         // re-syncs, while publishing the min-height (a top-card height change)
         // leaves the key unchanged and can't loop the observer.
-        const layout = Object.create(BizPro.prototype);
+        const layout = Object.create(Pro.prototype);
         const rect = { width: 0, top: 0, height: 0 };
         let descHeight = 18;
         const desc = { getBoundingClientRect: () => ({ height: descHeight }) };
@@ -1017,11 +1017,11 @@ describe('bizpro resize handling', () => {
         // publishes a stale row max. syncHeights must defer until
         // document.fonts.ready + a frame, matching full-pricing-express.
         // Isolated instance so a render-triggered sync can't pollute the count.
-        const layout = Object.create(BizPro.prototype);
+        const layout = Object.create(Pro.prototype);
         layout.card = {
             getBoundingClientRect: () => ({ width: 300, top: 0, height: 400 }),
             querySelector: () => null,
-            variant: 'bizpro',
+            variant: 'pro',
         };
         // getContainer is the first thing touched once measuring begins.
         const getContainer = sinon.stub(layout, 'getContainer').returns(null);
@@ -1043,13 +1043,13 @@ describe('bizpro resize handling', () => {
         // holds still. Grouping by offsetTop keeps same-row cards together —
         // grouping on the drifted top would split the row and publish a wrong
         // per-card height (the flicker).
-        const prop = '--consonant-merch-card-bizpro-top-card-height';
+        const prop = '--consonant-merch-card-pro-top-card-height';
         const makeCard = (offsetTop, topCardHeight) => {
             const topCard = { __h: topCardHeight };
             const styles = {};
             const card = {
                 offsetTop,
-                variant: 'bizpro',
+                variant: 'pro',
                 getBoundingClientRect: () => ({ width: 300 }),
                 shadowRoot: { querySelector: () => topCard },
                 style: {
@@ -1069,7 +1069,7 @@ describe('bizpro resize handling', () => {
         const b1 = makeCard(500, 180);
         const cards = [a1, a2, b1];
 
-        const layout = Object.create(BizPro.prototype);
+        const layout = Object.create(Pro.prototype);
         layout.card = a1;
         sinon.stub(layout, 'waitForContentFonts').resolves();
         sinon
@@ -1105,7 +1105,7 @@ describe('bizpro resize handling', () => {
     });
 });
 
-describe('bizpro strikethrough price', () => {
+describe('pro strikethrough price', () => {
     let card;
     afterEach(() => card?.remove());
 
@@ -1131,7 +1131,7 @@ describe('bizpro strikethrough price', () => {
         expect(struckStyles.fontSize).to.equal('14px');
         expect(struckStyles.fontWeight).to.equal('400');
         expect(struckStyles.textDecorationLine).to.contain('line-through');
-        // --consonant-merch-card-bizpro-text-muted-color: #000000a3
+        // --consonant-merch-card-pro-text-muted-color: #000000a3
         expect(struckStyles.color).to.match(/rgba\(0, 0, 0, 0\.6/);
         // Inner spans must not fall through to the 18px/900 price rules
         const recurrence = getComputedStyle(
@@ -1175,7 +1175,7 @@ describe('bizpro strikethrough price', () => {
     });
 });
 
-describe('bizpro add-on theming', () => {
+describe('pro add-on theming', () => {
     let card;
     afterEach(() => card?.remove());
 
@@ -1195,8 +1195,8 @@ describe('bizpro add-on theming', () => {
     });
 });
 
-describe('bizpro quantity selector repricing', () => {
-    // Price lives in slot="heading-m" for bizpro (see BIZPRO_AEM_FRAGMENT_MAPPING).
+describe('pro quantity selector repricing', () => {
+    // Price lives in slot="heading-m" for pro (see PRO_AEM_FRAGMENT_MAPPING).
     const PRICE =
         '<p slot="heading-m"><span is="inline-price" data-wcs-osi="abc" data-template="price"></span></p>';
     const QS =
@@ -1225,7 +1225,7 @@ describe('bizpro quantity selector repricing', () => {
     });
 
     it('leaves the price untouched without a main price or a usable option', () => {
-        const layout = Object.create(BizPro.prototype);
+        const layout = Object.create(Pro.prototype);
         // No main price → no-op, no throw.
         layout.card = { querySelector: () => null };
         expect(() =>

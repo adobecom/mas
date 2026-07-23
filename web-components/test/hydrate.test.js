@@ -75,7 +75,11 @@ describe('normalizeVariant', () => {
         expect(normalizeVariant('plans-v2')).to.equal('plans');
     });
 
-    it('normalizes bizpro to plans for shared collection styling', () => {
+    it('normalizes pro to plans for shared collection styling', () => {
+        expect(normalizeVariant('pro')).to.equal('plans');
+    });
+
+    it('still normalizes legacy bizpro to plans', () => {
         expect(normalizeVariant('bizpro')).to.equal('plans');
     });
 
@@ -751,16 +755,16 @@ describe('hydrate', () => {
         litCard.remove();
     });
 
-    it('injects merch-addon at slot="addon" for bizpro variant', async () => {
+    it('injects merch-addon at slot="addon" for pro variant', async () => {
         const litCard = document.createElement('merch-card');
         document.body.appendChild(litCard);
         await customElements.whenDefined('merch-card');
 
         const addonHtml = `<p><strong>Add Acrobat AI Assistant to your plan for </strong><span is="inline-price" data-template="price" data-wcs-osi="ai"></span></p>`;
         const fragment = {
-            id: 'bizpro-addon',
+            id: 'pro-addon',
             fields: {
-                variant: 'bizpro',
+                variant: 'pro',
                 cardTitle: 'Creative Cloud Pro',
                 prices: '<p><span is="inline-price" data-template="price" data-wcs-osi="main"></span></p>',
                 ctas: '<a class="accent" data-wcs-osi="main">Buy</a>',
@@ -771,6 +775,26 @@ describe('hydrate', () => {
         expect(litCard.addon).to.exist;
         expect(litCard.addon.tagName.toLowerCase()).to.equal('merch-addon');
         expect(litCard.addon.getAttribute('slot')).to.equal('addon');
+        litCard.remove();
+    });
+
+    it('hydrates a legacy bizpro fragment as pro', async () => {
+        const litCard = document.createElement('merch-card');
+        document.body.appendChild(litCard);
+        await customElements.whenDefined('merch-card');
+
+        const fragment = {
+            id: 'legacy-bizpro',
+            fields: {
+                variant: 'bizpro',
+                cardTitle: 'Creative Cloud Pro',
+                prices: '<p><span is="inline-price" data-template="price" data-wcs-osi="main"></span></p>',
+                ctas: '<a class="accent" data-wcs-osi="main">Buy</a>',
+            },
+        };
+        await hydrate(fragment, litCard);
+        expect(litCard.variant).to.equal('pro');
+        expect(litCard.getAttribute('variant')).to.equal('pro');
         litCard.remove();
     });
 

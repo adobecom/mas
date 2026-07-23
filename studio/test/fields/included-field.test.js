@@ -201,13 +201,13 @@ describe('Included field', () => {
         expect(el.link).to.equal('');
     });
 
-    it('renders library icons in the spectrum system for the bizpro variant', async () => {
+    it('renders library icons in the spectrum system for the pro variant', async () => {
         const el = await fixture(
-            html`<mas-included-field data-field-state="bullet" icon="sp-icon-lock" variant="bizpro"></mas-included-field>`,
+            html`<mas-included-field data-field-state="bullet" icon="sp-icon-lock" variant="pro"></mas-included-field>`,
             { parentNode: spTheme() },
         );
 
-        expect(el.variant).to.equal('bizpro');
+        expect(el.variant).to.equal('pro');
         const theme = el.shadowRoot.querySelector('sp-theme');
         expect(theme.getAttribute('system')).to.equal('spectrum');
     });

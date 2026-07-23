@@ -2,39 +2,39 @@ import { MOBILE_LANDSCAPE, TABLET_UP, C2_DESKTOP_UP } from '../media.js';
 
 export const CSS = `
 :root {
-    --consonant-merch-card-bizpro-font-family-regular: 'Adobe Clean', adobe-clean, sans-serif;
-    --consonant-merch-card-bizpro-font-family-display: 'Adobe Clean Display', 'adobe-clean-display', sans-serif;
-    --consonant-merch-card-bizpro-max-width: 394px;
-    --consonant-merch-card-bizpro-2up-max-width: 596px;
+    --consonant-merch-card-pro-font-family-regular: 'Adobe Clean', adobe-clean, sans-serif;
+    --consonant-merch-card-pro-font-family-display: 'Adobe Clean Display', 'adobe-clean-display', sans-serif;
+    --consonant-merch-card-pro-max-width: 394px;
+    --consonant-merch-card-pro-2up-max-width: 596px;
     /* Surface colors pinned to the Figma s2a tokens (background-default /
        background-subtle). Deliberately NOT var(--spectrum-gray-*): inside
        Studio an <sp-theme system="spectrum-two"> defines those, and S2's
        gray-100 (#e9e9e9) / gray-50 (#f8f8f8) are each one step grayer than
        the design, tinting every card surface. */
-    --consonant-merch-card-bizpro-bg-default: #fff;
-    --consonant-merch-card-bizpro-bg-subtle: #f8f8f8;
-    --consonant-merch-card-bizpro-text-color: #000;
-    --consonant-merch-card-bizpro-text-muted-color: #000000a3;
-    --consonant-merch-card-bizpro-text-inverse-color: #fff;
-    --consonant-merch-card-bizpro-cta-accent-color: #3b63fb;
-    --consonant-merch-card-bizpro-cta-accent-hover-color: #274dea;
-    --consonant-merch-card-bizpro-cta-outline-hover-color: #ebebeb;
-    --consonant-merch-card-bizpro-divider-color: #0000001f;
+    --consonant-merch-card-pro-bg-default: #fff;
+    --consonant-merch-card-pro-bg-subtle: #f8f8f8;
+    --consonant-merch-card-pro-text-color: #000;
+    --consonant-merch-card-pro-text-muted-color: #000000a3;
+    --consonant-merch-card-pro-text-inverse-color: #fff;
+    --consonant-merch-card-pro-cta-accent-color: #3b63fb;
+    --consonant-merch-card-pro-cta-accent-hover-color: #274dea;
+    --consonant-merch-card-pro-cta-outline-hover-color: #ebebeb;
+    --consonant-merch-card-pro-divider-color: #0000001f;
 }
 
-/* The Milo .collection-container is itself a min-content grid; a bizpro
+/* The Milo .collection-container is itself a min-content grid; a pro
    collection's minmax(0, 1fr) tracks have zero min-content, so it would collapse
    to ~0 width inside it. Let the collection take the full container width — it
    caps and centres itself via the grid rules below. */
-.collection-container.plans:has(merch-card[variant="bizpro"]) {
+.collection-container.plans:has(merch-card[variant="pro"]) {
     display: block;
 }
 
 /* Width is driven by the grid track, not a fixed value — cards fluidly fit
    261px (1280 viewport) → 394px (1920 viewport) per Figma. */
-merch-card[variant="bizpro"] {
+merch-card[variant="pro"] {
     width: 100%;
-    max-width: var(--consonant-merch-card-bizpro-max-width);
+    max-width: var(--consonant-merch-card-pro-max-width);
     overflow: visible;
     position: relative;
 }
@@ -42,7 +42,7 @@ merch-card[variant="bizpro"] {
 /* Callout banner link — inherits dark text color + weight, just underlined.
    Force display:inline so the link flows with the surrounding text and
    doesn't get broken onto its own line by any inherited inline-block. */
-merch-card[variant="bizpro"] [slot="callout-content"] a {
+merch-card[variant="pro"] [slot="callout-content"] a {
     display: inline;
     color: inherit;
     font-weight: inherit;
@@ -53,8 +53,8 @@ merch-card[variant="bizpro"] [slot="callout-content"] a {
 /* The callout sits flat on the license-zone (Figma 1098:30779) — drop the
    global gray "pill" (background/radius/fit-content) that other variants use,
    so it's full-width caption text on the zone background instead of a box. */
-merch-card[variant="bizpro"] [slot="callout-content"] > p,
-merch-card[variant="bizpro"] [slot="callout-content"] > div > div {
+merch-card[variant="pro"] [slot="callout-content"] > p,
+merch-card[variant="pro"] [slot="callout-content"] > div > div {
     background: transparent;
     border-radius: 0;
     padding: 0;
@@ -63,7 +63,7 @@ merch-card[variant="bizpro"] [slot="callout-content"] > div > div {
     line-height: 16px;
 }
 
-merch-card[variant="bizpro"] [slot="callout-content"] > div {
+merch-card[variant="pro"] [slot="callout-content"] > div {
     margin: 0;
 }
 
@@ -71,7 +71,7 @@ merch-card[variant="bizpro"] [slot="callout-content"] > div {
    Themes the real <merch-addon> injected at slot="addon". The purple frame
    and trailing sparkle live on the variant's .add-on wrapper (see variantStyle);
    here we size/colour the merch-addon checkbox + label via its custom props. */
-merch-card[variant="bizpro"] merch-addon[slot="addon"] {
+merch-card[variant="pro"] merch-addon[slot="addon"] {
     flex: 1 0 0;
     min-width: 0;
     --merch-addon-gap: 8px;
@@ -90,13 +90,13 @@ merch-card[variant="bizpro"] merch-addon[slot="addon"] {
     --merch-addon-label-size: 14px;
     --merch-addon-label-line-height: 18px;
     --merch-addon-label-weight: 700;
-    --merch-addon-label-color: var(--consonant-merch-card-bizpro-text-color);
+    --merch-addon-label-color: var(--consonant-merch-card-pro-text-color);
 }
 
 /* Light-DOM color overrides — beat global promo/legal styling */
-merch-card[variant="bizpro"] [slot="promo-text"] {
-    color: var(--consonant-merch-card-bizpro-text-muted-color);
-    font-family: var(--consonant-merch-card-bizpro-font-family-regular);
+merch-card[variant="pro"] [slot="promo-text"] {
+    color: var(--consonant-merch-card-pro-text-muted-color);
+    font-family: var(--consonant-merch-card-pro-font-family-regular);
     font-weight: 400;
     font-size: 14px;
     line-height: 18px;
@@ -108,32 +108,32 @@ merch-card[variant="bizpro"] [slot="promo-text"] {
    shadow ::slotted) so it beats the global merch-card [slot="heading-xs"]
    rule. Per CSS Scoping, light-DOM rules outrank shadow ::slotted regardless
    of specificity, so the variant's slotted rules cannot win on their own. */
-merch-card[variant="bizpro"] [slot="heading-xs"] {
+merch-card[variant="pro"] [slot="heading-xs"] {
     margin: 0;
-    font-family: var(--consonant-merch-card-bizpro-font-family-display);
+    font-family: var(--consonant-merch-card-pro-font-family-display);
     font-weight: 900;
     font-size: 24px;
     line-height: 24px;
     letter-spacing: -0.48px;
-    color: var(--consonant-merch-card-bizpro-text-color);
+    color: var(--consonant-merch-card-pro-text-color);
 }
 
-merch-card[variant="bizpro"] [slot="body-xs"] {
+merch-card[variant="pro"] [slot="body-xs"] {
     margin: 0;
-    font-family: var(--consonant-merch-card-bizpro-font-family-regular);
+    font-family: var(--consonant-merch-card-pro-font-family-regular);
     font-weight: 400;
     font-size: 14px;
     line-height: 18px;
     letter-spacing: 0.14px;
-    color: var(--consonant-merch-card-bizpro-text-color);
+    color: var(--consonant-merch-card-pro-text-color);
 }
 
 /* Title / description fields are RTE — authors may save <h3>Title</h3> or
    <div><p>desc</p></div>, which the AEM mapping then wraps again. Make any
    inner block descendant inherit the outer slot styles so the visible text
    uses the variant typography instead of UA defaults. */
-merch-card[variant="bizpro"] [slot="heading-xs"] :is(h1, h2, h3, h4, h5, h6, p, div, span),
-merch-card[variant="bizpro"] [slot="body-xs"] :is(h1, h2, h3, h4, h5, h6, p, div, span) {
+merch-card[variant="pro"] [slot="heading-xs"] :is(h1, h2, h3, h4, h5, h6, p, div, span),
+merch-card[variant="pro"] [slot="body-xs"] :is(h1, h2, h3, h4, h5, h6, p, div, span) {
     margin: 0;
     font: inherit;
     color: inherit;
@@ -141,19 +141,19 @@ merch-card[variant="bizpro"] [slot="body-xs"] :is(h1, h2, h3, h4, h5, h6, p, div
 }
 
 /* Rich whats-included styling: section title + bullet items + dividers */
-merch-card[variant="bizpro"] [slot="whats-included"] {
-    font-family: var(--consonant-merch-card-bizpro-font-family-regular);
+merch-card[variant="pro"] [slot="whats-included"] {
+    font-family: var(--consonant-merch-card-pro-font-family-regular);
 }
 
 /* The authored label only feeds the shadow-DOM toggle button text; never
    show it inside the features zone itself. */
-merch-card[variant="bizpro"] [slot="whats-included"] .whats-included-label {
+merch-card[variant="pro"] [slot="whats-included"] .whats-included-label {
     display: none;
 }
 
-merch-card[variant="bizpro"] [slot="whats-included"] .section,
-merch-card[variant="bizpro"] [slot="whats-included"] h4,
-merch-card[variant="bizpro"] [slot="whats-included"] h5 {
+merch-card[variant="pro"] [slot="whats-included"] .section,
+merch-card[variant="pro"] [slot="whats-included"] h4,
+merch-card[variant="pro"] [slot="whats-included"] h5 {
     margin: 0;
 }
 
@@ -163,7 +163,7 @@ merch-card[variant="bizpro"] [slot="whats-included"] h5 {
    blocks inside the whats-included slot, blowing out paddings and forcing
    list items to wrap. Reset visual chrome so the section behaves as a
    transparent grouping container, per Figma. */
-merch-card[variant="bizpro"] [slot="whats-included"] .section {
+merch-card[variant="pro"] [slot="whats-included"] .section {
     padding: 0;
     background: transparent;
     border: 0;
@@ -171,12 +171,12 @@ merch-card[variant="bizpro"] [slot="whats-included"] .section {
     box-shadow: none;
 }
 
-merch-card[variant="bizpro"] [slot="whats-included"] h4 {
+merch-card[variant="pro"] [slot="whats-included"] h4 {
     /* Pin the body font explicitly: on consumer pages (Milo) a global \`h4\`
        rule sets Adobe Clean Display Black directly on the element, which beats
        the font-family inherited from the slot container above. Studio has no
        such rule, so the title only looked wrong off-Studio. */
-    font-family: var(--consonant-merch-card-bizpro-font-family-regular);
+    font-family: var(--consonant-merch-card-pro-font-family-regular);
     font-weight: 700;
     font-size: 14px;
     line-height: 18px;
@@ -187,7 +187,7 @@ merch-card[variant="bizpro"] [slot="whats-included"] h4 {
     gap: 4px;
 }
 
-merch-card[variant="bizpro"] [slot="whats-included"] ul {
+merch-card[variant="pro"] [slot="whats-included"] ul {
     list-style: none;
     margin: 12px 0 0;
     padding: 0;
@@ -196,26 +196,26 @@ merch-card[variant="bizpro"] [slot="whats-included"] ul {
     gap: 12px;
 }
 
-merch-card[variant="bizpro"] [slot="whats-included"] ul li {
+merch-card[variant="pro"] [slot="whats-included"] ul li {
     font-size: 14px;
     line-height: 18px;
     letter-spacing: 0.14px;
-    color: var(--consonant-merch-card-bizpro-text-muted-color);
+    color: var(--consonant-merch-card-pro-text-muted-color);
     padding: 0 20px;
 }
 
-merch-card[variant="bizpro"][border-color="black"] [slot="whats-included"] ul li {
-    color: var(--consonant-merch-card-bizpro-text-inverse-color);
+merch-card[variant="pro"][border-color="black"] [slot="whats-included"] ul li {
+    color: var(--consonant-merch-card-pro-text-inverse-color);
 }
 
-merch-card[variant="bizpro"] [slot="whats-included"] .section + .section {
-    border-top: 1px solid var(--consonant-merch-card-bizpro-divider-color);
+merch-card[variant="pro"] [slot="whats-included"] .section + .section {
+    border-top: 1px solid var(--consonant-merch-card-pro-divider-color);
     padding-top: 16px;
 }
 
 /* Per Figma: the last section in a multi-section list uses 8px gap between title and items
    (the leading + middle sections stay at 12px). Single-section cards keep 12px. */
-merch-card[variant="bizpro"] [slot="whats-included"] .section:not(:only-child):last-child ul {
+merch-card[variant="pro"] [slot="whats-included"] .section:not(:only-child):last-child ul {
     margin-top: 8px;
 }
 
@@ -225,9 +225,9 @@ merch-card[variant="bizpro"] [slot="whats-included"] .section:not(:only-child):l
    size="xs" default of 20px), so a host width/height alone leaves the inner image at 20px and
    overflowing the box. Set the --mod-img-* custom properties too — they inherit across the shadow
    boundary and size the image to match. (svg/.sp-icon are light DOM and just use width/height.) */
-merch-card[variant="bizpro"] [slot="whats-included"] .section h4 > svg,
-merch-card[variant="bizpro"] [slot="whats-included"] .section h4 > .sp-icon,
-merch-card[variant="bizpro"] [slot="whats-included"] .section h4 > merch-icon {
+merch-card[variant="pro"] [slot="whats-included"] .section h4 > svg,
+merch-card[variant="pro"] [slot="whats-included"] .section h4 > .sp-icon,
+merch-card[variant="pro"] [slot="whats-included"] .section h4 > merch-icon {
     width: 16px;
     height: 16px;
     --mod-img-width: 16px;
@@ -235,9 +235,9 @@ merch-card[variant="bizpro"] [slot="whats-included"] .section h4 > merch-icon {
     flex: 0 0 auto;
     color: inherit;
 }
-merch-card[variant="bizpro"] [slot="whats-included"] .section:first-child h4 > svg,
-merch-card[variant="bizpro"] [slot="whats-included"] .section:first-child h4 > .sp-icon,
-merch-card[variant="bizpro"] [slot="whats-included"] .section:first-child h4 > merch-icon {
+merch-card[variant="pro"] [slot="whats-included"] .section:first-child h4 > svg,
+merch-card[variant="pro"] [slot="whats-included"] .section:first-child h4 > .sp-icon,
+merch-card[variant="pro"] [slot="whats-included"] .section:first-child h4 > merch-icon {
     width: 20px;
     height: 20px;
     --mod-img-width: 20px;
@@ -245,14 +245,14 @@ merch-card[variant="bizpro"] [slot="whats-included"] .section:first-child h4 > m
 }
 
 /* CTA styling — pill-shaped buttons, accent solid + outlined */
-merch-card[variant="bizpro"] [slot="footer"] a,
-merch-card[variant="bizpro"] [slot="footer"] button {
+merch-card[variant="pro"] [slot="footer"] a,
+merch-card[variant="pro"] [slot="footer"] button {
     flex: 1 0 0;
     min-width: 0;
     height: 40px;
     padding: 14px 24px;
     border-radius: 999px;
-    font-family: var(--consonant-merch-card-bizpro-font-family-regular);
+    font-family: var(--consonant-merch-card-pro-font-family-regular);
     font-weight: 700;
     font-size: 14px;
     line-height: 18px;
@@ -266,72 +266,72 @@ merch-card[variant="bizpro"] [slot="footer"] button {
     white-space: nowrap;
 }
 
-merch-card[variant="bizpro"] [slot="footer"] .con-button.blue,
-merch-card[variant="bizpro"] [slot="footer"] a.accent,
-merch-card[variant="bizpro"] [slot="footer"] [data-button-type="accent"] {
-    background: var(--consonant-merch-card-bizpro-cta-accent-color);
-    color: var(--consonant-merch-card-bizpro-text-inverse-color);
+merch-card[variant="pro"] [slot="footer"] .con-button.blue,
+merch-card[variant="pro"] [slot="footer"] a.accent,
+merch-card[variant="pro"] [slot="footer"] [data-button-type="accent"] {
+    background: var(--consonant-merch-card-pro-cta-accent-color);
+    color: var(--consonant-merch-card-pro-text-inverse-color);
     border: none;
 }
 
 /* Hover (S2A): the accent button darkens; the outline button gets a subtle
    gray fill while its border and text stay unchanged. Selectors mirror the
    base rules above so hover applies to the same buttons. */
-merch-card[variant="bizpro"] [slot="footer"] .con-button.blue:hover,
-merch-card[variant="bizpro"] [slot="footer"] a.accent:hover,
-merch-card[variant="bizpro"] [slot="footer"] [data-button-type="accent"]:hover {
-    background-color: var(--consonant-merch-card-bizpro-cta-accent-hover-color);
+merch-card[variant="pro"] [slot="footer"] .con-button.blue:hover,
+merch-card[variant="pro"] [slot="footer"] a.accent:hover,
+merch-card[variant="pro"] [slot="footer"] [data-button-type="accent"]:hover {
+    background-color: var(--consonant-merch-card-pro-cta-accent-hover-color);
 }
 
-merch-card[variant="bizpro"] [slot="footer"] .con-button.outline,
-merch-card[variant="bizpro"] [slot="footer"] .con-button.primary,
-merch-card[variant="bizpro"] [slot="footer"] a.outline,
-merch-card[variant="bizpro"] [slot="footer"] [data-button-type="primary"] {
+merch-card[variant="pro"] [slot="footer"] .con-button.outline,
+merch-card[variant="pro"] [slot="footer"] .con-button.primary,
+merch-card[variant="pro"] [slot="footer"] a.outline,
+merch-card[variant="pro"] [slot="footer"] [data-button-type="primary"] {
     background: transparent;
-    color: var(--consonant-merch-card-bizpro-text-color);
-    border: 2px solid var(--consonant-merch-card-bizpro-text-color);
+    color: var(--consonant-merch-card-pro-text-color);
+    border: 2px solid var(--consonant-merch-card-pro-text-color);
 }
 
-merch-card[variant="bizpro"] [slot="footer"] .con-button.outline:hover,
-merch-card[variant="bizpro"] [slot="footer"] .con-button.primary:hover,
-merch-card[variant="bizpro"] [slot="footer"] a.outline:hover,
-merch-card[variant="bizpro"] [slot="footer"] [data-button-type="primary"]:hover {
-    background-color: var(--consonant-merch-card-bizpro-cta-outline-hover-color);
+merch-card[variant="pro"] [slot="footer"] .con-button.outline:hover,
+merch-card[variant="pro"] [slot="footer"] .con-button.primary:hover,
+merch-card[variant="pro"] [slot="footer"] a.outline:hover,
+merch-card[variant="pro"] [slot="footer"] [data-button-type="primary"]:hover {
+    background-color: var(--consonant-merch-card-pro-cta-outline-hover-color);
 }
 
 /* heading-m holds the price. inline-price cards are covered by the .price-span
    rules below; "free" cards author literal text ("Free") that has no .price spans,
    so style the slot itself to match the Figma price (18px/900, node 1114:39070)
    instead of falling through to the global heading-m default (24px/700/#2c2c2c). */
-merch-card[variant="bizpro"] [slot="heading-m"],
-merch-card[variant="bizpro"] [slot="heading-m"] > p {
+merch-card[variant="pro"] [slot="heading-m"],
+merch-card[variant="pro"] [slot="heading-m"] > p {
     margin: 0;
-    font-family: var(--consonant-merch-card-bizpro-font-family-display);
+    font-family: var(--consonant-merch-card-pro-font-family-display);
     font-weight: 900;
     font-size: 18px;
     line-height: 21px;
     letter-spacing: -0.48px;
-    color: var(--consonant-merch-card-bizpro-text-color);
+    color: var(--consonant-merch-card-pro-text-color);
 }
 
 /* Price spans — individually styled per Figma */
-merch-card[variant="bizpro"] [slot="heading-m"] .price,
-merch-card[variant="bizpro"] [slot="heading-m"] .price-currency-symbol,
-merch-card[variant="bizpro"] [slot="heading-m"] .price-integer,
-merch-card[variant="bizpro"] [slot="heading-m"] .price-decimals-delimiter,
-merch-card[variant="bizpro"] [slot="heading-m"] .price-decimals,
-merch-card[variant="bizpro"] [slot="heading-m"] .price-recurrence {
-    font-family: var(--consonant-merch-card-bizpro-font-family-display);
+merch-card[variant="pro"] [slot="heading-m"] .price,
+merch-card[variant="pro"] [slot="heading-m"] .price-currency-symbol,
+merch-card[variant="pro"] [slot="heading-m"] .price-integer,
+merch-card[variant="pro"] [slot="heading-m"] .price-decimals-delimiter,
+merch-card[variant="pro"] [slot="heading-m"] .price-decimals,
+merch-card[variant="pro"] [slot="heading-m"] .price-recurrence {
+    font-family: var(--consonant-merch-card-pro-font-family-display);
     font-weight: 900;
     font-size: 18px;
     line-height: 21px;
     letter-spacing: -0.48px;
-    color: var(--consonant-merch-card-bizpro-text-color);
+    color: var(--consonant-merch-card-pro-text-color);
 }
 
 /* WCS recurrence dictionary returns abbreviations uppercased ("/MO");
    Figma's pricing typography presents it lowercase ("/mo"). */
-merch-card[variant="bizpro"] [slot="heading-m"] .price-recurrence {
+merch-card[variant="pro"] [slot="heading-m"] .price-recurrence {
     text-transform: lowercase;
 }
 
@@ -342,32 +342,32 @@ merch-card[variant="bizpro"] [slot="heading-m"] .price-recurrence {
      price-template inline-price (the promo price keeps the 18px/900 look)
    - authored: a separate strikethrough-template inline-price before the main
      price. The line-through itself comes from the global stylesheet. */
-merch-card[variant="bizpro"]
+merch-card[variant="pro"]
     [slot="heading-m"]
     .price:is(.price-strikethrough, .price-promo-strikethrough),
-merch-card[variant="bizpro"]
+merch-card[variant="pro"]
     [slot="heading-m"]
     .price:is(.price-strikethrough, .price-promo-strikethrough)
     span {
-    font-family: var(--consonant-merch-card-bizpro-font-family-regular);
+    font-family: var(--consonant-merch-card-pro-font-family-regular);
     font-weight: 400;
     font-size: 14px;
     line-height: 18px;
     letter-spacing: 0.14px;
-    color: var(--consonant-merch-card-bizpro-text-muted-color);
+    color: var(--consonant-merch-card-pro-text-muted-color);
 }
 
 /* Stack the struck price onto its own line. The authored shape needs the
    inline-price wrapper itself to break (its inner .price going block would
    stay inside the inline-block wrapper); the promo shape needs the inner
    .price-strikethrough to break within the shared wrapper. */
-merch-card[variant="bizpro"]
+merch-card[variant="pro"]
     [slot="heading-m"]
     span[is="inline-price"]:is(
         [data-template="strikethrough"],
         [data-template="priceStrikethrough"]
     ),
-merch-card[variant="bizpro"]
+merch-card[variant="pro"]
     [slot="heading-m"]
     span[is="inline-price"][data-template="price"]
     .price:is(.price-strikethrough, .price-promo-strikethrough) {
@@ -379,7 +379,7 @@ merch-card[variant="bizpro"]
    indent the promo price's line. Zeroing the wrapper font collapses it — the
    .price spans carry their own explicit sizes (same trick as plans.css.js'
    ja_JP price-alternative block). */
-merch-card[variant="bizpro"]
+merch-card[variant="pro"]
     [slot="heading-m"]
     span[is="inline-price"][data-template="price"]:has(
         .price-strikethrough,
@@ -395,21 +395,21 @@ merch-card[variant="bizpro"]
    1114:39070). Both the custom-element wrapper AND the inner .price container
    need display:block — the wrapper is inline-block by default, which would
    shrink-wrap the block container and keep it on the price's line. */
-merch-card[variant="bizpro"] [slot="heading-m"] span[is="inline-price"][data-template="legal"],
-merch-card[variant="bizpro"] [slot="heading-m"] .price.price-legal {
+merch-card[variant="pro"] [slot="heading-m"] span[is="inline-price"][data-template="legal"],
+merch-card[variant="pro"] [slot="heading-m"] .price.price-legal {
     display: block;
-    font-family: var(--consonant-merch-card-bizpro-font-family-regular);
+    font-family: var(--consonant-merch-card-pro-font-family-regular);
     font-weight: 400;
     font-size: 14px;
     line-height: 18px;
     letter-spacing: 0.14px;
-    color: var(--consonant-merch-card-bizpro-text-muted-color);
+    color: var(--consonant-merch-card-pro-text-muted-color);
 }
 
 /* The legal line opens with an empty unit-type, so the tax label's leading
    ::before nbsp turns into a spurious indent and the line no longer aligns with
    the price above it; drop it when nothing precedes the tax label (MWPW-198626). */
-merch-card[variant="bizpro"]
+merch-card[variant="pro"]
     .price-legal
     .price-unit-type.disabled
     + .price-tax-inclusivity:not(.disabled)::before {
@@ -423,10 +423,10 @@ merch-card[variant="bizpro"]
    Cards stretch to equal height within a row (matches Figma row-equal layout)
    and widths flow fluidly via 1fr tracks. Container max-width caps growth so
    cards don't exceed the Figma xl (394px) width. */
-merch-card-collection.plans:is(.one-merch-card, .two-merch-cards, .three-merch-cards, .four-merch-cards):has(merch-card[variant="bizpro"]) {
+merch-card-collection.plans:is(.one-merch-card, .two-merch-cards, .three-merch-cards, .four-merch-cards):has(merch-card[variant="pro"]) {
     display: grid;
     gap: 8px;
-    grid-template-columns: minmax(0, var(--consonant-merch-card-bizpro-max-width));
+    grid-template-columns: minmax(0, var(--consonant-merch-card-pro-max-width));
     justify-content: center;
     /* Cards stretch to equal height; the white .top-card is pinned to its
        (uniform) content height and the gray .features-zone grows to fill the
@@ -437,18 +437,18 @@ merch-card-collection.plans:is(.one-merch-card, .two-merch-cards, .three-merch-c
 }
 
 @media screen and ${TABLET_UP} {
-    merch-card-collection.plans:is(.two-merch-cards, .three-merch-cards, .four-merch-cards):has(merch-card[variant="bizpro"]) {
+    merch-card-collection.plans:is(.two-merch-cards, .three-merch-cards, .four-merch-cards):has(merch-card[variant="pro"]) {
         grid-template-columns: repeat(2, minmax(0, 1fr));
         max-width: 720px;
     }
 }
 
 @media screen and ${C2_DESKTOP_UP} {
-    merch-card-collection.plans:is(.three-merch-cards):has(merch-card[variant="bizpro"]) {
+    merch-card-collection.plans:is(.three-merch-cards):has(merch-card[variant="pro"]) {
         grid-template-columns: repeat(3, minmax(0, 1fr));
         max-width: 1192px;
     }
-    merch-card-collection.plans:is(.four-merch-cards):has(merch-card[variant="bizpro"]) {
+    merch-card-collection.plans:is(.four-merch-cards):has(merch-card[variant="pro"]) {
         grid-template-columns: repeat(4, minmax(0, 1fr));
         max-width: 1600px;
     }
@@ -459,13 +459,13 @@ merch-card-collection.plans:is(.one-merch-card, .two-merch-cards, .three-merch-c
        Per Figma the 2-up cards are wider than the dense 4-up: they flex-fill the
        row up to 596px (≈522px at the 1280 breakpoint), so widen the track and the
        card's own cap for this case only. */
-    merch-card-collection.plans:has(merch-card[variant="bizpro"]):has(> merch-card:nth-of-type(2):last-of-type) {
+    merch-card-collection.plans:has(merch-card[variant="pro"]):has(> merch-card:nth-of-type(2):last-of-type) {
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 12px;
-        max-width: calc(2 * var(--consonant-merch-card-bizpro-2up-max-width) + 12px);
+        max-width: calc(2 * var(--consonant-merch-card-pro-2up-max-width) + 12px);
     }
-    merch-card-collection.plans:has(merch-card[variant="bizpro"]):has(> merch-card:nth-of-type(2):last-of-type) merch-card[variant="bizpro"] {
-        max-width: var(--consonant-merch-card-bizpro-2up-max-width);
+    merch-card-collection.plans:has(merch-card[variant="pro"]):has(> merch-card:nth-of-type(2):last-of-type) merch-card[variant="pro"] {
+        max-width: var(--consonant-merch-card-pro-2up-max-width);
     }
 }
 
@@ -473,11 +473,11 @@ merch-card-collection.plans:is(.one-merch-card, .two-merch-cards, .three-merch-c
     /* Mobile (320–767px): the default track caps cards at 394px, leaving side
        margins wider than the 24px gutter. Collapse to a single 1fr track and
        drop the card cap so cards fill the available width. */
-    merch-card-collection.plans:is(.one-merch-card, .two-merch-cards, .three-merch-cards, .four-merch-cards):has(merch-card[variant="bizpro"]) {
+    merch-card-collection.plans:is(.one-merch-card, .two-merch-cards, .three-merch-cards, .four-merch-cards):has(merch-card[variant="pro"]) {
         grid-template-columns: minmax(0, 1fr);
     }
 
-    merch-card[variant="bizpro"] {
+    merch-card[variant="pro"] {
         width: 100%;
         max-width: none;
     }
@@ -488,7 +488,7 @@ merch-card-collection.plans:is(.one-merch-card, .two-merch-cards, .three-merch-c
        the collection itself for that case only. The > .content > chain pins
        this to the collection's own section, so it never doubles up where a
        .container already supplies the gutter. */
-    .section:not(.container) > .content > .collection-container.plans:has(merch-card[variant="bizpro"]) {
+    .section:not(.container) > .content > .collection-container.plans:has(merch-card[variant="pro"]) {
         padding-inline: 24px;
     }
 }

@@ -81,7 +81,7 @@ describe('Multifield', () => {
     it('forwards the variant attribute to each rendered field', async () => {
         const el = await fixture(
             html`
-                <mas-multifield variant="bizpro" .value="${[{ value: 'a' }]}">
+                <mas-multifield variant="pro" .value="${[{ value: 'a' }]}">
                     <template>
                         <sp-textfield class="field"></sp-textfield>
                     </template>
@@ -93,7 +93,7 @@ describe('Multifield', () => {
         await el.updateComplete;
         const field = el.shadowRoot.querySelector('.field-wrapper .field');
         expect(field).to.exist;
-        expect(field.getAttribute('variant')).to.equal('bizpro');
+        expect(field.getAttribute('variant')).to.equal('pro');
     });
 
     it('should support mas-mnemonic-field', async () => {

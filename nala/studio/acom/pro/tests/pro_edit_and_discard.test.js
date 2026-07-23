@@ -1,26 +1,26 @@
-import { test, expect, studio, editor, bizpro, miloLibs, setTestPage } from '../../../../libs/mas-test.js';
-import ACOMBizProSpec from '../specs/bizpro_edit_and_discard.spec.js';
+import { test, expect, studio, editor, pro, miloLibs, setTestPage } from '../../../../libs/mas-test.js';
+import ACOMProSpec from '../specs/pro_edit_and_discard.spec.js';
 
-const { features } = ACOMBizProSpec;
+const { features } = ACOMProSpec;
 
-test.describe('M@S Studio ACOM BizPro card test suite', () => {
-    // @studio-bizpro-edit-discard-editor-fields - Validate editor fields rendering for bizpro card in mas studio
+test.describe('M@S Studio ACOM Pro card test suite', () => {
+    // @studio-pro-edit-discard-editor-fields - Validate editor fields rendering for pro card in mas studio
     test(`${features[0].name},${features[0].tags}`, async ({ page, baseURL }) => {
         const { data } = features[0];
         const testPage = `${baseURL}${features[0].path}${miloLibs}${features[0].browserParams}${data.cardid}`;
         setTestPage(testPage);
-        const bizproCard = await studio.getCard(data.cardid);
+        const proCard = await studio.getCard(data.cardid);
 
         await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
             await page.goto(testPage);
             await page.waitForLoadState('domcontentloaded');
             await expect(await editor.panel).toBeVisible();
-            await expect(await bizproCard).toBeVisible();
-            await expect(await bizproCard).toHaveAttribute('variant', 'bizpro');
+            await expect(await proCard).toBeVisible();
+            await expect(await proCard).toHaveAttribute('variant', 'pro');
         });
 
         await test.step('step-2: Validate editor fields rendering', async () => {
-            await expect(await editor.variant).toHaveAttribute('value', 'bizpro');
+            await expect(await editor.variant).toHaveAttribute('value', 'pro');
             await expect(await editor.title).toBeVisible();
             await expect(await editor.description).toBeVisible();
             await expect(await editor.mnemonicFieldGroup).toBeVisible();
@@ -35,28 +35,28 @@ test.describe('M@S Studio ACOM BizPro card test suite', () => {
         await test.step('step-3: Validate card rendering', async () => {
             // Content-independent elements only — the whats-included toggle and
             // license zone render conditionally based on authored content.
-            await expect(await bizproCard.locator(bizpro.cardTitle)).toBeVisible();
-            await expect(await bizproCard.locator(bizpro.cardDescription)).toBeVisible();
-            await expect(await bizproCard.locator(bizpro.cardPrice)).toBeVisible();
-            await expect(await bizproCard.locator(bizpro.cardTopCard)).toBeVisible();
+            await expect(await proCard.locator(pro.cardTitle)).toBeVisible();
+            await expect(await proCard.locator(pro.cardDescription)).toBeVisible();
+            await expect(await proCard.locator(pro.cardPrice)).toBeVisible();
+            await expect(await proCard.locator(pro.cardTopCard)).toBeVisible();
         });
     });
 
-    // @studio-bizpro-edit-discard-title - Validate edit title for bizpro card in mas studio
+    // @studio-pro-edit-discard-title - Validate edit title for pro card in mas studio
     test(`${features[1].name},${features[1].tags}`, async ({ page, baseURL }) => {
         const { data } = features[1];
         const testPage = `${baseURL}${features[1].path}${miloLibs}${features[1].browserParams}${data.cardid}`;
         setTestPage(testPage);
-        const bizproCard = await studio.getCard(data.cardid);
+        const proCard = await studio.getCard(data.cardid);
         let originalTitle;
 
         await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
             await page.goto(testPage);
             await page.waitForLoadState('domcontentloaded');
             await expect(await editor.panel).toBeVisible();
-            await expect(await bizproCard).toBeVisible();
-            await expect(await bizproCard).toHaveAttribute('variant', 'bizpro');
-            originalTitle = await bizproCard.locator(bizpro.cardTitle).textContent();
+            await expect(await proCard).toBeVisible();
+            await expect(await proCard).toHaveAttribute('variant', 'pro');
+            originalTitle = await proCard.locator(pro.cardTitle).textContent();
         });
 
         await test.step('step-2: Edit title field', async () => {
@@ -66,7 +66,7 @@ test.describe('M@S Studio ACOM BizPro card test suite', () => {
 
         await test.step('step-3: Validate title field updated', async () => {
             await expect(await editor.title).toContainText(data.title.updated);
-            await expect(await bizproCard.locator(bizpro.cardTitle)).toHaveText(data.title.updated);
+            await expect(await proCard.locator(pro.cardTitle)).toHaveText(data.title.updated);
         });
 
         await test.step('step-4: Close the editor and verify discard is triggered', async () => {
@@ -74,25 +74,25 @@ test.describe('M@S Studio ACOM BizPro card test suite', () => {
         });
 
         await test.step('step-5: Validate title field not updated', async () => {
-            await expect(await bizproCard.locator(bizpro.cardTitle)).toHaveText(originalTitle);
+            await expect(await proCard.locator(pro.cardTitle)).toHaveText(originalTitle);
         });
     });
 
-    // @studio-bizpro-edit-discard-description - Validate edit description for bizpro card in mas studio
+    // @studio-pro-edit-discard-description - Validate edit description for pro card in mas studio
     test(`${features[2].name},${features[2].tags}`, async ({ page, baseURL }) => {
         const { data } = features[2];
         const testPage = `${baseURL}${features[2].path}${miloLibs}${features[2].browserParams}${data.cardid}`;
         setTestPage(testPage);
-        const bizproCard = await studio.getCard(data.cardid);
+        const proCard = await studio.getCard(data.cardid);
         let originalDescription;
 
         await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
             await page.goto(testPage);
             await page.waitForLoadState('domcontentloaded');
             await expect(await editor.panel).toBeVisible();
-            await expect(await bizproCard).toBeVisible();
-            await expect(await bizproCard).toHaveAttribute('variant', 'bizpro');
-            originalDescription = await bizproCard.locator(bizpro.cardDescription).textContent();
+            await expect(await proCard).toBeVisible();
+            await expect(await proCard).toHaveAttribute('variant', 'pro');
+            originalDescription = await proCard.locator(pro.cardDescription).textContent();
         });
 
         await test.step('step-2: Edit description field', async () => {
@@ -102,7 +102,7 @@ test.describe('M@S Studio ACOM BizPro card test suite', () => {
 
         await test.step('step-3: Validate description field updated', async () => {
             await expect(await editor.description).toContainText(data.description.updated);
-            await expect(await bizproCard.locator(bizpro.cardDescription)).toContainText(data.description.updated);
+            await expect(await proCard.locator(pro.cardDescription)).toContainText(data.description.updated);
         });
 
         await test.step('step-4: Close the editor and verify discard is triggered', async () => {
@@ -110,25 +110,25 @@ test.describe('M@S Studio ACOM BizPro card test suite', () => {
         });
 
         await test.step('step-5: Validate description field not updated', async () => {
-            await expect(await bizproCard.locator(bizpro.cardDescription)).toContainText(originalDescription.trim());
+            await expect(await proCard.locator(pro.cardDescription)).toContainText(originalDescription.trim());
         });
     });
 
-    // @studio-bizpro-edit-discard-whats-included-label - Validate edit whats included toggle label for bizpro card in mas studio
+    // @studio-pro-edit-discard-whats-included-label - Validate edit whats included toggle label for pro card in mas studio
     test(`${features[3].name},${features[3].tags}`, async ({ page, baseURL }) => {
         const { data } = features[3];
         const testPage = `${baseURL}${features[3].path}${miloLibs}${features[3].browserParams}${data.cardid}`;
         setTestPage(testPage);
-        const bizproCard = await studio.getCard(data.cardid);
+        const proCard = await studio.getCard(data.cardid);
         let originalLabel;
 
         await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
             await page.goto(testPage);
             await page.waitForLoadState('domcontentloaded');
             await expect(await editor.panel).toBeVisible();
-            await expect(await bizproCard).toBeVisible();
-            await expect(await bizproCard).toHaveAttribute('variant', 'bizpro');
-            originalLabel = await bizproCard.locator(bizpro.cardWhatsIncludedToggleLabel).textContent();
+            await expect(await proCard).toBeVisible();
+            await expect(await proCard).toHaveAttribute('variant', 'pro');
+            originalLabel = await proCard.locator(pro.cardWhatsIncludedToggleLabel).textContent();
         });
 
         await test.step('step-2: Edit whats included label field', async () => {
@@ -138,7 +138,7 @@ test.describe('M@S Studio ACOM BizPro card test suite', () => {
 
         await test.step('step-3: Validate whats included toggle label updated on the card', async () => {
             await expect(await editor.whatsIncludedLabel).toHaveValue(data.whatsIncluded.label);
-            await expect(await bizproCard.locator(bizpro.cardWhatsIncludedToggleLabel)).toHaveText(data.whatsIncluded.label);
+            await expect(await proCard.locator(pro.cardWhatsIncludedToggleLabel)).toHaveText(data.whatsIncluded.label);
         });
 
         // Discard immediately after the edit (mirrors the title/description
@@ -151,7 +151,7 @@ test.describe('M@S Studio ACOM BizPro card test suite', () => {
         });
 
         await test.step('step-5: Validate whats included toggle label not updated', async () => {
-            await expect(await bizproCard.locator(bizpro.cardWhatsIncludedToggleLabel)).toHaveText(originalLabel.trim());
+            await expect(await proCard.locator(pro.cardWhatsIncludedToggleLabel)).toHaveText(originalLabel.trim());
         });
     });
 });

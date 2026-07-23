@@ -1357,19 +1357,25 @@
                         });
                     });
 
-                    describe('#updateWhatsIncluded bizpro routing', () => {
-                        const BIZPRO_SEED =
+                    describe('#updateWhatsIncluded pro routing', () => {
+                        const PRO_SEED =
                             '<p class="whats-included-label">Voir :</p>' +
                             '<div class="section"><h4>PDF</h4><ul><li>row</li></ul></div>';
 
-                        async function setupBizPro(testId) {
-                            const { fragmentStore: store } = await setupTestEnvironment({ variant: ['bizpro'] }, testId);
-                            store.get().fields.push({ name: 'whatsIncluded', values: [BIZPRO_SEED], multiple: false });
+                        async function setupPro(testId) {
+                            const { fragmentStore: store } = await setupTestEnvironment({ variant: ['pro'] }, testId);
+                            store.get().fields.push({ name: 'whatsIncluded', values: [PRO_SEED], multiple: false });
                             return store;
                         }
 
+                        it('renders a stored bizpro variant as Pro in the picker', async () => {
+                            await setupTestEnvironment({ variant: ['bizpro'] }, 'legacy-pro-picker');
+
+                            expect(editor.querySelector('#card-variant').value).to.equal('pro');
+                        });
+
                         it('serializes bullet multifield changes and preserves the stored label', async () => {
-                            const store = await setupBizPro('bizpro-wi-bullets');
+                            const store = await setupPro('pro-wi-bullets');
 
                             const multifield = editor.querySelector('#whatsIncluded mas-multifield[button-label="Add bullet"]');
                             multifield.value = [{ icon: 'sp-icon-star', alt: '<p>Title</p><p>new row</p>', link: '' }];
@@ -1383,7 +1389,7 @@
                         });
 
                         it('serializes label input changes and preserves the stored bullets', async () => {
-                            const store = await setupBizPro('bizpro-wi-label');
+                            const store = await setupPro('pro-wi-label');
 
                             const labelField = editor.querySelector('#whatsIncludedLabel');
                             labelField.value = 'New label';
@@ -1395,8 +1401,8 @@
                             expect(stored).to.include('PDF');
                         });
 
-                        it('ignores the "Add application" multifield for bizpro', async () => {
-                            const store = await setupBizPro('bizpro-wi-applications');
+                        it('ignores the "Add application" multifield for pro', async () => {
+                            const store = await setupPro('pro-wi-applications');
 
                             const multifield = editor.querySelector(
                                 '#whatsIncluded mas-multifield[button-label="Add application"]',
@@ -1404,7 +1410,7 @@
                             multifield.value = [{ icon: '', alt: 'ignored', link: '' }];
                             multifield.dispatchEvent(new CustomEvent('change'));
 
-                            expect(store.get().getFieldValue('whatsIncluded')).to.equal(BIZPRO_SEED);
+                            expect(store.get().getFieldValue('whatsIncluded')).to.equal(PRO_SEED);
                         });
                     });
 

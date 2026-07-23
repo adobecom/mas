@@ -8,6 +8,7 @@ A Chrome extension (Manifest V3) that detects merch cards rendered by `mas.js` o
 - **Visual badges** on detected cards showing variant information
 - **Quick edit**: one-click deep link into M@S Studio
 - **Fragment data**: view fragment metadata in an expandable panel
+- **Promotions**: shows the promo code a card carries (`data-promotion-code` on the card and its prices/CTAs, with `cancel-context` reported as a cancelled promo, never as a code), lists promo variations, and makes cards searchable by promo code in the popup
 - **Card list**: the popup lists every card on the current page, filterable by variant
 - **Export** all card data as JSON
 

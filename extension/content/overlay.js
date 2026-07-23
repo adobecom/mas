@@ -76,6 +76,7 @@ class CardOverlay {
         const headerLabel = isCollection
             ? `Collection: ${this.escapeHtml(cardData.cardName)}`
             : this.escapeHtml(cardData.cardName);
+        const promotion = !isCollection && window.MASPromo ? window.MASPromo.readElementPromotion(cardData.element) : null;
         panel.innerHTML = `
       <div class="mas-ext-panel-header">
         <h3>${headerLabel}</h3>
@@ -112,6 +113,7 @@ class CardOverlay {
           `
                   : ''
           }
+          ${this.renderPromotionField(promotion)}
           <div class="mas-ext-field">
             <span class="mas-ext-field-label">Path</span>
             <span class="mas-ext-field-value mas-ext-mono mas-ext-path-value">Loading…</span>
@@ -290,6 +292,28 @@ class CardOverlay {
                 throw err;
             }
         }
+    }
+
+    renderPromotionField(promotion) {
+        if (!promotion) return '';
+
+        let value;
+        if (promotion.effectiveCode) {
+            value = `<span class="mas-ext-tag">${this.escapeHtml(promotion.effectiveCode)}</span>`;
+            if (promotion.hasConflict) {
+                value += ` <span class="mas-ext-field-value">(multiple codes: ${this.escapeHtml(promotion.childCodes.join(', '))})</span>`;
+            } else if (promotion.hasCancelContext) {
+                value += ' <span class="mas-ext-field-value">(cancelled on some elements)</span>';
+            }
+        } else {
+            value = '<span class="mas-ext-field-value">Cancelled (cancel-context)</span>';
+        }
+
+        return `
+          <div class="mas-ext-field">
+            <span class="mas-ext-field-label">Promotion</span>
+            ${value}
+          </div>`;
     }
 
     formatFragmentError(code) {

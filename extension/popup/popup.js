@@ -163,7 +163,13 @@ function renderCards() {
             const cardName = (card.cardName || '').toLowerCase();
             const fragmentId = (card.fragmentId || '').toLowerCase();
             const variant = (card.variant || '').toLowerCase();
-            return cardName.includes(searchQuery) || fragmentId.includes(searchQuery) || variant.includes(searchQuery);
+            const promoCode = (card.promotion?.effectiveCode || '').toLowerCase();
+            return (
+                cardName.includes(searchQuery) ||
+                fragmentId.includes(searchQuery) ||
+                variant.includes(searchQuery) ||
+                promoCode.includes(searchQuery)
+            );
         });
     }
 
@@ -194,7 +200,7 @@ function createCardItem(card) {
     const iconSvg = window.MASIcons ? window.MASIcons.get(variantIcon(card), 'M') : '';
 
     const cardName = card.cardName || card.fragmentId;
-    const hint = card.size ? `${card.variant} · ${card.size}` : card.variant;
+    const hint = [card.variant, card.size, promotionHint(card.promotion)].filter(Boolean).join(' · ');
 
     item.innerHTML = `
     <div class="card-row-thumbnail" style="background:${iconBg}">${iconSvg}</div>
@@ -216,6 +222,12 @@ function createCardItem(card) {
     });
 
     return item;
+}
+
+function promotionHint(promotion) {
+    if (!promotion) return '';
+    if (promotion.effectiveCode) return `promo: ${promotion.effectiveCode}`;
+    return 'promo cancelled';
 }
 
 function updateVariantFilter() {

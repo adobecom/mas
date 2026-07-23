@@ -206,6 +206,7 @@ class CardDetector {
         const elementType = cardElement.tagName === 'MERCH-CARD-COLLECTION' ? 'collection' : 'card';
         const rawVariant = cardElement.variant || cardElement.getAttribute('variant');
         const variant = rawVariant || (elementType === 'collection' ? 'collection' : 'unknown');
+        const promotion = this.readPromotion(cardElement, elementType);
         const cardData = {
             element: cardElement,
             fragmentId: fragmentId,
@@ -217,6 +218,7 @@ class CardDetector {
             borderColor: cardElement.getAttribute('border-color'),
             backgroundColor: cardElement.getAttribute('background-color'),
             failed: cardElement.hasAttribute('failed'),
+            promotion: promotion,
             boundingRect: cardElement.getBoundingClientRect(),
             locale: localeInfo.locale,
             country: localeInfo.country,
@@ -237,10 +239,17 @@ class CardDetector {
         }
     }
 
+    readPromotion(cardElement, elementType) {
+        if (elementType !== 'card') return null;
+        if (typeof window === 'undefined' || !window.MASPromo) return null;
+        return window.MASPromo.readElementPromotion(cardElement);
+    }
+
     getAllCards() {
         const cards = [];
         this.detectedCards.forEach((cardData) => {
             const rect = cardData.element.getBoundingClientRect();
+            cardData.promotion = this.readPromotion(cardData.element, cardData.elementType);
             cards.push({
                 fragmentId: cardData.fragmentId,
                 variant: cardData.variant,
@@ -251,6 +260,7 @@ class CardDetector {
                 borderColor: cardData.borderColor,
                 backgroundColor: cardData.backgroundColor,
                 failed: cardData.failed,
+                promotion: cardData.promotion,
                 boundingRect: rect,
                 isVisible: this.isElementVisible(cardData.element),
                 locale: cardData.locale,

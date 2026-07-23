@@ -113,7 +113,7 @@ class FragmentParser {
             basic: ['variant', 'name', 'cardTitle', 'size'],
             styling: ['badgeColor', 'badgeBackgroundColor', 'borderColor', 'backgroundColor'],
             content: ['description', 'shortDescription', 'badge', 'mnemonicIcon', 'mnemonicAlt', 'mnemonicLink'],
-            pricing: ['prices', 'priceStrikethrough'],
+            pricing: ['prices', 'priceStrikethrough', 'promoCode'],
             actions: ['ctas', 'ctaText', 'ctaUrl'],
             metadata: ['tags', 'created', 'modified', 'published', 'status'],
         };
@@ -293,4 +293,8 @@ class FragmentParser {
 
 if (typeof window !== 'undefined') {
     window.MASFragmentParser = new FragmentParser();
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = { FragmentParser };
 }

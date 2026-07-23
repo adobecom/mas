@@ -18,6 +18,7 @@
                 "utils/escape.js",
                 "utils/icons.js",
                 "utils/locales.js",
+                "utils/promo.js",
                 "utils/card-detector.js",
                 "utils/studio-linker.js",
                 "utils/fragment-parser.js",

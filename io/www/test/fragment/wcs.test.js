@@ -59,7 +59,7 @@ describe('wcs typical cases', function () {
                         url.includes('landscape=PUBLISHED') &&
                         url.includes('api_key=wcms-commerce-ims-ro-user-milo') &&
                         url.includes('language=MULT') &&
-                        !url.includes('promotion_code'),
+                        url.includes('promotion_code=UPT_PROMO-1'),
                 ),
             )
             .returns(createResponse(200, { resolvedOffers: [{ blah: 'blah' }] }));
@@ -99,7 +99,7 @@ describe('wcs typical cases', function () {
         context = await wcs.process(context);
         expect(context.body.wcs).to.deep.equal({
             prod: {
-                'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M-us-mult': [
+                'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M-us-mult-upt_promo-1': [
                     {
                         blah: 'blah',
                     },
@@ -116,6 +116,73 @@ describe('wcs typical cases', function () {
                 ],
             },
         });
+        delete context.body.fields.osi;
+        delete context.body.fields.promoCode;
+    });
+
+    it('falls back to the top-level fragment promoCode for a bare markup OSI with no matching reference', async function () {
+        fetchStub
+            .withArgs(
+                sinon.match(
+                    (url) =>
+                        url.includes('web_commerce_artifact') &&
+                        url.includes('offer_selector_ids=A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M') &&
+                        url.includes('promotion_code=CTX_PROMO'),
+                ),
+            )
+            .returns(createResponse(200, { resolvedOffers: [{ blah: 'blah' }] }));
+        fetchStub
+            .withArgs(
+                sinon.match(
+                    (url) =>
+                        url.includes('web_commerce_artifact') &&
+                        url.includes('offer_selector_ids=Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ') &&
+                        url.includes('promotion_code=NICOPROMO'),
+                ),
+            )
+            .returns(createResponse(200, { resolvedOffers: [{ foo: 'bar' }] }));
+        context.wcsConfiguration = CONFIGURATION();
+        context.body.fields.promoCode = 'CTX_PROMO';
+        context = await wcs.process(context);
+        expect(context.body.wcs.prod).to.have.property('A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M-us-mult-ctx_promo');
+        expect(context.body.wcs.prod).to.not.have.property('A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M-us-mult');
+        expect(context.body.wcs.prod).to.have.property('Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ-us-mult-nicopromo');
+        delete context.body.fields.promoCode;
+    });
+
+    it('reference-map promo code takes precedence over the top-level fragment promoCode', async function () {
+        context.body.references.card1 = {
+            value: {
+                fields: { osi: 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M', promoCode: 'REF_PROMO' },
+            },
+        };
+        fetchStub
+            .withArgs(
+                sinon.match(
+                    (url) =>
+                        url.includes('web_commerce_artifact') &&
+                        url.includes('offer_selector_ids=A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M') &&
+                        url.includes('promotion_code=REF_PROMO'),
+                ),
+            )
+            .returns(createResponse(200, { resolvedOffers: [{ blah: 'blah' }] }));
+        fetchStub
+            .withArgs(
+                sinon.match(
+                    (url) =>
+                        url.includes('web_commerce_artifact') &&
+                        url.includes('offer_selector_ids=Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ') &&
+                        url.includes('promotion_code=NICOPROMO'),
+                ),
+            )
+            .returns(createResponse(200, { resolvedOffers: [{ foo: 'bar' }] }));
+        context.wcsConfiguration = CONFIGURATION();
+        context.body.fields.promoCode = 'CTX_PROMO';
+        context = await wcs.process(context);
+        expect(context.body.wcs.prod).to.have.property('A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M-us-mult-ref_promo');
+        expect(context.body.wcs.prod).to.not.have.property('A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M-us-mult-ctx_promo');
+        delete context.body.fields.promoCode;
+        delete context.body.references.card1;
     });
 
     it('should parse fragment and call related items  with en_GB, putting them in a map with right env', async function () {
@@ -502,5 +569,71 @@ describe('wcs OSI substitution', function () {
         expect(context.body.prices).to.not.include('data-wcs-osi="OSI-B"');
         expect(context.body.wcs.prod).to.have.property('SUBSTITUTED-OSI-A-us-mult');
         expect(context.body.wcs.prod).to.have.property('B-us-mult');
+    });
+});
+
+describe('wcs collection promos', function () {
+    let context = {};
+    let fetchStub;
+
+    const stubbedOffer = (name) => ({ resolvedOffers: [{ name }] });
+
+    beforeEach(function () {
+        fetchStub = sinon.stub(globalThis, 'fetch');
+        fetchStub.resolves(createResponse(200, stubbedOffer('default')));
+        context = {
+            api_key: 'testing_wcs',
+            locale: 'en_US',
+            wcsConfiguration: CONFIGURATION(),
+        };
+    });
+
+    afterEach(function () {
+        fetchStub.restore();
+    });
+
+    it('caches each card with its own promo when two cards have different promos', async function () {
+        context.body = {
+            prices: '<span data-wcs-osi="OSI-A"></span><span data-wcs-osi="OSI-B"></span>',
+            fields: {},
+            references: {
+                card1: { value: { fields: { osi: 'OSI-A', promoCode: 'PROMO_A' } } },
+                card2: { value: { fields: { osi: 'OSI-B', promoCode: 'PROMO_B' } } },
+            },
+        };
+        context = await wcs.process(context);
+        expect(context.body.wcs.prod).to.have.property('OSI-A-us-mult-promo_a');
+        expect(context.body.wcs.prod).to.have.property('OSI-B-us-mult-promo_b');
+        expect(context.body.wcs.prod).to.not.have.property('OSI-A-us-mult-promo_b');
+        expect(context.body.wcs.prod).to.not.have.property('OSI-B-us-mult-promo_a');
+    });
+
+    it('caches the plain offer for a no-promo card sharing a collection with a promoted card', async function () {
+        context.body = {
+            prices: '<span data-wcs-osi="OSI-A"></span><span data-wcs-osi="OSI-B"></span>',
+            fields: {},
+            references: {
+                card1: { value: { fields: { osi: 'OSI-A', promoCode: 'PROMO_A' } } },
+                card2: { value: { fields: { osi: 'OSI-B' } } },
+            },
+        };
+        context = await wcs.process(context);
+        expect(context.body.wcs.prod).to.have.property('OSI-A-us-mult-promo_a');
+        expect(context.body.wcs.prod).to.have.property('OSI-B-us-mult');
+        expect(context.body.wcs.prod).to.not.have.property('OSI-B-us-mult-promo_a');
+    });
+
+    it('never applies a collection card promo to a different cards bare osi', async function () {
+        context.body = {
+            prices: '<span data-wcs-osi="OSI-A"></span><span data-wcs-osi="OSI-BARE"></span>',
+            fields: {},
+            references: {
+                card1: { value: { fields: { osi: 'OSI-A', promoCode: 'PROMO_A' } } },
+            },
+        };
+        context = await wcs.process(context);
+        expect(context.body.wcs.prod).to.have.property('OSI-A-us-mult-promo_a');
+        expect(context.body.wcs.prod).to.have.property('OSI-BARE-us-mult');
+        expect(context.body.wcs.prod).to.not.have.property('OSI-BARE-us-mult-promo_a');
     });
 });

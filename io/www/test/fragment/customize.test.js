@@ -2374,10 +2374,9 @@ describe('customize with multiple active promotion projects', function () {
     });
 
     it('selects the explicit-mapping project over a variation-only project, suppressing its variation', async function () {
-        // Mirrors the real acom-cc ZA case: one project owns the osi/promo mapping for the card
-        // but has no variation, another has a variation but no mapping for this offer+geo. A single
-        // project must win — the one with the explicit mapping — so the unrelated variation is NOT
-        // applied (no mixup between a price update from one project and a variation from another).
+        // RPP ZA case: Regional project owns the osi mapping for the card & no variation,
+        // Intro project has a variation but no mapping for this offer+geo. Regional
+        // project must win, it has explicit mapping and unrelated variation is NOT applied
         const projectVariationOnly = {
             id: 'proj-var',
             path: '/content/dam/mas/promotions/proj-var',
@@ -2415,38 +2414,6 @@ describe('customize with multiple active promotion projects', function () {
         expect(result.body.promoProject).to.equal('proj-promo');
         expect(result.body.variationId).to.equal(undefined);
         expect(result.body.promoVariationProject).to.equal(undefined);
-    });
-
-    it('applies a variation-only project when it is the sole project targeting the fragment', async function () {
-        // With no competing explicit-mapping project, the variation-only project is the fallback
-        // selection, so its variation still applies (e.g. the intro-pricing card when the regional
-        // project does not exist).
-        const projectVariationOnly = {
-            id: 'proj-var',
-            path: '/content/dam/mas/promotions/proj-var',
-            defaultVariations: {
-                'card-x': {
-                    id: 'var-x',
-                    path: '/content/dam/mas/sandbox/en_US/promotions/proj-var/card-x',
-                    fields: { title: 'Variation-only project' },
-                },
-            },
-            regionVariations: {},
-        };
-        const rootFragment = {
-            id: 'card-x',
-            path: '/content/dam/mas/sandbox/en_US/card-x',
-            fields: { osi: 'OSI-X', title: 'Original X' },
-            references: {},
-            referencesTree: [],
-        };
-        const result = await processWithPromoProjects({ ...FAKE_CONTEXT, fragmentPath: 'card-x', body: rootFragment }, [
-            { project: projectVariationOnly, promoMap: {}, fragmentPaths: new Set(['card-x']) },
-        ]);
-        expect(result.status).to.equal(200);
-        expect(result.body.variationId).to.equal('var-x');
-        expect(result.body.promoVariationProject).to.equal('proj-var');
-        expect(result.body.promoProject).to.equal('proj-var');
     });
 
     it('selects a project by an explicit OSI substitution when it has no promoMap entry', async function () {
@@ -2522,6 +2489,49 @@ describe('customize with multiple active promotion projects', function () {
         expect(result.status).to.equal(200);
         expect(result.body.variationId).to.equal('var-x');
         expect(result.body.promoProject).to.equal('proj-var');
+    });
+
+    it('selects a wildcard-promo project over a mapping-less project when neither has an explicit entry', async function () {
+        // Explicit > wildcard > nothing: with no explicit-mapping project, a blanket wildcard promo
+        // should still be applied rather than dropped (mirrors promomweb winning over promomweb2).
+        // The wildcard project has no variation, so the variation-only project's variation is suppressed.
+        const projectVariationOnly = {
+            id: 'proj-var',
+            path: '/content/dam/mas/promotions/proj-var',
+            defaultVariations: {
+                'card-x': {
+                    id: 'var-x',
+                    path: '/content/dam/mas/sandbox/en_US/promotions/proj-var/card-x',
+                    fields: { title: 'Variation-only project' },
+                },
+            },
+            regionVariations: {},
+        };
+        const projectWildcard = {
+            id: 'proj-blanket',
+            path: '/content/dam/mas/promotions/proj-blanket',
+            defaultVariations: {},
+            regionVariations: {},
+        };
+        const rootFragment = {
+            id: 'card-x',
+            path: '/content/dam/mas/sandbox/en_US/card-x',
+            fields: { osi: 'OSI-X', title: 'Original X' },
+            references: {},
+            referencesTree: [],
+        };
+        const result = await processWithPromoProjects({ ...FAKE_CONTEXT, fragmentPath: 'card-x', body: rootFragment }, [
+            // proj-var sorts first and has a variation, but no promo mapping at all.
+            { project: projectVariationOnly, promoMap: {}, fragmentPaths: new Set(['card-x']) },
+            // proj-blanket only has a wildcard promo, which must win over the mapping-less project.
+            { project: projectWildcard, promoMap: { '*': 'SUMMER25' }, fragmentPaths: new Set(['card-x']) },
+        ]);
+        expect(result.status).to.equal(200);
+        expect(result.body.fields.promoCode).to.equal('SUMMER25');
+        expect(result.body.promoProject).to.equal('proj-blanket');
+        // The wildcard project has no variation, so the variation-only project's variation is not applied.
+        expect(result.body.variationId).to.equal(undefined);
+        expect(result.body.promoVariationProject).to.equal(undefined);
     });
 
     it('stamps promoVariationProject from the variation project when no promoCode is applied', async function () {

@@ -249,15 +249,9 @@ function findPromoMapsForFragment(root, customizeContext) {
 }
 
 /**
- * Selects a single promo project for a fragment so promo code, OSI substitution, and promo
- * variation all originate from the same project, avoiding cross-project mixups (e.g. a price
- * update from one project combined with an unrelated variation from another).
- *
- * Among the projects that target this fragment (in promoProjects priority order), a project
- * that has an EXPLICIT mapping for one of the fragment's OSIs wins over projects without one.
- * An explicit mapping is an explicit `promoMap` entry keyed by the OSI (the `'*'` wildcard does
- * NOT count) or an OSI substitution for the resolved geo. When no targeting project has an
- * explicit mapping, the first targeting project is used so variation-only projects still apply.
+ * Selects a single promo project for a fragment.
+ * explicit mapping (osi replace or promo code) wins over wild card promo only
+ * wildcard promo wins over no promo and no mapping
  *
  * @returns the selected `{ project, promoMap, substituteMap, fragmentPaths }` entry, or null
  *          when no promo project targets the fragment.
@@ -269,7 +263,9 @@ function selectPromoProjectForFragment(root, customizeContext) {
     const osis = fragOsi ? (Array.isArray(fragOsi) ? fragOsi : [fragOsi]) : [];
     const hasExplicitMapping = ({ promoMap, substituteMap }) =>
         osis.some((osi) => promoMap[osi] !== undefined || substituteMap?.[osi] !== undefined);
-    const selected = promoEntries.find(hasExplicitMapping) ?? promoEntries[0];
+    const hasWildcardPromo = ({ promoMap }) => Boolean(promoMap['*']);
+    const selected =
+        promoEntries.find(hasExplicitMapping) ?? promoEntries.find(hasWildcardPromo) ?? promoEntries[0];
     logDebug(
         () =>
             `Selected promo project ${selected.project.id} for fragment ${root.id} out of ${promoEntries.length} targeting project(s)`,

@@ -34,9 +34,8 @@ class MasItemsSelector extends LitElement {
         maxSelectedCards: { type: Number, attribute: 'max-selected-cards' },
         lockedTemplateFilter: { type: String, attribute: 'locked-template-filter' },
         defaultTemplateFilter: { type: String, attribute: 'default-template-filter' },
-        disableGroupedVariationSelection: { type: Boolean, attribute: 'disable-grouped-variation-selection' },
-        hideLocaleTab: { type: Boolean, attribute: 'hide-locale-tab' },
-        disableLocaleVariations: { type: Boolean, attribute: 'disable-locale-variations' },
+        nonSelectableVariations: { type: Array, attribute: 'non-selectable-variations' },
+        variationTabs: { type: Array },
         /** @type {(fragmentData: object) => string} */
         getDisplayName: { type: Function },
         renderFragmentStatusCell: { type: Function },
@@ -54,9 +53,6 @@ class MasItemsSelector extends LitElement {
         this.maxSelectedCards = Infinity;
         this.lockedTemplateFilter = '';
         this.defaultTemplateFilter = '';
-        this.disableGroupedVariationSelection = false;
-        this.hideLocaleTab = false;
-        this.disableLocaleVariations = false;
         this.getDisplayName = getStudioFragmentDisplayPath;
         this.renderFragmentStatusCell = renderFragmentStatusCell;
         this.hidePromoVariations = false;
@@ -383,9 +379,8 @@ class MasItemsSelector extends LitElement {
                 .viewOnly=${this.viewOnly}
                 .type=${type}
                 .maxSelectedCards=${this.maxSelectedCards}
-                .disableGroupedVariationSelection=${this.disableGroupedVariationSelection}
-                .hideLocaleTab=${this.hideLocaleTab}
-                .disableLocaleVariations=${this.disableLocaleVariations}
+                .nonSelectableVariations=${this.nonSelectableVariations}
+                .tabs=${this.variationTabs}
                 .getDisplayName=${this.getDisplayName}
                 .renderFragmentStatusCell=${this.renderFragmentStatusCell}
                 .hidePromoVariations=${this.hidePromoVariations}

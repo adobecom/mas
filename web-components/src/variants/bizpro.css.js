@@ -406,6 +406,16 @@ merch-card[variant="bizpro"] [slot="heading-m"] .price.price-legal {
     color: var(--consonant-merch-card-bizpro-text-muted-color);
 }
 
+/* The legal line opens with an empty unit-type, so the tax label's leading
+   ::before nbsp turns into a spurious indent and the line no longer aligns with
+   the price above it; drop it when nothing precedes the tax label (MWPW-198626). */
+merch-card[variant="bizpro"]
+    .price-legal
+    .price-unit-type.disabled
+    + .price-tax-inclusivity:not(.disabled)::before {
+    content: none;
+}
+
 /* Collection grid — C2 breakpoints only (768, 1280).
    - Mobile: single column, full width.
    - Tablet (≥768): 2-column grid for 2/3/4 cards.

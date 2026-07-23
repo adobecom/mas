@@ -1,10 +1,13 @@
 import { expect } from '@esm-bundle/chai';
 import sinon from 'sinon';
 import Store from '../../src/store.js';
+import Events from '../../src/events.js';
 import { setItemsSelectionStore } from '../../src/common/items-selection-store.js';
 import MasPromotionsEditor from '../../src/promotions/mas-promotions-editor.js';
 import { Promotion } from '../../src/aem/promotion.js';
-import { CARD_MODEL_PATH, PAGE_NAMES } from '../../src/constants.js';
+import { CARD_MODEL_PATH, EVENT_OST_OFFER_SELECT, PAGE_NAMES, TABLE_TYPE, TAG_PROMOTION_PREFIX } from '../../src/constants.js';
+import { normalizeKey, UserFriendlyError } from '../../src/utils.js';
+import { buildPromotionTagPath, serializePromotionSurfacesForAem } from '../../src/promotions/promotion-editor-utils.js';
 
 function makeFragmentData(overrides = {}) {
     return {
@@ -31,30 +34,52 @@ function makePromotion(overrides = {}) {
     return new Promotion(makeFragmentData(overrides));
 }
 
-function clickPromotionsFormButton(el, label) {
-    const buttons = [...el.renderRoot.querySelectorAll('.promotions-form-buttons sp-button')];
-    const btn = buttons.find((b) => b.textContent.trim() === label);
-    btn.dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
+function getPromotionQuickActions(el) {
+    return el.renderRoot.querySelector('mas-quick-actions');
+}
+
+function getPromotionQuickActionTitles(el) {
+    const quickActions = getPromotionQuickActions(el);
+    if (!quickActions) return [];
+    return [...quickActions.shadowRoot.querySelectorAll('sp-action-button')].map((button) => button.title);
+}
+
+function clickPromotionQuickAction(el, title) {
+    const quickActions = getPromotionQuickActions(el);
+    const button = [...quickActions.shadowRoot.querySelectorAll('sp-action-button')].find((b) => b.title === title);
+    button.dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
+}
+
+function isPromotionQuickActionDisabled(el, title) {
+    const quickActions = getPromotionQuickActions(el);
+    const button = [...quickActions.shadowRoot.querySelectorAll('sp-action-button')].find((b) => b.title === title);
+    return button.disabled === true || button.hasAttribute('disabled');
 }
 
 describe('MasPromotionsEditor', () => {
     let sandbox;
     let originalInEdit;
     let originalSelectedCards;
+    let originalSelectedOffers;
     let originalSelectedCollections;
-    let originalItemHydrateUnreachablePaths;
-
+    let originalProfile;
+    let originalUsers;
     beforeEach(() => {
         sandbox = sinon.createSandbox();
         originalInEdit = Store.promotions.inEdit.get();
         originalSelectedCards = [...Store.promotions.selectedCards.value];
+        originalSelectedOffers = [...Store.promotions.selectedOffers.value];
         originalSelectedCollections = [...Store.promotions.selectedCollections.value];
-        originalItemHydrateUnreachablePaths = [...Store.promotions.itemHydrateUnreachablePaths.value];
+        originalProfile = structuredClone(Store.profile.get());
+        originalUsers = structuredClone(Store.users.get());
         Store.promotions.inEdit.set(null);
         Store.promotions.selectedCards.set([]);
+        Store.promotions.selectedOffers.set([]);
         Store.promotions.selectedCollections.set([]);
-        Store.promotions.itemHydrateUnreachablePaths.set([]);
         Store.promotions.promotionId.set(null);
+        // Default to a promotions editor so mutating UI renders; viewer cases override this.
+        Store.profile.set({ email: 'editor@adobe.com' });
+        Store.users.set([{ userPrincipalName: 'editor@adobe.com', groups: ['GRP-ODIN-MAS-PROMO-EDITORS'] }]);
         setItemsSelectionStore(Store.promotions);
     });
 
@@ -64,21 +89,33 @@ describe('MasPromotionsEditor', () => {
             el.remove();
             await el.updateComplete;
         }
-        await new Promise((resolve) => setTimeout(resolve, 350));
+        await flushPromises();
         sandbox.restore();
         Store.promotions.inEdit.set(originalInEdit);
         Store.promotions.selectedCards.set(originalSelectedCards);
+        Store.promotions.selectedOffers.set(originalSelectedOffers);
         Store.promotions.selectedCollections.set(originalSelectedCollections);
-        Store.promotions.itemHydrateUnreachablePaths.set(originalItemHydrateUnreachablePaths);
         Store.promotions.promotionId.set(null);
+        Store.profile.set(originalProfile);
+        Store.users.set(originalUsers);
         setItemsSelectionStore(null);
     });
+
+    async function flushPromises() {
+        await new Promise((resolve) => setTimeout(resolve, 0));
+    }
+
+    async function waitForEditorConnect(el) {
+        await el.updateComplete;
+        await flushPromises();
+        await flushPromises();
+    }
 
     async function mountEditor() {
         const el = new MasPromotionsEditor();
         sandbox.stub(el, 'repository').get(() => null);
         document.body.appendChild(el);
-        await el.updateComplete;
+        await waitForEditorConnect(el);
         return el;
     }
 
@@ -86,7 +123,7 @@ describe('MasPromotionsEditor', () => {
         return {
             getPromotionsPath: () => '/content/dam/mas/promotions',
             createFragment: sandbox.stub().resolves(makePromotion({ id: 'created-id', title: 'T' })),
-            saveFragment: sandbox.stub().resolves(),
+            saveFragment: sandbox.stub().callsFake((store) => Promise.resolve(store.get())),
             publishFragment: sandbox.stub().resolves(true),
             unpublishFragment: sandbox.stub().resolves(true),
             searchFragments: sandbox.stub(),
@@ -106,6 +143,9 @@ describe('MasPromotionsEditor', () => {
                     },
                 },
                 getFragmentByPath: null,
+                tags: {
+                    create: sandbox.stub().resolves(),
+                },
             },
             ...overrides,
         };
@@ -133,12 +173,165 @@ describe('MasPromotionsEditor', () => {
     }
 
     describe('selectedItemsCount', () => {
-        it('sums selected cards and collections from the promotions store', async () => {
+        it('sums selected offers, cards and collections from the promotions store', async () => {
             const el = await mountEditor();
+            Store.promotions.selectedOffers.set(['offer-1']);
             Store.promotions.selectedCards.set(['/c1']);
             Store.promotions.selectedCollections.set(['/col1', '/col2']);
             await el.updateComplete;
-            expect(el.selectedItemsCount).to.equal(3);
+            expect(el.selectedItemsCount).to.equal(4);
+        });
+    });
+
+    describe('promotion items empty state', () => {
+        it('renders Offers and Fragments tabs with add product offers empty state by default', async () => {
+            const el = await mountEditor();
+            await el.updateComplete;
+            expect(el.showSelectedEmptyState).to.be.true;
+            expect(el.renderRoot.textContent).to.include('Add product offers');
+            expect(el.renderRoot.textContent).to.include('Offers (0)');
+            expect(el.renderRoot.textContent).to.include('Fragments (0)');
+        });
+
+        it('shows select offers first message on Fragments tab', async () => {
+            const el = await mountEditor();
+            el.promotionEmptyItemsTab = TABLE_TYPE.CARDS;
+            await el.updateComplete;
+            expect(el.renderRoot.textContent).to.include('Select offers first');
+            expect(el.renderRoot.textContent).to.include('Fragments will be generated automatically once offers are selected.');
+        });
+
+        it('disables fragments edit and manage promo codes until an offer is selected', async () => {
+            const el = await mountEditor();
+            el.promotionEmptyItemsTab = TABLE_TYPE.CARDS;
+            await el.updateComplete;
+            expect(el.canEditPromotionItemsInEmptyState).to.be.false;
+            expect(el.canManagePromoCodesInEmptyState).to.be.false;
+            const editBtn = el.renderRoot.querySelector('.promotion-empty-actions sp-action-button');
+            expect(editBtn?.hasAttribute('disabled')).to.be.true;
+        });
+
+        it('shows Add offer for offers on Offers tab and Edit for fragments on Fragments tab', async () => {
+            const el = await mountEditor();
+            Store.promotions.selectedOffers.set(['offer-1']);
+            el.promotionEmptyItemsTab = TABLE_TYPE.OFFERS;
+            await el.updateComplete;
+            const offersToolbar = el.renderRoot.querySelector('.promotion-empty-actions');
+            expect(offersToolbar.textContent).to.include('Add offer');
+            expect(offersToolbar.textContent).to.not.include('Add fragments');
+            el.promotionEmptyItemsTab = TABLE_TYPE.CARDS;
+            await el.updateComplete;
+            expect(el.renderRoot.querySelector('.promotion-empty-actions').textContent).to.include('Edit');
+        });
+
+        it('opens items picker overlay from dashed add fragments button when surfaces exist', async () => {
+            const { el, repo } = await mountEditorWithRepo();
+            el.fragmentStore.updateField('surfaces', ['sandbox']);
+            Store.promotions.selectedOffers.set(['offer-1']);
+            el.promotionEmptyItemsTab = TABLE_TYPE.CARDS;
+            await el.updateComplete;
+            const panelButton = el.renderRoot.querySelector('.promotion-empty-panel sp-button');
+            panelButton.click();
+            await el.updateComplete;
+            expect(el.renderRoot.querySelector('#add-promotion-items-overlay').open).to.equal('click');
+        });
+
+        it('keeps empty state and picker open after selecting a fragment before confirm', async () => {
+            const { el } = await mountEditorWithRepo();
+            el.fragmentStore.updateField('surfaces', ['sandbox']);
+            Store.promotions.selectedOffers.set(['offer-1']);
+            el.promotionEmptyItemsTab = TABLE_TYPE.CARDS;
+            await el.updateComplete;
+            el.renderRoot.querySelector('.promotion-empty-panel sp-button').click();
+            await el.updateComplete;
+            Store.promotions.selectedCards.set(['/content/dam/mas/sandbox/en_US/card']);
+            await el.updateComplete;
+            expect(el.promotionItemsPickerOpen).to.be.true;
+            expect(el.showSelectedEmptyState).to.be.true;
+            expect(el.renderRoot.textContent).to.not.include('Selected items');
+            expect(el.renderRoot.querySelector('#add-promotion-items-overlay').open).to.equal('click');
+        });
+
+        it('stays in empty state after an offer is selected until fragments are added', async () => {
+            const el = await mountEditor();
+            Store.promotions.selectedOffers.set(['offer-1']);
+            await el.updateComplete;
+            expect(el.showSelectedEmptyState).to.be.true;
+            expect(el.renderRoot.textContent).to.not.include('Selected items');
+        });
+
+        it('shows add fragments dashed empty state on Fragments tab when offers exist', async () => {
+            const el = await mountEditor();
+            Store.promotions.selectedOffers.set(['offer-1']);
+            el.promotionEmptyItemsTab = TABLE_TYPE.CARDS;
+            await el.updateComplete;
+            expect(el.renderRoot.textContent).to.include('Add fragments');
+            expect(el.renderRoot.textContent).to.include('Select cards and collections this promotion applies to.');
+            expect(el.renderRoot.textContent).to.not.include('Select offers first');
+        });
+
+        it('keeps selected fragments after confirming the item picker', async () => {
+            const { el } = await mountEditorWithRepo();
+            el.fragmentStore.updateField('surfaces', ['sandbox']);
+            Store.promotions.selectedOffers.set(['offer-1']);
+            el.promotionEmptyItemsTab = TABLE_TYPE.CARDS;
+            await el.updateComplete;
+            el.renderRoot.querySelector('.promotion-empty-panel sp-button').click();
+            await el.updateComplete;
+            const selectedPaths = ['/content/dam/mas/sandbox/en_US/card-a', '/content/dam/mas/sandbox/en_US/card-b'];
+            Store.promotions.selectedCards.set(selectedPaths);
+            const dialog = el.renderRoot.querySelector('.add-items-dialog');
+            dialog.dispatchEvent(new CustomEvent('confirm', { bubbles: true, composed: true }));
+            dialog.dispatchEvent(new Event('close', { bubbles: true, composed: true }));
+            dialog.dispatchEvent(new Event('close', { bubbles: true, composed: true }));
+            await el.updateComplete;
+            expect(Store.promotions.selectedCards.value).to.deep.equal(selectedPaths);
+            expect(el.showSelectedEmptyState).to.be.false;
+            expect(el.renderRoot.textContent).to.include('Selected items');
+            expect(el.selectedItemsViewTab).to.equal(TABLE_TYPE.CARDS);
+            const selector = el.renderRoot.querySelector('mas-promotions-items-selector');
+            expect(selector?.selectedTab).to.equal(TABLE_TYPE.CARDS);
+            expect(el.fragment.getFieldValues('fragments')).to.deep.equal(selectedPaths);
+        });
+
+        it('leaves empty state after fragments are confirmed outside the picker', async () => {
+            const el = await mountEditor();
+            Store.promotions.selectedOffers.set(['offer-1']);
+            Store.promotions.selectedCards.set(['/content/dam/mas/sandbox/en_US/card']);
+            await el.updateComplete;
+            expect(el.promotionItemsPickerOpen).to.be.false;
+            expect(el.showSelectedEmptyState).to.be.false;
+            expect(el.renderRoot.textContent).to.include('Selected items');
+        });
+
+        it('adds offer from OST when items table is not mounted in empty state', async () => {
+            const el = await mountEditor();
+            await el.updateComplete;
+            document.dispatchEvent(
+                new CustomEvent(EVENT_OST_OFFER_SELECT, {
+                    detail: { offerSelectorId: 'ffsa-osi', offer: { product_code: 'FFSA', offer_id: 'wcs-1' } },
+                    bubbles: true,
+                    composed: true,
+                }),
+            );
+            await new Promise((resolve) => setTimeout(resolve, 50));
+            await el.updateComplete;
+            expect(Store.promotions.selectedOffers.value).to.include('ffsa-osi');
+            expect(el.fragment.getFieldValues('offers')).to.include('ffsa-osi');
+            expect(el.fragment.hasChanges).to.be.true;
+            expect(el.showSelectedEmptyState).to.be.true;
+            expect(el.promotionEmptyItemsTab).to.equal(TABLE_TYPE.OFFERS);
+            const offersTable = el.renderRoot.querySelector('mas-promotions-items-table');
+            expect(offersTable).to.exist;
+            expect(offersTable.type).to.equal(TABLE_TYPE.OFFERS);
+        });
+
+        it('persists offer ids to fragment offers field via updateField', async () => {
+            const { buildPromotionOffersFieldValues } = await import('../../src/promotions/promotion-editor-utils.js');
+            const el = await mountEditor();
+            await el.updateComplete;
+            el.fragmentStore.updateField('offers', buildPromotionOffersFieldValues(el.fragment, ['ffsa-osi']));
+            expect(el.fragment.getFieldValues('offers')).to.include('ffsa-osi');
         });
     });
 
@@ -152,8 +345,10 @@ describe('MasPromotionsEditor', () => {
 
         it('resets selection stores on connect regardless of prior state', async () => {
             Store.promotions.selectedCards.set(['/a', '/b']);
+            Store.promotions.selectedOffers.set(['offer-a']);
             const el = await mountEditor();
             expect(Store.promotions.selectedCards.value).to.deep.equal([]);
+            expect(Store.promotions.selectedOffers.value).to.deep.equal([]);
             expect(el.showSelectedEmptyState).to.be.true;
         });
 
@@ -162,7 +357,7 @@ describe('MasPromotionsEditor', () => {
             const el = new MasPromotionsEditor();
             sandbox.stub(el, 'repository').get(() => repo);
             document.body.appendChild(el);
-            await el.updateComplete;
+            await waitForEditorConnect(el);
             expect(repo.searchFragments.called).to.be.false;
             expect(repo.loadAllCollections.called).to.be.false;
         });
@@ -174,7 +369,7 @@ describe('MasPromotionsEditor', () => {
             const el = new MasPromotionsEditor();
             sandbox.stub(el, 'repository').get(() => repo);
             document.body.appendChild(el);
-            await el.updateComplete;
+            await waitForEditorConnect(el);
             expect(repo.searchFragments.calledOnce).to.be.true;
             expect(repo.loadAllCollections.calledOnce).to.be.true;
         });
@@ -299,23 +494,72 @@ describe('MasPromotionsEditor', () => {
     });
 
     describe('render', () => {
-        it('shows Create button for new promotions', async () => {
+        it('renders mas-quick-actions with Save for new promotions', async () => {
             const el = await mountEditor();
-            const buttons = el.renderRoot.querySelectorAll('.promotions-form-buttons sp-button');
-            const buttonTexts = Array.from(buttons).map((b) => b.textContent.trim());
-            expect(buttonTexts).to.include('Create');
+            expect(getPromotionQuickActions(el)).to.exist;
+            expect(getPromotionQuickActions(el).getAttribute('drag-handle-style')).to.equal('bar');
+            expect(getPromotionQuickActionTitles(el)).to.include('Save');
         });
 
-        it('shows Update and Publish when promotion is not published', async () => {
+        it('shows all quick actions with correct disabled state when promotion is not published', async () => {
             const el = await mountEditor();
             el.isNewPromotion = false;
             await el.updateComplete;
-            const buttonTexts = Array.from(el.renderRoot.querySelectorAll('.promotions-form-buttons sp-button')).map((b) =>
-                b.textContent.trim(),
+            const titles = getPromotionQuickActionTitles(el);
+            expect(titles).to.have.members([
+                'Save',
+                'Duplicate',
+                'Publish',
+                'Unpublish',
+                'Copy link',
+                'Copy variation links',
+                'Lock project',
+                'Delete',
+            ]);
+            expect(isPromotionQuickActionDisabled(el, 'Save')).to.be.true;
+            expect(isPromotionQuickActionDisabled(el, 'Unpublish')).to.be.true;
+        });
+
+        it('disables every quick action for a non-editor (view-only)', async () => {
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            Store.profile.set({ email: 'viewer@adobe.com' });
+            Store.users.set([{ userPrincipalName: 'viewer@adobe.com', groups: ['GRP-ODIN-MAS-ACOM-POWERUSERS'] }]);
+            Store.promotions.inEdit.set(
+                new FragmentStore(
+                    makePromotion({
+                        id: 'promo-view',
+                        title: 'View promo',
+                        startDate: '2026-01-01T00:00:00.000Z',
+                        endDate: '2027-07-20T23:59:59.000Z',
+                        status: 'MODIFIED',
+                    }),
+                ),
             );
-            expect(buttonTexts).to.include('Update');
-            expect(buttonTexts).to.include('Publish');
-            expect(buttonTexts).to.not.include('Unpublish');
+            const el = await mountEditor();
+            el.isNewPromotion = false;
+            await el.updateComplete;
+            for (const title of getPromotionQuickActionTitles(el)) {
+                expect(isPromotionQuickActionDisabled(el, title), title).to.be.true;
+            }
+        });
+
+        it('disables general info fields and surface controls for a non-editor (view-only)', async () => {
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            Store.profile.set({ email: 'viewer@adobe.com' });
+            Store.users.set([{ userPrincipalName: 'viewer@adobe.com', groups: ['GRP-ODIN-MAS-ACOM-POWERUSERS'] }]);
+            Store.promotions.inEdit.set(
+                new FragmentStore(makePromotion({ id: 'promo-view', title: 'View promo', surfaces: ['sandbox'] })),
+            );
+            const el = await mountEditor();
+            await el.updateComplete;
+            expect(el.renderRoot.querySelector('sp-textfield[data-field="title"]')).to.be.null;
+            expect(el.renderRoot.querySelector('sp-textfield[data-field="promoCode"]').hasAttribute('disabled')).to.be.true;
+            expect(el.renderRoot.querySelector('input[data-field="startDate"]').disabled).to.be.true;
+            expect(el.renderRoot.querySelector('input[data-field="endDate"]').disabled).to.be.true;
+            for (const picker of el.renderRoot.querySelectorAll('aem-tag-picker-field')) {
+                expect(picker.hasAttribute('disabled')).to.be.true;
+            }
+            expect(el.renderRoot.querySelector('sp-tag[deletable]')).to.be.null;
         });
 
         it('shows Publish and Unpublish when promotion is modified', async () => {
@@ -333,11 +577,9 @@ describe('MasPromotionsEditor', () => {
             );
             const el = await mountEditor();
             await el.updateComplete;
-            const buttonTexts = Array.from(el.renderRoot.querySelectorAll('.promotions-form-buttons sp-button')).map((b) =>
-                b.textContent.trim(),
-            );
-            expect(buttonTexts).to.include('Publish');
-            expect(buttonTexts).to.include('Unpublish');
+            const titles = getPromotionQuickActionTitles(el);
+            expect(titles).to.include('Publish');
+            expect(titles).to.include('Unpublish');
         });
 
         it('republishes when Publish is clicked on a modified promotion', async () => {
@@ -373,12 +615,12 @@ describe('MasPromotionsEditor', () => {
                 },
             });
             await el.updateComplete;
-            clickPromotionsFormButton(el, 'Publish');
+            clickPromotionQuickAction(el, 'Publish');
             await new Promise((resolve) => setTimeout(resolve, 0));
             expect(publish.calledOnce).to.be.true;
         });
 
-        it('shows Unpublish only when promotion is published', async () => {
+        it('enables Unpublish and disables Publish when promotion is already published', async () => {
             const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
             Store.promotions.inEdit.set(
                 new FragmentStore(
@@ -393,11 +635,9 @@ describe('MasPromotionsEditor', () => {
             );
             const el = await mountEditor();
             await el.updateComplete;
-            const buttonTexts = Array.from(el.renderRoot.querySelectorAll('.promotions-form-buttons sp-button')).map((b) =>
-                b.textContent.trim(),
-            );
-            expect(buttonTexts).to.include('Unpublish');
-            expect(buttonTexts.filter((t) => t === 'Publish').length).to.equal(0);
+            expect(getPromotionQuickActionTitles(el)).to.include('Unpublish');
+            expect(isPromotionQuickActionDisabled(el, 'Unpublish')).to.be.false;
+            expect(isPromotionQuickActionDisabled(el, 'Publish')).to.be.true;
         });
 
         it('disables Publish when promotion is expired and not published', async () => {
@@ -415,11 +655,25 @@ describe('MasPromotionsEditor', () => {
             );
             const el = await mountEditor();
             await el.updateComplete;
-            const publishBtn = [...el.renderRoot.querySelectorAll('.promotions-form-buttons sp-button')].find(
-                (b) => b.textContent.trim() === 'Publish',
+            expect(isPromotionQuickActionDisabled(el, 'Publish')).to.be.true;
+        });
+
+        it('enables Publish when start date is in the future', async () => {
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            Store.promotions.inEdit.set(
+                new FragmentStore(
+                    makePromotion({
+                        id: 'future-promo',
+                        title: 'Future promo',
+                        startDate: '2030-01-01T00:00:00.000Z',
+                        endDate: '2030-12-31T00:00:00.000Z',
+                        status: 'DRAFT',
+                    }),
+                ),
             );
-            expect(publishBtn).to.exist;
-            expect(publishBtn.disabled === true || publishBtn.hasAttribute('disabled')).to.be.true;
+            const el = await mountEditor();
+            await el.updateComplete;
+            expect(isPromotionQuickActionDisabled(el, 'Publish')).to.be.false;
         });
 
         it('shows loading progress circle when loadingPromotion is true', async () => {
@@ -507,26 +761,34 @@ describe('MasPromotionsEditor', () => {
             expect(tagsPicker.getAttribute('top')).to.equal('promotion');
         });
 
-        it('updates promotion tags via change on aem-tag-picker-field', async () => {
+        it('auto-generates the promotion tag from the title on a new promotion', async () => {
             const el = await mountEditor();
-            const tagsPicker = el.renderRoot.querySelectorAll('aem-tag-picker-field')[0];
-            expect(tagsPicker).to.not.be.null;
-            tagsPicker.setAttribute('value', 'mas:promotion/back-to-school');
-            tagsPicker.dispatchEvent(new Event('change', { bubbles: true }));
+            expect(el.isNewPromotion).to.be.true;
+            const titleField = el.renderRoot.querySelector('sp-textfield[data-field="title"]');
+            titleField.value = 'Back To School';
+            titleField.dispatchEvent(new Event('input', { bubbles: true }));
             await el.updateComplete;
-            const tags = el.fragment.getFieldValues('tags');
-            expect(tags).to.deep.equal(['mas:promotion/back-to-school']);
+            expect(el.fragment.getFieldValues('tags')).to.deep.equal(['mas:promotion/back-to-school']);
+            expect(el.promotionTag).to.equal('mas:promotion/back-to-school');
         });
 
-        it('merges promotion tag change while retaining non-promotion tags', async () => {
+        it('trims leading/trailing whitespace from the title before deriving the promotion tag', async () => {
             const el = await mountEditor();
-            el.fragmentStore.updateField('tags', ['mas:status/published', 'mas:promotion/old']);
+            const titleField = el.renderRoot.querySelector('sp-textfield[data-field="title"]');
+            titleField.value = '  Back To School  ';
+            titleField.dispatchEvent(new Event('input', { bubbles: true }));
             await el.updateComplete;
+            expect(el.fragment.getFieldValues('tags')).to.deep.equal(['mas:promotion/back-to-school']);
+        });
+
+        it('exposes the promotion tag to the readonly picker, ignoring non-promotion tags', async () => {
+            const el = await mountEditor();
+            el.fragmentStore.updateField('tags', ['mas:status/published', 'mas:promotion/new']);
+            await el.updateComplete;
+            expect(el.promotionTag).to.equal('mas:promotion/new');
             const tagsPicker = el.renderRoot.querySelectorAll('aem-tag-picker-field')[0];
-            tagsPicker.setAttribute('value', 'mas:promotion/new');
-            tagsPicker.dispatchEvent(new Event('change', { bubbles: true }));
-            await el.updateComplete;
-            expect(el.fragment.getFieldValues('tags')).to.deep.equal(['mas:status/published', 'mas:promotion/new']);
+            expect(tagsPicker.hasAttribute('readonly')).to.be.true;
+            expect(tagsPicker.getAttribute('value')).to.equal('mas:promotion/new');
         });
 
         it('updates geos via change on geos tag-picker-field', async () => {
@@ -558,7 +820,7 @@ describe('MasPromotionsEditor', () => {
     describe('create flow', () => {
         it('aborts create and does not call repository when required fields are missing', async () => {
             const { el, repo } = await mountEditorWithRepo();
-            clickPromotionsFormButton(el, 'Create');
+            clickPromotionQuickAction(el, 'Save');
             await el.updateComplete;
             expect(repo.createFragment.called).to.be.false;
             expect(el.isCreated).to.be.false;
@@ -569,7 +831,7 @@ describe('MasPromotionsEditor', () => {
             await fillValidFields(el);
             el.fragmentStore.updateField('surfaces', []);
             await el.updateComplete;
-            clickPromotionsFormButton(el, 'Create');
+            clickPromotionQuickAction(el, 'Save');
             await el.updateComplete;
             expect(repo.createFragment.called).to.be.false;
         });
@@ -577,7 +839,9 @@ describe('MasPromotionsEditor', () => {
         it('creates promotion when all required fields are valid', async () => {
             const { el, repo } = await mountEditorWithRepo();
             await fillValidFields(el);
-            clickPromotionsFormButton(el, 'Create');
+            clickPromotionQuickAction(el, 'Save');
+            await el.updateComplete;
+            await flushPromises();
             await el.updateComplete;
             expect(repo.createFragment.calledOnce).to.be.true;
             expect(el.isCreated).to.be.true;
@@ -588,9 +852,223 @@ describe('MasPromotionsEditor', () => {
                 createFragment: sandbox.stub().rejects(new Error('create failed')),
             });
             await fillValidFields(el);
-            clickPromotionsFormButton(el, 'Create');
+            clickPromotionQuickAction(el, 'Save');
             await el.updateComplete;
             expect(el.isCreated).to.be.false;
+        });
+
+        it('shows generic error toast when create fails for a non-conflict reason', async () => {
+            const toastEmitStub = sandbox.stub(Events.toast, 'emit');
+            const { el } = await mountEditorWithRepo({
+                createFragment: sandbox.stub().rejects(new Error('create failed')),
+            });
+            await fillValidFields(el);
+            clickPromotionQuickAction(el, 'Save');
+            await el.updateComplete;
+            await flushPromises();
+            expect(toastEmitStub.calledWith({ variant: 'negative', content: 'Failed to create project.' })).to.be.true;
+        });
+
+        it('shows a duplicate-name error toast when create fails with a 409 Conflict', async () => {
+            const toastEmitStub = sandbox.stub(Events.toast, 'emit');
+            const { el } = await mountEditorWithRepo({
+                createFragment: sandbox.stub().rejects(new Error('Failed to create fragment: 409 Conflict')),
+            });
+            await fillValidFields(el);
+            clickPromotionQuickAction(el, 'Save');
+            await el.updateComplete;
+            await flushPromises();
+            expect(toastEmitStub.calledWith({ variant: 'negative', content: 'Project with this name already exists.' })).to.be
+                .true;
+        });
+    });
+
+    describe('promotion tag creation on create flow', () => {
+        it('creates the promotion tag before creating the fragment', async () => {
+            const { el, repo } = await mountEditorWithRepo();
+            await fillValidFields(el);
+            const title = el.fragment.getFieldValue('title');
+            const tag = buildPromotionTagPath(title);
+            clickPromotionQuickAction(el, 'Save');
+            await el.updateComplete;
+            expect(repo.aem.tags.create.calledOnce).to.be.true;
+            expect(repo.aem.tags.create.firstCall.args).to.deep.equal([tag.tagPath, tag.slug]);
+            expect(repo.createFragment.calledOnce).to.be.true;
+            expect(repo.aem.tags.create.calledBefore(repo.createFragment)).to.be.true;
+        });
+
+        it('aborts creation and shows the user-friendly message when tag creation rejects with a UserFriendlyError', async () => {
+            const message = 'Tag already exists.';
+            const { el, repo } = await mountEditorWithRepo({
+                aem: {
+                    tags: { create: sandbox.stub().rejects(new UserFriendlyError(message)) },
+                },
+            });
+            await fillValidFields(el);
+            const toastStub = sandbox.stub(Events.toast, 'emit');
+            clickPromotionQuickAction(el, 'Save');
+            await el.updateComplete;
+            expect(repo.createFragment.called).to.be.false;
+            expect(el.isCreated).to.be.false;
+            expect(toastStub.calledWith(sinon.match({ variant: 'negative', content: message }))).to.be.true;
+        });
+
+        it('aborts creation and shows a generic message when tag creation rejects with a generic Error', async () => {
+            const { el, repo } = await mountEditorWithRepo({
+                aem: {
+                    tags: { create: sandbox.stub().rejects(new Error('boom')) },
+                },
+            });
+            await fillValidFields(el);
+            const toastStub = sandbox.stub(Events.toast, 'emit');
+            clickPromotionQuickAction(el, 'Save');
+            await el.updateComplete;
+            expect(repo.createFragment.called).to.be.false;
+            expect(el.isCreated).to.be.false;
+            expect(toastStub.calledWith(sinon.match({ variant: 'negative', content: 'Failed to create promotion tag.' }))).to.be
+                .true;
+        });
+    });
+
+    describe('promotion tag cleanup after a failed create', () => {
+        it('deletes the promotion tag when createFragment resolves falsy', async () => {
+            const { el, repo } = await mountEditorWithRepo({
+                createFragment: sandbox.stub().resolves(null),
+                aem: { tags: { create: sandbox.stub().resolves(), delete: sandbox.stub().resolves() } },
+            });
+            await fillValidFields(el);
+            const title = el.fragment.getFieldValue('title');
+            const tag = buildPromotionTagPath(title);
+            clickPromotionQuickAction(el, 'Save');
+            await el.updateComplete;
+            await flushPromises();
+            expect(repo.aem.tags.delete.calledOnceWith(tag.tagPath)).to.be.true;
+            expect(el.isCreated).to.be.false;
+        });
+
+        it('deletes the promotion tag when createFragment rejects', async () => {
+            const { el, repo } = await mountEditorWithRepo({
+                createFragment: sandbox.stub().rejects(new Error('create failed')),
+                aem: { tags: { create: sandbox.stub().resolves(), delete: sandbox.stub().resolves() } },
+            });
+            await fillValidFields(el);
+            const title = el.fragment.getFieldValue('title');
+            const tag = buildPromotionTagPath(title);
+            clickPromotionQuickAction(el, 'Save');
+            await el.updateComplete;
+            await flushPromises();
+            expect(repo.aem.tags.delete.calledOnceWith(tag.tagPath)).to.be.true;
+        });
+
+        it('swallows tag cleanup errors without blocking the create-failure toast', async () => {
+            const toastStub = sandbox.stub(Events.toast, 'emit');
+            const { el } = await mountEditorWithRepo({
+                createFragment: sandbox.stub().resolves(null),
+                aem: {
+                    tags: { create: sandbox.stub().resolves(), delete: sandbox.stub().rejects(new Error('delete failed')) },
+                },
+            });
+            await fillValidFields(el);
+            clickPromotionQuickAction(el, 'Save');
+            await el.updateComplete;
+            await flushPromises();
+            expect(toastStub.calledWith(sinon.match({ variant: 'negative', content: 'Failed to create project.' }))).to.be.true;
+        });
+    });
+
+    describe('#getPayloadValues via create payload', () => {
+        it('sets endDate to an empty array in the create payload when evergreen is enabled', async () => {
+            const { el, repo } = await mountEditorWithRepo();
+            await fillValidFields(el);
+            el.evergreenEnabled = true;
+            await el.updateComplete;
+            clickPromotionQuickAction(el, 'Save');
+            await el.updateComplete;
+            expect(repo.createFragment.calledOnce).to.be.true;
+            const payload = repo.createFragment.firstCall.args[0];
+            const endDateField = payload.fields.find((f) => f.name === 'endDate');
+            expect(endDateField.values).to.deep.equal([]);
+        });
+
+        it('keeps endDate values unchanged in the create payload when evergreen is disabled', async () => {
+            const { el, repo } = await mountEditorWithRepo();
+            await fillValidFields(el);
+            el.evergreenEnabled = false;
+            await el.updateComplete;
+            const expectedEndDate = el.fragment.getFieldValues('endDate');
+            clickPromotionQuickAction(el, 'Save');
+            await el.updateComplete;
+            expect(repo.createFragment.calledOnce).to.be.true;
+            const payload = repo.createFragment.firstCall.args[0];
+            const endDateField = payload.fields.find((f) => f.name === 'endDate');
+            expect(endDateField.values).to.deep.equal(expectedEndDate);
+        });
+
+        it('serializes surfaces field values for AEM in the create payload', async () => {
+            const { el, repo } = await mountEditorWithRepo();
+            await fillValidFields(el);
+            const rawSurfaces = ['Sandbox, sandbox , CCD'];
+            el.fragmentStore.updateField('surfaces', rawSurfaces);
+            await el.updateComplete;
+            clickPromotionQuickAction(el, 'Save');
+            await el.updateComplete;
+            expect(repo.createFragment.calledOnce).to.be.true;
+            const payload = repo.createFragment.firstCall.args[0];
+            const surfacesField = payload.fields.find((f) => f.name === 'surfaces');
+            expect(surfacesField.values).to.deep.equal(serializePromotionSurfacesForAem(rawSurfaces));
+        });
+
+        it('derives the promotion tag slug from the title in the create payload', async () => {
+            const { el, repo } = await mountEditorWithRepo();
+            await fillValidFields(el);
+            const title = 'Summer Sale 2026';
+            el.fragmentStore.updateField('title', [title]);
+            await el.updateComplete;
+            clickPromotionQuickAction(el, 'Save');
+            await el.updateComplete;
+            expect(repo.createFragment.calledOnce).to.be.true;
+            const payload = repo.createFragment.firstCall.args[0];
+            const tagsField = payload.fields.find((f) => f.name === 'tags');
+            expect(tagsField.values).to.deep.equal([`${TAG_PROMOTION_PREFIX}${normalizeKey(title)}`]);
+        });
+
+        it('trims leading/trailing whitespace from the title before deriving the promotion tag slug in the create payload', async () => {
+            const { el, repo } = await mountEditorWithRepo();
+            await fillValidFields(el);
+            const title = '  Summer Sale 2026  ';
+            el.fragmentStore.updateField('title', [title]);
+            await el.updateComplete;
+            clickPromotionQuickAction(el, 'Save');
+            await el.updateComplete;
+            expect(repo.createFragment.calledOnce).to.be.true;
+            const payload = repo.createFragment.firstCall.args[0];
+            const tagsField = payload.fields.find((f) => f.name === 'tags');
+            expect(tagsField.values).to.deep.equal([`${TAG_PROMOTION_PREFIX}${normalizeKey(title.trim())}`]);
+        });
+
+        it('blocks create with a validation toast when the title normalizes to an empty slug', async () => {
+            const toastEmitStub = sandbox.stub(Events.toast, 'emit');
+            const { el, repo } = await mountEditorWithRepo();
+            await fillValidFields(el);
+            const title = '!!!';
+            el.fragmentStore.updateField('title', [title]);
+            await el.updateComplete;
+            expect(normalizeKey(title)).to.equal('');
+            clickPromotionQuickAction(el, 'Save');
+            await el.updateComplete;
+            expect(repo.createFragment.called).to.be.false;
+            expect(toastEmitStub.calledWith({ variant: 'negative', content: 'Please enter a title.' })).to.be.true;
+        });
+
+        it('passes promoCode field values through unchanged in the create payload', async () => {
+            const { el, repo } = await mountEditorWithRepo();
+            await fillValidFields(el);
+            clickPromotionQuickAction(el, 'Save');
+            await el.updateComplete;
+            expect(repo.createFragment.calledOnce).to.be.true;
+            const payload = repo.createFragment.firstCall.args[0];
+            const promoCodeField = payload.fields.find((f) => f.name === 'promoCode');
+            expect(promoCodeField.values).to.deep.equal(['TEST-PROMO']);
         });
     });
 
@@ -600,8 +1078,38 @@ describe('MasPromotionsEditor', () => {
             el.isNewPromotion = false;
             await fillValidFields(el);
             await el.updateComplete;
-            clickPromotionsFormButton(el, 'Update');
+            clickPromotionQuickAction(el, 'Save');
             await el.updateComplete;
+            expect(repo.saveFragment.calledOnce).to.be.true;
+        });
+
+        it('writes selected fragment paths to fragment before save', async () => {
+            const cardPath = '/content/dam/mas/sandbox/en_US/card-a';
+            const { el, repo } = await mountEditorWithRepo();
+            el.isNewPromotion = false;
+            await fillValidFields(el);
+            Store.promotions.selectedCards.set([cardPath]);
+            await el.updateComplete;
+            clickPromotionQuickAction(el, 'Save');
+            await el.updateComplete;
+            expect(el.fragment.getFieldValues('fragments')).to.deep.equal([cardPath]);
+            expect(el.fragment.getField('fragments')?.type).to.equal('content-fragment');
+            expect(el.fragment.getField('fragments')?.multiple).to.be.true;
+            expect(repo.saveFragment.calledOnce).to.be.true;
+            const saved = repo.saveFragment.firstCall.args[0].get();
+            expect(saved.getFieldValues('fragments')).to.deep.equal([cardPath]);
+        });
+
+        it('writes selected offer ids to fragment offers field before save', async () => {
+            const { el, repo } = await mountEditorWithRepo();
+            el.isNewPromotion = false;
+            await fillValidFields(el);
+            Store.promotions.selectedOffers.set(['osi-new']);
+            await el.updateComplete;
+            clickPromotionQuickAction(el, 'Save');
+            await el.updateComplete;
+            expect(el.fragment.getFieldValues('offers')).to.include('osi-new');
+            expect(el.fragment.getField('offers')?.multiple).to.be.true;
             expect(repo.saveFragment.calledOnce).to.be.true;
         });
 
@@ -609,7 +1117,7 @@ describe('MasPromotionsEditor', () => {
             const { el, repo } = await mountEditorWithRepo();
             el.isNewPromotion = false;
             await el.updateComplete;
-            clickPromotionsFormButton(el, 'Update');
+            clickPromotionQuickAction(el, 'Save');
             await el.updateComplete;
             expect(repo.saveFragment.called).to.be.false;
         });
@@ -621,9 +1129,253 @@ describe('MasPromotionsEditor', () => {
             el.isNewPromotion = false;
             await fillValidFields(el);
             await el.updateComplete;
-            clickPromotionsFormButton(el, 'Update');
+            clickPromotionQuickAction(el, 'Save');
             await el.updateComplete;
             expect(repo.saveFragment.calledOnce).to.be.true;
+        });
+
+        it('writes offer ids to fragment before save even when saveFragment returns false', async () => {
+            const { el, repo } = await mountEditorWithRepo({
+                saveFragment: sandbox.stub().resolves(false),
+            });
+            el.isNewPromotion = false;
+            await fillValidFields(el);
+            Store.promotions.selectedOffers.set(['osi-new']);
+            await el.updateComplete;
+            clickPromotionQuickAction(el, 'Save');
+            await el.updateComplete;
+            expect(repo.saveFragment.calledOnce).to.be.true;
+            expect(el.fragment.getFieldValues('offers')).to.include('osi-new');
+        });
+    });
+
+    describe('offers persistence', () => {
+        it('includes selected offer ids as bare lines in create payload offers field', async () => {
+            const { el, repo } = await mountEditorWithRepo();
+            await fillValidFields(el);
+            Store.promotions.selectedOffers.set(['osi-abc', 'osi-def']);
+            clickPromotionQuickAction(el, 'Save');
+            await el.updateComplete;
+            expect(repo.createFragment.calledOnce).to.be.true;
+            const payload = repo.createFragment.firstCall.args[0];
+            const offersField = payload.fields.find((f) => f.name === 'offers');
+            expect(offersField).to.exist;
+            expect(offersField.values).to.include('osi-abc');
+            expect(offersField.values).to.include('osi-def');
+        });
+
+        it('hydrates selectedOffers from bare offer id lines in the offers field', async () => {
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            const promo = makePromotion({
+                fields: [
+                    { name: 'title', type: 'text', values: ['T'] },
+                    { name: 'promoCode', type: 'text', values: ['CODE'] },
+                    { name: 'startDate', values: ['2024-01-01T00:00:00.000Z'] },
+                    { name: 'endDate', values: ['2024-12-31T00:00:00.000Z'] },
+                    { name: 'tags', values: [] },
+                    { name: 'surfaces', type: 'text', multiple: false, values: [] },
+                    { name: 'geos', type: 'tag', multiple: true, values: [] },
+                    { name: 'fragments', type: 'content-fragment', multiple: true, values: [] },
+                    { name: 'offers', type: 'text', multiple: true, values: ['osi-abc', 'osi-def', 'osi-abc:PROMO:US'] },
+                ],
+            });
+            Store.promotions.inEdit.set(new FragmentStore(promo));
+            const el = await mountEditorWithRepo().then(({ el }) => el);
+            await el.updateComplete;
+            expect(Store.promotions.selectedOffers.value).to.deep.equal(['osi-abc', 'osi-def']);
+        });
+
+        it('hydrates selectedCards from fragments field when getFragmentByPath is unavailable', async () => {
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            const cardPath = '/content/dam/mas/sandbox/en_US/card-a';
+            Store.promotions.inEdit.set(
+                new FragmentStore(
+                    makePromotion({
+                        id: 'promo-1',
+                        fragments: [cardPath],
+                    }),
+                ),
+            );
+            const { el } = await mountEditorWithRepo();
+            Store.promotions.promotionId.set('promo-1');
+            el.disconnectedCallback();
+            await el.connectedCallback();
+            await el.updateComplete;
+            expect(Store.promotions.selectedCards.value).to.deep.equal([cardPath]);
+        });
+    });
+
+    describe('schedule and publish quick actions', () => {
+        async function mountSavedPromotion(promoOverrides, repoOverrides = {}) {
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            Store.promotions.inEdit.set(new FragmentStore(makePromotion(promoOverrides)));
+            const publish = sandbox.stub().resolves();
+            const { el, repo } = await mountEditorWithRepo({
+                aem: {
+                    sites: {
+                        cf: {
+                            fragments: {
+                                getById: sandbox.stub().resolves(null),
+                                publish,
+                                publishFragments: sandbox.stub().resolves(),
+                                getByPath: sandbox.stub().resolves(null),
+                            },
+                        },
+                    },
+                    getFragmentByPath: sandbox.stub().resolves(null),
+                },
+                ...repoOverrides,
+            });
+            await el.updateComplete;
+            return { el, repo, publish };
+        }
+
+        it('publishes when Publish is clicked with a future start date', async () => {
+            const { el, publish } = await mountSavedPromotion({
+                id: 'sched-promo',
+                title: 'Scheduled promo',
+                startDate: '2030-01-01T00:00:00.000Z',
+                endDate: '2030-12-31T00:00:00.000Z',
+                status: 'DRAFT',
+            });
+            clickPromotionQuickAction(el, 'Publish');
+            await new Promise((resolve) => setTimeout(resolve, 0));
+            expect(publish.calledOnce).to.be.true;
+        });
+
+        it('publishes when Publish is clicked with a start date in the past', async () => {
+            const { el, publish } = await mountSavedPromotion({
+                id: 'pub-promo',
+                title: 'Publish promo',
+                startDate: '2020-01-01T00:00:00.000Z',
+                endDate: '2030-12-31T00:00:00.000Z',
+                status: 'DRAFT',
+            });
+            clickPromotionQuickAction(el, 'Publish');
+            await new Promise((resolve) => setTimeout(resolve, 0));
+            expect(publish.calledOnce).to.be.true;
+        });
+
+        it('does not publish when there are unsaved changes', async () => {
+            const { el, publish } = await mountSavedPromotion({
+                id: 'dirty-promo',
+                title: 'Dirty promo',
+                startDate: '2030-01-01T00:00:00.000Z',
+                endDate: '2030-12-31T00:00:00.000Z',
+                status: 'DRAFT',
+            });
+            el.fragment.hasChanges = true;
+            await el.updateComplete;
+            clickPromotionQuickAction(el, 'Publish');
+            await new Promise((resolve) => setTimeout(resolve, 0));
+            expect(publish.called).to.be.false;
+        });
+    });
+
+    describe('unpublish quick action', () => {
+        it('unpublishes when Unpublish is clicked on a published promotion with no attached promo variations', async () => {
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            Store.promotions.inEdit.set(
+                new FragmentStore(
+                    makePromotion({
+                        id: 'pub-1',
+                        title: 'Published promo',
+                        startDate: '2020-01-01T00:00:00.000Z',
+                        endDate: '2030-12-31T00:00:00.000Z',
+                        status: 'PUBLISHED',
+                    }),
+                ),
+            );
+            const unpublish = sandbox.stub().resolves();
+            const getWithEtag = sandbox.stub().withArgs('pub-1').resolves({ id: 'pub-1', etag: 'etag-promo' });
+            const { el, repo } = await mountEditorWithRepo({
+                aem: {
+                    sites: {
+                        cf: {
+                            fragments: {
+                                getById: sandbox.stub().resolves(
+                                    makeFragmentData({
+                                        id: 'pub-1',
+                                        status: 'PUBLISHED',
+                                        startDate: '2020-01-01T00:00:00.000Z',
+                                        endDate: '2030-12-31T00:00:00.000Z',
+                                    }),
+                                ),
+                                getByPath: sandbox.stub().resolves(null),
+                                getWithEtag,
+                                unpublish,
+                            },
+                        },
+                    },
+                    getFragmentByPath: sandbox.stub().resolves(null),
+                },
+            });
+            await el.updateComplete;
+            clickPromotionQuickAction(el, 'Unpublish');
+            await new Promise((resolve) => setTimeout(resolve, 0));
+            expect(unpublish.calledOnceWith({ id: 'pub-1', etag: 'etag-promo' })).to.be.true;
+            expect(repo.operation.set.firstCall.args[0]).to.equal('unpublish');
+        });
+    });
+
+    describe('unpublish reminder flow', () => {
+        it('prompts before unpublish when attached promo variations are published', async () => {
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            const parentPath = '/content/dam/mas/sandbox/en_US/my-card';
+            const promoVarPath = '/content/dam/mas/sandbox/en_US/promotions/code-test/my-card';
+            const promotion = makePromotion({
+                id: 'promo-1',
+                title: 'Test Promotion',
+                startDate: '2020-01-01T00:00:00.000Z',
+                endDate: '2030-12-31T00:00:00.000Z',
+                status: 'PUBLISHED',
+                fields: [
+                    { name: 'title', type: 'text', values: ['Test Promotion'] },
+                    { name: 'promoCode', type: 'text', values: ['TEST'] },
+                    { name: 'startDate', values: ['2020-01-01T00:00:00.000Z'] },
+                    { name: 'endDate', values: ['2030-12-31T00:00:00.000Z'] },
+                    { name: 'tags', values: ['mas:promotion/code-test'], multiple: true },
+                    { name: 'surfaces', type: 'text', multiple: false, values: ['sandbox'] },
+                    { name: 'geos', type: 'tag', multiple: true, values: ['mas:locale/us'] },
+                    { name: 'fragments', type: 'content-fragment', multiple: true, values: [parentPath] },
+                ],
+            });
+            Store.promotions.inEdit.set(new FragmentStore(promotion));
+            const getByPath = sandbox.stub().resolves(null);
+            getByPath.withArgs(promoVarPath).resolves({
+                id: 'promo-var-id',
+                path: promoVarPath,
+                status: 'PUBLISHED',
+                title: 'Published variation',
+            });
+            const unpublish = sandbox.stub().resolves();
+            const { el, repo } = await mountEditorWithRepo({
+                aem: {
+                    getFragmentByPath: sandbox.stub().resolves({
+                        path: parentPath,
+                        model: { path: CARD_MODEL_PATH },
+                    }),
+                    sites: {
+                        cf: {
+                            fragments: {
+                                getById: sandbox.stub().resolves(null),
+                                getWithEtag: sandbox.stub(),
+                                getByPath,
+                                unpublish,
+                            },
+                        },
+                    },
+                },
+            });
+            Store.promotions.selectedCollections.set([]);
+            await el.updateComplete;
+
+            clickPromotionQuickAction(el, 'Unpublish');
+            await new Promise((resolve) => setTimeout(resolve, 0));
+            await el.updateComplete;
+
+            expect(repo.aem.sites.cf.fragments.getByPath.calledWith(promoVarPath)).to.be.true;
+            expect(repo.aem.sites.cf.fragments.unpublish.called).to.be.false;
         });
     });
 
@@ -651,6 +1403,13 @@ describe('MasPromotionsEditor', () => {
                 ],
             });
             Store.promotions.inEdit.set(new FragmentStore(promotion));
+            const getByPath = sandbox.stub().resolves(null);
+            getByPath.withArgs(promoVarPath).resolves({
+                id: 'promo-var-id',
+                path: promoVarPath,
+                status: 'DRAFT',
+                title: 'Unpublished variation',
+            });
             const { el, repo } = await mountEditorWithRepo({
                 aem: {
                     getFragmentByPath: sandbox.stub().resolves({
@@ -664,11 +1423,7 @@ describe('MasPromotionsEditor', () => {
                                 publish: sandbox.stub().resolves(),
                                 publishFragments: sandbox.stub().resolves(),
                                 getWithEtag: sandbox.stub(),
-                                getByPath: sandbox.stub().withArgs(promoVarPath).resolves({
-                                    path: promoVarPath,
-                                    status: 'DRAFT',
-                                    title: 'Unpublished variation',
-                                }),
+                                getByPath,
                             },
                         },
                     },
@@ -677,7 +1432,7 @@ describe('MasPromotionsEditor', () => {
             Store.promotions.selectedCollections.set([]);
             await el.updateComplete;
 
-            clickPromotionsFormButton(el, 'Publish');
+            clickPromotionQuickAction(el, 'Publish');
             await new Promise((resolve) => setTimeout(resolve, 0));
             await el.updateComplete;
 
@@ -687,43 +1442,81 @@ describe('MasPromotionsEditor', () => {
         });
     });
 
-    describe('cancel flow', () => {
-        it('navigates to promotions page on cancel when no changes', async () => {
+    describe('selected items edit button', () => {
+        function getSelectedItemsEditButton(el) {
+            const header = el.renderRoot.querySelector('.selected-items-header');
+            return [...header.querySelectorAll('sp-action-button')].find(
+                (button) => button.textContent.trim() === 'Edit' || button.textContent.trim() === 'Add offer',
+            );
+        }
+
+        async function mountEditorWithSelectedItems() {
             const el = await mountEditor();
-            const cancelBtn = el.renderRoot.querySelector('.promotions-form-buttons sp-button');
-            cancelBtn.dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
+            Store.promotions.selectedOffers.set(['offer-1']);
+            Store.promotions.selectedCards.set(['/content/dam/mas/sandbox/en_US/card']);
+            el.isSelectedItemsOpen = true;
             await el.updateComplete;
-            expect(Store.promotions.inEdit.get()).to.not.exist;
+            return el;
+        }
+
+        it('opens items picker overlay from Edit when Fragments tab is active', async () => {
+            const { el, repo } = await mountEditorWithRepo();
+            el.fragmentStore.updateField('surfaces', ['sandbox']);
+            Store.promotions.selectedOffers.set(['offer-1']);
+            Store.promotions.selectedCards.set(['/content/dam/mas/sandbox/en_US/card']);
+            el.isSelectedItemsOpen = true;
+            el.selectedItemsViewTab = TABLE_TYPE.CARDS;
+            await el.updateComplete;
+            getSelectedItemsEditButton(el).click();
+            await el.updateComplete;
+            expect(el.renderRoot.querySelector('#add-promotion-items-overlay').open).to.equal('click');
         });
 
-        it('shows confirm dialog on cancel when fragment has unsaved changes', async () => {
-            const el = await mountEditor();
-            el.fragment.hasChanges = true;
+        it('opens items picker overlay from Edit when Collections tab is active', async () => {
+            const { el } = await mountEditorWithRepo();
+            el.fragmentStore.updateField('surfaces', ['sandbox']);
+            Store.promotions.selectedOffers.set(['offer-1']);
+            Store.promotions.selectedCards.set(['/content/dam/mas/sandbox/en_US/card']);
+            el.isSelectedItemsOpen = true;
+            el.selectedItemsViewTab = TABLE_TYPE.COLLECTIONS;
             await el.updateComplete;
-            const cancelBtn = el.renderRoot.querySelector('.promotions-form-buttons sp-button');
-            cancelBtn.dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
+            getSelectedItemsEditButton(el).click();
             await el.updateComplete;
-            expect(el.isDialogOpen).to.be.true;
-            el.renderRoot
-                .querySelector('#promotion-unsaved-changes-dialog')
-                .dispatchEvent(new CustomEvent('cancel', { bubbles: true, composed: true }));
-            await el.updateComplete;
+            expect(el.renderRoot.querySelector('#add-promotion-items-overlay').open).to.equal('click');
         });
 
-        it('discards changes and navigates after confirmation', async () => {
+        it('does not wrap Add offer in overlay-trigger when Offers tab is active', async () => {
+            const el = await mountEditorWithSelectedItems();
+            el.selectedItemsViewTab = TABLE_TYPE.OFFERS;
+            await el.updateComplete;
+            const editButton = getSelectedItemsEditButton(el);
+            expect(editButton.closest('overlay-trigger')).to.be.null;
+        });
+    });
+
+    describe('promo codes manager', () => {
+        it('ignores a second open call while the first is still in flight', async () => {
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            Store.promotions.inEdit.set(new FragmentStore(makePromotion({ id: 'promo-1', title: 'T', geos: ['mas:geo/usa'] })));
             const el = await mountEditor();
-            el.fragment.hasChanges = true;
             await el.updateComplete;
-            const cancelBtn = el.renderRoot.querySelector('.promotions-form-buttons sp-button');
-            cancelBtn.dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
+            Store.promotions.selectedOffers.set(['offer-1']);
             await el.updateComplete;
-            el.renderRoot
-                .querySelector('#promotion-unsaved-changes-dialog')
-                .dispatchEvent(new CustomEvent('confirm', { bubbles: true, composed: true }));
+
+            const manageBtn = [...el.renderRoot.querySelectorAll('sp-action-button')].find((b) =>
+                b.textContent.includes('Manage'),
+            );
+            expect(manageBtn).to.not.be.null;
+
+            manageBtn.click();
+            manageBtn.click();
+
             await el.updateComplete;
-            await Promise.resolve();
-            await el.updateComplete;
-            expect(Store.promotions.inEdit.get()).to.not.exist;
+            await new Promise((r) => setTimeout(r, 0));
+
+            expect(el.promoCodesManagerOpen).to.be.true;
+            expect(el.promoManagerOffers).to.have.length(1);
+            expect(el.promoManagerOffers[0].path).to.equal('offer-1');
         });
     });
 
@@ -745,6 +1538,586 @@ describe('MasPromotionsEditor', () => {
         });
     });
 
+    describe('delete quick action', () => {
+        it('opens confirmation dialog when Delete is clicked on a saved promotion', async () => {
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            Store.promotions.inEdit.set(new FragmentStore(makePromotion({ id: 'del-1', title: 'To Delete' })));
+            const { el } = await mountEditorWithRepo({
+                deleteFragment: sandbox.stub().resolves(true),
+            });
+            await el.updateComplete;
+            clickPromotionQuickAction(el, 'Delete');
+            await new Promise((r) => setTimeout(r, 0));
+            await el.updateComplete;
+            expect(el.isDialogOpen).to.be.true;
+            expect(el.confirmDialogConfig?.title).to.equal('Confirm Delete');
+            expect(el.confirmDialogConfig?.message).to.equal(
+                'Are you sure you want to delete the promotion project "To Delete"? This action cannot be undone.',
+            );
+        });
+
+        it('mentions attached promo variations in the confirm message when the project has them', async () => {
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            const parentPath = '/content/dam/mas/sandbox/en_US/my-card';
+            const promoVarPath = '/content/dam/mas/sandbox/en_US/promotions/code-test/my-card';
+            Store.promotions.inEdit.set(
+                new FragmentStore(
+                    makePromotion({
+                        id: 'del-1b',
+                        title: 'To Delete',
+                        fields: [
+                            { name: 'title', type: 'text', values: ['To Delete'] },
+                            { name: 'tags', values: ['mas:promotion/code-test'], multiple: true },
+                            { name: 'fragments', type: 'content-fragment', multiple: true, values: [parentPath] },
+                        ],
+                    }),
+                ),
+            );
+            const getByPath = sandbox.stub().resolves(null);
+            getByPath.withArgs(promoVarPath).resolves({ id: 'promo-var-id', path: promoVarPath, status: 'DRAFT' });
+            const { el } = await mountEditorWithRepo({
+                deleteFragment: sandbox.stub().resolves(true),
+                aem: { sites: { cf: { fragments: { getByPath, getById: sandbox.stub().resolves(null) } } } },
+            });
+            await el.updateComplete;
+            clickPromotionQuickAction(el, 'Delete');
+            await new Promise((r) => setTimeout(r, 0));
+            await el.updateComplete;
+            expect(el.confirmDialogConfig?.message).to.equal(
+                'Are you sure you want to delete the promotion project "To Delete"? This action cannot be undone. 1 promo variation(s) will also be deleted.',
+            );
+        });
+
+        it('calls deleteFragment when delete dialog is confirmed', async () => {
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            Store.promotions.inEdit.set(new FragmentStore(makePromotion({ id: 'del-2', title: 'Deletable' })));
+            const deleteFragment = sandbox.stub().resolves(true);
+            const { el, repo } = await mountEditorWithRepo({ deleteFragment });
+            await el.updateComplete;
+            clickPromotionQuickAction(el, 'Delete');
+            await new Promise((r) => setTimeout(r, 0));
+            await el.updateComplete;
+            el.renderRoot
+                .querySelector('#promotion-unsaved-changes-dialog')
+                .dispatchEvent(new CustomEvent('confirm', { bubbles: true, composed: true }));
+            await new Promise((r) => setTimeout(r, 0));
+            expect(repo.deleteFragment.calledOnce).to.be.true;
+        });
+
+        it('deletes attached promo variations before deleting the project', async () => {
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            const parentPath = '/content/dam/mas/sandbox/en_US/my-card';
+            const promoVarPath = '/content/dam/mas/sandbox/en_US/promotions/code-test/my-card';
+            Store.promotions.inEdit.set(
+                new FragmentStore(
+                    makePromotion({
+                        id: 'del-3',
+                        title: 'Deletable',
+                        fields: [
+                            { name: 'title', type: 'text', values: ['Deletable'] },
+                            { name: 'tags', values: ['mas:promotion/code-test'], multiple: true },
+                            { name: 'fragments', type: 'content-fragment', multiple: true, values: [parentPath] },
+                        ],
+                    }),
+                ),
+            );
+            const getByPath = sandbox.stub().resolves(null);
+            getByPath.withArgs(promoVarPath).resolves({ id: 'promo-var-id', path: promoVarPath, status: 'DRAFT' });
+            const forceDelete = sandbox.stub().resolves();
+            const deleteFragment = sandbox.stub().resolves(true);
+            const { el, repo } = await mountEditorWithRepo({
+                deleteFragment,
+                aem: {
+                    sites: { cf: { fragments: { getByPath, getById: sandbox.stub().resolves(null), forceDelete } } },
+                },
+            });
+            await el.updateComplete;
+            clickPromotionQuickAction(el, 'Delete');
+            await new Promise((r) => setTimeout(r, 0));
+            await el.updateComplete;
+            el.renderRoot
+                .querySelector('#promotion-unsaved-changes-dialog')
+                .dispatchEvent(new CustomEvent('confirm', { bubbles: true, composed: true }));
+            await new Promise((r) => setTimeout(r, 20));
+            expect(forceDelete.calledOnceWith({ path: promoVarPath })).to.be.true;
+            expect(repo.deleteFragment.calledOnce).to.be.true;
+            expect(forceDelete.calledBefore(repo.deleteFragment)).to.be.true;
+        });
+
+        it('shows a negative toast but still completes deletion when the promotion tag fails to delete', async () => {
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            Store.promotions.inEdit.set(
+                new FragmentStore(
+                    makePromotion({
+                        id: 'del-4',
+                        title: 'Deletable',
+                        fields: [
+                            { name: 'title', type: 'text', values: ['Deletable'] },
+                            { name: 'tags', values: ['mas:promotion/code-test'], multiple: true },
+                        ],
+                    }),
+                ),
+            );
+            const deleteFragment = sandbox.stub().resolves(true);
+            const toastStub = sandbox.stub(Events.toast, 'emit');
+            const { el, repo } = await mountEditorWithRepo({
+                deleteFragment,
+                aem: {
+                    sites: {
+                        cf: { fragments: { getByPath: sandbox.stub().resolves(null), getById: sandbox.stub().resolves(null) } },
+                    },
+                    tags: { delete: sandbox.stub().rejects(new Error('delete failed')) },
+                },
+            });
+            await el.updateComplete;
+            clickPromotionQuickAction(el, 'Delete');
+            await new Promise((r) => setTimeout(r, 0));
+            await el.updateComplete;
+            el.renderRoot
+                .querySelector('#promotion-unsaved-changes-dialog')
+                .dispatchEvent(new CustomEvent('confirm', { bubbles: true, composed: true }));
+            await new Promise((r) => setTimeout(r, 20));
+            expect(repo.aem.tags.delete.calledOnce).to.be.true;
+            expect(repo.deleteFragment.calledOnce).to.be.true;
+            expect(toastStub.calledWith(sinon.match({ variant: 'negative', content: 'Failed to delete promotion tag.' }))).to.be
+                .true;
+            expect(
+                toastStub.calledWith(sinon.match({ variant: 'positive', content: 'Promotion campaign successfully deleted.' })),
+            ).to.be.true;
+        });
+    });
+
+    describe('duplicate quick action', () => {
+        it('calls createFragment when duplicate-confirmed is dispatched on the dialog', async () => {
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            Store.promotions.inEdit.set(new FragmentStore(makePromotion({ id: 'dup-1', title: 'Original' })));
+            const { el, repo } = await mountEditorWithRepo();
+            await el.updateComplete;
+            el.duplicateDialogOpen = true;
+            await el.updateComplete;
+            el.renderRoot.querySelector('mas-promotion-duplicate-dialog').dispatchEvent(
+                new CustomEvent('duplicate-confirmed', {
+                    bubbles: true,
+                    composed: true,
+                    detail: { title: 'Original copy' },
+                }),
+            );
+            await new Promise((r) => setTimeout(r, 20));
+            expect(repo.createFragment.calledOnce).to.be.true;
+        });
+
+        it('resets item selection store before hydrating the duplicated promotion', async () => {
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            const sourceCard = '/content/dam/mas/sandbox/en_US/source-card';
+            const dupOffer = 'osi-dup';
+            Store.promotions.inEdit.set(
+                new FragmentStore(
+                    makePromotion({
+                        id: 'dup-1',
+                        title: 'Original',
+                        fragments: [sourceCard],
+                        fields: [
+                            { name: 'title', type: 'text', values: ['Original'] },
+                            { name: 'promoCode', type: 'text', values: ['CODE'] },
+                            { name: 'startDate', values: ['2024-01-01T00:00:00.000Z'] },
+                            { name: 'endDate', values: ['2024-12-31T00:00:00.000Z'] },
+                            { name: 'tags', values: [] },
+                            { name: 'surfaces', type: 'text', multiple: false, values: [] },
+                            { name: 'geos', type: 'tag', multiple: true, values: [] },
+                            { name: 'fragments', type: 'content-fragment', multiple: true, values: [sourceCard] },
+                            { name: 'offers', type: 'text', multiple: true, values: ['source-offer'] },
+                        ],
+                    }),
+                ),
+            );
+            const createFragment = sandbox.stub().resolves(
+                makePromotion({
+                    id: 'dup-2',
+                    title: 'Original copy',
+                    fragments: [],
+                    fields: [
+                        { name: 'title', type: 'text', values: ['Original copy'] },
+                        { name: 'promoCode', type: 'text', values: ['CODE'] },
+                        { name: 'startDate', values: ['2024-01-01T00:00:00.000Z'] },
+                        { name: 'endDate', values: ['2024-12-31T00:00:00.000Z'] },
+                        { name: 'tags', values: [] },
+                        { name: 'surfaces', type: 'text', multiple: false, values: [] },
+                        { name: 'geos', type: 'tag', multiple: true, values: [] },
+                        { name: 'fragments', type: 'content-fragment', multiple: true, values: [] },
+                        { name: 'offers', type: 'text', multiple: true, values: [dupOffer] },
+                    ],
+                }),
+            );
+            const { el } = await mountEditorWithRepo({ createFragment });
+            await waitForEditorConnect(el);
+            Store.promotions.selectedCards.set(['/stale/card']);
+            Store.promotions.selectedCollections.set(['/stale/collection']);
+            Store.promotions.selectedOffers.set(['stale-offer']);
+            el.duplicateDialogOpen = true;
+            await el.updateComplete;
+            el.renderRoot.querySelector('mas-promotion-duplicate-dialog').dispatchEvent(
+                new CustomEvent('duplicate-confirmed', {
+                    bubbles: true,
+                    composed: true,
+                    detail: { title: 'Original copy' },
+                }),
+            );
+            await new Promise((r) => setTimeout(r, 50));
+            expect(Store.promotions.selectedCards.value).to.deep.equal([]);
+            expect(Store.promotions.selectedCollections.value).to.deep.equal([]);
+            expect(Store.promotions.selectedOffers.value).to.deep.equal([dupOffer]);
+        });
+
+        it('preserves non-promotion tags and replaces the promotion tag when duplicating', async () => {
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            Store.promotions.inEdit.set(
+                new FragmentStore(
+                    makePromotion({
+                        id: 'dup-1',
+                        title: 'Original',
+                        fields: [
+                            { name: 'title', type: 'text', values: ['Original'] },
+                            { name: 'promoCode', type: 'text', values: ['CODE'] },
+                            { name: 'startDate', values: ['2024-01-01T00:00:00.000Z'] },
+                            { name: 'endDate', values: ['2024-12-31T00:00:00.000Z'] },
+                            { name: 'tags', values: ['mas:status/published', 'mas:promotion/original'] },
+                            { name: 'surfaces', type: 'text', multiple: false, values: [] },
+                            { name: 'geos', type: 'tag', multiple: true, values: [] },
+                            { name: 'fragments', type: 'content-fragment', multiple: true, values: [] },
+                        ],
+                    }),
+                ),
+            );
+            const { el, repo } = await mountEditorWithRepo();
+            await waitForEditorConnect(el);
+            el.duplicateDialogOpen = true;
+            await el.updateComplete;
+            el.renderRoot.querySelector('mas-promotion-duplicate-dialog').dispatchEvent(
+                new CustomEvent('duplicate-confirmed', {
+                    bubbles: true,
+                    composed: true,
+                    detail: { title: 'Original copy' },
+                }),
+            );
+            await new Promise((r) => setTimeout(r, 20));
+            expect(repo.createFragment.calledOnce).to.be.true;
+            const payload = repo.createFragment.firstCall.args[0];
+            const tagsField = payload.fields.find((f) => f.name === 'tags');
+            expect(tagsField.values).to.deep.equal([
+                'mas:status/published',
+                `${TAG_PROMOTION_PREFIX}${normalizeKey('Original copy')}`,
+            ]);
+        });
+    });
+
+    describe('copy link quick action', () => {
+        it('copies promotion URL to clipboard when Copy link is clicked', async () => {
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            Store.promotions.inEdit.set(new FragmentStore(makePromotion({ id: 'link-id', title: 'Campaign' })));
+            let copied = null;
+            const origDescriptor = Object.getOwnPropertyDescriptor(navigator, 'clipboard');
+            Object.defineProperty(navigator, 'clipboard', {
+                value: {
+                    writeText: (text) => {
+                        copied = text;
+                        return Promise.resolve();
+                    },
+                },
+                configurable: true,
+            });
+            const { el } = await mountEditorWithRepo();
+            await el.updateComplete;
+            try {
+                clickPromotionQuickAction(el, 'Copy link');
+                await new Promise((r) => setTimeout(r, 0));
+                expect(copied).to.include('link-id');
+            } finally {
+                if (origDescriptor) {
+                    Object.defineProperty(navigator, 'clipboard', origDescriptor);
+                }
+            }
+        });
+    });
+
+    describe('copy variation links quick action', () => {
+        let originalClipboardItem;
+
+        function stubClipboard({ rejects = false } = {}) {
+            const origDescriptor = Object.getOwnPropertyDescriptor(navigator, 'clipboard');
+            const write = rejects ? sandbox.stub().rejects(new Error('denied')) : sandbox.stub().resolves();
+            Object.defineProperty(navigator, 'clipboard', {
+                value: { write },
+                configurable: true,
+            });
+            originalClipboardItem = globalThis.ClipboardItem;
+            globalThis.ClipboardItem = class ClipboardItemMock {
+                constructor(data) {
+                    this.data = data;
+                }
+            };
+            return {
+                write,
+                restore: () => {
+                    if (origDescriptor) Object.defineProperty(navigator, 'clipboard', origDescriptor);
+                    globalThis.ClipboardItem = originalClipboardItem;
+                },
+            };
+        }
+
+        it('copies a nice title and deep link for all attached variations, including published ones', async () => {
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            Store.promotions.inEdit.set(new FragmentStore(makePromotion({ id: 'promo-id', title: 'Campaign' })));
+            const variationPath = '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card';
+            const { el } = await mountEditorWithRepo({
+                aem: {
+                    sites: {
+                        cf: {
+                            fragments: {
+                                getById: sandbox.stub().resolves(null),
+                                getByPath: sandbox
+                                    .stub()
+                                    .withArgs(variationPath)
+                                    .resolves({
+                                        id: 'variation-id',
+                                        path: variationPath,
+                                        status: 'PUBLISHED',
+                                        title: 'Variation',
+                                        model: { path: CARD_MODEL_PATH },
+                                        tags: [],
+                                        fields: [],
+                                    }),
+                            },
+                        },
+                    },
+                },
+            });
+            el.fragmentStore.updateField('tags', ['mas:promotion/black-friday']);
+            el.fragmentStore.updateField('fragments', ['/content/dam/mas/sandbox/en_US/my-card']);
+            await el.updateComplete;
+            const clipboard = stubClipboard();
+            try {
+                clickPromotionQuickAction(el, 'Copy variation links');
+                await new Promise((r) => setTimeout(r, 0));
+                expect(clipboard.write.calledOnce).to.be.true;
+                const [item] = clipboard.write.firstCall.args[0];
+                const plainText = await item.data['text/plain'].text();
+                const htmlText = await item.data['text/html'].text();
+                expect(plainText).to.include('query=variation-id');
+                expect(htmlText).to.include('<a href=');
+                expect(htmlText).to.include('query=variation-id');
+                expect(htmlText).to.include('merch-card: SANDBOX : Variation');
+            } finally {
+                clipboard.restore();
+            }
+        });
+
+        it('shows an info toast and does not touch the clipboard when there are no variations', async () => {
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            Store.promotions.inEdit.set(new FragmentStore(makePromotion({ id: 'promo-id-empty', title: 'Campaign' })));
+            const { el } = await mountEditorWithRepo();
+            await el.updateComplete;
+            const clipboard = stubClipboard();
+            const toastStub = sandbox.stub(Events.toast, 'emit');
+            try {
+                clickPromotionQuickAction(el, 'Copy variation links');
+                await new Promise((r) => setTimeout(r, 0));
+                expect(clipboard.write.called).to.be.false;
+                expect(
+                    toastStub.calledWith(
+                        sinon.match({ variant: 'info', content: 'No variations found for this promotion project.' }),
+                    ),
+                ).to.be.true;
+            } finally {
+                clipboard.restore();
+            }
+        });
+
+        it('shows a negative toast when the clipboard write fails', async () => {
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            Store.promotions.inEdit.set(new FragmentStore(makePromotion({ id: 'promo-id-fail', title: 'Campaign' })));
+            const variationPath = '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card';
+            const { el } = await mountEditorWithRepo({
+                aem: {
+                    sites: {
+                        cf: {
+                            fragments: {
+                                getById: sandbox.stub().resolves(null),
+                                getByPath: sandbox
+                                    .stub()
+                                    .withArgs(variationPath)
+                                    .resolves({
+                                        id: 'variation-id',
+                                        path: variationPath,
+                                        status: 'DRAFT',
+                                        title: 'Variation',
+                                        model: { path: CARD_MODEL_PATH },
+                                        tags: [],
+                                        fields: [],
+                                    }),
+                            },
+                        },
+                    },
+                },
+            });
+            el.fragmentStore.updateField('tags', ['mas:promotion/black-friday']);
+            el.fragmentStore.updateField('fragments', ['/content/dam/mas/sandbox/en_US/my-card']);
+            await el.updateComplete;
+            const clipboard = stubClipboard({ rejects: true });
+            const toastStub = sandbox.stub(Events.toast, 'emit');
+            try {
+                clickPromotionQuickAction(el, 'Copy variation links');
+                await new Promise((r) => setTimeout(r, 0));
+                expect(clipboard.write.calledOnce).to.be.true;
+                expect(toastStub.calledWith(sinon.match({ variant: 'negative', content: 'Failed to copy variation links.' })))
+                    .to.be.true;
+            } finally {
+                clipboard.restore();
+            }
+        });
+
+        it('shows a negative toast instead of crashing when a variation is missing tags/fields', async () => {
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            Store.promotions.inEdit.set(new FragmentStore(makePromotion({ id: 'promo-id-malformed', title: 'Campaign' })));
+            const variationPath = '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card';
+            const { el } = await mountEditorWithRepo({
+                aem: {
+                    sites: {
+                        cf: {
+                            fragments: {
+                                getById: sandbox.stub().resolves(null),
+                                // Simulates an AEM response missing `tags`/`fields`, which used to throw
+                                // inside Fragment.getTagTitle() outside the try/catch.
+                                getByPath: sandbox
+                                    .stub()
+                                    .withArgs(variationPath)
+                                    .resolves({
+                                        id: 'variation-id',
+                                        path: variationPath,
+                                        status: 'PUBLISHED',
+                                        title: 'Variation',
+                                        model: { path: CARD_MODEL_PATH },
+                                    }),
+                            },
+                        },
+                    },
+                },
+            });
+            el.fragmentStore.updateField('tags', ['mas:promotion/black-friday']);
+            el.fragmentStore.updateField('fragments', ['/content/dam/mas/sandbox/en_US/my-card']);
+            await el.updateComplete;
+            const clipboard = stubClipboard();
+            const toastStub = sandbox.stub(Events.toast, 'emit');
+            try {
+                clickPromotionQuickAction(el, 'Copy variation links');
+                await new Promise((r) => setTimeout(r, 0));
+                expect(clipboard.write.called).to.be.false;
+                expect(toastStub.calledWith(sinon.match({ variant: 'negative', content: 'Failed to copy variation links.' })))
+                    .to.be.true;
+            } finally {
+                clipboard.restore();
+            }
+        });
+
+        it('copies only the supported variations and reports a partial count when some model paths are unsupported', async () => {
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            Store.promotions.inEdit.set(new FragmentStore(makePromotion({ id: 'promo-id-partial', title: 'Campaign' })));
+            const supportedPath = '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card';
+            const unsupportedPath = '/content/dam/mas/sandbox/en_US/promotions/black-friday/other-card';
+            const getByPath = sandbox.stub();
+            getByPath.withArgs(supportedPath).resolves({
+                id: 'variation-id',
+                path: supportedPath,
+                status: 'PUBLISHED',
+                title: 'Variation',
+                model: { path: CARD_MODEL_PATH },
+                tags: [],
+                fields: [],
+            });
+            getByPath.withArgs(unsupportedPath).resolves({
+                id: 'variation-id-2',
+                path: unsupportedPath,
+                status: 'PUBLISHED',
+                title: 'Variation 2',
+                model: { path: '/conf/mas/settings/dam/cfm/models/unknown' },
+                tags: [],
+                fields: [],
+            });
+            const { el } = await mountEditorWithRepo({
+                aem: { sites: { cf: { fragments: { getById: sandbox.stub().resolves(null), getByPath } } } },
+            });
+            el.fragmentStore.updateField('tags', ['mas:promotion/black-friday']);
+            el.fragmentStore.updateField('fragments', [
+                '/content/dam/mas/sandbox/en_US/my-card',
+                '/content/dam/mas/sandbox/en_US/other-card',
+            ]);
+            await el.updateComplete;
+            const clipboard = stubClipboard();
+            const toastStub = sandbox.stub(Events.toast, 'emit');
+            try {
+                clickPromotionQuickAction(el, 'Copy variation links');
+                await new Promise((r) => setTimeout(r, 0));
+                expect(clipboard.write.calledOnce).to.be.true;
+                const [item] = clipboard.write.firstCall.args[0];
+                const plainText = await item.data['text/plain'].text();
+                expect(plainText).to.include('query=variation-id');
+                expect(plainText).to.not.include('query=variation-id-2');
+                expect(
+                    toastStub.calledWith(
+                        sinon.match({ variant: 'positive', content: 'Copied 1 of 2 variation links to clipboard.' }),
+                    ),
+                ).to.be.true;
+            } finally {
+                clipboard.restore();
+            }
+        });
+
+        it('shows a distinct info toast when variations exist but none have a copyable model path', async () => {
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            Store.promotions.inEdit.set(new FragmentStore(makePromotion({ id: 'promo-id-unsupported', title: 'Campaign' })));
+            const variationPath = '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card';
+            const { el } = await mountEditorWithRepo({
+                aem: {
+                    sites: {
+                        cf: {
+                            fragments: {
+                                getById: sandbox.stub().resolves(null),
+                                getByPath: sandbox
+                                    .stub()
+                                    .withArgs(variationPath)
+                                    .resolves({
+                                        id: 'variation-id',
+                                        path: variationPath,
+                                        status: 'PUBLISHED',
+                                        title: 'Variation',
+                                        model: { path: '/conf/mas/settings/dam/cfm/models/unknown' },
+                                        tags: [],
+                                        fields: [],
+                                    }),
+                            },
+                        },
+                    },
+                },
+            });
+            el.fragmentStore.updateField('tags', ['mas:promotion/black-friday']);
+            el.fragmentStore.updateField('fragments', ['/content/dam/mas/sandbox/en_US/my-card']);
+            await el.updateComplete;
+            const clipboard = stubClipboard();
+            const toastStub = sandbox.stub(Events.toast, 'emit');
+            try {
+                clickPromotionQuickAction(el, 'Copy variation links');
+                await new Promise((r) => setTimeout(r, 0));
+                expect(clipboard.write.called).to.be.false;
+                expect(
+                    toastStub.calledWith(
+                        sinon.match({ variant: 'info', content: 'No links could be copied for these variations.' }),
+                    ),
+                ).to.be.true;
+            } finally {
+                clipboard.restore();
+            }
+        });
+    });
+
     describe('reopening the add-items dialog', () => {
         it('clears the cards search cache on close so results reload next open, preserving the selection', async () => {
             const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
@@ -761,8 +2134,8 @@ describe('MasPromotionsEditor', () => {
                     ['/card/b', {}],
                 ]),
             );
-            el.showSelectedEmptyState = false;
             await el.updateComplete;
+            expect(el.showSelectedEmptyState).to.be.false;
             repo.searchFragments.resetHistory();
 
             const dialog = el.renderRoot.querySelector('.add-items-dialog');

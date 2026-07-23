@@ -15,8 +15,11 @@ import { transformer as customize } from '../../io/www/src/fragment/transformers
 import { clearPromoCache, transformer as promotions } from '../../io/www/src/fragment/transformers/promotions.js';
 import { transformer as mask } from '../../io/www/src/fragment/transformers/mask.js';
 import { ODIN_PREVIEW_FRAGMENTS_URL } from '../src/constants.js';
+import { transformer as wcs } from '../../io/www/src/fragment/transformers/wcs.js';
+import { loadConfiguration } from '../../io/www/src/fragment/utils/configuration.js';
+import { mark } from '../../io/www/src/fragment/utils/common.js';
 
-const PIPELINE = [fetchFragment, defaultLanguage, promotions, mask, customize, settings, replace, corrector];
+const PIPELINE = [fetchFragment, defaultLanguage, promotions, mask, customize, settings, replace, corrector, wcs];
 class LocaleStorageState {
     constructor() {        
     }
@@ -70,8 +73,10 @@ async function previewFragment(id, options) {
     const serviceElement = document.head.querySelector('mas-commerce-service');
     const locale = serviceElement?.getAttribute('locale');
     const country = serviceElement?.getAttribute('country');
-    let context = { ...DEFAULT_CONTEXT, locale, country, ...options, id, api_key: 'fragment-client' };
-    const initPromises = {};    
+    let context = { ...DEFAULT_CONTEXT, locale, country, ...options, id, api_key: 'mas-studio' };
+    const initPromises = {};
+    const now = mark(context, 'config-check');
+    context = await loadConfiguration(context, now);
     const cachedMetadata = await getRequestMetadata(context);
     const metadataContext = extractContextFromMetadata(cachedMetadata);
     context = { ...context, ...metadataContext };
@@ -116,7 +121,7 @@ async function previewFragment(id, options) {
 
 /* c8 ignore next 38 */
 async function previewStudioFragment(body, options) {
-    let context = { ...DEFAULT_CONTEXT, ...options, body, api_key: 'fragment-client-studio' };
+    let context = { ...DEFAULT_CONTEXT, ...options, body, api_key: 'mas-studio' };
     const { locale, surface } = options;
     const fragmentPath = options.fragmentPath ?? body?.path;
     const phase1 = {

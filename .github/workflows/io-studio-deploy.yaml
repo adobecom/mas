@@ -21,13 +21,24 @@ on:
                 type: number
                 required: false
                 default: 2
+            vault-path:
+                description: 'Vault secret path (relative to the cloudtech_wcms mount) holding the workspace creds: env, aio'
+                type: string
+                required: true
+            odin-bucket-path:
+                description: 'Vault secret path holding the odin_bucket for the target environment. Defaults to vault-path when omitted.'
+                type: string
+                required: false
+                default: ''
         secrets:
-            ENV:
+            VAULT_ROLE_ID:
                 required: true
-            AIO:
+            VAULT_SECRET_ID:
                 required: true
-            ODIN_BUCKET:
-                required: true
+        outputs:
+            namespace:
+                description: 'I/O runtime workspace namespace the app was deployed to'
+                value: ${{ jobs.deploy.outputs.namespace }}
 
 jobs:
     tests:
@@ -41,10 +52,12 @@ jobs:
             - name: Checkout repository
               uses: actions/checkout@v4
 
-            - name: Set up Node.js 22
+            - name: Set up Node.js 22.23.1
               uses: actions/setup-node@v4
               with:
-                  node-version: 22
+                  # Pinned: 22.23.1 fixes the node-fetch v2 gzip / ERR_STREAM_PREMATURE_CLOSE
+                  # regression introduced in 22.23.0.
+                  node-version: '22.23.1'
                   cache: 'npm'
                   cache-dependency-path: package-lock.json
 
@@ -55,36 +68,71 @@ jobs:
               run: npm test
 
     deploy:
-        runs-on: ubuntu-latest
+        runs-on: self-hosted
         defaults:
             run:
                 working-directory: io/studio
+        outputs:
+            namespace: ${{ steps.ns.outputs.namespace }}
 
         steps:
             - name: Checkout repository
               uses: actions/checkout@v4
 
-            - name: Setup Node.js 22
+            - name: Setup Node.js 22.23.1
               uses: actions/setup-node@v4
               with:
-                  node-version: 22
+                  # Pinned: 22.23.1 fixes the node-fetch v2 gzip / ERR_STREAM_PREMATURE_CLOSE
+                  # regression introduced in 22.23.0.
+                  node-version: '22.23.1'
                   cache: 'npm'
                   cache-dependency-path: package-lock.json
 
             - name: Install dependencies
               run: npm ci
 
-            - name: Prepare .aio and .env files
-              env:
-                  ENV_CONTENT: ${{ secrets.ENV }}
-                  AIO_CONTENT: ${{ secrets.AIO }}
+            - name: Fetch workspace secrets from Vault
+              uses: ./.github/actions/vault-secrets
+              with:
+                  role-id: ${{ secrets.VAULT_ROLE_ID }}
+                  secret-id: ${{ secrets.VAULT_SECRET_ID }}
+                  path: ${{ inputs.vault-path }}
+                  file-fields: env=.env,aio=.aio
+                  working-directory: io/studio
+
+            # odin_bucket is environment-level (QA for PRs, stage/prod on merge), not
+            # per-workspace — fetched from its own path (defaults to vault-path).
+            - name: Fetch Odin bucket from Vault
+              uses: ./.github/actions/vault-secrets
+              with:
+                  role-id: ${{ secrets.VAULT_ROLE_ID }}
+                  secret-id: ${{ secrets.VAULT_SECRET_ID }}
+                  path: ${{ inputs.odin-bucket-path || inputs.vault-path }}
+                  env-fields: odin_bucket
+
+            # AOS / OST credentials are identical across environments — stored once in a
+            # shared path so they don't need to live in every workspace's .env blob.
+            - name: Fetch shared service secrets from Vault
+              uses: ./.github/actions/vault-secrets
+              with:
+                  role-id: ${{ secrets.VAULT_ROLE_ID }}
+                  secret-id: ${{ secrets.VAULT_SECRET_ID }}
+                  path: merch-at-scale/aio-studio/common
+                  env-fields: aos_url,aos_api_key,ost_write_api_key
+
+            # Derive namespace from the deployed .env (AIO_runtime_namespace). We must NOT
+            # source it from a masked Vault field: GitHub empties job outputs whose value is
+            # a masked secret, so it would arrive blank in the health-check job.
+            - name: Capture namespace
+              id: ns
               run: |
-                  printf '%s' "$ENV_CONTENT" > .env
-                  printf '%s' "$AIO_CONTENT" > .aio
+                  ns=$(grep -E '^AIO_runtime_namespace=' .env | head -n1 | cut -d= -f2-)
+                  if [ -z "$ns" ]; then echo "::error::AIO_runtime_namespace not found in .env"; exit 1; fi
+                  echo "namespace=$ns" >> "$GITHUB_OUTPUT"
 
             - name: Deploy
               env:
-                  ODIN_ENDPOINT: 'https://author-p22655-${{ secrets.ODIN_BUCKET }}.adobeaemcloud.com'
+                  ODIN_ENDPOINT: https://author-p22655-${{ env.ODIN_BUCKET }}.adobeaemcloud.com
                   BATCH_SIZE: ${{ inputs.batch_size }}
                   RPS_LIMIT: ${{ inputs.rps_limit }}
                   WORKER_CONCURRENCY: ${{ inputs.worker_concurrency }}

@@ -18,6 +18,8 @@ describe('bulk-publish constants + store', () => {
             DRAFT: 'Draft',
             PUBLISHING: 'Publishing',
             PUBLISHED: 'Published',
+            PARTIALLY_PUBLISHED: 'Partially published',
+            FAILED: 'Failed',
             LOCKED: 'Locked',
             REVERTING: 'Reverting',
             REVERTED: 'Reverted',

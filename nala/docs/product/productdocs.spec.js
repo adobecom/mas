@@ -26,4 +26,14 @@ export const features = [
         data: {},
         tags: '@mas-docs @mas-product @commerce @smoke @regression @milo',
     },
+    {
+        tcid: '2',
+        name: '@MAS-Product-CTA-modal-trigger',
+        path: DOCS_GALLERY_PATH.PRODUCT,
+        data: {
+            id: 'bdf14ab4-b467-45c5-9d27-e561c6bccb48',
+            variant: 'product',
+        },
+        tags: '@mas-docs @mas-product @commerce @smoke @regression @milo',
+    },
 ];

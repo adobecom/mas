@@ -55,6 +55,7 @@ export default {
                 badge: {
                     original: 'DO NOT EDIT',
                     updated: 'Change badge',
+                    iconUrl: 'https://www.adobe.com/libs/img/plans-icons/svg/camera-18-dark.svg',
                 },
             },
             browserParams: '#page=fragment-editor&path=nala&fragmentId=',
@@ -97,6 +98,8 @@ export default {
                 calloutText: {
                     original: 'AI Assistant add-on available',
                     updated: 'New callout text',
+                    tooltipText: 'tooltip text',
+                    tooltipTextUpdated: 'new tooltip new text updated',
                 },
             },
             browserParams: '#page=fragment-editor&path=nala&fragmentId=',

@@ -1,8 +1,9 @@
 import { html, nothing } from 'lit';
-import { FRAGMENT_STATUS, CARD_MODEL_PATH, COLLECTION_MODEL_PATH } from '../../constants.js';
+import { FRAGMENT_STATUS, CARD_MODEL_PATH, COLLECTION_MODEL_PATH, PAGE_NAMES, DICTIONARY_MODEL_PATH } from '../../constants.js';
 import { Fragment } from '../../aem/fragment.js';
 import Store from '../../store.js';
-import { generateCodeToUse } from '../../utils.js';
+import { generateCodeToUse, extractSurfaceFromPath } from '../../utils.js';
+import { isPromoVariationPath } from '../../promotions/promotion-model.js';
 
 /**
  * Studio display path for an item-picker row's "Path" column: the same
@@ -12,7 +13,21 @@ import { generateCodeToUse } from '../../utils.js';
  * @returns {string}
  */
 export function getStudioFragmentDisplayPath(fragment) {
-    return generateCodeToUse(fragment, Store.search.get().path, Store.page.get())?.authorPath || '';
+    const page = Store.page.get();
+    const path =
+        page === PAGE_NAMES.PROMOTIONS_EDITOR
+            ? Store.promotions.itemPickerSurface.get() || extractSurfaceFromPath(fragment?.path) || Store.search.get().path
+            : extractSurfaceFromPath(fragment?.path) || Store.search.get().path;
+    return generateCodeToUse(fragment, path, page)?.authorPath || '';
+}
+
+/**
+ * Extracts the surface from a fragment path and applies it to the search store.
+ * @param {string} path
+ */
+export function applySearchSurfaceFromPath(path) {
+    const surface = extractSurfaceFromPath(path);
+    if (surface) Store.search.set((prev) => ({ ...prev, path: surface }));
 }
 
 /**
@@ -71,7 +86,8 @@ export function renderPromotionStatusCell(promotionStatus) {
 export function getItemTypeLabel(item) {
     if (!item) return 'Unknown';
     if (Fragment.isGroupedVariationPath(item.path)) return 'Grouped variation';
-    if (item.model?.path?.includes('/dictionnary')) return 'Placeholder';
+    if (isPromoVariationPath(item.path)) return 'Promotion';
+    if (item.model?.path?.includes(DICTIONARY_MODEL_PATH)) return 'Placeholder';
     if (item.model?.path === COLLECTION_MODEL_PATH) return 'Collection';
     if (item.model?.path === CARD_MODEL_PATH) return 'Default';
     return 'Unknown';
@@ -89,7 +105,9 @@ export function shouldIgnoreRowClickForSelection(event) {
         if (!(node instanceof Element)) return false;
         if (node.tagName === 'SP-CHECKBOX') return true;
         if (node.classList?.contains('expand-button')) return true;
+        if (node.classList?.contains('copy-icon-button')) return true;
         if (node.tagName === 'SP-ACTION-BUTTON') return true;
+        if (node.tagName === 'SP-ACTION-MENU') return true;
         return false;
     });
 }

@@ -702,7 +702,7 @@ describe('Router', () => {
     describe('navigateToVariationsTable', () => {
         it('should navigate to variations table', async () => {
             await router.navigateToVariationsTable('test-id');
-            expect(Store.fragments.expandedId.get()).to.equal('test-id');
+            expect(Store.search.get().query).to.equal('test-id');
             expect(Store.page.get()).to.equal(PAGE_NAMES.CONTENT);
             expect(Store.renderMode.get()).to.equal('table');
         });
@@ -1016,6 +1016,18 @@ describe('Router', () => {
             const next = '#page=promotions-editor&promotionId=b&path=sandbox&query=x';
             expect(promoHashIsSearchSync(prev, next)).to.be.false;
         });
+
+        it('returns true when only tags change on promotions-editor', () => {
+            const prev = '#page=promotions-editor&path=sandbox';
+            const next = '#page=promotions-editor&path=sandbox&tags=mas:product_code/ffsa';
+            expect(promoHashIsSearchSync(prev, next)).to.be.true;
+        });
+
+        it('returns true when tags are removed after closing the promotion item picker', () => {
+            const prev = '#page=promotions-editor&path=sandbox&tags=mas:product_code/ffsa';
+            const next = '#page=promotions-editor&path=sandbox';
+            expect(promoHashIsSearchSync(prev, next)).to.be.true;
+        });
     });
 
     describe('translationHashIsSearchSync', () => {
@@ -1042,24 +1054,19 @@ describe('Router', () => {
         let originalPromotionsInEdit;
         let originalPromotionsSelectedCards;
         let originalPromotionsSelectedCollections;
-        let originalItemHydrateUnreachablePaths;
-
         beforeEach(() => {
             originalPromotionsInEdit = Store.promotions.inEdit.get();
             originalPromotionsSelectedCards = [...(Store.promotions.selectedCards.value || [])];
             originalPromotionsSelectedCollections = [...(Store.promotions.selectedCollections.value || [])];
-            originalItemHydrateUnreachablePaths = [...(Store.promotions.itemHydrateUnreachablePaths.value || [])];
             Store.promotions.inEdit.set(null);
             Store.promotions.selectedCards.set([]);
             Store.promotions.selectedCollections.set([]);
-            Store.promotions.itemHydrateUnreachablePaths.set([]);
         });
 
         afterEach(() => {
             Store.promotions.inEdit.set(originalPromotionsInEdit);
             Store.promotions.selectedCards.set(originalPromotionsSelectedCards);
             Store.promotions.selectedCollections.set(originalPromotionsSelectedCollections);
-            Store.promotions.itemHydrateUnreachablePaths.set(originalItemHydrateUnreachablePaths);
         });
 
         it('returns false when there is no promotion in edit', () => {
@@ -1098,14 +1105,13 @@ describe('Router', () => {
             expect(router.promotionsEditorHasUnsavedChanges()).to.be.false;
         });
 
-        it('returns false when saved paths missing from selection are hydrate-unreachable', () => {
+        it('returns false when store includes failed-fetch fallback paths from saved fragments', () => {
             const resolved = '/content/dam/mas/promotions/test-items/resolved-card-fragment';
             const fetchFailed = '/content/dam/mas/promotions/test-items/fetch-failed-card-fragment';
 
             Store.promotions.inEdit.set(createPromotionInEditStore({ fragments: [resolved, fetchFailed], hasChanges: false }));
-            Store.promotions.selectedCards.set([resolved]);
+            Store.promotions.selectedCards.set([resolved, fetchFailed]);
             Store.promotions.selectedCollections.set([]);
-            Store.promotions.itemHydrateUnreachablePaths.set([fetchFailed]);
             expect(router.promotionsEditorHasUnsavedChanges()).to.be.false;
         });
     });

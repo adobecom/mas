@@ -40,6 +40,43 @@ application:
                         function: src/members/list.js
                         web: 'yes'
                         runtime: nodejs:22
+                    bulk-edit-find:
+                        function: src/bulk-edit/bulk-edit.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        inputs:
+                            bulkEditMode: find
+                        annotations:
+                            require-adobe-auth: false
+                            final: true
+                    bulk-edit-replace:
+                        function: src/bulk-edit/bulk-edit.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        inputs:
+                            bulkEditMode: replace
+                        annotations:
+                            require-adobe-auth: false
+                            final: true
+                    bulk-edit-find-worker:
+                        function: src/bulk-edit/find-worker.js
+                        runtime: nodejs:22
+                        limits:
+                            timeout: 3600000 # ms — 60 min (async worker max 3 h)
+                        annotations:
+                            require-adobe-auth: false
+                            final: true
+                    bulk-edit-replace-worker:
+                        function: src/bulk-edit/replace-worker.js
+                        runtime: nodejs:22
+                        inputs:
+                            batchSize: $BATCH_SIZE
+                            rpsLimit: $RPS_LIMIT
+                        limits:
+                            timeout: 3600000 # ms — 60 min (async worker max 3 h)
+                        annotations:
+                            require-adobe-auth: false
+                            final: true
                     translation-project-start:
                         function: src/translation/project-start.js
                         web: 'yes'
@@ -74,7 +111,7 @@ application:
                             rpsLimit: $RPS_LIMIT
                             workerConcurrency: $WORKER_CONCURRENCY
                         limits:
-                            timeout: 1800000
+                            timeout: 1800000 # ms — 30 min (async worker max 3 h)
                         annotations:
                             require-adobe-auth: false
                             final: true
@@ -90,15 +127,23 @@ application:
                         web: 'yes'
                         runtime: nodejs:22
                         limits:
-                            timeout: 300000
+                            timeout: 300000 # ms — 5 min
                         annotations:
                             require-adobe-auth: false
+                    bulk-publish-worker:
+                        function: src/bulk-publish/bulk-publish-worker.js
+                        runtime: nodejs:22
+                        limits:
+                            timeout: 3600000 # ms — 60 min
+                        annotations:
+                            require-adobe-auth: false
+                            final: true
                     bulk-snapshot:
                         function: src/bulk-publish/snapshot-action.js
                         web: 'yes'
                         runtime: nodejs:22
                         limits:
-                            timeout: 300000
+                            timeout: 300000 # ms — 5 min
                         annotations:
                             require-adobe-auth: false
                     bulk-revert:
@@ -106,7 +151,7 @@ application:
                         web: 'yes'
                         runtime: nodejs:22
                         limits:
-                            timeout: 300000
+                            timeout: 300000 # ms — 5 min
                         annotations:
                             require-adobe-auth: false
                     bulk-check-modifications:
@@ -114,6 +159,16 @@ application:
                         web: 'yes'
                         runtime: nodejs:22
                         limits:
-                            timeout: 60000
+                            timeout: 60000 # ms — 1 min (web action ceiling)
+                        annotations:
+                            require-adobe-auth: false
+                    cleanup-variations:
+                        function: src/cleanup-variations/index.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        inputs:
+                            odinEndpoint: $ODIN_ENDPOINT
+                        limits:
+                            timeout: 3600000 # ms — 60 min
                         annotations:
                             require-adobe-auth: false

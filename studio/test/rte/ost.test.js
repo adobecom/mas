@@ -82,6 +82,28 @@ describe('onPlaceholderSelect', () => {
         expect(event.detail).to.deep.equal(expectedAttributes);
     });
 
+    it('should prefer promoOverride over a stale storedPromoOverride option', () => {
+        const options = {
+            storedPromoOverride: 'OLDPROMO',
+        };
+
+        onPlaceholderSelect('test-id', 'price', {}, options, 'NEWPROMO');
+
+        const event = dispatchEventStub.getCall(0).args[0];
+        expect(event.detail['data-promotion-code']).to.equal('NEWPROMO');
+    });
+
+    it('should remove data-promotion-code when promoOverride is empty', () => {
+        const options = {
+            storedPromoOverride: 'OLDPROMO',
+        };
+
+        onPlaceholderSelect('test-id', 'price', {}, options, '');
+
+        const event = dispatchEventStub.getCall(0).args[0];
+        expect(event.detail).to.not.have.property('data-promotion-code');
+    });
+
     it('should dispatch an event with correct attributes for legal', () => {
         const offerSelectorId = 'test-id';
         const type = 'legal';
@@ -234,5 +256,107 @@ describe('openOfferSelectorTool deep-link type parameter', () => {
         openOfferSelectorTool(null, checkoutLinkEl);
         expect(openOstStub.calledOnce).to.be.true;
         expect(getSearchParamsFromLastCall().get('type')).to.equal('checkoutUrl');
+    });
+
+    function elementWith(attrs) {
+        return {
+            isInlinePrice: true,
+            innerText: '',
+            getAttribute: (key) => attrs[key] ?? null,
+            getAttributeNames: () => Object.keys(attrs),
+        };
+    }
+
+    it('opens a multi-OSI non-discount placeholder in bundle mode with all OSIs', () => {
+        openOfferSelectorTool(null, elementWith({ 'data-wcs-osi': 'osi-a,osi-b,osi-c' }));
+        const config = openOstStub.getCall(0).args[0];
+        expect(config.bundleOsis).to.deep.equal(['osi-a', 'osi-b', 'osi-c']);
+        expect(config.authoringFlow).to.equal('bundle');
+        expect(config.searchOfferSelectorId).to.be.undefined;
+    });
+
+    it('treats a multi-OSI discount placeholder as a single offer plus reference, not a bundle', () => {
+        openOfferSelectorTool(null, elementWith({ 'data-wcs-osi': 'osi-base,osi-ref', 'data-template': 'discount' }));
+        const config = openOstStub.getCall(0).args[0];
+        expect(config.bundleOsis).to.be.undefined;
+        expect(config.authoringFlow).to.be.undefined;
+        expect(config.searchOfferSelectorId).to.equal('osi-base');
+        expect(config.initialReferenceOsi).to.equal('osi-ref');
+    });
+
+    it('passes language and country from authoring locale for en_EG regional variation', () => {
+        const localeOrRegionStub = sinon.stub(Store, 'localeOrRegion').returns('en_EG');
+        const masCommerceService = document.querySelector('mas-commerce-service');
+        masCommerceService.settings.country = 'SA';
+        masCommerceService.settings.language = 'ar';
+
+        openOfferSelectorTool(null, null);
+
+        expect(openOstStub.calledOnce).to.be.true;
+        const config = openOstStub.getCall(0).args[0];
+        expect(config.language).to.equal('en');
+        expect(config.country).to.equal('EG');
+
+        localeOrRegionStub.restore();
+    });
+});
+
+describe('closeOfferSelectorTool', () => {
+    let closeOfferSelectorTool;
+    let openOfferSelectorTool;
+    let masStudio;
+    let renderCommerceServiceStub;
+    let querySelectorStub;
+    let originalWindowOst;
+    let originalLocalStorage;
+
+    before(async () => {
+        ({ closeOfferSelectorTool, openOfferSelectorTool } = await import('../../src/rte/ost.js'));
+    });
+
+    beforeEach(() => {
+        renderCommerceServiceStub = sinon.stub();
+        masStudio = { renderCommerceService: renderCommerceServiceStub };
+
+        querySelectorStub = sinon.stub(document, 'querySelector');
+        querySelectorStub.withArgs('mas-studio').returns(masStudio);
+        querySelectorStub.callThrough();
+
+        originalWindowOst = window.ost;
+        window.ost = { openOfferSelectorTool: sinon.stub().returns(() => {}) };
+        originalLocalStorage = localStorage.getItem('masAccessToken');
+        localStorage.setItem('masAccessToken', 'test-token');
+    });
+
+    afterEach(() => {
+        querySelectorStub.restore();
+        window.ost = originalWindowOst;
+        if (originalLocalStorage === null) {
+            localStorage.removeItem('masAccessToken');
+        } else {
+            localStorage.setItem('masAccessToken', originalLocalStorage);
+        }
+    });
+
+    it('calls renderCommerceService when an OST session was open', () => {
+        openOfferSelectorTool(null, null);
+        closeOfferSelectorTool();
+
+        expect(renderCommerceServiceStub.calledOnce).to.be.true;
+    });
+
+    it('does nothing when no OST session is open', () => {
+        closeOfferSelectorTool();
+
+        expect(renderCommerceServiceStub.notCalled).to.be.true;
+    });
+
+    it('does not call renderCommerceService when mas-studio is not present', () => {
+        querySelectorStub.withArgs('mas-studio').returns(null);
+
+        openOfferSelectorTool(null, null);
+        closeOfferSelectorTool();
+
+        expect(renderCommerceServiceStub.notCalled).to.be.true;
     });
 });

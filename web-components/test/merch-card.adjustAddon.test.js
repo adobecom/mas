@@ -207,3 +207,87 @@ describe('MiniCompareChart.adjustAddon', () => {
         expect(addon.planType).to.equal('PUF');
     });
 });
+
+// ── MiniCompareChart.adjustShortDescription ───────────────────────────────────
+
+describe('MiniCompareChart.adjustShortDescription', () => {
+    function makeLayout({ bodyXxs = null, planType = null } = {}) {
+        const layout = Object.create(MiniCompareChart.prototype);
+        layout.card = {
+            querySelector: (sel) => {
+                if (sel.includes('body-xxs')) return bodyXxs;
+                if (sel.includes('data-template="legal"')) {
+                    if (!planType) return null;
+                    return { querySelector: () => planType };
+                }
+                return null;
+            },
+        };
+        return layout;
+    }
+
+    it('does nothing when no [slot="body-xxs"] exists', () => {
+        makeLayout().adjustShortDescription(); // must not throw
+    });
+
+    it('does nothing when shortDescription has no text and no icon-button', () => {
+        const planType = document.createElement('span');
+        const bodyXxs = document.createElement('div');
+        bodyXxs.remove = () => {};
+        const layout = makeLayout({ bodyXxs, planType });
+        layout.adjustShortDescription();
+        expect(planType.querySelector('em')).to.be.null;
+    });
+
+    it('appends text into .price-plan-type as an <em>', () => {
+        const planType = document.createElement('span');
+        const bodyXxs = document.createElement('div');
+        bodyXxs.innerHTML = '<p>Great value</p>';
+        bodyXxs.remove = () => {};
+        const layout = makeLayout({ bodyXxs, planType });
+        layout.adjustShortDescription();
+        const em = planType.querySelector('em');
+        expect(em).to.exist;
+        expect(em.textContent).to.include('Great value');
+    });
+
+    it('preserves icon-button HTML when appending to .price-plan-type', () => {
+        const planType = document.createElement('span');
+        const bodyXxs = document.createElement('div');
+        bodyXxs.innerHTML =
+            '<p>See details <span class="icon-button" data-tooltip="More info"></span></p>';
+        bodyXxs.remove = () => {};
+        const layout = makeLayout({ bodyXxs, planType });
+        layout.adjustShortDescription();
+        const em = planType.querySelector('em');
+        expect(em).to.exist;
+        expect(em.querySelector('.icon-button')).to.exist;
+        expect(em.querySelector('.icon-button').dataset.tooltip).to.equal(
+            'More info',
+        );
+    });
+
+    it('appends icon-button even when there is no text content', () => {
+        const planType = document.createElement('span');
+        const bodyXxs = document.createElement('div');
+        bodyXxs.innerHTML =
+            '<p><span class="icon-button" data-tooltip="Info"></span></p>';
+        bodyXxs.remove = () => {};
+        const layout = makeLayout({ bodyXxs, planType });
+        layout.adjustShortDescription();
+        const em = planType.querySelector('em');
+        expect(em).to.exist;
+        expect(em.querySelector('.icon-button')).to.exist;
+    });
+
+    it('does not append twice when called a second time', () => {
+        const planType = document.createElement('span');
+        const bodyXxs = document.createElement('div');
+        bodyXxs.innerHTML = '<p>Stock</p>';
+        bodyXxs.remove = () => {};
+        const layout = makeLayout({ bodyXxs, planType });
+        layout.adjustShortDescription();
+        layout.adjustShortDescription();
+        expect(planType.querySelectorAll('em').length).to.equal(1);
+    });
+});

@@ -1,6 +1,6 @@
 import { expect } from '@esm-bundle/chai';
 import Store from '../src/store.js';
-import { canAccessSettings, isMasAdmin } from '../src/groups.js';
+import { canAccessSettings, canEditPromotions, isMasAdmin } from '../src/groups.js';
 
 describe('groups', () => {
     let originalProfile;
@@ -66,5 +66,29 @@ describe('groups', () => {
         Store.users.set([{ userPrincipalName: 'a@adobe.com', groups: ['GRP-ODIN-MAS-ACOM-POWERUSERS'] }]);
         expect(canAccessSettings('')).to.be.false;
         expect(canAccessSettings(undefined)).to.be.false;
+    });
+
+    it('canEditPromotions is true for admins and promo editors, false otherwise', () => {
+        Store.profile.set({ email: 'a@adobe.com' });
+        Store.users.set([{ userPrincipalName: 'a@adobe.com', groups: ['GRP-ODIN-MAS-ADMINS'] }]);
+        expect(canEditPromotions()).to.be.true;
+
+        Store.users.set([{ userPrincipalName: 'a@adobe.com', groups: ['GRP-ODIN-MAS-PROMO-EDITORS'] }]);
+        expect(canEditPromotions()).to.be.true;
+
+        Store.users.set([{ userPrincipalName: 'a@adobe.com', groups: ['GRP-ODIN-MAS-ACOM-POWERUSERS'] }]);
+        expect(canEditPromotions()).to.be.false;
+    });
+
+    it('canEditPromotions matches user email case-insensitively', () => {
+        Store.users.set([{ userPrincipalName: 'promo.editor@adobe.com', groups: ['grp-odin-mas-promo-editors'] }]);
+        Store.profile.set({ email: 'Promo.Editor@adobe.com' });
+        expect(canEditPromotions()).to.be.true;
+    });
+
+    it('canEditPromotions is false when the user is not found', () => {
+        Store.profile.set({ email: 'unknown@adobe.com' });
+        Store.users.set([{ userPrincipalName: 'a@adobe.com', groups: ['GRP-ODIN-MAS-PROMO-EDITORS'] }]);
+        expect(canEditPromotions()).to.be.false;
     });
 });

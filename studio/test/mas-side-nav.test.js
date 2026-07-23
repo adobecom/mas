@@ -16,6 +16,7 @@ function mockFragment(fields = [], overrides = {}) {
     fragment.fields = overrides.fields ?? fields;
     fragment.isValueEmpty = (val) => !val || val.length === 0 || val.every((v) => !v);
     fragment.getField = (name) => fragment.fields.find((f) => f.name === name) || null;
+    fragment.getFieldValue = (name) => fragment.fields.find((f) => f.name === name)?.values[0] || null;
     fragment.getTagTitle = () => null;
     return fragment;
 }
@@ -916,7 +917,7 @@ describe('MasSideNav – Copy Field', () => {
                 el.textContent.startsWith('CTA '),
             );
             expect(ctaValueLabels).to.have.length(1);
-            expect(ctaValueLabels[0].textContent).to.equal('CTA 1');
+            expect(ctaValueLabels[0].textContent).to.equal('CTA - 1');
 
             // The combined 'ctas' field row must NOT appear — CTAs are shown as individual items only
             const fieldLabels = [...container.querySelectorAll('.field-label')].filter((el) => el.textContent === 'CTAs');
@@ -972,8 +973,8 @@ describe('MasSideNav – Copy Field', () => {
 
             const ctaLabels = [...container.querySelectorAll('.field-label')].filter((el) => el.textContent.startsWith('CTA '));
             expect(ctaLabels).to.have.length(2);
-            expect(ctaLabels[0].textContent).to.equal('CTA 1');
-            expect(ctaLabels[1].textContent).to.equal('CTA 2');
+            expect(ctaLabels[0].textContent).to.equal('CTA - 1');
+            expect(ctaLabels[1].textContent).to.equal('CTA - 2');
         });
 
         it('should not render CTAs section when no ctas in fragment', () => {
@@ -1318,14 +1319,14 @@ describe('MasSideNav - Promotions nav item', () => {
         Store.page.set(originalPage);
     });
 
-    it('hides Promotions for non-admin users', async () => {
+    it('shows Promotions for non-admin users (editing is gated downstream)', async () => {
         Store.profile.set({ email: 'user@adobe.com' });
         Store.users.set([{ userPrincipalName: 'user@adobe.com', groups: ['GRP-ODIN-MAS-ACOM-POWERUSERS'] }]);
         await el.updateComplete;
         const items = el.shadowRoot.querySelectorAll('mas-side-nav-item');
         const promotions = [...items].find((n) => n.label === 'Promotions');
-        expect(promotions).to.be.undefined;
-        expect([...items].some((n) => n.label === 'Collections')).to.be.true;
+        expect(promotions).to.exist;
+        expect(promotions.hasAttribute('disabled')).to.be.false;
     });
 
     it('shows Promotions for MAS admin users', async () => {

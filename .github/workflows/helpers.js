@@ -38,4 +38,7 @@ const slackNotification = (text, webhook) => {
     });
 };
 
-export { getLocalConfigs, slackNotification };
+const getSnowCmrUrl = (changeId) =>
+    `https://adobe.service-now.com/now/nav/ui/classic/params/target/change_request.do%3Fsysparm_query=number%3d${changeId}`;
+
+export { getLocalConfigs, slackNotification, getSnowCmrUrl };

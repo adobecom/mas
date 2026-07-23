@@ -35,6 +35,7 @@ class MasSelectItemsTable extends LitElement {
         renderActionsCell: { type: Function },
         renderPreviewCell: { type: Function },
         promoVariationsFetchedByParent: { type: Object },
+        viewOnlyFragmentsFetchedByParent: { type: Boolean },
     };
 
     hasMore = new StoreController(this, Store.fragments.list.hasMore);
@@ -63,6 +64,7 @@ class MasSelectItemsTable extends LitElement {
         this.renderActionsCell = null;
         this.renderPreviewCell = null;
         this.hidePromoVariations = false;
+        this.viewOnlyFragmentsFetchedByParent = false;
     }
 
     connectedCallback() {
@@ -70,7 +72,7 @@ class MasSelectItemsTable extends LitElement {
         this.dataState.abortController = new AbortController();
         this.dataState.isProcessingCards = false;
         this.dataState.pendingCards = null;
-        if (this.viewOnly && !this.viewOnlyFragments.length) {
+        if (this.viewOnly && !this.viewOnlyFragmentsFetchedByParent) {
             if (this.effectiveType === TABLE_TYPE.PLACEHOLDERS) {
                 this.viewOnlyLoading = !!getItemsSelectionStore().selectedPlaceholders.value?.length;
                 this.dataSubscription = loadSelectedPlaceholders(

@@ -863,6 +863,7 @@ class MasPromotionsItemsTable extends LitElement {
         return html`<mas-select-items-table
             .viewOnly=${true}
             .viewOnlyFragments=${this.viewOnlyFragments}
+            .viewOnlyFragmentsFetchedByParent=${true}
             .viewOnlyLoading=${this.viewOnlyLoading}
             .viewOnlyTabs=${[VARIATION_TAB_NAME.PROMOTION]}
             .type=${TABLE_TYPE.CARDS}
@@ -882,6 +883,7 @@ class MasPromotionsItemsTable extends LitElement {
         return html`<mas-select-items-table
             .viewOnly=${true}
             .viewOnlyFragments=${this.viewOnlyFragments}
+            .viewOnlyFragmentsFetchedByParent=${true}
             .viewOnlyLoading=${this.viewOnlyLoading}
             .viewOnlyTabs=${[VARIATION_TAB_NAME.PROMOTION]}
             .type=${TABLE_TYPE.COLLECTIONS}

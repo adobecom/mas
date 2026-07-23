@@ -68,6 +68,12 @@ export class MasCollapsibleTableRow extends LitElement {
         this.selectableTabs ??= [VARIATION_TAB_NAME.LOCALE, VARIATION_TAB_NAME.PROMOTION, VARIATION_TAB_NAME.GROUPED];
     }
 
+    willUpdate(changedProperties) {
+        if (changedProperties.has('promoVariationsFetchedByParent') && this.promoVariationsFetchedByParent) {
+            this.promoVariations = this.promoVariationsFetchedByParent.get(this.topLevelCard?.path) || [];
+        }
+    }
+
     updated(changedProperties) {
         super.updated(changedProperties);
         if (changedProperties.has('topLevelCard')) {
@@ -83,9 +89,6 @@ export class MasCollapsibleTableRow extends LitElement {
                 this.isLoadingGroupedVariations = false;
                 this.isLoadingPromoVariations = false;
             }
-        }
-        if (changedProperties.has('promoVariationsFetchedByParent') && this.promoVariationsFetchedByParent) {
-            this.promoVariations = this.promoVariationsFetchedByParent.get(this.topLevelCard?.path) || [];
         }
     }
 

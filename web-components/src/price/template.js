@@ -6,7 +6,7 @@ import {
     toBoolean,
 } from '@dexter/tacocat-core/src/utilities.js';
 import { createLog } from '../log.js';
-import IntlMessageFormat from 'intl-messageformat';
+import IntlMessageFormatPackage from 'intl-messageformat';
 import {
     formatOpticalPrice,
     formatRegularPrice,
@@ -14,6 +14,11 @@ import {
     makeSpacesAroundNonBreaking,
     isPromotionActive,
 } from './utilities.js';
+
+const IntlMessageFormat =
+    IntlMessageFormatPackage.IntlMessageFormat ??
+    IntlMessageFormatPackage.default ??
+    IntlMessageFormatPackage;
 
 export const defaultLiterals = {
     recurrenceLabel:

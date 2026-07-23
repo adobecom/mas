@@ -132,27 +132,41 @@ function createPriceRuntime(fragment) {
     };
 }
 
-function renderedPriceInfo(html) {
-    const elements = extractElements(html);
-    const textForClass = (className) =>
-        elements.find((element) => element.attributes.class?.split(/\s+/).includes(className))?.text;
-    const strikethrough = textForClass('price-strikethrough');
+function renderedPriceInfo(html, valueHtml, legalHtml) {
+    const textForClass = (source, className) => {
+        const pattern = new RegExp(
+            `<span\\b[^>]*class\\s*=\\s*(?:"[^"]*\\b${className}\\b[^"]*"|'[^']*\\b${className}\\b[^']*')[^>]*>([\\s\\S]*?)<\\/span>`,
+            'i',
+        );
+        return stripTags(String(source).match(pattern)?.[1]) ?? undefined;
+    };
+    const priceTextForClass = (source, className) => textForClass(source, className);
+    const legalTextForClass = (className) => textForClass(legalHtml, className);
+    const taxText = legalTextForClass('price-tax-inclusivity') ?? priceTextForClass(html, 'price-tax-inclusivity');
+    const unitText = legalTextForClass('price-unit-type') ?? priceTextForClass(html, 'price-unit-type');
+    const strikethrough = priceTextForClass(valueHtml, 'price-strikethrough');
     const primary =
-        textForClass('price-alternative') ??
-        elements.find(
-            (element) =>
-                element.attributes.class?.split(/\s+/).includes('price') &&
-                !element.attributes.class?.split(/\s+/).includes('price-annual') &&
-                !element.attributes.class?.split(/\s+/).includes('price-strikethrough'),
-        )?.text ??
-        stripTags(html) ??
+        priceTextForClass(valueHtml, 'price-alternative') ??
+        priceTextForClass(valueHtml, 'price') ??
+        stripTags(valueHtml) ??
         undefined;
+    const renderedPrimary =
+        priceTextForClass(html, 'price-alternative') ?? priceTextForClass(html, 'price') ?? stripTags(html) ?? undefined;
+    const recurrenceText = renderedPrimary
+        ?.replace(primary, '')
+        .replace(taxText ?? '', '')
+        .replace(unitText ?? '', '')
+        .trim();
 
     return {
         value: primary,
         promoPrice: strikethrough && primary !== strikethrough ? primary : undefined,
         regularPrice: strikethrough ?? primary,
-        annualPrice: textForClass('price-annual'),
+        annualPrice: priceTextForClass(valueHtml, 'price-annual'),
+        planTypeText: legalTextForClass('price-plan-type'),
+        taxText,
+        recurrenceText: recurrenceText || undefined,
+        unitText,
     };
 }
 
@@ -167,13 +181,23 @@ async function hydrateInlinePrice(runtime, attributes) {
     const offerGroups = await Promise.all(runtime.wcs.resolveOfferSelectors(options));
     const offers = offerGroups.flat();
     const html = runtime.price.buildPriceHTML(offers, options);
+    const valueHtml = runtime.price.buildPriceHTML(offers, {
+        ...options,
+        displayRecurrence: false,
+        displayPerUnit: false,
+        displayTax: false,
+    });
+    const legalHtml = runtime.price.buildPriceHTML(offers, {
+        ...options,
+        template: 'legal',
+    });
     return {
         html,
         price: {
             template: options.template ?? 'price',
             wcsOsi: attributes['data-wcs-osi'],
             promotionCode: options.promotionCode ?? offers[0]?.promotion?.promotionCode,
-            ...renderedPriceInfo(html),
+            ...renderedPriceInfo(html, valueHtml, legalHtml),
         },
     };
 }
@@ -250,10 +274,10 @@ async function extractMerchCard(fragment) {
         promoPrice: mainPrice?.promoPrice,
         regularPrice: mainPrice?.regularPrice,
         annualPrice: mainPrice?.annualPrice,
-        planTypeText: authoredText(elements, 'price-plan-type'),
-        taxText: authoredText(elements, 'price-tax-inclusivity'),
-        recurrenceText: authoredText(elements, 'price-recurrence'),
-        unitText: authoredText(elements, 'price-unit-type'),
+        planTypeText: mainPrice?.planTypeText ?? authoredText(elements, 'price-plan-type'),
+        taxText: mainPrice?.taxText ?? authoredText(elements, 'price-tax-inclusivity'),
+        recurrenceText: mainPrice?.recurrenceText ?? authoredText(elements, 'price-recurrence'),
+        unitText: mainPrice?.unitText ?? authoredText(elements, 'price-unit-type'),
         seeTermsInfo: ctaInfo(seeTerms),
         renewalText: authoredText(elements, 'renewal-text'),
         promoDurationText: authoredText(elements, 'promo-duration-text'),

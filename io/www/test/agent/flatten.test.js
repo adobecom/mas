@@ -19,13 +19,13 @@ describe('flattenOffer', () => {
             promoText: undefined,
             shortDescription: undefined,
             description:
-                'Save 50%. Get 20+ apps, including Photoshop, Illustrator, and Premiere, plus Adobe Firefly creative AI. Pay US$34.99 for the first 3 months and US$69.99 after that. New subscribers only. See terms. See all plans & pricing details',
+                'Save 50%. Get 20+ apps, including Photoshop, Illustrator, and Premiere, plus Adobe Firefly creative AI. Pay US$34.99/mo for the first 3 months and US$69.99/mo after that. New subscribers only. See terms. See all plans & pricing details',
             callout: undefined,
             promoPrice: 'US$34.99',
             regularPrice: 'US$69.99',
         });
-        expect(offer.planTypeText).to.be.undefined;
-        expect(offer.recurrenceText).to.be.undefined;
+        expect(offer.planTypeText).to.equal('Annual, billed monthly');
+        expect(offer.recurrenceText).to.equal('/mo');
         expect(offer.description).to.be.a('string').and.not.empty;
         expect(offer).to.have.property('shortDescription');
     });
@@ -225,9 +225,14 @@ describe('flattenOffer', () => {
                     `,
                 },
             },
+            settings: {
+                country: 'GB',
+                language: 'en',
+                locale: 'en_GB',
+            },
             wcs: {
                 prod: {
-                    'promo-us-mult': [
+                    'promo-gb-en': [
                         {
                             offerSelectorIds: ['promo'],
                             offerId: 'offer-promo',
@@ -235,10 +240,6 @@ describe('flattenOffer', () => {
                                 formatString: "'$'#,##0.00",
                                 perUnit: 'LICENSE',
                                 price: 5,
-                            },
-                            priceInfo: {
-                                price: '$5.00',
-                                priceWithoutDiscountAndTax: '$10.00',
                                 taxDisplay: 'TAX_EXCLUSIVE',
                                 taxTerm: 'GST',
                             },
@@ -248,7 +249,7 @@ describe('flattenOffer', () => {
                             term: 'WEEKLY',
                         },
                     ],
-                    'missing-us-mult': [],
+                    'missing-gb-en': [],
                 },
             },
         };
@@ -256,8 +257,8 @@ describe('flattenOffer', () => {
         const card = await extractMerchCard(fragment);
         expect(card.regularPrice).to.equal('$5.00');
         expect(card.recurrenceText).to.be.undefined;
-        expect(card.taxText).to.be.undefined;
-        expect(card.unitText).to.be.undefined;
+        expect(card.taxText).to.equal('excl. GST');
+        expect(card.unitText).to.equal('per license');
         expect(card.planTypeText).to.be.undefined;
 
         expect(

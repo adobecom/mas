@@ -243,7 +243,9 @@ class MasField extends HTMLElement {
         const CheckoutLink = customElements.get('checkout-link');
         const button =
             CheckoutLink?.createCheckoutLink(link.dataset, link.textContent) ??
-            link.cloneNode(true);
+            link.cloneNode(false);
+        if (!button.firstElementChild)
+            button.innerHTML = `<span style="pointer-events: none;">${link.textContent}</span>`;
 
         for (const { name, value } of link.attributes) {
             if (['class', 'is', 'href'].includes(name)) continue;

@@ -8,7 +8,6 @@ const CONFIGURATION = () => [
     {
         wcsURL: 'https://www.adobe.com/web_commerce_artifact',
         env: 'prod',
-        apiKey: 'wcms-commerce-ims-ro-user-milo',
     },
 ];
 
@@ -57,7 +56,7 @@ describe('wcs typical cases', function () {
                         url.includes('country=US') &&
                         url.includes('locale=en_US') &&
                         url.includes('landscape=PUBLISHED') &&
-                        url.includes('api_key=wcms-commerce-ims-ro-user-milo') &&
+                        url.includes('api_key=testing_wcs') &&
                         url.includes('language=MULT') &&
                         url.includes('promotion_code=UPT_PROMO-1'),
                 ),
@@ -73,7 +72,7 @@ describe('wcs typical cases', function () {
                         url.includes('locale=en_US') &&
                         url.includes('landscape=PUBLISHED') &&
                         url.includes('promotion_code=NICOPROMO') &&
-                        url.includes('api_key=wcms-commerce-ims-ro-user-milo') &&
+                        url.includes('api_key=testing_wcs') &&
                         url.includes('language=MULT'),
                 ),
             )
@@ -88,7 +87,7 @@ describe('wcs typical cases', function () {
                         url.includes('locale=en_US') &&
                         url.includes('landscape=PUBLISHED') &&
                         url.includes('promotion_code=UPT_PROMO-1') &&
-                        url.includes('api_key=wcms-commerce-ims-ro-user-milo') &&
+                        url.includes('api_key=testing_wcs') &&
                         url.includes('language=MULT'),
                 ),
             )
@@ -195,7 +194,7 @@ describe('wcs typical cases', function () {
                         url.includes('country=GB') &&
                         url.includes('locale=en_GB') &&
                         url.includes('landscape=PUBLISHED') &&
-                        url.includes('api_key=wcms-commerce-ims-ro-user-milo') &&
+                        url.includes('api_key=testing_wcs') &&
                         !url.includes('promotion_code'),
                 ),
             )
@@ -210,7 +209,7 @@ describe('wcs typical cases', function () {
                         url.includes('locale=en_GB') &&
                         url.includes('landscape=PUBLISHED') &&
                         url.includes('promotion_code=NICOPROMO') &&
-                        url.includes('api_key=wcms-commerce-ims-ro-user-milo'),
+                        url.includes('api_key=testing_wcs'),
                 ),
             )
             .returns(createResponse(200, { resolvedOffers: [{ foo: 'bar' }] }));
@@ -275,7 +274,7 @@ describe('wcs corner cases', function () {
                         url.includes('country=US') &&
                         url.includes('locale=en_US') &&
                         url.includes('landscape=PUBLISHED') &&
-                        url.includes('api_key=wcms-commerce-ims-ro-user-milo') &&
+                        url.includes('api_key=testing_wcs') &&
                         url.includes('language=MULT') &&
                         !url.includes('promotion_code'),
                 ),
@@ -291,7 +290,7 @@ describe('wcs corner cases', function () {
                         url.includes('locale=en_US') &&
                         url.includes('landscape=PUBLISHED') &&
                         url.includes('promotion_code=NICOPROMO') &&
-                        url.includes('api_key=wcms-commerce-ims-ro-user-milo') &&
+                        url.includes('api_key=testing_wcs') &&
                         url.includes('language=MULT'),
                 ),
             )

@@ -8,9 +8,7 @@ const HARDCODED_API_KEYS = [
     'unified_checkout_client_v3',
 ];
 
-const HARDCODED_WCS_CONFIGURATION = [
-    { wcsURL: 'https://www.adobe.com/web_commerce_artifact', env: 'prod', apiKey: 'wcms-commerce-ims-ro-user-milo' },
-];
+const HARDCODED_WCS_CONFIGURATION = [{ wcsURL: 'https://www.adobe.com/web_commerce_artifact', env: 'prod' }];
 
 const REGEX_FORM = /^\/(.+)\/$/;
 const CONFIG_CACHE_TTL = 5 * 60 * 1000;

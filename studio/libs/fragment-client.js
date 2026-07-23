@@ -73,7 +73,7 @@ async function previewFragment(id, options) {
     const serviceElement = document.head.querySelector('mas-commerce-service');
     const locale = serviceElement?.getAttribute('locale');
     const country = serviceElement?.getAttribute('country');
-    let context = { ...DEFAULT_CONTEXT, locale, country, ...options, id, api_key: 'fragment-client' };
+    let context = { ...DEFAULT_CONTEXT, locale, country, ...options, id, api_key: 'mas-studio' };
     const initPromises = {};
     const now = mark(context, 'config-check');
     context = await loadConfiguration(context, now);
@@ -121,7 +121,7 @@ async function previewFragment(id, options) {
 
 /* c8 ignore next 38 */
 async function previewStudioFragment(body, options) {
-    let context = { ...DEFAULT_CONTEXT, ...options, body, api_key: 'fragment-client-studio' };
+    let context = { ...DEFAULT_CONTEXT, ...options, body, api_key: 'mas-studio' };
     const { locale, surface } = options;
     const fragmentPath = options.fragmentPath ?? body?.path;
     const phase1 = {

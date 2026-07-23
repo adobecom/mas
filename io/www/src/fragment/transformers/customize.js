@@ -295,10 +295,30 @@ function mergeVariations(root, customizeContext) {
     return root;
 }
 
+const RICH_TEXT_OSI_ATTR = /data-wcs-osi="([^"]+)"/g;
+
+/**
+ * Collects OSIs referenced by inline price markup (`data-wcs-osi`) inside a fragment's
+ * rich text string fields. Headless fragments often price against OSIs that differ from
+ * their own `osi` field; those inline OSIs must also participate in promo code matching.
+ */
+function collectRichTextOsis(fields) {
+    const osis = [];
+    for (const value of Object.values(fields)) {
+        if (typeof value !== 'string' || !value.includes('data-wcs-osi')) continue;
+        for (const match of value.matchAll(RICH_TEXT_OSI_ATTR)) {
+            osis.push(...match[1].split(','));
+        }
+    }
+    return osis;
+}
+
 function applyPromoCode(fragment, promoEntries, context) {
-    const fragOsi = fragment.fields?.osi;
-    if (!fragOsi) return;
-    const osis = Array.isArray(fragOsi) ? fragOsi : [fragOsi];
+    const fields = fragment.fields ?? {};
+    const fragOsi = fields.osi;
+    // Own osi first: it has priority over rich text OSIs in explicit matching below.
+    const osis = [].concat(fragOsi ?? []).concat(collectRichTextOsis(fields));
+    if (!osis.length) return;
     // Several active projects can target the same fragment. An explicit osi (or substituted-osi)
     // entry from any of them wins, promoProjects order (earliest startDate first, seasonal
     // projects floated to the top) only breaking ties, so projects with disjoint

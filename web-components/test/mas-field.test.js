@@ -251,6 +251,57 @@ describe('mas-field – indexed CTA fields (ctas[N])', () => {
     });
 });
 
+describe('mas-field – label-keyed fields (customFields[label])', () => {
+    const FIELDS = {
+        customFields: ['<p>Value one</p>', '<p>Value two</p>', '<p>Value three</p>'],
+        customFieldLabels: ['Alpha', 'Beta', 'Gamma'],
+    };
+
+    afterEach(() => {
+        document.body.querySelectorAll('mas-field').forEach((el) => el.remove());
+    });
+
+    function makeLabelField(label, fields = FIELDS) {
+        const el = document.createElement('mas-field');
+        el.setAttribute('field', `customFields[${label}]`);
+        const fragment = document.createElement('aem-fragment');
+        el.append(fragment);
+        document.body.append(el);
+        fragment.dispatchEvent(
+            new CustomEvent('aem:load', { bubbles: true, detail: { fields } }),
+        );
+        return el;
+    }
+
+    it('renders the value matching the label', () => {
+        const el = makeLabelField('Beta');
+        expect(el.querySelector('[data-role="mas-field-content"]').textContent).to.equal('Value two');
+    });
+
+    it('renders the first item when label is Alpha', () => {
+        const el = makeLabelField('Alpha');
+        expect(el.querySelector('[data-role="mas-field-content"]').textContent).to.equal('Value one');
+    });
+
+    it('renders nothing when label is not found', () => {
+        const el = makeLabelField('Nonexistent');
+        expect(el.querySelector('[data-role="mas-field-content"]').innerHTML).to.equal('');
+    });
+
+    it('renders nothing when customFieldLabels is absent', () => {
+        const el = makeLabelField('Alpha', { customFields: ['<p>Value one</p>'] });
+        expect(el.querySelector('[data-role="mas-field-content"]').innerHTML).to.equal('');
+    });
+
+    it('handles single string values (non-array)', () => {
+        const el = makeLabelField('Solo', {
+            customFields: '<p>Only value</p>',
+            customFieldLabels: 'Solo',
+        });
+        expect(el.querySelector('[data-role="mas-field-content"]').textContent).to.equal('Only value');
+    });
+});
+
 describe('mas-field – checkReady()', () => {
     afterEach(() => {
         document.body

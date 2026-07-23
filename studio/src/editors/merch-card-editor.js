@@ -16,6 +16,7 @@ import '../fields/plan-type-field.js';
 import '../fields/quantity-select-settings-field.js';
 import { getFragmentMapping, showToast } from '../utils.js';
 import '../fields/addon-field.js';
+import '../fields/rte-field-item.js';
 import { parseBadgeHtml, serializeBadgeHtml } from '../fields/badge-section.js';
 import { createQuantitySelectValue, parseQuantitySelectValue, QUANTITY_SELECT_TAG } from '../common/fields/quantity-select.js';
 import Store from '../store.js';
@@ -100,6 +101,7 @@ class MerchCardEditor extends LitElement {
         'Footer rows': ['footerRows'],
         Footer: ['ctas'],
         'Options and settings': ['addon', 'planType', 'secureLabel', 'quantitySelect'],
+        'Custom fields': ['customFields'],
     };
 
     static SETTINGS_FIELDS = ['addon', 'showPlanType', 'showSecureLabel', 'quantitySelect'];
@@ -1616,6 +1618,23 @@ class MerchCardEditor extends LitElement {
                     ></rte-field>
                     ${this.renderFieldStatusIndicator('callout')}
                 </sp-field-group>
+                <div class="section-title">Custom fields</div>
+                <sp-field-group class="toggle" id="customFields">
+                    <mas-multifield
+                        button-label="Add field"
+                        dispatch-on-add
+                        data-field-state="${this.getFieldState('customFields')}"
+                        .value="${this.customFieldValues}"
+                        .osi="${this.getEffectiveFieldValue('osi', 0) || ''}"
+                        @change="${this.#updateCustomFields}"
+                        @input="${this.#updateCustomFields}"
+                    >
+                        <template>
+                            <mas-rte-field-item></mas-rte-field-item>
+                        </template>
+                    </mas-multifield>
+                    ${this.renderFieldStatusIndicator('customFields')}
+                </sp-field-group>
                 <div class="section-title">Footer</div>
                 <sp-field-group class="toggle" id="ctas">
                     <rte-field
@@ -1852,6 +1871,17 @@ class MerchCardEditor extends LitElement {
         this.fragmentStore.updateField(WHAT_IS_INCLUDED, [element?.outerHTML || '']);
     }
 
+    get customFieldValues() {
+        const values = this.getEffectiveFieldValues('customFields') || [];
+        const labels = this.getEffectiveFieldValues('customFieldLabels') || [];
+        return values.map((v, i) => {
+            const item = {};
+            if (v) item.value = v;
+            if (labels[i]) item.label = labels[i];
+            return item;
+        });
+    }
+
     get footerRows() {
         const html = this.getEffectiveFieldValue('footerRows', 0) || '';
         if (!html) return [];
@@ -1891,6 +1921,20 @@ class MerchCardEditor extends LitElement {
         });
         return ul;
     }
+
+    #updateCustomFields = (event) => {
+        const items = event?.target?.value;
+        if (!Array.isArray(items)) return;
+        const values = items.map((item) => item.value || '');
+        const labels = items.map((item) => item.label || '');
+        const nonEmpty = labels.filter(Boolean);
+        if (nonEmpty.length !== new Set(nonEmpty).size) {
+            showToast('Custom field labels must be unique', 'negative');
+            return;
+        }
+        this.fragmentStore.updateField('customFields', values);
+        this.fragmentStore.updateField('customFieldLabels', labels);
+    };
 
     #updateFooterRows(event) {
         const items = event?.target?.value;

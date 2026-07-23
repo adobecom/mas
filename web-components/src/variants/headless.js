@@ -26,6 +26,7 @@ export const HEADLESS_AEM_FRAGMENT_MAPPING = {
     backgroundColor: { attribute: 'background-color' },
     size: [],
     mnemonics: { size: 'm' },
+    customFields: { tag: 'div', slot: 'custom-fields' },
 };
 
 /**
@@ -62,6 +63,9 @@ export class Headless extends VariantLayout {
     }
 
     renderLayout() {
+        const customFieldEls = [
+            ...this.card.querySelectorAll('[slot^="custom-field-"]'),
+        ];
         return html`
             <div class="headless">
                 ${HEADLESS_FIELDS.map(
@@ -74,6 +78,30 @@ export class Headless extends VariantLayout {
                         </div>
                     `,
                 )}
+                ${customFieldEls.length
+                    ? html`
+                          <div class="headless-row">
+                              <span class="headless-label headless-section">
+                                  Custom fields
+                              </span>
+                          </div>
+                          ${customFieldEls.map(
+                              (el, i) => html`
+                                  <div class="headless-row">
+                                      <span class="headless-label">
+                                          ${el.dataset.label ||
+                                          `Custom field ${i + 1}`}
+                                      </span>
+                                      <span class="headless-value">
+                                          <slot
+                                              name="${el.getAttribute('slot')}"
+                                          ></slot>
+                                      </span>
+                                  </div>
+                              `,
+                          )}
+                      `
+                    : nothing}
                 ${this.card.secureLabel
                     ? html`
                           <div class="headless-row">
@@ -114,6 +142,13 @@ export class Headless extends VariantLayout {
         }
         :host([variant='headless']) .headless-value::slotted(*) {
             display: inline;
+        }
+        :host([variant='headless']) .headless-section {
+            font-size: 0.75em;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--spectrum-gray-600);
+            padding-top: 4px;
         }
     `;
 }

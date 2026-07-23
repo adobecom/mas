@@ -330,3 +330,9 @@ export const COMPAT_VERSION = COMPAT_VERSION_GLOBAL_PROMO_CODE;
 
 /** Freyja fragments API root on the preview origin — use as `preview.url` in pipeline contexts. */
 export const ODIN_PREVIEW_FRAGMENTS_URL = `${ODIN_PREVIEW_ORIGIN}/adobe/contentFragments`;
+
+export const VARIATION_TAB_NAME = {
+    LOCALE: 'locale',
+    PROMOTION: 'promotion',
+    GROUPED: 'grouped',
+};

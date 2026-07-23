@@ -129,7 +129,9 @@ async function wcs(context) {
                 addToken({ osi, promotionCode: promoMatch.groups.promotionCode });
                 return;
             }
-            const promoCode = promoCodeByOsi[baseOsi];
+            // Bare markup OSIs (no own data-promotion-code, no matching reference) belong to the
+            // top-level fragment itself — fall back to its own fields.promoCode (set by customize.js).
+            const promoCode = promoCodeByOsi[baseOsi] ?? context.body.fields?.promoCode;
             if (promoCode) addToken({ osi, promotionCode: promoCode });
             // Cache the plain (no promo) offer when no card promotes this osi, or when a card shares
             // this osi without a promo of its own (mixed case) — otherwise that card would miss the cache.

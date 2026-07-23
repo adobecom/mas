@@ -7,6 +7,7 @@ class MasPromoVariationGeos extends LitElement {
     static properties = {
         geos: { type: Array },
         disabledGeos: { type: Array },
+        hasEmptyGeosVariation: { type: Boolean },
         value: { type: Array },
         compact: { type: Boolean, reflect: true },
         searchQuery: { type: String, state: true },
@@ -16,6 +17,7 @@ class MasPromoVariationGeos extends LitElement {
         super();
         this.geos = [];
         this.disabledGeos = [];
+        this.hasEmptyGeosVariation = false;
         this.value = [];
         this.compact = false;
         this.searchQuery = '';
@@ -43,6 +45,10 @@ class MasPromoVariationGeos extends LitElement {
         const count = this.value.length;
         if (count) return `${count} ${count === 1 ? 'geo' : 'geos'} selected`;
         return `${this.geos.length} ${this.geos.length === 1 ? 'geo' : 'geos'}`;
+    }
+
+    get showInheritHint() {
+        return this.value.length === 0;
     }
 
     emitChange(value) {
@@ -97,6 +103,13 @@ class MasPromoVariationGeos extends LitElement {
                                   </sp-checkbox>
                                   <span class="geo-count">${this.numberOfGeos}</span>
                               </div>
+                              ${this.showInheritHint
+                                  ? html`<p class="inherit-hint ${this.hasEmptyGeosVariation ? 'blocked' : ''}">
+                                        ${this.hasEmptyGeosVariation
+                                            ? 'A variation with no geos already exists for this project. Select one or more geos to continue.'
+                                            : 'No geos selected — this variation will apply to all geos, including any added later.'}
+                                    </p>`
+                                  : nothing}
                               <sp-divider size="s"></sp-divider>
                           `}
                 </div>

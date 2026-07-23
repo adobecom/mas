@@ -131,25 +131,18 @@ class MasField extends HTMLElement {
         return value;
     }
 
-    /** Parses "ctas[1]" → { fieldName: "ctas", index: 1, labelKey: null },
-     *  "customFields[My Label]" → { fieldName: "customFields", index: null, labelKey: "My Label" },
-     *  or plain names → { fieldName, index: null, labelKey: null }. */
+    /** Parses "ctas[1]" → { fieldName: "ctas", index: 1 },
+     *  "ctas[abc123xyz]" → { fieldName: "ctas", index: "abc123xyz" },
+     *  "customFields[My Label]" → { fieldName: "customFields", index: "My Label" },
+     *  or plain names → { fieldName, index: null }. */
     #parseFieldAndIndex(field) {
         const numericMatch = field?.match(/^(.+)\[(\d+)\]$/);
         if (numericMatch)
-            return {
-                fieldName: numericMatch[1],
-                index: parseInt(numericMatch[2], 10),
-                labelKey: null,
-            };
-        const labelMatch = field?.match(/^(.+)\[(.+)\]$/);
-        if (labelMatch)
-            return {
-                fieldName: labelMatch[1],
-                index: null,
-                labelKey: labelMatch[2],
-            };
-        return { fieldName: field, index: null, labelKey: null };
+            return { fieldName: numericMatch[1], index: parseInt(numericMatch[2], 10) };
+        const bracketMatch = field?.match(/^(.+)\[(.+)\]$/);
+        if (bracketMatch)
+            return { fieldName: bracketMatch[1], index: bracketMatch[2] };
+        return { fieldName: field, index: null };
     }
 
     /** Extracts the Nth anchor from CTA HTML, stripping only CSS classes so Milo can restyle it.
@@ -193,32 +186,30 @@ class MasField extends HTMLElement {
 
     #renderField() {
         if (!this.#fields || !this.#field) return;
-        const { fieldName, index, labelKey } = this.#parseFieldAndIndex(
-            this.#field,
-        );
+        const { fieldName, index } = this.#parseFieldAndIndex(this.#field);
 
-        if (labelKey !== null) {
+        if (index !== null && isNaN(index)) {
             const labelsFieldName = `${fieldName.replace(/s$/, '')}Labels`;
             const labelsRaw = this.#fields[labelsFieldName];
-            const labels = Array.isArray(labelsRaw)
-                ? labelsRaw
-                : labelsRaw
-                  ? [labelsRaw]
-                  : [];
-            const labelIndex = labels.indexOf(labelKey);
-            if (labelIndex === -1) return;
-            const valuesRaw = this.#fields[fieldName];
-            const values = Array.isArray(valuesRaw)
-                ? valuesRaw
-                : valuesRaw
-                  ? [valuesRaw]
-                  : [];
-            const html = this.#normalizeFieldValue(values[labelIndex]);
-            if (!html) return;
-            this.#setFragmentIds();
-            const content = this.#ensureContentElement();
-            content.innerHTML = this.#unwrapSingleParagraph(html) ?? '';
-            return;
+            if (labelsRaw !== undefined) {
+                const labels = Array.isArray(labelsRaw)
+                    ? labelsRaw
+                    : [labelsRaw];
+                const labelIndex = labels.indexOf(index);
+                if (labelIndex === -1) return;
+                const valuesRaw = this.#fields[fieldName];
+                const values = Array.isArray(valuesRaw)
+                    ? valuesRaw
+                    : valuesRaw
+                      ? [valuesRaw]
+                      : [];
+                const html = this.#normalizeFieldValue(values[labelIndex]);
+                if (!html) return;
+                this.#setFragmentIds();
+                const content = this.#ensureContentElement();
+                content.innerHTML = this.#unwrapSingleParagraph(html) ?? '';
+                return;
+            }
         }
 
         const fieldValue = this.#normalizeFieldValue(this.#fields[fieldName]);

@@ -647,6 +647,13 @@ merch-card[variant="mini-compare-chart-mweb"] .price-plan-type{
   merch-card[variant="mini-compare-chart-mweb"] .footer-row-cell-checkmark {
     gap: var(--consonant-merch-spacing-xxs);
   }
+
+  /* Cap + center the lone card in its wide column, tablet and up */
+  .one-merch-card.mini-compare-chart-mweb merch-card[variant="mini-compare-chart-mweb"],
+  .one-merch-card:has(merch-card[variant="mini-compare-chart-mweb"]) merch-card[variant="mini-compare-chart-mweb"] {
+    max-width: var(--consonant-merch-card-mini-compare-chart-mweb-wide-width);
+    margin-inline: auto;
+  }
 }
 
 /* desktop */
@@ -674,9 +681,7 @@ merch-card[variant="mini-compare-chart-mweb"] .price-plan-type{
     gap: var(--consonant-merch-spacing-m);
   }
 
-  /* Card fills the wider column in sparse layouts (one/two cards) */
-  .one-merch-card.mini-compare-chart-mweb merch-card[variant="mini-compare-chart-mweb"],
-  .one-merch-card:has(merch-card[variant="mini-compare-chart-mweb"]) merch-card[variant="mini-compare-chart-mweb"],
+  /* Cap + center each card in its wide column */
   .two-merch-cards.mini-compare-chart-mweb merch-card[variant="mini-compare-chart-mweb"],
   .two-merch-cards:has(merch-card[variant="mini-compare-chart-mweb"]) merch-card[variant="mini-compare-chart-mweb"] {
     max-width: var(--consonant-merch-card-mini-compare-chart-mweb-wide-width);

@@ -6272,7 +6272,6 @@ merch-card-collection.product merch-card {
     width: 100%;
   }
 
-.one-merch-card.section merch-card[variant="product"],
 .two-merch-cards.section merch-card[variant="product"],
 .three-merch-cards.section merch-card[variant="product"],
 .four-merch-cards.section merch-card[variant="product"] {
@@ -6280,7 +6279,6 @@ merch-card-collection.product merch-card {
 }
 
 .one-merch-card.section merch-card[variant="product"] {
-    width: var(--consonant-merch-card-product-width);
     margin: 0 auto;
 }
 

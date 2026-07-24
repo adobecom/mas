@@ -264,8 +264,7 @@ function selectPromoProjectForFragment(root, customizeContext) {
     const hasExplicitMapping = ({ promoMap, substituteMap }) =>
         osis.some((osi) => promoMap[osi] !== undefined || substituteMap?.[osi] !== undefined);
     const hasWildcardPromo = ({ promoMap }) => Boolean(promoMap['*']);
-    const selected =
-        promoEntries.find(hasExplicitMapping) ?? promoEntries.find(hasWildcardPromo) ?? promoEntries[0];
+    const selected = promoEntries.find(hasExplicitMapping) ?? promoEntries.find(hasWildcardPromo) ?? promoEntries[0];
     logDebug(
         () =>
             `Selected promo project ${selected.project.id} for fragment ${root.id} out of ${promoEntries.length} targeting project(s)`,

@@ -119,7 +119,7 @@ async function runWorker(input, deps = {}) {
             lastError: '',
         });
     } else {
-        const fresh = await record({ paths, odinEndpoint, authToken });
+        const { entries: fresh, failures: recordFailures } = await record({ paths, odinEndpoint, authToken });
         snapshotEntries = fresh;
         const { expandedPaths: snapExpanded } = await snapshot({
             paths,
@@ -131,10 +131,12 @@ async function runWorker(input, deps = {}) {
             includeVariations,
         });
         expandedPaths = snapExpanded;
+        const recordError =
+            recordFailures.length > 0 ? `SAVE_SNAPSHOT:\n${recordFailures.map((f) => `${f.path}: ${f.error}`).join('\n')}` : '';
         await updateProject(odinEndpoint, projectId, authToken, {
             status: PROJECT_STATUS.PUBLISHING,
             snapshots: addPendingMarker(snapshotEntries),
-            lastError: '',
+            lastError: recordError,
         });
     }
 

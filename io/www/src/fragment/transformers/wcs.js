@@ -61,27 +61,25 @@ async function computeCache(tokens, wcsContext) {
 }
 
 function substituteOsi(osiString, substituteMap) {
-    if (!substituteMap) return null;
-    let changed = false;
-    const substituted = osiString.split(',').map((part) => {
-        const sub = substituteMap[part];
-        if (sub) changed = true;
-        return sub ?? part;
-    });
-    return changed ? substituted.join(',') : null;
+    if (!substituteMap) return osiString;
+    return osiString
+        .split(',')
+        .map((part) => substituteMap[part] ?? part)
+        .join(',');
 }
 
 async function wcs(context) {
     const { body } = context;
     const bodyString = JSON.stringify(body);
     const matches = [...bodyString.matchAll(MAS_ELEMENT_REGEXP)];
+    const substitutedOsis = matches.map((match) => substituteOsi(match.groups.osi, context.substituteMap));
 
     const parts = [];
     let lastEnd = 0;
-    matches.forEach((match) => {
+    matches.forEach((match, index) => {
         const originalOsi = match.groups.osi;
-        const substitutedOsi = substituteOsi(originalOsi, context.substituteMap);
-        if (substitutedOsi) {
+        const substitutedOsi = substitutedOsis[index];
+        if (substitutedOsi !== originalOsi) {
             logDebug(() => `Substituting OSI ${originalOsi} with ${substitutedOsi}`, context);
             parts.push(bodyString.slice(lastEnd, match.index));
             parts.push(match[0].replace(`\\"${originalOsi}\\"`, `\\"${substitutedOsi}\\"`));
@@ -132,9 +130,9 @@ async function wcs(context) {
             const key = tokenKey(token);
             if (!tokenMap.has(key)) tokenMap.set(key, token);
         };
-        matches.forEach((match) => {
+        matches.forEach((match, index) => {
             const baseOsi = match.groups.osi;
-            const osi = substituteOsi(baseOsi, context.substituteMap) ?? baseOsi;
+            const osi = substitutedOsis[index];
             const promoMatch = match[0].match(PROMOCODE_REGEXP);
             if (promoMatch && promoMatch.groups?.promotionCode) {
                 addToken({ osi, promotionCode: promoMatch.groups.promotionCode });

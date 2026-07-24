@@ -170,4 +170,4 @@ async function previewStudioFragment(body, options) {
     return context.body;
 }
 
-export { clearCaches, previewFragment, previewStudioFragment, customize, settings, replace, getDictionary, corrector };
+export { DEFAULT_CONTEXT, clearCaches, previewFragment, previewStudioFragment, customize, settings, replace, getDictionary, corrector };

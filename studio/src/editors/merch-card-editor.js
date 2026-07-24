@@ -1874,9 +1874,10 @@ class MerchCardEditor extends LitElement {
     get customFieldValues() {
         const values = this.getEffectiveFieldValues('customFields') || [];
         const labels = this.getEffectiveFieldValues('customFieldLabels') || [];
-        return values.map((v, i) => {
+        const count = Math.max(values.length, labels.length);
+        return Array.from({ length: count }, (_, i) => {
             const item = {};
-            if (v) item.value = v;
+            if (values[i]) item.value = values[i];
             if (labels[i]) item.label = labels[i];
             return item;
         });

@@ -566,4 +566,65 @@ describe('mas-field – price options provider (locale defaults)', () => {
         priceOptionsProvider(inline, options);
         expect(options.promotionCode).to.be.undefined;
     });
+
+    function makeLegalField(displayPlanType) {
+        const masField = document.createElement('mas-field');
+        const fragment = document.createElement('aem-fragment');
+        Object.defineProperty(fragment, 'data', {
+            configurable: true,
+            value: { settings: { displayPlanType } },
+        });
+        const inline = document.createElement('span');
+        inline.setAttribute('is', 'inline-price');
+        inline.dataset.template = 'legal';
+        masField.append(fragment, inline);
+        document.body.append(masField);
+        return inline;
+    }
+
+    it('sets displayPlanType for legal templates from the fragment setting', () => {
+        const inline = makeLegalField(true);
+        const options = {};
+        priceOptionsProvider(inline, options);
+        expect(options.displayPlanType).to.equal(true);
+    });
+
+    it('leaves displayPlanType off for legal when the fragment setting is off', () => {
+        const inline = makeLegalField(false);
+        const options = {};
+        priceOptionsProvider(inline, options);
+        expect(options.displayPlanType).to.equal(false);
+    });
+
+    it('defaults displayPlanType to false for legal when the setting is absent', () => {
+        const masField = document.createElement('mas-field');
+        masField.append(document.createElement('aem-fragment'));
+        const inline = document.createElement('span');
+        inline.setAttribute('is', 'inline-price');
+        inline.dataset.template = 'legal';
+        masField.append(inline);
+        document.body.append(masField);
+
+        const options = {};
+        priceOptionsProvider(inline, options);
+        expect(options.displayPlanType).to.equal(false);
+    });
+
+    it('does not set displayPlanType for non-legal templates', () => {
+        const masField = document.createElement('mas-field');
+        const fragment = document.createElement('aem-fragment');
+        Object.defineProperty(fragment, 'data', {
+            configurable: true,
+            value: { settings: { displayPlanType: true } },
+        });
+        const inline = document.createElement('span');
+        inline.setAttribute('is', 'inline-price');
+        inline.dataset.template = 'price';
+        masField.append(fragment, inline);
+        document.body.append(masField);
+
+        const options = {};
+        priceOptionsProvider(inline, options);
+        expect(options.displayPlanType).to.be.undefined;
+    });
 });

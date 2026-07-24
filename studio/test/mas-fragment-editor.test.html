@@ -369,7 +369,7 @@
                             sandbox.stub(el, 'repository').get(() => mockRepo);
                             sandbox.stub(el.reactiveController, 'updateStores');
                             sandbox.stub(el, 'dispatchFragmentLoaded');
-                            sandbox.stub(el, 'updateTranslatedLocalesStore').resolves();
+                            sandbox.stub(el, 'scheduleTranslatedLocalesUpdate');
                             el.editorContextStore = createEditorContextStore();
 
                             originalStoreState = {
@@ -432,7 +432,7 @@
                                 .to.be.true;
                             expect(el.inEdit.get()).to.equal(existingStore);
                             expect(Store.search.get().region).to.equal('fr_FR');
-                            expect(el.updateTranslatedLocalesStore.calledOnceWith(existingData.path)).to.be.true;
+                            expect(el.scheduleTranslatedLocalesUpdate.calledOnceWith(existingData.path)).to.be.true;
                             expect(el.initState).to.equal(MasFragmentEditor.INIT_STATE.READY);
                             expect(Store.fragmentEditor.loading.get()).to.equal(false);
                             expect(existingStore.previewStore.resolved).to.equal(false);
@@ -467,7 +467,7 @@
                             expect(existingStore.parentFragment.id).to.equal('new-parent-id');
                             expect(refreshPreviewSpy.calledOnce).to.be.true;
                             expect(el.editorContextStore.localeDefaultFragment.id).to.equal('new-parent-id');
-                            expect(el.updateTranslatedLocalesStore.calledOnceWith(existingVariationData.path)).to.be.true;
+                            expect(el.scheduleTranslatedLocalesUpdate.calledOnceWith(existingVariationData.path)).to.be.true;
                         });
 
                         it('initializes a new non-variation fragment and adds it to the list', async () => {
@@ -483,7 +483,7 @@
                             expect(Store.fragments.list.data.get()).to.have.lengthOf(1);
                             expect(Store.fragments.list.data.get()[0].id).to.equal('new-id');
                             expect(el.inEdit.get().id).to.equal('new-id');
-                            expect(el.updateTranslatedLocalesStore.calledOnceWith(fragmentData.path)).to.be.true;
+                            expect(el.scheduleTranslatedLocalesUpdate.calledOnceWith(fragmentData.path)).to.be.true;
                             expect(el.initState).to.equal(MasFragmentEditor.INIT_STATE.READY);
                         });
 
@@ -504,7 +504,7 @@
                             expect(resolveParentStub.called).to.be.false;
                             expect(sourceStore.skipVariationDetection).to.equal(false);
                             expect(el.inEdit.get().id).to.equal('variation-id');
-                            expect(el.updateTranslatedLocalesStore.calledOnceWith(fragmentData.path)).to.be.true;
+                            expect(el.scheduleTranslatedLocalesUpdate.calledOnceWith(fragmentData.path)).to.be.true;
                         });
 
                         it('reloads locale placeholders for variations when active locale differs', async () => {
@@ -616,7 +616,7 @@
                             expect(Store.fragments.list.data.get()).to.have.lengthOf(0);
                             expect(el.inEdit.get().parentFragment.id).to.equal('parent-id');
                             expect(el.editorContextStore.localeDefaultFragment.id).to.equal('parent-id');
-                            expect(el.updateTranslatedLocalesStore.calledOnceWith(variationData.path)).to.be.true;
+                            expect(el.scheduleTranslatedLocalesUpdate.calledOnceWith(variationData.path)).to.be.true;
                         });
 
                         it('sets idle state when new fragment fetch fails', async () => {
@@ -627,13 +627,38 @@
                             await el.initFragment();
 
                             expect(consoleErrorStub.called).to.be.true;
-                            expect(el.updateTranslatedLocalesStore.called).to.be.false;
+                            expect(el.scheduleTranslatedLocalesUpdate.called).to.be.false;
                             expect(el.initState).to.equal(MasFragmentEditor.INIT_STATE.IDLE);
                             expect(Store.fragmentEditor.loading.get()).to.equal(false);
                         });
                     });
 
                     describe('translated locales fetching', () => {
+                        it('runs scheduled translation work when idle and skips stale fragments', () => {
+                            const el = document.createElement('mas-fragment-editor');
+                            const originalFragmentId = Store.fragmentEditor.fragmentId.value;
+                            const callbacks = [];
+                            try {
+                                sandbox.stub(window, 'requestIdleCallback').callsFake((callback) => {
+                                    callbacks.push(callback);
+                                    return callbacks.length;
+                                });
+                                const updateStub = sandbox.stub(el, 'updateTranslatedLocalesStore').resolves();
+
+                                Store.fragmentEditor.fragmentId.value = 'first-id';
+                                el.scheduleTranslatedLocalesUpdate('/content/dam/mas/acom/en_US/first');
+                                Store.fragmentEditor.fragmentId.value = 'second-id';
+                                callbacks.shift()();
+                                expect(updateStub.called).to.be.false;
+
+                                el.scheduleTranslatedLocalesUpdate('/content/dam/mas/acom/en_US/second');
+                                callbacks.shift()();
+                                expect(updateStub.calledOnceWith('/content/dam/mas/acom/en_US/second')).to.be.true;
+                            } finally {
+                                Store.fragmentEditor.fragmentId.value = originalFragmentId;
+                            }
+                        });
+
                         it('dedupes in-flight translation requests for the same fragment', async () => {
                             const el = document.createElement('mas-fragment-editor');
                             const originalFragmentId = Store.fragmentEditor.fragmentId.value;

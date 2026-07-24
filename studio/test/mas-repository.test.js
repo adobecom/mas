@@ -200,6 +200,44 @@ describe('MasRepository dictionary helpers', () => {
         });
     });
 
+    describe('createFragment', () => {
+        it('uses the complete fragment returned by create without refetching it', async () => {
+            const repository = createFullRepository();
+            const created = createFragment({
+                id: 'created-id',
+                path: `${ROOT_PATH}/acom/en_US/created`,
+                title: 'Created',
+                description: '',
+                model: { id: 'card-model', path: '/conf/mas/card' },
+                references: [],
+            });
+            repository.aem = createAemMock({
+                fragments: {
+                    create: sandbox.stub().resolves(created),
+                    getById: sandbox.stub(),
+                },
+                other: {
+                    saveTags: sandbox.stub(),
+                },
+            });
+            repository.operation = { set: sandbox.stub() };
+            repository.search = { value: { path: 'acom' } };
+
+            const result = await repository.createFragment(
+                {
+                    title: 'Created',
+                    modelId: 'card-model',
+                    parentPath: `${ROOT_PATH}/acom/en_US`,
+                },
+                false,
+            );
+
+            expect(result.id).to.equal('created-id');
+            expect(repository.aem.sites.cf.fragments.getById.called).to.be.false;
+            expect(repository.aem.saveTags.called).to.be.false;
+        });
+    });
+
     describe('handleSearch', () => {
         it('returns early when profile is not set', async () => {
             const repository = createRepository();
@@ -227,12 +265,39 @@ describe('MasRepository dictionary helpers', () => {
             repository.searchFragments = sandbox.stub();
             repository.loadPreviewPlaceholders = sandbox.stub();
             repository.loadPromotions = sandbox.stub();
+            const hadListFetched = Store.promotions.list.data.hasMeta('listFetched');
+            const wasLoading = Store.promotions.list.loading.get();
+            Store.promotions.list.data.removeMeta('listFetched');
+            Store.promotions.list.loading.set(false);
             try {
                 repository.handleSearch();
                 expect(repository.searchFragments.calledOnce).to.be.true;
                 expect(repository.loadPreviewPlaceholders.calledOnce).to.be.true;
                 expect(repository.loadPromotions.calledOnce).to.be.true;
             } finally {
+                if (hadListFetched) Store.promotions.list.data.setMeta('listFetched', true);
+                Store.promotions.list.loading.set(wasLoading);
+                Store.profile.set(originalProfile);
+            }
+        });
+
+        it('does not reload promotions during content search after the list was fetched', async () => {
+            const repository = createRepository();
+            const originalProfile = Store.profile.value;
+            const hadListFetched = Store.promotions.list.data.hasMeta('listFetched');
+            Store.profile.set({ name: 'test-user' });
+            Store.promotions.list.data.setMeta('listFetched', true);
+            repository.page = { value: PAGE_NAMES.CONTENT };
+            repository.searchFragments = sandbox.stub();
+            repository.loadPreviewPlaceholders = sandbox.stub();
+            repository.loadPromotions = sandbox.stub();
+            try {
+                repository.handleSearch();
+                expect(repository.searchFragments.calledOnce).to.be.true;
+                expect(repository.loadPreviewPlaceholders.calledOnce).to.be.true;
+                expect(repository.loadPromotions.called).to.be.false;
+            } finally {
+                if (!hadListFetched) Store.promotions.list.data.removeMeta('listFetched');
                 Store.profile.set(originalProfile);
             }
         });
@@ -400,16 +465,76 @@ describe('MasRepository dictionary helpers', () => {
             expect(row.isPromotionPublished).to.be.false;
         });
 
+        it('auto-unpublishes expired promotions in parallel', async () => {
+            const repository = createFullRepository();
+            const expiredPromotion = (id) => ({
+                id,
+                etag: 'e',
+                model: { id: 'promotion-model' },
+                path: `/content/dam/mas/promotions/${id}`,
+                title: id,
+                description: '',
+                status: 'PUBLISHED',
+                created: { by: 'u', fullName: 'U', at: '2020-01-01T00:00:00.000Z' },
+                modified: { by: 'u', fullName: 'U', at: '2020-01-02T00:00:00.000Z' },
+                fields: [
+                    { name: 'title', type: 'text', values: [id] },
+                    { name: 'startDate', type: 'date-time', values: ['2020-01-01T00:00:00.000Z'] },
+                    { name: 'endDate', type: 'date-time', values: ['2020-02-01T00:00:00.000Z'] },
+                    { name: 'tags', type: 'tag', values: ['mas:status/published'] },
+                    { name: 'surfaces', type: 'text', values: [] },
+                ],
+                tags: [],
+            });
+            const promotions = [expiredPromotion('promo-one'), expiredPromotion('promo-two')];
+            const releases = [];
+            let active = 0;
+            let maxActive = 0;
+            repository.aem = createAemMock();
+            repository.searchFragmentList = sandbox.stub().resolves(promotions);
+            sandbox.stub(repository, 'unpublishFragment').callsFake(
+                () =>
+                    new Promise((resolve) => {
+                        active += 1;
+                        maxActive = Math.max(maxActive, active);
+                        releases.push(() => {
+                            active -= 1;
+                            resolve(true);
+                        });
+                    }),
+            );
+            repository.aem.sites.cf.fragments.getById.callsFake(async (id) => ({
+                ...promotions.find((promotion) => promotion.id === id),
+                status: 'DRAFT',
+            }));
+
+            await repository.loadPromotions();
+            expect(releases).to.have.length(2);
+            expect(maxActive).to.equal(2);
+            releases.forEach((release) => release());
+            while (repository.aem.sites.cf.fragments.getById.callCount < 2) {
+                await new Promise((resolve) => setTimeout(resolve, 0));
+            }
+            expect(maxActive).to.equal(2);
+        });
+
         it('loadPromotions calls processError when searchFragmentList rejects', async () => {
             const repository = createFullRepository();
             const { default: Store } = await import('../src/store.js');
             repository.searchFragmentList = sandbox.stub().rejects(new Error('network'));
             sandbox.stub(repository, 'processError');
+            const hadListFetched = Store.promotions.list.data.hasMeta('listFetched');
             Store.promotions.list.data.set([]);
-            await repository.loadPromotions();
-            expect(repository.processError.calledOnce).to.be.true;
-            expect(repository.processError.firstCall.args[1]).to.equal('Could not load promotions.');
-            expect(Store.promotions.list.loading.get()).to.be.false;
+            Store.promotions.list.data.removeMeta('listFetched');
+            try {
+                await repository.loadPromotions();
+                expect(repository.processError.calledOnce).to.be.true;
+                expect(repository.processError.firstCall.args[1]).to.equal('Could not load promotions.');
+                expect(Store.promotions.list.loading.get()).to.be.false;
+                expect(Store.promotions.list.data.hasMeta('listFetched')).to.be.false;
+            } finally {
+                if (hadListFetched) Store.promotions.list.data.setMeta('listFetched', true);
+            }
         });
 
         it('loadAllCollections skips writing stores when items selection store unset after fetch', async () => {

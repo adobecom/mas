@@ -356,6 +356,7 @@ describe('MasFragmentEditor', () => {
             sandbox.stub(el.reactiveController, 'updateStores');
             sandbox.stub(el, 'dispatchFragmentLoaded');
             sandbox.stub(el, 'updateTranslatedLocalesStore').resolves();
+            sandbox.stub(el, 'scheduleTranslatedLocalesUpdate');
             el.editorContextStore = createEditorContextStore();
 
             originalStoreState = {
@@ -417,7 +418,7 @@ describe('MasFragmentEditor', () => {
             expect(el.editorContextStore.loadFragmentContext.calledOnceWith('existing-id', existingData.path)).to.be.true;
             expect(el.inEdit.get()).to.equal(existingStore);
             expect(Store.search.get().region).to.equal('fr_FR');
-            expect(el.updateTranslatedLocalesStore.calledOnceWith(existingData.path)).to.be.true;
+            expect(el.scheduleTranslatedLocalesUpdate.calledOnceWith(existingData.path)).to.be.true;
             expect(el.initState).to.equal(MasFragmentEditor.INIT_STATE.READY);
             expect(Store.fragmentEditor.loading.get()).to.equal(false);
             expect(existingStore.previewStore.resolved).to.equal(false);
@@ -446,7 +447,7 @@ describe('MasFragmentEditor', () => {
             expect(existingStore.parentFragment.id).to.equal('new-parent-id');
             expect(refreshPreviewSpy.calledOnce).to.be.true;
             expect(el.editorContextStore.localeDefaultFragment.id).to.equal('new-parent-id');
-            expect(el.updateTranslatedLocalesStore.calledOnceWith(existingVariationData.path)).to.be.true;
+            expect(el.scheduleTranslatedLocalesUpdate.calledOnceWith(existingVariationData.path)).to.be.true;
         });
 
         it('initializes a new non-variation fragment and adds it to the list', async () => {
@@ -461,7 +462,7 @@ describe('MasFragmentEditor', () => {
             expect(Store.fragments.list.data.get()).to.have.lengthOf(1);
             expect(Store.fragments.list.data.get()[0].id).to.equal('new-id');
             expect(el.inEdit.get().id).to.equal('new-id');
-            expect(el.updateTranslatedLocalesStore.calledOnceWith(fragmentData.path)).to.be.true;
+            expect(el.scheduleTranslatedLocalesUpdate.calledOnceWith(fragmentData.path)).to.be.true;
             expect(el.initState).to.equal(MasFragmentEditor.INIT_STATE.READY);
         });
 
@@ -482,7 +483,7 @@ describe('MasFragmentEditor', () => {
             expect(resolveParentStub.called).to.be.false;
             expect(sourceStore.skipVariationDetection).to.equal(false);
             expect(el.inEdit.get().id).to.equal('variation-id');
-            expect(el.updateTranslatedLocalesStore.calledOnceWith(fragmentData.path)).to.be.true;
+            expect(el.scheduleTranslatedLocalesUpdate.calledOnceWith(fragmentData.path)).to.be.true;
         });
 
         it('reloads locale placeholders for variations when active locale differs', async () => {
@@ -577,7 +578,7 @@ describe('MasFragmentEditor', () => {
             expect(Store.fragments.list.data.get()).to.have.lengthOf(0);
             expect(el.inEdit.get().parentFragment.id).to.equal('parent-id');
             expect(el.editorContextStore.localeDefaultFragment.id).to.equal('parent-id');
-            expect(el.updateTranslatedLocalesStore.calledOnceWith(variationData.path)).to.be.true;
+            expect(el.scheduleTranslatedLocalesUpdate.calledOnceWith(variationData.path)).to.be.true;
         });
 
         it('sets idle state when new fragment fetch fails', async () => {
@@ -588,13 +589,39 @@ describe('MasFragmentEditor', () => {
             await el.initFragment();
 
             expect(consoleErrorStub.called).to.be.true;
-            expect(el.updateTranslatedLocalesStore.called).to.be.false;
+            expect(el.scheduleTranslatedLocalesUpdate.called).to.be.false;
             expect(el.initState).to.equal(MasFragmentEditor.INIT_STATE.IDLE);
             expect(Store.fragmentEditor.loading.get()).to.equal(false);
         });
     });
 
     describe('translated locales fetching', () => {
+        it('defers translation discovery until idle and ignores stale fragments', () => {
+            const el = document.createElement('mas-fragment-editor');
+            const updateStub = sandbox.stub(el, 'updateTranslatedLocalesStore').resolves();
+            const callbacks = [];
+            sandbox.stub(globalThis, 'requestIdleCallback').callsFake((callback) => {
+                callbacks.push(callback);
+                return callbacks.length;
+            });
+            const originalFragmentId = Store.fragmentEditor.fragmentId.value;
+            try {
+                Store.fragmentEditor.fragmentId.value = 'current-id';
+                el.scheduleTranslatedLocalesUpdate('/current/path');
+                expect(updateStub.called).to.be.false;
+                callbacks.shift()();
+                expect(updateStub.calledOnceWith('/current/path')).to.be.true;
+
+                updateStub.resetHistory();
+                el.scheduleTranslatedLocalesUpdate('/stale/path');
+                Store.fragmentEditor.fragmentId.value = 'next-id';
+                callbacks.shift()();
+                expect(updateStub.called).to.be.false;
+            } finally {
+                Store.fragmentEditor.fragmentId.value = originalFragmentId;
+            }
+        });
+
         it('dedupes in-flight translation requests for the same fragment', async () => {
             const el = document.createElement('mas-fragment-editor');
             const originalFragmentId = Store.fragmentEditor.fragmentId.value;

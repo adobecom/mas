@@ -1045,7 +1045,7 @@ export default class MasFragmentEditor extends LitElement {
             this.localeDefaultFragment = existingStore.parentFragment;
         }
 
-        this.updateTranslatedLocalesStore(fragmentPath);
+        this.scheduleTranslatedLocalesUpdate(fragmentPath);
 
         if (existingStore.previewStore) {
             existingStore.previewStore.resolved = false;
@@ -1180,7 +1180,7 @@ export default class MasFragmentEditor extends LitElement {
             }
 
             Store.editor.resetChanges();
-            this.updateTranslatedLocalesStore(fragment.path); // no need to await
+            this.scheduleTranslatedLocalesUpdate(fragment.path);
             this.#markInitReady();
         } catch (error) {
             console.error('Failed to fetch fragment:', error);
@@ -1375,6 +1375,17 @@ export default class MasFragmentEditor extends LitElement {
                 this.#translatedLocalesRequest = null;
             }
         }
+    }
+
+    scheduleTranslatedLocalesUpdate(fragmentPath) {
+        const fragmentId = Store.fragmentEditor.fragmentId.get();
+        const load = () => {
+            if (Store.fragmentEditor.fragmentId.get() === fragmentId) {
+                void this.updateTranslatedLocalesStore(fragmentPath);
+            }
+        };
+        const schedule = globalThis.requestIdleCallback ?? ((callback) => setTimeout(callback, 0));
+        schedule(load, { timeout: 1000 });
     }
 
     dispatchFragmentLoaded() {

@@ -237,7 +237,9 @@ export class MasRepository extends LitElement {
             case PAGE_NAMES.CONTENT:
                 this.searchFragments();
                 this.loadPreviewPlaceholders();
-                void this.loadPromotions();
+                if (!Store.promotions.list.data.hasMeta('listFetched') && !Store.promotions.list.loading.get()) {
+                    void this.loadPromotions();
+                }
                 break;
             case PAGE_NAMES.WELCOME:
                 this.loadRecentlyUpdatedFragments();
@@ -1103,6 +1105,7 @@ export class MasRepository extends LitElement {
     }
 
     async loadPromotions() {
+        let loaded = false;
         try {
             const promotionsPath = this.getPromotionsPath();
 
@@ -1126,6 +1129,7 @@ export class MasRepository extends LitElement {
             });
 
             Store.promotions.list.data.set(promotions);
+            loaded = true;
 
             if (expiredPublished.length) {
                 void this.#unpublishExpiredPromotions(expiredPublished, signal);
@@ -1133,24 +1137,33 @@ export class MasRepository extends LitElement {
         } catch (error) {
             this.processError(error, 'Could not load promotions.');
         } finally {
-            Store.promotions.list.data.setMeta('listFetched', true);
+            if (loaded) Store.promotions.list.data.setMeta('listFetched', true);
             Store.promotions.list.loading.set(false);
         }
     }
 
     async #unpublishExpiredPromotions(stores, signal) {
-        for (const store of stores) {
-            if (signal.aborted) break;
-            const p = store.get();
-            const ok = await this.unpublishFragment(p, false);
-            if (!ok || signal.aborted) continue;
-            const fresh = await this.aem.sites.cf.fragments.getById(p.id);
-            if (fresh) store.set(new Promotion(fresh));
-        }
+        await Promise.all(
+            stores.map(async (store) => {
+                if (signal.aborted) return;
+                const p = store.get();
+                const ok = await this.unpublishFragment(p, false);
+                if (!ok || signal.aborted) return;
+                const fresh = await this.aem.sites.cf.fragments.getById(p.id);
+                if (fresh) store.set(new Promotion(fresh));
+            }),
+        );
     }
 
     getPromotionsPath() {
         return `${ROOT_PATH}/promotions`;
+    }
+
+    invalidatePromotions(fragment) {
+        const path = fragment?.path ?? fragment?.parentPath;
+        if (fragment instanceof Promotion || path?.startsWith(this.getPromotionsPath())) {
+            Store.promotions.list.data.removeMeta('listFetched');
+        }
     }
 
     /** Mockable seam for components; the implementation lives in placeholders/mas-placeholders-repository.js. */
@@ -1296,13 +1309,14 @@ export class MasRepository extends LitElement {
                 fields,
                 parentPath: fragmentData.parentPath || this.parentPath,
             });
-            let latest = await this.aem.sites.cf.fragments.getById(result.id);
+            let latest = result;
             const tags = tagsToSave ?? fragmentData.data?.tags;
             if (tags?.length) {
                 latest.newTags = tags;
                 await this.aem.saveTags(latest);
                 latest = await this.aem.sites.cf.fragments.getById(result.id);
             }
+            this.invalidatePromotions(latest);
             // Apply corrector transformer before caching
             const surface = this.search.value.path?.split('/').filter(Boolean)[0]?.toLowerCase();
             applyCorrectorToFragment(latest, surface);
@@ -1374,6 +1388,7 @@ export class MasRepository extends LitElement {
             const savedFragment = await this.aem.sites.cf.fragments.save(fragmentToSave);
             if (!savedFragment) throw new Error('Invalid fragment.');
 
+            this.invalidatePromotions(fragment);
             fragmentStore.refreshFrom(savedFragment);
             await initFragmentCache();
             fragmentCache.remove(savedFragment.id);
@@ -1494,6 +1509,7 @@ export class MasRepository extends LitElement {
         try {
             this.operation.set(OPERATIONS.PUBLISH);
             await this.aem.sites.cf.fragments.publish(fragment, publishReferencesWithStatus);
+            this.invalidatePromotions(fragment);
             if (withToast) {
                 const message =
                     fragment instanceof Promotion ? 'Project successfully published.' : 'Fragment successfully published.';
@@ -1518,6 +1534,7 @@ export class MasRepository extends LitElement {
         try {
             this.operation.set(OPERATIONS.UNPUBLISH);
             await this.aem.sites.cf.fragments.unpublish(fragment);
+            this.invalidatePromotions(fragment);
             if (withToast) showToast('Fragment successfully unpublished.', 'positive');
             return true;
         } catch (error) {
@@ -1620,6 +1637,7 @@ export class MasRepository extends LitElement {
             await this.refreshVariationParentInList(fragment, null);
 
             Events.fragmentDeleted.emit(fragment);
+            this.invalidatePromotions(fragment);
 
             return true;
         } catch (error) {

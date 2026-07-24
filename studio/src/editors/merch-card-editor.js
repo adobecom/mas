@@ -879,7 +879,7 @@ class MerchCardEditor extends LitElement {
         this.quantitySelectorValues = html;
     };
 
-    async updated(changedProperties) {
+    updated(changedProperties) {
         super.updated(changedProperties);
         if (changedProperties.has('previewLocaleOverride')) {
             this.refreshRenderedPrices();
@@ -893,9 +893,7 @@ class MerchCardEditor extends LitElement {
         }
         this.ensurePromoCompatVersion();
         if (!this.fieldsReady && this.fragment) {
-            await this.updateComplete;
-            await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
-            this.toggleFields();
+            void this.toggleFields();
         }
     }
 

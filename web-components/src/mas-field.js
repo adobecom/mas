@@ -103,7 +103,8 @@ class MasField extends HTMLElement {
         this.#fields = event.detail?.fields || null;
         this.#loaded = true;
         this.#renderField();
-        // Tell listeners this field finished loading and rendering.
+        // Signal that this field finished loading and rendering, so a host (e.g. Milo's
+        // merch autoblock) can decorate a CTA that resolved after its block decorated.
         this.dispatchEvent(
             new CustomEvent(EVENT_MAS_READY, {
                 bubbles: true,
@@ -146,9 +147,9 @@ class MasField extends HTMLElement {
         return { fieldName: match[1], index: match[2] };
     }
 
-    /** Returns the Nth anchor's outerHTML with its class stripped so the host owns
-     *  styling, or null. Parses with <template> so a checkout-link anchor is never
-     *  upgraded to a live custom element; href/data-wcs-osi/is are kept as authored. */
+    /** Extracts the Nth anchor from CTA HTML, stripping only CSS classes so Milo can restyle it.
+     *  Uses a <template> element so custom elements (e.g. checkout-link) are never upgraded
+     *  and their attributes (href, data-wcs-osi, etc.) are preserved exactly as stored. */
     #extractIndexedAnchor(html, index) {
         if (typeof html !== 'string') return null;
         const template = document.createElement('template');
@@ -192,22 +193,15 @@ class MasField extends HTMLElement {
         if (fieldValue === undefined) return;
         this.#setFragmentIds();
         const content = this.#ensureContentElement();
-
-        // Indexed CTA (ctas[N]): emit the bare anchor with its class stripped and let the
-        // host (Milo's decorateButtons) own the button styling. Only the block knows the
-        // right size/utility classes, so self-styling here would just be overwritten.
+        let html;
         if (index !== null) {
-            const anchorHtml = this.#extractIndexedAnchor(fieldValue, index);
-            if (anchorHtml === null) return;
-            content.innerHTML = anchorHtml;
-            return;
+            html = this.#extractIndexedAnchor(fieldValue, index);
+            if (html === null) return;
+        } else {
+            html = this.#unwrapSingleParagraph(fieldValue);
         }
-
-        const html = this.#unwrapSingleParagraph(fieldValue);
         if (typeof html === 'string') {
-            // Non-indexed ctas render as a self-styled <div slot="footer"> — Milo does not
-            // decorate footer content, so mas-field owns the button styling here.
-            if (fieldName === 'ctas') {
+            if (this.#field === 'ctas') {
                 const ctaEl = this.#renderCtaField(html);
                 if (ctaEl) {
                     content.replaceChildren(ctaEl);
@@ -237,9 +231,11 @@ class MasField extends HTMLElement {
         const CheckoutLink = customElements.get('checkout-link');
         const button =
             CheckoutLink?.createCheckoutLink(link.dataset, link.textContent) ??
-            link.cloneNode(false);
-        if (!button.firstElementChild)
-            button.innerHTML = `<span style="pointer-events: none;">${link.textContent}</span>`;
+            (() => {
+                const el = document.createElement('a', { is: 'checkout-link' });
+                el.innerHTML = `<span style="pointer-events: none;">${link.textContent}</span>`;
+                return el;
+            })();
 
         for (const { name, value } of link.attributes) {
             if (['class', 'is', 'href'].includes(name)) continue;

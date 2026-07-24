@@ -190,13 +190,13 @@ describe('mas-field – indexed CTA fields (ctas[N])', () => {
         expect(a.textContent).to.equal('Free trial');
     });
 
-    it('strips the class from the indexed CTA so the host owns styling', () => {
+    it('strips class attribute from extracted anchor', () => {
         const el = makeIndexedField(1, THREE_CTAS);
         const a = el.querySelector('[data-role="mas-field-content"] a');
         expect(a.hasAttribute('class')).to.be.false;
     });
 
-    it('preserves data-wcs-osi and is on the indexed CTA', () => {
+    it('preserves data-wcs-osi and is attributes', () => {
         const el = makeIndexedField(1, THREE_CTAS);
         const a = el.querySelector('[data-role="mas-field-content"] a');
         expect(a.getAttribute('data-wcs-osi')).to.equal('osi1');
@@ -565,5 +565,33 @@ describe('mas-field – price options provider (locale defaults)', () => {
         const options = {};
         priceOptionsProvider(inline, options);
         expect(options.promotionCode).to.be.undefined;
+    });
+});
+
+describe('mas-field – mas:ready event', () => {
+    afterEach(() => {
+        document.body
+            .querySelectorAll('mas-field')
+            .forEach((el) => el.remove());
+    });
+
+    it('dispatches a bubbling mas:ready after rendering on aem:load', () => {
+        const el = document.createElement('mas-field');
+        el.setAttribute('field', 'title');
+        const fragment = document.createElement('aem-fragment');
+        el.append(fragment);
+        document.body.append(el);
+
+        const onReady = sinon.spy();
+        document.addEventListener('mas:ready', onReady, { once: true });
+        fragment.dispatchEvent(
+            new CustomEvent('aem:load', {
+                bubbles: true,
+                detail: { fields: { title: 'CC' } },
+            }),
+        );
+
+        expect(onReady.calledOnce).to.be.true;
+        expect(onReady.firstCall.args[0].target).to.equal(el);
     });
 });

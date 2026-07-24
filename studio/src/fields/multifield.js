@@ -147,8 +147,15 @@ class MasMultifield extends LitElement {
 
     async addField() {
         this.#internalUpdate = true;
+        const targetLength = this.value.length + 1;
         this.value = [...this.value, {}];
         await this.updateComplete;
+        // A concurrent parent re-render can overwrite this.value during the await,
+        // causing deepEquals to see no change and skip the render. Re-add if that happened.
+        if (this.value.length < targetLength) {
+            this.value = [...this.value, {}];
+            await this.updateComplete;
+        }
         this.#internalUpdate = false;
         if (this.dispatchOnAdd) {
             this.#dispatchEvent();

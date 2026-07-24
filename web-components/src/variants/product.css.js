@@ -99,7 +99,7 @@ merch-card-collection.product merch-card {
 .two-merch-cards.section merch-card[variant="product"],
 .three-merch-cards.section merch-card[variant="product"],
 .four-merch-cards.section merch-card[variant="product"] {
-    width: auto;
+    margin: 0 auto;
 }
 
 /* grid style for product */

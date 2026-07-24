@@ -16,6 +16,13 @@ merch-card[variant="segment"] {
   grid-template-columns: minmax(276px, var(--consonant-merch-card-segment-width));
 }
 
+.one-merch-card.section merch-card[variant="segment"],
+.two-merch-cards.section merch-card[variant="segment"],
+.three-merch-cards.section merch-card[variant="segment"],
+.four-merch-cards.section merch-card[variant="segment"] {
+    margin: 0 auto;
+}
+
 .three-merch-cards.section merch-card[variant="segment"],
 .four-merch-cards.section merch-card[variant="segment"] {
     max-width: 302px;

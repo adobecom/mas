@@ -22,9 +22,11 @@ const { metafile } = await build({
         react: 'test/mocks/react.js',
     },
     entryPoints: ['./src/commerce.js'],
+    external: ['lit'],
     outfile: `${outfolder}/commerce.js`,
     metafile: true,
     platform: 'browser',
+    plugins: [rewriteImportsToLibsFolder()],
     banner: {
         js: `window.masPriceLiterals = ${priceLiteralsContent}.data;`,
     },
@@ -35,8 +37,9 @@ writeFileSync(`commerce.json`, JSON.stringify(metafile));
 await build({
     ...defaults,
     entryPoints: ['./src/mas.js'],
+    external: ['lit'],
     outfile: './dist/mas.js',
-    plugins: [],
+    plugins: [rewriteImportsToLibsFolder()],
     banner: {
         js: `window.masPriceLiterals = ${priceLiteralsContent}.data;`,
     },
@@ -50,12 +53,6 @@ Promise.all([
         inject: ['./src/merch-offer.js', './src/merch-offer-select.js'],
         plugins: [rewriteImportsToLibsFolder()],
         outfile: `${outfolder}/merch-offer-select.js`,
-    }),
-    build({
-        ...defaults,
-        entryPoints: ['./src/merch-card-collection.js'],
-        plugins: [rewriteImportsToLibsFolder()],
-        outfile: `${outfolder}/merch-card-collection.js`,
     }),
     build({
         ...defaults,

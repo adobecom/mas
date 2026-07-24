@@ -1,5 +1,5 @@
 const { Core } = require('@adobe/aio-sdk');
-const { publishResolved } = require('./publish-core.js');
+const { publishResolved, publishDictionaryIndexes } = require('./publish-core.js');
 const { resolvePaths } = require('./resolver.js');
 const { buildResult } = require('./summary.js');
 const { createSnapshot, recordSnapshot } = require('./snapshot.js');
@@ -69,6 +69,7 @@ async function runWorker(input, deps = {}) {
     const projTitle = deps.getProjectTitle || getProjectTitle;
     const projSnapshots = deps.getProjectSnapshots || getProjectSnapshots;
     const publish = deps.publishResolved || publishResolved;
+    const publishIndexes = deps.publishDictionaryIndexes || publishDictionaryIndexes;
     const snapshot = deps.createSnapshot || createSnapshot;
     const record = deps.recordSnapshot || recordSnapshot;
     const updateProject = deps.updateProjectFragment || updateProjectFragment;
@@ -113,6 +114,7 @@ async function runWorker(input, deps = {}) {
     const resolved = resolve(paths, locales);
     const details = await publish(resolved, odinEndpoint, authToken, logger);
     relabelNotLocalized(details);
+    details.push(...(await publishIndexes(details, odinEndpoint, authToken, logger)));
 
     const result = buildResult({ details, startedAt, finishedAt: now().toISOString() });
     const status = terminalStatus(result);

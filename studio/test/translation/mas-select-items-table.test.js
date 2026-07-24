@@ -468,6 +468,30 @@ describe('MasSelectItemsTable', () => {
             expect(offerCell === '-' || offerCell === 'no offer name').to.be.true;
         });
 
+        it('should forward nonSelectableVariations to mas-collapsible-table-row', async () => {
+            const el = await fixture(
+                html`<mas-select-items-table
+                    type="cards"
+                    .nonSelectableVariations=${['groupedVariation']}
+                ></mas-select-items-table>`,
+            );
+            await el.updateComplete;
+            setupCardsInStore([createMockCard('/path/card1', 'Test Card')]);
+            await el.updateComplete;
+            const collapsibleRow = el.shadowRoot.querySelector('mas-collapsible-table-row');
+            expect(collapsibleRow.nonSelectableVariations).to.deep.equal(['groupedVariation']);
+        });
+
+        it('should forward tabs to mas-collapsible-table-row', async () => {
+            const customTabs = [{ label: 'Promotion', key: 'promotion' }];
+            const el = await fixture(html`<mas-select-items-table type="cards" .tabs=${customTabs}></mas-select-items-table>`);
+            await el.updateComplete;
+            setupCardsInStore([createMockCard('/path/card1', 'Test Card')]);
+            await el.updateComplete;
+            const collapsibleRow = el.shadowRoot.querySelector('mas-collapsible-table-row');
+            expect(collapsibleRow.tabs).to.deep.equal(customTabs);
+        });
+
         it('should render copy button when offer data exists', async () => {
             const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
             await el.updateComplete;

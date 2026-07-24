@@ -138,7 +138,8 @@ async function mainProcess(context) {
         if (transformer.init) {
             //we fork context to avoid init to override any context property
             const initContext = {
-                ...structuredClone(context),
+                ...structuredClone({ ...context, state: undefined }),
+                state: context.state,
                 promises: initPromises,
                 fragmentsIds: context.fragmentsIds,
             };

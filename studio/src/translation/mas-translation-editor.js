@@ -11,7 +11,7 @@ import '../mas-quick-actions.js';
 import './mas-translation-languages.js';
 import router from '../router.js';
 import { normalizeKey, showToast, getCreateProjectErrorMessage } from '../utils.js';
-import { PAGE_NAMES, TRANSLATION_PROJECT_MODEL_ID, QUICK_ACTION, TABLE_TYPE } from '../constants.js';
+import { PAGE_NAMES, TRANSLATION_PROJECT_MODEL_ID, QUICK_ACTION, TABLE_TYPE, VARIATION_TAB_NAME } from '../constants.js';
 import { getItemsSelectionStore, setItemsSelectionStore } from '../common/items-selection-store.js';
 import { renderFragmentStatusCell, getOdinLocTaskNameValidationError } from './translation-utils.js';
 import './mas-collapsible-table-row.js';
@@ -575,7 +575,10 @@ class MasTranslationEditor extends LitElement {
             >
                 <mas-items-selector
                     .renderFragmentStatusCell=${renderFragmentStatusCell}
-                    .disableLocaleVariations=${true}
+                    .variationTabs=${[
+                        { label: 'Promotion', key: VARIATION_TAB_NAME.PROMOTION },
+                        { label: 'Grouped variation', key: VARIATION_TAB_NAME.GROUPED },
+                    ]}
                     .hidePromoVariations=${true}
                     .restrictImportSurface=${Store.surface()}
                 ></mas-items-selector>

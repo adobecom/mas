@@ -1,4 +1,4 @@
-import { EVENT_AEM_LOAD, FF_DEFAULTS } from './constants.js';
+import { EVENT_AEM_LOAD, EVENT_MAS_READY, FF_DEFAULTS } from './constants.js';
 import { getService, shouldHideStPriceLabels } from './utils.js';
 
 const MAS_FIELD_TAG = 'mas-field';
@@ -12,12 +12,18 @@ const CHECKOUT_STYLE_PATTERN = /(accent|primary|secondary)(-(outline|link))?/;
  * locale-driven labels like the FR_fr "TTC" tax indicator.
  */
 export function priceOptionsProvider(element, options) {
-    if (!element?.closest?.(MAS_FIELD_TAG)) return options;
+    const masField = element?.closest?.(MAS_FIELD_TAG);
+    if (!masField) return options;
     options[FF_DEFAULTS] = true;
 
     if (shouldHideStPriceLabels(element)) {
         options.displayPerUnit = false;
         options.displayTax = false;
+    }
+
+    if (!options.promotionCode) {
+        const promotionCode = masField.getAttribute('data-promotion-code');
+        if (promotionCode) options.promotionCode = promotionCode;
     }
 }
 
@@ -97,6 +103,15 @@ class MasField extends HTMLElement {
         this.#fields = event.detail?.fields || null;
         this.#loaded = true;
         this.#renderField();
+        // Signal that this field finished loading and rendering, so a host (e.g. Milo's
+        // merch autoblock) can decorate a CTA that resolved after its block decorated.
+        this.dispatchEvent(
+            new CustomEvent(EVENT_MAS_READY, {
+                bubbles: true,
+                composed: true,
+                detail: event.detail,
+            }),
+        );
     };
 
     get aemFragment() {
@@ -167,6 +182,8 @@ class MasField extends HTMLElement {
                 'data-promotion-variation-project',
                 fragment.promoVariationProject,
             );
+        if (fragment.fields?.promoCode)
+            this.setAttribute('data-promotion-code', fragment.fields.promoCode);
     }
 
     #renderField() {

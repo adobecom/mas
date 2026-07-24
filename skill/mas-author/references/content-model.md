@@ -100,7 +100,9 @@ reading them through Odin MCP:
   distinguished by its **`pznTags`** field (the geos it targets); a variant with no `pznTags` is the
   default/fallback. These suffixed siblings are intentional — do **not** treat them as duplicates to clean
   up. **Which variant actually serves** is resolved by the MAS IO pipeline (deny list) — don't compute it
-  from the raw `pznTags`.
+  from the raw `pznTags`. Because they are geo-scoped, **several of these can share the same locale** under
+  one promo project — the one-variation-per-locale rule constrains **locale** variations only, never
+  `pznTags`-scoped promo variants.
 
 ### Locale variations are same-language only
 

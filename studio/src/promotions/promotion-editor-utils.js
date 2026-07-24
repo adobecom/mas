@@ -486,7 +486,7 @@ export async function handlePromotionOstOfferSelect({ detail: { offerSelectorId,
         offerSelectorId,
         offer,
         store.selectedOffers,
-        Store.promotions.offerDataCache,
+        Store.promotions.offerRecordsCache,
         productArrangementCode,
     );
     closeOfferSelectorTool();

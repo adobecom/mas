@@ -206,7 +206,7 @@ class MasPromotionsItemsTable extends LitElement {
             return;
         }
         this.viewOnlyFragments = offerIds.map((offerId) => {
-            const cached = Store.promotions.offerDataCache.get(offerId);
+            const cached = Store.promotions.offerRecordsCache.get(offerId);
             if (cached) return cached;
             return {
                 path: offerId,
@@ -457,7 +457,7 @@ class MasPromotionsItemsTable extends LitElement {
                 selectedOffers: store.selectedOffers.value,
                 selectedCards: store.selectedCards.value,
                 selectedCollections: store.selectedCollections.value,
-                offerDataCache: Store.promotions.offerDataCache,
+                offerDataCache: Store.promotions.offerRecordsCache,
                 cardsByPaths: store.cardsByPaths.value,
                 collectionsByPaths: store.collectionsByPaths.value,
                 groupedVariationsByParent: store.groupedVariationsByParent.value,
@@ -484,7 +484,7 @@ class MasPromotionsItemsTable extends LitElement {
         const store = getItemsSelectionStore();
         const remainingOffers = store.selectedOffers.value.filter((id) => id !== selectorId);
         store.selectedOffers.set(remainingOffers);
-        Store.promotions.offerDataCache.delete(selectorId);
+        Store.promotions.offerRecordsCache.delete(selectorId);
         if (!remainingOffers.length) {
             store.selectedCards.set([]);
             store.selectedCollections.set([]);
@@ -493,7 +493,7 @@ class MasPromotionsItemsTable extends LitElement {
                 selectedCards: store.selectedCards.value,
                 selectedCollections: store.selectedCollections.value,
                 remainingSelectedOfferIds: remainingOffers,
-                offerDataCache: Store.promotions.offerDataCache,
+                offerDataCache: Store.promotions.offerRecordsCache,
                 cardsByPaths: store.cardsByPaths.value,
                 collectionsByPaths: store.collectionsByPaths.value,
                 groupedVariationsByParent: store.groupedVariationsByParent.value,
@@ -502,7 +502,7 @@ class MasPromotionsItemsTable extends LitElement {
             store.selectedCards.set(pruned.selectedCards);
             store.selectedCollections.set(pruned.selectedCollections);
         }
-        applyPromotionOfferProductTagsToSearch(Store.promotions.offerDataCache, remainingOffers);
+        applyPromotionOfferProductTagsToSearch(Store.promotions.offerRecordsCache, remainingOffers);
         this.dispatchEvent(
             new CustomEvent('promotion-offer-removed', {
                 bubbles: true,

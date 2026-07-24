@@ -310,8 +310,8 @@ export class MasCollapsibleTableRow extends LitElement {
                 ? html`<sp-table-cell class="table-icon-cell">
                       <sp-button class="expand-button" icon-only quiet variant="secondary" @click=${this.#toggleExpandTopLevel}>
                           ${this.isTopLevelExpanded
-                              ? html`<sp-icon-chevron-up></sp-icon-chevron-up>`
-                              : html`<sp-icon-chevron-down></sp-icon-chevron-down>`}
+                              ? html`<sp-icon-chevron-down></sp-icon-chevron-down>`
+                              : html`<sp-icon-chevron-right></sp-icon-chevron-right>`}
                       </sp-button>
                   </sp-table-cell>`
                 : html`<sp-table-cell class="table-icon-cell table-icon-cell--chevron"></sp-table-cell>`}
@@ -666,8 +666,8 @@ export class MasCollapsibleTableRow extends LitElement {
                 <sp-table-cell class="table-icon-cell">
                     <sp-button class="expand-button" icon-only quiet variant="secondary" @click=${this.#toggleExpandTopLevel}>
                         ${this.isTopLevelExpanded
-                            ? html`<sp-icon-chevron-up></sp-icon-chevron-up>`
-                            : html`<sp-icon-chevron-down></sp-icon-chevron-down>`}
+                            ? html`<sp-icon-chevron-down></sp-icon-chevron-down>`
+                            : html`<sp-icon-chevron-right></sp-icon-chevron-right>`}
                     </sp-button>
                 </sp-table-cell>
                 <sp-table-cell class="table-icon-cell">

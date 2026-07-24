@@ -198,10 +198,10 @@ describe('MasPromotionsItemsSelector', () => {
 
     it('syncs selected offer product tags to Store.filters on connect', async () => {
         Store.promotions.selectedOffers.set(['fpsa-osi', 'stel-osi']);
-        Store.promotions.offerDataCache.set('fpsa-osi', {
+        Store.promotions.offerRecordsCache.set('fpsa-osi', {
             tags: [{ id: 'mas:product_code/fpsa', title: 'FPSA' }],
         });
-        Store.promotions.offerDataCache.set('stel-osi', {
+        Store.promotions.offerRecordsCache.set('stel-osi', {
             tags: [{ id: 'mas:product_code/stel', title: 'STEL' }],
         });
         await fixture(html`<mas-promotions-items-selector></mas-promotions-items-selector>`);
@@ -210,7 +210,7 @@ describe('MasPromotionsItemsSelector', () => {
 
     it('passes product tags from selected offers as productFilter to fragment search', async () => {
         Store.promotions.selectedOffers.set(['phsp-osi']);
-        Store.promotions.offerDataCache.set('phsp-osi', {
+        Store.promotions.offerRecordsCache.set('phsp-osi', {
             path: 'phsp-osi',
             id: 'phsp-osi',
             offerData: { offerId: 'phsp-osi' },
@@ -228,7 +228,7 @@ describe('MasPromotionsItemsSelector', () => {
 
     it('keeps collections list after selecting another collection when offers have product tags', async () => {
         Store.promotions.selectedOffers.set(['phsp-osi']);
-        Store.promotions.offerDataCache.set('phsp-osi', {
+        Store.promotions.offerRecordsCache.set('phsp-osi', {
             tags: [{ id: 'mas:product_code/phsp', title: 'Photoshop' }],
         });
         const collections = [
@@ -325,7 +325,7 @@ describe('MasPromotionsItemsSelector', () => {
 
     it('does not render offer filter dropdown when only one offer is selected', async () => {
         Store.promotions.selectedOffers.set(['phsp-osi']);
-        Store.promotions.offerDataCache.set('phsp-osi', {
+        Store.promotions.offerRecordsCache.set('phsp-osi', {
             tags: [{ id: 'mas:product_code/phsp', title: 'Photoshop' }],
             getTagTitle(key) {
                 return this.tags.find((t) => t.id.includes(key))?.title;
@@ -342,13 +342,13 @@ describe('MasPromotionsItemsSelector', () => {
 
     it('renders offer filter dropdown with All and per-offer options when two offers are selected', async () => {
         Store.promotions.selectedOffers.set(['phsp-osi', 'ilst-osi']);
-        Store.promotions.offerDataCache.set('phsp-osi', {
+        Store.promotions.offerRecordsCache.set('phsp-osi', {
             tags: [{ id: 'mas:product_code/phsp', title: 'Photoshop' }],
             getTagTitle(key) {
                 return this.tags.find((t) => t.id.includes(key))?.title;
             },
         });
-        Store.promotions.offerDataCache.set('ilst-osi', {
+        Store.promotions.offerRecordsCache.set('ilst-osi', {
             tags: [{ id: 'mas:product_code/ilst', title: 'Illustrator' }],
             getTagTitle(key) {
                 return this.tags.find((t) => t.id.includes(key))?.title;
@@ -371,13 +371,13 @@ describe('MasPromotionsItemsSelector', () => {
 
     it('filters productFilter to single offer when that offer is selected in the dropdown', async () => {
         Store.promotions.selectedOffers.set(['phsp-osi', 'ilst-osi']);
-        Store.promotions.offerDataCache.set('phsp-osi', {
+        Store.promotions.offerRecordsCache.set('phsp-osi', {
             tags: [{ id: 'mas:product_code/phsp', title: 'Photoshop' }],
             getTagTitle(key) {
                 return this.tags.find((t) => t.id.includes(key))?.title;
             },
         });
-        Store.promotions.offerDataCache.set('ilst-osi', {
+        Store.promotions.offerRecordsCache.set('ilst-osi', {
             tags: [{ id: 'mas:product_code/ilst', title: 'Illustrator' }],
             getTagTitle(key) {
                 return this.tags.find((t) => t.id.includes(key))?.title;
@@ -398,13 +398,13 @@ describe('MasPromotionsItemsSelector', () => {
 
     it('restores union of all offer tags when All offers is selected in the dropdown', async () => {
         Store.promotions.selectedOffers.set(['phsp-osi', 'ilst-osi']);
-        Store.promotions.offerDataCache.set('phsp-osi', {
+        Store.promotions.offerRecordsCache.set('phsp-osi', {
             tags: [{ id: 'mas:product_code/phsp', title: 'Photoshop' }],
             getTagTitle(key) {
                 return this.tags.find((t) => t.id.includes(key))?.title;
             },
         });
-        Store.promotions.offerDataCache.set('ilst-osi', {
+        Store.promotions.offerRecordsCache.set('ilst-osi', {
             tags: [{ id: 'mas:product_code/ilst', title: 'Illustrator' }],
             getTagTitle(key) {
                 return this.tags.find((t) => t.id.includes(key))?.title;
@@ -427,13 +427,13 @@ describe('MasPromotionsItemsSelector', () => {
 
     it('resets activeFilterOfferId when the active offer is removed from selection', async () => {
         Store.promotions.selectedOffers.set(['phsp-osi', 'ilst-osi']);
-        Store.promotions.offerDataCache.set('phsp-osi', {
+        Store.promotions.offerRecordsCache.set('phsp-osi', {
             tags: [{ id: 'mas:product_code/phsp', title: 'Photoshop' }],
             getTagTitle(key) {
                 return this.tags.find((t) => t.id.includes(key))?.title;
             },
         });
-        Store.promotions.offerDataCache.set('ilst-osi', {
+        Store.promotions.offerRecordsCache.set('ilst-osi', {
             tags: [{ id: 'mas:product_code/ilst', title: 'Illustrator' }],
             getTagTitle(key) {
                 return this.tags.find((t) => t.id.includes(key))?.title;

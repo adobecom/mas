@@ -22,7 +22,7 @@ describe('MasPromotionsItemsTable', () => {
         Store.promotions.selectedCards.set([]);
         Store.promotions.selectedOffers.set([]);
         Store.promotions.selectedCollections.set([]);
-        Store.promotions.offerDataCache = new Map();
+        Store.promotions.offerRecordsCache = new Map();
         // mas-select-items-table's showSkeleton calc factors in the global fragments list
         // loading state even in viewOnly mode, so it must reflect an already-settled list
         // (as it normally is by the time a promotion is opened) for viewOnly rendering to work.
@@ -37,7 +37,7 @@ describe('MasPromotionsItemsTable', () => {
         Store.promotions.selectedCards.set([]);
         Store.promotions.selectedOffers.set([]);
         Store.promotions.selectedCollections.set([]);
-        Store.promotions.offerDataCache = new Map();
+        Store.promotions.offerRecordsCache = new Map();
         Store.fragments.list.loading.set(true);
         Store.fragments.list.firstPageLoaded.set(false);
         setItemsSelectionStore(null);
@@ -167,7 +167,7 @@ describe('MasPromotionsItemsTable', () => {
 
     it('renders offer metadata columns from cached OST offer tags', async () => {
         Store.promotions.selectedOffers.set(['ffsa-osi']);
-        Store.promotions.offerDataCache.set(
+        Store.promotions.offerRecordsCache.set(
             'ffsa-osi',
             buildPromotionOfferRecord(
                 'ffsa-osi',
@@ -195,7 +195,7 @@ describe('MasPromotionsItemsTable', () => {
 
     it('loads offer rows from selectedOffers and offerDataCache', async () => {
         Store.promotions.selectedOffers.set(['offer-cache-1']);
-        Store.promotions.offerDataCache.set('offer-cache-1', {
+        Store.promotions.offerRecordsCache.set('offer-cache-1', {
             path: 'offer-cache-1',
             id: 'offer-cache-1',
             offerData: { offerId: 'offer-cache-1', product_arrangement_code: 'PA-1' },
@@ -210,7 +210,7 @@ describe('MasPromotionsItemsTable', () => {
 
     it('renders promo code count for offer rows', async () => {
         Store.promotions.selectedOffers.set(['offer-1']);
-        Store.promotions.offerDataCache.set('offer-1', {
+        Store.promotions.offerRecordsCache.set('offer-1', {
             path: 'offer-1',
             id: 'offer-1',
             offerData: { offerId: 'offer-1' },
@@ -231,7 +231,7 @@ describe('MasPromotionsItemsTable', () => {
 
     it('expands offer row with promo codes grouped by country table', async () => {
         Store.promotions.selectedOffers.set(['offer-expand']);
-        Store.promotions.offerDataCache.set(
+        Store.promotions.offerRecordsCache.set(
             'offer-expand',
             buildPromotionOfferRecord('offer-expand', { product_code: 'PHSP', offer_id: 'offer-expand' }, 'PA-1'),
         );
@@ -261,7 +261,7 @@ describe('MasPromotionsItemsTable', () => {
 
     it('collapses an expanded offer row on second expand-toggle click', async () => {
         Store.promotions.selectedOffers.set(['offer-collapse']);
-        Store.promotions.offerDataCache.set(
+        Store.promotions.offerRecordsCache.set(
             'offer-collapse',
             buildPromotionOfferRecord('offer-collapse', { product_code: 'PHSP', offer_id: 'offer-collapse' }, 'PA-1'),
         );
@@ -279,7 +279,7 @@ describe('MasPromotionsItemsTable', () => {
 
     it('toggles expand when clicking the offer row body directly', async () => {
         Store.promotions.selectedOffers.set(['offer-row-click']);
-        Store.promotions.offerDataCache.set(
+        Store.promotions.offerRecordsCache.set(
             'offer-row-click',
             buildPromotionOfferRecord('offer-row-click', { product_code: 'PHSP', offer_id: 'offer-row-click' }, 'PA-1'),
         );
@@ -293,11 +293,11 @@ describe('MasPromotionsItemsTable', () => {
 
     it('shows a dash and a substitute-offers table when there are substitutions but no promo code exceptions', async () => {
         Store.promotions.selectedOffers.set(['offer-sub']);
-        Store.promotions.offerDataCache.set(
+        Store.promotions.offerRecordsCache.set(
             'offer-sub',
             buildPromotionOfferRecord('offer-sub', { product_code: 'PHSP', offer_id: 'offer-sub' }, 'PA-1'),
         );
-        Store.promotions.offerDataCache.set(
+        Store.promotions.offerRecordsCache.set(
             'offer-sub-replacement',
             buildPromotionOfferRecord(
                 'offer-sub-replacement',
@@ -325,7 +325,7 @@ describe('MasPromotionsItemsTable', () => {
 
     it('renders mnemonic icon for offers tab when cached entry has icon field', async () => {
         Store.promotions.selectedOffers.set(['icon-offer']);
-        Store.promotions.offerDataCache.set(
+        Store.promotions.offerRecordsCache.set(
             'icon-offer',
             buildPromotionOfferRecord('icon-offer', { product_code: 'PHSP', icon: 'https://example.com/phsp.svg' }, 'PA-1'),
         );
@@ -338,7 +338,7 @@ describe('MasPromotionsItemsTable', () => {
 
     it('does not render Add offers header button when type is OFFERS and offers exist', async () => {
         Store.promotions.selectedOffers.set(['offer-1']);
-        Store.promotions.offerDataCache.set('offer-1', {
+        Store.promotions.offerRecordsCache.set('offer-1', {
             path: 'offer-1',
             id: 'offer-1',
             offerData: { offerId: 'offer-1' },
@@ -364,7 +364,7 @@ describe('MasPromotionsItemsTable', () => {
 
     it('removes offer from selectedOffers on Remove from list click', async () => {
         Store.promotions.selectedOffers.set(['offer-remove']);
-        Store.promotions.offerDataCache.set('offer-remove', {
+        Store.promotions.offerRecordsCache.set('offer-remove', {
             path: 'offer-remove',
             id: 'offer-remove',
             offerData: { offerId: 'offer-remove' },
@@ -384,7 +384,7 @@ describe('MasPromotionsItemsTable', () => {
 
     it('removes offer by OST selector id when offerData.offerId differs', async () => {
         Store.promotions.selectedOffers.set(['phsp-osi']);
-        Store.promotions.offerDataCache.set('phsp-osi', {
+        Store.promotions.offerRecordsCache.set('phsp-osi', {
             path: 'phsp-osi',
             id: 'phsp-osi',
             offerData: { offerId: 'wcs-offer-1' },
@@ -399,7 +399,7 @@ describe('MasPromotionsItemsTable', () => {
         removeItem.dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
         await el.updateComplete;
         expect(Store.promotions.selectedOffers.value).to.not.include('phsp-osi');
-        expect(Store.promotions.offerDataCache.has('phsp-osi')).to.be.false;
+        expect(Store.promotions.offerRecordsCache.has('phsp-osi')).to.be.false;
     });
 
     it('shows confirmation before pruning orphaned fragments when an offer is removed', async () => {
@@ -407,11 +407,11 @@ describe('MasPromotionsItemsTable', () => {
         const phspCard = '/content/dam/mas/phsp-card';
         Store.promotions.selectedOffers.set(['ffsa-osi', 'phsp-osi']);
         Store.promotions.selectedCards.set([ffsaCard, phspCard]);
-        Store.promotions.offerDataCache.set(
+        Store.promotions.offerRecordsCache.set(
             'ffsa-osi',
             buildPromotionOfferRecord('ffsa-osi', { product_code: 'FFSA', offer_id: 'wcs-1' }),
         );
-        Store.promotions.offerDataCache.set(
+        Store.promotions.offerRecordsCache.set(
             'phsp-osi',
             buildPromotionOfferRecord('phsp-osi', { product_code: 'PHSP', offer_id: 'wcs-2' }),
         );
@@ -442,7 +442,7 @@ describe('MasPromotionsItemsTable', () => {
         const ffsaCard = '/content/dam/mas/ffsa-card';
         Store.promotions.selectedOffers.set(['ffsa-osi']);
         Store.promotions.selectedCards.set([ffsaCard]);
-        Store.promotions.offerDataCache.set(
+        Store.promotions.offerRecordsCache.set(
             'ffsa-osi',
             buildPromotionOfferRecord('ffsa-osi', { product_code: 'FFSA', offer_id: 'wcs-1' }),
         );
@@ -468,7 +468,7 @@ describe('MasPromotionsItemsTable', () => {
         Store.promotions.selectedOffers.set(['ffsa-osi']);
         Store.promotions.selectedCards.set([ffsaCard]);
         Store.promotions.selectedCollections.set(['/content/dam/mas/ffsa-col']);
-        Store.promotions.offerDataCache.set(
+        Store.promotions.offerRecordsCache.set(
             'ffsa-osi',
             buildPromotionOfferRecord('ffsa-osi', { product_code: 'FFSA', offer_id: 'wcs-1' }),
         );
@@ -492,7 +492,7 @@ describe('MasPromotionsItemsTable', () => {
 
     it('dispatches promotion-offer-removed after deleting an offer', async () => {
         Store.promotions.selectedOffers.set(['offer-remove']);
-        Store.promotions.offerDataCache.set('offer-remove', {
+        Store.promotions.offerRecordsCache.set('offer-remove', {
             path: 'offer-remove',
             id: 'offer-remove',
             offerData: { offerId: 'offer-remove' },
@@ -1615,7 +1615,7 @@ describe('MasPromotionsItemsTable', () => {
             const ffsaCard = '/content/dam/mas/ffsa-card';
             Store.promotions.selectedOffers.set(['ffsa-osi']);
             Store.promotions.selectedCards.set([ffsaCard]);
-            Store.promotions.offerDataCache.set(
+            Store.promotions.offerRecordsCache.set(
                 'ffsa-osi',
                 buildPromotionOfferRecord('ffsa-osi', { product_code: 'FFSA', offer_id: 'wcs-1' }),
             );

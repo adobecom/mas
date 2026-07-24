@@ -92,6 +92,35 @@ describe('aem.js', () => {
         });
     });
 
+    describe('method: deleteFragment', () => {
+        it('calls deleteAndUnpublish endpoint with If-Match header', async () => {
+            let capturedUrl;
+            let capturedOptions;
+            window.fetch = async (url, options) => {
+                capturedUrl = url;
+                capturedOptions = options;
+                return { ok: true, status: 202 };
+            };
+
+            await aem.deleteFragment({ id: 'frag-123', etag: '"etag-abc"' });
+
+            expect(capturedUrl).to.include('/cf/fragments/frag-123/deleteAndUnpublish');
+            expect(capturedOptions.method).to.equal('DELETE');
+            expect(capturedOptions.headers['If-Match']).to.equal('"etag-abc"');
+        });
+
+        it('throws when response is not ok', async () => {
+            window.fetch = async () => ({ ok: false, status: 412, statusText: 'Precondition Failed' });
+
+            try {
+                await aem.deleteFragment({ id: 'frag-123', etag: '"etag-abc"' });
+                expect.fail('should have thrown');
+            } catch (err) {
+                expect(err.message).to.include('412');
+            }
+        });
+    });
+
     describe('method: saveFragment', () => {
         it('strips empty values from multi-value reference fields but preserves clear sentinels elsewhere', async () => {
             let putBody;

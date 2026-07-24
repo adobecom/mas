@@ -551,15 +551,15 @@ class AEM {
     }
 
     /**
-     * Delete a fragment
+     * Delete and unpublish a fragment using the AEM deleteAndUnpublish API.
+     * Unpublishes before deleting and unlinks references from other fragments.
      * @param {Object} fragment
-     * @returns {Promise<void>}
+     * @returns {Promise<Response>} 202 Accepted (async workflow)
      */
     async deleteFragment(fragment) {
-        const response = await fetch(`${this.cfFragmentsUrl}/${fragment.id}`, {
+        const response = await fetch(`${this.cfFragmentsUrl}/${fragment.id}/deleteAndUnpublish`, {
             method: 'DELETE',
             headers: {
-                'Content-Type': 'application/json',
                 'If-Match': fragment.etag,
                 ...this.headers,
             },
@@ -569,7 +569,7 @@ class AEM {
         if (!response.ok) {
             throw new Error(`Failed to delete fragment: ${response.status} ${response.statusText}`);
         }
-        return response; //204 No Content
+        return response;
     }
 
     /**

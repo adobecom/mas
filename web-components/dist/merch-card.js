@@ -6279,6 +6279,8 @@ merch-card-collection.product merch-card {
 }
 
 .one-merch-card.section merch-card[variant="product"] {
+    width: auto;
+    max-width: var(--consonant-merch-card-product-width);
     margin: 0 auto;
 }
 

@@ -70,7 +70,7 @@ async function wcs(context) {
     matches.forEach((match) => {
         const originalOsi = match.groups.osi;
         const substitutedOsi = context.substituteMap?.[originalOsi];
-        if (substitutedOsi) {
+        if (substitutedOsi && !match[0].includes('data-locked-osi=\\"true\\"')) {
             logDebug(() => `Substituting OSI ${originalOsi} with ${substitutedOsi}`, context);
             parts.push(bodyString.slice(lastEnd, match.index));
             parts.push(match[0].replace(`\\"${originalOsi}\\"`, `\\"${substitutedOsi}\\"`));
@@ -123,7 +123,8 @@ async function wcs(context) {
         };
         matches.forEach((match) => {
             const baseOsi = match.groups.osi;
-            const osi = context.substituteMap?.[baseOsi] ?? baseOsi;
+            const isOsiLocked = match[0].includes('data-locked-osi=\\"true\\"');
+            const osi = isOsiLocked ? baseOsi : (context.substituteMap?.[baseOsi] ?? baseOsi);
             const promoMatch = match[0].match(PROMOCODE_REGEXP);
             if (promoMatch && promoMatch.groups?.promotionCode) {
                 addToken({ osi, promotionCode: promoMatch.groups.promotionCode });

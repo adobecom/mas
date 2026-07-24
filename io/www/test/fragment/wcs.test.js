@@ -502,4 +502,57 @@ describe('wcs OSI substitution', function () {
         expect(context.body.wcs.prod).to.have.property('SUBSTITUTED-OSI-A-us-mult');
         expect(context.body.wcs.prod).to.have.property('B-us-mult');
     });
+
+    it('skips HTML rewrite for elements with data-locked-osi="true" even when substituteMap matches', async function () {
+        context.body = {
+            prices: '<span data-wcs-osi="BASE-OSI" data-locked-osi="true"></span>',
+            fields: {},
+        };
+        context.substituteMap = { 'BASE-OSI': 'SUB-OSI' };
+        fetchStub
+            .withArgs(sinon.match((url) => url.includes('offer_selector_ids=BASE-OSI')))
+            .returns(createResponse(200, stubbedOffer('base')));
+
+        context = await wcs.process(context);
+
+        expect(context.body.prices).to.include('data-wcs-osi="BASE-OSI"');
+        expect(context.body.prices).to.not.include('data-wcs-osi="SUB-OSI"');
+    });
+
+    it('caches base OSI (not substituted) for elements with data-locked-osi="true"', async function () {
+        context.body = {
+            prices: '<span data-wcs-osi="BASE-OSI" data-locked-osi="true"></span>',
+            fields: {},
+        };
+        context.substituteMap = { 'BASE-OSI': 'SUB-OSI' };
+        fetchStub
+            .withArgs(sinon.match((url) => url.includes('offer_selector_ids=BASE-OSI')))
+            .returns(createResponse(200, stubbedOffer('base')));
+
+        context = await wcs.process(context);
+
+        expect(context.body.wcs.prod).to.have.property('BASE-OSI-us-mult');
+        expect(context.body.wcs.prod).to.not.have.property('SUB-OSI-us-mult');
+    });
+
+    it('applies substitution to unlocked elements but not locked ones in the same fragment', async function () {
+        context.body = {
+            prices: '<span data-wcs-osi="BASE-OSI"></span>' + '<span data-wcs-osi="BASE-OSI" data-locked-osi="true"></span>',
+            fields: {},
+        };
+        context.substituteMap = { 'BASE-OSI': 'SUB-OSI' };
+        fetchStub
+            .withArgs(sinon.match((url) => url.includes('offer_selector_ids=SUB-OSI')))
+            .returns(createResponse(200, stubbedOffer('substituted')));
+        fetchStub
+            .withArgs(sinon.match((url) => url.includes('offer_selector_ids=BASE-OSI')))
+            .returns(createResponse(200, stubbedOffer('base')));
+
+        context = await wcs.process(context);
+
+        expect(context.body.prices).to.include('data-wcs-osi="SUB-OSI"');
+        expect(context.body.prices).to.include('data-wcs-osi="BASE-OSI" data-locked-osi="true"');
+        expect(context.body.wcs.prod).to.have.property('SUB-OSI-us-mult');
+        expect(context.body.wcs.prod).to.have.property('BASE-OSI-us-mult');
+    });
 });

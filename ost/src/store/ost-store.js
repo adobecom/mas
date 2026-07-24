@@ -101,6 +101,7 @@ const SLICES = [
     ['currentSlot', 'base'],
     ['promotionCode', undefined],
     ['storedPromoOverride', undefined],
+    ['lockedOsi', false],
     ['masCommerceService', null],
     ['placeholderTypes', [...DEFAULT_PLACEHOLDER_TYPES]],
     ['defaultPlaceholderOptions', { ...DEFAULT_PLACEHOLDER_OPTIONS }],
@@ -402,6 +403,10 @@ export class OstStore extends EventTarget {
             const incomingPromotionCode = config.offerSelectorPlaceholderOptions.promotionCode;
             if (incomingPromotionCode !== undefined && this.promotionCode === undefined) {
                 this.promotionCode = incomingPromotionCode;
+            }
+            const incomingLockedOsi = config.offerSelectorPlaceholderOptions.lockedOsi;
+            if (incomingLockedOsi && !this.lockedOsi) {
+                this.lockedOsi = incomingLockedOsi;
             }
         }
     }
@@ -940,6 +945,10 @@ export class OstStore extends EventTarget {
         this.storedPromoOverride = code;
     }
 
+    setLockedOsi(value) {
+        this.lockedOsi = value;
+    }
+
     setPlaceholderOptions(options) {
         this.placeholderOptions = { ...options };
     }
@@ -1013,6 +1022,9 @@ export class OstStore extends EventTarget {
         }
         if (get('promotionCode')) {
             this.setPromoCode(get('promotionCode'));
+        }
+        if (get('lockedOsi') === 'true') {
+            this.setLockedOsi(true);
         }
         if (get('storedPromoOverride')) {
             this.setPromoCode(get('storedPromoOverride'));

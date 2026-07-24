@@ -142,7 +142,7 @@
                 }),
                 createSettingRow({
                     name: 'addon',
-                    value: '',
+                    value: 'addon1',
                     valueType: 'optional-text',
                     booleanValue: false,
                 }),
@@ -177,6 +177,7 @@
                             if (field.name === 'promoText') return { ...field, values: ['<p>Parent Promo</p>'] };
                             if (field.name === 'callout') return { ...field, values: ['<p>Parent Callout</p>'] };
                             if (field.name === 'ctas') return { ...field, values: ['<p>Parent CTAs</p>'] };
+                            if (field.name === 'addon') return { ...field, values: ['{{addon1}}'] };
                             if (field.name === 'mnemonicIcon')
                                 return { ...field, values: ['/test/mocks/img/creative-cloud.svg'], multiple: true };
                             if (field.name === 'mnemonicAlt') return { ...field, values: ['Parent Alt'], multiple: true };
@@ -225,6 +226,10 @@
                         Store.fragmentEditor.fragmentId.set(`test-variation-${testId}`);
                         Store.fragments.inEdit.set(fragmentStore);
                         Store.fragments.list.data.set([fragmentStore]);
+                        Store.placeholders.addons.data.set([
+                            { value: 'addon1', itemText: 'addon1' },
+                            { value: 'addon2', itemText: 'addon2' },
+                        ]);
                         Store.placeholders.previewByLocale.set({ [variationLocale]: {} });
                         Store.search.set((prev) => ({ ...prev, surface: 'web', path: 'nala', region: variationLocale }));
                         Store.viewMode.set('editing');
@@ -1026,22 +1031,24 @@
                                 parentOverrides: {
                                     showPlanType: ['true'],
                                     showSecureLabel: ['true'],
+                                    addon: ['{{addon-stock-trial}}'],
+                                },
+                                variationOverrides: {
                                     addon: ['{{addon-mili-test}}'],
                                 },
-                                variationOverrides: {},
                                 testId: 'variation-inherits-parent-visual-overrides',
                             });
 
                             expect(editor.isSettingOverridden('showPlanType')).to.be.false;
                             expect(editor.isSettingOverridden('showSecureLabel')).to.be.false;
-                            expect(editor.isSettingOverridden('addon')).to.be.false;
+                            expect(editor.isSettingOverridden('addon')).to.be.true;
                             expect(editor.getEffectiveSettingValue('showPlanType')).to.equal('true');
                             expect(editor.getEffectiveSettingValue('showSecureLabel')).to.equal('true');
                             expect(editor.getEffectiveSettingValue('addon')).to.equal('{{addon-mili-test}}');
 
                             expect(editor.isSettingVisuallyOverridden('showPlanType')).to.be.true;
                             expect(editor.isSettingVisuallyOverridden('showSecureLabel')).to.be.true;
-                            expect(editor.isSettingVisuallyOverridden('addon')).to.be.true;
+                            expect(editor.isAddonSettingVisuallyOverridden()).to.be.true;
 
                             const restoreAllLink = editor.querySelector('.restore-all-link');
                             expect(restoreAllLink).to.exist;
@@ -1191,6 +1198,121 @@
                             .querySelector('quantity-select-field')
                             .shadowRoot.querySelector('#quantity-selector-default');
                         expect(qsDefault2.value).to.equal('1');
+                    });
+
+                    it('update addon value and then rollback to the settings value', async () => {
+                        const { editor, fragmentStore } = await setupTestEnvironment(
+                            {
+                                isVariation: false,
+                                addon: ['addon1'],
+                            },
+                            'test-addon',
+                        );
+
+                        const addonSelect = editor.querySelector('sp-field-group#addon sp-combobox#addon-field');
+                        expect(addonSelect).to.exist;
+                        expect(addonSelect.value).to.equal('addon1');
+
+                        addonSelect.value = 'addon2';
+                        addonSelect.dispatchEvent(new Event('change', { bubbles: true }));
+
+                        await editor.updateComplete;
+                        expect(fragmentStore.get().getFieldValues('addon')[0]).to.equal('{{addon2}}');
+
+                        const addonSelectOverride = editor.querySelector('sp-field-group#addon .setting-override-indicator');
+                        addonSelectOverride.click();
+
+                        await editor.updateComplete;
+
+                        expect(fragmentStore.get().getFieldValues('addon')[0]).to.equal('');
+                    });
+
+                    it('update addon value and background and then rollback to the settings value', async () => {
+                        const { editor, fragmentStore } = await setupTestEnvironment(
+                            {
+                                isVariation: false,
+                                addon: ['addon1'],
+                            },
+                            'test-addon',
+                        );
+
+                        const addonBGEl = editor.querySelector('sp-picker#addonBackground');
+                        addonBGEl.value = 'Grey';
+                        addonBGEl.dispatchEvent(new Event('change', { bubbles: true }));
+
+                        const addonSelect = editor.querySelector('sp-field-group#addon sp-combobox#addon-field');
+                        expect(addonSelect).to.exist;
+                        expect(addonSelect.value).to.equal('addon1');
+
+                        addonSelect.value = 'addon2';
+                        addonSelect.dispatchEvent(new Event('change', { bubbles: true }));
+
+                        await editor.updateComplete;
+                        expect(fragmentStore.get().getFieldValues('addon')[0]).to.equal(
+                            '<merch-addon background="#dadada">{{addon2}}</merch-addon>',
+                        );
+
+                        const addonSelectOverride = editor.querySelector('sp-field-group#addon .setting-override-indicator');
+                        addonSelectOverride.click();
+
+                        await editor.updateComplete;
+
+                        expect(fragmentStore.get().getFieldValues('addon')[0]).to.equal(
+                            '<merch-addon background="#dadada">addon1</merch-addon>',
+                        );
+                    });
+
+                    it('update variation addon value and then rollback to the settings value', async () => {
+                        await setupTestEnvironment();
+
+                        const addonSelect = editor.querySelector('sp-field-group#addon sp-combobox#addon-field');
+                        expect(addonSelect).to.exist;
+                        expect(addonSelect.value).to.equal('addon1');
+
+                        addonSelect.value = 'addon2';
+                        addonSelect.dispatchEvent(new Event('change', { bubbles: true }));
+
+                        await editor.updateComplete;
+
+                        const addonSelectOverride = editor.querySelector('sp-field-group#addon .setting-override-indicator');
+                        addonSelectOverride.click();
+
+                        await delay(200);
+
+                        expect(addonSelect.value).to.equal('addon1');
+                        const addonSelectOverride2 = editor.querySelector('sp-field-group#addon .setting-override-indicator');
+                        expect(addonSelectOverride2).to.be.null;
+                    });
+
+                    it('update variation addon value and background and then rollback to the settings value', async () => {
+                        await setupTestEnvironment();
+
+                        const addonBGEl = editor.querySelector('sp-picker#addonBackground');
+                        addonBGEl.value = 'Grey';
+                        addonBGEl.dispatchEvent(new Event('change', { bubbles: true }));
+
+                        const addonSelect = editor.querySelector('sp-field-group#addon sp-combobox#addon-field');
+                        expect(addonSelect).to.exist;
+                        expect(addonSelect.value).to.equal('addon1');
+
+                        addonSelect.value = 'addon2';
+                        addonSelect.dispatchEvent(new Event('change', { bubbles: true }));
+
+                        await editor.updateComplete;
+
+                        const addonValue = editor.fragment.getFieldValue('addon', 0);
+                        expect(addonValue).to.equal('<merch-addon background="#dadada">{{addon2}}</merch-addon>');
+
+                        const addonSelectOverride = editor.querySelector('sp-field-group#addon .setting-override-indicator');
+                        addonSelectOverride.click();
+
+                        await delay(200);
+
+                        addonBGEl.value = 'Grey';
+                        addonBGEl.dispatchEvent(new Event('change', { bubbles: true }));
+
+                        const addonValue2 = editor.fragment.getFieldValue('addon', 0);
+                        expect(addonValue2).to.equal('<merch-addon background="#dadada">{{addon1}}</merch-addon>');
                     });
 
                     describe('getWhatsIncludedProps', () => {

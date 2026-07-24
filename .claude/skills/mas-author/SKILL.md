@@ -231,7 +231,9 @@ not a locale variation.
     - The language shows **"— (default only)"**, or the target isn't in its regional list → **STOP.** No
       locale variation is allowed there; do not invent one.
 3. **Check none exists** for that locale: read the parent's `variations` field; if a referenced fragment
-   already sits at the target locale path → **STOP** (one variation per locale — never auto-rename).
+   already sits at the target locale path → **STOP** (one *locale* variation per locale — never
+   auto-rename; this bounds locale variations only, not geo-scoped promo variants, which can share a
+   locale — §5).
 4. Otherwise **create the variation as a new fragment** at `/content/dam/mas/{surface}/{targetLocale}/…`
    (`create-aem-fragment`) and link it by adding its path to the parent's `variations` field
    (`patch-aem-fragment` on the parent).

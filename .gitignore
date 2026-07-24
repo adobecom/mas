@@ -30,6 +30,8 @@ nala/.auth/
 .claude/*
 !.claude/commands/
 !.claude/commands/**
+extension/.claude/
+extension/mas-studio-extension.zip
 .logs/
 .scout
 .specify/

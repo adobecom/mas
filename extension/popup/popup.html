@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Merch @ Scale Display</title>
+        <link rel="stylesheet" href="../vendor/spectrum/spectrum.css" />
+        <link rel="stylesheet" href="popup.css" />
+    </head>
+    <body class="spectrum spectrum--express spectrum--medium spectrum--light">
+        <div class="header">
+            <div class="header-left">
+                <h1 class="spectrum-Heading spectrum-Heading--sizeS">Merch @ Scale</h1>
+            </div>
+            <label class="spectrum-Switch">
+                <input type="checkbox" class="spectrum-Switch-input" id="enableToggle" checked />
+                <span class="spectrum-Switch-switch"></span>
+                <span class="spectrum-Switch-label">On</span>
+            </label>
+        </div>
+
+        <div class="main-content" id="mainContent">
+            <div class="toolbar">
+                <div class="toolbar-row">
+                    <div class="card-count spectrum-Body--sizeXS"><span id="cardCount">0</span> cards detected</div>
+                </div>
+                <div class="toolbar-row">
+                    <div class="spectrum-Textfield spectrum-Textfield--sizeM toolbar-search">
+                        <input type="text" class="spectrum-Textfield-input" id="searchInput" placeholder="Search…" />
+                    </div>
+                    <select id="variantFilter" class="filter-select spectrum-Picker spectrum-Picker--sizeM">
+                        <option value="">All variants</option>
+                    </select>
+                    <button class="mas-popup-iconbtn" id="exportBtn" title="Export JSON" aria-label="Export JSON">
+                        <span class="mas-popup-icon" data-icon="Export"></span>
+                    </button>
+                    <button class="mas-popup-iconbtn" id="refreshBtn" title="Refresh" aria-label="Refresh">
+                        <span class="mas-popup-icon" data-icon="Refresh"></span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="card-list" id="cardList"></div>
+            <div class="no-cards" id="noCards" style="display: none">
+                <p class="spectrum-Body spectrum-Body--sizeS">No merch cards detected on this page.</p>
+                <p class="hint spectrum-Body--sizeXS">Navigate to a page with merch cards to see them here.</p>
+            </div>
+        </div>
+
+        <script src="../utils/icons.js"></script>
+        <script src="popup.js"></script>
+    </body>
+</html>

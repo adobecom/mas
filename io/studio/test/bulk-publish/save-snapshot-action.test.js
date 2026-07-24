@@ -70,18 +70,35 @@ describe('bulk-publish/save-snapshot-action.js', () => {
         expect(result.body.error).to.match(/projectId/);
     });
 
-    it('returns 200 with entries and calls updateProjectFragment with snapshots', async () => {
+    it('returns 200 with entries and calls updateProjectFragment with snapshots and lastError', async () => {
         readProjectStub.resolves({ fragment: { fields: [] } });
         getProjectPathsStub.returns(['/content/dam/a', '/content/dam/b']);
         const entries = ['{"fragmentId":"f1","versionId":"v-green","wasPublished":true,"createdAt":"2026-01-01T00:00:00Z"}'];
-        recordSnapshotStub.resolves(entries);
+        recordSnapshotStub.resolves({ entries, failures: [] });
 
         const result = await action.main({ projectId, aemOdinEndpoint: odinEndpoint, allowedClientId: 'cid' });
 
         expect(result.statusCode).to.equal(200);
         expect(result.body.entries).to.deep.equal(entries);
+        expect(result.body.lastError).to.equal('');
         expect(updateProjectStub).to.have.been.calledOnce;
         expect(updateProjectStub.firstCall.args[3].snapshots).to.deep.equal(entries);
+        expect(updateProjectStub.firstCall.args[3].lastError).to.equal('');
+    });
+
+    it('writes lastError to project fragment when some fragments fail', async () => {
+        readProjectStub.resolves({ fragment: { fields: [] } });
+        getProjectPathsStub.returns(['/content/dam/a', '/content/dam/b']);
+        const entries = ['{"fragmentId":"f1","versionId":"v-green","wasPublished":true,"createdAt":"2026-01-01T00:00:00Z"}'];
+        const failures = [{ path: '/content/dam/b', error: 'No non-translation version found for fragment: /content/dam/b' }];
+        recordSnapshotStub.resolves({ entries, failures });
+
+        const result = await action.main({ projectId, aemOdinEndpoint: odinEndpoint, allowedClientId: 'cid' });
+
+        expect(result.statusCode).to.equal(200);
+        expect(result.body.lastError).to.include('SAVE_SNAPSHOT:');
+        expect(result.body.lastError).to.include('/content/dam/b');
+        expect(updateProjectStub.firstCall.args[3].lastError).to.include('SAVE_SNAPSHOT:');
     });
 
     it('returns 200 with empty entries and skips recordSnapshot when project has no paths', async () => {

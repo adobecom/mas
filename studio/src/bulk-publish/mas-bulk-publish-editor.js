@@ -559,12 +559,16 @@ class MasBulkPublishEditor extends LitElement {
                     showToast('Project created successfully.', 'positive');
                     const { saveSnapshot } = await import('./bulk-publish-store.js');
                     const createdProject = Store.bulkPublishProjects.inEdit.get();
-                    saveSnapshot({
-                        project: createdProject,
-                        token: this.token,
-                        ioBaseUrl: this.ioBaseUrl,
-                        saveSnapshotFn: this.saveSnapshotFn,
-                    }).catch((err) => console.error('Failed to record snapshot after create:', err));
+                    try {
+                        await saveSnapshot({
+                            project: createdProject,
+                            token: this.token,
+                            ioBaseUrl: this.ioBaseUrl,
+                            saveSnapshotFn: this.saveSnapshotFn,
+                        });
+                    } catch (err) {
+                        console.error('Failed to record snapshot after create:', err);
+                    }
                 } else {
                     const savedStatus = this.status === BULK_PUBLISH_STATUS.PUBLISHED ? BULK_PUBLISH_STATUS.DRAFT : this.status;
                     const fields = {
@@ -584,12 +588,16 @@ class MasBulkPublishEditor extends LitElement {
                     this.hasChanges = false;
                     showToast('Project saved successfully.', 'positive');
                     const { saveSnapshot } = await import('./bulk-publish-store.js');
-                    saveSnapshot({
-                        project: this.project,
-                        token: this.token,
-                        ioBaseUrl: this.ioBaseUrl,
-                        saveSnapshotFn: this.saveSnapshotFn,
-                    }).catch((err) => console.error('Failed to record snapshot after save:', err));
+                    try {
+                        await saveSnapshot({
+                            project: this.project,
+                            token: this.token,
+                            ioBaseUrl: this.ioBaseUrl,
+                            saveSnapshotFn: this.saveSnapshotFn,
+                        });
+                    } catch (err) {
+                        console.error('Failed to record snapshot after save:', err);
+                    }
                 }
             } catch (err) {
                 console.error('Failed to save bulk publish project:', err);

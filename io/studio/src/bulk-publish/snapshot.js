@@ -160,22 +160,25 @@ async function recordSnapshot({ paths, odinEndpoint, authToken }) {
 
     logger.info(JSON.stringify({ event: 'record-snapshot-start', count: paths.length }));
 
-    const entries = await processBatchWithConcurrency(paths, FRAGMENT_CONCURRENCY, async (path) => {
+    const results = await processBatchWithConcurrency(paths, FRAGMENT_CONCURRENCY, async (path) => {
         const fragment = await getFragmentByPath(odinEndpoint, path, authToken);
-        if (!fragment) throw new Error(`Fragment not found at path: ${path}`);
+        if (!fragment) return { path, error: `Fragment not found at path: ${path}` };
         const wasPublished = fragment.status === STATUS_PUBLISHED || fragment.status === STATUS_MODIFIED;
         const versionId = await findNonTranslationVersion(odinEndpoint, fragment.id, authToken);
-        if (!versionId) throw new Error(`No non-translation version found for fragment: ${path}`);
+        if (!versionId) return { path, error: `No non-translation version found for fragment: ${path}` };
         return [fragment.id, { path: fragment.path, versionId, wasPublished }];
     });
 
+    const failures = results.filter((r) => r?.error);
+    const pairs = results.filter((r) => Array.isArray(r));
+
     const snap = {
         createdAt,
-        fragments: Object.fromEntries(entries),
+        fragments: Object.fromEntries(pairs),
     };
 
-    logger.info(JSON.stringify({ event: 'record-snapshot-complete', count: paths.length }));
-    return serializeEntries(snap);
+    logger.info(JSON.stringify({ event: 'record-snapshot-complete', count: pairs.length, failures: failures.length }));
+    return { entries: serializeEntries(snap), failures };
 }
 
 async function checkModifications({ entries, odinEndpoint, authToken }) {

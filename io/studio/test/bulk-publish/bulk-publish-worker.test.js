@@ -22,7 +22,7 @@ describe('bulk-publish-worker — runWorker', () => {
             getProjectSnapshots: sinon.stub().returns([]),
             publishResolved: sinon.stub(),
             createSnapshot: sinon.stub().resolves(['{"fragmentId":"f1"}']),
-            recordSnapshot: sinon.stub().resolves(preRecordedEntries),
+            recordSnapshot: sinon.stub().resolves({ entries: preRecordedEntries, failures: [] }),
             updateProjectFragment: sinon.stub().resolves(),
             now: () => new Date('2026-06-04T00:00:00.000Z'),
             logger: { info: sinon.stub(), warn: sinon.stub(), error: sinon.stub() },
@@ -149,7 +149,7 @@ describe('bulk-publish-worker — runWorker', () => {
 
     it('calls recordSnapshot when no pre-recorded snapshots exist (fallback path)', async () => {
         deps.getProjectSnapshots.returns([]);
-        deps.recordSnapshot.resolves(preRecordedEntries);
+        deps.recordSnapshot.resolves({ entries: preRecordedEntries, failures: [] });
         deps.createSnapshot.resolves(publishCreatedEntries);
         deps.publishResolved.resolves([{ path: '/content/dam/mas/acom/en_US/a', status: 'published' }]);
         deps.getProjectLocales.returns([]);
@@ -160,6 +160,27 @@ describe('bulk-publish-worker — runWorker', () => {
         expect(deps.createSnapshot).to.have.been.calledOnce;
         const finalSnapshots = deps.updateProjectFragment.lastCall.args[3].snapshots;
         expect(JSON.parse(finalSnapshots[0]).versionId).to.equal('v-green');
+    });
+
+    it('falls through to record+createSnapshot when existing entry has publishComplete: true', async () => {
+        const completedEntry = JSON.stringify({
+            fragmentId: 'frag-1',
+            versionId: 'v-green',
+            wasPublished: true,
+            createdAt: '2026-01-01T00:00:00Z',
+            publishComplete: true,
+        });
+        deps.getProjectSnapshots.returns([completedEntry]);
+        deps.recordSnapshot.resolves({ entries: preRecordedEntries, failures: [] });
+        deps.publishResolved.resolves([{ path: '/content/dam/mas/acom/en_US/a', status: 'published' }]);
+        deps.getProjectLocales.returns([]);
+
+        await worker.runWorker({ projectId: 'proj-1', odinEndpoint: 'https://odin', authToken: 't', publishedBy: '' }, deps);
+
+        // publishComplete: true means publishComplete !== undefined, so hasValidPreRecordedSnapshot returns false
+        // and hasPendingSnapshot (publishComplete === false) also returns false → falls through to else branch
+        expect(deps.recordSnapshot).to.have.been.calledOnce;
+        expect(deps.createSnapshot).to.have.been.calledOnce;
     });
 
     it('treats a malformed snapshot entry as not pre-recorded and falls back to record+snapshot', async () => {

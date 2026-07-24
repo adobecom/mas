@@ -26,11 +26,15 @@ async function main(params) {
             return { statusCode: 200, body: { entries: [] } };
         }
 
-        const entries = await recordSnapshot({ paths, odinEndpoint, authToken });
-        await updateProjectFragment(odinEndpoint, projectId, authToken, { snapshots: entries });
+        const { entries, failures } = await recordSnapshot({ paths, odinEndpoint, authToken });
+        const lastError =
+            failures.length > 0 ? `SAVE_SNAPSHOT:\n${failures.map((f) => `${f.path}: ${f.error}`).join('\n')}` : '';
+        await updateProjectFragment(odinEndpoint, projectId, authToken, { snapshots: entries, lastError });
 
-        logger.info(JSON.stringify({ event: 'save-snapshot-complete', projectId, count: entries.length }));
-        return { statusCode: 200, body: { entries } };
+        logger.info(
+            JSON.stringify({ event: 'save-snapshot-complete', projectId, count: entries.length, failures: failures.length }),
+        );
+        return { statusCode: 200, body: { entries, lastError } };
     } catch (error) {
         logger.error(JSON.stringify({ event: 'save-snapshot-error', error: error.message }));
         return errorResponse(500, error.message || 'Internal server error', logger);

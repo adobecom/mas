@@ -1,5 +1,6 @@
 const ENDPOINT = '/bulk-publish';
 const REVERT_ENDPOINT = '/bulk-revert';
+const RESET_ENDPOINT = '/bulk-publish-reset';
 const CHECK_MODIFICATIONS_ENDPOINT = '/bulk-check-modifications';
 
 export class BulkPublishError extends Error {
@@ -48,6 +49,11 @@ export async function publishBulk({ ioBaseUrl, projectId, publishedBy = '', toke
 export async function revertAction({ ioBaseUrl, projectId, token }) {
     if (!projectId) throw new BulkPublishError('projectId is required');
     return callAction(ioBaseUrl, REVERT_ENDPOINT, { projectId }, token);
+}
+
+export async function resetAction({ ioBaseUrl, projectId, token }) {
+    if (!projectId) throw new BulkPublishError('projectId is required');
+    return callAction(ioBaseUrl, RESET_ENDPOINT, { projectId }, token);
 }
 
 export async function checkModificationsAction({ ioBaseUrl, entries, token }) {

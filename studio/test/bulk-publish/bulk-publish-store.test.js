@@ -2,7 +2,7 @@ import { expect } from '@open-wc/testing';
 import sinon from 'sinon';
 import Store from '../../src/store.js';
 import { BULK_PUBLISH_STATUS } from '../../src/constants.js';
-import { startPublishing, startReverting } from '../../src/bulk-publish/bulk-publish-store.js';
+import { startPublishing, startReverting, resetToDraft } from '../../src/bulk-publish/bulk-publish-store.js';
 
 function makeProject(id = 'proj-1') {
     let status = BULK_PUBLISH_STATUS.PUBLISHING;
@@ -109,6 +109,44 @@ describe('startReverting()', () => {
         fetchStub.resolves(fetchOk(expected));
         const project = makeProject();
         const result = await startReverting({ project, token, ioBaseUrl, repository: repo });
+        expect(result).to.deep.equal(expected);
+    });
+});
+
+describe('resetToDraft()', () => {
+    let fetchStub;
+    let repo;
+    const token = 'test-token';
+    const ioBaseUrl = 'https://io.example';
+
+    beforeEach(() => {
+        Store.bulkPublishProjects.list.data.set([]);
+        repo = makeRepo();
+        fetchStub = sinon.stub(window, 'fetch').resolves(fetchOk({ status: 'Draft' }));
+    });
+
+    afterEach(() => sinon.restore());
+
+    it('calls the reset action with projectId', async () => {
+        const project = makeProject();
+        await resetToDraft({ project, token, ioBaseUrl, repository: repo });
+        const [url, init] = fetchStub.firstCall.args;
+        expect(url).to.include('/bulk-publish-reset');
+        expect(JSON.parse(init.body).projectId).to.equal('proj-1');
+    });
+
+    it('refreshes the fragment so the row leaves Publishing', async () => {
+        const project = makeProject();
+        await resetToDraft({ project, token, ioBaseUrl, repository: repo });
+        expect(repo.refreshFragment.calledOnce).to.equal(true);
+        expect(repo.refreshFragment.firstCall.args[0]).to.equal(project);
+    });
+
+    it('returns the IO action result', async () => {
+        const expected = { status: 'Draft' };
+        fetchStub.resolves(fetchOk(expected));
+        const project = makeProject();
+        const result = await resetToDraft({ project, token, ioBaseUrl, repository: repo });
         expect(result).to.deep.equal(expected);
     });
 });

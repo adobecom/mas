@@ -434,4 +434,24 @@ describe('mas-bulk-publish (render)', () => {
         const row = el.shadowRoot.querySelector('[data-testid="project-row"]');
         expect(row.querySelector('sp-action-button')).to.exist;
     });
+
+    async function resetItemFor(status) {
+        Store.bulkPublishProjects.list.data.set([makeProjectStore({ status })]);
+        const el = await fixture(html`<mas-bulk-publish></mas-bulk-publish>`);
+        await el.updateComplete;
+        const row = el.shadowRoot.querySelector('[data-testid="project-row"]');
+        return [...row.querySelectorAll('sp-menu-item')].find((i) => i.textContent.includes('Reset to Draft'));
+    }
+
+    it('offers Reset to Draft for a project stuck in Publishing', async () => {
+        expect(await resetItemFor(BULK_PUBLISH_STATUS.PUBLISHING)).to.exist;
+    });
+
+    it('offers Reset to Draft for a failed project', async () => {
+        expect(await resetItemFor(BULK_PUBLISH_STATUS.FAILED)).to.exist;
+    });
+
+    it('hides Reset to Draft for a published project', async () => {
+        expect(await resetItemFor(BULK_PUBLISH_STATUS.PUBLISHED)).to.not.exist;
+    });
 });

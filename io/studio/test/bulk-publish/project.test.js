@@ -2,6 +2,19 @@ const { expect } = require('chai');
 const sinon = require('sinon');
 const proxyquire = require('proxyquire');
 
+describe('project.js — PROJECT_STATUS', () => {
+    const { PROJECT_STATUS } = require('../../src/bulk-publish/project.js');
+
+    it('carries the terminal statuses the worker writes', () => {
+        expect(PROJECT_STATUS.FAILED).to.equal('Failed');
+        expect(PROJECT_STATUS.PARTIALLY_PUBLISHED).to.equal('Partially published');
+    });
+
+    it('omits Locked, which only the UI writes', () => {
+        expect(PROJECT_STATUS).to.not.have.property('LOCKED');
+    });
+});
+
 describe('project.js', () => {
     let mod;
     let getFragmentWithEtagStub;

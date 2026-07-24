@@ -628,6 +628,7 @@ class MasPromotionsItemsTable extends LitElement {
 
     updated(changed) {
         super.updated(changed);
+        if (!this.isConnected) return;
         if (
             changed.has('promoVariationGeosDialogItem') ||
             changed.has('promoVariationSelectedGeos') ||

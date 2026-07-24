@@ -1435,4 +1435,48 @@ describe('MasPromotionsItemsTable', () => {
             expect(Store.promotions.selectedOffers.value).to.deep.equal(['ffsa-osi']);
         });
     });
+
+    describe('updated() connected guard', () => {
+        it('skips reload side effects when updated() runs after the element has been disconnected', async () => {
+            const cardOnePath = '/content/dam/mas/card-one';
+            const cardTwoPath = '/content/dam/mas/card-two';
+            Store.promotions.selectedCards.set([cardOnePath]);
+            const el = new MasPromotionsItemsTable();
+            el.type = TABLE_TYPE.CARDS;
+            const cardOneFragment = {
+                path: cardOnePath,
+                id: 'card-one-id',
+                title: 'Card one',
+                studioPath: cardOnePath,
+                status: 'DRAFT',
+                model: { path: CARD_MODEL_PATH },
+                fields: [],
+                tags: [],
+            };
+            const getFragmentByPath = sandbox.stub().resolves(cardOneFragment);
+            sandbox.stub(el, 'repository').get(() => ({ aem: { getFragmentByPath } }));
+            document.body.appendChild(el);
+            await el.updateComplete;
+            await new Promise((r) => setTimeout(r, 80));
+            await el.updateComplete;
+            expect(el.viewOnlyFragments.length).to.equal(1);
+            const callsBeforeDisconnect = getFragmentByPath.callCount;
+
+            el.remove();
+            expect(el.isConnected).to.be.false;
+
+            // Selection changes after disconnect; without the `!this.isConnected` guard,
+            // a forced updated() cycle would reload fragments for the new selection.
+            Store.promotions.selectedCards.set([cardTwoPath]);
+            el.requestUpdate();
+            await el.updateComplete;
+            await new Promise((r) => setTimeout(r, 80));
+
+            expect(getFragmentByPath.callCount).to.equal(callsBeforeDisconnect);
+            expect(el.viewOnlyFragments.length).to.equal(1);
+            expect(el.viewOnlyFragments[0].path).to.equal(cardOnePath);
+
+            Store.promotions.selectedCards.set([]);
+        });
+    });
 });

@@ -130,6 +130,51 @@ describe('promotion-variations', () => {
             }
         });
 
+        it('throws when requesting a geo-less variation and a geo-less sibling already exists', async () => {
+            const getByPath = sandbox.stub();
+            getByPath.withArgs(targetPath).resolves({
+                id: 'var-1',
+                path: targetPath,
+                fields: [],
+            });
+            getByPath.resolves(null);
+            const aem = createAemMock({
+                fragments: { getById: sandbox.stub().resolves(parentFragment), getByPath },
+            });
+
+            try {
+                await createPromoVariation(aem, parentFragment.id, promoTag);
+                expect.fail('Should have thrown');
+            } catch (err) {
+                expect(err.message).to.equal('A variation with no geos already exists for this project.');
+            }
+        });
+
+        it('does not throw the geo-less-sibling error when geoTags is empty but no sibling is geo-less', async () => {
+            const createdFragment = {
+                id: 'new-promo-var-2',
+                path: '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card-2',
+            };
+            const getByPath = sandbox.stub();
+            getByPath.withArgs(targetPath).resolves({
+                id: 'var-1',
+                path: targetPath,
+                fields: [{ name: 'pznTags', values: ['mas:pzn/country/ar'] }],
+            });
+            getByPath.resolves(null);
+            const aem = createAemMock({
+                fragments: {
+                    getById: sandbox.stub().resolves(parentFragment),
+                    getByPath,
+                    pollCreatedFragment: sandbox.stub().resolves(createdFragment),
+                },
+                createFragmentCopy: sandbox.stub().resolves({ id: 'new-promo-var-2' }),
+            });
+
+            const result = await createPromoVariation(aem, parentFragment.id, promoTag, []);
+            expect(result).to.deep.equal(createdFragment);
+        });
+
         it('creates a geo-specific variation alongside a sibling with no pznTags (legacy fallback variation)', async () => {
             const variation2Path = '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card-2';
             const getByPath = sandbox.stub();

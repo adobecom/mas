@@ -60,6 +60,17 @@ async function computeCache(tokens, wcsContext) {
     return cache;
 }
 
+function substituteOsi(osiString, substituteMap) {
+    if (!substituteMap) return null;
+    let changed = false;
+    const substituted = osiString.split(',').map((part) => {
+        const sub = substituteMap[part];
+        if (sub) changed = true;
+        return sub ?? part;
+    });
+    return changed ? substituted.join(',') : null;
+}
+
 async function wcs(context) {
     const { body } = context;
     const bodyString = JSON.stringify(body);
@@ -69,7 +80,7 @@ async function wcs(context) {
     let lastEnd = 0;
     matches.forEach((match) => {
         const originalOsi = match.groups.osi;
-        const substitutedOsi = context.substituteMap?.[originalOsi];
+        const substitutedOsi = substituteOsi(originalOsi, context.substituteMap);
         if (substitutedOsi) {
             logDebug(() => `Substituting OSI ${originalOsi} with ${substitutedOsi}`, context);
             parts.push(bodyString.slice(lastEnd, match.index));
@@ -123,7 +134,7 @@ async function wcs(context) {
         };
         matches.forEach((match) => {
             const baseOsi = match.groups.osi;
-            const osi = context.substituteMap?.[baseOsi] ?? baseOsi;
+            const osi = substituteOsi(baseOsi, context.substituteMap) ?? baseOsi;
             const promoMatch = match[0].match(PROMOCODE_REGEXP);
             if (promoMatch && promoMatch.groups?.promotionCode) {
                 addToken({ osi, promotionCode: promoMatch.groups.promotionCode });

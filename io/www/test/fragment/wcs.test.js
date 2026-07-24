@@ -569,6 +569,56 @@ describe('wcs OSI substitution', function () {
         expect(context.body.wcs.prod).to.have.property('SUBSTITUTED-OSI-A-us-mult');
         expect(context.body.wcs.prod).to.have.property('B-us-mult');
     });
+
+    it('substitutes both parts of a comma-joined multi-OSI discount placeholder', async function () {
+        context.body = {
+            prices: '<span data-template="discount" data-wcs-osi="OSI-A,OSI-B"></span>',
+            fields: {},
+        };
+        context.substituteMap = { 'OSI-A': 'SUB-A', 'OSI-B': 'SUB-B' };
+        fetchStub
+            .withArgs(sinon.match((url) => url.includes('offer_selector_ids=SUB-A%2CSUB-B')))
+            .returns(createResponse(200, stubbedOffer('substituted')));
+
+        context = await wcs.process(context);
+
+        expect(context.body.prices).to.include('data-wcs-osi="SUB-A,SUB-B"');
+        expect(context.body.prices).to.not.include('data-wcs-osi="OSI-A,OSI-B"');
+        expect(context.body.wcs.prod).to.have.property('SUB-A,SUB-B-us-mult');
+    });
+
+    it('substitutes only the part with a matching rule in a comma-joined multi-OSI placeholder', async function () {
+        context.body = {
+            prices: '<span data-template="discount" data-wcs-osi="OSI-A,OSI-B"></span>',
+            fields: {},
+        };
+        context.substituteMap = { 'OSI-A': 'SUB-A' };
+        fetchStub
+            .withArgs(sinon.match((url) => url.includes('offer_selector_ids=SUB-A%2COSI-B')))
+            .returns(createResponse(200, stubbedOffer('substituted')));
+
+        context = await wcs.process(context);
+
+        expect(context.body.prices).to.include('data-wcs-osi="SUB-A,OSI-B"');
+        expect(context.body.prices).to.not.include('data-wcs-osi="OSI-A,OSI-B"');
+        expect(context.body.wcs.prod).to.have.property('SUB-A,OSI-B-us-mult');
+    });
+
+    it('leaves a comma-joined multi-OSI placeholder unchanged when no part has a substitution rule', async function () {
+        context.body = {
+            prices: '<span data-template="discount" data-wcs-osi="OSI-A,OSI-B"></span>',
+            fields: {},
+        };
+        context.substituteMap = { 'OTHER-OSI': 'SUB-OTHER' };
+        fetchStub
+            .withArgs(sinon.match((url) => url.includes('offer_selector_ids=OSI-A%2COSI-B')))
+            .returns(createResponse(200, stubbedOffer('original')));
+
+        context = await wcs.process(context);
+
+        expect(context.body.prices).to.include('data-wcs-osi="OSI-A,OSI-B"');
+        expect(context.body.wcs.prod).to.have.property('OSI-A,OSI-B-us-mult');
+    });
 });
 
 describe('wcs collection promos', function () {

@@ -1973,9 +1973,12 @@ export default class MasFragmentEditor extends LitElement {
      */
     navigateToVariationsTable() {
         const isVariation = this.editorContextStore.isVariation(this.fragment?.id);
-        // If viewing a variation, navigate to the parent fragment's variations
-        // Otherwise, navigate to this fragment's variations
-        const targetFragmentId = isVariation ? this.localeDefaultFragment?.id : this.fragment?.id;
+        let targetFragmentId = isVariation ? this.localeDefaultFragment?.id : this.fragment?.id;
+
+        if (!targetFragmentId && isVariation) {
+            console.warn('navigateToVariationsTable: parent fragment unresolved; falling back to current fragment id');
+            targetFragmentId = this.fragment?.id;
+        }
 
         if (targetFragmentId) {
             router.navigateToVariationsTable(targetFragmentId);

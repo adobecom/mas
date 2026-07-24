@@ -1561,6 +1561,67 @@ describe('MasFragmentEditor', () => {
         });
     });
 
+    describe('navigateToVariationsTable', () => {
+        let el;
+        let navigateStub;
+
+        beforeEach(() => {
+            el = document.createElement('mas-fragment-editor');
+            navigateStub = sandbox.stub(router, 'navigateToVariationsTable');
+        });
+
+        it('should use this.fragment.id when not viewing a variation', () => {
+            el.editorContextStore = { isVariation: sandbox.stub().returns(false) };
+            el.inEdit.value = { get: () => ({ id: 'parent-1' }) };
+
+            el.navigateToVariationsTable();
+
+            expect(navigateStub.calledOnceWith('parent-1')).to.be.true;
+        });
+
+        it('should use this.localeDefaultFragment.id when viewing a variation', () => {
+            el.editorContextStore = {
+                isVariation: sandbox.stub().returns(true),
+                localeDefaultFragment: { id: 'parent-1' },
+            };
+            el.inEdit.value = { get: () => ({ id: 'variation-1' }) };
+
+            el.navigateToVariationsTable();
+
+            expect(navigateStub.calledOnceWith('parent-1')).to.be.true;
+        });
+
+        it('should gracefully fall back to this.fragment.id when on a variation but localeDefaultFragment is missing', () => {
+            const warnStub = sandbox.stub(console, 'warn');
+            el.editorContextStore = {
+                isVariation: sandbox.stub().returns(true),
+                localeDefaultFragment: null,
+            };
+            el.inEdit.value = { get: () => ({ id: 'variation-1' }) };
+
+            el.navigateToVariationsTable();
+
+            expect(navigateStub.calledOnceWith('variation-1')).to.be.true;
+            expect(warnStub.called).to.be.true;
+        });
+    });
+
+    describe('related variations link visibility', () => {
+        it('should not render View variations link when all variation counts are zero', () => {
+            const el = document.createElement('mas-fragment-editor');
+            el.editorContextStore = { isVariation: sandbox.stub().returns(false) };
+            const fragment = new Fragment({ id: 'test-id' });
+            sandbox.stub(fragment, 'getLocaleVariationCount').returns(0);
+            sandbox.stub(fragment, 'getPromoVariationCount').returns(0);
+            sandbox.stub(fragment, 'getGroupedVariationCount').returns(0);
+            el.inEdit.value = { get: () => fragment };
+
+            const section = el.relatedVariationsSection;
+
+            expect(section).to.equal(nothing);
+        });
+    });
+
     describe('snapFilterToPathDefault', () => {
         let savedSearch;
         let savedFilters;

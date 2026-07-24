@@ -130,7 +130,7 @@ export async function onPlaceholderSelect(offerSelectorId, type, offer, options,
             masCommerceService.settings.country,
             null,
             offer.customer_segment,
-            offer.market_segments[0],
+            offer.market_segments?.[0],
         );
         settings = {
             ...settings,

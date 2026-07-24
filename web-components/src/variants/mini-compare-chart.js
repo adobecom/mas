@@ -70,6 +70,30 @@ export class MiniCompareChart extends VariantLayout {
             this.updatePriceQuantity,
         );
 
+        if (this.legalAdjusted && !this.legalObserver) {
+            const legal = this.card.querySelector(
+                '[is="inline-price"][data-template="legal"]',
+            );
+            if (legal) {
+                this.legalResolvedHandler = () => this.adjustShortDescription();
+                legal.addEventListener(
+                    EVENT_TYPE_RESOLVED,
+                    this.legalResolvedHandler,
+                );
+                this.legalElement = legal;
+                this.legalObserver = new MutationObserver(() =>
+                    this.adjustShortDescription(),
+                );
+                this.legalObserver.observe(legal, {
+                    childList: true,
+                    subtree: true,
+                });
+                this.adjustShortDescription();
+            } else {
+                this.legalAdjusted = false;
+            }
+        }
+
         this.visibilityObserver = new IntersectionObserver(([entry]) => {
             if (entry.boundingClientRect.height === 0) return;
             if (!entry.isIntersecting) return;
@@ -96,6 +120,8 @@ export class MiniCompareChart extends VariantLayout {
             this.updatePriceQuantity,
         );
         this.visibilityObserver?.disconnect();
+        this.legalObserver?.disconnect();
+        this.legalObserver = null;
         if (this.legalElement && this.legalResolvedHandler) {
             this.legalElement.removeEventListener(
                 EVENT_TYPE_RESOLVED,
@@ -554,20 +580,22 @@ export class MiniCompareChart extends VariantLayout {
     }
 
     async adjustLegal() {
-        if (this.legalAdjusted) return;
+        if (this.legalAdjusted || this.legalAdjusting) return;
+        this.legalAdjusting = true;
 
+        let legal;
         try {
-            this.legalAdjusted = true;
             await this.card.updateComplete;
             await customElements.whenDefined('inline-price');
 
             const headingPrice = this.mainPrice;
             if (!headingPrice) return;
 
-            const legal = headingPrice.cloneNode(true);
             await headingPrice.onceSettled();
 
             if (!headingPrice?.options) return;
+
+            legal = headingPrice.cloneNode(true);
 
             if (headingPrice.options.displayPerUnit)
                 headingPrice.dataset.displayPerUnit = 'false';
@@ -577,11 +605,6 @@ export class MiniCompareChart extends VariantLayout {
                 headingPrice.dataset.displayPlanType = 'false';
 
             legal.setAttribute('data-template', 'legal');
-            headingPrice.parentNode.insertBefore(
-                legal,
-                headingPrice.nextSibling,
-            );
-            await legal.onceSettled();
 
             if (!this.legalResolvedHandler) {
                 this.legalResolvedHandler = () => this.adjustShortDescription();
@@ -591,8 +614,31 @@ export class MiniCompareChart extends VariantLayout {
                 );
                 this.legalElement = legal;
             }
+
+            headingPrice.parentNode.insertBefore(
+                legal,
+                headingPrice.nextSibling,
+            );
+            this.legalAdjusted = true;
+
+            await legal.onceSettled();
+
+            this.legalObserver = new MutationObserver(() =>
+                this.adjustShortDescription(),
+            );
+            this.legalObserver.observe(legal, {
+                childList: true,
+                subtree: true,
+            });
         } catch {
-            // Proceed with other adjustments
+            if (legal?.parentNode) {
+                legal.parentNode.removeChild(legal);
+                this.legalAdjusted = false;
+                this.legalResolvedHandler = null;
+                this.legalElement = null;
+            }
+        } finally {
+            this.legalAdjusting = false;
         }
     }
 
@@ -608,7 +654,7 @@ export class MiniCompareChart extends VariantLayout {
         const hasIconButton = !!source.querySelector('.icon-button');
         if (!text && !hasIconButton) return;
         const legalPrice = this.card.querySelector(
-            '[slot="heading-m-price"] [data-template="legal"]',
+            '[is="inline-price"][data-template="legal"]',
         );
         const planType = legalPrice?.querySelector('.price-plan-type');
         if (!planType) return;

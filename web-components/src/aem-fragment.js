@@ -9,6 +9,7 @@ import { MasError } from './mas-error.js';
 import { getLogHeaders } from './utilities.js';
 import { getService, printMeasure } from './utils.js';
 import { masFetch } from './utils/mas-fetch.js';
+import { normalizeExplicitEmptyInFields } from '../../io/www/src/fragment/utils/explicit-empty.js';
 
 const ATTRIBUTE_FRAGMENT = 'fragment';
 const ATTRIBUTE_AUTHOR = 'author';
@@ -440,7 +441,8 @@ export class AemFragment extends HTMLElement {
             dictionary = {},
             placeholders = {},
         } = this.#rawData;
-        this.#data = fields.reduce(
+        const normalizedFields = normalizeExplicitEmptyInFields(fields);
+        this.#data = normalizedFields.reduce(
             (acc, { name, multiple, values }) => {
                 acc.fields[name] = multiple ? values : values[0];
                 return acc;

@@ -3,6 +3,7 @@ import { FragmentStore } from './fragment-store.js';
 import { previewStudioFragment } from '../../libs/fragment-client.js';
 import { Fragment } from '../aem/fragment.js';
 import { ODIN_PREVIEW_FRAGMENTS_URL } from '../constants.js';
+import { normalizeExplicitEmptyInFields } from '../../../io/www/src/fragment/utils/explicit-empty.js';
 
 export const INHERITED_SETTINGS_FIELDS = new Set(['addon', 'showPlanType', 'showSecureLabel', 'quantitySelect']);
 
@@ -122,25 +123,6 @@ export class PreviewFragmentStore extends FragmentStore {
         this.resolveFragment();
     }
 
-    updateFieldWithParentValue(fieldName, parentValues) {
-        const field = this.value.getField(fieldName);
-        if (field) {
-            field.values = parentValues;
-        } else if (parentValues.length > 0) {
-            const existingField = this.value.fields.find((f) => f.name === fieldName);
-            if (existingField) {
-                existingField.values = parentValues;
-            } else {
-                this.value.fields.push({
-                    name: fieldName,
-                    values: parentValues,
-                    multiple: parentValues.length > 1,
-                });
-            }
-        }
-        this.resolveFragment();
-    }
-
     setPreviewLocaleOverride(value) {
         const nextValue = value || null;
         if (this.previewLocaleOverride === nextValue) {
@@ -247,7 +229,9 @@ export class PreviewFragmentStore extends FragmentStore {
         const result = await previewStudioFragment(body, context);
 
         /* Transform fields back to author */
-        result.fields = mergeResolvedPreviewFields(originalFields, result.fields, result.settings);
+        result.fields = normalizeExplicitEmptyInFields(
+            mergeResolvedPreviewFields(originalFields, result.fields, result.settings),
+        );
 
         const essentialProps = [
             'path',

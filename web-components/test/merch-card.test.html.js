@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { runTests } from '@web/test-runner-mocha';
 import { expect } from '@esm-bundle/chai';
+import sinon from 'sinon';
 
 import { mockLana } from './mocks/lana.js';
 import { mockFetch } from './mocks/fetch.js';
@@ -9,6 +10,7 @@ import { delay } from './utils.js';
 import { mockIms } from './mocks/ims.js';
 import { withWcs } from './mocks/wcs.js';
 import { getService } from '../src/utilities.js';
+import { MERCH_CARD_LOAD_TIMEOUT } from '../src/constants.js';
 
 const skipTests = sessionStorage.getItem('skipTests');
 
@@ -252,6 +254,31 @@ runTests(async () => {
             expect(card.iconButton.className).to.equal('icon-button');
             card.iconButton.getBoundingClientRect =
                 originalGetBoundingClientRect;
+        });
+    });
+
+    describe('checkReady load timeout', () => {
+        it('clears the load-timeout timer once the ready race settles', async () => {
+            const setSpy = sinon.spy(window, 'setTimeout');
+            const clearSpy = sinon.spy(window, 'clearTimeout');
+            const card = document.createElement('merch-card');
+            card.setAttribute('variant', 'plans');
+            try {
+                document.body.appendChild(card);
+                await card.checkReady();
+                const timeoutCall = setSpy
+                    .getCalls()
+                    .find((call) => call.args[1] === MERCH_CARD_LOAD_TIMEOUT);
+                expect(timeoutCall, 'load timeout scheduled').to.exist;
+                expect(
+                    clearSpy.calledWith(timeoutCall.returnValue),
+                    'load timeout cleared on settle',
+                ).to.be.true;
+            } finally {
+                card.remove();
+                setSpy.restore();
+                clearSpy.restore();
+            }
         });
     });
 });

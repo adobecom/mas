@@ -21,12 +21,20 @@ export class VariantLayout {
 
     insertVariantStyle() {
         const styleKey = this.constructor.name;
-        if (!VariantLayout.styleMap[styleKey]) {
-            VariantLayout.styleMap[styleKey] = true;
-            const styles = document.createElement('style');
-            styles.innerHTML = this.getGlobalCSS();
-            document.head.appendChild(styles);
-        }
+        if (VariantLayout.styleMap[styleKey]) return;
+        VariantLayout.styleMap[styleKey] = true;
+        const css = this.getGlobalCSS();
+        // DOM marker guard: the static styleMap is per bundle copy, so a page
+        // loading two bundles would otherwise inject every variant style twice.
+        // Content is compared too — minified class names can collide.
+        const existing = document.head.querySelector(
+            `style[data-mas-variant-style="${styleKey}"]`,
+        );
+        if (existing && existing.textContent === css) return;
+        const styles = document.createElement('style');
+        styles.setAttribute('data-mas-variant-style', styleKey);
+        styles.innerHTML = css;
+        document.head.appendChild(styles);
     }
 
     updateCardElementMinHeight(el, name) {
@@ -76,28 +84,49 @@ export class VariantLayout {
             row.push(card);
         }
 
+        // Clear every prop first (writes), then measure every element (reads),
+        // then apply the row maxima (writes) — layout flushes once for the
+        // whole pass instead of once per card × entry.
+        const previous = new Map();
         for (const rowCards of rows.values()) {
-            for (const { name, getElement } of entries) {
-                const prop = `--consonant-merch-card-${variant}-${name}-height`;
-                const previous = rowCards.map((card) =>
-                    card.style.getPropertyValue(prop),
-                );
-                let max = 0;
-                for (const card of rowCards) {
+            for (const card of rowCards) {
+                const saved = {};
+                for (const { name } of entries) {
+                    const prop = `--consonant-merch-card-${variant}-${name}-height`;
+                    saved[name] = card.style.getPropertyValue(prop);
                     card.style.removeProperty(prop);
+                }
+                previous.set(card, saved);
+            }
+        }
+        const measured = new Map();
+        for (const rowCards of rows.values()) {
+            for (const card of rowCards) {
+                const heights = {};
+                for (const { name, getElement } of entries) {
                     const el = getElement(card);
                     if (!el) continue;
-                    const height = Math.max(
+                    heights[name] = Math.max(
                         0,
                         parseInt(window.getComputedStyle(el).height) || 0,
                     );
+                }
+                measured.set(card, heights);
+            }
+        }
+        for (const rowCards of rows.values()) {
+            for (const { name } of entries) {
+                const prop = `--consonant-merch-card-${variant}-${name}-height`;
+                let max = 0;
+                for (const card of rowCards) {
+                    const height = measured.get(card)[name] ?? 0;
                     if (height > max) max = height;
                 }
-                rowCards.forEach((card, index) => {
+                rowCards.forEach((card) => {
                     if (max > 0) {
                         card.style.setProperty(prop, `${max}px`);
-                    } else if (previous[index]) {
-                        card.style.setProperty(prop, previous[index]);
+                    } else if (previous.get(card)[name]) {
+                        card.style.setProperty(prop, previous.get(card)[name]);
                     }
                 });
             }

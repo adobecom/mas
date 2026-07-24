@@ -9,6 +9,7 @@ import { getSettings } from '../src/settings.js';
 import priceLiteralsJson from '../price-literals.json' with { type: 'json' };
 import { equalsCaseInsensitive } from '@dexter/tacocat-core';
 import { FF_DEFAULTS } from '../src/constants.js';
+import sinon from 'sinon';
 import { mockFetch } from './mocks/fetch.js';
 import { mockLana, unmockLana } from './mocks/lana.js';
 import * as snapshots from './price/__snapshots__/price.snapshots.js';
@@ -326,6 +327,44 @@ describe('class "InlinePrice"', () => {
             await inlinePrice2.onceSettled();
             const srOnlyLabels = p.querySelectorAll('sr-only');
             expect(srOnlyLabels.length).to.equal(2);
+        });
+
+        it('keeps the previous markup while a re-render is pending', async () => {
+            await initMasCommerceService();
+            const inlinePrice = mockInlinePrice('keep1', 'abm');
+            await inlinePrice.onceSettled();
+            const before = inlinePrice.innerHTML;
+            expect(before).to.not.equal('');
+            const renderPromise = inlinePrice.render();
+            expect(
+                inlinePrice.innerHTML,
+                'markup preserved while pending',
+            ).to.equal(before);
+            await renderPromise;
+            expect(inlinePrice.innerHTML).to.not.equal('');
+        });
+
+        it('does not replace identical markup on re-render', async () => {
+            await initMasCommerceService();
+            const inlinePrice = mockInlinePrice('keep2', 'abm');
+            await inlinePrice.onceSettled();
+            const child = inlinePrice.firstElementChild;
+            expect(child).to.exist;
+            await inlinePrice.render();
+            expect(
+                inlinePrice.firstElementChild,
+                'unchanged markup keeps its nodes',
+            ).to.equal(child);
+        });
+
+        it('skips the sibling scan for lone regular prices', async () => {
+            await initMasCommerceService();
+            const inlinePrice = mockInlinePrice('keep3', 'abm');
+            const closestSpy = sinon.spy(inlinePrice, 'closest');
+            await inlinePrice.onceSettled();
+            expect(closestSpy.called, 'no sibling scan for a lone price').to.be
+                .false;
+            closestSpy.restore();
         });
     });
 

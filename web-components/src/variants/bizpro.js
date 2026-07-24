@@ -250,17 +250,27 @@ export class BizPro extends VariantLayout {
             row.push(card);
             rows.set(card.offsetTop, row);
         }
+        // Clear every published min-height first, then measure, then write —
+        // so measuring flushes layout once for the whole pass instead of once
+        // per card.
+        for (const row of rows.values()) {
+            for (const card of row) card.style.removeProperty(prop);
+        }
+        const measured = new Map();
+        for (const row of rows.values()) {
+            for (const card of row) {
+                const topCard = card.shadowRoot?.querySelector('.top-card');
+                measured.set(
+                    card,
+                    topCard
+                        ? parseInt(getComputedStyle(topCard).height) || 0
+                        : 0,
+                );
+            }
+        }
         for (const row of rows.values()) {
             let max = 0;
-            for (const card of row) {
-                card.style.removeProperty(prop);
-                const topCard = card.shadowRoot?.querySelector('.top-card');
-                if (topCard)
-                    max = Math.max(
-                        max,
-                        parseInt(getComputedStyle(topCard).height) || 0,
-                    );
-            }
+            for (const card of row) max = Math.max(max, measured.get(card));
             // A lone card has nothing to match, so it keeps its natural height.
             if (max > 0 && row.length > 1)
                 row.forEach((card) => card.style.setProperty(prop, `${max}px`));

@@ -156,6 +156,29 @@ runTests(async () => {
                 expect(cache.has('ref456')).to.false;
                 cache.clear();
             });
+
+            it('coalesces concurrent requests for the same fragment into one fetch', async () => {
+                const a = addFragment('fragment-cc-all-apps');
+                const b = addFragment('fragment-cc-all-apps');
+                await Promise.all([a.updateComplete, b.updateComplete]);
+                expect(aemMock.count).to.equal(1);
+                expect(a.data.fields).to.exist;
+                expect(b.data.fields).to.exist;
+                a.remove();
+                b.remove();
+            });
+
+            it('refetches after a failed fetch instead of reusing the rejection', async () => {
+                const failing = addFragment('notfound');
+                await oneEvent(failing, EVENT_AEM_ERROR);
+                const failedCount = aemMock.count;
+                failing.remove();
+                // the in-flight entry must clear on failure so a retry fetches
+                const retry = addFragment('notfound');
+                await oneEvent(retry, EVENT_AEM_ERROR);
+                expect(aemMock.count).to.equal(failedCount + 1);
+                retry.remove();
+            });
         });
 
         describe('aem-fragment with merch-card', () => {

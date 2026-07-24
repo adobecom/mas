@@ -117,6 +117,7 @@ export class MerchCardCollection extends LitElement {
     };
 
     #overrideMap = {};
+    #pendingResult = null;
     #service;
     #log;
 
@@ -163,11 +164,13 @@ export class MerchCardCollection extends LitElement {
         return Promise.race([this.hydrationReady, timeoutPromise]);
     }
 
-    updated(changedProperties) {
+    willUpdate(changedProperties) {
+        // Filtering/sorting is computed here — resultCount/hasMore are
+        // reactive, so assigning them inside updated() would schedule a
+        // needless second update pass.
+        this.#pendingResult = null;
         // cards are not added yet.
         if (!this.querySelector('merch-card')) return;
-        const lastScrollTop =
-            window.scrollY || document.documentElement.scrollTop;
 
         const children = [...this.children].filter(
             (child) => child.tagName === 'MERCH-CARD' && !child.failed,
@@ -197,22 +200,58 @@ export class MerchCardCollection extends LitElement {
             this.hasMore = result.length > pageSize;
             result = result.filter(([, index]) => index < pageSize);
         }
-        const reduced = new Map(result.reverse());
-        for (const card of reduced.keys()) {
-            this.prepend(card);
+        this.#pendingResult = {
+            children,
+            sortedCards: result.map(([element]) => element),
+        };
+    }
+
+    updated() {
+        if (!this.#pendingResult) return;
+        const { children, sortedCards } = this.#pendingResult;
+        this.#pendingResult = null;
+        const matched = new Set(sortedCards);
+
+        // Move cards only when the visible order actually changed, and toggle
+        // display only where it differs — an update where nothing changed then
+        // performs no DOM reads or writes at all.
+        const visibleInOrder = children.filter((child) => matched.has(child));
+        const orderChanged = sortedCards.some(
+            (card, index) => visibleInOrder[index] !== card,
+        );
+        const willToggle = children.some((child) =>
+            matched.has(child)
+                ? child.style.display === 'none'
+                : child.style.display !== 'none',
+        );
+
+        const needsScrollRestore = orderChanged || willToggle;
+        const lastScrollTop = needsScrollRestore
+            ? window.scrollY || document.documentElement.scrollTop
+            : 0;
+
+        if (orderChanged) {
+            for (let index = sortedCards.length - 1; index >= 0; index--) {
+                this.prepend(sortedCards[index]);
+            }
         }
 
         children.forEach((child) => {
-            if (reduced.has(child)) {
-                child.size = child.filters[this.filter]?.size;
-                child.style.removeProperty('display');
-                child.requestUpdate();
+            if (matched.has(child)) {
+                const size = child.filters[this.filter]?.size;
+                if (child.size !== size) child.size = size;
+                if (child.style.display === 'none') {
+                    child.style.removeProperty('display');
+                    child.requestUpdate();
+                }
             } else {
-                child.style.display = 'none';
-                child.size = undefined;
+                if (child.style.display !== 'none') {
+                    child.style.display = 'none';
+                }
+                if (child.size !== undefined) child.size = undefined;
             }
         });
-        window.scrollTo(0, lastScrollTop);
+        if (needsScrollRestore) window.scrollTo(0, lastScrollTop);
 
         this.updateComplete.then(() => {
             this.dispatchLiteralsChanged();
@@ -506,7 +545,9 @@ export class MerchCardCollection extends LitElement {
                       event.detail.fields.defaultchild
                     : null;
 
-            aemFragment.cache.add(...cards);
+            // add(fragment, references) — spreading would pass cards[1] as
+            // the references flag and cache only the first card
+            for (const card of cards) aemFragment.cache.add(card);
             const checkDefaultChild = (collections, fragmentId) => {
                 for (const collection of collections) {
                     if (collection.defaultchild === fragmentId) return true;

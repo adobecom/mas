@@ -12,6 +12,19 @@ import {
 
 const FOOTER_ROW_MIN_HEIGHT = 32; // as per the XD.
 
+// One container-wide sync per frame no matter how many cards request it.
+const pendingSyncContainers = new WeakSet();
+function requestContainerSync(container) {
+    if (!container || pendingSyncContainers.has(container)) return;
+    pendingSyncContainers.add(container);
+    requestAnimationFrame(() => {
+        pendingSyncContainers.delete(container);
+        container
+            .querySelector('merch-card[variant="mini-compare-chart"]')
+            ?.variantLayout?.syncHeights?.();
+    });
+}
+
 export const MINI_COMPARE_CHART_AEM_FRAGMENT_MAPPING = {
     cardName: { attribute: 'name' },
     title: { tag: 'h3', slot: 'heading-xs' },
@@ -98,16 +111,7 @@ export class MiniCompareChart extends VariantLayout {
             if (entry.boundingClientRect.height === 0) return;
             if (!entry.isIntersecting) return;
             if (!Media.isMobile) {
-                requestAnimationFrame(() => {
-                    const container = this.getContainer();
-                    if (!container) return;
-                    const cards = container.querySelectorAll(
-                        'merch-card[variant="mini-compare-chart"]',
-                    );
-                    cards.forEach((card) =>
-                        card.variantLayout?.syncHeights?.(),
-                    );
-                });
+                requestContainerSync(this.getContainer());
             }
             this.visibilityObserver.disconnect();
         });
@@ -198,94 +202,87 @@ export class MiniCompareChart extends VariantLayout {
         return html`<footer>${secureLabel}<slot name="footer"></slot></footer>`;
     };
 
-    adjustMiniCompareBodySlots() {
-        if (this.card.getBoundingClientRect().width <= 2) return;
+    // Reads only — returns [prop, height] candidates for the container vars,
+    // so a container pass can measure every card before writing anything.
+    measureMinHeights() {
+        const entries = [];
+        if (this.card.getBoundingClientRect().width <= 2) return entries;
 
-        this.updateCardElementMinHeight(
-            this.card.shadowRoot.querySelector('.top-section'),
-            'top-section',
-        );
-
-        const slots = [
-            'heading-m',
-            'heading-xs',
-            'subtitle',
-            'body-m',
-            'heading-m-price',
-            'body-xxs',
-            'price-commitment',
-            'quantity-select',
-            'offers',
-            'promo-text',
-            'callout-content',
-            'addon',
-        ];
-        if (this.card.classList.contains('bullet-list')) {
-            slots.push('footer-rows');
+        if (this.card.heightSync !== false) {
+            const slots = [
+                'heading-m',
+                'heading-xs',
+                'subtitle',
+                'body-m',
+                'heading-m-price',
+                'body-xxs',
+                'price-commitment',
+                'quantity-select',
+                'offers',
+                'promo-text',
+                'callout-content',
+                'addon',
+            ];
+            if (this.card.classList.contains('bullet-list')) {
+                slots.push('footer-rows');
+            }
+            const elements = [
+                ['top-section', '.top-section'],
+                ...slots.map((slot) => [slot, `slot[name="${slot}"]`]),
+                ['footer', 'footer'],
+            ];
+            for (const [name, selector] of elements) {
+                const el = this.card.shadowRoot.querySelector(selector);
+                if (!el) continue;
+                entries.push([
+                    `--consonant-merch-card-${this.card.variant}-${name}-height`,
+                    Math.max(
+                        0,
+                        parseInt(window.getComputedStyle(el).height) || 0,
+                    ),
+                ]);
+            }
         }
-
-        slots.forEach((slot) =>
-            this.updateCardElementMinHeight(
-                this.card.shadowRoot.querySelector(`slot[name="${slot}"]`),
-                slot,
-            ),
-        );
-        this.updateCardElementMinHeight(
-            this.card.shadowRoot.querySelector('footer'),
-            'footer',
-        );
 
         const badge = this.card.shadowRoot.querySelector(
             '.mini-compare-chart-badge',
         );
         if (badge?.textContent !== '') {
-            this.getContainer().style.setProperty(
+            entries.push([
                 '--consonant-merch-card-mini-compare-chart-top-section-mobile-height',
-                '32px',
-            );
+                32,
+            ]);
         }
-    }
 
-    adjustMiniCompareFooterRows() {
-        if (this.card.getBoundingClientRect().width === 0) return;
-        let rows;
+        let rows = [];
         if (this.isNewVariant) {
             const whatsIncluded = this.card.querySelector(
                 'merch-whats-included',
             );
-            if (!whatsIncluded) return;
-            rows = [
-                ...whatsIncluded.querySelectorAll(
-                    '[slot="content"] merch-mnemonic-list',
-                ),
-            ];
+            if (whatsIncluded) {
+                rows = [
+                    ...whatsIncluded.querySelectorAll(
+                        '[slot="content"] merch-mnemonic-list',
+                    ),
+                ];
+            }
         } else {
             const footerRows = this.card.querySelector(
                 '[slot="footer-rows"] ul',
             );
-            if (!footerRows || !footerRows.children) return;
-            rows = [...footerRows.children];
+            if (footerRows?.children) rows = [...footerRows.children];
         }
-        if (!rows.length) return;
-
         rows.forEach((el, index) => {
-            const height = Math.max(
-                FOOTER_ROW_MIN_HEIGHT,
-                parseFloat(window.getComputedStyle(el).height) || 0,
-            );
-            const maxMinHeight =
-                parseFloat(
-                    this.getContainer().style.getPropertyValue(
-                        this.getRowMinHeightPropertyName(index + 1),
-                    ),
-                ) || 0;
-            if (height > maxMinHeight) {
-                this.getContainer().style.setProperty(
-                    this.getRowMinHeightPropertyName(index + 1),
-                    `${height}px`,
-                );
-            }
+            entries.push([
+                this.getRowMinHeightPropertyName(index + 1),
+                Math.max(
+                    FOOTER_ROW_MIN_HEIGHT,
+                    parseFloat(window.getComputedStyle(el).height) || 0,
+                ),
+            ]);
         });
+
+        return entries;
     }
 
     removeEmptyRows() {
@@ -557,6 +554,7 @@ export class MiniCompareChart extends VariantLayout {
     }
 
     async adjustAddon() {
+        if (this.addonAdjusted) return;
         await this.card.updateComplete;
         const addon = this.card.addon;
         if (!addon) return;
@@ -568,6 +566,7 @@ export class MiniCompareChart extends VariantLayout {
         }
         if (!planType) return;
         addon.planType = planType;
+        this.addonAdjusted = true;
         const addonWithPlanType = this.card.querySelector(
             'merch-addon[plan-type]',
         );
@@ -708,10 +707,32 @@ export class MiniCompareChart extends VariantLayout {
             <slot name="footer-rows"><slot name="body-s"></slot></slot>`;
     }
 
+    // Container-wide pass: measure every sibling card first (reads), then
+    // publish the grown minima (writes) — one layout flush per pass instead of
+    // one per card × slot.
     syncHeights() {
-        if (this.card.getBoundingClientRect().width <= 2) return;
-        this.adjustMiniCompareBodySlots();
-        this.adjustMiniCompareFooterRows();
+        const container = this.getContainer();
+        if (!container) return;
+        const layouts = [
+            ...container.querySelectorAll(
+                'merch-card[variant="mini-compare-chart"]',
+            ),
+        ]
+            .map((card) => card.variantLayout)
+            .filter((layout) => layout instanceof MiniCompareChart);
+        if (!layouts.length) return;
+        const measurements = layouts.map((layout) =>
+            layout.measureMinHeights(),
+        );
+        for (const entries of measurements) {
+            for (const [prop, height] of entries) {
+                const current =
+                    parseFloat(container.style.getPropertyValue(prop)) || 0;
+                if (height > current) {
+                    container.style.setProperty(prop, `${height}px`);
+                }
+            }
+        }
     }
 
     async postCardUpdateHook() {
@@ -729,28 +750,7 @@ export class MiniCompareChart extends VariantLayout {
         }
         if (!Media.isMobile) {
             this.padFooterRows();
-
-            const container = this.getContainer();
-            if (!container) return;
-
-            const hasExistingVars = container.style.getPropertyValue(
-                '--consonant-merch-card-footer-row-1-min-height',
-            );
-
-            if (!hasExistingVars) {
-                requestAnimationFrame(() => {
-                    const cards = container.querySelectorAll(
-                        'merch-card[variant="mini-compare-chart"]',
-                    );
-                    cards.forEach((card) =>
-                        card.variantLayout?.syncHeights?.(),
-                    );
-                });
-            } else {
-                requestAnimationFrame(() => {
-                    this.syncHeights();
-                });
-            }
+            requestContainerSync(this.getContainer());
         } else if (!this.isNewVariant) {
             this.removeEmptyRows();
         }

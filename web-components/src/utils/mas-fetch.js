@@ -22,7 +22,7 @@ async function masFetch(resource, options = {}, retries = 2, baseDelay = 100) {
             lastError.retryCount = attempt;
 
             // If we've used all our retries, throw the error
-            if (attempt > retries) break;
+            if (attempt === retries) break;
 
             // Wait before retrying
             await new Promise((resolve) =>

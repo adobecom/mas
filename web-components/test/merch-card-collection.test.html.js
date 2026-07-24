@@ -1,5 +1,6 @@
 import { runTests } from '@web/test-runner-mocha';
 import { expect } from '@esm-bundle/chai';
+import sinon from 'sinon';
 
 import { mockLana } from './mocks/lana.js';
 import { mockFetch } from './mocks/fetch.js';
@@ -263,6 +264,32 @@ runTests(async () => {
             await delay(100);
             expect(showMoreButton.isConnected).to.be.false;
         });
+
+        it('skips reorder and card re-renders when nothing changed', async () => {
+            render();
+            await delay(100);
+            const prependSpy = sinon.spy(merchCards, 'prepend');
+            const card = visibleCards(0);
+            const cardUpdateSpy = sinon.spy(card, 'requestUpdate');
+            merchCards.requestUpdate();
+            await merchCards.updateComplete;
+            expect(prependSpy.called, 'no reorder when order unchanged').to.be
+                .false;
+            expect(cardUpdateSpy.called, 'no re-render of unchanged card').to.be
+                .false;
+            prependSpy.restore();
+            cardUpdateSpy.restore();
+        });
+
+        it('settles a filtering change in a single update pass', async () => {
+            render();
+            await delay(100);
+            // resultCount/hasMore are computed in willUpdate; assigning them in
+            // updated() would make this updateComplete resolve false.
+            merchCards.search = 'photoshop';
+            const settled = await merchCards.updateComplete;
+            expect(settled, 'no re-entrant update pass').to.be.true;
+        });
     });
 
     describe('merch-card-collection autoblock features', () => {
@@ -289,6 +316,33 @@ runTests(async () => {
             expect(collectionElement.getAttribute('variation-id')).to.equal(
                 'test-collection-variation-id',
             );
+        });
+
+        it('caches every card fragment from the collection payload individually', async () => {
+            const { cache } = customElements.get('aem-fragment');
+            const addSpy = sinon.spy(cache, 'add');
+            try {
+                render();
+                await collectionElement.checkReady();
+                const cards = [
+                    ...collectionElement.querySelectorAll('merch-card'),
+                ];
+                expect(cards.length).to.be.greaterThan(1);
+                // add(fragment, references) — a spread call would show up here
+                // as one call with a fragment in every argument slot
+                expect(
+                    addSpy.getCalls().some((call) => call.args.length > 2),
+                    'cards must be added one by one',
+                ).to.be.false;
+                for (const card of cards) {
+                    const fragmentId = card
+                        .querySelector('aem-fragment')
+                        .getAttribute('fragment');
+                    expect(cache.has(fragmentId), fragmentId).to.be.true;
+                }
+            } finally {
+                addSpy.restore();
+            }
         });
 
         it('should populate filters in hydration', async () => {

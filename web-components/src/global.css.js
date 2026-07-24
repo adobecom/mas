@@ -1107,4 +1107,8 @@ merch-card[border-color="spectrum-red-700-plans"] {
 }
 
 `;
-document.head.appendChild(styles);
+styles.setAttribute('data-mas-global', '');
+// DOM marker guard: a second bundle copy on the page must not re-inject
+if (!document.head.querySelector('style[data-mas-global]')) {
+    document.head.appendChild(styles);
+}

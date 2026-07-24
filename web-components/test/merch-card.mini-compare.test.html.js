@@ -122,6 +122,37 @@ runTests(async () => {
             whatsIncluded.remove();
         });
 
+        it('one card syncHeights covers the whole container', async () => {
+            const miniCompareCharts = document.querySelectorAll(
+                'merch-card[variant="mini-compare-chart"]',
+            );
+            await Promise.all(
+                Array.from(miniCompareCharts).map((card) => card.checkReady()),
+            );
+            const [first, ...rest] = miniCompareCharts;
+            const container = first.variantLayout.getContainer();
+            const prop =
+                '--consonant-merch-card-mini-compare-chart-footer-height';
+            container.style.removeProperty(prop);
+            // measureMinHeights must run for every sibling, not just the caller
+            first.variantLayout.syncHeights();
+            expect(container.style.getPropertyValue(prop)).to.not.equal('');
+            const publishedHeight = parseFloat(
+                container.style.getPropertyValue(prop),
+            );
+            const maxFooterHeight = Math.max(
+                ...[first, ...rest].map(
+                    (card) =>
+                        parseInt(
+                            window.getComputedStyle(
+                                card.shadowRoot.querySelector('footer'),
+                            ).height,
+                        ) || 0,
+                ),
+            );
+            expect(publishedHeight).to.be.at.least(maxFooterHeight);
+        });
+
         it('mini-compare-chart should return correct row min-height property name', async () => {
             const card = document.querySelector(
                 'merch-card[variant="mini-compare-chart"]',

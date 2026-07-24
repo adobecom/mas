@@ -112,6 +112,27 @@ describe('masFetch', () => {
         }
     });
 
+    it('should reject right after the final attempt without a terminal delay', async () => {
+        const networkError = new Error('Network error');
+        fetchStub.rejects(networkError);
+
+        let settledError = null;
+        const fetchPromise = masFetch('https://example.com/api', {}, 2, 100);
+        fetchPromise.catch((error) => {
+            settledError = error;
+        });
+
+        await clock.tickAsync(100); // attempt 2
+        await clock.tickAsync(200); // attempt 3 (final)
+        await clock.tickAsync(0); // drain microtasks only, no extra backoff
+
+        expect(fetchStub.callCount).to.equal(3);
+        expect(
+            settledError,
+            'rejected without waiting the terminal backoff',
+        ).to.equal(networkError);
+    });
+
     it('should not retry on successful responses', async () => {
         // Setup
         const mockResponse = new Response('success', { status: 500 }); // Even with error status code

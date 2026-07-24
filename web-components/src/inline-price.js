@@ -351,7 +351,8 @@ export class InlinePrice extends HTMLSpanElement {
         if (!options.wcsOsi.length) return false;
         try {
             const version = this.masElement.togglePending({});
-            this.innerHTML = '';
+            // Keep the current markup while pending — blanking here forces a
+            // layout shift and a repaint on every re-render.
             // Resolve all OSI promises - if any fails, Promise.all rejects
             const offerSelectorPromises =
                 service.resolveOfferSelectors(options);
@@ -457,11 +458,25 @@ export class InlinePrice extends HTMLSpanElement {
         const service = getService();
         if (!service) return false;
         version ??= this.masElement.togglePending();
+        // A sibling scan may have marked this price after its render started —
+        // fold the late marker into the options before building.
+        if (this.dataset.alternativePrice === 'true' && options) {
+            options.alternativePrice = true;
+        }
         if (offers.length) {
             if (this.masElement.toggleResolved(version, offers, options)) {
-                this.innerHTML = service.buildPriceHTML(offers, this.options);
+                const html = service.buildPriceHTML(offers, this.options);
+                if (html !== this.innerHTML) this.innerHTML = html;
 
                 // Adding logic for options.alternativePrice to add <sr-only>Alternatively at</sr-only>
+                // Only strikethrough (or already-marked) renders scan their
+                // siblings; marked siblings self-heal on their own renders via
+                // the data-alternative-price attribute collectPriceOptions reads.
+                if (
+                    this.dataset.template !== 'strikethrough' &&
+                    !this.options.alternativePrice
+                )
+                    return true;
                 const parentEl = this.closest('p, h3, div');
                 if (
                     !parentEl ||
@@ -484,17 +499,23 @@ export class InlinePrice extends HTMLSpanElement {
                 ) {
                     inlinePrices.forEach((price) => {
                         if (
-                            price.dataset.template !== 'strikethrough' &&
-                            price.options &&
-                            !price.options.alternativePrice &&
-                            !price.isFailed
-                        ) {
-                            price.options.alternativePrice = true;
-                            price.innerHTML = service.buildPriceHTML(
-                                offers,
-                                price.options,
-                            );
+                            price.dataset.template === 'strikethrough' ||
+                            price.isFailed
+                        )
+                            return;
+                        if (!price.options) {
+                            // Not rendered yet — the marker flows into its own
+                            // render via collectPriceOptions.
+                            price.dataset.alternativePrice = 'true';
+                            return;
                         }
+                        if (price.options.alternativePrice) return;
+                        price.options.alternativePrice = true;
+                        price.dataset.alternativePrice = 'true';
+                        price.innerHTML = service.buildPriceHTML(
+                            offers,
+                            price.options,
+                        );
                     });
                 }
                 return true;

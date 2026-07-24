@@ -62,6 +62,48 @@ export const PLANS_STUDENTS_AEM_FRAGMENT_MAPPING = {
     })(),
 };
 
+// One shared, passive, document-level listener pair serves every plans callout
+// tooltip on the page (refcounted via the icon set).
+const calloutIcons = new Set();
+let calloutListenersAttached = false;
+
+function handleCalloutPointer(event) {
+    const hovered = event.target.closest?.(
+        '[slot="callout-content"] .icon-button',
+    );
+    for (const icon of calloutIcons) {
+        if (icon === hovered) {
+            if (event.type === 'touchstart') {
+                icon.classList.toggle('hide-tooltip');
+            } else {
+                icon.classList.remove('hide-tooltip');
+            }
+        } else {
+            icon.classList.add('hide-tooltip');
+        }
+    }
+}
+
+function addCalloutIcon(icon) {
+    calloutIcons.add(icon);
+    if (calloutListenersAttached) return;
+    document.addEventListener('touchstart', handleCalloutPointer, {
+        passive: true,
+    });
+    document.addEventListener('mouseover', handleCalloutPointer, {
+        passive: true,
+    });
+    calloutListenersAttached = true;
+}
+
+function removeCalloutIcon(icon) {
+    if (!icon || !calloutIcons.delete(icon)) return;
+    if (calloutIcons.size || !calloutListenersAttached) return;
+    document.removeEventListener('touchstart', handleCalloutPointer);
+    document.removeEventListener('mouseover', handleCalloutPointer);
+    calloutListenersAttached = false;
+}
+
 export class Plans extends VariantLayout {
     #syncObserver;
     #resizeFrame;
@@ -150,30 +192,30 @@ export class Plans extends VariantLayout {
     }
 
     adjustCallout() {
+        if (this.calloutIcon?.isConnected) return;
         const tooltipIcon = this.card.querySelector(
             '[slot="callout-content"] .icon-button',
         );
-        if (tooltipIcon && tooltipIcon.title) {
+        if (!tooltipIcon) return;
+        // Wire icons authored with a title (as before), plus previously wired
+        // icons (hide-tooltip marker) whose layout was recreated — icons with
+        // only data-tooltip belong to merch-card's own tooltip handling.
+        if (
+            !tooltipIcon.title &&
+            !(
+                tooltipIcon.dataset.tooltip &&
+                tooltipIcon.classList.contains('hide-tooltip')
+            )
+        )
+            return;
+        if (tooltipIcon.title) {
             tooltipIcon.dataset.tooltip = tooltipIcon.title;
             tooltipIcon.removeAttribute('title');
-            tooltipIcon.classList.add('hide-tooltip');
-            document.addEventListener('touchstart', (event) => {
-                event.preventDefault();
-                if (event.target !== tooltipIcon) {
-                    tooltipIcon.classList.add('hide-tooltip');
-                } else {
-                    event.target.classList.toggle('hide-tooltip');
-                }
-            });
-            document.addEventListener('mouseover', (event) => {
-                event.preventDefault();
-                if (event.target !== tooltipIcon) {
-                    tooltipIcon.classList.add('hide-tooltip');
-                } else {
-                    event.target.classList.remove('hide-tooltip');
-                }
-            });
         }
+        tooltipIcon.classList.add('hide-tooltip');
+        removeCalloutIcon(this.calloutIcon);
+        addCalloutIcon(tooltipIcon);
+        this.calloutIcon = tooltipIcon;
     }
 
     syncHeights() {
@@ -255,8 +297,16 @@ export class Plans extends VariantLayout {
         intersectionObs.observe(this.card);
     }
 
-    async postCardUpdateHook() {
-        this.adaptForMedia();
+    async postCardUpdateHook(changedProperties) {
+        // adaptForMedia only depends on variant/size among the reactive
+        // properties; media changes re-run it via the matchMedia listeners.
+        if (
+            !changedProperties ||
+            changedProperties.has('variant') ||
+            changedProperties.has('size')
+        ) {
+            this.adaptForMedia();
+        }
         this.adjustAddon();
         this.adjustCallout();
         if (!this.legalAdjusted) {
@@ -265,7 +315,8 @@ export class Plans extends VariantLayout {
         }
         await super.postCardUpdateHook();
         if (window.matchMedia('(min-width: 768px)').matches) {
-            if (this.card === this.card.parentElement.firstElementChild) {
+            // parentElement is null when the card was detached mid-await
+            if (this.card === this.card.parentElement?.firstElementChild) {
                 requestAnimationFrame(() => {
                     this.syncHeights();
                 });
@@ -322,6 +373,7 @@ export class Plans extends VariantLayout {
     }
 
     async adjustAddon() {
+        if (this.addonAdjusted) return;
         await this.card.updateComplete;
         const addon = this.card.addon;
         if (!addon) return;
@@ -332,6 +384,7 @@ export class Plans extends VariantLayout {
         const planType = price.value?.[0]?.planType;
         if (!planType) return;
         addon.planType = planType;
+        this.addonAdjusted = true;
     }
 
     get stockCheckbox() {
@@ -374,6 +427,8 @@ export class Plans extends VariantLayout {
             'change',
             this.adaptForMedia,
         );
+        removeCalloutIcon(this.calloutIcon);
+        this.calloutIcon = null;
         this.#syncObserver?.disconnect();
         this.#syncObserver = null;
         if (this.#resizeFrame) {

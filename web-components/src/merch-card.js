@@ -773,15 +773,20 @@ export class MerchCard extends LitElement {
             await this.variantLayoutPromise;
             this.variantLayoutPromise = undefined;
         }
-        const timeoutPromise = new Promise((resolve) =>
-            setTimeout(() => resolve('timeout'), MERCH_CARD_LOAD_TIMEOUT),
-        );
+        let timeoutId;
+        const timeoutPromise = new Promise((resolve) => {
+            timeoutId = setTimeout(
+                () => resolve('timeout'),
+                MERCH_CARD_LOAD_TIMEOUT,
+            );
+        });
         if (this.aemFragment) {
             const result = await Promise.race([
                 this.aemFragment.updateComplete,
                 timeoutPromise,
             ]);
             if (result === false || result === 'timeout') {
+                clearTimeout(timeoutId);
                 const errorMessage =
                     result === 'timeout'
                         ? `AEM fragment was not resolved within ${MERCH_CARD_LOAD_TIMEOUT} timeout`
@@ -807,6 +812,7 @@ export class MerchCard extends LitElement {
             );
         });
         const result = await Promise.race([successPromise, timeoutPromise]);
+        clearTimeout(timeoutId);
 
         if (!this.isConnected) return;
 

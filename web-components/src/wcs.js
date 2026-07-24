@@ -87,12 +87,6 @@ export function Wcs({ settings }) {
      */
     const cache = new Map();
     /**
-     * Queue of pending requests to Wcs grouped by locale and promo.
-     * @type {Map<string, { options: Options, promises: WcsPromises }>}
-     */
-    const queue = new Map();
-    let timer;
-    /**
      * Stale cache to keep items in for fallback
      * @type {Map<string, Promise<Offer[]>>}
      */
@@ -213,20 +207,6 @@ export function Wcs({ settings }) {
         }
     }
 
-    /**
-     * Trigger resolution of all accumulated promises by requesting their associated OSIs.
-     * Clears the timer and processes all pending requests in the queue.
-     * @returns {void}
-     */
-    function flushQueue() {
-        clearTimeout(timer);
-        const pending = [...queue.values()];
-        queue.clear();
-        pending.forEach(({ options, promises }) =>
-            resolveWcsOffers(options, promises),
-        );
-    }
-
     function prefillWcsCache(preloadedCache) {
         if (!preloadedCache || typeof preloadedCache !== 'object') {
             throw new TypeError('Cache must be a Map or similar object');
@@ -312,29 +292,21 @@ export function Wcs({ settings }) {
                 return cache.get(cacheKey);
             }
             const promiseWithFallback = new Promise((resolve, reject) => {
-                let group = queue.get(groupKey);
-                if (!group) {
-                    const options = {
-                        country: validCountry,
-                        locale,
-                        ...(validLanguage === 'MULT' && {
-                            language: validLanguage,
-                        }),
-                        offerSelectorIds: [],
-                    };
-                    const promises = new Map();
-                    group = { options, promises };
-                    queue.set(groupKey, group);
-                }
+                const options = {
+                    country: validCountry,
+                    locale,
+                    ...(validLanguage === 'MULT' && {
+                        language: validLanguage,
+                    }),
+                    offerSelectorIds: [osi],
+                };
                 if (promotionCode) {
-                    group.options.promotionCode = promotionCode;
+                    options.promotionCode = promotionCode;
                 }
-                group.options.offerSelectorIds.push(osi);
-                group.promises.set(osi, {
-                    resolve,
-                    reject,
-                });
-                flushQueue();
+                resolveWcsOffers(
+                    options,
+                    new Map([[osi, { resolve, reject }]]),
+                );
             }).catch((error) => {
                 if (staleCache.has(cacheKey)) {
                     return staleCache.get(cacheKey);

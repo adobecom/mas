@@ -26,11 +26,32 @@ class FragmentCache {
     #fragmentCache = new Map();
     #fetchInfos = new Map();
     #promises = new Map();
+    #inflight = new Map();
 
     clear() {
         this.#fragmentCache.clear();
         this.#fetchInfos.clear();
         this.#promises.clear();
+        this.#inflight.clear();
+    }
+
+    getInflight(key) {
+        return this.#inflight.get(key);
+    }
+
+    /**
+     * Tracks an in-flight fetch so concurrent same-key requests coalesce onto
+     * it; the entry clears on settle so a failed fetch can be retried.
+     */
+    setInflight(key, promise) {
+        this.#inflight.set(key, promise);
+        promise
+            .catch(() => {})
+            .finally(() => {
+                if (this.#inflight.get(key) === promise) {
+                    this.#inflight.delete(key);
+                }
+            });
     }
 
     /**
@@ -140,6 +161,7 @@ class FragmentCache {
         this.#fragmentCache.delete(fragmentId);
         this.#fetchInfos.delete(fragmentId);
         this.#promises.delete(fragmentId);
+        this.#inflight.delete(fragmentId);
     }
 }
 
@@ -375,33 +397,43 @@ export class AemFragment extends HTMLElement {
     async #fetchData() {
         this.classList.remove('error');
         this.#data = null;
-        let fragment = cache.get(this.cacheKey());
+        const fragment = cache.get(this.cacheKey());
         if (fragment) {
             this.#rawData = fragment;
             return true;
         }
-        const { masIOUrl, wcsApiKey, country, locale } = this.#service.settings;
-        let endpoint = `${masIOUrl}/fragment?id=${this.#fragmentId}&api_key=${wcsApiKey}&locale=${locale}`;
-        if (country && !locale.endsWith(`_${country}`)) {
-            endpoint += `&country=${country}`;
-        }
+        const cacheKey = this.cacheKey();
+        // Coalesce concurrent requests for the same fragment: the first
+        // element fetches, the rest await the same in-flight promise.
+        let promise = cache.getInflight(cacheKey);
+        if (!promise) {
+            const { masIOUrl, wcsApiKey, country, locale } =
+                this.#service.settings;
+            let endpoint = `${masIOUrl}/fragment?id=${this.#fragmentId}&api_key=${wcsApiKey}&locale=${locale}`;
+            if (country && !locale.endsWith(`_${country}`)) {
+                endpoint += `&country=${country}`;
+            }
 
-        if (this.#mask) {
-            endpoint += `&mask=${this.#mask}`;
-        }
+            if (this.#mask) {
+                endpoint += `&mask=${this.#mask}`;
+            }
 
-        if (this.#pzn) {
-            endpoint += `&pzn=${this.#pzn}`;
-        }
+            if (this.#pzn) {
+                endpoint += `&pzn=${this.#pzn}`;
+            }
 
-        fragment = await this.#getFragment(endpoint);
-        fragment.fields.originalId ??= this.#fragmentId;
-        if (this.#mask || this.#pzn) {
-            cache.set(this.cacheKey(), fragment);
-        } else {
-            cache.add(fragment);
+            promise = this.#getFragment(endpoint).then((data) => {
+                data.fields.originalId ??= this.#fragmentId;
+                if (this.#mask || this.#pzn) {
+                    cache.set(cacheKey, data);
+                } else {
+                    cache.add(data);
+                }
+                return data;
+            });
+            cache.setInflight(cacheKey, promise);
         }
-        this.#rawData = fragment;
+        this.#rawData = await promise;
         return true;
     }
 

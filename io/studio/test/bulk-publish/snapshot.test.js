@@ -954,6 +954,34 @@ describe('bulk-publish/snapshot.js', () => {
             expect(results.failures[0].error).to.match(/Fragment not found at path/);
         });
 
+        it('records failure when getFragmentByPath throws (e.g. 500 network error)', async () => {
+            fetchOdinStub.callsFake((endpoint, uri) => {
+                if (uri.includes('/adobe/sites/cf/fragments?path=')) {
+                    throw new Error('Service Unavailable');
+                }
+                return fetchResponse({});
+            });
+
+            const results = await snapshot.recordSnapshot({ paths: ['/content/dam/a'], odinEndpoint, authToken });
+            expect(results.entries).to.have.length(0);
+            expect(results.failures).to.have.length(1);
+            expect(results.failures[0].error).to.equal('Service Unavailable');
+        });
+
+        it('records failure when findNonTranslationVersion throws (e.g. 500 network error)', async () => {
+            fetchOdinStub.callsFake((endpoint, uri) => {
+                if (uri.includes('/adobe/sites/cf/fragments?path='))
+                    return fetchResponse({ items: [{ id: 'frag-1', path: '/content/dam/a', status: 'PUBLISHED' }] });
+                if (uri.includes('/versions')) throw new Error('Internal Server Error');
+                return fetchResponse({});
+            });
+
+            const results = await snapshot.recordSnapshot({ paths: ['/content/dam/a'], odinEndpoint, authToken });
+            expect(results.entries).to.have.length(0);
+            expect(results.failures).to.have.length(1);
+            expect(results.failures[0].error).to.equal('Internal Server Error');
+        });
+
         it('records failure when no non-translation version exists', async () => {
             fetchOdinStub.callsFake((endpoint, uri) => {
                 if (uri.includes('/adobe/sites/cf/fragments?path=')) {

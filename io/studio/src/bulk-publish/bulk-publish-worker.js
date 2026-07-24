@@ -106,6 +106,7 @@ async function runWorker(input, deps = {}) {
 
     let snapshotEntries;
     let expandedPaths = null;
+    let snapshotError = '';
     if (hasPendingSnapshot(existingSnapshots)) {
         snapshotEntries = existingSnapshots;
         expandedPaths = existingSnapshots.map((e) => JSON.parse(e).path);
@@ -131,12 +132,12 @@ async function runWorker(input, deps = {}) {
             includeVariations,
         });
         expandedPaths = snapExpanded;
-        const recordError =
+        snapshotError =
             recordFailures.length > 0 ? `SAVE_SNAPSHOT:\n${recordFailures.map((f) => `${f.path}: ${f.error}`).join('\n')}` : '';
         await updateProject(odinEndpoint, projectId, authToken, {
             status: PROJECT_STATUS.PUBLISHING,
             snapshots: addPendingMarker(snapshotEntries),
-            lastError: recordError,
+            lastError: snapshotError,
         });
     }
 
@@ -157,7 +158,7 @@ async function runWorker(input, deps = {}) {
             publishedAt: result.finishedAt,
             publishedBy,
             lastResult: JSON.stringify(result),
-            lastError: '',
+            lastError: snapshotError,
         });
     } catch (error) {
         throw Object.assign(error, { publishSucceeded: true, result, finalSnapshots, publishedBy });

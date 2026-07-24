@@ -1,0 +1,39 @@
+# ---------------------------------------------------------------------------
+# promo-by-surface
+# ---------------------------------------------------------------------------
+# Source of the Odin persisted query deployed as `mas/promo-by-surface`.
+# Committed here so changes to the deployed query are tracked in PRs — this
+# file is NOT imported by the runtime; it documents the server-side query.
+#
+# Invoked (GET) by io/www/src/fragment/utils/paths.js -> promoBySurfaceUrl(),
+# with the surface passed as a matrix parameter:
+#   {origin}/graphql/execute.json/mas/promo-by-surface;surface=<surface>
+#   origin = https://odin.adobe.com              (published requests)
+#          | https://odinpreview.corp.adobe.com  (preview requests)
+# e.g. https://odin.adobe.com/graphql/execute.json/mas/promo-by-surface;surface=acom
+#
+# SHALLOW BY DESIGN: returns only the fields needed to *qualify* an active
+# project for a request (surface / geo / date window / promo tag). The heavy
+# per-project data (offers, promoCode, referenced fragments, variations) is
+# hydrated separately, by id, in promotions.js -> hydrateProject(). Keeping
+# this list lean minimizes the payload of the initial surface-wide fetch.
+#
+# Consumed by promotions.js -> fetchProjects(): each item maps to
+#   { id, path: _path, name: <last path segment>, surfaces, geos, startDate, endDate, tags }
+# The Odin fragment id is NOT returned here — it is derived from `_path` (base64url) via
+# paths.js -> odinIdFromPath() and passed to odinReferences(id) during hydration. Keeping it
+# out of the payload is intentional (nothing here needs to be heavier than qualification data).
+# ---------------------------------------------------------------------------
+
+query promoBySurface($surface: String!) {
+    promotionProjectList(filter: { surfaces: { _expressions: [{ value: $surface, _operator: EQUALS }] } }) {
+        items {
+            _path
+            startDate
+            endDate
+            surfaces
+            tags
+            geos
+        }
+    }
+}

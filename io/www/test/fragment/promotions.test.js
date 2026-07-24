@@ -2,9 +2,10 @@ import { expect } from 'chai';
 import sinon from 'sinon';
 import { transformer as promotionsTransformer, clearPromoCache } from '../../src/fragment/transformers/promotions.js';
 import { createResponse } from './mocks/MockFetch.js';
+import { odinIdFromPath } from '../../src/fragment/utils/paths.js';
 
-const FOLDER_URL = 'https://odin.adobe.com/adobe/contentFragments/?path=/content/dam/mas/promotions&limit=50';
-const hydrateUrl = (id) => `https://odin.adobe.com/adobe/contentFragments/${id}?references=all-hydrated`;
+const PROMO_QUERY_URL = 'https://odin.adobe.com/graphql/execute.json/mas/promo-by-surface;surface=acom';
+const hydrateUrl = (path) => `https://odin.adobe.com/adobe/contentFragments/${odinIdFromPath(path)}?references=all-hydrated`;
 
 const START = '2020-01-01T00:00:00Z';
 const END = '2099-12-31T23:59:59Z';
@@ -37,16 +38,19 @@ function createContext(overrides = {}) {
 
 const PROMO_TAG = 'mas:promotion/black-friday';
 
+// Wraps shallow project items in the promo-by-surface persisted-query response envelope.
+const promoBody = (items) => ({ data: { promotionProjectList: { items } } });
+
 function makeProject({
     id = 'proj-1',
-    path = '/content/dam/mas/promotions/black-friday',
     surfaces = ['acom'],
     geos = [],
     startDate = START,
     endDate = END,
     tags = [PROMO_TAG],
 } = {}) {
-    return { id, path, fields: { surfaces, geos, startDate, endDate, tags } };
+    // Tests use `id` as the fragment path; the transformer derives the Odin id from it (base64url).
+    return { _path: id, surfaces, geos, startDate, endDate, tags };
 }
 
 function makeHydratedProject({
@@ -81,7 +85,7 @@ function installLocalStorageShim() {
     return storage;
 }
 
-export { makeProject, makeHydratedProject, FOLDER_URL, hydrateUrl, DEFAULT_LANG_PROMISE };
+export { makeProject, makeHydratedProject, PROMO_QUERY_URL, promoBody, hydrateUrl, DEFAULT_LANG_PROMISE };
 
 describe('promotions', () => {
     describe('init', () => {
@@ -97,34 +101,34 @@ describe('promotions', () => {
         });
 
         it('returns no active projects when folder fetch fails', async () => {
-            fetchStub.withArgs(FOLDER_URL).returns(createResponse(404, null, 'Not Found'));
+            fetchStub.withArgs(PROMO_QUERY_URL).returns(createResponse(404, null, 'Not Found'));
             const result = await promotionsTransformer.init(createContext());
             expect(result).to.deep.equal({ status: 200, activeProjects: [] });
         });
 
         it('returns no active projects when folder is empty', async () => {
-            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [] }));
+            fetchStub.withArgs(PROMO_QUERY_URL).returns(createResponse(200, promoBody([])));
             const result = await promotionsTransformer.init(createContext());
             expect(result).to.deep.equal({ status: 200, activeProjects: [] });
         });
 
         it('returns no active projects when project has no promotion tag', async () => {
             const project = makeProject({ tags: ['some-other-tag'] });
-            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+            fetchStub.withArgs(PROMO_QUERY_URL).returns(createResponse(200, promoBody([project])));
             const result = await promotionsTransformer.init(createContext());
             expect(result).to.deep.equal({ status: 200, activeProjects: [] });
         });
 
         it('returns no active projects when no project matches surface', async () => {
             const project = makeProject({ surfaces: ['express'] });
-            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+            fetchStub.withArgs(PROMO_QUERY_URL).returns(createResponse(200, promoBody([project])));
             const result = await promotionsTransformer.init(createContext({ surface: 'acom' }));
             expect(result).to.deep.equal({ status: 200, activeProjects: [] });
         });
 
         it('returns no active projects when project end date has passed', async () => {
             const project = makeProject({ surfaces: ['acom'], endDate: EXPIRED_END });
-            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+            fetchStub.withArgs(PROMO_QUERY_URL).returns(createResponse(200, promoBody([project])));
             const result = await promotionsTransformer.init(createContext());
             expect(result).to.deep.equal({ status: 200, activeProjects: [] });
         });
@@ -136,14 +140,14 @@ describe('promotions', () => {
                 startDate: '2099-01-01T00:00:00Z',
                 endDate: '2099-12-31T00:00:00Z',
             });
-            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+            fetchStub.withArgs(PROMO_QUERY_URL).returns(createResponse(200, promoBody([project])));
             const result = await promotionsTransformer.init(createContext());
             expect(result).to.deep.equal({ status: 200, activeProjects: [] });
         });
 
         it('returns no active projects when geo does not match', async () => {
             const project = makeProject({ surfaces: ['acom'], geos: ['/content/cq:tags/mas/locale/fr_FR'] });
-            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+            fetchStub.withArgs(PROMO_QUERY_URL).returns(createResponse(200, promoBody([project])));
             const result = await promotionsTransformer.init(createContext({ regionLocale: 'en_US' }));
             expect(result).to.deep.equal({ status: 200, activeProjects: [] });
         });
@@ -151,13 +155,13 @@ describe('promotions', () => {
         it('selects active project matching surface, geo and date range', async () => {
             const project = makeProject({ id: 'proj-1', surfaces: ['acom'], geos: ['/content/cq:tags/mas/locale/en_US'] });
             const hydrated = makeHydratedProject({ promoCode: 'SAVE20' });
-            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+            fetchStub.withArgs(PROMO_QUERY_URL).returns(createResponse(200, promoBody([project])));
             fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
 
             const result = await promotionsTransformer.init(createContext({ regionLocale: 'en_US' }));
             expect(result.status).to.equal(200);
             expect(result.activeProjects).to.have.length(1);
-            expect(result.activeProjects[0].id).to.equal('proj-1');
+            expect(result.activeProjects[0].path).to.equal('proj-1');
             expect(result.activeProjects[0].fragmentPaths).to.have.length(1);
             expect(result.activeProjects[0].promoCode).to.equal('SAVE20');
         });
@@ -165,7 +169,7 @@ describe('promotions', () => {
         it('carries the project title through hydration', async () => {
             const project = makeProject({ id: 'proj-1', surfaces: ['acom'], geos: ['/content/cq:tags/mas/locale/en_US'] });
             const hydrated = makeHydratedProject({ title: 'Summer Sale 2026' });
-            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+            fetchStub.withArgs(PROMO_QUERY_URL).returns(createResponse(200, promoBody([project])));
             fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
 
             const result = await promotionsTransformer.init(createContext({ regionLocale: 'en_US' }));
@@ -174,7 +178,7 @@ describe('promotions', () => {
 
         it('ignores instant when not in preview mode', async () => {
             const project = makeProject({ surfaces: ['acom'], geos: [], startDate: START, endDate: EXPIRED_END });
-            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+            fetchStub.withArgs(PROMO_QUERY_URL).returns(createResponse(200, promoBody([project])));
 
             // EXPIRED_END is in the past — without preview, instant is ignored and Date.now() is used
             const result = await promotionsTransformer.init(createContext({ instant: PREVIEW_INSTANT }));
@@ -184,7 +188,7 @@ describe('promotions', () => {
         it('matches project by country when locale does not match geos', async () => {
             const project = makeProject({ surfaces: ['acom'], geos: ['/content/cq:tags/mas/country/CH'] });
             const hydrated = makeHydratedProject();
-            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+            fetchStub.withArgs(PROMO_QUERY_URL).returns(createResponse(200, promoBody([project])));
             fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
 
             const result = await promotionsTransformer.init(createContext({ locale: 'fr_FR', country: 'CH' }));
@@ -194,7 +198,7 @@ describe('promotions', () => {
         it('matches project by regionLocale resolved from defaultLanguage promise', async () => {
             const project = makeProject({ surfaces: ['acom'], geos: ['/content/cq:tags/mas/locale/fr_CH'] });
             const hydrated = makeHydratedProject();
-            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+            fetchStub.withArgs(PROMO_QUERY_URL).returns(createResponse(200, promoBody([project])));
             fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
 
             // regionLocale must come from the defaultLanguage promise, not the init-phase context
@@ -218,7 +222,7 @@ describe('promotions', () => {
         it('applies en_GR project when locale=en_US and country=GR (regionLocale resolved by defaultLanguage)', async () => {
             const project = makeProject({ surfaces: ['acom'], geos: ['/content/cq:tags/mas/locale/en_GR'] });
             const hydrated = makeHydratedProject();
-            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+            fetchStub.withArgs(PROMO_QUERY_URL).returns(createResponse(200, promoBody([project])));
             fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
 
             const result = await promotionsTransformer.init(
@@ -240,7 +244,7 @@ describe('promotions', () => {
 
         it('does not apply en_US project when locale=en_US and country=GR', async () => {
             const project = makeProject({ surfaces: ['acom'], geos: ['/content/cq:tags/mas/locale/en_US'] });
-            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+            fetchStub.withArgs(PROMO_QUERY_URL).returns(createResponse(200, promoBody([project])));
 
             const result = await promotionsTransformer.init(
                 createContext({
@@ -276,13 +280,13 @@ describe('promotions', () => {
             });
             const hydrated1 = makeHydratedProject({ fragmentId: 'f1', fragmentPath: '/content/dam/mas/acom/en_US/offers/a' });
             const hydrated2 = makeHydratedProject({ fragmentId: 'f2', fragmentPath: '/content/dam/mas/acom/en_US/offers/b' });
-            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [p1, p2] }));
+            fetchStub.withArgs(PROMO_QUERY_URL).returns(createResponse(200, promoBody([p1, p2])));
             fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated1));
             fetchStub.withArgs(hydrateUrl('proj-2')).returns(createResponse(200, hydrated2));
 
             const result = await promotionsTransformer.init(createContext({ regionLocale: 'en_US' }));
             expect(result.activeProjects).to.have.length(2);
-            expect(result.activeProjects.map((p) => p.id)).to.deep.equal(['proj-1', 'proj-2']);
+            expect(result.activeProjects.map((p) => p.path)).to.deep.equal(['proj-1', 'proj-2']);
             expect(result.activeProjects[0].fragmentPaths).to.deep.equal(['offers/a']);
             expect(result.activeProjects[1].fragmentPaths).to.deep.equal(['offers/b']);
         });
@@ -302,13 +306,13 @@ describe('promotions', () => {
                 tags: ['mas:promotion/p2'],
             });
             const hydrated2 = makeHydratedProject({ fragmentId: 'f2', fragmentPath: '/content/dam/mas/acom/en_US/offers/b' });
-            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [p1, p2] }));
+            fetchStub.withArgs(PROMO_QUERY_URL).returns(createResponse(200, promoBody([p1, p2])));
             fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(500, null, 'Error'));
             fetchStub.withArgs(hydrateUrl('proj-2')).returns(createResponse(200, hydrated2));
 
             const result = await promotionsTransformer.init(createContext({ regionLocale: 'en_US' }));
             expect(result.activeProjects).to.have.length(1);
-            expect(result.activeProjects[0].id).to.equal('proj-2');
+            expect(result.activeProjects[0].path).to.equal('proj-2');
         });
 
         it('isolates a project whose hydration throws and still serves the others (allSettled)', async () => {
@@ -324,33 +328,33 @@ describe('promotions', () => {
             // proj-1 hydrate is 200 but malformed (fragments is not an array) → parseFragmentPaths throws,
             // so its hydrateProject promise rejects. allSettled keeps proj-2 served.
             const malformed = { fields: { fragments: 'not-an-array' } };
-            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [p1, p2] }));
+            fetchStub.withArgs(PROMO_QUERY_URL).returns(createResponse(200, promoBody([p1, p2])));
             fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, malformed));
             fetchStub.withArgs(hydrateUrl('proj-2')).returns(createResponse(200, good));
 
             const result = await promotionsTransformer.init(createContext());
             expect(result.activeProjects).to.have.length(1);
-            expect(result.activeProjects[0].id).to.equal('proj-2');
+            expect(result.activeProjects[0].path).to.equal('proj-2');
         });
 
         it('returns no active projects when hydration fails', async () => {
             const project = makeProject({ surfaces: ['acom'], geos: ['/content/cq:tags/mas/locale/en_US'] });
-            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+            fetchStub.withArgs(PROMO_QUERY_URL).returns(createResponse(200, promoBody([project])));
             fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(500, null, 'Error'));
 
             const result = await promotionsTransformer.init(createContext({ regionLocale: 'en_US' }));
             expect(result).to.deep.equal({ status: 200, activeProjects: [] });
         });
 
-        it('handles folder response without items field', async () => {
-            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, {}));
+        it('handles response without a promotionProjectList', async () => {
+            fetchStub.withArgs(PROMO_QUERY_URL).returns(createResponse(200, {}));
             const result = await promotionsTransformer.init(createContext());
             expect(result).to.deep.equal({ status: 200, activeProjects: [] });
         });
 
         it('handles project items with missing fields', async () => {
             // Project with no fields — should not match any surface
-            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [{ id: 'proj-no-fields' }] }));
+            fetchStub.withArgs(PROMO_QUERY_URL).returns(createResponse(200, promoBody([{ id: 'proj-no-fields' }])));
             const result = await promotionsTransformer.init(createContext());
             expect(result).to.deep.equal({ status: 200, activeProjects: [] });
         });
@@ -364,7 +368,7 @@ describe('promotions', () => {
                 endDate: '2099-12-31T00:00:00Z',
             });
             const hydrated = makeHydratedProject();
-            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+            fetchStub.withArgs(PROMO_QUERY_URL).returns(createResponse(200, promoBody([project])));
             fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
 
             const ctx = createContext();
@@ -376,7 +380,7 @@ describe('promotions', () => {
         it('handles project with null startDate and endDate', async () => {
             const project = makeProject({ surfaces: ['acom'], geos: [], startDate: null, endDate: null });
             const hydrated = makeHydratedProject();
-            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+            fetchStub.withArgs(PROMO_QUERY_URL).returns(createResponse(200, promoBody([project])));
             fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
 
             const result = await promotionsTransformer.init(createContext());
@@ -403,7 +407,7 @@ describe('promotions', () => {
                 },
             };
             const project = makeProject({ surfaces: ['acom'], geos: [] });
-            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+            fetchStub.withArgs(PROMO_QUERY_URL).returns(createResponse(200, promoBody([project])));
             fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
 
             const result = await promotionsTransformer.init(createContext());
@@ -416,7 +420,7 @@ describe('promotions', () => {
         it('returns no active projects when hydrated project has no fragments', async () => {
             const hydrated = { fields: {}, references: {} };
             const project = makeProject({ surfaces: ['acom'], geos: [] });
-            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+            fetchStub.withArgs(PROMO_QUERY_URL).returns(createResponse(200, promoBody([project])));
             fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
 
             const result = await promotionsTransformer.init(createContext());
@@ -426,7 +430,7 @@ describe('promotions', () => {
         it('returns no active projects when hydrated project has empty fragments list', async () => {
             const hydrated = { fields: { fragments: [] } };
             const project = makeProject({ surfaces: ['acom'], geos: [] });
-            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+            fetchStub.withArgs(PROMO_QUERY_URL).returns(createResponse(200, promoBody([project])));
             fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
 
             const result = await promotionsTransformer.init(createContext());
@@ -436,19 +440,35 @@ describe('promotions', () => {
         it('uses cache on second call without re-fetching folder', async () => {
             const project = makeProject({ surfaces: ['acom'], geos: ['/content/cq:tags/mas/locale/en_US'] });
             const hydrated = makeHydratedProject();
-            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+            fetchStub.withArgs(PROMO_QUERY_URL).returns(createResponse(200, promoBody([project])));
             fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
 
             await promotionsTransformer.init(createContext({ regionLocale: 'en_US' }));
             await promotionsTransformer.init(createContext({ regionLocale: 'en_US' }));
 
-            expect(fetchStub.withArgs(FOLDER_URL).callCount).to.equal(1);
+            expect(fetchStub.withArgs(PROMO_QUERY_URL).callCount).to.equal(1);
+        });
+
+        it('caches projects per surface', async () => {
+            const EXPRESS_QUERY_URL = 'https://odin.adobe.com/graphql/execute.json/mas/promo-by-surface;surface=express';
+            const acom = makeProject({ id: 'proj-1', surfaces: ['acom'], geos: [] });
+            const express = makeProject({ id: 'proj-2', surfaces: ['express'], geos: [] });
+            fetchStub.withArgs(PROMO_QUERY_URL).returns(createResponse(200, promoBody([acom])));
+            fetchStub.withArgs(EXPRESS_QUERY_URL).returns(createResponse(200, promoBody([express])));
+            fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, makeHydratedProject()));
+            fetchStub.withArgs(hydrateUrl('proj-2')).returns(createResponse(200, makeHydratedProject()));
+
+            await promotionsTransformer.init(createContext());
+            await promotionsTransformer.init(createContext({ surface: 'express' }));
+
+            expect(fetchStub.withArgs(PROMO_QUERY_URL).callCount).to.equal(1);
+            expect(fetchStub.withArgs(EXPRESS_QUERY_URL).callCount).to.equal(1);
         });
 
         it('falls back to locale when defaultLanguage resolves without regionLocale', async () => {
             const project = makeProject({ surfaces: ['acom'], geos: [] });
             const hydrated = makeHydratedProject();
-            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+            fetchStub.withArgs(PROMO_QUERY_URL).returns(createResponse(200, promoBody([project])));
             fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
 
             const result = await promotionsTransformer.init(
@@ -464,7 +484,7 @@ describe('promotions', () => {
         it('returns no active projects when defaultLanguage resolves without defaultLocale', async () => {
             const project = makeProject({ surfaces: ['acom'], geos: [] });
             const hydrated = makeHydratedProject();
-            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+            fetchStub.withArgs(PROMO_QUERY_URL).returns(createResponse(200, promoBody([project])));
             fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
 
             const result = await promotionsTransformer.init(
@@ -476,7 +496,7 @@ describe('promotions', () => {
         it('handles variation folder response with missing items field', async () => {
             const project = makeProject({ surfaces: ['acom'], geos: [] });
             const hydrated = makeHydratedProject();
-            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+            fetchStub.withArgs(PROMO_QUERY_URL).returns(createResponse(200, promoBody([project])));
             fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
 
             // Variation folder returns 200 but no items field
@@ -489,38 +509,10 @@ describe('promotions', () => {
             expect(result.activeProjects[0].defaultVariations).to.deep.equal({});
         });
 
-        it('fetches all pages when cursor is present in folder response', async () => {
-            const p1 = makeProject({ id: 'proj-1', surfaces: ['express'] });
-            const p2 = makeProject({ id: 'proj-2', surfaces: ['acom'], geos: [] });
-            const hydrated = makeHydratedProject();
-            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [p1], cursor: 'page2' }));
-            fetchStub.withArgs(`${FOLDER_URL}&cursor=page2`).returns(createResponse(200, { items: [p2] }));
-            fetchStub.withArgs(hydrateUrl('proj-2')).returns(createResponse(200, hydrated));
-
-            const result = await promotionsTransformer.init(createContext());
-            expect(result.activeProjects).to.have.length(1);
-            expect(result.activeProjects[0].id).to.equal('proj-2');
-        });
-
-        it('finds matching project when it is the 51st item (beyond the old default limit)', async () => {
-            const nonMatching = Array.from({ length: 50 }, (_, i) =>
-                makeProject({ id: `proj-${i + 1}`, surfaces: ['express'] }),
-            );
-            const matching = makeProject({ id: 'proj-51', surfaces: ['acom'], geos: [] });
-            const hydrated = makeHydratedProject();
-            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: nonMatching, cursor: 'page2' }));
-            fetchStub.withArgs(`${FOLDER_URL}&cursor=page2`).returns(createResponse(200, { items: [matching] }));
-            fetchStub.withArgs(hydrateUrl('proj-51')).returns(createResponse(200, hydrated));
-
-            const result = await promotionsTransformer.init(createContext());
-            expect(result.activeProjects).to.have.length(1);
-            expect(result.activeProjects[0].id).to.equal('proj-51');
-        });
-
         it('fetches all variation pages when cursor is present', async () => {
             const project = makeProject({ surfaces: ['acom'], geos: [] });
             const hydrated = makeHydratedProject();
-            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+            fetchStub.withArgs(PROMO_QUERY_URL).returns(createResponse(200, promoBody([project])));
             fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
 
             const varBase =
@@ -537,7 +529,7 @@ describe('promotions', () => {
         it('keeps partial variation results when a later page fetch fails', async () => {
             const project = makeProject({ surfaces: ['acom'], geos: [] });
             const hydrated = makeHydratedProject();
-            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+            fetchStub.withArgs(PROMO_QUERY_URL).returns(createResponse(200, promoBody([project])));
             fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
 
             const varBase =
@@ -579,15 +571,15 @@ describe('promotions', () => {
                 fragmentPath: '/content/dam/mas/acom/en_US/offers/seasonal-offer',
             });
             // Folder returns evergreen first (higher folder position), seasonal second
-            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [evergreen, seasonal] }));
+            fetchStub.withArgs(PROMO_QUERY_URL).returns(createResponse(200, promoBody([evergreen, seasonal])));
             fetchStub.withArgs(hydrateUrl('proj-evergreen')).returns(createResponse(200, hydratedEvergreen));
             fetchStub.withArgs(hydrateUrl('proj-seasonal')).returns(createResponse(200, hydratedSeasonal));
 
             const result = await promotionsTransformer.init(createContext());
             expect(result.activeProjects).to.have.length(2);
             // Seasonal must come first despite being second in folder order
-            expect(result.activeProjects[0].id).to.equal('proj-seasonal');
-            expect(result.activeProjects[1].id).to.equal('proj-evergreen');
+            expect(result.activeProjects[0].path).to.equal('proj-seasonal');
+            expect(result.activeProjects[1].path).to.equal('proj-evergreen');
         });
 
         it('preserves relative folder order within seasonal promos and within evergreen promos', async () => {
@@ -629,8 +621,8 @@ describe('promotions', () => {
             });
             // Folder order: seasonal-1, evergreen-1, seasonal-2, evergreen-2
             fetchStub
-                .withArgs(FOLDER_URL)
-                .returns(createResponse(200, { items: [seasonal1, evergreen1, seasonal2, evergreen2] }));
+                .withArgs(PROMO_QUERY_URL)
+                .returns(createResponse(200, promoBody([seasonal1, evergreen1, seasonal2, evergreen2])));
             fetchStub
                 .withArgs(hydrateUrl('seasonal-1'))
                 .returns(
@@ -667,7 +659,7 @@ describe('promotions', () => {
             const result = await promotionsTransformer.init(createContext());
             expect(result.activeProjects).to.have.length(4);
             // Seasonal group first (folder order preserved within group), then evergreen group
-            expect(result.activeProjects.map((p) => p.id)).to.deep.equal([
+            expect(result.activeProjects.map((p) => p.path)).to.deep.equal([
                 'seasonal-1',
                 'seasonal-2',
                 'evergreen-1',
@@ -694,7 +686,7 @@ describe('promotions', () => {
                 endDate: null,
                 tags: ['mas:promotion/evergreen-2'],
             });
-            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [evergreen1, evergreen2] }));
+            fetchStub.withArgs(PROMO_QUERY_URL).returns(createResponse(200, promoBody([evergreen1, evergreen2])));
             fetchStub
                 .withArgs(hydrateUrl('evergreen-1'))
                 .returns(
@@ -713,7 +705,7 @@ describe('promotions', () => {
                 );
 
             const result = await promotionsTransformer.init(createContext());
-            expect(result.activeProjects.map((p) => p.id)).to.deep.equal(['evergreen-1', 'evergreen-2']);
+            expect(result.activeProjects.map((p) => p.path)).to.deep.equal(['evergreen-1', 'evergreen-2']);
         });
 
         it('sorts by most-recent startDate first, within both the seasonal and evergreen buckets', async () => {
@@ -730,20 +722,23 @@ describe('promotions', () => {
                     }),
                 ),
             );
-            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: projects }));
-            projects.forEach(({ id }) =>
+            fetchStub.withArgs(PROMO_QUERY_URL).returns(createResponse(200, promoBody(projects)));
+            projects.forEach(({ _path }) =>
                 fetchStub
-                    .withArgs(hydrateUrl(id))
+                    .withArgs(hydrateUrl(_path))
                     .returns(
                         createResponse(
                             200,
-                            makeHydratedProject({ fragmentId: id, fragmentPath: `/content/dam/mas/acom/en_US/offers/${id}` }),
+                            makeHydratedProject({
+                                fragmentId: _path,
+                                fragmentPath: `/content/dam/mas/acom/en_US/offers/${_path}`,
+                            }),
                         ),
                     ),
             );
 
             const result = await promotionsTransformer.init(createContext());
-            expect(result.activeProjects.map((p) => p.id)).to.deep.equal([
+            expect(result.activeProjects.map((p) => p.path)).to.deep.equal([
                 'seasonal-newer',
                 'seasonal-older',
                 'evergreen-newer',
@@ -770,18 +765,18 @@ describe('promotions', () => {
         it('supports instant for time-travel testing in preview mode', async () => {
             const project = makeProject({ surfaces: ['acom'], geos: [], startDate: START, endDate: EXPIRED_END });
             const hydrated = makeHydratedProject();
-            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+            fetchStub.withArgs(PROMO_QUERY_URL).returns(createResponse(200, promoBody([project])));
             fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
 
             const result = await promotionsTransformer.init(createContext({ preview: true, instant: PREVIEW_INSTANT }));
             expect(result.activeProjects).to.have.length(1);
-            expect(result.activeProjects[0].id).to.equal('proj-1');
+            expect(result.activeProjects[0].path).to.equal('proj-1');
         });
 
         it('supports instant as an ISO string in preview mode', async () => {
             const project = makeProject({ surfaces: ['acom'], geos: [], startDate: START, endDate: EXPIRED_END });
             const hydrated = makeHydratedProject();
-            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+            fetchStub.withArgs(PROMO_QUERY_URL).returns(createResponse(200, promoBody([project])));
             fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
 
             const result = await promotionsTransformer.init(createContext({ preview: true, instant: '2020-02-01T00:00:00Z' }));
@@ -795,14 +790,14 @@ describe('promotions', () => {
                 regionLocale: 'en_US',
                 preview: { url: 'https://odin.adobe.com/adobe/contentFragments' },
             });
-            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+            fetchStub.withArgs(PROMO_QUERY_URL).returns(createResponse(200, promoBody([project])));
             fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
 
             await promotionsTransformer.init(previewCtx);
             expect(storage['promotions']).to.exist;
 
             const result = await promotionsTransformer.init(previewCtx);
-            expect(fetchStub.withArgs(FOLDER_URL).callCount).to.equal(1);
+            expect(fetchStub.withArgs(PROMO_QUERY_URL).callCount).to.equal(1);
             expect(result.activeProjects).to.have.length(1);
 
             clearPromoCache(true);
@@ -1038,7 +1033,7 @@ describe('promotions', () => {
                     'OSI-2|SPECIAL|',
                 ],
             });
-            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+            fetchStub.withArgs(PROMO_QUERY_URL).returns(createResponse(200, promoBody([project])));
             fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
 
             const result = await promotionsTransformer.init(createContext());
@@ -1067,7 +1062,7 @@ describe('promotions', () => {
                     'substitute|only-two-parts',
                 ],
             });
-            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+            fetchStub.withArgs(PROMO_QUERY_URL).returns(createResponse(200, promoBody([project])));
             fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
 
             const initResult = await promotionsTransformer.init(createContext());
@@ -1092,7 +1087,7 @@ describe('promotions', () => {
             fetchStub = sinon.stub(globalThis, 'fetch');
             const project = makeProject({ surfaces: ['acom'], geos: [] });
             const hydrated = makeHydratedProject({ offers: ['OSI-1|', 'OSI-2|VALID'] });
-            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+            fetchStub.withArgs(PROMO_QUERY_URL).returns(createResponse(200, promoBody([project])));
             fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
 
             const result = await promotionsTransformer.init(createContext());
@@ -1108,7 +1103,7 @@ describe('promotions', () => {
             const hydrated = makeHydratedProject({
                 offers: ['substitute|OSI-A|OSI-B', 'OSI-1|BLACKFRIDAY|/content/cq:tags/mas/country/US'],
             });
-            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+            fetchStub.withArgs(PROMO_QUERY_URL).returns(createResponse(200, promoBody([project])));
             fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
 
             const result = await promotionsTransformer.init(createContext());
@@ -1164,7 +1159,7 @@ describe('promotions', () => {
                 endDate: '2099-12-31T00:00:00Z',
             });
             const hydrated = makeHydratedProject();
-            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+            fetchStub.withArgs(PROMO_QUERY_URL).returns(createResponse(200, promoBody([project])));
             fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
             return promotionsTransformer.init(createContext({ preview: true, instant: value }));
         }
@@ -1194,7 +1189,7 @@ describe('parseOfferOverrides and substituteMap after OSI substitution refactor'
     it('parses normal offer override lines correctly when no substitute lines are present', async () => {
         const project = makeProject({ surfaces: ['acom'], geos: [] });
         const hydrated = makeHydratedProject({ offers: ['OSI-1|BLACKFRIDAY', '|GLOBAL|'] });
-        fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+        fetchStub.withArgs(PROMO_QUERY_URL).returns(createResponse(200, promoBody([project])));
         fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
 
         const result = await promotionsTransformer.init(createContext());
@@ -1322,7 +1317,7 @@ describe('parseOfferOverrides and substituteMap after OSI substitution refactor'
         const hydrated = makeHydratedProject({
             offers: ['substitute|OSI-1|OSI-AU|mas:country/au,mas:locale/en_AU'],
         });
-        fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+        fetchStub.withArgs(PROMO_QUERY_URL).returns(createResponse(200, promoBody([project])));
         fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
         const initResult = await promotionsTransformer.init(createContext());
         clearPromoCache();
@@ -1359,7 +1354,7 @@ describe('parseOfferOverrides and substituteMap after OSI substitution refactor'
     it('normal offer overrides still build promoMap correctly when substitute lines are also present', async () => {
         const project = makeProject({ surfaces: ['acom'], geos: [] });
         const hydrated = makeHydratedProject({ offers: ['substitute|OSI-A|OSI-B|mas:country/us', 'OSI-1|BLACKFRIDAY'] });
-        fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+        fetchStub.withArgs(PROMO_QUERY_URL).returns(createResponse(200, promoBody([project])));
         fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
 
         const initResult = await promotionsTransformer.init(createContext());

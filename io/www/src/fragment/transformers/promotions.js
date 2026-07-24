@@ -15,9 +15,12 @@
  *
  * ## Lifecycle (init / process)
  *
- * **`init`** runs in parallel with other transformer inits:
- *   - Fetches the promotions folder (cached for 5 min).
- *   - Filters projects by promotion tag, surface, geo, and date window.
+ * **`init`** runs (mostly) in parallel with other transformer inits:
+ *   - Fetches the request surface's shallow promotion projects via the `promo-by-surface`
+ *     persisted query (surface-filtered server-side, cached per surface for 5 min). The
+ *     listing waits for the surface resolved by the first fragment fetch; `defaultLanguage`
+ *     still resolves in parallel.
+ *   - Filters projects by promotion tag, geo, and date window (surface already filtered).
  *   - Awaits `defaultLanguage` to resolve `defaultLocale` / `regionLocale`.
  *   - Hydrates ALL matched projects in parallel (for fragment OSI/promoCode data) and
  *     folder-searches their promo variations for `defaultLocale` and `regionLocale`.
@@ -39,14 +42,21 @@
  *     promoCode applies. Projects with disjoint per-country entries therefore coexist on the
  *     same fragment.
  */
-import { FRAGMENT_URL_PREFIX, MAS_ROOT, PATH_TOKENS, odinReferences } from '../utils/paths.js';
+import {
+    FRAGMENT_URL_PREFIX,
+    MAS_ROOT,
+    PATH_TOKENS,
+    odinIdFromPath,
+    odinReferences,
+    promoBySurfaceUrl,
+} from '../utils/paths.js';
 import { fetch, getRequestInfos, matchesGeo } from '../utils/common.js';
 import { log, logDebug, logError } from '../utils/log.js';
 
 const CONFIG_CACHE_TTL = 5 * 60 * 1000;
-const PROMOTIONS_PATH = `${MAS_ROOT}/promotions`;
 
-let projectsCache;
+// Projects are surface-scoped (the persisted query filters by surface), so both caches key by surface.
+let projectsCache = {};
 let promoVariationsCache = {};
 
 export function clearPromoCache(preview = false) {
@@ -54,13 +64,14 @@ export function clearPromoCache(preview = false) {
         localStorage.removeItem('promotions');
         localStorage.removeItem('promo-variations');
     } else {
-        projectsCache = undefined;
+        projectsCache = {};
         promoVariationsCache = {};
     }
 }
 
-function getCachedProjects(preview) {
-    const cacheEntry = preview ? JSON.parse(localStorage.getItem('promotions')) : projectsCache;
+function getCachedProjects(preview, surface) {
+    const store = preview ? JSON.parse(localStorage.getItem('promotions') ?? '{}') : projectsCache;
+    const cacheEntry = store[surface];
     if (cacheEntry) {
         cacheEntry.isExpired = Math.abs(Date.now() - cacheEntry.timestamp) > CONFIG_CACHE_TTL;
         return cacheEntry;
@@ -68,49 +79,53 @@ function getCachedProjects(preview) {
     return null;
 }
 
-function cacheProjects(preview, projects) {
+function cacheProjects(preview, surface, projects) {
     const cacheEntry = { projects, timestamp: Date.now() };
     if (preview) {
-        localStorage.setItem('promotions', JSON.stringify(cacheEntry));
+        const store = JSON.parse(localStorage.getItem('promotions') ?? '{}');
+        store[surface] = cacheEntry;
+        localStorage.setItem('promotions', JSON.stringify(store));
     } else {
-        projectsCache = cacheEntry;
+        projectsCache[surface] = cacheEntry;
     }
     return projects;
 }
 
-async function fetchProjects(context) {
-    const cached = getCachedProjects(context.preview);
+/**
+ * Fetches the shallow promotion projects targeting a given surface via the `promo-by-surface`
+ * persisted query. The query filters by surface server-side and returns only the fields needed
+ * to qualify an active project (path/id/surfaces/geos/dates/tags) — offers/promoCode/fragments
+ * are hydrated per project later by {@link hydrateProject}. Results are cached per surface.
+ * Returns the mapped project list, or `null` when the query fails.
+ */
+async function fetchProjects(context, surface) {
+    const cached = getCachedProjects(context.preview, surface);
     if (cached && !cached.isExpired) {
-        logDebug(() => 'Using cached promotion projects', context);
+        logDebug(() => `Using cached promotion projects for surface "${surface}"`, context);
         return cached.projects;
     }
 
-    const baseUrl = context.preview?.url ?? FRAGMENT_URL_PREFIX;
-    const allItems = [];
-    let cursor;
-    do {
-        const url = `${baseUrl}/?path=${PROMOTIONS_PATH}&limit=50${cursor ? `&cursor=${cursor}` : ''}`;
-        const response = await fetch(url, context, 'promotions-folder');
-        if (response.status !== 200) {
-            logDebug(() => `Failed to fetch promotions folder: ${response.message}`, context);
-            return null;
-        }
-        allItems.push(...(response.body?.items ?? []));
-        cursor = response.body?.cursor;
-    } while (cursor);
+    const url = promoBySurfaceUrl(surface, context.preview);
+    const response = await fetch(url, context, 'promotions-by-surface');
+    if (response.status !== 200) {
+        logDebug(() => `Failed to fetch promotions for surface "${surface}": ${response.message}`, context);
+        return null;
+    }
 
-    const projects = allItems.map(({ id, path, name, fields }) => ({
-        id,
-        path,
-        name,
-        surfaces: fields?.surfaces ?? [],
-        geos: fields?.geos ?? [],
-        startDate: fields?.startDate ?? null,
-        endDate: fields?.endDate ?? null,
-        tags: fields?.tags ?? [],
+    const items = response.body?.data?.promotionProjectList?.items ?? [];
+    const projects = items.map(({ _path, surfaces, geos, startDate, endDate, tags }) => ({
+        // Odin fragment id derived from the path (base64url) — hydrateProject fetches references by id.
+        id: odinIdFromPath(_path),
+        path: _path,
+        name: _path?.split('/').pop(),
+        surfaces: surfaces ?? [],
+        geos: geos ?? [],
+        startDate: startDate ?? null,
+        endDate: endDate ?? null,
+        tags: tags ?? [],
     }));
 
-    return cacheProjects(context.preview, projects);
+    return cacheProjects(context.preview, surface, projects);
 }
 
 function toInstant(value) {
@@ -363,7 +378,7 @@ async function hydrateProject(project, { baseUrl, surface, defaultLocale, resolv
 }
 
 /**
- * Fetches promotion projects, collects ALL projects matching the request's
+ * Fetches the surface's promotion projects, collects ALL projects matching the request's
  * surface/locale/time, hydrates each in parallel, and fetches their promo
  * variation folders. Returns `{ activeProjects }` (array sorted most-recent-startDate-first,
  * then stably re-sorted so seasonal projects float to the top) consumed by `customize`.
@@ -371,14 +386,14 @@ async function hydrateProject(project, { baseUrl, surface, defaultLocale, resolv
  * transformer.
  */
 async function init(context) {
-    // Fire projects fetch immediately — needs no context dependencies
-    const projectsPromise = fetchProjects(context);
-
-    // Resolve surface, projects, and defaultLanguage (which carries regionLocale) all in parallel.
+    // The listing is surface-scoped now, so the projects fetch gates on the surface resolved by the
+    // first fragment fetch. defaultLanguage (which carries regionLocale) still resolves in parallel.
     // regionLocale is NOT available on the init-phase context — it is computed by defaultLanguage.init
     // and only placed on context during the process phase. We must read it from the promise.
-    const [{ surface }, projects, defaultLangResult] = await Promise.all([
-        getRequestInfos(context),
+    const surfacePromise = getRequestInfos(context).then((infos) => infos.surface);
+    const projectsPromise = surfacePromise.then((surface) => (surface ? fetchProjects(context, surface) : null));
+    const [surface, projects, defaultLangResult] = await Promise.all([
+        surfacePromise,
         projectsPromise,
         context.promises?.defaultLanguage,
     ]);

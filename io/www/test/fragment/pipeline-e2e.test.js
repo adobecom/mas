@@ -10,7 +10,10 @@ import SETTINGS_RESPONSE from './mocks/settings-sandbox.json' with { type: 'json
 import FRAGMENT_AH_DE_DE_CORRUPTED from './mocks/fragment-ah-de_DE-corrupted.json' with { type: 'json' };
 import { MockState } from './mocks/MockState.js';
 import { createResponse } from './mocks/MockFetch.js';
-import { makeProject, makeHydratedProject, FOLDER_URL, hydrateUrl } from './promotions.test.js';
+import { makeProject, makeHydratedProject, promoBody, hydrateUrl } from './promotions.test.js';
+
+// These e2e fragments resolve to the `sandbox` surface, so the promo listing hits the sandbox query.
+const SANDBOX_PROMO_QUERY_URL = 'https://odin.adobe.com/graphql/execute.json/mas/promo-by-surface;surface=sandbox';
 import {
     getFragment,
     setupFragmentMocks,
@@ -355,7 +358,7 @@ describe('pipeline end to end', () => {
             startDate: null,
             endDate: null,
         });
-        fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+        fetchStub.withArgs(SANDBOX_PROMO_QUERY_URL).returns(createResponse(200, promoBody([project])));
 
         // Project-level promoCode applies to all matching fragments
         const hydrated = makeHydratedProject({
@@ -394,7 +397,7 @@ describe('pipeline end to end', () => {
             startDate: null,
             endDate: null,
         });
-        fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+        fetchStub.withArgs(SANDBOX_PROMO_QUERY_URL).returns(createResponse(200, promoBody([project])));
 
         // Project-level promoCode applies as wildcard
         const hydrated = makeHydratedProject({

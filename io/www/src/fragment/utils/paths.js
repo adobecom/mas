@@ -19,6 +19,17 @@ function odinId(id, preview) {
 }
 
 /**
+ * Derives an Odin fragment id from its DAM path. Odin ids are the base64url encoding of the path
+ * (e.g. `/conf/mas/settings/dam/cfm/models/card` → `L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ`),
+ * so GraphQL `_path` values can be resolved by id without returning the id in the payload.
+ * @param {string} path DAM path of the fragment
+ * @returns {string} base64url fragment id (no padding), consumable by {@link odinId}/{@link odinReferences}
+ */
+function odinIdFromPath(path) {
+    return btoa(path).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+/**
  * builds a full fetchable url
  * @param {*} id id of the fragment,
  * @param {boolean} allHydrated whether to fetch all references or not
@@ -44,4 +55,23 @@ function odinUrl(surface, { locale, fragmentPath, preview }) {
     return `${root}?path=${MAS_ROOT}/${surface}/${locale}/${fragmentPath}`;
 }
 
-export { PATH_TOKENS, FRAGMENT_URL_PREFIX, MAS_ROOT, odinUrl, odinId, odinReferences };
+/** Odin GraphQL persisted-query root, relative to the fragments API origin. */
+const PERSISTED_QUERIES_PATH = '/graphql/execute.json/mas';
+
+/**
+ * Builds the URL of the `mas/promo-by-surface` persisted query for a given surface.
+ * Reuses the same origin as the fragments API (`rootURL`), so it targets
+ * odin.adobe.com for published requests and the preview origin for preview ones.
+ * The surface is passed as a matrix parameter (`;surface=<surface>`), matching the
+ * persisted-query invocation format:
+ *   https://odin.adobe.com/graphql/execute.json/mas/promo-by-surface;surface=acom
+ * @param {string} surface surface identifier (e.g. 'acom')
+ * @param {*} preview preview object if to be used
+ * @returns full fetchable URL to the persisted query
+ */
+function promoBySurfaceUrl(surface, preview) {
+    const { origin } = new URL(rootURL(preview));
+    return `${origin}${PERSISTED_QUERIES_PATH}/promo-by-surface;surface=${surface}`;
+}
+
+export { PATH_TOKENS, FRAGMENT_URL_PREFIX, MAS_ROOT, odinUrl, odinId, odinIdFromPath, odinReferences, promoBySurfaceUrl };

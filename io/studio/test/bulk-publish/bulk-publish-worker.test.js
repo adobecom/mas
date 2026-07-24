@@ -183,6 +183,21 @@ describe('bulk-publish-worker — runWorker', () => {
         expect(deps.createSnapshot).to.have.been.calledOnce;
     });
 
+    it('preserves snapshotError in final update when recordSnapshot has failures (fallback path)', async () => {
+        deps.getProjectSnapshots.returns([]);
+        const failures = [{ path: '/content/dam/mas/acom/en_US/a', error: 'No non-translation version found' }];
+        deps.recordSnapshot.resolves({ entries: [], failures });
+        deps.createSnapshot.resolves(publishCreatedEntries);
+        deps.publishResolved.resolves([{ path: '/content/dam/mas/acom/en_US/a', status: 'published' }]);
+        deps.getProjectLocales.returns([]);
+
+        await worker.runWorker({ projectId: 'proj-1', odinEndpoint: 'https://odin', authToken: 't', publishedBy: '' }, deps);
+
+        const finalLastError = deps.updateProjectFragment.lastCall.args[3].lastError;
+        expect(finalLastError).to.include('SAVE_SNAPSHOT:');
+        expect(finalLastError).to.include('/content/dam/mas/acom/en_US/a');
+    });
+
     it('treats a malformed snapshot entry as not pre-recorded and falls back to record+snapshot', async () => {
         deps.getProjectSnapshots.returns(['not-json']);
         deps.publishResolved.resolves([{ path: '/content/dam/mas/acom/en_US/a', status: 'published' }]);

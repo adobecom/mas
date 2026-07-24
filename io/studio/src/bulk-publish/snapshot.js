@@ -161,12 +161,16 @@ async function recordSnapshot({ paths, odinEndpoint, authToken }) {
     logger.info(JSON.stringify({ event: 'record-snapshot-start', count: paths.length }));
 
     const results = await processBatchWithConcurrency(paths, FRAGMENT_CONCURRENCY, async (path) => {
-        const fragment = await getFragmentByPath(odinEndpoint, path, authToken);
-        if (!fragment) return { path, error: `Fragment not found at path: ${path}` };
-        const wasPublished = fragment.status === STATUS_PUBLISHED || fragment.status === STATUS_MODIFIED;
-        const versionId = await findNonTranslationVersion(odinEndpoint, fragment.id, authToken);
-        if (!versionId) return { path, error: `No non-translation version found for fragment: ${path}` };
-        return [fragment.id, { path: fragment.path, versionId, wasPublished }];
+        try {
+            const fragment = await getFragmentByPath(odinEndpoint, path, authToken);
+            if (!fragment) return { path, error: `Fragment not found at path: ${path}` };
+            const wasPublished = fragment.status === STATUS_PUBLISHED || fragment.status === STATUS_MODIFIED;
+            const versionId = await findNonTranslationVersion(odinEndpoint, fragment.id, authToken);
+            if (!versionId) return { path, error: `No non-translation version found for fragment: ${path}` };
+            return [fragment.id, { path: fragment.path, versionId, wasPublished }];
+        } catch (err) {
+            return { path, error: err.message };
+        }
     });
 
     const failures = results.filter((r) => r?.error);

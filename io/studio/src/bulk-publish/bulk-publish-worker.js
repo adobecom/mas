@@ -85,6 +85,7 @@ async function runWorker(input, deps = {}) {
     const existingSnapshots = projSnapshots(fragment);
 
     let snapshotEntries;
+    let snapshotError = '';
     if (hasPendingSnapshot(existingSnapshots)) {
         snapshotEntries = existingSnapshots;
         await updateProject(odinEndpoint, projectId, authToken, { status: PROJECT_STATUS.PUBLISHING, lastError: '' });
@@ -100,12 +101,12 @@ async function runWorker(input, deps = {}) {
         const { entries: fresh, failures: recordFailures } = await record({ paths, odinEndpoint, authToken });
         snapshotEntries = fresh;
         await snapshot({ paths, projectId, projectTitle: title, odinEndpoint, authToken });
-        const recordError =
+        snapshotError =
             recordFailures.length > 0 ? `SAVE_SNAPSHOT:\n${recordFailures.map((f) => `${f.path}: ${f.error}`).join('\n')}` : '';
         await updateProject(odinEndpoint, projectId, authToken, {
             status: PROJECT_STATUS.PUBLISHING,
             snapshots: addPendingMarker(fresh),
-            lastError: recordError,
+            lastError: snapshotError,
         });
     }
 
@@ -123,7 +124,7 @@ async function runWorker(input, deps = {}) {
         publishedAt: result.finishedAt,
         publishedBy,
         lastResult: JSON.stringify(result),
-        lastError: '',
+        lastError: snapshotError,
     });
 
     logger.info(

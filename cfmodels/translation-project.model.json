@@ -11,6 +11,10 @@
     "fieldLabel": "Target Locales",
     "type": "string[]"
   },
+  "completedLocales": {
+    "fieldLabel": "Completed Locales",
+    "type": "string[]"
+  },
   "submissionDate": {
     "fieldLabel": "submissionDate",
     "type": "datetime"

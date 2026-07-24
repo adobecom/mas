@@ -2,15 +2,16 @@ const SUCCESS = 'success';
 const ERROR = 'error';
 const OK = 'ok';
 const FAIL = 'fail';
+const ENDPOINT_TIMEOUT = 5000;
+const TOTAL_TIMEOUT = 4500;
 
-async function checkEndpoint(endpoint, validateJson) {
+async function checkEndpoint(endpoint, validateJson, totalSignal) {
     let result = OK;
+    const controller = new AbortController();
+    const abort = () => controller.abort();
+    totalSignal.addEventListener('abort', abort, { once: true });
+    const timeoutId = setTimeout(abort, ENDPOINT_TIMEOUT);
     try {
-        const controller = new AbortController();
-        // Increase timeout to 5 seconds for container environments
-        const timeoutId = setTimeout(() => controller.abort(), 5000);
-
-        // Add headers that node-fetch included by default
         const response = await fetch(endpoint, {
             signal: controller.signal,
             headers: {
@@ -19,7 +20,6 @@ async function checkEndpoint(endpoint, validateJson) {
                 'User-Agent': 'Mozilla/5.0 (compatible; mas-io-health-check/1.0)',
             },
         });
-        clearTimeout(timeoutId);
         const json = await response.json();
         if (response?.ok) {
             const isJsonValid = validateJson(json);
@@ -37,13 +37,9 @@ async function checkEndpoint(endpoint, validateJson) {
                 url: endpoint,
             };
         }
-    } catch (e) {
-        console.log(`[healthcheck] Error checking endpoint ${endpoint}:`, e);
-        result = {
-            status: FAIL,
-            reason: e.message,
-            url: endpoint,
-        };
+    } finally {
+        clearTimeout(timeoutId);
+        totalSignal.removeEventListener('abort', abort);
     }
     return result;
 }
@@ -55,10 +51,29 @@ async function main(params) {
         status: SUCCESS,
     };
     const validateOdinJson = (json) => json && !!json.id && !!json.fields?.variant;
-    body.odinCDN = await checkEndpoint(ODIN_CDN_ENDPOINT, validateOdinJson);
-    body.odinOrigin = await checkEndpoint(ODIN_ORIGIN_ENDPOINT, validateOdinJson);
-    body.wcsCDN = await checkEndpoint(WCS_CDN_ENDPOINT, () => true);
-    body.wcsOrigin = await checkEndpoint(WCS_ORIGIN_ENDPOINT, () => true);
+    const totalController = new AbortController();
+    const totalTimeoutId = setTimeout(() => totalController.abort(), TOTAL_TIMEOUT);
+    const probes = [
+        ['odinCDN', ODIN_CDN_ENDPOINT, validateOdinJson],
+        ['odinOrigin', ODIN_ORIGIN_ENDPOINT, validateOdinJson],
+        ['wcsCDN', WCS_CDN_ENDPOINT, () => true],
+        ['wcsOrigin', WCS_ORIGIN_ENDPOINT, () => true],
+    ];
+    const results = await Promise.allSettled(
+        probes.map(([, endpoint, validateJson]) => checkEndpoint(endpoint, validateJson, totalController.signal)),
+    );
+    clearTimeout(totalTimeoutId);
+    results.forEach((result, index) => {
+        const [name, endpoint] = probes[index];
+        body[name] =
+            result.status === 'fulfilled'
+                ? result.value
+                : {
+                      status: FAIL,
+                      reason: result.reason.message,
+                      url: endpoint,
+                  };
+    });
 
     if ([body.odinCDN?.status, body.odinOrigin?.status, body.wcsCDN?.status, body.wcsOrigin?.status].includes(FAIL)) {
         body.status = ERROR;

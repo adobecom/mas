@@ -21,6 +21,7 @@ export const SETTING_NAME_DEFINITIONS = [
 export const SETTING_NAME_BY_VALUE = new Map(SETTING_NAME_DEFINITIONS.map((definition) => [definition.name, definition]));
 
 let settingsCache;
+const settingsInflight = new Map();
 
 export function clearSettingsCache(preview = false) {
     if (preview) {
@@ -33,6 +34,7 @@ export function clearSettingsCache(preview = false) {
     } else {
         settingsCache = undefined;
     }
+    settingsInflight.clear();
 }
 
 async function cacheKey(context) {
@@ -143,19 +145,32 @@ export async function getSettings(context) {
     if (context.hasExternalSettings) return context.settings;
     const cachedSettings = await getCachedSettings(context);
     if (cachedSettings && !cachedSettings.isExpired) return cachedSettings.settings;
-    const { id } = await getSettingsId(context);
-    if (!id) {
-        return null;
-    }
-    const response = await fetch(odinReferences(id, true, context.preview), context, 'settings');
+    const key = `${context.preview ? 'preview' : 'publish'}:${await cacheKey(context)}`;
+    if (!settingsInflight.has(key)) {
+        settingsInflight.set(
+            key,
+            (async () => {
+                const { id } = await getSettingsId(context);
+                if (!id) {
+                    return null;
+                }
+                const response = await fetch(odinReferences(id, true, context.preview), context, 'settings');
 
-    if (response.status !== 200) {
-        logDebug(() => 'Failed to fetch settings fragment', context);
-        return null;
-    }
+                if (response.status !== 200) {
+                    logDebug(() => 'Failed to fetch settings fragment', context);
+                    return null;
+                }
 
-    const settings = collectSettingEntries(response.body);
-    return await cache(context, settings);
+                const settings = collectSettingEntries(response.body);
+                return await cache(context, settings);
+            })(),
+        );
+    }
+    try {
+        return await settingsInflight.get(key);
+    } finally {
+        settingsInflight.delete(key);
+    }
 }
 
 async function init(initContext) {

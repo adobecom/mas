@@ -892,6 +892,7 @@ describe('customize collections', function () {
                 { fieldName: 'cards', identifier: 'card-c', referencesTree: [] },
                 { fieldName: 'cards', identifier: 'card-d', referencesTree: [] },
                 { fieldName: 'variations', identifier: 'coll-root-be', referencesTree: [] },
+                { fieldName: 'tags', identifier: 'tag-reference', referencesTree: [] },
             ],
         };
 
@@ -911,6 +912,11 @@ describe('customize collections', function () {
         // referencesTree should reflect the merged cards: card-b removed, order updated
         const cardEntries = result.body.referencesTree.filter((e) => e.fieldName === 'cards');
         expect(cardEntries.map((e) => e.identifier)).to.deep.equal(['card-c', 'card-a', 'card-d']);
+        expect(result.body.fields).to.not.have.property('variations');
+        expect(result.body.references).to.not.have.property('coll-root-be');
+        expect(result.body.referencesTree.some((entry) => entry.fieldName === 'variations')).to.be.false;
+        expect(result.body.referencesTree.some((entry) => entry.identifier === 'tag-reference')).to.be.true;
+        expect(result.body.references).to.have.keys(['card-a', 'card-b', 'card-c', 'card-d']);
     });
 
     it('should create stub referencesTree entry for a card added by a variation that had no entry in original tree', async function () {

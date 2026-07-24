@@ -2,6 +2,7 @@ const { expect } = require('chai');
 const proxyquire = require('proxyquire');
 
 function load(store = {}) {
+    let initCalls = 0;
     const fakeState = {
         put: async (key, value) => {
             store[key] = value;
@@ -12,9 +13,15 @@ function load(store = {}) {
         },
     };
     const mod = proxyquire('../../src/bulk-edit/state.js', {
-        '@adobe/aio-lib-state': { init: async () => fakeState, '@noCallThru': true },
+        '@adobe/aio-lib-state': {
+            init: async () => {
+                initCalls += 1;
+                return fakeState;
+            },
+            '@noCallThru': true,
+        },
     });
-    return { mod, store };
+    return { mod, store, getInitCalls: () => initCalls };
 }
 
 const sampleJob = {
@@ -73,6 +80,14 @@ describe('bulk-edit/state: writeJob + readJob', () => {
     it('returns null for an unknown jobId', async () => {
         const { mod } = load();
         expect(await mod.readJob('missing')).to.equal(null);
+    });
+    it('reuses one State client across helper calls', async () => {
+        const { mod, getInitCalls } = load();
+        await mod.writeJob('abc', { status: 'RUNNING' });
+        await mod.readJob('abc');
+        await mod.writeReport('abc', { done: false });
+        await mod.readReport('abc');
+        expect(getInitCalls()).to.equal(1);
     });
 });
 

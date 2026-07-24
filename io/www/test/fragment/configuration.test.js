@@ -51,6 +51,25 @@ describe('loadConfiguration', () => {
         expect(configCalls).to.have.length(1);
     });
 
+    it('coalesces concurrent state reads on a cold cache', async () => {
+        const state = new MockState();
+        let resolveGet;
+        const getStub = sinon.stub(state, 'get').returns(
+            new Promise((resolve) => {
+                resolveGet = resolve;
+            }),
+        );
+
+        const first = loadConfiguration(makeContext({ state }), 0);
+        const second = loadConfiguration(makeContext({ state }), 0);
+        resolveGet({ value: JSON.stringify({ apiKeys: ['coalesced-key'] }) });
+        const [firstResult, secondResult] = await Promise.all([first, second]);
+
+        expect(getStub.calledOnceWith('configuration')).to.be.true;
+        expect(firstResult.apiKeys).to.deep.equal(['coalesced-key']);
+        expect(secondResult.apiKeys).to.deep.equal(['coalesced-key']);
+    });
+
     it('refreshes from state once the cache TTL expires', async () => {
         const state = new MockState();
         await state.put('configuration', JSON.stringify({ apiKeys: ['v1'] }));

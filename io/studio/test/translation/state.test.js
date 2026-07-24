@@ -110,6 +110,14 @@ describe('Translation state helpers', () => {
         expect(mockState.delete).to.have.been.calledWith('translation-job.job-1.payload');
     });
 
+    it('should reuse one State client across helper calls', async () => {
+        await stateHelpers.putJobPayload('job-1', { projectId: 'project-1' });
+        await stateHelpers.getJobPayload('job-1');
+        await stateHelpers.deleteJobPayload('job-1');
+
+        expect(initStub).to.have.been.calledOnce;
+    });
+
     it('should store project summary with updatedAt when missing', async () => {
         const summary = {
             projectId: 'project-1',

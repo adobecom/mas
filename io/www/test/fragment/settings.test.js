@@ -224,6 +224,26 @@ describe('settings', () => {
             expect(contentFetchCalls()).to.have.length(1);
         });
 
+        it('coalesces concurrent settings misses', async () => {
+            let resolveContent;
+            fetchStub.withArgs(settingsIndexUrl()).returns(createResponse(200, { id: 'settings-id' }));
+            fetchStub.withArgs(settingsContentUrl('settings-id')).returns(
+                new Promise((resolve) => {
+                    resolveContent = resolve;
+                }),
+            );
+
+            const first = getSettings(createContext());
+            const second = getSettings(createContext());
+            while (!resolveContent) await new Promise((resolve) => setTimeout(resolve, 0));
+            resolveContent(createResponse(200, referencesBody));
+            const [firstResult, secondResult] = await Promise.all([first, second]);
+
+            expect(firstResult).to.deep.equal(secondResult);
+            expect(fetchStub.withArgs(settingsIndexUrl()).calledOnce).to.be.true;
+            expect(contentFetchCalls()).to.have.length(1);
+        });
+
         it('caches settings with 200 and reuses within TTL', async () => {
             clearSettingsCache();
             mockSettingsFetch(DEFAULT_SURFACE, 'settings-id', referencesBody);

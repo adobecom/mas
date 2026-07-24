@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 import sinon from 'sinon';
-import { transformer as replace, clearDictionaryCache } from '../../src/fragment/transformers/replace.js';
+import { transformer as replace, clearDictionaryCache, getDictionary } from '../../src/fragment/transformers/replace.js';
 import DICTIONARY_RESPONSE from './mocks/dictionary.json' with { type: 'json' };
 import DICTIONARY_RESPONSE_ACOM_FR_FR from './mocks/dictionary-acom-fr-fr.json' with { type: 'json' };
 import DICTIONARY_RESPONSE_CCD_FR_FR from './mocks/dictionary-ccd-fr-fr.json' with { type: 'json' };
@@ -303,6 +303,29 @@ describe('replace', () => {
             );
             expect(response2.body.fields.cta).to.equal('Buy now');
             expect(contentFetchCalls()).to.have.length(1);
+        });
+
+        it('coalesces concurrent dictionary misses without sharing request-local values', async () => {
+            let resolveContent;
+            const dictionaryIndexUrl =
+                'https://odin.adobe.com/adobe/contentFragments/byPath?path=/content/dam/mas/sandbox/fr_FR/dictionary/index';
+            fetchStub.withArgs(dictionaryIndexUrl).returns(createResponse(200, dictionaryCfResponse()));
+            fetchStub.withArgs(dictionaryContentUrl).returns(
+                new Promise((resolve) => {
+                    resolveContent = resolve;
+                }),
+            );
+
+            const first = getDictionary({ surface: DEFAULT_SURFACE, locale: DEFAULT_LOCALE, dictionary: { localA: 'A' } });
+            const second = getDictionary({ surface: DEFAULT_SURFACE, locale: DEFAULT_LOCALE, dictionary: { localB: 'B' } });
+            while (!resolveContent) await new Promise((resolve) => setTimeout(resolve, 0));
+            resolveContent(createResponse(200, DICTIONARY_RESPONSE));
+            const [firstResult, secondResult] = await Promise.all([first, second]);
+
+            expect(fetchStub.withArgs(dictionaryIndexUrl).calledOnce).to.be.true;
+            expect(contentFetchCalls()).to.have.length(1);
+            expect(firstResult).to.include({ localA: 'A' }).and.not.have.property('localB');
+            expect(secondResult).to.include({ localB: 'B' }).and.not.have.property('localA');
         });
 
         it('caches dictionary with 200 and reuses it within TTL', async () => {

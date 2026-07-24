@@ -180,4 +180,28 @@ describe('health-check', () => {
             },
         });
     });
+
+    it('aborts all probes when the total health-check budget expires', async () => {
+        const clock = sinon.useFakeTimers();
+        fetchStub.callsFake(
+            (url, { signal }) =>
+                new Promise((resolve, reject) => {
+                    signal.addEventListener('abort', () => reject(new Error('total timeout')));
+                }),
+        );
+        try {
+            const responsePromise = main(PARAMS);
+            await clock.tickAsync(4500);
+            const response = await responsePromise;
+
+            expect(response.statusCode).to.equal(500);
+            expect(response.body.status).to.equal('error');
+            for (const name of ['odinCDN', 'odinOrigin', 'wcsCDN', 'wcsOrigin']) {
+                expect(response.body[name].status).to.equal('fail');
+                expect(response.body[name].reason).to.equal('total timeout');
+            }
+        } finally {
+            clock.restore();
+        }
+    });
 });

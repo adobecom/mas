@@ -86,6 +86,19 @@ function measureTiming(context, label, startLabel = label) {
  * other errors code from the server
  */
 async function fetchAttempt(path, context, timeout, marker) {
+    const controller = new AbortController();
+    let timeoutId;
+    let timedOut = false;
+    let result;
+    const timeoutPromise = new Promise((_, reject) => {
+        timeoutId = setTimeout(() => {
+            timedOut = true;
+            controller.abort();
+            const error = new Error(`Request timed out after ${timeout}ms`);
+            error.isTimeout = true;
+            reject(error);
+        }, timeout);
+    });
     try {
         mark(context, marker);
         const responsePromise = fetch(path, {
@@ -93,10 +106,10 @@ async function fetchAttempt(path, context, timeout, marker) {
                 ...context.DEFAULT_HEADERS,
                 'X-Request-ID': globalThis.crypto.randomUUID(),
             },
+            signal: controller.signal,
         });
 
-        // Race the fetch promise with a timeout
-        const response = await Promise.race([responsePromise, createTimeoutPromise(timeout)]);
+        const response = await Promise.race([responsePromise, timeoutPromise]);
         const measure = measureTiming(context, marker);
         const success = response.status === 200;
         response.message = success ? 'ok' : response.message || (await getErrorMessage(response));
@@ -107,33 +120,35 @@ async function fetchAttempt(path, context, timeout, marker) {
         );
         logDebug(() => `response headers: ${JSON.stringify(Object.fromEntries(response.headers.entries()))}`, context);
         if (success) {
-            return {
+            result = {
                 status: 200,
                 message: 'ok',
-                body: await Promise.race([computeBody(response, context), createTimeoutPromise(timeout)]),
+                body: await Promise.race([computeBody(response, context), timeoutPromise]),
             };
+        } else {
+            result = response;
         }
-        return response;
     } catch (e) {
         const errorMeasure = measureTiming(context, `fetch-error-${marker}`, marker);
-        // Check if this is a timeout error
-        if (e.isTimeout) {
+        if (timedOut || e.isTimeout) {
             logError(`[fetch] ${path} timed out after ${errorMeasure.duration}ms`, context);
-            return {
+            result = {
                 ...context,
                 status: 504, // Request Timeout
                 message: 'fetch timeout',
             };
+        } else {
+            // This is a fetch error (network, DNS, etc.)
+            logError(`[fetch] ${path} fetch error: ${e.message} after ${errorMeasure.duration}ms`, context);
+            result = {
+                ...context,
+                status: 503,
+                message: 'fetch error',
+            };
         }
-
-        // This is a fetch error (network, DNS, etc.)
-        logError(`[fetch] ${path} fetch error: ${e.message} after ${errorMeasure.duration}ms`, context);
-        return {
-            ...context,
-            status: 503,
-            message: 'fetch error',
-        };
     }
+    clearTimeout(timeoutId);
+    return result;
 }
 
 /**
@@ -145,23 +160,32 @@ async function fetchAttempt(path, context, timeout, marker) {
  */
 async function internalFetch(path, context, marker) {
     mark(context, `${marker}`);
-    const { retries = 3, fetchTimeout = 2000, retryDelay = 100 } = context.networkConfig || {};
+    const {
+        retries = 3,
+        fetchTimeout = 2000,
+        retryDelay = 100,
+        fetchOverallTimeout = fetchTimeout * retries,
+    } = context.networkConfig || {};
+    const deadline = Date.now() + fetchOverallTimeout;
     let delay = retryDelay;
     let response;
     for (let attempt = 0; attempt < retries; attempt++) {
-        // Race the fetch promise with a timeout
-        response = await fetchAttempt(path, context, fetchTimeout, `fetch-${marker}-${attempt}`);
-        if ([503, 504].includes(response.status)) {
-            log(
-                `fetch ${path} (attempt #${attempt}) failed with status ${response.status}, retrying in ${delay}ms...`,
-                context,
-            );
-            await new Promise((resolve) => setTimeout(resolve, delay));
-            delay *= 2; // Exponential backoff
-        } else {
-            break;
-        }
+        const remaining = deadline - Date.now();
+        if (remaining <= 0) break;
+        response = await fetchAttempt(path, context, Math.min(fetchTimeout, remaining), `fetch-${marker}-${attempt}`);
+        const isTransient = response.status === 429 || response.status >= 500;
+        if (!isTransient || attempt === retries - 1) break;
+        const wait = Math.min(delay, Math.max(deadline - Date.now(), 0));
+        if (wait <= 0) break;
+        log(`fetch ${path} (attempt #${attempt}) failed with status ${response.status}, retrying in ${wait}ms...`, context);
+        await new Promise((resolve) => setTimeout(resolve, wait));
+        delay *= 2;
     }
+    response ??= {
+        ...context,
+        status: 504,
+        message: 'fetch timeout',
+    };
     measureTiming(context, `main-fetch-${marker}`, marker);
     return response;
 }

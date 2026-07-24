@@ -4,6 +4,12 @@ const JOB_PAYLOAD_TTL = 24 * 60 * 60;
 const PROJECT_SUMMARY_TTL = 30 * 24 * 60 * 60;
 const JOB_PAYLOAD_TTL_PARAM = 'translationJobPayloadTtl';
 const PROJECT_SUMMARY_TTL_PARAM = 'translationProjectSummaryTtl';
+let statePromise;
+
+function getState() {
+    statePromise ||= init();
+    return statePromise;
+}
 
 function buildJobPayloadKey(jobId) {
     return `translation-job.${jobId}.payload`;
@@ -50,14 +56,14 @@ function mergeValues(currentValue, patchValue) {
 }
 
 async function writeValue(key, value, ttl) {
-    const state = await init();
+    const state = await getState();
     const serialized = JSON.stringify(value);
     await state.put(key, serialized, { ttl });
     return value;
 }
 
 async function readValue(key) {
-    const state = await init();
+    const state = await getState();
     const result = await state.get(key);
     if (!result?.value) {
         return null;
@@ -66,7 +72,7 @@ async function readValue(key) {
 }
 
 async function deleteValue(key) {
-    const state = await init();
+    const state = await getState();
     await state.delete(key);
 }
 

@@ -45,9 +45,14 @@ import { log, logDebug, logError } from '../utils/log.js';
 
 const CONFIG_CACHE_TTL = 5 * 60 * 1000;
 const PROMOTIONS_PATH = `${MAS_ROOT}/promotions`;
+const HYDRATION_CONCURRENCY = 5;
 
 let projectsCache;
 let promoVariationsCache = {};
+const projectsInflight = new Map();
+const promoVariationsInflight = new Map();
+const projectHydrationCache = new Map();
+const projectHydrationInflight = new Map();
 
 export function clearPromoCache(preview = false) {
     if (preview) {
@@ -57,6 +62,10 @@ export function clearPromoCache(preview = false) {
         projectsCache = undefined;
         promoVariationsCache = {};
     }
+    projectsInflight.clear();
+    promoVariationsInflight.clear();
+    projectHydrationCache.clear();
+    projectHydrationInflight.clear();
 }
 
 function getCachedProjects(preview) {
@@ -86,31 +95,46 @@ async function fetchProjects(context) {
     }
 
     const baseUrl = context.preview?.url ?? FRAGMENT_URL_PREFIX;
-    const allItems = [];
-    let cursor;
-    do {
-        const url = `${baseUrl}/?path=${PROMOTIONS_PATH}&limit=50${cursor ? `&cursor=${cursor}` : ''}`;
-        const response = await fetch(url, context, 'promotions-folder');
-        if (response.status !== 200) {
-            logDebug(() => `Failed to fetch promotions folder: ${response.message}`, context);
-            return null;
-        }
-        allItems.push(...(response.body?.items ?? []));
-        cursor = response.body?.cursor;
-    } while (cursor);
+    const inflightKey = `${context.preview ? 'preview' : 'publish'}:${baseUrl}`;
+    if (!projectsInflight.has(inflightKey)) {
+        projectsInflight.set(
+            inflightKey,
+            (async () => {
+                const allItems = [];
+                let cursor;
+                do {
+                    const url = `${baseUrl}/?path=${PROMOTIONS_PATH}&limit=50${cursor ? `&cursor=${cursor}` : ''}`;
+                    const response = await fetch(url, context, 'promotions-folder');
+                    if (response.status !== 200) {
+                        logDebug(() => `Failed to fetch promotions folder: ${response.message}`, context);
+                        return null;
+                    }
+                    allItems.push(...(response.body?.items ?? []));
+                    cursor = response.body?.cursor;
+                } while (cursor);
 
-    const projects = allItems.map(({ id, path, name, fields }) => ({
-        id,
-        path,
-        name,
-        surfaces: fields?.surfaces ?? [],
-        geos: fields?.geos ?? [],
-        startDate: fields?.startDate ?? null,
-        endDate: fields?.endDate ?? null,
-        tags: fields?.tags ?? [],
-    }));
+                const projects = allItems.map(({ id, path, name, fields, version, lastModified }) => ({
+                    id,
+                    path,
+                    name,
+                    surfaces: fields?.surfaces ?? [],
+                    geos: fields?.geos ?? [],
+                    startDate: fields?.startDate ?? null,
+                    endDate: fields?.endDate ?? null,
+                    tags: fields?.tags ?? [],
+                    version: fields?.version ?? version ?? '',
+                    lastModified: fields?.lastModified ?? lastModified ?? '',
+                }));
 
-    return cacheProjects(context.preview, projects);
+                return cacheProjects(context.preview, projects);
+            })(),
+        );
+    }
+    try {
+        return await projectsInflight.get(inflightKey);
+    } finally {
+        projectsInflight.delete(inflightKey);
+    }
 }
 
 function toInstant(value) {
@@ -273,41 +297,54 @@ async function fetchPromoVariations(baseUrl, surface, locale, projectName, conte
         return cached.variations;
     }
 
-    const path = `${MAS_ROOT}/${surface}/${locale}/promotions/${projectName}`;
-    const variations = {};
-    const prefix = `promotions/${projectName}/`;
-    let cursor;
-    let fetchedAnyPage = false;
-    do {
-        const url = `${baseUrl}/?path=${path}&limit=50${cursor ? `&cursor=${cursor}` : ''}`;
-        const response = await fetch(url, context, `promo-variations-${projectName}-${locale}`);
-        if (response.status !== 200) {
-            // First-page failure (commonly: no variations folder) is expected → cache empty silently.
-            // A later-page failure means a transient error mid-pagination; keep the pages already
-            // collected rather than discarding them, and log how many we had.
-            if (fetchedAnyPage) {
-                logError(
-                    `Promo variations for ${cacheKey}: page fetch failed (status ${response.status}) after collecting ${Object.keys(variations).length}; returning partial results`,
-                    context,
-                );
+    const inflightKey = `${context.preview ? 'preview' : 'publish'}:${cacheKey}`;
+    if (!promoVariationsInflight.has(inflightKey)) {
+        promoVariationsInflight.set(
+            inflightKey,
+            (async () => {
+                const path = `${MAS_ROOT}/${surface}/${locale}/promotions/${projectName}`;
+                const variations = {};
+                const prefix = `promotions/${projectName}/`;
+                let cursor;
+                let fetchedAnyPage = false;
+                do {
+                    const url = `${baseUrl}/?path=${path}&limit=50${cursor ? `&cursor=${cursor}` : ''}`;
+                    const response = await fetch(url, context, `promo-variations-${projectName}-${locale}`);
+                    if (response.status !== 200) {
+                        // First-page failure (commonly: no variations folder) is expected → cache empty silently.
+                        // A later-page failure means a transient error mid-pagination; keep the pages already
+                        // collected rather than discarding them, and log how many we had.
+                        if (fetchedAnyPage) {
+                            logError(
+                                `Promo variations for ${cacheKey}: page fetch failed (status ${response.status}) after collecting ${Object.keys(variations).length}; returning partial results`,
+                                context,
+                            );
+                            return cacheVariations(context.preview, cacheKey, variations);
+                        }
+                        return cacheVariations(context.preview, cacheKey, {});
+                    }
+                    fetchedAnyPage = true;
+                    const items = response.body?.items ?? [];
+                    for (const item of items) {
+                        const match = PATH_TOKENS.exec(item.path);
+                        if (match) {
+                            const fullFragPath = match.groups.fragmentPath;
+                            if (fullFragPath.startsWith(prefix)) {
+                                variations[fullFragPath.slice(prefix.length)] = item;
+                            }
+                        }
+                    }
+                    cursor = response.body?.cursor;
+                } while (cursor);
                 return cacheVariations(context.preview, cacheKey, variations);
-            }
-            return cacheVariations(context.preview, cacheKey, {});
-        }
-        fetchedAnyPage = true;
-        const items = response.body?.items ?? [];
-        for (const item of items) {
-            const match = PATH_TOKENS.exec(item.path);
-            if (match) {
-                const fullFragPath = match.groups.fragmentPath;
-                if (fullFragPath.startsWith(prefix)) {
-                    variations[fullFragPath.slice(prefix.length)] = item;
-                }
-            }
-        }
-        cursor = response.body?.cursor;
-    } while (cursor);
-    return cacheVariations(context.preview, cacheKey, variations);
+            })(),
+        );
+    }
+    try {
+        return await promoVariationsInflight.get(inflightKey);
+    } finally {
+        promoVariationsInflight.delete(inflightKey);
+    }
 }
 
 /**
@@ -315,7 +352,7 @@ async function fetchPromoVariations(baseUrl, surface, locale, projectName, conte
  * Returns the per-project activeProject shape, or `null` if hydration failed
  * or the project has no fragments and no offer overrides (nothing to apply).
  */
-async function hydrateProject(project, { baseUrl, surface, defaultLocale, resolvedRegionLocale }, context) {
+async function hydrateProjectUncached(project, { baseUrl, surface, defaultLocale, resolvedRegionLocale }, context) {
     const promoTag = project.tags.find((tag) => tag.startsWith(PROMO_TAG_PREFIX));
     const promoName = promoTag.slice(PROMO_TAG_PREFIX.length);
 
@@ -360,6 +397,31 @@ async function hydrateProject(project, { baseUrl, surface, defaultLocale, resolv
         defaultVariations,
         regionVariations,
     };
+}
+
+async function hydrateProject(project, hydrationContext, context) {
+    const { surface, defaultLocale, resolvedRegionLocale } = hydrationContext;
+    const locale = resolvedRegionLocale ?? defaultLocale;
+    const version = project.version || project.lastModified || '';
+    const cacheKey = `${context.preview ? 'preview' : 'publish'}:${surface}:${project.id}:${locale}:${version}`;
+    const cached = projectHydrationCache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp <= CONFIG_CACHE_TTL) {
+        return cached.project;
+    }
+    if (!projectHydrationInflight.has(cacheKey)) {
+        projectHydrationInflight.set(
+            cacheKey,
+            hydrateProjectUncached(project, hydrationContext, context).then((hydratedProject) => {
+                projectHydrationCache.set(cacheKey, { project: hydratedProject, timestamp: Date.now() });
+                return hydratedProject;
+            }),
+        );
+    }
+    try {
+        return await projectHydrationInflight.get(cacheKey);
+    } finally {
+        projectHydrationInflight.delete(cacheKey);
+    }
 }
 
 /**
@@ -412,19 +474,20 @@ async function init(context) {
 
     const baseUrl = context.preview?.url ?? FRAGMENT_URL_PREFIX;
 
-    // Hydrate all matched projects concurrently. allSettled (not all) isolates per-project
-    // failures: if one project's hydration rejects, the others are still served.
-    const settled = await Promise.allSettled(
-        matched.map((project) => hydrateProject(project, { baseUrl, surface, defaultLocale, resolvedRegionLocale }, context)),
-    );
     const activeProjects = [];
-    settled.forEach((result, i) => {
-        if (result.status === 'rejected') {
-            logError(`Failed to hydrate promotion project ${matched[i].id}: ${result.reason}`, context);
-        } else if (result.value) {
-            activeProjects.push(result.value);
-        }
-    });
+    for (let i = 0; i < matched.length; i += HYDRATION_CONCURRENCY) {
+        const batch = matched.slice(i, i + HYDRATION_CONCURRENCY);
+        const settled = await Promise.allSettled(
+            batch.map((project) => hydrateProject(project, { baseUrl, surface, defaultLocale, resolvedRegionLocale }, context)),
+        );
+        settled.forEach((result, batchIndex) => {
+            if (result.status === 'rejected') {
+                logError(`Failed to hydrate promotion project ${batch[batchIndex].id}: ${result.reason}`, context);
+            } else if (result.value) {
+                activeProjects.push(result.value);
+            }
+        });
+    }
 
     return { status: 200, activeProjects };
 }

@@ -6,6 +6,12 @@ const QUEUE_TTL = 7 * 24 * 60 * 60;
 const DEFAULT_QUEUE_LOCK_LEASE_MS = 30 * 1000;
 const DEFAULT_QUEUE_MUTATION_RETRY_DELAY_MS = 50;
 const DEFAULT_QUEUE_MUTATION_MAX_ATTEMPTS = 5;
+let statePromise;
+
+function getState() {
+    statePromise ||= init();
+    return statePromise;
+}
 
 function toDate(value) {
     return value instanceof Date ? value : new Date(value);
@@ -30,7 +36,7 @@ function isQueueLockExpired(lock, options = {}) {
 }
 
 async function getPendingQueue() {
-    const state = await init();
+    const state = await getState();
     const result = await state.get(QUEUE_KEY);
     if (!result?.value) {
         return [];
@@ -39,7 +45,7 @@ async function getPendingQueue() {
 }
 
 async function putPendingQueue(queue, options = {}) {
-    const state = await init();
+    const state = await getState();
     const ttl = options.ttl ?? QUEUE_TTL;
     await state.put(QUEUE_KEY, JSON.stringify(queue), { ttl });
     return queue;
@@ -88,7 +94,7 @@ async function removeJobUnsafe(jobId, options = {}) {
 }
 
 async function getQueueLock() {
-    const state = await init();
+    const state = await getState();
     const result = await state.get(QUEUE_LOCK_KEY);
     if (!result?.value) {
         return null;
@@ -97,7 +103,7 @@ async function getQueueLock() {
 }
 
 async function putQueueLock(lock, options = {}) {
-    const state = await init();
+    const state = await getState();
     const ttlSeconds = Math.max(1, Math.ceil((options.leaseDurationMs ?? DEFAULT_QUEUE_LOCK_LEASE_MS) / 1000));
     await state.put(QUEUE_LOCK_KEY, JSON.stringify(lock), { ttl: ttlSeconds });
     return lock;
@@ -147,7 +153,7 @@ async function releaseQueueLock(ownerId) {
         };
     }
 
-    const state = await init();
+    const state = await getState();
     await state.delete(QUEUE_LOCK_KEY);
     return {
         released: true,

@@ -36,6 +36,10 @@ const EXPECTED_HEADERS = {
     'Content-Type': 'application/json',
     'Cache-Control': 'public, max-age=300, stale-while-revalidate=86400',
 };
+const EXPECTED_ERROR_HEADERS = {
+    ...EXPECTED_HEADERS,
+    'Cache-Control': 'no-store',
+};
 
 const SETTINGS_INDEX_URL_SANDBOX =
     'https://odin.adobe.com/adobe/contentFragments/byPath?path=/content/dam/mas/sandbox/settings/index';
@@ -97,7 +101,7 @@ const EXPECTED_BODY = {
     path: '/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app',
 };
 // EXPECTED BODY SHA256 hash (includes settings/priceLiterals from mocked settings)
-const EXPECTED_BODY_HASH = '53e93f636fc6ff1d38b8508a2e5e4568914bca44d2f308deb7cf47f5d1024165';
+const EXPECTED_BODY_HASH = '02b75451755b97973eb993ad62422e829581062b349c6bbaad6d86fceb5b77cd';
 
 const RANDOM_OLD_DATE = 'Thu, 27 Jul 1978 09:00:00 GMT';
 
@@ -219,6 +223,7 @@ describe('pipeline corner cases', () => {
         });
         expect(result.statusCode).to.equal(400);
         expect(result.message).to.equal('Preview mode is not supported in this pipeline');
+        expect(result.headers['Cache-Control']).to.equal('no-store');
         expect(fetchStub.called).to.be.false;
     });
 
@@ -296,7 +301,7 @@ describe('pipeline corner cases', () => {
             state: new MockState(),
         });
         expect(result).to.deep.equal({
-            headers: EXPECTED_HEADERS,
+            headers: EXPECTED_ERROR_HEADERS,
             body: {
                 message: 'requested parameters id & locale are not present',
             },
@@ -338,7 +343,7 @@ describe('pipeline corner cases', () => {
             locale: 'fr_FR',
         });
         expect(result).to.deep.equal({
-            headers: EXPECTED_HEADERS,
+            headers: EXPECTED_ERROR_HEADERS,
             body: {
                 message: 'source path is either not here or invalid',
             },
@@ -361,7 +366,7 @@ describe('pipeline corner cases', () => {
 
         expect(result).to.deep.equal({
             statusCode: 504,
-            headers: EXPECTED_HEADERS,
+            headers: EXPECTED_ERROR_HEADERS,
             body: {
                 message: 'fetch timeout',
             },
@@ -380,7 +385,7 @@ describe('pipeline corner cases', () => {
 
         expect(result).to.deep.equal({
             statusCode: 503,
-            headers: EXPECTED_HEADERS,
+            headers: EXPECTED_ERROR_HEADERS,
             body: {
                 message: 'fetch error',
             },
@@ -400,7 +405,7 @@ describe('pipeline corner cases', () => {
 
         expect(result).to.deep.equal({
             statusCode: 404,
-            headers: EXPECTED_HEADERS,
+            headers: EXPECTED_ERROR_HEADERS,
             body: {
                 message: 'nok',
             },
@@ -512,7 +517,7 @@ describe('caching headers', () => {
         expect(result.headers['Cache-Control']).to.equal('public, max-age=300, stale-while-revalidate=86400');
     });
 
-    it('should include Cache-Control header in error responses', async () => {
+    it('should prevent caching error responses', async () => {
         mockSettings(fetchStub);
         fetchStub
             .withArgs('https://odin.adobe.com/adobe/contentFragments/test-fragment?references=all-hydrated')
@@ -526,10 +531,10 @@ describe('caching headers', () => {
 
         expect(result.statusCode).to.equal(404);
         expect(result.headers).to.have.property('Cache-Control');
-        expect(result.headers['Cache-Control']).to.equal('public, max-age=300, stale-while-revalidate=86400');
+        expect(result.headers['Cache-Control']).to.equal('no-store');
     });
 
-    it('should include Cache-Control header in timeout responses', async () => {
+    it('should prevent caching timeout responses', async () => {
         fetchStub.restore();
         resetCache();
         fetchStub
@@ -547,7 +552,32 @@ describe('caching headers', () => {
 
         expect(result.statusCode).to.equal(504);
         expect(result.headers).to.have.property('Cache-Control');
-        expect(result.headers['Cache-Control']).to.equal('public, max-age=300, stale-while-revalidate=86400');
+        expect(result.headers['Cache-Control']).to.equal('no-store');
+    });
+
+    it('should honor zero cache TTL configuration', async () => {
+        setupFragmentMocks(fetchStub, {
+            id: 'some-en-us-fragment',
+            path: 'someFragment',
+        });
+        const state = new MockState();
+        await state.put(
+            'configuration',
+            JSON.stringify({
+                networkConfig: {
+                    cacheMaxAge: 0,
+                    cacheStaleWhileRevalidate: 0,
+                },
+            }),
+        );
+
+        const result = await getFragment({
+            id: 'some-en-us-fragment',
+            state,
+            locale: 'fr_FR',
+        });
+
+        expect(result.headers['Cache-Control']).to.equal('public, max-age=0, stale-while-revalidate=0');
     });
 });
 

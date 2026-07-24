@@ -15,6 +15,7 @@ const CONFIG_CACHE_TTL = 5 * 60 * 1000;
 
 let cachedConfiguration = null;
 let configurationTimestamp = null;
+let configurationPromise = null;
 
 function parseStateApiKeys(values) {
     return (values || []).map((value) => {
@@ -53,7 +54,7 @@ async function refreshFromState(context, now) {
     return cachedConfiguration;
 }
 
-async function readConfiguration(context, now) {
+async function readConfigurationUncoalesced(context, now) {
     if (!cachedConfiguration) {
         const result = await getJsonFromState('configuration', context);
         if (result.json) {
@@ -68,6 +69,16 @@ async function readConfiguration(context, now) {
         return cachedConfiguration;
     }
     return refreshFromState(context, now);
+}
+
+async function readConfiguration(context, now) {
+    if (configurationPromise) return configurationPromise;
+    configurationPromise = readConfigurationUncoalesced(context, now);
+    try {
+        return await configurationPromise;
+    } finally {
+        configurationPromise = null;
+    }
 }
 
 export async function loadConfiguration(context, now) {
@@ -89,4 +100,5 @@ export function validateApiKey(context) {
 export function resetCache() {
     cachedConfiguration = null;
     configurationTimestamp = null;
+    configurationPromise = null;
 }

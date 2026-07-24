@@ -4,6 +4,7 @@ import { loadConfiguration, resetCache, validateApiKey } from './utils/configura
 import { log, logError, logDebug } from './utils/log.js';
 import crypto from 'crypto';
 import zlib from 'zlib';
+import { promisify } from 'util';
 import stateLib from '@adobe/aio-lib-state';
 
 import { transformer as fetchFragment } from './transformers/fetchFragment.js';
@@ -18,10 +19,11 @@ import { transformer as wcs } from './transformers/wcs.js';
 import { isKnownLocale } from './locales.js';
 
 function calculateHash(body) {
-    return crypto.createHash('sha256').update(JSON.stringify(body)).digest('hex');
+    return crypto.createHash('sha256').update(body).digest('hex');
 }
 
 const PIPELINE = [fetchFragment, defaultLanguage, promotions, mask, customize, settings, replace, wcs, corrector];
+const brotliCompress = promisify(zlib.brotliCompress);
 
 const RESPONSE_HEADERS = {
     'Access-Control-Expose-Headers': 'X-Request-Id,Etag,Last-Modified,server-timing',
@@ -48,12 +50,15 @@ async function main(params) {
     mark(context, 'start');
     let returnValue;
     let cacheControl;
-    log(`starting request pipeline for ${JSON.stringify(context)}`, context);
+    log('starting request pipeline', context);
     if (context.preview) {
         logError('Preview mode is not supported in this pipeline', context);
         return {
             statusCode: 400,
-            headers: RESPONSE_HEADERS,
+            headers: {
+                ...RESPONSE_HEADERS,
+                'Cache-Control': 'no-store',
+            },
             message: 'Preview mode is not supported in this pipeline',
         };
     }
@@ -64,8 +69,8 @@ async function main(params) {
     try {
         const now = mark(context, 'config-check');
         context = await loadConfiguration(context, now);
-        const maxAge = context.networkConfig?.cacheMaxAge || 300;
-        const staleWhileRevalidate = context.networkConfig?.cacheStaleWhileRevalidate || 86400;
+        const maxAge = context.networkConfig?.cacheMaxAge ?? 300;
+        const staleWhileRevalidate = context.networkConfig?.cacheStaleWhileRevalidate ?? 86400;
         cacheControl = `public, max-age=${maxAge}, stale-while-revalidate=${staleWhileRevalidate}`;
 
         const validationResponse = validateApiKey(context);
@@ -100,9 +105,9 @@ async function main(params) {
     returnValue.headers = {
         ...returnValue.headers,
         ...RESPONSE_HEADERS,
-        'Cache-Control': cacheControl,
+        'Cache-Control': [200, 304].includes(returnValue.statusCode) ? cacheControl : 'no-store',
     };
-    returnValue.body = returnValue.body?.length > 0 ? zlib.brotliCompressSync(returnValue.body).toString('base64') : undefined;
+    returnValue.body = returnValue.body?.length > 0 ? (await brotliCompress(returnValue.body)).toString('base64') : undefined;
     logDebug(() => `full response: ${JSON.stringify(returnValue)}`, context);
     measureTiming(context, 'endProcess', 'end');
     const pipelineMeasure = measureTiming(context, 'pipeline', 'start');
@@ -138,7 +143,7 @@ async function mainProcess(context) {
         if (transformer.init) {
             //we fork context to avoid init to override any context property
             const initContext = {
-                ...structuredClone({ ...context, state: undefined }),
+                ...context,
                 state: context.state,
                 promises: initPromises,
                 fragmentsIds: context.fragmentsIds,

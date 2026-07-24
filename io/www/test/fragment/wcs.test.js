@@ -1,6 +1,11 @@
 import { expect } from 'chai';
 import sinon from 'sinon';
-import { MAS_ELEMENT_REGEXP, transformer as wcs } from '../../src/fragment/transformers/wcs.js';
+import {
+    MAS_ELEMENT_REGEXP,
+    WCS_CACHE_MAX_ENTRIES,
+    clearWcsCache,
+    transformer as wcs,
+} from '../../src/fragment/transformers/wcs.js';
 import { createResponse } from './mocks/MockFetch.js';
 import FRAGMENT from './mocks/fragment.json' with { type: 'json' };
 
@@ -34,6 +39,7 @@ describe('wcs typical cases', function () {
     let fetchStub;
 
     beforeEach(function () {
+        clearWcsCache();
         fetchStub = sinon.stub(globalThis, 'fetch');
         context = {
             api_key: 'testing_wcs',
@@ -240,6 +246,7 @@ describe('wcs corner cases', function () {
     let fetchStub;
 
     beforeEach(function () {
+        clearWcsCache();
         fetchStub = sinon.stub(globalThis, 'fetch');
         context = {
             api_key: 'testing_wcs',
@@ -316,6 +323,7 @@ describe('wcs OSI substitution', function () {
     const stubbedOffer = (name) => ({ resolvedOffers: [{ name }] });
 
     beforeEach(function () {
+        clearWcsCache();
         fetchStub = sinon.stub(globalThis, 'fetch');
         fetchStub.resolves(createResponse(200, stubbedOffer('default')));
         context = {
@@ -578,6 +586,7 @@ describe('wcs collection promos', function () {
     const stubbedOffer = (name) => ({ resolvedOffers: [{ name }] });
 
     beforeEach(function () {
+        clearWcsCache();
         fetchStub = sinon.stub(globalThis, 'fetch');
         fetchStub.resolves(createResponse(200, stubbedOffer('default')));
         context = {
@@ -634,5 +643,82 @@ describe('wcs collection promos', function () {
         expect(context.body.wcs.prod).to.have.property('OSI-A-us-mult-promo_a');
         expect(context.body.wcs.prod).to.have.property('OSI-BARE-us-mult');
         expect(context.body.wcs.prod).to.not.have.property('OSI-BARE-us-mult-promo_a');
+    });
+});
+
+describe('wcs artifact cache', function () {
+    let fetchStub;
+
+    const createContext = (osi = 'CACHE-OSI') => ({
+        api_key: 'testing_wcs',
+        locale: 'en_US',
+        networkConfig: { retries: 1 },
+        wcsConfiguration: CONFIGURATION(),
+        body: {
+            fields: {},
+            prices: `<span data-wcs-osi="${osi}"></span>`,
+        },
+    });
+
+    beforeEach(function () {
+        clearWcsCache();
+        fetchStub = sinon.stub(globalThis, 'fetch');
+    });
+
+    afterEach(function () {
+        fetchStub.restore();
+        clearWcsCache();
+    });
+
+    it('coalesces concurrent misses and reuses a positive result', async function () {
+        let resolveFetch;
+        fetchStub.returns(
+            new Promise((resolve) => {
+                resolveFetch = resolve;
+            }),
+        );
+
+        const first = wcs.process(createContext());
+        const second = wcs.process(createContext());
+        resolveFetch(createResponse(200, { resolvedOffers: [{ id: 'cached-offer' }] }));
+        const [firstResult, secondResult] = await Promise.all([first, second]);
+        const thirdResult = await wcs.process(createContext());
+
+        expect(fetchStub.calledOnce).to.be.true;
+        expect(firstResult.body.wcs.prod['CACHE-OSI-us-mult']).to.deep.equal([{ id: 'cached-offer' }]);
+        expect(secondResult.body.wcs.prod['CACHE-OSI-us-mult']).to.deep.equal([{ id: 'cached-offer' }]);
+        expect(thirdResult.body.wcs.prod['CACHE-OSI-us-mult']).to.deep.equal([{ id: 'cached-offer' }]);
+    });
+
+    it('uses a shorter negative cache for failed artifacts', async function () {
+        const clock = sinon.useFakeTimers();
+        try {
+            fetchStub.resolves(createResponse(404, {}, 'Not Found'));
+
+            await wcs.process(createContext());
+            await wcs.process(createContext());
+            expect(fetchStub.calledOnce).to.be.true;
+
+            await clock.tickAsync(10 * 1000 + 1);
+            await wcs.process(createContext());
+            expect(fetchStub.callCount).to.equal(2);
+        } finally {
+            clock.restore();
+        }
+    });
+
+    it('evicts the least-recently-used entry when the cache reaches its bound', async function () {
+        fetchStub.resolves(createResponse(200, { resolvedOffers: [] }));
+        const logStub = sinon.stub(console, 'log');
+        try {
+            for (let index = 0; index <= WCS_CACHE_MAX_ENTRIES; index += 1) {
+                await wcs.process(createContext(`CACHE-OSI-${index}`));
+            }
+            await wcs.process(createContext('CACHE-OSI-0'));
+
+            expect(fetchStub.callCount).to.equal(WCS_CACHE_MAX_ENTRIES + 2);
+        } finally {
+            logStub.restore();
+        }
     });
 });

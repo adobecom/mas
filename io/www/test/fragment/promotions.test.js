@@ -45,8 +45,10 @@ function makeProject({
     startDate = START,
     endDate = END,
     tags = [PROMO_TAG],
+    version,
+    lastModified,
 } = {}) {
-    return { id, path, fields: { surfaces, geos, startDate, endDate, tags } };
+    return { id, path, version, lastModified, fields: { surfaces, geos, startDate, endDate, tags } };
 }
 
 function makeHydratedProject({
@@ -106,6 +108,22 @@ describe('promotions', () => {
             fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [] }));
             const result = await promotionsTransformer.init(createContext());
             expect(result).to.deep.equal({ status: 200, activeProjects: [] });
+        });
+
+        it('coalesces concurrent promotion folder misses', async () => {
+            let resolveFolder;
+            fetchStub.withArgs(FOLDER_URL).returns(
+                new Promise((resolve) => {
+                    resolveFolder = resolve;
+                }),
+            );
+
+            const first = promotionsTransformer.init(createContext());
+            const second = promotionsTransformer.init(createContext());
+            resolveFolder(createResponse(200, { items: [] }));
+            await Promise.all([first, second]);
+
+            expect(fetchStub.withArgs(FOLDER_URL).calledOnce).to.be.true;
         });
 
         it('returns no active projects when project has no promotion tag', async () => {
@@ -443,6 +461,69 @@ describe('promotions', () => {
             await promotionsTransformer.init(createContext({ regionLocale: 'en_US' }));
 
             expect(fetchStub.withArgs(FOLDER_URL).callCount).to.equal(1);
+            expect(fetchStub.withArgs(hydrateUrl('proj-1')).callCount).to.equal(1);
+        });
+
+        it('reuses cached default-locale variations when the region locale changes', async () => {
+            const project = makeProject({ surfaces: ['acom'], geos: [] });
+            const hydrated = makeHydratedProject();
+            const defaultVariationsUrl =
+                'https://odin.adobe.com/adobe/contentFragments/?path=/content/dam/mas/acom/en_US/promotions/black-friday&limit=50';
+            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+            fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
+            fetchStub.withArgs(defaultVariationsUrl).returns(createResponse(200, { items: [] }));
+
+            await promotionsTransformer.init(createContext());
+            await promotionsTransformer.init(
+                createContext({
+                    promises: {
+                        defaultLanguage: Promise.resolve({
+                            status: 200,
+                            defaultLocale: 'en_US',
+                            regionLocale: 'en_GB',
+                        }),
+                    },
+                }),
+            );
+
+            expect(fetchStub.withArgs(defaultVariationsUrl).calledOnce).to.be.true;
+            expect(fetchStub.withArgs(hydrateUrl('proj-1')).callCount).to.equal(2);
+        });
+
+        it('limits concurrent project hydration', async () => {
+            const projects = Array.from({ length: 6 }, (_, index) =>
+                makeProject({
+                    id: `bounded-${index}`,
+                    tags: [`mas:promotion/bounded-${index}`],
+                }),
+            );
+            const hydrated = makeHydratedProject();
+            let active = 0;
+            let maxActive = 0;
+            const releases = [];
+            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: projects }));
+            fetchStub.withArgs(sinon.match((url) => /bounded-\d+\?references=all-hydrated$/.test(url))).callsFake(
+                () =>
+                    new Promise((resolve) => {
+                        active += 1;
+                        maxActive = Math.max(maxActive, active);
+                        releases.push(() => {
+                            active -= 1;
+                            resolve(createResponse(200, hydrated));
+                        });
+                    }),
+            );
+
+            const resultPromise = promotionsTransformer.init(createContext());
+            while (releases.length < 5) await new Promise((resolve) => setTimeout(resolve, 0));
+            expect(maxActive).to.equal(5);
+            releases.splice(0, 5).forEach((release) => release());
+            while (releases.length < 1) await new Promise((resolve) => setTimeout(resolve, 0));
+            releases.splice(0).forEach((release) => release());
+
+            const result = await resultPromise;
+            expect(result.activeProjects).to.have.length(6);
+            expect(maxActive).to.equal(5);
         });
 
         it('falls back to locale when defaultLanguage resolves without regionLocale', async () => {

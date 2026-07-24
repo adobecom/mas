@@ -3,25 +3,87 @@ import { log, logDebug, logError } from '../utils/log.js';
 
 const MAS_ELEMENT_REGEXP = /<[^>]+data-wcs-osi=\\"(?<osi>[^\\]+)\\"[^>]*?>/gm;
 const PROMOCODE_REGEXP = /(?<promo>data-promotion-code=\\"(?<promotionCode>[^\\]+)\\")/;
+const WCS_CACHE_POSITIVE_TTL = 60 * 1000;
+const WCS_CACHE_NEGATIVE_TTL = 10 * 1000;
+const WCS_CACHE_MAX_ENTRIES = 200;
+
+const artifactCache = new Map();
+const artifactInflight = new Map();
+
+export function clearWcsCache() {
+    artifactCache.clear();
+    artifactInflight.clear();
+}
+
+function artifactCacheKey(osi, promotionCode, wcsContext) {
+    return [
+        wcsContext.env,
+        wcsContext.wcsURL,
+        wcsContext.landscape,
+        wcsContext.locale?.toLowerCase(),
+        wcsContext.country?.toLowerCase(),
+        wcsContext.language?.toLowerCase(),
+        osi.trim().toLowerCase(),
+        promotionCode?.trim().toLowerCase(),
+    ]
+        .filter((value) => value)
+        .join('|');
+}
+
+function getCachedArtifact(key) {
+    const entry = artifactCache.get(key);
+    if (!entry) return null;
+    if (entry.expiresAt <= Date.now()) {
+        artifactCache.delete(key);
+        return null;
+    }
+    artifactCache.delete(key);
+    artifactCache.set(key, entry);
+    return entry;
+}
+
+function cacheArtifact(key, value) {
+    artifactCache.delete(key);
+    artifactCache.set(key, {
+        value,
+        expiresAt: Date.now() + (value ? WCS_CACHE_POSITIVE_TTL : WCS_CACHE_NEGATIVE_TTL),
+    });
+    if (artifactCache.size > WCS_CACHE_MAX_ENTRIES) {
+        artifactCache.delete(artifactCache.keys().next().value);
+    }
+    return value;
+}
 
 async function fetchArtifact(osi, promotionCode, wcsContext, idx) {
-    const url = new URL(wcsContext.wcsURL);
-    url.searchParams.set('country', wcsContext.country);
-    url.searchParams.set('locale', wcsContext.locale);
-    url.searchParams.set('landscape', wcsContext.landscape);
-    url.searchParams.set('api_key', wcsContext.context.api_key);
-    if (wcsContext.language) {
-        url.searchParams.set('language', wcsContext.language);
+    const key = artifactCacheKey(osi, promotionCode, wcsContext);
+    const cached = getCachedArtifact(key);
+    if (cached) return cached.value;
+    if (!artifactInflight.has(key)) {
+        artifactInflight.set(
+            key,
+            (async () => {
+                const url = new URL(wcsContext.wcsURL);
+                url.searchParams.set('country', wcsContext.country);
+                url.searchParams.set('locale', wcsContext.locale);
+                url.searchParams.set('landscape', wcsContext.landscape);
+                url.searchParams.set('api_key', wcsContext.context.api_key);
+                if (wcsContext.language) {
+                    url.searchParams.set('language', wcsContext.language);
+                }
+                url.searchParams.set('offer_selector_ids', osi);
+                if (promotionCode) {
+                    url.searchParams.set('promotion_code', promotionCode);
+                }
+                const response = await fetch(url.toString(), wcsContext.context, `wcs-req-${idx}`);
+                return cacheArtifact(key, response.status === 200 ? response.body : null);
+            })(),
+        );
     }
-    url.searchParams.set('offer_selector_ids', osi);
-    if (promotionCode) {
-        url.searchParams.set('promotion_code', promotionCode);
+    try {
+        return await artifactInflight.get(key);
+    } finally {
+        artifactInflight.delete(key);
     }
-    const response = await fetch(url.toString(), wcsContext.context, `wcs-req-${idx}`);
-    if (response.status === 200) {
-        return response.body;
-    }
-    return null;
 }
 
 async function computeCache(tokens, wcsContext) {
@@ -156,6 +218,7 @@ async function wcs(context) {
         };
         context.body.wcs ??= {};
         for (const config of wcsConfigs) {
+            wcsContext.env = config.env;
             wcsContext.wcsURL = config.wcsURL;
             wcsContext.landscape = config.landscape || 'PUBLISHED';
             if (country !== 'GB') wcsContext.language = 'MULT';
@@ -177,4 +240,4 @@ export const transformer = {
     name: 'wcs',
     process: wcs,
 };
-export { MAS_ELEMENT_REGEXP };
+export { MAS_ELEMENT_REGEXP, WCS_CACHE_MAX_ENTRIES };

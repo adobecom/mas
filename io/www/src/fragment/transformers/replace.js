@@ -9,6 +9,7 @@ const TRANSFORMER_NAME = 'replace';
 const CONFIG_CACHE_TTL = 5 * 60 * 1000;
 
 let dictionaryCache;
+const dictionaryInflight = new Map();
 
 export function clearDictionaryCache(preview = false) {
     if (preview) {
@@ -21,6 +22,7 @@ export function clearDictionaryCache(preview = false) {
     } else {
         dictionaryCache = undefined;
     }
+    dictionaryInflight.clear();
 }
 
 async function cacheKey(context) {
@@ -98,33 +100,51 @@ export async function getDictionary(context) {
     /* c8 ignore next 1 */
     if (context.hasExternalDictionary) return context.dictionary;
     const cachedDictionary = await getCachedDictionary(context);
-    if (cachedDictionary && !cachedDictionary.isExpired) return cachedDictionary.dictionary;
-    const dictionary = context.dictionary || {};
-    const { id } = await getDictionaryId(context);
-    if (!id) {
-        return dictionary;
+    if (cachedDictionary && !cachedDictionary.isExpired) {
+        return { ...cachedDictionary.dictionary, ...context.dictionary };
     }
-    const response = await fetch(odinReferences(id, true, context.preview), context, 'dictionary');
-    if (response.status == 200) {
-        const references = response.body.references;
-        const rootFragment = response.body;
+    const key = `${context.preview ? 'preview' : 'publish'}:${await cacheKey(context)}`;
+    if (!dictionaryInflight.has(key)) {
+        dictionaryInflight.set(
+            key,
+            (async () => {
+                const dictionary = {};
+                const { id } = await getDictionaryId(context);
+                if (!id) {
+                    return dictionary;
+                }
+                const response = await fetch(odinReferences(id, true, context.preview), context, 'dictionary');
+                if (response.status == 200) {
+                    const references = response.body.references;
+                    const rootFragment = response.body;
 
-        // Start processing from root fragment (handles hierarchical parent chain)
-        collectDictionariesEntries(rootFragment.id, rootFragment, references, dictionary);
+                    // Start processing from root fragment (handles hierarchical parent chain)
+                    collectDictionariesEntries(rootFragment.id, rootFragment, references, dictionary);
 
-        // Also process any additional entries in references not in entries array
-        Object.keys(references).forEach((refId) => {
-            const ref = references[refId]?.value?.fields;
-            if (ref?.key && !(ref.key in dictionary)) {
-                //we just test truthy keys as we can have empty placeholders
-                //(treated different from absent ones)
-                dictionary[ref.key] = extractValue(ref);
-            }
-        });
+                    // Also process any additional entries in references not in entries array
+                    Object.keys(references).forEach((refId) => {
+                        const ref = references[refId]?.value?.fields;
+                        if (ref?.key && !(ref.key in dictionary)) {
+                            //we just test truthy keys as we can have empty placeholders
+                            //(treated different from absent ones)
+                            dictionary[ref.key] = extractValue(ref);
+                        }
+                    });
 
-        return await cache(context, dictionary);
+                    return await cache(context, dictionary);
+                }
+                return dictionary;
+            })(),
+        );
     }
-    return dictionary;
+    try {
+        return {
+            ...(await dictionaryInflight.get(key)),
+            ...context.dictionary,
+        };
+    } finally {
+        dictionaryInflight.delete(key);
+    }
 }
 
 function replaceValues(input, dictionary, calls) {

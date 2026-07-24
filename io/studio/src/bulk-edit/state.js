@@ -6,6 +6,12 @@ const JOB_RUNNING_TTL = 30 * 60;
 const JOB_CACHE_TTL = 7 * 24 * 60 * 60;
 const USER_CSV_TTL = JOB_CACHE_TTL;
 const JOB_TTL = JOB_RUNNING_TTL;
+let statePromise;
+
+function getState() {
+    statePromise ||= init();
+    return statePromise;
+}
 
 function buildJobKey(jobId) {
     return `bulk-edit.${jobId}`;
@@ -36,13 +42,13 @@ function decodeStateValue(raw) {
 }
 
 async function writeJob(jobId, value, ttl = JOB_RUNNING_TTL) {
-    const state = await init();
+    const state = await getState();
     await state.put(buildJobKey(jobId), encodeStateValue(value), { ttl });
     return value;
 }
 
 async function readJob(jobId) {
-    const state = await init();
+    const state = await getState();
     const result = await state.get(buildJobKey(jobId));
     if (!result?.value) return null;
     return decodeStateValue(result.value);
@@ -54,57 +60,57 @@ async function patchJob(jobId, patch, ttl = JOB_RUNNING_TTL) {
 }
 
 async function writeUserCsv(jobId, value, ttl = USER_CSV_TTL) {
-    const state = await init();
+    const state = await getState();
     await state.put(buildUserCsvKey(jobId), JSON.stringify(value), { ttl });
     return value;
 }
 
 async function readUserCsv(jobId) {
-    const state = await init();
+    const state = await getState();
     const result = await state.get(buildUserCsvKey(jobId));
     if (!result?.value) return null;
     return JSON.parse(result.value);
 }
 
 async function deleteUserCsv(jobId) {
-    const state = await init();
+    const state = await getState();
     await state.delete(buildUserCsvKey(jobId));
 }
 
 async function writeReport(jobId, value, ttl = JOB_CACHE_TTL) {
-    const state = await init();
+    const state = await getState();
     await state.put(buildReportKey(jobId), JSON.stringify(value), { ttl });
     return value;
 }
 
 async function readReport(jobId) {
-    const state = await init();
+    const state = await getState();
     const result = await state.get(buildReportKey(jobId));
     if (!result?.value) return null;
     return JSON.parse(result.value);
 }
 
 async function writeDryRun(jobId, value, ttl = JOB_CACHE_TTL) {
-    const state = await init();
+    const state = await getState();
     await state.put(buildDryRunKey(jobId), encodeStateValue(value), { ttl });
     return value;
 }
 
 async function readDryRun(jobId) {
-    const state = await init();
+    const state = await getState();
     const result = await state.get(buildDryRunKey(jobId));
     if (!result?.value) return null;
     return decodeStateValue(result.value);
 }
 
 async function writeResults(jobId, items, ttl = JOB_CACHE_TTL) {
-    const state = await init();
+    const state = await getState();
     await state.put(buildResultsKey(jobId), encodeStateValue(items || []), { ttl });
     return items;
 }
 
 async function readResults(jobId) {
-    const state = await init();
+    const state = await getState();
     const result = await state.get(buildResultsKey(jobId));
     if (!result?.value) return null;
     return decodeStateValue(result.value);
@@ -113,16 +119,18 @@ async function readResults(jobId) {
 async function touchJobCache(jobId, job) {
     const ttl = JOB_CACHE_TTL;
     await writeJob(jobId, job, ttl);
-    const results = await readResults(jobId);
-    if (results?.length) await writeResults(jobId, results, ttl);
-    const report = await readReport(jobId);
-    if (report) await writeReport(jobId, report, ttl);
-    const dryRun = await readDryRun(jobId);
-    if (dryRun?.length) await writeDryRun(jobId, dryRun, ttl);
-    if (job.type !== 'replace') {
-        const userCsv = await readUserCsv(jobId);
-        if (userCsv) await writeUserCsv(jobId, userCsv, ttl);
-    }
+    const [results, report, dryRun, userCsv] = await Promise.all([
+        readResults(jobId),
+        readReport(jobId),
+        readDryRun(jobId),
+        job.type !== 'replace' ? readUserCsv(jobId) : null,
+    ]);
+    await Promise.all([
+        results?.length ? writeResults(jobId, results, ttl) : null,
+        report ? writeReport(jobId, report, ttl) : null,
+        dryRun?.length ? writeDryRun(jobId, dryRun, ttl) : null,
+        userCsv ? writeUserCsv(jobId, userCsv, ttl) : null,
+    ]);
 }
 
 module.exports = {

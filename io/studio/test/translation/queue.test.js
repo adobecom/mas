@@ -139,6 +139,14 @@ describe('Translation queue helpers', () => {
         expect(length).to.equal(3);
     });
 
+    it('should reuse one State client across queue and lock operations', async () => {
+        await queueHelpers.getPendingQueue();
+        await queueHelpers.putPendingQueue(['job-1']);
+        await queueHelpers.acquireQueueLock('dispatcher-1');
+
+        expect(initStub).to.have.been.calledOnce;
+    });
+
     it('should acquire and release the queue lock for the same owner', async () => {
         mockState.get.onFirstCall().resolves(null);
         mockState.get.onSecondCall().resolves({

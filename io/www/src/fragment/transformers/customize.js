@@ -386,7 +386,7 @@ function adaptReferencesTree(referencesTree, customizedRoot) {
             cardTreeMap.set(entry.identifier, entry);
         } else if (entry.fieldName === 'collections') {
             collectionTreeMap.set(entry.identifier, entry);
-        } else {
+        } else if (entry.fieldName !== 'variations') {
             otherEntries.push(entry);
         }
     }
@@ -412,9 +412,18 @@ function adaptReferencesTree(referencesTree, customizedRoot) {
  * @returns
  */
 function customizeTree(root, referencesTree = [], customizeContext) {
+    for (const variationId of root.fields?.variations ?? []) {
+        if (variationId) customizeContext.resolvedVariationIds.add(variationId);
+    }
+    for (const reference of referencesTree) {
+        if (reference.fieldName === 'variations') {
+            customizeContext.resolvedVariationIds.add(reference.identifier);
+        }
+    }
     const selectedPromoProject = selectPromoProjectForFragment(root, customizeContext);
     //apply regional or promo variation, if any.
     const customizedRoot = mergeVariations(root, customizeContext, selectedPromoProject);
+    if (customizedRoot.fields) delete customizedRoot.fields.variations;
     if (selectedPromoProject) {
         // set data-promotion-project attribute, even when the project
         // only substitutes the OSI (no promo code and no variation).
@@ -487,6 +496,7 @@ async function customize(context) {
         promoProjects,
         regionLocale,
         references,
+        resolvedVariationIds: new Set(),
         surface,
     };
     if (
@@ -502,13 +512,17 @@ async function customize(context) {
     const customizedTree = customizeTree(baseFragment, referencesTree, customizeContext);
     let { fragment: customizedFragment } = customizedTree;
     const { references: customizedReferences, referencesTree: customizedReferenceTree } = customizedTree;
+    const responseReferences = { ...customizedReferences };
+    for (const variationId of customizeContext.resolvedVariationIds) {
+        delete responseReferences[variationId];
+    }
 
     if (maskFragment && customizedFragment.model?.id === CARD_MODEL_ID) {
         logDebug(() => `Applying mask ${maskFragment.id} on fragment ${customizedFragment.id}`, context);
         customizedFragment = deepMerge(customizedFragment, maskFragment);
         customizedFragment.maskId = maskFragment.id;
     }
-    customizedFragment.references = customizedReferences;
+    customizedFragment.references = responseReferences;
     customizedFragment.referencesTree = customizedReferenceTree;
     return {
         ...context,

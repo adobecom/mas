@@ -146,10 +146,10 @@ class MasField extends HTMLElement {
         return { fieldName: match[1], index: match[2] };
     }
 
-    /** Returns the Nth link in the HTML. Strips its class unless keepClass —
-     *  ctas need the class (it's the button style), other fields don't.
-     *  Parses with <template> so a checkout-link stays plain HTML instead of
-     *  becoming a live element. */
+    /** Returns the Nth anchor element in the HTML, or null. Strips its class
+     *  unless keepClass — ctas keep it (it's the button style), other fields
+     *  don't. Parses with <template> so a checkout-link anchor is never upgraded
+     *  to a live custom element; its attributes are read exactly as authored. */
     #extractIndexedAnchor(html, index, keepClass) {
         if (typeof html !== 'string') return null;
         const template = document.createElement('template');
@@ -164,7 +164,7 @@ class MasField extends HTMLElement {
         }
         if (!anchor) return null;
         if (!keepClass) anchor.removeAttribute('class');
-        return anchor.outerHTML;
+        return anchor;
     }
 
     #setFragmentIds() {
@@ -193,31 +193,29 @@ class MasField extends HTMLElement {
         if (fieldValue === undefined) return;
         this.#setFragmentIds();
         const content = this.#ensureContentElement();
-        let html;
+        const isCtas = fieldName === 'ctas';
+
         if (index !== null) {
-            html = this.#extractIndexedAnchor(
-                fieldValue,
-                index,
-                fieldName === 'ctas',
-            );
-            if (html === null) return;
-        } else {
-            html = this.#unwrapSingleParagraph(fieldValue);
+            const anchor = this.#extractIndexedAnchor(fieldValue, index, isCtas);
+            if (!anchor) return;
+            if (isCtas) {
+                const cta = this.#buildCtaButton(anchor);
+                if (cta) {
+                    content.replaceChildren(cta);
+                    return;
+                }
+            }
+            content.innerHTML = anchor.outerHTML;
+            return;
         }
+
+        const html = this.#unwrapSingleParagraph(fieldValue);
         if (typeof html === 'string') {
-            if (fieldName === 'ctas') {
-                if (index !== null) {
-                    const cta = this.#buildCtaFromHtml(html);
-                    if (cta) {
-                        content.replaceChildren(cta);
-                        return;
-                    }
-                } else {
-                    const ctaEl = this.#renderCtaField(html);
-                    if (ctaEl) {
-                        content.replaceChildren(ctaEl);
-                        return;
-                    }
+            if (isCtas) {
+                const ctaEl = this.#renderCtaField(html);
+                if (ctaEl) {
+                    content.replaceChildren(ctaEl);
+                    return;
                 }
             }
             content.innerHTML = html;
@@ -262,14 +260,6 @@ class MasField extends HTMLElement {
                 button.classList.add('fill');
         }
         return button;
-    }
-
-    /** Same as #renderCtaField, but for one inline link — no footer wrapper. */
-    #buildCtaFromHtml(html) {
-        const doc = new DOMParser().parseFromString(html, 'text/html');
-        const link = doc.body.querySelector('a');
-        if (!link) return null;
-        return this.#buildCtaButton(link);
     }
 
     /**

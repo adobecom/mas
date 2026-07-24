@@ -50,7 +50,8 @@ const DEFAULT_CONTEXT = {
     networkConfig: {
         mainTimeout: 20000,
         fetchTimeout: 15000,
-        retries: 3,
+        retries: 1,
+        retryDelay: 1000,
     },
     locale: 'en_US',
 };

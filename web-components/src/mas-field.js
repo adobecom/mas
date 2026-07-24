@@ -1,4 +1,8 @@
-import { EVENT_AEM_LOAD, FF_DEFAULTS } from './constants.js';
+import {
+    EVENT_AEM_LOAD,
+    FF_DEFAULTS,
+    TEMPLATE_PRICE_LEGAL,
+} from './constants.js';
 import { getService, shouldHideStPriceLabels } from './utils.js';
 
 const MAS_FIELD_TAG = 'mas-field';
@@ -19,6 +23,15 @@ export function priceOptionsProvider(element, options) {
     if (shouldHideStPriceLabels(element)) {
         options.displayPerUnit = false;
         options.displayTax = false;
+    }
+
+    // Legal disclaimers show the plan type based on the fragment's
+    // displayPlanType setting, mirroring the merch-card variant provider.
+    // mas-field renders legal templates outside a card, so it must apply the
+    // setting itself, otherwise the plan type is always dropped.
+    if (element.dataset.template === TEMPLATE_PRICE_LEGAL) {
+        options.displayPlanType =
+            masField.aemFragment?.data?.settings?.displayPlanType ?? false;
     }
 
     if (!options.promotionCode) {

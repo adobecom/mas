@@ -127,6 +127,9 @@ export async function createPromoVariation(aem, sourceFragmentId, promoTagId, ge
     }
 
     const existingVariations = await probePromoVariationsForFragment(aem, sourceFragment.path, promoTagId);
+    if (!geoTags.length && existingVariations.some((variation) => !variation.pznTags?.length)) {
+        throw new UserFriendlyError('A variation with no geos already exists for this project.');
+    }
     const overlapping = findOverlappingGeoTags(existingVariations, geoTags);
     if (overlapping.length) {
         throw new UserFriendlyError(

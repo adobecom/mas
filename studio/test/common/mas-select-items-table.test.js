@@ -4,7 +4,13 @@ import { fixture, fixtureCleanup } from '@open-wc/testing-helpers/pure';
 import sinon from 'sinon';
 import Store from '../../src/store.js';
 import { setItemsSelectionStore } from '../../src/common/items-selection-store.js';
-import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, TABLE_TYPE, FRAGMENT_STATUS } from '../../src/constants.js';
+import {
+    CARD_MODEL_PATH,
+    COLLECTION_MODEL_PATH,
+    TABLE_TYPE,
+    FRAGMENT_STATUS,
+    VARIATION_TAB_NAME,
+} from '../../src/constants.js';
 import { renderFragmentStatusCell } from '../../src/translation/translation-utils.js';
 import '../../src/swc.js';
 import '../../src/translation/mas-collapsible-table-row.js';
@@ -170,6 +176,96 @@ describe('MasSelectItemsTable', () => {
         });
     });
 
+    describe('tableColumns getter', () => {
+        it('exposes selectable card columns', async () => {
+            const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            await el.updateComplete;
+            expect(el.tableColumns.map((c) => c.key)).to.deep.equal([
+                'chevron',
+                'checkbox',
+                'offer',
+                'fragmentTitle',
+                'offerId',
+                'path',
+                'status',
+            ]);
+        });
+
+        it('exposes view-only card columns without actions or preview by default', async () => {
+            const el = await fixture(html`<mas-select-items-table type="cards" .viewOnly=${true}></mas-select-items-table>`);
+            await el.updateComplete;
+            expect(el.tableColumns.map((c) => c.key)).to.deep.equal([
+                'chevron',
+                'offer',
+                'fragmentTitle',
+                'offerId',
+                'path',
+                'itemType',
+                'status',
+            ]);
+        });
+
+        it('appends preview and actions columns for view-only cards when those renderers are provided', async () => {
+            const el = await fixture(
+                html`<mas-select-items-table
+                    type="cards"
+                    .viewOnly=${true}
+                    .renderPreviewCell=${() => html`preview`}
+                    .renderActionsCell=${() => html`actions`}
+                ></mas-select-items-table>`,
+            );
+            await el.updateComplete;
+            expect(el.tableColumns.map((c) => c.key)).to.deep.equal([
+                'chevron',
+                'offer',
+                'fragmentTitle',
+                'offerId',
+                'path',
+                'itemType',
+                'status',
+                'preview',
+                'actions',
+            ]);
+        });
+
+        it('exposes selectable collection columns', async () => {
+            const el = await fixture(html`<mas-select-items-table type="collections"></mas-select-items-table>`);
+            await el.updateComplete;
+            expect(el.tableColumns.map((c) => c.key)).to.deep.equal(['checkbox', 'collectionTitle', 'path', 'status']);
+        });
+
+        it('exposes view-only collection columns without a preview column even when a preview renderer is provided', async () => {
+            const el = await fixture(
+                html`<mas-select-items-table
+                    type="collections"
+                    .viewOnly=${true}
+                    .renderPreviewCell=${() => html`preview`}
+                    .renderActionsCell=${() => html`actions`}
+                ></mas-select-items-table>`,
+            );
+            await el.updateComplete;
+            expect(el.tableColumns.map((c) => c.key)).to.deep.equal(['collectionTitle', 'path', 'status', 'actions']);
+        });
+
+        it('exposes selectable placeholder columns', async () => {
+            const el = await fixture(html`<mas-select-items-table type="placeholders"></mas-select-items-table>`);
+            await el.updateComplete;
+            expect(el.tableColumns.map((c) => c.key)).to.deep.equal(['checkbox', 'key', 'value', 'status']);
+        });
+
+        it('never appends actions to view-only placeholder columns', async () => {
+            const el = await fixture(
+                html`<mas-select-items-table
+                    type="placeholders"
+                    .viewOnly=${true}
+                    .renderActionsCell=${() => html`actions`}
+                ></mas-select-items-table>`,
+            );
+            await el.updateComplete;
+            expect(el.tableColumns.map((c) => c.key)).to.deep.equal(['key', 'value', 'status']);
+        });
+    });
+
     describe('typeUppercased getter', () => {
         it('should return Cards for cards type', async () => {
             const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
@@ -265,6 +361,12 @@ describe('MasSelectItemsTable', () => {
             el.viewOnlyLoading = true;
             expect(el.isLoading).to.be.true;
         });
+
+        it('should return false for a type without a defined loading behavior', () => {
+            const el = document.createElement('mas-select-items-table');
+            el.type = 'offers';
+            expect(el.isLoading).to.be.false;
+        });
     });
 
     describe('itemsToDisplay getter', () => {
@@ -312,31 +414,6 @@ describe('MasSelectItemsTable', () => {
             el.viewOnlyFragments = [];
             await el.updateComplete;
             expect(el.itemsToDisplay).to.deep.equal([]);
-        });
-
-        it('should filter out promo variation items when hidePromoVariations is true', async () => {
-            const el = await fixture(
-                html`<mas-select-items-table type="cards" .hidePromoVariations=${true}></mas-select-items-table>`,
-            );
-            await el.updateComplete;
-            const promoCard = createMockCard('/content/dam/mas/acom/en_US/promotions/black-friday/promo-card', 'Promo Card');
-            const regularCard = createMockCard('/content/dam/mas/acom/en_US/cards/regular', 'Regular Card');
-            setupCardsInStore([promoCard, regularCard]);
-            await el.updateComplete;
-            expect(el.itemsToDisplay.length).to.equal(1);
-            expect(el.itemsToDisplay[0].path).to.equal(regularCard.path);
-        });
-
-        it('should include promo variation items when hidePromoVariations is false', async () => {
-            const el = await fixture(
-                html`<mas-select-items-table type="cards" .hidePromoVariations=${false}></mas-select-items-table>`,
-            );
-            await el.updateComplete;
-            const promoCard = createMockCard('/content/dam/mas/acom/en_US/promotions/black-friday/promo-card', 'Promo Card');
-            const regularCard = createMockCard('/content/dam/mas/acom/en_US/cards/regular', 'Regular Card');
-            setupCardsInStore([promoCard, regularCard]);
-            await el.updateComplete;
-            expect(el.itemsToDisplay.length).to.equal(2);
         });
     });
 
@@ -468,22 +545,19 @@ describe('MasSelectItemsTable', () => {
             expect(offerCell === '-' || offerCell === 'no offer name').to.be.true;
         });
 
-        it('should forward nonSelectableVariations to mas-collapsible-table-row', async () => {
+        it('should forward selectableTabs to mas-collapsible-table-row', async () => {
             const el = await fixture(
-                html`<mas-select-items-table
-                    type="cards"
-                    .nonSelectableVariations=${['groupedVariation']}
-                ></mas-select-items-table>`,
+                html`<mas-select-items-table type="cards" .selectableTabs=${['groupedVariation']}></mas-select-items-table>`,
             );
             await el.updateComplete;
             setupCardsInStore([createMockCard('/path/card1', 'Test Card')]);
             await el.updateComplete;
             const collapsibleRow = el.shadowRoot.querySelector('mas-collapsible-table-row');
-            expect(collapsibleRow.nonSelectableVariations).to.deep.equal(['groupedVariation']);
+            expect(collapsibleRow.selectableTabs).to.deep.equal(['groupedVariation']);
         });
 
         it('should forward tabs to mas-collapsible-table-row', async () => {
-            const customTabs = [{ label: 'Promotion', key: 'promotion' }];
+            const customTabs = [VARIATION_TAB_NAME.PROMOTION];
             const el = await fixture(html`<mas-select-items-table type="cards" .tabs=${customTabs}></mas-select-items-table>`);
             await el.updateComplete;
             setupCardsInStore([createMockCard('/path/card1', 'Test Card')]);
@@ -724,6 +798,47 @@ describe('MasSelectItemsTable', () => {
                 await el.updateComplete;
                 expect(Store.translationProjects.selectedCards.get()).to.not.include('/path/card1');
             }
+        });
+    });
+
+    describe('collections/placeholders selection interaction', () => {
+        it('adds a collection path to the store when its checkbox is checked', async () => {
+            const el = await fixture(html`<mas-select-items-table type="collections"></mas-select-items-table>`);
+            await el.updateComplete;
+            const collections = [createMockCollection('/path/col1', 'Collection 1')];
+            setupCollectionsInStore(collections);
+            await el.updateComplete;
+            const checkbox = el.shadowRoot.querySelector('sp-table-row sp-checkbox');
+            expect(checkbox).to.exist;
+            checkbox.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+            await el.updateComplete;
+            expect(Store.translationProjects.selectedCollections.get()).to.include('/path/col1');
+        });
+
+        it('removes a collection path from the store when its row is clicked outside the checkbox while selected', async () => {
+            const el = await fixture(html`<mas-select-items-table type="collections"></mas-select-items-table>`);
+            await el.updateComplete;
+            const collections = [createMockCollection('/path/col1', 'Collection 1')];
+            setupCollectionsInStore(collections);
+            Store.translationProjects.selectedCollections.set(['/path/col1']);
+            await el.updateComplete;
+            const row = el.shadowRoot.querySelector('sp-table-row');
+            const titleCell = row.querySelectorAll('sp-table-cell')[1];
+            titleCell.dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
+            await el.updateComplete;
+            expect(Store.translationProjects.selectedCollections.get()).to.not.include('/path/col1');
+        });
+
+        it('ignores the row click for selection when the click originates from the checkbox itself', async () => {
+            const el = await fixture(html`<mas-select-items-table type="placeholders"></mas-select-items-table>`);
+            await el.updateComplete;
+            const placeholders = [createMockPlaceholder('/path/ph1', 'key1', 'value1')];
+            setupPlaceholdersInStore(placeholders);
+            await el.updateComplete;
+            const checkbox = el.shadowRoot.querySelector('sp-table-row sp-checkbox');
+            checkbox.dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
+            await el.updateComplete;
+            expect(Store.translationProjects.selectedPlaceholders.get()).to.deep.equal([]);
         });
     });
 
@@ -1033,6 +1148,61 @@ describe('MasSelectItemsTable', () => {
             await el.updateComplete;
             expect(el.shadowRoot.querySelector('sp-table-row.skeleton-row')).to.be.null;
             expect(el.shadowRoot.querySelector('sp-table')).to.exist;
+        });
+
+        it('clears viewOnlyLoading for placeholders once the global placeholders list finishes loading', async () => {
+            Store.placeholders.list.loading.set(true);
+            const el = await fixture(
+                html`<mas-select-items-table type="placeholders" .viewOnly=${true}></mas-select-items-table>`,
+            );
+            el.viewOnlyLoading = true;
+            await el.updateComplete;
+            expect(el.viewOnlyLoading).to.be.true;
+
+            Store.placeholders.list.loading.set(false);
+            await el.updateComplete;
+            expect(el.viewOnlyLoading).to.be.false;
+        });
+    });
+
+    describe('pagination on scroll-loading completion', () => {
+        const createMockRepository = () => {
+            const repo = document.createElement('mas-repository');
+            document.body.appendChild(repo);
+            return repo;
+        };
+
+        afterEach(() => {
+            document.querySelector('mas-repository')?.remove();
+            Store.fragments.list.hasMore.set(false);
+        });
+
+        it('loads the next page once loading finishes while more items remain', async () => {
+            Store.fragments.list.loading.set(true);
+            const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            await el.updateComplete;
+
+            const repo = createMockRepository();
+            repo.loadNextPage = sandbox.stub();
+            Store.fragments.list.hasMore.set(true);
+            Store.fragments.list.loading.set(false);
+            await el.updateComplete;
+
+            expect(repo.loadNextPage.calledOnce).to.be.true;
+        });
+
+        it('does not load the next page for placeholders even when loading finishes with more items', async () => {
+            Store.fragments.list.loading.set(true);
+            const el = await fixture(html`<mas-select-items-table type="placeholders"></mas-select-items-table>`);
+            await el.updateComplete;
+
+            const repo = createMockRepository();
+            repo.loadNextPage = sandbox.stub();
+            Store.fragments.list.hasMore.set(true);
+            Store.fragments.list.loading.set(false);
+            await el.updateComplete;
+
+            expect(repo.loadNextPage.called).to.be.false;
         });
     });
 

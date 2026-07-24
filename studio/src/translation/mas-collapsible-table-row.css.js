@@ -176,6 +176,24 @@ export const styles = [
             flex-shrink: 0;
         }
 
+        .preview-cell {
+            justify-content: flex-start;
+            text-align: start;
+        }
+
+        .preview-cell sp-icon-preview {
+            cursor: default;
+        }
+
+        .actions-cell {
+            justify-content: flex-start;
+            align-items: center;
+        }
+
+        .actions-cell sp-action-menu {
+            flex: 0 0 auto;
+        }
+
         .variation-details-row {
             sp-table-cell {
                 background-color: var(--spectrum-gray-50);

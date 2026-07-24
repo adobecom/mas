@@ -1090,7 +1090,7 @@ describe('promotion-editor-utils', () => {
     describe('handlePromotionOstOfferSelect', () => {
         beforeEach(() => {
             Store.promotions.selectedOffers.set([]);
-            Store.promotions.offerDataCache.clear();
+            Store.promotions.offerRecordsCache.clear();
             setItemsSelectionStore(Store.promotions);
         });
 
@@ -1107,7 +1107,7 @@ describe('promotion-editor-utils', () => {
             });
             expect(added).to.be.true;
             expect(Store.promotions.selectedOffers.get()).to.deep.equal(['phsp-osi']);
-            expect(Store.promotions.offerDataCache.has('phsp-osi')).to.be.true;
+            expect(Store.promotions.offerRecordsCache.has('phsp-osi')).to.be.true;
         });
 
         it('returns false and does not duplicate when offer is already selected', async () => {

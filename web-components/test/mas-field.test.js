@@ -190,16 +190,17 @@ describe('mas-field – indexed CTA fields (ctas[N])', () => {
         expect(a.textContent).to.equal('Free trial');
     });
 
-    it('styles the indexed CTA as a con-button', () => {
+    it('strips the class from the indexed CTA so the host owns styling', () => {
         const el = makeIndexedField(1, THREE_CTAS);
         const a = el.querySelector('[data-role="mas-field-content"] a');
-        expect(a.classList.contains('con-button')).to.be.true;
+        expect(a.hasAttribute('class')).to.be.false;
     });
 
-    it('preserves data-wcs-osi on the indexed CTA', () => {
+    it('preserves data-wcs-osi and is on the indexed CTA', () => {
         const el = makeIndexedField(1, THREE_CTAS);
         const a = el.querySelector('[data-role="mas-field-content"] a');
         expect(a.getAttribute('data-wcs-osi')).to.equal('osi1');
+        expect(a.getAttribute('is')).to.equal('checkout-link');
     });
 
     it('does not create a slot="footer" wrapper', () => {

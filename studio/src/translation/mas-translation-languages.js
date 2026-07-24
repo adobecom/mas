@@ -3,8 +3,14 @@ import { styles } from './mas-translation-languages.css.js';
 import Store from '../store.js';
 import { getDefaultLocales, getSurfaceLocales, getLocaleCode, REGION_GROUPS } from '../locales.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
+import {
+    SearchableListMixin,
+    computeSelectAllChecked,
+    computeSelectAllIndeterminate,
+    computeSelectionCountLabel,
+} from '../common/utils/selectable-list.js';
 
-class MasTranslationLanguages extends LitElement {
+class MasTranslationLanguages extends SearchableListMixin(LitElement) {
     static styles = styles;
 
     static properties = {
@@ -38,23 +44,19 @@ class MasTranslationLanguages extends LitElement {
     }
 
     get filteredLocales() {
-        if (!this.searchQuery) return this.localesArray;
-        const q = this.searchQuery.toLowerCase();
-        return this.localesArray.filter((item) => item.locale.toLowerCase().includes(q));
+        return this.filterBySearchQuery(this.localesArray, (item) => item.locale);
     }
 
     get selectAllChecked() {
-        return this.selectedLocales.length === this.localesArray.length;
+        return computeSelectAllChecked(this.localesArray.length, this.selectedLocales.length);
     }
 
     get selectAllIndeterminate() {
-        return this.selectedLocales.length > 0 && this.selectedLocales.length < this.localesArray.length;
+        return computeSelectAllIndeterminate(this.localesArray.length, this.selectedLocales.length);
     }
 
     get numberOfLocales() {
-        const count = this.selectedLocales.length;
-        if (count) return `${count} ${count === 1 ? 'language' : 'languages'} selected`;
-        return `${this.localesArray.length} languages`;
+        return computeSelectionCountLabel(this.selectedLocales.length, this.localesArray.length, 'language');
     }
 
     get groupedLocales() {
@@ -68,10 +70,6 @@ class MasTranslationLanguages extends LitElement {
         const other = filteredLocales.filter((item) => !grouped.has(item));
         if (other.length) groups.push({ name: 'Other', locales: other });
         return groups;
-    }
-
-    handleSearch(e) {
-        this.searchQuery = e.target.value;
     }
 
     selectAll(e) {

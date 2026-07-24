@@ -393,4 +393,27 @@ test.describe('ACOM MAS Promotions feature test suite', () => {
             await expect(acomPage.getCardStrikethroughPrice(data.id)).toHaveCSS('text-decoration-line', 'line-through');
         });
     });
+
+    // @MAS-Promotions-Geo-Variation-Survives-Sibling-Deletion
+    test(`${features[6].name},${features[6].tags}`, async () => {
+        const { data } = features[6];
+
+        await test.step('step-1: Verify surviving geo variation on DE with preview', async () => {
+            const page = workerSetup.getPage('DE_co');
+            const acomPage = new MasPlans(page);
+            await workerSetup.verifyPageURL('DE_co', DOCS_GALLERY_PATH.PLANS_COLLECTION.DE_co, expect);
+            await expect(acomPage.getCard(data.id)).toBeVisible();
+            await expect(acomPage.getCard(data.id)).toHaveAttribute('variation-id', data.variation_id);
+            await expect(acomPage.getCard(data.id)).toHaveAttribute('data-promotion-project', /.+/);
+        });
+
+        await test.step('step-2: Verify surviving geo variation on DE without preview', async () => {
+            const page = workerSetup.getPage('DE_co_base');
+            const acomPage = new MasPlans(page);
+            await workerSetup.verifyPageURL('DE_co_base', DOCS_GALLERY_PATH.PLANS_COLLECTION.DE_co, expect);
+            await expect(acomPage.getCard(data.id)).toBeVisible();
+            await expect(acomPage.getCard(data.id)).toHaveAttribute('variation-id', data.variation_id);
+            await expect(acomPage.getCard(data.id)).toHaveAttribute('data-promotion-project', /.+/);
+        });
+    });
 });

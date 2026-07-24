@@ -354,7 +354,7 @@ describe('promotion-variations', () => {
             expect(result).to.deep.equal([]);
         });
 
-        it('returns one entry for the unsuffixed variation and stops at the first missing suffix', async () => {
+        it('returns one entry for the unsuffixed variation when no suffixed siblings exist', async () => {
             const variation1Path = '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card';
             const getByPath = sandbox.stub();
             getByPath.withArgs(variation1Path).resolves({
@@ -380,7 +380,7 @@ describe('promotion-variations', () => {
             });
         });
 
-        it('finds multiple suffixed variations in order and stops at the first missing one', async () => {
+        it('finds multiple suffixed variations in order when they are all contiguous', async () => {
             const variation1Path = '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card';
             const variation2Path = '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card-2';
             const getByPath = sandbox.stub();
@@ -411,6 +411,28 @@ describe('promotion-variations', () => {
                 fields: [{ name: 'pznTags', values: ['mas:pzn/country/fr'] }],
                 tags: undefined,
             });
+        });
+
+        it('finds a variation past a gap left by deleting a lower-indexed sibling', async () => {
+            const variation1Path = '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card';
+            const variation3Path = '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card-3';
+            const getByPath = sandbox.stub();
+            getByPath.withArgs(variation1Path).resolves({
+                id: 'var-1',
+                path: variation1Path,
+                fields: [{ name: 'pznTags', values: ['mas:pzn/country/ar'] }],
+            });
+            getByPath.withArgs(variation3Path).resolves({
+                id: 'var-3',
+                path: variation3Path,
+                fields: [{ name: 'pznTags', values: ['mas:pzn/country/eg'] }],
+            });
+            getByPath.resolves(null);
+            const aem = createAemMock({ fragments: { getByPath } });
+
+            const result = await probePromoVariationsForFragment(aem, defaultPath, promoTag);
+            expect(result.map((variation) => variation.index)).to.deep.equal([1, 3]);
+            expect(result[1].id).to.equal('var-3');
         });
     });
 
@@ -461,18 +483,22 @@ describe('promotion-variations', () => {
         const defaultPath = '/content/dam/mas/sandbox/en_US/my-card';
 
         it('returns 1 when there are no existing variations, regardless of attached fragments', () => {
-            expect(getNextAvailablePromoVariationIndex(0, defaultPath, ['/content/dam/mas/sandbox/en_US/my-card-2'])).to.equal(
+            expect(getNextAvailablePromoVariationIndex([], defaultPath, ['/content/dam/mas/sandbox/en_US/my-card-2'])).to.equal(
                 1,
             );
         });
 
-        it('returns existingCount + 1 when that index does not collide with an attached fragment', () => {
-            expect(getNextAvailablePromoVariationIndex(1, defaultPath, [])).to.equal(2);
+        it('returns the next index after the highest used one when it does not collide with an attached fragment', () => {
+            expect(getNextAvailablePromoVariationIndex([1], defaultPath, [])).to.equal(2);
         });
 
         it('skips an index that would collide with another attached fragment in the same project', () => {
             const attached = ['/content/dam/mas/sandbox/en_US/my-card-2'];
-            expect(getNextAvailablePromoVariationIndex(1, defaultPath, attached)).to.equal(3);
+            expect(getNextAvailablePromoVariationIndex([1], defaultPath, attached)).to.equal(3);
+        });
+
+        it('fills a gap left by a deleted sibling instead of colliding with a surviving higher index', () => {
+            expect(getNextAvailablePromoVariationIndex([1, 3], defaultPath, [])).to.equal(2);
         });
 
         it('throws when every index up to the safety cap collides with an attached fragment', () => {
@@ -481,7 +507,7 @@ describe('promotion-variations', () => {
                 attached.push(`/content/dam/mas/sandbox/en_US/my-card-${index}`);
             }
             try {
-                getNextAvailablePromoVariationIndex(1, defaultPath, attached);
+                getNextAvailablePromoVariationIndex([1], defaultPath, attached);
                 expect.fail('Should have thrown');
             } catch (err) {
                 expect(err.message).to.include('Too many promo variations for this fragment');
@@ -836,7 +862,7 @@ describe('promotion-variations', () => {
             expect(forceDelete.calledWith({ path: path2 })).to.be.true;
         });
 
-        it('continues deleting remaining variations when one fails', async () => {
+        it('attempts every variation even when one fails, then throws so the caller knows', async () => {
             const path1 = '/content/dam/mas/sandbox/en_US/promotions/black-friday/card-a';
             const path2 = '/content/dam/mas/sandbox/en_US/promotions/black-friday/card-b';
             const getByPath = sandbox.stub().resolves(null);
@@ -850,10 +876,15 @@ describe('promotion-variations', () => {
             forceDelete.withArgs({ path: path2 }).resolves();
             const aem = createAemMock({ fragments: { getByPath, getWithEtag, forceDelete } });
 
-            await deleteAttachedPromoVariations(
-                aem,
-                makePromotionFragment(['/content/dam/mas/sandbox/en_US/card-a', '/content/dam/mas/sandbox/en_US/card-b']),
-            );
+            try {
+                await deleteAttachedPromoVariations(
+                    aem,
+                    makePromotionFragment(['/content/dam/mas/sandbox/en_US/card-a', '/content/dam/mas/sandbox/en_US/card-b']),
+                );
+                expect.fail('Should have thrown');
+            } catch (err) {
+                expect(err.message).to.include(path1);
+            }
 
             expect(forceDelete.calledWith({ path: path2 })).to.be.true;
         });
@@ -1057,6 +1088,29 @@ describe('promotion-variations', () => {
 
             const result = await resolveDefaultFragmentForPromoVariation(aem, suffixedPromoPath, 'promo-var-2', []);
             expect(result).to.deep.equal(unstrippedData);
+        });
+
+        it('prefers the stripped candidate over a coincidentally-named suffixed fragment when neither is attached', async () => {
+            const suffixedPromoPath = '/content/dam/mas/sandbox/en_US/promotions/back-to-school/my-card-2';
+            const unstrippedCandidate = '/content/dam/mas/sandbox/en_US/my-card-2';
+            const strippedCandidate = '/content/dam/mas/sandbox/en_US/my-card';
+            const strippedData = { id: 'default-id', path: strippedCandidate };
+            const getByPath = sandbox.stub();
+            getByPath.withArgs(unstrippedCandidate).resolves({ id: 'wrong-match', path: unstrippedCandidate });
+            getByPath.withArgs(strippedCandidate).resolves(strippedData);
+            const aem = createAemMock({
+                fragments: {
+                    getById: sandbox.stub().resolves({
+                        id: 'promo-var-2',
+                        path: suffixedPromoPath,
+                        tags: [{ id: 'mas:promotion/back-to-school' }],
+                    }),
+                    getByPath,
+                },
+            });
+
+            const result = await resolveDefaultFragmentForPromoVariation(aem, suffixedPromoPath, 'promo-var-2', []);
+            expect(result).to.deep.equal(strippedData);
         });
 
         it('returns null when no candidate default path resolves to a real fragment', async () => {

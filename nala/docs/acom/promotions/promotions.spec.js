@@ -95,5 +95,16 @@ export const features = [
         browserParams: '?mas.preview=on',
         tags: '@mas-docs @mas-acom @mas-promotions @commerce @smoke @regression @milo',
     },
+    {
+        tcid: '6',
+        name: '@MAS-Promotions-Geo-Variation-Survives-Sibling-Deletion',
+        path: DOCS_GALLERY_PATH.PLANS_COLLECTION.DE_co,
+        data: {
+            id: '9c718c8b-8807-4f2b-b41a-ae7f87d69832',
+            variation_id: '941b6280-0835-4b62-a8dd-bea443574264',
+        },
+        browserParams: '?mas.preview=on',
+        tags: '@mas-docs @mas-acom @mas-promotions @commerce @smoke @regression @milo',
+    },
     // add grouped variation card in grouped variation collection when MWPW-197436 is fixed
 ];

@@ -15,6 +15,8 @@ import {
 } from './promotion-model.js';
 
 // Max variations allowed per fragment to prevent runaway loops.
+// Kept in sync by hand with the same constant + `-N` suffix convention in
+// io/www/src/fragment/transformers/customize.js (separate runtime, no shared import).
 export const MAX_PROMO_VARIATIONS_PER_FRAGMENT = 50;
 
 /**
@@ -27,8 +29,8 @@ function readPznTags(fragment) {
 }
 
 /**
- * Sequentially probes and returns all existing promo variations for a given fragment.
- * Stops at the first missing index.
+ * Probes every index (1..MAX) rather than stopping at the first miss — variations can be
+ * deleted individually, leaving gaps.
  * @param {import('../aem/aem.js').AEM} aem
  * @param {string} defaultPath
  * @param {string} promoTagId
@@ -36,15 +38,19 @@ function readPznTags(fragment) {
  */
 export async function probePromoVariationsForFragment(aem, defaultPath, promoTagId) {
     if (!aem || !defaultPath || !promoTagId) return [];
-    const found = [];
+    const candidates = [];
     for (let index = 1; index <= MAX_PROMO_VARIATIONS_PER_FRAGMENT; index += 1) {
         const suffixIndex = index === 1 ? undefined : index;
         const targetPath = buildPromoVariationPathForTag(defaultPath, promoTagId, suffixIndex);
         if (!targetPath) break;
-        const variation = await getFragmentByPathOrNull(aem.sites.cf.fragments, targetPath);
-        if (!variation?.id) break;
+        candidates.push({ path: targetPath, index });
+    }
+    const variations = await Promise.all(candidates.map(({ path }) => getFragmentByPathOrNull(aem.sites.cf.fragments, path)));
+    return candidates.reduce((found, { path, index }, i) => {
+        const variation = variations[i];
+        if (!variation?.id) return found;
         found.push({
-            path: targetPath,
+            path,
             index,
             id: variation.id,
             pznTags: readPznTags(variation),
@@ -54,8 +60,8 @@ export async function probePromoVariationsForFragment(aem, defaultPath, promoTag
             fields: variation.fields,
             tags: variation.tags,
         });
-    }
-    return found;
+        return found;
+    }, []);
 }
 
 /**
@@ -80,16 +86,18 @@ export function findOverlappingGeoTags(existingVariations, newGeoTags) {
 }
 
 /**
- * Finds the next available variation index, ensuring it doesn't conflict with
- * other fragments attached to the same promotion project.
- * @param {number} existingCount
+ * Finds the next available index: skips indices already used by sibling variations (gaps
+ * allowed) and any that would collide with another fragment in the same project.
+ * @param {number[]} usedIndices
  * @param {string} defaultPath
  * @param {string[]} attachedFragmentPaths
  * @returns {number}
  */
-export function getNextAvailablePromoVariationIndex(existingCount, defaultPath, attachedFragmentPaths = []) {
+export function getNextAvailablePromoVariationIndex(usedIndices, defaultPath, attachedFragmentPaths = []) {
+    const usedSet = new Set(usedIndices);
     const attachedSet = new Set(attachedFragmentPaths);
-    for (let index = existingCount + 1; index <= MAX_PROMO_VARIATIONS_PER_FRAGMENT; index += 1) {
+    for (let index = 1; index <= MAX_PROMO_VARIATIONS_PER_FRAGMENT; index += 1) {
+        if (usedSet.has(index)) continue;
         if (index === 1) return index;
         const collisionPath = buildCandidateCollisionPath(defaultPath, index);
         if (!collisionPath || !attachedSet.has(collisionPath)) return index;
@@ -135,7 +143,7 @@ export async function createPromoVariation(aem, sourceFragmentId, promoTagId, ge
     }
 
     const nextIndex = getNextAvailablePromoVariationIndex(
-        existingVariations.length,
+        existingVariations.map((variation) => variation.index),
         sourceFragment.path,
         attachedFragmentPaths,
     );
@@ -230,10 +238,24 @@ export async function mergePromoReferencesForDefaultFragment(aem, fragmentData, 
     return mergePromoVariationReferences(fragmentData, discovered);
 }
 
+const NUMERIC_SUFFIX_LEAF = /-\d+$/;
+
 /**
- * Resolves the source default fragment for a given promo variation path.
- * Uses `attachedFragmentPaths` to prioritize the correct candidate path if the leaf has a numeric suffix,
- * falling back to the first candidate that exists in AEM.
+ * Ranks a candidate default path: an attached path wins outright; otherwise prefer a leaf
+ * with no numeric suffix (a suffix is usually the variation's own leaf name, e.g.
+ * "my-card-2", not a coincidentally-named default).
+ * @param {string} candidate
+ * @param {Set<string>} attachedSet
+ * @returns {number}
+ */
+function rankDefaultCandidate(candidate, attachedSet) {
+    if (attachedSet.has(candidate)) return 2;
+    return NUMERIC_SUFFIX_LEAF.test(candidate) ? 0 : 1;
+}
+
+/**
+ * Resolves the source default fragment for a promo variation path: prefers an attached
+ * path, then the non-suffixed candidate, then the first candidate that exists in AEM.
  * @param {import('../aem/aem.js').AEM} aem
  * @param {string} promoVariationPath
  * @param {string} [promoVariationId]
@@ -258,7 +280,9 @@ export async function resolveDefaultFragmentForPromoVariation(
     if (!candidates.length) return null;
 
     const attachedSet = new Set(attachedFragmentPaths);
-    const orderedCandidates = [...candidates].sort((a, b) => Number(attachedSet.has(b)) - Number(attachedSet.has(a)));
+    const orderedCandidates = [...candidates].sort(
+        (a, b) => rankDefaultCandidate(b, attachedSet) - rankDefaultCandidate(a, attachedSet),
+    );
 
     for (const candidate of orderedCandidates) {
         const fragment = await getFragmentByPathOrNull(aem.sites.cf.fragments, candidate);
@@ -321,24 +345,33 @@ export async function getPublishedAttachedPromoVariations(aem, promotionFragment
 }
 
 /**
- * Deletes every promo variation attached to a promotion project's fragments, regardless of status.
- * Live variations (PUBLISHED or MODIFIED) are unpublished first.
+ * Deletes every promo variation attached to a promotion project's fragments (unpublishing
+ * live ones first). Best-effort across all variations, then throws if any failed.
  * @param {import('../aem/aem.js').AEM} aem
  * @param {Object} promotionFragment
  * @returns {Promise<void>}
  */
 export async function deleteAttachedPromoVariations(aem, promotionFragment) {
     const variations = await collectAttachedPromoVariations(aem, promotionFragment);
-    for (const variation of variations) {
-        try {
-            if (variation.status !== STATUS_DRAFT) {
-                const variationWithEtag = await aem.sites.cf.fragments.getWithEtag(variation.id);
-                if (variationWithEtag) await aem.sites.cf.fragments.unpublish(variationWithEtag);
+    const failedPaths = [];
+    await processConcurrently(
+        variations,
+        async (variation) => {
+            try {
+                if (variation.status !== STATUS_DRAFT) {
+                    const variationWithEtag = await aem.sites.cf.fragments.getWithEtag(variation.id);
+                    if (variationWithEtag) await aem.sites.cf.fragments.unpublish(variationWithEtag);
+                }
+                await aem.sites.cf.fragments.forceDelete({ path: variation.path });
+            } catch (error) {
+                console.error(`Failed to delete promo variation ${variation.path}:`, error);
+                failedPaths.push(variation.path);
             }
-            await aem.sites.cf.fragments.forceDelete({ path: variation.path });
-        } catch (error) {
-            console.error(`Failed to delete promo variation ${variation.path}:`, error);
-        }
+        },
+        VARIATIONS_CONCURRENCY_LIMIT,
+    );
+    if (failedPaths.length) {
+        throw new UserFriendlyError(`Failed to delete ${failedPaths.length} promo variation(s): ${failedPaths.join(', ')}`);
     }
 }
 

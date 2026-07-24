@@ -95,11 +95,14 @@ merch-card-collection.product merch-card {
     width: 100%;
   }
 
-.one-merch-card.section merch-card[variant="product"],
+.one-merch-card.section merch-card[variant="product"] {
+    margin: 0 auto;
+}
+
 .two-merch-cards.section merch-card[variant="product"],
 .three-merch-cards.section merch-card[variant="product"],
 .four-merch-cards.section merch-card[variant="product"] {
-    margin: 0 auto;
+    width: auto;
 }
 
 /* grid style for product */

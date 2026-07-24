@@ -5652,11 +5652,14 @@ merch-card-collection.product merch-card {
     width: 100%;
   }
 
-.one-merch-card.section merch-card[variant="product"],
+.one-merch-card.section merch-card[variant="product"] {
+    margin: 0 auto;
+}
+
 .two-merch-cards.section merch-card[variant="product"],
 .three-merch-cards.section merch-card[variant="product"],
 .four-merch-cards.section merch-card[variant="product"] {
-    margin: 0 auto;
+    width: auto;
 }
 
 /* grid style for product */
@@ -5879,10 +5882,7 @@ merch-card[variant="segment"] {
   grid-template-columns: minmax(276px, var(--consonant-merch-card-segment-width));
 }
 
-.one-merch-card.section merch-card[variant="segment"],
-.two-merch-cards.section merch-card[variant="segment"],
-.three-merch-cards.section merch-card[variant="segment"],
-.four-merch-cards.section merch-card[variant="segment"] {
+.one-merch-card.section merch-card[variant="segment"] {
     margin: 0 auto;
 }
 

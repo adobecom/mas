@@ -202,6 +202,50 @@ describe('onPlaceholderSelect', () => {
     });
 });
 
+describe('onPlaceholderSelect with mas-ff-defaults on', () => {
+    let dispatchEventStub;
+    let onPlaceholderSelect;
+    let masCommerceService;
+    let resolvePriceTaxFlagsStub;
+
+    before(async () => {
+        masCommerceService = document.querySelector('mas-commerce-service');
+        masCommerceService.featureFlags['mas-ff-defaults'] = true;
+        resolvePriceTaxFlagsStub = sinon.stub(masCommerceService, 'resolvePriceTaxFlags').resolves({});
+
+        ({ onPlaceholderSelect } = await import('../../src/rte/ost.js'));
+        dispatchEventStub = document.getElementById('ost').dispatchEvent;
+    });
+
+    after(() => {
+        masCommerceService.featureFlags['mas-ff-defaults'] = false;
+        resolvePriceTaxFlagsStub.restore();
+    });
+
+    beforeEach(() => {
+        dispatchEventStub.reset();
+        resolvePriceTaxFlagsStub.resetHistory();
+        Store.search.set({});
+    });
+
+    it('does not throw when offer.market_segments is undefined', async () => {
+        const offer = { customer_segment: 'INDIVIDUAL' };
+
+        await onPlaceholderSelect('test-id', 'price', offer, {}, null);
+
+        expect(dispatchEventStub.calledOnce).to.be.true;
+        expect(resolvePriceTaxFlagsStub.getCall(0).args[3]).to.equal(undefined);
+    });
+
+    it('passes the first market segment when present', async () => {
+        const offer = { customer_segment: 'TEAM', market_segments: ['COM', 'EDU'] };
+
+        await onPlaceholderSelect('test-id', 'price', offer, {}, null);
+
+        expect(resolvePriceTaxFlagsStub.getCall(0).args[3]).to.equal('COM');
+    });
+});
+
 describe('openOfferSelectorTool deep-link type parameter', () => {
     let openOfferSelectorTool;
     let openOstStub;

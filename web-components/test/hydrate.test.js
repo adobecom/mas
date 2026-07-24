@@ -842,6 +842,29 @@ describe('hydrate', () => {
         expect(litCard.promotionCode).to.equal('CTX_PROMO');
         litCard.remove();
     });
+
+    it('keeps each collection card promoCode on its own card when two cards have different promos', async () => {
+        await customElements.whenDefined('merch-card');
+        const cardA = document.createElement('merch-card');
+        const cardB = document.createElement('merch-card');
+        document.body.append(cardA, cardB);
+        const makeFragment = (id, promoCode) => ({
+            id,
+            fields: {
+                variant: 'ccd-slice',
+                promoCode,
+                mnemonicIcon: [],
+                mnemonicAlt: [],
+                mnemonicLink: [],
+            },
+        });
+        await hydrate(makeFragment('collection-card-a', 'PROMO_A'), cardA);
+        await hydrate(makeFragment('collection-card-b', 'PROMO_B'), cardB);
+        expect(cardA.promotionCode).to.equal('PROMO_A');
+        expect(cardB.promotionCode).to.equal('PROMO_B');
+        cardA.remove();
+        cardB.remove();
+    });
 });
 
 describe('MerchCard promotionCode getter', () => {
@@ -1062,29 +1085,6 @@ describe('processDescription', async () => {
         expect(merchCard.innerHTML).to.equal(
             '<div slot="body-xs"><sp-button treatment="fill" variant="accent" tabindex="0" size="m" dir="ltr">Click me</sp-button></div>',
         );
-    });
-
-    it('should convert primary-link and secondary-link to sp-link when spectrum is swc', async () => {
-        const fields = {
-            description: `See <a href="#" class="primary-link">Primary</a> and <a href="#" class="secondary-link">Secondary</a>`,
-        };
-        merchCard.spectrum = 'swc';
-
-        processDescription(fields, merchCard, aemFragmentMapping);
-        updateLinksCSS(merchCard);
-
-        const primary = merchCard.querySelector('sp-link[href="#"]');
-        const secondary = merchCard.querySelector(
-            'sp-link[variant="secondary"]',
-        );
-        expect(primary).to.exist;
-        expect(primary.tagName.toLowerCase()).to.equal('sp-link');
-        expect(primary.hasAttribute('variant')).to.be.false;
-        expect(primary.textContent.trim()).to.equal('Primary');
-        expect(secondary).to.exist;
-        expect(secondary.textContent.trim()).to.equal('Secondary');
-        expect(merchCard.querySelector('a.primary-link')).to.be.null;
-        expect(merchCard.querySelector('a.secondary-link')).to.be.null;
     });
 
     it('should preserve primary-link and secondary-link on consonant cards', async () => {

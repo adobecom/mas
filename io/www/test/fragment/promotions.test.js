@@ -715,6 +715,41 @@ describe('promotions', () => {
             const result = await promotionsTransformer.init(createContext());
             expect(result.activeProjects.map((p) => p.id)).to.deep.equal(['evergreen-1', 'evergreen-2']);
         });
+
+        it('sorts by most-recent startDate first, within both the seasonal and evergreen buckets', async () => {
+            const projects = ['seasonal', 'evergreen'].flatMap((bucket) =>
+                ['older', 'newer'].map((age) =>
+                    makeProject({
+                        id: `${bucket}-${age}`,
+                        path: `/content/dam/mas/promotions/${bucket}-${age}`,
+                        surfaces: ['acom'],
+                        geos: [],
+                        startDate: age === 'older' ? '2020-01-01T00:00:00Z' : '2022-06-01T00:00:00Z',
+                        endDate: bucket === 'seasonal' ? END : null,
+                        tags: [`mas:promotion/${bucket}-${age}`],
+                    }),
+                ),
+            );
+            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: projects }));
+            projects.forEach(({ id }) =>
+                fetchStub
+                    .withArgs(hydrateUrl(id))
+                    .returns(
+                        createResponse(
+                            200,
+                            makeHydratedProject({ fragmentId: id, fragmentPath: `/content/dam/mas/acom/en_US/offers/${id}` }),
+                        ),
+                    ),
+            );
+
+            const result = await promotionsTransformer.init(createContext());
+            expect(result.activeProjects.map((p) => p.id)).to.deep.equal([
+                'seasonal-newer',
+                'seasonal-older',
+                'evergreen-newer',
+                'evergreen-older',
+            ]);
+        });
     });
 
     describe('preview mode', () => {

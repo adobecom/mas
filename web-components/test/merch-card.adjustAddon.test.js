@@ -216,7 +216,7 @@ describe('MiniCompareChart.adjustShortDescription', () => {
         layout.card = {
             querySelector: (sel) => {
                 if (sel.includes('body-xxs')) return bodyXxs;
-                if (sel.includes('heading-m-price')) {
+                if (sel.includes('data-template="legal"')) {
                     if (!planType) return null;
                     return { querySelector: () => planType };
                 }

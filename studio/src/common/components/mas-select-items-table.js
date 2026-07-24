@@ -28,11 +28,9 @@ class MasSelectItemsTable extends LitElement {
         maxSelectedCards: { type: Number },
         getDisplayName: { type: Function },
         renderFragmentStatusCell: { type: Function },
-        disableCardExpansion: { type: Boolean },
-        disableGroupedVariationSelection: { type: Boolean },
-        hideLocaleTab: { type: Boolean },
-        disableLocaleVariations: { type: Boolean },
+        nonSelectableVariations: { type: Array },
         hidePromoVariations: { type: Boolean },
+        tabs: { type: Array },
     };
 
     hasMore = new StoreController(this, Store.fragments.list.hasMore);
@@ -58,10 +56,6 @@ class MasSelectItemsTable extends LitElement {
         this.maxSelectedCards = Infinity;
         this.getDisplayName = getStudioFragmentDisplayPath;
         this.renderFragmentStatusCell = () => nothing;
-        this.disableCardExpansion = false;
-        this.disableGroupedVariationSelection = false;
-        this.hideLocaleTab = false;
-        this.disableLocaleVariations = false;
         this.hidePromoVariations = false;
     }
 
@@ -323,12 +317,10 @@ class MasSelectItemsTable extends LitElement {
                             .topLevelCard=${fragment}
                             .viewOnly=${this.viewOnly}
                             .maxSelectedCards=${this.maxSelectedCards}
-                            .disableCardExpansion=${this.disableCardExpansion}
-                            .disableGroupedVariationSelection=${this.disableGroupedVariationSelection}
-                            .hideLocaleTab=${this.hideLocaleTab}
-                            .disableLocaleVariations=${this.disableLocaleVariations}
+                            .nonSelectableVariations=${this.nonSelectableVariations}
                             .getDisplayName=${this.getDisplayName}
                             .renderFragmentStatusCell=${this.renderFragmentStatusCell}
+                            .tabs=${this.tabs}
                         ></mas-collapsible-table-row>`,
                 )}`;
             case TABLE_TYPE.COLLECTIONS:

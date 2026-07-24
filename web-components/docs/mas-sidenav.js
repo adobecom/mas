@@ -31,6 +31,8 @@ class MasSidenav extends HTMLElement {
       <a href="/web-components/docs/json-ld.html">JSON-LD Pricing Schema</a>
       <a href="/web-components/docs/feature-flags.html">Feature Flags</a>
       <a href="/web-components/docs/benchmarks.html">Benchmarks</a>
+      <hr>
+      <a href="/web-components/docs/agent.html">Agent API</a>
     `;
     }
 }

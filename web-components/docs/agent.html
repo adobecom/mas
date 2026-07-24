@@ -1,0 +1,204 @@
+
+    <!DOCTYPE html>
+    <html>
+    <head>
+    <meta charset="UTF-8">
+    <title>M@S Web Components</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="spectrum.css">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://p.typekit.net/p.css?s=1&amp;k=hah7vzn&amp;ht=tk&amp;f=7180.7181.7182.7183.22474.22749.22750.22751.22753&amp;a=8634977&amp;app=typekit&amp;e=css">
+    <link rel="stylesheet" href="https://use.typekit.net/hah7vzn.css">
+    <link rel="stylesheet" href="/studio/con-button.css">
+  
+  <!-- Include your custom element script as an ES6 module -->
+  <script type="module">
+    import { init } from './common.js';
+    init();
+  </script>
+  <!-- Include Highlight.js stylesheet for syntax highlighting -->
+  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/default.min.css">
+  <script type="module" src="./mas-sidenav.js"></script>
+</head>
+<body class="spectrum spectrum--medium spectrum--light">
+    <aside is="mas-sidenav"></aside>
+<main>
+<sp-theme color="light" scale="medium">
+<h1 id="agent-api" tabindex="-1">Agent API <a class="header-anchor" href="#agent-api" href="#agent-api" title="Permalink to this heading">#</a></h1>
+<h2 id="introduction" tabindex="-1">Introduction <a class="header-anchor" href="#introduction" href="#introduction" title="Permalink to this heading">#</a></h2>
+<p>The Agent API returns a flat, server-hydrated M@S offer. Price and terms data are resolved in Node.js from the fragment’s WCS data, without browser APIs.</p>
+<p>Checkout links and buttons are not included.</p>
+<h2 id="request" tabindex="-1">Request <a class="header-anchor" href="#request" href="#request" title="Permalink to this heading">#</a></h2>
+<pre><code class="hljs language-http">GET https://www.adobe.com/mas/io/agent?productName=Creative%20Cloud%20Pro&amp;locale=en_US&amp;api_key=&lt;api-key&gt;
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Required</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>productName</code></td>
+<td>Yes</td>
+<td>Product name, for example <code>Creative Cloud Pro</code>.</td>
+</tr>
+<tr>
+<td><code>locale</code></td>
+<td>Yes</td>
+<td>Adobe locale, for example <code>en_US</code>.</td>
+</tr>
+<tr>
+<td><code>api_key</code></td>
+<td>No</td>
+<td>API key forwarded to the fragment action.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="response" tabindex="-1">Response <a class="header-anchor" href="#response" href="#response" title="Permalink to this heading">#</a></h2>
+<pre><code class="hljs language-json"><span class="hljs-punctuation">{</span>
+  <span class="hljs-attr">&quot;fragment&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;2c5cd672-1db8-409c-96ff-46b1a1dfb7dc&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;productName&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;Creative Cloud Pro&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;badge&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;Save 50%&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;customer_segment&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;individual&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;title&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;Creative Cloud Pro&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;description&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;Pay US$34.99/mo for the first 3 months and US$69.99/mo after that.&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;promoPrice&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;US$34.99&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;regularPrice&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;US$69.99&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;planTypeText&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;Annual, billed monthly&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;recurrenceText&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;/mo&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;terms_url&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;https://www.adobe.com/offer-terms/cc_full_special_offer.html&quot;</span>
+<span class="hljs-punctuation">}</span>
+</code></pre>
+<p>Optional properties are omitted when they do not apply.</p>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>fragment</code></td>
+<td><code>string | null</code></td>
+<td>Fragment ID.</td>
+</tr>
+<tr>
+<td><code>productName</code></td>
+<td><code>string | null</code></td>
+<td>Product name used by the agent.</td>
+</tr>
+<tr>
+<td><code>badge</code></td>
+<td><code>string | null</code></td>
+<td>Card badge text.</td>
+</tr>
+<tr>
+<td><code>cta_label</code></td>
+<td><code>string | null</code></td>
+<td>Authored CTA label.</td>
+</tr>
+<tr>
+<td><code>terms_url</code></td>
+<td><code>string | null</code></td>
+<td>Authored offer terms URL.</td>
+</tr>
+<tr>
+<td><code>title</code></td>
+<td><code>string</code></td>
+<td>Card title.</td>
+</tr>
+<tr>
+<td><code>subtitle</code></td>
+<td><code>string</code></td>
+<td>Card subtitle.</td>
+</tr>
+<tr>
+<td><code>promoText</code></td>
+<td><code>string</code></td>
+<td>Promotional text.</td>
+</tr>
+<tr>
+<td><code>shortDescription</code></td>
+<td><code>string</code></td>
+<td>Short card description.</td>
+</tr>
+<tr>
+<td><code>description</code></td>
+<td><code>string</code></td>
+<td>Card description with hydrated inline prices.</td>
+</tr>
+<tr>
+<td><code>callout</code></td>
+<td><code>string</code></td>
+<td>Card callout.</td>
+</tr>
+<tr>
+<td><code>promoPrice</code></td>
+<td><code>string</code></td>
+<td>Promotional price.</td>
+</tr>
+<tr>
+<td><code>regularPrice</code></td>
+<td><code>string</code></td>
+<td>Regular or strikethrough price.</td>
+</tr>
+<tr>
+<td><code>annualPrice</code></td>
+<td><code>string</code></td>
+<td>Annual price.</td>
+</tr>
+<tr>
+<td><code>planTypeText</code></td>
+<td><code>string</code></td>
+<td>Plan type, for example <code>Annual, billed monthly</code>.</td>
+</tr>
+<tr>
+<td><code>taxText</code></td>
+<td><code>string</code></td>
+<td>Tax text, for example <code>excl. GST</code>.</td>
+</tr>
+<tr>
+<td><code>recurrenceText</code></td>
+<td><code>string</code></td>
+<td>Billing frequency, for example <code>/mo</code>.</td>
+</tr>
+<tr>
+<td><code>unitText</code></td>
+<td><code>string</code></td>
+<td>Offer unit, for example <code>per license</code>.</td>
+</tr>
+<tr>
+<td><code>seeTermsInfo</code></td>
+<td><code>object</code></td>
+<td>See-terms <code>analyticsId</code>, <code>href</code>, and <code>text</code>.</td>
+</tr>
+</tbody>
+</table>
+<p>Authored fragment tags may add fields such as <code>customer_segment</code>.</p>
+
+</sp-theme>
+</main>
+<script type="module">
+  document.querySelectorAll('code.demo').forEach(el => {
+      const targetContainer = document.createElement('div');
+      targetContainer.classList.toggle('light', el.classList.contains('light'));
+      targetContainer.innerHTML = `<h4>Demo: </h4><div class="demo-container">${el.textContent}</div>`;
+      el.parentElement.after(targetContainer);
+      // Extract and evaluate <script> tags
+      const scriptTags = targetContainer.getElementsByTagName('script');
+      for (let i = 0; i < scriptTags.length; i++) {
+          const script = document.createElement('script');
+          script.type = 'module';
+          script.text = scriptTags[i].text;
+          document.body.appendChild(script); // Appends to the document to execute
+          scriptTags[i].remove(); // Remove the script tag
+      }
+  });
+</script>
+</body>
+</html>

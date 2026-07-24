@@ -316,6 +316,194 @@ describe('bulk-publish/snapshot.js', () => {
         });
     });
 
+    // ── translation version detection (via recordSnapshot) ───────────────────
+
+    describe('translation version detection', () => {
+        it('skips versions with createdBy odin-cf-versioning-user', async () => {
+            fetchOdinStub.callsFake((endpoint, uri) => {
+                if (uri.includes('/fragments?path='))
+                    return fetchResponse({ items: [{ id: 'frag-1', path: '/a', status: 'PUBLISHED' }] });
+                if (uri.includes('/versions'))
+                    return fetchResponse({
+                        items: [
+                            { id: 'v-trans', createdBy: 'odin-cf-versioning-user', comment: '' },
+                            { id: 'v-green', createdBy: 'author@adobe.com', comment: 'edit' },
+                        ],
+                    });
+                return fetchResponse({});
+            });
+            const results = await snapshot.recordSnapshot({ paths: ['/a'], odinEndpoint, authToken });
+            expect(JSON.parse(results.entries[0]).versionId).to.equal('v-green');
+        });
+
+        it('skips versions with Pre-rollout snapshot comment', async () => {
+            fetchOdinStub.callsFake((endpoint, uri) => {
+                if (uri.includes('/fragments?path='))
+                    return fetchResponse({ items: [{ id: 'frag-1', path: '/a', status: 'PUBLISHED' }] });
+                if (uri.includes('/versions'))
+                    return fetchResponse({
+                        items: [
+                            { id: 'v-trans', createdBy: 'someone', comment: 'Pre-rollout snapshot — source CF: /x' },
+                            { id: 'v-green', createdBy: 'author@adobe.com', comment: 'edit' },
+                        ],
+                    });
+                return fetchResponse({});
+            });
+            const results = await snapshot.recordSnapshot({ paths: ['/a'], odinEndpoint, authToken });
+            expect(JSON.parse(results.entries[0]).versionId).to.equal('v-green');
+        });
+
+        it('uses first version when no translation versions exist', async () => {
+            fetchOdinStub.callsFake((endpoint, uri) => {
+                if (uri.includes('/fragments?path='))
+                    return fetchResponse({ items: [{ id: 'frag-1', path: '/a', status: 'PUBLISHED' }] });
+                if (uri.includes('/versions'))
+                    return fetchResponse({
+                        items: [
+                            { id: 'v-latest', createdBy: 'author@adobe.com', comment: 'Latest' },
+                            { id: 'v-older', createdBy: 'author@adobe.com', comment: 'Older' },
+                        ],
+                    });
+                return fetchResponse({});
+            });
+            const results = await snapshot.recordSnapshot({ paths: ['/a'], odinEndpoint, authToken });
+            expect(JSON.parse(results.entries[0]).versionId).to.equal('v-latest');
+        });
+
+        it('treats version with undefined comment as non-translation', async () => {
+            fetchOdinStub.callsFake((endpoint, uri) => {
+                if (uri.includes('/fragments?path='))
+                    return fetchResponse({ items: [{ id: 'frag-1', path: '/a', status: 'PUBLISHED' }] });
+                if (uri.includes('/versions')) return fetchResponse({ items: [{ id: 'v-1', createdBy: 'author@adobe.com' }] });
+                return fetchResponse({});
+            });
+            const results = await snapshot.recordSnapshot({ paths: ['/a'], odinEndpoint, authToken });
+            expect(JSON.parse(results.entries[0]).versionId).to.equal('v-1');
+        });
+
+        it('treats Pre-bulk-publish versions as non-translation (eligible as revert target)', async () => {
+            fetchOdinStub.callsFake((endpoint, uri) => {
+                if (uri.includes('/fragments?path='))
+                    return fetchResponse({ items: [{ id: 'frag-1', path: '/a', status: 'PUBLISHED' }] });
+                if (uri.includes('/versions'))
+                    return fetchResponse({
+                        items: [
+                            { id: 'v-bulk', createdBy: 'author@adobe.com', comment: 'Pre-bulk-publish — My Project' },
+                            { id: 'v-trans', createdBy: 'odin-cf-versioning-user', comment: '' },
+                            { id: 'v-green', createdBy: 'author@adobe.com', comment: 'Manual edit' },
+                        ],
+                    });
+                return fetchResponse({});
+            });
+            // Pre-bulk-publish is NOT a translation version, so it is eligible as revert target
+            const results = await snapshot.recordSnapshot({ paths: ['/a'], odinEndpoint, authToken });
+            expect(JSON.parse(results.entries[0]).versionId).to.equal('v-bulk');
+        });
+
+        it('calls GET /adobe/sites/cf/fragments/{id}/versions', async () => {
+            fetchOdinStub.callsFake((endpoint, uri) => {
+                if (uri.includes('/fragments?path='))
+                    return fetchResponse({ items: [{ id: 'frag-abc', path: '/a', status: 'PUBLISHED' }] });
+                if (uri.includes('/versions'))
+                    return fetchResponse({ items: [{ id: 'v-1', createdBy: 'author@adobe.com', comment: '' }] });
+                return fetchResponse({});
+            });
+            await snapshot.recordSnapshot({ paths: ['/a'], odinEndpoint, authToken });
+            expect(fetchOdinStub).to.have.been.calledWith(
+                odinEndpoint,
+                '/adobe/sites/cf/fragments/frag-abc/versions',
+                authToken,
+                sinon.match.object,
+            );
+        });
+    });
+
+    // ── recordSnapshot ────────────────────────────────────────────────────────
+
+    describe('recordSnapshot()', () => {
+        it('returns entries with non-translation versionId and does NOT POST to /versions', async () => {
+            fetchOdinStub.callsFake((endpoint, uri) => {
+                if (uri.includes('/adobe/sites/cf/fragments?path=')) {
+                    return fetchResponse({ items: [{ id: 'frag-1', path: '/content/dam/a', status: 'PUBLISHED' }] });
+                }
+                if (uri.includes('/versions')) {
+                    return fetchResponse({
+                        items: [
+                            {
+                                id: 'v-trans',
+                                createdBy: 'odin-cf-versioning-user',
+                                comment: 'Pre-rollout snapshot — source CF: /x',
+                            },
+                            { id: 'v-green', createdBy: 'author@adobe.com', comment: 'Manual edit' },
+                        ],
+                    });
+                }
+                return fetchResponse({});
+            });
+
+            const results = await snapshot.recordSnapshot({ paths: ['/content/dam/a'], odinEndpoint, authToken });
+
+            expect(results.entries).to.have.length(1);
+            expect(results.failures).to.have.length(0);
+            const entry = JSON.parse(results.entries[0]);
+            expect(entry.fragmentId).to.equal('frag-1');
+            expect(entry.versionId).to.equal('v-green');
+            expect(entry.wasPublished).to.be.true;
+            expect(entry.createdAt).to.be.a('string');
+
+            const postVersionCall = fetchOdinStub.args.find(
+                ([, uri, , opts]) => uri.includes('/versions') && opts?.method === 'POST',
+            );
+            expect(postVersionCall).to.not.exist;
+        });
+
+        it('sets wasPublished: false for DRAFT status', async () => {
+            fetchOdinStub.callsFake((endpoint, uri) => {
+                if (uri.includes('/adobe/sites/cf/fragments?path=')) {
+                    return fetchResponse({ items: [{ id: 'frag-d', path: '/content/dam/d', status: 'DRAFT' }] });
+                }
+                if (uri.includes('/versions')) {
+                    return fetchResponse({ items: [{ id: 'v-1', createdBy: 'author@adobe.com', comment: '' }] });
+                }
+                return fetchResponse({});
+            });
+
+            const results = await snapshot.recordSnapshot({ paths: ['/content/dam/d'], odinEndpoint, authToken });
+            expect(JSON.parse(results.entries[0]).wasPublished).to.be.false;
+        });
+
+        it('records failure when fragment not found at path', async () => {
+            fetchOdinStub.callsFake((endpoint, uri) => {
+                if (uri.includes('/adobe/sites/cf/fragments?path=')) {
+                    return fetchResponse({ items: [] });
+                }
+                return fetchResponse({});
+            });
+
+            const results = await snapshot.recordSnapshot({ paths: ['/content/dam/missing'], odinEndpoint, authToken });
+            expect(results.entries).to.have.length(0);
+            expect(results.failures).to.have.length(1);
+            expect(results.failures[0].error).to.match(/Fragment not found at path/);
+        });
+
+        it('records failure when no non-translation version exists', async () => {
+            fetchOdinStub.callsFake((endpoint, uri) => {
+                if (uri.includes('/adobe/sites/cf/fragments?path=')) {
+                    return fetchResponse({ items: [{ id: 'frag-t', path: '/content/dam/t', status: 'PUBLISHED' }] });
+                }
+                if (uri.includes('/versions')) {
+                    return fetchResponse({ items: [{ id: 'v-t', createdBy: 'odin-cf-versioning-user', comment: '' }] });
+                }
+                return fetchResponse({});
+            });
+
+            const results = await snapshot.recordSnapshot({ paths: ['/content/dam/t'], odinEndpoint, authToken });
+            expect(results.entries).to.have.length(0);
+            expect(results.failures).to.have.length(1);
+            expect(results.failures[0].error).to.match(/No non-translation version found/);
+        });
+    });
+
     // ── checkModifications ───────────────────────────────────────────────────
 
     describe('checkModifications()', () => {

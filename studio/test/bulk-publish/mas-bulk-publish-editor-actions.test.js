@@ -600,6 +600,69 @@ describe('mas-bulk-publish-editor (save/delete/lock with repository)', () => {
         expect(repositoryEl.saveFragment.calledOnce).to.equal(true);
     });
 
+    it('saveBulkProject calls saveSnapshotFn after creating a new project', async () => {
+        const el = await makeEditor();
+        seedNew({ title: 'Snap Project', urls: '', items: '[]', locales: [] });
+        await el.updateComplete;
+        Store.search.set({ path: 'sandbox' });
+
+        const rawFragment = { id: 'snap-frag', path: '/content/dam/mas/snap', fields: [] };
+        repositoryEl.createFragment = sandbox.stub().resolves(rawFragment);
+
+        const snapshotCalls = [];
+        el.saveSnapshotFn = (args) => {
+            snapshotCalls.push(args);
+            return Promise.resolve({ ok: true });
+        };
+
+        await el.saveBulkProject();
+        await new Promise((r) => setTimeout(r, 10));
+
+        expect(snapshotCalls.length).to.equal(1);
+    });
+
+    it('saveBulkProject calls saveSnapshotFn after saving an existing project', async () => {
+        const el = await makeEditor();
+        const fs = makeFragmentStore({ title: 'Existing', urls: '', items: '[]', locales: [] });
+        Store.bulkPublishProjects.inEdit.set(fs);
+        await el.updateComplete;
+        Store.search.set({ path: 'sandbox' });
+
+        repositoryEl.saveFragment = sandbox.stub().resolves({ id: 'frag-id-1' });
+
+        const snapshotCalls = [];
+        el.saveSnapshotFn = (args) => {
+            snapshotCalls.push(args);
+            return Promise.resolve({ ok: true });
+        };
+
+        await el.saveBulkProject();
+        await new Promise((r) => setTimeout(r, 10));
+
+        expect(snapshotCalls.length).to.equal(1);
+    });
+
+    it('saveBulkProject does not throw when saveSnapshotFn rejects', async () => {
+        const el = await makeEditor();
+        const fs = makeFragmentStore({ title: 'Existing', urls: '', items: '[]', locales: [] });
+        Store.bulkPublishProjects.inEdit.set(fs);
+        await el.updateComplete;
+        Store.search.set({ path: 'sandbox' });
+
+        repositoryEl.saveFragment = sandbox.stub().resolves({ id: 'frag-id-1' });
+        el.saveSnapshotFn = () => Promise.reject(new Error('snapshot failed'));
+
+        let threw = false;
+        try {
+            await el.saveBulkProject();
+            await new Promise((r) => setTimeout(r, 10));
+        } catch {
+            threw = true;
+        }
+
+        expect(threw).to.equal(false);
+    });
+
     it('saveBulkProject shows error toast when saveFragment returns false', async () => {
         const el = await makeEditor();
         const fs = makeFragmentStore({ title: 'Proj', urls: '', items: '[]', locales: [] });

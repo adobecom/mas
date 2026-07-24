@@ -2,7 +2,7 @@ const { Core } = require('@adobe/aio-sdk');
 const { publishResolved } = require('./publish-core.js');
 const { resolvePaths } = require('./resolver.js');
 const { buildResult } = require('./summary.js');
-const { createSnapshot } = require('./snapshot.js');
+const { createSnapshot, recordSnapshot } = require('./snapshot.js');
 const {
     PROJECT_STATUS,
     readProjectFragment,
@@ -26,6 +26,18 @@ function hasPendingSnapshot(entries) {
     if (!entries.length) return false;
     try {
         return entries.some((e) => JSON.parse(e).publishComplete === false);
+    } catch {
+        return false;
+    }
+}
+
+function hasValidPreRecordedSnapshot(entries) {
+    if (!entries.length) return false;
+    try {
+        return entries.every((e) => {
+            const parsed = JSON.parse(e);
+            return parsed.versionId && parsed.publishComplete === undefined;
+        });
     } catch {
         return false;
     }
@@ -58,6 +70,7 @@ async function runWorker(input, deps = {}) {
     const projSnapshots = deps.getProjectSnapshots || getProjectSnapshots;
     const publish = deps.publishResolved || publishResolved;
     const snapshot = deps.createSnapshot || createSnapshot;
+    const record = deps.recordSnapshot || recordSnapshot;
     const updateProject = deps.updateProjectFragment || updateProjectFragment;
     const resolve = deps.resolvePaths || resolvePaths;
     const now = deps.now || (() => new Date());
@@ -75,13 +88,24 @@ async function runWorker(input, deps = {}) {
     if (hasPendingSnapshot(existingSnapshots)) {
         snapshotEntries = existingSnapshots;
         await updateProject(odinEndpoint, projectId, authToken, { status: PROJECT_STATUS.PUBLISHING, lastError: '' });
+    } else if (hasValidPreRecordedSnapshot(existingSnapshots)) {
+        snapshotEntries = existingSnapshots;
+        await snapshot({ paths, projectId, projectTitle: title, odinEndpoint, authToken });
+        await updateProject(odinEndpoint, projectId, authToken, {
+            status: PROJECT_STATUS.PUBLISHING,
+            snapshots: addPendingMarker(existingSnapshots),
+            lastError: '',
+        });
     } else {
-        const fresh = await snapshot({ paths, projectId, projectTitle: title, odinEndpoint, authToken });
+        const { entries: fresh, failures: recordFailures } = await record({ paths, odinEndpoint, authToken });
         snapshotEntries = fresh;
+        await snapshot({ paths, projectId, projectTitle: title, odinEndpoint, authToken });
+        const recordError =
+            recordFailures.length > 0 ? `SAVE_SNAPSHOT:\n${recordFailures.map((f) => `${f.path}: ${f.error}`).join('\n')}` : '';
         await updateProject(odinEndpoint, projectId, authToken, {
             status: PROJECT_STATUS.PUBLISHING,
             snapshots: addPendingMarker(fresh),
-            lastError: '',
+            lastError: recordError,
         });
     }
 

@@ -51,6 +51,25 @@ async function unpublishFragment(odinEndpoint, fragmentPath, authToken) {
     });
 }
 
+function isTranslationVersion(version) {
+    return version.createdBy === 'odin-cf-versioning-user' || (version.comment ?? '').startsWith('Pre-rollout snapshot');
+}
+
+async function fetchVersionHistory(odinEndpoint, fragmentId, authToken) {
+    const response = await fetchOdin(odinEndpoint, `/adobe/sites/cf/fragments/${fragmentId}/versions`, authToken, {
+        ignoreErrors: [404],
+    });
+    if (!response.ok) return [];
+    const data = await response.json();
+    return data?.items ?? [];
+}
+
+async function findNonTranslationVersion(odinEndpoint, fragmentId, authToken) {
+    const versions = await fetchVersionHistory(odinEndpoint, fragmentId, authToken);
+    const found = versions.find((v) => !isTranslationVersion(v));
+    return found?.id ?? null;
+}
+
 function serializeEntries(snapshot) {
     return Object.entries(snapshot.fragments).map(([fragmentId, entry]) =>
         JSON.stringify({
@@ -85,7 +104,7 @@ async function createSnapshot({ paths, projectId, projectTitle, odinEndpoint, au
         const versionId = await createVersion(
             odinEndpoint,
             fragment.id,
-            `Pre-publish - ${projectTitle}`,
+            `Pre-bulk-publish - ${projectTitle}`,
             snapshotId,
             authToken,
         );
@@ -135,6 +154,33 @@ async function revertSnapshot({ entries, odinEndpoint, authToken }) {
     return { failures, skipped };
 }
 
+async function recordSnapshot({ paths, odinEndpoint, authToken }) {
+    const timestamp = Date.now();
+    const createdAt = new Date(timestamp).toISOString();
+
+    logger.info(JSON.stringify({ event: 'record-snapshot-start', count: paths.length }));
+
+    const results = await processBatchWithConcurrency(paths, FRAGMENT_CONCURRENCY, async (path) => {
+        const fragment = await getFragmentByPath(odinEndpoint, path, authToken);
+        if (!fragment) return { path, error: `Fragment not found at path: ${path}` };
+        const wasPublished = fragment.status === STATUS_PUBLISHED || fragment.status === STATUS_MODIFIED;
+        const versionId = await findNonTranslationVersion(odinEndpoint, fragment.id, authToken);
+        if (!versionId) return { path, error: `No non-translation version found for fragment: ${path}` };
+        return [fragment.id, { path: fragment.path, versionId, wasPublished }];
+    });
+
+    const failures = results.filter((r) => r?.error);
+    const pairs = results.filter((r) => Array.isArray(r));
+
+    const snap = {
+        createdAt,
+        fragments: Object.fromEntries(pairs),
+    };
+
+    logger.info(JSON.stringify({ event: 'record-snapshot-complete', count: pairs.length, failures: failures.length }));
+    return { entries: serializeEntries(snap), failures };
+}
+
 async function checkModifications({ entries, odinEndpoint, authToken }) {
     const snapshot = deserializeEntries(entries);
     const snapshotTime = new Date(snapshot.createdAt).getTime();
@@ -157,4 +203,9 @@ async function checkModifications({ entries, odinEndpoint, authToken }) {
     return results.sort((a, b) => a.path.localeCompare(b.path));
 }
 
-module.exports = { createSnapshot, revertSnapshot, checkModifications };
+module.exports = {
+    createSnapshot,
+    revertSnapshot,
+    checkModifications,
+    recordSnapshot,
+};

@@ -237,6 +237,60 @@ describe('MasSelectionPanel', () => {
         });
     });
 
+    describe('handlePublish', () => {
+        let repository;
+
+        beforeEach(() => {
+            repository = { bulkPublishFragments: sandbox.stub().resolves(true) };
+        });
+
+        it('calls bulkPublishFragments with fragment IDs from selection', async () => {
+            const frag = { id: 'frag-1', model: { path: CARD_MODEL_PATH } };
+            const el = await fixture(
+                html`<mas-selection-panel
+                    open
+                    .selectionStore=${makeSelectionStore([makeFragmentStore(frag)])}
+                    .repository=${repository}
+                ></mas-selection-panel>`,
+            );
+
+            await el.handlePublish();
+
+            expect(repository.bulkPublishFragments.calledOnce).to.be.true;
+            expect(repository.bulkPublishFragments.firstCall.args[0]).to.deep.equal(['frag-1']);
+        });
+
+        it('clears selection after successful publish', async () => {
+            const frag = { id: 'frag-1', model: { path: CARD_MODEL_PATH } };
+            const selectionStore = makeSelectionStore([makeFragmentStore(frag)]);
+            const el = await fixture(
+                html`<mas-selection-panel
+                    open
+                    .selectionStore=${selectionStore}
+                    .repository=${repository}
+                ></mas-selection-panel>`,
+            );
+
+            await el.handlePublish();
+
+            expect(selectionStore.get()).to.deep.equal([]);
+        });
+
+        it('does not call bulkPublishFragments when selection is empty', async () => {
+            const el = await fixture(
+                html`<mas-selection-panel
+                    open
+                    .selectionStore=${makeSelectionStore([])}
+                    .repository=${repository}
+                ></mas-selection-panel>`,
+            );
+
+            await el.handlePublish();
+
+            expect(repository.bulkPublishFragments.called).to.be.false;
+        });
+    });
+
     describe('render', () => {
         it('shows Copy URLs button when items are selected', async () => {
             const fragment = { id: 'uuid-1', model: { path: CARD_MODEL_PATH } };

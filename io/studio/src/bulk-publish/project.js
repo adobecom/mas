@@ -1,4 +1,4 @@
-const { getFragmentWithEtag, getValue, getValues, putToOdin } = require('../common.js');
+const { getFragmentWithEtag, getValue, getValues, putToOdin, parseOdinHttpStatus } = require('../common.js');
 
 const PROJECT_STATUS = {
     DRAFT: 'Draft',
@@ -12,7 +12,8 @@ async function readProjectFragment(odinEndpoint, projectId, authToken) {
     return getFragmentWithEtag(odinEndpoint, projectId, authToken);
 }
 
-async function updateProjectFragment(odinEndpoint, projectId, authToken, fieldUpdates, maxRetries = 3) {
+async function updateProjectFragment(odinEndpoint, projectId, authToken, fieldUpdates, maxRetries = 2) {
+    let lastError;
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
         const { fragment, etag } = await getFragmentWithEtag(odinEndpoint, projectId, authToken);
         const fields = fragment.fields.map((field) => {
@@ -35,11 +36,14 @@ async function updateProjectFragment(odinEndpoint, projectId, authToken, fieldUp
                 etag,
             });
             return;
-        } catch (error) {
-            const conflict = /status 412/.test(error?.message || '');
-            if (!conflict || attempt === maxRetries) throw error;
+        } catch (err) {
+            lastError = err;
+            const status = String(parseOdinHttpStatus(err));
+            if (status !== '412' && status !== '500') throw err;
+            if (attempt < maxRetries) await new Promise((r) => setTimeout(r, 500 * attempt));
         }
     }
+    throw lastError;
 }
 
 function getProjectPaths(fragment) {

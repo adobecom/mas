@@ -152,7 +152,7 @@ export async function createDictionaryIndexFragment({ parentPath, parentReferenc
         }
 
         if (publish) {
-            await repo.publishFragment(indexFragment, [], false);
+            await repo.publishFragment(indexFragment, {}, false);
         }
         return indexFragment;
     } catch (error) {
@@ -270,7 +270,7 @@ export async function addToIndexFragment(fragment) {
             console.info(`Fragment already added to index: ${fragment.path}`);
         }
 
-        await repo.publishFragment(updatedIndexFragment, [], false);
+        await repo.publishFragment(updatedIndexFragment, {}, false);
         return true;
     } catch (error) {
         repo.processError(error, 'Failed to add fragment to index.');
@@ -308,7 +308,7 @@ export async function removeFromIndexFragment(fragments) {
             console.info('Fragment(s) already added to index.');
         }
 
-        await repo.publishFragment(updatedIndexFragment, [], false);
+        await repo.publishFragment(updatedIndexFragment, {}, false);
         return true;
     } catch (error) {
         repo.processError(error, 'Failed to add fragment(s) to index.');
@@ -375,7 +375,7 @@ export async function publishPlaceholder(placeholder) {
         return false;
     }
 
-    return repo.publishFragment(indexFragment, [], false);
+    return repo.publishFragment(indexFragment, {}, false);
 }
 
 export function clearDictionaryCache() {

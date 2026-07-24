@@ -509,7 +509,7 @@ describe('mas-placeholders-repository', () => {
             expect(repo.publishFragment.callCount).to.equal(2);
             expect(repo.publishFragment.firstCall.args[0]).to.equal(placeholder);
             expect(repo.publishFragment.secondCall.args[0].path).to.equal(expectedIndexPath);
-            expect(repo.publishFragment.secondCall.args.slice(1)).to.deep.equal([[], false]);
+            expect(repo.publishFragment.secondCall.args.slice(1)).to.deep.equal([{}, false]);
         });
 
         it('bails out and skips the index publish when the placeholder publish fails', async () => {

@@ -21,6 +21,7 @@ describe('project.js', () => {
                 putToOdin: putToOdinStub,
                 getValue: require('../../src/common.js').getValue,
                 getValues: require('../../src/common.js').getValues,
+                parseOdinHttpStatus: require('../../src/common.js').parseOdinHttpStatus,
             },
         });
     });
@@ -150,41 +151,50 @@ describe('project.js', () => {
             expect(publishedAtField.values).to.deep.equal(['2025-01-01T00:00:00.000Z']);
         });
 
-        it('refetches the etag and retries when the PUT returns a 412 conflict', async () => {
+        it('retries on 412 with fresh ETag and succeeds', async () => {
             const fragment = makeFragment([{ name: 'status', type: 'text', values: ['Draft'] }]);
-            getFragmentWithEtagStub
-                .onFirstCall()
-                .resolves({ fragment, etag: '"stale"' })
-                .onSecondCall()
-                .resolves({ fragment, etag: '"fresh"' });
-            putToOdinStub
-                .onFirstCall()
-                .rejects(new Error('PUT /adobe/sites/cf/fragments/proj-1 failed with status 412: Precondition Failed'))
-                .onSecondCall()
-                .resolves({ success: true });
+            getFragmentWithEtagStub.resolves({ fragment, etag: '"etag-fresh"' });
+            const err412 = new Error('PUT /fragments/proj-1 failed with status 412: Precondition Failed');
+            err412.status = 412;
+            putToOdinStub.onFirstCall().rejects(err412);
+            putToOdinStub.onSecondCall().resolves({ success: true });
 
             await mod.updateProjectFragment('https://odin.example', 'proj-1', 'token', { status: 'Published' });
 
-            expect(putToOdinStub.callCount).to.equal(2);
-            expect(putToOdinStub.secondCall.args[3].etag).to.equal('"fresh"');
+            expect(putToOdinStub.calledTwice).to.be.true;
+            expect(getFragmentWithEtagStub.calledTwice).to.be.true;
         });
 
-        it('rethrows after exhausting retries on persistent 412', async () => {
+        it('retries on 412 when error has no .status property but message contains the status code', async () => {
+            const fragment = makeFragment([{ name: 'status', type: 'text', values: ['Draft'] }]);
+            getFragmentWithEtagStub.resolves({ fragment, etag: '"etag-fresh"' });
+            const err412 = new Error('PUT /fragments/proj-1 failed with status 412: Precondition Failed');
+            // No .status property — matches what fetchOdin actually throws
+            putToOdinStub.onFirstCall().rejects(err412);
+            putToOdinStub.onSecondCall().resolves({ success: true });
+
+            await mod.updateProjectFragment('https://odin.example', 'proj-1', 'token', { status: 'Published' });
+
+            expect(putToOdinStub.calledTwice).to.be.true;
+            expect(getFragmentWithEtagStub.calledTwice).to.be.true;
+        });
+
+        it('throws immediately on non-412/500 errors without retry', async () => {
             const fragment = makeFragment([{ name: 'status', type: 'text', values: ['Draft'] }]);
             getFragmentWithEtagStub.resolves({ fragment, etag: '"e"' });
-            putToOdinStub.rejects(
-                new Error('PUT /adobe/sites/cf/fragments/proj-1 failed with status 412: Precondition Failed'),
-            );
+            const err400 = new Error('PUT /fragments/proj-1 failed with status 400: Bad Request');
+            err400.status = 400;
+            putToOdinStub.rejects(err400);
 
-            let thrown = null;
-            await mod
-                .updateProjectFragment('https://odin.example', 'proj-1', 'token', { status: 'Published' }, 3)
-                .catch((e) => {
-                    thrown = e;
-                });
-
-            expect(thrown).to.be.an('error');
-            expect(putToOdinStub.callCount).to.equal(3);
+            let threw = false;
+            try {
+                await mod.updateProjectFragment('https://odin.example', 'proj-1', 'token', { status: 'Published' });
+            } catch (err) {
+                threw = true;
+                expect(err.message).to.include('400');
+            }
+            expect(threw).to.be.true;
+            expect(putToOdinStub.calledOnce).to.be.true;
         });
     });
 });

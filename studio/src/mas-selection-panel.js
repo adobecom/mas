@@ -96,7 +96,7 @@ class MasSelectionPanel extends LitElement {
         this.onCopyToFolder(fragment);
     }
 
-    async handlePublish(event) {
+    async handlePublish() {
         if (!this.repository) {
             console.error('Repository not found');
             return;
@@ -105,7 +105,6 @@ class MasSelectionPanel extends LitElement {
         const selection = this.selection;
         if (!selection || selection.length === 0) return;
 
-        // Extract fragment IDs from selection (selection can be IDs or fragment objects)
         const fragmentIds = selection
             .map((item) => {
                 if (typeof item === 'string') return item;

@@ -100,16 +100,10 @@ class MasBulkPublishEditor extends LitElement {
     #abortController = null;
     #validateId = 0;
     #discardResolve = null;
-    #projectReactivity = new ReactiveController(this, []);
-    #observedProject = null;
-
-    willUpdate() {
-        const store = this.project instanceof FragmentStore ? this.project : null;
-        if (store !== this.#observedProject) {
-            this.#observedProject = store;
-            this.#projectReactivity.updateStores(store ? [store] : []);
-        }
-    }
+    #loadingItems = false;
+    #currentProjectId = null;
+    #projectStoreController = new ReactiveController(this, []);
+    #subscribedProject = null;
 
     constructor() {
         super();
@@ -146,6 +140,7 @@ class MasBulkPublishEditor extends LitElement {
                     await this.updateComplete;
                     if (this.urls && !this.items.length) this.validate();
                     else if (this.items.length) this.reEnrichItems();
+                    else this.#loadItemDetails();
                 }
             } catch {
                 if (!signal.aborted) {
@@ -162,6 +157,63 @@ class MasBulkPublishEditor extends LitElement {
                     fields[k] = v;
                 },
             });
+        }
+    }
+
+    async #loadItemDetails() {
+        const paths = this.getFields('fragments');
+        if (!paths.length || this.localItems !== null || this.#loadingItems) return;
+        this.#loadingItems = true;
+        try {
+            const surface = Store.search.get()?.path;
+            const { signal } = this.#abortController;
+            const CONCURRENCY = 5;
+            const items = new Array(paths.length).fill(null);
+            for (let i = 0; i < paths.length; i += CONCURRENCY) {
+                if (signal.aborted) return;
+                const batch = paths.slice(i, i + CONCURRENCY);
+                const results = await Promise.all(
+                    batch.map(async (path) => {
+                        try {
+                            const rawFragment = await this.repository.aem.sites.cf.fragments.getByPath(path);
+                            const fragment = new Fragment(rawFragment);
+                            const { authorPath, href } = generateCodeToUse(fragment, surface, PAGE_NAMES.CONTENT) || {};
+                            return {
+                                url: path,
+                                fragmentId: fragment.id,
+                                path: fragment.path,
+                                authorPath: authorPath || null,
+                                href: href || null,
+                                status: 'valid',
+                                alreadyPublished: fragment.status === STATUS_PUBLISHED,
+                            };
+                        } catch {
+                            return { url: path, path, status: 'valid' };
+                        }
+                    }),
+                );
+                results.forEach((result, j) => {
+                    items[i + j] = result;
+                });
+            }
+            if (signal.aborted || this.localItems !== null) return;
+            this.localItems = items;
+        } finally {
+            this.#loadingItems = false;
+        }
+    }
+
+    updated() {
+        const project = this.project;
+        const newId = project?.id ?? null;
+        if (newId !== this.#currentProjectId) {
+            this.localItems = null;
+            this.#currentProjectId = newId;
+        }
+        if (project !== this.#subscribedProject) {
+            this.#subscribedProject = project;
+            const stores = project?.subscribe ? [project] : [];
+            this.#projectStoreController.updateStores(stores);
         }
     }
 
@@ -278,8 +330,8 @@ class MasBulkPublishEditor extends LitElement {
 
     get publishBlockedReason() {
         if (this.isNewProject) return PUBLISH_BLOCKED_REASON.UNSAVED;
-        if (!this.hasValidItems) return '';
         if (this.status === BULK_PUBLISH_STATUS.PUBLISHED) return PUBLISH_BLOCKED_REASON.ALREADY_PUBLISHED;
+        if (!this.hasValidItems) return '';
         if (this.allAlreadyPublished) return PUBLISH_BLOCKED_REASON.ALL_ITEMS_PUBLISHED;
         return '';
     }
@@ -335,14 +387,17 @@ class MasBulkPublishEditor extends LitElement {
             ]);
         }
         if (this.isPublishing) {
-            return new Set([
+            const disabled = new Set([
                 QUICK_ACTION.SAVE,
                 QUICK_ACTION.DUPLICATE,
                 QUICK_ACTION.PUBLISH,
-                QUICK_ACTION.REVERT,
                 QUICK_ACTION.LOCK,
                 QUICK_ACTION.DELETE,
             ]);
+            if (!this.getFields('snapshots').length) {
+                disabled.add(QUICK_ACTION.REVERT);
+            }
+            return disabled;
         }
         if (this.isPublished) {
             return new Set([QUICK_ACTION.SAVE, QUICK_ACTION.PUBLISH]);
@@ -398,9 +453,10 @@ class MasBulkPublishEditor extends LitElement {
         this.confirmOpen = false;
     }
 
-    handleConfirmPublish() {
+    handleConfirmPublish(e) {
         this.confirmOpen = false;
-        this.publish();
+        const { includeVariations = false, includeCards = false } = e?.detail ?? {};
+        this.publish(includeVariations, includeCards);
     }
 
     setProjectField(name, value) {
@@ -794,7 +850,7 @@ class MasBulkPublishEditor extends LitElement {
         }
     }
 
-    async publish() {
+    async publish(includeVariations = false, includeCards = false) {
         if (this.hasChanges) await this.saveBulkProject();
         if (!this.canStartPublishing) return;
         try {
@@ -805,6 +861,8 @@ class MasBulkPublishEditor extends LitElement {
                     token: this.token,
                     ioBaseUrl: this.ioBaseUrl,
                     repository: this.repository,
+                    includeVariations,
+                    includeCards,
                 });
             });
             this.requestUpdate();

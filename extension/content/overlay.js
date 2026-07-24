@@ -159,6 +159,7 @@ class CardOverlay {
         editBtn.addEventListener('click', () => {
             window.MASStudioLinker.openInStudio(cardData.fragmentId, {
                 variant: cardData.variant,
+                locale: cardData.locale,
             });
         });
 
@@ -569,7 +570,7 @@ class CardOverlay {
         if (parentLink) {
             parentLink.addEventListener('click', (e) => {
                 e.preventDefault();
-                window.MASStudioLinker.openParentInStudio(variationInfo);
+                this.openParentFragment(fragmentId, variationInfo);
             });
         }
 
@@ -585,6 +586,37 @@ class CardOverlay {
                 window.MASStudioLinker.openVariationInStudio(variation);
             });
         });
+    }
+
+    openParentFragment(fragmentId, variationInfo) {
+        const key = this.cacheKey(fragmentId, variationInfo.localeDefaultLocale, null);
+        const cached = this.fragmentDataCache.get(key);
+        if (cached) {
+            window.MASStudioLinker.openParentInStudio(variationInfo, cached.id);
+            return;
+        }
+        try {
+            chrome.runtime.sendMessage(
+                {
+                    type: 'FETCH_FRAGMENT_DATA',
+                    fragmentId: fragmentId,
+                    locale: variationInfo.localeDefaultLocale,
+                },
+                (response) => {
+                    if (chrome.runtime.lastError) return;
+                    if (response && response.success && response.data && response.data.id) {
+                        this.fragmentDataCache.set(key, response.data);
+                        window.MASStudioLinker.openParentInStudio(variationInfo, response.data.id);
+                    } else {
+                        window.MASStudioLinker.openParentInStudio(variationInfo);
+                    }
+                },
+            );
+        } catch (err) {
+            if (!(err && typeof err.message === 'string' && err.message.includes('Extension context invalidated'))) {
+                throw err;
+            }
+        }
     }
 
     refreshFragmentData(fragmentId) {

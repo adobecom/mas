@@ -215,7 +215,7 @@ function createCardItem(card) {
 
     item.addEventListener('click', (e) => {
         if (e.target.closest('.card-row-edit')) {
-            openInStudio(card.fragmentId, card.variant);
+            openInStudio(card.fragmentId, card.variant, card.locale);
             return;
         }
         highlightCardInPage(card.fragmentId);
@@ -252,12 +252,13 @@ function updateVariantFilter() {
     }
 }
 
-function openInStudio(fragmentId, variant) {
+function openInStudio(fragmentId, variant, locale) {
     chrome.runtime.sendMessage({
         type: 'OPEN_STUDIO_LINK',
         view: 'content',
         fragmentId,
         variant,
+        locale,
     });
 }
 

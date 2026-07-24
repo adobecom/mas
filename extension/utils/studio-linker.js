@@ -5,6 +5,7 @@ class StudioLinker {
             view: 'content',
             fragmentId,
             variant: options.variant,
+            locale: options.locale,
         });
     }
 

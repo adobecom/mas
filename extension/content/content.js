@@ -53,12 +53,9 @@ function extractVariantFromFragment(fragmentData) {
 function initialize() {
     if (initialized) return;
     if (window.location.pathname.endsWith('/studio.html')) {
-        console.log('Merch At Scale Studio Extension: Studio page detected, skipping card detection');
         return;
     }
     initialized = true;
-
-    console.log('Merch At Scale Studio Extension: Initializing...');
 
     window.MASCardDetector.onCardDetected((cardData) => {
         const badge = window.MASCardOverlay.createBadge(cardData);
@@ -156,8 +153,6 @@ function initialize() {
         }
         return true;
     });
-
-    console.log('Merch At Scale Studio Extension: Initialized successfully');
 }
 
 if (document.readyState === 'loading') {

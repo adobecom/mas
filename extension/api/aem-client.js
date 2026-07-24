@@ -21,20 +21,12 @@ class AEMClient {
             url += `&country=${encodeURIComponent(country)}`;
         }
 
-        console.log('Fetching fragment:', { fragmentId, locale, country, url });
-
         try {
             const response = await fetch(url, {
                 method: 'GET',
                 headers: {
                     Accept: 'application/json',
                 },
-            });
-
-            console.log('Fragment API response:', {
-                status: response.status,
-                statusText: response.statusText,
-                contentType: response.headers.get('content-type'),
             });
 
             if (!response.ok) {

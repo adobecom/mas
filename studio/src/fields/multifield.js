@@ -145,13 +145,32 @@ class MasMultifield extends LitElement {
         }
     }
 
+    // Read the current value from a rendered field element (mirrors renderField's attribute logic).
+    #readFieldValue(wrapper) {
+        const fieldEl = wrapper.querySelector('.field') ?? wrapper.firstElementChild;
+        let val = fieldEl?.value;
+        if (typeof val === 'string') val = { value: val };
+        return val && typeof val === 'object' && Object.keys(val).length > 0 ? val : {};
+    }
+
     async addField() {
         this.#internalUpdate = true;
-        const targetLength = this.value.length + 1;
-        this.value = [...this.value, {}];
+        const wrappers = Array.from(this.shadowRoot.querySelectorAll('.field-wrapper'));
+        const domCount = wrappers.length;
+        const targetLength = domCount + 1;
+        // DOM is source of truth — this.value may have been silently reduced by a
+        // parent re-render while the user had focus (focus guard skips render but
+        // still applies the property). Recover actual values from DOM elements.
+        if (this.value.length < domCount) {
+            const recovered = wrappers.map((wrapper, i) =>
+                i < this.value.length ? this.value[i] : this.#readFieldValue(wrapper),
+            );
+            this.value = [...recovered, {}];
+        } else {
+            this.value = [...this.value, {}];
+        }
         await this.updateComplete;
-        // A concurrent parent re-render can overwrite this.value during the await,
-        // causing deepEquals to see no change and skip the render. Re-add if that happened.
+        // A concurrent parent re-render can overwrite this.value during the await.
         if (this.value.length < targetLength) {
             this.value = [...this.value, {}];
             await this.updateComplete;
@@ -197,6 +216,13 @@ class MasMultifield extends LitElement {
             newValue = { value: newValue };
         }
         const index = this.getFieldIndex(e.target);
+        if (index === -1) return;
+        // If parent silently reduced this.value while user had focus, extend it
+        if (index >= this.value.length) {
+            const padded = [...this.value];
+            while (padded.length <= index) padded.push({});
+            this.value = padded;
+        }
         const value = this.value[index];
         if (!value) return;
         Object.assign(value, newValue);
@@ -212,6 +238,13 @@ class MasMultifield extends LitElement {
             newValue = { value: newValue };
         }
         const index = this.getFieldIndex(e.target);
+        if (index === -1) return;
+        // If parent silently reduced this.value while user had focus, extend it
+        if (index >= this.value.length) {
+            const padded = [...this.value];
+            while (padded.length <= index) padded.push({});
+            this.value = padded;
+        }
         const value = this.value[index];
         if (!value) return;
         Object.assign(value, newValue);

@@ -2131,6 +2131,91 @@ describe('customize promoCode application', function () {
         expect(result.body.fields.promoCode).to.be.undefined;
     });
 
+    it('should not throw when fragment has no fields at all', async function () {
+        const result = await processWithPromos(
+            { ...FAKE_CONTEXT, fragmentPath: 'test-card', body: makeBody(undefined, { fields: undefined }) },
+            MINIMAL_PROJECT,
+            { '*': 'UNIVERSAL' },
+        );
+        expect(result.status).to.equal(200);
+        expect(result.body.fields?.promoCode).to.be.undefined;
+    });
+
+    it('should apply promoCode when a rich text OSI matches even if fields.osi does not', async function () {
+        const result = await processWithPromos(
+            {
+                ...FAKE_CONTEXT,
+                fragmentPath: 'test-card',
+                body: makeBody('OSI-OWN', {
+                    fields: {
+                        osi: 'OSI-OWN',
+                        description: '<p><span is="inline-price" data-wcs-osi="OSI-PROMO"></span></p>',
+                    },
+                }),
+            },
+            MINIMAL_PROJECT,
+            { 'OSI-PROMO': 'BTS26' },
+        );
+        expect(result.status).to.equal(200);
+        expect(result.body.fields.promoCode).to.equal('BTS26');
+    });
+
+    it('should match individual OSIs from a comma separated data-wcs-osi attribute', async function () {
+        const result = await processWithPromos(
+            {
+                ...FAKE_CONTEXT,
+                fragmentPath: 'test-card',
+                body: makeBody('OSI-OWN', {
+                    fields: {
+                        osi: 'OSI-OWN',
+                        prices: '<span is="inline-price" data-wcs-osi="OSI-X,OSI-PROMO"></span>',
+                    },
+                }),
+            },
+            MINIMAL_PROJECT,
+            { 'OSI-PROMO': 'BTS26' },
+        );
+        expect(result.status).to.equal(200);
+        expect(result.body.fields.promoCode).to.equal('BTS26');
+    });
+
+    it('should apply promoCode when fields.osi is absent but a rich text OSI matches', async function () {
+        const result = await processWithPromos(
+            {
+                ...FAKE_CONTEXT,
+                fragmentPath: 'test-card',
+                body: makeBody(undefined, {
+                    fields: {
+                        description: '<span is="inline-price" data-wcs-osi="OSI-PROMO"></span>',
+                    },
+                }),
+            },
+            MINIMAL_PROJECT,
+            { 'OSI-PROMO': 'BTS26' },
+        );
+        expect(result.status).to.equal(200);
+        expect(result.body.fields.promoCode).to.equal('BTS26');
+    });
+
+    it('should prefer the fragment osi match over rich text OSI matches', async function () {
+        const result = await processWithPromos(
+            {
+                ...FAKE_CONTEXT,
+                fragmentPath: 'test-card',
+                body: makeBody('OSI-OWN', {
+                    fields: {
+                        osi: 'OSI-OWN',
+                        description: '<span is="inline-price" data-wcs-osi="OSI-PROMO"></span>',
+                    },
+                }),
+            },
+            MINIMAL_PROJECT,
+            { 'OSI-OWN': 'OWN-CODE', 'OSI-PROMO': 'RICH-CODE' },
+        );
+        expect(result.status).to.equal(200);
+        expect(result.body.fields.promoCode).to.equal('OWN-CODE');
+    });
+
     it('should apply promoCode to child card fragments in collection', async function () {
         const result = await processWithPromos(
             {

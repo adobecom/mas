@@ -1,7 +1,10 @@
 import { expect } from '@esm-bundle/chai';
 import sinon from 'sinon';
 import '../src/mas-field.js';
-import { priceOptionsProvider } from '../src/mas-field.js';
+import {
+    checkoutOptionsProvider,
+    priceOptionsProvider,
+} from '../src/mas-field.js';
 import { FF_DEFAULTS } from '../src/constants.js';
 
 const CTA_HTML =
@@ -565,6 +568,40 @@ describe('mas-field – price options provider (locale defaults)', () => {
         const options = {};
         priceOptionsProvider(inline, options);
         expect(options.promotionCode).to.be.undefined;
+    });
+
+    it('sets checkout options.promotionCode from the enclosing mas-field data-promotion-code', () => {
+        const masField = document.createElement('mas-field');
+        masField.setAttribute('data-promotion-code', 'PROMO123');
+        const link = document.createElement('a', { is: 'checkout-link' });
+        masField.append(link);
+        document.body.append(masField);
+
+        const options = {};
+        checkoutOptionsProvider(link, options);
+        expect(options.promotionCode).to.equal('PROMO123');
+    });
+
+    it('does not override an existing checkout options.promotionCode', () => {
+        const masField = document.createElement('mas-field');
+        masField.setAttribute('data-promotion-code', 'PROMO123');
+        const link = document.createElement('a', { is: 'checkout-link' });
+        masField.append(link);
+        document.body.append(masField);
+
+        const options = { promotionCode: 'OWN-CODE' };
+        checkoutOptionsProvider(link, options);
+        expect(options.promotionCode).to.equal('OWN-CODE');
+    });
+
+    it('leaves checkout options untouched for elements outside mas-field', () => {
+        const link = document.createElement('a', { is: 'checkout-link' });
+        document.body.append(link);
+
+        const options = {};
+        checkoutOptionsProvider(link, options);
+        expect(options.promotionCode).to.be.undefined;
+        expect(() => checkoutOptionsProvider(null, options)).to.not.throw();
     });
 });
 

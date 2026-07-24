@@ -27,10 +27,26 @@ export function priceOptionsProvider(element, options) {
     }
 }
 
-function registerPriceOptionsProvider(service) {
+/**
+ * Applies the enclosing mas-field's promo code to checkout options,
+ * mirroring what merch-card's checkout options provider does for cards.
+ * Without this, CTAs rendered through <mas-field field="ctas"> resolve
+ * checkout URLs without the promotion applied by a promo project.
+ */
+export function checkoutOptionsProvider(element, options) {
+    const masField = element?.closest?.(MAS_FIELD_TAG);
+    if (!masField) return options;
+    if (!options.promotionCode) {
+        const promotionCode = masField.getAttribute('data-promotion-code');
+        if (promotionCode) options.promotionCode = promotionCode;
+    }
+}
+
+function registerOptionsProviders(service) {
     if (!service?.providers || service.providers.has(priceOptionsProvider))
         return;
     service.providers.price(priceOptionsProvider);
+    service.providers.checkout(checkoutOptionsProvider);
 }
 
 const MAS_FIELD_STYLES = `
@@ -79,7 +95,7 @@ class MasField extends HTMLElement {
         this.addEventListener(EVENT_AEM_LOAD, this.#onFragmentLoad);
         this.#ensureContentElement();
         this.aemFragment?.setAttribute('hidden', '');
-        registerPriceOptionsProvider(getService());
+        registerOptionsProviders(getService());
     }
 
     /** Cleans up the event listener when removed from the DOM. */

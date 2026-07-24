@@ -1,5 +1,7 @@
 .*
 *.md
+!skill/mas-author/SKILL.md
+!skill/mas-author/references/content-model.md
 karma.config.js
 LICENSE
 package.json

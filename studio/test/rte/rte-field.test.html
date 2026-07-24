@@ -528,6 +528,28 @@
                             expect(html).to.not.match(/<a[^>]*>\s*<\/a>/);
                         });
 
+                        it('inserts a soft-bundle inline-price with the comma-joined OSIs intact', async function () {
+                            const rte = await createFromTemplate('rte', this.test.title);
+                            await delay(50);
+                            const view = rte.editorView;
+                            const SelCtor = view.state.selection.constructor;
+                            const tr = view.state.tr.setSelection(SelCtor.create(view.state.doc, 1, 1));
+                            view.dispatch(tr);
+                            await delay(20);
+
+                            rte.handleOpenOfferSelector(new Event('click'));
+                            dispatchOstSelect({
+                                is: 'inline-price',
+                                'data-wcs-osi': 'osi-a,osi-b',
+                            });
+                            await delay(50);
+
+                            const prices = rte.shadowRoot.querySelectorAll('.ProseMirror span[is="inline-price"]');
+                            expect(prices.length).to.equal(1);
+                            expect(prices[0].getAttribute('data-wcs-osi')).to.equal('osi-a,osi-b');
+                            expect(rte.value).to.include('data-wcs-osi="osi-a,osi-b"');
+                        });
+
                         it('is a no-op when ostRteFieldSource does not match the current RTE instance', async function () {
                             const rteA = await createFromTemplate('rte', this.test.title + '-A');
                             const rteB = await createFromTemplate('rte', this.test.title + '-B');

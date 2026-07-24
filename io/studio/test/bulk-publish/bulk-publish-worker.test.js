@@ -49,6 +49,46 @@ describe('bulk-publish-worker — runWorker', () => {
         expect(JSON.parse(fields.lastResult).published).to.equal(2);
     });
 
+    it('publishes dictionary indexes after placeholders and counts them in the result', async () => {
+        deps.getProjectPaths.returns(['/content/dam/mas/acom/en_US/dictionary/free']);
+        deps.getProjectLocales.returns([]);
+        deps.publishResolved.resolves([{ path: '/content/dam/mas/acom/en_US/dictionary/free', status: 'published' }]);
+        deps.publishDictionaryIndexes = sinon
+            .stub()
+            .resolves([{ path: '/content/dam/mas/acom/en_US/dictionary/index', status: 'published' }]);
+
+        const result = await worker.runWorker(
+            { projectId: 'proj-1', odinEndpoint: 'https://odin', authToken: 't', publishedBy: '' },
+            deps,
+        );
+
+        expect(deps.publishDictionaryIndexes).to.have.been.calledAfter(deps.publishResolved);
+        expect(result.total).to.equal(2);
+        expect(result.published).to.equal(2);
+        expect(deps.updateProjectFragment.lastCall.args[3].status).to.equal('Published');
+    });
+
+    it('reports Partially published when the index publish fails', async () => {
+        deps.getProjectPaths.returns(['/content/dam/mas/acom/en_US/dictionary/free']);
+        deps.getProjectLocales.returns([]);
+        deps.publishResolved.resolves([{ path: '/content/dam/mas/acom/en_US/dictionary/free', status: 'published' }]);
+        deps.publishDictionaryIndexes = sinon
+            .stub()
+            .resolves([{ path: '/content/dam/mas/acom/en_US/dictionary/index', status: 'failed', reason: 'not-found' }]);
+
+        const result = await worker.runWorker(
+            { projectId: 'proj-1', odinEndpoint: 'https://odin', authToken: 't', publishedBy: '' },
+            deps,
+        );
+
+        expect(result.failed).to.equal(1);
+        expect(result.failures).to.deep.include({
+            path: '/content/dam/mas/acom/en_US/dictionary/index',
+            reason: 'not-found',
+        });
+        expect(deps.updateProjectFragment.lastCall.args[3].status).to.equal('Partially published');
+    });
+
     it('relabels not-found failures as not-localized and writes Partially published', async () => {
         deps.publishResolved.resolves([
             { path: '/content/dam/mas/acom/en_US/a', status: 'published' },

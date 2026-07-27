@@ -383,14 +383,15 @@ async function init(context) {
         context.promises?.defaultLanguage,
     ]);
 
-    if (!surface) return { status: 200, activeProjects: [] };
-    if (!projects?.length) return { status: 200, activeProjects: [] };
+    if (!surface) return { status: 200, activeProjects: [], instantUsed: false };
+    if (!projects?.length) return { status: 200, activeProjects: [], instantUsed: false };
 
     const defaultLocale = defaultLangResult?.defaultLocale;
-    if (!defaultLocale) return { status: 200, activeProjects: [] };
+    if (!defaultLocale) return { status: 200, activeProjects: [], instantUsed: false };
     const resolvedRegionLocale = defaultLangResult.regionLocale;
 
-    const instant = toInstant(context.preview ? context.instant : undefined);
+    const instantUsed = Boolean(context.instant);
+    const instant = toInstant(context.instant);
     const { locale, country } = context;
     const effectiveRegionLocale = resolvedRegionLocale ?? locale;
 
@@ -403,7 +404,7 @@ async function init(context) {
         // Stable secondary sort: seasonal (time-boxed) projects float to the top, preserving
         // the startDate order established above within each bucket.
         .sort((a, b) => (a.endDate ? 0 : 1) - (b.endDate ? 0 : 1));
-    if (!matched.length) return { status: 200, activeProjects: [] };
+    if (!matched.length) return { status: 200, activeProjects: [], instantUsed };
 
     log(
         `Found ${matched.length} active promotion project(s) for surface "${surface}", regionLocale "${effectiveRegionLocale}", country "${country}": ${matched.map((p) => `"${p.name}" (${p.id})`).join(', ')}`,
@@ -426,7 +427,7 @@ async function init(context) {
         }
     });
 
-    return { status: 200, activeProjects };
+    return { status: 200, activeProjects, instantUsed };
 }
 
 /**
@@ -465,7 +466,7 @@ function buildPromoMap(offerOverrides, { regionLocale, country }, projectPromoCo
  * Matching is done by fragmentPath (locale-independent) so translated fragments are handled correctly.
  */
 async function promotions(context) {
-    const { activeProjects = [] } = (await context.promises?.promotions) ?? {};
+    const { activeProjects = [], instantUsed = false } = (await context.promises?.promotions) ?? {};
     const { regionLocale, country } = context;
     const promoProjects = activeProjects.map((project) => ({
         project,
@@ -480,7 +481,7 @@ async function promotions(context) {
             context,
         );
     });
-    return { ...context, status: 200, promoProjects, substituteMap };
+    return { ...context, status: 200, promoProjects, substituteMap, instantUsed };
 }
 
 export const transformer = {

@@ -3,7 +3,17 @@ import { html } from 'lit';
 import { fixture } from '@open-wc/testing-helpers/pure';
 import '../../src/swc.js';
 import '../../src/editors/variant-picker.js';
-import { VARIANTS, VARIANT_NAMES, getVariantTreeData } from '../../src/editors/variant-picker.js';
+import {
+    getVariantTreeData,
+    hasLegacyVariantAlias,
+    isVariantMatch,
+    LEGACY_VARIANTS,
+    migrateLegacyVariant,
+    normalizeVariantName,
+    RECOGNIZED_VARIANT_NAMES,
+    VARIANTS,
+    VARIANT_NAMES,
+} from '../../src/editors/variant-picker.js';
 import { spTheme } from '../utils.js';
 
 describe('VariantPicker', () => {
@@ -93,6 +103,36 @@ describe('VariantPicker', () => {
             const plans = VARIANTS.find((v) => v.value === VARIANT_NAMES.PLANS);
             expect(plans).to.exist;
         });
+
+        it('should include Pro without exposing the legacy alias for authoring', () => {
+            expect(VARIANTS.find((variant) => variant.value === VARIANT_NAMES.PRO)?.label).to.equal('Pro');
+            expect(VARIANTS.some((variant) => variant.value === 'bizpro')).to.equal(false);
+        });
+    });
+
+    describe('legacy variants', () => {
+        it('recognizes and normalizes stored bizpro fragments', () => {
+            expect(LEGACY_VARIANTS.get('bizpro')).to.equal(VARIANT_NAMES.PRO);
+            expect(RECOGNIZED_VARIANT_NAMES.has('bizpro')).to.equal(true);
+            expect(normalizeVariantName('bizpro')).to.equal(VARIANT_NAMES.PRO);
+            expect(hasLegacyVariantAlias(VARIANT_NAMES.PRO)).to.equal(true);
+            expect(isVariantMatch([VARIANT_NAMES.PRO], 'bizpro')).to.equal(true);
+        });
+
+        it('migrates a stored bizpro value before save', () => {
+            const fragment = { getFieldValue: () => 'bizpro' };
+            const fragmentStore = {
+                get: () => fragment,
+                updateField: (fieldName, values) => {
+                    fragment.getFieldValue = () => values[0];
+                    expect(fieldName).to.equal('variant');
+                },
+            };
+
+            migrateLegacyVariant(fragmentStore);
+
+            expect(fragment.getFieldValue('variant')).to.equal(VARIANT_NAMES.PRO);
+        });
     });
 
     describe('getVariantTreeData', () => {
@@ -107,7 +147,8 @@ describe('VariantPicker', () => {
             expect(names).to.include('special-offers');
             expect(names).to.include('headless');
             expect(names).to.include('compare-chart-column');
-            expect(names).to.include('bizpro');
+            expect(names).to.include('pro');
+            expect(names).to.not.include('bizpro');
             expect(names).to.not.include('plans');
             expect(names).to.not.include('catalog');
             expect(names).to.not.include('ccd-slice');
@@ -123,7 +164,7 @@ describe('VariantPicker', () => {
             expect(names).to.include('image');
             expect(names).to.include('headless');
             expect(names).to.include('compare-chart-column');
-            expect(names).to.include('bizpro');
+            expect(names).to.include('pro');
             expect(names).to.not.include('special-offers');
             expect(names).to.not.include('plans');
             expect(names).to.not.include('mini-compare-chart-mweb');
@@ -135,16 +176,18 @@ describe('VariantPicker', () => {
             const names = result.map((v) => v.name);
             expect(names).to.include('plans');
             expect(names).to.include('plans-v2');
-            expect(names).to.include('bizpro');
+            expect(names).to.include('pro');
             expect(names).to.include('plans-students');
             expect(names).to.include('plans-education');
             expect(names).to.include('catalog');
             expect(names).to.include('media');
             expect(names).to.include('mini-compare-chart-mweb');
+            expect(names).to.include('compare-chart-column');
             expect(names).to.not.include('product');
             expect(names).to.not.include('segment');
             expect(names).to.not.include('image');
             expect(names).to.not.include('special-offers');
+            expect(names.length).to.equal(9);
         });
 
         it('should return all variants for sandbox surface', () => {

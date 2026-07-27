@@ -1,6 +1,6 @@
 import { LitElement, html, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
-import { VARIANTS } from '../../editors/variant-picker.js';
+import { isVariantMatch, VARIANTS } from '../../editors/variant-picker.js';
 import { styles } from './mas-search-and-filters.css.js';
 import Store from '../../store.js';
 import { getItemsSelectionStore } from '../items-selection-store.js';
@@ -872,7 +872,7 @@ class MasSearchAndFilters extends LitElement {
             if (hasTemplate) {
                 const variantField = fragment.fields?.find((field) => field.name === 'variant');
                 if (!variantField?.values?.length) return false;
-                if (!variantField.values.some((value) => this.templateFilter.includes(value))) return false;
+                if (!variantField.values.some((value) => isVariantMatch(this.templateFilter, value))) return false;
             }
             if (hasStatus) {
                 if (!this.statusFilter.includes(fragment.status)) return false;

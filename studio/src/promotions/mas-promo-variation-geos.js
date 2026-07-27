@@ -97,6 +97,7 @@ class MasPromoVariationGeos extends LitElement {
                                   <sp-checkbox
                                       ?checked=${this.selectAllChecked}
                                       ?indeterminate=${this.selectAllIndeterminate}
+                                      ?disabled=${this.selectableGeos.length === 0}
                                       @change=${this.selectAll}
                                   >
                                       Select all

@@ -46,7 +46,7 @@ describe('bulk-publish/snapshot.js', () => {
     // ── createSnapshot ──────────────────────────────────────────────────────
 
     describe('createSnapshot()', () => {
-        it('returns serialized entries with fragmentId, versionId, wasPublished, createdAt', async () => {
+        it('returns { entries, failures } with fragmentId, versionId, wasPublished, createdAt', async () => {
             fetchOdinStub.callsFake((endpoint, uri) => {
                 if (uri.includes('/adobe/sites/cf/fragments?path=')) {
                     return fetchResponse({ items: [{ id: 'frag-1', path: '/content/dam/a', status: 'PUBLISHED' }] });
@@ -57,7 +57,7 @@ describe('bulk-publish/snapshot.js', () => {
                 return fetchResponse({});
             });
 
-            const results = await snapshot.createSnapshot({
+            const { entries, failures } = await snapshot.createSnapshot({
                 paths: ['/content/dam/a'],
                 projectId: 'proj-1',
                 projectTitle: 'Project One',
@@ -65,8 +65,9 @@ describe('bulk-publish/snapshot.js', () => {
                 authToken,
             });
 
-            expect(results.entries).to.have.length(1);
-            const entry = JSON.parse(results.entries[0]);
+            expect(failures).to.deep.equal([]);
+            expect(entries).to.have.length(1);
+            const entry = JSON.parse(entries[0]);
             expect(entry).to.have.property('fragmentId', 'frag-1');
             expect(entry).to.have.property('versionId', 'ver-abc');
             expect(entry).to.have.property('wasPublished');
@@ -81,7 +82,7 @@ describe('bulk-publish/snapshot.js', () => {
                 return fetchResponse({}, { location: '/versions/ver-1' });
             });
 
-            const results = await snapshot.createSnapshot({
+            const { entries } = await snapshot.createSnapshot({
                 paths: ['/content/dam/pub'],
                 projectId: 'p1',
                 projectTitle: 'T',
@@ -89,7 +90,7 @@ describe('bulk-publish/snapshot.js', () => {
                 authToken,
             });
 
-            expect(JSON.parse(results.entries[0]).wasPublished).to.be.true;
+            expect(JSON.parse(entries[0]).wasPublished).to.be.true;
         });
 
         it('sets wasPublished: true for Modified status', async () => {
@@ -100,7 +101,7 @@ describe('bulk-publish/snapshot.js', () => {
                 return fetchResponse({}, { location: '/versions/ver-2' });
             });
 
-            const results = await snapshot.createSnapshot({
+            const { entries } = await snapshot.createSnapshot({
                 paths: ['/content/dam/mod'],
                 projectId: 'p1',
                 projectTitle: 'T',
@@ -108,7 +109,7 @@ describe('bulk-publish/snapshot.js', () => {
                 authToken,
             });
 
-            expect(JSON.parse(results.entries[0]).wasPublished).to.be.true;
+            expect(JSON.parse(entries[0]).wasPublished).to.be.true;
         });
 
         it('sets wasPublished: false for Draft status', async () => {
@@ -119,7 +120,7 @@ describe('bulk-publish/snapshot.js', () => {
                 return fetchResponse({}, { location: '/versions/ver-3' });
             });
 
-            const results = await snapshot.createSnapshot({
+            const { entries } = await snapshot.createSnapshot({
                 paths: ['/content/dam/draft'],
                 projectId: 'p1',
                 projectTitle: 'T',
@@ -127,10 +128,10 @@ describe('bulk-publish/snapshot.js', () => {
                 authToken,
             });
 
-            expect(JSON.parse(results.entries[0]).wasPublished).to.be.false;
+            expect(JSON.parse(entries[0]).wasPublished).to.be.false;
         });
 
-        it('throws if fragment not found at path (items empty)', async () => {
+        it('records failure when fragment not found at path (items empty)', async () => {
             fetchOdinStub.callsFake((endpoint, uri) => {
                 if (uri.includes('/adobe/sites/cf/fragments?path=')) {
                     return fetchResponse({ items: [] });
@@ -138,45 +139,61 @@ describe('bulk-publish/snapshot.js', () => {
                 return fetchResponse({});
             });
 
-            let err;
-            try {
-                await snapshot.createSnapshot({
-                    paths: ['/content/dam/missing'],
-                    projectId: 'p1',
-                    projectTitle: 'T',
-                    odinEndpoint,
-                    authToken,
-                });
-            } catch (e) {
-                err = e;
-            }
-            expect(err).to.exist;
-            expect(err.message).to.match(/Fragment not found at path/);
+            const { entries, failures } = await snapshot.createSnapshot({
+                paths: ['/content/dam/missing'],
+                projectId: 'p1',
+                projectTitle: 'T',
+                odinEndpoint,
+                authToken,
+            });
+
+            expect(entries).to.have.length(0);
+            expect(failures).to.have.length(1);
+            expect(failures[0].path).to.equal('/content/dam/missing');
+            expect(failures[0].error).to.match(/Fragment not found at path/);
         });
 
-        it('throws if createVersion returns no versionId (empty Location header)', async () => {
+        it('records failure when createVersion returns no versionId (empty Location header)', async () => {
             fetchOdinStub.callsFake((endpoint, uri) => {
                 if (uri.includes('/adobe/sites/cf/fragments?path=')) {
                     return fetchResponse({ items: [{ id: 'frag-nv', path: '/content/dam/nv', status: 'DRAFT' }] });
                 }
-                // versions endpoint returns no Location header
                 return fetchResponse({}, { location: null });
             });
 
-            let err;
-            try {
-                await snapshot.createSnapshot({
-                    paths: ['/content/dam/nv'],
-                    projectId: 'p1',
-                    projectTitle: 'T',
-                    odinEndpoint,
-                    authToken,
-                });
-            } catch (e) {
-                err = e;
-            }
-            expect(err).to.exist;
-            expect(err.message).to.match(/Failed to create version/);
+            const { entries, failures } = await snapshot.createSnapshot({
+                paths: ['/content/dam/nv'],
+                projectId: 'p1',
+                projectTitle: 'T',
+                odinEndpoint,
+                authToken,
+            });
+
+            expect(entries).to.have.length(0);
+            expect(failures).to.have.length(1);
+            expect(failures[0].error).to.match(/Failed to create version/);
+        });
+
+        it('records failure for one path without aborting other paths in the batch', async () => {
+            fetchOdinStub.callsFake((endpoint, uri) => {
+                if (uri.includes('/adobe/sites/cf/fragments?path=')) {
+                    if (uri.includes('missing')) return fetchResponse({ items: [] });
+                    return fetchResponse({ items: [{ id: 'frag-ok', path: '/content/dam/ok', status: 'PUBLISHED' }] });
+                }
+                return fetchResponse({}, { location: '/versions/ver-ok' });
+            });
+
+            const { entries, failures } = await snapshot.createSnapshot({
+                paths: ['/content/dam/ok', '/content/dam/missing'],
+                projectId: 'p1',
+                projectTitle: 'T',
+                odinEndpoint,
+                authToken,
+            });
+
+            expect(entries).to.have.length(1);
+            expect(failures).to.have.length(1);
+            expect(failures[0].path).to.equal('/content/dam/missing');
         });
 
         it('silently skips a sub-fragment when createVersion returns no versionId (required=false)', async () => {
@@ -592,7 +609,7 @@ describe('bulk-publish/snapshot.js', () => {
                 return fetchResponse({});
             });
 
-            const results = await snapshot.createSnapshot({
+            const { entries } = await snapshot.createSnapshot({
                 paths: ['/content/dam/a', '/content/dam/b'],
                 projectId: 'p1',
                 projectTitle: 'T',
@@ -600,8 +617,8 @@ describe('bulk-publish/snapshot.js', () => {
                 authToken,
             });
 
-            expect(results.entries).to.have.length(2);
-            const timestamps = results.entries.map((r) => JSON.parse(r).createdAt);
+            expect(entries).to.have.length(2);
+            const timestamps = entries.map((r) => JSON.parse(r).createdAt);
             expect(timestamps[0]).to.equal(timestamps[1]);
         });
 

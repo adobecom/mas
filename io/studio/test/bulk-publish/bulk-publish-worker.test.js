@@ -21,7 +21,7 @@ describe('bulk-publish-worker — runWorker', () => {
             getProjectTitle: sinon.stub().returns('Proj'),
             getProjectSnapshots: sinon.stub().returns([]),
             publishResolved: sinon.stub(),
-            createSnapshot: sinon.stub().resolves({ entries: ['{"fragmentId":"f1"}'], expandedPaths: [] }),
+            createSnapshot: sinon.stub().resolves({ entries: ['{"fragmentId":"f1"}'], expandedPaths: [], failures: [] }),
             recordSnapshot: sinon.stub().resolves({ entries: preRecordedEntries, failures: [] }),
             updateProjectFragment: sinon.stub().resolves(),
             now: () => new Date('2026-06-04T00:00:00.000Z'),
@@ -214,7 +214,7 @@ describe('bulk-publish-worker — runWorker', () => {
 
     it('uses pre-recorded snapshots as revert target and still calls createSnapshot for CF versions', async () => {
         deps.getProjectSnapshots.returns(preRecordedEntries);
-        deps.createSnapshot.resolves(publishCreatedEntries);
+        deps.createSnapshot.resolves({ entries: publishCreatedEntries, failures: [] });
         deps.publishResolved.resolves([{ path: '/content/dam/mas/acom/en_US/a', status: 'published' }]);
         deps.getProjectLocales.returns([]);
 
@@ -290,7 +290,7 @@ describe('bulk-publish-worker — runWorker', () => {
     it('calls recordSnapshot when no pre-recorded snapshots exist (fallback path)', async () => {
         deps.getProjectSnapshots.returns([]);
         deps.recordSnapshot.resolves({ entries: preRecordedEntries, failures: [] });
-        deps.createSnapshot.resolves(publishCreatedEntries);
+        deps.createSnapshot.resolves({ entries: publishCreatedEntries, failures: [] });
         deps.publishResolved.resolves([{ path: '/content/dam/mas/acom/en_US/a', status: 'published' }]);
         deps.getProjectLocales.returns([]);
 
@@ -365,7 +365,7 @@ describe('bulk-publish-worker — runWorker', () => {
         deps.getProjectSnapshots.returns([]);
         const failures = [{ path: '/content/dam/mas/acom/en_US/a', error: 'No non-translation version found' }];
         deps.recordSnapshot.resolves({ entries: [], failures });
-        deps.createSnapshot.resolves(publishCreatedEntries);
+        deps.createSnapshot.resolves({ entries: publishCreatedEntries, failures: [] });
         deps.publishResolved.resolves([{ path: '/content/dam/mas/acom/en_US/a', status: 'published' }]);
         deps.getProjectLocales.returns([]);
 

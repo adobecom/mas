@@ -122,39 +122,46 @@ async function createSnapshot({
     logger.info(JSON.stringify({ event: 'snapshot-start', projectId, count: paths.length, includeCards, includeVariations }));
 
     async function snapshotOne(path, required) {
-        const fragment = await getFragmentByPath(odinEndpoint, path, authToken);
-        if (!fragment) {
-            if (required) throw new Error(`Fragment not found at path: ${path}`);
-            return null;
+        try {
+            const fragment = await getFragmentByPath(odinEndpoint, path, authToken);
+            if (!fragment) {
+                if (required) return { path, error: `Fragment not found at path: ${path}` };
+                return null;
+            }
+            const wasPublished = fragment.status === STATUS_PUBLISHED || fragment.status === STATUS_MODIFIED;
+            const versionId = await createVersion(
+                odinEndpoint,
+                fragment.id,
+                `Pre-bulk-publish - ${projectTitle}`,
+                snapshotId,
+                authToken,
+            );
+            if (!versionId) {
+                if (required) return { path, error: `Failed to create version for fragment: ${path}` };
+                return null;
+            }
+            return {
+                id: fragment.id,
+                path: fragment.path,
+                versionId,
+                wasPublished,
+                refPaths: getReferencePaths(fragment, { includeCards, includeVariations }),
+            };
+        } catch (err) {
+            return { path, error: err.message };
         }
-        const wasPublished = fragment.status === STATUS_PUBLISHED || fragment.status === STATUS_MODIFIED;
-        const versionId = await createVersion(
-            odinEndpoint,
-            fragment.id,
-            `Pre-bulk-publish - ${projectTitle}`,
-            snapshotId,
-            authToken,
-        );
-        if (!versionId) {
-            if (required) throw new Error(`Failed to create version for fragment: ${path}`);
-            return null;
-        }
-        return {
-            id: fragment.id,
-            path: fragment.path,
-            versionId,
-            wasPublished,
-            refPaths: getReferencePaths(fragment, { includeCards, includeVariations }),
-        };
     }
 
     const allEntries = [];
+    const allFailures = [];
 
     async function processBatch(batchPaths, required) {
         const results = await processBatchWithConcurrency(batchPaths, FRAGMENT_CONCURRENCY, (path) =>
             snapshotOne(path, required),
         );
-        const valid = results.filter(Boolean);
+        const failures = results.filter((r) => r?.error);
+        allFailures.push(...failures);
+        const valid = results.filter((r) => r && !r.error);
         allEntries.push(...valid.map(({ id, path, versionId, wasPublished }) => [id, { path, versionId, wasPublished }]));
         const newRefs = [
             ...new Set(valid.flatMap((r) => r.refPaths).filter((p) => p.startsWith('/content/dam/mas/') && !visited.has(p))),
@@ -173,8 +180,8 @@ async function createSnapshot({
         fragments: Object.fromEntries(allEntries),
     };
 
-    logger.info(JSON.stringify({ event: 'snapshot-complete', projectId, count: allEntries.length }));
-    return { entries: serializeEntries(snapshot), expandedPaths: Array.from(visited) };
+    logger.info(JSON.stringify({ event: 'snapshot-complete', projectId, count: allEntries.length, failures: allFailures.length }));
+    return { entries: serializeEntries(snapshot), expandedPaths: Array.from(visited), failures: allFailures };
 }
 
 async function revertSnapshot({ entries, odinEndpoint, authToken }) {

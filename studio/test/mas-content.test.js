@@ -279,4 +279,26 @@ describe('MasContent table + personalization grouping', () => {
         expect(text).to.include('Personalization fragments (1)');
         expect(text).to.include('All other fragments (0)');
     });
+
+    it('keeps stored bizpro fragments visible in the content grid', async () => {
+        const legacy = makeFragment({
+            id: 'legacy-pro',
+            path: '/content/dam/mas/acom/en_US/cards/legacy-pro',
+            fields: [{ name: 'variant', values: ['bizpro'] }],
+        });
+        const unknown = makeFragment({
+            id: 'unknown',
+            path: '/content/dam/mas/acom/en_US/cards/unknown',
+            fields: [{ name: 'variant', values: ['unknown'] }],
+        });
+        Store.renderMode.set('render');
+        Store.fragments.list.data.value = [makeStore(legacy), makeStore(unknown)];
+
+        const el = await fixture(html`<mas-content></mas-content>`);
+        await el.updateComplete;
+
+        const fragments = el.querySelectorAll('mas-fragment');
+        expect(fragments).to.have.lengthOf(1);
+        expect(fragments[0].fragmentStore.get().id).to.equal('legacy-pro');
+    });
 });

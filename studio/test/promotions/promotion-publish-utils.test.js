@@ -23,8 +23,11 @@ import {
     publishedPromoVariationsUnpublishMessage,
     promotionDeleteConfirmMessage,
 } from '../../src/promotions/promotion-publish-utils.js';
+import { makeSearchStub as makeSharedSearchStub } from '../helpers/aem-tag-fetch.js';
 
 describe('promotion-publish-utils', () => {
+    const makeSearchStub = (itemsByFolder = {}) => makeSharedSearchStub(sinon, itemsByFolder);
+
     it('isPromotionExpiredForPublish returns true only when promotionStatus is expired', () => {
         expect(isPromotionExpiredForPublish({ promotionStatus: 'expired' })).to.be.true;
         expect(isPromotionExpiredForPublish({ promotionStatus: 'active' })).to.be.false;
@@ -98,13 +101,15 @@ describe('promotion-publish-utils', () => {
 
     it('shows dialog and returns not confirmed when user cancels', async () => {
         const parentPath = '/content/dam/mas/sandbox/en_US/my-card';
-        const promoPath = '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card';
-        const getByPath = sinon.stub().resolves(null);
-        getByPath.withArgs(promoPath).resolves({ id: 'promo-var-id', path: promoPath, status: 'DRAFT', title: 'V1' });
+        const promoFolder = '/content/dam/mas/sandbox/en_US/promotions/black-friday';
+        const promoPath = `${promoFolder}/my-card`;
+        const search = makeSearchStub({
+            [promoFolder]: [{ id: 'promo-var-id', path: promoPath, status: 'DRAFT', title: 'V1' }],
+        });
         const aem = {
             sites: {
                 cf: {
-                    fragments: { getByPath },
+                    fragments: { search },
                 },
             },
         };
@@ -129,16 +134,18 @@ describe('promotion-publish-utils', () => {
 
     it('returns variation paths when user confirms publish together', async () => {
         const parentPaths = ['/content/dam/mas/sandbox/en_US/card-a', '/content/dam/mas/sandbox/en_US/card-b'];
-        const path1 = '/content/dam/mas/sandbox/en_US/promotions/black-friday/card-a';
-        const path2 = '/content/dam/mas/sandbox/en_US/promotions/black-friday/card-b';
+        const promoFolder = '/content/dam/mas/sandbox/en_US/promotions/black-friday';
+        const path1 = `${promoFolder}/card-a`;
+        const path2 = `${promoFolder}/card-b`;
         const aem = {
             sites: {
                 cf: {
                     fragments: {
-                        getByPath: sinon.stub().callsFake(async (path) => {
-                            if (path === path1) return { id: 'variation-id-1', path: path1, status: 'DRAFT', title: 'V1' };
-                            if (path === path2) return { id: 'variation-id-2', path: path2, status: 'DRAFT', title: 'V2' };
-                            return null;
+                        search: makeSearchStub({
+                            [promoFolder]: [
+                                { id: 'variation-id-1', path: path1, status: 'DRAFT', title: 'V1' },
+                                { id: 'variation-id-2', path: path2, status: 'DRAFT', title: 'V2' },
+                            ],
                         }),
                     },
                 },
@@ -189,13 +196,15 @@ describe('promotion-publish-utils', () => {
 
     it('shows unpublish dialog and returns not confirmed when user cancels', async () => {
         const parentPath = '/content/dam/mas/sandbox/en_US/my-card';
-        const promoPath = '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card';
-        const getByPath = sinon.stub().resolves(null);
-        getByPath.withArgs(promoPath).resolves({ id: 'promo-var-id', path: promoPath, status: 'PUBLISHED', title: 'V1' });
+        const promoFolder = '/content/dam/mas/sandbox/en_US/promotions/black-friday';
+        const promoPath = `${promoFolder}/my-card`;
+        const search = makeSearchStub({
+            [promoFolder]: [{ id: 'promo-var-id', path: promoPath, status: 'PUBLISHED', title: 'V1' }],
+        });
         const aem = {
             sites: {
                 cf: {
-                    fragments: { getByPath },
+                    fragments: { search },
                 },
             },
         };
@@ -220,16 +229,18 @@ describe('promotion-publish-utils', () => {
 
     it('returns variation paths when user confirms unpublish together, including modified ones', async () => {
         const parentPaths = ['/content/dam/mas/sandbox/en_US/card-a', '/content/dam/mas/sandbox/en_US/card-b'];
-        const path1 = '/content/dam/mas/sandbox/en_US/promotions/black-friday/card-a';
-        const path2 = '/content/dam/mas/sandbox/en_US/promotions/black-friday/card-b';
+        const promoFolder = '/content/dam/mas/sandbox/en_US/promotions/black-friday';
+        const path1 = `${promoFolder}/card-a`;
+        const path2 = `${promoFolder}/card-b`;
         const aem = {
             sites: {
                 cf: {
                     fragments: {
-                        getByPath: sinon.stub().callsFake(async (path) => {
-                            if (path === path1) return { id: 'variation-id-1', path: path1, status: 'PUBLISHED', title: 'V1' };
-                            if (path === path2) return { id: 'variation-id-2', path: path2, status: 'MODIFIED', title: 'V2' };
-                            return null;
+                        search: makeSearchStub({
+                            [promoFolder]: [
+                                { id: 'variation-id-1', path: path1, status: 'PUBLISHED', title: 'V1' },
+                                { id: 'variation-id-2', path: path2, status: 'MODIFIED', title: 'V2' },
+                            ],
                         }),
                     },
                 },

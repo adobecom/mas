@@ -11,6 +11,7 @@ import Events from '../../src/events.js';
 import '../../src/swc.js';
 import MasPromotionsItemsTable from '../../src/promotions/mas-promotions-items-table.js';
 import { buildPromotionOfferRecord } from '../../src/promotions/promotion-editor-utils.js';
+import { makeSearchStub as makeSharedSearchStub } from '../helpers/aem-tag-fetch.js';
 
 describe('MasPromotionsItemsTable', () => {
     let sandbox;
@@ -825,6 +826,10 @@ describe('MasPromotionsItemsTable', () => {
             Store.promotions.inEdit.set(new FragmentStore(promotion));
         };
 
+        const promoFolder = '/content/dam/mas/sandbox/en_US/promotions/black-friday';
+
+        const makeSearchStub = (itemsByFolder = {}) => makeSharedSearchStub(sandbox, itemsByFolder);
+
         const createPromoVariationAem = (overrides = {}) => {
             const parentFragment = {
                 id: 'card-promo-id',
@@ -840,7 +845,7 @@ describe('MasPromotionsItemsTable', () => {
                     cf: {
                         fragments: {
                             getById: sandbox.stub().resolves(parentFragment),
-                            getByPath: sandbox.stub().resolves(null),
+                            search: makeSearchStub(),
                             ensureFolderExists: sandbox.stub().resolves(),
                             pollCreatedFragment: sandbox.stub().resolves(createdFragment),
                             ...overrides.fragments,
@@ -971,15 +976,15 @@ describe('MasPromotionsItemsTable', () => {
                     sites: {
                         cf: {
                             fragments: {
-                                getByPath: sandbox.stub().callsFake((path) =>
-                                    path === promoVariationPath
-                                        ? Promise.resolve({
-                                              id: 'existing-var',
-                                              path: promoVariationPath,
-                                              fields: [{ name: 'pznTags', values: ['mas:pzn/country/ar'] }],
-                                          })
-                                        : Promise.resolve(null),
-                                ),
+                                search: makeSearchStub({
+                                    [promoFolder]: [
+                                        {
+                                            id: 'existing-var',
+                                            path: promoVariationPath,
+                                            fields: [{ name: 'pznTags', values: ['mas:pzn/country/ar'] }],
+                                        },
+                                    ],
+                                }),
                             },
                         },
                     },
@@ -1011,13 +1016,9 @@ describe('MasPromotionsItemsTable', () => {
                     sites: {
                         cf: {
                             fragments: {
-                                getByPath: sandbox
-                                    .stub()
-                                    .callsFake((path) =>
-                                        path === promoVariationPath
-                                            ? Promise.resolve({ id: 'existing-var', path: promoVariationPath, fields: [] })
-                                            : Promise.resolve(null),
-                                    ),
+                                search: makeSearchStub({
+                                    [promoFolder]: [{ id: 'existing-var', path: promoVariationPath, fields: [] }],
+                                }),
                             },
                         },
                     },
@@ -1050,13 +1051,9 @@ describe('MasPromotionsItemsTable', () => {
                     sites: {
                         cf: {
                             fragments: {
-                                getByPath: sandbox
-                                    .stub()
-                                    .callsFake((path) =>
-                                        path === promoVariationPath
-                                            ? Promise.resolve({ id: 'existing-var', path: promoVariationPath, fields: [] })
-                                            : Promise.resolve(null),
-                                    ),
+                                search: makeSearchStub({
+                                    [promoFolder]: [{ id: 'existing-var', path: promoVariationPath, fields: [] }],
+                                }),
                             },
                         },
                     },
@@ -1163,15 +1160,15 @@ describe('MasPromotionsItemsTable', () => {
 
             const aem = createPromoVariationAem({
                 fragments: {
-                    getByPath: sandbox.stub().callsFake((path) =>
-                        path === promoVariationPath
-                            ? Promise.resolve({
-                                  id: 'existing-var',
-                                  path: promoVariationPath,
-                                  fields: [{ name: 'pznTags', values: ['mas:locale/de_AT'] }],
-                              })
-                            : Promise.resolve(null),
-                    ),
+                    search: makeSearchStub({
+                        [promoFolder]: [
+                            {
+                                id: 'existing-var',
+                                path: promoVariationPath,
+                                fields: [{ name: 'pznTags', values: ['mas:locale/de_AT'] }],
+                            },
+                        ],
+                    }),
                 },
             });
             const el = await fixture(html`<mas-promotions-items-table .type=${TABLE_TYPE.CARDS}></mas-promotions-items-table>`);
@@ -1209,15 +1206,15 @@ describe('MasPromotionsItemsTable', () => {
 
             const aem = createPromoVariationAem({
                 fragments: {
-                    getByPath: sandbox.stub().callsFake((path) =>
-                        path === promoVariationPath
-                            ? Promise.resolve({
-                                  id: 'existing-var',
-                                  path: promoVariationPath,
-                                  fields: [{ name: 'title', values: ['Promo Card'] }],
-                              })
-                            : Promise.resolve(null),
-                    ),
+                    search: makeSearchStub({
+                        [promoFolder]: [
+                            {
+                                id: 'existing-var',
+                                path: promoVariationPath,
+                                fields: [{ name: 'title', values: ['Promo Card'] }],
+                            },
+                        ],
+                    }),
                 },
             });
             const el = await fixture(html`<mas-promotions-items-table .type=${TABLE_TYPE.CARDS}></mas-promotions-items-table>`);
@@ -1245,15 +1242,15 @@ describe('MasPromotionsItemsTable', () => {
 
             const aem = createPromoVariationAem({
                 fragments: {
-                    getByPath: sandbox.stub().callsFake((path) =>
-                        path === promoVariationPath
-                            ? Promise.resolve({
-                                  id: 'existing-var',
-                                  path: promoVariationPath,
-                                  fields: [{ name: 'title', values: ['Promo Card'] }],
-                              })
-                            : Promise.resolve(null),
-                    ),
+                    search: makeSearchStub({
+                        [promoFolder]: [
+                            {
+                                id: 'existing-var',
+                                path: promoVariationPath,
+                                fields: [{ name: 'title', values: ['Promo Card'] }],
+                            },
+                        ],
+                    }),
                 },
             });
             const el = await fixture(html`<mas-promotions-items-table .type=${TABLE_TYPE.CARDS}></mas-promotions-items-table>`);

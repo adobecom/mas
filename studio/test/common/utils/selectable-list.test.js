@@ -1,23 +1,36 @@
 import { expect } from '@esm-bundle/chai';
-import { LitElement } from 'lit';
 import {
-    SearchableListMixin,
+    handleSearchInput,
+    filterBySearchQuery,
     computeSelectAllChecked,
     computeSelectAllIndeterminate,
     computeSelectionCountLabel,
 } from '../../../src/common/utils/selectable-list.js';
 
-class SearchableListTestHost extends SearchableListMixin(LitElement) {
-    static properties = { searchQuery: { type: String, state: true } };
-
-    constructor() {
-        super();
-        this.searchQuery = '';
-    }
-}
-customElements.define('searchable-list-test-host', SearchableListTestHost);
-
 describe('selectable-list', () => {
+    describe('handleSearchInput', () => {
+        it('extracts the value from the event target', () => {
+            expect(handleSearchInput({ target: { value: 'fr' } })).to.equal('fr');
+        });
+    });
+
+    describe('filterBySearchQuery', () => {
+        it('returns all items unfiltered when searchQuery is empty', () => {
+            const items = ['a', 'b', 'c'];
+            expect(filterBySearchQuery(items, '', (item) => item)).to.deep.equal(items);
+        });
+
+        it('filters items case-insensitively by the extracted searchable text', () => {
+            const items = ['mas:pzn/country/fr', 'mas:pzn/country/ae'];
+            expect(filterBySearchQuery(items, 'FR', (item) => item)).to.deep.equal(['mas:pzn/country/fr']);
+        });
+
+        it('applies getSearchableText per item rather than filtering the raw item', () => {
+            const items = [{ locale: 'en_US' }, { locale: 'fr_FR' }];
+            expect(filterBySearchQuery(items, 'en', (item) => item.locale)).to.deep.equal([{ locale: 'en_US' }]);
+        });
+    });
+
     describe('computeSelectAllChecked', () => {
         it('returns false when there are no selectable items', () => {
             expect(computeSelectAllChecked(0, 0)).to.be.false;
@@ -69,36 +82,6 @@ describe('selectable-list', () => {
 
         it('uses an explicit plural noun when the default "s" suffix would be wrong', () => {
             expect(computeSelectionCountLabel(2, 3, 'country', 'countries')).to.equal('2 countries selected');
-        });
-    });
-
-    describe('SearchableListMixin', () => {
-        let host;
-
-        beforeEach(() => {
-            host = new SearchableListTestHost();
-        });
-
-        it('sets searchQuery from a search input event', () => {
-            host.handleSearch({ target: { value: 'fr' } });
-            expect(host.searchQuery).to.equal('fr');
-        });
-
-        it('returns all items unfiltered when searchQuery is empty', () => {
-            const items = ['a', 'b', 'c'];
-            expect(host.filterBySearchQuery(items, (item) => item)).to.deep.equal(items);
-        });
-
-        it('filters items case-insensitively by the extracted searchable text', () => {
-            host.searchQuery = 'FR';
-            const items = ['mas:pzn/country/fr', 'mas:pzn/country/ae'];
-            expect(host.filterBySearchQuery(items, (item) => item)).to.deep.equal(['mas:pzn/country/fr']);
-        });
-
-        it('applies getSearchableText per item rather than filtering the raw item', () => {
-            host.searchQuery = 'en';
-            const items = [{ locale: 'en_US' }, { locale: 'fr_FR' }];
-            expect(host.filterBySearchQuery(items, (item) => item.locale)).to.deep.equal([{ locale: 'en_US' }]);
         });
     });
 });

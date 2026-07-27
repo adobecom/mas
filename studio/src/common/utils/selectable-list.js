@@ -4,28 +4,26 @@
  */
 
 /**
- * Adds the search-box wiring shared by list-selector components (search query state,
- * input handler, substring filter). Host component still owns its own `searchQuery`
- * reactive property declaration and initial value.
- * @param {typeof import('lit').LitElement} Base
+ * Extracts the new search query value from a search input/change event.
+ * @param {Event} e
+ * @returns {string}
  */
-export const SearchableListMixin = (Base) =>
-    class extends Base {
-        handleSearch(e) {
-            this.searchQuery = e.target.value;
-        }
+export function handleSearchInput(e) {
+    return e.target.value;
+}
 
-        /**
-         * @param {Array} items
-         * @param {(item: any) => string} getSearchableText
-         * @returns {Array}
-         */
-        filterBySearchQuery(items, getSearchableText) {
-            if (!this.searchQuery) return items;
-            const query = this.searchQuery.toLowerCase();
-            return items.filter((item) => getSearchableText(item).toLowerCase().includes(query));
-        }
-    };
+/**
+ * Filters items by a case-insensitive substring match against extracted searchable text.
+ * @param {Array} items
+ * @param {string} searchQuery
+ * @param {(item: any) => string} getSearchableText
+ * @returns {Array}
+ */
+export function filterBySearchQuery(items, searchQuery, getSearchableText) {
+    if (!searchQuery) return items;
+    const query = searchQuery.toLowerCase();
+    return items.filter((item) => getSearchableText(item).toLowerCase().includes(query));
+}
 
 /**
  * @param {number} selectableCount

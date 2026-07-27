@@ -1,13 +1,14 @@
 import { LitElement, html, nothing } from 'lit';
 import { styles } from './mas-promo-variation-geos.css.js';
 import {
-    SearchableListMixin,
+    handleSearchInput,
+    filterBySearchQuery,
     computeSelectAllChecked,
     computeSelectAllIndeterminate,
     computeSelectionCountLabel,
 } from '../common/utils/selectable-list.js';
 
-class MasPromoVariationGeos extends SearchableListMixin(LitElement) {
+class MasPromoVariationGeos extends LitElement {
     static styles = styles;
 
     static properties = {
@@ -34,7 +35,11 @@ class MasPromoVariationGeos extends SearchableListMixin(LitElement) {
     }
 
     get filteredGeos() {
-        return this.filterBySearchQuery(this.geos, (geo) => geo);
+        return filterBySearchQuery(this.geos, this.searchQuery, (geo) => geo);
+    }
+
+    handleSearch(e) {
+        this.searchQuery = handleSearchInput(e);
     }
 
     get selectAllChecked() {

@@ -4,13 +4,14 @@ import Store from '../store.js';
 import { getDefaultLocales, getSurfaceLocales, getLocaleCode, REGION_GROUPS } from '../locales.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 import {
-    SearchableListMixin,
+    handleSearchInput,
+    filterBySearchQuery,
     computeSelectAllChecked,
     computeSelectAllIndeterminate,
     computeSelectionCountLabel,
 } from '../common/utils/selectable-list.js';
 
-class MasTranslationLanguages extends SearchableListMixin(LitElement) {
+class MasTranslationLanguages extends LitElement {
     static styles = styles;
 
     static properties = {
@@ -44,7 +45,11 @@ class MasTranslationLanguages extends SearchableListMixin(LitElement) {
     }
 
     get filteredLocales() {
-        return this.filterBySearchQuery(this.localesArray, (item) => item.locale);
+        return filterBySearchQuery(this.localesArray, this.searchQuery, (item) => item.locale);
+    }
+
+    handleSearch(e) {
+        this.searchQuery = handleSearchInput(e);
     }
 
     get selectAllChecked() {

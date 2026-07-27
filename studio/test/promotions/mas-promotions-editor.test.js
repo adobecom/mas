@@ -8,6 +8,7 @@ import { Promotion } from '../../src/aem/promotion.js';
 import { CARD_MODEL_PATH, EVENT_OST_OFFER_SELECT, PAGE_NAMES, TABLE_TYPE, TAG_PROMOTION_PREFIX } from '../../src/constants.js';
 import { normalizeKey, UserFriendlyError } from '../../src/utils.js';
 import { buildPromotionTagPath, serializePromotionSurfacesForAem } from '../../src/promotions/promotion-editor-utils.js';
+import { makeSearchStub as makeSharedSearchStub } from '../helpers/aem-tag-fetch.js';
 
 function makeFragmentData(overrides = {}) {
     return {
@@ -119,6 +120,10 @@ describe('MasPromotionsEditor', () => {
         return el;
     }
 
+    function makeSearchStub(itemsByFolder = {}) {
+        return makeSharedSearchStub(sandbox, itemsByFolder);
+    }
+
     function makeRepo(overrides = {}) {
         return {
             getPromotionsPath: () => '/content/dam/mas/promotions',
@@ -138,7 +143,7 @@ describe('MasPromotionsEditor', () => {
                             publish: sandbox.stub().resolves(),
                             publishFragments: sandbox.stub().resolves(),
                             getWithEtag: sandbox.stub(),
-                            getByPath: sandbox.stub().resolves(null),
+                            search: makeSearchStub(),
                         },
                     },
                 },
@@ -1218,7 +1223,7 @@ describe('MasPromotionsEditor', () => {
                                 getById: sandbox.stub().resolves(null),
                                 publish,
                                 publishFragments: sandbox.stub().resolves(),
-                                getByPath: sandbox.stub().resolves(null),
+                                search: makeSearchStub(),
                             },
                         },
                     },
@@ -1341,12 +1346,9 @@ describe('MasPromotionsEditor', () => {
                 ],
             });
             Store.promotions.inEdit.set(new FragmentStore(promotion));
-            const getByPath = sandbox.stub().resolves(null);
-            getByPath.withArgs(promoVarPath).resolves({
-                id: 'promo-var-id',
-                path: promoVarPath,
-                status: 'PUBLISHED',
-                title: 'Published variation',
+            const promoFolder = '/content/dam/mas/sandbox/en_US/promotions/code-test';
+            const search = makeSearchStub({
+                [promoFolder]: [{ id: 'promo-var-id', path: promoVarPath, status: 'PUBLISHED', title: 'Published variation' }],
             });
             const unpublish = sandbox.stub().resolves();
             const { el, repo } = await mountEditorWithRepo({
@@ -1360,7 +1362,7 @@ describe('MasPromotionsEditor', () => {
                             fragments: {
                                 getById: sandbox.stub().resolves(null),
                                 getWithEtag: sandbox.stub(),
-                                getByPath,
+                                search,
                                 unpublish,
                             },
                         },
@@ -1374,7 +1376,7 @@ describe('MasPromotionsEditor', () => {
             await new Promise((resolve) => setTimeout(resolve, 0));
             await el.updateComplete;
 
-            expect(repo.aem.sites.cf.fragments.getByPath.calledWith(promoVarPath)).to.be.true;
+            expect(repo.aem.sites.cf.fragments.search.calledWith({ path: promoFolder }, 50)).to.be.true;
             expect(repo.aem.sites.cf.fragments.unpublish.called).to.be.false;
         });
     });
@@ -1403,12 +1405,9 @@ describe('MasPromotionsEditor', () => {
                 ],
             });
             Store.promotions.inEdit.set(new FragmentStore(promotion));
-            const getByPath = sandbox.stub().resolves(null);
-            getByPath.withArgs(promoVarPath).resolves({
-                id: 'promo-var-id',
-                path: promoVarPath,
-                status: 'DRAFT',
-                title: 'Unpublished variation',
+            const promoFolder = '/content/dam/mas/sandbox/en_US/promotions/code-test';
+            const search = makeSearchStub({
+                [promoFolder]: [{ id: 'promo-var-id', path: promoVarPath, status: 'DRAFT', title: 'Unpublished variation' }],
             });
             const { el, repo } = await mountEditorWithRepo({
                 aem: {
@@ -1423,7 +1422,7 @@ describe('MasPromotionsEditor', () => {
                                 publish: sandbox.stub().resolves(),
                                 publishFragments: sandbox.stub().resolves(),
                                 getWithEtag: sandbox.stub(),
-                                getByPath,
+                                search,
                             },
                         },
                     },
@@ -1436,7 +1435,7 @@ describe('MasPromotionsEditor', () => {
             await new Promise((resolve) => setTimeout(resolve, 0));
             await el.updateComplete;
 
-            expect(repo.aem.sites.cf.fragments.getByPath.calledWith(promoVarPath)).to.be.true;
+            expect(repo.aem.sites.cf.fragments.search.calledWith({ path: promoFolder }, 50)).to.be.true;
             expect(repo.aem.sites.cf.fragments.publish.called).to.be.false;
             expect(repo.aem.sites.cf.fragments.publishFragments.called).to.be.false;
         });
@@ -1573,11 +1572,11 @@ describe('MasPromotionsEditor', () => {
                     }),
                 ),
             );
-            const getByPath = sandbox.stub().resolves(null);
-            getByPath.withArgs(promoVarPath).resolves({ id: 'promo-var-id', path: promoVarPath, status: 'DRAFT' });
+            const promoFolder = '/content/dam/mas/sandbox/en_US/promotions/code-test';
+            const search = makeSearchStub({ [promoFolder]: [{ id: 'promo-var-id', path: promoVarPath, status: 'DRAFT' }] });
             const { el } = await mountEditorWithRepo({
                 deleteFragment: sandbox.stub().resolves(true),
-                aem: { sites: { cf: { fragments: { getByPath, getById: sandbox.stub().resolves(null) } } } },
+                aem: { sites: { cf: { fragments: { search, getById: sandbox.stub().resolves(null) } } } },
             });
             await el.updateComplete;
             clickPromotionQuickAction(el, 'Delete');
@@ -1621,14 +1620,14 @@ describe('MasPromotionsEditor', () => {
                     }),
                 ),
             );
-            const getByPath = sandbox.stub().resolves(null);
-            getByPath.withArgs(promoVarPath).resolves({ id: 'promo-var-id', path: promoVarPath, status: 'DRAFT' });
+            const promoFolder = '/content/dam/mas/sandbox/en_US/promotions/code-test';
+            const search = makeSearchStub({ [promoFolder]: [{ id: 'promo-var-id', path: promoVarPath, status: 'DRAFT' }] });
             const forceDelete = sandbox.stub().resolves();
             const deleteFragment = sandbox.stub().resolves(true);
             const { el, repo } = await mountEditorWithRepo({
                 deleteFragment,
                 aem: {
-                    sites: { cf: { fragments: { getByPath, getById: sandbox.stub().resolves(null), forceDelete } } },
+                    sites: { cf: { fragments: { search, getById: sandbox.stub().resolves(null), forceDelete } } },
                 },
             });
             await el.updateComplete;
@@ -1867,25 +1866,27 @@ describe('MasPromotionsEditor', () => {
         it('copies a nice title and deep link for all attached variations, including published ones', async () => {
             const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
             Store.promotions.inEdit.set(new FragmentStore(makePromotion({ id: 'promo-id', title: 'Campaign' })));
-            const variationPath = '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card';
+            const promoFolder = '/content/dam/mas/sandbox/en_US/promotions/black-friday';
+            const variationPath = `${promoFolder}/my-card`;
             const { el } = await mountEditorWithRepo({
                 aem: {
                     sites: {
                         cf: {
                             fragments: {
                                 getById: sandbox.stub().resolves(null),
-                                getByPath: sandbox
-                                    .stub()
-                                    .withArgs(variationPath)
-                                    .resolves({
-                                        id: 'variation-id',
-                                        path: variationPath,
-                                        status: 'PUBLISHED',
-                                        title: 'Variation',
-                                        model: { path: CARD_MODEL_PATH },
-                                        tags: [],
-                                        fields: [],
-                                    }),
+                                search: makeSearchStub({
+                                    [promoFolder]: [
+                                        {
+                                            id: 'variation-id',
+                                            path: variationPath,
+                                            status: 'PUBLISHED',
+                                            title: 'Variation',
+                                            model: { path: CARD_MODEL_PATH },
+                                            tags: [],
+                                            fields: [],
+                                        },
+                                    ],
+                                }),
                             },
                         },
                     },
@@ -1935,25 +1936,27 @@ describe('MasPromotionsEditor', () => {
         it('shows a negative toast when the clipboard write fails', async () => {
             const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
             Store.promotions.inEdit.set(new FragmentStore(makePromotion({ id: 'promo-id-fail', title: 'Campaign' })));
-            const variationPath = '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card';
+            const promoFolder = '/content/dam/mas/sandbox/en_US/promotions/black-friday';
+            const variationPath = `${promoFolder}/my-card`;
             const { el } = await mountEditorWithRepo({
                 aem: {
                     sites: {
                         cf: {
                             fragments: {
                                 getById: sandbox.stub().resolves(null),
-                                getByPath: sandbox
-                                    .stub()
-                                    .withArgs(variationPath)
-                                    .resolves({
-                                        id: 'variation-id',
-                                        path: variationPath,
-                                        status: 'DRAFT',
-                                        title: 'Variation',
-                                        model: { path: CARD_MODEL_PATH },
-                                        tags: [],
-                                        fields: [],
-                                    }),
+                                search: makeSearchStub({
+                                    [promoFolder]: [
+                                        {
+                                            id: 'variation-id',
+                                            path: variationPath,
+                                            status: 'DRAFT',
+                                            title: 'Variation',
+                                            model: { path: CARD_MODEL_PATH },
+                                            tags: [],
+                                            fields: [],
+                                        },
+                                    ],
+                                }),
                             },
                         },
                     },
@@ -1978,7 +1981,8 @@ describe('MasPromotionsEditor', () => {
         it('shows a negative toast instead of crashing when a variation is missing tags/fields', async () => {
             const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
             Store.promotions.inEdit.set(new FragmentStore(makePromotion({ id: 'promo-id-malformed', title: 'Campaign' })));
-            const variationPath = '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card';
+            const promoFolder = '/content/dam/mas/sandbox/en_US/promotions/black-friday';
+            const variationPath = `${promoFolder}/my-card`;
             const { el } = await mountEditorWithRepo({
                 aem: {
                     sites: {
@@ -1987,16 +1991,17 @@ describe('MasPromotionsEditor', () => {
                                 getById: sandbox.stub().resolves(null),
                                 // Simulates an AEM response missing `tags`/`fields`, which used to throw
                                 // inside Fragment.getTagTitle() outside the try/catch.
-                                getByPath: sandbox
-                                    .stub()
-                                    .withArgs(variationPath)
-                                    .resolves({
-                                        id: 'variation-id',
-                                        path: variationPath,
-                                        status: 'PUBLISHED',
-                                        title: 'Variation',
-                                        model: { path: CARD_MODEL_PATH },
-                                    }),
+                                search: makeSearchStub({
+                                    [promoFolder]: [
+                                        {
+                                            id: 'variation-id',
+                                            path: variationPath,
+                                            status: 'PUBLISHED',
+                                            title: 'Variation',
+                                            model: { path: CARD_MODEL_PATH },
+                                        },
+                                    ],
+                                }),
                             },
                         },
                     },
@@ -2021,29 +2026,33 @@ describe('MasPromotionsEditor', () => {
         it('copies only the supported variations and reports a partial count when some model paths are unsupported', async () => {
             const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
             Store.promotions.inEdit.set(new FragmentStore(makePromotion({ id: 'promo-id-partial', title: 'Campaign' })));
-            const supportedPath = '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card';
-            const unsupportedPath = '/content/dam/mas/sandbox/en_US/promotions/black-friday/other-card';
-            const getByPath = sandbox.stub();
-            getByPath.withArgs(supportedPath).resolves({
-                id: 'variation-id',
-                path: supportedPath,
-                status: 'PUBLISHED',
-                title: 'Variation',
-                model: { path: CARD_MODEL_PATH },
-                tags: [],
-                fields: [],
-            });
-            getByPath.withArgs(unsupportedPath).resolves({
-                id: 'variation-id-2',
-                path: unsupportedPath,
-                status: 'PUBLISHED',
-                title: 'Variation 2',
-                model: { path: '/conf/mas/settings/dam/cfm/models/unknown' },
-                tags: [],
-                fields: [],
+            const promoFolder = '/content/dam/mas/sandbox/en_US/promotions/black-friday';
+            const supportedPath = `${promoFolder}/my-card`;
+            const unsupportedPath = `${promoFolder}/other-card`;
+            const search = makeSearchStub({
+                [promoFolder]: [
+                    {
+                        id: 'variation-id',
+                        path: supportedPath,
+                        status: 'PUBLISHED',
+                        title: 'Variation',
+                        model: { path: CARD_MODEL_PATH },
+                        tags: [],
+                        fields: [],
+                    },
+                    {
+                        id: 'variation-id-2',
+                        path: unsupportedPath,
+                        status: 'PUBLISHED',
+                        title: 'Variation 2',
+                        model: { path: '/conf/mas/settings/dam/cfm/models/unknown' },
+                        tags: [],
+                        fields: [],
+                    },
+                ],
             });
             const { el } = await mountEditorWithRepo({
-                aem: { sites: { cf: { fragments: { getById: sandbox.stub().resolves(null), getByPath } } } },
+                aem: { sites: { cf: { fragments: { getById: sandbox.stub().resolves(null), search } } } },
             });
             el.fragmentStore.updateField('tags', ['mas:promotion/black-friday']);
             el.fragmentStore.updateField('fragments', [
@@ -2074,25 +2083,27 @@ describe('MasPromotionsEditor', () => {
         it('shows a distinct info toast when variations exist but none have a copyable model path', async () => {
             const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
             Store.promotions.inEdit.set(new FragmentStore(makePromotion({ id: 'promo-id-unsupported', title: 'Campaign' })));
-            const variationPath = '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card';
+            const promoFolder = '/content/dam/mas/sandbox/en_US/promotions/black-friday';
+            const variationPath = `${promoFolder}/my-card`;
             const { el } = await mountEditorWithRepo({
                 aem: {
                     sites: {
                         cf: {
                             fragments: {
                                 getById: sandbox.stub().resolves(null),
-                                getByPath: sandbox
-                                    .stub()
-                                    .withArgs(variationPath)
-                                    .resolves({
-                                        id: 'variation-id',
-                                        path: variationPath,
-                                        status: 'PUBLISHED',
-                                        title: 'Variation',
-                                        model: { path: '/conf/mas/settings/dam/cfm/models/unknown' },
-                                        tags: [],
-                                        fields: [],
-                                    }),
+                                search: makeSearchStub({
+                                    [promoFolder]: [
+                                        {
+                                            id: 'variation-id',
+                                            path: variationPath,
+                                            status: 'PUBLISHED',
+                                            title: 'Variation',
+                                            model: { path: '/conf/mas/settings/dam/cfm/models/unknown' },
+                                            tags: [],
+                                            fields: [],
+                                        },
+                                    ],
+                                }),
                             },
                         },
                     },

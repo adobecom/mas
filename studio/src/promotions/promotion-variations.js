@@ -19,6 +19,9 @@ import {
 // io/www/src/fragment/transformers/customize.js (separate runtime, no shared import).
 export const MAX_PROMO_VARIATIONS_PER_FRAGMENT = 50;
 
+// Page size for folder search cursor (generator still walks all pages).
+const VARIATION_SEARCH_PAGE_SIZE = 50;
+
 /**
  * Extracts 'pznTags' values from a raw fragment payload.
  * @param {{ fields?: Array<{ name?: string, values?: unknown[] }> }} fragment
@@ -29,8 +32,106 @@ function readPznTags(fragment) {
 }
 
 /**
- * Probes every index (1..MAX) rather than stopping at the first miss — variations can be
- * deleted individually, leaving gaps.
+ * Escapes regex metacharacters so a path segment can be used as a literal match inside a RegExp.
+ * @param {string} value
+ * @returns {string}
+ */
+function escapeRegExp(value) {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * Computes the folder to search and the leaf-matching pattern for a fragment's promo variations.
+ * @param {string} defaultPath
+ * @param {string} promoTagId
+ * @returns {{ parentFolder: string, leafName: string, leafPattern: RegExp }|null}
+ */
+function computeProbeTarget(defaultPath, promoTagId) {
+    const basePath = buildPromoVariationPathForTag(defaultPath, promoTagId);
+    if (!basePath) return null;
+    const parentFolder = basePath.split('/').slice(0, -1).join('/');
+    const leafName = basePath.split('/').pop();
+    const leafPattern = new RegExp(`^${escapeRegExp(leafName)}(?:-(\\d+))?$`);
+    return { parentFolder, leafName, leafPattern };
+}
+
+/**
+ * Matches a search item to a fragment's leaf pattern, returning a normalized variation or null.
+ * Rejects sibling leaf names (e.g., "card-2" as a separate fragment, not a variation of "card").
+ * @param {Object} variation
+ * @param {RegExp} leafPattern
+ * @param {string} ownLeafName
+ * @param {Set<string>} siblingLeafNames
+ * @returns {{ path: string, index: number, id: string, pznTags: string[], status: string, title: string, model: string, fields: Array, tags: Array }|null}
+ */
+function matchProbedVariation(variation, leafPattern, ownLeafName, siblingLeafNames) {
+    const itemLeaf = variation?.path?.split('/').pop();
+    const match = itemLeaf && leafPattern.exec(itemLeaf);
+    if (!match || !variation?.id) return null;
+    if (itemLeaf !== ownLeafName && siblingLeafNames.has(itemLeaf)) return null;
+    const index = match[1] ? Number(match[1]) : 1;
+    if (index < 1 || index > MAX_PROMO_VARIATIONS_PER_FRAGMENT) return null;
+    return {
+        path: variation.path,
+        index,
+        id: variation.id,
+        pznTags: readPznTags(variation),
+        status: variation.status,
+        title: variation.title,
+        model: variation.model,
+        fields: variation.fields,
+        tags: variation.tags,
+    };
+}
+
+/**
+ * Probes promo variations for fragments with the same promo tag.
+ * Fragments sharing a parent folder are scanned in a single search (ordered by index ascending).
+ * @param {import('../aem/aem.js').AEM} aem
+ * @param {string[]} defaultPaths
+ * @param {string} promoTagId
+ * @returns {Promise<Map<string, Array<{ path: string, index: number, id: string, pznTags: string[], status: string, title: string, model: string, fields: Array, tags: Array }>>>}
+ */
+export async function probePromoVariationsForFragments(aem, defaultPaths, promoTagId) {
+    const resultsByPath = new Map((defaultPaths || []).map((defaultPath) => [defaultPath, []]));
+    if (!aem || !promoTagId || !defaultPaths?.length) return resultsByPath;
+
+    const targetsByPath = new Map();
+    const pathsByFolder = new Map();
+    for (const defaultPath of defaultPaths) {
+        const target = computeProbeTarget(defaultPath, promoTagId);
+        if (!target) continue;
+        targetsByPath.set(defaultPath, target);
+        const pathsInFolder = pathsByFolder.get(target.parentFolder) ?? [];
+        pathsInFolder.push(defaultPath);
+        pathsByFolder.set(target.parentFolder, pathsInFolder);
+    }
+
+    await processConcurrently(
+        [...pathsByFolder.entries()],
+        async ([parentFolder, pathsInFolder]) => {
+            const rawResults = [];
+            for await (const batch of aem.sites.cf.fragments.search({ path: parentFolder }, VARIATION_SEARCH_PAGE_SIZE)) {
+                rawResults.push(...batch);
+            }
+            const siblingLeafNames = new Set(pathsInFolder.map((path) => targetsByPath.get(path).leafName));
+            for (const defaultPath of pathsInFolder) {
+                const { leafName, leafPattern } = targetsByPath.get(defaultPath);
+                const matched = rawResults
+                    .map((variation) => matchProbedVariation(variation, leafPattern, leafName, siblingLeafNames))
+                    .filter(Boolean)
+                    .sort((a, b) => a.index - b.index);
+                resultsByPath.set(defaultPath, matched);
+            }
+        },
+        VARIATIONS_CONCURRENCY_LIMIT,
+    );
+
+    return resultsByPath;
+}
+
+/**
+ * Probes all promo variations for a single fragment via paginated folder search (sorted by index).
  * @param {import('../aem/aem.js').AEM} aem
  * @param {string} defaultPath
  * @param {string} promoTagId
@@ -38,30 +139,8 @@ function readPznTags(fragment) {
  */
 export async function probePromoVariationsForFragment(aem, defaultPath, promoTagId) {
     if (!aem || !defaultPath || !promoTagId) return [];
-    const candidates = [];
-    for (let index = 1; index <= MAX_PROMO_VARIATIONS_PER_FRAGMENT; index += 1) {
-        const suffixIndex = index === 1 ? undefined : index;
-        const targetPath = buildPromoVariationPathForTag(defaultPath, promoTagId, suffixIndex);
-        if (!targetPath) break;
-        candidates.push({ path: targetPath, index });
-    }
-    const variations = await Promise.all(candidates.map(({ path }) => getFragmentByPathOrNull(aem.sites.cf.fragments, path)));
-    return candidates.reduce((found, { path, index }, i) => {
-        const variation = variations[i];
-        if (!variation?.id) return found;
-        found.push({
-            path,
-            index,
-            id: variation.id,
-            pznTags: readPznTags(variation),
-            status: variation.status,
-            title: variation.title,
-            model: variation.model,
-            fields: variation.fields,
-            tags: variation.tags,
-        });
-        return found;
-    }, []);
+    const resultsByPath = await probePromoVariationsForFragments(aem, [defaultPath], promoTagId);
+    return resultsByPath.get(defaultPath) || [];
 }
 
 /**
@@ -306,22 +385,17 @@ async function collectAttachedPromoVariations(aem, promotionFragment, { onlyUnpu
     const attachedPaths = Array.from(new Set(promotionFragment.getFieldValues?.('fragments') || []));
     if (!attachedPaths.length) return [];
 
-    const resultsPerPath = await processConcurrently(
-        attachedPaths,
-        async (parentPath) => {
-            const variations = await probePromoVariationsForFragment(aem, parentPath, promotionTagId);
-            return variations
-                .filter((variation) => {
-                    if (onlyUnpublished) return variation.status !== STATUS_PUBLISHED;
-                    if (onlyPublished) return variation.status !== STATUS_DRAFT;
-                    return true;
-                })
-                .map((variation) => ({ ...variation, parentPath }));
-        },
-        VARIATIONS_CONCURRENCY_LIMIT,
-    );
+    const variationsByPath = await probePromoVariationsForFragments(aem, attachedPaths, promotionTagId);
 
-    return resultsPerPath.flat();
+    return attachedPaths.flatMap((parentPath) =>
+        (variationsByPath.get(parentPath) || [])
+            .filter((variation) => {
+                if (onlyUnpublished) return variation.status !== STATUS_PUBLISHED;
+                if (onlyPublished) return variation.status !== STATUS_DRAFT;
+                return true;
+            })
+            .map((variation) => ({ ...variation, parentPath })),
+    );
 }
 
 /**

@@ -14,6 +14,7 @@ describe('MasFragment', () => {
         sandbox.restore();
         Store.selecting.set(false);
         Store.selection.set([]);
+        Store.fragments.expandedId.set(null);
     });
 
     const createFragmentStore = (overrides = {}) => {
@@ -65,8 +66,11 @@ describe('MasFragment', () => {
             expect(fragmentStore.value.references).to.deep.equal(mockReferences);
         });
 
-        it('does not load references when already loaded', async () => {
-            const fragmentStore = createFragmentStore({ references: [{ id: 'existing' }] });
+        it('does not load references when already loaded and promo-probed', async () => {
+            const fragmentStore = createFragmentStore({
+                references: [{ id: 'existing' }],
+                promoVariationsProbed: true,
+            });
             const mockRepo = {
                 refreshFragment: sandbox.stub().resolves([{ id: 'ref1' }]),
             };
@@ -74,6 +78,22 @@ describe('MasFragment', () => {
             sandbox.stub(el, 'repository').get(() => mockRepo);
             await el.toggleExpand();
             expect(mockRepo.refreshFragment.called).to.be.false;
+        });
+
+        it('reloads references when references exist but promo variations were never probed', async () => {
+            const fragmentStore = createFragmentStore({
+                references: [{ id: 'existing' }],
+                promoVariationsProbed: false,
+            });
+            const mockRepo = {
+                refreshFragment: sandbox.stub().callsFake(async (store) => {
+                    store.value.promoVariationsProbed = true;
+                }),
+            };
+            const el = await fixture(html`<mas-fragment .fragmentStore=${fragmentStore} view="table"></mas-fragment>`);
+            sandbox.stub(el, 'repository').get(() => mockRepo);
+            await el.toggleExpand();
+            expect(mockRepo.refreshFragment.calledWith(fragmentStore)).to.be.true;
         });
 
         it('dispatches table-selection-refresh when expanding while selecting', async () => {
@@ -103,6 +123,79 @@ describe('MasFragment', () => {
             expect(consoleErrorStub.calledWithMatch('Failed to load references:', sinon.match.instanceOf(Error))).to.be.true;
             expect(el.expanded).to.be.true;
             expect(el.loadingReferences).to.be.false;
+        });
+    });
+
+    describe('autoExpand', () => {
+        it('does nothing when expandedId does not match this fragment', async () => {
+            const fragmentStore = createFragmentStore();
+            const mockRepo = { refreshFragment: sandbox.stub().resolves() };
+            const el = await fixture(html`<mas-fragment .fragmentStore=${fragmentStore} view="table"></mas-fragment>`);
+            sandbox.stub(el, 'repository').get(() => mockRepo);
+            Store.fragments.expandedId.set('some-other-id');
+            await el.autoExpand();
+            expect(el.expanded).to.be.false;
+            expect(mockRepo.refreshFragment.called).to.be.false;
+        });
+
+        it('does nothing when already expanded', async () => {
+            const fragmentStore = createFragmentStore();
+            const mockRepo = { refreshFragment: sandbox.stub().resolves() };
+            const el = await fixture(html`<mas-fragment .fragmentStore=${fragmentStore} view="table"></mas-fragment>`);
+            sandbox.stub(el, 'repository').get(() => mockRepo);
+            el.expanded = true;
+            Store.fragments.expandedId.set(fragmentStore.value.id);
+            await el.autoExpand();
+            expect(mockRepo.refreshFragment.called).to.be.false;
+        });
+
+        it('expands and loads references when expandedId matches and references are empty', async () => {
+            const fragmentStore = createFragmentStore();
+            const mockReferences = [{ id: 'ref1' }];
+            const mockRepo = {
+                refreshFragment: sandbox.stub().callsFake(async (store) => {
+                    store.value.references = mockReferences;
+                    store.value.promoVariationsProbed = true;
+                }),
+            };
+            const el = await fixture(html`<mas-fragment .fragmentStore=${fragmentStore} view="table"></mas-fragment>`);
+            sandbox.stub(el, 'repository').get(() => mockRepo);
+            Store.fragments.expandedId.set(fragmentStore.value.id);
+            await el.autoExpand();
+            expect(el.expanded).to.be.true;
+            expect(mockRepo.refreshFragment.calledWith(fragmentStore)).to.be.true;
+            expect(fragmentStore.value.references).to.deep.equal(mockReferences);
+        });
+
+        it('does not reload when references exist and promo variations were already probed', async () => {
+            const fragmentStore = createFragmentStore({
+                references: [{ id: 'existing' }],
+                promoVariationsProbed: true,
+            });
+            const mockRepo = { refreshFragment: sandbox.stub().resolves() };
+            const el = await fixture(html`<mas-fragment .fragmentStore=${fragmentStore} view="table"></mas-fragment>`);
+            sandbox.stub(el, 'repository').get(() => mockRepo);
+            Store.fragments.expandedId.set(fragmentStore.value.id);
+            await el.autoExpand();
+            expect(el.expanded).to.be.true;
+            expect(mockRepo.refreshFragment.called).to.be.false;
+        });
+
+        it('reloads when references exist but promo variations were never probed (regression)', async () => {
+            const fragmentStore = createFragmentStore({
+                references: [{ id: 'existing' }],
+                promoVariationsProbed: false,
+            });
+            const mockRepo = {
+                refreshFragment: sandbox.stub().callsFake(async (store) => {
+                    store.value.promoVariationsProbed = true;
+                }),
+            };
+            const el = await fixture(html`<mas-fragment .fragmentStore=${fragmentStore} view="table"></mas-fragment>`);
+            sandbox.stub(el, 'repository').get(() => mockRepo);
+            Store.fragments.expandedId.set(fragmentStore.value.id);
+            await el.autoExpand();
+            expect(mockRepo.refreshFragment.calledWith(fragmentStore)).to.be.true;
         });
     });
 

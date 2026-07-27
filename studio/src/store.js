@@ -120,7 +120,11 @@ const Store = {
         displayCards: new ReactiveStore([]),
         selectedCards: new ReactiveStore([]),
         selectedOffers: new ReactiveStore([]),
+        // Raw WCS offer objects keyed by OSI, shared with cards/variations enrichment (see loadOfferData).
         offerDataCache: new Map(),
+        // Offers-table display records ({ path, id, offerData, tags, fields, getTagTitle }) keyed by offer selector id.
+        // Kept separate from offerDataCache so the two shapes never collide under the same OSI key.
+        offerRecordsCache: new Map(),
         groupedVariationsByParent: new ReactiveStore(new Map()),
         groupedVariationsData: new ReactiveStore(new Map()),
 

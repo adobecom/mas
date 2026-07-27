@@ -686,24 +686,30 @@ export class MiniCompareChart extends VariantLayout {
             fallbackLegal.remove();
         }
 
-        // Query fresh each time rather than caching: the card can
-        // re-render body-xxs (e.g. once the price resolves and the legal
-        // price is (re)cloned), and a stale reference would leave the new
-        // element undetached while merging stale content into plan type.
+        // Query fresh each time rather than only relying on a cached node:
+        // the card can re-render body-xxs (e.g. once the price resolves and
+        // the legal price is (re)cloned). The extracted HTML is cached
+        // separately (see below) since adjustLegal() can race and produce a
+        // second legal price clone after body-xxs has already been removed —
+        // without the cache, that second clone would never get populated.
         const bodyXxs = this.card.querySelector('[slot="body-xxs"]');
-        if (!bodyXxs) return;
-        const text = bodyXxs.textContent?.trim();
-        const hasIconButton = !!bodyXxs.querySelector('.icon-button');
-        if (!text && !hasIconButton) return;
+        if (bodyXxs) {
+            const text = bodyXxs.textContent?.trim();
+            const hasIconButton = !!bodyXxs.querySelector('.icon-button');
+            if (text || hasIconButton) {
+                this.shortDescriptionHTML = bodyXxs.innerHTML;
+                bodyXxs.remove();
+            }
+        }
+        if (!this.shortDescriptionHTML) return;
 
         const planType = realPlanType ?? this.getOrCreateFallbackPlanType();
         if (!planType) return;
         if (planType.querySelector('em')) return;
 
         const em = document.createElement('em');
-        em.innerHTML = ` ${bodyXxs.innerHTML}`;
+        em.innerHTML = ` ${this.shortDescriptionHTML}`;
         planType.appendChild(em);
-        bodyXxs.remove();
     }
 
     renderLayout() {

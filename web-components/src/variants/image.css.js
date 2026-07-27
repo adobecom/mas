@@ -17,6 +17,12 @@ export const CSS = `
   --merch-card-collection-card-width: var(--consonant-merch-card-image-width);
 }
 
+.one-merch-card.section merch-card[variant="image"] {
+  width: auto;
+  max-width: var(--consonant-merch-card-image-width);
+  margin: 0 auto;
+}
+
 @media screen and ${TABLET_UP} {
   .two-merch-cards.image,
   .three-merch-cards.image,

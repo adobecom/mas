@@ -34,7 +34,7 @@ class MasItemsSelector extends LitElement {
         maxSelectedCards: { type: Number, attribute: 'max-selected-cards' },
         lockedTemplateFilter: { type: String, attribute: 'locked-template-filter' },
         defaultTemplateFilter: { type: String, attribute: 'default-template-filter' },
-        nonSelectableVariations: { type: Array, attribute: 'non-selectable-variations' },
+        selectableTabs: { type: Array, attribute: 'selectable-tabs' },
         variationTabs: { type: Array },
         /** @type {(fragmentData: object) => string} */
         getDisplayName: { type: Function },
@@ -379,7 +379,7 @@ class MasItemsSelector extends LitElement {
                 .viewOnly=${this.viewOnly}
                 .type=${type}
                 .maxSelectedCards=${this.maxSelectedCards}
-                .nonSelectableVariations=${this.nonSelectableVariations}
+                .selectableTabs=${this.selectableTabs}
                 .tabs=${this.variationTabs}
                 .getDisplayName=${this.getDisplayName}
                 .renderFragmentStatusCell=${this.renderFragmentStatusCell}

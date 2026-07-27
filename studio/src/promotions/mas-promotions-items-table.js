@@ -1,14 +1,11 @@
-import { LitElement, html, css, nothing } from 'lit';
+import { LitElement, html, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import { styles as tableStyles } from '../common/components/mas-select-items-table.css.js';
+import { promotionsItemsTableStyles } from './mas-promotions-items-table.css.js';
 import { getItemsSelectionStore } from '../common/items-selection-store.js';
-import { loadSelectedFragments } from '../common/utils/items-loader.js';
-import { PAGE_NAMES, TABLE_TYPE, CARD_MODEL_PATH } from '../constants.js';
-import {
-    applySearchSurfaceFromPath,
-    getItemTypeLabel,
-    shouldIgnoreRowClickForSelection,
-} from '../common/utils/render-utils.js';
+import { loadSelectedFragments, enrichPromoVariations } from '../common/utils/items-loader.js';
+import { PAGE_NAMES, TABLE_TYPE, CARD_MODEL_PATH, VARIATION_TAB_NAME } from '../constants.js';
+import { applySearchSurfaceFromPath, shouldIgnoreRowClickForSelection } from '../common/utils/render-utils.js';
 import { closePreview, openPreview } from '../mas-card-preview.js';
 import router from '../router.js';
 import { extractLocaleFromPath, extractSurfaceFromPath, showToast } from '../utils.js';
@@ -34,437 +31,24 @@ import { getUsedGeoTags } from './promotion-variations.js';
 import { createPromoVariation, probePromoVariationsForFragment } from './promotions-repository.js';
 import './mas-promo-variation-geos.js';
 import { openOfferSelectorTool } from '../rte/ost.js';
+import '../common/components/mas-select-items-table.js';
 
-const localStyles = css`
-    :host {
-        width: 100%;
-        display: flex;
-        min-height: 0;
-    }
-
-    .promotions-view-only .offer-cell {
-        display: flex;
-        align-items: center;
-        gap: var(--spectrum-spacing-100);
-        min-width: 0;
-    }
-
-    .promotions-view-only .mnemonic-icon {
-        width: 24px;
-        height: 24px;
-        flex-shrink: 0;
-    }
-
-    .promotions-view-only sp-table-cell,
-    .promotions-view-only sp-table-head-cell {
-        word-break: normal;
-        overflow-wrap: anywhere;
-    }
-
-    .promotions-view-only .path {
-        min-width: 0;
-        overflow: hidden;
-    }
-
-    .promotions-view-only .path span {
-        display: -webkit-box;
-        -webkit-box-orient: vertical;
-        -webkit-line-clamp: 2;
-        overflow: hidden;
-        overflow-wrap: anywhere;
-        white-space: normal;
-    }
-
-    .promotions-view-only .offer-id {
-        min-width: 0;
-        display: flex;
-        align-items: center;
-        gap: var(--spectrum-spacing-75);
-        color: var(--spectrum-blue-900);
-    }
-
-    .promotions-view-only .offer-id overlay-trigger {
-        flex: 1;
-        min-width: 0;
-    }
-
-    .promotions-view-only .offer-id div[slot='trigger'] {
-        display: -webkit-box;
-        -webkit-box-orient: vertical;
-        -webkit-line-clamp: 2;
-        overflow: hidden;
-        overflow-wrap: anywhere;
-        white-space: normal;
-    }
-
-    .promotions-view-only .offer-id sp-action-button {
-        flex-shrink: 0;
-        --mod-actionbutton-content-color-default: var(--spectrum-blue-900);
-    }
-
-    .promotions-view-only .preview-cell {
-        justify-content: flex-start;
-        text-align: start;
-    }
-
-    .promotions-view-only .preview-cell sp-icon-preview {
-        cursor: default;
-    }
-
-    .promotions-view-only .actions-cell {
-        justify-content: flex-start;
-        align-items: center;
-    }
-
-    .promotions-view-only .actions-cell sp-action-menu {
-        flex: 0 0 auto;
-    }
-
-    .promotions-view-only .expand-cell {
-        flex: 0 0 2.5rem;
-        width: 2.5rem;
-        min-width: 2.5rem;
-        max-width: 2.5rem;
-        justify-content: center;
-    }
-
-    .promotions-offers-layout .promo-code-head-cell,
-    .promotions-offers-layout .promo-code-cell {
-        justify-content: center;
-        text-align: center;
-    }
-
-    .promotions-view-only .expand-cell sp-icon-chevron-down {
-        transition: transform 0.2s;
-    }
-
-    .promotions-view-only .expand-cell sp-icon-chevron-down.expanded {
-        transform: rotate(180deg);
-    }
-
-    .promotions-view-only .detail-row {
-        width: 100%;
-    }
-
-    .promotions-offers-layout {
-        --offer-expand-column-width: 2.5rem;
-        --offer-actions-column-width: 4.5rem;
-        --offer-promo-actions-gap: var(--spectrum-spacing-500);
-        --offer-detail-end-inset: calc(
-            var(--offer-actions-column-width) + var(--offer-promo-actions-gap) + var(--spectrum-spacing-200)
-        );
-    }
-
-    .promotions-offers-layout sp-table-body > sp-table-row.offer-row {
-        border-bottom: 1px solid var(--spectrum-gray-200);
-    }
-
-    .promotions-offers-layout sp-table-body > sp-table-row.offer-row > sp-table-cell {
-        border-bottom: 0;
-    }
-
-    .promotions-offers-layout .detail-row sp-table-cell.detail-cell-full {
-        flex: 1 1 100%;
-        width: 100%;
-        max-width: 100%;
-        min-width: 0;
-        box-sizing: border-box;
-        background: var(--spectrum-gray-75);
-        padding-block: var(--spectrum-spacing-200);
-        padding-inline-start: calc(var(--offer-expand-column-width) + var(--spectrum-spacing-200));
-        padding-inline-end: var(--offer-detail-end-inset);
-        display: block;
-    }
-
-    .promotions-view-only .offer-detail-content {
-        display: flex;
-        flex-direction: column;
-        align-items: stretch;
-        gap: var(--spectrum-spacing-200);
-        width: 100%;
-        min-width: 0;
-    }
-
-    .promotions-view-only .detail-offer-id {
-        font-size: var(--spectrum-font-size-75);
-        color: var(--spectrum-gray-800);
-        line-height: 1.4;
-    }
-
-    .promotions-view-only .detail-offer-id strong {
-        font-weight: 600;
-        margin-inline-end: var(--spectrum-spacing-75);
-    }
-
-    .promotions-view-only .detail-offer-id span {
-        overflow-wrap: anywhere;
-    }
-
-    .promotions-view-only .offer-promo-codes-table {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: var(--spectrum-font-size-75);
-        color: var(--spectrum-gray-800);
-        table-layout: fixed;
-    }
-
-    .promotions-view-only .offer-promo-codes-table th,
-    .promotions-view-only .offer-promo-codes-table td {
-        border: 1px solid var(--spectrum-gray-200);
-        padding: 10px 20px;
-        text-align: left;
-        vertical-align: top;
-    }
-
-    .promotions-view-only .offer-promo-codes-table th {
-        background: var(--spectrum-gray-100);
-        font-weight: 600;
-    }
-
-    .promotions-view-only .offer-promo-codes-table th:first-child,
-    .promotions-view-only .offer-promo-codes-table td:first-child {
-        width: 32%;
-    }
-
-    .promotions-view-only .offer-promo-codes-table th:last-child,
-    .promotions-view-only .offer-promo-codes-table td:last-child {
-        width: 68%;
-    }
-
-    .promotions-view-only .offer-promo-codes-table tbody td {
-        background: var(--spectrum-white);
-    }
-
-    .promotions-view-only .offer-promo-codes-table td:first-child {
-        font-family: var(--spectrum-code-font-family, monospace);
-        white-space: nowrap;
-    }
-
-    .promotions-offers-layout sp-table-row.offer-row {
-        cursor: pointer;
-    }
-
-    .promotions-view-only sp-action-menu {
-        --mod-actionbutton-edge-to-text: 6px;
-    }
-
-    .promotions-view-only {
-        width: 100%;
-        min-width: 100%;
-        box-sizing: border-box;
-        flex: 0 1 auto;
-        overflow: visible;
-    }
-
-    .promotions-view-only sp-table-head,
-    .promotions-view-only sp-table-body {
-        width: 100%;
-        box-sizing: border-box;
-    }
-
-    .promotions-view-only sp-table-head {
-        display: flex;
-        min-width: 0;
-    }
-
-    .promotions-view-only sp-table-row {
-        min-width: 0;
-    }
-
-    .promotions-view-only sp-table-head-cell {
-        display: flex;
-        align-items: center;
-    }
-
-    .promotions-offers-layout sp-table-head-cell,
-    .promotions-offers-layout sp-table-cell,
-    .promotions-fragments-layout sp-table-head-cell,
-    .promotions-fragments-layout sp-table-cell,
-    .promotions-collections-layout sp-table-head-cell,
-    .promotions-collections-layout sp-table-cell {
-        justify-content: flex-start;
-        text-align: start;
-    }
-
-    .promotions-offers-layout sp-table-head-cell:nth-child(1),
-    .promotions-offers-layout sp-table-cell:nth-child(1) {
-        flex: 0 0 var(--offer-expand-column-width);
-        width: var(--offer-expand-column-width);
-        min-width: var(--offer-expand-column-width);
-        max-width: var(--offer-expand-column-width);
-    }
-
-    .promotions-offers-layout sp-table-head-cell:nth-child(2),
-    .promotions-offers-layout sp-table-cell:nth-child(2) {
-        flex: 1.1 1 0;
-        min-width: 0;
-    }
-
-    .promotions-offers-layout sp-table-head-cell:nth-child(3),
-    .promotions-offers-layout sp-table-cell:nth-child(3),
-    .promotions-offers-layout sp-table-head-cell:nth-child(4),
-    .promotions-offers-layout sp-table-cell:nth-child(4),
-    .promotions-offers-layout sp-table-head-cell:nth-child(5),
-    .promotions-offers-layout sp-table-cell:nth-child(5),
-    .promotions-offers-layout sp-table-head-cell:nth-child(6),
-    .promotions-offers-layout sp-table-cell:nth-child(6),
-    .promotions-offers-layout sp-table-head-cell:nth-child(7),
-    .promotions-offers-layout sp-table-cell:nth-child(7) {
-        flex: 0.75 1 0;
-        min-width: 5rem;
-    }
-
-    .promotions-offers-layout sp-table-head-cell:nth-child(8),
-    .promotions-offers-layout sp-table-cell:nth-child(8) {
-        flex: 0 0 calc(5.5rem + var(--offer-promo-actions-gap));
-        width: calc(5.5rem + var(--offer-promo-actions-gap));
-        min-width: calc(5.5rem + var(--offer-promo-actions-gap));
-        max-width: calc(5.5rem + var(--offer-promo-actions-gap));
-        white-space: nowrap;
-        padding-inline-end: var(--offer-promo-actions-gap);
-        box-sizing: border-box;
-    }
-
-    .promotions-offers-layout sp-table-head-cell:nth-child(9),
-    .promotions-offers-layout sp-table-cell:nth-child(9) {
-        flex: 0 0 calc(var(--offer-actions-column-width) + var(--spectrum-spacing-300));
-        width: calc(var(--offer-actions-column-width) + var(--spectrum-spacing-300));
-        min-width: calc(var(--offer-actions-column-width) + var(--spectrum-spacing-300));
-        max-width: calc(var(--offer-actions-column-width) + var(--spectrum-spacing-300));
-        white-space: nowrap;
-        padding-inline-end: var(--spectrum-spacing-300);
-        box-sizing: border-box;
-    }
-
-    .promotions-fragments-layout sp-table-head-cell:nth-child(1),
-    .promotions-fragments-layout sp-table-cell:nth-child(1) {
-        flex: 1.05 1 0;
-        min-width: 0;
-    }
-
-    .promotions-fragments-layout sp-table-head-cell:nth-child(2),
-    .promotions-fragments-layout sp-table-cell:nth-child(2) {
-        flex: 0.95 1 0;
-        min-width: 0;
-    }
-
-    .promotions-fragments-layout sp-table-head-cell:nth-child(3),
-    .promotions-fragments-layout sp-table-cell:nth-child(3) {
-        flex: 1.15 1 0;
-        min-width: 0;
-    }
-
-    .promotions-fragments-layout sp-table-head-cell:nth-child(4),
-    .promotions-fragments-layout sp-table-cell:nth-child(4) {
-        flex: 1.45 1 0;
-        min-width: 0;
-    }
-
-    .promotions-fragments-layout sp-table-head-cell:nth-child(5),
-    .promotions-fragments-layout sp-table-cell:nth-child(5) {
-        flex: 0.65 1 0;
-        min-width: 6rem;
-    }
-
-    .promotions-fragments-layout sp-table-head-cell:nth-child(6),
-    .promotions-fragments-layout sp-table-cell:nth-child(6) {
-        flex: 0.8 1 0;
-        min-width: 7.25rem;
-    }
-
-    .promotions-fragments-layout sp-table-cell:nth-child(5),
-    .promotions-fragments-layout sp-table-cell:nth-child(6) {
-        white-space: nowrap;
-    }
-
-    .promotions-fragments-layout sp-table-head-cell:nth-child(7),
-    .promotions-fragments-layout sp-table-cell:nth-child(7) {
-        flex: 0 0 6.5rem;
-        width: 6.5rem;
-        min-width: 6.5rem;
-        max-width: 6.5rem;
-        white-space: nowrap;
-    }
-
-    .promotions-fragments-layout sp-table-head-cell:nth-child(8),
-    .promotions-fragments-layout sp-table-cell:nth-child(8) {
-        flex: 0 0 6rem;
-        width: 6rem;
-        min-width: 6rem;
-        max-width: 6rem;
-        white-space: nowrap;
-    }
-
-    .offers-empty-state {
-        display: flex;
-        flex-direction: row;
-        gap: 12px;
-        padding: 12px;
-        border: 2px dashed var(--spectrum-gray-400);
-        border-radius: 8px;
-        width: 100%;
-        box-sizing: border-box;
-    }
-
-    .offers-empty-state .label {
-        align-content: center;
-    }
-
-    .offers-empty-state sp-button {
-        background: white;
-    }
-
-    .promotions-collections-layout sp-table-head-cell:nth-child(1),
-    .promotions-collections-layout sp-table-cell:nth-child(1) {
-        flex: 1 1 0;
-        min-width: 0;
-    }
-
-    .promotions-collections-layout sp-table-head-cell:nth-child(2),
-    .promotions-collections-layout sp-table-cell:nth-child(2) {
-        flex: 1.55 1 0;
-        min-width: 0;
-    }
-
-    .promotions-collections-layout sp-table-head-cell:nth-child(3),
-    .promotions-collections-layout sp-table-cell:nth-child(3) {
-        flex: 0.85 1 0;
-        min-width: 7.25rem;
-    }
-
-    .promotions-collections-layout sp-table-cell:nth-child(3) {
-        white-space: nowrap;
-    }
-
-    .promotions-collections-layout sp-table-head-cell:nth-child(4),
-    .promotions-collections-layout sp-table-cell:nth-child(4) {
-        flex: 0 0 6.5rem;
-        width: 6.5rem;
-        min-width: 6.5rem;
-        max-width: 6.5rem;
-        white-space: nowrap;
-    }
-
-    .promotions-collections-layout sp-table-head-cell:nth-child(5),
-    .promotions-collections-layout sp-table-cell:nth-child(5) {
-        flex: 0 0 6rem;
-        width: 6rem;
-        min-width: 6rem;
-        max-width: 6rem;
-        white-space: nowrap;
-    }
-
-    sp-dialog-wrapper {
-        z-index: 11;
-    }
-`;
-
-const PROMO_VARIATION_MISSING_MESSAGE =
-    'The promo variation for this fragment could not be found. It may have been removed. Use Create promo variation to add it again.';
 const PROMO_VARIATION_LOOKUP_FAILED_MESSAGE = 'Could not verify the promo variation. Check your connection and try again.';
 
+const offersTableColumns = [
+    { label: '', key: 'expand' },
+    { label: 'Offer', key: 'offer', sortable: true },
+    { label: 'Product arrangement', key: 'productArrangement' },
+    { label: 'Offer type', key: 'offerType' },
+    { label: 'Plan type', key: 'planType' },
+    { label: 'Customer segment', key: 'customerSegment' },
+    { label: 'Market segment', key: 'marketSegment' },
+    { label: 'Promo code', key: 'promoCode', class: 'promo-code-head-cell' },
+    { label: 'Actions', key: 'actions' },
+];
+
 class MasPromotionsItemsTable extends LitElement {
-    static styles = [tableStyles, localStyles];
+    static styles = [tableStyles, promotionsItemsTableStyles];
 
     static properties = {
         type: { type: String },
@@ -479,8 +63,8 @@ class MasPromotionsItemsTable extends LitElement {
         confirmDialogConfig: { type: Object, state: true },
         offerRemovalDialogOpen: { type: Boolean, state: true },
         createPromoVariationLoading: { type: Boolean, state: true },
-        existingPromoVariationDefaultPaths: { type: Object, state: true },
         existingPromoVariationGeosByPath: { type: Object, state: true },
+        existingPromoVariationsByPath: { type: Object, state: true },
         existingPromoVariationEmptyGeoPaths: { type: Object, state: true },
         promoVariationGeosDialogItem: { type: Object, state: true },
         promoVariationSelectedGeos: { type: Array, state: true },
@@ -499,8 +83,8 @@ class MasPromotionsItemsTable extends LitElement {
         this.confirmDialogConfig = null;
         this.offerRemovalDialogOpen = false;
         this.createPromoVariationLoading = false;
-        this.existingPromoVariationDefaultPaths = new Set();
         this.existingPromoVariationGeosByPath = new Map();
+        this.existingPromoVariationsByPath = new Map();
         this.existingPromoVariationEmptyGeoPaths = new Set();
         this.promoVariationGeosDialogItem = null;
         this.promoVariationSelectedGeos = [];
@@ -591,41 +175,6 @@ class MasPromotionsItemsTable extends LitElement {
         return countDistinctPromoCodesForOffer(this.#exceptionsMap, offerId, this.#countries, this.#defaultPromoCodeValue);
     }
 
-    get tableColumns() {
-        if (this.type === TABLE_TYPE.OFFERS) {
-            return [
-                { label: '', key: 'expand' },
-                { label: 'Offer', key: 'offer', sortable: true },
-                { label: 'Product arrangement', key: 'productArrangement' },
-                { label: 'Offer type', key: 'offerType' },
-                { label: 'Plan type', key: 'planType' },
-                { label: 'Customer segment', key: 'customerSegment' },
-                { label: 'Market segment', key: 'marketSegment' },
-                { label: 'Promo code', key: 'promoCode' },
-                { label: 'Actions', key: 'actions' },
-            ];
-        }
-        if (this.type === TABLE_TYPE.CARDS) {
-            return [
-                { label: 'Offer', key: 'offer', sortable: true },
-                { label: 'Fragment title', key: 'fragmentTitle' },
-                { label: 'Offer ID', key: 'offerId' },
-                { label: 'Path', key: 'path' },
-                { label: 'Item type', key: 'itemType' },
-                { label: 'Status', key: 'status' },
-                { label: 'Actions', key: 'actions' },
-                { label: 'Preview', key: 'preview' },
-            ];
-        }
-        return [
-            { label: 'Collection title', key: 'collectionTitle' },
-            { label: 'Path', key: 'path' },
-            { label: 'Status', key: 'status' },
-            { label: 'Actions', key: 'actions' },
-            { label: 'Preview', key: 'preview' },
-        ];
-    }
-
     updated(changed) {
         super.updated(changed);
         if (
@@ -657,7 +206,7 @@ class MasPromotionsItemsTable extends LitElement {
             return;
         }
         this.viewOnlyFragments = offerIds.map((offerId) => {
-            const cached = Store.promotions.offerDataCache.get(offerId);
+            const cached = Store.promotions.offerRecordsCache.get(offerId);
             if (cached) return cached;
             return {
                 path: offerId,
@@ -701,16 +250,16 @@ class MasPromotionsItemsTable extends LitElement {
         const promoTag = this.#promotionTagId;
         if (!promoTag || !this.repository?.aem?.sites?.cf?.fragments?.getByPath) {
             if (signal.aborted) return;
-            this.existingPromoVariationDefaultPaths = new Set();
             this.existingPromoVariationGeosByPath = new Map();
+            this.existingPromoVariationsByPath = new Map();
             this.existingPromoVariationEmptyGeoPaths = new Set();
             return;
         }
-        const previousPaths = this.existingPromoVariationDefaultPaths;
         const previousGeos = this.existingPromoVariationGeosByPath;
-        const previousEmptyGeoPaths = this.existingPromoVariationEmptyGeoPaths;
-        const existingPaths = new Set();
+        const previousVariations = this.existingPromoVariationsByPath;
         const geosByPath = new Map();
+        const variationsByPath = new Map();
+        const previousEmptyGeoPaths = this.existingPromoVariationEmptyGeoPaths;
         const emptyGeoPaths = new Set();
         await Promise.all(
             items.map(async (item) => {
@@ -718,25 +267,28 @@ class MasPromotionsItemsTable extends LitElement {
                 try {
                     const variations = await probePromoVariationsForFragment(this.repository.aem, item.path, promoTag);
                     if (variations.length) {
-                        existingPaths.add(item.path);
+                        const enrichedVariations = await enrichPromoVariations(variations, item, {
+                            getDisplayName: this.getDisplayName,
+                        });
                         geosByPath.set(item.path, getUsedGeoTags(variations));
+                        variationsByPath.set(item.path, enrichedVariations);
                         if (variations.some((variation) => !variation.pznTags?.length)) {
                             emptyGeoPaths.add(item.path);
                         }
                     }
                 } catch {
-                    if (previousPaths.has(item.path)) {
-                        existingPaths.add(item.path);
+                    if (previousGeos.has(item.path)) {
                         geosByPath.set(item.path, previousGeos.get(item.path) || []);
+                        variationsByPath.set(item.path, previousVariations.get(item.path) || []);
                         if (previousEmptyGeoPaths.has(item.path)) emptyGeoPaths.add(item.path);
                     }
                 }
             }),
         );
         if (signal.aborted) return;
-        this.existingPromoVariationDefaultPaths = existingPaths;
         this.existingPromoVariationEmptyGeoPaths = emptyGeoPaths;
         this.existingPromoVariationGeosByPath = geosByPath;
+        this.existingPromoVariationsByPath = variationsByPath;
     }
 
     #showToast(text, variant) {
@@ -747,23 +299,6 @@ class MasPromotionsItemsTable extends LitElement {
                 composed: true,
             }),
         );
-    }
-
-    async #copyOfferId(e, offerId) {
-        e.stopPropagation();
-        if (!offerId) return;
-        try {
-            await navigator.clipboard.writeText(offerId);
-            this.#showToast('Offer ID copied to clipboard', 'positive');
-        } catch (err) {
-            console.error('Failed to copy offer ID:', err);
-            this.#showToast('Failed to copy Offer ID', 'negative');
-        }
-    }
-
-    #openCardPreview(fragmentId) {
-        if (!fragmentId) return;
-        openPreview(fragmentId, { left: 'min(300px, 15%)' });
     }
 
     #getPromotionProjectId() {
@@ -809,16 +344,16 @@ class MasPromotionsItemsTable extends LitElement {
         this.confirmDialogConfig = null;
     }
 
-    get #promoVariationConfirmButton() {
-        const dialogWrapper = this.shadowRoot?.querySelector('sp-dialog-wrapper.promo-variation-geos-dialog');
-        return dialogWrapper?.shadowRoot?.querySelector('sp-button[variant="accent"][slot="button"]') ?? null;
+    get #promoVariationDialogWrapper() {
+        return this.shadowRoot?.querySelector('sp-dialog-wrapper.promo-variation-geos-dialog');
     }
 
     async #syncPromoVariationConfirmButtonDisabled() {
         if (!this.promoVariationGeosDialogItem) return;
-        const dialogWrapper = this.shadowRoot?.querySelector('sp-dialog-wrapper.promo-variation-geos-dialog');
-        await dialogWrapper?.updateComplete;
-        const confirmButton = this.#promoVariationConfirmButton;
+        await this.#promoVariationDialogWrapper?.updateComplete;
+        const confirmButton = this.#promoVariationDialogWrapper?.shadowRoot?.querySelector(
+            'sp-button[variant="accent"][slot="button"]',
+        );
         if (!confirmButton) return;
         confirmButton.disabled = !this.promoVariationSelectedGeos.length && this.fragmentHasEmptyGeosVariation;
     }
@@ -897,7 +432,6 @@ class MasPromotionsItemsTable extends LitElement {
                 this.repository.refreshFragment(store),
             );
             showToast('Promo variation created', 'positive');
-            this.existingPromoVariationDefaultPaths = new Set([...this.existingPromoVariationDefaultPaths, item.path]);
             const previousGeos = this.existingPromoVariationGeosByPath.get(item.path) || [];
             this.existingPromoVariationGeosByPath = new Map(this.existingPromoVariationGeosByPath).set(item.path, [
                 ...previousGeos,
@@ -923,7 +457,7 @@ class MasPromotionsItemsTable extends LitElement {
                 selectedOffers: store.selectedOffers.value,
                 selectedCards: store.selectedCards.value,
                 selectedCollections: store.selectedCollections.value,
-                offerDataCache: Store.promotions.offerDataCache,
+                offerDataCache: Store.promotions.offerRecordsCache,
                 cardsByPaths: store.cardsByPaths.value,
                 collectionsByPaths: store.collectionsByPaths.value,
                 groupedVariationsByParent: store.groupedVariationsByParent.value,
@@ -950,7 +484,7 @@ class MasPromotionsItemsTable extends LitElement {
         const store = getItemsSelectionStore();
         const remainingOffers = store.selectedOffers.value.filter((id) => id !== selectorId);
         store.selectedOffers.set(remainingOffers);
-        Store.promotions.offerDataCache.delete(selectorId);
+        Store.promotions.offerRecordsCache.delete(selectorId);
         if (!remainingOffers.length) {
             store.selectedCards.set([]);
             store.selectedCollections.set([]);
@@ -959,7 +493,7 @@ class MasPromotionsItemsTable extends LitElement {
                 selectedCards: store.selectedCards.value,
                 selectedCollections: store.selectedCollections.value,
                 remainingSelectedOfferIds: remainingOffers,
-                offerDataCache: Store.promotions.offerDataCache,
+                offerDataCache: Store.promotions.offerRecordsCache,
                 cardsByPaths: store.cardsByPaths.value,
                 collectionsByPaths: store.collectionsByPaths.value,
                 groupedVariationsByParent: store.groupedVariationsByParent.value,
@@ -968,7 +502,7 @@ class MasPromotionsItemsTable extends LitElement {
             store.selectedCards.set(pruned.selectedCards);
             store.selectedCollections.set(pruned.selectedCollections);
         }
-        applyPromotionOfferProductTagsToSearch(Store.promotions.offerDataCache, remainingOffers);
+        applyPromotionOfferProductTagsToSearch(Store.promotions.offerRecordsCache, remainingOffers);
         this.dispatchEvent(
             new CustomEvent('promotion-offer-removed', {
                 bubbles: true,
@@ -1019,26 +553,6 @@ class MasPromotionsItemsTable extends LitElement {
         return html`<sp-table-cell class="offer-cell">
             ${iconSrc ? html`<img class="mnemonic-icon" src=${iconSrc} alt="" />` : nothing}
             <span>${offerName}</span>
-        </sp-table-cell>`;
-    }
-
-    #renderOfferIdCell(item) {
-        const { offerId } = item?.offerData || {};
-        return html`<sp-table-cell class="offer-id">
-            ${offerId
-                ? html`<overlay-trigger triggered-by="hover">
-                          <div slot="trigger">${offerId}</div>
-                          <sp-tooltip slot="hover-content" placement="bottom">${offerId}</sp-tooltip>
-                      </overlay-trigger>
-                      <sp-action-button
-                          icon-only
-                          quiet
-                          aria-label="Copy Offer ID to clipboard"
-                          @click=${(e) => this.#copyOfferId(e, offerId)}
-                      >
-                          <sp-icon-copy slot="icon"></sp-icon-copy>
-                      </sp-action-button>`
-                : html`<span>no offer data</span>`}
         </sp-table-cell>`;
     }
 
@@ -1274,7 +788,7 @@ class MasPromotionsItemsTable extends LitElement {
         }
         return html`<sp-table-cell
             class="preview-cell"
-            @mouseover=${() => this.#openCardPreview(item.id)}
+            @mouseover=${() => openPreview(item.id, { left: '50' })}
             @mouseout=${closePreview}
         >
             <sp-icon-preview label="Preview card"></sp-icon-preview>
@@ -1298,31 +812,12 @@ class MasPromotionsItemsTable extends LitElement {
         );
     }
 
-    #renderFragmentRow(item) {
-        return html`<sp-table-row value=${item.path}>
-            ${this.#renderOfferCell(item)}
-            <sp-table-cell>${item.title || 'no title'}</sp-table-cell>
-            ${this.#renderOfferIdCell(item)}
-            <sp-table-cell class="path"><span>${item?.studioPath || 'no path'}</span></sp-table-cell>
-            <sp-table-cell>${getItemTypeLabel(item)}</sp-table-cell>
-            ${this.renderFragmentStatusCell(item?.status)} ${this.#renderActionsCell(item)} ${this.#renderPreviewCell(item)}
-        </sp-table-row>`;
-    }
-
-    #renderCollectionRow(item) {
-        return html`<sp-table-row value=${item.path}>
-            <sp-table-cell>${item.title || '-'}</sp-table-cell>
-            <sp-table-cell class="path"><span>${item.studioPath || '-'}</span></sp-table-cell>
-            ${this.renderFragmentStatusCell(item?.status)} ${this.#renderActionsCell(item)} ${this.#renderPreviewCell(item)}
-        </sp-table-row>`;
-    }
-
     #renderSkeletonRows() {
         return Array.from(
             { length: 6 },
             (_, i) =>
                 html`<sp-table-row class="skeleton-row" key=${i}>
-                    ${this.tableColumns.map(
+                    ${offersTableColumns.map(
                         () =>
                             html`<sp-table-cell>
                                 <div class="skeleton-element skeleton-table-cell"></div>
@@ -1330,22 +825,6 @@ class MasPromotionsItemsTable extends LitElement {
                     )}
                 </sp-table-row>`,
         );
-    }
-
-    get #layoutClass() {
-        if (this.type === TABLE_TYPE.OFFERS) return 'promotions-offers-layout';
-        if (this.type === TABLE_TYPE.CARDS) return 'promotions-fragments-layout';
-        return 'promotions-collections-layout';
-    }
-
-    get #emptySelectionMessage() {
-        if (this.type === TABLE_TYPE.CARDS) {
-            return 'No fragments selected. Use Add fragments to pick cards matching your offers.';
-        }
-        if (this.type === TABLE_TYPE.COLLECTIONS) {
-            return 'No collections selected.';
-        }
-        return 'No items found.';
     }
 
     get #offersEmptyStateTemplate() {
@@ -1362,51 +841,76 @@ class MasPromotionsItemsTable extends LitElement {
         </div>`;
     }
 
-    render() {
-        if (this.type === TABLE_TYPE.OFFERS && !this.viewOnlyLoading && this.selectedPaths.length === 0) {
+    #renderOffersTable() {
+        if (!this.viewOnlyLoading && this.selectedPaths.length === 0) {
             return html`${this.confirmDialogTemplate}${this.#offersEmptyStateTemplate}`;
         }
+        return html`<sp-table class="fragments-table item-table promotions-view-only promotions-offers-layout" emphasized>
+            <sp-table-head>
+                ${repeat(
+                    offersTableColumns,
+                    (column) => column.key,
+                    (column) => html`<sp-table-head-cell class=${column.class || ''}>${column.label}</sp-table-head-cell>`,
+                )}
+            </sp-table-head>
+            <sp-table-body>
+                ${this.viewOnlyLoading ? this.#renderSkeletonRows() : this.#renderOfferRows(this.viewOnlyFragments)}
+            </sp-table-body>
+        </sp-table>`;
+    }
 
-        const showSkeleton = this.viewOnlyLoading;
-        const items = this.viewOnlyFragments;
-        const showEmpty = !showSkeleton && items.length === 0;
-        const showTable = showSkeleton || items.length > 0;
+    #renderCardsTable() {
+        return html`<mas-select-items-table
+            .viewOnly=${true}
+            .viewOnlyFragments=${this.viewOnlyFragments}
+            .viewOnlyFragmentsFetchedByParent=${true}
+            .viewOnlyLoading=${this.viewOnlyLoading}
+            .viewOnlyTabs=${[VARIATION_TAB_NAME.PROMOTION]}
+            .type=${TABLE_TYPE.CARDS}
+            .getDisplayName=${this.getDisplayName}
+            .renderFragmentStatusCell=${this.renderFragmentStatusCell}
+            .tabs=${[VARIATION_TAB_NAME.PROMOTION]}
+            .selectableTabs=${[]}
+            .renderActionsCell=${(item) => this.#renderActionsCell(item)}
+            .renderPreviewCell=${(item) => this.#renderPreviewCell(item)}
+            .promoVariationsFetchedByParent=${this.existingPromoVariationsByPath}
+            @show-toast=${this.#showToast}
+        >
+        </mas-select-items-table>`;
+    }
 
-        return html`
-            ${this.confirmDialogTemplate} ${this.promoVariationGeosDialogTemplate}
-            ${showEmpty ? html`<p>${this.#emptySelectionMessage}</p>` : nothing}
-            ${showTable
-                ? html`<sp-table class="fragments-table item-table promotions-view-only ${this.#layoutClass}" emphasized>
-                      <sp-table-head>
-                          ${repeat(
-                              this.tableColumns,
-                              (column) => column.key,
-                              (column) =>
-                                  html`<sp-table-head-cell class=${column.key === 'promoCode' ? 'promo-code-head-cell' : ''}
-                                      >${column.label}</sp-table-head-cell
-                                  >`,
-                          )}
-                      </sp-table-head>
-                      <sp-table-body>
-                          ${showSkeleton
-                              ? this.#renderSkeletonRows()
-                              : this.type === TABLE_TYPE.OFFERS
-                                ? this.#renderOfferRows(items)
-                                : this.type === TABLE_TYPE.CARDS
-                                  ? repeat(
-                                        items,
-                                        (f) => f.path,
-                                        (f) => this.#renderFragmentRow(f),
-                                    )
-                                  : repeat(
-                                        items,
-                                        (f) => f.path,
-                                        (f) => this.#renderCollectionRow(f),
-                                    )}
-                      </sp-table-body>
-                  </sp-table>`
-                : nothing}
-        `;
+    #renderCollectionsTable() {
+        return html`<mas-select-items-table
+            .viewOnly=${true}
+            .viewOnlyFragments=${this.viewOnlyFragments}
+            .viewOnlyFragmentsFetchedByParent=${true}
+            .viewOnlyLoading=${this.viewOnlyLoading}
+            .viewOnlyTabs=${[VARIATION_TAB_NAME.PROMOTION]}
+            .type=${TABLE_TYPE.COLLECTIONS}
+            .getDisplayName=${this.getDisplayName}
+            .renderFragmentStatusCell=${this.renderFragmentStatusCell}
+            .tabs=${[VARIATION_TAB_NAME.PROMOTION]}
+            .selectableTabs=${[]}
+            .renderActionsCell=${(item) => this.#renderActionsCell(item)}
+            .promoVariationsFetchedByParent=${this.existingPromoVariationsByPath}
+            @show-toast=${this.#showToast}
+        ></mas-select-items-table>`;
+    }
+
+    render() {
+        let tableToRender = nothing;
+        switch (this.type) {
+            case TABLE_TYPE.OFFERS:
+                tableToRender = this.#renderOffersTable(this.viewOnlyFragments, this.viewOnlyLoading);
+                break;
+            case TABLE_TYPE.CARDS:
+                tableToRender = this.#renderCardsTable();
+                break;
+            case TABLE_TYPE.COLLECTIONS:
+                tableToRender = this.#renderCollectionsTable();
+                break;
+        }
+        return html` ${this.confirmDialogTemplate} ${this.promoVariationGeosDialogTemplate} ${tableToRender} `;
     }
 }
 

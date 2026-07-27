@@ -1744,7 +1744,7 @@ class MasCompareChartEditor extends LitElement {
                 .allowedTypes=${[TABLE_TYPE.CARDS]}
                 .maxSelectedCards=${MAX_COMPARE_CHART_CARDS}
                 .defaultTemplateFilter=${VARIANT_NAMES.COMPARE_CHART_COLUMN}
-                .nonSelectableVariations=${[VARIATION_TAB_NAME.GROUPED]}
+                .selectableTabs=${[VARIATION_TAB_NAME.LOCALE, VARIATION_TAB_NAME.PROMOTION]}
                 .restrictImportSurface=${Store.surface()}
             ></mas-items-selector>
         </sp-dialog-wrapper> `;

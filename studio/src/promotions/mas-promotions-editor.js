@@ -152,7 +152,7 @@ class MasPromotionsEditor extends LitElement {
         this.isCreated = false;
         this.isDialogOpen = false;
         this.confirmDialogConfig = null;
-        this.isSelectedItemsOpen = false;
+        this.isSelectedItemsOpen = true;
         this.promoCodesManagerOpen = false;
         this.promoManagerOffers = [];
         this.promotionItemsAddButtonLabel = 'Add selected fragments';
@@ -286,7 +286,7 @@ class MasPromotionsEditor extends LitElement {
     }
 
     #mapPromotionOfferSelectorToRow(selectorId) {
-        const cached = Store.promotions.offerDataCache.get(selectorId);
+        const cached = Store.promotions.offerRecordsCache.get(selectorId);
         if (cached) return cached;
         return {
             path: selectorId,
@@ -360,6 +360,7 @@ class MasPromotionsEditor extends LitElement {
         Store.promotions.selectedCards.set([]);
         Store.promotions.selectedOffers.set([]);
         Store.promotions.offerDataCache.clear();
+        Store.promotions.offerRecordsCache.clear();
         Store.promotions.groupedVariationsByParent.set(new Map());
         Store.promotions.groupedVariationsData.set(new Map());
         Store.promotions.allCollections.set([]);
@@ -427,7 +428,7 @@ class MasPromotionsEditor extends LitElement {
         const savedOfferIds = parseSelectedOfferIdsFromOffersField(offerValues);
         if (savedOfferIds.length) {
             Store.promotions.selectedOffers.set(savedOfferIds);
-            await hydratePromotionOfferRecords(savedOfferIds, Store.promotions.offerDataCache);
+            await hydratePromotionOfferRecords(savedOfferIds, Store.promotions.offerRecordsCache);
         } else if (!hasStoredOfferSelection) {
             Store.promotions.selectedOffers.set([]);
         }

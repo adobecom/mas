@@ -249,7 +249,7 @@ class MasPromotionsItemsTable extends LitElement {
     async #syncExistingPromoVariations(items, signal) {
         if (signal.aborted) return;
         const promoTag = this.#promotionTagId;
-        if (!promoTag || !this.repository?.aem?.sites?.cf?.fragments?.getByPath) {
+        if (!promoTag || !this.repository?.aem?.sites?.cf?.fragments?.search) {
             if (signal.aborted) return;
             this.existingPromoVariationGeosByPath = new Map();
             this.existingPromoVariationsByPath = new Map();

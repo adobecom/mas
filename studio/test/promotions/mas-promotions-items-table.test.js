@@ -12,7 +12,6 @@ import '../../src/swc.js';
 import MasPromotionsItemsTable from '../../src/promotions/mas-promotions-items-table.js';
 import { buildPromotionOfferRecord } from '../../src/promotions/promotion-editor-utils.js';
 import { makeSearchStub as makeSharedSearchStub } from '../helpers/aem-tag-fetch.js';
-import { buildPromoVariationPathForTag } from '../../src/promotions/promotion-model.js';
 
 describe('MasPromotionsItemsTable', () => {
     let sandbox;
@@ -1491,7 +1490,9 @@ describe('MasPromotionsItemsTable', () => {
                     sites: {
                         cf: {
                             fragments: {
-                                getByPath: sandbox.stub().resolves({ id: 'existing-var-id', path: promoVariationPath }),
+                                search: makeSearchStub({
+                                    [promoFolder]: [{ id: 'existing-var-id', path: promoVariationPath }],
+                                }),
                             },
                         },
                     },
@@ -1511,21 +1512,22 @@ describe('MasPromotionsItemsTable', () => {
             setupPromotionInEdit();
             const otherPath = '/content/dam/mas/sandbox/en_US/other-card';
             const otherFragment = { ...cardFragment, path: otherPath, id: 'other-card-id' };
-            const otherTargetPath = buildPromoVariationPathForTag(otherPath, promoTag);
             Store.promotions.selectedCards.set([defaultPath]);
 
             const el = new MasPromotionsItemsTable();
             el.type = TABLE_TYPE.CARDS;
-            let promoVariationLookupCount = 0;
-            const getByPathStub = sandbox.stub().callsFake((path) => {
-                if (path === promoVariationPath) {
-                    promoVariationLookupCount += 1;
-                    if (promoVariationLookupCount === 1) {
-                        return Promise.resolve({ id: 'existing-var-id', path: promoVariationPath });
-                    }
-                    return Promise.reject(new Error('network blip'));
+            let searchCallCount = 0;
+            const search = sandbox.stub().callsFake(async function* (query) {
+                if (query?.path !== promoFolder) {
+                    yield [];
+                    return;
                 }
-                return Promise.resolve(null);
+                searchCallCount += 1;
+                if (searchCallCount === 1) {
+                    yield [{ id: 'existing-var-id', path: promoVariationPath }];
+                    return;
+                }
+                throw new Error('network blip');
             });
             sandbox.stub(el, 'repository').get(() => ({
                 aem: {
@@ -1534,7 +1536,7 @@ describe('MasPromotionsItemsTable', () => {
                         .callsFake((path) => Promise.resolve(path === defaultPath ? { ...cardFragment } : otherFragment)),
                     sites: {
                         cf: {
-                            fragments: { getByPath: getByPathStub },
+                            fragments: { search },
                         },
                     },
                 },

@@ -140,15 +140,11 @@ describe('promotion-variations', () => {
         });
 
         it('throws when requesting a geo-less variation and a geo-less sibling already exists', async () => {
-            const getByPath = sandbox.stub();
-            getByPath.withArgs(targetPath).resolves({
-                id: 'var-1',
-                path: targetPath,
-                fields: [],
+            const search = makeSearchStub({
+                [promoFolder]: [{ id: 'var-1', path: targetPath, fields: [] }],
             });
-            getByPath.resolves(null);
             const aem = createAemMock({
-                fragments: { getById: sandbox.stub().resolves(parentFragment), getByPath },
+                fragments: { getById: sandbox.stub().resolves(parentFragment), search },
             });
 
             try {
@@ -164,17 +160,15 @@ describe('promotion-variations', () => {
                 id: 'new-promo-var-2',
                 path: '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card-2',
             };
-            const getByPath = sandbox.stub();
-            getByPath.withArgs(targetPath).resolves({
-                id: 'var-1',
-                path: targetPath,
-                fields: [{ name: 'pznTags', values: ['mas:pzn/country/ar'] }],
+            const search = makeSearchStub({
+                [promoFolder]: [
+                    { id: 'var-1', path: targetPath, fields: [{ name: 'pznTags', values: ['mas:pzn/country/ar'] }] },
+                ],
             });
-            getByPath.resolves(null);
             const aem = createAemMock({
                 fragments: {
                     getById: sandbox.stub().resolves(parentFragment),
-                    getByPath,
+                    search,
                     pollCreatedFragment: sandbox.stub().resolves(createdFragment),
                 },
                 createFragmentCopy: sandbox.stub().resolves({ id: 'new-promo-var-2' }),

@@ -4,6 +4,7 @@ import { createResponse } from './mocks/MockFetch.js';
 import { MockState } from './mocks/MockState.js';
 import { CARD_MODEL_ID, COLLECTION_MODEL_ID } from '../../src/fragment/utils/common.js';
 import { deepMerge, transformer as customize } from '../../src/fragment/transformers/customize.js';
+import { applyPromoScope } from '../../src/fragment/transformers/wcs.js';
 import { transformer as defaultLanguage } from '../../src/fragment/transformers/defaultLanguage.js';
 import FRAGMENT_RESPONSE_FR from './mocks/fragment-fr.json' with { type: 'json' };
 import FRAGMENT_COLL_RESPONSE_US from './mocks/collection-customization.json' with { type: 'json' };
@@ -1210,7 +1211,11 @@ async function processWithPromos(context, activeProject, promoMap) {
         const fragmentPaths = new Set(activeProject.fragmentPaths ?? []);
         context.promoProjects = [{ project: activeProject, promoMap: promoMap ?? {}, fragmentPaths }];
     }
-    return await customize.process(context);
+    // customize records per-fragment promo scope; the wcs transformer applies the promo code and
+    // OSI substitution. Run applyPromoScope here so these tests exercise the full effect end-to-end.
+    const result = await customize.process(context);
+    applyPromoScope(result);
+    return result;
 }
 
 async function processWithPromoProjects(context, promoProjects) {
@@ -1229,7 +1234,11 @@ async function processWithPromoProjects(context, promoProjects) {
     promises.defaultLanguage = defaultLanguage.init({ ...context, promises });
     context.promises = promises;
     context.promoProjects = promoProjects;
-    return await customize.process(context);
+    // customize records per-fragment promo scope; the wcs transformer applies the promo code and
+    // OSI substitution. Run applyPromoScope here so these tests exercise the full effect end-to-end.
+    const result = await customize.process(context);
+    applyPromoScope(result);
+    return result;
 }
 
 describe('customize typical cases', function () {
@@ -2639,7 +2648,8 @@ describe('customize OSI substitution', function () {
             ],
         );
         expect(result.status).to.equal(200);
-        expect(result.body.fields.osi).to.equal('BASE-OSI');
+        // fields.osi is substituted (BASE-OSI -> SUB-OSI) by the wcs application step.
+        expect(result.body.fields.osi).to.equal('SUB-OSI');
         expect(result.body.fields.promoCode).to.equal('PROMO-FOR-SUB');
     });
 

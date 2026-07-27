@@ -97,29 +97,36 @@ async function createSnapshot({ paths, projectId, projectTitle, odinEndpoint, au
 
     logger.info(JSON.stringify({ event: 'snapshot-start', projectId, count: paths.length }));
 
-    const entries = await processBatchWithConcurrency(paths, FRAGMENT_CONCURRENCY, async (path) => {
-        const fragment = await getFragmentByPath(odinEndpoint, path, authToken);
-        if (!fragment) throw new Error(`Fragment not found at path: ${path}`);
-        const wasPublished = fragment.status === STATUS_PUBLISHED || fragment.status === STATUS_MODIFIED;
-        const versionId = await createVersion(
-            odinEndpoint,
-            fragment.id,
-            `Pre-bulk-publish - ${projectTitle}`,
-            snapshotId,
-            authToken,
-        );
-        if (!versionId) throw new Error(`Failed to create version for fragment: ${path}`);
-        return [fragment.id, { path: fragment.path, versionId, wasPublished }];
+    const results = await processBatchWithConcurrency(paths, FRAGMENT_CONCURRENCY, async (path) => {
+        try {
+            const fragment = await getFragmentByPath(odinEndpoint, path, authToken);
+            if (!fragment) return { path, error: `Fragment not found at path: ${path}` };
+            const wasPublished = fragment.status === STATUS_PUBLISHED || fragment.status === STATUS_MODIFIED;
+            const versionId = await createVersion(
+                odinEndpoint,
+                fragment.id,
+                `Pre-bulk-publish - ${projectTitle}`,
+                snapshotId,
+                authToken,
+            );
+            if (!versionId) return { path, error: `Failed to create version for fragment: ${path}` };
+            return [fragment.id, { path: fragment.path, versionId, wasPublished }];
+        } catch (err) {
+            return { path, error: err.message };
+        }
     });
+
+    const failures = results.filter((r) => r?.error);
+    const pairs = results.filter((r) => Array.isArray(r));
 
     const snapshot = {
         id: snapshotId,
         createdAt: new Date(timestamp).toISOString(),
-        fragments: Object.fromEntries(entries),
+        fragments: Object.fromEntries(pairs),
     };
 
-    logger.info(JSON.stringify({ event: 'snapshot-complete', projectId, count: paths.length }));
-    return serializeEntries(snapshot);
+    logger.info(JSON.stringify({ event: 'snapshot-complete', projectId, count: pairs.length, failures: failures.length }));
+    return { entries: serializeEntries(snapshot), failures };
 }
 
 async function revertSnapshot({ entries, odinEndpoint, authToken }) {

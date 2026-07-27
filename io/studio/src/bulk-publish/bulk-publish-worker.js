@@ -92,18 +92,23 @@ async function runWorker(input, deps = {}) {
         await updateProject(odinEndpoint, projectId, authToken, { status: PROJECT_STATUS.PUBLISHING, lastError: '' });
     } else if (hasValidPreRecordedSnapshot(existingSnapshots)) {
         snapshotEntries = existingSnapshots;
-        await snapshot({ paths, projectId, projectTitle: title, odinEndpoint, authToken });
+        const { failures: snapFailures } = await snapshot({ paths, projectId, projectTitle: title, odinEndpoint, authToken });
+        snapshotError =
+            snapFailures.length > 0 ? `CREATE_SNAPSHOT:\n${snapFailures.map((f) => `${f.path}: ${f.error}`).join('\n')}` : '';
         await updateProject(odinEndpoint, projectId, authToken, {
             status: PROJECT_STATUS.PUBLISHING,
             snapshots: addPendingMarker(existingSnapshots),
-            lastError: '',
+            lastError: snapshotError,
         });
     } else {
         const { entries: fresh, failures: recordFailures } = await record({ paths, odinEndpoint, authToken });
         snapshotEntries = fresh;
-        await snapshot({ paths, projectId, projectTitle: title, odinEndpoint, authToken });
-        snapshotError =
+        const { failures: snapFailures } = await snapshot({ paths, projectId, projectTitle: title, odinEndpoint, authToken });
+        const recordError =
             recordFailures.length > 0 ? `SAVE_SNAPSHOT:\n${recordFailures.map((f) => `${f.path}: ${f.error}`).join('\n')}` : '';
+        const createError =
+            snapFailures.length > 0 ? `CREATE_SNAPSHOT:\n${snapFailures.map((f) => `${f.path}: ${f.error}`).join('\n')}` : '';
+        snapshotError = [recordError, createError].filter(Boolean).join('\n');
         await updateProject(odinEndpoint, projectId, authToken, {
             status: PROJECT_STATUS.PUBLISHING,
             snapshots: addPendingMarker(fresh),

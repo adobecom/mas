@@ -2704,4 +2704,58 @@ describe('customize OSI substitution', function () {
         expect(result.status).to.equal(200);
         expect(result.body.fields.promoCode).to.equal('ARRAY-PROMO');
     });
+
+    // Regression for the original bug shape (MWPW-201862): two cards share one base OSI, but only
+    // one card is in the project's fragmentPaths. Exercised through the real customize.process gating
+    // (selectPromoProjectForFragment) + applyPromoScope — not a hand-built promoScopeById.
+    it('scopes substitution + promo code to the in-project card when two cards share an OSI', async function () {
+        const makeCard = (id) => ({
+            type: 'content-fragment',
+            value: {
+                path: `/content/dam/mas/sandbox/en_US/${id}`,
+                id,
+                fields: { osi: 'SHARED-OSI', prices: '<span data-wcs-osi="SHARED-OSI"></span>', variations: [] },
+            },
+        });
+        const result = await processWithPromoProjects(
+            {
+                ...FAKE_CONTEXT,
+                fragmentPath: 'collection',
+                body: {
+                    path: '/content/dam/mas/sandbox/en_US/collection',
+                    id: 'collection',
+                    fields: { cards: ['card-1', 'card-2'], collections: [] },
+                    references: { 'card-1': makeCard('card-1'), 'card-2': makeCard('card-2') },
+                    referencesTree: [
+                        { fieldName: 'cards', identifier: 'card-1', referencesTree: [] },
+                        { fieldName: 'cards', identifier: 'card-2', referencesTree: [] },
+                    ],
+                },
+            },
+            [
+                {
+                    project: {
+                        id: 'proj',
+                        path: '/content/dam/mas/promotions/proj',
+                        defaultVariations: {},
+                        regionVariations: {},
+                    },
+                    promoMap: { 'SUB-OSI': 'SHARED-PROMO' },
+                    substituteMap: { 'SHARED-OSI': 'SUB-OSI' },
+                    fragmentPaths: new Set(['card-1']),
+                },
+            ],
+        );
+        expect(result.status).to.equal(200);
+        // card-1 is in the project: OSI substituted in fields and rich text, promo code applied.
+        const cardOne = result.body.references['card-1'].value.fields;
+        expect(cardOne.osi).to.equal('SUB-OSI');
+        expect(cardOne.prices).to.include('data-wcs-osi="SUB-OSI"');
+        expect(cardOne.promoCode).to.equal('SHARED-PROMO');
+        // card-2 shares the same base OSI but is NOT in the project: it must stay untouched.
+        const cardTwo = result.body.references['card-2'].value.fields;
+        expect(cardTwo.osi).to.equal('SHARED-OSI');
+        expect(cardTwo.prices).to.include('data-wcs-osi="SHARED-OSI"');
+        expect(cardTwo.promoCode).to.be.undefined;
+    });
 });

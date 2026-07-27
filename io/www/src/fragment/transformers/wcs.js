@@ -20,7 +20,11 @@ function substituteOsi(osiString, substituteMap) {
         .join(',');
 }
 
-/** Yields the root fragment, then each referenced (child) fragment. */
+/**
+ * Yields the root fragment, then each referenced fragment. customize flattens the whole tree into
+ * body.references (a flat id -> fragment map of all descendants), so root + references covers every
+ * fragment here — there is no nested reference tree left to recurse into.
+ */
 function* fragmentsOf(body) {
     if (body) yield body;
     for (const ref of Object.values(body?.references ?? {})) {

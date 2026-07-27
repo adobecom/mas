@@ -739,6 +739,16 @@ describe('wcs OSI helpers', function () {
         expect(context.body.fields.promoCode).to.equal('WILDCARD');
     });
 
+    // Locks in the intended behavior expansion: a fragment with no own osi still receives the
+    // project's wildcard promo code when it references an OSI only in rich text (headless case).
+    it('applyPromoScope applies the wildcard promo code to a fragment whose only osi is in rich text', function () {
+        const { context } = run(
+            { f: { promoMap: { '*': 'WILDCARD' }, substituteMap: {} } },
+            { id: 'f', fields: { prices: '<span data-wcs-osi="RICH-OSI"></span>' } },
+        );
+        expect(context.body.fields.promoCode).to.equal('WILDCARD');
+    });
+
     it('applyPromoScope matches a substituted osi against the promo map and substitutes fields.osi', function () {
         const { context } = run(
             { f: { promoMap: { SUB: 'SUB-CODE' }, substituteMap: { BASE: 'SUB' } } },

@@ -1366,6 +1366,12 @@ merch-card[variant="catalog"] [slot="footer"] .spectrum-Link--primary {
   --merch-card-collection-card-width: var(--consonant-merch-card-image-width);
 }
 
+.one-merch-card.section merch-card[variant="image"] {
+  width: auto;
+  max-width: var(--consonant-merch-card-image-width);
+  margin: 0 auto;
+}
+
 @media screen and ${B} {
   .two-merch-cards.image,
   .three-merch-cards.image,
@@ -1891,6 +1897,13 @@ merch-card[variant="catalog"] [slot="footer"] .spectrum-Link--primary {
   gap: var(--consonant-merch-spacing-xs);
 }
 
+/* Cap + center the lone card in its wide column at every width */
+.one-merch-card.mini-compare-chart merch-card[variant="mini-compare-chart"],
+.one-merch-card:has(merch-card[variant="mini-compare-chart"]) merch-card[variant="mini-compare-chart"] {
+  max-width: var(--consonant-merch-card-mini-compare-chart-wide-width);
+  margin-inline: auto;
+}
+
 .two-merch-cards:has(merch-card[variant="mini-compare-chart"]),
 .three-merch-cards:has(merch-card[variant="mini-compare-chart"]),
 .four-merch-cards:has(merch-card[variant="mini-compare-chart"]) {
@@ -2195,6 +2208,7 @@ merch-card[variant="mini-compare-chart"].bullet-list [slot="price-commitment"] {
   merch-card[variant="mini-compare-chart"].bullet-list .footer-row-cell-checkmark {
     gap: var(--consonant-merch-spacing-xxs);
   }
+
 }
 
 /* desktop */
@@ -2220,6 +2234,13 @@ merch-card[variant="mini-compare-chart"].bullet-list [slot="price-commitment"] {
   .four-merch-cards:has(merch-card[variant="mini-compare-chart"]) {
     grid-template-columns: repeat(3, var(--consonant-merch-card-mini-compare-chart-width));
     gap: var(--consonant-merch-spacing-m);
+  }
+
+  /* Cap + center each card in its wide column */
+  .two-merch-cards.mini-compare-chart merch-card[variant="mini-compare-chart"],
+  .two-merch-cards:has(merch-card[variant="mini-compare-chart"]) merch-card[variant="mini-compare-chart"] {
+    max-width: var(--consonant-merch-card-mini-compare-chart-wide-width);
+    margin-inline: auto;
   }
 }
 
@@ -3003,6 +3024,13 @@ merch-card[variant="mini-compare-chart"] merch-mnemonic-list:nth-child(8) {
   gap: var(--consonant-merch-spacing-xs);
 }
 
+/* Cap + center the lone card in its wide column at every width */
+.one-merch-card.mini-compare-chart-mweb merch-card[variant="mini-compare-chart-mweb"],
+.one-merch-card:has(merch-card[variant="mini-compare-chart-mweb"]) merch-card[variant="mini-compare-chart-mweb"] {
+  max-width: var(--consonant-merch-card-mini-compare-chart-mweb-wide-width);
+  margin-inline: auto;
+}
+
 .two-merch-cards:has(merch-card[variant="mini-compare-chart-mweb"]),
 .three-merch-cards:has(merch-card[variant="mini-compare-chart-mweb"]),
 .four-merch-cards:has(merch-card[variant="mini-compare-chart-mweb"]) {
@@ -3275,6 +3303,7 @@ merch-card[variant="mini-compare-chart-mweb"] .price-plan-type{
   merch-card[variant="mini-compare-chart-mweb"] .footer-row-cell-checkmark {
     gap: var(--consonant-merch-spacing-xxs);
   }
+
 }
 
 /* desktop */
@@ -3302,12 +3331,11 @@ merch-card[variant="mini-compare-chart-mweb"] .price-plan-type{
     gap: var(--consonant-merch-spacing-m);
   }
 
-  /* Card fills the wider column in sparse layouts (one/two cards) */
-  .one-merch-card.mini-compare-chart-mweb merch-card[variant="mini-compare-chart-mweb"],
-  .one-merch-card:has(merch-card[variant="mini-compare-chart-mweb"]) merch-card[variant="mini-compare-chart-mweb"],
+  /* Cap + center each card in its wide column */
   .two-merch-cards.mini-compare-chart-mweb merch-card[variant="mini-compare-chart-mweb"],
   .two-merch-cards:has(merch-card[variant="mini-compare-chart-mweb"]) merch-card[variant="mini-compare-chart-mweb"] {
     max-width: var(--consonant-merch-card-mini-compare-chart-mweb-wide-width);
+    margin-inline: auto;
   }
 }
 
@@ -6758,11 +6786,16 @@ merch-card-collection.product merch-card {
     width: 100%;
   }
 
-.one-merch-card.section merch-card[variant="product"],
 .two-merch-cards.section merch-card[variant="product"],
 .three-merch-cards.section merch-card[variant="product"],
 .four-merch-cards.section merch-card[variant="product"] {
     width: auto;
+}
+
+.one-merch-card.section merch-card[variant="product"] {
+    width: auto;
+    max-width: var(--consonant-merch-card-product-width);
+    margin: 0 auto;
 }
 
 /* grid style for product */
@@ -6985,6 +7018,10 @@ merch-card[variant="segment"] {
   grid-template-columns: minmax(276px, var(--consonant-merch-card-segment-width));
 }
 
+.one-merch-card.section merch-card[variant="segment"] {
+    margin: 0 auto;
+}
+
 .three-merch-cards.section merch-card[variant="segment"],
 .four-merch-cards.section merch-card[variant="segment"] {
     max-width: 302px;
@@ -7049,12 +7086,12 @@ merch-card[variant="segment"][id] span[data-template="legal"] {
     line-height: 21px;
 }
 
-merch-card[variant="segment"][id] .price-legal span.price-unit-type {
-    display: block;
-}
-
 merch-card[variant="segment"][id] .price-unit-type:not(.disabled)::before {
     content: "";
+}
+
+merch-card[variant="segment"][id] .price-legal .price-unit-type:not(.disabled)::after {
+  content: "\\00a0";
 }
 
 merch-card[variant="segment"] [slot="footer"] a.con-button.primary {

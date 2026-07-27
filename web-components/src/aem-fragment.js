@@ -380,10 +380,15 @@ export class AemFragment extends HTMLElement {
             this.#rawData = fragment;
             return true;
         }
-        const { masIOUrl, wcsApiKey, country, locale } = this.#service.settings;
+        const { masIOUrl, wcsApiKey, country, locale, instant } =
+            this.#service.settings;
         let endpoint = `${masIOUrl}/fragment?id=${this.#fragmentId}&api_key=${wcsApiKey}&locale=${locale}`;
         if (country && !locale.endsWith(`_${country}`)) {
             endpoint += `&country=${country}`;
+        }
+
+        if (instant) {
+            endpoint += `&instant=${instant}`;
         }
 
         if (this.#mask) {

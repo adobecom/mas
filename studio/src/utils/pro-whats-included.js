@@ -1,5 +1,5 @@
 /**
- * bizpro "What's included" bridges the SHARED merch-card editor fields
+ * pro "What's included" bridges the SHARED merch-card editor fields
  * (label + "Add bullet" + Edit-Icon dialog) to the variant's section markup.
  *
  * Each editor bullet `{ icon, alt, link }` maps to one titled section:
@@ -11,7 +11,7 @@
  * copy (e.g. "See what's included:"), stored as a leading
  * `<p class="whats-included-label">` so it localizes with the field.
  *
- * Rendered shape (styled by web-components/src/variants/bizpro.css.js):
+ * Rendered shape (styled by web-components/src/variants/pro.css.js):
  *   <p class="whats-included-label">{label}</p>
  *   <div class="section">
  *     <h4>{icon}{title}</h4>
@@ -29,7 +29,7 @@ function firstParagraphText(html) {
 }
 
 /** A bullet is empty when it has no icon and no title text. */
-export function bizProBulletIsEmpty(value) {
+export function proBulletIsEmpty(value) {
     const { icon, alt } = value || {};
     if (icon) return false;
     if (!(alt ?? '').trim()) return true;
@@ -40,7 +40,7 @@ export function bizProBulletIsEmpty(value) {
  * Parse stored section markup into the shared editor's
  * `{ label, values, bullets }` model. Each section becomes one bullet.
  */
-export function parseBizProWhatsIncluded(html) {
+export function parseProWhatsIncluded(html) {
     const doc = new DOMParser().parseFromString(html || '', 'text/html');
     const bullets = [];
     doc.querySelectorAll('div.section').forEach((section) => {
@@ -83,15 +83,15 @@ function iconMarkup(icon) {
 
 /**
  * Serialize the shared editor's bullets back to section markup. Inverse of
- * parseBizProWhatsIncluded; every row after the title is preserved
+ * parseProWhatsIncluded; every row after the title is preserved
  * (the bug this fixes dropped all paragraphs except the first). A non-empty
  * label is stored ahead of the sections; with no label the output is
  * byte-identical to the pre-label format, so existing fragments round-trip
  * unchanged.
  */
-export function serializeBizProWhatsIncluded(bullets, label = '') {
+export function serializeProWhatsIncluded(bullets, label = '') {
     const sections = (bullets ?? [])
-        .filter((b) => !bizProBulletIsEmpty(b))
+        .filter((b) => !proBulletIsEmpty(b))
         .map(({ icon, alt }) => {
             const doc = new DOMParser().parseFromString(alt || '', 'text/html');
             const ps = Array.from(doc.querySelectorAll('p'));

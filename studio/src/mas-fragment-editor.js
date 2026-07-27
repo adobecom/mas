@@ -14,7 +14,7 @@ import {
     TAG_PROMOTION_PREFIX,
 } from './constants.js';
 import router from './router.js';
-import { VARIANTS } from './editors/variant-picker.js';
+import { migrateLegacyVariant, normalizeVariantName, VARIANTS } from './editors/variant-picker.js';
 import {
     extractLocaleFromPath,
     extractSurfaceFromPath,
@@ -1559,6 +1559,9 @@ export default class MasFragmentEditor extends LitElement {
 
     async saveFragment() {
         try {
+            if (this.fragment?.model?.path === CARD_MODEL_PATH) {
+                migrateLegacyVariant(this.fragmentStore);
+            }
             const compareChartEditor = this.querySelector('mas-compare-chart-editor');
             let dirtyCardFragmentStores = [];
             if (compareChartEditor) {
@@ -2073,7 +2076,7 @@ export default class MasFragmentEditor extends LitElement {
         const masIndex = pathParts.indexOf('mas');
         const surface = masIndex >= 0 && pathParts[masIndex + 1] ? pathParts[masIndex + 1].toUpperCase() : '';
 
-        const variantCode = this.fragment.getField('variant')?.values[0];
+        const variantCode = normalizeVariantName(this.fragment.getField('variant')?.values[0]);
         const variantLabel = VARIANTS.find((v) => v.value === variantCode)?.label || '';
         const customerSegment = this.fragment.getCurrentTagTitle('customer_segment') || '';
         const marketSegment = this.fragment.getCurrentTagTitle('market_segment') || '';

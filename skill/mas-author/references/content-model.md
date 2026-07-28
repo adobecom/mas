@@ -147,7 +147,7 @@ runtime resolves regional variations only within the parent's language family.
 ## 8. Card variants
 
 A card's `variant` field selects its layout and which fields are meaningful. The values in use include:
-`catalog`, `plans`, `plans-v2`, `plans-students`, `plans-education`, `bizpro`, `product`, `segment`,
+`catalog`, `plans`, `plans-v2`, `plans-students`, `plans-education`, `pro`, `product`, `segment`,
 `media`, `special-offers`, `ccd-slice`, `ccd-suggested`, `ah-try-buy-widget`, `ah-promoted-plans`,
 `headless`, `mini`, `image`, `mini-compare-chart`, `mini-compare-chart-mweb`,
 `simplified-pricing-express`, `full-pricing-express`, `compare-chart-column`, `fries`, `inline-heading`.

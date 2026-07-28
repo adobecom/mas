@@ -690,8 +690,7 @@ export class Pro extends VariantLayout {
                       </div>
                   `
                 : nothing}
-            ${this.hasEduDisclaimer &&
-            !this.card?.settings?.hideEduDisclaimer
+            ${this.hasEduDisclaimer && !this.card?.settings?.hideEduDisclaimer
                 ? html`<div class="edu-disclaimer">
                       <slot name="edu-disclaimer"></slot>
                   </div>`

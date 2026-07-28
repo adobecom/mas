@@ -1,8 +1,12 @@
 import { expect } from '@esm-bundle/chai';
 import sinon from 'sinon';
 import '../src/mas-field.js';
-import { priceOptionsProvider } from '../src/mas-field.js';
+import {
+    checkoutOptionsProvider,
+    priceOptionsProvider,
+} from '../src/mas-field.js';
 import { FF_DEFAULTS } from '../src/constants.js';
+import { COMPAT_VERSION_GLOBAL_PROMO_CODE } from '../src/compat-version.js';
 
 const CTA_HTML =
     '<a data-wcs-osi="ABC123" data-checkout-workflow="UCv3" data-template="checkoutUrl" data-analytics-id="buy-now" class="accent">Buy now</a>';
@@ -458,7 +462,7 @@ describe('mas-field – fragment context promo code', () => {
             .forEach((el) => el.remove());
     });
 
-    it('sets data-promotion-code from the loaded fragment promoCode', () => {
+    it('sets data-promotion-code when compatVersion opts into global promo codes', () => {
         const el = document.createElement('mas-field');
         el.setAttribute('field', 'prices');
         const fragment = document.createElement('aem-fragment');
@@ -466,7 +470,10 @@ describe('mas-field – fragment context promo code', () => {
         document.body.append(el);
         fragment.data = {
             id: 'fragment-id',
-            fields: { promoCode: 'PROMO123' },
+            fields: {
+                promoCode: 'PROMO123',
+                compatVersion: COMPAT_VERSION_GLOBAL_PROMO_CODE,
+            },
         };
         fragment.dispatchEvent(
             new CustomEvent('aem:load', {
@@ -475,6 +482,51 @@ describe('mas-field – fragment context promo code', () => {
             }),
         );
         expect(el.getAttribute('data-promotion-code')).to.equal('PROMO123');
+    });
+
+    it('sets data-promotion-code for a promo project regardless of compatVersion', () => {
+        const el = document.createElement('mas-field');
+        el.setAttribute('field', 'prices');
+        const fragment = document.createElement('aem-fragment');
+        el.append(fragment);
+        document.body.append(el);
+        fragment.data = {
+            id: 'fragment-id',
+            promoProject: 'promo-project',
+            fields: {
+                promoCode: 'PROMO123',
+                compatVersion: COMPAT_VERSION_GLOBAL_PROMO_CODE - 1,
+            },
+        };
+        fragment.dispatchEvent(
+            new CustomEvent('aem:load', {
+                bubbles: true,
+                detail: { fields: { prices: '<p>$9.99</p>' } },
+            }),
+        );
+        expect(el.getAttribute('data-promotion-code')).to.equal('PROMO123');
+    });
+
+    it('does not set data-promotion-code when compatVersion is below the global promo code version and there is no promo project', () => {
+        const el = document.createElement('mas-field');
+        el.setAttribute('field', 'prices');
+        const fragment = document.createElement('aem-fragment');
+        el.append(fragment);
+        document.body.append(el);
+        fragment.data = {
+            id: 'fragment-id',
+            fields: {
+                promoCode: 'PROMO123',
+                compatVersion: COMPAT_VERSION_GLOBAL_PROMO_CODE - 1,
+            },
+        };
+        fragment.dispatchEvent(
+            new CustomEvent('aem:load', {
+                bubbles: true,
+                detail: { fields: { prices: '<p>$9.99</p>' } },
+            }),
+        );
+        expect(el.hasAttribute('data-promotion-code')).to.be.false;
     });
 
     it('does not set data-promotion-code when fragment has no promoCode', () => {
@@ -565,5 +617,67 @@ describe('mas-field – price options provider (locale defaults)', () => {
         const options = {};
         priceOptionsProvider(inline, options);
         expect(options.promotionCode).to.be.undefined;
+    });
+
+    it('sets checkout options.promotionCode from the enclosing mas-field data-promotion-code', () => {
+        const masField = document.createElement('mas-field');
+        masField.setAttribute('data-promotion-code', 'PROMO123');
+        const link = document.createElement('a', { is: 'checkout-link' });
+        masField.append(link);
+        document.body.append(masField);
+
+        const options = {};
+        checkoutOptionsProvider(link, options);
+        expect(options.promotionCode).to.equal('PROMO123');
+    });
+
+    it('does not override an existing checkout options.promotionCode', () => {
+        const masField = document.createElement('mas-field');
+        masField.setAttribute('data-promotion-code', 'PROMO123');
+        const link = document.createElement('a', { is: 'checkout-link' });
+        masField.append(link);
+        document.body.append(masField);
+
+        const options = { promotionCode: 'OWN-CODE' };
+        checkoutOptionsProvider(link, options);
+        expect(options.promotionCode).to.equal('OWN-CODE');
+    });
+
+    it('leaves checkout options untouched for elements outside mas-field', () => {
+        const link = document.createElement('a', { is: 'checkout-link' });
+        document.body.append(link);
+
+        const options = {};
+        checkoutOptionsProvider(link, options);
+        expect(options.promotionCode).to.be.undefined;
+        expect(() => checkoutOptionsProvider(null, options)).to.not.throw();
+    });
+});
+
+describe('mas-field – mas:ready event', () => {
+    afterEach(() => {
+        document.body
+            .querySelectorAll('mas-field')
+            .forEach((el) => el.remove());
+    });
+
+    it('dispatches a bubbling mas:ready after rendering on aem:load', () => {
+        const el = document.createElement('mas-field');
+        el.setAttribute('field', 'title');
+        const fragment = document.createElement('aem-fragment');
+        el.append(fragment);
+        document.body.append(el);
+
+        const onReady = sinon.spy();
+        document.addEventListener('mas:ready', onReady, { once: true });
+        fragment.dispatchEvent(
+            new CustomEvent('aem:load', {
+                bubbles: true,
+                detail: { fields: { title: 'CC' } },
+            }),
+        );
+
+        expect(onReady.calledOnce).to.be.true;
+        expect(onReady.firstCall.args[0].target).to.equal(el);
     });
 });

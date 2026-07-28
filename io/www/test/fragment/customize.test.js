@@ -4,6 +4,7 @@ import { createResponse } from './mocks/MockFetch.js';
 import { MockState } from './mocks/MockState.js';
 import { CARD_MODEL_ID, COLLECTION_MODEL_ID } from '../../src/fragment/utils/common.js';
 import { deepMerge, transformer as customize } from '../../src/fragment/transformers/customize.js';
+import { applyPromoScope } from '../../src/fragment/transformers/wcs.js';
 import { transformer as defaultLanguage } from '../../src/fragment/transformers/defaultLanguage.js';
 import FRAGMENT_RESPONSE_FR from './mocks/fragment-fr.json' with { type: 'json' };
 import FRAGMENT_COLL_RESPONSE_US from './mocks/collection-customization.json' with { type: 'json' };
@@ -1210,7 +1211,11 @@ async function processWithPromos(context, activeProject, promoMap) {
         const fragmentPaths = new Set(activeProject.fragmentPaths ?? []);
         context.promoProjects = [{ project: activeProject, promoMap: promoMap ?? {}, fragmentPaths }];
     }
-    return await customize.process(context);
+    // customize records per-fragment promo scope; the wcs transformer applies the promo code and
+    // OSI substitution. Run applyPromoScope here so these tests exercise the full effect end-to-end.
+    const result = await customize.process(context);
+    applyPromoScope(result);
+    return result;
 }
 
 async function processWithPromoProjects(context, promoProjects) {
@@ -1229,7 +1234,11 @@ async function processWithPromoProjects(context, promoProjects) {
     promises.defaultLanguage = defaultLanguage.init({ ...context, promises });
     context.promises = promises;
     context.promoProjects = promoProjects;
-    return await customize.process(context);
+    // customize records per-fragment promo scope; the wcs transformer applies the promo code and
+    // OSI substitution. Run applyPromoScope here so these tests exercise the full effect end-to-end.
+    const result = await customize.process(context);
+    applyPromoScope(result);
+    return result;
 }
 
 describe('customize typical cases', function () {
@@ -2458,7 +2467,10 @@ describe('customize with multiple active promotion projects', function () {
         expect(result.body.promoProject).to.equal('proj-w1');
     });
 
-    it('variation and promoCode walks are independent — A supplies variation, B supplies promoCode', async function () {
+    it('selects the explicit-mapping project over a variation-only project, suppressing its variation', async function () {
+        // RPP ZA case: Regional project owns the osi mapping for the card & no variation,
+        // Intro project has a variation but no mapping for this offer+geo. Regional
+        // project must win, it has explicit mapping and unrelated variation is NOT applied
         const projectVariationOnly = {
             id: 'proj-var',
             path: '/content/dam/mas/promotions/proj-var',
@@ -2485,19 +2497,135 @@ describe('customize with multiple active promotion projects', function () {
             referencesTree: [],
         };
         const result = await processWithPromoProjects({ ...FAKE_CONTEXT, fragmentPath: 'card-x', body: rootFragment }, [
-            // A is authorized for card-x (so its variation is allowed to apply) but supplies no
-            // osi entry of its own, so it never competes with B for the promoCode.
+            // proj-var targets card-x and has a variation, but supplies no explicit mapping for OSI-X.
             { project: projectVariationOnly, promoMap: {}, fragmentPaths: new Set(['card-x']) },
+            // proj-promo has an explicit OSI-X entry, so it is selected as the single winning project.
             { project: projectPromoOnly, promoMap: { 'OSI-X': 'FROM-PROMO-PROJECT' }, fragmentPaths: new Set(['card-x']) },
         ]);
         expect(result.status).to.equal(200);
-        expect(result.body.variationId).to.equal('var-x');
+        // proj-promo wins: its promoCode applies and, because it has no variation, none is merged.
         expect(result.body.fields.promoCode).to.equal('FROM-PROMO-PROJECT');
-        // Variation and promoCode provenance are tracked on separate fields, so two different
-        // projects both authorized for the same fragment are both recorded rather than clobbering
-        // each other.
-        expect(result.body.promoVariationProject).to.equal('proj-var');
         expect(result.body.promoProject).to.equal('proj-promo');
+        expect(result.body.variationId).to.equal(undefined);
+        expect(result.body.promoVariationProject).to.equal(undefined);
+    });
+
+    it('selects a project by an explicit OSI substitution when it has no promoMap entry', async function () {
+        // The winning project can qualify via an OSI substitution alone (no promoCode), which is the
+        // real regional-pricing case. It wins over a variation-only project and, having no variation,
+        // suppresses it.
+        const projectSubstituteOnly = {
+            id: 'proj-sub',
+            path: '/content/dam/mas/promotions/proj-sub',
+            defaultVariations: {},
+            regionVariations: {},
+        };
+        const projectVariationOnly = {
+            id: 'proj-var',
+            path: '/content/dam/mas/promotions/proj-var',
+            defaultVariations: {
+                'card-x': {
+                    id: 'var-x',
+                    path: '/content/dam/mas/sandbox/en_US/promotions/proj-var/card-x',
+                    fields: { title: 'Variation-only project' },
+                },
+            },
+            regionVariations: {},
+        };
+        const rootFragment = {
+            id: 'card-x',
+            path: '/content/dam/mas/sandbox/en_US/card-x',
+            fields: { osi: 'OSI-X', title: 'Original X' },
+            references: {},
+            referencesTree: [],
+        };
+        const result = await processWithPromoProjects({ ...FAKE_CONTEXT, fragmentPath: 'card-x', body: rootFragment }, [
+            { project: projectVariationOnly, promoMap: {}, fragmentPaths: new Set(['card-x']) },
+            {
+                project: projectSubstituteOnly,
+                promoMap: {},
+                substituteMap: { 'OSI-X': 'OSI-SUBSTITUTE' },
+                fragmentPaths: new Set(['card-x']),
+            },
+        ]);
+        expect(result.status).to.equal(200);
+        expect(result.body.variationId).to.equal(undefined);
+        expect(result.body.promoVariationProject).to.equal(undefined);
+        // OSI-substitution-only project still gets stamped so data-promotion-project is set.
+        expect(result.body.promoProject).to.equal('proj-sub');
+    });
+
+    it('selects the first targeting project for a fragment with no osi', async function () {
+        // A fragment without an osi can have no explicit mapping, so the first targeting project is
+        // selected and its variation applies.
+        const projectVariationOnly = {
+            id: 'proj-var',
+            path: '/content/dam/mas/promotions/proj-var',
+            defaultVariations: {
+                'card-x': {
+                    id: 'var-x',
+                    path: '/content/dam/mas/sandbox/en_US/promotions/proj-var/card-x',
+                    fields: { title: 'Variation-only project' },
+                },
+            },
+            regionVariations: {},
+        };
+        const rootFragment = {
+            id: 'card-x',
+            path: '/content/dam/mas/sandbox/en_US/card-x',
+            fields: { title: 'Original X' },
+            references: {},
+            referencesTree: [],
+        };
+        const result = await processWithPromoProjects({ ...FAKE_CONTEXT, fragmentPath: 'card-x', body: rootFragment }, [
+            { project: projectVariationOnly, promoMap: {}, fragmentPaths: new Set(['card-x']) },
+        ]);
+        expect(result.status).to.equal(200);
+        expect(result.body.variationId).to.equal('var-x');
+        expect(result.body.promoProject).to.equal('proj-var');
+    });
+
+    it('selects a wildcard-promo project over a mapping-less project when neither has an explicit entry', async function () {
+        // Explicit > wildcard > nothing: with no explicit-mapping project, a blanket wildcard promo
+        // should still be applied rather than dropped (mirrors promomweb winning over promomweb2).
+        // The wildcard project has no variation, so the variation-only project's variation is suppressed.
+        const projectVariationOnly = {
+            id: 'proj-var',
+            path: '/content/dam/mas/promotions/proj-var',
+            defaultVariations: {
+                'card-x': {
+                    id: 'var-x',
+                    path: '/content/dam/mas/sandbox/en_US/promotions/proj-var/card-x',
+                    fields: { title: 'Variation-only project' },
+                },
+            },
+            regionVariations: {},
+        };
+        const projectWildcard = {
+            id: 'proj-blanket',
+            path: '/content/dam/mas/promotions/proj-blanket',
+            defaultVariations: {},
+            regionVariations: {},
+        };
+        const rootFragment = {
+            id: 'card-x',
+            path: '/content/dam/mas/sandbox/en_US/card-x',
+            fields: { osi: 'OSI-X', title: 'Original X' },
+            references: {},
+            referencesTree: [],
+        };
+        const result = await processWithPromoProjects({ ...FAKE_CONTEXT, fragmentPath: 'card-x', body: rootFragment }, [
+            // proj-var sorts first and has a variation, but no promo mapping at all.
+            { project: projectVariationOnly, promoMap: {}, fragmentPaths: new Set(['card-x']) },
+            // proj-blanket only has a wildcard promo, which must win over the mapping-less project.
+            { project: projectWildcard, promoMap: { '*': 'SUMMER25' }, fragmentPaths: new Set(['card-x']) },
+        ]);
+        expect(result.status).to.equal(200);
+        expect(result.body.fields.promoCode).to.equal('SUMMER25');
+        expect(result.body.promoProject).to.equal('proj-blanket');
+        // The wildcard project has no variation, so the variation-only project's variation is not applied.
+        expect(result.body.variationId).to.equal(undefined);
+        expect(result.body.promoVariationProject).to.equal(undefined);
     });
 
     it('stamps promoVariationProject from the variation project when no promoCode is applied', async function () {
@@ -2526,7 +2654,9 @@ describe('customize with multiple active promotion projects', function () {
         expect(result.status).to.equal(200);
         expect(result.body.variationId).to.equal('var-y');
         expect(result.body.fields.promoCode).to.be.undefined;
-        expect(result.body.promoProject).to.be.undefined;
+        // The selected project is stamped as promoProject even without a promoCode, so
+        // data-promotion-project is set for any targeted card.
+        expect(result.body.promoProject).to.equal('proj-var-only');
         expect(result.body.promoVariationProject).to.equal('proj-var-only');
     });
 
@@ -2603,7 +2733,8 @@ describe('customize OSI substitution', function () {
             ],
         );
         expect(result.status).to.equal(200);
-        expect(result.body.fields.osi).to.equal('BASE-OSI');
+        // fields.osi is substituted (BASE-OSI -> SUB-OSI) by the wcs application step.
+        expect(result.body.fields.osi).to.equal('SUB-OSI');
         expect(result.body.fields.promoCode).to.equal('PROMO-FOR-SUB');
     });
 
@@ -2657,5 +2788,59 @@ describe('customize OSI substitution', function () {
         );
         expect(result.status).to.equal(200);
         expect(result.body.fields.promoCode).to.equal('ARRAY-PROMO');
+    });
+
+    // Regression for the original bug shape (MWPW-201862): two cards share one base OSI, but only
+    // one card is in the project's fragmentPaths. Exercised through the real customize.process gating
+    // (selectPromoProjectForFragment) + applyPromoScope — not a hand-built promoScopeById.
+    it('scopes substitution + promo code to the in-project card when two cards share an OSI', async function () {
+        const makeCard = (id) => ({
+            type: 'content-fragment',
+            value: {
+                path: `/content/dam/mas/sandbox/en_US/${id}`,
+                id,
+                fields: { osi: 'SHARED-OSI', prices: '<span data-wcs-osi="SHARED-OSI"></span>', variations: [] },
+            },
+        });
+        const result = await processWithPromoProjects(
+            {
+                ...FAKE_CONTEXT,
+                fragmentPath: 'collection',
+                body: {
+                    path: '/content/dam/mas/sandbox/en_US/collection',
+                    id: 'collection',
+                    fields: { cards: ['card-1', 'card-2'], collections: [] },
+                    references: { 'card-1': makeCard('card-1'), 'card-2': makeCard('card-2') },
+                    referencesTree: [
+                        { fieldName: 'cards', identifier: 'card-1', referencesTree: [] },
+                        { fieldName: 'cards', identifier: 'card-2', referencesTree: [] },
+                    ],
+                },
+            },
+            [
+                {
+                    project: {
+                        id: 'proj',
+                        path: '/content/dam/mas/promotions/proj',
+                        defaultVariations: {},
+                        regionVariations: {},
+                    },
+                    promoMap: { 'SUB-OSI': 'SHARED-PROMO' },
+                    substituteMap: { 'SHARED-OSI': 'SUB-OSI' },
+                    fragmentPaths: new Set(['card-1']),
+                },
+            ],
+        );
+        expect(result.status).to.equal(200);
+        // card-1 is in the project: OSI substituted in fields and rich text, promo code applied.
+        const cardOne = result.body.references['card-1'].value.fields;
+        expect(cardOne.osi).to.equal('SUB-OSI');
+        expect(cardOne.prices).to.include('data-wcs-osi="SUB-OSI"');
+        expect(cardOne.promoCode).to.equal('SHARED-PROMO');
+        // card-2 shares the same base OSI but is NOT in the project: it must stay untouched.
+        const cardTwo = result.body.references['card-2'].value.fields;
+        expect(cardTwo.osi).to.equal('SHARED-OSI');
+        expect(cardTwo.prices).to.include('data-wcs-osi="SHARED-OSI"');
+        expect(cardTwo.promoCode).to.be.undefined;
     });
 });

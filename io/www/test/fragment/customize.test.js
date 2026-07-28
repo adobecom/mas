@@ -4,6 +4,7 @@ import { createResponse } from './mocks/MockFetch.js';
 import { MockState } from './mocks/MockState.js';
 import { CARD_MODEL_ID, COLLECTION_MODEL_ID } from '../../src/fragment/utils/common.js';
 import { deepMerge, transformer as customize } from '../../src/fragment/transformers/customize.js';
+import { applyPromoScope } from '../../src/fragment/transformers/wcs.js';
 import { transformer as defaultLanguage } from '../../src/fragment/transformers/defaultLanguage.js';
 import FRAGMENT_RESPONSE_FR from './mocks/fragment-fr.json' with { type: 'json' };
 import FRAGMENT_COLL_RESPONSE_US from './mocks/collection-customization.json' with { type: 'json' };
@@ -1210,7 +1211,11 @@ async function processWithPromos(context, activeProject, promoMap) {
         const fragmentPaths = new Set(activeProject.fragmentPaths ?? []);
         context.promoProjects = [{ project: activeProject, promoMap: promoMap ?? {}, fragmentPaths }];
     }
-    return await customize.process(context);
+    // customize records per-fragment promo scope; the wcs transformer applies the promo code and
+    // OSI substitution. Run applyPromoScope here so these tests exercise the full effect end-to-end.
+    const result = await customize.process(context);
+    applyPromoScope(result);
+    return result;
 }
 
 async function processWithPromoProjects(context, promoProjects) {
@@ -1229,7 +1234,11 @@ async function processWithPromoProjects(context, promoProjects) {
     promises.defaultLanguage = defaultLanguage.init({ ...context, promises });
     context.promises = promises;
     context.promoProjects = promoProjects;
-    return await customize.process(context);
+    // customize records per-fragment promo scope; the wcs transformer applies the promo code and
+    // OSI substitution. Run applyPromoScope here so these tests exercise the full effect end-to-end.
+    const result = await customize.process(context);
+    applyPromoScope(result);
+    return result;
 }
 
 describe('customize typical cases', function () {
@@ -2639,7 +2648,8 @@ describe('customize OSI substitution', function () {
             ],
         );
         expect(result.status).to.equal(200);
-        expect(result.body.fields.osi).to.equal('BASE-OSI');
+        // fields.osi is substituted (BASE-OSI -> SUB-OSI) by the wcs application step.
+        expect(result.body.fields.osi).to.equal('SUB-OSI');
         expect(result.body.fields.promoCode).to.equal('PROMO-FOR-SUB');
     });
 
@@ -2693,5 +2703,59 @@ describe('customize OSI substitution', function () {
         );
         expect(result.status).to.equal(200);
         expect(result.body.fields.promoCode).to.equal('ARRAY-PROMO');
+    });
+
+    // Regression for the original bug shape (MWPW-201862): two cards share one base OSI, but only
+    // one card is in the project's fragmentPaths. Exercised through the real customize.process gating
+    // (selectPromoProjectForFragment) + applyPromoScope — not a hand-built promoScopeById.
+    it('scopes substitution + promo code to the in-project card when two cards share an OSI', async function () {
+        const makeCard = (id) => ({
+            type: 'content-fragment',
+            value: {
+                path: `/content/dam/mas/sandbox/en_US/${id}`,
+                id,
+                fields: { osi: 'SHARED-OSI', prices: '<span data-wcs-osi="SHARED-OSI"></span>', variations: [] },
+            },
+        });
+        const result = await processWithPromoProjects(
+            {
+                ...FAKE_CONTEXT,
+                fragmentPath: 'collection',
+                body: {
+                    path: '/content/dam/mas/sandbox/en_US/collection',
+                    id: 'collection',
+                    fields: { cards: ['card-1', 'card-2'], collections: [] },
+                    references: { 'card-1': makeCard('card-1'), 'card-2': makeCard('card-2') },
+                    referencesTree: [
+                        { fieldName: 'cards', identifier: 'card-1', referencesTree: [] },
+                        { fieldName: 'cards', identifier: 'card-2', referencesTree: [] },
+                    ],
+                },
+            },
+            [
+                {
+                    project: {
+                        id: 'proj',
+                        path: '/content/dam/mas/promotions/proj',
+                        defaultVariations: {},
+                        regionVariations: {},
+                    },
+                    promoMap: { 'SUB-OSI': 'SHARED-PROMO' },
+                    substituteMap: { 'SHARED-OSI': 'SUB-OSI' },
+                    fragmentPaths: new Set(['card-1']),
+                },
+            ],
+        );
+        expect(result.status).to.equal(200);
+        // card-1 is in the project: OSI substituted in fields and rich text, promo code applied.
+        const cardOne = result.body.references['card-1'].value.fields;
+        expect(cardOne.osi).to.equal('SUB-OSI');
+        expect(cardOne.prices).to.include('data-wcs-osi="SUB-OSI"');
+        expect(cardOne.promoCode).to.equal('SHARED-PROMO');
+        // card-2 shares the same base OSI but is NOT in the project: it must stay untouched.
+        const cardTwo = result.body.references['card-2'].value.fields;
+        expect(cardTwo.osi).to.equal('SHARED-OSI');
+        expect(cardTwo.prices).to.include('data-wcs-osi="SHARED-OSI"');
+        expect(cardTwo.promoCode).to.be.undefined;
     });
 });

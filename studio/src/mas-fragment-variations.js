@@ -497,6 +497,7 @@ class MasFragmentVariations extends LitElement {
                                                   top="locale,pzn"
                                                   value="${geosValue}"
                                                   readonly
+                                                  .noTagsText=${'Inherits tags from project'}
                                               ></aem-tag-picker-field>
                                           </div>
                                       </div>

@@ -4,6 +4,8 @@ import '../src/aem/aem-tag-picker-field.js';
 import { TAG_COMPARE_CHART, TAG_COMPARE_CHART_PATH, TAG_MERCH_CARD, TAG_MERCH_CARD_COLLECTION } from '../src/constants.js';
 import { blockTagCacheLoading, resetTagCache, seedTagCache } from './helpers/tag-cache.js';
 
+const noTagsSelector = '.no-tags';
+
 describe('AemTagPickerField', () => {
     const namespace = '/content/cq:tags/mas';
     const contentTypePath = (tag) => `/content/cq:tags/${tag.replace(':', '/')}`;
@@ -68,5 +70,68 @@ describe('AemTagPickerField', () => {
         `);
 
         expect(el.selectedTags).to.deep.equal([]);
+    });
+
+    describe('noTagsText (readonly mode)', () => {
+        it('renders empty no-tags text by default when there are no selected tags', async () => {
+            const el = await fixture(html`
+                <aem-tag-picker-field namespace=${namespace} top="studio/content-type" readonly></aem-tag-picker-field>
+            `);
+
+            await el.loadTags();
+            await el.updateComplete;
+
+            const noTags = el.shadowRoot.querySelector(noTagsSelector);
+            expect(noTags).to.exist;
+            expect(noTags.textContent.trim()).to.equal('');
+        });
+
+        it('renders custom noTagsText when there are no selected tags', async () => {
+            const el = await fixture(html`
+                <aem-tag-picker-field
+                    namespace=${namespace}
+                    top="studio/content-type"
+                    readonly
+                    noTagsText="Nothing selected"
+                ></aem-tag-picker-field>
+            `);
+
+            await el.loadTags();
+            await el.updateComplete;
+
+            const noTags = el.shadowRoot.querySelector(noTagsSelector);
+            expect(noTags.textContent.trim()).to.equal('Nothing selected');
+        });
+
+        it('falls back to "No tags" when noTagsText is nullish', async () => {
+            const el = await fixture(html`
+                <aem-tag-picker-field namespace=${namespace} top="studio/content-type" readonly></aem-tag-picker-field>
+            `);
+
+            await el.loadTags();
+            el.noTagsText = null;
+            await el.updateComplete;
+
+            const noTags = el.shadowRoot.querySelector(noTagsSelector);
+            expect(noTags.textContent.trim()).to.equal('No tags');
+        });
+
+        it('does not render noTagsText when tags are selected', async () => {
+            const el = await fixture(html`
+                <aem-tag-picker-field
+                    namespace=${namespace}
+                    top="studio/content-type"
+                    readonly
+                    noTagsText="Nothing selected"
+                    value=${TAG_MERCH_CARD}
+                ></aem-tag-picker-field>
+            `);
+
+            await el.loadTags();
+            await el.updateComplete;
+
+            expect(el.shadowRoot.querySelector(noTagsSelector)).to.not.exist;
+            expect(el.shadowRoot.querySelector('sp-tags')).to.exist;
+        });
     });
 });

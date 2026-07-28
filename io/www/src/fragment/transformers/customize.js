@@ -250,8 +250,8 @@ function findPromoMapsForFragment(root, customizeContext) {
 
 /**
  * Selects a single promo project for a fragment.
- * explicit mapping (osi replace or promo code) wins over wild card promo only
- * wildcard promo wins over no promo and no mapping
+ * explicit mapping (osi replace or promo code) wins over wild card promo
+ * a project with neither an explicit mapping nor a wildcard does not qualify.
  *
  * @returns the selected `{ project, promoMap, substituteMap, fragmentPaths }` entry, or null
  *          when no promo project targets the fragment.
@@ -264,7 +264,8 @@ function selectPromoProjectForFragment(root, customizeContext) {
     const hasExplicitMapping = ({ promoMap, substituteMap }) =>
         osis.some((osi) => promoMap[osi] !== undefined || substituteMap?.[osi] !== undefined);
     const hasWildcardPromo = ({ promoMap }) => Boolean(promoMap['*']);
-    const selected = promoEntries.find(hasExplicitMapping) ?? promoEntries.find(hasWildcardPromo) ?? promoEntries[0];
+    const selected = promoEntries.find(hasExplicitMapping) ?? promoEntries.find(hasWildcardPromo) ?? null;
+    if (!selected) return null;
     logDebug(
         () =>
             `Selected promo project ${selected.project.id} for fragment ${root.id} out of ${promoEntries.length} targeting project(s)`,

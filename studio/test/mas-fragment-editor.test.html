@@ -250,6 +250,26 @@
                         expect(repository.saveFragment.secondCall.calledWith(fragmentStore, false)).to.be.true;
                     });
 
+                    it('migrates a stored bizpro variant to pro when saving', async () => {
+                        const el = document.createElement('mas-fragment-editor');
+                        const fragmentStore = generateFragmentStore(
+                            new Fragment({
+                                model: { path: CARD_MODEL_PATH },
+                                fields: [{ name: 'variant', values: ['bizpro'] }],
+                            }),
+                        );
+                        const repository = {
+                            saveFragment: sandbox.stub().resolves({}),
+                        };
+                        sandbox.stub(el, 'repository').get(() => repository);
+                        sandbox.stub(el, 'fragmentStore').get(() => fragmentStore);
+
+                        await el.saveFragment();
+
+                        expect(fragmentStore.get().getFieldValue('variant')).to.equal('pro');
+                        expect(repository.saveFragment.calledWith(fragmentStore, true)).to.be.true;
+                    });
+
                     it('extracts locale from path', async () => {
                         expect(extractLocaleFromPath('/content/dam/mas/surface/en_US/fragment')).to.equal('en_US');
                     });

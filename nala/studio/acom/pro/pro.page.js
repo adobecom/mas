@@ -1,4 +1,4 @@
-export default class ACOMBizProCardPage {
+export default class ACOMProCardPage {
     constructor(page) {
         this.page = page;
 
@@ -28,8 +28,13 @@ export default class ACOMBizProCardPage {
         this.cardLicenseSelectTrigger = page.locator('button.license-select-trigger');
         this.cardSecureTransaction = page.locator('.secure-transaction-label');
 
-        // BizPro card CSS properties:
+        // Pro card CSS properties:
         this.cssProp = {
+            tokens: {
+                '--consonant-merch-card-pro-bg-default': '#fff',
+                '--consonant-merch-card-pro-bg-subtle': '#f8f8f8',
+                '--consonant-merch-card-pro-text-color': '#000',
+            },
             card: {
                 'background-color': 'rgb(248, 248, 248)',
                 'border-radius': '16px',

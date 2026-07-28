@@ -153,6 +153,27 @@ describe('MasPromoVariationGeos', () => {
             expect(el.selectAllChecked).to.be.true;
             expect(el.selectAllIndeterminate).to.be.false;
         });
+
+        it('disables the "Select all" checkbox when every geo is already disabled (no selectable geos)', async () => {
+            const el = await fixture(
+                html`<mas-promo-variation-geos .geos=${geos} .disabledGeos=${geos}></mas-promo-variation-geos>`,
+            );
+            expect(el.selectableGeos).to.have.lengthOf(0);
+            const selectAll = el.shadowRoot.querySelector('.select-all-row sp-checkbox');
+            expect(selectAll.disabled).to.be.true;
+        });
+
+        it('enables the "Select all" checkbox when at least one geo is selectable', async () => {
+            const el = await fixture(
+                html`<mas-promo-variation-geos
+                    .geos=${geos}
+                    .disabledGeos=${['mas:pzn/country/ar']}
+                ></mas-promo-variation-geos>`,
+            );
+            expect(el.selectableGeos.length).to.be.greaterThan(0);
+            const selectAll = el.shadowRoot.querySelector('.select-all-row sp-checkbox');
+            expect(selectAll.disabled).to.be.false;
+        });
     });
 
     describe('inherit hint', () => {

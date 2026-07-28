@@ -445,6 +445,81 @@ describe('promotions', () => {
             expect(fetchStub.withArgs(FOLDER_URL).callCount).to.equal(1);
         });
 
+        it('caches projects independently per surface', async () => {
+            // The generalist folder listing carries both surfaces; each surface keeps only its own
+            // projects and gets its own cache entry (so entries expire independently).
+            const acom = makeProject({ id: 'proj-acom', surfaces: ['acom'], geos: [] });
+            const express = makeProject({ id: 'proj-express', surfaces: ['express'], geos: [] });
+            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [acom, express] }));
+            fetchStub.withArgs(hydrateUrl('proj-acom')).returns(createResponse(200, makeHydratedProject()));
+            fetchStub.withArgs(hydrateUrl('proj-express')).returns(createResponse(200, makeHydratedProject()));
+
+            const acomResult = await promotionsTransformer.init(createContext({ surface: 'acom' }));
+            const expressResult = await promotionsTransformer.init(createContext({ surface: 'express' }));
+
+            expect(acomResult.activeProjects.map((p) => p.id)).to.deep.equal(['proj-acom']);
+            expect(expressResult.activeProjects.map((p) => p.id)).to.deep.equal(['proj-express']);
+            // Independent per-surface entries: express did not reuse acom's cache, so it fetched too.
+            expect(fetchStub.withArgs(FOLDER_URL).callCount).to.equal(2);
+        });
+
+        it('coalesces concurrent refills into a single folder fetch (single-flight)', async () => {
+            const project = makeProject({ surfaces: ['acom'], geos: [] });
+            const folderResponse = await createResponse(200, { items: [project] });
+            let resolveFolder;
+            fetchStub.withArgs(FOLDER_URL).returns(new Promise((resolve) => (resolveFolder = resolve)));
+            fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, makeHydratedProject()));
+
+            // Two concurrent cold requests: both should await the one in-flight refill, not fetch twice.
+            const p1 = promotionsTransformer.init(createContext());
+            const p2 = promotionsTransformer.init(createContext());
+            await new Promise((resolve) => setTimeout(resolve, 0));
+            resolveFolder(folderResponse);
+            const [r1, r2] = await Promise.all([p1, p2]);
+
+            expect(fetchStub.withArgs(FOLDER_URL).callCount).to.equal(1);
+            expect(r1.activeProjects).to.have.length(1);
+            expect(r2.activeProjects).to.have.length(1);
+        });
+
+        it('serves stale projects and refills in the background when the entry has expired', async () => {
+            const T0 = new Date('2026-01-01T00:00:00Z').getTime();
+            const clock = sinon.stub(Date, 'now').returns(T0);
+            try {
+                const stale = makeProject({ id: 'proj-stale', surfaces: ['acom'], geos: [] });
+                const fresh = makeProject({ id: 'proj-fresh', surfaces: ['acom'], geos: [] });
+                fetchStub
+                    .withArgs(FOLDER_URL)
+                    .onFirstCall()
+                    .returns(createResponse(200, { items: [stale] }));
+                fetchStub
+                    .withArgs(FOLDER_URL)
+                    .onSecondCall()
+                    .returns(createResponse(200, { items: [fresh] }));
+                fetchStub.withArgs(hydrateUrl('proj-stale')).returns(createResponse(200, makeHydratedProject()));
+                fetchStub.withArgs(hydrateUrl('proj-fresh')).returns(createResponse(200, makeHydratedProject()));
+
+                const first = await promotionsTransformer.init(createContext());
+                expect(first.activeProjects[0].id).to.equal('proj-stale');
+                expect(fetchStub.withArgs(FOLDER_URL).callCount).to.equal(1);
+
+                // Advance past the maximum jittered TTL (1.2 × 5 min) so the entry is expired.
+                clock.returns(T0 + 7 * 60 * 1000);
+                const second = await promotionsTransformer.init(createContext());
+                // Served stale immediately, while a single background refill is fired.
+                expect(second.activeProjects[0].id).to.equal('proj-stale');
+                expect(fetchStub.withArgs(FOLDER_URL).callCount).to.equal(2);
+
+                // Let the background refill settle, then a third read serves the refreshed data, no new fetch.
+                await new Promise((resolve) => setTimeout(resolve, 0));
+                const third = await promotionsTransformer.init(createContext());
+                expect(third.activeProjects[0].id).to.equal('proj-fresh');
+                expect(fetchStub.withArgs(FOLDER_URL).callCount).to.equal(2);
+            } finally {
+                clock.restore();
+            }
+        });
+
         it('falls back to locale when defaultLanguage resolves without regionLocale', async () => {
             const project = makeProject({ surfaces: ['acom'], geos: [] });
             const hydrated = makeHydratedProject();
@@ -788,7 +863,7 @@ describe('promotions', () => {
             expect(result.activeProjects).to.have.length(1);
         });
 
-        it('uses localStorage cache in preview mode', async () => {
+        it('persists projects in localStorage across preview reads', async () => {
             const project = makeProject({ surfaces: ['acom'], geos: ['/content/cq:tags/mas/locale/en_US'] });
             const hydrated = makeHydratedProject();
             const previewCtx = createContext({
@@ -807,6 +882,13 @@ describe('promotions', () => {
 
             clearPromoCache(true);
             expect(storage['promotions']).to.be.undefined;
+        });
+
+        it('returns no active projects in preview mode when the folder fetch fails', async () => {
+            fetchStub.withArgs(FOLDER_URL).returns(createResponse(404, null, 'Not Found'));
+            const previewCtx = createContext({ preview: { url: 'https://odin.adobe.com/adobe/contentFragments' } });
+            const result = await promotionsTransformer.init(previewCtx);
+            expect(result).to.deep.equal({ status: 200, activeProjects: [] });
         });
     });
 

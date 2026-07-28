@@ -145,6 +145,7 @@ export function shouldHideStPriceLabels(element) {
 const MASLIBS_PATTERN =
     /^([a-z0-9]+(-[a-z0-9]+)*)(--([a-z0-9]+(-[a-z0-9]+)*)){0,2}$/;
 const MASLIBS_MAX_LENGTH = 100;
+const MASLIBS_EXTENSIONS = ['live', 'page'];
 
 /**
  * Validates the maslibs parameter and returns the base URL for MAS libraries.
@@ -152,10 +153,11 @@ const MASLIBS_MAX_LENGTH = 100;
  * the resulting host always stays under aem.live / aem.page.
  * @param {string} masLibs raw maslibs parameter value
  * @param {string} extension aem domain extension: 'live' (default) or 'page'
- * @returns {string|null} base URL, or null if the value is missing or invalid
+ * @returns {string|null} base URL, or null if either value is missing or invalid
  */
 export function getValidatedMasLibsUrl(masLibs, extension = 'live') {
     if (!masLibs || masLibs.trim() === '') return null;
+    if (!MASLIBS_EXTENSIONS.includes(extension)) return null;
     const value = masLibs.trim().toLowerCase();
     if (value === 'local') return 'http://localhost:3000';
     if (value.length > MASLIBS_MAX_LENGTH || !MASLIBS_PATTERN.test(value)) {
@@ -191,7 +193,9 @@ const MAS_IO_LOCAL_HOSTS = ['localhost', '127.0.0.1'];
 export function isAllowedMasIOUrl(urlString) {
     try {
         const url = new URL(urlString);
-        if (MAS_IO_LOCAL_HOSTS.includes(url.hostname)) return true;
+        if (MAS_IO_LOCAL_HOSTS.includes(url.hostname)) {
+            return url.protocol === 'http:' || url.protocol === 'https:';
+        }
         if (url.protocol !== 'https:') return false;
         return MAS_IO_ALLOWED_HOSTS.some(
             (host) =>

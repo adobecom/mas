@@ -126,6 +126,14 @@ describe('function "getValidatedMasLibsUrl"', () => {
         );
     });
 
+    it('rejects an unknown aem extension', () => {
+        const extensions = ['evil.com', 'live.evil.com', 'page/', '', null];
+        for (const extension of extensions) {
+            expect(getValidatedMasLibsUrl('main', extension), String(extension))
+                .to.be.null;
+        }
+    });
+
     it('rejects host-escape payloads', () => {
         const hostile = [
             'evil.com',
@@ -203,5 +211,17 @@ describe('function "isAllowedMasIOUrl"', () => {
 
     it('rejects non-localhost http', () => {
         expect(isAllowedMasIOUrl('http://evil.com/mas/io')).to.be.false;
+    });
+
+    it('rejects non-http protocols on localhost', () => {
+        const rejected = [
+            'ftp://localhost/mas/io',
+            'ws://localhost:2023/mas/io',
+            'file://localhost/etc/passwd',
+            'ftp://127.0.0.1/mas/io',
+        ];
+        for (const url of rejected) {
+            expect(isAllowedMasIOUrl(url), url).to.be.false;
+        }
     });
 });

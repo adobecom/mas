@@ -1592,6 +1592,7 @@ describe('customize promo variation', function () {
         const result = await processWithPromos(
             { ...FAKE_CONTEXT, fragmentPath: 'my-card', parsedLocale: 'en_US', body: rootFragment },
             ACTIVE_PROJECT,
+            { '*': 'WILDCARD-PROMO' },
         );
 
         expect(result.status).to.equal(200);
@@ -1651,6 +1652,7 @@ describe('customize promo variation', function () {
         const result = await processWithPromos(
             { ...FAKE_CONTEXT, fragmentPath: 'my-card', parsedLocale: 'en_US', body: rootFragment },
             project,
+            { '*': 'WILDCARD-PROMO' },
         );
 
         expect(result.status).to.equal(200);
@@ -1753,6 +1755,7 @@ describe('customize promo variation', function () {
         const result = await processWithPromos(
             { ...FAKE_CONTEXT, fragmentPath: 'my-card', parsedLocale: 'en_US', body: rootFragment },
             project,
+            { '*': 'WILDCARD-PROMO' },
         );
 
         expect(result.status).to.equal(200);
@@ -1795,6 +1798,7 @@ describe('customize promo variation', function () {
                 country: 'GR',
             },
             project,
+            { '*': 'WILDCARD-PROMO' },
         );
 
         expect(result.status).to.equal(200);
@@ -1836,6 +1840,7 @@ describe('customize promo variation', function () {
                 country: 'FR',
             },
             project,
+            { '*': 'WILDCARD-PROMO' },
         );
 
         expect(result.status).to.equal(200);
@@ -1877,6 +1882,7 @@ describe('customize promo variation', function () {
                 country: 'GR',
             },
             project,
+            { '*': 'WILDCARD-PROMO' },
         );
 
         expect(result.status).to.equal(200);
@@ -2470,9 +2476,9 @@ describe('customize with multiple active promotion projects', function () {
         expect(result.body.promoProject).to.equal('proj-sub');
     });
 
-    it('selects the first targeting project for a fragment with no osi', async function () {
-        // A fragment without an osi can have no explicit mapping, so the first targeting project is
-        // selected and its variation applies.
+    it('selects no promo project for a fragment with no osi and no explicit or wildcard mapping', async function () {
+        // A fragment without an osi can never have an explicit mapping; with no wildcard either,
+        // the targeting project does not qualify and no promo is applied.
         const projectVariationOnly = {
             id: 'proj-var',
             path: '/content/dam/mas/promotions/proj-var',
@@ -2496,8 +2502,8 @@ describe('customize with multiple active promotion projects', function () {
             { project: projectVariationOnly, promoMap: {}, fragmentPaths: new Set(['card-x']) },
         ]);
         expect(result.status).to.equal(200);
-        expect(result.body.variationId).to.equal('var-x');
-        expect(result.body.promoProject).to.equal('proj-var');
+        expect(result.body.variationId).to.equal(undefined);
+        expect(result.body.promoProject).to.equal(undefined);
     });
 
     it('selects a wildcard-promo project over a mapping-less project when neither has an explicit entry', async function () {
@@ -2543,7 +2549,7 @@ describe('customize with multiple active promotion projects', function () {
         expect(result.body.promoVariationProject).to.equal(undefined);
     });
 
-    it('stamps promoVariationProject from the variation project when no promoCode is applied', async function () {
+    it('applies no promo project when the only candidate has neither an explicit mapping nor a wildcard', async function () {
         const projectVarOnly = {
             id: 'proj-var-only',
             path: '/content/dam/mas/promotions/proj-var-only',
@@ -2567,12 +2573,11 @@ describe('customize with multiple active promotion projects', function () {
             { project: projectVarOnly, promoMap: {}, fragmentPaths: new Set(['card-y']) },
         ]);
         expect(result.status).to.equal(200);
-        expect(result.body.variationId).to.equal('var-y');
+        expect(result.body.variationId).to.equal(undefined);
         expect(result.body.fields.promoCode).to.be.undefined;
-        // The selected project is stamped as promoProject even without a promoCode, so
-        // data-promotion-project is set for any targeted card.
-        expect(result.body.promoProject).to.equal('proj-var-only');
-        expect(result.body.promoVariationProject).to.equal('proj-var-only');
+        // No explicit mapping for OSI-Y and no wildcard, so the project does not qualify at all.
+        expect(result.body.promoProject).to.equal(undefined);
+        expect(result.body.promoVariationProject).to.equal(undefined);
     });
 
     it('seasonal promo are over evergreen promo targeting the same fragment', async function () {

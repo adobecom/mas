@@ -1,5 +1,6 @@
 import {
     EVENT_AEM_LOAD,
+    EVENT_MAS_READY,
     FF_DEFAULTS,
     TEMPLATE_PRICE_LEGAL,
 } from './constants.js';
@@ -116,6 +117,15 @@ class MasField extends HTMLElement {
         this.#fields = event.detail?.fields || null;
         this.#loaded = true;
         this.#renderField();
+        // Signal that this field finished loading and rendering, so a host (e.g. Milo's
+        // merch autoblock) can decorate a CTA that resolved after its block decorated.
+        this.dispatchEvent(
+            new CustomEvent(EVENT_MAS_READY, {
+                bubbles: true,
+                composed: true,
+                detail: event.detail,
+            }),
+        );
     };
 
     get aemFragment() {

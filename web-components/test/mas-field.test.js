@@ -628,3 +628,31 @@ describe('mas-field – price options provider (locale defaults)', () => {
         expect(options.displayPlanType).to.be.undefined;
     });
 });
+
+describe('mas-field – mas:ready event', () => {
+    afterEach(() => {
+        document.body
+            .querySelectorAll('mas-field')
+            .forEach((el) => el.remove());
+    });
+
+    it('dispatches a bubbling mas:ready after rendering on aem:load', () => {
+        const el = document.createElement('mas-field');
+        el.setAttribute('field', 'title');
+        const fragment = document.createElement('aem-fragment');
+        el.append(fragment);
+        document.body.append(el);
+
+        const onReady = sinon.spy();
+        document.addEventListener('mas:ready', onReady, { once: true });
+        fragment.dispatchEvent(
+            new CustomEvent('aem:load', {
+                bubbles: true,
+                detail: { fields: { title: 'CC' } },
+            }),
+        );
+
+        expect(onReady.calledOnce).to.be.true;
+        expect(onReady.firstCall.args[0].target).to.equal(el);
+    });
+});

@@ -313,57 +313,6 @@ function mergeVariations(root, customizeContext, selectedPromoProject) {
     return root;
 }
 
-function applyPromoCode(fragment, promoEntries, context) {
-    const fragOsi = fragment.fields?.osi;
-    if (!fragOsi) return;
-    const osis = Array.isArray(fragOsi) ? fragOsi : [fragOsi];
-    // Several active projects can target the same fragment. An explicit osi (or substituted-osi)
-    // entry from any of them wins, promoProjects order (earliest startDate first, seasonal
-    // projects floated to the top) only breaking ties, so projects with disjoint
-    // per-country entries coexist (one applies for BR, another for MY). A project-level wildcard
-    // ('*') is a last resort, applied only where no project has an explicit entry.
-    let explicitPromoCode;
-    let explicitProject;
-    let wildcardPromoCode;
-    let wildcardProject;
-    for (const { project, promoMap, substituteMap } of promoEntries) {
-        if (promoMap['*'] && wildcardPromoCode === undefined) {
-            wildcardPromoCode = promoMap['*'];
-            wildcardProject = project;
-        }
-        for (const osi of osis) {
-            if (promoMap[osi]) {
-                explicitPromoCode = promoMap[osi];
-                explicitProject = project;
-                break;
-            }
-            const substituted = substituteMap?.[osi];
-            if (substituted && promoMap[substituted]) {
-                explicitPromoCode = promoMap[substituted];
-                explicitProject = project;
-                logDebug(() => `osi ${osi} substituted by ${substituted} matched promoCode ${explicitPromoCode}`, context);
-                break;
-            }
-        }
-        if (explicitPromoCode) break;
-    }
-    if (explicitPromoCode) {
-        logDebug(
-            () =>
-                `Setting explicit promoCode ${explicitPromoCode} from project ${explicitProject.id} on fragment ${fragment.id} (${promoEntries.length} project(s) target it)`,
-            context,
-        );
-        fragment.fields.promoCode = explicitPromoCode;
-    } else if (wildcardPromoCode) {
-        logDebug(
-            () =>
-                `No explicit osi entry across ${promoEntries.length} project(s) for fragment ${fragment.id}; falling back to wildcard promoCode ${wildcardPromoCode} from project ${wildcardProject.id}`,
-            context,
-        );
-        fragment.fields.promoCode = wildcardPromoCode;
-    }
-}
-
 /**
  * Rebuilds the referencesTree to match the cards/collections order and membership
  * of the customized root fragment. Non-cards/collections entries (tags, variations)
@@ -419,7 +368,14 @@ function customizeTree(root, referencesTree = [], customizeContext) {
         // set data-promotion-project attribute, even when the project
         // only substitutes the OSI (no promo code and no variation).
         customizedRoot.promoProject = promoProjectLabel(selectedPromoProject.project);
-        applyPromoCode(customizedRoot, [selectedPromoProject], customizeContext);
+        // Record this fragment's promo scope by id. Promo code application and OSI substitution
+        // happen later, in the wcs transformer (after `replace`), so OSIs injected via placeholder
+        // values are covered too. Recorded on context (not on the fragment) so nothing leaks into
+        // the response via skimFragmentFromReferences.
+        if (customizedRoot.id != null) {
+            const { promoMap, substituteMap } = selectedPromoProject;
+            customizeContext.promoScopeById[customizedRoot.id] = { promoMap, substituteMap };
+        }
     }
 
     //adapt referencesTree to match the customized root's cards/collections
@@ -488,6 +444,8 @@ async function customize(context) {
         regionLocale,
         references,
         surface,
+        // Accumulates each in-scope fragment's promo scope by fragment id, consumed by the wcs transformer.
+        promoScopeById: {},
     };
     if (
         pzn &&
@@ -515,6 +473,7 @@ async function customize(context) {
         status: 200,
         body: customizedFragment,
         defaultLocale,
+        promoScopeById: customizeContext.promoScopeById,
     };
 }
 

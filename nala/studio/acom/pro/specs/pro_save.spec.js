@@ -10,6 +10,8 @@ export default {
                 cardid: '6edac1ee-89f9-4432-aa42-008a360fa537',
                 title: 'Saved Pro Title',
                 whatsIncludedLabel: 'Saved toggle label:',
+                theme: 'Dark',
+                size: 'Edu',
             },
             browserParams: '#page=fragment-editor&path=nala&fragmentId=',
             tags: '@mas-studio @acom @acom-save @acom-pro @acom-pro-save',

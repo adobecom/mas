@@ -6,6 +6,22 @@ const MAS_FIELD_TAG = 'mas-field';
 const CHECKOUT_STYLE_PATTERN = /(accent|primary|secondary)(-(outline|link))?/;
 
 /**
+ * Resolves the promo code the mas-field should apply to its prices/CTAs,
+ * honoring the global promo-code compat gate the same way merch-card's
+ * option providers do: only fragments authored at or above
+ * COMPAT_VERSION_GLOBAL_PROMO_CODE (or explicitly part of a promo project)
+ * opt into promo codes, so older fragments are left untouched.
+ */
+function contextPromotionCode(masField) {
+    if (
+        masField.compatVersion >= COMPAT_VERSION_GLOBAL_PROMO_CODE ||
+        masField.hasAttribute('data-promotion-project')
+    )
+        return masField.getAttribute('data-promotion-code');
+    return null;
+}
+
+/**
  * Opts headless mas-field-hosted inline-prices into FF_DEFAULTS so they
  * resolve displayTax / displayPerUnit from country+language defaults
  * (the same way merch-card does for its aem-fragment-backed prices).
@@ -23,7 +39,7 @@ export function priceOptionsProvider(element, options) {
     }
 
     if (!options.promotionCode) {
-        const promotionCode = masField.getAttribute('data-promotion-code');
+        const promotionCode = contextPromotionCode(masField);
         if (promotionCode) options.promotionCode = promotionCode;
     }
 }
@@ -38,7 +54,7 @@ export function checkoutOptionsProvider(element, options) {
     const masField = element?.closest?.(MAS_FIELD_TAG);
     if (!masField) return options;
     if (!options.promotionCode) {
-        const promotionCode = masField.getAttribute('data-promotion-code');
+        const promotionCode = contextPromotionCode(masField);
         if (promotionCode) options.promotionCode = promotionCode;
     }
 }
@@ -78,6 +94,13 @@ class MasField extends HTMLElement {
     #loaded = false;
     #fields = null;
     #contentElement = null;
+
+    /**
+     * Compat version of the backing fragment, mirroring merch-card. Gates
+     * global promo-code application in the option providers.
+     * @type {number}
+     */
+    compatVersion;
 
     static get observedAttributes() {
         return ['field'];
@@ -199,11 +222,8 @@ class MasField extends HTMLElement {
                 'data-promotion-variation-project',
                 fragment.promoVariationProject,
             );
-        if (
-            fragment.fields?.promoCode &&
-            (fragment.fields.compatVersion >= COMPAT_VERSION_GLOBAL_PROMO_CODE ||
-                fragment.promoProject)
-        )
+        this.compatVersion = fragment.fields?.compatVersion;
+        if (fragment.fields?.promoCode)
             this.setAttribute('data-promotion-code', fragment.fields.promoCode);
     }
 

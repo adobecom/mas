@@ -462,7 +462,7 @@ describe('mas-field – fragment context promo code', () => {
             .forEach((el) => el.remove());
     });
 
-    it('sets data-promotion-code when compatVersion opts into global promo codes', () => {
+    it('sets data-promotion-code and stashes compatVersion from the loaded fragment', () => {
         const el = document.createElement('mas-field');
         el.setAttribute('field', 'prices');
         const fragment = document.createElement('aem-fragment');
@@ -482,51 +482,7 @@ describe('mas-field – fragment context promo code', () => {
             }),
         );
         expect(el.getAttribute('data-promotion-code')).to.equal('PROMO123');
-    });
-
-    it('sets data-promotion-code for a promo project regardless of compatVersion', () => {
-        const el = document.createElement('mas-field');
-        el.setAttribute('field', 'prices');
-        const fragment = document.createElement('aem-fragment');
-        el.append(fragment);
-        document.body.append(el);
-        fragment.data = {
-            id: 'fragment-id',
-            promoProject: 'promo-project',
-            fields: {
-                promoCode: 'PROMO123',
-                compatVersion: COMPAT_VERSION_GLOBAL_PROMO_CODE - 1,
-            },
-        };
-        fragment.dispatchEvent(
-            new CustomEvent('aem:load', {
-                bubbles: true,
-                detail: { fields: { prices: '<p>$9.99</p>' } },
-            }),
-        );
-        expect(el.getAttribute('data-promotion-code')).to.equal('PROMO123');
-    });
-
-    it('does not set data-promotion-code when compatVersion is below the global promo code version and there is no promo project', () => {
-        const el = document.createElement('mas-field');
-        el.setAttribute('field', 'prices');
-        const fragment = document.createElement('aem-fragment');
-        el.append(fragment);
-        document.body.append(el);
-        fragment.data = {
-            id: 'fragment-id',
-            fields: {
-                promoCode: 'PROMO123',
-                compatVersion: COMPAT_VERSION_GLOBAL_PROMO_CODE - 1,
-            },
-        };
-        fragment.dispatchEvent(
-            new CustomEvent('aem:load', {
-                bubbles: true,
-                detail: { fields: { prices: '<p>$9.99</p>' } },
-            }),
-        );
-        expect(el.hasAttribute('data-promotion-code')).to.be.false;
+        expect(el.compatVersion).to.equal(COMPAT_VERSION_GLOBAL_PROMO_CODE);
     });
 
     it('does not set data-promotion-code when fragment has no promoCode', () => {
@@ -581,9 +537,10 @@ describe('mas-field – price options provider (locale defaults)', () => {
         expect(options[FF_DEFAULTS]).to.be.undefined;
     });
 
-    it('sets options.promotionCode from the enclosing mas-field data-promotion-code', () => {
+    it('sets options.promotionCode when compatVersion opts into global promo codes', () => {
         const masField = document.createElement('mas-field');
         masField.setAttribute('data-promotion-code', 'PROMO123');
+        masField.compatVersion = COMPAT_VERSION_GLOBAL_PROMO_CODE;
         const inline = document.createElement('span');
         inline.setAttribute('is', 'inline-price');
         masField.append(inline);
@@ -592,6 +549,34 @@ describe('mas-field – price options provider (locale defaults)', () => {
         const options = {};
         priceOptionsProvider(inline, options);
         expect(options.promotionCode).to.equal('PROMO123');
+    });
+
+    it('sets options.promotionCode for a promo project regardless of compatVersion', () => {
+        const masField = document.createElement('mas-field');
+        masField.setAttribute('data-promotion-code', 'PROMO123');
+        masField.setAttribute('data-promotion-project', 'promo-project');
+        const inline = document.createElement('span');
+        inline.setAttribute('is', 'inline-price');
+        masField.append(inline);
+        document.body.append(masField);
+
+        const options = {};
+        priceOptionsProvider(inline, options);
+        expect(options.promotionCode).to.equal('PROMO123');
+    });
+
+    it('leaves options.promotionCode unset when compatVersion is below the global promo code version and there is no promo project', () => {
+        const masField = document.createElement('mas-field');
+        masField.setAttribute('data-promotion-code', 'PROMO123');
+        masField.compatVersion = COMPAT_VERSION_GLOBAL_PROMO_CODE - 1;
+        const inline = document.createElement('span');
+        inline.setAttribute('is', 'inline-price');
+        masField.append(inline);
+        document.body.append(masField);
+
+        const options = {};
+        priceOptionsProvider(inline, options);
+        expect(options.promotionCode).to.be.undefined;
     });
 
     it('does not override an existing options.promotionCode', () => {
@@ -619,9 +604,10 @@ describe('mas-field – price options provider (locale defaults)', () => {
         expect(options.promotionCode).to.be.undefined;
     });
 
-    it('sets checkout options.promotionCode from the enclosing mas-field data-promotion-code', () => {
+    it('sets checkout options.promotionCode when compatVersion opts into global promo codes', () => {
         const masField = document.createElement('mas-field');
         masField.setAttribute('data-promotion-code', 'PROMO123');
+        masField.compatVersion = COMPAT_VERSION_GLOBAL_PROMO_CODE;
         const link = document.createElement('a', { is: 'checkout-link' });
         masField.append(link);
         document.body.append(masField);
@@ -629,6 +615,19 @@ describe('mas-field – price options provider (locale defaults)', () => {
         const options = {};
         checkoutOptionsProvider(link, options);
         expect(options.promotionCode).to.equal('PROMO123');
+    });
+
+    it('leaves checkout options.promotionCode unset when compatVersion is below the global promo code version and there is no promo project', () => {
+        const masField = document.createElement('mas-field');
+        masField.setAttribute('data-promotion-code', 'PROMO123');
+        masField.compatVersion = COMPAT_VERSION_GLOBAL_PROMO_CODE - 1;
+        const link = document.createElement('a', { is: 'checkout-link' });
+        masField.append(link);
+        document.body.append(masField);
+
+        const options = {};
+        checkoutOptionsProvider(link, options);
+        expect(options.promotionCode).to.be.undefined;
     });
 
     it('does not override an existing checkout options.promotionCode', () => {

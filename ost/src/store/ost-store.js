@@ -352,6 +352,7 @@ export class OstStore extends EventTarget {
         this.placeholderTab = 'price';
         this.promotionCode = undefined;
         this.storedPromoOverride = undefined;
+        this.lockedOsi = false;
         this.placeholderOptions = { ...DEFAULT_PLACEHOLDER_OPTIONS };
 
         if (config.multiSelect === true) {
@@ -405,7 +406,7 @@ export class OstStore extends EventTarget {
                 this.promotionCode = incomingPromotionCode;
             }
             const incomingLockedOsi = config.offerSelectorPlaceholderOptions.lockedOsi;
-            if (incomingLockedOsi && !this.lockedOsi) {
+            if (incomingLockedOsi !== undefined) {
                 this.lockedOsi = incomingLockedOsi;
             }
         }

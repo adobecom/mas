@@ -164,7 +164,7 @@ describe('FragmentClient', () => {
         });
         expect(result).to.have.property('status');
         expect(result).to.have.property('body');
-        expect(result).to.have.property('api_key', 'fragment-client');
+        expect(result).to.have.property('api_key', 'mas-studio');
     });
 
     it('returns body only when options.fullContext is false', async () => {
@@ -246,7 +246,7 @@ describe('FragmentClient', () => {
     });
 
     describe('previewStudioFragment', () => {
-        it('returns processed body with api_key fragment-client-studio', async () => {
+        it('returns processed body with api_key mas-studio', async () => {
             const body = { ...mockCardFragment };
             const result = await previewStudioFragment(body, { locale: 'en_US', surface: 'sandbox' });
             expect(result).to.have.property('fields');

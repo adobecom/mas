@@ -21,6 +21,7 @@ export const PRO_AEM_FRAGMENT_MAPPING = {
     title: { tag: 'h3', slot: 'heading-xs' },
     description: { tag: 'div', slot: 'body-xs' },
     mnemonics: { size: 's' },
+    size: ['wide', 'edu'],
     prices: { tag: 'p', slot: 'heading-m' },
     promoText: { tag: 'p', slot: 'promo-text' },
     perUnitLabel: { tag: 'span', slot: 'per-unit-label' },
@@ -36,6 +37,11 @@ export const PRO_AEM_FRAGMENT_MAPPING = {
     addon: true,
     ctas: { slot: 'footer', size: 'm' },
     whatsIncluded: { tag: 'div', slot: 'whats-included' },
+    backgroundColor: {
+        attribute: 'background-color',
+        editorLabel: 'Theme',
+        specialValues: { Light: 'light', Dark: 'dark' },
+    },
     borderColor: {
         attribute: 'border-color',
         specialValues: { Black: 'black' },

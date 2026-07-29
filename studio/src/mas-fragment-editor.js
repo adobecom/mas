@@ -1986,57 +1986,7 @@ export default class MasFragmentEditor extends LitElement {
     }
 
     get relatedVariationsSection() {
-        if (!this.fragment) return nothing;
-
-        const isVariation = this.editorContextStore.isVariation(this.fragment?.id);
-        // Use parent fragment for counts if this is a variation, otherwise use current fragment
-        const sourceFragment = isVariation ? this.localeDefaultFragment : this.fragment;
-
-        if (!sourceFragment) return nothing;
-
-        let localeCount = sourceFragment.getLocaleVariationCount?.() || 0;
-        let promoCount = sourceFragment.getPromoVariationCount?.() || 0;
-        let groupedCount = sourceFragment.getGroupedVariationCount?.() || 0;
-
-        // Subtract 1 from the appropriate count if current fragment is not the source (i.e., it's a variation)
-        if (isVariation) {
-            if (Fragment.isGroupedVariationPath(this.fragment.path)) {
-                groupedCount = Math.max(0, groupedCount - 1);
-            } else {
-                const isPromoVariation = this.fragment.tags?.some((tag) => tag.id?.startsWith(TAG_PROMOTION_PREFIX));
-                if (isPromoVariation) {
-                    promoCount = Math.max(0, promoCount - 1);
-                } else {
-                    localeCount = Math.max(0, localeCount - 1);
-                }
-            }
-        }
-
-        if (localeCount === 0 && promoCount === 0 && groupedCount === 0) return nothing;
-
-        // Determine the label suffix based on whether we're in a variation
-        const siblingLabel = isVariation ? ' sibling' : '';
-
-        // Build the variation count lines
-        const localeText =
-            localeCount > 0
-                ? html`<p class="related-variations-count">
-                      ${localeCount} Regional${siblingLabel} variation${localeCount !== 1 ? 's' : ''}
-                  </p>`
-                : nothing;
-        const promoText =
-            promoCount > 0
-                ? html`<p class="related-variations-count">
-                      ${promoCount} promo${siblingLabel} variation${promoCount !== 1 ? 's' : ''}
-                  </p>`
-                : nothing;
-        const groupedText =
-            groupedCount > 0
-                ? html`<p class="related-variations-count">
-                      ${groupedCount} grouped${siblingLabel} variation${groupedCount !== 1 ? 's' : ''}
-                  </p>`
-                : nothing;
-
+        if (!this.fragment || isPromoVariationPath(this.fragment.path)) return nothing;
         return html`
             <div class="related-variations-container">
                 <div class="related-variations-header">
@@ -2046,7 +1996,6 @@ export default class MasFragmentEditor extends LitElement {
                         <span>View variations</span>
                     </a>
                 </div>
-                <div class="related-variations-counts">${localeText} ${promoText} ${groupedText}</div>
             </div>
         `;
     }

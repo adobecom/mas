@@ -1423,43 +1423,38 @@ describe('MasFragmentEditor', () => {
             const skeleton = el.previewSkeleton;
             expect(skeleton).to.not.equal(nothing);
         });
-    });
 
-    describe('relatedVariationsSection', () => {
-        let el;
-        beforeEach(() => {
-            el = document.createElement('mas-fragment-editor');
-            sandbox.stub(el.editorContextStore, 'isVariation').returns(false);
-            const fragment = new Fragment({ id: 'test-id' });
-            sandbox.stub(fragment, 'getLocaleVariationCount').returns(2);
-            sandbox.stub(fragment, 'getGroupedVariationCount').returns(2);
-            sandbox.stub(fragment, 'getPromoVariationCount').returns(1);
-            el.inEdit.value = { get: () => fragment };
+        it('hides related variations section when there is no fragment', () => {
+            el.inEdit.value = { get: () => null };
+            expect(el.relatedVariationsSection).to.equal(nothing);
         });
 
-        it('renders variation counts', () => {
-            const section = el.relatedVariationsSection;
-            expect(section).to.not.equal(nothing);
-        });
-    });
-
-    describe('relatedVariationsSection grouped variation counts', () => {
-        it('subtracts grouped count when current fragment is a grouped variation', () => {
-            const el = document.createElement('mas-fragment-editor');
-            sandbox.stub(el.editorContextStore, 'isVariation').returns(true);
+        it('hides related variations section for promo variations', () => {
+            const promoPath = '/content/dam/mas/sandbox/en_US/promotions/back-to-school/my-card';
             const fragment = new Fragment({
-                id: 'grouped-var',
-                path: '/content/dam/mas/sandbox/en_US/pac/pzn/grouped-one',
+                id: 'promo-var-id',
+                path: promoPath,
+                model: { path: CARD_MODEL_PATH },
+                tags: [],
+                fields: [],
             });
-            el.localeDefaultFragment = {
-                id: 'parent',
-                getLocaleVariationCount: () => 0,
-                getPromoVariationCount: () => 0,
-                getGroupedVariationCount: () => 1,
-            };
             el.inEdit.value = { get: () => fragment };
-            const section = el.relatedVariationsSection;
-            expect(section).to.equal(nothing);
+            expect(el.relatedVariationsSection).to.equal(nothing);
+        });
+
+        it('renders related variations section for non-promo fragments', () => {
+            const fragment = new Fragment({
+                id: 'test-id',
+                path: '/content/dam/mas/s/en_US/f',
+                model: { path: CARD_MODEL_PATH },
+                fields: [],
+                tags: [],
+            });
+            el.inEdit.value = { get: () => fragment };
+
+            const container = document.createElement('div');
+            render(el.relatedVariationsSection, container);
+            expect(container.textContent).to.include('Related variations:');
         });
     });
 
@@ -1488,14 +1483,6 @@ describe('MasFragmentEditor', () => {
                 tags: [],
             });
             el.inEdit.value = { get: () => fragment };
-            el.localeDefaultFragment = {
-                id: 'parent-id',
-                title: 'Parent collection',
-                path: '/content/dam/mas/sandbox/en_US/pac/parent',
-                getLocaleVariationCount: () => 1,
-                getGroupedVariationCount: () => 2,
-                getPromoVariationCount: () => 0,
-            };
             sandbox.stub(el.editorContextStore, 'isVariation').returns(true);
             const col = el.previewColumn;
             expect(col).to.not.equal(nothing);

@@ -1,8 +1,30 @@
-import { EVENT_AEM_LOAD, EVENT_MAS_READY, FF_DEFAULTS } from './constants.js';
+import {
+    EVENT_AEM_LOAD,
+    EVENT_MAS_READY,
+    FF_DEFAULTS,
+    TEMPLATE_PRICE_LEGAL,
+} from './constants.js';
 import { getService, shouldHideStPriceLabels } from './utils.js';
+import { COMPAT_VERSION_GLOBAL_PROMO_CODE } from './compat-version.js';
 
 const MAS_FIELD_TAG = 'mas-field';
 const CHECKOUT_STYLE_PATTERN = /(accent|primary|secondary)(-(outline|link))?/;
+
+/**
+ * Resolves the promo code the mas-field should apply to its prices/CTAs,
+ * honoring the global promo-code compat gate the same way merch-card's
+ * option providers do: only fragments authored at or above
+ * COMPAT_VERSION_GLOBAL_PROMO_CODE (or explicitly part of a promo project)
+ * opt into promo codes, so older fragments are left untouched.
+ */
+function contextPromotionCode(masField) {
+    if (
+        masField.compatVersion >= COMPAT_VERSION_GLOBAL_PROMO_CODE ||
+        masField.hasAttribute('data-promotion-project')
+    )
+        return masField.getAttribute('data-promotion-code');
+    return null;
+}
 
 /**
  * Opts headless mas-field-hosted inline-prices into FF_DEFAULTS so they
@@ -21,16 +43,41 @@ export function priceOptionsProvider(element, options) {
         options.displayTax = false;
     }
 
+    // Legal disclaimers show the plan type based on the fragment's
+    // displayPlanType setting, mirroring the merch-card variant provider.
+    // mas-field renders legal templates outside a card, so it must apply the
+    // setting itself, otherwise the plan type is always dropped.
+    if (element.dataset.template === TEMPLATE_PRICE_LEGAL) {
+        options.displayPlanType =
+            masField.aemFragment?.data?.settings?.displayPlanType ?? false;
+    }
+
     if (!options.promotionCode) {
-        const promotionCode = masField.getAttribute('data-promotion-code');
+        const promotionCode = contextPromotionCode(masField);
         if (promotionCode) options.promotionCode = promotionCode;
     }
 }
 
-function registerPriceOptionsProvider(service) {
+/**
+ * Applies the enclosing mas-field's promo code to checkout options,
+ * mirroring what merch-card's checkout options provider does for cards.
+ * Without this, CTAs rendered through <mas-field field="ctas"> resolve
+ * checkout URLs without the promotion applied by a promo project.
+ */
+export function checkoutOptionsProvider(element, options) {
+    const masField = element?.closest?.(MAS_FIELD_TAG);
+    if (!masField) return options;
+    if (!options.promotionCode) {
+        const promotionCode = contextPromotionCode(masField);
+        if (promotionCode) options.promotionCode = promotionCode;
+    }
+}
+
+function registerOptionsProviders(service) {
     if (!service?.providers || service.providers.has(priceOptionsProvider))
         return;
     service.providers.price(priceOptionsProvider);
+    service.providers.checkout(checkoutOptionsProvider);
 }
 
 const MAS_FIELD_STYLES = `
@@ -62,6 +109,13 @@ class MasField extends HTMLElement {
     #fields = null;
     #contentElement = null;
 
+    /**
+     * Compat version of the backing fragment, mirroring merch-card. Gates
+     * global promo-code application in the option providers.
+     * @type {number}
+     */
+    compatVersion;
+
     static get observedAttributes() {
         return ['field'];
     }
@@ -79,7 +133,7 @@ class MasField extends HTMLElement {
         this.addEventListener(EVENT_AEM_LOAD, this.#onFragmentLoad);
         this.#ensureContentElement();
         this.aemFragment?.setAttribute('hidden', '');
-        registerPriceOptionsProvider(getService());
+        registerOptionsProviders(getService());
     }
 
     /** Cleans up the event listener when removed from the DOM. */
@@ -182,6 +236,7 @@ class MasField extends HTMLElement {
                 'data-promotion-variation-project',
                 fragment.promoVariationProject,
             );
+        this.compatVersion = fragment.fields?.compatVersion;
         if (fragment.fields?.promoCode)
             this.setAttribute('data-promotion-code', fragment.fields.promoCode);
     }
@@ -205,13 +260,35 @@ class MasField extends HTMLElement {
                 const ctaEl = this.#renderCtaField(html);
                 if (ctaEl) {
                     content.replaceChildren(ctaEl);
+                    this.#stampPromotionCode(content, fieldName);
                     return;
                 }
             }
             content.innerHTML = html;
+            this.#stampPromotionCode(content, fieldName);
             return;
         }
         content.textContent = html == null ? '' : String(html);
+    }
+
+    /**
+     * Stamps the context promo code onto the CTA's checkout anchor(s) so it
+     * survives Milo's merch-card autoblock unwrapping the mas-field: the anchor
+     * is moved out of the wrapper (and any [data-promotion-code] ancestor)
+     * before its checkout URL resolves, so a promo code kept only on the
+     * wrapper is lost. Carrying it on the element itself lets both the checkout
+     * options provider (via dataset) and Milo's getCommerceContext (via
+     * closest) resolve it. Never overwrites an anchor's own authored promo code.
+     */
+    #stampPromotionCode(content, fieldName) {
+        if (fieldName !== 'ctas') return;
+        const promotionCode = contextPromotionCode(this);
+        if (!promotionCode) return;
+        const targets = content.querySelectorAll(
+            'a[data-wcs-osi]:not([data-promotion-code])',
+        );
+        for (const el of targets)
+            el.setAttribute('data-promotion-code', promotionCode);
     }
 
     /**

@@ -2512,6 +2512,38 @@ class MerchCardEditor extends LitElement {
     }
 
     #backgroundColorSelection(colors, selectedValue, dataField) {
+        const colorConfig = this.currentVariantMapping?.backgroundColor;
+        const specialValues = colorConfig?.specialValues;
+        if (specialValues) {
+            const selectedOption =
+                Object.entries(specialValues).find(([, value]) => value === selectedValue)?.[0] ??
+                (selectedValue || Object.keys(specialValues)[0]);
+            const handleSpecialValueChange = (e) => {
+                const fragment = this.fragmentStore.get();
+                fragment.updateField(dataField, [specialValues[e.target.value]]);
+                this.fragmentStore.set(fragment);
+            };
+
+            return html`
+                <sp-field-group class="toggle" id="backgroundColor">
+                    <sp-field-label for="backgroundColor">${colorConfig.editorLabel ?? 'Background Color'}</sp-field-label>
+                    <sp-picker
+                        id="backgroundColor"
+                        data-field="${dataField}"
+                        data-field-state="${this.getFieldState(dataField)}"
+                        value="${selectedOption}"
+                        data-default-value="${Object.keys(specialValues)[0]}"
+                        @change="${handleSpecialValueChange}"
+                    >
+                        ${Object.keys(specialValues).map(
+                            (label) => html`<sp-menu-item value="${label}">${label}</sp-menu-item>`,
+                        )}
+                    </sp-picker>
+                    ${this.renderFieldStatusIndicator(dataField)}
+                </sp-field-group>
+            `;
+        }
+
         const options = {
             Default: undefined,
             Transparent: 'transparent',

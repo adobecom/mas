@@ -95,13 +95,17 @@ merch-card-collection.product merch-card {
     width: 100%;
   }
 
-.two-merch-cards.section merch-card[variant="product"],
-.three-merch-cards.section merch-card[variant="product"],
-.four-merch-cards.section merch-card[variant="product"] {
-    width: auto;
+/* Sections inside tabs/fragments that don't receive the .product class.
+   Make .content wrapper transparent so the section grid applies directly to cards. */
+.one-merch-card:has(merch-card[variant="product"]) .content,
+.two-merch-cards:has(merch-card[variant="product"]) .content,
+.three-merch-cards:has(merch-card[variant="product"]) .content,
+.four-merch-cards:has(merch-card[variant="product"]) .content {
+  display: contents;
 }
 
-.one-merch-card.section merch-card[variant="product"] {
+.one-merch-card.section merch-card[variant="product"],
+.one-merch-card:has(merch-card[variant="product"]) merch-card[variant="product"] {
     width: auto;
     max-width: var(--consonant-merch-card-product-width);
     margin: 0 auto;
@@ -111,7 +115,11 @@ merch-card-collection.product merch-card {
 .one-merch-card.product,
 .two-merch-cards.product,
 .three-merch-cards.product,
-.four-merch-cards.product {
+.four-merch-cards.product,
+.one-merch-card:has(merch-card[variant="product"]),
+.two-merch-cards:has(merch-card[variant="product"]),
+.three-merch-cards:has(merch-card[variant="product"]),
+.four-merch-cards:has(merch-card[variant="product"]) {
     grid-template-columns: var(--consonant-merch-card-product-width);
 }
 
@@ -119,7 +127,10 @@ merch-card-collection.product merch-card {
 @media screen and ${TABLET_UP} {
     .two-merch-cards.product,
     .three-merch-cards.product,
-    .four-merch-cards.product {
+    .four-merch-cards.product,
+    .two-merch-cards:has(merch-card[variant="product"]),
+    .three-merch-cards:has(merch-card[variant="product"]),
+    .four-merch-cards:has(merch-card[variant="product"]) {
         grid-template-columns: repeat(2, var(--consonant-merch-card-product-width));
     }
 }
@@ -128,15 +139,16 @@ merch-card-collection.product merch-card {
 @media screen and ${DESKTOP_UP} {
   :root {
     --consonant-merch-card-product-width: 378px;
-    --consonant-merch-card-product-width-4clm: 276px;
   }
-    
-  .three-merch-cards.product {
+
+  .three-merch-cards.product,
+  .three-merch-cards:has(merch-card[variant="product"]) {
       grid-template-columns: repeat(3, var(--consonant-merch-card-product-width));
   }
 
-  .four-merch-cards.product {
-      grid-template-columns: repeat(4, var(--consonant-merch-card-product-width-4clm));
+  .four-merch-cards.product,
+  .four-merch-cards:has(merch-card[variant="product"]) {
+      grid-template-columns: repeat(auto-fit, var(--consonant-merch-card-product-width));
   }
 }
 

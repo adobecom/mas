@@ -229,16 +229,31 @@ merch-card[variant="catalog"] [slot="footer"] .spectrum-Link--primary {
 .one-merch-card.image,
 .two-merch-cards.image,
 .three-merch-cards.image,
-.four-merch-cards.image {
+.four-merch-cards.image,
+.one-merch-card:has(merch-card[variant="image"]),
+.two-merch-cards:has(merch-card[variant="image"]),
+.three-merch-cards:has(merch-card[variant="image"]),
+.four-merch-cards:has(merch-card[variant="image"]) {
   --merch-card-collection-card-width: var(--consonant-merch-card-image-width);
   grid-template-columns: minmax(300px, var(--consonant-merch-card-image-width));
 }
 
+.section.one-merch-card:has(merch-card[variant="image"]) > .content,
 .section[class*="-merch-cards"]:has(merch-card[variant="image"]) > .content {
   --merch-card-collection-card-width: var(--consonant-merch-card-image-width);
 }
 
-.one-merch-card.section merch-card[variant="image"] {
+/* Sections inside tabs/fragments that don't receive the .image class.
+   Make .content wrapper transparent so the section grid applies directly to cards. */
+.one-merch-card:has(merch-card[variant="image"]) .content,
+.two-merch-cards:has(merch-card[variant="image"]) .content,
+.three-merch-cards:has(merch-card[variant="image"]) .content,
+.four-merch-cards:has(merch-card[variant="image"]) .content {
+  display: contents;
+}
+
+.one-merch-card.section merch-card[variant="image"],
+.one-merch-card:has(merch-card[variant="image"]) merch-card[variant="image"] {
   width: auto;
   max-width: var(--consonant-merch-card-image-width);
   margin: 0 auto;
@@ -247,7 +262,10 @@ merch-card[variant="catalog"] [slot="footer"] .spectrum-Link--primary {
 @media screen and ${N} {
   .two-merch-cards.image,
   .three-merch-cards.image,
-  .four-merch-cards.image {
+  .four-merch-cards.image,
+  .two-merch-cards:has(merch-card[variant="image"]),
+  .three-merch-cards:has(merch-card[variant="image"]),
+  .four-merch-cards:has(merch-card[variant="image"]) {
       grid-template-columns: repeat(2, minmax(300px, var(--consonant-merch-card-image-width)));
   }
 }
@@ -257,12 +275,14 @@ merch-card[variant="catalog"] [slot="footer"] .spectrum-Link--primary {
     --consonant-merch-card-image-width: 378px;
   }
 
-  .three-merch-cards.image {
+  .three-merch-cards.image,
+  .three-merch-cards:has(merch-card[variant="image"]) {
       grid-template-columns: repeat(3, var(--consonant-merch-card-image-width));
   }
 
-  .four-merch-cards.image {
-      grid-template-columns: repeat(4, var(--consonant-merch-card-image-width));
+  .four-merch-cards.image,
+  .four-merch-cards:has(merch-card[variant="image"]) {
+      grid-template-columns: repeat(auto-fit, var(--consonant-merch-card-image-width));
   }
 }
 `;var Fi={cardName:{attribute:"name"},badge:{tag:"div",slot:"badge",default:"spectrum-yellow-300-plans"},badgeIcon:!0,borderColor:{attribute:"border-color"},allowedBadgeColors:["spectrum-yellow-300-plans","spectrum-gray-300-plans","spectrum-gray-700-plans","spectrum-green-900-plans","spectrum-red-700-plans","gradient-purple-blue"],allowedBorderColors:["spectrum-yellow-300-plans","spectrum-gray-300-plans","spectrum-green-900-plans","spectrum-red-700-plans","gradient-purple-blue"],ctas:{slot:"footer",size:"m"},description:{tag:"div",slot:"body-xs"},mnemonics:{size:"l"},prices:{tag:"h3",slot:"heading-xs"},promoText:{tag:"p",slot:"promo-text"},size:["wide","super-wide"],title:{tag:"h3",slot:"heading-xs"},subtitle:{tag:"p",slot:"body-xxs"},backgroundImage:{tag:"div",slot:"bg-image"}},Ge=class extends w{constructor(r){super(r)}getGlobalCSS(){return Bi}renderLayout(){return Nt`<div class="image">
@@ -317,14 +337,30 @@ merch-card[variant="catalog"] [slot="footer"] .spectrum-Link--primary {
 .one-merch-card.inline-heading,
 .two-merch-cards.inline-heading,
 .three-merch-cards.inline-heading,
-.four-merch-cards.inline-heading {
+.four-merch-cards.inline-heading,
+.one-merch-card:has(merch-card[variant="inline-heading"]),
+.two-merch-cards:has(merch-card[variant="inline-heading"]),
+.three-merch-cards:has(merch-card[variant="inline-heading"]),
+.four-merch-cards:has(merch-card[variant="inline-heading"]) {
     grid-template-columns: var(--consonant-merch-card-inline-heading-width);
+}
+
+/* Sections inside tabs/fragments that don't receive the .inline-heading class.
+   Make .content wrapper transparent so the section grid applies directly to cards. */
+.one-merch-card:has(merch-card[variant="inline-heading"]) .content,
+.two-merch-cards:has(merch-card[variant="inline-heading"]) .content,
+.three-merch-cards:has(merch-card[variant="inline-heading"]) .content,
+.four-merch-cards:has(merch-card[variant="inline-heading"]) .content {
+  display: contents;
 }
 
 @media screen and ${N} {
   .two-merch-cards.inline-heading,
   .three-merch-cards.inline-heading,
-  .four-merch-cards.inline-heading {
+  .four-merch-cards.inline-heading,
+  .two-merch-cards:has(merch-card[variant="inline-heading"]),
+  .three-merch-cards:has(merch-card[variant="inline-heading"]),
+  .four-merch-cards:has(merch-card[variant="inline-heading"]) {
       grid-template-columns: repeat(2, var(--consonant-merch-card-inline-heading-width));
   }
 }
@@ -335,13 +371,16 @@ merch-card[variant="catalog"] [slot="footer"] .spectrum-Link--primary {
   }
 
   .three-merch-cards.inline-heading,
-  .four-merch-cards.inline-heading {
+  .four-merch-cards.inline-heading,
+  .three-merch-cards:has(merch-card[variant="inline-heading"]),
+  .four-merch-cards:has(merch-card[variant="inline-heading"]) {
       grid-template-columns: repeat(3, var(--consonant-merch-card-inline-heading-width));
   }
 }
 
 @media screen and ${J} {
-  .four-merch-cards.inline-heading {
+  .four-merch-cards.inline-heading,
+  .four-merch-cards:has(merch-card[variant="inline-heading"]) {
       grid-template-columns: repeat(4, var(--consonant-merch-card-inline-heading-width));
   }
 }
@@ -5655,13 +5694,17 @@ merch-card-collection.product merch-card {
     width: 100%;
   }
 
-.two-merch-cards.section merch-card[variant="product"],
-.three-merch-cards.section merch-card[variant="product"],
-.four-merch-cards.section merch-card[variant="product"] {
-    width: auto;
+/* Sections inside tabs/fragments that don't receive the .product class.
+   Make .content wrapper transparent so the section grid applies directly to cards. */
+.one-merch-card:has(merch-card[variant="product"]) .content,
+.two-merch-cards:has(merch-card[variant="product"]) .content,
+.three-merch-cards:has(merch-card[variant="product"]) .content,
+.four-merch-cards:has(merch-card[variant="product"]) .content {
+  display: contents;
 }
 
-.one-merch-card.section merch-card[variant="product"] {
+.one-merch-card.section merch-card[variant="product"],
+.one-merch-card:has(merch-card[variant="product"]) merch-card[variant="product"] {
     width: auto;
     max-width: var(--consonant-merch-card-product-width);
     margin: 0 auto;
@@ -5671,7 +5714,11 @@ merch-card-collection.product merch-card {
 .one-merch-card.product,
 .two-merch-cards.product,
 .three-merch-cards.product,
-.four-merch-cards.product {
+.four-merch-cards.product,
+.one-merch-card:has(merch-card[variant="product"]),
+.two-merch-cards:has(merch-card[variant="product"]),
+.three-merch-cards:has(merch-card[variant="product"]),
+.four-merch-cards:has(merch-card[variant="product"]) {
     grid-template-columns: var(--consonant-merch-card-product-width);
 }
 
@@ -5679,7 +5726,10 @@ merch-card-collection.product merch-card {
 @media screen and ${N} {
     .two-merch-cards.product,
     .three-merch-cards.product,
-    .four-merch-cards.product {
+    .four-merch-cards.product,
+    .two-merch-cards:has(merch-card[variant="product"]),
+    .three-merch-cards:has(merch-card[variant="product"]),
+    .four-merch-cards:has(merch-card[variant="product"]) {
         grid-template-columns: repeat(2, var(--consonant-merch-card-product-width));
     }
 }
@@ -5688,15 +5738,16 @@ merch-card-collection.product merch-card {
 @media screen and ${k} {
   :root {
     --consonant-merch-card-product-width: 378px;
-    --consonant-merch-card-product-width-4clm: 276px;
   }
-    
-  .three-merch-cards.product {
+
+  .three-merch-cards.product,
+  .three-merch-cards:has(merch-card[variant="product"]) {
       grid-template-columns: repeat(3, var(--consonant-merch-card-product-width));
   }
 
-  .four-merch-cards.product {
-      grid-template-columns: repeat(4, var(--consonant-merch-card-product-width-4clm));
+  .four-merch-cards.product,
+  .four-merch-cards:has(merch-card[variant="product"]) {
+      grid-template-columns: repeat(auto-fit, var(--consonant-merch-card-product-width));
   }
 }
 
@@ -5883,16 +5934,32 @@ merch-card[variant="segment"] {
 .one-merch-card.segment,
 .two-merch-cards.segment,
 .three-merch-cards.segment,
-.four-merch-cards.segment {
+.four-merch-cards.segment,
+.one-merch-card:has(merch-card[variant="segment"]),
+.two-merch-cards:has(merch-card[variant="segment"]),
+.three-merch-cards:has(merch-card[variant="segment"]),
+.four-merch-cards:has(merch-card[variant="segment"]) {
   grid-template-columns: minmax(276px, var(--consonant-merch-card-segment-width));
 }
 
-.one-merch-card.section merch-card[variant="segment"] {
+/* Sections inside tabs/fragments that don't receive the .segment class.
+   Make .content wrapper transparent so the section grid applies directly to cards. */
+.one-merch-card:has(merch-card[variant="segment"]) .content,
+.two-merch-cards:has(merch-card[variant="segment"]) .content,
+.three-merch-cards:has(merch-card[variant="segment"]) .content,
+.four-merch-cards:has(merch-card[variant="segment"]) .content {
+  display: contents;
+}
+
+.one-merch-card.section merch-card[variant="segment"],
+.one-merch-card:has(merch-card[variant="segment"]) merch-card[variant="segment"] {
     margin: 0 auto;
 }
 
 .three-merch-cards.section merch-card[variant="segment"],
-.four-merch-cards.section merch-card[variant="segment"] {
+.four-merch-cards.section merch-card[variant="segment"],
+.three-merch-cards:has(merch-card[variant="segment"]) merch-card[variant="segment"],
+.four-merch-cards:has(merch-card[variant="segment"]) merch-card[variant="segment"] {
     max-width: 302px;
 }
 
@@ -5907,10 +5974,13 @@ merch-card[variant="segment"] {
   :root {
     --consonant-merch-card-segment-width: 276px;
   }
-    
+
   .two-merch-cards.segment,
   .three-merch-cards.segment,
-  .four-merch-cards.segment {
+  .four-merch-cards.segment,
+  .two-merch-cards:has(merch-card[variant="segment"]),
+  .three-merch-cards:has(merch-card[variant="segment"]),
+  .four-merch-cards:has(merch-card[variant="segment"]) {
       grid-template-columns: repeat(2, minmax(302px, var(--consonant-merch-card-segment-width)));
   }
 }
@@ -5920,12 +5990,14 @@ merch-card[variant="segment"] {
   :root {
     --consonant-merch-card-segment-width: 276px;
   }
-    
-  .three-merch-cards.segment {
+
+  .three-merch-cards.segment,
+  .three-merch-cards:has(merch-card[variant="segment"]) {
       grid-template-columns: repeat(3, minmax(276px, var(--consonant-merch-card-segment-width)));
   }
 
-  .four-merch-cards.segment {
+  .four-merch-cards.segment,
+  .four-merch-cards:has(merch-card[variant="segment"]) {
       grid-template-columns: repeat(4, minmax(276px, var(--consonant-merch-card-segment-width)));
   }
 }
@@ -6178,8 +6250,21 @@ merch-card[variant="special-offers"] span[is="inline-price"][data-template="pric
 .one-merch-card.special-offers,
 .two-merch-cards.special-offers,
 .three-merch-cards.special-offers,
-.four-merch-cards.special-offers {
+.four-merch-cards.special-offers,
+.one-merch-card:has(merch-card[variant="special-offers"]),
+.two-merch-cards:has(merch-card[variant="special-offers"]),
+.three-merch-cards:has(merch-card[variant="special-offers"]),
+.four-merch-cards:has(merch-card[variant="special-offers"]) {
   grid-template-columns: minmax(302px, var(--consonant-merch-card-special-offers-width));
+}
+
+/* Sections inside tabs/fragments that don't receive the .special-offers class.
+   Make .content wrapper transparent so the section grid applies directly to cards. */
+.one-merch-card:has(merch-card[variant="special-offers"]) .content,
+.two-merch-cards:has(merch-card[variant="special-offers"]) .content,
+.three-merch-cards:has(merch-card[variant="special-offers"]) .content,
+.four-merch-cards:has(merch-card[variant="special-offers"]) .content {
+  display: contents;
 }
 
 @media screen and ${I} {
@@ -6195,7 +6280,10 @@ merch-card[variant="special-offers"] span[is="inline-price"][data-template="pric
 
   .two-merch-cards.special-offers,
   .three-merch-cards.special-offers,
-  .four-merch-cards.special-offers {
+  .four-merch-cards.special-offers,
+  .two-merch-cards:has(merch-card[variant="special-offers"]),
+  .three-merch-cards:has(merch-card[variant="special-offers"]),
+  .four-merch-cards:has(merch-card[variant="special-offers"]) {
       grid-template-columns: repeat(2, minmax(302px, var(--consonant-merch-card-special-offers-width)));
   }
 }
@@ -6203,13 +6291,16 @@ merch-card[variant="special-offers"] span[is="inline-price"][data-template="pric
 /* desktop */
 @media screen and ${k} {
   .three-merch-cards.special-offers,
-  .four-merch-cards.special-offers {
+  .four-merch-cards.special-offers,
+  .three-merch-cards:has(merch-card[variant="special-offers"]),
+  .four-merch-cards:has(merch-card[variant="special-offers"]) {
     grid-template-columns: repeat(3, minmax(302px, var(--consonant-merch-card-special-offers-width)));
   }
 }
 
 @media screen and ${J} {
-  .four-merch-cards.special-offers {
+  .four-merch-cards.special-offers,
+  .four-merch-cards:has(merch-card[variant="special-offers"]) {
     grid-template-columns: repeat(4, minmax(302px, var(--consonant-merch-card-special-offers-width)));
   }
 }

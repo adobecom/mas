@@ -306,8 +306,8 @@ export const ODIN_PREVIEW_ORIGIN = 'https://odinpreview.corp.adobe.com';
 
 export const BULK_PUBLISH_PROJECT_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2J1bGstcHVibGlzaC1wcm9qZWN0';
 
-// Contract: the terminal values (Published/Partially published/Failed) must match
-// WORKER_STATUS in io/studio/src/bulk-publish/bulk-publish-worker.js (IO side).
+// Contract: every value except LOCKED must match PROJECT_STATUS in
+// io/studio/src/bulk-publish/project.js (IO side). LOCKED is client-side only — no IO writer sets it.
 export const BULK_PUBLISH_STATUS = {
     DRAFT: 'Draft',
     PUBLISHING: 'Publishing',
@@ -330,3 +330,9 @@ export const COMPAT_VERSION = COMPAT_VERSION_GLOBAL_PROMO_CODE;
 
 /** Freyja fragments API root on the preview origin — use as `preview.url` in pipeline contexts. */
 export const ODIN_PREVIEW_FRAGMENTS_URL = `${ODIN_PREVIEW_ORIGIN}/adobe/contentFragments`;
+
+export const VARIATION_TAB_NAME = {
+    LOCALE: 'locale',
+    PROMOTION: 'promotion',
+    GROUPED: 'grouped',
+};

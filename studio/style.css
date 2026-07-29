@@ -1039,20 +1039,6 @@ sp-progress-circle.preview {
     text-decoration: none;
 }
 
-.related-variations-counts {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    padding: 4px;
-}
-
-.related-variations-count {
-    color: var(--spectrum-gray-900, #292929);
-    font-size: 14px;
-    font-weight: 400;
-    line-height: 18px;
-}
-
 @media screen and (max-width: 1100px) {
     sp-table-cell.offer-id {
         word-break: break-all;

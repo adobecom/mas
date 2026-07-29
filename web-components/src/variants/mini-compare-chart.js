@@ -418,7 +418,7 @@ export class MiniCompareChart extends VariantLayout {
 
     get headingMPriceSlot() {
         return this.card.shadowRoot
-            .querySelector('slot[name="heading-m-price"]')
+            ?.querySelector('slot[name="heading-m-price"]')
             ?.assignedElements()[0];
     }
 
@@ -642,25 +642,73 @@ export class MiniCompareChart extends VariantLayout {
         }
     }
 
-    adjustShortDescription() {
-        if (!this.shortDescriptionSource) {
-            const bodyXxs = this.card.querySelector('[slot="body-xxs"]');
-            if (!bodyXxs) return;
-            this.shortDescriptionSource = bodyXxs;
-            bodyXxs.remove();
+    // When there's no resolved legal price to carry the plan-type span
+    // (e.g. price failed to resolve, or there's no price at all), build a
+    // minimal stand-in with the same classes so the short description
+    // still renders in the usual plan-type/legal position and styling.
+    getOrCreateFallbackPlanType() {
+        const headingMPriceSlot = this.headingMPriceSlot;
+        if (!headingMPriceSlot) return null;
+        let fallbackLegal = headingMPriceSlot.querySelector(
+            '.price-legal[data-fallback]',
+        );
+        if (!fallbackLegal) {
+            fallbackLegal = document.createElement('span');
+            fallbackLegal.className = 'price price-legal';
+            fallbackLegal.dataset.fallback = 'true';
+            const planType = document.createElement('span');
+            planType.className = 'price-plan-type disabled';
+            fallbackLegal.appendChild(planType);
+            headingMPriceSlot.appendChild(fallbackLegal);
         }
-        const source = this.shortDescriptionSource;
-        const text = source.textContent?.trim();
-        const hasIconButton = !!source.querySelector('.icon-button');
-        if (!text && !hasIconButton) return;
+        return fallbackLegal.querySelector('.price-plan-type');
+    }
+
+    adjustShortDescription() {
         const legalPrice = this.card.querySelector(
             '[is="inline-price"][data-template="legal"]',
         );
-        const planType = legalPrice?.querySelector('.price-plan-type');
+        const realPlanType = legalPrice?.querySelector('.price-plan-type');
+        const fallbackLegal = this.headingMPriceSlot?.querySelector(
+            '.price-legal[data-fallback]',
+        );
+        const fallbackPlanType =
+            fallbackLegal?.querySelector('.price-plan-type');
+
+        // A real legal price is now available — migrate any content
+        // already parked on the fallback stand-in over to it (bodyXxs is
+        // already gone by this point), then discard the fallback.
+        if (realPlanType && fallbackPlanType) {
+            const fallbackEm = fallbackPlanType.querySelector('em');
+            if (fallbackEm && !realPlanType.querySelector('em')) {
+                realPlanType.appendChild(fallbackEm);
+            }
+            fallbackLegal.remove();
+        }
+
+        // Query fresh each time rather than only relying on a cached node:
+        // the card can re-render body-xxs (e.g. once the price resolves and
+        // the legal price is (re)cloned). The extracted HTML is cached
+        // separately (see below) since adjustLegal() can race and produce a
+        // second legal price clone after body-xxs has already been removed —
+        // without the cache, that second clone would never get populated.
+        const bodyXxs = this.card.querySelector('[slot="body-xxs"]');
+        if (bodyXxs) {
+            const text = bodyXxs.textContent?.trim();
+            const hasIconButton = !!bodyXxs.querySelector('.icon-button');
+            if (text || hasIconButton) {
+                this.shortDescriptionHTML = bodyXxs.innerHTML;
+                bodyXxs.remove();
+            }
+        }
+        if (!this.shortDescriptionHTML) return;
+
+        const planType = realPlanType ?? this.getOrCreateFallbackPlanType();
         if (!planType) return;
         if (planType.querySelector('em')) return;
+
         const em = document.createElement('em');
-        em.innerHTML = ` ${source.innerHTML}`;
+        em.innerHTML = ` ${this.shortDescriptionHTML}`;
         planType.appendChild(em);
     }
 

@@ -1,8 +1,12 @@
 import { expect } from '@esm-bundle/chai';
 import sinon from 'sinon';
 import '../src/mas-field.js';
-import { priceOptionsProvider } from '../src/mas-field.js';
+import {
+    checkoutOptionsProvider,
+    priceOptionsProvider,
+} from '../src/mas-field.js';
 import { FF_DEFAULTS } from '../src/constants.js';
+import { COMPAT_VERSION_GLOBAL_PROMO_CODE } from '../src/compat-version.js';
 
 const CTA_HTML =
     '<a data-wcs-osi="ABC123" data-checkout-workflow="UCv3" data-template="checkoutUrl" data-analytics-id="buy-now" class="accent">Buy now</a>';
@@ -458,7 +462,7 @@ describe('mas-field – fragment context promo code', () => {
             .forEach((el) => el.remove());
     });
 
-    it('sets data-promotion-code from the loaded fragment promoCode', () => {
+    it('sets data-promotion-code and stashes compatVersion from the loaded fragment', () => {
         const el = document.createElement('mas-field');
         el.setAttribute('field', 'prices');
         const fragment = document.createElement('aem-fragment');
@@ -466,7 +470,10 @@ describe('mas-field – fragment context promo code', () => {
         document.body.append(el);
         fragment.data = {
             id: 'fragment-id',
-            fields: { promoCode: 'PROMO123' },
+            fields: {
+                promoCode: 'PROMO123',
+                compatVersion: COMPAT_VERSION_GLOBAL_PROMO_CODE,
+            },
         };
         fragment.dispatchEvent(
             new CustomEvent('aem:load', {
@@ -475,6 +482,7 @@ describe('mas-field – fragment context promo code', () => {
             }),
         );
         expect(el.getAttribute('data-promotion-code')).to.equal('PROMO123');
+        expect(el.compatVersion).to.equal(COMPAT_VERSION_GLOBAL_PROMO_CODE);
     });
 
     it('does not set data-promotion-code when fragment has no promoCode', () => {
@@ -491,6 +499,111 @@ describe('mas-field – fragment context promo code', () => {
             }),
         );
         expect(el.hasAttribute('data-promotion-code')).to.be.false;
+    });
+});
+
+describe('mas-field – stamps context promo code on CTA anchors', () => {
+    afterEach(() => {
+        document.body
+            .querySelectorAll('mas-field')
+            .forEach((el) => el.remove());
+    });
+
+    const CHECKOUT_ANCHOR =
+        '<a is="checkout-link" href="" data-wcs-osi="osi1" class="accent">Buy now</a>';
+
+    function makeCtaField(field, ctasHtml, data) {
+        const el = document.createElement('mas-field');
+        el.setAttribute('field', field);
+        const fragment = document.createElement('aem-fragment');
+        el.append(fragment);
+        document.body.append(el);
+        fragment.data = data;
+        fragment.dispatchEvent(
+            new CustomEvent('aem:load', {
+                bubbles: true,
+                detail: { fields: { ctas: ctasHtml } },
+            }),
+        );
+        return el;
+    }
+
+    it('stamps data-promotion-code on an indexed CTA anchor when compat opts in', () => {
+        const el = makeCtaField('ctas[1]', CHECKOUT_ANCHOR, {
+            id: 'f1',
+            fields: {
+                promoCode: 'PROMO123',
+                compatVersion: COMPAT_VERSION_GLOBAL_PROMO_CODE,
+            },
+        });
+        const a = el.querySelector('[data-role="mas-field-content"] a');
+        expect(a.getAttribute('data-promotion-code')).to.equal('PROMO123');
+    });
+
+    it('stamps data-promotion-code on a footer checkout button (non-indexed ctas)', () => {
+        const el = makeCtaField('ctas', CHECKOUT_ANCHOR, {
+            id: 'f1',
+            fields: {
+                promoCode: 'PROMO123',
+                compatVersion: COMPAT_VERSION_GLOBAL_PROMO_CODE,
+            },
+        });
+        const a = el.querySelector('[slot="footer"] a');
+        expect(a.getAttribute('data-promotion-code')).to.equal('PROMO123');
+    });
+
+    it('stamps for a promo project regardless of compatVersion', () => {
+        const el = makeCtaField('ctas[1]', CHECKOUT_ANCHOR, {
+            id: 'f1',
+            promoProject: 'promo-project',
+            fields: { promoCode: 'PROMO123' },
+        });
+        const a = el.querySelector('[data-role="mas-field-content"] a');
+        expect(a.getAttribute('data-promotion-code')).to.equal('PROMO123');
+    });
+
+    it('does not stamp when compat gate fails and there is no promo project', () => {
+        const el = makeCtaField('ctas[1]', CHECKOUT_ANCHOR, {
+            id: 'f1',
+            fields: {
+                promoCode: 'PROMO123',
+                compatVersion: COMPAT_VERSION_GLOBAL_PROMO_CODE - 1,
+            },
+        });
+        const a = el.querySelector('[data-role="mas-field-content"] a');
+        expect(a.hasAttribute('data-promotion-code')).to.be.false;
+    });
+
+    it("does not overwrite an anchor's own authored promo code", () => {
+        const el = makeCtaField(
+            'ctas[1]',
+            '<a is="checkout-link" href="" data-wcs-osi="osi1" data-promotion-code="OWN">Buy now</a>',
+            {
+                id: 'f1',
+                fields: {
+                    promoCode: 'PROMO123',
+                    compatVersion: COMPAT_VERSION_GLOBAL_PROMO_CODE,
+                },
+            },
+        );
+        const a = el.querySelector('[data-role="mas-field-content"] a');
+        expect(a.getAttribute('data-promotion-code')).to.equal('OWN');
+    });
+
+    it('does not stamp non-checkout anchors (no data-wcs-osi)', () => {
+        const el = makeCtaField(
+            'ctas',
+            '<a href="https://example.com" class="accent">Learn more</a>',
+            {
+                id: 'f1',
+                fields: {
+                    promoCode: 'PROMO123',
+                    compatVersion: COMPAT_VERSION_GLOBAL_PROMO_CODE,
+                },
+            },
+        );
+        const a = el.querySelector('[slot="footer"] a');
+        expect(a.hasAttribute('data-promotion-code')).to.be.false;
     });
 });
 
@@ -529,9 +642,10 @@ describe('mas-field – price options provider (locale defaults)', () => {
         expect(options[FF_DEFAULTS]).to.be.undefined;
     });
 
-    it('sets options.promotionCode from the enclosing mas-field data-promotion-code', () => {
+    it('sets options.promotionCode when compatVersion opts into global promo codes', () => {
         const masField = document.createElement('mas-field');
         masField.setAttribute('data-promotion-code', 'PROMO123');
+        masField.compatVersion = COMPAT_VERSION_GLOBAL_PROMO_CODE;
         const inline = document.createElement('span');
         inline.setAttribute('is', 'inline-price');
         masField.append(inline);
@@ -540,6 +654,34 @@ describe('mas-field – price options provider (locale defaults)', () => {
         const options = {};
         priceOptionsProvider(inline, options);
         expect(options.promotionCode).to.equal('PROMO123');
+    });
+
+    it('sets options.promotionCode for a promo project regardless of compatVersion', () => {
+        const masField = document.createElement('mas-field');
+        masField.setAttribute('data-promotion-code', 'PROMO123');
+        masField.setAttribute('data-promotion-project', 'promo-project');
+        const inline = document.createElement('span');
+        inline.setAttribute('is', 'inline-price');
+        masField.append(inline);
+        document.body.append(masField);
+
+        const options = {};
+        priceOptionsProvider(inline, options);
+        expect(options.promotionCode).to.equal('PROMO123');
+    });
+
+    it('leaves options.promotionCode unset when compatVersion is below the global promo code version and there is no promo project', () => {
+        const masField = document.createElement('mas-field');
+        masField.setAttribute('data-promotion-code', 'PROMO123');
+        masField.compatVersion = COMPAT_VERSION_GLOBAL_PROMO_CODE - 1;
+        const inline = document.createElement('span');
+        inline.setAttribute('is', 'inline-price');
+        masField.append(inline);
+        document.body.append(masField);
+
+        const options = {};
+        priceOptionsProvider(inline, options);
+        expect(options.promotionCode).to.be.undefined;
     });
 
     it('does not override an existing options.promotionCode', () => {
@@ -565,6 +707,115 @@ describe('mas-field – price options provider (locale defaults)', () => {
         const options = {};
         priceOptionsProvider(inline, options);
         expect(options.promotionCode).to.be.undefined;
+    });
+
+    it('sets checkout options.promotionCode when compatVersion opts into global promo codes', () => {
+        const masField = document.createElement('mas-field');
+        masField.setAttribute('data-promotion-code', 'PROMO123');
+        masField.compatVersion = COMPAT_VERSION_GLOBAL_PROMO_CODE;
+        const link = document.createElement('a', { is: 'checkout-link' });
+        masField.append(link);
+        document.body.append(masField);
+
+        const options = {};
+        checkoutOptionsProvider(link, options);
+        expect(options.promotionCode).to.equal('PROMO123');
+    });
+
+    it('leaves checkout options.promotionCode unset when compatVersion is below the global promo code version and there is no promo project', () => {
+        const masField = document.createElement('mas-field');
+        masField.setAttribute('data-promotion-code', 'PROMO123');
+        masField.compatVersion = COMPAT_VERSION_GLOBAL_PROMO_CODE - 1;
+        const link = document.createElement('a', { is: 'checkout-link' });
+        masField.append(link);
+        document.body.append(masField);
+
+        const options = {};
+        checkoutOptionsProvider(link, options);
+        expect(options.promotionCode).to.be.undefined;
+    });
+
+    it('does not override an existing checkout options.promotionCode', () => {
+        const masField = document.createElement('mas-field');
+        masField.setAttribute('data-promotion-code', 'PROMO123');
+        const link = document.createElement('a', { is: 'checkout-link' });
+        masField.append(link);
+        document.body.append(masField);
+
+        const options = { promotionCode: 'OWN-CODE' };
+        checkoutOptionsProvider(link, options);
+        expect(options.promotionCode).to.equal('OWN-CODE');
+    });
+
+    it('leaves checkout options untouched for elements outside mas-field', () => {
+        const link = document.createElement('a', { is: 'checkout-link' });
+        document.body.append(link);
+
+        const options = {};
+        checkoutOptionsProvider(link, options);
+        expect(options.promotionCode).to.be.undefined;
+        expect(() => checkoutOptionsProvider(null, options)).to.not.throw();
+    });
+
+    function makeLegalField(displayPlanType) {
+        const masField = document.createElement('mas-field');
+        const fragment = document.createElement('aem-fragment');
+        Object.defineProperty(fragment, 'data', {
+            configurable: true,
+            value: { settings: { displayPlanType } },
+        });
+        const inline = document.createElement('span');
+        inline.setAttribute('is', 'inline-price');
+        inline.dataset.template = 'legal';
+        masField.append(fragment, inline);
+        document.body.append(masField);
+        return inline;
+    }
+
+    it('sets displayPlanType for legal templates from the fragment setting', () => {
+        const inline = makeLegalField(true);
+        const options = {};
+        priceOptionsProvider(inline, options);
+        expect(options.displayPlanType).to.equal(true);
+    });
+
+    it('leaves displayPlanType off for legal when the fragment setting is off', () => {
+        const inline = makeLegalField(false);
+        const options = {};
+        priceOptionsProvider(inline, options);
+        expect(options.displayPlanType).to.equal(false);
+    });
+
+    it('defaults displayPlanType to false for legal when the setting is absent', () => {
+        const masField = document.createElement('mas-field');
+        masField.append(document.createElement('aem-fragment'));
+        const inline = document.createElement('span');
+        inline.setAttribute('is', 'inline-price');
+        inline.dataset.template = 'legal';
+        masField.append(inline);
+        document.body.append(masField);
+
+        const options = {};
+        priceOptionsProvider(inline, options);
+        expect(options.displayPlanType).to.equal(false);
+    });
+
+    it('does not set displayPlanType for non-legal templates', () => {
+        const masField = document.createElement('mas-field');
+        const fragment = document.createElement('aem-fragment');
+        Object.defineProperty(fragment, 'data', {
+            configurable: true,
+            value: { settings: { displayPlanType: true } },
+        });
+        const inline = document.createElement('span');
+        inline.setAttribute('is', 'inline-price');
+        inline.dataset.template = 'price';
+        masField.append(fragment, inline);
+        document.body.append(masField);
+
+        const options = {};
+        priceOptionsProvider(inline, options);
+        expect(options.displayPlanType).to.be.undefined;
     });
 });
 

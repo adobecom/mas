@@ -431,4 +431,91 @@ describe('pipeline end to end', () => {
         // promoCode also applied from promotion
         expect(result.body.fields.promoCode).to.equal('BF2025');
     });
+
+    it('does not promo-match an OSI injected into a placeholder value when the fragment osi has no explicit or wildcard mapping', async () => {
+        setupFragmentMocks(fetchStub, { id: 'some-en-us-fragment', path: 'someFragment' });
+
+        // Fragment prices field is a placeholder; its own osi (OWN-OSI) is NOT in the promo.
+        fetchStub.withArgs('https://odin.adobe.com/adobe/contentFragments/some-fr-fr-fragment?references=all-hydrated').returns(
+            createResponse(200, {
+                path: '/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app',
+                id: 'some-fr-fr-fragment',
+                model: { id: CARD_MODEL_ID },
+                fields: {
+                    variant: 'plans',
+                    osi: 'OWN-OSI',
+                    prices: { value: '{{promo-price}}', mimeType: 'text/html' },
+                },
+                references: {},
+                referencesTree: [],
+            }),
+        );
+
+        // Dictionary resolves {{promo-price}} to inline price markup carrying INJECTED-OSI. This OSI
+        // only exists in the baked fragment AFTER the replace transformer runs — it is invisible to
+        // customize, which runs earlier.
+        fetchStub
+            .withArgs('https://odin.adobe.com/adobe/contentFragments/sandbox_fr_FR_dictionary?references=all-hydrated')
+            .returns(
+                createResponse(200, {
+                    id: 'sandbox_fr_FR_dictionary',
+                    fields: { entries: ['promo-price-entry'] },
+                    references: {
+                        'promo-price-entry': {
+                            type: 'content-fragment',
+                            value: {
+                                id: 'promo-price-entry',
+                                path: '/content/dam/mas/sandbox/fr_FR/dictionary/promo-price',
+                                fields: {
+                                    key: 'promo-price',
+                                    value: '<span is="inline-price" data-wcs-osi="INJECTED-OSI"></span>',
+                                },
+                            },
+                        },
+                    },
+                }),
+            );
+
+        // Promo project targets this fragment's path, and does define a substitution/promo code —
+        // but only for INJECTED-OSI/SUB-INJECTED, neither of which is the fragment's own osi
+        // (OWN-OSI) at customize time, and there is no wildcard promoCode either. So the project
+        // does not qualify for this fragment: no scope is recorded, and the OSI injected later by
+        // the replace transformer is never seen by wcs.
+        const project = makeProject({
+            id: 'proj-bts',
+            path: '/content/dam/mas/promotions/bts',
+            surfaces: ['sandbox'],
+            geos: [],
+            startDate: null,
+            endDate: null,
+        });
+        fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+
+        const hydrated = makeHydratedProject({
+            fragmentId: 'some-fr-fr-fragment',
+            fragmentPath: '/content/dam/mas/sandbox/en_US/ccd-slice-wide-cc-all-app',
+            promoCode: null,
+            offers: [
+                'substitute|INJECTED-OSI|SUB-INJECTED|/content/cq:tags/mas/locale/fr_FR',
+                'SUB-INJECTED|BTS26|/content/cq:tags/mas/locale/fr_FR',
+            ],
+        });
+        fetchStub.withArgs(hydrateUrl('proj-bts')).returns(createResponse(200, hydrated));
+
+        // WCS resolves the plain, unpromoted injected offer (falls through to the default
+        // resolvedOffers:[] stub registered by setupFragmentMocks for any web_commerce_artifact call).
+        const state = new MockState();
+        const result = await getFragment({ id: 'some-en-us-fragment', state, locale: 'fr_FR' });
+
+        expect(result.statusCode).to.equal(200);
+        // The placeholder-injected OSI is left untouched — no substitution happened...
+        expect(result.body.fields.prices.value).to.include('data-wcs-osi="INJECTED-OSI"');
+        expect(result.body.fields.prices.value).to.not.include('SUB-INJECTED');
+        // ...no promo code was applied...
+        expect(result.body.fields.promoCode).to.be.undefined;
+        // ...and only the plain, unpromoted offer is in the WCS cache.
+        const cacheKeys = Object.keys(result.body.wcs.prod);
+        expect(cacheKeys.some((key) => key.startsWith('SUB-INJECTED-'))).to.be.false;
+        expect(cacheKeys.some((key) => key.startsWith('INJECTED-OSI-') && !key.endsWith('bts26'))).to.be.true;
+    });
 });

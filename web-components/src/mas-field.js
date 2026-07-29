@@ -246,13 +246,35 @@ class MasField extends HTMLElement {
                 const ctaEl = this.#renderCtaField(html);
                 if (ctaEl) {
                     content.replaceChildren(ctaEl);
+                    this.#stampPromotionCode(content, fieldName);
                     return;
                 }
             }
             content.innerHTML = html;
+            this.#stampPromotionCode(content, fieldName);
             return;
         }
         content.textContent = html == null ? '' : String(html);
+    }
+
+    /**
+     * Stamps the context promo code onto the CTA's checkout anchor(s) so it
+     * survives Milo's merch-card autoblock unwrapping the mas-field: the anchor
+     * is moved out of the wrapper (and any [data-promotion-code] ancestor)
+     * before its checkout URL resolves, so a promo code kept only on the
+     * wrapper is lost. Carrying it on the element itself lets both the checkout
+     * options provider (via dataset) and Milo's getCommerceContext (via
+     * closest) resolve it. Never overwrites an anchor's own authored promo code.
+     */
+    #stampPromotionCode(content, fieldName) {
+        if (fieldName !== 'ctas') return;
+        const promotionCode = contextPromotionCode(this);
+        if (!promotionCode) return;
+        const targets = content.querySelectorAll(
+            'a[data-wcs-osi]:not([data-promotion-code])',
+        );
+        for (const el of targets)
+            el.setAttribute('data-promotion-code', promotionCode);
     }
 
     /**

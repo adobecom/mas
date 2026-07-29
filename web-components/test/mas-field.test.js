@@ -502,6 +502,111 @@ describe('mas-field – fragment context promo code', () => {
     });
 });
 
+describe('mas-field – stamps context promo code on CTA anchors', () => {
+    afterEach(() => {
+        document.body
+            .querySelectorAll('mas-field')
+            .forEach((el) => el.remove());
+    });
+
+    const CHECKOUT_ANCHOR =
+        '<a is="checkout-link" href="" data-wcs-osi="osi1" class="accent">Buy now</a>';
+
+    function makeCtaField(field, ctasHtml, data) {
+        const el = document.createElement('mas-field');
+        el.setAttribute('field', field);
+        const fragment = document.createElement('aem-fragment');
+        el.append(fragment);
+        document.body.append(el);
+        fragment.data = data;
+        fragment.dispatchEvent(
+            new CustomEvent('aem:load', {
+                bubbles: true,
+                detail: { fields: { ctas: ctasHtml } },
+            }),
+        );
+        return el;
+    }
+
+    it('stamps data-promotion-code on an indexed CTA anchor when compat opts in', () => {
+        const el = makeCtaField('ctas[1]', CHECKOUT_ANCHOR, {
+            id: 'f1',
+            fields: {
+                promoCode: 'PROMO123',
+                compatVersion: COMPAT_VERSION_GLOBAL_PROMO_CODE,
+            },
+        });
+        const a = el.querySelector('[data-role="mas-field-content"] a');
+        expect(a.getAttribute('data-promotion-code')).to.equal('PROMO123');
+    });
+
+    it('stamps data-promotion-code on a footer checkout button (non-indexed ctas)', () => {
+        const el = makeCtaField('ctas', CHECKOUT_ANCHOR, {
+            id: 'f1',
+            fields: {
+                promoCode: 'PROMO123',
+                compatVersion: COMPAT_VERSION_GLOBAL_PROMO_CODE,
+            },
+        });
+        const a = el.querySelector('[slot="footer"] a');
+        expect(a.getAttribute('data-promotion-code')).to.equal('PROMO123');
+    });
+
+    it('stamps for a promo project regardless of compatVersion', () => {
+        const el = makeCtaField('ctas[1]', CHECKOUT_ANCHOR, {
+            id: 'f1',
+            promoProject: 'promo-project',
+            fields: { promoCode: 'PROMO123' },
+        });
+        const a = el.querySelector('[data-role="mas-field-content"] a');
+        expect(a.getAttribute('data-promotion-code')).to.equal('PROMO123');
+    });
+
+    it('does not stamp when compat gate fails and there is no promo project', () => {
+        const el = makeCtaField('ctas[1]', CHECKOUT_ANCHOR, {
+            id: 'f1',
+            fields: {
+                promoCode: 'PROMO123',
+                compatVersion: COMPAT_VERSION_GLOBAL_PROMO_CODE - 1,
+            },
+        });
+        const a = el.querySelector('[data-role="mas-field-content"] a');
+        expect(a.hasAttribute('data-promotion-code')).to.be.false;
+    });
+
+    it("does not overwrite an anchor's own authored promo code", () => {
+        const el = makeCtaField(
+            'ctas[1]',
+            '<a is="checkout-link" href="" data-wcs-osi="osi1" data-promotion-code="OWN">Buy now</a>',
+            {
+                id: 'f1',
+                fields: {
+                    promoCode: 'PROMO123',
+                    compatVersion: COMPAT_VERSION_GLOBAL_PROMO_CODE,
+                },
+            },
+        );
+        const a = el.querySelector('[data-role="mas-field-content"] a');
+        expect(a.getAttribute('data-promotion-code')).to.equal('OWN');
+    });
+
+    it('does not stamp non-checkout anchors (no data-wcs-osi)', () => {
+        const el = makeCtaField(
+            'ctas',
+            '<a href="https://example.com" class="accent">Learn more</a>',
+            {
+                id: 'f1',
+                fields: {
+                    promoCode: 'PROMO123',
+                    compatVersion: COMPAT_VERSION_GLOBAL_PROMO_CODE,
+                },
+            },
+        );
+        const a = el.querySelector('[slot="footer"] a');
+        expect(a.hasAttribute('data-promotion-code')).to.be.false;
+    });
+});
+
 describe('mas-field – price options provider (locale defaults)', () => {
     afterEach(() => {
         document.body

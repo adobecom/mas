@@ -432,7 +432,7 @@ describe('pipeline end to end', () => {
         expect(result.body.fields.promoCode).to.equal('BF2025');
     });
 
-    it('substitutes and promo-matches an OSI injected into a placeholder value (replace runs before wcs)', async () => {
+    it('does not promo-match an OSI injected into a placeholder value when the fragment osi has no explicit or wildcard mapping', async () => {
         setupFragmentMocks(fetchStub, { id: 'some-en-us-fragment', path: 'someFragment' });
 
         // Fragment prices field is a placeholder; its own osi (OWN-OSI) is NOT in the promo.
@@ -476,9 +476,11 @@ describe('pipeline end to end', () => {
                 }),
             );
 
-        // Active promo targeting this fragment: substitutes INJECTED-OSI -> SUB-INJECTED and promotes
-        // the substituted osi. No project-level (wildcard) promoCode, so the code can only land if the
-        // injected osi participates in matching.
+        // Promo project targets this fragment's path, and does define a substitution/promo code —
+        // but only for INJECTED-OSI/SUB-INJECTED, neither of which is the fragment's own osi
+        // (OWN-OSI) at customize time, and there is no wildcard promoCode either. So the project
+        // does not qualify for this fragment: no scope is recorded, and the OSI injected later by
+        // the replace transformer is never seen by wcs.
         const project = makeProject({
             id: 'proj-bts',
             path: '/content/dam/mas/promotions/bts',
@@ -500,24 +502,20 @@ describe('pipeline end to end', () => {
         });
         fetchStub.withArgs(hydrateUrl('proj-bts')).returns(createResponse(200, hydrated));
 
-        // WCS resolves the substituted, promoted offer.
-        fetchStub
-            .withArgs(
-                sinon.match((url) => url.includes('offer_selector_ids=SUB-INJECTED') && url.includes('promotion_code=BTS26')),
-            )
-            .returns(createResponse(200, { resolvedOffers: [{ id: 'bts-offer' }] }));
-
+        // WCS resolves the plain, unpromoted injected offer (falls through to the default
+        // resolvedOffers:[] stub registered by setupFragmentMocks for any web_commerce_artifact call).
         const state = new MockState();
         const result = await getFragment({ id: 'some-en-us-fragment', state, locale: 'fr_FR' });
 
         expect(result.statusCode).to.equal(200);
-        // The placeholder-injected OSI is substituted in the baked markup...
-        expect(result.body.fields.prices.value).to.include('data-wcs-osi="SUB-INJECTED"');
-        expect(result.body.fields.prices.value).to.not.include('INJECTED-OSI');
-        // ...and it drove the promo code match even though the fragment's own osi did not.
-        expect(result.body.fields.promoCode).to.equal('BTS26');
-        // ...and the substituted, promoted offer is in the WCS cache.
+        // The placeholder-injected OSI is left untouched — no substitution happened...
+        expect(result.body.fields.prices.value).to.include('data-wcs-osi="INJECTED-OSI"');
+        expect(result.body.fields.prices.value).to.not.include('SUB-INJECTED');
+        // ...no promo code was applied...
+        expect(result.body.fields.promoCode).to.be.undefined;
+        // ...and only the plain, unpromoted offer is in the WCS cache.
         const cacheKeys = Object.keys(result.body.wcs.prod);
-        expect(cacheKeys.some((key) => key.startsWith('SUB-INJECTED-') && key.endsWith('-bts26'))).to.be.true;
+        expect(cacheKeys.some((key) => key.startsWith('SUB-INJECTED-'))).to.be.false;
+        expect(cacheKeys.some((key) => key.startsWith('INJECTED-OSI-') && !key.endsWith('bts26'))).to.be.true;
     });
 });

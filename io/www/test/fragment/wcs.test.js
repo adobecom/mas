@@ -670,7 +670,8 @@ describe('wcs OSI substitution', function () {
         context.body = {
             id: 'frag-1',
             fields: {
-                prices: '<span data-wcs-osi="BASE-OSI"></span>' + '<span data-wcs-osi="BASE-OSI" data-locked-osi="true"></span>',
+                prices:
+                    '<span data-wcs-osi="BASE-OSI"></span>' + '<span data-wcs-osi="BASE-OSI" data-locked-osi="true"></span>',
             },
         };
         context.promoScopeById = { 'frag-1': scope({ 'BASE-OSI': 'SUB-OSI' }) };
@@ -768,11 +769,9 @@ describe('wcs OSI helpers', function () {
 
     it('scanMasElements skips substitution for elements with data-locked-osi="true"', function () {
         const fields = {
-            prices:
-                '<span data-wcs-osi="BASE-OSI"></span>' +
-                '<span data-wcs-osi="BASE-OSI" data-locked-osi="true"></span>',
+            prices: '<span data-wcs-osi="BASE-OSI"></span>' + '<span data-wcs-osi="BASE-OSI" data-locked-osi="true"></span>',
         };
-        const elements = scanMasElements(fields, { 'BASE-OSI': 'SUB-OSI' });
+        const elements = scanMasElements(fields, { 'BASE-OSI': 'SUB-OSI' }, {});
         expect(elements.map((e) => e.osi)).to.deep.equal(['SUB-OSI', 'BASE-OSI']);
         expect(fields.prices).to.include('data-wcs-osi="SUB-OSI"');
         expect(fields.prices).to.include('data-wcs-osi="BASE-OSI" data-locked-osi="true"');

@@ -219,7 +219,7 @@ export function parsePlaceholderRemap(textValue) {
     const remaps = {};
     if (!textValue) return remaps;
     for (const line of textValue.split('\n')) {
-        const [from, to] = line.split('=').map((part) => part.trim());
+        const [from, to] = line.split(':').map((part) => part.trim());
         if (from && to) remaps[from] = to;
     }
     return remaps;

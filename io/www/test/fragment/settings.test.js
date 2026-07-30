@@ -1015,7 +1015,7 @@ describe('settings', () => {
                     {
                         name: PLACEHOLDER_REMAP_SETTING,
                         valuetype: 'text',
-                        textValue: 'annual-billed-monthly=annual-billed-monthly-teams',
+                        textValue: 'annual-billed-monthly:annual-billed-monthly-teams',
                         locales: ['en_IL', 'he_IL'],
                         tags: ['mas:customer_segment/team'],
                     },
@@ -1024,18 +1024,18 @@ describe('settings', () => {
         });
 
         describe('parsePlaceholderRemap', () => {
-            it('parses a single from=to pair', () => {
-                expect(parsePlaceholderRemap('annual-billed-monthly=annual-billed-monthly-teams')).to.deep.equal({
+            it('parses a single from:to pair', () => {
+                expect(parsePlaceholderRemap('annual-billed-monthly:annual-billed-monthly-teams')).to.deep.equal({
                     'annual-billed-monthly': 'annual-billed-monthly-teams',
                 });
             });
 
             it('parses multiple newline-separated pairs', () => {
-                expect(parsePlaceholderRemap('a=b\nc=d')).to.deep.equal({ a: 'b', c: 'd' });
+                expect(parsePlaceholderRemap('a:b\nc:d')).to.deep.equal({ a: 'b', c: 'd' });
             });
 
             it('trims whitespace around keys and values', () => {
-                expect(parsePlaceholderRemap(' a = b \n c = d ')).to.deep.equal({ a: 'b', c: 'd' });
+                expect(parsePlaceholderRemap(' a : b \n c : d ')).to.deep.equal({ a: 'b', c: 'd' });
             });
 
             it('returns empty object for a blank string', () => {
@@ -1046,8 +1046,8 @@ describe('settings', () => {
                 expect(parsePlaceholderRemap(undefined)).to.deep.equal({});
             });
 
-            it('ignores malformed lines (missing side or no equals)', () => {
-                expect(parsePlaceholderRemap('no-equals\n=only\nfrom=\nvalid=ok')).to.deep.equal({ valid: 'ok' });
+            it('ignores malformed lines (missing side or no colon)', () => {
+                expect(parsePlaceholderRemap('no-colon\n:only\nfrom:\nvalid:ok')).to.deep.equal({ valid: 'ok' });
             });
         });
 

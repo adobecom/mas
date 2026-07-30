@@ -207,6 +207,56 @@ describe('FragmentClient', () => {
         expect(result).to.have.property('fields');
     });
 
+    it('uses the page commerce service stage WCS config for preview requests', async () => {
+        const serviceElement = {
+            getAttribute: (name) => ({ locale: 'en_US', country: 'US' })[name] ?? null,
+            settings: {
+                env: 'STAGE',
+                wcsURL: 'https://www.stage.adobe.com/web_commerce_artifact_stage',
+                landscape: 'PUBLISHED',
+            },
+        };
+        const originalQuery = globalThis.document.head.querySelector;
+        globalThis.document.head.querySelector = (sel) => (sel === 'mas-commerce-service' ? serviceElement : null);
+        try {
+            const result = await previewFragment(mockCardFragment.id, {
+                surface: 'sandbox',
+                locale: 'en_US',
+                fullContext: true,
+            });
+            expect(result.wcsConfiguration).to.deep.equal([
+                { wcsURL: 'https://www.stage.adobe.com/web_commerce_artifact_stage', env: 'stage', landscape: 'PUBLISHED' },
+            ]);
+        } finally {
+            globalThis.document.head.querySelector = originalQuery;
+        }
+    });
+
+    it('uses the page commerce service prod WCS config for preview requests', async () => {
+        const serviceElement = {
+            getAttribute: (name) => ({ locale: 'en_US', country: 'US' })[name] ?? null,
+            settings: {
+                env: 'PRODUCTION',
+                wcsURL: 'https://www.adobe.com/web_commerce_artifact',
+                landscape: 'PUBLISHED',
+            },
+        };
+        const originalQuery = globalThis.document.head.querySelector;
+        globalThis.document.head.querySelector = (sel) => (sel === 'mas-commerce-service' ? serviceElement : null);
+        try {
+            const result = await previewFragment(mockCardFragment.id, {
+                surface: 'sandbox',
+                locale: 'en_US',
+                fullContext: true,
+            });
+            expect(result.wcsConfiguration).to.deep.equal([
+                { wcsURL: 'https://www.adobe.com/web_commerce_artifact', env: 'prod', landscape: 'PUBLISHED' },
+            ]);
+        } finally {
+            globalThis.document.head.querySelector = originalQuery;
+        }
+    });
+
     it('runs the mask transformer when mask option is supplied', async () => {
         const maskByPathUrl = `${baseUrl}/byPath?path=/content/dam/mas/sandbox/en_US/masks/promo`;
         const maskId = 'mask-frag-id';

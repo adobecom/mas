@@ -5203,24 +5203,23 @@ merch-card-collection.plans:is(.one-merch-card, .two-merch-cards, .three-merch-c
             --consonant-merch-card-pro-text-inverse-color: #fff;
             --consonant-merch-card-pro-subtitle-color: #ffffffa3;
             --consonant-merch-card-pro-secure-icon-color: #ffffffa3;
-            --consonant-merch-card-pro-divider-color: #ffffff1f;
-            --consonant-merch-card-pro-hero-border-color: #ffffff1f;
+            /* Section dividers are transparent-black-12 in the Figma dark node
+               too (same as light) — a ~2-level darkening on #131313, not a light
+               line. */
+            --consonant-merch-card-pro-divider-color: #0000001f;
             --consonant-merch-card-pro-cta-outline-border-color: #dadada;
             --consonant-merch-card-pro-cta-outline-hover-color: #ffffff1f;
-            --consonant-merch-card-pro-control-bg: #1d1d1d;
-            --consonant-merch-card-pro-control-border-color: #ffffff1f;
+            /* License control: Figma paints the trigger with background-default
+               (#131313) and a transparent-black-08 border (near-invisible on the
+               dark surface) — i.e. the same border token as light, so it is left
+               to fall back rather than re-pointed. */
+            --consonant-merch-card-pro-control-bg: #131313;
             --consonant-merch-card-pro-control-hover-bg: #ffffff14;
         }
 
         :host([variant='pro']) .top-card {
             background: var(--consonant-merch-card-pro-bg-default, #fff);
             border-radius: 12px;
-            /* Inset ring (not border) so it costs no layout: the hero is a
-               content-box whose height syncHeights publishes, and a real border
-               would shift every light card by 2px. Transparent in light; the
-               dark theme paints the subtle 12%-white hero ring per Figma. */
-            box-shadow: inset 0 0 0 1px
-                var(--consonant-merch-card-pro-hero-border-color, transparent);
             padding: 24px;
             display: flex;
             flex-direction: column;

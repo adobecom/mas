@@ -99,34 +99,34 @@ describe('promotions', () => {
         it('returns no active projects when folder fetch fails', async () => {
             fetchStub.withArgs(FOLDER_URL).returns(createResponse(404, null, 'Not Found'));
             const result = await promotionsTransformer.init(createContext());
-            expect(result).to.deep.equal({ status: 200, activeProjects: [], instantUsed: false });
+            expect(result).to.deep.equal({ status: 200, activeProjects: [] });
         });
 
         it('returns no active projects when folder is empty', async () => {
             fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [] }));
             const result = await promotionsTransformer.init(createContext());
-            expect(result).to.deep.equal({ status: 200, activeProjects: [], instantUsed: false });
+            expect(result).to.deep.equal({ status: 200, activeProjects: [] });
         });
 
         it('returns no active projects when project has no promotion tag', async () => {
             const project = makeProject({ tags: ['some-other-tag'] });
             fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
             const result = await promotionsTransformer.init(createContext());
-            expect(result).to.deep.equal({ status: 200, activeProjects: [], instantUsed: false });
+            expect(result).to.deep.equal({ status: 200, activeProjects: [] });
         });
 
         it('returns no active projects when no project matches surface', async () => {
             const project = makeProject({ surfaces: ['express'] });
             fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
             const result = await promotionsTransformer.init(createContext({ surface: 'acom' }));
-            expect(result).to.deep.equal({ status: 200, activeProjects: [], instantUsed: false });
+            expect(result).to.deep.equal({ status: 200, activeProjects: [] });
         });
 
         it('returns no active projects when project end date has passed', async () => {
             const project = makeProject({ surfaces: ['acom'], endDate: EXPIRED_END });
             fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
             const result = await promotionsTransformer.init(createContext());
-            expect(result).to.deep.equal({ status: 200, activeProjects: [], instantUsed: false });
+            expect(result).to.deep.equal({ status: 200, activeProjects: [] });
         });
 
         it('returns no active projects when project start date is in the future', async () => {
@@ -138,14 +138,14 @@ describe('promotions', () => {
             });
             fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
             const result = await promotionsTransformer.init(createContext());
-            expect(result).to.deep.equal({ status: 200, activeProjects: [], instantUsed: false });
+            expect(result).to.deep.equal({ status: 200, activeProjects: [] });
         });
 
         it('returns no active projects when geo does not match', async () => {
             const project = makeProject({ surfaces: ['acom'], geos: ['/content/cq:tags/mas/locale/fr_FR'] });
             fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
             const result = await promotionsTransformer.init(createContext({ regionLocale: 'en_US' }));
-            expect(result).to.deep.equal({ status: 200, activeProjects: [], instantUsed: false });
+            expect(result).to.deep.equal({ status: 200, activeProjects: [] });
         });
 
         it('selects active project matching surface, geo and date range', async () => {
@@ -178,7 +178,7 @@ describe('promotions', () => {
 
             // EXPIRED_END is in the past — with no instant, Date.now() is used
             const result = await promotionsTransformer.init(createContext());
-            expect(result).to.deep.equal({ status: 200, activeProjects: [], instantUsed: false });
+            expect(result).to.deep.equal({ status: 200, activeProjects: [] });
         });
 
         it('honors instant on published content', async () => {
@@ -190,7 +190,6 @@ describe('promotions', () => {
             const result = await promotionsTransformer.init(createContext({ instant: PREVIEW_INSTANT }));
             expect(result.activeProjects).to.have.length(1);
             expect(result.activeProjects[0].id).to.equal('proj-1');
-            expect(result.instantUsed).to.equal(true);
         });
 
         it('matches project by country when locale does not match geos', async () => {
@@ -351,20 +350,20 @@ describe('promotions', () => {
             fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(500, null, 'Error'));
 
             const result = await promotionsTransformer.init(createContext({ regionLocale: 'en_US' }));
-            expect(result).to.deep.equal({ status: 200, activeProjects: [], instantUsed: false });
+            expect(result).to.deep.equal({ status: 200, activeProjects: [] });
         });
 
         it('handles folder response without items field', async () => {
             fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, {}));
             const result = await promotionsTransformer.init(createContext());
-            expect(result).to.deep.equal({ status: 200, activeProjects: [], instantUsed: false });
+            expect(result).to.deep.equal({ status: 200, activeProjects: [] });
         });
 
         it('handles project items with missing fields', async () => {
             // Project with no fields — should not match any surface
             fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [{ id: 'proj-no-fields' }] }));
             const result = await promotionsTransformer.init(createContext());
-            expect(result).to.deep.equal({ status: 200, activeProjects: [], instantUsed: false });
+            expect(result).to.deep.equal({ status: 200, activeProjects: [] });
         });
 
         it('uses Date.now() when instant is not provided', async () => {
@@ -432,7 +431,7 @@ describe('promotions', () => {
             fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
 
             const result = await promotionsTransformer.init(createContext());
-            expect(result).to.deep.equal({ status: 200, activeProjects: [], instantUsed: false });
+            expect(result).to.deep.equal({ status: 200, activeProjects: [] });
         });
 
         it('returns no active projects when hydrated project has empty fragments list', async () => {
@@ -442,7 +441,7 @@ describe('promotions', () => {
             fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
 
             const result = await promotionsTransformer.init(createContext());
-            expect(result).to.deep.equal({ status: 200, activeProjects: [], instantUsed: false });
+            expect(result).to.deep.equal({ status: 200, activeProjects: [] });
         });
 
         it('uses cache on second call without re-fetching folder', async () => {
@@ -482,7 +481,7 @@ describe('promotions', () => {
             const result = await promotionsTransformer.init(
                 createContext({ promises: { defaultLanguage: Promise.resolve({ status: 200 }) } }),
             );
-            expect(result).to.deep.equal({ status: 200, activeProjects: [], instantUsed: false });
+            expect(result).to.deep.equal({ status: 200, activeProjects: [] });
         });
 
         it('handles variation folder response with missing items field', async () => {

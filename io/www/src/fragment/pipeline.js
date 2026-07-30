@@ -100,9 +100,8 @@ async function main(params) {
     returnValue.headers = {
         ...returnValue.headers,
         ...RESPONSE_HEADERS,
-        'Cache-Control': returnValue.instantUsed ? 'private, no-store' : cacheControl,
+        'Cache-Control': cacheControl,
     };
-    delete returnValue.instantUsed;
     returnValue.body = returnValue.body?.length > 0 ? zlib.brotliCompressSync(returnValue.body).toString('base64') : undefined;
     logDebug(() => `full response: ${JSON.stringify(returnValue)}`, context);
     measureTiming(context, 'endProcess', 'end');
@@ -166,7 +165,6 @@ async function mainProcess(context) {
     const returnValue = {
         statusCode: context.status,
         id: context.body?.id,
-        instantUsed: context.instantUsed,
     };
     let responseBody = undefined;
     if (context.status == 200) {

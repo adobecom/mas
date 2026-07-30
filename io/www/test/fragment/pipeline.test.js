@@ -529,30 +529,6 @@ describe('caching headers', () => {
         expect(result.headers['Cache-Control']).to.equal('public, max-age=300, stale-while-revalidate=86400');
     });
 
-    it('does not cache responses when ?instant is used', async () => {
-        setupFragmentMocks(fetchStub, {
-            id: 'some-en-us-fragment',
-            path: 'someFragment',
-        });
-        // setupFragmentMocks registers promotions without &limit=50 (non-matching).
-        // non-empty project list needed so init() doesn't short-circuit before instantUsed.
-        fetchStub.withArgs('https://odin.adobe.com/adobe/contentFragments/?path=/content/dam/mas/promotions&limit=50').returns(
-            createResponse(200, {
-                items: [{ id: 'proj-1', path: '/x', name: 'x', fields: { surfaces: ['unrelated-surface'] } }],
-            }),
-        );
-
-        const result = await getFragment({
-            id: 'some-en-us-fragment',
-            state: new MockState(),
-            locale: 'fr_FR',
-            instant: '2020-02-01T00:00:00Z',
-        });
-
-        expect(result.statusCode).to.equal(200);
-        expect(result.headers['Cache-Control']).to.equal('private, no-store');
-    });
-
     it('should include Cache-Control header in timeout responses', async () => {
         fetchStub.restore();
         resetCache();

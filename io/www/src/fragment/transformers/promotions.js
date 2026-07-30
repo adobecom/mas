@@ -383,14 +383,13 @@ async function init(context) {
         context.promises?.defaultLanguage,
     ]);
 
-    if (!surface) return { status: 200, activeProjects: [], instantUsed: false };
-    if (!projects?.length) return { status: 200, activeProjects: [], instantUsed: false };
+    if (!surface) return { status: 200, activeProjects: [] };
+    if (!projects?.length) return { status: 200, activeProjects: [] };
 
     const defaultLocale = defaultLangResult?.defaultLocale;
-    if (!defaultLocale) return { status: 200, activeProjects: [], instantUsed: false };
+    if (!defaultLocale) return { status: 200, activeProjects: [] };
     const resolvedRegionLocale = defaultLangResult.regionLocale;
 
-    const instantUsed = Boolean(context.instant);
     const instant = toInstant(context.instant);
     const { locale, country } = context;
     const effectiveRegionLocale = resolvedRegionLocale ?? locale;
@@ -404,7 +403,7 @@ async function init(context) {
         // Stable secondary sort: seasonal (time-boxed) projects float to the top, preserving
         // the startDate order established above within each bucket.
         .sort((a, b) => (a.endDate ? 0 : 1) - (b.endDate ? 0 : 1));
-    if (!matched.length) return { status: 200, activeProjects: [], instantUsed };
+    if (!matched.length) return { status: 200, activeProjects: [] };
 
     log(
         `Found ${matched.length} active promotion project(s) for surface "${surface}", regionLocale "${effectiveRegionLocale}", country "${country}": ${matched.map((p) => `"${p.name}" (${p.id})`).join(', ')}`,
@@ -427,7 +426,7 @@ async function init(context) {
         }
     });
 
-    return { status: 200, activeProjects, instantUsed };
+    return { status: 200, activeProjects };
 }
 
 /**
@@ -466,7 +465,7 @@ function buildPromoMap(offerOverrides, { regionLocale, country }, projectPromoCo
  * Matching is done by fragmentPath (locale-independent) so translated fragments are handled correctly.
  */
 async function promotions(context) {
-    const { activeProjects = [], instantUsed = false } = (await context.promises?.promotions) ?? {};
+    const { activeProjects = [] } = (await context.promises?.promotions) ?? {};
     const { regionLocale, country } = context;
     const promoProjects = activeProjects.map((project) => ({
         project,
@@ -482,7 +481,7 @@ async function promotions(context) {
     });
     // Per-project substituteMap stays on each promoProjects entry; customize scopes it per fragment
     // (via promoScopeById) and the wcs transformer applies it.
-    return { ...context, status: 200, promoProjects, instantUsed };
+    return { ...context, status: 200, promoProjects };
 }
 
 export const transformer = {

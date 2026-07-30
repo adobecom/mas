@@ -73,7 +73,8 @@ function clearCaches() {
 function getPageWcsConfiguration(serviceElement) {
     const settings = serviceElement?.settings;
     if (!settings?.wcsURL) return null;
-    return [{ wcsURL: settings.wcsURL, env: settings.env === 'STAGE' ? 'stage' : 'prod', landscape: settings.landscape }];
+    const isStage = settings.env === 'STAGE';
+    return [{ wcsURL: settings.wcsURL, env: isStage ? 'stage' : 'prod', landscape: isStage ? 'ALL' : settings.landscape }];
 }
 
 async function previewFragment(id, options) {

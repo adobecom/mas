@@ -225,7 +225,7 @@ describe('FragmentClient', () => {
                 fullContext: true,
             });
             expect(result.wcsConfiguration).to.deep.equal([
-                { wcsURL: 'https://www.stage.adobe.com/web_commerce_artifact_stage', env: 'stage', landscape: 'PUBLISHED' },
+                { wcsURL: 'https://www.stage.adobe.com/web_commerce_artifact_stage', env: 'stage', landscape: 'ALL' },
             ]);
         } finally {
             globalThis.document.head.querySelector = originalQuery;

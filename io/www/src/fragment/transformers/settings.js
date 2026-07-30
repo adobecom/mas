@@ -8,6 +8,8 @@ const CONFIG_CACHE_TTL = 5 * 60 * 1000;
 /**
  * Available setting name definitions.
  */
+export const PLACEHOLDER_REMAP_SETTING = 'placeholderRemap';
+
 export const SETTING_NAME_DEFINITIONS = [
     { name: 'addon', valueType: 'optional-text', editor: 'addon' },
     { name: 'secureLabel', valueType: 'optional-text', editor: 'text', propertyName: 'showSecureLabel' },
@@ -16,6 +18,7 @@ export const SETTING_NAME_DEFINITIONS = [
     { name: 'quantitySelect', valueType: 'optional-text', editor: 'quantity-select' },
     { name: 'hideTrialCTAs', valueType: 'boolean' },
     { name: 'additionalModalTriggers', valueType: 'boolean' },
+    { name: PLACEHOLDER_REMAP_SETTING, valueType: 'text' },
 ];
 
 export const SETTING_NAME_BY_VALUE = new Map(SETTING_NAME_DEFINITIONS.map((definition) => [definition.name, definition]));
@@ -212,15 +215,43 @@ export function resolveSettingEntry(fragment, locale, setting) {
     return { ...defaultEntry, ...bestMatch };
 }
 
+export function parsePlaceholderRemap(textValue) {
+    const remaps = {};
+    if (!textValue) return remaps;
+    for (const line of textValue.split('\n')) {
+        const [from, to] = line.split('=').map((part) => part.trim());
+        if (from && to) remaps[from] = to;
+    }
+    return remaps;
+}
+
+export function applyPlaceholderRemaps(fragment, remaps) {
+    const entries = Object.entries(remaps);
+    if (!fragment?.fields || entries.length === 0) return;
+    let fieldsString = JSON.stringify(fragment.fields);
+    for (const [from, to] of entries) {
+        const pattern = new RegExp(`{{\\s*${from.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*}}`, 'g');
+        fieldsString = fieldsString.replace(pattern, `{{${to}}}`);
+    }
+    fragment.fields = JSON.parse(fieldsString);
+}
+
 function applySettings(context, fragment, locale, settings) {
+    const remaps = {};
     for (const key of Object.keys(settings)) {
         const entry = resolveSettingEntry(fragment, locale, settings[key]);
         if (!entry) continue;
+        if (entry.name === PLACEHOLDER_REMAP_SETTING) {
+            // remap is a field-rewrite directive, not a card setting: collect it and skip the settings write
+            Object.assign(remaps, parsePlaceholderRemap(extractValue(entry, fragment)));
+            continue;
+        }
         fragment.settings = {
             ...fragment.settings,
             [entry.name]: extractValue(entry, fragment),
         };
     }
+    applyPlaceholderRemaps(fragment, remaps);
     //temporary fix waiting for MWPW-189860 to be implemented
     if (fragment?.fields?.perUnitLabel) {
         fragment.priceLiterals ??= {};

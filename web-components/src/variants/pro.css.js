@@ -157,8 +157,8 @@ merch-card[variant="pro"] [slot="whats-included"] .whats-included-label {
     display: none;
 }
 
-/* EDU (Wide): no toggle, so the whats-included label becomes the panel title. */
-merch-card[variant="pro"][size='edu'] [slot="whats-included"] .whats-included-label {
+/* EDU (Wide): no toggle, so the whats-included TITLE is the big panel title. */
+merch-card[variant="pro"][size='edu'] [slot="whats-included"] .whats-included-title {
     display: block;
     color: inherit;
     font-family: var(--consonant-merch-card-pro-font-family-display);
@@ -171,19 +171,46 @@ merch-card[variant="pro"][size='edu'] [slot="whats-included"] .whats-included-la
 
 /* Mobile (≤767, Figma node 4375:120499): the edu title shrinks to 20/20. */
 @media screen and ${MOBILE_LANDSCAPE} {
-    merch-card[variant="pro"][size='edu'] [slot="whats-included"] .whats-included-label {
+    merch-card[variant="pro"][size='edu'] [slot="whats-included"] .whats-included-title {
         font-size: 20px;
         line-height: 20px;
         letter-spacing: -0.48px;
     }
 }
 
-/* EDU right panel (Figma 4375:120476 "Copy" frame): sub-label "What's
-   Included:" is 16/20, the feature list uses a 16px gap, and thin divider
-   rules sit between feature lines (not between sections as the narrow card). */
-merch-card[variant="pro"][size='edu'] [slot="whats-included"] h4 {
+/* EDU sub-label "What's included:" (Figma 4375:120476, 16/20/700). The base
+   rule hides .whats-included-label; edu shows it 24px below the title. */
+merch-card[variant="pro"][size='edu'] [slot="whats-included"] .whats-included-label {
+    display: block;
+    color: inherit;
+    font-family: var(--consonant-merch-card-pro-font-family-regular);
     font-size: 16px;
+    font-weight: 700;
     line-height: 20px;
+    letter-spacing: 0;
+    margin-top: 24px;
+}
+
+/* EDU eligibility disclaimer ({{edu-disclaimer}}), appended after the feature
+   list by hydrate and hidden via the hideEduDisclaimer setting (MWPW-202318).
+   Figma 4375:120476: 12/16 legal text, color inherit. */
+merch-card[variant="pro"][size='edu'] [slot="whats-included"] .whats-included-disclaimer {
+    color: inherit;
+    font-family: var(--consonant-merch-card-pro-font-family-regular);
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 16px;
+    letter-spacing: 0;
+    margin-top: 40px;
+}
+
+/* EDU right panel (Figma 4375:120476 "Copy" frame): feature rows are Adobe
+   Clean 400 at 14/18 (the base h4 rule's 700/0.14px is the narrow-card look);
+   the list uses a 16px gap with thin divider rules between rows. */
+merch-card[variant="pro"][size='edu'] [slot="whats-included"] h4 {
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 18px;
     letter-spacing: 0;
 }
 

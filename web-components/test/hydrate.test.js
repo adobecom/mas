@@ -798,6 +798,150 @@ describe('hydrate', () => {
         litCard.remove();
     });
 
+    it('pro edu: renders the whats-included label as the title and injects a localized sub-label', async () => {
+        const litCard = document.createElement('merch-card');
+        document.body.appendChild(litCard);
+        await customElements.whenDefined('merch-card');
+        const fragment = {
+            id: 'pro-edu-wi',
+            fields: {
+                variant: 'pro',
+                size: 'edu',
+                cardTitle: 'Creative Cloud Pro',
+                whatsIncluded:
+                    '<p class="whats-included-label">Students and teachers save 71%</p><div class="section"><h4>Apps</h4></div>',
+            },
+        };
+        await hydrate(fragment, litCard);
+        const slot = litCard.querySelector('[slot="whats-included"]');
+        const title = slot.querySelector('.whats-included-title');
+        const label = slot.querySelector('.whats-included-label');
+        expect(title?.textContent).to.equal('Students and teachers save 71%');
+        expect(label?.textContent).to.equal("What's included:");
+        expect(
+            title.compareDocumentPosition(label) &
+                Node.DOCUMENT_POSITION_FOLLOWING,
+        ).to.be.ok;
+        litCard.remove();
+    });
+
+    it('pro edu: uses the {{whats-included}} dictionary value when present', async () => {
+        const litCard = document.createElement('merch-card');
+        document.body.appendChild(litCard);
+        await customElements.whenDefined('merch-card');
+        const fragment = {
+            id: 'pro-edu-dict',
+            dictionary: { 'whats-included': 'Ce qui est inclus :' },
+            fields: {
+                variant: 'pro',
+                size: 'edu',
+                whatsIncluded:
+                    '<p class="whats-included-label">T</p><div class="section"><h4>A</h4></div>',
+            },
+        };
+        await hydrate(fragment, litCard);
+        expect(
+            litCard.querySelector(
+                '[slot="whats-included"] .whats-included-label',
+            ).textContent,
+        ).to.equal('Ce qui est inclus :');
+        litCard.remove();
+    });
+
+    it('pro non-edu: leaves whats-included untouched (no title split)', async () => {
+        const litCard = document.createElement('merch-card');
+        document.body.appendChild(litCard);
+        await customElements.whenDefined('merch-card');
+        const fragment = {
+            id: 'pro-wide-wi',
+            fields: {
+                variant: 'pro',
+                size: 'wide',
+                whatsIncluded:
+                    '<p class="whats-included-label">See what is included:</p><div class="section"><h4>A</h4></div>',
+            },
+        };
+        await hydrate(fragment, litCard);
+        const slot = litCard.querySelector('[slot="whats-included"]');
+        expect(slot.querySelector('.whats-included-title')).to.be.null;
+        expect(
+            slot.querySelector('.whats-included-label').textContent,
+        ).to.equal('See what is included:');
+        litCard.remove();
+    });
+
+    it('pro edu: appends the eligibility disclaimer after the feature list', async () => {
+        const litCard = document.createElement('merch-card');
+        document.body.appendChild(litCard);
+        await customElements.whenDefined('merch-card');
+        const fragment = {
+            id: 'pro-edu-disc',
+            fields: {
+                variant: 'pro',
+                size: 'edu',
+                whatsIncluded:
+                    '<p class="whats-included-label">T</p><div class="section"><h4>A</h4></div>',
+            },
+        };
+        await hydrate(fragment, litCard);
+        const slot = litCard.querySelector('[slot="whats-included"]');
+        const disc = slot.querySelector('.whats-included-disclaimer');
+        expect(disc?.textContent).to.equal(
+            'Available for qualified students and teachers only. Check eligibility.',
+        );
+        // disclaimer is the last child, after the section
+        expect(slot.lastElementChild).to.equal(disc);
+        litCard.remove();
+    });
+
+    it('pro edu: uses the {{edu-disclaimer}} dictionary value when present', async () => {
+        const litCard = document.createElement('merch-card');
+        document.body.appendChild(litCard);
+        await customElements.whenDefined('merch-card');
+        const fragment = {
+            id: 'pro-edu-disc-dict',
+            dictionary: {
+                'edu-disclaimer': 'Réservé aux étudiants admissibles.',
+            },
+            fields: {
+                variant: 'pro',
+                size: 'edu',
+                whatsIncluded:
+                    '<p class="whats-included-label">T</p><div class="section"><h4>A</h4></div>',
+            },
+        };
+        await hydrate(fragment, litCard);
+        expect(
+            litCard.querySelector(
+                '[slot="whats-included"] .whats-included-disclaimer',
+            ).textContent,
+        ).to.equal('Réservé aux étudiants admissibles.');
+        litCard.remove();
+    });
+
+    it('pro edu: hides the disclaimer when hideEduDisclaimer is set', async () => {
+        const litCard = document.createElement('merch-card');
+        document.body.appendChild(litCard);
+        await customElements.whenDefined('merch-card');
+        const fragment = {
+            id: 'pro-edu-disc-hidden',
+            settings: { hideEduDisclaimer: true },
+            fields: {
+                variant: 'pro',
+                size: 'edu',
+                whatsIncluded:
+                    '<p class="whats-included-label">T</p><div class="section"><h4>A</h4></div>',
+            },
+        };
+        await hydrate(fragment, litCard);
+        expect(
+            litCard.querySelector(
+                '[slot="whats-included"] .whats-included-disclaimer',
+            ),
+        ).to.be.null;
+        litCard.remove();
+    });
+
     it('passes through missing compatVersion as undefined', async () => {
         const fragment = {
             fields: {

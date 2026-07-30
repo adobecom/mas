@@ -257,6 +257,16 @@ describe('FragmentClient', () => {
         }
     });
 
+    it('omits X-Request-ID from preview fetches to avoid a CORS preflight', async () => {
+        fetchStub.resetHistory();
+        await previewFragment(mockCardFragment.id, { surface: 'sandbox', locale: 'en_US' });
+        const calls = fetchStub.getCalls();
+        expect(calls.length).to.be.greaterThan(0);
+        calls.forEach((call) => {
+            expect(call.args[1]?.headers ?? {}).to.not.have.property('X-Request-ID');
+        });
+    });
+
     it('runs the mask transformer when mask option is supplied', async () => {
         const maskByPathUrl = `${baseUrl}/byPath?path=/content/dam/mas/sandbox/en_US/masks/promo`;
         const maskId = 'mask-frag-id';

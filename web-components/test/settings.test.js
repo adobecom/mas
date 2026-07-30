@@ -66,7 +66,10 @@ describe('getSettings', () => {
         url.searchParams.set('commerce.env', 'STAGE');
         url.searchParams.set('quantity', '2');
         url.searchParams.set('wcsApiKey', 'testapikey');
-        url.searchParams.set('mas-io-url', 'https://mycustomurl');
+        url.searchParams.set(
+            'mas-io-url',
+            'https://custom.adobeioruntime.net/mas/io',
+        );
         window.history.replaceState({}, '', url.toString());
 
         const config = { commerce: { allowOverride: '' } };
@@ -86,10 +89,18 @@ describe('getSettings', () => {
             quantity: [2],
             wcsApiKey: 'testapikey',
             locale: 'en_US',
-            masIOUrl: 'https://mycustomurl',
+            masIOUrl: 'https://custom.adobeioruntime.net/mas/io',
             env: 'STAGE',
             wcsURL: WCS_STAGE_URL,
         });
+    });
+
+    it('falls back to the default when mas-io-url is not allowlisted', () => {
+        const url = new URL(window.location.href);
+        url.searchParams.set('mas-io-url', 'https://mycustomurl');
+        window.history.replaceState({}, '', url.toString());
+        const settings = getSettings({}, mockService);
+        expect(settings.masIOUrl).to.equal('https://www.adobe.com/mas/io');
     });
 
     it('uses document metadata and storage', () => {

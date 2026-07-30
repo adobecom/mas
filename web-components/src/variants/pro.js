@@ -713,14 +713,49 @@ export class Pro extends VariantLayout {
             --consonant-merch-card-pro-subtitle-color: #000;
         }
 
+        /* Dark theme. The Studio "Theme" picker (PR #1093, MWPW-201873) reuses
+           the backgroundColor mapping field with special values Light/Dark, so
+           processBackgroundColor sets background-color="dark" on the card — that
+           is the hook here, not a bespoke theme attribute. Re-points the
+           surface/text tokens to the Figma s2a dark values (nodes 4223:50282 /
+           4378:127910 / 4378:130403); geometry is unchanged, so every breakpoint
+           inherits it. Custom properties set on :host inherit to the slotted
+           light-DOM too, so the light-DOM sheet (pro.css.js) picks these up
+           without a parallel light-DOM block. Placed after the black block so it
+           wins when both attributes are set. */
+        :host([variant='pro'][background-color='dark']) {
+            --consonant-merch-card-pro-bg-default: #000;
+            --consonant-merch-card-pro-bg-subtle: #131313;
+            --consonant-merch-card-pro-frame-bg: #131313;
+            --consonant-merch-card-pro-frame-text: #fff;
+            --consonant-merch-card-pro-text-color: #fff;
+            --consonant-merch-card-pro-text-muted-color: #ffffffa3;
+            --consonant-merch-card-pro-text-inverse-color: #fff;
+            --consonant-merch-card-pro-subtitle-color: #ffffffa3;
+            --consonant-merch-card-pro-secure-icon-color: #ffffffa3;
+            --consonant-merch-card-pro-divider-color: #ffffff1f;
+            --consonant-merch-card-pro-hero-border-color: #ffffff1f;
+            --consonant-merch-card-pro-cta-outline-border-color: #dadada;
+            --consonant-merch-card-pro-cta-outline-hover-color: #ffffff1f;
+            --consonant-merch-card-pro-control-bg: #1d1d1d;
+            --consonant-merch-card-pro-control-border-color: #ffffff1f;
+            --consonant-merch-card-pro-control-hover-bg: #ffffff14;
+        }
+
         :host([variant='pro']) .top-card {
             background: var(--consonant-merch-card-pro-bg-default, #fff);
             border-radius: 12px;
+            /* Inset ring (not border) so it costs no layout: the hero is a
+               content-box whose height syncHeights publishes, and a real border
+               would shift every light card by 2px. Transparent in light; the
+               dark theme paints the subtle 12%-white hero ring per Figma. */
+            box-shadow: inset 0 0 0 1px
+                var(--consonant-merch-card-pro-hero-border-color, transparent);
             padding: 24px;
             display: flex;
             flex-direction: column;
             gap: 24px;
-            color: #000;
+            color: var(--consonant-merch-card-pro-text-color, #000);
             /* Natural height (features-zone absorbs the slack). syncHeights
                publishes the row's max .top-card height here as min-height so
                shorter cards match; content-box, so the height maps straight. */
@@ -766,7 +801,7 @@ export class Pro extends VariantLayout {
             font-size: 24px;
             line-height: 24px;
             letter-spacing: -0.48px;
-            color: #000;
+            color: var(--consonant-merch-card-pro-text-color, #000);
         }
 
         :host([variant='pro']) ::slotted([slot='body-xs']) {
@@ -776,7 +811,7 @@ export class Pro extends VariantLayout {
             font-size: 14px;
             line-height: 18px;
             letter-spacing: 0.14px;
-            color: #000;
+            color: var(--consonant-merch-card-pro-text-color, #000);
         }
 
         :host([variant='pro']) .pricing {
@@ -793,7 +828,7 @@ export class Pro extends VariantLayout {
             font-size: 18px;
             line-height: 21px;
             letter-spacing: -0.48px;
-            color: #000;
+            color: var(--consonant-merch-card-pro-text-color, #000);
         }
 
         :host([variant='pro']) ::slotted([slot='promo-text']) {
@@ -803,7 +838,7 @@ export class Pro extends VariantLayout {
             font-size: 14px;
             line-height: 18px;
             letter-spacing: 0.14px;
-            color: #000000a3;
+            color: var(--consonant-merch-card-pro-text-muted-color, #000000a3);
         }
 
         :host([variant='pro']) footer {
@@ -830,7 +865,7 @@ export class Pro extends VariantLayout {
             font-size: 14px;
             line-height: 18px;
             letter-spacing: 0.14px;
-            color: #000000a3;
+            color: var(--consonant-merch-card-pro-text-muted-color, #000000a3);
             padding: 0;
             margin: 0;
             align-self: flex-start;
@@ -843,10 +878,16 @@ export class Pro extends VariantLayout {
             display: inline-block;
             width: 16px;
             height: 16px;
-            background-image: var(--secure-icon);
-            background-repeat: no-repeat;
-            background-position: center;
-            background-size: contain;
+            /* Mask (not background-image) so the lock follows a color token:
+               a background-image SVG bakes its own fill and can't theme, which
+               left the icon invisible on the dark surface. Default #000 keeps
+               the light lock byte-identical; the dark block re-points it. */
+            background-color: var(
+                --consonant-merch-card-pro-secure-icon-color,
+                #000
+            );
+            mask: var(--secure-icon) center / contain no-repeat;
+            -webkit-mask: var(--secure-icon) center / contain no-repeat;
         }
 
         :host([variant='pro']) .features-zone {
@@ -931,7 +972,7 @@ export class Pro extends VariantLayout {
             font-size: 18px;
             line-height: 21px;
             letter-spacing: -0.48px;
-            color: #000;
+            color: var(--consonant-merch-card-pro-text-color, #000);
             margin-inline-start: 4px;
         }
 
@@ -957,11 +998,18 @@ export class Pro extends VariantLayout {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            background: var(--consonant-merch-card-pro-bg-default, #fff);
-            border: 1px solid rgba(0, 0, 0, 0.08);
+            background: var(
+                --consonant-merch-card-pro-control-bg,
+                var(--consonant-merch-card-pro-bg-default, #fff)
+            );
+            border: 1px solid
+                var(
+                    --consonant-merch-card-pro-control-border-color,
+                    rgba(0, 0, 0, 0.08)
+                );
             border-radius: 8px;
             cursor: pointer;
-            color: #000;
+            color: var(--consonant-merch-card-pro-text-color, #000);
             font-family: 'Adobe Clean', adobe-clean, sans-serif;
             font-size: 14px;
             line-height: 18px;
@@ -981,12 +1029,15 @@ export class Pro extends VariantLayout {
 
         :host([variant='pro']) .license-select-value {
             font-weight: 700;
-            color: #000;
+            color: var(--consonant-merch-card-pro-text-color, #000);
         }
 
         :host([variant='pro']) .license-select-label {
             font-weight: 700;
-            color: rgba(0, 0, 0, 0.64);
+            color: var(
+                --consonant-merch-card-pro-text-muted-color,
+                rgba(0, 0, 0, 0.64)
+            );
         }
 
         :host([variant='pro']) .license-select-chevron {
@@ -1015,8 +1066,15 @@ export class Pro extends VariantLayout {
             margin: 0;
             padding: 0;
             list-style: none;
-            background: var(--consonant-merch-card-pro-bg-default, #fff);
-            border: 1px solid rgba(0, 0, 0, 0.08);
+            background: var(
+                --consonant-merch-card-pro-control-bg,
+                var(--consonant-merch-card-pro-bg-default, #fff)
+            );
+            border: 1px solid
+                var(
+                    --consonant-merch-card-pro-control-border-color,
+                    rgba(0, 0, 0, 0.08)
+                );
             border-radius: 8px;
             box-shadow:
                 0 7px 15px rgba(0, 0, 0, 0.1),
@@ -1040,24 +1098,35 @@ export class Pro extends VariantLayout {
             height: 39px;
             box-sizing: border-box;
             padding: 12px;
-            border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+            border-bottom: 1px solid
+                var(
+                    --consonant-merch-card-pro-control-border-color,
+                    rgba(0, 0, 0, 0.08)
+                );
             font-family: 'Adobe Clean', adobe-clean, sans-serif;
             font-size: 14px;
             line-height: 18px;
             font-weight: 700;
             cursor: pointer;
-            background: var(--consonant-merch-card-pro-bg-default, #fff);
+            background: var(
+                --consonant-merch-card-pro-control-bg,
+                var(--consonant-merch-card-pro-bg-default, #fff)
+            );
         }
 
         :host([variant='pro']) .license-select-option {
             padding: 16px 12px;
             cursor: pointer;
-            color: #000;
+            color: var(--consonant-merch-card-pro-text-color, #000);
             font-family: 'Adobe Clean', adobe-clean, sans-serif;
             font-size: 14px;
             line-height: 18px;
             font-weight: 700;
-            border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+            border-bottom: 1px solid
+                var(
+                    --consonant-merch-card-pro-control-border-color,
+                    rgba(0, 0, 0, 0.08)
+                );
         }
 
         :host([variant='pro']) .license-select-option:last-child {
@@ -1067,7 +1136,10 @@ export class Pro extends VariantLayout {
         :host([variant='pro']) .license-select-option:hover,
         :host([variant='pro']) .license-select-option.highlighted,
         :host([variant='pro']) .license-select-option.selected {
-            background: var(--consonant-merch-card-pro-bg-subtle, #f8f8f8);
+            background: var(
+                --consonant-merch-card-pro-control-hover-bg,
+                var(--consonant-merch-card-pro-bg-subtle, #f8f8f8)
+            );
         }
 
         /* Focus stays on the trigger, so the highlighted option needs its own
@@ -1079,7 +1151,7 @@ export class Pro extends VariantLayout {
 
         :host([variant='pro']) .callout {
             padding: 8px 12px 12px 12px;
-            color: #000;
+            color: var(--consonant-merch-card-pro-text-color, #000);
             font-family: 'Adobe Clean', adobe-clean, sans-serif;
             font-size: 12px;
             line-height: 16px;

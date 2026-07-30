@@ -578,42 +578,6 @@ export function processDescription(fields, merchCard, mapping, settings) {
     appendSlot('whatsIncluded', fields, merchCard, mapping);
 }
 
-/**
- * pro + size="edu" turns the single authored whats-included value into the
- * panel TITLE, then injects two localized elements (MWPW-200407): a
- * "What's included:" sub-label ({{whats-included}}) beneath the title, and —
- * unless the hideEduDisclaimer setting is on — an eligibility disclaimer
- * ({{edu-disclaimer}}) after the feature list. Both fall back to English when
- * the dictionary lacks the key. Idempotent and gated to pro/edu, so every
- * other card is untouched.
- */
-function processProEduWhatsIncluded(fields, merchCard, fragment) {
-    if (fields.variant !== 'pro' || fields.size !== 'edu') return;
-    const slot = merchCard.querySelector('[slot="whats-included"]');
-    if (!slot || slot.querySelector('.whats-included-title')) return;
-    const title = slot.querySelector('.whats-included-label');
-    if (!title) return;
-    title.classList.remove('whats-included-label');
-    title.classList.add('whats-included-title');
-    title.after(
-        createTag(
-            'p',
-            { class: 'whats-included-label' },
-            fragment?.dictionary?.['whats-included'] || "FAKE WHATS INCLUDED",
-        ),
-    );
-    if (!fragment?.settings?.hideEduDisclaimer) {
-        slot.append(
-            createTag(
-                'p',
-                { class: 'whats-included-disclaimer' },
-                fragment?.dictionary?.['edu-disclaimer'] ||
-                    'NO EDU DISCLAIMER DECLARED',
-            ),
-        );
-    }
-}
-
 function processQuantitySelect(fields, merchCard, mapping, settings = {}) {
     if (!mapping.quantitySelect) return;
     if (!fields.quantitySelect) fields.quantitySelect = settings.quantitySelect;
@@ -1092,7 +1056,6 @@ export async function hydrate(fragment, merchCard) {
     );
     processBorderColor(fields, merchCard, mapping);
     processDescription(fields, merchCard, mapping, settings);
-    processProEduWhatsIncluded(fields, merchCard, fragment);
     processFeatures(fields, merchCard, mapping);
     processWhatsIncludedDividerColor(fields, merchCard, mapping);
     processAddon(fields, merchCard, mapping, settings);

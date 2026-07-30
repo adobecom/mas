@@ -192,7 +192,8 @@ merch-card[variant="pro"][size='edu'] [slot="whats-included"] .whats-included-la
 }
 
 /* EDU eligibility disclaimer ({{edu-disclaimer}}), appended after the feature
-   list by hydrate and hidden via the hideEduDisclaimer setting (MWPW-202318).
+   list by the eduWhatsIncluded io transformer and hidden via the
+   hideEduDisclaimer setting (MWPW-202318).
    Figma 4375:120476: 12/16 legal text, color inherit. */
 merch-card[variant="pro"][size='edu'] [slot="whats-included"] .whats-included-disclaimer {
     color: inherit;
@@ -202,6 +203,14 @@ merch-card[variant="pro"][size='edu'] [slot="whats-included"] .whats-included-di
     line-height: 16px;
     letter-spacing: 0;
     margin-top: 40px;
+}
+
+/* {{edu-disclaimer}} resolves to rich text (a <p>), so the placeholder sits in
+   a <div> wrapper; the inner paragraph inherits the legal-text styling. */
+merch-card[variant="pro"][size='edu'] [slot="whats-included"] .whats-included-disclaimer p {
+    margin: 0;
+    font: inherit;
+    color: inherit;
 }
 
 /* EDU right panel (Figma 4375:120476 "Copy" frame): feature rows are Adobe

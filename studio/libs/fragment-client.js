@@ -14,12 +14,13 @@ import { clearSettingsCache, transformer as settings } from '../../io/www/src/fr
 import { transformer as customize } from '../../io/www/src/fragment/transformers/customize.js';
 import { clearPromoCache, transformer as promotions } from '../../io/www/src/fragment/transformers/promotions.js';
 import { transformer as mask } from '../../io/www/src/fragment/transformers/mask.js';
+import { transformer as eduWhatsIncluded } from '../../io/www/src/fragment/transformers/eduWhatsIncluded.js';
 import { ODIN_PREVIEW_FRAGMENTS_URL } from '../src/constants.js';
 import { transformer as wcs } from '../../io/www/src/fragment/transformers/wcs.js';
 import { loadConfiguration } from '../../io/www/src/fragment/utils/configuration.js';
 import { mark } from '../../io/www/src/fragment/utils/common.js';
 
-const PIPELINE = [fetchFragment, defaultLanguage, promotions, mask, customize, settings, replace, corrector, wcs];
+const PIPELINE = [fetchFragment, defaultLanguage, promotions, mask, customize, settings, eduWhatsIncluded, replace, corrector, wcs];
 class LocaleStorageState {
     constructor() {        
     }
@@ -152,7 +153,7 @@ async function previewStudioFragment(body, options) {
     };
     context.fragmentsIds = context.fragmentsIds || {};
     context.hasExternalDictionary = Boolean(context.dictionary);
-    for (const transformer of [settings, replace, corrector]) {
+    for (const transformer of [settings, eduWhatsIncluded, replace, corrector]) {
         if (transformer.init) {
             const initContext = {
                 ...structuredClone(context),
@@ -164,7 +165,7 @@ async function previewStudioFragment(body, options) {
         }
     }
     context.promises = initPromises;
-    for (const transformer of [settings, replace, corrector]) {
+    for (const transformer of [settings, eduWhatsIncluded, replace, corrector]) {
         if (context.status != 200) {
             break;
         }

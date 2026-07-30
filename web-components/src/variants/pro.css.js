@@ -39,6 +39,12 @@ merch-card[variant="pro"] {
     position: relative;
 }
 
+/* EDU (Wide): standalone two-column card, wider than the default grid track.
+   Internal row split + mobile stack live in the shadow variantStyle. */
+merch-card[variant="pro"][size='edu'] {
+    max-width: 1068px;
+}
+
 /* Callout banner link — inherits dark text color + weight, just underlined.
    Force display:inline so the link flows with the surrounding text and
    doesn't get broken onto its own line by any inherited inline-block. */
@@ -151,6 +157,52 @@ merch-card[variant="pro"] [slot="whats-included"] .whats-included-label {
     display: none;
 }
 
+/* EDU (Wide): no toggle, so the whats-included label becomes the panel title. */
+merch-card[variant="pro"][size='edu'] [slot="whats-included"] .whats-included-label {
+    display: block;
+    color: inherit;
+    font-family: var(--consonant-merch-card-pro-font-family-display);
+    font-size: 36px;
+    font-style: normal;
+    font-weight: 900;
+    line-height: 32px;
+    letter-spacing: -1px;
+}
+
+/* Mobile (≤767, Figma node 4375:120499): the edu title shrinks to 20/20. */
+@media screen and ${MOBILE_LANDSCAPE} {
+    merch-card[variant="pro"][size='edu'] [slot="whats-included"] .whats-included-label {
+        font-size: 20px;
+        line-height: 20px;
+        letter-spacing: -0.48px;
+    }
+}
+
+/* EDU right panel (Figma 4375:120476 "Copy" frame): sub-label "What's
+   Included:" is 16/20, the feature list uses a 16px gap, and thin divider
+   rules sit between feature lines (not between sections as the narrow card). */
+merch-card[variant="pro"][size='edu'] [slot="whats-included"] h4 {
+    font-size: 16px;
+    line-height: 20px;
+    letter-spacing: 0;
+}
+
+merch-card[variant="pro"][size='edu'] [slot="whats-included"] ul {
+    margin-top: 16px;
+    gap: 16px;
+}
+
+merch-card[variant="pro"][size='edu'] [slot="whats-included"] ul li {
+    letter-spacing: 0;
+    padding: 0;
+}
+
+merch-card[variant="pro"][size='edu'] [slot="whats-included"] ul li + li {
+    /* Figma divider is a 1px rule at 24% (not the shared 12% token). */
+    border-top: 1px solid rgba(0, 0, 0, 0.24);
+    padding-top: 16px;
+}
+
 merch-card[variant="pro"] [slot="whats-included"] .section,
 merch-card[variant="pro"] [slot="whats-included"] h4,
 merch-card[variant="pro"] [slot="whats-included"] h5 {
@@ -214,8 +266,10 @@ merch-card[variant="pro"] [slot="whats-included"] .section + .section {
 }
 
 /* Per Figma: the last section in a multi-section list uses 8px gap between title and items
-   (the leading + middle sections stay at 12px). Single-section cards keep 12px. */
-merch-card[variant="pro"] [slot="whats-included"] .section:not(:only-child):last-child ul {
+   (the leading + middle sections stay at 12px). Single-section cards keep 12px.
+   Excludes edu: there the sibling .whats-included-label makes .section a non-only
+   :last-child, which would otherwise steal the edu 16px title→list gap. */
+merch-card[variant="pro"]:not([size='edu']) [slot="whats-included"] .section:not(:only-child):last-child ul {
     margin-top: 8px;
 }
 

@@ -159,6 +159,24 @@ describe('pro appearance mapping', () => {
     });
 });
 
+describe('pro edu size', () => {
+    let card;
+    afterEach(() => card?.remove());
+
+    it('shows whats-included persistently (no toggle) at size edu', async () => {
+        card = await renderCard(
+            '<div slot="whats-included">Everything included</div>',
+        );
+        card.setAttribute('size', 'edu');
+        card.requestUpdate();
+        await card.updateComplete;
+        const toggle = card.shadowRoot.querySelector('.whats-included-toggle');
+        const zone = card.shadowRoot.querySelector('.features-zone');
+        expect(getComputedStyle(toggle).display).to.equal('none');
+        expect(getComputedStyle(zone).display).to.not.equal('none');
+    });
+});
+
 describe('Pro.adjustLegal', () => {
     function makeFixture(priceOverrides = {}) {
         const clone = {

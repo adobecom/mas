@@ -9,6 +9,7 @@ import {
     SELECTOR_MAS_INLINE_PRICE,
     TEMPLATE_PRICE_LEGAL,
 } from '../constants.js';
+import { MOBILE_LANDSCAPE, TABLET_UP, C2_DESKTOP_UP } from '../media.js';
 
 const VARIANT = 'pro';
 // syncHeights publishes this property and the shadow styles consume it; the
@@ -1126,12 +1127,53 @@ export class Pro extends VariantLayout {
         }
 
         /* C2 desktop breakpoint: toggle disappears, features-zone is always visible inline */
-        @media (min-width: 1280px) {
+        @media screen and ${unsafeCSS(C2_DESKTOP_UP)} {
             :host([variant='pro']) .whats-included-toggle {
                 display: none;
             }
             :host([variant='pro']) .features-zone[hidden] {
                 display: flex;
+            }
+        }
+
+        /* EDU (Wide): standalone two-column card — pricing left, features
+           right, always shown. Stacks vertically below tablet. */
+        :host([variant='pro'][size='edu']) .whats-included-toggle {
+            display: none;
+        }
+
+        :host([variant='pro'][size='edu']) .features-zone[hidden] {
+            display: flex;
+        }
+
+        @media screen and ${unsafeCSS(TABLET_UP)} {
+            :host([variant='pro'][size='edu']) {
+                flex-direction: row;
+                gap: 8px;
+            }
+
+            :host([variant='pro'][size='edu']) .top-card,
+            :host([variant='pro'][size='edu']) .features-zone {
+                flex: 1 1 50%;
+                min-width: 0;
+                /* border-box so the 40px vs 24px padding delta doesn't skew
+                   the split — Figma has equal 526+526 total column widths. */
+                box-sizing: border-box;
+            }
+
+            /* EDU right panel padding is 40px at tablet+; mobile keeps the base
+               24px (Figma 4375:120476 desktop / 4375:120499 mobile). */
+            :host([variant='pro'][size='edu']) .features-zone {
+                padding: 40px;
+            }
+
+            /* edu is a standalone card, not a grid row, so the price shouldn't
+               stick to the bottom. Stop .name-description from absorbing the
+               slack (from the 50/50 stretch) — pack content to the top per
+               Figma (Top of Card primaryAxisAlign=MIN), slack falls to the
+               bottom. */
+            :host([variant='pro'][size='edu']) .name-description {
+                flex: 0 0 auto;
             }
         }
     `;

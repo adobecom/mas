@@ -286,13 +286,23 @@ runTests(async () => {
             return wi;
         }
 
+        // mini-compare-chart projects whats-included through the
+        // "footer-rows" slot; plans exposes its own "whats-included" slot.
+        const WHATS_INCLUDED_SLOT_BY_VARIANT = {
+            'mini-compare-chart': 'footer-rows',
+            plans: 'whats-included',
+        };
+
         async function mountCard(variant, whatsIncluded) {
             const mount = document.createElement('div');
             mount.style.cssText =
                 'position:absolute;left:-9999px;top:0;width:520px;';
             const card = document.createElement('merch-card');
             card.setAttribute('variant', variant);
-            whatsIncluded.setAttribute('slot', 'whats-included');
+            whatsIncluded.setAttribute(
+                'slot',
+                WHATS_INCLUDED_SLOT_BY_VARIANT[variant],
+            );
             card.appendChild(whatsIncluded);
             mount.appendChild(card);
             document.body.appendChild(mount);
@@ -304,14 +314,14 @@ runTests(async () => {
 
         function iconDisplay(card, rowIndex) {
             const iconSlot = card.querySelector(
-                `[slot="whats-included"] [slot="content"] merch-mnemonic-list:nth-of-type(${rowIndex + 1}) [slot="icon"]`,
+                `merch-whats-included [slot="content"] merch-mnemonic-list:nth-of-type(${rowIndex + 1}) [slot="icon"]`,
             );
             return window.getComputedStyle(iconSlot).display;
         }
 
         function bulletIconDisplay(card, rowIndex = 0) {
             const iconSlot = card.querySelector(
-                `[slot="whats-included"] [slot="contentBullets"] merch-mnemonic-list:nth-of-type(${rowIndex + 1}) [slot="icon"]`,
+                `merch-whats-included [slot="contentBullets"] merch-mnemonic-list:nth-of-type(${rowIndex + 1}) [slot="icon"]`,
             );
             return window.getComputedStyle(iconSlot).display;
         }

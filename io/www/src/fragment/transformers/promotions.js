@@ -353,6 +353,8 @@ async function hydrateProject(project, { baseUrl, surface, defaultLocale, resolv
         id: project.id,
         path: project.path,
         title,
+        startDate: project.startDate,
+        endDate: project.endDate,
         promoCode,
         fragmentPaths,
         offerOverrides,

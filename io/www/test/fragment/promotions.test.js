@@ -162,7 +162,7 @@ describe('promotions', () => {
             expect(result.activeProjects[0].promoCode).to.equal('SAVE20');
         });
 
-        it('carries the project title through hydration', async () => {
+        it('carries the project title, startDate and endDate through hydration', async () => {
             const project = makeProject({ id: 'proj-1', surfaces: ['acom'], geos: ['/content/cq:tags/mas/locale/en_US'] });
             const hydrated = makeHydratedProject({ title: 'Summer Sale 2026' });
             fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
@@ -170,6 +170,8 @@ describe('promotions', () => {
 
             const result = await promotionsTransformer.init(createContext({ regionLocale: 'en_US' }));
             expect(result.activeProjects[0].title).to.equal('Summer Sale 2026');
+            expect(result.activeProjects[0].startDate).to.equal(START);
+            expect(result.activeProjects[0].endDate).to.equal(END);
         });
 
         it('ignores instant when not in preview mode', async () => {

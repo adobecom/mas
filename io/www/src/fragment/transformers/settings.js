@@ -276,6 +276,22 @@ function applyCollectionSettings(context, locale, settings) {
         Object.fromEntries(['desktop', 'mobile', 'web'].map((label) => [label, `{{coll-tag-filter-${label}}}`])) || {};
 }
 
+// Fixed, localized chrome for the edu "whats-included" panel (sub-label +
+// disclaimer). Same 3-way split as applyCollectionSettings: this publishes
+// {{...}} tokens into body.placeholders, `replace` resolves them from the
+// dictionary, and pro.js places the resolved strings client-side.
+function applyEduPlaceholders(body) {
+    const fields = body?.fields;
+    if (fields?.variant !== 'pro' || fields?.size !== 'edu') return;
+    body.placeholders = {
+        ...body.placeholders,
+        whatsIncludedLabel: '{{whats-included}}',
+    };
+    if (!body.settings?.hideEduDisclaimer) {
+        body.placeholders.eduDisclaimer = '{{edu-disclaimer}}';
+    }
+}
+
 function applyPriceLiterals(fragment) {
     if (fragment) {
         fragment.priceLiterals = {
@@ -311,6 +327,8 @@ async function settings(context) {
             applySettings(context, body, locale, settings);
         }
     }
+
+    applyEduPlaceholders(body);
 
     return context;
 }

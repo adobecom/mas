@@ -191,8 +191,8 @@ merch-card[variant="pro"][size='edu'] [slot="whats-included"] .whats-included-la
     margin-top: 24px;
 }
 
-/* EDU eligibility disclaimer ({{edu-disclaimer}}), appended after the feature
-   list by the eduWhatsIncluded io transformer and hidden via the
+/* EDU eligibility disclaimer, resolved server-side ({{edu-disclaimer}}) and
+   appended after the feature list by pro.js, hidden via the
    hideEduDisclaimer setting (MWPW-202318).
    Figma 4375:120476: 12/16 legal text, color inherit. */
 merch-card[variant="pro"][size='edu'] [slot="whats-included"] .whats-included-disclaimer {

@@ -206,6 +206,7 @@ export class Pro extends VariantLayout {
     }
 
     async postCardUpdateHook() {
+        this.adjustEduWhatsIncluded();
         await this.adjustAddon();
         if (!this.legalAdjusted) {
             await this.adjustLegal();
@@ -214,6 +215,32 @@ export class Pro extends VariantLayout {
         await super.postCardUpdateHook();
         // Line the white .top-card sections up across a row (desktop only).
         if (window.matchMedia('(min-width: 768px)').matches) this.syncHeights();
+    }
+
+    // pro/edu only: the authored whats-included leading paragraph is the panel
+    // title; promote it and inject the server-resolved (already localized)
+    // sub-label + disclaimer strings published on the card's `placeholders` map
+    // (settings.js -> replace transformer -> here). Idempotent via the
+    // `.whats-included-title` guard so re-renders don't double-apply.
+    adjustEduWhatsIncluded() {
+        if (this.card.size !== 'edu') return;
+        const slot = this.card.querySelector('[slot="whats-included"]');
+        if (!slot || slot.querySelector('.whats-included-title')) return;
+        const title = slot.querySelector('.whats-included-label');
+        if (!title) return;
+        title.classList.replace('whats-included-label', 'whats-included-title');
+        const { whatsIncludedLabel, eduDisclaimer } =
+            this.card.placeholders ?? {};
+        const label = document.createElement('p');
+        label.className = 'whats-included-label';
+        label.textContent = whatsIncludedLabel ?? '';
+        title.after(label);
+        if (eduDisclaimer) {
+            const disclaimer = document.createElement('div');
+            disclaimer.className = 'whats-included-disclaimer';
+            disclaimer.innerHTML = eduDisclaimer;
+            slot.append(disclaimer);
+        }
     }
 
     // Heading/description reflow when the Adobe Clean fonts load, so wait for

@@ -1135,7 +1135,7 @@ class MasCompareChartEditor extends LitElement {
         const parentFeatures = this.#parentFeatureValues(cardPath);
         const nextFeatures = parentFeatures.length ? this.#toOverrideFeatureValues(features, parentFeatures) : features;
         if (parentFeatures.length && nextFeatures.length === 0) {
-            store.resetFieldToParent('features', parentFeatures);
+            store.resetFieldToParent('features');
         } else {
             store.updateField('features', nextFeatures);
         }
@@ -1386,7 +1386,7 @@ class MasCompareChartEditor extends LitElement {
         const drafts = new Map(this.columnFeatureDrafts);
         drafts.delete(column.path);
         this.columnFeatureDrafts = drafts;
-        store.resetFieldToParent('features', this.#featureValues(column.parentFragment));
+        store.resetFieldToParent('features');
         this.#syncDirtyCardStoreState();
         this.requestUpdate();
     }

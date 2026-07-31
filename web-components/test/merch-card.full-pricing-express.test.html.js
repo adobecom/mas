@@ -316,6 +316,16 @@ runTests(async () => {
                 // At least one card should have a badge
                 expect(foundBadge).to.be.true;
             });
+
+            it('should NOT render badge-wrapper when no badge slot child is present', async () => {
+                const card = document.querySelector(
+                    'merch-card[variant="full-pricing-express"]',
+                );
+                expect(card.querySelector('[slot="badge"]')).to.not.exist;
+                await delay(100);
+                expect(card.shadowRoot.querySelector('.badge-wrapper')).to.not
+                    .exist;
+            });
         });
 
         describe('Gradient Border Support', () => {

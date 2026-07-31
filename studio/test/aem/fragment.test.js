@@ -1,4 +1,5 @@
 import { expect } from '@open-wc/testing';
+import { EXPLICIT_EMPTY_SENTINEL } from '../../../io/www/src/fragment/utils/explicit-empty.js';
 import { Fragment } from '../../src/aem/fragment.js';
 import { TAG_PROMOTION_PREFIX } from '../../src/constants.js';
 import generateFragmentStore from '../../src/reactivity/source-fragment-store.js';
@@ -245,6 +246,7 @@ describe('Fragment', () => {
                 fields: [
                     { name: 'mnemonicIcon', values: ['parent-icon.svg'], multiple: true },
                     { name: 'description', values: ['Parent description'], multiple: false },
+                    { name: 'badge', values: ['<merch-badge>Sale</merch-badge>'] },
                 ],
             }),
         );
@@ -266,6 +268,19 @@ describe('Fragment', () => {
                 desc: 'returns parent for [""] sentinel (single-value)',
             },
             { name: 'mnemonicIcon', values: [], expected: ['parent-icon.svg'], desc: 'returns parent for [] (inherit)' },
+            {
+                name: 'badge',
+                values: [EXPLICIT_EMPTY_SENTINEL],
+                expected: [''],
+                desc: 'resolves EXPLICIT_EMPTY_SENTINEL to [""] — never leaks the raw sentinel to callers',
+            },
+            {
+                name: 'description',
+                values: [EXPLICIT_EMPTY_SENTINEL],
+                multiple: false,
+                expected: [EXPLICIT_EMPTY_SENTINEL],
+                desc: 'returns sentinel as-is for non-allowed fields — does not treat it as explicit-empty',
+            },
         ].forEach(({ name, values, multiple, expected, desc }) => {
             it(desc, () => {
                 const variation = new Fragment(
@@ -275,6 +290,58 @@ describe('Fragment', () => {
                 );
                 expect(variation.getEffectiveFieldValues(name, parent, true)).to.deep.equal(expected);
             });
+        });
+
+        it('returns [] for badge with EXPLICIT_EMPTY_SENTINEL when multiple=true', () => {
+            const variation = new Fragment(
+                createFragmentConfig({ fields: [{ name: 'badge', values: [EXPLICIT_EMPTY_SENTINEL], multiple: true }] }),
+            );
+            expect(variation.getEffectiveFieldValues('badge', parent, true)).to.deep.equal([]);
+        });
+
+        it('returns [] for badge with EXPLICIT_EMPTY_SENTINEL when no parent is provided', () => {
+            const variation = new Fragment(
+                createFragmentConfig({ fields: [{ name: 'badge', values: [EXPLICIT_EMPTY_SENTINEL] }] }),
+            );
+            expect(variation.getEffectiveFieldValues('badge', null, true)).to.deep.equal([]);
+        });
+    });
+
+    describe('getEffectiveFieldValue', () => {
+        const parent = new Fragment(
+            createFragmentConfig({
+                fields: [
+                    { name: 'badge', values: ['Sale'] },
+                    { name: 'description', values: ['Parent description'] },
+                ],
+            }),
+        );
+
+        it('returns empty string for EXPLICIT_EMPTY_SENTINEL on allowed field (badge)', () => {
+            const variation = new Fragment(
+                createFragmentConfig({ fields: [{ name: 'badge', values: [EXPLICIT_EMPTY_SENTINEL] }] }),
+            );
+            expect(variation.getEffectiveFieldValue('badge', parent, true, 0)).to.equal('');
+        });
+
+        it('does not treat EXPLICIT_EMPTY_SENTINEL as explicit-empty on non-allowed fields', () => {
+            const variation = new Fragment(
+                createFragmentConfig({ fields: [{ name: 'description', values: [EXPLICIT_EMPTY_SENTINEL] }] }),
+            );
+            expect(variation.getEffectiveFieldValue('description', parent, true, 0)).to.equal(EXPLICIT_EMPTY_SENTINEL);
+        });
+
+        it('still inherits from parent when own value is absent', () => {
+            const variation = new Fragment(createFragmentConfig({ fields: [] }));
+            expect(variation.getEffectiveFieldValue('badge', parent, true, 0)).to.equal('Sale');
+        });
+
+        it('returns empty string when variation has explicit_empty but parent badge is also empty', () => {
+            const emptyParent = new Fragment(createFragmentConfig({ fields: [{ name: 'badge', values: [''] }] }));
+            const variation = new Fragment(
+                createFragmentConfig({ fields: [{ name: 'badge', values: [EXPLICIT_EMPTY_SENTINEL] }] }),
+            );
+            expect(variation.getEffectiveFieldValue('badge', emptyParent, true, 0)).to.equal('');
         });
     });
 
@@ -361,6 +428,42 @@ describe('Fragment', () => {
                 expect(variation.updateField('mnemonicIcon', [''], parent)).to.be.true;
                 expect(variation.getFieldValues('mnemonicIcon')).to.deep.equal(['']);
                 expect(variation.getField('mnemonicIcon').multiple).to.be.true;
+            });
+
+            it('persists explicit_empty when clearing badge on a variation whose parent has content', () => {
+                const parent = new Fragment(
+                    createFragmentConfig({ fields: [{ name: 'badge', values: ['<merch-badge>Sale</merch-badge>'] }] }),
+                );
+                const variation = new Fragment(createFragmentConfig({ fields: [] }));
+
+                expect(variation.updateField('badge', [''], parent)).to.be.true;
+                expect(variation.getFieldValues('badge')).to.deep.equal([EXPLICIT_EMPTY_SENTINEL]);
+            });
+
+            it('keeps explicit_empty on badge when preparing variation for save', () => {
+                const parent = new Fragment(
+                    createFragmentConfig({ fields: [{ name: 'badge', values: ['<merch-badge>Sale</merch-badge>'] }] }),
+                );
+                const variation = new Fragment(
+                    createFragmentConfig({ fields: [{ name: 'badge', values: [EXPLICIT_EMPTY_SENTINEL] }] }),
+                );
+
+                const prepared = variation.prepareVariationForSave(parent);
+                expect(prepared.getFieldValues('badge')).to.deep.equal([EXPLICIT_EMPTY_SENTINEL]);
+            });
+
+            it('does not mark changes for a non-badge single-value field going from [] to [""] when parent has content', () => {
+                const parent = new Fragment(
+                    createFragmentConfig({
+                        fields: [{ name: 'description', values: ['Parent description'], multiple: false }],
+                    }),
+                );
+                const variation = new Fragment(
+                    createFragmentConfig({ fields: [{ name: 'description', values: [], multiple: false }] }),
+                );
+                expect(variation.updateField('description', [''], parent)).to.be.false;
+                expect(variation.getFieldValues('description')).to.deep.equal([]);
+                expect(variation.hasChanges).to.be.false;
             });
         });
 
@@ -459,6 +562,34 @@ describe('Fragment', () => {
             expect(variation.getFieldState('mnemonicIcon', parentMulti, true)).to.equal('overridden');
             variation.updateField('mnemonicIcon', []);
             expect(variation.getFieldState('mnemonicIcon', parentMulti, true)).to.equal('inherited');
+        });
+
+        it('returns "overridden" for badge with EXPLICIT_EMPTY_SENTINEL when parent has content', () => {
+            const badgeParent = new Fragment(
+                createFragmentConfig({ fields: [{ name: 'badge', values: ['<merch-badge>Sale</merch-badge>'] }] }),
+            );
+            const variation = new Fragment(
+                createFragmentConfig({ fields: [{ name: 'badge', values: [EXPLICIT_EMPTY_SENTINEL] }] }),
+            );
+            expect(variation.getFieldState('badge', badgeParent, true)).to.equal('overridden');
+        });
+
+        it('returns "inherited" for badge with EXPLICIT_EMPTY_SENTINEL when parent badge is empty', () => {
+            const emptyBadgeParent = new Fragment(createFragmentConfig({ fields: [{ name: 'badge', values: [''] }] }));
+            const variation = new Fragment(
+                createFragmentConfig({ fields: [{ name: 'badge', values: [EXPLICIT_EMPTY_SENTINEL] }] }),
+            );
+            expect(variation.getFieldState('badge', emptyBadgeParent, true)).to.equal('inherited');
+        });
+
+        it('returns "overridden" for badge with EXPLICIT_EMPTY_SENTINEL when multiple=true', () => {
+            const badgeParent = new Fragment(
+                createFragmentConfig({ fields: [{ name: 'badge', values: ['Sale'], multiple: true }] }),
+            );
+            const variation = new Fragment(
+                createFragmentConfig({ fields: [{ name: 'badge', values: [EXPLICIT_EMPTY_SENTINEL], multiple: true }] }),
+            );
+            expect(variation.getFieldState('badge', badgeParent, true)).to.equal('overridden');
         });
     });
 
@@ -650,6 +781,38 @@ describe('Fragment', () => {
             // Update to match parent - should reset
             expect(store.updateField('title', ['Parent Title'])).to.equal('reset');
             expect(store.value.getFieldValues('title')).to.deep.equal([]);
+        });
+
+        it('SourceFragmentStore.resetFieldToParent removes field from source and refreshes preview with parent values', () => {
+            const fragment = new Fragment(
+                createFragmentConfig({ fields: [{ name: 'badge', values: [EXPLICIT_EMPTY_SENTINEL] }] }),
+            );
+            const parent = new Fragment(createFragmentConfig({ fields: [{ name: 'badge', values: ['Sale'] }] }));
+            const store = generateFragmentStore(fragment, parent);
+
+            expect(store.value.getFieldValues('badge')).to.deep.equal([EXPLICIT_EMPTY_SENTINEL]);
+
+            const result = store.resetFieldToParent('badge');
+            expect(result).to.be.true;
+
+            expect(store.value.getField('badge')).to.be.undefined;
+            expect(store.previewStore.value.getFieldValues('badge')).to.deep.equal(['Sale']);
+        });
+
+        it('SourceFragmentStore.resetFieldToParent returns false when field does not exist', () => {
+            const store = generateFragmentStore(new Fragment(createFragmentConfig({ fields: [] })));
+            expect(store.resetFieldToParent('badge')).to.be.false;
+        });
+
+        it('SourceFragmentStore.resetFieldToParent with no parent refreshes preview from source', () => {
+            const fragment = new Fragment(createFragmentConfig({ fields: [{ name: 'badge', values: ['Sale'] }] }));
+            const store = generateFragmentStore(fragment);
+
+            const result = store.resetFieldToParent('badge');
+            expect(result).to.be.true;
+
+            expect(store.value.getField('badge')).to.be.undefined;
+            expect(store.previewStore.value.getField('badge')).to.be.undefined;
         });
     });
     describe('getCurrentTagTitle (product_code / Tag Path)', () => {

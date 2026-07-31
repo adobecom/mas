@@ -7,6 +7,7 @@ import {
     VALID_PARAMETER_VALUE_REGEX,
 } from '../utils/common.js';
 import { logDebug, logError } from '../utils/log.js';
+import { normalizeExplicitEmptyInFields } from '../utils/explicit-empty.js';
 
 const PZN_FOLDER = '/pzn/';
 
@@ -365,6 +366,7 @@ function customizeTree(root, referencesTree = [], customizeContext) {
     const selectedPromoProject = selectPromoProjectForFragment(root, customizeContext);
     //apply regional or promo variation, if any.
     const customizedRoot = mergeVariations(root, customizeContext, selectedPromoProject);
+    customizedRoot.fields = normalizeExplicitEmptyInFields(customizedRoot.fields);
     if (selectedPromoProject) {
         // set data-promotion-project attribute, even when the project
         // only substitutes the OSI (no promo code and no variation).

@@ -1,4 +1,4 @@
-import { html, css } from 'lit';
+import { html, css, nothing } from 'lit';
 import { VariantLayout } from './variant-layout.js';
 import { CSS } from './full-pricing-express.css.js';
 
@@ -89,19 +89,14 @@ export class FullPricingExpress extends VariantLayout {
         return '[slot="heading-xs"]';
     }
 
-    get badgeElement() {
-        return this.card.querySelector('[slot="badge"]');
-    }
-
     get badge() {
-        return html`
-            <div
-                class="badge-wrapper"
-                style="${this.badgeElement ? '' : 'visibility: hidden'}"
-            >
+        const badgeElement = this.card.querySelector('[slot="badge"]');
+        if (badgeElement) {
+            return html`<div class="badge-wrapper">
                 <slot name="badge"></slot>
-            </div>
-        `;
+            </div>`;
+        }
+        return nothing;
     }
 
     async waitForTitleFont() {

@@ -8,6 +8,7 @@ import './mas-side-nav-item.js';
 import ReactiveController from './reactivity/reactive-controller.js';
 
 const EVENT_MAS_READY = 'mas:ready';
+const EVENT_MAS_ERROR = 'mas:error';
 const INLINE_PRICE_SELECTOR = 'span[is="inline-price"]';
 const FIELD_SOURCE = {
     CURRENT: 'current',
@@ -196,12 +197,14 @@ class MasSideNav extends LitElement {
         super.connectedCallback();
         Store.fragments.inEdit.subscribe(this.#handleFragmentInEditChange);
         document.addEventListener(EVENT_MAS_READY, this.#onMerchCardReady);
+        document.addEventListener(EVENT_MAS_ERROR, this.#onMerchCardReady);
     }
 
     disconnectedCallback() {
         super.disconnectedCallback();
         Store.fragments.inEdit.unsubscribe(this.#handleFragmentInEditChange);
         document.removeEventListener(EVENT_MAS_READY, this.#onMerchCardReady);
+        document.removeEventListener(EVENT_MAS_ERROR, this.#onMerchCardReady);
     }
 
     #handleFragmentInEditChange = (fragmentStore) => {
@@ -843,17 +846,34 @@ class MasSideNav extends LitElement {
         }
     }
 
+    /**
+     * hydrate.js#processCustomFields hydrates each customFields[i] value into its own
+     * `[slot="custom-field-i"]` light-DOM child of the live preview card, where inline-price
+     * (and other mas-element) custom elements auto-upgrade and resolve in place. Reading the
+     * slot's live innerHTML mirrors exactly what the rendered card preview shows, rather than
+     * re-deriving resolved price text via attribute-matching against unrelated price elements
+     * on the card (e.g. the main "Prices" field), which can pick the wrong match.
+     */
+    #getResolvedCustomFieldSlotHtml(index) {
+        return this.#getPreviewCard()?.querySelector(`[slot="custom-field-${index}"]`)?.innerHTML;
+    }
+
     /** Individual custom field items extracted from customFields/customFieldLabels, split by source for variations. */
     get copyableCustomFields() {
         const fragment = this.fragmentEditor?.fragment;
         if (!fragment?.fields) return { current: [], inherited: [] };
 
+        const resolvedInlinePrices = this.#getResolvedInlinePriceCandidates();
         const valuesField = fragment.fields.find((f) => f.name === 'customFields');
         const labelsField = fragment.fields.find((f) => f.name === 'customFieldLabels');
 
         const buildItems = (vals, lbls, source, sourceFragment) =>
             (vals ?? [])
-                .map((v, i) => ({ value: v, label: lbls?.[i] || '', index: i + 1, source, sourceFragment }))
+                .map((v, i) => {
+                    const liveHtml = source === FIELD_SOURCE.CURRENT ? this.#getResolvedCustomFieldSlotHtml(i) : undefined;
+                    const value = liveHtml ?? this.#resolveInlinePricesInHtml(v, resolvedInlinePrices);
+                    return { value, label: lbls?.[i] || '', index: i + 1, source, sourceFragment };
+                })
                 .filter(({ value }) => value);
 
         const current = buildItems(valuesField?.values, labelsField?.values, FIELD_SOURCE.CURRENT, fragment);

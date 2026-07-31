@@ -550,6 +550,83 @@ describe('MasSideNav – Copy Field', () => {
         });
     });
 
+    describe('copyableCustomFields', () => {
+        it("should read the resolved price straight from the custom field's own hydrated slot", () => {
+            const fragment = mockFragment([
+                {
+                    name: 'customFields',
+                    values: ['<span is="inline-price" data-template="price" data-wcs-osi="abc"></span>'],
+                },
+                { name: 'customFieldLabels', values: ['Custom 1'] },
+            ]);
+            const card = document.createElement('merch-card');
+            // Mirrors hydrate.js#processCustomFields: each customFields[i] value is hydrated
+            // into its own `[slot="custom-field-i"]` light-DOM child.
+            const slot = document.createElement('div');
+            slot.setAttribute('slot', 'custom-field-0');
+            const resolvedPrice = document.createElement('span');
+            resolvedPrice.setAttribute('is', 'inline-price');
+            resolvedPrice.setAttribute('data-template', 'price');
+            resolvedPrice.setAttribute('data-wcs-osi', 'abc');
+            resolvedPrice.textContent = 'US$69.99/mo';
+            slot.append(resolvedPrice);
+            card.append(slot);
+
+            const editor = mockEditor(fragment);
+            editor.querySelector = sandbox.stub().withArgs('merch-card').returns(card);
+            editorStub.withArgs('mas-fragment-editor').returns(editor);
+
+            const { current } = el.copyableCustomFields;
+            expect(current).to.have.length(1);
+            expect(current[0].value).to.include('US$69.99/mo');
+        });
+
+        it('should not leak resolved text from an unrelated inline-price element on the card', () => {
+            // Reproduces the regression: matching by attribute-subset against every inline-price
+            // element on the card could pick up the main "Prices" field's own resolved text
+            // (with a per-unit label like "per license") instead of the custom field's own,
+            // differently-configured price element, which legitimately renders without it.
+            const fragment = mockFragment([
+                {
+                    name: 'customFields',
+                    values: ['<span is="inline-price" data-template="price" data-wcs-osi="abc"></span>'],
+                },
+                { name: 'customFieldLabels', values: ['Custom 1'] },
+            ]);
+            const card = document.createElement('merch-card');
+
+            const pricesFieldResolved = document.createElement('span');
+            pricesFieldResolved.setAttribute('is', 'inline-price');
+            pricesFieldResolved.setAttribute('data-template', 'price');
+            pricesFieldResolved.setAttribute('data-wcs-osi', 'abc');
+            pricesFieldResolved.textContent = 'US$69.99/mo per license';
+            card.append(pricesFieldResolved);
+
+            const slot = document.createElement('div');
+            slot.setAttribute('slot', 'custom-field-0');
+            const customFieldResolved = document.createElement('span');
+            customFieldResolved.setAttribute('is', 'inline-price');
+            customFieldResolved.setAttribute('data-template', 'price');
+            customFieldResolved.setAttribute('data-wcs-osi', 'abc');
+            customFieldResolved.textContent = 'US$69.99/mo';
+            slot.append(customFieldResolved);
+            card.append(slot);
+
+            const editor = mockEditor(fragment);
+            editor.querySelector = sandbox.stub().withArgs('merch-card').returns(card);
+            editorStub.withArgs('mas-fragment-editor').returns(editor);
+
+            const { current } = el.copyableCustomFields;
+            expect(current[0].value).to.include('US$69.99/mo');
+            expect(current[0].value).to.not.include('per license');
+        });
+
+        it('should return empty arrays when no fragment editor', () => {
+            editorStub.withArgs('mas-fragment-editor').returns(null);
+            expect(el.copyableCustomFields).to.deep.equal({ current: [], inherited: [] });
+        });
+    });
+
     describe('copyField', () => {
         let clipboardStub;
         let toastStub;
@@ -1134,6 +1211,29 @@ describe('MasSideNav – Copy Field', () => {
 
             expect(el.resolvedPriceText).to.equal('US$54.99/mo');
             expect(updateStub.called).to.be.true;
+            el.remove();
+            editor.remove();
+        });
+
+        it('should resolve and cache price preview when merch-card dispatches mas:error', async () => {
+            const editor = document.createElement('div');
+            editor.fragment = { id: 'frag-123' };
+            const card = document.createElement('merch-card');
+            editor.append(card);
+            document.body.append(el, editor);
+
+            const price = document.createElement('span');
+            price.setAttribute('is', 'inline-price');
+            price.setAttribute('data-template', 'price');
+            price.textContent = ' US$54.99/mo ';
+            card.append(price);
+            sandbox.stub(editor, 'querySelector').withArgs('merch-card').returns(card);
+            editorStub.withArgs('mas-fragment-editor').returns(editor);
+
+            card.dispatchEvent(new CustomEvent('mas:error', { bubbles: true, composed: true }));
+            await Promise.resolve();
+
+            expect(el.resolvedPriceText).to.equal('US$54.99/mo');
             el.remove();
             editor.remove();
         });

@@ -31,6 +31,24 @@
         "fieldLabel": "Promo Code",
         "type": "string"
     },
+    "variationStrategy": {
+        "fieldLabel": "Variation Strategy",
+        "type": "enum",
+        "options": [
+            {
+                "label": "Yield (Default)",
+                "value": "yield"
+            },
+            {
+                "label": "Override",
+                "value": "override"
+            },
+            {
+                "label": "Merge",
+                "value": "merge"
+            }
+        ]
+    },
     "fragments": {
         "fieldLabel": "Fragments",
         "type": "content-fragment[]"

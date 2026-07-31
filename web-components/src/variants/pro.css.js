@@ -202,7 +202,7 @@ merch-card[variant="pro"][size='edu'] [slot="whats-included"] .whats-included-di
     font-weight: 400;
     line-height: 16px;
     letter-spacing: 0;
-    margin-top: 40px;
+    margin-top: 24px;
 }
 
 /* {{edu-disclaimer}} resolves to rich text (a <p>), so the placeholder sits in

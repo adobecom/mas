@@ -257,12 +257,18 @@ describe('mas-field – indexed CTA fields (ctas[N])', () => {
 
 describe('mas-field – label-keyed fields (customFields[label])', () => {
     const FIELDS = {
-        customFields: ['<p>Value one</p>', '<p>Value two</p>', '<p>Value three</p>'],
+        customFields: [
+            '<p>Value one</p>',
+            '<p>Value two</p>',
+            '<p>Value three</p>',
+        ],
         customFieldLabels: ['Alpha', 'Beta', 'Gamma'],
     };
 
     afterEach(() => {
-        document.body.querySelectorAll('mas-field').forEach((el) => el.remove());
+        document.body
+            .querySelectorAll('mas-field')
+            .forEach((el) => el.remove());
     });
 
     function makeLabelField(label, fields = FIELDS) {
@@ -279,22 +285,32 @@ describe('mas-field – label-keyed fields (customFields[label])', () => {
 
     it('renders the value matching the label', () => {
         const el = makeLabelField('Beta');
-        expect(el.querySelector('[data-role="mas-field-content"]').textContent).to.equal('Value two');
+        expect(
+            el.querySelector('[data-role="mas-field-content"]').textContent,
+        ).to.equal('Value two');
     });
 
     it('renders the first item when label is Alpha', () => {
         const el = makeLabelField('Alpha');
-        expect(el.querySelector('[data-role="mas-field-content"]').textContent).to.equal('Value one');
+        expect(
+            el.querySelector('[data-role="mas-field-content"]').textContent,
+        ).to.equal('Value one');
     });
 
     it('renders nothing when label is not found', () => {
         const el = makeLabelField('Nonexistent');
-        expect(el.querySelector('[data-role="mas-field-content"]').innerHTML).to.equal('');
+        expect(
+            el.querySelector('[data-role="mas-field-content"]').innerHTML,
+        ).to.equal('');
     });
 
     it('renders nothing when customFieldLabels is absent', () => {
-        const el = makeLabelField('Alpha', { customFields: ['<p>Value one</p>'] });
-        expect(el.querySelector('[data-role="mas-field-content"]').innerHTML).to.equal('');
+        const el = makeLabelField('Alpha', {
+            customFields: ['<p>Value one</p>'],
+        });
+        expect(
+            el.querySelector('[data-role="mas-field-content"]').innerHTML,
+        ).to.equal('');
     });
 
     it('handles single string values (non-array)', () => {
@@ -302,7 +318,9 @@ describe('mas-field – label-keyed fields (customFields[label])', () => {
             customFields: '<p>Only value</p>',
             customFieldLabels: 'Solo',
         });
-        expect(el.querySelector('[data-role="mas-field-content"]').textContent).to.equal('Only value');
+        expect(
+            el.querySelector('[data-role="mas-field-content"]').textContent,
+        ).to.equal('Only value');
     });
 });
 

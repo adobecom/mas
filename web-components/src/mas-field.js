@@ -201,7 +201,10 @@ class MasField extends HTMLElement {
     #parseFieldAndIndex(field) {
         const numericMatch = field?.match(/^(.+)\[(\d+)\]$/);
         if (numericMatch)
-            return { fieldName: numericMatch[1], index: parseInt(numericMatch[2], 10) };
+            return {
+                fieldName: numericMatch[1],
+                index: parseInt(numericMatch[2], 10),
+            };
         const bracketMatch = field?.match(/^(.+)\[(.+)\]$/);
         if (bracketMatch)
             return { fieldName: bracketMatch[1], index: bracketMatch[2] };

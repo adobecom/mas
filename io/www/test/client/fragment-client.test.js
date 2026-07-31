@@ -245,6 +245,18 @@ describe('FragmentClient', () => {
         }
     });
 
+    it('clears caches on load when mas.cache=off is present in the URL', async () => {
+        localStorageStub.setItem('dictionary-sandbox-en_US', 'stale-value');
+        const previousLocation = globalThis.window.location;
+        globalThis.window.location = { search: '?mas.cache=off' };
+        try {
+            await import(`../../../../studio/libs/fragment-client.js?cachebust=${Date.now()}-${Math.random()}`);
+            expect(localStorageStub.getItem('dictionary-sandbox-en_US')).to.be.null;
+        } finally {
+            globalThis.window.location = previousLocation;
+        }
+    });
+
     describe('previewStudioFragment', () => {
         it('returns processed body with api_key mas-studio', async () => {
             const body = { ...mockCardFragment };

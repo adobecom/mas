@@ -59,7 +59,7 @@ const DEFAULT_CONTEXT = {
 if (typeof window !== 'undefined') {
     const params = new URLSearchParams(window.location.search);
     DEFAULT_CONTEXT.debugLogs = params.has('debug.io') || DEFAULT_CONTEXT.state.get('debug.io') === 'true';
-    if (params.has('clearCaches.io')) {
+    if (params.get('mas.cache') === 'off') {
         clearCaches();
     }
 }

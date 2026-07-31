@@ -353,6 +353,8 @@ async function hydrateProject(project, { baseUrl, surface, defaultLocale, resolv
         id: project.id,
         path: project.path,
         title,
+        startDate: project.startDate,
+        endDate: project.endDate,
         promoCode,
         fragmentPaths,
         offerOverrides,
@@ -473,14 +475,15 @@ async function promotions(context) {
         substituteMap: buildSubstituteMap(project.offerSubstitutions ?? [], { regionLocale, country }),
         fragmentPaths: new Set(project.fragmentPaths),
     }));
-    const substituteMap = Object.assign({}, ...promoProjects.map((p) => p.substituteMap));
     promoProjects.forEach(({ project, promoMap, substituteMap: sm }) => {
         logDebug(
             () => `Project "${project.id}" promoMap: ${JSON.stringify(promoMap)}, substituteMap: ${JSON.stringify(sm)}`,
             context,
         );
     });
-    return { ...context, status: 200, promoProjects, substituteMap };
+    // Per-project substituteMap stays on each promoProjects entry; customize scopes it per fragment
+    // (via promoScopeById) and the wcs transformer applies it.
+    return { ...context, status: 200, promoProjects };
 }
 
 export const transformer = {

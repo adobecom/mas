@@ -855,6 +855,13 @@ class MasSideNav extends LitElement {
         if (!slot) return undefined;
         const clone = slot.cloneNode(true);
         clone.querySelectorAll('sr-only').forEach((n) => n.remove());
+        // previewValue() only preserves literal <s> tags, so wrap rendered strikethrough
+        // price spans in <s> before serializing, or the strikethrough is lost.
+        clone.querySelectorAll('.price-strikethrough, .price-promo-strikethrough').forEach((price) => {
+            const s = document.createElement('s');
+            s.innerHTML = price.innerHTML;
+            price.replaceWith(s);
+        });
         return clone.innerHTML;
     }
 

@@ -1,0 +1,166 @@
+{
+    "variant": {
+        "fieldLabel": "Variant",
+        "type": "string"
+    },
+    "osi": {
+        "fieldLabel": "OSI",
+        "type": "string"
+    },
+    "size": {
+        "fieldLabel": "Size",
+        "type": "string"
+    },
+    "mnemonicIcon": {
+        "fieldLabel": "Mnemonic  Icon",
+        "type": "string[]"
+    },
+    "mnemonicAlt": {
+        "fieldLabel": "Mnemonic Alt",
+        "type": "string[]"
+    },
+    "mnemonicLink": {
+        "fieldLabel": "Mnemonic Link",
+        "type": "string[]"
+    },
+    "badge": {
+        "fieldLabel": "Badge",
+        "type": "long-text"
+    },
+    "trialBadge": {
+        "fieldLabel": "Trial Badge",
+        "type": "long-text"
+    },
+    "backgroundColor": {
+        "fieldLabel": "Background Color",
+        "type": "string"
+    },
+    "borderColor": {
+        "fieldLabel": "border Color",
+        "type": "string"
+    },
+    "backgroundImage": {
+        "fieldLabel": "Background Image",
+        "type": "string"
+    },
+    "backgroundImageAltText": {
+        "fieldLabel": "Background Image Alt Text",
+        "type": "string"
+    },
+    "cardTitle": {
+        "fieldLabel": "Card title",
+        "type": "string"
+    },
+    "cardName": {
+        "fieldLabel": "Card name",
+        "type": "string"
+    },
+    "cardTitleLink": {
+        "fieldLabel": "Card title link",
+        "type": "string"
+    },
+    "subtitle": {
+        "fieldLabel": "Subtitle",
+        "type": "string"
+    },
+    "prices": {
+        "fieldLabel": "Prices",
+        "type": "long-text"
+    },
+    "shortDescription": {
+        "fieldLabel": "Short Description",
+        "type": "long-text"
+    },
+    "promoText": {
+        "fieldLabel": "Promo Text",
+        "type": "string"
+    },
+    "promoCode": {
+        "fieldLabel": "Promo Code",
+        "type": "string"
+    },
+    "description": {
+        "fieldLabel": "Description",
+        "type": "long-text"
+    },
+    "callout": {
+        "fieldLabel": "Callout Text",
+        "type": "long-text"
+    },
+    "showSecureLabel": {
+        "fieldLabel": "Show Secure Label",
+        "type": "boolean"
+    },
+    "showPlanType": {
+        "fieldLabel": "Show Plan Type",
+        "type": "boolean"
+    },
+    "quantitySelect": {
+        "fieldLabel": "Quantity Select",
+        "type": "string"
+    },
+    "addon": {
+        "fieldLabel": "Addon",
+        "type": "string"
+    },
+    "addonConfirmation": {
+        "fieldLabel": "Addon Confirmation",
+        "type": "string"
+    },
+    "ctas": {
+        "fieldLabel": "CTAs",
+        "type": "long-text"
+    },
+    "variations": {
+        "fieldLabel": "Variations",
+        "type": "content-fragment[]"
+    },
+    "product": {
+        "fieldLabel": "Product",
+        "type": "content-reference"
+    },
+    "whatsIncluded": {
+        "fieldLabel": "Whats Included",
+        "type": "string"
+    },
+    "tags": {
+        "fieldLabel": "Tags",
+        "type": "tag[]"
+    },
+    "pznTags": {
+        "fieldLabel": "Personalization tags",
+        "type": "tag[]"
+    },
+    "perUnitLabel": {
+        "fieldLabel": "Per Unit Label",
+        "type": "string"
+    },
+    "originalId": {
+        "fieldLabel": "Original ID",
+        "type": "string"
+    },
+    "compatVersion": {
+        "fieldLabel": "Compatibility version",
+        "type": "number"
+    },
+    "locReady": {
+        "fieldLabel": "Loc ready",
+        "type": "boolean"
+    },
+    "features": {
+        "fieldLabel": "Features",
+        "type": "long-text[]"
+    },
+    "variables": {
+        "fieldLabel": "Variables",
+        "type": "string[]"
+    },
+    "customFields": {
+        "fieldLabel": "Custom Fields",
+        "type": "long-text[]"
+    },
+    "customFieldLabels": {
+        "fieldLabel": "Custom Field Labels",
+        "type": "string[]"
+    }
+}

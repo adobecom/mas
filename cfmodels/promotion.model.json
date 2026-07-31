@@ -1,0 +1,38 @@
+{
+    "title": {
+        "fieldLabel": "Title",
+        "type": "string"
+    },
+    "startDate": {
+        "fieldLabel": "Start date",
+        "type": "datetime"
+    },
+    "endDate": {
+        "fieldLabel": "End date",
+        "type": "datetime"
+    },
+    "surfaces": {
+        "fieldLabel": "Surfaces",
+        "type": "string[]"
+    },
+    "tags": {
+        "fieldLabel": "Tag",
+        "type": "tag[]"
+    },
+    "geos": {
+        "fieldLabel": "Geos",
+        "type": "tag[]"
+    },
+    "offers": {
+        "fieldLabel": "Offers",
+        "type": "string[]"
+    },
+    "promoCode": {
+        "fieldLabel": "Promo Code",
+        "type": "string"
+    },
+    "fragments": {
+        "fieldLabel": "Fragments",
+        "type": "content-fragment[]"
+    }
+}

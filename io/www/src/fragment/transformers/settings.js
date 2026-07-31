@@ -276,10 +276,9 @@ function applyCollectionSettings(context, locale, settings) {
         Object.fromEntries(['desktop', 'mobile', 'web'].map((label) => [label, `{{coll-tag-filter-${label}}}`])) || {};
 }
 
-// Fixed, localized chrome for the edu "whats-included" panel (sub-label +
-// disclaimer). Same 3-way split as applyCollectionSettings: this publishes
-// {{...}} tokens into body.placeholders, `replace` resolves them from the
-// dictionary, and pro.js places the resolved strings client-side.
+// Publishes the edu "whats-included" chrome tokens (sub-label + disclaimer)
+// into body.placeholders, like applyPriceLiterals. `replace` resolves them
+// from the dictionary; pro.js places the resolved strings client-side.
 function applyEduPlaceholders(body) {
     const fields = body?.fields;
     if (fields?.variant !== 'pro' || fields?.size !== 'edu') return;

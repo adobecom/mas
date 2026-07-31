@@ -779,9 +779,7 @@ class MasSideNav extends LitElement {
                                                           : ''}"
                                                   >
                                                       <span class="field-label">${cf.label || `Custom Field ${cf.index}`}</span>
-                                                      <span class="field-value"
-                                                          >${cf.value?.replace(/<[^>]+>/g, '') || ''}</span
-                                                      >
+                                                      <span class="field-value">${renderPreview(cf.value)}</span>
                                                   </div>
                                               </sp-menu-item>
                                           `,
@@ -805,9 +803,7 @@ class MasSideNav extends LitElement {
                                                                 <span class="field-label"
                                                                     >${cf.label || `Custom Field ${cf.index}`}</span
                                                                 >
-                                                                <span class="field-value"
-                                                                    >${cf.value?.replace(/<[^>]+>/g, '') || ''}</span
-                                                                >
+                                                                <span class="field-value">${renderPreview(cf.value)}</span>
                                                             </div>
                                                         </sp-menu-item>
                                                     `,
@@ -855,7 +851,11 @@ class MasSideNav extends LitElement {
      * on the card (e.g. the main "Prices" field), which can pick the wrong match.
      */
     #getResolvedCustomFieldSlotHtml(index) {
-        return this.#getPreviewCard()?.querySelector(`[slot="custom-field-${index}"]`)?.innerHTML;
+        const slot = this.#getPreviewCard()?.querySelector(`[slot="custom-field-${index}"]`);
+        if (!slot) return undefined;
+        const clone = slot.cloneNode(true);
+        clone.querySelectorAll('sr-only').forEach((n) => n.remove());
+        return clone.innerHTML;
     }
 
     /** Individual custom field items extracted from customFields/customFieldLabels, split by source for variations. */
@@ -871,7 +871,8 @@ class MasSideNav extends LitElement {
             (vals ?? [])
                 .map((v, i) => {
                     const liveHtml = source === FIELD_SOURCE.CURRENT ? this.#getResolvedCustomFieldSlotHtml(i) : undefined;
-                    const value = liveHtml ?? this.#resolveInlinePricesInHtml(v, resolvedInlinePrices);
+                    const resolved = liveHtml ?? this.#resolveInlinePricesInHtml(v, resolvedInlinePrices);
+                    const value = previewValue([resolved]);
                     return { value, label: lbls?.[i] || '', index: i + 1, source, sourceFragment };
                 })
                 .filter(({ value }) => value);

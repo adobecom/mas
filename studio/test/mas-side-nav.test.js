@@ -581,6 +581,64 @@ describe('MasSideNav – Copy Field', () => {
             expect(current[0].value).to.include('US$69.99/mo');
         });
 
+        it('should decode &nbsp; and preserve strikethrough when rendering the custom field row', () => {
+            const fragment = mockFragment([
+                { name: 'customFields', values: ['<s>US$69.99/mo</s>&nbsp;US$34.99/mo'] },
+                { name: 'customFieldLabels', values: ['Custom 1'] },
+            ]);
+            const card = document.createElement('merch-card');
+            const slot = document.createElement('div');
+            slot.setAttribute('slot', 'custom-field-0');
+            slot.innerHTML = '<s>US$69.99/mo</s>&nbsp;US$34.99/mo';
+            card.append(slot);
+
+            const editor = mockEditor(fragment);
+            editor.querySelector = sandbox.stub().withArgs('merch-card').returns(card);
+            editorStub.withArgs('mas-fragment-editor').returns(editor);
+
+            const container = document.createElement('div');
+            render(el.copyFieldButton, container);
+
+            const fieldValue = container.querySelector('.field-value');
+            expect(fieldValue.textContent).to.not.include('&nbsp;');
+            expect(fieldValue.querySelector('s').textContent).to.equal('US$69.99/mo');
+        });
+
+        it('should strip sr-only aria labels (e.g. "Regularly at ") from the custom field preview', () => {
+            // Reproduces the bug: the live inline-price element's strikethrough/promo price
+            // carries a visually-hidden sr-only label for accessibility (see the "Prices" field
+            // tests above), which isn't part of what the rendered card actually shows and must
+            // not leak into the Copy Field popover preview.
+            const fragment = mockFragment([
+                { name: 'customFields', values: ['<span is="inline-price" data-template="strikethrough"></span> then price'] },
+                { name: 'customFieldLabels', values: ['Custom 1'] },
+            ]);
+            const card = document.createElement('merch-card');
+            const slot = document.createElement('div');
+            slot.setAttribute('slot', 'custom-field-0');
+
+            const oldPrice = document.createElement('span');
+            oldPrice.setAttribute('is', 'inline-price');
+            oldPrice.setAttribute('data-template', 'strikethrough');
+            const oldPriceAria = document.createElement('sr-only');
+            oldPriceAria.textContent = 'Regularly at ';
+            const oldPriceVisible = document.createElement('span');
+            oldPriceVisible.className = 'price price-strikethrough';
+            oldPriceVisible.textContent = 'US$69.99/mo';
+            oldPrice.append(oldPriceAria, oldPriceVisible);
+            slot.append(oldPrice, document.createTextNode(' US$34.99/mo'));
+            card.append(slot);
+
+            const editor = mockEditor(fragment);
+            editor.querySelector = sandbox.stub().withArgs('merch-card').returns(card);
+            editorStub.withArgs('mas-fragment-editor').returns(editor);
+
+            const { current } = el.copyableCustomFields;
+            expect(current[0].value).to.not.include('Regularly at');
+            expect(current[0].value).to.include('US$69.99/mo');
+            expect(current[0].value).to.include('US$34.99/mo');
+        });
+
         it('should not leak resolved text from an unrelated inline-price element on the card', () => {
             // Reproduces the regression: matching by attribute-subset against every inline-price
             // element on the card could pick up the main "Prices" field's own resolved text

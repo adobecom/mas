@@ -150,7 +150,7 @@ export class Pro extends VariantLayout {
     }
 
     get hasEduDisclaimer() {
-        return !!this.card.querySelector('[slot="edu-disclaimer"]');
+        return !this.card?.settings?.hideEduDisclaimer;
     }
 
     get whatsIncludedToggleLabel() {
@@ -690,7 +690,7 @@ export class Pro extends VariantLayout {
                       </div>
                   `
                 : nothing}
-            ${this.hasEduDisclaimer && !this.card?.settings?.hideEduDisclaimer
+            ${this.hasEduDisclaimer
                 ? html`<div class="edu-disclaimer">
                       <slot name="edu-disclaimer"></slot>
                   </div>`

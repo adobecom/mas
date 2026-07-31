@@ -7,7 +7,7 @@ import {
     EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
 } from '../src/constants.js';
 
-let Pro;
+let Pro, PRO_AEM_FRAGMENT_MAPPING;
 
 before(async () => {
     // merch-card's connectedCallback needs a commerce service in the DOM,
@@ -18,7 +18,7 @@ before(async () => {
         );
     }
     await customElements.whenDefined('merch-card');
-    ({ Pro } = await import('../src/variants/pro.js'));
+    ({ Pro, PRO_AEM_FRAGMENT_MAPPING } = await import('../src/variants/pro.js'));
 });
 
 async function renderCard(innerHTML) {
@@ -163,10 +163,7 @@ describe('pro edu disclaimer', () => {
     let card;
     afterEach(() => card?.remove());
 
-    it('maps eduDisclaimer to the edu-disclaimer slot', async () => {
-        const { PRO_AEM_FRAGMENT_MAPPING } = await import(
-            '../src/variants/pro.js'
-        );
+    it('maps eduDisclaimer to the edu-disclaimer slot', () => {
         expect(PRO_AEM_FRAGMENT_MAPPING.eduDisclaimer).to.deep.equal({
             tag: 'div',
             slot: 'edu-disclaimer',

@@ -28,9 +28,7 @@ function resolve(span, offer) {
 
 describe('MerchAddon.updatePlanType', () => {
     afterEach(() => {
-        document
-            .querySelectorAll('merch-addon')
-            .forEach((el) => el.remove());
+        document.querySelectorAll('merch-addon').forEach((el) => el.remove());
     });
 
     it('assigns distinct plan types to each block when offers do not collide', async () => {
@@ -65,8 +63,9 @@ describe('MerchAddon.updatePlanType', () => {
         expect(p1.getAttribute('data-plan-type')).to.equal('PUF');
         // p2 must not also display as PUF, or both blocks render at once.
         expect(p2.getAttribute('data-plan-type')).to.equal('');
-        expect(addon.querySelectorAll('p[data-plan-type="PUF"]')).to.have
-            .lengthOf(1);
+        expect(
+            addon.querySelectorAll('p[data-plan-type="PUF"]'),
+        ).to.have.lengthOf(1);
     });
 
     it('does not overwrite an explicitly authored plan type', async () => {

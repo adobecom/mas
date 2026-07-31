@@ -151,6 +151,10 @@ async function refillProjects(context, surface) {
  *   - fresh entry            → return it;
  *   - expired entry          → return stale, refill in the background (coalesced);
  *   - cold (no entry)        → await the (coalesced) refill.
+ *
+ * Preview (studio) retains blocking refetch behaviour: an expired or cold entry always awaits the
+ * refill (never served stale) so authors see fresh promotion data immediately after editing. The
+ * stale-while-revalidate herd protection only applies to published (module) reads.
  */
 async function fetchProjects(context, surface) {
     const entry = readEntry(context, surface);
@@ -163,7 +167,7 @@ async function fetchProjects(context, surface) {
             refills[surface] = undefined;
         });
     }
-    if (entry) {
+    if (entry && !context.preview) {
         logDebug(() => `Serving stale promotion projects for surface "${surface}" while refilling`, context);
         return entry.projects;
     }

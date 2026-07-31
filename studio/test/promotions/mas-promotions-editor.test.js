@@ -1603,7 +1603,7 @@ describe('MasPromotionsEditor', () => {
             expect(repo.deleteFragment.calledOnce).to.be.true;
         });
 
-        it('deletes attached promo variations before deleting the project', async () => {
+        it('does not delete attached promo variations when deleting the project', async () => {
             const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
             const parentPath = '/content/dam/mas/sandbox/en_US/my-card';
             const promoVarPath = '/content/dam/mas/sandbox/en_US/promotions/code-test/my-card';
@@ -1638,9 +1638,8 @@ describe('MasPromotionsEditor', () => {
                 .querySelector('#promotion-unsaved-changes-dialog')
                 .dispatchEvent(new CustomEvent('confirm', { bubbles: true, composed: true }));
             await new Promise((r) => setTimeout(r, 20));
-            expect(forceDelete.calledOnceWith({ path: promoVarPath })).to.be.true;
+            expect(forceDelete.called).to.be.false;
             expect(repo.deleteFragment.calledOnce).to.be.true;
-            expect(forceDelete.calledBefore(repo.deleteFragment)).to.be.true;
         });
 
         it('shows a negative toast but still completes deletion when the promotion tag fails to delete', async () => {

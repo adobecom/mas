@@ -193,10 +193,10 @@ merch-card[variant="pro"][size='edu'] [slot="whats-included"] .whats-included-la
 
 /* EDU eligibility disclaimer, resolved server-side ({{edu-disclaimer}}) and
    appended after the feature list by pro.js, hidden via the
-   hideEduDisclaimer setting (MWPW-202318).
-   Figma 4375:120476: 12/16 legal text, color inherit. */
+   hideEduDisclaimer setting (MWPW-202318). Figma 4375:120476: 12/16 legal
+   text at 64% opacity — white on black-border cards, black otherwise. */
 merch-card[variant="pro"][size='edu'] [slot="whats-included"] .whats-included-disclaimer {
-    color: inherit;
+    color: #000000A3;
     font-family: var(--consonant-merch-card-pro-font-family-regular);
     font-size: 12px;
     font-weight: 400;
@@ -211,6 +211,18 @@ merch-card[variant="pro"][size='edu'] [slot="whats-included"] .whats-included-di
     margin: 0;
     font: inherit;
     color: inherit;
+}
+
+merch-card[variant="pro"][size='edu'] [slot="whats-included"] .whats-included-disclaimer a {
+    color: #000;
+}
+
+merch-card[variant="pro"][border-color="black"][size='edu'] [slot="whats-included"] .whats-included-disclaimer {
+    color: #FFFFFFA3;
+}
+
+merch-card[variant="pro"][border-color="black"][size='edu'] [slot="whats-included"] .whats-included-disclaimer a {
+    color: #FFF;
 }
 
 /* EDU right panel (Figma 4375:120476 "Copy" frame): feature rows are Adobe

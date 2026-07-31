@@ -268,10 +268,7 @@ function selectPromoProjectForFragment(root, customizeContext) {
     const hasWildcardPromo = ({ promoMap }) => Boolean(promoMap['*']);
     const isSeasonal = ({ project }) => Boolean(project.endDate);
     const selected =
-        promoEntries.find(hasExplicitMapping) ??
-        promoEntries.find(hasWildcardPromo) ??
-        promoEntries.find(isSeasonal) ??
-        null;
+        promoEntries.find(hasExplicitMapping) ?? promoEntries.find(hasWildcardPromo) ?? promoEntries.find(isSeasonal) ?? null;
     if (!selected) return null;
     logDebug(
         () =>

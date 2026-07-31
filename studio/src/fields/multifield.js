@@ -191,12 +191,16 @@ class MasMultifield extends LitElement {
     }
 
     // Remove a field by its index
-    async removeField(index) {
+    removeField(index) {
         this.#internalUpdate = true;
         this.value = this.value.filter((_, i) => i !== index);
-        await this.updateComplete;
-        this.#internalUpdate = false;
+        // Dispatch synchronously so listeners awaiting a *different* element's
+        // updateComplete (e.g. the parent editor's) observe the change; only the
+        // focus-guard bookkeeping needs to wait for this element's own render.
         this.#dispatchEvent();
+        this.updateComplete.then(() => {
+            this.#internalUpdate = false;
+        });
     }
 
     #dispatchEvent(eventType = EVENT_CHANGE) {

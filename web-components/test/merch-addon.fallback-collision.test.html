@@ -152,8 +152,7 @@
                             ...ai.querySelectorAll('p[data-plan-type]'),
                         ];
                         const visible = paragraphs.filter(
-                            (p) =>
-                                getComputedStyle(p).display !== 'none',
+                            (p) => getComputedStyle(p).display !== 'none',
                         );
 
                         expect(

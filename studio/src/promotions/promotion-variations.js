@@ -422,37 +422,6 @@ export async function getPublishedAttachedPromoVariations(aem, promotionFragment
 }
 
 /**
- * Deletes every promo variation attached to a promotion project's fragments (unpublishing
- * live ones first). Best-effort across all variations, then throws if any failed.
- * @param {import('../aem/aem.js').AEM} aem
- * @param {Object} promotionFragment
- * @returns {Promise<void>}
- */
-export async function deleteAttachedPromoVariations(aem, promotionFragment) {
-    const variations = await collectAttachedPromoVariations(aem, promotionFragment);
-    const failedPaths = [];
-    await processConcurrently(
-        variations,
-        async (variation) => {
-            try {
-                if (variation.status !== STATUS_DRAFT) {
-                    const variationWithEtag = await aem.sites.cf.fragments.getWithEtag(variation.id);
-                    if (variationWithEtag) await aem.sites.cf.fragments.unpublish(variationWithEtag);
-                }
-                await aem.sites.cf.fragments.forceDelete({ path: variation.path });
-            } catch (error) {
-                console.error(`Failed to delete promo variation ${variation.path}:`, error);
-                failedPaths.push(variation.path);
-            }
-        },
-        VARIATIONS_CONCURRENCY_LIMIT,
-    );
-    if (failedPaths.length) {
-        throw new UserFriendlyError(`Failed to delete ${failedPaths.length} promo variation(s): ${failedPaths.join(', ')}`);
-    }
-}
-
-/**
  * Returns all promo variations (any status) for fragments attached to a promotion project.
  * @param {import('../aem/aem.js').AEM} aem
  * @param {Object} promotionFragment

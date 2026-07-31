@@ -4,7 +4,6 @@ import Store from '../../src/store.js';
 import {
     buildPromoVariationParentRefreshCallback,
     createPromoVariation,
-    deleteAttachedPromoVariations,
     getPromotionProjectsForProbe,
     getPublishedAttachedPromoVariations,
     getUnpublishedAttachedPromoVariations,
@@ -295,30 +294,6 @@ describe('promotions-repository', () => {
 
             expect(result).to.have.lengthOf(1);
             expect(result[0].path).to.equal(promoPath);
-        });
-    });
-
-    describe('deleteAttachedPromoVariations', () => {
-        it('delegates to the promotion-variations model layer', async () => {
-            const promotionFragment = {
-                getFieldValues: (name) => (name === 'fragments' ? ['/content/dam/mas/sandbox/en_US/my-card'] : undefined),
-                tags: [{ id: 'mas:promotion/black-friday' }],
-            };
-            const promoFolder = '/content/dam/mas/sandbox/en_US/promotions/black-friday';
-            const promoPath = `${promoFolder}/my-card`;
-            const search = makeSearchStub({ [promoFolder]: [{ id: 'promo-var-id', path: promoPath, status: 'DRAFT' }] });
-            const forceDelete = sandbox.stub().resolves();
-            const aem = {
-                sites: {
-                    cf: {
-                        fragments: { search, forceDelete },
-                    },
-                },
-            };
-
-            await deleteAttachedPromoVariations(aem, promotionFragment);
-
-            expect(forceDelete.calledOnceWith({ path: promoPath })).to.be.true;
         });
     });
 

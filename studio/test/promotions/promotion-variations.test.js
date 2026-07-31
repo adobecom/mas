@@ -14,7 +14,6 @@ import {
     getUnpublishedAttachedPromoVariations,
     getAllAttachedPromoVariations,
     getPublishedAttachedPromoVariations,
-    deleteAttachedPromoVariations,
     resolveDefaultFragmentForPromoVariation,
 } from '../../src/promotions/promotion-variations.js';
 import { makeSearchStub as makeSharedSearchStub } from '../helpers/aem-tag-fetch.js';
@@ -919,121 +918,6 @@ describe('promotion-variations', () => {
             const result = await getPublishedAttachedPromoVariations(aem, promotionFragment);
             expect(result).to.have.lengthOf(1);
             expect(result[0].status).to.equal('MODIFIED');
-        });
-    });
-
-    describe('deleteAttachedPromoVariations', () => {
-        const promoFolder = '/content/dam/mas/sandbox/en_US/promotions/black-friday';
-
-        function makePromotionFragment(parentPaths) {
-            return {
-                getFieldValues: sandbox.stub().callsFake((name) => (name === 'fragments' ? parentPaths : undefined)),
-                tags: [{ id: 'mas:promotion/black-friday' }],
-            };
-        }
-
-        it('unpublishes a published variation before deleting it', async () => {
-            const promoPath = '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card';
-            const search = makeSearchStub({
-                [promoFolder]: [{ id: 'var-1', path: promoPath, status: 'PUBLISHED' }],
-            });
-            const getWithEtag = sandbox.stub().withArgs('var-1').resolves({ id: 'var-1', etag: 'etag-1' });
-            const unpublish = sandbox.stub().resolves();
-            const forceDelete = sandbox.stub().resolves();
-            const aem = createAemMock({ fragments: { search, getWithEtag, unpublish, forceDelete } });
-
-            await deleteAttachedPromoVariations(aem, makePromotionFragment(['/content/dam/mas/sandbox/en_US/my-card']));
-
-            expect(unpublish.calledOnceWith({ id: 'var-1', etag: 'etag-1' })).to.be.true;
-            expect(forceDelete.calledOnceWith({ path: promoPath })).to.be.true;
-            expect(unpublish.calledBefore(forceDelete)).to.be.true;
-        });
-
-        it('unpublishes a modified variation before deleting it', async () => {
-            const promoPath = '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card';
-            const search = makeSearchStub({
-                [promoFolder]: [{ id: 'var-1', path: promoPath, status: 'MODIFIED' }],
-            });
-            const getWithEtag = sandbox.stub().withArgs('var-1').resolves({ id: 'var-1', etag: 'etag-1' });
-            const unpublish = sandbox.stub().resolves();
-            const forceDelete = sandbox.stub().resolves();
-            const aem = createAemMock({ fragments: { search, getWithEtag, unpublish, forceDelete } });
-
-            await deleteAttachedPromoVariations(aem, makePromotionFragment(['/content/dam/mas/sandbox/en_US/my-card']));
-
-            expect(unpublish.calledOnce).to.be.true;
-            expect(forceDelete.calledOnceWith({ path: promoPath })).to.be.true;
-        });
-
-        it('does not unpublish a draft variation, only deletes it', async () => {
-            const promoPath = '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card';
-            const search = makeSearchStub({
-                [promoFolder]: [{ id: 'var-1', path: promoPath, status: 'DRAFT' }],
-            });
-            const getWithEtag = sandbox.stub().withArgs('var-1').resolves({ id: 'var-1', etag: 'etag-1' });
-            const unpublish = sandbox.stub().resolves();
-            const forceDelete = sandbox.stub().resolves();
-            const aem = createAemMock({ fragments: { search, getWithEtag, unpublish, forceDelete } });
-
-            await deleteAttachedPromoVariations(aem, makePromotionFragment(['/content/dam/mas/sandbox/en_US/my-card']));
-
-            expect(unpublish.called).to.be.false;
-            expect(forceDelete.calledOnceWith({ path: promoPath })).to.be.true;
-        });
-
-        it('deletes every attached promo variation across multiple parent fragments', async () => {
-            const path1 = '/content/dam/mas/sandbox/en_US/promotions/black-friday/card-a';
-            const path2 = '/content/dam/mas/sandbox/en_US/promotions/black-friday/card-b';
-            const search = makeSearchStub({
-                [promoFolder]: [
-                    { id: 'var-a', path: path1, status: 'DRAFT' },
-                    { id: 'var-b', path: path2, status: 'DRAFT' },
-                ],
-            });
-            const getWithEtag = sandbox.stub();
-            getWithEtag.withArgs('var-a').resolves({ id: 'var-a', etag: 'etag-a' });
-            getWithEtag.withArgs('var-b').resolves({ id: 'var-b', etag: 'etag-b' });
-            const forceDelete = sandbox.stub().resolves();
-            const aem = createAemMock({ fragments: { search, getWithEtag, forceDelete } });
-
-            await deleteAttachedPromoVariations(
-                aem,
-                makePromotionFragment(['/content/dam/mas/sandbox/en_US/card-a', '/content/dam/mas/sandbox/en_US/card-b']),
-            );
-
-            expect(forceDelete.calledTwice).to.be.true;
-            expect(forceDelete.calledWith({ path: path1 })).to.be.true;
-            expect(forceDelete.calledWith({ path: path2 })).to.be.true;
-        });
-
-        it('attempts every variation even when one fails, then throws so the caller knows', async () => {
-            const path1 = '/content/dam/mas/sandbox/en_US/promotions/black-friday/card-a';
-            const path2 = '/content/dam/mas/sandbox/en_US/promotions/black-friday/card-b';
-            const search = makeSearchStub({
-                [promoFolder]: [
-                    { id: 'var-a', path: path1, status: 'DRAFT' },
-                    { id: 'var-b', path: path2, status: 'DRAFT' },
-                ],
-            });
-            const getWithEtag = sandbox.stub();
-            getWithEtag.withArgs('var-a').resolves({ id: 'var-a', etag: 'etag-a' });
-            getWithEtag.withArgs('var-b').resolves({ id: 'var-b', etag: 'etag-b' });
-            const forceDelete = sandbox.stub();
-            forceDelete.withArgs({ path: path1 }).rejects(new Error('delete failed'));
-            forceDelete.withArgs({ path: path2 }).resolves();
-            const aem = createAemMock({ fragments: { search, getWithEtag, forceDelete } });
-
-            try {
-                await deleteAttachedPromoVariations(
-                    aem,
-                    makePromotionFragment(['/content/dam/mas/sandbox/en_US/card-a', '/content/dam/mas/sandbox/en_US/card-b']),
-                );
-                expect.fail('Should have thrown');
-            } catch (err) {
-                expect(err.message).to.include(path1);
-            }
-
-            expect(forceDelete.calledWith({ path: path2 })).to.be.true;
         });
     });
 

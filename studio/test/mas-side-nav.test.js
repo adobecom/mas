@@ -685,6 +685,66 @@ describe('MasSideNav – Copy Field', () => {
         });
     });
 
+    describe('copyCustomFieldItem', () => {
+        let clipboardStub;
+        let toastStub;
+        let clipboardItem;
+
+        beforeEach(() => {
+            clipboardStub = { write: sandbox.stub().resolves() };
+            Object.defineProperty(navigator, 'clipboard', { value: clipboardStub, configurable: true });
+            toastStub = sandbox.stub(Events.toast, 'emit');
+            sandbox.stub(Store.search, 'get').returns({ path: '/acom' });
+            clipboardItem = globalThis.ClipboardItem;
+            globalThis.ClipboardItem = class ClipboardItemMock {
+                constructor(data) {
+                    this.data = data;
+                }
+
+                async getType(type) {
+                    return this.data[type];
+                }
+            };
+        });
+
+        afterEach(() => {
+            globalThis.ClipboardItem = clipboardItem;
+        });
+
+        it('should copy custom field link to clipboard and show positive toast', async () => {
+            const fragment = mockFragment([{ name: 'customFields', values: ['<p>US$69.99/mo</p>'] }]);
+            editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
+            await el.copyCustomFieldItem('Custom 1', 1, fragment);
+            expect(clipboardStub.write.calledOnce).to.be.true;
+            expect(toastStub.calledOnce).to.be.true;
+            expect(toastStub.firstCall.args[0].variant).to.equal('positive');
+            expect(toastStub.firstCall.args[0].content).to.include('Custom 1');
+        });
+
+        it('should show negative toast on clipboard failure', async () => {
+            clipboardStub.write.rejects(new Error('denied'));
+            const fragment = mockFragment([{ name: 'customFields', values: ['<p>US$69.99/mo</p>'] }]);
+            editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
+            await el.copyCustomFieldItem('Custom 1', 1, fragment);
+            expect(toastStub.calledOnce).to.be.true;
+            expect(toastStub.firstCall.args[0].variant).to.equal('negative');
+        });
+
+        it('should do nothing when sourceFragment is null', async () => {
+            await el.copyCustomFieldItem('Custom 1', 1, null);
+            expect(clipboardStub.write.called).to.be.false;
+            expect(toastStub.called).to.be.false;
+        });
+
+        it('should fall back to index in the field name when label is empty', async () => {
+            const fragment = mockFragment([{ name: 'customFields', values: ['<p>US$69.99/mo</p>'] }]);
+            editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
+            await el.copyCustomFieldItem('', 2, fragment);
+            expect(clipboardStub.write.calledOnce).to.be.true;
+            expect(toastStub.firstCall.args[0].content).to.include('2');
+        });
+    });
+
     describe('copyField', () => {
         let clipboardStub;
         let toastStub;
@@ -1121,6 +1181,66 @@ describe('MasSideNav – Copy Field', () => {
 
             const ctaLabel = [...container.querySelectorAll('.copy-section-label')].find((el) => el.textContent === 'CTAs');
             expect(ctaLabel).to.not.exist;
+        });
+
+        it('should render overridden Custom Fields section for variation with current custom fields', () => {
+            const variationFragment = mockFragment(
+                [
+                    { name: 'customFields', values: ['Variation value'] },
+                    { name: 'customFieldLabels', values: ['Custom 1'] },
+                ],
+                { id: 'variation-123' },
+            );
+            const baseFragment = mockFragment(
+                [
+                    { name: 'customFields', values: ['Base value'] },
+                    { name: 'customFieldLabels', values: ['Custom 1'] },
+                ],
+                { id: 'base-123' },
+            );
+            editorStub
+                .withArgs('mas-fragment-editor')
+                .returns(mockEditor(variationFragment, null, { isVariation: true, localeDefaultFragment: baseFragment }));
+
+            const container = document.createElement('div');
+            render(el.copyFieldButton, container);
+
+            const overriddenSection = [...container.querySelectorAll('sp-menu-item[disabled]')].find(
+                (item) =>
+                    item.classList.contains('overridden-section') && item.textContent.includes('Overridden in this variation'),
+            );
+            expect(overriddenSection).to.exist;
+            const customFieldEntries = [...container.querySelectorAll('.field-entry-overridden')].filter((entry) =>
+                entry.textContent.includes('Custom 1'),
+            );
+            expect(customFieldEntries.length).to.be.greaterThan(0);
+        });
+
+        it('should render inherited Custom Fields section for variation without current custom fields', () => {
+            const variationFragment = mockFragment([], { id: 'variation-123' });
+            const baseFragment = mockFragment(
+                [
+                    { name: 'customFields', values: ['Base value'] },
+                    { name: 'customFieldLabels', values: ['Custom 1'] },
+                ],
+                { id: 'base-123' },
+            );
+            editorStub
+                .withArgs('mas-fragment-editor')
+                .returns(mockEditor(variationFragment, null, { isVariation: true, localeDefaultFragment: baseFragment }));
+
+            const container = document.createElement('div');
+            render(el.copyFieldButton, container);
+
+            const inheritedSection = [...container.querySelectorAll('sp-menu-item[disabled]')].find(
+                (item) =>
+                    item.classList.contains('inherited-section') && item.textContent.includes('Inherited from base fragment'),
+            );
+            expect(inheritedSection).to.exist;
+            const fieldValue = [...container.querySelectorAll('.field-value')].find((el) =>
+                el.textContent.includes('Base value'),
+            );
+            expect(fieldValue).to.exist;
         });
     });
 

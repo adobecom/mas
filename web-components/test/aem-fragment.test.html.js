@@ -767,6 +767,67 @@ runTests(async () => {
             });
         });
 
+        describe('getFragmentClientUrl', () => {
+            const AemFragment = customElements.get('aem-fragment');
+            const { href: originalUrl } = window.location;
+            const callUrl = () =>
+                AemFragment.prototype.getFragmentClientUrl.call({});
+
+            afterEach(() => {
+                history.replaceState(null, '', originalUrl);
+            });
+
+            const withSearch = (search) => {
+                const url = new URL(originalUrl);
+                url.search = search;
+                history.replaceState(null, '', url.toString());
+            };
+
+            it('returns the default client url when maslibs is absent', () => {
+                withSearch('');
+                expect(callUrl()).to.equal(
+                    'https://mas.adobe.com/studio/libs/fragment-client.js',
+                );
+            });
+
+            it('resolves maslibs=local', () => {
+                withSearch('?maslibs=local');
+                expect(callUrl()).to.equal(
+                    'http://localhost:3000/studio/libs/fragment-client.js',
+                );
+            });
+
+            it('resolves a branch against mas--adobecom', () => {
+                withSearch('?maslibs=mwpw-202151');
+                expect(callUrl()).to.equal(
+                    'https://mwpw-202151--mas--adobecom.aem.live/studio/libs/fragment-client.js',
+                );
+            });
+
+            it('resolves a full branch--repo--owner triple', () => {
+                withSearch('?maslibs=feature--other--repo');
+                expect(callUrl()).to.equal(
+                    'https://feature--other--repo.aem.live/studio/libs/fragment-client.js',
+                );
+            });
+
+            it('falls back to the default for hostile maslibs values', () => {
+                const hostile = [
+                    'cdn.jsdelivr.net/gh/u/r@main--mas--aem',
+                    'evil.com%23',
+                    'a--b@evil.com',
+                    'evil.com:8080/x--y',
+                    'javascript:alert(1)',
+                ];
+                for (const payload of hostile) {
+                    withSearch(`?maslibs=${payload}`);
+                    expect(callUrl(), payload).to.equal(
+                        'https://mas.adobe.com/studio/libs/fragment-client.js',
+                    );
+                }
+            });
+        });
+
         describe('mas-field wrapper', () => {
             afterEach(() => {
                 document

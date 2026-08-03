@@ -16,6 +16,9 @@ import {
     QUICK_ACTION,
     EVENT_OST_OFFER_SELECT,
     TAG_PROMOTION_PREFIX,
+    PROMOTION_VARIATION_STRATEGY_FIELD,
+    PROMOTION_VARIATION_STRATEGIES,
+    PROMOTION_VARIATION_STRATEGY_DEFAULT,
 } from '../constants.js';
 import '../mas-quick-actions.js';
 import { SAVE_SVG, CLONE_SVG, PUBLISH_SVG, COPY_SVG, LOCK_SVG, DELETE_SVG } from '../bulk-publish/bulk-publish-icons.js';
@@ -440,6 +443,12 @@ class MasPromotionsEditor extends LitElement {
             { name: 'geos', type: 'tag', multiple: true, values: [] },
             { name: 'fragments', type: 'content-fragment', multiple: true, values: [] },
             { name: 'offers', type: 'text', multiple: true, values: [] },
+            {
+                name: PROMOTION_VARIATION_STRATEGY_FIELD,
+                type: 'enumeration',
+                multiple: false,
+                values: [PROMOTION_VARIATION_STRATEGY_DEFAULT],
+            },
         ];
         for (const field of defaults) {
             if (!names.has(field.name)) {
@@ -573,6 +582,12 @@ class MasPromotionsEditor extends LitElement {
                 { name: 'surfaces', type: 'text', multiple: true, values: [] },
                 { name: 'geos', type: 'tag', multiple: true, values: [] },
                 { name: 'fragments', type: 'content-fragment', multiple: true, values: [] },
+                {
+                    name: PROMOTION_VARIATION_STRATEGY_FIELD,
+                    type: 'enumeration',
+                    multiple: false,
+                    values: [PROMOTION_VARIATION_STRATEGY_DEFAULT],
+                },
             ],
         });
     }
@@ -581,6 +596,10 @@ class MasPromotionsEditor extends LitElement {
         const value = event.target.getAttribute('value');
         const newGeos = value ? value.split(',') : [];
         this.fragmentStore.updateField('geos', newGeos);
+    };
+
+    #handleVariationStrategyChange = (event) => {
+        this.fragmentStore.updateField(PROMOTION_VARIATION_STRATEGY_FIELD, [event.target.value]);
     };
 
     #handleCloseAddSurfacesDialog = (event) => {
@@ -1482,6 +1501,21 @@ class MasPromotionsEditor extends LitElement {
                                     value="${form.geos?.values.join(',') || ''}"
                                     @change=${this.#handleGeosChange}
                                 ></aem-tag-picker-field>
+                            </sp-field-group>
+                            <sp-field-group id="promotion-variation-strategy">
+                                <sp-field-label for="variationStrategy">Variation strategy</sp-field-label>
+                                <sp-picker
+                                    id="variationStrategy"
+                                    value="${form.variationStrategy?.values[0] || PROMOTION_VARIATION_STRATEGY_DEFAULT}"
+                                    ?disabled=${readOnly}
+                                    @change=${this.#handleVariationStrategyChange}
+                                >
+                                    ${Object.values(PROMOTION_VARIATION_STRATEGIES).map(
+                                        (strategy) => html`
+                                            <sp-menu-item value="${strategy.name}">${strategy.label}</sp-menu-item>
+                                        `,
+                                    )}
+                                </sp-picker>
                             </sp-field-group>
                         </div>
                         <sp-divider size="m" class="promotions-form-panel-divider" vertical></sp-divider>

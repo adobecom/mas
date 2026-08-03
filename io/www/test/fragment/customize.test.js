@@ -1891,6 +1891,125 @@ describe('customize promo variation', function () {
     });
 });
 
+describe('customize promo variation strategy (promo vs. personalization)', function () {
+    const PZN_VARIATION_ID = 'pzn-var-edu';
+    const PROMO_VARIATION = {
+        id: 'promo-var-id',
+        path: '/content/dam/mas/sandbox/en_US/promotions/black-friday/pzn-test-fragment',
+        fields: { badge: 'PROMO badge' },
+    };
+
+    function buildBodyWithPromoAndPzn() {
+        return {
+            path: '/content/dam/mas/sandbox/en_US/pzn-test-fragment',
+            id: 'root-fragment',
+            title: 'Root',
+            fields: {
+                badge: 'default badge',
+                variations: [PZN_VARIATION_ID],
+            },
+            references: {
+                [PZN_VARIATION_ID]: {
+                    type: 'content-fragment',
+                    value: {
+                        path: '/content/dam/mas/sandbox/en_US/PA-123/pzn/edu',
+                        id: PZN_VARIATION_ID,
+                        title: 'EDU pricing',
+                        fields: {
+                            pznTags: ['mas:audiences/pzn/EDU'],
+                            badge: 'EDU badge',
+                        },
+                    },
+                },
+            },
+            referencesTree: [],
+        };
+    }
+
+    function buildPromoProjectsEntry(variationStrategy) {
+        const project = {
+            id: 'promo-proj-id',
+            path: '/content/dam/mas/promotions/black-friday',
+            fragmentPaths: ['pzn-test-fragment'],
+            defaultVariations: { 'pzn-test-fragment': PROMO_VARIATION },
+            regionVariations: {},
+        };
+        if (variationStrategy !== undefined) project.variationStrategy = variationStrategy;
+        return [{ project, promoMap: { '*': 'PROMO-CODE' }, fragmentPaths: new Set(project.fragmentPaths) }];
+    }
+
+    it('should yield to personalization when strategy is yield and a pzn variation matches', async function () {
+        const result = await processWithPromoProjects(
+            {
+                ...FAKE_CONTEXT,
+                fragmentPath: 'pzn-test-fragment',
+                locale: 'en_US',
+                parsedLocale: 'en_US',
+                pzn: 'EDU',
+                body: buildBodyWithPromoAndPzn(),
+            },
+            buildPromoProjectsEntry('yield'),
+        );
+
+        expect(result.status).to.equal(200);
+        expect(result.body.variationId).to.equal(PZN_VARIATION_ID);
+        expect(result.body.fields.badge).to.equal('EDU badge');
+        expect(result.body.promoVariationProject).to.be.undefined;
+    });
+
+    it('should override personalization when strategy is override', async function () {
+        const result = await processWithPromoProjects(
+            {
+                ...FAKE_CONTEXT,
+                fragmentPath: 'pzn-test-fragment',
+                locale: 'en_US',
+                parsedLocale: 'en_US',
+                pzn: 'EDU',
+                body: buildBodyWithPromoAndPzn(),
+            },
+            buildPromoProjectsEntry('override'),
+        );
+
+        expect(result.status).to.equal(200);
+        expect(result.body.variationId).to.equal('promo-var-id');
+        expect(result.body.fields.badge).to.equal('PROMO badge');
+    });
+
+    it('should still apply promo when strategy is yield but no personalization variation matches', async function () {
+        const result = await processWithPromoProjects(
+            {
+                ...FAKE_CONTEXT,
+                fragmentPath: 'pzn-test-fragment',
+                locale: 'en_US',
+                parsedLocale: 'en_US',
+                body: buildBodyWithPromoAndPzn(),
+            },
+            buildPromoProjectsEntry('yield'),
+        );
+
+        expect(result.status).to.equal(200);
+        expect(result.body.variationId).to.equal('promo-var-id');
+        expect(result.body.fields.badge).to.equal('PROMO badge');
+    });
+
+    it('should default to yield when the promo project has no variationStrategy set', async function () {
+        const result = await processWithPromoProjects(
+            {
+                ...FAKE_CONTEXT,
+                fragmentPath: 'pzn-test-fragment',
+                locale: 'en_US',
+                parsedLocale: 'en_US',
+                pzn: 'EDU',
+                body: buildBodyWithPromoAndPzn(),
+            },
+            buildPromoProjectsEntry(undefined),
+        );
+
+        expect(result.status).to.equal(200);
+        expect(result.body.variationId).to.equal(PZN_VARIATION_ID);
+    });
+});
+
 const CARD_MODEL = { id: CARD_MODEL_ID };
 const COLLECTION_MODEL = { id: COLLECTION_MODEL_ID };
 // `customize` receives the already-fetched mask fragment on `context.maskFragment` (set by the `mask`

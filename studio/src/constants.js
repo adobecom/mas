@@ -151,6 +151,19 @@ export const DICTIONARY_INDEX_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW
 export const PROMOTION_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL3Byb21vdGlvbg==';
 export const TRANSLATION_PROJECT_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL3RyYW5zbGF0aW9uLXByb2plY3Q=';
 
+export const PROMOTION_VARIATION_STRATEGY_FIELD = 'variationStrategy';
+export const PROMOTION_VARIATION_STRATEGIES = {
+    YIELD: {
+        label: 'Yield (Default)',
+        name: 'yield',
+    },
+    OVERRIDE: {
+        label: 'Override',
+        name: 'override',
+    },
+};
+export const PROMOTION_VARIATION_STRATEGY_DEFAULT = PROMOTION_VARIATION_STRATEGIES.YIELD.name;
+
 // Add the card-related constants from incoming changes
 export const CARD_MODEL_PATH = '/conf/mas/settings/dam/cfm/models/card';
 export const COLLECTION_MODEL_PATH = '/conf/mas/settings/dam/cfm/models/collection';

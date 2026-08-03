@@ -40,7 +40,7 @@
  *     same fragment.
  */
 import { FRAGMENT_URL_PREFIX, MAS_ROOT, PATH_TOKENS, odinReferences } from '../utils/paths.js';
-import { fetch, getRequestInfos, matchesGeo } from '../utils/common.js';
+import { fetch, getRequestInfos, matchesGeo, PROMO_VARIATION_STRATEGY_YIELD } from '../utils/common.js';
 import { log, logDebug, logError } from '../utils/log.js';
 
 const CONFIG_CACHE_TTL = 5 * 60 * 1000;
@@ -339,6 +339,7 @@ async function hydrateProject(project, { baseUrl, surface, defaultLocale, resolv
     const offerSubstitutions = parseOfferSubstitutions(offerLines);
     const promoCode = hydratedProject.fields?.promoCode ?? null;
     const title = hydratedProject.fields?.title ?? null;
+    const variationStrategy = hydratedProject.fields?.variationStrategy ?? PROMO_VARIATION_STRATEGY_YIELD;
     if (!fragmentPaths.length && !offerOverrides.length && !offerSubstitutions.length) {
         logDebug(() => `Promotion project ${project.id} has no fragments or offer overrides, skipping`, context);
         return null;
@@ -354,6 +355,7 @@ async function hydrateProject(project, { baseUrl, surface, defaultLocale, resolv
         path: project.path,
         title,
         promoCode,
+        variationStrategy,
         fragmentPaths,
         offerOverrides,
         offerSubstitutions,

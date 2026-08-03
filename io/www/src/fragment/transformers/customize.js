@@ -3,6 +3,7 @@ import {
     CARD_MODEL_ID,
     getRequestInfos,
     matchesGeo,
+    PROMO_VARIATION_STRATEGY_YIELD,
     skimFragmentFromReferences,
     VALID_PARAMETER_VALUE_REGEX,
 } from '../utils/common.js';
@@ -276,17 +277,30 @@ function selectPromoProjectForFragment(root, customizeContext) {
 
 function mergeVariations(root, customizeContext, selectedPromoProject) {
     const { isRegionLocale } = customizeContext;
-    // Promo variation takes priority, independent of fields.variations
+    const variations = root?.fields?.variations;
     const promoVariation = findPromoVariation(root, customizeContext, selectedPromoProject);
     if (promoVariation) {
         const { variation, project } = promoVariation;
+        const strategy = project.variationStrategy ?? PROMO_VARIATION_STRATEGY_YIELD;
+        if (strategy === PROMO_VARIATION_STRATEGY_YIELD && variations?.length) {
+            const personalizationVariation = findPersonalizationVariation(variations, customizeContext);
+            if (personalizationVariation) {
+                logDebug(
+                    () =>
+                        `Personalization variation ${personalizationVariation.id} yields promo ${variation.id} for fragment ${root.id}`,
+                    customizeContext,
+                );
+                const merged = deepMerge(root, personalizationVariation);
+                merged.variationId = personalizationVariation.id;
+                return merged;
+            }
+        }
         logDebug(() => `Merging promo variation ${variation.id} for fragment ${root.id}`, customizeContext);
         const merged = deepMerge(root, variation);
         merged.variationId = variation.id;
         merged.promoVariationProject = promoProjectLabel(project);
         return merged;
     }
-    const variations = root?.fields?.variations;
     if (!variations?.length) {
         logDebug(() => `No variations to merge for fragment ${root.id}`, customizeContext);
         return root;

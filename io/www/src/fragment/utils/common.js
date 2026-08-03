@@ -39,6 +39,7 @@ import { log, logDebug, logError, getErrorMessage } from '../utils/log.js';
 const CARD_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ';
 const COLLECTION_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24';
 const VALID_PARAMETER_VALUE_REGEX = /^[a-zA-Z0-9_-]+$/;
+const PROMO_VARIATION_STRATEGY_YIELD = 'yield';
 
 async function computeBody(response, context) {
     let body = await response.json();
@@ -299,6 +300,7 @@ export {
     CARD_MODEL_ID,
     COLLECTION_MODEL_ID,
     VALID_PARAMETER_VALUE_REGEX,
+    PROMO_VARIATION_STRATEGY_YIELD,
     createTimeoutPromise,
     internalFetch as fetch,
     getCountry,

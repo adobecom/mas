@@ -249,9 +249,11 @@ function findPromoMapsForFragment(root, customizeContext) {
 }
 
 /**
- * Selects a single promo project for a fragment.
- * explicit mapping (osi replace or promo code) wins over wild card promo
- * a project with neither an explicit mapping nor a wildcard does not qualify.
+ * Selects a single promo project for a fragment. Priority order is:
+ * promo project with an explicit mapping (osi replace or promo code) for a given geo & fragment.offer
+ * promo project with a wildcard promo code
+ * seasonal promo project, if no seasonal - returns null
+ * there should be no fallback to mapping-less evergreen promo project
  *
  * @returns the selected `{ project, promoMap, substituteMap, fragmentPaths }` entry, or null
  *          when no promo project targets the fragment.
@@ -264,7 +266,9 @@ function selectPromoProjectForFragment(root, customizeContext) {
     const hasExplicitMapping = ({ promoMap, substituteMap }) =>
         osis.some((osi) => promoMap[osi] !== undefined || substituteMap?.[osi] !== undefined);
     const hasWildcardPromo = ({ promoMap }) => Boolean(promoMap['*']);
-    const selected = promoEntries.find(hasExplicitMapping) ?? promoEntries.find(hasWildcardPromo) ?? null;
+    const isSeasonal = ({ project }) => Boolean(project.endDate);
+    const selected =
+        promoEntries.find(hasExplicitMapping) ?? promoEntries.find(hasWildcardPromo) ?? promoEntries.find(isSeasonal) ?? null;
     if (!selected) return null;
     logDebug(
         () =>

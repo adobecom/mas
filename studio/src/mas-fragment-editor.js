@@ -232,23 +232,12 @@ export default class MasFragmentEditor extends LitElement {
         #preview-wrapper {
             display: flex;
             flex-direction: column;
+            align-items: center;
             margin: 0 auto;
             max-width: 100%;
             max-height: 100%;
             border-radius: 12px;
             box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.16);
-            /* Clip to the rounded corners here; the scroll lives on
-               #preview-scroll. A scrolling border-radius container squares its
-               corners in some Chrome versions, so keep the two separate. */
-            overflow: hidden;
-        }
-
-        #preview-scroll {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            width: 100%;
-            min-height: 0;
             overflow-y: auto;
         }
 
@@ -2145,32 +2134,30 @@ export default class MasFragmentEditor extends LitElement {
         return html`
             <div id="preview-column">
                 <div id="preview-wrapper">
-                    <div id="preview-scroll">
-                        ${this.groupedPreviewLocaleSelector} ${this.previewVariationHeader}
-                        <div class="preview-content columns mas-fragment">
-                            <sp-theme color="light" scale="medium" system="${getSpectrumVersion(attrs.variant)}">
-                                <merch-card
-                                    variant=${attrs.variant || nothing}
-                                    size=${attrs.size || nothing}
-                                    name=${attrs.name || nothing}
-                                    border-color=${borderAttrs.borderColor || nothing}
-                                    whats-included-divider-color=${whatsIncludedDividerAttr || nothing}
-                                    background-image=${attrs.backgroundImage || nothing}
-                                    stock-offer-osis=${attrs.stockOfferOsis || nothing}
-                                    checkbox-label=${attrs.checkboxLabel || nothing}
-                                    storage=${attrs.storage || nothing}
-                                    daa-lh=${attrs.analyticsId || nothing}
-                                    ?gradient-border=${borderAttrs.gradientBorder}
-                                    .heightSync=${false}
-                                    style=${cssProps || nothing}
-                                    @mas:error=${this.#handlePreviewError}
-                                    @aem:load=${this.#clearPreviewError}
-                                >
-                                    <aem-fragment ?author=${true} loading="cache" fragment="${this.fragment.id}"></aem-fragment>
-                                </merch-card>
-                            </sp-theme>
-                            ${this.previewErrorMessages}
-                        </div>
+                    ${this.groupedPreviewLocaleSelector} ${this.previewVariationHeader}
+                    <div class="preview-content columns mas-fragment">
+                        <sp-theme color="light" scale="medium" system="${getSpectrumVersion(attrs.variant)}">
+                            <merch-card
+                                variant=${attrs.variant || nothing}
+                                size=${attrs.size || nothing}
+                                name=${attrs.name || nothing}
+                                border-color=${borderAttrs.borderColor || nothing}
+                                whats-included-divider-color=${whatsIncludedDividerAttr || nothing}
+                                background-image=${attrs.backgroundImage || nothing}
+                                stock-offer-osis=${attrs.stockOfferOsis || nothing}
+                                checkbox-label=${attrs.checkboxLabel || nothing}
+                                storage=${attrs.storage || nothing}
+                                daa-lh=${attrs.analyticsId || nothing}
+                                ?gradient-border=${borderAttrs.gradientBorder}
+                                .heightSync=${false}
+                                style=${cssProps || nothing}
+                                @mas:error=${this.#handlePreviewError}
+                                @aem:load=${this.#clearPreviewError}
+                            >
+                                <aem-fragment ?author=${true} loading="cache" fragment="${this.fragment.id}"></aem-fragment>
+                            </merch-card>
+                        </sp-theme>
+                        ${this.previewErrorMessages}
                     </div>
                 </div>
                 ${this.relatedVariationsSection}

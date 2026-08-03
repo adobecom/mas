@@ -51,7 +51,7 @@ config.json
 MerchAtScale-*.json
 masStudio-*.json
 .env*
-.aio
+.aio*
 .cursor
 .superpowers/
 

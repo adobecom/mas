@@ -208,6 +208,11 @@ merch-card[variant="pro"][border-color="black"] [slot="whats-included"] ul li {
     color: var(--consonant-merch-card-pro-text-inverse-color);
 }
 
+/* Dark wins over a leftover Black border: list items stay muted, not inverse */
+merch-card[variant="pro"][background-color="dark"] [slot="whats-included"] ul li {
+    color: var(--consonant-merch-card-pro-text-muted-color);
+}
+
 merch-card[variant="pro"] [slot="whats-included"] .section + .section {
     border-top: 1px solid var(--consonant-merch-card-pro-divider-color);
     padding-top: 16px;

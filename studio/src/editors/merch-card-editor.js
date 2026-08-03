@@ -2437,13 +2437,15 @@ class MerchCardEditor extends LitElement {
             }
         }
 
+        const hideTransparent = !isDividerField && this.currentVariantMapping?.borderColor?.hideTransparent;
         if (!selectedValue) {
             displaySelectedValue = 'Default';
         } else if (selectedValue === 'transparent') {
-            displaySelectedValue = 'Transparent';
+            // Legacy content can still hold transparent; show it as Default when
+            // the option is hidden for this variant.
+            displaySelectedValue = hideTransparent ? 'Default' : 'Transparent';
         }
 
-        const hideTransparent = !isDividerField && this.currentVariantMapping?.borderColor?.hideTransparent;
         const options = [
             'Default',
             ...(hideTransparent ? [] : ['Transparent']),

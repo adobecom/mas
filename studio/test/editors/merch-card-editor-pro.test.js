@@ -235,4 +235,13 @@ describe('merch-card-editor pro appearance mapping', () => {
         expect([...picker.querySelectorAll('sp-menu-item')].map((item) => item.value)).to.include('Transparent');
         expect(picker.disabled).to.be.false;
     });
+
+    it('shows a legacy stored Transparent border value as Default', async () => {
+        const { editor, store } = makeAppearanceEditor();
+        store.get().updateField('borderColor', ['transparent']);
+        await finishRendering(editor);
+        const picker = editor.querySelector('sp-field-group#border-color sp-picker');
+        expect(picker.value).to.equal('Default');
+        expect([...picker.querySelectorAll('sp-menu-item')].map((item) => item.value)).to.not.include('Transparent');
+    });
 });

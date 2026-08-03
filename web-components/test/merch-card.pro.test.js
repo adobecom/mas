@@ -159,6 +159,25 @@ describe('pro appearance mapping', () => {
     });
 });
 
+describe('pro dark theme rendering', () => {
+    let card;
+    afterEach(() => card?.remove());
+
+    it('keeps whats-included list items muted in dark even with a leftover Black border', async () => {
+        card = await renderCard(
+            '<div slot="whats-included"><div class="section"><h4>Apps</h4><ul><li id="wi-li">Desktop, web, and mobile</li></ul></div></div>',
+        );
+        card.setAttribute('background-color', 'dark');
+        card.setAttribute('border-color', 'black');
+        await card.updateComplete;
+        const li = card.querySelector('#wi-li');
+        // muted white #ffffffa3 (0.64 alpha), not the black-border inverse full white
+        expect(getComputedStyle(li).color).to.match(
+            /rgba?\(255,\s*255,\s*255,\s*0\.6/,
+        );
+    });
+});
+
 describe('Pro.adjustLegal', () => {
     function makeFixture(priceOverrides = {}) {
         const clone = {

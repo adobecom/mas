@@ -5368,6 +5368,11 @@ merch-card[variant="pro"][border-color="black"] [slot="whats-included"] ul li {
     color: var(--consonant-merch-card-pro-text-inverse-color);
 }
 
+/* Dark wins over a leftover Black border: list items stay muted, not inverse */
+merch-card[variant="pro"][background-color="dark"] [slot="whats-included"] ul li {
+    color: var(--consonant-merch-card-pro-text-muted-color);
+}
+
 merch-card[variant="pro"] [slot="whats-included"] .section + .section {
     border-top: 1px solid var(--consonant-merch-card-pro-divider-color);
     padding-top: 16px;
@@ -5787,6 +5792,10 @@ merch-card-collection.plans:is(.one-merch-card, .two-merch-cards, .three-merch-c
                 var(--consonant-merch-card-pro-bg-subtle, #f8f8f8)
             );
             border-radius: 16px;
+            /* Subtle ring so the light card's rounded corners read on white;
+               black/dark frames are their own visible edge (ring off). */
+            box-shadow: 0 0 0 1px
+                var(--consonant-merch-card-pro-frame-border-color, #e6e6e6);
             padding: 4px;
             box-sizing: border-box;
             overflow: hidden;
@@ -5800,6 +5809,7 @@ merch-card-collection.plans:is(.one-merch-card, .two-merch-cards, .three-merch-c
             --consonant-merch-card-pro-frame-text: #fff;
             --consonant-merch-card-pro-divider-color: #ffffff29;
             --consonant-merch-card-pro-subtitle-color: #000;
+            --consonant-merch-card-pro-frame-border-color: transparent;
         }
 
         /* dark theme — background-color="dark" comes from the #1093 Theme picker */
@@ -5808,6 +5818,7 @@ merch-card-collection.plans:is(.one-merch-card, .two-merch-cards, .three-merch-c
             --consonant-merch-card-pro-bg-subtle: #131313;
             --consonant-merch-card-pro-frame-bg: #131313;
             --consonant-merch-card-pro-frame-text: #fff;
+            --consonant-merch-card-pro-frame-border-color: transparent;
             --consonant-merch-card-pro-text-color: #fff;
             --consonant-merch-card-pro-text-muted-color: #ffffffa3;
             --consonant-merch-card-pro-text-inverse-color: #fff;

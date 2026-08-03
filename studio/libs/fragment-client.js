@@ -152,8 +152,7 @@ async function previewStudioFragment(body, options) {
     };
     context.fragmentsIds = context.fragmentsIds || {};
     context.hasExternalDictionary = Boolean(context.dictionary);
-    const previewTransformers = [settings, replace, corrector];
-    for (const transformer of previewTransformers) {
+    for (const transformer of [settings, replace, corrector]) {
         if (transformer.init) {
             const initContext = {
                 ...structuredClone(context),
@@ -165,7 +164,7 @@ async function previewStudioFragment(body, options) {
         }
     }
     context.promises = initPromises;
-    for (const transformer of previewTransformers) {
+    for (const transformer of [settings, replace, corrector]) {
         if (context.status != 200) {
             break;
         }

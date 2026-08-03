@@ -605,7 +605,11 @@ export function processAddon(fields, merchCard, mapping, settings = {}) {
     [...addon.querySelectorAll(SELECTOR_MAS_INLINE_PRICE)].forEach((span) => {
         const parent = span.parentElement;
         if (parent?.nodeName !== 'P') return;
-        parent.setAttribute('data-plan-type', '');
+        // Preserve an author-authored plan type (e.g. to disambiguate
+        // multiple plan-type blocks); only seed the placeholder if unset.
+        if (!parent.hasAttribute('data-plan-type')) {
+            parent.setAttribute('data-plan-type', '');
+        }
     });
     merchCard.append(addon);
 }

@@ -8,11 +8,20 @@ Release the `@adobecom/mas` npm package and create a GitHub release at `adobecom
 
 ## Steps
 
-### 1. Determine the version
+### 1. Determine the current version
 
-Read `web-components/package.json` to show the current version.
+The **published GitHub release** is the source of truth for the current version — not `package.json`, which can drift if a prior release's bump commit (step 10) never landed.
 
-If `$ARGUMENTS` is empty or not a valid semver, use the AskUserQuestion tool to ask the user for the target version.
+```bash
+gh release list --repo adobecom/mas --limit 10 --json tagName,publishedAt,name
+```
+
+Take the highest `mas-js-v*` tag as the current version. Then read `web-components/package.json` and compare:
+
+- If `package.json` is **behind** the latest release tag, it drifted (a previous bump commit was never committed/pushed). Warn the user, and treat the release tag — not `package.json` — as the baseline for choosing the next version.
+- If they match, proceed normally.
+
+If `$ARGUMENTS` is empty or not a valid semver, use the AskUserQuestion tool to ask the user for the target version, showing both the latest release tag and the `package.json` value so the choice is made against the true baseline.
 
 ### 2. Bump the version in package.json
 
@@ -26,13 +35,9 @@ cd web-components && npm install
 
 This updates `package-lock.json` with the new version.
 
-### 4. Find the previous release
+### 4. Find the previous release date
 
-```bash
-gh release list --repo adobecom/mas --limit 10 --json tagName,publishedAt,name
-```
-
-Identify the most recent `mas-js-v*` release tag and its `publishedAt` date.
+Reuse the release list from step 1. Take the most recent `mas-js-v*` tag's `publishedAt` date as `LAST_RELEASE_DATE` for the PR query below.
 
 ### 5. Collect merged PRs since the last release
 

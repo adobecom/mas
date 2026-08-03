@@ -605,7 +605,11 @@ export function processAddon(fields, merchCard, mapping, settings = {}) {
     [...addon.querySelectorAll(SELECTOR_MAS_INLINE_PRICE)].forEach((span) => {
         const parent = span.parentElement;
         if (parent?.nodeName !== 'P') return;
-        parent.setAttribute('data-plan-type', '');
+        // Preserve an author-authored plan type (e.g. to disambiguate
+        // multiple plan-type blocks); only seed the placeholder if unset.
+        if (!parent.hasAttribute('data-plan-type')) {
+            parent.setAttribute('data-plan-type', '');
+        }
     });
     merchCard.append(addon);
 }
@@ -614,6 +618,30 @@ export function processAddonConfirmation(fields, merchCard, mapping) {
     if (fields.addonConfirmation) {
         appendSlot('addonConfirmation', fields, merchCard, mapping);
     }
+}
+
+export function processCustomFields(fields, merchCard, mapping) {
+    const config = mapping?.customFields;
+    if (!config) return;
+    const values = Array.isArray(fields.customFields)
+        ? fields.customFields
+        : fields.customFields
+          ? [fields.customFields]
+          : [];
+    const labels = Array.isArray(fields.customFieldLabels)
+        ? fields.customFieldLabels
+        : fields.customFieldLabels
+          ? [fields.customFieldLabels]
+          : [];
+    values.filter(Boolean).forEach((html, i) => {
+        const label = labels[i];
+        const el = createTag(
+            config.tag,
+            { slot: `custom-field-${i}`, 'data-label': label || '' },
+            html,
+        );
+        merchCard.append(el);
+    });
 }
 
 function processSecureLabel(fields, merchCard, aemFragmentMapping, settings) {
@@ -1032,6 +1060,7 @@ export async function hydrate(fragment, merchCard) {
     processWhatsIncludedDividerColor(fields, merchCard, mapping);
     processAddon(fields, merchCard, mapping, settings);
     processAddonConfirmation(fields, merchCard, mapping);
+    processCustomFields(fields, merchCard, mapping);
     processSecureLabel(fields, merchCard, mapping, settings);
     try {
         processUptLinks(fields, merchCard);

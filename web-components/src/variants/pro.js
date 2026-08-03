@@ -238,15 +238,8 @@ export class Pro extends VariantLayout {
         label.className = 'whats-included-label';
         label.textContent = whatsIncludedLabel ?? '';
         title.after(label);
-        // Figma renders the section title + rows as plain paragraphs, not a
-        // heading + list; convert both per section (edu-only, so non-edu pro
-        // cards keep their authored <h4> + <ul><li>). <p> also sidesteps Milo's
-        // global <h4> font override (see pro.css.js note on the h4 base rule).
-        slot.querySelectorAll('.section h4').forEach((h4) => {
-            const row = document.createElement('p');
-            row.innerHTML = h4.innerHTML;
-            h4.replaceWith(row);
-        });
+        // Figma renders feature rows as plain paragraphs, not a list; convert
+        // per section so non-edu pro cards keep their authored <ul><li>.
         slot.querySelectorAll('.section ul').forEach((ul) => {
             [...ul.children].forEach((li) => {
                 const row = document.createElement('p');

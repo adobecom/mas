@@ -227,7 +227,7 @@ merch-card[variant="pro"][border-color="black"][size='edu'] [slot="whats-include
 /* EDU right panel (Figma 4375:120476 "Copy" frame): feature rows are Adobe
    Clean 400 at 14/18 (the base h4 rule's 700/0.14px is the narrow-card look);
    the list uses a 16px gap with thin divider rules between rows. */
-merch-card[variant="pro"][size='edu'] [slot="whats-included"] p {
+merch-card[variant="pro"][size='edu'] [slot="whats-included"] h4 {
     font-weight: 400;
     font-size: 14px;
     line-height: 18px;
@@ -248,6 +248,10 @@ merch-card[variant="pro"][size='edu'] [slot="whats-included"] .section p {
 
 merch-card[variant="pro"][border-color="black"][size='edu'] [slot="whats-included"] .section p {
     color: var(--consonant-merch-card-pro-text-inverse-color);
+}
+
+merch-card[variant="pro"][size='edu'] [slot="whats-included"] .section h4 + p {
+    margin-top: 16px;
 }
 
 merch-card[variant="pro"][size='edu'] [slot="whats-included"] .section p + p {

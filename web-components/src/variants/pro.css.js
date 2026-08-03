@@ -157,24 +157,35 @@ merch-card[variant="pro"] [slot="whats-included"] .whats-included-label {
     display: none;
 }
 
-/* EDU (Wide): no toggle, so the whats-included TITLE is the big panel title. */
+/* EDU whats-included TITLE — two states: small (≤1279) 20/20, desktop
+   (≥1280) 36/32. Figma 4375:120499 (small) / 4375:120476 (desktop). */
 merch-card[variant="pro"][size='edu'] [slot="whats-included"] .whats-included-title {
     display: block;
     color: inherit;
     font-family: var(--consonant-merch-card-pro-font-family-display);
-    font-size: 36px;
+    font-size: 20px;
     font-style: normal;
     font-weight: 900;
-    line-height: 32px;
-    letter-spacing: -1px;
+    line-height: 20px;
+    letter-spacing: -0.48px;
 }
 
-/* Mobile (≤767, Figma node 4375:120499): the edu title shrinks to 20/20. */
-@media screen and ${MOBILE_LANDSCAPE} {
+/* EDU card title (heading-xs): 18/20 up to tablet, 24/24 on desktop
+   (Figma 4375:120499 / 4375:120476). Edu-scoped so grid pro cards keep 24. */
+merch-card[variant="pro"][size='edu'] [slot="heading-xs"] {
+    font-size: 18px;
+    line-height: 20px;
+}
+
+@media screen and ${C2_DESKTOP_UP} {
     merch-card[variant="pro"][size='edu'] [slot="whats-included"] .whats-included-title {
-        font-size: 20px;
-        line-height: 20px;
-        letter-spacing: -0.48px;
+        font-size: 36px;
+        line-height: 32px;
+        letter-spacing: -1px;
+    }
+    merch-card[variant="pro"][size='edu'] [slot="heading-xs"] {
+        font-size: 24px;
+        line-height: 24px;
     }
 }
 
@@ -191,11 +202,11 @@ merch-card[variant="pro"][size='edu'] [slot="whats-included"] .whats-included-la
 }
 
 /* EDU eligibility disclaimer, resolved server-side ({{edu-disclaimer}}) and
-   appended after the feature list by pro.js, hidden via the
-   hideEduDisclaimer setting (MWPW-202318). Figma 4375:120476: 12/16 legal
-   text at 64% opacity — white on black-border cards, black otherwise. */
+   appended after the feature list by pro.js, hidden via the hideEduDisclaimer
+   setting (MWPW-202318). Figma 4375:120476: 12/16 legal text. Muted token so
+   it flips with the dark theme; the black-border frame overrides to white. */
 merch-card[variant="pro"][size='edu'] [slot="whats-included"] .whats-included-disclaimer {
-    color: #000000A3;
+    color: var(--consonant-merch-card-pro-text-muted-color, #000000a3);
     font-family: var(--consonant-merch-card-pro-font-family-regular);
     font-size: 12px;
     font-weight: 400;
@@ -213,7 +224,7 @@ merch-card[variant="pro"][size='edu'] [slot="whats-included"] .whats-included-di
 }
 
 merch-card[variant="pro"][size='edu'] [slot="whats-included"] .whats-included-disclaimer a:not([class*="spectrum-Link"]) {
-    color: #000;
+    color: var(--consonant-merch-card-pro-text-color, #000);
 }
 
 merch-card[variant="pro"][border-color="black"][size='edu'] [slot="whats-included"] .whats-included-disclaimer {
@@ -231,41 +242,25 @@ merch-card[variant="pro"] [slot="body-xs"] a.spectrum-Link.spectrum-Link--second
     color: inherit;
 }
 
-/* EDU right panel (Figma 4375:120476 "Copy" frame): feature rows are Adobe
-   Clean 400 at 14/18 (the base h4 rule's 700/0.14px is the narrow-card look);
-   the list uses a 16px gap with thin divider rules between rows. */
-merch-card[variant="pro"][size='edu'] [slot="whats-included"] h4 {
+/* Feature rows are 14/18/400 in both states — the authored <h4> and the <p>
+   they become (pro.js adjustEduWhatsIncluded) — so type doesn't shift on
+   convert. (Base h4 is 700/0.14px, the narrow-card look.) */
+merch-card[variant="pro"][size='edu'] [slot="whats-included"] h4,
+merch-card[variant="pro"][size='edu'] [slot="whats-included"] .section p {
     font-weight: 400;
     font-size: 14px;
     line-height: 18px;
     letter-spacing: 0;
 }
 
-/* EDU rows are authored as <li> but rendered as sibling <p> (pro.js
-   adjustEduWhatsIncluded); the base .section [slot="whats-included"] ul/li
-   rules below never match edu markup, so row typography is repeated here. */
 merch-card[variant="pro"][size='edu'] [slot="whats-included"] .section p {
     margin: 0;
     padding: 0;
-    font-size: 14px;
-    line-height: 18px;
-    letter-spacing: 0;
     color: var(--consonant-merch-card-pro-text-muted-color);
 }
 
 merch-card[variant="pro"][border-color="black"][size='edu'] [slot="whats-included"] .section p {
     color: var(--consonant-merch-card-pro-text-inverse-color);
-}
-
-merch-card[variant="pro"][size='edu'] [slot="whats-included"] .section h4 + p {
-    margin-top: 16px;
-}
-
-merch-card[variant="pro"][size='edu'] [slot="whats-included"] .section p + p {
-    /* Figma divider is a 1px rule at 24% (not the shared 12% token). */
-    margin-top: 16px;
-    border-top: 1px solid rgba(0, 0, 0, 0.24);
-    padding-top: 16px;
 }
 
 merch-card[variant="pro"] [slot="whats-included"] .section,

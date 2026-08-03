@@ -238,16 +238,13 @@ export class Pro extends VariantLayout {
         label.className = 'whats-included-label';
         label.textContent = whatsIncludedLabel ?? '';
         title.after(label);
-        // Figma renders feature rows as plain paragraphs, not a list; convert
-        // per section so non-edu pro cards keep their authored <ul><li>.
-        slot.querySelectorAll('.section ul').forEach((ul) => {
-            [...ul.children].forEach((li) => {
+        slot.querySelectorAll('.section h4:not(.whats-included-title)').forEach(
+            (h4) => {
                 const row = document.createElement('p');
-                row.innerHTML = li.innerHTML;
-                ul.before(row);
-            });
-            ul.remove();
-        });
+                row.innerHTML = h4.innerHTML;
+                h4.replaceWith(row);
+            },
+        );
         if (eduDisclaimer) {
             const disclaimer = document.createElement('div');
             disclaimer.className = 'whats-included-disclaimer';
@@ -908,7 +905,7 @@ export class Pro extends VariantLayout {
             color: inherit;
             display: flex;
             flex-direction: column;
-            gap: 24px;
+            gap: 16px;
         }
 
         :host([variant='pro']) .whats-included-toggle {

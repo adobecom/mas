@@ -289,8 +289,7 @@ merch-card[variant="pro"] [slot="footer"] a.outline,
 merch-card[variant="pro"] [slot="footer"] [data-button-type="primary"] {
     background: transparent;
     color: var(--consonant-merch-card-pro-text-color);
-    /* Border tracks the text color in light; the dark theme re-points just the
-       border to the Figma outline gray (#dadada) while the label stays white. */
+    /* dark re-points just the border to #dadada; label stays white */
     border: 2px solid
         var(
             --consonant-merch-card-pro-cta-outline-border-color,

@@ -713,16 +713,7 @@ export class Pro extends VariantLayout {
             --consonant-merch-card-pro-subtitle-color: #000;
         }
 
-        /* Dark theme. The Studio "Theme" picker (PR #1093, MWPW-201873) reuses
-           the backgroundColor mapping field with special values Light/Dark, so
-           processBackgroundColor sets background-color="dark" on the card — that
-           is the hook here, not a bespoke theme attribute. Re-points the
-           surface/text tokens to the Figma s2a dark values (nodes 4223:50282 /
-           4378:127910 / 4378:130403); geometry is unchanged, so every breakpoint
-           inherits it. Custom properties set on :host inherit to the slotted
-           light-DOM too, so the light-DOM sheet (pro.css.js) picks these up
-           without a parallel light-DOM block. Placed after the black block so it
-           wins when both attributes are set. */
+        /* dark theme — background-color="dark" comes from the #1093 Theme picker */
         :host([variant='pro'][background-color='dark']) {
             --consonant-merch-card-pro-bg-default: #000;
             --consonant-merch-card-pro-bg-subtle: #131313;
@@ -732,20 +723,13 @@ export class Pro extends VariantLayout {
             --consonant-merch-card-pro-text-muted-color: #ffffffa3;
             --consonant-merch-card-pro-text-inverse-color: #fff;
             --consonant-merch-card-pro-subtitle-color: #ffffffa3;
-            /* Lock: swap in a copy with the muted fill baked in (#a3a3a3 =
-               white@64% on the #000 hero) — matches Figma S2_Icon_Lock_20_N. A
-               currentColor mask rendered too dark, so the fill is explicit. */
+            /* lock recoloured to #a3a3a3 (white@64% on the #000 hero) */
             --secure-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23a3a3a3'%3E%3Cpath d='M9 9.2C9 8.64844 8.55156 8.2 8 8.2C7.44844 8.2 7 8.64844 7 9.2C7 9.52207 7.16289 9.7959 7.4 9.9789V10.6C7.4 10.9312 7.66875 11.2 8 11.2C8.33125 11.2 8.6 10.9312 8.6 10.6V9.9789C8.83711 9.7959 9 9.52207 9 9.2Z'/%3E%3Cpath d='M12 5.62031V5.2C12 2.99453 10.2055 1.2 8 1.2C5.79453 1.2 4 2.99453 4 5.2V5.62031C3.10274 5.72129 2.4 6.47637 2.4 7.4V12.6C2.4 13.5922 3.20782 14.4 4.2 14.4H11.8C12.7922 14.4 13.6 13.5922 13.6 12.6V7.4C13.6 6.47637 12.8973 5.72129 12 5.62031ZM8 2.4C9.54375 2.4 10.8 3.65625 10.8 5.2V5.6H5.2V5.2C5.2 3.65625 6.45625 2.4 8 2.4ZM12.4 12.6C12.4 12.9305 12.1305 13.2 11.8 13.2H4.2C3.86953 13.2 3.6 12.9305 3.6 12.6V7.4C3.6 7.06953 3.86953 6.8 4.2 6.8H11.8C12.1305 6.8 12.4 7.06953 12.4 7.4V12.6Z'/%3E%3C/svg%3E");
-            /* Section dividers are transparent-black-12 in the Figma dark node
-               too (same as light) — a ~2-level darkening on #131313, not a light
-               line. */
+            /* dividers stay transparent-black-12, same as light */
             --consonant-merch-card-pro-divider-color: #0000001f;
             --consonant-merch-card-pro-cta-outline-border-color: #dadada;
             --consonant-merch-card-pro-cta-outline-hover-color: #ffffff1f;
-            /* License control: Figma paints the trigger with background-default
-               (#131313) and a transparent-black-08 border (near-invisible on the
-               dark surface) — i.e. the same border token as light, so it is left
-               to fall back rather than re-pointed. */
+            /* dropdown trigger = #131313; border keeps the light value */
             --consonant-merch-card-pro-control-bg: #131313;
             --consonant-merch-card-pro-control-hover-bg: #ffffff14;
         }
@@ -880,11 +864,7 @@ export class Pro extends VariantLayout {
             display: inline-block;
             width: 16px;
             height: 16px;
-            /* Explicit-fill SVG background, not a CSS mask: as a mask the SVG's
-               currentColor resolved to the label's own translucent color and
-               rendered the lock too dark on the dark surface. Light bakes black
-               (currentColor in an isolated background image); the dark theme
-               swaps --secure-icon for a #a3a3a3-filled copy. */
+            /* background-image, not a mask — a mask's currentColor rendered the lock too dark */
             background-image: var(--secure-icon);
             background-repeat: no-repeat;
             background-position: center;

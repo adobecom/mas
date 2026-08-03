@@ -14,9 +14,28 @@ import {
     parseLocaleCode,
     isKnownLocale,
     geoCacheKey,
+    getPlaceholdersBaselineSurface,
+    getPlaceholdersRegionLocale,
 } from '../../src/fragment/locales.js';
 
 describe('locales', function () {
+    describe('placeholder resolution helpers', function () {
+        it('getPlaceholdersBaselineSurface returns acom', function () {
+            expect(getPlaceholdersBaselineSurface()).to.equal('acom');
+        });
+
+        it('getPlaceholdersRegionLocale reaches en_IN / en_AU by country even when they are en_GB regions', function () {
+            expect(getPlaceholdersRegionLocale('acom', 'en_US', 'IN', 'en_US')).to.equal('en_IN');
+            expect(getPlaceholdersRegionLocale('acom', 'en_US', 'AU', 'en_US')).to.equal('en_AU');
+            expect(getPlaceholdersRegionLocale('acom', 'en_GB', 'IN', 'en_IN')).to.equal('en_IN');
+            expect(getPlaceholdersRegionLocale('acom', 'fr_FR', 'BE', 'fr_FR')).to.equal('fr_BE');
+        });
+
+        it('getPlaceholdersRegionLocale falls back when the country is not a surface region', function () {
+            expect(getPlaceholdersRegionLocale('acom', 'en_US', 'JP', 'en_US')).to.equal('en_US');
+            expect(getPlaceholdersRegionLocale('acom', 'en_US', undefined, 'en_US')).to.equal('en_US');
+        });
+    });
     describe('parseLocaleCode', function () {
         it('returns empty array when locale code is null or undefined', function () {
             expect(parseLocaleCode(null)).to.deep.equal([]);

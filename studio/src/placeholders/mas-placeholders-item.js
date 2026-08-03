@@ -8,6 +8,8 @@ import { confirmation } from '../mas-confirm-dialog.js';
 import { showToast } from '../utils.js';
 import { FragmentStore } from '../reactivity/fragment-store.js';
 import { Placeholder } from '../aem/placeholder.js';
+import { getDefaultLocaleCode } from '../../../io/www/src/fragment/locales.js';
+import '@spectrum-web-components/help-text/sp-help-text.js';
 import '../rte/rte-field.js';
 
 class MasPlaceholdersItem extends LitElement {
@@ -41,7 +43,9 @@ class MasPlaceholdersItem extends LitElement {
 
     connectedCallback() {
         super.connectedCallback();
-        this.reactiveController = new ReactiveController(this, [this.placeholderStore]);
+        // Also react to previewByLocale so the "duplicates baseline" hint appears once the baseline
+        // dictionary finishes loading.
+        this.reactiveController = new ReactiveController(this, [this.placeholderStore, Store.placeholders.previewByLocale]);
     }
 
     updated(changedProps) {
@@ -138,6 +142,29 @@ class MasPlaceholdersItem extends LitElement {
 
     // #endregion
 
+    /** Placeholder base locale for the edited locale (region flag applied), e.g. en_US for en_AU. */
+    get baseLocale() {
+        return getDefaultLocaleCode(Store.surface(), Store.localeOrRegion());
+    }
+
+    /** True when this placeholder's value is identical to the value inherited from the base language. */
+    get duplicatesBaseline() {
+        const locale = Store.localeOrRegion();
+        const { baseLocale } = this;
+        // When editing the base language itself there is nothing to inherit from.
+        if (!baseLocale || baseLocale === locale) return false;
+        const baseline = Store.placeholders.previewByLocale.get()?.[baseLocale];
+        const { key, value } = this.placeholder;
+        return Boolean(baseline) && key in baseline && baseline[key] === value;
+    }
+
+    get duplicateWarning() {
+        if (this.editing || !this.duplicatesBaseline) return nothing;
+        return html`<sp-help-text size="s" variant="negative" class="duplicate-warning">
+            exactly same value exists in default language '${this.baseLocale}', you can safely delete that placeholder
+        </sp-help-text>`;
+    }
+
     render() {
         // Guard clause: Don't render if placeholderStore is not initialized
         if (!this.placeholderStore) {
@@ -224,11 +251,23 @@ class MasPlaceholdersItem extends LitElement {
             return html`
                 <sp-table-cell class="value">
                     <div class="rich-text-cell" .innerHTML=${this.placeholder.value}></div>
+                    ${this.duplicateWarning}
                 </sp-table-cell>
             `;
         }
 
-        return this.renderTableCell(this.placeholder.value, '', 'value');
+        const content = this.placeholder.value ?? '';
+        const needsTooltip = content.length > 50;
+        const value = content.length > 50 ? `${content.substring(0, 47)}...` : content;
+        return html`
+            <sp-table-cell class="value">
+                <overlay-trigger placement="top">
+                    <div class="cell-content" slot="trigger">${value}</div>
+                    ${needsTooltip ? html`<sp-tooltip slot="hover-content" placement="top">${content}</sp-tooltip>` : nothing}
+                </overlay-trigger>
+                ${this.duplicateWarning}
+            </sp-table-cell>
+        `;
     }
 
     get statusCell() {

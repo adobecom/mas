@@ -61,7 +61,7 @@ describe('pipeline end to end', () => {
         delete json.lastModified; // removing the date to avoid flakiness
         expect(json).to.deep.include({
             fragmentsIds: {
-                'dictionary-id': 'sandbox_fr_FR_dictionary',
+                'dictionary-id-sandbox-fr_FR': 'sandbox_fr_FR_dictionary',
                 'default-locale-id': 'some-fr-fr-fragment',
                 'settings-id': 'settings-id',
             },
@@ -153,23 +153,17 @@ describe('pipeline end to end', () => {
         expect(json.fragmentsIds['default-locale-id']).to.equal('some-fr-fr-fragment');
     });
 
-    it('should fetch dictionary from regional path when locale=fr_FR + country=BE', async () => {
+    it('fetches the region overlay from the regional path when locale=fr_FR + country=BE', async () => {
         setupFragmentMocks(fetchStub, { id: 'some-en-us-fragment', path: 'someFragment' });
-        // Override the fr_FR dictionary stub from setupFragmentMocks → empty response to ensure
-        // a fr_FR fetch would NOT yield a dictionary-id (forces the regression test to be honest).
-        fetchStub
-            .withArgs(
-                'https://odin.adobe.com/adobe/contentFragments/byPath?path=/content/dam/mas/sandbox/fr_FR/dictionary/index',
-            )
-            .returns(createResponse(200, {}));
-        // Mock fr_BE dictionary explicitly.
+        // country=BE → regionLocale=fr_BE. Base stays acom/fr_FR (setupFragmentMocks); the region
+        // overlay is fetched from the fr_BE regional path (direct-hydrated).
         fetchStub
             .withArgs(
                 'https://odin.adobe.com/adobe/contentFragments/byPath?path=/content/dam/mas/sandbox/fr_BE/dictionary/index',
             )
             .returns(createResponse(200, { id: 'sandbox_fr_BE_dictionary' }));
         fetchStub
-            .withArgs('https://odin.adobe.com/adobe/contentFragments/sandbox_fr_BE_dictionary?references=all-hydrated')
+            .withArgs('https://odin.adobe.com/adobe/contentFragments/sandbox_fr_BE_dictionary?references=direct-hydrated')
             .returns(createResponse(200, { id: 'sandbox_fr_BE_dictionary', references: {} }));
         const state = new MockState();
         const result = await getFragment({
@@ -181,7 +175,7 @@ describe('pipeline end to end', () => {
         expect(result.statusCode).to.equal(200);
         expect(state.store).to.have.property('req-some-en-us-fragment-fr_FR-BE');
         const json = JSON.parse(state.store['req-some-en-us-fragment-fr_FR-BE']);
-        expect(json.fragmentsIds['dictionary-id']).to.equal('sandbox_fr_BE_dictionary');
+        expect(json.fragmentsIds['dictionary-id-sandbox-fr_BE']).to.equal('sandbox_fr_BE_dictionary');
     });
 
     it('should NOT apply fr_FR settings override when country=CA forces regionLocale=fr_CA', async () => {
@@ -455,7 +449,12 @@ describe('pipeline end to end', () => {
         // only exists in the baked fragment AFTER the replace transformer runs — it is invisible to
         // customize, which runs earlier.
         fetchStub
-            .withArgs('https://odin.adobe.com/adobe/contentFragments/sandbox_fr_FR_dictionary?references=all-hydrated')
+            .withArgs(
+                'https://odin.adobe.com/adobe/contentFragments/byPath?path=/content/dam/mas/sandbox/fr_FR/dictionary/index',
+            )
+            .returns(createResponse(200, { id: 'sandbox_fr_FR_dictionary' }));
+        fetchStub
+            .withArgs('https://odin.adobe.com/adobe/contentFragments/sandbox_fr_FR_dictionary?references=direct-hydrated')
             .returns(
                 createResponse(200, {
                     id: 'sandbox_fr_FR_dictionary',
@@ -517,5 +516,119 @@ describe('pipeline end to end', () => {
         const cacheKeys = Object.keys(result.body.wcs.prod);
         expect(cacheKeys.some((key) => key.startsWith('SUB-INJECTED-'))).to.be.false;
         expect(cacheKeys.some((key) => key.startsWith('INJECTED-OSI-') && !key.endsWith('bts26'))).to.be.true;
+    });
+
+    describe('acom-cc placeholder layering with country=AU', () => {
+        // Stubs one `direct-hydrated` dictionary layer for (surface, locale) from a { key: value } map.
+        const stubDictLayer = (surface, locale, entries) => {
+            const id = `${surface}_${locale}_dictionary`;
+            const references = {};
+            const ids = Object.keys(entries).map((key) => {
+                const refId = `entry-${surface}-${locale}-${key}`;
+                references[refId] = { type: 'content-fragment', value: { id: refId, fields: { key, value: entries[key] } } };
+                return refId;
+            });
+            fetchStub
+                .withArgs(
+                    `https://odin.adobe.com/adobe/contentFragments/byPath?path=/content/dam/mas/${surface}/${locale}/dictionary/index`,
+                )
+                .returns(createResponse(200, { id }));
+            fetchStub
+                .withArgs(`https://odin.adobe.com/adobe/contentFragments/${id}?references=direct-hydrated`)
+                .returns(createResponse(200, { fields: { entries: ids }, references }));
+            return id;
+        };
+
+        // Neutralizes the surface-level machinery so the assertions isolate placeholder layering +
+        // content locale: no settings entries, no promotions, empty WCS.
+        const stubSurfaceNoise = () => {
+            fetchStub
+                .withArgs('https://odin.adobe.com/adobe/contentFragments/byPath?path=/content/dam/mas/acom-cc/settings/index')
+                .returns(createResponse(200, {}));
+            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [] }));
+            fetchStub
+                .withArgs(sinon.match((url) => typeof url === 'string' && url.includes('web_commerce_artifact')))
+                .returns(createResponse(200, { resolvedOffers: [] }));
+        };
+
+        it('locale en_US + country AU: content stays en_US, placeholders layer acom/en_US → acom-cc/en_US → acom-cc/en_AU', async () => {
+            stubSurfaceNoise();
+            fetchStub.withArgs('https://odin.adobe.com/adobe/contentFragments/acom-cc-card-us?references=all-hydrated').returns(
+                createResponse(200, {
+                    id: 'acom-cc-card-us',
+                    path: '/content/dam/mas/acom-cc/en_US/card',
+                    model: { id: CARD_MODEL_ID },
+                    fields: { variant: 'ccd-slice', description: '{{baseKey}}/{{surfaceKey}}/{{label}}/{{regionKey}}' },
+                    references: {},
+                    referencesTree: [],
+                }),
+            );
+            // base (acom/en_US) < surface baseline (acom-cc/en_US) < region overlay (acom-cc/en_AU)
+            stubDictLayer('acom', 'en_US', { baseKey: 'base-only', surfaceKey: 'base-surface', label: 'base-label' });
+            stubDictLayer('acom-cc', 'en_US', { surfaceKey: 'cc-surface', label: 'cc-label' });
+            stubDictLayer('acom-cc', 'en_AU', { label: 'au-label', regionKey: 'au-region' });
+
+            const state = new MockState();
+            const result = await getFragment({ id: 'acom-cc-card-us', state, locale: 'en_US', country: 'AU' });
+
+            expect(result.statusCode).to.equal(200);
+            // Content unchanged: en_US request stays on en_US (AU is not a region of en_US).
+            expect(result.body.path).to.equal('/content/dam/mas/acom-cc/en_US/card');
+            // baseKey only in base, surfaceKey wins at surface baseline, label wins at region overlay, regionKey overlay-only.
+            expect(result.body.fields.description).to.equal('base-only/cc-surface/au-label/au-region');
+            const json = JSON.parse(state.store['req-acom-cc-card-us-en_US-AU']);
+            expect(json.fragmentsIds).to.include({
+                'dictionary-id-acom-en_US': 'acom_en_US_dictionary',
+                'dictionary-id-acom-cc-en_US': 'acom-cc_en_US_dictionary',
+                'dictionary-id-acom-cc-en_AU': 'acom-cc_en_AU_dictionary',
+            });
+        });
+
+        it('locale en_GB + country AU: content resolves to en_AU variation, placeholders layer acom/en_GB → acom-cc/en_GB → acom-cc/en_AU', async () => {
+            stubSurfaceNoise();
+            fetchStub.withArgs('https://odin.adobe.com/adobe/contentFragments/acom-cc-card-gb?references=all-hydrated').returns(
+                createResponse(200, {
+                    id: 'acom-cc-card-gb',
+                    path: '/content/dam/mas/acom-cc/en_GB/card',
+                    model: { id: CARD_MODEL_ID },
+                    fields: {
+                        variant: 'ccd-slice',
+                        description: '{{baseKey}}/{{surfaceKey}}/{{label}}/{{regionKey}}',
+                        variations: ['var-au'],
+                    },
+                    references: {
+                        'var-au': {
+                            type: 'content-fragment',
+                            value: {
+                                id: 'var-au',
+                                path: '/content/dam/mas/acom-cc/en_AU/card',
+                                fields: { badge: { value: 'AU exclusive', mimeType: 'text/html' } },
+                            },
+                        },
+                    },
+                    referencesTree: [],
+                }),
+            );
+            // base (acom/en_GB) < surface baseline (acom-cc/en_GB) < region overlay (acom-cc/en_AU)
+            stubDictLayer('acom', 'en_GB', { baseKey: 'gb-base-only', surfaceKey: 'gb-base-surface', label: 'gb-base-label' });
+            stubDictLayer('acom-cc', 'en_GB', { surfaceKey: 'gb-cc-surface', label: 'gb-cc-label' });
+            stubDictLayer('acom-cc', 'en_AU', { label: 'au-label', regionKey: 'au-region' });
+
+            const state = new MockState();
+            const result = await getFragment({ id: 'acom-cc-card-gb', state, locale: 'en_GB', country: 'AU' });
+
+            expect(result.statusCode).to.equal(200);
+            // Content en_GB → en_AU: the en_AU regional variation is merged in (badge override applied).
+            expect(result.body.variationId).to.equal('var-au');
+            expect(result.body.fields.badge.value).to.equal('AU exclusive');
+            // Placeholders base on en_GB (the request's own default language), then acom-cc/en_GB, then acom-cc/en_AU.
+            expect(result.body.fields.description).to.equal('gb-base-only/gb-cc-surface/au-label/au-region');
+            const json = JSON.parse(state.store['req-acom-cc-card-gb-en_GB-AU']);
+            expect(json.fragmentsIds).to.include({
+                'dictionary-id-acom-en_GB': 'acom_en_GB_dictionary',
+                'dictionary-id-acom-cc-en_GB': 'acom-cc_en_GB_dictionary',
+                'dictionary-id-acom-cc-en_AU': 'acom-cc_en_AU_dictionary',
+            });
+        });
     });
 });

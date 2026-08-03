@@ -67,17 +67,24 @@ function makeHydratedProject({
     };
 }
 
+// Models real Web Storage: data keys are enumerable own props (so `Object.keys(localStorage)`
+// prefix-scans work, as the per-surface `promotions-*` clear relies on), methods non-enumerable.
 function installLocalStorageShim() {
     const storage = {};
-    globalThis.localStorage = {
-        getItem: (key) => storage[key] ?? null,
-        setItem: (key, val) => {
-            storage[key] = val;
+    Object.defineProperties(storage, {
+        getItem: { value: (key) => (Object.prototype.hasOwnProperty.call(storage, key) ? storage[key] : null) },
+        setItem: {
+            value: (key, val) => {
+                storage[key] = String(val);
+            },
         },
-        removeItem: (key) => {
-            delete storage[key];
+        removeItem: {
+            value: (key) => {
+                delete storage[key];
+            },
         },
-    };
+    });
+    globalThis.localStorage = storage;
     return storage;
 }
 
@@ -934,14 +941,15 @@ describe('promotions', () => {
             fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
 
             await promotionsTransformer.init(previewCtx);
-            expect(storage['promotions']).to.exist;
+            // Preview cache is now per-surface (`promotions-<surface>`), keyed by the resolved surface.
+            expect(storage['promotions-acom']).to.exist;
 
             const result = await promotionsTransformer.init(previewCtx);
             expect(fetchStub.withArgs(FOLDER_URL).callCount).to.equal(1);
             expect(result.activeProjects).to.have.length(1);
 
             clearPromoCache(true);
-            expect(storage['promotions']).to.be.undefined;
+            expect(storage['promotions-acom']).to.be.undefined;
         });
 
         it('retains blocking refetch in preview mode: an expired entry refetches fresh, never served stale', async () => {

@@ -414,6 +414,14 @@ export async function loadPlaceholders() {
             .map((fragment) => new FragmentStore(new Placeholder(fragment)));
 
         Store.placeholders.list.data.set(placeholders);
+
+        // Preload the baseline (default-language) dictionary so items can flag entries that merely
+        // duplicate their inherited value. The region flag (en_AU/en_IN → en_US) is honored here.
+        const locale = Store.localeOrRegion();
+        const baseLocale = getDefaultLocaleCode(Store.surface(), locale);
+        if (baseLocale && baseLocale !== locale) {
+            void loadPreviewPlaceholders(baseLocale);
+        }
     } catch (error) {
         repo.processError(error, 'Could not load placeholders.');
     } finally {

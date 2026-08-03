@@ -5177,6 +5177,15 @@ merch-card-collection.plans:is(.one-merch-card, .two-merch-cards, .three-merch-c
             overflow: hidden;
             position: relative;
             color: var(--consonant-merch-card-pro-frame-text, #000);
+            /* control (dropdown) surface defaults to light; dark overrides these */
+            --consonant-merch-card-pro-control-bg: var(
+                --consonant-merch-card-pro-bg-default,
+                #fff
+            );
+            --consonant-merch-card-pro-control-hover-bg: var(
+                --consonant-merch-card-pro-bg-subtle,
+                #f8f8f8
+            );
             --secure-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='currentColor'%3E%3Cpath d='M9 9.2C9 8.64844 8.55156 8.2 8 8.2C7.44844 8.2 7 8.64844 7 9.2C7 9.52207 7.16289 9.7959 7.4 9.9789V10.6C7.4 10.9312 7.66875 11.2 8 11.2C8.33125 11.2 8.6 10.9312 8.6 10.6V9.9789C8.83711 9.7959 9 9.52207 9 9.2Z'/%3E%3Cpath d='M12 5.62031V5.2C12 2.99453 10.2055 1.2 8 1.2C5.79453 1.2 4 2.99453 4 5.2V5.62031C3.10274 5.72129 2.4 6.47637 2.4 7.4V12.6C2.4 13.5922 3.20782 14.4 4.2 14.4H11.8C12.7922 14.4 13.6 13.5922 13.6 12.6V7.4C13.6 6.47637 12.8973 5.72129 12 5.62031ZM8 2.4C9.54375 2.4 10.8 3.65625 10.8 5.2V5.6H5.2V5.2C5.2 3.65625 6.45625 2.4 8 2.4ZM12.4 12.6C12.4 12.9305 12.1305 13.2 11.8 13.2H4.2C3.86953 13.2 3.6 12.9305 3.6 12.6V7.4C3.6 7.06953 3.86953 6.8 4.2 6.8H11.8C12.1305 6.8 12.4 7.06953 12.4 7.4V12.6Z'/%3E%3C/svg%3E");
         }
 
@@ -5453,15 +5462,8 @@ merch-card-collection.plans:is(.one-merch-card, .two-merch-cards, .three-merch-c
             display: flex;
             align-items: center;
             justify-content: space-between;
-            background: var(
-                --consonant-merch-card-pro-control-bg,
-                var(--consonant-merch-card-pro-bg-default, #fff)
-            );
-            border: 1px solid
-                var(
-                    --consonant-merch-card-pro-control-border-color,
-                    rgba(0, 0, 0, 0.08)
-                );
+            background: var(--consonant-merch-card-pro-control-bg);
+            border: 1px solid rgba(0, 0, 0, 0.08);
             border-radius: 8px;
             cursor: pointer;
             color: var(--consonant-merch-card-pro-text-color, #000);
@@ -5521,15 +5523,8 @@ merch-card-collection.plans:is(.one-merch-card, .two-merch-cards, .three-merch-c
             margin: 0;
             padding: 0;
             list-style: none;
-            background: var(
-                --consonant-merch-card-pro-control-bg,
-                var(--consonant-merch-card-pro-bg-default, #fff)
-            );
-            border: 1px solid
-                var(
-                    --consonant-merch-card-pro-control-border-color,
-                    rgba(0, 0, 0, 0.08)
-                );
+            background: var(--consonant-merch-card-pro-control-bg);
+            border: 1px solid rgba(0, 0, 0, 0.08);
             border-radius: 8px;
             box-shadow:
                 0 7px 15px rgba(0, 0, 0, 0.1),
@@ -5553,20 +5548,13 @@ merch-card-collection.plans:is(.one-merch-card, .two-merch-cards, .three-merch-c
             height: 39px;
             box-sizing: border-box;
             padding: 12px;
-            border-bottom: 1px solid
-                var(
-                    --consonant-merch-card-pro-control-border-color,
-                    rgba(0, 0, 0, 0.08)
-                );
+            border-bottom: 1px solid rgba(0, 0, 0, 0.08);
             font-family: 'Adobe Clean', adobe-clean, sans-serif;
             font-size: 14px;
             line-height: 18px;
             font-weight: 700;
             cursor: pointer;
-            background: var(
-                --consonant-merch-card-pro-control-bg,
-                var(--consonant-merch-card-pro-bg-default, #fff)
-            );
+            background: var(--consonant-merch-card-pro-control-bg);
         }
 
         :host([variant='pro']) .license-select-option {
@@ -5577,11 +5565,7 @@ merch-card-collection.plans:is(.one-merch-card, .two-merch-cards, .three-merch-c
             font-size: 14px;
             line-height: 18px;
             font-weight: 700;
-            border-bottom: 1px solid
-                var(
-                    --consonant-merch-card-pro-control-border-color,
-                    rgba(0, 0, 0, 0.08)
-                );
+            border-bottom: 1px solid rgba(0, 0, 0, 0.08);
         }
 
         :host([variant='pro']) .license-select-option:last-child {
@@ -5591,10 +5575,7 @@ merch-card-collection.plans:is(.one-merch-card, .two-merch-cards, .three-merch-c
         :host([variant='pro']) .license-select-option:hover,
         :host([variant='pro']) .license-select-option.highlighted,
         :host([variant='pro']) .license-select-option.selected {
-            background: var(
-                --consonant-merch-card-pro-control-hover-bg,
-                var(--consonant-merch-card-pro-bg-subtle, #f8f8f8)
-            );
+            background: var(--consonant-merch-card-pro-control-hover-bg);
         }
 
         /* Focus stays on the trigger, so the highlighted option needs its own

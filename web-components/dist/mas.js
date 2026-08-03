@@ -5892,6 +5892,13 @@ merch-card[variant="pro"][border-color="black"][size='edu'] [slot="whats-include
     color: #FFF;
 }
 
+/* Secondary spectrum links inherit the surrounding text color, per the
+   convention used on other cards (e.g. mini-compare-chart footer-rows/body-m). */
+merch-card[variant="pro"] [slot="whats-included"] a.spectrum-Link.spectrum-Link--secondary,
+merch-card[variant="pro"] [slot="body-xs"] a.spectrum-Link.spectrum-Link--secondary {
+    color: inherit;
+}
+
 /* EDU right panel (Figma 4375:120476 "Copy" frame): feature rows are Adobe
    Clean 400 at 14/18 (the base h4 rule's 700/0.14px is the narrow-card look);
    the list uses a 16px gap with thin divider rules between rows. */

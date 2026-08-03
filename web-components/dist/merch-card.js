@@ -5373,7 +5373,7 @@ merch-card[variant="pro"][size='edu'] [slot="whats-included"] .whats-included-di
     color: inherit;
 }
 
-merch-card[variant="pro"][size='edu'] [slot="whats-included"] .whats-included-disclaimer a {
+merch-card[variant="pro"][size='edu'] [slot="whats-included"] .whats-included-disclaimer a:not([class*="spectrum-Link"]) {
     color: #000;
 }
 
@@ -5381,7 +5381,7 @@ merch-card[variant="pro"][border-color="black"][size='edu'] [slot="whats-include
     color: #FFFFFFA3;
 }
 
-merch-card[variant="pro"][border-color="black"][size='edu'] [slot="whats-included"] .whats-included-disclaimer a {
+merch-card[variant="pro"][border-color="black"][size='edu'] [slot="whats-included"] .whats-included-disclaimer a:not([class*="spectrum-Link"]) {
     color: #FFF;
 }
 
@@ -5442,6 +5442,13 @@ merch-card[variant="pro"] [slot="whats-included"] h4 {
     line-height: 18px;
     letter-spacing: 0.14px;
     color: inherit;
+}
+
+/* Only rows with an icon need flex to center it against the text; a row with
+   no icon (e.g. a leading link followed by plain text, MWPW-200407 review #1)
+   must stay in normal flow, or flex splits the link and trailing text into
+   separate wrapping columns instead of one flowing sentence. */
+merch-card[variant="pro"] [slot="whats-included"] h4:has(> svg, > .sp-icon, > merch-icon) {
     display: flex;
     align-items: center;
     gap: 4px;

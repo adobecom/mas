@@ -23,7 +23,7 @@ runs:
           env:
               BASE_REF: ${{ inputs.base-ref }}
           run: |
-              TRIVIAL_PATTERN='^(\.github/|\.claude/|\.gitignore$|\.gitattributes$|(.*/)?[Rr][Ee][Aa][Dd][Mm][Ee]\.md$)'
+              TRIVIAL_PATTERN='^(\.github/|\.claude/|\.gitignore$|\.gitattributes$|(.*/)?[Rr][Ee][Aa][Dd][Mm][Ee]\.md$|cfmodels/)'
               git fetch origin "${BASE_REF}"
               CHANGED=$(git diff --name-only "origin/${BASE_REF}...HEAD")
               if [ -z "$CHANGED" ]; then

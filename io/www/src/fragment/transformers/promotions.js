@@ -15,9 +15,15 @@
  *
  * ## Lifecycle (init / process)
  *
- * **`init`** runs in parallel with other transformer inits:
- *   - Fetches the promotions folder (cached for 5 min).
- *   - Filters projects by promotion tag, surface, geo, and date window.
+ * **`init`** runs (mostly) in parallel with other transformer inits:
+ *   - Fetches the `/content/dam/mas/promotions` folder listing (paginated) and keeps only the
+ *     projects targeting the request's surface. Results are cached per surface, each entry with
+ *     its own jittered TTL (~5 min) so surfaces expire independently — no synchronized refetch
+ *     herd on Odin. Published (module) reads are stale-while-revalidate + single-flight: an
+ *     expired entry is served stale while ONE coalesced refill runs in the background; a cold
+ *     miss awaits that refill. The listing waits for the surface resolved by the first fragment
+ *     fetch; `defaultLanguage` still resolves in parallel.
+ *   - Filters projects by promotion tag, geo, and date window (surface already filtered at fetch).
  *   - Awaits `defaultLanguage` to resolve `defaultLocale` / `regionLocale`.
  *   - Hydrates ALL matched projects in parallel (for fragment OSI/promoCode data) and
  *     folder-searches their promo variations for `defaultLocale` and `regionLocale`.
@@ -44,47 +50,62 @@ import { fetch, getRequestInfos, matchesGeo, PROMO_VARIATION_STRATEGY_YIELD } fr
 import { log, logDebug, logError } from '../utils/log.js';
 
 const CONFIG_CACHE_TTL = 5 * 60 * 1000;
+// Randomize each entry's TTL by ±20% so per-surface entries don't expire in lockstep across
+// container instances — spreads refetches instead of bursting them onto Odin at once.
+const CACHE_TTL_JITTER = 0.2;
 const PROMOTIONS_PATH = `${MAS_ROOT}/promotions`;
 
-let projectsCache;
+// Projects are cached per surface, each with its own jittered TTL so entries invalidate
+// independently: `entry = { projects, timestamp, ttl }`. Published (module) reads keep entries
+// in memory; preview reads persist them in localStorage so studio reloads don't refetch. Both
+// backends share the same stale-while-revalidate + single-flight read path (see fetchProjects).
+let projectsCache = {};
+// In-flight refill promises keyed by surface (single-flight): while one is pending, concurrent
+// requests serve stale / await it rather than each firing their own Odin fetch.
+let refills = {};
 let promoVariationsCache = {};
 
+function jitteredTtl() {
+    return CONFIG_CACHE_TTL * (1 + (Math.random() * 2 - 1) * CACHE_TTL_JITTER);
+}
+
+// Per-surface cache backend: localStorage in preview (persists across studio reloads),
+// in-memory otherwise.
+function readEntry(context, surface) {
+    if (context.preview) {
+        return JSON.parse(localStorage.getItem('promotions') ?? '{}')[surface];
+    }
+    return projectsCache[surface];
+}
+
+function writeEntry(context, surface, entry) {
+    if (context.preview) {
+        const store = JSON.parse(localStorage.getItem('promotions') ?? '{}');
+        store[surface] = entry;
+        localStorage.setItem('promotions', JSON.stringify(store));
+    } else {
+        projectsCache[surface] = entry;
+    }
+}
+
 export function clearPromoCache(preview = false) {
+    refills = {};
     if (preview) {
         localStorage.removeItem('promotions');
         localStorage.removeItem('promo-variations');
     } else {
-        projectsCache = undefined;
+        projectsCache = {};
         promoVariationsCache = {};
     }
 }
 
-function getCachedProjects(preview) {
-    const cacheEntry = preview ? JSON.parse(localStorage.getItem('promotions')) : projectsCache;
-    if (cacheEntry) {
-        cacheEntry.isExpired = Math.abs(Date.now() - cacheEntry.timestamp) > CONFIG_CACHE_TTL;
-        return cacheEntry;
-    }
-    return null;
-}
-
-function cacheProjects(preview, projects) {
-    const cacheEntry = { projects, timestamp: Date.now() };
-    if (preview) {
-        localStorage.setItem('promotions', JSON.stringify(cacheEntry));
-    } else {
-        projectsCache = cacheEntry;
-    }
-    return projects;
-}
-
-async function fetchProjects(context) {
-    const cached = getCachedProjects(context.preview);
-    if (cached && !cached.isExpired) {
-        logDebug(() => 'Using cached promotion projects', context);
-        return cached.projects;
-    }
-
+/**
+ * Fetches the `/content/dam/mas/promotions` folder listing (paginated) and keeps only the
+ * projects whose `surfaces` include the requested surface. Offers/promoCode/fragments are
+ * hydrated per project later by {@link hydrateProject}. Returns the filtered project list, or
+ * `null` when the folder fetch fails.
+ */
+async function fetchFolderProjects(context, surface) {
     const baseUrl = context.preview?.url ?? FRAGMENT_URL_PREFIX;
     const allItems = [];
     let cursor;
@@ -99,18 +120,59 @@ async function fetchProjects(context) {
         cursor = response.body?.cursor;
     } while (cursor);
 
-    const projects = allItems.map(({ id, path, name, fields }) => ({
-        id,
-        path,
-        name,
-        surfaces: fields?.surfaces ?? [],
-        geos: fields?.geos ?? [],
-        startDate: fields?.startDate ?? null,
-        endDate: fields?.endDate ?? null,
-        tags: fields?.tags ?? [],
-    }));
+    return allItems
+        .map(({ id, path, name, fields }) => ({
+            id,
+            path,
+            name,
+            surfaces: fields?.surfaces ?? [],
+            geos: fields?.geos ?? [],
+            startDate: fields?.startDate ?? null,
+            endDate: fields?.endDate ?? null,
+            tags: fields?.tags ?? [],
+        }))
+        .filter((project) => project.surfaces.includes(surface));
+}
 
-    return cacheProjects(context.preview, projects);
+/**
+ * Refills the per-surface cache from the folder listing. On success, replaces the surface's
+ * entry with a fresh timestamp and jittered TTL; on failure leaves any existing (stale) entry
+ * untouched. Returns the fetched projects, or `null` on failure.
+ */
+async function refillProjects(context, surface) {
+    const projects = await fetchFolderProjects(context, surface);
+    if (projects === null) return null;
+    writeEntry(context, surface, { projects, timestamp: Date.now(), ttl: jitteredTtl() });
+    return projects;
+}
+
+/**
+ * Per-surface cache read with stale-while-revalidate + single-flight:
+ *   - fresh entry            → return it;
+ *   - expired entry          → return stale, refill in the background (coalesced);
+ *   - cold (no entry)        → await the (coalesced) refill.
+ *
+ * Preview (studio) retains blocking refetch behaviour: an expired or cold entry always awaits the
+ * refill (never served stale) so authors see fresh promotion data immediately after editing. The
+ * stale-while-revalidate herd protection only applies to published (module) reads.
+ */
+async function fetchProjects(context, surface) {
+    const entry = readEntry(context, surface);
+    if (entry && Date.now() - entry.timestamp <= entry.ttl) {
+        logDebug(() => `Using cached promotion projects for surface "${surface}"`, context);
+        return entry.projects;
+    }
+    if (!refills[surface]) {
+        refills[surface] = refillProjects(context, surface).finally(() => {
+            refills[surface] = undefined;
+        });
+    }
+    if (entry && !context.preview) {
+        logDebug(() => `Serving stale promotion projects for surface "${surface}" while refilling`, context);
+        return entry.projects;
+    }
+    logDebug(() => `Cold promotion projects cache for surface "${surface}", awaiting refill`, context);
+    return refills[surface];
 }
 
 function toInstant(value) {
@@ -181,15 +243,12 @@ function parseOfferOverrides(lines) {
 
 /**
  * Checks whether a promotion project applies to the current request
- * by verifying promotion tag, surface, date window, and geo targeting.
+ * by verifying promotion tag, date window, and geo targeting.
+ * Surface is already filtered at fetch time (see {@link fetchFolderProjects}).
  */
-function matchesProject(project, { surface, country, regionLocale, instant }, context) {
+function matchesProject(project, { country, regionLocale, instant }, context) {
     if (!project.tags.some((tag) => tag.startsWith(PROMO_TAG_PREFIX))) {
         logDebug(() => `Project "${project.name}" skipped: no promo tag (expected prefix: ${PROMO_TAG_PREFIX})`, context);
-        return false;
-    }
-    if (!project.surfaces.includes(surface)) {
-        logDebug(() => `Project "${project.name}" skipped: surface "${surface}" not in [${project.surfaces}]`, context);
         return false;
     }
     const { geos } = project;
@@ -354,6 +413,8 @@ async function hydrateProject(project, { baseUrl, surface, defaultLocale, resolv
         id: project.id,
         path: project.path,
         title,
+        startDate: project.startDate,
+        endDate: project.endDate,
         promoCode,
         variationStrategy,
         fragmentPaths,
@@ -365,7 +426,7 @@ async function hydrateProject(project, { baseUrl, surface, defaultLocale, resolv
 }
 
 /**
- * Fetches promotion projects, collects ALL projects matching the request's
+ * Fetches the surface's promotion projects, collects ALL projects matching the request's
  * surface/locale/time, hydrates each in parallel, and fetches their promo
  * variation folders. Returns `{ activeProjects }` (array sorted most-recent-startDate-first,
  * then stably re-sorted so seasonal projects float to the top) consumed by `customize`.
@@ -373,14 +434,14 @@ async function hydrateProject(project, { baseUrl, surface, defaultLocale, resolv
  * transformer.
  */
 async function init(context) {
-    // Fire projects fetch immediately — needs no context dependencies
-    const projectsPromise = fetchProjects(context);
-
-    // Resolve surface, projects, and defaultLanguage (which carries regionLocale) all in parallel.
+    // The listing is surface-scoped now, so the projects fetch gates on the surface resolved by the
+    // first fragment fetch. defaultLanguage (which carries regionLocale) still resolves in parallel.
     // regionLocale is NOT available on the init-phase context — it is computed by defaultLanguage.init
     // and only placed on context during the process phase. We must read it from the promise.
-    const [{ surface }, projects, defaultLangResult] = await Promise.all([
-        getRequestInfos(context),
+    const surfacePromise = getRequestInfos(context).then((infos) => infos.surface);
+    const projectsPromise = surfacePromise.then((surface) => (surface ? fetchProjects(context, surface) : null));
+    const [surface, projects, defaultLangResult] = await Promise.all([
+        surfacePromise,
         projectsPromise,
         context.promises?.defaultLanguage,
     ]);
@@ -397,9 +458,7 @@ async function init(context) {
     const effectiveRegionLocale = resolvedRegionLocale ?? locale;
 
     const matched = projects
-        .filter((project) =>
-            matchesProject(project, { surface, locale, country, regionLocale: effectiveRegionLocale, instant }, context),
-        )
+        .filter((project) => matchesProject(project, { country, regionLocale: effectiveRegionLocale, instant }, context))
         // Base order: most-recently-started project first (replaces Odin folder order as the tie-break).
         .sort((a, b) => toInstant(b.startDate) - toInstant(a.startDate))
         // Stable secondary sort: seasonal (time-boxed) projects float to the top, preserving

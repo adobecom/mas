@@ -45,6 +45,9 @@ export const PRO_AEM_FRAGMENT_MAPPING = {
     borderColor: {
         attribute: 'border-color',
         specialValues: { Black: 'black' },
+        // editor: only Default + Black, and disabled when Theme = Dark
+        hideTransparent: true,
+        disableWhenBackgroundColor: 'dark',
     },
     allowedBorderColors: [],
     style: 'consonant',

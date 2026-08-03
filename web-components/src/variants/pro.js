@@ -226,15 +226,28 @@ export class Pro extends VariantLayout {
         if (this.card.size !== 'edu') return;
         const slot = this.card.querySelector('[slot="whats-included"]');
         if (!slot || slot.querySelector('.whats-included-title')) return;
-        const title = slot.querySelector('.whats-included-label');
-        if (!title) return;
-        title.classList.replace('whats-included-label', 'whats-included-title');
+        const authoredTitle = slot.querySelector('.whats-included-label');
+        if (!authoredTitle) return;
+        const title = document.createElement('h4');
+        title.className = 'whats-included-title';
+        title.innerHTML = authoredTitle.innerHTML;
+        authoredTitle.replaceWith(title);
         const { whatsIncludedLabel, eduDisclaimer } =
             this.card.placeholders ?? {};
         const label = document.createElement('p');
         label.className = 'whats-included-label';
         label.textContent = whatsIncludedLabel ?? '';
         title.after(label);
+        // Figma renders feature rows as plain paragraphs, not a list; convert
+        // per section so non-edu pro cards keep their authored <ul><li>.
+        slot.querySelectorAll('.section ul').forEach((ul) => {
+            [...ul.children].forEach((li) => {
+                const row = document.createElement('p');
+                row.innerHTML = li.innerHTML;
+                ul.before(row);
+            });
+            ul.remove();
+        });
         if (eduDisclaimer) {
             const disclaimer = document.createElement('div');
             disclaimer.className = 'whats-included-disclaimer';

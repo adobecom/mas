@@ -188,7 +188,6 @@ merch-card[variant="pro"][size='edu'] [slot="whats-included"] .whats-included-la
     font-weight: 700;
     line-height: 20px;
     letter-spacing: 0;
-    margin-top: 24px;
 }
 
 /* EDU eligibility disclaimer, resolved server-side ({{edu-disclaimer}}) and
@@ -235,18 +234,29 @@ merch-card[variant="pro"][size='edu'] [slot="whats-included"] h4 {
     letter-spacing: 0;
 }
 
-merch-card[variant="pro"][size='edu'] [slot="whats-included"] ul {
-    margin-top: 16px;
-    gap: 16px;
-}
-
-merch-card[variant="pro"][size='edu'] [slot="whats-included"] ul li {
-    letter-spacing: 0;
+/* EDU rows are authored as <li> but rendered as sibling <p> (pro.js
+   adjustEduWhatsIncluded); the base .section [slot="whats-included"] ul/li
+   rules below never match edu markup, so row typography is repeated here. */
+merch-card[variant="pro"][size='edu'] [slot="whats-included"] .section p {
+    margin: 0;
     padding: 0;
+    font-size: 14px;
+    line-height: 18px;
+    letter-spacing: 0;
+    color: var(--consonant-merch-card-pro-text-muted-color);
 }
 
-merch-card[variant="pro"][size='edu'] [slot="whats-included"] ul li + li {
+merch-card[variant="pro"][border-color="black"][size='edu'] [slot="whats-included"] .section p {
+    color: var(--consonant-merch-card-pro-text-inverse-color);
+}
+
+merch-card[variant="pro"][size='edu'] [slot="whats-included"] .section h4 + p {
+    margin-top: 16px;
+}
+
+merch-card[variant="pro"][size='edu'] [slot="whats-included"] .section p + p {
     /* Figma divider is a 1px rule at 24% (not the shared 12% token). */
+    margin-top: 16px;
     border-top: 1px solid rgba(0, 0, 0, 0.24);
     padding-top: 16px;
 }

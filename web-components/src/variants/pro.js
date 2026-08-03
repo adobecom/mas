@@ -701,10 +701,6 @@ export class Pro extends VariantLayout {
                 var(--consonant-merch-card-pro-bg-subtle, #f8f8f8)
             );
             border-radius: 16px;
-            /* Subtle ring so the light card's rounded corners read on white;
-               black/dark frames are their own visible edge (ring off). */
-            box-shadow: 0 0 0 1px
-                var(--consonant-merch-card-pro-frame-border-color, #e6e6e6);
             padding: 4px;
             box-sizing: border-box;
             overflow: hidden;
@@ -718,7 +714,6 @@ export class Pro extends VariantLayout {
             --consonant-merch-card-pro-frame-text: #fff;
             --consonant-merch-card-pro-divider-color: #ffffff29;
             --consonant-merch-card-pro-subtitle-color: #000;
-            --consonant-merch-card-pro-frame-border-color: transparent;
         }
 
         /* dark theme — background-color="dark" comes from the #1093 Theme picker */
@@ -727,7 +722,6 @@ export class Pro extends VariantLayout {
             --consonant-merch-card-pro-bg-subtle: #131313;
             --consonant-merch-card-pro-frame-bg: #131313;
             --consonant-merch-card-pro-frame-text: #fff;
-            --consonant-merch-card-pro-frame-border-color: transparent;
             --consonant-merch-card-pro-text-color: #fff;
             --consonant-merch-card-pro-text-muted-color: #ffffffa3;
             --consonant-merch-card-pro-text-inverse-color: #fff;

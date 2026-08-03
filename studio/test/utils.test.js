@@ -225,6 +225,16 @@ describe('previewValue', () => {
         expect(previewValue([42])).to.equal('42');
         expect(previewValue([true])).to.equal('true');
     });
+
+    it('decodes HTML entities instead of leaving them as literal text', () => {
+        expect(previewValue(['US$69.99/mo&nbsp;US$34.99/mo'])).to.equal('US$69.99/mo US$34.99/mo');
+    });
+
+    it('decodes entities while preserving <s> tags for strikethrough prices', () => {
+        const htmlValue = '<s>US$69.99/mo</s>&nbsp;US$34.99/mo';
+        const result = previewValue([htmlValue]);
+        expect(result).to.equal('<s>US$69.99/mo</s> US$34.99/mo');
+    });
 });
 
 describe('buildCardsDeepLink', () => {

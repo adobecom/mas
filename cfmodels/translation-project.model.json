@@ -39,8 +39,14 @@
         "fieldLabel": "Project Type",
         "type": "enum",
         "options": [
-            { "label": "Translation", "value": "translation" },
-            { "label": "Rollout", "value": "rollout" }
+            {
+                "label": "Translation",
+                "value": "translation"
+            },
+            {
+                "label": "Rollout",
+                "value": "rollout"
+            }
         ]
     }
 }

@@ -89,12 +89,13 @@ function measureTiming(context, label, startLabel = label) {
 async function fetchAttempt(path, context, timeout, marker) {
     try {
         mark(context, marker);
-        const responsePromise = fetch(path, {
-            headers: {
-                ...context.DEFAULT_HEADERS,
-                'X-Request-ID': globalThis.crypto.randomUUID(),
-            },
-        });
+        const headers = { ...context.DEFAULT_HEADERS };
+        // In preview the pipeline runs in the browser; a custom request header triggers a CORS
+        // preflight that WCS rejects, so only send the tracing header server-side.
+        if (!context.preview) {
+            headers['X-Request-ID'] = globalThis.crypto.randomUUID();
+        }
+        const responsePromise = fetch(path, { headers });
 
         // Race the fetch promise with a timeout
         const response = await Promise.race([responsePromise, createTimeoutPromise(timeout)]);

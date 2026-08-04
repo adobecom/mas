@@ -1138,6 +1138,8 @@ describe('pro resize handling', () => {
                 offsetTop,
                 variant: 'pro',
                 getBoundingClientRect: () => ({ width: 300 }),
+                // no strikethrough authored, so no reserve is published
+                querySelector: () => null,
                 shadowRoot: { querySelector: () => topCard },
                 style: {
                     setProperty: (k, v) => (styles[k] = v),
@@ -1167,6 +1169,9 @@ describe('pro resize handling', () => {
             .callsFake((el) =>
                 el && '__h' in el ? { height: `${el.__h}px` } : { height: '' },
             );
+        // syncHeights only lines rows up at >=768px; pin it so the test doesn't
+        // depend on the test runner's window width.
+        const mm = sinon.stub(window, 'matchMedia').returns({ matches: true });
         try {
             const done = layout.syncHeights();
             await flushUntilCalled({
@@ -1188,6 +1193,51 @@ describe('pro resize handling', () => {
             ).to.be.undefined;
         } finally {
             gcs.restore();
+            mm.restore();
+        }
+    });
+
+    it('clears the synced heights below the sync breakpoint', async () => {
+        // postCardUpdateHook gates on 768px, but the ResizeObserver reaches
+        // syncHeights directly — a stale desktop reserve would leave a gap above
+        // the price on a stacked card.
+        const styles = {
+            '--consonant-merch-card-pro-top-card-height': '260px',
+            '--consonant-merch-card-pro-name-description-height': '120px',
+            '--consonant-merch-card-pro-strike-reserve': '18px',
+        };
+        const card = {
+            offsetTop: 0,
+            variant: 'pro',
+            getBoundingClientRect: () => ({ width: 300 }),
+            querySelector: () => null,
+            shadowRoot: { querySelector: () => null },
+            style: {
+                setProperty: (k, v) => (styles[k] = v),
+                removeProperty: (k) => delete styles[k],
+                getPropertyValue: (k) => styles[k] ?? '',
+            },
+        };
+        card.variantLayout = { card };
+
+        const layout = Object.create(Pro.prototype);
+        layout.card = card;
+        sinon.stub(layout, 'waitForContentFonts').resolves();
+        sinon
+            .stub(layout, 'getContainer')
+            .returns({ querySelectorAll: () => [card] });
+        const mm = sinon.stub(window, 'matchMedia').returns({ matches: false });
+        try {
+            const done = layout.syncHeights();
+            await flushUntilCalled({
+                get called() {
+                    return Object.keys(styles).length === 0;
+                },
+            });
+            await done;
+            expect(Object.keys(styles)).to.deep.equal([]);
+        } finally {
+            mm.restore();
         }
     });
 });

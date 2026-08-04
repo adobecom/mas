@@ -11,9 +11,30 @@ import {
 } from '../constants.js';
 
 const VARIANT = 'pro';
-// syncHeights publishes this property and the shadow styles consume it; the
+// syncHeights publishes these properties and the shadow styles consume them; the
 // single definition keeps producer and consumer from diverging.
 const TOP_CARD_HEIGHT_PROP = `--consonant-merch-card-${VARIANT}-top-card-height`;
+// Bands above the price. Equalising them per row puts the price line at the same
+// offset on every card, which is how Figma lays the row out (Name + Description is
+// a fixed 166px block, so Pricing + CTA always starts at the same y).
+const SYNCED_BANDS = [
+    {
+        prop: `--consonant-merch-card-${VARIANT}-mnemonic-height`,
+        selector: '.mnemonic',
+    },
+    {
+        prop: `--consonant-merch-card-${VARIANT}-name-description-height`,
+        selector: '.name-description',
+    },
+];
+// Figma reserves the strikethrough line so the main price keeps its offset on
+// cards without one — but only where the row actually has a promo price (the
+// dark Lightroom comp hides that row entirely). Published per row, not per
+// collection, so a second wrapped row doesn't inherit a reserve it never needs.
+const STRIKE_RESERVE_PROP = `--consonant-merch-card-${VARIANT}-strike-reserve`;
+const STRIKE_SELECTOR =
+    '[slot="heading-m"] :is(.price-strikethrough, .price-promo-strikethrough, [data-template="strikethrough"])';
+const SYNC_MIN_WIDTH = '(min-width: 768px)';
 
 export const PRO_AEM_FRAGMENT_MAPPING = {
     cardName: { attribute: 'name' },
@@ -61,6 +82,7 @@ export class Pro extends VariantLayout {
     licenseHighlightedIndex = 0;
     #licenseDocListenerBound = null;
     #sizeObserver = null;
+    #onPriceResolved = () => this.resyncOnReflow();
     lastSyncKey = null;
 
     constructor(card) {
@@ -243,7 +265,11 @@ export class Pro extends VariantLayout {
     // line up. Group by offsetTop, not rect.top: the tab entrance animation
     // transforms the painted tops mid-flight, which would split a row.
     async syncHeights() {
-        if (this.card.heightSync === false) return;
+        // Opting out after a sync has already run must undo it, not just stop.
+        if (this.card.heightSync === false) {
+            this.clearSyncedHeights(this.card);
+            return;
+        }
         await this.waitForContentFonts();
         await new Promise((resolve) => requestAnimationFrame(resolve));
         await new Promise((resolve) => requestAnimationFrame(resolve));
@@ -258,40 +284,101 @@ export class Pro extends VariantLayout {
                 card.getBoundingClientRect().width > 2 &&
                 card.variantLayout?.card?.heightSync !== false,
         );
+        // Stacked cards are each their own row, so there is nothing to line up —
+        // and a stale desktop reserve would leave a gap above the price. The
+        // ResizeObserver reaches here without the caller's breakpoint check.
+        if (!window.matchMedia(SYNC_MIN_WIDTH).matches) {
+            cards.forEach((card) => this.clearSyncedHeights(card));
+            return;
+        }
         const rows = new Map();
         for (const card of cards) {
             const row = rows.get(card.offsetTop) ?? [];
             row.push(card);
             rows.set(card.offsetTop, row);
         }
+        const maxHeight = (row, getElement) =>
+            row.reduce((max, card) => {
+                const el = getElement(card);
+                return el
+                    ? Math.max(max, parseInt(getComputedStyle(el).height) || 0)
+                    : max;
+            }, 0);
         for (const row of rows.values()) {
-            let max = 0;
-            for (const card of row) {
-                card.style.removeProperty(prop);
-                const topCard = card.shadowRoot?.querySelector('.top-card');
-                if (topCard)
-                    max = Math.max(
-                        max,
-                        parseInt(getComputedStyle(topCard).height) || 0,
+            row.forEach((card) => this.clearSyncedHeights(card));
+            // A lone card has nothing to match, so it keeps its natural height.
+            if (row.length < 2) continue;
+            // Reserve first: it grows the price block, which every measurement
+            // below depends on. Publish each card's shortfall against the row's
+            // tallest strikethrough rather than a flat row height — that covers a
+            // literal price, an absent strikethrough and a wrapped (taller) one
+            // with the same rule, and leaves the tallest card untouched.
+            const strikes = row.map((card) =>
+                card.querySelector(STRIKE_SELECTOR)
+                    ? parseInt(
+                          getComputedStyle(card.querySelector(STRIKE_SELECTOR))
+                              .height,
+                      ) || 0
+                    : 0,
+            );
+            const tallestStrike = Math.max(0, ...strikes);
+            if (tallestStrike > 0)
+                row.forEach((card, i) => {
+                    const shortfall = tallestStrike - strikes[i];
+                    if (shortfall > 0)
+                        card.style.setProperty(
+                            STRIKE_RESERVE_PROP,
+                            `${shortfall}px`,
+                        );
+                });
+            for (const band of SYNCED_BANDS) {
+                const max = maxHeight(row, (card) =>
+                    card.shadowRoot?.querySelector(band.selector),
+                );
+                if (max > 0)
+                    row.forEach((card) =>
+                        card.style.setProperty(band.prop, `${max}px`),
                     );
             }
-            // A lone card has nothing to match, so it keeps its natural height.
-            if (max > 0 && row.length > 1)
+            const max = maxHeight(row, (card) =>
+                card.shadowRoot?.querySelector('.top-card'),
+            );
+            if (max > 0)
                 row.forEach((card) => card.style.setProperty(prop, `${max}px`));
         }
     }
 
-    // Re-sync on a real reflow (width or description-height change), keyed so
-    // publishing the min-height can't loop the observer. Mirrors
-    // full-pricing-express.resyncOnReflow.
+    clearSyncedHeights(card) {
+        card.style.removeProperty(TOP_CARD_HEIGHT_PROP);
+        card.style.removeProperty(STRIKE_RESERVE_PROP);
+        SYNCED_BANDS.forEach((band) => card.style.removeProperty(band.prop));
+    }
+
+    // Re-sync on a real reflow, keyed so publishing the min-heights can't loop the
+    // observer. The key covers everything that moves the price line — a late WCS
+    // resolution adds the strikethrough and legal rows long after the first
+    // measurement — but nothing syncHeights itself writes, so it settles in one pass.
     resyncOnReflow() {
         const width = this.card.getBoundingClientRect().width;
         if (width <= 2) return;
-        const desc = this.card.querySelector('[slot="body-xs"]');
-        const descHeight = desc
-            ? Math.round(desc.getBoundingClientRect().height)
-            : 0;
-        const key = `${Math.round(width)}:${descHeight}`;
+        const height = (selector, root = this.card) =>
+            Math.round(
+                root?.querySelector(selector)?.getBoundingClientRect().height ||
+                    0,
+            );
+        // Measure inside the price block, never [slot="heading-m"] itself: the
+        // reserve lands on its padding, so keying on that would feed back.
+        const key = [
+            Math.round(width),
+            height('[slot="body-xs"]'),
+            height(STRIKE_SELECTOR),
+            height('[slot="heading-m"] span[is="inline-price"]'),
+            height(
+                '[slot="heading-m"] :is(.price-legal, [data-template="legal"])',
+            ),
+            height('.license-zone', this.card.shadowRoot),
+            height('.add-on', this.card.shadowRoot),
+        ].join(':');
         if (key === this.lastSyncKey) return;
         this.lastSyncKey = key;
         this.syncHeights();
@@ -307,6 +394,10 @@ export class Pro extends VariantLayout {
             EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
             this.updatePriceQuantity,
         );
+        // A quantity-driven promo can swap the price in without resizing either
+        // observed box — the footer's auto margin swallows it — so the resize
+        // observer alone would miss it. inline-price resolutions bubble here.
+        this.card.addEventListener(EVENT_TYPE_RESOLVED, this.#onPriceResolved);
         if (typeof ResizeObserver === 'undefined') return;
         this.#sizeObserver = new ResizeObserver(() => this.resyncOnReflow());
         this.#sizeObserver.observe(this.card);
@@ -318,6 +409,10 @@ export class Pro extends VariantLayout {
         this.card?.removeEventListener(
             EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
             this.updatePriceQuantity,
+        );
+        this.card?.removeEventListener(
+            EVENT_TYPE_RESOLVED,
+            this.#onPriceResolved,
         );
         this.#removeLicenseDocListener();
         this.#sizeObserver?.disconnect();
@@ -765,6 +860,7 @@ export class Pro extends VariantLayout {
             display: flex;
             align-items: center;
             gap: 12px;
+            min-height: var(${unsafeCSS(SYNCED_BANDS[0].prop)}, auto);
         }
 
         :host([variant='pro']) ::slotted([slot='icons']) {
@@ -787,8 +883,12 @@ export class Pro extends VariantLayout {
             display: flex;
             flex-direction: column;
             gap: 8px;
-            /* Grow so price downward sticks to the bottom of the white card. */
-            flex: 1 1 auto;
+            /* Hold the row's tallest description so the price line starts at the
+               same offset on every card (Figma's fixed Name + Description block).
+               The slack goes to the footer margin below, not here — growing this
+               instead would float the price wherever the blocks under it allow. */
+            flex: 0 0 auto;
+            min-height: var(${unsafeCSS(SYNCED_BANDS[1].prop)}, auto);
         }
 
         :host([variant='pro']) ::slotted([slot='heading-xs']) {
@@ -843,7 +943,9 @@ export class Pro extends VariantLayout {
             display: flex;
             gap: 8px;
             padding: 0;
-            margin: 0;
+            /* Collect the white card's slack here so the CTAs and the secure line
+               stay bottom-aligned while the price stays put. Same idiom as fries. */
+            margin: auto 0 0;
             background: transparent;
             min-height: auto;
         }

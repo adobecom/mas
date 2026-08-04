@@ -394,7 +394,9 @@ merch-card[variant="pro"]
    inside the wrapper; once the strikethrough goes block, that nbsp would
    indent the promo price's line. Zeroing the wrapper font collapses it — the
    .price spans carry their own explicit sizes (same trick as plans.css.js'
-   ja_JP price-alternative block). */
+   ja_JP price-alternative block). line-height must go too: it is a length, so
+   it survives font-size:0 and left a 6px strut that pushed the promo card's
+   price off the row. */
 merch-card[variant="pro"]
     [slot="heading-m"]
     span[is="inline-price"][data-template="price"]:has(
@@ -402,6 +404,16 @@ merch-card[variant="pro"]
         .price-promo-strikethrough
     ) {
     font-size: 0;
+    line-height: 0;
+}
+
+/* Hold the strikethrough's line so the main price keeps the same offset across
+   the row (Figma reserves that row in the Plans comps). syncHeights publishes
+   the per-card shortfall against the row's tallest strikethrough — zero for the
+   tallest card, unset for rows that have none — so this covers an absent
+   strikethrough, a shorter/wrapped one, and a literal price alike. */
+merch-card[variant="pro"] [slot="heading-m"] {
+    padding-top: var(--consonant-merch-card-pro-strike-reserve, 0);
 }
 
 /* Plan type line ("Annual, billed monthly") — the legal-template price span,

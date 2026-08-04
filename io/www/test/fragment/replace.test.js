@@ -37,10 +37,11 @@ const mockDirectDictionary = (preview, surface, locale, fixture, stub = fetchStu
     return id;
 };
 
-// Stubs a (surface, locale) index that resolves to no dictionary (byPath returns no id) — used for the
-// acom default layer in tests that keep all content on the surface baseline.
+// Stubs a (surface, locale) index that has NO authored dictionary — byPath returns 404, exactly as
+// Odin does for an absent layer (e.g. the region overlay ccd/en_AU). buildDictionaryLayer treats
+// this as a stable absence and caches an empty layer, so it is not re-fetched on every request.
 const stubEmptyDictionary = (preview, surface, locale, stub = fetchStub) => {
-    stub.withArgs(byPathUrl(preview, surface, locale)).returns(createResponse(200, {}));
+    stub.withArgs(byPathUrl(preview, surface, locale)).returns(createResponse(404, null, 'not found'));
 };
 
 // Shared helper reused by the pipeline tests: stubs the surface-baseline dictionary (sandbox) for the
@@ -263,6 +264,54 @@ describe('replace', () => {
             const result = await replace.process(context);
             // every layer empty → nothing to replace, placeholder left intact.
             expect(result.body.fields.description).to.equal('{{view-account}}');
+        });
+    });
+
+    // Regression for the absent-region herd surfaced by the dictionary-herd load test: a 404 (no
+    // dictionary authored for a region overlay, e.g. ccd/en_AU) must be cached, not re-fetched on
+    // every request. Transient failures must NOT be cached, so they retry.
+    describe('caching absence of a dictionary layer', () => {
+        const layeredContext = () => ({
+            surface: 'sandbox',
+            locale: 'fr_BE',
+            regionLocale: 'fr_BE',
+            defaultLocale: 'fr_FR',
+            loggedTransformer: 'replace',
+            requestId: 'mas-replace-ut',
+            promises: {},
+        });
+        const runOnce = async () => {
+            const context = layeredContext();
+            context.body = odinResponse('{{a}} {{b}}', null, 'sandbox', 'fr_BE');
+            return replace.process(context);
+        };
+        const regionByPath = () => fetchStub.withArgs(byPathUrl(false, 'sandbox', 'fr_BE'));
+
+        it('caches an absent region layer (404): byPath fetched once across repeated requests', async () => {
+            clearDictionaryCache();
+            mockDirectDictionary(false, BASELINE_SURFACE, 'fr_FR', dictFixture({ a: 'acom-a' }), fetchStub);
+            mockDirectDictionary(false, 'sandbox', 'fr_FR', dictFixture({ b: 'surf-b' }), fetchStub);
+            stubEmptyDictionary(false, 'sandbox', 'fr_BE', fetchStub); // region overlay absent → 404
+            const first = await runOnce();
+            const second = await runOnce();
+            // base + surface resolve; absent region contributes nothing (falls back to base language).
+            expect(first.body.fields.description).to.equal('acom-a surf-b');
+            expect(second.body.fields.description).to.equal('acom-a surf-b');
+            // The 404 is cached: the absent-region byPath is hit ONCE, not once per request.
+            expect(regionByPath().callCount).to.equal(1);
+        });
+
+        it('does not cache a transient failure (503): byPath retried on the next request', async () => {
+            clearDictionaryCache();
+            mockDirectDictionary(false, BASELINE_SURFACE, 'fr_FR', dictFixture({ a: 'acom-a' }), fetchStub);
+            mockDirectDictionary(false, 'sandbox', 'fr_FR', dictFixture({ b: 'surf-b' }), fetchStub);
+            regionByPath().returns(createResponse(503, null, 'service unavailable'));
+            await runOnce();
+            const afterFirst = regionByPath().callCount;
+            await runOnce();
+            // 503 is transient → not cached → the second request re-attempts the region byPath
+            // (unlike the 404 case, which is cached and never re-fetched).
+            expect(regionByPath().callCount).to.be.greaterThan(afterFirst);
         });
     });
 

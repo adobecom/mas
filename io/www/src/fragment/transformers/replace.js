@@ -23,7 +23,7 @@ async function getDictionaryId(context, surface, locale) {
     const { preview } = context;
     const dictionaryUrl = odinUrl(surface, { locale, fragmentPath: DICTIONARY_ID_PATH, preview });
     const { id, status } = await getFragmentId(context, dictionaryUrl, `dictionary-id-${surface}-${locale}`);
-    return status == 200 ? id : null;
+    return { id: status == 200 ? id : null, status };
 }
 
 function extractValue(ref) {
@@ -55,13 +55,16 @@ function collectEntries(fragment, references, dictionary) {
 
 // One dictionary layer: the entries of a single `(surface, locale)` index, fetched `direct-hydrated`
 // (its content `parent` is intentionally ignored — inheritance is expressed by the layering in
-// `getDictionary`, not by walking parents). Cached under `${prefix}-${surface}-${locale}`; the loader
-// resolves `null` on an absent index or failed fetch so a miss is never cached (see createSwrCache),
-// and the caller substitutes an empty layer.
+// `getDictionary`, not by walking parents). Cached under `${prefix}-${surface}-${locale}`.
+// A 404 = no dictionary authored for this surface/locale — a STABLE absence (the common case for
+// region overlays, e.g. `ccd/en_AU`), so the loader resolves an empty layer `{}` which IS cached:
+// otherwise every request re-hits Odin's byPath for a folder that will never exist (a per-request
+// herd on absent regions). Only transient failures (no id but non-404, or a failed hydration —
+// e.g. 5xx/timeout) resolve `null`, which is NOT cached (see createSwrCache) so they retry.
 async function buildDictionaryLayer(context, surface, locale, prefix) {
     const layer = await dictionaryCache.get(context, `${prefix}-${surface}-${locale}`, async () => {
-        const id = await getDictionaryId(context, surface, locale);
-        if (!id) return null;
+        const { id, status } = await getDictionaryId(context, surface, locale);
+        if (!id) return status === 404 ? {} : null;
         const response = await fetch(odinReferences(id, context.preview, REFERENCES.DIRECT), context, `dictionary-${prefix}`);
         if (response.status != 200) return null;
         const dictionary = {};

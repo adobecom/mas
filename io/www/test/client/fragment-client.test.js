@@ -111,6 +111,9 @@ describe('FragmentClient', () => {
     });
 
     it('should fetch and transform collection fragment for preview', async () => {
+        // Start from a clean dictionary cache: the preceding card test hits the default 404 stub for
+        // acom/en_US, which is now negative-cached (empty) — clear it so this test's acom stub is used.
+        clearCaches();
         // Placeholders resolve from the acom baseline (direct-hydrated). The sandbox region overlay
         // has no dictionary index → short-circuits empty.
         fetchStub

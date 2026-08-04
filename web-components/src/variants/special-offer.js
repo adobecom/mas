@@ -65,6 +65,7 @@ export class SpecialOffer extends VariantLayout {
         this.legal = legal;
         price.dataset.displayPlanType = 'false';
         legal.dataset.template = 'legal';
+        legal.dataset.displayPerUnit = 'false';
         legal.setAttribute('slot', 'legal');
         this.card.appendChild(legal);
     }

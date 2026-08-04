@@ -25,6 +25,7 @@ merch-card[variant="special-offers"] span[is="inline-price"][data-template="lega
   display: block;
   font-size: var(--consonant-merch-card-body-xs-font-size);
   font-weight: 400;
+  margin-bottom: calc(-1 * var(--consonant-merch-spacing-xxs));
 }
 
 

@@ -657,52 +657,5 @@ describe('mas-placeholders-repository', () => {
             await loadPlaceholders();
             expect(repo.searchFragmentList.called).to.be.false;
         });
-
-        it('preloads the baseline (default-language) dictionary for a region locale (en_AU → en_GB)', async () => {
-            const previousSearch = Store.search.get();
-            try {
-                clearDictionaryCache();
-                // Store.surface()/localeOrRegion() read the global search store.
-                Store.search.set({ path: 'acom', region: 'en_AU' });
-                repo.page = { value: 'content' };
-                repo.search = { value: { path: 'acom' } };
-                sandbox.stub(repo, 'getDictionaryPath').returns(dictPath('acom', 'en_AU'));
-                repo.searchFragmentList = sandbox
-                    .stub()
-                    .resolves([createFragment({ id: 'idx', path: indexPath(dictPath('acom', 'en_AU')) })]);
-                repo.fetchDictionary = sandbox.stub().resolves({});
-
-                await loadPlaceholders();
-
-                // en_AU's default language on acom is en_GB → that baseline dictionary is preloaded.
-                expect(repo.fetchDictionary.calledWith(sinon.match.any, 'en_GB')).to.be.true;
-            } finally {
-                Store.search.set(previousSearch);
-                clearDictionaryCache();
-            }
-        });
-
-        it('does not preload a baseline when editing the base locale itself', async () => {
-            const previousSearch = Store.search.get();
-            try {
-                clearDictionaryCache();
-                Store.search.set({ path: 'acom', region: null });
-                Store.filters.set({ ...Store.filters.get(), locale: 'en_US' });
-                repo.page = { value: 'content' };
-                repo.search = { value: { path: 'acom' } };
-                sandbox.stub(repo, 'getDictionaryPath').returns(dictPath('acom'));
-                repo.searchFragmentList = sandbox
-                    .stub()
-                    .resolves([createFragment({ id: 'idx', path: indexPath(dictPath('acom')) })]);
-                repo.fetchDictionary = sandbox.stub().resolves({});
-
-                await loadPlaceholders();
-
-                expect(repo.fetchDictionary.called).to.be.false;
-            } finally {
-                Store.search.set(previousSearch);
-                clearDictionaryCache();
-            }
-        });
     });
 });

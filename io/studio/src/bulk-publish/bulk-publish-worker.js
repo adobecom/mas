@@ -140,6 +140,7 @@ async function recoverStuckProject(error, input, deps, logger) {
 
 async function main(params, deps = {}) {
     const logger = deps.logger || Core.Logger('bulk-publish-worker', { level: 'info' });
+    const doRunWorker = deps.runWorker || runWorker;
     const input = {
         projectId: params.projectId,
         odinEndpoint: params.aemOdinEndpoint || params.odinEndpoint,
@@ -149,7 +150,7 @@ async function main(params, deps = {}) {
         includeVariations: params.includeVariations || false,
     };
     try {
-        const result = await runWorker(input, deps);
+        const result = await doRunWorker(input, deps);
         return { statusCode: 200, body: result };
     } catch (error) {
         logger.error(JSON.stringify({ event: 'worker-error', error: error.message || String(error) }));

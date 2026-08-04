@@ -16,11 +16,12 @@ import '../fields/plan-type-field.js';
 import '../fields/quantity-select-settings-field.js';
 import { getFragmentMapping, showToast } from '../utils.js';
 import '../fields/addon-field.js';
+import '../fields/rte-field-item.js';
 import { parseBadgeHtml, serializeBadgeHtml } from '../fields/badge-section.js';
 import { createQuantitySelectValue, parseQuantitySelectValue, QUANTITY_SELECT_TAG } from '../common/fields/quantity-select.js';
 import Store from '../store.js';
 import Events from '../events.js';
-import { VARIANT_NAMES } from './variant-picker.js';
+import { normalizeVariantName, VARIANT_NAMES } from './variant-picker.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 import { getItemFieldStateByIndex } from '../utils/field-state.js';
 import { Fragment } from '../aem/fragment.js';
@@ -28,7 +29,7 @@ import { toAttribute } from '../aem/tag-path-utils.js';
 import { getGlobalSettingsDefaults } from '../settings/settings-store.js';
 import { fieldStatusStyles } from '../common/fields/field-status.css.js';
 import { getLocaleByCode } from '../../../io/www/src/fragment/locales.js';
-import { parseBizProWhatsIncluded, serializeBizProWhatsIncluded } from '../utils/bizpro-whats-included.js';
+import { parseProWhatsIncluded, serializeProWhatsIncluded } from '../utils/pro-whats-included.js';
 
 const QUANTITY_MODEL = 'quantitySelect';
 const WHAT_IS_INCLUDED = 'whatsIncluded';
@@ -100,6 +101,7 @@ class MerchCardEditor extends LitElement {
         'Footer rows': ['footerRows'],
         Footer: ['ctas'],
         'Options and settings': ['addon', 'planType', 'secureLabel', 'quantitySelect'],
+        'Custom fields': ['customFields'],
     };
 
     static SETTINGS_FIELDS = ['addon', 'showPlanType', 'showSecureLabel', 'quantitySelect'];
@@ -281,11 +283,18 @@ class MerchCardEditor extends LitElement {
     }
 
     getEffectiveFieldValue(fieldName, index = 0) {
-        return this.fragment.getEffectiveFieldValue(fieldName, this.localeDefaultFragment, this.effectiveIsVariation, index);
+        const value = this.fragment.getEffectiveFieldValue(
+            fieldName,
+            this.localeDefaultFragment,
+            this.effectiveIsVariation,
+            index,
+        );
+        return fieldName === 'variant' ? normalizeVariantName(value) : value;
     }
 
     getEffectiveFieldValues(fieldName) {
-        return this.fragment.getEffectiveFieldValues(fieldName, this.localeDefaultFragment, this.effectiveIsVariation);
+        const values = this.fragment.getEffectiveFieldValues(fieldName, this.localeDefaultFragment, this.effectiveIsVariation);
+        return fieldName === 'variant' ? values.map(normalizeVariantName) : values;
     }
 
     isFieldOverridden(fieldName) {
@@ -425,6 +434,10 @@ class MerchCardEditor extends LitElement {
                     values: [inheritedVariant],
                 });
             }
+        }
+        const variantField = settingsContextFragment.fields.find((field) => field.name === 'variant');
+        if (variantField?.values?.length) {
+            variantField.values = variantField.values.map(normalizeVariantName);
         }
 
         if (!(settingsContextFragment.tags || []).length && (this.localeDefaultFragment.tags || []).length) {
@@ -776,20 +789,20 @@ class MerchCardEditor extends LitElement {
     }
 
     /**
-     * bizpro authors its "What's included" as a list of titled sections
+     * pro authors its "What's included" as a list of titled sections
      * (`<div class="section"><h4>icon + title</h4><ul><li>row</li></ul></div>`),
      * not as `<merch-whats-included>`. Each editor "bullet" maps to one section:
      * the icon is the section icon, and the rich-text Description holds the bold
      * title (first paragraph) followed by one paragraph per bullet row. Gated to
      * this variant so every other card keeps the shared merch-whats-included path.
      */
-    get #isBizProWhatsIncluded() {
-        return this.getEffectiveFieldValue('variant') === VARIANT_NAMES.BIZPRO;
+    get #isProWhatsIncluded() {
+        return this.getEffectiveFieldValue('variant') === VARIANT_NAMES.PRO;
     }
 
     get whatsIncluded() {
-        if (this.#isBizProWhatsIncluded) {
-            return parseBizProWhatsIncluded(this.getEffectiveFieldValue(WHAT_IS_INCLUDED, 0) || '');
+        if (this.#isProWhatsIncluded) {
+            return parseProWhatsIncluded(this.getEffectiveFieldValue(WHAT_IS_INCLUDED, 0) || '');
         }
         const label = this.whatsIncludedElement?.querySelector('[slot="heading"]')?.textContent || '';
         const values = [];
@@ -1616,6 +1629,23 @@ class MerchCardEditor extends LitElement {
                     ></rte-field>
                     ${this.renderFieldStatusIndicator('callout')}
                 </sp-field-group>
+                <div class="section-title">Custom fields</div>
+                <sp-field-group class="toggle" id="customFields">
+                    <mas-multifield
+                        button-label="Add field"
+                        dispatch-on-add
+                        data-field-state="${this.getFieldState('customFields')}"
+                        .value="${this.customFieldValues}"
+                        .osi="${this.getEffectiveFieldValue('osi', 0) || ''}"
+                        @change="${this.#updateCustomFields}"
+                        @input="${this.#updateCustomFields}"
+                    >
+                        <template>
+                            <mas-rte-field-item></mas-rte-field-item>
+                        </template>
+                    </mas-multifield>
+                    ${this.renderFieldStatusIndicator('customFields')}
+                </sp-field-group>
                 <div class="section-title">Footer</div>
                 <sp-field-group class="toggle" id="ctas">
                     <rte-field
@@ -1814,15 +1844,15 @@ class MerchCardEditor extends LitElement {
     }
 
     #updateWhatsIncluded(event, isBullet) {
-        if (this.#isBizProWhatsIncluded) {
-            // bizpro only uses the bullet multifield (sections) and the
+        if (this.#isProWhatsIncluded) {
+            // pro only uses the bullet multifield (sections) and the
             // label textfield (toggle copy); the "Add application" multifield
-            // has no bizpro equivalent, so ignore its events.
+            // has no pro equivalent, so ignore its events.
             const fromMultifield = Array.isArray(event.target.value);
             if (fromMultifield && !isBullet) return;
             const bullets = fromMultifield ? event.target.value : this.whatsIncluded.bullets;
             const label = fromMultifield ? this.whatsIncluded.label : event.target.value;
-            const html = serializeBizProWhatsIncluded(bullets, label);
+            const html = serializeProWhatsIncluded(bullets, label);
             this.fragmentStore.updateField(WHAT_IS_INCLUDED, [html]);
             return;
         }
@@ -1850,6 +1880,18 @@ class MerchCardEditor extends LitElement {
         }
         const element = this.createIncludedElement(label, values, bullets, this.whatsIncludedDividerFromMarkup);
         this.fragmentStore.updateField(WHAT_IS_INCLUDED, [element?.outerHTML || '']);
+    }
+
+    get customFieldValues() {
+        const values = this.getEffectiveFieldValues('customFields') || [];
+        const labels = this.getEffectiveFieldValues('customFieldLabels') || [];
+        const count = Math.max(values.length, labels.length);
+        return Array.from({ length: count }, (_, i) => {
+            const item = {};
+            if (values[i]) item.value = values[i];
+            if (labels[i]) item.label = labels[i];
+            return item;
+        });
     }
 
     get footerRows() {
@@ -1891,6 +1933,20 @@ class MerchCardEditor extends LitElement {
         });
         return ul;
     }
+
+    #updateCustomFields = (event) => {
+        const items = event?.target?.value;
+        if (!Array.isArray(items)) return;
+        const values = items.map((item) => item.value || '');
+        const labels = items.map((item) => item.label || '');
+        const nonEmpty = labels.filter(Boolean);
+        if (nonEmpty.length !== new Set(nonEmpty).size) {
+            showToast('Custom field labels must be unique', 'negative');
+            return;
+        }
+        this.fragmentStore.updateField('customFields', values);
+        this.fragmentStore.updateField('customFieldLabels', labels);
+    };
 
     #updateFooterRows(event) {
         const items = event?.target?.value;
@@ -2504,6 +2560,38 @@ class MerchCardEditor extends LitElement {
     }
 
     #backgroundColorSelection(colors, selectedValue, dataField) {
+        const colorConfig = this.currentVariantMapping?.backgroundColor;
+        const specialValues = colorConfig?.specialValues;
+        if (specialValues) {
+            const selectedOption =
+                Object.entries(specialValues).find(([, value]) => value === selectedValue)?.[0] ??
+                (selectedValue || Object.keys(specialValues)[0]);
+            const handleSpecialValueChange = (e) => {
+                const fragment = this.fragmentStore.get();
+                fragment.updateField(dataField, [specialValues[e.target.value]]);
+                this.fragmentStore.set(fragment);
+            };
+
+            return html`
+                <sp-field-group class="toggle" id="backgroundColor">
+                    <sp-field-label for="backgroundColor">${colorConfig.editorLabel ?? 'Background Color'}</sp-field-label>
+                    <sp-picker
+                        id="backgroundColor"
+                        data-field="${dataField}"
+                        data-field-state="${this.getFieldState(dataField)}"
+                        value="${selectedOption}"
+                        data-default-value="${Object.keys(specialValues)[0]}"
+                        @change="${handleSpecialValueChange}"
+                    >
+                        ${Object.keys(specialValues).map(
+                            (label) => html`<sp-menu-item value="${label}">${label}</sp-menu-item>`,
+                        )}
+                    </sp-picker>
+                    ${this.renderFieldStatusIndicator(dataField)}
+                </sp-field-group>
+            `;
+        }
+
         const options = {
             Default: undefined,
             Transparent: 'transparent',

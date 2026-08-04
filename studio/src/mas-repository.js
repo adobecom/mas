@@ -53,6 +53,7 @@ import { getFragmentName } from './translation/translation-utils.js';
 import { getItemsSelectionStore } from './common/items-selection-store.js';
 import generateFragmentStore from './reactivity/source-fragment-store.js';
 import { getDefaultLocaleCode } from '../../io/www/src/fragment/locales.js';
+import { hasLegacyVariantAlias, isVariantMatch } from './editors/variant-picker.js';
 import { applyCorrectorToFragment } from './utils/corrector-helper.js';
 import {
     classifyVariationByPath,
@@ -319,7 +320,7 @@ export class MasRepository extends LitElement {
     #skipVariant(variants, item) {
         if (Fragment.isGroupedVariationPath(item.path)) return true;
         const variant = item.fields.find((field) => field.name === 'variant')?.values?.[0];
-        return variants.length && !variants.includes(variant);
+        return variants.length && !isVariantMatch(variants, variant);
     }
 
     /**
@@ -593,7 +594,7 @@ export class MasRepository extends LitElement {
         // exactly what AEM returned) and only narrows in the multi-word case.
         const userQuery = !isUUID(query) && query ? query : '';
         let clientQuery = '';
-        if (variants.length === 1) {
+        if (variants.length === 1 && !hasLegacyVariantAlias(variants[0])) {
             localSearch.query = variants[0];
             clientQuery = userQuery;
         } else if (userQuery) {

@@ -3,11 +3,10 @@ import { FragmentStore } from '../reactivity/fragment-store.js';
 import { Placeholder } from '../aem/placeholder.js';
 import { Fragment } from '../aem/fragment.js';
 import { getDefaultLocaleCode } from '../../../io/www/src/fragment/locales.js';
-import { getDictionary } from '../../libs/fragment-client.js';
+import { DEFAULT_CONTEXT, getDictionary } from '../../libs/fragment-client.js';
 import {
     DICTIONARY_ENTRY_MODEL_ID,
     DICTIONARY_INDEX_MODEL_ID,
-    ODIN_PREVIEW_FRAGMENTS_URL,
     PAGE_NAMES,
     ROOT_PATH,
     SURFACES,
@@ -433,10 +432,9 @@ export function getDictionaryPath() {
 export async function fetchDictionary(abortController, locale = Store.localeOrRegion()) {
     const repo = getRepository();
     const context = {
-        preview: { url: ODIN_PREVIEW_FRAGMENTS_URL },
+        ...DEFAULT_CONTEXT,
         locale,
         surface: repo.search.value.path,
-        networkConfig: { mainTimeout: 15000, fetchTimeout: 10000, retries: 3 },
     };
     if (abortController) context.signal = abortController.signal;
     return getDictionary(context);

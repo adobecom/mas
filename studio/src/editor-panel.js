@@ -13,7 +13,7 @@ import {
     PAGE_NAMES,
 } from './constants.js';
 import Events from './events.js';
-import { VARIANTS } from './editors/variant-picker.js';
+import { migrateLegacyVariant } from './editors/variant-picker.js';
 import {
     generateCodeToUse,
     showToast,
@@ -679,6 +679,9 @@ export default class EditorPanel extends LitElement {
     }
 
     saveFragment() {
+        if (this.fragment?.model?.path === CARD_MODEL_PATH) {
+            migrateLegacyVariant(this.fragmentStore);
+        }
         this.repository.saveFragment(this.fragmentStore);
     }
 

@@ -247,7 +247,7 @@ class MasPromotionsItemsSelector extends LitElement {
         const s = getItemsSelectionStore({ allowUnset: true });
         return (s?.selectedOffers.value ?? []).map((id) => ({
             id,
-            label: Store.promotions.offerDataCache.get(id)?.getTagTitle?.('product_code') ?? id,
+            label: Store.promotions.offerRecordsCache.get(id)?.getTagTitle?.('product_code') ?? id,
         }));
     }
 
@@ -259,13 +259,13 @@ class MasPromotionsItemsSelector extends LitElement {
     };
 
     get #offerProductTags() {
-        return collectPromotionOfferProductTags(Store.promotions.offerDataCache, this.#activeFilterIds);
+        return collectPromotionOfferProductTags(Store.promotions.offerRecordsCache, this.#activeFilterIds);
     }
 
     #syncOfferProductTagsToFragmentSearch() {
         const s = getItemsSelectionStore({ allowUnset: true });
         if (!s) return [];
-        const tags = applyPromotionOfferProductTagsToSearch(Store.promotions.offerDataCache, this.#activeFilterIds);
+        const tags = applyPromotionOfferProductTagsToSearch(Store.promotions.offerRecordsCache, this.#activeFilterIds);
         const filters = this.renderRoot.querySelectorAll('mas-search-and-filters');
         filters.forEach((el) => {
             if (el.type === TABLE_TYPE.CARDS) {
@@ -360,8 +360,8 @@ class MasPromotionsItemsSelector extends LitElement {
                                           .getDisplayName=${this.getDisplayName}
                                           .renderFragmentStatusCell=${this.renderFragmentStatusCell}
                                           .hidePromoVariations=${true}
-                                          .tabs=${[{ label: 'Promotion', key: VARIATION_TAB_NAME.PROMOTION }]}
-                                          .nonSelectableVariations=${[VARIATION_TAB_NAME.PROMOTION]}
+                                          .tabs=${[VARIATION_TAB_NAME.PROMOTION]}
+                                          .selectableTabs="${[]}"
                                           @show-toast=${this.#showToast}
                                       ></mas-select-items-table>`}
                                 ${this.viewOnly

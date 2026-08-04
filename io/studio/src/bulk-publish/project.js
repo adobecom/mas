@@ -1,9 +1,13 @@
 const { getFragmentWithEtag, getValue, getValues, putToOdin, parseOdinHttpStatus } = require('../common.js');
 
+// Contract: these strings must match BULK_PUBLISH_STATUS in studio/src/constants.js (UI side).
+// LOCKED is deliberately absent: it is a client-side concurrency lock, never written by IO.
 const PROJECT_STATUS = {
     DRAFT: 'Draft',
     PUBLISHING: 'Publishing',
     PUBLISHED: 'Published',
+    PARTIALLY_PUBLISHED: 'Partially published',
+    FAILED: 'Failed',
     REVERTING: 'Reverting',
     REVERTED: 'Reverted',
 };
@@ -72,6 +76,28 @@ function getProjectSnapshots(fragment) {
     return getValues(fragment, 'snapshots')?.values ?? [];
 }
 
+// The publishComplete:false marker is what lets an interrupted publish resume against its original
+// snapshot instead of re-snapshotting already-modified fragments.
+function hasPendingSnapshot(entries) {
+    if (!entries.length) return false;
+    try {
+        return entries.some((e) => JSON.parse(e).publishComplete === false);
+    } catch {
+        return false;
+    }
+}
+
+function addPendingMarker(entries) {
+    return entries.map((e) => JSON.stringify({ ...JSON.parse(e), publishComplete: false }));
+}
+
+function removePendingMarker(entries) {
+    return entries.map((e) => {
+        const { publishComplete, ...rest } = JSON.parse(e);
+        return JSON.stringify(rest);
+    });
+}
+
 module.exports = {
     PROJECT_STATUS,
     readProjectFragment,
@@ -80,4 +106,7 @@ module.exports = {
     getProjectLocales,
     getProjectTitle,
     getProjectSnapshots,
+    hasPendingSnapshot,
+    addPendingMarker,
+    removePendingMarker,
 };

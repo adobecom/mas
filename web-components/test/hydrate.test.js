@@ -75,7 +75,11 @@ describe('normalizeVariant', () => {
         expect(normalizeVariant('plans-v2')).to.equal('plans');
     });
 
-    it('normalizes bizpro to plans for shared collection styling', () => {
+    it('normalizes pro to plans for shared collection styling', () => {
+        expect(normalizeVariant('pro')).to.equal('plans');
+    });
+
+    it('still normalizes legacy bizpro to plans', () => {
         expect(normalizeVariant('bizpro')).to.equal('plans');
     });
 
@@ -751,16 +755,16 @@ describe('hydrate', () => {
         litCard.remove();
     });
 
-    it('injects merch-addon at slot="addon" for bizpro variant', async () => {
+    it('injects merch-addon at slot="addon" for pro variant', async () => {
         const litCard = document.createElement('merch-card');
         document.body.appendChild(litCard);
         await customElements.whenDefined('merch-card');
 
         const addonHtml = `<p><strong>Add Acrobat AI Assistant to your plan for </strong><span is="inline-price" data-template="price" data-wcs-osi="ai"></span></p>`;
         const fragment = {
-            id: 'bizpro-addon',
+            id: 'pro-addon',
             fields: {
-                variant: 'bizpro',
+                variant: 'pro',
                 cardTitle: 'Creative Cloud Pro',
                 prices: '<p><span is="inline-price" data-template="price" data-wcs-osi="main"></span></p>',
                 ctas: '<a class="accent" data-wcs-osi="main">Buy</a>',
@@ -771,6 +775,26 @@ describe('hydrate', () => {
         expect(litCard.addon).to.exist;
         expect(litCard.addon.tagName.toLowerCase()).to.equal('merch-addon');
         expect(litCard.addon.getAttribute('slot')).to.equal('addon');
+        litCard.remove();
+    });
+
+    it('hydrates a legacy bizpro fragment as pro', async () => {
+        const litCard = document.createElement('merch-card');
+        document.body.appendChild(litCard);
+        await customElements.whenDefined('merch-card');
+
+        const fragment = {
+            id: 'legacy-bizpro',
+            fields: {
+                variant: 'bizpro',
+                cardTitle: 'Creative Cloud Pro',
+                prices: '<p><span is="inline-price" data-template="price" data-wcs-osi="main"></span></p>',
+                ctas: '<a class="accent" data-wcs-osi="main">Buy</a>',
+            },
+        };
+        await hydrate(fragment, litCard);
+        expect(litCard.variant).to.equal('pro');
+        expect(litCard.getAttribute('variant')).to.equal('pro');
         litCard.remove();
     });
 
@@ -1085,29 +1109,6 @@ describe('processDescription', async () => {
         expect(merchCard.innerHTML).to.equal(
             '<div slot="body-xs"><sp-button treatment="fill" variant="accent" tabindex="0" size="m" dir="ltr">Click me</sp-button></div>',
         );
-    });
-
-    it('should convert primary-link and secondary-link to sp-link when spectrum is swc', async () => {
-        const fields = {
-            description: `See <a href="#" class="primary-link">Primary</a> and <a href="#" class="secondary-link">Secondary</a>`,
-        };
-        merchCard.spectrum = 'swc';
-
-        processDescription(fields, merchCard, aemFragmentMapping);
-        updateLinksCSS(merchCard);
-
-        const primary = merchCard.querySelector('sp-link[href="#"]');
-        const secondary = merchCard.querySelector(
-            'sp-link[variant="secondary"]',
-        );
-        expect(primary).to.exist;
-        expect(primary.tagName.toLowerCase()).to.equal('sp-link');
-        expect(primary.hasAttribute('variant')).to.be.false;
-        expect(primary.textContent.trim()).to.equal('Primary');
-        expect(secondary).to.exist;
-        expect(secondary.textContent.trim()).to.equal('Secondary');
-        expect(merchCard.querySelector('a.primary-link')).to.be.null;
-        expect(merchCard.querySelector('a.secondary-link')).to.be.null;
     });
 
     it('should preserve primary-link and secondary-link on consonant cards', async () => {

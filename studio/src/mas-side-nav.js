@@ -8,6 +8,7 @@ import './mas-side-nav-item.js';
 import ReactiveController from './reactivity/reactive-controller.js';
 
 const EVENT_MAS_READY = 'mas:ready';
+const EVENT_MAS_ERROR = 'mas:error';
 const INLINE_PRICE_SELECTOR = 'span[is="inline-price"]';
 const FIELD_SOURCE = {
     CURRENT: 'current',
@@ -196,12 +197,14 @@ class MasSideNav extends LitElement {
         super.connectedCallback();
         Store.fragments.inEdit.subscribe(this.#handleFragmentInEditChange);
         document.addEventListener(EVENT_MAS_READY, this.#onMerchCardReady);
+        document.addEventListener(EVENT_MAS_ERROR, this.#onMerchCardReady);
     }
 
     disconnectedCallback() {
         super.disconnectedCallback();
         Store.fragments.inEdit.unsubscribe(this.#handleFragmentInEditChange);
         document.removeEventListener(EVENT_MAS_READY, this.#onMerchCardReady);
+        document.removeEventListener(EVENT_MAS_ERROR, this.#onMerchCardReady);
     }
 
     #handleFragmentInEditChange = (fragmentStore) => {
@@ -637,6 +640,10 @@ class MasSideNav extends LitElement {
         const showCtaOverriddenSection = isVariation && currentCtas.length;
         const showCtaInheritedSection = inheritedCtas.length;
         const hasCtas = currentCtas.length || inheritedCtas.length;
+        const { current: currentCustomFields, inherited: inheritedCustomFields } = this.copyableCustomFields;
+        const showCustomFieldOverriddenSection = isVariation && currentCustomFields.length;
+        const showCustomFieldInheritedSection = inheritedCustomFields.length;
+        const hasCustomFields = currentCustomFields.length || inheritedCustomFields.length;
         const renderRow = ({ name, displayName, preview, source, sourceFragment }) => html`
             <sp-menu-item @click=${() => this.copyField(name, sourceFragment)}>
                 ${preview
@@ -748,6 +755,63 @@ class MasSideNav extends LitElement {
                                           : nothing}
                                   `
                                 : nothing}
+                            ${hasCustomFields
+                                ? html`
+                                      <sp-menu-divider></sp-menu-divider>
+                                      <sp-menu-item disabled class="copy-section-item">
+                                          <span class="copy-section-label">Custom Fields</span>
+                                      </sp-menu-item>
+                                      ${showCustomFieldOverriddenSection
+                                          ? html`<sp-menu-item disabled class="copy-section-item overridden-section">
+                                                <span class="copy-section-label">${OVERRIDDEN_SECTION_LABEL}</span>
+                                            </sp-menu-item>`
+                                          : nothing}
+                                      ${currentCustomFields.map(
+                                          (cf, i) => html`
+                                              ${i > 0 ? html`<sp-menu-divider></sp-menu-divider>` : nothing}
+                                              <sp-menu-item
+                                                  @click=${() =>
+                                                      this.copyCustomFieldItem(cf.label, cf.index, cf.sourceFragment)}
+                                              >
+                                                  <div
+                                                      class="field-entry ${showCustomFieldOverriddenSection
+                                                          ? 'field-entry-overridden'
+                                                          : ''}"
+                                                  >
+                                                      <span class="field-label">${cf.label || `Custom Field ${cf.index}`}</span>
+                                                      <span class="field-value">${renderPreview(cf.value)}</span>
+                                                  </div>
+                                              </sp-menu-item>
+                                          `,
+                                      )}
+                                      ${showCustomFieldInheritedSection
+                                          ? html`
+                                                ${currentCustomFields.length
+                                                    ? html`<sp-menu-divider></sp-menu-divider>`
+                                                    : nothing}
+                                                <sp-menu-item disabled class="copy-section-item inherited-section">
+                                                    <span class="copy-section-label">${INHERITED_SECTION_LABEL}</span>
+                                                </sp-menu-item>
+                                                ${inheritedCustomFields.map(
+                                                    (cf, i) => html`
+                                                        ${i > 0 ? html`<sp-menu-divider></sp-menu-divider>` : nothing}
+                                                        <sp-menu-item
+                                                            @click=${() =>
+                                                                this.copyCustomFieldItem(cf.label, cf.index, cf.sourceFragment)}
+                                                        >
+                                                            <div class="field-entry">
+                                                                <span class="field-label"
+                                                                    >${cf.label || `Custom Field ${cf.index}`}</span
+                                                                >
+                                                                <span class="field-value">${renderPreview(cf.value)}</span>
+                                                            </div>
+                                                        </sp-menu-item>
+                                                    `,
+                                                )}
+                                            `
+                                          : nothing}
+                                  `
+                                : nothing}
                             <sp-menu-divider></sp-menu-divider>
                             <sp-menu-item @click=${() => this.copyJsonLd()}>JSON-LD Schema</sp-menu-item>
                         </sp-menu>
@@ -776,6 +840,63 @@ class MasSideNav extends LitElement {
         } catch {
             Events.toast.emit({ variant: 'negative', content: 'Failed to copy field link' });
         }
+    }
+
+    /**
+     * hydrate.js#processCustomFields hydrates each customFields[i] value into its own
+     * `[slot="custom-field-i"]` light-DOM child of the live preview card, where inline-price
+     * (and other mas-element) custom elements auto-upgrade and resolve in place. Reading the
+     * slot's live innerHTML mirrors exactly what the rendered card preview shows, rather than
+     * re-deriving resolved price text via attribute-matching against unrelated price elements
+     * on the card (e.g. the main "Prices" field), which can pick the wrong match.
+     */
+    #getResolvedCustomFieldSlotHtml(index) {
+        const slot = this.#getPreviewCard()?.querySelector(`[slot="custom-field-${index}"]`);
+        if (!slot) return undefined;
+        const clone = slot.cloneNode(true);
+        clone.querySelectorAll('sr-only').forEach((n) => n.remove());
+        // previewValue() only preserves literal <s> tags, so wrap rendered strikethrough
+        // price spans in <s> before serializing, or the strikethrough is lost.
+        clone.querySelectorAll('.price-strikethrough, .price-promo-strikethrough').forEach((price) => {
+            const s = document.createElement('s');
+            s.innerHTML = price.innerHTML;
+            price.replaceWith(s);
+        });
+        return clone.innerHTML;
+    }
+
+    /** Individual custom field items extracted from customFields/customFieldLabels, split by source for variations. */
+    get copyableCustomFields() {
+        const fragment = this.fragmentEditor?.fragment;
+        if (!fragment?.fields) return { current: [], inherited: [] };
+
+        const resolvedInlinePrices = this.#getResolvedInlinePriceCandidates();
+        const valuesField = fragment.fields.find((f) => f.name === 'customFields');
+        const labelsField = fragment.fields.find((f) => f.name === 'customFieldLabels');
+
+        const buildItems = (vals, lbls, source, sourceFragment) =>
+            (vals ?? [])
+                .map((v, i) => {
+                    const liveHtml = source === FIELD_SOURCE.CURRENT ? this.#getResolvedCustomFieldSlotHtml(i) : undefined;
+                    const resolved = liveHtml ?? this.#resolveInlinePricesInHtml(v, resolvedInlinePrices);
+                    const value = previewValue([resolved]);
+                    return { value, label: lbls?.[i] || '', index: i + 1, source, sourceFragment };
+                })
+                .filter(({ value }) => value);
+
+        const current = buildItems(valuesField?.values, labelsField?.values, FIELD_SOURCE.CURRENT, fragment);
+
+        const fragmentId = fragment?.id;
+        if (!this.#isVariationFragment(fragmentId) || current.length) {
+            return { current, inherited: [] };
+        }
+
+        const baseFragment = this.fragmentEditor?.localeDefaultFragment;
+        const baseValuesField = baseFragment?.fields?.find((f) => f.name === 'customFields');
+        const baseLabelsField = baseFragment?.fields?.find((f) => f.name === 'customFieldLabels');
+        const inherited = buildItems(baseValuesField?.values, baseLabelsField?.values, FIELD_SOURCE.INHERITED, baseFragment);
+
+        return { current, inherited };
     }
 
     #getCtaKey(fragment, index) {
@@ -810,6 +931,27 @@ class MasSideNav extends LitElement {
             Events.toast.emit({ variant: 'positive', content: `Copied CTA: "${text}"` });
         } catch {
             Events.toast.emit({ variant: 'negative', content: 'Failed to copy CTA' });
+        }
+    }
+
+    /** Copies a labeled customFields link to the clipboard (mas-field: … → customFields[label] format). */
+    async copyCustomFieldItem(label, index, sourceFragment = this.fragmentEditor?.fragment) {
+        const fragment = sourceFragment;
+        if (!fragment) return;
+        const path = Store.search.get().path;
+        const fieldName = `customFields[${label || index}]`;
+        const link = generateFieldLink(fragment, path, PAGE_NAMES.CONTENT, fieldName);
+        if (!link) return;
+        try {
+            await navigator.clipboard.write([
+                new ClipboardItem({
+                    'text/plain': new Blob([link.displayText], { type: 'text/plain' }),
+                    'text/html': new Blob([link.richText], { type: 'text/html' }),
+                }),
+            ]);
+            Events.toast.emit({ variant: 'positive', content: `Copied custom field: "${label || index}"` });
+        } catch {
+            Events.toast.emit({ variant: 'negative', content: 'Failed to copy custom field link' });
         }
     }
 

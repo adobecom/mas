@@ -808,7 +808,7 @@ export class Pro extends VariantLayout {
             font-weight: 400;
             font-size: 14px;
             line-height: 18px;
-            letter-spacing: 0.14px;
+            letter-spacing: 0;
             color: var(--consonant-merch-card-pro-text-color, #000);
         }
 
@@ -835,7 +835,7 @@ export class Pro extends VariantLayout {
             font-weight: 400;
             font-size: 14px;
             line-height: 18px;
-            letter-spacing: 0.14px;
+            letter-spacing: 0;
             color: var(--consonant-merch-card-pro-text-muted-color, #000000a3);
         }
 
@@ -862,7 +862,7 @@ export class Pro extends VariantLayout {
             font-weight: 400;
             font-size: 14px;
             line-height: 18px;
-            letter-spacing: 0.14px;
+            letter-spacing: 0;
             color: var(--consonant-merch-card-pro-text-muted-color, #000000a3);
             padding: 0;
             margin: 0;
@@ -915,7 +915,7 @@ export class Pro extends VariantLayout {
             font-weight: 700;
             font-size: 14px;
             line-height: 18px;
-            letter-spacing: 0.14px;
+            letter-spacing: 0;
         }
 
         /* Expanded state: no bottom padding — features-zone provides spacing */
@@ -1082,6 +1082,7 @@ export class Pro extends VariantLayout {
             font-size: 14px;
             line-height: 18px;
             font-weight: 700;
+            letter-spacing: 0;
             cursor: pointer;
             background: var(--consonant-merch-card-pro-control-bg);
         }
@@ -1094,6 +1095,7 @@ export class Pro extends VariantLayout {
             font-size: 14px;
             line-height: 18px;
             font-weight: 700;
+            letter-spacing: 0;
             border-bottom: 1px solid rgba(0, 0, 0, 0.08);
         }
 
@@ -1120,7 +1122,7 @@ export class Pro extends VariantLayout {
             font-family: 'Adobe Clean', adobe-clean, sans-serif;
             font-size: 12px;
             line-height: 16px;
-            letter-spacing: 0.24px;
+            letter-spacing: 0;
             font-weight: 700;
             text-align: start;
         }

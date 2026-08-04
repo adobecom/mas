@@ -178,6 +178,59 @@ describe('pro dark theme rendering', () => {
     });
 });
 
+describe('pro whats-included section header typography', () => {
+    let card;
+    afterEach(() => card?.remove());
+
+    const SECTION =
+        '<div slot="whats-included"><div class="section"><h4 id="wi-h4">Apps</h4>' +
+        '<ul><li id="wi-item">Desktop, web, and mobile</li></ul></div></div>';
+
+    // Figma s2a/typography/body-sm: Regular 400, 14/18, no tracking — not the
+    // UA h4 bold, and not the 0.14px the variant used to apply to body text.
+    // `letter-spacing: 0` computes to `normal` in Chrome.
+    const expectBodySm = (el) => {
+        const cs = getComputedStyle(el);
+        expect(cs.fontWeight).to.equal('400');
+        expect(cs.fontSize).to.equal('14px');
+        expect(cs.lineHeight).to.equal('18px');
+        expect(cs.letterSpacing).to.be.oneOf(['normal', '0px']);
+    };
+
+    it('renders section headers as body-sm', async () => {
+        card = await renderCard(SECTION);
+        expectBodySm(card.querySelector('#wi-h4'));
+    });
+
+    it('renders list items as body-sm', async () => {
+        card = await renderCard(SECTION);
+        expectBodySm(card.querySelector('#wi-item'));
+    });
+
+    it('keeps body-sm in dark', async () => {
+        card = await renderCard(SECTION);
+        card.setAttribute('background-color', 'dark');
+        await card.updateComplete;
+        expectBodySm(card.querySelector('#wi-h4'));
+        expectBodySm(card.querySelector('#wi-item'));
+    });
+
+    // Guard the other half of the token set: heading-5 (title) and the price keep
+    // their -0.48px tracking — they are the only pro text that carries any.
+    it('keeps -0.48px tracking on the title and the price', async () => {
+        card = await renderCard(
+            '<h3 slot="heading-xs" id="t">Lightroom for teams</h3>' +
+                '<p slot="heading-m" id="p">US$37.99/mo</p>',
+        );
+        expect(
+            getComputedStyle(card.querySelector('#t')).letterSpacing,
+        ).to.equal('-0.48px');
+        expect(
+            getComputedStyle(card.querySelector('#p')).letterSpacing,
+        ).to.equal('-0.48px');
+    });
+});
+
 describe('Pro.adjustLegal', () => {
     function makeFixture(priceOverrides = {}) {
         const clone = {

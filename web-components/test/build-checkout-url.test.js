@@ -156,6 +156,19 @@ describe('addParamsFromPageUrl', () => {
         addParamsFromPageUrl(url);
         expect(url.search).to.equal('');
     });
+
+    it('should truncate a param value at a stray "?" before forwarding', () => {
+        window.history.replaceState(
+            {},
+            '',
+            '?mv2=paidsoc%3Ffilter%3Ddesign&mv=social',
+        );
+        const url = new URL('https://commerce.adobe.com/store/checkout');
+        addParamsFromPageUrl(url);
+        expect(url.searchParams.get('mv2')).to.equal('paidsoc');
+        expect(url.searchParams.get('mv')).to.equal('social');
+        expect(url.searchParams.has('filter')).to.be.false;
+    });
 });
 
 describe('pathnameRequiresZhHantLang', () => {

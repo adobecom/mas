@@ -279,6 +279,11 @@ function selectPromoProjectForFragment(root, customizeContext) {
     return selected;
 }
 
+/**
+ * Merges the matching variation onto `root`. Returns `{ fragment, yieldedToPersonalization }`.
+ * `yieldedToPersonalization` is true if a promo was overridden by a personalization match,
+ * signaling the caller not to apply promo substitutions (`wcs.js`) to that fragment.
+ */
 function mergeVariations(root, customizeContext, selectedPromoProject) {
     const { isRegionLocale } = customizeContext;
     const variations = root?.fields?.variations;
@@ -296,18 +301,18 @@ function mergeVariations(root, customizeContext, selectedPromoProject) {
                 );
                 const merged = deepMerge(root, personalizationVariation);
                 merged.variationId = personalizationVariation.id;
-                return merged;
+                return { fragment: merged, yieldedToPersonalization: true };
             }
         }
         logDebug(() => `Merging promo variation ${variation.id} for fragment ${root.id}`, customizeContext);
         const merged = deepMerge(root, variation);
         merged.variationId = variation.id;
         merged.promoVariationProject = promoProjectLabel(project);
-        return merged;
+        return { fragment: merged, yieldedToPersonalization: false };
     }
     if (!variations?.length) {
         logDebug(() => `No variations to merge for fragment ${root.id}`, customizeContext);
-        return root;
+        return { fragment: root, yieldedToPersonalization: false };
     }
     logDebug(() => `found variations ${JSON.stringify(variations)} in ${root.id}`, customizeContext);
     if (isRegionLocale) {
@@ -316,7 +321,7 @@ function mergeVariations(root, customizeContext, selectedPromoProject) {
             logDebug(() => `Merging regional variation ${regionalVariation.id} for fragment ${root.id}`, customizeContext);
             const merged = deepMerge(root, regionalVariation);
             merged.variationId = regionalVariation.id;
-            return merged;
+            return { fragment: merged, yieldedToPersonalization: false };
         }
     }
     const personalizationVariation = findPersonalizationVariation(variations, customizeContext);
@@ -327,9 +332,9 @@ function mergeVariations(root, customizeContext, selectedPromoProject) {
         );
         const merged = deepMerge(root, personalizationVariation);
         merged.variationId = personalizationVariation.id;
-        return merged;
+        return { fragment: merged, yieldedToPersonalization: false };
     }
-    return root;
+    return { fragment: root, yieldedToPersonalization: false };
 }
 
 /**
@@ -382,8 +387,14 @@ function adaptReferencesTree(referencesTree, customizedRoot) {
 function customizeTree(root, referencesTree = [], customizeContext) {
     const selectedPromoProject = selectPromoProjectForFragment(root, customizeContext);
     //apply regional or promo variation, if any.
-    const customizedRoot = mergeVariations(root, customizeContext, selectedPromoProject);
-    if (selectedPromoProject) {
+    const { fragment: customizedRoot, yieldedToPersonalization } = mergeVariations(
+        root,
+        customizeContext,
+        selectedPromoProject,
+    );
+    // When personalization wins the yield, skip promo attribution and OSI scope below entirely,
+    // keeping personalized fragments completely untouched.
+    if (selectedPromoProject && !yieldedToPersonalization) {
         // set data-promotion-project attribute, even when the project
         // only substitutes the OSI (no promo code and no variation).
         customizedRoot.promoProject = promoProjectLabel(selectedPromoProject.project);

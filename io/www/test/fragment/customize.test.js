@@ -1906,6 +1906,7 @@ describe('customize promo variation strategy (promo vs. personalization)', funct
             title: 'Root',
             fields: {
                 badge: 'default badge',
+                osi: 'OSI-TEST',
                 variations: [PZN_VARIATION_ID],
             },
             references: {
@@ -1955,6 +1956,8 @@ describe('customize promo variation strategy (promo vs. personalization)', funct
         expect(result.body.variationId).to.equal(PZN_VARIATION_ID);
         expect(result.body.fields.badge).to.equal('EDU badge');
         expect(result.body.promoVariationProject).to.be.undefined;
+        expect(result.body.fields.promoCode).to.be.undefined;
+        expect(result.body.promoProject).to.be.undefined;
     });
 
     it('should override personalization when strategy is override', async function () {
@@ -1973,6 +1976,7 @@ describe('customize promo variation strategy (promo vs. personalization)', funct
         expect(result.status).to.equal(200);
         expect(result.body.variationId).to.equal('promo-var-id');
         expect(result.body.fields.badge).to.equal('PROMO badge');
+        expect(result.body.fields.promoCode).to.equal('PROMO-CODE');
     });
 
     it('should still apply promo when strategy is yield but no personalization variation matches', async function () {
@@ -1990,6 +1994,7 @@ describe('customize promo variation strategy (promo vs. personalization)', funct
         expect(result.status).to.equal(200);
         expect(result.body.variationId).to.equal('promo-var-id');
         expect(result.body.fields.badge).to.equal('PROMO badge');
+        expect(result.body.fields.promoCode).to.equal('PROMO-CODE');
     });
 
     it('should default to yield when the promo project has no variationStrategy set', async function () {
@@ -2007,6 +2012,7 @@ describe('customize promo variation strategy (promo vs. personalization)', funct
 
         expect(result.status).to.equal(200);
         expect(result.body.variationId).to.equal(PZN_VARIATION_ID);
+        expect(result.body.fields.promoCode).to.be.undefined;
     });
 });
 

@@ -189,13 +189,7 @@ export function processTitle(fields, merchCard, titleConfig) {
     if (fields.cardTitle) {
         fields.cardTitle = processMnemonicElements(fields.cardTitle);
     }
-    // edu is a standalone card below the section heading, so its title is an
-    // h5 (not the h3 grid cards use) to keep the document outline correct.
-    const config =
-        merchCard.getAttribute('size') === 'edu'
-            ? { ...titleConfig, tag: 'h5' }
-            : titleConfig;
-    appendSlot('cardTitle', fields, merchCard, { cardTitle: config });
+    appendSlot('cardTitle', fields, merchCard, { cardTitle: titleConfig });
 }
 
 export function processSubtitle(fields, merchCard, mapping) {

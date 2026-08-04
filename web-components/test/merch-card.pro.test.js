@@ -144,6 +144,21 @@ describe('pro plan type', () => {
     });
 });
 
+describe('pro appearance mapping', () => {
+    it('maps Theme and Size selections to existing fragment fields', async () => {
+        const { PRO_AEM_FRAGMENT_MAPPING } = await import(
+            '../src/variants/pro.js'
+        );
+
+        expect(PRO_AEM_FRAGMENT_MAPPING.backgroundColor).to.deep.equal({
+            attribute: 'background-color',
+            editorLabel: 'Theme',
+            specialValues: { Light: 'light', Dark: 'dark' },
+        });
+        expect(PRO_AEM_FRAGMENT_MAPPING.size).to.deep.equal(['wide', 'edu']);
+    });
+});
+
 describe('Pro.adjustLegal', () => {
     function makeFixture(priceOverrides = {}) {
         const clone = {

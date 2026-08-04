@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Merch addon fallback-collision regression test</title>
+        <style>
+            main {
+                display: flex;
+                align-items: center;
+                gap: 20px;
+                flex-direction: column;
+                padding-top: 80px;
+            }
+            mas-commerce-service {
+                display: none;
+            }
+        </style>
+    </head>
+
+    <body>
+        <main></main>
+        <!--
+            Reproduces the real-world MWPW addon duplication bug:
+            two addon <p> blocks are authored against two different OSIs
+            (one meant to represent an M2M price, one a PUF price). In a
+            market where the M2M OSI has no real M2M offer configured, WCS
+            substitutes a genuinely PUF-shaped offer for it too, so both
+            <p> blocks resolve to data-plan-type="PUF" and would render
+            simultaneously if merch-addon.js didn't dedupe the claim.
+        -->
+        <template id="ai">
+            <mas-commerce-service env="stage"></mas-commerce-service>
+            <merch-addon>
+                <p><strong>Acrobat AI Assistant</strong></p>
+                <p data-plan-type="">
+                    Add AI Assistant to your Acrobat plan for
+                    <span
+                        is="inline-price"
+                        data-template="price"
+                        data-wcs-osi="addon-fallback-to-puf"
+                    ></span>
+                </p>
+                <p data-plan-type="">
+                    Add AI Assistant to your Acrobat plan for
+                    <span
+                        is="inline-price"
+                        data-template="price"
+                        data-wcs-osi="addon-real-puf"
+                    ></span>
+                </p>
+            </merch-addon>
+        </template>
+        <script type="module">
+            import { runTests } from '@web/test-runner-mocha';
+            import { expect } from '@esm-bundle/chai';
+            import { mockFetch } from './mocks/fetch.js';
+            import { mockIms } from './mocks/ims.js';
+            import { withAem } from './mocks/aem.js';
+            import { delay, getTemplateContent } from './utils.js';
+            import '../src/mas.js';
+
+            const REAL_PUF_PRICE = 60;
+            const FALLBACK_PUF_PRICE = 84;
+
+            function buildOffer({ osi, price, offerType }) {
+                return {
+                    offerId: `offer-${osi}`,
+                    priceDetails: {
+                        price,
+                        usePrecision: true,
+                        formatString: "'US$'#,##0.00",
+                        taxDisplay: 'TAX_EXCLUSIVE',
+                        taxTerm: 'TAX',
+                    },
+                    productArrangementCode: osi,
+                    buyingProgram: 'RETAIL',
+                    // Both OSIs resolve to a real commitment=YEAR/term=ANNUAL
+                    // offer, so both are genuinely (and indistinguishably)
+                    // classified planType=PUF by applyPlanType.
+                    commitment: 'YEAR',
+                    term: 'ANNUAL',
+                    customerSegment: 'INDIVIDUAL',
+                    marketSegments: ['COM'],
+                    salesChannel: 'DIRECT',
+                    offerType,
+                    pricePoint: 'REGULAR',
+                    language: 'MULT',
+                    merchant: 'ADOBE',
+                    offerSelectorIds: [osi],
+                };
+            }
+
+            async function withFallbackCollisionWcs() {
+                return async ({ pathname, searchParams }) => {
+                    if (
+                        !pathname.endsWith('/web_commerce_artifact') &&
+                        !pathname.endsWith('/web_commerce_artifact_stage')
+                    ) {
+                        return false;
+                    }
+                    const osis = searchParams
+                        .get('offer_selector_ids')
+                        .split(',');
+                    const known = {
+                        'addon-real-puf': buildOffer({
+                            osi: 'addon-real-puf',
+                            price: REAL_PUF_PRICE,
+                            offerType: 'PROMOTION',
+                        }),
+                        'addon-fallback-to-puf': buildOffer({
+                            osi: 'addon-fallback-to-puf',
+                            price: FALLBACK_PUF_PRICE,
+                            offerType: 'PROMOTION',
+                        }),
+                    };
+                    const resolvedOffers = osis
+                        .map((osi) => known[osi])
+                        .filter(Boolean);
+                    return {
+                        ok: true,
+                        status: 200,
+                        headers: { get: () => undefined },
+                        url: `https://mock/web_commerce_artifact?${searchParams.toString()}`,
+                        json: async () => ({ resolvedOffers }),
+                        text: async () => '',
+                    };
+                };
+            }
+
+            runTests(async () => {
+                mockIms();
+                await mockFetch(withFallbackCollisionWcs, withAem);
+                const container = document.querySelector('main');
+
+                describe('merch-addon plan-type fallback collision', () => {
+                    beforeEach(() => {
+                        container.innerHTML = '';
+                    });
+
+                    it('renders exactly one addon price block when two OSIs collide on the same resolved plan type', async () => {
+                        const [masCommerceService, ai] =
+                            getTemplateContent('ai');
+                        container.append(masCommerceService, ai);
+                        await delay(100); // time for both prices to resolve
+
+                        ai.planType = 'PUF';
+                        await ai.updateComplete;
+                        await delay(50);
+
+                        const paragraphs = [
+                            ...ai.querySelectorAll('p[data-plan-type]'),
+                        ];
+                        const visible = paragraphs.filter(
+                            (p) => getComputedStyle(p).display !== 'none',
+                        );
+
+                        expect(
+                            visible.length,
+                            'exactly one addon price block should be visible, not both',
+                        ).to.equal(1);
+                    });
+                });
+            });
+        </script>
+    </body>
+</html>

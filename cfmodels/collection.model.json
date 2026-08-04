@@ -1,0 +1,86 @@
+{
+    "label": {
+        "fieldLabel": "Label",
+        "type": "string"
+    },
+    "navigationLabel": {
+        "fieldLabel": "Navigation label",
+        "type": "string"
+    },
+    "queryLabel": {
+        "fieldLabel": "Query label",
+        "type": "string"
+    },
+    "icon": {
+        "fieldLabel": "Icon (dark)",
+        "type": "string"
+    },
+    "iconLight": {
+        "fieldLabel": "Icon (light)",
+        "type": "string"
+    },
+    "cards": {
+        "fieldLabel": "Cards",
+        "type": "content-fragment[]"
+    },
+    "collections": {
+        "fieldLabel": "Collections",
+        "type": "content-fragment[]"
+    },
+    "originalId": {
+        "fieldLabel": "Original ID",
+        "type": "string"
+    },
+    "defaultchild": {
+        "fieldLabel": "DefaultChild",
+        "type": "string"
+    },
+    "variations": {
+        "fieldLabel": "Variations",
+        "type": "content-fragment[]"
+    },
+    "searchText": {
+        "fieldLabel": "Search Text",
+        "type": "string"
+    },
+    "tagFiltersTitle": {
+        "fieldLabel": "Tag filters title",
+        "type": "string"
+    },
+    "tagFilters": {
+        "fieldLabel": "Tag filters",
+        "type": "tag[]"
+    },
+    "pznTags": {
+        "fieldLabel": "Personalization tags",
+        "type": "tag[]"
+    },
+    "linksTitle": {
+        "fieldLabel": "Links Title",
+        "type": "string"
+    },
+    "link": {
+        "fieldLabel": "Link",
+        "type": "string"
+    },
+    "linkText": {
+        "fieldLabel": "Link text",
+        "type": "string"
+    },
+    "linkIcon": {
+        "fieldLabel": "Link icon",
+        "type": "string"
+    },
+    "pageSize": {
+        "fieldLabel": "Page size",
+        "type": "string"
+    },
+    "compareChart": {
+        "fieldLabel": "Compare Chart",
+        "type": "long-text"
+    },
+    "locReady": {
+        "fieldLabel": "Loc Ready",
+        "type": "boolean"
+    }
+}

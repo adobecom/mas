@@ -4638,6 +4638,14 @@ merch-card[variant="pro"] [slot="callout-content"] > div {
 merch-card[variant="pro"] merch-addon[slot="addon"] {
     flex: 1 0 0;
     min-width: 0;
+    /* merch-addon lays its shadow children out with flex, and the checkbox is a
+       shrinkable item there \u2014 so a label whose max-content overruns the row (it
+       always does on a narrow track) squeezes the 20px box down to a sliver.
+       Two explicit grid tracks pin it instead; Figma marks the box shrink-0.
+       An outer-tree rule outranks the component's own :host, and only pro cards
+       carry this selector, so no other variant's addon is affected. */
+    display: grid;
+    grid-template-columns: var(--merch-addon-checkbox-size) minmax(0, 1fr);
     --merch-addon-gap: 8px;
     --merch-addon-align: center;
     /* AI-gradient checkbox per Figma 1098:33812 \u2014 the rounded gradient border,
@@ -4658,6 +4666,25 @@ merch-card[variant="pro"] merch-addon[slot="addon"] {
     --merch-addon-label-line-height: 18px;
     --merch-addon-label-weight: 700;
     --merch-addon-label-color: var(--consonant-merch-card-pro-text-color);
+}
+
+/* Since MWPW-202635 the addon copy is authored as one <p data-plan-type="\u2026">
+   per plan type, and merch-addon only applies its label typography to
+   ::slotted(p:not([data-plan-type])) \u2014 so on a plan-type card the
+   --merch-addon-label-* props above reach nothing and the copy falls back to
+   the card's 18/27 body. Style the slotted paragraph directly: an outer-tree
+   rule outranks ::slotted() regardless, and it holds for both shapes. Values
+   are the s2a label token (Figma 1098:34458 / I\u2026;984:7865). Deliberately no
+   display \u2014 that is what switches between the plan-type paragraphs. */
+merch-card[variant="pro"] merch-addon[slot="addon"] p {
+    margin: 0;
+    color: var(--consonant-merch-card-pro-text-color);
+    font-family: var(--consonant-merch-card-pro-font-family-regular);
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 18px;
+    letter-spacing: 0;
+    cursor: pointer;
 }
 
 /* Light-DOM color overrides \u2014 beat global promo/legal styling */

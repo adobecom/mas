@@ -1726,6 +1726,54 @@ describe('pro add-on theming', () => {
         expect(styles.backgroundImage).to.contain('rgb(141, 136, 242)');
         expect(styles.backgroundImage).to.contain('rgb(235, 16, 0)');
     });
+
+    it('holds the checkbox at 20px against a label that overruns the row', async () => {
+        // merch-addon's shadow lays out with flex and the box is shrinkable
+        // there, so a long label squeezed it to a sliver. Pro re-lays the host
+        // out on two grid tracks (Figma 1098:34458 marks the box shrink-0).
+        card = await renderCard(
+            '<merch-addon slot="addon" custom-checkbox plan-type="ABM">' +
+                '<p data-plan-type="ABM">Add Acrobat AI Assistant to your plan for US$4.99/mo</p>' +
+                '</merch-addon>',
+        );
+        const addon = card.querySelector('merch-addon');
+        addon.style.width = '160px';
+        const box = addon.shadowRoot.querySelector('#custom-checkbox');
+        expect(getComputedStyle(addon).display).to.equal('grid');
+        expect(box.getBoundingClientRect().width).to.equal(20);
+    });
+
+    // Since MWPW-202635 the copy is authored per plan type, and merch-addon's
+    // own label typography skips ::slotted(p[data-plan-type]). Pro styles the
+    // paragraph directly so both shapes land on the s2a label token
+    // (Figma 1098:34458 — 14/18/700).
+    ['<p>Add AI</p>', '<p data-plan-type="ABM">Add AI</p>'].forEach((copy) => {
+        it(`sets the add-on label to 14/18/700 for ${copy}`, async () => {
+            card = await renderCard(
+                `<merch-addon slot="addon" plan-type="ABM">${copy}</merch-addon>`,
+            );
+            const cs = getComputedStyle(card.querySelector('merch-addon p'));
+            expect(cs.fontSize).to.equal('14px');
+            expect(cs.lineHeight).to.equal('18px');
+            expect(cs.fontWeight).to.equal('700');
+        });
+    });
+
+    it('keeps the plan-type paragraphs switching on display', async () => {
+        // The rule above must not touch display, or every plan type shows.
+        card = await renderCard(
+            '<merch-addon slot="addon" plan-type="ABM">' +
+                '<p id="abm" data-plan-type="ABM">Annual</p>' +
+                '<p id="puf" data-plan-type="PUF">Prepaid</p>' +
+                '</merch-addon>',
+        );
+        expect(getComputedStyle(card.querySelector('#abm')).display).to.equal(
+            'block',
+        );
+        expect(getComputedStyle(card.querySelector('#puf')).display).to.equal(
+            'none',
+        );
+    });
 });
 
 describe('pro quantity selector repricing', () => {

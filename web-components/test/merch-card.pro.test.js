@@ -223,6 +223,44 @@ describe('pro dark theme rendering', () => {
     });
 });
 
+describe('pro strikethrough price', () => {
+    let card;
+    afterEach(() => card?.remove());
+
+    // The two shapes WCS resolves into. Authored: a standalone strikethrough
+    // inline-price ahead of the real one (what the EDU fragments use). Promo:
+    // one price-template inline-price holding both prices.
+    const AUTHORED =
+        '<div slot="heading-m"><p><span is="inline-price" data-template="strikethrough" class="placeholder-resolved">' +
+        '<span class="price price-strikethrough">US$69.99/mo</span></span></p></div>';
+    const PROMO =
+        '<div slot="heading-m"><p><span is="inline-price" data-template="price" class="placeholder-resolved">' +
+        '<span class="price price-strikethrough">US$69.99/mo</span>&nbsp;' +
+        '<span class="price price-alternative">US$19.99/mo</span></span></p></div>';
+
+    it('strikes the authored price once, from the inner span only', async () => {
+        // The global sheet strikes the wrapper too, and the wrapper's line is
+        // drawn with heading-m's Display metrics in full-opacity black — the
+        // doubled rule that read as a bolder strike.
+        card = await renderCard(AUTHORED);
+        const wrapper = card.querySelector('[data-template="strikethrough"]');
+        const inner = card.querySelector('.price-strikethrough');
+        expect(getComputedStyle(wrapper).textDecorationLine).to.equal('none');
+        expect(getComputedStyle(inner).textDecorationLine).to.equal(
+            'line-through',
+        );
+    });
+
+    it('leaves the promo shape striking from its inner span', async () => {
+        card = await renderCard(PROMO);
+        const inner = card.querySelector('.price-strikethrough');
+        expect(getComputedStyle(inner).textDecorationLine).to.equal(
+            'line-through',
+        );
+        expect(getComputedStyle(inner).fontWeight).to.equal('400');
+    });
+});
+
 describe('pro whats-included section header typography', () => {
     let card;
     afterEach(() => card?.remove());

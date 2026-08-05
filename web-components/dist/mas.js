@@ -6068,6 +6068,25 @@ merch-card[variant="pro"]
     color: var(--consonant-merch-card-pro-text-muted-color);
 }
 
+/* The global sheet strikes the [data-template="strikethrough"] wrapper as well
+   as the .price-strikethrough inside it, so the authored shape draws the line
+   twice. The wrapper's copy is the visible one: it keeps heading-m's inherited
+   Adobe Clean Display metrics, and --merch-color-inline-price-strikethrough is
+   declared initial (i.e. guaranteed-invalid), so its color falls through to the
+   card's full-opacity text \u2014 an opaque rule at a Display font's strike offset,
+   laid over the muted one. That doubling is what reads as a bolder strike.
+   Leave the line to the inner span, which the rule above already matches to
+   Figma. The promo shape never had the problem: its wrapper is
+   [data-template="price"], which the global rule does not select. */
+merch-card[variant="pro"]
+    [slot="heading-m"]
+    span[is="inline-price"]:is(
+        [data-template="strikethrough"],
+        [data-template="priceStrikethrough"]
+    ):has(.price-strikethrough) {
+    text-decoration: none;
+}
+
 /* Stack the struck price onto its own line. The authored shape needs the
    inline-price wrapper itself to break (its inner .price going block would
    stay inside the inline-block wrapper); the promo shape needs the inner

@@ -24,3 +24,20 @@ each ODIN/Scenario takes either one fragment/os id, fetches it, and then sleeps 
 `K6_WEB_DASHBOARD=true k6 --env USERS=10 --env SLEEP=0.1 --env DURATION=2m run ./fragment-fetches.js`
 
 if you ran with K6_WEB_DASHBOARD variable, you'll have live data of your simulation nicely output in localhost:5665
+
+## promotions herd test (MWPW-202263)
+
+`promotions-herd.js` validates the per-surface stale-while-revalidate + single-flight promotions
+cache. Unlike the ramp/step scripts it uses **constant-vus** (steady concurrency) and must run long
+enough to cross the ~5-min TTL twice. Hit the action **origin directly** (not the CDN) and point
+`TEST_FRAG_URL` at the namespace under test:
+
+```
+k6 --env USERS=10 --env DURATION=15m --env RUN=main-baseline run ./promotions-herd.js
+# redeploy the change, then re-run identically:
+k6 --env USERS=10 --env DURATION=15m --env RUN=branch-202263 run ./promotions-herd.js
+```
+
+Each request is stamped `x-request-id=<RUN>-<surface>-<vu>-<iter>`, propagated to Odin as
+`X-Correlation-ID`. Count promo-list fetches in Splunk by matching `fetch` +
+`path=/content/dam/mas/promotions&limit=50`, split on the `<RUN>`/`<surface>` prefix.

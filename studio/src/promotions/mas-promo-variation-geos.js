@@ -1,5 +1,12 @@
 import { LitElement, html, nothing } from 'lit';
 import { styles } from './mas-promo-variation-geos.css.js';
+import {
+    handleSearchInput,
+    filterBySearchQuery,
+    computeSelectAllChecked,
+    computeSelectAllIndeterminate,
+    computeSelectionCountLabel,
+} from '../common/utils/selectable-list.js';
 
 class MasPromoVariationGeos extends LitElement {
     static styles = styles;
@@ -28,23 +35,23 @@ class MasPromoVariationGeos extends LitElement {
     }
 
     get filteredGeos() {
-        if (!this.searchQuery) return this.geos;
-        const query = this.searchQuery.toLowerCase();
-        return this.geos.filter((geo) => geo.toLowerCase().includes(query));
+        return filterBySearchQuery(this.geos, this.searchQuery, (geo) => geo);
+    }
+
+    handleSearch(e) {
+        this.searchQuery = handleSearchInput(e);
     }
 
     get selectAllChecked() {
-        return this.selectableGeos.length > 0 && this.value.length === this.selectableGeos.length;
+        return computeSelectAllChecked(this.selectableGeos.length, this.value.length);
     }
 
     get selectAllIndeterminate() {
-        return this.value.length > 0 && this.value.length < this.selectableGeos.length;
+        return computeSelectAllIndeterminate(this.selectableGeos.length, this.value.length);
     }
 
     get numberOfGeos() {
-        const count = this.value.length;
-        if (count) return `${count} ${count === 1 ? 'geo' : 'geos'} selected`;
-        return `${this.geos.length} ${this.geos.length === 1 ? 'geo' : 'geos'}`;
+        return computeSelectionCountLabel(this.value.length, this.geos.length, 'geo');
     }
 
     get showInheritHint() {
@@ -58,10 +65,6 @@ class MasPromoVariationGeos extends LitElement {
 
     displayLabel(geo) {
         return geo.split('/').pop() || geo;
-    }
-
-    handleSearch(e) {
-        this.searchQuery = e.target.value;
     }
 
     selectAll(e) {
@@ -97,6 +100,7 @@ class MasPromoVariationGeos extends LitElement {
                                   <sp-checkbox
                                       ?checked=${this.selectAllChecked}
                                       ?indeterminate=${this.selectAllIndeterminate}
+                                      ?disabled=${this.selectableGeos.length === 0}
                                       @change=${this.selectAll}
                                   >
                                       Select all

@@ -111,6 +111,7 @@ const OST_OPTION_ATTRIBUTE_MAPPING = {
     modal: 'data-modal',
     entitlement: 'data-entitlement',
     upgrade: 'data-upgrade',
+    lockedOsi: 'data-locked-osi',
 };
 
 export const OST_OPTION_ATTRIBUTE_MAPPING_REVERSE = Object.fromEntries(
@@ -130,7 +131,7 @@ export async function onPlaceholderSelect(offerSelectorId, type, offer, options,
             masCommerceService.settings.country,
             null,
             offer.customer_segment,
-            offer.market_segments[0],
+            offer.market_segments?.[0],
         );
         settings = {
             ...settings,
@@ -261,6 +262,7 @@ export function openOfferSelectorTool(triggerElement, offerElement) {
                 'modal',
                 'entitlement',
                 'upgrade',
+                'lockedOsi',
             ].forEach((key) => {
                 const value = offerSelectorPlaceholderOptions[key];
                 if (value) searchParameters.append(key, value);

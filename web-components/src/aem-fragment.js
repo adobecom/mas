@@ -7,7 +7,7 @@ import {
 } from './constants.js';
 import { MasError } from './mas-error.js';
 import { getLogHeaders } from './utilities.js';
-import { getService, printMeasure } from './utils.js';
+import { getService, getValidatedMasLibsUrl, printMeasure } from './utils.js';
 import { masFetch } from './utils/mas-fetch.js';
 
 const ATTRIBUTE_FRAGMENT = 'fragment';
@@ -503,24 +503,13 @@ export class AemFragment extends HTMLElement {
      */
     getFragmentClientUrl() {
         const urlParams = new URLSearchParams(window.location.search);
-        const masLibs = urlParams.get('maslibs');
-
-        if (!masLibs || masLibs.trim() === '') {
-            return 'https://mas.adobe.com/studio/libs/fragment-client.js';
-        }
-        const sanitizedMasLibs = masLibs.trim().toLowerCase();
-
-        if (sanitizedMasLibs === 'local') {
-            return 'http://localhost:3000/studio/libs/fragment-client.js';
-        }
-
         // Detect current domain extension (.page or .live)
         const { hostname } = window.location;
         const extension = hostname.endsWith('.page') ? 'page' : 'live';
-        if (sanitizedMasLibs.includes('--')) {
-            return `https://${sanitizedMasLibs}.aem.${extension}/studio/libs/fragment-client.js`;
-        }
-        return `https://${sanitizedMasLibs}--mas--adobecom.aem.${extension}/studio/libs/fragment-client.js`;
+        const baseUrl =
+            getValidatedMasLibsUrl(urlParams.get('maslibs'), extension) ??
+            'https://mas.adobe.com';
+        return `${baseUrl}/studio/libs/fragment-client.js`;
     }
 
     async generatePreview() {

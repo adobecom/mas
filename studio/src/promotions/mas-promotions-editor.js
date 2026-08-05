@@ -74,7 +74,7 @@ import {
 import { renderFragmentStatusCell } from '../common/utils/render-utils.js';
 import { clearCaches } from '../../libs/fragment-client.js';
 import { canEditPromotions } from '../groups.js';
-import { deleteAttachedPromoVariations, getAllAttachedPromoVariations } from './promotions-repository.js';
+import { getAllAttachedPromoVariations } from './promotions-repository.js';
 
 function getPromotionPickerFragmentLabel(data) {
     const webComponentName = MODEL_WEB_COMPONENT_MAPPING[data?.model?.path];
@@ -152,7 +152,7 @@ class MasPromotionsEditor extends LitElement {
         this.isCreated = false;
         this.isDialogOpen = false;
         this.confirmDialogConfig = null;
-        this.isSelectedItemsOpen = false;
+        this.isSelectedItemsOpen = true;
         this.promoCodesManagerOpen = false;
         this.promoManagerOffers = [];
         this.promotionItemsAddButtonLabel = 'Add selected fragments';
@@ -286,7 +286,7 @@ class MasPromotionsEditor extends LitElement {
     }
 
     #mapPromotionOfferSelectorToRow(selectorId) {
-        const cached = Store.promotions.offerDataCache.get(selectorId);
+        const cached = Store.promotions.offerRecordsCache.get(selectorId);
         if (cached) return cached;
         return {
             path: selectorId,
@@ -360,6 +360,7 @@ class MasPromotionsEditor extends LitElement {
         Store.promotions.selectedCards.set([]);
         Store.promotions.selectedOffers.set([]);
         Store.promotions.offerDataCache.clear();
+        Store.promotions.offerRecordsCache.clear();
         Store.promotions.groupedVariationsByParent.set(new Map());
         Store.promotions.groupedVariationsData.set(new Map());
         Store.promotions.allCollections.set([]);
@@ -427,7 +428,7 @@ class MasPromotionsEditor extends LitElement {
         const savedOfferIds = parseSelectedOfferIdsFromOffersField(offerValues);
         if (savedOfferIds.length) {
             Store.promotions.selectedOffers.set(savedOfferIds);
-            await hydratePromotionOfferRecords(savedOfferIds, Store.promotions.offerDataCache);
+            await hydratePromotionOfferRecords(savedOfferIds, Store.promotions.offerRecordsCache);
         } else if (!hasStoredOfferSelection) {
             Store.promotions.selectedOffers.set([]);
         }
@@ -894,7 +895,6 @@ class MasPromotionsEditor extends LitElement {
         const [tagPath] = tagId ? fromAttribute(tagId) : [];
         try {
             showToast('Deleting promotion campaign...');
-            await deleteAttachedPromoVariations(this.repository.aem, this.fragment);
             await this.repository.deleteFragment(this.fragmentStore, { startToast: false, endToast: false });
             if (tagPath) {
                 try {

@@ -1376,6 +1376,8 @@ class MerchCardEditor extends LitElement {
                         this.availableBorderColors,
                         form.borderColor?.values[0],
                         'borderColor',
+                        undefined,
+                        this.#isBorderColorDisabledByTheme(form),
                     )}
                     ${this.#backgroundColorSelection(
                         this.availableBackgroundColors,
@@ -2442,7 +2444,14 @@ class MerchCardEditor extends LitElement {
         `;
     }
 
-    #renderColorPicker(id, label, colors, selectedValue, dataField, onChange) {
+    // Border Color is disabled while the theme (backgroundColor) matches the
+    // mapping's disableWhenBackgroundColor — pro disables it on Dark.
+    #isBorderColorDisabledByTheme(form) {
+        const disableWhen = this.currentVariantMapping?.borderColor?.disableWhenBackgroundColor;
+        return !!disableWhen && form.backgroundColor?.values?.[0] === disableWhen;
+    }
+
+    #renderColorPicker(id, label, colors, selectedValue, dataField, onChange, disabled = false) {
         const isDividerField = dataField === 'whatsIncludedDividerColor';
 
         const showAllSpectrum = this.currentVariantMapping?.showAllSpectrumColors;
@@ -2473,15 +2482,18 @@ class MerchCardEditor extends LitElement {
             }
         }
 
+        const hideTransparent = !isDividerField && this.currentVariantMapping?.borderColor?.hideTransparent;
         if (!selectedValue) {
             displaySelectedValue = 'Default';
         } else if (selectedValue === 'transparent') {
-            displaySelectedValue = 'Transparent';
+            // Legacy content can still hold transparent; show it as Default when
+            // the option is hidden for this variant.
+            displaySelectedValue = hideTransparent ? 'Default' : 'Transparent';
         }
 
         const options = [
             'Default',
-            'Transparent',
+            ...(hideTransparent ? [] : ['Transparent']),
             ...(!showAllSpectrum ? Object.keys(variantSpecialValues) : []),
             ...colorArray,
         ];
@@ -2519,6 +2531,7 @@ class MerchCardEditor extends LitElement {
                     data-field-state="${this.#getColorPickerFieldState(dataField)}"
                     value="${displaySelectedValue || 'Default'}"
                     data-default-value="Default"
+                    ?disabled=${disabled}
                     @change="${handleChange}"
                 >
                     ${options.map(

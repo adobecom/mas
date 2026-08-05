@@ -18,7 +18,7 @@ export const CSS = `
     --consonant-merch-card-pro-text-inverse-color: #fff;
     --consonant-merch-card-pro-cta-accent-color: #3b63fb;
     --consonant-merch-card-pro-cta-accent-hover-color: #274dea;
-    --consonant-merch-card-pro-cta-outline-hover-color: #ebebeb;
+    --consonant-merch-card-pro-cta-outline-hover-color: #00000014;
     --consonant-merch-card-pro-divider-color: #0000001f;
 }
 
@@ -279,6 +279,8 @@ merch-card[variant="pro"] [slot="footer"] button {
     min-width: 0;
     height: 40px;
     padding: 14px 24px;
+    /* S2A spacing-xs between an icon and the label; inert without one */
+    gap: 8px;
     border-radius: 999px;
     font-family: var(--consonant-merch-card-pro-font-family-regular);
     font-weight: 700;
@@ -302,9 +304,9 @@ merch-card[variant="pro"] [slot="footer"] [data-button-type="accent"] {
     border: none;
 }
 
-/* Hover (S2A): the accent button darkens; the outline button gets a subtle
-   gray fill while its border and text stay unchanged. Selectors mirror the
-   base rules above so hover applies to the same buttons. */
+/* Hover (S2A): the accent button darkens; the outline button washes over with
+   the opposing tone. Selectors mirror the base rules above so hover applies to
+   the same buttons. */
 merch-card[variant="pro"] [slot="footer"] .con-button.blue:hover,
 merch-card[variant="pro"] [slot="footer"] a.accent:hover,
 merch-card[variant="pro"] [slot="footer"] [data-button-type="accent"]:hover {
@@ -317,7 +319,7 @@ merch-card[variant="pro"] [slot="footer"] a.outline,
 merch-card[variant="pro"] [slot="footer"] [data-button-type="primary"] {
     background: transparent;
     color: var(--consonant-merch-card-pro-text-color);
-    /* dark re-points just the border to #dadada; label stays white */
+    /* border tracks the label: #000 on light, #fff on dark */
     border: 2px solid
         var(
             --consonant-merch-card-pro-cta-outline-border-color,
@@ -325,11 +327,19 @@ merch-card[variant="pro"] [slot="footer"] [data-button-type="primary"] {
         );
 }
 
+/* S2A Button/Core/Primary outlined (node 2161:54613): the wash is black@8% on
+   light and white@64% on dark, and only dark's is opaque enough to need the
+   label knocked back to black. The override falls through to the resting color,
+   so light stays as it is. Neither context moves the border. */
 merch-card[variant="pro"] [slot="footer"] .con-button.outline:hover,
 merch-card[variant="pro"] [slot="footer"] .con-button.primary:hover,
 merch-card[variant="pro"] [slot="footer"] a.outline:hover,
 merch-card[variant="pro"] [slot="footer"] [data-button-type="primary"]:hover {
     background-color: var(--consonant-merch-card-pro-cta-outline-hover-color);
+    color: var(
+        --consonant-merch-card-pro-cta-outline-hover-text-color,
+        var(--consonant-merch-card-pro-text-color)
+    );
 }
 
 /* heading-m holds the price. inline-price cards are covered by the .price-span

@@ -177,6 +177,50 @@ describe('pro dark theme rendering', () => {
             /rgba?\(255,\s*255,\s*255,\s*0\.6/,
         );
     });
+
+    it('outlines the CTA in white on dark and black on light at rest', async () => {
+        // S2A on-dark default border is the knockout #fff (node 2161:54609),
+        // not the #dadada card-border gray the other variants use; light reads
+        // #000 straight off the resting text color (node 2074:86780).
+        card = await renderCard(
+            '<div slot="footer"><a class="con-button primary" href="#">Buy now</a></div>',
+        );
+        const cta = card.querySelector('[slot="footer"] a');
+        expect(getComputedStyle(cta).borderColor).to.equal('rgb(0, 0, 0)');
+
+        card.setAttribute('background-color', 'dark');
+        await card.updateComplete;
+        expect(getComputedStyle(cta).borderColor).to.equal(
+            'rgb(255, 255, 255)',
+        );
+    });
+
+    it('washes the outline CTA with white@64% and knocks its label to black on hover', async () => {
+        // S2A Button/Core/Primary, outlined + on-dark + hover (node 2161:54613).
+        // The hover itself is plain CSS, so assert the tokens the rule reads.
+        card = await renderCard('<div slot="footer"></div>');
+        card.setAttribute('background-color', 'dark');
+        await card.updateComplete;
+        const token = (name) =>
+            getComputedStyle(card)
+                .getPropertyValue(`--consonant-merch-card-pro-${name}`)
+                .trim();
+        expect(token('cta-outline-hover-color')).to.equal('#ffffffa3');
+        expect(token('cta-outline-hover-text-color')).to.equal('#000');
+    });
+
+    it('washes the outline CTA with black@8% and leaves its label alone on light', async () => {
+        // Same component, on-light (node 2074:86782): only the background moves,
+        // so the label override stays unset and falls back to the resting color.
+        card = await renderCard('<div slot="footer"></div>');
+        await card.updateComplete;
+        const token = (name) =>
+            getComputedStyle(card)
+                .getPropertyValue(`--consonant-merch-card-pro-${name}`)
+                .trim();
+        expect(token('cta-outline-hover-color')).to.equal('#00000014');
+        expect(token('cta-outline-hover-text-color')).to.equal('');
+    });
 });
 
 describe('pro whats-included section header typography', () => {

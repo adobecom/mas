@@ -5686,7 +5686,7 @@ merch-card[variant="plans-v2"][size="wide"] footer [slot="heading-m"] {
     --consonant-merch-card-pro-text-inverse-color: #fff;
     --consonant-merch-card-pro-cta-accent-color: #3b63fb;
     --consonant-merch-card-pro-cta-accent-hover-color: #274dea;
-    --consonant-merch-card-pro-cta-outline-hover-color: #ebebeb;
+    --consonant-merch-card-pro-cta-outline-hover-color: #00000014;
     --consonant-merch-card-pro-divider-color: #0000001f;
 }
 
@@ -5947,6 +5947,8 @@ merch-card[variant="pro"] [slot="footer"] button {
     min-width: 0;
     height: 40px;
     padding: 14px 24px;
+    /* S2A spacing-xs between an icon and the label; inert without one */
+    gap: 8px;
     border-radius: 999px;
     font-family: var(--consonant-merch-card-pro-font-family-regular);
     font-weight: 700;
@@ -5970,9 +5972,9 @@ merch-card[variant="pro"] [slot="footer"] [data-button-type="accent"] {
     border: none;
 }
 
-/* Hover (S2A): the accent button darkens; the outline button gets a subtle
-   gray fill while its border and text stay unchanged. Selectors mirror the
-   base rules above so hover applies to the same buttons. */
+/* Hover (S2A): the accent button darkens; the outline button washes over with
+   the opposing tone. Selectors mirror the base rules above so hover applies to
+   the same buttons. */
 merch-card[variant="pro"] [slot="footer"] .con-button.blue:hover,
 merch-card[variant="pro"] [slot="footer"] a.accent:hover,
 merch-card[variant="pro"] [slot="footer"] [data-button-type="accent"]:hover {
@@ -5985,7 +5987,7 @@ merch-card[variant="pro"] [slot="footer"] a.outline,
 merch-card[variant="pro"] [slot="footer"] [data-button-type="primary"] {
     background: transparent;
     color: var(--consonant-merch-card-pro-text-color);
-    /* dark re-points just the border to #dadada; label stays white */
+    /* border tracks the label: #000 on light, #fff on dark */
     border: 2px solid
         var(
             --consonant-merch-card-pro-cta-outline-border-color,
@@ -5993,11 +5995,19 @@ merch-card[variant="pro"] [slot="footer"] [data-button-type="primary"] {
         );
 }
 
+/* S2A Button/Core/Primary outlined (node 2161:54613): the wash is black@8% on
+   light and white@64% on dark, and only dark's is opaque enough to need the
+   label knocked back to black. The override falls through to the resting color,
+   so light stays as it is. Neither context moves the border. */
 merch-card[variant="pro"] [slot="footer"] .con-button.outline:hover,
 merch-card[variant="pro"] [slot="footer"] .con-button.primary:hover,
 merch-card[variant="pro"] [slot="footer"] a.outline:hover,
 merch-card[variant="pro"] [slot="footer"] [data-button-type="primary"]:hover {
     background-color: var(--consonant-merch-card-pro-cta-outline-hover-color);
+    color: var(
+        --consonant-merch-card-pro-cta-outline-hover-text-color,
+        var(--consonant-merch-card-pro-text-color)
+    );
 }
 
 /* heading-m holds the price. inline-price cards are covered by the .price-span
@@ -6373,8 +6383,11 @@ merch-card-collection.plans:is(.one-merch-card, .two-merch-cards, .three-merch-c
             --secure-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23a3a3a3'%3E%3Cpath d='M9 9.2C9 8.64844 8.55156 8.2 8 8.2C7.44844 8.2 7 8.64844 7 9.2C7 9.52207 7.16289 9.7959 7.4 9.9789V10.6C7.4 10.9312 7.66875 11.2 8 11.2C8.33125 11.2 8.6 10.9312 8.6 10.6V9.9789C8.83711 9.7959 9 9.52207 9 9.2Z'/%3E%3Cpath d='M12 5.62031V5.2C12 2.99453 10.2055 1.2 8 1.2C5.79453 1.2 4 2.99453 4 5.2V5.62031C3.10274 5.72129 2.4 6.47637 2.4 7.4V12.6C2.4 13.5922 3.20782 14.4 4.2 14.4H11.8C12.7922 14.4 13.6 13.5922 13.6 12.6V7.4C13.6 6.47637 12.8973 5.72129 12 5.62031ZM8 2.4C9.54375 2.4 10.8 3.65625 10.8 5.2V5.6H5.2V5.2C5.2 3.65625 6.45625 2.4 8 2.4ZM12.4 12.6C12.4 12.9305 12.1305 13.2 11.8 13.2H4.2C3.86953 13.2 3.6 12.9305 3.6 12.6V7.4C3.6 7.06953 3.86953 6.8 4.2 6.8H11.8C12.1305 6.8 12.4 7.06953 12.4 7.4V12.6Z'/%3E%3C/svg%3E");
             /* dividers stay transparent-black-12, same as light */
             --consonant-merch-card-pro-divider-color: #0000001f;
-            --consonant-merch-card-pro-cta-outline-border-color: #dadada;
-            --consonant-merch-card-pro-cta-outline-hover-color: #ffffff1f;
+            --consonant-merch-card-pro-cta-outline-border-color: #fff;
+            /* white@64% over the #000 top-card resolves to #a3a3a3, so the
+               label has to knock back to black to stay legible on it */
+            --consonant-merch-card-pro-cta-outline-hover-color: #ffffffa3;
+            --consonant-merch-card-pro-cta-outline-hover-text-color: #000;
             /* dropdown trigger = #131313; border keeps the light value */
             --consonant-merch-card-pro-control-bg: #131313;
             --consonant-merch-card-pro-control-hover-bg: #ffffff14;

@@ -1030,6 +1030,49 @@ describe('pro license label pluralization', () => {
     });
 });
 
+describe('pro license options from the authored selector', () => {
+    let card;
+    afterEach(() => card?.remove());
+
+    const QS = (attrs) =>
+        `<div slot="quantity-select"><merch-quantity-select title="License|Licenses" ${attrs}></merch-quantity-select></div>`;
+
+    const options = () => card.variantLayout.licenseOptions;
+
+    it('renders no selector for a negative step instead of hanging', async () => {
+        // `v += step` with a negative step walks away from max forever, so
+        // merely reading this getter used to lock the browser up. The authored
+        // merch-quantity-select shows nothing below step 1 (generateOptionsArray
+        // guards on step > 0), and the mirrored list has to agree.
+        card = await renderCard(QS('min="1" max="5" step="-1"'));
+        expect(options()).to.be.null;
+        expect(card.variantLayout.hasLicenseSelector).to.be.false;
+        expect(card.shadowRoot.querySelector('.license-select-trigger')).to.be
+            .null;
+    });
+
+    it('falls back to a step of 1 when the step is absent or unusable', async () => {
+        card = await renderCard(QS('min="1" max="3"'));
+        expect(options(), 'absent').to.deep.equal(['1', '2', '3']);
+        card.remove();
+        card = await renderCard(QS('min="1" max="3" step="0"'));
+        expect(options(), 'zero').to.deep.equal(['1', '2', '3']);
+        card.remove();
+        card = await renderCard(QS('min="1" max="3" step="abc"'));
+        expect(options(), 'unparseable').to.deep.equal(['1', '2', '3']);
+    });
+
+    it('walks min to max on the authored step', async () => {
+        card = await renderCard(QS('min="2" max="8" step="3"'));
+        expect(options()).to.deep.equal(['2', '5', '8']);
+    });
+
+    it('has no options without a usable range', async () => {
+        card = await renderCard(QS('min="5" max="2" step="1"'));
+        expect(options()).to.be.null;
+    });
+});
+
 describe('pro resize handling', () => {
     let card;
     // Real animation frames are throttled for backgrounded test pages, so the

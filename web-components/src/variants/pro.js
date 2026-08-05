@@ -441,10 +441,17 @@ export class Pro extends VariantLayout {
         const min = parseInt(qs.getAttribute('min'), 10);
         const max = parseInt(qs.getAttribute('max'), 10);
         const step = parseInt(qs.getAttribute('step'), 10) || 1;
-        if (Number.isNaN(min) || Number.isNaN(max) || max < min) return null;
+        // A negative step walks v away from max forever and hangs the page.
+        // merch-quantity-select renders nothing for a non-positive step
+        // (generateOptionsArray guards on step > 0), so mirror it rather than
+        // invent a list the authored selector never shows. 0 and unparseable
+        // values still fall back to 1 above, so only a negative step lands here.
+        if (Number.isNaN(min) || Number.isNaN(max) || max < min || step < 1)
+            return null;
         const opts = [];
+        // min <= max and step >= 1, so this always yields at least one option.
         for (let v = min; v <= max; v += step) opts.push(String(v));
-        return opts.length ? opts : null;
+        return opts;
     }
 
     // Plural label from the authored "singular|plural" title (two dictionary

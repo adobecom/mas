@@ -225,15 +225,21 @@ export function parsePlaceholderRemap(textValue) {
     return remaps;
 }
 
-export function applyPlaceholderRemaps(fragment, remaps) {
+export function applyPlaceholderRemaps(fragment, remaps, context) {
     const entries = Object.entries(remaps);
     if (!fragment?.fields || entries.length === 0) return;
-    let fieldsString = JSON.stringify(fragment.fields);
-    for (const [from, to] of entries) {
-        const pattern = new RegExp(`{{\\s*${from.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*}}`, 'g');
-        fieldsString = fieldsString.replace(pattern, `{{${to}}}`);
+    const escaped = entries.map(([from]) => from.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+    const pattern = new RegExp(`{{\\s*(${escaped.join('|')})\\s*}}`, 'g');
+    const fieldsString = JSON.stringify(fragment.fields).replace(pattern, (match, key) => `{{${remaps[key.trim()]}}}`);
+    try {
+        fragment.fields = JSON.parse(fieldsString);
+    } catch {
+        if (context)
+            logDebug(
+                () => `placeholderRemap produced invalid JSON for fragment ${fragment.id}; leaving fields unchanged`,
+                context,
+            );
     }
-    fragment.fields = JSON.parse(fieldsString);
 }
 
 function applySettings(context, fragment, locale, settings) {
@@ -251,7 +257,7 @@ function applySettings(context, fragment, locale, settings) {
             [entry.name]: extractValue(entry, fragment),
         };
     }
-    applyPlaceholderRemaps(fragment, remaps);
+    applyPlaceholderRemaps(fragment, remaps, context);
     //temporary fix waiting for MWPW-189860 to be implemented
     if (fragment?.fields?.perUnitLabel) {
         fragment.priceLiterals ??= {};

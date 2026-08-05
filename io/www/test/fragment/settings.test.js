@@ -1081,6 +1081,30 @@ describe('settings', () => {
                 applyPlaceholderRemaps(fragment, {});
                 expect(fragment.fields.callout).to.equal('{{annual-billed-monthly}}');
             });
+
+            it('does not chain rules across a single pass', () => {
+                const fragment = { fields: { callout: '{{a}} {{b}}' } };
+                applyPlaceholderRemaps(fragment, { a: 'b', b: 'c' });
+                expect(fragment.fields.callout).to.equal('{{b}} {{c}}');
+            });
+
+            it('treats replacement special patterns in the target as literal', () => {
+                const fragment = { fields: { callout: '{{x}}' } };
+                applyPlaceholderRemaps(fragment, { x: 'a$&b' });
+                expect(fragment.fields.callout).to.equal('{{a$&b}}');
+            });
+
+            it('leaves fields unchanged when the rewrite produces invalid JSON', () => {
+                const fragment = { fields: { callout: '{{x}}' } };
+                applyPlaceholderRemaps(fragment, { x: 'a"b' });
+                expect(fragment.fields.callout).to.equal('{{x}}');
+            });
+
+            it('logs and leaves fields unchanged on invalid JSON when a debug context is provided', () => {
+                const fragment = { id: 'f1', fields: { callout: '{{x}}' } };
+                applyPlaceholderRemaps(fragment, { x: 'a"b' }, { debugLogs: true });
+                expect(fragment.fields.callout).to.equal('{{x}}');
+            });
         });
 
         describe('applySettings integration', () => {

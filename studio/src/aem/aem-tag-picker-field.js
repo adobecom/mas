@@ -63,6 +63,7 @@ class AemTagPickerField extends LitElement {
         disabled: { type: Boolean, reflect: true },
         /** When set, overrides the selection-derived quiet styling of the trigger button. */
         quiet: { type: Boolean },
+        noTagsText: { type: String },
     };
 
     static styles = css`
@@ -196,6 +197,7 @@ class AemTagPickerField extends LitElement {
         this.personalizationToggle = false;
         this.personalizationEnabled = false;
         this.disabled = false;
+        this.noTagsText = '';
     }
 
     async #getOfferProductArrangementCode(offerSelectorId, offer) {
@@ -949,7 +951,7 @@ class AemTagPickerField extends LitElement {
     get readonlyTags() {
         if (!this.ready) return nothing;
         if (this.tagsInHierarchy.length === 0) {
-            return html`<span class="no-tags">No tags</span>`;
+            return html`<span class="no-tags">${this.noTagsText ?? 'No tags'}</span>`;
         }
         return html`
             <sp-tags>

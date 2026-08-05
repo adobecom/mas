@@ -336,3 +336,5 @@ export const VARIATION_TAB_NAME = {
     PROMOTION: 'promotion',
     GROUPED: 'grouped',
 };
+
+export const GEOS_TAGS_INHERITED_TEXT = 'Inherits tags from project';

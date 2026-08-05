@@ -10,7 +10,7 @@ import { mergePromoReferencesIntoFragmentData } from '../promotions/promotions-r
 import { getPromotionInfo, getPromotionTagFromFragment, findPromotionProjectIdByTag } from '../promotions/promotion-model.js';
 import { getGroupedVariationTagsValue } from '../editors/variation-utils.js';
 import Store from '../store.js';
-import { PAGE_NAMES, VARIATION_TAB_NAME } from '../constants.js';
+import { GEOS_TAGS_INHERITED_TEXT, PAGE_NAMES, VARIATION_TAB_NAME } from '../constants.js';
 import '../aem/aem-tag-picker-field.js';
 
 export class MasCollapsibleTableRow extends LitElement {
@@ -408,6 +408,7 @@ export class MasCollapsibleTableRow extends LitElement {
                 top="locale,pzn"
                 value="${geosValue}"
                 readonly
+                .noTagsText=${GEOS_TAGS_INHERITED_TEXT}
             ></aem-tag-picker-field>
         </sp-table-cell>`;
     }

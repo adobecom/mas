@@ -277,6 +277,23 @@ describe('OstStore', () => {
         expect(store.defaultPlaceholderOptions.displayTax).to.be.false;
     });
 
+    it('restores lockedOsi from offerSelectorPlaceholderOptions on init', () => {
+        store.init({ offerSelectorPlaceholderOptions: { lockedOsi: true } });
+        expect(store.lockedOsi).to.be.true;
+    });
+
+    it('resets lockedOsi to false on re-init when new element is not locked', () => {
+        store.init({ offerSelectorPlaceholderOptions: { lockedOsi: true } });
+        store.init({ offerSelectorPlaceholderOptions: { lockedOsi: false } });
+        expect(store.lockedOsi).to.be.false;
+    });
+
+    it('resets lockedOsi to false on re-init when new element has no lockedOsi option', () => {
+        store.init({ offerSelectorPlaceholderOptions: { lockedOsi: true } });
+        store.init({});
+        expect(store.lockedOsi).to.be.false;
+    });
+
     describe('autoSelectByInitialOsi attribute matching', () => {
         const offers = [
             { offer_id: 'T1', offer_type: 'TRIAL', commitment: 'YEAR', term: 'MONTHLY', customer_segment: 'INDIVIDUAL' },

@@ -292,26 +292,31 @@ runTests(async () => {
                 'position:absolute;left:-9999px;top:0;width:520px;';
             const card = document.createElement('merch-card');
             card.setAttribute('variant', variant);
-            whatsIncluded.setAttribute('slot', 'whats-included');
+            whatsIncluded.setAttribute(
+                'slot',
+                variant === 'mini-compare-chart'
+                    ? 'footer-rows'
+                    : 'whats-included',
+            );
             card.appendChild(whatsIncluded);
             mount.appendChild(card);
             document.body.appendChild(mount);
             await customElements.whenDefined('merch-card');
             await card.updateComplete;
-            await delay(50);
+            await card.checkReady();
             return { card, mount };
         }
 
         function iconDisplay(card, rowIndex) {
             const iconSlot = card.querySelector(
-                `[slot="whats-included"] [slot="content"] merch-mnemonic-list:nth-of-type(${rowIndex + 1}) [slot="icon"]`,
+                `merch-whats-included [slot="content"] merch-mnemonic-list:nth-of-type(${rowIndex + 1}) [slot="icon"]`,
             );
             return window.getComputedStyle(iconSlot).display;
         }
 
         function bulletIconDisplay(card, rowIndex = 0) {
             const iconSlot = card.querySelector(
-                `[slot="whats-included"] [slot="contentBullets"] merch-mnemonic-list:nth-of-type(${rowIndex + 1}) [slot="icon"]`,
+                `merch-whats-included [slot="contentBullets"] merch-mnemonic-list:nth-of-type(${rowIndex + 1}) [slot="icon"]`,
             );
             return window.getComputedStyle(iconSlot).display;
         }

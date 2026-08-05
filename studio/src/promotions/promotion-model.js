@@ -94,6 +94,19 @@ export function buildPromoVariationPath(defaultPath, promoName, suffixIndex) {
 }
 
 /**
+ * Builds the root folder path for all promotions, independent of specific projects.
+ * @param {string} defaultPath
+ * @returns {string|null}
+ */
+export function buildPromotionsRootPath(defaultPath) {
+    if (!defaultPath) return null;
+    const match = PATH_TOKENS.exec(defaultPath);
+    if (!match?.groups) return null;
+    const { surface, parsedLocale } = match.groups;
+    return `${ROOT_PATH}/${surface}/${parsedLocale}/${PROMOTIONS_PATH_PREFIX.replace(/\/$/, '')}`;
+}
+
+/**
  * Builds the promo variation DAM path from a default fragment path and mas:promotion/ tag.
  * @param {string} defaultPath
  * @param {string} promoTagId

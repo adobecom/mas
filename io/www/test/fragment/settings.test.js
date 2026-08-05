@@ -1094,16 +1094,13 @@ describe('settings', () => {
                 expect(fragment.fields.callout).to.equal('{{a$&b}}');
             });
 
-            it('leaves fields unchanged when the rewrite produces invalid JSON', () => {
-                const fragment = { fields: { callout: '{{x}}' } };
-                applyPlaceholderRemaps(fragment, { x: 'a"b' });
-                expect(fragment.fields.callout).to.equal('{{x}}');
-            });
-
-            it('logs and leaves fields unchanged on invalid JSON when a debug context is provided', () => {
+            it('logs an error and leaves fields unchanged when the rewrite produces invalid JSON', () => {
+                const errorStub = sinon.stub(console, 'error');
                 const fragment = { id: 'f1', fields: { callout: '{{x}}' } };
-                applyPlaceholderRemaps(fragment, { x: 'a"b' }, { debugLogs: true });
+                applyPlaceholderRemaps(fragment, { x: 'a"b' }, { debugLogs: false });
+                errorStub.restore();
                 expect(fragment.fields.callout).to.equal('{{x}}');
+                expect(errorStub.calledOnce).to.be.true;
             });
         });
 

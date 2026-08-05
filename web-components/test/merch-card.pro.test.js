@@ -953,6 +953,56 @@ describe('pro license dropdown keyboard navigation', () => {
             `#${trigger().getAttribute('aria-activedescendant')}`,
         );
 
+    it('shows exactly one focus ring while the popover is open', async () => {
+        // The trigger's ring is drawn 1px OUTSIDE its box and the popover sits
+        // exactly on top of that box, so while expanded the ring escaped around
+        // the edges and laid a second blue line across the first option's own.
+        // :focus-visible is input-modality dependent and won't match reliably
+        // under the runner, so assert the rule that suppresses it rather than
+        // trying to provoke the state.
+        card = await renderCard(QS);
+        trigger().click();
+        await card.updateComplete;
+        expect(trigger().getAttribute('aria-expanded')).to.equal('true');
+
+        const rules = [
+            ...[...card.shadowRoot.adoptedStyleSheets].flatMap((s) => [
+                ...s.cssRules,
+            ]),
+            ...[...card.shadowRoot.querySelectorAll('style')].flatMap((s) => [
+                ...s.sheet.cssRules,
+            ]),
+        ].filter(
+            (r) =>
+                r.selectorText?.includes('aria-expanded') &&
+                r.selectorText?.includes('focus-visible'),
+        );
+        expect(rules).to.have.lengthOf(1);
+        expect(rules[0].style.outline).to.equal('none');
+
+        // The indicator lives on the option being navigated instead — this one
+        // is a plain class, so it is deterministic.
+        expect(getComputedStyle(highlighted()).outlineStyle).to.equal('solid');
+    });
+
+    it('curves the last option so its ring follows the popover corner', async () => {
+        // The popover clips to an 8px radius less its 1px border; a square
+        // outline on the last row got cut by that corner.
+        card = await renderCard(QS);
+        trigger().click();
+        await card.updateComplete;
+        const opts = [
+            ...card.shadowRoot.querySelectorAll('.license-select-option'),
+        ];
+        const cs = getComputedStyle(opts[opts.length - 1]);
+        expect(cs.borderBottomLeftRadius).to.equal('7px');
+        expect(cs.borderBottomRightRadius).to.equal('7px');
+        // rows above the corner stay square
+        expect(getComputedStyle(opts[0]).borderBottomLeftRadius).to.equal(
+            '0px',
+        );
+    });
+
     it('exposes the trigger as a combobox in the tab order', async () => {
         card = await renderCard(QS);
         expect(trigger().getAttribute('role')).to.equal('combobox');

@@ -5703,6 +5703,17 @@ merch-card-collection.plans:is(.one-merch-card, .two-merch-cards, .three-merch-c
             outline-offset: 1px;
         }
 
+        /* Open, the popover sits exactly on top of the trigger — but the ring
+           above is drawn 1px OUTSIDE that box, so it escaped around the edges
+           and laid a second blue line across the first option's own ring. Focus
+           never leaves the trigger, so drop its ring while expanded and let the
+           active option carry the indicator (the aria-activedescendant model:
+           the visual focus follows the option being navigated). */
+        :host([variant='pro'])
+            .license-select-trigger[aria-expanded='true']:focus-visible {
+            outline: none;
+        }
+
         :host([variant='pro']) .license-select-trigger-text {
             display: flex;
             align-items: center;
@@ -5795,8 +5806,15 @@ merch-card-collection.plans:is(.one-merch-card, .two-merch-cards, .three-merch-c
             border-bottom: 1px solid rgba(0, 0, 0, 0.08);
         }
 
+        /* The last row meets the popover's rounded bottom. Its outline follows
+           its own border-radius, so leaving that at 0 drew square corners that
+           the popover's overflow:hidden then clipped. Match the popover's inner
+           radius (8px border-radius less its 1px border) and the ring curves
+           with the corner instead. */
         :host([variant='pro']) .license-select-option:last-child {
             border-bottom: none;
+            border-bottom-left-radius: 7px;
+            border-bottom-right-radius: 7px;
         }
 
         :host([variant='pro']) .license-select-option:hover,

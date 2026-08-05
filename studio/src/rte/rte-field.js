@@ -863,6 +863,7 @@ class RteField extends LitElement {
                 'data-force-tax-exclusive': { default: null },
                 'data-template': { default: null },
                 'data-wcs-osi': { default: null },
+                'data-locked-osi': { default: null },
             },
             parseDOM: [
                 {
@@ -1056,6 +1057,7 @@ class RteField extends LitElement {
                     'data-entitlement': { default: null },
                     'data-upgrade': { default: null },
                     'data-cta-toggle-text': { default: null },
+                    'data-locked-osi': { default: null },
                 },
                 // Disallow styling marks inside links (they can still wrap them)
                 marks: 'em strong strikethrough underline superscript',

@@ -111,6 +111,7 @@ const OST_OPTION_ATTRIBUTE_MAPPING = {
     modal: 'data-modal',
     entitlement: 'data-entitlement',
     upgrade: 'data-upgrade',
+    lockedOsi: 'data-locked-osi',
 };
 
 export const OST_OPTION_ATTRIBUTE_MAPPING_REVERSE = Object.fromEntries(
@@ -261,6 +262,7 @@ export function openOfferSelectorTool(triggerElement, offerElement) {
                 'modal',
                 'entitlement',
                 'upgrade',
+                'lockedOsi',
             ].forEach((key) => {
                 const value = offerSelectorPlaceholderOptions[key];
                 if (value) searchParameters.append(key, value);

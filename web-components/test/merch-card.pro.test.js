@@ -5,6 +5,7 @@ import '../src/mas.js';
 import {
     EVENT_MERCH_CARD_QUANTITY_CHANGE,
     EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
+    EVENT_TYPE_RESOLVED,
 } from '../src/constants.js';
 
 let Pro;
@@ -233,9 +234,14 @@ describe('pro whats-included section header typography', () => {
 
 describe('Pro.adjustLegal', () => {
     function makeFixture(priceOverrides = {}) {
+        // addEventListener has to be here: adjustLegal subscribes the clone to
+        // EVENT_TYPE_RESOLVED, and a clone without it threw a TypeError that the
+        // method's own catch swallowed — every assertion below then ran against a
+        // half-finished call, and the tail of adjustLegal went untested.
         const clone = {
             setAttribute: sinon.spy(),
             onceSettled: () => Promise.resolve(),
+            addEventListener: sinon.spy(),
             dataset: {},
         };
         const insertBefore = sinon.spy();
@@ -294,6 +300,59 @@ describe('Pro.adjustLegal', () => {
         const { layout, insertBefore } = makeFixture();
         layout.card.querySelector = () => null;
         await layout.adjustLegal(); // must not throw
+        expect(insertBefore.called).to.be.false;
+    });
+
+    it('bails out when the price settles without options', async () => {
+        // onceSettled can resolve on a price WCS never priced; reading
+        // .options off it would throw and lose the rest of the update.
+        const { layout, clone, insertBefore } = makeFixture({
+            options: undefined,
+        });
+        await layout.adjustLegal();
+        expect(insertBefore.called).to.be.false;
+        expect(clone.setAttribute.called).to.be.false;
+    });
+
+    it('moves the plan type onto the legal clone', async () => {
+        const { layout, price } = makeFixture({
+            options: { displayPlanType: true },
+        });
+        await layout.adjustLegal();
+        expect(price.dataset.displayPlanType).to.equal('false');
+    });
+
+    it('subscribes the legal clone to re-resolves and re-applies the override', async () => {
+        // The clone re-renders from WCS on every resolve, wiping the injected
+        // short description — so the handler has to be bound to the clone, not
+        // just invoked once at the end of adjustLegal.
+        const { layout, clone } = makeFixture();
+        const reapply = sinon.stub(layout, 'adjustShortDescription');
+        await layout.adjustLegal();
+        expect(reapply.called, 'applies the override once in place').to.be.true;
+        expect(clone.addEventListener.calledOnce).to.be.true;
+        const [eventName, handler] = clone.addEventListener.firstCall.args;
+        expect(eventName).to.equal(EVENT_TYPE_RESOLVED);
+        // The registered handler is what re-applies on later resolutions.
+        reapply.resetHistory();
+        handler();
+        expect(reapply.calledOnce, 'a re-resolve re-applies it').to.be.true;
+    });
+
+    it('keeps the handler it already registered', async () => {
+        const { layout, clone } = makeFixture();
+        layout.legalResolvedHandler = () => {};
+        await layout.adjustLegal();
+        expect(clone.addEventListener.called).to.be.false;
+    });
+
+    it('swallows a price that never settles so the rest of the update runs', async () => {
+        // adjustLegal is one step of postCardUpdateHook; a rejected settle must
+        // not take the height sync and short description down with it.
+        const { layout, insertBefore } = makeFixture({
+            onceSettled: () => Promise.reject(new Error('never priced')),
+        });
+        await layout.adjustLegal(); // must not reject
         expect(insertBefore.called).to.be.false;
     });
 });
@@ -1237,6 +1296,154 @@ describe('pro resize handling', () => {
             await done;
             expect(Object.keys(styles)).to.deep.equal([]);
         } finally {
+            mm.restore();
+        }
+    });
+
+    // Fake card shaped for syncHeights: it only ever reads offsetTop, the
+    // measured width, the strikethrough in light DOM and the bands in the
+    // shadow, so those are all that need standing in for a real render.
+    const makeSyncCard = ({
+        offsetTop = 0,
+        topCardHeight = 300,
+        strikeHeight = null,
+        // A strikethrough that exists but has not been laid out yet, so
+        // getComputedStyle reports no usable height.
+        strikeUnmeasured = false,
+        nameDescHeight = null,
+    } = {}) => {
+        const topCard = { __h: topCardHeight };
+        const strike = strikeUnmeasured
+            ? {}
+            : strikeHeight == null
+              ? null
+              : { __h: strikeHeight };
+        const nameDesc =
+            nameDescHeight == null ? null : { __h: nameDescHeight };
+        const styles = {};
+        const card = {
+            offsetTop,
+            variant: 'pro',
+            getBoundingClientRect: () => ({ width: 300 }),
+            querySelector: (selector) =>
+                selector.includes('strikethrough') ? strike : null,
+            shadowRoot: {
+                querySelector: (selector) => {
+                    if (selector === '.top-card') return topCard;
+                    if (selector === '.name-description') return nameDesc;
+                    return null;
+                },
+            },
+            style: {
+                setProperty: (key, value) => (styles[key] = value),
+                removeProperty: (key) => delete styles[key],
+                getPropertyValue: (key) => styles[key] ?? '',
+            },
+            __styles: styles,
+        };
+        card.variantLayout = { card };
+        return card;
+    };
+
+    // Heights come from the fakes' __h, so getComputedStyle has to be taught to
+    // read it; the row only lines up at >=768px, so matchMedia is pinned too.
+    const stubMeasurement = () => [
+        sinon
+            .stub(window, 'getComputedStyle')
+            .callsFake((el) =>
+                el && '__h' in el ? { height: `${el.__h}px` } : { height: '' },
+            ),
+        sinon.stub(window, 'matchMedia').returns({ matches: true }),
+    ];
+
+    const layoutFor = (card, cards) => {
+        const layout = Object.create(Pro.prototype);
+        layout.card = card;
+        sinon.stub(layout, 'waitForContentFonts').resolves();
+        sinon
+            .stub(layout, 'getContainer')
+            .returns({ querySelectorAll: () => cards });
+        return layout;
+    };
+
+    it('undoes a completed sync when a card opts out of height syncing', async () => {
+        // heightSync arriving as false *after* a sync has published heights has
+        // to remove them, not just skip the next pass — otherwise the card keeps
+        // a min-height it no longer wants and the price sits low in a gap.
+        const prop = '--consonant-merch-card-pro-top-card-height';
+        const optOut = makeSyncCard({ topCardHeight: 200 });
+        const rowMate = makeSyncCard({ topCardHeight: 260 });
+        const layout = layoutFor(optOut, [optOut, rowMate]);
+        const [gcs, mm] = stubMeasurement();
+        try {
+            const first = layout.syncHeights();
+            await flushUntilCalled({
+                get called() {
+                    return optOut.__styles[prop] !== undefined;
+                },
+            });
+            await first;
+            expect(
+                optOut.__styles[prop],
+                'the first sync published the row height',
+            ).to.equal('260px');
+
+            optOut.heightSync = false;
+            await layout.syncHeights();
+            expect(
+                optOut.__styles[prop],
+                'opting out clears what the sync published',
+            ).to.be.undefined;
+            expect(
+                rowMate.__styles[prop],
+                'the rest of the row is left alone',
+            ).to.equal('260px');
+        } finally {
+            gcs.restore();
+            mm.restore();
+        }
+    });
+
+    it('reserves the tallest strikethrough in the row on cards without one', async () => {
+        // Figma keeps the main price at the same offset across a row, so a card
+        // with no struck price pads by the row's tallest strike. Published per
+        // card as a shortfall, which leaves the tallest card untouched.
+        const reserveProp = '--consonant-merch-card-pro-strike-reserve';
+        const nameDescProp =
+            '--consonant-merch-card-pro-name-description-height';
+        const promo = makeSyncCard({ strikeHeight: 18, nameDescHeight: 120 });
+        const plain = makeSyncCard();
+        const unlaidOut = makeSyncCard({ strikeUnmeasured: true });
+        const layout = layoutFor(promo, [promo, plain, unlaidOut]);
+        const [gcs, mm] = stubMeasurement();
+        try {
+            const done = layout.syncHeights();
+            await flushUntilCalled({
+                get called() {
+                    return plain.__styles[reserveProp] !== undefined;
+                },
+            });
+            await done;
+            expect(
+                plain.__styles[reserveProp],
+                'the card with no struck price reserves the full line',
+            ).to.equal('18px');
+            expect(
+                promo.__styles[reserveProp],
+                'the card setting the row max needs no reserve',
+            ).to.be.undefined;
+            // An unmeasured strike counts as 0 rather than NaN — arithmetic on
+            // NaN would publish "NaNpx" and silently drop the reserve.
+            expect(
+                unlaidOut.__styles[reserveProp],
+                'an unmeasured strike falls back to a full reserve',
+            ).to.equal('18px');
+            // The band max still comes from the one card that has the block,
+            // so the row shares an offset even when a card lacks the element.
+            expect(plain.__styles[nameDescProp]).to.equal('120px');
+            expect(promo.__styles[nameDescProp]).to.equal('120px');
+        } finally {
+            gcs.restore();
             mm.restore();
         }
     });

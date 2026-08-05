@@ -38,6 +38,7 @@ export const PRO_AEM_FRAGMENT_MAPPING = {
     addon: true,
     ctas: { slot: 'footer', size: 'm' },
     whatsIncluded: { tag: 'div', slot: 'whats-included' },
+    eduDisclaimer: { tag: 'div', slot: 'edu-disclaimer' },
     backgroundColor: {
         attribute: 'background-color',
         editorLabel: 'Theme',
@@ -147,6 +148,10 @@ export class Pro extends VariantLayout {
 
     get hasWhatsIncluded() {
         return !!this.card.querySelector('[slot="whats-included"]');
+    }
+
+    get hasEduDisclaimer() {
+        return !this.card?.settings?.hideEduDisclaimer;
     }
 
     get whatsIncludedToggleLabel() {
@@ -722,6 +727,11 @@ export class Pro extends VariantLayout {
                           <slot name="whats-included"></slot>
                       </div>
                   `
+                : nothing}
+            ${this.hasEduDisclaimer
+                ? html`<div class="edu-disclaimer">
+                      <slot name="edu-disclaimer"></slot>
+                  </div>`
                 : nothing}
             <slot></slot>
         `;

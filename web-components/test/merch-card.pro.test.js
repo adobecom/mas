@@ -179,9 +179,7 @@ describe('pro dark theme rendering', () => {
     });
 
     it('outlines the CTA in white on dark and black on light at rest', async () => {
-        // S2A on-dark default border is the knockout #fff (node 2161:54609),
-        // not the #dadada card-border gray the other variants use; light reads
-        // #000 straight off the resting text color (node 2074:86780).
+        // S2A's on-dark border is #fff, not the #dadada other variants use.
         card = await renderCard(
             '<div slot="footer"><a class="con-button primary" href="#">Buy now</a></div>',
         );
@@ -227,9 +225,8 @@ describe('pro strikethrough price', () => {
     let card;
     afterEach(() => card?.remove());
 
-    // The two shapes WCS resolves into. Authored: a standalone strikethrough
-    // inline-price ahead of the real one (what the EDU fragments use). Promo:
-    // one price-template inline-price holding both prices.
+    // The two shapes WCS produces: a standalone struck price (what EDU uses),
+    // or one price element holding both.
     const AUTHORED =
         '<div slot="heading-m"><p><span is="inline-price" data-template="strikethrough" class="placeholder-resolved">' +
         '<span class="price price-strikethrough">US$69.99/mo</span></span></p></div>';
@@ -239,9 +236,8 @@ describe('pro strikethrough price', () => {
         '<span class="price price-alternative">US$19.99/mo</span></span></p></div>';
 
     it('strikes the authored price once, from the inner span only', async () => {
-        // The global sheet strikes the wrapper too, and the wrapper's line is
-        // drawn with heading-m's Display metrics in full-opacity black — the
-        // doubled rule that read as a bolder strike.
+        // The global sheet strikes the wrapper too, in the card's heavier font
+        // and full-opacity color — that second line read as a bolder strike.
         card = await renderCard(AUTHORED);
         const wrapper = card.querySelector('[data-template="strikethrough"]');
         const inner = card.querySelector('.price-strikethrough');
@@ -269,9 +265,8 @@ describe('pro whats-included section header typography', () => {
         '<div slot="whats-included"><div class="section"><h4 id="wi-h4">Apps</h4>' +
         '<ul><li id="wi-item">Desktop, web, and mobile</li></ul></div></div>';
 
-    // Figma s2a/typography/body-sm: Regular 400, 14/18, no tracking — not the
-    // UA h4 bold, and not the 0.14px the variant used to apply to body text.
-    // `letter-spacing: 0` computes to `normal` in Chrome.
+    // Figma body-sm: 400, 14/18, no tracking. `letter-spacing: 0` computes to
+    // `normal` in Chrome.
     const expectBodySm = (el) => {
         const cs = getComputedStyle(el);
         expect(cs.fontWeight).to.equal('400');
@@ -380,10 +375,8 @@ describe('pro edu disclaimer', () => {
 
 describe('Pro.adjustLegal', () => {
     function makeFixture(priceOverrides = {}) {
-        // addEventListener has to be here: adjustLegal subscribes the clone to
-        // EVENT_TYPE_RESOLVED, and a clone without it threw a TypeError that the
-        // method's own catch swallowed — every assertion below then ran against a
-        // half-finished call, and the tail of adjustLegal went untested.
+        // The clone needs the listener: without it adjustLegal threw and its own
+        // catch swallowed it, so every assertion below ran against half a call.
         const clone = {
             setAttribute: sinon.spy(),
             onceSettled: () => Promise.resolve(),
@@ -469,9 +462,8 @@ describe('Pro.adjustLegal', () => {
     });
 
     it('subscribes the legal clone to re-resolves and re-applies the override', async () => {
-        // The clone re-renders from WCS on every resolve, wiping the injected
-        // short description — so the handler has to be bound to the clone, not
-        // just invoked once at the end of adjustLegal.
+        // The clone re-renders on every resolve and wipes the injected text, so
+        // the handler has to stay bound to it.
         const { layout, clone } = makeFixture();
         const reapply = sinon.stub(layout, 'adjustShortDescription');
         await layout.adjustLegal();
@@ -954,12 +946,8 @@ describe('pro license dropdown keyboard navigation', () => {
         );
 
     it('shows exactly one focus ring while the popover is open', async () => {
-        // The trigger's ring is drawn 1px OUTSIDE its box and the popover sits
-        // exactly on top of that box, so while expanded the ring escaped around
-        // the edges and laid a second blue line across the first option's own.
-        // :focus-visible is input-modality dependent and won't match reliably
-        // under the runner, so assert the rule that suppresses it rather than
-        // trying to provoke the state.
+        // The trigger's ring escaped around the popover and doubled up with the
+        // option's. :focus-visible is unreliable here, so assert the rule.
         card = await renderCard(QS);
         trigger().click();
         await card.updateComplete;
@@ -1236,10 +1224,8 @@ describe('pro license options from the authored selector', () => {
     const options = () => card.variantLayout.licenseOptions;
 
     it('renders no selector for a negative step instead of hanging', async () => {
-        // `v += step` with a negative step walks away from max forever, so
-        // merely reading this getter used to lock the browser up. The authored
-        // merch-quantity-select shows nothing below step 1 (generateOptionsArray
-        // guards on step > 0), and the mirrored list has to agree.
+        // A negative step counts away from max forever — reading this getter
+        // used to hang the browser. The real selector stops below step 1 too.
         card = await renderCard(QS('min="1" max="5" step="-1"'));
         expect(options()).to.be.null;
         expect(card.variantLayout.hasLicenseSelector).to.be.false;
@@ -1496,9 +1482,8 @@ describe('pro resize handling', () => {
     });
 
     it('clears the synced heights below the sync breakpoint', async () => {
-        // postCardUpdateHook gates on 768px, but the ResizeObserver reaches
-        // syncHeights directly — a stale desktop reserve would leave a gap above
-        // the price on a stacked card.
+        // The caller gates on 768px but the ResizeObserver doesn't, and a stale
+        // desktop reserve leaves a gap above the price on a stacked card.
         const styles = {
             '--consonant-merch-card-pro-top-card-height': '260px',
             '--consonant-merch-card-pro-name-description-height': '120px',
@@ -1539,9 +1524,8 @@ describe('pro resize handling', () => {
         }
     });
 
-    // Fake card shaped for syncHeights: it only ever reads offsetTop, the
-    // measured width, the strikethrough in light DOM and the bands in the
-    // shadow, so those are all that need standing in for a real render.
+    // Fake card for syncHeights: it only reads offsetTop, the width, the struck
+    // price and the bands, so that's all we need to stand in.
     const makeSyncCard = ({
         offsetTop = 0,
         topCardHeight = 300,
@@ -1606,9 +1590,8 @@ describe('pro resize handling', () => {
     };
 
     it('undoes a completed sync when a card opts out of height syncing', async () => {
-        // heightSync arriving as false *after* a sync has published heights has
-        // to remove them, not just skip the next pass — otherwise the card keeps
-        // a min-height it no longer wants and the price sits low in a gap.
+        // heightSync going false after a sync has to remove the heights, not just
+        // skip the next pass, or the card keeps a min-height it doesn't want.
         const prop = '--consonant-merch-card-pro-top-card-height';
         const optOut = makeSyncCard({ topCardHeight: 200 });
         const rowMate = makeSyncCard({ topCardHeight: 260 });
@@ -1644,9 +1627,8 @@ describe('pro resize handling', () => {
     });
 
     it('reserves the tallest strikethrough in the row on cards without one', async () => {
-        // Figma keeps the main price at the same offset across a row, so a card
-        // with no struck price pads by the row's tallest strike. Published per
-        // card as a shortfall, which leaves the tallest card untouched.
+        // Figma keeps the price at the same height across a row, so a card with
+        // no struck price pads by the row's tallest one.
         const reserveProp = '--consonant-merch-card-pro-strike-reserve';
         const nameDescProp =
             '--consonant-merch-card-pro-name-description-height';
@@ -1778,9 +1760,8 @@ describe('pro add-on theming', () => {
     });
 
     it('holds the checkbox at 20px against a label that overruns the row', async () => {
-        // merch-addon's shadow lays out with flex and the box is shrinkable
-        // there, so a long label squeezed it to a sliver. Pro re-lays the host
-        // out on two grid tracks (Figma 1098:34458 marks the box shrink-0).
+        // merch-addon's flex layout lets the box shrink, so a long label squeezed
+        // it to a sliver. Pro re-lays the host out on two grid tracks.
         card = await renderCard(
             '<merch-addon slot="addon" custom-checkbox plan-type="ABM">' +
                 '<p data-plan-type="ABM">Add Acrobat AI Assistant to your plan for US$4.99/mo</p>' +
@@ -1793,10 +1774,8 @@ describe('pro add-on theming', () => {
         expect(box.getBoundingClientRect().width).to.equal(20);
     });
 
-    // Since MWPW-202635 the copy is authored per plan type, and merch-addon's
-    // own label typography skips ::slotted(p[data-plan-type]). Pro styles the
-    // paragraph directly so both shapes land on the s2a label token
-    // (Figma 1098:34458 — 14/18/700).
+    // merch-addon skips its label styling once the paragraph has a
+    // data-plan-type, so pro styles it directly.
     ['<p>Add AI</p>', '<p data-plan-type="ABM">Add AI</p>'].forEach((copy) => {
         it(`sets the add-on label to 14/18/700 for ${copy}`, async () => {
             card = await renderCard(

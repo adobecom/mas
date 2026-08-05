@@ -45,12 +45,8 @@ merch-card[variant="pro"][size='edu'] {
     max-width: 1068px;
 }
 
-/* Authored inline links sit on the card's own surface, so Milo's global
-   \`a { color: var(--link-color) }\` renders them Spectrum blue against it.
-   Take the surrounding copy's color instead — white on a dark card, black on
-   a light one, and the 64%-muted token inside the features list — leaving the
-   underline as the only link affordance. Scoped to the text slots so the
-   footer CTAs (styled as buttons below) are untouched. */
+/* Milo paints links Spectrum blue, which fights the card. Take the surrounding
+   text color instead and let the underline do the work. */
 merch-card[variant="pro"]
     :is(
         [slot="body-xs"],
@@ -98,12 +94,8 @@ merch-card[variant="pro"] [slot="callout-content"] > div {
 merch-card[variant="pro"] merch-addon[slot="addon"] {
     flex: 1 0 0;
     min-width: 0;
-    /* merch-addon lays its shadow children out with flex, and the checkbox is a
-       shrinkable item there — so a label whose max-content overruns the row (it
-       always does on a narrow track) squeezes the 20px box down to a sliver.
-       Two explicit grid tracks pin it instead; Figma marks the box shrink-0.
-       An outer-tree rule outranks the component's own :host, and only pro cards
-       carry this selector, so no other variant's addon is affected. */
+    /* merch-addon's flex layout lets the checkbox shrink, so a long label
+       squashes it. Two fixed grid tracks hold it at 20px. */
     display: grid;
     grid-template-columns: var(--merch-addon-checkbox-size) minmax(0, 1fr);
     --merch-addon-gap: 8px;
@@ -128,14 +120,8 @@ merch-card[variant="pro"] merch-addon[slot="addon"] {
     --merch-addon-label-color: var(--consonant-merch-card-pro-text-color);
 }
 
-/* Since MWPW-202635 the addon copy is authored as one <p data-plan-type="…">
-   per plan type, and merch-addon only applies its label typography to
-   ::slotted(p:not([data-plan-type])) — so on a plan-type card the
-   --merch-addon-label-* props above reach nothing and the copy falls back to
-   the card's 18/27 body. Style the slotted paragraph directly: an outer-tree
-   rule outranks ::slotted() regardless, and it holds for both shapes. Values
-   are the s2a label token (Figma 1098:34458 / I…;984:7865). Deliberately no
-   display — that is what switches between the plan-type paragraphs. */
+/* merch-addon stops styling its label once the paragraph picks up a
+   data-plan-type, so do it here. No display — that is what switches plan types. */
 merch-card[variant="pro"] merch-addon[slot="addon"] p {
     margin: 0;
     color: var(--consonant-merch-card-pro-text-color);
@@ -452,9 +438,7 @@ merch-card[variant="pro"] [slot="footer"] [data-button-type="accent"] {
     border: none;
 }
 
-/* Hover (S2A): the accent button darkens; the outline button washes over with
-   the opposing tone. Selectors mirror the base rules above so hover applies to
-   the same buttons. */
+/* Hover: the accent button darkens, the outline button picks up a wash. */
 merch-card[variant="pro"] [slot="footer"] .con-button.blue:hover,
 merch-card[variant="pro"] [slot="footer"] a.accent:hover,
 merch-card[variant="pro"] [slot="footer"] [data-button-type="accent"]:hover {
@@ -475,10 +459,8 @@ merch-card[variant="pro"] [slot="footer"] [data-button-type="primary"] {
         );
 }
 
-/* S2A Button/Core/Primary outlined (node 2161:54613): the wash is black@8% on
-   light and white@64% on dark, and only dark's is opaque enough to need the
-   label knocked back to black. The override falls through to the resting color,
-   so light stays as it is. Neither context moves the border. */
+/* S2A outlined button (2161:54613): black@8% wash on light, white@64% on dark,
+   where the label flips to black to stay readable. The border never moves. */
 merch-card[variant="pro"] [slot="footer"] .con-button.outline:hover,
 merch-card[variant="pro"] [slot="footer"] .con-button.primary:hover,
 merch-card[variant="pro"] [slot="footer"] a.outline:hover,
@@ -548,16 +530,8 @@ merch-card[variant="pro"]
     color: var(--consonant-merch-card-pro-text-muted-color);
 }
 
-/* The global sheet strikes the [data-template="strikethrough"] wrapper as well
-   as the .price-strikethrough inside it, so the authored shape draws the line
-   twice. The wrapper's copy is the visible one: it keeps heading-m's inherited
-   Adobe Clean Display metrics, and --merch-color-inline-price-strikethrough is
-   declared initial (i.e. guaranteed-invalid), so its color falls through to the
-   card's full-opacity text — an opaque rule at a Display font's strike offset,
-   laid over the muted one. That doubling is what reads as a bolder strike.
-   Leave the line to the inner span, which the rule above already matches to
-   Figma. The promo shape never had the problem: its wrapper is
-   [data-template="price"], which the global rule does not select. */
+/* The global sheet strikes the wrapper as well as the span inside it, so the
+   authored price gets two lines. Leave it to the inner span. */
 merch-card[variant="pro"]
     [slot="heading-m"]
     span[is="inline-price"]:is(
@@ -601,11 +575,8 @@ merch-card[variant="pro"]
     line-height: 0;
 }
 
-/* Hold the strikethrough's line so the main price keeps the same offset across
-   the row (Figma reserves that row in the Plans comps). syncHeights publishes
-   the per-card shortfall against the row's tallest strikethrough — zero for the
-   tallest card, unset for rows that have none — so this covers an absent
-   strikethrough, a shorter/wrapped one, and a literal price alike. */
+/* Reserve the struck price's line so the real price sits at the same height
+   across the row. syncHeights publishes each card's shortfall. */
 merch-card[variant="pro"] [slot="heading-m"] {
     padding-top: var(--consonant-merch-card-pro-strike-reserve, 0);
 }

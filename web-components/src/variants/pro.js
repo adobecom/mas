@@ -15,9 +15,8 @@ const VARIANT = 'pro';
 // syncHeights publishes these properties and the shadow styles consume them; the
 // single definition keeps producer and consumer from diverging.
 const TOP_CARD_HEIGHT_PROP = `--consonant-merch-card-${VARIANT}-top-card-height`;
-// Bands above the price. Equalising them per row puts the price line at the same
-// offset on every card, which is how Figma lays the row out (Name + Description is
-// a fixed 166px block, so Pricing + CTA always starts at the same y).
+// Match these blocks across a row so the price lands at the same height on
+// every card, the way Figma lays it out.
 const SYNCED_BANDS = [
     {
         prop: `--consonant-merch-card-${VARIANT}-mnemonic-height`,
@@ -28,10 +27,8 @@ const SYNCED_BANDS = [
         selector: '.name-description',
     },
 ];
-// Figma reserves the strikethrough line so the main price keeps its offset on
-// cards without one — but only where the row actually has a promo price (the
-// dark Lightroom comp hides that row entirely). Published per row, not per
-// collection, so a second wrapped row doesn't inherit a reserve it never needs.
+// Reserve the struck price's row so cards without one keep the same price
+// offset. Published per row, so a wrapped second row doesn't inherit it.
 const STRIKE_RESERVE_PROP = `--consonant-merch-card-${VARIANT}-strike-reserve`;
 const STRIKE_SELECTOR =
     '[slot="heading-m"] :is(.price-strikethrough, .price-promo-strikethrough, [data-template="strikethrough"])';
@@ -327,9 +324,8 @@ export class Pro extends VariantLayout {
                 card.getBoundingClientRect().width > 2 &&
                 card.variantLayout?.card?.heightSync !== false,
         );
-        // Stacked cards are each their own row, so there is nothing to line up —
-        // and a stale desktop reserve would leave a gap above the price. The
-        // ResizeObserver reaches here without the caller's breakpoint check.
+        // Stacked cards are each their own row, so there's nothing to line up,
+        // and a leftover desktop reserve would leave a gap above the price.
         if (!window.matchMedia(SYNC_MIN_WIDTH).matches) {
             cards.forEach((card) => this.clearSyncedHeights(card));
             return;
@@ -351,11 +347,8 @@ export class Pro extends VariantLayout {
             row.forEach((card) => this.clearSyncedHeights(card));
             // A lone card has nothing to match, so it keeps its natural height.
             if (row.length < 2) continue;
-            // Reserve first: it grows the price block, which every measurement
-            // below depends on. Publish each card's shortfall against the row's
-            // tallest strikethrough rather than a flat row height — that covers a
-            // literal price, an absent strikethrough and a wrapped (taller) one
-            // with the same rule, and leaves the tallest card untouched.
+            // Reserve first — it grows the price block everything below measures.
+            // A per-card shortfall covers short, wrapped and missing strikes alike.
             const strikes = row.map((card) =>
                 card.querySelector(STRIKE_SELECTOR)
                     ? parseInt(
@@ -397,10 +390,8 @@ export class Pro extends VariantLayout {
         SYNCED_BANDS.forEach((band) => card.style.removeProperty(band.prop));
     }
 
-    // Re-sync on a real reflow, keyed so publishing the min-heights can't loop the
-    // observer. The key covers everything that moves the price line — a late WCS
-    // resolution adds the strikethrough and legal rows long after the first
-    // measurement — but nothing syncHeights itself writes, so it settles in one pass.
+    // Re-sync on a real reflow, keyed so our own writes can't loop the observer.
+    // A late price resolution adds the struck and legal rows after the first pass.
     resyncOnReflow() {
         const width = this.card.getBoundingClientRect().width;
         if (width <= 2) return;
@@ -437,9 +428,8 @@ export class Pro extends VariantLayout {
             EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
             this.updatePriceQuantity,
         );
-        // A quantity-driven promo can swap the price in without resizing either
-        // observed box — the footer's auto margin swallows it — so the resize
-        // observer alone would miss it. inline-price resolutions bubble here.
+        // A promo can swap the price without resizing either observed box, so the
+        // resize observer alone misses it. Price resolutions bubble here.
         this.card.addEventListener(EVENT_TYPE_RESOLVED, this.#onPriceResolved);
         if (typeof ResizeObserver === 'undefined') return;
         this.#sizeObserver = new ResizeObserver(() => this.resyncOnReflow());
@@ -484,11 +474,8 @@ export class Pro extends VariantLayout {
         const min = parseInt(qs.getAttribute('min'), 10);
         const max = parseInt(qs.getAttribute('max'), 10);
         const step = parseInt(qs.getAttribute('step'), 10) || 1;
-        // A negative step walks v away from max forever and hangs the page.
-        // merch-quantity-select renders nothing for a non-positive step
-        // (generateOptionsArray guards on step > 0), so mirror it rather than
-        // invent a list the authored selector never shows. 0 and unparseable
-        // values still fall back to 1 above, so only a negative step lands here.
+        // A negative step counts away from max forever and hangs the page.
+        // merch-quantity-select shows nothing below step 1, so do the same.
         if (Number.isNaN(min) || Number.isNaN(max) || max < min || step < 1)
             return null;
         const opts = [];
@@ -941,10 +928,8 @@ export class Pro extends VariantLayout {
             display: flex;
             flex-direction: column;
             gap: 8px;
-            /* Hold the row's tallest description so the price line starts at the
-               same offset on every card (Figma's fixed Name + Description block).
-               The slack goes to the footer margin below, not here — growing this
-               instead would float the price wherever the blocks under it allow. */
+            /* Hold the row's tallest description so the price starts at the same
+               height everywhere. The slack goes to the footer margin, not here. */
             flex: 0 0 auto;
             min-height: var(${unsafeCSS(SYNCED_BANDS[1].prop)}, auto);
         }
@@ -1167,12 +1152,8 @@ export class Pro extends VariantLayout {
             outline-offset: 1px;
         }
 
-        /* Open, the popover sits exactly on top of the trigger — but the ring
-           above is drawn 1px OUTSIDE that box, so it escaped around the edges
-           and laid a second blue line across the first option's own ring. Focus
-           never leaves the trigger, so drop its ring while expanded and let the
-           active option carry the indicator (the aria-activedescendant model:
-           the visual focus follows the option being navigated). */
+        /* Open, the trigger's ring escapes around the popover and doubles up
+           with the active option's. Let the option carry it. */
         :host([variant='pro'])
             .license-select-trigger[aria-expanded='true']:focus-visible {
             outline: none;
@@ -1270,11 +1251,8 @@ export class Pro extends VariantLayout {
             border-bottom: 1px solid rgba(0, 0, 0, 0.08);
         }
 
-        /* The last row meets the popover's rounded bottom. Its outline follows
-           its own border-radius, so leaving that at 0 drew square corners that
-           the popover's overflow:hidden then clipped. Match the popover's inner
-           radius (8px border-radius less its 1px border) and the ring curves
-           with the corner instead. */
+        /* An outline follows its own element's radius, so square corners got
+           clipped by the popover. Match its inner radius (8px less the border). */
         :host([variant='pro']) .license-select-option:last-child {
             border-bottom: none;
             border-bottom-left-radius: 7px;

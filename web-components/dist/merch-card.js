@@ -6890,6 +6890,14 @@ merch-card[variant="special-offers"] span[is="inline-price"][data-template="lega
   margin-bottom: calc(-1 * var(--consonant-merch-spacing-xxs));
 }
 
+merch-card[variant="special-offers"] span[is="inline-price"][data-template="legal"] .price-tax-inclusivity {
+  display: none;
+}
+
+merch-card[variant="special-offers"] .price-plan-type {
+  font-style: italic;
+}
+
 
 /* grid style for special-offers */
 .one-merch-card.special-offers,

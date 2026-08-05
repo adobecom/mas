@@ -5,6 +5,7 @@ import '../src/mas.js';
 import {
     EVENT_MERCH_CARD_QUANTITY_CHANGE,
     EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
+    EVENT_TYPE_RESOLVED,
 } from '../src/constants.js';
 
 let Pro;
@@ -159,6 +160,155 @@ describe('pro appearance mapping', () => {
     });
 });
 
+describe('pro dark theme rendering', () => {
+    let card;
+    afterEach(() => card?.remove());
+
+    it('keeps whats-included list items muted in dark even with a leftover Black border', async () => {
+        card = await renderCard(
+            '<div slot="whats-included"><div class="section"><h4>Apps</h4><ul><li id="wi-li">Desktop, web, and mobile</li></ul></div></div>',
+        );
+        card.setAttribute('background-color', 'dark');
+        card.setAttribute('border-color', 'black');
+        await card.updateComplete;
+        const li = card.querySelector('#wi-li');
+        // muted white #ffffffa3 (0.64 alpha), not the black-border inverse full white
+        expect(getComputedStyle(li).color).to.match(
+            /rgba?\(255,\s*255,\s*255,\s*0\.6/,
+        );
+    });
+
+    it('outlines the CTA in white on dark and black on light at rest', async () => {
+        // S2A's on-dark border is #fff, not the #dadada other variants use.
+        card = await renderCard(
+            '<div slot="footer"><a class="con-button primary" href="#">Buy now</a></div>',
+        );
+        const cta = card.querySelector('[slot="footer"] a');
+        expect(getComputedStyle(cta).borderColor).to.equal('rgb(0, 0, 0)');
+
+        card.setAttribute('background-color', 'dark');
+        await card.updateComplete;
+        expect(getComputedStyle(cta).borderColor).to.equal(
+            'rgb(255, 255, 255)',
+        );
+    });
+
+    it('washes the outline CTA with white@64% and knocks its label to black on hover', async () => {
+        // S2A Button/Core/Primary, outlined + on-dark + hover (node 2161:54613).
+        // The hover itself is plain CSS, so assert the tokens the rule reads.
+        card = await renderCard('<div slot="footer"></div>');
+        card.setAttribute('background-color', 'dark');
+        await card.updateComplete;
+        const token = (name) =>
+            getComputedStyle(card)
+                .getPropertyValue(`--consonant-merch-card-pro-${name}`)
+                .trim();
+        expect(token('cta-outline-hover-color')).to.equal('#ffffffa3');
+        expect(token('cta-outline-hover-text-color')).to.equal('#000');
+    });
+
+    it('washes the outline CTA with black@8% and leaves its label alone on light', async () => {
+        // Same component, on-light (node 2074:86782): only the background moves,
+        // so the label override stays unset and falls back to the resting color.
+        card = await renderCard('<div slot="footer"></div>');
+        await card.updateComplete;
+        const token = (name) =>
+            getComputedStyle(card)
+                .getPropertyValue(`--consonant-merch-card-pro-${name}`)
+                .trim();
+        expect(token('cta-outline-hover-color')).to.equal('#00000014');
+        expect(token('cta-outline-hover-text-color')).to.equal('');
+    });
+});
+
+describe('pro strikethrough price', () => {
+    let card;
+    afterEach(() => card?.remove());
+
+    // The two shapes WCS produces: a standalone struck price (what EDU uses),
+    // or one price element holding both.
+    const AUTHORED =
+        '<div slot="heading-m"><p><span is="inline-price" data-template="strikethrough" class="placeholder-resolved">' +
+        '<span class="price price-strikethrough">US$69.99/mo</span></span></p></div>';
+    const PROMO =
+        '<div slot="heading-m"><p><span is="inline-price" data-template="price" class="placeholder-resolved">' +
+        '<span class="price price-strikethrough">US$69.99/mo</span>&nbsp;' +
+        '<span class="price price-alternative">US$19.99/mo</span></span></p></div>';
+
+    it('strikes the authored price once, from the inner span only', async () => {
+        // The global sheet strikes the wrapper too, in the card's heavier font
+        // and full-opacity color — that second line read as a bolder strike.
+        card = await renderCard(AUTHORED);
+        const wrapper = card.querySelector('[data-template="strikethrough"]');
+        const inner = card.querySelector('.price-strikethrough');
+        expect(getComputedStyle(wrapper).textDecorationLine).to.equal('none');
+        expect(getComputedStyle(inner).textDecorationLine).to.equal(
+            'line-through',
+        );
+    });
+
+    it('leaves the promo shape striking from its inner span', async () => {
+        card = await renderCard(PROMO);
+        const inner = card.querySelector('.price-strikethrough');
+        expect(getComputedStyle(inner).textDecorationLine).to.equal(
+            'line-through',
+        );
+        expect(getComputedStyle(inner).fontWeight).to.equal('400');
+    });
+});
+
+describe('pro whats-included section header typography', () => {
+    let card;
+    afterEach(() => card?.remove());
+
+    const SECTION =
+        '<div slot="whats-included"><div class="section"><h4 id="wi-h4">Apps</h4>' +
+        '<ul><li id="wi-item">Desktop, web, and mobile</li></ul></div></div>';
+
+    // Figma body-sm: 400, 14/18, no tracking. `letter-spacing: 0` computes to
+    // `normal` in Chrome.
+    const expectBodySm = (el) => {
+        const cs = getComputedStyle(el);
+        expect(cs.fontWeight).to.equal('400');
+        expect(cs.fontSize).to.equal('14px');
+        expect(cs.lineHeight).to.equal('18px');
+        expect(cs.letterSpacing).to.be.oneOf(['normal', '0px']);
+    };
+
+    it('renders section headers as body-sm', async () => {
+        card = await renderCard(SECTION);
+        expectBodySm(card.querySelector('#wi-h4'));
+    });
+
+    it('renders list items as body-sm', async () => {
+        card = await renderCard(SECTION);
+        expectBodySm(card.querySelector('#wi-item'));
+    });
+
+    it('keeps body-sm in dark', async () => {
+        card = await renderCard(SECTION);
+        card.setAttribute('background-color', 'dark');
+        await card.updateComplete;
+        expectBodySm(card.querySelector('#wi-h4'));
+        expectBodySm(card.querySelector('#wi-item'));
+    });
+
+    // Guard the other half of the token set: heading-5 (title) and the price keep
+    // their -0.48px tracking — they are the only pro text that carries any.
+    it('keeps -0.48px tracking on the title and the price', async () => {
+        card = await renderCard(
+            '<h3 slot="heading-xs" id="t">Lightroom for teams</h3>' +
+                '<p slot="heading-m" id="p">US$37.99/mo</p>',
+        );
+        expect(
+            getComputedStyle(card.querySelector('#t')).letterSpacing,
+        ).to.equal('-0.48px');
+        expect(
+            getComputedStyle(card.querySelector('#p')).letterSpacing,
+        ).to.equal('-0.48px');
+    });
+});
+
 describe('pro edu size', () => {
     let card;
     afterEach(() => card?.remove());
@@ -225,9 +375,12 @@ describe('pro edu disclaimer', () => {
 
 describe('Pro.adjustLegal', () => {
     function makeFixture(priceOverrides = {}) {
+        // The clone needs the listener: without it adjustLegal threw and its own
+        // catch swallowed it, so every assertion below ran against half a call.
         const clone = {
             setAttribute: sinon.spy(),
             onceSettled: () => Promise.resolve(),
+            addEventListener: sinon.spy(),
             dataset: {},
         };
         const insertBefore = sinon.spy();
@@ -286,6 +439,58 @@ describe('Pro.adjustLegal', () => {
         const { layout, insertBefore } = makeFixture();
         layout.card.querySelector = () => null;
         await layout.adjustLegal(); // must not throw
+        expect(insertBefore.called).to.be.false;
+    });
+
+    it('bails out when the price settles without options', async () => {
+        // onceSettled can resolve on a price WCS never priced; reading
+        // .options off it would throw and lose the rest of the update.
+        const { layout, clone, insertBefore } = makeFixture({
+            options: undefined,
+        });
+        await layout.adjustLegal();
+        expect(insertBefore.called).to.be.false;
+        expect(clone.setAttribute.called).to.be.false;
+    });
+
+    it('moves the plan type onto the legal clone', async () => {
+        const { layout, price } = makeFixture({
+            options: { displayPlanType: true },
+        });
+        await layout.adjustLegal();
+        expect(price.dataset.displayPlanType).to.equal('false');
+    });
+
+    it('subscribes the legal clone to re-resolves and re-applies the override', async () => {
+        // The clone re-renders on every resolve and wipes the injected text, so
+        // the handler has to stay bound to it.
+        const { layout, clone } = makeFixture();
+        const reapply = sinon.stub(layout, 'adjustShortDescription');
+        await layout.adjustLegal();
+        expect(reapply.called, 'applies the override once in place').to.be.true;
+        expect(clone.addEventListener.calledOnce).to.be.true;
+        const [eventName, handler] = clone.addEventListener.firstCall.args;
+        expect(eventName).to.equal(EVENT_TYPE_RESOLVED);
+        // The registered handler is what re-applies on later resolutions.
+        reapply.resetHistory();
+        handler();
+        expect(reapply.calledOnce, 'a re-resolve re-applies it').to.be.true;
+    });
+
+    it('keeps the handler it already registered', async () => {
+        const { layout, clone } = makeFixture();
+        layout.legalResolvedHandler = () => {};
+        await layout.adjustLegal();
+        expect(clone.addEventListener.called).to.be.false;
+    });
+
+    it('swallows a price that never settles so the rest of the update runs', async () => {
+        // adjustLegal is one step of postCardUpdateHook; a rejected settle must
+        // not take the height sync and short description down with it.
+        const { layout, insertBefore } = makeFixture({
+            onceSettled: () => Promise.reject(new Error('never priced')),
+        });
+        await layout.adjustLegal(); // must not reject
         expect(insertBefore.called).to.be.false;
     });
 });
@@ -740,6 +945,52 @@ describe('pro license dropdown keyboard navigation', () => {
             `#${trigger().getAttribute('aria-activedescendant')}`,
         );
 
+    it('shows exactly one focus ring while the popover is open', async () => {
+        // The trigger's ring escaped around the popover and doubled up with the
+        // option's. :focus-visible is unreliable here, so assert the rule.
+        card = await renderCard(QS);
+        trigger().click();
+        await card.updateComplete;
+        expect(trigger().getAttribute('aria-expanded')).to.equal('true');
+
+        const rules = [
+            ...[...card.shadowRoot.adoptedStyleSheets].flatMap((s) => [
+                ...s.cssRules,
+            ]),
+            ...[...card.shadowRoot.querySelectorAll('style')].flatMap((s) => [
+                ...s.sheet.cssRules,
+            ]),
+        ].filter(
+            (r) =>
+                r.selectorText?.includes('aria-expanded') &&
+                r.selectorText?.includes('focus-visible'),
+        );
+        expect(rules).to.have.lengthOf(1);
+        expect(rules[0].style.outline).to.equal('none');
+
+        // The indicator lives on the option being navigated instead — this one
+        // is a plain class, so it is deterministic.
+        expect(getComputedStyle(highlighted()).outlineStyle).to.equal('solid');
+    });
+
+    it('curves the last option so its ring follows the popover corner', async () => {
+        // The popover clips to an 8px radius less its 1px border; a square
+        // outline on the last row got cut by that corner.
+        card = await renderCard(QS);
+        trigger().click();
+        await card.updateComplete;
+        const opts = [
+            ...card.shadowRoot.querySelectorAll('.license-select-option'),
+        ];
+        const cs = getComputedStyle(opts[opts.length - 1]);
+        expect(cs.borderBottomLeftRadius).to.equal('7px');
+        expect(cs.borderBottomRightRadius).to.equal('7px');
+        // rows above the corner stay square
+        expect(getComputedStyle(opts[0]).borderBottomLeftRadius).to.equal(
+            '0px',
+        );
+    });
+
     it('exposes the trigger as a combobox in the tab order', async () => {
         card = await renderCard(QS);
         expect(trigger().getAttribute('role')).to.equal('combobox');
@@ -963,6 +1214,47 @@ describe('pro license label pluralization', () => {
     });
 });
 
+describe('pro license options from the authored selector', () => {
+    let card;
+    afterEach(() => card?.remove());
+
+    const QS = (attrs) =>
+        `<div slot="quantity-select"><merch-quantity-select title="License|Licenses" ${attrs}></merch-quantity-select></div>`;
+
+    const options = () => card.variantLayout.licenseOptions;
+
+    it('renders no selector for a negative step instead of hanging', async () => {
+        // A negative step counts away from max forever — reading this getter
+        // used to hang the browser. The real selector stops below step 1 too.
+        card = await renderCard(QS('min="1" max="5" step="-1"'));
+        expect(options()).to.be.null;
+        expect(card.variantLayout.hasLicenseSelector).to.be.false;
+        expect(card.shadowRoot.querySelector('.license-select-trigger')).to.be
+            .null;
+    });
+
+    it('falls back to a step of 1 when the step is absent or unusable', async () => {
+        card = await renderCard(QS('min="1" max="3"'));
+        expect(options(), 'absent').to.deep.equal(['1', '2', '3']);
+        card.remove();
+        card = await renderCard(QS('min="1" max="3" step="0"'));
+        expect(options(), 'zero').to.deep.equal(['1', '2', '3']);
+        card.remove();
+        card = await renderCard(QS('min="1" max="3" step="abc"'));
+        expect(options(), 'unparseable').to.deep.equal(['1', '2', '3']);
+    });
+
+    it('walks min to max on the authored step', async () => {
+        card = await renderCard(QS('min="2" max="8" step="3"'));
+        expect(options()).to.deep.equal(['2', '5', '8']);
+    });
+
+    it('has no options without a usable range', async () => {
+        card = await renderCard(QS('min="5" max="2" step="1"'));
+        expect(options()).to.be.null;
+    });
+});
+
 describe('pro resize handling', () => {
     let card;
     // Real animation frames are throttled for backgrounded test pages, so the
@@ -1130,6 +1422,8 @@ describe('pro resize handling', () => {
                 offsetTop,
                 variant: 'pro',
                 getBoundingClientRect: () => ({ width: 300 }),
+                // no strikethrough authored, so no reserve is published
+                querySelector: () => null,
                 shadowRoot: { querySelector: () => topCard },
                 style: {
                     setProperty: (k, v) => (styles[k] = v),
@@ -1159,6 +1453,9 @@ describe('pro resize handling', () => {
             .callsFake((el) =>
                 el && '__h' in el ? { height: `${el.__h}px` } : { height: '' },
             );
+        // syncHeights only lines rows up at >=768px; pin it so the test doesn't
+        // depend on the test runner's window width.
+        const mm = sinon.stub(window, 'matchMedia').returns({ matches: true });
         try {
             const done = layout.syncHeights();
             await flushUntilCalled({
@@ -1180,6 +1477,195 @@ describe('pro resize handling', () => {
             ).to.be.undefined;
         } finally {
             gcs.restore();
+            mm.restore();
+        }
+    });
+
+    it('clears the synced heights below the sync breakpoint', async () => {
+        // The caller gates on 768px but the ResizeObserver doesn't, and a stale
+        // desktop reserve leaves a gap above the price on a stacked card.
+        const styles = {
+            '--consonant-merch-card-pro-top-card-height': '260px',
+            '--consonant-merch-card-pro-name-description-height': '120px',
+            '--consonant-merch-card-pro-strike-reserve': '18px',
+        };
+        const card = {
+            offsetTop: 0,
+            variant: 'pro',
+            getBoundingClientRect: () => ({ width: 300 }),
+            querySelector: () => null,
+            shadowRoot: { querySelector: () => null },
+            style: {
+                setProperty: (k, v) => (styles[k] = v),
+                removeProperty: (k) => delete styles[k],
+                getPropertyValue: (k) => styles[k] ?? '',
+            },
+        };
+        card.variantLayout = { card };
+
+        const layout = Object.create(Pro.prototype);
+        layout.card = card;
+        sinon.stub(layout, 'waitForContentFonts').resolves();
+        sinon
+            .stub(layout, 'getContainer')
+            .returns({ querySelectorAll: () => [card] });
+        const mm = sinon.stub(window, 'matchMedia').returns({ matches: false });
+        try {
+            const done = layout.syncHeights();
+            await flushUntilCalled({
+                get called() {
+                    return Object.keys(styles).length === 0;
+                },
+            });
+            await done;
+            expect(Object.keys(styles)).to.deep.equal([]);
+        } finally {
+            mm.restore();
+        }
+    });
+
+    // Fake card for syncHeights: it only reads offsetTop, the width, the struck
+    // price and the bands, so that's all we need to stand in.
+    const makeSyncCard = ({
+        offsetTop = 0,
+        topCardHeight = 300,
+        strikeHeight = null,
+        // A strikethrough that exists but has not been laid out yet, so
+        // getComputedStyle reports no usable height.
+        strikeUnmeasured = false,
+        nameDescHeight = null,
+    } = {}) => {
+        const topCard = { __h: topCardHeight };
+        const strike = strikeUnmeasured
+            ? {}
+            : strikeHeight == null
+              ? null
+              : { __h: strikeHeight };
+        const nameDesc =
+            nameDescHeight == null ? null : { __h: nameDescHeight };
+        const styles = {};
+        const card = {
+            offsetTop,
+            variant: 'pro',
+            getBoundingClientRect: () => ({ width: 300 }),
+            querySelector: (selector) =>
+                selector.includes('strikethrough') ? strike : null,
+            shadowRoot: {
+                querySelector: (selector) => {
+                    if (selector === '.top-card') return topCard;
+                    if (selector === '.name-description') return nameDesc;
+                    return null;
+                },
+            },
+            style: {
+                setProperty: (key, value) => (styles[key] = value),
+                removeProperty: (key) => delete styles[key],
+                getPropertyValue: (key) => styles[key] ?? '',
+            },
+            __styles: styles,
+        };
+        card.variantLayout = { card };
+        return card;
+    };
+
+    // Heights come from the fakes' __h, so getComputedStyle has to be taught to
+    // read it; the row only lines up at >=768px, so matchMedia is pinned too.
+    const stubMeasurement = () => [
+        sinon
+            .stub(window, 'getComputedStyle')
+            .callsFake((el) =>
+                el && '__h' in el ? { height: `${el.__h}px` } : { height: '' },
+            ),
+        sinon.stub(window, 'matchMedia').returns({ matches: true }),
+    ];
+
+    const layoutFor = (card, cards) => {
+        const layout = Object.create(Pro.prototype);
+        layout.card = card;
+        sinon.stub(layout, 'waitForContentFonts').resolves();
+        sinon
+            .stub(layout, 'getContainer')
+            .returns({ querySelectorAll: () => cards });
+        return layout;
+    };
+
+    it('undoes a completed sync when a card opts out of height syncing', async () => {
+        // heightSync going false after a sync has to remove the heights, not just
+        // skip the next pass, or the card keeps a min-height it doesn't want.
+        const prop = '--consonant-merch-card-pro-top-card-height';
+        const optOut = makeSyncCard({ topCardHeight: 200 });
+        const rowMate = makeSyncCard({ topCardHeight: 260 });
+        const layout = layoutFor(optOut, [optOut, rowMate]);
+        const [gcs, mm] = stubMeasurement();
+        try {
+            const first = layout.syncHeights();
+            await flushUntilCalled({
+                get called() {
+                    return optOut.__styles[prop] !== undefined;
+                },
+            });
+            await first;
+            expect(
+                optOut.__styles[prop],
+                'the first sync published the row height',
+            ).to.equal('260px');
+
+            optOut.heightSync = false;
+            await layout.syncHeights();
+            expect(
+                optOut.__styles[prop],
+                'opting out clears what the sync published',
+            ).to.be.undefined;
+            expect(
+                rowMate.__styles[prop],
+                'the rest of the row is left alone',
+            ).to.equal('260px');
+        } finally {
+            gcs.restore();
+            mm.restore();
+        }
+    });
+
+    it('reserves the tallest strikethrough in the row on cards without one', async () => {
+        // Figma keeps the price at the same height across a row, so a card with
+        // no struck price pads by the row's tallest one.
+        const reserveProp = '--consonant-merch-card-pro-strike-reserve';
+        const nameDescProp =
+            '--consonant-merch-card-pro-name-description-height';
+        const promo = makeSyncCard({ strikeHeight: 18, nameDescHeight: 120 });
+        const plain = makeSyncCard();
+        const unlaidOut = makeSyncCard({ strikeUnmeasured: true });
+        const layout = layoutFor(promo, [promo, plain, unlaidOut]);
+        const [gcs, mm] = stubMeasurement();
+        try {
+            const done = layout.syncHeights();
+            await flushUntilCalled({
+                get called() {
+                    return plain.__styles[reserveProp] !== undefined;
+                },
+            });
+            await done;
+            expect(
+                plain.__styles[reserveProp],
+                'the card with no struck price reserves the full line',
+            ).to.equal('18px');
+            expect(
+                promo.__styles[reserveProp],
+                'the card setting the row max needs no reserve',
+            ).to.be.undefined;
+            // An unmeasured strike counts as 0 rather than NaN — arithmetic on
+            // NaN would publish "NaNpx" and silently drop the reserve.
+            expect(
+                unlaidOut.__styles[reserveProp],
+                'an unmeasured strike falls back to a full reserve',
+            ).to.equal('18px');
+            // The band max still comes from the one card that has the block,
+            // so the row shares an offset even when a card lacks the element.
+            expect(plain.__styles[nameDescProp]).to.equal('120px');
+            expect(promo.__styles[nameDescProp]).to.equal('120px');
+        } finally {
+            gcs.restore();
+            mm.restore();
         }
     });
 });
@@ -1271,6 +1757,51 @@ describe('pro add-on theming', () => {
         expect(styles.borderTopColor).to.equal('rgba(0, 0, 0, 0)');
         expect(styles.backgroundImage).to.contain('rgb(141, 136, 242)');
         expect(styles.backgroundImage).to.contain('rgb(235, 16, 0)');
+    });
+
+    it('holds the checkbox at 20px against a label that overruns the row', async () => {
+        // merch-addon's flex layout lets the box shrink, so a long label squeezed
+        // it to a sliver. Pro re-lays the host out on two grid tracks.
+        card = await renderCard(
+            '<merch-addon slot="addon" custom-checkbox plan-type="ABM">' +
+                '<p data-plan-type="ABM">Add Acrobat AI Assistant to your plan for US$4.99/mo</p>' +
+                '</merch-addon>',
+        );
+        const addon = card.querySelector('merch-addon');
+        addon.style.width = '160px';
+        const box = addon.shadowRoot.querySelector('#custom-checkbox');
+        expect(getComputedStyle(addon).display).to.equal('grid');
+        expect(box.getBoundingClientRect().width).to.equal(20);
+    });
+
+    // merch-addon skips its label styling once the paragraph has a
+    // data-plan-type, so pro styles it directly.
+    ['<p>Add AI</p>', '<p data-plan-type="ABM">Add AI</p>'].forEach((copy) => {
+        it(`sets the add-on label to 14/18/700 for ${copy}`, async () => {
+            card = await renderCard(
+                `<merch-addon slot="addon" plan-type="ABM">${copy}</merch-addon>`,
+            );
+            const cs = getComputedStyle(card.querySelector('merch-addon p'));
+            expect(cs.fontSize).to.equal('14px');
+            expect(cs.lineHeight).to.equal('18px');
+            expect(cs.fontWeight).to.equal('700');
+        });
+    });
+
+    it('keeps the plan-type paragraphs switching on display', async () => {
+        // The rule above must not touch display, or every plan type shows.
+        card = await renderCard(
+            '<merch-addon slot="addon" plan-type="ABM">' +
+                '<p id="abm" data-plan-type="ABM">Annual</p>' +
+                '<p id="puf" data-plan-type="PUF">Prepaid</p>' +
+                '</merch-addon>',
+        );
+        expect(getComputedStyle(card.querySelector('#abm')).display).to.equal(
+            'block',
+        );
+        expect(getComputedStyle(card.querySelector('#puf')).display).to.equal(
+            'none',
+        );
     });
 });
 

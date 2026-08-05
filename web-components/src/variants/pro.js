@@ -12,9 +12,27 @@ import {
 import { MOBILE_LANDSCAPE, TABLET_UP, C2_DESKTOP_UP } from '../media.js';
 
 const VARIANT = 'pro';
-// syncHeights publishes this property and the shadow styles consume it; the
+// syncHeights publishes these properties and the shadow styles consume them; the
 // single definition keeps producer and consumer from diverging.
 const TOP_CARD_HEIGHT_PROP = `--consonant-merch-card-${VARIANT}-top-card-height`;
+// Match these blocks across a row so the price lands at the same height on
+// every card, the way Figma lays it out.
+const SYNCED_BANDS = [
+    {
+        prop: `--consonant-merch-card-${VARIANT}-mnemonic-height`,
+        selector: '.mnemonic',
+    },
+    {
+        prop: `--consonant-merch-card-${VARIANT}-name-description-height`,
+        selector: '.name-description',
+    },
+];
+// Reserve the struck price's row so cards without one keep the same price
+// offset. Published per row, so a wrapped second row doesn't inherit it.
+const STRIKE_RESERVE_PROP = `--consonant-merch-card-${VARIANT}-strike-reserve`;
+const STRIKE_SELECTOR =
+    '[slot="heading-m"] :is(.price-strikethrough, .price-promo-strikethrough, [data-template="strikethrough"])';
+const SYNC_MIN_WIDTH = '(min-width: 768px)';
 
 export const PRO_AEM_FRAGMENT_MAPPING = {
     cardName: { attribute: 'name' },
@@ -47,6 +65,9 @@ export const PRO_AEM_FRAGMENT_MAPPING = {
     borderColor: {
         attribute: 'border-color',
         specialValues: { Black: 'black' },
+        // editor: only Default + Black, and disabled when Theme = Dark
+        hideTransparent: true,
+        disableWhenBackgroundColor: 'dark',
     },
     allowedBorderColors: [],
     style: 'consonant',
@@ -60,6 +81,7 @@ export class Pro extends VariantLayout {
     licenseHighlightedIndex = 0;
     #licenseDocListenerBound = null;
     #sizeObserver = null;
+    #onPriceResolved = () => this.resyncOnReflow();
     lastSyncKey = null;
 
     constructor(card) {
@@ -283,7 +305,11 @@ export class Pro extends VariantLayout {
     // line up. Group by offsetTop, not rect.top: the tab entrance animation
     // transforms the painted tops mid-flight, which would split a row.
     async syncHeights() {
-        if (this.card.heightSync === false) return;
+        // Opting out after a sync has already run must undo it, not just stop.
+        if (this.card.heightSync === false) {
+            this.clearSyncedHeights(this.card);
+            return;
+        }
         await this.waitForContentFonts();
         await new Promise((resolve) => requestAnimationFrame(resolve));
         await new Promise((resolve) => requestAnimationFrame(resolve));
@@ -298,40 +324,95 @@ export class Pro extends VariantLayout {
                 card.getBoundingClientRect().width > 2 &&
                 card.variantLayout?.card?.heightSync !== false,
         );
+        // Stacked cards are each their own row, so there's nothing to line up,
+        // and a leftover desktop reserve would leave a gap above the price.
+        if (!window.matchMedia(SYNC_MIN_WIDTH).matches) {
+            cards.forEach((card) => this.clearSyncedHeights(card));
+            return;
+        }
         const rows = new Map();
         for (const card of cards) {
             const row = rows.get(card.offsetTop) ?? [];
             row.push(card);
             rows.set(card.offsetTop, row);
         }
+        const maxHeight = (row, getElement) =>
+            row.reduce((max, card) => {
+                const el = getElement(card);
+                return el
+                    ? Math.max(max, parseInt(getComputedStyle(el).height) || 0)
+                    : max;
+            }, 0);
         for (const row of rows.values()) {
-            let max = 0;
-            for (const card of row) {
-                card.style.removeProperty(prop);
-                const topCard = card.shadowRoot?.querySelector('.top-card');
-                if (topCard)
-                    max = Math.max(
-                        max,
-                        parseInt(getComputedStyle(topCard).height) || 0,
+            row.forEach((card) => this.clearSyncedHeights(card));
+            // A lone card has nothing to match, so it keeps its natural height.
+            if (row.length < 2) continue;
+            // Reserve first — it grows the price block everything below measures.
+            // A per-card shortfall covers short, wrapped and missing strikes alike.
+            const strikes = row.map((card) =>
+                card.querySelector(STRIKE_SELECTOR)
+                    ? parseInt(
+                          getComputedStyle(card.querySelector(STRIKE_SELECTOR))
+                              .height,
+                      ) || 0
+                    : 0,
+            );
+            const tallestStrike = Math.max(0, ...strikes);
+            if (tallestStrike > 0)
+                row.forEach((card, i) => {
+                    const shortfall = tallestStrike - strikes[i];
+                    if (shortfall > 0)
+                        card.style.setProperty(
+                            STRIKE_RESERVE_PROP,
+                            `${shortfall}px`,
+                        );
+                });
+            for (const band of SYNCED_BANDS) {
+                const max = maxHeight(row, (card) =>
+                    card.shadowRoot?.querySelector(band.selector),
+                );
+                if (max > 0)
+                    row.forEach((card) =>
+                        card.style.setProperty(band.prop, `${max}px`),
                     );
             }
-            // A lone card has nothing to match, so it keeps its natural height.
-            if (max > 0 && row.length > 1)
+            const max = maxHeight(row, (card) =>
+                card.shadowRoot?.querySelector('.top-card'),
+            );
+            if (max > 0)
                 row.forEach((card) => card.style.setProperty(prop, `${max}px`));
         }
     }
 
-    // Re-sync on a real reflow (width or description-height change), keyed so
-    // publishing the min-height can't loop the observer. Mirrors
-    // full-pricing-express.resyncOnReflow.
+    clearSyncedHeights(card) {
+        card.style.removeProperty(TOP_CARD_HEIGHT_PROP);
+        card.style.removeProperty(STRIKE_RESERVE_PROP);
+        SYNCED_BANDS.forEach((band) => card.style.removeProperty(band.prop));
+    }
+
+    // Re-sync on a real reflow, keyed so our own writes can't loop the observer.
+    // A late price resolution adds the struck and legal rows after the first pass.
     resyncOnReflow() {
         const width = this.card.getBoundingClientRect().width;
         if (width <= 2) return;
-        const desc = this.card.querySelector('[slot="body-xs"]');
-        const descHeight = desc
-            ? Math.round(desc.getBoundingClientRect().height)
-            : 0;
-        const key = `${Math.round(width)}:${descHeight}`;
+        const height = (selector, root = this.card) =>
+            Math.round(
+                root?.querySelector(selector)?.getBoundingClientRect().height ||
+                    0,
+            );
+        // Measure inside the price block, never [slot="heading-m"] itself: the
+        // reserve lands on its padding, so keying on that would feed back.
+        const key = [
+            Math.round(width),
+            height('[slot="body-xs"]'),
+            height(STRIKE_SELECTOR),
+            height('[slot="heading-m"] span[is="inline-price"]'),
+            height(
+                '[slot="heading-m"] :is(.price-legal, [data-template="legal"])',
+            ),
+            height('.license-zone', this.card.shadowRoot),
+            height('.add-on', this.card.shadowRoot),
+        ].join(':');
         if (key === this.lastSyncKey) return;
         this.lastSyncKey = key;
         this.syncHeights();
@@ -347,6 +428,9 @@ export class Pro extends VariantLayout {
             EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
             this.updatePriceQuantity,
         );
+        // A promo can swap the price without resizing either observed box, so the
+        // resize observer alone misses it. Price resolutions bubble here.
+        this.card.addEventListener(EVENT_TYPE_RESOLVED, this.#onPriceResolved);
         if (typeof ResizeObserver === 'undefined') return;
         this.#sizeObserver = new ResizeObserver(() => this.resyncOnReflow());
         this.#sizeObserver.observe(this.card);
@@ -358,6 +442,10 @@ export class Pro extends VariantLayout {
         this.card?.removeEventListener(
             EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
             this.updatePriceQuantity,
+        );
+        this.card?.removeEventListener(
+            EVENT_TYPE_RESOLVED,
+            this.#onPriceResolved,
         );
         this.#removeLicenseDocListener();
         this.#sizeObserver?.disconnect();
@@ -386,10 +474,14 @@ export class Pro extends VariantLayout {
         const min = parseInt(qs.getAttribute('min'), 10);
         const max = parseInt(qs.getAttribute('max'), 10);
         const step = parseInt(qs.getAttribute('step'), 10) || 1;
-        if (Number.isNaN(min) || Number.isNaN(max) || max < min) return null;
+        // A negative step counts away from max forever and hangs the page.
+        // merch-quantity-select shows nothing below step 1, so do the same.
+        if (Number.isNaN(min) || Number.isNaN(max) || max < min || step < 1)
+            return null;
         const opts = [];
+        // min <= max and step >= 1, so this always yields at least one option.
         for (let v = min; v <= max; v += step) opts.push(String(v));
-        return opts.length ? opts : null;
+        return opts;
     }
 
     // Plural label from the authored "singular|plural" title (two dictionary
@@ -751,6 +843,15 @@ export class Pro extends VariantLayout {
             overflow: hidden;
             position: relative;
             color: var(--consonant-merch-card-pro-frame-text, #000);
+            /* control (dropdown) surface defaults to light; dark overrides these */
+            --consonant-merch-card-pro-control-bg: var(
+                --consonant-merch-card-pro-bg-default,
+                #fff
+            );
+            --consonant-merch-card-pro-control-hover-bg: var(
+                --consonant-merch-card-pro-bg-subtle,
+                #f8f8f8
+            );
             --secure-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='currentColor'%3E%3Cpath d='M9 9.2C9 8.64844 8.55156 8.2 8 8.2C7.44844 8.2 7 8.64844 7 9.2C7 9.52207 7.16289 9.7959 7.4 9.9789V10.6C7.4 10.9312 7.66875 11.2 8 11.2C8.33125 11.2 8.6 10.9312 8.6 10.6V9.9789C8.83711 9.7959 9 9.52207 9 9.2Z'/%3E%3Cpath d='M12 5.62031V5.2C12 2.99453 10.2055 1.2 8 1.2C5.79453 1.2 4 2.99453 4 5.2V5.62031C3.10274 5.72129 2.4 6.47637 2.4 7.4V12.6C2.4 13.5922 3.20782 14.4 4.2 14.4H11.8C12.7922 14.4 13.6 13.5922 13.6 12.6V7.4C13.6 6.47637 12.8973 5.72129 12 5.62031ZM8 2.4C9.54375 2.4 10.8 3.65625 10.8 5.2V5.6H5.2V5.2C5.2 3.65625 6.45625 2.4 8 2.4ZM12.4 12.6C12.4 12.9305 12.1305 13.2 11.8 13.2H4.2C3.86953 13.2 3.6 12.9305 3.6 12.6V7.4C3.6 7.06953 3.86953 6.8 4.2 6.8H11.8C12.1305 6.8 12.4 7.06953 12.4 7.4V12.6Z'/%3E%3C/svg%3E");
         }
 
@@ -761,6 +862,30 @@ export class Pro extends VariantLayout {
             --consonant-merch-card-pro-subtitle-color: #000;
         }
 
+        /* dark theme — background-color="dark" comes from the #1093 Theme picker */
+        :host([variant='pro'][background-color='dark']) {
+            --consonant-merch-card-pro-bg-default: #000;
+            --consonant-merch-card-pro-bg-subtle: #131313;
+            --consonant-merch-card-pro-frame-bg: #131313;
+            --consonant-merch-card-pro-frame-text: #fff;
+            --consonant-merch-card-pro-text-color: #fff;
+            --consonant-merch-card-pro-text-muted-color: #ffffffa3;
+            --consonant-merch-card-pro-text-inverse-color: #fff;
+            --consonant-merch-card-pro-subtitle-color: #ffffffa3;
+            /* lock recoloured to #a3a3a3 (white@64% on the #000 hero) */
+            --secure-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23a3a3a3'%3E%3Cpath d='M9 9.2C9 8.64844 8.55156 8.2 8 8.2C7.44844 8.2 7 8.64844 7 9.2C7 9.52207 7.16289 9.7959 7.4 9.9789V10.6C7.4 10.9312 7.66875 11.2 8 11.2C8.33125 11.2 8.6 10.9312 8.6 10.6V9.9789C8.83711 9.7959 9 9.52207 9 9.2Z'/%3E%3Cpath d='M12 5.62031V5.2C12 2.99453 10.2055 1.2 8 1.2C5.79453 1.2 4 2.99453 4 5.2V5.62031C3.10274 5.72129 2.4 6.47637 2.4 7.4V12.6C2.4 13.5922 3.20782 14.4 4.2 14.4H11.8C12.7922 14.4 13.6 13.5922 13.6 12.6V7.4C13.6 6.47637 12.8973 5.72129 12 5.62031ZM8 2.4C9.54375 2.4 10.8 3.65625 10.8 5.2V5.6H5.2V5.2C5.2 3.65625 6.45625 2.4 8 2.4ZM12.4 12.6C12.4 12.9305 12.1305 13.2 11.8 13.2H4.2C3.86953 13.2 3.6 12.9305 3.6 12.6V7.4C3.6 7.06953 3.86953 6.8 4.2 6.8H11.8C12.1305 6.8 12.4 7.06953 12.4 7.4V12.6Z'/%3E%3C/svg%3E");
+            /* dividers stay transparent-black-12, same as light */
+            --consonant-merch-card-pro-divider-color: #0000001f;
+            --consonant-merch-card-pro-cta-outline-border-color: #fff;
+            /* white@64% over the #000 top-card resolves to #a3a3a3, so the
+               label has to knock back to black to stay legible on it */
+            --consonant-merch-card-pro-cta-outline-hover-color: #ffffffa3;
+            --consonant-merch-card-pro-cta-outline-hover-text-color: #000;
+            /* dropdown trigger = #131313; border keeps the light value */
+            --consonant-merch-card-pro-control-bg: #131313;
+            --consonant-merch-card-pro-control-hover-bg: #ffffff14;
+        }
+
         :host([variant='pro']) .top-card {
             background: var(--consonant-merch-card-pro-bg-default, #fff);
             border-radius: 12px;
@@ -768,7 +893,7 @@ export class Pro extends VariantLayout {
             display: flex;
             flex-direction: column;
             gap: 24px;
-            color: #000;
+            color: var(--consonant-merch-card-pro-text-color, #000);
             /* Natural height (features-zone absorbs the slack). syncHeights
                publishes the row's max .top-card height here as min-height so
                shorter cards match; content-box, so the height maps straight. */
@@ -780,6 +905,7 @@ export class Pro extends VariantLayout {
             display: flex;
             align-items: center;
             gap: 12px;
+            min-height: var(${unsafeCSS(SYNCED_BANDS[0].prop)}, auto);
         }
 
         :host([variant='pro']) ::slotted([slot='icons']) {
@@ -802,8 +928,10 @@ export class Pro extends VariantLayout {
             display: flex;
             flex-direction: column;
             gap: 8px;
-            /* Grow so price downward sticks to the bottom of the white card. */
-            flex: 1 1 auto;
+            /* Hold the row's tallest description so the price starts at the same
+               height everywhere. The slack goes to the footer margin, not here. */
+            flex: 0 0 auto;
+            min-height: var(${unsafeCSS(SYNCED_BANDS[1].prop)}, auto);
         }
 
         :host([variant='pro']) ::slotted([slot='heading-xs']) {
@@ -814,7 +942,7 @@ export class Pro extends VariantLayout {
             font-size: 24px;
             line-height: 24px;
             letter-spacing: -0.48px;
-            color: #000;
+            color: var(--consonant-merch-card-pro-text-color, #000);
         }
 
         :host([variant='pro']) ::slotted([slot='body-xs']) {
@@ -823,8 +951,8 @@ export class Pro extends VariantLayout {
             font-weight: 400;
             font-size: 14px;
             line-height: 18px;
-            letter-spacing: 0.14px;
-            color: #000;
+            letter-spacing: 0;
+            color: var(--consonant-merch-card-pro-text-color, #000);
         }
 
         :host([variant='pro']) .pricing {
@@ -841,7 +969,7 @@ export class Pro extends VariantLayout {
             font-size: 18px;
             line-height: 21px;
             letter-spacing: -0.48px;
-            color: #000;
+            color: var(--consonant-merch-card-pro-text-color, #000);
         }
 
         :host([variant='pro']) ::slotted([slot='promo-text']) {
@@ -850,15 +978,17 @@ export class Pro extends VariantLayout {
             font-weight: 400;
             font-size: 14px;
             line-height: 18px;
-            letter-spacing: 0.14px;
-            color: #000000a3;
+            letter-spacing: 0;
+            color: var(--consonant-merch-card-pro-text-muted-color, #000000a3);
         }
 
         :host([variant='pro']) footer {
             display: flex;
             gap: 8px;
             padding: 0;
-            margin: 0;
+            /* Collect the white card's slack here so the CTAs and the secure line
+               stay bottom-aligned while the price stays put. Same idiom as fries. */
+            margin: auto 0 0;
             background: transparent;
             min-height: auto;
         }
@@ -877,8 +1007,8 @@ export class Pro extends VariantLayout {
             font-weight: 400;
             font-size: 14px;
             line-height: 18px;
-            letter-spacing: 0.14px;
-            color: #000000a3;
+            letter-spacing: 0;
+            color: var(--consonant-merch-card-pro-text-muted-color, #000000a3);
             padding: 0;
             margin: 0;
             align-self: flex-start;
@@ -891,6 +1021,7 @@ export class Pro extends VariantLayout {
             display: inline-block;
             width: 16px;
             height: 16px;
+            /* background-image, not a mask — a mask's currentColor rendered the lock too dark */
             background-image: var(--secure-icon);
             background-repeat: no-repeat;
             background-position: center;
@@ -929,7 +1060,7 @@ export class Pro extends VariantLayout {
             font-weight: 700;
             font-size: 14px;
             line-height: 18px;
-            letter-spacing: 0.14px;
+            letter-spacing: 0;
         }
 
         /* Expanded state: no bottom padding — features-zone provides spacing */
@@ -979,7 +1110,7 @@ export class Pro extends VariantLayout {
             font-size: 18px;
             line-height: 21px;
             letter-spacing: -0.48px;
-            color: #000;
+            color: var(--consonant-merch-card-pro-text-color, #000);
             margin-inline-start: 4px;
         }
 
@@ -1005,11 +1136,11 @@ export class Pro extends VariantLayout {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            background: var(--consonant-merch-card-pro-bg-default, #fff);
+            background: var(--consonant-merch-card-pro-control-bg);
             border: 1px solid rgba(0, 0, 0, 0.08);
             border-radius: 8px;
             cursor: pointer;
-            color: #000;
+            color: var(--consonant-merch-card-pro-text-color, #000);
             font-family: 'Adobe Clean', adobe-clean, sans-serif;
             font-size: 14px;
             line-height: 18px;
@@ -1021,6 +1152,13 @@ export class Pro extends VariantLayout {
             outline-offset: 1px;
         }
 
+        /* Open, the trigger's ring escapes around the popover and doubles up
+           with the active option's. Let the option carry it. */
+        :host([variant='pro'])
+            .license-select-trigger[aria-expanded='true']:focus-visible {
+            outline: none;
+        }
+
         :host([variant='pro']) .license-select-trigger-text {
             display: flex;
             align-items: center;
@@ -1029,12 +1167,15 @@ export class Pro extends VariantLayout {
 
         :host([variant='pro']) .license-select-value {
             font-weight: 700;
-            color: #000;
+            color: var(--consonant-merch-card-pro-text-color, #000);
         }
 
         :host([variant='pro']) .license-select-label {
             font-weight: 700;
-            color: rgba(0, 0, 0, 0.64);
+            color: var(
+                --consonant-merch-card-pro-text-muted-color,
+                rgba(0, 0, 0, 0.64)
+            );
         }
 
         :host([variant='pro']) .license-select-chevron {
@@ -1063,7 +1204,7 @@ export class Pro extends VariantLayout {
             margin: 0;
             padding: 0;
             list-style: none;
-            background: var(--consonant-merch-card-pro-bg-default, #fff);
+            background: var(--consonant-merch-card-pro-control-bg);
             border: 1px solid rgba(0, 0, 0, 0.08);
             border-radius: 8px;
             box-shadow:
@@ -1093,29 +1234,35 @@ export class Pro extends VariantLayout {
             font-size: 14px;
             line-height: 18px;
             font-weight: 700;
+            letter-spacing: 0;
             cursor: pointer;
-            background: var(--consonant-merch-card-pro-bg-default, #fff);
+            background: var(--consonant-merch-card-pro-control-bg);
         }
 
         :host([variant='pro']) .license-select-option {
             padding: 16px 12px;
             cursor: pointer;
-            color: #000;
+            color: var(--consonant-merch-card-pro-text-color, #000);
             font-family: 'Adobe Clean', adobe-clean, sans-serif;
             font-size: 14px;
             line-height: 18px;
             font-weight: 700;
+            letter-spacing: 0;
             border-bottom: 1px solid rgba(0, 0, 0, 0.08);
         }
 
+        /* An outline follows its own element's radius, so square corners got
+           clipped by the popover. Match its inner radius (8px less the border). */
         :host([variant='pro']) .license-select-option:last-child {
             border-bottom: none;
+            border-bottom-left-radius: 7px;
+            border-bottom-right-radius: 7px;
         }
 
         :host([variant='pro']) .license-select-option:hover,
         :host([variant='pro']) .license-select-option.highlighted,
         :host([variant='pro']) .license-select-option.selected {
-            background: var(--consonant-merch-card-pro-bg-subtle, #f8f8f8);
+            background: var(--consonant-merch-card-pro-control-hover-bg);
         }
 
         /* Focus stays on the trigger, so the highlighted option needs its own
@@ -1127,11 +1274,11 @@ export class Pro extends VariantLayout {
 
         :host([variant='pro']) .callout {
             padding: 8px 12px 12px 12px;
-            color: #000;
+            color: var(--consonant-merch-card-pro-text-color, #000);
             font-family: 'Adobe Clean', adobe-clean, sans-serif;
             font-size: 12px;
             line-height: 16px;
-            letter-spacing: 0.24px;
+            letter-spacing: 0;
             font-weight: 700;
             text-align: start;
         }

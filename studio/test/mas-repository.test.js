@@ -6,6 +6,7 @@ import { MasRepository } from '../src/mas-repository.js';
 import { ROOT_PATH, SURFACES, PAGE_NAMES, EDITABLE_FRAGMENT_MODEL_IDS, COLLECTION_MODEL_PATH } from '../src/constants.js';
 import Events from '../src/events.js';
 import Store from '../src/store.js';
+import { makeSearchStub } from './helpers/aem-tag-fetch.js';
 
 const mockFragmentCache = {
     get: () => null,
@@ -1496,12 +1497,10 @@ describe('MasRepository dictionary helpers', () => {
                 repository.loadPromotions = sandbox.stub().resolves();
 
                 const getByIdStub = sandbox.stub().resolves(mockFragment);
-                const getByPathStub = sandbox.stub().callsFake((path) => {
-                    if (path === promoVariationPath) return Promise.resolve(promoVariationFragment);
-                    return Promise.resolve(null);
-                });
+                const promoFolder = `${ROOT_PATH}/acom/en_US/promotions/summer-sale`;
+                const searchStub = makeSearchStub(sandbox, { [promoFolder]: [promoVariationFragment] });
                 repository.aem = createAemMock({
-                    fragments: { getById: getByIdStub, getByPath: getByPathStub, search: sandbox.stub() },
+                    fragments: { getById: getByIdStub, search: searchStub },
                 });
 
                 const mockPromoProject = {
@@ -1516,8 +1515,8 @@ describe('MasRepository dictionary helpers', () => {
                 const { mockDataStore, restore } = await setupVariationUuidSearch();
                 try {
                     await repository.searchFragments();
-                    expect(getByPathStub.calledWith(promoVariationPath), 'should probe the deterministic promo variation path')
-                        .to.be.true;
+                    expect(searchStub.calledWith({ path: promoFolder }, 50), 'should probe the promo variation folder').to.be
+                        .true;
                     const fragmentInStore = mockDataStore.set.lastCall?.args[0]?.[0]?.get?.();
                     const promoRefs = (fragmentInStore?.references || []).filter((r) => r.path === promoVariationPath);
                     expect(promoRefs.length, 'promo variation reference should be merged into fragment').to.equal(1);

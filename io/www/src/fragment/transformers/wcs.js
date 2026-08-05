@@ -51,7 +51,8 @@ function scanMasElements(fields, substituteMap, context) {
         let changed = false;
         const rewritten = value.replace(MAS_ELEMENT_REGEXP, (element, rawOsi) => {
             const promotionCode = element.match(PROMOCODE_REGEXP)?.groups?.promotionCode;
-            const osi = substituteMap ? substituteOsi(rawOsi, substituteMap) : rawOsi;
+            const isLocked = element.includes('data-locked-osi="true"');
+            const osi = substituteMap && !isLocked ? substituteOsi(rawOsi, substituteMap) : rawOsi;
             elements.push({ osi, rawOsi, promotionCode });
             if (osi === rawOsi) return element;
             logDebug(() => `Substituting OSI ${rawOsi} with ${osi}`, context);

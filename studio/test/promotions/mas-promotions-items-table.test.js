@@ -11,7 +11,7 @@ import Events from '../../src/events.js';
 import '../../src/swc.js';
 import MasPromotionsItemsTable from '../../src/promotions/mas-promotions-items-table.js';
 import { buildPromotionOfferRecord } from '../../src/promotions/promotion-editor-utils.js';
-import { buildPromoVariationPathForTag } from '../../src/promotions/promotion-model.js';
+import { makeSearchStub as makeSharedSearchStub } from '../helpers/aem-tag-fetch.js';
 
 describe('MasPromotionsItemsTable', () => {
     let sandbox;
@@ -966,6 +966,10 @@ describe('MasPromotionsItemsTable', () => {
             Store.promotions.inEdit.set(new FragmentStore(promotion));
         };
 
+        const promoFolder = '/content/dam/mas/sandbox/en_US/promotions/black-friday';
+
+        const makeSearchStub = (itemsByFolder = {}) => makeSharedSearchStub(sandbox, itemsByFolder);
+
         const createPromoVariationAem = (overrides = {}) => {
             const parentFragment = {
                 id: 'card-promo-id',
@@ -981,7 +985,7 @@ describe('MasPromotionsItemsTable', () => {
                     cf: {
                         fragments: {
                             getById: sandbox.stub().resolves(parentFragment),
-                            getByPath: sandbox.stub().resolves(null),
+                            search: makeSearchStub(),
                             ensureFolderExists: sandbox.stub().resolves(),
                             pollCreatedFragment: sandbox.stub().resolves(createdFragment),
                             ...overrides.fragments,
@@ -1028,6 +1032,7 @@ describe('MasPromotionsItemsTable', () => {
             const el = await fixture(html`<mas-promotions-items-table .type=${TABLE_TYPE.CARDS}></mas-promotions-items-table>`);
             sandbox.stub(el, 'repository').get(() => ({
                 refreshFragment: sandbox.stub().resolves(),
+                loadPromotions: sandbox.stub().resolves(),
                 aem,
             }));
             el.viewOnlyFragments = [cardFragment];
@@ -1123,15 +1128,15 @@ describe('MasPromotionsItemsTable', () => {
                     sites: {
                         cf: {
                             fragments: {
-                                getByPath: sandbox.stub().callsFake((path) =>
-                                    path === promoVariationPath
-                                        ? Promise.resolve({
-                                              id: 'existing-var',
-                                              path: promoVariationPath,
-                                              fields: [{ name: 'pznTags', values: ['mas:pzn/country/ar'] }],
-                                          })
-                                        : Promise.resolve(null),
-                                ),
+                                search: makeSearchStub({
+                                    [promoFolder]: [
+                                        {
+                                            id: 'existing-var',
+                                            path: promoVariationPath,
+                                            fields: [{ name: 'pznTags', values: ['mas:pzn/country/ar'] }],
+                                        },
+                                    ],
+                                }),
                             },
                         },
                     },
@@ -1163,13 +1168,9 @@ describe('MasPromotionsItemsTable', () => {
                     sites: {
                         cf: {
                             fragments: {
-                                getByPath: sandbox
-                                    .stub()
-                                    .callsFake((path) =>
-                                        path === promoVariationPath
-                                            ? Promise.resolve({ id: 'existing-var', path: promoVariationPath, fields: [] })
-                                            : Promise.resolve(null),
-                                    ),
+                                search: makeSearchStub({
+                                    [promoFolder]: [{ id: 'existing-var', path: promoVariationPath, fields: [] }],
+                                }),
                             },
                         },
                     },
@@ -1202,13 +1203,9 @@ describe('MasPromotionsItemsTable', () => {
                     sites: {
                         cf: {
                             fragments: {
-                                getByPath: sandbox
-                                    .stub()
-                                    .callsFake((path) =>
-                                        path === promoVariationPath
-                                            ? Promise.resolve({ id: 'existing-var', path: promoVariationPath, fields: [] })
-                                            : Promise.resolve(null),
-                                    ),
+                                search: makeSearchStub({
+                                    [promoFolder]: [{ id: 'existing-var', path: promoVariationPath, fields: [] }],
+                                }),
                             },
                         },
                     },
@@ -1331,20 +1328,21 @@ describe('MasPromotionsItemsTable', () => {
 
             const aem = createPromoVariationAem({
                 fragments: {
-                    getByPath: sandbox.stub().callsFake((path) =>
-                        path === promoVariationPath
-                            ? Promise.resolve({
-                                  id: 'existing-var',
-                                  path: promoVariationPath,
-                                  fields: [{ name: 'pznTags', values: ['mas:locale/de_AT'] }],
-                              })
-                            : Promise.resolve(null),
-                    ),
+                    search: makeSearchStub({
+                        [promoFolder]: [
+                            {
+                                id: 'existing-var',
+                                path: promoVariationPath,
+                                fields: [{ name: 'pznTags', values: ['mas:locale/de_AT'] }],
+                            },
+                        ],
+                    }),
                 },
             });
             const el = await fixture(html`<mas-promotions-items-table .type=${TABLE_TYPE.CARDS}></mas-promotions-items-table>`);
             sandbox.stub(el, 'repository').get(() => ({
                 refreshFragment: sandbox.stub().resolves(),
+                loadPromotions: sandbox.stub().resolves(),
                 aem,
             }));
             el.viewOnlyFragments = [cardFragment];
@@ -1376,15 +1374,15 @@ describe('MasPromotionsItemsTable', () => {
 
             const aem = createPromoVariationAem({
                 fragments: {
-                    getByPath: sandbox.stub().callsFake((path) =>
-                        path === promoVariationPath
-                            ? Promise.resolve({
-                                  id: 'existing-var',
-                                  path: promoVariationPath,
-                                  fields: [{ name: 'title', values: ['Promo Card'] }],
-                              })
-                            : Promise.resolve(null),
-                    ),
+                    search: makeSearchStub({
+                        [promoFolder]: [
+                            {
+                                id: 'existing-var',
+                                path: promoVariationPath,
+                                fields: [{ name: 'title', values: ['Promo Card'] }],
+                            },
+                        ],
+                    }),
                 },
             });
             const el = await fixture(html`<mas-promotions-items-table .type=${TABLE_TYPE.CARDS}></mas-promotions-items-table>`);
@@ -1412,15 +1410,15 @@ describe('MasPromotionsItemsTable', () => {
 
             const aem = createPromoVariationAem({
                 fragments: {
-                    getByPath: sandbox.stub().callsFake((path) =>
-                        path === promoVariationPath
-                            ? Promise.resolve({
-                                  id: 'existing-var',
-                                  path: promoVariationPath,
-                                  fields: [{ name: 'title', values: ['Promo Card'] }],
-                              })
-                            : Promise.resolve(null),
-                    ),
+                    search: makeSearchStub({
+                        [promoFolder]: [
+                            {
+                                id: 'existing-var',
+                                path: promoVariationPath,
+                                fields: [{ name: 'title', values: ['Promo Card'] }],
+                            },
+                        ],
+                    }),
                 },
             });
             const el = await fixture(html`<mas-promotions-items-table .type=${TABLE_TYPE.CARDS}></mas-promotions-items-table>`);
@@ -1509,7 +1507,9 @@ describe('MasPromotionsItemsTable', () => {
                     sites: {
                         cf: {
                             fragments: {
-                                getByPath: sandbox.stub().resolves({ id: 'existing-var-id', path: promoVariationPath }),
+                                search: makeSearchStub({
+                                    [promoFolder]: [{ id: 'existing-var-id', path: promoVariationPath }],
+                                }),
                             },
                         },
                     },
@@ -1529,21 +1529,22 @@ describe('MasPromotionsItemsTable', () => {
             setupPromotionInEdit();
             const otherPath = '/content/dam/mas/sandbox/en_US/other-card';
             const otherFragment = { ...cardFragment, path: otherPath, id: 'other-card-id' };
-            const otherTargetPath = buildPromoVariationPathForTag(otherPath, promoTag);
             Store.promotions.selectedCards.set([defaultPath]);
 
             const el = new MasPromotionsItemsTable();
             el.type = TABLE_TYPE.CARDS;
-            let promoVariationLookupCount = 0;
-            const getByPathStub = sandbox.stub().callsFake((path) => {
-                if (path === promoVariationPath) {
-                    promoVariationLookupCount += 1;
-                    if (promoVariationLookupCount === 1) {
-                        return Promise.resolve({ id: 'existing-var-id', path: promoVariationPath });
-                    }
-                    return Promise.reject(new Error('network blip'));
+            let searchCallCount = 0;
+            const search = sandbox.stub().callsFake(async function* (query) {
+                if (query?.path !== promoFolder) {
+                    yield [];
+                    return;
                 }
-                return Promise.resolve(null);
+                searchCallCount += 1;
+                if (searchCallCount === 1) {
+                    yield [{ id: 'existing-var-id', path: promoVariationPath }];
+                    return;
+                }
+                throw new Error('network blip');
             });
             sandbox.stub(el, 'repository').get(() => ({
                 aem: {
@@ -1552,7 +1553,7 @@ describe('MasPromotionsItemsTable', () => {
                         .callsFake((path) => Promise.resolve(path === defaultPath ? { ...cardFragment } : otherFragment)),
                     sites: {
                         cf: {
-                            fragments: { getByPath: getByPathStub },
+                            fragments: { search },
                         },
                     },
                 },
@@ -1582,6 +1583,7 @@ describe('MasPromotionsItemsTable', () => {
             const el = await fixture(html`<mas-promotions-items-table .type=${TABLE_TYPE.CARDS}></mas-promotions-items-table>`);
             sandbox.stub(el, 'repository').get(() => ({
                 refreshFragment: sandbox.stub().resolves(),
+                loadPromotions: sandbox.stub().resolves(),
                 aem,
             }));
             el.viewOnlyFragments = [cardFragment];

@@ -251,7 +251,7 @@ class MasPromotionsItemsTable extends LitElement {
     async #syncExistingPromoVariations(items, signal) {
         if (signal.aborted) return;
         const promoTag = this.#promotionTagId;
-        if (!promoTag || !this.repository?.aem?.sites?.cf?.fragments?.getByPath) {
+        if (!promoTag || !this.repository?.aem?.sites?.cf?.fragments?.search) {
             if (signal.aborted) return;
             this.existingPromoVariationGeosByPath = new Map();
             this.existingPromoVariationsByPath = new Map();
@@ -431,8 +431,13 @@ class MasPromotionsItemsTable extends LitElement {
         try {
             this.createPromoVariationLoading = true;
             showToast('Creating promo variation...');
-            const created = await createPromoVariation(this.repository.aem, item.id, promoTag, geoTags, (store) =>
-                this.repository.refreshFragment(store),
+            const created = await createPromoVariation(
+                this.repository.aem,
+                item.id,
+                promoTag,
+                geoTags,
+                (store) => this.repository.refreshFragment(store),
+                () => this.repository.loadPromotions(),
             );
             showToast('Promo variation created', 'positive');
             const previousGeos = this.existingPromoVariationGeosByPath.get(item.path) || [];

@@ -28,6 +28,15 @@ export class OstPromoTag extends LitElement {
             flex: 1;
             min-width: 0;
         }
+
+        .lock-osi-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 8px;
+            font-size: 13px;
+            color: var(--spectrum-gray-800);
+        }
     `;
 
     constructor() {
@@ -91,6 +100,14 @@ export class OstPromoTag extends LitElement {
                 >
                     <sp-icon-undo slot="icon"></sp-icon-undo>
                 </sp-action-button>
+            </div>
+            <div class="lock-osi-row">
+                <sp-checkbox
+                    data-testid="ost-lock-osi"
+                    ?checked=${store.lockedOsi}
+                    @change=${(e) => store.setLockedOsi(e.target.checked)}
+                    >Lock OSI</sp-checkbox
+                >
             </div>
         `;
     }

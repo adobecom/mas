@@ -349,21 +349,18 @@ export async function probeOrphanedPromoVariationsForFragment(aem, defaultPath) 
 export async function probePromoVariationReferences(aem, defaultPath, promotionProjects = []) {
     if (!aem || !defaultPath || isPromoVariationPath(defaultPath)) return [];
 
-    if (promotionProjects.length) {
-        const refsPerProject = await processConcurrently(
-            promotionProjects,
-            async (project) => {
-                const tagId = getPromotionTagFromFragment(project);
-                if (!tagId) return [];
-                return probePromoVariationsForFragment(aem, defaultPath, tagId);
-            },
-            VARIATIONS_CONCURRENCY_LIMIT,
-        );
-        const discovered = refsPerProject.flat();
-        if (discovered.length) return discovered;
-    }
+    if (!promotionProjects.length) return [];
 
-    return probeOrphanedPromoVariationsForFragment(aem, defaultPath);
+    const refsPerProject = await processConcurrently(
+        promotionProjects,
+        async (project) => {
+            const tagId = getPromotionTagFromFragment(project);
+            if (!tagId) return [];
+            return probePromoVariationsForFragment(aem, defaultPath, tagId);
+        },
+        VARIATIONS_CONCURRENCY_LIMIT,
+    );
+    return refsPerProject.flat();
 }
 
 /**

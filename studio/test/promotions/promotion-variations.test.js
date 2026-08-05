@@ -980,26 +980,28 @@ describe('promotion-variations', () => {
             expect(refs).to.deep.equal([]);
         });
 
-        it('falls back to a promotions-tree scan when no live project has a matching variation', async () => {
-            const aem = createAemMock({
-                fragments: { search: makeSearchStub({ [promotionsRoot]: [{ id: 'orphan-id', path: promoPath }] }) },
+        it('does not fall back to a promotions-tree scan when no live project has a matching variation', async () => {
+            const search = makeSearchStub({
+                [promotionsRoot]: [{ id: 'orphan-id', path: promoPath }],
             });
+            const aem = createAemMock({ fragments: { search } });
 
             const refs = await probePromoVariationReferences(aem, defaultPath, []);
-            expect(refs).to.have.lengthOf(1);
-            expect(refs[0].path).to.equal(promoPath);
+            expect(refs).to.deep.equal([]);
+            expect(search.called, 'should not scan the promotions tree').to.be.false;
         });
 
-        it('falls back to a promotions-tree scan when live projects exist but none match', async () => {
-            const aem = createAemMock({
-                fragments: { search: makeSearchStub({ [promotionsRoot]: [{ id: 'orphan-id', path: promoPath }] }) },
+        it('does not fall back to a promotions-tree scan when live projects exist but none match', async () => {
+            const search = makeSearchStub({
+                [promotionsRoot]: [{ id: 'orphan-id', path: promoPath }],
             });
+            const aem = createAemMock({ fragments: { search } });
 
             const refs = await probePromoVariationReferences(aem, defaultPath, [
                 { tags: [{ id: 'mas:promotion/some-other-project' }] },
             ]);
-            expect(refs).to.have.lengthOf(1);
-            expect(refs[0].path).to.equal(promoPath);
+            expect(refs).to.deep.equal([]);
+            expect(search.calledWith({ path: promotionsRoot }), 'should not scan the promotions tree').to.be.false;
         });
     });
 

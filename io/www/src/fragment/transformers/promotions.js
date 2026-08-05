@@ -46,7 +46,7 @@
  *     same fragment.
  */
 import { FRAGMENT_URL_PREFIX, MAS_ROOT, PATH_TOKENS, odinReferences } from '../utils/paths.js';
-import { fetch, getRequestInfos, matchesGeo, PROMO_VARIATION_STRATEGY_YIELD } from '../utils/common.js';
+import { fetch, getRequestInfos, matchesGeo, isGroupedVariationFragmentPath } from '../utils/common.js';
 import { log, logDebug, logError } from '../utils/log.js';
 
 const CONFIG_CACHE_TTL = 5 * 60 * 1000;
@@ -393,12 +393,12 @@ async function hydrateProject(project, { baseUrl, surface, defaultLocale, resolv
 
     const hydratedProject = hydrateResponse.body;
     const fragmentPaths = parseFragmentPaths(hydratedProject);
+    const groupedVariationPaths = fragmentPaths.filter(isGroupedVariationFragmentPath);
     const offerLines = hydratedProject.fields?.offers ?? [];
     const offerOverrides = parseOfferOverrides(offerLines);
     const offerSubstitutions = parseOfferSubstitutions(offerLines);
     const promoCode = hydratedProject.fields?.promoCode ?? null;
     const title = hydratedProject.fields?.title ?? null;
-    const variationStrategy = hydratedProject.fields?.variationStrategy ?? PROMO_VARIATION_STRATEGY_YIELD;
     if (!fragmentPaths.length && !offerOverrides.length && !offerSubstitutions.length) {
         logDebug(() => `Promotion project ${project.id} has no fragments or offer overrides, skipping`, context);
         return null;
@@ -416,8 +416,8 @@ async function hydrateProject(project, { baseUrl, surface, defaultLocale, resolv
         startDate: project.startDate,
         endDate: project.endDate,
         promoCode,
-        variationStrategy,
         fragmentPaths,
+        groupedVariationPaths,
         offerOverrides,
         offerSubstitutions,
         defaultVariations,
@@ -533,6 +533,7 @@ async function promotions(context) {
         promoMap: buildPromoMap(project.offerOverrides, { regionLocale, country }, project.promoCode, context),
         substituteMap: buildSubstituteMap(project.offerSubstitutions ?? [], { regionLocale, country }),
         fragmentPaths: new Set(project.fragmentPaths),
+        groupedVariationPaths: new Set(project.groupedVariationPaths),
     }));
     promoProjects.forEach(({ project, promoMap, substituteMap: sm }) => {
         logDebug(

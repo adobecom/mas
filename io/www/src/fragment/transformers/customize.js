@@ -3,13 +3,11 @@ import {
     CARD_MODEL_ID,
     getRequestInfos,
     matchesGeo,
-    PROMO_VARIATION_STRATEGY_YIELD,
+    PZN_FOLDER,
     skimFragmentFromReferences,
     VALID_PARAMETER_VALUE_REGEX,
 } from '../utils/common.js';
 import { logDebug, logError } from '../utils/log.js';
-
-const PZN_FOLDER = '/pzn/';
 
 // Per-variant fields whose array values must be concatenated (parent + child) rather than overwritten.
 const MERGE_CONFIG = {
@@ -141,10 +139,18 @@ function personalizationMatchScore(pznTags, { regionLocale, country, pzn }) {
     return matchedTokens * 100 + (geo?.region ? 20 : 0) + (geo?.country ? 10 : 0);
 }
 
-function findPersonalizationVariation(variations, customizeContext) {
+/**
+ * @param {Set<string>} [allowedPaths] - Optional set to restrict candidates to curated grouped variations.
+ */
+function findPersonalizationVariation(variations, customizeContext, allowedPaths) {
     const { country, pzn, references, regionLocale, surface, defaultLocale } = customizeContext;
     const pattern = new RegExp(`/content/dam/mas/${surface}/${defaultLocale}/([^/]+)${PZN_FOLDER}.+`);
-    const personalizationVariations = extractVariationBasedOnPath(variations, references, pattern);
+    let personalizationVariations = extractVariationBasedOnPath(variations, references, pattern);
+    if (allowedPaths) {
+        personalizationVariations = personalizationVariations.filter((variation) =>
+            allowedPaths.has(PATH_TOKENS.exec(variation.path).groups.fragmentPath),
+        );
+    }
     if (personalizationVariations.length === 0) {
         logDebug(() => `No personalization variation found for region locale ${regionLocale}`, customizeContext);
         return null;
@@ -279,40 +285,22 @@ function selectPromoProjectForFragment(root, customizeContext) {
     return selected;
 }
 
-/**
- * Merges the matching variation onto `root`. Returns `{ fragment, yieldedToPersonalization }`.
- * `yieldedToPersonalization` is true if a promo was overridden by a personalization match,
- * signaling the caller not to apply promo substitutions (`wcs.js`) to that fragment.
- */
 function mergeVariations(root, customizeContext, selectedPromoProject) {
     const { isRegionLocale } = customizeContext;
-    const variations = root?.fields?.variations;
+    // Promo variation takes priority, independent of fields.variations
     const promoVariation = findPromoVariation(root, customizeContext, selectedPromoProject);
     if (promoVariation) {
         const { variation, project } = promoVariation;
-        const strategy = project.variationStrategy ?? PROMO_VARIATION_STRATEGY_YIELD;
-        if (strategy === PROMO_VARIATION_STRATEGY_YIELD && variations?.length) {
-            const personalizationVariation = findPersonalizationVariation(variations, customizeContext);
-            if (personalizationVariation) {
-                logDebug(
-                    () =>
-                        `Personalization variation ${personalizationVariation.id} yields promo ${variation.id} for fragment ${root.id}`,
-                    customizeContext,
-                );
-                const merged = deepMerge(root, personalizationVariation);
-                merged.variationId = personalizationVariation.id;
-                return { fragment: merged, yieldedToPersonalization: true };
-            }
-        }
         logDebug(() => `Merging promo variation ${variation.id} for fragment ${root.id}`, customizeContext);
         const merged = deepMerge(root, variation);
         merged.variationId = variation.id;
         merged.promoVariationProject = promoProjectLabel(project);
-        return { fragment: merged, yieldedToPersonalization: false };
+        return merged;
     }
+    const variations = root?.fields?.variations;
     if (!variations?.length) {
         logDebug(() => `No variations to merge for fragment ${root.id}`, customizeContext);
-        return { fragment: root, yieldedToPersonalization: false };
+        return root;
     }
     logDebug(() => `found variations ${JSON.stringify(variations)} in ${root.id}`, customizeContext);
     if (isRegionLocale) {
@@ -321,10 +309,14 @@ function mergeVariations(root, customizeContext, selectedPromoProject) {
             logDebug(() => `Merging regional variation ${regionalVariation.id} for fragment ${root.id}`, customizeContext);
             const merged = deepMerge(root, regionalVariation);
             merged.variationId = regionalVariation.id;
-            return { fragment: merged, yieldedToPersonalization: false };
+            return merged;
         }
     }
-    const personalizationVariation = findPersonalizationVariation(variations, customizeContext);
+    // Restrict personalization to curated grouped variations for promo projects.
+    const groupedVariationPaths = selectedPromoProject?.groupedVariationPaths;
+    const personalizationVariation = groupedVariationPaths?.size
+        ? findPersonalizationVariation(variations, customizeContext, groupedVariationPaths)
+        : findPersonalizationVariation(variations, customizeContext);
     if (personalizationVariation) {
         logDebug(
             () => `Merging personalization variation ${personalizationVariation.id} for fragment ${root.id}`,
@@ -332,9 +324,9 @@ function mergeVariations(root, customizeContext, selectedPromoProject) {
         );
         const merged = deepMerge(root, personalizationVariation);
         merged.variationId = personalizationVariation.id;
-        return { fragment: merged, yieldedToPersonalization: false };
+        return merged;
     }
-    return { fragment: root, yieldedToPersonalization: false };
+    return root;
 }
 
 /**
@@ -387,14 +379,8 @@ function adaptReferencesTree(referencesTree, customizedRoot) {
 function customizeTree(root, referencesTree = [], customizeContext) {
     const selectedPromoProject = selectPromoProjectForFragment(root, customizeContext);
     //apply regional or promo variation, if any.
-    const { fragment: customizedRoot, yieldedToPersonalization } = mergeVariations(
-        root,
-        customizeContext,
-        selectedPromoProject,
-    );
-    // When personalization wins the yield, skip promo attribution and OSI scope below entirely,
-    // keeping personalized fragments completely untouched.
-    if (selectedPromoProject && !yieldedToPersonalization) {
+    const customizedRoot = mergeVariations(root, customizeContext, selectedPromoProject);
+    if (selectedPromoProject) {
         // set data-promotion-project attribute, even when the project
         // only substitutes the OSI (no promo code and no variation).
         customizedRoot.promoProject = promoProjectLabel(selectedPromoProject.project);

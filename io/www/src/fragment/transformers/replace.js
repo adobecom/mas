@@ -1,6 +1,6 @@
 import { odinReferences, odinUrl, REFERENCES } from '../utils/paths.js';
 import { fetch, getCountry, getFragmentId, getRegionalLocale, getRequestInfos } from '../utils/common.js';
-import { getPlaceholdersBaselineSurface, getPlaceholdersRegionLocale } from '../locales.js';
+import { PLACEHOLDERS_BASELINE_SURFACE, getPlaceholdersRegionLocale } from '../locales.js';
 import { createSwrCache } from '../utils/swr-cache.js';
 import { log, logDebug, logError } from '../utils/log.js';
 
@@ -56,15 +56,17 @@ function collectEntries(fragment, references, dictionary) {
 // One dictionary layer: the entries of a single `(surface, locale)` index, fetched `direct-hydrated`
 // (its content `parent` is intentionally ignored — inheritance is expressed by the layering in
 // `getDictionary`, not by walking parents). Cached under `${prefix}-${surface}-${locale}`.
-// A 404 = no dictionary authored for this surface/locale — a STABLE absence (the common case for
-// region overlays, e.g. `ccd/en_AU`), so the loader resolves an empty layer `{}` which IS cached:
+// A 404 on a REGION overlay = no dictionary authored for this surface/locale — a STABLE absence (the
+// common case, e.g. `ccd/en_AU`), so the loader resolves an empty layer `{}` which IS cached:
 // otherwise every request re-hits Odin's byPath for a folder that will never exist (a per-request
-// herd on absent regions). Only transient failures (no id but non-404, or a failed hydration —
-// e.g. 5xx/timeout) resolve `null`, which is NOT cached (see createSwrCache) so they retry.
+// herd on absent regions). A 404 on a `base` layer (the shared `acom/<base>` global baseline, or the
+// surface baseline) is instead treated as TRANSIENT: those dictionaries are expected to exist, so a
+// 404 there means a mid-publish/softpurge race — caching `{}` would render raw `{{tokens}}` fleet-wide
+// until TTL. Transient results resolve `null`, which is NOT cached (see createSwrCache) so they retry.
 async function buildDictionaryLayer(context, surface, locale, prefix) {
     const layer = await dictionaryCache.get(context, `${prefix}-${surface}-${locale}`, async () => {
         const { id, status } = await getDictionaryId(context, surface, locale);
-        if (!id) return status === 404 ? {} : null;
+        if (!id) return status === 404 && prefix === 'region' ? {} : null;
         const response = await fetch(odinReferences(id, context.preview, REFERENCES.DIRECT), context, `dictionary-${prefix}`);
         if (response.status != 200) return null;
         const dictionary = {};
@@ -79,20 +81,22 @@ export async function getDictionary(context) {
     if (context.hasExternalDictionary) return context.dictionary;
     const { surface } = await getRequestInfos(context);
     if (!surface) return context.dictionary || {};
-    const baselineSurface = getPlaceholdersBaselineSurface();
+    const baselineSurface = PLACEHOLDERS_BASELINE_SURFACE;
     // Base = the request's own default locale (en_US page → en_US, en_GB page → en_GB). Region reaches
     // en_IN/en_AU by country even from an en_US request, without moving the shared regionLocale.
     const baseLocale = context.defaultLocale;
     const regionLocale = getPlaceholdersRegionLocale(surface, baseLocale, getCountry(context), getRegionalLocale(context));
 
     // Three layers, lowest → highest priority: the global baseline (shared, cache-friendly), the current
-    // surface's baseline-language dictionary, and the region overlay. Layers that would duplicate a
-    // lower one are skipped: the surface baseline when the request is already on the baseline surface,
-    // the region overlay when the region is the baseline language itself.
-    const globalBaseline = await buildDictionaryLayer(context, baselineSurface, baseLocale, 'base');
-    const surfaceBaseline = surface === baselineSurface ? {} : await buildDictionaryLayer(context, surface, baseLocale, 'base');
-    const regionOverlay =
-        regionLocale === baseLocale ? {} : await buildDictionaryLayer(context, surface, regionLocale, 'region');
+    // surface's baseline-language dictionary, and the region overlay. They are independent, so fetch them
+    // in parallel — a cold read is one round-trip, not three sequential ones. Layers that would duplicate
+    // a lower one are skipped (resolved to `{}`): the surface baseline when the request is already on the
+    // baseline surface, the region overlay when the region is the baseline language itself.
+    const [globalBaseline, surfaceBaseline, regionOverlay] = await Promise.all([
+        buildDictionaryLayer(context, baselineSurface, baseLocale, 'base'),
+        surface === baselineSurface ? {} : buildDictionaryLayer(context, surface, baseLocale, 'base'),
+        regionLocale === baseLocale ? {} : buildDictionaryLayer(context, surface, regionLocale, 'region'),
+    ]);
 
     logDebug(() => {
         const inherited = { ...globalBaseline, ...surfaceBaseline };

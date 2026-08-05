@@ -38,8 +38,9 @@ const mockDirectDictionary = (preview, surface, locale, fixture, stub = fetchStu
 };
 
 // Stubs a (surface, locale) index that has NO authored dictionary — byPath returns 404, exactly as
-// Odin does for an absent layer (e.g. the region overlay ccd/en_AU). buildDictionaryLayer treats
-// this as a stable absence and caches an empty layer, so it is not re-fetched on every request.
+// Odin does for an absent layer (e.g. the region overlay ccd/en_AU). A 404 on a region overlay is a
+// stable absence and is cached (empty layer, not re-fetched); a 404 on a base layer is treated as
+// transient and is NOT cached (see buildDictionaryLayer) — both resolve to `{}` for the merge.
 const stubEmptyDictionary = (preview, surface, locale, stub = fetchStub) => {
     stub.withArgs(byPathUrl(preview, surface, locale)).returns(createResponse(404, null, 'not found'));
 };
@@ -312,6 +313,25 @@ describe('replace', () => {
             // 503 is transient → not cached → the second request re-attempts the region byPath
             // (unlike the 404 case, which is cached and never re-fetched).
             expect(regionByPath().callCount).to.be.greaterThan(afterFirst);
+        });
+
+        it('does NOT cache a 404 on the shared base layer: byPath retried so it self-heals', async () => {
+            // Unlike a region overlay, the acom/<base> layer is expected to exist. A 404 there is a
+            // transient mid-publish/softpurge race, not a stable absence — caching {} would render raw
+            // {{tokens}} fleet-wide until TTL. So a base 404 is not cached and retries next request.
+            clearDictionaryCache();
+            const baseByPath = () => fetchStub.withArgs(byPathUrl(false, BASELINE_SURFACE, 'fr_FR'));
+            baseByPath().returns(createResponse(404, null, 'not found'));
+            mockDirectDictionary(false, 'sandbox', 'fr_FR', dictFixture({ b: 'surf-b' }), fetchStub);
+            stubEmptyDictionary(false, 'sandbox', 'fr_BE', fetchStub); // region overlay absent
+            const first = await runOnce();
+            const afterFirst = baseByPath().callCount;
+            const second = await runOnce();
+            // base contributes nothing while it 404s (unknown key → bare key), surface baseline resolves.
+            expect(first.body.fields.description).to.equal('a surf-b');
+            expect(second.body.fields.description).to.equal('a surf-b');
+            // base 404 is transient → re-fetched on the next request (not cached).
+            expect(baseByPath().callCount).to.be.greaterThan(afterFirst);
         });
     });
 

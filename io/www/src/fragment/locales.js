@@ -559,11 +559,9 @@ export function getDefaultLocales(surface) {
  * The surface whose dictionary is the global placeholder baseline for every surface of the same
  * language. Placeholder resolution reads this surface as the default layer, then overlays the
  * requested surface's baseline and region entries (see {@link transformers/replace.js}).
- * @returns {string}
+ * @type {string}
  */
-export function getPlaceholdersBaselineSurface() {
-    return 'acom';
-}
+export const PLACEHOLDERS_BASELINE_SURFACE = 'acom';
 
 /**
  * Placeholder region locale: `<lang>_<country>` when that is a known regional locale of the surface

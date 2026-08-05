@@ -10,6 +10,8 @@ import { logDebug, logError } from '../utils/log.js';
 
 const MASKS_FOLDER = 'masks';
 
+const TRANSIENT_STATUSES = [503, 504];
+
 /**
  * Fetches the mask card fragment by path convention (`masks/<name>`) for a given surface/locale.
  * Returns the skimmed fragment (references stripped) or null when not found.
@@ -18,10 +20,10 @@ async function fetchMaskAtLocale(context, surface, locale, mask) {
     const { preview } = context;
     const url = odinUrl(surface, { locale, fragmentPath: `${MASKS_FOLDER}/${mask}`, preview });
     const { id, status } = await getFragmentId(context, url, `mask-id-${locale}`);
-    if (status !== 200) return null;
+    if (status !== 200) return { transientFailure: TRANSIENT_STATUSES.includes(status) };
     const response = await fetch(odinReferences(id, false, preview), context, `mask-${locale}`);
-    if (response.status !== 200) return null;
-    return skimFragmentFromReferences(response.body);
+    if (response.status !== 200) return { transientFailure: TRANSIENT_STATUSES.includes(response.status) };
+    return { fragment: skimFragmentFromReferences(response.body) };
 }
 
 /**
@@ -32,8 +34,12 @@ async function fetchMask(context) {
     const { defaultLocale, mask, regionLocale, surface } = context;
     const locales = regionLocale === defaultLocale ? [regionLocale] : [regionLocale, defaultLocale];
     for (const locale of locales) {
-        const maskFragment = await fetchMaskAtLocale(context, surface, locale, mask);
-        if (maskFragment) return maskFragment;
+        const { fragment, transientFailure } = await fetchMaskAtLocale(context, surface, locale, mask);
+        if (fragment) return fragment;
+        if (transientFailure) {
+            logError(`Mask fetch for '${mask}' at locale ${locale} failed transiently, skipping fallback locale`, context);
+            return null;
+        }
     }
     return null;
 }

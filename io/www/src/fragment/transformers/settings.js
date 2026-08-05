@@ -1,6 +1,6 @@
 import { odinUrl, odinReferences } from '../utils/paths.js';
 import { COLLECTION_MODEL_ID, fetch, getFragmentId, getRegionalLocale, getRequestInfos } from '../utils/common.js';
-import { logDebug, logError } from '../utils/log.js';
+import { log, logDebug } from '../utils/log.js';
 
 const SETTINGS_ID_PATH = 'settings/index';
 const CONFIG_CACHE_TTL = 5 * 60 * 1000;
@@ -234,7 +234,7 @@ export function applyPlaceholderRemaps(fragment, remaps, context) {
     try {
         fragment.fields = JSON.parse(fieldsString);
     } catch {
-        logError(`placeholderRemap produced invalid JSON for fragment ${fragment.id}; leaving fields unchanged`, context);
+        log(`placeholderRemap produced invalid JSON for fragment ${fragment.id}; leaving fields unchanged`, context);
     }
 }
 

@@ -314,6 +314,70 @@ describe('pro whats-included section header typography', () => {
     });
 });
 
+describe('pro edu size', () => {
+    let card;
+    afterEach(() => card?.remove());
+
+    it('shows whats-included persistently (no toggle) at size edu', async () => {
+        card = await renderCard(
+            '<div slot="whats-included">Everything included</div>',
+        );
+        card.setAttribute('size', 'edu');
+        card.requestUpdate();
+        await card.updateComplete;
+        const toggle = card.shadowRoot.querySelector('.whats-included-toggle');
+        const zone = card.shadowRoot.querySelector('.features-zone');
+        expect(getComputedStyle(toggle).display).to.equal('none');
+        expect(getComputedStyle(zone).display).to.not.equal('none');
+    });
+});
+
+describe('pro edu disclaimer', () => {
+    let card;
+    afterEach(() => card?.remove());
+
+    it('maps eduDisclaimer to the edu-disclaimer slot', async () => {
+        const { PRO_AEM_FRAGMENT_MAPPING } = await import(
+            '../src/variants/pro.js'
+        );
+        expect(PRO_AEM_FRAGMENT_MAPPING.eduDisclaimer).to.deep.equal({
+            tag: 'div',
+            slot: 'edu-disclaimer',
+        });
+    });
+
+    it('renders the disclaimer slot when content is present', async () => {
+        card = await renderCard(
+            '<div slot="edu-disclaimer">Students and teachers only.</div>',
+        );
+        expect(card.variantLayout.hasEduDisclaimer).to.be.true;
+        expect(card.shadowRoot.querySelector('slot[name="edu-disclaimer"]')).to
+            .exist;
+    });
+
+    it('hides the disclaimer when settings.hideEduDisclaimer is true', async () => {
+        card = await renderCard(
+            '<div slot="edu-disclaimer">Students and teachers only.</div>',
+        );
+        card.settings = { hideEduDisclaimer: true };
+        card.requestUpdate();
+        await card.updateComplete;
+        expect(card.shadowRoot.querySelector('slot[name="edu-disclaimer"]')).to
+            .not.exist;
+    });
+
+    it('shows the disclaimer when settings.hideEduDisclaimer is false', async () => {
+        card = await renderCard(
+            '<div slot="edu-disclaimer">Students and teachers only.</div>',
+        );
+        card.settings = { hideEduDisclaimer: false };
+        card.requestUpdate();
+        await card.updateComplete;
+        expect(card.shadowRoot.querySelector('slot[name="edu-disclaimer"]')).to
+            .exist;
+    });
+});
+
 describe('Pro.adjustLegal', () => {
     function makeFixture(priceOverrides = {}) {
         // addEventListener has to be here: adjustLegal subscribes the clone to

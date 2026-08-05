@@ -39,6 +39,12 @@ merch-card[variant="pro"] {
     position: relative;
 }
 
+/* EDU (Wide): standalone two-column card, wider than the default grid track.
+   Internal row split + mobile stack live in the shadow variantStyle. */
+merch-card[variant="pro"][size='edu'] {
+    max-width: 1068px;
+}
+
 /* Authored inline links sit on the card's own surface, so Milo's global
    \`a { color: var(--link-color) }\` renders them Spectrum blue against it.
    Take the surrounding copy's color instead — white on a dark card, black on
@@ -172,6 +178,112 @@ merch-card[variant="pro"] [slot="whats-included"] .whats-included-label {
     display: none;
 }
 
+/* EDU whats-included TITLE — two states: small (≤1279) 20/20, desktop
+   (≥1280) 36/32. Figma 4375:120499 (small) / 4375:120476 (desktop). */
+merch-card[variant="pro"][size='edu'] [slot="whats-included"] .whats-included-title {
+    display: block;
+    color: inherit;
+    font-family: var(--consonant-merch-card-pro-font-family-display);
+    font-size: 20px;
+    font-style: normal;
+    font-weight: 900;
+    line-height: 20px;
+    letter-spacing: -0.48px;
+}
+
+/* EDU card title (heading-xs): 18/20 up to tablet, 24/24 on desktop
+   (Figma 4375:120499 / 4375:120476). Edu-scoped so grid pro cards keep 24. */
+merch-card[variant="pro"][size='edu'] [slot="heading-xs"] {
+    font-size: 18px;
+    line-height: 20px;
+}
+
+@media screen and ${C2_DESKTOP_UP} {
+    merch-card[variant="pro"][size='edu'] [slot="whats-included"] .whats-included-title {
+        font-size: 36px;
+        line-height: 32px;
+        letter-spacing: -1px;
+    }
+    merch-card[variant="pro"][size='edu'] [slot="heading-xs"] {
+        font-size: 24px;
+        line-height: 24px;
+    }
+}
+
+/* EDU sub-label "What's included:" (Figma 4375:120476, 16/20/700). The base
+   rule hides .whats-included-label; edu shows it 24px below the title. */
+merch-card[variant="pro"][size='edu'] [slot="whats-included"] .whats-included-label {
+    display: block;
+    color: inherit;
+    font-family: var(--consonant-merch-card-pro-font-family-regular);
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 20px;
+    letter-spacing: 0;
+}
+
+/* EDU eligibility disclaimer, resolved server-side ({{edu-disclaimer}}) and
+   appended after the feature list by pro.js, hidden via the hideEduDisclaimer
+   setting (MWPW-202318). Figma 4375:120476: 12/16 legal text. Muted token so
+   it flips with the dark theme; the black-border frame overrides to white. */
+merch-card[variant="pro"][size='edu'] [slot="whats-included"] .whats-included-disclaimer {
+    color: var(--consonant-merch-card-pro-text-muted-color, #000000a3);
+    font-family: var(--consonant-merch-card-pro-font-family-regular);
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 16px;
+    letter-spacing: 0;
+    margin-top: 24px;
+}
+
+/* {{edu-disclaimer}} resolves to rich text (a <p>), so the placeholder sits in
+   a <div> wrapper; the inner paragraph inherits the legal-text styling. */
+merch-card[variant="pro"][size='edu'] [slot="whats-included"] .whats-included-disclaimer p {
+    margin: 0;
+    font: inherit;
+    color: inherit;
+}
+
+merch-card[variant="pro"][size='edu'] [slot="whats-included"] .whats-included-disclaimer a:not([class*="spectrum-Link"]) {
+    color: var(--consonant-merch-card-pro-text-color, #000);
+}
+
+merch-card[variant="pro"][border-color="black"][size='edu'] [slot="whats-included"] .whats-included-disclaimer {
+    color: #FFFFFFA3;
+}
+
+merch-card[variant="pro"][border-color="black"][size='edu'] [slot="whats-included"] .whats-included-disclaimer a:not([class*="spectrum-Link"]) {
+    color: #FFF;
+}
+
+/* Secondary spectrum links inherit the surrounding text color, per the
+   convention used on other cards (e.g. mini-compare-chart footer-rows/body-m). */
+merch-card[variant="pro"] [slot="whats-included"] a.spectrum-Link.spectrum-Link--secondary,
+merch-card[variant="pro"] [slot="body-xs"] a.spectrum-Link.spectrum-Link--secondary {
+    color: inherit;
+}
+
+/* Feature rows are 14/18/400 in both states — the authored <h4> and the <p>
+   they become (pro.js adjustEduWhatsIncluded) — so type doesn't shift on
+   convert. (Base h4 is 700/0.14px, the narrow-card look.) */
+merch-card[variant="pro"][size='edu'] [slot="whats-included"] h4,
+merch-card[variant="pro"][size='edu'] [slot="whats-included"] .section p {
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 18px;
+    letter-spacing: 0;
+}
+
+merch-card[variant="pro"][size='edu'] [slot="whats-included"] .section p {
+    margin: 0;
+    padding: 0;
+    color: var(--consonant-merch-card-pro-text-muted-color);
+}
+
+merch-card[variant="pro"][border-color="black"][size='edu'] [slot="whats-included"] .section p {
+    color: var(--consonant-merch-card-pro-text-inverse-color);
+}
+
 merch-card[variant="pro"] [slot="whats-included"] .section,
 merch-card[variant="pro"] [slot="whats-included"] h4,
 merch-card[variant="pro"] [slot="whats-included"] h5 {
@@ -205,6 +317,13 @@ merch-card[variant="pro"] [slot="whats-included"] h4 {
     line-height: 18px;
     letter-spacing: 0;
     color: inherit;
+}
+
+/* Only rows with an icon need flex to center it against the text; a row with
+   no icon (e.g. a leading link followed by plain text, MWPW-200407 review #1)
+   must stay in normal flow, or flex splits the link and trailing text into
+   separate wrapping columns instead of one flowing sentence. */
+merch-card[variant="pro"] [slot="whats-included"] h4:has(> svg, > .sp-icon, > merch-icon) {
     display: flex;
     align-items: center;
     gap: 4px;
@@ -242,8 +361,10 @@ merch-card[variant="pro"] [slot="whats-included"] .section + .section {
 }
 
 /* Per Figma: the last section in a multi-section list uses 8px gap between title and items
-   (the leading + middle sections stay at 12px). Single-section cards keep 12px. */
-merch-card[variant="pro"] [slot="whats-included"] .section:not(:only-child):last-child ul {
+   (the leading + middle sections stay at 12px). Single-section cards keep 12px.
+   Excludes edu: there the sibling .whats-included-label makes .section a non-only
+   :last-child, which would otherwise steal the edu 16px title→list gap. */
+merch-card[variant="pro"]:not([size='edu']) [slot="whats-included"] .section:not(:only-child):last-child ul {
     margin-top: 8px;
 }
 

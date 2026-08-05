@@ -15,6 +15,7 @@ export const SETTING_NAME_DEFINITIONS = [
     { name: 'displayPlanType', valueType: 'boolean', propertyName: 'showPlanType' },
     { name: 'quantitySelect', valueType: 'optional-text', editor: 'quantity-select' },
     { name: 'hideTrialCTAs', valueType: 'boolean' },
+    { name: 'hideEduDisclaimer', valueType: 'boolean' },
     { name: 'additionalModalTriggers', valueType: 'boolean' },
 ];
 

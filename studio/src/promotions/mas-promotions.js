@@ -23,7 +23,7 @@ import {
     promotionDeleteConfirmMessage,
     PROMOTION_EXPIRED_PUBLISH_MESSAGE,
 } from './promotion-publish-utils.js';
-import { deleteAttachedPromoVariations, getAllAttachedPromoVariations } from './promotions-repository.js';
+import { getAllAttachedPromoVariations } from './promotions-repository.js';
 import { PROMOTION_FIELD_TYPE_MAP } from './promotion-editor-utils.js';
 
 class MasPromotions extends LitElement {
@@ -507,7 +507,6 @@ class MasPromotions extends LitElement {
         try {
             this.loading = true;
             showToast('Deleting promotion campaign...');
-            await deleteAttachedPromoVariations(this.repository.aem, fragment);
             await this.repository.deleteFragment(promotion, { startToast: false, endToast: false });
             if (tagPath) await this.repository.aem.tags.delete(tagPath);
             const updatedPromotions = this.promotionsData.filter((p) => p.get().id !== promotion.get().id);

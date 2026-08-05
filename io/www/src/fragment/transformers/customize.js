@@ -118,6 +118,16 @@ function countMatchedPznTokens(tags, tokens) {
 }
 
 /**
+ * Region match beats country match when resolving ties (applies to both pzn and promo variations).
+ * @param {{ region?: boolean, country?: boolean }|null|undefined} geo
+ * @returns {number}
+ */
+function geoMatchScore(geo) {
+    if (!geo) return 0;
+    return (geo.region ? 2 : 0) + (geo.country ? 1 : 0);
+}
+
+/**
  * Non-zero score means this variation applies. Higher is better: each matched request pzn token
  * dominates; region and country matches add smaller tie-break weight.
  * @param {string[]|undefined} pznTags
@@ -137,7 +147,7 @@ function personalizationMatchScore(pznTags, { regionLocale, country, pzn }) {
     if (matchedTokens === 0 && !geo) {
         return 0;
     }
-    return matchedTokens * 100 + (geo?.region ? 20 : 0) + (geo?.country ? 10 : 0);
+    return matchedTokens * 100 + geoMatchScore(geo) * 10;
 }
 
 function findPersonalizationVariation(variations, customizeContext) {
@@ -179,6 +189,8 @@ function promoProjectLabel(project) {
 }
 
 // Upper bound for probing suffixed promo variation paths (`-2`, `-3`, ...) per fragment.
+// Kept in sync by hand with the same constant + `-N` suffix convention in
+// studio/src/promotions/promotion-variations.js (separate runtime, no shared import).
 const MAX_PROMO_VARIATIONS_PER_FRAGMENT = 50;
 
 // Collects same fragment geo promos to select the best match.
@@ -208,7 +220,7 @@ function selectBestPromoVariation(candidates, { regionLocale, country }) {
         }
         const geo = matchesGeo(pznTags, { regionLocale, country });
         if (!geo) continue;
-        const score = (geo.region ? 2 : 0) + (geo.country ? 1 : 0);
+        const score = geoMatchScore(geo);
         if (score > bestScore) {
             bestScore = score;
             best = candidate;

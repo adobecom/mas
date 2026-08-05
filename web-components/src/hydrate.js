@@ -1008,7 +1008,7 @@ export async function hydrate(fragment, merchCard) {
         );
     }
 
-    const { id, fields, settings = {}, priceLiterals } = fragment;
+    const { id, fields, settings = {}, priceLiterals, placeholders } = fragment;
     if (fields.variant === 'bizpro') fields.variant = 'pro'; // TODO(MWPW-200587): remove after content migration
     const { variant } = fields;
     if (!variant)
@@ -1018,6 +1018,7 @@ export async function hydrate(fragment, merchCard) {
     merchCard.contextPromotionCode = fields.promoCode;
     merchCard.settings = settings;
     if (priceLiterals) merchCard.priceLiterals = priceLiterals;
+    if (placeholders) merchCard.placeholders = placeholders;
     merchCard.id ??= fragment.id;
     if (fragment.variationId)
         merchCard.setAttribute('variation-id', fragment.variationId);

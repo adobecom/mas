@@ -178,7 +178,7 @@ describe('promotion-publish-utils', () => {
 
     it('builds the delete confirm message with a promo variations note when some are attached', () => {
         expect(promotionDeleteConfirmMessage('Black Friday', 3)).to.equal(
-            'Are you sure you want to delete the promotion project "Black Friday"? This action cannot be undone. 3 promo variation(s) will also be deleted.',
+            'Are you sure you want to delete the promotion project "Black Friday"? This action cannot be undone. 3 promo variation(s) will remain saved but will no longer be associated with this project.',
         );
     });
 

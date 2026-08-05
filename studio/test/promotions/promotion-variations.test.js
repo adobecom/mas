@@ -8,6 +8,7 @@ import {
     MAX_PROMO_VARIATIONS_PER_FRAGMENT,
     mergePromoVariationReferences,
     mergePromoReferencesForDefaultFragment,
+    probeOrphanedPromoVariationsForFragment,
     probePromoVariationReferences,
     probePromoVariationsForFragment,
     probePromoVariationsForFragments,
@@ -923,6 +924,7 @@ describe('promotion-variations', () => {
 
     describe('probePromoVariationReferences', () => {
         const defaultPath = '/content/dam/mas/sandbox/en_US/Plans/Individual/com/my-card';
+        const promotionsRoot = '/content/dam/mas/sandbox/en_US/promotions';
         const promoFolder = '/content/dam/mas/sandbox/en_US/promotions/back-to-school/Plans/Individual/com';
         const promoPath = `${promoFolder}/my-card`;
 
@@ -976,6 +978,80 @@ describe('promotion-variations', () => {
                 { tags: [{ id: 'mas:promotion/back-to-school' }] },
             ]);
             expect(refs).to.deep.equal([]);
+        });
+
+        it('falls back to a promotions-tree scan when no live project has a matching variation', async () => {
+            const aem = createAemMock({
+                fragments: { search: makeSearchStub({ [promotionsRoot]: [{ id: 'orphan-id', path: promoPath }] }) },
+            });
+
+            const refs = await probePromoVariationReferences(aem, defaultPath, []);
+            expect(refs).to.have.lengthOf(1);
+            expect(refs[0].path).to.equal(promoPath);
+        });
+
+        it('falls back to a promotions-tree scan when live projects exist but none match', async () => {
+            const aem = createAemMock({
+                fragments: { search: makeSearchStub({ [promotionsRoot]: [{ id: 'orphan-id', path: promoPath }] }) },
+            });
+
+            const refs = await probePromoVariationReferences(aem, defaultPath, [
+                { tags: [{ id: 'mas:promotion/some-other-project' }] },
+            ]);
+            expect(refs).to.have.lengthOf(1);
+            expect(refs[0].path).to.equal(promoPath);
+        });
+    });
+
+    describe('probeOrphanedPromoVariationsForFragment', () => {
+        const defaultPath = '/content/dam/mas/sandbox/en_US/Plans/Individual/com/my-card';
+        const promotionsRoot = '/content/dam/mas/sandbox/en_US/promotions';
+        const promoPath = `${promotionsRoot}/back-to-school/Plans/Individual/com/my-card`;
+
+        it('discovers a variation left behind by a deleted promotion project', async () => {
+            const aem = createAemMock({
+                fragments: { search: makeSearchStub({ [promotionsRoot]: [{ id: 'orphan-id', path: promoPath }] }) },
+            });
+
+            const refs = await probeOrphanedPromoVariationsForFragment(aem, defaultPath);
+            expect(refs).to.have.lengthOf(1);
+            expect(refs[0]).to.include({ id: 'orphan-id', path: promoPath });
+        });
+
+        it('discovers a variation under a nested (multi-segment) promo-name folder', async () => {
+            const nestedPath = `${promotionsRoot}/season/black-friday/Plans/Individual/com/my-card-2`;
+            const aem = createAemMock({
+                fragments: { search: makeSearchStub({ [promotionsRoot]: [{ id: 'nested-id', path: nestedPath }] }) },
+            });
+
+            const refs = await probeOrphanedPromoVariationsForFragment(aem, defaultPath);
+            expect(refs).to.have.lengthOf(1);
+            expect(refs[0]).to.include({ id: 'nested-id', path: nestedPath, index: 2 });
+        });
+
+        it('ignores unrelated fragments found under the promotions tree', async () => {
+            const unrelatedPath = `${promotionsRoot}/back-to-school/Plans/Individual/com/other-card`;
+            const aem = createAemMock({
+                fragments: { search: makeSearchStub({ [promotionsRoot]: [{ id: 'unrelated-id', path: unrelatedPath }] }) },
+            });
+
+            expect(await probeOrphanedPromoVariationsForFragment(aem, defaultPath)).to.deep.equal([]);
+        });
+
+        it('returns an empty array when nothing is found under the promotions tree', async () => {
+            const aem = createAemMock({ fragments: { search: makeSearchStub({ [promotionsRoot]: [] }) } });
+            expect(await probeOrphanedPromoVariationsForFragment(aem, defaultPath)).to.deep.equal([]);
+        });
+
+        it('returns an empty array when aem, defaultPath is missing, or it is a promo path', async () => {
+            expect(await probeOrphanedPromoVariationsForFragment(createAemMock(), '')).to.deep.equal([]);
+            expect(await probeOrphanedPromoVariationsForFragment(createAemMock(), promoPath)).to.deep.equal([]);
+            expect(await probeOrphanedPromoVariationsForFragment(null, defaultPath)).to.deep.equal([]);
+        });
+
+        it('returns an empty array when the promotions-tree search fails', async () => {
+            const aem = createAemMock({ fragments: { search: sandbox.stub().throws(new Error('boom')) } });
+            expect(await probeOrphanedPromoVariationsForFragment(aem, defaultPath)).to.deep.equal([]);
         });
     });
 

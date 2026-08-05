@@ -1,4 +1,4 @@
-import { STATUS_PUBLISHED, STATUS_DRAFT, TAG_PROMOTION_PREFIX } from '../constants.js';
+import { PATH_TOKENS, STATUS_PUBLISHED, STATUS_DRAFT, TAG_PROMOTION_PREFIX } from '../constants.js';
 import { normalizeTagId } from '../aem/tag-id-utils.js';
 import { UserFriendlyError } from '../utils.js';
 import { Fragment } from '../aem/fragment.js';
@@ -7,6 +7,7 @@ import {
     buildCandidateCollisionPath,
     buildPromoVariationPath,
     buildPromoVariationPathForTag,
+    buildPromotionsRootPath,
     getFragmentByPathOrNull,
     getPromoNameFromTag,
     getPromotionTagFromFragment,
@@ -43,11 +44,11 @@ function escapeRegExp(value) {
 /**
  * Computes the folder to search and the leaf-matching pattern for a fragment's promo variations.
  * @param {string} defaultPath
- * @param {string} promoTagId
+ * @param {string} promoName
  * @returns {{ parentFolder: string, leafName: string, leafPattern: RegExp }|null}
  */
-function computeProbeTarget(defaultPath, promoTagId) {
-    const basePath = buildPromoVariationPathForTag(defaultPath, promoTagId);
+function computeProbeTarget(defaultPath, promoName) {
+    const basePath = buildPromoVariationPath(defaultPath, promoName);
     if (!basePath) return null;
     const parentFolder = basePath.split('/').slice(0, -1).join('/');
     const leafName = basePath.split('/').pop();
@@ -95,11 +96,13 @@ function matchProbedVariation(variation, leafPattern, ownLeafName, siblingLeafNa
 export async function probePromoVariationsForFragments(aem, defaultPaths, promoTagId) {
     const resultsByPath = new Map((defaultPaths || []).map((defaultPath) => [defaultPath, []]));
     if (!aem || !promoTagId || !defaultPaths?.length) return resultsByPath;
+    const promoName = getPromoNameFromTag(promoTagId);
+    if (!promoName) return resultsByPath;
 
     const targetsByPath = new Map();
     const pathsByFolder = new Map();
     for (const defaultPath of defaultPaths) {
-        const target = computeProbeTarget(defaultPath, promoTagId);
+        const target = computeProbeTarget(defaultPath, promoName);
         if (!target) continue;
         targetsByPath.set(defaultPath, target);
         const pathsInFolder = pathsByFolder.get(target.parentFolder) ?? [];
@@ -285,6 +288,57 @@ export function mergePromoVariationReferences(fragmentData, discovered) {
 }
 
 /**
+ * Finds promo variations left behind after their source project is deleted.
+ * This method scans the entire promotions/ tree using the fragment's suffix, working regardless of intermediate folder levels.
+ * @param {import('../aem/aem.js').AEM} aem
+ * @param {string} defaultPath
+ * @returns {Promise<Array<{ id: string, path: string, tags?: unknown[] }>>}
+ */
+export async function probeOrphanedPromoVariationsForFragment(aem, defaultPath) {
+    if (!aem || !defaultPath || isPromoVariationPath(defaultPath)) return [];
+    const match = PATH_TOKENS.exec(defaultPath);
+    const promotionsRoot = buildPromotionsRootPath(defaultPath);
+    if (!match?.groups?.fragmentPath || !promotionsRoot) return [];
+
+    const segments = match.groups.fragmentPath.split('/');
+    const leafName = segments.pop();
+    const dirPart = segments.join('/');
+    const suffix = dirPart ? `${escapeRegExp(dirPart)}/${escapeRegExp(leafName)}` : escapeRegExp(leafName);
+    const suffixPattern = new RegExp(`^${escapeRegExp(promotionsRoot)}/.+/${suffix}(?:-(\\d+))?$`);
+
+    const rawResults = [];
+    try {
+        for await (const batch of aem.sites.cf.fragments.search({ path: promotionsRoot }, VARIATION_SEARCH_PAGE_SIZE)) {
+            rawResults.push(...batch);
+        }
+    } catch (error) {
+        console.error('Failed to search promotions folder for orphan probe:', error);
+        return [];
+    }
+
+    return rawResults
+        .map((variation) => {
+            const pathMatch = variation?.path && suffixPattern.exec(variation.path);
+            if (!pathMatch || !variation?.id) return null;
+            const index = pathMatch[1] ? Number(pathMatch[1]) : 1;
+            if (index < 1 || index > MAX_PROMO_VARIATIONS_PER_FRAGMENT) return null;
+            return {
+                path: variation.path,
+                index,
+                id: variation.id,
+                pznTags: readPznTags(variation),
+                status: variation.status,
+                title: variation.title,
+                model: variation.model,
+                fields: variation.fields,
+                tags: variation.tags,
+            };
+        })
+        .filter(Boolean)
+        .sort((a, b) => a.index - b.index);
+}
+
+/**
  * Probes every promo variation path for known promotion projects (tag + path; not parent variations field).
  * A single project can have more than one geo-specific variation, so each project is probed for all indices.
  * @param {import('../aem/aem.js').AEM} aem
@@ -293,18 +347,23 @@ export function mergePromoVariationReferences(fragmentData, discovered) {
  * @returns {Promise<Array<{ id: string, path: string, tags?: unknown[] }>>}
  */
 export async function probePromoVariationReferences(aem, defaultPath, promotionProjects = []) {
-    if (!aem || !defaultPath || isPromoVariationPath(defaultPath) || !promotionProjects.length) return [];
+    if (!aem || !defaultPath || isPromoVariationPath(defaultPath)) return [];
 
-    const refsPerProject = await processConcurrently(
-        promotionProjects,
-        async (project) => {
-            const tagId = getPromotionTagFromFragment(project);
-            if (!tagId) return [];
-            return probePromoVariationsForFragment(aem, defaultPath, tagId);
-        },
-        VARIATIONS_CONCURRENCY_LIMIT,
-    );
-    return refsPerProject.flat();
+    if (promotionProjects.length) {
+        const refsPerProject = await processConcurrently(
+            promotionProjects,
+            async (project) => {
+                const tagId = getPromotionTagFromFragment(project);
+                if (!tagId) return [];
+                return probePromoVariationsForFragment(aem, defaultPath, tagId);
+            },
+            VARIATIONS_CONCURRENCY_LIMIT,
+        );
+        const discovered = refsPerProject.flat();
+        if (discovered.length) return discovered;
+    }
+
+    return probeOrphanedPromoVariationsForFragment(aem, defaultPath);
 }
 
 /**

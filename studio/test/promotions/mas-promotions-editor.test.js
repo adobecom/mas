@@ -1583,7 +1583,7 @@ describe('MasPromotionsEditor', () => {
             await new Promise((r) => setTimeout(r, 0));
             await el.updateComplete;
             expect(el.confirmDialogConfig?.message).to.equal(
-                'Are you sure you want to delete the promotion project "To Delete"? This action cannot be undone. 1 promo variation(s) will also be deleted.',
+                'Are you sure you want to delete the promotion project "To Delete"? This action cannot be undone. 1 promo variation(s) will remain saved but will no longer be associated with this project.',
             );
         });
 

@@ -39,6 +39,23 @@ merch-card[variant="pro"] {
     position: relative;
 }
 
+/* Authored inline links sit on the card's own surface, so Milo's global
+   \`a { color: var(--link-color) }\` renders them Spectrum blue against it.
+   Take the surrounding copy's color instead — white on a dark card, black on
+   a light one, and the 64%-muted token inside the features list — leaving the
+   underline as the only link affordance. Scoped to the text slots so the
+   footer CTAs (styled as buttons below) are untouched. */
+merch-card[variant="pro"]
+    :is(
+        [slot="body-xs"],
+        [slot="whats-included"],
+        [slot="legal-text"],
+        [slot="promo-text"]
+    )
+    a {
+    color: inherit;
+}
+
 /* Callout banner link — inherits dark text color + weight, just underlined.
    Force display:inline so the link flows with the surrounding text and
    doesn't get broken onto its own line by any inherited inline-block. */

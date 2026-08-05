@@ -9,6 +9,7 @@ import {
     SELECTOR_MAS_INLINE_PRICE,
     TEMPLATE_PRICE_LEGAL,
 } from '../constants.js';
+import { MOBILE_LANDSCAPE, TABLET_UP, C2_DESKTOP_UP } from '../media.js';
 
 const VARIANT = 'pro';
 // syncHeights publishes this property and the shadow styles consume it; the
@@ -210,6 +211,7 @@ export class Pro extends VariantLayout {
     }
 
     async postCardUpdateHook() {
+        this.adjustEduWhatsIncluded();
         await this.adjustAddon();
         if (!this.legalAdjusted) {
             await this.adjustLegal();
@@ -218,6 +220,42 @@ export class Pro extends VariantLayout {
         await super.postCardUpdateHook();
         // Line the white .top-card sections up across a row (desktop only).
         if (window.matchMedia('(min-width: 768px)').matches) this.syncHeights();
+    }
+
+    // pro/edu only: the authored whats-included leading paragraph is the panel
+    // title; promote it and inject the server-resolved (already localized)
+    // sub-label + disclaimer strings published on the card's `placeholders` map
+    // (settings.js -> replace transformer -> here). Idempotent via the
+    // `.whats-included-title` guard so re-renders don't double-apply.
+    adjustEduWhatsIncluded() {
+        if (this.card.size !== 'edu') return;
+        const slot = this.card.querySelector('[slot="whats-included"]');
+        if (!slot || slot.querySelector('.whats-included-title')) return;
+        const authoredTitle = slot.querySelector('.whats-included-label');
+        if (!authoredTitle) return;
+        const title = document.createElement('h4');
+        title.className = 'whats-included-title';
+        title.innerHTML = authoredTitle.innerHTML;
+        authoredTitle.replaceWith(title);
+        const { whatsIncludedLabel, eduDisclaimer } =
+            this.card.placeholders ?? {};
+        const label = document.createElement('p');
+        label.className = 'whats-included-label';
+        label.textContent = whatsIncludedLabel ?? '';
+        title.after(label);
+        slot.querySelectorAll('.section h4:not(.whats-included-title)').forEach(
+            (h4) => {
+                const row = document.createElement('p');
+                row.innerHTML = h4.innerHTML;
+                h4.replaceWith(row);
+            },
+        );
+        if (eduDisclaimer) {
+            const disclaimer = document.createElement('div');
+            disclaimer.className = 'whats-included-disclaimer';
+            disclaimer.innerHTML = eduDisclaimer;
+            slot.append(disclaimer);
+        }
     }
 
     // Heading/description reflow when the Adobe Clean fonts load, so wait for
@@ -756,7 +794,7 @@ export class Pro extends VariantLayout {
             font-size: 16px;
             line-height: 20px;
             letter-spacing: 0;
-            color: var(--consonant-merch-card-pro-subtitle-color, #000000a3);
+            color: var(--consonant-merch-card-pro-subtitle-color, #000000);
             flex: 1;
         }
 
@@ -877,7 +915,7 @@ export class Pro extends VariantLayout {
             color: inherit;
             display: flex;
             flex-direction: column;
-            gap: 24px;
+            gap: 16px;
         }
 
         :host([variant='pro']) .whats-included-toggle {
@@ -1136,12 +1174,53 @@ export class Pro extends VariantLayout {
         }
 
         /* C2 desktop breakpoint: toggle disappears, features-zone is always visible inline */
-        @media (min-width: 1280px) {
+        @media screen and ${unsafeCSS(C2_DESKTOP_UP)} {
             :host([variant='pro']) .whats-included-toggle {
                 display: none;
             }
             :host([variant='pro']) .features-zone[hidden] {
                 display: flex;
+            }
+        }
+
+        /* EDU (Wide): standalone two-column card — pricing left, features
+           right, always shown. Stacks vertically below tablet. */
+        :host([variant='pro'][size='edu']) .whats-included-toggle {
+            display: none;
+        }
+
+        :host([variant='pro'][size='edu']) .features-zone[hidden] {
+            display: flex;
+        }
+
+        @media screen and ${unsafeCSS(TABLET_UP)} {
+            :host([variant='pro'][size='edu']) {
+                flex-direction: row;
+                gap: 8px;
+            }
+
+            :host([variant='pro'][size='edu']) .top-card,
+            :host([variant='pro'][size='edu']) .features-zone {
+                flex: 1 1 50%;
+                min-width: 0;
+                /* border-box so the 40px vs 24px padding delta doesn't skew
+                   the split — Figma has equal 526+526 total column widths. */
+                box-sizing: border-box;
+            }
+
+            /* EDU right panel padding is 40px at tablet+; mobile keeps the base
+               24px (Figma 4375:120476 desktop / 4375:120499 mobile). */
+            :host([variant='pro'][size='edu']) .features-zone {
+                padding: 40px;
+            }
+
+            /* edu is a standalone card, not a grid row, so the price shouldn't
+               stick to the bottom. Stop .name-description from absorbing the
+               slack (from the 50/50 stretch) — pack content to the top per
+               Figma (Top of Card primaryAxisAlign=MIN), slack falls to the
+               bottom. */
+            :host([variant='pro'][size='edu']) .name-description {
+                flex: 0 0 auto;
             }
         }
     `;

@@ -229,6 +229,27 @@ describe('replace', () => {
             expect(result.body.fields.description).to.equal('acom-a surf-b region-c');
         });
 
+        it('overlays a non-acom surface baseline onto the acom base (no region)', async () => {
+            // ccd/en_US request: acom/en_US global baseline + ccd/en_US surface baseline; region is skipped
+            // (regionLocale === baseLocale). The surface baseline wins where both define a key.
+            clearDictionaryCache();
+            mockDirectDictionary(false, BASELINE_SURFACE, 'en_US', dictFixture({ a: 'acom-a', b: 'acom-b' }), fetchStub);
+            mockDirectDictionary(false, 'ccd', 'en_US', dictFixture({ b: 'ccd-b', c: 'ccd-c' }), fetchStub);
+            const context = {
+                surface: 'ccd',
+                locale: 'en_US',
+                regionLocale: 'en_US',
+                defaultLocale: 'en_US',
+                loggedTransformer: 'replace',
+                requestId: 'mas-replace-ut',
+                promises: {},
+            };
+            context.body = odinResponse('{{a}} {{b}} {{c}}', null, 'ccd', 'en_US');
+            const result = await replace.process(context);
+            // a from acom base, b from ccd surface baseline (overriding acom), c from ccd surface baseline.
+            expect(result.body.fields.description).to.equal('acom-a ccd-b ccd-c');
+        });
+
         it('logs region entries duplicating the inherited baseline only when debugLogs is set', async () => {
             clearDictionaryCache();
             mockDirectDictionary(

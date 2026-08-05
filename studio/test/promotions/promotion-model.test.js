@@ -5,6 +5,7 @@ import {
     buildCandidateCollisionPath,
     buildPromoVariationPath,
     buildPromoVariationPathForTag,
+    buildPromotionsRootPath,
     canProbePromoVariationsForFragment,
     findPromotionProjectIdByTag,
     fragmentIsPromoVariation,
@@ -114,6 +115,17 @@ describe('promotion-model', () => {
 
         it('returns null when default path is already a promo variation', () => {
             expect(buildPromoVariationPath(promoVariationPath, 'black-friday')).to.be.null;
+        });
+    });
+
+    describe('buildPromotionsRootPath', () => {
+        it('builds the promotions root folder for a default fragment path', () => {
+            expect(buildPromotionsRootPath(defaultPath)).to.equal('/content/dam/mas/sandbox/en_US/promotions');
+        });
+
+        it('returns null when defaultPath is missing or invalid', () => {
+            expect(buildPromotionsRootPath('')).to.be.null;
+            expect(buildPromotionsRootPath('not-a-dam-path')).to.be.null;
         });
     });
 

@@ -453,6 +453,41 @@ describe('settings', () => {
             expect(result.body.settings.additionalModalTriggers).to.be.true;
         });
 
+        it('publishes edu whats-included placeholders for pro/edu cards', async () => {
+            const context = {
+                locale: 'en_US',
+                body: { fields: { variant: 'pro', size: 'edu' } },
+                promises: { settings: Promise.resolve({}) },
+            };
+            const result = await settings.process(context);
+            expect(result.body.placeholders.whatsIncludedLabel).to.equal('{{whats-included}}');
+            expect(result.body.placeholders.eduDisclaimer).to.equal('{{edu-disclaimer}}');
+        });
+
+        it('omits the edu disclaimer placeholder when hideEduDisclaimer setting is on', async () => {
+            const context = {
+                locale: 'en_US',
+                body: {
+                    fields: { variant: 'pro', size: 'edu' },
+                    settings: { hideEduDisclaimer: true },
+                },
+                promises: { settings: Promise.resolve({}) },
+            };
+            const result = await settings.process(context);
+            expect(result.body.placeholders.whatsIncludedLabel).to.equal('{{whats-included}}');
+            expect(result.body.placeholders.eduDisclaimer).to.be.undefined;
+        });
+
+        it('does not add edu whats-included placeholders for non-edu pro cards', async () => {
+            const context = {
+                locale: 'en_US',
+                body: { fields: { variant: 'pro', size: 'wide' } },
+                promises: { settings: Promise.resolve({}) },
+            };
+            const result = await settings.process(context);
+            expect(result.body.placeholders).to.be.undefined;
+        });
+
         it('handles missing body', async () => {
             const context = { locale: 'en_US', promises: { settings: Promise.resolve({}) } };
             const result = await settings.process(context);

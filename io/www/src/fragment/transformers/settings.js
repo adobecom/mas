@@ -17,6 +17,7 @@ export const SETTING_NAME_DEFINITIONS = [
     { name: 'displayPlanType', valueType: 'boolean', propertyName: 'showPlanType' },
     { name: 'quantitySelect', valueType: 'optional-text', editor: 'quantity-select' },
     { name: 'hideTrialCTAs', valueType: 'boolean' },
+    { name: 'hideEduDisclaimer', valueType: 'boolean' },
     { name: 'additionalModalTriggers', valueType: 'boolean' },
     { name: PLACEHOLDER_REMAP_SETTING, valueType: 'text' },
 ];
@@ -309,6 +310,21 @@ function applyCollectionSettings(context, locale, settings) {
         Object.fromEntries(['desktop', 'mobile', 'web'].map((label) => [label, `{{coll-tag-filter-${label}}}`])) || {};
 }
 
+// Publishes the edu "whats-included" chrome tokens (sub-label + disclaimer)
+// into body.placeholders, like applyPriceLiterals. `replace` resolves them
+// from the dictionary; pro.js places the resolved strings client-side.
+function applyEduPlaceholders(body) {
+    const fields = body?.fields;
+    if (fields?.variant !== 'pro' || fields?.size !== 'edu') return;
+    body.placeholders = {
+        ...body.placeholders,
+        whatsIncludedLabel: '{{whats-included}}',
+    };
+    if (!body.settings?.hideEduDisclaimer) {
+        body.placeholders.eduDisclaimer = '{{edu-disclaimer}}';
+    }
+}
+
 function applyPriceLiterals(fragment) {
     if (fragment) {
         fragment.priceLiterals = {
@@ -344,6 +360,8 @@ async function settings(context) {
             applySettings(context, body, locale, settings);
         }
     }
+
+    applyEduPlaceholders(body);
 
     return context;
 }

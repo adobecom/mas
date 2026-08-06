@@ -207,5 +207,15 @@ runTests(async () => {
                 expect(quantitySelect.selectedValue).to.equal(4);
             });
         });
+
+        describe('mas-quantity-select alias', () => {
+            it('is registered and extends merch-quantity-select', () => {
+                const masCtor = customElements.get('mas-quantity-select');
+                const merchCtor = customElements.get('merch-quantity-select');
+                expect(masCtor, 'mas-quantity-select should be registered').to
+                    .exist;
+                expect(masCtor.prototype instanceof merchCtor).to.be.true;
+            });
+        });
     }
 });

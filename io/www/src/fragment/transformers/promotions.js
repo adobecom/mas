@@ -389,7 +389,7 @@ async function init(context) {
     if (!defaultLocale) return { status: 200, activeProjects: [] };
     const resolvedRegionLocale = defaultLangResult.regionLocale;
 
-    const instant = toInstant(context.preview ? context.instant : undefined);
+    const instant = toInstant(context.instant);
     const { locale, country } = context;
     const effectiveRegionLocale = resolvedRegionLocale ?? locale;
 

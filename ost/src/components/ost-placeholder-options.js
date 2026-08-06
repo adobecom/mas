@@ -50,6 +50,18 @@ export class OstPlaceholderOptions extends LitElement {
             gap: 8px 16px;
             margin-top: 8px;
         }
+
+        .quantity-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .quantity-label {
+            font-size: 13px;
+            color: var(--spectrum-gray-800);
+        }
     `;
 
     constructor() {
@@ -83,8 +95,24 @@ export class OstPlaceholderOptions extends LitElement {
         store.toggleOption(key, !checked);
     }
 
+    setQuantity(value) {
+        const quantity = Math.max(1, Math.floor(Number(value) || 1));
+        store.setPlaceholderOptions({ ...store.placeholderOptions, quantity });
+    }
+
     render() {
         return html`
+            <div class="quantity-row">
+                <label class="quantity-label" for="ost-quantity">Quantity</label>
+                <sp-number-field
+                    id="ost-quantity"
+                    data-testid="ost-quantity-input"
+                    size="s"
+                    min="1"
+                    .value=${store.placeholderOptions.quantity ?? 1}
+                    @change=${(e) => this.setQuantity(e.target.value)}
+                ></sp-number-field>
+            </div>
             <button
                 type="button"
                 class="options-toggle"

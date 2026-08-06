@@ -92,6 +92,22 @@ describe('ost-placeholder-options', () => {
         expect(Boolean(cb(el, 'displayFormatted'))).to.be.false;
     });
 
+    it('renders a quantity field seeded from the store quantity', async () => {
+        store.placeholderOptions = { ...store.placeholderOptions, quantity: 3 };
+        const el = await fixture(html`<ost-placeholder-options></ost-placeholder-options>`);
+        const field = el.shadowRoot.querySelector('[data-testid="ost-quantity-input"]');
+        expect(field).to.exist;
+        expect(Number(field.value)).to.equal(3);
+    });
+
+    it('updates the store quantity when the quantity field changes', async () => {
+        const el = await fixture(html`<ost-placeholder-options></ost-placeholder-options>`);
+        const field = el.shadowRoot.querySelector('[data-testid="ost-quantity-input"]');
+        field.value = 5;
+        field.dispatchEvent(new Event('change'));
+        expect(store.getEffectiveOptions('price').quantity).to.equal(5);
+    });
+
     describe('every Disable checkbox drives its option (5 keys)', () => {
         const optionBoxes = [
             { key: 'displayRecurrence', default: true },

@@ -24,6 +24,7 @@ import('@spectrum-web-components/checkbox/sp-checkbox.js');
 import('@spectrum-web-components/field-label/sp-field-label.js');
 import('@spectrum-web-components/menu/sp-menu.js');
 import('@spectrum-web-components/menu/sp-menu-item.js');
+import('@spectrum-web-components/number-field/sp-number-field.js');
 import('@spectrum-web-components/picker/sp-picker.js');
 import('@spectrum-web-components/progress-circle/sp-progress-circle.js');
 import('@spectrum-web-components/search/sp-search.js');

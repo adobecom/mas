@@ -260,6 +260,27 @@ function findPromoMapsForFragment(root, customizeContext) {
     return promoProjects.filter(({ fragmentPaths }) => fragmentPaths.has(fragmentPath));
 }
 
+function hasExplicitMapping(osis, customizeContext, { project, promoMap, substituteMap }) {
+    const value = osis.some((osi) => promoMap[osi] !== undefined || substituteMap?.[osi] !== undefined);
+    logDebug(
+        () => `Project ${promoProjectLabel(project)} (${project.id}), explicit mapping for osis ${JSON.stringify(osis)}: ${value}`,
+        customizeContext,
+    );
+    return value;
+}
+
+function hasWildcardPromo(customizeContext, { project, promoMap }) {
+    const value = Boolean(promoMap['*']);
+    logDebug(() => `Project ${promoProjectLabel(project)} (${project.id}), wildcard promo: ${value}`, customizeContext);
+    return value;
+}
+
+function isSeasonal(customizeContext, { project }) {
+    const value = Boolean(project.endDate);
+    logDebug(() => `Project ${promoProjectLabel(project)} (${project.id}), seasonal: ${value}`, customizeContext);
+    return value;
+}
+
 /**
  * Selects a single promo project for a fragment. Priority order is:
  * promo project with an explicit mapping (osi replace or promo code) for a given geo & fragment.offer
@@ -274,13 +295,17 @@ function selectPromoProjectForFragment(root, customizeContext) {
     const promoEntries = findPromoMapsForFragment(root, customizeContext);
     if (!promoEntries.length) return null;
     const fragOsi = root.fields?.osi;
-    const osis = fragOsi ? (Array.isArray(fragOsi) ? fragOsi : [fragOsi]) : [];
-    const hasExplicitMapping = ({ promoMap, substituteMap }) =>
-        osis.some((osi) => promoMap[osi] !== undefined || substituteMap?.[osi] !== undefined);
-    const hasWildcardPromo = ({ promoMap }) => Boolean(promoMap['*']);
-    const isSeasonal = ({ project }) => Boolean(project.endDate);
+    const osis = fragOsi
+        ? (Array.isArray(fragOsi) ? fragOsi : fragOsi.split(','))
+              .map((osi) => osi.trim())
+              .filter(Boolean)
+        : [];
+    logDebug(() => `selectPromoProjectForFragment osis: ${JSON.stringify(osis)}`, customizeContext);
     const selected =
-        promoEntries.find(hasExplicitMapping) ?? promoEntries.find(hasWildcardPromo) ?? promoEntries.find(isSeasonal) ?? null;
+        promoEntries.find((entry) => hasExplicitMapping(osis, customizeContext, entry)) ??
+        promoEntries.find((entry) => hasWildcardPromo(customizeContext, entry)) ??
+        promoEntries.find((entry) => isSeasonal(customizeContext, entry)) ??
+        null;
     if (!selected) return null;
     logDebug(
         () =>

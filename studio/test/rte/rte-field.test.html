@@ -550,6 +550,28 @@
                             expect(rte.value).to.include('data-wcs-osi="osi-a,osi-b"');
                         });
 
+                        it('carries data-quantity from the OST onto the inline-price', async function () {
+                            const rte = await createFromTemplate('rte', this.test.title);
+                            await delay(50);
+                            const view = rte.editorView;
+                            const SelCtor = view.state.selection.constructor;
+                            const tr = view.state.tr.setSelection(SelCtor.create(view.state.doc, 1, 1));
+                            view.dispatch(tr);
+                            await delay(20);
+
+                            rte.handleOpenOfferSelector(new Event('click'));
+                            dispatchOstSelect({
+                                is: 'inline-price',
+                                'data-wcs-osi': 'osi-q',
+                                'data-quantity': '2',
+                            });
+                            await delay(50);
+
+                            const price = rte.shadowRoot.querySelector('.ProseMirror span[is="inline-price"]');
+                            expect(price.getAttribute('data-quantity')).to.equal('2');
+                            expect(rte.value).to.include('data-quantity="2"');
+                        });
+
                         it('is a no-op when ostRteFieldSource does not match the current RTE instance', async function () {
                             const rteA = await createFromTemplate('rte', this.test.title + '-A');
                             const rteB = await createFromTemplate('rte', this.test.title + '-B');

@@ -104,14 +104,15 @@ export class OstPlaceholderOptions extends LitElement {
         return html`
             <div class="quantity-row">
                 <label class="quantity-label" for="ost-quantity">Quantity</label>
-                <sp-number-field
+                <sp-textfield
                     id="ost-quantity"
                     data-testid="ost-quantity-input"
                     size="s"
+                    type="number"
                     min="1"
-                    .value=${store.placeholderOptions.quantity ?? 1}
+                    .value=${String(store.placeholderOptions.quantity ?? 1)}
                     @change=${(e) => this.setQuantity(e.target.value)}
-                ></sp-number-field>
+                ></sp-textfield>
             </div>
             <button
                 type="button"

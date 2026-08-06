@@ -46,7 +46,7 @@ describe('bulk-publish/snapshot.js', () => {
     // ── createSnapshot ──────────────────────────────────────────────────────
 
     describe('createSnapshot()', () => {
-        it('returns serialized entries with fragmentId, versionId, wasPublished, createdAt', async () => {
+        it('returns { entries, failures } with fragmentId, versionId, wasPublished, createdAt', async () => {
             fetchOdinStub.callsFake((endpoint, uri) => {
                 if (uri.includes('/adobe/sites/cf/fragments?path=')) {
                     return fetchResponse({ items: [{ id: 'frag-1', path: '/content/dam/a', status: 'PUBLISHED' }] });
@@ -57,7 +57,7 @@ describe('bulk-publish/snapshot.js', () => {
                 return fetchResponse({});
             });
 
-            const results = await snapshot.createSnapshot({
+            const { entries, failures } = await snapshot.createSnapshot({
                 paths: ['/content/dam/a'],
                 projectId: 'proj-1',
                 projectTitle: 'Project One',
@@ -65,8 +65,9 @@ describe('bulk-publish/snapshot.js', () => {
                 authToken,
             });
 
-            expect(results).to.have.length(1);
-            const entry = JSON.parse(results[0]);
+            expect(failures).to.deep.equal([]);
+            expect(entries).to.have.length(1);
+            const entry = JSON.parse(entries[0]);
             expect(entry).to.have.property('fragmentId', 'frag-1');
             expect(entry).to.have.property('versionId', 'ver-abc');
             expect(entry).to.have.property('wasPublished');
@@ -81,7 +82,7 @@ describe('bulk-publish/snapshot.js', () => {
                 return fetchResponse({}, { location: '/versions/ver-1' });
             });
 
-            const results = await snapshot.createSnapshot({
+            const { entries } = await snapshot.createSnapshot({
                 paths: ['/content/dam/pub'],
                 projectId: 'p1',
                 projectTitle: 'T',
@@ -89,7 +90,7 @@ describe('bulk-publish/snapshot.js', () => {
                 authToken,
             });
 
-            expect(JSON.parse(results[0]).wasPublished).to.be.true;
+            expect(JSON.parse(entries[0]).wasPublished).to.be.true;
         });
 
         it('sets wasPublished: true for Modified status', async () => {
@@ -100,7 +101,7 @@ describe('bulk-publish/snapshot.js', () => {
                 return fetchResponse({}, { location: '/versions/ver-2' });
             });
 
-            const results = await snapshot.createSnapshot({
+            const { entries } = await snapshot.createSnapshot({
                 paths: ['/content/dam/mod'],
                 projectId: 'p1',
                 projectTitle: 'T',
@@ -108,7 +109,7 @@ describe('bulk-publish/snapshot.js', () => {
                 authToken,
             });
 
-            expect(JSON.parse(results[0]).wasPublished).to.be.true;
+            expect(JSON.parse(entries[0]).wasPublished).to.be.true;
         });
 
         it('sets wasPublished: false for Draft status', async () => {
@@ -119,7 +120,7 @@ describe('bulk-publish/snapshot.js', () => {
                 return fetchResponse({}, { location: '/versions/ver-3' });
             });
 
-            const results = await snapshot.createSnapshot({
+            const { entries } = await snapshot.createSnapshot({
                 paths: ['/content/dam/draft'],
                 projectId: 'p1',
                 projectTitle: 'T',
@@ -127,10 +128,10 @@ describe('bulk-publish/snapshot.js', () => {
                 authToken,
             });
 
-            expect(JSON.parse(results[0]).wasPublished).to.be.false;
+            expect(JSON.parse(entries[0]).wasPublished).to.be.false;
         });
 
-        it('throws if fragment not found at path (items empty)', async () => {
+        it('records failure when fragment not found at path (items empty)', async () => {
             fetchOdinStub.callsFake((endpoint, uri) => {
                 if (uri.includes('/adobe/sites/cf/fragments?path=')) {
                     return fetchResponse({ items: [] });
@@ -138,45 +139,61 @@ describe('bulk-publish/snapshot.js', () => {
                 return fetchResponse({});
             });
 
-            let err;
-            try {
-                await snapshot.createSnapshot({
-                    paths: ['/content/dam/missing'],
-                    projectId: 'p1',
-                    projectTitle: 'T',
-                    odinEndpoint,
-                    authToken,
-                });
-            } catch (e) {
-                err = e;
-            }
-            expect(err).to.exist;
-            expect(err.message).to.match(/Fragment not found at path/);
+            const { entries, failures } = await snapshot.createSnapshot({
+                paths: ['/content/dam/missing'],
+                projectId: 'p1',
+                projectTitle: 'T',
+                odinEndpoint,
+                authToken,
+            });
+
+            expect(entries).to.have.length(0);
+            expect(failures).to.have.length(1);
+            expect(failures[0].path).to.equal('/content/dam/missing');
+            expect(failures[0].error).to.match(/Fragment not found at path/);
         });
 
-        it('throws if createVersion returns no versionId (empty Location header)', async () => {
+        it('records failure when createVersion returns no versionId (empty Location header)', async () => {
             fetchOdinStub.callsFake((endpoint, uri) => {
                 if (uri.includes('/adobe/sites/cf/fragments?path=')) {
                     return fetchResponse({ items: [{ id: 'frag-nv', path: '/content/dam/nv', status: 'DRAFT' }] });
                 }
-                // versions endpoint returns no Location header
                 return fetchResponse({}, { location: null });
             });
 
-            let err;
-            try {
-                await snapshot.createSnapshot({
-                    paths: ['/content/dam/nv'],
-                    projectId: 'p1',
-                    projectTitle: 'T',
-                    odinEndpoint,
-                    authToken,
-                });
-            } catch (e) {
-                err = e;
-            }
-            expect(err).to.exist;
-            expect(err.message).to.match(/Failed to create version/);
+            const { entries, failures } = await snapshot.createSnapshot({
+                paths: ['/content/dam/nv'],
+                projectId: 'p1',
+                projectTitle: 'T',
+                odinEndpoint,
+                authToken,
+            });
+
+            expect(entries).to.have.length(0);
+            expect(failures).to.have.length(1);
+            expect(failures[0].error).to.match(/Failed to create version/);
+        });
+
+        it('records failure for one path without aborting other paths in the batch', async () => {
+            fetchOdinStub.callsFake((endpoint, uri) => {
+                if (uri.includes('/adobe/sites/cf/fragments?path=')) {
+                    if (uri.includes('missing')) return fetchResponse({ items: [] });
+                    return fetchResponse({ items: [{ id: 'frag-ok', path: '/content/dam/ok', status: 'PUBLISHED' }] });
+                }
+                return fetchResponse({}, { location: '/versions/ver-ok' });
+            });
+
+            const { entries, failures } = await snapshot.createSnapshot({
+                paths: ['/content/dam/ok', '/content/dam/missing'],
+                projectId: 'p1',
+                projectTitle: 'T',
+                odinEndpoint,
+                authToken,
+            });
+
+            expect(entries).to.have.length(1);
+            expect(failures).to.have.length(1);
+            expect(failures[0].path).to.equal('/content/dam/missing');
         });
 
         it('all entries share the same createdAt timestamp (multi-path)', async () => {
@@ -193,7 +210,7 @@ describe('bulk-publish/snapshot.js', () => {
                 return fetchResponse({});
             });
 
-            const results = await snapshot.createSnapshot({
+            const { entries } = await snapshot.createSnapshot({
                 paths: ['/content/dam/a', '/content/dam/b'],
                 projectId: 'p1',
                 projectTitle: 'T',
@@ -201,8 +218,8 @@ describe('bulk-publish/snapshot.js', () => {
                 authToken,
             });
 
-            expect(results).to.have.length(2);
-            const timestamps = results.map((r) => JSON.parse(r).createdAt);
+            expect(entries).to.have.length(2);
+            const timestamps = entries.map((r) => JSON.parse(r).createdAt);
             expect(timestamps[0]).to.equal(timestamps[1]);
         });
     });
@@ -313,6 +330,222 @@ describe('bulk-publish/snapshot.js', () => {
             const result = await snapshot.revertSnapshot({ entries, odinEndpoint, authToken });
             expect(result.failures).to.have.length(1);
             expect(result.failures[0].error).to.equal('restore failed');
+        });
+    });
+
+    // ── translation version detection (via recordSnapshot) ───────────────────
+
+    describe('translation version detection', () => {
+        it('skips versions with createdBy odin-cf-versioning-user', async () => {
+            fetchOdinStub.callsFake((endpoint, uri) => {
+                if (uri.includes('/fragments?path='))
+                    return fetchResponse({ items: [{ id: 'frag-1', path: '/a', status: 'PUBLISHED' }] });
+                if (uri.includes('/versions'))
+                    return fetchResponse({
+                        items: [
+                            { id: 'v-trans', createdBy: 'odin-cf-versioning-user', comment: '' },
+                            { id: 'v-green', createdBy: 'author@adobe.com', comment: 'edit' },
+                        ],
+                    });
+                return fetchResponse({});
+            });
+            const results = await snapshot.recordSnapshot({ paths: ['/a'], odinEndpoint, authToken });
+            expect(JSON.parse(results.entries[0]).versionId).to.equal('v-green');
+        });
+
+        it('skips versions with Pre-rollout snapshot comment', async () => {
+            fetchOdinStub.callsFake((endpoint, uri) => {
+                if (uri.includes('/fragments?path='))
+                    return fetchResponse({ items: [{ id: 'frag-1', path: '/a', status: 'PUBLISHED' }] });
+                if (uri.includes('/versions'))
+                    return fetchResponse({
+                        items: [
+                            { id: 'v-trans', createdBy: 'someone', comment: 'Pre-rollout snapshot — source CF: /x' },
+                            { id: 'v-green', createdBy: 'author@adobe.com', comment: 'edit' },
+                        ],
+                    });
+                return fetchResponse({});
+            });
+            const results = await snapshot.recordSnapshot({ paths: ['/a'], odinEndpoint, authToken });
+            expect(JSON.parse(results.entries[0]).versionId).to.equal('v-green');
+        });
+
+        it('uses first version when no translation versions exist', async () => {
+            fetchOdinStub.callsFake((endpoint, uri) => {
+                if (uri.includes('/fragments?path='))
+                    return fetchResponse({ items: [{ id: 'frag-1', path: '/a', status: 'PUBLISHED' }] });
+                if (uri.includes('/versions'))
+                    return fetchResponse({
+                        items: [
+                            { id: 'v-latest', createdBy: 'author@adobe.com', comment: 'Latest' },
+                            { id: 'v-older', createdBy: 'author@adobe.com', comment: 'Older' },
+                        ],
+                    });
+                return fetchResponse({});
+            });
+            const results = await snapshot.recordSnapshot({ paths: ['/a'], odinEndpoint, authToken });
+            expect(JSON.parse(results.entries[0]).versionId).to.equal('v-latest');
+        });
+
+        it('treats version with undefined comment as non-translation', async () => {
+            fetchOdinStub.callsFake((endpoint, uri) => {
+                if (uri.includes('/fragments?path='))
+                    return fetchResponse({ items: [{ id: 'frag-1', path: '/a', status: 'PUBLISHED' }] });
+                if (uri.includes('/versions')) return fetchResponse({ items: [{ id: 'v-1', createdBy: 'author@adobe.com' }] });
+                return fetchResponse({});
+            });
+            const results = await snapshot.recordSnapshot({ paths: ['/a'], odinEndpoint, authToken });
+            expect(JSON.parse(results.entries[0]).versionId).to.equal('v-1');
+        });
+
+        it('treats Pre-bulk-publish versions as non-translation (eligible as revert target)', async () => {
+            fetchOdinStub.callsFake((endpoint, uri) => {
+                if (uri.includes('/fragments?path='))
+                    return fetchResponse({ items: [{ id: 'frag-1', path: '/a', status: 'PUBLISHED' }] });
+                if (uri.includes('/versions'))
+                    return fetchResponse({
+                        items: [
+                            { id: 'v-bulk', createdBy: 'author@adobe.com', comment: 'Pre-bulk-publish — My Project' },
+                            { id: 'v-trans', createdBy: 'odin-cf-versioning-user', comment: '' },
+                            { id: 'v-green', createdBy: 'author@adobe.com', comment: 'Manual edit' },
+                        ],
+                    });
+                return fetchResponse({});
+            });
+            // Pre-bulk-publish is NOT a translation version, so it is eligible as revert target
+            const results = await snapshot.recordSnapshot({ paths: ['/a'], odinEndpoint, authToken });
+            expect(JSON.parse(results.entries[0]).versionId).to.equal('v-bulk');
+        });
+
+        it('calls GET /adobe/sites/cf/fragments/{id}/versions', async () => {
+            fetchOdinStub.callsFake((endpoint, uri) => {
+                if (uri.includes('/fragments?path='))
+                    return fetchResponse({ items: [{ id: 'frag-abc', path: '/a', status: 'PUBLISHED' }] });
+                if (uri.includes('/versions'))
+                    return fetchResponse({ items: [{ id: 'v-1', createdBy: 'author@adobe.com', comment: '' }] });
+                return fetchResponse({});
+            });
+            await snapshot.recordSnapshot({ paths: ['/a'], odinEndpoint, authToken });
+            expect(fetchOdinStub).to.have.been.calledWith(
+                odinEndpoint,
+                '/adobe/sites/cf/fragments/frag-abc/versions',
+                authToken,
+                sinon.match.object,
+            );
+        });
+    });
+
+    // ── recordSnapshot ────────────────────────────────────────────────────────
+
+    describe('recordSnapshot()', () => {
+        it('returns entries with non-translation versionId and does NOT POST to /versions', async () => {
+            fetchOdinStub.callsFake((endpoint, uri) => {
+                if (uri.includes('/adobe/sites/cf/fragments?path=')) {
+                    return fetchResponse({ items: [{ id: 'frag-1', path: '/content/dam/a', status: 'PUBLISHED' }] });
+                }
+                if (uri.includes('/versions')) {
+                    return fetchResponse({
+                        items: [
+                            {
+                                id: 'v-trans',
+                                createdBy: 'odin-cf-versioning-user',
+                                comment: 'Pre-rollout snapshot — source CF: /x',
+                            },
+                            { id: 'v-green', createdBy: 'author@adobe.com', comment: 'Manual edit' },
+                        ],
+                    });
+                }
+                return fetchResponse({});
+            });
+
+            const results = await snapshot.recordSnapshot({ paths: ['/content/dam/a'], odinEndpoint, authToken });
+
+            expect(results.entries).to.have.length(1);
+            expect(results.failures).to.have.length(0);
+            const entry = JSON.parse(results.entries[0]);
+            expect(entry.fragmentId).to.equal('frag-1');
+            expect(entry.versionId).to.equal('v-green');
+            expect(entry.wasPublished).to.be.true;
+            expect(entry.createdAt).to.be.a('string');
+
+            const postVersionCall = fetchOdinStub.args.find(
+                ([, uri, , opts]) => uri.includes('/versions') && opts?.method === 'POST',
+            );
+            expect(postVersionCall).to.not.exist;
+        });
+
+        it('sets wasPublished: false for DRAFT status', async () => {
+            fetchOdinStub.callsFake((endpoint, uri) => {
+                if (uri.includes('/adobe/sites/cf/fragments?path=')) {
+                    return fetchResponse({ items: [{ id: 'frag-d', path: '/content/dam/d', status: 'DRAFT' }] });
+                }
+                if (uri.includes('/versions')) {
+                    return fetchResponse({ items: [{ id: 'v-1', createdBy: 'author@adobe.com', comment: '' }] });
+                }
+                return fetchResponse({});
+            });
+
+            const results = await snapshot.recordSnapshot({ paths: ['/content/dam/d'], odinEndpoint, authToken });
+            expect(JSON.parse(results.entries[0]).wasPublished).to.be.false;
+        });
+
+        it('records failure when fragment not found at path', async () => {
+            fetchOdinStub.callsFake((endpoint, uri) => {
+                if (uri.includes('/adobe/sites/cf/fragments?path=')) {
+                    return fetchResponse({ items: [] });
+                }
+                return fetchResponse({});
+            });
+
+            const results = await snapshot.recordSnapshot({ paths: ['/content/dam/missing'], odinEndpoint, authToken });
+            expect(results.entries).to.have.length(0);
+            expect(results.failures).to.have.length(1);
+            expect(results.failures[0].error).to.match(/Fragment not found at path/);
+        });
+
+        it('records failure when getFragmentByPath throws (e.g. 500 network error)', async () => {
+            fetchOdinStub.callsFake((endpoint, uri) => {
+                if (uri.includes('/adobe/sites/cf/fragments?path=')) {
+                    throw new Error('Service Unavailable');
+                }
+                return fetchResponse({});
+            });
+
+            const results = await snapshot.recordSnapshot({ paths: ['/content/dam/a'], odinEndpoint, authToken });
+            expect(results.entries).to.have.length(0);
+            expect(results.failures).to.have.length(1);
+            expect(results.failures[0].error).to.equal('Service Unavailable');
+        });
+
+        it('records failure when findNonTranslationVersion throws (e.g. 500 network error)', async () => {
+            fetchOdinStub.callsFake((endpoint, uri) => {
+                if (uri.includes('/adobe/sites/cf/fragments?path='))
+                    return fetchResponse({ items: [{ id: 'frag-1', path: '/content/dam/a', status: 'PUBLISHED' }] });
+                if (uri.includes('/versions')) throw new Error('Internal Server Error');
+                return fetchResponse({});
+            });
+
+            const results = await snapshot.recordSnapshot({ paths: ['/content/dam/a'], odinEndpoint, authToken });
+            expect(results.entries).to.have.length(0);
+            expect(results.failures).to.have.length(1);
+            expect(results.failures[0].error).to.equal('Internal Server Error');
+        });
+
+        it('records failure when no non-translation version exists', async () => {
+            fetchOdinStub.callsFake((endpoint, uri) => {
+                if (uri.includes('/adobe/sites/cf/fragments?path=')) {
+                    return fetchResponse({ items: [{ id: 'frag-t', path: '/content/dam/t', status: 'PUBLISHED' }] });
+                }
+                if (uri.includes('/versions')) {
+                    return fetchResponse({ items: [{ id: 'v-t', createdBy: 'odin-cf-versioning-user', comment: '' }] });
+                }
+                return fetchResponse({});
+            });
+
+            const results = await snapshot.recordSnapshot({ paths: ['/content/dam/t'], odinEndpoint, authToken });
+            expect(results.entries).to.have.length(0);
+            expect(results.failures).to.have.length(1);
+            expect(results.failures[0].error).to.match(/No non-translation version found/);
         });
     });
 

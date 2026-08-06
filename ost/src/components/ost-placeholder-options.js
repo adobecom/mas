@@ -129,7 +129,7 @@ export class OstPlaceholderOptions extends LitElement {
                       </div>
                       <div class="quantity-row">
                           <label class="quantity-label" for="ost-quantity">Quantity</label>
-                          <mas-quantity-select
+                          <merch-quantity-select
                               id="ost-quantity"
                               data-testid="ost-quantity-input"
                               min="1"
@@ -137,7 +137,7 @@ export class OstPlaceholderOptions extends LitElement {
                               step="1"
                               default-value=${store.placeholderOptions.quantity ?? 1}
                               @merch-quantity-selector:change=${(e) => this.setQuantity(e.detail.option)}
-                          ></mas-quantity-select>
+                          ></merch-quantity-select>
                       </div>
                   `
                 : nothing}

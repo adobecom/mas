@@ -354,7 +354,3 @@ export class MerchQuantitySelect extends LitElement {
 }
 
 customElements.define('merch-quantity-select', MerchQuantitySelect);
-
-export class MasQuantitySelect extends MerchQuantitySelect {}
-
-customElements.define('mas-quantity-select', MasQuantitySelect);

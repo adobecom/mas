@@ -263,7 +263,8 @@ function findPromoMapsForFragment(root, customizeContext) {
 function hasExplicitMapping(osis, customizeContext, { project, promoMap, substituteMap }) {
     const value = osis.some((osi) => promoMap[osi] !== undefined || substituteMap?.[osi] !== undefined);
     logDebug(
-        () => `Project ${promoProjectLabel(project)} (${project.id}), explicit mapping for osis ${JSON.stringify(osis)}: ${value}`,
+        () =>
+            `Project ${promoProjectLabel(project)} (${project.id}), explicit mapping for osis ${JSON.stringify(osis)}: ${value}`,
         customizeContext,
     );
     return value;
@@ -296,9 +297,7 @@ function selectPromoProjectForFragment(root, customizeContext) {
     if (!promoEntries.length) return null;
     const fragOsi = root.fields?.osi;
     const osis = fragOsi
-        ? (Array.isArray(fragOsi) ? fragOsi : fragOsi.split(','))
-              .map((osi) => osi.trim())
-              .filter(Boolean)
+        ? (Array.isArray(fragOsi) ? fragOsi : fragOsi.split(',')).map((osi) => osi.trim()).filter(Boolean)
         : [];
     logDebug(() => `selectPromoProjectForFragment osis: ${JSON.stringify(osis)}`, customizeContext);
     const selected =

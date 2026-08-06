@@ -2296,18 +2296,6 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
             gap: 8px;
         }
     `),$(Po,"properties",{productsError:{type:String}});customElements.define("ost-entitlements-tab",Po);me();me();me();var Ry=[{key:"displayRecurrence",label:"Term"},{key:"displayPerUnit",label:"Unit"},{key:"displayTax",label:"Tax Label"},{key:"forceTaxExclusive",label:"Include Tax"},{key:"displayOldPrice",label:"Old price"}],_o=class extends M{constructor(){super(),this.open=!1,this.handleStoreChange=this.handleStoreChange.bind(this)}connectedCallback(){super.connectedCallback(),l.subscribe(this.handleStoreChange)}disconnectedCallback(){super.disconnectedCallback(),l.unsubscribe(this.handleStoreChange)}handleStoreChange(){this.requestUpdate()}isChecked(e){return!l.placeholderOptions[e]}toggle(e,t){l.toggleOption(e,!t)}setQuantity(e){let t=Math.max(1,Math.floor(Number(e)||1));l.setPlaceholderOptions({...l.placeholderOptions,quantity:t})}render(){return n`
-            <div class="quantity-row">
-                <label class="quantity-label" for="ost-quantity">Quantity</label>
-                <mas-quantity-select
-                    id="ost-quantity"
-                    data-testid="ost-quantity-input"
-                    min="1"
-                    max="10"
-                    step="1"
-                    default-value=${l.placeholderOptions.quantity??1}
-                    @merch-quantity-selector:change=${e=>this.setQuantity(e.detail.option)}
-                ></mas-quantity-select>
-            </div>
             <button
                 type="button"
                 class="options-toggle"
@@ -2319,6 +2307,18 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                 Options
             </button>
             ${this.open?n`
+                      <div class="quantity-row">
+                          <label class="quantity-label" for="ost-quantity">Quantity</label>
+                          <mas-quantity-select
+                              id="ost-quantity"
+                              data-testid="ost-quantity-input"
+                              min="1"
+                              max="10"
+                              step="1"
+                              default-value=${l.placeholderOptions.quantity??1}
+                              @merch-quantity-selector:change=${e=>this.setQuantity(e.detail.option)}
+                          ></mas-quantity-select>
+                      </div>
                       <div class="disable-group" role="group" aria-label="Disable">
                           ${Ry.map(({key:e,label:t})=>n`
                                   <sp-checkbox

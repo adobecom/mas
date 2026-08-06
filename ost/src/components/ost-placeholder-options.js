@@ -102,18 +102,6 @@ export class OstPlaceholderOptions extends LitElement {
 
     render() {
         return html`
-            <div class="quantity-row">
-                <label class="quantity-label" for="ost-quantity">Quantity</label>
-                <mas-quantity-select
-                    id="ost-quantity"
-                    data-testid="ost-quantity-input"
-                    min="1"
-                    max="10"
-                    step="1"
-                    default-value=${store.placeholderOptions.quantity ?? 1}
-                    @merch-quantity-selector:change=${(e) => this.setQuantity(e.detail.option)}
-                ></mas-quantity-select>
-            </div>
             <button
                 type="button"
                 class="options-toggle"
@@ -126,6 +114,18 @@ export class OstPlaceholderOptions extends LitElement {
             </button>
             ${this.open
                 ? html`
+                      <div class="quantity-row">
+                          <label class="quantity-label" for="ost-quantity">Quantity</label>
+                          <mas-quantity-select
+                              id="ost-quantity"
+                              data-testid="ost-quantity-input"
+                              min="1"
+                              max="10"
+                              step="1"
+                              default-value=${store.placeholderOptions.quantity ?? 1}
+                              @merch-quantity-selector:change=${(e) => this.setQuantity(e.detail.option)}
+                          ></mas-quantity-select>
+                      </div>
                       <div class="disable-group" role="group" aria-label="Disable">
                           ${DISABLE_OPTIONS.map(
                               ({ key, label }) => html`

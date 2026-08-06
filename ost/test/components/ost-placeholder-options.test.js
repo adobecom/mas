@@ -92,18 +92,28 @@ describe('ost-placeholder-options', () => {
         expect(Boolean(cb(el, 'displayFormatted'))).to.be.false;
     });
 
+    const quantityField = (el) => el.shadowRoot.querySelector('mas-quantity-select[data-testid="ost-quantity-input"]');
+
+    it('hides the quantity field until Options is expanded', async () => {
+        const el = await fixture(html`<ost-placeholder-options></ost-placeholder-options>`);
+        expect(quantityField(el)).to.be.null;
+        await expand(el);
+        expect(quantityField(el)).to.exist;
+    });
+
     it('renders a mas-quantity-select seeded from the store quantity', async () => {
         store.placeholderOptions = { ...store.placeholderOptions, quantity: 3 };
         const el = await fixture(html`<ost-placeholder-options></ost-placeholder-options>`);
-        const field = el.shadowRoot.querySelector('mas-quantity-select[data-testid="ost-quantity-input"]');
-        expect(field).to.exist;
-        expect(Number(field.getAttribute('default-value'))).to.equal(3);
+        await expand(el);
+        expect(Number(quantityField(el).getAttribute('default-value'))).to.equal(3);
     });
 
     it('updates the store quantity on the mas-quantity-select change event', async () => {
         const el = await fixture(html`<ost-placeholder-options></ost-placeholder-options>`);
-        const field = el.shadowRoot.querySelector('mas-quantity-select[data-testid="ost-quantity-input"]');
-        field.dispatchEvent(new CustomEvent('merch-quantity-selector:change', { detail: { option: 5 }, bubbles: true }));
+        await expand(el);
+        quantityField(el).dispatchEvent(
+            new CustomEvent('merch-quantity-selector:change', { detail: { option: 5 }, bubbles: true }),
+        );
         expect(store.getEffectiveOptions('price').quantity).to.equal(5);
     });
 

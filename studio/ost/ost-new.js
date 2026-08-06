@@ -2307,6 +2307,17 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                 Options
             </button>
             ${this.open?n`
+                      <div class="disable-group" role="group" aria-label="Disable">
+                          ${Ry.map(({key:e,label:t})=>n`
+                                  <sp-checkbox
+                                      data-testid="ost-disable-${e}"
+                                      size="s"
+                                      ?checked=${this.isChecked(e)}
+                                      @change=${r=>this.toggle(e,r.target.checked)}
+                                      >${t}</sp-checkbox
+                                  >
+                              `)}
+                      </div>
                       <div class="quantity-row">
                           <label class="quantity-label" for="ost-quantity">Quantity</label>
                           <mas-quantity-select
@@ -2318,17 +2329,6 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                               default-value=${l.placeholderOptions.quantity??1}
                               @merch-quantity-selector:change=${e=>this.setQuantity(e.detail.option)}
                           ></mas-quantity-select>
-                      </div>
-                      <div class="disable-group" role="group" aria-label="Disable">
-                          ${Ry.map(({key:e,label:t})=>n`
-                                  <sp-checkbox
-                                      data-testid="ost-disable-${e}"
-                                      size="s"
-                                      ?checked=${this.isChecked(e)}
-                                      @change=${r=>this.toggle(e,r.target.checked)}
-                                      >${t}</sp-checkbox
-                                  >
-                              `)}
                       </div>
                   `:C}
         `}};$(_o,"properties",{open:{type:Boolean,state:!0}}),$(_o,"styles",y`

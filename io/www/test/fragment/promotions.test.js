@@ -174,13 +174,24 @@ describe('promotions', () => {
             expect(result.activeProjects[0].endDate).to.equal(END);
         });
 
-        it('ignores instant when not in preview mode', async () => {
+        it('ignores instant on published content when instant is not provided', async () => {
             const project = makeProject({ surfaces: ['acom'], geos: [], startDate: START, endDate: EXPIRED_END });
             fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
 
-            // EXPIRED_END is in the past — without preview, instant is ignored and Date.now() is used
-            const result = await promotionsTransformer.init(createContext({ instant: PREVIEW_INSTANT }));
+            // EXPIRED_END is in the past — with no instant, Date.now() is used
+            const result = await promotionsTransformer.init(createContext());
             expect(result).to.deep.equal({ status: 200, activeProjects: [] });
+        });
+
+        it('honors instant on published content', async () => {
+            const project = makeProject({ surfaces: ['acom'], geos: [], startDate: START, endDate: EXPIRED_END });
+            const hydrated = makeHydratedProject();
+            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+            fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
+
+            const result = await promotionsTransformer.init(createContext({ instant: PREVIEW_INSTANT }));
+            expect(result.activeProjects).to.have.length(1);
+            expect(result.activeProjects[0].id).to.equal('proj-1');
         });
 
         it('matches project by country when locale does not match geos', async () => {

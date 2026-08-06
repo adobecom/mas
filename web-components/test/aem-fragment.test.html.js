@@ -754,6 +754,23 @@ runTests(async () => {
                 aemFragment.remove();
             });
 
+            it('appends instant param to endpoint URL on published (non-preview) fetch', async () => {
+                cache.clear();
+                const masCommerceService = document.querySelector(
+                    'mas-commerce-service',
+                );
+                masCommerceService.setAttribute(
+                    'instant',
+                    '2026-08-19T00:00:00.000Z',
+                );
+                masCommerceService.activate();
+                const aemFragment = addFragment('fragment-cc-all-apps');
+                await aemFragment.updateComplete;
+                expect(fetch.lastCall.firstArg).to.include(
+                    '&instant=2026-08-19T00:00:00.000Z',
+                );
+            });
+
             it('includes mask and pzn in cacheKey', () => {
                 const aemFragment = document.createElement('aem-fragment');
                 aemFragment.setAttribute('fragment', 'frag-id');

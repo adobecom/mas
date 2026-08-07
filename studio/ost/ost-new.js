@@ -2295,7 +2295,32 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
             justify-content: flex-end;
             gap: 8px;
         }
-    `),$(Po,"properties",{productsError:{type:String}});customElements.define("ost-entitlements-tab",Po);me();me();me();var Ry=[{key:"displayRecurrence",label:"Term"},{key:"displayPerUnit",label:"Unit"},{key:"displayTax",label:"Tax Label"},{key:"forceTaxExclusive",label:"Include Tax"},{key:"displayOldPrice",label:"Old price"}],_o=class extends M{constructor(){super(),this.open=!1,this.handleStoreChange=this.handleStoreChange.bind(this)}connectedCallback(){super.connectedCallback(),l.subscribe(this.handleStoreChange)}disconnectedCallback(){super.disconnectedCallback(),l.unsubscribe(this.handleStoreChange)}handleStoreChange(){this.requestUpdate()}isChecked(e){return!l.placeholderOptions[e]}toggle(e,t){l.toggleOption(e,!t)}setQuantity(e){let t=Math.max(1,Math.floor(Number(e)||1));l.setPlaceholderOptions({...l.placeholderOptions,quantity:t})}render(){return n`
+    `),$(Po,"properties",{productsError:{type:String}});customElements.define("ost-entitlements-tab",Po);me();me();me();var Ry=[{key:"displayRecurrence",label:"Term"},{key:"displayPerUnit",label:"Unit"},{key:"displayTax",label:"Tax Label"},{key:"forceTaxExclusive",label:"Include Tax"},{key:"displayOldPrice",label:"Old price"}],_o=class extends M{constructor(){super(),this.open=!1,this.quantityOnly=!1,this.handleStoreChange=this.handleStoreChange.bind(this)}connectedCallback(){super.connectedCallback(),l.subscribe(this.handleStoreChange)}disconnectedCallback(){super.disconnectedCallback(),l.unsubscribe(this.handleStoreChange)}handleStoreChange(){this.requestUpdate()}isChecked(e){return!l.placeholderOptions[e]}toggle(e,t){l.toggleOption(e,!t)}setQuantity(e){let t=Math.max(1,Math.floor(Number(e)||1));l.setPlaceholderOptions({...l.placeholderOptions,quantity:t})}renderDisableGroup(){return n`
+            <div class="disable-group" role="group" aria-label="Disable">
+                ${Ry.map(({key:e,label:t})=>n`
+                        <sp-checkbox
+                            data-testid="ost-disable-${e}"
+                            size="s"
+                            ?checked=${this.isChecked(e)}
+                            @change=${r=>this.toggle(e,r.target.checked)}
+                            >${t}</sp-checkbox
+                        >
+                    `)}
+            </div>
+        `}renderQuantity(){return n`
+            <div class="quantity-row">
+                <label class="quantity-label" for="ost-quantity">Quantity</label>
+                <merch-quantity-select
+                    id="ost-quantity"
+                    data-testid="ost-quantity-input"
+                    min="1"
+                    max="10"
+                    step="1"
+                    default-value=${l.placeholderOptions.quantity??1}
+                    @merch-quantity-selector:change=${e=>this.setQuantity(e.detail.option)}
+                ></merch-quantity-select>
+            </div>
+        `}render(){return n`
             <button
                 type="button"
                 class="options-toggle"
@@ -2306,32 +2331,8 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                 <span class="chevron" aria-hidden="true">›</span>
                 Options
             </button>
-            ${this.open?n`
-                      <div class="disable-group" role="group" aria-label="Disable">
-                          ${Ry.map(({key:e,label:t})=>n`
-                                  <sp-checkbox
-                                      data-testid="ost-disable-${e}"
-                                      size="s"
-                                      ?checked=${this.isChecked(e)}
-                                      @change=${r=>this.toggle(e,r.target.checked)}
-                                      >${t}</sp-checkbox
-                                  >
-                              `)}
-                      </div>
-                      <div class="quantity-row">
-                          <label class="quantity-label" for="ost-quantity">Quantity</label>
-                          <merch-quantity-select
-                              id="ost-quantity"
-                              data-testid="ost-quantity-input"
-                              min="1"
-                              max="10"
-                              step="1"
-                              default-value=${l.placeholderOptions.quantity??1}
-                              @merch-quantity-selector:change=${e=>this.setQuantity(e.detail.option)}
-                          ></merch-quantity-select>
-                      </div>
-                  `:C}
-        `}};$(_o,"properties",{open:{type:Boolean,state:!0}}),$(_o,"styles",y`
+            ${this.open?n` ${this.quantityOnly?C:this.renderDisableGroup()} ${this.renderQuantity()} `:C}
+        `}};$(_o,"properties",{open:{type:Boolean,state:!0},quantityOnly:{type:Boolean,attribute:"quantity-only"}}),$(_o,"styles",y`
         :host {
             font-family: inherit;
             display: block;
@@ -2715,7 +2716,10 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                     .offer=${t.offer}
                 ></ost-live-preview>
             </div>
-        `}handleTabChange(e){l.placeholderTab=e.target.selected}rowsForTab(e){let t=l.panelGroups,r=l.placeholderTypes.filter(e),a=l.authoringFlow==="tryBuy"?r.filter(i=>["price","checkoutUrl"].includes(i.type)):r;return t.flatMap(i=>a.map(c=>this.renderRow(c,i)))}renderTabContent(){switch(l.placeholderTab){case"checkout":return n` <div class="placeholder-rows">${this.rowsForTab(e=>e.type==="checkoutUrl")}</div> `;case"details":return n`<ost-product-detail></ost-product-detail>`;default:return n`
+        `}handleTabChange(e){l.placeholderTab=e.target.selected}rowsForTab(e){let t=l.panelGroups,r=l.placeholderTypes.filter(e),a=l.authoringFlow==="tryBuy"?r.filter(i=>["price","checkoutUrl"].includes(i.type)):r;return t.flatMap(i=>a.map(c=>this.renderRow(c,i)))}renderTabContent(){switch(l.placeholderTab){case"checkout":return n`
+                    <div class="placeholder-rows">${this.rowsForTab(e=>e.type==="checkoutUrl")}</div>
+                    <ost-placeholder-options quantity-only></ost-placeholder-options>
+                `;case"details":return n`<ost-product-detail></ost-product-detail>`;default:return n`
                     <div class="placeholder-rows">${this.rowsForTab(e=>e.type!=="checkoutUrl")}</div>
                     <ost-placeholder-options></ost-placeholder-options>
                 `}}render(){return l.panelGroups.length===0?n`<span class="empty-state">Select an offer to see placeholder options.</span>`:n`

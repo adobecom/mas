@@ -12,6 +12,7 @@ const DISABLE_OPTIONS = [
 export class OstPlaceholderOptions extends LitElement {
     static properties = {
         open: { type: Boolean, state: true },
+        quantityOnly: { type: Boolean, attribute: 'quantity-only' },
     };
 
     static styles = css`
@@ -67,6 +68,7 @@ export class OstPlaceholderOptions extends LitElement {
     constructor() {
         super();
         this.open = false;
+        this.quantityOnly = false;
         this.handleStoreChange = this.handleStoreChange.bind(this);
     }
 
@@ -100,6 +102,41 @@ export class OstPlaceholderOptions extends LitElement {
         store.setPlaceholderOptions({ ...store.placeholderOptions, quantity });
     }
 
+    renderDisableGroup() {
+        return html`
+            <div class="disable-group" role="group" aria-label="Disable">
+                ${DISABLE_OPTIONS.map(
+                    ({ key, label }) => html`
+                        <sp-checkbox
+                            data-testid="ost-disable-${key}"
+                            size="s"
+                            ?checked=${this.isChecked(key)}
+                            @change=${(e) => this.toggle(key, e.target.checked)}
+                            >${label}</sp-checkbox
+                        >
+                    `,
+                )}
+            </div>
+        `;
+    }
+
+    renderQuantity() {
+        return html`
+            <div class="quantity-row">
+                <label class="quantity-label" for="ost-quantity">Quantity</label>
+                <merch-quantity-select
+                    id="ost-quantity"
+                    data-testid="ost-quantity-input"
+                    min="1"
+                    max="10"
+                    step="1"
+                    default-value=${store.placeholderOptions.quantity ?? 1}
+                    @merch-quantity-selector:change=${(e) => this.setQuantity(e.detail.option)}
+                ></merch-quantity-select>
+            </div>
+        `;
+    }
+
     render() {
         return html`
             <button
@@ -112,35 +149,7 @@ export class OstPlaceholderOptions extends LitElement {
                 <span class="chevron" aria-hidden="true">›</span>
                 Options
             </button>
-            ${this.open
-                ? html`
-                      <div class="disable-group" role="group" aria-label="Disable">
-                          ${DISABLE_OPTIONS.map(
-                              ({ key, label }) => html`
-                                  <sp-checkbox
-                                      data-testid="ost-disable-${key}"
-                                      size="s"
-                                      ?checked=${this.isChecked(key)}
-                                      @change=${(e) => this.toggle(key, e.target.checked)}
-                                      >${label}</sp-checkbox
-                                  >
-                              `,
-                          )}
-                      </div>
-                      <div class="quantity-row">
-                          <label class="quantity-label" for="ost-quantity">Quantity</label>
-                          <merch-quantity-select
-                              id="ost-quantity"
-                              data-testid="ost-quantity-input"
-                              min="1"
-                              max="10"
-                              step="1"
-                              default-value=${store.placeholderOptions.quantity ?? 1}
-                              @merch-quantity-selector:change=${(e) => this.setQuantity(e.detail.option)}
-                          ></merch-quantity-select>
-                      </div>
-                  `
-                : nothing}
+            ${this.open ? html` ${this.quantityOnly ? nothing : this.renderDisableGroup()} ${this.renderQuantity()} ` : nothing}
         `;
     }
 }

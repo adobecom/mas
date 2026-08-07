@@ -712,6 +712,73 @@ describe('Router', () => {
             await router.navigateToVariationsTable(null);
             expect(consoleSpy.calledWith('Fragment ID is required for navigation')).to.be.true;
         });
+
+        it('should set Store.search.query to the fragmentId', async () => {
+            sandbox.stub(router, 'getActiveEditor').returns({ editor: null, shouldCheckUnsavedChanges: false });
+            await router.navigateToVariationsTable('test-uuid-1234');
+            expect(Store.search.get().query).to.equal('test-uuid-1234');
+        });
+
+        it('should set Store.fragments.expandedId to the fragmentId', async () => {
+            sandbox.stub(router, 'getActiveEditor').returns({ editor: null, shouldCheckUnsavedChanges: false });
+            await router.navigateToVariationsTable('test-uuid-1234');
+            expect(Store.fragments.expandedId.get()).to.equal('test-uuid-1234');
+        });
+
+        it('should set viewMode, renderMode and page', async () => {
+            sandbox.stub(router, 'getActiveEditor').returns({ editor: null, shouldCheckUnsavedChanges: false });
+            await router.navigateToVariationsTable('test-uuid-1234');
+            expect(Store.viewMode.get()).to.equal('default');
+            expect(Store.renderMode.get()).to.equal('table');
+            expect(Store.page.get()).to.equal(PAGE_NAMES.CONTENT);
+        });
+
+        it('should clear the fragment editor state', async () => {
+            Store.fragmentEditor.fragmentId.set('previous-editor-id');
+            Store.fragmentEditor.loading.set(true);
+            sandbox.stub(router, 'getActiveEditor').returns({ editor: null, shouldCheckUnsavedChanges: false });
+            await router.navigateToVariationsTable('test-uuid-1234');
+            expect(Store.fragmentEditor.fragmentId.get()).to.be.null;
+            expect(Store.fragmentEditor.loading.get()).to.equal(false);
+        });
+
+        it('should update the URL hash to include query=<fragmentId>', async () => {
+            mockLocation.hash = '';
+            router.start();
+            sandbox.stub(router, 'getActiveEditor').returns({ editor: null, shouldCheckUnsavedChanges: false });
+            await router.navigateToVariationsTable('test-uuid-1234');
+            await new Promise((resolve) => setTimeout(resolve, 100));
+            expect(mockLocation.hash).to.include('query=test-uuid-1234');
+        });
+
+        it('should not navigate if fragmentId is falsy', async () => {
+            sandbox.stub(console, 'error');
+            const beforeQuery = Store.search.get().query;
+            const beforeExpandedId = Store.fragments.expandedId.get();
+            await router.navigateToVariationsTable(undefined);
+            expect(Store.search.get().query).to.equal(beforeQuery);
+            expect(Store.fragments.expandedId.get()).to.equal(beforeExpandedId);
+        });
+
+        it('should not mutate stores when the unsaved-changes prompt is rejected', async () => {
+            sandbox.stub(router, 'getActiveEditor').returns({
+                editor: { promptDiscardChanges: sandbox.stub().resolves(false) },
+                shouldCheckUnsavedChanges: true,
+            });
+            const beforeSearch = structuredClone(Store.search.get());
+            const beforeExpandedId = Store.fragments.expandedId.get();
+            const beforeViewMode = Store.viewMode.get();
+            const beforeRenderMode = Store.renderMode.get();
+            const beforePage = Store.page.get();
+
+            await router.navigateToVariationsTable('some-uuid');
+
+            expect(Store.search.get()).to.deep.equal(beforeSearch);
+            expect(Store.fragments.expandedId.get()).to.equal(beforeExpandedId);
+            expect(Store.viewMode.get()).to.equal(beforeViewMode);
+            expect(Store.renderMode.get()).to.equal(beforeRenderMode);
+            expect(Store.page.get()).to.equal(beforePage);
+        });
     });
 
     describe('navigateToFragmentEditor', () => {

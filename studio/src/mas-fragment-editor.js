@@ -41,13 +41,17 @@ import * as promotionsRepository from './promotions/promotions-repository.js';
 import { normalizeTagId } from './aem/tag-id-utils.js';
 import './mas-variation-dialog.js';
 import { getCountryName, getDefaultLocaleCode, getLocaleByCode } from '../../io/www/src/fragment/locales.js';
+import { normalizePznTagToLocaleCode } from './editors/variation-utils.js';
 import Events from './events.js';
 import { branch2Icon } from './icons.js';
 
-// Returns locale codes extracted from the fragment's pznTags field.
+// Preview locale codes from the fragment's pznTags — country tags map to the surface locale so
+// they stay in sync with the grouped-preview selector (shared normalizer, see variation-utils).
 export function getGroupedPreviewLocaleCodes(fragment) {
+    const surface = Store.surface();
+    const preferredLang = getLocaleByCode(Store.localeOrRegion())?.lang;
     const tags = fragment?.getFieldValues('pznTags') || [];
-    return [...new Set(tags.map((tag) => tag?.split('/').pop()?.trim()).filter((code) => code && getLocaleByCode(code)))];
+    return [...new Set(tags.map((tag) => normalizePznTagToLocaleCode(tag, surface, preferredLang)).filter(Boolean))];
 }
 
 /**
@@ -1879,21 +1883,14 @@ export default class MasFragmentEditor extends LitElement {
     }
 
     #handleGroupedPreviewLocaleChange = (event) => {
+        // Grouped preview locale is ephemeral UI state; keep its picker `change` from leaking to any
+        // ancestor listener. Setting previewLocaleOverride re-prices the card and fires
+        // preview-locale-change (which re-resolves the preview). It must NOT write Store.search.region
+        // — that is URL-hash-synced and would trigger a regional-variation load.
+        event.stopPropagation();
         const editor = document.querySelector('merch-card-editor');
         if (!editor) return;
-        const previewLocale = event.target.value || null;
-        editor.previewLocaleOverride = previewLocale;
-        const parentLocale =
-            extractLocaleFromPath(this.localeDefaultFragment?.path) ||
-            getDefaultLocaleCode(Store.surface(), Store.filters.value.locale) ||
-            Store.filters.value.locale;
-        const catalogLocale = (Store.surface() && getDefaultLocaleCode(Store.surface(), parentLocale)) || parentLocale;
-        const nextRegion = previewLocale && previewLocale !== catalogLocale ? previewLocale : null;
-        if ((Store.search.value.region || null) !== nextRegion) {
-            Store.search.set((prev) => ({ ...prev, region: nextRegion }));
-            void this.repository?.loadPreviewPlaceholders(Store.localeOrRegion());
-            this.fragmentStore?.resolvePreviewFragment();
-        }
+        editor.previewLocaleOverride = event.target.value || null;
     };
 
     #handlePreviewLocaleChange = (event) => {

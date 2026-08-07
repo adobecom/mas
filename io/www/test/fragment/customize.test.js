@@ -2651,6 +2651,51 @@ describe('customize with multiple active promotion projects', function () {
         expect(result.body.variationId).to.equal('var-seasonal');
         expect(result.body.fields.promoCode).to.equal('SEASONAL-CODE');
     });
+
+    it('seasonal promo wins over evergreen even with no mapping of its own (MWPW-203553)', async function () {
+        // The seasonal project has no promoMap/wildcard entry for this OSI at all, while the
+        // evergreen project targeting the same fragment does. Seasonal must still win.
+        const seasonalProject = {
+            id: 'proj-seasonal',
+            path: '/content/dam/mas/promotions/seasonal',
+            endDate: '2026-09-01T00:00:00.000Z',
+            defaultVariations: {
+                'card-b': {
+                    id: 'var-seasonal',
+                    path: '/content/dam/mas/sandbox/en_US/promotions/seasonal/card-b',
+                    fields: { title: 'Seasonal variation' },
+                },
+            },
+            regionVariations: {},
+        };
+        const evergreenProject = {
+            id: 'proj-evergreen',
+            path: '/content/dam/mas/promotions/evergreen',
+            defaultVariations: {
+                'card-b': {
+                    id: 'var-evergreen',
+                    path: '/content/dam/mas/sandbox/en_US/promotions/evergreen/card-b',
+                    fields: { title: 'Evergreen variation' },
+                },
+            },
+            regionVariations: {},
+        };
+        const rootFragment = {
+            id: 'card-b',
+            path: '/content/dam/mas/sandbox/en_US/card-b',
+            fields: { osi: 'OSI-B', title: 'Original B' },
+            references: {},
+            referencesTree: [],
+        };
+        const result = await processWithPromoProjects({ ...FAKE_CONTEXT, fragmentPath: 'card-b', body: rootFragment }, [
+            { project: seasonalProject, promoMap: {}, fragmentPaths: new Set(['card-b']) },
+            { project: evergreenProject, promoMap: { 'OSI-B': 'EVERGREEN-CODE' }, fragmentPaths: new Set(['card-b']) },
+        ]);
+        expect(result.status).to.equal(200);
+        expect(result.body.variationId).to.equal('var-seasonal');
+        expect(result.body.promoProject).to.equal('proj-seasonal');
+        expect(result.body.fields.promoCode).to.be.undefined;
+    });
 });
 
 describe('customize OSI substitution', function () {

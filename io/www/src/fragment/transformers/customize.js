@@ -261,10 +261,14 @@ function findPromoMapsForFragment(root, customizeContext) {
 }
 
 /**
- * Selects a single promo project for a fragment. Priority order is:
+ * Selects a single promo project for a fragment. Seasonal (time-boxed, has an `endDate`)
+ * promo projects always take priority over evergreen ones.
+ *
+ * Within whichever group (seasonal, else evergreen) is considered, priority order is:
  * promo project with an explicit mapping (osi replace or promo code) for a given geo & fragment.offer
  * promo project with a wildcard promo code
- * seasonal promo project, if no seasonal - returns null
+ * if no mapping - seasonal can still be taken as a fallback.
+ * evergreen without a mapping doesn't apply.
  * there should be no fallback to mapping-less evergreen promo project
  *
  * @returns the selected `{ project, promoMap, substituteMap, fragmentPaths }` entry, or null
@@ -279,8 +283,17 @@ function selectPromoProjectForFragment(root, customizeContext) {
         osis.some((osi) => promoMap[osi] !== undefined || substituteMap?.[osi] !== undefined);
     const hasWildcardPromo = ({ promoMap }) => Boolean(promoMap['*']);
     const isSeasonal = ({ project }) => Boolean(project.endDate);
+
+    const seasonalEntries = promoEntries.filter(isSeasonal);
+    const evergreenEntries = promoEntries.filter((entry) => !isSeasonal(entry));
+
     const selected =
-        promoEntries.find(hasExplicitMapping) ?? promoEntries.find(hasWildcardPromo) ?? promoEntries.find(isSeasonal) ?? null;
+        seasonalEntries.find(hasExplicitMapping) ??
+        seasonalEntries.find(hasWildcardPromo) ??
+        seasonalEntries[0] ??
+        evergreenEntries.find(hasExplicitMapping) ??
+        evergreenEntries.find(hasWildcardPromo) ??
+        null;
     if (!selected) return null;
     logDebug(
         () =>

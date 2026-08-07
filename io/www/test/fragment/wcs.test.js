@@ -824,6 +824,14 @@ describe('wcs OSI helpers', function () {
         expect(context.body.fields.osi).to.equal('SUB');
     });
 
+    it('applyPromoScope matches either half of a comma-joined fields.osi against the promo map', function () {
+        const { context } = run(
+            { f: { promoMap: { 'OSI-B': 'MULTI-CODE' }, substituteMap: {} } },
+            { id: 'f', fields: { osi: 'OSI-A,OSI-B' } },
+        );
+        expect(context.body.fields.promoCode).to.equal('MULTI-CODE');
+    });
+
     it('applyPromoScope substitutes an array fields.osi element-wise', function () {
         const { context } = run(
             { f: { promoMap: {}, substituteMap: { 'OSI-B': 'SUB-B' } } },

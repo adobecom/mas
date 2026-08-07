@@ -41,13 +41,17 @@ import * as promotionsRepository from './promotions/promotions-repository.js';
 import { normalizeTagId } from './aem/tag-id-utils.js';
 import './mas-variation-dialog.js';
 import { getCountryName, getDefaultLocaleCode, getLocaleByCode } from '../../io/www/src/fragment/locales.js';
+import { normalizePznTagToLocaleCode } from './editors/variation-utils.js';
 import Events from './events.js';
 import { branch2Icon } from './icons.js';
 
-// Returns locale codes extracted from the fragment's pznTags field.
+// Preview locale codes from the fragment's pznTags — country tags map to the surface locale so
+// they stay in sync with the grouped-preview selector (shared normalizer, see variation-utils).
 export function getGroupedPreviewLocaleCodes(fragment) {
+    const surface = Store.surface();
+    const preferredLang = getLocaleByCode(Store.localeOrRegion())?.lang;
     const tags = fragment?.getFieldValues('pznTags') || [];
-    return [...new Set(tags.map((tag) => tag?.split('/').pop()?.trim()).filter((code) => code && getLocaleByCode(code)))];
+    return [...new Set(tags.map((tag) => normalizePznTagToLocaleCode(tag, surface, preferredLang)).filter(Boolean))];
 }
 
 /**

@@ -11,6 +11,7 @@ import {
     hasAnyVariationTabItems,
     listPromotionVariations,
     countryTagLeafToLocaleCode,
+    normalizePznTagToLocaleCode,
     VARIATION_TABS,
 } from '../../src/editors/variation-utils.js';
 
@@ -37,6 +38,21 @@ describe('variation-utils', () => {
 
         it('returns null without a surface', () => {
             expect(countryTagLeafToLocaleCode('AU', undefined, 'en')).to.equal(null);
+        });
+    });
+
+    describe('normalizePznTagToLocaleCode', () => {
+        it('passes a locale tag through unchanged', () => {
+            expect(normalizePznTagToLocaleCode('mas:pzn/locale/en_US', 'acom', 'en')).to.equal('en_US');
+        });
+
+        it('maps a country tag to the surface locale', () => {
+            expect(normalizePznTagToLocaleCode('mas:pzn/country/tr', 'acom', 'en')).to.equal('tr_TR');
+            expect(normalizePznTagToLocaleCode('mas:pzn/country/au', 'acom', 'en')).to.equal('en_AU');
+        });
+
+        it('returns null for a non-geo pzn tag', () => {
+            expect(normalizePznTagToLocaleCode('mas:pzn/segment/edu', 'acom', 'en')).to.equal(null);
         });
     });
 

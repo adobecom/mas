@@ -67,24 +67,19 @@ export function countryTagLeafToLocaleCode(leaf, surface, preferredLang) {
     return getLocaleCode(matches.find((locale) => locale.lang === preferredLang) ?? matches[0]);
 }
 
-function normalizeGroupedPreviewLocaleCode(tagValue) {
-    const localeCode = tagValue?.split('/').pop()?.trim();
-    return getLocaleByCode(localeCode) ? localeCode : null;
-}
-
-export function groupedPreviewLocales(fragment) {
-    if (!isGroupedVariationFragment(fragment)) return [];
-    const tags = fragment?.getFieldValues?.('pznTags') || [];
-    const localeCodes = [...new Set(tags.map(normalizeGroupedPreviewLocaleCode).filter(Boolean))];
-    return localeCodes.map((code) => {
-        const locale = getLocaleByCode(code);
-        return {
-            code,
-            lang: locale.lang,
-            country: locale.country,
-            label: `${locale.country} (${locale.lang.toUpperCase()})`,
-        };
-    });
+/**
+ * Resolve a pzn tag to a preview locale code: a `pzn/locale/<xx_YY>` tag passes through, a bare
+ * `pzn/country/<CC>` tag maps to the surface locale (see {@link countryTagLeafToLocaleCode}), and
+ * anything else returns null. Single source of truth for every grouped-variation preview consumer.
+ * @param {string} [tag] - pzn tag id or path
+ * @param {string} [surface] - e.g. `acom`
+ * @param {string} [preferredLang] - language to prefer for multi-language countries
+ * @returns {string|null}
+ */
+export function normalizePznTagToLocaleCode(tag, surface, preferredLang) {
+    const leaf = tag?.split('/').pop()?.trim();
+    if (getLocaleByCode(leaf)) return leaf;
+    return countryTagLeafToLocaleCode(leaf, surface, preferredLang);
 }
 
 export function listLocaleVariations(fragment) {

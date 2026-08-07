@@ -111,21 +111,29 @@ describe('FragmentClient', () => {
     });
 
     it('should fetch and transform collection fragment for preview', async () => {
+        // Start from a clean dictionary cache: the preceding card test hits the default 404 stub for
+        // acom/en_US, which is now negative-cached (empty) — clear it so this test's acom stub is used.
+        clearCaches();
+        // Placeholders resolve from the acom baseline (direct-hydrated). The sandbox region overlay
+        // has no dictionary index → short-circuits empty.
         fetchStub
-            .withArgs(`${baseUrl}/byPath?path=/content/dam/mas/sandbox/en_US/dictionary/index`)
+            .withArgs(`${baseUrl}/byPath?path=/content/dam/mas/acom/en_US/dictionary/index`)
             .returns(createResponse(200, { id: mockPlaceholders.id }));
         fetchStub
-            .withArgs(`${baseUrl}/${mockPlaceholders.id}?references=all-hydrated`)
+            .withArgs(`${baseUrl}/${mockPlaceholders.id}?references=direct-hydrated`)
             .returns(createResponse(200, mockPlaceholders));
+        fetchStub
+            .withArgs(`${baseUrl}/byPath?path=/content/dam/mas/sandbox/en_US/dictionary/index`)
+            .returns(createResponse(200, {}));
         const output = await previewFragment(mockCollectionData.id, {
             surface: 'sandbox',
             locale: 'en_US',
         });
         expect(output.references).deep.equal(expectedOutput.references);
         expect(output.referencesTree).deep.equal(expectedOutput.referencesTree);
-        expect(localStorageStub.getItem('dictionary-sandbox-en_US')).to.exist;
+        expect(localStorageStub.getItem('dictionary-base-acom-en_US')).to.exist;
         clearCaches();
-        expect(localStorageStub.getItem('dictionary-sandbox-en_US')).to.be.null;
+        expect(localStorageStub.getItem('dictionary-base-acom-en_US')).to.be.null;
     });
 
     it('maps non-200 preview pipeline to body.message, logs, and preserves status in fullContext', async () => {

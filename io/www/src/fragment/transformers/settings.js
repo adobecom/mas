@@ -1,4 +1,4 @@
-import { odinUrl, odinReferences } from '../utils/paths.js';
+import { odinUrl, odinReferences, REFERENCES } from '../utils/paths.js';
 import { COLLECTION_MODEL_ID, fetch, getFragmentId, getRegionalLocale, getRequestInfos } from '../utils/common.js';
 import { log, logDebug } from '../utils/log.js';
 
@@ -151,7 +151,7 @@ export async function getSettings(context) {
     if (!id) {
         return null;
     }
-    const response = await fetch(odinReferences(id, true, context.preview), context, 'settings');
+    const response = await fetch(odinReferences(id, context.preview, REFERENCES.ALL), context, 'settings');
 
     if (response.status !== 200) {
         logDebug(() => 'Failed to fetch settings fragment', context);

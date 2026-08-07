@@ -142,10 +142,12 @@ describe('collection placeholders', () => {
                 'https://odin.adobe.com/adobe/contentFragments/07f9729e-dc1f-4634-829d-7aa469bb0d33?references=all-hydrated',
             )
             .returns(createResponse(200, COLLECTION_RESPONSE));
+        // Placeholders resolve from the acom baseline dictionary (direct-hydrated).
         fetchStub
-            .withArgs(
-                'https://odin.adobe.com/adobe/contentFragments/412fda08-7b73-4a01-a04f-1953e183bad2?references=all-hydrated',
-            )
+            .withArgs('https://odin.adobe.com/adobe/contentFragments/byPath?path=/content/dam/mas/acom/en_US/dictionary/index')
+            .returns(createResponse(200, { id: 'acom_en_US_dictionary' }));
+        fetchStub
+            .withArgs('https://odin.adobe.com/adobe/contentFragments/acom_en_US_dictionary?references=direct-hydrated')
             .returns(createResponse(200, DICTIONARY_FOR_COLLECTION_RESPONSE));
         state.put(
             'req-07f9729e-dc1f-4634-829d-7aa469bb0d33-en_US',

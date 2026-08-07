@@ -2552,6 +2552,41 @@ describe('customize with multiple active promotion projects', function () {
         expect(result.body.promoProject).to.equal('proj-explicit');
     });
 
+    it('an explicit mapping for either half of a comma-separated osi beats a wildcard', async function () {
+        const projectWildcard = {
+            id: 'proj-wild',
+            path: '/content/dam/mas/promotions/proj-wild',
+            defaultVariations: {},
+            regionVariations: {},
+        };
+        const projectExplicit = {
+            id: 'proj-explicit',
+            path: '/content/dam/mas/promotions/proj-explicit',
+            defaultVariations: {},
+            regionVariations: {},
+        };
+        const rootFragment = {
+            id: 'card-x',
+            path: '/content/dam/mas/sandbox/en_US/card-x',
+            fields: {
+                osi: 'T78reFIvDF20AuB8vuzgdWrRpG8NTm3ZC903yyJLEfg,-lYm-YaTSZoUgv1gzqCgybgFotLqRsLwf8CgYdvdnsQ',
+                title: 'Original X',
+            },
+            references: {},
+            referencesTree: [],
+        };
+        const result = await processWithPromoProjects({ ...FAKE_CONTEXT, fragmentPath: 'card-x', body: rootFragment }, [
+            { project: projectWildcard, promoMap: { '*': 'WILDCARD' }, fragmentPaths: new Set(['card-x']) },
+            {
+                project: projectExplicit,
+                promoMap: { '-lYm-YaTSZoUgv1gzqCgybgFotLqRsLwf8CgYdvdnsQ': 'EXPLICIT' },
+                fragmentPaths: new Set(['card-x']),
+            },
+        ]);
+        expect(result.status).to.equal(200);
+        expect(result.body.promoProject).to.equal('proj-explicit');
+    });
+
     it('falls back to the first project wildcard when no project has an explicit osi entry', async function () {
         const projectWild = {
             id: 'proj-w1',

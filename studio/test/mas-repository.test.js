@@ -346,11 +346,21 @@ describe('MasRepository dictionary helpers', () => {
                 tags: [],
             };
             repository.searchFragmentList = sandbox.stub().resolves([promoFragment]);
+            const originalPromotions = Store.promotions.list.data.get();
+            const hadListFetched = Store.promotions.list.data.hasMeta('listFetched');
             Store.promotions.list.data.set([]);
-            await repository.loadPromotions();
-            expect(repository.searchFragmentList.calledOnce).to.be.true;
-            expect(Store.promotions.list.data.get().length).to.equal(1);
-            expect(Store.promotions.list.loading.get()).to.be.false;
+            Store.promotions.list.data.removeMeta('listFetched');
+            try {
+                await repository.loadPromotions();
+                expect(repository.searchFragmentList.calledOnce).to.be.true;
+                expect(Store.promotions.list.data.get().length).to.equal(1);
+                expect(Store.promotions.list.loading.get()).to.be.false;
+                expect(Store.promotions.list.data.hasMeta('listFetched')).to.be.true;
+            } finally {
+                Store.promotions.list.data.set(originalPromotions);
+                if (hadListFetched) Store.promotions.list.data.setMeta('listFetched', true);
+                else Store.promotions.list.data.removeMeta('listFetched');
+            }
         });
 
         it('loadPromotions auto-unpublishes expired published promotions and refreshes the row', async () => {
@@ -406,11 +416,47 @@ describe('MasRepository dictionary helpers', () => {
             const { default: Store } = await import('../src/store.js');
             repository.searchFragmentList = sandbox.stub().rejects(new Error('network'));
             sandbox.stub(repository, 'processError');
+            const originalPromotions = Store.promotions.list.data.get();
+            const hadListFetched = Store.promotions.list.data.hasMeta('listFetched');
             Store.promotions.list.data.set([]);
-            await repository.loadPromotions();
-            expect(repository.processError.calledOnce).to.be.true;
-            expect(repository.processError.firstCall.args[1]).to.equal('Could not load promotions.');
-            expect(Store.promotions.list.loading.get()).to.be.false;
+            Store.promotions.list.data.removeMeta('listFetched');
+            try {
+                await repository.loadPromotions();
+                expect(repository.processError.calledOnce).to.be.true;
+                expect(repository.processError.firstCall.args[1]).to.equal('Could not load promotions.');
+                expect(Store.promotions.list.loading.get()).to.be.false;
+                expect(
+                    Store.promotions.list.data.hasMeta('listFetched'),
+                    'non-abort failure should still mark listFetched to avoid retry loops',
+                ).to.be.true;
+            } finally {
+                Store.promotions.list.data.set(originalPromotions);
+                if (hadListFetched) Store.promotions.list.data.setMeta('listFetched', true);
+                else Store.promotions.list.data.removeMeta('listFetched');
+            }
+        });
+
+        it('loadPromotions ignores AbortError: no processError call, no listFetched stamp, so a superseded caller retries instead of reading a stale empty store', async () => {
+            const repository = createFullRepository();
+            const { default: Store } = await import('../src/store.js');
+            const abortError = new Error('aborted');
+            abortError.name = 'AbortError';
+            repository.searchFragmentList = sandbox.stub().rejects(abortError);
+            sandbox.stub(repository, 'processError');
+            const originalPromotions = Store.promotions.list.data.get();
+            const hadListFetched = Store.promotions.list.data.hasMeta('listFetched');
+            Store.promotions.list.data.set([]);
+            Store.promotions.list.data.removeMeta('listFetched');
+            try {
+                await repository.loadPromotions();
+                expect(repository.processError.called).to.be.false;
+                expect(Store.promotions.list.data.hasMeta('listFetched')).to.be.false;
+                expect(Store.promotions.list.loading.get()).to.be.false;
+            } finally {
+                Store.promotions.list.data.set(originalPromotions);
+                if (hadListFetched) Store.promotions.list.data.setMeta('listFetched', true);
+                else Store.promotions.list.data.removeMeta('listFetched');
+            }
         });
 
         it('loadAllCollections skips writing stores when items selection store unset after fetch', async () => {

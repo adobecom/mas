@@ -50,8 +50,8 @@ class MasFragment extends LitElement {
         this.expanded = true;
 
         const fragment = this.fragmentStore.value;
-        // Fetch references if not yet loaded
-        if (this.repository && !fragment.references?.length) {
+        // Fetch references if not yet loaded, or if promo variations haven't been probed yet
+        if (this.repository && (!fragment.references?.length || !fragment.promoVariationsProbed)) {
             this.loadingReferences = true;
 
             try {
@@ -105,7 +105,7 @@ class MasFragment extends LitElement {
         }
 
         const fragment = this.fragmentStore.value;
-        if (newExpandedState && this.repository && !fragment.references?.length) {
+        if (newExpandedState && this.repository && (!fragment.references?.length || !fragment.promoVariationsProbed)) {
             this.loadingReferences = true;
 
             try {

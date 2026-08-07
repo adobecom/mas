@@ -556,6 +556,34 @@ export function getDefaultLocales(surface) {
 }
 
 /**
+ * The surface whose dictionary is the global placeholder baseline for every surface of the same
+ * language. Placeholder resolution reads this surface as the default layer, then overlays the
+ * requested surface's baseline and region entries (see {@link transformers/replace.js}).
+ * @type {string}
+ */
+export const PLACEHOLDERS_BASELINE_SURFACE = 'acom';
+
+/**
+ * Placeholder region locale: `<lang>_<country>` when that is a known regional locale of the surface
+ * (checked across every default locale's region list), otherwise the already-resolved `fallback`.
+ * This lets `country=IN`/`AU` reach `en_IN`/`en_AU` even from an `en_US` request on acom — where those
+ * are regions of `en_GB`, not `en_US` — WITHOUT changing the shared `regionLocale` that fragments/WCS
+ * use. The placeholder base stays the request's own default locale, so an `en_US` page overlays
+ * `en_IN` onto `en_US` while an `en_GB` page overlays it onto `en_GB`.
+ * @param {string} surface e.g. 'acom'
+ * @param {string} defaultLocale request default locale (e.g. 'en_US') — supplies the language
+ * @param {string} country effective request country (e.g. 'IN')
+ * @param {string} fallback region locale to use when `<lang>_<country>` is not a surface locale
+ * @returns {string}
+ */
+export function getPlaceholdersRegionLocale(surface, defaultLocale, country, fallback) {
+    const [lang] = parseLocaleCode(defaultLocale);
+    if (!lang || !country) return fallback;
+    const candidate = `${lang}_${country.toUpperCase()}`;
+    return getSurfaceLocales(surface).some((locale) => getLocaleCode(locale) === candidate) ? candidate : fallback;
+}
+
+/**
  * Get all locales for a given surface, including default locales and region variants.
  * @param {string} surface e.g. 'acom'
  * @returns {{ lang: string, country: string }[]}

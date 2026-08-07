@@ -73,6 +73,16 @@ describe('MasPromotionsItemsTable', () => {
         expect(selectItemsTable.shadowRoot.textContent).to.include('No items found.');
     });
 
+    it('forwards a manage-only (non-selectable) grouped-variation tab to mas-select-items-table for cards', async () => {
+        Store.promotions.selectedCards.set(['/some/path']);
+        const el = await fixture(html`<mas-promotions-items-table .type=${TABLE_TYPE.CARDS}></mas-promotions-items-table>`);
+        await el.updateComplete;
+        const selectItemsTable = el.shadowRoot.querySelector('mas-select-items-table');
+        expect(selectItemsTable.tabs).to.deep.equal(['promotion', 'grouped']);
+        expect(selectItemsTable.selectableTabs).to.deep.equal([]);
+        expect(selectItemsTable.groupedVariationsManageOnly).to.be.true;
+    });
+
     it('loads collection rows when repository resolves selected collection paths', async () => {
         Store.promotions.selectedCollections.set(['/content/dam/mas/col-one']);
         const el = new MasPromotionsItemsTable();
@@ -117,6 +127,13 @@ describe('MasPromotionsItemsTable', () => {
         Store.promotions.selectedCards.set(['/path/a', '/path/b']);
         const el = await fixture(html`<mas-promotions-items-table .type=${TABLE_TYPE.CARDS}></mas-promotions-items-table>`);
         expect(el.selectedPaths).to.deep.equal(['/path/a', '/path/b']);
+    });
+
+    it('selectedPaths excludes grouped-variation paths for cards, even though they stay in the store', async () => {
+        Store.promotions.selectedCards.set(['/path/a', '/content/dam/mas/sandbox/en_US/PA-123/pzn/edu']);
+        const el = await fixture(html`<mas-promotions-items-table .type=${TABLE_TYPE.CARDS}></mas-promotions-items-table>`);
+        expect(el.selectedPaths).to.deep.equal(['/path/a']);
+        expect(Store.promotions.selectedCards.value).to.include('/content/dam/mas/sandbox/en_US/PA-123/pzn/edu');
     });
 
     it('shows Add product offers empty state when offers selection is empty', async () => {

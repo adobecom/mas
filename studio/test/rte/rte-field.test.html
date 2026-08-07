@@ -146,6 +146,16 @@
                             '<p><a class="accent" data-key="abc1234xyz" data-checkout-workflow="UCv3" data-wcs-osi="abm">Buy now</a></p>',
                         );
                     });
+
+                    it('preserves data-quantity on a checkout link', async function () {
+                        const rte = await createFromTemplate('rte-link', this.test.title);
+                        rte.value =
+                            '<a class="accent" data-key="abc1234xyz" data-wcs-osi="abm" data-quantity="3">Buy now</a>';
+                        await delay(100);
+                        expect(rte.value).to.equal(
+                            '<p><a class="accent" data-key="abc1234xyz" data-wcs-osi="abm" data-quantity="3">Buy now</a></p>',
+                        );
+                    });
                 });
 
                 describe('RTE Field: character counter', () => {

@@ -3,12 +3,11 @@ import {
     CARD_MODEL_ID,
     getRequestInfos,
     matchesGeo,
+    PZN_FOLDER,
     skimFragmentFromReferences,
     VALID_PARAMETER_VALUE_REGEX,
 } from '../utils/common.js';
 import { logDebug, logError } from '../utils/log.js';
-
-const PZN_FOLDER = '/pzn/';
 
 // Per-variant fields whose array values must be concatenated (parent + child) rather than overwritten.
 const MERGE_CONFIG = {
@@ -150,10 +149,18 @@ function personalizationMatchScore(pznTags, { regionLocale, country, pzn }) {
     return matchedTokens * 100 + geoMatchScore(geo) * 10;
 }
 
-function findPersonalizationVariation(variations, customizeContext) {
+/**
+ * @param {Set<string>} [allowedPaths] - Optional set to restrict candidates to curated grouped variations.
+ */
+function findPersonalizationVariation(variations, customizeContext, allowedPaths) {
     const { country, pzn, references, regionLocale, surface, defaultLocale } = customizeContext;
     const pattern = new RegExp(`/content/dam/mas/${surface}/${defaultLocale}/([^/]+)${PZN_FOLDER}.+`);
-    const personalizationVariations = extractVariationBasedOnPath(variations, references, pattern);
+    let personalizationVariations = extractVariationBasedOnPath(variations, references, pattern);
+    if (allowedPaths) {
+        personalizationVariations = personalizationVariations.filter((variation) =>
+            allowedPaths.has(PATH_TOKENS.exec(variation.path).groups.fragmentPath),
+        );
+    }
     if (personalizationVariations.length === 0) {
         logDebug(() => `No personalization variation found for region locale ${regionLocale}`, customizeContext);
         return null;
@@ -317,7 +324,11 @@ function mergeVariations(root, customizeContext, selectedPromoProject) {
             return merged;
         }
     }
-    const personalizationVariation = findPersonalizationVariation(variations, customizeContext);
+    // Restrict personalization to curated grouped variations for promo projects.
+    const groupedVariationPaths = selectedPromoProject?.groupedVariationPaths;
+    const personalizationVariation = groupedVariationPaths?.size
+        ? findPersonalizationVariation(variations, customizeContext, groupedVariationPaths)
+        : findPersonalizationVariation(variations, customizeContext);
     if (personalizationVariation) {
         logDebug(
             () => `Merging personalization variation ${personalizationVariation.id} for fragment ${root.id}`,

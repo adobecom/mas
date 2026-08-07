@@ -107,10 +107,22 @@ describe('ost-placeholder-panel', () => {
         expect(rows.compareDocumentPosition(options) & Node.DOCUMENT_POSITION_FOLLOWING).to.be.greaterThan(0);
     });
 
-    it('does not render the price options on the Checkout tab', async () => {
+    it('renders a quantity-only options control on the Checkout tab', async () => {
         store.placeholderTab = 'checkout';
         const el = await fixture(html`<ost-placeholder-panel></ost-placeholder-panel>`);
-        expect(Boolean(el.shadowRoot.querySelector('ost-placeholder-options'))).to.be.false;
+        const options = el.shadowRoot.querySelector('ost-placeholder-options');
+        expect(options).to.exist;
+        expect(options.hasAttribute('quantity-only')).to.be.true;
+    });
+
+    it('threads the Checkout tab quantity into checkoutUrl options', async () => {
+        store.placeholderTab = 'checkout';
+        const el = await fixture(html`<ost-placeholder-panel></ost-placeholder-panel>`);
+        const options = el.shadowRoot.querySelector('ost-placeholder-options[quantity-only]');
+        await options.updateComplete;
+        const field = options.shadowRoot.querySelector('merch-quantity-select[data-testid="ost-quantity-input"]');
+        field.dispatchEvent(new CustomEvent('merch-quantity-selector:change', { detail: { option: 3 }, bubbles: true }));
+        expect(store.getEffectiveOptions('checkoutUrl').quantity).to.equal(3);
     });
 
     it('renders a reference-osi field for the discount row only', async () => {

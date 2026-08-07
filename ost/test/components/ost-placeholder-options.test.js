@@ -117,6 +117,27 @@ describe('ost-placeholder-options', () => {
         expect(store.getEffectiveOptions('price').quantity).to.equal(5);
     });
 
+    describe('quantity-only mode', () => {
+        it('renders the quantity field without the Options toggle expansion', async () => {
+            const el = await fixture(html`<ost-placeholder-options quantity-only></ost-placeholder-options>`);
+            expect(quantityField(el)).to.exist;
+        });
+
+        it('does not render the Options toggle or the disable checkboxes', async () => {
+            const el = await fixture(html`<ost-placeholder-options quantity-only></ost-placeholder-options>`);
+            expect(el.shadowRoot.querySelector('[data-testid="ost-options-toggle"]')).to.be.null;
+            expect(el.shadowRoot.querySelector('sp-checkbox')).to.be.null;
+        });
+
+        it('updates the store quantity on change', async () => {
+            const el = await fixture(html`<ost-placeholder-options quantity-only></ost-placeholder-options>`);
+            quantityField(el).dispatchEvent(
+                new CustomEvent('merch-quantity-selector:change', { detail: { option: 4 }, bubbles: true }),
+            );
+            expect(store.getEffectiveOptions('checkoutUrl').quantity).to.equal(4);
+        });
+    });
+
     describe('every Disable checkbox drives its option (5 keys)', () => {
         const optionBoxes = [
             { key: 'displayRecurrence', default: true },

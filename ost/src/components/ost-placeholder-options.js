@@ -12,6 +12,7 @@ const DISABLE_OPTIONS = [
 export class OstPlaceholderOptions extends LitElement {
     static properties = {
         open: { type: Boolean, state: true },
+        quantityOnly: { type: Boolean, attribute: 'quantity-only' },
     };
 
     static styles = css`
@@ -67,6 +68,7 @@ export class OstPlaceholderOptions extends LitElement {
     constructor() {
         super();
         this.open = false;
+        this.quantityOnly = false;
         this.handleStoreChange = this.handleStoreChange.bind(this);
     }
 
@@ -100,7 +102,25 @@ export class OstPlaceholderOptions extends LitElement {
         store.setPlaceholderOptions({ ...store.placeholderOptions, quantity });
     }
 
+    renderQuantity() {
+        return html`
+            <div class="quantity-row">
+                <label class="quantity-label" for="ost-quantity">Quantity</label>
+                <merch-quantity-select
+                    id="ost-quantity"
+                    data-testid="ost-quantity-input"
+                    min="1"
+                    max="10"
+                    step="1"
+                    default-value=${store.placeholderOptions.quantity ?? 1}
+                    @merch-quantity-selector:change=${(e) => this.setQuantity(e.detail.option)}
+                ></merch-quantity-select>
+            </div>
+        `;
+    }
+
     render() {
+        if (this.quantityOnly) return this.renderQuantity();
         return html`
             <button
                 type="button"
@@ -127,18 +147,7 @@ export class OstPlaceholderOptions extends LitElement {
                               `,
                           )}
                       </div>
-                      <div class="quantity-row">
-                          <label class="quantity-label" for="ost-quantity">Quantity</label>
-                          <merch-quantity-select
-                              id="ost-quantity"
-                              data-testid="ost-quantity-input"
-                              min="1"
-                              max="10"
-                              step="1"
-                              default-value=${store.placeholderOptions.quantity ?? 1}
-                              @merch-quantity-selector:change=${(e) => this.setQuantity(e.detail.option)}
-                          ></merch-quantity-select>
-                      </div>
+                      ${this.renderQuantity()}
                   `
                 : nothing}
         `;

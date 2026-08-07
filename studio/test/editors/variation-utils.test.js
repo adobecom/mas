@@ -10,6 +10,7 @@ import {
     getVariationTabItems,
     hasAnyVariationTabItems,
     listPromotionVariations,
+    countryTagLeafToLocaleCode,
     VARIATION_TABS,
 } from '../../src/editors/variation-utils.js';
 
@@ -17,6 +18,26 @@ describe('variation-utils', () => {
     it('effectiveIsVariation requires a parent fragment', () => {
         expect(effectiveIsVariation({ path: '/foo' }, null, true)).to.equal(false);
         expect(effectiveIsVariation({ path: '/foo' }, { path: '/parent' }, true)).to.equal(true);
+    });
+
+    describe('countryTagLeafToLocaleCode', () => {
+        it('maps a bare country to the surface region locale', () => {
+            expect(countryTagLeafToLocaleCode('au', 'acom', 'en')).to.equal('en_AU');
+            expect(countryTagLeafToLocaleCode('SG', 'acom', 'en')).to.equal('en_SG');
+        });
+
+        it('prefers the requested language for multi-language countries', () => {
+            expect(countryTagLeafToLocaleCode('CA', 'acom', 'fr')).to.equal('fr_CA');
+            expect(countryTagLeafToLocaleCode('CA', 'acom', 'en')).to.equal('en_CA');
+        });
+
+        it('returns null for a country the surface does not serve', () => {
+            expect(countryTagLeafToLocaleCode('ZZ', 'acom', 'en')).to.equal(null);
+        });
+
+        it('returns null without a surface', () => {
+            expect(countryTagLeafToLocaleCode('AU', undefined, 'en')).to.equal(null);
+        });
     });
 
     it('isGroupedVariationFragment matches /pzn/ paths', () => {

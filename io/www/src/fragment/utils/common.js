@@ -40,6 +40,12 @@ const CARD_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ';
 const COLLECTION_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24';
 const VALID_PARAMETER_VALUE_REGEX = /^[a-zA-Z0-9_-]+$/;
 
+const PZN_FOLDER = '/pzn/';
+
+function isGroupedVariationFragmentPath(fragmentPath) {
+    return typeof fragmentPath === 'string' && fragmentPath.includes(PZN_FOLDER);
+}
+
 async function computeBody(response, context) {
     let body = await response.json();
     if (context.preview && Array.isArray(body.fields)) {
@@ -300,6 +306,8 @@ export {
     CARD_MODEL_ID,
     COLLECTION_MODEL_ID,
     VALID_PARAMETER_VALUE_REGEX,
+    PZN_FOLDER,
+    isGroupedVariationFragmentPath,
     createTimeoutPromise,
     internalFetch as fetch,
     getCountry,

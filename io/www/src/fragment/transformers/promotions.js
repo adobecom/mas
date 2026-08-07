@@ -46,7 +46,7 @@
  *     same fragment.
  */
 import { FRAGMENT_URL_PREFIX, MAS_ROOT, PATH_TOKENS, odinReferences, REFERENCES } from '../utils/paths.js';
-import { fetch, getRequestInfos, matchesGeo } from '../utils/common.js';
+import { fetch, getRequestInfos, matchesGeo, isGroupedVariationFragmentPath } from '../utils/common.js';
 import { createSwrCache } from '../utils/swr-cache.js';
 import { log, logDebug, logError } from '../utils/log.js';
 
@@ -331,6 +331,7 @@ async function hydrateProject(project, { baseUrl, surface, defaultLocale, resolv
 
     const hydratedProject = hydrateResponse.body;
     const fragmentPaths = parseFragmentPaths(hydratedProject);
+    const groupedVariationPaths = fragmentPaths.filter(isGroupedVariationFragmentPath);
     const offerLines = hydratedProject.fields?.offers ?? [];
     const offerOverrides = parseOfferOverrides(offerLines);
     const offerSubstitutions = parseOfferSubstitutions(offerLines);
@@ -354,6 +355,7 @@ async function hydrateProject(project, { baseUrl, surface, defaultLocale, resolv
         endDate: project.endDate,
         promoCode,
         fragmentPaths,
+        groupedVariationPaths,
         offerOverrides,
         offerSubstitutions,
         defaultVariations,
@@ -469,6 +471,7 @@ async function promotions(context) {
         promoMap: buildPromoMap(project.offerOverrides, { regionLocale, country }, project.promoCode, context),
         substituteMap: buildSubstituteMap(project.offerSubstitutions ?? [], { regionLocale, country }),
         fragmentPaths: new Set(project.fragmentPaths),
+        groupedVariationPaths: new Set(project.groupedVariationPaths),
     }));
     promoProjects.forEach(({ project, promoMap, substituteMap: sm }) => {
         logDebug(

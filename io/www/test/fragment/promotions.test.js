@@ -67,17 +67,24 @@ function makeHydratedProject({
     };
 }
 
+// Models real Web Storage: data keys are enumerable own props (so `Object.keys(localStorage)`
+// prefix-scans work, as the per-surface `promotions-*` clear relies on), methods non-enumerable.
 function installLocalStorageShim() {
     const storage = {};
-    globalThis.localStorage = {
-        getItem: (key) => storage[key] ?? null,
-        setItem: (key, val) => {
-            storage[key] = val;
+    Object.defineProperties(storage, {
+        getItem: { value: (key) => (Object.prototype.hasOwnProperty.call(storage, key) ? storage[key] : null) },
+        setItem: {
+            value: (key, val) => {
+                storage[key] = String(val);
+            },
         },
-        removeItem: (key) => {
-            delete storage[key];
+        removeItem: {
+            value: (key) => {
+                delete storage[key];
+            },
         },
-    };
+    });
+    globalThis.localStorage = storage;
     return storage;
 }
 
@@ -195,13 +202,24 @@ describe('promotions', () => {
             expect(result.activeProjects[0].endDate).to.equal(END);
         });
 
-        it('ignores instant when not in preview mode', async () => {
+        it('ignores instant on published content when instant is not provided', async () => {
             const project = makeProject({ surfaces: ['acom'], geos: [], startDate: START, endDate: EXPIRED_END });
             fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
 
-            // EXPIRED_END is in the past — without preview, instant is ignored and Date.now() is used
-            const result = await promotionsTransformer.init(createContext({ instant: PREVIEW_INSTANT }));
+            // EXPIRED_END is in the past — with no instant, Date.now() is used
+            const result = await promotionsTransformer.init(createContext());
             expect(result).to.deep.equal({ status: 200, activeProjects: [] });
+        });
+
+        it('honors instant on published content', async () => {
+            const project = makeProject({ surfaces: ['acom'], geos: [], startDate: START, endDate: EXPIRED_END });
+            const hydrated = makeHydratedProject();
+            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+            fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
+
+            const result = await promotionsTransformer.init(createContext({ instant: PREVIEW_INSTANT }));
+            expect(result.activeProjects).to.have.length(1);
+            expect(result.activeProjects[0].id).to.equal('proj-1');
         });
 
         it('matches project by country when locale does not match geos', async () => {
@@ -955,14 +973,15 @@ describe('promotions', () => {
             fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
 
             await promotionsTransformer.init(previewCtx);
-            expect(storage['promotions']).to.exist;
+            // Preview cache is now per-surface (`promotions-<surface>`), keyed by the resolved surface.
+            expect(storage['promotions-acom']).to.exist;
 
             const result = await promotionsTransformer.init(previewCtx);
             expect(fetchStub.withArgs(FOLDER_URL).callCount).to.equal(1);
             expect(result.activeProjects).to.have.length(1);
 
             clearPromoCache(true);
-            expect(storage['promotions']).to.be.undefined;
+            expect(storage['promotions-acom']).to.be.undefined;
         });
 
         it('retains blocking refetch in preview mode: an expired entry refetches fresh, never served stale', async () => {

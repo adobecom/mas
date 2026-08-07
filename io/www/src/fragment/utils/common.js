@@ -41,10 +41,9 @@ const COLLECTION_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGx
 const VALID_PARAMETER_VALUE_REGEX = /^[a-zA-Z0-9_-]+$/;
 
 const PZN_FOLDER = '/pzn/';
-const GROUPED_VARIATION_PATH_PATTERN = new RegExp(`^[^/]+${PZN_FOLDER}.+`);
 
 function isGroupedVariationFragmentPath(fragmentPath) {
-    return typeof fragmentPath === 'string' && GROUPED_VARIATION_PATH_PATTERN.test(fragmentPath);
+    return typeof fragmentPath === 'string' && fragmentPath.includes(PZN_FOLDER);
 }
 
 async function computeBody(response, context) {

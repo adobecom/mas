@@ -290,10 +290,14 @@ function isSeasonal(customizeContext, { project }) {
 }
 
 /**
- * Selects a single promo project for a fragment. Priority order is:
+ * Selects a single promo project for a fragment. Seasonal (time-boxed, has an `endDate`)
+ * promo projects always take priority over evergreen ones.
+ *
+ * Within whichever group (seasonal, else evergreen) is considered, priority order is:
  * promo project with an explicit mapping (osi replace or promo code) for a given geo & fragment.offer
  * promo project with a wildcard promo code
- * seasonal promo project, if no seasonal - returns null
+ * if no mapping - seasonal can still be taken as a fallback.
+ * evergreen without a mapping doesn't apply.
  * there should be no fallback to mapping-less evergreen promo project
  *
  * @returns the selected `{ project, promoMap, substituteMap, fragmentPaths }` entry, or null
@@ -307,10 +311,19 @@ function selectPromoProjectForFragment(root, customizeContext) {
         ? (Array.isArray(fragOsi) ? fragOsi : fragOsi.split(',')).map((osi) => osi.trim()).filter(Boolean)
         : [];
     logDebug(() => `selectPromoProjectForFragment osis: ${JSON.stringify(osis)}`, customizeContext);
+
+    const seasonalEntries = [];
+    const evergreenEntries = [];
+    for (const entry of promoEntries) {
+        (isSeasonal(customizeContext, entry) ? seasonalEntries : evergreenEntries).push(entry);
+    }
+
     const selected =
-        promoEntries.find((entry) => hasExplicitMapping(osis, customizeContext, entry)) ??
-        promoEntries.find((entry) => hasWildcardPromo(customizeContext, entry)) ??
-        promoEntries.find((entry) => isSeasonal(customizeContext, entry)) ??
+        seasonalEntries.find((entry) => hasExplicitMapping(osis, customizeContext, entry)) ??
+        seasonalEntries.find((entry) => hasWildcardPromo(customizeContext, entry)) ??
+        seasonalEntries[0] ??
+        evergreenEntries.find((entry) => hasExplicitMapping(osis, customizeContext, entry)) ??
+        evergreenEntries.find((entry) => hasWildcardPromo(customizeContext, entry)) ??
         null;
     if (!selected) return null;
     logDebug(

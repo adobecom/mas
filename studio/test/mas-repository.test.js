@@ -4083,6 +4083,36 @@ describe('MasRepository dictionary helpers', () => {
             expect(result.success).to.be.true;
             expect(repository.aem.sites.cf.fragments.forceDelete.calledWith({ path: fragment.path })).to.be.true;
         });
+
+        it('keeps success false when both the reference-unlinking delete and the forceDelete fallback fail', async () => {
+            const repository = createRepository();
+            const variationPath = '/content/dam/mas/sandbox/en_US/mili-compare/ar';
+            const fragment = buildFragmentWithVariation(variationPath);
+            const parentWithEtag = {
+                id: 'parent-id',
+                path: fragment.path,
+                fields: [{ name: 'variations', values: [variationPath] }],
+            };
+
+            repository.aem = createAemMock({
+                fragments: {
+                    getWithEtag: sandbox.stub().resolves(parentWithEtag),
+                    save: sandbox.stub().resolves(),
+                    delete: sandbox.stub().rejects(new Error('409 conflict')),
+                    forceDelete: sandbox.stub().rejects(new Error('force delete also failed')),
+                },
+            });
+            repository.operation = { set: sandbox.stub() };
+            sandbox.stub(repository, 'refreshVariationParentInList').resolves();
+            sandbox.stub(Events.fragmentDeleted, 'emit');
+            sandbox.stub(repository, 'processError');
+            const errorSpy = sandbox.stub(console, 'error');
+
+            const result = await repository.deleteFragmentWithVariations(fragment);
+
+            expect(result.success).to.be.false;
+            expect(errorSpy.calledWith('Force delete also failed:', sinon.match.instanceOf(Error))).to.be.true;
+        });
     });
 
     describe('Store subscription lifecycle', () => {

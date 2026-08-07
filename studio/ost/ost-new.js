@@ -2295,7 +2295,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
             justify-content: flex-end;
             gap: 8px;
         }
-    `),$(Po,"properties",{productsError:{type:String}});customElements.define("ost-entitlements-tab",Po);me();me();me();var Ry=[{key:"displayRecurrence",label:"Term"},{key:"displayPerUnit",label:"Unit"},{key:"displayTax",label:"Tax Label"},{key:"forceTaxExclusive",label:"Include Tax"},{key:"displayOldPrice",label:"Old price"}],_o=class extends M{constructor(){super(),this.open=!1,this.quantityOnly=!1,this.handleStoreChange=this.handleStoreChange.bind(this)}connectedCallback(){super.connectedCallback(),l.subscribe(this.handleStoreChange)}disconnectedCallback(){super.disconnectedCallback(),l.unsubscribe(this.handleStoreChange)}handleStoreChange(){this.requestUpdate()}isChecked(e){return!l.placeholderOptions[e]}toggle(e,t){l.toggleOption(e,!t)}setQuantity(e){let t=Math.max(1,Math.floor(Number(e)||1));l.setPlaceholderOptions({...l.placeholderOptions,quantity:t})}renderDisableGroup(){return n`
+    `),$(Po,"properties",{productsError:{type:String}});customElements.define("ost-entitlements-tab",Po);me();me();me();var Ry=[{key:"displayRecurrence",label:"Term"},{key:"displayPerUnit",label:"Unit"},{key:"displayTax",label:"Tax Label"},{key:"forceTaxExclusive",label:"Include Tax"},{key:"displayOldPrice",label:"Old price"}],_o=class extends M{constructor(){super(),this.open=!1,this.handleStoreChange=this.handleStoreChange.bind(this)}connectedCallback(){super.connectedCallback(),l.subscribe(this.handleStoreChange)}disconnectedCallback(){super.disconnectedCallback(),l.unsubscribe(this.handleStoreChange)}handleStoreChange(){this.requestUpdate()}isChecked(e){return!l.placeholderOptions[e]}toggle(e,t){l.toggleOption(e,!t)}setQuantity(e){let t=Math.max(1,Math.floor(Number(e)||1));l.setPlaceholderOptions({...l.placeholderOptions,quantity:t})}renderDisableGroup(){return n`
             <div class="disable-group" role="group" aria-label="Disable">
                 ${Ry.map(({key:e,label:t})=>n`
                         <sp-checkbox
@@ -2331,8 +2331,8 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
                 <span class="chevron" aria-hidden="true">›</span>
                 Options
             </button>
-            ${this.open?n` ${this.quantityOnly?C:this.renderDisableGroup()} ${this.renderQuantity()} `:C}
-        `}};$(_o,"properties",{open:{type:Boolean,state:!0},quantityOnly:{type:Boolean,attribute:"quantity-only"}}),$(_o,"styles",y`
+            ${this.open?n` ${l.placeholderTab==="checkout"?C:this.renderDisableGroup()} ${this.renderQuantity()} `:C}
+        `}};$(_o,"properties",{open:{type:Boolean,state:!0}}),$(_o,"styles",y`
         :host {
             font-family: inherit;
             display: block;
@@ -2718,7 +2718,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
             </div>
         `}handleTabChange(e){l.placeholderTab=e.target.selected}rowsForTab(e){let t=l.panelGroups,r=l.placeholderTypes.filter(e),a=l.authoringFlow==="tryBuy"?r.filter(i=>["price","checkoutUrl"].includes(i.type)):r;return t.flatMap(i=>a.map(c=>this.renderRow(c,i)))}renderTabContent(){switch(l.placeholderTab){case"checkout":return n`
                     <div class="placeholder-rows">${this.rowsForTab(e=>e.type==="checkoutUrl")}</div>
-                    <ost-placeholder-options quantity-only></ost-placeholder-options>
+                    <ost-placeholder-options></ost-placeholder-options>
                 `;case"details":return n`<ost-product-detail></ost-product-detail>`;default:return n`
                     <div class="placeholder-rows">${this.rowsForTab(e=>e.type!=="checkoutUrl")}</div>
                     <ost-placeholder-options></ost-placeholder-options>

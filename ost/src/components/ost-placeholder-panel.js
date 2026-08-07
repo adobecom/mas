@@ -191,7 +191,7 @@ export class OstPlaceholderPanel extends LitElement {
             case 'checkout':
                 return html`
                     <div class="placeholder-rows">${this.rowsForTab((t) => t.type === 'checkoutUrl')}</div>
-                    <ost-placeholder-options quantity-only></ost-placeholder-options>
+                    <ost-placeholder-options></ost-placeholder-options>
                 `;
             case 'details':
                 return html`<ost-product-detail></ost-product-detail>`;

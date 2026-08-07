@@ -12,7 +12,6 @@ const DISABLE_OPTIONS = [
 export class OstPlaceholderOptions extends LitElement {
     static properties = {
         open: { type: Boolean, state: true },
-        quantityOnly: { type: Boolean, attribute: 'quantity-only' },
     };
 
     static styles = css`
@@ -68,7 +67,6 @@ export class OstPlaceholderOptions extends LitElement {
     constructor() {
         super();
         this.open = false;
-        this.quantityOnly = false;
         this.handleStoreChange = this.handleStoreChange.bind(this);
     }
 
@@ -149,7 +147,9 @@ export class OstPlaceholderOptions extends LitElement {
                 <span class="chevron" aria-hidden="true">›</span>
                 Options
             </button>
-            ${this.open ? html` ${this.quantityOnly ? nothing : this.renderDisableGroup()} ${this.renderQuantity()} ` : nothing}
+            ${this.open
+                ? html` ${store.placeholderTab === 'checkout' ? nothing : this.renderDisableGroup()} ${this.renderQuantity()} `
+                : nothing}
         `;
     }
 }

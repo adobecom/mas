@@ -72,7 +72,11 @@ function scanMasElements(fields, substituteMap, context) {
  */
 function resolvePromoCode(fields, richTextOsis, { promoMap, substituteMap }, context) {
     // No osi (own or referenced in rich text) => nothing priceable, so no promo code (not even wildcard).
-    const osis = [].concat(fields.osi ?? []).concat(richTextOsis);
+    // Each entry may itself be a comma-joined OSI pair (discount badges, MWPW-201714) — split before matching.
+    const osis = []
+        .concat(fields.osi ?? [])
+        .concat(richTextOsis)
+        .flatMap((osi) => osi.split(','));
     if (!osis.length) return;
     let explicitPromoCode;
     for (const osi of osis) {

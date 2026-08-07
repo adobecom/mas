@@ -582,6 +582,31 @@
                             expect(rte.value).to.include('data-quantity="2"');
                         });
 
+                        it('keeps the checkout link class when editing after the selection collapsed', async function () {
+                            const rte = await createFromTemplate('rte', this.test.title);
+                            await delay(50);
+                            const view = rte.editorView;
+                            const SelCtor = view.state.selection.constructor;
+
+                            rte.handleOpenOfferSelector(new Event('click'));
+                            // Double-click on an accent CTA captured its label and class;
+                            // the multi-step flow then collapses the selection off the link.
+                            rte.ostTargetText = 'Buy now';
+                            rte.ostTargetClass = 'accent';
+                            view.dispatch(view.state.tr.setSelection(SelCtor.create(view.state.doc, 1, 1)));
+                            await delay(20);
+
+                            dispatchOstSelect({
+                                is: 'checkout-link',
+                                href: '#',
+                                'data-wcs-osi': 'osi-edit',
+                            });
+                            await delay(50);
+
+                            expect(rte.value).to.include('class="accent"');
+                            expect(rte.value).to.include('data-wcs-osi="osi-edit"');
+                        });
+
                         it('is a no-op when ostRteFieldSource does not match the current RTE instance', async function () {
                             const rteA = await createFromTemplate('rte', this.test.title + '-A');
                             const rteB = await createFromTemplate('rte', this.test.title + '-B');

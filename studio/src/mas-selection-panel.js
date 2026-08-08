@@ -119,19 +119,26 @@ class MasSelectionPanel extends LitElement {
         const allVariations = [];
         const allCards = [];
         const seen = new Set();
+        const allStores = Store.fragments.list.data.get();
         for (const id of fragmentIds) {
-            const store = Store.fragments.list.data.get().find((s) => s.get()?.id === id);
+            const store = allStores.find((s) => s.get()?.id === id);
             const fragment = store?.get();
             if (!fragment) continue;
-            const refs = fragment.getPublishableReferences?.() ?? { variations: [], cards: [] };
-            for (const ref of refs.variations) {
-                if (!seen.has(ref.id)) {
+            const variationPaths = fragment.getFieldValues?.('variations') ?? [];
+            const cardPaths = [
+                ...(fragment.getFieldValues?.('cards') ?? []),
+                ...(fragment.getFieldValues?.('collections') ?? []),
+            ];
+            for (const path of variationPaths) {
+                const ref = allStores.find((s) => s.get()?.path === path)?.get();
+                if (ref && !seen.has(ref.id)) {
                     seen.add(ref.id);
                     allVariations.push(ref);
                 }
             }
-            for (const ref of refs.cards) {
-                if (!seen.has(ref.id)) {
+            for (const path of cardPaths) {
+                const ref = allStores.find((s) => s.get()?.path === path)?.get();
+                if (ref && !seen.has(ref.id)) {
                     seen.add(ref.id);
                     allCards.push(ref);
                 }

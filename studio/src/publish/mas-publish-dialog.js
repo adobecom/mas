@@ -1,4 +1,5 @@
 import { LitElement, html, nothing } from 'lit';
+import { ROOT_PATH } from '../constants.js';
 import { styles } from './mas-publish-dialog.css.js';
 
 class MasPublishDialog extends LitElement {
@@ -54,15 +55,19 @@ class MasPublishDialog extends LitElement {
     }
 
     _renderRef(ref) {
+        const title = ref.title || ref.path.split('/').pop();
+        const displayPath = ref.path?.startsWith(ROOT_PATH + '/')
+            ? ref.path.slice(ROOT_PATH.length + 1)
+            : ref.path;
         return html`
             <div class="ref-item">
                 <sp-checkbox
                     data-ref-id=${ref.id}
                     .checked=${this._checkedIds.has(ref.id)}
                     @change=${(e) => this._toggleRef(ref.id, e.target.checked)}
-                    >${ref.path.split('/').pop()}</sp-checkbox
+                    >${title}</sp-checkbox
                 >
-                <div class="ref-path">${ref.path}</div>
+                <div class="ref-path">${displayPath}</div>
             </div>
         `;
     }

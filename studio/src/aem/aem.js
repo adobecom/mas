@@ -466,7 +466,7 @@ class AEM {
      * @param {Object} fragment
      * @returns {Promise<void>}
      */
-    async publishFragment(fragment, publishReferencesWithStatus = ['DRAFT', 'UNPUBLISHED']) {
+    async publishFragment(fragment, publishReferencesWithStatus = ['DRAFT', 'MODIFIED', 'UNPUBLISHED']) {
         const response = await fetch(this.cfPublishUrl, {
             method: 'POST',
             headers: {

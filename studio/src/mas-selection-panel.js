@@ -119,26 +119,28 @@ class MasSelectionPanel extends LitElement {
         const allVariations = [];
         const allCards = [];
         const seen = new Set();
-        const allStores = Store.fragments.list.data.get();
-        for (const id of fragmentIds) {
-            const store = allStores.find((s) => s.get()?.id === id);
-            const fragment = store?.get();
-            if (!fragment) continue;
-            const variationPaths = fragment.getFieldValues?.('variations') ?? [];
-            const cardPaths = [
-                ...(fragment.getFieldValues?.('cards') ?? []),
-                ...(fragment.getFieldValues?.('collections') ?? []),
-            ];
-            for (const path of variationPaths) {
-                const ref = allStores.find((s) => s.get()?.path === path)?.get();
-                if (ref && !seen.has(ref.id)) {
+
+        const hydratedFragments = await Promise.all(
+            fragmentIds.map((id) =>
+                this.repository.aem.sites.cf.fragments.getById(id).catch(() => null),
+            ),
+        );
+
+        for (const fragmentData of hydratedFragments) {
+            if (!fragmentData) continue;
+            const variationPaths = new Set(
+                fragmentData.fields?.find((f) => f.name === 'variations')?.values ?? [],
+            );
+            const cardPaths = new Set([
+                ...(fragmentData.fields?.find((f) => f.name === 'cards')?.values ?? []),
+                ...(fragmentData.fields?.find((f) => f.name === 'collections')?.values ?? []),
+            ]);
+            for (const ref of fragmentData.references || []) {
+                if (!ref?.id || seen.has(ref.id)) continue;
+                if (variationPaths.has(ref.path)) {
                     seen.add(ref.id);
                     allVariations.push(ref);
-                }
-            }
-            for (const path of cardPaths) {
-                const ref = allStores.find((s) => s.get()?.path === path)?.get();
-                if (ref && !seen.has(ref.id)) {
+                } else if (cardPaths.has(ref.path)) {
                     seen.add(ref.id);
                     allCards.push(ref);
                 }

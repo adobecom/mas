@@ -56,9 +56,7 @@ class MasPublishDialog extends LitElement {
 
     _renderRef(ref) {
         const title = ref.title || ref.path.split('/').pop();
-        const displayPath = ref.path?.startsWith(ROOT_PATH + '/')
-            ? ref.path.slice(ROOT_PATH.length + 1)
-            : ref.path;
+        const displayPath = ref.path?.startsWith(`${ROOT_PATH}/`) ? ref.path.slice(ROOT_PATH.length + 1) : ref.path;
         return html`
             <div class="ref-item">
                 <sp-checkbox

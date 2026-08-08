@@ -121,16 +121,12 @@ class MasSelectionPanel extends LitElement {
         const seen = new Set();
 
         const hydratedFragments = await Promise.all(
-            fragmentIds.map((id) =>
-                this.repository.aem.sites.cf.fragments.getById(id).catch(() => null),
-            ),
+            fragmentIds.map((id) => this.repository.aem.sites.cf.fragments.getById(id).catch(() => null)),
         );
 
         for (const fragmentData of hydratedFragments) {
             if (!fragmentData) continue;
-            const variationPaths = new Set(
-                fragmentData.fields?.find((f) => f.name === 'variations')?.values ?? [],
-            );
+            const variationPaths = new Set(fragmentData.fields?.find((f) => f.name === 'variations')?.values ?? []);
             const cardPaths = new Set([
                 ...(fragmentData.fields?.find((f) => f.name === 'cards')?.values ?? []),
                 ...(fragmentData.fields?.find((f) => f.name === 'collections')?.values ?? []),

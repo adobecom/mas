@@ -92,6 +92,29 @@ describe('aem.js', () => {
     });
 
     describe('method: saveFragment', () => {
+        it('uses stored etag without fresh GET when discardEtag is false', async () => {
+            const fetchCalls = [];
+            let putHeaders;
+            window.fetch = async (url, options) => {
+                fetchCalls.push(options?.method ?? 'GET');
+                if (options?.method === 'PUT') putHeaders = options.headers;
+                return {
+                    ok: true,
+                    headers: { get: () => 'server-etag' },
+                    json: async () => ({ id: 'f1', etag: 'server-etag', modified: 2 }),
+                };
+            };
+
+            await aem.saveFragment(
+                { id: 'f1', etag: 'stored-etag', title: 't', description: 'd', fields: [] },
+                { discardEtag: false },
+            );
+
+            expect(fetchCalls).to.have.lengthOf(2);
+            expect(fetchCalls[0]).to.equal('PUT');
+            expect(putHeaders['If-Match']).to.equal('stored-etag');
+        });
+
         it('strips empty values from multi-value reference fields but preserves clear sentinels elsewhere', async () => {
             let putBody;
             window.fetch = async (url, options) => {

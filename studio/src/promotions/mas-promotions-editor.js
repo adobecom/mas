@@ -687,7 +687,7 @@ class MasPromotionsEditor extends LitElement {
         this.#syncPromotionSelectionFieldsToFragment();
         showToast('Saving project...');
         try {
-            const saved = await this.repository.saveFragment(this.fragmentStore, false);
+            const saved = await this.repository.saveFragment(this.fragmentStore, { withToast: false, discardEtag: false });
             if (!saved) {
                 showToast('Failed to save project.', 'negative');
                 return;

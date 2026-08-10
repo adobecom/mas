@@ -221,14 +221,20 @@ class AEM {
      * @param {Object} fragment
      * @returns {Promise<Object>} the updated fragment
      */
-    async saveFragment(fragment) {
+    async saveFragment(fragment, { discardEtag = true } = {}) {
         if (!fragment?.id) {
             throw new Error('Invalid fragment data for save operation');
         }
 
-        const latestFragment = await this.getFragmentWithEtag(fragment.id);
-        if (!latestFragment) {
-            throw new Error('Failed to retrieve fragment for update');
+        let etag;
+        if (discardEtag) {
+            const latestFragment = await this.getFragmentWithEtag(fragment.id);
+            if (!latestFragment) {
+                throw new Error('Failed to retrieve fragment for update');
+            }
+            etag = latestFragment.etag;
+        } else {
+            etag = fragment.etag;
         }
 
         const { title, description, fields } = fragment;
@@ -251,7 +257,7 @@ class AEM {
             headers: {
                 ...this.headers,
                 'Content-Type': 'application/json',
-                'If-Match': latestFragment.etag,
+                'If-Match': etag,
             },
             body: JSON.stringify({
                 title,
@@ -261,6 +267,10 @@ class AEM {
         }).catch((err) => {
             throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
         });
+
+        if (response.status === 412) {
+            throw new Error('Fragment was modified by another user. Please reload and try again.');
+        }
 
         if (!response.ok) {
             throw new Error(`Failed to save fragment: ${response.status} ${response.statusText}`);

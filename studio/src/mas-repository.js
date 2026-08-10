@@ -1678,27 +1678,17 @@ export class MasRepository extends LitElement {
             }
         }
 
-        let success = false;
-        if (variations.length > 0) {
+        let success = await this.deleteFragment(fragment, {
+            startToast: variations.length === 0,
+            endToast: false,
+        });
+        if (!success) {
+            console.warn('Regular delete failed, trying force delete');
             try {
                 await this.aem.sites.cf.fragments.forceDelete({ path: fragment.path });
                 success = true;
-            } catch (error) {
-                console.error(`Failed to force delete parent fragment:`, error);
-            }
-        } else {
-            success = await this.deleteFragment(fragment, {
-                startToast: true,
-                endToast: false,
-            });
-            if (!success) {
-                console.warn('Regular delete failed, trying force delete');
-                try {
-                    await this.aem.sites.cf.fragments.forceDelete({ path: fragment.path });
-                    success = true;
-                } catch (forceError) {
-                    console.error('Force delete also failed:', forceError);
-                }
+            } catch (forceError) {
+                console.error('Force delete also failed:', forceError);
             }
         }
 

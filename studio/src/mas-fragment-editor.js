@@ -60,37 +60,24 @@ export function getGroupedPreviewLocaleCodes(fragment) {
  * @param {string} parentLocale locale of the parent (catalog) fragment
  * @returns {boolean} true when region or preview override changed
  */
-export function syncGroupedVariationRegion(fragment, parentLocale) {
-    if (!fragment?.path || !Fragment.isGroupedVariationPath(fragment.path) || !parentLocale) return false;
+export function syncGroupedPreviewLocale(fragment, parentLocale) {
+    if (!fragment?.path || !Fragment.isGroupedVariationPath(fragment.path) || !parentLocale) return null;
 
-    const surface = Store.surface();
-    const catalogLocale = (surface && getDefaultLocaleCode(surface, parentLocale)) || parentLocale;
     const codes = getGroupedPreviewLocaleCodes(fragment);
-    if (!codes.length) return false;
+    if (!codes.length) return null;
 
-    let region = Store.search.value.region;
-    if (region && !codes.includes(region)) {
-        region = null;
-    }
-    if (!region) {
-        region = codes.find((code) => code !== catalogLocale) || null;
-    }
-    const nextRegion = region && region !== catalogLocale ? region : null;
-    const previewLocale = nextRegion || catalogLocale;
-
-    let changed = false;
-    if ((Store.search.value.region || null) !== nextRegion) {
-        Store.search.set((prev) => ({ ...prev, region: nextRegion }));
-        changed = true;
-    }
+    // Grouped-preview locale is ephemeral UI state and MUST NOT be written to Store.search.region —
+    // that is URL-hash-synced and would trigger a regional-variation load. Apply it only to the
+    // editor's previewLocaleOverride, matching the selector's default derivation in merch-card-editor.
+    const globalLocale = Store.localeOrRegion();
+    const previewLocale = codes.includes(globalLocale) ? globalLocale : codes[0];
 
     const editor = document.querySelector('merch-card-editor');
     if (editor && editor.previewLocaleOverride !== previewLocale) {
         editor.previewLocaleOverride = previewLocale;
-        changed = true;
+        return previewLocale;
     }
-
-    return changed;
+    return null;
 }
 
 export function snapFilterToPathDefault(fragmentPath) {
@@ -1063,8 +1050,9 @@ export default class MasFragmentEditor extends LitElement {
                 extractLocaleFromPath(this.localeDefaultFragment?.path) ||
                 getDefaultLocaleCode(Store.surface(), Store.filters.value.locale) ||
                 Store.filters.value.locale;
-            if (syncGroupedVariationRegion(existingStore.get(), parentLocale)) {
-                void this.repository.loadPreviewPlaceholders(Store.localeOrRegion());
+            const previewLocale = syncGroupedPreviewLocale(existingStore.get(), parentLocale);
+            if (previewLocale) {
+                void this.repository.loadPreviewPlaceholders(previewLocale);
                 existingStore.resolvePreviewFragment();
             }
         }
@@ -1161,8 +1149,9 @@ export default class MasFragmentEditor extends LitElement {
                     extractLocaleFromPath(this.localeDefaultFragment?.path) ||
                     getDefaultLocaleCode(Store.surface(), Store.filters.value.locale) ||
                     Store.filters.value.locale;
-                if (syncGroupedVariationRegion(fragment, parentLocale)) {
-                    void this.repository.loadPreviewPlaceholders(Store.localeOrRegion());
+                const previewLocale = syncGroupedPreviewLocale(fragment, parentLocale);
+                if (previewLocale) {
+                    void this.repository.loadPreviewPlaceholders(previewLocale);
                     fragmentStore.resolvePreviewFragment();
                 }
             }
@@ -1898,6 +1887,7 @@ export default class MasFragmentEditor extends LitElement {
         const localeValue = event.detail?.value ?? null;
         const changed = this.fragmentStore.previewStore.setPreviewLocaleOverride(localeValue);
         if (!changed) return;
+        if (localeValue) void this.repository?.loadPreviewPlaceholders(localeValue);
         this.fragmentStore.previewStore.resolveFragment();
         this.requestUpdate();
     };

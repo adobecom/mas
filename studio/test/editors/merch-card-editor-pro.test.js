@@ -193,4 +193,55 @@ describe('merch-card-editor pro appearance mapping', () => {
             'Transparent',
         ]);
     });
+
+    it('declares the pro border-color editor rules', () => {
+        expect(mapping.borderColor).to.deep.equal({
+            attribute: 'border-color',
+            specialValues: { Black: 'black' },
+            hideTransparent: true,
+            disableWhenBackgroundColor: 'dark',
+        });
+    });
+
+    it('offers only Default and Black for Border Color (no Transparent)', async () => {
+        const { editor } = makeAppearanceEditor();
+        await finishRendering(editor);
+        const picker = editor.querySelector('sp-field-group#border-color sp-picker');
+        expect([...picker.querySelectorAll('sp-menu-item')].map((item) => item.value)).to.deep.equal(['Default', 'Black']);
+    });
+
+    it('disables Border Color when Theme is Dark and re-enables it on Light', async () => {
+        const { editor } = makeAppearanceEditor();
+        await finishRendering(editor);
+        const border = () => editor.querySelector('sp-field-group#border-color sp-picker');
+        const theme = editor.querySelector('sp-field-group#backgroundColor sp-picker');
+        expect(border().disabled).to.be.false;
+
+        theme.value = 'Dark';
+        theme.dispatchEvent(new Event('change'));
+        await editor.updateComplete;
+        expect(border().disabled).to.be.true;
+
+        theme.value = 'Light';
+        theme.dispatchEvent(new Event('change'));
+        await editor.updateComplete;
+        expect(border().disabled).to.be.false;
+    });
+
+    it('keeps Transparent and stays enabled for a non-pro variant', async () => {
+        const { editor } = makeAppearanceEditor(VARIANT_NAMES.HEADLESS);
+        await finishRendering(editor);
+        const picker = editor.querySelector('sp-field-group#border-color sp-picker');
+        expect([...picker.querySelectorAll('sp-menu-item')].map((item) => item.value)).to.include('Transparent');
+        expect(picker.disabled).to.be.false;
+    });
+
+    it('shows a legacy stored Transparent border value as Default', async () => {
+        const { editor, store } = makeAppearanceEditor();
+        store.get().updateField('borderColor', ['transparent']);
+        await finishRendering(editor);
+        const picker = editor.querySelector('sp-field-group#border-color sp-picker');
+        expect(picker.value).to.equal('Default');
+        expect([...picker.querySelectorAll('sp-menu-item')].map((item) => item.value)).to.not.include('Transparent');
+    });
 });

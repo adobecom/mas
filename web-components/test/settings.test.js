@@ -319,6 +319,24 @@ describe('getLocaleSettings', () => {
             country: 'GB',
         });
     });
+
+    it('maps Puerto Rico to US country while keeping es_PR locale (MWPW-203596)', () => {
+        const result = getLocaleSettings({ locale: 'es_PR' });
+        expect(result).to.deep.equal({
+            locale: 'es_PR',
+            language: 'es',
+            country: 'US',
+        });
+    });
+
+    it('maps explicit PR country to US', () => {
+        const result = getLocaleSettings({ locale: 'es_PR', country: 'PR' });
+        expect(result).to.deep.equal({
+            locale: 'es_PR',
+            language: 'es',
+            country: 'US',
+        });
+    });
 });
 
 describe('getPreviewSurface', () => {

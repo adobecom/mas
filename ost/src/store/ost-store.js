@@ -126,9 +126,9 @@ export class OstStore extends EventTarget {
     #offersKey = null;
     #trialAutoFillPending = false;
     // Tax/display flags the user explicitly toggled via the "Disable" options.
-    // Geo defaults (applyGeoTaxDefaults) never overwrite a user-touched flag.
+    // Offer-context defaults (applyOfferContextDefaults) never overwrite a user-touched flag.
     #userToggledOptionKeys = new Set();
-    // (offer, country) the geo tax defaults were last resolved for — resolve once.
+    // (offer, country) the offer-context defaults were last resolved for — resolve once.
     #geoResolvedKey = null;
     // True once the user clicks a try/buy slot to target it; consumed (and
     // reset) by the next addOffer so an explicit target wins over type routing
@@ -961,12 +961,14 @@ export class OstStore extends EventTarget {
         this.placeholderOptions = { ...this.placeholderOptions, [key]: value };
     }
 
-    // Seed geo-aware tax defaults from the selected offer. The legacy OST got
-    // DE/EU tax labels because the price auto-resolved displayTax per geo; the
-    // new OST hardcoded displayTax:false, suppressing it. Resolve the real
-    // defaults from the commerce service and merge them in for any flag the
-    // user has not explicitly toggled.
-    async applyGeoTaxDefaults(offer) {
+    // Seed offer-context display defaults from the selected offer, mirroring the
+    // legacy OST's onPlaceholderSelect: displayPerUnit follows the customer
+    // segment (TEAM/enterprise show "per license", INDIVIDUAL does not) and the
+    // geo tax flags (displayTax, forceTaxExclusive) come from the commerce
+    // service. Applied to any flag the user has not explicitly toggled. The new
+    // OST hardcoded these, suppressing the segment/geo behaviour the legacy OST
+    // got for free from the auto-resolved price.
+    async applyOfferContextDefaults(offer) {
         const service = this.masCommerceService;
         if (!service?.resolvePriceTaxFlags || !offer || !this.country) return;
         // Resolve once per (offer, country) so repeated render-time calls from
@@ -980,13 +982,16 @@ export class OstStore extends EventTarget {
             offer.customer_segment,
             offer.market_segments?.[0],
         );
-        if (!flags) return;
+        const context = {
+            displayPerUnit: offer.customer_segment !== 'INDIVIDUAL',
+            ...(flags ?? {}),
+        };
         const next = { ...this.placeholderOptions };
         let changed = false;
-        for (const key of ['displayTax', 'forceTaxExclusive']) {
+        for (const [key, value] of Object.entries(context)) {
             if (this.#userToggledOptionKeys.has(key)) continue;
-            if (flags[key] !== undefined && next[key] !== flags[key]) {
-                next[key] = flags[key];
+            if (value !== undefined && next[key] !== value) {
+                next[key] = value;
                 changed = true;
             }
         }
@@ -997,7 +1002,7 @@ export class OstStore extends EventTarget {
         const typeConfig = this.placeholderTypes.find((t) => t.type === type);
         const overrides = typeConfig?.overrides || {};
         const effective = { ...this.placeholderOptions, ...overrides };
-        // The geo tax default (applyGeoTaxDefaults) turns displayTax on for the
+        // The geo tax default (applyOfferContextDefaults) turns displayTax on for the
         // price in DE/EU; the legal disclaimer keeps its own default-off tax
         // display unless the user explicitly toggled the Tax Label option.
         if (type === 'legal' && !this.#userToggledOptionKeys.has('displayTax')) {

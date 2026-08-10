@@ -634,6 +634,62 @@ describe('wcs OSI substitution', function () {
         expect(context.body.wcs.prod).to.have.property('B-us-mult');
     });
 
+    it('skips HTML rewrite for elements with data-locked-osi="true" even when substituteMap matches', async function () {
+        context.body = {
+            id: 'frag-1',
+            fields: { prices: '<span data-wcs-osi="BASE-OSI" data-locked-osi="true"></span>' },
+        };
+        context.promoScopeById = { 'frag-1': scope({ 'BASE-OSI': 'SUB-OSI' }) };
+        fetchStub
+            .withArgs(sinon.match((url) => url.includes('offer_selector_ids=BASE-OSI')))
+            .returns(createResponse(200, stubbedOffer('base')));
+
+        context = await wcs.process(context);
+
+        expect(context.body.fields.prices).to.include('data-wcs-osi="BASE-OSI"');
+        expect(context.body.fields.prices).to.not.include('data-wcs-osi="SUB-OSI"');
+    });
+
+    it('caches base OSI (not substituted) for elements with data-locked-osi="true"', async function () {
+        context.body = {
+            id: 'frag-1',
+            fields: { prices: '<span data-wcs-osi="BASE-OSI" data-locked-osi="true"></span>' },
+        };
+        context.promoScopeById = { 'frag-1': scope({ 'BASE-OSI': 'SUB-OSI' }) };
+        fetchStub
+            .withArgs(sinon.match((url) => url.includes('offer_selector_ids=BASE-OSI')))
+            .returns(createResponse(200, stubbedOffer('base')));
+
+        context = await wcs.process(context);
+
+        expect(context.body.wcs.prod).to.have.property('BASE-OSI-us-mult');
+        expect(context.body.wcs.prod).to.not.have.property('SUB-OSI-us-mult');
+    });
+
+    it('applies substitution to unlocked elements but not locked ones in the same fragment', async function () {
+        context.body = {
+            id: 'frag-1',
+            fields: {
+                prices:
+                    '<span data-wcs-osi="BASE-OSI"></span>' + '<span data-wcs-osi="BASE-OSI" data-locked-osi="true"></span>',
+            },
+        };
+        context.promoScopeById = { 'frag-1': scope({ 'BASE-OSI': 'SUB-OSI' }) };
+        fetchStub
+            .withArgs(sinon.match((url) => url.includes('offer_selector_ids=SUB-OSI')))
+            .returns(createResponse(200, stubbedOffer('substituted')));
+        fetchStub
+            .withArgs(sinon.match((url) => url.includes('offer_selector_ids=BASE-OSI')))
+            .returns(createResponse(200, stubbedOffer('base')));
+
+        context = await wcs.process(context);
+
+        expect(context.body.fields.prices).to.include('data-wcs-osi="SUB-OSI"');
+        expect(context.body.fields.prices).to.include('data-wcs-osi="BASE-OSI" data-locked-osi="true"');
+        expect(context.body.wcs.prod).to.have.property('SUB-OSI-us-mult');
+        expect(context.body.wcs.prod).to.have.property('BASE-OSI-us-mult');
+    });
+
     it('substitutes each part of a comma-joined multi-OSI discount placeholder (MWPW-201714)', async function () {
         context.body = {
             id: 'frag-1',
@@ -711,6 +767,16 @@ describe('wcs OSI helpers', function () {
         expect(fields.description.mimeType).to.equal('text/html');
     });
 
+    it('scanMasElements skips substitution for elements with data-locked-osi="true"', function () {
+        const fields = {
+            prices: '<span data-wcs-osi="BASE-OSI"></span>' + '<span data-wcs-osi="BASE-OSI" data-locked-osi="true"></span>',
+        };
+        const elements = scanMasElements(fields, { 'BASE-OSI': 'SUB-OSI' }, {});
+        expect(elements.map((e) => e.osi)).to.deep.equal(['SUB-OSI', 'BASE-OSI']);
+        expect(fields.prices).to.include('data-wcs-osi="SUB-OSI"');
+        expect(fields.prices).to.include('data-wcs-osi="BASE-OSI" data-locked-osi="true"');
+    });
+
     it('scanMasElements returns [] for a fragment without fields', function () {
         expect(scanMasElements(undefined, undefined)).to.deep.equal([]);
     });
@@ -756,6 +822,14 @@ describe('wcs OSI helpers', function () {
         );
         expect(context.body.fields.promoCode).to.equal('SUB-CODE');
         expect(context.body.fields.osi).to.equal('SUB');
+    });
+
+    it('applyPromoScope matches either half of a comma-joined fields.osi against the promo map', function () {
+        const { context } = run(
+            { f: { promoMap: { 'OSI-B': 'MULTI-CODE' }, substituteMap: {} } },
+            { id: 'f', fields: { osi: 'OSI-A,OSI-B' } },
+        );
+        expect(context.body.fields.promoCode).to.equal('MULTI-CODE');
     });
 
     it('applyPromoScope substitutes an array fields.osi element-wise', function () {

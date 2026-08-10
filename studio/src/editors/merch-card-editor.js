@@ -16,6 +16,7 @@ import '../fields/plan-type-field.js';
 import '../fields/quantity-select-settings-field.js';
 import { getFragmentMapping, showToast } from '../utils.js';
 import '../fields/addon-field.js';
+import '../fields/rte-field-item.js';
 import { parseBadgeHtml, serializeBadgeHtml } from '../fields/badge-section.js';
 import { createQuantitySelectValue, parseQuantitySelectValue, QUANTITY_SELECT_TAG } from '../common/fields/quantity-select.js';
 import Store from '../store.js';
@@ -100,6 +101,7 @@ class MerchCardEditor extends LitElement {
         'Footer rows': ['footerRows'],
         Footer: ['ctas'],
         'Options and settings': ['addon', 'planType', 'secureLabel', 'quantitySelect'],
+        'Custom fields': ['customFields'],
     };
 
     static SETTINGS_FIELDS = ['addon', 'showPlanType', 'showSecureLabel', 'quantitySelect'];
@@ -1374,6 +1376,8 @@ class MerchCardEditor extends LitElement {
                         this.availableBorderColors,
                         form.borderColor?.values[0],
                         'borderColor',
+                        undefined,
+                        this.#isBorderColorDisabledByTheme(form),
                     )}
                     ${this.#backgroundColorSelection(
                         this.availableBackgroundColors,
@@ -1627,6 +1631,23 @@ class MerchCardEditor extends LitElement {
                     ></rte-field>
                     ${this.renderFieldStatusIndicator('callout')}
                 </sp-field-group>
+                <div class="section-title">Custom fields</div>
+                <sp-field-group class="toggle" id="customFields">
+                    <mas-multifield
+                        button-label="Add field"
+                        dispatch-on-add
+                        data-field-state="${this.getFieldState('customFields')}"
+                        .value="${this.customFieldValues}"
+                        .osi="${this.getEffectiveFieldValue('osi', 0) || ''}"
+                        @change="${this.#updateCustomFields}"
+                        @input="${this.#updateCustomFields}"
+                    >
+                        <template>
+                            <mas-rte-field-item></mas-rte-field-item>
+                        </template>
+                    </mas-multifield>
+                    ${this.renderFieldStatusIndicator('customFields')}
+                </sp-field-group>
                 <div class="section-title">Footer</div>
                 <sp-field-group class="toggle" id="ctas">
                     <rte-field
@@ -1863,6 +1884,18 @@ class MerchCardEditor extends LitElement {
         this.fragmentStore.updateField(WHAT_IS_INCLUDED, [element?.outerHTML || '']);
     }
 
+    get customFieldValues() {
+        const values = this.getEffectiveFieldValues('customFields') || [];
+        const labels = this.getEffectiveFieldValues('customFieldLabels') || [];
+        const count = Math.max(values.length, labels.length);
+        return Array.from({ length: count }, (_, i) => {
+            const item = {};
+            if (values[i]) item.value = values[i];
+            if (labels[i]) item.label = labels[i];
+            return item;
+        });
+    }
+
     get footerRows() {
         const html = this.getEffectiveFieldValue('footerRows', 0) || '';
         if (!html) return [];
@@ -1902,6 +1935,20 @@ class MerchCardEditor extends LitElement {
         });
         return ul;
     }
+
+    #updateCustomFields = (event) => {
+        const items = event?.target?.value;
+        if (!Array.isArray(items)) return;
+        const values = items.map((item) => item.value || '');
+        const labels = items.map((item) => item.label || '');
+        const nonEmpty = labels.filter(Boolean);
+        if (nonEmpty.length !== new Set(nonEmpty).size) {
+            showToast('Custom field labels must be unique', 'negative');
+            return;
+        }
+        this.fragmentStore.updateField('customFields', values);
+        this.fragmentStore.updateField('customFieldLabels', labels);
+    };
 
     #updateFooterRows(event) {
         const items = event?.target?.value;
@@ -2397,7 +2444,14 @@ class MerchCardEditor extends LitElement {
         `;
     }
 
-    #renderColorPicker(id, label, colors, selectedValue, dataField, onChange) {
+    // Border Color is disabled while the theme (backgroundColor) matches the
+    // mapping's disableWhenBackgroundColor — pro disables it on Dark.
+    #isBorderColorDisabledByTheme(form) {
+        const disableWhen = this.currentVariantMapping?.borderColor?.disableWhenBackgroundColor;
+        return !!disableWhen && form.backgroundColor?.values?.[0] === disableWhen;
+    }
+
+    #renderColorPicker(id, label, colors, selectedValue, dataField, onChange, disabled = false) {
         const isDividerField = dataField === 'whatsIncludedDividerColor';
 
         const showAllSpectrum = this.currentVariantMapping?.showAllSpectrumColors;
@@ -2428,15 +2482,18 @@ class MerchCardEditor extends LitElement {
             }
         }
 
+        const hideTransparent = !isDividerField && this.currentVariantMapping?.borderColor?.hideTransparent;
         if (!selectedValue) {
             displaySelectedValue = 'Default';
         } else if (selectedValue === 'transparent') {
-            displaySelectedValue = 'Transparent';
+            // Legacy content can still hold transparent; show it as Default when
+            // the option is hidden for this variant.
+            displaySelectedValue = hideTransparent ? 'Default' : 'Transparent';
         }
 
         const options = [
             'Default',
-            'Transparent',
+            ...(hideTransparent ? [] : ['Transparent']),
             ...(!showAllSpectrum ? Object.keys(variantSpecialValues) : []),
             ...colorArray,
         ];
@@ -2474,6 +2531,7 @@ class MerchCardEditor extends LitElement {
                     data-field-state="${this.#getColorPickerFieldState(dataField)}"
                     value="${displaySelectedValue || 'Default'}"
                     data-default-value="Default"
+                    ?disabled=${disabled}
                     @change="${handleChange}"
                 >
                     ${options.map(

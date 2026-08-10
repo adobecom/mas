@@ -360,13 +360,17 @@ class MasPromotionsItemsSelector extends LitElement {
                                           .getDisplayName=${this.getDisplayName}
                                           .renderFragmentStatusCell=${this.renderFragmentStatusCell}
                                           .hidePromoVariations=${true}
-                                          .tabs=${[VARIATION_TAB_NAME.PROMOTION]}
-                                          .selectableTabs="${[]}"
+                                          .hideGroupedVariations=${true}
+                                          .tabs=${[VARIATION_TAB_NAME.PROMOTION, VARIATION_TAB_NAME.GROUPED]}
+                                          .selectableTabs="${[VARIATION_TAB_NAME.GROUPED]}"
                                           @show-toast=${this.#showToast}
                                       ></mas-select-items-table>`}
                                 ${this.viewOnly
                                     ? nothing
-                                    : html`<mas-selected-items .getDisplayName=${this.getDisplayName}></mas-selected-items>`}
+                                    : html`<mas-selected-items
+                                          .getDisplayName=${this.getDisplayName}
+                                          .hideGroupedVariations=${true}
+                                      ></mas-selected-items>`}
                             </div>
                             <sp-toast timeout="6000" @close=${(event) => event.stopPropagation()}></sp-toast>
                         </sp-tab-panel>

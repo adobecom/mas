@@ -13,6 +13,7 @@ import { getDefaultLocaleCode } from '../../../io/www/src/fragment/locales.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 import Store from '../store.js';
 import { normalizeTagId } from '../aem/tag-id-utils.js';
+import { Fragment } from '../aem/fragment.js';
 import {
     splitPromotionTagsFieldValues,
     parsePromoCodeExceptions,
@@ -141,7 +142,8 @@ class MasPromotionsItemsTable extends LitElement {
     get selectedPaths() {
         const store = getItemsSelectionStore();
         if (this.type === TABLE_TYPE.OFFERS) return store.selectedOffers.value;
-        return store[`selected${this.typeUppercased}`].value;
+        const paths = store[`selected${this.typeUppercased}`].value;
+        return this.type === TABLE_TYPE.CARDS ? paths.filter((path) => !Fragment.isGroupedVariationPath(path)) : paths;
     }
 
     get #promoCodeExceptionValues() {
@@ -249,7 +251,7 @@ class MasPromotionsItemsTable extends LitElement {
     async #syncExistingPromoVariations(items, signal) {
         if (signal.aborted) return;
         const promoTag = this.#promotionTagId;
-        if (!promoTag || !this.repository?.aem?.sites?.cf?.fragments?.getByPath) {
+        if (!promoTag || !this.repository?.aem?.sites?.cf?.fragments?.search) {
             if (signal.aborted) return;
             this.existingPromoVariationGeosByPath = new Map();
             this.existingPromoVariationsByPath = new Map();
@@ -429,8 +431,13 @@ class MasPromotionsItemsTable extends LitElement {
         try {
             this.createPromoVariationLoading = true;
             showToast('Creating promo variation...');
-            const created = await createPromoVariation(this.repository.aem, item.id, promoTag, geoTags, (store) =>
-                this.repository.refreshFragment(store),
+            const created = await createPromoVariation(
+                this.repository.aem,
+                item.id,
+                promoTag,
+                geoTags,
+                (store) => this.repository.refreshFragment(store),
+                () => this.repository.loadPromotions(),
             );
             showToast('Promo variation created', 'positive');
             const previousGeos = this.existingPromoVariationGeosByPath.get(item.path) || [];
@@ -870,8 +877,9 @@ class MasPromotionsItemsTable extends LitElement {
             .type=${TABLE_TYPE.CARDS}
             .getDisplayName=${this.getDisplayName}
             .renderFragmentStatusCell=${this.renderFragmentStatusCell}
-            .tabs=${[VARIATION_TAB_NAME.PROMOTION]}
+            .tabs=${[VARIATION_TAB_NAME.PROMOTION, VARIATION_TAB_NAME.GROUPED]}
             .selectableTabs=${[]}
+            .groupedVariationsManageOnly=${true}
             .renderActionsCell=${(item) => this.#renderActionsCell(item)}
             .renderPreviewCell=${(item) => this.#renderPreviewCell(item)}
             .promoVariationsFetchedByParent=${this.existingPromoVariationsByPath}

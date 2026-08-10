@@ -17,6 +17,7 @@ import Events from '../src/events.js';
 import { extractLocaleFromPath } from '../src/utils.js';
 import { setItemsSelectionStore } from '../src/common/items-selection-store.js';
 import { nothing, render } from 'lit';
+import { makeSearchStub } from './helpers/aem-tag-fetch.js';
 
 describe('MasFragmentEditor', () => {
     let sandbox;
@@ -1334,10 +1335,12 @@ describe('MasFragmentEditor', () => {
             const originalFragmentId = Store.fragmentEditor.fragmentId.value;
             Store.fragmentEditor.fragmentId.value = fragment.id;
 
-            const getByPath = sandbox.stub().callsFake((path) => {
-                if (path === promoPath) return Promise.resolve({ id: 'promo-var-id', path: promoPath, fields: [] });
-                if (path === siblingPath) return Promise.resolve({ id: 'sibling-id', path: siblingPath, fields: [] });
-                return Promise.resolve(null);
+            const promoFolder = '/content/dam/mas/sandbox/en_US/promotions/back-to-school';
+            const search = makeSearchStub(sandbox, {
+                [promoFolder]: [
+                    { id: 'promo-var-id', path: promoPath, fields: [] },
+                    { id: 'sibling-id', path: siblingPath, fields: [] },
+                ],
             });
             const mockRepo = {
                 aem: {
@@ -1348,7 +1351,7 @@ describe('MasFragmentEditor', () => {
                                     id: 'promo-project-id',
                                     fields: [{ name: 'geos', values: ['mas:locale/de_AT', 'mas:locale/en_NG'] }],
                                 }),
-                                getByPath,
+                                search,
                             },
                         },
                     },

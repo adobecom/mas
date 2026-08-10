@@ -756,12 +756,8 @@ class MasPromotionsEditor extends LitElement {
         showToast('Saving project...');
         try {
             const saved = await this.repository.saveFragment(this.fragmentStore, { withToast: false, refetchEtag: false });
-            if (!saved) {
-                showToast('Failed to save project.', 'negative');
-                return;
-            }
+            if (!saved) return;
         } catch (error) {
-            showToast(error.message || 'Failed to save project.', 'negative');
             return;
         }
         clearCaches();

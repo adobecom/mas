@@ -289,7 +289,7 @@ class AEM {
         });
 
         if (response.status === 412) {
-            throw new Error('Fragment was modified by another user. Please reload and try again.');
+            throw new UserFriendlyError('Fragment was modified by another user. Please reload and try again.');
         }
 
         if (!response.ok) {

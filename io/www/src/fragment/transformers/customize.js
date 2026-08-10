@@ -277,18 +277,6 @@ function hasExplicitMapping(osis, customizeContext, { project, promoMap, substit
     return value;
 }
 
-function hasWildcardPromo(customizeContext, { project, promoMap }) {
-    const value = Boolean(promoMap['*']);
-    logDebug(() => `Project ${promoProjectLabel(project)} (${project.id}), wildcard promo: ${value}`, customizeContext);
-    return value;
-}
-
-function isSeasonal(customizeContext, { project }) {
-    const value = Boolean(project.endDate);
-    logDebug(() => `Project ${promoProjectLabel(project)} (${project.id}), seasonal: ${value}`, customizeContext);
-    return value;
-}
-
 /**
  * Selects a single promo project for a fragment. Seasonal (time-boxed, has an `endDate`)
  * promo projects always take priority over evergreen ones.
@@ -315,15 +303,15 @@ function selectPromoProjectForFragment(root, customizeContext) {
     const seasonalEntries = [];
     const evergreenEntries = [];
     for (const entry of promoEntries) {
-        (isSeasonal(customizeContext, entry) ? seasonalEntries : evergreenEntries).push(entry);
+        (entry.project.seasonal ? seasonalEntries : evergreenEntries).push(entry);
     }
 
     const selected =
         seasonalEntries.find((entry) => hasExplicitMapping(osis, customizeContext, entry)) ??
-        seasonalEntries.find((entry) => hasWildcardPromo(customizeContext, entry)) ??
+        seasonalEntries.find((entry) => entry.hasWildcard) ??
         seasonalEntries[0] ??
         evergreenEntries.find((entry) => hasExplicitMapping(osis, customizeContext, entry)) ??
-        evergreenEntries.find((entry) => hasWildcardPromo(customizeContext, entry)) ??
+        evergreenEntries.find((entry) => entry.hasWildcard) ??
         null;
     if (!selected) return null;
     logDebug(

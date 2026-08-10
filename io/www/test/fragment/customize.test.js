@@ -1191,6 +1191,14 @@ async function process(context) {
     return await customize.process(context);
 }
 
+function withPromoFlags(entry) {
+    return {
+        ...entry,
+        project: { ...entry.project, seasonal: Boolean(entry.project.endDate) },
+        hasWildcard: Boolean(entry.promoMap?.['*']),
+    };
+}
+
 async function processWithPromos(context, activeProject, promoMap) {
     const phase1 = {
         status: 200,
@@ -1209,7 +1217,7 @@ async function processWithPromos(context, activeProject, promoMap) {
     if (activeProject) {
         // Mirror the real promotions process step: fragmentPaths come from the project itself.
         const fragmentPaths = new Set(activeProject.fragmentPaths ?? []);
-        context.promoProjects = [{ project: activeProject, promoMap: promoMap ?? {}, fragmentPaths }];
+        context.promoProjects = [withPromoFlags({ project: activeProject, promoMap: promoMap ?? {}, fragmentPaths })];
     }
     // customize records per-fragment promo scope; the wcs transformer applies the promo code and
     // OSI substitution. Run applyPromoScope here so these tests exercise the full effect end-to-end.
@@ -1233,7 +1241,7 @@ async function processWithPromoProjects(context, promoProjects) {
     };
     promises.defaultLanguage = defaultLanguage.init({ ...context, promises });
     context.promises = promises;
-    context.promoProjects = promoProjects;
+    context.promoProjects = promoProjects.map(withPromoFlags);
     // customize records per-fragment promo scope; the wcs transformer applies the promo code and
     // OSI substitution. Run applyPromoScope here so these tests exercise the full effect end-to-end.
     const result = await customize.process(context);

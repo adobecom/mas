@@ -1,7 +1,7 @@
 import { html, nothing } from 'lit';
 import { Fragment } from '../aem/fragment.js';
 import { toAttribute } from '../aem/tag-path-utils.js';
-import { getLocaleByCode } from '../../../io/www/src/fragment/locales.js';
+import { getLocaleByCode, getLocaleCode, getSurfaceLocales } from '../../../io/www/src/fragment/locales.js';
 import { TAG_PROMOTION_PREFIX, VARIATION_TYPES } from '../constants.js';
 
 /* ---------- pure helpers ---------- */
@@ -50,24 +50,36 @@ export function normalizePznTagIds(value) {
     ];
 }
 
-function normalizeGroupedPreviewLocaleCode(tagValue) {
-    const localeCode = tagValue?.split('/').pop()?.trim();
-    return getLocaleByCode(localeCode) ? localeCode : null;
+/**
+ * Resolve a bare `pzn/country/<CC>` tag leaf to the surface's `<lang>_<CC>` locale so a country
+ * tag previews like the equivalent locale tag (e.g. `au` → `en_AU`). Countries served in several
+ * languages (e.g. `CA` → `en_CA`/`fr_CA`) resolve to `preferredLang` when it matches.
+ * @param {string} [leaf] - country segment of a pzn/country tag, e.g. `au`
+ * @param {string} [surface] - e.g. `acom`
+ * @param {string} [preferredLang] - language to prefer for multi-language countries
+ * @returns {string|null}
+ */
+export function countryTagLeafToLocaleCode(leaf, surface, preferredLang) {
+    if (!leaf || !surface) return null;
+    const country = leaf.toUpperCase();
+    const matches = getSurfaceLocales(surface).filter((locale) => locale.country === country);
+    if (!matches.length) return null;
+    return getLocaleCode(matches.find((locale) => locale.lang === preferredLang) ?? matches[0]);
 }
 
-export function groupedPreviewLocales(fragment) {
-    if (!isGroupedVariationFragment(fragment)) return [];
-    const tags = fragment?.getFieldValues?.('pznTags') || [];
-    const localeCodes = [...new Set(tags.map(normalizeGroupedPreviewLocaleCode).filter(Boolean))];
-    return localeCodes.map((code) => {
-        const locale = getLocaleByCode(code);
-        return {
-            code,
-            lang: locale.lang,
-            country: locale.country,
-            label: `${locale.country} (${locale.lang.toUpperCase()})`,
-        };
-    });
+/**
+ * Resolve a pzn tag to a preview locale code: a `pzn/locale/<xx_YY>` tag passes through, a bare
+ * `pzn/country/<CC>` tag maps to the surface locale (see {@link countryTagLeafToLocaleCode}), and
+ * anything else returns null. Single source of truth for every grouped-variation preview consumer.
+ * @param {string} [tag] - pzn tag id or path
+ * @param {string} [surface] - e.g. `acom`
+ * @param {string} [preferredLang] - language to prefer for multi-language countries
+ * @returns {string|null}
+ */
+export function normalizePznTagToLocaleCode(tag, surface, preferredLang) {
+    const leaf = tag?.split('/').pop()?.trim();
+    if (getLocaleByCode(leaf)) return leaf;
+    return countryTagLeafToLocaleCode(leaf, surface, preferredLang);
 }
 
 export function listLocaleVariations(fragment) {

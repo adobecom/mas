@@ -4,9 +4,15 @@ import { fixture, fixtureCleanup } from '@open-wc/testing-helpers/pure';
 import sinon from 'sinon';
 import Store from '../../src/store.js';
 import { setItemsSelectionStore } from '../../src/common/items-selection-store.js';
-import { setCardVariationsByPaths } from '../../src/common/utils/items-loader.js';
+import { setCardVariationsByPaths, enrichPromoVariations } from '../../src/common/utils/items-loader.js';
 import { Fragment } from '../../src/aem/fragment.js';
-import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, DICTIONARY_MODEL_PATH, FRAGMENT_STATUS } from '../../src/constants.js';
+import {
+    CARD_MODEL_PATH,
+    COLLECTION_MODEL_PATH,
+    DICTIONARY_MODEL_PATH,
+    FRAGMENT_STATUS,
+    VARIATION_TAB_NAME,
+} from '../../src/constants.js';
 import { renderFragmentStatusCell } from '../../src/translation/translation-utils.js';
 import '../../src/swc.js';
 import '../../src/translation/mas-collapsible-table-row.js';
@@ -23,6 +29,7 @@ describe('MasCollapsibleTableRow', () => {
         tags: options.tags || [{ id: 'mas:product_code/test', title: 'Test Offer' }],
         fields: options.fields ?? [{ name: 'variations', values: options.variationPaths || [] }],
         offerData: options.offerData,
+        references: options.references,
     });
 
     const resetStore = () => {
@@ -81,17 +88,29 @@ describe('MasCollapsibleTableRow', () => {
             const el = await fixture(
                 html`<mas-collapsible-table-row .topLevelCard=${topLevelCard}></mas-collapsible-table-row>`,
             );
-            const localeTab = el.tabs.find((t) => t.key === 'locale');
-            const promotionTab = el.tabs.find((t) => t.key === 'promotion');
-            const groupedTab = el.tabs.find((t) => t.key === 'groupedVariation');
-            expect(localeTab).to.exist;
-            expect(localeTab.label).to.equal('Locale');
-            expect(promotionTab).to.exist;
-            expect(promotionTab.label).to.equal('Promotion');
-            expect(promotionTab.disabled).to.be.true;
-            expect(groupedTab).to.exist;
-            expect(groupedTab.label).to.equal('Grouped variation');
+            expect(el.tabs).to.deep.equal(['locale', 'promotion', 'grouped']);
             expect(el.selectedTabKey).to.equal('locale');
+        });
+
+        it('renders sp-tab labels for the default tabs, capitalizing plain tabs and special-casing grouped', async () => {
+            const topLevelCard = createMockTopLevelCard();
+            const el = await fixture(
+                html`<mas-collapsible-table-row
+                    .topLevelCard=${topLevelCard}
+                    .isTopLevelExpanded=${true}
+                ></mas-collapsible-table-row>`,
+            );
+            await el.updateComplete;
+            const tabElements = [...el.shadowRoot.querySelectorAll('sp-tab')];
+            const localeTab = tabElements.find((t) => t.getAttribute('value') === 'locale');
+            const promotionTab = tabElements.find((t) => t.getAttribute('value') === 'promotion');
+            const groupedTab = tabElements.find((t) => t.getAttribute('value') === 'grouped');
+            expect(localeTab).to.exist;
+            expect(localeTab.getAttribute('label')).to.equal('Locale');
+            expect(promotionTab).to.exist;
+            expect(promotionTab.getAttribute('label')).to.equal('Promotion');
+            expect(groupedTab).to.exist;
+            expect(groupedTab.getAttribute('label')).to.equal('Grouped variation');
         });
 
         it('should accept viewOnly property', async () => {
@@ -100,20 +119,6 @@ describe('MasCollapsibleTableRow', () => {
                 html`<mas-collapsible-table-row .topLevelCard=${topLevelCard} .viewOnly=${true}></mas-collapsible-table-row>`,
             );
             expect(el.viewOnly).to.be.true;
-        });
-
-        it('should not render expand or variation tabs when disableCardExpansion', async () => {
-            const topLevelCard = createMockTopLevelCard();
-            const el = await fixture(
-                html`<mas-collapsible-table-row
-                    .topLevelCard=${topLevelCard}
-                    .disableCardExpansion=${true}
-                ></mas-collapsible-table-row>`,
-            );
-            await el.updateComplete;
-            expect(el.shadowRoot.querySelector('.expand-button')).to.be.null;
-            expect(el.shadowRoot.querySelector('sp-tabs')).to.be.null;
-            expect(el.shadowRoot.querySelector('sp-checkbox')).to.exist;
         });
 
         it('should initialize expandedVariationsPaths from topLevelCard variations field', async () => {
@@ -508,6 +513,41 @@ describe('MasCollapsibleTableRow', () => {
             await el.updateComplete;
             expect(el.isTopLevelExpanded).to.be.false;
         });
+
+        it('loads grouped-variation details on first expand when the card itself is a grouped variation', async () => {
+            const groupedPath = '/content/dam/mas/acom/en_US/cards/parent/pzn/var1';
+            const topLevelCard = createMockTopLevelCard({ path: groupedPath, variationPaths: [] });
+            const el = await fixture(
+                html`<mas-collapsible-table-row .topLevelCard=${topLevelCard}></mas-collapsible-table-row>`,
+            );
+            el.repository = { aem: { getFragmentByPath: sandbox.stub().resolves(null) } };
+            expect(el.isLoadingGroupedVariations).to.not.be.true;
+
+            el.shadowRoot.querySelector('.expand-button').click();
+            expect(el.isLoadingGroupedVariations).to.be.true;
+            await el.updateComplete;
+            await new Promise((resolve) => setTimeout(resolve, 20));
+            expect(el.isLoadingGroupedVariations).to.be.false;
+        });
+
+        it('loads variations for the group on first expand when the card has ungrouped variations', async () => {
+            const varPath = '/content/dam/mas/acom/en_US/cards/parent/pzn/var1';
+            const topLevelCard = createMockTopLevelCard({
+                path: '/content/dam/mas/acom/en_US/cards/parent',
+                variationPaths: [varPath],
+            });
+            const el = await fixture(
+                html`<mas-collapsible-table-row .topLevelCard=${topLevelCard}></mas-collapsible-table-row>`,
+            );
+            el.repository = { aem: { getFragmentByPath: sandbox.stub().resolves(null) } };
+            expect(el.isLoadingGroupedVariations).to.not.be.true;
+
+            el.shadowRoot.querySelector('.expand-button').click();
+            expect(el.isLoadingGroupedVariations).to.be.true;
+            await el.updateComplete;
+            await new Promise((resolve) => setTimeout(resolve, 20));
+            expect(el.isLoadingGroupedVariations).to.be.false;
+        });
     });
 
     describe('checkbox selection', () => {
@@ -656,14 +696,14 @@ describe('MasCollapsibleTableRow', () => {
     });
 
     describe('grouped variations tab', () => {
-        it('should show loading state when isLoadingVariations', async () => {
+        it('should show loading state when isLoadingGroupedVariations', async () => {
             const topLevelCard = createMockTopLevelCard({ variationPaths: ['/path/v1'] });
             setupCardVariationsInStore(topLevelCard.path, []);
             const el = await fixture(
                 html`<mas-collapsible-table-row
                     .topLevelCard=${topLevelCard}
                     .isTopLevelExpanded=${true}
-                    .isLoadingVariations=${true}
+                    .isLoadingGroupedVariations=${true}
                 ></mas-collapsible-table-row>`,
             );
             await el.updateComplete;
@@ -680,9 +720,9 @@ describe('MasCollapsibleTableRow', () => {
                     .isTopLevelExpanded=${true}
                 ></mas-collapsible-table-row>`,
             );
-            el.selectedTabKey = 'groupedVariation';
+            el.selectedTabKey = 'grouped';
             await el.updateComplete;
-            const groupedVariationPanel = el.shadowRoot.querySelector('sp-tab-panel[value="groupedVariation"]');
+            const groupedVariationPanel = el.shadowRoot.querySelector('sp-tab-panel[value="grouped"]');
             const emptyMsg = groupedVariationPanel?.querySelector('.empty-grouped-variations');
             expect(emptyMsg).to.exist;
             expect(emptyMsg.textContent).to.include('No grouped variations found');
@@ -712,130 +752,71 @@ describe('MasCollapsibleTableRow', () => {
             const hasVariation = [...variationRows].some((r) => r.getAttribute('value') === varPath);
             expect(hasVariation).to.be.true;
         });
-    });
 
-    describe('hideLocaleTab', () => {
-        const setup = async (hide) => {
-            const topLevelCard = createMockTopLevelCard();
-            setupCardVariationsInStore(topLevelCard.path, []);
-            const el = await fixture(
-                html`<mas-collapsible-table-row
-                    .topLevelCard=${topLevelCard}
-                    .isTopLevelExpanded=${true}
-                    .hideLocaleTab=${hide}
-                ></mas-collapsible-table-row>`,
-            );
-            await el.updateComplete;
-            return el;
-        };
-
-        it('should not render the locale tab when hideLocaleTab is set', async () => {
-            const el = await setup(true);
-            expect(el.shadowRoot.querySelector('sp-tab[value="locale"]')).to.be.null;
-        });
-
-        it('should still render the grouped variation tab when hideLocaleTab is set', async () => {
-            const el = await setup(true);
-            expect(el.shadowRoot.querySelector('sp-tab[value="groupedVariation"]')).to.exist;
-        });
-
-        it('should select the grouped variation tab by default when the locale tab is hidden', async () => {
-            const el = await setup(true);
-            expect(el.selectedTabKey).to.equal('groupedVariation');
-        });
-
-        it('should render the locale tab by default', async () => {
-            const el = await setup(false);
-            expect(el.shadowRoot.querySelector('sp-tab[value="locale"]')).to.exist;
-        });
-    });
-
-    describe('disableLocaleVariations', () => {
-        it('should render an empty locale tab without listing variations when set', async () => {
-            const listStub = sandbox.stub(Fragment.prototype, 'listLocaleVariations');
-            const topLevelCard = createMockTopLevelCard();
-            setupCardVariationsInStore(topLevelCard.path, []);
-            const el = await fixture(
-                html`<mas-collapsible-table-row
-                    .topLevelCard=${topLevelCard}
-                    .isTopLevelExpanded=${true}
-                    .disableLocaleVariations=${true}
-                ></mas-collapsible-table-row>`,
-            );
-            await el.updateComplete;
-            const localePanel = el.shadowRoot.querySelector('sp-tab-panel[value="locale"]');
-            expect(localePanel?.querySelector('.empty-grouped-variations')).to.exist;
-            expect(listStub.called).to.be.false;
-        });
-
-        it('should list locale variations by default', async () => {
-            const listStub = sandbox.stub(Fragment.prototype, 'listLocaleVariations').returns([]);
-            const topLevelCard = createMockTopLevelCard();
-            setupCardVariationsInStore(topLevelCard.path, []);
-            const el = await fixture(
-                html`<mas-collapsible-table-row
-                    .topLevelCard=${topLevelCard}
-                    .isTopLevelExpanded=${true}
-                ></mas-collapsible-table-row>`,
-            );
-            await el.updateComplete;
-            expect(listStub.called).to.be.true;
-        });
-    });
-
-    describe('disableGroupedVariationSelection', () => {
-        const varPath = '/content/dam/mas/acom/en_US/cards/parent/pzn/var1';
-
-        const setup = async (disable) => {
+        describe('groupedVariationsManageOnly', () => {
+            const varPath1 = '/content/dam/mas/acom/en_US/cards/parent/pzn/var1';
+            const varPath2 = '/content/dam/mas/acom/en_US/cards/parent/pzn/var2';
             const topLevelCard = createMockTopLevelCard({
                 path: '/content/dam/mas/acom/en_US/cards/parent',
-                variationPaths: [varPath],
+                variationPaths: [varPath1, varPath2],
             });
-            setupCardVariationsInStore(topLevelCard.path, [{ path: varPath, title: 'Variation 1', fieldTags: [] }]);
-            const el = await fixture(
-                html`<mas-collapsible-table-row
-                    .topLevelCard=${topLevelCard}
-                    .isTopLevelExpanded=${true}
-                    .disableGroupedVariationSelection=${disable}
-                ></mas-collapsible-table-row>`,
-            );
-            await el.updateComplete;
-            return el;
-        };
 
-        it('should disable the variation row checkbox when flag is set', async () => {
-            const el = await setup(true);
-            const checkbox = el.shadowRoot.querySelector(`sp-table-row[value="${varPath}"] sp-checkbox`);
-            expect(checkbox).to.exist;
-            expect(checkbox.disabled).to.be.true;
-        });
+            beforeEach(() => {
+                setupCardVariationsInStore(topLevelCard.path, [
+                    { path: varPath1, title: 'Variation 1' },
+                    { path: varPath2, title: 'Variation 2' },
+                ]);
+                Store.translationProjects.selectedCards.set([varPath1]);
+            });
 
-        it('should disable the select all checkbox when flag is set', async () => {
-            const el = await setup(true);
-            const selectAll = el.shadowRoot.querySelector('.select-all-row sp-checkbox');
-            expect(selectAll).to.exist;
-            expect(selectAll.disabled).to.be.true;
-        });
+            const manageOnlyFixture = () =>
+                fixture(
+                    html`<mas-collapsible-table-row
+                        .topLevelCard=${topLevelCard}
+                        .isTopLevelExpanded=${true}
+                        .viewOnly=${true}
+                        .viewOnlyTabs=${[VARIATION_TAB_NAME.PROMOTION]}
+                        .tabs=${[VARIATION_TAB_NAME.PROMOTION, VARIATION_TAB_NAME.GROUPED]}
+                        .groupedVariationsManageOnly=${true}
+                    ></mas-collapsible-table-row>`,
+                );
 
-        it('should not change selectedCards when a disabled variation row is clicked', async () => {
-            Store.translationProjects.selectedCards.set([]);
-            const el = await setup(true);
-            const row = el.shadowRoot.querySelector(`sp-table-row[value="${varPath}"]`);
-            row.click();
-            await el.updateComplete;
-            expect(Store.translationProjects.selectedCards.value).to.deep.equal([]);
-        });
+            it('shows only already-selected variations, not the full candidate list', async () => {
+                const el = await manageOnlyFixture();
+                await el.updateComplete;
+                const panel = el.shadowRoot.querySelector('sp-tab-panel[value="grouped"]');
+                const rows = [...panel.querySelectorAll('sp-table-row[value]')];
+                expect(rows.some((r) => r.getAttribute('value') === varPath1)).to.be.true;
+                expect(rows.some((r) => r.getAttribute('value') === varPath2)).to.be.false;
+            });
 
-        it('should keep the variation row visible when flag is set', async () => {
-            const el = await setup(true);
-            const row = el.shadowRoot.querySelector(`sp-table-row[value="${varPath}"]`);
-            expect(row).to.exist;
-        });
+            it('renders no checkboxes or select-all row', async () => {
+                const el = await manageOnlyFixture();
+                await el.updateComplete;
+                const panel = el.shadowRoot.querySelector('sp-tab-panel[value="grouped"]');
+                expect(panel.querySelector('.select-all-row')).to.be.null;
+                expect(panel.querySelector('sp-checkbox')).to.be.null;
+            });
 
-        it('should keep the variation checkbox enabled by default', async () => {
-            const el = await setup(false);
-            const checkbox = el.shadowRoot.querySelector(`sp-table-row[value="${varPath}"] sp-checkbox`);
-            expect(checkbox.disabled).to.not.be.true;
+            it('removes the variation from selectedCards when the remove action is clicked', async () => {
+                const el = await manageOnlyFixture();
+                await el.updateComplete;
+                const panel = el.shadowRoot.querySelector('sp-tab-panel[value="grouped"]');
+                const removeButton = panel.querySelector(`sp-table-row[value="${varPath1}"] sp-action-button`);
+                removeButton.dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
+                await el.updateComplete;
+                expect(Store.translationProjects.selectedCards.value).to.not.include(varPath1);
+            });
+
+            it('shows a "selected" empty state distinct from the picker empty state', async () => {
+                Store.translationProjects.selectedCards.set([]);
+                const el = await manageOnlyFixture();
+                el.selectedTabKey = 'grouped';
+                await el.updateComplete;
+                const panel = el.shadowRoot.querySelector('sp-tab-panel[value="grouped"]');
+                const emptyMsg = panel.querySelector('.empty-grouped-variations');
+                expect(emptyMsg.textContent).to.include('No grouped variations selected');
+            });
         });
     });
 
@@ -855,21 +836,6 @@ describe('MasCollapsibleTableRow', () => {
             expect(emptyMsg.textContent).to.include('No locale variations found');
         });
 
-        it('should not fetch references when disableLocaleVariations is set', async () => {
-            const topLevelCard = { ...createMockTopLevelCard(), id: 'frag-1' };
-            const getById = sandbox.stub().resolves({ ...topLevelCard, references: [] });
-            const el = await fixture(
-                html`<mas-collapsible-table-row
-                    .topLevelCard=${topLevelCard}
-                    .disableLocaleVariations=${true}
-                ></mas-collapsible-table-row>`,
-            );
-            el.repository = { aem: { sites: { cf: { fragments: { getById } } } } };
-            el.shadowRoot.querySelector('.expand-button').click();
-            await el.updateComplete;
-            expect(getById.called).to.be.false;
-        });
-
         it('should fetch hydrated references on first expand to populate locale variations', async () => {
             const topLevelCard = { ...createMockTopLevelCard(), id: 'frag-1' };
             const el = await fixture(
@@ -880,6 +846,35 @@ describe('MasCollapsibleTableRow', () => {
             el.shadowRoot.querySelector('.expand-button').click();
             await el.updateComplete;
             expect(getById.calledOnceWith('frag-1')).to.be.true;
+        });
+
+        it('renders locale variation rows without chevron/checkbox cells when locale variations exist', async () => {
+            const localeVariationPath = '/content/dam/mas/acom/en_CA/cards/test';
+            const topLevelCard = createMockTopLevelCard({
+                variationPaths: [localeVariationPath],
+                references: [
+                    {
+                        path: localeVariationPath,
+                        title: 'CA Variation',
+                        studioPath: 'merch-card: ACOM / CA Variation',
+                        status: FRAGMENT_STATUS.PUBLISHED,
+                        tags: [{ id: 'mas:product_code/test', title: 'Test Offer' }],
+                        fields: [],
+                    },
+                ],
+            });
+            const el = await fixture(
+                html`<mas-collapsible-table-row
+                    .topLevelCard=${topLevelCard}
+                    .isTopLevelExpanded=${true}
+                ></mas-collapsible-table-row>`,
+            );
+            await el.updateComplete;
+            const localePanel = el.shadowRoot.querySelector('sp-tab-panel[value="locale"]');
+            const rows = localePanel.querySelectorAll('sp-table-row');
+            expect(rows).to.have.lengthOf(1);
+            expect(rows[0].textContent).to.include('CA Variation');
+            expect(rows[0].querySelector('.table-icon-cell')).to.not.exist;
         });
     });
 
@@ -943,6 +938,37 @@ describe('MasCollapsibleTableRow', () => {
             await el.updateComplete;
             expect(el.expandedVariationsPaths.has(varPath)).to.be.false;
         });
+
+        it('adds a variation path to expandedVariationsPaths when its own expand button is clicked while collapsed', async () => {
+            const varPath = '/content/dam/mas/acom/en_US/cards/parent/pzn/var1';
+            const topLevelCard = createMockTopLevelCard({
+                path: '/content/dam/mas/acom/en_US/cards/parent',
+                variationPaths: [varPath],
+            });
+            const mockVariation = {
+                path: varPath,
+                title: 'Variation 1',
+                fieldTags: [{ id: 't1', name: 'Tag1' }],
+            };
+            setupCardVariationsInStore(topLevelCard.path, [mockVariation]);
+
+            const el = await fixture(
+                html`<mas-collapsible-table-row
+                    .topLevelCard=${topLevelCard}
+                    .isTopLevelExpanded=${true}
+                ></mas-collapsible-table-row>`,
+            );
+            el.expandedVariationsPaths = new Set();
+            await el.updateComplete;
+            expect(el.expandedVariationsPaths.has(varPath)).to.be.false;
+
+            const variationRow = el.shadowRoot.querySelector(`sp-table-row[value="${varPath}"]`);
+            const variationBtn = variationRow?.querySelector('.expand-button');
+            expect(variationBtn).to.exist;
+            variationBtn.click();
+            await el.updateComplete;
+            expect(el.expandedVariationsPaths.has(varPath)).to.be.true;
+        });
     });
 
     describe('renderTags and renderPromoCode (grouped variation details)', () => {
@@ -978,6 +1004,23 @@ describe('MasCollapsibleTableRow', () => {
             expect(shadowText).to.include('TagA');
             expect(shadowText).to.include('TagB');
             expect(shadowText).to.include('PROMO123');
+        });
+
+        it('should render a loading skeleton details row for a viewOnly grouped-variation card while grouped variations are loading', async () => {
+            const groupedPath = '/content/dam/mas/acom/en_US/cards/parent/pzn/var1';
+            const topLevelCard = createMockTopLevelCard({ path: groupedPath, variationPaths: [] });
+            const el = await fixture(
+                html`<mas-collapsible-table-row
+                    .topLevelCard=${topLevelCard}
+                    .viewOnly=${true}
+                    .isTopLevelExpanded=${true}
+                    .isLoadingGroupedVariations=${true}
+                ></mas-collapsible-table-row>`,
+            );
+            await el.updateComplete;
+            const loadingRow = el.shadowRoot.querySelector('.variation-details-row--loading');
+            expect(loadingRow).to.exist;
+            expect(loadingRow.querySelector('sp-progress-circle')).to.exist;
         });
 
         it('should render "no tags" when variation has no fieldTags', async () => {
@@ -1078,22 +1121,611 @@ describe('MasCollapsibleTableRow', () => {
             const detailsRow = el.shadowRoot.querySelector('.variation-details-row');
             expect(detailsRow).to.exist;
         });
+
+        it('should render the Promotion tab when viewOnly, viewOnlyTabs includes promotion, and expanded', async () => {
+            const topLevelCard = createMockTopLevelCard();
+            setupCardVariationsInStore(topLevelCard.path, []);
+            const el = await fixture(
+                html`<mas-collapsible-table-row
+                    .topLevelCard=${topLevelCard}
+                    .viewOnly=${true}
+                    .viewOnlyTabs=${['promotion']}
+                    .tabs=${['promotion']}
+                    .isTopLevelExpanded=${true}
+                ></mas-collapsible-table-row>`,
+            );
+            await el.updateComplete;
+            const tabs = el.shadowRoot.querySelector('sp-tabs');
+            expect(tabs).to.exist;
+            const promotionPanel = el.shadowRoot.querySelector('sp-tab-panel[value="promotion"]');
+            expect(promotionPanel).to.exist;
+        });
+
+        it('should not render nested tab content when viewOnly, expanded, but viewOnlyTabs excludes promotion', async () => {
+            const topLevelCard = createMockTopLevelCard();
+            setupCardVariationsInStore(topLevelCard.path, []);
+            const el = await fixture(
+                html`<mas-collapsible-table-row
+                    .topLevelCard=${topLevelCard}
+                    .viewOnly=${true}
+                    .viewOnlyTabs=${['locale']}
+                    .tabs=${['locale']}
+                    .isTopLevelExpanded=${true}
+                ></mas-collapsible-table-row>`,
+            );
+            await el.updateComplete;
+            expect(el.shadowRoot.querySelector('sp-tabs')).to.not.exist;
+        });
     });
 
     describe('promotion tab', () => {
-        it('should render "To be implemented" for promotion tab content', async () => {
+        it('loads promo variations when the tab is changed to promotion while expanded', async () => {
+            const topLevelCard = { ...createMockTopLevelCard(), id: 'frag-tab-change' };
+            const el = await fixture(
+                html`<mas-collapsible-table-row
+                    .topLevelCard=${topLevelCard}
+                    .isTopLevelExpanded=${true}
+                ></mas-collapsible-table-row>`,
+            );
+            el.repository = { aem: {}, loadPromotions: sandbox.stub().resolves() };
+            const tabs = el.shadowRoot.querySelector('sp-tabs');
+            tabs.selected = 'promotion';
+            tabs.dispatchEvent(new CustomEvent('change', { bubbles: true, composed: true }));
+            await el.updateComplete;
+            expect(el.selectedTabKey).to.equal('promotion');
+            expect(el.isLoadingPromoVariations).to.be.true;
+        });
+
+        it('should render empty message when no promo variations exist', async () => {
             const topLevelCard = createMockTopLevelCard({ variationPaths: [] });
             setupCardVariationsInStore(topLevelCard.path, []);
             const el = await fixture(
                 html`<mas-collapsible-table-row
                     .topLevelCard=${topLevelCard}
                     .isTopLevelExpanded=${true}
-                    .tabs=${[{ key: 'promotion', selected: true }, { key: 'groupedVariation' }]}
+                ></mas-collapsible-table-row>`,
+            );
+            el.selectedTabKey = 'promotion';
+            await el.updateComplete;
+            const promotionPanel = el.shadowRoot.querySelector('sp-tab-panel[value="promotion"]');
+            expect(promotionPanel?.querySelector('.empty-promotion-variations')).to.exist;
+        });
+
+        it('should show loading spinner when isLoadingPromoVariations', async () => {
+            const topLevelCard = createMockTopLevelCard({ variationPaths: [] });
+            setupCardVariationsInStore(topLevelCard.path, []);
+            const el = await fixture(
+                html`<mas-collapsible-table-row
+                    .topLevelCard=${topLevelCard}
+                    .isTopLevelExpanded=${true}
+                    .isLoadingPromoVariations=${true}
+                ></mas-collapsible-table-row>`,
+            );
+            el.selectedTabKey = 'promotion';
+            await el.updateComplete;
+            const promotionPanel = el.shadowRoot.querySelector('sp-tab-panel[value="promotion"]');
+            expect(promotionPanel?.querySelector('sp-progress-circle')).to.exist;
+        });
+
+        it('should render promo variation rows when promoVariations are set', async () => {
+            const promoPath = '/content/dam/mas/acom/en_US/promotions/black-friday/promo-card';
+            const topLevelCard = createMockTopLevelCard();
+            setupCardVariationsInStore(topLevelCard.path, []);
+            const el = await fixture(
+                html`<mas-collapsible-table-row
+                    .topLevelCard=${topLevelCard}
+                    .isTopLevelExpanded=${true}
+                ></mas-collapsible-table-row>`,
+            );
+            el.promoVariations = [
+                { path: promoPath, title: 'Promo Card', studioPath: 'promo/path', tags: [], offerData: null },
+            ];
+            el.selectedTabKey = 'promotion';
+            await el.updateComplete;
+            const row = el.shadowRoot.querySelector(`sp-table-row[value="${promoPath}"]`);
+            expect(row).to.exist;
+        });
+
+        it('should render renderPromoVariationDetailsRow with promotion info when expanded', async () => {
+            const promoPath = '/content/dam/mas/acom/en_US/promotions/black-friday/promo-card';
+            const topLevelCard = createMockTopLevelCard();
+            setupCardVariationsInStore(topLevelCard.path, []);
+            const el = await fixture(
+                html`<mas-collapsible-table-row
+                    .topLevelCard=${topLevelCard}
+                    .isTopLevelExpanded=${true}
+                ></mas-collapsible-table-row>`,
+            );
+            el.promoVariations = [
+                {
+                    path: promoPath,
+                    title: 'Promo Card',
+                    studioPath: 'promo/path',
+                    tags: [{ id: 'mas:promotion/black-friday', title: 'Black Friday' }],
+                    offerData: null,
+                },
+            ];
+            el.expandedVariationsPaths = new Set([promoPath]);
+            el.selectedTabKey = 'promotion';
+            await el.updateComplete;
+            const shadowText = el.shadowRoot?.textContent || '';
+            expect(shadowText).to.include('Black Friday');
+            expect(shadowText).to.include('black-friday');
+        });
+    });
+
+    describe('#loadPromoVariations filter behavior', () => {
+        const localeRefPath = '/content/dam/mas/acom/fr_FR/cards/test';
+        const promoRefPath = '/content/dam/mas/acom/en_US/promotions/black-friday/promo-card';
+
+        const makeRef = (path, tags = []) => ({ id: path, path, tags, fields: [] });
+
+        const setupWithRefs = async (references) => {
+            const topLevelCard = {
+                ...createMockTopLevelCard(),
+                id: 'frag-load-promo',
+                references,
+            };
+            const el = await fixture(
+                html`<mas-collapsible-table-row .topLevelCard=${topLevelCard}></mas-collapsible-table-row>`,
+            );
+            el.repository = {
+                aem: {},
+                loadPromotions: sandbox.stub().resolves(),
+            };
+            return el;
+        };
+
+        const triggerPromoLoad = async (el) => {
+            el.selectedTabKey = 'promotion';
+            el.shadowRoot.querySelector('.expand-button').click();
+            await el.updateComplete;
+            await new Promise((resolve) => setTimeout(resolve, 50));
+            await el.updateComplete;
+        };
+
+        beforeEach(() => {
+            sandbox.stub(window, 'fetch').resolves({
+                ok: true,
+                headers: { get: () => null },
+                json: async () => ({ offers: [] }),
+            });
+        });
+
+        it('excludes locale references from promoVariations when references contain mixed types', async () => {
+            const el = await setupWithRefs([makeRef(localeRefPath), makeRef(promoRefPath)]);
+            await triggerPromoLoad(el);
+            const paths = el.promoVariations.map((v) => v.path);
+            expect(paths).to.not.include(localeRefPath);
+        });
+
+        it('includes promo references in promoVariations when references contain mixed types', async () => {
+            const el = await setupWithRefs([makeRef(localeRefPath), makeRef(promoRefPath)]);
+            await triggerPromoLoad(el);
+            const paths = el.promoVariations.map((v) => v.path);
+            expect(paths).to.include(promoRefPath);
+        });
+
+        it('calls Fragment.listPromoVariations on the merged fragment data', async () => {
+            const listPromoStub = sandbox.stub(Fragment.prototype, 'listPromoVariations').returns([]);
+            const el = await setupWithRefs([makeRef(localeRefPath), makeRef(promoRefPath)]);
+            await triggerPromoLoad(el);
+            expect(listPromoStub.called).to.be.true;
+        });
+
+        it('results in empty promoVariations when references contain only locale refs', async () => {
+            const el = await setupWithRefs([makeRef(localeRefPath)]);
+            await triggerPromoLoad(el);
+            expect(el.promoVariations).to.deep.equal([]);
+        });
+
+        it('resets referencesLoaded and can retry after a hydrated-references fetch rejects', async () => {
+            const topLevelCard = { ...createMockTopLevelCard(), id: 'frag-refs-fail' };
+            const el = await fixture(
+                html`<mas-collapsible-table-row .topLevelCard=${topLevelCard}></mas-collapsible-table-row>`,
+            );
+            const getById = sandbox.stub();
+            getById.onFirstCall().rejects(new Error('network down'));
+            getById.onSecondCall().resolves({ ...topLevelCard, references: [] });
+            el.repository = { aem: { sites: { cf: { fragments: { getById } } } } };
+
+            el.shadowRoot.querySelector('.expand-button').click();
+            await el.updateComplete;
+            await new Promise((resolve) => setTimeout(resolve, 20));
+            expect(getById.calledOnce).to.be.true;
+
+            el.shadowRoot.querySelector('.expand-button').click();
+            await el.updateComplete;
+            el.shadowRoot.querySelector('.expand-button').click();
+            await el.updateComplete;
+            await new Promise((resolve) => setTimeout(resolve, 20));
+            expect(getById.calledTwice).to.be.true;
+        });
+
+        it('shows a toast and logs an error when the promo-references merge rejects', async () => {
+            const consoleErrorStub = sandbox.stub(console, 'error');
+            const topLevelCard = { ...createMockTopLevelCard(), id: 'frag-promo-fail' };
+            const el = await fixture(
+                html`<mas-collapsible-table-row .topLevelCard=${topLevelCard}></mas-collapsible-table-row>`,
+            );
+            el.repository = {
+                aem: {},
+                loadPromotions: sandbox.stub().rejects(new Error('promotions unavailable')),
+            };
+            const toastListener = sandbox.stub();
+            el.addEventListener('show-toast', toastListener);
+
+            el.selectedTabKey = 'promotion';
+            el.shadowRoot.querySelector('.expand-button').click();
+            await el.updateComplete;
+            await new Promise((resolve) => setTimeout(resolve, 50));
+            await el.updateComplete;
+
+            expect(toastListener.calledOnce).to.be.true;
+            expect(toastListener.firstCall.args[0].detail.text).to.equal('Failed to load promotion variations');
+            expect(toastListener.firstCall.args[0].detail.variant).to.equal('negative');
+            expect(consoleErrorStub.called).to.be.true;
+            expect(el.isLoadingPromoVariations).to.be.false;
+        });
+    });
+
+    describe('promo variation selection', () => {
+        const promoPath1 = '/content/dam/mas/acom/en_US/promotions/black-friday/card1';
+        const promoPath2 = '/content/dam/mas/acom/en_US/promotions/black-friday/card2';
+
+        const makePromoVariation = (path) => ({
+            path,
+            title: 'Promo',
+            studioPath: path,
+            tags: [{ id: 'mas:promotion/black-friday', title: 'Black Friday' }],
+            offerData: null,
+        });
+
+        it('promoVariationPaths returns paths from promoVariations', async () => {
+            const topLevelCard = createMockTopLevelCard();
+            const el = await fixture(
+                html`<mas-collapsible-table-row .topLevelCard=${topLevelCard}></mas-collapsible-table-row>`,
+            );
+            el.promoVariations = [makePromoVariation(promoPath1), makePromoVariation(promoPath2)];
+            await el.updateComplete;
+            expect(el.promoVariationPaths).to.deep.equal([promoPath1, promoPath2]);
+        });
+
+        it('somePromoVariationsSelected is true when at least one promo path is selected', async () => {
+            const topLevelCard = createMockTopLevelCard();
+            Store.translationProjects.selectedCards.set([promoPath1]);
+            const el = await fixture(
+                html`<mas-collapsible-table-row .topLevelCard=${topLevelCard}></mas-collapsible-table-row>`,
+            );
+            el.promoVariations = [makePromoVariation(promoPath1), makePromoVariation(promoPath2)];
+            await el.updateComplete;
+            expect(el.somePromoVariationsSelected).to.be.true;
+            expect(el.allPromoVariationsSelected).to.be.false;
+        });
+
+        it('allPromoVariationsSelected is true when all promo paths are selected', async () => {
+            const topLevelCard = createMockTopLevelCard();
+            Store.translationProjects.selectedCards.set([promoPath1, promoPath2]);
+            const el = await fixture(
+                html`<mas-collapsible-table-row .topLevelCard=${topLevelCard}></mas-collapsible-table-row>`,
+            );
+            el.promoVariations = [makePromoVariation(promoPath1), makePromoVariation(promoPath2)];
+            await el.updateComplete;
+            expect(el.allPromoVariationsSelected).to.be.true;
+        });
+
+        it('select-all promo checkbox selects all promo variations', async () => {
+            const topLevelCard = createMockTopLevelCard();
+            Store.translationProjects.selectedCards.set([]);
+            const el = await fixture(
+                html`<mas-collapsible-table-row
+                    .topLevelCard=${topLevelCard}
+                    .isTopLevelExpanded=${true}
+                ></mas-collapsible-table-row>`,
+            );
+            el.promoVariations = [makePromoVariation(promoPath1), makePromoVariation(promoPath2)];
+            el.selectedTabKey = 'promotion';
+            await el.updateComplete;
+            const selectAllCheckbox = el.shadowRoot.querySelector('.select-all-row sp-checkbox');
+            expect(selectAllCheckbox).to.exist;
+            selectAllCheckbox.click();
+            await el.updateComplete;
+            expect(Store.translationProjects.selectedCards.value).to.include(promoPath1);
+            expect(Store.translationProjects.selectedCards.value).to.include(promoPath2);
+        });
+
+        it('select-all promo checkbox deselects all when all are already selected', async () => {
+            const topLevelCard = createMockTopLevelCard();
+            Store.translationProjects.selectedCards.set([promoPath1, promoPath2]);
+            const el = await fixture(
+                html`<mas-collapsible-table-row
+                    .topLevelCard=${topLevelCard}
+                    .isTopLevelExpanded=${true}
+                ></mas-collapsible-table-row>`,
+            );
+            el.promoVariations = [makePromoVariation(promoPath1), makePromoVariation(promoPath2)];
+            el.selectedTabKey = 'promotion';
+            await el.updateComplete;
+            const selectAllCheckbox = el.shadowRoot.querySelector('.select-all-row sp-checkbox');
+            selectAllCheckbox.click();
+            await el.updateComplete;
+            expect(Store.translationProjects.selectedCards.value).to.not.include(promoPath1);
+            expect(Store.translationProjects.selectedCards.value).to.not.include(promoPath2);
+        });
+    });
+
+    describe('renderPromoVariationDetailsRow', () => {
+        const promoPath = '/content/dam/mas/acom/en_US/promotions/black-friday/promo-card';
+        const promoTagId = 'mas:promotion/black-friday';
+        const promoProjectId = 'promo-project-uuid-123';
+
+        const makePromoVariation = (tagId) => ({
+            path: promoPath,
+            title: 'Promo Card',
+            studioPath: 'promo/path',
+            tags: tagId ? [{ id: tagId, title: 'Black Friday' }] : [],
+            offerData: null,
+        });
+
+        const setupPromoProject = (id) => {
+            Store.promotions.list.data.set([{ get: () => ({ id, tags: [{ id: promoTagId }] }) }]);
+        };
+
+        afterEach(() => {
+            Store.promotions.list.data.set([]);
+            Store.promotions.inEdit.set(null);
+        });
+
+        it('falls back to Store.promotions.inEdit when the promotions list store is empty', async () => {
+            Store.promotions.list.data.set([]);
+            Store.promotions.inEdit.set({ value: { id: promoProjectId, tags: [{ id: promoTagId }] } });
+            const topLevelCard = createMockTopLevelCard();
+            const el = await fixture(
+                html`<mas-collapsible-table-row
+                    .topLevelCard=${topLevelCard}
+                    .isTopLevelExpanded=${true}
+                ></mas-collapsible-table-row>`,
+            );
+            el.promoVariations = [makePromoVariation(promoTagId)];
+            el.expandedVariationsPaths = new Set([promoPath]);
+            el.selectedTabKey = 'promotion';
+            await el.updateComplete;
+            const link = el.shadowRoot.querySelector('.variation-details-row a');
+            expect(link).to.exist;
+            expect(link.getAttribute('href')).to.equal(
+                `#page=promotions-editor&promotionId=${encodeURIComponent(promoProjectId)}`,
+            );
+        });
+
+        it('does not fall back to Store.promotions.inEdit when the promotions list store already has data', async () => {
+            setupPromoProject(promoProjectId);
+            Store.promotions.inEdit.set({ value: { id: 'should-not-be-used', tags: [{ id: promoTagId }] } });
+            const topLevelCard = createMockTopLevelCard();
+            const el = await fixture(
+                html`<mas-collapsible-table-row
+                    .topLevelCard=${topLevelCard}
+                    .isTopLevelExpanded=${true}
+                ></mas-collapsible-table-row>`,
+            );
+            el.promoVariations = [makePromoVariation(promoTagId)];
+            el.expandedVariationsPaths = new Set([promoPath]);
+            el.selectedTabKey = 'promotion';
+            await el.updateComplete;
+            const link = el.shadowRoot.querySelector('.variation-details-row a');
+            expect(link.getAttribute('href')).to.equal(
+                `#page=promotions-editor&promotionId=${encodeURIComponent(promoProjectId)}`,
+            );
+        });
+
+        it('renders a clickable link when a matching promotion project is found in the store', async () => {
+            setupPromoProject(promoProjectId);
+            const topLevelCard = createMockTopLevelCard();
+            const el = await fixture(
+                html`<mas-collapsible-table-row
+                    .topLevelCard=${topLevelCard}
+                    .isTopLevelExpanded=${true}
+                ></mas-collapsible-table-row>`,
+            );
+            el.promoVariations = [makePromoVariation(promoTagId)];
+            el.expandedVariationsPaths = new Set([promoPath]);
+            el.selectedTabKey = 'promotion';
+            await el.updateComplete;
+            const link = el.shadowRoot.querySelector('.variation-details-row a');
+            expect(link).to.exist;
+            expect(link.getAttribute('href')).to.equal(
+                `#page=promotions-editor&promotionId=${encodeURIComponent(promoProjectId)}`,
+            );
+            expect(link.getAttribute('target')).to.equal('_blank');
+            expect(link.textContent.trim()).to.equal('black-friday');
+        });
+
+        it('renders plain text when the promotion project is not found in the store', async () => {
+            Store.promotions.list.data.set([]);
+            const topLevelCard = createMockTopLevelCard();
+            const el = await fixture(
+                html`<mas-collapsible-table-row
+                    .topLevelCard=${topLevelCard}
+                    .isTopLevelExpanded=${true}
+                ></mas-collapsible-table-row>`,
+            );
+            el.promoVariations = [makePromoVariation(promoTagId)];
+            el.expandedVariationsPaths = new Set([promoPath]);
+            el.selectedTabKey = 'promotion';
+            await el.updateComplete;
+            const link = el.shadowRoot.querySelector('.variation-details-row a');
+            expect(link).to.be.null;
+            const shadowText = el.shadowRoot?.textContent || '';
+            expect(shadowText).to.include('black-friday');
+        });
+
+        it('renders plain text when the variation has no promotion tag', async () => {
+            setupPromoProject(promoProjectId);
+            const topLevelCard = createMockTopLevelCard();
+            const el = await fixture(
+                html`<mas-collapsible-table-row
+                    .topLevelCard=${topLevelCard}
+                    .isTopLevelExpanded=${true}
+                ></mas-collapsible-table-row>`,
+            );
+            el.promoVariations = [makePromoVariation(null)];
+            el.expandedVariationsPaths = new Set([promoPath]);
+            el.selectedTabKey = 'promotion';
+            await el.updateComplete;
+            const link = el.shadowRoot.querySelector('.variation-details-row a');
+            expect(link).to.be.null;
+        });
+
+        it('encodes special characters in promotionId in the link href', async () => {
+            const specialId = 'id with spaces & symbols';
+            setupPromoProject(specialId);
+            const topLevelCard = createMockTopLevelCard();
+            const el = await fixture(
+                html`<mas-collapsible-table-row
+                    .topLevelCard=${topLevelCard}
+                    .isTopLevelExpanded=${true}
+                ></mas-collapsible-table-row>`,
+            );
+            el.promoVariations = [makePromoVariation(promoTagId)];
+            el.expandedVariationsPaths = new Set([promoPath]);
+            el.selectedTabKey = 'promotion';
+            await el.updateComplete;
+            const link = el.shadowRoot.querySelector('.variation-details-row a');
+            expect(link).to.exist;
+            expect(link.getAttribute('href')).to.equal(`#page=promotions-editor&promotionId=${encodeURIComponent(specialId)}`);
+        });
+    });
+
+    describe('selectableTabs = false disables selection UI', () => {
+        it('hides select-all row and checkboxes in grouped variations tab when grouped is not in selectableTabs', async () => {
+            const varPath = '/content/dam/mas/acom/en_US/cards/parent/pzn/var1';
+            const topLevelCard = createMockTopLevelCard({
+                path: '/content/dam/mas/acom/en_US/cards/parent',
+                variationPaths: [varPath],
+            });
+            setupCardVariationsInStore(topLevelCard.path, [{ path: varPath, title: 'Variation 1' }]);
+            Store.translationProjects.selectedCards.set([]);
+            const el = await fixture(
+                html`<mas-collapsible-table-row
+                    .topLevelCard=${topLevelCard}
+                    .isTopLevelExpanded=${true}
+                    .selectableTabs=${['locale', 'promotion']}
+                ></mas-collapsible-table-row>`,
+            );
+            el.selectedTabKey = 'grouped';
+            await el.updateComplete;
+            const groupedPanel = el.shadowRoot.querySelector('sp-tab-panel[value="grouped"]');
+            expect(groupedPanel.querySelector('.select-all-row')).to.be.null;
+            const variationRow = groupedPanel.querySelector(`sp-table-row[value="${varPath}"]`);
+            expect(variationRow.querySelector('sp-checkbox')).to.be.null;
+            variationRow.click();
+            await el.updateComplete;
+            expect(Store.translationProjects.selectedCards.value).to.not.include(varPath);
+        });
+
+        it('hides select-all row and checkboxes in promotion tab when promotion is not in selectableTabs', async () => {
+            const promoPath = '/content/dam/mas/acom/en_US/promotions/black-friday/promo-card';
+            const topLevelCard = createMockTopLevelCard();
+            setupCardVariationsInStore(topLevelCard.path, []);
+            Store.translationProjects.selectedCards.set([]);
+            const el = await fixture(
+                html`<mas-collapsible-table-row
+                    .topLevelCard=${topLevelCard}
+                    .isTopLevelExpanded=${true}
+                    .selectableTabs=${['locale', 'grouped']}
+                ></mas-collapsible-table-row>`,
+            );
+            el.promoVariations = [
+                { path: promoPath, title: 'Promo Card', studioPath: 'promo/path', tags: [], offerData: null },
+            ];
+            el.selectedTabKey = 'promotion';
+            await el.updateComplete;
+            const promotionPanel = el.shadowRoot.querySelector('sp-tab-panel[value="promotion"]');
+            expect(promotionPanel.querySelector('.select-all-row')).to.be.null;
+            const row = promotionPanel.querySelector(`sp-table-row[value="${promoPath}"]`);
+            expect(row.querySelector('sp-checkbox')).to.be.null;
+            row.click();
+            await el.updateComplete;
+            expect(Store.translationProjects.selectedCards.value).to.not.include(promoPath);
+        });
+    });
+
+    describe('renderPreviewCell and renderActionsCell (viewOnly)', () => {
+        it('invokes renderPreviewCell and renderActionsCell with the topLevelCard when provided', async () => {
+            const topLevelCard = createMockTopLevelCard();
+            const renderPreviewCell = sandbox.stub().returns(html`<sp-table-cell class="preview-cell">preview</sp-table-cell>`);
+            const renderActionsCell = sandbox.stub().returns(html`<sp-table-cell class="actions-cell">actions</sp-table-cell>`);
+            const el = await fixture(
+                html`<mas-collapsible-table-row
+                    .topLevelCard=${topLevelCard}
+                    .viewOnly=${true}
+                    .renderPreviewCell=${renderPreviewCell}
+                    .renderActionsCell=${renderActionsCell}
                 ></mas-collapsible-table-row>`,
             );
             await el.updateComplete;
-            const shadowText = el.shadowRoot?.textContent || '';
-            expect(shadowText).to.include('To be implemented');
+            expect(renderPreviewCell.calledWith(topLevelCard)).to.be.true;
+            expect(renderActionsCell.calledWith(topLevelCard)).to.be.true;
+            expect(el.shadowRoot.querySelector('.preview-cell')).to.exist;
+            expect(el.shadowRoot.querySelector('.actions-cell')).to.exist;
+        });
+
+        it('renders nothing extra when renderPreviewCell and renderActionsCell are not provided', async () => {
+            const topLevelCard = createMockTopLevelCard();
+            const el = await fixture(
+                html`<mas-collapsible-table-row .topLevelCard=${topLevelCard} .viewOnly=${true}></mas-collapsible-table-row>`,
+            );
+            await el.updateComplete;
+            expect(el.shadowRoot.querySelector('.preview-cell')).to.be.null;
+            expect(el.shadowRoot.querySelector('.actions-cell')).to.be.null;
+        });
+    });
+
+    describe('tab label and tab-panel edge cases', () => {
+        it('renders an empty label for a falsy tab value', async () => {
+            const topLevelCard = createMockTopLevelCard();
+            const el = await fixture(
+                html`<mas-collapsible-table-row
+                    .topLevelCard=${topLevelCard}
+                    .tabs=${['']}
+                    .isTopLevelExpanded=${true}
+                ></mas-collapsible-table-row>`,
+            );
+            await el.updateComplete;
+            const tab = el.shadowRoot.querySelector('sp-tab');
+            expect(tab).to.exist;
+            expect(tab.getAttribute('label')).to.equal('');
+        });
+
+        it('renders empty tab-panel content for a tab without a matching TabTemplate getter', async () => {
+            const topLevelCard = createMockTopLevelCard();
+            const el = await fixture(
+                html`<mas-collapsible-table-row
+                    .topLevelCard=${topLevelCard}
+                    .tabs=${['bogus']}
+                    .isTopLevelExpanded=${true}
+                ></mas-collapsible-table-row>`,
+            );
+            await el.updateComplete;
+            const panel = el.shadowRoot.querySelector('sp-tab-panel[value="bogus"]');
+            expect(panel).to.exist;
+            expect(panel.textContent.trim()).to.equal('');
+        });
+
+        it('renders empty content in viewOnly mode for a tab without a matching TabTemplate getter', async () => {
+            const topLevelCard = createMockTopLevelCard();
+            const el = await fixture(
+                html`<mas-collapsible-table-row
+                    .topLevelCard=${topLevelCard}
+                    .viewOnly=${true}
+                    .viewOnlyTabs=${['promotion']}
+                    .tabs=${['bogus']}
+                    .isTopLevelExpanded=${true}
+                ></mas-collapsible-table-row>`,
+            );
+            await el.updateComplete;
+            const panel = el.shadowRoot.querySelector('sp-tab-panel[value="bogus"]');
+            expect(panel).to.exist;
+            expect(panel.textContent.trim()).to.equal('');
         });
     });
 
@@ -1113,5 +1745,47 @@ describe('MasCollapsibleTableRow', () => {
             );
             expect(el.getAttribute('value')).to.equal('');
         });
+    });
+});
+
+describe('enrichPromoVariations', () => {
+    let enrichSandbox;
+
+    beforeEach(() => {
+        enrichSandbox = sinon.createSandbox();
+    });
+
+    afterEach(() => {
+        enrichSandbox.restore();
+    });
+
+    it('returns empty array when promoVariations is empty', async () => {
+        const result = await enrichPromoVariations([], { path: '/some/card' });
+        expect(result).to.deep.equal([]);
+    });
+
+    it('returns empty array when promoVariations is null', async () => {
+        const result = await enrichPromoVariations(null, { path: '/some/card' });
+        expect(result).to.deep.equal([]);
+    });
+
+    it('returns empty array when parentCard is null', async () => {
+        const result = await enrichPromoVariations([{ path: '/promo/card' }], null);
+        expect(result).to.deep.equal([]);
+    });
+
+    it('maps each variation with studioPath from getDisplayName', async () => {
+        const variations = [{ path: '/content/dam/mas/acom/en_US/promotions/bf/card', title: 'BF Card', fields: [] }];
+        const parentCard = { path: '/content/dam/mas/acom/en_US/cards/card', fields: [] };
+        const getDisplayName = () => 'Custom Label';
+        enrichSandbox.stub(window, 'fetch').resolves({
+            ok: true,
+            headers: { get: () => null },
+            json: async () => ({ offers: [] }),
+        });
+        const result = await enrichPromoVariations(variations, parentCard, { getDisplayName });
+        expect(result).to.have.lengthOf(1);
+        expect(result[0].path).to.equal(variations[0].path);
+        expect(result[0].studioPath).to.equal('Custom Label');
     });
 });

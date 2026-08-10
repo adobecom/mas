@@ -1,21 +1,9 @@
 import { LitElement, html, css, nothing } from 'lit';
 import { store } from '../store/ost-store.js';
-import { applyPlanType } from '@dexter/tacocat-core/src/wcsUtils.js';
-import { searchOffers, createOfferSelector, resolveOfferSelector } from '../utils/aos-client.js';
 import './ost-offer-card.js';
-import './ost-help-icon.js';
-import { HELP_TOOLTIPS } from '../data/help-content.js';
-
-const DEFAULT_AOS_PARAMS = {
-    buyingProgram: 'RETAIL',
-    merchant: 'ADOBE',
-    salesChannel: 'DIRECT',
-    serviceProviders: ['PRICING'],
-};
 
 export class OstProductDetail extends LitElement {
     static properties = {
-        loading: { type: Boolean, state: true },
         summary: { type: Boolean, reflect: true },
     };
 
@@ -181,16 +169,12 @@ export class OstProductDetail extends LitElement {
 
     constructor() {
         super();
-        this.loading = false;
-        this.previousProduct = undefined;
-        this.previousParamsKey = '';
         this.handleStoreChange = this.handleStoreChange.bind(this);
     }
 
     connectedCallback() {
         super.connectedCallback();
         store.subscribe(this.handleStoreChange);
-        this.handleStoreChange();
     }
 
     disconnectedCallback() {
@@ -198,182 +182,8 @@ export class OstProductDetail extends LitElement {
         store.unsubscribe(this.handleStoreChange);
     }
 
-    async autoResolveOsi(offer) {
-        if (offer.offer_type?.startsWith('fake-')) {
-            store.setOsi(offer.offer_type);
-            return;
-        }
-        try {
-            const params = {
-                product_arrangement_code: offer.product_arrangement_code,
-                buying_program: offer.buying_program,
-                commitment: offer.commitment,
-                term: offer.term,
-                customer_segment: offer.customer_segment,
-                market_segment: Array.isArray(offer.market_segments) ? offer.market_segments[0] : offer.market_segment,
-                sales_channel: offer.sales_channel,
-                offer_type: offer.offer_type,
-                price_point: offer.price_point,
-                merchant: offer.merchant,
-            };
-            const config = {
-                accessToken: store.accessToken,
-                apiKey: store.apiKey,
-                baseUrl: store.baseUrl,
-                env: store.env,
-            };
-            const {
-                data: { id },
-            } = await createOfferSelector(params, config);
-            store.setOsi(id);
-        } catch {
-            /* auto OSI resolution failed — user can still click the offer */
-        }
-    }
-
-    async autoFillBaseAndTrial(offers) {
-        if (!store.multiSelect) return;
-        const baseOffer = offers.find((o) => o.offer_type === 'BASE');
-        const trialOffer = offers.find((o) => o.offer_type === 'TRIAL');
-        if (!baseOffer || !trialOffer || offers.length !== 2) return;
-
-        const config = {
-            accessToken: store.accessToken,
-            apiKey: store.apiKey,
-            baseUrl: store.baseUrl,
-            env: store.env,
-        };
-        try {
-            const [baseOsi, trialOsi] = await Promise.all([
-                resolveOfferSelector(baseOffer, config),
-                resolveOfferSelector(trialOffer, config),
-            ]);
-            store.addOffer(baseOffer, baseOsi, 'base');
-            store.addOffer(trialOffer, trialOsi, 'trial');
-        } catch {
-            /* auto-fill failed — user can select manually */
-        }
-    }
-
     handleStoreChange() {
-        const product = store.selectedProduct;
-        const paramsKey = JSON.stringify(store.aosParams) + store.country + store.landscape + store.env;
-        const shouldRefetch = product && (product !== this.previousProduct || paramsKey !== this.previousParamsKey);
-        if (shouldRefetch) {
-            this.previousProduct = product;
-            this.previousParamsKey = paramsKey;
-            this.fetchOffers(product);
-        }
         this.requestUpdate();
-    }
-
-    async fetchOffers(product) {
-        const {
-            aosParams: { commitment, term, customerSegment, offerType, marketSegment, pricePoint },
-            country,
-            landscape,
-            env,
-            environment,
-            apiKey,
-            accessToken,
-        } = store;
-
-        const arrangementCode = product.arrangement_code || product.arrangementCode || store.aosParams.arrangementCode;
-
-        if (offerType && offerType.startsWith('fake-')) {
-            const fakeOffer = {
-                offer_id: 'Fake Offer',
-                offer_type: offerType,
-                price_point: 'I am not real!',
-                language: 'Fake',
-                market_segments: ['COM'],
-                pricing: {
-                    currency: { format_string: "'US$'#,##0.00" },
-                    prices: [{ price_details: { display_rules: { price: 99.9 } } }],
-                },
-                planType: 'Fake',
-                name: product.name,
-                icon: product.icon,
-                id: 'Fake Offer',
-            };
-            store.setOffers([fakeOffer]);
-            return;
-        }
-
-        this.loading = true;
-        try {
-            let language = country === 'GB' ? 'EN' : 'MULT';
-            if (commitment === 'PERPETUAL') {
-                language = undefined;
-            }
-
-            const searchParams = {
-                ...DEFAULT_AOS_PARAMS,
-                arrangementCode: [arrangementCode],
-                pricePoint: pricePoint ? [pricePoint] : undefined,
-                commitment,
-                term,
-                offerType,
-                customerSegment,
-                marketSegment,
-                country,
-                language,
-            };
-
-            const baseConfig = {
-                accessToken,
-                apiKey,
-                baseUrl: store.baseUrl,
-                env,
-                environment,
-                pageSize: 1000,
-            };
-
-            // When landscape is "BOTH" (AI chat consult), merge DRAFT and
-            // PUBLISHED results so authors can browse both sets in one view.
-            // Each offer is tagged with its source landscape so the UI can
-            // badge/distinguish them.
-            const landscapesToFetch = landscape === 'BOTH' ? ['PUBLISHED', 'DRAFT'] : [landscape];
-            const responses = await Promise.all(
-                landscapesToFetch.map(async (ls) => {
-                    const res = await searchOffers(searchParams, { ...baseConfig, landscape: ls });
-                    return (res.data || res).map((o) => ({ ...o, landscapeSource: ls }));
-                }),
-            );
-            let offers = responses.flat().map(applyPlanType);
-            // De-dupe: if the same offer_id came back from both DRAFT and
-            // PUBLISHED (shouldn't normally, but safe to guard), keep the
-            // PUBLISHED copy since that's what renders on live commerce.
-            if (landscape === 'BOTH') {
-                const seen = new Map();
-                for (const offer of offers) {
-                    const id = offer.offer_id;
-                    if (!seen.has(id) || offer.landscapeSource === 'PUBLISHED') {
-                        seen.set(id, offer);
-                    }
-                }
-                offers = Array.from(seen.values());
-            }
-            offers = offers.map((offer) => ({
-                ...offer,
-                id: offer.offer_id,
-                name: product.name,
-                icon: product.icon,
-            }));
-            offers.sort(({ name: nameLeft, price_point: ppLeft }, { name: nameRight, price_point: ppRight }) =>
-                `${nameRight}${ppRight}`.localeCompare(`${nameLeft}${ppLeft}`),
-            );
-            store.setOffers(offers);
-            if (offers.length === 1) {
-                store.setOffer(offers[0]);
-                this.autoResolveOsi(offers[0]);
-            } else {
-                await this.autoFillBaseAndTrial(offers);
-            }
-        } catch {
-            store.setOffers([]);
-        }
-        this.loading = false;
     }
 
     render() {
@@ -425,7 +235,7 @@ export class OstProductDetail extends LitElement {
                       `
                     : ''}
             </div>
-            ${this.loading
+            ${store.loading
                 ? html`<div class="loading-container">
                       <sp-progress-circle indeterminate size="m" label="Loading offers"></sp-progress-circle>
                   </div>`
@@ -438,9 +248,9 @@ export class OstProductDetail extends LitElement {
                         <div class="offers-table">
                             <div class="offers-table-head">
                                 <span class="th">Price</span>
-                                <span class="th">Plan <ost-help-icon text="${HELP_TOOLTIPS.planBadge}"></ost-help-icon></span>
+                                <span class="th">Plan</span>
                                 <span class="th">Type</span>
-                                <span class="th">Offer ID <ost-help-icon text="${HELP_TOOLTIPS.offerId}"></ost-help-icon></span>
+                                <span class="th">Offer ID</span>
                                 <span class="th th-actions"></span>
                             </div>
                             <div class="offers-table-body">

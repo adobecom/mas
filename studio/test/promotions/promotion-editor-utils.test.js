@@ -7,6 +7,7 @@ import {
     countDistinctPromoCodesForOffer,
     addPromotionOfferFromOst,
     buildPromotionOfferRecord,
+    buildPromotionTagPath,
     applyPromotionItemSelectionToFragment,
     buildPromotionOffersFieldValues,
     hydratePromotionOfferRecords,
@@ -333,6 +334,12 @@ describe('promotion-editor-utils', () => {
             expect(normalizePromotionSearchInput(line)).to.equal(id);
         });
 
+        it('extracts fragment id from a merch-card-collection deep link', () => {
+            const id = '00000000-1111-2222-3333-444444444444';
+            const line = `https://mas.adobe.com/studio.html#content-type=merch-card-collection&query=${id}`;
+            expect(normalizePromotionSearchInput(line)).to.equal(id);
+        });
+
         it('strips query/hash from pasted full DAM path', () => {
             const path = '/content/dam/mas/surface/en_US/foo';
             expect(normalizePromotionSearchInput(`${path}?x=1`)).to.equal(path);
@@ -358,6 +365,27 @@ describe('promotion-editor-utils', () => {
 
         it('promotion slice is empty when no mas:promotion tag', () => {
             expect(splitPromotionTagsFieldValues(['mas:status/published']).promotion).to.deep.equal([]);
+        });
+    });
+
+    describe('buildPromotionTagPath', () => {
+        it('derives slug and tagPath from a normal title', () => {
+            expect(buildPromotionTagPath('Summer Sale')).to.deep.equal({
+                slug: 'summer-sale',
+                tagPath: '/content/cq:tags/mas/promotion/summer-sale',
+            });
+        });
+
+        it('returns null for an empty string title', () => {
+            expect(buildPromotionTagPath('')).to.be.null;
+        });
+
+        it('returns null for a whitespace-only title', () => {
+            expect(buildPromotionTagPath('   ')).to.be.null;
+        });
+
+        it('returns null for an undefined title', () => {
+            expect(buildPromotionTagPath(undefined)).to.be.null;
         });
     });
 
@@ -394,7 +422,7 @@ describe('promotion-editor-utils', () => {
                     return [];
                 },
             };
-            expect(getPromotionRequiredFieldsValidation(f, 1)).to.equal('Please add at least one Surface.');
+            expect(getPromotionRequiredFieldsValidation(f, 1)).to.equal('Please add at least one surface.');
         });
 
         it('returns a fragments message when item count is zero', () => {
@@ -403,12 +431,12 @@ describe('promotion-editor-utils', () => {
             );
         });
 
-        it('returns a message when promo code is missing', () => {
+        it('is valid when promo code is missing (promo code is optional)', () => {
             const f = {
                 ...baseFragment(),
                 getFieldValue: (name) => (name === 'promoCode' ? '' : baseFragment().getFieldValue(name)),
             };
-            expect(getPromotionRequiredFieldsValidation(f, 1)).to.equal('Please enter a Promo Code.');
+            expect(getPromotionRequiredFieldsValidation(f, 1)).to.be.null;
         });
 
         it('returns a message when start date is missing', () => {
@@ -416,7 +444,7 @@ describe('promotion-editor-utils', () => {
                 ...baseFragment(),
                 getFieldValue: (name) => (name === 'startDate' ? '' : baseFragment().getFieldValue(name)),
             };
-            expect(getPromotionRequiredFieldsValidation(f, 1)).to.equal('Please set a Start Date.');
+            expect(getPromotionRequiredFieldsValidation(f, 1)).to.equal('Please set a start date.');
         });
 
         it('returns a message when end date is missing', () => {
@@ -424,7 +452,7 @@ describe('promotion-editor-utils', () => {
                 ...baseFragment(),
                 getFieldValue: (name) => (name === 'endDate' ? '' : baseFragment().getFieldValue(name)),
             };
-            expect(getPromotionRequiredFieldsValidation(f, 1)).to.equal('Please set an End Date.');
+            expect(getPromotionRequiredFieldsValidation(f, 1)).to.equal('Please set an end date.');
         });
 
         it('returns a message when title is missing', () => {
@@ -432,7 +460,23 @@ describe('promotion-editor-utils', () => {
                 ...baseFragment(),
                 getFieldValue: (name) => (name === 'title' ? '' : baseFragment().getFieldValue(name)),
             };
-            expect(getPromotionRequiredFieldsValidation(f, 1)).to.equal('Please enter a Title.');
+            expect(getPromotionRequiredFieldsValidation(f, 1)).to.equal('Please enter a title.');
+        });
+
+        it('returns a message when title is whitespace-only', () => {
+            const f = {
+                ...baseFragment(),
+                getFieldValue: (name) => (name === 'title' ? '   ' : baseFragment().getFieldValue(name)),
+            };
+            expect(getPromotionRequiredFieldsValidation(f, 1)).to.equal('Please enter a title.');
+        });
+
+        it('returns a message when title has no normalizable characters', () => {
+            const f = {
+                ...baseFragment(),
+                getFieldValue: (name) => (name === 'title' ? '!!!' : baseFragment().getFieldValue(name)),
+            };
+            expect(getPromotionRequiredFieldsValidation(f, 1)).to.equal('Please enter a title.');
         });
 
         it('returns a message when geos are missing', () => {
@@ -444,7 +488,7 @@ describe('promotion-editor-utils', () => {
                     return [];
                 },
             };
-            expect(getPromotionRequiredFieldsValidation(f, 1)).to.equal('Please add at least one Geo.');
+            expect(getPromotionRequiredFieldsValidation(f, 1)).to.equal('Please add at least one geo.');
         });
 
         it('returns a message when no promotion classification tag', () => {
@@ -457,7 +501,24 @@ describe('promotion-editor-utils', () => {
                     return [];
                 },
             };
-            expect(getPromotionRequiredFieldsValidation(f, 1)).to.equal('Please add at least one Promotion tag.');
+            expect(getPromotionRequiredFieldsValidation(f, 1)).to.equal('Please add at least one promotion tag.');
+        });
+
+        it('does not require end date when isEvergreen is passed explicitly as true', () => {
+            const f = {
+                ...baseFragment(),
+                getFieldValue: (name) => (name === 'endDate' ? '' : baseFragment().getFieldValue(name)),
+            };
+            expect(getPromotionRequiredFieldsValidation(f, 1, true)).to.be.null;
+        });
+
+        it('does not require end date when fragment is evergreen', () => {
+            const f = {
+                ...baseFragment(),
+                isEvergreen: true,
+                getFieldValue: (name) => (name === 'endDate' ? '' : baseFragment().getFieldValue(name)),
+            };
+            expect(getPromotionRequiredFieldsValidation(f, 1)).to.be.null;
         });
     });
 
@@ -1029,7 +1090,7 @@ describe('promotion-editor-utils', () => {
     describe('handlePromotionOstOfferSelect', () => {
         beforeEach(() => {
             Store.promotions.selectedOffers.set([]);
-            Store.promotions.offerDataCache.clear();
+            Store.promotions.offerRecordsCache.clear();
             setItemsSelectionStore(Store.promotions);
         });
 
@@ -1046,7 +1107,7 @@ describe('promotion-editor-utils', () => {
             });
             expect(added).to.be.true;
             expect(Store.promotions.selectedOffers.get()).to.deep.equal(['phsp-osi']);
-            expect(Store.promotions.offerDataCache.has('phsp-osi')).to.be.true;
+            expect(Store.promotions.offerRecordsCache.has('phsp-osi')).to.be.true;
         });
 
         it('returns false and does not duplicate when offer is already selected', async () => {

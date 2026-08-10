@@ -6,7 +6,7 @@ export const VARIANT_NAMES = {
     CATALOG: 'catalog',
     PLANS: 'plans',
     PLANS_V2: 'plans-v2',
-    BIZPRO: 'bizpro',
+    PRO: 'pro',
     PLANS_STUDENTS: 'plans-students',
     PLANS_EDUCATION: 'plans-education',
     PRODUCT: 'product',
@@ -39,8 +39,8 @@ export const VARIANTS = [
         surfaces: [SURFACES.ACOM],
     },
     {
-        label: 'BizPro',
-        value: VARIANT_NAMES.BIZPRO,
+        label: 'Pro',
+        value: VARIANT_NAMES.PRO,
         surfaces: [SURFACES.ACOM, SURFACES.ACOM_CC, SURFACES.ACOM_DC],
     },
     {
@@ -109,7 +109,7 @@ export const VARIANTS = [
     {
         label: 'Headless',
         value: VARIANT_NAMES.HEADLESS,
-        surfaces: [SURFACES.SANDBOX],
+        surfaces: [SURFACES.SANDBOX, SURFACES.ACOM_CC, SURFACES.ACOM_DC],
     },
     {
         label: 'Mini Compare Chart',
@@ -119,7 +119,7 @@ export const VARIANTS = [
     {
         label: 'Mini Compare Chart Mweb',
         value: VARIANT_NAMES.MINI_COMPARE_CHART_MWEB,
-        surfaces: [SURFACES.ACOM],
+        surfaces: [SURFACES.ACOM, SURFACES.ACOM_CC],
     },
     {
         label: 'Compare Chart Column',
@@ -127,6 +127,33 @@ export const VARIANTS = [
         surfaces: [SURFACES.ACOM_CC, SURFACES.ACOM_DC, SURFACES.ACOM, SURFACES.EXPRESS],
     },
 ];
+
+// TODO(MWPW-200587): remove after content migration
+/** Stored variant aliases accepted while existing fragments are migrated. */
+export const LEGACY_VARIANTS = new Map([['bizpro', VARIANT_NAMES.PRO]]);
+
+/** All variant values that Studio can display, including stored aliases. */
+export const RECOGNIZED_VARIANT_NAMES = new Set([...VARIANTS.map((variant) => variant.value), ...LEGACY_VARIANTS.keys()]);
+
+/** Resolves a stored variant alias to its authorable variant name. */
+export const normalizeVariantName = (variant) => LEGACY_VARIANTS.get(variant) ?? variant;
+
+/** Returns whether an authorable variant has stored aliases. */
+export const hasLegacyVariantAlias = (variant) =>
+    [...LEGACY_VARIANTS.values()].some((authorableVariant) => authorableVariant === normalizeVariantName(variant));
+
+// TODO(MWPW-200587): remove after content migration
+/** Rewrites a stored variant alias before a fragment is saved. */
+export const migrateLegacyVariant = (fragmentStore) => {
+    const variant = fragmentStore.get()?.getFieldValue('variant');
+    const normalizedVariant = normalizeVariantName(variant);
+    if (variant === normalizedVariant) return;
+    fragmentStore.updateField('variant', [normalizedVariant]);
+};
+
+/** Returns whether a stored variant matches any selected authorable variant. */
+export const isVariantMatch = (variants, variant) =>
+    variants.some((selectedVariant) => normalizeVariantName(selectedVariant) === normalizeVariantName(variant));
 
 /** Flat tree-picker-compatible list of allowed variants, optionally filtered by surface. */
 export const getVariantTreeData = (surface) =>

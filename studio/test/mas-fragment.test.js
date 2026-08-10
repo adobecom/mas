@@ -1,5 +1,6 @@
 import { expect, fixture, html } from '@open-wc/testing';
 import sinon from 'sinon';
+import Store from '../src/store.js';
 import '../src/mas-fragment.js';
 
 describe('MasFragment', () => {
@@ -11,6 +12,8 @@ describe('MasFragment', () => {
 
     afterEach(() => {
         sandbox.restore();
+        Store.selecting.set(false);
+        Store.selection.set([]);
     });
 
     const createFragmentStore = (overrides = {}) => {
@@ -71,6 +74,21 @@ describe('MasFragment', () => {
             sandbox.stub(el, 'repository').get(() => mockRepo);
             await el.toggleExpand();
             expect(mockRepo.refreshFragment.called).to.be.false;
+        });
+
+        it('dispatches table-selection-refresh when expanding while selecting', async () => {
+            const fragmentStore = createFragmentStore();
+            const el = await fixture(html`<mas-fragment .fragmentStore=${fragmentStore} view="table"></mas-fragment>`);
+            const parent = document.createElement('div');
+            parent.appendChild(el);
+            const refreshSpy = sinon.spy();
+            parent.addEventListener('table-selection-refresh', refreshSpy);
+
+            Store.selecting.set(true);
+            await el.toggleExpand();
+
+            expect(refreshSpy.calledOnce).to.be.true;
+            Store.selecting.set(false);
         });
 
         it('handles error when loading references', async () => {

@@ -12,6 +12,7 @@ import {
     TAG_PROMOTION_PREFIX,
     TAG_STUDIO_CONTENT_TYPE,
     EVENT_CHANGE,
+    VARIATION_TAB_NAME,
 } from '../constants.js';
 import Store from '../store.js';
 import { generateCodeToUse, getService } from '../utils.js';
@@ -1743,7 +1744,8 @@ class MasCompareChartEditor extends LitElement {
                 .allowedTypes=${[TABLE_TYPE.CARDS]}
                 .maxSelectedCards=${MAX_COMPARE_CHART_CARDS}
                 .defaultTemplateFilter=${VARIANT_NAMES.COMPARE_CHART_COLUMN}
-                .disableGroupedVariationSelection=${true}
+                .selectableTabs=${[VARIATION_TAB_NAME.LOCALE, VARIATION_TAB_NAME.PROMOTION]}
+                .restrictImportSurface=${Store.surface()}
             ></mas-items-selector>
         </sp-dialog-wrapper> `;
     }

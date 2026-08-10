@@ -97,7 +97,7 @@ const Store = {
         list: {
             loading: new ReactiveStore(true),
             data: new ReactiveStore([]),
-            filter: new ReactiveStore('scheduled'),
+            filter: new ReactiveStore('active'),
             filterOptions: new ReactiveStore([
                 { value: 'all', label: 'All' },
                 { value: 'draft', label: 'Draft' },
@@ -120,7 +120,11 @@ const Store = {
         displayCards: new ReactiveStore([]),
         selectedCards: new ReactiveStore([]),
         selectedOffers: new ReactiveStore([]),
+        // Raw WCS offer objects keyed by OSI, shared with cards/variations enrichment (see loadOfferData).
         offerDataCache: new Map(),
+        // Offers-table display records ({ path, id, offerData, tags, fields, getTagTitle }) keyed by offer selector id.
+        // Kept separate from offerDataCache so the two shapes never collide under the same OSI key.
+        offerRecordsCache: new Map(),
         groupedVariationsByParent: new ReactiveStore(new Map()),
         groupedVariationsData: new ReactiveStore(new Map()),
 
@@ -142,13 +146,12 @@ const Store = {
     localeOrRegion: function () {
         return Store.search.value.region || Store.filters.value.locale || 'en_US';
     },
-    previewDictionary: function () {
-        const locale = Store.localeOrRegion();
+    previewDictionary: function (locale = Store.localeOrRegion()) {
         return Store.placeholders.previewByLocale.value[locale];
     },
-    /** True when the active locale has a loaded dictionary with at least one entry (empty `{}` is not ready). */
-    previewDictionaryReady: function () {
-        const d = Store.previewDictionary();
+    /** True when the given locale has a loaded dictionary with at least one entry (empty `{}` is not ready). */
+    previewDictionaryReady: function (locale = Store.localeOrRegion()) {
+        const d = Store.previewDictionary(locale);
         return d != null && Object.keys(d).length > 0;
     },
     removeRegionOverride: function () {

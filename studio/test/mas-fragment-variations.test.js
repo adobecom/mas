@@ -3,6 +3,7 @@ import sinon from 'sinon';
 import Store from '../src/store.js';
 import '../src/mas-fragment-variations.js';
 import { getGroupedVariationTagsValue, getPromotionCode } from '../src/editors/variation-utils.js';
+import { makeSearchStub } from './helpers/aem-tag-fetch.js';
 
 describe('MasFragmentVariations', () => {
     let sandbox;
@@ -439,8 +440,112 @@ describe('MasFragmentVariations', () => {
 
             expect(el.textContent).to.include('Promotion');
             expect(el.textContent).to.include('Back to School');
-            expect(el.textContent).to.include('Promotion project');
-            expect(el.textContent).to.include('back-to-school');
+            expect(el.textContent).to.include('Geos variation tags');
+            const picker = el.querySelector('aem-tag-picker-field');
+            expect(picker.getAttribute('value')).to.equal(getGroupedVariationTagsValue(promoVariation));
+        });
+
+        it('falls back to the promotion project geos when a promo variation has no pznTags of its own', async () => {
+            const parentPath = '/content/dam/mas/sandbox/en_US/my-card';
+            const promoVariation = createVariationFragment({
+                id: 'promo-var-legacy',
+                path: '/content/dam/mas/sandbox/en_US/promotions/cyber-monday/my-card',
+                tags: [{ id: 'mas:promotion/cyber-monday', title: 'Cyber Monday' }],
+                fields: [],
+            });
+            const fragment = {
+                path: parentPath,
+                listLocaleVariations: () => [],
+                listPromoVariations: () => [promoVariation],
+                listGroupedVariations: () => [],
+            };
+            const loadPromotions = sandbox.stub().callsFake(async () => {
+                Store.promotions.list.data.set([
+                    {
+                        get: () => ({
+                            id: 'promo-project-1',
+                            getFieldValues: (name) =>
+                                name === 'tags'
+                                    ? ['mas:promotion/cyber-monday']
+                                    : name === 'geos'
+                                      ? ['mas:locale/de_AT', 'mas:locale/en_NG']
+                                      : name === 'fragments'
+                                        ? [parentPath]
+                                        : [],
+                        }),
+                    },
+                ]);
+                Store.promotions.list.loading.set(false);
+            });
+
+            const el = await fixture(html`<mas-fragment-variations .fragment=${fragment}></mas-fragment-variations>`);
+            sandbox.stub(el, 'repository').get(() => ({ loadPromotions }));
+            el.togglePromoVariation('promo-var-legacy');
+            await el.updateComplete;
+            await new Promise((r) => setTimeout(r, 10));
+            await el.updateComplete;
+
+            const picker = el.querySelector('aem-tag-picker-field');
+            expect(picker.getAttribute('value')).to.equal('mas:locale/de_AT,mas:locale/en_NG');
+            Store.promotions.list.data.set([]);
+        });
+
+        it('disambiguates same-tag promotion projects by matching the fragment attached to the project', async () => {
+            const parentPath = '/content/dam/mas/sandbox/en_US/my-card';
+            const promoVariation = createVariationFragment({
+                id: 'promo-var-legacy',
+                path: '/content/dam/mas/sandbox/en_US/promotions/cyber-monday/my-card',
+                tags: [{ id: 'mas:promotion/cyber-monday', title: 'Cyber Monday' }],
+                fields: [],
+            });
+            const fragment = {
+                path: parentPath,
+                listLocaleVariations: () => [],
+                listPromoVariations: () => [promoVariation],
+                listGroupedVariations: () => [],
+            };
+            const loadPromotions = sandbox.stub().callsFake(async () => {
+                Store.promotions.list.data.set([
+                    {
+                        get: () => ({
+                            id: 'wrong-project-same-tag',
+                            getFieldValues: (name) =>
+                                name === 'tags'
+                                    ? ['mas:promotion/cyber-monday']
+                                    : name === 'geos'
+                                      ? ['mas:locale/ja_JP']
+                                      : name === 'fragments'
+                                        ? ['/content/dam/mas/sandbox/en_US/some-other-card']
+                                        : [],
+                        }),
+                    },
+                    {
+                        get: () => ({
+                            id: 'correct-project-same-tag',
+                            getFieldValues: (name) =>
+                                name === 'tags'
+                                    ? ['mas:promotion/cyber-monday']
+                                    : name === 'geos'
+                                      ? ['mas:locale/de_AT', 'mas:locale/en_NG']
+                                      : name === 'fragments'
+                                        ? [parentPath]
+                                        : [],
+                        }),
+                    },
+                ]);
+                Store.promotions.list.loading.set(false);
+            });
+
+            const el = await fixture(html`<mas-fragment-variations .fragment=${fragment}></mas-fragment-variations>`);
+            sandbox.stub(el, 'repository').get(() => ({ loadPromotions }));
+            el.togglePromoVariation('promo-var-legacy');
+            await el.updateComplete;
+            await new Promise((r) => setTimeout(r, 10));
+            await el.updateComplete;
+
+            const picker = el.querySelector('aem-tag-picker-field');
+            expect(picker.getAttribute('value')).to.equal('mas:locale/de_AT,mas:locale/en_NG');
+            Store.promotions.list.data.set([]);
         });
 
         it('sets promotionId when opening a promo variation from the promotion tab', async () => {
@@ -477,6 +582,7 @@ describe('MasFragmentVariations', () => {
             const routerModule = await import('../src/router.js');
             const navigateSpy = sandbox.stub(routerModule.default, 'navigateToFragmentEditor').resolves();
             Store.promotions.promotionId.set(null);
+            loadPromotions.resetHistory();
 
             await el.handleEdit(editStore);
 
@@ -484,6 +590,70 @@ describe('MasFragmentVariations', () => {
             expect(Store.promotions.promotionId.get()).to.equal('promo-project-1');
             expect(navigateSpy.calledOnce).to.be.true;
             Store.promotions.promotionId.set(null);
+        });
+    });
+
+    describe('orphaned promo variations fallback', () => {
+        const parentPath = '/content/dam/mas/sandbox/en_US/my-card';
+        const promotionsRoot = '/content/dam/mas/sandbox/en_US/promotions';
+        const orphanPath = `${promotionsRoot}/back-to-school/my-card`;
+
+        const createEmptyFragment = () => ({
+            path: parentPath,
+            listLocaleVariations: () => [],
+            listPromoVariations: () => [],
+            listGroupedVariations: () => [],
+        });
+
+        it('probes the promotions tree when the Promotions tab opens and no known variation exists', async () => {
+            const search = makeSearchStub(sandbox, { [promotionsRoot]: [{ id: 'orphan-id', path: orphanPath }] });
+            const el = await fixture(
+                html`<mas-fragment-variations .fragment=${createEmptyFragment()}></mas-fragment-variations>`,
+            );
+            sandbox.stub(el, 'repository').get(() => ({ aem: { sites: { cf: { fragments: { search } } } } }));
+
+            el.handleTabChange({ target: { selected: 'promotion' } });
+            await el.updateComplete;
+            await new Promise((r) => setTimeout(r, 10));
+            await el.updateComplete;
+
+            expect(el.hasPromoVariations).to.be.true;
+            expect(el.promoVariations.map((variation) => variation.path)).to.deep.equal([orphanPath]);
+        });
+
+        it('does not probe the promotions tree for tabs other than Promotions', async () => {
+            const search = makeSearchStub(sandbox, { [promotionsRoot]: [{ id: 'orphan-id', path: orphanPath }] });
+            const el = await fixture(
+                html`<mas-fragment-variations .fragment=${createEmptyFragment()}></mas-fragment-variations>`,
+            );
+            sandbox.stub(el, 'repository').get(() => ({ aem: { sites: { cf: { fragments: { search } } } } }));
+
+            el.handleTabChange({ target: { selected: 'locale' } });
+            await el.updateComplete;
+            await new Promise((r) => setTimeout(r, 10));
+            await el.updateComplete;
+
+            expect(search.called, 'should not scan the promotions tree').to.be.false;
+        });
+
+        it('does not probe the promotions tree when a known promo variation already exists', async () => {
+            const promoVariation = createVariationFragment({ id: 'known-1', path: `${promotionsRoot}/known/my-card` });
+            const fragment = {
+                path: parentPath,
+                listLocaleVariations: () => [],
+                listPromoVariations: () => [promoVariation],
+                listGroupedVariations: () => [],
+            };
+            const search = makeSearchStub(sandbox, { [promotionsRoot]: [{ id: 'orphan-id', path: orphanPath }] });
+            const el = await fixture(html`<mas-fragment-variations .fragment=${fragment}></mas-fragment-variations>`);
+            sandbox.stub(el, 'repository').get(() => ({ aem: { sites: { cf: { fragments: { search } } } } }));
+
+            el.handleTabChange({ target: { selected: 'promotion' } });
+            await el.updateComplete;
+            await new Promise((r) => setTimeout(r, 10));
+            await el.updateComplete;
+
+            expect(search.called, 'should not scan the promotions tree').to.be.false;
         });
     });
 });

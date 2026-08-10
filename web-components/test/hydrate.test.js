@@ -75,7 +75,11 @@ describe('normalizeVariant', () => {
         expect(normalizeVariant('plans-v2')).to.equal('plans');
     });
 
-    it('normalizes bizpro to plans for shared collection styling', () => {
+    it('normalizes pro to plans for shared collection styling', () => {
+        expect(normalizeVariant('pro')).to.equal('plans');
+    });
+
+    it('still normalizes legacy bizpro to plans', () => {
         expect(normalizeVariant('bizpro')).to.equal('plans');
     });
 
@@ -695,6 +699,35 @@ describe('hydrate', () => {
         );
     });
 
+    it('sets data-promotion-project and data-promotion-variation-project independently', async () => {
+        const fragment = {
+            promoProject: 'Summer Sale 2026',
+            promoVariationProject: 'Layout Experiment A',
+            fields: {
+                variant: 'ccd-slice',
+                mnemonicIcon: ['test/mocks/img/photoshop.svg'],
+                mnemonicAlt: [],
+                mnemonicLink: ['www.adobe.com'],
+                backgroundImage: 'test/mocks/img/photoshop.svg',
+                ctas: '<a is="checkout-link" data-wcs-osi="abm" class="accent" data-analytics-id="buy-now">Click me</a>',
+                tags: ['mas:term/montly', 'mas:product_code/ccsn'],
+            },
+            settings: {
+                secureLabel: 'Secure Label',
+            },
+        };
+        merchCard.variantLayout = {
+            aemFragmentMapping: CCD_SLICE_AEM_FRAGMENT_MAPPING,
+        };
+        await hydrate(fragment, merchCard);
+        expect(merchCard.getAttribute('data-promotion-project')).to.equal(
+            'Summer Sale 2026',
+        );
+        expect(
+            merchCard.getAttribute('data-promotion-variation-project'),
+        ).to.equal('Layout Experiment A');
+    });
+
     it('hydrates MerchCard with variationId and merch-addon for plans variant', async () => {
         const litCard = document.createElement('merch-card');
         document.body.appendChild(litCard);
@@ -722,16 +755,16 @@ describe('hydrate', () => {
         litCard.remove();
     });
 
-    it('injects merch-addon at slot="addon" for bizpro variant', async () => {
+    it('injects merch-addon at slot="addon" for pro variant', async () => {
         const litCard = document.createElement('merch-card');
         document.body.appendChild(litCard);
         await customElements.whenDefined('merch-card');
 
         const addonHtml = `<p><strong>Add Acrobat AI Assistant to your plan for </strong><span is="inline-price" data-template="price" data-wcs-osi="ai"></span></p>`;
         const fragment = {
-            id: 'bizpro-addon',
+            id: 'pro-addon',
             fields: {
-                variant: 'bizpro',
+                variant: 'pro',
                 cardTitle: 'Creative Cloud Pro',
                 prices: '<p><span is="inline-price" data-template="price" data-wcs-osi="main"></span></p>',
                 ctas: '<a class="accent" data-wcs-osi="main">Buy</a>',
@@ -742,6 +775,26 @@ describe('hydrate', () => {
         expect(litCard.addon).to.exist;
         expect(litCard.addon.tagName.toLowerCase()).to.equal('merch-addon');
         expect(litCard.addon.getAttribute('slot')).to.equal('addon');
+        litCard.remove();
+    });
+
+    it('hydrates a legacy bizpro fragment as pro', async () => {
+        const litCard = document.createElement('merch-card');
+        document.body.appendChild(litCard);
+        await customElements.whenDefined('merch-card');
+
+        const fragment = {
+            id: 'legacy-bizpro',
+            fields: {
+                variant: 'bizpro',
+                cardTitle: 'Creative Cloud Pro',
+                prices: '<p><span is="inline-price" data-template="price" data-wcs-osi="main"></span></p>',
+                ctas: '<a class="accent" data-wcs-osi="main">Buy</a>',
+            },
+        };
+        await hydrate(fragment, litCard);
+        expect(litCard.variant).to.equal('pro');
+        expect(litCard.getAttribute('variant')).to.equal('pro');
         litCard.remove();
     });
 
@@ -812,6 +865,29 @@ describe('hydrate', () => {
         await hydrate(fragment, litCard);
         expect(litCard.promotionCode).to.equal('CTX_PROMO');
         litCard.remove();
+    });
+
+    it('keeps each collection card promoCode on its own card when two cards have different promos', async () => {
+        await customElements.whenDefined('merch-card');
+        const cardA = document.createElement('merch-card');
+        const cardB = document.createElement('merch-card');
+        document.body.append(cardA, cardB);
+        const makeFragment = (id, promoCode) => ({
+            id,
+            fields: {
+                variant: 'ccd-slice',
+                promoCode,
+                mnemonicIcon: [],
+                mnemonicAlt: [],
+                mnemonicLink: [],
+            },
+        });
+        await hydrate(makeFragment('collection-card-a', 'PROMO_A'), cardA);
+        await hydrate(makeFragment('collection-card-b', 'PROMO_B'), cardB);
+        expect(cardA.promotionCode).to.equal('PROMO_A');
+        expect(cardB.promotionCode).to.equal('PROMO_B');
+        cardA.remove();
+        cardB.remove();
     });
 });
 
@@ -920,6 +996,43 @@ describe('MerchCard fragment promo on prices via checkReady', () => {
     });
 });
 
+describe('MerchCard data-promotion-code attribute', () => {
+    let card;
+
+    beforeEach(async () => {
+        await customElements.whenDefined('merch-card');
+        card = document.createElement('merch-card');
+        document.body.appendChild(card);
+    });
+
+    afterEach(() => {
+        card.remove();
+    });
+
+    it('sets data-promotion-code attribute when contextPromotionCode is assigned', () => {
+        card.contextPromotionCode = 'SUMMER_PROMO';
+        expect(card.getAttribute('data-promotion-code')).to.equal(
+            'SUMMER_PROMO',
+        );
+    });
+
+    it('does not have data-promotion-code attribute when contextPromotionCode is not set', () => {
+        expect(card.hasAttribute('data-promotion-code')).to.be.false;
+    });
+
+    it('removes data-promotion-code attribute when contextPromotionCode is cleared', () => {
+        card.contextPromotionCode = 'SUMMER_PROMO';
+        card.contextPromotionCode = undefined;
+        expect(card.hasAttribute('data-promotion-code')).to.be.false;
+    });
+
+    it('updates data-promotion-code attribute when contextPromotionCode changes at runtime', () => {
+        card.contextPromotionCode = 'PROMO_A';
+        card.contextPromotionCode = 'PROMO_B';
+        expect(card.getAttribute('data-promotion-code')).to.equal('PROMO_B');
+    });
+});
+
 describe('processDescription', async () => {
     let merchCard;
     let aemFragmentMapping;
@@ -996,29 +1109,6 @@ describe('processDescription', async () => {
         expect(merchCard.innerHTML).to.equal(
             '<div slot="body-xs"><sp-button treatment="fill" variant="accent" tabindex="0" size="m" dir="ltr">Click me</sp-button></div>',
         );
-    });
-
-    it('should convert primary-link and secondary-link to sp-link when spectrum is swc', async () => {
-        const fields = {
-            description: `See <a href="#" class="primary-link">Primary</a> and <a href="#" class="secondary-link">Secondary</a>`,
-        };
-        merchCard.spectrum = 'swc';
-
-        processDescription(fields, merchCard, aemFragmentMapping);
-        updateLinksCSS(merchCard);
-
-        const primary = merchCard.querySelector('sp-link[href="#"]');
-        const secondary = merchCard.querySelector(
-            'sp-link[variant="secondary"]',
-        );
-        expect(primary).to.exist;
-        expect(primary.tagName.toLowerCase()).to.equal('sp-link');
-        expect(primary.hasAttribute('variant')).to.be.false;
-        expect(primary.textContent.trim()).to.equal('Primary');
-        expect(secondary).to.exist;
-        expect(secondary.textContent.trim()).to.equal('Secondary');
-        expect(merchCard.querySelector('a.primary-link')).to.be.null;
-        expect(merchCard.querySelector('a.secondary-link')).to.be.null;
     });
 
     it('should preserve primary-link and secondary-link on consonant cards', async () => {
@@ -1098,6 +1188,36 @@ describe('processAddon', async () => {
         const addon = merchCard.querySelector('merch-addon');
         expect(addon).to.exist;
         expect(addon.innerHTML).to.equal('<p>Fragment addon</p>');
+    });
+
+    it('should extract background from merch-addon wrapper and set it as attribute', () => {
+        const gradient =
+            'linear-gradient(211deg, rgb(245, 246, 253) 33.52%, rgb(248, 241, 248) 67.33%, rgb(249, 233, 237) 110.37%)';
+        processAddon(
+            {
+                addon: `<merch-addon background="${gradient}"><p>Add Lightroom</p></merch-addon>`,
+            },
+            merchCard,
+            PLANS_AEM_FRAGMENT_MAPPING,
+        );
+
+        const addon = merchCard.querySelector('merch-addon');
+        expect(addon).to.exist;
+        expect(addon.getAttribute('background')).to.equal(gradient);
+        expect(addon.innerHTML).to.equal('<p>Add Lightroom</p>');
+    });
+
+    it('should not set background attribute when no wrapper is present', () => {
+        processAddon(
+            { addon: '<p>Add Lightroom</p>' },
+            merchCard,
+            PLANS_AEM_FRAGMENT_MAPPING,
+        );
+
+        const addon = merchCard.querySelector('merch-addon');
+        expect(addon).to.exist;
+        expect(addon.getAttribute('background')).to.be.null;
+        expect(addon.innerHTML).to.equal('<p>Add Lightroom</p>');
     });
 });
 

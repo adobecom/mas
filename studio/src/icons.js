@@ -113,6 +113,32 @@ export const settingsEmptyStateIcon = html`<svg
     />
 </svg>`;
 
+export const noItemsSelectedIcon = html`<svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 44 44"
+    fill="none"
+    aria-hidden="true"
+>
+    <path d="M11 3L19 11L11 19L3 11Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" />
+    <rect x="25" y="3" width="16" height="16" rx="1.5" stroke="currentColor" stroke-width="1.5" />
+    <rect x="3" y="25" width="16" height="16" rx="1.5" stroke="currentColor" stroke-width="1.5" />
+    <path d="M33 27L41 41H25Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" />
+</svg>`;
+
+export const uploadIcon = html`<svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 20 20"
+    fill="currentColor"
+    aria-hidden="true"
+>
+    <path
+        d="m13.52734,10.49121l-3.00244-2.99805c-.29297-.29297-.76709-.29297-1.06006,0l-2.99756,2.99805c-.29297.29297-.29297.76758,0,1.06055.14648.14648.33838.21973.53027.21973s.38379-.07324.53027-.21973l1.72217-1.72217v8.18018c0,.41406.33594.75.75.75s.75-.33594.75-.75v-8.17285l1.71777,1.71484c.29297.29297.76758.29297,1.06055,0,.29248-.29297.29248-.76855-.00098-1.06055Z"
+    />
+    <path
+        d="m15.75,17h-2.79883c-.41406,0-.75-.33594-.75-.75s.33594-.75.75-.75h2.79883c.41357,0,.75-.33691.75-.75V4.25c0-.41309-.33643-.75-.75-.75H4.25c-.41357,0-.75.33691-.75.75v10.5c0,.41309.33643.75.75.75h2.72559c.41406,0,.75.33594.75.75s-.33594.75-.75.75h-2.72559c-1.24072,0-2.25-1.00977-2.25-2.25V4.25c0-1.24023,1.00928-2.25,2.25-2.25h11.5c1.24072,0,2.25,1.00977,2.25,2.25v10.5c0,1.24023-1.00928,2.25-2.25,2.25Z"
+    />
+</svg>`;
+
 export const dragHandleIcon = html`<svg
     width="14"
     height="14"

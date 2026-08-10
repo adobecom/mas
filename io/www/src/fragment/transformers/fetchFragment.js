@@ -1,6 +1,6 @@
 import { fetch } from '../utils/common.js';
 import { getErrorContext } from '../utils/log.js';
-import { PATH_TOKENS, odinReferences } from '../utils/paths.js';
+import { PATH_TOKENS, odinReferences, REFERENCES } from '../utils/paths.js';
 
 const TRANSFORMER_NAME = 'fetchFragment';
 
@@ -9,10 +9,10 @@ const TRANSFORMER_NAME = 'fetchFragment';
  * without waiting on default-locale variation fetch. Shared via `promises.requestInfos` so dictionary/settings inits
  * can proceed in parallel with that work.
  */
-async function fetchRequestInfosPhase1(initContext) {
+async function resolveRequestInfos(initContext) {
     const { id, locale, fragmentsIds, preview } = initContext;
     const toFetchId = fragmentsIds?.['default-locale-id'] || id;
-    const path = odinReferences(toFetchId, true, preview);
+    const path = odinReferences(toFetchId, preview, REFERENCES.ALL);
     const response = await fetch(path, initContext, 'fragment');
     if (response?.status != 200) {
         return await getErrorContext(response);
@@ -35,16 +35,16 @@ async function fetchRequestInfosPhase1(initContext) {
 }
 
 /**
- * Phase 1 only: first fragment fetch + path parse. Result is `promises.fetchFragment` (and `promises.requestInfos`).
+ * First fragment fetch + path parse. Result is `promises.fetchFragment` (and `promises.requestInfos`).
  * Default-language variation + region locale run in the `defaultLanguage` transformer (before promotions).
  */
 function init(initContext) {
     const { promises } = initContext;
-    const phase1Promise = fetchRequestInfosPhase1(initContext);
+    const requestInfosPromise = resolveRequestInfos(initContext);
     if (promises) {
-        promises.requestInfos = phase1Promise;
+        promises.requestInfos = requestInfosPromise;
     }
-    return phase1Promise;
+    return requestInfosPromise;
 }
 
 async function fetchFragment(context) {

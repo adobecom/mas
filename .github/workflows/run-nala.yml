@@ -12,13 +12,39 @@ concurrency:
     cancel-in-progress: true
 
 jobs:
+    check-paths:
+        name: Check Changed Paths
+        runs-on: ubuntu-latest
+        outputs:
+            is-trivial: ${{ steps.filter.outputs.trivial }}
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+            - name: Detect trivial-only changes
+              id: filter
+              uses: ./.github/actions/detect-trivial
+              with:
+                  base-ref: ${{ github.event.pull_request.base.ref }}
+
     nala-gate:
         name: Nala Gate
+        needs: check-paths
+        if: always()
         runs-on: ubuntu-latest
         steps:
+            - name: Fail if check-paths did not succeed
+              if: needs.check-paths.result != 'success'
+              run: |
+                  echo "::error::check-paths job did not succeed (result: ${{ needs.check-paths.result }})"
+                  exit 1
+            - name: Pass gate for trivial PRs
+              if: needs.check-paths.outputs.is-trivial == 'true'
+              run: echo "Trivial PR — skipping Nala gate"
             - name: Require 'run nala' label
-              # Only enforce label requirement for synchronize events, not when PR is first opened
+              # Bypass only via git-computed is-trivial (check-paths), not the mutable 'trivial' label.
               if: |
+                  needs.check-paths.outputs.is-trivial != 'true' &&
                   github.event.action != 'opened' &&
                   !contains(github.event.pull_request.labels.*.name, 'run nala')
               run: |
@@ -27,14 +53,14 @@ jobs:
 
     run-nala-studio-tests:
         name: Running Nala Studio E2E UI Tests
-        needs: nala-gate
-        # Run when PR is opened (no label needed) OR when 'run nala' label exists
-        # This covers: opened (always), synchronize (if label exists), labeled (if label exists)
+        needs: [nala-gate, check-paths]
         if: |
-            github.event.action == 'opened' ||
-            contains(github.event.pull_request.labels.*.name, 'run nala')
+            needs.nala-gate.result == 'success' &&
+            needs.check-paths.outputs.is-trivial != 'true' &&
+            (github.event.action == 'opened' ||
+            contains(github.event.pull_request.labels.*.name, 'run nala'))
         runs-on: [self-hosted, Linux, X64]
-        timeout-minutes: 30 # Prevent hanging jobs
+        timeout-minutes: 45 # Prevent hanging jobs
         strategy:
             matrix:
                 node-version: [20.x]
@@ -111,12 +137,12 @@ jobs:
 
     run-nala-docs-tests:
         name: Running Nala Docs E2E UI Tests
-        needs: nala-gate
-        # Run when PR is opened (no label needed) OR when 'run nala' label exists
-        # This covers: opened (always), synchronize (if label exists), labeled (if label exists)
+        needs: [nala-gate, check-paths]
         if: |
-            github.event.action == 'opened' ||
-            contains(github.event.pull_request.labels.*.name, 'run nala')
+            needs.nala-gate.result == 'success' &&
+            needs.check-paths.outputs.is-trivial != 'true' &&
+            (github.event.action == 'opened' ||
+            contains(github.event.pull_request.labels.*.name, 'run nala'))
         runs-on: [self-hosted, Linux, X64]
         timeout-minutes: 20 # Prevent hanging jobs
         strategy:
@@ -129,20 +155,19 @@ jobs:
                   fetch-depth: 0
 
             - name: Fetch base branch for diff
-              run: git fetch origin ${{ github.event.pull_request.base.ref }}
+              env:
+                  BASE_REF: ${{ github.event.pull_request.base.ref }}
+              run: git fetch origin "${BASE_REF}"
 
             - name: Detect io/www changes
               id: filter
+              env:
+                  BASE_REF: ${{ github.event.pull_request.base.ref }}
               run: |
-                  if git diff --quiet origin/${{ github.event.pull_request.base.ref }}...HEAD -- io/www/ 2>/dev/null; then
-                      echo "io-www=false" >> $GITHUB_OUTPUT
+                  if git diff --quiet "origin/${BASE_REF}...HEAD" -- io/www/ 2>/dev/null; then
+                      echo "io-www=false" >> "$GITHUB_OUTPUT"
                   else
-                      status=$?
-                      if [ "$status" -eq 1 ]; then
-                          echo "io-www=true" >> $GITHUB_OUTPUT
-                      else
-                          echo "io-www=false" >> $GITHUB_OUTPUT
-                      fi
+                      echo "io-www=true" >> "$GITHUB_OUTPUT"
                   fi
 
             - name: Set up Node.js ${{ matrix.node-version }}
@@ -182,14 +207,16 @@ jobs:
 
             - name: Set MAS_IO_URL when io/www has changes
               if: steps.filter.outputs.io-www == 'true'
+              env:
+                  ACTOR_NS: ${{ secrets[format('AIO_NS_{0}', github.event.pull_request.user.login)] }}
+                  ACTOR_LOGIN: ${{ github.event.pull_request.user.login }}
               run: |
-                  if [ -z "${{ secrets.AIO_WWW_NS }}" ]; then
-                    echo "::error::Missing required secret: AIO_WWW_NS"
+                  if [ -z "$ACTOR_NS" ]; then
+                    echo "::error::Missing AIO namespace secret AIO_NS_${ACTOR_LOGIN} for PR author"
                     exit 1
                   fi
-                  ACTOR_NS="${{ secrets.AIO_WWW_NS }}-${{ github.event.pull_request.user.login }}"
-                  echo "Using AIO namespace: PR author (${{ github.event.pull_request.user.login }})"
-                  echo "MAS_IO_URL=?mas-io-url=https://${ACTOR_NS}.adobeioruntime.net/api/v1/web/MerchAtScale" >> $GITHUB_ENV
+                  echo "Using AIO namespace for PR author ${ACTOR_LOGIN}"
+                  echo "MAS_IO_URL=?mas-io-url=https://${ACTOR_NS}.adobeioruntime.net/api/v1/web/MerchAtScale" >> "$GITHUB_ENV"
 
             - name: Run Nala Docs Tests via gh.run.sh
               run: ./nala/utils/gh.run.sh

@@ -12,6 +12,7 @@ import ReactiveController from '../reactivity/reactive-controller.js';
 import { parseStudioDeepLinksFromText, showToast } from '../utils.js';
 import { applyCorrectorToFragment } from '../utils/corrector-helper.js';
 import { renderSpIcon } from '../constants/icon-library.js';
+import '../fields/mnemonic-field.js';
 
 const CARDS_SECTION = 'cards-section';
 

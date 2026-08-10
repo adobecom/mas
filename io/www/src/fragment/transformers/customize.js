@@ -3,12 +3,11 @@ import {
     CARD_MODEL_ID,
     getRequestInfos,
     matchesGeo,
+    PZN_FOLDER,
     skimFragmentFromReferences,
     VALID_PARAMETER_VALUE_REGEX,
 } from '../utils/common.js';
 import { logDebug, logError } from '../utils/log.js';
-
-const PZN_FOLDER = '/pzn/';
 
 // Per-variant fields whose array values must be concatenated (parent + child) rather than overwritten.
 const MERGE_CONFIG = {
@@ -33,19 +32,25 @@ async function resolveFragmentInit(context, requestInfos) {
 }
 
 function deepMerge(...objects) {
+    return _deepMerge(true, ...objects);
+}
+
+function _deepMerge(topLevel, ...objects) {
     const result = {};
-    MERGE_CONFIG.DO_NOT_MERGE_KEYS.map((key) => {
-        if (objects[0]?.[key] !== undefined) {
-            result[key] = objects[0][key];
-        }
-    });
+    if (topLevel) {
+        MERGE_CONFIG.DO_NOT_MERGE_KEYS.map((key) => {
+            if (objects[0]?.[key] !== undefined) {
+                result[key] = objects[0][key];
+            }
+        });
+    }
     for (const obj of objects) {
         for (const key in obj) {
-            if (MERGE_CONFIG.DO_NOT_MERGE_KEYS.includes(key)) {
+            if (topLevel && MERGE_CONFIG.DO_NOT_MERGE_KEYS.includes(key)) {
                 continue;
             }
             if (typeof obj[key] === 'object' && obj[key] !== null && !Array.isArray(obj[key])) {
-                result[key] = deepMerge(result[key] || {}, obj[key]);
+                result[key] = _deepMerge(false, result[key] || {}, obj[key]);
             } else {
                 if (!Array.isArray(obj[key]) || obj[key].length > 0) {
                     // Preserve left value when right is undefined; only overwrite for '' (explicit clear) or other defined values
@@ -94,14 +99,31 @@ function parsePznTokens(pzn) {
         .filter(Boolean);
 }
 
+const PZN_TAG_RE = /(?:^|[/:])pzn\/(.+)$/i;
+
 function countMatchedPznTokens(tags, tokens) {
     let n = 0;
     for (const token of tokens) {
-        if (tags.some((tag) => Boolean(tag && token && tag.endsWith(`${PZN_FOLDER}${token}`)))) {
+        if (
+            tags.some((tag) => {
+                const match = tag && PZN_TAG_RE.exec(tag);
+                return match && match[1].toLowerCase() === token.toLowerCase();
+            })
+        ) {
             n += 1;
         }
     }
     return n;
+}
+
+/**
+ * Region match beats country match when resolving ties (applies to both pzn and promo variations).
+ * @param {{ region?: boolean, country?: boolean }|null|undefined} geo
+ * @returns {number}
+ */
+function geoMatchScore(geo) {
+    if (!geo) return 0;
+    return (geo.region ? 2 : 0) + (geo.country ? 1 : 0);
 }
 
 /**
@@ -124,13 +146,21 @@ function personalizationMatchScore(pznTags, { regionLocale, country, pzn }) {
     if (matchedTokens === 0 && !geo) {
         return 0;
     }
-    return matchedTokens * 100 + (geo?.region ? 20 : 0) + (geo?.country ? 10 : 0);
+    return matchedTokens * 100 + geoMatchScore(geo) * 10;
 }
 
-function findPersonalizationVariation(variations, customizeContext) {
+/**
+ * @param {Set<string>} [allowedPaths] - Optional set to restrict candidates to curated grouped variations.
+ */
+function findPersonalizationVariation(variations, customizeContext, allowedPaths) {
     const { country, pzn, references, regionLocale, surface, defaultLocale } = customizeContext;
     const pattern = new RegExp(`/content/dam/mas/${surface}/${defaultLocale}/([^/]+)${PZN_FOLDER}.+`);
-    const personalizationVariations = extractVariationBasedOnPath(variations, references, pattern);
+    let personalizationVariations = extractVariationBasedOnPath(variations, references, pattern);
+    if (allowedPaths) {
+        personalizationVariations = personalizationVariations.filter((variation) =>
+            allowedPaths.has(PATH_TOKENS.exec(variation.path).groups.fragmentPath),
+        );
+    }
     if (personalizationVariations.length === 0) {
         logDebug(() => `No personalization variation found for region locale ${regionLocale}`, customizeContext);
         return null;
@@ -157,45 +187,151 @@ function findPersonalizationVariation(variations, customizeContext) {
     return null;
 }
 
-function findPromoVariation(root, customizeContext) {
-    const promoProjects = customizeContext.promoProjects;
-    if (!promoProjects?.length) return null;
-    const match = PATH_TOKENS.exec(root.path);
-    if (!match?.groups) return null;
-    const { fragmentPath } = match.groups;
-    for (const { project } of promoProjects) {
-        const defaultVar = project.defaultVariations?.[fragmentPath];
-        const regionVar = project.regionVariations?.[fragmentPath];
-        logDebug(() => `findPromoVariation defaultVar: ${JSON.stringify(defaultVar)}`, customizeContext);
-        logDebug(() => `findPromoVariation regionVar: ${JSON.stringify(regionVar)}`, customizeContext);
-        if (!defaultVar && !regionVar) continue;
-        if (!defaultVar) return regionVar;
-        if (!regionVar) return defaultVar;
-        return deepMerge(defaultVar, regionVar);
-    }
-    return null;
+// Human-readable provenance for a promo project that touched a fragment: campaign title when
+// available, otherwise the project id. Variation-merge and promoCode-application provenance are
+// tracked separately (a fragment may be touched by two different projects), and exposed downstream
+// as data-promotion-variation-project and data-promotion-project respectively.
+function promoProjectLabel(project) {
+    return project.title ?? project.id;
 }
 
-function findPromoMapForFragment(root, customizeContext) {
-    const promoProjects = customizeContext.promoProjects;
-    if (!promoProjects?.length) return null;
-    const match = PATH_TOKENS.exec(root.path);
-    if (!match?.groups) return null;
-    const { fragmentPath } = match.groups;
-    for (const { promoMap, substituteMap, fragmentPaths } of promoProjects) {
-        if (fragmentPaths.has(fragmentPath)) return { promoMap, substituteMap };
+// Upper bound for probing suffixed promo variation paths (`-2`, `-3`, ...) per fragment.
+// Kept in sync by hand with the same constant + `-N` suffix convention in
+// studio/src/promotions/promotion-variations.js (separate runtime, no shared import).
+const MAX_PROMO_VARIATIONS_PER_FRAGMENT = 50;
+
+// Collects same fragment geo promos to select the best match.
+function collectPromoVariationCandidates(variationsByPath, fragmentPath) {
+    const candidates = [];
+    if (variationsByPath[fragmentPath]) candidates.push(variationsByPath[fragmentPath]);
+    for (let index = 2; index <= MAX_PROMO_VARIATIONS_PER_FRAGMENT; index += 1) {
+        const candidate = variationsByPath[`${fragmentPath}-${index}`];
+        if (candidate) candidates.push(candidate);
     }
-    return null;
+    return candidates;
 }
 
-function mergeVariations(root, customizeContext) {
+/**
+ * Picks the best geo match for a fragment.
+ * Candidates without pznTags act as fallbacks for legacy, non geo scoped promos.
+ */
+function selectBestPromoVariation(candidates, { regionLocale, country }) {
+    let fallback = null;
+    let best = null;
+    let bestScore = 0;
+    for (const candidate of candidates) {
+        const pznTags = candidate.fields?.pznTags;
+        if (!Array.isArray(pznTags) || pznTags.length === 0) {
+            fallback ??= candidate;
+            continue;
+        }
+        const geo = matchesGeo(pznTags, { regionLocale, country });
+        if (!geo) continue;
+        const score = geoMatchScore(geo);
+        if (score > bestScore) {
+            bestScore = score;
+            best = candidate;
+        }
+    }
+    return best || fallback;
+}
+
+function findPromoVariation(root, customizeContext, selectedPromoProject) {
+    // Only the single project selected for this fragment may contribute a promo variation
+    if (!selectedPromoProject) return null;
+    const { fragmentPath } = PATH_TOKENS.exec(root.path).groups;
+    const { regionLocale, country } = customizeContext;
+    const { project } = selectedPromoProject;
+    const defaultVar = selectBestPromoVariation(collectPromoVariationCandidates(project.defaultVariations, fragmentPath), {
+        regionLocale,
+        country,
+    });
+    const regionVar = selectBestPromoVariation(collectPromoVariationCandidates(project.regionVariations, fragmentPath), {
+        regionLocale,
+        country,
+    });
+    logDebug(() => `findPromoVariation defaultVar: ${JSON.stringify(defaultVar)}`, customizeContext);
+    logDebug(() => `findPromoVariation regionVar: ${JSON.stringify(regionVar)}`, customizeContext);
+    if (!defaultVar && !regionVar) return null;
+    if (!defaultVar) return { variation: regionVar, project };
+    if (!regionVar) return { variation: defaultVar, project };
+    return { variation: deepMerge(defaultVar, regionVar), project };
+}
+
+function findPromoMapsForFragment(root, customizeContext) {
+    const promoProjects = customizeContext.promoProjects;
+    if (!promoProjects?.length) return [];
+    const match = PATH_TOKENS.exec(root.path);
+    if (!match?.groups) return [];
+    const { fragmentPath } = match.groups;
+    return promoProjects.filter(({ fragmentPaths }) => fragmentPaths.has(fragmentPath));
+}
+
+function hasExplicitMapping(osis, customizeContext, { project, promoMap, substituteMap }) {
+    const value = osis.some((osi) => promoMap[osi] !== undefined || substituteMap?.[osi] !== undefined);
+    logDebug(
+        () =>
+            `Project ${promoProjectLabel(project)} (${project.id}), explicit mapping for osis ${JSON.stringify(osis)}: ${value}`,
+        customizeContext,
+    );
+    return value;
+}
+
+/**
+ * Selects a single promo project for a fragment. Seasonal (time-boxed, has an `endDate`)
+ * promo projects always take priority over evergreen ones.
+ *
+ * Within whichever group (seasonal, else evergreen) is considered, priority order is:
+ * promo project with an explicit mapping (osi replace or promo code) for a given geo & fragment.offer
+ * promo project with a wildcard promo code
+ * if no mapping - seasonal can still be taken as a fallback.
+ * evergreen without a mapping doesn't apply.
+ * there should be no fallback to mapping-less evergreen promo project
+ *
+ * @returns the selected `{ project, promoMap, substituteMap, fragmentPaths }` entry, or null
+ *          when no promo project targets the fragment.
+ */
+function selectPromoProjectForFragment(root, customizeContext) {
+    const promoEntries = findPromoMapsForFragment(root, customizeContext);
+    if (!promoEntries.length) return null;
+    const fragOsi = root.fields?.osi;
+    const osis = fragOsi
+        ? (Array.isArray(fragOsi) ? fragOsi : fragOsi.split(',')).map((osi) => osi.trim()).filter(Boolean)
+        : [];
+    logDebug(() => `selectPromoProjectForFragment osis: ${JSON.stringify(osis)}`, customizeContext);
+
+    const seasonalEntries = [];
+    const evergreenEntries = [];
+    for (const entry of promoEntries) {
+        (entry.project.seasonal ? seasonalEntries : evergreenEntries).push(entry);
+    }
+
+    const selected =
+        seasonalEntries.find((entry) => hasExplicitMapping(osis, customizeContext, entry)) ??
+        seasonalEntries.find((entry) => entry.hasWildcard) ??
+        seasonalEntries[0] ??
+        evergreenEntries.find((entry) => hasExplicitMapping(osis, customizeContext, entry)) ??
+        evergreenEntries.find((entry) => entry.hasWildcard) ??
+        null;
+    if (!selected) return null;
+    logDebug(
+        () =>
+            `Selected promo project ${selected.project.id} for fragment ${root.id} out of ${promoEntries.length} targeting project(s)`,
+        customizeContext,
+    );
+    return selected;
+}
+
+function mergeVariations(root, customizeContext, selectedPromoProject) {
     const { isRegionLocale } = customizeContext;
     // Promo variation takes priority, independent of fields.variations
-    const promoVariation = findPromoVariation(root, customizeContext);
+    const promoVariation = findPromoVariation(root, customizeContext, selectedPromoProject);
     if (promoVariation) {
-        logDebug(() => `Merging promo variation ${promoVariation.id} for fragment ${root.id}`, customizeContext);
-        const merged = deepMerge(root, promoVariation);
-        merged.variationId = promoVariation.id;
+        const { variation, project } = promoVariation;
+        logDebug(() => `Merging promo variation ${variation.id} for fragment ${root.id}`, customizeContext);
+        const merged = deepMerge(root, variation);
+        merged.variationId = variation.id;
+        merged.promoVariationProject = promoProjectLabel(project);
         return merged;
     }
     const variations = root?.fields?.variations;
@@ -213,7 +349,11 @@ function mergeVariations(root, customizeContext) {
             return merged;
         }
     }
-    const personalizationVariation = findPersonalizationVariation(variations, customizeContext);
+    // Restrict personalization to curated grouped variations for promo projects.
+    const groupedVariationPaths = selectedPromoProject?.groupedVariationPaths;
+    const personalizationVariation = groupedVariationPaths?.size
+        ? findPersonalizationVariation(variations, customizeContext, groupedVariationPaths)
+        : findPersonalizationVariation(variations, customizeContext);
     if (personalizationVariation) {
         logDebug(
             () => `Merging personalization variation ${personalizationVariation.id} for fragment ${root.id}`,
@@ -224,24 +364,6 @@ function mergeVariations(root, customizeContext) {
         return merged;
     }
     return root;
-}
-
-function applyPromoCode(fragment, promoMap, substituteMap, context) {
-    const fragOsi = fragment.fields?.osi;
-    if (!fragOsi) return;
-    const osis = Array.isArray(fragOsi) ? fragOsi : [fragOsi];
-    const effectiveOsis = osis.map((o) => substituteMap?.[o] ?? o);
-    let promoCode = promoMap['*'];
-    for (const osi of effectiveOsis) {
-        if (promoMap[osi]) {
-            promoCode = promoMap[osi];
-            break;
-        }
-    }
-    if (promoCode) {
-        logDebug(() => `Setting promoCode ${promoCode} on fragment ${fragment.id}`, context);
-        fragment.fields.promoCode = promoCode;
-    }
 }
 
 /**
@@ -292,11 +414,21 @@ function adaptReferencesTree(referencesTree, customizedRoot) {
  * @returns
  */
 function customizeTree(root, referencesTree = [], customizeContext) {
-    //start by merging current fragment with its regional variation, and promos if any
-    const customizedRoot = mergeVariations(root, customizeContext);
-    const promoEntry = findPromoMapForFragment(root, customizeContext);
-    if (promoEntry) {
-        applyPromoCode(customizedRoot, promoEntry.promoMap, promoEntry.substituteMap, customizeContext);
+    const selectedPromoProject = selectPromoProjectForFragment(root, customizeContext);
+    //apply regional or promo variation, if any.
+    const customizedRoot = mergeVariations(root, customizeContext, selectedPromoProject);
+    if (selectedPromoProject) {
+        // set data-promotion-project attribute, even when the project
+        // only substitutes the OSI (no promo code and no variation).
+        customizedRoot.promoProject = promoProjectLabel(selectedPromoProject.project);
+        // Record this fragment's promo scope by id. Promo code application and OSI substitution
+        // happen later, in the wcs transformer (after `replace`), so OSIs injected via placeholder
+        // values are covered too. Recorded on context (not on the fragment) so nothing leaks into
+        // the response via skimFragmentFromReferences.
+        if (customizedRoot.id != null) {
+            const { promoMap, substituteMap } = selectedPromoProject;
+            customizeContext.promoScopeById[customizedRoot.id] = { promoMap, substituteMap };
+        }
     }
 
     //adapt referencesTree to match the customized root's cards/collections
@@ -365,6 +497,8 @@ async function customize(context) {
         regionLocale,
         references,
         surface,
+        // Accumulates each in-scope fragment's promo scope by fragment id, consumed by the wcs transformer.
+        promoScopeById: {},
     };
     if (
         pzn &&
@@ -392,6 +526,7 @@ async function customize(context) {
         status: 200,
         body: customizedFragment,
         defaultLocale,
+        promoScopeById: customizeContext.promoScopeById,
     };
 }
 

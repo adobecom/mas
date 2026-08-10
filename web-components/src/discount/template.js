@@ -1,6 +1,7 @@
 import { isPositiveFiniteNumber } from '@dexter/tacocat-core';
 
 const getDiscount = (price, priceWithoutDiscount) => {
+    if (!priceWithoutDiscount && isPositiveFiniteNumber(price)) return 0;
     if (
         !isPositiveFiniteNumber(price) ||
         !isPositiveFiniteNumber(priceWithoutDiscount)

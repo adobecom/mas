@@ -218,7 +218,7 @@ export default class MasMnemonic extends LitElement {
         super();
         this.content = '';
         this.placement = 'top';
-        this.variant = 'info';
+        this.variant = '';
         this.size = 'xs';
         this.smartPlacement = false;
         this.tooltipVisible = false;
@@ -404,6 +404,7 @@ export default class MasMnemonic extends LitElement {
                 >
                     <span slot="trigger">${this.renderIcon()}</span>
                     <sp-tooltip
+                        slot="hover-content"
                         placement="${placement}"
                         variant="${this.variant}"
                     >

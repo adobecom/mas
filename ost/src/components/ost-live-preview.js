@@ -5,10 +5,12 @@ export class OstLivePreview extends LitElement {
     static properties = {
         placeholderType: { type: String },
         referenceOsi: { type: String },
+        osi: { type: String },
+        offer: { type: Object },
     };
 
     #placeholderNode = null;
-    #showDiscountHint = false;
+    #staticDiscount = false;
 
     static styles = css`
         :host {
@@ -19,8 +21,7 @@ export class OstLivePreview extends LitElement {
         .preview-card {
             background: var(--spectrum-gray-50);
             border-radius: 8px;
-            padding: 20px;
-            min-height: 56px;
+            padding: 12px;
         }
 
         .label {
@@ -29,7 +30,7 @@ export class OstLivePreview extends LitElement {
             color: var(--spectrum-gray-600);
             text-transform: uppercase;
             letter-spacing: 0.05em;
-            margin-bottom: 12px;
+            margin-bottom: 6px;
             display: flex;
             align-items: center;
             gap: 8px;
@@ -46,7 +47,7 @@ export class OstLivePreview extends LitElement {
         }
 
         .placeholder-container {
-            min-height: 40px;
+            min-height: 24px;
         }
 
         .placeholder-container a,
@@ -59,6 +60,23 @@ export class OstLivePreview extends LitElement {
         .placeholder-container span.placeholder-resolved[data-template='promo-strikethrough'],
         .placeholder-container span.price.price-promo-strikethrough {
             text-decoration: line-through;
+        }
+
+        .placeholder-container span.price-strikethrough span.price-recurrence,
+        .placeholder-container span.price-strikethrough span.price-tax-inclusivity {
+            display: none;
+        }
+
+        .placeholder-container sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
         }
 
         .placeholder-container span.placeholder-resolved[data-template='optical'],
@@ -77,12 +95,6 @@ export class OstLivePreview extends LitElement {
 
         .placeholder-container span.price-legal::first-letter {
             text-transform: uppercase;
-        }
-
-        .placeholder-container .discount-hint {
-            font-size: 13px;
-            color: var(--spectrum-gray-600);
-            font-style: italic;
         }
 
         .placeholder-container .price-unit-type:not(.disabled)::before,
@@ -109,40 +121,50 @@ export class OstLivePreview extends LitElement {
     }
 
     willUpdate() {
+        // Resolve geo-aware tax defaults for the selected offer (idempotent per
+        // offer+country). Updates the shared store, which re-renders this row
+        // and the "Disable" checkboxes with the correct DE/EU tax label state.
+        const offer = this.effectiveOffer;
+        if (offer) store.applyGeoTaxDefaults(offer);
         const built = this.#buildPlaceholder();
+        this.#staticDiscount = built?.staticDiscount ?? false;
         this.#placeholderNode = built?.node ?? null;
-        this.#showDiscountHint = built?.showHint ?? false;
     }
 
-    getPanel() {
-        const root = this.getRootNode();
-        return root?.host?.tagName === 'OST-PLACEHOLDER-PANEL' ? root.host : null;
+    get effectiveOsi() {
+        return this.osi || store.selectedOsi;
+    }
+
+    get effectiveOffer() {
+        return this.offer || store.selectedOffer;
     }
 
     buildPlaceholderOptions() {
-        const panel = this.getPanel();
-        if (!panel) return null;
-
-        const osi = store.selectedOsi;
+        const osi = this.effectiveOsi;
         const service = store.masCommerceService;
         if (!osi || !service) return null;
         if (typeof service.createInlinePrice !== 'function') return null;
 
-        const ctrl = panel.placeholderCtrl;
-        const checkoutCtrl = panel.shadowRoot?.querySelector('ost-checkout-options')?.checkout;
-        const type = this.placeholderType || ctrl.selectedType;
-        const options = ctrl.getEffectiveOptions();
-        const promoStatus = store.storedPromoOverride;
-        const promotionCode = store.promotionCode;
+        const type = this.placeholderType;
+        if (!type) return null;
+        // Scope the checkout controller to this row — tryBuy renders one
+        // checkout row per offer, each with its own ost-checkout-options.
+        const checkoutCtrl = this.closest('.placeholder-row')?.querySelector('ost-checkout-options')?.checkout;
+        const options = store.getEffectiveOptions(type);
 
-        const wcsOsi = type === 'discount' && this.referenceOsi ? [osi, this.referenceOsi] : [osi];
+        // Split joined OSIs (soft bundle) so each resolves individually and
+        // the price template sums them.
+        const wcsOsi = type === 'discount' && this.referenceOsi ? [osi, this.referenceOsi] : osi.split(',');
 
         const placeholderOptions = {
             ...options,
-            promotionCode: promoStatus || promotionCode,
+            promotionCode: store.effectivePromoCode,
             wcsOsi,
             template: type,
             clientId: store.checkoutClientId,
+            country: store.country,
+            landscape: store.landscape,
+            'mas-ff-defaults': true,
         };
 
         if (checkoutCtrl) {
@@ -166,11 +188,27 @@ export class OstLivePreview extends LitElement {
         return { type, placeholderOptions, service };
     }
 
+    // The discount % is only computable for a PROMOTION offer — it has a
+    // current price below its priceWithoutDiscount. Everything else (BASE,
+    // TRIAL — a free trial has no price delta to compute) has no discount, so
+    // render a static 0% instead of an empty inline-price preview.
+    #discountIsComputable() {
+        return this.effectiveOffer?.offer_type === 'PROMOTION';
+    }
+
     #buildPlaceholder() {
         const result = this.buildPlaceholderOptions();
         if (!result) return null;
 
         const { type, placeholderOptions, service } = result;
+
+        if (type === 'discount' && !this.referenceOsi && !this.#discountIsComputable()) {
+            // Render 0% as a Lit-managed template node (see render()), not an
+            // imperative DOM node — alternating a raw node with a raw
+            // inline-price node in the same binding makes Lit drop it on the
+            // next selection.
+            return { staticDiscount: true, node: null };
+        }
 
         let node;
         if (type === 'checkoutUrl') {
@@ -188,10 +226,7 @@ export class OstLivePreview extends LitElement {
             node.dataset.template = type;
         }
 
-        const isPromo = store.selectedOffer?.offer_type === 'PROMOTION';
-        const showHint = type === 'discount' && !this.referenceOsi && !isPromo;
-
-        return { node, showHint };
+        return { node };
     }
 
     getTypeName() {
@@ -207,12 +242,9 @@ export class OstLivePreview extends LitElement {
             <div class="preview-card" data-testid="ost-live-preview">
                 <div class="label">Live Preview ${typeName ? html`<span class="type-badge">${typeName}</span>` : nothing}</div>
                 <div class="placeholder-container" data-testid="ost-preview-container">
-                    ${this.#placeholderNode ?? nothing}
-                    ${this.#showDiscountHint
-                        ? html`<span class="discount-hint"
-                              >Enter a reference offer OSI to calculate the discount percentage.</span
-                          >`
-                        : nothing}
+                    ${this.#staticDiscount
+                        ? html`<span class="discount" data-template="discount">0%</span>`
+                        : (this.#placeholderNode ?? nothing)}
                 </div>
             </div>
         `;

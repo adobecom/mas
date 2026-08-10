@@ -250,6 +250,26 @@
                         expect(repository.saveFragment.secondCall.calledWith(fragmentStore, { withToast: false })).to.be.true;
                     });
 
+                    it('migrates a stored bizpro variant to pro when saving', async () => {
+                        const el = document.createElement('mas-fragment-editor');
+                        const fragmentStore = generateFragmentStore(
+                            new Fragment({
+                                model: { path: CARD_MODEL_PATH },
+                                fields: [{ name: 'variant', values: ['bizpro'] }],
+                            }),
+                        );
+                        const repository = {
+                            saveFragment: sandbox.stub().resolves({}),
+                        };
+                        sandbox.stub(el, 'repository').get(() => repository);
+                        sandbox.stub(el, 'fragmentStore').get(() => fragmentStore);
+
+                        await el.saveFragment();
+
+                        expect(fragmentStore.get().getFieldValue('variant')).to.equal('pro');
+                        expect(repository.saveFragment.calledWith(fragmentStore, true)).to.be.true;
+                    });
+
                     it('extracts locale from path', async () => {
                         expect(extractLocaleFromPath('/content/dam/mas/surface/en_US/fragment')).to.equal('en_US');
                     });
@@ -1224,6 +1244,8 @@
                             document.body.appendChild(el);
 
                             await el.updateComplete;
+                            await customElements.whenDefined('mas-compare-chart-editor');
+                            await el.updateComplete;
 
                             expect(el.querySelector('#fragment-editor').classList.contains('compare-chart-editor')).to.be.true;
                             expect(el.querySelector('#editor-content').classList.contains('compare-chart-content')).to.be.true;
@@ -1336,24 +1358,6 @@
                         it('renders preview skeleton', () => {
                             const skeleton = el.previewSkeleton;
                             expect(skeleton).to.not.equal(nothing);
-                        });
-                    });
-
-                    describe('relatedVariationsSection', () => {
-                        let el;
-                        beforeEach(() => {
-                            el = document.createElement('mas-fragment-editor');
-                            sandbox.stub(el.editorContextStore, 'isVariation').returns(false);
-                            const fragment = new Fragment({ id: 'test-id' });
-                            sandbox.stub(fragment, 'getLocaleVariationCount').returns(2);
-                            sandbox.stub(fragment, 'getGroupedVariationCount').returns(2);
-                            sandbox.stub(fragment, 'getPromoVariationCount').returns(1);
-                            el.inEdit.value = { get: () => fragment };
-                        });
-
-                        it('renders variation counts', () => {
-                            const section = el.relatedVariationsSection;
-                            expect(section).to.not.equal(nothing);
                         });
                     });
 

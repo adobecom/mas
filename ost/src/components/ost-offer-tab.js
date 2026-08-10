@@ -1,4 +1,4 @@
-import { LitElement, html, css } from 'lit';
+import { LitElement, html, css, nothing } from 'lit';
 import { store } from '../store/ost-store.js';
 import { applyPlanType } from '@dexter/tacocat-core/src/wcsUtils.js';
 import './ost-offer-card.js';
@@ -144,7 +144,15 @@ export class OstOfferTab extends LitElement {
     get configPanel() {
         const flow = store.authoringFlow;
         if (flow === 'tryBuy' || flow === 'bundle') {
-            return html`<ost-selection-list></ost-selection-list>`;
+            return html`
+                <ost-selection-list></ost-selection-list>
+                ${store.panelGroups.length > 0
+                    ? html`
+                          <ost-placeholder-panel></ost-placeholder-panel>
+                          <ost-promo-tag></ost-promo-tag>
+                      `
+                    : nothing}
+            `;
         }
         if (flow === 'consult') {
             return store.selectedOffer
@@ -165,18 +173,10 @@ export class OstOfferTab extends LitElement {
         const isFocused = flow === 'consult' && store.selectedOffer;
 
         let useLabel = 'Use';
-        let useDisabled = true;
+        let useDisabled = !store.canConfirm;
         let useVariant = 'accent';
 
-        if (flow === 'single') {
-            useDisabled = !store.selectedOffer;
-        } else if (flow === 'tryBuy') {
-            useDisabled = !store.canConfirm;
-            useLabel = store.selectedTrialOsi ? 'Use both offers' : 'Use base offer only';
-        } else if (flow === 'bundle') {
-            useDisabled = !store.canConfirm;
-            useLabel = `Use bundle (${store.selectedOffers.length} offers)`;
-        } else if (flow === 'consult') {
+        if (flow === 'consult') {
             useLabel = isFocused ? 'Use' : 'Close';
             useVariant = isFocused ? 'accent' : 'secondary';
             useDisabled = false;

@@ -8,6 +8,7 @@ import { confirmation } from '../mas-confirm-dialog.js';
 import { showToast } from '../utils.js';
 import { FragmentStore } from '../reactivity/fragment-store.js';
 import { Placeholder } from '../aem/placeholder.js';
+import '../rte/rte-field.js';
 
 class MasPlaceholdersItem extends LitElement {
     static properties = {

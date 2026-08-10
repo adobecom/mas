@@ -49,9 +49,10 @@ config.json
 MerchAtScale-*.json
 masStudio-*.json
 .env*
-.aio
+.aio*
 .cursor
 .superpowers/
+
 
 # Worktree documentation (per-ticket, not committed)
 /docs/

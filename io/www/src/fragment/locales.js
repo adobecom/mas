@@ -2,11 +2,14 @@ import { PATH_TOKENS } from './utils/paths.js';
 
 const COUNTRY_DATA = {
     AE: { name: 'United Arab Emirates', flag: '🇦🇪' },
+    AM: { name: 'Armenia', flag: '🇦🇲' },
     AR: { name: 'Argentina', flag: '🇦🇷' },
     AT: { name: 'Austria', flag: '🇦🇹' },
     AU: { name: 'Australia', flag: '🇦🇺' },
+    AZ: { name: 'Azerbaijan', flag: '🇦🇿' },
     BE: { name: 'Belgium', flag: '🇧🇪' },
     BG: { name: 'Bulgaria', flag: '🇧🇬' },
+    BH: { name: 'Bahrain', flag: '🇧🇭' },
     BR: { name: 'Brazil', flag: '🇧🇷' },
     CA: { name: 'Canada', flag: '🇨🇦' },
     CH: { name: 'Switzerland', flag: '🇨🇭' },
@@ -26,6 +29,8 @@ const COUNTRY_DATA = {
     FI: { name: 'Finland', flag: '🇫🇮' },
     FR: { name: 'France', flag: '🇫🇷' },
     GB: { name: 'United Kingdom', flag: '🇬🇧' },
+    GE: { name: 'Georgia', flag: '🇬🇪' },
+    GH: { name: 'Ghana', flag: '🇬🇭' },
     GR: { name: 'Greece', flag: '🇬🇷' },
     GT: { name: 'Guatemala', flag: '🇬🇹' },
     HK: { name: 'Hong Kong', flag: '🇭🇰' },
@@ -34,14 +39,21 @@ const COUNTRY_DATA = {
     IE: { name: 'Ireland', flag: '🇮🇪' },
     IL: { name: 'Israel', flag: '🇮🇱' },
     IN: { name: 'India', flag: '🇮🇳' },
+    IQ: { name: 'Iraq', flag: '🇮🇶' },
     IT: { name: 'Italy', flag: '🇮🇹' },
+    JO: { name: 'Jordan', flag: '🇯🇴' },
     JP: { name: 'Japan', flag: '🇯🇵' },
     KE: { name: 'Kenya', flag: '🇰🇪' },
+    KG: { name: 'Kyrgyzstan', flag: '🇰🇬' },
     KR: { name: 'South Korea', flag: '🇰🇷' },
     KW: { name: 'Kuwait', flag: '🇰🇼' },
+    KZ: { name: 'Kazakhstan', flag: '🇰🇿' },
+    LB: { name: 'Lebanon', flag: '🇱🇧' },
     LT: { name: 'Lithuania', flag: '🇱🇹' },
     LU: { name: 'Luxembourg', flag: '🇱🇺' },
     LV: { name: 'Latvia', flag: '🇱🇻' },
+    MA: { name: 'Morocco', flag: '🇲🇦' },
+    MD: { name: 'Moldova', flag: '🇲🇩' },
     MU: { name: 'Mauritius', flag: '🇲🇺' },
     MX: { name: 'Mexico', flag: '🇲🇽' },
     MY: { name: 'Malaysia', flag: '🇲🇾' },
@@ -49,6 +61,7 @@ const COUNTRY_DATA = {
     NL: { name: 'Netherlands', flag: '🇳🇱' },
     NO: { name: 'Norway', flag: '🇳🇴' },
     NZ: { name: 'New Zealand', flag: '🇳🇿' },
+    OM: { name: 'Oman', flag: '🇴🇲' },
     PE: { name: 'Peru', flag: '🇵🇪' },
     PH: { name: 'Philippines', flag: '🇵🇭' },
     PL: { name: 'Poland', flag: '🇵🇱' },
@@ -63,11 +76,14 @@ const COUNTRY_DATA = {
     SI: { name: 'Slovenia', flag: '🇸🇮' },
     SK: { name: 'Slovakia', flag: '🇸🇰' },
     TH: { name: 'Thailand', flag: '🇹🇭' },
+    TJ: { name: 'Tajikistan', flag: '🇹🇯' },
     TM: { name: 'Turkmenistan', flag: '🇹🇲' },
     TR: { name: 'Türkiye', flag: '🇹🇷' },
     TW: { name: 'Taiwan', flag: '🇹🇼' },
+    TZ: { name: 'Tanzania', flag: '🇹🇿' },
     UA: { name: 'Ukraine', flag: '🇺🇦' },
     US: { name: 'United States', flag: '🇺🇸' },
+    UZ: { name: 'Uzbekistan', flag: '🇺🇿' },
     VN: { name: 'Vietnam', flag: '🇻🇳' },
     ZA: { name: 'South Africa', flag: '🇿🇦' },
 };
@@ -107,6 +123,23 @@ const ACOM = [
             'VN',
             'ZA',
             'DZ',
+            'AM',
+            'AZ',
+            'BH',
+            'GE',
+            'GH',
+            'IQ',
+            'JO',
+            'KE',
+            'KG',
+            'KZ',
+            'LB',
+            'MA',
+            'MD',
+            'OM',
+            'TJ',
+            'TZ',
+            'UZ',
         ],
     },
     { lang: 'en', country: 'GB', regions: ['AU', 'IN'] },
@@ -231,6 +264,22 @@ const EXPRESS = [
             'TH',
             'VN',
             'ZA',
+            'AM',
+            'AZ',
+            'BH',
+            'GE',
+            'GH',
+            'IQ',
+            'JO',
+            'KG',
+            'KZ',
+            'LB',
+            'MA',
+            'MD',
+            'OM',
+            'TJ',
+            'TZ',
+            'UZ',
         ],
     },
     { lang: 'fi', country: 'FI' },
@@ -504,6 +553,34 @@ export function getDefaultLocaleCode(surface, localeCode) {
 
 export function getDefaultLocales(surface) {
     return DEFAULT_LOCALES[surface] || [];
+}
+
+/**
+ * The surface whose dictionary is the global placeholder baseline for every surface of the same
+ * language. Placeholder resolution reads this surface as the default layer, then overlays the
+ * requested surface's baseline and region entries (see {@link transformers/replace.js}).
+ * @type {string}
+ */
+export const PLACEHOLDERS_BASELINE_SURFACE = 'acom';
+
+/**
+ * Placeholder region locale: `<lang>_<country>` when that is a known regional locale of the surface
+ * (checked across every default locale's region list), otherwise the already-resolved `fallback`.
+ * This lets `country=IN`/`AU` reach `en_IN`/`en_AU` even from an `en_US` request on acom — where those
+ * are regions of `en_GB`, not `en_US` — WITHOUT changing the shared `regionLocale` that fragments/WCS
+ * use. The placeholder base stays the request's own default locale, so an `en_US` page overlays
+ * `en_IN` onto `en_US` while an `en_GB` page overlays it onto `en_GB`.
+ * @param {string} surface e.g. 'acom'
+ * @param {string} defaultLocale request default locale (e.g. 'en_US') — supplies the language
+ * @param {string} country effective request country (e.g. 'IN')
+ * @param {string} fallback region locale to use when `<lang>_<country>` is not a surface locale
+ * @returns {string}
+ */
+export function getPlaceholdersRegionLocale(surface, defaultLocale, country, fallback) {
+    const [lang] = parseLocaleCode(defaultLocale);
+    if (!lang || !country) return fallback;
+    const candidate = `${lang}_${country.toUpperCase()}`;
+    return getSurfaceLocales(surface).some((locale) => getLocaleCode(locale) === candidate) ? candidate : fallback;
 }
 
 /**

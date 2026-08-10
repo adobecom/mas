@@ -54,9 +54,10 @@ function makeHydratedProject({
     fragmentPath = '/content/dam/mas/acom/en_US/offers/offer-1',
     promoCode = 'PROMO10',
     offers = [],
+    title = null,
 } = {}) {
     return {
-        fields: { fragments: [fragmentId], promoCode, offers },
+        fields: { fragments: [fragmentId], promoCode, offers, title },
         references: {
             [fragmentId]: {
                 type: 'content-fragment',
@@ -66,17 +67,24 @@ function makeHydratedProject({
     };
 }
 
+// Models real Web Storage: data keys are enumerable own props (so `Object.keys(localStorage)`
+// prefix-scans work, as the per-surface `promotions-*` clear relies on), methods non-enumerable.
 function installLocalStorageShim() {
     const storage = {};
-    globalThis.localStorage = {
-        getItem: (key) => storage[key] ?? null,
-        setItem: (key, val) => {
-            storage[key] = val;
+    Object.defineProperties(storage, {
+        getItem: { value: (key) => (Object.prototype.hasOwnProperty.call(storage, key) ? storage[key] : null) },
+        setItem: {
+            value: (key, val) => {
+                storage[key] = String(val);
+            },
         },
-        removeItem: (key) => {
-            delete storage[key];
+        removeItem: {
+            value: (key) => {
+                delete storage[key];
+            },
         },
-    };
+    });
+    globalThis.localStorage = storage;
     return storage;
 }
 
@@ -161,13 +169,57 @@ describe('promotions', () => {
             expect(result.activeProjects[0].promoCode).to.equal('SAVE20');
         });
 
-        it('ignores instant when not in preview mode', async () => {
+        it('derives groupedVariationPaths from fragments under a /pzn/ folder', async () => {
+            const project = makeProject({ id: 'proj-1', surfaces: ['acom'], geos: ['/content/cq:tags/mas/locale/en_US'] });
+            const hydrated = makeHydratedProject({ fragmentPath: '/content/dam/mas/acom/en_US/PA-123/pzn/edu' });
+            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+            fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
+
+            const result = await promotionsTransformer.init(createContext({ regionLocale: 'en_US' }));
+            expect(result.activeProjects[0].fragmentPaths).to.deep.equal(['PA-123/pzn/edu']);
+            expect(result.activeProjects[0].groupedVariationPaths).to.deep.equal(['PA-123/pzn/edu']);
+        });
+
+        it('does not classify a plain fragment as a grouped variation path', async () => {
+            const project = makeProject({ id: 'proj-1', surfaces: ['acom'], geos: ['/content/cq:tags/mas/locale/en_US'] });
+            const hydrated = makeHydratedProject();
+            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+            fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
+
+            const result = await promotionsTransformer.init(createContext({ regionLocale: 'en_US' }));
+            expect(result.activeProjects[0].groupedVariationPaths).to.deep.equal([]);
+        });
+
+        it('carries the project title, startDate and endDate through hydration', async () => {
+            const project = makeProject({ id: 'proj-1', surfaces: ['acom'], geos: ['/content/cq:tags/mas/locale/en_US'] });
+            const hydrated = makeHydratedProject({ title: 'Summer Sale 2026' });
+            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+            fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
+
+            const result = await promotionsTransformer.init(createContext({ regionLocale: 'en_US' }));
+            expect(result.activeProjects[0].title).to.equal('Summer Sale 2026');
+            expect(result.activeProjects[0].startDate).to.equal(START);
+            expect(result.activeProjects[0].endDate).to.equal(END);
+        });
+
+        it('ignores instant on published content when instant is not provided', async () => {
             const project = makeProject({ surfaces: ['acom'], geos: [], startDate: START, endDate: EXPIRED_END });
             fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
 
-            // EXPIRED_END is in the past — without preview, instant is ignored and Date.now() is used
-            const result = await promotionsTransformer.init(createContext({ instant: PREVIEW_INSTANT }));
+            // EXPIRED_END is in the past — with no instant, Date.now() is used
+            const result = await promotionsTransformer.init(createContext());
             expect(result).to.deep.equal({ status: 200, activeProjects: [] });
+        });
+
+        it('honors instant on published content', async () => {
+            const project = makeProject({ surfaces: ['acom'], geos: [], startDate: START, endDate: EXPIRED_END });
+            const hydrated = makeHydratedProject();
+            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+            fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
+
+            const result = await promotionsTransformer.init(createContext({ instant: PREVIEW_INSTANT }));
+            expect(result.activeProjects).to.have.length(1);
+            expect(result.activeProjects[0].id).to.equal('proj-1');
         });
 
         it('matches project by country when locale does not match geos', async () => {
@@ -434,6 +486,139 @@ describe('promotions', () => {
             expect(fetchStub.withArgs(FOLDER_URL).callCount).to.equal(1);
         });
 
+        it('caches projects independently per surface', async () => {
+            // The generalist folder listing carries both surfaces; each surface keeps only its own
+            // projects and gets its own cache entry (so entries expire independently).
+            const acom = makeProject({ id: 'proj-acom', surfaces: ['acom'], geos: [] });
+            const express = makeProject({ id: 'proj-express', surfaces: ['express'], geos: [] });
+            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [acom, express] }));
+            fetchStub.withArgs(hydrateUrl('proj-acom')).returns(createResponse(200, makeHydratedProject()));
+            fetchStub.withArgs(hydrateUrl('proj-express')).returns(createResponse(200, makeHydratedProject()));
+
+            const acomResult = await promotionsTransformer.init(createContext({ surface: 'acom' }));
+            const expressResult = await promotionsTransformer.init(createContext({ surface: 'express' }));
+
+            expect(acomResult.activeProjects.map((p) => p.id)).to.deep.equal(['proj-acom']);
+            expect(expressResult.activeProjects.map((p) => p.id)).to.deep.equal(['proj-express']);
+            // Independent per-surface entries: express did not reuse acom's cache, so it fetched too.
+            expect(fetchStub.withArgs(FOLDER_URL).callCount).to.equal(2);
+        });
+
+        it('coalesces concurrent refills into a single folder fetch (single-flight)', async () => {
+            const project = makeProject({ surfaces: ['acom'], geos: [] });
+            const folderResponse = await createResponse(200, { items: [project] });
+            let resolveFolder;
+            fetchStub.withArgs(FOLDER_URL).returns(new Promise((resolve) => (resolveFolder = resolve)));
+            fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, makeHydratedProject()));
+
+            // Two concurrent cold requests: both should await the one in-flight refill, not fetch twice.
+            const p1 = promotionsTransformer.init(createContext());
+            const p2 = promotionsTransformer.init(createContext());
+            await new Promise((resolve) => setTimeout(resolve, 0));
+            resolveFolder(folderResponse);
+            const [r1, r2] = await Promise.all([p1, p2]);
+
+            expect(fetchStub.withArgs(FOLDER_URL).callCount).to.equal(1);
+            expect(r1.activeProjects).to.have.length(1);
+            expect(r2.activeProjects).to.have.length(1);
+        });
+
+        it('serves stale projects and refills in the background when the entry has expired', async () => {
+            const T0 = new Date('2026-01-01T00:00:00Z').getTime();
+            const clock = sinon.stub(Date, 'now').returns(T0);
+            try {
+                const stale = makeProject({ id: 'proj-stale', surfaces: ['acom'], geos: [] });
+                const fresh = makeProject({ id: 'proj-fresh', surfaces: ['acom'], geos: [] });
+                fetchStub
+                    .withArgs(FOLDER_URL)
+                    .onFirstCall()
+                    .returns(createResponse(200, { items: [stale] }));
+                fetchStub
+                    .withArgs(FOLDER_URL)
+                    .onSecondCall()
+                    .returns(createResponse(200, { items: [fresh] }));
+                fetchStub.withArgs(hydrateUrl('proj-stale')).returns(createResponse(200, makeHydratedProject()));
+                fetchStub.withArgs(hydrateUrl('proj-fresh')).returns(createResponse(200, makeHydratedProject()));
+
+                const first = await promotionsTransformer.init(createContext());
+                expect(first.activeProjects[0].id).to.equal('proj-stale');
+                expect(fetchStub.withArgs(FOLDER_URL).callCount).to.equal(1);
+
+                // Advance past the maximum jittered TTL (1.2 × 5 min) so the entry is expired.
+                clock.returns(T0 + 7 * 60 * 1000);
+                const second = await promotionsTransformer.init(createContext());
+                // Served stale immediately, while a single background refill is fired.
+                expect(second.activeProjects[0].id).to.equal('proj-stale');
+                expect(fetchStub.withArgs(FOLDER_URL).callCount).to.equal(2);
+
+                // Let the background refill settle, then a third read serves the refreshed data, no new fetch.
+                await new Promise((resolve) => setTimeout(resolve, 0));
+                const third = await promotionsTransformer.init(createContext());
+                expect(third.activeProjects[0].id).to.equal('proj-fresh');
+                expect(fetchStub.withArgs(FOLDER_URL).callCount).to.equal(2);
+            } finally {
+                clock.restore();
+            }
+        });
+
+        it('returns no active projects and skips the folder fetch when no surface resolves', async () => {
+            // getRequestInfos yields no surface (context.surface unset, no requestInfos promise) →
+            // the projects fetch is skipped entirely (the `surface ? fetchProjects : null` else-branch).
+            const result = await promotionsTransformer.init(createContext({ surface: undefined }));
+            expect(result).to.deep.equal({ status: 200, activeProjects: [] });
+            expect(fetchStub.withArgs(FOLDER_URL).callCount).to.equal(0);
+        });
+
+        it('keeps serving stale projects when a background refill fails, then recovers on a later success', async () => {
+            const T0 = new Date('2026-01-01T00:00:00Z').getTime();
+            const clock = sinon.stub(Date, 'now').returns(T0);
+            try {
+                const stale = makeProject({ id: 'proj-stale', surfaces: ['acom'], geos: [] });
+                const fresh = makeProject({ id: 'proj-fresh', surfaces: ['acom'], geos: [] });
+                fetchStub
+                    .withArgs(FOLDER_URL)
+                    .onFirstCall()
+                    .returns(createResponse(200, { items: [stale] }));
+                // Second fetch (first background refill) fails → stale entry must survive untouched
+                // and refills[surface] must be cleared so a later read can retry.
+                fetchStub
+                    .withArgs(FOLDER_URL)
+                    .onSecondCall()
+                    .returns(createResponse(503, null, 'Error'));
+                // Third fetch (later refill) succeeds → recovery.
+                fetchStub
+                    .withArgs(FOLDER_URL)
+                    .onThirdCall()
+                    .returns(createResponse(200, { items: [fresh] }));
+                fetchStub.withArgs(hydrateUrl('proj-stale')).returns(createResponse(200, makeHydratedProject()));
+                fetchStub.withArgs(hydrateUrl('proj-fresh')).returns(createResponse(200, makeHydratedProject()));
+
+                const first = await promotionsTransformer.init(createContext());
+                expect(first.activeProjects[0].id).to.equal('proj-stale');
+
+                // Expire the entry; this read serves stale and fires a background refill that fails.
+                clock.returns(T0 + 7 * 60 * 1000);
+                const second = await promotionsTransformer.init(createContext());
+                expect(second.activeProjects[0].id).to.equal('proj-stale');
+                expect(fetchStub.withArgs(FOLDER_URL).callCount).to.equal(2);
+
+                // Let the failed refill settle. The stale entry survived (still proj-stale) and
+                // refills[surface] was cleared, so this read can fire a fresh refill (fetch #3).
+                await new Promise((resolve) => setTimeout(resolve, 0));
+                const third = await promotionsTransformer.init(createContext());
+                expect(third.activeProjects[0].id).to.equal('proj-stale');
+                expect(fetchStub.withArgs(FOLDER_URL).callCount).to.equal(3);
+
+                // The third refill succeeded; the next read serves the refreshed data, no new fetch.
+                await new Promise((resolve) => setTimeout(resolve, 0));
+                const fourth = await promotionsTransformer.init(createContext());
+                expect(fourth.activeProjects[0].id).to.equal('proj-fresh');
+                expect(fetchStub.withArgs(FOLDER_URL).callCount).to.equal(3);
+            } finally {
+                clock.restore();
+            }
+        });
+
         it('falls back to locale when defaultLanguage resolves without regionLocale', async () => {
             const project = makeProject({ surfaces: ['acom'], geos: [] });
             const hydrated = makeHydratedProject();
@@ -539,6 +724,206 @@ describe('promotions', () => {
             const result = await promotionsTransformer.init(createContext());
             expect(result.activeProjects[0].defaultVariations).to.have.keys(['card-1']);
         });
+
+        it('places seasonal promos (with endDate) before evergreen promos (no endDate)', async () => {
+            const evergreen = makeProject({
+                id: 'proj-evergreen',
+                path: '/content/dam/mas/promotions/evergreen',
+                surfaces: ['acom'],
+                geos: [],
+                startDate: START,
+                endDate: null,
+                tags: ['mas:promotion/evergreen'],
+            });
+            const seasonal = makeProject({
+                id: 'proj-seasonal',
+                path: '/content/dam/mas/promotions/seasonal',
+                surfaces: ['acom'],
+                geos: [],
+                startDate: START,
+                endDate: END,
+                tags: ['mas:promotion/seasonal'],
+            });
+            const hydratedEvergreen = makeHydratedProject({
+                fragmentId: 'f-eg',
+                fragmentPath: '/content/dam/mas/acom/en_US/offers/evergreen-offer',
+            });
+            const hydratedSeasonal = makeHydratedProject({
+                fragmentId: 'f-s',
+                fragmentPath: '/content/dam/mas/acom/en_US/offers/seasonal-offer',
+            });
+            // Folder returns evergreen first (higher folder position), seasonal second
+            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [evergreen, seasonal] }));
+            fetchStub.withArgs(hydrateUrl('proj-evergreen')).returns(createResponse(200, hydratedEvergreen));
+            fetchStub.withArgs(hydrateUrl('proj-seasonal')).returns(createResponse(200, hydratedSeasonal));
+
+            const result = await promotionsTransformer.init(createContext());
+            expect(result.activeProjects).to.have.length(2);
+            // Seasonal must come first despite being second in folder order
+            expect(result.activeProjects[0].id).to.equal('proj-seasonal');
+            expect(result.activeProjects[1].id).to.equal('proj-evergreen');
+        });
+
+        it('preserves relative folder order within seasonal promos and within evergreen promos', async () => {
+            const seasonal1 = makeProject({
+                id: 'seasonal-1',
+                path: '/content/dam/mas/promotions/seasonal-1',
+                surfaces: ['acom'],
+                geos: [],
+                startDate: START,
+                endDate: END,
+                tags: ['mas:promotion/seasonal-1'],
+            });
+            const evergreen1 = makeProject({
+                id: 'evergreen-1',
+                path: '/content/dam/mas/promotions/evergreen-1',
+                surfaces: ['acom'],
+                geos: [],
+                startDate: START,
+                endDate: null,
+                tags: ['mas:promotion/evergreen-1'],
+            });
+            const seasonal2 = makeProject({
+                id: 'seasonal-2',
+                path: '/content/dam/mas/promotions/seasonal-2',
+                surfaces: ['acom'],
+                geos: [],
+                startDate: START,
+                endDate: END,
+                tags: ['mas:promotion/seasonal-2'],
+            });
+            const evergreen2 = makeProject({
+                id: 'evergreen-2',
+                path: '/content/dam/mas/promotions/evergreen-2',
+                surfaces: ['acom'],
+                geos: [],
+                startDate: START,
+                endDate: null,
+                tags: ['mas:promotion/evergreen-2'],
+            });
+            // Folder order: seasonal-1, evergreen-1, seasonal-2, evergreen-2
+            fetchStub
+                .withArgs(FOLDER_URL)
+                .returns(createResponse(200, { items: [seasonal1, evergreen1, seasonal2, evergreen2] }));
+            fetchStub
+                .withArgs(hydrateUrl('seasonal-1'))
+                .returns(
+                    createResponse(
+                        200,
+                        makeHydratedProject({ fragmentId: 'f1', fragmentPath: '/content/dam/mas/acom/en_US/offers/a' }),
+                    ),
+                );
+            fetchStub
+                .withArgs(hydrateUrl('evergreen-1'))
+                .returns(
+                    createResponse(
+                        200,
+                        makeHydratedProject({ fragmentId: 'f2', fragmentPath: '/content/dam/mas/acom/en_US/offers/b' }),
+                    ),
+                );
+            fetchStub
+                .withArgs(hydrateUrl('seasonal-2'))
+                .returns(
+                    createResponse(
+                        200,
+                        makeHydratedProject({ fragmentId: 'f3', fragmentPath: '/content/dam/mas/acom/en_US/offers/c' }),
+                    ),
+                );
+            fetchStub
+                .withArgs(hydrateUrl('evergreen-2'))
+                .returns(
+                    createResponse(
+                        200,
+                        makeHydratedProject({ fragmentId: 'f4', fragmentPath: '/content/dam/mas/acom/en_US/offers/d' }),
+                    ),
+                );
+
+            const result = await promotionsTransformer.init(createContext());
+            expect(result.activeProjects).to.have.length(4);
+            // Seasonal group first (folder order preserved within group), then evergreen group
+            expect(result.activeProjects.map((p) => p.id)).to.deep.equal([
+                'seasonal-1',
+                'seasonal-2',
+                'evergreen-1',
+                'evergreen-2',
+            ]);
+        });
+
+        it('does not reorder folder order when all matched projects are evergreen', async () => {
+            const evergreen1 = makeProject({
+                id: 'evergreen-1',
+                path: '/content/dam/mas/promotions/evergreen-1',
+                surfaces: ['acom'],
+                geos: [],
+                startDate: START,
+                endDate: null,
+                tags: ['mas:promotion/evergreen-1'],
+            });
+            const evergreen2 = makeProject({
+                id: 'evergreen-2',
+                path: '/content/dam/mas/promotions/evergreen-2',
+                surfaces: ['acom'],
+                geos: [],
+                startDate: START,
+                endDate: null,
+                tags: ['mas:promotion/evergreen-2'],
+            });
+            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [evergreen1, evergreen2] }));
+            fetchStub
+                .withArgs(hydrateUrl('evergreen-1'))
+                .returns(
+                    createResponse(
+                        200,
+                        makeHydratedProject({ fragmentId: 'f1', fragmentPath: '/content/dam/mas/acom/en_US/offers/a' }),
+                    ),
+                );
+            fetchStub
+                .withArgs(hydrateUrl('evergreen-2'))
+                .returns(
+                    createResponse(
+                        200,
+                        makeHydratedProject({ fragmentId: 'f2', fragmentPath: '/content/dam/mas/acom/en_US/offers/b' }),
+                    ),
+                );
+
+            const result = await promotionsTransformer.init(createContext());
+            expect(result.activeProjects.map((p) => p.id)).to.deep.equal(['evergreen-1', 'evergreen-2']);
+        });
+
+        it('sorts by most-recent startDate first, within both the seasonal and evergreen buckets', async () => {
+            const projects = ['seasonal', 'evergreen'].flatMap((bucket) =>
+                ['older', 'newer'].map((age) =>
+                    makeProject({
+                        id: `${bucket}-${age}`,
+                        path: `/content/dam/mas/promotions/${bucket}-${age}`,
+                        surfaces: ['acom'],
+                        geos: [],
+                        startDate: age === 'older' ? '2020-01-01T00:00:00Z' : '2022-06-01T00:00:00Z',
+                        endDate: bucket === 'seasonal' ? END : null,
+                        tags: [`mas:promotion/${bucket}-${age}`],
+                    }),
+                ),
+            );
+            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: projects }));
+            projects.forEach(({ id }) =>
+                fetchStub
+                    .withArgs(hydrateUrl(id))
+                    .returns(
+                        createResponse(
+                            200,
+                            makeHydratedProject({ fragmentId: id, fragmentPath: `/content/dam/mas/acom/en_US/offers/${id}` }),
+                        ),
+                    ),
+            );
+
+            const result = await promotionsTransformer.init(createContext());
+            expect(result.activeProjects.map((p) => p.id)).to.deep.equal([
+                'seasonal-newer',
+                'seasonal-older',
+                'evergreen-newer',
+                'evergreen-older',
+            ]);
+        });
     });
 
     describe('preview mode', () => {
@@ -577,7 +962,7 @@ describe('promotions', () => {
             expect(result.activeProjects).to.have.length(1);
         });
 
-        it('uses localStorage cache in preview mode', async () => {
+        it('persists projects in localStorage across preview reads', async () => {
             const project = makeProject({ surfaces: ['acom'], geos: ['/content/cq:tags/mas/locale/en_US'] });
             const hydrated = makeHydratedProject();
             const previewCtx = createContext({
@@ -588,14 +973,54 @@ describe('promotions', () => {
             fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
 
             await promotionsTransformer.init(previewCtx);
-            expect(storage['promotions']).to.exist;
+            // Preview cache is now per-surface (`promotions-<surface>`), keyed by the resolved surface.
+            expect(storage['promotions-acom']).to.exist;
 
             const result = await promotionsTransformer.init(previewCtx);
             expect(fetchStub.withArgs(FOLDER_URL).callCount).to.equal(1);
             expect(result.activeProjects).to.have.length(1);
 
             clearPromoCache(true);
-            expect(storage['promotions']).to.be.undefined;
+            expect(storage['promotions-acom']).to.be.undefined;
+        });
+
+        it('retains blocking refetch in preview mode: an expired entry refetches fresh, never served stale', async () => {
+            const T0 = new Date('2026-01-01T00:00:00Z').getTime();
+            const clock = sinon.stub(Date, 'now').returns(T0);
+            try {
+                const stale = makeProject({ id: 'proj-stale', surfaces: ['acom'], geos: [] });
+                const fresh = makeProject({ id: 'proj-fresh', surfaces: ['acom'], geos: [] });
+                const previewCtx = () => createContext({ preview: { url: 'https://odin.adobe.com/adobe/contentFragments' } });
+                fetchStub
+                    .withArgs(FOLDER_URL)
+                    .onFirstCall()
+                    .returns(createResponse(200, { items: [stale] }));
+                fetchStub
+                    .withArgs(FOLDER_URL)
+                    .onSecondCall()
+                    .returns(createResponse(200, { items: [fresh] }));
+                fetchStub.withArgs(hydrateUrl('proj-stale')).returns(createResponse(200, makeHydratedProject()));
+                fetchStub.withArgs(hydrateUrl('proj-fresh')).returns(createResponse(200, makeHydratedProject()));
+
+                const first = await promotionsTransformer.init(previewCtx());
+                expect(first.activeProjects[0].id).to.equal('proj-stale');
+
+                // Expire the entry. Published reads would serve stale here; preview must block on a
+                // fresh refetch so the author sees the updated promotion immediately.
+                clock.returns(T0 + 7 * 60 * 1000);
+                const second = await promotionsTransformer.init(previewCtx());
+                expect(second.activeProjects[0].id).to.equal('proj-fresh');
+                expect(fetchStub.withArgs(FOLDER_URL).callCount).to.equal(2);
+            } finally {
+                clock.restore();
+            }
+        });
+
+        it('returns no active projects in preview mode when the folder fetch fails', async () => {
+            fetchStub.withArgs(FOLDER_URL).returns(createResponse(404, null, 'Not Found'));
+            const previewCtx = createContext({ preview: { url: 'https://odin.adobe.com/adobe/contentFragments' } });
+            const result = await promotionsTransformer.init(previewCtx);
+            expect(result).to.deep.equal({ status: 200, activeProjects: [] });
         });
     });
 
@@ -636,6 +1061,29 @@ describe('promotions', () => {
             expect(result.promoProjects).to.have.length(1);
             expect(result.promoProjects[0].promoMap).to.deep.equal({ '*': 'SUMMER25' });
             expect([...result.promoProjects[0].fragmentPaths]).to.have.members(['offers/offer-1', 'offers/offer-2']);
+        });
+
+        it('builds a groupedVariationPaths Set from the project, defaulting to empty', async () => {
+            const context = createContext({
+                promises: {
+                    promotions: Promise.resolve({
+                        status: 200,
+                        activeProjects: [
+                            {
+                                id: 'proj-1',
+                                fragmentPaths: ['PA-123/pzn/edu'],
+                                groupedVariationPaths: ['PA-123/pzn/edu'],
+                                offerOverrides: [],
+                                promoCode: 'SUMMER25',
+                            },
+                            { id: 'proj-2', fragmentPaths: ['offers/offer-1'], offerOverrides: [], promoCode: 'FALL10' },
+                        ],
+                    }),
+                },
+            });
+            const result = await promotionsTransformer.process(context);
+            expect([...result.promoProjects[0].groupedVariationPaths]).to.deep.equal(['PA-123/pzn/edu']);
+            expect([...result.promoProjects[1].groupedVariationPaths]).to.deep.equal([]);
         });
 
         it('preserves project order in promoProjects', async () => {

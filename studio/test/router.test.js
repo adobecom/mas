@@ -702,7 +702,7 @@ describe('Router', () => {
     describe('navigateToVariationsTable', () => {
         it('should navigate to variations table', async () => {
             await router.navigateToVariationsTable('test-id');
-            expect(Store.fragments.expandedId.get()).to.equal('test-id');
+            expect(Store.search.get().query).to.equal('test-id');
             expect(Store.page.get()).to.equal(PAGE_NAMES.CONTENT);
             expect(Store.renderMode.get()).to.equal('table');
         });

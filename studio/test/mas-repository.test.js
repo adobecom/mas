@@ -6,6 +6,7 @@ import { MasRepository } from '../src/mas-repository.js';
 import { ROOT_PATH, SURFACES, PAGE_NAMES, EDITABLE_FRAGMENT_MODEL_IDS, COLLECTION_MODEL_PATH } from '../src/constants.js';
 import Events from '../src/events.js';
 import Store from '../src/store.js';
+import { makeSearchStub } from './helpers/aem-tag-fetch.js';
 
 const mockFragmentCache = {
     get: () => null,
@@ -909,6 +910,7 @@ describe('MasRepository dictionary helpers', () => {
             });
             const { default: Store } = await import('../src/store.js');
             const originalProfile = Store.profile.value;
+            const originalExpandedId = Store.fragments.expandedId.get();
             Store.profile.set({ name: 'test-user' });
             let dataValue = [];
             const mockDataStore = {
@@ -928,8 +930,10 @@ describe('MasRepository dictionary helpers', () => {
                 expect(getByIdStub.calledOnce).to.be.true;
                 expect(getByIdStub.firstCall.args[0]).to.equal('12345678-1234-1234-1234-123456789012');
                 expect(searchStub.called).to.be.false;
+                expect(Store.fragments.expandedId.get()).to.equal('12345678-1234-1234-1234-123456789012');
             } finally {
                 Store.profile.set(originalProfile);
+                Store.fragments.expandedId.set(originalExpandedId);
                 Store.fragments.list.data = originalData;
                 Store.folders.data.set(originalFolders);
             }
@@ -1370,6 +1374,32 @@ describe('MasRepository dictionary helpers', () => {
                 }
             });
 
+            it('fetches promo variation parent with references=direct-hydrated so Promotions tab is populated', async () => {
+                const repository = createFullRepository();
+                repository.page = { value: PAGE_NAMES.CONTENT };
+                const variationPath = `${ROOT_PATH}/acom/en_US/promotions/summer-sale/my-card`;
+                const parentPath = `${ROOT_PATH}/acom/en_US/my-card`;
+                const variationFragment = createFragment({ id: variationUuid, path: variationPath, fields: [] });
+                const parentFragment = createFragment({ id: parentUuid, path: parentPath, fields: [] });
+                repository.search = { value: { path: 'acom', query: variationUuid } };
+                repository.filters = { value: { locale: 'en_US', tags: '' } };
+                const getByIdStub = sandbox.stub().resolves(variationFragment);
+                const getByPathStub = sandbox.stub().resolves(parentFragment);
+                repository.aem = createAemMock({
+                    fragments: { getById: getByIdStub, getByPath: getByPathStub, search: sandbox.stub() },
+                });
+                const { restore } = await setupVariationUuidSearch();
+                try {
+                    await repository.searchFragments();
+                    expect(
+                        getByPathStub.calledOnceWith(parentPath, { references: 'direct-hydrated' }),
+                        'getByPath must be called with references=direct-hydrated for promo variation parent',
+                    ).to.be.true;
+                } finally {
+                    restore();
+                }
+            });
+
             it('clears list and stores when variation UUID parent is not found', async () => {
                 const repository = createFullRepository();
                 repository.page = { value: PAGE_NAMES.CONTENT };
@@ -1440,6 +1470,107 @@ describe('MasRepository dictionary helpers', () => {
                     expect(Store.fragments.variationSearchTab.get()).to.be.null;
                 } finally {
                     restore();
+                }
+            });
+
+            it('merges promo variation references when searching by parent fragment UUID', async () => {
+                const repository = createFullRepository();
+                repository.page = { value: PAGE_NAMES.CONTENT };
+                const uuid = '12345678-1234-1234-1234-123456789012';
+                const fragmentPath = `${ROOT_PATH}/acom/en_US/my-card`;
+                const promoVariationPath = `${ROOT_PATH}/acom/en_US/promotions/summer-sale/my-card`;
+
+                const mockFragment = createFragment({
+                    id: uuid,
+                    path: fragmentPath,
+                    references: [{ id: 'locale-ref', path: `${ROOT_PATH}/acom/fr_FR/my-card` }],
+                    fields: [],
+                });
+                const promoVariationFragment = createFragment({
+                    id: 'promo-var-1',
+                    path: promoVariationPath,
+                    fields: [],
+                });
+
+                repository.search = { value: { path: 'acom', query: uuid } };
+                repository.filters = { value: { locale: 'en_US', tags: '' } };
+                repository.loadPromotions = sandbox.stub().resolves();
+
+                const getByIdStub = sandbox.stub().resolves(mockFragment);
+                const promoFolder = `${ROOT_PATH}/acom/en_US/promotions/summer-sale`;
+                const searchStub = makeSearchStub(sandbox, { [promoFolder]: [promoVariationFragment] });
+                repository.aem = createAemMock({
+                    fragments: { getById: getByIdStub, search: searchStub },
+                });
+
+                const mockPromoProject = {
+                    tags: [{ id: 'mas:promotion/summer-sale' }],
+                };
+                const { default: Store } = await import('../src/store.js');
+                const originalPromotions = Store.promotions.list.data.get();
+                const hadListFetched = Store.promotions.list.data.hasMeta('listFetched');
+                Store.promotions.list.data.set([{ get: () => mockPromoProject }]);
+                Store.promotions.list.data.setMeta('listFetched', true);
+
+                const { mockDataStore, restore } = await setupVariationUuidSearch();
+                try {
+                    await repository.searchFragments();
+                    expect(searchStub.calledWith({ path: promoFolder }, 50), 'should probe the promo variation folder').to.be
+                        .true;
+                    const fragmentInStore = mockDataStore.set.lastCall?.args[0]?.[0]?.get?.();
+                    const promoRefs = (fragmentInStore?.references || []).filter((r) => r.path === promoVariationPath);
+                    expect(promoRefs.length, 'promo variation reference should be merged into fragment').to.equal(1);
+                } finally {
+                    restore();
+                    Store.promotions.list.data.set(originalPromotions);
+                    if (!hadListFetched) Store.promotions.list.data.removeMeta('listFetched');
+                }
+            });
+
+            it('ignores stale parent UUID search when promo merge is superseded by a new search', async () => {
+                const repository = createFullRepository();
+                repository.page = { value: PAGE_NAMES.CONTENT };
+                const uuid = '12345678-1234-1234-1234-123456789012';
+                const fragmentPath = `${ROOT_PATH}/acom/en_US/my-card`;
+                const mockFragment = createFragment({ id: uuid, path: fragmentPath, fields: [] });
+
+                let resolveLoadPromotions;
+                repository.loadPromotions = sandbox.stub().callsFake(
+                    () =>
+                        new Promise((resolve) => {
+                            resolveLoadPromotions = resolve;
+                        }),
+                );
+
+                const getByIdStub = sandbox.stub().resolves(mockFragment);
+                const searchStub = sandbox.stub().returns(createMockCursor([]));
+                repository.aem = createAemMock({ fragments: { getById: getByIdStub, search: searchStub } });
+
+                repository.search = { value: { path: 'acom', query: uuid } };
+                repository.filters = { value: { locale: 'en_US', tags: '' } };
+
+                const { Store, mockDataStore, restore } = await setupVariationUuidSearch();
+                const originalPromotions = Store.promotions.list.data.get();
+                const hadListFetched = Store.promotions.list.data.hasMeta('listFetched');
+                Store.promotions.list.data.set([]);
+                if (hadListFetched) Store.promotions.list.data.removeMeta('listFetched');
+
+                try {
+                    const staleSearch = repository.searchFragments();
+
+                    repository.search = { value: { path: 'acom', query: 'photoshop' } };
+                    const freshSearch = repository.searchFragments();
+                    await freshSearch;
+
+                    const countAfterFresh = mockDataStore.set.callCount;
+                    resolveLoadPromotions();
+                    await staleSearch;
+
+                    expect(mockDataStore.set.callCount).to.equal(countAfterFresh);
+                } finally {
+                    restore();
+                    Store.promotions.list.data.set(originalPromotions);
+                    if (hadListFetched) Store.promotions.list.data.setMeta('listFetched', true);
                 }
             });
         });
@@ -2009,6 +2140,28 @@ describe('MasRepository dictionary helpers', () => {
             }
         });
 
+        it('matches stored bizpro cards when narrowing to the Pro variant', async () => {
+            const stores = [
+                makeFragmentStore({ id: 'legacy-pro', variant: 'bizpro' }),
+                makeFragmentStore({ id: 'catalog', variant: 'catalog' }),
+            ];
+            const searchStub = sandbox.stub();
+            const { repository, setStub, cleanup } = setupNarrowingFixture({ stores });
+            repository.aem.sites.cf.fragments.search = searchStub;
+            repository.search = { value: { path: 'acom', query: '' } };
+            repository.filters = {
+                value: { locale: 'en_US', tags: 'mas:variant/pro', personalizationFilterEnabled: false },
+            };
+            try {
+                await repository.searchFragments();
+                expect(searchStub.called).to.be.false;
+                expect(setStub.firstCall.args[0]).to.have.lengthOf(1);
+                expect(setStub.firstCall.args[0][0].get().id).to.equal('legacy-pro');
+            } finally {
+                cleanup();
+            }
+        });
+
         it('3. narrows by adding a non-variant tag without calling AEM', async () => {
             const stores = [
                 makeFragmentStore({ id: 'a', tags: [{ id: 'mas:custom/a' }, { id: 'mas:product/b' }] }),
@@ -2343,6 +2496,31 @@ describe('MasRepository dictionary helpers', () => {
                 const setCalls = Store.fragments.list.data.set.getCalls();
                 const lastCall = setCalls[setCalls.length - 1];
                 expect(lastCall.args[0].length).to.equal(11);
+            } finally {
+                cleanup();
+            }
+        });
+
+        it('finds both pro and stored bizpro cards for the Pro variant filter', async () => {
+            const fragments = [
+                createFragment({
+                    id: 'pro',
+                    path: `${ROOT_PATH}/acom/en_US/pro`,
+                    fields: [{ name: 'variant', values: ['pro'] }],
+                }),
+                createFragment({
+                    id: 'legacy-pro',
+                    path: `${ROOT_PATH}/acom/en_US/legacy-pro`,
+                    fields: [{ name: 'variant', values: ['bizpro'] }],
+                }),
+            ];
+            const mockCursor = createMockCursorFromPages([fragments]);
+            const { repository, searchStub, mockDataStore, cleanup } = await setupSearchTest(mockCursor, 'mas:variant/pro');
+            try {
+                await repository.searchFragments();
+                expect(searchStub.firstCall.args[0].query).to.equal('');
+                const populatedCalls = mockDataStore.set.getCalls().filter((call) => call.args[0]?.length);
+                expect(populatedCalls.at(-1).args[0]).to.have.lengthOf(2);
             } finally {
                 cleanup();
             }
@@ -3836,6 +4014,104 @@ describe('MasRepository dictionary helpers', () => {
 
             expect(warnSpy.calledOnce).to.be.true;
             expect(warnSpy.firstCall.args[0]).to.include('Failed to refresh parent fragment store after variation save');
+        });
+    });
+
+    describe('deleteFragmentWithVariations', () => {
+        const buildFragmentWithVariation = (variationPath) =>
+            new Fragment({
+                id: 'parent-id',
+                path: '/content/dam/mas/sandbox/en_US/mili-compare',
+                fields: [{ name: 'variations', values: [variationPath] }],
+            });
+
+        it('deletes the parent via the reference-unlinking delete path instead of forceDelete, so promo-project references get cleaned up', async () => {
+            const repository = createRepository();
+            const variationPath = '/content/dam/mas/sandbox/en_US/mili-compare/ar';
+            const fragment = buildFragmentWithVariation(variationPath);
+            const parentWithEtag = {
+                id: 'parent-id',
+                path: fragment.path,
+                fields: [{ name: 'variations', values: [variationPath] }],
+            };
+
+            repository.aem = createAemMock({
+                fragments: {
+                    getWithEtag: sandbox.stub().resolves(parentWithEtag),
+                    save: sandbox.stub().resolves(),
+                    delete: sandbox.stub().resolves(),
+                    forceDelete: sandbox.stub().resolves(),
+                },
+            });
+            repository.operation = { set: sandbox.stub() };
+            sandbox.stub(repository, 'refreshVariationParentInList').resolves();
+            sandbox.stub(Events.fragmentDeleted, 'emit');
+
+            const result = await repository.deleteFragmentWithVariations(fragment);
+
+            expect(result.success).to.be.true;
+            expect(repository.aem.sites.cf.fragments.delete.calledOnceWith(parentWithEtag)).to.be.true;
+            expect(repository.aem.sites.cf.fragments.forceDelete.calledWith({ path: fragment.path })).to.be.false;
+        });
+
+        it('falls back to forceDelete for the parent when the reference-unlinking delete fails', async () => {
+            const repository = createRepository();
+            const variationPath = '/content/dam/mas/sandbox/en_US/mili-compare/ar';
+            const fragment = buildFragmentWithVariation(variationPath);
+            const parentWithEtag = {
+                id: 'parent-id',
+                path: fragment.path,
+                fields: [{ name: 'variations', values: [variationPath] }],
+            };
+
+            repository.aem = createAemMock({
+                fragments: {
+                    getWithEtag: sandbox.stub().resolves(parentWithEtag),
+                    save: sandbox.stub().resolves(),
+                    delete: sandbox.stub().rejects(new Error('409 conflict')),
+                    forceDelete: sandbox.stub().resolves(),
+                },
+            });
+            repository.operation = { set: sandbox.stub() };
+            sandbox.stub(repository, 'refreshVariationParentInList').resolves();
+            sandbox.stub(Events.fragmentDeleted, 'emit');
+            sandbox.stub(repository, 'processError');
+
+            const result = await repository.deleteFragmentWithVariations(fragment);
+
+            expect(repository.aem.sites.cf.fragments.delete.called).to.be.true;
+            expect(result.success).to.be.true;
+            expect(repository.aem.sites.cf.fragments.forceDelete.calledWith({ path: fragment.path })).to.be.true;
+        });
+
+        it('keeps success false when both the reference-unlinking delete and the forceDelete fallback fail', async () => {
+            const repository = createRepository();
+            const variationPath = '/content/dam/mas/sandbox/en_US/mili-compare/ar';
+            const fragment = buildFragmentWithVariation(variationPath);
+            const parentWithEtag = {
+                id: 'parent-id',
+                path: fragment.path,
+                fields: [{ name: 'variations', values: [variationPath] }],
+            };
+
+            repository.aem = createAemMock({
+                fragments: {
+                    getWithEtag: sandbox.stub().resolves(parentWithEtag),
+                    save: sandbox.stub().resolves(),
+                    delete: sandbox.stub().rejects(new Error('409 conflict')),
+                    forceDelete: sandbox.stub().rejects(new Error('force delete also failed')),
+                },
+            });
+            repository.operation = { set: sandbox.stub() };
+            sandbox.stub(repository, 'refreshVariationParentInList').resolves();
+            sandbox.stub(Events.fragmentDeleted, 'emit');
+            sandbox.stub(repository, 'processError');
+            const errorSpy = sandbox.stub(console, 'error');
+
+            const result = await repository.deleteFragmentWithVariations(fragment);
+
+            expect(result.success).to.be.false;
+            expect(errorSpy.calledWith('Force delete also failed:', sinon.match.instanceOf(Error))).to.be.true;
         });
     });
 

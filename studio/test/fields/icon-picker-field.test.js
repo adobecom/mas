@@ -309,4 +309,29 @@ describe('Icon picker field', () => {
 
         expect(el.variant).to.equal('plans');
     });
+
+    it('should not dispatch delete-field when modal closes and alt contains only an icon-button', async () => {
+        const el = await fixture(html`<mas-icon-picker-field></mas-icon-picker-field>`, { parentNode: spTheme() });
+        el.alt = '<p><span class="icon-button" data-tooltip="Info"></span></p>';
+        el.modalOpen = true;
+        await el.updateComplete;
+
+        let deleteFired = false;
+        el.addEventListener('delete-field', () => {
+            deleteFired = true;
+        });
+
+        el.dispatchEvent(new CustomEvent('modal-close', { bubbles: true }));
+        await el.updateComplete;
+
+        expect(deleteFired).to.be.false;
+    });
+
+    it('should render icon-button HTML in the value area when alt contains one', async () => {
+        const el = await fixture(html`<mas-icon-picker-field></mas-icon-picker-field>`, { parentNode: spTheme() });
+        el.alt = '<p>Details <span class="icon-button" data-tooltip="More"></span></p>';
+        await el.updateComplete;
+        const valueEl = el.shadowRoot.querySelector('.included-info .value');
+        expect(valueEl.querySelector('.icon-button')).to.exist;
+    });
 });

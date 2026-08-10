@@ -4,7 +4,10 @@ import '../fields/included-field.js';
 import '../fields/icon-picker-field.js';
 import '../fields/mnemonic-field.js';
 import '../aem/aem-tag-picker-field.js';
+import '../promotions/mas-promo-variation-geos.js';
+import { isPromoVariationPath } from '../promotions/promotion-model.js';
 import './variant-picker.js';
+import '../rte/rte-field.js';
 import { SPECTRUM_COLORS } from '../utils/spectrum-colors.js';
 import '../rte/osi-field.js';
 import { CARD_MODEL_PATH, COMPAT_VERSION } from '../constants.js';
@@ -13,11 +16,12 @@ import '../fields/plan-type-field.js';
 import '../fields/quantity-select-settings-field.js';
 import { getFragmentMapping, showToast } from '../utils.js';
 import '../fields/addon-field.js';
+import '../fields/rte-field-item.js';
 import { parseBadgeHtml, serializeBadgeHtml } from '../fields/badge-section.js';
 import { createQuantitySelectValue, parseQuantitySelectValue, QUANTITY_SELECT_TAG } from '../common/fields/quantity-select.js';
 import Store from '../store.js';
 import Events from '../events.js';
-import { VARIANT_NAMES } from './variant-picker.js';
+import { normalizeVariantName, VARIANT_NAMES } from './variant-picker.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 import { getItemFieldStateByIndex } from '../utils/field-state.js';
 import { Fragment } from '../aem/fragment.js';
@@ -25,7 +29,8 @@ import { toAttribute } from '../aem/tag-path-utils.js';
 import { getGlobalSettingsDefaults } from '../settings/settings-store.js';
 import { fieldStatusStyles } from '../common/fields/field-status.css.js';
 import { getLocaleByCode } from '../../../io/www/src/fragment/locales.js';
-import { parseBizProWhatsIncluded, serializeBizProWhatsIncluded } from '../utils/bizpro-whats-included.js';
+import { normalizePznTagToLocaleCode } from './variation-utils.js';
+import { parseProWhatsIncluded, serializeProWhatsIncluded } from '../utils/pro-whats-included.js';
 
 const QUANTITY_MODEL = 'quantitySelect';
 const WHAT_IS_INCLUDED = 'whatsIncluded';
@@ -39,13 +44,10 @@ function isEditorPriceElement(element) {
     return host?.nodeName === 'RTE-FIELD' && !!host.closest('merch-card-editor');
 }
 
-export function getActiveMerchCardEditor() {
-    return document.querySelector('merch-card-editor');
-}
-
 function groupedPreviewLocaleProvider(element, options) {
     if (!isEditorPriceElement(element)) return;
-    const localeCode = getActiveMerchCardEditor()?.previewLocaleOverride;
+    const merchCardEditor = document.querySelector('merch-card-editor');
+    const localeCode = merchCardEditor?.previewLocaleOverride;
     if (!localeCode) return;
 
     const locale = getLocaleByCode(localeCode);
@@ -58,14 +60,16 @@ function groupedPreviewLocaleProvider(element, options) {
 
 function editorPromoCodeProvider(element, options) {
     if (!isEditorPriceElement(element)) return;
-    const promoCode = getActiveMerchCardEditor()?.getEffectiveFieldValue('promoCode', 0);
+    const merchCardEditor = document.querySelector('merch-card-editor');
+    const promoCode = merchCardEditor?.getEffectiveFieldValue('promoCode', 0);
     if (!promoCode) return;
     options.promotionCode = promoCode;
 }
 
 function checkoutOptionsProvider(element, options) {
     if (!isEditorPriceElement(element)) return;
-    const promoCode = getActiveMerchCardEditor()?.getEffectiveFieldValue('promoCode', 0);
+    const merchCardEditor = document.querySelector('merch-card-editor');
+    const promoCode = merchCardEditor?.getEffectiveFieldValue('promoCode', 0);
     if (!promoCode) return;
     options.promotionCode = promoCode;
 }
@@ -85,17 +89,20 @@ class MerchCardEditor extends LitElement {
         updateFragment: { type: Function },
         localeDefaultFragment: { type: Object, attribute: false },
         isVariation: { type: Boolean, attribute: false },
+        promotionGeoOptions: { type: Array, attribute: false },
+        disabledPromoGeoOptions: { type: Array, attribute: false },
         fieldsReady: { type: Boolean, state: true },
         previewLocaleOverride: { type: String, state: true },
     };
 
     static SECTION_FIELDS = {
-        Visuals: ['mnemonics', 'badge', 'trialBadge', 'border-color'],
+        Visuals: ['mnemonics', 'badge', 'trialBadge', 'border-color', 'addonBackground'],
         "What's included": ['whatsIncluded', 'whatsIncludedIconPicker', 'whats-included-divider-color'],
         'Product details': ['description', 'shortDescription', 'callout'],
         'Footer rows': ['footerRows'],
         Footer: ['ctas'],
         'Options and settings': ['addon', 'planType', 'secureLabel', 'quantitySelect'],
+        'Custom fields': ['customFields'],
     };
 
     static SETTINGS_FIELDS = ['addon', 'showPlanType', 'showSecureLabel', 'quantitySelect'];
@@ -117,6 +124,8 @@ class MerchCardEditor extends LitElement {
         this.currentVariantMapping = null;
         this.localeDefaultFragment = null;
         this.isVariation = false;
+        this.promotionGeoOptions = [];
+        this.disabledPromoGeoOptions = [];
         this.lastMnemonicState = null;
         this.fieldsReady = false;
         this.previewLocaleOverride = null;
@@ -144,8 +153,8 @@ class MerchCardEditor extends LitElement {
     }
 
     #normalizeGroupedPreviewLocaleCode(tagValue) {
-        const localeCode = tagValue?.split('/').pop()?.trim();
-        return getLocaleByCode(localeCode) ? localeCode : null;
+        const preferredLang = getLocaleByCode(Store.localeOrRegion())?.lang;
+        return normalizePznTagToLocaleCode(tagValue, Store.surface(), preferredLang);
     }
 
     get groupedPreviewLocales() {
@@ -223,12 +232,70 @@ class MerchCardEditor extends LitElement {
         `;
     }
 
+    get isPromoVariation() {
+        return isPromoVariationPath(this.fragment?.path);
+    }
+
+    get promoGeoTags() {
+        return (this.fragment.getFieldValues('pznTags') || []).filter(Boolean);
+    }
+
+    #removePromoGeoTag(tag) {
+        this.fragmentStore.updateField(
+            'pznTags',
+            this.promoGeoTags.filter((existing) => existing !== tag),
+        );
+    }
+
+    #handlePromoGeoTagsChange(e) {
+        this.fragmentStore.updateField('pznTags', e.detail.value);
+    }
+
+    get promoVariationGeoTagsTemplate() {
+        if (!this.isPromoVariation) return nothing;
+        return html`
+            <sp-field-group id="promo-geo-tags">
+                <sp-field-label>Geos tags</sp-field-label>
+                <sp-tags>
+                    ${this.promoGeoTags.map(
+                        (tag) => html`
+                            <sp-tag deletable @delete=${(e) => (e.preventDefault(), this.#removePromoGeoTag(tag))}>
+                                ${tag.split('/').pop()}
+                            </sp-tag>
+                        `,
+                    )}
+                    <overlay-trigger placement="bottom">
+                        <sp-action-button slot="trigger" quiet size="m">
+                            <sp-icon-add slot="icon"></sp-icon-add>
+                        </sp-action-button>
+                        <sp-popover slot="click-content">
+                            <mas-promo-variation-geos
+                                compact
+                                .geos=${this.promotionGeoOptions}
+                                .disabledGeos=${this.disabledPromoGeoOptions}
+                                .value=${this.promoGeoTags}
+                                @change=${(e) => this.#handlePromoGeoTagsChange(e)}
+                            ></mas-promo-variation-geos>
+                        </sp-popover>
+                    </overlay-trigger>
+                </sp-tags>
+            </sp-field-group>
+        `;
+    }
+
     getEffectiveFieldValue(fieldName, index = 0) {
-        return this.fragment.getEffectiveFieldValue(fieldName, this.localeDefaultFragment, this.effectiveIsVariation, index);
+        const value = this.fragment.getEffectiveFieldValue(
+            fieldName,
+            this.localeDefaultFragment,
+            this.effectiveIsVariation,
+            index,
+        );
+        return fieldName === 'variant' ? normalizeVariantName(value) : value;
     }
 
     getEffectiveFieldValues(fieldName) {
-        return this.fragment.getEffectiveFieldValues(fieldName, this.localeDefaultFragment, this.effectiveIsVariation);
+        const values = this.fragment.getEffectiveFieldValues(fieldName, this.localeDefaultFragment, this.effectiveIsVariation);
+        return fieldName === 'variant' ? values.map(normalizeVariantName) : values;
     }
 
     isFieldOverridden(fieldName) {
@@ -368,6 +435,10 @@ class MerchCardEditor extends LitElement {
                     values: [inheritedVariant],
                 });
             }
+        }
+        const variantField = settingsContextFragment.fields.find((field) => field.name === 'variant');
+        if (variantField?.values?.length) {
+            variantField.values = variantField.values.map(normalizeVariantName);
         }
 
         if (!(settingsContextFragment.tags || []).length && (this.localeDefaultFragment.tags || []).length) {
@@ -719,20 +790,20 @@ class MerchCardEditor extends LitElement {
     }
 
     /**
-     * bizpro authors its "What's included" as a list of titled sections
+     * pro authors its "What's included" as a list of titled sections
      * (`<div class="section"><h4>icon + title</h4><ul><li>row</li></ul></div>`),
      * not as `<merch-whats-included>`. Each editor "bullet" maps to one section:
      * the icon is the section icon, and the rich-text Description holds the bold
      * title (first paragraph) followed by one paragraph per bullet row. Gated to
      * this variant so every other card keeps the shared merch-whats-included path.
      */
-    get #isBizProWhatsIncluded() {
-        return this.getEffectiveFieldValue('variant') === VARIANT_NAMES.BIZPRO;
+    get #isProWhatsIncluded() {
+        return this.getEffectiveFieldValue('variant') === VARIANT_NAMES.PRO;
     }
 
     get whatsIncluded() {
-        if (this.#isBizProWhatsIncluded) {
-            return parseBizProWhatsIncluded(this.getEffectiveFieldValue(WHAT_IS_INCLUDED, 0) || '');
+        if (this.#isProWhatsIncluded) {
+            return parseProWhatsIncluded(this.getEffectiveFieldValue(WHAT_IS_INCLUDED, 0) || '');
         }
         const label = this.whatsIncludedElement?.querySelector('[slot="heading"]')?.textContent || '';
         const values = [];
@@ -1281,7 +1352,7 @@ class MerchCardEditor extends LitElement {
                     ></aem-tag-picker-field>
                     ${this.renderTagsStatusIndicator()}
                 </sp-field-group>
-                ${this.groupedVariationTagsTemplate}
+                ${this.groupedVariationTagsTemplate} ${this.promoVariationGeoTagsTemplate}
                 <div class="section-title">Visuals</div>
                 <sp-field-group class="toggle" id="mnemonics">
                     <mas-multifield
@@ -1306,6 +1377,8 @@ class MerchCardEditor extends LitElement {
                         this.availableBorderColors,
                         form.borderColor?.values[0],
                         'borderColor',
+                        undefined,
+                        this.#isBorderColorDisabledByTheme(form),
                     )}
                     ${this.#backgroundColorSelection(
                         this.availableBackgroundColors,
@@ -1313,6 +1386,7 @@ class MerchCardEditor extends LitElement {
                         'backgroundColor',
                     )}
                 </div>
+                ${this.#renderAddonBackgroundPicker(form)}
                 <sp-field-group class="toggle" id="whatsIncluded">
                     <div class="section-title">What's included</div>
                     <sp-textfield
@@ -1530,6 +1604,7 @@ class MerchCardEditor extends LitElement {
                         upt-link
                         list
                         mnemonic
+                        icon
                         data-field="shortDescription"
                         data-field-state="${this.getFieldState('shortDescription')}"
                         .osi=${form.osi.values[0]}
@@ -1556,6 +1631,23 @@ class MerchCardEditor extends LitElement {
                         ?readonly=${this.disabled}
                     ></rte-field>
                     ${this.renderFieldStatusIndicator('callout')}
+                </sp-field-group>
+                <div class="section-title">Custom fields</div>
+                <sp-field-group class="toggle" id="customFields">
+                    <mas-multifield
+                        button-label="Add field"
+                        dispatch-on-add
+                        data-field-state="${this.getFieldState('customFields')}"
+                        .value="${this.customFieldValues}"
+                        .osi="${this.getEffectiveFieldValue('osi', 0) || ''}"
+                        @change="${this.#updateCustomFields}"
+                        @input="${this.#updateCustomFields}"
+                    >
+                        <template>
+                            <mas-rte-field-item></mas-rte-field-item>
+                        </template>
+                    </mas-multifield>
+                    ${this.renderFieldStatusIndicator('customFields')}
                 </sp-field-group>
                 <div class="section-title">Footer</div>
                 <sp-field-group class="toggle" id="ctas">
@@ -1676,11 +1768,10 @@ class MerchCardEditor extends LitElement {
         if (!alt.startsWith('<p>')) return false;
 
         const doc = new DOMParser().parseFromString(alt, 'text/html');
-        const t = doc
-            .querySelector('p')
-            ?.textContent.replace(/\u00a0/g, ' ')
-            .trim();
-        return !t;
+        const p = doc.querySelector('p');
+        const t = p?.textContent.replace(/\u00a0/g, ' ').trim();
+        if (t) return false;
+        return !p?.querySelector('.icon-button');
     }
 
     createMnemonicList(value, isBullet) {
@@ -1756,15 +1847,15 @@ class MerchCardEditor extends LitElement {
     }
 
     #updateWhatsIncluded(event, isBullet) {
-        if (this.#isBizProWhatsIncluded) {
-            // bizpro only uses the bullet multifield (sections) and the
+        if (this.#isProWhatsIncluded) {
+            // pro only uses the bullet multifield (sections) and the
             // label textfield (toggle copy); the "Add application" multifield
-            // has no bizpro equivalent, so ignore its events.
+            // has no pro equivalent, so ignore its events.
             const fromMultifield = Array.isArray(event.target.value);
             if (fromMultifield && !isBullet) return;
             const bullets = fromMultifield ? event.target.value : this.whatsIncluded.bullets;
             const label = fromMultifield ? this.whatsIncluded.label : event.target.value;
-            const html = serializeBizProWhatsIncluded(bullets, label);
+            const html = serializeProWhatsIncluded(bullets, label);
             this.fragmentStore.updateField(WHAT_IS_INCLUDED, [html]);
             return;
         }
@@ -1792,6 +1883,18 @@ class MerchCardEditor extends LitElement {
         }
         const element = this.createIncludedElement(label, values, bullets, this.whatsIncludedDividerFromMarkup);
         this.fragmentStore.updateField(WHAT_IS_INCLUDED, [element?.outerHTML || '']);
+    }
+
+    get customFieldValues() {
+        const values = this.getEffectiveFieldValues('customFields') || [];
+        const labels = this.getEffectiveFieldValues('customFieldLabels') || [];
+        const count = Math.max(values.length, labels.length);
+        return Array.from({ length: count }, (_, i) => {
+            const item = {};
+            if (values[i]) item.value = values[i];
+            if (labels[i]) item.label = labels[i];
+            return item;
+        });
     }
 
     get footerRows() {
@@ -1833,6 +1936,20 @@ class MerchCardEditor extends LitElement {
         });
         return ul;
     }
+
+    #updateCustomFields = (event) => {
+        const items = event?.target?.value;
+        if (!Array.isArray(items)) return;
+        const values = items.map((item) => item.value || '');
+        const labels = items.map((item) => item.label || '');
+        const nonEmpty = labels.filter(Boolean);
+        if (nonEmpty.length !== new Set(nonEmpty).size) {
+            showToast('Custom field labels must be unique', 'negative');
+            return;
+        }
+        this.fragmentStore.updateField('customFields', values);
+        this.fragmentStore.updateField('customFieldLabels', labels);
+    };
 
     #updateFooterRows(event) {
         const items = event?.target?.value;
@@ -2266,7 +2383,76 @@ class MerchCardEditor extends LitElement {
         this.#handleFragmentUpdate(syntheticEvent);
     };
 
-    #renderColorPicker(id, label, colors, selectedValue, dataField, onChange) {
+    static #ADDON_GRADIENT =
+        'linear-gradient(211deg, rgb(245, 246, 253) 33.52%, rgb(248, 241, 248) 67.33%, rgb(249, 233, 237) 110.37%)';
+    static #ADDON_GREY = '#dadada';
+
+    #getAddonBackground(addonHtml) {
+        if (!addonHtml) return undefined;
+        const temp = document.createElement('div');
+        temp.innerHTML = addonHtml;
+        const first = temp.firstElementChild;
+        return first?.tagName?.toLowerCase() === 'merch-addon' ? first.getAttribute('background') || undefined : undefined;
+    }
+
+    #renderAddonBackgroundPicker(form) {
+        const addonHtml = form.addon?.values[0] || '';
+        const currentBg = this.#getAddonBackground(addonHtml);
+        const gradient = MerchCardEditor.#ADDON_GRADIENT;
+        const grey = MerchCardEditor.#ADDON_GREY;
+        const options = { Gradient: gradient, Grey: grey };
+        const selectedKey = Object.entries(options).find(([, v]) => v === currentBg)?.[0] ?? 'Default';
+
+        const handleChange = (e) => {
+            const bgValue = options[e.target.value];
+            const temp = document.createElement('div');
+            temp.innerHTML = addonHtml;
+            const first = temp.firstElementChild;
+            const innerContent = first?.tagName?.toLowerCase() === 'merch-addon' ? first.innerHTML : addonHtml;
+            const newAddonHtml = bgValue ? `<merch-addon background="${bgValue}">${innerContent}</merch-addon>` : innerContent;
+            const fragment = this.fragmentStore.get();
+            fragment.updateField('addon', [newAddonHtml]);
+            this.fragmentStore.set(fragment);
+        };
+
+        return html`
+            <sp-field-group class="toggle" id="addonBackground">
+                <sp-field-label for="addonBackground">Addon Background</sp-field-label>
+                <sp-picker
+                    id="addonBackground"
+                    data-field-state="${this.getFieldState('addon')}"
+                    value="${selectedKey}"
+                    @change="${handleChange}"
+                >
+                    <sp-menu-item value="Default">
+                        <div class="menu-item-container"><span>Default</span></div>
+                    </sp-menu-item>
+                    <sp-menu-item value="Gradient">
+                        <div class="menu-item-container">
+                            <div class="color-swatch" style="--swatch-bg: ${gradient}"></div>
+                            <span class="color-name-text">Gradient</span>
+                        </div>
+                    </sp-menu-item>
+                    <sp-menu-item value="Grey">
+                        <div class="menu-item-container">
+                            <div class="color-swatch" style="--swatch-bg: #dadada"></div>
+                            <span class="color-name-text">Grey</span>
+                        </div>
+                    </sp-menu-item>
+                </sp-picker>
+                ${this.renderFieldStatusIndicator('addon')}
+            </sp-field-group>
+        `;
+    }
+
+    // Border Color is disabled while the theme (backgroundColor) matches the
+    // mapping's disableWhenBackgroundColor — pro disables it on Dark.
+    #isBorderColorDisabledByTheme(form) {
+        const disableWhen = this.currentVariantMapping?.borderColor?.disableWhenBackgroundColor;
+        return !!disableWhen && form.backgroundColor?.values?.[0] === disableWhen;
+    }
+
+    #renderColorPicker(id, label, colors, selectedValue, dataField, onChange, disabled = false) {
         const isDividerField = dataField === 'whatsIncludedDividerColor';
 
         const showAllSpectrum = this.currentVariantMapping?.showAllSpectrumColors;
@@ -2276,7 +2462,11 @@ class MerchCardEditor extends LitElement {
         let variantSpecialValues = {};
         if (this.fragment && this.currentVariantMapping) {
             const variant = this.currentVariantMapping;
-            const colorConfig = isDividerField ? variant.whatsIncludedDividerColor : variant.borderColor;
+            const colorConfig = isDividerField
+                ? variant.whatsIncludedDividerColor
+                : typeof variant[dataField] === 'object'
+                  ? variant[dataField]
+                  : variant.borderColor;
             variantSpecialValues = colorConfig?.specialValues || {};
             if (showAllSpectrum && Object.keys(variantSpecialValues).length > 0) {
                 colorArray = [...colorArray, ...Object.keys(variantSpecialValues)];
@@ -2293,15 +2483,18 @@ class MerchCardEditor extends LitElement {
             }
         }
 
+        const hideTransparent = !isDividerField && this.currentVariantMapping?.borderColor?.hideTransparent;
         if (!selectedValue) {
             displaySelectedValue = 'Default';
         } else if (selectedValue === 'transparent') {
-            displaySelectedValue = 'Transparent';
+            // Legacy content can still hold transparent; show it as Default when
+            // the option is hidden for this variant.
+            displaySelectedValue = hideTransparent ? 'Default' : 'Transparent';
         }
 
         const options = [
             'Default',
-            'Transparent',
+            ...(hideTransparent ? [] : ['Transparent']),
             ...(!showAllSpectrum ? Object.keys(variantSpecialValues) : []),
             ...colorArray,
         ];
@@ -2339,6 +2532,7 @@ class MerchCardEditor extends LitElement {
                     data-field-state="${this.#getColorPickerFieldState(dataField)}"
                     value="${displaySelectedValue || 'Default'}"
                     data-default-value="Default"
+                    ?disabled=${disabled}
                     @change="${handleChange}"
                 >
                     ${options.map(
@@ -2380,6 +2574,38 @@ class MerchCardEditor extends LitElement {
     }
 
     #backgroundColorSelection(colors, selectedValue, dataField) {
+        const colorConfig = this.currentVariantMapping?.backgroundColor;
+        const specialValues = colorConfig?.specialValues;
+        if (specialValues) {
+            const selectedOption =
+                Object.entries(specialValues).find(([, value]) => value === selectedValue)?.[0] ??
+                (selectedValue || Object.keys(specialValues)[0]);
+            const handleSpecialValueChange = (e) => {
+                const fragment = this.fragmentStore.get();
+                fragment.updateField(dataField, [specialValues[e.target.value]]);
+                this.fragmentStore.set(fragment);
+            };
+
+            return html`
+                <sp-field-group class="toggle" id="backgroundColor">
+                    <sp-field-label for="backgroundColor">${colorConfig.editorLabel ?? 'Background Color'}</sp-field-label>
+                    <sp-picker
+                        id="backgroundColor"
+                        data-field="${dataField}"
+                        data-field-state="${this.getFieldState(dataField)}"
+                        value="${selectedOption}"
+                        data-default-value="${Object.keys(specialValues)[0]}"
+                        @change="${handleSpecialValueChange}"
+                    >
+                        ${Object.keys(specialValues).map(
+                            (label) => html`<sp-menu-item value="${label}">${label}</sp-menu-item>`,
+                        )}
+                    </sp-picker>
+                    ${this.renderFieldStatusIndicator(dataField)}
+                </sp-field-group>
+            `;
+        }
+
         const options = {
             Default: undefined,
             Transparent: 'transparent',

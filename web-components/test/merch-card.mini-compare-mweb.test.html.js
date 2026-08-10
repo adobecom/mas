@@ -95,6 +95,7 @@ runTests(async () => {
 
             const card1 = cards[0];
             const variantLayout = card1.variantLayout;
+            variantLayout.syncHeights();
 
             // getRowMinHeightPropertyName should return the expected CSS var name
             expect(variantLayout.getRowMinHeightPropertyName(1)).to.equal(

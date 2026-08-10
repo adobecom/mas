@@ -365,6 +365,21 @@ export const styles = [
             justify-content: center;
             z-index: 1000;
         }
+
+        .end-date-row {
+            display: flex;
+            align-items: center;
+            gap: var(--spectrum-spacing-200, 16px);
+        }
+
+        .end-date-row input[type='datetime-local']:disabled {
+            opacity: 0.4;
+        }
+
+        .promotion-tag-field {
+            align-items: flex-start;
+            justify-content: center;
+        }
     `,
 ];
 

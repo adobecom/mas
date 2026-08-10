@@ -151,4 +151,43 @@ describe('MAS Mnemonic Modal', () => {
         expect(event.detail.icon).to.equal('');
         expect(event.detail.alt).to.equal('<p>Aero</p>');
     });
+
+    it('should dispatch save when altHtml contains only an icon-button (no text)', async () => {
+        const el = await fixture(html`<mas-mnemonic-modal open use-rte></mas-mnemonic-modal>`, {
+            parentNode: spTheme(),
+        });
+
+        el.selectedTab = 'product-icon';
+        el.selectedProductId = null;
+        el.alt = '';
+        el.altHtml = '<p><span class="icon-button" data-tooltip="Tooltip"></span></p>';
+        el.link = '';
+        await el.updateComplete;
+
+        const listener = oneEvent(el, 'save');
+        el.shadowRoot.querySelector('sp-button[variant="accent"]').click();
+        const event = await listener;
+
+        expect(event.detail.alt).to.include('icon-button');
+        expect(el.open).to.be.false;
+    });
+
+    it('should not dispatch save from URL tab when altHtml contains only an icon-button and icon is empty', async () => {
+        const el = await fixture(html`<mas-mnemonic-modal open use-rte></mas-mnemonic-modal>`, {
+            parentNode: spTheme(),
+        });
+
+        el.selectedTab = 'url';
+        el.icon = '';
+        el.alt = '';
+        el.altHtml = '<p><span class="icon-button" data-tooltip="Tooltip"></span></p>';
+        el.link = '';
+        await el.updateComplete;
+
+        const listener = oneEvent(el, 'save');
+        el.shadowRoot.querySelector('sp-button[variant="accent"]').click();
+        const event = await listener;
+
+        expect(event.detail.alt).to.include('icon-button');
+    });
 });

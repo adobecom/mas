@@ -66,8 +66,14 @@ const config = {
         },
 
         // Teardown project: runs after all projects that depend on setup (same rule as auth).
+        // Sweeps 5 locale paths sequentially against live AEM to delete cloned
+        // fragments — this legitimately exceeds the global 45s test timeout, so
+        // give it its own generous budget. Each path is still bounded by the
+        // internal 90s Promise.race guard in global.teardown.js, so a real hang
+        // still surfaces well before this ceiling.
         {
             name: 'nala-teardown',
+            timeout: 6 * 60 * 1000,
             use: {
                 ...devices['Desktop Chrome'],
                 userAgent: USER_AGENT_DESKTOP,

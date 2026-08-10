@@ -761,10 +761,7 @@ class MasPromotionsEditor extends LitElement {
             showToast(error.message || 'Failed to save project.', 'negative');
             return;
         }
-        if (!saved) {
-            showToast('Failed to save project.', 'negative');
-            return;
-        }
+        if (!saved) return;
         clearCaches();
         showToast('Project successfully saved.', 'positive');
         Store.promotions.selectedPlaceholders.set([]);

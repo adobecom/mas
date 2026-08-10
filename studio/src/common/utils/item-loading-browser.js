@@ -44,7 +44,7 @@ export async function loadOfferData(fragment, { cache = new Map(), signal, timeo
             throw error;
         }
     } catch (error) {
-        console.error(`Failed to load offer data for fragment ${fragment?.id}:`, error.message);
+        console.warn(`Failed to load offer data for fragment ${fragment?.id}:`, error.message);
 
         if (!signal?.aborted) {
             cache.set(wcsOsi, null);

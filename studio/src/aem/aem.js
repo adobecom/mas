@@ -241,13 +241,13 @@ class AEM {
      * @param {Object} fragment
      * @returns {Promise<Object>} the updated fragment
      */
-    async saveFragment(fragment, { discardEtag = true } = {}) {
+    async saveFragment(fragment, { refetchEtag = true } = {}) {
         if (!fragment?.id) {
             throw new Error('Invalid fragment data for save operation');
         }
 
         let etag;
-        if (discardEtag) {
+        if (refetchEtag) {
             const latestFragment = await this.getFragmentWithEtag(fragment.id);
             if (!latestFragment) {
                 throw new Error('Failed to retrieve fragment for update');

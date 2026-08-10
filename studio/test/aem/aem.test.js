@@ -122,7 +122,7 @@ describe('aem.js', () => {
     });
 
     describe('method: saveFragment', () => {
-        it('uses stored etag without fresh GET when discardEtag is false', async () => {
+        it('uses stored etag without fresh GET when refetchEtag is false', async () => {
             const fetchCalls = [];
             let putHeaders;
             window.fetch = async (url, options) => {
@@ -137,7 +137,7 @@ describe('aem.js', () => {
 
             await aem.saveFragment(
                 { id: 'f1', etag: 'stored-etag', title: 't', description: 'd', fields: [] },
-                { discardEtag: false },
+                { refetchEtag: false },
             );
 
             expect(fetchCalls).to.have.lengthOf(2);

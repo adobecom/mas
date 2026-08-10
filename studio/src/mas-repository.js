@@ -1346,7 +1346,7 @@ export class MasRepository extends LitElement {
      * @returns {Promise<Object>} The saved fragment
      */
     async saveFragment(fragmentStore, options = {}) {
-        const { withToast = true, discardEtag = true } = options;
+        const { withToast = true, refetchEtag = true } = options;
         if (withToast) showToast('Saving fragment...');
         this.operation.set(OPERATIONS.SAVE);
 
@@ -1373,7 +1373,7 @@ export class MasRepository extends LitElement {
         ensureCompatVersionOnMerchCardFieldList(fragmentToSave.model?.path, fragmentToSave.fields);
 
         try {
-            const savedFragment = await this.aem.sites.cf.fragments.save(fragmentToSave, { discardEtag });
+            const savedFragment = await this.aem.sites.cf.fragments.save(fragmentToSave, { refetchEtag });
             if (!savedFragment) throw new Error('Invalid fragment.');
 
             fragmentStore.refreshFrom(savedFragment);

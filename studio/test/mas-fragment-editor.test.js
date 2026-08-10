@@ -15,7 +15,6 @@ import {
 import router from '../src/router.js';
 import Events from '../src/events.js';
 import { extractLocaleFromPath } from '../src/utils.js';
-import { setItemsSelectionStore } from '../src/common/items-selection-store.js';
 import { nothing, render } from 'lit';
 import { makeSearchStub } from './helpers/aem-tag-fetch.js';
 

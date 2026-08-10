@@ -1,9 +1,7 @@
 import { css } from 'lit';
-import { tableColumnIconStyles } from './common/styles/table-styles.css.js';
 import { skeletonStyles } from './common/skeleton-styles.css.js';
 
 export const styles = [
-    tableColumnIconStyles,
     skeletonStyles,
     css`
         .related-variations-container {

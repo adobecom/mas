@@ -995,12 +995,6 @@ sp-progress-circle.preview {
     text-decoration: none;
 }
 
-.table-icon-cell {
-    display: flex;
-    align-items: center;
-    flex: 0;
-}
-
 @media screen and (max-width: 1100px) {
     sp-table-cell.offer-id {
         word-break: break-all;

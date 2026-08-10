@@ -212,7 +212,6 @@ export default class MasFragmentEditor extends LitElement {
             position: sticky;
             top: 16px;
             height: fit-content;
-            max-height: calc(100vh - 200px);
             display: flex;
             flex-direction: column;
             align-items: center;

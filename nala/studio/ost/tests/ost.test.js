@@ -214,9 +214,8 @@ test.describe('M@S Studio OST test suite', () => {
             await expect(await ost.price).toBeVisible();
         });
 
-        // The fixture's price shows recurrence + per-unit + tax by default, so
-        // each "Disable" toggle REMOVES its token. Assert present → toggle →
-        // gone, which exercises the same mutation without assuming a start state.
+        // The fixture's price shows recurrence + tax by default, so each
+        // "Disable" toggle REMOVES its token (assert present → toggle → gone).
         // Recurrence renders as /mois or /an depending on which offer (ABM vs
         // PUF) lands first — match either so offer ordering doesn't flake CI.
         await test.step('step-2: Recurrence toggle controls the recurrence token', async () => {
@@ -227,11 +226,15 @@ test.describe('M@S Studio OST test suite', () => {
             await expect(await ost.price).not.toContainText(/\/(mois|an)/);
         });
 
+        // Per-unit defaults OFF for this INDIVIDUAL offer (segment-derived, in
+        // line with studio/src/rte/ost.js onPlaceholderSelect), so the "Unit"
+        // Disable box is checked by default — unchecking it ENABLES the token
+        // (assert absent → toggle → present).
         await test.step('step-3: Per-unit toggle controls the per-unit token', async () => {
             await expect(await ost.unitCheckbox).toBeVisible();
-            await expect(await ost.price).toContainText(data.toggles.displayPerUnit);
-            await ost.unitCheckbox.click();
             await expect(await ost.price).not.toContainText(data.toggles.displayPerUnit);
+            await ost.unitCheckbox.click();
+            await expect(await ost.price).toContainText(data.toggles.displayPerUnit);
         });
 
         await test.step('step-4: Tax toggle controls the tax token', async () => {

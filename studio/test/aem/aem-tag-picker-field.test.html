@@ -574,6 +574,29 @@
                         expect(aemTagPicker.tempValue).to.deep.equal(beforeTempValue);
                     });
 
+                    it('keeps existing selection when value seeded via attribute and a tag is added', async function () {
+                        const aemTagPicker = initElementFromTemplate('tagPicker9', this.test.title);
+                        aemTagPicker.setAttribute('value', 'mas:status/archived');
+                        await aemTagPicker.loadTags();
+                        await aemTagPicker.updateComplete;
+
+                        aemTagPicker.shadowRoot.querySelector('sp-action-button').click();
+                        await delay(50);
+                        const overlayTrigger = aemTagPicker.shadowRoot.querySelector('overlay-trigger');
+
+                        const draftPath = '/content/cq:tags/mas/status/draft';
+                        const draftCheckbox = aemTagPicker.shadowRoot.querySelector(`sp-checkbox[value="${draftPath}"]`);
+                        draftCheckbox.checked = true;
+                        draftCheckbox.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+
+                        const applyOnCloseListener = oneEvent(aemTagPicker, 'change');
+                        overlayTrigger.dispatchEvent(new Event('sp-closed'));
+                        await applyOnCloseListener;
+
+                        expect(aemTagPicker.value).to.include('mas:status/archived');
+                        expect(aemTagPicker.value).to.include('mas:status/draft');
+                    });
+
                     it('becomes interactive again when disabled flips back to false', async function () {
                         const aemTagPicker = initElementFromTemplate('tagPicker10', this.test.title);
                         await aemTagPicker.loadTags();

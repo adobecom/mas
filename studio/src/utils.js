@@ -390,18 +390,37 @@ export function stripHtml(value) {
     return new DOMParser().parseFromString(value, 'text/html').body.textContent || '';
 }
 
+/** Re-serializes a parsed DOM node to text, keeping only <s> tags (strikethrough prices)
+ *  and decoding HTML entities (e.g. &nbsp;) via the text nodes' already-decoded data. */
+function flattenPreservingStrikethrough(node) {
+    let result = '';
+    for (const child of node.childNodes) {
+        if (child.nodeType === Node.TEXT_NODE) {
+            result += child.data;
+        } else if (child.nodeType === Node.ELEMENT_NODE) {
+            const inner = flattenPreservingStrikethrough(child);
+            result += child.tagName === 'S' ? `<s>${inner}</s>` : inner;
+        }
+    }
+    return result;
+}
+
 /**
  * Returns a preview of the first value in an array.
- * HTML is stripped except {@html <s>} tags (strikethrough prices).
+ * HTML is stripped except {@html <s>} tags (strikethrough prices), and HTML entities
+ * (e.g. &nbsp;) are decoded rather than left as literal text.
  * @param {any[]} values
  * @returns {string}
  */
 export function previewValue(values) {
     const raw = values?.[0] ?? '';
     if (!raw) return '';
-    if (typeof raw !== 'string' || !raw.includes('<')) return String(raw);
+    if (typeof raw !== 'string' || (!raw.includes('<') && !raw.includes('&'))) return String(raw);
     // Strip all HTML except <s> tags used for strikethrough prices.
-    return raw.replace(/<(?!\/?s\b)[^>]+>/g, '');
+    const stripped = raw.replace(/<(?!\/?s\b)[^>]+>/g, '');
+    const temp = document.createElement('div');
+    temp.innerHTML = stripped;
+    return flattenPreservingStrikethrough(temp);
 }
 
 /*

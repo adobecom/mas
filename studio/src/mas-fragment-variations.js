@@ -3,7 +3,7 @@ import { FragmentStore } from './reactivity/fragment-store.js';
 import { Fragment } from './aem/fragment.js';
 import generateFragmentStore, { createPreviewDataWithParent } from './reactivity/source-fragment-store.js';
 import { styles } from './mas-fragment-variations.css.js';
-import { extractLocaleFromPath, showToast } from './utils.js';
+import { extractLocaleFromPath, showToast, createKeyedAsyncLoader } from './utils.js';
 import router from './router.js';
 import {
     getGroupedVariationTagsValue,
@@ -24,6 +24,7 @@ import {
     getPromotionInfo,
 } from './promotions/promotion-model.js';
 import { getPromotionProjectsForProbe } from './promotions/promotions-repository.js';
+import { probeOrphanedPromoVariationsForFragment } from './promotions/promotion-variations.js';
 
 const styleElement = document.createElement('style');
 styleElement.setAttribute('data-mas-fragment-variations', '');
@@ -43,6 +44,7 @@ class MasFragmentVariations extends LitElement {
         duplicatePznTags: { type: Array, state: true },
         duplicateLoading: { type: Boolean, state: true },
         selectedTab: { type: String, state: true },
+        orphanPromoVariations: { type: Array, state: true },
     };
 
     reactiveController = new ReactiveController(this, [
@@ -61,7 +63,10 @@ class MasFragmentVariations extends LitElement {
         this.duplicatePznTags = [];
         this.duplicateLoading = false;
         this.selectedTab = Store.fragments.variationSearchTab.get() || 'locale';
+        this.orphanPromoVariations = [];
     }
+
+    #orphanPromoVariationsLoader = createKeyedAsyncLoader();
 
     createRenderRoot() {
         return this;
@@ -93,6 +98,26 @@ class MasFragmentVariations extends LitElement {
         if (highlightId && this.#hasVariationInParent(highlightId)) {
             this.scrollToHighlightedVariation();
         }
+
+        void this.#loadOrphanPromoVariationsFallback();
+    }
+
+    async #loadOrphanPromoVariationsFallback() {
+        const aem = this.repository?.aem;
+        await this.#orphanPromoVariationsLoader({
+            guard: () =>
+                Boolean(
+                    this.fragment?.path &&
+                        aem &&
+                        this.selectedTab === 'promotion' &&
+                        !this.fragment.listPromoVariations().length,
+                ),
+            computeKey: () => this.fragment.path,
+            load: () => probeOrphanedPromoVariationsForFragment(aem, this.fragment.path),
+            apply: (discovered) => {
+                this.orphanPromoVariations = discovered;
+            },
+        });
     }
 
     disconnectedCallback() {
@@ -135,7 +160,10 @@ class MasFragmentVariations extends LitElement {
     }
 
     get promoVariations() {
-        return this.fragment.listPromoVariations();
+        const known = this.fragment.listPromoVariations();
+        if (!this.orphanPromoVariations.length) return known;
+        const knownPaths = new Set(known.map((variation) => variation.path));
+        return [...known, ...this.orphanPromoVariations.filter((variation) => !knownPaths.has(variation.path))];
     }
 
     get hasLocaleVariations() {

@@ -3,6 +3,7 @@ import sinon from 'sinon';
 import Store from '../src/store.js';
 import '../src/mas-fragment-variations.js';
 import { getGroupedVariationTagsValue, getPromotionCode } from '../src/editors/variation-utils.js';
+import { makeSearchStub } from './helpers/aem-tag-fetch.js';
 
 describe('MasFragmentVariations', () => {
     let sandbox;
@@ -510,6 +511,70 @@ describe('MasFragmentVariations', () => {
             expect(Store.promotions.promotionId.get()).to.equal('promo-project-1');
             expect(navigateSpy.calledOnce).to.be.true;
             Store.promotions.promotionId.set(null);
+        });
+    });
+
+    describe('orphaned promo variations fallback', () => {
+        const parentPath = '/content/dam/mas/sandbox/en_US/my-card';
+        const promotionsRoot = '/content/dam/mas/sandbox/en_US/promotions';
+        const orphanPath = `${promotionsRoot}/back-to-school/my-card`;
+
+        const createEmptyFragment = () => ({
+            path: parentPath,
+            listLocaleVariations: () => [],
+            listPromoVariations: () => [],
+            listGroupedVariations: () => [],
+        });
+
+        it('probes the promotions tree when the Promotions tab opens and no known variation exists', async () => {
+            const search = makeSearchStub(sandbox, { [promotionsRoot]: [{ id: 'orphan-id', path: orphanPath }] });
+            const el = await fixture(
+                html`<mas-fragment-variations .fragment=${createEmptyFragment()}></mas-fragment-variations>`,
+            );
+            sandbox.stub(el, 'repository').get(() => ({ aem: { sites: { cf: { fragments: { search } } } } }));
+
+            el.handleTabChange({ target: { selected: 'promotion' } });
+            await el.updateComplete;
+            await new Promise((r) => setTimeout(r, 10));
+            await el.updateComplete;
+
+            expect(el.hasPromoVariations).to.be.true;
+            expect(el.promoVariations.map((variation) => variation.path)).to.deep.equal([orphanPath]);
+        });
+
+        it('does not probe the promotions tree for tabs other than Promotions', async () => {
+            const search = makeSearchStub(sandbox, { [promotionsRoot]: [{ id: 'orphan-id', path: orphanPath }] });
+            const el = await fixture(
+                html`<mas-fragment-variations .fragment=${createEmptyFragment()}></mas-fragment-variations>`,
+            );
+            sandbox.stub(el, 'repository').get(() => ({ aem: { sites: { cf: { fragments: { search } } } } }));
+
+            el.handleTabChange({ target: { selected: 'locale' } });
+            await el.updateComplete;
+            await new Promise((r) => setTimeout(r, 10));
+            await el.updateComplete;
+
+            expect(search.called, 'should not scan the promotions tree').to.be.false;
+        });
+
+        it('does not probe the promotions tree when a known promo variation already exists', async () => {
+            const promoVariation = createVariationFragment({ id: 'known-1', path: `${promotionsRoot}/known/my-card` });
+            const fragment = {
+                path: parentPath,
+                listLocaleVariations: () => [],
+                listPromoVariations: () => [promoVariation],
+                listGroupedVariations: () => [],
+            };
+            const search = makeSearchStub(sandbox, { [promotionsRoot]: [{ id: 'orphan-id', path: orphanPath }] });
+            const el = await fixture(html`<mas-fragment-variations .fragment=${fragment}></mas-fragment-variations>`);
+            sandbox.stub(el, 'repository').get(() => ({ aem: { sites: { cf: { fragments: { search } } } } }));
+
+            el.handleTabChange({ target: { selected: 'promotion' } });
+            await el.updateComplete;
+            await new Promise((r) => setTimeout(r, 10));
+            await el.updateComplete;
+
+            expect(search.called, 'should not scan the promotions tree').to.be.false;
         });
     });
 });

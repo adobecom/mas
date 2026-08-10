@@ -61,7 +61,16 @@ export default class MerchAddon extends LitElement {
         const offer = price?.value?.[0];
         if (!offer) return;
         price.setAttribute('data-offer-type', offer.offerType);
-        price.closest('p').setAttribute('data-plan-type', offer.planType);
+        const p = price.closest('p');
+        // Respect an already-set plan type (authored explicitly, or already
+        // claimed by another <p> resolving to the same plan type) so two
+        // blocks never simultaneously display the same plan type.
+        if (p.getAttribute('data-plan-type')) return;
+        const claimedBy = this.querySelector(
+            `p[data-plan-type="${offer.planType}"]`,
+        );
+        if (claimedBy && claimedBy !== p) return;
+        p.setAttribute('data-plan-type', offer.planType);
     }
 
     handleChange(e) {

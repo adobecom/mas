@@ -104,15 +104,6 @@ export async function getPublishedAttachedPromoVariations(aem, promotionFragment
 /**
  * @param {import('../aem/aem.js').AEM} aem
  * @param {Object} promotionFragment
- * @returns {Promise<void>}
- */
-export async function deleteAttachedPromoVariations(aem, promotionFragment) {
-    return promotionVariations.deleteAttachedPromoVariations(aem, promotionFragment);
-}
-
-/**
- * @param {import('../aem/aem.js').AEM} aem
- * @param {Object} promotionFragment
  * @returns {Promise<Array<{ path: string, status: string, title: string, parentPath: string }>>}
  */
 export async function getAllAttachedPromoVariations(aem, promotionFragment) {
@@ -142,10 +133,11 @@ export function buildPromoVariationParentRefreshCallback(sourceFragmentId, refre
  * @param {string} promoTagId
  * @param {string[]} [geoTags]
  * @param {(store: import('../reactivity/fragment-store.js').FragmentStore) => Promise<void>} [refreshFragment]
+ * @param {() => Promise<void>} [loadPromotions]
  * @returns {Promise<Object>}
  */
-export async function createPromoVariation(aem, sourceFragmentId, promoTagId, geoTags = [], refreshFragment) {
-    const projects = readPromotionProjectsFromStore();
+export async function createPromoVariation(aem, sourceFragmentId, promoTagId, geoTags = [], refreshFragment, loadPromotions) {
+    const projects = await getPromotionProjectsForProbe(loadPromotions);
     const attachedFragmentPaths = getAttachedFragmentPathsForTag(projects, promoTagId);
     const onCreated = refreshFragment ? buildPromoVariationParentRefreshCallback(sourceFragmentId, refreshFragment) : undefined;
     const createdFragment = await promotionVariations.createPromoVariation(

@@ -70,6 +70,13 @@ function clearCaches() {
     clearPromoCache(true);
 }
 
+function getPageWcsConfiguration(serviceElement) {
+    const settings = serviceElement?.settings;
+    if (!settings?.wcsURL) return null;
+    const isStage = settings.env === 'STAGE';
+    return [{ wcsURL: settings.wcsURL, env: isStage ? 'stage' : 'prod', landscape: isStage ? 'ALL' : settings.landscape }];
+}
+
 async function previewFragment(id, options) {
     const serviceElement = document.head.querySelector('mas-commerce-service');
     const locale = serviceElement?.getAttribute('locale');
@@ -78,6 +85,8 @@ async function previewFragment(id, options) {
     const initPromises = {};
     const now = mark(context, 'config-check');
     context = await loadConfiguration(context, now);
+    const pageWcsConfiguration = getPageWcsConfiguration(serviceElement);
+    if (pageWcsConfiguration) context.wcsConfiguration = pageWcsConfiguration;
     const cachedMetadata = await getRequestMetadata(context);
     const metadataContext = extractContextFromMetadata(cachedMetadata);
     context = { ...context, ...metadataContext };

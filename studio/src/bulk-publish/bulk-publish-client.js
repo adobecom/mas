@@ -46,11 +46,14 @@ export async function publishBulk({
     projectId,
     publishedBy = '',
     token,
+    aemOdinEndpoint,
     includeVariations = false,
     includeCards = false,
 }) {
     if (!projectId) throw new BulkPublishError('projectId is required');
-    return callAction(ioBaseUrl, ENDPOINT, { projectId, publishedBy, includeVariations, includeCards }, token);
+    const payload = { projectId, publishedBy, includeVariations, includeCards };
+    if (aemOdinEndpoint) payload.aemOdinEndpoint = aemOdinEndpoint;
+    return callAction(ioBaseUrl, ENDPOINT, payload, token);
 }
 
 export async function revertAction({ ioBaseUrl, projectId, token }) {

@@ -199,8 +199,9 @@ class AEM {
      * @param {AbortController} abortController used for cancellation
      * @returns {Promise<Object>} the raw fragment item
      */
-    async getFragmentById(baseUrl, id, headers, abortController) {
-        const response = await fetch(`${baseUrl}/adobe/sites/cf/fragments/${id}?references=direct-hydrated`, {
+    async getFragmentById(baseUrl, id, headers, abortController, { references = 'direct-hydrated' } = {}) {
+        const refParam = references ? `?references=${references}` : '';
+        const response = await fetch(`${baseUrl}/adobe/sites/cf/fragments/${id}${refParam}`, {
             headers,
             signal: abortController?.signal,
         });
@@ -1394,7 +1395,8 @@ class AEM {
                 /**
                  * @see AEM#getFragmentById
                  */
-                getById: (id, abortController) => this.getFragmentById(this.baseUrl, id, this.headers, abortController),
+                getById: (id, abortController, options) =>
+                    this.getFragmentById(this.baseUrl, id, this.headers, abortController, options),
                 /**
                  * @see AEM#getFragmentWithEtag
                  */

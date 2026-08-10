@@ -239,9 +239,23 @@ describe('MasSelectionPanel', () => {
 
     describe('handlePublish', () => {
         let repository;
+        let getByIdStub;
+
+        function makeHydratedFragment(id, { variations = [], cards = [], collections = [] } = {}) {
+            const fields = [];
+            if (variations.length) fields.push({ name: 'variations', values: variations.map((r) => r.path) });
+            if (cards.length) fields.push({ name: 'cards', values: cards.map((r) => r.path) });
+            if (collections.length) fields.push({ name: 'collections', values: collections.map((r) => r.path) });
+            const references = [...variations, ...cards, ...collections];
+            return { id, fields, references };
+        }
 
         beforeEach(() => {
-            repository = { bulkPublishFragments: sandbox.stub().resolves(true) };
+            getByIdStub = sandbox.stub().callsFake((id) => Promise.resolve(makeHydratedFragment(id)));
+            repository = {
+                bulkPublishFragments: sandbox.stub().resolves(true),
+                aem: { sites: { cf: { fragments: { getById: getByIdStub } } } },
+            };
         });
 
         it('calls bulkPublishFragments with fragment IDs from selection', async () => {
@@ -288,6 +302,21 @@ describe('MasSelectionPanel', () => {
             await el.handlePublish();
 
             expect(repository.bulkPublishFragments.called).to.be.false;
+        });
+
+        it('fetches hydrated fragments via getById to collect references', async () => {
+            const frag = { id: 'frag-1', model: { path: CARD_MODEL_PATH } };
+            const el = await fixture(
+                html`<mas-selection-panel
+                    open
+                    .selectionStore=${makeSelectionStore([makeFragmentStore(frag)])}
+                    .repository=${repository}
+                ></mas-selection-panel>`,
+            );
+
+            await el.handlePublish();
+
+            expect(getByIdStub.calledWith('frag-1')).to.be.true;
         });
     });
 

@@ -76,10 +76,10 @@ describe('startPublishing()', () => {
         expect(repo.refreshFragment.firstCall.args[0]).to.equal(project);
     });
 
-    it('calls refreshFragment with skipPromoMerge:true during polling', async () => {
+    it('calls refreshFragment with skipPromoMerge:true and skipReferences:true during polling', async () => {
         const publishFn = sinon.stub().resolves({ accepted: true });
         await startPublishing({ project, token, ioBaseUrl, repository: repo, publishFn, pollIntervalMs: 1, maxPolls: 5 });
-        expect(repo.refreshFragment.firstCall.args[1]).to.deep.equal({ skipPromoMerge: true });
+        expect(repo.refreshFragment.firstCall.args[1]).to.deep.equal({ skipPromoMerge: true, skipReferences: true });
     });
 
     it('removes project from publishing map after completion', async () => {
@@ -94,6 +94,22 @@ describe('startPublishing()', () => {
             () => {},
         );
         expect(Store.bulkPublishProjects.publishing.get()[project.id]).to.be.undefined;
+    });
+
+    it('returns alreadyPublishing when project is already in the publishing map', async () => {
+        Store.bulkPublishProjects.publishing.set({ [project.id]: true });
+        const publishFn = sinon.stub().resolves({ accepted: true });
+        const result = await startPublishing({ project, token, ioBaseUrl, repository: repo, publishFn, pollIntervalMs: 1, maxPolls: 5 });
+        expect(result).to.deep.equal({ alreadyPublishing: true });
+        expect(publishFn.called).to.equal(false);
+    });
+
+    it('prevents double-dispatch when two calls start synchronously', async () => {
+        const publishFn = sinon.stub().resolves({ accepted: true });
+        const opts = { project, token, ioBaseUrl, repository: repo, publishFn, pollIntervalMs: 1, maxPolls: 5 };
+        const [r1, r2] = await Promise.all([startPublishing(opts), startPublishing(opts)]);
+        expect(publishFn.callCount).to.equal(1);
+        expect([r1, r2].some((r) => r?.alreadyPublishing === true)).to.equal(true);
     });
 });
 

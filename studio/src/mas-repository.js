@@ -2211,10 +2211,10 @@ export class MasRepository extends LitElement {
      * Updates a given fragment store with the latest data
      * @param {FragmentStore} store
      */
-    async refreshFragment(store, { skipPromoMerge = false } = {}) {
+    async refreshFragment(store, { skipPromoMerge = false, skipReferences = false } = {}) {
         store.setLoading(true);
         const id = store.get().id;
-        let latest = await this.aem.sites.cf.fragments.getById(id);
+        let latest = await this.aem.sites.cf.fragments.getById(id, null, skipReferences ? { references: null } : undefined);
         if (!skipPromoMerge) {
             latest = await promotionsRepository.mergePromoReferencesIntoFragmentData(this.aem, latest, () =>
                 this.loadPromotions(),

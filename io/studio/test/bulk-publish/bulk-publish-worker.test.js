@@ -315,6 +315,21 @@ describe('bulk-publish-worker — runWorker', () => {
 
         expect(deps.createSnapshot).to.have.been.calledOnce;
     });
+
+    it('sets status to Failed and returns early when project has no paths and no pending snapshot', async () => {
+        const { PROJECT_STATUS } = require('../../src/bulk-publish/project.js');
+        deps.getProjectPaths.returns([]);
+        deps.getProjectSnapshots.returns([]);
+
+        const result = await worker.runWorker({ projectId: 'proj-1', odinEndpoint: 'https://odin', authToken: 't' }, deps);
+
+        expect(deps.createSnapshot).to.not.have.been.called;
+        expect(deps.publishResolved).to.not.have.been.called;
+        const updateCall = deps.updateProjectFragment.firstCall;
+        expect(updateCall.args[3].status).to.equal(PROJECT_STATUS.FAILED);
+        expect(updateCall.args[3].lastError).to.be.a('string').and.not.be.empty;
+        expect(result.total).to.equal(0);
+    });
 });
 
 describe('bulk-publish-worker — terminalStatus', () => {

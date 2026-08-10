@@ -27,6 +27,7 @@ async function main(params) {
                 projectId: params.projectId,
                 publishedBy: params.publishedBy || '',
                 authToken,
+                aemOdinEndpoint: odinEndpoint,
                 includeCards: params.includeCards || false,
                 includeVariations: params.includeVariations || false,
             },

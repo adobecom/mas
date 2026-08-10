@@ -52,6 +52,24 @@ async function runWorker(input, deps = {}) {
     const title = projTitle(fragment);
     const existingSnapshots = projSnapshots(fragment);
 
+    if (paths.length === 0 && !hasPendingSnapshot(existingSnapshots)) {
+        await updateProject(odinEndpoint, projectId, authToken, {
+            status: PROJECT_STATUS.FAILED,
+            lastError: 'No fragments found in project',
+        });
+        logger.error(JSON.stringify({ event: 'worker-no-paths', projectId }));
+        return {
+            total: 0,
+            published: 0,
+            failed: 0,
+            startedAt,
+            finishedAt: now().toISOString(),
+            reasons: {},
+            failures: [],
+            failuresTruncated: false,
+        };
+    }
+
     let snapshotEntries;
     let expandedPaths = null;
     if (hasPendingSnapshot(existingSnapshots)) {

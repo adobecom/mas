@@ -37,7 +37,7 @@ describe('bulk-publish/index.js — dispatcher', () => {
         expect(params.projectId).to.equal('proj-1');
         expect(params.publishedBy).to.equal('u@x.com');
         expect(params.authToken).to.equal('token');
-        expect(params).to.not.have.property('odinEndpoint');
+        expect(params.aemOdinEndpoint).to.equal('https://odin');
     });
 
     it('returns 400 and does not invoke worker when projectId missing', async () => {

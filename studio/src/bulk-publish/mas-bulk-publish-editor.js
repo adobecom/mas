@@ -228,7 +228,7 @@ class MasBulkPublishEditor extends LitElement {
     }
 
     get token() {
-        return window.adobeIMS?.getAccessToken()?.token;
+        return sessionStorage.getItem('masAccessToken') ?? window.adobeIMS?.getAccessToken()?.token;
     }
 
     get ioBaseUrl() {
@@ -856,10 +856,12 @@ class MasBulkPublishEditor extends LitElement {
         try {
             const outcome = await this.#withPendingAction(QUICK_ACTION.PUBLISH, async () => {
                 const { startPublishing } = await import('./bulk-publish-store.js');
+                const aemBaseUrl = this.repository?.aem?.baseUrl;
                 return startPublishing({
                     project: this.project,
                     token: this.token,
                     ioBaseUrl: this.ioBaseUrl,
+                    aemOdinEndpoint: aemBaseUrl?.startsWith('http://localhost') ? undefined : aemBaseUrl,
                     repository: this.repository,
                     includeVariations,
                     includeCards,

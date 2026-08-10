@@ -99,7 +99,15 @@ describe('startPublishing()', () => {
     it('returns alreadyPublishing when project is already in the publishing map', async () => {
         Store.bulkPublishProjects.publishing.set({ [project.id]: true });
         const publishFn = sinon.stub().resolves({ accepted: true });
-        const result = await startPublishing({ project, token, ioBaseUrl, repository: repo, publishFn, pollIntervalMs: 1, maxPolls: 5 });
+        const result = await startPublishing({
+            project,
+            token,
+            ioBaseUrl,
+            repository: repo,
+            publishFn,
+            pollIntervalMs: 1,
+            maxPolls: 5,
+        });
         expect(result).to.deep.equal({ alreadyPublishing: true });
         expect(publishFn.called).to.equal(false);
     });

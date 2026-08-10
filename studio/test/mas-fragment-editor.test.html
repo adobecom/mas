@@ -267,7 +267,7 @@
                         await el.saveFragment();
 
                         expect(fragmentStore.get().getFieldValue('variant')).to.equal('pro');
-                        expect(repository.saveFragment.calledWith(fragmentStore, true)).to.be.true;
+                        expect(repository.saveFragment.calledWith(fragmentStore, { withToast: true })).to.be.true;
                     });
 
                     it('extracts locale from path', async () => {

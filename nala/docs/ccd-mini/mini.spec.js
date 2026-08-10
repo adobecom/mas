@@ -203,7 +203,7 @@ export const features = [
             title: 'CCD Apps Teams',
             regularPrice: 'A$157.99/mo',
             annualPrice: 'A$1,895.88/yr',
-            unitText: 'per license',
+            unitText: 'per licence',
             promotionCode: undefined,
             planTypeText: 'Annual, billed monthly',
             recurrenceText: '/mo',

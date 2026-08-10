@@ -277,23 +277,15 @@ function hasExplicitMapping(osis, customizeContext, { project, promoMap, substit
     return value;
 }
 
-function hasWildcardPromo(customizeContext, { project, promoMap }) {
-    const value = Boolean(promoMap['*']);
-    logDebug(() => `Project ${promoProjectLabel(project)} (${project.id}), wildcard promo: ${value}`, customizeContext);
-    return value;
-}
-
-function isSeasonal(customizeContext, { project }) {
-    const value = Boolean(project.endDate);
-    logDebug(() => `Project ${promoProjectLabel(project)} (${project.id}), seasonal: ${value}`, customizeContext);
-    return value;
-}
-
 /**
- * Selects a single promo project for a fragment. Priority order is:
+ * Selects a single promo project for a fragment. Seasonal (time-boxed, has an `endDate`)
+ * promo projects always take priority over evergreen ones.
+ *
+ * Within whichever group (seasonal, else evergreen) is considered, priority order is:
  * promo project with an explicit mapping (osi replace or promo code) for a given geo & fragment.offer
  * promo project with a wildcard promo code
- * seasonal promo project, if no seasonal - returns null
+ * if no mapping - seasonal can still be taken as a fallback.
+ * evergreen without a mapping doesn't apply.
  * there should be no fallback to mapping-less evergreen promo project
  *
  * @returns the selected `{ project, promoMap, substituteMap, fragmentPaths }` entry, or null
@@ -307,10 +299,19 @@ function selectPromoProjectForFragment(root, customizeContext) {
         ? (Array.isArray(fragOsi) ? fragOsi : fragOsi.split(',')).map((osi) => osi.trim()).filter(Boolean)
         : [];
     logDebug(() => `selectPromoProjectForFragment osis: ${JSON.stringify(osis)}`, customizeContext);
+
+    const seasonalEntries = [];
+    const evergreenEntries = [];
+    for (const entry of promoEntries) {
+        (entry.project.seasonal ? seasonalEntries : evergreenEntries).push(entry);
+    }
+
     const selected =
-        promoEntries.find((entry) => hasExplicitMapping(osis, customizeContext, entry)) ??
-        promoEntries.find((entry) => hasWildcardPromo(customizeContext, entry)) ??
-        promoEntries.find((entry) => isSeasonal(customizeContext, entry)) ??
+        seasonalEntries.find((entry) => hasExplicitMapping(osis, customizeContext, entry)) ??
+        seasonalEntries.find((entry) => entry.hasWildcard) ??
+        seasonalEntries[0] ??
+        evergreenEntries.find((entry) => hasExplicitMapping(osis, customizeContext, entry)) ??
+        evergreenEntries.find((entry) => entry.hasWildcard) ??
         null;
     if (!selected) return null;
     logDebug(

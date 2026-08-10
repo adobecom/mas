@@ -761,7 +761,7 @@ class MasPromotionsEditor extends LitElement {
                 return;
             }
         } catch (error) {
-            showToast('Failed to save project.', 'negative');
+            showToast(error.message || 'Failed to save project.', 'negative');
             return;
         }
         clearCaches();

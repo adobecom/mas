@@ -174,6 +174,27 @@ describe('MasSelectItemsTable', () => {
             await el.updateComplete;
             expect(el.viewOnly).to.be.true;
         });
+
+        it('keeps grouped-variation paths in the top-level viewOnlyLoading state by default (translation)', () => {
+            Store.translationProjects.selectedCards.set(['/content/dam/mas/sandbox/en_US/PA-123/pzn/edu']);
+            const el = document.createElement('mas-select-items-table');
+            el.setAttribute('type', 'cards');
+            el.viewOnly = true;
+            document.body.appendChild(el);
+            expect(el.viewOnlyLoading).to.be.true;
+            el.remove();
+        });
+
+        it('excludes grouped-variation paths from the top-level viewOnlyLoading state when hideGroupedVariations is set (promotions)', () => {
+            Store.translationProjects.selectedCards.set(['/content/dam/mas/sandbox/en_US/PA-123/pzn/edu']);
+            const el = document.createElement('mas-select-items-table');
+            el.setAttribute('type', 'cards');
+            el.viewOnly = true;
+            el.hideGroupedVariations = true;
+            document.body.appendChild(el);
+            expect(el.viewOnlyLoading).to.be.false;
+            el.remove();
+        });
     });
 
     describe('tableColumns getter', () => {

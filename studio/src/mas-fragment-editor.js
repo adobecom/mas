@@ -1844,10 +1844,10 @@ export default class MasFragmentEditor extends LitElement {
         </div>`;
     }
 
-    displayPromoVariationGeos(clazz) {
+    get promoVariationGeosTemplate() {
         const geoCodes = this.#promoVariationGeoCodes();
         if (!geoCodes.length) return nothing;
-        return html`<div class="${clazz}">
+        return html`<div class="locale-variation-header">
             <span>Geos: <strong>${geoCodes.join(', ')}</strong></span>
         </div>`;
     }
@@ -1881,7 +1881,7 @@ export default class MasFragmentEditor extends LitElement {
             return nothing;
         }
         if (this.isPromoVariationFragment()) {
-            return this.displayPromoVariationGeos('locale-variation-header');
+            return this.promoVariationGeosTemplate;
         }
         if (!this.editorContextStore.isVariation(this.fragment.id)) {
             return nothing;

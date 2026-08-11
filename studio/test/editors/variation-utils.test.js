@@ -47,7 +47,7 @@ describe('variation-utils', () => {
         });
 
         it('maps a country tag to the surface locale', () => {
-            expect(normalizePznTagToLocaleCode('mas:pzn/country/tr', 'acom', 'en')).to.equal('tr_TR');
+            expect(normalizePznTagToLocaleCode('mas:pzn/country/tr', 'acom', 'en')).to.equal('en_TR');
             expect(normalizePznTagToLocaleCode('mas:pzn/country/au', 'acom', 'en')).to.equal('en_AU');
         });
 

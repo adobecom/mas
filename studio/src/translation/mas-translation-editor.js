@@ -75,7 +75,7 @@ class MasTranslationEditor extends LitElement {
             this.repository.loadPlaceholders();
         }
         if (this.repository?.loadAllCollections) {
-            this.repository.loadAllCollections();
+            this.repository.loadAllCollections(Store.translationProjects);
         }
 
         // reset locale to default
@@ -525,7 +525,7 @@ class MasTranslationEditor extends LitElement {
         }
         if (this.repository?.searchFragments) this.repository.searchFragments();
         if (this.repository?.loadPlaceholders) this.repository.loadPlaceholders();
-        if (this.repository?.loadAllCollections) this.repository.loadAllCollections();
+        if (this.repository?.loadAllCollections) this.repository.loadAllCollections(Store.translationProjects);
     }
 
     #openAddLanguagesOverlay() {

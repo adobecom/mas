@@ -202,7 +202,7 @@ class MasPromotionsEditor extends LitElement {
                 this.repository.searchFragments();
             }
             if (this.repository?.loadAllCollections) {
-                this.repository.loadAllCollections();
+                this.repository.loadAllCollections(Store.promotions);
             }
         }
 
@@ -308,6 +308,7 @@ class MasPromotionsEditor extends LitElement {
             if (cardPaths.length && this.repository) {
                 await loadSelectedFragments(cardPaths, TABLE_TYPE.CARDS, this.repository, {
                     getDisplayName: getPromotionPickerFragmentLabel,
+                    store: Store.promotions,
                     onItems: (items) => {
                         for (const item of items) {
                             const offerId = item?.offerData?.offerId ?? item?.offerData?.offer_id;
@@ -1067,7 +1068,7 @@ class MasPromotionsEditor extends LitElement {
     };
 
     #handleOstOfferSelect = async (event) => {
-        const added = await handlePromotionOstOfferSelect(event);
+        const added = await handlePromotionOstOfferSelect(event, Store.promotions);
         if (added) {
             this.#syncPromotionSelectionFieldsToFragment();
         }
@@ -1126,7 +1127,7 @@ class MasPromotionsEditor extends LitElement {
         if (Store.promotions.allCollections.getMeta('loaded') && cachedCollections?.length) {
             Store.promotions.displayCollections.set(cachedCollections);
         } else if (this.repository?.loadAllCollections) {
-            this.repository.loadAllCollections();
+            this.repository.loadAllCollections(Store.promotions);
         }
         if (this.repository?.loadPlaceholders) this.repository.loadPlaceholders();
         return true;

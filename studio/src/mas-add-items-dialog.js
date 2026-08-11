@@ -64,7 +64,7 @@ class MasAddItemsDialog extends LitElement {
             s.displayCollections.set([]);
             s.allPlaceholders.set([]);
             s.displayPlaceholders.set([]);
-            if (this.repository?.loadAllCollections) this.repository.loadAllCollections();
+            if (this.repository?.loadAllCollections) this.repository.loadAllCollections(Store.bulkPublishProjects);
         }
     }
 

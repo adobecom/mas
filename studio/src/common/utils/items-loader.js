@@ -1,5 +1,4 @@
 import Store from '../../store.js';
-import { getItemsSelectionStore } from '../items-selection-store.js';
 import { TABLE_TYPE } from '../../constants.js';
 import { Fragment } from '../../aem/fragment.js';
 import { loadOfferData } from './item-loading-browser.js';
@@ -51,9 +50,11 @@ async function loadOfferDataForViewOnlyCard({ card, repository, cache = new Map(
  * @param {Object} card - Card object with path, references, fields
  * @param {Object} repository - MasRepository instance with aem.getFragmentByPath
  * @param {AbortSignal} signal - Optional abort signal for cancellation
+ * @param {Function} getDisplayName - Display label for a Fragment
+ * @param {Object} store - Items-selection store slice bound at the caller's connect time
  * @returns {Promise<Array<Object>>} Array of variation objects with studioPath and offerData
  */
-async function loadGroupedVariations(card, repository, signal, getDisplayName) {
+async function loadGroupedVariations(card, repository, signal, getDisplayName, store) {
     if (!repository?.aem?.getFragmentByPath) return [];
     const fragment = new Fragment(card);
     const groupedRefs = fragment.listGroupedVariations();
@@ -83,7 +84,7 @@ async function loadGroupedVariations(card, repository, signal, getDisplayName) {
         validVariations,
         (variation) =>
             loadOfferData(variation, {
-                cache: getItemsSelectionStore().offerDataCache,
+                cache: store.offerDataCache,
                 signal,
                 fallbackWcsOsi: parentWcsOsi,
             }),
@@ -102,9 +103,10 @@ async function loadGroupedVariations(card, repository, signal, getDisplayName) {
  * @param {string} variationPath - Full path to the variation fragment
  * @param {Object} repository - MasRepository instance with aem.getFragmentByPath
  * @param {Function} options.getDisplayName - Display label for a Fragment
+ * @param {Object} options.store - Items-selection store slice bound at the caller's connect time
  * @returns {Promise<boolean>} True if fetch and merge succeeded
  */
-export async function fetchVariationByPath(variationPath, repository, { getDisplayName } = {}) {
+export async function fetchVariationByPath(variationPath, repository, { getDisplayName, store } = {}) {
     if (!repository?.aem?.getFragmentByPath || !Fragment.isGroupedVariationPath(variationPath)) return false;
     const pznIdx = variationPath.indexOf('/pzn/');
     if (pznIdx === -1) return false;
@@ -114,9 +116,9 @@ export async function fetchVariationByPath(variationPath, repository, { getDispl
         const variation = await repository.aem.getFragmentByPath(variationPath);
         if (!variation || !Array.isArray(variation.fieldTags) || variation.fieldTags.length === 0) return false;
 
-        const parentWcsOsi = await resolveParentWcsOsi(variation, parentCardPath, repository);
+        const parentWcsOsi = await resolveParentWcsOsi(variation, parentCardPath, repository, store);
         const offerData = await loadOfferData(variation, {
-            cache: getItemsSelectionStore().offerDataCache,
+            cache: store.offerDataCache,
             fallbackWcsOsi: parentWcsOsi,
         });
         const enriched = {
@@ -125,12 +127,12 @@ export async function fetchVariationByPath(variationPath, repository, { getDispl
             offerData,
         };
 
-        const existing = getItemsSelectionStore().groupedVariationsByParent.value || new Map();
+        const existing = store.groupedVariationsByParent.value || new Map();
         const innerMap = new Map(existing.get(parentCardPath) || []);
         innerMap.set(variationPath, enriched);
         const merged = new Map(existing);
         merged.set(parentCardPath, innerMap);
-        setCardVariationsByPaths(merged);
+        setCardVariationsByPaths(merged, store);
         return true;
     } catch (err) {
         console.warn(`Failed to fetch variation at ${variationPath}:`, err.message);
@@ -141,10 +143,11 @@ export async function fetchVariationByPath(variationPath, repository, { getDispl
 /**
  * Updates groupedVariationsByParent.
  * @param {Map} groupedVariationsByParentValue - Map of cardPath -> Map of variationPath -> variation
+ * @param {Object} store - Items-selection store slice to write into
  */
-export function setCardVariationsByPaths(groupedVariationsByParentValue) {
-    getItemsSelectionStore().groupedVariationsByParent.set(groupedVariationsByParentValue);
-    getItemsSelectionStore().groupedVariationsData.set(flattenGroupedVariationsByParent(groupedVariationsByParentValue));
+export function setCardVariationsByPaths(groupedVariationsByParentValue, store) {
+    store.groupedVariationsByParent.set(groupedVariationsByParentValue);
+    store.groupedVariationsData.set(flattenGroupedVariationsByParent(groupedVariationsByParentValue));
 }
 
 /**
@@ -155,15 +158,16 @@ export function setCardVariationsByPaths(groupedVariationsByParentValue) {
  * @param {Array<Object>} allCards - Array of card objects
  * @param {Object} repository - MasRepository instance
  * @param {Object} state - Mutable state { isProcessingCards, pendingCards, abortController }
+ * @param {Function} getDisplayName - Display label for raw fragment data
+ * @param {Object} store - Items-selection store slice bound at the caller's connect time
  */
-async function processCardsData(allCards, repository, state, getDisplayName) {
+async function processCardsData(allCards, repository, state, getDisplayName, store) {
     if (state.isProcessingCards) {
         state.pendingCards = allCards;
         return;
     }
     state.isProcessingCards = true;
     const signal = state.abortController?.signal;
-    const store = getItemsSelectionStore({ allowUnset: true });
     if (!store) {
         state.isProcessingCards = false;
         return;
@@ -198,7 +202,7 @@ async function processCardsData(allCards, repository, state, getDisplayName) {
         if (cardsNeedingGroupedVariations.length > 0 && repository) {
             const groupedVariationsResults = await processConcurrently(
                 cardsNeedingGroupedVariations,
-                (card) => loadGroupedVariations(card, repository, signal, getDisplayName),
+                (card) => loadGroupedVariations(card, repository, signal, getDisplayName, store),
                 OFFER_DATA_CONCURRENCY_LIMIT,
             );
             if (signal?.aborted) return;
@@ -221,7 +225,6 @@ async function processCardsData(allCards, repository, state, getDisplayName) {
         }
         if (signal?.aborted) return;
 
-        if (getItemsSelectionStore({ allowUnset: true }) !== store) return;
         const cardsByPaths = new Map(store.cardsByPaths.get() || []);
         enrichedCards.forEach((card) => cardsByPaths.set(card.path, card));
         const displayCards = enrichedCards;
@@ -236,7 +239,7 @@ async function processCardsData(allCards, repository, state, getDisplayName) {
             for (const [cardPath, varMap] of prefetchedVariations) {
                 merged.set(cardPath, varMap);
             }
-            setCardVariationsByPaths(merged);
+            setCardVariationsByPaths(merged, store);
         }
         store.displayCards.set(displayCards);
         store.allCards.set(displayCards);
@@ -246,25 +249,26 @@ async function processCardsData(allCards, repository, state, getDisplayName) {
         if (state.pendingCards && !signal?.aborted) {
             const next = state.pendingCards;
             state.pendingCards = null;
-            await processCardsData(next, repository, state, getDisplayName);
+            await processCardsData(next, repository, state, getDisplayName, store);
         }
     }
 }
 
 /**
  * Loads all placeholders. Subscribes to placeholders list and populates store.
+ * @param {Object} store - Items-selection store slice bound at the caller's connect time
  * @returns {{ unsubscribe: () => void }}
  */
-export function loadAllPlaceholders() {
-    if (getItemsSelectionStore().allPlaceholders.get()?.length) {
+export function loadAllPlaceholders(store) {
+    if (store.allPlaceholders.get()?.length) {
         return { unsubscribe: () => {} };
     }
     const callback = () => {
         const placeholderValues = Store.placeholders.list.data.get().map((placeholder) => placeholder.value);
         const placeholdersByPaths = new Map(placeholderValues.map((p) => [p.path, p]));
-        getItemsSelectionStore().displayPlaceholders.set(placeholderValues);
-        getItemsSelectionStore().allPlaceholders.set(placeholderValues);
-        getItemsSelectionStore().placeholdersByPaths.set(placeholdersByPaths);
+        store.displayPlaceholders.set(placeholderValues);
+        store.allPlaceholders.set(placeholderValues);
+        store.placeholdersByPaths.set(placeholdersByPaths);
     };
     Store.placeholders.list.data.subscribe(callback);
     return { unsubscribe: () => Store.placeholders.list.data.unsubscribe(callback) };
@@ -276,10 +280,11 @@ export function loadAllPlaceholders() {
  * @param {Object} repository - MasRepository instance
  * @param {Object} state - Mutable state for process cancellation
  * @param {Function} options.getDisplayName - Display label for raw fragment data
+ * @param {Object} options.store - Items-selection store slice bound at the caller's connect time
  * @returns {{ unsubscribe: () => void }}
  */
 
-export function loadAllFragments(type, repository, state = {}, { getDisplayName, onReady } = {}) {
+export function loadAllFragments(type, repository, state = {}, { getDisplayName, onReady, store } = {}) {
     // Collections load via repository.loadAllCollections() with a dedicated model-filtered
     // query; partitioning the shared card stream misses collections that sit deep in the
     // cursor on large surfaces (acom, nala) where cards dominate the first pages.
@@ -287,7 +292,7 @@ export function loadAllFragments(type, repository, state = {}, { getDisplayName,
         return { unsubscribe: () => {} };
     }
     const typeUppercased = type.charAt(0).toUpperCase() + type.slice(1);
-    if (getItemsSelectionStore()[`all${typeUppercased}`].get()?.length) {
+    if (store[`all${typeUppercased}`].get()?.length) {
         onReady?.();
         return { unsubscribe: () => {} };
     }
@@ -299,7 +304,7 @@ export function loadAllFragments(type, repository, state = {}, { getDisplayName,
     let firstCall = true;
     const callback = async () => {
         const { allCards } = parseFragmentsFromStore(Store.fragments.list.data.get() || [], { getDisplayName });
-        await processCardsData(allCards, repository, state, getDisplayName);
+        await processCardsData(allCards, repository, state, getDisplayName, store);
         if (firstCall && (allCards.length > 0 || Store.fragments.list.firstPageLoaded.get() !== false)) {
             firstCall = false;
             onReady?.();
@@ -340,11 +345,11 @@ export function loadSelectedPlaceholders(selectedPaths, onItems) {
  * @param {Array<string>} selectedPaths - Paths of selected fragments
  * @param {string} type - TABLE_TYPE.CARDS or TABLE_TYPE.COLLECTIONS
  * @param {Object} repository - MasRepository instance
- * @param {Object} options - { signal: AbortSignal, onItems: (items) => void, getDisplayName }
+ * @param {Object} options - { signal: AbortSignal, onItems: (items) => void, getDisplayName, store }
  * @returns {Promise<void>}
  */
 export async function loadSelectedFragments(selectedPaths, type, repository, options = {}) {
-    const { signal, onItems, getDisplayName } = options;
+    const { signal, onItems, getDisplayName, store } = options;
     if (!repository || !selectedPaths?.length || !getDisplayName) {
         if (onItems) onItems([]);
         return;
@@ -378,7 +383,7 @@ export async function loadSelectedFragments(selectedPaths, type, repository, opt
                 getOfferData: (card, options) => loadOfferDataForViewOnlyCard({ card, repository, ...options }),
                 signal,
                 getDisplayName,
-                offerDataCache: getItemsSelectionStore({ allowUnset: true })?.offerDataCache,
+                offerDataCache: store?.offerDataCache,
                 existingOfferDataByPath: new Map(),
                 existingGroupedVariationsByPath: new Map(),
             });
@@ -400,6 +405,7 @@ export async function loadSelectedFragments(selectedPaths, type, repository, opt
  * @param {Map} groupedVariationsByParent - Map of cardPath -> Map of variationPath -> variation
  * @param {Object} repository - MasRepository instance
  * @param {Function} options.getDisplayName - Display label for a Fragment
+ * @param {Object} options.store - Items-selection store slice bound at the caller's connect time
  * @returns {Promise<void>}
  */
 export async function fetchUnresolvedVariations(
@@ -407,7 +413,7 @@ export async function fetchUnresolvedVariations(
     cardsByPaths,
     groupedVariationsByParent,
     repository,
-    { getDisplayName } = {},
+    { getDisplayName, store } = {},
 ) {
     const unresolvedPathsFetched = new Set();
     const unresolved = (selectedCards || []).filter((path) => {
@@ -421,7 +427,7 @@ export async function fetchUnresolvedVariations(
 
     for (const path of unresolved) {
         unresolvedPathsFetched.add(path);
-        const fetchedSuccessfully = await fetchVariationByPath(path, repository, { getDisplayName });
+        const fetchedSuccessfully = await fetchVariationByPath(path, repository, { getDisplayName, store });
         if (!fetchedSuccessfully) unresolvedPathsFetched.delete(path);
     }
 }
@@ -433,10 +439,11 @@ export async function fetchUnresolvedVariations(
  * @param {Array<string>} variationPaths - Paths of variation fragments to fetch
  * @param {Object} repository - MasRepository instance
  * @param {Function} options.getDisplayName - Display label for a Fragment
+ * @param {Object} options.store - Items-selection store slice bound at the caller's connect time
  * @returns {Promise<void>}
  */
-export async function loadCardVariations(cardPath, variationPaths, repository, { getDisplayName } = {}) {
-    const hadPath = getItemsSelectionStore().groupedVariationsByParent.value?.has(cardPath);
+export async function loadCardVariations(cardPath, variationPaths, repository, { getDisplayName, store } = {}) {
+    const hadPath = store.groupedVariationsByParent.value?.has(cardPath);
     if (!variationPaths?.length || hadPath || !repository) return;
 
     try {
@@ -457,13 +464,13 @@ export async function loadCardVariations(cardPath, variationPaths, repository, {
             (variation) => variation && Array.isArray(variation.fieldTags) && variation.fieldTags.length > 0,
         );
 
-        const parentWcsOsi = await resolveParentWcsOsiForVariations(validVariations, cardPath, repository);
+        const parentWcsOsi = await resolveParentWcsOsiForVariations(validVariations, cardPath, repository, store);
 
         const offerDataResults = await processConcurrently(
             validVariations,
             (variation) =>
                 loadOfferData(variation, {
-                    cache: getItemsSelectionStore().offerDataCache,
+                    cache: store.offerDataCache,
                     fallbackWcsOsi: parentWcsOsi,
                 }),
             VARIATIONS_CONCURRENCY_LIMIT,
@@ -480,10 +487,10 @@ export async function loadCardVariations(cardPath, variationPaths, repository, {
             ]),
         );
 
-        const existing = getItemsSelectionStore().groupedVariationsByParent.value || new Map();
+        const existing = store.groupedVariationsByParent.value || new Map();
         const merged = new Map(existing);
         merged.set(cardPath, variationsByPaths);
-        setCardVariationsByPaths(merged);
+        setCardVariationsByPaths(merged, store);
     } catch (error) {
         console.error('Failed to fetch variations for the fragment at path:', cardPath, error);
     }
@@ -494,13 +501,13 @@ export async function loadCardVariations(cardPath, variationPaths, repository, {
  * @param {Array<Object>} promoVariations - Raw AEM fragment references
  * @param {Object} parentCard - Parent card fragment (source of fallback OSI)
  * @param {Function} options.getDisplayName - Display label for a Fragment
+ * @param {Object} options.store - Items-selection store slice bound at the caller's connect time
  * @returns {Promise<Array<Object>>}
  */
-export async function enrichPromoVariations(promoVariations, parentCard, { getDisplayName } = {}) {
+export async function enrichPromoVariations(promoVariations, parentCard, { getDisplayName, store } = {}) {
     if (!promoVariations?.length || !parentCard) return [];
 
     const parentWcsOsi = new Fragment(parentCard).getFieldValue('osi');
-    const store = getItemsSelectionStore({ allowUnset: true });
     const cache = store?.offerDataCache;
 
     const offerDataResults = await processConcurrently(
@@ -526,10 +533,11 @@ export async function enrichPromoVariations(promoVariations, parentCard, { getDi
  * @param {Object} variation - Variation fragment payload
  * @param {string} parentCardPath - Path of the parent card
  * @param {Object} repository - MasRepository instance
+ * @param {Object} store - Items-selection store slice bound at the caller's connect time
  * @returns {Promise<string|undefined>}
  */
-async function resolveParentWcsOsi(variation, parentCardPath, repository) {
-    const cachedParent = getItemsSelectionStore().cardsByPaths.value?.get(parentCardPath);
+async function resolveParentWcsOsi(variation, parentCardPath, repository, store) {
+    const cachedParent = store.cardsByPaths.value?.get(parentCardPath);
     if (cachedParent) return new Fragment(cachedParent).getFieldValue('osi');
     if (new Fragment(variation).getFieldValue('osi')) return undefined;
 
@@ -548,10 +556,11 @@ async function resolveParentWcsOsi(variation, parentCardPath, repository) {
  * @param {Array<Object>} validVariations - Variation fragment payloads
  * @param {string} parentCardPath - Path of the parent card
  * @param {Object} repository - MasRepository instance
+ * @param {Object} store - Items-selection store slice bound at the caller's connect time
  * @returns {Promise<string|undefined>}
  */
-async function resolveParentWcsOsiForVariations(validVariations, parentCardPath, repository) {
-    const cachedParent = getItemsSelectionStore().cardsByPaths.value?.get(parentCardPath);
+async function resolveParentWcsOsiForVariations(validVariations, parentCardPath, repository, store) {
+    const cachedParent = store.cardsByPaths.value?.get(parentCardPath);
     if (cachedParent) return new Fragment(cachedParent).getFieldValue('osi');
 
     const anyVariationNeedsFallback = validVariations.some((variation) => !new Fragment(variation).getFieldValue('osi'));

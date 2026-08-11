@@ -1,7 +1,7 @@
 import { LitElement, html, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import ReactiveController from '../../reactivity/reactive-controller.js';
-import { getItemsSelectionStore } from '../items-selection-store.js';
+import ItemsSelectionController from '../../reactivity/items-selection-controller.js';
 import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, SURFACES, TABLE_TYPE } from '../../constants.js';
 import { toggleSidebarIcon, uploadIcon } from '../../icons.js';
 import { Fragment } from '../../aem/fragment.js';
@@ -43,6 +43,8 @@ class MasItemsSelector extends LitElement {
         restrictImportSurface: { type: String, attribute: 'restrict-import-surface' },
     };
 
+    itemsSelection = new ItemsSelectionController(this);
+
     constructor() {
         super();
         this.viewOnly = false;
@@ -64,7 +66,7 @@ class MasItemsSelector extends LitElement {
     connectedCallback() {
         super.connectedCallback();
         this.addEventListener('sp-opened', this.#stopPropagation);
-        const s = getItemsSelectionStore();
+        const s = this.itemsSelection.value;
         this.storeController = new ReactiveController(this, [
             s.inEdit,
             s.showSelected,
@@ -79,11 +81,11 @@ class MasItemsSelector extends LitElement {
     }
 
     get showSelected() {
-        return getItemsSelectionStore().showSelected.value;
+        return this.itemsSelection.value.showSelected.value;
     }
 
     get selectedCount() {
-        const s = getItemsSelectionStore();
+        const s = this.itemsSelection.value;
         return this.tabs.reduce((count, tab) => count + s[`selected${this.#typeUppercased(tab.value)}`].value.length, 0);
     }
 
@@ -103,7 +105,7 @@ class MasItemsSelector extends LitElement {
 
     #upsertDisplayCard(fragmentData) {
         if (!fragmentData?.path || fragmentData.model?.path !== CARD_MODEL_PATH) return;
-        const store = getItemsSelectionStore();
+        const store = this.itemsSelection.value;
         const fragment = {
             ...fragmentData,
             studioPath: this.getDisplayName(new Fragment(fragmentData)),
@@ -117,7 +119,7 @@ class MasItemsSelector extends LitElement {
 
     #appendSelectedCard(fragment) {
         if (!fragment?.path) return false;
-        const store = getItemsSelectionStore();
+        const store = this.itemsSelection.value;
         const selectedCards = store.selectedCards.value || [];
         if (selectedCards.includes(fragment.path)) return false;
         if (selectedCards.length >= this.maxSelectedCards) return false;
@@ -127,7 +129,7 @@ class MasItemsSelector extends LitElement {
 
     #upsertDisplayCollection(fragmentData) {
         if (!fragmentData?.path || fragmentData.model?.path !== COLLECTION_MODEL_PATH) return;
-        const store = getItemsSelectionStore();
+        const store = this.itemsSelection.value;
         const fragment = {
             ...fragmentData,
             studioPath: this.getDisplayName(new Fragment(fragmentData)),
@@ -141,7 +143,7 @@ class MasItemsSelector extends LitElement {
 
     #appendSelectedCollection(fragment) {
         if (!fragment?.path) return false;
-        const store = getItemsSelectionStore();
+        const store = this.itemsSelection.value;
         const selectedCollections = store.selectedCollections.value || [];
         if (selectedCollections.includes(fragment.path)) return false;
         store.selectedCollections.set([...selectedCollections, fragment.path]);
@@ -160,7 +162,7 @@ class MasItemsSelector extends LitElement {
     }
 
     #removeAllImportedUrls() {
-        const store = getItemsSelectionStore();
+        const store = this.itemsSelection.value;
         const valid = this.importedUrls.filter((i) => i.status === 'valid');
         const cardPaths = valid.filter((i) => i.contentType === 'merch-card').map((i) => i.path);
         const collectionPaths = valid.filter((i) => i.contentType !== 'merch-card').map((i) => i.path);
@@ -172,7 +174,7 @@ class MasItemsSelector extends LitElement {
     #removeImportedUrl(item) {
         this.importedUrls = this.importedUrls.filter((i) => i.fragmentId !== item.fragmentId);
         if (item.status !== 'valid') return;
-        const store = getItemsSelectionStore();
+        const store = this.itemsSelection.value;
         const key = item.contentType === 'merch-card' ? 'selectedCards' : 'selectedCollections';
         store[key].set(store[key].value.filter((p) => p !== item.path));
     }
@@ -317,7 +319,7 @@ class MasItemsSelector extends LitElement {
         if (this.importMode) return;
         this.importMode = true;
         this.importedUrls = [];
-        getItemsSelectionStore().showSelected.set(true);
+        this.itemsSelection.value.showSelected.set(true);
     }
 
     #handleSelectedItemRemoved({ detail: { path } }) {
@@ -325,7 +327,7 @@ class MasItemsSelector extends LitElement {
     }
 
     #toggleShowSelected() {
-        getItemsSelectionStore().showSelected.set(!this.showSelected);
+        this.itemsSelection.value.showSelected.set(!this.showSelected);
     }
 
     #setSearchQuery = debounce((value) => {
@@ -352,7 +354,7 @@ class MasItemsSelector extends LitElement {
     #getTabLabel(tab) {
         if (this.viewOnly) {
             const valueUppercase = tab.value.charAt(0).toUpperCase() + tab.value.slice(1);
-            return `${tab.label} (${getItemsSelectionStore()[`selected${valueUppercase}`].value.length})`;
+            return `${tab.label} (${this.itemsSelection.value[`selected${valueUppercase}`].value.length})`;
         }
         return tab.label;
     }

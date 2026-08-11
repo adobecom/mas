@@ -81,11 +81,23 @@ function registerOptionsProviders(service) {
 }
 
 const MAS_FIELD_STYLES = `
+mas-field {
+    display: inline;
+}
+
 mas-field div[slot="footer"] {
     display: flex;
     gap: 24px;
     flex-wrap: wrap;
     align-items: center;
+}
+
+mas-field span.placeholder-resolved[data-template='priceStrikethrough'],
+mas-field span.placeholder-resolved[data-template='strikethrough'],
+mas-field span.price.price-strikethrough,
+mas-field span.price.price-promo-strikethrough {
+    text-decoration: line-through;
+    color: var(--merch-color-inline-price-strikethrough, initial);
 }
 `;
 

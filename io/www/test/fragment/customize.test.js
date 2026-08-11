@@ -2171,7 +2171,7 @@ describe('customize grouped variation scoped to a promo project (promo variation
         expect(result.body.promoProject).to.equal('promo-proj-id');
     });
 
-    it('prefers the root-level promo variation over the grouped-variation-specific one when both exist', async function () {
+    it('prefers the grouped-variation-specific promo variation over the root-level one when both exist and pzn matches', async function () {
         const result = await processWithPromoProjects(
             {
                 ...FAKE_CONTEXT,
@@ -2179,6 +2179,27 @@ describe('customize grouped variation scoped to a promo project (promo variation
                 locale: 'en_US',
                 parsedLocale: 'en_US',
                 pzn: 'EDU',
+                body: buildBodyWithPzn(),
+            },
+            buildPromoProjectsEntry(['PA-123/pzn/edu'], {
+                'pzn-test-fragment': ROOT_PROMO_VARIATION,
+                'PA-123/pzn/edu': GROUPED_PROMO_VARIATION,
+            }),
+        );
+
+        expect(result.status).to.equal(200);
+        expect(result.body.variationId).to.equal('grouped-promo-var-id');
+        expect(result.body.fields.badge).to.equal('GROUPED PROMO badge');
+    });
+
+    it('falls back to the root-level promo variation when pzn does not match the grouped variation', async function () {
+        const result = await processWithPromoProjects(
+            {
+                ...FAKE_CONTEXT,
+                fragmentPath: 'pzn-test-fragment',
+                locale: 'en_US',
+                parsedLocale: 'en_US',
+                pzn: 'OTHER',
                 body: buildBodyWithPzn(),
             },
             buildPromoProjectsEntry(['PA-123/pzn/edu'], {

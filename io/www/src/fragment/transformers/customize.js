@@ -324,6 +324,32 @@ function selectPromoProjectForFragment(root, customizeContext) {
 
 function mergeVariations(root, customizeContext, selectedPromoProject) {
     const { isRegionLocale } = customizeContext;
+    const variations = root?.fields?.variations;
+
+    // Restrict personalization to curated grouped variations for promo projects.
+    const groupedVariationPaths = selectedPromoProject?.groupedVariationPaths;
+    const personalizationVariation = variations?.length
+        ? groupedVariationPaths?.size
+            ? findPersonalizationVariation(variations, customizeContext, groupedVariationPaths)
+            : findPersonalizationVariation(variations, customizeContext)
+        : null;
+
+    // pzn matches a grouped variation with its own promo variation, that wins over the root-level promo variation.
+    const groupedPromoVariation = personalizationVariation
+        ? findPromoVariation(personalizationVariation, customizeContext, selectedPromoProject)
+        : null;
+    if (groupedPromoVariation) {
+        const { variation, project } = groupedPromoVariation;
+        logDebug(
+            () => `Merging promo variation ${variation.id} for grouped variation ${personalizationVariation.id}`,
+            customizeContext,
+        );
+        const merged = deepMerge(root, variation);
+        merged.variationId = variation.id;
+        merged.promoVariationProject = promoProjectLabel(project);
+        return merged;
+    }
+
     // Promo variation takes priority, independent of fields.variations
     const promoVariation = findPromoVariation(root, customizeContext, selectedPromoProject);
     if (promoVariation) {
@@ -334,7 +360,6 @@ function mergeVariations(root, customizeContext, selectedPromoProject) {
         merged.promoVariationProject = promoProjectLabel(project);
         return merged;
     }
-    const variations = root?.fields?.variations;
     if (!variations?.length) {
         logDebug(() => `No variations to merge for fragment ${root.id}`, customizeContext);
         return root;
@@ -349,24 +374,7 @@ function mergeVariations(root, customizeContext, selectedPromoProject) {
             return merged;
         }
     }
-    // Restrict personalization to curated grouped variations for promo projects.
-    const groupedVariationPaths = selectedPromoProject?.groupedVariationPaths;
-    const personalizationVariation = groupedVariationPaths?.size
-        ? findPersonalizationVariation(variations, customizeContext, groupedVariationPaths)
-        : findPersonalizationVariation(variations, customizeContext);
     if (personalizationVariation) {
-        const groupedPromoVariation = findPromoVariation(personalizationVariation, customizeContext, selectedPromoProject);
-        if (groupedPromoVariation) {
-            const { variation, project } = groupedPromoVariation;
-            logDebug(
-                () => `Merging promo variation ${variation.id} for grouped variation ${personalizationVariation.id}`,
-                customizeContext,
-            );
-            const merged = deepMerge(root, variation);
-            merged.variationId = variation.id;
-            merged.promoVariationProject = promoProjectLabel(project);
-            return merged;
-        }
         logDebug(
             () => `Merging personalization variation ${personalizationVariation.id} for fragment ${root.id}`,
             customizeContext,

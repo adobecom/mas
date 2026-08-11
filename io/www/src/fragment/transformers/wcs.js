@@ -1,5 +1,79 @@
-import { fetch, getCountry, getRegionalLocale } from '../utils/common.js';
+import { fetch, getCountry, getFragmentId, getRegionalLocale, getRequestInfos, matchesGeo } from '../utils/common.js';
+import { odinReferences, odinUrl, REFERENCES } from '../utils/paths.js';
+import { createSwrCache } from '../utils/swr-cache.js';
 import { log, logDebug, logError } from '../utils/log.js';
+
+// Locale-independent: the offer-mapping index lives at `<surface>/offer-mapping/index` with no locale
+// segment (geo scoping is expressed by each entry's `geos`, not by the path).
+const OFFER_MAPPING_ID_PATH = 'offer-mapping/index';
+
+// Offer-mapping entries are shared by every request on a surface regardless of country — geo filtering
+// happens per request in `resolveOfferSubstituteMap` — so one jittered/SWR entry per surface serves
+// the whole fleet and shields Odin from a herd on the shared index (see createSwrCache).
+const offerMappingCache = createSwrCache({ name: 'offer-mapping' });
+
+export function clearOfferMappingCache(preview = false) {
+    offerMappingCache.clear(preview);
+}
+
+async function getOfferMappingId(context, surface) {
+    const { preview } = context;
+    const url = odinUrl(surface, { fragmentPath: OFFER_MAPPING_ID_PATH, preview });
+    const { id, status } = await getFragmentId(context, url, `offer-mapping-id-${surface}`);
+    return { id: status === 200 ? id : null, status };
+}
+
+// Flattens the index's `entries` (content-fragment refs) into offer-mapping records, reading the index
+// fragment's own `entries` list against the direct-hydrated `references` map. Each entry carries a
+// sourceOffer, a targetOffer and geos (CQ tag paths).
+function collectMappings(fragment, references) {
+    const entries = fragment?.fields?.entries || [];
+    const mappings = [];
+    entries.forEach((entryId) => {
+        const fields = references[entryId]?.value?.fields;
+        if (fields?.sourceoffer && fields?.targetoffer) {
+            mappings.push({
+                sourceOffer: fields.sourceoffer,
+                targetOffer: fields.targetoffer,
+                geos: fields.geos || [],
+            });
+        }
+    });
+    return mappings;
+}
+
+// One surface's offer-mapping index, fetched `direct-hydrated`. Cached under the surface key. A 404 is
+// a STABLE absence (most surfaces author no mapping) so an empty list `[]` is cached to avoid a
+// per-request herd on a folder that will never exist; any other non-200 is TRANSIENT and resolves
+// `null` (NOT cached, so it retries) — same split as `replace`'s dictionary layers.
+async function buildOfferMapping(context) {
+    const { surface } = await getRequestInfos(context);
+    if (!surface) return [];
+    const mappings = await offerMappingCache.get(context, surface, async () => {
+        const { id, status } = await getOfferMappingId(context, surface);
+        if (!id) return status === 404 ? [] : null;
+        const response = await fetch(odinReferences(id, context.preview, REFERENCES.DIRECT), context, 'offer-mapping');
+        if (response.status !== 200) return null;
+        return collectMappings(response.body, response.body.references || {});
+    });
+    return mappings ?? [];
+}
+
+// Resolves the surface's mappings to a flat `{ [sourceOffer]: targetOffer }` for this request's geo.
+// Only entries whose geos match the request country/region apply — an entry with empty geos never
+// matches (matchesGeo returns null), so it is inert by design.
+function resolveOfferSubstituteMap(mappings, context) {
+    const country = getCountry(context);
+    const regionLocale = getRegionalLocale(context);
+    const substituteMap = {};
+    for (const { sourceOffer, targetOffer, geos } of mappings) {
+        if (matchesGeo(geos, { country, regionLocale })) {
+            substituteMap[sourceOffer] = targetOffer;
+            logDebug(() => `[offer-mapping] ${sourceOffer} -> ${targetOffer} for ${country}`, context);
+        }
+    }
+    return substituteMap;
+}
 
 // A M@S element in rich text (inline price, checkout link, …): <... data-wcs-osi="<osi>" ...>.
 // Fields hold literal quotes (post-parse); this regex serves substitution, promo-code matching
@@ -107,28 +181,38 @@ function substituteOwnOsi(fields, substituteMap) {
 }
 
 /**
- * Single pass over the customized fragment tree. For each fragment it scans the rich text once,
- * and — when customize scoped it to an active promo project (context.promoScopeById) — applies its
- * promo code and substitutes its OSIs in that same pass. Runs after the `replace` transformer, so
- * OSIs injected via placeholder values are covered (MWPW-201862). Returns every final M@S element
- * (osi + inline promo code) the caller needs to build the WCS cache.
+ * Single pass over the customized fragment tree. For each fragment it scans the rich text once and
+ * substitutes OSIs from the effective map — the surface-wide, geo-scoped offer-mapping fallback
+ * (`offerMap`, MWPW-203764) overlaid by any active promo project's own substitutions
+ * (`context.promoScopeById`, which win). When a fragment is promo-scoped its promo code is applied in
+ * the same pass. Runs after the `replace` transformer, so OSIs injected via placeholder values are
+ * covered (MWPW-201862). Returns every final M@S element (osi + inline promo code) the caller needs to
+ * build the WCS cache.
  * @returns {{ osi: string, promotionCode?: string }[]}
  */
-function applyPromoScope(context) {
+function updateOffers(context, offerMap = {}) {
     const scopeById = context.promoScopeById ?? {};
     const masElements = [];
     for (const fragment of fragmentsOf(context.body)) {
         const scope = fragment.id != null ? scopeById[fragment.id] : undefined;
         const { fields } = fragment;
-        const elements = scanMasElements(fields, scope?.substituteMap, context);
+        // Promo substitution wins; offer-mapping is the surface-level, geo-scoped fallback applied to
+        // every fragment regardless of promo scope (MWPW-203764).
+        const substituteMap = { ...offerMap, ...(scope?.substituteMap ?? {}) };
+        const hasSubstitutions = Object.keys(substituteMap).length > 0;
+        const elements = scanMasElements(fields, hasSubstitutions ? substituteMap : undefined, context);
         if (scope && fields) {
+            // Promo code matching keys off the promo project's own map only — offer-mapping targets
+            // never carry promo codes.
             resolvePromoCode(
                 fields,
                 elements.map((element) => element.rawOsi),
                 scope,
                 context,
             );
-            substituteOwnOsi(fields, scope.substituteMap);
+        }
+        if (fields && hasSubstitutions) {
+            substituteOwnOsi(fields, substituteMap);
         }
         for (const { osi, promotionCode } of elements) masElements.push({ osi, promotionCode });
     }
@@ -192,9 +276,14 @@ async function computeCache(tokens, wcsContext) {
 }
 
 async function wcs(context) {
-    // Single pass over the customized tree: apply each in-scope fragment's promo code + OSI
-    // substitution (MWPW-201862, runs after `replace`) and collect every M@S element for the cache.
-    const masElements = applyPromoScope(context);
+    // Prefer the offer-mapping prefetched in `init` (parallel with the other transformer inits);
+    // fall back to a lazy build when the pipeline ran without inits (e.g. unit tests).
+    const mappings = (await context.promises?.wcs) ?? (await buildOfferMapping(context));
+    const offerMap = resolveOfferSubstituteMap(mappings, context);
+    // Single pass over the customized tree: apply the offer-mapping fallback + each in-scope fragment's
+    // promo code and OSI substitution (MWPW-201862, runs after `replace`) and collect every M@S
+    // element for the cache.
+    const masElements = updateOffers(context, offerMap);
 
     const wcsConfigs = context.wcsConfiguration;
     if (!wcsConfigs || wcsConfigs.length === 0) {
@@ -226,13 +315,13 @@ async function wcs(context) {
             if (!tokenMap.has(key)) tokenMap.set(key, token);
         };
         masElements.forEach(({ osi, promotionCode }) => {
-            // OSIs and inline promo codes are already final (substituted) from applyPromoScope above.
+            // OSIs and inline promo codes are already final (substituted) from updateOffers above.
             if (promotionCode) {
                 addToken({ osi, promotionCode });
                 return;
             }
             // Bare markup OSIs (no own data-promotion-code, no matching reference) belong to the
-            // top-level fragment itself — fall back to its own fields.promoCode (set by applyPromoScope).
+            // top-level fragment itself — fall back to its own fields.promoCode (set by updateOffers).
             const promoCode = promoCodeByOsi[osi] ?? context.body.fields?.promoCode;
             if (promoCode) addToken({ osi, promotionCode: promoCode });
             // Cache the plain (no promo) offer when no card promotes this osi, or when a card shares
@@ -275,8 +364,13 @@ async function wcs(context) {
     return context;
 }
 
+async function init(context) {
+    return buildOfferMapping(context);
+}
+
 export const transformer = {
     name: 'wcs',
     process: wcs,
+    init,
 };
-export { MAS_ELEMENT_REGEXP, substituteOsi, scanMasElements, applyPromoScope };
+export { MAS_ELEMENT_REGEXP, substituteOsi, scanMasElements, updateOffers, buildOfferMapping, resolveOfferSubstituteMap };

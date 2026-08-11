@@ -474,6 +474,15 @@ describe('MasPromotionsEditor', () => {
             const restored = getStore({ allowUnset: true });
             expect(restored).to.be.null;
         });
+
+        it('does not clobber the shared store when another editor claimed it before this editor disconnects', async () => {
+            setItemsSelectionStore(null);
+            const el = await mountEditor();
+            const { getItemsSelectionStore: getStore } = await import('../../src/common/items-selection-store.js');
+            setItemsSelectionStore(Store.compareChart);
+            el.remove();
+            expect(getStore({ allowUnset: true })).to.equal(Store.compareChart);
+        });
     });
 
     describe('promptDiscardChanges', () => {

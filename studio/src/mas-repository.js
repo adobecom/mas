@@ -1345,7 +1345,8 @@ export class MasRepository extends LitElement {
      * @param {boolean} withToast - Whether to show toast notifications
      * @returns {Promise<Object>} The saved fragment
      */
-    async saveFragment(fragmentStore, withToast = true) {
+    async saveFragment(fragmentStore, options = {}) {
+        const { withToast = true, refetchEtag = true } = options;
         if (withToast) showToast('Saving fragment...');
         this.operation.set(OPERATIONS.SAVE);
 
@@ -1372,7 +1373,7 @@ export class MasRepository extends LitElement {
         ensureCompatVersionOnMerchCardFieldList(fragmentToSave.model?.path, fragmentToSave.fields);
 
         try {
-            const savedFragment = await this.aem.sites.cf.fragments.save(fragmentToSave);
+            const savedFragment = await this.aem.sites.cf.fragments.save(fragmentToSave, { refetchEtag });
             if (!savedFragment) throw new Error('Invalid fragment.');
 
             fragmentStore.refreshFrom(savedFragment);
@@ -1711,27 +1712,17 @@ export class MasRepository extends LitElement {
             }
         }
 
-        let success = false;
-        if (variations.length > 0) {
+        let success = await this.deleteFragment(fragment, {
+            startToast: variations.length === 0,
+            endToast: false,
+        });
+        if (!success) {
+            console.warn('Regular delete failed, trying force delete');
             try {
                 await this.aem.sites.cf.fragments.forceDelete({ path: fragment.path });
                 success = true;
-            } catch (error) {
-                console.error(`Failed to force delete parent fragment:`, error);
-            }
-        } else {
-            success = await this.deleteFragment(fragment, {
-                startToast: true,
-                endToast: false,
-            });
-            if (!success) {
-                console.warn('Regular delete failed, trying force delete');
-                try {
-                    await this.aem.sites.cf.fragments.forceDelete({ path: fragment.path });
-                    success = true;
-                } catch (forceError) {
-                    console.error('Force delete also failed:', forceError);
-                }
+            } catch (forceError) {
+                console.error('Force delete also failed:', forceError);
             }
         }
 

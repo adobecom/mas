@@ -321,6 +321,26 @@ test.describe('M@S Studio OST test suite', () => {
             await expect(await ost.popup).not.toBeVisible();
         });
     });
+
+    // @studio-ost-team-offer-per-unit-default - A TEAM offer derives displayPerUnit ON (segment default)
+    test(`${features[17].name},${features[17].tags}`, async ({ page, baseURL }) => {
+        const { data } = features[17];
+        const ost = await openEditorAndOST(page, baseURL, features[17]);
+
+        await test.step('step-1: Search the TEAM offer OSI and advance to the offer step', async () => {
+            await expect(await ost.searchField).toBeVisible();
+            await ost.searchField.fill(data.teamOffer.osi);
+            await ost.nextButton.click();
+            await expect(await ost.price).toBeVisible();
+        });
+
+        // applyOfferContextDefaults derives displayPerUnit from the customer
+        // segment (TEAM !== INDIVIDUAL → on), so the per-license token renders
+        // WITHOUT toggling — the inverse of the INDIVIDUAL case (tcid 11).
+        await test.step('step-2: Per-unit token shows by default for the TEAM offer', async () => {
+            await expect(await ost.price).toContainText(data.expectedPerUnit);
+        });
+    });
 });
 
 async function openEditorAndOST(page, baseURL, feature, fragmentId = OST_FR_FRAGMENT) {

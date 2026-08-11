@@ -268,9 +268,18 @@ class MasPromotionsItemsTable extends LitElement {
             items.map(async (item) => {
                 if (signal.aborted) return;
                 try {
-                    const variations = await probePromoVariationsForFragment(this.repository.aem, item.path, promoTag);
-                    if (variations.length) {
-                        const enrichedVariations = await enrichPromoVariations(variations, item, {
+                    const groupedVariationPaths = new Fragment(item)
+                        .getVariations()
+                        .filter((path) => Fragment.isGroupedVariationPath(path));
+                    const [variations, ...groupedVariations] = await Promise.all([
+                        probePromoVariationsForFragment(this.repository.aem, item.path, promoTag),
+                        ...groupedVariationPaths.map((path) =>
+                            probePromoVariationsForFragment(this.repository.aem, path, promoTag),
+                        ),
+                    ]);
+                    const allVariations = [...variations, ...groupedVariations.flat()];
+                    if (allVariations.length) {
+                        const enrichedVariations = await enrichPromoVariations(allVariations, item, {
                             getDisplayName: this.getDisplayName,
                         });
                         geosByPath.set(item.path, getUsedGeoTags(variations));
@@ -386,6 +395,10 @@ class MasPromotionsItemsTable extends LitElement {
             const existingVariations = await probePromoVariationsForFragment(this.repository.aem, item.path, promoTag);
             this.promoVariationDisabledGeos = getUsedGeoTags(existingVariations);
             this.fragmentHasEmptyGeosVariation = existingVariations.some((variation) => !variation.pznTags?.length);
+            if (Fragment.isGroupedVariationPath(item.path)) {
+                await this.#createPromoVariationForItem(item, [], this.fragmentHasEmptyGeosVariation);
+                return;
+            }
             this.promoVariationGeosDialogItem = item;
         } catch {
             showToast(PROMO_VARIATION_LOOKUP_FAILED_MESSAGE, 'negative');
@@ -409,14 +422,8 @@ class MasPromotionsItemsTable extends LitElement {
         });
     }
 
-    async #handlePromoVariationGeosConfirm() {
-        const item = this.promoVariationGeosDialogItem;
+    async #createPromoVariationForItem(item, geoTags, hasEmptyGeosVariation) {
         const promoTag = this.#promotionTagId;
-        const geoTags = this.promoVariationSelectedGeos;
-        const hasEmptyGeosVariation = this.fragmentHasEmptyGeosVariation;
-        this.#closePromoVariationGeosDialog();
-        if (!promoTag || !item?.id || !this.repository) return;
-
         if (!geoTags.length && hasEmptyGeosVariation) {
             showToast(
                 'A variation with no geos already exists for this project. Select one or more geos to create another variation.',
@@ -454,6 +461,16 @@ class MasPromotionsItemsTable extends LitElement {
         } finally {
             this.createPromoVariationLoading = false;
         }
+    }
+
+    async #handlePromoVariationGeosConfirm() {
+        const item = this.promoVariationGeosDialogItem;
+        const promoTag = this.#promotionTagId;
+        const geoTags = this.promoVariationSelectedGeos;
+        const hasEmptyGeosVariation = this.fragmentHasEmptyGeosVariation;
+        this.#closePromoVariationGeosDialog();
+        if (!promoTag || !item?.id || !this.repository) return;
+        await this.#createPromoVariationForItem(item, geoTags, hasEmptyGeosVariation);
     }
 
     #getOfferRemovalContext(selectorId) {

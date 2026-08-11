@@ -6,6 +6,7 @@ import '../fields/mnemonic-field.js';
 import '../aem/aem-tag-picker-field.js';
 import '../promotions/mas-promo-variation-geos.js';
 import { isPromoVariationPath } from '../promotions/promotion-model.js';
+import { isGeoTag } from './variation-utils.js';
 import './variant-picker.js';
 import '../rte/rte-field.js';
 import { SPECTRUM_COLORS } from '../utils/spectrum-colors.js';
@@ -236,18 +237,22 @@ class MerchCardEditor extends LitElement {
     }
 
     get promoGeoTags() {
-        return (this.fragment.getFieldValues('pznTags') || []).filter(Boolean);
+        return (this.fragment.getFieldValues('pznTags') || []).filter(Boolean).filter((tag) => isGeoTag(tag));
+    }
+
+    #nonGeoPznTags() {
+        return (this.fragment.getFieldValues('pznTags') || []).filter(Boolean).filter((tag) => !isGeoTag(tag));
     }
 
     #removePromoGeoTag(tag) {
-        this.fragmentStore.updateField(
-            'pznTags',
-            this.promoGeoTags.filter((existing) => existing !== tag),
-        );
+        this.fragmentStore.updateField('pznTags', [
+            ...this.#nonGeoPznTags(),
+            ...this.promoGeoTags.filter((existing) => existing !== tag),
+        ]);
     }
 
     #handlePromoGeoTagsChange(e) {
-        this.fragmentStore.updateField('pznTags', e.detail.value);
+        this.fragmentStore.updateField('pznTags', [...this.#nonGeoPznTags(), ...e.detail.value]);
     }
 
     get promoVariationGeoTagsTemplate() {

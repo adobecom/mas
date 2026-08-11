@@ -15,6 +15,7 @@ import {
 } from './constants.js';
 import router from './router.js';
 import { migrateLegacyVariant, normalizeVariantName, VARIANTS } from './editors/variant-picker.js';
+import { isGeoTag } from './editors/variation-utils.js';
 import {
     extractLocaleFromPath,
     extractSurfaceFromPath,
@@ -1813,7 +1814,7 @@ export default class MasFragmentEditor extends LitElement {
 
     #promoVariationGeoCodes() {
         const pznTags = this.fragment.getFieldValues('pznTags') || [];
-        return pznTags.map((tag) => tag.split('/').pop());
+        return pznTags.filter((tag) => isGeoTag(tag)).map((tag) => tag.split('/').pop());
     }
 
     displayPromoVariationInfo(clazz) {
@@ -1843,11 +1844,11 @@ export default class MasFragmentEditor extends LitElement {
 
     variationTypeHeader(clazz) {
         if (!this.fragment) return nothing;
-        if (Fragment.isGroupedVariationPath(this.fragment.path)) {
-            return this.displayGroupedVariationInfo(clazz);
-        }
         if (this.isPromoVariationFragment()) {
             return this.displayPromoVariationInfo(clazz);
+        }
+        if (Fragment.isGroupedVariationPath(this.fragment.path)) {
+            return this.displayGroupedVariationInfo(clazz);
         }
         return this.displayRegionalVarationInfo(clazz);
     }
@@ -2134,7 +2135,7 @@ export default class MasFragmentEditor extends LitElement {
         return html`
             <div id="preview-column">
                 <div id="preview-wrapper">
-                    ${this.groupedPreviewLocaleSelector} ${this.previewVariationHeader}
+                    ${this.previewVariationHeader} ${this.groupedPreviewLocaleSelector}
                     <div class="preview-content columns mas-fragment">
                         <sp-theme color="light" scale="medium" system="${getSpectrumVersion(attrs.variant)}">
                             <merch-card

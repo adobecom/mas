@@ -1,7 +1,8 @@
 import { PATH_TOKENS, STATUS_PUBLISHED, STATUS_DRAFT, TAG_PROMOTION_PREFIX } from '../constants.js';
 import { normalizeTagId } from '../aem/tag-id-utils.js';
-import { UserFriendlyError } from '../utils.js';
+import { UserFriendlyError, resolveHydratedParentFragment } from '../utils.js';
 import { Fragment } from '../aem/fragment.js';
+import { createPreviewDataWithParent } from '../reactivity/source-fragment-store.js';
 import { processConcurrently, VARIATIONS_CONCURRENCY_LIMIT } from '../common/utils/item-loading.js';
 import {
     buildCandidateCollisionPath,
@@ -188,10 +189,10 @@ export function getNextAvailablePromoVariationIndex(usedIndices, defaultPath, at
 }
 
 /**
- * Creates a promo variation for a fragment inside promotions/{promoName}/.
+ * Creates a promo variation for a fragment (default or grouped variation) inside promotions/{promoName}/.
  * Supports multiple variations per fragment using unique geo/locale tags (`pznTags`).
  * Adds a numeric suffix ("-<index>") to the path for any subsequent variations to avoid collisions.
- * Cannot create variations from existing promo or grouped variations.
+ * Cannot create variations from an existing promo variation.
  * @param {import('../aem/aem.js').AEM} aem
  * @param {string} sourceFragmentId
  * @param {string} promoTagId
@@ -212,15 +213,34 @@ export async function createPromoVariation(aem, sourceFragmentId, promoTagId, ge
     if (isPromoVariationPath(sourceFragment.path)) {
         throw new UserFriendlyError('Cannot create a promo variation from a promo variation');
     }
-    if (Fragment.isGroupedVariationPath(sourceFragment.path)) {
-        throw new UserFriendlyError('Cannot create a promo variation from a grouped variation');
+
+    const isGroupedVariationSource = Fragment.isGroupedVariationPath(sourceFragment.path);
+
+    // Grouped-variation source: pznTags already has its own personalization tag.
+    // Preserve it on the clone instead of overwriting with the geo selection.
+    const preservedPznTags = isGroupedVariationSource
+        ? (sourceFragment.fields || []).find((field) => field.name === 'pznTags')?.values || []
+        : [];
+
+    // A grouped variation only stores its own overrides, everything else is inherited from the default fragment.
+    // Resolve the effective content first, so the clone matches what's rendered.
+    let effectiveFields = sourceFragment.fields || [];
+    if (isGroupedVariationSource) {
+        const parentFragment = await resolveHydratedParentFragment(aem, sourceFragment.path);
+        if (parentFragment) {
+            effectiveFields = createPreviewDataWithParent(sourceFragment, parentFragment).fields || [];
+        }
     }
 
     const existingVariations = await probePromoVariationsForFragment(aem, sourceFragment.path, promoTagId);
-    if (!geoTags.length && existingVariations.some((variation) => !variation.pznTags?.length)) {
+    const existingGeoTagsByVariation = existingVariations.map((variation) => ({
+        ...variation,
+        pznTags: (variation.pznTags || []).filter((tag) => !preservedPznTags.includes(tag)),
+    }));
+    if (!geoTags.length && existingGeoTagsByVariation.some((variation) => !variation.pznTags?.length)) {
         throw new UserFriendlyError('A variation with no geos already exists for this project.');
     }
-    const overlapping = findOverlappingGeoTags(existingVariations, geoTags);
+    const overlapping = findOverlappingGeoTags(existingGeoTagsByVariation, geoTags);
     if (overlapping.length) {
         throw new UserFriendlyError(
             `These geos are already used by another variation of this fragment: ${overlapping.join(', ')}`,
@@ -242,9 +262,10 @@ export async function createPromoVariation(aem, sourceFragmentId, promoTagId, ge
     const fragmentName = targetPath.split('/').pop();
     await aem.sites.cf.fragments.ensureFolderExists(parentFolder);
 
-    const fieldsWithGeoTags = (sourceFragment.fields || []).filter((field) => field.name !== 'pznTags');
-    if (geoTags.length) {
-        fieldsWithGeoTags.push({ name: 'pznTags', type: 'tag', multiple: true, values: geoTags });
+    const fieldsWithGeoTags = effectiveFields.filter((field) => field.name !== 'pznTags');
+    const mergedPznTags = [...new Set([...preservedPznTags, ...geoTags])];
+    if (mergedPznTags.length) {
+        fieldsWithGeoTags.push({ name: 'pznTags', type: 'tag', multiple: true, values: mergedPznTags });
     }
     const fragmentForCopy = { ...sourceFragment, fields: fieldsWithGeoTags };
 
@@ -372,8 +393,13 @@ export async function probePromoVariationReferences(aem, defaultPath, promotionP
  */
 export async function mergePromoReferencesForDefaultFragment(aem, fragmentData, promotionProjects = []) {
     if (!fragmentData?.path || isPromoVariationPath(fragmentData.path)) return fragmentData;
-    const discovered = await probePromoVariationReferences(aem, fragmentData.path, promotionProjects);
-    return mergePromoVariationReferences(fragmentData, discovered);
+    const groupedVariationPaths = new Fragment(fragmentData).getVariations().filter(Fragment.isGroupedVariationPath);
+    const discoveredPerPath = await Promise.all(
+        [fragmentData.path, ...groupedVariationPaths].map((path) =>
+            probePromoVariationReferences(aem, path, promotionProjects),
+        ),
+    );
+    return mergePromoVariationReferences(fragmentData, discoveredPerPath.flat());
 }
 
 const NUMERIC_SUFFIX_LEAF = /-\d+$/;

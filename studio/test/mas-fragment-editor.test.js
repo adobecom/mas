@@ -1325,6 +1325,28 @@ describe('MasFragmentEditor', () => {
             expect(previewContainer.textContent).to.include('Back To School');
         });
 
+        it('renders the promo variation header (not the grouped variation header) for a promo variation created from a grouped variation, and excludes the personalization tag from Geos', () => {
+            const promoPath = '/content/dam/mas/sandbox/en_US/promotions/back-to-school/my-card/pzn/edu';
+            const fragment = new Fragment({
+                id: 'promo-var-grouped-id',
+                path: promoPath,
+                model: { path: CARD_MODEL_PATH },
+                tags: [{ id: 'mas:promotion/back-to-school' }],
+                fields: [{ name: 'pznTags', values: ['mas:pzn/edu', 'mas:pzn/country/ar'] }],
+            });
+            el.inEdit.value = { get: () => fragment };
+            sandbox.stub(el.editorContextStore, 'isVariation').returns(false);
+
+            const previewContainer = document.createElement('div');
+            render(el.previewVariationHeader, previewContainer);
+            expect(previewContainer.textContent).to.include('Promo variation:');
+            expect(previewContainer.textContent).to.include('Back To School');
+            expect(previewContainer.textContent).to.include('Geos:');
+            expect(previewContainer.textContent).to.include('ar');
+            expect(previewContainer.textContent).to.not.include('edu');
+            expect(previewContainer.textContent).to.not.include('Grouped variation:');
+        });
+
         it('treats a sibling with no pznTags as covering every promotion project geo (legacy variation)', async () => {
             const promoPath = '/content/dam/mas/sandbox/en_US/promotions/back-to-school/my-card';
             const siblingPath = '/content/dam/mas/sandbox/en_US/promotions/back-to-school/my-card-2';

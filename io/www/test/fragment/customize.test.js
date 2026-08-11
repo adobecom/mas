@@ -2084,6 +2084,107 @@ describe('customize grouped variation scoped to a promo project (no promo variat
     });
 });
 
+describe('customize grouped variation scoped to a promo project (promo variation present for the grouped variation)', function () {
+    const PZN_VARIATION_ID = 'pzn-var-edu';
+    const GROUPED_PROMO_VARIATION = {
+        id: 'grouped-promo-var-id',
+        path: '/content/dam/mas/sandbox/en_US/promotions/black-friday/PA-123/pzn/edu',
+        fields: { badge: 'GROUPED PROMO badge' },
+    };
+    const ROOT_PROMO_VARIATION = {
+        id: 'root-promo-var-id',
+        path: '/content/dam/mas/sandbox/en_US/promotions/black-friday/pzn-test-fragment',
+        fields: { badge: 'ROOT PROMO badge' },
+    };
+
+    function buildBodyWithPzn() {
+        return {
+            path: '/content/dam/mas/sandbox/en_US/pzn-test-fragment',
+            id: 'root-fragment',
+            title: 'Root',
+            fields: {
+                badge: 'default badge',
+                osi: 'OSI-TEST',
+                variations: [PZN_VARIATION_ID],
+            },
+            references: {
+                [PZN_VARIATION_ID]: {
+                    type: 'content-fragment',
+                    value: {
+                        path: '/content/dam/mas/sandbox/en_US/PA-123/pzn/edu',
+                        id: PZN_VARIATION_ID,
+                        title: 'EDU pricing',
+                        fields: {
+                            pznTags: ['mas:audiences/pzn/EDU'],
+                            badge: 'EDU badge',
+                        },
+                    },
+                },
+            },
+            referencesTree: [],
+        };
+    }
+
+    function buildPromoProjectsEntry(groupedVariationPaths, defaultVariations) {
+        const project = {
+            id: 'promo-proj-id',
+            path: '/content/dam/mas/promotions/black-friday',
+            fragmentPaths: ['pzn-test-fragment'],
+            defaultVariations,
+            regionVariations: {},
+        };
+        return [
+            {
+                project,
+                promoMap: { '*': 'PROMO-CODE' },
+                fragmentPaths: new Set(project.fragmentPaths),
+                groupedVariationPaths: new Set(groupedVariationPaths),
+            },
+        ];
+    }
+
+    it('renders the promo variation created from the grouped variation, same as a promo variation created from the default fragment', async function () {
+        const result = await processWithPromoProjects(
+            {
+                ...FAKE_CONTEXT,
+                fragmentPath: 'pzn-test-fragment',
+                locale: 'en_US',
+                parsedLocale: 'en_US',
+                pzn: 'EDU',
+                body: buildBodyWithPzn(),
+            },
+            buildPromoProjectsEntry(['PA-123/pzn/edu'], { 'PA-123/pzn/edu': GROUPED_PROMO_VARIATION }),
+        );
+
+        expect(result.status).to.equal(200);
+        expect(result.body.variationId).to.equal('grouped-promo-var-id');
+        expect(result.body.fields.badge).to.equal('GROUPED PROMO badge');
+        expect(result.body.fields.promoCode).to.equal('PROMO-CODE');
+        expect(result.body.promoProject).to.equal('promo-proj-id');
+    });
+
+    it('prefers the root-level promo variation over the grouped-variation-specific one when both exist', async function () {
+        const result = await processWithPromoProjects(
+            {
+                ...FAKE_CONTEXT,
+                fragmentPath: 'pzn-test-fragment',
+                locale: 'en_US',
+                parsedLocale: 'en_US',
+                pzn: 'EDU',
+                body: buildBodyWithPzn(),
+            },
+            buildPromoProjectsEntry(['PA-123/pzn/edu'], {
+                'pzn-test-fragment': ROOT_PROMO_VARIATION,
+                'PA-123/pzn/edu': GROUPED_PROMO_VARIATION,
+            }),
+        );
+
+        expect(result.status).to.equal(200);
+        expect(result.body.variationId).to.equal('root-promo-var-id');
+        expect(result.body.fields.badge).to.equal('ROOT PROMO badge');
+    });
+});
+
 const CARD_MODEL = { id: CARD_MODEL_ID };
 const COLLECTION_MODEL = { id: COLLECTION_MODEL_ID };
 // `customize` receives the already-fetched mask fragment on `context.maskFragment` (set by the `mask`

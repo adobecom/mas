@@ -354,6 +354,18 @@ function mergeVariations(root, customizeContext, selectedPromoProject) {
         ? findPersonalizationVariation(variations, customizeContext, groupedVariationPaths)
         : findPersonalizationVariation(variations, customizeContext);
     if (personalizationVariation) {
+        const groupedPromoVariation = findPromoVariation(personalizationVariation, customizeContext, selectedPromoProject);
+        if (groupedPromoVariation) {
+            const { variation, project } = groupedPromoVariation;
+            logDebug(
+                () => `Merging promo variation ${variation.id} for grouped variation ${personalizationVariation.id}`,
+                customizeContext,
+            );
+            const merged = deepMerge(root, variation);
+            merged.variationId = variation.id;
+            merged.promoVariationProject = promoProjectLabel(project);
+            return merged;
+        }
         logDebug(
             () => `Merging personalization variation ${personalizationVariation.id} for fragment ${root.id}`,
             customizeContext,

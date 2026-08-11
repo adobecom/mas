@@ -167,6 +167,7 @@ export const FIELD_MODEL_MAPPING = {
 
 export const TAG_STUDIO_CONTENT_TYPE = 'mas:studio/content-type';
 export const TAG_PROMOTION_PREFIX = 'mas:promotion/';
+export const TAG_LOCALE_PREFIX = 'mas:locale/';
 export const TAG_MERCH_CARD_COLLECTION = `${TAG_STUDIO_CONTENT_TYPE}/merch-card-collection`;
 export const TAG_MERCH_CARD = `${TAG_STUDIO_CONTENT_TYPE}/merch-card`;
 export const TAG_COMPARE_CHART = `${TAG_STUDIO_CONTENT_TYPE}/${COMPARE_CHART_CREATE_TYPE}`;

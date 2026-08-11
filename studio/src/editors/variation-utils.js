@@ -3,6 +3,7 @@ import { Fragment } from '../aem/fragment.js';
 import { toAttribute } from '../aem/tag-path-utils.js';
 import { getLocaleByCode } from '../../../io/www/src/fragment/locales.js';
 import { TAG_PROMOTION_PREFIX, VARIATION_TYPES } from '../constants.js';
+import { isPznCountryTagId, isLocaleTagId } from '../common/utils/personalization-utils.js';
 
 /* ---------- pure helpers ---------- */
 
@@ -107,6 +108,43 @@ export function hasAnyVariationTabItems(fragment) {
 
 export function getGroupedVariationTagsValue(variationFragment) {
     return pznTagsValue(variationFragment);
+}
+
+// A promo variation cloned from a grouped variation keeps its personalization tag (e.g. mas:pzn/edu)
+// alongside the promo's geo tags in pznTags.
+export function isGeoTag(tag) {
+    if (!tag) return false;
+    return isLocaleTagId(tag) || isPznCountryTagId(tag);
+}
+
+export function getPromoVariationGeoTagsValue(variationFragment) {
+    const values =
+        variationFragment?.getFieldValues?.('pznTags') ||
+        variationFragment?.fields?.find((field) => field.name === 'pznTags')?.values ||
+        [];
+    return values
+        .filter(Boolean)
+        .filter((tag) => isGeoTag(tag))
+        .join(',');
+}
+
+export function getPromoVariationPersonalizationTagsValue(variationFragment) {
+    const values =
+        variationFragment?.getFieldValues?.('pznTags') ||
+        variationFragment?.fields?.find((field) => field.name === 'pznTags')?.values ||
+        [];
+    return values
+        .filter(Boolean)
+        .filter((tag) => !isGeoTag(tag))
+        .join(',');
+}
+
+export function getPromoVariationPersonalizationTagLabels(variationFragment) {
+    return getPromoVariationPersonalizationTagsValue(variationFragment)
+        .split(',')
+        .filter(Boolean)
+        .map((tag) => tag.split('/').pop())
+        .join(', ');
 }
 
 export function getPromotionCode(variationFragment) {

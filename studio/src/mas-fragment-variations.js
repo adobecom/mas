@@ -7,6 +7,8 @@ import { extractLocaleFromPath, showToast, createKeyedAsyncLoader } from './util
 import router from './router.js';
 import {
     getGroupedVariationTagsValue,
+    getPromoVariationGeoTagsValue,
+    getPromoVariationPersonalizationTagLabels,
     getPromotionCode,
     hasAnyVariationTabItems,
     listGroupedVariations,
@@ -128,7 +130,7 @@ class MasFragmentVariations extends LitElement {
             ? [
                   ...new Set(
                       this.promoVariations
-                          .filter((variation) => !getGroupedVariationTagsValue(variation))
+                          .filter((variation) => !getPromoVariationGeoTagsValue(variation))
                           .map((variation) => getPromotionTagFromFragment(variation))
                           .filter(Boolean),
                   ),
@@ -490,7 +492,7 @@ class MasFragmentVariations extends LitElement {
                         const isExpanded = this.isPromoVariationExpanded(variationFragment.id);
                         const isHighlighted = this.isVariationHighlighted(variationFragment.id);
                         const { promotionName } = getPromotionInfo(variationFragment);
-                        const ownGeosValue = getGroupedVariationTagsValue(variationFragment);
+                        const ownGeosValue = getPromoVariationGeoTagsValue(variationFragment);
                         const promoTagId = getPromotionTagFromFragment(variationFragment);
                         const fallbackGeos = this.promotionGeosByTag.get(promoTagId) || [];
                         const geosValue = ownGeosValue || fallbackGeos.filter(Boolean).join(',');
@@ -525,6 +527,26 @@ class MasFragmentVariations extends LitElement {
                                                   readonly
                                               ></aem-tag-picker-field>
                                           </div>
+                                          <div class="promo-code-field">
+                                              <span class="field-label">Applies to</span>
+                                              <span class="field-value"
+                                                  >${Fragment.isGroupedVariationPath(variationFragment.path)
+                                                      ? 'Grouped variation'
+                                                      : 'Default fragment'}</span
+                                              >
+                                          </div>
+                                          ${Fragment.isGroupedVariationPath(variationFragment.path)
+                                              ? html`
+                                                    <div class="promo-code-field">
+                                                        <span class="field-label">Grouped variation tags</span>
+                                                        <span class="field-value"
+                                                            >${getPromoVariationPersonalizationTagLabels(
+                                                                variationFragment,
+                                                            )}</span
+                                                        >
+                                                    </div>
+                                                `
+                                              : nothing}
                                       </div>
                                   `
                                 : nothing}

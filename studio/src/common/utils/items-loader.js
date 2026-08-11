@@ -372,12 +372,13 @@ export async function loadSelectedFragments(selectedPaths, type, repository, opt
         const validFragments = fragments.filter(Boolean);
 
         if (type === TABLE_TYPE.CARDS) {
+            if (signal?.aborted) return;
             const enriched = await enrichCards(validFragments, {
                 getByPath: repository.aem.getFragmentByPath,
                 getOfferData: (card, options) => loadOfferDataForViewOnlyCard({ card, repository, ...options }),
                 signal,
                 getDisplayName,
-                offerDataCache: getItemsSelectionStore().offerDataCache,
+                offerDataCache: getItemsSelectionStore({ allowUnset: true })?.offerDataCache,
                 existingOfferDataByPath: new Map(),
                 existingGroupedVariationsByPath: new Map(),
             });

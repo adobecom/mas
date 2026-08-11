@@ -45,6 +45,7 @@ class MasSearchAndFilters extends LitElement {
     // (e.g. the compare-chart picker), else the global stores. Resolved at connect.
     #searchStore = Store.search;
     #filtersStore = Store.filters;
+    #itemsSelectionStore = null;
 
     // Overlay open/close events from the internal filter popovers are an
     // implementation detail; stop them at the host so ancestor overlays
@@ -260,6 +261,7 @@ class MasSearchAndFilters extends LitElement {
         this.addEventListener('sp-opened', this.#stopOverlayEventPropagation);
         this.addEventListener('sp-closed', this.#stopOverlayEventPropagation);
         const selectionStore = getItemsSelectionStore();
+        this.#itemsSelectionStore = selectionStore;
         this.#searchStore = selectionStore.search;
         this.#filtersStore = selectionStore.filters;
         if (this.type === TABLE_TYPE.CARDS) {
@@ -299,7 +301,7 @@ class MasSearchAndFilters extends LitElement {
         super.disconnectedCallback();
         this.removeEventListener('sp-opened', this.#stopOverlayEventPropagation);
         this.removeEventListener('sp-closed', this.#stopOverlayEventPropagation);
-        const selectionStore = getItemsSelectionStore({ allowUnset: true });
+        const selectionStore = this.#itemsSelectionStore;
         if (selectionStore) {
             selectionStore[`display${this.typeUppercased}`].set(selectionStore[`all${this.typeUppercased}`].value);
         }
@@ -469,7 +471,7 @@ class MasSearchAndFilters extends LitElement {
             customs: new Map(),
         };
         this.#addSelectedFilterOptions(optionMaps);
-        for (const fragment of getItemsSelectionStore()[`all${this.typeUppercased}`].value) {
+        for (const fragment of this.#itemsSelectionStore[`all${this.typeUppercased}`].value) {
             if (!fragment.tags) continue;
 
             for (const tag of fragment.tags) {
@@ -832,7 +834,7 @@ class MasSearchAndFilters extends LitElement {
     }
 
     #applyFilters() {
-        const source = getItemsSelectionStore()[`all${this.typeUppercased}`].value || [];
+        const source = this.#itemsSelectionStore[`all${this.typeUppercased}`].value || [];
         const query = this.searchQuery?.toLowerCase();
         const hasTemplate = this.templateFilter?.length > 0;
         const hasMarket = this.marketSegmentFilter?.length > 0;
@@ -904,15 +906,15 @@ class MasSearchAndFilters extends LitElement {
         if (this.type === TABLE_TYPE.CARDS) {
             result.sort((a, b) => (b.groupedVariations?.length > 0 ? 1 : 0) - (a.groupedVariations?.length > 0 ? 1 : 0));
         }
-        getItemsSelectionStore()[`display${this.typeUppercased}`].set(result);
+        this.#itemsSelectionStore[`display${this.typeUppercased}`].set(result);
     }
 
     renderCount() {
         return html`<div class="result-count">
             ${this.isLoading
                 ? html`<sp-progress-circle indeterminate size="s"></sp-progress-circle>`
-                : html`${getItemsSelectionStore()[`display${this.typeUppercased}`].value.length}
-                  result${getItemsSelectionStore()[`display${this.typeUppercased}`].value.length !== 1 ? 's' : ''}`}
+                : html`${this.#itemsSelectionStore[`display${this.typeUppercased}`].value.length}
+                  result${this.#itemsSelectionStore[`display${this.typeUppercased}`].value.length !== 1 ? 's' : ''}`}
         </div>`;
     }
 

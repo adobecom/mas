@@ -78,8 +78,8 @@ export class PreviewFragmentStore extends FragmentStore {
         this.lazy = lazy;
 
         this.placeholderUnsubscribe = Store.placeholders.previewByLocale.subscribe(() => {
-            if (this.lazy || !Store.previewDictionaryReady()) return;
-            const sig = this.previewLocaleOverride || Store.localeOrRegion();
+            if (this.lazy || !Store.previewDictionaryReady(this.previewLocale)) return;
+            const sig = this.previewLocale;
             if (this.resolved && sig === this.#resolvedDictionarySig) return;
             this.resolved = false;
             this.resolveFragment(true);
@@ -141,6 +141,10 @@ export class PreviewFragmentStore extends FragmentStore {
         this.resolveFragment();
     }
 
+    get previewLocale() {
+        return this.previewLocaleOverride || Store.localeOrRegion();
+    }
+
     setPreviewLocaleOverride(value) {
         const nextValue = value || null;
         if (this.previewLocaleOverride === nextValue) {
@@ -194,7 +198,7 @@ export class PreviewFragmentStore extends FragmentStore {
             return;
         }
 
-        if (!Store.previewDictionaryReady()) {
+        if (!Store.previewDictionaryReady(this.previewLocale)) {
             // Leave resolved=false so the placeholderUnsubscribe callback
             // re-runs resolution once the dictionary for this locale arrives.
             this.refreshAemFragment(true);
@@ -210,7 +214,7 @@ export class PreviewFragmentStore extends FragmentStore {
         }
 
         this.#resolving = true;
-        const dictionarySig = this.previewLocaleOverride || Store.localeOrRegion();
+        const dictionarySig = this.previewLocale;
         this.getResolvedFragment()
             .then((result) => {
                 if (result) {
@@ -239,9 +243,9 @@ export class PreviewFragmentStore extends FragmentStore {
         body.fields = serializePreviewFields(originalFields);
 
         const context = {
-            locale: this.previewLocaleOverride || Store.localeOrRegion(),
+            locale: this.previewLocale,
             surface: Store.surface(),
-            dictionary: Store.previewDictionary(),
+            dictionary: Store.previewDictionary(this.previewLocale),
             preview: { url: ODIN_PREVIEW_FRAGMENTS_URL },
         };
         const result = await previewStudioFragment(body, context);

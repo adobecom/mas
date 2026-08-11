@@ -120,6 +120,8 @@ function toInstant(value) {
     return Number.isFinite(t) ? t : Date.now();
 }
 
+const isSeasonal = (project) => Boolean(project.endDate);
+
 const PROMO_TAG_PREFIX = 'mas:promotion/';
 
 /**
@@ -337,13 +339,14 @@ async function hydrateProject(project, { baseUrl, surface, defaultLocale, resolv
     const offerSubstitutions = parseOfferSubstitutions(offerLines);
     const promoCode = hydratedProject.fields?.promoCode ?? null;
     const title = hydratedProject.fields?.title ?? null;
+    const seasonal = isSeasonal(project);
     if (!fragmentPaths.length && !offerOverrides.length && !offerSubstitutions.length) {
         logDebug(() => `Promotion project ${project.id} has no fragments or offer overrides, skipping`, context);
         return null;
     }
     logDebug(
         () =>
-            `Active promotion project ${project.id} with ${fragmentPaths.length} fragments, ${offerOverrides.length} offer overrides, promoCode="${promoCode}", ${Object.keys(defaultVariations).length} default variations, ${Object.keys(regionVariations).length} region variations`,
+            `Active promotion project ${project.id} (seasonal=${seasonal}) with ${fragmentPaths.length} fragments, ${offerOverrides.length} offer overrides, promoCode="${promoCode}", ${Object.keys(defaultVariations).length} default variations, ${Object.keys(regionVariations).length} region variations`,
         context,
     );
 
@@ -353,6 +356,7 @@ async function hydrateProject(project, { baseUrl, surface, defaultLocale, resolv
         title,
         startDate: project.startDate,
         endDate: project.endDate,
+        seasonal,
         promoCode,
         fragmentPaths,
         groupedVariationPaths,
@@ -401,7 +405,7 @@ async function init(context) {
         .sort((a, b) => toInstant(b.startDate) - toInstant(a.startDate))
         // Stable secondary sort: seasonal (time-boxed) projects float to the top, preserving
         // the startDate order established above within each bucket.
-        .sort((a, b) => (a.endDate ? 0 : 1) - (b.endDate ? 0 : 1));
+        .sort((a, b) => (isSeasonal(a) ? 0 : 1) - (isSeasonal(b) ? 0 : 1));
     if (!matched.length) return { status: 200, activeProjects: [] };
 
     log(
@@ -466,16 +470,21 @@ function buildPromoMap(offerOverrides, { regionLocale, country }, projectPromoCo
 async function promotions(context) {
     const { activeProjects = [] } = (await context.promises?.promotions) ?? {};
     const { regionLocale, country } = context;
-    const promoProjects = activeProjects.map((project) => ({
-        project,
-        promoMap: buildPromoMap(project.offerOverrides, { regionLocale, country }, project.promoCode, context),
-        substituteMap: buildSubstituteMap(project.offerSubstitutions ?? [], { regionLocale, country }),
-        fragmentPaths: new Set(project.fragmentPaths),
-        groupedVariationPaths: new Set(project.groupedVariationPaths),
-    }));
-    promoProjects.forEach(({ project, promoMap, substituteMap: sm }) => {
+    const promoProjects = activeProjects.map((project) => {
+        const promoMap = buildPromoMap(project.offerOverrides, { regionLocale, country }, project.promoCode, context);
+        return {
+            project,
+            promoMap,
+            substituteMap: buildSubstituteMap(project.offerSubstitutions ?? [], { regionLocale, country }),
+            fragmentPaths: new Set(project.fragmentPaths),
+            groupedVariationPaths: new Set(project.groupedVariationPaths),
+            hasWildcard: Boolean(promoMap['*']),
+        };
+    });
+    promoProjects.forEach(({ project, promoMap, substituteMap: sm, hasWildcard }) => {
         logDebug(
-            () => `Project "${project.id}" promoMap: ${JSON.stringify(promoMap)}, substituteMap: ${JSON.stringify(sm)}`,
+            () =>
+                `Project "${project.id}" promoMap: ${JSON.stringify(promoMap)}, substituteMap: ${JSON.stringify(sm)}, wildcard: ${hasWildcard}`,
             context,
         );
     });

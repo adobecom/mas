@@ -28,6 +28,8 @@ function getLocaleSettings({
 } = {}) {
     language ??= locale?.split('_')?.[0] || Defaults.language;
     country ??= locale?.split('_')?.[1] || Defaults.country;
+    // Commerce has no PR pricing: price Puerto Rico as US, keep es_PR locale for language/legal. MWPW-203596
+    if (country === 'PR') country = 'US';
     locale ??= `${language}_${country}`;
     return { locale, country, language };
 }

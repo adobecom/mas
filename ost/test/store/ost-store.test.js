@@ -164,6 +164,15 @@ describe('OstStore', () => {
         expect(effective.displayPlanType).to.be.true;
     });
 
+    it('defaults quantity to 1 in getEffectiveOptions for price', () => {
+        expect(store.getEffectiveOptions('price').quantity).to.equal(1);
+    });
+
+    it('restores quantity from offerSelectorPlaceholderOptions on init', () => {
+        store.init({ offerSelectorPlaceholderOptions: { quantity: '5' } });
+        expect(store.placeholderOptions.quantity).to.equal('5');
+    });
+
     it('legal disclaimer keeps tax off when geo defaults (not the user) turn displayTax on', () => {
         store.setPlaceholderOptions({ ...store.placeholderOptions, displayTax: true });
         expect(store.getEffectiveOptions('price').displayTax).to.be.true;

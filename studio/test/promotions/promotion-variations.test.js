@@ -1008,6 +1008,30 @@ describe('promotion-variations', () => {
             expect(card2Variations[0].path).to.equal(`${dirPromoFolder}/card-2`);
             expect(card2Variations[0].index).to.equal(1);
         });
+
+        it("includes a promo variation created from an attached fragment's own grouped variation", async () => {
+            const parentPath = '/content/dam/mas/sandbox/en_US/my-card';
+            const groupedPromoFolder = `${promoFolder}/my-card/pzn`;
+            const groupedPromoPath = `${groupedPromoFolder}/edu`;
+            const promotionFragment = {
+                getFieldValues: sandbox.stub().callsFake((name) => {
+                    if (name === 'fragments') return [parentPath];
+                    return undefined;
+                }),
+                tags: [{ id: 'mas:promotion/black-friday' }],
+            };
+            const search = makeSearchStub({
+                [promoFolder]: [],
+                [groupedPromoFolder]: [{ id: 'grouped-promo-var-id', path: groupedPromoPath, status: 'DRAFT', fields: [] }],
+            });
+            const aem = createAemMock({ fragments: { search } });
+
+            const result = await getAllAttachedPromoVariations(aem, promotionFragment);
+
+            const groupedResult = result.find((variation) => variation.id === 'grouped-promo-var-id');
+            expect(groupedResult).to.exist;
+            expect(groupedResult.parentPath).to.equal(parentPath);
+        });
     });
 
     describe('getPublishedAttachedPromoVariations', () => {

@@ -1,4 +1,4 @@
-import { PATH_TOKENS, STATUS_PUBLISHED, STATUS_DRAFT, TAG_PROMOTION_PREFIX } from '../constants.js';
+import { PATH_TOKENS, STATUS_PUBLISHED, STATUS_DRAFT, TAG_PROMOTION_PREFIX, PZN_FOLDER } from '../constants.js';
 import { normalizeTagId } from '../aem/tag-id-utils.js';
 import { UserFriendlyError, resolveHydratedParentFragment } from '../utils.js';
 import { Fragment } from '../aem/fragment.js';
@@ -463,6 +463,42 @@ export async function resolveDefaultFragmentForPromoVariation(
  * @param {{ onlyUnpublished?: boolean, onlyPublished?: boolean }} [options]
  * @returns {Promise<Array<{ path: string, status: string, title: string, parentPath: string, fields: Array, tags: Array }>>}
  */
+/**
+ * Probes the `pzn` subfolder under a fragment's promo-variation path for promo variations
+ * created from that fragment's own grouped variations.
+ * @param {import('../aem/aem.js').AEM} aem
+ * @param {string} defaultPath
+ * @param {string} promoName
+ * @returns {Promise<Array<{ path: string, index: number, id: string, pznTags: string[], status: string, title: string, model: string, fields: Array, tags: Array }>>}
+ */
+async function probeGroupedVariationPromoVariations(aem, defaultPath, promoName) {
+    const basePath = buildPromoVariationPath(defaultPath, promoName);
+    if (!basePath) return [];
+    const groupedFolder = `${basePath}/${PZN_FOLDER}`;
+
+    const rawResults = [];
+    for await (const batch of aem.sites.cf.fragments.search({ path: groupedFolder }, VARIATION_SEARCH_PAGE_SIZE)) {
+        rawResults.push(...batch);
+    }
+    return rawResults
+        .filter((item) => item?.id && item?.path)
+        .map((item) => {
+            const leaf = item.path.split('/').pop();
+            const suffixMatch = leaf.match(/-(\d+)$/);
+            return {
+                path: item.path,
+                index: suffixMatch ? Number(suffixMatch[1]) : 1,
+                id: item.id,
+                pznTags: readPznTags(item),
+                status: item.status,
+                title: item.title,
+                model: item.model,
+                fields: item.fields,
+                tags: item.tags,
+            };
+        });
+}
+
 async function collectAttachedPromoVariations(aem, promotionFragment, { onlyUnpublished = false, onlyPublished = false } = {}) {
     const promotionTagId = getPromotionTagFromFragment(promotionFragment);
     if (!promotionTagId) return [];
@@ -470,17 +506,27 @@ async function collectAttachedPromoVariations(aem, promotionFragment, { onlyUnpu
     const attachedPaths = Array.from(new Set(promotionFragment.getFieldValues?.('fragments') || []));
     if (!attachedPaths.length) return [];
 
+    const promoName = getPromoNameFromTag(promotionTagId);
     const variationsByPath = await probePromoVariationsForFragments(aem, attachedPaths, promotionTagId);
+    const groupedVariationsByPath = new Map(
+        await Promise.all(
+            attachedPaths.map(async (parentPath) => [
+                parentPath,
+                promoName ? await probeGroupedVariationPromoVariations(aem, parentPath, promoName) : [],
+            ]),
+        ),
+    );
 
-    return attachedPaths.flatMap((parentPath) =>
-        (variationsByPath.get(parentPath) || [])
+    return attachedPaths.flatMap((parentPath) => {
+        const combined = [...(variationsByPath.get(parentPath) || []), ...(groupedVariationsByPath.get(parentPath) || [])];
+        return combined
             .filter((variation) => {
                 if (onlyUnpublished) return variation.status !== STATUS_PUBLISHED;
                 if (onlyPublished) return variation.status !== STATUS_DRAFT;
                 return true;
             })
-            .map((variation) => ({ ...variation, parentPath })),
-    );
+            .map((variation) => ({ ...variation, parentPath }));
+    });
 }
 
 /**

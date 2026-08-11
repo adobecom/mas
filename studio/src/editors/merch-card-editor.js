@@ -30,6 +30,7 @@ import { toAttribute } from '../aem/tag-path-utils.js';
 import { getGlobalSettingsDefaults } from '../settings/settings-store.js';
 import { fieldStatusStyles } from '../common/fields/field-status.css.js';
 import { getLocaleByCode } from '../../../io/www/src/fragment/locales.js';
+import { normalizePznTagToLocaleCode } from './variation-utils.js';
 import { parseProWhatsIncluded, serializeProWhatsIncluded } from '../utils/pro-whats-included.js';
 
 const QUANTITY_MODEL = 'quantitySelect';
@@ -153,8 +154,8 @@ class MerchCardEditor extends LitElement {
     }
 
     #normalizeGroupedPreviewLocaleCode(tagValue) {
-        const localeCode = tagValue?.split('/').pop()?.trim();
-        return getLocaleByCode(localeCode) ? localeCode : null;
+        const preferredLang = getLocaleByCode(Store.localeOrRegion())?.lang;
+        return normalizePznTagToLocaleCode(tagValue, Store.surface(), preferredLang);
     }
 
     get groupedPreviewLocales() {

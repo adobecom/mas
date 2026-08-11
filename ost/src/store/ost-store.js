@@ -47,6 +47,7 @@ const DEFAULT_PLACEHOLDER_OPTIONS = {
     displayTax: false,
     forceTaxExclusive: false,
     displayOldPrice: true,
+    quantity: 1,
 };
 
 const VALID_FLOWS = ['single', 'tryBuy', 'bundle', 'consult'];

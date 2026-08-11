@@ -39,7 +39,7 @@ export const styles = css`
         padding: 10px 12px;
     }
 
-    .ref-path {
+    .ref-subtitle {
         font-size: 12px;
         color: var(--spectrum-global-color-gray-700);
         margin-left: 24px;

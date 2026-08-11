@@ -1,5 +1,6 @@
 import { LitElement, html, nothing } from 'lit';
-import { ROOT_PATH } from '../constants.js';
+import { PZN_FOLDER } from '../constants.js';
+import { extractLocaleFromPath } from '../utils.js';
 import { styles } from './mas-publish-dialog.css.js';
 
 class MasPublishDialog extends LitElement {
@@ -56,7 +57,8 @@ class MasPublishDialog extends LitElement {
 
     _renderRef(ref) {
         const title = ref.title || ref.path.split('/').pop();
-        const displayPath = ref.path?.startsWith(`${ROOT_PATH}/`) ? ref.path.slice(ROOT_PATH.length + 1) : ref.path;
+        const isGrouped = ref.path?.includes(`/${PZN_FOLDER}/`);
+        const locale = !isGrouped ? extractLocaleFromPath(ref.path) : null;
         return html`
             <div class="ref-item">
                 <sp-checkbox
@@ -65,7 +67,7 @@ class MasPublishDialog extends LitElement {
                     @change=${(e) => this._toggleRef(ref.id, e.target.checked)}
                     >${title}</sp-checkbox
                 >
-                <div class="ref-path">${displayPath}</div>
+                ${locale ? html`<div class="ref-subtitle">${locale}</div>` : nothing}
             </div>
         `;
     }

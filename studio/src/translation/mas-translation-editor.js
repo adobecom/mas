@@ -346,7 +346,7 @@ class MasTranslationEditor extends LitElement {
         this.translationProject.updateField('projectType', [Store.translationProjects.projectType.value]);
         showToast('Updating the project...');
         try {
-            await this.repository.saveFragment(this.translationProjectStore, false);
+            await this.repository.saveFragment(this.translationProjectStore, { withToast: false });
             this.#updateDisabledActions({ add: [QUICK_ACTION.SAVE, QUICK_ACTION.DISCARD] });
         } catch (error) {
             console.error('Error updating translation project', error);

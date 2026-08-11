@@ -271,6 +271,15 @@ function matchesGeo(tags, { regionLocale, country }) {
 }
 
 /**
+ * True when `tags` contains at least one geo tag (`locale/` or `country/` segment), regardless of value.
+ * @param {string[]} tags
+ * @returns {boolean}
+ */
+function hasGeoTag(tags) {
+    return tags.some((tag) => /(^|[/:])(locale|country)\//i.test(tag));
+}
+
+/**
  * Effective country for a request context. Prefer explicit `context.country`, otherwise
  * fall back to the country segment of `context.locale` (e.g. `en_US` → `US`).
  * @param {PipelineContext} context
@@ -316,6 +325,7 @@ export {
     getFragmentId,
     getJsonFromState,
     getFromState,
+    hasGeoTag,
     mark,
     matchesGeo,
     measureTiming,

@@ -2097,7 +2097,7 @@ describe('customize grouped variation scoped to a promo project (promo variation
     const GROUPED_PROMO_VARIATION = {
         id: 'grouped-promo-var-id',
         path: '/content/dam/mas/sandbox/en_US/promotions/black-friday/PA-123/pzn/edu',
-        fields: { badge: 'GROUPED PROMO badge' },
+        fields: { badge: 'GROUPED PROMO badge', pznTags: ['mas:pzn/edu'] },
     };
     const ROOT_PROMO_VARIATION = {
         id: 'root-promo-var-id',

@@ -2,6 +2,7 @@ import { PATH_TOKENS } from '../utils/paths.js';
 import {
     CARD_MODEL_ID,
     getRequestInfos,
+    hasGeoTag,
     matchesGeo,
     PZN_FOLDER,
     skimFragmentFromReferences,
@@ -213,7 +214,7 @@ function collectPromoVariationCandidates(variationsByPath, fragmentPath) {
 
 /**
  * Picks the best geo match for a fragment.
- * Candidates without pznTags act as fallbacks for legacy, non geo scoped promos.
+ * Candidates without a geo tag (empty pznTags, or a personalization tag like mas:pzn/edu) act as fallbacks.
  */
 function selectBestPromoVariation(candidates, { regionLocale, country }) {
     let fallback = null;
@@ -221,7 +222,7 @@ function selectBestPromoVariation(candidates, { regionLocale, country }) {
     let bestScore = 0;
     for (const candidate of candidates) {
         const pznTags = candidate.fields?.pznTags;
-        if (!Array.isArray(pznTags) || pznTags.length === 0) {
+        if (!Array.isArray(pznTags) || pznTags.length === 0 || !hasGeoTag(pznTags)) {
             fallback ??= candidate;
             continue;
         }

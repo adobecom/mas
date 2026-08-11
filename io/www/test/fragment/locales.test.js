@@ -14,9 +14,35 @@ import {
     parseLocaleCode,
     isKnownLocale,
     geoCacheKey,
+    PLACEHOLDERS_BASELINE_SURFACE,
+    getPlaceholdersRegionLocale,
 } from '../../src/fragment/locales.js';
 
 describe('locales', function () {
+    describe('placeholder resolution helpers', function () {
+        it('PLACEHOLDERS_BASELINE_SURFACE is acom', function () {
+            expect(PLACEHOLDERS_BASELINE_SURFACE).to.equal('acom');
+        });
+
+        it('getPlaceholdersRegionLocale reaches en_IN / en_AU by country even when they are en_GB regions', function () {
+            expect(getPlaceholdersRegionLocale('acom', 'en_US', 'IN', 'en_US')).to.equal('en_IN');
+            expect(getPlaceholdersRegionLocale('acom', 'en_US', 'AU', 'en_US')).to.equal('en_AU');
+            expect(getPlaceholdersRegionLocale('acom', 'en_GB', 'IN', 'en_IN')).to.equal('en_IN');
+            expect(getPlaceholdersRegionLocale('acom', 'fr_FR', 'BE', 'fr_FR')).to.equal('fr_BE');
+        });
+
+        it('getPlaceholdersRegionLocale resolves regions on a non-acom surface', function () {
+            expect(getPlaceholdersRegionLocale('ccd', 'en_US', 'HK', 'en_US')).to.equal('en_HK');
+            expect(getPlaceholdersRegionLocale('ccd', 'de_DE', 'CH', 'de_DE')).to.equal('de_CH');
+        });
+
+        it('getPlaceholdersRegionLocale falls back when the country is not a surface region', function () {
+            expect(getPlaceholdersRegionLocale('acom', 'en_US', 'JP', 'en_US')).to.equal('en_US');
+            expect(getPlaceholdersRegionLocale('acom', 'en_US', undefined, 'en_US')).to.equal('en_US');
+            // IN is an acom region but NOT a ccd region → falls back on ccd.
+            expect(getPlaceholdersRegionLocale('ccd', 'de_DE', 'JP', 'de_DE')).to.equal('de_DE');
+        });
+    });
     describe('parseLocaleCode', function () {
         it('returns empty array when locale code is null or undefined', function () {
             expect(parseLocaleCode(null)).to.deep.equal([]);

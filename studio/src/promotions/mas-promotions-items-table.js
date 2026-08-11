@@ -13,6 +13,7 @@ import { getDefaultLocaleCode } from '../../../io/www/src/fragment/locales.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 import Store from '../store.js';
 import { normalizeTagId } from '../aem/tag-id-utils.js';
+import { Fragment } from '../aem/fragment.js';
 import {
     splitPromotionTagsFieldValues,
     parsePromoCodeExceptions,
@@ -141,7 +142,8 @@ class MasPromotionsItemsTable extends LitElement {
     get selectedPaths() {
         const store = getItemsSelectionStore();
         if (this.type === TABLE_TYPE.OFFERS) return store.selectedOffers.value;
-        return store[`selected${this.typeUppercased}`].value;
+        const paths = store[`selected${this.typeUppercased}`].value;
+        return this.type === TABLE_TYPE.CARDS ? paths.filter((path) => !Fragment.isGroupedVariationPath(path)) : paths;
     }
 
     get #promoCodeExceptionValues() {
@@ -875,8 +877,9 @@ class MasPromotionsItemsTable extends LitElement {
             .type=${TABLE_TYPE.CARDS}
             .getDisplayName=${this.getDisplayName}
             .renderFragmentStatusCell=${this.renderFragmentStatusCell}
-            .tabs=${[VARIATION_TAB_NAME.PROMOTION]}
+            .tabs=${[VARIATION_TAB_NAME.PROMOTION, VARIATION_TAB_NAME.GROUPED]}
             .selectableTabs=${[]}
+            .groupedVariationsManageOnly=${true}
             .renderActionsCell=${(item) => this.#renderActionsCell(item)}
             .renderPreviewCell=${(item) => this.#renderPreviewCell(item)}
             .promoVariationsFetchedByParent=${this.existingPromoVariationsByPath}

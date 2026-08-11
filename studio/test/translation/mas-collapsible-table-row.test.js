@@ -6,7 +6,13 @@ import Store from '../../src/store.js';
 import { setItemsSelectionStore } from '../../src/common/items-selection-store.js';
 import { setCardVariationsByPaths, enrichPromoVariations } from '../../src/common/utils/items-loader.js';
 import { Fragment } from '../../src/aem/fragment.js';
-import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, DICTIONARY_MODEL_PATH, FRAGMENT_STATUS } from '../../src/constants.js';
+import {
+    CARD_MODEL_PATH,
+    COLLECTION_MODEL_PATH,
+    DICTIONARY_MODEL_PATH,
+    FRAGMENT_STATUS,
+    VARIATION_TAB_NAME,
+} from '../../src/constants.js';
 import { renderFragmentStatusCell } from '../../src/translation/translation-utils.js';
 import '../../src/swc.js';
 import '../../src/translation/mas-collapsible-table-row.js';
@@ -745,6 +751,72 @@ describe('MasCollapsibleTableRow', () => {
             const variationRows = el.shadowRoot.querySelectorAll('sp-table-row[value]');
             const hasVariation = [...variationRows].some((r) => r.getAttribute('value') === varPath);
             expect(hasVariation).to.be.true;
+        });
+
+        describe('groupedVariationsManageOnly', () => {
+            const varPath1 = '/content/dam/mas/acom/en_US/cards/parent/pzn/var1';
+            const varPath2 = '/content/dam/mas/acom/en_US/cards/parent/pzn/var2';
+            const topLevelCard = createMockTopLevelCard({
+                path: '/content/dam/mas/acom/en_US/cards/parent',
+                variationPaths: [varPath1, varPath2],
+            });
+
+            beforeEach(() => {
+                setupCardVariationsInStore(topLevelCard.path, [
+                    { path: varPath1, title: 'Variation 1' },
+                    { path: varPath2, title: 'Variation 2' },
+                ]);
+                Store.translationProjects.selectedCards.set([varPath1]);
+            });
+
+            const manageOnlyFixture = () =>
+                fixture(
+                    html`<mas-collapsible-table-row
+                        .topLevelCard=${topLevelCard}
+                        .isTopLevelExpanded=${true}
+                        .viewOnly=${true}
+                        .viewOnlyTabs=${[VARIATION_TAB_NAME.PROMOTION]}
+                        .tabs=${[VARIATION_TAB_NAME.PROMOTION, VARIATION_TAB_NAME.GROUPED]}
+                        .groupedVariationsManageOnly=${true}
+                    ></mas-collapsible-table-row>`,
+                );
+
+            it('shows only already-selected variations, not the full candidate list', async () => {
+                const el = await manageOnlyFixture();
+                await el.updateComplete;
+                const panel = el.shadowRoot.querySelector('sp-tab-panel[value="grouped"]');
+                const rows = [...panel.querySelectorAll('sp-table-row[value]')];
+                expect(rows.some((r) => r.getAttribute('value') === varPath1)).to.be.true;
+                expect(rows.some((r) => r.getAttribute('value') === varPath2)).to.be.false;
+            });
+
+            it('renders no checkboxes or select-all row', async () => {
+                const el = await manageOnlyFixture();
+                await el.updateComplete;
+                const panel = el.shadowRoot.querySelector('sp-tab-panel[value="grouped"]');
+                expect(panel.querySelector('.select-all-row')).to.be.null;
+                expect(panel.querySelector('sp-checkbox')).to.be.null;
+            });
+
+            it('removes the variation from selectedCards when the remove action is clicked', async () => {
+                const el = await manageOnlyFixture();
+                await el.updateComplete;
+                const panel = el.shadowRoot.querySelector('sp-tab-panel[value="grouped"]');
+                const removeButton = panel.querySelector(`sp-table-row[value="${varPath1}"] sp-action-button`);
+                removeButton.dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
+                await el.updateComplete;
+                expect(Store.translationProjects.selectedCards.value).to.not.include(varPath1);
+            });
+
+            it('shows a "selected" empty state distinct from the picker empty state', async () => {
+                Store.translationProjects.selectedCards.set([]);
+                const el = await manageOnlyFixture();
+                el.selectedTabKey = 'grouped';
+                await el.updateComplete;
+                const panel = el.shadowRoot.querySelector('sp-tab-panel[value="grouped"]');
+                const emptyMsg = panel.querySelector('.empty-grouped-variations');
+                expect(emptyMsg.textContent).to.include('No grouped variations selected');
+            });
         });
     });
 

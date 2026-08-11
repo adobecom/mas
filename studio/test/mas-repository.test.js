@@ -6,6 +6,7 @@ import { MasRepository } from '../src/mas-repository.js';
 import { ROOT_PATH, SURFACES, PAGE_NAMES, EDITABLE_FRAGMENT_MODEL_IDS, COLLECTION_MODEL_PATH } from '../src/constants.js';
 import Events from '../src/events.js';
 import Store from '../src/store.js';
+import { makeSearchStub } from './helpers/aem-tag-fetch.js';
 
 const mockFragmentCache = {
     get: () => null,
@@ -1496,12 +1497,10 @@ describe('MasRepository dictionary helpers', () => {
                 repository.loadPromotions = sandbox.stub().resolves();
 
                 const getByIdStub = sandbox.stub().resolves(mockFragment);
-                const getByPathStub = sandbox.stub().callsFake((path) => {
-                    if (path === promoVariationPath) return Promise.resolve(promoVariationFragment);
-                    return Promise.resolve(null);
-                });
+                const promoFolder = `${ROOT_PATH}/acom/en_US/promotions/summer-sale`;
+                const searchStub = makeSearchStub(sandbox, { [promoFolder]: [promoVariationFragment] });
                 repository.aem = createAemMock({
-                    fragments: { getById: getByIdStub, getByPath: getByPathStub, search: sandbox.stub() },
+                    fragments: { getById: getByIdStub, search: searchStub },
                 });
 
                 const mockPromoProject = {
@@ -1516,8 +1515,8 @@ describe('MasRepository dictionary helpers', () => {
                 const { mockDataStore, restore } = await setupVariationUuidSearch();
                 try {
                     await repository.searchFragments();
-                    expect(getByPathStub.calledWith(promoVariationPath), 'should probe the deterministic promo variation path')
-                        .to.be.true;
+                    expect(searchStub.calledWith({ path: promoFolder }, 50), 'should probe the promo variation folder').to.be
+                        .true;
                     const fragmentInStore = mockDataStore.set.lastCall?.args[0]?.[0]?.get?.();
                     const promoRefs = (fragmentInStore?.references || []).filter((r) => r.path === promoVariationPath);
                     expect(promoRefs.length, 'promo variation reference should be merged into fragment').to.equal(1);
@@ -4015,6 +4014,104 @@ describe('MasRepository dictionary helpers', () => {
 
             expect(warnSpy.calledOnce).to.be.true;
             expect(warnSpy.firstCall.args[0]).to.include('Failed to refresh parent fragment store after variation save');
+        });
+    });
+
+    describe('deleteFragmentWithVariations', () => {
+        const buildFragmentWithVariation = (variationPath) =>
+            new Fragment({
+                id: 'parent-id',
+                path: '/content/dam/mas/sandbox/en_US/mili-compare',
+                fields: [{ name: 'variations', values: [variationPath] }],
+            });
+
+        it('deletes the parent via the reference-unlinking delete path instead of forceDelete, so promo-project references get cleaned up', async () => {
+            const repository = createRepository();
+            const variationPath = '/content/dam/mas/sandbox/en_US/mili-compare/ar';
+            const fragment = buildFragmentWithVariation(variationPath);
+            const parentWithEtag = {
+                id: 'parent-id',
+                path: fragment.path,
+                fields: [{ name: 'variations', values: [variationPath] }],
+            };
+
+            repository.aem = createAemMock({
+                fragments: {
+                    getWithEtag: sandbox.stub().resolves(parentWithEtag),
+                    save: sandbox.stub().resolves(),
+                    delete: sandbox.stub().resolves(),
+                    forceDelete: sandbox.stub().resolves(),
+                },
+            });
+            repository.operation = { set: sandbox.stub() };
+            sandbox.stub(repository, 'refreshVariationParentInList').resolves();
+            sandbox.stub(Events.fragmentDeleted, 'emit');
+
+            const result = await repository.deleteFragmentWithVariations(fragment);
+
+            expect(result.success).to.be.true;
+            expect(repository.aem.sites.cf.fragments.delete.calledOnceWith(parentWithEtag)).to.be.true;
+            expect(repository.aem.sites.cf.fragments.forceDelete.calledWith({ path: fragment.path })).to.be.false;
+        });
+
+        it('falls back to forceDelete for the parent when the reference-unlinking delete fails', async () => {
+            const repository = createRepository();
+            const variationPath = '/content/dam/mas/sandbox/en_US/mili-compare/ar';
+            const fragment = buildFragmentWithVariation(variationPath);
+            const parentWithEtag = {
+                id: 'parent-id',
+                path: fragment.path,
+                fields: [{ name: 'variations', values: [variationPath] }],
+            };
+
+            repository.aem = createAemMock({
+                fragments: {
+                    getWithEtag: sandbox.stub().resolves(parentWithEtag),
+                    save: sandbox.stub().resolves(),
+                    delete: sandbox.stub().rejects(new Error('409 conflict')),
+                    forceDelete: sandbox.stub().resolves(),
+                },
+            });
+            repository.operation = { set: sandbox.stub() };
+            sandbox.stub(repository, 'refreshVariationParentInList').resolves();
+            sandbox.stub(Events.fragmentDeleted, 'emit');
+            sandbox.stub(repository, 'processError');
+
+            const result = await repository.deleteFragmentWithVariations(fragment);
+
+            expect(repository.aem.sites.cf.fragments.delete.called).to.be.true;
+            expect(result.success).to.be.true;
+            expect(repository.aem.sites.cf.fragments.forceDelete.calledWith({ path: fragment.path })).to.be.true;
+        });
+
+        it('keeps success false when both the reference-unlinking delete and the forceDelete fallback fail', async () => {
+            const repository = createRepository();
+            const variationPath = '/content/dam/mas/sandbox/en_US/mili-compare/ar';
+            const fragment = buildFragmentWithVariation(variationPath);
+            const parentWithEtag = {
+                id: 'parent-id',
+                path: fragment.path,
+                fields: [{ name: 'variations', values: [variationPath] }],
+            };
+
+            repository.aem = createAemMock({
+                fragments: {
+                    getWithEtag: sandbox.stub().resolves(parentWithEtag),
+                    save: sandbox.stub().resolves(),
+                    delete: sandbox.stub().rejects(new Error('409 conflict')),
+                    forceDelete: sandbox.stub().rejects(new Error('force delete also failed')),
+                },
+            });
+            repository.operation = { set: sandbox.stub() };
+            sandbox.stub(repository, 'refreshVariationParentInList').resolves();
+            sandbox.stub(Events.fragmentDeleted, 'emit');
+            sandbox.stub(repository, 'processError');
+            const errorSpy = sandbox.stub(console, 'error');
+
+            const result = await repository.deleteFragmentWithVariations(fragment);
+
+            expect(result.success).to.be.false;
+            expect(errorSpy.calledWith('Force delete also failed:', sinon.match.instanceOf(Error))).to.be.true;
         });
     });
 

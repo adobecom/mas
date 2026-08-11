@@ -146,6 +146,15 @@
                             '<p><a class="accent" data-key="abc1234xyz" data-checkout-workflow="UCv3" data-wcs-osi="abm">Buy now</a></p>',
                         );
                     });
+
+                    it('preserves data-quantity on a checkout link', async function () {
+                        const rte = await createFromTemplate('rte-link', this.test.title);
+                        rte.value = '<a class="accent" data-key="abc1234xyz" data-wcs-osi="abm" data-quantity="3">Buy now</a>';
+                        await delay(100);
+                        expect(rte.value).to.equal(
+                            '<p><a class="accent" data-key="abc1234xyz" data-wcs-osi="abm" data-quantity="3">Buy now</a></p>',
+                        );
+                    });
                 });
 
                 describe('RTE Field: character counter', () => {
@@ -548,6 +557,53 @@
                             expect(prices.length).to.equal(1);
                             expect(prices[0].getAttribute('data-wcs-osi')).to.equal('osi-a,osi-b');
                             expect(rte.value).to.include('data-wcs-osi="osi-a,osi-b"');
+                        });
+
+                        it('carries data-quantity from the OST onto the inline-price', async function () {
+                            const rte = await createFromTemplate('rte', this.test.title);
+                            await delay(50);
+                            const view = rte.editorView;
+                            const SelCtor = view.state.selection.constructor;
+                            const tr = view.state.tr.setSelection(SelCtor.create(view.state.doc, 1, 1));
+                            view.dispatch(tr);
+                            await delay(20);
+
+                            rte.handleOpenOfferSelector(new Event('click'));
+                            dispatchOstSelect({
+                                is: 'inline-price',
+                                'data-wcs-osi': 'osi-q',
+                                'data-quantity': '2',
+                            });
+                            await delay(50);
+
+                            const price = rte.shadowRoot.querySelector('.ProseMirror span[is="inline-price"]');
+                            expect(price.getAttribute('data-quantity')).to.equal('2');
+                            expect(rte.value).to.include('data-quantity="2"');
+                        });
+
+                        it('keeps the checkout link class when editing after the selection collapsed', async function () {
+                            const rte = await createFromTemplate('rte', this.test.title);
+                            await delay(50);
+                            const view = rte.editorView;
+                            const SelCtor = view.state.selection.constructor;
+
+                            rte.handleOpenOfferSelector(new Event('click'));
+                            // Double-click on an accent CTA captured its label and class;
+                            // the multi-step flow then collapses the selection off the link.
+                            rte.ostTargetText = 'Buy now';
+                            rte.ostTargetClass = 'accent';
+                            view.dispatch(view.state.tr.setSelection(SelCtor.create(view.state.doc, 1, 1)));
+                            await delay(20);
+
+                            dispatchOstSelect({
+                                is: 'checkout-link',
+                                href: '#',
+                                'data-wcs-osi': 'osi-edit',
+                            });
+                            await delay(50);
+
+                            expect(rte.value).to.include('class="accent"');
+                            expect(rte.value).to.include('data-wcs-osi="osi-edit"');
                         });
 
                         it('is a no-op when ostRteFieldSource does not match the current RTE instance', async function () {

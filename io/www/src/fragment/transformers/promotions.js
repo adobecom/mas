@@ -15,9 +15,15 @@
  *
  * ## Lifecycle (init / process)
  *
- * **`init`** runs in parallel with other transformer inits:
- *   - Fetches the promotions folder (cached for 5 min).
- *   - Filters projects by promotion tag, surface, geo, and date window.
+ * **`init`** runs (mostly) in parallel with other transformer inits:
+ *   - Fetches the `/content/dam/mas/promotions` folder listing (paginated) and keeps only the
+ *     projects targeting the request's surface. Results are cached per surface, each entry with
+ *     its own jittered TTL (~5 min) so surfaces expire independently — no synchronized refetch
+ *     herd on Odin. Published (module) reads are stale-while-revalidate + single-flight: an
+ *     expired entry is served stale while ONE coalesced refill runs in the background; a cold
+ *     miss awaits that refill. The listing waits for the surface resolved by the first fragment
+ *     fetch; `defaultLanguage` still resolves in parallel.
+ *   - Filters projects by promotion tag, geo, and date window (surface already filtered at fetch).
  *   - Awaits `defaultLanguage` to resolve `defaultLocale` / `regionLocale`.
  *   - Hydrates ALL matched projects in parallel (for fragment OSI/promoCode data) and
  *     folder-searches their promo variations for `defaultLocale` and `regionLocale`.
@@ -39,52 +45,37 @@
  *     promoCode applies. Projects with disjoint per-country entries therefore coexist on the
  *     same fragment.
  */
-import { FRAGMENT_URL_PREFIX, MAS_ROOT, PATH_TOKENS, odinReferences } from '../utils/paths.js';
-import { fetch, getRequestInfos, matchesGeo } from '../utils/common.js';
+import { FRAGMENT_URL_PREFIX, MAS_ROOT, PATH_TOKENS, odinReferences, REFERENCES } from '../utils/paths.js';
+import { fetch, getRequestInfos, matchesGeo, isGroupedVariationFragmentPath } from '../utils/common.js';
+import { createSwrCache } from '../utils/swr-cache.js';
 import { log, logDebug, logError } from '../utils/log.js';
 
 const CONFIG_CACHE_TTL = 5 * 60 * 1000;
 const PROMOTIONS_PATH = `${MAS_ROOT}/promotions`;
 
-let projectsCache;
+// Projects are cached per surface with jittered TTL, single-flight refills, and
+// stale-while-revalidate so surfaces expire independently and never herd a synchronized refetch
+// onto Odin (see createSwrCache). Published reads keep entries in memory; preview reads persist
+// them in localStorage (`promotions-<surface>`) so studio reloads don't refetch.
+const projectsCache = createSwrCache({ name: 'promotions' });
 let promoVariationsCache = {};
 
 export function clearPromoCache(preview = false) {
+    projectsCache.clear(preview);
     if (preview) {
-        localStorage.removeItem('promotions');
         localStorage.removeItem('promo-variations');
     } else {
-        projectsCache = undefined;
         promoVariationsCache = {};
     }
 }
 
-function getCachedProjects(preview) {
-    const cacheEntry = preview ? JSON.parse(localStorage.getItem('promotions')) : projectsCache;
-    if (cacheEntry) {
-        cacheEntry.isExpired = Math.abs(Date.now() - cacheEntry.timestamp) > CONFIG_CACHE_TTL;
-        return cacheEntry;
-    }
-    return null;
-}
-
-function cacheProjects(preview, projects) {
-    const cacheEntry = { projects, timestamp: Date.now() };
-    if (preview) {
-        localStorage.setItem('promotions', JSON.stringify(cacheEntry));
-    } else {
-        projectsCache = cacheEntry;
-    }
-    return projects;
-}
-
-async function fetchProjects(context) {
-    const cached = getCachedProjects(context.preview);
-    if (cached && !cached.isExpired) {
-        logDebug(() => 'Using cached promotion projects', context);
-        return cached.projects;
-    }
-
+/**
+ * Fetches the `/content/dam/mas/promotions` folder listing (paginated) and keeps only the
+ * projects whose `surfaces` include the requested surface. Offers/promoCode/fragments are
+ * hydrated per project later by {@link hydrateProject}. Returns the filtered project list, or
+ * `null` when the folder fetch fails.
+ */
+async function fetchFolderProjects(context, surface) {
     const baseUrl = context.preview?.url ?? FRAGMENT_URL_PREFIX;
     const allItems = [];
     let cursor;
@@ -99,18 +90,27 @@ async function fetchProjects(context) {
         cursor = response.body?.cursor;
     } while (cursor);
 
-    const projects = allItems.map(({ id, path, name, fields }) => ({
-        id,
-        path,
-        name,
-        surfaces: fields?.surfaces ?? [],
-        geos: fields?.geos ?? [],
-        startDate: fields?.startDate ?? null,
-        endDate: fields?.endDate ?? null,
-        tags: fields?.tags ?? [],
-    }));
+    return allItems
+        .map(({ id, path, name, fields }) => ({
+            id,
+            path,
+            name,
+            surfaces: fields?.surfaces ?? [],
+            geos: fields?.geos ?? [],
+            startDate: fields?.startDate ?? null,
+            endDate: fields?.endDate ?? null,
+            tags: fields?.tags ?? [],
+        }))
+        .filter((project) => project.surfaces.includes(surface));
+}
 
-    return cacheProjects(context.preview, projects);
+/**
+ * Per-surface cached read of the promotions folder listing with stale-while-revalidate +
+ * single-flight herd protection (see createSwrCache). A folder-fetch failure resolves `null`, so
+ * the loader caches nothing and any stale entry survives; callers coalesce that to an empty list.
+ */
+async function fetchProjects(context, surface) {
+    return (await projectsCache.get(context, surface, () => fetchFolderProjects(context, surface))) ?? [];
 }
 
 function toInstant(value) {
@@ -119,6 +119,8 @@ function toInstant(value) {
     const t = new Date(value).getTime();
     return Number.isFinite(t) ? t : Date.now();
 }
+
+const isSeasonal = (project) => Boolean(project.endDate);
 
 const PROMO_TAG_PREFIX = 'mas:promotion/';
 
@@ -181,15 +183,12 @@ function parseOfferOverrides(lines) {
 
 /**
  * Checks whether a promotion project applies to the current request
- * by verifying promotion tag, surface, date window, and geo targeting.
+ * by verifying promotion tag, date window, and geo targeting.
+ * Surface is already filtered at fetch time (see {@link fetchFolderProjects}).
  */
-function matchesProject(project, { surface, country, regionLocale, instant }, context) {
+function matchesProject(project, { country, regionLocale, instant }, context) {
     if (!project.tags.some((tag) => tag.startsWith(PROMO_TAG_PREFIX))) {
         logDebug(() => `Project "${project.name}" skipped: no promo tag (expected prefix: ${PROMO_TAG_PREFIX})`, context);
-        return false;
-    }
-    if (!project.surfaces.includes(surface)) {
-        logDebug(() => `Project "${project.name}" skipped: surface "${surface}" not in [${project.surfaces}]`, context);
         return false;
     }
     const { geos } = project;
@@ -320,7 +319,7 @@ async function hydrateProject(project, { baseUrl, surface, defaultLocale, resolv
     const promoName = promoTag.slice(PROMO_TAG_PREFIX.length);
 
     const [hydrateResponse, defaultVariations, regionVariations] = await Promise.all([
-        fetch(odinReferences(project.id, true, context.preview), context, `promotions-hydrate-${project.id}`),
+        fetch(odinReferences(project.id, context.preview, REFERENCES.ALL), context, `promotions-hydrate-${project.id}`),
         fetchPromoVariations(baseUrl, surface, defaultLocale, promoName, context),
         resolvedRegionLocale && resolvedRegionLocale !== defaultLocale
             ? fetchPromoVariations(baseUrl, surface, resolvedRegionLocale, promoName, context)
@@ -334,18 +333,20 @@ async function hydrateProject(project, { baseUrl, surface, defaultLocale, resolv
 
     const hydratedProject = hydrateResponse.body;
     const fragmentPaths = parseFragmentPaths(hydratedProject);
+    const groupedVariationPaths = fragmentPaths.filter(isGroupedVariationFragmentPath);
     const offerLines = hydratedProject.fields?.offers ?? [];
     const offerOverrides = parseOfferOverrides(offerLines);
     const offerSubstitutions = parseOfferSubstitutions(offerLines);
     const promoCode = hydratedProject.fields?.promoCode ?? null;
     const title = hydratedProject.fields?.title ?? null;
+    const seasonal = isSeasonal(project);
     if (!fragmentPaths.length && !offerOverrides.length && !offerSubstitutions.length) {
         logDebug(() => `Promotion project ${project.id} has no fragments or offer overrides, skipping`, context);
         return null;
     }
     logDebug(
         () =>
-            `Active promotion project ${project.id} with ${fragmentPaths.length} fragments, ${offerOverrides.length} offer overrides, promoCode="${promoCode}", ${Object.keys(defaultVariations).length} default variations, ${Object.keys(regionVariations).length} region variations`,
+            `Active promotion project ${project.id} (seasonal=${seasonal}) with ${fragmentPaths.length} fragments, ${offerOverrides.length} offer overrides, promoCode="${promoCode}", ${Object.keys(defaultVariations).length} default variations, ${Object.keys(regionVariations).length} region variations`,
         context,
     );
 
@@ -353,8 +354,12 @@ async function hydrateProject(project, { baseUrl, surface, defaultLocale, resolv
         id: project.id,
         path: project.path,
         title,
+        startDate: project.startDate,
+        endDate: project.endDate,
+        seasonal,
         promoCode,
         fragmentPaths,
+        groupedVariationPaths,
         offerOverrides,
         offerSubstitutions,
         defaultVariations,
@@ -363,7 +368,7 @@ async function hydrateProject(project, { baseUrl, surface, defaultLocale, resolv
 }
 
 /**
- * Fetches promotion projects, collects ALL projects matching the request's
+ * Fetches the surface's promotion projects, collects ALL projects matching the request's
  * surface/locale/time, hydrates each in parallel, and fetches their promo
  * variation folders. Returns `{ activeProjects }` (array sorted most-recent-startDate-first,
  * then stably re-sorted so seasonal projects float to the top) consumed by `customize`.
@@ -371,14 +376,14 @@ async function hydrateProject(project, { baseUrl, surface, defaultLocale, resolv
  * transformer.
  */
 async function init(context) {
-    // Fire projects fetch immediately — needs no context dependencies
-    const projectsPromise = fetchProjects(context);
-
-    // Resolve surface, projects, and defaultLanguage (which carries regionLocale) all in parallel.
+    // The listing is surface-scoped now, so the projects fetch gates on the surface resolved by the
+    // first fragment fetch. defaultLanguage (which carries regionLocale) still resolves in parallel.
     // regionLocale is NOT available on the init-phase context — it is computed by defaultLanguage.init
     // and only placed on context during the process phase. We must read it from the promise.
-    const [{ surface }, projects, defaultLangResult] = await Promise.all([
-        getRequestInfos(context),
+    const surfacePromise = getRequestInfos(context).then((infos) => infos.surface);
+    const projectsPromise = surfacePromise.then((surface) => (surface ? fetchProjects(context, surface) : null));
+    const [surface, projects, defaultLangResult] = await Promise.all([
+        surfacePromise,
         projectsPromise,
         context.promises?.defaultLanguage,
     ]);
@@ -390,19 +395,17 @@ async function init(context) {
     if (!defaultLocale) return { status: 200, activeProjects: [] };
     const resolvedRegionLocale = defaultLangResult.regionLocale;
 
-    const instant = toInstant(context.preview ? context.instant : undefined);
+    const instant = toInstant(context.instant);
     const { locale, country } = context;
     const effectiveRegionLocale = resolvedRegionLocale ?? locale;
 
     const matched = projects
-        .filter((project) =>
-            matchesProject(project, { surface, locale, country, regionLocale: effectiveRegionLocale, instant }, context),
-        )
+        .filter((project) => matchesProject(project, { country, regionLocale: effectiveRegionLocale, instant }, context))
         // Base order: most-recently-started project first (replaces Odin folder order as the tie-break).
         .sort((a, b) => toInstant(b.startDate) - toInstant(a.startDate))
         // Stable secondary sort: seasonal (time-boxed) projects float to the top, preserving
         // the startDate order established above within each bucket.
-        .sort((a, b) => (a.endDate ? 0 : 1) - (b.endDate ? 0 : 1));
+        .sort((a, b) => (isSeasonal(a) ? 0 : 1) - (isSeasonal(b) ? 0 : 1));
     if (!matched.length) return { status: 200, activeProjects: [] };
 
     log(
@@ -467,15 +470,21 @@ function buildPromoMap(offerOverrides, { regionLocale, country }, projectPromoCo
 async function promotions(context) {
     const { activeProjects = [] } = (await context.promises?.promotions) ?? {};
     const { regionLocale, country } = context;
-    const promoProjects = activeProjects.map((project) => ({
-        project,
-        promoMap: buildPromoMap(project.offerOverrides, { regionLocale, country }, project.promoCode, context),
-        substituteMap: buildSubstituteMap(project.offerSubstitutions ?? [], { regionLocale, country }),
-        fragmentPaths: new Set(project.fragmentPaths),
-    }));
-    promoProjects.forEach(({ project, promoMap, substituteMap: sm }) => {
+    const promoProjects = activeProjects.map((project) => {
+        const promoMap = buildPromoMap(project.offerOverrides, { regionLocale, country }, project.promoCode, context);
+        return {
+            project,
+            promoMap,
+            substituteMap: buildSubstituteMap(project.offerSubstitutions ?? [], { regionLocale, country }),
+            fragmentPaths: new Set(project.fragmentPaths),
+            groupedVariationPaths: new Set(project.groupedVariationPaths),
+            hasWildcard: Boolean(promoMap['*']),
+        };
+    });
+    promoProjects.forEach(({ project, promoMap, substituteMap: sm, hasWildcard }) => {
         logDebug(
-            () => `Project "${project.id}" promoMap: ${JSON.stringify(promoMap)}, substituteMap: ${JSON.stringify(sm)}`,
+            () =>
+                `Project "${project.id}" promoMap: ${JSON.stringify(promoMap)}, substituteMap: ${JSON.stringify(sm)}, wildcard: ${hasWildcard}`,
             context,
         );
     });

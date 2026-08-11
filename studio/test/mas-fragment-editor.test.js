@@ -1,7 +1,7 @@
 import { expect, fixture, html } from '@open-wc/testing';
 import sinon from 'sinon';
 import '../src/mas-fragment-editor.js';
-import MasFragmentEditor, { snapFilterToPathDefault, syncGroupedVariationRegion } from '../src/mas-fragment-editor.js';
+import MasFragmentEditor, { snapFilterToPathDefault, syncGroupedPreviewLocale } from '../src/mas-fragment-editor.js';
 import Store from '../src/store.js';
 import { Fragment } from '../src/aem/fragment.js';
 import generateFragmentStore from '../src/reactivity/source-fragment-store.js';
@@ -16,6 +16,7 @@ import router from '../src/router.js';
 import Events from '../src/events.js';
 import { extractLocaleFromPath } from '../src/utils.js';
 import { nothing, render } from 'lit';
+import { makeSearchStub } from './helpers/aem-tag-fetch.js';
 
 describe('MasFragmentEditor', () => {
     let sandbox;
@@ -1341,10 +1342,12 @@ describe('MasFragmentEditor', () => {
             const originalFragmentId = Store.fragmentEditor.fragmentId.value;
             Store.fragmentEditor.fragmentId.value = fragment.id;
 
-            const getByPath = sandbox.stub().callsFake((path) => {
-                if (path === promoPath) return Promise.resolve({ id: 'promo-var-id', path: promoPath, fields: [] });
-                if (path === siblingPath) return Promise.resolve({ id: 'sibling-id', path: siblingPath, fields: [] });
-                return Promise.resolve(null);
+            const promoFolder = '/content/dam/mas/sandbox/en_US/promotions/back-to-school';
+            const search = makeSearchStub(sandbox, {
+                [promoFolder]: [
+                    { id: 'promo-var-id', path: promoPath, fields: [] },
+                    { id: 'sibling-id', path: siblingPath, fields: [] },
+                ],
             });
             const mockRepo = {
                 aem: {
@@ -1355,7 +1358,7 @@ describe('MasFragmentEditor', () => {
                                     id: 'promo-project-id',
                                     fields: [{ name: 'geos', values: ['mas:locale/de_AT', 'mas:locale/en_NG'] }],
                                 }),
-                                getByPath,
+                                search,
                             },
                         },
                     },
@@ -1590,34 +1593,38 @@ describe('MasFragmentEditor', () => {
         });
     });
 
-    describe('syncGroupedVariationRegion', () => {
+    describe('syncGroupedPreviewLocale', () => {
         let savedSearch;
         let savedFilters;
+        let editor;
 
         beforeEach(() => {
             savedSearch = structuredClone(Store.search.get());
             savedFilters = structuredClone(Store.filters.get());
             Store.search.set({ path: 'sandbox' });
             Store.filters.set({ locale: 'fr_FR' });
+            editor = document.createElement('merch-card-editor');
+            document.body.append(editor);
         });
 
         afterEach(() => {
+            editor.remove();
             Store.search.set(savedSearch);
             Store.filters.set(savedFilters);
         });
 
-        it('sets region from pzn tags when parent catalog is fr_FR', () => {
+        it('applies the preview locale to the editor override without writing region to the URL', () => {
             const fragment = new Fragment({
                 id: 'grouped',
                 path: '/content/dam/mas/sandbox/fr_FR/pac/pzn/grouped',
                 fields: [{ name: 'pznTags', values: ['/content/cq:tags/mas/locale/fr_CA'] }],
             });
-            expect(syncGroupedVariationRegion(fragment, 'fr_FR')).to.be.true;
-            expect(Store.search.get().region).to.equal('fr_CA');
+            expect(syncGroupedPreviewLocale(fragment, 'fr_FR')).to.equal('fr_CA');
+            expect(editor.previewLocaleOverride).to.equal('fr_CA');
+            expect(Store.search.get().region).to.be.undefined;
         });
 
-        it('keeps region from URL when it matches a pzn tag', () => {
-            Store.search.set({ path: 'sandbox', region: 'fr_CA' });
+        it('prefers the global locale when it is one of the grouped codes', () => {
             const fragment = new Fragment({
                 id: 'grouped',
                 path: '/content/dam/mas/sandbox/fr_FR/pac/pzn/grouped',
@@ -1628,8 +1635,20 @@ describe('MasFragmentEditor', () => {
                     },
                 ],
             });
-            expect(syncGroupedVariationRegion(fragment, 'fr_FR')).to.be.false;
-            expect(Store.search.get().region).to.equal('fr_CA');
+            expect(syncGroupedPreviewLocale(fragment, 'fr_FR')).to.equal('fr_FR');
+            expect(editor.previewLocaleOverride).to.equal('fr_FR');
+            expect(Store.search.get().region).to.be.undefined;
+        });
+
+        it('returns null and writes no region when the override already matches', () => {
+            editor.previewLocaleOverride = 'fr_CA';
+            const fragment = new Fragment({
+                id: 'grouped',
+                path: '/content/dam/mas/sandbox/fr_FR/pac/pzn/grouped',
+                fields: [{ name: 'pznTags', values: ['/content/cq:tags/mas/locale/fr_CA'] }],
+            });
+            expect(syncGroupedPreviewLocale(fragment, 'fr_FR')).to.be.null;
+            expect(Store.search.get().region).to.be.undefined;
         });
     });
 });

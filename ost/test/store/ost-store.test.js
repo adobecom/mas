@@ -164,6 +164,15 @@ describe('OstStore', () => {
         expect(effective.displayPlanType).to.be.true;
     });
 
+    it('defaults quantity to 1 in getEffectiveOptions for price', () => {
+        expect(store.getEffectiveOptions('price').quantity).to.equal(1);
+    });
+
+    it('restores quantity from offerSelectorPlaceholderOptions on init', () => {
+        store.init({ offerSelectorPlaceholderOptions: { quantity: '5' } });
+        expect(store.placeholderOptions.quantity).to.equal('5');
+    });
+
     it('legal disclaimer keeps tax off when geo defaults (not the user) turn displayTax on', () => {
         store.setPlaceholderOptions({ ...store.placeholderOptions, displayTax: true });
         expect(store.getEffectiveOptions('price').displayTax).to.be.true;
@@ -275,6 +284,23 @@ describe('OstStore', () => {
         });
         expect(store.placeholderOptions.displayTax).to.be.true;
         expect(store.defaultPlaceholderOptions.displayTax).to.be.false;
+    });
+
+    it('restores lockedOsi from offerSelectorPlaceholderOptions on init', () => {
+        store.init({ offerSelectorPlaceholderOptions: { lockedOsi: true } });
+        expect(store.lockedOsi).to.be.true;
+    });
+
+    it('resets lockedOsi to false on re-init when new element is not locked', () => {
+        store.init({ offerSelectorPlaceholderOptions: { lockedOsi: true } });
+        store.init({ offerSelectorPlaceholderOptions: { lockedOsi: false } });
+        expect(store.lockedOsi).to.be.false;
+    });
+
+    it('resets lockedOsi to false on re-init when new element has no lockedOsi option', () => {
+        store.init({ offerSelectorPlaceholderOptions: { lockedOsi: true } });
+        store.init({});
+        expect(store.lockedOsi).to.be.false;
     });
 
     describe('autoSelectByInitialOsi attribute matching', () => {

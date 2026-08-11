@@ -56,6 +56,7 @@ const ostDefaultSettings = () => {
         displayTax,
         forceTaxExclusive: true, // see https://git.corp.adobe.com/wcms/tacocat.js/blob/develop/packages/offer-selector-tool/src/PlaceholderKey.jsx#L38
         isPerpetual,
+        quantity: 1,
         workflowStep: checkoutWorkflowStep,
     };
 };
@@ -104,6 +105,7 @@ const OST_OPTION_ATTRIBUTE_MAPPING = {
     displayTax: 'data-display-tax',
     forceTaxExclusive: 'data-force-tax-exclusive',
     isPerpetual: 'data-perpetual',
+    quantity: 'data-quantity',
     wcsOsi: 'data-wcs-osi',
     workflow: 'data-checkout-workflow',
     workflowStep: 'data-checkout-workflow-step',
@@ -111,6 +113,7 @@ const OST_OPTION_ATTRIBUTE_MAPPING = {
     modal: 'data-modal',
     entitlement: 'data-entitlement',
     upgrade: 'data-upgrade',
+    lockedOsi: 'data-locked-osi',
 };
 
 export const OST_OPTION_ATTRIBUTE_MAPPING_REVERSE = Object.fromEntries(
@@ -261,6 +264,7 @@ export function openOfferSelectorTool(triggerElement, offerElement) {
                 'modal',
                 'entitlement',
                 'upgrade',
+                'lockedOsi',
             ].forEach((key) => {
                 const value = offerSelectorPlaceholderOptions[key];
                 if (value) searchParameters.append(key, value);

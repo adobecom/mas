@@ -301,14 +301,16 @@ runTests(async () => {
             card.setAttribute('variant', variant);
             whatsIncluded.setAttribute(
                 'slot',
-                WHATS_INCLUDED_SLOT_BY_VARIANT[variant],
+                variant === 'mini-compare-chart'
+                    ? 'footer-rows'
+                    : 'whats-included',
             );
             card.appendChild(whatsIncluded);
             mount.appendChild(card);
             document.body.appendChild(mount);
             await customElements.whenDefined('merch-card');
             await card.updateComplete;
-            await delay(50);
+            await card.checkReady();
             return { card, mount };
         }
 

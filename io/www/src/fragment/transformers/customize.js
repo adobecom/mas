@@ -3,13 +3,12 @@ import {
     CARD_MODEL_ID,
     getRequestInfos,
     matchesGeo,
+    PZN_FOLDER,
     skimFragmentFromReferences,
     VALID_PARAMETER_VALUE_REGEX,
 } from '../utils/common.js';
 import { logDebug, logError } from '../utils/log.js';
 import { normalizeExplicitEmptyInFields } from '../utils/explicit-empty.js';
-
-const PZN_FOLDER = '/pzn/';
 
 // Per-variant fields whose array values must be concatenated (parent + child) rather than overwritten.
 const MERGE_CONFIG = {
@@ -119,6 +118,16 @@ function countMatchedPznTokens(tags, tokens) {
 }
 
 /**
+ * Region match beats country match when resolving ties (applies to both pzn and promo variations).
+ * @param {{ region?: boolean, country?: boolean }|null|undefined} geo
+ * @returns {number}
+ */
+function geoMatchScore(geo) {
+    if (!geo) return 0;
+    return (geo.region ? 2 : 0) + (geo.country ? 1 : 0);
+}
+
+/**
  * Non-zero score means this variation applies. Higher is better: each matched request pzn token
  * dominates; region and country matches add smaller tie-break weight.
  * @param {string[]|undefined} pznTags
@@ -138,13 +147,21 @@ function personalizationMatchScore(pznTags, { regionLocale, country, pzn }) {
     if (matchedTokens === 0 && !geo) {
         return 0;
     }
-    return matchedTokens * 100 + (geo?.region ? 20 : 0) + (geo?.country ? 10 : 0);
+    return matchedTokens * 100 + geoMatchScore(geo) * 10;
 }
 
-function findPersonalizationVariation(variations, customizeContext) {
+/**
+ * @param {Set<string>} [allowedPaths] - Optional set to restrict candidates to curated grouped variations.
+ */
+function findPersonalizationVariation(variations, customizeContext, allowedPaths) {
     const { country, pzn, references, regionLocale, surface, defaultLocale } = customizeContext;
     const pattern = new RegExp(`/content/dam/mas/${surface}/${defaultLocale}/([^/]+)${PZN_FOLDER}.+`);
-    const personalizationVariations = extractVariationBasedOnPath(variations, references, pattern);
+    let personalizationVariations = extractVariationBasedOnPath(variations, references, pattern);
+    if (allowedPaths) {
+        personalizationVariations = personalizationVariations.filter((variation) =>
+            allowedPaths.has(PATH_TOKENS.exec(variation.path).groups.fragmentPath),
+        );
+    }
     if (personalizationVariations.length === 0) {
         logDebug(() => `No personalization variation found for region locale ${regionLocale}`, customizeContext);
         return null;
@@ -180,6 +197,8 @@ function promoProjectLabel(project) {
 }
 
 // Upper bound for probing suffixed promo variation paths (`-2`, `-3`, ...) per fragment.
+// Kept in sync by hand with the same constant + `-N` suffix convention in
+// studio/src/promotions/promotion-variations.js (separate runtime, no shared import).
 const MAX_PROMO_VARIATIONS_PER_FRAGMENT = 50;
 
 // Collects same fragment geo promos to select the best match.
@@ -209,7 +228,7 @@ function selectBestPromoVariation(candidates, { regionLocale, country }) {
         }
         const geo = matchesGeo(pznTags, { regionLocale, country });
         if (!geo) continue;
-        const score = (geo.region ? 2 : 0) + (geo.country ? 1 : 0);
+        const score = geoMatchScore(geo);
         if (score > bestScore) {
             bestScore = score;
             best = candidate;
@@ -249,10 +268,26 @@ function findPromoMapsForFragment(root, customizeContext) {
     return promoProjects.filter(({ fragmentPaths }) => fragmentPaths.has(fragmentPath));
 }
 
+function hasExplicitMapping(osis, customizeContext, { project, promoMap, substituteMap }) {
+    const value = osis.some((osi) => promoMap[osi] !== undefined || substituteMap?.[osi] !== undefined);
+    logDebug(
+        () =>
+            `Project ${promoProjectLabel(project)} (${project.id}), explicit mapping for osis ${JSON.stringify(osis)}: ${value}`,
+        customizeContext,
+    );
+    return value;
+}
+
 /**
- * Selects a single promo project for a fragment.
- * explicit mapping (osi replace or promo code) wins over wild card promo
- * a project with neither an explicit mapping nor a wildcard does not qualify.
+ * Selects a single promo project for a fragment. Seasonal (time-boxed, has an `endDate`)
+ * promo projects always take priority over evergreen ones.
+ *
+ * Within whichever group (seasonal, else evergreen) is considered, priority order is:
+ * promo project with an explicit mapping (osi replace or promo code) for a given geo & fragment.offer
+ * promo project with a wildcard promo code
+ * if no mapping - seasonal can still be taken as a fallback.
+ * evergreen without a mapping doesn't apply.
+ * there should be no fallback to mapping-less evergreen promo project
  *
  * @returns the selected `{ project, promoMap, substituteMap, fragmentPaths }` entry, or null
  *          when no promo project targets the fragment.
@@ -261,11 +296,24 @@ function selectPromoProjectForFragment(root, customizeContext) {
     const promoEntries = findPromoMapsForFragment(root, customizeContext);
     if (!promoEntries.length) return null;
     const fragOsi = root.fields?.osi;
-    const osis = fragOsi ? (Array.isArray(fragOsi) ? fragOsi : [fragOsi]) : [];
-    const hasExplicitMapping = ({ promoMap, substituteMap }) =>
-        osis.some((osi) => promoMap[osi] !== undefined || substituteMap?.[osi] !== undefined);
-    const hasWildcardPromo = ({ promoMap }) => Boolean(promoMap['*']);
-    const selected = promoEntries.find(hasExplicitMapping) ?? promoEntries.find(hasWildcardPromo) ?? null;
+    const osis = fragOsi
+        ? (Array.isArray(fragOsi) ? fragOsi : fragOsi.split(',')).map((osi) => osi.trim()).filter(Boolean)
+        : [];
+    logDebug(() => `selectPromoProjectForFragment osis: ${JSON.stringify(osis)}`, customizeContext);
+
+    const seasonalEntries = [];
+    const evergreenEntries = [];
+    for (const entry of promoEntries) {
+        (entry.project.seasonal ? seasonalEntries : evergreenEntries).push(entry);
+    }
+
+    const selected =
+        seasonalEntries.find((entry) => hasExplicitMapping(osis, customizeContext, entry)) ??
+        seasonalEntries.find((entry) => entry.hasWildcard) ??
+        seasonalEntries[0] ??
+        evergreenEntries.find((entry) => hasExplicitMapping(osis, customizeContext, entry)) ??
+        evergreenEntries.find((entry) => entry.hasWildcard) ??
+        null;
     if (!selected) return null;
     logDebug(
         () =>
@@ -302,7 +350,11 @@ function mergeVariations(root, customizeContext, selectedPromoProject) {
             return merged;
         }
     }
-    const personalizationVariation = findPersonalizationVariation(variations, customizeContext);
+    // Restrict personalization to curated grouped variations for promo projects.
+    const groupedVariationPaths = selectedPromoProject?.groupedVariationPaths;
+    const personalizationVariation = groupedVariationPaths?.size
+        ? findPersonalizationVariation(variations, customizeContext, groupedVariationPaths)
+        : findPersonalizationVariation(variations, customizeContext);
     if (personalizationVariation) {
         logDebug(
             () => `Merging personalization variation ${personalizationVariation.id} for fragment ${root.id}`,

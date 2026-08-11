@@ -34,6 +34,7 @@ export class MasCollapsibleTableRow extends LitElement {
         promoVariationsFetchedByParent: { type: Object },
         renderActionsCell: { type: Function },
         renderPreviewCell: { type: Function },
+        groupedVariationsManageOnly: { type: Boolean },
     };
 
     #groupedActiveLoadCount = 0;
@@ -48,6 +49,7 @@ export class MasCollapsibleTableRow extends LitElement {
         this.renderFragmentStatusCell = () => nothing;
         this.renderActionsCell = null;
         this.renderPreviewCell = null;
+        this.groupedVariationsManageOnly = false;
         this.promoVariationsLoaded = false;
         this.isTopLevelExpanded = false;
         this.expandedVariationsPaths = new Set();
@@ -153,67 +155,85 @@ export class MasCollapsibleTableRow extends LitElement {
                 <sp-progress-circle label="Loading variations" indeterminate size="l"></sp-progress-circle>
             </div>`;
         }
-        const filteredVariationPaths = this.groupedVariationPaths;
-        const isSelectable = this.selectableTabs.includes(VARIATION_TAB_NAME.GROUPED);
-        return filteredVariationPaths.length === 0
-            ? html`<div class="empty-grouped-variations">No grouped variations found</div>`
-            : html`<sp-table>
-                  ${isSelectable
-                      ? html` <sp-table-row class="select-all-row">
+        const manageOnly = this.groupedVariationsManageOnly;
+        const filteredVariationPaths = manageOnly
+            ? this.groupedVariationPaths.filter((path) => this.selectedCards.includes(path))
+            : this.groupedVariationPaths;
+        const isSelectable = !manageOnly && this.selectableTabs.includes(VARIATION_TAB_NAME.GROUPED);
+        if (filteredVariationPaths.length === 0) {
+            return html`<div class="empty-grouped-variations">
+                ${manageOnly ? 'No grouped variations selected' : 'No grouped variations found'}
+            </div>`;
+        }
+        return html`<sp-table>
+            ${isSelectable
+                ? html` <sp-table-row class="select-all-row">
+                      <sp-table-cell class="table-icon-cell">
+                          <sp-checkbox
+                              ?checked=${this.allGroupedVariationsSelected}
+                              ?indeterminate=${!this.allGroupedVariationsSelected && this.someGroupedVariationsSelected}
+                              @change=${(e) => this.#toggleSelectAllVariations(e, 'grouped')}
+                          ></sp-checkbox>
+                      </sp-table-cell>
+                      <sp-table-cell class="select-all-label" colspan="5">
+                          <span>Select all</span>
+                          <span class="fragment-count">${filteredVariationPaths.length} fragment(s)</span>
+                      </sp-table-cell>
+                  </sp-table-row>`
+                : nothing}
+            <sp-table-body>
+                ${repeat(filteredVariationPaths, (variationPath) => {
+                    const variation = this.topLevelCardVariationsByPaths.get(variationPath);
+                    const isSelected = this.selectedCards.includes(variationPath);
+                    const isExpanded = this.expandedVariationsPaths.has(variationPath);
+                    return html` <sp-table-row
+                            value=${variationPath}
+                            ?selected=${isSelected}
+                            aria-selected=${isSelected ? 'true' : 'false'}
+                            @click=${isSelectable ? (event) => this.#onRowClickForSelection(event, variationPath) : null}
+                        >
                             <sp-table-cell class="table-icon-cell">
-                                <sp-checkbox
-                                    ?checked=${this.allGroupedVariationsSelected}
-                                    ?indeterminate=${!this.allGroupedVariationsSelected && this.someGroupedVariationsSelected}
-                                    @change=${(e) => this.#toggleSelectAllVariations(e, 'grouped')}
-                                ></sp-checkbox>
+                                <sp-button
+                                    class="expand-button"
+                                    icon-only
+                                    quiet
+                                    variant="secondary"
+                                    @click=${(e) => this.#toggleExpandVariation(e, variationPath)}
+                                >
+                                    ${isExpanded
+                                        ? html`<sp-icon-chevron-down></sp-icon-chevron-down>`
+                                        : html`<sp-icon-chevron-right></sp-icon-chevron-right>`}
+                                </sp-button>
                             </sp-table-cell>
-                            <sp-table-cell class="select-all-label" colspan="5">
-                                <span>Select all</span>
-                                <span class="fragment-count">${filteredVariationPaths.length} fragment(s)</span>
-                            </sp-table-cell>
-                        </sp-table-row>`
-                      : nothing}
-                  <sp-table-body>
-                      ${repeat(filteredVariationPaths, (variationPath) => {
-                          const variation = this.topLevelCardVariationsByPaths.get(variationPath);
-                          const isSelected = this.selectedCards.includes(variationPath);
-                          const isExpanded = this.expandedVariationsPaths.has(variationPath);
-                          return html` <sp-table-row
-                                  value=${variationPath}
-                                  ?selected=${isSelected}
-                                  aria-selected=${isSelected ? 'true' : 'false'}
-                                  @click=${isSelectable ? (event) => this.#onRowClickForSelection(event, variationPath) : null}
-                              >
-                                  <sp-table-cell class="table-icon-cell">
-                                      <sp-button
-                                          class="expand-button"
-                                          icon-only
+
+                            ${isSelectable
+                                ? html`<sp-table-cell class="table-icon-cell"
+                                      ><sp-checkbox
+                                          value=${variationPath}
+                                          ?checked=${isSelected}
+                                          @change=${(event) => this.#toggleSelect(event, variationPath)}
+                                      ></sp-checkbox>
+                                  </sp-table-cell>`
+                                : nothing}
+                            ${repeat(this.cells, (cell) => this[`render${cell}`](variation) ?? nothing)}
+                            ${manageOnly
+                                ? html`<sp-table-cell class="table-icon-cell">
+                                      <sp-action-button
                                           quiet
-                                          variant="secondary"
-                                          @click=${(e) => this.#toggleExpandVariation(e, variationPath)}
+                                          icon-only
+                                          aria-label="Remove grouped variation from this promotion"
+                                          @click=${(e) => this.#toggleSelect(e, variationPath)}
                                       >
-                                          ${isExpanded
-                                              ? html`<sp-icon-chevron-down></sp-icon-chevron-down>`
-                                              : html`<sp-icon-chevron-right></sp-icon-chevron-right>`}
-                                      </sp-button>
-                                  </sp-table-cell>
+                                          <sp-icon-close slot="icon"></sp-icon-close>
+                                      </sp-action-button>
+                                  </sp-table-cell>`
+                                : nothing}
+                        </sp-table-row>
 
-                                  ${isSelectable
-                                      ? html`<sp-table-cell class="table-icon-cell"
-                                            ><sp-checkbox
-                                                value=${variationPath}
-                                                ?checked=${isSelected}
-                                                @change=${(event) => this.#toggleSelect(event, variationPath)}
-                                            ></sp-checkbox>
-                                        </sp-table-cell>`
-                                      : nothing}
-                                  ${repeat(this.cells, (cell) => this[`render${cell}`](variation) ?? nothing)}
-                              </sp-table-row>
-
-                              ${isExpanded ? this.renderGroupedVariationDetailsRow(variationPath) : nothing}`;
-                      })}
-                  </sp-table-body>
-              </sp-table>`;
+                        ${isExpanded ? this.renderGroupedVariationDetailsRow(variationPath) : nothing}`;
+                })}
+            </sp-table-body>
+        </sp-table>`;
     }
 
     get localeTabTemplate() {

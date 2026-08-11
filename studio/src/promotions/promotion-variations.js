@@ -238,7 +238,11 @@ export async function createPromoVariation(aem, sourceFragmentId, promoTagId, ge
         pznTags: (variation.pznTags || []).filter((tag) => !preservedPznTags.includes(tag)),
     }));
     if (!geoTags.length && existingGeoTagsByVariation.some((variation) => !variation.pznTags?.length)) {
-        throw new UserFriendlyError('A variation with no geos already exists for this project.');
+        throw new UserFriendlyError(
+            isGroupedVariationSource
+                ? 'A promo variation for this grouped variation fragment already exists.'
+                : 'A variation with no geos already exists for this project.',
+        );
     }
     const overlapping = findOverlappingGeoTags(existingGeoTagsByVariation, geoTags);
     if (overlapping.length) {

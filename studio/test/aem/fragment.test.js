@@ -536,6 +536,28 @@ describe('Fragment', () => {
             expect(prepared.getFieldValues('title')).to.deep.equal([]);
         });
 
+        it('does not reset pznTags when same as parent (promo variation cloned from grouped variation)', () => {
+            const p = new Fragment(
+                createFragmentConfig({
+                    fields: [
+                        { name: 'pznTags', values: ['mas:pzn/edu'], multiple: true },
+                        { name: 'title', values: ['Parent Title'] },
+                    ],
+                }),
+            );
+            const v = new Fragment(
+                createFragmentConfig({
+                    fields: [
+                        { name: 'pznTags', values: ['mas:pzn/edu'], multiple: true },
+                        { name: 'title', values: ['Parent Title'] },
+                    ],
+                }),
+            );
+            const prepared = v.prepareVariationForSave(p);
+            expect(prepared.getFieldValues('pznTags')).to.deep.equal(['mas:pzn/edu']);
+            expect(prepared.getFieldValues('title')).to.deep.equal([]);
+        });
+
         it('returns a new Fragment instance and handles null parent', () => {
             const variation = new Fragment(createFragmentConfig({ fields: [{ name: 'title', values: ['Title'] }] }));
             expect(variation.prepareVariationForSave(null)).to.equal(variation);

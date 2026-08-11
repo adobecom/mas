@@ -1325,7 +1325,7 @@ describe('MasFragmentEditor', () => {
             expect(previewContainer.textContent).to.include('Back To School');
         });
 
-        it('renders the promo variation header (not the grouped variation header) for a promo variation created from a grouped variation, and excludes the personalization tag from Geos', () => {
+        it('renders the promo variation header (not the grouped variation header) for a promo variation created from a grouped variation, with Grouped variation shown separately from Geos', () => {
             const promoPath = '/content/dam/mas/sandbox/en_US/promotions/back-to-school/my-card/pzn/edu';
             const fragment = new Fragment({
                 id: 'promo-var-grouped-id',
@@ -1341,10 +1341,12 @@ describe('MasFragmentEditor', () => {
             render(el.previewVariationHeader, previewContainer);
             expect(previewContainer.textContent).to.include('Promo variation:');
             expect(previewContainer.textContent).to.include('Back To School');
-            expect(previewContainer.textContent).to.include('Geos:');
-            expect(previewContainer.textContent).to.include('ar');
-            expect(previewContainer.textContent).to.not.include('edu');
-            expect(previewContainer.textContent).to.not.include('Grouped variation:');
+            const geosLine = previewContainer.querySelectorAll('.preview-header-geos')[0].textContent;
+            expect(geosLine).to.include('Geos:');
+            expect(geosLine).to.include('ar');
+            expect(geosLine).to.not.include('edu');
+            expect(previewContainer.textContent).to.include('Grouped variation:');
+            expect(previewContainer.textContent).to.include('edu');
         });
 
         it('treats a sibling with no pznTags as covering every promotion project geo (legacy variation)', async () => {

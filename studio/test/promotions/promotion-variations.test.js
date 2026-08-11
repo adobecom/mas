@@ -391,7 +391,7 @@ describe('promotion-variations', () => {
                 await createPromoVariation(aem, parentFragment.id, promoTag);
                 expect.fail('Should have thrown');
             } catch (err) {
-                expect(err.message).to.equal('A variation with no geos already exists for this project.');
+                expect(err.message).to.equal('A promo variation for this grouped variation fragment already exists.');
             }
         });
 

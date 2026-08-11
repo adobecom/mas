@@ -527,14 +527,6 @@ class MasFragmentVariations extends LitElement {
                                                   readonly
                                               ></aem-tag-picker-field>
                                           </div>
-                                          <div class="promo-code-field">
-                                              <span class="field-label">Applies to</span>
-                                              <span class="field-value"
-                                                  >${Fragment.isGroupedVariationPath(variationFragment.path)
-                                                      ? 'Grouped variation'
-                                                      : 'Default fragment'}</span
-                                              >
-                                          </div>
                                           ${Fragment.isGroupedVariationPath(variationFragment.path)
                                               ? html`
                                                     <div class="promo-code-field">
@@ -547,6 +539,14 @@ class MasFragmentVariations extends LitElement {
                                                     </div>
                                                 `
                                               : nothing}
+                                          <div class="promo-code-field">
+                                              <span class="field-label">Applies to</span>
+                                              <span class="field-value"
+                                                  >${Fragment.isGroupedVariationPath(variationFragment.path)
+                                                      ? 'Grouped variation'
+                                                      : 'Default fragment'}</span
+                                              >
+                                          </div>
                                       </div>
                                   `
                                 : nothing}

@@ -426,7 +426,9 @@ class MasPromotionsItemsTable extends LitElement {
         const promoTag = this.#promotionTagId;
         if (!geoTags.length && hasEmptyGeosVariation) {
             showToast(
-                'A variation with no geos already exists for this project. Select one or more geos to create another variation.',
+                Fragment.isGroupedVariationPath(item.path)
+                    ? 'A promo variation for this grouped variation fragment already exists.'
+                    : 'A variation with no geos already exists for this project. Select one or more geos to create another variation.',
                 'negative',
             );
             return;

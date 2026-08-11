@@ -15,7 +15,7 @@ import {
 } from './constants.js';
 import router from './router.js';
 import { migrateLegacyVariant, normalizeVariantName, VARIANTS } from './editors/variant-picker.js';
-import { isGeoTag } from './editors/variation-utils.js';
+import { isGeoTag, getPromoVariationPersonalizationTagLabels } from './editors/variation-utils.js';
 import {
     extractLocaleFromPath,
     extractSurfaceFromPath,
@@ -1819,10 +1819,16 @@ export default class MasFragmentEditor extends LitElement {
             Store.promotions.inEdit.get()?.get?.()?.title ||
             'Promotion';
         const geoCodes = this.#promoVariationGeoCodes();
+        const groupedVariationTags = Fragment.isGroupedVariationPath(this.fragment.path)
+            ? getPromoVariationPersonalizationTagLabels(this.fragment)
+            : '';
         return html`<div class="${clazz}">
             <span>Promo variation: <strong>${promotionName}</strong></span>
             ${geoCodes.length
                 ? html`<span class="preview-header-geos">Geos: <strong>${geoCodes.join(', ')}</strong></span>`
+                : nothing}
+            ${groupedVariationTags
+                ? html`<span class="preview-header-geos">Grouped variation: <strong>${groupedVariationTags}</strong></span>`
                 : nothing}
         </div>`;
     }

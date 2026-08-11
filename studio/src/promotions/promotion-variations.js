@@ -513,11 +513,13 @@ async function collectAttachedPromoVariations(aem, promotionFragment, { onlyUnpu
     const promoName = getPromoNameFromTag(promotionTagId);
     const variationsByPath = await probePromoVariationsForFragments(aem, attachedPaths, promotionTagId);
     const groupedVariationsByPath = new Map(
-        await Promise.all(
-            attachedPaths.map(async (parentPath) => [
+        await processConcurrently(
+            attachedPaths,
+            async (parentPath) => [
                 parentPath,
                 promoName ? await probeGroupedVariationPromoVariations(aem, parentPath, promoName) : [],
-            ]),
+            ],
+            VARIATIONS_CONCURRENCY_LIMIT,
         ),
     );
 

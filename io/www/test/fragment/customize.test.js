@@ -2212,6 +2212,62 @@ describe('customize grouped variation scoped to a promo project (promo variation
         expect(result.body.variationId).to.equal('root-promo-var-id');
         expect(result.body.fields.badge).to.equal('ROOT PROMO badge');
     });
+
+    it('prefers the grouped-variation promo over a matching regional-locale variation when both match', async function () {
+        const regionalVariationId = 'kw-regional-variation';
+        const bodyWithRegionalAndPzn = {
+            path: '/content/dam/mas/sandbox/en_US/pzn-test-fragment',
+            id: 'root-fragment',
+            title: 'Root',
+            fields: {
+                badge: 'default badge',
+                osi: 'OSI-TEST',
+                variations: [regionalVariationId, PZN_VARIATION_ID],
+            },
+            references: {
+                [regionalVariationId]: {
+                    type: 'content-fragment',
+                    value: {
+                        path: '/content/dam/mas/sandbox/en_KW/pzn-test-fragment',
+                        id: regionalVariationId,
+                        title: 'Kuwait regional',
+                        fields: {
+                            badge: 'Kuwait regional badge',
+                        },
+                    },
+                },
+                [PZN_VARIATION_ID]: {
+                    type: 'content-fragment',
+                    value: {
+                        path: '/content/dam/mas/sandbox/en_US/PA-123/pzn/edu',
+                        id: PZN_VARIATION_ID,
+                        title: 'EDU pricing',
+                        fields: {
+                            pznTags: ['mas:audiences/pzn/EDU'],
+                            badge: 'EDU badge',
+                        },
+                    },
+                },
+            },
+            referencesTree: [],
+        };
+
+        const result = await processWithPromoProjects(
+            {
+                ...FAKE_CONTEXT,
+                fragmentPath: 'pzn-test-fragment',
+                locale: 'en_KW',
+                parsedLocale: 'en_US',
+                pzn: 'EDU',
+                body: bodyWithRegionalAndPzn,
+            },
+            buildPromoProjectsEntry(['PA-123/pzn/edu'], { 'PA-123/pzn/edu': GROUPED_PROMO_VARIATION }),
+        );
+
+        expect(result.status).to.equal(200);
+        expect(result.body.variationId).to.equal('grouped-promo-var-id');
+        expect(result.body.fields.badge).to.equal('GROUPED PROMO badge');
+    });
 });
 
 const CARD_MODEL = { id: CARD_MODEL_ID };

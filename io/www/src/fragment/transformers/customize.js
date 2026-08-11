@@ -326,6 +326,7 @@ function selectPromoProjectForFragment(root, customizeContext) {
 function mergeVariations(root, customizeContext, selectedPromoProject) {
     const { isRegionLocale } = customizeContext;
     const variations = root?.fields?.variations;
+    const regionalVariation = isRegionLocale && variations?.length ? findRegionalVariation(variations, customizeContext) : null;
 
     // Restrict personalization to curated grouped variations for promo projects.
     const groupedVariationPaths = selectedPromoProject?.groupedVariationPaths;
@@ -336,6 +337,7 @@ function mergeVariations(root, customizeContext, selectedPromoProject) {
         : null;
 
     // pzn matches a grouped variation with its own promo variation, that wins over the root-level promo variation.
+    // It also wins over a matching regional-locale variation (see `regionalVariation` above).
     const groupedPromoVariation = personalizationVariation
         ? findPromoVariation(personalizationVariation, customizeContext, selectedPromoProject)
         : null;
@@ -366,14 +368,11 @@ function mergeVariations(root, customizeContext, selectedPromoProject) {
         return root;
     }
     logDebug(() => `found variations ${JSON.stringify(variations)} in ${root.id}`, customizeContext);
-    if (isRegionLocale) {
-        const regionalVariation = findRegionalVariation(variations, customizeContext);
-        if (regionalVariation) {
-            logDebug(() => `Merging regional variation ${regionalVariation.id} for fragment ${root.id}`, customizeContext);
-            const merged = deepMerge(root, regionalVariation);
-            merged.variationId = regionalVariation.id;
-            return merged;
-        }
+    if (regionalVariation) {
+        logDebug(() => `Merging regional variation ${regionalVariation.id} for fragment ${root.id}`, customizeContext);
+        const merged = deepMerge(root, regionalVariation);
+        merged.variationId = regionalVariation.id;
+        return merged;
     }
     if (personalizationVariation) {
         logDebug(

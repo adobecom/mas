@@ -56,6 +56,7 @@ const ostDefaultSettings = () => {
         displayTax,
         forceTaxExclusive: true, // see https://git.corp.adobe.com/wcms/tacocat.js/blob/develop/packages/offer-selector-tool/src/PlaceholderKey.jsx#L38
         isPerpetual,
+        quantity: 1,
         workflowStep: checkoutWorkflowStep,
     };
 };
@@ -104,6 +105,7 @@ const OST_OPTION_ATTRIBUTE_MAPPING = {
     displayTax: 'data-display-tax',
     forceTaxExclusive: 'data-force-tax-exclusive',
     isPerpetual: 'data-perpetual',
+    quantity: 'data-quantity',
     wcsOsi: 'data-wcs-osi',
     workflow: 'data-checkout-workflow',
     workflowStep: 'data-checkout-workflow-step',

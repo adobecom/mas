@@ -41,13 +41,17 @@ import * as promotionsRepository from './promotions/promotions-repository.js';
 import { normalizeTagId } from './aem/tag-id-utils.js';
 import './mas-variation-dialog.js';
 import { getCountryName, getDefaultLocaleCode, getLocaleByCode } from '../../io/www/src/fragment/locales.js';
+import { normalizePznTagToLocaleCode } from './editors/variation-utils.js';
 import Events from './events.js';
 import { branch2Icon } from './icons.js';
 
-// Returns locale codes extracted from the fragment's pznTags field.
+// Preview locale codes from the fragment's pznTags — country tags map to the surface locale so
+// they stay in sync with the grouped-preview selector (shared normalizer, see variation-utils).
 export function getGroupedPreviewLocaleCodes(fragment) {
+    const surface = Store.surface();
+    const preferredLang = getLocaleByCode(Store.localeOrRegion())?.lang;
     const tags = fragment?.getFieldValues('pznTags') || [];
-    return [...new Set(tags.map((tag) => tag?.split('/').pop()?.trim()).filter((code) => code && getLocaleByCode(code)))];
+    return [...new Set(tags.map((tag) => normalizePznTagToLocaleCode(tag, surface, preferredLang)).filter(Boolean))];
 }
 
 /**
@@ -56,37 +60,24 @@ export function getGroupedPreviewLocaleCodes(fragment) {
  * @param {string} parentLocale locale of the parent (catalog) fragment
  * @returns {boolean} true when region or preview override changed
  */
-export function syncGroupedVariationRegion(fragment, parentLocale) {
-    if (!fragment?.path || !Fragment.isGroupedVariationPath(fragment.path) || !parentLocale) return false;
+export function syncGroupedPreviewLocale(fragment, parentLocale) {
+    if (!fragment?.path || !Fragment.isGroupedVariationPath(fragment.path) || !parentLocale) return null;
 
-    const surface = Store.surface();
-    const catalogLocale = (surface && getDefaultLocaleCode(surface, parentLocale)) || parentLocale;
     const codes = getGroupedPreviewLocaleCodes(fragment);
-    if (!codes.length) return false;
+    if (!codes.length) return null;
 
-    let region = Store.search.value.region;
-    if (region && !codes.includes(region)) {
-        region = null;
-    }
-    if (!region) {
-        region = codes.find((code) => code !== catalogLocale) || null;
-    }
-    const nextRegion = region && region !== catalogLocale ? region : null;
-    const previewLocale = nextRegion || catalogLocale;
-
-    let changed = false;
-    if ((Store.search.value.region || null) !== nextRegion) {
-        Store.search.set((prev) => ({ ...prev, region: nextRegion }));
-        changed = true;
-    }
+    // Grouped-preview locale is ephemeral UI state and MUST NOT be written to Store.search.region —
+    // that is URL-hash-synced and would trigger a regional-variation load. Apply it only to the
+    // editor's previewLocaleOverride, matching the selector's default derivation in merch-card-editor.
+    const globalLocale = Store.localeOrRegion();
+    const previewLocale = codes.includes(globalLocale) ? globalLocale : codes[0];
 
     const editor = document.querySelector('merch-card-editor');
     if (editor && editor.previewLocaleOverride !== previewLocale) {
         editor.previewLocaleOverride = previewLocale;
-        changed = true;
+        return previewLocale;
     }
-
-    return changed;
+    return null;
 }
 
 export function snapFilterToPathDefault(fragmentPath) {
@@ -1059,8 +1050,9 @@ export default class MasFragmentEditor extends LitElement {
                 extractLocaleFromPath(this.localeDefaultFragment?.path) ||
                 getDefaultLocaleCode(Store.surface(), Store.filters.value.locale) ||
                 Store.filters.value.locale;
-            if (syncGroupedVariationRegion(existingStore.get(), parentLocale)) {
-                void this.repository.loadPreviewPlaceholders(Store.localeOrRegion());
+            const previewLocale = syncGroupedPreviewLocale(existingStore.get(), parentLocale);
+            if (previewLocale) {
+                void this.repository.loadPreviewPlaceholders(previewLocale);
                 existingStore.resolvePreviewFragment();
             }
         }
@@ -1157,8 +1149,9 @@ export default class MasFragmentEditor extends LitElement {
                     extractLocaleFromPath(this.localeDefaultFragment?.path) ||
                     getDefaultLocaleCode(Store.surface(), Store.filters.value.locale) ||
                     Store.filters.value.locale;
-                if (syncGroupedVariationRegion(fragment, parentLocale)) {
-                    void this.repository.loadPreviewPlaceholders(Store.localeOrRegion());
+                const previewLocale = syncGroupedPreviewLocale(fragment, parentLocale);
+                if (previewLocale) {
+                    void this.repository.loadPreviewPlaceholders(previewLocale);
                     fragmentStore.resolvePreviewFragment();
                 }
             }
@@ -1572,11 +1565,13 @@ export default class MasFragmentEditor extends LitElement {
             }
             if (dirtyCardFragmentStores.length) showToast('Saving fragment...');
             for (const cardFragmentStore of dirtyCardFragmentStores) {
-                const savedCard = await this.repository.saveFragment(cardFragmentStore, false);
+                const savedCard = await this.repository.saveFragment(cardFragmentStore, { withToast: false });
                 if (!savedCard) return;
             }
             Store.editor.referencedFragmentStoresHaveChanges.set(false);
-            const savedFragment = await this.repository.saveFragment(this.fragmentStore, !dirtyCardFragmentStores.length);
+            const savedFragment = await this.repository.saveFragment(this.fragmentStore, {
+                withToast: !dirtyCardFragmentStores.length,
+            });
             if (dirtyCardFragmentStores.length && savedFragment) {
                 showToast('Fragment successfully saved.', 'positive');
             }
@@ -1879,21 +1874,14 @@ export default class MasFragmentEditor extends LitElement {
     }
 
     #handleGroupedPreviewLocaleChange = (event) => {
+        // Grouped preview locale is ephemeral UI state; keep its picker `change` from leaking to any
+        // ancestor listener. Setting previewLocaleOverride re-prices the card and fires
+        // preview-locale-change (which re-resolves the preview). It must NOT write Store.search.region
+        // — that is URL-hash-synced and would trigger a regional-variation load.
+        event.stopPropagation();
         const editor = document.querySelector('merch-card-editor');
         if (!editor) return;
-        const previewLocale = event.target.value || null;
-        editor.previewLocaleOverride = previewLocale;
-        const parentLocale =
-            extractLocaleFromPath(this.localeDefaultFragment?.path) ||
-            getDefaultLocaleCode(Store.surface(), Store.filters.value.locale) ||
-            Store.filters.value.locale;
-        const catalogLocale = (Store.surface() && getDefaultLocaleCode(Store.surface(), parentLocale)) || parentLocale;
-        const nextRegion = previewLocale && previewLocale !== catalogLocale ? previewLocale : null;
-        if ((Store.search.value.region || null) !== nextRegion) {
-            Store.search.set((prev) => ({ ...prev, region: nextRegion }));
-            void this.repository?.loadPreviewPlaceholders(Store.localeOrRegion());
-            this.fragmentStore?.resolvePreviewFragment();
-        }
+        editor.previewLocaleOverride = event.target.value || null;
     };
 
     #handlePreviewLocaleChange = (event) => {
@@ -1901,6 +1889,7 @@ export default class MasFragmentEditor extends LitElement {
         const localeValue = event.detail?.value ?? null;
         const changed = this.fragmentStore.previewStore.setPreviewLocaleOverride(localeValue);
         if (!changed) return;
+        if (localeValue) void this.repository?.loadPreviewPlaceholders(localeValue);
         this.fragmentStore.previewStore.resolveFragment();
         this.requestUpdate();
     };

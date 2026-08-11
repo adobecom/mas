@@ -121,11 +121,12 @@ export class OstLivePreview extends LitElement {
     }
 
     willUpdate() {
-        // Resolve geo-aware tax defaults for the selected offer (idempotent per
-        // offer+country). Updates the shared store, which re-renders this row
-        // and the "Disable" checkboxes with the correct DE/EU tax label state.
+        // Resolve offer-context display defaults for the selected offer (per-unit
+        // from segment + geo tax flags; idempotent per offer+country). Updates the
+        // shared store, which re-renders this row and the "Disable" checkboxes with
+        // the correct per-license and DE/EU tax label state.
         const offer = this.effectiveOffer;
-        if (offer) store.applyGeoTaxDefaults(offer);
+        if (offer) store.applyOfferContextDefaults(offer);
         const built = this.#buildPlaceholder();
         this.#staticDiscount = built?.staticDiscount ?? false;
         this.#placeholderNode = built?.node ?? null;

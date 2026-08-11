@@ -202,6 +202,12 @@ describe('MasRepository dictionary helpers', () => {
     });
 
     describe('handleSearch', () => {
+        afterEach(() => {
+            sandbox.restore();
+            Store.promotions.list.data.set([]);
+            Store.promotions.list.data.removeMeta('listFetched');
+            Store.promotions.list.loading.set(true);
+        });
         it('returns early when profile is not set', async () => {
             const repository = createRepository();
             const { default: Store } = await import('../src/store.js');
@@ -346,21 +352,12 @@ describe('MasRepository dictionary helpers', () => {
                 tags: [],
             };
             repository.searchFragmentList = sandbox.stub().resolves([promoFragment]);
-            const originalPromotions = Store.promotions.list.data.get();
-            const hadListFetched = Store.promotions.list.data.hasMeta('listFetched');
-            Store.promotions.list.data.set([]);
-            Store.promotions.list.data.removeMeta('listFetched');
-            try {
-                await repository.loadPromotions();
-                expect(repository.searchFragmentList.calledOnce).to.be.true;
-                expect(Store.promotions.list.data.get().length).to.equal(1);
-                expect(Store.promotions.list.loading.get()).to.be.false;
-                expect(Store.promotions.list.data.hasMeta('listFetched')).to.be.true;
-            } finally {
-                Store.promotions.list.data.set(originalPromotions);
-                if (hadListFetched) Store.promotions.list.data.setMeta('listFetched', true);
-                else Store.promotions.list.data.removeMeta('listFetched');
-            }
+
+            await repository.loadPromotions();
+            expect(repository.searchFragmentList.calledOnce).to.be.true;
+            expect(Store.promotions.list.data.get().length).to.equal(1);
+            expect(Store.promotions.list.loading.get()).to.be.false;
+            expect(Store.promotions.list.data.hasMeta('listFetched')).to.be.true;
         });
 
         it('loadPromotions auto-unpublishes expired published promotions and refreshes the row', async () => {
@@ -416,24 +413,14 @@ describe('MasRepository dictionary helpers', () => {
             const { default: Store } = await import('../src/store.js');
             repository.searchFragmentList = sandbox.stub().rejects(new Error('network'));
             sandbox.stub(repository, 'processError');
-            const originalPromotions = Store.promotions.list.data.get();
-            const hadListFetched = Store.promotions.list.data.hasMeta('listFetched');
-            Store.promotions.list.data.set([]);
-            Store.promotions.list.data.removeMeta('listFetched');
-            try {
-                await repository.loadPromotions();
-                expect(repository.processError.calledOnce).to.be.true;
-                expect(repository.processError.firstCall.args[1]).to.equal('Could not load promotions.');
-                expect(Store.promotions.list.loading.get()).to.be.false;
-                expect(
-                    Store.promotions.list.data.hasMeta('listFetched'),
-                    'non-abort failure should still mark listFetched to avoid retry loops',
-                ).to.be.true;
-            } finally {
-                Store.promotions.list.data.set(originalPromotions);
-                if (hadListFetched) Store.promotions.list.data.setMeta('listFetched', true);
-                else Store.promotions.list.data.removeMeta('listFetched');
-            }
+            await repository.loadPromotions();
+            expect(repository.processError.calledOnce).to.be.true;
+            expect(repository.processError.firstCall.args[1]).to.equal('Could not load promotions.');
+            expect(Store.promotions.list.loading.get()).to.be.false;
+            expect(
+                Store.promotions.list.data.hasMeta('listFetched'),
+                'non-abort failure should still mark listFetched to avoid retry loops',
+            ).to.be.true;
         });
 
         it('loadPromotions ignores AbortError: no processError call, no listFetched stamp, so a superseded caller retries instead of reading a stale empty store', async () => {
@@ -443,20 +430,10 @@ describe('MasRepository dictionary helpers', () => {
             abortError.name = 'AbortError';
             repository.searchFragmentList = sandbox.stub().rejects(abortError);
             sandbox.stub(repository, 'processError');
-            const originalPromotions = Store.promotions.list.data.get();
-            const hadListFetched = Store.promotions.list.data.hasMeta('listFetched');
-            Store.promotions.list.data.set([]);
-            Store.promotions.list.data.removeMeta('listFetched');
-            try {
-                await repository.loadPromotions();
-                expect(repository.processError.called).to.be.false;
-                expect(Store.promotions.list.data.hasMeta('listFetched')).to.be.false;
-                expect(Store.promotions.list.loading.get()).to.be.false;
-            } finally {
-                Store.promotions.list.data.set(originalPromotions);
-                if (hadListFetched) Store.promotions.list.data.setMeta('listFetched', true);
-                else Store.promotions.list.data.removeMeta('listFetched');
-            }
+            await repository.loadPromotions();
+            expect(repository.processError.called).to.be.false;
+            expect(Store.promotions.list.data.hasMeta('listFetched')).to.be.false;
+            expect(Store.promotions.list.loading.get()).to.be.false;
         });
 
         it('loadAllCollections skips writing stores when items selection store unset after fetch', async () => {
@@ -636,6 +613,17 @@ describe('MasRepository dictionary helpers', () => {
     });
 
     describe('searchFragments', () => {
+        beforeEach(() => {
+            Store.promotions.list.data.set([]);
+            Store.promotions.list.data.setMeta('listFetched', true);
+        });
+
+        afterEach(() => {
+            Store.promotions.list.data.set([]);
+            Store.promotions.list.data.removeMeta('listFetched');
+            Store.promotions.list.loading.set(true);
+        });
+
         const createMockCursor = (pages) => {
             let index = 0;
             return {
@@ -1553,8 +1541,6 @@ describe('MasRepository dictionary helpers', () => {
                     tags: [{ id: 'mas:promotion/summer-sale' }],
                 };
                 const { default: Store } = await import('../src/store.js');
-                const originalPromotions = Store.promotions.list.data.get();
-                const hadListFetched = Store.promotions.list.data.hasMeta('listFetched');
                 Store.promotions.list.data.set([{ get: () => mockPromoProject }]);
                 Store.promotions.list.data.setMeta('listFetched', true);
 
@@ -1568,56 +1554,55 @@ describe('MasRepository dictionary helpers', () => {
                     expect(promoRefs.length, 'promo variation reference should be merged into fragment').to.equal(1);
                 } finally {
                     restore();
-                    Store.promotions.list.data.set(originalPromotions);
-                    if (!hadListFetched) Store.promotions.list.data.removeMeta('listFetched');
                 }
             });
 
-            it('ignores stale parent UUID search when promo merge is superseded by a new search', async () => {
-                const repository = createFullRepository();
-                repository.page = { value: PAGE_NAMES.CONTENT };
-                const uuid = '12345678-1234-1234-1234-123456789012';
-                const fragmentPath = `${ROOT_PATH}/acom/en_US/my-card`;
-                const mockFragment = createFragment({ id: uuid, path: fragmentPath, fields: [] });
+            describe('with promotions not yet fetched', () => {
+                beforeEach(() => {
+                    Store.promotions.list.data.set([]);
+                    Store.promotions.list.data.removeMeta('listFetched');
+                });
 
-                let resolveLoadPromotions;
-                repository.loadPromotions = sandbox.stub().callsFake(
-                    () =>
-                        new Promise((resolve) => {
-                            resolveLoadPromotions = resolve;
-                        }),
-                );
+                it('ignores stale parent UUID search when promo merge is superseded by a new search', async () => {
+                    const repository = createFullRepository();
+                    repository.page = { value: PAGE_NAMES.CONTENT };
+                    const uuid = '12345678-1234-1234-1234-123456789012';
+                    const fragmentPath = `${ROOT_PATH}/acom/en_US/my-card`;
+                    const mockFragment = createFragment({ id: uuid, path: fragmentPath, fields: [] });
 
-                const getByIdStub = sandbox.stub().resolves(mockFragment);
-                const searchStub = sandbox.stub().returns(createMockCursor([]));
-                repository.aem = createAemMock({ fragments: { getById: getByIdStub, search: searchStub } });
+                    let resolveLoadPromotions;
+                    repository.loadPromotions = sandbox.stub().callsFake(
+                        () =>
+                            new Promise((resolve) => {
+                                resolveLoadPromotions = resolve;
+                            }),
+                    );
 
-                repository.search = { value: { path: 'acom', query: uuid } };
-                repository.filters = { value: { locale: 'en_US', tags: '' } };
+                    const getByIdStub = sandbox.stub().resolves(mockFragment);
+                    const searchStub = sandbox.stub().returns(createMockCursor([]));
+                    repository.aem = createAemMock({ fragments: { getById: getByIdStub, search: searchStub } });
 
-                const { Store, mockDataStore, restore } = await setupVariationUuidSearch();
-                const originalPromotions = Store.promotions.list.data.get();
-                const hadListFetched = Store.promotions.list.data.hasMeta('listFetched');
-                Store.promotions.list.data.set([]);
-                if (hadListFetched) Store.promotions.list.data.removeMeta('listFetched');
+                    repository.search = { value: { path: 'acom', query: uuid } };
+                    repository.filters = { value: { locale: 'en_US', tags: '' } };
 
-                try {
-                    const staleSearch = repository.searchFragments();
+                    const { Store, mockDataStore, restore } = await setupVariationUuidSearch();
 
-                    repository.search = { value: { path: 'acom', query: 'photoshop' } };
-                    const freshSearch = repository.searchFragments();
-                    await freshSearch;
+                    try {
+                        const staleSearch = repository.searchFragments();
 
-                    const countAfterFresh = mockDataStore.set.callCount;
-                    resolveLoadPromotions();
-                    await staleSearch;
+                        repository.search = { value: { path: 'acom', query: 'photoshop' } };
+                        const freshSearch = repository.searchFragments();
+                        await freshSearch;
 
-                    expect(mockDataStore.set.callCount).to.equal(countAfterFresh);
-                } finally {
-                    restore();
-                    Store.promotions.list.data.set(originalPromotions);
-                    if (hadListFetched) Store.promotions.list.data.setMeta('listFetched', true);
-                }
+                        const countAfterFresh = mockDataStore.set.callCount;
+                        resolveLoadPromotions();
+                        await staleSearch;
+
+                        expect(mockDataStore.set.callCount).to.equal(countAfterFresh);
+                    } finally {
+                        restore();
+                    }
+                });
             });
         });
 

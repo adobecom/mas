@@ -69,7 +69,7 @@ describe('MasFragment', () => {
         it('does not load references when already loaded and promo-probed', async () => {
             const fragmentStore = createFragmentStore({
                 references: [{ id: 'existing' }],
-                promoVariationsProbed: true,
+                promoVariationProbeNotNeeded: true,
             });
             const mockRepo = {
                 refreshFragment: sandbox.stub().resolves([{ id: 'ref1' }]),
@@ -83,11 +83,11 @@ describe('MasFragment', () => {
         it('reloads references when references exist but promo variations were never probed', async () => {
             const fragmentStore = createFragmentStore({
                 references: [{ id: 'existing' }],
-                promoVariationsProbed: false,
+                promoVariationProbeNotNeeded: false,
             });
             const mockRepo = {
                 refreshFragment: sandbox.stub().callsFake(async (store) => {
-                    store.value.promoVariationsProbed = true;
+                    store.value.promoVariationProbeNotNeeded = true;
                 }),
             };
             const el = await fixture(html`<mas-fragment .fragmentStore=${fragmentStore} view="table"></mas-fragment>`);
@@ -126,6 +126,69 @@ describe('MasFragment', () => {
         });
     });
 
+    describe('refreshReferences', () => {
+        it('does nothing when fragment is not provided', async () => {
+            const fragmentStore = createFragmentStore();
+            const mockRepo = { refreshFragment: sandbox.stub().resolves() };
+            const el = await fixture(html`<mas-fragment .fragmentStore=${fragmentStore} view="table"></mas-fragment>`);
+            sandbox.stub(el, 'repository').get(() => mockRepo);
+            await el.refreshReferences(null);
+            expect(mockRepo.refreshFragment.called).to.be.false;
+            expect(el.loadingReferences).to.be.false;
+        });
+
+        it('does nothing when repository is not available', async () => {
+            const fragmentStore = createFragmentStore();
+            const el = await fixture(html`<mas-fragment .fragmentStore=${fragmentStore} view="table"></mas-fragment>`);
+            await el.refreshReferences(fragmentStore.value);
+            expect(el.loadingReferences).to.be.false;
+        });
+
+        it('skips loading when references exist and promo variations were already probed', async () => {
+            const fragmentStore = createFragmentStore({
+                references: [{ id: 'existing' }],
+                promoVariationProbeNotNeeded: true,
+            });
+            const mockRepo = { refreshFragment: sandbox.stub().resolves() };
+            const el = await fixture(html`<mas-fragment .fragmentStore=${fragmentStore} view="table"></mas-fragment>`);
+            sandbox.stub(el, 'repository').get(() => mockRepo);
+            await el.refreshReferences(fragmentStore.value);
+            expect(mockRepo.refreshFragment.called).to.be.false;
+        });
+
+        it('loads references and toggles loadingReferences while fetching', async () => {
+            const fragmentStore = createFragmentStore();
+            let resolveFetch;
+            const mockRepo = {
+                refreshFragment: sandbox.stub().returns(
+                    new Promise((resolve) => {
+                        resolveFetch = resolve;
+                    }),
+                ),
+            };
+            const el = await fixture(html`<mas-fragment .fragmentStore=${fragmentStore} view="table"></mas-fragment>`);
+            sandbox.stub(el, 'repository').get(() => mockRepo);
+            const pending = el.refreshReferences(fragmentStore.value);
+            await new Promise((resolve) => setTimeout(resolve, 0));
+            expect(el.loadingReferences).to.be.true;
+            resolveFetch();
+            await pending;
+            expect(mockRepo.refreshFragment.calledWith(fragmentStore)).to.be.true;
+            expect(el.loadingReferences).to.be.false;
+        });
+
+        it('logs error and clears loadingReferences when refreshFragment rejects', async () => {
+            const fragmentStore = createFragmentStore();
+            const consoleErrorStub = sandbox.stub(console, 'error');
+            const mockRepo = { refreshFragment: sandbox.stub().rejects(new Error('Load failed')) };
+            const el = await fixture(html`<mas-fragment .fragmentStore=${fragmentStore} view="table"></mas-fragment>`);
+            sandbox.stub(el, 'repository').get(() => mockRepo);
+            await el.refreshReferences(fragmentStore.value);
+            expect(consoleErrorStub.calledWithMatch('Failed to load references:', sinon.match.instanceOf(Error))).to.be.true;
+            expect(el.loadingReferences).to.be.false;
+        });
+    });
+
     describe('autoExpand', () => {
         it('does nothing when expandedId does not match this fragment', async () => {
             const fragmentStore = createFragmentStore();
@@ -155,7 +218,7 @@ describe('MasFragment', () => {
             const mockRepo = {
                 refreshFragment: sandbox.stub().callsFake(async (store) => {
                     store.value.references = mockReferences;
-                    store.value.promoVariationsProbed = true;
+                    store.value.promoVariationProbeNotNeeded = true;
                 }),
             };
             const el = await fixture(html`<mas-fragment .fragmentStore=${fragmentStore} view="table"></mas-fragment>`);
@@ -170,7 +233,7 @@ describe('MasFragment', () => {
         it('does not reload when references exist and promo variations were already probed', async () => {
             const fragmentStore = createFragmentStore({
                 references: [{ id: 'existing' }],
-                promoVariationsProbed: true,
+                promoVariationProbeNotNeeded: true,
             });
             const mockRepo = { refreshFragment: sandbox.stub().resolves() };
             const el = await fixture(html`<mas-fragment .fragmentStore=${fragmentStore} view="table"></mas-fragment>`);
@@ -184,11 +247,11 @@ describe('MasFragment', () => {
         it('reloads when references exist but promo variations were never probed (regression)', async () => {
             const fragmentStore = createFragmentStore({
                 references: [{ id: 'existing' }],
-                promoVariationsProbed: false,
+                promoVariationProbeNotNeeded: false,
             });
             const mockRepo = {
                 refreshFragment: sandbox.stub().callsFake(async (store) => {
-                    store.value.promoVariationsProbed = true;
+                    store.value.promoVariationProbeNotNeeded = true;
                 }),
             };
             const el = await fixture(html`<mas-fragment .fragmentStore=${fragmentStore} view="table"></mas-fragment>`);

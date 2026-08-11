@@ -91,7 +91,7 @@ describe('promotions-repository', () => {
 
             expect(result.references).to.have.lengthOf(1);
             expect(result.references[0].path).to.equal(promoPath);
-            expect(result.promoVariationsProbed).to.be.true;
+            expect(result.promoVariationProbeNotNeeded).to.be.true;
         });
     });
 
@@ -341,11 +341,11 @@ describe('promotions-repository', () => {
     });
 
     describe('mergePromoReferencesIntoFragmentData', () => {
-        it('marks promoVariationsProbed but leaves other fields untouched when it cannot be probed', async () => {
+        it('marks promoVariationProbeNotNeeded but leaves other fields untouched when it cannot be probed', async () => {
             const fragmentData = { path: '/content/dam/mas/sandbox/en_US/promotions/sale/my-card', references: [] };
             const result = await mergePromoReferencesIntoFragmentData({}, fragmentData, () => Promise.resolve());
             expect(result).to.not.equal(fragmentData);
-            expect(result.promoVariationsProbed).to.be.true;
+            expect(result.promoVariationProbeNotNeeded).to.be.true;
             expect(result.references).to.deep.equal(fragmentData.references);
             expect(result.path).to.equal(fragmentData.path);
         });

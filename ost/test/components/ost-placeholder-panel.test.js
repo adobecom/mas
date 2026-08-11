@@ -107,10 +107,10 @@ describe('ost-placeholder-panel', () => {
         expect(rows.compareDocumentPosition(options) & Node.DOCUMENT_POSITION_FOLLOWING).to.be.greaterThan(0);
     });
 
-    it('does not render the price options on the Checkout tab', async () => {
+    it('renders the options section on the Checkout tab', async () => {
         store.placeholderTab = 'checkout';
         const el = await fixture(html`<ost-placeholder-panel></ost-placeholder-panel>`);
-        expect(Boolean(el.shadowRoot.querySelector('ost-placeholder-options'))).to.be.false;
+        expect(el.shadowRoot.querySelector('ost-placeholder-options')).to.exist;
     });
 
     it('renders a reference-osi field for the discount row only', async () => {

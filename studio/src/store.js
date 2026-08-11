@@ -152,13 +152,12 @@ const Store = {
     localeOrRegion: function () {
         return Store.search.value.region || Store.filters.value.locale || 'en_US';
     },
-    previewDictionary: function () {
-        const locale = Store.localeOrRegion();
+    previewDictionary: function (locale = Store.localeOrRegion()) {
         return Store.placeholders.previewByLocale.value[locale];
     },
-    /** True when the active locale has a loaded dictionary with at least one entry (empty `{}` is not ready). */
-    previewDictionaryReady: function () {
-        const d = Store.previewDictionary();
+    /** True when the given locale has a loaded dictionary with at least one entry (empty `{}` is not ready). */
+    previewDictionaryReady: function (locale = Store.localeOrRegion()) {
+        const d = Store.previewDictionary(locale);
         return d != null && Object.keys(d).length > 0;
     },
     removeRegionOverride: function () {

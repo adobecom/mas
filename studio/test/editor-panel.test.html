@@ -67,6 +67,7 @@
             import Store from '../src/store.js';
             import { COLLECTION_MODEL_PATH, PAGE_NAMES } from '../src/constants.js';
             import Events from '../src/events.js';
+            import { MasPublishDialog } from '../src/publish/mas-publish-dialog.js';
             import { createFromTemplate, delay, triggerInput, triggerRteInput } from './utils.js';
 
             runTests(async () => {
@@ -346,6 +347,103 @@
                         expect(unmaskSpy.calledOnce).to.be.true;
                         expect(editorPanel.inEdit.get()).to.be.null;
                         expect(updateStoresSpy.called).to.be.true;
+                    });
+                });
+
+                describe('publishFragment', () => {
+                    let pSandbox;
+                    let pEditorPanel;
+                    let pMockFragment;
+                    let publishStub;
+
+                    beforeEach(async () => {
+                        pSandbox = sinon.createSandbox();
+                        pMockFragment = {
+                            ...fragmentData,
+                            id: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
+                        };
+                        const frag = new Fragment(pMockFragment);
+                        const store = new FragmentStore(frag);
+                        pEditorPanel = await fixture(html`<editor-panel></editor-panel>`, { parentNode: spTheme });
+                        pEditorPanel.repository.aem.sites.cf.fragments.getVersions = async () => ({ items: [] });
+                        pEditorPanel.repository.refreshFragment = async () => {};
+                        pEditorPanel.repository.getFragment = async () => pMockFragment;
+                        pEditorPanel.repository.aem.getFragmentById = async () => pMockFragment;
+                        await pEditorPanel.editFragment(store);
+                        await pEditorPanel.updateComplete;
+                        publishStub = pSandbox.stub(pEditorPanel.repository, 'publishFragment').resolves();
+                    });
+
+                    afterEach(() => {
+                        pSandbox.restore();
+                    });
+
+                    it('calls repository.publishFragment directly when fragment has no refs', async () => {
+                        pSandbox.stub(pEditorPanel.fragment, 'getPublishableReferences').returns({ variations: [], cards: [] });
+                        await pEditorPanel.publishFragment();
+                        expect(publishStub.calledOnce).to.be.true;
+                        expect(publishStub.calledWith(pEditorPanel.fragment)).to.be.true;
+                    });
+
+                    it('shows dialog and publishes with selected refs when fragment has variations', async () => {
+                        const variation = new Fragment({
+                            id: 'var1-0000-0000-0000-000000000000',
+                            path: '/content/dam/mas/test/en_CA/var1',
+                            title: 'Variation 1',
+                            model: { path: '/conf/mas/settings/dam/cfm/models/card', name: 'Card' },
+                            fields: [],
+                            tags: [],
+                        });
+                        pSandbox
+                            .stub(pEditorPanel.fragment, 'getPublishableReferences')
+                            .returns({ variations: [variation], cards: [] });
+                        pSandbox.stub(MasPublishDialog, 'show').resolves({
+                            confirmed: true,
+                            selectedIds: ['var1-0000-0000-0000-000000000000'],
+                            allSelected: false,
+                        });
+                        await pEditorPanel.publishFragment();
+                        expect(publishStub.calledOnce).to.be.true;
+                        expect(
+                            publishStub.calledWith(pEditorPanel.fragment, {
+                                selectedRefIds: ['var1-0000-0000-0000-000000000000'],
+                                allSelected: false,
+                            }),
+                        ).to.be.true;
+                    });
+
+                    it('does not call repository.publishFragment when dialog is cancelled', async () => {
+                        const variation = new Fragment({
+                            id: 'var2-0000-0000-0000-000000000000',
+                            path: '/content/dam/mas/test/en_CA/var2',
+                            title: 'Variation 2',
+                            model: { path: '/conf/mas/settings/dam/cfm/models/card', name: 'Card' },
+                            fields: [],
+                            tags: [],
+                        });
+                        pSandbox
+                            .stub(pEditorPanel.fragment, 'getPublishableReferences')
+                            .returns({ variations: [variation], cards: [] });
+                        pSandbox.stub(MasPublishDialog, 'show').resolves({ confirmed: false });
+                        await pEditorPanel.publishFragment();
+                        expect(publishStub.called).to.be.false;
+                    });
+
+                    it('shows negative toast and rethrows when repository.publishFragment throws', async () => {
+                        pSandbox.stub(pEditorPanel.fragment, 'getPublishableReferences').returns({ variations: [], cards: [] });
+                        const error = new Error('publish failed');
+                        publishStub.rejects(error);
+                        const toastStub = pSandbox.stub(Events.toast, 'emit');
+                        let threw = false;
+                        try {
+                            await pEditorPanel.publishFragment();
+                        } catch (e) {
+                            threw = true;
+                            expect(e).to.equal(error);
+                        }
+                        expect(threw).to.be.true;
+                        expect(toastStub.calledOnce).to.be.true;
+                        expect(toastStub.firstCall.args[0]).to.include({ variant: 'negative' });
                     });
                 });
             });

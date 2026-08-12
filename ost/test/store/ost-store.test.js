@@ -184,16 +184,46 @@ describe('OstStore', () => {
         expect(store.getEffectiveOptions('legal').displayTax).to.be.true;
     });
 
-    describe('applyGeoTaxDefaults', () => {
+    describe('applyOfferContextDefaults', () => {
         const offer = (id) => ({ offer_id: id, customer_segment: 'INDIVIDUAL', market_segments: ['COM'] });
+        const teamOffer = (id) => ({ offer_id: id, customer_segment: 'TEAM', market_segments: ['COM'] });
         function mockService(flags) {
             return { resolvePriceTaxFlags: async () => flags };
         }
 
+        it('derives displayPerUnit true for a non-INDIVIDUAL (TEAM) offer', async () => {
+            store.country = 'US';
+            store.masCommerceService = mockService({ displayTax: false, forceTaxExclusive: false });
+            await store.applyOfferContextDefaults(teamOffer('T1'));
+            expect(store.placeholderOptions.displayPerUnit).to.be.true;
+        });
+
+        it('keeps displayPerUnit false for an INDIVIDUAL offer', async () => {
+            store.country = 'US';
+            store.masCommerceService = mockService({ displayTax: false, forceTaxExclusive: false });
+            await store.applyOfferContextDefaults(offer('I1'));
+            expect(store.placeholderOptions.displayPerUnit).to.be.false;
+        });
+
+        it('does not overwrite displayPerUnit when the user toggled it', async () => {
+            store.country = 'US';
+            store.masCommerceService = mockService({ displayTax: false, forceTaxExclusive: false });
+            store.toggleOption('displayPerUnit', false);
+            await store.applyOfferContextDefaults(teamOffer('T2'));
+            expect(store.placeholderOptions.displayPerUnit).to.be.false;
+        });
+
+        it('derives displayPerUnit even when resolvePriceTaxFlags returns nothing', async () => {
+            store.country = 'US';
+            store.masCommerceService = { resolvePriceTaxFlags: async () => null };
+            await store.applyOfferContextDefaults(teamOffer('T3'));
+            expect(store.placeholderOptions.displayPerUnit).to.be.true;
+        });
+
         it('seeds displayTax/forceTaxExclusive from the geo-resolved flags', async () => {
             store.country = 'DE';
             store.masCommerceService = mockService({ displayTax: true, forceTaxExclusive: false });
-            await store.applyGeoTaxDefaults(offer('A'));
+            await store.applyOfferContextDefaults(offer('A'));
             expect(store.placeholderOptions.displayTax).to.be.true;
             expect(store.placeholderOptions.forceTaxExclusive).to.be.false;
         });
@@ -202,13 +232,13 @@ describe('OstStore', () => {
             store.country = 'DE';
             store.masCommerceService = mockService({ displayTax: true, forceTaxExclusive: false });
             store.toggleOption('displayTax', false);
-            await store.applyGeoTaxDefaults(offer('B'));
+            await store.applyOfferContextDefaults(offer('B'));
             expect(store.placeholderOptions.displayTax).to.be.false;
         });
 
         it('no-ops without a service or offer', async () => {
             store.masCommerceService = null;
-            await store.applyGeoTaxDefaults(offer('C'));
+            await store.applyOfferContextDefaults(offer('C'));
             expect(store.placeholderOptions.displayTax).to.be.false;
         });
 
@@ -221,8 +251,8 @@ describe('OstStore', () => {
                     return { displayTax: true };
                 },
             };
-            await store.applyGeoTaxDefaults(offer('D'));
-            await store.applyGeoTaxDefaults(offer('D'));
+            await store.applyOfferContextDefaults(offer('D'));
+            await store.applyOfferContextDefaults(offer('D'));
             expect(calls).to.equal(1);
         });
     });

@@ -281,7 +281,9 @@ class MasOfferMappingItem extends LitElement {
     }
 
     get #statusCell() {
-        const variant = this.record.fragment?.statusVariant;
+        // An unpublished mapping is functionally a draft — show it as such rather than a distinct state.
+        const rawVariant = this.record.fragment?.statusVariant;
+        const variant = rawVariant === 'unpublished' ? 'draft' : rawVariant;
         return html`<sp-table-cell class="status">
             ${variant
                 ? html`<mas-fragment-status variant=${variant}></mas-fragment-status>`

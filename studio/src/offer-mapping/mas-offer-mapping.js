@@ -5,6 +5,7 @@ import Store from '../store.js';
 import { ReactiveStore } from '../reactivity/reactive-store.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 import './mas-offer-mapping-item.js';
+import { geoTagToCountry } from './mas-offer-mapping-item.js';
 
 const emptyRecord = () => ({ id: null, sourceOffer: '', targetOffer: '', geos: [], status: undefined, fragment: null });
 
@@ -17,6 +18,8 @@ class MasOfferMapping extends LitElement {
         editingKey: { type: String, state: true },
         activeDropdown: { type: String, state: true },
         draft: { type: Object, state: true },
+        sortField: { type: String, state: true },
+        sortAsc: { type: Boolean, state: true },
     };
 
     constructor() {
@@ -26,6 +29,8 @@ class MasOfferMapping extends LitElement {
         this.editingKey = null;
         this.activeDropdown = null;
         this.draft = null;
+        this.sortField = null;
+        this.sortAsc = true;
         this.loadedSurface = '';
 
         this.toggleEditing = this.toggleEditing.bind(this);
@@ -73,7 +78,25 @@ class MasOfferMapping extends LitElement {
     }
 
     get rows() {
-        return Store.offerMapping.rows.get();
+        const rows = Store.offerMapping.rows.get();
+        if (!this.sortField) return rows;
+        const dir = this.sortAsc ? 1 : -1;
+        return [...rows].sort((a, b) => this.#sortValue(a).localeCompare(this.#sortValue(b)) * dir);
+    }
+
+    #sortValue(rowStore) {
+        const record = rowStore.get();
+        if (this.sortField === 'geos') return geoTagToCountry(record.geos?.[0]) || record.geos?.[0] || '';
+        return record.sourceOffer || '';
+    }
+
+    toggleSort(field) {
+        if (this.sortField === field) {
+            this.sortAsc = !this.sortAsc;
+            return;
+        }
+        this.sortField = field;
+        this.sortAsc = true;
     }
 
     get loading() {
@@ -143,21 +166,24 @@ class MasOfferMapping extends LitElement {
 
     renderTable() {
         const columns = [
-            { label: 'Source OSI', key: 'source' },
+            { label: 'Source OSI', key: 'source', sort: 'source' },
             { label: 'Target OSI', key: 'target' },
-            { label: 'Geos', key: 'geos' },
+            { label: 'Geos', key: 'geos', sort: 'geos' },
             { label: 'Status', key: 'status' },
             { label: 'Action', key: 'action', align: 'right' },
         ];
         return html`
             <sp-table emphasized scroller class="offer-mapping-table">
                 <sp-table-head>
-                    ${columns.map(
-                        ({ label, key, align }) =>
-                            html`<sp-table-head-cell class="${key} ${align === 'right' ? 'align-right' : ''}"
-                                >${label}</sp-table-head-cell
-                            >`,
-                    )}
+                    ${columns.map(({ label, key, align, sort }) => {
+                        const classes = [key, align === 'right' ? 'align-right' : '', sort ? 'sortable' : ''].filter(Boolean);
+                        const indicator = sort && this.sortField === sort ? (this.sortAsc ? ' ▲' : ' ▼') : '';
+                        return html`<sp-table-head-cell
+                            class="${classes.join(' ')}"
+                            @click=${sort ? () => this.toggleSort(sort) : undefined}
+                            >${label}${indicator}</sp-table-head-cell
+                        >`;
+                    })}
                 </sp-table-head>
                 <sp-table-body>
                     ${this.draft ? this.renderRow(this.draft, true) : nothing}

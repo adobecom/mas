@@ -738,7 +738,7 @@ describe('wcs OSI helpers', function () {
     });
 
     it('substituteOsi maps each comma-separated part independently', function () {
-        expect(substituteOsi('OSI-A,OSI-B', { 'OSI-A': 'SUB-A' })).to.equal('SUB-A,OSI-B');
+        expect(substituteOsi('OSI-A,OSI-B', { 'OSI-A': { osi: 'SUB-A' } })).to.equal('SUB-A,OSI-B');
     });
 
     it('scanMasElements collects osi + inline promo code and skips the osi field and non-markup fields', function () {
@@ -763,7 +763,7 @@ describe('wcs OSI helpers', function () {
             description: { mimeType: 'text/html', value: '<span data-wcs-osi="B,C"></span>' },
         };
         // debugLogs context exercises the "Substituting OSI ..." debug log path.
-        const elements = scanMasElements(fields, { A: 'SUB-A', B: 'SUB-B' }, { debugLogs: true });
+        const elements = scanMasElements(fields, { A: { osi: 'SUB-A' }, B: { osi: 'SUB-B' } }, { debugLogs: true });
         expect(elements.map((element) => element.osi)).to.deep.equal(['SUB-A', 'SUB-B,C']);
         expect(fields.prices).to.equal('<span data-wcs-osi="SUB-A"></span>');
         expect(fields.description.value).to.equal('<span data-wcs-osi="SUB-B,C"></span>');
@@ -774,10 +774,24 @@ describe('wcs OSI helpers', function () {
         const fields = {
             prices: '<span data-wcs-osi="BASE-OSI"></span>' + '<span data-wcs-osi="BASE-OSI" data-locked-osi="true"></span>',
         };
-        const elements = scanMasElements(fields, { 'BASE-OSI': 'SUB-OSI' }, {});
+        const elements = scanMasElements(fields, { 'BASE-OSI': { osi: 'SUB-OSI' } }, {});
         expect(elements.map((e) => e.osi)).to.deep.equal(['SUB-OSI', 'BASE-OSI']);
         expect(fields.prices).to.include('data-wcs-osi="SUB-OSI"');
         expect(fields.prices).to.include('data-wcs-osi="BASE-OSI" data-locked-osi="true"');
+    });
+
+    it('scanMasElements injects the mapping promo as data-promotion-code only when the element has none', function () {
+        const fields = {
+            prices: '<span data-wcs-osi="A"></span>',
+            ctas: '<a data-promotion-code="OWN" data-wcs-osi="A"></a>',
+        };
+        // debugLogs exercises the "Substituting OSI ... (promo ...)" log path for both promo/no-promo.
+        const elements = scanMasElements(fields, { A: { osi: 'SUB-A', promotionCode: 'BTS26' } }, { debugLogs: true });
+        // no authored promo => inject the mapping's promo on the substituted element
+        expect(fields.prices).to.equal('<span data-wcs-osi="SUB-A" data-promotion-code="BTS26"></span>');
+        // authored promo preserved, osi still substituted
+        expect(fields.ctas).to.equal('<a data-promotion-code="OWN" data-wcs-osi="SUB-A"></a>');
+        expect(elements.map((element) => element.promotionCode)).to.deep.equal(['BTS26', 'OWN']);
     });
 
     it('scanMasElements returns [] for a fragment without fields', function () {
@@ -952,14 +966,18 @@ describe('offer-mapping fallback (MWPW-203764)', function () {
         expect(await buildOfferMapping(ctx())).to.deep.equal([]);
     });
 
-    it('resolveOfferSubstituteMap keeps only geo-matching entries', function () {
+    it('resolveOfferSubstituteMap keeps only geo-matching entries and splits an optional promo code', function () {
         const mappings = [
             { sourceOffer: 'SRC', targetOffer: 'TGT', geos: ['mas:country/US'] },
+            { sourceOffer: 'PROMO-SRC', targetOffer: 'PTGT, BTS26', geos: ['mas:country/US'] },
             { sourceOffer: 'OTHER', targetOffer: 'OTHER-T', geos: ['mas:country/FR'] },
             { sourceOffer: 'NOGEO', targetOffer: 'NOGEO-T', geos: [] },
         ];
         // debugLogs exercises the "[offer-mapping] ..." debug log path.
-        expect(resolveOfferSubstituteMap(mappings, { locale: 'en_US', debugLogs: true })).to.deep.equal({ SRC: 'TGT' });
+        expect(resolveOfferSubstituteMap(mappings, { locale: 'en_US', debugLogs: true })).to.deep.equal({
+            SRC: { osi: 'TGT', promotionCode: undefined },
+            'PROMO-SRC': { osi: 'PTGT', promotionCode: 'BTS26' },
+        });
     });
 
     it('applies the geo-scoped offer mapping as a fallback substitution on any fragment', async function () {
@@ -976,6 +994,24 @@ describe('offer-mapping fallback (MWPW-203764)', function () {
         expect(result.body.fields.osi).to.equal('MAPPED');
         expect(result.body.fields.prices).to.include('data-wcs-osi="MAPPED"');
         expect(result.body.wcs.prod).to.have.property('MAPPED-us-mult');
+    });
+
+    it('injects a comma-joined target promo code as data-promotion-code and prices the placeholder with it', async function () {
+        stubIndex('ccd', 'idx', indexFixture([{ sourceoffer: 'BASE', targetoffer: 'MAPPED,BTS26', geos: ['mas:country/US'] }]));
+        fetchStub
+            .withArgs(sinon.match((url) => url.includes('offer_selector_ids=MAPPED') && url.includes('promotion_code=BTS26')))
+            .returns(createResponse(200, stubbedOffer('promo')));
+        const result = await wcs.process(
+            ctx({
+                wcsConfiguration: CONFIGURATION(),
+                // own osi (no rich-text placeholder) gets the osi substitution but NOT the promo.
+                body: { id: 'frag', fields: { osi: 'BASE', prices: '<span data-wcs-osi="BASE"></span>' } },
+            }),
+        );
+        expect(result.body.fields.osi).to.equal('MAPPED');
+        expect(result.body.fields.prices).to.include('data-wcs-osi="MAPPED"');
+        expect(result.body.fields.prices).to.include('data-promotion-code="BTS26"');
+        expect(result.body.wcs.prod).to.have.property('MAPPED-us-mult-bts26');
     });
 
     it('does not substitute when the request country is outside the entry geos', async function () {

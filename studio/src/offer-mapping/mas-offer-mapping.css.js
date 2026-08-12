@@ -65,6 +65,11 @@ export const styles = css`
         text-align: right;
     }
 
+    sp-table-head-cell.sortable {
+        cursor: pointer;
+        user-select: none;
+    }
+
     /* sp-table rows lay out with flex, so column sizing is driven by flex (width% is ignored, only
        min-width is honored). The two OSI columns grow equally to absorb the free space and floor at
        min-width on narrow viewports. Geos/Status/Action get a FIXED flex-basis so the header and body
@@ -108,6 +113,18 @@ export const styles = css`
 
     .empty {
         color: var(--spectrum-gray-500, #8c8c8c);
+    }
+
+    .promo-chip {
+        display: inline-block;
+        margin-left: 6px;
+        font-size: 11px;
+        font-weight: 400;
+        padding: 1px 8px;
+        border-radius: 8px;
+        background: var(--spectrum-green-100, #cdf0d8);
+        color: var(--spectrum-green-900, #0d5c1e);
+        vertical-align: middle;
     }
 
     .aos-line {

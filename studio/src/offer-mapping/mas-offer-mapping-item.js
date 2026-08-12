@@ -23,6 +23,16 @@ export function geoTagToCountry(geo) {
 }
 
 /**
+ * Splits a target offer authored as `<osi>,<promoCode>` (via OST) into its osi and optional promo code.
+ * @param {string} target
+ * @returns {{ osi: string, promotionCode: string }}
+ */
+export function parseTarget(target) {
+    const [osi = '', promotionCode = ''] = `${target || ''}`.split(',').map((part) => part.trim());
+    return { osi, promotionCode };
+}
+
+/**
  * Resolves AOS offer data for an OSI at a given country via the commerce service — the same
  * `collectPriceOptions` + `resolveOfferSelectors` path used by `loadOfferData`, but with the country
  * overridden so the price reflects the requested geo.
@@ -133,7 +143,7 @@ class MasOfferMappingItem extends LitElement {
     async #resolveAos(record, country) {
         const [source, target] = await Promise.all([
             resolveAosOffer(record.sourceOffer, country),
-            resolveAosOffer(record.targetOffer, country),
+            resolveAosOffer(parseTarget(record.targetOffer).osi, country),
         ]);
         // Ignore a stale resolution if the row changed while awaiting.
         if (`${record.sourceOffer}|${record.targetOffer}|${country}` !== this.#aosKey) return;
@@ -237,18 +247,25 @@ class MasOfferMappingItem extends LitElement {
     #osiCell(kind) {
         const isSource = kind === 'source';
         const value = isSource ? this.draftSource : this.draftTarget;
-        const recordValue = isSource ? this.record.sourceOffer : this.record.targetOffer;
         if (this.editing) {
             return html`<sp-table-cell class="editing-cell ${kind}">
                 <osi-field
                     .value=${value}
+                    ?allow-promotion-code=${!isSource}
                     @change=${isSource ? this.#handleSourceChange : this.#handleTargetChange}
                     @click=${this.#preventSelection}
                 ></osi-field>
             </sp-table-cell>`;
         }
+        // Target may carry a promo code (`<osi>,<promoCode>`) — show the osi and a promo chip.
+        const { osi, promotionCode } = isSource
+            ? { osi: this.record.sourceOffer, promotionCode: '' }
+            : parseTarget(this.record.targetOffer);
         return html`<sp-table-cell class="${kind}">
-            <div class="osi-value">${recordValue || html`<span class="empty">—</span>`}</div>
+            <div class="osi-value">
+                ${osi || html`<span class="empty">—</span>`}
+                ${promotionCode ? html`<span class="promo-chip" title="Promotion code">${promotionCode}</span>` : nothing}
+            </div>
             ${this.#aosLine(this.aos[kind])}
         </sp-table-cell>`;
     }

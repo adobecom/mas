@@ -60,18 +60,22 @@ async function buildOfferMapping(context) {
     return mappings ?? [];
 }
 
-// Resolves the surface's mappings to a flat `{ [sourceOffer]: targetOffer }` for this request's geo.
-// Only entries whose geos match the request country/region apply — an entry with empty geos never
-// matches (matchesGeo returns null), so it is inert by design.
+// Resolves the surface's mappings to `{ [sourceOffer]: { osi, promotionCode } }` for this request's
+// geo. Only entries whose geos match the request country/region apply — an entry with empty geos never
+// matches (matchesGeo returns null), so it is inert by design. A target may carry a promotion code
+// comma-joined after the osi (`<osi>,<promoCode>`, authored via OST): the osi drives substitution, the
+// promo code is applied to the substituted placeholder as `data-promotion-code` (MWPW-203764). The
+// promo is tied to the source entry — not the resulting osi — so the same targetOsi reused by another
+// mapping without a promo stays promo-free.
 function resolveOfferSubstituteMap(mappings, context) {
     const country = getCountry(context);
     const regionLocale = getRegionalLocale(context);
     const substituteMap = {};
     for (const { sourceOffer, targetOffer, geos } of mappings) {
-        if (matchesGeo(geos, { country, regionLocale })) {
-            substituteMap[sourceOffer] = targetOffer;
-            logDebug(() => `[offer-mapping] ${sourceOffer} -> ${targetOffer} for ${country}`, context);
-        }
+        if (!matchesGeo(geos, { country, regionLocale })) continue;
+        const [osi, promotionCode] = targetOffer.split(',').map((part) => part.trim());
+        substituteMap[sourceOffer] = { osi, promotionCode };
+        logDebug(() => `[offer-mapping] ${sourceOffer} -> ${targetOffer} for ${country}`, context);
     }
     return substituteMap;
 }
@@ -86,12 +90,13 @@ const PROMOCODE_REGEXP = /data-promotion-code="(?<promotionCode>[^"]+)"/;
  * Substitutes each comma-separated part of an OSI string independently, then rejoins.
  * Discount badges author a comma-joined OSI pair in a single data-wcs-osi attribute;
  * substituting the whole string as one key would always miss (MWPW-201714).
+ * `substituteMap` values are `{ osi, promotionCode? }` — only the `osi` drives substitution here.
  */
 function substituteOsi(osiString, substituteMap) {
     if (!substituteMap) return osiString;
     return osiString
         .split(',')
-        .map((part) => substituteMap[part] ?? part)
+        .map((part) => substituteMap[part]?.osi ?? part)
         .join(',');
 }
 
@@ -125,14 +130,27 @@ function scanMasElements(fields, substituteMap, context) {
         if (typeof value !== 'string' || !value.includes('data-wcs-osi')) continue;
         let changed = false;
         const rewritten = value.replace(MAS_ELEMENT_REGEXP, (element, rawOsi) => {
-            const promotionCode = element.match(PROMOCODE_REGEXP)?.groups?.promotionCode;
             const isLocked = element.includes('data-locked-osi="true"');
+            const existingPromo = element.match(PROMOCODE_REGEXP)?.groups?.promotionCode;
             const osi = substituteMap && !isLocked ? substituteOsi(rawOsi, substituteMap) : rawOsi;
+            // A mapping whose target carries a promo code (`<osi>,<promoCode>`) applies it to this
+            // substituted placeholder as data-promotion-code, but only when the element has no promo of
+            // its own — an authored promo code always wins and is left untouched (MWPW-203764).
+            const injectedPromo = isLocked || existingPromo ? undefined : substituteMap?.[rawOsi]?.promotionCode;
+            const promotionCode = injectedPromo ?? existingPromo;
             elements.push({ osi, rawOsi, promotionCode });
-            if (osi === rawOsi) return element;
-            logDebug(() => `Substituting OSI ${rawOsi} with ${osi}`, context);
+            let updated = element;
+            if (osi !== rawOsi) updated = updated.replace(`data-wcs-osi="${rawOsi}"`, `data-wcs-osi="${osi}"`);
+            if (injectedPromo) {
+                updated = updated.replace(/data-wcs-osi="[^"]*"/, (match) => `${match} data-promotion-code="${injectedPromo}"`);
+            }
+            if (updated === element) return element;
+            logDebug(
+                () => `Substituting OSI ${rawOsi} with ${osi}${injectedPromo ? ` (promo ${injectedPromo})` : ''}`,
+                context,
+            );
             changed = true;
-            return element.replace(`data-wcs-osi="${rawOsi}"`, `data-wcs-osi="${osi}"`);
+            return updated;
         });
         if (changed) fields[key] = typeof field === 'string' ? rewritten : { ...field, value: rewritten };
     }
@@ -197,14 +215,18 @@ function updateOffers(context, offerMap = {}) {
     for (const fragment of fragmentsOf(context.body)) {
         const scope = fragment.id != null ? scopeById[fragment.id] : undefined;
         const { fields } = fragment;
-        // Promo substitution wins; offer-mapping is the surface-level, geo-scoped fallback applied to
-        // every fragment regardless of promo scope (MWPW-203764).
-        const substituteMap = { ...offerMap, ...(scope?.substituteMap ?? {}) };
+        // Offer-mapping (`{ osi, promotionCode }` values) is the surface-level, geo-scoped fallback; a
+        // promo project's own substitutions (plain osi strings) win — normalize them into the same
+        // `{ osi }` shape and overlay. Overriding a source also drops its offer-mapping promo, since the
+        // normalized scope entry carries no promotionCode (MWPW-203764).
+        const substituteMap = { ...offerMap };
+        for (const [source, osi] of Object.entries(scope?.substituteMap ?? {})) {
+            substituteMap[source] = { osi };
+        }
         const hasSubstitutions = Object.keys(substituteMap).length > 0;
         const elements = scanMasElements(fields, hasSubstitutions ? substituteMap : undefined, context);
         if (scope && fields) {
-            // Promo code matching keys off the promo project's own map only — offer-mapping targets
-            // never carry promo codes.
+            // Promo code matching keys off the promo project's own (string) map only.
             resolvePromoCode(
                 fields,
                 elements.map((element) => element.rawOsi),

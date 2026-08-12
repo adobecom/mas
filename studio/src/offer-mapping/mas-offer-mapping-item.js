@@ -198,6 +198,18 @@ class MasOfferMappingItem extends LitElement {
         await this.store.publishMapping(this.record.id);
     }
 
+    // Unpublish is available exactly when the mapping has something published to retract (PUBLISHED or
+    // MODIFIED) — the same states that block deletion, so unpublishing is the path to a deletable row.
+    get #canUnpublish() {
+        return DELETE_BLOCKED_STATUSES.includes(this.record.status);
+    }
+
+    async #onUnpublish(event) {
+        this.toggleDropdown(this.rowKey, event);
+        if (!this.#canUnpublish) return;
+        await this.store.unpublishMapping(this.record.id);
+    }
+
     #preventSelection(event) {
         event.stopPropagation();
     }
@@ -322,6 +334,9 @@ class MasOfferMappingItem extends LitElement {
                                   @click=${this.#onPublish}
                               >
                                   <sp-icon-publish size="m"></sp-icon-publish><span>Publish</span>
+                              </div>
+                              <div class="dropdown-item ${this.#canUnpublish ? '' : 'disabled'}" @click=${this.#onUnpublish}>
+                                  <sp-icon-publish-remove size="m"></sp-icon-publish-remove><span>Unpublish</span>
                               </div>
                               <div class="dropdown-item ${this.#deleteBlocked ? 'disabled' : ''}" @click=${this.#onDelete}>
                                   <sp-icon-delete size="m"></sp-icon-delete><span>Delete</span>

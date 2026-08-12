@@ -68,6 +68,7 @@ function clearCaches() {
     clearDictionaryCache(true);
     clearSettingsCache(true);
     clearPromoCache(true);
+    clearOfferMappingCache(true);
 }
 
 function getPageWcsConfiguration(serviceElement) {

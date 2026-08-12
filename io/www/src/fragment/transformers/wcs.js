@@ -56,6 +56,7 @@ async function buildOfferMapping(context) {
         if (response.status !== 200) return null;
         return collectMappings(response.body, response.body.references || {});
     });
+    logDebug(() => `using following offer mappings: ${JSON.stringify(mappings)}`, context);
     return mappings ?? [];
 }
 

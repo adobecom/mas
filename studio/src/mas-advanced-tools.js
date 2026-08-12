@@ -108,7 +108,8 @@ class MasAdvancedTools extends LitElement {
 
         .tool-card-icon sp-icon-publish,
         .tool-card-icon sp-icon-settings,
-        .tool-card-icon sp-icon-copy {
+        .tool-card-icon sp-icon-copy,
+        .tool-card-icon sp-icon-shopping-cart {
             width: 100%;
             height: 100%;
         }
@@ -163,6 +164,10 @@ class MasAdvancedTools extends LitElement {
 
     openMasks = () => {
         router.navigateToPage(PAGE_NAMES.MASKS)();
+    };
+
+    openOfferMapping = () => {
+        router.navigateToPage(PAGE_NAMES.OFFER_MAPPING)();
     };
 
     handleKeyActivate(handler) {
@@ -260,6 +265,30 @@ class MasAdvancedTools extends LitElement {
         `;
     }
 
+    get offerMappingCard() {
+        if (!canAccessSettings(Store.surface())) return nothing;
+        return html`
+            <a
+                class="tool-card"
+                role="button"
+                tabindex="0"
+                @click=${this.openOfferMapping}
+                @keydown=${this.handleKeyActivate(this.openOfferMapping)}
+            >
+                <span class="tool-card-icon" aria-hidden="true">
+                    <sp-icon-shopping-cart size="xxl"></sp-icon-shopping-cart>
+                </span>
+                <div class="tool-card-text">
+                    <span class="tool-card-title">Offer mapping</span>
+                    <span class="tool-card-description"
+                        >Substitute offers by geo at delivery time, as a fallback to promo mappings.</span
+                    >
+                </div>
+                ${this.arrowIcon}
+            </a>
+        `;
+    }
+
     render() {
         return html`
             <div class="container">
@@ -268,7 +297,9 @@ class MasAdvancedTools extends LitElement {
                     <h1 class="title">Advanced tools</h1>
                     <p class="subtitle">Access professional tools to speed up your workflow.</p>
                 </div>
-                <div class="tool-list">${this.bulkPublishCard} ${this.settingsCard} ${this.masksCard}</div>
+                <div class="tool-list">
+                    ${this.bulkPublishCard} ${this.settingsCard} ${this.masksCard} ${this.offerMappingCard}
+                </div>
             </div>
         `;
     }

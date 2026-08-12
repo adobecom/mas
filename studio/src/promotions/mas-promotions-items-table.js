@@ -29,6 +29,7 @@ import {
 } from './promotion-editor-utils.js';
 import { isPromoVariationPath } from './promotion-model.js';
 import { getUsedGeoTags } from './promotion-variations.js';
+import { processConcurrently, VARIATIONS_CONCURRENCY_LIMIT } from '../common/utils/item-loading.js';
 import { createPromoVariation, probePromoVariationsForFragment } from './promotions-repository.js';
 import './mas-promo-variation-geos.js';
 import { openOfferSelectorTool } from '../rte/ost.js';
@@ -271,12 +272,11 @@ class MasPromotionsItemsTable extends LitElement {
                     const groupedVariationPaths = new Fragment(item)
                         .getVariations()
                         .filter((path) => Fragment.isGroupedVariationPath(path));
-                    const [variations, ...groupedVariations] = await Promise.all([
-                        probePromoVariationsForFragment(this.repository.aem, item.path, promoTag),
-                        ...groupedVariationPaths.map((path) =>
-                            probePromoVariationsForFragment(this.repository.aem, path, promoTag),
-                        ),
-                    ]);
+                    const [variations, ...groupedVariations] = await processConcurrently(
+                        [item.path, ...groupedVariationPaths],
+                        (path) => probePromoVariationsForFragment(this.repository.aem, path, promoTag),
+                        VARIATIONS_CONCURRENCY_LIMIT,
+                    );
                     const allVariations = [...variations, ...groupedVariations.flat()];
                     if (allVariations.length) {
                         const enrichedVariations = await enrichPromoVariations(allVariations, item, {

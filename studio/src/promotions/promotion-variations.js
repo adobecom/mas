@@ -398,10 +398,10 @@ export async function probePromoVariationReferences(aem, defaultPath, promotionP
 export async function mergePromoReferencesForDefaultFragment(aem, fragmentData, promotionProjects = []) {
     if (!fragmentData?.path || isPromoVariationPath(fragmentData.path)) return fragmentData;
     const groupedVariationPaths = new Fragment(fragmentData).getVariations().filter(Fragment.isGroupedVariationPath);
-    const discoveredPerPath = await Promise.all(
-        [fragmentData.path, ...groupedVariationPaths].map((path) =>
-            probePromoVariationReferences(aem, path, promotionProjects),
-        ),
+    const discoveredPerPath = await processConcurrently(
+        [fragmentData.path, ...groupedVariationPaths],
+        (path) => probePromoVariationReferences(aem, path, promotionProjects),
+        VARIATIONS_CONCURRENCY_LIMIT,
     );
     return mergePromoVariationReferences(fragmentData, discoveredPerPath.flat());
 }

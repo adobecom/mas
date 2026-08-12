@@ -72,6 +72,13 @@ describe('variation-utils', () => {
         expect(getPromoVariationGeoTagsValue(fragment)).to.equal('mas:pzn/country/ar');
     });
 
+    it('getPromoVariationGeoTagsValue treats mas:locale/ tags as geo-shaped too', () => {
+        const fragment = {
+            getFieldValues: (name) => (name === 'pznTags' ? ['mas:pzn/edu', 'mas:locale/fr_FR'] : []),
+        };
+        expect(getPromoVariationGeoTagsValue(fragment)).to.equal('mas:locale/fr_FR');
+    });
+
     it('getPromoVariationPersonalizationTagsValue keeps only non-geo tags', () => {
         const fragment = {
             getFieldValues: (name) => (name === 'pznTags' ? ['mas:pzn/edu', 'mas:pzn/country/ar'] : []),

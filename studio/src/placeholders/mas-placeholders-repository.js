@@ -431,10 +431,15 @@ export function getDictionaryPath() {
 
 export async function fetchDictionary(abortController, locale = Store.localeOrRegion()) {
     const repo = getRepository();
+    const surface = repo.search.value.path;
     const context = {
         ...DEFAULT_CONTEXT,
         locale,
-        surface: repo.search.value.path,
+        surface,
+        // getDictionary's global/surface baseline layers key off defaultLocale (see replace.js); without
+        // it the baseline lookup 404s on a locale-less URL and any placeholder authored only on the
+        // shared acom baseline (e.g. edu-disclaimer) renders as its literal {{token}} in Studio preview.
+        defaultLocale: getDefaultLocaleCode(surface, locale) ?? locale,
     };
     if (abortController) context.signal = abortController.signal;
     return getDictionary(context);

@@ -1127,14 +1127,16 @@ export class MasRepository extends LitElement {
             });
 
             Store.promotions.list.data.set(promotions);
+            Store.promotions.list.data.setMeta('listFetched', true);
 
             if (expiredPublished.length) {
                 void this.#unpublishExpiredPromotions(expiredPublished, signal);
             }
         } catch (error) {
+            if (error.name === 'AbortError') return;
+            Store.promotions.list.data.setMeta('listFetched', true);
             this.processError(error, 'Could not load promotions.');
         } finally {
-            Store.promotions.list.data.setMeta('listFetched', true);
             Store.promotions.list.loading.set(false);
         }
     }

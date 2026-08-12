@@ -85,7 +85,7 @@ describe('MasFragmentEditor', () => {
 
             const result = await editor.resolveVariationParentFragment(promoPath);
 
-            expect(result).to.deep.equal(parentData);
+            expect(result).to.deep.equal({ ...parentData, promoVariationProbeNotNeeded: true });
             expect(resolveGroupedStub.called).to.be.false;
             expect(editor.editorContextStore.defaultLocaleId).to.equal('default-id');
         });

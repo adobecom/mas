@@ -754,16 +754,14 @@ class MasPromotionsEditor extends LitElement {
         this.#patchPromotionSurfacesFieldForAem();
         this.#syncPromotionSelectionFieldsToFragment();
         showToast('Saving project...');
+        let saved;
         try {
-            const saved = await this.repository.saveFragment(this.fragmentStore, false);
-            if (!saved) {
-                showToast('Failed to save project.', 'negative');
-                return;
-            }
+            saved = await this.repository.saveFragment(this.fragmentStore, { withToast: false, refetchEtag: false });
         } catch (error) {
-            showToast('Failed to save project.', 'negative');
+            showToast(error.message || 'Failed to save project.', 'negative');
             return;
         }
+        if (!saved) return;
         clearCaches();
         showToast('Project successfully saved.', 'positive');
         Store.promotions.selectedPlaceholders.set([]);

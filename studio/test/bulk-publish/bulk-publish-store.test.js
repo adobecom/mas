@@ -53,11 +53,33 @@ describe('startPublishing()', () => {
         expect(publishFn.firstCall.args[0]).to.include({ projectId: 'proj-1', publishedBy: 'user@example.com' });
     });
 
+    it('forwards includeVariations and includeCards to publishFn', async () => {
+        const publishFn = sinon.stub().resolves({ accepted: true });
+        await startPublishing({
+            project,
+            token,
+            ioBaseUrl,
+            repository: repo,
+            publishFn,
+            pollIntervalMs: 1,
+            maxPolls: 5,
+            includeVariations: true,
+            includeCards: true,
+        });
+        expect(publishFn.firstCall.args[0]).to.include({ includeVariations: true, includeCards: true });
+    });
+
     it('calls repository.refreshFragment after successful publish', async () => {
         const publishFn = sinon.stub().resolves({ accepted: true });
         await startPublishing({ project, token, ioBaseUrl, repository: repo, publishFn, pollIntervalMs: 1, maxPolls: 5 });
         expect(repo.refreshFragment.called).to.equal(true);
         expect(repo.refreshFragment.firstCall.args[0]).to.equal(project);
+    });
+
+    it('calls refreshFragment with skipPromoMerge:true and skipReferences:true during polling', async () => {
+        const publishFn = sinon.stub().resolves({ accepted: true });
+        await startPublishing({ project, token, ioBaseUrl, repository: repo, publishFn, pollIntervalMs: 1, maxPolls: 5 });
+        expect(repo.refreshFragment.firstCall.args[1]).to.deep.equal({ skipPromoMerge: true, skipReferences: true });
     });
 
     it('removes project from publishing map after completion', async () => {
@@ -72,6 +94,30 @@ describe('startPublishing()', () => {
             () => {},
         );
         expect(Store.bulkPublishProjects.publishing.get()[project.id]).to.be.undefined;
+    });
+
+    it('returns alreadyPublishing when project is already in the publishing map', async () => {
+        Store.bulkPublishProjects.publishing.set({ [project.id]: true });
+        const publishFn = sinon.stub().resolves({ accepted: true });
+        const result = await startPublishing({
+            project,
+            token,
+            ioBaseUrl,
+            repository: repo,
+            publishFn,
+            pollIntervalMs: 1,
+            maxPolls: 5,
+        });
+        expect(result).to.deep.equal({ alreadyPublishing: true });
+        expect(publishFn.called).to.equal(false);
+    });
+
+    it('prevents double-dispatch when two calls start synchronously', async () => {
+        const publishFn = sinon.stub().resolves({ accepted: true });
+        const opts = { project, token, ioBaseUrl, repository: repo, publishFn, pollIntervalMs: 1, maxPolls: 5 };
+        const [r1, r2] = await Promise.all([startPublishing(opts), startPublishing(opts)]);
+        expect(publishFn.callCount).to.equal(1);
+        expect([r1, r2].some((r) => r?.alreadyPublishing === true)).to.equal(true);
     });
 });
 
@@ -102,6 +148,12 @@ describe('startReverting()', () => {
         await startReverting({ project, token, ioBaseUrl, repository: repo });
         expect(repo.refreshFragment.calledOnce).to.equal(true);
         expect(repo.refreshFragment.firstCall.args[0]).to.equal(project);
+    });
+
+    it('calls refreshFragment with skipPromoMerge:true after revert', async () => {
+        const project = makeProject();
+        await startReverting({ project, token, ioBaseUrl, repository: repo });
+        expect(repo.refreshFragment.firstCall.args[1]).to.deep.equal({ skipPromoMerge: true });
     });
 
     it('returns the IO action result', async () => {

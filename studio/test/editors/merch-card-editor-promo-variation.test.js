@@ -1,5 +1,5 @@
 import { expect } from '@open-wc/testing';
-import { render } from 'lit';
+import { nothing, render } from 'lit';
 import sinon from 'sinon';
 import '../../src/swc.js';
 import '../../src/editors/merch-card-editor.js';
@@ -108,6 +108,12 @@ describe('merch-card-editor promo variation geo tags', () => {
             expect(updateFieldSpy.calledOnce).to.be.true;
             expect(updateFieldSpy.firstCall.args).to.deep.equal(['pznTags', ['mas:pzn/edu', 'mas:pzn/country/de']]);
             container.remove();
+        });
+
+        it('renders only the promo geo tags editor, not the grouped-variation tags editor', () => {
+            const editor = makeEditor(promoFromGroupedVariationPath, ['mas:pzn/edu', 'mas:pzn/country/ar']);
+            expect(editor.groupedVariationTagsTemplate).to.equal(nothing);
+            expect(editor.promoVariationGeoTagsTemplate).to.not.equal(nothing);
         });
     });
 });

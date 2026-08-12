@@ -212,7 +212,7 @@ class MerchCardEditor extends LitElement {
     };
 
     get groupedVariationTagsTemplate() {
-        if (!this.isGroupedVariation) return nothing;
+        if (!this.isGroupedVariation || this.isPromoVariation) return nothing;
         const locale = this.fragment?.locale;
         const isReadonly = locale !== 'en_US';
         return html`

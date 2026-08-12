@@ -122,19 +122,25 @@ export class OfferMappingStore {
                     // No index authored yet for this surface: show an empty state. The index is created
                     // lazily on the first `createMapping` (see #addPathsToIndex) — viewing must not create
                     // or publish anything.
+                    if (this.#surface !== nextSurface) return;
                     this.setMappingFragments([]);
                     return;
                 }
+                if (this.#surface !== nextSurface) return;
                 this.setMappingFragments(indexFragment.references || []);
             } catch (error) {
+                // A newer surface load has superseded this one — drop its (stale) failure state.
+                if (this.#surface !== nextSurface) return;
                 this.error.set('Failed to load offer mappings.');
                 showToast('Failed to load offer mappings.', 'negative');
                 this.setMappingFragments([]);
             } finally {
+                // Only the still-current load resets shared loading state; a superseded one must not
+                // clear the spinner the newer load turned on.
                 if (this.#loadingSurface === nextSurface) {
                     this.#loadingSurface = '';
                 }
-                this.loading.set(false);
+                if (this.#surface === nextSurface) this.loading.set(false);
             }
         })();
 

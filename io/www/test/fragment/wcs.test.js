@@ -953,11 +953,19 @@ describe('offer-mapping fallback (MWPW-203764)', function () {
     it('buildOfferMapping caches an empty list on a 404 index (stable absence)', async function () {
         fetchStub.withArgs(byPathUrl('ccd')).returns(createResponse(404, null, 'not found'));
         expect(await buildOfferMapping(ctx())).to.deep.equal([]);
+        const afterFirst = fetchStub.withArgs(byPathUrl('ccd')).callCount;
+        expect(await buildOfferMapping(ctx())).to.deep.equal([]);
+        // A 404 is a stable absence: the empty list is cached, so the second call must not re-fetch.
+        expect(fetchStub.withArgs(byPathUrl('ccd')).callCount).to.equal(afterFirst);
     });
 
     it('buildOfferMapping does not cache a transient (non-404) id failure', async function () {
         fetchStub.withArgs(byPathUrl('ccd')).returns(createResponse(503, null, 'boom'));
         expect(await buildOfferMapping(ctx())).to.deep.equal([]);
+        const afterFirst = fetchStub.withArgs(byPathUrl('ccd')).callCount;
+        expect(await buildOfferMapping(ctx())).to.deep.equal([]);
+        // A 503 is transient: nothing is cached, so the second call re-fetches the index.
+        expect(fetchStub.withArgs(byPathUrl('ccd')).callCount).to.be.greaterThan(afterFirst);
     });
 
     it('buildOfferMapping resolves [] when the hydrated fetch fails', async function () {

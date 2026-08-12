@@ -450,6 +450,19 @@ function getCountryFlag(locale) {
     return COUNTRY_DATA[country]?.flag || '';
 }
 
+function getKnownCountryCodes() {
+    const out = new Set();
+    for (const list of Object.values(DEFAULT_LOCALES)) {
+        for (const entry of list) {
+            out.add(entry.country);
+            if (entry.regions) {
+                for (const region of entry.regions) out.add(region);
+            }
+        }
+    }
+    return [...out];
+}
+
 function getDefaultLocaleForLanguage(language, surface) {
     const list = DEFAULT_LOCALES[surface] || ACOM;
     const match = list.find((e) => e.lang === language);
@@ -466,6 +479,7 @@ if (typeof module !== 'undefined' && module.exports) {
         isDefaultLocale,
         getLocaleDisplayName,
         getCountryFlag,
+        getKnownCountryCodes,
         getDefaultLocaleForLanguage,
     };
 }
@@ -480,6 +494,7 @@ if (typeof self !== 'undefined') {
         isDefaultLocale,
         getLocaleDisplayName,
         getCountryFlag,
+        getKnownCountryCodes,
         getDefaultLocaleForLanguage,
     };
 }

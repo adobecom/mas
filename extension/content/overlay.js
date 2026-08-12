@@ -261,7 +261,7 @@ class CardOverlay {
         if (this.fragmentDataCache.has(key)) {
             const cachedData = this.fragmentDataCache.get(key);
             this.updateBasicInfoPath(fragmentId, cachedData.path);
-            this.renderVariationInfo(fragmentId, cachedData);
+            this.renderVariationInfo(fragmentId, cachedData, cardData?.locale);
             this.renderFragmentDetails(fragmentId, cachedData);
             return;
         }
@@ -279,7 +279,7 @@ class CardOverlay {
                     if (response && response.success && response.data) {
                         this.fragmentDataCache.set(key, response.data);
                         this.updateBasicInfoPath(fragmentId, response.data.path);
-                        this.renderVariationInfo(fragmentId, response.data);
+                        this.renderVariationInfo(fragmentId, response.data, cardData?.locale);
                         this.renderFragmentDetails(fragmentId, response.data);
                     } else {
                         this.updateBasicInfoPath(fragmentId, null);
@@ -488,14 +488,14 @@ class CardOverlay {
     `;
     }
 
-    renderVariationInfo(fragmentId, fragmentData) {
+    renderVariationInfo(fragmentId, fragmentData, requestedLocale = null) {
         const overlayData = this.overlays.get(fragmentId);
         if (!overlayData || !overlayData.panel) return;
 
         const variationSection = overlayData.panel.querySelector('.mas-ext-section-variation');
         const contentDiv = variationSection.querySelector('.mas-ext-variation-content');
 
-        const variationInfo = window.MASFragmentParser.parseVariationInfo(fragmentData);
+        const variationInfo = window.MASFragmentParser.parseVariationInfo(fragmentData, requestedLocale);
 
         variationSection.style.display = 'block';
 

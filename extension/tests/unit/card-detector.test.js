@@ -25,6 +25,16 @@ test('applies second-segment country override', () => {
     assert.deepEqual(detector.localeFromUrl('/de/at/x'), { locale: 'de_AT', country: 'AT' });
 });
 
+test('recognises country segments beyond the previously hardcoded subset', () => {
+    assert.deepEqual(detector.localeFromUrl('/fr/be/x'), { locale: 'fr_BE', country: 'BE' });
+    assert.deepEqual(detector.localeFromUrl('/es/mx/x'), { locale: 'es_MX', country: 'MX' });
+    assert.deepEqual(detector.localeFromUrl('/en/sg/x'), { locale: 'en_SG', country: 'SG' });
+});
+
+test('ignores second segments that are not country codes', () => {
+    assert.deepEqual(detector.localeFromUrl('/de/xx/x'), { locale: 'de_DE', country: 'DE' });
+});
+
 test('returns null for langstore and non-locale segments', () => {
     assert.equal(detector.localeFromUrl('/langstore/en/x'), null);
     assert.equal(detector.localeFromUrl('/products/photoshop.html'), null);

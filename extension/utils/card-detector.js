@@ -78,24 +78,10 @@ class CardDetector {
 
         const secondSegment = segments[1]?.toLowerCase();
         if (secondSegment && /^[a-z]{2}$/.test(secondSegment)) {
-            const looksLikeCountry = [
-                'at',
-                'au',
-                'be',
-                'br',
-                'ca',
-                'ch',
-                'gb',
-                'hk',
-                'ie',
-                'in',
-                'lu',
-                'mx',
-                'nz',
-                'pt',
-                'tw',
-            ].includes(secondSegment);
-            if (looksLikeCountry) country = secondSegment.toUpperCase();
+            const knownCountries = locales?.getKnownCountryCodes?.() ?? [];
+            if (knownCountries.includes(secondSegment.toUpperCase())) {
+                country = secondSegment.toUpperCase();
+            }
         }
 
         return { locale: `${lang}_${country}`, country };

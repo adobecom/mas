@@ -172,31 +172,27 @@ class FragmentParser {
         return { text: String(value ?? ''), fullText: String(value ?? ''), truncated: false };
     }
 
-    parseVariationInfo(fragmentData) {
+    parseVariationInfo(fragmentData, requestedLocale = null) {
         const path = fragmentData.path;
+        const emptyInfo = {
+            locale: null,
+            surface: null,
+            fragmentPath: null,
+            isVariation: false,
+            localeDefaultLocale: null,
+            localeDefaultPath: null,
+            requestedLocale: requestedLocale || null,
+            fellBackToDefault: false,
+            variations: [],
+        };
+
         if (!path) {
-            return {
-                locale: null,
-                surface: null,
-                fragmentPath: null,
-                isVariation: false,
-                localeDefaultLocale: null,
-                localeDefaultPath: null,
-                variations: [],
-            };
+            return emptyInfo;
         }
 
         const pathMatch = path.match(/\/content\/dam\/mas\/([^/]+)\/([^/]+)\/(.+)/);
         if (!pathMatch) {
-            return {
-                locale: null,
-                surface: null,
-                fragmentPath: null,
-                isVariation: false,
-                localeDefaultLocale: null,
-                localeDefaultPath: null,
-                variations: [],
-            };
+            return emptyInfo;
         }
 
         const [, surface, locale, fragmentPath] = pathMatch;
@@ -221,6 +217,8 @@ class FragmentParser {
             isVariation: !isLocaleDefault,
             localeDefaultLocale,
             localeDefaultPath,
+            requestedLocale: requestedLocale || null,
+            fellBackToDefault: Boolean(requestedLocale) && requestedLocale !== locale,
             variations,
         };
     }

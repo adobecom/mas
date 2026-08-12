@@ -142,6 +142,7 @@ class MasPromotionsItemsTable extends LitElement {
 
     get selectedPaths() {
         const store = this.itemsSelection.value;
+        if (!store) return [];
         if (this.type === TABLE_TYPE.OFFERS) return store.selectedOffers.value;
         const paths = store[`selected${this.typeUppercased}`].value;
         return this.type === TABLE_TYPE.CARDS ? paths.filter((path) => !Fragment.isGroupedVariationPath(path)) : paths;

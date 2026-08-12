@@ -18,7 +18,7 @@ async function publishChunk({
     authToken,
     logger,
     maxRetries = DEFAULT_MAX_RETRIES,
-    filterReferencesByStatus = ['DRAFT', 'UNPUBLISHED'],
+    filterReferencesByStatus = ['DRAFT', 'MODIFIED', 'UNPUBLISHED'],
 }) {
     try {
         return await doPublishChunk({ chunk, odinEndpoint, authToken, logger, maxRetries, filterReferencesByStatus });

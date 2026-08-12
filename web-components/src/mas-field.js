@@ -97,7 +97,7 @@ mas-field span.placeholder-resolved[data-template='strikethrough'],
 mas-field span.price.price-strikethrough,
 mas-field span.price.price-promo-strikethrough {
     text-decoration: line-through;
-    color: var(--merch-color-inline-price-strikethrough, initial);
+    color: var(--merch-color-inline-price-strikethrough);
 }
 `;
 

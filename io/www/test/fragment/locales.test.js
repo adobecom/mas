@@ -36,10 +36,15 @@ describe('locales', function () {
             expect(getPlaceholdersRegionLocale('ccd', 'de_DE', 'CH', 'de_DE')).to.equal('de_CH');
         });
 
+        it('getPlaceholdersRegionLocale resolves JP as en_JP after Lingo EN expansion', function () {
+            expect(getPlaceholdersRegionLocale('acom', 'en_US', 'JP', 'en_US')).to.equal('en_JP');
+        });
+
         it('getPlaceholdersRegionLocale falls back when the country is not a surface region', function () {
-            expect(getPlaceholdersRegionLocale('acom', 'en_US', 'JP', 'en_US')).to.equal('en_US');
+            // RU has ru_RU locale but is not an en_US region → falls back
+            expect(getPlaceholdersRegionLocale('acom', 'en_US', 'RU', 'en_US')).to.equal('en_US');
             expect(getPlaceholdersRegionLocale('acom', 'en_US', undefined, 'en_US')).to.equal('en_US');
-            // IN is an acom region but NOT a ccd region → falls back on ccd.
+            // JP is an acom region but NOT a ccd region → falls back on ccd.
             expect(getPlaceholdersRegionLocale('ccd', 'de_DE', 'JP', 'de_DE')).to.equal('de_DE');
         });
     });

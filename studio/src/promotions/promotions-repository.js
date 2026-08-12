@@ -49,12 +49,13 @@ export async function getPromotionProjectsForProbe(loadPromotions) {
  * @returns {Promise<Object>}
  */
 export async function mergePromoReferencesIntoFragmentData(aem, fragmentData, loadPromotions) {
-    if (!canProbePromoVariationsForFragment(fragmentData)) return fragmentData;
-    return promotionVariations.mergePromoReferencesForDefaultFragment(
+    if (!canProbePromoVariationsForFragment(fragmentData)) return { ...fragmentData, promoVariationProbeNotNeeded: true };
+    const merged = await promotionVariations.mergePromoReferencesForDefaultFragment(
         aem,
         fragmentData,
         await getPromotionProjectsForProbe(loadPromotions),
     );
+    return { ...merged, promoVariationProbeNotNeeded: true };
 }
 
 /**

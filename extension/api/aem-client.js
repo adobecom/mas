@@ -1,7 +1,23 @@
+const DEFAULT_MAS_IO_URL = 'https://www.adobe.com/mas/io';
+const DEFAULT_WCS_API_KEY = 'wcms-commerce-ims-ro-user-milo-extension';
+
+function getValidators() {
+    if (typeof self !== 'undefined' && self.MASValidators) return self.MASValidators;
+    if (typeof module !== 'undefined' && module.exports) {
+        try {
+            return require('../utils/validators.js');
+        } catch (err) {
+            return null;
+        }
+    }
+    return null;
+}
+
 class AEMClient {
-    constructor() {
-        this.masIOUrl = 'https://www.adobe.com/mas/io';
-        this.wcsApiKey = 'wcms-commerce-ims-ro-user-milo-extension';
+    constructor({ masIOUrl, wcsApiKey } = {}) {
+        const validators = getValidators();
+        this.masIOUrl = validators?.isAllowedMasIOUrl(masIOUrl) ? masIOUrl.replace(/\/$/, '') : DEFAULT_MAS_IO_URL;
+        this.wcsApiKey = wcsApiKey || DEFAULT_WCS_API_KEY;
         this.defaultLocale = 'en_US';
     }
 

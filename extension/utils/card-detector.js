@@ -44,6 +44,15 @@ class CardDetector {
         return { locale: 'en_US', country: 'US' };
     }
 
+    getServiceConfig() {
+        const commerceService = document.querySelector('mas-commerce-service');
+        if (!commerceService) return {};
+        return {
+            masIOUrl: commerceService.getAttribute('mas-io-url') || undefined,
+            wcsApiKey: commerceService.getAttribute('wcs-api-key') || undefined,
+        };
+    }
+
     localeFromCommerceService() {
         const commerceService = document.querySelector('mas-commerce-service');
         if (!commerceService) return null;

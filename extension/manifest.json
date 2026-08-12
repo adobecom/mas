@@ -4,16 +4,16 @@
     "version": "1.0.0",
     "description": "Detect, inspect, and edit content from Merch At Scale Studio in any page",
     "content_security_policy": {
-        "extension_pages": "script-src 'self'; object-src 'none'; base-uri 'none'; connect-src https://mas.adobe.com https://www.adobe.com;"
+        "extension_pages": "script-src 'self'; object-src 'none'; base-uri 'none'; connect-src https://mas.adobe.com https://www.adobe.com https://www.stage.adobe.com;"
     },
     "permissions": ["storage", "tabs"],
-    "host_permissions": ["https://mas.adobe.com/*", "https://www.adobe.com/*"],
+    "host_permissions": ["https://mas.adobe.com/*", "https://www.adobe.com/*", "https://www.stage.adobe.com/*"],
     "background": {
         "service_worker": "background.js"
     },
     "content_scripts": [
         {
-            "matches": ["https://*.adobe.com/*", "https://mas.adobe.com/*"],
+            "matches": ["https://*.adobe.com/*", "https://*.aem.page/*", "https://*.aem.live/*"],
             "js": [
                 "utils/escape.js",
                 "utils/icons.js",
@@ -45,7 +45,7 @@
     "web_accessible_resources": [
         {
             "resources": ["content/content.css"],
-            "matches": ["https://*.adobe.com/*", "https://mas.adobe.com/*"]
+            "matches": ["https://*.adobe.com/*", "https://*.aem.page/*", "https://*.aem.live/*"]
         }
     ]
 }

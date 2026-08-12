@@ -273,6 +273,7 @@ class CardOverlay {
                     fragmentId: fragmentId,
                     locale: cardData?.locale || 'en_US',
                     country: cardData?.country,
+                    ...window.MASCardDetector.getServiceConfig(),
                 },
                 (response) => {
                     if (chrome.runtime.lastError) return;
@@ -601,6 +602,7 @@ class CardOverlay {
                     type: 'FETCH_FRAGMENT_DATA',
                     fragmentId: fragmentId,
                     locale: variationInfo.localeDefaultLocale,
+                    ...window.MASCardDetector.getServiceConfig(),
                 },
                 (response) => {
                     if (chrome.runtime.lastError) return;

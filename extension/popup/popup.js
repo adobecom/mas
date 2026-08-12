@@ -53,6 +53,7 @@ function variantColor(card) {
 }
 
 let currentCards = [];
+let serviceConfig = {};
 const fragmentDataCache = new Map();
 
 function cacheKey(fragmentId, locale, country) {
@@ -133,6 +134,7 @@ async function loadCards(retryCount = 0) {
         }
 
         if (response?.success && response.cards) {
+            serviceConfig = response.serviceConfig || {};
             currentCards = response.cards;
             renderCards();
             updateVariantFilter();
@@ -321,6 +323,7 @@ function fetchCardNames(cards) {
                     fragmentId: card.fragmentId,
                     locale: card.locale || 'en_US',
                     country: card.country,
+                    ...serviceConfig,
                 },
                 (response) => {
                     if (response?.success && response.data) {
@@ -357,6 +360,7 @@ function loadCardDetails(fragmentId) {
             fragmentId: fragmentId,
             locale: card?.locale || 'en_US',
             country: card?.country,
+            ...serviceConfig,
         },
         (response) => {
             if (chrome.runtime.lastError) {

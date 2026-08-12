@@ -141,7 +141,7 @@ function initialize() {
             sendResponse({ success: true });
         } else if (message.type === 'GET_ALL_CARDS') {
             const cards = window.MASCardDetector.getAllCards();
-            sendResponse({ success: true, cards });
+            sendResponse({ success: true, cards, serviceConfig: window.MASCardDetector.getServiceConfig() });
         } else if (message.type === 'SET_EXTENSION_ENABLED') {
             extensionEnabled = message.enabled;
             if (extensionEnabled) {

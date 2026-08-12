@@ -1,7 +1,5 @@
 importScripts('utils/validators.js', 'utils/studio-url.js', 'api/aem-client.js');
 
-const aemClient = new AEMClient();
-
 function isExtensionSender(sender) {
     return sender && sender.id === chrome.runtime.id;
 }
@@ -12,7 +10,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
 
     if (message.type === 'FETCH_FRAGMENT_DATA') {
-        handleFetchFragmentData(message.fragmentId, message.locale, message.country, sendResponse);
+        handleFetchFragmentData(message, sendResponse);
         return true;
     }
 
@@ -24,7 +22,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return false;
 });
 
-async function handleFetchFragmentData(fragmentId, locale, country, sendResponse) {
+async function handleFetchFragmentData(message, sendResponse) {
+    const { fragmentId, locale, country, masIOUrl, wcsApiKey } = message;
     if (!MASValidators.isValidUUID(fragmentId)) {
         sendResponse({ success: false, error: 'invalid_fragment_id' });
         return;
@@ -38,7 +37,8 @@ async function handleFetchFragmentData(fragmentId, locale, country, sendResponse
         return;
     }
     try {
-        const data = await aemClient.fetchFragmentData(fragmentId, locale, country);
+        const client = new AEMClient({ masIOUrl, wcsApiKey });
+        const data = await client.fetchFragmentData(fragmentId, locale, country);
         sendResponse({ success: true, data });
     } catch (error) {
         sendResponse({ success: false, error: 'fetch_failed' });

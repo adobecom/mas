@@ -71,15 +71,15 @@ test('repairFragment ignores non-string field values', () => {
 });
 
 test('studioLink builds a fragment-editor deep link', () => {
-    assert.equal(studioLink('a1b2'), 'https://main--mas--adobecom.aem.live/studio.html#page=fragment-editor&fragmentId=a1b2');
+    assert.equal(studioLink('a1b2'), 'https://mas.adobe.com/studio.html#page=fragment-editor&fragmentId=a1b2');
 });
 
 test('buildReport lists one link per hit', () => {
     const report = buildReport([{ id: 'a1' }, { id: 'b2' }]);
     assert.equal(
         report,
-        'https://main--mas--adobecom.aem.live/studio.html#page=fragment-editor&fragmentId=a1\n' +
-            'https://main--mas--adobecom.aem.live/studio.html#page=fragment-editor&fragmentId=b2',
+        'https://mas.adobe.com/studio.html#page=fragment-editor&fragmentId=a1\n' +
+            'https://mas.adobe.com/studio.html#page=fragment-editor&fragmentId=b2',
     );
 });
 

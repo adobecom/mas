@@ -41,7 +41,11 @@ export async function run({ authorHost, folder, limit = 0, dryRun = false, token
     const baseUrl = `https://${authorHost}`;
     const headers = createHeaders(token, apiKey);
     const query = JSON.stringify({
-        filter: { path: folder, modelIds: [CARD_MODEL_ID] },
+        filter: {
+            path: folder,
+            modelIds: [CARD_MODEL_ID],
+            fullText: { text: 'data-extra-options', queryMode: 'EXACT_WORDS' },
+        },
         sort: [{ on: 'created', order: 'ASC' }],
     });
 

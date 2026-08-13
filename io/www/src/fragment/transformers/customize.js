@@ -151,13 +151,15 @@ function personalizationMatchScore(pznTags, { regionLocale, country, pzn }) {
 }
 
 /**
- * @param {Set<string>} [allowedPaths] - Optional set to restrict candidates to curated grouped variations.
+ * @param {Set<string>} [allowedPaths] - Optional set to restrict candidates before scoring (e.g.
+ * to a promo project's curated grouped variations, see `findPromoVariation`). Candidates outside
+ * the set are excluded from matching entirely, not just deprioritized.
  */
 function findPersonalizationVariation(variations, customizeContext, allowedPaths) {
     const { country, pzn, references, regionLocale, surface, defaultLocale } = customizeContext;
     const pattern = new RegExp(`/content/dam/mas/${surface}/${defaultLocale}/([^/]+)${PZN_FOLDER}.+`);
     let personalizationVariations = extractVariationBasedOnPath(variations, references, pattern);
-    if (allowedPaths) {
+    if (allowedPaths?.size) {
         personalizationVariations = personalizationVariations.filter((variation) =>
             allowedPaths.has(PATH_TOKENS.exec(variation.path).groups.fragmentPath),
         );
@@ -239,6 +241,8 @@ function selectBestPromoVariation(candidates, { regionLocale, country }) {
 
 // pzn matches a grouped variation with its own promo variation, that wins over the root-level promo variation.
 // It also wins over a matching regional-locale variation (see `regionalVariation` in `mergeVariations`).
+// If the promo project curated any grouped variations (groupedVariationPaths), only those are
+// eligible for personalization project-wide; an uncurated pzn variation falls back to default content.
 function findPromoVariation(root, customizeContext, selectedPromoProject, personalizationVariation) {
     // Only the single project selected for this fragment may contribute a promo variation
     if (!selectedPromoProject) return null;
@@ -341,12 +345,8 @@ function mergeVariations(root, customizeContext, selectedPromoProject) {
     const variations = root?.fields?.variations;
     const regionalVariation = isRegionLocale && variations?.length ? findRegionalVariation(variations, customizeContext) : null;
 
-    // Restrict personalization to curated grouped variations for promo projects.
-    const groupedVariationPaths = selectedPromoProject?.groupedVariationPaths;
     const personalizationVariation = variations?.length
-        ? groupedVariationPaths?.size
-            ? findPersonalizationVariation(variations, customizeContext, groupedVariationPaths)
-            : findPersonalizationVariation(variations, customizeContext)
+        ? findPersonalizationVariation(variations, customizeContext, selectedPromoProject?.groupedVariationPaths)
         : null;
 
     // Promo variation (checking the grouped/pzn variation first, see `findPromoVariation`) takes

@@ -24,3 +24,11 @@ export function repairFragment(fragment) {
     }
     return changed;
 }
+
+export function studioLink(id) {
+    return `https://main--mas--adobecom.aem.live/studio.html#page=fragment-editor&fragmentId=${id}`;
+}
+
+export function buildReport(hits) {
+    return hits.map((hit) => studioLink(hit.id)).join('\n');
+}

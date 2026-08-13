@@ -915,3 +915,33 @@ describe('mas-field – mas:ready event', () => {
         expect(onReady.firstCall.args[0].target).to.equal(el);
     });
 });
+
+describe('mas-field – tooltip icon-button rendering', () => {
+    afterEach(() => {
+        document.body
+            .querySelectorAll('mas-field')
+            .forEach((el) => el.remove());
+    });
+
+    it('renders a serialized .icon-button as a visible info glyph with a hover tooltip', () => {
+        const el = makeField(
+            'shortDescription',
+            '<p>terms <span class="icon-button" tabindex="0" role="button" data-tooltip="cancel policy"></span></p>',
+        );
+        const btn = el.querySelector('.icon-button');
+        expect(btn, 'icon-button rendered in mas-field content').to.exist;
+        const bg = getComputedStyle(btn).backgroundImage;
+        expect(bg, 'info glyph background-image applied').to.not.equal('none');
+        expect(bg.toLowerCase()).to.contain('svg');
+        expect(
+            btn.getBoundingClientRect().width,
+            'glyph occupies space',
+        ).to.be.greaterThan(0);
+        // Tooltip popover text is driven from data-tooltip and shown on hover/focus.
+        const styles = document.querySelector(
+            'style[data-mas-field]',
+        ).textContent;
+        expect(styles).to.contain('content: attr(data-tooltip)');
+        expect(styles).to.contain(':hover::before');
+    });
+});

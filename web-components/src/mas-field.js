@@ -99,6 +99,67 @@ mas-field span.price.price-promo-strikethrough {
     text-decoration: line-through;
     color: var(--merch-color-inline-price-strikethrough);
 }
+
+/* Render the RTE tooltip node (serialized as a bare .icon-button span) as an info
+   glyph with a hover/focus tooltip when a placeholder is consumed through mas-field
+   outside a merch-card (e.g. a headless DA page). Mirrors merch-card's glyph but uses
+   pure-CSS :hover/:focus instead of the JS-toggled .tooltip-visible class. */
+mas-field .icon-button {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    min-height: 18px;
+    vertical-align: middle;
+    text-decoration: none;
+    border-bottom: none;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 18px;
+    background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" height="14" width="14"><path d="M7 .778A6.222 6.222 0 1 0 13.222 7 6.222 6.222 0 0 0 7 .778zM6.883 2.45a1.057 1.057 0 0 1 1.113.998q.003.05.001.1a1.036 1.036 0 0 1-1.114 1.114A1.052 1.052 0 0 1 5.77 3.547 1.057 1.057 0 0 1 6.784 2.45q.05-.002.1.001zm1.673 8.05a.389.389 0 0 1-.39.389H5.834a.389.389 0 0 1-.389-.389v-.778a.389.389 0 0 1 .39-.389h.388V7h-.389a.389.389 0 0 1-.389-.389v-.778a.389.389 0 0 1 .39-.389h1.555a.389.389 0 0 1 .389.39v3.5h.389a.389.389 0 0 1 .389.388z"/></svg>');
+}
+
+mas-field .icon-button::before {
+    content: attr(data-tooltip);
+    position: absolute;
+    top: 50%;
+    left: 100%;
+    transform: translateY(-50%);
+    margin-left: 8px;
+    width: max-content;
+    max-width: 200px;
+    padding: 10px;
+    border-radius: 5px;
+    background: #0469E3;
+    color: #fff;
+    text-align: left;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 16px;
+    z-index: 10;
+    display: none;
+}
+
+mas-field .icon-button::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 102%;
+    margin-left: -8px;
+    transform: translateY(-50%);
+    border: 8px solid transparent;
+    border-right-color: #0469E3;
+    z-index: 10;
+    display: none;
+}
+
+mas-field .icon-button:hover::before,
+mas-field .icon-button:focus::before,
+mas-field .icon-button:hover::after,
+mas-field .icon-button:focus::after {
+    display: block;
+}
 `;
 
 if (!document.querySelector('style[data-mas-field]')) {

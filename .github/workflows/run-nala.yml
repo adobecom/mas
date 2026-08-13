@@ -5,10 +5,22 @@ on:
         branches:
             - main
         types: [opened, synchronize, labeled, unlabeled]
+    # Re-evaluate when a review lands, so an already-labeled PR starts Nala
+    # as soon as it reaches the required approval count.
+    pull_request_review:
+        types: [submitted, dismissed]
 
-# Prevent multiple runs from happening at the same time
+permissions:
+    contents: read
+    pull-requests: read
+
+env:
+    REQUIRED_APPROVALS: 2
+
+# Prevent multiple runs from happening at the same time. Keyed on the PR number
+# so pull_request and pull_request_review runs for the same PR share a group.
 concurrency:
-    group: ${{ github.workflow }}-${{ github.ref }}
+    group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
     cancel-in-progress: true
 
 jobs:
@@ -20,6 +32,9 @@ jobs:
         steps:
             - uses: actions/checkout@v4
               with:
+                  # pull_request_review defaults to the base branch; pin the PR head
+                  # so the diff is computed against the PR, not main against main.
+                  ref: ${{ github.event.pull_request.head.sha }}
                   fetch-depth: 0
             - name: Detect trivial-only changes
               id: filter
@@ -27,38 +42,86 @@ jobs:
               with:
                   base-ref: ${{ github.event.pull_request.base.ref }}
 
+    check-approvals:
+        name: Check Label and Approvals
+        runs-on: ubuntu-latest
+        outputs:
+            has-label: ${{ steps.check.outputs.has-label }}
+            can-run: ${{ steps.check.outputs.can-run }}
+        steps:
+            - name: Count current approvals
+              id: check
+              uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea
+              with:
+                  script: |
+                      const required = Number(process.env.REQUIRED_APPROVALS);
+                      const pr = context.payload.pull_request;
+                      const hasLabel = pr.labels.some((label) => label.name === 'run nala');
+
+                      const reviews = await github.paginate(github.rest.pulls.listReviews, {
+                          owner: context.repo.owner,
+                          repo: context.repo.repo,
+                          pull_number: pr.number,
+                          per_page: 100,
+                      });
+
+                      // Only the latest APPROVED/CHANGES_REQUESTED/DISMISSED review per
+                      // reviewer counts; COMMENTED reviews never supersede an approval.
+                      const latestByReviewer = new Map();
+                      for (const review of reviews) {
+                          if (review.state === 'COMMENTED' || !review.user) continue;
+                          latestByReviewer.set(review.user.id, review.state);
+                      }
+                      const approvals = [...latestByReviewer.values()].filter(
+                          (state) => state === 'APPROVED',
+                      ).length;
+
+                      const canRun = hasLabel && approvals >= required;
+                      const summary = `'run nala' label: ${hasLabel}, approvals: ${approvals}/${required}`;
+                      if (canRun) {
+                          core.info(`Nala will run — ${summary}`);
+                      } else {
+                          core.notice(`Nala skipped — ${summary}`);
+                      }
+
+                      core.setOutput('has-label', String(hasLabel));
+                      core.setOutput('can-run', String(canRun));
+
     nala-gate:
         name: Nala Gate
-        needs: check-paths
+        needs: [check-paths, check-approvals]
         if: always()
         runs-on: ubuntu-latest
         steps:
-            - name: Fail if check-paths did not succeed
-              if: needs.check-paths.result != 'success'
+            - name: Fail if a prerequisite job did not succeed
+              if: needs.check-paths.result != 'success' || needs.check-approvals.result != 'success'
+              env:
+                  CHECK_PATHS_RESULT: ${{ needs.check-paths.result }}
+                  CHECK_APPROVALS_RESULT: ${{ needs.check-approvals.result }}
               run: |
-                  echo "::error::check-paths job did not succeed (result: ${{ needs.check-paths.result }})"
+                  echo "::error::Prerequisite job did not succeed (check-paths: ${CHECK_PATHS_RESULT}, check-approvals: ${CHECK_APPROVALS_RESULT})"
                   exit 1
             - name: Pass gate for trivial PRs
               if: needs.check-paths.outputs.is-trivial == 'true'
               run: echo "Trivial PR — skipping Nala gate"
             - name: Require 'run nala' label
-              # Bypass only via git-computed is-trivial (check-paths), not the mutable 'trivial' label.
+              # Merge requirement is label-only — approvals are enforced by branch
+              # protection, not here. The only bypass is the git-computed is-trivial
+              # output from check-paths, never the mutable 'trivial' label.
               if: |
                   needs.check-paths.outputs.is-trivial != 'true' &&
-                  github.event.action != 'opened' &&
-                  !contains(github.event.pull_request.labels.*.name, 'run nala')
+                  needs.check-approvals.outputs.has-label != 'true'
               run: |
                   echo "::error::Add the 'run nala' label to merge this PR"
                   exit 1
 
     run-nala-studio-tests:
         name: Running Nala Studio E2E UI Tests
-        needs: [nala-gate, check-paths]
+        needs: [nala-gate, check-paths, check-approvals]
         if: |
             needs.nala-gate.result == 'success' &&
             needs.check-paths.outputs.is-trivial != 'true' &&
-            (github.event.action == 'opened' ||
-            contains(github.event.pull_request.labels.*.name, 'run nala'))
+            needs.check-approvals.outputs.can-run == 'true'
         runs-on: [self-hosted, Linux, X64]
         timeout-minutes: 45 # Prevent hanging jobs
         strategy:
@@ -68,6 +131,7 @@ jobs:
             - name: Checkout repository
               uses: actions/checkout@v4
               with:
+                  ref: ${{ github.event.pull_request.head.sha }}
                   fetch-depth: 2
 
             - name: Set up Node.js ${{ matrix.node-version }}
@@ -137,12 +201,11 @@ jobs:
 
     run-nala-docs-tests:
         name: Running Nala Docs E2E UI Tests
-        needs: [nala-gate, check-paths]
+        needs: [nala-gate, check-paths, check-approvals]
         if: |
             needs.nala-gate.result == 'success' &&
             needs.check-paths.outputs.is-trivial != 'true' &&
-            (github.event.action == 'opened' ||
-            contains(github.event.pull_request.labels.*.name, 'run nala'))
+            needs.check-approvals.outputs.can-run == 'true'
         runs-on: [self-hosted, Linux, X64]
         timeout-minutes: 20 # Prevent hanging jobs
         strategy:
@@ -152,6 +215,7 @@ jobs:
             - name: Checkout repository
               uses: actions/checkout@v4
               with:
+                  ref: ${{ github.event.pull_request.head.sha }}
                   fetch-depth: 0
 
             - name: Fetch base branch for diff

@@ -79,6 +79,7 @@ async function fetchVersionHistory(odinEndpoint, fragmentId, authToken) {
 
 async function findNonTranslationVersion(odinEndpoint, fragmentId, authToken) {
     const versions = await fetchVersionHistory(odinEndpoint, fragmentId, authToken);
+    // Odin returns /versions newest-first; .find picks the most recent non-translation version.
     const found = versions.find((v) => !isTranslationVersion(v));
     return found?.id ?? null;
 }

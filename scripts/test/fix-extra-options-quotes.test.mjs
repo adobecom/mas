@@ -141,7 +141,7 @@ test('limit stops after N hits', async () => {
     assert.equal(puts.length, 1);
 });
 
-test('search query fulltext targets the broken data-extra-options signature only', async () => {
+test('search query narrows to fragments containing data-extra-options', async () => {
     let searchUrl;
     globalThis.fetch = async (url, init) => {
         if (init?.method === 'PUT') return { ok: true, headers: { get: () => 'e' } };
@@ -150,5 +150,5 @@ test('search query fulltext targets the broken data-extra-options signature only
     };
     await run(runOpts);
     const query = JSON.parse(new URL(searchUrl).searchParams.get('query'));
-    assert.equal(query.filter.fullText.text, 'data-extra-options="{"');
+    assert.equal(query.filter.fullText.text, 'data-extra-options');
 });

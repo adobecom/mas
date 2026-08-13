@@ -44,7 +44,7 @@ export async function run({ authorHost, folder, limit = 0, dryRun = false, token
         filter: {
             path: folder,
             modelIds: [CARD_MODEL_ID],
-            fullText: { text: 'data-extra-options="{"', queryMode: 'EXACT_PHRASE' },
+            fullText: { text: 'data-extra-options', queryMode: 'EXACT_WORDS' },
         },
         sort: [{ on: 'created', order: 'ASC' }],
     });

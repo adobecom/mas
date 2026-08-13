@@ -415,11 +415,10 @@ describe('MasFragmentTable', () => {
             });
             const el = await fixture(html`<mas-fragment-table .fragmentStore=${fragmentStore}></mas-fragment-table>`);
             await el.updateComplete;
-            const indicator = el.querySelector('.validation-error-icon');
+            const indicator = el.querySelector('.validation-error-indicator');
             expect(indicator).to.exist;
-            const tooltip = el.querySelector('sp-tooltip');
-            expect(tooltip).to.exist;
-            expect(tooltip.textContent).to.include('is not valid HTML');
+            expect(indicator.getAttribute('title')).to.include('is not valid HTML');
+            expect(indicator.querySelector('.validation-error-icon')).to.exist;
         });
     });
 });

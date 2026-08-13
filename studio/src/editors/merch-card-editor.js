@@ -387,37 +387,27 @@ class MerchCardEditor extends LitElement {
         return success;
     }
 
-    renderFieldValidationIndicator(fieldName) {
-        const errors = this.fragment?.getValidationErrors().filter((error) => error.field === fieldName) ?? [];
-        if (!errors.length) return nothing;
-        return html`
-            <div class="field-validation-error" role="alert">
-                <sp-icon-alert class="field-validation-icon"></sp-icon-alert>
-                ${errors.map((error) => html`<span class="field-validation-message">${error.message}</span>`)}
-            </div>
-        `;
-    }
-
     renderFieldStatusIndicator(fieldName) {
-        const validation = this.renderFieldValidationIndicator(fieldName);
-        const override =
-            this.effectiveIsVariation && this.getFieldState(fieldName) === 'overridden'
-                ? this.#renderOverrideIndicatorLink(() => this.resetFieldToParent(fieldName))
-                : nothing;
-        if (validation === nothing && override === nothing) return nothing;
-        return html`${validation}${override}`;
+        if (!this.effectiveIsVariation) return nothing;
+        if (this.getFieldState(fieldName) !== 'overridden') return nothing;
+        return this.#renderOverrideIndicatorLink(() => this.resetFieldToParent(fieldName));
     }
 
     renderValidationBanner() {
         const errors = this.fragment?.getValidationErrors() ?? [];
         if (!errors.length) return nothing;
-        const unanchored = errors.filter((error) => !error.field);
         return html`
             <div class="fragment-validation-banner" role="alert">
                 <sp-icon-alert class="fragment-validation-banner-icon"></sp-icon-alert>
                 <div class="fragment-validation-banner-body">
                     <span class="fragment-validation-banner-title">This fragment has validation errors.</span>
-                    ${unanchored.map((error) => html`<span class="fragment-validation-banner-message">${error.message}</span>`)}
+                    ${errors.map(
+                        (error) =>
+                            html`<span class="fragment-validation-banner-message"
+                                ><span class="fragment-validation-banner-property">${error.property}</span>:
+                                ${error.message}</span
+                            >`,
+                    )}
                 </div>
             </div>
         `;
@@ -1271,8 +1261,9 @@ class MerchCardEditor extends LitElement {
                     padding: 12px;
                     margin-block-end: 16px;
                     border-radius: 4px;
-                    background-color: var(--spectrum-negative-background-color-default, #ffecec);
-                    color: var(--spectrum-negative-content-color-default, #b40000);
+                    border: 1px solid var(--merch-color-error, #d73220);
+                    background-color: var(--spectrum-red-100, #ffebe7);
+                    color: var(--merch-color-error, #d73220);
                 }
 
                 .fragment-validation-banner-body {
@@ -1285,19 +1276,14 @@ class MerchCardEditor extends LitElement {
                     font-weight: 700;
                 }
 
-                .fragment-validation-banner-icon,
-                .field-validation-icon {
-                    flex-shrink: 0;
-                    color: var(--spectrum-negative-content-color-default, #b40000);
+                .fragment-validation-banner-property {
+                    font-family: var(--spectrum-code-font-family, monospace);
+                    font-weight: 700;
                 }
 
-                .field-validation-error {
-                    display: flex;
-                    gap: 4px;
-                    align-items: center;
-                    margin-block-start: 4px;
-                    font-size: 12px;
-                    color: var(--spectrum-negative-content-color-default, #b40000);
+                .fragment-validation-banner-icon {
+                    flex-shrink: 0;
+                    color: var(--merch-color-error, #d73220);
                 }
 
                 ${fieldStatusStyles}

@@ -649,6 +649,11 @@ sp-table-cell {
             background-color: var(--spectrum-blue-800);
         }
 
+        .validation-error-indicator {
+            display: inline-flex;
+            align-items: center;
+        }
+
         .validation-error-icon {
             color: var(--merch-color-error, #d73220);
             width: 18px;

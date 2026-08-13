@@ -24,34 +24,20 @@ const makeEditor = (validationStatus) => {
 };
 
 describe('merch-card-editor validationStatus', () => {
-    it('renders no field indicator when the field has no validation error', () => {
-        const editor = makeEditor([]);
-        expect(editor.renderFieldValidationIndicator('ctas')).to.equal(nothing);
-    });
-
-    it('anchors the verbatim message to the matching field', () => {
-        const editor = makeEditor([{ property: 'fields.ctas.values[0].<list element>', message: 'is not valid HTML' }]);
-        expect(renderToText(editor.renderFieldValidationIndicator('ctas'))).to.include('is not valid HTML');
-    });
-
-    it('does not anchor an error to an unrelated field', () => {
-        const editor = makeEditor([{ property: 'fields.ctas.values[0].<list element>', message: 'is not valid HTML' }]);
-        expect(editor.renderFieldValidationIndicator('cardTitle')).to.equal(nothing);
-    });
-
-    it('surfaces field validation even when the fragment is not a variation', () => {
-        const editor = makeEditor([{ property: 'fields.ctas.values[0].<list element>', message: 'is not valid HTML' }]);
-        editor.isVariation = false;
-        expect(editor.renderFieldStatusIndicator('ctas')).to.not.equal(nothing);
-    });
-
     it('renders no banner when the fragment is valid', () => {
         const editor = makeEditor([]);
         expect(editor.renderValidationBanner()).to.equal(nothing);
     });
 
-    it('lists unanchored errors in the banner', () => {
-        const editor = makeEditor([{ property: 'path', message: 'path is required' }]);
-        expect(renderToText(editor.renderValidationBanner())).to.include('path is required');
+    it('lists every property and message in the banner verbatim', () => {
+        const editor = makeEditor([
+            { property: 'fields.ctas.values[0].<list element>', message: 'is not valid HTML' },
+            { property: 'path', message: 'path is required' },
+        ]);
+        const text = renderToText(editor.renderValidationBanner());
+        expect(text).to.include('fields.ctas.values[0].<list element>');
+        expect(text).to.include('is not valid HTML');
+        expect(text).to.include('path');
+        expect(text).to.include('path is required');
     });
 });

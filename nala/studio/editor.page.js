@@ -97,6 +97,8 @@ export default class EditorPage {
         this.whatsIncludedEditMenu = page.locator('mas-included-field sp-action-menu').first();
         this.whatsIncludedDeleteButton = page.locator('sp-menu sp-menu-item:has-text("Delete")');
         this.whatsIncludedLabel = this.panel.locator('#whatsIncludedLabel input');
+        // At size=edu the label is an rte-field (OST-capable), not a text input.
+        this.whatsIncludedLabelRte = this.panel.locator('rte-field#whatsIncludedLabel div[contenteditable="true"]');
         this.whatsIncludedAddedIcon = this.panel.locator('#whatsIncluded mas-included-field');
         this.whatsIncludedAddBullet = this.panel.locator('#whatsIncluded sp-action-button:has-text("Add bullet")');
 

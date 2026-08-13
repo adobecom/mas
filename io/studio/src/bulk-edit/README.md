@@ -68,7 +68,7 @@ Start a search. **`replace` is required** — it defines the replacement text ap
 | `locale`       | no       | String or array; omit for all locales                                                                                                                                                                              |
 | `tags`         | no       | Filter by fragment tags                                                                                                                                                                                            |
 | `status`       | no       | e.g. `PUBLISHED`, `DRAFT`                                                                                                                                                                                          |
-| `limit`        | no       | Max matches per run (batch size). Omitted → unbounded (single pass). See [Batched find](#batched-find-limit).                                                                                                       |
+| `limit`        | no       | Max matches per run (batch size). Omitted → unbounded (single pass). See [Batched find](#batched-find-limit).                                                                                                      |
 | `forceRefresh` | no       | Re-run even if a cached job exists                                                                                                                                                                                 |
 
 Response: `202 { jobId, reused }`

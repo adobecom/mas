@@ -229,6 +229,11 @@ describe('bulk-edit: handlePost', () => {
         expect(writeJob.calledOnce).to.equal(true);
         expect(invokeAsyncAction.calledOnce).to.equal(true);
     });
+    it('persists the match limit in the job params', async () => {
+        const { mod, writeJob } = load();
+        await mod.handlePost({ ...findParams, limit: 3000 });
+        expect(writeJob.firstCall.args[1].params.limit).to.equal(3000);
+    });
     it('400s an unsupported type', async () => {
         const { mod } = load();
         const res = await mod.handlePost({ type: 'bogus', find: 'x', surface: 'sandbox' });

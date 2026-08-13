@@ -68,9 +68,18 @@ Start a search. **`replace` is required** — it defines the replacement text ap
 | `locale`       | no       | String or array; omit for all locales                                                                                                                                                                              |
 | `tags`         | no       | Filter by fragment tags                                                                                                                                                                                            |
 | `status`       | no       | e.g. `PUBLISHED`, `DRAFT`                                                                                                                                                                                          |
+| `limit`        | no       | Max matches per run (batch size). Omitted → unbounded (single pass). See [Batched find](#batched-find-limit).                                                                                                       |
 | `forceRefresh` | no       | Re-run even if a cached job exists                                                                                                                                                                                 |
 
 Response: `202 { jobId, reused }`
+
+#### Batched find (`limit`)
+
+For large result sets, set `limit` to cap matches per run and keep each job bounded (memory + duration). The worker stops collecting once it reaches `limit` matches — soft-capped at the Odin page boundary, so a run may overshoot by up to one page — then finalizes as `DONE`.
+
+Work through the results in batches by **replace-then-re-search**: run find with a `limit`, replace that batch, then run find again for the next batch. No pagination state is persisted — because replace rewrites the matched text, the fixed fragments no longer match `find`, so a fresh search returns only the remaining (un-fixed) fragments. Re-running the identical find hits the cached `DONE` job (`reused: true`), so pass `forceRefresh: true` to force the new search after a replace. Repeat until find returns `total: 0`.
+
+`limit` is part of the job identity — changing it starts a new job.
 
 ### Find — poll / upload
 

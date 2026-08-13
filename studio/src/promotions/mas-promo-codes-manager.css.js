@@ -156,7 +156,7 @@ export const managerStyles = css`
     .offer-grid-header,
     .offer-grid-row {
         display: grid;
-        grid-template-columns: minmax(140px, 1.2fr) minmax(180px, 1.3fr) minmax(220px, 1.2fr);
+        grid-template-columns: minmax(140px, 1.2fr) minmax(180px, 1.3fr) minmax(220px, 1.2fr) minmax(96px, 0.6fr);
         gap: 12px;
         align-items: start;
         padding: 10px 16px;
@@ -185,6 +185,13 @@ export const managerStyles = css`
         display: flex;
         align-items: center;
         gap: 8px;
+        min-width: 0;
+    }
+
+    .ignore-variations-cell {
+        display: flex;
+        align-items: flex-start;
+        justify-content: center;
         min-width: 0;
     }
 

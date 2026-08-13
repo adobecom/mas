@@ -4,6 +4,7 @@ import {
     parseCountriesFromGeos,
     getEffectivePromoCode,
     getEffectiveSubstituteOffer,
+    getEffectiveIgnoreVariations,
     promotionOfferRecordHasDisplayName,
     resolvePromotionOfferRecord,
 } from './promotion-editor-utils.js';
@@ -27,12 +28,14 @@ class MasPromoCodesManager extends LitElement {
         defaultPromoCode: { type: String },
         exceptions: { type: Object },
         offerSubstitutions: { type: Object },
+        ignoredVariations: { type: Object },
         selectedCountries: { type: Object, state: true },
         expandedCountry: { type: String, state: true },
         bulkPromoCode: { type: String, state: true },
         bulkApplyVisible: { type: Boolean, state: true },
         workingExceptions: { type: Object, state: true },
         workingOfferSubstitutions: { type: Object, state: true },
+        workingIgnoreVariations: { type: Object, state: true },
         substituteOfferCache: { type: Object, state: true },
         substituteResolvePending: { type: Object, state: true },
         successMessage: { type: String, state: true },
@@ -46,12 +49,14 @@ class MasPromoCodesManager extends LitElement {
         this.defaultPromoCode = '';
         this.exceptions = new Map();
         this.offerSubstitutions = new Map();
+        this.ignoredVariations = new Map();
         this.selectedCountries = new Set();
         this.expandedCountry = '';
         this.bulkPromoCode = '';
         this.bulkApplyVisible = false;
         this.workingExceptions = new Map();
         this.workingOfferSubstitutions = new Map();
+        this.workingIgnoreVariations = new Map();
         this.substituteOfferCache = new Map();
         this.substituteResolvePending = new Set();
         this.successMessage = '';
@@ -63,6 +68,7 @@ class MasPromoCodesManager extends LitElement {
             this.#clearSubstituteResolveTimers();
             this.workingExceptions = new Map(this.exceptions);
             this.workingOfferSubstitutions = new Map(this.offerSubstitutions);
+            this.workingIgnoreVariations = new Map(this.ignoredVariations);
             this.substituteOfferCache = new Map();
             this.substituteResolvePending = new Set();
             this.selectedCountries = new Set();
@@ -136,6 +142,18 @@ class MasPromoCodesManager extends LitElement {
             next.set(key, substituteSelectorId);
         }
         this.workingOfferSubstitutions = next;
+    }
+
+    #toggleIgnoreVariations(offerId, country) {
+        if (!offerId) return;
+        const next = new Map(this.workingIgnoreVariations);
+        const key = `${offerId}|${country}`;
+        if (next.get(key)) {
+            next.delete(key);
+        } else {
+            next.set(key, true);
+        }
+        this.workingIgnoreVariations = next;
     }
 
     #handlePromoCodeInput(offerId, country, input) {
@@ -303,12 +321,21 @@ class MasPromoCodesManager extends LitElement {
         return cleaned;
     }
 
+    #cleanIgnoreVariations(map) {
+        const cleaned = new Map();
+        for (const [key, ignored] of map.entries()) {
+            if (ignored) cleaned.set(key, true);
+        }
+        return cleaned;
+    }
+
     #handleConfirm() {
         this.dispatchEvent(
             new CustomEvent('promo-codes-save', {
                 detail: {
                     exceptions: this.#cleanExceptions(this.workingExceptions),
                     offerSubstitutions: this.#cleanOfferSubstitutions(this.workingOfferSubstitutions),
+                    ignoredVariations: this.#cleanIgnoreVariations(this.workingIgnoreVariations),
                 },
                 bubbles: true,
                 composed: true,
@@ -374,6 +401,7 @@ class MasPromoCodesManager extends LitElement {
         const effectiveCode = getEffectivePromoCode(this.workingExceptions, baseSelectorId, country, '');
         const isPromoOverridden = this.workingExceptions.has(`${baseSelectorId}|${country}`);
         const isOfferOverridden = Boolean(substituteSelectorId);
+        const isVariationsIgnored = getEffectiveIgnoreVariations(this.workingIgnoreVariations, baseSelectorId, country);
         const copyLabel = isCustomOsi ? 'Copy OSI' : 'Copy Offer ID';
 
         return html`<div class="offer-grid-row" data-offer-key=${rowKey}>
@@ -440,6 +468,14 @@ class MasPromoCodesManager extends LitElement {
                       </button>`
                     : nothing}
             </div>
+            <div class="ignore-variations-cell">
+                <sp-checkbox
+                    class="ignore-variations-checkbox"
+                    ?checked=${isVariationsIgnored}
+                    ?disabled=${!baseSelectorId}
+                    @change=${() => this.#toggleIgnoreVariations(baseSelectorId, country)}
+                ></sp-checkbox>
+            </div>
         </div>`;
     }
 
@@ -454,6 +490,7 @@ class MasPromoCodesManager extends LitElement {
                 <span>Offer</span>
                 <span>Offer ID</span>
                 <span>Promo code</span>
+                <span>Ignore variations</span>
             </div>
             ${repeat(
                 offersWithIds,

@@ -417,7 +417,9 @@ describe('MasFragmentTable', () => {
             await el.updateComplete;
             const indicator = el.querySelector('.validation-error-icon');
             expect(indicator).to.exist;
-            expect(indicator.getAttribute('title')).to.include('is not valid HTML');
+            const tooltip = el.querySelector('sp-tooltip');
+            expect(tooltip).to.exist;
+            expect(tooltip.textContent).to.include('is not valid HTML');
         });
     });
 });

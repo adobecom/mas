@@ -287,10 +287,12 @@ class MasFragmentTable extends LitElement {
                     ><div class="status-dot"></div>
                     <span class="status-text">${data.status}</span>
                     ${validationErrors.length
-                        ? html`<sp-icon-alert
-                              class="validation-error-icon"
-                              title="${validationErrors.map((error) => error.message).join('\n')}"
-                          ></sp-icon-alert>`
+                        ? html`<overlay-trigger placement="top"
+                              ><sp-icon-alert slot="trigger" class="validation-error-icon"></sp-icon-alert>
+                              <sp-tooltip slot="hover-content"
+                                  >${validationErrors.map((error) => error.message).join('; ')}</sp-tooltip
+                              ></overlay-trigger
+                          >`
                         : nothing}</sp-table-cell
                 >
                 <sp-table-cell class="actions">

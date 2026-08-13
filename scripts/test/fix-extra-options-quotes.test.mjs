@@ -70,17 +70,13 @@ test('repairFragment ignores non-string field values', () => {
     assert.deepEqual(repairFragment(fragment), []);
 });
 
-test('studioLink builds a fragment-editor deep link', () => {
-    assert.equal(studioLink('a1b2'), 'https://mas.adobe.com/studio.html#page=fragment-editor&fragmentId=a1b2');
+test('studioLink builds a studio query deep link', () => {
+    assert.equal(studioLink('a1b2'), 'https://mas.adobe.com/studio.html#query=a1b2');
 });
 
 test('buildReport lists one link per hit', () => {
     const report = buildReport([{ id: 'a1' }, { id: 'b2' }]);
-    assert.equal(
-        report,
-        'https://mas.adobe.com/studio.html#page=fragment-editor&fragmentId=a1\n' +
-            'https://mas.adobe.com/studio.html#page=fragment-editor&fragmentId=b2',
-    );
+    assert.equal(report, 'https://mas.adobe.com/studio.html#query=a1\n' + 'https://mas.adobe.com/studio.html#query=b2');
 });
 
 const broken = () => ({

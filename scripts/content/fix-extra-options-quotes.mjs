@@ -30,7 +30,7 @@ export function repairFragment(fragment) {
 }
 
 export function studioLink(id) {
-    return `https://mas.adobe.com/studio.html#page=fragment-editor&fragmentId=${id}`;
+    return `https://mas.adobe.com/studio.html#query=${id}`;
 }
 
 export function buildReport(hits) {

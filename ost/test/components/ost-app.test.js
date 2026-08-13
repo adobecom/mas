@@ -456,6 +456,24 @@ describe('ost-app', () => {
             }
         });
 
+        it('seeds the search query with the deep-linked OSI so Tab 1 shows what was opened', async () => {
+            const originalFetch = window.fetch;
+            window.fetch = async () => {
+                throw new Error('aos down');
+            };
+            try {
+                const el = await fixture(html`<ost-app></ost-app>`);
+                await el.resolveDeepLinkOffer('osi-seeded');
+                expect(store.searchQuery).to.equal('osi-seeded');
+                expect(store.searchType).to.equal('osi');
+            } finally {
+                window.fetch = originalFetch;
+                store.initialOsi = undefined;
+                store.searchQuery = '';
+                store.searchType = '';
+            }
+        });
+
         it('persists the deep-link OSI on store.initialOsi', async () => {
             const originalFetch = window.fetch;
             window.fetch = async () => {

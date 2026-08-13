@@ -348,6 +348,48 @@ describe('openOfferSelectorTool deep-link type parameter', () => {
         expect(config.offerSelectorPlaceholderOptions.quantity).to.equal('5');
     });
 
+    function triggerInsideCardEditorWithOsi(osi) {
+        const editor = document.createElement('merch-card-editor');
+        editor.getEffectiveFieldValue = (field) => (field === 'osi' ? osi : undefined);
+        const trigger = document.createElement('span');
+        editor.appendChild(trigger);
+        document.body.appendChild(editor);
+        return { editor, trigger };
+    }
+
+    it("deep-links a new OST to the card's osi field when there is no offer element", () => {
+        const { editor, trigger } = triggerInsideCardEditorWithOsi('card-osi-1');
+        try {
+            openOfferSelectorTool(trigger, null);
+            const config = openOstStub.getCall(0).args[0];
+            expect(config.searchOfferSelectorId).to.equal('card-osi-1');
+        } finally {
+            editor.remove();
+        }
+    });
+
+    it('opens on the empty plate when the card has no osi field value', () => {
+        const { editor, trigger } = triggerInsideCardEditorWithOsi('');
+        try {
+            openOfferSelectorTool(trigger, null);
+            const config = openOstStub.getCall(0).args[0];
+            expect(config.searchOfferSelectorId).to.be.undefined;
+        } finally {
+            editor.remove();
+        }
+    });
+
+    it("ignores the card's osi field when an offer element supplies its own OSI", () => {
+        const { editor, trigger } = triggerInsideCardEditorWithOsi('card-osi-1');
+        try {
+            openOfferSelectorTool(trigger, elementWith({ 'data-wcs-osi': 'element-osi' }));
+            const config = openOstStub.getCall(0).args[0];
+            expect(config.searchOfferSelectorId).to.equal('element-osi');
+        } finally {
+            editor.remove();
+        }
+    });
+
     it('passes language and country from authoring locale for en_EG regional variation', () => {
         const localeOrRegionStub = sinon.stub(Store, 'localeOrRegion').returns('en_EG');
         const masCommerceService = document.querySelector('mas-commerce-service');

@@ -19,7 +19,9 @@ test('escapes backslash-escaped inner quotes', () => {
 
 test('fixes multiple attributes in one value', () => {
     assert.equal(
-        fixExtraOptionsQuotes('<a data-extra-options="{"actionId":"try"}">T</a><a data-extra-options="{"actionId":"buy"}">B</a>'),
+        fixExtraOptionsQuotes(
+            '<a data-extra-options="{"actionId":"try"}">T</a><a data-extra-options="{"actionId":"buy"}">B</a>',
+        ),
         '<a data-extra-options="{&quot;actionId&quot;:&quot;try&quot;}">T</a><a data-extra-options="{&quot;actionId&quot;:&quot;buy&quot;}">B</a>',
     );
 });
@@ -69,10 +71,7 @@ test('repairFragment ignores non-string field values', () => {
 });
 
 test('studioLink builds a fragment-editor deep link', () => {
-    assert.equal(
-        studioLink('a1b2'),
-        'https://main--mas--adobecom.aem.live/studio.html#page=fragment-editor&fragmentId=a1b2',
-    );
+    assert.equal(studioLink('a1b2'), 'https://main--mas--adobecom.aem.live/studio.html#page=fragment-editor&fragmentId=a1b2');
 });
 
 test('buildReport lists one link per hit', () => {
@@ -80,18 +79,26 @@ test('buildReport lists one link per hit', () => {
     assert.equal(
         report,
         'https://main--mas--adobecom.aem.live/studio.html#page=fragment-editor&fragmentId=a1\n' +
-        'https://main--mas--adobecom.aem.live/studio.html#page=fragment-editor&fragmentId=b2',
+            'https://main--mas--adobecom.aem.live/studio.html#page=fragment-editor&fragmentId=b2',
     );
 });
 
 const broken = () => ({
-    id: 'id1', path: '/content/dam/mas/ccd/de_DE/card', etag: 'e1',
-    title: 't', description: 'd', status: 'PUBLISHED',
+    id: 'id1',
+    path: '/content/dam/mas/ccd/de_DE/card',
+    etag: 'e1',
+    title: 't',
+    description: 'd',
+    status: 'PUBLISHED',
     fields: [{ name: 'ctas', type: 'text', values: ['<a data-extra-options="{"actionId":"try"}">T</a>'] }],
 });
 const clean = () => ({
-    id: 'id2', path: '/content/dam/mas/ccd/de_DE/ok', etag: 'e2',
-    title: 't', description: 'd', status: 'PUBLISHED',
+    id: 'id2',
+    path: '/content/dam/mas/ccd/de_DE/ok',
+    etag: 'e2',
+    title: 't',
+    description: 'd',
+    status: 'PUBLISHED',
     fields: [{ name: 'ctas', type: 'text', values: ['<a>ok</a>'] }],
 });
 
@@ -112,7 +119,10 @@ test('repairs broken fragments and PUTs them', async () => {
     const puts = stubFetch([broken(), clean()]);
     const { scanned, hits } = await run(runOpts);
     assert.equal(scanned, 2);
-    assert.deepEqual(hits.map((h) => h.id), ['id1']);
+    assert.deepEqual(
+        hits.map((h) => h.id),
+        ['id1'],
+    );
     assert.equal(puts.length, 1);
     assert.equal(puts[0].url, 'https://h/adobe/sites/cf/fragments/id1');
     assert.match(puts[0].body.fields[0].values[0], /&quot;actionId&quot;/);
@@ -121,7 +131,10 @@ test('repairs broken fragments and PUTs them', async () => {
 test('dry-run performs no PUT', async () => {
     const puts = stubFetch([broken()]);
     const { hits } = await run({ ...runOpts, dryRun: true });
-    assert.deepEqual(hits.map((h) => h.id), ['id1']);
+    assert.deepEqual(
+        hits.map((h) => h.id),
+        ['id1'],
+    );
     assert.equal(puts.length, 0);
 });
 

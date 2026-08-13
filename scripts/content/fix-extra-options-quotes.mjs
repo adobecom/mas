@@ -40,7 +40,10 @@ export function buildReport(hits) {
 export async function run({ authorHost, folder, limit = 0, dryRun = false, token, apiKey }) {
     const baseUrl = `https://${authorHost}`;
     const headers = createHeaders(token, apiKey);
-    const query = JSON.stringify({ filter: { path: folder, modelIds: [CARD_MODEL_ID] }, sort: [{ on: 'created', order: 'ASC' }] });
+    const query = JSON.stringify({
+        filter: { path: folder, modelIds: [CARD_MODEL_ID] },
+        sort: [{ on: 'created', order: 'ASC' }],
+    });
 
     let cursor = null;
     let scanned = 0;
@@ -79,4 +82,30 @@ export async function run({ authorHost, folder, limit = 0, dryRun = false, token
     } while (cursor);
 
     return { scanned, hits };
+}
+
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+    const { getFlag, hasFlag } = parseArgs(process.argv);
+    const authorHost = getFlag('--author-host');
+    const folder = getFlag('--folder');
+    const limit = Number(getFlag('--limit') ?? 0);
+    const dryRun = hasFlag('--dry-run');
+    const token = process.env.MAS_IMS_TOKEN;
+    const apiKey = process.env.MAS_API_KEY;
+
+    if (!authorHost || !folder || !token || !apiKey) {
+        console.error(
+            'Usage: MAS_IMS_TOKEN=<t> MAS_API_KEY=<k> node fix-extra-options-quotes.mjs --author-host <host> --folder <path> [--limit <n>] [--dry-run]',
+        );
+        process.exit(1);
+    }
+
+    const { scanned, hits } = await run({ authorHost, folder, limit, dryRun, token, apiKey });
+    console.log(`Scanned ${scanned} fragments, ${hits.length} ${dryRun ? 'would be repaired' : 'repaired'}.`);
+    if (hits.length) {
+        const segments = folder.split('/');
+        const name = `fix-extra-options-${segments.at(-2)}-${segments.at(-1)}-${Date.now()}.txt`;
+        writeFileSync(name, `${buildReport(hits)}\n`);
+        console.log(`Report written to ${name}`);
+    }
 }

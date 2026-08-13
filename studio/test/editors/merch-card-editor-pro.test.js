@@ -245,3 +245,67 @@ describe('merch-card-editor pro appearance mapping', () => {
         expect([...picker.querySelectorAll('sp-menu-item')].map((item) => item.value)).to.not.include('Transparent');
     });
 });
+
+describe('merch-card-editor pro edu whats-included label field', () => {
+    const RICH_LABEL =
+        '<p class="whats-included-label"><span is="inline-price" data-wcs-osi="abc"></span> off</p>' +
+        '<div class="section"><h4>PDF</h4></div>';
+
+    function makeEditor(size) {
+        const emptyFields = [
+            'cardName',
+            'osi',
+            'cardTitle',
+            'subtitle',
+            'backgroundImage',
+            'backgroundImageAltText',
+            'description',
+            'prices',
+            'ctas',
+            'backgroundColor',
+        ];
+        const fragment = new Fragment({
+            model: { path: '/conf/mas/settings/dam/cfm/models/card' },
+            fields: [
+                { name: 'variant', values: [VARIANT_NAMES.PRO] },
+                { name: 'size', values: size ? [size] : [] },
+                { name: 'whatsIncluded', values: [RICH_LABEL] },
+                ...emptyFields.map((name) => ({ name, values: [] })),
+            ],
+            tags: [],
+            title: '',
+            description: '',
+        });
+        const editor = new (customElements.get('merch-card-editor'))();
+        editor.fragmentStore = new FragmentStore(fragment);
+        document.body.append(editor);
+        return editor;
+    }
+
+    async function finishRendering(editor) {
+        await editor.updateComplete;
+        editor.fieldsReady = true;
+        await editor.updateComplete;
+    }
+
+    afterEach(() => {
+        document.querySelectorAll('merch-card-editor').forEach((editor) => editor.remove());
+    });
+
+    it('renders the label as an rte-field (OST) at size edu', async () => {
+        const editor = makeEditor('edu');
+        await finishRendering(editor);
+        const field = editor.querySelector('#whatsIncludedLabel');
+        expect(field?.tagName.toLowerCase()).to.equal('rte-field');
+    });
+
+    it('renders a plain textfield for non-edu and flattens rich markup to text', async () => {
+        const editor = makeEditor('wide');
+        await finishRendering(editor);
+        const field = editor.querySelector('#whatsIncludedLabel');
+        expect(field?.tagName.toLowerCase()).to.equal('sp-textfield');
+        // The live offer is flattened to text, never leaked into the plain field.
+        expect(field.value).to.not.contain('<span');
+        expect(field.value).to.not.contain('data-wcs-osi');
+    });
+});

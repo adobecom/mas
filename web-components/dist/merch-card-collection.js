@@ -5879,6 +5879,10 @@ merch-card-collection.plans:is(.one-merch-card, .two-merch-cards, .three-merch-c
             display: flex;
         }
 
+        :host([variant='pro'][size='edu']) footer {
+            margin: unset;
+        }
+
         @media screen and ${Ht(R)} {
             :host([variant='pro'][size='edu']) {
                 flex-direction: row;

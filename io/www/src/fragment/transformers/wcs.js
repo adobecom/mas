@@ -135,8 +135,16 @@ function scanMasElements(fields, substituteMap, context) {
             const osi = substituteMap && !isLocked ? substituteOsi(rawOsi, substituteMap) : rawOsi;
             // A mapping whose target carries a promo code (`<osi>,<promoCode>`) applies it to this
             // substituted placeholder as data-promotion-code, but only when the element has no promo of
-            // its own — an authored promo code always wins and is left untouched (MWPW-203764).
-            const injectedPromo = isLocked || existingPromo ? undefined : substituteMap?.[rawOsi]?.promotionCode;
+            // its own — an authored promo code always wins and is left untouched (MWPW-203764). rawOsi
+            // may be a comma-joined pair (discount badges, MWPW-201714), so match each half like
+            // substituteOsi/resolvePromoCode and take the first mapped promo.
+            const injectedPromo =
+                isLocked || existingPromo
+                    ? undefined
+                    : rawOsi
+                          .split(',')
+                          .map((part) => substituteMap?.[part]?.promotionCode)
+                          .find(Boolean);
             const promotionCode = injectedPromo ?? existingPromo;
             elements.push({ osi, rawOsi, promotionCode });
             let updated = element;

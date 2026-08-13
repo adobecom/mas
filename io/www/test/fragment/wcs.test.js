@@ -794,6 +794,15 @@ describe('wcs OSI helpers', function () {
         expect(elements.map((element) => element.promotionCode)).to.deep.equal(['BTS26', 'OWN']);
     });
 
+    it('scanMasElements substitutes and injects the promo on the mapped half of a comma-joined OSI', function () {
+        // Discount badge: `data-wcs-osi="A,B"` (MWPW-201714). Mapping A -> SUB-A,BTS26 substitutes the A
+        // half and injects its promo, even though the raw attribute key is the whole pair "A,B".
+        const fields = { prices: '<span data-wcs-osi="A,B"></span>' };
+        const elements = scanMasElements(fields, { A: { osi: 'SUB-A', promotionCode: 'BTS26' } }, {});
+        expect(fields.prices).to.equal('<span data-wcs-osi="SUB-A,B" data-promotion-code="BTS26"></span>');
+        expect(elements[0].promotionCode).to.equal('BTS26');
+    });
+
     it('scanMasElements returns [] for a fragment without fields', function () {
         expect(scanMasElements(undefined, undefined)).to.deep.equal([]);
     });

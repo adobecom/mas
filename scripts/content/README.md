@@ -98,9 +98,16 @@ Exit codes: `0` on full success, `1` on HTTP error or bad usage, `2` if any path
 
 Repairs card fragments whose `data-extra-options` attribute has unescaped inner
 quotes (pre-GLAAS-11333 CATS-i corruption), escaping them to `&quot;`. Scans
-one surface/locale folder, writes changed fragments (unless `--dry-run`), and
-emits a `.txt` of Studio deep-links for building a bulk-publish project. Does
-not publish.
+one surface/locale folder, writes changed fragments in parallel (unless
+`--dry-run`), and emits a `.txt` of Studio deep-links for building a
+bulk-publish project. Does not publish.
+
+Flags:
+
+- `--folder <path>`: surface/locale folder to scan (required).
+- `--dry-run`: report affected fragments without writing.
+- `--limit <n>`: stop after `n` affected fragments (`--limit 1` = first only).
+- `--concurrency <n>`: number of fragments written in parallel (default 10).
 
 ```sh
 export MAS_IMS_TOKEN="your-ims-token"
@@ -110,7 +117,11 @@ export MAS_API_KEY="mas-studio"
 node fix-extra-options-quotes.mjs --author-host <aem-author-host> \
     --folder /content/dam/mas/ccd/de_DE --limit 1 --dry-run
 
-# repair the whole folder
+# repair the whole folder, 10 parallel writers (default)
 node fix-extra-options-quotes.mjs --author-host <aem-author-host> \
     --folder /content/dam/mas/ccd/de_DE
+
+# repair with 20 parallel writers
+node fix-extra-options-quotes.mjs --author-host <aem-author-host> \
+    --folder /content/dam/mas/ccd/de_DE --concurrency 20
 ```

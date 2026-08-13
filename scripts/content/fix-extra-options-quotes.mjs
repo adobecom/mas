@@ -37,7 +37,31 @@ export function buildReport(hits) {
     return hits.map((hit) => studioLink(hit.id)).join('\n');
 }
 
-export async function run({ authorHost, folder, limit = 0, dryRun = false, token, apiKey }) {
+export async function runPool(items, concurrency, worker) {
+    const queue = items.slice();
+    const size = Math.max(1, Math.min(concurrency, queue.length));
+    const workers = Array.from({ length: size }, async () => {
+        while (queue.length) {
+            await worker(queue.shift());
+        }
+    });
+    await Promise.all(workers);
+}
+
+async function putFragment(baseUrl, headers, fragment) {
+    const response = await fetch(`${baseUrl}/adobe/sites/cf/fragments/${fragment.id}`, {
+        method: 'PUT',
+        headers: { ...headers, 'If-Match': fragment.etag },
+        body: JSON.stringify({ title: fragment.title, description: fragment.description, fields: fragment.fields }),
+    });
+    if (!response.ok) {
+        console.error(`PUT failed for ${fragment.id}: ${response.status} ${response.statusText}`);
+        return false;
+    }
+    return true;
+}
+
+export async function run({ authorHost, folder, limit = 0, dryRun = false, concurrency = 10, token, apiKey }) {
     const baseUrl = `https://${authorHost}`;
     const headers = createHeaders(token, apiKey);
     const query = JSON.stringify({
@@ -51,7 +75,8 @@ export async function run({ authorHost, folder, limit = 0, dryRun = false, token
 
     let cursor = null;
     let scanned = 0;
-    const hits = [];
+    let done = false;
+    const broken = [];
 
     do {
         const params = new URLSearchParams({ query });
@@ -63,28 +88,29 @@ export async function run({ authorHost, folder, limit = 0, dryRun = false, token
         scanned += items.length;
 
         for (const fragment of items) {
-            const changed = repairFragment(fragment);
-            if (!changed.length) continue;
-            hits.push({ id: fragment.id, path: fragment.path, fields: changed });
-            if (!dryRun) {
-                const put = await fetch(`${baseUrl}/adobe/sites/cf/fragments/${fragment.id}`, {
-                    method: 'PUT',
-                    headers: { ...headers, 'If-Match': fragment.etag },
-                    body: JSON.stringify({ title: fragment.title, description: fragment.description, fields: fragment.fields }),
-                });
-                if (!put.ok) {
-                    console.error(`PUT failed for ${fragment.id}: ${put.status} ${put.statusText}`);
-                    hits.pop();
-                    continue;
-                }
+            const fields = repairFragment(fragment);
+            if (!fields.length) continue;
+            broken.push({ fragment, fields });
+            if (limit && broken.length >= limit) {
+                done = true;
+                break;
             }
-            if (limit && hits.length >= limit) return { scanned, hits };
         }
 
-        cursor = data.cursor ?? null;
+        cursor = done ? null : (data.cursor ?? null);
         if (cursor) await wait(1000);
     } while (cursor);
 
+    const failed = new Set();
+    if (!dryRun) {
+        await runPool(broken, concurrency, async ({ fragment }) => {
+            if (!(await putFragment(baseUrl, headers, fragment))) failed.add(fragment.id);
+        });
+    }
+
+    const hits = broken
+        .filter(({ fragment }) => !failed.has(fragment.id))
+        .map(({ fragment, fields }) => ({ id: fragment.id, path: fragment.path, fields }));
     return { scanned, hits };
 }
 
@@ -93,18 +119,19 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     const authorHost = getFlag('--author-host');
     const folder = getFlag('--folder');
     const limit = Number(getFlag('--limit') ?? 0);
+    const concurrency = Number(getFlag('--concurrency') ?? 10);
     const dryRun = hasFlag('--dry-run');
     const token = process.env.MAS_IMS_TOKEN;
     const apiKey = process.env.MAS_API_KEY;
 
     if (!authorHost || !folder || !token || !apiKey) {
         console.error(
-            'Usage: MAS_IMS_TOKEN=<t> MAS_API_KEY=<k> node fix-extra-options-quotes.mjs --author-host <host> --folder <path> [--limit <n>] [--dry-run]',
+            'Usage: MAS_IMS_TOKEN=<t> MAS_API_KEY=<k> node fix-extra-options-quotes.mjs --author-host <host> --folder <path> [--limit <n>] [--concurrency <n>] [--dry-run]',
         );
         process.exit(1);
     }
 
-    const { scanned, hits } = await run({ authorHost, folder, limit, dryRun, token, apiKey });
+    const { scanned, hits } = await run({ authorHost, folder, limit, dryRun, concurrency, token, apiKey });
     console.log(`Scanned ${scanned} fragments, ${hits.length} ${dryRun ? 'would be repaired' : 'repaired'}.`);
     if (hits.length) {
         const segments = folder.split('/');

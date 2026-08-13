@@ -1,6 +1,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { fixExtraOptionsQuotes, repairFragment, studioLink, buildReport, run } from '../content/fix-extra-options-quotes.mjs';
+import {
+    fixExtraOptionsQuotes,
+    repairFragment,
+    studioLink,
+    buildReport,
+    run,
+    runPool,
+} from '../content/fix-extra-options-quotes.mjs';
 import { fixDataExtraOptionsInValue } from '../../io/www/src/fragment/transformers/corrector.js';
 
 test('escapes literal inner quotes', () => {
@@ -139,6 +146,51 @@ test('limit stops after N hits', async () => {
     const { hits } = await run({ ...runOpts, limit: 1 });
     assert.equal(hits.length, 1);
     assert.equal(puts.length, 1);
+});
+
+test('runPool processes every item without exceeding the concurrency cap', async () => {
+    const items = Array.from({ length: 25 }, (_, i) => i);
+    const processed = [];
+    let inFlight = 0;
+    let maxInFlight = 0;
+    await runPool(items, 10, async (n) => {
+        inFlight += 1;
+        maxInFlight = Math.max(maxInFlight, inFlight);
+        await new Promise((r) => setTimeout(r, 1));
+        processed.push(n);
+        inFlight -= 1;
+    });
+    assert.equal(processed.length, 25);
+    assert.ok(maxInFlight > 1, `expected parallelism, got maxInFlight=${maxInFlight}`);
+    assert.ok(maxInFlight <= 10, `exceeded cap, got maxInFlight=${maxInFlight}`);
+});
+
+test('run PUTs broken fragments in parallel up to the concurrency cap', async () => {
+    const items = Array.from({ length: 8 }, (_, i) => ({ ...broken(), id: `id${i}` }));
+    let inFlight = 0;
+    let maxInFlight = 0;
+    globalThis.fetch = async (url, init) => {
+        if (init?.method === 'PUT') {
+            inFlight += 1;
+            maxInFlight = Math.max(maxInFlight, inFlight);
+            await new Promise((r) => setTimeout(r, 1));
+            inFlight -= 1;
+            return { ok: true, headers: { get: () => 'e' } };
+        }
+        return { ok: true, json: async () => ({ items, cursor: null }) };
+    };
+    const { hits } = await run({ ...runOpts, concurrency: 3 });
+    assert.equal(hits.length, 8);
+    assert.ok(maxInFlight > 1 && maxInFlight <= 3, `maxInFlight=${maxInFlight}`);
+});
+
+test('a fragment whose PUT fails is not reported as a hit', async () => {
+    globalThis.fetch = async (url, init) => {
+        if (init?.method === 'PUT') return { ok: false, status: 412, statusText: 'Precondition Failed' };
+        return { ok: true, json: async () => ({ items: [broken()], cursor: null }) };
+    };
+    const { hits } = await run({ ...runOpts, concurrency: 5 });
+    assert.equal(hits.length, 0);
 });
 
 test('search query narrows to fragments containing data-extra-options', async () => {

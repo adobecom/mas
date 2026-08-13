@@ -14,6 +14,7 @@ export const SIMPLIFIED_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING = {
         tag: 'div',
         slot: 'badge',
         default: 'spectrum-blue-400',
+        alwaysRender: true,
     },
     allowedBadgeColors: [
         'spectrum-blue-400',
@@ -76,12 +77,12 @@ export class SimplifiedPricingExpress extends VariantLayout {
 
     get badge() {
         const badgeElement = this.card.querySelector('[slot="badge"]');
-        if (badgeElement) {
-            return html`<div class="badge-wrapper">
-                <slot name="badge"></slot>
-            </div>`;
-        }
-        return nothing;
+        return html`<div
+            class="badge-wrapper"
+            style="${badgeElement ? '' : 'visibility: hidden'}"
+        >
+            <slot name="badge"></slot>
+        </div>`;
     }
 
     syncHeights() {

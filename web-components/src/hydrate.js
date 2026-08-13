@@ -99,9 +99,11 @@ export function processMnemonics(fields, merchCard, mnemonicsConfig) {
     }
 }
 
-function processBadge(fields, merchCard, mapping) {
+export function processBadge(fields, merchCard, mapping) {
     if (mapping.badge?.slot) {
-        if (fields.badge?.length && !fields.badge?.startsWith('<merch-badge')) {
+        const shouldRenderBadge =
+            fields.badge?.length || mapping.badge?.alwaysRender;
+        if (shouldRenderBadge && !fields.badge?.startsWith('<merch-badge')) {
             let badgeDefaultBgColor = DEFAULT_BADGE_BACKGROUND_COLOR;
             let setBorderColorForBadge = false;
 
@@ -120,7 +122,7 @@ function processBadge(fields, merchCard, mapping) {
                 fields.borderColor = mapping.badge?.default;
             }
 
-            fields.badge = `<merch-badge variant="${fields.variant}" background-color="${bgColorToUse}" border-color="${borderColorToUse}">${fields.badge}</merch-badge>`;
+            fields.badge = `<merch-badge variant="${fields.variant}" background-color="${bgColorToUse}" border-color="${borderColorToUse}">${fields.badge ?? ''}</merch-badge>`;
         }
         appendSlot('badge', fields, merchCard, mapping);
     } else {

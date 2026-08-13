@@ -25,6 +25,7 @@ import {
     appendSlot,
     processAddon,
     processTrialBadge,
+    processBadge,
     processFeatures,
     normalizeVariant,
 } from '../src/hydrate.js';
@@ -36,6 +37,8 @@ import { delay } from './utils.js';
 import { PLANS_AEM_FRAGMENT_MAPPING } from '../src/variants/plans.js';
 import { MINI_COMPARE_CHART_AEM_FRAGMENT_MAPPING } from '../src/variants/mini-compare-chart.js';
 import { COMPARE_CHART_COLUMN_AEM_FRAGMENT_MAPPING } from '../src/variants/compare-chart-column.js';
+import { FULL_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING } from '../src/variants/full-pricing-express.js';
+import { SIMPLIFIED_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING } from '../src/variants/simplified-pricing-express.js';
 import { COMPAT_VERSION_GLOBAL_PROMO_CODE } from '../src/compat-version.js';
 
 function getFooterElement(merchCard) {
@@ -1617,6 +1620,72 @@ describe('processTrialBadge', () => {
         expect(badge).to.exist;
         await delay(50);
         expect(badge.getAttribute('variant')).to.equal('another-variant');
+    });
+});
+
+describe('processBadge', () => {
+    let merchCard;
+
+    beforeEach(() => {
+        merchCard = mockMerchCard();
+    });
+
+    afterEach(() => {
+        sinon.restore();
+    });
+
+    it('should append an empty merch-badge by default now that full-pricing-express opts in', () => {
+        const fields = { badge: '', variant: 'full-pricing-express' };
+        processBadge(
+            fields,
+            merchCard,
+            FULL_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING,
+        );
+        expect(merchCard.querySelector('[slot="badge"] merch-badge')).to.exist;
+    });
+
+    it('should append an empty merch-badge when text is empty and mapping.badge.alwaysRender is set', () => {
+        const fields = { badge: '', variant: 'full-pricing-express' };
+        const mapping = {
+            ...FULL_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING,
+            badge: {
+                ...FULL_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING.badge,
+                alwaysRender: true,
+            },
+        };
+        processBadge(fields, merchCard, mapping);
+        const badge = merchCard.querySelector('[slot="badge"] merch-badge');
+        expect(badge).to.exist;
+        expect(badge.getAttribute('variant')).to.equal('full-pricing-express');
+        expect(badge.textContent).to.equal('');
+    });
+
+    it('should append an empty merch-badge for an explicit-empty-normalized badge on simplified-pricing-express', () => {
+        const fields = { badge: '', variant: 'simplified-pricing-express' };
+        processBadge(
+            fields,
+            merchCard,
+            SIMPLIFIED_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING,
+        );
+        const badge = merchCard.querySelector('[slot="badge"] merch-badge');
+        expect(badge).to.exist;
+        expect(badge.textContent).to.equal('');
+    });
+
+    it('should not double-wrap when badge already contains merch-badge markup', () => {
+        const fields = {
+            badge: '<merch-badge variant="full-pricing-express">Sale</merch-badge>',
+            variant: 'full-pricing-express',
+        };
+        const mapping = {
+            ...FULL_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING,
+            badge: {
+                ...FULL_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING.badge,
+                alwaysRender: true,
+            },
+        };
+        processBadge(fields, merchCard, mapping);
+        expect(merchCard.querySelectorAll('merch-badge').length).to.equal(1);
     });
 });
 

@@ -34,6 +34,14 @@ export class Fragment {
         return this.getFieldValues(fieldName)?.[index];
     }
 
+    getValidationErrors() {
+        if (!Array.isArray(this.validationStatus)) return [];
+        return this.validationStatus.map(({ property, message }) => {
+            const field = property?.match(/^fields\.([^.[]+)/)?.[1] ?? null;
+            return { property, field, message };
+        });
+    }
+
     isValueEmpty(values) {
         return values.length === 0 || values.every((v) => v === '' || v === null || v === undefined);
     }

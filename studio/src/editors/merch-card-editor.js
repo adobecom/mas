@@ -387,10 +387,40 @@ class MerchCardEditor extends LitElement {
         return success;
     }
 
+    renderFieldValidationIndicator(fieldName) {
+        const errors = this.fragment?.getValidationErrors().filter((error) => error.field === fieldName) ?? [];
+        if (!errors.length) return nothing;
+        return html`
+            <div class="field-validation-error" role="alert">
+                <sp-icon-alert class="field-validation-icon"></sp-icon-alert>
+                ${errors.map((error) => html`<span class="field-validation-message">${error.message}</span>`)}
+            </div>
+        `;
+    }
+
     renderFieldStatusIndicator(fieldName) {
-        if (!this.effectiveIsVariation) return nothing;
-        if (this.getFieldState(fieldName) !== 'overridden') return nothing;
-        return this.#renderOverrideIndicatorLink(() => this.resetFieldToParent(fieldName));
+        const validation = this.renderFieldValidationIndicator(fieldName);
+        const override =
+            this.effectiveIsVariation && this.getFieldState(fieldName) === 'overridden'
+                ? this.#renderOverrideIndicatorLink(() => this.resetFieldToParent(fieldName))
+                : nothing;
+        if (validation === nothing && override === nothing) return nothing;
+        return html`${validation}${override}`;
+    }
+
+    renderValidationBanner() {
+        const errors = this.fragment?.getValidationErrors() ?? [];
+        if (!errors.length) return nothing;
+        const unanchored = errors.filter((error) => !error.field);
+        return html`
+            <div class="fragment-validation-banner" role="alert">
+                <sp-icon-alert class="fragment-validation-banner-icon"></sp-icon-alert>
+                <div class="fragment-validation-banner-body">
+                    <span class="fragment-validation-banner-title">This fragment has validation errors.</span>
+                    ${unanchored.map((error) => html`<span class="fragment-validation-banner-message">${error.message}</span>`)}
+                </div>
+            </div>
+        `;
     }
 
     isSectionOverridden(fieldNames) {
@@ -1234,10 +1264,47 @@ class MerchCardEditor extends LitElement {
                     --mod-combobox-background-color-default: var(--spectrum-blue-100);
                 }
 
+                .fragment-validation-banner {
+                    display: flex;
+                    gap: 8px;
+                    align-items: flex-start;
+                    padding: 12px;
+                    margin-block-end: 16px;
+                    border-radius: 4px;
+                    background-color: var(--spectrum-negative-background-color-default, #ffecec);
+                    color: var(--spectrum-negative-content-color-default, #b40000);
+                }
+
+                .fragment-validation-banner-body {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 4px;
+                }
+
+                .fragment-validation-banner-title {
+                    font-weight: 700;
+                }
+
+                .fragment-validation-banner-icon,
+                .field-validation-icon {
+                    flex-shrink: 0;
+                    color: var(--spectrum-negative-content-color-default, #b40000);
+                }
+
+                .field-validation-error {
+                    display: flex;
+                    gap: 4px;
+                    align-items: center;
+                    margin-block-start: 4px;
+                    font-size: 12px;
+                    color: var(--spectrum-negative-content-color-default, #b40000);
+                }
+
                 ${fieldStatusStyles}
             </style>
             <div class="editor-skeleton-wrapper" style="--skeleton-display: ${skeletonDisplay}">${this.renderSkeleton()}</div>
             <div class="editor-form-container" style="--form-display: ${formDisplay}">
+                ${this.renderValidationBanner()}
                 <div class="section-title">General info</div>
                 <div class="two-column-grid">
                     <sp-field-group id="variant">

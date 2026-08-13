@@ -31,6 +31,7 @@ describe('MasFragmentTable', () => {
                 getField: sandbox.stub().returns(null),
                 getTagTitle: sandbox.stub().returns(null),
                 getCurrentTagTitle: sandbox.stub().returns(null),
+                getValidationErrors: sandbox.stub().returns([]),
                 ...overrides,
             },
             get() {
@@ -393,6 +394,30 @@ describe('MasFragmentTable', () => {
             const titleCell = el.querySelector('sp-table-cell.title');
             el.handleNestedRowClick({ composedPath: () => [titleCell] });
             expect(Store.selection.get()).to.deep.equal(['grouped-1']);
+        });
+    });
+
+    describe('validationStatus indicator', () => {
+        it('renders no indicator when the fragment has no validation errors', async () => {
+            const fragmentStore = createFragmentStore();
+            const el = await fixture(html`<mas-fragment-table .fragmentStore=${fragmentStore}></mas-fragment-table>`);
+            await el.updateComplete;
+            expect(el.querySelector('.validation-error-icon')).to.not.exist;
+        });
+
+        it('renders an indicator with the messages when the fragment is invalid', async () => {
+            const fragmentStore = createFragmentStore({
+                getValidationErrors: sandbox
+                    .stub()
+                    .returns([
+                        { property: 'fields.ctas.values[0].<list element>', field: 'ctas', message: 'is not valid HTML' },
+                    ]),
+            });
+            const el = await fixture(html`<mas-fragment-table .fragmentStore=${fragmentStore}></mas-fragment-table>`);
+            await el.updateComplete;
+            const indicator = el.querySelector('.validation-error-icon');
+            expect(indicator).to.exist;
+            expect(indicator.getAttribute('title')).to.include('is not valid HTML');
         });
     });
 });

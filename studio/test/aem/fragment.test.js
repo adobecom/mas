@@ -417,6 +417,38 @@ describe('Fragment', () => {
         });
     });
 
+    describe('getValidationErrors', () => {
+        it('returns [] when validationStatus is absent', () => {
+            const fragment = new Fragment(createFragmentConfig());
+            expect(fragment.getValidationErrors()).to.deep.equal([]);
+        });
+
+        it('returns [] when validationStatus is empty', () => {
+            const fragment = new Fragment(createFragmentConfig({ validationStatus: [] }));
+            expect(fragment.getValidationErrors()).to.deep.equal([]);
+        });
+
+        it('parses the field name from the property and keeps the message verbatim', () => {
+            const fragment = new Fragment(
+                createFragmentConfig({
+                    validationStatus: [{ property: 'fields.ctas.values[0].<list element>', message: 'is not valid HTML' }],
+                }),
+            );
+            expect(fragment.getValidationErrors()).to.deep.equal([
+                { property: 'fields.ctas.values[0].<list element>', field: 'ctas', message: 'is not valid HTML' },
+            ]);
+        });
+
+        it('leaves field null when the property is not under fields', () => {
+            const fragment = new Fragment(
+                createFragmentConfig({
+                    validationStatus: [{ property: 'path', message: 'is required' }],
+                }),
+            );
+            expect(fragment.getValidationErrors()).to.deep.equal([{ property: 'path', field: null, message: 'is required' }]);
+        });
+    });
+
     describe('getFieldState', () => {
         const parent = new Fragment(
             createFragmentConfig({

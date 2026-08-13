@@ -49,6 +49,7 @@ async function renderManager(props = {}) {
             .defaultPromoCode=${props.defaultPromoCode ?? 'CCI_40OFF'}
             .exceptions=${props.exceptions ?? new Map()}
             .offerSubstitutions=${props.offerSubstitutions ?? new Map()}
+            .ignoredVariations=${props.ignoredVariations ?? new Map()}
         ></mas-promo-codes-manager>
     `);
     if (props.resolveSubstituteOfferEntry) {
@@ -346,11 +347,11 @@ describe('MasPromoCodesManager', () => {
             expect($(el, '.dialog-header').textContent.trim()).to.equal(MANAGE_PROMO_CODES_AND_OFFERS_LABEL);
         });
 
-        it('renders figma-style columns Offer, Offer ID, and Promo code', async () => {
+        it('renders figma-style columns Offer, Offer ID, Promo code, and Ignore variations', async () => {
             const el = await renderManager({ offers: [makeOffer(), makeRegionalOffer()] });
             await expandCountry(el, 'CA_en');
             const headers = $$(el, '[data-country="CA_en"] .offer-grid-header span').map((node) => node.textContent.trim());
-            expect(headers).to.deep.equal(['Offer', 'Offer ID', 'Promo code']);
+            expect(headers).to.deep.equal(['Offer', 'Offer ID', 'Promo code', 'Ignore variations']);
         });
 
         it('skips offers without offer id data', async () => {
@@ -369,6 +370,55 @@ describe('MasPromoCodesManager', () => {
             $(el, '.confirm-button').click();
             await el.updateComplete;
             expect(saved.firstCall.args[0].detail.offerSubstitutions.get('default-osi|CA_en')).to.equal(REGIONAL_SELECTOR_ID);
+        });
+
+        it('renders an unchecked ignore-variations checkbox per offer by default', async () => {
+            const el = await renderManager({ offers: [makeOffer()] });
+            await expandCountry(el, 'CA_en');
+            const checkbox = $(el, '[data-country="CA_en"] .ignore-variations-checkbox');
+            expect(checkbox).to.exist;
+            expect(checkbox.checked).to.be.false;
+        });
+
+        it('reflects a persisted ignore-variations flag per offer and country', async () => {
+            const ignoredVariations = new Map([['default-osi|CA_en', true]]);
+            const el = await renderManager({
+                offers: [makeOffer()],
+                geos: ['mas:locale/CA_en', 'mas:locale/US'],
+                ignoredVariations,
+            });
+            await expandCountry(el, 'CA_en');
+            expect($(el, '[data-country="CA_en"] .ignore-variations-checkbox').checked).to.be.true;
+            await expandCountry(el, 'US');
+            expect($(el, '[data-country="US"] .ignore-variations-checkbox').checked).to.be.false;
+        });
+
+        it('dispatches ignoredVariations on Confirm when the checkbox is toggled', async () => {
+            const el = await renderManager({ offers: [makeOffer()] });
+            await expandCountry(el, 'CA_en');
+            const checkbox = $(el, '[data-country="CA_en"] .ignore-variations-checkbox');
+            checkbox.click();
+            await el.updateComplete;
+            const saved = sinon.spy();
+            el.addEventListener('promo-codes-save', saved);
+            $(el, '.confirm-button').click();
+            await el.updateComplete;
+            const { ignoredVariations } = saved.firstCall.args[0].detail;
+            expect(ignoredVariations).to.be.instanceOf(Map);
+            expect(ignoredVariations.get('default-osi|CA_en')).to.be.true;
+        });
+
+        it('toggling the ignore-variations checkbox off removes the flag on Confirm', async () => {
+            const ignoredVariations = new Map([['default-osi|CA_en', true]]);
+            const el = await renderManager({ offers: [makeOffer()], ignoredVariations });
+            await expandCountry(el, 'CA_en');
+            $(el, '[data-country="CA_en"] .ignore-variations-checkbox').click();
+            await el.updateComplete;
+            const saved = sinon.spy();
+            el.addEventListener('promo-codes-save', saved);
+            $(el, '.confirm-button').click();
+            await el.updateComplete;
+            expect(saved.firstCall.args[0].detail.ignoredVariations.has('default-osi|CA_en')).to.be.false;
         });
 
         it('accepts manual custom OSI input and saves it as substitution', async () => {

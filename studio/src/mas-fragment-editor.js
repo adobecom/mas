@@ -1565,12 +1565,16 @@ export default class MasFragmentEditor extends LitElement {
             }
             if (dirtyCardFragmentStores.length) showToast('Saving fragment...');
             for (const cardFragmentStore of dirtyCardFragmentStores) {
-                const savedCard = await this.repository.saveFragment(cardFragmentStore, { withToast: false });
+                const savedCard = await this.repository.saveFragment(cardFragmentStore, {
+                    withToast: false,
+                    refetchEtag: false,
+                });
                 if (!savedCard) return;
             }
             Store.editor.referencedFragmentStoresHaveChanges.set(false);
             const savedFragment = await this.repository.saveFragment(this.fragmentStore, {
                 withToast: !dirtyCardFragmentStores.length,
+                refetchEtag: false,
             });
             if (dirtyCardFragmentStores.length && savedFragment) {
                 showToast('Fragment successfully saved.', 'positive');

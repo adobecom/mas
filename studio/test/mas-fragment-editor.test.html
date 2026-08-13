@@ -221,9 +221,9 @@
                         await el.saveFragment();
 
                         expect(compareEditor.commitFeatureDrafts.calledOnce).to.be.true;
-                        expect(repository.saveFragment.firstCall.calledWith(cardStore, { withToast: false })).to.be.true;
-                        expect(repository.saveFragment.secondCall.calledWith(secondCardStore, { withToast: false })).to.be.true;
-                        expect(repository.saveFragment.thirdCall.calledWith(fragmentStore, { withToast: false })).to.be.true;
+                        expect(repository.saveFragment.firstCall.calledWith(cardStore, { withToast: false, refetchEtag: false })).to.be.true;
+                        expect(repository.saveFragment.secondCall.calledWith(secondCardStore, { withToast: false, refetchEtag: false })).to.be.true;
+                        expect(repository.saveFragment.thirdCall.calledWith(fragmentStore, { withToast: false, refetchEtag: false })).to.be.true;
                     });
 
                     it('skips unchanged compare chart card fragments when saving', async () => {
@@ -246,8 +246,8 @@
                         await el.saveFragment();
 
                         expect(repository.saveFragment.calledWith(cleanCardStore)).to.be.false;
-                        expect(repository.saveFragment.firstCall.calledWith(dirtyCardStore, { withToast: false })).to.be.true;
-                        expect(repository.saveFragment.secondCall.calledWith(fragmentStore, { withToast: false })).to.be.true;
+                        expect(repository.saveFragment.firstCall.calledWith(dirtyCardStore, { withToast: false, refetchEtag: false })).to.be.true;
+                        expect(repository.saveFragment.secondCall.calledWith(fragmentStore, { withToast: false, refetchEtag: false })).to.be.true;
                     });
 
                     it('migrates a stored bizpro variant to pro when saving', async () => {
@@ -267,7 +267,7 @@
                         await el.saveFragment();
 
                         expect(fragmentStore.get().getFieldValue('variant')).to.equal('pro');
-                        expect(repository.saveFragment.calledWith(fragmentStore, { withToast: true })).to.be.true;
+                        expect(repository.saveFragment.calledWith(fragmentStore, { withToast: true, refetchEtag: false })).to.be.true;
                     });
 
                     it('extracts locale from path', async () => {

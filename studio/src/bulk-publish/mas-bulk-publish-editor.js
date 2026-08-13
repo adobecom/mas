@@ -375,7 +375,7 @@ class MasBulkPublishEditor extends LitElement {
             const nextStatus = locking ? BULK_PUBLISH_STATUS.LOCKED : BULK_PUBLISH_STATUS.DRAFT;
             try {
                 this.project.updateField('status', [nextStatus]);
-                const saved = await this.repository.saveFragment(this.project, { withToast: false });
+                const saved = await this.repository.saveFragment(this.project, { withToast: false, refetchEtag: false });
                 if (!saved) {
                     this.project.updateField('status', [prevStatus]);
                     showToast('Failed to lock/unlock project.', 'negative');
@@ -569,7 +569,10 @@ class MasBulkPublishEditor extends LitElement {
                     this.project.updateField('items', [buildItemsMetadata(this.items)]);
                     this.project.updateField('fragments', validPaths);
                     this.project.updateField('locales', this.locales);
-                    const saved = await this.repository.saveFragment(this.project, { withToast: false });
+                    const saved = await this.repository.saveFragment(this.project, {
+                        withToast: false,
+                        refetchEtag: false,
+                    });
                     if (!saved) throw new Error('Save returned empty response');
                     this.hasChanges = false;
                     showToast('Project saved successfully.', 'positive');

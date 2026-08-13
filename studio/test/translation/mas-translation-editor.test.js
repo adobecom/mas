@@ -64,7 +64,7 @@ describe('MasTranslationEditor', () => {
         },
         getTranslationsPath: sandbox.stub().returns('/content/dam/mas/translations'),
         createFragment: sandbox.stub().resolves(new Fragment(createMockFragment())),
-        saveFragment: sandbox.stub().resolves(),
+        saveFragment: sandbox.stub().resolves(new Fragment(createMockFragment())),
         deleteFragment: sandbox.stub().resolves(),
         refreshFragment: sandbox.stub().resolves(),
         searchFragments: sandbox.stub().resolves({ items: [] }),

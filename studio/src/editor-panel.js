@@ -678,11 +678,11 @@ export default class EditorPanel extends LitElement {
         this.#pendingDiscardPromise = null;
     }
 
-    saveFragment() {
+    async saveFragment() {
         if (this.fragment?.model?.path === CARD_MODEL_PATH) {
             migrateLegacyVariant(this.fragmentStore);
         }
-        this.repository.saveFragment(this.fragmentStore);
+        return this.repository.saveFragment(this.fragmentStore, { refetchEtag: false });
     }
 
     publishFragment() {

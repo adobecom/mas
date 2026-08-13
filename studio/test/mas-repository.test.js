@@ -202,6 +202,12 @@ describe('MasRepository dictionary helpers', () => {
     });
 
     describe('handleSearch', () => {
+        afterEach(() => {
+            sandbox.restore();
+            Store.promotions.list.data.set([]);
+            Store.promotions.list.data.removeMeta('listFetched');
+            Store.promotions.list.loading.set(true);
+        });
         it('returns early when profile is not set', async () => {
             const repository = createRepository();
             const { default: Store } = await import('../src/store.js');
@@ -346,11 +352,12 @@ describe('MasRepository dictionary helpers', () => {
                 tags: [],
             };
             repository.searchFragmentList = sandbox.stub().resolves([promoFragment]);
-            Store.promotions.list.data.set([]);
+
             await repository.loadPromotions();
             expect(repository.searchFragmentList.calledOnce).to.be.true;
             expect(Store.promotions.list.data.get().length).to.equal(1);
             expect(Store.promotions.list.loading.get()).to.be.false;
+            expect(Store.promotions.list.data.hasMeta('listFetched')).to.be.true;
         });
 
         it('loadPromotions auto-unpublishes expired published promotions and refreshes the row', async () => {
@@ -406,10 +413,26 @@ describe('MasRepository dictionary helpers', () => {
             const { default: Store } = await import('../src/store.js');
             repository.searchFragmentList = sandbox.stub().rejects(new Error('network'));
             sandbox.stub(repository, 'processError');
-            Store.promotions.list.data.set([]);
             await repository.loadPromotions();
             expect(repository.processError.calledOnce).to.be.true;
             expect(repository.processError.firstCall.args[1]).to.equal('Could not load promotions.');
+            expect(Store.promotions.list.loading.get()).to.be.false;
+            expect(
+                Store.promotions.list.data.hasMeta('listFetched'),
+                'non-abort failure should still mark listFetched to avoid retry loops',
+            ).to.be.true;
+        });
+
+        it('loadPromotions ignores AbortError: no processError call, no listFetched stamp, so a superseded caller retries instead of reading a stale empty store', async () => {
+            const repository = createFullRepository();
+            const { default: Store } = await import('../src/store.js');
+            const abortError = new Error('aborted');
+            abortError.name = 'AbortError';
+            repository.searchFragmentList = sandbox.stub().rejects(abortError);
+            sandbox.stub(repository, 'processError');
+            await repository.loadPromotions();
+            expect(repository.processError.called).to.be.false;
+            expect(Store.promotions.list.data.hasMeta('listFetched')).to.be.false;
             expect(Store.promotions.list.loading.get()).to.be.false;
         });
 
@@ -590,6 +613,17 @@ describe('MasRepository dictionary helpers', () => {
     });
 
     describe('searchFragments', () => {
+        beforeEach(() => {
+            Store.promotions.list.data.set([]);
+            Store.promotions.list.data.setMeta('listFetched', true);
+        });
+
+        afterEach(() => {
+            Store.promotions.list.data.set([]);
+            Store.promotions.list.data.removeMeta('listFetched');
+            Store.promotions.list.loading.set(true);
+        });
+
         const createMockCursor = (pages) => {
             let index = 0;
             return {
@@ -1507,8 +1541,6 @@ describe('MasRepository dictionary helpers', () => {
                     tags: [{ id: 'mas:promotion/summer-sale' }],
                 };
                 const { default: Store } = await import('../src/store.js');
-                const originalPromotions = Store.promotions.list.data.get();
-                const hadListFetched = Store.promotions.list.data.hasMeta('listFetched');
                 Store.promotions.list.data.set([{ get: () => mockPromoProject }]);
                 Store.promotions.list.data.setMeta('listFetched', true);
 
@@ -1522,56 +1554,55 @@ describe('MasRepository dictionary helpers', () => {
                     expect(promoRefs.length, 'promo variation reference should be merged into fragment').to.equal(1);
                 } finally {
                     restore();
-                    Store.promotions.list.data.set(originalPromotions);
-                    if (!hadListFetched) Store.promotions.list.data.removeMeta('listFetched');
                 }
             });
 
-            it('ignores stale parent UUID search when promo merge is superseded by a new search', async () => {
-                const repository = createFullRepository();
-                repository.page = { value: PAGE_NAMES.CONTENT };
-                const uuid = '12345678-1234-1234-1234-123456789012';
-                const fragmentPath = `${ROOT_PATH}/acom/en_US/my-card`;
-                const mockFragment = createFragment({ id: uuid, path: fragmentPath, fields: [] });
+            describe('with promotions not yet fetched', () => {
+                beforeEach(() => {
+                    Store.promotions.list.data.set([]);
+                    Store.promotions.list.data.removeMeta('listFetched');
+                });
 
-                let resolveLoadPromotions;
-                repository.loadPromotions = sandbox.stub().callsFake(
-                    () =>
-                        new Promise((resolve) => {
-                            resolveLoadPromotions = resolve;
-                        }),
-                );
+                it('ignores stale parent UUID search when promo merge is superseded by a new search', async () => {
+                    const repository = createFullRepository();
+                    repository.page = { value: PAGE_NAMES.CONTENT };
+                    const uuid = '12345678-1234-1234-1234-123456789012';
+                    const fragmentPath = `${ROOT_PATH}/acom/en_US/my-card`;
+                    const mockFragment = createFragment({ id: uuid, path: fragmentPath, fields: [] });
 
-                const getByIdStub = sandbox.stub().resolves(mockFragment);
-                const searchStub = sandbox.stub().returns(createMockCursor([]));
-                repository.aem = createAemMock({ fragments: { getById: getByIdStub, search: searchStub } });
+                    let resolveLoadPromotions;
+                    repository.loadPromotions = sandbox.stub().callsFake(
+                        () =>
+                            new Promise((resolve) => {
+                                resolveLoadPromotions = resolve;
+                            }),
+                    );
 
-                repository.search = { value: { path: 'acom', query: uuid } };
-                repository.filters = { value: { locale: 'en_US', tags: '' } };
+                    const getByIdStub = sandbox.stub().resolves(mockFragment);
+                    const searchStub = sandbox.stub().returns(createMockCursor([]));
+                    repository.aem = createAemMock({ fragments: { getById: getByIdStub, search: searchStub } });
 
-                const { Store, mockDataStore, restore } = await setupVariationUuidSearch();
-                const originalPromotions = Store.promotions.list.data.get();
-                const hadListFetched = Store.promotions.list.data.hasMeta('listFetched');
-                Store.promotions.list.data.set([]);
-                if (hadListFetched) Store.promotions.list.data.removeMeta('listFetched');
+                    repository.search = { value: { path: 'acom', query: uuid } };
+                    repository.filters = { value: { locale: 'en_US', tags: '' } };
 
-                try {
-                    const staleSearch = repository.searchFragments();
+                    const { Store, mockDataStore, restore } = await setupVariationUuidSearch();
 
-                    repository.search = { value: { path: 'acom', query: 'photoshop' } };
-                    const freshSearch = repository.searchFragments();
-                    await freshSearch;
+                    try {
+                        const staleSearch = repository.searchFragments();
 
-                    const countAfterFresh = mockDataStore.set.callCount;
-                    resolveLoadPromotions();
-                    await staleSearch;
+                        repository.search = { value: { path: 'acom', query: 'photoshop' } };
+                        const freshSearch = repository.searchFragments();
+                        await freshSearch;
 
-                    expect(mockDataStore.set.callCount).to.equal(countAfterFresh);
-                } finally {
-                    restore();
-                    Store.promotions.list.data.set(originalPromotions);
-                    if (hadListFetched) Store.promotions.list.data.setMeta('listFetched', true);
-                }
+                        const countAfterFresh = mockDataStore.set.callCount;
+                        resolveLoadPromotions();
+                        await staleSearch;
+
+                        expect(mockDataStore.set.callCount).to.equal(countAfterFresh);
+                    } finally {
+                        restore();
+                    }
+                });
             });
         });
 
@@ -4143,5 +4174,236 @@ describe('MasRepository dictionary helpers', () => {
             const subscribedFn = subscribeSpy.firstCall.args[0];
             expect(unsubscribeSpy.calledWith(subscribedFn)).to.be.true;
         });
+    });
+});
+
+describe('MasRepository publishFragment', () => {
+    let sandbox;
+
+    beforeEach(() => {
+        sandbox = sinon.createSandbox();
+    });
+
+    afterEach(() => {
+        sandbox.restore();
+    });
+
+    const makeRepo = () => {
+        const repo = new MasRepository();
+        repo.operation = { set: sandbox.stub() };
+        repo.aem = {
+            sites: {
+                cf: {
+                    fragments: {
+                        publish: sandbox.stub().resolves(),
+                        publishFragments: sandbox.stub().resolves(),
+                        getWithEtag: sandbox.stub().resolves({ id: 'ref-1', etag: 'abc' }),
+                    },
+                },
+            },
+        };
+        // Silence processError to avoid noisy output in tests
+        sandbox.stub(repo, 'processError');
+        return repo;
+    };
+
+    const fragment = { id: 'frag-1', path: '/content/dam/mas/sandbox/en_US/card' };
+
+    it('publishes with empty filterReferencesByStatus when no options given', async () => {
+        const repo = makeRepo();
+        await repo.publishFragment(fragment);
+        expect(repo.aem.sites.cf.fragments.publish.calledWith(fragment, [])).to.be.true;
+        expect(repo.aem.sites.cf.fragments.publishFragments.called).to.be.false;
+    });
+
+    it('publishes parent with [] (no cascade) when allSelected is true and no refs present', async () => {
+        const repo = makeRepo();
+        await repo.publishFragment(fragment, { allSelected: true });
+        expect(repo.aem.sites.cf.fragments.publish.calledWith(fragment, [])).to.be.true;
+        expect(repo.aem.sites.cf.fragments.publish.callCount).to.equal(1);
+        expect(repo.aem.sites.cf.fragments.publishFragments.called).to.be.false;
+    });
+
+    it('publishes parent with [] then publishes each ref individually when selectedRefIds given', async () => {
+        const repo = makeRepo();
+        const refFragment = { id: 'ref-1', path: '/content/dam/mas/sandbox/en_GB/card', etag: 'abc' };
+        repo.aem.sites.cf.fragments.getWithEtag = sandbox.stub().resolves(refFragment);
+        await repo.publishFragment(fragment, { selectedRefIds: ['ref-1'] });
+        expect(repo.aem.sites.cf.fragments.publish.calledWith(fragment, [])).to.be.true;
+        expect(repo.aem.sites.cf.fragments.getWithEtag.calledWith('ref-1')).to.be.true;
+        expect(repo.aem.sites.cf.fragments.publish.calledWith(refFragment, [])).to.be.true;
+        expect(repo.aem.sites.cf.fragments.publishFragments.called).to.be.false;
+    });
+
+    it('skips ref publish when selectedRefIds is absent', async () => {
+        const repo = makeRepo();
+        await repo.publishFragment(fragment, {});
+        expect(repo.aem.sites.cf.fragments.publish.calledWith(fragment, [])).to.be.true;
+        expect(repo.aem.sites.cf.fragments.publishFragments.called).to.be.false;
+    });
+
+    it('explicitly publishes all refs individually when allSelected is true (cascade unreliable for path-based MAS variations)', async () => {
+        const repo = makeRepo();
+        const pubVar = { id: 'pub-var-1', path: '/p1', etag: 'e1' };
+        const draftVar = { id: 'draft-var-2', path: '/p2', etag: 'e2' };
+        const newCard = { id: 'new-card-1', path: '/p3', etag: 'e3' };
+        repo.aem.sites.cf.fragments.getWithEtag = sandbox
+            .stub()
+            .onFirstCall()
+            .resolves(pubVar)
+            .onSecondCall()
+            .resolves(draftVar)
+            .onThirdCall()
+            .resolves(newCard);
+        const fragWithMixedRefs = {
+            ...fragment,
+            getPublishableReferences: () => ({
+                variations: [
+                    { id: 'pub-var-1', status: 'PUBLISHED' },
+                    { id: 'draft-var-2', status: 'DRAFT' },
+                ],
+                cards: [{ id: 'new-card-1', status: 'NEW' }],
+            }),
+        };
+        await repo.publishFragment(fragWithMixedRefs, { allSelected: true });
+        expect(repo.aem.sites.cf.fragments.publish.calledWith(fragWithMixedRefs, [])).to.be.true;
+        expect(repo.aem.sites.cf.fragments.publish.neverCalledWith(fragWithMixedRefs, ['DRAFT', 'MODIFIED', 'UNPUBLISHED'])).to
+            .be.true;
+        expect(repo.aem.sites.cf.fragments.publish.calledWith(pubVar, [])).to.be.true;
+        expect(repo.aem.sites.cf.fragments.publish.calledWith(draftVar, [])).to.be.true;
+        expect(repo.aem.sites.cf.fragments.publish.calledWith(newCard, [])).to.be.true;
+        expect(repo.aem.sites.cf.fragments.publishFragments.called).to.be.false;
+    });
+});
+
+describe('MasRepository #publishRefIds (via publishFragment selectedRefIds)', () => {
+    let sandbox;
+
+    beforeEach(() => {
+        sandbox = sinon.createSandbox();
+    });
+    afterEach(() => sandbox.restore());
+
+    const makeRepo = () => {
+        const repo = new MasRepository();
+        repo.operation = { set: sandbox.stub() };
+        repo.aem = {
+            sites: {
+                cf: {
+                    fragments: {
+                        publish: sandbox.stub().resolves(),
+                        getWithEtag: sandbox.stub().rejects(new Error('not found')),
+                    },
+                },
+            },
+        };
+        sandbox.stub(repo, 'processError');
+        return repo;
+    };
+
+    it('reports failure (via processError) when all getWithEtag calls fail', async () => {
+        const repo = makeRepo();
+        const fragment = { id: 'frag-1', path: '/content/dam/mas/sandbox/en_US/card' };
+        const result = await repo.publishFragment(fragment, { selectedRefIds: ['ref-x'] });
+        expect(result).to.be.false;
+        expect(repo.processError.called).to.be.true;
+    });
+
+    it('reports failure when some (but not all) getWithEtag calls fail', async () => {
+        const repo = makeRepo();
+        const refA = { id: 'ref-a', path: '/a', etag: 'e1' };
+        repo.aem.sites.cf.fragments.getWithEtag = sandbox
+            .stub()
+            .onFirstCall()
+            .resolves(refA)
+            .onSecondCall()
+            .rejects(new Error('not found'));
+        const fragment = { id: 'frag-1', path: '/content/dam/mas/sandbox/en_US/card' };
+        const result = await repo.publishFragment(fragment, { selectedRefIds: ['ref-a', 'ref-b'] });
+        expect(result).to.be.false;
+        expect(repo.processError.called).to.be.true;
+    });
+
+    it('publishes refs in chunks of 10 — never more than 10 publish calls in flight at once', async () => {
+        const repo = makeRepo();
+        // 25 refs — needs 3 chunks: 10, 10, 5
+        const refIds = Array.from({ length: 25 }, (_, i) => `ref-${i}`);
+        repo.aem.sites.cf.fragments.getWithEtag = sandbox.stub().callsFake((id) => Promise.resolve({ id }));
+
+        let maxInFlight = 0;
+        let inFlight = 0;
+        repo.aem.sites.cf.fragments.publish = sandbox.stub().callsFake(() => {
+            inFlight++;
+            if (inFlight > maxInFlight) maxInFlight = inFlight;
+            return Promise.resolve().then(() => {
+                inFlight--;
+            });
+        });
+
+        const fragment = { id: 'frag-main', path: '/content/dam/mas/sandbox/en_US/card' };
+        await repo.publishFragment(fragment, { selectedRefIds: refIds });
+
+        // 1 for main fragment + 25 for refs
+        expect(repo.aem.sites.cf.fragments.publish.callCount).to.equal(26);
+        expect(maxInFlight).to.be.at.most(10);
+    });
+});
+
+describe('MasRepository bulkPublishFragments', () => {
+    let sandbox;
+    let repo;
+    let originalStoreData;
+
+    const frag1 = { id: 'frag-1', path: '/content/dam/mas/sandbox/en_US/card-1', etag: 'etag-1' };
+    const frag2 = { id: 'frag-2', path: '/content/dam/mas/sandbox/en_US/card-2', etag: 'etag-2' };
+
+    beforeEach(() => {
+        sandbox = sinon.createSandbox();
+        repo = new MasRepository();
+        repo.operation = { set: sandbox.stub() };
+        repo.aem = {
+            sites: {
+                cf: {
+                    fragments: {
+                        publish: sandbox.stub().resolves(),
+                        publishFragments: sandbox.stub().resolves(),
+                        getWithEtag: sandbox.stub().callsFake((id) => Promise.resolve({ id })),
+                    },
+                },
+            },
+        };
+        sandbox.stub(repo, 'processError');
+        sandbox.stub(repo, 'refreshFragment').resolves();
+
+        originalStoreData = Store.fragments.list.data;
+        Store.fragments.list.data = {
+            get: () => [{ get: () => frag1 }, { get: () => frag2 }],
+        };
+    });
+
+    afterEach(() => {
+        Store.fragments.list.data = originalStoreData;
+        sandbox.restore();
+    });
+
+    it('calls publishFragments with default statuses when no options given', async () => {
+        await repo.bulkPublishFragments(['frag-1', 'frag-2'], { withToast: false });
+        expect(repo.aem.sites.cf.fragments.publishFragments.calledWith([frag1, frag2], ['DRAFT', 'UNPUBLISHED'])).to.be.true;
+    });
+
+    it('calls publishFragments with custom publishReferencesWithStatus when provided', async () => {
+        await repo.bulkPublishFragments(['frag-1'], { publishReferencesWithStatus: [], withToast: false });
+        expect(repo.aem.sites.cf.fragments.publishFragments.calledWith([frag1], [])).to.be.true;
+    });
+
+    it('returns false without publishing when no fragment IDs given', async () => {
+        const result = await repo.bulkPublishFragments([], { withToast: false });
+        expect(result).to.be.false;
+        expect(repo.aem.sites.cf.fragments.publishFragments.called).to.be.false;
+    });
+
+    it('calls refreshFragment for each published fragment', async () => {
+        await repo.bulkPublishFragments(['frag-1', 'frag-2'], { withToast: false });
+        expect(repo.refreshFragment.calledTwice).to.be.true;
     });
 });

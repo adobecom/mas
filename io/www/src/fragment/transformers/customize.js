@@ -236,6 +236,23 @@ function restrictToCuratedGroupedVariations(variationIds, references, groupedVar
     });
 }
 
+function fragmentOsis(root) {
+    const fragOsi = root.fields?.osi;
+    if (!fragOsi) return [];
+    return (Array.isArray(fragOsi) ? fragOsi : fragOsi.split(',')).map((osi) => osi.trim()).filter(Boolean);
+}
+
+/**
+ * True when the fragment's offer (OSI) is flagged "ignore variations" for the current geo by
+ * the selected promo project. Only promo-variation merging is suppressed; regional and
+ * personalization variations still apply.
+ */
+function isPromoVariationIgnored(root, selectedPromoProject) {
+    const ignored = selectedPromoProject?.ignoreVariationOsis;
+    if (!ignored?.size) return false;
+    return fragmentOsis(root).some((osi) => ignored.has(osi));
+}
+
 // pzn matches a grouped variation with its own promo variation, that wins over the root-level promo variation.
 // It also wins over a matching regional-locale variation (see `regionalVariation` in `mergeVariations`).
 function findPromoVariation(root, customizeContext, selectedPromoProject, personalizationVariation) {
@@ -307,10 +324,7 @@ function hasExplicitMapping(osis, customizeContext, { project, promoMap, substit
 function selectPromoProjectForFragment(root, customizeContext) {
     const promoEntries = findPromoMapsForFragment(root, customizeContext);
     if (!promoEntries.length) return null;
-    const fragOsi = root.fields?.osi;
-    const osis = fragOsi
-        ? (Array.isArray(fragOsi) ? fragOsi : fragOsi.split(',')).map((osi) => osi.trim()).filter(Boolean)
-        : [];
+    const osis = fragmentOsis(root);
     logDebug(() => `selectPromoProjectForFragment osis: ${JSON.stringify(osis)}`, customizeContext);
 
     const seasonalEntries = [];
@@ -336,7 +350,7 @@ function selectPromoProjectForFragment(root, customizeContext) {
 }
 
 function mergeVariations(root, customizeContext, selectedPromoProject) {
-    const { isRegionLocale, references } = customizeContext;
+const { isRegionLocale, references } = customizeContext;
     const variations = root?.fields?.variations;
     const regionalVariation = isRegionLocale && variations?.length ? findRegionalVariation(variations, customizeContext) : null;
 
@@ -350,8 +364,12 @@ function mergeVariations(root, customizeContext, selectedPromoProject) {
         : null;
 
     // Promo variation (checking the grouped/pzn variation first, see `findPromoVariation`) takes
-    // priority, independent of fields.variations.
-    const promoVariation = findPromoVariation(root, customizeContext, selectedPromoProject, personalizationVariation);
+    // priority, independent of fields.variations — unless the fragment's offer is flagged "ignore
+    // variations" for this geo, in which case we fall through so regional and personalization
+    // variations still apply.
+    const promoVariation = isPromoVariationIgnored(root, selectedPromoProject)
+        ? null
+        : findPromoVariation(root, customizeContext, selectedPromoProject, personalizationVariation);
     if (promoVariation) {
         const { variation, project } = promoVariation;
         const merged = deepMerge(root, variation);

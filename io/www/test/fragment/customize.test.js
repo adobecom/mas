@@ -2120,11 +2120,11 @@ describe('customize grouped variation scoped to a promo project (promo variation
                     type: 'content-fragment',
                     value: {
                         path: '/content/dam/mas/sandbox/en_US/PA-123/pzn/edu',
-                        id: PZN_VARIATION_ID,
+                        id: PZN_VARIATION_ID
                         title: 'EDU pricing',
                         fields: {
                             pznTags: ['mas:audiences/pzn/EDU'],
-                            badge: 'EDU badge',
+                            badge: 'EDU badg
                         },
                     },
                 },
@@ -2136,7 +2136,7 @@ describe('customize grouped variation scoped to a promo project (promo variation
     function buildPromoProjectsEntry(groupedVariationPaths, defaultVariations) {
         const project = {
             id: 'promo-proj-id',
-            path: '/content/dam/mas/promotions/black-friday',
+            path: '/content/dam/mas/promotio
             fragmentPaths: ['pzn-test-fragment'],
             defaultVariations,
             regionVariations: {},
@@ -2144,24 +2144,25 @@ describe('customize grouped variation scoped to a promo project (promo variation
         return [
             {
                 project,
-                promoMap: { '*': 'PROMO-CODE' },
+                promoMap: { '*': 'PROMO-CODE
                 fragmentPaths: new Set(project.fragmentPaths),
-                groupedVariationPaths: new Set(groupedVariationPaths),
+                groupedVariationPaths: new S,
             },
         ];
     }
 
-    it('renders the promo variation created from the grouped variation, same as a promo variation created from the default fragment', async function () {
+    it('renders the promo variation created from the grouped variation, same as a promo variation created from the
+default fragment', async function () {
         const result = await processWithPromoProjects(
             {
                 ...FAKE_CONTEXT,
-                fragmentPath: 'pzn-test-fragment',
+                fragmentPath: 'pzn-test-frag
                 locale: 'en_US',
                 parsedLocale: 'en_US',
                 pzn: 'EDU',
                 body: buildBodyWithPzn(),
             },
-            buildPromoProjectsEntry(['PA-123/pzn/edu'], { 'PA-123/pzn/edu': GROUPED_PROMO_VARIATION }),
+            buildPromoProjectsEntry(['PA-123/edu': GROUPED_PROMO_VARIATION }),
         );
 
         expect(result.status).to.equal(200);
@@ -2171,7 +2172,7 @@ describe('customize grouped variation scoped to a promo project (promo variation
         expect(result.body.promoProject).to.equal('promo-proj-id');
     });
 
-    it('prefers the grouped-variation-specific promo variation over the root-level one when both exist and pzn matches', async function () {
+    it('prefers the grouped-variation-specific promo variation over the root-level one when both exist and pznmatches', async function () {
         const result = await processWithPromoProjects(
             {
                 ...FAKE_CONTEXT,
@@ -2213,7 +2214,7 @@ describe('customize grouped variation scoped to a promo project (promo variation
         expect(result.body.fields.badge).to.equal('ROOT PROMO badge');
     });
 
-    it('prefers the grouped-variation promo over a matching regional-locale variation when both match', async function () {
+    it('prefers the grouped-variation promo over a matching regional-locale variation when both match', asyncfunction () {
         const regionalVariationId = 'kw-regional-variation';
         const bodyWithRegionalAndPzn = {
             path: '/content/dam/mas/sandbox/en_US/pzn-test-fragment',
@@ -2267,6 +2268,97 @@ describe('customize grouped variation scoped to a promo project (promo variation
         expect(result.status).to.equal(200);
         expect(result.body.variationId).to.equal('grouped-promo-var-id');
         expect(result.body.fields.badge).to.equal('GROUPED PROMO badge');
+    });
+});
+
+describe('customize ignore promo variations per offer & geo', function () {
+    const PZN_VARIATION_ID = 'pzn-var-edu';
+    const PROMO_VARIATION = {
+        id: 'promo-var-id',
+        path: '/content/dam/mas/sandbox/en_US/promotions/black-friday/pzn-test-fragment',
+        fields: { badge: 'PROMO badge' },
+    };
+
+    function buildBody() {
+        return {
+            path: '/content/dam/mas/sandbox/en_US/pzn-test-fragment',
+            id: 'root-fragment',
+            title: 'Root',
+            fields: {
+                badge: 'default badge',
+                osi: 'OSI-IGNORE',
+                variations: [PZN_VARIATION_ID],
+            },
+            references: {
+                [PZN_VARIATION_ID]: {
+                    type: 'content-fragment',
+                    value: {
+                        path: '/content/dam/mas/sandbox/en_US/PA-123/pzn/edu',
+                        id: PZN_VARIATION_ID,
+                        title: 'EDU pricing',
+                        fields: { pznTags: ['mas:audiences/pzn/EDU'], badge: 'EDU badge' },
+                    },
+                },
+            },
+            referencesTree: [],
+        };
+    }
+
+    function buildEntry(ignoreVariationOsis) {
+        const project = {
+            id: 'promo-proj-id',
+            path: '/content/dam/mas/promotions/black-friday',
+            fragmentPaths: ['pzn-test-fragment'],
+            defaultVariations: { 'pzn-test-fragment': PROMO_VARIATION },
+            regionVariations: {},
+        };
+        return [
+            {
+                project,
+                promoMap: { '*': 'PROMO-CODE' },
+                fragmentPaths: new Set(project.fragmentPaths),
+                ignoreVariationOsis,
+            },
+        ];
+    }
+
+    it('skips the promo variation for a flagged offer while pzn variation and promo code still apply', async function () {
+        const result = await processWithPromoProjects(
+            {
+                ...FAKE_CONTEXT,
+                fragmentPath: 'pzn-test-fragment',
+                locale: 'en_US',
+                parsedLocale: 'en_US',
+                pzn: 'EDU',
+                body: buildBody(),
+            },
+            buildEntry(new Set(['OSI-IGNORE'])),
+        );
+
+        expect(result.status).to.equal(200);
+        expect(result.body.variationId).to.equal(PZN_VARIATION_ID);
+        expect(result.body.fields.badge).to.equal('EDU badge');
+        expect(result.body.fields.promoCode).to.equal('PROMO-CODE');
+        expect(result.body.promoProject).to.equal('promo-proj-id');
+    });
+
+    it('applies the promo variation when the offer is not flagged', async function () {
+        const result = await processWithPromoProjects(
+            {
+                ...FAKE_CONTEXT,
+                fragmentPath: 'pzn-test-fragment',
+                locale: 'en_US',
+                parsedLocale: 'en_US',
+                pzn: 'EDU',
+                body: buildBody(),
+            },
+            buildEntry(new Set(['OTHER-OSI'])),
+        );
+
+        expect(result.status).to.equal(200);
+        expect(result.body.variationId).to.equal('promo-var-id');
+        expect(result.body.fields.badge).to.equal('PROMO badge');
+        expect(result.body.fields.promoCode).to.equal('PROMO-CODE');
     });
 });
 

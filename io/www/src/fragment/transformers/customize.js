@@ -350,7 +350,7 @@ function selectPromoProjectForFragment(root, customizeContext) {
 }
 
 function mergeVariations(root, customizeContext, selectedPromoProject) {
-const { isRegionLocale, references } = customizeContext;
+    const { isRegionLocale, references } = customizeContext;
     const variations = root?.fields?.variations;
     const regionalVariation = isRegionLocale && variations?.length ? findRegionalVariation(variations, customizeContext) : null;
 

@@ -2120,11 +2120,11 @@ describe('customize grouped variation scoped to a promo project (promo variation
                     type: 'content-fragment',
                     value: {
                         path: '/content/dam/mas/sandbox/en_US/PA-123/pzn/edu',
-                        id: PZN_VARIATION_ID
+                        id: PZN_VARIATION_ID,
                         title: 'EDU pricing',
                         fields: {
                             pznTags: ['mas:audiences/pzn/EDU'],
-                            badge: 'EDU badg
+                            badge: 'EDU badge',
                         },
                     },
                 },
@@ -2136,7 +2136,7 @@ describe('customize grouped variation scoped to a promo project (promo variation
     function buildPromoProjectsEntry(groupedVariationPaths, defaultVariations) {
         const project = {
             id: 'promo-proj-id',
-            path: '/content/dam/mas/promotio
+            path: '/content/dam/mas/promotions/black-friday',
             fragmentPaths: ['pzn-test-fragment'],
             defaultVariations,
             regionVariations: {},
@@ -2144,25 +2144,24 @@ describe('customize grouped variation scoped to a promo project (promo variation
         return [
             {
                 project,
-                promoMap: { '*': 'PROMO-CODE
+                promoMap: { '*': 'PROMO-CODE' },
                 fragmentPaths: new Set(project.fragmentPaths),
-                groupedVariationPaths: new S,
+                groupedVariationPaths: new Set(groupedVariationPaths),
             },
         ];
     }
 
-    it('renders the promo variation created from the grouped variation, same as a promo variation created from the
-default fragment', async function () {
+    it('renders the promo variation created from the grouped variation, same as a promo variation created from the default fragment', async function () {
         const result = await processWithPromoProjects(
             {
                 ...FAKE_CONTEXT,
-                fragmentPath: 'pzn-test-frag
+                fragmentPath: 'pzn-test-fragment',
                 locale: 'en_US',
                 parsedLocale: 'en_US',
                 pzn: 'EDU',
                 body: buildBodyWithPzn(),
             },
-            buildPromoProjectsEntry(['PA-123/edu': GROUPED_PROMO_VARIATION }),
+            buildPromoProjectsEntry(['PA-123/pzn/edu'], { 'PA-123/pzn/edu': GROUPED_PROMO_VARIATION }),
         );
 
         expect(result.status).to.equal(200);
@@ -2172,7 +2171,7 @@ default fragment', async function () {
         expect(result.body.promoProject).to.equal('promo-proj-id');
     });
 
-    it('prefers the grouped-variation-specific promo variation over the root-level one when both exist and pznmatches', async function () {
+    it('prefers the grouped-variation-specific promo variation over the root-level one when both exist and pzn matches', async function () {
         const result = await processWithPromoProjects(
             {
                 ...FAKE_CONTEXT,
@@ -2214,7 +2213,7 @@ default fragment', async function () {
         expect(result.body.fields.badge).to.equal('ROOT PROMO badge');
     });
 
-    it('prefers the grouped-variation promo over a matching regional-locale variation when both match', asyncfunction () {
+    it('prefers the grouped-variation promo over a matching regional-locale variation when both match', async function () {
         const regionalVariationId = 'kw-regional-variation';
         const bodyWithRegionalAndPzn = {
             path: '/content/dam/mas/sandbox/en_US/pzn-test-fragment',

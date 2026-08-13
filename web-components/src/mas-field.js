@@ -101,34 +101,36 @@ mas-field span.price.price-promo-strikethrough {
 }
 
 /* Render the RTE tooltip node (serialized as a bare .icon-button span) as an info
-   glyph with a hover/focus tooltip when a placeholder is consumed through mas-field
-   outside a merch-card (e.g. a headless DA page). Mirrors merch-card's glyph but uses
-   pure-CSS :hover/:focus instead of the JS-toggled .tooltip-visible class. */
+   glyph with a tooltip when a placeholder is consumed through mas-field outside a
+   merch-card (e.g. a headless DA page). Ports Milo's tooltip model (libs/features/
+   icons/icons.css) so it looks/behaves like production: a placement class
+   (top|bottom|left|right) drives the popover side and #decorateTooltips re-picks the
+   side on hover/focus so it never clips. Kept self-contained because mas-field is a
+   bundled component and Milo does not decorate mas-field content. */
 mas-field .icon-button {
     position: relative;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 18px;
-    min-height: 18px;
-    vertical-align: middle;
     text-decoration: none;
     border-bottom: none;
-    background-repeat: no-repeat;
-    background-position: center;
-    background-size: 18px;
-    background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" height="14" width="14"><path d="M7 .778A6.222 6.222 0 1 0 13.222 7 6.222 6.222 0 0 0 7 .778zM6.883 2.45a1.057 1.057 0 0 1 1.113.998q.003.05.001.1a1.036 1.036 0 0 1-1.114 1.114A1.052 1.052 0 0 1 5.77 3.547 1.057 1.057 0 0 1 6.784 2.45q.05-.002.1.001zm1.673 8.05a.389.389 0 0 1-.39.389H5.834a.389.389 0 0 1-.389-.389v-.778a.389.389 0 0 1 .39-.389h.388V7h-.389a.389.389 0 0 1-.389-.389v-.778a.389.389 0 0 1 .39-.389h1.555a.389.389 0 0 1 .389.39v3.5h.389a.389.389 0 0 1 .389.388z"/></svg>');
+    margin-inline-start: 7px;
 }
 
+mas-field .icon-button svg {
+    height: 1em;
+    width: auto;
+    position: relative;
+    top: 0.1em;
+}
+
+/* Default (right) popover. */
 mas-field .icon-button::before {
     content: attr(data-tooltip);
     position: absolute;
     top: 50%;
     left: 100%;
     transform: translateY(-50%);
-    margin-left: 8px;
+    margin-left: 7px;
     width: max-content;
-    max-width: 200px;
+    max-width: 140px;
     padding: 10px;
     border-radius: 5px;
     background: #0469E3;
@@ -145,7 +147,7 @@ mas-field .icon-button::after {
     content: '';
     position: absolute;
     top: 50%;
-    left: 102%;
+    left: 100%;
     margin-left: -8px;
     transform: translateY(-50%);
     border: 8px solid transparent;
@@ -154,11 +156,76 @@ mas-field .icon-button::after {
     display: none;
 }
 
+mas-field .icon-button.left::before {
+    left: initial;
+    margin: initial;
+    right: 100%;
+    margin-right: 8px;
+}
+
+mas-field .icon-button.left::after {
+    left: initial;
+    right: 100%;
+    margin-left: 0;
+    margin-right: -8px;
+    border-right-color: transparent;
+    border-left-color: #0469E3;
+}
+
+mas-field .icon-button.top::before {
+    left: calc(50% - 11px);
+    right: initial;
+    top: -6px;
+    margin: 0 0 15px 7px;
+    transform: translateX(-50%) translateY(-100%);
+}
+
+mas-field .icon-button.top::after {
+    left: 50%;
+    right: initial;
+    top: 2px;
+    margin-left: -8px;
+    transform: translateY(-50%);
+    border-right-color: transparent;
+    border-top-color: #0469E3;
+}
+
+mas-field .icon-button.bottom::before {
+    left: calc(50% - 11px);
+    right: initial;
+    top: 100%;
+    margin: 9px 0 0 7px;
+    transform: translateX(-50%);
+}
+
+mas-field .icon-button.bottom::after {
+    left: 50%;
+    right: initial;
+    top: calc(100% + 1px);
+    margin-left: -8px;
+    transform: translateY(-50%);
+    border-right-color: transparent;
+    border-bottom-color: #0469E3;
+}
+
 mas-field .icon-button:hover::before,
 mas-field .icon-button:focus::before,
+mas-field .icon-button:active::before,
 mas-field .icon-button:hover::after,
-mas-field .icon-button:focus::after {
+mas-field .icon-button:focus::after,
+mas-field .icon-button:active::after {
     display: block;
+}
+
+mas-field .icon-button.hide-tooltip::before,
+mas-field .icon-button.hide-tooltip::after {
+    display: none;
+}
+
+@media (max-width: 600px) {
+    mas-field .icon-button::before {
+        max-width: 180px;
+    }
 }
 `;
 
@@ -348,6 +415,7 @@ class MasField extends HTMLElement {
                 this.#setFragmentIds();
                 const content = this.#ensureContentElement();
                 content.innerHTML = this.#unwrapSingleParagraph(html) ?? '';
+                this.#decorateTooltips(content);
                 return;
             }
         }
@@ -373,10 +441,141 @@ class MasField extends HTMLElement {
                 }
             }
             content.innerHTML = html;
+            this.#decorateTooltips(content);
             this.#stampPromotionCode(content, fieldName);
             return;
         }
         content.textContent = html == null ? '' : String(html);
+    }
+
+    /**
+     * Wires any RTE tooltip nodes (.icon-button[data-tooltip]) rendered into the
+     * field so they behave like Milo's tooltips: a11y attributes, an initial
+     * placement class, and hover/focus listeners that reposition (#positionTooltip)
+     * to whichever side fits the viewport. Idempotent per icon.
+     */
+    #decorateTooltips(root) {
+        const icons = root.querySelectorAll('.icon-button[data-tooltip]');
+        for (const icon of icons) {
+            if (icon.dataset.tooltipWired) continue;
+            icon.dataset.tooltipWired = '1';
+            if (!icon.querySelector('svg')) {
+                icon.insertAdjacentHTML(
+                    'afterbegin',
+                    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 18 18" height="18" width="18" class="icon-milo icon-milo-info" aria-hidden="true"><path fill="currentcolor" d="M10.075,6A1.075,1.075,0,1,1,9,4.925H9A1.075,1.075,0,0,1,10.075,6Zm.09173,6H10V8.2A.20005.20005,0,0,0,9.8,8H7.83324S7.25,8.01612,7.25,8.5c0,.48365.58325.5.58325.5H8v3H7.83325s-.58325.01612-.58325.5c0,.48365.58325.5.58325.5h2.3335s.58325-.01635.58325-.5C10.75,12.01612,10.16673,12,10.16673,12ZM9,.5A8.5,8.5,0,1,0,17.5,9,8.5,8.5,0,0,0,9,.5ZM9,15.6748A6.67481,6.67481,0,1,1,15.67484,9,6.67481,6.67481,0,0,1,9,15.6748Z"></path></svg>',
+                );
+            }
+            if (!icon.hasAttribute('tabindex'))
+                icon.setAttribute('tabindex', '0');
+            if (!icon.hasAttribute('role')) icon.setAttribute('role', 'button');
+            if (!icon.hasAttribute('aria-label'))
+                icon.setAttribute('aria-label', icon.dataset.tooltip);
+            const placements = ['top', 'bottom', 'left', 'right'];
+            const authored = [...icon.classList].find((c) =>
+                placements.includes(c),
+            );
+            const original = authored || 'top';
+            if (!authored) icon.classList.add(original);
+            icon.dataset.originalPosition = original;
+            icon.classList.add('hide-tooltip');
+            const show = () => {
+                icon.classList.remove('hide-tooltip');
+                this.#positionTooltip(icon);
+            };
+            const hide = () => icon.classList.add('hide-tooltip');
+            icon.addEventListener('mouseenter', show);
+            icon.addEventListener('focus', show);
+            icon.addEventListener('mouseleave', hide);
+            icon.addEventListener('blur', hide);
+            icon.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') hide();
+            });
+        }
+    }
+
+    /**
+     * Flips a tooltip to whichever side (top/bottom/left/right) keeps its popover
+     * inside the viewport. Ported from Milo's scripts/tooltip.js setTooltipPosition
+     * so headless mas-field tooltips edge-flip the same way as authored Milo ones.
+     */
+    #positionTooltip(tooltip) {
+        const placements = ['top', 'bottom', 'right', 'left'];
+        const viewportWidth = window.innerWidth;
+        const margin = 12;
+        const headerHeight =
+            document.querySelector('header')?.getBoundingClientRect().height ||
+            0;
+        const before = window.getComputedStyle(tooltip, '::before');
+        const px = (v) => parseFloat(v) || 0;
+        const width =
+            px(before.width) + px(before.paddingLeft) + px(before.paddingRight);
+        const height =
+            px(before.height) +
+            px(before.paddingTop) +
+            px(before.paddingBottom);
+        const rect = tooltip.getBoundingClientRect();
+        const original = tooltip.dataset.originalPosition || 'top';
+        const current = placements.find((c) => tooltip.classList.contains(c));
+        const isVertical = original === 'top' || original === 'bottom';
+        const effectiveMaxWidth = isVertical ? width / 2 : width;
+        const topMargin = original === 'top' ? margin : 0;
+        const effectiveHeight =
+            original === 'top' ? height + topMargin : height / 2;
+        const willCutoffTop = rect.top - effectiveHeight < headerHeight;
+        const willCutoffBottom =
+            rect.bottom + (original === 'bottom' ? height + margin : 0) >
+            window.innerHeight;
+        const willOverflowRight =
+            rect.right + effectiveMaxWidth + margin > viewportWidth;
+        const willOverflowLeft = rect.left - effectiveMaxWidth - margin < 0;
+        const willOverflowRightAtBottom =
+            rect.left + width / 2 + margin > viewportWidth;
+        const willOverflowLeftAtBottom = rect.left - width / 2 - margin < 0;
+        const hasOverflow =
+            willOverflowRight ||
+            willOverflowLeft ||
+            willCutoffTop ||
+            willCutoffBottom ||
+            willOverflowRightAtBottom ||
+            willOverflowLeftAtBottom;
+        if (original !== current && !hasOverflow) {
+            tooltip.classList.remove(...placements);
+            tooltip.classList.add(original);
+            return;
+        }
+        let updated = original;
+        if (willOverflowRight && willOverflowRightAtBottom) {
+            updated = 'left';
+        } else if (willOverflowLeft && willOverflowLeftAtBottom) {
+            updated = 'right';
+        } else if (
+            (willOverflowRight && willCutoffTop) ||
+            (willOverflowLeft && willCutoffTop)
+        ) {
+            updated =
+                (willOverflowRightAtBottom && 'left') ||
+                (willOverflowLeftAtBottom && 'right') ||
+                'bottom';
+        } else if (
+            willOverflowRight !== willOverflowLeft &&
+            !willCutoffBottom
+        ) {
+            updated = willOverflowRight ? 'left' : 'right';
+        } else if (
+            willCutoffTop &&
+            ['top', 'left', 'right'].includes(original)
+        ) {
+            updated = 'bottom';
+        } else if (
+            willCutoffBottom &&
+            ['bottom', 'left', 'right'].includes(original)
+        ) {
+            updated = 'top';
+        }
+        if (current !== updated) {
+            tooltip.classList.remove(...placements);
+            tooltip.classList.add(updated);
+        }
     }
 
     /**

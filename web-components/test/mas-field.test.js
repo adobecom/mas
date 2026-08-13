@@ -926,13 +926,16 @@ describe('mas-field – tooltip icon-button rendering', () => {
     it('renders a serialized .icon-button as a visible info glyph with a hover tooltip', () => {
         const el = makeField(
             'shortDescription',
-            '<p>terms <span class="icon-button" tabindex="0" role="button" data-tooltip="cancel policy"></span></p>',
+            '<p>terms <span class="icon-button" data-tooltip="cancel policy"></span></p>',
         );
         const btn = el.querySelector('.icon-button');
         expect(btn, 'icon-button rendered in mas-field content').to.exist;
-        const bg = getComputedStyle(btn).backgroundImage;
-        expect(bg, 'info glyph background-image applied').to.not.equal('none');
-        expect(bg.toLowerCase()).to.contain('svg');
+        const svg = btn.querySelector('svg');
+        expect(svg, 'info glyph SVG injected').to.exist;
+        expect(
+            svg.getAttribute('class') || '',
+            'milo info icon class',
+        ).to.contain('icon-milo-info');
         expect(
             btn.getBoundingClientRect().width,
             'glyph occupies space',
@@ -943,5 +946,50 @@ describe('mas-field – tooltip icon-button rendering', () => {
         ).textContent;
         expect(styles).to.contain('content: attr(data-tooltip)');
         expect(styles).to.contain(':hover::before');
+    });
+
+    it('decorates the tooltip with a11y attributes and an initial placement class', () => {
+        const el = makeField(
+            'shortDescription',
+            '<p>terms <span class="icon-button" data-tooltip="cancel policy"></span></p>',
+        );
+        const btn = el.querySelector('.icon-button');
+        expect(btn.getAttribute('role'), 'role').to.equal('button');
+        expect(btn.getAttribute('tabindex'), 'tabindex').to.equal('0');
+        expect(
+            btn.getAttribute('aria-label'),
+            'aria-label from tooltip',
+        ).to.equal('cancel policy');
+        expect(
+            ['top', 'bottom', 'left', 'right'].some((c) =>
+                btn.classList.contains(c),
+            ),
+            'has a placement class',
+        ).to.be.true;
+        expect(
+            btn.dataset.originalPosition,
+            'records original position',
+        ).to.be.a('string');
+    });
+
+    it('flips placement toward the viewport on hover (edge-flip)', () => {
+        const el = makeField(
+            'shortDescription',
+            '<p><span class="icon-button" data-tooltip="a fairly long tooltip that would overflow near an edge"></span></p>',
+        );
+        const btn = el.querySelector('.icon-button');
+        // Force the icon hard against the right edge, then trigger the show handler.
+        el.style.position = 'fixed';
+        el.style.left = `${window.innerWidth - 4}px`;
+        el.style.top = '200px';
+        btn.dispatchEvent(new Event('mouseenter'));
+        expect(
+            btn.classList.contains('right'),
+            'not stuck on right at right edge',
+        ).to.be.false;
+        expect(
+            ['top', 'bottom', 'left'].some((c) => btn.classList.contains(c)),
+            'flipped to a fitting side',
+        ).to.be.true;
     });
 });

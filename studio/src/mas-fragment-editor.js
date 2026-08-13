@@ -1988,6 +1988,7 @@ export default class MasFragmentEditor extends LitElement {
     }
 
     get relatedVariationsSection() {
+        if (!this.fragment || isPromoVariationPath(this.fragment.path)) return nothing;
         return html`<mas-related-variations
             .fragment=${this.fragment}
             .targetFragment=${this.relatedVariationsTargetFragment}

@@ -186,7 +186,8 @@ export default class MasRelatedVariations extends LitElement {
         const token = ++this.#groupedVariationsLoadToken;
         this.isLoadingGroupedVariations = true;
         try {
-            await loadCardVariations(targetFragment.path, targetFragment.getVariations(), this.repository, {
+            const groupedVariationPaths = targetFragment.listGroupedVariations().map((v) => v.path);
+            await loadCardVariations(targetFragment.path, groupedVariationPaths, this.repository, {
                 getDisplayName: (fragmentData) => fragmentData?.path ?? '',
             });
             if (token !== this.#groupedVariationsLoadToken) return;

@@ -556,6 +556,47 @@ describe('MasRelatedVariations', () => {
             expect(getFragmentByPath.called).to.be.true;
         });
 
+        it('only fetches grouped variation paths, excluding locale and promo variation paths', async () => {
+            Store.fragmentEditor.itemsSelection.groupedVariationsByParent.set(new Map());
+            setItemsSelectionStore(Store.fragmentEditor.itemsSelection);
+
+            const groupedPath = '/content/dam/mas/sandbox/en_US/my-fragment/pzn/variant-1';
+            const localePath = '/content/dam/mas/sandbox/en_BE/my-fragment';
+            const promoPath = '/content/dam/mas/sandbox/en_US/promotions/back-to-school/my-fragment';
+            const fragment = new Fragment({
+                id: 'test-id',
+                path: '/content/dam/mas/sandbox/en_US/my-fragment',
+                model: { path: CARD_MODEL_PATH },
+                fields: [{ name: 'variations', values: [groupedPath, localePath, promoPath] }],
+                references: [
+                    { id: 'grouped-var-id', path: groupedPath, tags: [] },
+                    { id: 'locale-var-id', path: localePath, tags: [] },
+                    { id: 'promo-var-id', path: promoPath, tags: [] },
+                ],
+                tags: [],
+            });
+            const getFragmentByPath = sinon.stub().resolves(null);
+            const repository = { aem: { getFragmentByPath } };
+
+            const el = await fixture(
+                html`<mas-related-variations
+                    .fragment=${fragment}
+                    .targetFragment=${fragment}
+                    .isVariation=${false}
+                    .repository=${repository}
+                ></mas-related-variations>`,
+            );
+            await el.updateComplete;
+
+            const groupedButton = Array.from(el.shadowRoot.querySelectorAll('.variation-type-toggle')).find((button) =>
+                button.textContent.includes('Grouped variations'),
+            );
+            groupedButton.click();
+            await el.updateComplete;
+
+            expect(getFragmentByPath.calledOnceWith(groupedPath)).to.be.true;
+        });
+
         it('does not fetch promo variations on mount, only after the toggle is clicked and expanded', async () => {
             const fragment = new Fragment({
                 id: 'test-id',

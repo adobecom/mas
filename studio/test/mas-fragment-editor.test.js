@@ -1424,8 +1424,25 @@ describe('MasFragmentEditor', () => {
             const container = document.createElement('div');
             render(el.relatedVariationsSection, container);
             const related = container.querySelector('mas-related-variations');
-            expect(related).to.not.be.null;
-            expect(related.targetFragment).to.equal(null);
+            expect(related).to.be.null;
+        });
+
+        it('renders nothing from mas-related-variations for promo variation paths', () => {
+            const promoPath = '/content/dam/mas/sandbox/en_US/promotions/back-to-school/my-card';
+            const fragment = new Fragment({
+                id: 'promo-var-id',
+                path: promoPath,
+                model: { path: CARD_MODEL_PATH },
+                fields: [],
+                tags: [],
+            });
+            el.inEdit.value = { get: () => fragment };
+            sandbox.stub(el.editorContextStore, 'isVariation').returns(true);
+
+            const container = document.createElement('div');
+            render(el.relatedVariationsSection, container);
+            const related = container.querySelector('mas-related-variations');
+            expect(related).to.be.null;
         });
 
         it('binds fragment, targetFragment, isVariation, isPromoVariation, and repository to mas-related-variations', () => {
@@ -1438,7 +1455,7 @@ describe('MasFragmentEditor', () => {
             });
             el.inEdit.value = { get: () => fragment };
             sandbox.stub(el.editorContextStore, 'isVariation').returns(false);
-            sandbox.stub(el, 'isPromoVariationFragment').returns(true);
+            sandbox.stub(el, 'isPromoVariationFragment').returns(false);
 
             const container = document.createElement('div');
             render(el.relatedVariationsSection, container);
@@ -1446,7 +1463,7 @@ describe('MasFragmentEditor', () => {
             expect(related.fragment).to.equal(fragment);
             expect(related.targetFragment).to.equal(fragment);
             expect(related.isVariation).to.be.false;
-            expect(related.isPromoVariation).to.be.true;
+            expect(related.isPromoVariation).to.be.false;
             expect(related.repository).to.equal(el.repository);
         });
 

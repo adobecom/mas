@@ -146,6 +146,19 @@ class FragmentCache {
 
 const cache = new FragmentCache();
 
+const AEM_FRAGMENT_STYLES = `
+${AEM_FRAGMENT_TAG_NAME} {
+    display: contents;
+}
+`;
+
+if (!document.querySelector('style[data-aem-fragment]')) {
+    const style = document.createElement('style');
+    style.setAttribute('data-aem-fragment', '');
+    style.textContent = AEM_FRAGMENT_STYLES;
+    document.head.append(style);
+}
+
 /**
  * Custom element representing an aem fragment.
  *

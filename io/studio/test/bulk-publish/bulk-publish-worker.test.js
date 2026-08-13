@@ -15,7 +15,7 @@ describe('bulk-publish-worker — runWorker', () => {
             getProjectTitle: sinon.stub().returns('Proj'),
             getProjectSnapshots: sinon.stub().returns([]),
             publishResolved: sinon.stub(),
-            createSnapshot: sinon.stub().resolves(['{"fragmentId":"f1"}']),
+            createSnapshot: sinon.stub().resolves({ entries: ['{"fragmentId":"f1"}'], expandedPaths: [] }),
             updateProjectFragment: sinon.stub().resolves(),
             now: () => new Date('2026-06-04T00:00:00.000Z'),
             logger: { info: sinon.stub(), warn: sinon.stub(), error: sinon.stub() },
@@ -205,6 +205,57 @@ describe('bulk-publish-worker — runWorker', () => {
         expect(finalSnapshots[0]).to.not.include('publishComplete');
     });
 
+    it('publishes expanded paths (cards) when includeCards is true', async () => {
+        const collPath = '/content/dam/mas/acom/en_US/coll';
+        const cardPath = '/content/dam/mas/acom/en_US/card-1';
+        deps.getProjectPaths.returns([collPath]);
+        deps.getProjectLocales.returns([]);
+        deps.createSnapshot.resolves({
+            entries: ['{"fragmentId":"f-coll"}'],
+            expandedPaths: [collPath, cardPath],
+        });
+        deps.publishResolved.resolves([
+            { path: collPath, status: 'published' },
+            { path: cardPath, status: 'published' },
+        ]);
+
+        await worker.runWorker(
+            { projectId: 'proj-1', odinEndpoint: 'https://odin', authToken: 't', publishedBy: '', includeCards: true },
+            deps,
+        );
+
+        const publishedPaths = deps.publishResolved.firstCall.args[0];
+        expect(publishedPaths).to.include(collPath);
+        expect(publishedPaths).to.include(cardPath);
+    });
+
+    it('publishes only top-level paths when includeCards and includeVariations are both false', async () => {
+        const collPath = '/content/dam/mas/acom/en_US/coll';
+        const cardPath = '/content/dam/mas/acom/en_US/card-1';
+        deps.getProjectPaths.returns([collPath]);
+        deps.getProjectLocales.returns([]);
+        deps.createSnapshot.resolves({
+            entries: ['{"fragmentId":"f-coll"}'],
+            expandedPaths: [collPath, cardPath],
+        });
+        deps.publishResolved.resolves([{ path: collPath, status: 'published' }]);
+
+        await worker.runWorker(
+            {
+                projectId: 'proj-1',
+                odinEndpoint: 'https://odin',
+                authToken: 't',
+                publishedBy: '',
+                includeCards: false,
+                includeVariations: false,
+            },
+            deps,
+        );
+
+        const publishedPaths = deps.publishResolved.firstCall.args[0];
+        expect(publishedPaths).to.deep.equal([collPath]);
+    });
+
     it('ignores a fully-complete existing snapshot and takes a fresh one', async () => {
         deps.getProjectSnapshots.returns(['{"fragmentId":"f1"}']);
         deps.publishResolved.resolves([{ path: '/content/dam/mas/acom/en_US/a', status: 'published' }]);
@@ -215,6 +266,46 @@ describe('bulk-publish-worker — runWorker', () => {
         expect(deps.createSnapshot).to.have.been.calledOnce;
     });
 
+    it('publishes card paths recovered from pending snapshot entries on resume with includeCards', async () => {
+        const collPath = '/content/dam/mas/acom/en_US/coll';
+        const cardPath = '/content/dam/mas/acom/en_US/card-1';
+        const pendingEntries = [
+            JSON.stringify({
+                fragmentId: 'f-coll',
+                path: collPath,
+                versionId: 'v1',
+                wasPublished: true,
+                createdAt: '2026-01-01T00:00:00.000Z',
+                publishComplete: false,
+            }),
+            JSON.stringify({
+                fragmentId: 'f-card',
+                path: cardPath,
+                versionId: 'v2',
+                wasPublished: false,
+                createdAt: '2026-01-01T00:00:00.000Z',
+                publishComplete: false,
+            }),
+        ];
+        deps.getProjectSnapshots.returns(pendingEntries);
+        deps.getProjectPaths.returns([collPath]);
+        deps.getProjectLocales.returns([]);
+        deps.publishResolved.resolves([
+            { path: collPath, status: 'published' },
+            { path: cardPath, status: 'published' },
+        ]);
+
+        await worker.runWorker(
+            { projectId: 'proj-1', odinEndpoint: 'https://odin', authToken: 't', publishedBy: '', includeCards: true },
+            deps,
+        );
+
+        const publishedPaths = deps.publishResolved.firstCall.args[0];
+        expect(publishedPaths).to.include(collPath);
+        expect(publishedPaths).to.include(cardPath);
+        expect(deps.createSnapshot).to.not.have.been.called;
+    });
+
     it('treats a malformed snapshot entry as not-pending and takes a fresh snapshot', async () => {
         deps.getProjectSnapshots.returns(['not-json']);
         deps.publishResolved.resolves([{ path: '/content/dam/mas/acom/en_US/a', status: 'published' }]);
@@ -223,6 +314,21 @@ describe('bulk-publish-worker — runWorker', () => {
         await worker.runWorker({ projectId: 'proj-1', odinEndpoint: 'https://odin', authToken: 't', publishedBy: '' }, deps);
 
         expect(deps.createSnapshot).to.have.been.calledOnce;
+    });
+
+    it('sets status to Failed and returns early when project has no paths and no pending snapshot', async () => {
+        const { PROJECT_STATUS } = require('../../src/bulk-publish/project.js');
+        deps.getProjectPaths.returns([]);
+        deps.getProjectSnapshots.returns([]);
+
+        const result = await worker.runWorker({ projectId: 'proj-1', odinEndpoint: 'https://odin', authToken: 't' }, deps);
+
+        expect(deps.createSnapshot).to.not.have.been.called;
+        expect(deps.publishResolved).to.not.have.been.called;
+        const updateCall = deps.updateProjectFragment.firstCall;
+        expect(updateCall.args[3].status).to.equal(PROJECT_STATUS.FAILED);
+        expect(updateCall.args[3].lastError).to.be.a('string').and.not.be.empty;
+        expect(result.total).to.equal(0);
     });
 });
 
@@ -261,6 +367,40 @@ describe('bulk-publish-worker — main', () => {
         const res = await main({ projectId: 'proj-1', aemOdinEndpoint: 'https://odin.invalid', authToken: 't' });
         expect(res.statusCode).to.equal(500);
         expect(res.body.error).to.be.a('string');
+    });
+
+    it('updates project status to Failed when runWorker throws', async () => {
+        const updateProjectFragment = sinon.stub().resolves();
+        const runWorkerStub = sinon.stub().rejects(new Error('snapshot failed'));
+        const res = await main(
+            { projectId: 'proj-1', odinEndpoint: 'https://odin', authToken: 't' },
+            { runWorker: runWorkerStub, updateProjectFragment },
+        );
+        expect(res.statusCode).to.equal(500);
+        expect(updateProjectFragment).to.have.been.calledOnce;
+        expect(updateProjectFragment.firstCall.args[3]).to.deep.include({ status: 'Failed' });
+    });
+
+    it('forwards includeCards and includeVariations from params to runWorker', async () => {
+        const runWorkerStub = sinon.stub().resolves({ published: 1, failed: 0 });
+        await main(
+            { projectId: 'proj-1', odinEndpoint: 'https://odin', authToken: 't', includeCards: true, includeVariations: true },
+            { runWorker: runWorkerStub },
+        );
+        const input = runWorkerStub.firstCall.args[0];
+        expect(input.includeCards).to.equal(true);
+        expect(input.includeVariations).to.equal(true);
+    });
+
+    it('does not throw if updateProjectFragment also fails during error recovery', async () => {
+        const updateProjectFragment = sinon.stub().rejects(new Error('update failed'));
+        const runWorkerStub = sinon.stub().rejects(new Error('worker error'));
+        const res = await main(
+            { projectId: 'proj-1', odinEndpoint: 'https://odin', authToken: 't' },
+            { runWorker: runWorkerStub, updateProjectFragment },
+        );
+        expect(res.statusCode).to.equal(500);
+        expect(res.body.error).to.equal('worker error');
     });
 });
 

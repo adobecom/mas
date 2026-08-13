@@ -336,3 +336,8 @@ export const VARIATION_TAB_NAME = {
     PROMOTION: 'promotion',
     GROUPED: 'grouped',
 };
+
+export const BASELINE_VARIATION = {
+    TEXT: 'Baseline variation',
+    TOOLTIP_TEXT: 'This variation is the baseline for the project and inherits all tags from the project.',
+};

@@ -1,4 +1,8 @@
+import { textWithTooltipStyles } from './common/styles/table-styles.css.js';
+
 export const styles = `
+${textWithTooltipStyles}
+
 .expanded-content {
     background-color: var(--spectrum-white);
     padding: 16px 0px 24px 30px;
@@ -104,8 +108,6 @@ export const styles = `
 .tags-group {
     display: flex;
     flex-direction: column;
-    flex: 1;
-    min-width: 0;
 }
 
 .field-label {
@@ -131,12 +133,6 @@ export const styles = `
     display: flex;
     flex-wrap: wrap;
     gap: 12px;
-}
-
-.no-tags {
-    font-size: 14px;
-    color: var(--spectrum-gray-500);
-    font-style: italic;
 }
 
 .duplicate-action {

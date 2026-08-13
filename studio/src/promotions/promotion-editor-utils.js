@@ -494,9 +494,14 @@ export async function handlePromotionOstOfferSelect({ detail: { offerSelectorId,
 }
 
 const PROMOTION_OFFER_SUBSTITUTION_PREFIX = 'substitute';
+const PROMOTION_IGNORE_VARIATIONS_PREFIX = 'ignore-variations';
 
 export function isPromotionOfferSubstitutionEntry(entry) {
     return typeof entry === 'string' && entry.startsWith(`${PROMOTION_OFFER_SUBSTITUTION_PREFIX}|`);
+}
+
+export function isPromotionIgnoreVariationsEntry(entry) {
+    return typeof entry === 'string' && entry.startsWith(`${PROMOTION_IGNORE_VARIATIONS_PREFIX}|`);
 }
 
 export function promotionOfferRecordHasDisplayName(cacheEntry) {
@@ -508,7 +513,8 @@ export function promotionOfferRecordHasDisplayName(cacheEntry) {
 export function parsePromotionOffersField(values) {
     const promoExceptions = new Map();
     const offerSubstitutions = new Map();
-    if (!Array.isArray(values)) return { promoExceptions, offerSubstitutions };
+    const ignoredVariations = new Map();
+    if (!Array.isArray(values)) return { promoExceptions, offerSubstitutions, ignoredVariations };
     for (const entry of values) {
         if (!entry) continue;
         if (isPromotionOfferSubstitutionEntry(entry)) {
@@ -519,12 +525,18 @@ export function parsePromotionOffersField(values) {
             }
             continue;
         }
+        if (isPromotionIgnoreVariationsEntry(entry)) {
+            const [, offerId, geoStr = ''] = entry.split('|');
+            const country = formatGeoDisplayLabel(geoStr) || geoStr;
+            if (offerId && country) ignoredVariations.set(`${offerId}|${country}`, true);
+            continue;
+        }
         const [offerId, promoCode, geoStr = ''] = entry.split('|');
         const country = formatGeoDisplayLabel(geoStr) || geoStr;
         if (!offerId || !promoCode || !country) continue;
         promoExceptions.set(`${offerId}|${country}`, promoCode);
     }
-    return { promoExceptions, offerSubstitutions };
+    return { promoExceptions, offerSubstitutions, ignoredVariations };
 }
 
 export function parsePromoCodeExceptions(values) {
@@ -533,6 +545,10 @@ export function parsePromoCodeExceptions(values) {
 
 export function parseOfferSubstitutions(values) {
     return parsePromotionOffersField(values).offerSubstitutions;
+}
+
+export function parseIgnoredVariations(values) {
+    return parsePromotionOffersField(values).ignoredVariations;
 }
 
 export function serializePromoCodeExceptions(map, displayToCq) {
@@ -553,6 +569,17 @@ export function serializeOfferSubstitutions(map, displayToCq) {
     });
 }
 
+export function serializeIgnoredVariations(map, displayToCq) {
+    if (!map?.size) return [];
+    return [...map.entries()]
+        .filter(([, ignored]) => ignored)
+        .map(([key]) => {
+            const [offerId, label] = key.split('|');
+            const geoTag = displayToCq?.get(label) ?? label;
+            return `${PROMOTION_IGNORE_VARIATIONS_PREFIX}|${offerId}|${geoTag}`;
+        });
+}
+
 export function parseSelectedOfferIdsFromOffersField(values) {
     if (!Array.isArray(values)) return [];
     return values
@@ -561,12 +588,19 @@ export function parseSelectedOfferIdsFromOffersField(values) {
         .filter(Boolean);
 }
 
-export function serializePromotionOffersField(promoExceptions, offerSubstitutions, selectedOfferIds, displayToCq) {
+export function serializePromotionOffersField(
+    promoExceptions,
+    offerSubstitutions,
+    ignoredVariations,
+    selectedOfferIds,
+    displayToCq,
+) {
     const selectedLines = Array.isArray(selectedOfferIds) ? selectedOfferIds.filter(Boolean) : [];
     return [
         ...selectedLines,
         ...serializePromoCodeExceptions(promoExceptions, displayToCq),
         ...serializeOfferSubstitutions(offerSubstitutions, displayToCq),
+        ...serializeIgnoredVariations(ignoredVariations, displayToCq),
     ];
 }
 
@@ -659,6 +693,7 @@ export function buildPromotionOffersFieldValues(promotionFragment, selectedOffer
     const parsed = parsePromotionOffersField(offerValues);
     let promoExceptions = overrides.promoExceptions ?? parsed.promoExceptions;
     let offerSubstitutions = overrides.offerSubstitutions ?? parsed.offerSubstitutions;
+    let ignoredVariations = overrides.ignoredVariations ?? parsed.ignoredVariations;
     const geos = promotionFragment?.getFieldValues?.('geos') ?? [];
     const displayToCq = new Map(geos.map((g) => [formatGeoDisplayLabel(g), g]).filter(([label]) => label));
     if (geos.length) {
@@ -666,12 +701,17 @@ export function buildPromotionOffersFieldValues(promotionFragment, selectedOffer
         const isValid = (key) => valid.has(key.split('|')[1]);
         promoExceptions = new Map([...promoExceptions].filter(([k]) => isValid(k)));
         offerSubstitutions = new Map([...offerSubstitutions].filter(([k]) => isValid(k)));
+        ignoredVariations = new Map([...ignoredVariations].filter(([k]) => isValid(k)));
     }
-    return serializePromotionOffersField(promoExceptions, offerSubstitutions, selectedOfferIds, displayToCq);
+    return serializePromotionOffersField(promoExceptions, offerSubstitutions, ignoredVariations, selectedOfferIds, displayToCq);
 }
 
 export function getEffectiveSubstituteOffer(offerSubstitutions, baseOfferId, country) {
     return offerSubstitutions?.get(`${baseOfferId}|${country}`) ?? null;
+}
+
+export function getEffectiveIgnoreVariations(ignoredVariations, offerId, country) {
+    return ignoredVariations?.get(`${offerId}|${country}`) === true;
 }
 
 export function groupOfferSubstitutionsForOffer(offerSubstitutions, offerKeys, countries, resolveOfferLabel) {

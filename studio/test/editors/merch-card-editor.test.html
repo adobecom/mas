@@ -1422,6 +1422,27 @@
                             expect(fragmentStore.get().getFieldValues('locReady')).to.deep.equal([false]);
                         });
                     });
+
+                    describe('validationStatus banner', () => {
+                        it('renders a banner listing each validationStatus property and message', async () => {
+                            const { editor, fragmentStore } = await setupTestEnvironment({}, 'validation-banner');
+                            fragmentStore.get().validationStatus = [
+                                { property: 'fields.ctas.values[0].<list element>', message: 'is not valid HTML' },
+                            ];
+                            fragmentStore.notify();
+                            await editor.updateComplete;
+
+                            const banner = editor.querySelector('.fragment-validation-banner');
+                            expect(banner).to.exist;
+                            expect(banner.textContent).to.include('fields.ctas.values[0].<list element>');
+                            expect(banner.textContent).to.include('is not valid HTML');
+                        });
+
+                        it('renders no banner when validationStatus is empty', async () => {
+                            const { editor } = await setupTestEnvironment({}, 'validation-none');
+                            expect(editor.querySelector('.fragment-validation-banner')).to.not.exist;
+                        });
+                    });
                 });
             });
         </script>

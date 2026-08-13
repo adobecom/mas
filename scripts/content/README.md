@@ -102,6 +102,11 @@ one surface/locale folder, writes changed fragments in parallel (unless
 `--dry-run`), and emits a `.txt` of Studio deep-links for building a
 bulk-publish project. Does not publish.
 
+Before each update it saves the fragment's original payload to
+`fragments/<last-folder-token>/<fragment-id>.json` (e.g. `--folder
+/content/dam/mas/adobe-home` → `fragments/adobe-home/<id>.json`) so a bad run
+can be rolled back. Backups are skipped in `--dry-run`.
+
 Flags:
 
 - `--folder <path>`: surface/locale folder to scan (required).

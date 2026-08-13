@@ -7,6 +7,7 @@ import {
     buildReport,
     run,
     runPool,
+    backupFile,
 } from '../content/fix-extra-options-quotes.mjs';
 import { fixDataExtraOptionsInValue } from '../../io/www/src/fragment/transformers/corrector.js';
 
@@ -116,7 +117,7 @@ function stubFetch(items) {
     };
     return puts;
 }
-const runOpts = { authorHost: 'h', folder: '/content/dam/mas/ccd/de_DE', token: 't', apiKey: 'k' };
+const runOpts = { authorHost: 'h', folder: '/content/dam/mas/ccd/de_DE', token: 't', apiKey: 'k', writeBackup: () => {} };
 
 test('repairs broken fragments and PUTs them', async () => {
     const puts = stubFetch([broken(), clean()]);
@@ -182,6 +183,34 @@ test('run PUTs broken fragments in parallel up to the concurrency cap', async ()
     const { hits } = await run({ ...runOpts, concurrency: 3 });
     assert.equal(hits.length, 8);
     assert.ok(maxInFlight > 1 && maxInFlight <= 3, `maxInFlight=${maxInFlight}`);
+});
+
+test('backupFile targets fragments/<last-folder-token>/<id>.json', () => {
+    assert.equal(backupFile('/content/dam/mas/adobe-home', 'abc'), 'fragments/adobe-home/abc.json');
+    assert.equal(backupFile('/content/dam/mas/ccd/de_DE/', 'id1'), 'fragments/de_DE/id1.json');
+});
+
+test('backs up the original (unfixed) payload before updating', async () => {
+    const saved = [];
+    globalThis.fetch = async (url, init) => {
+        if (init?.method === 'PUT') return { ok: true, headers: { get: () => 'e' } };
+        return { ok: true, json: async () => ({ items: [broken()], cursor: null }) };
+    };
+    await run({ ...runOpts, writeBackup: (folder, fragment) => saved.push({ folder, fragment }) });
+    assert.equal(saved.length, 1);
+    assert.equal(saved[0].folder, runOpts.folder);
+    assert.match(saved[0].fragment.fields[0].values[0], /data-extra-options="\{"actionId/);
+    assert.ok(!saved[0].fragment.fields[0].values[0].includes('&quot;'));
+});
+
+test('dry-run writes no backup', async () => {
+    let calls = 0;
+    globalThis.fetch = async (url, init) => {
+        if (init?.method === 'PUT') return { ok: true, headers: { get: () => 'e' } };
+        return { ok: true, json: async () => ({ items: [broken()], cursor: null }) };
+    };
+    await run({ ...runOpts, dryRun: true, writeBackup: () => (calls += 1) });
+    assert.equal(calls, 0);
 });
 
 test('a fragment whose PUT fails is not reported as a hit', async () => {

@@ -1,6 +1,7 @@
 import { CARD_MODEL_ID, createHeaders, parseArgs, wait } from './common.js';
 import { fileURLToPath } from 'node:url';
-import { writeFileSync } from 'node:fs';
+import { writeFileSync, mkdirSync } from 'node:fs';
+import { dirname } from 'node:path';
 
 export const FIELDS = ['ctas', 'cta', 'description', 'shortDescription'];
 
@@ -48,6 +49,17 @@ export async function runPool(items, concurrency, worker) {
     await Promise.all(workers);
 }
 
+export function backupFile(folder, id) {
+    const surface = folder.split('/').filter(Boolean).at(-1);
+    return `fragments/${surface}/${id}.json`;
+}
+
+function defaultWriteBackup(folder, fragment) {
+    const file = backupFile(folder, fragment.id);
+    mkdirSync(dirname(file), { recursive: true });
+    writeFileSync(file, JSON.stringify(fragment, null, 2));
+}
+
 async function putFragment(baseUrl, headers, fragment) {
     const response = await fetch(`${baseUrl}/adobe/sites/cf/fragments/${fragment.id}`, {
         method: 'PUT',
@@ -61,7 +73,16 @@ async function putFragment(baseUrl, headers, fragment) {
     return true;
 }
 
-export async function run({ authorHost, folder, limit = 0, dryRun = false, concurrency = 10, token, apiKey }) {
+export async function run({
+    authorHost,
+    folder,
+    limit = 0,
+    dryRun = false,
+    concurrency = 10,
+    token,
+    apiKey,
+    writeBackup = defaultWriteBackup,
+}) {
     const baseUrl = `https://${authorHost}`;
     const headers = createHeaders(token, apiKey);
     const query = JSON.stringify({
@@ -88,9 +109,10 @@ export async function run({ authorHost, folder, limit = 0, dryRun = false, concu
         scanned += items.length;
 
         for (const fragment of items) {
+            const original = dryRun ? null : structuredClone(fragment);
             const fields = repairFragment(fragment);
             if (!fields.length) continue;
-            broken.push({ fragment, fields });
+            broken.push({ fragment, fields, original });
             if (limit && broken.length >= limit) {
                 done = true;
                 break;
@@ -103,7 +125,8 @@ export async function run({ authorHost, folder, limit = 0, dryRun = false, concu
 
     const failed = new Set();
     if (!dryRun) {
-        await runPool(broken, concurrency, async ({ fragment }) => {
+        await runPool(broken, concurrency, async ({ fragment, original }) => {
+            writeBackup(folder, original);
             if (!(await putFragment(baseUrl, headers, fragment))) failed.add(fragment.id);
         });
     }

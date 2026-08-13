@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { fixExtraOptionsQuotes, repairFragment, studioLink, buildReport } from '../content/fix-extra-options-quotes.mjs';
+import { fixExtraOptionsQuotes, repairFragment, studioLink, buildReport, run } from '../content/fix-extra-options-quotes.mjs';
 import { fixDataExtraOptionsInValue } from '../../io/www/src/fragment/transformers/corrector.js';
 
 test('escapes literal inner quotes', () => {
@@ -82,4 +82,52 @@ test('buildReport lists one link per hit', () => {
         'https://main--mas--adobecom.aem.live/studio.html#page=fragment-editor&fragmentId=a1\n' +
         'https://main--mas--adobecom.aem.live/studio.html#page=fragment-editor&fragmentId=b2',
     );
+});
+
+const broken = () => ({
+    id: 'id1', path: '/content/dam/mas/ccd/de_DE/card', etag: 'e1',
+    title: 't', description: 'd', status: 'PUBLISHED',
+    fields: [{ name: 'ctas', type: 'text', values: ['<a data-extra-options="{"actionId":"try"}">T</a>'] }],
+});
+const clean = () => ({
+    id: 'id2', path: '/content/dam/mas/ccd/de_DE/ok', etag: 'e2',
+    title: 't', description: 'd', status: 'PUBLISHED',
+    fields: [{ name: 'ctas', type: 'text', values: ['<a>ok</a>'] }],
+});
+
+function stubFetch(items) {
+    const puts = [];
+    globalThis.fetch = async (url, init) => {
+        if (init?.method === 'PUT') {
+            puts.push({ url, body: JSON.parse(init.body) });
+            return { ok: true, headers: { get: () => 'e-new' } };
+        }
+        return { ok: true, json: async () => ({ items, cursor: null }) };
+    };
+    return puts;
+}
+const runOpts = { authorHost: 'h', folder: '/content/dam/mas/ccd/de_DE', token: 't', apiKey: 'k' };
+
+test('repairs broken fragments and PUTs them', async () => {
+    const puts = stubFetch([broken(), clean()]);
+    const { scanned, hits } = await run(runOpts);
+    assert.equal(scanned, 2);
+    assert.deepEqual(hits.map((h) => h.id), ['id1']);
+    assert.equal(puts.length, 1);
+    assert.equal(puts[0].url, 'https://h/adobe/sites/cf/fragments/id1');
+    assert.match(puts[0].body.fields[0].values[0], /&quot;actionId&quot;/);
+});
+
+test('dry-run performs no PUT', async () => {
+    const puts = stubFetch([broken()]);
+    const { hits } = await run({ ...runOpts, dryRun: true });
+    assert.deepEqual(hits.map((h) => h.id), ['id1']);
+    assert.equal(puts.length, 0);
+});
+
+test('limit stops after N hits', async () => {
+    const puts = stubFetch([broken(), { ...broken(), id: 'id3' }]);
+    const { hits } = await run({ ...runOpts, limit: 1 });
+    assert.equal(hits.length, 1);
+    assert.equal(puts.length, 1);
 });

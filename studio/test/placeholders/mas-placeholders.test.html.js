@@ -180,5 +180,18 @@ runTests(async () => {
             expect(rte.hasAttribute('icon'), 'icon (tooltip) action enabled').to.be.true;
             expect(rte.hasAttribute('link'), 'link action still enabled').to.be.true;
         });
+
+        // MWPW-203852: creating a placeholder freshly (rich text) must also expose the icon (tooltip) action.
+        it('renders the creation modal rich-text editor as an rte-field with the icon (tooltip) action enabled', function () {
+            const modal = document.createElement('mas-placeholders-creation-modal');
+            modal.placeholder = { key: '', isRichText: true, value: '' };
+            // Render the template into a detached container (no connect, no dialog/locale-picker side effects).
+            const container = document.createElement('div');
+            render(modal.render(), container);
+            const rte = container.querySelector('rte-field');
+            expect(rte, 'rich-text creation editor uses an rte-field').to.exist;
+            expect(rte.hasAttribute('icon'), 'icon (tooltip) action enabled').to.be.true;
+            expect(rte.hasAttribute('link'), 'link action still enabled').to.be.true;
+        });
     });
 });

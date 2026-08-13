@@ -64,3 +64,7 @@ web-components/mas.json
 web-components/stats.json
 *.jsonl
 mcp-server.log
+
+# raw copy of fragments before update
+scripts/content/fragments
+

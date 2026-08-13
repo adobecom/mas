@@ -36,9 +36,15 @@ describe('ost-promo-tag', () => {
         expect(clearBtn.querySelector('sp-icon-undo')).to.exist;
     });
 
-    it('hides the Cancel context button when no context promo exists', async () => {
+    it('renders the Cancel context button when no context promo exists', async () => {
         const el = await fixture(html`<ost-promo-tag></ost-promo-tag>`);
-        expect(el.shadowRoot.querySelector('[data-testid="ost-promo-cancel-context"]')).to.not.exist;
+        expect(el.shadowRoot.querySelector('[data-testid="ost-promo-cancel-context"]')).to.exist;
+    });
+
+    it('sets the cancel sentinel when cancelling a price that has no promo of its own', async () => {
+        const el = await fixture(html`<ost-promo-tag></ost-promo-tag>`);
+        el.shadowRoot.querySelector('[data-testid="ost-promo-cancel-context"]').click();
+        expect(store.storedPromoOverride).to.equal(PROMO_CONTEXT_CANCEL_VALUE);
     });
 
     it('renders a Cancel icon button when a context promo exists', async () => {

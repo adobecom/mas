@@ -347,6 +347,24 @@
                         expect(editorPanel.inEdit.get()).to.be.null;
                         expect(updateStoresSpy.called).to.be.true;
                     });
+
+                    it('saveFragment saves with refetchEtag disabled and returns the saved fragment', async () => {
+                        const savedFragment = { id: 'saved-fragment' };
+                        const saveSpy = sandbox.stub(editorPanel.repository, 'saveFragment').resolves(savedFragment);
+
+                        const result = await editorPanel.saveFragment();
+
+                        expect(saveSpy.calledOnceWith(editorPanel.fragmentStore, { refetchEtag: false })).to.be.true;
+                        expect(result).to.equal(savedFragment);
+                    });
+
+                    it('saveFragment returns falsy when the repository rejects the save due to a conflict', async () => {
+                        sandbox.stub(editorPanel.repository, 'saveFragment').resolves(false);
+
+                        const result = await editorPanel.saveFragment();
+
+                        expect(result).to.be.false;
+                    });
                 });
             });
         </script>

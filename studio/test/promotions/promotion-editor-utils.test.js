@@ -34,6 +34,10 @@ import {
     parseSelectedOfferIdsFromOffersField,
     parsePromotionSurfacesFieldValues,
     getEffectiveSubstituteOffer,
+    getEffectiveIgnoreVariations,
+    parseIgnoredVariations,
+    serializeIgnoredVariations,
+    isPromotionIgnoreVariationsEntry,
     groupOfferSubstitutionsForOffer,
     serializePromotionSurfacesForAem,
     serializePromoCodeExceptions,
@@ -157,6 +161,33 @@ describe('promotion-editor-utils', () => {
             const values = buildPromotionOffersFieldValues(p, ['osi-1']);
             expect(values).to.include('osi-1|CODE|US');
             expect(values).to.include('substitute|osi-1|osi-2|CA_en');
+        });
+
+        it('preserves ignore-variations lines while updating selected offer ids', () => {
+            const p = makePromotionFragment({
+                offers: ['osi-1', 'ignore-variations|osi-1|CA_en'],
+            });
+            const values = buildPromotionOffersFieldValues(p, ['osi-1', 'osi-3']);
+            expect(values).to.include('osi-3');
+            expect(values).to.include('ignore-variations|osi-1|CA_en');
+        });
+
+        it('removes ignore-variations lines for geos no longer in the geos field', () => {
+            const p = makePromotionFragment({
+                geos: ['mas:locale/en_AU'],
+                offers: ['ignore-variations|osi-1|en_AU', 'ignore-variations|osi-1|en_GB'],
+            });
+            const values = buildPromotionOffersFieldValues(p, ['osi-1']);
+            expect(values).to.include('ignore-variations|osi-1|mas:locale/en_AU');
+            expect(values).to.not.include('ignore-variations|osi-1|en_GB');
+        });
+
+        it('applies ignoredVariations override when provided', () => {
+            const p = makePromotionFragment({ geos: ['mas:locale/CA_en'], offers: ['osi-1'] });
+            const values = buildPromotionOffersFieldValues(p, ['osi-1'], {
+                ignoredVariations: new Map([['osi-1|CA_en', true]]),
+            });
+            expect(values).to.include('ignore-variations|osi-1|mas:locale/CA_en');
         });
     });
 
@@ -572,7 +603,7 @@ describe('promotion-editor-utils', () => {
         it('serializePromotionOffersField includes selected offer ids as bare lines', () => {
             const promo = new Map([['osi-1|CA_en', 'OVERRIDE']]);
             const subs = new Map();
-            const lines = serializePromotionOffersField(promo, subs, ['osi-1', 'osi-2']);
+            const lines = serializePromotionOffersField(promo, subs, new Map(), ['osi-1', 'osi-2']);
             expect(lines).to.include('osi-1');
             expect(lines).to.include('osi-2');
             expect(lines).to.include('osi-1|OVERRIDE|CA_en');
@@ -591,9 +622,56 @@ describe('promotion-editor-utils', () => {
         it('parseSelectedOfferIdsFromOffersField round-trips with serializePromotionOffersField', () => {
             const promo = new Map([['osi-1|CA_en', 'OVERRIDE']]);
             const selectedIds = ['osi-1', 'osi-2'];
-            const lines = serializePromotionOffersField(promo, new Map(), selectedIds);
+            const lines = serializePromotionOffersField(promo, new Map(), new Map(), selectedIds);
             const parsed = parseSelectedOfferIdsFromOffersField(lines);
             expect(parsed).to.deep.equal(['osi-1', 'osi-2']);
+        });
+
+        it('parsePromotionOffersField parses ignore-variations lines into a map', () => {
+            const { ignoredVariations, promoExceptions, offerSubstitutions } = parsePromotionOffersField([
+                'osi-1',
+                'ignore-variations|osi-1|CA_en',
+            ]);
+            expect(ignoredVariations.get('osi-1|CA_en')).to.be.true;
+            expect(promoExceptions.size).to.equal(0);
+            expect(offerSubstitutions.size).to.equal(0);
+        });
+
+        it('isPromotionIgnoreVariationsEntry detects ignore-variations lines only', () => {
+            expect(isPromotionIgnoreVariationsEntry('ignore-variations|osi-1|CA_en')).to.be.true;
+            expect(isPromotionIgnoreVariationsEntry('substitute|osi-1|osi-2|US')).to.be.false;
+            expect(isPromotionIgnoreVariationsEntry('osi-1|CODE|US')).to.be.false;
+        });
+
+        it('ignore-variations lines round-trip through serialize/parse', () => {
+            const ignored = new Map([['osi-1|CA_en', true]]);
+            const lines = serializeIgnoredVariations(ignored);
+            expect(lines).to.deep.equal(['ignore-variations|osi-1|CA_en']);
+            expect(parseIgnoredVariations(lines).get('osi-1|CA_en')).to.be.true;
+        });
+
+        it('serializeIgnoredVariations drops unchecked entries and maps geo labels to cq tags', () => {
+            const ignored = new Map([
+                ['osi-1|CA_en', true],
+                ['osi-2|US', false],
+            ]);
+            const displayToCq = new Map([['CA_en', 'mas:locale/CA_en']]);
+            expect(serializeIgnoredVariations(ignored, displayToCq)).to.deep.equal([
+                'ignore-variations|osi-1|mas:locale/CA_en',
+            ]);
+        });
+
+        it('getEffectiveIgnoreVariations returns the per-offer/country flag', () => {
+            const ignored = parseIgnoredVariations(['ignore-variations|osi-1|CA_en']);
+            expect(getEffectiveIgnoreVariations(ignored, 'osi-1', 'CA_en')).to.be.true;
+            expect(getEffectiveIgnoreVariations(ignored, 'osi-1', 'US')).to.be.false;
+        });
+
+        it('serializePromotionOffersField appends ignore-variations lines', () => {
+            const ignored = new Map([['osi-1|CA_en', true]]);
+            const lines = serializePromotionOffersField(new Map(), new Map(), ignored, ['osi-1']);
+            expect(lines).to.include('osi-1');
+            expect(lines).to.include('ignore-variations|osi-1|CA_en');
         });
 
         it('getEffectiveSubstituteOffer returns substitute selector id', () => {

@@ -426,6 +426,99 @@ describe('pipeline end to end', () => {
         expect(result.body.fields.promoCode).to.equal('BF2025');
     });
 
+    describe('per-offer promo + substitute + ignore-variations for one country, global variation for another', () => {
+        const OFFER_OSI = 'Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ';
+        const VARIATION_FOLDER_FR_FR =
+            'https://odin.adobe.com/adobe/contentFragments/?path=/content/dam/mas/sandbox/fr_FR/promotions/black-friday&limit=50';
+
+        // Active seasonal promo project targeting the fragment. For DE, the offer carries a promo
+        // code, an OSI substitution, and an ignore-variations flag. A single global promo variation
+        // lives in the default-locale (fr_FR) folder and applies wherever it is not ignored.
+        function setupPromoScenario(fetchStub) {
+            setupFragmentMocks(fetchStub, { id: 'some-en-us-fragment', path: 'someFragment' });
+
+            // Controlled base fragment: known osi, no local variations, so the only variation in play
+            // is the project's global promo variation.
+            fetchStub
+                .withArgs('https://odin.adobe.com/adobe/contentFragments/some-fr-fr-fragment?references=all-hydrated')
+                .returns(
+                    createResponse(200, {
+                        path: '/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app',
+                        id: 'some-fr-fr-fragment',
+                        model: { id: CARD_MODEL_ID },
+                        fields: { variant: 'plans', osi: OFFER_OSI },
+                        references: {},
+                        referencesTree: [],
+                    }),
+                );
+
+            const project = makeProject({
+                id: 'proj-bf',
+                path: '/content/dam/mas/promotions/black-friday',
+                surfaces: ['sandbox'],
+                geos: [],
+            });
+            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+
+            const hydrated = makeHydratedProject({
+                fragmentId: 'some-fr-fr-fragment',
+                fragmentPath: '/content/dam/mas/sandbox/en_US/ccd-slice-wide-cc-all-app',
+                promoCode: null,
+                offers: [
+                    `${OFFER_OSI}|DE20|mas:country/DE`,
+                    `substitute|${OFFER_OSI}|OSI-DE|mas:country/DE`,
+                    `ignore-variations|${OFFER_OSI}|mas:country/DE`,
+                ],
+            });
+            fetchStub.withArgs(hydrateUrl('proj-bf')).returns(createResponse(200, hydrated));
+
+            // The single global promo variation (default locale folder).
+            fetchStub.withArgs(VARIATION_FOLDER_FR_FR).returns(
+                createResponse(200, {
+                    items: [
+                        {
+                            id: 'promo-var-id',
+                            path: '/content/dam/mas/sandbox/fr_FR/promotions/black-friday/ccd-slice-wide-cc-all-app',
+                            fields: { promoText: 'Global Promo' },
+                        },
+                    ],
+                }),
+            );
+            // No region-specific variation folder for fr_DE.
+            fetchStub
+                .withArgs(
+                    'https://odin.adobe.com/adobe/contentFragments/?path=/content/dam/mas/sandbox/fr_DE/promotions/black-friday&limit=50',
+                )
+                .returns(createResponse(404, {}, 'Not Found'));
+        }
+
+        it('DE: applies promo code + OSI substitution but ignores the promo variation', async () => {
+            setupPromoScenario(fetchStub);
+            const state = new MockState();
+            const result = await getFragment({ id: 'some-en-us-fragment', state, locale: 'fr_FR', country: 'DE' });
+
+            expect(result.statusCode).to.equal(200);
+            // Promo variation is ignored for this offer & country: promoText is NOT merged.
+            expect(result.body.fields.promoText).to.be.undefined;
+            // Promo code and OSI substitution still apply.
+            expect(result.body.fields.promoCode).to.equal('DE20');
+            expect(result.body.fields.osi).to.equal('OSI-DE');
+        });
+
+        it('FR: applies the global promo variation (no ignore flag for this country)', async () => {
+            setupPromoScenario(fetchStub);
+            const state = new MockState();
+            const result = await getFragment({ id: 'some-en-us-fragment', state, locale: 'fr_FR', country: 'FR' });
+
+            expect(result.statusCode).to.equal(200);
+            // Global promo variation applies here.
+            expect(result.body.fields.promoText).to.equal('Global Promo');
+            // The DE-only promo code / substitution do not apply.
+            expect(result.body.fields.promoCode).to.be.undefined;
+            expect(result.body.fields.osi).to.equal(OFFER_OSI);
+        });
+    });
+
     it('does not promo-match an OSI injected into a placeholder value when the fragment osi has no explicit or wildcard mapping', async () => {
         setupFragmentMocks(fetchStub, { id: 'some-en-us-fragment', path: 'someFragment' });
 

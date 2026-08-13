@@ -371,6 +371,50 @@ describe('pro edu disclaimer', () => {
         expect(card.shadowRoot.querySelector('slot[name="edu-disclaimer"]')).to
             .exist;
     });
+
+    it("overrides Milo's global .fragment.link-block hiding on a disclaimer link", async () => {
+        const style = document.createElement('style');
+        style.textContent = '.fragment.link-block { display: none; }';
+        document.head.appendChild(style);
+        try {
+            card = await renderCard(
+                '<div slot="whats-included"><p class="whats-included-label">See what\'s included</p></div>',
+            );
+            card.setAttribute('size', 'edu');
+            card.placeholders = {
+                eduDisclaimer:
+                    '<p>Students and teachers only. <a class="fragment link-block" href="#">Check eligibility</a></p>',
+            };
+            card.requestUpdate();
+            await card.updateComplete;
+            const link = card.querySelector('.whats-included-disclaimer a');
+            expect(link).to.exist;
+            expect(getComputedStyle(link).display).to.not.equal('none');
+        } finally {
+            style.remove();
+        }
+    });
+});
+
+describe('pro fragment link-block override', () => {
+    let card;
+    afterEach(() => card?.remove());
+
+    it("overrides Milo's global .fragment.link-block hiding on any authored link, e.g. in body-xs (not edu-size specific)", async () => {
+        const style = document.createElement('style');
+        style.textContent = '.fragment.link-block { display: none; }';
+        document.head.appendChild(style);
+        try {
+            card = await renderCard(
+                '<div slot="body-xs"><p><a class="fragment link-block" href="#" target="_blank">See what\'s included</a> | <a class="spectrum-Link spectrum-Link--secondary" href="#">See terms</a></p></div>',
+            );
+            const link = card.querySelector('[slot="body-xs"] a.fragment');
+            expect(link).to.exist;
+            expect(getComputedStyle(link).display).to.not.equal('none');
+        } finally {
+            style.remove();
+        }
+    });
 });
 
 describe('Pro.adjustLegal', () => {

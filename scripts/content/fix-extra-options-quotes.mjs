@@ -8,3 +8,19 @@ export function fixExtraOptionsQuotes(value) {
         return `data-extra-options="${fixed}"`;
     });
 }
+
+export function repairFragment(fragment) {
+    const changed = [];
+    for (const field of fragment.fields ?? []) {
+        if (!FIELDS.includes(field.name)) continue;
+        let fieldChanged = false;
+        field.values = (field.values ?? []).map((value) => {
+            if (typeof value !== 'string') return value;
+            const fixed = fixExtraOptionsQuotes(value);
+            if (fixed !== value) fieldChanged = true;
+            return fixed;
+        });
+        if (fieldChanged) changed.push(field.name);
+    }
+    return changed;
+}

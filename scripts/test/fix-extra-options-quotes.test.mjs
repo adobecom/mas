@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { fixExtraOptionsQuotes } from '../content/fix-extra-options-quotes.mjs';
+import { fixExtraOptionsQuotes, repairFragment } from '../content/fix-extra-options-quotes.mjs';
 import { fixDataExtraOptionsInValue } from '../../io/www/src/fragment/transformers/corrector.js';
 
 test('escapes literal inner quotes', () => {
@@ -43,4 +43,27 @@ test('matches corrector output when no stray &quot; is present', () => {
 test('no data-extra-options present is a no-op', () => {
     const input = '<p>Plain "quoted" copy</p>';
     assert.equal(fixExtraOptionsQuotes(input), input);
+});
+
+test('repairFragment fixes ctas and reports the field', () => {
+    const fragment = {
+        fields: [
+            { name: 'ctas', type: 'text', values: ['<a data-extra-options="{"actionId":"try"}">T</a>'] },
+            { name: 'title', type: 'text', values: ['Untouched "title"'] },
+        ],
+    };
+    const changed = repairFragment(fragment);
+    assert.deepEqual(changed, ['ctas']);
+    assert.equal(fragment.fields[0].values[0], '<a data-extra-options="{&quot;actionId&quot;:&quot;try&quot;}">T</a>');
+    assert.equal(fragment.fields[1].values[0], 'Untouched "title"');
+});
+
+test('repairFragment returns empty when nothing matches', () => {
+    const fragment = { fields: [{ name: 'ctas', type: 'text', values: ['<a>ok</a>'] }] };
+    assert.deepEqual(repairFragment(fragment), []);
+});
+
+test('repairFragment ignores non-string field values', () => {
+    const fragment = { fields: [{ name: 'ctas', type: 'boolean', values: [true] }] };
+    assert.deepEqual(repairFragment(fragment), []);
 });

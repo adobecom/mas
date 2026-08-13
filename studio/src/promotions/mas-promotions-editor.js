@@ -597,12 +597,13 @@ class MasPromotionsEditor extends LitElement {
     };
 
     #handlePromoCodesSave = (event) => {
-        const { exceptions, offerSubstitutions = new Map() } = event.detail;
+        const { exceptions, offerSubstitutions = new Map(), ignoredVariations = new Map() } = event.detail;
         this.fragmentStore.updateField(
             'offers',
             buildPromotionOffersFieldValues(this.fragment, Store.promotions.selectedOffers.value, {
                 promoExceptions: exceptions,
                 offerSubstitutions,
+                ignoredVariations,
             }),
         );
         this.promoCodesManagerOpen = false;
@@ -1614,6 +1615,7 @@ class MasPromotionsEditor extends LitElement {
                         .defaultPromoCode=${form.promoCode?.values[0] ?? ''}
                         .exceptions=${parsePromotionOffersField(form.offers?.values).promoExceptions}
                         .offerSubstitutions=${parsePromotionOffersField(form.offers?.values).offerSubstitutions}
+                        .ignoredVariations=${parsePromotionOffersField(form.offers?.values).ignoredVariations}
                         @promo-codes-save=${this.#handlePromoCodesSave}
                         @promo-codes-cancel=${() => {
                             this.promoCodesManagerOpen = false;

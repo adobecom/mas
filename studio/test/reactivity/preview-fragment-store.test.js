@@ -220,4 +220,31 @@ describe('PreviewFragmentStore', () => {
         expect(getResolvedSpy.callCount).to.equal(2);
         store.dispose();
     });
+
+    it('previewLocale getter prefers the override over the global locale', () => {
+        const store = new PreviewFragmentStore(createFragment(), null, { lazy: true });
+        expect(store.previewLocale).to.equal('en_US');
+        store.previewLocaleOverride = 'de_DE';
+        expect(store.previewLocale).to.equal('de_DE');
+        store.dispose();
+    });
+
+    it('keys dictionary readiness off previewLocaleOverride, not the global locale', () => {
+        const fragment = createFragment();
+        // Global locale (en_US) dictionary is ready, but the override locale's is not.
+        Store.placeholders.previewByLocale.value = { en_US: { key: 'value' }, de_DE: {} };
+
+        const store = new PreviewFragmentStore(fragment, null, { lazy: true });
+        store.previewLocaleOverride = 'de_DE';
+        const getResolvedSpy = sandbox.stub(store, 'getResolvedFragment').resolves(null);
+
+        store.resolveFragment(true);
+        expect(getResolvedSpy.called).to.be.false;
+
+        Store.placeholders.previewByLocale.value = { en_US: { key: 'value' }, de_DE: { key: 'wert' } };
+        placeholderSubscribers.forEach((fn) => fn());
+
+        expect(getResolvedSpy.calledOnce).to.be.true;
+        store.dispose();
+    });
 });

@@ -74,7 +74,7 @@ import {
 import { renderFragmentStatusCell } from '../common/utils/render-utils.js';
 import { clearCaches } from '../../libs/fragment-client.js';
 import { canEditPromotions } from '../groups.js';
-import { deleteAttachedPromoVariations, getAllAttachedPromoVariations } from './promotions-repository.js';
+import { getAllAttachedPromoVariations } from './promotions-repository.js';
 
 function getPromotionPickerFragmentLabel(data) {
     const webComponentName = MODEL_WEB_COMPONENT_MAPPING[data?.model?.path];
@@ -754,16 +754,14 @@ class MasPromotionsEditor extends LitElement {
         this.#patchPromotionSurfacesFieldForAem();
         this.#syncPromotionSelectionFieldsToFragment();
         showToast('Saving project...');
+        let saved;
         try {
-            const saved = await this.repository.saveFragment(this.fragmentStore, false);
-            if (!saved) {
-                showToast('Failed to save project.', 'negative');
-                return;
-            }
+            saved = await this.repository.saveFragment(this.fragmentStore, { withToast: false, refetchEtag: false });
         } catch (error) {
-            showToast('Failed to save project.', 'negative');
+            showToast(error.message || 'Failed to save project.', 'negative');
             return;
         }
+        if (!saved) return;
         clearCaches();
         showToast('Project successfully saved.', 'positive');
         Store.promotions.selectedPlaceholders.set([]);
@@ -895,7 +893,6 @@ class MasPromotionsEditor extends LitElement {
         const [tagPath] = tagId ? fromAttribute(tagId) : [];
         try {
             showToast('Deleting promotion campaign...');
-            await deleteAttachedPromoVariations(this.repository.aem, this.fragment);
             await this.repository.deleteFragment(this.fragmentStore, { startToast: false, endToast: false });
             if (tagPath) {
                 try {

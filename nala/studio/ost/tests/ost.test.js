@@ -214,9 +214,8 @@ test.describe('M@S Studio OST test suite', () => {
             await expect(await ost.price).toBeVisible();
         });
 
-        // The fixture's price shows recurrence + per-unit + tax by default, so
-        // each "Disable" toggle REMOVES its token. Assert present → toggle →
-        // gone, which exercises the same mutation without assuming a start state.
+        // The fixture's price shows recurrence + tax by default, so each
+        // "Disable" toggle REMOVES its token (assert present → toggle → gone).
         // Recurrence renders as /mois or /an depending on which offer (ABM vs
         // PUF) lands first — match either so offer ordering doesn't flake CI.
         await test.step('step-2: Recurrence toggle controls the recurrence token', async () => {
@@ -227,11 +226,15 @@ test.describe('M@S Studio OST test suite', () => {
             await expect(await ost.price).not.toContainText(/\/(mois|an)/);
         });
 
+        // Per-unit defaults OFF for this INDIVIDUAL offer (segment-derived, in
+        // line with studio/src/rte/ost.js onPlaceholderSelect), so the "Unit"
+        // Disable box is checked by default — unchecking it ENABLES the token
+        // (assert absent → toggle → present).
         await test.step('step-3: Per-unit toggle controls the per-unit token', async () => {
             await expect(await ost.unitCheckbox).toBeVisible();
-            await expect(await ost.price).toContainText(data.toggles.displayPerUnit);
-            await ost.unitCheckbox.click();
             await expect(await ost.price).not.toContainText(data.toggles.displayPerUnit);
+            await ost.unitCheckbox.click();
+            await expect(await ost.price).toContainText(data.toggles.displayPerUnit);
         });
 
         await test.step('step-4: Tax toggle controls the tax token', async () => {
@@ -316,6 +319,26 @@ test.describe('M@S Studio OST test suite', () => {
         await test.step('step-2: Cancel closes the OST', async () => {
             await ost.cancelButton.click();
             await expect(await ost.popup).not.toBeVisible();
+        });
+    });
+
+    // @studio-ost-team-offer-per-unit-default - A TEAM offer derives displayPerUnit ON (segment default)
+    test(`${features[17].name},${features[17].tags}`, async ({ page, baseURL }) => {
+        const { data } = features[17];
+        const ost = await openEditorAndOST(page, baseURL, features[17]);
+
+        await test.step('step-1: Search the TEAM offer OSI and advance to the offer step', async () => {
+            await expect(await ost.searchField).toBeVisible();
+            await ost.searchField.fill(data.teamOffer.osi);
+            await ost.nextButton.click();
+            await expect(await ost.price).toBeVisible();
+        });
+
+        // applyOfferContextDefaults derives displayPerUnit from the customer
+        // segment (TEAM !== INDIVIDUAL → on), so the per-license token renders
+        // WITHOUT toggling — the inverse of the INDIVIDUAL case (tcid 11).
+        await test.step('step-2: Per-unit token shows by default for the TEAM offer', async () => {
+            await expect(await ost.price).toContainText(data.expectedPerUnit);
         });
     });
 });

@@ -861,8 +861,10 @@ class RteField extends LitElement {
                 'data-perpetual': { default: null },
                 'data-promotion-code': { default: null },
                 'data-force-tax-exclusive': { default: null },
+                'data-quantity': { default: null },
                 'data-template': { default: null },
                 'data-wcs-osi': { default: null },
+                'data-locked-osi': { default: null },
             },
             parseDOM: [
                 {
@@ -1047,6 +1049,7 @@ class RteField extends LitElement {
                     'data-perpetual': { default: null },
                     'data-promotion-code': { default: null },
                     'data-wcs-osi': { default: null },
+                    'data-quantity': { default: null },
                     'data-template': { default: null },
                     title: { default: null },
                     target: { default: null },
@@ -1056,6 +1059,7 @@ class RteField extends LitElement {
                     'data-entitlement': { default: null },
                     'data-upgrade': { default: null },
                     'data-cta-toggle-text': { default: null },
+                    'data-locked-osi': { default: null },
                 },
                 // Disallow styling marks inside links (they can still wrap them)
                 marks: 'em strong strikethrough underline superscript',
@@ -1555,7 +1559,7 @@ class RteField extends LitElement {
             attributes.is === CUSTOM_ELEMENT_INLINE_PRICE ? state.schema.nodes.inlinePrice : state.schema.nodes.link; // Fixed to use 'link' node type
 
         const mergedAttributes = {
-            class: selection.node?.attrs.class,
+            class: selection.node?.attrs.class ?? this.ostTargetClass,
             ...attributes,
         };
 
@@ -1768,8 +1772,11 @@ class RteField extends LitElement {
         ostRteFieldSource = this;
         this.showOfferSelector = true;
         // A toolbar/button open (real event) is a fresh insert, not an edit of a
-        // double-clicked CTA — forget any remembered label.
-        if (event) this.ostTargetText = null;
+        // double-clicked CTA — forget any remembered label and class.
+        if (event) {
+            this.ostTargetText = null;
+            this.ostTargetClass = null;
+        }
         if (!element && this.osi) {
             element = this.selectedMerchLink;
             if (!element) {
@@ -1856,6 +1863,7 @@ class RteField extends LitElement {
                 // handleOpenOfferSelector(null, …) sets ostRteFieldSource and
                 // showOfferSelector; passing null preserves the label above.
                 this.ostTargetText = prosemirrorNodeAtClick.textContent || '';
+                this.ostTargetClass = prosemirrorNodeAtClick.attrs.class || '';
                 this.handleOpenOfferSelector(null, osiDomTarget);
                 return true;
             }

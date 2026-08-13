@@ -7,7 +7,7 @@ import {
 } from './constants.js';
 import { MasError } from './mas-error.js';
 import { getLogHeaders } from './utilities.js';
-import { getService, printMeasure } from './utils.js';
+import { getService, getValidatedMasLibsUrl, printMeasure } from './utils.js';
 import { masFetch } from './utils/mas-fetch.js';
 
 const ATTRIBUTE_FRAGMENT = 'fragment';
@@ -144,6 +144,19 @@ class FragmentCache {
 }
 
 const cache = new FragmentCache();
+
+const AEM_FRAGMENT_STYLES = `
+${AEM_FRAGMENT_TAG_NAME} {
+    display: contents;
+}
+`;
+
+if (!document.querySelector('style[data-aem-fragment]')) {
+    const style = document.createElement('style');
+    style.setAttribute('data-aem-fragment', '');
+    style.textContent = AEM_FRAGMENT_STYLES;
+    document.head.append(style);
+}
 
 /**
  * Custom element representing an aem fragment.
@@ -380,10 +393,15 @@ export class AemFragment extends HTMLElement {
             this.#rawData = fragment;
             return true;
         }
-        const { masIOUrl, wcsApiKey, country, locale } = this.#service.settings;
+        const { masIOUrl, wcsApiKey, country, locale, instant } =
+            this.#service.settings;
         let endpoint = `${masIOUrl}/fragment?id=${this.#fragmentId}&api_key=${wcsApiKey}&locale=${locale}`;
         if (country && !locale.endsWith(`_${country}`)) {
             endpoint += `&country=${country}`;
+        }
+
+        if (instant) {
+            endpoint += `&instant=${instant}`;
         }
 
         if (this.#mask) {
@@ -503,24 +521,13 @@ export class AemFragment extends HTMLElement {
      */
     getFragmentClientUrl() {
         const urlParams = new URLSearchParams(window.location.search);
-        const masLibs = urlParams.get('maslibs');
-
-        if (!masLibs || masLibs.trim() === '') {
-            return 'https://mas.adobe.com/studio/libs/fragment-client.js';
-        }
-        const sanitizedMasLibs = masLibs.trim().toLowerCase();
-
-        if (sanitizedMasLibs === 'local') {
-            return 'http://localhost:3000/studio/libs/fragment-client.js';
-        }
-
         // Detect current domain extension (.page or .live)
         const { hostname } = window.location;
         const extension = hostname.endsWith('.page') ? 'page' : 'live';
-        if (sanitizedMasLibs.includes('--')) {
-            return `https://${sanitizedMasLibs}.aem.${extension}/studio/libs/fragment-client.js`;
-        }
-        return `https://${sanitizedMasLibs}--mas--adobecom.aem.${extension}/studio/libs/fragment-client.js`;
+        const baseUrl =
+            getValidatedMasLibsUrl(urlParams.get('maslibs'), extension) ??
+            'https://mas.adobe.com';
+        return `${baseUrl}/studio/libs/fragment-client.js`;
     }
 
     async generatePreview() {

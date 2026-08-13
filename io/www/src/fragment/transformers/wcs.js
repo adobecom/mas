@@ -51,7 +51,8 @@ function scanMasElements(fields, substituteMap, context) {
         let changed = false;
         const rewritten = value.replace(MAS_ELEMENT_REGEXP, (element, rawOsi) => {
             const promotionCode = element.match(PROMOCODE_REGEXP)?.groups?.promotionCode;
-            const osi = substituteMap ? substituteOsi(rawOsi, substituteMap) : rawOsi;
+            const isLocked = element.includes('data-locked-osi="true"');
+            const osi = substituteMap && !isLocked ? substituteOsi(rawOsi, substituteMap) : rawOsi;
             elements.push({ osi, rawOsi, promotionCode });
             if (osi === rawOsi) return element;
             logDebug(() => `Substituting OSI ${rawOsi} with ${osi}`, context);
@@ -71,7 +72,11 @@ function scanMasElements(fields, substituteMap, context) {
  */
 function resolvePromoCode(fields, richTextOsis, { promoMap, substituteMap }, context) {
     // No osi (own or referenced in rich text) => nothing priceable, so no promo code (not even wildcard).
-    const osis = [].concat(fields.osi ?? []).concat(richTextOsis);
+    // Each entry may itself be a comma-joined OSI pair (discount badges, MWPW-201714) — split before matching.
+    const osis = []
+        .concat(fields.osi ?? [])
+        .concat(richTextOsis)
+        .flatMap((osi) => osi.split(','));
     if (!osis.length) return;
     let explicitPromoCode;
     for (const osi of osis) {

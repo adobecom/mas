@@ -13,6 +13,7 @@ import { Env, CheckoutWorkflow, CheckoutWorkflowStep } from './constants.js';
 import { getParameter, toBoolean, toEnumeration } from '@dexter/tacocat-core';
 
 import { toQuantity } from './utilities.js';
+import { isAllowedMasIOUrl } from './utils.js';
 
 const PREVIEW_REGISTERED_SURFACE = {
     'wcms-commerce-ims-ro.+': 'acom',
@@ -27,6 +28,8 @@ function getLocaleSettings({
 } = {}) {
     language ??= locale?.split('_')?.[0] || Defaults.language;
     country ??= locale?.split('_')?.[1] || Defaults.country;
+    // Commerce has no PR pricing: price Puerto Rico as US, keep es_PR locale for language/legal. MWPW-203596
+    if (country === 'PR') country = 'US';
     locale ??= `${language}_${country}`;
     return { locale, country, language };
 }
@@ -120,10 +123,10 @@ function getSettings(config = {}, service) {
         previewParam !== 'false';
     let previewSettings = {};
     if (preview) previewSettings = { preview };
-    const masIOUrl =
-        getParameter('mas-io-url') ??
-        config.masIOUrl ??
-        `https://www${env === Env.STAGE ? '.stage' : ''}.adobe.com/mas/io`;
+    const masIOUrlParam = getParameter('mas-io-url') ?? config.masIOUrl;
+    const masIOUrl = isAllowedMasIOUrl(masIOUrlParam)
+        ? masIOUrlParam
+        : `https://www${env === Env.STAGE ? '.stage' : ''}.adobe.com/mas/io`;
     const preselectPlan = getParameter('preselect-plan') ?? undefined;
     const instant = getParameter('instant') ?? config.instant;
     return {

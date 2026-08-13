@@ -15,6 +15,7 @@ import {
 } from '../utils/items-loader.js';
 import { shouldIgnoreRowClickForSelection, getStudioFragmentDisplayPath } from '../utils/render-utils.js';
 import { fragmentIsPromoVariation } from '../../promotions/promotion-model.js';
+import { Fragment } from '../../aem/fragment.js';
 
 class MasSelectItemsTable extends LitElement {
     static styles = styles;
@@ -36,6 +37,8 @@ class MasSelectItemsTable extends LitElement {
         renderPreviewCell: { type: Function },
         promoVariationsFetchedByParent: { type: Object },
         viewOnlyFragmentsFetchedByParent: { type: Boolean },
+        groupedVariationsManageOnly: { type: Boolean },
+        hideGroupedVariations: { type: Boolean },
     };
 
     hasMore = new StoreController(this, Store.fragments.list.hasMore);
@@ -65,6 +68,8 @@ class MasSelectItemsTable extends LitElement {
         this.renderPreviewCell = null;
         this.hidePromoVariations = false;
         this.viewOnlyFragmentsFetchedByParent = false;
+        this.groupedVariationsManageOnly = false;
+        this.hideGroupedVariations = false;
     }
 
     connectedCallback() {
@@ -85,20 +90,16 @@ class MasSelectItemsTable extends LitElement {
                     },
                 );
             } else {
-                this.viewOnlyLoading = !!getItemsSelectionStore()[`selected${this.typeUppercased}`].value?.length;
+                const topLevelPaths = this.#topLevelSelectedPaths;
+                this.viewOnlyLoading = !!topLevelPaths.length;
                 this.processAbortController = new AbortController();
-                loadSelectedFragments(
-                    getItemsSelectionStore()[`selected${this.typeUppercased}`].value,
-                    this.effectiveType,
-                    this.repository,
-                    {
-                        signal: this.processAbortController.signal,
-                        onItems: (items) => {
-                            this.viewOnlyFragments = items;
-                        },
-                        getDisplayName: this.getDisplayName,
+                loadSelectedFragments(topLevelPaths, this.effectiveType, this.repository, {
+                    signal: this.processAbortController.signal,
+                    onItems: (items) => {
+                        this.viewOnlyFragments = items;
                     },
-                ).finally(() => {
+                    getDisplayName: this.getDisplayName,
+                }).finally(() => {
                     this.viewOnlyLoading = false;
                 });
             }
@@ -183,6 +184,17 @@ class MasSelectItemsTable extends LitElement {
 
     get effectiveType() {
         return this.type || this.getAttribute('type') || TABLE_TYPE.CARDS;
+    }
+
+    /**
+     * When hideGroupedVariations is set (promos only), grouped variations appear only
+     * under their parent card's tab, not as top-level rows (persisting in the store).
+     */
+    get #topLevelSelectedPaths() {
+        const paths = getItemsSelectionStore()[`selected${this.typeUppercased}`].value ?? [];
+        return this.hideGroupedVariations && this.effectiveType === TABLE_TYPE.CARDS
+            ? paths.filter((path) => !Fragment.isGroupedVariationPath(path))
+            : paths;
     }
 
     get isLoading() {
@@ -342,6 +354,7 @@ class MasSelectItemsTable extends LitElement {
                             .renderActionsCell=${this.renderActionsCell}
                             .renderPreviewCell=${this.renderPreviewCell}
                             .promoVariationsFetchedByParent=${this.promoVariationsFetchedByParent}
+                            .groupedVariationsManageOnly=${this.groupedVariationsManageOnly}
                         ></mas-collapsible-table-row>`,
                 )}`;
             case TABLE_TYPE.COLLECTIONS:

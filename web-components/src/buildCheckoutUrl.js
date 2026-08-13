@@ -221,13 +221,18 @@ export function add3in1Parameters({ url, modal, is3in1 }) {
  * Only parameters that are allowed to be passed to the checkout URL from the page URL are added.
  * @param {URL} url - The URL object to add parameters to
  */
+function sanitizePageUrlParamValue(value) {
+    const qIndex = value.indexOf('?');
+    return qIndex === -1 ? value : value.slice(0, qIndex);
+}
+
 export function addParamsFromPageUrl(url) {
     const pageSearchParams = new URLSearchParams(window.location.search);
     const nonCommerceParameters = {};
     ALLOWED_URL_PARAMS.forEach((param) => {
         const value = pageSearchParams.get(param);
         if (value !== null) {
-            nonCommerceParameters[param] = value;
+            nonCommerceParameters[param] = sanitizePageUrlParamValue(value);
         }
     });
     if (Object.keys(nonCommerceParameters).length > 0) {

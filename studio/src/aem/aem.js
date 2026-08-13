@@ -199,8 +199,9 @@ class AEM {
      * @param {AbortController} abortController used for cancellation
      * @returns {Promise<Object>} the raw fragment item
      */
-    async getFragmentById(baseUrl, id, headers, abortController) {
-        const response = await fetch(`${baseUrl}/adobe/sites/cf/fragments/${id}?references=direct-hydrated`, {
+    async getFragmentById(baseUrl, id, headers, abortController, { references = 'direct-hydrated' } = {}) {
+        const refParam = references ? `?references=${references}` : '';
+        const response = await fetch(`${baseUrl}/adobe/sites/cf/fragments/${id}${refParam}`, {
             headers,
             signal: abortController?.signal,
         });
@@ -241,14 +242,20 @@ class AEM {
      * @param {Object} fragment
      * @returns {Promise<Object>} the updated fragment
      */
-    async saveFragment(fragment) {
+    async saveFragment(fragment, { refetchEtag = true } = {}) {
         if (!fragment?.id) {
             throw new Error('Invalid fragment data for save operation');
         }
 
-        const latestFragment = await this.getFragmentWithEtag(fragment.id);
-        if (!latestFragment) {
-            throw new Error('Failed to retrieve fragment for update');
+        let etag;
+        if (refetchEtag) {
+            const latestFragment = await this.getFragmentWithEtag(fragment.id);
+            if (!latestFragment) {
+                throw new Error('Failed to retrieve fragment for update');
+            }
+            etag = latestFragment.etag;
+        } else {
+            etag = fragment.etag;
         }
 
         const { title, description, fields } = fragment;
@@ -271,7 +278,7 @@ class AEM {
             headers: {
                 ...this.headers,
                 'Content-Type': 'application/json',
-                'If-Match': latestFragment.etag,
+                'If-Match': etag,
             },
             body: JSON.stringify({
                 title,
@@ -281,6 +288,10 @@ class AEM {
         }).catch((err) => {
             throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
         });
+
+        if (response.status === 412) {
+            throw new UserFriendlyError('Fragment was modified by another user. Please reload and try again.');
+        }
 
         if (!response.ok) {
             throw new Error(`Failed to save fragment: ${response.status} ${response.statusText}`);
@@ -466,7 +477,7 @@ class AEM {
      * @param {Object} fragment
      * @returns {Promise<void>}
      */
-    async publishFragment(fragment, publishReferencesWithStatus = ['DRAFT', 'UNPUBLISHED']) {
+    async publishFragment(fragment, publishReferencesWithStatus = ['DRAFT', 'MODIFIED', 'UNPUBLISHED']) {
         const response = await fetch(this.cfPublishUrl, {
             method: 'POST',
             headers: {
@@ -1394,7 +1405,8 @@ class AEM {
                 /**
                  * @see AEM#getFragmentById
                  */
-                getById: (id, abortController) => this.getFragmentById(this.baseUrl, id, this.headers, abortController),
+                getById: (id, abortController, options) =>
+                    this.getFragmentById(this.baseUrl, id, this.headers, abortController, options),
                 /**
                  * @see AEM#getFragmentWithEtag
                  */

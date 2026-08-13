@@ -81,11 +81,23 @@ function registerOptionsProviders(service) {
 }
 
 const MAS_FIELD_STYLES = `
+mas-field {
+    display: inline;
+}
+
 mas-field div[slot="footer"] {
     display: flex;
     gap: 24px;
     flex-wrap: wrap;
     align-items: center;
+}
+
+mas-field span.placeholder-resolved[data-template='priceStrikethrough'],
+mas-field span.placeholder-resolved[data-template='strikethrough'],
+mas-field span.price.price-strikethrough,
+mas-field span.price.price-promo-strikethrough {
+    text-decoration: line-through;
+    color: var(--merch-color-inline-price-strikethrough);
 }
 `;
 
@@ -194,11 +206,21 @@ class MasField extends HTMLElement {
         return value;
     }
 
-    /** Parses "ctas[0]" into { fieldName: "ctas", index: 0 }, or { fieldName, index: null } for plain names. */
+    /** Parses "ctas[1]" → { fieldName: "ctas", index: 1 },
+     *  "ctas[abc123xyz]" → { fieldName: "ctas", index: "abc123xyz" },
+     *  "customFields[My Label]" → { fieldName: "customFields", index: "My Label" },
+     *  or plain names → { fieldName, index: null }. */
     #parseFieldAndIndex(field) {
-        const match = field?.match(/^(.+)\[(.*?)\]$/);
-        if (!match) return { fieldName: field, index: null };
-        return { fieldName: match[1], index: match[2] };
+        const numericMatch = field?.match(/^(.+)\[(\d+)\]$/);
+        if (numericMatch)
+            return {
+                fieldName: numericMatch[1],
+                index: parseInt(numericMatch[2], 10),
+            };
+        const bracketMatch = field?.match(/^(.+)\[(.+)\]$/);
+        if (bracketMatch)
+            return { fieldName: bracketMatch[1], index: bracketMatch[2] };
+        return { fieldName: field, index: null };
     }
 
     /** Extracts the Nth anchor from CTA HTML, stripping only CSS classes so Milo can restyle it.
@@ -244,6 +266,31 @@ class MasField extends HTMLElement {
     #renderField() {
         if (!this.#fields || !this.#field) return;
         const { fieldName, index } = this.#parseFieldAndIndex(this.#field);
+
+        if (index !== null && isNaN(index)) {
+            const labelsFieldName = `${fieldName.replace(/s$/, '')}Labels`;
+            const labelsRaw = this.#fields[labelsFieldName];
+            if (labelsRaw !== undefined) {
+                const labels = Array.isArray(labelsRaw)
+                    ? labelsRaw
+                    : [labelsRaw];
+                const labelIndex = labels.indexOf(index);
+                if (labelIndex === -1) return;
+                const valuesRaw = this.#fields[fieldName];
+                const values = Array.isArray(valuesRaw)
+                    ? valuesRaw
+                    : valuesRaw
+                      ? [valuesRaw]
+                      : [];
+                const html = this.#normalizeFieldValue(values[labelIndex]);
+                if (!html) return;
+                this.#setFragmentIds();
+                const content = this.#ensureContentElement();
+                content.innerHTML = this.#unwrapSingleParagraph(html) ?? '';
+                return;
+            }
+        }
+
         const fieldValue = this.#normalizeFieldValue(this.#fields[fieldName]);
         if (fieldValue === undefined) return;
         this.#setFragmentIds();

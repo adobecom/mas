@@ -754,6 +754,23 @@ runTests(async () => {
                 aemFragment.remove();
             });
 
+            it('appends instant param to endpoint URL on published (non-preview) fetch', async () => {
+                cache.clear();
+                const masCommerceService = document.querySelector(
+                    'mas-commerce-service',
+                );
+                masCommerceService.setAttribute(
+                    'instant',
+                    '2026-08-19T00:00:00.000Z',
+                );
+                masCommerceService.activate();
+                const aemFragment = addFragment('fragment-cc-all-apps');
+                await aemFragment.updateComplete;
+                expect(fetch.lastCall.firstArg).to.include(
+                    '&instant=2026-08-19T00:00:00.000Z',
+                );
+            });
+
             it('includes mask and pzn in cacheKey', () => {
                 const aemFragment = document.createElement('aem-fragment');
                 aemFragment.setAttribute('fragment', 'frag-id');
@@ -764,6 +781,67 @@ runTests(async () => {
                 expect(aemFragment.cacheKey()).to.equal(
                     'frag-id-p_seg1-m_story',
                 );
+            });
+        });
+
+        describe('getFragmentClientUrl', () => {
+            const AemFragment = customElements.get('aem-fragment');
+            const { href: originalUrl } = window.location;
+            const callUrl = () =>
+                AemFragment.prototype.getFragmentClientUrl.call({});
+
+            afterEach(() => {
+                history.replaceState(null, '', originalUrl);
+            });
+
+            const withSearch = (search) => {
+                const url = new URL(originalUrl);
+                url.search = search;
+                history.replaceState(null, '', url.toString());
+            };
+
+            it('returns the default client url when maslibs is absent', () => {
+                withSearch('');
+                expect(callUrl()).to.equal(
+                    'https://mas.adobe.com/studio/libs/fragment-client.js',
+                );
+            });
+
+            it('resolves maslibs=local', () => {
+                withSearch('?maslibs=local');
+                expect(callUrl()).to.equal(
+                    'http://localhost:3000/studio/libs/fragment-client.js',
+                );
+            });
+
+            it('resolves a branch against mas--adobecom', () => {
+                withSearch('?maslibs=mwpw-202151');
+                expect(callUrl()).to.equal(
+                    'https://mwpw-202151--mas--adobecom.aem.live/studio/libs/fragment-client.js',
+                );
+            });
+
+            it('resolves a full branch--repo--owner triple', () => {
+                withSearch('?maslibs=feature--other--repo');
+                expect(callUrl()).to.equal(
+                    'https://feature--other--repo.aem.live/studio/libs/fragment-client.js',
+                );
+            });
+
+            it('falls back to the default for hostile maslibs values', () => {
+                const hostile = [
+                    'cdn.jsdelivr.net/gh/u/r@main--mas--aem',
+                    'evil.com%23',
+                    'a--b@evil.com',
+                    'evil.com:8080/x--y',
+                    'javascript:alert(1)',
+                ];
+                for (const payload of hostile) {
+                    withSearch(`?maslibs=${payload}`);
+                    expect(callUrl(), payload).to.equal(
+                        'https://mas.adobe.com/studio/libs/fragment-client.js',
+                    );
+                }
             });
         });
 

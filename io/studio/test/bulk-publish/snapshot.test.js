@@ -65,8 +65,8 @@ describe('bulk-publish/snapshot.js', () => {
                 authToken,
             });
 
-            expect(results).to.have.length(1);
-            const entry = JSON.parse(results[0]);
+            expect(results.entries).to.have.length(1);
+            const entry = JSON.parse(results.entries[0]);
             expect(entry).to.have.property('fragmentId', 'frag-1');
             expect(entry).to.have.property('versionId', 'ver-abc');
             expect(entry).to.have.property('wasPublished');
@@ -89,7 +89,7 @@ describe('bulk-publish/snapshot.js', () => {
                 authToken,
             });
 
-            expect(JSON.parse(results[0]).wasPublished).to.be.true;
+            expect(JSON.parse(results.entries[0]).wasPublished).to.be.true;
         });
 
         it('sets wasPublished: true for Modified status', async () => {
@@ -108,7 +108,7 @@ describe('bulk-publish/snapshot.js', () => {
                 authToken,
             });
 
-            expect(JSON.parse(results[0]).wasPublished).to.be.true;
+            expect(JSON.parse(results.entries[0]).wasPublished).to.be.true;
         });
 
         it('sets wasPublished: false for Draft status', async () => {
@@ -127,7 +127,7 @@ describe('bulk-publish/snapshot.js', () => {
                 authToken,
             });
 
-            expect(JSON.parse(results[0]).wasPublished).to.be.false;
+            expect(JSON.parse(results.entries[0]).wasPublished).to.be.false;
         });
 
         it('throws if fragment not found at path (items empty)', async () => {
@@ -179,6 +179,405 @@ describe('bulk-publish/snapshot.js', () => {
             expect(err.message).to.match(/Failed to create version/);
         });
 
+        it('silently skips a sub-fragment when createVersion returns no versionId (required=false)', async () => {
+            fetchOdinStub.callsFake((endpoint, uri) => {
+                if (uri.includes('/adobe/sites/cf/fragments?path=')) {
+                    const path = decodeURIComponent(uri.split('path=')[1]);
+                    if (path === '/content/dam/coll') {
+                        return fetchResponse({
+                            items: [
+                                {
+                                    id: 'frag-coll',
+                                    path,
+                                    status: 'DRAFT',
+                                    fields: [{ name: 'cards', values: ['/content/dam/card'] }],
+                                },
+                            ],
+                        });
+                    }
+                    if (path === '/content/dam/card') {
+                        return fetchResponse({ items: [{ id: 'frag-card', path, status: 'DRAFT', fields: [] }] });
+                    }
+                }
+                if (uri.includes('/versions')) {
+                    const fragId = uri.split('/fragments/')[1].split('/')[0];
+                    if (fragId === 'frag-card') return fetchResponse({}, { location: null });
+                    return fetchResponse({}, { location: `/versions/ver-${fragId}` });
+                }
+                return fetchResponse({});
+            });
+
+            const results = await snapshot.createSnapshot({
+                paths: ['/content/dam/coll'],
+                projectId: 'p1',
+                projectTitle: 'T',
+                odinEndpoint,
+                authToken,
+                includeCards: true,
+            });
+
+            const fragmentIds = results.entries.map((r) => JSON.parse(r).fragmentId);
+            expect(fragmentIds).to.include('frag-coll');
+            expect(fragmentIds).to.not.include('frag-card');
+        });
+
+        it('includeCards: true snapshots cards and collections fields (not variations)', async () => {
+            fetchOdinStub.callsFake((endpoint, uri) => {
+                if (uri.includes('/adobe/sites/cf/fragments?path=')) {
+                    const path = decodeURIComponent(uri.split('path=')[1]);
+                    if (path === '/content/dam/mas/acom/en_US/coll') {
+                        return fetchResponse({
+                            items: [
+                                {
+                                    id: 'frag-coll',
+                                    path: '/content/dam/mas/acom/en_US/coll',
+                                    status: 'PUBLISHED',
+                                    fields: [
+                                        { name: 'cards', values: ['/content/dam/mas/acom/en_US/card-1'] },
+                                        { name: 'variations', values: ['/content/dam/mas/acom/en_US/var-1'] },
+                                    ],
+                                },
+                            ],
+                        });
+                    }
+                    if (path === '/content/dam/mas/acom/en_US/card-1') {
+                        return fetchResponse({ items: [{ id: 'frag-card', path, status: 'PUBLISHED', fields: [] }] });
+                    }
+                }
+                if (uri.includes('/versions')) {
+                    const fragId = uri.split('/fragments/')[1].split('/')[0];
+                    return fetchResponse({}, { location: `/versions/ver-${fragId}` });
+                }
+                return fetchResponse({});
+            });
+
+            const results = await snapshot.createSnapshot({
+                paths: ['/content/dam/mas/acom/en_US/coll'],
+                projectId: 'p1',
+                projectTitle: 'T',
+                odinEndpoint,
+                authToken,
+                includeCards: true,
+            });
+
+            const fragmentIds = results.entries.map((r) => JSON.parse(r).fragmentId);
+            expect(fragmentIds).to.include.members(['frag-coll', 'frag-card']);
+            expect(fragmentIds).to.not.include('frag-var');
+        });
+
+        it('includeVariations: true snapshots variations fields (not cards)', async () => {
+            fetchOdinStub.callsFake((endpoint, uri) => {
+                if (uri.includes('/adobe/sites/cf/fragments?path=')) {
+                    const path = decodeURIComponent(uri.split('path=')[1]);
+                    if (path === '/content/dam/mas/acom/en_US/main') {
+                        return fetchResponse({
+                            items: [
+                                {
+                                    id: 'frag-main',
+                                    path,
+                                    status: 'PUBLISHED',
+                                    fields: [
+                                        { name: 'variations', values: ['/content/dam/mas/acom/en_US/var-1'] },
+                                        { name: 'cards', values: ['/content/dam/mas/acom/en_US/card-1'] },
+                                    ],
+                                },
+                            ],
+                        });
+                    }
+                    if (path === '/content/dam/mas/acom/en_US/var-1') {
+                        return fetchResponse({ items: [{ id: 'frag-var', path, status: 'DRAFT', fields: [] }] });
+                    }
+                }
+                if (uri.includes('/versions')) {
+                    const fragId = uri.split('/fragments/')[1].split('/')[0];
+                    return fetchResponse({}, { location: `/versions/ver-${fragId}` });
+                }
+                return fetchResponse({});
+            });
+
+            const results = await snapshot.createSnapshot({
+                paths: ['/content/dam/mas/acom/en_US/main'],
+                projectId: 'p1',
+                projectTitle: 'T',
+                odinEndpoint,
+                authToken,
+                includeVariations: true,
+            });
+
+            const fragmentIds = results.entries.map((r) => JSON.parse(r).fragmentId);
+            expect(fragmentIds).to.include.members(['frag-main', 'frag-var']);
+            expect(fragmentIds).to.not.include('frag-card');
+        });
+
+        it('includeCards + includeVariations: true recursively traverses the full tree', async () => {
+            // collection → card → variation (3 levels deep)
+            fetchOdinStub.callsFake((endpoint, uri) => {
+                if (uri.includes('/adobe/sites/cf/fragments?path=')) {
+                    const path = decodeURIComponent(uri.split('path=')[1]);
+                    const fragments = {
+                        '/content/dam/mas/acom/en_US/coll': {
+                            id: 'frag-coll',
+                            status: 'PUBLISHED',
+                            fields: [{ name: 'cards', values: ['/content/dam/mas/acom/en_US/card-1'] }],
+                        },
+                        '/content/dam/mas/acom/en_US/card-1': {
+                            id: 'frag-card',
+                            status: 'PUBLISHED',
+                            fields: [{ name: 'variations', values: ['/content/dam/mas/acom/en_US/var-1'] }],
+                        },
+                        '/content/dam/mas/acom/en_US/var-1': { id: 'frag-var', status: 'DRAFT', fields: [] },
+                    };
+                    const f = fragments[path];
+                    return f ? fetchResponse({ items: [{ ...f, path }] }) : fetchResponse({ items: [] });
+                }
+                if (uri.includes('/versions')) {
+                    const fragId = uri.split('/fragments/')[1].split('/')[0];
+                    return fetchResponse({}, { location: `/versions/ver-${fragId}` });
+                }
+                return fetchResponse({});
+            });
+
+            const results = await snapshot.createSnapshot({
+                paths: ['/content/dam/mas/acom/en_US/coll'],
+                projectId: 'p1',
+                projectTitle: 'T',
+                odinEndpoint,
+                authToken,
+                includeCards: true,
+                includeVariations: true,
+            });
+
+            const fragmentIds = results.entries.map((r) => JSON.parse(r).fragmentId);
+            expect(fragmentIds).to.include.members(['frag-coll', 'frag-card', 'frag-var']);
+        });
+
+        it('includeCards: true follows collections field recursively (sub-collection)', async () => {
+            fetchOdinStub.callsFake((endpoint, uri) => {
+                if (uri.includes('/adobe/sites/cf/fragments?path=')) {
+                    const path = decodeURIComponent(uri.split('path=')[1]);
+                    const fragments = {
+                        '/content/dam/mas/acom/en_US/coll': {
+                            id: 'frag-coll',
+                            status: 'PUBLISHED',
+                            fields: [{ name: 'collections', values: ['/content/dam/mas/acom/en_US/sub-coll'] }],
+                        },
+                        '/content/dam/mas/acom/en_US/sub-coll': {
+                            id: 'frag-sub-coll',
+                            status: 'PUBLISHED',
+                            fields: [{ name: 'cards', values: ['/content/dam/mas/acom/en_US/card-1'] }],
+                        },
+                        '/content/dam/mas/acom/en_US/card-1': { id: 'frag-card', status: 'PUBLISHED', fields: [] },
+                    };
+                    const f = fragments[path];
+                    return f ? fetchResponse({ items: [{ ...f, path }] }) : fetchResponse({ items: [] });
+                }
+                if (uri.includes('/versions')) {
+                    const fragId = uri.split('/fragments/')[1].split('/')[0];
+                    return fetchResponse({}, { location: `/versions/ver-${fragId}` });
+                }
+                return fetchResponse({});
+            });
+
+            const results = await snapshot.createSnapshot({
+                paths: ['/content/dam/mas/acom/en_US/coll'],
+                projectId: 'p1',
+                projectTitle: 'T',
+                odinEndpoint,
+                authToken,
+                includeCards: true,
+            });
+
+            const fragmentIds = results.entries.map((r) => JSON.parse(r).fragmentId);
+            expect(fragmentIds).to.include.members(['frag-coll', 'frag-sub-coll', 'frag-card']);
+        });
+
+        it('deduplicates shared paths across the recursive tree', async () => {
+            const sharedCard = '/content/dam/mas/acom/en_US/shared-card';
+            fetchOdinStub.callsFake((endpoint, uri) => {
+                if (uri.includes('/adobe/sites/cf/fragments?path=')) {
+                    const path = decodeURIComponent(uri.split('path=')[1]);
+                    const fragments = {
+                        '/content/dam/mas/acom/en_US/coll-a': {
+                            id: 'frag-a',
+                            status: 'PUBLISHED',
+                            fields: [{ name: 'cards', values: [sharedCard] }],
+                        },
+                        '/content/dam/mas/acom/en_US/coll-b': {
+                            id: 'frag-b',
+                            status: 'PUBLISHED',
+                            fields: [{ name: 'cards', values: [sharedCard] }],
+                        },
+                        [sharedCard]: { id: 'frag-shared', status: 'PUBLISHED', fields: [] },
+                    };
+                    const f = fragments[path];
+                    return f ? fetchResponse({ items: [{ ...f, path }] }) : fetchResponse({ items: [] });
+                }
+                if (uri.includes('/versions')) {
+                    const fragId = uri.split('/fragments/')[1].split('/')[0];
+                    return fetchResponse({}, { location: `/versions/ver-${fragId}` });
+                }
+                return fetchResponse({});
+            });
+
+            const results = await snapshot.createSnapshot({
+                paths: ['/content/dam/mas/acom/en_US/coll-a', '/content/dam/mas/acom/en_US/coll-b'],
+                projectId: 'p1',
+                projectTitle: 'T',
+                odinEndpoint,
+                authToken,
+                includeCards: true,
+            });
+
+            expect(results.entries).to.have.length(3);
+            const fragmentIds = results.entries.map((r) => JSON.parse(r).fragmentId);
+            expect(fragmentIds.filter((id) => id === 'frag-shared')).to.have.length(1);
+        });
+
+        it('does not fetch referenced paths that are outside /content/dam/mas/', async () => {
+            fetchOdinStub.callsFake((endpoint, uri) => {
+                if (uri.includes('/adobe/sites/cf/fragments?path=')) {
+                    const path = decodeURIComponent(uri.split('path=')[1]);
+                    if (path === '/content/dam/mas/project/en_US/coll') {
+                        return fetchResponse({
+                            items: [
+                                {
+                                    id: 'frag-coll',
+                                    path,
+                                    status: 'PUBLISHED',
+                                    fields: [{ name: 'cards', values: ['/content/dam/other/private-card'] }],
+                                },
+                            ],
+                        });
+                    }
+                    return fetchResponse({ items: [] });
+                }
+                if (uri.includes('/versions')) {
+                    return fetchResponse({}, { location: '/versions/ver-1' });
+                }
+                return fetchResponse({});
+            });
+
+            const results = await snapshot.createSnapshot({
+                paths: ['/content/dam/mas/project/en_US/coll'],
+                projectId: 'p1',
+                projectTitle: 'T',
+                odinEndpoint,
+                authToken,
+                includeCards: true,
+            });
+
+            expect(results.entries).to.have.length(1);
+            expect(JSON.parse(results.entries[0]).fragmentId).to.equal('frag-coll');
+            // External path must NOT have been fetched
+            const calledUris = fetchOdinStub.args.map(([, uri]) => uri);
+            expect(calledUris.some((u) => u.includes('other/private-card'))).to.be.false;
+        });
+
+        it('skips missing referenced fragments without throwing', async () => {
+            fetchOdinStub.callsFake((endpoint, uri) => {
+                if (uri.includes('/adobe/sites/cf/fragments?path=')) {
+                    const path = decodeURIComponent(uri.split('path=')[1]);
+                    if (path === '/content/dam/coll') {
+                        return fetchResponse({
+                            items: [
+                                {
+                                    id: 'frag-coll',
+                                    path,
+                                    status: 'PUBLISHED',
+                                    fields: [{ name: 'cards', values: ['/content/dam/missing'] }],
+                                },
+                            ],
+                        });
+                    }
+                    return fetchResponse({ items: [] });
+                }
+                if (uri.includes('/versions')) {
+                    return fetchResponse({}, { location: '/versions/ver-1' });
+                }
+                return fetchResponse({});
+            });
+
+            const results = await snapshot.createSnapshot({
+                paths: ['/content/dam/coll'],
+                projectId: 'p1',
+                projectTitle: 'T',
+                odinEndpoint,
+                authToken,
+                includeCards: true,
+            });
+
+            expect(results.entries).to.have.length(1);
+            expect(JSON.parse(results.entries[0]).fragmentId).to.equal('frag-coll');
+        });
+
+        it('does not re-snapshot a reference path already in the main paths list', async () => {
+            fetchOdinStub.callsFake((endpoint, uri) => {
+                if (uri.includes('/adobe/sites/cf/fragments?path=')) {
+                    return fetchResponse({
+                        items: [
+                            {
+                                id: 'frag-a',
+                                path: '/content/dam/a',
+                                status: 'PUBLISHED',
+                                fields: [{ name: 'cards', values: ['/content/dam/a'] }],
+                            },
+                        ],
+                    });
+                }
+                if (uri.includes('/versions')) {
+                    return fetchResponse({}, { location: '/versions/ver-1' });
+                }
+                return fetchResponse({});
+            });
+
+            const results = await snapshot.createSnapshot({
+                paths: ['/content/dam/a'],
+                projectId: 'p1',
+                projectTitle: 'T',
+                odinEndpoint,
+                authToken,
+                includeCards: true,
+            });
+
+            expect(results.entries).to.have.length(1);
+        });
+
+        it('default (no flags): does not snapshot any sub-items', async () => {
+            fetchOdinStub.callsFake((endpoint, uri) => {
+                if (uri.includes('/adobe/sites/cf/fragments?path=')) {
+                    return fetchResponse({
+                        items: [
+                            {
+                                id: 'frag-main',
+                                path: '/content/dam/main',
+                                status: 'PUBLISHED',
+                                fields: [
+                                    { name: 'variations', values: ['/content/dam/var-1'] },
+                                    { name: 'cards', values: ['/content/dam/card-1'] },
+                                    { name: 'collections', values: ['/content/dam/sub-coll'] },
+                                ],
+                            },
+                        ],
+                    });
+                }
+                if (uri.includes('/versions')) {
+                    return fetchResponse({}, { location: '/versions/ver-1' });
+                }
+                return fetchResponse({});
+            });
+
+            const results = await snapshot.createSnapshot({
+                paths: ['/content/dam/main'],
+                projectId: 'p1',
+                projectTitle: 'T',
+                odinEndpoint,
+                authToken,
+            });
+
+            expect(results.entries).to.have.length(1);
+            expect(JSON.parse(results.entries[0]).fragmentId).to.equal('frag-main');
+        });
+
         it('all entries share the same createdAt timestamp (multi-path)', async () => {
             fetchOdinStub.callsFake((endpoint, uri) => {
                 if (uri.includes('/adobe/sites/cf/fragments?path=')) {
@@ -201,9 +600,78 @@ describe('bulk-publish/snapshot.js', () => {
                 authToken,
             });
 
-            expect(results).to.have.length(2);
-            const timestamps = results.map((r) => JSON.parse(r).createdAt);
+            expect(results.entries).to.have.length(2);
+            const timestamps = results.entries.map((r) => JSON.parse(r).createdAt);
             expect(timestamps[0]).to.equal(timestamps[1]);
+        });
+
+        it('returns expandedPaths containing all paths visited during traversal', async () => {
+            const collPath = '/content/dam/mas/acom/en_US/coll';
+            const cardPath = '/content/dam/mas/acom/en_US/card-1';
+            fetchOdinStub.callsFake((endpoint, uri) => {
+                if (uri.includes('/adobe/sites/cf/fragments?path=')) {
+                    const path = decodeURIComponent(uri.split('path=')[1]);
+                    if (path === collPath) {
+                        return fetchResponse({
+                            items: [
+                                { id: 'frag-coll', path, status: 'PUBLISHED', fields: [{ name: 'cards', values: [cardPath] }] },
+                            ],
+                        });
+                    }
+                    if (path === cardPath) {
+                        return fetchResponse({ items: [{ id: 'frag-card', path, status: 'PUBLISHED', fields: [] }] });
+                    }
+                }
+                if (uri.includes('/versions')) {
+                    const fragId = uri.split('/fragments/')[1].split('/')[0];
+                    return fetchResponse({}, { location: `/versions/ver-${fragId}` });
+                }
+                return fetchResponse({});
+            });
+
+            const results = await snapshot.createSnapshot({
+                paths: [collPath],
+                projectId: 'p1',
+                projectTitle: 'T',
+                odinEndpoint,
+                authToken,
+                includeCards: true,
+            });
+
+            expect(results.expandedPaths).to.include(collPath);
+            expect(results.expandedPaths).to.include(cardPath);
+        });
+
+        it('returns expandedPaths equal to input paths when no flags set', async () => {
+            const path = '/content/dam/mas/acom/en_US/frag';
+            fetchOdinStub.callsFake((endpoint, uri) => {
+                if (uri.includes('/adobe/sites/cf/fragments?path=')) {
+                    return fetchResponse({
+                        items: [
+                            {
+                                id: 'frag-1',
+                                path,
+                                status: 'PUBLISHED',
+                                fields: [{ name: 'cards', values: ['/content/dam/mas/acom/en_US/card'] }],
+                            },
+                        ],
+                    });
+                }
+                if (uri.includes('/versions')) {
+                    return fetchResponse({}, { location: '/versions/ver-1' });
+                }
+                return fetchResponse({});
+            });
+
+            const results = await snapshot.createSnapshot({
+                paths: [path],
+                projectId: 'p1',
+                projectTitle: 'T',
+                odinEndpoint,
+                authToken,
+            });
+
+            expect(results.expandedPaths).to.deep.equal([path]);
         });
     });
 

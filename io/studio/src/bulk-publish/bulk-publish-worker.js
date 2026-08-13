@@ -56,7 +56,7 @@ async function runWorker(input, deps = {}) {
     const resolve = deps.resolvePaths || resolvePaths;
     const now = deps.now || (() => new Date());
 
-    const { projectId, odinEndpoint, authToken, publishedBy = '' } = input;
+    const { projectId, odinEndpoint, authToken, publishedBy = '', includeCards = false, includeVariations = false } = input;
     const startedAt = now().toISOString();
 
     const { fragment } = await readProject(odinEndpoint, projectId, authToken);
@@ -65,30 +65,64 @@ async function runWorker(input, deps = {}) {
     const title = projTitle(fragment);
     const existingSnapshots = projSnapshots(fragment);
 
+    if (paths.length === 0 && !hasPendingSnapshot(existingSnapshots)) {
+        await updateProject(odinEndpoint, projectId, authToken, {
+            status: PROJECT_STATUS.FAILED,
+            lastError: 'No fragments found in project',
+        });
+        logger.error(JSON.stringify({ event: 'worker-no-paths', projectId }));
+        return {
+            total: 0,
+            published: 0,
+            failed: 0,
+            startedAt,
+            finishedAt: now().toISOString(),
+            reasons: {},
+            failures: [],
+            failuresTruncated: false,
+        };
+    }
+
     let snapshotEntries;
     let snapshotError = '';
+    let expandedPaths = null;
     if (hasPendingSnapshot(existingSnapshots)) {
         snapshotEntries = existingSnapshots;
+        expandedPaths = existingSnapshots.map((e) => JSON.parse(e).path);
         await updateProject(odinEndpoint, projectId, authToken, { status: PROJECT_STATUS.PUBLISHING, lastError: '' });
     } else if (hasValidPreRecordedSnapshot(existingSnapshots)) {
         snapshotEntries = existingSnapshots;
-        const { failures: snapFailures } = await snapshot({ paths, projectId, projectTitle: title, odinEndpoint, authToken });
-        snapshotError =
-            snapFailures.length > 0 ? `CREATE_SNAPSHOT:\n${snapFailures.map((f) => `${f.path}: ${f.error}`).join('\n')}` : '';
+        const fresh = await snapshot({
+            paths,
+            projectId,
+            projectTitle: title,
+            odinEndpoint,
+            authToken,
+            includeCards,
+            includeVariations,
+        });
+        expandedPaths = fresh.expandedPaths;
         await updateProject(odinEndpoint, projectId, authToken, {
             status: PROJECT_STATUS.PUBLISHING,
             snapshots: addPendingMarker(existingSnapshots),
-            lastError: snapshotError,
+            lastError: '',
         });
     } else {
         const { entries: fresh, failures: recordFailures } = await record({ paths, odinEndpoint, authToken });
         snapshotEntries = fresh;
-        const { failures: snapFailures } = await snapshot({ paths, projectId, projectTitle: title, odinEndpoint, authToken });
+        const { expandedPaths: snapExpanded } = await snapshot({
+            paths,
+            projectId,
+            projectTitle: title,
+            odinEndpoint,
+            authToken,
+            includeCards,
+            includeVariations,
+        });
+        expandedPaths = snapExpanded;
         const recordError =
             recordFailures.length > 0 ? `SAVE_SNAPSHOT:\n${recordFailures.map((f) => `${f.path}: ${f.error}`).join('\n')}` : '';
-        const createError =
-            snapFailures.length > 0 ? `CREATE_SNAPSHOT:\n${snapFailures.map((f) => `${f.path}: ${f.error}`).join('\n')}` : '';
-        snapshotError = [recordError, createError].filter(Boolean).join('\n');
+        snapshotError = recordError;
         await updateProject(odinEndpoint, projectId, authToken, {
             status: PROJECT_STATUS.PUBLISHING,
             snapshots: addPendingMarker(fresh),
@@ -96,7 +130,8 @@ async function runWorker(input, deps = {}) {
         });
     }
 
-    const resolved = resolve(paths, locales);
+    const publishPaths = (includeCards || includeVariations) && expandedPaths ? expandedPaths : paths;
+    const resolved = resolve(publishPaths, locales);
     const details = await publish(resolved, odinEndpoint, authToken, logger);
     relabelNotLocalized(details);
     details.push(...(await publishIndexes(details, odinEndpoint, authToken, logger)));
@@ -158,14 +193,17 @@ async function recoverStuckProject(error, input, deps, logger) {
 
 async function main(params, deps = {}) {
     const logger = deps.logger || Core.Logger('bulk-publish-worker', { level: 'info' });
+    const doRunWorker = deps.runWorker || runWorker;
     const input = {
         projectId: params.projectId,
         odinEndpoint: params.aemOdinEndpoint || params.odinEndpoint,
         authToken: params.authToken,
         publishedBy: params.publishedBy || '',
+        includeCards: params.includeCards || false,
+        includeVariations: params.includeVariations || false,
     };
     try {
-        const result = await runWorker(input, deps);
+        const result = await doRunWorker(input, deps);
         return { statusCode: 200, body: result };
     } catch (error) {
         logger.error(JSON.stringify({ event: 'worker-error', error: error.message || String(error) }));

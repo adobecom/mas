@@ -120,6 +120,8 @@ function toInstant(value) {
     return Number.isFinite(t) ? t : Date.now();
 }
 
+const isSeasonal = (project) => Boolean(project.endDate);
+
 const PROMO_TAG_PREFIX = 'mas:promotion/';
 
 /**
@@ -158,6 +160,40 @@ function buildSubstituteMap(substitutions, { regionLocale, country }) {
 }
 
 /**
+ * Parses "ignore variations" lines of the form "ignore-variations|<osi>|<geo>[,<geo>...]".
+ * A flagged osi opts out of promo-variation merging for the matching geo; regional and
+ * personalization variations stay active. Lines without a geo are stored with geos=[] and
+ * skipped by buildIgnoreVariationOsis.
+ * @param {string[]} lines
+ * @returns {{ osi: string, geos: string[] }[]}
+ */
+function parseIgnoreVariations(lines) {
+    return lines
+        .map((line) => {
+            if (!line.startsWith('ignore-variations|')) return null;
+            const [, osi, geoStr = ''] = line.split('|');
+            if (!osi) return null;
+            const geos = geoStr.split(',');
+            return { osi, geos };
+        })
+        .filter(Boolean);
+}
+
+/**
+ * Builds the set of OSIs whose promo variations are suppressed for the current geo.
+ * @param {{ osi: string, geos: string[] }[]} ignoreVariations
+ * @param {{ regionLocale: string, country: string }} geoContext
+ * @returns {Set<string>}
+ */
+function buildIgnoreVariationOsis(ignoreVariations, { regionLocale, country }) {
+    const set = new Set();
+    for (const item of ignoreVariations) {
+        if (matchesGeo(item.geos, { regionLocale, country })) set.add(item.osi);
+    }
+    return set;
+}
+
+/**
  * Parses project-level offer override lines of the form "<osis>:<promocode>:<geo1>,<geo2>,..."
  * where osis is a comma-separated list (may be empty), promoCode is required,
  * and geos is a comma-separated list of geo tags (may be empty = wildcard).
@@ -168,6 +204,7 @@ function parseOfferOverrides(lines) {
     return lines
         .map((line) => {
             if (line.startsWith('substitute|')) return null;
+            if (line.startsWith('ignore-variations|')) return null;
             const [osisPart, promoCode, geosPart = ''] = line.split('|');
             if (!promoCode) return null;
             return {
@@ -335,15 +372,17 @@ async function hydrateProject(project, { baseUrl, surface, defaultLocale, resolv
     const offerLines = hydratedProject.fields?.offers ?? [];
     const offerOverrides = parseOfferOverrides(offerLines);
     const offerSubstitutions = parseOfferSubstitutions(offerLines);
+    const ignoreVariations = parseIgnoreVariations(offerLines);
     const promoCode = hydratedProject.fields?.promoCode ?? null;
     const title = hydratedProject.fields?.title ?? null;
+    const seasonal = isSeasonal(project);
     if (!fragmentPaths.length && !offerOverrides.length && !offerSubstitutions.length) {
         logDebug(() => `Promotion project ${project.id} has no fragments or offer overrides, skipping`, context);
         return null;
     }
     logDebug(
         () =>
-            `Active promotion project ${project.id} with ${fragmentPaths.length} fragments, ${offerOverrides.length} offer overrides, promoCode="${promoCode}", ${Object.keys(defaultVariations).length} default variations, ${Object.keys(regionVariations).length} region variations`,
+            `Active promotion project ${project.id} (seasonal=${seasonal}) with ${fragmentPaths.length} fragments, ${offerOverrides.length} offer overrides, promoCode="${promoCode}", ${Object.keys(defaultVariations).length} default variations, ${Object.keys(regionVariations).length} region variations`,
         context,
     );
 
@@ -353,11 +392,13 @@ async function hydrateProject(project, { baseUrl, surface, defaultLocale, resolv
         title,
         startDate: project.startDate,
         endDate: project.endDate,
+        seasonal,
         promoCode,
         fragmentPaths,
         groupedVariationPaths,
         offerOverrides,
         offerSubstitutions,
+        ignoreVariations,
         defaultVariations,
         regionVariations,
     };
@@ -401,7 +442,7 @@ async function init(context) {
         .sort((a, b) => toInstant(b.startDate) - toInstant(a.startDate))
         // Stable secondary sort: seasonal (time-boxed) projects float to the top, preserving
         // the startDate order established above within each bucket.
-        .sort((a, b) => (a.endDate ? 0 : 1) - (b.endDate ? 0 : 1));
+        .sort((a, b) => (isSeasonal(a) ? 0 : 1) - (isSeasonal(b) ? 0 : 1));
     if (!matched.length) return { status: 200, activeProjects: [] };
 
     log(
@@ -466,16 +507,22 @@ function buildPromoMap(offerOverrides, { regionLocale, country }, projectPromoCo
 async function promotions(context) {
     const { activeProjects = [] } = (await context.promises?.promotions) ?? {};
     const { regionLocale, country } = context;
-    const promoProjects = activeProjects.map((project) => ({
-        project,
-        promoMap: buildPromoMap(project.offerOverrides, { regionLocale, country }, project.promoCode, context),
-        substituteMap: buildSubstituteMap(project.offerSubstitutions ?? [], { regionLocale, country }),
-        fragmentPaths: new Set(project.fragmentPaths),
-        groupedVariationPaths: new Set(project.groupedVariationPaths),
-    }));
-    promoProjects.forEach(({ project, promoMap, substituteMap: sm }) => {
+    const promoProjects = activeProjects.map((project) => {
+        const promoMap = buildPromoMap(project.offerOverrides, { regionLocale, country }, project.promoCode, context);
+        return {
+            project,
+            promoMap,
+            substituteMap: buildSubstituteMap(project.offerSubstitutions ?? [], { regionLocale, country }),
+            ignoreVariationOsis: buildIgnoreVariationOsis(project.ignoreVariations ?? [], { regionLocale, country }),
+            fragmentPaths: new Set(project.fragmentPaths),
+            groupedVariationPaths: new Set(project.groupedVariationPaths),
+            hasWildcard: Boolean(promoMap['*']),
+        };
+    });
+    promoProjects.forEach(({ project, promoMap, substituteMap: sm, hasWildcard }) => {
         logDebug(
-            () => `Project "${project.id}" promoMap: ${JSON.stringify(promoMap)}, substituteMap: ${JSON.stringify(sm)}`,
+            () =>
+                `Project "${project.id}" promoMap: ${JSON.stringify(promoMap)}, substituteMap: ${JSON.stringify(sm)}, wildcard: ${hasWildcard}`,
             context,
         );
     });

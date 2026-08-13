@@ -598,12 +598,13 @@ class MasPromotionsEditor extends LitElement {
     };
 
     #handlePromoCodesSave = (event) => {
-        const { exceptions, offerSubstitutions = new Map() } = event.detail;
+        const { exceptions, offerSubstitutions = new Map(), ignoredVariations = new Map() } = event.detail;
         this.fragmentStore.updateField(
             'offers',
             buildPromotionOffersFieldValues(this.fragment, Store.promotions.selectedOffers.value, {
                 promoExceptions: exceptions,
                 offerSubstitutions,
+                ignoredVariations,
             }),
         );
         this.promoCodesManagerOpen = false;
@@ -754,16 +755,14 @@ class MasPromotionsEditor extends LitElement {
         this.#patchPromotionSurfacesFieldForAem();
         this.#syncPromotionSelectionFieldsToFragment();
         showToast('Saving project...');
+        let saved;
         try {
-            const saved = await this.repository.saveFragment(this.fragmentStore, false);
-            if (!saved) {
-                showToast('Failed to save project.', 'negative');
-                return;
-            }
+            saved = await this.repository.saveFragment(this.fragmentStore, { withToast: false, refetchEtag: false });
         } catch (error) {
-            showToast('Failed to save project.', 'negative');
+            showToast(error.message || 'Failed to save project.', 'negative');
             return;
         }
+        if (!saved) return;
         clearCaches();
         showToast('Project successfully saved.', 'positive');
         Store.promotions.selectedPlaceholders.set([]);
@@ -1617,6 +1616,7 @@ class MasPromotionsEditor extends LitElement {
                         .defaultPromoCode=${form.promoCode?.values[0] ?? ''}
                         .exceptions=${parsePromotionOffersField(form.offers?.values).promoExceptions}
                         .offerSubstitutions=${parsePromotionOffersField(form.offers?.values).offerSubstitutions}
+                        .ignoredVariations=${parsePromotionOffersField(form.offers?.values).ignoredVariations}
                         @promo-codes-save=${this.#handlePromoCodesSave}
                         @promo-codes-cancel=${() => {
                             this.promoCodesManagerOpen = false;

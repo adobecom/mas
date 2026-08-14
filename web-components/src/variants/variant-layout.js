@@ -83,17 +83,19 @@ export class VariantLayout {
                     card.style.getPropertyValue(prop),
                 );
                 let max = 0;
-                for (const card of rowCards) {
+                const elements = rowCards.map((card) => {
                     card.style.removeProperty(prop);
                     const el = getElement(card);
-                    if (!el) continue;
+                    if (!el) return el;
                     const height = Math.max(
                         0,
                         parseInt(window.getComputedStyle(el).height) || 0,
                     );
                     if (height > max) max = height;
-                }
+                    return el;
+                });
                 rowCards.forEach((card, index) => {
+                    if (elements[index]?.tagName === 'HR') return;
                     if (max > 0) {
                         card.style.setProperty(prop, `${max}px`);
                     } else if (previous[index]) {

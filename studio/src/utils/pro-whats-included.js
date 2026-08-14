@@ -68,7 +68,10 @@ export function parseProWhatsIncluded(html) {
         });
         bullets.push({ icon, alt: parts.join(''), link: '' });
     });
-    const label = doc.querySelector('p.whats-included-label')?.textContent.trim() ?? '';
+    // Rich label (e.g. an OST inline-price span) round-trips as innerHTML;
+    // a plain-text label keeps textContent so existing fragments are unchanged.
+    const labelEl = doc.querySelector('p.whats-included-label');
+    const label = labelEl ? (labelEl.querySelector('*') ? labelEl.innerHTML.trim() : labelEl.textContent.trim()) : '';
     return { label, values: [], bullets };
 }
 
@@ -89,7 +92,7 @@ function iconMarkup(icon) {
  * byte-identical to the pre-label format, so existing fragments round-trip
  * unchanged.
  */
-export function serializeProWhatsIncluded(bullets, label = '') {
+export function serializeProWhatsIncluded(bullets, label = '', richLabel = false) {
     const sections = (bullets ?? [])
         .filter((b) => !proBulletIsEmpty(b))
         .map(({ icon, alt }) => {
@@ -107,6 +110,9 @@ export function serializeProWhatsIncluded(bullets, label = '') {
     if (!sections || !(label ?? '').trim()) return sections;
     const labelEl = document.createElement('p');
     labelEl.className = 'whats-included-label';
-    labelEl.textContent = label.trim();
+    const trimmed = label.trim();
+    // edu keeps the RTE markup (OST span); other sizes store escaped text so plain fragments stay byte-identical.
+    if (richLabel) labelEl.innerHTML = trimmed;
+    else labelEl.textContent = trimmed;
     return `${labelEl.outerHTML}${sections}`;
 }

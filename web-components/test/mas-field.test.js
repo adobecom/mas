@@ -992,4 +992,87 @@ describe('mas-field – tooltip icon-button rendering', () => {
             'flipped to a fitting side',
         ).to.be.true;
     });
+
+    // Edge-flip cases. #positionTooltip reads the icon's getBoundingClientRect
+    // plus the computed ::before size; the ::before is display:none until hover so
+    // its width/height resolve to non-px keywords (max-content/auto) that the code's
+    // parseFloat treats as 0, leaving only its 10px+10px padding. Pinning the icon
+    // with fixed positioning (margin zeroed) gives an exact 16px-wide rect, so each
+    // branch is reachable at a known left/top: `vw-30` overflows right without
+    // hitting the popover's own right edge, isolating the "overflow-only" and
+    // "overflow+top-cutoff" branches from the corner branch.
+    const TIP = 'cancellation applies within the stated policy window';
+    function tooltipAt(left, top, klass = '') {
+        const el = makeField(
+            'shortDescription',
+            `<p><span class="icon-button ${klass}" data-tooltip="${TIP}"></span></p>`,
+        );
+        const btn = el.querySelector('.icon-button');
+        btn.style.position = 'fixed';
+        btn.style.margin = '0';
+        btn.style.left = `${left}px`;
+        btn.style.top = `${top}px`;
+        return btn;
+    }
+    const vw = () => window.innerWidth;
+    const vh = () => window.innerHeight;
+    it('flips to the right at the left edge', () => {
+        const btn = tooltipAt(10, 200);
+        btn.dispatchEvent(new Event('mouseenter'));
+        expect(btn.classList.contains('right'), 'left edge -> right').to.be
+            .true;
+    });
+
+    it('flips down when overflowing right near the top', () => {
+        const btn = tooltipAt(vw() - 30, 2);
+        btn.dispatchEvent(new Event('mouseenter'));
+        expect(btn.classList.contains('bottom'), 'right+top -> bottom').to.be
+            .true;
+    });
+
+    it('flips to the left when overflowing right in mid-viewport', () => {
+        const btn = tooltipAt(vw() - 30, Math.round(vh() / 2));
+        btn.dispatchEvent(new Event('mouseenter'));
+        expect(btn.classList.contains('left'), 'right overflow -> left').to.be
+            .true;
+    });
+
+    it('flips a top tooltip to the bottom when cut off at the top', () => {
+        const btn = tooltipAt(Math.round(vw() / 2), 2);
+        btn.dispatchEvent(new Event('mouseenter'));
+        expect(btn.classList.contains('bottom'), 'top cutoff -> bottom').to.be
+            .true;
+    });
+
+    it('flips an authored bottom tooltip to the top when cut off at the bottom', () => {
+        const btn = tooltipAt(Math.round(vw() / 2), vh() - 20, 'bottom');
+        expect(btn.dataset.originalPosition, 'authored bottom').to.equal(
+            'bottom',
+        );
+        btn.dispatchEvent(new Event('mouseenter'));
+        expect(btn.classList.contains('top'), 'bottom cutoff -> top').to.be
+            .true;
+    });
+
+    it('restores the original placement when a flipped tooltip fits again', () => {
+        const btn = tooltipAt(Math.round(vw() / 2), Math.round(vh() / 2));
+        // Pretend a previous hover flipped it away from its 'top' original.
+        btn.classList.remove('top');
+        btn.classList.add('left');
+        btn.dispatchEvent(new Event('mouseenter'));
+        expect(btn.classList.contains('top'), 'restored to original').to.be
+            .true;
+        expect(btn.classList.contains('left'), 'stale side dropped').to.be
+            .false;
+    });
+
+    it('hides the tooltip on Escape', () => {
+        const btn = tooltipAt(Math.round(vw() / 2), 200);
+        btn.dispatchEvent(new Event('mouseenter'));
+        expect(btn.classList.contains('hide-tooltip'), 'shown on hover').to.be
+            .false;
+        btn.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+        expect(btn.classList.contains('hide-tooltip'), 'hidden on Escape').to.be
+            .true;
+    });
 });

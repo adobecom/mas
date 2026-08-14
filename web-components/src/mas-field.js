@@ -287,6 +287,7 @@ class MasField extends HTMLElement {
                 this.#setFragmentIds();
                 const content = this.#ensureContentElement();
                 content.innerHTML = this.#unwrapSingleParagraph(html) ?? '';
+                this.#upgradeCheckoutLinks(content);
                 return;
             }
         }
@@ -312,10 +313,43 @@ class MasField extends HTMLElement {
                 }
             }
             content.innerHTML = html;
+            this.#upgradeCheckoutLinks(content);
             this.#stampPromotionCode(content, fieldName);
             return;
         }
         content.textContent = html == null ? '' : String(html);
+    }
+
+    /**
+     * Upgrades any data-wcs-osi anchors left in the container by a raw HTML
+     * assignment into real checkout-link elements. Needed because customized
+     * built-ins only get constructed when `is=` is present at parse time, and
+     * stored fragment HTML for non-ctas fields never carries that attribute.
+     */
+    #upgradeCheckoutLinks(container) {
+        const CheckoutLink = customElements.get('checkout-link');
+        for (const link of container.querySelectorAll(
+            'a[data-wcs-osi]:not([is])',
+        )) {
+            const button =
+                CheckoutLink?.createCheckoutLink(
+                    link.dataset,
+                    link.innerHTML,
+                ) ??
+                (() => {
+                    const el = document.createElement('a', {
+                        is: 'checkout-link',
+                    });
+                    el.setAttribute('is', 'checkout-link');
+                    el.innerHTML = `<span style="pointer-events: none;">${link.innerHTML}</span>`;
+                    return el;
+                })();
+            for (const { name, value } of link.attributes) {
+                if (name === 'is') continue;
+                button.setAttribute(name, value);
+            }
+            link.replaceWith(button);
+        }
     }
 
     /**

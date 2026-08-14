@@ -253,6 +253,16 @@ describe('mas-field – indexed CTA fields (ctas[N])', () => {
         expect(a.textContent).to.equal('Buy now');
         expect(a.getAttribute('data-wcs-osi')).to.equal('osi1');
     });
+
+    it('upgrades to is="checkout-link" when stored HTML lacks the is attribute', () => {
+        const el = makeIndexedField(
+            1,
+            '<a href="/buy" data-wcs-osi="osi1">Buy now</a>',
+        );
+        const a = el.querySelector('[data-role="mas-field-content"] a');
+        expect(a).to.exist;
+        expect(a.getAttribute('is')).to.equal('checkout-link');
+    });
 });
 
 describe('mas-field – label-keyed fields (customFields[label])', () => {
@@ -321,6 +331,72 @@ describe('mas-field – label-keyed fields (customFields[label])', () => {
         expect(
             el.querySelector('[data-role="mas-field-content"]').textContent,
         ).to.equal('Only value');
+    });
+
+    it('upgrades checkout links embedded in a label-keyed field to is="checkout-link"', () => {
+        const el = makeLabelField('Beta', {
+            customFields: [
+                '<p>Value one</p>',
+                '<p><a href="/buy" data-wcs-osi="osi1">Buy now</a></p>',
+                '<p>Value three</p>',
+            ],
+            customFieldLabels: ['Alpha', 'Beta', 'Gamma'],
+        });
+        const a = el.querySelector('[data-role="mas-field-content"] a');
+        expect(a).to.exist;
+        expect(a.getAttribute('is')).to.equal('checkout-link');
+    });
+});
+
+describe('mas-field – copy/description-style fields upgrade checkout links', () => {
+    afterEach(() => {
+        document.body
+            .querySelectorAll('mas-field')
+            .forEach((el) => el.remove());
+    });
+
+    it('upgrades a checkout link embedded in a description field', () => {
+        const el = makeField(
+            'description',
+            '<p>Some copy with a <a href="/buy" data-wcs-osi="osi1">Buy now</a> link.</p>',
+        );
+        const a = el.querySelector('[data-role="mas-field-content"] a');
+        expect(a).to.exist;
+        expect(a.getAttribute('is')).to.equal('checkout-link');
+        expect(a.getAttribute('data-wcs-osi')).to.equal('osi1');
+    });
+
+    it('does not touch anchors without data-wcs-osi', () => {
+        const el = makeField(
+            'description',
+            '<p>Some copy with a <a href="/learn-more">plain</a> link.</p>',
+        );
+        const a = el.querySelector('[data-role="mas-field-content"] a');
+        expect(a).to.exist;
+        expect(a.hasAttribute('is')).to.be.false;
+    });
+
+    it('falls back gracefully when checkout-link is registered but createCheckoutLink returns null (service not ready)', () => {
+        const sandbox = sinon.createSandbox();
+        const CheckoutLinkMock = {
+            createCheckoutLink: sinon.stub().returns(null),
+        };
+        sandbox
+            .stub(customElements, 'get')
+            .withArgs('checkout-link')
+            .returns(CheckoutLinkMock);
+
+        expect(() => {
+            const el = makeField(
+                'description',
+                '<p>Some copy with a <a href="/buy" data-wcs-osi="osi1">Buy now</a> link.</p>',
+            );
+            const a = el.querySelector('[data-role="mas-field-content"] a');
+            expect(a).to.exist;
+            expect(a.getAttribute('is')).to.equal('checkout-link');
+        }).to.not.throw();
+
+        sandbox.restore();
     });
 });
 

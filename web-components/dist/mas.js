@@ -1149,7 +1149,7 @@ mas-field span.price.price-promo-strikethrough {
         :host([plan-type='M2M']) ::slotted(p[data-plan-type='M2M']) {
             display: block;
         }
-    `);customElements.define("merch-addon",Pr);P();var Mr,qi=class qi{constructor(r){g(this,"card");E(this,Mr);this.card=r,this.insertVariantStyle()}getContainer(){return y(this,Mr,d(this,Mr)??this.card.closest('merch-card-collection, [class*="-merch-cards"]')??this.card.parentElement),d(this,Mr)}insertVariantStyle(){let r=this.constructor.name;if(!qi.styleMap[r]){qi.styleMap[r]=!0;let e=document.createElement("style");e.innerHTML=this.getGlobalCSS(),document.head.appendChild(e)}}updateCardElementMinHeight(r,e){if(!r||this.card.heightSync===!1)return;let i=`--consonant-merch-card-${this.card.variant}-${e}-height`,a=Math.max(0,parseInt(window.getComputedStyle(r).height)||0),n=this.getContainer(),o=parseInt(n.style.getPropertyValue(i))||0;a>o&&n.style.setProperty(i,`${a}px`)}syncRowHeights(r){if(this.card.heightSync===!1)return;let e=this.getContainer();if(!e)return;let i=this.card.variant,a=Array.from(e.querySelectorAll(`merch-card[variant="${i}"]`)).filter(o=>o.variantLayout?.card?.heightSync!==!1);if(a.length===0)return;for(let{name:o}of r){let s=`--consonant-merch-card-${i}-${o}-height`;e.style.getPropertyValue(s)&&e.style.removeProperty(s)}let n=new Map;for(let o of a){let s=o.getBoundingClientRect();if(s.width<=2)continue;let c=Math.round(s.top),l=n.get(c);l||(l=[],n.set(c,l)),l.push(o)}for(let o of n.values())for(let{name:s,getElement:c}of r){let l=`--consonant-merch-card-${i}-${s}-height`,h=o.map(p=>p.style.getPropertyValue(l)),m=0;for(let p of o){p.style.removeProperty(l);let u=c(p);if(!u)continue;let x=Math.max(0,parseInt(window.getComputedStyle(u).height)||0);x>m&&(m=x)}o.forEach((p,u)=>{m>0?p.style.setProperty(l,`${m}px`):h[u]&&p.style.setProperty(l,h[u])})}}get legalDisplayDot(){return!0}get badge(){let r;if(!(!this.card.badgeBackgroundColor||!this.card.badgeColor||!this.card.badgeText))return this.evergreen&&(r=`border: 1px solid ${this.card.badgeBackgroundColor}; border-right: none;`),f`
+    `);customElements.define("merch-addon",Pr);P();var Mr,qi=class qi{constructor(r){g(this,"card");E(this,Mr);this.card=r,this.insertVariantStyle()}getContainer(){return y(this,Mr,d(this,Mr)??this.card.closest('merch-card-collection, [class*="-merch-cards"]')??this.card.parentElement),d(this,Mr)}insertVariantStyle(){let r=this.constructor.name;if(!qi.styleMap[r]){qi.styleMap[r]=!0;let e=document.createElement("style");e.innerHTML=this.getGlobalCSS(),document.head.appendChild(e)}}updateCardElementMinHeight(r,e){if(!r||this.card.heightSync===!1)return;let i=`--consonant-merch-card-${this.card.variant}-${e}-height`,a=Math.max(0,parseInt(window.getComputedStyle(r).height)||0),n=this.getContainer(),o=parseInt(n.style.getPropertyValue(i))||0;a>o&&n.style.setProperty(i,`${a}px`)}syncRowHeights(r){if(this.card.heightSync===!1)return;let e=this.getContainer();if(!e)return;let i=this.card.variant,a=Array.from(e.querySelectorAll(`merch-card[variant="${i}"]`)).filter(o=>o.variantLayout?.card?.heightSync!==!1);if(a.length===0)return;for(let{name:o}of r){let s=`--consonant-merch-card-${i}-${o}-height`;e.style.getPropertyValue(s)&&e.style.removeProperty(s)}let n=new Map;for(let o of a){let s=o.getBoundingClientRect();if(s.width<=2)continue;let c=Math.round(s.top),l=n.get(c);l||(l=[],n.set(c,l)),l.push(o)}for(let o of n.values())for(let{name:s,getElement:c}of r){let l=`--consonant-merch-card-${i}-${s}-height`,h=o.map(u=>u.style.getPropertyValue(l)),m=0,p=o.map(u=>{u.style.removeProperty(l);let x=c(u);if(!x)return x;let w=Math.max(0,parseInt(window.getComputedStyle(x).height)||0);return w>m&&(m=w),x});o.forEach((u,x)=>{p[x]?.tagName!=="HR"&&(m>0?u.style.setProperty(l,`${m}px`):h[x]&&u.style.setProperty(l,h[x]))})}}get legalDisplayDot(){return!0}get badge(){let r;if(!(!this.card.badgeBackgroundColor||!this.card.badgeColor||!this.card.badgeText))return this.evergreen&&(r=`border: 1px solid ${this.card.badgeBackgroundColor}; border-right: none;`),f`
             <div
                 id="badge"
                 class="${this.card.variant}-badge"
@@ -6331,6 +6331,14 @@ merch-card-collection.plans:is(.one-merch-card, .two-merch-cards, .three-merch-c
     margin-inline: auto;
 }
 
+/* The one-merch-card grid zeroes the section .content padding to center the lone
+   card, which also wipes the C2 section-spacing metadata (e.g. spacing-2xs-top).
+   Restore the authored top spacing so single pro cards keep section rhythm.
+   MWPW-204106. */
+.one-merch-card.spacing-2xs-top {
+    padding-top: var(--s2a-viewport-vertical-padding-2xs);
+}
+
 @media screen and ${F} {
     merch-card-collection.plans:is(.two-merch-cards, .three-merch-cards, .four-merch-cards):has(merch-card[variant="pro"]) {
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -7020,6 +7028,10 @@ merch-card-collection.plans:is(.one-merch-card, .two-merch-cards, .three-merch-c
 
         :host([variant='pro'][size='edu']) .features-zone[hidden] {
             display: flex;
+        }
+
+        :host([variant='pro'][size='edu']) footer {
+            margin: unset;
         }
 
         @media screen and ${ee(F)} {

@@ -113,6 +113,16 @@ Flags:
 - `--dry-run`: report affected fragments without writing.
 - `--limit <n>`: stop after `n` affected fragments (`--limit 1` = first only).
 - `--concurrency <n>`: number of fragments written in parallel (default 10).
+  This bounds the burst of author-tier writes — lower it to be gentler.
+
+Invalid `--limit` / `--concurrency` values (non-integer or negative) fail fast
+with exit `1` rather than silently disabling the flag.
+
+Assumes flat (non-nested) `data-extra-options` JSON, which is all the Studio UI
+can author; a nested `{…{…}…}` value would not be matched.
+
+Exit codes: `0` all good; `1` bad usage; `2` one or more PUTs failed (the
+failed fragment ids/paths are printed and excluded from the report).
 
 ```sh
 export MAS_IMS_TOKEN="your-ims-token"

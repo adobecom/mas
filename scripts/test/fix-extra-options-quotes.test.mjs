@@ -8,6 +8,7 @@ import {
     run,
     runPool,
     backupFile,
+    parseCount,
 } from '../content/fix-extra-options-quotes.mjs';
 import { fixDataExtraOptionsInValue } from '../../io/www/src/fragment/transformers/corrector.js';
 
@@ -213,13 +214,28 @@ test('dry-run writes no backup', async () => {
     assert.equal(calls, 0);
 });
 
-test('a fragment whose PUT fails is not reported as a hit', async () => {
+test('a fragment whose PUT fails is excluded from hits and listed in failed', async () => {
     globalThis.fetch = async (url, init) => {
         if (init?.method === 'PUT') return { ok: false, status: 412, statusText: 'Precondition Failed' };
         return { ok: true, json: async () => ({ items: [broken()], cursor: null }) };
     };
-    const { hits } = await run({ ...runOpts, concurrency: 5 });
+    const { hits, failed } = await run({ ...runOpts, concurrency: 5 });
     assert.equal(hits.length, 0);
+    assert.deepEqual(failed, [{ id: 'id1', path: '/content/dam/mas/ccd/de_DE/card' }]);
+});
+
+test('parseCount returns the fallback when the flag is absent', () => {
+    assert.equal(parseCount(null, 10), 10);
+});
+
+test('parseCount parses a valid non-negative integer', () => {
+    assert.equal(parseCount('3', 0), 3);
+});
+
+test('parseCount throws on non-numeric, negative, or fractional input', () => {
+    assert.throws(() => parseCount('abc', 0));
+    assert.throws(() => parseCount('-1', 0));
+    assert.throws(() => parseCount('1.5', 0));
 });
 
 test('search query narrows to fragments containing data-extra-options', async () => {

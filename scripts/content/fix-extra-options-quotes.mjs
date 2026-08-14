@@ -123,26 +123,32 @@ export async function run({
         if (cursor) await wait(1000);
     } while (cursor);
 
-    const failed = new Set();
+    const failed = [];
     if (!dryRun) {
         await runPool(broken, concurrency, async ({ fragment, original }) => {
             writeBackup(folder, original);
-            if (!(await putFragment(baseUrl, headers, fragment))) failed.add(fragment.id);
+            if (!(await putFragment(baseUrl, headers, fragment))) failed.push({ id: fragment.id, path: fragment.path });
         });
     }
 
+    const failedIds = new Set(failed.map((f) => f.id));
     const hits = broken
-        .filter(({ fragment }) => !failed.has(fragment.id))
+        .filter(({ fragment }) => !failedIds.has(fragment.id))
         .map(({ fragment, fields }) => ({ id: fragment.id, path: fragment.path, fields }));
-    return { scanned, hits };
+    return { scanned, hits, failed };
+}
+
+export function parseCount(raw, fallback) {
+    if (raw == null) return fallback;
+    const n = Number(raw);
+    if (!Number.isInteger(n) || n < 0) throw new Error(`expected a non-negative integer, got "${raw}"`);
+    return n;
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
     const { getFlag, hasFlag } = parseArgs(process.argv);
     const authorHost = getFlag('--author-host');
     const folder = getFlag('--folder');
-    const limit = Number(getFlag('--limit') ?? 0);
-    const concurrency = Number(getFlag('--concurrency') ?? 10);
     const dryRun = hasFlag('--dry-run');
     const token = process.env.MAS_IMS_TOKEN;
     const apiKey = process.env.MAS_API_KEY;
@@ -154,12 +160,27 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
         process.exit(1);
     }
 
-    const { scanned, hits } = await run({ authorHost, folder, limit, dryRun, concurrency, token, apiKey });
+    let limit;
+    let concurrency;
+    try {
+        limit = parseCount(getFlag('--limit'), 0);
+        concurrency = parseCount(getFlag('--concurrency'), 10);
+    } catch (error) {
+        console.error(`Invalid flag value: ${error.message}`);
+        process.exit(1);
+    }
+
+    const { scanned, hits, failed } = await run({ authorHost, folder, limit, dryRun, concurrency, token, apiKey });
     console.log(`Scanned ${scanned} fragments, ${hits.length} ${dryRun ? 'would be repaired' : 'repaired'}.`);
     if (hits.length) {
         const segments = folder.split('/');
         const name = `fix-extra-options-${segments.at(-2)}-${segments.at(-1)}-${Date.now()}.txt`;
         writeFileSync(name, `${buildReport(hits)}\n`);
         console.log(`Report written to ${name}`);
+    }
+    if (failed.length) {
+        console.error(`${failed.length} fragment(s) failed to update:`);
+        for (const f of failed) console.error(`  ${f.id} ${f.path}`);
+        process.exit(2);
     }
 }

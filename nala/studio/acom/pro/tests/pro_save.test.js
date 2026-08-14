@@ -84,7 +84,8 @@ test.describe('M@S Studio ACOM Pro card test suite', () => {
                 }),
 
                 test.step('Validation-2: Verify whats included label saved', async () => {
-                    await expect(await editor.whatsIncludedLabel).toHaveValue(data.whatsIncludedLabel);
+                    // After step-5 switched to Edu, the label is an rte-field, not a text input.
+                    await expect(editor.whatsIncludedLabelRte).toContainText(data.whatsIncludedLabel);
                     await expect(await clonedCard.locator(pro.cardWhatsIncludedToggleLabel)).toHaveText(
                         data.whatsIncludedLabel,
                     );

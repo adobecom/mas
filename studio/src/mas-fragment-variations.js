@@ -8,7 +8,6 @@ import router from './router.js';
 import {
     getGroupedVariationTagsValue,
     getPromotionCode,
-    hasAnyVariationTabItems,
     listGroupedVariations,
     listLocaleVariations,
     VARIATION_TABS,
@@ -18,13 +17,13 @@ import Store from './store.js';
 import ReactiveController from './reactivity/reactive-controller.js';
 import {
     findPromotionProjectIdByTag,
-    getPromoNameFromTag,
     getPromotionTagFromFragment,
     isPromoVariationPath,
     getPromotionInfo,
 } from './promotions/promotion-model.js';
 import { getPromotionProjectsForProbe } from './promotions/promotions-repository.js';
 import { probeOrphanedPromoVariationsForFragment } from './promotions/promotion-variations.js';
+import { renderInheritedTagsNotice } from './common/utils/render-utils.js';
 
 const styleElement = document.createElement('style');
 styleElement.setAttribute('data-mas-fragment-variations', '');
@@ -44,7 +43,6 @@ class MasFragmentVariations extends LitElement {
         duplicatePznTags: { type: Array, state: true },
         duplicateLoading: { type: Boolean, state: true },
         selectedTab: { type: String, state: true },
-        promotionGeosByTag: { type: Object, state: true },
         orphanPromoVariations: { type: Array, state: true },
     };
 
@@ -64,11 +62,9 @@ class MasFragmentVariations extends LitElement {
         this.duplicatePznTags = [];
         this.duplicateLoading = false;
         this.selectedTab = Store.fragments.variationSearchTab.get() || 'locale';
-        this.promotionGeosByTag = new Map();
         this.orphanPromoVariations = [];
     }
 
-    #promotionGeosFallbackLoader = createKeyedAsyncLoader();
     #orphanPromoVariationsLoader = createKeyedAsyncLoader();
 
     createRenderRoot() {
@@ -101,7 +97,6 @@ class MasFragmentVariations extends LitElement {
         if (highlightId && this.#hasVariationInParent(highlightId)) {
             this.scrollToHighlightedVariation();
         }
-        void this.#loadPromotionGeosFallback();
         void this.#loadOrphanPromoVariationsFallback();
     }
 
@@ -119,40 +114,6 @@ class MasFragmentVariations extends LitElement {
             load: () => probeOrphanedPromoVariationsForFragment(aem, this.fragment.path),
             apply: (discovered) => {
                 this.orphanPromoVariations = discovered;
-            },
-        });
-    }
-
-    async #loadPromotionGeosFallback() {
-        const tagsNeeded = this.fragment
-            ? [
-                  ...new Set(
-                      this.promoVariations
-                          .filter((variation) => !getGroupedVariationTagsValue(variation))
-                          .map((variation) => getPromotionTagFromFragment(variation))
-                          .filter(Boolean),
-                  ),
-              ]
-            : [];
-        await this.#promotionGeosFallbackLoader({
-            guard: () =>
-                Boolean(this.fragment && this.hasPromoVariations && this.repository?.loadPromotions && tagsNeeded.length),
-            computeKey: () => tagsNeeded.slice().sort().join('|'),
-            load: async () => {
-                const projects = await getPromotionProjectsForProbe(() => this.repository.loadPromotions());
-                const geosByTag = new Map(this.promotionGeosByTag);
-                for (const tag of tagsNeeded) {
-                    const project = projects.find(
-                        (candidate) =>
-                            getPromotionTagFromFragment(candidate) === tag &&
-                            (candidate.getFieldValues?.('fragments') ?? []).includes(this.fragment.path),
-                    );
-                    geosByTag.set(tag, project?.getFieldValues?.('geos') || []);
-                }
-                return geosByTag;
-            },
-            apply: (geosByTag) => {
-                this.promotionGeosByTag = geosByTag;
             },
         });
     }
@@ -490,10 +451,7 @@ class MasFragmentVariations extends LitElement {
                         const isExpanded = this.isPromoVariationExpanded(variationFragment.id);
                         const isHighlighted = this.isVariationHighlighted(variationFragment.id);
                         const { promotionName } = getPromotionInfo(variationFragment);
-                        const ownGeosValue = getGroupedVariationTagsValue(variationFragment);
-                        const promoTagId = getPromotionTagFromFragment(variationFragment);
-                        const fallbackGeos = this.promotionGeosByTag.get(promoTagId) || [];
-                        const geosValue = ownGeosValue || fallbackGeos.filter(Boolean).join(',');
+                        const geosValue = getGroupedVariationTagsValue(variationFragment);
                         return html`
                             <mas-fragment-table
                                 class="mas-fragment nested-fragment ${isExpanded ? 'expanded' : ''} ${isHighlighted
@@ -517,13 +475,15 @@ class MasFragmentVariations extends LitElement {
                                           </div>
                                           <div class="tags-group">
                                               <span class="field-label">Geos variation tags</span>
-                                              <aem-tag-picker-field
-                                                  namespace="/content/cq:tags/mas"
-                                                  display-value
-                                                  top="locale,pzn"
-                                                  value="${geosValue}"
-                                                  readonly
-                                              ></aem-tag-picker-field>
+                                              ${geosValue
+                                                  ? html`<aem-tag-picker-field
+                                                        namespace="/content/cq:tags/mas"
+                                                        display-value
+                                                        top="locale,pzn"
+                                                        value="${geosValue}"
+                                                        readonly
+                                                    ></aem-tag-picker-field>`
+                                                  : renderInheritedTagsNotice()}
                                           </div>
                                       </div>
                                   `

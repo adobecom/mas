@@ -397,6 +397,43 @@ class MerchCardEditor extends LitElement {
         return this.#renderOverrideIndicatorLink(() => this.resetFieldToParent(fieldName));
     }
 
+    isAddonBgOverridden() {
+        if (this.effectiveIsVariation) {
+            const settingsValue = this.globalSettingsDefaults[ADDON];
+            const currentValue = this.fragment.getField(ADDON)?.values[0];
+            const parentValue = this.localeDefaultFragment?.getField(ADDON)?.values[0] || settingsValue;
+            let parentBg;
+            if (this.isAddonWebComponent(parentValue)) {
+                parentBg = this.getAddonElement(parentValue).getAttribute('background');
+            }
+            if (this.isAddonWebComponent(currentValue)) {
+                const currentBg = this.getAddonElement(currentValue).getAttribute('background');
+                return !!currentBg && currentBg !== parentBg;
+            }
+        }
+
+        return false;
+    }
+
+    renderAddonBgFieldStatusIndicator() {
+        if (this.effectiveIsVariation) {
+            const settingsValue = this.globalSettingsDefaults[ADDON];
+            const currentValue = this.fragment.getField(ADDON)?.values[0];
+            const parentValue = this.localeDefaultFragment?.getField(ADDON)?.values[0] || settingsValue;
+
+            let currentBg;
+            let parentBg;
+            if (this.isAddonWebComponent(currentValue)) {
+                currentBg = this.getAddonElement(currentValue).getAttribute('background');
+            }
+            if (this.isAddonWebComponent(parentValue)) {
+                parentBg = this.getAddonElement(parentValue).getAttribute('background');
+            }
+            if (currentBg === parentBg) return nothing;
+        }
+        return this.renderFieldStatusIndicator(ADDON);
+    }
+
     isSectionOverridden(fieldNames) {
         if (!this.isVariation || !this.localeDefaultFragment) {
             return false;
@@ -675,6 +712,9 @@ class MerchCardEditor extends LitElement {
                 addonParent = this.localeDefaultFragment?.getField(ADDON)?.values[0] || addonSettings;
             } else {
                 addonParent = addonSettings;
+            }
+            if (this.isAddonWebComponent(addonParent)) {
+                addonParent = this.getAddonElement(addonParent).textContent;
             }
             return addonEl.textContent !== addonParent;
         }
@@ -2483,6 +2523,7 @@ class MerchCardEditor extends LitElement {
         this.#handleFragmentUpdate(syntheticEvent);
     };
 
+    static #ADDON_DEFAULT = 'transparent';
     static #ADDON_GRADIENT =
         'linear-gradient(211deg, rgb(245, 246, 253) 33.52%, rgb(248, 241, 248) 67.33%, rgb(249, 233, 237) 110.37%)';
     static #ADDON_GREY = '#dadada';
@@ -2499,9 +2540,11 @@ class MerchCardEditor extends LitElement {
         const addonHtml = this.getEffectiveSettingValue(ADDON);
         const addonHtmlSettings = this.globalSettingsDefaults[ADDON];
         const currentBg = this.#getAddonBackground(addonHtml);
+        const defaultBg = MerchCardEditor.#ADDON_DEFAULT;
         const gradient = MerchCardEditor.#ADDON_GRADIENT;
         const grey = MerchCardEditor.#ADDON_GREY;
         const options = { Gradient: gradient, Grey: grey };
+        if (this.effectiveIsVariation) options.Default = defaultBg;
         const selectedKey = Object.entries(options).find(([, v]) => v === currentBg)?.[0] ?? 'Default';
 
         const handleChange = (e) => {
@@ -2525,12 +2568,15 @@ class MerchCardEditor extends LitElement {
                 <sp-field-label for="addonBackground">Addon Background</sp-field-label>
                 <sp-picker
                     id="addonBackground"
-                    data-field-state="${this.getFieldState(ADDON)}"
+                    data-field-state="${this.isAddonBgOverridden() ? 'overridden' : 'default'}"
                     value="${selectedKey}"
                     @change="${handleChange}"
                 >
                     <sp-menu-item value="Default">
-                        <div class="menu-item-container"><span>Default</span></div>
+                        <div class="menu-item-container">
+                            <div class="color-swatch" style="--swatch-bg: transparent"></div>
+                            <span class="color-name-text">Default</span>
+                        </div>
                     </sp-menu-item>
                     <sp-menu-item value="Gradient">
                         <div class="menu-item-container">
@@ -2545,7 +2591,7 @@ class MerchCardEditor extends LitElement {
                         </div>
                     </sp-menu-item>
                 </sp-picker>
-                ${this.renderFieldStatusIndicator(ADDON)}
+                ${this.renderAddonBgFieldStatusIndicator()}
             </sp-field-group>
         `;
     }

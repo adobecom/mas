@@ -16,6 +16,7 @@ import {
     QUICK_ACTION,
     EVENT_OST_OFFER_SELECT,
     TAG_PROMOTION_PREFIX,
+    COLLECTION_MODEL_PATH,
 } from '../constants.js';
 import '../mas-quick-actions.js';
 import { SAVE_SVG, CLONE_SVG, PUBLISH_SVG, COPY_SVG, LOCK_SVG, DELETE_SVG } from '../bulk-publish/bulk-publish-icons.js';
@@ -58,6 +59,7 @@ import './mas-promo-codes-manager.js';
 import { MANAGE_PROMO_CODES_AND_OFFERS_LABEL } from './mas-promo-codes-manager.js';
 import './mas-promotion-duplicate-dialog.js';
 import { loadSelectedFragments } from '../common/utils/items-loader.js';
+import { processConcurrently, OFFER_DATA_CONCURRENCY_LIMIT } from '../common/utils/item-loading.js';
 import { openOfferSelectorTool } from '../rte/ost.js';
 import {
     canPublishPromotionNow,
@@ -139,6 +141,7 @@ class MasPromotionsEditor extends LitElement {
     #cardsSnapshot = [];
     #collectionsSnapshot = [];
     #itemsPickerConfirmed = false;
+    #itemClassificationToken = 0;
     #promotionItemsPickerHoldEmptyState = false;
     #duplicateProposedTitle = '';
     #boundHandleOstOfferSelect = null;
@@ -401,21 +404,15 @@ class MasPromotionsEditor extends LitElement {
                 Store.promotions.selectedCollections.set([]);
             }
         } else if (!hasStoredItemSelection) {
-            // Classify by collection-path membership: one bounded collection search per
-            // surface, instead of a shallow getFragmentByPath per attached path. A path is
-            // a collection if the surface search reports it, or the legacy `collections`
-            // field still lists it (writes now merge everything into `fragments`).
-            const collectionPaths = this.repository
-                ? await this.repository.getCollectionPathsForSurfaces(this.promotionPickerSurfaces)
-                : new Set();
+            // Optimistic split for instant paint: trust the legacy `collections` field and
+            // treat the rest as cards. Writes now merge everything into `fragments`, so this
+            // can be wrong for collections saved into `fragments` — the background refine
+            // below corrects it without blocking first paint (a surface's full collection
+            // catalog must never gate the editor).
             const legacyCollections = new Set(fromCollections);
-            const cards = [];
-            const cols = [];
-            for (const path of allPaths) {
-                (collectionPaths.has(path) || legacyCollections.has(path) ? cols : cards).push(path);
-            }
-            Store.promotions.selectedCards.set(cards);
-            Store.promotions.selectedCollections.set(cols);
+            Store.promotions.selectedCards.set(allPaths.filter((path) => !legacyCollections.has(path)));
+            Store.promotions.selectedCollections.set([...legacyCollections]);
+            void this.#refinePromotionItemClassification(allPaths);
         }
 
         const offerValues = f.getField('offers') ? f.getFieldValues('offers') : [];
@@ -426,6 +423,33 @@ class MasPromotionsEditor extends LitElement {
         } else if (!hasStoredOfferSelection) {
             Store.promotions.selectedOffers.set([]);
         }
+    }
+
+    /**
+     * Corrects the optimistic card/collection split in the background. Looks up each
+     * attached path's model with bounded concurrency (avoids a per-path request burst that
+     * the server rate-limits) and re-buckets, so the editor never blocks first paint on
+     * classification. Bounded by the project's attached count, not the surface catalog.
+     * @param {string[]} allPaths
+     */
+    async #refinePromotionItemClassification(allPaths) {
+        const getFragmentByPath = this.repository?.aem?.getFragmentByPath;
+        if (!getFragmentByPath) return;
+        const token = ++this.#itemClassificationToken;
+        const classified = await processConcurrently(
+            allPaths,
+            async (path) => {
+                const fragment = await getFragmentByPath(path).catch(() => null);
+                return { path, isCollection: fragment?.model?.path === COLLECTION_MODEL_PATH };
+            },
+            OFFER_DATA_CONCURRENCY_LIMIT,
+        );
+        if (token !== this.#itemClassificationToken) return;
+        const cards = [];
+        const cols = [];
+        for (const { path, isCollection } of classified) (isCollection ? cols : cards).push(path);
+        Store.promotions.selectedCards.set(cards);
+        Store.promotions.selectedCollections.set(cols);
     }
 
     #ensurePromotionModelFields(promotion) {

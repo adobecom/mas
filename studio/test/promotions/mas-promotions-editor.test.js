@@ -133,7 +133,6 @@ describe('MasPromotionsEditor', () => {
             unpublishFragment: sandbox.stub().resolves(true),
             searchFragments: sandbox.stub(),
             loadAllCollections: sandbox.stub(),
-            getCollectionPathsForSurfaces: sandbox.stub().resolves(new Set()),
             operation: { set: sandbox.stub() },
             processError: sandbox.stub(),
             aem: {
@@ -1210,8 +1209,9 @@ describe('MasPromotionsEditor', () => {
             expect(Store.promotions.selectedCards.value).to.deep.equal([cardPath]);
         });
 
-        it('classifies attached paths as collections when the surface collection search reports them', async () => {
+        it('refines the card/collection split in the background from each path model', async () => {
             const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            const { COLLECTION_MODEL_PATH } = await import('../../src/constants.js');
             const cardPath = '/content/dam/mas/sandbox/en_US/card-a';
             const collectionPath = '/content/dam/mas/sandbox/en_US/collection-a';
             Store.promotions.inEdit.set(
@@ -1224,12 +1224,23 @@ describe('MasPromotionsEditor', () => {
                 ),
             );
             const { el } = await mountEditorWithRepo({
-                getCollectionPathsForSurfaces: sandbox.stub().resolves(new Set([collectionPath])),
+                aem: {
+                    sites: { cf: { fragments: { getById: sandbox.stub().resolves(null), search: makeSearchStub() } } },
+                    getFragmentByPath: sandbox.stub().callsFake((path) =>
+                        Promise.resolve({
+                            path,
+                            model: { path: path === collectionPath ? COLLECTION_MODEL_PATH : '/card' },
+                        }),
+                    ),
+                },
             });
             Store.promotions.promotionId.set('promo-2');
             el.disconnectedCallback();
             await el.connectedCallback();
             await el.updateComplete;
+            // Optimistic split first: everything a card until the background refine resolves.
+            expect(Store.promotions.selectedCards.value).to.deep.equal([cardPath, collectionPath]);
+            await new Promise((r) => setTimeout(r, 50));
             expect(Store.promotions.selectedCards.value).to.deep.equal([cardPath]);
             expect(Store.promotions.selectedCollections.value).to.deep.equal([collectionPath]);
         });

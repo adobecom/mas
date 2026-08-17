@@ -495,31 +495,6 @@ describe('MasRepository dictionary helpers', () => {
             }
         });
 
-        it('getCollectionPathsForSurfaces returns a Set of collection paths across surfaces', async () => {
-            const repository = createFullRepository();
-            repository.searchFragmentList = sandbox
-                .stub()
-                .callsFake((options) =>
-                    Promise.resolve(
-                        options.path === '/content/dam/mas/acom'
-                            ? [{ path: '/content/dam/mas/acom/en_US/col-a' }]
-                            : [{ path: '/content/dam/mas/sandbox/en_US/col-b' }],
-                    ),
-                );
-            const paths = await repository.getCollectionPathsForSurfaces(['acom', 'sandbox']);
-            expect(paths).to.be.instanceOf(Set);
-            expect([...paths]).to.have.members(['/content/dam/mas/acom/en_US/col-a', '/content/dam/mas/sandbox/en_US/col-b']);
-            expect(repository.searchFragmentList.firstCall.args[0].path).to.equal('/content/dam/mas/acom');
-        });
-
-        it('getCollectionPathsForSurfaces returns an empty Set for no surfaces', async () => {
-            const repository = createFullRepository();
-            repository.searchFragmentList = sandbox.stub();
-            const paths = await repository.getCollectionPathsForSurfaces([]);
-            expect([...paths]).to.deep.equal([]);
-            expect(repository.searchFragmentList.called).to.be.false;
-        });
-
         it('calls loadTranslationProjects for TRANSLATIONS page', async () => {
             const repository = createRepository();
             const { default: Store } = await import('../src/store.js');

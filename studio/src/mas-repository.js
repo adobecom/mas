@@ -1056,29 +1056,6 @@ export class MasRepository extends LitElement {
         Store.fragments.recentlyUpdated.loading.set(false);
     }
 
-    /**
-     * Returns the set of collection fragment paths across the given surfaces, used to
-     * classify a promotion's attached paths (cards vs collections) without a per-path
-     * fetch. Bounded by the number of collections, not by project size.
-     * @param {string[]} surfaces
-     * @returns {Promise<Set<string>>}
-     */
-    async getCollectionPathsForSurfaces(surfaces) {
-        const paths = new Set();
-        for (const surface of surfaces ?? []) {
-            const damPath = getDamPath(surface);
-            if (!damPath) continue;
-            const searchOptions = {
-                path: damPath,
-                modelIds: [TAG_MODEL_ID_MAPPING[TAG_MERCH_CARD_COLLECTION]],
-                sort: [{ on: 'modifiedOrCreated', order: 'DESC' }],
-            };
-            const fragments = await this.searchFragmentList(searchOptions, 50);
-            for (const fragment of fragments) paths.add(fragment.path);
-        }
-        return paths;
-    }
-
     async loadAllCollections() {
         const surfaceKey =
             this.page.value === PAGE_NAMES.PROMOTIONS_EDITOR

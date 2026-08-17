@@ -36,6 +36,10 @@ import '../common/components/mas-select-items-table.js';
 
 const PROMO_VARIATION_LOOKUP_FAILED_MESSAGE = 'Could not verify the promo variation. Check your connection and try again.';
 
+// How many already-selected items to fetch+render per window in the viewOnly tables,
+// so large promotions don't fetch every attached fragment at once.
+const SELECTED_ITEMS_WINDOW = 25;
+
 const offersTableColumns = [
     { label: '', key: 'expand' },
     { label: 'Offer', key: 'offer', sortable: true },
@@ -76,6 +80,8 @@ class MasPromotionsItemsTable extends LitElement {
     #loadedPathsKey = null;
     #processAbortController = null;
     #selectionController = null;
+    #allSelectedPaths = [];
+    #visibleCount = 0;
 
     constructor() {
         super();
@@ -222,24 +228,44 @@ class MasPromotionsItemsTable extends LitElement {
         this.viewOnlyLoading = false;
     }
 
+    get #hasMoreSelected() {
+        return this.#visibleCount < this.#allSelectedPaths.length;
+    }
+
     async #loadSelected(paths) {
         this.#processAbortController?.abort();
+        this.#allSelectedPaths = paths;
+        this.#visibleCount = 0;
+        this.viewOnlyFragments = [];
         if (!paths.length) {
-            this.viewOnlyFragments = [];
             this.viewOnlyLoading = false;
             return;
         }
-        this.viewOnlyLoading = true;
+        await this.#loadNextSelectedWindow();
+    }
+
+    #loadMore() {
+        if (this.viewOnlyLoading || !this.#hasMoreSelected) return;
+        void this.#loadNextSelectedWindow();
+    }
+
+    async #loadNextSelectedWindow() {
+        const start = this.#visibleCount;
+        const end = Math.min(start + SELECTED_ITEMS_WINDOW, this.#allSelectedPaths.length);
+        if (start >= end) return;
+        const slice = this.#allSelectedPaths.slice(start, end);
+        this.#processAbortController?.abort();
         this.#processAbortController = new AbortController();
         const signal = this.#processAbortController.signal;
-        await loadSelectedFragments(paths, this.type, this.repository, {
+        this.viewOnlyLoading = true;
+        await loadSelectedFragments(slice, this.type, this.repository, {
             signal,
             onItems: (items) => {
-                if (!signal.aborted) {
-                    this.viewOnlyFragments = items;
-                    if (this.type === TABLE_TYPE.CARDS) {
-                        this.#syncExistingPromoVariations(items, signal);
-                    }
+                if (signal.aborted) return;
+                this.viewOnlyFragments = start === 0 ? items : [...this.viewOnlyFragments, ...items];
+                this.#visibleCount = end;
+                if (this.type === TABLE_TYPE.CARDS) {
+                    this.#syncExistingPromoVariations(items, signal);
                 }
             },
             getDisplayName: this.getDisplayName,
@@ -260,10 +286,16 @@ class MasPromotionsItemsTable extends LitElement {
         }
         const previousGeos = this.existingPromoVariationGeosByPath;
         const previousVariations = this.existingPromoVariationsByPath;
-        const geosByPath = new Map();
-        const variationsByPath = new Map();
         const previousEmptyGeoPaths = this.existingPromoVariationEmptyGeoPaths;
-        const emptyGeoPaths = new Set();
+        // Seed from prior results scoped to the current selection: keeps earlier windows'
+        // lookups (windowed loads only probe their new slice) and retains a path's known
+        // variation when its re-probe fails transiently, while dropping paths that are no
+        // longer selected.
+        const selectedSet = new Set(this.#allSelectedPaths);
+        const scopedEntries = (map) => [...map].filter(([path]) => selectedSet.has(path));
+        const geosByPath = new Map(scopedEntries(previousGeos));
+        const variationsByPath = new Map(scopedEntries(previousVariations));
+        const emptyGeoPaths = new Set([...previousEmptyGeoPaths].filter((path) => selectedSet.has(path)));
         await Promise.all(
             items.map(async (item) => {
                 if (signal.aborted) return;
@@ -883,6 +915,8 @@ class MasPromotionsItemsTable extends LitElement {
             .renderActionsCell=${(item) => this.#renderActionsCell(item)}
             .renderPreviewCell=${(item) => this.#renderPreviewCell(item)}
             .promoVariationsFetchedByParent=${this.existingPromoVariationsByPath}
+            .viewOnlyHasMore=${this.#hasMoreSelected}
+            @view-only-load-more=${() => this.#loadMore()}
             @show-toast=${this.#showToast}
         >
         </mas-select-items-table>`;
@@ -902,6 +936,8 @@ class MasPromotionsItemsTable extends LitElement {
             .selectableTabs=${[]}
             .renderActionsCell=${(item) => this.#renderActionsCell(item)}
             .promoVariationsFetchedByParent=${this.existingPromoVariationsByPath}
+            .viewOnlyHasMore=${this.#hasMoreSelected}
+            @view-only-load-more=${() => this.#loadMore()}
             @show-toast=${this.#showToast}
         ></mas-select-items-table>`;
     }

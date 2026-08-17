@@ -38,7 +38,6 @@ import {
     applyPromotionItemSelectionToFragment,
     buildPromotionOffersFieldValues,
     buildPromotionTagPath,
-    classifyPromotionPathsForSelection,
     hydratePromotionOfferRecords,
     isPromotionItemSelectionDirty,
     isPromotionOffersSelectionDirty,
@@ -196,15 +195,6 @@ class MasPromotionsEditor extends LitElement {
                 this.isNewPromotion = !existing?.id;
             }
             await this.#hydratePromotionItemSelectionFromFragment();
-        }
-
-        if (this.promotionPickerSurfaces.length) {
-            if (this.repository?.searchFragments) {
-                this.repository.searchFragments();
-            }
-            if (this.repository?.loadAllCollections) {
-                this.repository.loadAllCollections();
-            }
         }
 
         if (this.fragmentStore) {
@@ -405,21 +395,25 @@ class MasPromotionsEditor extends LitElement {
                 allPaths.push(p);
             }
         }
-        const getFragmentByPath = this.repository?.aem?.getFragmentByPath;
         if (!allPaths.length) {
             if (!hasStoredItemSelection) {
                 Store.promotions.selectedCards.set([]);
                 Store.promotions.selectedCollections.set([]);
             }
-        } else if (!getFragmentByPath) {
-            if (!hasStoredItemSelection) {
-                Store.promotions.selectedCards.set(fromFragments.filter(Boolean));
-                Store.promotions.selectedCollections.set(fromCollections.filter(Boolean));
-            }
         } else if (!hasStoredItemSelection) {
-            const { cards, cols } = await classifyPromotionPathsForSelection(allPaths, (path) =>
-                this.repository.aem.getFragmentByPath(path),
-            );
+            // Classify by collection-path membership: one bounded collection search per
+            // surface, instead of a shallow getFragmentByPath per attached path. A path is
+            // a collection if the surface search reports it, or the legacy `collections`
+            // field still lists it (writes now merge everything into `fragments`).
+            const collectionPaths = this.repository
+                ? await this.repository.getCollectionPathsForSurfaces(this.promotionPickerSurfaces)
+                : new Set();
+            const legacyCollections = new Set(fromCollections);
+            const cards = [];
+            const cols = [];
+            for (const path of allPaths) {
+                (collectionPaths.has(path) || legacyCollections.has(path) ? cols : cards).push(path);
+            }
             Store.promotions.selectedCards.set(cards);
             Store.promotions.selectedCollections.set(cols);
         }
@@ -450,14 +444,14 @@ class MasPromotionsEditor extends LitElement {
     }
 
     async #fetchPromotionModelById(id) {
-        let fragment = await this.repository.aem.sites.cf.fragments.getById(id);
+        let fragment = await this.repository.aem.sites.cf.fragments.getById(id, undefined, { references: null });
         if (!fragment) return null;
         let promotion = new Promotion(fragment);
         this.#ensurePromotionModelFields(promotion);
         if (promotion.promotionStatus === 'expired' && promotion.isPromotionPublished) {
             const ok = await this.repository.unpublishFragment(promotion, false);
             if (ok) {
-                fragment = await this.repository.aem.sites.cf.fragments.getById(id);
+                fragment = await this.repository.aem.sites.cf.fragments.getById(id, undefined, { references: null });
                 if (!fragment) return null;
                 promotion = new Promotion(fragment);
                 this.#ensurePromotionModelFields(promotion);

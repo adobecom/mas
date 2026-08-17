@@ -111,6 +111,86 @@ describe('MasPromotionsItemsTable', () => {
         el.remove();
     });
 
+    describe('viewOnly windowing', () => {
+        let restoreIO;
+
+        beforeEach(() => {
+            // Replace IntersectionObserver with a no-op so the scroll sentinel does not
+            // auto-cascade load-more in the (unbounded-height) test DOM; we drive it manually.
+            const original = window.IntersectionObserver;
+            window.IntersectionObserver = class {
+                observe() {}
+                unobserve() {}
+                disconnect() {}
+            };
+            restoreIO = () => {
+                window.IntersectionObserver = original;
+            };
+        });
+
+        afterEach(() => restoreIO());
+
+        function makeCollectionRepo() {
+            const getFragmentByPath = sandbox.stub().callsFake((path) =>
+                Promise.resolve({
+                    path,
+                    id: path,
+                    title: path,
+                    model: { path: COLLECTION_MODEL_PATH },
+                    fields: [],
+                    tags: [],
+                }),
+            );
+            return { getFragmentByPath, repo: { aem: { getFragmentByPath } } };
+        }
+
+        async function mountWindowed(pathCount) {
+            const paths = Array.from({ length: pathCount }, (_, i) => `/content/dam/mas/sandbox/en_US/col-${i}`);
+            Store.promotions.selectedCollections.set(paths);
+            const { getFragmentByPath, repo } = makeCollectionRepo();
+            const el = new MasPromotionsItemsTable();
+            el.type = TABLE_TYPE.COLLECTIONS;
+            sandbox.stub(el, 'repository').get(() => repo);
+            document.body.appendChild(el);
+            await el.updateComplete;
+            await new Promise((r) => setTimeout(r, 80));
+            await el.updateComplete;
+            return { el, getFragmentByPath };
+        }
+
+        function fireLoadMore(el) {
+            el.shadowRoot
+                .querySelector('mas-select-items-table')
+                .dispatchEvent(new CustomEvent('view-only-load-more', { bubbles: true, composed: true }));
+        }
+
+        it('loads only the first window of selected items initially', async () => {
+            const { el, getFragmentByPath } = await mountWindowed(60);
+            expect(el.viewOnlyFragments.length).to.equal(25);
+            expect(getFragmentByPath.callCount).to.equal(25);
+            el.remove();
+        });
+
+        it('appends the next window on view-only-load-more, capped at the total', async () => {
+            const { el } = await mountWindowed(60);
+            fireLoadMore(el);
+            await new Promise((r) => setTimeout(r, 80));
+            await el.updateComplete;
+            expect(el.viewOnlyFragments.length).to.equal(50);
+
+            fireLoadMore(el);
+            await new Promise((r) => setTimeout(r, 80));
+            await el.updateComplete;
+            expect(el.viewOnlyFragments.length).to.equal(60);
+
+            // No more to load: the sentinel is gone and further events are no-ops.
+            fireLoadMore(el);
+            await el.updateComplete;
+            expect(el.viewOnlyFragments.length).to.equal(60);
+            el.remove();
+        });
+    });
+
     it('typeUppercased returns capitalized type string', async () => {
         const el = await fixture(html`<mas-promotions-items-table .type=${'cards'}></mas-promotions-items-table>`);
         expect(el.typeUppercased).to.equal('Cards');

@@ -261,6 +261,28 @@ describe('pipeline corner cases', () => {
         expect(result.statusCode).to.equal(200);
     });
 
+    it('should return 200 for an es_PR territory request (content PR, commerce US)', async () => {
+        setupFragmentMocks(fetchStub, {
+            id: 'some-en-us-fragment',
+            path: 'someFragment',
+        });
+        // es_PR is a region of the ACOM es_ES default locale; defaultLanguage looks up the
+        // es_ES default-locale fragment id, then fetches it hydrated.
+        fetchStub
+            .withArgs('https://odin.adobe.com/adobe/contentFragments/byPath?path=/content/dam/mas/sandbox/es_ES/ccd-slice-wide-cc-all-app')
+            .returns(createResponse(200, { id: 'some-es-es-fragment' }));
+        fetchStub
+            .withArgs('https://odin.adobe.com/adobe/contentFragments/some-es-es-fragment?references=all-hydrated')
+            .returns(createResponse(200, FRAGMENT_RESPONSE_FR));
+        const result = await getFragment({
+            id: 'some-en-us-fragment',
+            state: new MockState(),
+            locale: 'es_PR',
+            country: 'US',
+        });
+        expect(result.statusCode).to.equal(200);
+    });
+
     it('should accept a state-supplied literal api_key', async () => {
         setupFragmentMocks(fetchStub, {
             id: 'some-en-us-fragment',

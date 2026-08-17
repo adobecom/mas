@@ -212,7 +212,14 @@ export default class MasRelatedVariations extends LitElement {
         if (!variation?.id) return html`<sp-table-cell>${title}</sp-table-cell>`;
         const href = `#page=${PAGE_NAMES.FRAGMENT_EDITOR}&fragmentId=${encodeURIComponent(variation.id)}`;
         return html`<sp-table-cell>
-            <a href=${href} target="_blank" rel="noopener noreferrer" @click=${(e) => e.stopPropagation()}> ${title} </a>
+            <a
+                href=${href}
+                target="_blank"
+                rel="noopener noreferrer"
+                @click=${(e) => e.stopPropagation()}
+                @dblclick=${(e) => e.stopPropagation()}
+                >${title}</a
+            >
         </sp-table-cell>`;
     }
 

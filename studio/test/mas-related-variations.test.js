@@ -233,6 +233,18 @@ describe('MasRelatedVariations', () => {
             expect(rowClickSpy.called).to.be.false;
         });
 
+        it('stops the dblclick on the variation link from bubbling to the row, preventing double-open', () => {
+            const openSpy = sandbox.stub(window, 'open');
+            const container = document.createElement('div');
+            render(el.render(), container);
+
+            const link = container.querySelector('sp-table-cell a');
+            link.addEventListener('click', (e) => e.preventDefault());
+            link.dispatchEvent(new MouseEvent('dblclick', { bubbles: true, cancelable: true }));
+
+            expect(openSpy.called).to.be.false;
+        });
+
         it('renders the variation name as plain text when the variation has no id', () => {
             const fragment = new Fragment({
                 id: 'test-id',

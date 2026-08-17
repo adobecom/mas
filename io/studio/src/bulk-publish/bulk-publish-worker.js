@@ -2,7 +2,7 @@ const { Core } = require('@adobe/aio-sdk');
 const { publishResolved, publishDictionaryIndexes } = require('./publish-core.js');
 const { resolvePaths } = require('./resolver.js');
 const { buildResult } = require('./summary.js');
-const { createSnapshot } = require('./snapshot.js');
+const { createSnapshot, recordSnapshot } = require('./snapshot.js');
 const {
     PROJECT_STATUS,
     readProjectFragment,
@@ -19,6 +19,18 @@ const {
 function relabelNotLocalized(details) {
     for (const detail of details) {
         if (detail.status === 'failed' && detail.reason === 'not-found') detail.reason = 'not-localized';
+    }
+}
+
+function hasValidPreRecordedSnapshot(entries) {
+    if (!entries.length) return false;
+    try {
+        return entries.every((e) => {
+            const parsed = JSON.parse(e);
+            return parsed.versionId && parsed.publishComplete === undefined;
+        });
+    } catch {
+        return false;
     }
 }
 
@@ -39,6 +51,7 @@ async function runWorker(input, deps = {}) {
     const publish = deps.publishResolved || publishResolved;
     const publishIndexes = deps.publishDictionaryIndexes || publishDictionaryIndexes;
     const snapshot = deps.createSnapshot || createSnapshot;
+    const record = deps.recordSnapshot || recordSnapshot;
     const updateProject = deps.updateProjectFragment || updateProjectFragment;
     const resolve = deps.resolvePaths || resolvePaths;
     const now = deps.now || (() => new Date());
@@ -71,12 +84,14 @@ async function runWorker(input, deps = {}) {
     }
 
     let snapshotEntries;
+    let snapshotError = '';
     let expandedPaths = null;
     if (hasPendingSnapshot(existingSnapshots)) {
         snapshotEntries = existingSnapshots;
         expandedPaths = existingSnapshots.map((e) => JSON.parse(e).path);
         await updateProject(odinEndpoint, projectId, authToken, { status: PROJECT_STATUS.PUBLISHING, lastError: '' });
-    } else {
+    } else if (hasValidPreRecordedSnapshot(existingSnapshots)) {
+        snapshotEntries = existingSnapshots;
         const fresh = await snapshot({
             paths,
             projectId,
@@ -86,12 +101,32 @@ async function runWorker(input, deps = {}) {
             includeCards,
             includeVariations,
         });
-        snapshotEntries = fresh.entries;
         expandedPaths = fresh.expandedPaths;
         await updateProject(odinEndpoint, projectId, authToken, {
             status: PROJECT_STATUS.PUBLISHING,
-            snapshots: addPendingMarker(snapshotEntries),
+            snapshots: addPendingMarker(existingSnapshots),
             lastError: '',
+        });
+    } else {
+        const { entries: fresh, failures: recordFailures } = await record({ paths, odinEndpoint, authToken });
+        snapshotEntries = fresh;
+        const { expandedPaths: snapExpanded } = await snapshot({
+            paths,
+            projectId,
+            projectTitle: title,
+            odinEndpoint,
+            authToken,
+            includeCards,
+            includeVariations,
+        });
+        expandedPaths = snapExpanded;
+        const recordError =
+            recordFailures.length > 0 ? `SAVE_SNAPSHOT:\n${recordFailures.map((f) => `${f.path}: ${f.error}`).join('\n')}` : '';
+        snapshotError = recordError;
+        await updateProject(odinEndpoint, projectId, authToken, {
+            status: PROJECT_STATUS.PUBLISHING,
+            snapshots: addPendingMarker(fresh),
+            lastError: snapshotError,
         });
     }
 
@@ -112,7 +147,7 @@ async function runWorker(input, deps = {}) {
             publishedAt: result.finishedAt,
             publishedBy,
             lastResult: JSON.stringify(result),
-            lastError: '',
+            lastError: snapshotError,
         });
     } catch (error) {
         throw Object.assign(error, { publishSucceeded: true, result, finalSnapshots, publishedBy });

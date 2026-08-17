@@ -70,11 +70,35 @@ jobs:
                       const latestByReviewer = new Map();
                       for (const review of reviews) {
                           if (review.state === 'COMMENTED' || !review.user) continue;
-                          latestByReviewer.set(review.user.id, review.state);
+                          latestByReviewer.set(review.user.id, {
+                              login: review.user.login,
+                              state: review.state,
+                          });
                       }
-                      const approvals = [...latestByReviewer.values()].filter(
-                          (state) => state === 'APPROVED',
-                      ).length;
+
+                      // An approval only counts from someone who can push to the repo.
+                      // Without this, any account's approval plus the label would run
+                      // PR-authored code on the self-hosted runners.
+                      const approvers = [...latestByReviewer.values()].filter(
+                          (review) => review.state === 'APPROVED',
+                      );
+                      const canWrite = async (login) => {
+                          try {
+                              const { data } =
+                                  await github.rest.repos.getCollaboratorPermissionLevel({
+                                      owner: context.repo.owner,
+                                      repo: context.repo.repo,
+                                      username: login,
+                                  });
+                              return data.permission === 'admin' || data.permission === 'write';
+                          } catch {
+                              return false;
+                          }
+                      };
+                      const permissions = await Promise.all(
+                          approvers.map((review) => canWrite(review.login)),
+                      );
+                      const approvals = permissions.filter(Boolean).length;
 
                       const canRun = hasLabel && approvals >= required;
                       const summary = `'run nala' label: ${hasLabel}, approvals: ${approvals}/${required}`;

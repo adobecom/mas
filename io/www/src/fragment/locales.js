@@ -583,7 +583,7 @@ const TERRITORY_MAP = {
 export function resolveTerritoryCountries(locale, country) {
     const entry = TERRITORY_MAP[locale];
     if (!entry) return { country, wcsCountry: country };
-    return entry;
+    return { ...entry };
 }
 
 export const parseLocaleCode = (localeCode) => localeCode?.split('_') ?? [];

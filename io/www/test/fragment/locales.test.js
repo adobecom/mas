@@ -462,5 +462,10 @@ describe('locales', function () {
         it('does not throw on undefined locale', () => {
             expect(resolveTerritoryCountries(undefined, 'US')).to.deep.equal({ country: 'US', wcsCountry: 'US' });
         });
+        it('returns a fresh object (mutating the result does not corrupt the map)', () => {
+            const first = resolveTerritoryCountries('es_PR', 'US');
+            first.country = 'XX';
+            expect(resolveTerritoryCountries('es_PR', 'US')).to.deep.equal({ country: 'PR', wcsCountry: 'US' });
+        });
     });
 });

@@ -264,18 +264,38 @@ function findPromoVariation(root, customizeContext, selectedPromoProject) {
         ? findPersonalizationVariation(eligibleVariations, customizeContext)
         : null;
 
-    // Only the single project selected for this fragment may contribute a promo variation
-    if (!selectedPromoProject || isPromoVariationIgnored(root, selectedPromoProject)) {
+    // No promo project targets this fragment: no groupedVariationPaths scope to lose here.
+    if (!selectedPromoProject) {
+        return {};
+    }
+    // This OSI opted out of promo variations for this geo: carry back the already-scoped pzn variation.
+    if (isPromoVariationIgnored(root, selectedPromoProject)) {
         return { personalizationVariation };
     }
+
     if (personalizationVariation) {
-        const grouped = findPromoVariation(personalizationVariation, customizeContext, selectedPromoProject);
-        if (grouped.variation) {
+        const { regionLocale, country } = customizeContext;
+        const { project } = selectedPromoProject;
+        const { fragmentPath: groupedFragmentPath } = PATH_TOKENS.exec(personalizationVariation.path).groups;
+        const groupedDefaultVar = selectBestPromoVariation(
+            collectPromoVariationCandidates(project.defaultVariations, groupedFragmentPath),
+            { regionLocale, country },
+        );
+        const groupedRegionVar = selectBestPromoVariation(
+            collectPromoVariationCandidates(project.regionVariations, groupedFragmentPath),
+            { regionLocale, country },
+        );
+        const promoPersonalizationVariation =
+            groupedDefaultVar && groupedRegionVar
+                ? deepMerge(groupedDefaultVar, groupedRegionVar)
+                : groupedDefaultVar || groupedRegionVar;
+        if (promoPersonalizationVariation) {
             logDebug(
-                () => `Merging promo variation ${grouped.variation.id} for grouped variation ${personalizationVariation.id}`,
+                () =>
+                    `Merging promo variation ${promoPersonalizationVariation.id} for grouped variation ${personalizationVariation.id}`,
                 customizeContext,
             );
-            return { personalizationVariation, variation: grouped.variation, project: grouped.project };
+            return { personalizationVariation, variation: promoPersonalizationVariation, project };
         }
     }
     const { fragmentPath } = PATH_TOKENS.exec(root.path).groups;
@@ -361,18 +381,22 @@ function selectPromoProjectForFragment(root, customizeContext) {
 }
 
 function mergeVariations(root, customizeContext, selectedPromoProject) {
-    const variations = root?.fields?.variations;
     // Promo variation (checking the pzn variation first, see `findPromoVariation`) takes
     // priority, independent of fields.variations — unless the fragment's offer is flagged
     // "ignore variations" for this geo, in which case we fall through so regional and pzn
     // variations still apply.
-    const { personalizationVariation, variation, project } = findPromoVariation(root, customizeContext, selectedPromoProject);
+    const {
+        personalizationVariation: promoPersonalizationVariation,
+        variation,
+        project,
+    } = findPromoVariation(root, customizeContext, selectedPromoProject);
     if (variation) {
         const merged = deepMerge(root, variation);
         merged.variationId = variation.id;
         merged.promoVariationProject = promoProjectLabel(project);
         return merged;
     }
+    const variations = root?.fields?.variations;
     if (!variations?.length) {
         logDebug(() => `No variations to merge for fragment ${root.id}`, customizeContext);
         return root;
@@ -387,6 +411,10 @@ function mergeVariations(root, customizeContext, selectedPromoProject) {
         merged.variationId = regionalVariation.id;
         return merged;
     }
+    const personalizationVariation =
+        promoPersonalizationVariation !== undefined
+            ? promoPersonalizationVariation
+            : findPersonalizationVariation(variations, customizeContext);
     if (personalizationVariation) {
         logDebug(
             () => `Merging personalization variation ${personalizationVariation.id} for fragment ${root.id}`,

@@ -2268,6 +2268,37 @@ describe('customize grouped variation scoped to a promo project (promo variation
         expect(result.body.variationId).to.equal('grouped-promo-var-id');
         expect(result.body.fields.badge).to.equal('GROUPED PROMO badge');
     });
+
+    it('merges the grouped-variation region promo over the grouped-variation default promo when both exist', async function () {
+        const groupedDefaultVar = {
+            id: 'grouped-default-var-id',
+            path: '/content/dam/mas/sandbox/en_US/promotions/black-friday/PA-123/pzn/edu',
+            fields: { badge: 'GROUPED DEFAULT badge' },
+        };
+        const groupedRegionVar = {
+            id: 'grouped-region-var-id',
+            path: '/content/dam/mas/sandbox/fr_BE/promotions/black-friday/PA-123/pzn/edu',
+            fields: { badge: 'GROUPED REGION badge' },
+        };
+        const promoProjectsEntry = buildPromoProjectsEntry(['PA-123/pzn/edu'], { 'PA-123/pzn/edu': groupedDefaultVar });
+        promoProjectsEntry[0].project.regionVariations = { 'PA-123/pzn/edu': groupedRegionVar };
+
+        const result = await processWithPromoProjects(
+            {
+                ...FAKE_CONTEXT,
+                fragmentPath: 'pzn-test-fragment',
+                locale: 'en_US',
+                parsedLocale: 'en_US',
+                pzn: 'EDU',
+                body: buildBodyWithPzn(),
+            },
+            promoProjectsEntry,
+        );
+
+        expect(result.status).to.equal(200);
+        expect(result.body.variationId).to.equal('grouped-default-var-id');
+        expect(result.body.fields.badge).to.equal('GROUPED REGION badge');
+    });
 });
 
 describe('customize ignore promo variations per offer & geo', function () {

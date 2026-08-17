@@ -425,6 +425,28 @@ describe('MasRelatedVariations', () => {
             expect(projectLink).to.not.be.null;
             expect(projectLink.getAttribute('href')).to.equal('#page=promotions-editor&promotionId=promo-project-2');
         });
+
+        it('renders the geos tag picker when the promo variation has pzn tags', () => {
+            el.promoVariations = [{ ...variation, fields: [{ name: 'pznTags', values: ['locale/en_US'] }] }];
+            const container = document.createElement('div');
+            render(el.render(), container);
+
+            const geosCell = container.querySelectorAll('sp-table-cell')[2];
+            const tagPicker = geosCell.querySelector('aem-tag-picker-field');
+            expect(tagPicker).to.not.be.null;
+            expect(tagPicker.getAttribute('value')).to.equal('locale/en_US');
+            expect(geosCell.textContent).to.not.include('Baseline variation');
+        });
+
+        it('renders the inherited tags notice when the promo variation has no pzn tags', () => {
+            el.promoVariations = [variation];
+            const container = document.createElement('div');
+            render(el.render(), container);
+
+            const geosCell = container.querySelectorAll('sp-table-cell')[2];
+            expect(geosCell.querySelector('aem-tag-picker-field')).to.be.null;
+            expect(geosCell.textContent).to.include('Baseline variation');
+        });
     });
 
     describe('grouped variations table', () => {

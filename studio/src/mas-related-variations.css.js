@@ -1,9 +1,13 @@
 import { css } from 'lit';
 import { skeletonStyles } from './common/skeleton-styles.css.js';
+import { textWithTooltipStyles } from './common/styles/table-styles.css.js';
 
 export const styles = [
     skeletonStyles,
+
     css`
+        ${textWithTooltipStyles}
+
         .related-variations-container {
             width: 600px;
             margin-top: 16px;

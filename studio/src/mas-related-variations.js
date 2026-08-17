@@ -6,7 +6,7 @@ import { VARIATION_TAB_NAME, PAGE_NAMES } from './constants.js';
 import Store from './store.js';
 import Events from './events.js';
 import { extractLocaleFromPath } from './utils.js';
-import { shouldIgnoreRowClickForSelection } from './common/utils/render-utils.js';
+import { shouldIgnoreRowClickForSelection, renderInheritedTagsNotice } from './common/utils/render-utils.js';
 import { getPromotionTagFromFragment, getPromotionInfo, findPromotionProjectIdByTag } from './promotions/promotion-model.js';
 import * as promotionsRepository from './promotions/promotions-repository.js';
 import { enrichPromoVariations, loadCardVariations } from './common/utils/items-loader.js';
@@ -137,13 +137,15 @@ export default class MasRelatedVariations extends LitElement {
                         : promoProject}
                 </sp-table-cell>
                 <sp-table-cell>
-                    <aem-tag-picker-field
-                        namespace="/content/cq:tags/mas"
-                        display-value
-                        top="locale,pzn"
-                        value="${geosValue}"
-                        readonly
-                    ></aem-tag-picker-field>
+                    ${geosValue
+                        ? html`<aem-tag-picker-field
+                              namespace="/content/cq:tags/mas"
+                              display-value
+                              top="locale,pzn"
+                              value="${geosValue}"
+                              readonly
+                          ></aem-tag-picker-field>`
+                        : renderInheritedTagsNotice()}
                 </sp-table-cell>
             </sp-table-row>
         `;

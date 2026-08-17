@@ -36,10 +36,7 @@ export class Fragment {
 
     getValidationErrors() {
         if (!Array.isArray(this.validationStatus)) return [];
-        return this.validationStatus.map(({ property, message }) => {
-            const field = property?.match(/^fields\.([^.[]+)/)?.[1] ?? null;
-            return { property, field, message };
-        });
+        return this.validationStatus.map(({ property, message }) => ({ property, message }));
     }
 
     isValueEmpty(values) {

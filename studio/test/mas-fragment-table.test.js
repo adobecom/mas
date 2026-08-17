@@ -409,9 +409,7 @@ describe('MasFragmentTable', () => {
             const fragmentStore = createFragmentStore({
                 getValidationErrors: sandbox
                     .stub()
-                    .returns([
-                        { property: 'fields.ctas.values[0].<list element>', field: 'ctas', message: 'is not valid HTML' },
-                    ]),
+                    .returns([{ property: 'fields.ctas.values[0].<list element>', message: 'is not valid HTML' }]),
             });
             const el = await fixture(html`<mas-fragment-table .fragmentStore=${fragmentStore}></mas-fragment-table>`);
             await el.updateComplete;
@@ -419,6 +417,19 @@ describe('MasFragmentTable', () => {
             expect(indicator).to.exist;
             expect(indicator.getAttribute('title')).to.include('is not valid HTML');
             expect(indicator.querySelector('.validation-error-icon')).to.exist;
+        });
+
+        it('joins multiple messages with newlines in the title', async () => {
+            const fragmentStore = createFragmentStore({
+                getValidationErrors: sandbox.stub().returns([
+                    { property: 'fields.ctas.values[0].<list element>', message: 'is not valid HTML' },
+                    { property: 'path', message: 'is required' },
+                ]),
+            });
+            const el = await fixture(html`<mas-fragment-table .fragmentStore=${fragmentStore}></mas-fragment-table>`);
+            await el.updateComplete;
+            const indicator = el.querySelector('.validation-error-indicator');
+            expect(indicator.getAttribute('title')).to.equal('is not valid HTML\nis required');
         });
     });
 });

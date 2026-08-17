@@ -208,6 +208,7 @@ class MasPromotionsEditor extends LitElement {
             Store.promotions.selectedCards,
             Store.promotions.selectedCollections,
             Store.promotions.selectedOffers,
+            Store.promotions.offerRecordsHydrated,
             Store.users,
         ]);
     }
@@ -419,7 +420,11 @@ class MasPromotionsEditor extends LitElement {
         const savedOfferIds = parseSelectedOfferIdsFromOffersField(offerValues);
         if (savedOfferIds.length) {
             Store.promotions.selectedOffers.set(savedOfferIds);
-            await hydratePromotionOfferRecords(savedOfferIds, Store.promotions.offerRecordsCache);
+            // Don't block first paint on the offer-record lookups (one WCS call each). Render
+            // the offers from selection immediately and refresh once the records land.
+            void hydratePromotionOfferRecords(savedOfferIds, Store.promotions.offerRecordsCache).then(() => {
+                Store.promotions.offerRecordsHydrated.set(Store.promotions.offerRecordsHydrated.get() + 1);
+            });
         } else if (!hasStoredOfferSelection) {
             Store.promotions.selectedOffers.set([]);
         }

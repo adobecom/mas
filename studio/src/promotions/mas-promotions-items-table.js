@@ -82,6 +82,7 @@ class MasPromotionsItemsTable extends LitElement {
     #selectionController = null;
     #allSelectedPaths = [];
     #visibleCount = 0;
+    #offerRecordsHydratedSeen = 0;
 
     constructor() {
         super();
@@ -124,7 +125,11 @@ class MasPromotionsItemsTable extends LitElement {
                 : this.type === TABLE_TYPE.CARDS
                   ? store.selectedCards
                   : store.selectedCollections;
-        this.#selectionController = new ReactiveController(this, [selectionStore, Store.promotions.inEdit]);
+        const controllerStores = [selectionStore, Store.promotions.inEdit];
+        // Offers render from offerRecordsCache, which is hydrated after first paint; refresh
+        // when it lands.
+        if (this.type === TABLE_TYPE.OFFERS) controllerStores.push(Store.promotions.offerRecordsHydrated);
+        this.#selectionController = new ReactiveController(this, controllerStores);
     }
 
     disconnectedCallback() {
@@ -195,6 +200,13 @@ class MasPromotionsItemsTable extends LitElement {
         }
         if (!this.type) return;
         if (this.type === TABLE_TYPE.OFFERS) {
+            // Force a rebuild from the cache when offer records finish hydrating, otherwise
+            // the same-ids key guard would keep the placeholder rows.
+            const hydratedVersion = Store.promotions.offerRecordsHydrated.get();
+            if (hydratedVersion !== this.#offerRecordsHydratedSeen) {
+                this.#offerRecordsHydratedSeen = hydratedVersion;
+                this.#loadedPathsKey = null;
+            }
             this.#loadSelectedOffers(this.selectedPaths);
             return;
         }

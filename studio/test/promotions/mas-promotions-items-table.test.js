@@ -61,6 +61,26 @@ describe('MasPromotionsItemsTable', () => {
         ]);
     });
 
+    it('rebuilds offer rows when offer records finish hydrating after first paint', async () => {
+        const offerId = 'osi-xyz';
+        Store.promotions.selectedOffers.set([offerId]);
+        const el = await fixture(html`<mas-promotions-items-table .type=${TABLE_TYPE.OFFERS}></mas-promotions-items-table>`);
+        await el.updateComplete;
+        // Placeholder row before the records land (offers render immediately, unblocked).
+        expect(el.viewOnlyFragments[0].offerData).to.deep.equal({ offerId });
+
+        Store.promotions.offerRecordsCache.set(offerId, {
+            path: offerId,
+            id: offerId,
+            offerData: { offerId, offerType: 'BASE' },
+            tags: [],
+            fields: [],
+        });
+        Store.promotions.offerRecordsHydrated.set(Store.promotions.offerRecordsHydrated.get() + 1);
+        await el.updateComplete;
+        expect(el.viewOnlyFragments[0].offerData.offerType).to.equal('BASE');
+    });
+
     it('shows empty state when there is no repository and paths are selected', async () => {
         Store.promotions.selectedCards.set(['/some/path']);
         const el = await fixture(html`<mas-promotions-items-table .type=${TABLE_TYPE.CARDS}></mas-promotions-items-table>`);

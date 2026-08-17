@@ -247,9 +247,9 @@ function isPromoVariationIgnored(root, selectedPromoProject) {
 }
 
 // If a promo variation for the pzn variation was added to the promo project, it wins over the
-// default fragment's promo variation. When `promoIgnored` is true (this OSI opted out of promo
-// variations), no promo variation is looked up at all — only the pzn variation is resolved.
-function findPromoVariation(root, customizeContext, selectedPromoProject, promoIgnored) {
+// default fragment's promo variation. When this OSI opted out of promo variations, no promo
+// variation is looked up at all — only the pzn variation is resolved.
+function findPromoVariation(root, customizeContext, selectedPromoProject) {
     const variations = root?.fields?.variations;
     const { references } = customizeContext;
     const groupedVariationPaths = selectedPromoProject?.groupedVariationPaths;
@@ -265,7 +265,7 @@ function findPromoVariation(root, customizeContext, selectedPromoProject, promoI
         : null;
 
     // Only the single project selected for this fragment may contribute a promo variation
-    if (!selectedPromoProject || promoIgnored) {
+    if (!selectedPromoProject || isPromoVariationIgnored(root, selectedPromoProject)) {
         return { personalizationVariation };
     }
     if (personalizationVariation) {
@@ -366,13 +366,7 @@ function mergeVariations(root, customizeContext, selectedPromoProject) {
     // priority, independent of fields.variations — unless the fragment's offer is flagged
     // "ignore variations" for this geo, in which case we fall through so regional and pzn
     // variations still apply.
-    const promoIgnored = isPromoVariationIgnored(root, selectedPromoProject);
-    const { personalizationVariation, variation, project } = findPromoVariation(
-        root,
-        customizeContext,
-        selectedPromoProject,
-        promoIgnored,
-    );
+    const { personalizationVariation, variation, project } = findPromoVariation(root, customizeContext, selectedPromoProject);
     if (variation) {
         const merged = deepMerge(root, variation);
         merged.variationId = variation.id;

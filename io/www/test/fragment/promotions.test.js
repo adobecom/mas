@@ -67,17 +67,24 @@ function makeHydratedProject({
     };
 }
 
+// Models real Web Storage: data keys are enumerable own props (so `Object.keys(localStorage)`
+// prefix-scans work, as the per-surface `promotions-*` clear relies on), methods non-enumerable.
 function installLocalStorageShim() {
     const storage = {};
-    globalThis.localStorage = {
-        getItem: (key) => storage[key] ?? null,
-        setItem: (key, val) => {
-            storage[key] = val;
+    Object.defineProperties(storage, {
+        getItem: { value: (key) => (Object.prototype.hasOwnProperty.call(storage, key) ? storage[key] : null) },
+        setItem: {
+            value: (key, val) => {
+                storage[key] = String(val);
+            },
         },
-        removeItem: (key) => {
-            delete storage[key];
+        removeItem: {
+            value: (key) => {
+                delete storage[key];
+            },
         },
-    };
+    });
+    globalThis.localStorage = storage;
     return storage;
 }
 
@@ -162,6 +169,27 @@ describe('promotions', () => {
             expect(result.activeProjects[0].promoCode).to.equal('SAVE20');
         });
 
+        it('derives groupedVariationPaths from fragments under a /pzn/ folder', async () => {
+            const project = makeProject({ id: 'proj-1', surfaces: ['acom'], geos: ['/content/cq:tags/mas/locale/en_US'] });
+            const hydrated = makeHydratedProject({ fragmentPath: '/content/dam/mas/acom/en_US/PA-123/pzn/edu' });
+            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+            fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
+
+            const result = await promotionsTransformer.init(createContext({ regionLocale: 'en_US' }));
+            expect(result.activeProjects[0].fragmentPaths).to.deep.equal(['PA-123/pzn/edu']);
+            expect(result.activeProjects[0].groupedVariationPaths).to.deep.equal(['PA-123/pzn/edu']);
+        });
+
+        it('does not classify a plain fragment as a grouped variation path', async () => {
+            const project = makeProject({ id: 'proj-1', surfaces: ['acom'], geos: ['/content/cq:tags/mas/locale/en_US'] });
+            const hydrated = makeHydratedProject();
+            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+            fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
+
+            const result = await promotionsTransformer.init(createContext({ regionLocale: 'en_US' }));
+            expect(result.activeProjects[0].groupedVariationPaths).to.deep.equal([]);
+        });
+
         it('carries the project title, startDate and endDate through hydration', async () => {
             const project = makeProject({ id: 'proj-1', surfaces: ['acom'], geos: ['/content/cq:tags/mas/locale/en_US'] });
             const hydrated = makeHydratedProject({ title: 'Summer Sale 2026' });
@@ -174,13 +202,24 @@ describe('promotions', () => {
             expect(result.activeProjects[0].endDate).to.equal(END);
         });
 
-        it('ignores instant when not in preview mode', async () => {
+        it('ignores instant on published content when instant is not provided', async () => {
             const project = makeProject({ surfaces: ['acom'], geos: [], startDate: START, endDate: EXPIRED_END });
             fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
 
-            // EXPIRED_END is in the past — without preview, instant is ignored and Date.now() is used
-            const result = await promotionsTransformer.init(createContext({ instant: PREVIEW_INSTANT }));
+            // EXPIRED_END is in the past — with no instant, Date.now() is used
+            const result = await promotionsTransformer.init(createContext());
             expect(result).to.deep.equal({ status: 200, activeProjects: [] });
+        });
+
+        it('honors instant on published content', async () => {
+            const project = makeProject({ surfaces: ['acom'], geos: [], startDate: START, endDate: EXPIRED_END });
+            const hydrated = makeHydratedProject();
+            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+            fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
+
+            const result = await promotionsTransformer.init(createContext({ instant: PREVIEW_INSTANT }));
+            expect(result.activeProjects).to.have.length(1);
+            expect(result.activeProjects[0].id).to.equal('proj-1');
         });
 
         it('matches project by country when locale does not match geos', async () => {
@@ -934,14 +973,15 @@ describe('promotions', () => {
             fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
 
             await promotionsTransformer.init(previewCtx);
-            expect(storage['promotions']).to.exist;
+            // Preview cache is now per-surface (`promotions-<surface>`), keyed by the resolved surface.
+            expect(storage['promotions-acom']).to.exist;
 
             const result = await promotionsTransformer.init(previewCtx);
             expect(fetchStub.withArgs(FOLDER_URL).callCount).to.equal(1);
             expect(result.activeProjects).to.have.length(1);
 
             clearPromoCache(true);
-            expect(storage['promotions']).to.be.undefined;
+            expect(storage['promotions-acom']).to.be.undefined;
         });
 
         it('retains blocking refetch in preview mode: an expired entry refetches fresh, never served stale', async () => {
@@ -1021,6 +1061,29 @@ describe('promotions', () => {
             expect(result.promoProjects).to.have.length(1);
             expect(result.promoProjects[0].promoMap).to.deep.equal({ '*': 'SUMMER25' });
             expect([...result.promoProjects[0].fragmentPaths]).to.have.members(['offers/offer-1', 'offers/offer-2']);
+        });
+
+        it('builds a groupedVariationPaths Set from the project, defaulting to empty', async () => {
+            const context = createContext({
+                promises: {
+                    promotions: Promise.resolve({
+                        status: 200,
+                        activeProjects: [
+                            {
+                                id: 'proj-1',
+                                fragmentPaths: ['PA-123/pzn/edu'],
+                                groupedVariationPaths: ['PA-123/pzn/edu'],
+                                offerOverrides: [],
+                                promoCode: 'SUMMER25',
+                            },
+                            { id: 'proj-2', fragmentPaths: ['offers/offer-1'], offerOverrides: [], promoCode: 'FALL10' },
+                        ],
+                    }),
+                },
+            });
+            const result = await promotionsTransformer.process(context);
+            expect([...result.promoProjects[0].groupedVariationPaths]).to.deep.equal(['PA-123/pzn/edu']);
+            expect([...result.promoProjects[1].groupedVariationPaths]).to.deep.equal([]);
         });
 
         it('preserves project order in promoProjects', async () => {
@@ -1260,6 +1323,64 @@ describe('promotions', () => {
                 }),
             );
             expect(processResult.promoProjects[0].substituteMap).to.deep.equal({ 'OSI-1': 'OSI-DE' });
+        });
+
+        it('parses ignore-variations lines and builds geo-scoped ignoreVariationOsis', async () => {
+            fetchStub = sinon.stub(globalThis, 'fetch');
+            const project = makeProject({ surfaces: ['acom'], geos: [] });
+            const hydrated = makeHydratedProject({
+                offers: [
+                    'ignore-variations|OSI-1|mas:country/de',
+                    'ignore-variations|OSI-2|mas:country/us',
+                    'ignore-variations|',
+                    'OSI-3|BLACKFRIDAY|mas:country/de',
+                ],
+            });
+            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+            fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
+
+            const initResult = await promotionsTransformer.init(createContext());
+            fetchStub.restore();
+            clearPromoCache();
+
+            expect(initResult.activeProjects[0].ignoreVariations).to.deep.equal([
+                { osi: 'OSI-1', geos: ['mas:country/de'] },
+                { osi: 'OSI-2', geos: ['mas:country/us'] },
+            ]);
+            // ignore-variations lines must not leak into offer overrides
+            expect(initResult.activeProjects[0].offerOverrides).to.deep.equal([
+                { osis: ['OSI-3'], promoCode: 'BLACKFRIDAY', geos: ['mas:country/de'] },
+            ]);
+
+            const processResult = await promotionsTransformer.process(
+                createContext({
+                    country: 'DE',
+                    promises: { promotions: Promise.resolve({ status: 200, activeProjects: [initResult.activeProjects[0]] }) },
+                }),
+            );
+            expect([...processResult.promoProjects[0].ignoreVariationOsis]).to.deep.equal(['OSI-1']);
+        });
+
+        it('produces empty ignoreVariationOsis when geo does not match', async () => {
+            const result = await promotionsTransformer.process(
+                createContext({
+                    country: 'FR',
+                    promises: {
+                        promotions: Promise.resolve({
+                            status: 200,
+                            activeProjects: [
+                                {
+                                    fragmentPaths: [],
+                                    offerOverrides: [],
+                                    ignoreVariations: [{ osi: 'OSI-1', geos: ['mas:country/de'] }],
+                                    promoCode: null,
+                                },
+                            ],
+                        }),
+                    },
+                }),
+            );
+            expect([...result.promoProjects[0].ignoreVariationOsis]).to.deep.equal([]);
         });
 
         it('skips offerLines with missing promoCode', async () => {

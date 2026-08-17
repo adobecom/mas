@@ -3,12 +3,11 @@ import {
     CARD_MODEL_ID,
     getRequestInfos,
     matchesGeo,
+    PZN_FOLDER,
     skimFragmentFromReferences,
     VALID_PARAMETER_VALUE_REGEX,
 } from '../utils/common.js';
 import { logDebug, logError } from '../utils/log.js';
-
-const PZN_FOLDER = '/pzn/';
 
 // Per-variant fields whose array values must be concatenated (parent + child) rather than overwritten.
 const MERGE_CONFIG = {
@@ -150,10 +149,18 @@ function personalizationMatchScore(pznTags, { regionLocale, country, pzn }) {
     return matchedTokens * 100 + geoMatchScore(geo) * 10;
 }
 
-function findPersonalizationVariation(variations, customizeContext) {
+/**
+ * @param {Set<string>} [allowedPaths] - Optional set to restrict candidates to curated grouped variations.
+ */
+function findPersonalizationVariation(variations, customizeContext, allowedPaths) {
     const { country, pzn, references, regionLocale, surface, defaultLocale } = customizeContext;
     const pattern = new RegExp(`/content/dam/mas/${surface}/${defaultLocale}/([^/]+)${PZN_FOLDER}.+`);
-    const personalizationVariations = extractVariationBasedOnPath(variations, references, pattern);
+    let personalizationVariations = extractVariationBasedOnPath(variations, references, pattern);
+    if (allowedPaths) {
+        personalizationVariations = personalizationVariations.filter((variation) =>
+            allowedPaths.has(PATH_TOKENS.exec(variation.path).groups.fragmentPath),
+        );
+    }
     if (personalizationVariations.length === 0) {
         logDebug(() => `No personalization variation found for region locale ${regionLocale}`, customizeContext);
         return null;
@@ -229,6 +236,23 @@ function selectBestPromoVariation(candidates, { regionLocale, country }) {
     return best || fallback;
 }
 
+function fragmentOsis(root) {
+    const fragOsi = root.fields?.osi;
+    if (!fragOsi) return [];
+    return (Array.isArray(fragOsi) ? fragOsi : fragOsi.split(',')).map((osi) => osi.trim()).filter(Boolean);
+}
+
+/**
+ * True when the fragment's offer (OSI) is flagged "ignore variations" for the current geo by
+ * the selected promo project. Only promo-variation merging is suppressed; regional and
+ * personalization variations still apply.
+ */
+function isPromoVariationIgnored(root, selectedPromoProject) {
+    const ignored = selectedPromoProject?.ignoreVariationOsis;
+    if (!ignored?.size) return false;
+    return fragmentOsis(root).some((osi) => ignored.has(osi));
+}
+
 function findPromoVariation(root, customizeContext, selectedPromoProject) {
     // Only the single project selected for this fragment may contribute a promo variation
     if (!selectedPromoProject) return null;
@@ -260,11 +284,25 @@ function findPromoMapsForFragment(root, customizeContext) {
     return promoProjects.filter(({ fragmentPaths }) => fragmentPaths.has(fragmentPath));
 }
 
+function hasExplicitMapping(osis, customizeContext, { project, promoMap, substituteMap }) {
+    const value = osis.some((osi) => promoMap[osi] !== undefined || substituteMap?.[osi] !== undefined);
+    logDebug(
+        () =>
+            `Project ${promoProjectLabel(project)} (${project.id}), explicit mapping for osis ${JSON.stringify(osis)}: ${value}`,
+        customizeContext,
+    );
+    return value;
+}
+
 /**
- * Selects a single promo project for a fragment. Priority order is:
+ * Selects a single promo project for a fragment. Seasonal (time-boxed, has an `endDate`)
+ * promo projects always take priority over evergreen ones.
+ *
+ * Within whichever group (seasonal, else evergreen) is considered, priority order is:
  * promo project with an explicit mapping (osi replace or promo code) for a given geo & fragment.offer
  * promo project with a wildcard promo code
- * seasonal promo project, if no seasonal - returns null
+ * if no mapping - seasonal can still be taken as a fallback.
+ * evergreen without a mapping doesn't apply.
  * there should be no fallback to mapping-less evergreen promo project
  *
  * @returns the selected `{ project, promoMap, substituteMap, fragmentPaths }` entry, or null
@@ -273,14 +311,22 @@ function findPromoMapsForFragment(root, customizeContext) {
 function selectPromoProjectForFragment(root, customizeContext) {
     const promoEntries = findPromoMapsForFragment(root, customizeContext);
     if (!promoEntries.length) return null;
-    const fragOsi = root.fields?.osi;
-    const osis = fragOsi ? (Array.isArray(fragOsi) ? fragOsi : [fragOsi]) : [];
-    const hasExplicitMapping = ({ promoMap, substituteMap }) =>
-        osis.some((osi) => promoMap[osi] !== undefined || substituteMap?.[osi] !== undefined);
-    const hasWildcardPromo = ({ promoMap }) => Boolean(promoMap['*']);
-    const isSeasonal = ({ project }) => Boolean(project.endDate);
+    const osis = fragmentOsis(root);
+    logDebug(() => `selectPromoProjectForFragment osis: ${JSON.stringify(osis)}`, customizeContext);
+
+    const seasonalEntries = [];
+    const evergreenEntries = [];
+    for (const entry of promoEntries) {
+        (entry.project.seasonal ? seasonalEntries : evergreenEntries).push(entry);
+    }
+
     const selected =
-        promoEntries.find(hasExplicitMapping) ?? promoEntries.find(hasWildcardPromo) ?? promoEntries.find(isSeasonal) ?? null;
+        seasonalEntries.find((entry) => hasExplicitMapping(osis, customizeContext, entry)) ??
+        seasonalEntries.find((entry) => entry.hasWildcard) ??
+        seasonalEntries[0] ??
+        evergreenEntries.find((entry) => hasExplicitMapping(osis, customizeContext, entry)) ??
+        evergreenEntries.find((entry) => entry.hasWildcard) ??
+        null;
     if (!selected) return null;
     logDebug(
         () =>
@@ -292,8 +338,12 @@ function selectPromoProjectForFragment(root, customizeContext) {
 
 function mergeVariations(root, customizeContext, selectedPromoProject) {
     const { isRegionLocale } = customizeContext;
-    // Promo variation takes priority, independent of fields.variations
-    const promoVariation = findPromoVariation(root, customizeContext, selectedPromoProject);
+    // Promo variation takes priority, independent of fields.variations — unless the fragment's
+    // offer is flagged "ignore variations" for this geo, in which case we fall through so regional
+    // and personalization variations still apply.
+    const promoVariation = isPromoVariationIgnored(root, selectedPromoProject)
+        ? null
+        : findPromoVariation(root, customizeContext, selectedPromoProject);
     if (promoVariation) {
         const { variation, project } = promoVariation;
         logDebug(() => `Merging promo variation ${variation.id} for fragment ${root.id}`, customizeContext);
@@ -317,7 +367,11 @@ function mergeVariations(root, customizeContext, selectedPromoProject) {
             return merged;
         }
     }
-    const personalizationVariation = findPersonalizationVariation(variations, customizeContext);
+    // Restrict personalization to curated grouped variations for promo projects.
+    const groupedVariationPaths = selectedPromoProject?.groupedVariationPaths;
+    const personalizationVariation = groupedVariationPaths?.size
+        ? findPersonalizationVariation(variations, customizeContext, groupedVariationPaths)
+        : findPersonalizationVariation(variations, customizeContext);
     if (personalizationVariation) {
         logDebug(
             () => `Merging personalization variation ${personalizationVariation.id} for fragment ${root.id}`,

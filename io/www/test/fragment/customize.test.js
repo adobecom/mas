@@ -1191,6 +1191,14 @@ async function process(context) {
     return await customize.process(context);
 }
 
+function withPromoFlags(entry) {
+    return {
+        ...entry,
+        project: { ...entry.project, seasonal: Boolean(entry.project.endDate) },
+        hasWildcard: Boolean(entry.promoMap?.['*']),
+    };
+}
+
 async function processWithPromos(context, activeProject, promoMap) {
     const phase1 = {
         status: 200,
@@ -1209,7 +1217,7 @@ async function processWithPromos(context, activeProject, promoMap) {
     if (activeProject) {
         // Mirror the real promotions process step: fragmentPaths come from the project itself.
         const fragmentPaths = new Set(activeProject.fragmentPaths ?? []);
-        context.promoProjects = [{ project: activeProject, promoMap: promoMap ?? {}, fragmentPaths }];
+        context.promoProjects = [withPromoFlags({ project: activeProject, promoMap: promoMap ?? {}, fragmentPaths })];
     }
     // customize records per-fragment promo scope; the wcs transformer applies the promo code and
     // OSI substitution. Run applyPromoScope here so these tests exercise the full effect end-to-end.
@@ -1233,7 +1241,7 @@ async function processWithPromoProjects(context, promoProjects) {
     };
     promises.defaultLanguage = defaultLanguage.init({ ...context, promises });
     context.promises = promises;
-    context.promoProjects = promoProjects;
+    context.promoProjects = promoProjects.map(withPromoFlags);
     // customize records per-fragment promo scope; the wcs transformer applies the promo code and
     // OSI substitution. Run applyPromoScope here so these tests exercise the full effect end-to-end.
     const result = await customize.process(context);
@@ -1891,6 +1899,290 @@ describe('customize promo variation', function () {
     });
 });
 
+describe('customize promo variation vs. personalization (promo variation always wins)', function () {
+    const PZN_VARIATION_ID = 'pzn-var-edu';
+    const PROMO_VARIATION = {
+        id: 'promo-var-id',
+        path: '/content/dam/mas/sandbox/en_US/promotions/black-friday/pzn-test-fragment',
+        fields: { badge: 'PROMO badge' },
+    };
+
+    function buildBodyWithPromoAndPzn() {
+        return {
+            path: '/content/dam/mas/sandbox/en_US/pzn-test-fragment',
+            id: 'root-fragment',
+            title: 'Root',
+            fields: {
+                badge: 'default badge',
+                osi: 'OSI-TEST',
+                variations: [PZN_VARIATION_ID],
+            },
+            references: {
+                [PZN_VARIATION_ID]: {
+                    type: 'content-fragment',
+                    value: {
+                        path: '/content/dam/mas/sandbox/en_US/PA-123/pzn/edu',
+                        id: PZN_VARIATION_ID,
+                        title: 'EDU pricing',
+                        fields: {
+                            pznTags: ['mas:audiences/pzn/EDU'],
+                            badge: 'EDU badge',
+                        },
+                    },
+                },
+            },
+            referencesTree: [],
+        };
+    }
+
+    function buildPromoProjectsEntry() {
+        const project = {
+            id: 'promo-proj-id',
+            path: '/content/dam/mas/promotions/black-friday',
+            fragmentPaths: ['pzn-test-fragment'],
+            defaultVariations: { 'pzn-test-fragment': PROMO_VARIATION },
+            regionVariations: {},
+        };
+        return [{ project, promoMap: { '*': 'PROMO-CODE' }, fragmentPaths: new Set(project.fragmentPaths) }];
+    }
+
+    it('renders the promo variation even when a matching pzn/personalization variation exists', async function () {
+        const result = await processWithPromoProjects(
+            {
+                ...FAKE_CONTEXT,
+                fragmentPath: 'pzn-test-fragment',
+                locale: 'en_US',
+                parsedLocale: 'en_US',
+                pzn: 'EDU',
+                body: buildBodyWithPromoAndPzn(),
+            },
+            buildPromoProjectsEntry(),
+        );
+
+        expect(result.status).to.equal(200);
+        expect(result.body.variationId).to.equal('promo-var-id');
+        expect(result.body.fields.badge).to.equal('PROMO badge');
+        expect(result.body.fields.promoCode).to.equal('PROMO-CODE');
+    });
+
+    it('renders the promo variation when no personalization variation matches', async function () {
+        const result = await processWithPromoProjects(
+            {
+                ...FAKE_CONTEXT,
+                fragmentPath: 'pzn-test-fragment',
+                locale: 'en_US',
+                parsedLocale: 'en_US',
+                body: buildBodyWithPromoAndPzn(),
+            },
+            buildPromoProjectsEntry(),
+        );
+
+        expect(result.status).to.equal(200);
+        expect(result.body.variationId).to.equal('promo-var-id');
+        expect(result.body.fields.badge).to.equal('PROMO badge');
+        expect(result.body.fields.promoCode).to.equal('PROMO-CODE');
+    });
+});
+
+describe('customize grouped variation scoped to a promo project (no promo variation present)', function () {
+    const PZN_VARIATION_ID = 'pzn-var-edu';
+
+    function buildBodyWithPzn() {
+        return {
+            path: '/content/dam/mas/sandbox/en_US/pzn-test-fragment',
+            id: 'root-fragment',
+            title: 'Root',
+            fields: {
+                badge: 'default badge',
+                osi: 'OSI-TEST',
+                variations: [PZN_VARIATION_ID],
+            },
+            references: {
+                [PZN_VARIATION_ID]: {
+                    type: 'content-fragment',
+                    value: {
+                        path: '/content/dam/mas/sandbox/en_US/PA-123/pzn/edu',
+                        id: PZN_VARIATION_ID,
+                        title: 'EDU pricing',
+                        fields: {
+                            pznTags: ['mas:audiences/pzn/EDU'],
+                            badge: 'EDU badge',
+                        },
+                    },
+                },
+            },
+            referencesTree: [],
+        };
+    }
+
+    function buildPromoProjectsEntry(groupedVariationPaths) {
+        const project = {
+            id: 'promo-proj-id',
+            path: '/content/dam/mas/promotions/black-friday',
+            fragmentPaths: ['pzn-test-fragment'],
+            defaultVariations: {},
+            regionVariations: {},
+        };
+        return [
+            {
+                project,
+                promoMap: { '*': 'PROMO-CODE' },
+                fragmentPaths: new Set(project.fragmentPaths),
+                groupedVariationPaths: new Set(groupedVariationPaths),
+            },
+        ];
+    }
+
+    it('renders the curated grouped variation and still applies promo code/OSI', async function () {
+        const result = await processWithPromoProjects(
+            {
+                ...FAKE_CONTEXT,
+                fragmentPath: 'pzn-test-fragment',
+                locale: 'en_US',
+                parsedLocale: 'en_US',
+                pzn: 'EDU',
+                body: buildBodyWithPzn(),
+            },
+            buildPromoProjectsEntry(['PA-123/pzn/edu']),
+        );
+
+        expect(result.status).to.equal(200);
+        expect(result.body.variationId).to.equal(PZN_VARIATION_ID);
+        expect(result.body.fields.badge).to.equal('EDU badge');
+        expect(result.body.fields.promoCode).to.equal('PROMO-CODE');
+        expect(result.body.promoProject).to.equal('promo-proj-id');
+    });
+
+    it('renders the plain promo when the pzn variation is not curated into this project', async function () {
+        const result = await processWithPromoProjects(
+            {
+                ...FAKE_CONTEXT,
+                fragmentPath: 'pzn-test-fragment',
+                locale: 'en_US',
+                parsedLocale: 'en_US',
+                pzn: 'EDU',
+                body: buildBodyWithPzn(),
+            },
+            buildPromoProjectsEntry(['some-other-product/pzn/other']),
+        );
+
+        expect(result.status).to.equal(200);
+        expect(result.body.variationId).to.be.undefined;
+        expect(result.body.fields.badge).to.equal('default badge');
+        expect(result.body.fields.promoCode).to.equal('PROMO-CODE');
+    });
+
+    it('falls back to unscoped personalization when the project has curated no grouped variations', async function () {
+        const result = await processWithPromoProjects(
+            {
+                ...FAKE_CONTEXT,
+                fragmentPath: 'pzn-test-fragment',
+                locale: 'en_US',
+                parsedLocale: 'en_US',
+                pzn: 'EDU',
+                body: buildBodyWithPzn(),
+            },
+            buildPromoProjectsEntry([]),
+        );
+
+        expect(result.status).to.equal(200);
+        expect(result.body.variationId).to.equal(PZN_VARIATION_ID);
+        expect(result.body.fields.badge).to.equal('EDU badge');
+        expect(result.body.fields.promoCode).to.equal('PROMO-CODE');
+    });
+});
+
+describe('customize ignore promo variations per offer & geo', function () {
+    const PZN_VARIATION_ID = 'pzn-var-edu';
+    const PROMO_VARIATION = {
+        id: 'promo-var-id',
+        path: '/content/dam/mas/sandbox/en_US/promotions/black-friday/pzn-test-fragment',
+        fields: { badge: 'PROMO badge' },
+    };
+
+    function buildBody() {
+        return {
+            path: '/content/dam/mas/sandbox/en_US/pzn-test-fragment',
+            id: 'root-fragment',
+            title: 'Root',
+            fields: {
+                badge: 'default badge',
+                osi: 'OSI-IGNORE',
+                variations: [PZN_VARIATION_ID],
+            },
+            references: {
+                [PZN_VARIATION_ID]: {
+                    type: 'content-fragment',
+                    value: {
+                        path: '/content/dam/mas/sandbox/en_US/PA-123/pzn/edu',
+                        id: PZN_VARIATION_ID,
+                        title: 'EDU pricing',
+                        fields: { pznTags: ['mas:audiences/pzn/EDU'], badge: 'EDU badge' },
+                    },
+                },
+            },
+            referencesTree: [],
+        };
+    }
+
+    function buildEntry(ignoreVariationOsis) {
+        const project = {
+            id: 'promo-proj-id',
+            path: '/content/dam/mas/promotions/black-friday',
+            fragmentPaths: ['pzn-test-fragment'],
+            defaultVariations: { 'pzn-test-fragment': PROMO_VARIATION },
+            regionVariations: {},
+        };
+        return [
+            {
+                project,
+                promoMap: { '*': 'PROMO-CODE' },
+                fragmentPaths: new Set(project.fragmentPaths),
+                ignoreVariationOsis,
+            },
+        ];
+    }
+
+    it('skips the promo variation for a flagged offer while pzn variation and promo code still apply', async function () {
+        const result = await processWithPromoProjects(
+            {
+                ...FAKE_CONTEXT,
+                fragmentPath: 'pzn-test-fragment',
+                locale: 'en_US',
+                parsedLocale: 'en_US',
+                pzn: 'EDU',
+                body: buildBody(),
+            },
+            buildEntry(new Set(['OSI-IGNORE'])),
+        );
+
+        expect(result.status).to.equal(200);
+        expect(result.body.variationId).to.equal(PZN_VARIATION_ID);
+        expect(result.body.fields.badge).to.equal('EDU badge');
+        expect(result.body.fields.promoCode).to.equal('PROMO-CODE');
+        expect(result.body.promoProject).to.equal('promo-proj-id');
+    });
+
+    it('applies the promo variation when the offer is not flagged', async function () {
+        const result = await processWithPromoProjects(
+            {
+                ...FAKE_CONTEXT,
+                fragmentPath: 'pzn-test-fragment',
+                locale: 'en_US',
+                parsedLocale: 'en_US',
+                pzn: 'EDU',
+                body: buildBody(),
+            },
+            buildEntry(new Set(['OTHER-OSI'])),
+        );
+
+        expect(result.status).to.equal(200);
+        expect(result.body.variationId).to.equal('promo-var-id');
+        expect(result.body.fields.badge).to.equal('PROMO badge');
+        expect(result.body.fields.promoCode).to.equal('PROMO-CODE');
+    });
+});
+
 const CARD_MODEL = { id: CARD_MODEL_ID };
 const COLLECTION_MODEL = { id: COLLECTION_MODEL_ID };
 // `customize` receives the already-fetched mask fragment on `context.maskFragment` (set by the `mask`
@@ -2359,6 +2651,41 @@ describe('customize with multiple active promotion projects', function () {
         expect(result.body.promoProject).to.equal('proj-explicit');
     });
 
+    it('an explicit mapping for either half of a comma-separated osi beats a wildcard', async function () {
+        const projectWildcard = {
+            id: 'proj-wild',
+            path: '/content/dam/mas/promotions/proj-wild',
+            defaultVariations: {},
+            regionVariations: {},
+        };
+        const projectExplicit = {
+            id: 'proj-explicit',
+            path: '/content/dam/mas/promotions/proj-explicit',
+            defaultVariations: {},
+            regionVariations: {},
+        };
+        const rootFragment = {
+            id: 'card-x',
+            path: '/content/dam/mas/sandbox/en_US/card-x',
+            fields: {
+                osi: 'T78reFIvDF20AuB8vuzgdWrRpG8NTm3ZC903yyJLEfg,-lYm-YaTSZoUgv1gzqCgybgFotLqRsLwf8CgYdvdnsQ',
+                title: 'Original X',
+            },
+            references: {},
+            referencesTree: [],
+        };
+        const result = await processWithPromoProjects({ ...FAKE_CONTEXT, fragmentPath: 'card-x', body: rootFragment }, [
+            { project: projectWildcard, promoMap: { '*': 'WILDCARD' }, fragmentPaths: new Set(['card-x']) },
+            {
+                project: projectExplicit,
+                promoMap: { '-lYm-YaTSZoUgv1gzqCgybgFotLqRsLwf8CgYdvdnsQ': 'EXPLICIT' },
+                fragmentPaths: new Set(['card-x']),
+            },
+        ]);
+        expect(result.status).to.equal(200);
+        expect(result.body.promoProject).to.equal('proj-explicit');
+    });
+
     it('falls back to the first project wildcard when no project has an explicit osi entry', async function () {
         const projectWild = {
             id: 'proj-w1',
@@ -2650,6 +2977,51 @@ describe('customize with multiple active promotion projects', function () {
         expect(result.status).to.equal(200);
         expect(result.body.variationId).to.equal('var-seasonal');
         expect(result.body.fields.promoCode).to.equal('SEASONAL-CODE');
+    });
+
+    it('seasonal promo wins over evergreen even with no mapping of its own (MWPW-203553)', async function () {
+        // The seasonal project has no promoMap/wildcard entry for this OSI at all, while the
+        // evergreen project targeting the same fragment does. Seasonal must still win.
+        const seasonalProject = {
+            id: 'proj-seasonal',
+            path: '/content/dam/mas/promotions/seasonal',
+            endDate: '2026-09-01T00:00:00.000Z',
+            defaultVariations: {
+                'card-b': {
+                    id: 'var-seasonal',
+                    path: '/content/dam/mas/sandbox/en_US/promotions/seasonal/card-b',
+                    fields: { title: 'Seasonal variation' },
+                },
+            },
+            regionVariations: {},
+        };
+        const evergreenProject = {
+            id: 'proj-evergreen',
+            path: '/content/dam/mas/promotions/evergreen',
+            defaultVariations: {
+                'card-b': {
+                    id: 'var-evergreen',
+                    path: '/content/dam/mas/sandbox/en_US/promotions/evergreen/card-b',
+                    fields: { title: 'Evergreen variation' },
+                },
+            },
+            regionVariations: {},
+        };
+        const rootFragment = {
+            id: 'card-b',
+            path: '/content/dam/mas/sandbox/en_US/card-b',
+            fields: { osi: 'OSI-B', title: 'Original B' },
+            references: {},
+            referencesTree: [],
+        };
+        const result = await processWithPromoProjects({ ...FAKE_CONTEXT, fragmentPath: 'card-b', body: rootFragment }, [
+            { project: seasonalProject, promoMap: {}, fragmentPaths: new Set(['card-b']) },
+            { project: evergreenProject, promoMap: { 'OSI-B': 'EVERGREEN-CODE' }, fragmentPaths: new Set(['card-b']) },
+        ]);
+        expect(result.status).to.equal(200);
+        expect(result.body.variationId).to.equal('var-seasonal');
+        expect(result.body.promoProject).to.equal('proj-seasonal');
+        expect(result.body.fields.promoCode).to.be.undefined;
     });
 });
 

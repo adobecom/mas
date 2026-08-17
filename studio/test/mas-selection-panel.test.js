@@ -237,6 +237,89 @@ describe('MasSelectionPanel', () => {
         });
     });
 
+    describe('handlePublish', () => {
+        let repository;
+        let getByIdStub;
+
+        function makeHydratedFragment(id, { variations = [], cards = [], collections = [] } = {}) {
+            const fields = [];
+            if (variations.length) fields.push({ name: 'variations', values: variations.map((r) => r.path) });
+            if (cards.length) fields.push({ name: 'cards', values: cards.map((r) => r.path) });
+            if (collections.length) fields.push({ name: 'collections', values: collections.map((r) => r.path) });
+            const references = [...variations, ...cards, ...collections];
+            return { id, fields, references };
+        }
+
+        beforeEach(() => {
+            getByIdStub = sandbox.stub().callsFake((id) => Promise.resolve(makeHydratedFragment(id)));
+            repository = {
+                bulkPublishFragments: sandbox.stub().resolves(true),
+                aem: { sites: { cf: { fragments: { getById: getByIdStub } } } },
+            };
+        });
+
+        it('calls bulkPublishFragments with fragment IDs from selection', async () => {
+            const frag = { id: 'frag-1', model: { path: CARD_MODEL_PATH } };
+            const el = await fixture(
+                html`<mas-selection-panel
+                    open
+                    .selectionStore=${makeSelectionStore([makeFragmentStore(frag)])}
+                    .repository=${repository}
+                ></mas-selection-panel>`,
+            );
+
+            await el.handlePublish();
+
+            expect(repository.bulkPublishFragments.calledOnce).to.be.true;
+            expect(repository.bulkPublishFragments.firstCall.args[0]).to.deep.equal(['frag-1']);
+        });
+
+        it('clears selection after successful publish', async () => {
+            const frag = { id: 'frag-1', model: { path: CARD_MODEL_PATH } };
+            const selectionStore = makeSelectionStore([makeFragmentStore(frag)]);
+            const el = await fixture(
+                html`<mas-selection-panel
+                    open
+                    .selectionStore=${selectionStore}
+                    .repository=${repository}
+                ></mas-selection-panel>`,
+            );
+
+            await el.handlePublish();
+
+            expect(selectionStore.get()).to.deep.equal([]);
+        });
+
+        it('does not call bulkPublishFragments when selection is empty', async () => {
+            const el = await fixture(
+                html`<mas-selection-panel
+                    open
+                    .selectionStore=${makeSelectionStore([])}
+                    .repository=${repository}
+                ></mas-selection-panel>`,
+            );
+
+            await el.handlePublish();
+
+            expect(repository.bulkPublishFragments.called).to.be.false;
+        });
+
+        it('fetches hydrated fragments via getById to collect references', async () => {
+            const frag = { id: 'frag-1', model: { path: CARD_MODEL_PATH } };
+            const el = await fixture(
+                html`<mas-selection-panel
+                    open
+                    .selectionStore=${makeSelectionStore([makeFragmentStore(frag)])}
+                    .repository=${repository}
+                ></mas-selection-panel>`,
+            );
+
+            await el.handlePublish();
+
+            expect(getByIdStub.calledWith('frag-1')).to.be.true;
+        });
+    });
+
     describe('render', () => {
         it('shows Copy URLs button when items are selected', async () => {
             const fragment = { id: 'uuid-1', model: { path: CARD_MODEL_PATH } };

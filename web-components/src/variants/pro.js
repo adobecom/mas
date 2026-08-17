@@ -1340,6 +1340,10 @@ export class Pro extends VariantLayout {
             display: flex;
         }
 
+        :host([variant='pro'][size='edu']) footer {
+            margin: unset;
+        }
+
         @media screen and ${unsafeCSS(TABLET_UP)} {
             :host([variant='pro'][size='edu']) {
                 flex-direction: row;

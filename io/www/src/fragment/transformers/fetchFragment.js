@@ -1,6 +1,6 @@
 import { fetch } from '../utils/common.js';
 import { getErrorContext } from '../utils/log.js';
-import { PATH_TOKENS, odinReferences } from '../utils/paths.js';
+import { PATH_TOKENS, odinReferences, REFERENCES } from '../utils/paths.js';
 
 const TRANSFORMER_NAME = 'fetchFragment';
 
@@ -12,7 +12,7 @@ const TRANSFORMER_NAME = 'fetchFragment';
 async function resolveRequestInfos(initContext) {
     const { id, locale, fragmentsIds, preview } = initContext;
     const toFetchId = fragmentsIds?.['default-locale-id'] || id;
-    const path = odinReferences(toFetchId, true, preview);
+    const path = odinReferences(toFetchId, preview, REFERENCES.ALL);
     const response = await fetch(path, initContext, 'fragment');
     if (response?.status != 200) {
         return await getErrorContext(response);

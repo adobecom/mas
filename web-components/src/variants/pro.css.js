@@ -269,6 +269,17 @@ merch-card[variant="pro"][border-color="black"][size='edu'] [slot="whats-include
     color: #FFF;
 }
 
+/* Milo auto-blocks authored links to fragment/modal paths (e.g. the
+   "See what's included" and disclaimer "Check eligibility" modal triggers)
+   as class="fragment link-block", then hides them via a global
+   .fragment.link-block { display: none } until its own block decoration
+   reveals them. That decoration never runs on merch-card's own authored/
+   injected content, so they'd stay hidden forever — force them visible
+   wherever they appear in the card (body-xs, whats-included, disclaimer, etc). */
+merch-card[variant="pro"] a.fragment.link-block {
+    display: inline !important;
+}
+
 /* Secondary spectrum links inherit the surrounding text color, per the
    convention used on other cards (e.g. mini-compare-chart footer-rows/body-m). */
 merch-card[variant="pro"] [slot="whats-included"] a.spectrum-Link.spectrum-Link--secondary,
@@ -627,6 +638,14 @@ merch-card-collection.plans:is(.one-merch-card, .two-merch-cards, .three-merch-c
        (matches Figma). See .top-card / .features-zone flex in the shadow styles. */
     align-items: stretch;
     margin-inline: auto;
+}
+
+/* The one-merch-card grid zeroes the section .content padding to center the lone
+   card, which also wipes the C2 section-spacing metadata (e.g. spacing-2xs-top).
+   Restore the authored top spacing so single pro cards keep section rhythm.
+   MWPW-204106. */
+.one-merch-card.spacing-2xs-top {
+    padding-top: var(--s2a-viewport-vertical-padding-2xs);
 }
 
 @media screen and ${TABLET_UP} {

@@ -135,6 +135,26 @@ export class Fragment {
         return variations.length > 0;
     }
 
+    getPublishableReferences() {
+        if (!this.references?.length) return { variations: [], cards: [] };
+
+        const variationPaths = new Set(this.getFieldValues('variations'));
+        const cardPaths = new Set([...this.getFieldValues('cards'), ...this.getFieldValues('collections')]);
+
+        const variations = [];
+        const cards = [];
+
+        for (const ref of this.references) {
+            if (variationPaths.has(ref.path)) {
+                variations.push(ref);
+            } else if (cardPaths.has(ref.path)) {
+                cards.push(ref);
+            }
+        }
+
+        return { variations, cards };
+    }
+
     /**
      * Updates a field's values.
      * For variations: if values match parent exactly, resets to inherited state.

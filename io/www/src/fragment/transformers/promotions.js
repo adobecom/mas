@@ -45,56 +45,26 @@
  *     promoCode applies. Projects with disjoint per-country entries therefore coexist on the
  *     same fragment.
  */
-import { FRAGMENT_URL_PREFIX, MAS_ROOT, PATH_TOKENS, odinReferences } from '../utils/paths.js';
-import { fetch, getRequestInfos, matchesGeo } from '../utils/common.js';
+import { FRAGMENT_URL_PREFIX, MAS_ROOT, PATH_TOKENS, odinReferences, REFERENCES } from '../utils/paths.js';
+import { fetch, getRequestInfos, matchesGeo, isGroupedVariationFragmentPath } from '../utils/common.js';
+import { createSwrCache } from '../utils/swr-cache.js';
 import { log, logDebug, logError } from '../utils/log.js';
 
 const CONFIG_CACHE_TTL = 5 * 60 * 1000;
-// Randomize each entry's TTL by ±20% so per-surface entries don't expire in lockstep across
-// container instances — spreads refetches instead of bursting them onto Odin at once.
-const CACHE_TTL_JITTER = 0.2;
 const PROMOTIONS_PATH = `${MAS_ROOT}/promotions`;
 
-// Projects are cached per surface, each with its own jittered TTL so entries invalidate
-// independently: `entry = { projects, timestamp, ttl }`. Published (module) reads keep entries
-// in memory; preview reads persist them in localStorage so studio reloads don't refetch. Both
-// backends share the same stale-while-revalidate + single-flight read path (see fetchProjects).
-let projectsCache = {};
-// In-flight refill promises keyed by surface (single-flight): while one is pending, concurrent
-// requests serve stale / await it rather than each firing their own Odin fetch.
-let refills = {};
+// Projects are cached per surface with jittered TTL, single-flight refills, and
+// stale-while-revalidate so surfaces expire independently and never herd a synchronized refetch
+// onto Odin (see createSwrCache). Published reads keep entries in memory; preview reads persist
+// them in localStorage (`promotions-<surface>`) so studio reloads don't refetch.
+const projectsCache = createSwrCache({ name: 'promotions' });
 let promoVariationsCache = {};
 
-function jitteredTtl() {
-    return CONFIG_CACHE_TTL * (1 + (Math.random() * 2 - 1) * CACHE_TTL_JITTER);
-}
-
-// Per-surface cache backend: localStorage in preview (persists across studio reloads),
-// in-memory otherwise.
-function readEntry(context, surface) {
-    if (context.preview) {
-        return JSON.parse(localStorage.getItem('promotions') ?? '{}')[surface];
-    }
-    return projectsCache[surface];
-}
-
-function writeEntry(context, surface, entry) {
-    if (context.preview) {
-        const store = JSON.parse(localStorage.getItem('promotions') ?? '{}');
-        store[surface] = entry;
-        localStorage.setItem('promotions', JSON.stringify(store));
-    } else {
-        projectsCache[surface] = entry;
-    }
-}
-
 export function clearPromoCache(preview = false) {
-    refills = {};
+    projectsCache.clear(preview);
     if (preview) {
-        localStorage.removeItem('promotions');
         localStorage.removeItem('promo-variations');
     } else {
-        projectsCache = {};
         promoVariationsCache = {};
     }
 }
@@ -135,44 +105,12 @@ async function fetchFolderProjects(context, surface) {
 }
 
 /**
- * Refills the per-surface cache from the folder listing. On success, replaces the surface's
- * entry with a fresh timestamp and jittered TTL; on failure leaves any existing (stale) entry
- * untouched. Returns the fetched projects, or `null` on failure.
- */
-async function refillProjects(context, surface) {
-    const projects = await fetchFolderProjects(context, surface);
-    if (projects === null) return null;
-    writeEntry(context, surface, { projects, timestamp: Date.now(), ttl: jitteredTtl() });
-    return projects;
-}
-
-/**
- * Per-surface cache read with stale-while-revalidate + single-flight:
- *   - fresh entry            → return it;
- *   - expired entry          → return stale, refill in the background (coalesced);
- *   - cold (no entry)        → await the (coalesced) refill.
- *
- * Preview (studio) retains blocking refetch behaviour: an expired or cold entry always awaits the
- * refill (never served stale) so authors see fresh promotion data immediately after editing. The
- * stale-while-revalidate herd protection only applies to published (module) reads.
+ * Per-surface cached read of the promotions folder listing with stale-while-revalidate +
+ * single-flight herd protection (see createSwrCache). A folder-fetch failure resolves `null`, so
+ * the loader caches nothing and any stale entry survives; callers coalesce that to an empty list.
  */
 async function fetchProjects(context, surface) {
-    const entry = readEntry(context, surface);
-    if (entry && Date.now() - entry.timestamp <= entry.ttl) {
-        logDebug(() => `Using cached promotion projects for surface "${surface}"`, context);
-        return entry.projects;
-    }
-    if (!refills[surface]) {
-        refills[surface] = refillProjects(context, surface).finally(() => {
-            refills[surface] = undefined;
-        });
-    }
-    if (entry && !context.preview) {
-        logDebug(() => `Serving stale promotion projects for surface "${surface}" while refilling`, context);
-        return entry.projects;
-    }
-    logDebug(() => `Cold promotion projects cache for surface "${surface}", awaiting refill`, context);
-    return refills[surface];
+    return (await projectsCache.get(context, surface, () => fetchFolderProjects(context, surface))) ?? [];
 }
 
 function toInstant(value) {
@@ -181,6 +119,8 @@ function toInstant(value) {
     const t = new Date(value).getTime();
     return Number.isFinite(t) ? t : Date.now();
 }
+
+const isSeasonal = (project) => Boolean(project.endDate);
 
 const PROMO_TAG_PREFIX = 'mas:promotion/';
 
@@ -220,6 +160,40 @@ function buildSubstituteMap(substitutions, { regionLocale, country }) {
 }
 
 /**
+ * Parses "ignore variations" lines of the form "ignore-variations|<osi>|<geo>[,<geo>...]".
+ * A flagged osi opts out of promo-variation merging for the matching geo; regional and
+ * personalization variations stay active. Lines without a geo are stored with geos=[] and
+ * skipped by buildIgnoreVariationOsis.
+ * @param {string[]} lines
+ * @returns {{ osi: string, geos: string[] }[]}
+ */
+function parseIgnoreVariations(lines) {
+    return lines
+        .map((line) => {
+            if (!line.startsWith('ignore-variations|')) return null;
+            const [, osi, geoStr = ''] = line.split('|');
+            if (!osi) return null;
+            const geos = geoStr.split(',');
+            return { osi, geos };
+        })
+        .filter(Boolean);
+}
+
+/**
+ * Builds the set of OSIs whose promo variations are suppressed for the current geo.
+ * @param {{ osi: string, geos: string[] }[]} ignoreVariations
+ * @param {{ regionLocale: string, country: string }} geoContext
+ * @returns {Set<string>}
+ */
+function buildIgnoreVariationOsis(ignoreVariations, { regionLocale, country }) {
+    const set = new Set();
+    for (const item of ignoreVariations) {
+        if (matchesGeo(item.geos, { regionLocale, country })) set.add(item.osi);
+    }
+    return set;
+}
+
+/**
  * Parses project-level offer override lines of the form "<osis>:<promocode>:<geo1>,<geo2>,..."
  * where osis is a comma-separated list (may be empty), promoCode is required,
  * and geos is a comma-separated list of geo tags (may be empty = wildcard).
@@ -230,6 +204,7 @@ function parseOfferOverrides(lines) {
     return lines
         .map((line) => {
             if (line.startsWith('substitute|')) return null;
+            if (line.startsWith('ignore-variations|')) return null;
             const [osisPart, promoCode, geosPart = ''] = line.split('|');
             if (!promoCode) return null;
             return {
@@ -379,7 +354,7 @@ async function hydrateProject(project, { baseUrl, surface, defaultLocale, resolv
     const promoName = promoTag.slice(PROMO_TAG_PREFIX.length);
 
     const [hydrateResponse, defaultVariations, regionVariations] = await Promise.all([
-        fetch(odinReferences(project.id, true, context.preview), context, `promotions-hydrate-${project.id}`),
+        fetch(odinReferences(project.id, context.preview, REFERENCES.ALL), context, `promotions-hydrate-${project.id}`),
         fetchPromoVariations(baseUrl, surface, defaultLocale, promoName, context),
         resolvedRegionLocale && resolvedRegionLocale !== defaultLocale
             ? fetchPromoVariations(baseUrl, surface, resolvedRegionLocale, promoName, context)
@@ -393,18 +368,21 @@ async function hydrateProject(project, { baseUrl, surface, defaultLocale, resolv
 
     const hydratedProject = hydrateResponse.body;
     const fragmentPaths = parseFragmentPaths(hydratedProject);
+    const groupedVariationPaths = fragmentPaths.filter(isGroupedVariationFragmentPath);
     const offerLines = hydratedProject.fields?.offers ?? [];
     const offerOverrides = parseOfferOverrides(offerLines);
     const offerSubstitutions = parseOfferSubstitutions(offerLines);
+    const ignoreVariations = parseIgnoreVariations(offerLines);
     const promoCode = hydratedProject.fields?.promoCode ?? null;
     const title = hydratedProject.fields?.title ?? null;
+    const seasonal = isSeasonal(project);
     if (!fragmentPaths.length && !offerOverrides.length && !offerSubstitutions.length) {
         logDebug(() => `Promotion project ${project.id} has no fragments or offer overrides, skipping`, context);
         return null;
     }
     logDebug(
         () =>
-            `Active promotion project ${project.id} with ${fragmentPaths.length} fragments, ${offerOverrides.length} offer overrides, promoCode="${promoCode}", ${Object.keys(defaultVariations).length} default variations, ${Object.keys(regionVariations).length} region variations`,
+            `Active promotion project ${project.id} (seasonal=${seasonal}) with ${fragmentPaths.length} fragments, ${offerOverrides.length} offer overrides, promoCode="${promoCode}", ${Object.keys(defaultVariations).length} default variations, ${Object.keys(regionVariations).length} region variations`,
         context,
     );
 
@@ -414,10 +392,13 @@ async function hydrateProject(project, { baseUrl, surface, defaultLocale, resolv
         title,
         startDate: project.startDate,
         endDate: project.endDate,
+        seasonal,
         promoCode,
         fragmentPaths,
+        groupedVariationPaths,
         offerOverrides,
         offerSubstitutions,
+        ignoreVariations,
         defaultVariations,
         regionVariations,
     };
@@ -451,7 +432,7 @@ async function init(context) {
     if (!defaultLocale) return { status: 200, activeProjects: [] };
     const resolvedRegionLocale = defaultLangResult.regionLocale;
 
-    const instant = toInstant(context.preview ? context.instant : undefined);
+    const instant = toInstant(context.instant);
     const { locale, country } = context;
     const effectiveRegionLocale = resolvedRegionLocale ?? locale;
 
@@ -461,7 +442,7 @@ async function init(context) {
         .sort((a, b) => toInstant(b.startDate) - toInstant(a.startDate))
         // Stable secondary sort: seasonal (time-boxed) projects float to the top, preserving
         // the startDate order established above within each bucket.
-        .sort((a, b) => (a.endDate ? 0 : 1) - (b.endDate ? 0 : 1));
+        .sort((a, b) => (isSeasonal(a) ? 0 : 1) - (isSeasonal(b) ? 0 : 1));
     if (!matched.length) return { status: 200, activeProjects: [] };
 
     log(
@@ -526,15 +507,22 @@ function buildPromoMap(offerOverrides, { regionLocale, country }, projectPromoCo
 async function promotions(context) {
     const { activeProjects = [] } = (await context.promises?.promotions) ?? {};
     const { regionLocale, country } = context;
-    const promoProjects = activeProjects.map((project) => ({
-        project,
-        promoMap: buildPromoMap(project.offerOverrides, { regionLocale, country }, project.promoCode, context),
-        substituteMap: buildSubstituteMap(project.offerSubstitutions ?? [], { regionLocale, country }),
-        fragmentPaths: new Set(project.fragmentPaths),
-    }));
-    promoProjects.forEach(({ project, promoMap, substituteMap: sm }) => {
+    const promoProjects = activeProjects.map((project) => {
+        const promoMap = buildPromoMap(project.offerOverrides, { regionLocale, country }, project.promoCode, context);
+        return {
+            project,
+            promoMap,
+            substituteMap: buildSubstituteMap(project.offerSubstitutions ?? [], { regionLocale, country }),
+            ignoreVariationOsis: buildIgnoreVariationOsis(project.ignoreVariations ?? [], { regionLocale, country }),
+            fragmentPaths: new Set(project.fragmentPaths),
+            groupedVariationPaths: new Set(project.groupedVariationPaths),
+            hasWildcard: Boolean(promoMap['*']),
+        };
+    });
+    promoProjects.forEach(({ project, promoMap, substituteMap: sm, hasWildcard }) => {
         logDebug(
-            () => `Project "${project.id}" promoMap: ${JSON.stringify(promoMap)}, substituteMap: ${JSON.stringify(sm)}`,
+            () =>
+                `Project "${project.id}" promoMap: ${JSON.stringify(promoMap)}, substituteMap: ${JSON.stringify(sm)}, wildcard: ${hasWildcard}`,
             context,
         );
     });

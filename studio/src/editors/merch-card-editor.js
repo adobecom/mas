@@ -29,10 +29,13 @@ import { toAttribute } from '../aem/tag-path-utils.js';
 import { getGlobalSettingsDefaults } from '../settings/settings-store.js';
 import { fieldStatusStyles } from '../common/fields/field-status.css.js';
 import { getLocaleByCode } from '../../../io/www/src/fragment/locales.js';
+import { normalizePznTagToLocaleCode } from './variation-utils.js';
 import { parseProWhatsIncluded, serializeProWhatsIncluded } from '../utils/pro-whats-included.js';
 
 const QUANTITY_MODEL = 'quantitySelect';
 const WHAT_IS_INCLUDED = 'whatsIncluded';
+/** Plain-text projection of an html label, for the non-edu textfield path. */
+const htmlToText = (html) => new DOMParser().parseFromString(html || '', 'text/html').body.textContent.trim();
 const QUANTITY_EMPTY = `<${QUANTITY_SELECT_TAG}/>`;
 const EVENT_COMMERCE_READY = 'wcms:commerce:ready';
 const INLINE_PRICE_SELECTOR = 'span[is="inline-price"][data-wcs-osi]';
@@ -154,8 +157,8 @@ class MerchCardEditor extends LitElement {
     }
 
     #normalizeGroupedPreviewLocaleCode(tagValue) {
-        const localeCode = tagValue?.split('/').pop()?.trim();
-        return getLocaleByCode(localeCode) ? localeCode : null;
+        const preferredLang = getLocaleByCode(Store.localeOrRegion())?.lang;
+        return normalizePznTagToLocaleCode(tagValue, Store.surface(), preferredLang);
     }
 
     get groupedPreviewLocales() {
@@ -1463,13 +1466,7 @@ class MerchCardEditor extends LitElement {
                 ${this.#renderAddonBackgroundPicker(form)}
                 <sp-field-group class="toggle" id="whatsIncluded">
                     <div class="section-title">What's included</div>
-                    <sp-textfield
-                        id="whatsIncludedLabel"
-                        placeholder="Enter the label text"
-                        data-field-state="${this.getFieldState('whatsIncluded')}"
-                        value="${this.whatsIncluded.label}"
-                        @input="${this.#updateWhatsIncluded}"
-                    ></sp-textfield>
+                    ${this.#renderWhatsIncludedLabel()}
                     <mas-multifield
                         button-label="Add bullet"
                         data-field-state="bullet"
@@ -1920,6 +1917,31 @@ class MerchCardEditor extends LitElement {
         return element;
     }
 
+    /** edu shows the label as an OST-capable rich field; other sizes use a plain text input. */
+    get #whatsIncludedLabelIsRich() {
+        return this.#isProWhatsIncluded && this.getEffectiveFieldValue('size') === 'edu';
+    }
+
+    #renderWhatsIncludedLabel() {
+        const state = this.getFieldState('whatsIncluded');
+        if (this.#whatsIncludedLabelIsRich)
+            return html`<rte-field
+                id="whatsIncludedLabel"
+                link
+                inline
+                data-field-state="${state}"
+                .value="${this.whatsIncluded.label}"
+                @change="${this.#updateWhatsIncluded}"
+            ></rte-field>`;
+        return html`<sp-textfield
+            id="whatsIncludedLabel"
+            placeholder="Enter the label text"
+            data-field-state="${state}"
+            value="${htmlToText(this.whatsIncluded.label)}"
+            @input="${this.#updateWhatsIncluded}"
+        ></sp-textfield>`;
+    }
+
     #updateWhatsIncluded(event, isBullet) {
         if (this.#isProWhatsIncluded) {
             // pro only uses the bullet multifield (sections) and the
@@ -1927,9 +1949,13 @@ class MerchCardEditor extends LitElement {
             // has no pro equivalent, so ignore its events.
             const fromMultifield = Array.isArray(event.target.value);
             if (fromMultifield && !isBullet) return;
+            const isEdu = this.#whatsIncludedLabelIsRich;
             const bullets = fromMultifield ? event.target.value : this.whatsIncluded.bullets;
-            const label = fromMultifield ? this.whatsIncluded.label : event.target.value;
-            const html = serializeProWhatsIncluded(bullets, label);
+            const rawLabel = fromMultifield ? this.whatsIncluded.label : event.target.value;
+            // Non-edu is plain text only: flatten any rich (edu) markup so a
+            // size switch or a bullet edit can never escape a live OST label.
+            const label = isEdu ? rawLabel : htmlToText(rawLabel);
+            const html = serializeProWhatsIncluded(bullets, label, isEdu);
             this.fragmentStore.updateField(WHAT_IS_INCLUDED, [html]);
             return;
         }

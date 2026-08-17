@@ -131,6 +131,28 @@ describe('whats-included label', () => {
     });
 });
 
+describe('edu rich label (OST)', () => {
+    it('preserves an OST inline-price span in the edu (RTE) label', () => {
+        const { bullets } = parseProWhatsIncluded(SECTIONS_HTML);
+        // Inline rte-field emits inline nodes only (no <p> wrapper).
+        const rte = '<span is="inline-price" data-wcs-osi="abc"></span>';
+        const html = serializeProWhatsIncluded(bullets, rte, true);
+        expect(html).to.contain(`<p class="whats-included-label">${rte}</p>`);
+    });
+
+    it('round-trips a rich label: parse -> serialize preserves the span', () => {
+        const source = `<p class="whats-included-label"><span data-wcs-osi="abc"></span></p>${SECTIONS_HTML}`;
+        const { label, bullets } = parseProWhatsIncluded(source);
+        expect(label).to.equal('<span data-wcs-osi="abc"></span>');
+        expect(serializeProWhatsIncluded(bullets, label, true)).to.equal(source);
+    });
+
+    it('still escapes a plain textfield label containing markup (richLabel=false)', () => {
+        const html = serializeProWhatsIncluded([{ icon: 'sp-icon-star', alt: '<p>T</p>', link: '' }], '<b>x</b>');
+        expect(html).to.contain('<p class="whats-included-label">&lt;b&gt;x&lt;/b&gt;</p>');
+    });
+});
+
 describe('round-trip', () => {
     it('parse -> serialize reproduces the source section markup', () => {
         const { bullets } = parseProWhatsIncluded(SECTIONS_HTML);

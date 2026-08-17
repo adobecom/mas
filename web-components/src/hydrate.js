@@ -99,10 +99,18 @@ export function processMnemonics(fields, merchCard, mnemonicsConfig) {
     }
 }
 
+function isMerchBadgeContentEmpty(badgeHtml) {
+    const el = new DOMParser()
+        .parseFromString(badgeHtml, 'text/html')
+        .querySelector('merch-badge');
+    if (!el) return true;
+    if (el.querySelector('span[is="inline-price"]')) return false;
+    return !el.textContent?.trim();
+}
+
 export function processBadge(fields, merchCard, mapping) {
     if (mapping.badge?.slot) {
-        const shouldRenderBadge =
-            fields.badge?.length || mapping.badge?.alwaysRender;
+        const shouldRenderBadge = fields.badge?.length;
         if (shouldRenderBadge && !fields.badge?.startsWith('<merch-badge')) {
             let badgeDefaultBgColor = DEFAULT_BADGE_BACKGROUND_COLOR;
             let setBorderColorForBadge = false;
@@ -122,7 +130,13 @@ export function processBadge(fields, merchCard, mapping) {
                 fields.borderColor = mapping.badge?.default;
             }
 
-            fields.badge = `<merch-badge variant="${fields.variant}" background-color="${bgColorToUse}" border-color="${borderColorToUse}">${fields.badge ?? ''}</merch-badge>`;
+            fields.badge = `<merch-badge variant="${fields.variant}" background-color="${bgColorToUse}" border-color="${borderColorToUse}">${fields.badge}</merch-badge>`;
+        }
+        if (
+            fields.badge?.startsWith('<merch-badge') &&
+            isMerchBadgeContentEmpty(fields.badge)
+        ) {
+            fields.badge = '';
         }
         appendSlot('badge', fields, merchCard, mapping);
     } else {
@@ -282,6 +296,8 @@ export function processBorderColor(fields, merchCard, variantMapping) {
                 `var(--${fields.borderColor})`,
             );
         }
+    } else {
+        merchCard.style.removeProperty(customBorderColor);
     }
 }
 

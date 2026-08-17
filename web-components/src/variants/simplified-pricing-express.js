@@ -14,7 +14,6 @@ export const SIMPLIFIED_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING = {
         tag: 'div',
         slot: 'badge',
         default: 'spectrum-blue-400',
-        alwaysRender: true,
     },
     allowedBadgeColors: [
         'spectrum-blue-400',

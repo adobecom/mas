@@ -4,6 +4,7 @@ import Store from '../src/store.js';
 import '../src/mas-fragment-variations.js';
 import { getGroupedVariationTagsValue, getPromotionCode } from '../src/editors/variation-utils.js';
 import { makeSearchStub } from './helpers/aem-tag-fetch.js';
+import { BASELINE_VARIATION } from '../src/constants.js';
 
 describe('MasFragmentVariations', () => {
     let sandbox;
@@ -532,8 +533,7 @@ describe('MasFragmentVariations', () => {
             expect(detail.textContent).to.not.include('Grouped variation tags');
         });
 
-        it('falls back to the promotion project geos when a promo variation has no pznTags of its own', async () => {
-            const parentPath = '/content/dam/mas/sandbox/en_US/my-card';
+        it('renders a baseline-variation notice instead of the tag picker when the promo variation has no pznTags', async () => {
             const promoVariation = createVariationFragment({
                 id: 'promo-var-legacy',
                 path: '/content/dam/mas/sandbox/en_US/promotions/cyber-monday/my-card',
@@ -631,53 +631,17 @@ describe('MasFragmentVariations', () => {
                 fields: [],
             });
             const fragment = {
-                path: parentPath,
                 listLocaleVariations: () => [],
                 listPromoVariations: () => [promoVariation],
                 listGroupedVariations: () => [],
             };
-            const loadPromotions = sandbox.stub().callsFake(async () => {
-                Store.promotions.list.data.set([
-                    {
-                        get: () => ({
-                            id: 'wrong-project-same-tag',
-                            getFieldValues: (name) =>
-                                name === 'tags'
-                                    ? ['mas:promotion/cyber-monday']
-                                    : name === 'geos'
-                                      ? ['mas:locale/ja_JP']
-                                      : name === 'fragments'
-                                        ? ['/content/dam/mas/sandbox/en_US/some-other-card']
-                                        : [],
-                        }),
-                    },
-                    {
-                        get: () => ({
-                            id: 'correct-project-same-tag',
-                            getFieldValues: (name) =>
-                                name === 'tags'
-                                    ? ['mas:promotion/cyber-monday']
-                                    : name === 'geos'
-                                      ? ['mas:locale/de_AT', 'mas:locale/en_NG']
-                                      : name === 'fragments'
-                                        ? [parentPath]
-                                        : [],
-                        }),
-                    },
-                ]);
-                Store.promotions.list.loading.set(false);
-            });
 
             const el = await fixture(html`<mas-fragment-variations .fragment=${fragment}></mas-fragment-variations>`);
-            sandbox.stub(el, 'repository').get(() => ({ loadPromotions }));
-            el.togglePromoVariation('promo-var-legacy');
-            await el.updateComplete;
-            await new Promise((r) => setTimeout(r, 10));
+            el.togglePromoVariation('promo-var-baseline');
             await el.updateComplete;
 
-            const picker = el.querySelector('aem-tag-picker-field');
-            expect(picker.getAttribute('value')).to.equal('mas:locale/de_AT,mas:locale/en_NG');
-            Store.promotions.list.data.set([]);
+            expect(el.querySelector('aem-tag-picker-field')).to.be.null;
+            expect(el.textContent).to.include(BASELINE_VARIATION.TEXT);
         });
 
         it('sets promotionId when opening a promo variation from the promotion tab', async () => {

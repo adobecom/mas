@@ -625,7 +625,7 @@ describe('mas-bulk-publish-editor (save/delete/lock with repository)', () => {
         expect(repositoryEl.saveFragment.calledOnce).to.equal(true);
     });
 
-    it('saveBulkProject shows error toast when saveFragment returns false', async () => {
+    it('saveBulkProject exits without marking changes saved when saveFragment returns false', async () => {
         const el = await makeEditor();
         const fs = makeFragmentStore({ title: 'Proj', urls: '', locales: [] });
         Store.bulkPublishProjects.inEdit.set(fs);

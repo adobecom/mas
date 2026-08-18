@@ -5,7 +5,10 @@ import {
     transformer as wcs,
     substituteOsi,
     scanMasElements,
-    applyPromoScope,
+    updateOffers,
+    buildOfferMapping,
+    resolveOfferSubstituteMap,
+    clearOfferMappingCache,
 } from '../../src/fragment/transformers/wcs.js';
 import { createResponse } from './mocks/MockFetch.js';
 import FRAGMENT from './mocks/fragment.json' with { type: 'json' };
@@ -727,7 +730,7 @@ describe('wcs OSI substitution', function () {
 describe('wcs OSI helpers', function () {
     const run = (promoScopeById, body) => {
         const context = { promoScopeById, body };
-        return { context, elements: applyPromoScope(context) };
+        return { context, elements: updateOffers(context) };
     };
 
     it('substituteOsi returns the input unchanged when no substituteMap', function () {
@@ -735,7 +738,7 @@ describe('wcs OSI helpers', function () {
     });
 
     it('substituteOsi maps each comma-separated part independently', function () {
-        expect(substituteOsi('OSI-A,OSI-B', { 'OSI-A': 'SUB-A' })).to.equal('SUB-A,OSI-B');
+        expect(substituteOsi('OSI-A,OSI-B', { 'OSI-A': { osi: 'SUB-A' } })).to.equal('SUB-A,OSI-B');
     });
 
     it('scanMasElements collects osi + inline promo code and skips the osi field and non-markup fields', function () {
@@ -760,7 +763,7 @@ describe('wcs OSI helpers', function () {
             description: { mimeType: 'text/html', value: '<span data-wcs-osi="B,C"></span>' },
         };
         // debugLogs context exercises the "Substituting OSI ..." debug log path.
-        const elements = scanMasElements(fields, { A: 'SUB-A', B: 'SUB-B' }, { debugLogs: true });
+        const elements = scanMasElements(fields, { A: { osi: 'SUB-A' }, B: { osi: 'SUB-B' } }, { debugLogs: true });
         expect(elements.map((element) => element.osi)).to.deep.equal(['SUB-A', 'SUB-B,C']);
         expect(fields.prices).to.equal('<span data-wcs-osi="SUB-A"></span>');
         expect(fields.description.value).to.equal('<span data-wcs-osi="SUB-B,C"></span>');
@@ -771,17 +774,40 @@ describe('wcs OSI helpers', function () {
         const fields = {
             prices: '<span data-wcs-osi="BASE-OSI"></span>' + '<span data-wcs-osi="BASE-OSI" data-locked-osi="true"></span>',
         };
-        const elements = scanMasElements(fields, { 'BASE-OSI': 'SUB-OSI' }, {});
+        const elements = scanMasElements(fields, { 'BASE-OSI': { osi: 'SUB-OSI' } }, {});
         expect(elements.map((e) => e.osi)).to.deep.equal(['SUB-OSI', 'BASE-OSI']);
         expect(fields.prices).to.include('data-wcs-osi="SUB-OSI"');
         expect(fields.prices).to.include('data-wcs-osi="BASE-OSI" data-locked-osi="true"');
+    });
+
+    it('scanMasElements injects the mapping promo as data-promotion-code only when the element has none', function () {
+        const fields = {
+            prices: '<span data-wcs-osi="A"></span>',
+            ctas: '<a data-promotion-code="OWN" data-wcs-osi="A"></a>',
+        };
+        // debugLogs exercises the "Substituting OSI ... (promo ...)" log path for both promo/no-promo.
+        const elements = scanMasElements(fields, { A: { osi: 'SUB-A', promotionCode: 'BTS26' } }, { debugLogs: true });
+        // no authored promo => inject the mapping's promo on the substituted element
+        expect(fields.prices).to.equal('<span data-wcs-osi="SUB-A" data-promotion-code="BTS26"></span>');
+        // authored promo preserved, osi still substituted
+        expect(fields.ctas).to.equal('<a data-promotion-code="OWN" data-wcs-osi="SUB-A"></a>');
+        expect(elements.map((element) => element.promotionCode)).to.deep.equal(['BTS26', 'OWN']);
+    });
+
+    it('scanMasElements substitutes and injects the promo on the mapped half of a comma-joined OSI', function () {
+        // Discount badge: `data-wcs-osi="A,B"` (MWPW-201714). Mapping A -> SUB-A,BTS26 substitutes the A
+        // half and injects its promo, even though the raw attribute key is the whole pair "A,B".
+        const fields = { prices: '<span data-wcs-osi="A,B"></span>' };
+        const elements = scanMasElements(fields, { A: { osi: 'SUB-A', promotionCode: 'BTS26' } }, {});
+        expect(fields.prices).to.equal('<span data-wcs-osi="SUB-A,B" data-promotion-code="BTS26"></span>');
+        expect(elements[0].promotionCode).to.equal('BTS26');
     });
 
     it('scanMasElements returns [] for a fragment without fields', function () {
         expect(scanMasElements(undefined, undefined)).to.deep.equal([]);
     });
 
-    it('applyPromoScope prefers the fragment own osi promo code over rich text OSIs', function () {
+    it('updateOffers prefers the fragment own osi promo code over rich text OSIs', function () {
         const { context } = run(
             { f: { promoMap: { OWN: 'OWN-CODE', RICH: 'RICH-CODE' }, substituteMap: {} } },
             { id: 'f', fields: { osi: 'OWN', description: '<span data-wcs-osi="RICH"></span>' } },
@@ -789,7 +815,7 @@ describe('wcs OSI helpers', function () {
         expect(context.body.fields.promoCode).to.equal('OWN-CODE');
     });
 
-    it('applyPromoScope does not set a promo code (even wildcard) when the fragment has no osi', function () {
+    it('updateOffers does not set a promo code (even wildcard) when the fragment has no osi', function () {
         const { context } = run(
             { f: { promoMap: { '*': 'WILDCARD' }, substituteMap: {} } },
             { id: 'f', fields: { title: 'text only' } },
@@ -797,7 +823,7 @@ describe('wcs OSI helpers', function () {
         expect(context.body.fields.promoCode).to.be.undefined;
     });
 
-    it('applyPromoScope falls back to the wildcard promo code when no explicit osi matches', function () {
+    it('updateOffers falls back to the wildcard promo code when no explicit osi matches', function () {
         const { context } = run(
             { f: { promoMap: { '*': 'WILDCARD' }, substituteMap: {} } },
             { id: 'f', fields: { osi: 'SOME-OSI' } },
@@ -807,7 +833,7 @@ describe('wcs OSI helpers', function () {
 
     // Locks in the intended behavior expansion: a fragment with no own osi still receives the
     // project's wildcard promo code when it references an OSI only in rich text (headless case).
-    it('applyPromoScope applies the wildcard promo code to a fragment whose only osi is in rich text', function () {
+    it('updateOffers applies the wildcard promo code to a fragment whose only osi is in rich text', function () {
         const { context } = run(
             { f: { promoMap: { '*': 'WILDCARD' }, substituteMap: {} } },
             { id: 'f', fields: { prices: '<span data-wcs-osi="RICH-OSI"></span>' } },
@@ -815,7 +841,7 @@ describe('wcs OSI helpers', function () {
         expect(context.body.fields.promoCode).to.equal('WILDCARD');
     });
 
-    it('applyPromoScope matches a substituted osi against the promo map and substitutes fields.osi', function () {
+    it('updateOffers matches a substituted osi against the promo map and substitutes fields.osi', function () {
         const { context } = run(
             { f: { promoMap: { SUB: 'SUB-CODE' }, substituteMap: { BASE: 'SUB' } } },
             { id: 'f', fields: { osi: 'BASE' } },
@@ -824,7 +850,7 @@ describe('wcs OSI helpers', function () {
         expect(context.body.fields.osi).to.equal('SUB');
     });
 
-    it('applyPromoScope matches either half of a comma-joined fields.osi against the promo map', function () {
+    it('updateOffers matches either half of a comma-joined fields.osi against the promo map', function () {
         const { context } = run(
             { f: { promoMap: { 'OSI-B': 'MULTI-CODE' }, substituteMap: {} } },
             { id: 'f', fields: { osi: 'OSI-A,OSI-B' } },
@@ -832,7 +858,7 @@ describe('wcs OSI helpers', function () {
         expect(context.body.fields.promoCode).to.equal('MULTI-CODE');
     });
 
-    it('applyPromoScope substitutes an array fields.osi element-wise', function () {
+    it('updateOffers substitutes an array fields.osi element-wise', function () {
         const { context } = run(
             { f: { promoMap: {}, substituteMap: { 'OSI-B': 'SUB-B' } } },
             { id: 'f', fields: { osi: ['OSI-A', 'OSI-B'] } },
@@ -840,7 +866,7 @@ describe('wcs OSI helpers', function () {
         expect(context.body.fields.osi).to.deep.equal(['OSI-A', 'SUB-B']);
     });
 
-    it('applyPromoScope leaves out-of-scope fragments and id-less/null references untouched', function () {
+    it('updateOffers leaves out-of-scope fragments and id-less/null references untouched', function () {
         const { context, elements } = run(
             { 'in-scope': { promoMap: {}, substituteMap: { A: 'SUB-A' } } },
             {
@@ -861,15 +887,194 @@ describe('wcs OSI helpers', function () {
         expect(elements.map((element) => element.osi).sort()).to.deep.equal(['A', 'A', 'SUB-A']);
     });
 
-    it('applyPromoScope handles a scoped fragment that has no fields', function () {
+    it('updateOffers handles a scoped fragment that has no fields', function () {
         const { context, elements } = run({ f: { promoMap: { '*': 'W' }, substituteMap: {} } }, { id: 'f' });
         expect(context.body.fields).to.be.undefined;
         expect(elements).to.deep.equal([]);
     });
 
-    it('applyPromoScope is a no-op without promoScopeById or body', function () {
-        expect(applyPromoScope({ body: { id: 'f', fields: { osi: 'A' } } })).to.deep.equal([]);
-        expect(applyPromoScope({ promoScopeById: {} })).to.deep.equal([]);
+    it('updateOffers is a no-op without promoScopeById or body', function () {
+        expect(updateOffers({ body: { id: 'f', fields: { osi: 'A' } } })).to.deep.equal([]);
+        expect(updateOffers({ promoScopeById: {} })).to.deep.equal([]);
+    });
+});
+
+describe('offer-mapping fallback (MWPW-203764)', function () {
+    let fetchStub;
+    const ODIN = 'https://odin.adobe.com/adobe/contentFragments';
+    const byPathUrl = (surface) => `${ODIN}/byPath?path=/content/dam/mas/${surface}/offer-mapping/index`;
+    const directUrl = (id) => `${ODIN}/${id}?references=direct-hydrated`;
+    const stubbedOffer = (name) => ({ resolvedOffers: [{ name }] });
+
+    // Builds a `direct-hydrated` index response from a list of entry field objects.
+    const indexFixture = (entries) => {
+        const references = {};
+        const ids = entries.map((fields, index) => {
+            const id = `entry-${index}`;
+            references[id] = { type: 'content-fragment', value: { id, fields } };
+            return id;
+        });
+        return { fields: { entries: ids }, references };
+    };
+    const stubIndex = (surface, id, fixture) => {
+        fetchStub.withArgs(byPathUrl(surface)).returns(createResponse(200, { id }));
+        fetchStub.withArgs(directUrl(id)).returns(createResponse(200, fixture));
+    };
+    // Bare surface is enough for getRequestInfos to resolve without the requestInfos promise.
+    const ctx = (extra) => ({ api_key: 'k', locale: 'en_US', surface: 'ccd', ...extra });
+
+    beforeEach(function () {
+        clearOfferMappingCache();
+        fetchStub = sinon.stub(globalThis, 'fetch');
+    });
+
+    afterEach(function () {
+        fetchStub.restore();
+        clearOfferMappingCache();
+    });
+
+    it('buildOfferMapping collects entries and skips those missing a source or target offer', async function () {
+        stubIndex(
+            'ccd',
+            'idx',
+            indexFixture([
+                { sourceoffer: 'SRC', targetoffer: 'TGT', geos: ['mas:country/US'] },
+                { sourceoffer: 'ONLY-SRC' },
+                { sourceoffer: 'NOGEO', targetoffer: 'NOGEO-T' },
+            ]),
+        );
+        expect(await buildOfferMapping(ctx())).to.deep.equal([
+            { sourceOffer: 'SRC', targetOffer: 'TGT', geos: ['mas:country/US'] },
+            { sourceOffer: 'NOGEO', targetOffer: 'NOGEO-T', geos: [] },
+        ]);
+    });
+
+    it('buildOfferMapping returns [] when the surface cannot be resolved', async function () {
+        expect(await buildOfferMapping({ api_key: 'k' })).to.deep.equal([]);
+    });
+
+    it('buildOfferMapping tolerates an index with no entries or references', async function () {
+        fetchStub.withArgs(byPathUrl('ccd')).returns(createResponse(200, { id: 'idx' }));
+        fetchStub.withArgs(directUrl('idx')).returns(createResponse(200, {}));
+        expect(await buildOfferMapping(ctx())).to.deep.equal([]);
+    });
+
+    it('buildOfferMapping caches an empty list on a 404 index (stable absence)', async function () {
+        fetchStub.withArgs(byPathUrl('ccd')).returns(createResponse(404, null, 'not found'));
+        expect(await buildOfferMapping(ctx())).to.deep.equal([]);
+        const afterFirst = fetchStub.withArgs(byPathUrl('ccd')).callCount;
+        expect(await buildOfferMapping(ctx())).to.deep.equal([]);
+        // A 404 is a stable absence: the empty list is cached, so the second call must not re-fetch.
+        expect(fetchStub.withArgs(byPathUrl('ccd')).callCount).to.equal(afterFirst);
+    });
+
+    it('buildOfferMapping does not cache a transient (non-404) id failure', async function () {
+        fetchStub.withArgs(byPathUrl('ccd')).returns(createResponse(503, null, 'boom'));
+        expect(await buildOfferMapping(ctx())).to.deep.equal([]);
+        const afterFirst = fetchStub.withArgs(byPathUrl('ccd')).callCount;
+        expect(await buildOfferMapping(ctx())).to.deep.equal([]);
+        // A 503 is transient: nothing is cached, so the second call re-fetches the index.
+        expect(fetchStub.withArgs(byPathUrl('ccd')).callCount).to.be.greaterThan(afterFirst);
+    });
+
+    it('buildOfferMapping resolves [] when the hydrated fetch fails', async function () {
+        fetchStub.withArgs(byPathUrl('ccd')).returns(createResponse(200, { id: 'idx' }));
+        fetchStub.withArgs(directUrl('idx')).returns(createResponse(500, null, 'err'));
+        expect(await buildOfferMapping(ctx())).to.deep.equal([]);
+    });
+
+    it('resolveOfferSubstituteMap keeps only geo-matching entries and splits an optional promo code', function () {
+        const mappings = [
+            { sourceOffer: 'SRC', targetOffer: 'TGT', geos: ['mas:country/US'] },
+            { sourceOffer: 'PROMO-SRC', targetOffer: 'PTGT, BTS26', geos: ['mas:country/US'] },
+            { sourceOffer: 'OTHER', targetOffer: 'OTHER-T', geos: ['mas:country/FR'] },
+            { sourceOffer: 'NOGEO', targetOffer: 'NOGEO-T', geos: [] },
+        ];
+        // debugLogs exercises the "[offer-mapping] ..." debug log path.
+        expect(resolveOfferSubstituteMap(mappings, { locale: 'en_US', debugLogs: true })).to.deep.equal({
+            SRC: { osi: 'TGT', promotionCode: undefined },
+            'PROMO-SRC': { osi: 'PTGT', promotionCode: 'BTS26' },
+        });
+    });
+
+    it('applies the geo-scoped offer mapping as a fallback substitution on any fragment', async function () {
+        stubIndex('ccd', 'idx', indexFixture([{ sourceoffer: 'BASE', targetoffer: 'MAPPED', geos: ['mas:country/US'] }]));
+        fetchStub
+            .withArgs(sinon.match((url) => url.includes('offer_selector_ids=MAPPED')))
+            .returns(createResponse(200, stubbedOffer('mapped')));
+        const result = await wcs.process(
+            ctx({
+                wcsConfiguration: CONFIGURATION(),
+                body: { id: 'frag', fields: { osi: 'BASE', prices: '<span data-wcs-osi="BASE"></span>' } },
+            }),
+        );
+        expect(result.body.fields.osi).to.equal('MAPPED');
+        expect(result.body.fields.prices).to.include('data-wcs-osi="MAPPED"');
+        expect(result.body.wcs.prod).to.have.property('MAPPED-us-mult');
+    });
+
+    it('injects a comma-joined target promo code as data-promotion-code and prices the placeholder with it', async function () {
+        stubIndex('ccd', 'idx', indexFixture([{ sourceoffer: 'BASE', targetoffer: 'MAPPED,BTS26', geos: ['mas:country/US'] }]));
+        fetchStub
+            .withArgs(sinon.match((url) => url.includes('offer_selector_ids=MAPPED') && url.includes('promotion_code=BTS26')))
+            .returns(createResponse(200, stubbedOffer('promo')));
+        const result = await wcs.process(
+            ctx({
+                wcsConfiguration: CONFIGURATION(),
+                // own osi (no rich-text placeholder) gets the osi substitution but NOT the promo.
+                body: { id: 'frag', fields: { osi: 'BASE', prices: '<span data-wcs-osi="BASE"></span>' } },
+            }),
+        );
+        expect(result.body.fields.osi).to.equal('MAPPED');
+        expect(result.body.fields.prices).to.include('data-wcs-osi="MAPPED"');
+        expect(result.body.fields.prices).to.include('data-promotion-code="BTS26"');
+        expect(result.body.wcs.prod).to.have.property('MAPPED-us-mult-bts26');
+    });
+
+    it('does not substitute when the request country is outside the entry geos', async function () {
+        stubIndex('ccd', 'idx', indexFixture([{ sourceoffer: 'BASE', targetoffer: 'MAPPED', geos: ['mas:country/FR'] }]));
+        fetchStub
+            .withArgs(sinon.match((url) => url.includes('offer_selector_ids=BASE')))
+            .returns(createResponse(200, stubbedOffer('base')));
+        const result = await wcs.process(
+            ctx({ wcsConfiguration: CONFIGURATION(), body: { id: 'frag', fields: { osi: 'BASE' } } }),
+        );
+        expect(result.body.fields.osi).to.equal('BASE');
+    });
+
+    it('lets promo substitution win over the offer-mapping fallback', async function () {
+        stubIndex('ccd', 'idx', indexFixture([{ sourceoffer: 'BASE', targetoffer: 'MAPPED', geos: ['mas:country/US'] }]));
+        fetchStub
+            .withArgs(sinon.match((url) => url.includes('offer_selector_ids=PROMO')))
+            .returns(createResponse(200, stubbedOffer('promo')));
+        const result = await wcs.process(
+            ctx({
+                wcsConfiguration: CONFIGURATION(),
+                promoScopeById: { frag: { promoMap: {}, substituteMap: { BASE: 'PROMO' } } },
+                body: { id: 'frag', fields: { osi: 'BASE' } },
+            }),
+        );
+        expect(result.body.fields.osi).to.equal('PROMO');
+    });
+
+    it('prefetches the offer mapping through transformer.init', async function () {
+        stubIndex('ccd', 'idx', indexFixture([{ sourceoffer: 'BASE', targetoffer: 'MAPPED', geos: ['mas:country/US'] }]));
+        expect(await wcs.init(ctx())).to.deep.equal([{ sourceOffer: 'BASE', targetOffer: 'MAPPED', geos: ['mas:country/US'] }]);
+    });
+
+    it('uses the offer mapping prefetched on context.promises.wcs', async function () {
+        // No index stub — if wcs.process re-fetched instead of reading the prefetch, the map would be empty.
+        fetchStub
+            .withArgs(sinon.match((url) => url.includes('offer_selector_ids=MAPPED')))
+            .returns(createResponse(200, stubbedOffer('mapped')));
+        const result = await wcs.process(
+            ctx({
+                wcsConfiguration: CONFIGURATION(),
+                promises: { wcs: Promise.resolve([{ sourceOffer: 'BASE', targetOffer: 'MAPPED', geos: ['mas:country/US'] }]) },
+                body: { id: 'frag', fields: { osi: 'BASE' } },
+            }),
+        );
+        expect(result.body.fields.osi).to.equal('MAPPED');
     });
 });
 

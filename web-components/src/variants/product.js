@@ -170,8 +170,10 @@ export class Product extends VariantLayout {
         this.card.querySelector('.merch-short-description')?.remove();
         const span = document.createElement('span');
         span.className = 'merch-short-description';
-        const inner = shortDescEl.querySelector('p') ?? shortDescEl;
-        span.innerHTML = inner.innerHTML;
+        span.innerHTML = shortDescEl.innerHTML;
+        span.querySelectorAll('p').forEach((p) =>
+            p.replaceWith(...p.childNodes),
+        );
         span.querySelectorAll('.icon-button').forEach((btn) => {
             if (btn.dataset.eventsWired) return;
             btn.dataset.eventsWired = '1';

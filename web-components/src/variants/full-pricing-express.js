@@ -376,56 +376,46 @@ export class FullPricingExpress extends VariantLayout {
 
         :host([variant='full-pricing-express'][gradient-border='true'])
             .card-content {
-            border: none;
-            padding: calc(var(--merch-card-full-pricing-express-padding) + 2px);
+            border: 1px solid transparent;
+            padding: calc(var(--merch-card-full-pricing-express-padding) + 1px);
             border-radius: 8px;
-        }
-
-        :host([variant='full-pricing-express'][gradient-border='true'])
-            .card-content::before {
-            content: '';
-            position: absolute;
-            top: 1px;
-            left: 1px;
-            right: 1px;
-            bottom: 1px;
-            background: var(--spectrum-express-white, #ffffff);
-            border-radius: 7px;
-            z-index: 0;
-            pointer-events: none;
+            background-origin: border-box;
+            background-clip: padding-box, border-box;
         }
 
         /* Gradient backgrounds */
         :host(
                 [variant='full-pricing-express'][border-color='gradient-purple-blue']
             )
-            .badge-wrapper,
+            .badge-wrapper {
+            background: var(--gradient-purple-blue);
+        }
         :host(
                 [variant='full-pricing-express'][border-color='gradient-purple-blue']
             )
             .card-content {
-            background: var(--gradient-purple-blue);
+            background-image: linear-gradient(
+                    var(--spectrum-express-white, #ffffff),
+                    var(--spectrum-express-white, #ffffff)
+                ),
+                var(--gradient-purple-blue);
         }
 
         :host(
                 [variant='full-pricing-express'][border-color='gradient-firefly-spectrum']
             )
-            .badge-wrapper,
+            .badge-wrapper {
+            background: var(--gradient-firefly-spectrum);
+        }
         :host(
                 [variant='full-pricing-express'][border-color='gradient-firefly-spectrum']
             )
             .card-content {
-            background: var(--gradient-firefly-spectrum);
-        }
-
-        :host(
-                [variant='full-pricing-express'][gradient-border='true']:has(
-                        [slot='badge']:not(:empty)
-                    )
-            )
-            .card-content::before {
-            border-top-left-radius: 6px;
-            border-top-right-radius: 6px;
+            background-image: linear-gradient(
+                    var(--spectrum-express-white, #ffffff),
+                    var(--spectrum-express-white, #ffffff)
+                ),
+                var(--gradient-firefly-spectrum);
         }
 
         /* Header styling */

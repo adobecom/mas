@@ -2194,5 +2194,30 @@ describe('MasPromotionsEditor', () => {
             const el = await mountEditorWithValidation(undefined);
             expect(el.renderRoot.querySelector('.fragment-validation-banner')).to.not.exist;
         });
+
+        it('refreshes by id on open so errors show even when the list handed over a store without validationStatus', async () => {
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            const listPayload = makePromotion({ id: 'promo-val', title: 'Invalid' });
+            listPayload.validationStatus = [];
+            Store.promotions.inEdit.set(new FragmentStore(listPayload));
+            Store.promotions.promotionId.set('promo-val');
+
+            const authoritative = makeFragmentData({ id: 'promo-val', title: 'Invalid' });
+            authoritative.validationStatus = [
+                { property: 'fields.fragments.values[0]', message: 'references a path that does not exist in JCR' },
+            ];
+            const { el } = await mountEditorWithRepo({
+                aem: {
+                    sites: { cf: { fragments: { getById: sandbox.stub().resolves(authoritative) } } },
+                    getFragmentByPath: null,
+                },
+            });
+            await waitForEditorConnect(el);
+            await el.updateComplete;
+
+            const banner = el.renderRoot.querySelector('.fragment-validation-banner');
+            expect(banner).to.exist;
+            expect(banner.textContent).to.include('references a path that does not exist in JCR');
+        });
     });
 });

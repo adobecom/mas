@@ -178,9 +178,7 @@ class MasPromotionsEditor extends LitElement {
             this.loadingPromotion = true;
             try {
                 this.#resetPromotionItemStores();
-                if (!this.fragmentStore) {
-                    await this.#loadPromotionById(promotionId);
-                }
+                await this.#loadPromotionById(promotionId);
                 await this.#hydratePromotionItemSelectionFromFragment();
             } finally {
                 this.loadingPromotion = false;

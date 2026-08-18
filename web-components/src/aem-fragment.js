@@ -287,7 +287,7 @@ export class AemFragment extends HTMLElement {
             this.#fetchInfo.url = endpoint;
             response = await masFetch(endpoint, {
                 cache: 'default',
-                credentials: 'omit',
+                credentials: 'same-origin',
             });
             this.#applyHeaders(response);
             this.#fetchInfo.status = response?.status;

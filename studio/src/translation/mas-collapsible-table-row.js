@@ -2,7 +2,7 @@ import { LitElement, html, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import { styles } from './mas-collapsible-table-row.css.js';
 import { Fragment } from '../aem/fragment.js';
-import { getItemTypeLabel, shouldIgnoreRowClickForSelection } from '../common/utils/render-utils.js';
+import { getItemTypeLabel, renderInheritedTagsNotice, shouldIgnoreRowClickForSelection } from '../common/utils/render-utils.js';
 import { getItemsSelectionStore } from '../common/items-selection-store.js';
 import { loadCardVariations, fetchVariationByPath, enrichPromoVariations } from '../common/utils/items-loader.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
@@ -419,16 +419,18 @@ export class MasCollapsibleTableRow extends LitElement {
     }
 
     renderGeosTags(item) {
-        const geosValue = getGroupedVariationTagsValue(item) || '';
+        const geosValue = getGroupedVariationTagsValue(item);
         return html`<sp-table-cell class="details-cell">
             <div class="details-label">Geos variation tags</div>
-            <aem-tag-picker-field
-                namespace="/content/cq:tags/mas"
-                display-value
-                top="locale,pzn"
-                value="${geosValue}"
-                readonly
-            ></aem-tag-picker-field>
+            ${geosValue
+                ? html`<aem-tag-picker-field
+                      namespace="/content/cq:tags/mas"
+                      display-value
+                      top="locale,pzn"
+                      value="${geosValue}"
+                      readonly
+                  ></aem-tag-picker-field>`
+                : renderInheritedTagsNotice()}
         </sp-table-cell>`;
     }
 

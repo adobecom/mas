@@ -75,27 +75,6 @@ describe('render-utils', () => {
             expect(dot?.classList.contains('yellow')).to.be.true;
             expect(container.textContent).to.include('MODIFIED');
         });
-
-        it('renders no validation indicator when there are no errors', () => {
-            const container = document.createElement('div');
-            render(renderPromotionStatusCell('active'), container);
-            expect(container.querySelector('.validation-error-icon')).to.not.exist;
-        });
-
-        it('renders a validation indicator with the joined messages when invalid', () => {
-            const container = document.createElement('div');
-            render(
-                renderPromotionStatusCell('active', [
-                    { property: 'fields.startDate.values[0]', message: 'is required' },
-                    { property: 'path', message: 'is not valid' },
-                ]),
-                container,
-            );
-            const indicator = container.querySelector('.validation-error-indicator');
-            expect(indicator).to.exist;
-            expect(indicator.getAttribute('title')).to.equal('is required\nis not valid');
-            expect(indicator.querySelector('.validation-error-icon')).to.exist;
-        });
     });
 
     describe('getItemTypeLabel', () => {

@@ -8,18 +8,6 @@ export const styles = css`
         background-color: var(--spectrum-yellow-600);
     }
 
-    .validation-error-indicator {
-        display: inline-flex;
-        align-items: center;
-    }
-
-    .validation-error-icon {
-        color: var(--merch-color-error, #d73220);
-        width: 18px;
-        height: 18px;
-        flex-shrink: 0;
-    }
-
     .promotions-container {
         height: 100%;
         min-height: 200px;

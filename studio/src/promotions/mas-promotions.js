@@ -232,7 +232,7 @@ class MasPromotions extends LitElement {
                                         ${promo.isEvergreen ? html`<span class="evergreen-badge">Evergreen</span>` : nothing}
                                     </span>
                                 </sp-table-cell>
-                                ${renderPromotionStatusCell(promo.promotionStatus, promo.getValidationErrors())}
+                                ${renderPromotionStatusCell(promo.promotionStatus)}
                                 <sp-table-cell>${promo.createdBy}</sp-table-cell>
                                 ${this.renderActionCell(promotion)}
                             </sp-table-row>

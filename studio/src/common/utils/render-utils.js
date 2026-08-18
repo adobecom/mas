@@ -68,10 +68,9 @@ const PROMOTION_STATUS_LABEL = {
 /**
  * Status cell for promotion list (draft / active / scheduled / expired / unknown).
  * @param {string} [promotionStatus]
- * @param {Array<{property: string, message: string}>} [validationErrors]
  * @returns {import('lit').TemplateResult|typeof nothing}
  */
-export function renderPromotionStatusCell(promotionStatus, validationErrors = []) {
+export function renderPromotionStatusCell(promotionStatus) {
     if (!promotionStatus) return nothing;
     const key = promotionStatus.toLowerCase();
     let statusClass = '';
@@ -83,11 +82,6 @@ export function renderPromotionStatusCell(promotionStatus, validationErrors = []
     return html`<sp-table-cell class="status-cell">
         <div class="status-dot ${statusClass}"></div>
         ${label}
-        ${validationErrors.length
-            ? html`<span class="validation-error-indicator" title="${validationErrors.map((error) => error.message).join('\n')}"
-                  ><sp-icon-alert class="validation-error-icon"></sp-icon-alert
-              ></span>`
-            : nothing}
     </sp-table-cell>`;
 }
 

@@ -380,6 +380,38 @@ export const styles = [
             align-items: flex-start;
             justify-content: center;
         }
+
+        .fragment-validation-banner {
+            display: flex;
+            gap: 8px;
+            align-items: flex-start;
+            padding: 12px;
+            margin-block-end: 16px;
+            border-radius: 4px;
+            border: 1px solid var(--merch-color-error, #d73220);
+            background-color: var(--spectrum-red-100, #ffebe7);
+            color: var(--merch-color-error, #d73220);
+        }
+
+        .fragment-validation-banner-body {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .fragment-validation-banner-title {
+            font-weight: 700;
+        }
+
+        .fragment-validation-banner-property {
+            font-family: var(--spectrum-code-font-family, monospace);
+            font-weight: 700;
+        }
+
+        .fragment-validation-banner-icon {
+            flex-shrink: 0;
+            color: var(--merch-color-error, #d73220);
+        }
     `,
 ];
 

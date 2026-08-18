@@ -638,7 +638,7 @@ describe('mas-placeholders-repository', () => {
                 fragmentPath: 'dictionary/index',
                 preview: DEFAULT_CONTEXT.preview,
             });
-            expect(fetchStub.calledWith(baselineUrl)).to.be.false;
+            expect(fetchStub.calledWith(baselineUrl)).to.be.true;
 
             // Before the fix, defaultLocale was undefined so odinUrl dropped the locale segment
             // entirely, always 404ing the shared baseline that edu-disclaimer-style placeholders live on.

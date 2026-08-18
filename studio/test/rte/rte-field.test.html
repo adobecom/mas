@@ -300,6 +300,19 @@
                         await delay(100);
                         const tt = firstIcon().getAttribute('data-tooltip');
                         expect(tt).to.equal('My info tooltip');
+                        // rte.value is what mas-placeholders-item stores as richTextValue
+                        expect(rte.value).to.contain('class="icon-button"');
+                        expect(rte.value).to.contain('data-tooltip="My info tooltip"');
+                    });
+
+                    it('round-trips the icon tooltip title through parse of a saved richTextValue', async function () {
+                        rte = await createFromTemplate('rte-icon', this.test.title);
+                        rte.value =
+                            '<p><span class="icon-button" tabindex="0" role="button" data-tooltip="Saved disclaimer"></span></p>';
+                        await rte.updateComplete;
+                        await delay(100);
+                        expect(firstIcon().getAttribute('data-tooltip')).to.equal('Saved disclaimer');
+                        expect(rte.value).to.contain('data-tooltip="Saved disclaimer"');
                     });
                 });
 

@@ -2159,4 +2159,40 @@ describe('MasPromotionsEditor', () => {
             expect(repo.searchFragments.called).to.be.true;
         });
     });
+
+    describe('validationStatus banner', () => {
+        async function mountEditorWithValidation(validationStatus) {
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            const promotion = makePromotion({ id: 'p1', title: 'T' });
+            promotion.validationStatus = validationStatus;
+            Store.promotions.inEdit.set(new FragmentStore(promotion));
+            const { el } = await mountEditorWithRepo();
+            await el.updateComplete;
+            return el;
+        }
+
+        it('renders a banner listing each validationStatus property and message', async () => {
+            const el = await mountEditorWithValidation([{ property: 'fields.startDate.values[0]', message: 'is required' }]);
+            const banner = el.renderRoot.querySelector('.fragment-validation-banner');
+            expect(banner).to.exist;
+            expect(banner.textContent).to.include('fields.startDate.values[0]');
+            expect(banner.textContent).to.include('is required');
+        });
+
+        it('lists every message when validationStatus has multiple errors', async () => {
+            const el = await mountEditorWithValidation([
+                { property: 'fields.startDate.values[0]', message: 'is required' },
+                { property: 'path', message: 'is not valid' },
+            ]);
+            const messages = el.renderRoot.querySelectorAll('.fragment-validation-banner-message');
+            expect(messages.length).to.equal(2);
+            expect(messages[0].textContent).to.include('is required');
+            expect(messages[1].textContent).to.include('is not valid');
+        });
+
+        it('renders no banner when validationStatus is empty', async () => {
+            const el = await mountEditorWithValidation(undefined);
+            expect(el.renderRoot.querySelector('.fragment-validation-banner')).to.not.exist;
+        });
+    });
 });

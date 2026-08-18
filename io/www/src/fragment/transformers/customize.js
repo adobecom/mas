@@ -267,47 +267,49 @@ function findPromoVariation(root, customizeContext, selectedPromoProject) {
         return {};
     }
     const { project } = selectedPromoProject;
-    const { regionLocale, country } = customizeContext;
-
-    const { references } = customizeContext;
+    const { regionLocale, country, pzn } = customizeContext;
+    // Paths of pzn variations added to this promo project (e.g. set(['PA-123/pzn/edu'])).
     const groupedVariationPaths = selectedPromoProject.groupedVariationPaths;
-    const variations = root?.fields?.variations;
-    const personalizationVariation =
-        groupedVariationPaths?.size && variations?.length
-            ? findPersonalizationVariation(
-                  variations.filter((variationId) => {
-                      const path = references[variationId]?.value?.path;
-                      return path && groupedVariationPaths.has(PATH_TOKENS.exec(path).groups.fragmentPath);
-                  }),
-                  customizeContext,
-              )
-            : null;
-
-    if (personalizationVariation) {
-        const { fragmentPath: groupedFragmentPath } = PATH_TOKENS.exec(personalizationVariation.path).groups;
-        const promoPersonalizationVariation = resolvePromoVariationForPath(project, groupedFragmentPath, {
-            regionLocale,
-            country,
-        });
-        if (promoPersonalizationVariation) {
-            logDebug(
-                () =>
-                    `Merging promo variation ${promoPersonalizationVariation.id} for grouped variation ${personalizationVariation.id}`,
-                customizeContext,
-            );
-            return { variation: promoPersonalizationVariation, project };
+    // The added pzn variations' own fragments (path -> fragment), carrying their pznTags.
+    const groupedVariationReferences = selectedPromoProject.groupedVariationReferences;
+    if (groupedVariationReferences?.size) {
+        let personalizationVariation = null;
+        let bestScore = 0;
+        for (const candidate of groupedVariationReferences.values()) {
+            const score = personalizationMatchScore(candidate.fields?.pznTags, { regionLocale, country, pzn });
+            if (score > bestScore) {
+                bestScore = score;
+                personalizationVariation = candidate;
+            }
+        }
+        if (personalizationVariation) {
+            const { fragmentPath: groupedFragmentPath } = PATH_TOKENS.exec(personalizationVariation.path).groups;
+            const promoPersonalizationVariation = resolvePromoVariationForPath(project, groupedFragmentPath, {
+                regionLocale,
+                country,
+            });
+            if (promoPersonalizationVariation) {
+                logDebug(
+                    () =>
+                        `Merging promo variation ${promoPersonalizationVariation.id} for grouped variation ${personalizationVariation.id}`,
+                    customizeContext,
+                );
+                return { variation: promoPersonalizationVariation, project };
+            }
         }
     }
     const { fragmentPath } = PATH_TOKENS.exec(root.path).groups;
     const variation = resolvePromoVariationForPath(project, fragmentPath, { regionLocale, country });
+    // No promo variation for the default fragment.
+    // If the visitor's pzn variation was not added to this promo project, then variation is empty.
     if (!variation) {
-        if (
-            groupedVariationPaths?.size &&
-            !personalizationVariation &&
-            variations?.length &&
-            findPersonalizationVariation(variations, customizeContext)
-        ) {
-            return { variation: {}, project };
+        const rootVariations = root?.fields?.variations;
+        if (groupedVariationPaths?.size && rootVariations?.length) {
+            const rawMatch = findPersonalizationVariation(rootVariations, customizeContext);
+            const rawMatchPath = rawMatch && PATH_TOKENS.exec(rawMatch.path).groups.fragmentPath;
+            if (rawMatchPath && !groupedVariationPaths.has(rawMatchPath)) {
+                return { variation: {}, project };
+            }
         }
         return {};
     }

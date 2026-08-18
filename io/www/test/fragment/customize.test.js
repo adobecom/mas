@@ -2141,12 +2141,19 @@ describe('customize grouped variation scoped to a promo project (promo variation
             defaultVariations,
             regionVariations: {},
         };
+        const groupedVariationReferences = new Map(
+            groupedVariationPaths.map((path) => [
+                path,
+                { id: `grouped-${path}`, path: `/content/dam/mas/sandbox/en_US/${path}`, fields: { pznTags: ['mas:pzn/edu'] } },
+            ]),
+        );
         return [
             {
                 project,
                 promoMap: { '*': 'PROMO-CODE' },
                 fragmentPaths: new Set(project.fragmentPaths),
                 groupedVariationPaths: new Set(groupedVariationPaths),
+                groupedVariationReferences,
             },
         ];
     }
@@ -2273,12 +2280,12 @@ describe('customize grouped variation scoped to a promo project (promo variation
         const groupedDefaultVar = {
             id: 'grouped-default-var-id',
             path: '/content/dam/mas/sandbox/en_US/promotions/black-friday/PA-123/pzn/edu',
-            fields: { badge: 'GROUPED DEFAULT badge' },
+            fields: { badge: 'GROUPED DEFAULT badge', pznTags: ['mas:pzn/edu'] },
         };
         const groupedRegionVar = {
             id: 'grouped-region-var-id',
             path: '/content/dam/mas/sandbox/fr_BE/promotions/black-friday/PA-123/pzn/edu',
-            fields: { badge: 'GROUPED REGION badge' },
+            fields: { badge: 'GROUPED REGION badge', pznTags: ['mas:pzn/edu'] },
         };
         const promoProjectsEntry = buildPromoProjectsEntry(['PA-123/pzn/edu'], { 'PA-123/pzn/edu': groupedDefaultVar });
         promoProjectsEntry[0].project.regionVariations = { 'PA-123/pzn/edu': groupedRegionVar };

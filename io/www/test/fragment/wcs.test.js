@@ -238,6 +238,39 @@ describe('wcs typical cases', function () {
             },
         });
     });
+
+    // MWPW-204652: content transformers see the PR territory (context.country), but WCS must
+    // still be queried with the commerce country (context.wcsCountry) set at pipeline ingress.
+    it('uses wcsCountry (US) when set, over content country (PR) (MWPW-204652)', async function () {
+        fetchStub
+            .withArgs(sinon.match((url) => url.includes('web_commerce_artifact') && url.includes('country=US')))
+            .returns(createResponse(200, { resolvedOffers: [{ blah: 'blah' }] }));
+        context.wcsConfiguration = CONFIGURATION();
+        context.country = 'PR';
+        context.wcsCountry = 'US';
+        context.locale = 'es_PR';
+        delete context.body.fields.osi;
+        delete context.body.fields.promoCode;
+        context = await wcs.process(context);
+        const calledUrls = fetchStub.getCalls().map((call) => call.args[0]);
+        expect(calledUrls.some((url) => url.includes('country=US'))).to.be.true;
+        expect(calledUrls.some((url) => url.includes('country=PR'))).to.be.false;
+    });
+
+    it('falls back to getCountry when wcsCountry is absent (MWPW-204652)', async function () {
+        fetchStub
+            .withArgs(sinon.match((url) => url.includes('web_commerce_artifact') && url.includes('country=DE')))
+            .returns(createResponse(200, { resolvedOffers: [{ blah: 'blah' }] }));
+        context.wcsConfiguration = CONFIGURATION();
+        context.country = 'DE';
+        delete context.wcsCountry;
+        context.locale = 'de_DE';
+        delete context.body.fields.osi;
+        delete context.body.fields.promoCode;
+        context = await wcs.process(context);
+        const calledUrls = fetchStub.getCalls().map((call) => call.args[0]);
+        expect(calledUrls.some((url) => url.includes('country=DE'))).to.be.true;
+    });
 });
 
 describe('wcs corner cases', function () {

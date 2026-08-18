@@ -1379,7 +1379,7 @@ export class MasRepository extends LitElement {
      * @returns {Promise<Object>} The saved fragment
      */
     async saveFragment(fragmentStore, options = {}) {
-        const { withToast = true, refetchEtag = true } = options;
+        const { withToast = true, refetchEtag = true, errorMessage = 'Failed to save fragment.' } = options;
         if (withToast) showToast('Saving fragment...');
         this.operation.set(OPERATIONS.SAVE);
 
@@ -1420,7 +1420,7 @@ export class MasRepository extends LitElement {
             if (withToast) showToast('Fragment successfully saved.', 'positive');
             return savedFragment;
         } catch (error) {
-            this.processError(error, 'Failed to save fragment.');
+            this.processError(error, errorMessage);
             return false;
         } finally {
             this.operation.set(null);

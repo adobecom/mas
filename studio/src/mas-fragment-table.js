@@ -1,4 +1,4 @@
-import { LitElement, html, css } from 'lit';
+import { LitElement, html, css, nothing } from 'lit';
 import ReactiveController from './reactivity/reactive-controller.js';
 import { extractLocaleFromPath, generateCodeToUse, getService, showToast, previewFragmentOnPage } from './utils.js';
 import { getFragmentName } from './translation/translation-utils.js';
@@ -215,6 +215,7 @@ class MasFragmentTable extends LitElement {
 
     render() {
         const data = this.fragmentStore.value;
+        const validationErrors = data.getValidationErrors();
         return html`
             ${this.showVariationDialog
                 ? html`<mas-variation-dialog
@@ -284,7 +285,14 @@ class MasFragmentTable extends LitElement {
                 <sp-table-cell class="price">${this.price}</sp-table-cell>
                 <sp-table-cell class="status ${data.status?.toLowerCase()}-cell"
                     ><div class="status-dot"></div>
-                    <span class="status-text">${data.status}</span></sp-table-cell
+                    <span class="status-text">${data.status}</span>
+                    ${validationErrors.length
+                        ? html`<span
+                              class="validation-error-indicator"
+                              title="${validationErrors.map((error) => error.message).join('\n')}"
+                              ><sp-icon-alert class="validation-error-icon"></sp-icon-alert
+                          ></span>`
+                        : nothing}</sp-table-cell
                 >
                 <sp-table-cell class="actions">
                     ${this.failedPrice

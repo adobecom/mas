@@ -269,7 +269,9 @@ describe('pipeline corner cases', () => {
         // es_PR is a region of the ACOM es_ES default locale; defaultLanguage looks up the
         // es_ES default-locale fragment id, then fetches it hydrated.
         fetchStub
-            .withArgs('https://odin.adobe.com/adobe/contentFragments/byPath?path=/content/dam/mas/sandbox/es_ES/ccd-slice-wide-cc-all-app')
+            .withArgs(
+                'https://odin.adobe.com/adobe/contentFragments/byPath?path=/content/dam/mas/sandbox/es_ES/ccd-slice-wide-cc-all-app',
+            )
             .returns(createResponse(200, { id: 'some-es-es-fragment' }));
         fetchStub
             .withArgs('https://odin.adobe.com/adobe/contentFragments/some-es-es-fragment?references=all-hydrated')
@@ -291,7 +293,9 @@ describe('pipeline corner cases', () => {
         // es_PR is a region of the ACOM es_ES default locale; defaultLanguage looks up the
         // es_ES default-locale fragment id, then fetches it hydrated.
         fetchStub
-            .withArgs('https://odin.adobe.com/adobe/contentFragments/byPath?path=/content/dam/mas/sandbox/es_ES/ccd-slice-wide-cc-all-app')
+            .withArgs(
+                'https://odin.adobe.com/adobe/contentFragments/byPath?path=/content/dam/mas/sandbox/es_ES/ccd-slice-wide-cc-all-app',
+            )
             .returns(createResponse(200, { id: 'some-es-es-fragment' }));
         fetchStub
             .withArgs('https://odin.adobe.com/adobe/contentFragments/some-es-es-fragment?references=all-hydrated')

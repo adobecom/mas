@@ -52,6 +52,101 @@ describe('settings', () => {
             expect(result.secureLabel.override[0].locales).to.include('fr_FR');
         });
 
+        it('groups countries-only override into override array', () => {
+            const fragment = {
+                references: {
+                    ref1: { value: { fields: { name: 'hideTrialCTAs', valuetype: 'boolean', booleanValue: false } } },
+                    ref2: {
+                        value: {
+                            fields: { name: 'hideTrialCTAs', valuetype: 'boolean', booleanValue: true, countries: ['KR'] },
+                        },
+                    },
+                },
+            };
+            const result = collectSettingEntries(fragment);
+            expect(result.hideTrialCTAs.default).to.exist;
+            expect(result.hideTrialCTAs.override).to.have.length(1);
+            expect(result.hideTrialCTAs.override[0].countries).to.include('KR');
+        });
+
+        it('reads countries from country: prefix in locales field', () => {
+            const fragment = {
+                references: {
+                    ref1: { value: { fields: { name: 'hideTrialCTAs', valuetype: 'boolean', booleanValue: false } } },
+                    ref2: {
+                        value: {
+                            fields: {
+                                name: 'hideTrialCTAs',
+                                valuetype: 'boolean',
+                                booleanValue: true,
+                                locales: ['country:KR', 'country:JP'],
+                            },
+                        },
+                    },
+                },
+            };
+            const result = collectSettingEntries(fragment);
+            expect(result.hideTrialCTAs.override).to.have.length(1);
+            expect(result.hideTrialCTAs.override[0].countries).to.deep.equal(['KR', 'JP']);
+            expect(result.hideTrialCTAs.override[0].locales).to.deep.equal([]);
+        });
+
+        it('reads countries from data JSON field when countries field is absent', () => {
+            const fragment = {
+                references: {
+                    ref1: { value: { fields: { name: 'hideTrialCTAs', valuetype: 'boolean', booleanValue: false } } },
+                    ref2: {
+                        value: {
+                            fields: {
+                                name: 'hideTrialCTAs',
+                                valuetype: 'boolean',
+                                booleanValue: true,
+                                data: '{"countries":["KR","JP"]}',
+                            },
+                        },
+                    },
+                },
+            };
+            const result = collectSettingEntries(fragment);
+            expect(result.hideTrialCTAs.override).to.have.length(1);
+            expect(result.hideTrialCTAs.override[0].countries).to.deep.equal(['KR', 'JP']);
+        });
+
+        it('ignores malformed data JSON and treats entry as default', () => {
+            const fragment = {
+                references: {
+                    ref1: {
+                        value: {
+                            fields: { name: 'hideTrialCTAs', valuetype: 'boolean', booleanValue: true, data: 'not-json' },
+                        },
+                    },
+                },
+            };
+            const result = collectSettingEntries(fragment);
+            expect(result.hideTrialCTAs.default).to.exist;
+            expect(result.hideTrialCTAs.override).to.have.length(0);
+        });
+
+        it('treats entry as default when valid data JSON has no countries key', () => {
+            const fragment = {
+                references: {
+                    ref1: {
+                        value: {
+                            fields: {
+                                name: 'hideTrialCTAs',
+                                valuetype: 'boolean',
+                                booleanValue: true,
+                                data: '{"other":"value"}',
+                            },
+                        },
+                    },
+                },
+            };
+            const result = collectSettingEntries(fragment);
+            expect(result.hideTrialCTAs.default).to.exist;
+            expect(result.hideTrialCTAs.override).to.have.length(0);
+        });
+
         it('returns empty object when references is null', () => {
             expect(collectSettingEntries({})).to.deep.equal({});
             expect(collectSettingEntries({ references: null })).to.deep.equal({});
@@ -131,7 +226,14 @@ describe('settings', () => {
             const result = await getSettings(createContext());
             expect(result).to.deep.equal({
                 secureLabel: {
-                    default: { name: 'secureLabel', type: 'optional-text', booleanValue: true, textValue: '{{secure-label}}' },
+                    default: {
+                        name: 'secureLabel',
+                        type: 'optional-text',
+                        booleanValue: true,
+                        textValue: '{{secure-label}}',
+                        locales: [],
+                        countries: [],
+                    },
                     override: [],
                 },
             });
@@ -720,6 +822,64 @@ describe('settings', () => {
             const result = await settings.process(context);
             expect(result.body.settings).to.exist;
             expect(result.body.settings.checkoutWorkflow).to.equal('UCv3');
+        });
+
+        it('applies hideTrialCTAs country override when context country matches', async () => {
+            const context = {
+                locale: 'en_US',
+                country: 'KR',
+                body: { fields: { variant: 'plans' } },
+                promises: {
+                    settings: Promise.resolve({
+                        hideTrialCTAs: {
+                            default: {
+                                name: 'hideTrialCTAs',
+                                valuetype: 'boolean',
+                                booleanValue: false,
+                            },
+                            override: [
+                                {
+                                    name: 'hideTrialCTAs',
+                                    valuetype: 'boolean',
+                                    booleanValue: true,
+                                    countries: ['KR'],
+                                },
+                            ],
+                        },
+                    }),
+                },
+            };
+            const result = await settings.process(context);
+            expect(result.body.settings.hideTrialCTAs).to.be.true;
+        });
+
+        it('uses default when country does not match override', async () => {
+            const context = {
+                locale: 'en_US',
+                country: 'US',
+                body: { fields: { variant: 'plans' } },
+                promises: {
+                    settings: Promise.resolve({
+                        hideTrialCTAs: {
+                            default: {
+                                name: 'hideTrialCTAs',
+                                valuetype: 'boolean',
+                                booleanValue: false,
+                            },
+                            override: [
+                                {
+                                    name: 'hideTrialCTAs',
+                                    valuetype: 'boolean',
+                                    booleanValue: true,
+                                    countries: ['KR'],
+                                },
+                            ],
+                        },
+                    }),
+                },
+            };
+            const result = await settings.process(context);
+            expect(result.body.settings.hideTrialCTAs).to.be.false;
         });
 
         it('applies setting when templates is empty array (no template filter)', async () => {

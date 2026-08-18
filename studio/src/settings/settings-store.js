@@ -52,7 +52,12 @@ export const normalizeSettingFragment = (fragment) => {
               : fragment.getFieldValue('textValue');
     const overridesField = fragment.getFieldValue('overrides');
     const overrides = overridesField ? JSON.parse(overridesField) : [];
-    const locales = fragment.getFieldValues('locales');
+    const rawLocales = fragment.getFieldValues('locales');
+    const locales = rawLocales.filter((l) => !`${l}`.startsWith('country:'));
+    const countries =
+        data.countries?.length > 0
+            ? data.countries
+            : rawLocales.filter((l) => `${l}`.startsWith('country:')).map((l) => `${l}`.slice(8));
     const tags = fragment.getFieldValues('tags');
 
     return {
@@ -61,6 +66,7 @@ export const normalizeSettingFragment = (fragment) => {
         label,
         description: `${fragment.description || ''}`,
         locales,
+        countries,
         templateIds: fragment.getFieldValues('templates'),
         templateSummary: '',
         value: valueType === 'boolean' ? booleanValue : `${rawValue ?? ''}`,
@@ -131,6 +137,7 @@ const toResolverEntry = (record) => {
         name: record.name,
         templates: record.templateIds || [],
         locales: record.locales || [],
+        countries: record.countries || [],
         tags: record.tags || [],
         valuetype: record.valueType || 'text',
         booleanValue: record.booleanValue,
@@ -446,7 +453,12 @@ export class SettingsStore {
                     multiple: true,
                     values: override.templateIds,
                 });
-                upsertField(fields, { name: 'locales', type: 'text', multiple: true, values: override.locales });
+                upsertField(fields, {
+                    name: 'locales',
+                    type: 'text',
+                    multiple: true,
+                    values: [...(override.locales || []), ...(override.countries || []).map((c) => `country:${c}`)],
+                });
                 upsertField(fields, { name: 'tags', type: 'tag', multiple: true, values: override.tags });
                 upsertField(fields, { name: 'valuetype', type: 'text', multiple: false, values: [valueType] });
                 for (const valueField of valueFields) {
@@ -477,13 +489,15 @@ export class SettingsStore {
         const row = rowStore.value;
         const settingName = row.name;
         const locales = [...(override.locales || [])];
+        const countries = [...(override.countries || [])];
         let createdOverrideId = null;
         const valueType = resolveValueType(settingName, override.valueType, row.valueType);
         const booleanValue = resolveBooleanValue(valueType, override.value, override.booleanValue);
-        const localeTitle = locales.join(', ');
+        const localeTitle = locales.length ? locales.join(', ') : countries.join(', ');
         const fragmentName = await this.#resolveUniqueFragmentName({
             settingName,
             locales,
+            countries,
             templateIds: override.templateIds || [],
         });
 
@@ -499,6 +513,7 @@ export class SettingsStore {
                         name: settingName,
                         templateIds: override.templateIds || [],
                         locales,
+                        countries,
                         tags: override.tags || [],
                         valueType,
                         value: override.value,
@@ -524,8 +539,10 @@ export class SettingsStore {
         if (!currentOverride) return false;
 
         const locales = [...(override.locales || [])];
+        const countries = [...(override.countries || [])];
         const valueType = resolveValueType(row.name, override.valueType, currentOverride.valueType, row.valueType);
         const booleanValue = resolveBooleanValue(valueType, override.value, override.booleanValue);
+        const titleSuffix = locales.length ? locales.join(', ') : countries.join(', ');
 
         return this.#runMutation(
             async () => {
@@ -540,7 +557,12 @@ export class SettingsStore {
                     multiple: true,
                     values: override.templateIds || [],
                 });
-                upsertField(fields, { name: 'locales', type: 'text', multiple: true, values: locales });
+                upsertField(fields, {
+                    name: 'locales',
+                    type: 'text',
+                    multiple: true,
+                    values: [...locales, ...countries.map((c) => `country:${c}`)],
+                });
                 upsertField(fields, { name: 'tags', type: 'tag', multiple: true, values: override.tags || [] });
                 upsertField(fields, { name: 'valuetype', type: 'text', multiple: false, values: [valueType] });
                 for (const valueField of valueFields) {
@@ -549,7 +571,7 @@ export class SettingsStore {
 
                 await this.aem.sites.cf.fragments.save({
                     ...fragment,
-                    title: `${row.label} ${locales.join(', ')}`.trim(),
+                    title: `${row.label} ${titleSuffix}`.trim(),
                     fields,
                 });
             },
@@ -887,11 +909,16 @@ export class SettingsStore {
         await this.aem.sites.cf.fragments.publish(indexWithEtag, []);
     }
 
-    #buildFragmentName({ settingName, locales = [], templateIds = [] }) {
+    #buildFragmentName({ settingName, locales = [], countries = [], templateIds = [] }) {
         const baseName = normalizeKey(settingName);
         const normalizedLocales = [...new Set(locales.map((locale) => normalizeKey(`${locale}`)).filter((locale) => locale))];
+        const normalizedCountries = [...new Set(countries.map((c) => normalizeKey(`${c}`)).filter((c) => c))];
         const normalizedTemplates = [...new Set(templateIds.map((id) => normalizeKey(`${id}`)).filter((id) => id))];
-        const localeSegment = normalizedLocales.length ? normalizedLocales.join('-') : 'all';
+        const localeSegment = normalizedLocales.length
+            ? normalizedLocales.join('-')
+            : normalizedCountries.length
+              ? normalizedCountries.join('-')
+              : 'all';
         const templateSegment = normalizedTemplates.length ? normalizedTemplates.join('-') : 'all';
 
         return `${baseName}-${localeSegment}-${templateSegment}`;
@@ -946,8 +973,8 @@ export class SettingsStore {
         return fragment;
     }
 
-    async #resolveUniqueFragmentName({ settingName, locales = [], templateIds = [] }) {
-        const baseName = this.#buildFragmentName({ settingName, locales, templateIds });
+    async #resolveUniqueFragmentName({ settingName, locales = [], countries = [], templateIds = [] }) {
+        const baseName = this.#buildFragmentName({ settingName, locales, countries, templateIds });
         let candidate = baseName;
 
         for (let attempt = 0; attempt <= FRAGMENT_NAME_COLLISION_LIMIT; attempt += 1) {
@@ -960,11 +987,12 @@ export class SettingsStore {
         throw new Error(`Unable to find available fragment name for ${baseName}`);
     }
 
-    #buildEntryFields({ name, templateIds, locales, tags, valueType, value, booleanValue }) {
+    #buildEntryFields({ name, templateIds, locales, countries = [], tags, valueType, value, booleanValue }) {
+        const allLocales = [...locales, ...countries.map((c) => `country:${c}`)];
         const fields = [
             { name: 'name', type: 'text', multiple: false, values: [name] },
             { name: 'templates', type: 'text', multiple: true, values: templateIds },
-            { name: 'locales', type: 'text', multiple: true, values: locales },
+            { name: 'locales', type: 'text', multiple: true, values: allLocales },
             { name: 'tags', type: 'tag', multiple: true, values: tags },
             { name: 'valuetype', type: 'text', multiple: false, values: [valueType] },
         ];
@@ -997,9 +1025,10 @@ export class SettingsStore {
             const fragment = new Fragment(reference);
             const record = normalizeSettingFragment(fragment);
             const hasLocales = record.locales.length > 0;
+            const hasCountries = record.countries.length > 0;
             const fieldName = reference.fieldName || INDEX_REFERENCES_FIELD;
 
-            if (fieldName === INDEX_REFERENCES_FIELD && !hasLocales && !topLevelByName.has(record.name)) {
+            if (fieldName === INDEX_REFERENCES_FIELD && !hasLocales && !hasCountries && !topLevelByName.has(record.name)) {
                 topLevelByName.set(record.name, fragment);
                 continue;
             }
@@ -1060,8 +1089,9 @@ export class SettingsStore {
             const fragment = new Fragment(reference);
             const record = normalizeSettingFragment(fragment);
             const hasLocales = record.locales.length > 0;
+            const hasCountries = record.countries.length > 0;
             const fieldName = reference.fieldName || INDEX_REFERENCES_FIELD;
-            if (fieldName !== INDEX_REFERENCES_FIELD || hasLocales) return false;
+            if (fieldName !== INDEX_REFERENCES_FIELD || hasLocales || hasCountries) return false;
             return normalizeKey(record.name) === normalizedSettingName;
         });
     }
@@ -1074,6 +1104,7 @@ export class SettingsStore {
             label: parentLabel,
             locales: record.locales,
             locale: record.locales.join(', '),
+            countries: record.countries,
             templateIds: record.templateIds,
             template: this.formatTemplateSummary(record.templateIds),
             value: record.value,

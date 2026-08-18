@@ -310,6 +310,7 @@ class MasSettings extends LitElement {
             value: '',
             booleanValue: false,
             locales: [],
+            countries: [],
             addonEnabled: false,
         };
     }
@@ -354,6 +355,7 @@ class MasSettings extends LitElement {
             value,
             booleanValue: Boolean(form.booleanValue),
             locales: [...(form.locales || [])].sort(),
+            countries: [...(form.countries || [])].sort(),
             addonEnabled: Boolean(form.addonEnabled),
         };
     }
@@ -417,6 +419,7 @@ class MasSettings extends LitElement {
             value,
             booleanValue: Boolean(override.booleanValue),
             locales: [...(override.locales || [])],
+            countries: [...(override.countries || [])],
             addonEnabled: settingDefinition?.editor === 'addon' ? Boolean(override.booleanValue) : false,
         };
         this.formBaseline = structuredClone(this.form);
@@ -532,6 +535,7 @@ class MasSettings extends LitElement {
             value,
             booleanValue: Boolean(row.booleanValue),
             locales: [],
+            countries: [],
             addonEnabled: settingDefinition?.editor === 'addon' ? Boolean(row.booleanValue) : false,
         };
     };
@@ -701,6 +705,7 @@ class MasSettings extends LitElement {
 
         const payload = {
             locales: [...this.form.locales],
+            countries: [...(this.form.countries || [])],
             templateIds: [...this.form.templateIds],
             tags: [...this.form.tags],
             valueType,
@@ -969,6 +974,15 @@ class MasSettings extends LitElement {
         this.#setFormField('locales', [...detail.locales]);
     };
 
+    #handleOverrideCountriesChange = (event) => {
+        const raw = event.target.value;
+        const countries = raw
+            .split(',')
+            .map((c) => c.trim().toUpperCase())
+            .filter(Boolean);
+        this.#setFormField('countries', countries);
+    };
+
     #handleQuantitySelectChange = (event) => {
         const value = event.detail?.value ?? event.currentTarget?.value;
         if (typeof value !== 'string') return;
@@ -1124,6 +1138,15 @@ class MasSettings extends LitElement {
                             .locale=${this.form.locales.join(',')}
                             @locale-changed=${this.#handleOverrideLocaleChange}
                         ></mas-locale-picker>
+                    </sp-field-group>
+                    <sp-field-group>
+                        <sp-field-label>Countries (comma-separated)</sp-field-label>
+                        <sp-textfield
+                            name="override-countries"
+                            .value=${(this.form.countries || []).join(', ')}
+                            placeholder="e.g. KR, JP"
+                            @change=${this.#handleOverrideCountriesChange}
+                        ></sp-textfield>
                     </sp-field-group>
                     ${this.tagsTemplate} ${this.overrideBooleanToggleTemplate}
                     <sp-field-group>

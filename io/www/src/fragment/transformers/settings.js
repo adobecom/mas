@@ -1,5 +1,5 @@
 import { odinUrl, odinReferences, REFERENCES } from '../utils/paths.js';
-import { COLLECTION_MODEL_ID, fetch, getFragmentId, getRegionalLocale, getRequestInfos } from '../utils/common.js';
+import { COLLECTION_MODEL_ID, fetch, getCountry, getFragmentId, getRegionalLocale, getRequestInfos } from '../utils/common.js';
 import { log, logDebug } from '../utils/log.js';
 
 const SETTINGS_ID_PATH = 'settings/index';
@@ -127,15 +127,29 @@ export function collectSettingEntries(settingFragment) {
             value: { fields },
         } = ref;
         if (!fields) continue;
-        const { name, locales, tags } = fields;
+        const { name, tags } = fields;
+        const rawLocales = fields.locales || [];
+        const locales = rawLocales.filter((l) => !`${l}`.startsWith('country:'));
+        let countries =
+            fields.countries?.length > 0
+                ? fields.countries
+                : rawLocales.filter((l) => `${l}`.startsWith('country:')).map((l) => `${l}`.slice(8));
+        if (!countries.length && fields.data) {
+            try {
+                countries = JSON.parse(fields.data)?.countries || [];
+            } catch {
+                // malformed data field — ignore
+            }
+        }
         if (!name) continue;
         if (!grouped[name]) {
             grouped[name] = { default: null, override: [] };
         }
-        if (locales?.length > 0 || tags?.length > 0) {
-            grouped[name].override.push(fields);
+        const normalizedFields = { ...fields, locales, countries };
+        if (locales?.length > 0 || countries.length > 0 || tags?.length > 0) {
+            grouped[name].override.push(normalizedFields);
         } else {
-            grouped[name].default = fields;
+            grouped[name].default = normalizedFields;
         }
     }
 
@@ -166,7 +180,7 @@ async function init(initContext) {
     return await getSettings(initContext);
 }
 
-export function resolveSettingEntry(fragment, locale, setting) {
+export function resolveSettingEntry(fragment, locale, setting, country) {
     const defaultEntry = setting.default;
     if (!defaultEntry) return null;
     const template = fragment.fields?.variant;
@@ -189,6 +203,8 @@ export function resolveSettingEntry(fragment, locale, setting) {
     const filtered = setting.override.filter((overrideSetting) => {
         const localeOk =
             !overrideSetting.locales || overrideSetting.locales.length === 0 || overrideSetting.locales.includes(locale);
+        const countryOk =
+            !overrideSetting.countries || overrideSetting.countries.length === 0 || overrideSetting.countries.includes(country);
         const tagsOk =
             !overrideSetting.tags ||
             overrideSetting.tags.length === 0 ||
@@ -197,7 +213,7 @@ export function resolveSettingEntry(fragment, locale, setting) {
             !overrideSetting.templates ||
             overrideSetting.templates.length === 0 ||
             overrideSetting.templates.includes(template);
-        return localeOk && tagsOk && templateOk;
+        return localeOk && countryOk && tagsOk && templateOk;
     });
     if (filtered.length === 0) return defaultEntry;
     let bestMatch = defaultEntry;
@@ -239,10 +255,10 @@ export function applyPlaceholderRemaps(fragment, remaps, context) {
     }
 }
 
-function applySettings(context, fragment, locale, settings) {
+function applySettings(context, fragment, locale, settings, country) {
     const remaps = {};
     for (const key of Object.keys(settings)) {
-        const entry = resolveSettingEntry(fragment, locale, settings[key]);
+        const entry = resolveSettingEntry(fragment, locale, settings[key], country);
         if (!entry) continue;
         if (entry.name === PLACEHOLDER_REMAP_SETTING) {
             // remap is a field-rewrite directive, not a card setting: collect it and skip the settings write
@@ -263,11 +279,11 @@ function applySettings(context, fragment, locale, settings) {
     logDebug(() => `Applying settings for fragment ${fragment.id}: ${JSON.stringify(fragment.settings)}`, context);
 }
 
-function applyCollectionSettings(context, locale, settings) {
+function applyCollectionSettings(context, locale, settings, country) {
     if (context.body?.references) {
         Object.entries(context.body.references).forEach(([key, ref]) => {
             if (ref && ref.type === 'content-fragment') {
-                applySettings(context, ref.value, locale, settings);
+                applySettings(context, ref.value, locale, settings, country);
             }
         });
     }
@@ -352,12 +368,13 @@ async function settings(context) {
 
     const { body } = context;
     const locale = getRegionalLocale(context);
+    const country = getCountry(context);
 
     if (settings) {
         if (body?.model?.id === COLLECTION_MODEL_ID) {
-            applyCollectionSettings(context, locale, settings);
+            applyCollectionSettings(context, locale, settings, country);
         } else {
-            applySettings(context, body, locale, settings);
+            applySettings(context, body, locale, settings, country);
         }
     }
 

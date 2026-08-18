@@ -384,11 +384,13 @@ export class MasRepository extends LitElement {
         return true;
     }
 
-    testIsNarrowing(prev, next) {
+    /** Test-only accessor. Not part of the public API — do not call from production code. */
+    testOnlyIsNarrowing(prev, next) {
         return this.#isNarrowing(prev, next);
     }
 
-    testApplyInMemoryFilter(stores, criteria) {
+    /** Test-only accessor. Not part of the public API — do not call from production code. */
+    testOnlyApplyInMemoryFilter(stores, criteria) {
         return this.#applyInMemoryFilter(stores, criteria);
     }
 

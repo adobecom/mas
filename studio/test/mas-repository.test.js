@@ -4413,7 +4413,7 @@ describe('status filter narrowing', () => {
 
     it('treats adding a status to an unfiltered list as narrowing', () => {
         const repository = createRepository();
-        const narrowed = repository.testIsNarrowing(
+        const narrowed = repository.testOnlyIsNarrowing(
             { query: '', tags: [], variants: [], contentTypes: [], createdBy: [], status: [] },
             { query: '', tags: [], variants: [], contentTypes: [], createdBy: [], status: ['DRAFT'] },
         );
@@ -4422,7 +4422,7 @@ describe('status filter narrowing', () => {
 
     it('treats removing a status as widening (must refetch)', () => {
         const repository = createRepository();
-        const narrowed = repository.testIsNarrowing(
+        const narrowed = repository.testOnlyIsNarrowing(
             { query: '', tags: [], variants: [], contentTypes: [], createdBy: [], status: ['DRAFT'] },
             { query: '', tags: [], variants: [], contentTypes: [], createdBy: [], status: ['DRAFT', 'NEW'] },
         );
@@ -4431,7 +4431,7 @@ describe('status filter narrowing', () => {
 
     it('treats tightening to a subset as narrowing', () => {
         const repository = createRepository();
-        const narrowed = repository.testIsNarrowing(
+        const narrowed = repository.testOnlyIsNarrowing(
             { query: '', tags: [], variants: [], contentTypes: [], createdBy: [], status: ['DRAFT', 'NEW'] },
             { query: '', tags: [], variants: [], contentTypes: [], createdBy: [], status: ['DRAFT'] },
         );
@@ -4444,7 +4444,7 @@ describe('status filter narrowing', () => {
             { value: { id: 'a', path: '/a', status: 'DRAFT', tags: [], fields: [] } },
             { value: { id: 'b', path: '/b', status: 'PUBLISHED', tags: [], fields: [] } },
         ];
-        const result = repository.testApplyInMemoryFilter(stores, {
+        const result = repository.testOnlyApplyInMemoryFilter(stores, {
             query: '',
             tags: [],
             variants: [],

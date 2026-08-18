@@ -7,10 +7,17 @@ import {
     getItemTitle,
     shouldIgnoreRowClickForSelection,
     getStudioFragmentDisplayPath,
+    renderInheritedTagsNotice,
 } from '../../../src/common/utils/render-utils.js';
 import { generateCodeToUse } from '../../../src/utils.js';
 import Store from '../../../src/store.js';
-import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, DICTIONARY_MODEL_PATH, FRAGMENT_STATUS } from '../../../src/constants.js';
+import {
+    CARD_MODEL_PATH,
+    COLLECTION_MODEL_PATH,
+    DICTIONARY_MODEL_PATH,
+    FRAGMENT_STATUS,
+    BASELINE_VARIATION,
+} from '../../../src/constants.js';
 
 describe('render-utils', () => {
     describe('renderFragmentStatusCell', () => {
@@ -216,6 +223,24 @@ describe('render-utils', () => {
             const result = getStudioFragmentDisplayPath(fragment);
             expect(result).to.include('EXPRESS');
             expect(result).not.to.include('SANDBOX');
+        });
+    });
+
+    describe('renderInheritedTagsNotice', () => {
+        it('renders the baseline-variation text and tooltip content', () => {
+            const container = document.createElement('div');
+            render(renderInheritedTagsNotice(), container);
+            expect(container.querySelector('.text-with-tooltip')).to.exist;
+            expect(container.textContent).to.include(BASELINE_VARIATION.TEXT);
+            const tooltip = container.querySelector('sp-tooltip');
+            expect(tooltip?.textContent.trim()).to.equal(BASELINE_VARIATION.TOOLTIP_TEXT);
+        });
+
+        it('renders the info icon inside the overlay trigger slot', () => {
+            const container = document.createElement('div');
+            render(renderInheritedTagsNotice(), container);
+            const trigger = container.querySelector('div[slot="trigger"]');
+            expect(trigger?.querySelector('sp-icon-info')).to.exist;
         });
     });
 

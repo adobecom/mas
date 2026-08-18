@@ -350,6 +350,8 @@ export class MasRepository extends LitElement {
      * result implies at least one dimension is strictly narrower.
      */
     #isNarrowing(prev, next) {
+        const prevStatus = prev.status ?? [];
+        const nextStatus = next.status ?? [];
         const queryNarrowed =
             prev.query === next.query ||
             (next.query && (!prev.query || next.query.toLowerCase().includes(prev.query.toLowerCase())));
@@ -359,11 +361,13 @@ export class MasRepository extends LitElement {
             prev.variants.length === 0 || (next.variants.length > 0 && isSubset(prev.variants, next.variants));
         const contentTypesNarrowed =
             prev.contentTypes.length === 0 || (next.contentTypes.length > 0 && isSubset(prev.contentTypes, next.contentTypes));
+        const statusNarrowed = prevStatus.length === 0 || (nextStatus.length > 0 && isSubset(prevStatus, nextStatus));
         return (
             queryNarrowed &&
             isSuperset(prev.tags, next.tags) &&
             variantsNarrowed &&
             contentTypesNarrowed &&
+            statusNarrowed &&
             isSuperset(prev.createdBy, next.createdBy)
         );
     }
@@ -380,7 +384,15 @@ export class MasRepository extends LitElement {
         return true;
     }
 
-    #applyInMemoryFilter(stores, { query, tags, variants, contentTypes, createdBy }) {
+    testIsNarrowing(prev, next) {
+        return this.#isNarrowing(prev, next);
+    }
+
+    testApplyInMemoryFilter(stores, criteria) {
+        return this.#applyInMemoryFilter(stores, criteria);
+    }
+
+    #applyInMemoryFilter(stores, { query, tags, variants, contentTypes, createdBy, status = [] }) {
         const tagPredicate = filterByTags(tags);
         const personalizationOn = this.filters.value.personalizationFilterEnabled === true;
         const lowerQuery = query?.toLowerCase() || '';
@@ -392,6 +404,7 @@ export class MasRepository extends LitElement {
             if (this.#skipVariant(variants, item)) return false;
             if (!matchesContentTypeFilter(contentTypes, item)) return false;
             if (!tagPredicate(item)) return false;
+            if (status.length && !status.includes(item.status)) return false;
             if (createdByLc.length) {
                 const itemCreatedBy = (item.created?.by || '').toLowerCase();
                 if (!itemCreatedBy || !createdByLc.includes(itemCreatedBy)) return false;

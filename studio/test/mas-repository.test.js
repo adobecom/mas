@@ -4407,3 +4407,51 @@ describe('MasRepository bulkPublishFragments', () => {
         expect(repo.refreshFragment.calledTwice).to.be.true;
     });
 });
+
+describe('status filter narrowing', () => {
+    const createRepository = () => new MasRepository();
+
+    it('treats adding a status to an unfiltered list as narrowing', () => {
+        const repository = createRepository();
+        const narrowed = repository.testIsNarrowing(
+            { query: '', tags: [], variants: [], contentTypes: [], createdBy: [], status: [] },
+            { query: '', tags: [], variants: [], contentTypes: [], createdBy: [], status: ['DRAFT'] },
+        );
+        expect(narrowed).to.equal(true);
+    });
+
+    it('treats removing a status as widening (must refetch)', () => {
+        const repository = createRepository();
+        const narrowed = repository.testIsNarrowing(
+            { query: '', tags: [], variants: [], contentTypes: [], createdBy: [], status: ['DRAFT'] },
+            { query: '', tags: [], variants: [], contentTypes: [], createdBy: [], status: ['DRAFT', 'NEW'] },
+        );
+        expect(narrowed).to.equal(false);
+    });
+
+    it('treats tightening to a subset as narrowing', () => {
+        const repository = createRepository();
+        const narrowed = repository.testIsNarrowing(
+            { query: '', tags: [], variants: [], contentTypes: [], createdBy: [], status: ['DRAFT', 'NEW'] },
+            { query: '', tags: [], variants: [], contentTypes: [], createdBy: [], status: ['DRAFT'] },
+        );
+        expect(narrowed).to.equal(true);
+    });
+
+    it('filters in memory on item.status, not tags', () => {
+        const repository = createRepository();
+        const stores = [
+            { value: { id: 'a', path: '/a', status: 'DRAFT', tags: [], fields: [] } },
+            { value: { id: 'b', path: '/b', status: 'PUBLISHED', tags: [], fields: [] } },
+        ];
+        const result = repository.testApplyInMemoryFilter(stores, {
+            query: '',
+            tags: [],
+            variants: [],
+            contentTypes: [],
+            createdBy: [],
+            status: ['DRAFT'],
+        });
+        expect(result.map((store) => store.value.id)).to.deep.equal(['a']);
+    });
+});

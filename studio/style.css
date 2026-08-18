@@ -16,6 +16,10 @@ sp-theme {
     background-color: var(--spectrum-background-layer-1-color);
 }
 
+div.preview-content.columns.mas-fragment sp-theme {
+    background-color: initial;
+}
+
 mas-studio {
     width: 100%;
     display: flex;

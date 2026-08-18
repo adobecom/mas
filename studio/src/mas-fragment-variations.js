@@ -46,6 +46,7 @@ class MasFragmentVariations extends LitElement {
         duplicateLoading: { type: Boolean, state: true },
         selectedTab: { type: String, state: true },
         orphanPromoVariations: { type: Array, state: true },
+        promotionGeosByTag: { type: Object, state: true },
     };
 
     reactiveController = new ReactiveController(this, [
@@ -65,9 +66,11 @@ class MasFragmentVariations extends LitElement {
         this.duplicateLoading = false;
         this.selectedTab = Store.fragments.variationSearchTab.get() || 'locale';
         this.orphanPromoVariations = [];
+        this.promotionGeosByTag = new Map();
     }
 
     #orphanPromoVariationsLoader = createKeyedAsyncLoader();
+    #promotionGeosFallbackLoader = createKeyedAsyncLoader();
 
     createRenderRoot() {
         return this;
@@ -99,6 +102,7 @@ class MasFragmentVariations extends LitElement {
         if (highlightId && this.#hasVariationInParent(highlightId)) {
             this.scrollToHighlightedVariation();
         }
+        void this.#loadPromotionGeosFallback();
         void this.#loadOrphanPromoVariationsFallback();
     }
 

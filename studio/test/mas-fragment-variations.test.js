@@ -15,6 +15,8 @@ describe('MasFragmentVariations', () => {
 
     afterEach(() => {
         sandbox.restore();
+        Store.promotions.list.data.set([]);
+        Store.promotions.list.data.removeMeta('listFetched');
     });
 
     const createVariationFragment = (overrides = {}) => ({
@@ -534,6 +536,7 @@ describe('MasFragmentVariations', () => {
         });
 
         it('renders a baseline-variation notice instead of the tag picker when the promo variation has no pznTags', async () => {
+            const parentPath = '/content/dam/mas/sandbox/en_US/my-card';
             const promoVariation = createVariationFragment({
                 id: 'promo-var-legacy',
                 path: '/content/dam/mas/sandbox/en_US/promotions/cyber-monday/my-card',
@@ -637,7 +640,7 @@ describe('MasFragmentVariations', () => {
             };
 
             const el = await fixture(html`<mas-fragment-variations .fragment=${fragment}></mas-fragment-variations>`);
-            el.togglePromoVariation('promo-var-baseline');
+            el.togglePromoVariation('promo-var-legacy');
             await el.updateComplete;
 
             expect(el.querySelector('aem-tag-picker-field')).to.be.null;

@@ -269,19 +269,19 @@ function findPromoVariation(root, customizeContext, selectedPromoProject) {
     const { project } = selectedPromoProject;
     const { regionLocale, country } = customizeContext;
 
-    const variations = root?.fields?.variations;
     const { references } = customizeContext;
     const groupedVariationPaths = selectedPromoProject.groupedVariationPaths;
-    const eligibleVariations =
-        variations?.length && groupedVariationPaths?.size
-            ? variations.filter((variationId) => {
-                  const path = references[variationId]?.value?.path;
-                  return path && groupedVariationPaths.has(PATH_TOKENS.exec(path).groups.fragmentPath);
-              })
-            : variations;
-    const personalizationVariation = eligibleVariations?.length
-        ? findPersonalizationVariation(eligibleVariations, customizeContext)
-        : null;
+    const variations = root?.fields?.variations;
+    const personalizationVariation =
+        groupedVariationPaths?.size && variations?.length
+            ? findPersonalizationVariation(
+                  variations.filter((variationId) => {
+                      const path = references[variationId]?.value?.path;
+                      return path && groupedVariationPaths.has(PATH_TOKENS.exec(path).groups.fragmentPath);
+                  }),
+                  customizeContext,
+              )
+            : null;
 
     if (personalizationVariation) {
         const { fragmentPath: groupedFragmentPath } = PATH_TOKENS.exec(personalizationVariation.path).groups;
@@ -301,6 +301,14 @@ function findPromoVariation(root, customizeContext, selectedPromoProject) {
     const { fragmentPath } = PATH_TOKENS.exec(root.path).groups;
     const variation = resolvePromoVariationForPath(project, fragmentPath, { regionLocale, country });
     if (!variation) {
+        if (
+            groupedVariationPaths?.size &&
+            !personalizationVariation &&
+            variations?.length &&
+            findPersonalizationVariation(variations, customizeContext)
+        ) {
+            return { variation: {}, project };
+        }
         return {};
     }
     logDebug(() => `Merging promo variation ${variation.id} for fragment ${root.id}`, customizeContext);

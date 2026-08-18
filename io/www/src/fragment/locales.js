@@ -563,6 +563,29 @@ export function geoCacheKey(locale, country) {
     return { locale, country: keyCountry };
 }
 
+/**
+ * Territories whose commerce (WCS) country differs from their content country.
+ * PR content is merchandised as its own geo, but WCS has no PR pricing, so it is
+ * priced as US. Keyed by full M@S locale. Add a territory as one entry.
+ * @type {Record<string, { country: string, wcsCountry: string }>}
+ */
+const TERRITORY_MAP = {
+    es_PR: { country: 'PR', wcsCountry: 'US' }, // MWPW-204652: PR content, US pricing
+};
+
+/**
+ * Resolve the content country and WCS country for a request. For a territory locale
+ * (e.g. es_PR) the two differ; for everyone else both equal the incoming country.
+ * @param {string} locale - request locale (e.g. 'es_PR')
+ * @param {string|undefined} country - incoming request country
+ * @returns {{ country: string|undefined, wcsCountry: string|undefined }}
+ */
+export function resolveTerritoryCountries(locale, country) {
+    const entry = TERRITORY_MAP[locale];
+    if (!entry) return { country, wcsCountry: country };
+    return { ...entry };
+}
+
 export const parseLocaleCode = (localeCode) => localeCode?.split('_') ?? [];
 
 /**

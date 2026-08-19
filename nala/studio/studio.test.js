@@ -276,8 +276,8 @@ test.describe('M@S Studio feature test suite', () => {
             await expect(studio.fragmentsTable).toBeVisible();
             await studio.fragmentsTable.scrollIntoViewIfNeeded();
             await studio.fragmentsTable.click();
-            await page.waitForTimeout(2000);
             await expect(studio.renderView).toBeVisible();
+            await studio.waitForCardsLoaded();
         });
 
         await test.step('step-4: Verify fragment has correct variant', async () => {

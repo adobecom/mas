@@ -62,7 +62,7 @@ test.describe('M@S Studio - Variations Page test suite', () => {
             await expect(studio.fragmentsTable).toBeVisible();
             await studio.fragmentsTable.scrollIntoViewIfNeeded();
             await studio.fragmentsTable.click();
-            await page.waitForTimeout(2000);
+            await studio.waitForCardsLoaded();
             await expect(await studio.getCard(clonedFragmentId)).toBeVisible();
             await studio.switchToTableView();
             await expect(await studio.tableViewFragmentTable(clonedFragmentId)).toBeVisible();
@@ -101,7 +101,7 @@ test.describe('M@S Studio - Variations Page test suite', () => {
             await expect(studio.fragmentsTable).toBeVisible();
             await studio.fragmentsTable.scrollIntoViewIfNeeded();
             await studio.fragmentsTable.click();
-            await page.waitForTimeout(2000);
+            await studio.waitForCardsLoaded();
             await studio.switchToTableView();
             await expect(await studio.tableView).toBeVisible();
             await expect(await studio.tableViewFragmentTable(clonedFragmentId)).toBeVisible();
@@ -236,6 +236,7 @@ test.describe('M@S Studio - Variations Page test suite', () => {
 
         await test.step('step-6: Verify variation is deleted', async () => {
             await expect(await editor.panel).not.toBeVisible();
+            await studio.waitForCardsLoaded();
             await expect(await studio.getCard(clonedFragmentId)).toBeVisible();
             await studio.switchToTableView();
             await expect(await studio.tableViewFragmentTable(clonedFragmentId)).toBeVisible();

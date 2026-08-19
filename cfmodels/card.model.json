@@ -1,27 +1,33 @@
 {
     "variant": {
         "fieldLabel": "Variant",
-        "type": "string"
+        "type": "string",
+        "maxLength": 255
     },
     "osi": {
         "fieldLabel": "OSI",
-        "type": "string"
+        "type": "string",
+        "maxLength": 255
     },
     "size": {
         "fieldLabel": "Size",
-        "type": "string"
+        "type": "string",
+        "maxLength": 255
     },
     "mnemonicIcon": {
         "fieldLabel": "Mnemonic  Icon",
-        "type": "string[]"
+        "type": "string[]",
+        "maxLength": 255
     },
     "mnemonicAlt": {
         "fieldLabel": "Mnemonic Alt",
-        "type": "string[]"
+        "type": "string[]",
+        "maxLength": 255
     },
     "mnemonicLink": {
         "fieldLabel": "Mnemonic Link",
-        "type": "string[]"
+        "type": "string[]",
+        "maxLength": 255
     },
     "badge": {
         "fieldLabel": "Badge",
@@ -33,35 +39,43 @@
     },
     "backgroundColor": {
         "fieldLabel": "Background Color",
-        "type": "string"
+        "type": "string",
+        "maxLength": 255
     },
     "borderColor": {
         "fieldLabel": "border Color",
-        "type": "string"
+        "type": "string",
+        "maxLength": 255
     },
     "backgroundImage": {
         "fieldLabel": "Background Image",
-        "type": "string"
+        "type": "string",
+        "maxLength": 255
     },
     "backgroundImageAltText": {
         "fieldLabel": "Background Image Alt Text",
-        "type": "string"
+        "type": "string",
+        "maxLength": 255
     },
     "cardTitle": {
         "fieldLabel": "Card title",
-        "type": "string"
+        "type": "string",
+        "maxLength": 500
     },
     "cardName": {
         "fieldLabel": "Card name",
-        "type": "string"
+        "type": "string",
+        "maxLength": 255
     },
     "cardTitleLink": {
         "fieldLabel": "Card title link",
-        "type": "string"
+        "type": "string",
+        "maxLength": 255
     },
     "subtitle": {
         "fieldLabel": "Subtitle",
-        "type": "string"
+        "type": "string",
+        "maxLength": 255
     },
     "prices": {
         "fieldLabel": "Prices",
@@ -73,11 +87,13 @@
     },
     "promoText": {
         "fieldLabel": "Promo Text",
-        "type": "string"
+        "type": "string",
+        "maxLength": 500
     },
     "promoCode": {
         "fieldLabel": "Promo Code",
-        "type": "string"
+        "type": "string",
+        "maxLength": 255
     },
     "description": {
         "fieldLabel": "Description",
@@ -97,15 +113,18 @@
     },
     "quantitySelect": {
         "fieldLabel": "Quantity Select",
-        "type": "string"
+        "type": "string",
+        "maxLength": 255
     },
     "addon": {
         "fieldLabel": "Addon",
-        "type": "string"
+        "type": "string",
+        "maxLength": 255
     },
     "addonConfirmation": {
         "fieldLabel": "Addon Confirmation",
-        "type": "string"
+        "type": "string",
+        "maxLength": 255
     },
     "ctas": {
         "fieldLabel": "CTAs",
@@ -121,7 +140,8 @@
     },
     "whatsIncluded": {
         "fieldLabel": "Whats Included",
-        "type": "string"
+        "type": "string",
+        "maxLength": 100000 
     },
     "tags": {
         "fieldLabel": "Tags",
@@ -133,11 +153,13 @@
     },
     "perUnitLabel": {
         "fieldLabel": "Per Unit Label",
-        "type": "string"
+        "type": "string",
+        "maxLength": 255
     },
     "originalId": {
         "fieldLabel": "Original ID",
-        "type": "string"
+        "type": "string",
+        "maxLength": 255
     },
     "compatVersion": {
         "fieldLabel": "Compatibility version",
@@ -153,7 +175,8 @@
     },
     "variables": {
         "fieldLabel": "Variables",
-        "type": "string[]"
+        "type": "string[]",
+        "maxLength": 255
     },
     "customFields": {
         "fieldLabel": "Custom Fields",
@@ -161,6 +184,7 @@
     },
     "customFieldLabels": {
         "fieldLabel": "Custom Field Labels",
-        "type": "string[]"
+        "type": "string[]",
+        "maxLength": 255
     }
 }

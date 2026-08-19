@@ -8,7 +8,8 @@ model definition rather than hand-maintained. Each `<technicalName>.model.json` 
     "fieldName": {
         "fieldLabel": "Display label",
         "type": "string | string[] | number | boolean | datetime | tag | tag[] | long-text | long-text[] | content-fragment | content-fragment[] | content-reference | enum",
-        "options": [{ "label": "...", "value": "..." }]
+        "options": [{ "label": "...", "value": "..." }],
+        "maxLength": 0
     }
 }
 ```
@@ -16,7 +17,8 @@ model definition rather than hand-maintained. Each `<technicalName>.model.json` 
 _you need to execute this before publishing any change to your model_
 _publish only if the PR is approved_
 
-`options` is only present for `enum` fields.
+`options` is only present for `enum` fields. `maxLength` is only present when AEM sets a character
+limit (`maxlength`) on the field's widget.
 
 ## Generating one
 

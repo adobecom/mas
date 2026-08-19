@@ -202,6 +202,7 @@ class MasPlaceholdersItem extends LitElement {
                                   <div class="rte-container">
                                       <rte-field
                                           link
+                                          icon
                                           .maxLength=${500}
                                           @change=${this.handleRteValueChange}
                                           @click=${this.preventSelection}

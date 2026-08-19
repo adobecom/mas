@@ -134,6 +134,7 @@ class MasPlaceholdersCreationModal extends LitElement {
                                           <rte-field
                                               id="placeholder-rich-value"
                                               link
+                                              icon
                                               .maxLength=${500}
                                               @change=${this.handleValueChange}
                                               .disabled=${this.saving}

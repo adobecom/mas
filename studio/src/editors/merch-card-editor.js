@@ -395,6 +395,26 @@ class MerchCardEditor extends LitElement {
         return this.#renderOverrideIndicatorLink(() => this.resetFieldToParent(fieldName));
     }
 
+    renderValidationBanner() {
+        const errors = this.fragment?.getValidationErrors() ?? [];
+        if (!errors.length) return nothing;
+        return html`
+            <div class="fragment-validation-banner" role="alert">
+                <sp-icon-alert class="fragment-validation-banner-icon"></sp-icon-alert>
+                <div class="fragment-validation-banner-body">
+                    <span class="fragment-validation-banner-title">This fragment has validation errors.</span>
+                    ${errors.map(
+                        (error) =>
+                            html`<span class="fragment-validation-banner-message"
+                                ><span class="fragment-validation-banner-property">${error.property}</span>:
+                                ${error.message}</span
+                            >`,
+                    )}
+                </div>
+            </div>
+        `;
+    }
+
     isSectionOverridden(fieldNames) {
         if (!this.isVariation || !this.localeDefaultFragment) {
             return false;
@@ -1236,10 +1256,43 @@ class MerchCardEditor extends LitElement {
                     --mod-combobox-background-color-default: var(--spectrum-blue-100);
                 }
 
+                .fragment-validation-banner {
+                    display: flex;
+                    gap: 8px;
+                    align-items: flex-start;
+                    padding: 12px;
+                    margin-block-end: 16px;
+                    border-radius: 4px;
+                    border: 1px solid var(--merch-color-error, #d73220);
+                    background-color: var(--spectrum-red-100, #ffebe7);
+                    color: var(--merch-color-error, #d73220);
+                }
+
+                .fragment-validation-banner-body {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 4px;
+                }
+
+                .fragment-validation-banner-title {
+                    font-weight: 700;
+                }
+
+                .fragment-validation-banner-property {
+                    font-family: var(--spectrum-code-font-family, monospace);
+                    font-weight: 700;
+                }
+
+                .fragment-validation-banner-icon {
+                    flex-shrink: 0;
+                    color: var(--merch-color-error, #d73220);
+                }
+
                 ${fieldStatusStyles}
             </style>
             <div class="editor-skeleton-wrapper" style="--skeleton-display: ${skeletonDisplay}">${this.renderSkeleton()}</div>
             <div class="editor-form-container" style="--form-display: ${formDisplay}">
+                ${this.renderValidationBanner()}
                 <div class="section-title">General info</div>
                 <div class="two-column-grid">
                     <sp-field-group id="variant">

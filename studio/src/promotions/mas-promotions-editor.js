@@ -180,9 +180,7 @@ class MasPromotionsEditor extends LitElement {
             this.loadingPromotion = true;
             try {
                 this.#resetPromotionItemStores();
-                if (!this.fragmentStore) {
-                    await this.#loadPromotionById(promotionId);
-                }
+                await this.#loadPromotionById(promotionId);
                 await this.#hydratePromotionItemSelectionFromFragment();
             } finally {
                 this.loadingPromotion = false;
@@ -1398,6 +1396,26 @@ class MasPromotionsEditor extends LitElement {
         this.canEdit = canEditPromotions();
     }
 
+    renderValidationBanner() {
+        const errors = this.fragment?.getValidationErrors() ?? [];
+        if (!errors.length) return nothing;
+        return html`
+            <div class="fragment-validation-banner" role="alert">
+                <sp-icon-alert class="fragment-validation-banner-icon"></sp-icon-alert>
+                <div class="fragment-validation-banner-body">
+                    <span class="fragment-validation-banner-title">This promotion has validation errors.</span>
+                    ${errors.map(
+                        (error) =>
+                            html`<span class="fragment-validation-banner-message"
+                                ><span class="fragment-validation-banner-property">${error.property}</span>:
+                                ${error.message}</span
+                            >`,
+                    )}
+                </div>
+            </div>
+        `;
+    }
+
     render() {
         let form = nothing;
         if (this.fragment) {
@@ -1421,6 +1439,7 @@ class MasPromotionsEditor extends LitElement {
                 }}
             ></mas-promotion-duplicate-dialog>
             <div class="promotions-form-container">
+                ${this.renderValidationBanner()}
                 <div class="promotions-form-header">
                     <h1>${this.isNewPromotion ? 'Create new promotion project' : 'Edit promotion project'}</h1>
                 </div>

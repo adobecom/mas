@@ -250,7 +250,7 @@ async function wcs(context) {
 
         // Convert Map values back to array
         const tokens = Array.from(tokenMap.values());
-        const country = getCountry(context);
+        const country = context.wcsCountry ?? getCountry(context);
         const wcsContext = {
             locale: getRegionalLocale(context),
             country,

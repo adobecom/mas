@@ -300,6 +300,50 @@ describe('promotions', () => {
             expect(result.activeProjects).to.have.length(0);
         });
 
+        it('does not apply a US-scoped promo project to an es_PR (country=PR) request (MWPW-204652)', async () => {
+            const project = makeProject({ surfaces: ['acom'], geos: ['/content/cq:tags/mas/country/us'] });
+            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+
+            const result = await promotionsTransformer.init(
+                createContext({
+                    locale: 'es_PR',
+                    country: 'PR',
+                    promises: {
+                        defaultLanguage: Promise.resolve({
+                            status: 200,
+                            defaultLocale: 'es_ES',
+                            regionLocale: 'es_PR',
+                            surface: 'acom',
+                        }),
+                    },
+                }),
+            );
+            expect(result.activeProjects).to.have.length(0);
+        });
+
+        it('applies a PR-scoped promo project to an es_PR (country=PR) request (MWPW-204652)', async () => {
+            const project = makeProject({ surfaces: ['acom'], geos: ['/content/cq:tags/mas/country/pr'] });
+            const hydrated = makeHydratedProject();
+            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+            fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
+
+            const result = await promotionsTransformer.init(
+                createContext({
+                    locale: 'es_PR',
+                    country: 'PR',
+                    promises: {
+                        defaultLanguage: Promise.resolve({
+                            status: 200,
+                            defaultLocale: 'es_ES',
+                            regionLocale: 'es_PR',
+                            surface: 'acom',
+                        }),
+                    },
+                }),
+            );
+            expect(result.activeProjects).to.have.length(1);
+        });
+
         it('returns all matching projects in folder order', async () => {
             const p1 = makeProject({
                 id: 'proj-1',

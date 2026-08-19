@@ -1,7 +1,8 @@
 {
     "title": {
         "fieldLabel": "Title",
-        "type": "string"
+        "type": "string",
+        "maxLength": 255
     },
     "status": {
         "fieldLabel": "Status",
@@ -13,7 +14,8 @@
     },
     "items": {
         "fieldLabel": "Items",
-        "type": "string"
+        "type": "string",
+        "maxLength": 999
     },
     "fragments": {
         "fieldLabel": "fragments",
@@ -49,6 +51,7 @@
     },
     "snapshots": {
         "fieldLabel": "snapshots",
-        "type": "string[]"
+        "type": "string[]",
+        "maxLength": 255
     }
 }

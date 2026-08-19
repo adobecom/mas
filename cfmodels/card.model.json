@@ -141,7 +141,7 @@
     "whatsIncluded": {
         "fieldLabel": "Whats Included",
         "type": "string",
-        "maxLength": 100000 
+        "maxLength": 100000
     },
     "tags": {
         "fieldLabel": "Tags",

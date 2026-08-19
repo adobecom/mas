@@ -354,6 +354,48 @@
                         expect(a.innerText).to.equal('ebodA');
                     });
 
+                    it('generates a read-only CTA reference when creating a CTA link', async function () {
+                        rte = await createFromTemplate('rte-ctas', this.test.title);
+                        await delay(100);
+                        await openLinkEditor(rte);
+                        // A brand-new ctas link gets a key minted up-front, shown read-only.
+                        expect(rte.linkEditorElement.showCtaReference).to.be.true;
+                        expect(rte.linkEditorElement.ctaRefElement.readonly).to.be.ok;
+                        const key = rte.linkEditorElement.ctaRef;
+                        expect(key).to.have.lengthOf(10);
+
+                        rte.linkEditorElement.href = 'https://www.adobe.com';
+                        rte.linkEditorElement.text = 'Buy now';
+                        rte.linkEditorElement.requestUpdate();
+                        await rte.linkEditorElement.updateComplete;
+                        clickSave(rte);
+                        await delay(100);
+                        expect(firstLink().getAttribute('data-key')).to.equal(key);
+                    });
+
+                    it('surfaces the existing key and lets a variation retarget it to a parent CTA', async function () {
+                        rte = await createFromTemplate('rte-link', this.test.title);
+                        rte.isVariation = true;
+                        rte.parentCtas = [{ text: 'Save today', key: 'save-today' }];
+                        rte.value = '<a class="accent" data-key="abc1234xyz" data-wcs-osi="abm">Buy now</a>';
+                        await delay(100);
+                        rte.selectLink(1);
+                        await delay(100);
+                        await openLinkEditor(rte);
+                        expect(rte.linkEditorElement.showCtaReference).to.be.true;
+                        expect(rte.linkEditorElement.isVariation).to.be.true;
+                        expect(rte.linkEditorElement.ctaRef).to.equal('abc1234xyz');
+
+                        // Picking a parent CTA sets the reference key.
+                        const picker = rte.linkEditorElement.shadowRoot.getElementById('ctaRefPicker');
+                        picker.value = 'save-today';
+                        picker.dispatchEvent(new Event('change'));
+                        await rte.linkEditorElement.updateComplete;
+                        clickSave(rte);
+                        await delay(100);
+                        expect(firstLink().getAttribute('data-key')).to.equal('save-today');
+                    });
+
                     it('should open the link editor on selection and support update', async function () {
                         rte = await createFromTemplate('rte', this.test.title);
                         await selectWordsInTextNode(rte.editorView, 'only');
@@ -698,6 +740,9 @@
         </template>
         <template id="rte-link">
             <rte-field id="ctas" link><a href="https://www.adobe.com" title="adobe.com homepage">Adobe</a> </rte-field>
+        </template>
+        <template id="rte-ctas">
+            <rte-field id="ctas" link><p>Text only</p></rte-field>
         </template>
         <template id="rte-upt">
             <rte-field link upt-link><a class="upt-link" href="#" title="Terms link">See terms</a> </rte-field>

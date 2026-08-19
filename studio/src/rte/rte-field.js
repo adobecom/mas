@@ -74,8 +74,10 @@ class LinkNodeView {
         if (node.type !== this.node.type) {
             return false;
         }
+        // Preserve the existing key when a transaction drops it, but let an
+        // explicitly authored key (from the link editor) replace it.
         const oldKey = this.dom.getAttribute(LINK_KEY_ATTR);
-        if (oldKey) node.attrs[LINK_KEY_ATTR] = oldKey;
+        if (oldKey && node.attrs[LINK_KEY_ATTR] == null) node.attrs[LINK_KEY_ATTR] = oldKey;
         this.node = node;
 
         // Update attributes (excluding 'text')
@@ -208,6 +210,8 @@ class RteField extends LitElement {
         floatingToolbar: { type: Boolean, attribute: 'floating-toolbar' },
         osi: { type: String },
         value: { type: String },
+        isVariation: { type: Boolean, attribute: 'is-variation' },
+        parentCtas: { type: Array },
     };
 
     static get styles() {
@@ -754,6 +758,8 @@ class RteField extends LitElement {
         this.hideOfferSelector = false;
         this.floatingToolbar = false;
         this.osi = '';
+        this.isVariation = false;
+        this.parentCtas = [];
         this.marks = ['heading-xxxs', 'heading-xxs', 'heading-xs', 'heading-s', 'heading-m', 'promo-text', 'mnemonic-text'];
         this.#boundHandlers = {
             escKey: this.#handleEscKey.bind(this),
@@ -1414,6 +1420,7 @@ class RteField extends LitElement {
                 analyticsId: selection.node.attrs['data-analytics-id'] || '',
                 checkoutParameters,
                 ctaToggleText: selection.node.attrs['data-cta-toggle-text'] || '',
+                ctaRef: selection.node.attrs[LINK_KEY_ATTR] || '',
             };
         }
 
@@ -1433,6 +1440,7 @@ class RteField extends LitElement {
                 analyticsId: '',
                 checkoutParameters,
                 ctaToggleText: '',
+                ctaRef: '',
             };
         }
 
@@ -1447,6 +1455,7 @@ class RteField extends LitElement {
             analyticsId: '',
             checkoutParameters,
             ctaToggleText: '',
+            ctaRef: '',
         };
     }
 
@@ -1469,7 +1478,7 @@ class RteField extends LitElement {
     }
 
     #handleLinkSave(event) {
-        const { href, text, title, ariaLabel, target, variant, analyticsId, ctaToggleText } = event.detail;
+        const { href, text, title, ariaLabel, target, variant, analyticsId, ctaToggleText, ctaRef } = event.detail;
 
         let { checkoutParameters } = event.detail;
         const { state, dispatch } = this.editorView;
@@ -1497,6 +1506,10 @@ class RteField extends LitElement {
             'data-analytics-id': analyticsId || null,
             'data-cta-toggle-text': ctaToggleText || null,
         };
+
+        if (ctaRef !== undefined) {
+            linkAttrs[LINK_KEY_ATTR] = ctaRef || null;
+        }
 
         const content = state.schema.text(text || selection.node.textContent);
         if (selection.node?.type.name === 'link') {
@@ -1745,9 +1758,20 @@ class RteField extends LitElement {
 
     async openLinkEditor() {
         const attrs = this.#getLinkAttrs();
+        const node = this.editorView?.state?.selection?.node;
+        const showCtaReference = this.id === 'ctas' || !!node?.attrs?.[LINK_KEY_ATTR];
+        // The reference key is generated on creation and shown read-only, so mint it
+        // now when a CTA link has none yet rather than waiting for serialization.
+        if (showCtaReference && !attrs.ctaRef) attrs.ctaRef = this.#generateLinkKey();
         this.showLinkEditor = true;
         await this.updateComplete;
-        Object.assign(this.linkEditorElement, { ...attrs, open: true });
+        Object.assign(this.linkEditorElement, {
+            ...attrs,
+            showCtaReference,
+            isVariation: this.isVariation,
+            parentCtas: this.parentCtas,
+            open: true,
+        });
     }
 
     async openIconEditor() {

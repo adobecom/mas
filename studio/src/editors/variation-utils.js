@@ -82,6 +82,18 @@ export function normalizePznTagToLocaleCode(tag, surface, preferredLang) {
     return countryTagLeafToLocaleCode(leaf, surface, preferredLang);
 }
 
+/** Parses CTA HTML and returns an array of `{ text, href, key }` objects, one per anchor.
+ *  Uses a <template> element so checkout-link custom elements are never upgraded and their
+ *  attributes (href, data-key, data-wcs-osi, …) are preserved exactly as stored. */
+export function parseCtas(html) {
+    if (!html || typeof html !== 'string') return [];
+    const template = document.createElement('template');
+    template.innerHTML = html;
+    return [...template.content.querySelectorAll('a')]
+        .map((a) => ({ text: a.textContent.trim(), href: a.getAttribute('href') || '', key: a.getAttribute('data-key') }))
+        .filter(({ text, href }) => text || href);
+}
+
 export function listLocaleVariations(fragment) {
     return fragment?.listLocaleVariations?.() || [];
 }

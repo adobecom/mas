@@ -3,6 +3,7 @@ import {
     EVENT_MAS_READY,
     FF_DEFAULTS,
     TEMPLATE_PRICE_LEGAL,
+    TRIAL_ANALYTICS_IDS,
 } from './constants.js';
 import { getService, shouldHideStPriceLabels } from './utils.js';
 import { COMPAT_VERSION_GLOBAL_PROMO_CODE } from './compat-version.js';
@@ -24,6 +25,29 @@ function contextPromotionCode(masField) {
     )
         return masField.getAttribute('data-promotion-code');
     return null;
+}
+
+/**
+ * Drops trial CTAs from already-resolved CTA markup when the fragment's
+ * hideTrialCTAs setting is on. merch-card applies this in its hydration path,
+ * but compare-plans tables render CTAs through mas-field instead, so the
+ * setting would otherwise have no effect there.
+ *
+ * Runs AFTER an indexed ref has been resolved, never before: filtering the
+ * anchor list first would renumber it, and a positional ref such as ctas[4]
+ * would then silently resolve to a different CTA. An indexed ref pointing at a
+ * trial CTA therefore renders nothing rather than shifting to its neighbour.
+ */
+function stripTrialCtas(html) {
+    const template = document.createElement('template');
+    template.innerHTML = html;
+    const anchors = [...template.content.querySelectorAll('a')];
+    const trials = anchors.filter((anchor) =>
+        TRIAL_ANALYTICS_IDS.has(anchor.dataset.analyticsId),
+    );
+    if (trials.length === 0) return html;
+    trials.forEach((anchor) => anchor.remove());
+    return template.innerHTML;
 }
 
 /**
@@ -119,6 +143,7 @@ class MasField extends HTMLElement {
     #field = null;
     #loaded = false;
     #fields = null;
+    #settings = null;
     #contentElement = null;
 
     /**
@@ -167,6 +192,7 @@ class MasField extends HTMLElement {
     #onFragmentLoad = (event) => {
         if (event.target !== this.aemFragment) return;
         this.#fields = event.detail?.fields || null;
+        this.#settings = event.detail?.settings ?? null;
         this.#loaded = true;
         this.#renderField();
         // Signal that this field finished loading and rendering, so a host (e.g. Milo's
@@ -303,6 +329,13 @@ class MasField extends HTMLElement {
             html = this.#unwrapSingleParagraph(fieldValue);
         }
         if (typeof html === 'string') {
+            if (
+                fieldName === 'ctas' &&
+                (this.#settings ?? this.aemFragment?.data?.settings)
+                    ?.hideTrialCTAs
+            ) {
+                html = stripTrialCtas(html);
+            }
             if (this.#field === 'ctas') {
                 const ctaEl = this.#renderCtaField(html);
                 if (ctaEl) {

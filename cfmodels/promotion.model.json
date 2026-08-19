@@ -1,7 +1,8 @@
 {
     "title": {
         "fieldLabel": "Title",
-        "type": "string"
+        "type": "string",
+        "maxLength": 255
     },
     "startDate": {
         "fieldLabel": "Start date",
@@ -13,7 +14,8 @@
     },
     "surfaces": {
         "fieldLabel": "Surfaces",
-        "type": "string[]"
+        "type": "string[]",
+        "maxLength": 255
     },
     "tags": {
         "fieldLabel": "Tag",
@@ -25,11 +27,13 @@
     },
     "offers": {
         "fieldLabel": "Offers",
-        "type": "string[]"
+        "type": "string[]",
+        "maxLength": 255
     },
     "promoCode": {
         "fieldLabel": "Promo Code",
-        "type": "string"
+        "type": "string",
+        "maxLength": 255
     },
     "variationStrategy": {
         "fieldLabel": "Variation Strategy",

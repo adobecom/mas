@@ -1,23 +1,28 @@
 {
     "label": {
         "fieldLabel": "Label",
-        "type": "string"
+        "type": "string",
+        "maxLength": 255
     },
     "navigationLabel": {
         "fieldLabel": "Navigation label",
-        "type": "string"
+        "type": "string",
+        "maxLength": 255
     },
     "queryLabel": {
         "fieldLabel": "Query label",
-        "type": "string"
+        "type": "string",
+        "maxLength": 255
     },
     "icon": {
         "fieldLabel": "Icon (dark)",
-        "type": "string"
+        "type": "string",
+        "maxLength": 255
     },
     "iconLight": {
         "fieldLabel": "Icon (light)",
-        "type": "string"
+        "type": "string",
+        "maxLength": 255
     },
     "cards": {
         "fieldLabel": "Cards",
@@ -29,11 +34,13 @@
     },
     "originalId": {
         "fieldLabel": "Original ID",
-        "type": "string"
+        "type": "string",
+        "maxLength": 255
     },
     "defaultchild": {
         "fieldLabel": "DefaultChild",
-        "type": "string"
+        "type": "string",
+        "maxLength": 255
     },
     "variations": {
         "fieldLabel": "Variations",
@@ -41,11 +48,13 @@
     },
     "searchText": {
         "fieldLabel": "Search Text",
-        "type": "string"
+        "type": "string",
+        "maxLength": 255
     },
     "tagFiltersTitle": {
         "fieldLabel": "Tag filters title",
-        "type": "string"
+        "type": "string",
+        "maxLength": 255
     },
     "tagFilters": {
         "fieldLabel": "Tag filters",
@@ -57,23 +66,28 @@
     },
     "linksTitle": {
         "fieldLabel": "Links Title",
-        "type": "string"
+        "type": "string",
+        "maxLength": 255
     },
     "link": {
         "fieldLabel": "Link",
-        "type": "string"
+        "type": "string",
+        "maxLength": 255
     },
     "linkText": {
         "fieldLabel": "Link text",
-        "type": "string"
+        "type": "string",
+        "maxLength": 255
     },
     "linkIcon": {
         "fieldLabel": "Link icon",
-        "type": "string"
+        "type": "string",
+        "maxLength": 255
     },
     "pageSize": {
         "fieldLabel": "Page size",
-        "type": "string"
+        "type": "string",
+        "maxLength": 255
     },
     "compareChart": {
         "fieldLabel": "Compare Chart",

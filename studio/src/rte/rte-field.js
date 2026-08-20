@@ -1793,8 +1793,9 @@ class RteField extends LitElement {
     }
 
     /** Assigns a fresh unique key to every link missing one or sharing a key with an earlier link,
-     *  leaving already-unique keys untouched so existing references keep resolving. */
-    #handleFixCtaKeys() {
+     *  leaving already-unique keys untouched so existing references keep resolving. Public so both
+     *  the link editor and the field-level indicator can trigger the same normalization. */
+    fixCtaKeys() {
         const { state, dispatch } = this.editorView;
         let tr = state.tr;
         const seen = new Set();
@@ -1810,6 +1811,11 @@ class RteField extends LitElement {
             seen.add(key);
         });
         if (tr.docChanged) dispatch(tr);
+    }
+
+    #handleFixCtaKeys() {
+        this.fixCtaKeys();
+        // Refresh the open link editor with the current link's (possibly new) key and cleared issues.
         Object.assign(this.linkEditorElement, {
             ctaRef: this.editorView.state.selection.node?.attrs?.[LINK_KEY_ATTR] ?? this.linkEditorElement.ctaRef,
             ctaKeyIssues: getCtaKeyIssues(this.#collectCtaKeys()),

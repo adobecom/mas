@@ -401,18 +401,34 @@ class MerchCardEditor extends LitElement {
         return this.#renderOverrideIndicatorLink(() => this.resetFieldToParent(fieldName));
     }
 
-    /** On a variation, flags reference-key problems in the base fragment's CTAs (missing or
-     *  duplicated keys) that would keep this variation's `cta[<key>]` references from resolving. */
+    /** Flags reference-key problems (missing or duplicated `data-key`) in the CTAs field that would
+     *  keep `cta[<key>]` references from resolving. On a variation the offending CTAs live in the base
+     *  fragment and can only be fixed there; on a baseline the author can normalize them in place. */
     renderCtaKeyWarning() {
-        if (!this.effectiveIsVariation) return nothing;
-        const issues = getCtaKeyIssues(this.parentCtas);
+        if (this.effectiveIsVariation) {
+            const issues = getCtaKeyIssues(this.parentCtas);
+            if (!issues.hasIssues) return nothing;
+            return html`
+                <div class="field-status-indicator field-status-indicator--error" role="alert">
+                    <sp-icon-alert class="field-status-icon"></sp-icon-alert>
+                    <span class="field-status-label">Base fragment CTAs need fixing (${summarizeCtaKeyIssues(issues)}).</span>
+                </div>
+            `;
+        }
+        const issues = getCtaKeyIssues(parseCtas(this.fragment?.getFieldValue('ctas', 0) || ''));
         if (!issues.hasIssues) return nothing;
         return html`
             <div class="field-status-indicator field-status-indicator--error" role="alert">
                 <sp-icon-alert class="field-status-icon"></sp-icon-alert>
-                <span class="field-status-label">Base fragment CTAs need fixing (${summarizeCtaKeyIssues(issues)}).</span>
+                <span class="field-status-label">CTA references need fixing (${summarizeCtaKeyIssues(issues)}).</span>
+                <a href="#" class="field-status-restore-link" @click=${(e) => this.#fixCtaKeys(e)}>Fix references</a>
             </div>
         `;
+    }
+
+    #fixCtaKeys(event) {
+        event.preventDefault();
+        this.querySelector('rte-field#ctas')?.fixCtaKeys();
     }
 
     renderValidationBanner() {

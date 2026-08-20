@@ -39,7 +39,7 @@ import { splitPromotionTagsFieldValues } from './promotions/promotion-editor-uti
 import { applySearchSurfaceFromPath } from './common/utils/render-utils.js';
 import * as promotionsRepository from './promotions/promotions-repository.js';
 import { normalizeTagId } from './aem/tag-id-utils.js';
-import { getItemsSelectionStore, setItemsSelectionStore } from './common/items-selection-store.js';
+import { pushItemsSelectionStore, popItemsSelectionStore } from './common/items-selection-store.js';
 import './mas-variation-dialog.js';
 import './mas-related-variations.js';
 import { getCountryName, getDefaultLocaleCode, getLocaleByCode } from '../../io/www/src/fragment/locales.js';
@@ -613,7 +613,7 @@ export default class MasFragmentEditor extends LitElement {
     #pendingVariationParents = new Map();
     #promotionGeoOptionsLoader = createKeyedAsyncLoader();
     #disabledPromoGeoOptionsLoader = createKeyedAsyncLoader();
-    #itemsSelectionStoreSnapshot = null;
+    #itemsSelectionStoreToken = null;
     titleClone = '';
     tagsClone = [];
     osiClone = null;
@@ -654,8 +654,7 @@ export default class MasFragmentEditor extends LitElement {
 
     connectedCallback() {
         super.connectedCallback();
-        this.#itemsSelectionStoreSnapshot = getItemsSelectionStore({ allowUnset: true });
-        setItemsSelectionStore(Store.fragmentEditor.itemsSelection);
+        this.#itemsSelectionStoreToken = pushItemsSelectionStore(Store.fragmentEditor.itemsSelection);
         if (this.#shouldInitFragment()) {
             this.initFragment();
         }
@@ -663,7 +662,8 @@ export default class MasFragmentEditor extends LitElement {
 
     disconnectedCallback() {
         super.disconnectedCallback();
-        setItemsSelectionStore(this.#itemsSelectionStoreSnapshot);
+        popItemsSelectionStore(this.#itemsSelectionStoreToken);
+        this.#itemsSelectionStoreToken = null;
     }
 
     willUpdate(changedProperties) {

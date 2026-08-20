@@ -73,7 +73,7 @@
         <script type="module">
             import { runTests } from '@web/test-runner-mocha';
             import { expect } from '@esm-bundle/chai';
-            import { html } from 'lit';
+            import { html, render } from 'lit';
             // Import actual components
             import '../../src/swc.js';
             import '../../src/rte/rte-field.js';
@@ -1456,6 +1456,34 @@
                         it('renders no banner when validationStatus is empty', async () => {
                             const { editor } = await setupTestEnvironment({}, 'validation-none');
                             expect(editor.querySelector('.fragment-validation-banner')).to.not.exist;
+                        });
+                    });
+
+                    describe('CTA reference key warning', () => {
+                        const makeEditor = (ctasHtml) => {
+                            const editor = document.createElement('merch-card-editor');
+                            editor.isVariation = true;
+                            editor.localeDefaultFragment = new Fragment({
+                                path: '/content/dam/mas/x/en_US/base',
+                                fields: [{ name: 'ctas', values: [ctasHtml] }],
+                            });
+                            return editor;
+                        };
+
+                        it('flags base fragment CTA key issues on a variation', () => {
+                            const editor = makeEditor('<a data-key="dup">A</a><a data-key="dup">B</a><a>C</a>');
+                            const container = document.createElement('div');
+                            render(editor.renderCtaKeyWarning(), container);
+                            expect(container.textContent).to.contain('Base fragment CTAs need fixing');
+                            expect(container.textContent).to.contain('1 without a reference key');
+                            expect(container.textContent).to.contain('1 duplicated');
+                        });
+
+                        it('renders nothing when base CTA keys are clean', () => {
+                            const editor = makeEditor('<a data-key="a">A</a><a data-key="b">B</a>');
+                            const container = document.createElement('div');
+                            render(editor.renderCtaKeyWarning(), container);
+                            expect(container.textContent.trim()).to.equal('');
                         });
                     });
                 });

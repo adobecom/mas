@@ -10,6 +10,7 @@ import { history, undo, redo } from 'prosemirror-history';
 import { openOfferSelectorTool, attributeFilter, closeOfferSelectorTool } from './ost.js';
 import prosemirrorStyles from './prosemirror.css.js';
 import { EVENT_OST_SELECT } from '../constants.js';
+import { getCtaKeyIssues } from '../editors/variation-utils.js';
 import throttle from '../utils/throttle.js';
 import './rte-mnemonic-editor.js';
 import './rte-link-editor.js';
@@ -766,6 +767,7 @@ class RteField extends LitElement {
             ostEvent: this.#handleOstEvent.bind(this),
             addUptLink: this.#addUptLink.bind(this),
             linkSave: this.#handleLinkSave.bind(this),
+            fixCtaKeys: this.#handleFixCtaKeys.bind(this),
             iconSave: this.#handleIconSave.bind(this),
             mnemonicSave: this.#handleMnemonicSave.bind(this),
             focusout: this.#handleFocusout.bind(this),
@@ -1763,6 +1765,12 @@ class RteField extends LitElement {
         // The reference key is generated on creation and shown read-only, so mint it
         // now when a CTA link has none yet rather than waiting for serialization.
         if (showCtaReference && !attrs.ctaRef) attrs.ctaRef = this.#generateLinkKey();
+        // On a variation the reference targets the parent's CTAs; on a baseline it targets this
+        // field's own CTAs. Either set may carry legacy (missing) or duplicated keys to flag.
+        let ctaKeyIssues = { missingCount: 0, duplicateKeys: [], hasIssues: false };
+        if (this.id === 'ctas') {
+            ctaKeyIssues = getCtaKeyIssues(this.isVariation ? this.parentCtas : this.#collectCtaKeys());
+        }
         this.showLinkEditor = true;
         await this.updateComplete;
         Object.assign(this.linkEditorElement, {
@@ -1770,7 +1778,41 @@ class RteField extends LitElement {
             showCtaReference,
             isVariation: this.isVariation,
             parentCtas: this.parentCtas,
+            ctaKeyIssues,
             open: true,
+        });
+    }
+
+    /** Reference keys of every link in the current editor content, in document order. */
+    #collectCtaKeys() {
+        const ctas = [];
+        this.editorView?.state.doc.descendants((node) => {
+            if (node.type.name === 'link') ctas.push({ key: node.attrs[LINK_KEY_ATTR] });
+        });
+        return ctas;
+    }
+
+    /** Assigns a fresh unique key to every link missing one or sharing a key with an earlier link,
+     *  leaving already-unique keys untouched so existing references keep resolving. */
+    #handleFixCtaKeys() {
+        const { state, dispatch } = this.editorView;
+        let tr = state.tr;
+        const seen = new Set();
+        state.doc.descendants((node, pos) => {
+            if (node.type.name !== 'link') return;
+            let key = node.attrs[LINK_KEY_ATTR];
+            if (!key || seen.has(key)) {
+                do {
+                    key = this.#generateLinkKey();
+                } while (seen.has(key));
+                tr = tr.setNodeMarkup(pos, undefined, { ...node.attrs, [LINK_KEY_ATTR]: key });
+            }
+            seen.add(key);
+        });
+        if (tr.docChanged) dispatch(tr);
+        Object.assign(this.linkEditorElement, {
+            ctaRef: this.editorView.state.selection.node?.attrs?.[LINK_KEY_ATTR] ?? this.linkEditorElement.ctaRef,
+            ctaKeyIssues: getCtaKeyIssues(this.#collectCtaKeys()),
         });
     }
 
@@ -1944,6 +1986,7 @@ class RteField extends LitElement {
             dialog
             .linkAttrs=${attributes}
             @save="${this.#boundHandlers.linkSave}"
+            @fix-cta-keys="${this.#boundHandlers.fixCtaKeys}"
         ></rte-link-editor>`;
     }
 

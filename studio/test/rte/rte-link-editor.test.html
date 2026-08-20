@@ -176,6 +176,42 @@
                         linkEditor.shadowRoot.getElementById('saveButton').click();
                         expect(await listener).to.equal('seemore');
                     });
+
+                    it('shows a non-actionable warning on a variation when the base fragment has issues', async function () {
+                        const linkEditor = await createFromTemplate('ctaRefVariation', this.test.title);
+                        linkEditor.ctaKeyIssues = { missingCount: 1, duplicateKeys: ['dup'], hasIssues: true };
+                        await linkEditor.updateComplete;
+
+                        const notice = linkEditor.ctaKeyIssuesElement;
+                        expect(notice).to.exist;
+                        expect(notice.textContent).to.contain('Base fragment CTAs need fixing');
+                        expect(notice.textContent).to.contain('1 without a reference key');
+                        expect(notice.textContent).to.contain('1 duplicated');
+                        // The variation author cannot fix the base fragment from here.
+                        expect(notice.querySelector('sp-link')).to.not.exist;
+                    });
+
+                    it('offers a Fix action on a baseline that dispatches fix-cta-keys', async function () {
+                        const linkEditor = await createFromTemplate('ctaRefBaseline', this.test.title);
+                        linkEditor.ctaKeyIssues = { missingCount: 2, duplicateKeys: [], hasIssues: true };
+                        await linkEditor.updateComplete;
+
+                        const notice = linkEditor.ctaKeyIssuesElement;
+                        expect(notice).to.exist;
+                        expect(notice.textContent).to.contain('This CTA field has reference issues');
+                        const fixLink = notice.querySelector('sp-link');
+                        expect(fixLink).to.exist;
+
+                        const listener = oneEvent(linkEditor, 'fix-cta-keys');
+                        fixLink.click();
+                        expect((await listener).type).to.equal('fix-cta-keys');
+                    });
+
+                    it('hides the issues notice when there are none', async function () {
+                        const linkEditor = await createFromTemplate('ctaRefBaseline', this.test.title);
+                        await linkEditor.updateComplete;
+                        expect(linkEditor.ctaKeyIssuesElement).to.not.exist;
+                    });
                 });
             });
         </script>

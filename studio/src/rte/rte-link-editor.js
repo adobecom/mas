@@ -1,6 +1,7 @@
 import { LitElement, css, html, nothing } from 'lit';
 import { classMap } from 'lit/directives/class-map.js';
 import { CHECKOUT_CTA_TEXTS, ANALYTICS_LINK_IDS } from '../constants.js';
+import { summarizeCtaKeyIssues } from '../editors/variation-utils.js';
 
 export class RteLinkEditor extends LitElement {
     static properties = {
@@ -28,6 +29,7 @@ export class RteLinkEditor extends LitElement {
         parentCtas: { type: Array },
         isVariation: { type: Boolean, attribute: 'is-variation' },
         showCtaReference: { type: Boolean, attribute: 'show-cta-reference' },
+        ctaKeyIssues: { type: Object },
     };
 
     static styles = css`
@@ -105,6 +107,18 @@ export class RteLinkEditor extends LitElement {
         .cta-reference sp-picker {
             flex: 0 0 auto;
         }
+
+        .cta-reference-error {
+            margin-top: 6px;
+            font-size: 12px;
+            line-height: 16px;
+            color: var(--spectrum-red-800, #d31510);
+        }
+
+        .cta-reference-error sp-link {
+            color: inherit;
+            font: inherit;
+        }
     `;
 
     constructor() {
@@ -124,6 +138,7 @@ export class RteLinkEditor extends LitElement {
         this.parentCtas = [];
         this.isVariation = false;
         this.showCtaReference = false;
+        this.ctaKeyIssues = { missingCount: 0, duplicateKeys: [], hasIssues: false };
     }
 
     get #checkoutParametersField() {
@@ -176,13 +191,30 @@ export class RteLinkEditor extends LitElement {
         return this.shadowRoot.querySelector('#analyticsId');
     }
 
+    get #ctaKeyIssuesNotice() {
+        if (!this.ctaKeyIssues?.hasIssues) return nothing;
+        const summary = summarizeCtaKeyIssues(this.ctaKeyIssues);
+        // On a variation the broken CTAs live in the base fragment and can only be fixed there;
+        // on a baseline the author can normalize this field's own keys in place.
+        if (this.isVariation) {
+            return html`<div class="cta-reference-error" role="alert">
+                Base fragment CTAs need fixing (${summary}). References may not resolve until the base fragment is corrected.
+            </div>`;
+        }
+        return html`<div class="cta-reference-error" role="alert">
+            This CTA field has reference issues (${summary}).
+            <sp-link href="#" @click=${this.#handleFixCtaKeys}>Fix references</sp-link>
+        </div>`;
+    }
+
     get #ctaReferenceField() {
         if (!this.showCtaReference) return nothing;
         // The reference key is generated on creation; it is always read-only.
         // On a variation, a picker lets the author align it to a parent baseline CTA.
         if (!this.isVariation) {
             return html` <sp-field-label for="ctaRef">CTA reference</sp-field-label>
-                <sp-textfield id="ctaRef" readonly .value=${this.ctaRef}></sp-textfield>`;
+                <sp-textfield id="ctaRef" readonly .value=${this.ctaRef}></sp-textfield>
+                ${this.#ctaKeyIssuesNotice}`;
         }
         const options = this.parentCtas.filter((cta) => cta.key);
         return html` <sp-field-label for="ctaRef">CTA reference</sp-field-label>
@@ -198,11 +230,21 @@ export class RteLinkEditor extends LitElement {
                         ${options.map((cta) => html`<sp-menu-item value="${cta.key}">${cta.text || cta.key}</sp-menu-item>`)}
                     </sp-menu>
                 </sp-picker>
-            </div>`;
+            </div>
+            ${this.#ctaKeyIssuesNotice}`;
+    }
+
+    #handleFixCtaKeys(e) {
+        e?.preventDefault();
+        this.dispatchEvent(new CustomEvent('fix-cta-keys', { bubbles: true, composed: true }));
     }
 
     get ctaRefElement() {
         return this.shadowRoot.querySelector('#ctaRef');
+    }
+
+    get ctaKeyIssuesElement() {
+        return this.shadowRoot.querySelector('.cta-reference-error');
     }
 
     get #linkVariants() {

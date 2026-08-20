@@ -29,7 +29,7 @@ import { toAttribute } from '../aem/tag-path-utils.js';
 import { getGlobalSettingsDefaults } from '../settings/settings-store.js';
 import { fieldStatusStyles } from '../common/fields/field-status.css.js';
 import { getLocaleByCode } from '../../../io/www/src/fragment/locales.js';
-import { normalizePznTagToLocaleCode, parseCtas } from './variation-utils.js';
+import { normalizePznTagToLocaleCode, parseCtas, getCtaKeyIssues, summarizeCtaKeyIssues } from './variation-utils.js';
 import { parseProWhatsIncluded, serializeProWhatsIncluded } from '../utils/pro-whats-included.js';
 
 const QUANTITY_MODEL = 'quantitySelect';
@@ -399,6 +399,20 @@ class MerchCardEditor extends LitElement {
         if (!this.effectiveIsVariation) return nothing;
         if (this.getFieldState(fieldName) !== 'overridden') return nothing;
         return this.#renderOverrideIndicatorLink(() => this.resetFieldToParent(fieldName));
+    }
+
+    /** On a variation, flags reference-key problems in the base fragment's CTAs (missing or
+     *  duplicated keys) that would keep this variation's `cta[<key>]` references from resolving. */
+    renderCtaKeyWarning() {
+        if (!this.effectiveIsVariation) return nothing;
+        const issues = getCtaKeyIssues(this.parentCtas);
+        if (!issues.hasIssues) return nothing;
+        return html`
+            <div class="field-status-indicator field-status-indicator--error" role="alert">
+                <sp-icon-alert class="field-status-icon"></sp-icon-alert>
+                <span class="field-status-label">Base fragment CTAs need fixing (${summarizeCtaKeyIssues(issues)}).</span>
+            </div>
+        `;
     }
 
     renderValidationBanner() {
@@ -1719,7 +1733,7 @@ class MerchCardEditor extends LitElement {
                         default-link-style="primary-outline"
                         @change="${this.#handleFragmentUpdate}"
                     ></rte-field>
-                    ${this.renderFieldStatusIndicator('ctas')}
+                    ${this.renderFieldStatusIndicator('ctas')} ${this.renderCtaKeyWarning()}
                 </sp-field-group>
                 <div class="section-header-row">
                     <div class="section-title">Options and settings</div>

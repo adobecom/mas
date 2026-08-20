@@ -12,9 +12,24 @@ A Chrome extension (Manifest V3) that detects merch cards rendered by `mas.js` o
 - **Card list**: the popup lists every card on the current page, filterable by variant
 - **Export** all card data as JSON
 
-## Installation
+## Install from a release
 
-The extension has no build step — load it directly from this directory:
+For everyone who just wants to use the extension. No repo clone, no Node.
+
+1. Open the [latest release](https://github.com/adobecom/mas/releases?q=extension&expanded=true) and download `mas-studio-extension.zip`
+2. Unzip it, and keep the unzipped folder somewhere permanent — Chrome loads the extension from that folder every time it starts, so deleting it uninstalls the extension
+3. Open Chrome and go to `chrome://extensions/`
+4. Turn on **Developer mode** (top-right toggle)
+5. Click **Load unpacked** and select the unzipped folder
+6. The extension icon appears in your toolbar
+
+Chrome does not auto-update extensions loaded this way. To update, download the new zip, unzip it over the same folder, then press the refresh icon on the extension card in `chrome://extensions/`.
+
+Chrome may warn about running extensions in developer mode on startup. That is expected for extensions installed outside the Chrome Web Store, and dismissing it keeps the extension enabled.
+
+## Install from source
+
+For contributors working on the extension itself. There is no build step — Chrome loads the working tree directly:
 
 1. Open Chrome and go to `chrome://extensions/`
 2. Enable **Developer mode** (top-right toggle)
@@ -24,11 +39,27 @@ The extension has no build step — load it directly from this directory:
 
 After changing code, click the refresh icon on the extension card in `chrome://extensions/`, then reload any open tabs where it's active.
 
+## Cutting a release
+
+Releases are built by `.github/workflows/extension-release.yaml`, which runs the tests, packages the zip, and attaches it to a GitHub release.
+
+1. Bump `version` in both `extension/manifest.json` and `extension/package.json` to the same value, and merge that to `main`
+2. Tag the merge commit and push the tag:
+
+    ```bash
+    git tag extension-v1.1.0
+    git push origin extension-v1.1.0
+    ```
+
+The tag must match both `version` fields or the workflow fails on purpose — that guard keeps the version Chrome displays honest about which build a user is running.
+
+To rehearse the packaging without publishing, run the workflow manually from the Actions tab with an empty tag input; it builds and uploads the zip as a workflow artifact but creates no release.
+
 ## Testing
 
 ```bash
 npm test        # unit tests (node:test, no dependencies)
-npm run package # build mas-studio-extension.zip for distribution
+npm run package # build the distributable zip locally (CI does this on release)
 ```
 
 Try it against a page with merch cards, e.g. `https://www.adobe.com/creativecloud/plans.html`.

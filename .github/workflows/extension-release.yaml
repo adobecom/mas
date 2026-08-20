@@ -1,0 +1,106 @@
+name: Extension Release
+
+on:
+    push:
+        tags:
+            - 'extension-v*'
+    workflow_dispatch:
+        inputs:
+            tag:
+                description: 'Tag to build (e.g. extension-v1.0.0). Leave empty to build the current ref without publishing.'
+                required: false
+
+permissions:
+    contents: write
+
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: false
+
+jobs:
+    release:
+        name: Package and publish
+        runs-on: ubuntu-latest
+        timeout-minutes: 10
+
+        steps:
+            # workflow_dispatch input is attacker-controllable in principle, so it
+            # is validated against the tag naming scheme before reaching checkout.
+            - name: Resolve ref to build
+              id: resolve
+              env:
+                  REQUESTED_TAG: ${{ github.event.inputs.tag }}
+              run: |
+                  if [ -z "$REQUESTED_TAG" ]; then
+                      echo "ref=$GITHUB_REF" >> "$GITHUB_OUTPUT"
+                  elif printf '%s' "$REQUESTED_TAG" | grep -Eq '^extension-v[0-9]+\.[0-9]+\.[0-9]+$'; then
+                      echo "ref=refs/tags/$REQUESTED_TAG" >> "$GITHUB_OUTPUT"
+                  else
+                      echo "::error::Invalid tag input. Expected extension-vX.Y.Z"
+                      exit 1
+                  fi
+
+            - name: Checkout repository
+              uses: actions/checkout@v4
+              with:
+                  ref: ${{ steps.resolve.outputs.ref }}
+
+            - name: Set up Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 22.x
+
+            - name: Run unit tests
+              working-directory: extension
+              run: npm test
+
+            # The tag is the source of truth. manifest.json is what Chrome shows
+            # the user, and package.json is what npm reports, so all three have to
+            # agree or people cannot tell which build they are running.
+            - name: Check version consistency
+              if: startsWith(github.ref, 'refs/tags/extension-v')
+              working-directory: extension
+              run: |
+                  tag_version="${GITHUB_REF_NAME#extension-v}"
+                  manifest_version=$(node -p "require('./manifest.json').version")
+                  package_version=$(node -p "require('./package.json').version")
+                  echo "tag=$tag_version manifest=$manifest_version package=$package_version"
+                  if [ "$tag_version" != "$manifest_version" ] || [ "$tag_version" != "$package_version" ]; then
+                      echo "::error::Version mismatch. Tag $tag_version must match manifest.json ($manifest_version) and package.json ($package_version)."
+                      exit 1
+                  fi
+
+            - name: Package extension
+              working-directory: extension
+              run: npm run package
+
+            - name: Verify the archive is loadable and carries no build files
+              working-directory: extension
+              run: |
+                  unzip -l mas-studio-extension.zip > listing.txt
+                  grep -q ' manifest.json$' listing.txt || { echo "::error::manifest.json missing from archive"; exit 1; }
+                  if grep -Eq ' (tests/|node_modules/|\.claude/)' listing.txt; then
+                      echo "::error::Archive contains build-only files"
+                      grep -E ' (tests/|node_modules/|\.claude/)' listing.txt
+                      exit 1
+                  fi
+
+            - name: Upload archive as a build artifact
+              uses: actions/upload-artifact@v4
+              with:
+                  name: mas-studio-extension
+                  path: extension/mas-studio-extension.zip
+                  if-no-files-found: error
+
+            - name: Publish GitHub release
+              if: startsWith(github.ref, 'refs/tags/extension-v')
+              env:
+                  GH_TOKEN: ${{ github.token }}
+              run: |
+                  gh release create "$GITHUB_REF_NAME" \
+                      extension/mas-studio-extension.zip \
+                      --repo "$GITHUB_REPOSITORY" \
+                      --title "M@S Studio Extension ${GITHUB_REF_NAME#extension-}" \
+                      --notes "Download \`mas-studio-extension.zip\`, unzip it, then load it at \`chrome://extensions/\` with Developer mode on and **Load unpacked**.
+
+                  Full install and update steps: [extension/README.md](https://github.com/$GITHUB_REPOSITORY/blob/main/extension/README.md#install-from-a-release)"

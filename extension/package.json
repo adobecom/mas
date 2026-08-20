@@ -8,7 +8,7 @@
     "type": "commonjs",
     "scripts": {
         "test": "node --test 'tests/unit/*.test.js'",
-        "package": "zip -r mas-studio-extension.zip . -x '*.git*' -x 'node_modules/*' -x '.claude/*' -x 'CLAUDE.md' -x '*.DS_Store'",
+        "package": "zip -r mas-studio-extension.zip . -x '*.git*' 'node_modules/*' 'tests/*' '.claude/*' 'scripts/*' 'CLAUDE.md' 'package.json' '*.DS_Store' '*.zip'",
         "clean": "rm -f mas-studio-extension.zip"
     },
     "keywords": [

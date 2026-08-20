@@ -411,7 +411,13 @@ class MasPromotionsEditor extends LitElement {
             const legacyCollections = new Set(fromCollections);
             Store.promotions.selectedCards.set(allPaths.filter((path) => !legacyCollections.has(path)));
             Store.promotions.selectedCollections.set([...legacyCollections]);
-            void this.#refinePromotionItemClassification(allPaths);
+            // MWPW-204645: classification issues one GET per attached fragment to split
+            // cards vs collections. Append `skipClassification=1` to the studio hash to
+            // skip it and measure load without those requests (correct only for projects
+            // with no collections merged into `fragments`).
+            if (!this.#isPromotionItemClassificationSkipped()) {
+                void this.#refinePromotionItemClassification(allPaths);
+            }
         }
 
         const offerValues = f.getField('offers') ? f.getFieldValues('offers') : [];
@@ -435,6 +441,19 @@ class MasPromotionsEditor extends LitElement {
      * classification. Bounded by the project's attached count, not the surface catalog.
      * @param {string[]} allPaths
      */
+    /**
+     * MWPW-204645: temporary experiment toggle. Returns true when `skipClassification=1`
+     * is present in the studio hash, disabling the per-path card/collection classification.
+     * @returns {boolean}
+     */
+    #isPromotionItemClassificationSkipped() {
+        try {
+            return new URLSearchParams(window.location.hash.slice(1)).get('skipClassification') === '1';
+        } catch {
+            return false;
+        }
+    }
+
     async #refinePromotionItemClassification(allPaths) {
         const getFragmentByPath = this.repository?.aem?.getFragmentByPath;
         if (!getFragmentByPath) return;

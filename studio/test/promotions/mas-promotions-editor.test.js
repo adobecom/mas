@@ -1244,6 +1244,41 @@ describe('MasPromotionsEditor', () => {
             expect(Store.promotions.selectedCards.value).to.deep.equal([cardPath]);
             expect(Store.promotions.selectedCollections.value).to.deep.equal([collectionPath]);
         });
+
+        it('skips per-path classification when skipClassification=1 is in the hash', async () => {
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            const cardPath = '/content/dam/mas/sandbox/en_US/card-a';
+            const collectionPath = '/content/dam/mas/sandbox/en_US/collection-a';
+            const originalHash = window.location.hash;
+            window.location.hash = '#page=promotions-editor&skipClassification=1';
+            try {
+                Store.promotions.inEdit.set(
+                    new FragmentStore(
+                        makePromotion({
+                            id: 'promo-skip',
+                            surfaces: ['sandbox'],
+                            fragments: [cardPath, collectionPath],
+                        }),
+                    ),
+                );
+                const getFragmentByPath = sandbox.stub().resolves(null);
+                const { el } = await mountEditorWithRepo({
+                    aem: {
+                        sites: { cf: { fragments: { getById: sandbox.stub().resolves(null), search: makeSearchStub() } } },
+                        getFragmentByPath,
+                    },
+                });
+                Store.promotions.promotionId.set('promo-skip');
+                el.disconnectedCallback();
+                await el.connectedCallback();
+                await el.updateComplete;
+                await new Promise((r) => setTimeout(r, 50));
+                expect(getFragmentByPath.called, 'classification must issue no per-path GETs').to.be.false;
+                expect(Store.promotions.selectedCards.value).to.deep.equal([cardPath, collectionPath]);
+            } finally {
+                window.location.hash = originalHash;
+            }
+        });
     });
 
     describe('schedule and publish quick actions', () => {

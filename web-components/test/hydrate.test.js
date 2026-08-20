@@ -25,6 +25,7 @@ import {
     appendSlot,
     processAddon,
     processTrialBadge,
+    processBadge,
     processFeatures,
     normalizeVariant,
 } from '../src/hydrate.js';
@@ -36,6 +37,8 @@ import { delay } from './utils.js';
 import { PLANS_AEM_FRAGMENT_MAPPING } from '../src/variants/plans.js';
 import { MINI_COMPARE_CHART_AEM_FRAGMENT_MAPPING } from '../src/variants/mini-compare-chart.js';
 import { COMPARE_CHART_COLUMN_AEM_FRAGMENT_MAPPING } from '../src/variants/compare-chart-column.js';
+import { FULL_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING } from '../src/variants/full-pricing-express.js';
+import { SIMPLIFIED_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING } from '../src/variants/simplified-pricing-express.js';
 import { COMPAT_VERSION_GLOBAL_PROMO_CODE } from '../src/compat-version.js';
 
 function getFooterElement(merchCard) {
@@ -1377,6 +1380,24 @@ describe('processBorderColor', () => {
             ),
         ).to.equal('transparent');
     });
+
+    it('should clear a stale border color left over from a previous hydration', () => {
+        merchCard.style.setProperty(
+            '--consonant-merch-card-border-color',
+            'var(--spectrum-blue-400)',
+        );
+        const borderColorConfig = { attribute: 'border-color' };
+
+        processBorderColor({ borderColor: '' }, merchCard, {
+            borderColor: borderColorConfig,
+        });
+
+        expect(
+            merchCard.style.getPropertyValue(
+                '--consonant-merch-card-border-color',
+            ),
+        ).to.be.empty;
+    });
 });
 
 describe('processWhatsIncludedDividerColor', () => {
@@ -1617,6 +1638,90 @@ describe('processTrialBadge', () => {
         expect(badge).to.exist;
         await delay(50);
         expect(badge.getAttribute('variant')).to.equal('another-variant');
+    });
+});
+
+describe('processBadge', () => {
+    let merchCard;
+
+    beforeEach(() => {
+        merchCard = mockMerchCard();
+    });
+
+    afterEach(() => {
+        sinon.restore();
+    });
+
+    it('should not append a badge when text is empty on full-pricing-express', () => {
+        const fields = { badge: '', variant: 'full-pricing-express' };
+        processBadge(
+            fields,
+            merchCard,
+            FULL_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING,
+        );
+        expect(merchCard.querySelector('[slot="badge"]')).to.be.null;
+    });
+
+    it('should not honor a stray mapping.badge.alwaysRender flag', () => {
+        const fields = { badge: '', variant: 'full-pricing-express' };
+        const mapping = {
+            ...FULL_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING,
+            badge: {
+                ...FULL_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING.badge,
+                alwaysRender: true,
+            },
+        };
+        processBadge(fields, merchCard, mapping);
+        expect(merchCard.querySelector('[slot="badge"]')).to.be.null;
+    });
+
+    it('should not append a badge when text is empty on simplified-pricing-express', () => {
+        const fields = { badge: '', variant: 'simplified-pricing-express' };
+        processBadge(
+            fields,
+            merchCard,
+            SIMPLIFIED_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING,
+        );
+        expect(merchCard.querySelector('[slot="badge"]')).to.be.null;
+    });
+
+    it('should not double-wrap when badge already contains merch-badge markup', () => {
+        const fields = {
+            badge: '<merch-badge variant="full-pricing-express">Sale</merch-badge>',
+            variant: 'full-pricing-express',
+        };
+        processBadge(
+            fields,
+            merchCard,
+            FULL_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING,
+        );
+        expect(merchCard.querySelectorAll('merch-badge').length).to.equal(1);
+    });
+
+    it('should not append a legacy merch-badge tag that has no text or price content', () => {
+        const fields = {
+            badge: '<merch-badge variant="full-pricing-express" background-color="spectrum-blue-400" border-color="spectrum-blue-400"></merch-badge>',
+            variant: 'full-pricing-express',
+        };
+        processBadge(
+            fields,
+            merchCard,
+            FULL_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING,
+        );
+        expect(merchCard.querySelector('[slot="badge"]')).to.be.null;
+    });
+
+    it('should still append a legacy merch-badge tag that only wraps an inline price', () => {
+        const fields = {
+            badge: '<merch-badge variant="full-pricing-express"><span is="inline-price">$9.99</span></merch-badge>',
+            variant: 'full-pricing-express',
+        };
+        processBadge(
+            fields,
+            merchCard,
+            FULL_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING,
+        );
+        expect(merchCard.querySelector('[slot="badge"] merch-badge')).to.exist;
     });
 });
 

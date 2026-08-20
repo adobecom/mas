@@ -535,7 +535,7 @@ describe('MasFragmentVariations', () => {
             expect(detail.textContent).to.not.include('Grouped variation tags');
         });
 
-        it('renders a baseline-variation notice instead of the tag picker when the promo variation has no pznTags', async () => {
+        it('shows the baseline variation notice for a promo variation created from a default fragment with no geo of its own, never falling back to the promotion project geos', async () => {
             const parentPath = '/content/dam/mas/sandbox/en_US/my-card';
             const promoVariation = createVariationFragment({
                 id: 'promo-var-legacy',
@@ -575,12 +575,13 @@ describe('MasFragmentVariations', () => {
             await new Promise((r) => setTimeout(r, 10));
             await el.updateComplete;
 
-            const picker = el.querySelector('aem-tag-picker-field');
-            expect(picker.getAttribute('value')).to.equal('mas:locale/de_AT,mas:locale/en_NG');
+            expect(el.querySelector('aem-tag-picker-field')).to.be.null;
+            const notice = el.querySelector('.text-with-tooltip');
+            expect(notice?.textContent).to.include('Baseline variation');
             Store.promotions.list.data.set([]);
         });
 
-        it('falls back to the promotion project geos for a promo variation created from a grouped variation (only its own personalization tag, no geo of its own)', async () => {
+        it('shows the baseline variation notice for a promo variation created from a grouped variation (only its own personalization tag, no geo of its own), instead of the promotion project geos', async () => {
             const parentPath = '/content/dam/mas/sandbox/en_US/my-card';
             const promoVariation = createVariationFragment({
                 id: 'promo-var-grouped',
@@ -621,7 +622,9 @@ describe('MasFragmentVariations', () => {
             await el.updateComplete;
 
             const picker = el.querySelector('aem-tag-picker-field');
-            expect(picker.getAttribute('value')).to.equal('mas:locale/de_AT,mas:locale/en_NG');
+            expect(picker).to.be.null;
+            const notice = el.querySelector('.text-with-tooltip');
+            expect(notice?.textContent).to.include('Baseline variation');
             Store.promotions.list.data.set([]);
         });
 

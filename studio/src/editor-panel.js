@@ -575,7 +575,17 @@ export default class EditorPanel extends LitElement {
                 if (parent) {
                     await this.repository.removeFromParentVariations(parent, this.fragment.path);
                 }
-                await this.repository.deleteFragment(this.fragment, { force: true, startToast: false, endToast: false });
+                const deleted = await this.repository.deleteFragment(this.fragment, {
+                    startToast: false,
+                    endToast: false,
+                });
+                if (!deleted) {
+                    await this.repository.deleteFragment(this.fragment, {
+                        force: true,
+                        startToast: false,
+                        endToast: false,
+                    });
+                }
                 showToast('Fragment successfully deleted.', 'positive');
             } else {
                 await this.repository.deleteFragment(this.fragment);

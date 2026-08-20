@@ -207,7 +207,7 @@
                         expect(editorPanel.textContent).to.include('Belgium (EN)');
                     });
 
-                    it('confirmDelete skips removeFromParentVariations when no parent resolves', async () => {
+                    it('confirmDelete deletes via the reference-aware path (no force) when it succeeds, and skips removeFromParentVariations when no parent resolves', async () => {
                         const grouped = new Fragment({
                             id: 'cccccccc-cccc-cccc-cccc-cccccccccccc',
                             path: '/content/dam/mas/sandbox/en_US/pac/pzn/orphan-del',
@@ -232,7 +232,6 @@
                         expect(removeSpy.called).to.be.false;
                         expect(
                             deleteSpy.calledOnceWith(grouped, {
-                                force: true,
                                 startToast: false,
                                 endToast: false,
                             }),
@@ -298,7 +297,7 @@
                         sandbox.restore();
                     });
 
-                    it('confirmDelete removes variation from parent, deletes with force, and clears editor', async () => {
+                    it('confirmDelete removes variation from parent, falls back to force delete only when the reference-aware delete fails, and clears editor', async () => {
                         const grouped = new Fragment({
                             id: '99999999-9999-9999-9999-999999999999',
                             path: '/content/dam/mas/sandbox/en_US/pac/pzn/to-delete',
@@ -321,7 +320,9 @@
                         sandbox.stub(editorPanel.editorContextStore, 'isVariation').returns(true);
                         const resetSpy = sandbox.stub(Store.editor, 'resetChanges');
                         const removeSpy = sandbox.stub(editorPanel.repository, 'removeFromParentVariations').resolves();
-                        const deleteSpy = sandbox.stub(editorPanel.repository, 'deleteFragment').resolves(true);
+                        const deleteSpy = sandbox.stub(editorPanel.repository, 'deleteFragment');
+                        deleteSpy.onFirstCall().resolves(false);
+                        deleteSpy.onSecondCall().resolves(true);
                         const toastEmitSpy = sandbox.stub(Events.toast, 'emit');
                         const unmaskSpy = sandbox.stub(editorPanel, 'unmaskOtherFragments');
                         const updateStoresSpy = sandbox.stub(editorPanel.reactiveController, 'updateStores');
@@ -331,8 +332,15 @@
                         expect(editorPanel.showDeleteDialog).to.be.false;
                         expect(resetSpy.callCount).to.equal(1);
                         expect(removeSpy.calledOnceWith(parentFrag, grouped.path)).to.be.true;
+                        expect(deleteSpy.callCount).to.equal(2);
                         expect(
-                            deleteSpy.calledOnceWith(grouped, {
+                            deleteSpy.firstCall.calledWithExactly(grouped, {
+                                startToast: false,
+                                endToast: false,
+                            }),
+                        ).to.be.true;
+                        expect(
+                            deleteSpy.secondCall.calledWithExactly(grouped, {
                                 force: true,
                                 startToast: false,
                                 endToast: false,

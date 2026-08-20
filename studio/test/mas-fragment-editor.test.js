@@ -956,7 +956,7 @@ describe('MasFragmentEditor', () => {
         beforeEach(() => {
             el = document.createElement('mas-fragment-editor');
             mockRepo = {
-                deleteFragment: sandbox.stub().resolves(),
+                deleteFragment: sandbox.stub().resolves(true),
                 deleteFragmentWithVariations: sandbox.stub().resolves(),
                 removeFromParentVariations: sandbox.stub().resolves(),
             };
@@ -976,12 +976,34 @@ describe('MasFragmentEditor', () => {
             expect(mockRepo.deleteFragmentWithVariations.calledOnce).to.be.true;
         });
 
-        it('confirms delete for variation', async () => {
+        it('confirms delete for variation via the reference-aware delete (no force) when it succeeds', async () => {
             sandbox.stub(el.editorContextStore, 'isVariation').returns(true);
             sandbox.stub(el.editorContextStore, 'getLocaleDefaultFragmentAsync').resolves({ id: 'parent' });
             await el.confirmDelete();
             expect(mockRepo.removeFromParentVariations.calledOnce).to.be.true;
-            expect(mockRepo.deleteFragment.calledOnce).to.be.true;
+            expect(
+                mockRepo.deleteFragment.calledOnceWith(sinon.match.object, {
+                    startToast: false,
+                    endToast: false,
+                }),
+            ).to.be.true;
+        });
+
+        it('falls back to force delete for a variation only when the reference-aware delete fails', async () => {
+            mockRepo.deleteFragment = sandbox.stub();
+            mockRepo.deleteFragment.onFirstCall().resolves(false);
+            mockRepo.deleteFragment.onSecondCall().resolves(true);
+            sandbox.stub(el.editorContextStore, 'isVariation').returns(true);
+            sandbox.stub(el.editorContextStore, 'getLocaleDefaultFragmentAsync').resolves({ id: 'parent' });
+            await el.confirmDelete();
+            expect(mockRepo.deleteFragment.callCount).to.equal(2);
+            expect(
+                mockRepo.deleteFragment.secondCall.calledWith(sinon.match.object, {
+                    force: true,
+                    startToast: false,
+                    endToast: false,
+                }),
+            ).to.be.true;
         });
     });
 

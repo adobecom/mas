@@ -191,6 +191,35 @@ export default class StudioPage {
         });
     }
 
+    /**
+     * Wait for a locator to become visible, reloading the page once and retrying
+     */
+    async waitForLocatorWithReload(locator, { timeout = 30000, afterReload } = {}) {
+        try {
+            await expect(locator).toBeVisible({ timeout });
+        } catch (error) {
+            await this.page.reload({ waitUntil: 'networkidle', timeout: 30000 }).catch(async () => {
+                await this.page.goto(this.page.url(), { waitUntil: 'networkidle', timeout: 30000 });
+            });
+            await this.page.waitForLoadState('domcontentloaded');
+            if (afterReload) await afterReload();
+            await expect(locator).toBeVisible({ timeout });
+        }
+    }
+
+    /**
+     * Wait for a specific fragment's card to appear in the content list.
+     * @returns the card locator, for chaining further assertions.
+     */
+    async waitForCardInContent(fragmentId, { timeout = 30000, cloned, secondID } = {}) {
+        const card = await this.getCard(fragmentId, cloned, secondID);
+        await this.waitForLocatorWithReload(card, {
+            timeout,
+            afterReload: () => this.waitForCardsLoaded(),
+        });
+        return card;
+    }
+
     #setupConsoleListener(consoleErrors) {
         return (msg) => {
             if (msg.type() === 'error') {

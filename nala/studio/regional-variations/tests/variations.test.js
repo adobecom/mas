@@ -63,7 +63,7 @@ test.describe('M@S Studio - Variations Page test suite', () => {
             await studio.fragmentsTable.scrollIntoViewIfNeeded();
             await studio.fragmentsTable.click();
             await studio.waitForCardsLoaded();
-            await expect(await studio.getCard(clonedFragmentId)).toBeVisible();
+            await studio.waitForCardInContent(clonedFragmentId);
             await studio.switchToTableView();
             await expect(await studio.tableViewFragmentTable(clonedFragmentId)).toBeVisible();
             await studio.tableViewFragmentTable(clonedFragmentId).locator('button.expand-button').click();
@@ -104,7 +104,12 @@ test.describe('M@S Studio - Variations Page test suite', () => {
             await studio.waitForCardsLoaded();
             await studio.switchToTableView();
             await expect(await studio.tableView).toBeVisible();
-            await expect(await studio.tableViewFragmentTable(clonedFragmentId)).toBeVisible();
+            await studio.waitForLocatorWithReload(studio.tableViewFragmentTable(clonedFragmentId), {
+                afterReload: async () => {
+                    await studio.waitForCardsLoaded();
+                    await studio.switchToTableView();
+                },
+            });
             variationId = await studio.createVariation(clonedFragmentId, data.locale);
             expect(variationId).toBeTruthy();
         });
@@ -236,8 +241,7 @@ test.describe('M@S Studio - Variations Page test suite', () => {
 
         await test.step('step-6: Verify variation is deleted', async () => {
             await expect(await editor.panel).not.toBeVisible();
-            await studio.waitForCardsLoaded();
-            await expect(await studio.getCard(clonedFragmentId)).toBeVisible();
+            await studio.waitForCardInContent(clonedFragmentId);
             await studio.switchToTableView();
             await expect(await studio.tableViewFragmentTable(clonedFragmentId)).toBeVisible();
             await studio.tableViewFragmentTable(clonedFragmentId).locator('button.expand-button').click();

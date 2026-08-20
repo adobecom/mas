@@ -281,8 +281,7 @@ test.describe('M@S Studio feature test suite', () => {
         });
 
         await test.step('step-4: Verify fragment has correct variant', async () => {
-            const createdCard = await studio.getCard(fragmentId);
-            await expect(createdCard).toBeVisible();
+            const createdCard = await studio.waitForCardInContent(fragmentId);
             await expect(createdCard).toHaveAttribute('variant', data.variant);
         });
 

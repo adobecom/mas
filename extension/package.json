@@ -1,0 +1,21 @@
+{
+    "name": "@adobecom/mas-extension",
+    "version": "1.0.0",
+    "description": "Chrome extension to detect and edit Merch At Scale Studio merch cards from any page",
+    "author": "Adobe Merch At Scale Team",
+    "license": "UNLICENSED",
+    "private": true,
+    "type": "commonjs",
+    "scripts": {
+        "test": "node --test 'tests/unit/*.test.js'",
+        "package": "zip -r mas-studio-extension.zip . -x '*.git*' -x 'node_modules/*' -x '.claude/*' -x 'CLAUDE.md' -x '*.DS_Store'",
+        "clean": "rm -f mas-studio-extension.zip"
+    },
+    "keywords": [
+        "chrome-extension",
+        "mas",
+        "merch-cards",
+        "adobe",
+        "aem"
+    ]
+}

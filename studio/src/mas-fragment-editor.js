@@ -40,7 +40,9 @@ import { splitPromotionTagsFieldValues } from './promotions/promotion-editor-uti
 import { applySearchSurfaceFromPath } from './common/utils/render-utils.js';
 import * as promotionsRepository from './promotions/promotions-repository.js';
 import { normalizeTagId } from './aem/tag-id-utils.js';
+import { getItemsSelectionStore, setItemsSelectionStore } from './common/items-selection-store.js';
 import './mas-variation-dialog.js';
+import './mas-related-variations.js';
 import { getCountryName, getDefaultLocaleCode, getLocaleByCode } from '../../io/www/src/fragment/locales.js';
 import { normalizePznTagToLocaleCode } from './editors/variation-utils.js';
 import Events from './events.js';
@@ -202,7 +204,6 @@ export default class MasFragmentEditor extends LitElement {
             position: sticky;
             top: 16px;
             height: fit-content;
-            max-height: calc(100vh - 200px);
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -613,6 +614,7 @@ export default class MasFragmentEditor extends LitElement {
     #pendingVariationParents = new Map();
     #promotionGeoOptionsLoader = createKeyedAsyncLoader();
     #disabledPromoGeoOptionsLoader = createKeyedAsyncLoader();
+    #itemsSelectionStoreSnapshot = null;
     titleClone = '';
     tagsClone = [];
     osiClone = null;
@@ -653,9 +655,16 @@ export default class MasFragmentEditor extends LitElement {
 
     connectedCallback() {
         super.connectedCallback();
+        this.#itemsSelectionStoreSnapshot = getItemsSelectionStore({ allowUnset: true });
+        setItemsSelectionStore(Store.fragmentEditor.itemsSelection);
         if (this.#shouldInitFragment()) {
             this.initFragment();
         }
+    }
+
+    disconnectedCallback() {
+        super.disconnectedCallback();
+        setItemsSelectionStore(this.#itemsSelectionStoreSnapshot);
     }
 
     willUpdate(changedProperties) {
@@ -1982,33 +1991,22 @@ export default class MasFragmentEditor extends LitElement {
         `;
     }
 
-    /**
-     * Navigates to the variations table view with the parent fragment expanded.
-     */
-    navigateToVariationsTable() {
+    get relatedVariationsTargetFragment() {
+        if (!this.fragment) return null;
         const isVariation = this.editorContextStore.isVariation(this.fragment?.id);
-        // If viewing a variation, navigate to the parent fragment's variations
-        // Otherwise, navigate to this fragment's variations
-        const targetFragmentId = isVariation ? this.localeDefaultFragment?.id : this.fragment?.id;
-
-        if (targetFragmentId) {
-            router.navigateToVariationsTable(targetFragmentId);
-        }
+        if (!isVariation) return this.fragment;
+        return this.localeDefaultFragment ? new Fragment(this.localeDefaultFragment) : null;
     }
 
     get relatedVariationsSection() {
         if (!this.fragment || isPromoVariationPath(this.fragment.path)) return nothing;
-        return html`
-            <div class="related-variations-container">
-                <div class="related-variations-header">
-                    <p class="related-variations-label">Related variations:</p>
-                    <a @click="${this.navigateToVariationsTable}" class="related-variations-link clickable">
-                        <sp-icon-open-in size="s"></sp-icon-open-in>
-                        <span>View variations</span>
-                    </a>
-                </div>
-            </div>
-        `;
+        return html`<mas-related-variations
+            .fragment=${this.fragment}
+            .targetFragment=${this.relatedVariationsTargetFragment}
+            .isVariation=${this.editorContextStore.isVariation(this.fragment?.id)}
+            .isPromoVariation=${this.isPromoVariationFragment()}
+            .repository=${this.repository}
+        ></mas-related-variations>`;
     }
 
     get authorPath() {

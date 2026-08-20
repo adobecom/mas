@@ -6,6 +6,10 @@ import { log, logDebug, logError } from '../utils/log.js';
 // and WCS token building.
 const MAS_ELEMENT_REGEXP = /<[^>]+data-wcs-osi="(?<osi>[^"]+)"[^>]*>/g;
 const PROMOCODE_REGEXP = /data-promotion-code="(?<promotionCode>[^"]+)"/;
+// Sentinel authored inline (via the OST promo tag) meaning "no promotion applied"; it must never
+// reach WCS as a real promo code. Mirrors PROMO_CONTEXT_CANCEL_VALUE in @dexter/tacocat-core
+// (not a dependency of io/www). MWPW-203600.
+const PROMO_CONTEXT_CANCEL_VALUE = 'cancel-context';
 
 /**
  * Substitutes each comma-separated part of an OSI string independently, then rejoins.
@@ -50,7 +54,8 @@ function scanMasElements(fields, substituteMap, context) {
         if (typeof value !== 'string' || !value.includes('data-wcs-osi')) continue;
         let changed = false;
         const rewritten = value.replace(MAS_ELEMENT_REGEXP, (element, rawOsi) => {
-            const promotionCode = element.match(PROMOCODE_REGEXP)?.groups?.promotionCode;
+            const inlineCode = element.match(PROMOCODE_REGEXP)?.groups?.promotionCode;
+            const promotionCode = inlineCode === PROMO_CONTEXT_CANCEL_VALUE ? undefined : inlineCode;
             const isLocked = element.includes('data-locked-osi="true"');
             const osi = substituteMap && !isLocked ? substituteOsi(rawOsi, substituteMap) : rawOsi;
             elements.push({ osi, rawOsi, promotionCode });

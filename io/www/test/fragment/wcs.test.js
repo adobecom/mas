@@ -189,6 +189,39 @@ describe('wcs typical cases', function () {
         delete context.body.references.card1;
     });
 
+    it('omits the promotion_code and caches the plain offer for an inline cancel-context code (MWPW-203600)', async function () {
+        fetchStub
+            .withArgs(
+                sinon.match(
+                    (url) =>
+                        url.includes('web_commerce_artifact') &&
+                        url.includes('offer_selector_ids=CANCEL-OSI') &&
+                        !url.includes('promotion_code'),
+                ),
+            )
+            .returns(createResponse(200, { resolvedOffers: [{ blah: 'blah' }] }));
+        context.body = {
+            fields: {},
+            references: {
+                card1: {
+                    value: {
+                        fields: {
+                            osi: 'CANCEL-OSI',
+                            ctas: {
+                                mimeType: 'text/html',
+                                value: '<a data-promotion-code="cancel-context" data-wcs-osi="CANCEL-OSI"></a>',
+                            },
+                        },
+                    },
+                },
+            },
+        };
+        context.wcsConfiguration = CONFIGURATION();
+        context = await wcs.process(context);
+        expect(context.body.wcs.prod).to.have.property('CANCEL-OSI-us-mult');
+        expect(context.body.wcs.prod).to.not.have.property('CANCEL-OSI-us-mult-cancel-context');
+    });
+
     it('should parse fragment and call related items  with en_GB, putting them in a map with right env', async function () {
         fetchStub
             .withArgs(
@@ -785,6 +818,14 @@ describe('wcs OSI helpers', function () {
         ]);
         // no substituteMap => fields left untouched
         expect(fields.prices).to.equal('<span data-wcs-osi="A"></span>');
+    });
+
+    it('scanMasElements treats the cancel-context sentinel as no promo code (MWPW-203600)', function () {
+        const fields = {
+            ctas: '<a data-promotion-code="cancel-context" data-wcs-osi="A"></a>',
+        };
+        const elements = scanMasElements(fields, undefined);
+        expect(elements).to.deep.equal([{ osi: 'A', rawOsi: 'A', promotionCode: undefined }]);
     });
 
     it('scanMasElements rewrites substituted OSIs in string and { value } fields', function () {

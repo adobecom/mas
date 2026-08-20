@@ -306,6 +306,117 @@ describe('MasRelatedVariations', () => {
         });
     });
 
+    describe('preserving existing hash params on navigation', () => {
+        afterEach(() => {
+            window.location.hash = '';
+        });
+
+        it('preserves the surface param when linking to a locale variation', () => {
+            window.location.hash = '#page=content&surface=ccd';
+            const variation = {
+                id: 'locale-var-id',
+                path: '/content/dam/mas/sandbox/en_BE/my-fragment',
+                title: 'My Fragment BE',
+            };
+            const fragment = new Fragment({
+                id: 'test-id',
+                path: '/content/dam/mas/sandbox/en_US/my-fragment',
+                model: { path: CARD_MODEL_PATH },
+                fields: [{ name: 'variations', values: [variation.path] }],
+                references: [{ id: variation.id, path: variation.path, tags: [], title: variation.title }],
+                tags: [],
+            });
+            el.fragment = fragment;
+            el.targetFragment = fragment;
+            el.isVariation = false;
+            el.expandedVariationTypes = new Set([VARIATION_TAB_NAME.LOCALE]);
+
+            const container = document.createElement('div');
+            render(el.render(), container);
+
+            const link = container.querySelector('sp-table-cell a');
+            expect(link.getAttribute('href')).to.equal('#page=fragment-editor&surface=ccd&fragmentId=locale-var-id');
+        });
+
+        it('preserves the surface param when opening a variation via row double-click', () => {
+            window.location.hash = '#page=content&surface=ccd';
+            const openSpy = sandbox.stub(window, 'open');
+            const variation = {
+                id: 'locale-var-id',
+                path: '/content/dam/mas/sandbox/en_BE/my-fragment',
+                title: 'My Fragment BE',
+            };
+            const fragment = new Fragment({
+                id: 'test-id',
+                path: '/content/dam/mas/sandbox/en_US/my-fragment',
+                model: { path: CARD_MODEL_PATH },
+                fields: [{ name: 'variations', values: [variation.path] }],
+                references: [{ id: variation.id, path: variation.path, tags: [], title: variation.title }],
+                tags: [],
+            });
+            el.fragment = fragment;
+            el.targetFragment = fragment;
+            el.isVariation = false;
+            el.expandedVariationTypes = new Set([VARIATION_TAB_NAME.LOCALE]);
+
+            const container = document.createElement('div');
+            render(el.render(), container);
+            container
+                .querySelector('sp-table-row')
+                .dispatchEvent(new MouseEvent('dblclick', { bubbles: true, composed: true }));
+
+            expect(openSpy.calledOnce).to.be.true;
+            expect(openSpy.firstCall.args[0]).to.equal('#page=fragment-editor&surface=ccd&fragmentId=locale-var-id');
+        });
+
+        it('preserves the surface param when linking to the promotion project', () => {
+            window.location.hash = '#page=content&surface=ccd';
+            Store.promotions.list.data.set([
+                { get: () => ({ id: 'promo-project-1', tags: [{ id: 'mas:promotion/back-to-school' }] }) },
+            ]);
+            const variation = {
+                id: 'promo-var-id',
+                path: '/content/dam/mas/sandbox/en_US/promotions/back-to-school/my-card',
+                tags: [{ id: 'mas:promotion/back-to-school', title: 'Back To School' }],
+                fields: [],
+            };
+            const fragment = new Fragment({
+                id: 'test-id',
+                path: '/content/dam/mas/sandbox/en_US/my-fragment',
+                model: { path: CARD_MODEL_PATH },
+                fields: [
+                    {
+                        name: 'variations',
+                        values: ['/content/dam/mas/sandbox/en_US/promotions/back-to-school/my-fragment'],
+                    },
+                ],
+                references: [
+                    {
+                        id: 'ref-1',
+                        path: '/content/dam/mas/sandbox/en_US/promotions/back-to-school/my-fragment',
+                        tags: [],
+                    },
+                ],
+                tags: [],
+            });
+            el.fragment = fragment;
+            el.targetFragment = fragment;
+            el.isVariation = false;
+            el.expandedVariationTypes = new Set([VARIATION_TAB_NAME.PROMOTION]);
+            el.promoVariations = [variation];
+
+            const container = document.createElement('div');
+            render(el.render(), container);
+
+            const projectLink = container.querySelectorAll('sp-table-cell')[1].querySelector('a');
+            expect(projectLink.getAttribute('href')).to.equal(
+                '#page=promotions-editor&surface=ccd&promotionId=promo-project-1',
+            );
+
+            Store.promotions.list.data.set([]);
+        });
+    });
+
     describe('promo variations table', () => {
         const variation = {
             id: 'promo-var-id',

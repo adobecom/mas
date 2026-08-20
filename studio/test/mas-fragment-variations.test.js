@@ -555,7 +555,7 @@ describe('MasFragmentVariations', () => {
             expect(search.called, 'should not scan the promotions tree').to.be.false;
         });
 
-        it('does not probe the promotions tree when a known promo variation already exists', async () => {
+        it('waits for the orphan probe before showing known variations, so both appear together instead of the orphan popping in later', async () => {
             const promoVariation = createVariationFragment({ id: 'known-1', path: `${promotionsRoot}/known/my-card` });
             const fragment = {
                 path: parentPath,
@@ -569,10 +569,44 @@ describe('MasFragmentVariations', () => {
 
             el.handleTabChange({ target: { selected: 'promotion' } });
             await el.updateComplete;
+            await el.updateComplete;
+
+            expect(el.orphanPromoVariationsLoading, 'known variation exists but orphan probe is still in flight').to.be.true;
+            expect(el.querySelector('sp-progress-circle')).to.not.be.null;
+            expect(el.textContent).to.not.include(`${promotionsRoot}/known/my-card`);
+
             await new Promise((r) => setTimeout(r, 10));
             await el.updateComplete;
 
-            expect(search.called, 'should not scan the promotions tree').to.be.false;
+            expect(search.called, 'should scan the promotions tree for orphans from deleted promo projects').to.be.true;
+            expect(el.orphanPromoVariationsLoading).to.be.false;
+            expect(el.promoVariations.map((variation) => variation.path)).to.have.members([
+                `${promotionsRoot}/known/my-card`,
+                orphanPath,
+            ]);
+        });
+
+        it('shows a loading spinner instead of the empty state while the orphan probe is in flight', async () => {
+            const search = makeSearchStub(sandbox, { [promotionsRoot]: [{ id: 'orphan-id', path: orphanPath }] });
+            const el = await fixture(
+                html`<mas-fragment-variations .fragment=${createEmptyFragment()}></mas-fragment-variations>`,
+            );
+            sandbox.stub(el, 'repository').get(() => ({ aem: { sites: { cf: { fragments: { search } } } } }));
+
+            el.handleTabChange({ target: { selected: 'promotion' } });
+            await el.updateComplete;
+            await el.updateComplete;
+
+            expect(el.orphanPromoVariationsLoading).to.be.true;
+            expect(el.querySelector('sp-progress-circle')).to.not.be.null;
+            expect(el.textContent).to.not.include('No promotion variations found');
+
+            await new Promise((r) => setTimeout(r, 10));
+            await el.updateComplete;
+
+            expect(el.orphanPromoVariationsLoading).to.be.false;
+            expect(el.hasPromoVariations).to.be.true;
+            expect(el.textContent).to.not.include('No promotion variations found');
         });
     });
 });

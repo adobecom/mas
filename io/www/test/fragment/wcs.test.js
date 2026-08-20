@@ -222,6 +222,34 @@ describe('wcs typical cases', function () {
         expect(context.body.wcs.prod).to.not.have.property('CANCEL-OSI-us-mult-cancel-context');
     });
 
+    it('caches the plain offer, not the fragment promo, for a cancel-context osi under an active promo (MWPW-203600)', async function () {
+        fetchStub
+            .withArgs(
+                sinon.match((url) => url.includes('offer_selector_ids=INTRO-OSI') && url.includes('promotion_code=CCI_PROMO')),
+            )
+            .returns(createResponse(200, { resolvedOffers: [{ promo: 'yes' }] }));
+        fetchStub
+            .withArgs(sinon.match((url) => url.includes('offer_selector_ids=INTRO-OSI') && !url.includes('promotion_code')))
+            .returns(createResponse(200, { resolvedOffers: [{ promo: 'no' }] }));
+        context.body = {
+            fields: {
+                promoCode: 'CCI_PROMO',
+                shortDescription: {
+                    mimeType: 'text/html',
+                    value:
+                        '<span data-wcs-osi="INTRO-OSI"></span>' +
+                        '<span data-promotion-code="cancel-context" data-wcs-osi="INTRO-OSI"></span>',
+                },
+            },
+            references: {},
+        };
+        context.wcsConfiguration = CONFIGURATION();
+        context = await wcs.process(context);
+        expect(context.body.wcs.prod).to.have.property('INTRO-OSI-us-mult-cci_promo');
+        expect(context.body.wcs.prod).to.have.property('INTRO-OSI-us-mult');
+        expect(context.body.wcs.prod).to.not.have.property('INTRO-OSI-us-mult-cancel-context');
+    });
+
     it('should parse fragment and call related items  with en_GB, putting them in a map with right env', async function () {
         fetchStub
             .withArgs(
@@ -818,14 +846,6 @@ describe('wcs OSI helpers', function () {
         ]);
         // no substituteMap => fields left untouched
         expect(fields.prices).to.equal('<span data-wcs-osi="A"></span>');
-    });
-
-    it('scanMasElements treats the cancel-context sentinel as no promo code (MWPW-203600)', function () {
-        const fields = {
-            ctas: '<a data-promotion-code="cancel-context" data-wcs-osi="A"></a>',
-        };
-        const elements = scanMasElements(fields, undefined);
-        expect(elements).to.deep.equal([{ osi: 'A', rawOsi: 'A', promotionCode: undefined }]);
     });
 
     it('scanMasElements rewrites substituted OSIs in string and { value } fields', function () {

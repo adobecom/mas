@@ -6,9 +6,9 @@ import { log, logDebug, logError } from '../utils/log.js';
 // and WCS token building.
 const MAS_ELEMENT_REGEXP = /<[^>]+data-wcs-osi="(?<osi>[^"]+)"[^>]*>/g;
 const PROMOCODE_REGEXP = /data-promotion-code="(?<promotionCode>[^"]+)"/;
-// Sentinel authored inline (via the OST promo tag) meaning "no promotion applied"; it must never
-// reach WCS as a real promo code. Mirrors PROMO_CONTEXT_CANCEL_VALUE in @dexter/tacocat-core
-// (not a dependency of io/www). MWPW-203600.
+// Sentinel authored inline (via the OST promo tag) meaning "no promotion applied" for that element:
+// it must never reach WCS as a real promo code, and it must not inherit the fragment/collection
+// promo.
 const PROMO_CONTEXT_CANCEL_VALUE = 'cancel-context';
 
 /**
@@ -54,8 +54,7 @@ function scanMasElements(fields, substituteMap, context) {
         if (typeof value !== 'string' || !value.includes('data-wcs-osi')) continue;
         let changed = false;
         const rewritten = value.replace(MAS_ELEMENT_REGEXP, (element, rawOsi) => {
-            const inlineCode = element.match(PROMOCODE_REGEXP)?.groups?.promotionCode;
-            const promotionCode = inlineCode === PROMO_CONTEXT_CANCEL_VALUE ? undefined : inlineCode;
+            const promotionCode = element.match(PROMOCODE_REGEXP)?.groups?.promotionCode;
             const isLocked = element.includes('data-locked-osi="true"');
             const osi = substituteMap && !isLocked ? substituteOsi(rawOsi, substituteMap) : rawOsi;
             elements.push({ osi, rawOsi, promotionCode });
@@ -232,6 +231,13 @@ async function wcs(context) {
         };
         masElements.forEach(({ osi, promotionCode }) => {
             // OSIs and inline promo codes are already final (substituted) from applyPromoScope above.
+            // An inline cancel-context sentinel means "no promotion for this element": cache the plain
+            // offer and never inherit the fragment/collection promo, so the client's no-promo request
+            // (computePromoStatus strips cancel-context) hits the prefilled cache. MWPW-203600.
+            if (promotionCode === PROMO_CONTEXT_CANCEL_VALUE) {
+                addToken({ osi });
+                return;
+            }
             if (promotionCode) {
                 addToken({ osi, promotionCode });
                 return;

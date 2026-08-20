@@ -133,6 +133,86 @@
                         });
                     });
                 });
+
+                describe('RTE CTA reference field', () => {
+                    it('is hidden unless show-cta-reference is set', async function () {
+                        const linkEditor = await createFromTemplate('default', this.test.title);
+                        expect(linkEditor.ctaRefElement).to.not.exist;
+                    });
+
+                    it('renders a read-only field on a baseline and emits ctaRef', async function () {
+                        const linkEditor = await createFromTemplate('ctaRefBaseline', this.test.title);
+                        const field = linkEditor.ctaRefElement;
+                        expect(field).to.exist;
+                        expect(field.readonly).to.be.ok;
+                        expect(field.value).to.equal('buynow');
+                        expect(linkEditor.shadowRoot.getElementById('ctaRefPicker')).to.not.exist;
+
+                        const listener = oneEvent(linkEditor, 'save').then((e) => e.detail.ctaRef);
+                        linkEditor.shadowRoot.getElementById('saveButton').click();
+                        expect(await listener).to.equal('buynow');
+                    });
+
+                    it('renders a read-only value with a parent picker on a variation', async function () {
+                        const linkEditor = await createFromTemplate('ctaRefVariation', this.test.title);
+                        linkEditor.parentCtas = [
+                            { text: 'Buy now', key: 'buynow' },
+                            { text: 'See more', key: 'seemore' },
+                            { text: 'No key', key: null },
+                        ];
+                        await linkEditor.updateComplete;
+
+                        expect(linkEditor.ctaRefElement.readonly).to.be.ok;
+                        const picker = linkEditor.shadowRoot.getElementById('ctaRefPicker');
+                        expect(picker).to.exist;
+                        // Only parent CTAs with a key are offered.
+                        expect(picker.querySelectorAll('sp-menu-item').length).to.equal(2);
+
+                        const listener = oneEvent(linkEditor, 'save').then((e) => e.detail.ctaRef);
+                        picker.value = 'seemore';
+                        picker.dispatchEvent(new Event('change'));
+                        await linkEditor.updateComplete;
+                        expect(linkEditor.ctaRefElement.value).to.equal('seemore');
+                        linkEditor.shadowRoot.getElementById('saveButton').click();
+                        expect(await listener).to.equal('seemore');
+                    });
+
+                    it('shows a non-actionable warning on a variation when the base fragment has issues', async function () {
+                        const linkEditor = await createFromTemplate('ctaRefVariation', this.test.title);
+                        linkEditor.ctaKeyIssues = { missingCount: 1, duplicateKeys: ['dup'], hasIssues: true };
+                        await linkEditor.updateComplete;
+
+                        const notice = linkEditor.ctaKeyIssuesElement;
+                        expect(notice).to.exist;
+                        expect(notice.textContent).to.contain('Base fragment CTAs need fixing');
+                        expect(notice.textContent).to.contain('1 without a reference key');
+                        expect(notice.textContent).to.contain('1 duplicated');
+                        // The variation author cannot fix the base fragment from here.
+                        expect(notice.querySelector('sp-link')).to.not.exist;
+                    });
+
+                    it('offers a Fix action on a baseline that dispatches fix-cta-keys', async function () {
+                        const linkEditor = await createFromTemplate('ctaRefBaseline', this.test.title);
+                        linkEditor.ctaKeyIssues = { missingCount: 2, duplicateKeys: [], hasIssues: true };
+                        await linkEditor.updateComplete;
+
+                        const notice = linkEditor.ctaKeyIssuesElement;
+                        expect(notice).to.exist;
+                        expect(notice.textContent).to.contain('This CTA field has reference issues');
+                        const fixLink = notice.querySelector('sp-link');
+                        expect(fixLink).to.exist;
+
+                        const listener = oneEvent(linkEditor, 'fix-cta-keys');
+                        fixLink.click();
+                        expect((await listener).type).to.equal('fix-cta-keys');
+                    });
+
+                    it('hides the issues notice when there are none', async function () {
+                        const linkEditor = await createFromTemplate('ctaRefBaseline', this.test.title);
+                        await linkEditor.updateComplete;
+                        expect(linkEditor.ctaKeyIssuesElement).to.not.exist;
+                    });
+                });
             });
         </script>
 
@@ -156,6 +236,14 @@
 
         <template id="checkout">
             <rte-link-editor checkout-parameters=""></rte-link-editor>
+        </template>
+
+        <template id="ctaRefBaseline">
+            <rte-link-editor show-cta-reference cta-ref="buynow"></rte-link-editor>
+        </template>
+
+        <template id="ctaRefVariation">
+            <rte-link-editor show-cta-reference is-variation cta-ref="buynow"></rte-link-editor>
         </template>
 
         <template id="checkoutFilled">

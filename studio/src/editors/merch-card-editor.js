@@ -29,7 +29,7 @@ import { toAttribute } from '../aem/tag-path-utils.js';
 import { getGlobalSettingsDefaults } from '../settings/settings-store.js';
 import { fieldStatusStyles } from '../common/fields/field-status.css.js';
 import { getLocaleByCode } from '../../../io/www/src/fragment/locales.js';
-import { normalizePznTagToLocaleCode } from './variation-utils.js';
+import { normalizePznTagToLocaleCode, parseCtas, getCtaKeyIssues, summarizeCtaKeyIssues } from './variation-utils.js';
 import { parseProWhatsIncluded, serializeProWhatsIncluded } from '../utils/pro-whats-included.js';
 
 const QUANTITY_MODEL = 'quantitySelect';
@@ -148,6 +148,12 @@ class MerchCardEditor extends LitElement {
 
     get isGroupedVariation() {
         return Fragment.isGroupedVariationPath(this.fragment?.path);
+    }
+
+    /** Parent baseline CTAs (text + data-key) offered to a variation as override targets. */
+    get parentCtas() {
+        if (!this.effectiveIsVariation) return [];
+        return parseCtas(this.localeDefaultFragment?.getFieldValue('ctas', 0) || '');
     }
 
     get pznTagsValue() {
@@ -393,6 +399,36 @@ class MerchCardEditor extends LitElement {
         if (!this.effectiveIsVariation) return nothing;
         if (this.getFieldState(fieldName) !== 'overridden') return nothing;
         return this.#renderOverrideIndicatorLink(() => this.resetFieldToParent(fieldName));
+    }
+
+    /** Flags reference-key problems (missing or duplicated `data-key`) in the CTAs field that would
+     *  keep `cta[<key>]` references from resolving. On a variation the offending CTAs live in the base
+     *  fragment and can only be fixed there; on a baseline the author can normalize them in place. */
+    renderCtaKeyWarning() {
+        if (this.effectiveIsVariation) {
+            const issues = getCtaKeyIssues(this.parentCtas);
+            if (!issues.hasIssues) return nothing;
+            return html`
+                <div class="field-status-indicator field-status-indicator--error" role="alert">
+                    <sp-icon-alert class="field-status-icon"></sp-icon-alert>
+                    <span class="field-status-label">Base fragment CTAs need fixing (${summarizeCtaKeyIssues(issues)}).</span>
+                </div>
+            `;
+        }
+        const issues = getCtaKeyIssues(parseCtas(this.fragment?.getFieldValue('ctas', 0) || ''));
+        if (!issues.hasIssues) return nothing;
+        return html`
+            <div class="field-status-indicator field-status-indicator--error" role="alert">
+                <sp-icon-alert class="field-status-icon"></sp-icon-alert>
+                <span class="field-status-label">CTA references need fixing (${summarizeCtaKeyIssues(issues)}).</span>
+                <a href="#" class="field-status-restore-link" @click=${(e) => this.#fixCtaKeys(e)}>Fix references</a>
+            </div>
+        `;
+    }
+
+    #fixCtaKeys(event) {
+        event.preventDefault();
+        this.querySelector('rte-field#ctas')?.fixCtaKeys();
     }
 
     renderValidationBanner() {
@@ -1708,10 +1744,12 @@ class MerchCardEditor extends LitElement {
                         data-field-state="${this.getFieldState('ctas')}"
                         .osi=${form.osi.values[0]}
                         .value=${form.ctas.values[0] || ''}
+                        ?is-variation=${this.effectiveIsVariation}
+                        .parentCtas=${this.parentCtas}
                         default-link-style="primary-outline"
                         @change="${this.#handleFragmentUpdate}"
                     ></rte-field>
-                    ${this.renderFieldStatusIndicator('ctas')}
+                    ${this.renderFieldStatusIndicator('ctas')} ${this.renderCtaKeyWarning()}
                 </sp-field-group>
                 <div class="section-header-row">
                     <div class="section-title">Options and settings</div>

@@ -41,6 +41,12 @@ const Store = {
             }
             return editorContextInstance;
         },
+        itemsSelection: {
+            groupedVariationsByParent: new ReactiveStore(new Map()),
+            groupedVariationsData: new ReactiveStore(new Map()),
+            offerDataCache: new Map(),
+            cardsByPaths: new ReactiveStore(new Map()),
+        },
     },
     operation: new ReactiveStore(),
     editor: {

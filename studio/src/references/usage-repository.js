@@ -1,62 +1,26 @@
 /**
- * PROTOTYPE — fragment usage from Akamai request logs via Grafana (epic 4A, MWPW-185891).
+ * PROTOTYPE (epic 4A, MWPW-185891) — fragment usage from Akamai request logs via Grafana.
  *
- * This is deliberately NOT wired to Grafana directly. Two hard constraints, both confirmed in
- * research (`.claude/plans/` usage-research):
- *   1. The Grafana `glsa_` bearer is a static, long-lived service token. In browser JS it is
- *      trivially extractable => a permanent secret compromise. It must live only in an IO Runtime
- *      action's `inputs` (the same pattern as `io/studio` ost-products-read), never client-side.
- *   2. `grafana-us.trafficpeak.live` is a third-party origin that will not send CORS headers for
- *      mas.adobe.com, so a browser POST is blocked regardless of the token.
+ * The Studio client never talks to Grafana directly: the `glsa_` service token must stay server side
+ * (a browser-exposed static token is a permanent leak) and Grafana would CORS-block a browser POST
+ * anyway. So this calls the `fragment-usage` IO Runtime action (`io/studio/src/fragment-usage`),
+ * which holds the token as a deploy secret, builds the ClickHouse query, and returns the raw Grafana
+ * ds/query JSON. `parseUsageResponse` turns that columnar response into rows and is fully unit-tested.
  *
- * Therefore `fetchFragmentUsage` targets a FUTURE IO action proxy (`USAGE_ENDPOINT`), not Grafana,
- * and returns `{ available: false }` on any failure so a missing/unbuilt proxy renders nothing and
- * never breaks the fragment editor. `buildUsageQuery` / `parseUsageResponse` are pure and fully
- * unit-tested today against mocked Grafana JSON, so the contract is ready the moment ops provisions
- * the token + action.
+ * `fetchFragmentUsage` degrades to `{ available: false }` on any failure (action not deployed yet,
+ * no token, auth, CORS, network), so nothing renders until the proxy is live — the shipped reference
+ * list is never affected.
  *
- * Scope note: the epic's documented query groups by fragment_id / locale / api_key / country — that
- * yields request COUNTS per consumer dimension, which is the closest available signal for "who uses
- * this fragment". Actual referer PAGE URLs would need a different ClickHouse query (a referer/url
- * column), whose schema is unconfirmed — flagged, not built.
+ * Scope note: the query groups by locale / api_key / country — request COUNTS per consumer, the
+ * closest available signal for "who uses this fragment". Actual referer PAGE URLs would need a
+ * different ClickHouse query (a referer/url column), which is unconfirmed and out of this slice.
  */
 
-export const GRAFANA_DATASOURCE_UID = 'fdyta6qpga2o0d';
-export const GRAFANA_ORG_ID = 750;
-
-// Future IO Runtime action that proxies Grafana with the service token. Not yet implemented.
-export const USAGE_ENDPOINT = '/mas/io/fragment/usage';
-
-// ClickHouse source for the Akamai fragment-request logs. Table name is a placeholder pending
-// confirmation with the 4A/ops owners; the dimension columns match the epic spec.
-const USAGE_TABLE = 'mas_fragment_requests';
-const DEFAULT_WINDOW_MS = 30 * 24 * 60 * 60 * 1000; // last 30 days
-
-/**
- * Builds a Grafana `/api/ds/query` request body for the per-consumer usage of one fragment.
- * @param {string} fragmentId
- * @param {{ fromMs?: number, toMs?: number, refId?: string }} [options]
- * @returns {Object} the ds/query body (datasource ref + one raw ClickHouse SQL query)
- */
-export function buildUsageQuery(fragmentId, { fromMs, toMs, refId = 'A' } = {}) {
-    if (!fragmentId) throw new Error('fragmentId is required');
-    const to = toMs ?? Date.now();
-    const from = fromMs ?? to - DEFAULT_WINDOW_MS;
-    const datasource = { type: 'grafana-clickhouse-datasource', uid: GRAFANA_DATASOURCE_UID };
-    const rawSql =
-        `SELECT locale, api_key, country, count(*) AS count FROM ${USAGE_TABLE} ` +
-        `WHERE fragment_id = '${fragmentId}' AND timestamp >= fromUnixTimestamp64Milli(${from}) ` +
-        `AND timestamp <= fromUnixTimestamp64Milli(${to}) GROUP BY locale, api_key, country ORDER BY count DESC`;
-    return {
-        from: String(from),
-        to: String(to),
-        queries: [{ refId, datasource, rawSql, format: 1, meta: { orgId: GRAFANA_ORG_ID } }],
-    };
-}
+const IMS_ORG_ID = '3B962FB55F5F922E0A495C88';
 
 /**
  * Parses a Grafana `/api/ds/query` response (columnar frames) into usage rows.
- * @param {Object} response the ds/query JSON
+ * @param {Object} response the ds/query JSON returned by the proxy
  * @param {string} [refId]
  * @returns {Array<{ locale: string, apiKey: string, country: string, count: number }>}
  */
@@ -86,19 +50,25 @@ export function parseUsageResponse(response, refId = 'A') {
 }
 
 /**
- * Fetches fragment usage via the future IO proxy. Degrades to `{ available: false }` on any error
- * (no proxy yet, auth failure, CORS, network) so the caller can render nothing intrusive.
+ * Fetches fragment usage via the `fragment-usage` IO action. Degrades to `{ available: false }` on
+ * any failure so the caller renders nothing intrusive.
  * @param {string} fragmentId
- * @param {{ signal?: AbortSignal, fetchImpl?: typeof fetch }} [options]
+ * @param {{ signal?: AbortSignal, fetchImpl?: typeof fetch, ioBaseUrl?: string }} [options]
  * @returns {Promise<{ available: boolean, rows?: Array<Object>, totalCount?: number }>}
  */
-export async function fetchFragmentUsage(fragmentId, { signal, fetchImpl = fetch } = {}) {
+export async function fetchFragmentUsage(fragmentId, { signal, fetchImpl = fetch, ioBaseUrl } = {}) {
     if (!fragmentId) return { available: false };
+    const base = ioBaseUrl ?? document.querySelector('meta[name="io-base-url"]')?.content;
+    if (!base) return { available: false };
     try {
-        const response = await fetchImpl(USAGE_ENDPOINT, {
+        const response = await fetchImpl(`${base}/fragment-usage`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(buildUsageQuery(fragmentId)),
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${window.adobeid?.authorize?.()}`,
+                'x-gw-ims-org-id': IMS_ORG_ID,
+            },
+            body: JSON.stringify({ fragmentId }),
             signal,
         });
         if (!response.ok) return { available: false };

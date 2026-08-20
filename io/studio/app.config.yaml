@@ -29,6 +29,16 @@ application:
                         runtime: nodejs:22
                         annotations:
                             require-adobe-auth: false
+                    fragment-usage:
+                        function: src/fragment-usage/usage.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        inputs:
+                            GRAFANA_TRAFFICPEAK_TOKEN: $GRAFANA_TRAFFICPEAK_TOKEN
+                            GRAFANA_TRAFFICPEAK_URL: $GRAFANA_TRAFFICPEAK_URL
+                        annotations:
+                            require-adobe-auth: false
+                            final: true
                     updateMembers:
                         function: src/members/update.js
                         web: 'yes'

@@ -16,14 +16,13 @@ export default class ItemsSelectionController {
      */
     constructor(host, { allowUnset = false } = {}) {
         this.allowUnset = allowUnset;
-        this.value = getItemsSelectionStore({ allowUnset: true });
+        this.value = null;
         (this.host = host).addController(this);
     }
 
     hostConnected() {
-        // Re-capture on connect: fields initialized in the constructor can
-        // predate the owning editor's push, so constructor-time capture is
-        // not sufficient on its own.
+        // Capture on connect: fields initialized in the constructor can
+        // predate the owning editor's push, so the value isn't ready until here.
         this.value = getItemsSelectionStore({ allowUnset: this.allowUnset });
     }
 

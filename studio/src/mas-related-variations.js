@@ -189,11 +189,13 @@ export default class MasRelatedVariations extends LitElement {
         this.isLoadingGroupedVariations = true;
         try {
             const groupedVariationPaths = targetFragment.listGroupedVariations().map((v) => v.path);
+            const itemsSelectionStore = getItemsSelectionStore();
             await loadCardVariations(targetFragment.path, groupedVariationPaths, this.repository, {
                 getDisplayName: (fragmentData) => fragmentData?.path ?? '',
+                store: itemsSelectionStore,
             });
             if (token !== this.#groupedVariationsLoadToken) return;
-            const variationsByPath = getItemsSelectionStore().groupedVariationsByParent.value?.get(targetFragment.path);
+            const variationsByPath = itemsSelectionStore.groupedVariationsByParent.value?.get(targetFragment.path);
             this.groupedVariations = variationsByPath ? [...variationsByPath.values()] : [];
             this.#groupedVariationsLoadedForId = targetFragment.id;
         } catch (error) {

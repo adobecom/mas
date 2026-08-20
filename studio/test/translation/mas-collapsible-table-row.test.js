@@ -12,6 +12,7 @@ import {
     DICTIONARY_MODEL_PATH,
     FRAGMENT_STATUS,
     VARIATION_TAB_NAME,
+    BASELINE_VARIATION,
 } from '../../src/constants.js';
 import { renderFragmentStatusCell } from '../../src/translation/translation-utils.js';
 import '../../src/swc.js';
@@ -1592,6 +1593,47 @@ describe('MasCollapsibleTableRow', () => {
             const link = el.shadowRoot.querySelector('.variation-details-row a');
             expect(link).to.exist;
             expect(link.getAttribute('href')).to.equal(`#page=promotions-editor&promotionId=${encodeURIComponent(specialId)}`);
+        });
+
+        it('renders a baseline-variation notice instead of the tag picker when the variation has no pznTags', async () => {
+            setupPromoProject(promoProjectId);
+            const topLevelCard = createMockTopLevelCard();
+            const el = await fixture(
+                html`<mas-collapsible-table-row
+                    .topLevelCard=${topLevelCard}
+                    .isTopLevelExpanded=${true}
+                ></mas-collapsible-table-row>`,
+            );
+            el.promoVariations = [makePromoVariation(promoTagId)];
+            el.expandedVariationsPaths = new Set([promoPath]);
+            el.selectedTabKey = 'promotion';
+            await el.updateComplete;
+            expect(el.shadowRoot.querySelector('aem-tag-picker-field')).to.be.null;
+            expect(el.shadowRoot.textContent).to.include(BASELINE_VARIATION.TEXT);
+        });
+
+        it('renders the tag picker with the pznTags value when the variation has its own tags', async () => {
+            setupPromoProject(promoProjectId);
+            const topLevelCard = createMockTopLevelCard();
+            const el = await fixture(
+                html`<mas-collapsible-table-row
+                    .topLevelCard=${topLevelCard}
+                    .isTopLevelExpanded=${true}
+                ></mas-collapsible-table-row>`,
+            );
+            el.promoVariations = [
+                {
+                    ...makePromoVariation(promoTagId),
+                    fields: [{ name: 'pznTags', values: ['mas:locale/de_AT', 'mas:locale/en_NG'] }],
+                },
+            ];
+            el.expandedVariationsPaths = new Set([promoPath]);
+            el.selectedTabKey = 'promotion';
+            await el.updateComplete;
+            const picker = el.shadowRoot.querySelector('aem-tag-picker-field');
+            expect(picker).to.exist;
+            expect(picker.getAttribute('value')).to.equal('mas:locale/de_AT,mas:locale/en_NG');
+            expect(el.shadowRoot.textContent).to.not.include(BASELINE_VARIATION.TEXT);
         });
     });
 

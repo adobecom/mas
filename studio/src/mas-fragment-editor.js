@@ -14,6 +14,7 @@ import {
     TAG_PROMOTION_PREFIX,
 } from './constants.js';
 import router from './router.js';
+import { getReferencingFragments } from './references/references-repository.js';
 import { migrateLegacyVariant, normalizeVariantName, VARIANTS } from './editors/variant-picker.js';
 import {
     extractLocaleFromPath,
@@ -576,6 +577,9 @@ export default class MasFragmentEditor extends LitElement {
         groupedVariationOrphanMessage: { type: String, state: true },
         promotionGeoOptions: { type: Array, state: true },
         disabledPromoGeoOptions: { type: Array, state: true },
+        referencingFragments: { type: Object, state: true },
+        isLoadingReferencingFragments: { type: Boolean, state: true },
+        referencingFragmentsError: { type: Boolean, state: true },
     };
 
     page = new StoreController(this, Store.page);
@@ -592,6 +596,10 @@ export default class MasFragmentEditor extends LitElement {
         Store.filters,
     ]);
     editorContextStore = Store.fragmentEditor.editorContext;
+    #referencingLoadToken = 0;
+    #referencingLoadedForId = null;
+    #referencingLoadingForId = null;
+    #referencingAbortController = null;
 
     get localeDefaultFragment() {
         return this.editorContextStore?.localeDefaultFragment ?? null;
@@ -633,6 +641,9 @@ export default class MasFragmentEditor extends LitElement {
         this.groupedVariationOrphanMessage = null;
         this.promotionGeoOptions = [];
         this.disabledPromoGeoOptions = [];
+        this.referencingFragments = null;
+        this.isLoadingReferencingFragments = false;
+        this.referencingFragmentsError = false;
 
         this.updateFragment = this.updateFragment.bind(this);
         this.deleteFragment = this.deleteFragment.bind(this);
@@ -664,6 +675,48 @@ export default class MasFragmentEditor extends LitElement {
     disconnectedCallback() {
         super.disconnectedCallback();
         setItemsSelectionStore(this.#itemsSelectionStoreSnapshot);
+        this.#referencingAbortController?.abort();
+    }
+
+    // Loads the list of collections / projects that reference the open fragment. Mirrors the
+    // monotonic load-token guard used by mas-related-variations so an A -> B -> A fragment switch
+    // never renders A's references under B. The in-flight request is aborted on switch and unmount.
+    #maybeLoadReferencingFragments() {
+        const fragment = this.fragment;
+        if (!fragment?.id) return;
+        const modelPath = fragment.model?.path;
+        if (modelPath !== CARD_MODEL_PATH && modelPath !== COLLECTION_MODEL_PATH) return;
+        if (typeof this.repository?.aem?.sites?.cf?.fragments?.getReferencedByFragmentId !== 'function') return;
+        if (fragment.id === this.#referencingLoadedForId || fragment.id === this.#referencingLoadingForId) return;
+        void this.#loadReferencingFragmentsFor(fragment);
+    }
+
+    async #loadReferencingFragmentsFor(fragment) {
+        const token = ++this.#referencingLoadToken;
+        this.#referencingLoadingForId = fragment.id;
+        this.#referencingAbortController?.abort();
+        const abortController = new AbortController();
+        this.#referencingAbortController = abortController;
+        this.referencingFragments = null;
+        this.referencingFragmentsError = false;
+        this.isLoadingReferencingFragments = true;
+        try {
+            const result = await getReferencingFragments(this.repository.aem, fragment, {
+                signal: abortController.signal,
+            });
+            if (token !== this.#referencingLoadToken) return;
+            this.referencingFragments = result;
+            this.#referencingLoadedForId = fragment.id;
+        } catch (error) {
+            if (token !== this.#referencingLoadToken) return;
+            if (error?.name === 'AbortError') return;
+            console.error('Failed to load referencing fragments:', error);
+            this.referencingFragmentsError = true;
+        } finally {
+            if (token === this.#referencingLoadToken) {
+                this.isLoadingReferencingFragments = false;
+            }
+        }
     }
 
     willUpdate(changedProperties) {
@@ -680,6 +733,7 @@ export default class MasFragmentEditor extends LitElement {
         }
 
         void this.#loadPromotionGeoOptions().then(() => this.#loadDisabledPromoGeoOptions());
+        void this.#maybeLoadReferencingFragments();
     }
 
     async #loadDisabledPromoGeoOptions() {
@@ -2043,6 +2097,53 @@ export default class MasFragmentEditor extends LitElement {
         return html`<p id="author-path">${modelName}: ${fragmentParts}</p>`;
     }
 
+    #renderReferencingRow(row) {
+        const rep = row.representative;
+        const title = row.title ?? rep?.path?.split('/').pop() ?? '';
+        const localeBadge =
+            row.localeCount > 1 ? html`<span class="referencing-locale-count">${row.localeCount} locales</span>` : nothing;
+        const statusChip = rep?.status ? html`<span class="referencing-status">${rep.status}</span>` : nothing;
+        const content = html`<span class="referencing-title">${title}</span>${localeBadge}${statusChip}`;
+        // Collections deep-link; bulk-publish-projects have no card deep link, so render them plain
+        // rather than as a dead anchor.
+        if (rep?.link) {
+            return html`
+                <a class="referencing-row clickable" href=${rep.link} target="_blank" rel="noopener">
+                    ${content}
+                    <sp-icon-open-in size="s"></sp-icon-open-in>
+                </a>
+            `;
+        }
+        return html`<div class="referencing-row">${content}</div>`;
+    }
+
+    get referencingFragmentsContainer() {
+        if (!this.fragment) return nothing;
+        const header = html`<div class="referencing-header"><span>Referenced by</span></div>`;
+        if (this.isLoadingReferencingFragments) {
+            return html`<div class="referencing-container">
+                ${header}
+                <div class="referencing-message">Loading references…</div>
+            </div>`;
+        }
+        if (this.referencingFragmentsError) {
+            return html`<div class="referencing-container referencing-error">
+                ${header}
+                <div class="referencing-message">References unavailable</div>
+            </div>`;
+        }
+        const data = this.referencingFragments;
+        if (!data) return nothing;
+        const rows = [...(data.collections ?? []), ...(data.projects ?? [])];
+        if (!rows.length) {
+            return html`<div class="referencing-container">
+                ${header}
+                <div class="referencing-message">No references found</div>
+            </div>`;
+        }
+        return html`<div class="referencing-container">${header}${rows.map((row) => this.#renderReferencingRow(row))}</div>`;
+    }
+
     get fragmentEditor() {
         if (!this.fragment) return nothing;
 
@@ -2084,7 +2185,7 @@ export default class MasFragmentEditor extends LitElement {
         }
 
         return html`
-            ${this.derivedFromContainer}
+            ${this.derivedFromContainer} ${this.referencingFragmentsContainer}
             <div class=${`section${this.isCompareChart ? ' compare-chart-section' : ''}`}>
                 ${this.isCompareChart ? nothing : this.authorPath} ${this.localeVariationHeader} ${editorContent}
             </div>

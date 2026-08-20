@@ -1704,6 +1704,133 @@ describe('MasFragmentEditor', () => {
             expect(Store.search.get().region).to.be.undefined;
         });
     });
+
+    describe('referenced-by list', () => {
+        const collRow = (over = {}) => ({
+            groupKey: 'acom/plans-all',
+            title: 'Plans All',
+            modelPath: COLLECTION_MODEL_PATH,
+            representative: {
+                id: 'coll-1',
+                path: '/content/dam/mas/acom/en_US/plans-all',
+                status: 'PUBLISHED',
+                link: 'https://mas.adobe.com/studio.html#content-type=merch-card-collection&query=coll-1',
+            },
+            locales: ['en_US', 'fr_FR'],
+            localeCount: 2,
+            ...over,
+        });
+
+        const renderContainer = (editor) => {
+            const host = document.createElement('div');
+            render(editor.referencingFragmentsContainer, host);
+            return host;
+        };
+
+        it('renders a loading state while references are loading', () => {
+            const { editor } = createEditor();
+            sandbox.stub(editor, 'fragment').get(() => ({ id: 'f1', model: { path: CARD_MODEL_PATH } }));
+            editor.isLoadingReferencingFragments = true;
+            expect(renderContainer(editor).textContent).to.include('Loading references');
+        });
+
+        it('renders a distinct error state (not "no references") on failure', () => {
+            const { editor } = createEditor();
+            sandbox.stub(editor, 'fragment').get(() => ({ id: 'f1', model: { path: CARD_MODEL_PATH } }));
+            editor.referencingFragmentsError = true;
+            const host = renderContainer(editor);
+            expect(host.textContent).to.include('References unavailable');
+            expect(host.textContent).to.not.include('No references found');
+            expect(host.querySelector('.referencing-error')).to.not.equal(null);
+        });
+
+        it('renders the empty state when there are no references', () => {
+            const { editor } = createEditor();
+            sandbox.stub(editor, 'fragment').get(() => ({ id: 'f1', model: { path: CARD_MODEL_PATH } }));
+            editor.referencingFragments = { collections: [], projects: [] };
+            expect(renderContainer(editor).textContent).to.include('No references found');
+        });
+
+        it('renders a collection row as a deep link with a locale-count badge', () => {
+            const { editor } = createEditor();
+            sandbox.stub(editor, 'fragment').get(() => ({ id: 'f1', model: { path: CARD_MODEL_PATH } }));
+            editor.referencingFragments = { collections: [collRow()], projects: [] };
+            const host = renderContainer(editor);
+            const link = host.querySelector('a.referencing-row');
+            expect(link).to.not.equal(null);
+            expect(link.getAttribute('href')).to.include('coll-1');
+            expect(link.getAttribute('target')).to.equal('_blank');
+            expect(host.textContent).to.include('2 locales');
+            expect(host.textContent).to.include('PUBLISHED');
+        });
+
+        it('renders a bulk-publish-project row as a link to the bulk-publish editor', () => {
+            const { editor } = createEditor();
+            sandbox.stub(editor, 'fragment').get(() => ({ id: 'f1', model: { path: CARD_MODEL_PATH } }));
+            editor.referencingFragments = {
+                collections: [],
+                projects: [
+                    {
+                        groupKey: '/content/dam/mas/acom/bulk-publish-projects/launch',
+                        title: 'Launch EMEA',
+                        representative: {
+                            id: 'p1',
+                            path: '/content/dam/mas/acom/bulk-publish-projects/launch',
+                            status: 'DRAFT',
+                            link: 'https://mas.adobe.com/studio.html#page=bulkPublishEditor&bulkPublishProjectId=p1',
+                        },
+                        locales: [],
+                        localeCount: 0,
+                    },
+                ],
+            };
+            const host = renderContainer(editor);
+            expect(host.textContent).to.include('Launch EMEA');
+            const link = host.querySelector('a.referencing-row');
+            expect(link).to.not.equal(null);
+            expect(link.getAttribute('href')).to.include('bulkPublishProjectId=p1');
+        });
+
+        it('ignores a stale in-flight load after a rapid fragment switch (race guard)', async () => {
+            let resolveA;
+            let resolveB;
+            const cf = (id, name) => ({
+                type: 'content-fragment',
+                path: `/content/dam/mas/acom/en_US/${name}`,
+                id,
+                status: 'PUBLISHED',
+                model: { path: COLLECTION_MODEL_PATH },
+            });
+            const getReferencedByFragmentId = sandbox.stub();
+            getReferencedByFragmentId.onCall(0).returns(
+                new Promise((r) => {
+                    resolveA = () => r({ items: [cf('a1', 'coll-a')] });
+                }),
+            );
+            getReferencedByFragmentId.onCall(1).returns(
+                new Promise((r) => {
+                    resolveB = () => r({ items: [cf('b1', 'coll-b')] });
+                }),
+            );
+            const { editor } = createEditor({ aem: { sites: { cf: { fragments: { getReferencedByFragmentId } } } } });
+
+            let current = { id: 'frag-A', path: '/content/dam/mas/acom/en_US/card-a', model: { path: CARD_MODEL_PATH } };
+            sandbox.stub(editor, 'fragment').get(() => current);
+
+            editor.willUpdate(new Map()); // load A (token 1)
+            current = { id: 'frag-B', path: '/content/dam/mas/acom/en_US/card-b', model: { path: CARD_MODEL_PATH } };
+            editor.willUpdate(new Map()); // load B (token 2) — aborts A
+
+            resolveB();
+            await new Promise((r) => setTimeout(r, 10));
+            resolveA(); // stale — must not overwrite B
+            await new Promise((r) => setTimeout(r, 10));
+
+            expect(getReferencedByFragmentId.calledTwice).to.be.true;
+            expect(editor.referencingFragments.collections).to.have.lengthOf(1);
+            expect(editor.referencingFragments.collections[0].representative.id).to.equal('b1');
+        });
+    });
 });
 
 describe('MasFragmentEditor – #preloadEditorModule', () => {

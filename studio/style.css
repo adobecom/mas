@@ -1011,6 +1011,65 @@ sp-progress-circle.preview {
     text-decoration: none;
 }
 
+/* Referenced-by list: which collections / projects use the open fragment. Neutral gray palette so
+   it reads as distinct from the blue "Derived from" block above it. */
+.referencing-container {
+    background: var(--spectrum-gray-75);
+    border: 2px solid var(--spectrum-gray-300);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 24px;
+}
+
+.referencing-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    color: var(--spectrum-global-color-gray-900);
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.referencing-message {
+    color: var(--spectrum-neutral-subdued-content-color-default);
+    font-size: 14px;
+}
+
+.referencing-error .referencing-message {
+    color: var(--spectrum-global-color-gray-900);
+}
+
+.referencing-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 0;
+    color: var(--spectrum-global-color-gray-900);
+    font-size: 14px;
+    text-decoration: none;
+}
+
+a.referencing-row:hover {
+    color: var(--spectrum-global-color-blue-500);
+    text-decoration: none;
+}
+
+.referencing-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.referencing-locale-count,
+.referencing-status {
+    flex-shrink: 0;
+    font-size: 12px;
+    font-weight: normal;
+    color: var(--spectrum-neutral-subdued-content-color-default);
+}
+
+
 @media screen and (max-width: 1100px) {
     sp-table-cell.offer-id {
         word-break: break-all;

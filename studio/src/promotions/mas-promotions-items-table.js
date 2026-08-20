@@ -29,7 +29,11 @@ import {
 } from './promotion-editor-utils.js';
 import { isPromoVariationPath } from './promotion-model.js';
 import { getUsedGeoTags } from './promotion-variations.js';
-import { createPromoVariation, probePromoVariationsForFragment } from './promotions-repository.js';
+import {
+    createPromoVariation,
+    probePromoVariationsForFragment,
+    probePromoVariationsForFragments,
+} from './promotions-repository.js';
 import './mas-promo-variation-geos.js';
 import { openOfferSelectorTool } from '../rte/ost.js';
 import '../common/components/mas-select-items-table.js';
@@ -83,6 +87,7 @@ class MasPromotionsItemsTable extends LitElement {
     #allSelectedPaths = [];
     #visibleCount = 0;
     #offerRecordsHydratedSeen = 0;
+    #promoVariationProbe = null;
 
     constructor() {
         super();
@@ -249,11 +254,26 @@ class MasPromotionsItemsTable extends LitElement {
         this.#allSelectedPaths = paths;
         this.#visibleCount = 0;
         this.viewOnlyFragments = [];
+        // Probe every selected card's promo variations in a single recursive folder search
+        // (one request per surface root) rather than once per windowed item; windows then read
+        // from this shared result.
+        this.#promoVariationProbe =
+            this.type === TABLE_TYPE.CARDS && paths.length ? this.#probeAllPromoVariations(paths) : null;
         if (!paths.length) {
             this.viewOnlyLoading = false;
             return;
         }
         await this.#loadNextSelectedWindow();
+    }
+
+    async #probeAllPromoVariations(paths) {
+        const promoTag = this.#promotionTagId;
+        if (!promoTag || !this.repository?.aem?.sites?.cf?.fragments?.search) return new Map();
+        try {
+            return await probePromoVariationsForFragments(this.repository.aem, paths, promoTag);
+        } catch {
+            return new Map();
+        }
     }
 
     #loadMore() {
@@ -308,27 +328,21 @@ class MasPromotionsItemsTable extends LitElement {
         const geosByPath = new Map(scopedEntries(previousGeos));
         const variationsByPath = new Map(scopedEntries(previousVariations));
         const emptyGeoPaths = new Set([...previousEmptyGeoPaths].filter((path) => selectedSet.has(path)));
+        const probedByPath = (await this.#promoVariationProbe) ?? new Map();
+        if (signal.aborted) return;
         await Promise.all(
             items.map(async (item) => {
                 if (signal.aborted) return;
-                try {
-                    const variations = await probePromoVariationsForFragment(this.repository.aem, item.path, promoTag);
-                    if (variations.length) {
-                        const enrichedVariations = await enrichPromoVariations(variations, item, {
-                            getDisplayName: this.getDisplayName,
-                        });
-                        geosByPath.set(item.path, getUsedGeoTags(variations));
-                        variationsByPath.set(item.path, enrichedVariations);
-                        if (variations.some((variation) => !variation.pznTags?.length)) {
-                            emptyGeoPaths.add(item.path);
-                        }
-                    }
-                } catch {
-                    if (previousGeos.has(item.path)) {
-                        geosByPath.set(item.path, previousGeos.get(item.path) || []);
-                        variationsByPath.set(item.path, previousVariations.get(item.path) || []);
-                        if (previousEmptyGeoPaths.has(item.path)) emptyGeoPaths.add(item.path);
-                    }
+                const variations = probedByPath.get(item.path) || [];
+                if (!variations.length) return;
+                const enrichedVariations = await enrichPromoVariations(variations, item, {
+                    getDisplayName: this.getDisplayName,
+                });
+                if (signal.aborted) return;
+                geosByPath.set(item.path, getUsedGeoTags(variations));
+                variationsByPath.set(item.path, enrichedVariations);
+                if (variations.some((variation) => !variation.pznTags?.length)) {
+                    emptyGeoPaths.add(item.path);
                 }
             }),
         );

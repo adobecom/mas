@@ -15,6 +15,7 @@ import {
 } from './constants.js';
 import router from './router.js';
 import { getReferencingFragments } from './references/references-repository.js';
+import { fetchFragmentUsage } from './references/usage-repository.js';
 import { migrateLegacyVariant, normalizeVariantName, VARIANTS } from './editors/variant-picker.js';
 import {
     extractLocaleFromPath,
@@ -580,6 +581,7 @@ export default class MasFragmentEditor extends LitElement {
         referencingFragments: { type: Object, state: true },
         isLoadingReferencingFragments: { type: Boolean, state: true },
         referencingFragmentsError: { type: Boolean, state: true },
+        fragmentUsage: { type: Object, state: true },
     };
 
     page = new StoreController(this, Store.page);
@@ -600,6 +602,8 @@ export default class MasFragmentEditor extends LitElement {
     #referencingLoadedForId = null;
     #referencingLoadingForId = null;
     #referencingAbortController = null;
+    #usageLoadToken = 0;
+    #usageLoadedForId = null;
 
     get localeDefaultFragment() {
         return this.editorContextStore?.localeDefaultFragment ?? null;
@@ -644,6 +648,7 @@ export default class MasFragmentEditor extends LitElement {
         this.referencingFragments = null;
         this.isLoadingReferencingFragments = false;
         this.referencingFragmentsError = false;
+        this.fragmentUsage = null;
 
         this.updateFragment = this.updateFragment.bind(this);
         this.deleteFragment = this.deleteFragment.bind(this);
@@ -734,6 +739,7 @@ export default class MasFragmentEditor extends LitElement {
 
         void this.#loadPromotionGeoOptions().then(() => this.#loadDisabledPromoGeoOptions());
         void this.#maybeLoadReferencingFragments();
+        void this.#maybeLoadFragmentUsage();
     }
 
     async #loadDisabledPromoGeoOptions() {
@@ -2097,6 +2103,45 @@ export default class MasFragmentEditor extends LitElement {
         return html`<p id="author-path">${modelName}: ${fragmentParts}</p>`;
     }
 
+    // PROTOTYPE (epic 4A, MWPW-185891): consumer usage from Akamai logs via Grafana. fetchFragmentUsage
+    // targets a future IO proxy and degrades to { available: false }, so this stays invisible until the
+    // proxy + service token exist. Guarded to card/collection like the reference loader.
+    #maybeLoadFragmentUsage() {
+        const fragment = this.fragment;
+        if (!fragment?.id) return;
+        const modelPath = fragment.model?.path;
+        if (modelPath !== CARD_MODEL_PATH && modelPath !== COLLECTION_MODEL_PATH) return;
+        if (fragment.id === this.#usageLoadedForId) return;
+        void this.#loadFragmentUsageFor(fragment);
+    }
+
+    async #loadFragmentUsageFor(fragment) {
+        const token = ++this.#usageLoadToken;
+        this.#usageLoadedForId = fragment.id;
+        const usage = await fetchFragmentUsage(fragment.id);
+        if (token !== this.#usageLoadToken) return;
+        this.fragmentUsage = usage?.available ? usage : null;
+    }
+
+    get fragmentUsageContainer() {
+        const usage = this.fragmentUsage;
+        if (!usage?.available || !usage.rows?.length) return nothing;
+        return html`
+            <div class="referencing-container">
+                <div class="referencing-header"><span>Usage (last 30 days)</span></div>
+                <div class="referencing-message">${usage.totalCount} requests</div>
+                ${usage.rows.map(
+                    (row) => html`
+                        <div class="referencing-row">
+                            <span class="referencing-title">${row.apiKey || 'unknown'} / ${row.country || '--'}</span>
+                            <span class="referencing-status">${row.count}</span>
+                        </div>
+                    `,
+                )}
+            </div>
+        `;
+    }
+
     #renderReferencingRow(row) {
         const rep = row.representative;
         const title = row.title ?? rep?.path?.split('/').pop() ?? '';
@@ -2185,7 +2230,7 @@ export default class MasFragmentEditor extends LitElement {
         }
 
         return html`
-            ${this.derivedFromContainer} ${this.referencingFragmentsContainer}
+            ${this.derivedFromContainer} ${this.referencingFragmentsContainer} ${this.fragmentUsageContainer}
             <div class=${`section${this.isCompareChart ? ' compare-chart-section' : ''}`}>
                 ${this.isCompareChart ? nothing : this.authorPath} ${this.localeVariationHeader} ${editorContent}
             </div>

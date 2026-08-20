@@ -1791,6 +1791,33 @@ describe('MasFragmentEditor', () => {
             expect(link.getAttribute('href')).to.include('bulkPublishProjectId=p1');
         });
 
+        it('hides the usage section when no usage data is available (prototype gated off)', () => {
+            const { editor } = createEditor();
+            sandbox.stub(editor, 'fragment').get(() => ({ id: 'f1', model: { path: CARD_MODEL_PATH } }));
+            editor.fragmentUsage = null;
+            const host = document.createElement('div');
+            render(editor.fragmentUsageContainer, host);
+            expect(host.textContent.trim()).to.equal('');
+        });
+
+        it('renders the usage section with consumer breakdown when data is available', () => {
+            const { editor } = createEditor();
+            sandbox.stub(editor, 'fragment').get(() => ({ id: 'f1', model: { path: CARD_MODEL_PATH } }));
+            editor.fragmentUsage = {
+                available: true,
+                totalCount: 1234,
+                rows: [
+                    { locale: 'en_US', apiKey: 'cc', country: 'US', count: 1200 },
+                    { locale: 'fr_FR', apiKey: 'express', country: 'FR', count: 34 },
+                ],
+            };
+            const host = document.createElement('div');
+            render(editor.fragmentUsageContainer, host);
+            expect(host.textContent).to.include('1234 requests');
+            expect(host.textContent).to.include('cc / US');
+            expect(host.textContent).to.include('express / FR');
+        });
+
         it('ignores a stale in-flight load after a rapid fragment switch (race guard)', async () => {
             let resolveA;
             let resolveB;

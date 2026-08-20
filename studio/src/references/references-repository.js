@@ -1,14 +1,20 @@
 import {
     buildBulkPublishProjectDeepLink,
     buildCardsDeepLink,
+    buildPromoProjectDeepLink,
+    buildTranslationProjectDeepLink,
     extractLocaleFromPath,
     extractSurfaceFromPath,
 } from '../utils.js';
 import {
     BULK_PUBLISH_PROJECT_MODEL_ID,
     BULK_PUBLISH_PROJECTS_FOLDER,
+    CARD_MODEL_PATH,
+    COLLECTION_MODEL_PATH,
     PATH_TOKENS,
+    PROMOTION_MODEL_ID,
     PROMOTIONS_PATH_PREFIX,
+    TRANSLATION_PROJECT_MODEL_ID,
 } from '../constants.js';
 import { Fragment } from '../aem/fragment.js';
 import { getDefaultLocaleCode } from '../locales.js';
@@ -203,7 +209,7 @@ export function groupReferencesByCollection(items, openFragmentTokens, openLocal
  * @param {Array<Object>} items filtered `referencedBy` items already known to be projects
  * @returns {Array<{ groupKey: string, title: string|null, modelPath: string|null, representative: Object|null, locales: string[], localeCount: number }>}
  */
-export function groupBulkPublishProjects(items) {
+export function groupFlatReferences(items, buildLink) {
     const byPath = new Map();
     for (const item of items) {
         if (!byPath.has(item.path)) byPath.set(item.path, item);
@@ -216,11 +222,57 @@ export function groupBulkPublishProjects(items) {
             id: item.id,
             path: item.path,
             status: item.status,
-            link: buildBulkPublishProjectDeepLink(item.id),
+            link: buildLink ? buildLink(item) : null,
         },
         locales: [],
         localeCount: 0,
     }));
+}
+
+export function groupBulkPublishProjects(items) {
+    return groupFlatReferences(items, (item) => buildBulkPublishProjectDeepLink(item.id));
+}
+
+/**
+ * Reference type buckets, in display order. `match` is evaluated top-to-bottom against a raw
+ * `referencedBy` item; the last entry (`other`) is the catch-all. `grouping: 'locale'` collapses
+ * locale copies into one row (collections/cards); `'flat'` lists one row per fragment (projects).
+ */
+export const REFERENCE_TYPES = [
+    { key: 'collections', label: 'Collections', grouping: 'locale', match: (r) => r.model?.path === COLLECTION_MODEL_PATH },
+    { key: 'cards', label: 'Cards', grouping: 'locale', match: (r) => r.model?.path === CARD_MODEL_PATH },
+    {
+        key: 'promoProjects',
+        label: 'Promo Projects',
+        grouping: 'flat',
+        match: (r) => r.model?.id === PROMOTION_MODEL_ID,
+        buildLink: (item) => buildPromoProjectDeepLink(item.id),
+    },
+    {
+        key: 'bulkPublishProjects',
+        label: 'Bulk Publish Projects',
+        grouping: 'flat',
+        match: (r) => r.model?.id === BULK_PUBLISH_PROJECT_MODEL_ID,
+        buildLink: (item) => buildBulkPublishProjectDeepLink(item.id),
+    },
+    {
+        key: 'localizationProjects',
+        label: 'Localization Projects',
+        grouping: 'flat',
+        match: (r) => r.model?.id === TRANSLATION_PROJECT_MODEL_ID,
+        buildLink: (item) => buildTranslationProjectDeepLink(item.id),
+    },
+    { key: 'other', label: 'Other', grouping: 'flat', match: () => true, buildLink: () => null },
+];
+
+/**
+ * Classifies a raw `referencedBy` item into one of REFERENCE_TYPES by its model, returning the
+ * first matching type key (falls back to `other`).
+ * @param {Object} reference
+ * @returns {string}
+ */
+export function classifyReference(reference) {
+    return (REFERENCE_TYPES.find((type) => type.match(reference)) ?? REFERENCE_TYPES[REFERENCE_TYPES.length - 1]).key;
 }
 
 /**
@@ -256,13 +308,13 @@ export async function fetchAllReferencingItems(aem, fragmentId, { signal } = {})
 /**
  * Resolves the "referenced by" list for the details panel: fetches every page of the GET-by-id
  * `referencedBy` endpoint, drops false positives (grouped/pzn variations, promo variations,
- * self-locale variations, cross-surface clones), then groups what remains into collections
- * (by logical collection across locales) and bulk-publish projects (bucketed separately).
+ * self-locale variations, cross-surface clones), then buckets what remains by reference type
+ * (collections, cards, promo/bulk-publish/localization projects, other) in display order.
  *
  * @param {import('../aem/aem.js').AEM} aem
  * @param {Object} fragment the fragment currently open in the editor
  * @param {{ signal?: AbortSignal }} [options]
- * @returns {Promise<{ collections: Array<Object>, projects: Array<Object> }>}
+ * @returns {Promise<Array<{ key: string, label: string, rows: Array<Object> }>>} ordered, non-empty type buckets
  */
 export async function getReferencingFragments(aem, fragment, { signal } = {}) {
     // The open fragment is normally a card/collection whose path parses cleanly. If it does not
@@ -279,11 +331,20 @@ export async function getReferencingFragments(aem, fragment, { signal } = {}) {
     const items = await fetchAllReferencingItems(aem, fragment.id, { signal });
     const kept = items.filter((item) => !isExcludedReference(item, openFragmentTokens));
 
-    const projectItems = kept.filter(isBulkPublishProjectReference);
-    const collectionItems = kept.filter((item) => !isBulkPublishProjectReference(item));
+    const itemsByType = new Map(REFERENCE_TYPES.map((type) => [type.key, []]));
+    for (const item of kept) {
+        itemsByType.get(classifyReference(item)).push(item);
+    }
 
-    return {
-        collections: groupReferencesByCollection(collectionItems, openFragmentTokens, openLocale),
-        projects: groupBulkPublishProjects(projectItems),
-    };
+    const buckets = [];
+    for (const type of REFERENCE_TYPES) {
+        const typeItems = itemsByType.get(type.key);
+        if (!typeItems.length) continue;
+        const rows =
+            type.grouping === 'locale'
+                ? groupReferencesByCollection(typeItems, openFragmentTokens, openLocale)
+                : groupFlatReferences(typeItems, type.buildLink);
+        if (rows.length) buckets.push({ key: type.key, label: type.label, rows });
+    }
+    return buckets;
 }

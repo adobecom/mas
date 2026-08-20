@@ -1705,7 +1705,7 @@ describe('MasFragmentEditor', () => {
         });
     });
 
-    describe('referenced-by list', () => {
+    describe('References section', () => {
         const collRow = (over = {}) => ({
             groupKey: 'acom/plans-all',
             title: 'Plans All',
@@ -1721,41 +1721,55 @@ describe('MasFragmentEditor', () => {
             ...over,
         });
 
-        const renderContainer = (editor) => {
+        const renderSection = (editor) => {
             const host = document.createElement('div');
-            render(editor.referencingFragmentsContainer, host);
+            render(editor.referencesSection, host);
             return host;
         };
 
-        it('renders a loading state while references are loading', () => {
+        const withCard = () => {
             const { editor } = createEditor();
             sandbox.stub(editor, 'fragment').get(() => ({ id: 'f1', model: { path: CARD_MODEL_PATH } }));
+            return editor;
+        };
+
+        it('titles the section "References" and renders a loading state', () => {
+            const editor = withCard();
             editor.isLoadingReferencingFragments = true;
-            expect(renderContainer(editor).textContent).to.include('Loading references');
+            const host = renderSection(editor);
+            expect(host.textContent).to.include('References');
+            expect(host.textContent).to.include('Loading references');
         });
 
         it('renders a distinct error state (not "no references") on failure', () => {
-            const { editor } = createEditor();
-            sandbox.stub(editor, 'fragment').get(() => ({ id: 'f1', model: { path: CARD_MODEL_PATH } }));
+            const editor = withCard();
             editor.referencingFragmentsError = true;
-            const host = renderContainer(editor);
+            const host = renderSection(editor);
             expect(host.textContent).to.include('References unavailable');
             expect(host.textContent).to.not.include('No references found');
-            expect(host.querySelector('.referencing-error')).to.not.equal(null);
+            expect(host.querySelector('.references-error')).to.not.equal(null);
         });
 
         it('renders the empty state when there are no references', () => {
-            const { editor } = createEditor();
-            sandbox.stub(editor, 'fragment').get(() => ({ id: 'f1', model: { path: CARD_MODEL_PATH } }));
-            editor.referencingFragments = { collections: [], projects: [] };
-            expect(renderContainer(editor).textContent).to.include('No references found');
+            const editor = withCard();
+            editor.referencingFragments = [];
+            expect(renderSection(editor).textContent).to.include('No references found');
         });
 
-        it('renders a collection row as a deep link with a locale-count badge', () => {
-            const { editor } = createEditor();
-            sandbox.stub(editor, 'fragment').get(() => ({ id: 'f1', model: { path: CARD_MODEL_PATH } }));
-            editor.referencingFragments = { collections: [collRow()], projects: [] };
-            const host = renderContainer(editor);
+        it('renders a per-type collapsible header with a count, collapsed by default (rows hidden)', () => {
+            const editor = withCard();
+            editor.referencingFragments = [{ key: 'collections', label: 'Collections', rows: [collRow()] }];
+            const host = renderSection(editor);
+            expect(host.textContent).to.include('Collections (1)');
+            // collapsed: the row link is not rendered
+            expect(host.querySelector('a.referencing-row')).to.equal(null);
+        });
+
+        it('shows the collection row as a deep link with a locale badge when its type is expanded', () => {
+            const editor = withCard();
+            editor.referencingFragments = [{ key: 'collections', label: 'Collections', rows: [collRow()] }];
+            editor.expandedReferenceTypes = new Set(['collections']);
+            const host = renderSection(editor);
             const link = host.querySelector('a.referencing-row');
             expect(link).to.not.equal(null);
             expect(link.getAttribute('href')).to.include('coll-1');
@@ -1764,27 +1778,44 @@ describe('MasFragmentEditor', () => {
             expect(host.textContent).to.include('PUBLISHED');
         });
 
-        it('renders a bulk-publish-project row as a link to the bulk-publish editor', () => {
-            const { editor } = createEditor();
-            sandbox.stub(editor, 'fragment').get(() => ({ id: 'f1', model: { path: CARD_MODEL_PATH } }));
-            editor.referencingFragments = {
-                collections: [],
-                projects: [
-                    {
-                        groupKey: '/content/dam/mas/acom/bulk-publish-projects/launch',
-                        title: 'Launch EMEA',
-                        representative: {
-                            id: 'p1',
-                            path: '/content/dam/mas/acom/bulk-publish-projects/launch',
-                            status: 'DRAFT',
-                            link: 'https://mas.adobe.com/studio.html#page=bulkPublishEditor&bulkPublishProjectId=p1',
+        it('renders each type bucket in order with its own collapsible', () => {
+            const editor = withCard();
+            editor.referencingFragments = [
+                { key: 'collections', label: 'Collections', rows: [collRow()] },
+                { key: 'promoProjects', label: 'Promo Projects', rows: [collRow({ groupKey: 'p' })] },
+                { key: 'bulkPublishProjects', label: 'Bulk Publish Projects', rows: [collRow({ groupKey: 'b' })] },
+            ];
+            const host = renderSection(editor);
+            expect(host.textContent).to.include('Collections (1)');
+            expect(host.textContent).to.include('Promo Projects (1)');
+            expect(host.textContent).to.include('Bulk Publish Projects (1)');
+            expect(host.querySelectorAll('.reference-type-section')).to.have.lengthOf(3);
+        });
+
+        it('renders a bulk-publish-project row as a link to the bulk-publish editor when expanded', () => {
+            const editor = withCard();
+            editor.referencingFragments = [
+                {
+                    key: 'bulkPublishProjects',
+                    label: 'Bulk Publish Projects',
+                    rows: [
+                        {
+                            groupKey: '/content/dam/mas/acom/bulk-publish-projects/launch',
+                            title: 'Launch EMEA',
+                            representative: {
+                                id: 'p1',
+                                path: '/content/dam/mas/acom/bulk-publish-projects/launch',
+                                status: 'DRAFT',
+                                link: 'https://mas.adobe.com/studio.html#page=bulkPublishEditor&bulkPublishProjectId=p1',
+                            },
+                            locales: [],
+                            localeCount: 0,
                         },
-                        locales: [],
-                        localeCount: 0,
-                    },
-                ],
-            };
-            const host = renderContainer(editor);
+                    ],
+                },
+            ];
+            editor.expandedReferenceTypes = new Set(['bulkPublishProjects']);
+            const host = renderSection(editor);
             expect(host.textContent).to.include('Launch EMEA');
             const link = host.querySelector('a.referencing-row');
             expect(link).to.not.equal(null);
@@ -1854,8 +1885,9 @@ describe('MasFragmentEditor', () => {
             await new Promise((r) => setTimeout(r, 10));
 
             expect(getReferencedByFragmentId.calledTwice).to.be.true;
-            expect(editor.referencingFragments.collections).to.have.lengthOf(1);
-            expect(editor.referencingFragments.collections[0].representative.id).to.equal('b1');
+            const collections = editor.referencingFragments.find((b) => b.key === 'collections');
+            expect(collections.rows).to.have.lengthOf(1);
+            expect(collections.rows[0].representative.id).to.equal('b1');
         });
     });
 });

@@ -1011,9 +1011,9 @@ sp-progress-circle.preview {
     text-decoration: none;
 }
 
-/* Referenced-by list: which collections / projects use the open fragment. Neutral gray palette so
-   it reads as distinct from the blue "Derived from" block above it. */
-.referencing-container {
+/* "References" section: which collections / projects / cards use the open fragment, grouped by type
+   with per-type collapsibles. Neutral gray palette so it reads as distinct from the blue blocks. */
+.references-container {
     background: var(--spectrum-gray-75);
     border: 2px solid var(--spectrum-gray-300);
     border-radius: 12px;
@@ -1021,14 +1021,26 @@ sp-progress-circle.preview {
     margin-bottom: 24px;
 }
 
-.referencing-header {
-    display: flex;
-    align-items: center;
-    gap: 8px;
+.references-title {
     margin-bottom: 8px;
     color: var(--spectrum-global-color-gray-900);
     font-size: 14px;
     font-weight: bold;
+}
+
+.reference-type-section {
+    border-top: 1px solid var(--spectrum-gray-200);
+}
+
+.reference-type-toggle {
+    width: 100%;
+    justify-content: flex-start;
+    color: var(--spectrum-global-color-gray-900);
+    font-size: 14px;
+}
+
+.reference-type-rows {
+    padding: 0 8px 8px 28px;
 }
 
 .referencing-message {
@@ -1036,7 +1048,7 @@ sp-progress-circle.preview {
     font-size: 14px;
 }
 
-.referencing-error .referencing-message {
+.references-error .referencing-message {
     color: var(--spectrum-global-color-gray-900);
 }
 

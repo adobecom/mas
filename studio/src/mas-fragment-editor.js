@@ -581,6 +581,7 @@ export default class MasFragmentEditor extends LitElement {
         referencingFragments: { type: Object, state: true },
         isLoadingReferencingFragments: { type: Boolean, state: true },
         referencingFragmentsError: { type: Boolean, state: true },
+        expandedReferenceTypes: { type: Object, state: true },
         fragmentUsage: { type: Object, state: true },
     };
 
@@ -648,6 +649,7 @@ export default class MasFragmentEditor extends LitElement {
         this.referencingFragments = null;
         this.isLoadingReferencingFragments = false;
         this.referencingFragmentsError = false;
+        this.expandedReferenceTypes = new Set();
         this.fragmentUsage = null;
 
         this.updateFragment = this.updateFragment.bind(this);
@@ -2127,8 +2129,8 @@ export default class MasFragmentEditor extends LitElement {
         const usage = this.fragmentUsage;
         if (!usage?.available || !usage.rows?.length) return nothing;
         return html`
-            <div class="referencing-container">
-                <div class="referencing-header"><span>Usage (last 30 days)</span></div>
+            <div class="references-container">
+                <div class="references-title">Usage (last 30 days)</div>
                 <div class="referencing-message">${usage.totalCount} requests</div>
                 ${usage.rows.map(
                     (row) => html`
@@ -2162,31 +2164,56 @@ export default class MasFragmentEditor extends LitElement {
         return html`<div class="referencing-row">${content}</div>`;
     }
 
-    get referencingFragmentsContainer() {
+    #toggleReferenceType(key) {
+        const next = new Set(this.expandedReferenceTypes);
+        next.has(key) ? next.delete(key) : next.add(key);
+        this.expandedReferenceTypes = next;
+    }
+
+    #renderReferenceTypeSection(bucket) {
+        const expanded = this.expandedReferenceTypes.has(bucket.key);
+        return html`
+            <div class="reference-type-section">
+                <sp-action-button quiet class="reference-type-toggle" @click=${() => this.#toggleReferenceType(bucket.key)}>
+                    ${expanded
+                        ? html`<sp-icon-chevron-down slot="icon"></sp-icon-chevron-down>`
+                        : html`<sp-icon-chevron-right slot="icon"></sp-icon-chevron-right>`}
+                    ${bucket.label} (${bucket.rows.length})
+                </sp-action-button>
+                ${expanded
+                    ? html`<div class="reference-type-rows">${bucket.rows.map((row) => this.#renderReferencingRow(row))}</div>`
+                    : nothing}
+            </div>
+        `;
+    }
+
+    // "References" section, placed below grouped variations. Per-type collapsibles (Collections,
+    // Cards, Promo/Bulk Publish/Localization Projects, Other), collapsed by default.
+    get referencesSection() {
         if (!this.fragment) return nothing;
-        const header = html`<div class="referencing-header"><span>Referenced by</span></div>`;
+        const title = html`<div class="references-title">References</div>`;
         if (this.isLoadingReferencingFragments) {
-            return html`<div class="referencing-container">
-                ${header}
+            return html`<div class="references-container">
+                ${title}
                 <div class="referencing-message">Loading references…</div>
             </div>`;
         }
         if (this.referencingFragmentsError) {
-            return html`<div class="referencing-container referencing-error">
-                ${header}
+            return html`<div class="references-container references-error">
+                ${title}
                 <div class="referencing-message">References unavailable</div>
             </div>`;
         }
-        const data = this.referencingFragments;
-        if (!data) return nothing;
-        const rows = [...(data.collections ?? []), ...(data.projects ?? [])];
-        if (!rows.length) {
-            return html`<div class="referencing-container">
-                ${header}
+        const buckets = this.referencingFragments;
+        if (!Array.isArray(buckets) || !buckets.length) {
+            return html`<div class="references-container">
+                ${title}
                 <div class="referencing-message">No references found</div>
             </div>`;
         }
-        return html`<div class="referencing-container">${header}${rows.map((row) => this.#renderReferencingRow(row))}</div>`;
+        return html`<div class="references-container">
+            ${title}${buckets.map((bucket) => this.#renderReferenceTypeSection(bucket))}
+        </div>`;
     }
 
     get fragmentEditor() {
@@ -2230,7 +2257,7 @@ export default class MasFragmentEditor extends LitElement {
         }
 
         return html`
-            ${this.derivedFromContainer} ${this.referencingFragmentsContainer} ${this.fragmentUsageContainer}
+            ${this.derivedFromContainer} ${this.fragmentUsageContainer}
             <div class=${`section${this.isCompareChart ? ' compare-chart-section' : ''}`}>
                 ${this.isCompareChart ? nothing : this.authorPath} ${this.localeVariationHeader} ${editorContent}
             </div>
@@ -2308,7 +2335,7 @@ export default class MasFragmentEditor extends LitElement {
                         ${this.previewErrorMessages}
                     </div>
                 </div>
-                ${this.relatedVariationsSection}
+                ${this.relatedVariationsSection} ${this.referencesSection}
             </div>
         `;
     }

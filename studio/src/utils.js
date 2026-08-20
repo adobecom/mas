@@ -313,6 +313,32 @@ export function buildBulkPublishProjectDeepLink(id) {
 }
 
 /**
+ * Deep link to a promo project in the Promotions editor.
+ * @param {string} id promotion project fragment id
+ * @returns {string | null}
+ */
+export function buildPromoProjectDeepLink(id) {
+    if (!id) return null;
+    const params = new URLSearchParams();
+    params.set('page', PAGE_NAMES.PROMOTIONS_EDITOR);
+    params.set('promotionId', id);
+    return `https://mas.adobe.com/studio.html#${params.toString()}`;
+}
+
+/**
+ * Deep link to a localization (translation) project in the Translation editor.
+ * @param {string} id translation project fragment id
+ * @returns {string | null}
+ */
+export function buildTranslationProjectDeepLink(id) {
+    if (!id) return null;
+    const params = new URLSearchParams();
+    params.set('page', PAGE_NAMES.TRANSLATION_EDITOR);
+    params.set('translationProjectId', id);
+    return `https://mas.adobe.com/studio.html#${params.toString()}`;
+}
+
+/**
  * Parses pasted multi-line URLs
  * @param {string} text
  * @returns {{ contentType: string, fragmentId: string }[]}

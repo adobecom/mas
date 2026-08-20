@@ -4,8 +4,10 @@ import {
     BULK_PUBLISH_PROJECT_MODEL_ID,
     BULK_PUBLISH_PROJECTS_FOLDER,
     COLLECTION_MODEL_PATH,
+    PROMOTION_MODEL_ID,
     PROMOTIONS_PATH_PREFIX,
     PZN_FOLDER,
+    TRANSLATION_PROJECT_MODEL_ID,
 } from '../../src/constants.js';
 import {
     REFERENCED_BY_PAGE_LIMIT,
@@ -331,21 +333,19 @@ describe('references-repository', () => {
 
     describe('getReferencingFragments', () => {
         const fragment = { id: 'card-id', path: '/content/dam/mas/acom/en_US/my-card', locale: 'en_US' };
+        const bucket = (result, key) => result.find((b) => b.key === key);
+        const coll = (locale, id, title, status) => ({
+            path: `/content/dam/mas/acom/${locale}/plans-two-wide-reflow-all`,
+            id,
+            title,
+            status,
+            model: { path: COLLECTION_MODEL_PATH },
+        });
 
-        it('excludes false positives and groups the rest into collections and projects', async () => {
+        it('excludes false positives and buckets the rest by type in display order', async () => {
             const referencedBy = [
-                {
-                    path: '/content/dam/mas/acom/en_US/plans-two-wide-reflow-all',
-                    id: 'coll-en',
-                    title: 'Plans',
-                    status: 'PUBLISHED',
-                },
-                {
-                    path: '/content/dam/mas/acom/fr_FR/plans-two-wide-reflow-all',
-                    id: 'coll-fr',
-                    title: 'Plans FR',
-                    status: 'DRAFT',
-                },
+                coll('en_US', 'coll-en', 'Plans', 'PUBLISHED'),
+                coll('fr_FR', 'coll-fr', 'Plans FR', 'DRAFT'),
                 { path: `/content/dam/mas/acom/en_US/${PZN_FOLDER}/black-friday/my-collection`, id: 'pzn-parent' },
                 { path: `/content/dam/mas/acom/en_US/${PROMOTIONS_PATH_PREFIX}black-friday/my-collection`, id: 'promo-parent' },
                 { path: '/content/dam/mas/acom/fr_FR/my-card', id: 'self-locale-variation' },
@@ -357,6 +357,18 @@ describe('references-repository', () => {
                     status: 'PUBLISHED',
                     model: { id: BULK_PUBLISH_PROJECT_MODEL_ID },
                 },
+                {
+                    path: '/content/dam/mas/acom/en_US/summer-sale',
+                    id: 'promo-proj',
+                    title: 'Summer',
+                    model: { id: PROMOTION_MODEL_ID },
+                },
+                {
+                    path: '/content/dam/mas/acom/en_US/loc-1',
+                    id: 'loc-proj',
+                    title: 'Loc',
+                    model: { id: TRANSLATION_PROJECT_MODEL_ID },
+                },
             ];
             const getReferencedByFragmentId = sandbox.stub().resolves({ items: referencedBy });
             const aem = { sites: { cf: { fragments: { getReferencedByFragmentId } } } };
@@ -364,40 +376,46 @@ describe('references-repository', () => {
             const result = await getReferencingFragments(aem, fragment);
 
             expect(getReferencedByFragmentId.calledWith('card-id')).to.be.true;
-            expect(result.collections).to.have.lengthOf(1);
-            expect(result.collections[0].groupKey).to.equal('acom/plans-two-wide-reflow-all');
-            expect(result.collections[0].representative.id).to.equal('coll-en');
-            expect(result.collections[0].localeCount).to.equal(2);
-            expect(result.projects).to.have.lengthOf(1);
-            expect(result.projects[0].representative.id).to.equal('project-1');
-            expect(result.projects[0].locales).to.deep.equal([]);
+            // ordered, non-empty buckets
+            expect(result.map((b) => b.key)).to.deep.equal([
+                'collections',
+                'promoProjects',
+                'bulkPublishProjects',
+                'localizationProjects',
+            ]);
+            const collections = bucket(result, 'collections');
+            expect(collections.label).to.equal('Collections');
+            expect(collections.rows).to.have.lengthOf(1);
+            expect(collections.rows[0].groupKey).to.equal('acom/plans-two-wide-reflow-all');
+            expect(collections.rows[0].representative.id).to.equal('coll-en');
+            expect(collections.rows[0].localeCount).to.equal(2);
+            expect(bucket(result, 'bulkPublishProjects').rows[0].representative.id).to.equal('project-1');
+            expect(bucket(result, 'promoProjects').rows[0].representative.link).to.include('promotionId=promo-proj');
+            expect(bucket(result, 'localizationProjects').rows[0].representative.link).to.include(
+                'translationProjectId=loc-proj',
+            );
         });
 
-        it('returns empty collections and projects when there are no references', async () => {
+        it('returns an empty array when there are no references', async () => {
             const getReferencedByFragmentId = sandbox.stub().resolves({ items: [] });
             const aem = { sites: { cf: { fragments: { getReferencedByFragmentId } } } };
-
-            const result = await getReferencingFragments(aem, fragment);
-
-            expect(result).to.deep.equal({ collections: [], projects: [] });
+            expect(await getReferencingFragments(aem, fragment)).to.deep.equal([]);
         });
 
         it('assembles references across multiple pages before filtering and grouping', async () => {
             const getReferencedByFragmentId = sandbox.stub();
             getReferencedByFragmentId.onCall(0).resolves({
-                items: [{ path: '/content/dam/mas/acom/en_US/collection-a', id: 'a-id' }],
+                items: [coll('en_US', 'a-id', 'A', 'PUBLISHED')],
                 cursor: 'page-2',
             });
-            getReferencedByFragmentId.onCall(1).resolves({
-                items: [{ path: '/content/dam/mas/acom/fr_FR/collection-a', id: 'a-fr-id' }],
-            });
+            getReferencedByFragmentId.onCall(1).resolves({ items: [coll('fr_FR', 'a-fr-id', 'A', 'DRAFT')] });
             const aem = { sites: { cf: { fragments: { getReferencedByFragmentId } } } };
 
             const result = await getReferencingFragments(aem, fragment);
 
             expect(getReferencedByFragmentId.calledTwice).to.be.true;
-            expect(result.collections).to.have.lengthOf(1);
-            expect(result.collections[0].localeCount).to.equal(2);
+            expect(bucket(result, 'collections').rows).to.have.lengthOf(1);
+            expect(bucket(result, 'collections').rows[0].localeCount).to.equal(2);
         });
     });
 

@@ -367,7 +367,7 @@ describe('MasPromotionsEditor', () => {
             expect(repo.loadAllCollections.called).to.be.false;
         });
 
-        it('preloads fragment search when surfaces are already set', async () => {
+        it('does not preload surface fragments/collections on connect even when surfaces are set (deferred to picker open)', async () => {
             const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
             Store.promotions.inEdit.set(new FragmentStore(makePromotion({ surfaces: ['sandbox'] })));
             const repo = makeRepo();
@@ -375,8 +375,8 @@ describe('MasPromotionsEditor', () => {
             sandbox.stub(el, 'repository').get(() => repo);
             document.body.appendChild(el);
             await waitForEditorConnect(el);
-            expect(repo.searchFragments.calledOnce).to.be.true;
-            expect(repo.loadAllCollections.calledOnce).to.be.true;
+            expect(repo.searchFragments.called).to.be.false;
+            expect(repo.loadAllCollections.called).to.be.false;
         });
 
         it('reuses existing fragmentStore when inEdit already holds one', async () => {
@@ -1190,7 +1190,7 @@ describe('MasPromotionsEditor', () => {
             expect(Store.promotions.selectedOffers.value).to.deep.equal(['osi-abc', 'osi-def']);
         });
 
-        it('hydrates selectedCards from fragments field when getFragmentByPath is unavailable', async () => {
+        it('hydrates selectedCards from fragments-field paths not matched as collections', async () => {
             const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
             const cardPath = '/content/dam/mas/sandbox/en_US/card-a';
             Store.promotions.inEdit.set(
@@ -1207,6 +1207,77 @@ describe('MasPromotionsEditor', () => {
             await el.connectedCallback();
             await el.updateComplete;
             expect(Store.promotions.selectedCards.value).to.deep.equal([cardPath]);
+        });
+
+        it('refines the card/collection split in the background from each path model', async () => {
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            const { COLLECTION_MODEL_PATH } = await import('../../src/constants.js');
+            const cardPath = '/content/dam/mas/sandbox/en_US/card-a';
+            const collectionPath = '/content/dam/mas/sandbox/en_US/collection-a';
+            Store.promotions.inEdit.set(
+                new FragmentStore(
+                    makePromotion({
+                        id: 'promo-2',
+                        surfaces: ['sandbox'],
+                        fragments: [cardPath, collectionPath],
+                    }),
+                ),
+            );
+            const { el } = await mountEditorWithRepo({
+                aem: {
+                    sites: { cf: { fragments: { getById: sandbox.stub().resolves(null), search: makeSearchStub() } } },
+                    getFragmentByPath: sandbox.stub().callsFake((path) =>
+                        Promise.resolve({
+                            path,
+                            model: { path: path === collectionPath ? COLLECTION_MODEL_PATH : '/card' },
+                        }),
+                    ),
+                },
+            });
+            Store.promotions.promotionId.set('promo-2');
+            el.disconnectedCallback();
+            await el.connectedCallback();
+            await el.updateComplete;
+            // Optimistic split first: everything a card until the background refine resolves.
+            expect(Store.promotions.selectedCards.value).to.deep.equal([cardPath, collectionPath]);
+            await new Promise((r) => setTimeout(r, 50));
+            expect(Store.promotions.selectedCards.value).to.deep.equal([cardPath]);
+            expect(Store.promotions.selectedCollections.value).to.deep.equal([collectionPath]);
+        });
+
+        it('skips per-path classification when skipClassification=1 is in the hash', async () => {
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            const cardPath = '/content/dam/mas/sandbox/en_US/card-a';
+            const collectionPath = '/content/dam/mas/sandbox/en_US/collection-a';
+            const originalHash = window.location.hash;
+            window.location.hash = '#page=promotions-editor&skipClassification=1';
+            try {
+                Store.promotions.inEdit.set(
+                    new FragmentStore(
+                        makePromotion({
+                            id: 'promo-skip',
+                            surfaces: ['sandbox'],
+                            fragments: [cardPath, collectionPath],
+                        }),
+                    ),
+                );
+                const getFragmentByPath = sandbox.stub().resolves(null);
+                const { el } = await mountEditorWithRepo({
+                    aem: {
+                        sites: { cf: { fragments: { getById: sandbox.stub().resolves(null), search: makeSearchStub() } } },
+                        getFragmentByPath,
+                    },
+                });
+                Store.promotions.promotionId.set('promo-skip');
+                el.disconnectedCallback();
+                await el.connectedCallback();
+                await el.updateComplete;
+                await new Promise((r) => setTimeout(r, 50));
+                expect(getFragmentByPath.called, 'classification must issue no per-path GETs').to.be.false;
+                expect(Store.promotions.selectedCards.value).to.deep.equal([cardPath, collectionPath]);
+            } finally {
+                window.location.hash = originalHash;
+            }
         });
     });
 

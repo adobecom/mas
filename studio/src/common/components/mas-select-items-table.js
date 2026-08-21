@@ -39,6 +39,7 @@ class MasSelectItemsTable extends LitElement {
         viewOnlyFragmentsFetchedByParent: { type: Boolean },
         groupedVariationsManageOnly: { type: Boolean },
         hideGroupedVariations: { type: Boolean },
+        viewOnlyHasMore: { type: Boolean },
     };
 
     hasMore = new StoreController(this, Store.fragments.list.hasMore);
@@ -70,10 +71,25 @@ class MasSelectItemsTable extends LitElement {
         this.viewOnlyFragmentsFetchedByParent = false;
         this.groupedVariationsManageOnly = false;
         this.hideGroupedVariations = false;
+        this.viewOnlyHasMore = false;
     }
+
+    // Lazy "load more" for the viewOnly (already-selected) list: observe a sentinel and
+    // ask the parent for the next window as it scrolls into view. Non-viewOnly paging
+    // stays on the repository cursor (see updated()).
+    #viewOnlyScrollObserver = null;
+    #observedSentinel = null;
 
     connectedCallback() {
         super.connectedCallback();
+        this.#viewOnlyScrollObserver = new IntersectionObserver(
+            (entries) => {
+                if (entries.some((entry) => entry.isIntersecting)) {
+                    this.dispatchEvent(new CustomEvent('view-only-load-more', { bubbles: true, composed: true }));
+                }
+            },
+            { root: this.closest('.main-container'), rootMargin: '200px' },
+        );
         this.dataState.abortController = new AbortController();
         this.dataState.isProcessingCards = false;
         this.dataState.pendingCards = null;
@@ -158,10 +174,25 @@ class MasSelectItemsTable extends LitElement {
         if (loadingJustCompleted && this.hasMore.value && !this.viewOnly && this.effectiveType !== TABLE_TYPE.PLACEHOLDERS) {
             this.repository?.loadNextPage();
         }
+
+        if (this.viewOnly) {
+            const sentinel = this.renderRoot.querySelector('.scroll-sentinel');
+            if (sentinel && sentinel !== this.#observedSentinel) {
+                this.#viewOnlyScrollObserver?.disconnect();
+                this.#viewOnlyScrollObserver?.observe(sentinel);
+                this.#observedSentinel = sentinel;
+            } else if (!sentinel && this.#observedSentinel) {
+                this.#viewOnlyScrollObserver?.disconnect();
+                this.#observedSentinel = null;
+            }
+        }
     }
 
     disconnectedCallback() {
         super.disconnectedCallback();
+        this.#viewOnlyScrollObserver?.disconnect();
+        this.#viewOnlyScrollObserver = null;
+        this.#observedSentinel = null;
         this.dataSubscription?.unsubscribe();
         this.dataState.abortController?.abort();
         this.processAbortController?.abort();
@@ -417,8 +448,15 @@ class MasSelectItemsTable extends LitElement {
         }
     }
 
-    get loadingMoreIndicator() {
-        if (!this.loading.value || !this.firstPageLoaded.value) return nothing;
+    get #showScrollSentinel() {
+        return this.viewOnly ? this.viewOnlyHasMore : this.hasMore.value;
+    }
+
+    get #loadingMoreIndicator() {
+        const loadingMore = this.viewOnly
+            ? this.viewOnlyLoading && this.itemsToDisplay.length > 0
+            : this.loading.value && this.firstPageLoaded.value;
+        if (!loadingMore) return nothing;
         return html`<div class="loading-more">
             <sp-progress-circle indeterminate size="s"></sp-progress-circle>
             <span>Loading more items…</span>
@@ -445,7 +483,9 @@ class MasSelectItemsTable extends LitElement {
     render() {
         const fetching = this.loading.value;
         const loadingFirstPage = !this.viewOnly && fetching && !this.firstPageLoaded.value;
-        const showSkeleton = this.isLoading || loadingFirstPage;
+        // In viewOnly mode keep already-rendered rows while the next window loads — only
+        // show the full skeleton on the initial (empty) load.
+        const showSkeleton = (this.isLoading || loadingFirstPage) && (!this.viewOnly || this.itemsToDisplay.length === 0);
         const showEmpty = !showSkeleton && this.itemsToDisplay.length === 0;
         const showTable = !showEmpty && (showSkeleton || !this.isLoading);
 
@@ -474,7 +514,8 @@ class MasSelectItemsTable extends LitElement {
                           )}
                       </sp-table-head>
                       <sp-table-body>${showSkeleton ? this.#renderSkeletonRows() : this.#renderTableBody()}</sp-table-body>
-                      ${this.hasMore.value ? html`<div class="scroll-sentinel"></div>` : nothing} ${this.loadingMoreIndicator}
+                      ${this.#showScrollSentinel ? html`<div class="scroll-sentinel"></div>` : nothing}
+                      ${this.#loadingMoreIndicator}
                   </sp-table>`
                 : nothing}
         `;

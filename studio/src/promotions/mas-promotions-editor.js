@@ -16,6 +16,7 @@ import {
     QUICK_ACTION,
     EVENT_OST_OFFER_SELECT,
     TAG_PROMOTION_PREFIX,
+    COLLECTION_MODEL_PATH,
 } from '../constants.js';
 import '../mas-quick-actions.js';
 import { SAVE_SVG, CLONE_SVG, PUBLISH_SVG, COPY_SVG, LOCK_SVG, DELETE_SVG } from '../bulk-publish/bulk-publish-icons.js';
@@ -38,7 +39,6 @@ import {
     applyPromotionItemSelectionToFragment,
     buildPromotionOffersFieldValues,
     buildPromotionTagPath,
-    classifyPromotionPathsForSelection,
     hydratePromotionOfferRecords,
     isPromotionItemSelectionDirty,
     isPromotionOffersSelectionDirty,
@@ -59,6 +59,7 @@ import './mas-promo-codes-manager.js';
 import { MANAGE_PROMO_CODES_AND_OFFERS_LABEL } from './mas-promo-codes-manager.js';
 import './mas-promotion-duplicate-dialog.js';
 import { loadSelectedFragments } from '../common/utils/items-loader.js';
+import { processConcurrently, OFFER_DATA_CONCURRENCY_LIMIT } from '../common/utils/item-loading.js';
 import { openOfferSelectorTool } from '../rte/ost.js';
 import {
     canPublishPromotionNow,
@@ -140,6 +141,7 @@ class MasPromotionsEditor extends LitElement {
     #cardsSnapshot = [];
     #collectionsSnapshot = [];
     #itemsPickerConfirmed = false;
+    #itemClassificationToken = 0;
     #promotionItemsPickerHoldEmptyState = false;
     #duplicateProposedTitle = '';
     #boundHandleOstOfferSelect = null;
@@ -196,15 +198,6 @@ class MasPromotionsEditor extends LitElement {
             await this.#hydratePromotionItemSelectionFromFragment();
         }
 
-        if (this.promotionPickerSurfaces.length) {
-            if (this.repository?.searchFragments) {
-                this.repository.searchFragments();
-            }
-            if (this.repository?.loadAllCollections) {
-                this.repository.loadAllCollections();
-            }
-        }
-
         if (this.fragmentStore) {
             this.storeController = new StoreController(this, this.fragmentStore);
             this.evergreenEnabled = this.fragment?.isEvergreen ?? true;
@@ -213,6 +206,7 @@ class MasPromotionsEditor extends LitElement {
             Store.promotions.selectedCards,
             Store.promotions.selectedCollections,
             Store.promotions.selectedOffers,
+            Store.promotions.offerRecordsHydrated,
             Store.users,
         ]);
     }
@@ -403,33 +397,81 @@ class MasPromotionsEditor extends LitElement {
                 allPaths.push(p);
             }
         }
-        const getFragmentByPath = this.repository?.aem?.getFragmentByPath;
         if (!allPaths.length) {
             if (!hasStoredItemSelection) {
                 Store.promotions.selectedCards.set([]);
                 Store.promotions.selectedCollections.set([]);
             }
-        } else if (!getFragmentByPath) {
-            if (!hasStoredItemSelection) {
-                Store.promotions.selectedCards.set(fromFragments.filter(Boolean));
-                Store.promotions.selectedCollections.set(fromCollections.filter(Boolean));
-            }
         } else if (!hasStoredItemSelection) {
-            const { cards, cols } = await classifyPromotionPathsForSelection(allPaths, (path) =>
-                this.repository.aem.getFragmentByPath(path),
-            );
-            Store.promotions.selectedCards.set(cards);
-            Store.promotions.selectedCollections.set(cols);
+            // Optimistic split for instant paint: trust the legacy `collections` field and
+            // treat the rest as cards. Writes now merge everything into `fragments`, so this
+            // can be wrong for collections saved into `fragments` — the background refine
+            // below corrects it without blocking first paint (a surface's full collection
+            // catalog must never gate the editor).
+            const legacyCollections = new Set(fromCollections);
+            Store.promotions.selectedCards.set(allPaths.filter((path) => !legacyCollections.has(path)));
+            Store.promotions.selectedCollections.set([...legacyCollections]);
+            // MWPW-204645: classification issues one GET per attached fragment to split
+            // cards vs collections. Append `skipClassification=1` to the studio hash to
+            // skip it and measure load without those requests (correct only for projects
+            // with no collections merged into `fragments`).
+            if (!this.#isPromotionItemClassificationSkipped()) {
+                void this.#refinePromotionItemClassification(allPaths);
+            }
         }
 
         const offerValues = f.getField('offers') ? f.getFieldValues('offers') : [];
         const savedOfferIds = parseSelectedOfferIdsFromOffersField(offerValues);
         if (savedOfferIds.length) {
             Store.promotions.selectedOffers.set(savedOfferIds);
-            await hydratePromotionOfferRecords(savedOfferIds, Store.promotions.offerRecordsCache);
+            // Don't block first paint on the offer-record lookups (one WCS call each). Render
+            // the offers from selection immediately and refresh once the records land.
+            void hydratePromotionOfferRecords(savedOfferIds, Store.promotions.offerRecordsCache).then(() => {
+                Store.promotions.offerRecordsHydrated.set(Store.promotions.offerRecordsHydrated.get() + 1);
+            });
         } else if (!hasStoredOfferSelection) {
             Store.promotions.selectedOffers.set([]);
         }
+    }
+
+    /**
+     * Corrects the optimistic card/collection split in the background. Looks up each
+     * attached path's model with bounded concurrency (avoids a per-path request burst that
+     * the server rate-limits) and re-buckets, so the editor never blocks first paint on
+     * classification. Bounded by the project's attached count, not the surface catalog.
+     * @param {string[]} allPaths
+     */
+    /**
+     * MWPW-204645: temporary experiment toggle. Returns true when `skipClassification=1`
+     * is present in the studio hash, disabling the per-path card/collection classification.
+     * @returns {boolean}
+     */
+    #isPromotionItemClassificationSkipped() {
+        try {
+            return new URLSearchParams(window.location.hash.slice(1)).get('skipClassification') === '1';
+        } catch {
+            return false;
+        }
+    }
+
+    async #refinePromotionItemClassification(allPaths) {
+        const getFragmentByPath = this.repository?.aem?.getFragmentByPath;
+        if (!getFragmentByPath) return;
+        const token = ++this.#itemClassificationToken;
+        const classified = await processConcurrently(
+            allPaths,
+            async (path) => {
+                const fragment = await getFragmentByPath(path).catch(() => null);
+                return { path, isCollection: fragment?.model?.path === COLLECTION_MODEL_PATH };
+            },
+            OFFER_DATA_CONCURRENCY_LIMIT,
+        );
+        if (token !== this.#itemClassificationToken) return;
+        const cards = [];
+        const cols = [];
+        for (const { path, isCollection } of classified) (isCollection ? cols : cards).push(path);
+        Store.promotions.selectedCards.set(cards);
+        Store.promotions.selectedCollections.set(cols);
     }
 
     #ensurePromotionModelFields(promotion) {
@@ -448,14 +490,17 @@ class MasPromotionsEditor extends LitElement {
     }
 
     async #fetchPromotionModelById(id) {
-        let fragment = await this.repository.aem.sites.cf.fragments.getById(id);
+        // references=none drops the hydrated reference payload (~945KB / ~9s on large
+        // projects). The promotions editor derives cards/offers/variations from the
+        // fragment fields + search probes, never from fragment.references.
+        let fragment = await this.repository.aem.sites.cf.fragments.getById(id, undefined, { references: 'none' });
         if (!fragment) return null;
         let promotion = new Promotion(fragment);
         this.#ensurePromotionModelFields(promotion);
         if (promotion.promotionStatus === 'expired' && promotion.isPromotionPublished) {
             const ok = await this.repository.unpublishFragment(promotion, false);
             if (ok) {
-                fragment = await this.repository.aem.sites.cf.fragments.getById(id);
+                fragment = await this.repository.aem.sites.cf.fragments.getById(id, undefined, { references: 'none' });
                 if (!fragment) return null;
                 promotion = new Promotion(fragment);
                 this.#ensurePromotionModelFields(promotion);

@@ -9,7 +9,7 @@ import {
 } from '../../constants.js';
 import { Fragment } from '../../aem/fragment.js';
 import Store from '../../store.js';
-import { generateCodeToUse, extractSurfaceFromPath } from '../../utils.js';
+import { generateLinkToUse, extractSurfaceFromPath } from '../../utils.js';
 import { isPromoVariationPath } from '../../promotions/promotion-model.js';
 
 /**
@@ -25,7 +25,7 @@ export function getStudioFragmentDisplayPath(fragment) {
         page === PAGE_NAMES.PROMOTIONS_EDITOR
             ? Store.promotions.itemPickerSurface.get() || extractSurfaceFromPath(fragment?.path) || Store.search.get().path
             : extractSurfaceFromPath(fragment?.path) || Store.search.get().path;
-    return generateCodeToUse(fragment, path, page)?.authorPath || '';
+    return generateLinkToUse(fragment, path, page)?.authorPath || '';
 }
 
 /**

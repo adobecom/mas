@@ -23,7 +23,7 @@ import {
     normalizeKey,
     showToast,
     extractSurfaceFromPath,
-    generateCodeToUse,
+    generateLinkToUse,
     getFragmentPartsToUse,
     getCreateProjectErrorMessage,
     MODEL_WEB_COMPONENT_MAPPING,
@@ -785,7 +785,7 @@ class MasPromotionsEditor extends LitElement {
             const variations = await getAllAttachedPromoVariations(this.repository.aem, this.fragment);
             const results = variations
                 .map((variation) =>
-                    generateCodeToUse(new Fragment(variation), extractSurfaceFromPath(variation.path), PAGE_NAMES.CONTENT),
+                    generateLinkToUse(new Fragment(variation), extractSurfaceFromPath(variation.path), PAGE_NAMES.CONTENT),
                 )
                 .filter((result) => result?.href && result?.richText);
             if (!results.length) {

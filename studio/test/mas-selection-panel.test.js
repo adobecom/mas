@@ -327,7 +327,7 @@ describe('MasSelectionPanel', () => {
             await el.updateComplete;
 
             const buttons = [...el.shadowRoot.querySelectorAll('sp-action-button')];
-            expect(buttons.some((b) => b.getAttribute('label') === 'Copy Code')).to.be.true;
+            expect(buttons.some((b) => b.getAttribute('label') === 'Copy Content Link(s)')).to.be.true;
         });
 
         it('does not show Copy URLs button when nothing is selected', async () => {
@@ -335,7 +335,7 @@ describe('MasSelectionPanel', () => {
             await el.updateComplete;
 
             const buttons = [...el.shadowRoot.querySelectorAll('sp-action-button')];
-            expect(buttons.some((b) => b.getAttribute('label') === 'Copy Code')).to.be.false;
+            expect(buttons.some((b) => b.getAttribute('label') === 'Copy Content Link(s)')).to.be.false;
         });
 
         it('shows Copy URLs button for multi-selection', async () => {
@@ -345,7 +345,7 @@ describe('MasSelectionPanel', () => {
             await el.updateComplete;
 
             const buttons = [...el.shadowRoot.querySelectorAll('sp-action-button')];
-            expect(buttons.some((b) => b.getAttribute('label') === 'Copy Code')).to.be.true;
+            expect(buttons.some((b) => b.getAttribute('label') === 'Copy Content Link(s)')).to.be.true;
         });
     });
 });

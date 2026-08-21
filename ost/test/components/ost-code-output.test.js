@@ -146,6 +146,18 @@ describe('ost-code-output', () => {
         store.promotionCode = undefined;
     });
 
+    it('emits promotionCode="cancel-context" when the price has no promo of its own', async () => {
+        store.storedPromoOverride = 'cancel-context';
+        store.promotionCode = undefined;
+        const panel = await fixture(html`<ost-placeholder-panel></ost-placeholder-panel>`);
+        await panel.updateComplete;
+        const codeOutput = outputForType(panel, 'price');
+        codeOutput.requestUpdate();
+        await codeOutput.updateComplete;
+        expect(codeOutput.getCodeString()).to.include('promotionCode="cancel-context"');
+        store.storedPromoOverride = undefined;
+    });
+
     it('emits an option only when it differs from the default', async () => {
         const panel = await fixture(html`<ost-placeholder-panel></ost-placeholder-panel>`);
         await panel.updateComplete;

@@ -95,12 +95,18 @@ export default class MasRelatedVariations extends LitElement {
         }
         const id = findPromotionProjectIdByTag(promotionTagId, projects);
         if (!id) return null;
-        return `#page=${PAGE_NAMES.PROMOTIONS_EDITOR}&promotionId=${encodeURIComponent(id)}`;
+        const params = new URLSearchParams(window.location.hash.slice(1));
+        params.set('page', PAGE_NAMES.PROMOTIONS_EDITOR);
+        params.set('promotionId', id);
+        return `#${params.toString()}`;
     }
 
     #navigateToVariation(variation) {
         if (!variation?.id) return;
-        window.open(`#page=${PAGE_NAMES.FRAGMENT_EDITOR}&fragmentId=${encodeURIComponent(variation.id)}`, '_blank', 'noopener');
+        const params = new URLSearchParams(window.location.hash.slice(1));
+        params.set('page', PAGE_NAMES.FRAGMENT_EDITOR);
+        params.set('fragmentId', variation.id);
+        window.open(`#${params.toString()}`, '_blank', 'noopener');
     }
 
     #handleVariationRowDblClick(event, variation) {
@@ -212,7 +218,10 @@ export default class MasRelatedVariations extends LitElement {
     #renderVariationTitleCell(variation) {
         const title = variation.title || 'no title';
         if (!variation?.id) return html`<sp-table-cell>${title}</sp-table-cell>`;
-        const href = `#page=${PAGE_NAMES.FRAGMENT_EDITOR}&fragmentId=${encodeURIComponent(variation.id)}`;
+        const params = new URLSearchParams(window.location.hash.slice(1));
+        params.set('page', PAGE_NAMES.FRAGMENT_EDITOR);
+        params.set('fragmentId', variation.id);
+        const href = `#${params.toString()}`;
         return html`<sp-table-cell>
             <a
                 href=${href}

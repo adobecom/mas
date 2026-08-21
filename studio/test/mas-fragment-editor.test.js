@@ -1226,14 +1226,6 @@ describe('MasFragmentEditor', () => {
             });
             expect(pathCall, 'Store.search.set should be called with path=nala').to.not.be.undefined;
         });
-
-        it('navigates to variations table', async () => {
-            const navigateSpy = sandbox.stub(router, 'navigateToVariationsTable');
-            sandbox.stub(el.editorContextStore, 'isVariation').returns(false);
-            el.inEdit.value = { get: () => ({ id: 'test-id' }) };
-            el.navigateToVariationsTable();
-            expect(navigateSpy.calledWith('test-id')).to.be.true;
-        });
     });
 
     describe('additional rendering and logic', () => {
@@ -1427,25 +1419,33 @@ describe('MasFragmentEditor', () => {
             expect(skeleton).to.not.equal(nothing);
         });
 
-        it('hides related variations section when there is no fragment', () => {
+        it('binds no target fragment to mas-related-variations when there is no fragment', () => {
             el.inEdit.value = { get: () => null };
-            expect(el.relatedVariationsSection).to.equal(nothing);
+            const container = document.createElement('div');
+            render(el.relatedVariationsSection, container);
+            const related = container.querySelector('mas-related-variations');
+            expect(related).to.be.null;
         });
 
-        it('hides related variations section for promo variations', () => {
+        it('renders nothing from mas-related-variations for promo variation paths', () => {
             const promoPath = '/content/dam/mas/sandbox/en_US/promotions/back-to-school/my-card';
             const fragment = new Fragment({
                 id: 'promo-var-id',
                 path: promoPath,
                 model: { path: CARD_MODEL_PATH },
-                tags: [],
                 fields: [],
+                tags: [],
             });
             el.inEdit.value = { get: () => fragment };
-            expect(el.relatedVariationsSection).to.equal(nothing);
+            sandbox.stub(el.editorContextStore, 'isVariation').returns(true);
+
+            const container = document.createElement('div');
+            render(el.relatedVariationsSection, container);
+            const related = container.querySelector('mas-related-variations');
+            expect(related).to.be.null;
         });
 
-        it('renders related variations section for non-promo fragments', () => {
+        it('binds fragment, targetFragment, isVariation, isPromoVariation, and repository to mas-related-variations', () => {
             const fragment = new Fragment({
                 id: 'test-id',
                 path: '/content/dam/mas/s/en_US/f',
@@ -1454,10 +1454,46 @@ describe('MasFragmentEditor', () => {
                 tags: [],
             });
             el.inEdit.value = { get: () => fragment };
+            sandbox.stub(el.editorContextStore, 'isVariation').returns(false);
+            sandbox.stub(el, 'isPromoVariationFragment').returns(false);
 
             const container = document.createElement('div');
             render(el.relatedVariationsSection, container);
-            expect(container.textContent).to.include('Related variations:');
+            const related = container.querySelector('mas-related-variations');
+            expect(related.fragment).to.equal(fragment);
+            expect(related.targetFragment).to.equal(fragment);
+            expect(related.isVariation).to.be.false;
+            expect(related.isPromoVariation).to.be.false;
+            expect(related.repository).to.equal(el.repository);
+        });
+
+        it('resolves relatedVariationsTargetFragment to the fragment itself when it is not a variation', () => {
+            const fragment = new Fragment({
+                id: 'test-id',
+                path: '/content/dam/mas/sandbox/en_US/my-fragment',
+                model: { path: CARD_MODEL_PATH },
+                fields: [],
+                tags: [],
+            });
+            el.inEdit.value = { get: () => fragment };
+            sandbox.stub(el.editorContextStore, 'isVariation').returns(false);
+
+            expect(el.relatedVariationsTargetFragment).to.equal(fragment);
+        });
+
+        it('resolves relatedVariationsTargetFragment to localeDefaultFragment when viewing a variation', () => {
+            const fragment = new Fragment({
+                id: 'variation-id',
+                path: '/content/dam/mas/sandbox/en_BE/my-fragment',
+                model: { path: CARD_MODEL_PATH },
+                fields: [],
+                tags: [],
+            });
+            el.inEdit.value = { get: () => fragment };
+            el.localeDefaultFragment = { id: 'parent-id', path: '/content/dam/mas/sandbox/en_US/my-fragment', fields: [] };
+            sandbox.stub(el.editorContextStore, 'isVariation').returns(true);
+
+            expect(el.relatedVariationsTargetFragment.id).to.equal('parent-id');
         });
     });
 
@@ -1486,6 +1522,23 @@ describe('MasFragmentEditor', () => {
                 tags: [],
             });
             el.inEdit.value = { get: () => fragment };
+            el.localeDefaultFragment = {
+                id: 'parent-collection-id',
+                path: '/content/dam/mas/sandbox/en_US/pac/parent-collection',
+                fields: [
+                    {
+                        name: 'variations',
+                        values: ['/content/dam/mas/sandbox/en_US/promotions/back-to-school/parent-collection'],
+                    },
+                ],
+                references: [
+                    {
+                        id: 'ref-1',
+                        path: '/content/dam/mas/sandbox/en_US/promotions/back-to-school/parent-collection',
+                        tags: [],
+                    },
+                ],
+            };
             sandbox.stub(el.editorContextStore, 'isVariation').returns(true);
             const col = el.previewColumn;
             expect(col).to.not.equal(nothing);

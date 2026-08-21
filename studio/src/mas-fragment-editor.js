@@ -1486,16 +1486,21 @@ export default class MasFragmentEditor extends LitElement {
                 if (localeDefaultFragment) {
                     await this.repository.removeFromParentVariations(localeDefaultFragment, this.fragment.path);
                 }
-                const deleted = await this.repository.deleteFragment(this.fragment, {
+                let deleted = await this.repository.deleteFragment(this.fragment, {
                     startToast: false,
                     endToast: false,
                 });
                 if (!deleted) {
-                    await this.repository.deleteFragment(this.fragment, {
+                    deleted = await this.repository.deleteFragment(this.fragment, {
                         force: true,
                         startToast: false,
                         endToast: false,
                     });
+                }
+                if (!deleted) {
+                    showToast('Failed to delete fragment', 'negative');
+                    this.deleteInProgress = false;
+                    return;
                 }
             } else {
                 await this.repository.deleteFragmentWithVariations(this.fragment);

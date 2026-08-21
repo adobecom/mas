@@ -1005,6 +1005,24 @@ describe('MasFragmentEditor', () => {
                 }),
             ).to.be.true;
         });
+
+        it('shows a failure toast and does not navigate away when both delete attempts fail for a variation', async () => {
+            mockRepo.deleteFragment = sandbox.stub().resolves(false);
+            sandbox.stub(el.editorContextStore, 'isVariation').returns(true);
+            sandbox.stub(el.editorContextStore, 'getLocaleDefaultFragmentAsync').resolves({ id: 'parent' });
+            const navigateSpy = sandbox.stub().resolves();
+            sandbox.stub(router, 'navigateToPage').returns(navigateSpy);
+            const toastEmitSpy = sandbox.stub(Events.toast, 'emit');
+
+            await el.confirmDelete();
+
+            expect(mockRepo.deleteFragment.callCount).to.equal(2);
+            expect(toastEmitSpy.calledWithMatch({ variant: 'negative' })).to.be.true;
+            expect(toastEmitSpy.calledWithMatch({ variant: 'positive' })).to.be.false;
+            expect(navigateSpy.called).to.be.false;
+            expect(Store.fragments.inEdit.set.called).to.be.false;
+            expect(el.deleteInProgress).to.be.false;
+        });
     });
 
     describe('cloning', () => {

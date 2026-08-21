@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { matchesGeo, getCountry, isGroupedVariationFragmentPath } from '../../src/fragment/utils/common.js';
+import { matchesGeo, getCountry, isGroupedVariationFragmentPath, hasGeoTag } from '../../src/fragment/utils/common.js';
 
 describe('common utils', () => {
     describe('matchesGeo', () => {
@@ -104,6 +104,28 @@ describe('common utils', () => {
 
         it('returns false for non-string input', () => {
             expect(isGroupedVariationFragmentPath(undefined)).to.be.false;
+        });
+    });
+
+    describe('hasGeoTag', () => {
+        it('returns true for a short-form locale tag', () => {
+            expect(hasGeoTag(['mas:locale/en_US'])).to.be.true;
+        });
+
+        it('returns true for a short-form country tag regardless of case', () => {
+            expect(hasGeoTag(['mas:COUNTRY/FR'])).to.be.true;
+        });
+
+        it('returns true for a long-form CQ tag path', () => {
+            expect(hasGeoTag(['/content/cq:tags/mas/locale/en_US'])).to.be.true;
+        });
+
+        it('returns false when no tag has a locale/country segment', () => {
+            expect(hasGeoTag(['mas:pzn/edu', 'mas:offer_type/base'])).to.be.false;
+        });
+
+        it('returns false for an empty tag list', () => {
+            expect(hasGeoTag([])).to.be.false;
         });
     });
 });

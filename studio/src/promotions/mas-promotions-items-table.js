@@ -8,7 +8,7 @@ import { PAGE_NAMES, TABLE_TYPE, CARD_MODEL_PATH, VARIATION_TAB_NAME } from '../
 import { applySearchSurfaceFromPath, shouldIgnoreRowClickForSelection } from '../common/utils/render-utils.js';
 import { closePreview, openPreview } from '../mas-card-preview.js';
 import router from '../router.js';
-import { extractLocaleFromPath, extractSurfaceFromPath, showToast } from '../utils.js';
+import { extractLocaleFromPath, extractSurfaceFromPath, resolveHydratedParentFragment, showToast } from '../utils.js';
 import { getDefaultLocaleCode } from '../../../io/www/src/fragment/locales.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 import Store from '../store.js';
@@ -26,6 +26,7 @@ import {
     buildRemoveOfferConfirmationMessage,
     getPromotionItemsRemovedByOfferRemoval,
     pruneOrphanedPromotionSelectionAfterOfferRemoval,
+    pruneOrphanedGroupedVariationSelection,
 } from './promotion-editor-utils.js';
 import { isPromoVariationPath } from './promotion-model.js';
 import { getUsedGeoTags } from './promotion-variations.js';
@@ -507,7 +508,17 @@ class MasPromotionsItemsTable extends LitElement {
         });
     }
 
-    #applyOfferRemoval(selectorId) {
+    async #pruneOrphanedGroupedVariations() {
+        const store = getItemsSelectionStore();
+        const aem = this.repository?.aem;
+        if (!aem) return;
+        const pruned = await pruneOrphanedGroupedVariationSelection(store.selectedCards.value, (path) =>
+            resolveHydratedParentFragment(aem, path).then((parent) => parent?.path ?? null),
+        );
+        if (pruned !== store.selectedCards.value) store.selectedCards.set(pruned);
+    }
+
+    async #applyOfferRemoval(selectorId) {
         const store = getItemsSelectionStore();
         const remainingOffers = store.selectedOffers.value.filter((id) => id !== selectorId);
         store.selectedOffers.set(remainingOffers);
@@ -528,6 +539,7 @@ class MasPromotionsItemsTable extends LitElement {
             });
             store.selectedCards.set(pruned.selectedCards);
             store.selectedCollections.set(pruned.selectedCollections);
+            await this.#pruneOrphanedGroupedVariations();
         }
         applyPromotionOfferProductTagsToSearch(Store.promotions.offerRecordsCache, remainingOffers);
         this.dispatchEvent(
@@ -559,11 +571,12 @@ class MasPromotionsItemsTable extends LitElement {
                 }
                 if (!confirmed) return;
             }
-            this.#applyOfferRemoval(selectorId);
+            await this.#applyOfferRemoval(selectorId);
             return;
         }
         if (this.type === TABLE_TYPE.CARDS) {
             store.selectedCards.set(store.selectedCards.value.filter((p) => p !== path));
+            await this.#pruneOrphanedGroupedVariations();
         } else {
             store.selectedCollections.set(store.selectedCollections.value.filter((p) => p !== path));
         }

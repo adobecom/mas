@@ -2107,6 +2107,23 @@ describe('customize grouped variation scoped to a promo project (no promo variat
         expect(result.body.fields.promoCode).to.equal('PROMO-CODE');
     });
 
+    it('does not stamp promoVariationProject when the pzn variation is not curated (no content was actually merged)', async function () {
+        const result = await processWithPromoProjects(
+            {
+                ...FAKE_CONTEXT,
+                fragmentPath: 'pzn-test-fragment',
+                locale: 'en_US',
+                parsedLocale: 'en_US',
+                pzn: 'EDU',
+                body: buildBodyWithPzn(),
+            },
+            buildPromoProjectsEntry(['some-other-product/pzn/other']),
+        );
+
+        expect(result.status).to.equal(200);
+        expect(result.body.promoVariationProject).to.be.undefined;
+    });
+
     it('falls back to unscoped personalization when the project has curated no grouped variations', async function () {
         const result = await processWithPromoProjects(
             {
@@ -2340,6 +2357,134 @@ describe('customize grouped variation scoped to a promo project (promo variation
         expect(result.status).to.equal(200);
         expect(result.body.variationId).to.equal('grouped-default-var-id');
         expect(result.body.fields.badge).to.equal('GROUPED REGION badge');
+    });
+
+    it('uses the grouped variation matching the requested fragment, not a sibling with an identical pzn tag', async function () {
+        const SIBLING_A_PATH = 'PA-999/pzn/edu-variant-a';
+        const SIBLING_B_PATH = 'PA-999/pzn/edu-variant-b';
+        const SIBLING_A_PROMO = {
+            id: 'sibling-a-promo-var-id',
+            path: `/content/dam/mas/sandbox/en_US/promotions/black-friday/${SIBLING_A_PATH}`,
+            fields: { badge: 'SIBLING A PROMO badge' },
+        };
+        const SIBLING_B_PROMO = {
+            id: 'sibling-b-promo-var-id',
+            path: `/content/dam/mas/sandbox/en_US/promotions/black-friday/${SIBLING_B_PATH}`,
+            fields: { badge: 'SIBLING B PROMO badge' },
+        };
+        // Map insertion order puts sibling A's entry first, so a project-wide score tie without
+        // root-scoping would pick sibling A's promo variation even though root is sibling B's fragment.
+        const groupedVariationReferences = new Map([
+            [
+                SIBLING_A_PATH,
+                {
+                    id: 'sibling-a-fragment',
+                    path: `/content/dam/mas/sandbox/en_US/${SIBLING_A_PATH}`,
+                    fields: { pznTags: ['mas:pzn/edu'] },
+                },
+            ],
+            [
+                SIBLING_B_PATH,
+                {
+                    id: 'sibling-b-fragment',
+                    path: `/content/dam/mas/sandbox/en_US/${SIBLING_B_PATH}`,
+                    fields: { pznTags: ['mas:pzn/edu'] },
+                },
+            ],
+        ]);
+        const project = {
+            id: 'promo-proj-id',
+            path: '/content/dam/mas/promotions/black-friday',
+            defaultVariations: { [SIBLING_A_PATH]: SIBLING_A_PROMO, [SIBLING_B_PATH]: SIBLING_B_PROMO },
+            regionVariations: {},
+        };
+        const promoProjectsEntry = [
+            {
+                project,
+                promoMap: { '*': 'PROMO-CODE' },
+                fragmentPaths: new Set([SIBLING_A_PATH, SIBLING_B_PATH]),
+                groupedVariationPaths: new Set([SIBLING_A_PATH, SIBLING_B_PATH]),
+                groupedVariationReferences,
+            },
+        ];
+        const root = {
+            id: 'sibling-b-fragment',
+            path: `/content/dam/mas/sandbox/en_US/${SIBLING_B_PATH}`,
+            fields: { osi: 'OSI-TEST', pznTags: ['mas:pzn/edu'] },
+            references: {},
+            referencesTree: [],
+        };
+
+        const result = await processWithPromoProjects(
+            { ...FAKE_CONTEXT, fragmentPath: SIBLING_B_PATH, locale: 'en_US', parsedLocale: 'en_US', pzn: 'EDU', body: root },
+            promoProjectsEntry,
+        );
+
+        expect(result.status).to.equal(200);
+        expect(result.body.variationId).to.equal('sibling-b-promo-var-id');
+        expect(result.body.fields.badge).to.equal('SIBLING B PROMO badge');
+    });
+
+    it("requesting a default fragment (Firefly) does not pick another card's (Photoshop) grouped variation with an identical pzn tag", async function () {
+        const FIREFLY_PATH = 'firefly-default-fragment';
+        const PHOTOSHOP_PATH = 'photoshop-default-fragment';
+        const FIREFLY_GROUPED_PATH = 'PA-111/pzn/edu';
+        const PHOTOSHOP_GROUPED_PATH = 'PA-222/pzn/edu';
+        const PHOTOSHOP_PROMO = {
+            id: 'photoshop-promo-var-id',
+            path: `/content/dam/mas/sandbox/en_US/promotions/black-friday/${PHOTOSHOP_GROUPED_PATH}`,
+            fields: { badge: 'PHOTOSHOP PROMO badge' },
+        };
+        // Photoshop's grouped variation is inserted first, so a project-wide score tie
+        // (both tagged EDU) would be won by Photoshop's entry without parent scoping.
+        const groupedVariationReferences = new Map([
+            [
+                PHOTOSHOP_GROUPED_PATH,
+                {
+                    id: 'photoshop-grouped-fragment',
+                    path: `/content/dam/mas/sandbox/en_US/${PHOTOSHOP_GROUPED_PATH}`,
+                    fields: { pznTags: ['mas:pzn/edu'] },
+                },
+            ],
+            [
+                FIREFLY_GROUPED_PATH,
+                {
+                    id: 'firefly-grouped-fragment',
+                    path: `/content/dam/mas/sandbox/en_US/${FIREFLY_GROUPED_PATH}`,
+                    fields: { pznTags: ['mas:pzn/edu'] },
+                },
+            ],
+        ]);
+        const project = {
+            id: 'promo-proj-id',
+            path: '/content/dam/mas/promotions/black-friday',
+            defaultVariations: { [PHOTOSHOP_GROUPED_PATH]: PHOTOSHOP_PROMO },
+            regionVariations: {},
+        };
+        const promoProjectsEntry = [
+            {
+                project,
+                promoMap: { '*': 'PROMO-CODE' },
+                fragmentPaths: new Set([FIREFLY_PATH, PHOTOSHOP_PATH]),
+                groupedVariationPaths: new Set([FIREFLY_GROUPED_PATH, PHOTOSHOP_GROUPED_PATH]),
+                groupedVariationReferences,
+            },
+        ];
+        const firefly = {
+            id: 'firefly-fragment',
+            path: `/content/dam/mas/sandbox/en_US/${FIREFLY_PATH}`,
+            fields: { osi: 'OSI-FIREFLY', badge: 'Firefly default badge' },
+            references: {},
+            referencesTree: [],
+        };
+
+        const result = await processWithPromoProjects(
+            { ...FAKE_CONTEXT, fragmentPath: FIREFLY_PATH, locale: 'en_US', parsedLocale: 'en_US', pzn: 'EDU', body: firefly },
+            promoProjectsEntry,
+        );
+
+        expect(result.status).to.equal(200);
+        expect(result.body.fields.badge).to.equal('Firefly default badge');
     });
 });
 

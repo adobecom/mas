@@ -357,6 +357,45 @@
                         expect(updateStoresSpy.called).to.be.true;
                     });
 
+                    it('confirmDelete shows a failure toast and keeps the editor open when both delete attempts fail', async () => {
+                        const grouped = new Fragment({
+                            id: '77777777-7777-7777-7777-777777777777',
+                            path: '/content/dam/mas/sandbox/en_US/pac/pzn/undeleteable',
+                            title: 'Del',
+                            model: { path: COLLECTION_MODEL_PATH, name: 'Collection' },
+                            fields: [{ name: 'label', values: ['L'] }],
+                            tags: [],
+                        });
+                        const store = new FragmentStore(grouped);
+                        editorPanel.inEdit.set(store);
+                        const parentFrag = new Fragment({
+                            id: '66666666-6666-6666-6666-666666666666',
+                            path: '/content/dam/mas/sandbox/en_US/pac/parent',
+                            title: 'Parent',
+                            model: { path: COLLECTION_MODEL_PATH, name: 'Collection' },
+                            fields: [{ name: 'label', values: ['P'] }],
+                            tags: [],
+                        });
+                        editorPanel.localeDefaultFragment = parentFrag;
+                        sandbox.stub(editorPanel.editorContextStore, 'isVariation').returns(true);
+                        const resetSpy = sandbox.stub(Store.editor, 'resetChanges');
+                        sandbox.stub(editorPanel.repository, 'removeFromParentVariations').resolves();
+                        const deleteSpy = sandbox.stub(editorPanel.repository, 'deleteFragment').resolves(false);
+                        const toastEmitSpy = sandbox.stub(Events.toast, 'emit');
+                        const unmaskSpy = sandbox.stub(editorPanel, 'unmaskOtherFragments');
+                        const updateStoresSpy = sandbox.stub(editorPanel.reactiveController, 'updateStores');
+
+                        await editorPanel.confirmDelete();
+
+                        expect(deleteSpy.callCount).to.equal(2);
+                        expect(toastEmitSpy.calledWithMatch({ variant: 'negative' })).to.be.true;
+                        expect(toastEmitSpy.calledWithMatch({ variant: 'positive' })).to.be.false;
+                        expect(resetSpy.called).to.be.false;
+                        expect(unmaskSpy.called).to.be.false;
+                        expect(editorPanel.inEdit.get()).to.not.be.null;
+                        expect(updateStoresSpy.called).to.be.false;
+                    });
+
                     it('saveFragment saves with refetchEtag disabled and returns the saved fragment', async () => {
                         const savedFragment = { id: 'saved-fragment' };
                         const saveSpy = sandbox.stub(editorPanel.repository, 'saveFragment').resolves(savedFragment);

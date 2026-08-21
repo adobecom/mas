@@ -268,21 +268,23 @@ function findPromoVariation(root, customizeContext, selectedPromoProject) {
         return {};
     }
     const { project } = selectedPromoProject;
-    const { regionLocale, country, pzn } = customizeContext;
+    const { regionLocale, country } = customizeContext;
+    const { fragmentPath } = PATH_TOKENS.exec(root.path).groups;
     // Paths of pzn variations added to this promo project (e.g. set(['PA-123/pzn/edu'])).
     const groupedVariationPaths = selectedPromoProject.groupedVariationPaths;
     // The added pzn variations' own fragments (path -> fragment), carrying their pznTags.
     const groupedVariationReferences = selectedPromoProject.groupedVariationReferences;
+    // First find root's own pzn variation from root.fields.variations, then check if that same
+    // path was also added to the promo project's grouped variations — don't scan the project's
+    // grouped variations directly, or a different fragment's variation with the same tag could
+    // be matched and merged onto this one instead.
+    const rootVariations = root?.fields?.variations;
+    const rawMatch = rootVariations?.length ? findPersonalizationVariation(rootVariations, customizeContext) : null;
+    const rawMatchPath = rawMatch && PATH_TOKENS.exec(rawMatch.path).groups.fragmentPath;
     if (groupedVariationReferences?.size) {
-        let personalizationVariation = null;
-        let bestScore = 0;
-        for (const candidate of groupedVariationReferences.values()) {
-            const score = personalizationMatchScore(candidate.fields?.pznTags, { regionLocale, country, pzn });
-            if (score > bestScore) {
-                bestScore = score;
-                personalizationVariation = candidate;
-            }
-        }
+        const personalizationVariation =
+            groupedVariationReferences.get(fragmentPath) ??
+            (rawMatchPath ? groupedVariationReferences.get(rawMatchPath) : null);
         if (personalizationVariation) {
             const { fragmentPath: groupedFragmentPath } = PATH_TOKENS.exec(personalizationVariation.path).groups;
             const promoPersonalizationVariation = resolvePromoVariationForPath(project, groupedFragmentPath, {
@@ -299,18 +301,12 @@ function findPromoVariation(root, customizeContext, selectedPromoProject) {
             }
         }
     }
-    const { fragmentPath } = PATH_TOKENS.exec(root.path).groups;
     const variation = resolvePromoVariationForPath(project, fragmentPath, { regionLocale, country });
     // No promo variation for the default fragment.
     // If the visitor's pzn variation was not added to this promo project, then variation is empty.
     if (!variation) {
-        const rootVariations = root?.fields?.variations;
-        if (groupedVariationPaths?.size && rootVariations?.length) {
-            const rawMatch = findPersonalizationVariation(rootVariations, customizeContext);
-            const rawMatchPath = rawMatch && PATH_TOKENS.exec(rawMatch.path).groups.fragmentPath;
-            if (rawMatchPath && !groupedVariationPaths.has(rawMatchPath)) {
-                return { variation: {}, project };
-            }
+        if (rawMatchPath && groupedVariationPaths?.size && !groupedVariationPaths.has(rawMatchPath)) {
+            return { variation: {}, project };
         }
         return {};
     }
@@ -388,7 +384,9 @@ function mergeVariations(root, customizeContext, selectedPromoProject) {
     if (variation) {
         const merged = deepMerge(root, variation);
         merged.variationId = variation.id;
-        merged.promoVariationProject = promoProjectLabel(project);
+        if (Object.keys(variation).length) {
+            merged.promoVariationProject = promoProjectLabel(project);
+        }
         return merged;
     }
     const variations = root?.fields?.variations;

@@ -4,7 +4,7 @@ import Events from './events.js';
 import ReactiveController from './reactivity/reactive-controller.js';
 import Store from './store.js';
 import { findFragmentDataById, resolveFragmentsFromSelection } from './common/utils/fragment-selection-utils.js';
-import { generateCodeToUse } from './utils.js';
+import { generateLinkToUse } from './utils.js';
 
 class MasSelectionPanel extends LitElement {
     static styles = css`
@@ -174,7 +174,7 @@ class MasSelectionPanel extends LitElement {
         const fragments = resolveFragmentsFromSelection(selection, Store.fragments.list.data.get());
 
         const results = fragments
-            .map((fragment) => generateCodeToUse(fragment, path, PAGE_NAMES.CONTENT))
+            .map((fragment) => generateLinkToUse(fragment, path, PAGE_NAMES.CONTENT))
             .filter((result) => result?.code && result?.richText && result?.href);
 
         if (results.length === 0) return;
@@ -191,10 +191,10 @@ class MasSelectionPanel extends LitElement {
             ]);
             Events.toast.emit({
                 variant: 'positive',
-                content: `Copied ${results.length} code snippet${results.length > 1 ? 's' : ''} to clipboard`,
+                content: `Copied ${results.length} link${results.length > 1 ? 's' : ''} to clipboard`,
             });
         } catch {
-            Events.toast.emit({ variant: 'negative', content: 'Failed to copy code to clipboard' });
+            Events.toast.emit({ variant: 'negative', content: 'Failed to copy link to clipboard' });
         }
     }
 
@@ -231,9 +231,9 @@ class MasSelectionPanel extends LitElement {
                   </sp-action-button>`
                 : nothing}
             ${count > 0 && this.onCopyStudioLinks
-                ? html`<sp-action-button slot="buttons" label="Copy cards links" @click=${this.handleCopyStudioLinks}>
+                ? html`<sp-action-button slot="buttons" label="Copy Studio Link(s)" @click=${this.handleCopyStudioLinks}>
                       <sp-icon-copy slot="icon"></sp-icon-copy>
-                      <sp-tooltip self-managed placement="top">Copy links</sp-tooltip>
+                      <sp-tooltip self-managed placement="top">Copy link(s) to open in Studio editor</sp-tooltip>
                   </sp-action-button>`
                 : nothing}
             ${count > 0
@@ -259,9 +259,9 @@ class MasSelectionPanel extends LitElement {
                   </sp-action-button>`
                 : nothing}
             ${count > 0
-                ? html`<sp-action-button slot="buttons" label="Copy Code" @click=${this.handleCopyFragmentUrls}>
-                      <sp-icon-code slot="icon"></sp-icon-code>
-                      <sp-tooltip self-managed placement="top">Copy Code</sp-tooltip>
+                ? html`<sp-action-button slot="buttons" label="Copy Content Link(s)" @click=${this.handleCopyFragmentUrls}>
+                      <sp-icon-link slot="icon"></sp-icon-link>
+                      <sp-tooltip self-managed placement="top">Copy the content link(s) (for authoring)</sp-tooltip>
                   </sp-action-button>`
                 : nothing}
         </sp-action-bar>`;

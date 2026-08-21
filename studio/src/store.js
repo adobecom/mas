@@ -1,4 +1,10 @@
-import { PAGE_NAMES, SORT_COLUMNS, WCS_LANDSCAPE_DRAFT, WCS_LANDSCAPE_PUBLISHED } from './constants.js';
+import {
+    PAGE_NAMES,
+    SORT_COLUMNS,
+    WCS_LANDSCAPE_DRAFT,
+    WCS_LANDSCAPE_PUBLISHED,
+    FRAGMENT_STATUS_OPTIONS,
+} from './constants.js';
 import { ReactiveStore } from './reactivity/reactive-store.js';
 import { EditorContextStore } from './reactivity/editor-context-store.js';
 import { SettingsStore } from './settings/settings-store.js';
@@ -281,6 +287,17 @@ function filtersValidator(value) {
         value.tags = value.tags.join(',');
     } else if (typeof value.tags !== 'string') {
         value.tags = String(value.tags);
+    }
+
+    // Ensure status is always a comma-joined, uppercase, validated string
+    const validStatuses = new Set(FRAGMENT_STATUS_OPTIONS.map((option) => option.id));
+    const rawStatus = value.status;
+    if (!rawStatus) {
+        value.status = undefined;
+    } else {
+        const list = Array.isArray(rawStatus) ? rawStatus : String(rawStatus).split(',');
+        const cleaned = list.map((entry) => String(entry).trim().toUpperCase()).filter((entry) => validStatuses.has(entry));
+        value.status = cleaned.length > 0 ? cleaned.join(',') : undefined;
     }
     return value;
 }

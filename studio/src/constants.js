@@ -290,7 +290,17 @@ export const FRAGMENT_STATUS = {
     PUBLISHED: 'PUBLISHED',
     DRAFT: 'DRAFT',
     MODIFIED: 'MODIFIED',
+    NEW: 'NEW',
+    UNPUBLISHED: 'UNPUBLISHED',
 };
+
+export const FRAGMENT_STATUS_OPTIONS = [
+    { id: FRAGMENT_STATUS.PUBLISHED, title: 'Published' },
+    { id: FRAGMENT_STATUS.DRAFT, title: 'Draft' },
+    { id: FRAGMENT_STATUS.NEW, title: 'New' },
+    { id: FRAGMENT_STATUS.MODIFIED, title: 'Modified' },
+    { id: FRAGMENT_STATUS.UNPUBLISHED, title: 'Unpublished' },
+];
 
 export const TABLE_TYPE = {
     OFFERS: 'offers',

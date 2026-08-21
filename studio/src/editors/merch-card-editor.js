@@ -29,6 +29,7 @@ import { toAttribute } from '../aem/tag-path-utils.js';
 import { getGlobalSettingsDefaults } from '../settings/settings-store.js';
 import { fieldStatusStyles } from '../common/fields/field-status.css.js';
 import { getLocaleByCode } from '../../../io/www/src/fragment/locales.js';
+import { EXPLICIT_EMPTY_SENTINEL, parentValuesHaveContent } from '../../../io/www/src/fragment/utils/explicit-empty.js';
 import { normalizePznTagToLocaleCode } from './variation-utils.js';
 import { parseProWhatsIncluded, serializeProWhatsIncluded } from '../utils/pro-whats-included.js';
 
@@ -370,8 +371,7 @@ class MerchCardEditor extends LitElement {
 
     async resetMnemonicsToParent() {
         for (const fieldName of MerchCardEditor.MNEMONIC_FIELDS) {
-            const parentValues = this.localeDefaultFragment?.getField(fieldName)?.values || [];
-            this.fragmentStore.resetFieldToParent(fieldName, parentValues);
+            this.fragmentStore.resetFieldToParent(fieldName);
         }
         showToast('Visuals restored to parent value', 'positive');
     }
@@ -383,8 +383,7 @@ class MerchCardEditor extends LitElement {
     }
 
     async resetFieldToParent(fieldName) {
-        const parentValues = this.localeDefaultFragment?.getField(fieldName)?.values || [];
-        const success = this.fragmentStore.resetFieldToParent(fieldName, parentValues);
+        const success = this.fragmentStore.resetFieldToParent(fieldName);
         if (success) {
             showToast('Field restored to parent value', 'positive');
         }
@@ -641,8 +640,7 @@ class MerchCardEditor extends LitElement {
         if (fieldName === ADDON) {
             restored = this.resetAddonSettingToDefault();
         } else if (this.effectiveIsVariation) {
-            const parentValues = this.localeDefaultFragment?.getField(fieldName)?.values || [];
-            restored = this.fragmentStore.resetFieldToParent(fieldName, parentValues);
+            restored = this.fragmentStore.resetFieldToParent(fieldName);
         } else {
             restored = this.fragmentStore.updateField(fieldName, ['']) !== false;
         }
@@ -2386,10 +2384,6 @@ class MerchCardEditor extends LitElement {
         return this.getEffectiveFieldValue('badge', 0) || '';
     }
 
-    get isPlans() {
-        return this.fragment.variant?.startsWith('plans');
-    }
-
     get trialBadgeText() {
         return this.getEffectiveFieldValue('trialBadge', 0) || '';
     }
@@ -2452,7 +2446,10 @@ class MerchCardEditor extends LitElement {
         const parentParsed = parseBadgeHtml(this.localeDefaultFragment?.getFieldValue(fieldName, 0) || '');
         const ownParsed = parseBadgeHtml(this.getEffectiveFieldValue(fieldName, 0) || '');
         const merged = { ...ownParsed, [component]: parentParsed[component] };
-        const value = serializeBadgeHtml({ ...merged, variant: this.getEffectiveFieldValue('variant') });
+        const value = serializeBadgeHtml({
+            ...merged,
+            variant: this.supportsBadgeColors ? this.getEffectiveFieldValue('variant') : undefined,
+        });
         this.fragmentStore.updateField(fieldName, [value]);
         showToast('Field restored to parent value', 'positive');
     }

@@ -490,14 +490,17 @@ class MasPromotionsEditor extends LitElement {
     }
 
     async #fetchPromotionModelById(id) {
-        let fragment = await this.repository.aem.sites.cf.fragments.getById(id, undefined, { references: null });
+        // references=none drops the hydrated reference payload (~945KB / ~9s on large
+        // projects). The promotions editor derives cards/offers/variations from the
+        // fragment fields + search probes, never from fragment.references.
+        let fragment = await this.repository.aem.sites.cf.fragments.getById(id, undefined, { references: 'none' });
         if (!fragment) return null;
         let promotion = new Promotion(fragment);
         this.#ensurePromotionModelFields(promotion);
         if (promotion.promotionStatus === 'expired' && promotion.isPromotionPublished) {
             const ok = await this.repository.unpublishFragment(promotion, false);
             if (ok) {
-                fragment = await this.repository.aem.sites.cf.fragments.getById(id, undefined, { references: null });
+                fragment = await this.repository.aem.sites.cf.fragments.getById(id, undefined, { references: 'none' });
                 if (!fragment) return null;
                 promotion = new Promotion(fragment);
                 this.#ensurePromotionModelFields(promotion);

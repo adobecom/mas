@@ -436,62 +436,35 @@ describe('MasRepository dictionary helpers', () => {
             expect(Store.promotions.list.loading.get()).to.be.false;
         });
 
-        it('loadAllCollections skips writing stores when items selection store unset after fetch', async () => {
+        it('loadAllCollections bails without fetching when no store is provided', async () => {
             const repository = createFullRepository();
-            const { default: Store } = await import('../src/store.js');
-            const { setItemsSelectionStore } = await import('../src/common/items-selection-store.js');
             const originalSearch = structuredClone(Store.search.get());
-            const originalFilters = structuredClone(Store.filters.get());
             Store.search.set({ ...originalSearch, path: 'acom' });
-            Store.filters.set({ ...originalFilters, locale: 'en_US' });
-            let resolveList;
-            const deferred = new Promise((r) => {
-                resolveList = r;
-            });
-            repository.searchFragmentList = sandbox.stub().returns(deferred);
-            Store.translationProjects.allCollections.set([]);
-            const collectionsSnapshot = Store.translationProjects.allCollections.get();
-            setItemsSelectionStore(Store.translationProjects);
+            repository.searchFragmentList = sandbox.stub().resolves([]);
             try {
-                const loadP = repository.loadAllCollections();
-                await Promise.resolve();
-                setItemsSelectionStore(null);
-                resolveList([
-                    {
-                        path: '/content/dam/mas/acom/en_US/collections/c1',
-                        title: 'C1',
-                        fields: [],
-                        model: { path: COLLECTION_MODEL_PATH },
-                    },
-                ]);
-                await loadP;
-                expect(Store.translationProjects.allCollections.get()).to.equal(collectionsSnapshot);
+                await repository.loadAllCollections();
+                expect(repository.searchFragmentList.called).to.be.false;
             } finally {
                 Store.search.set(originalSearch);
-                Store.filters.set(originalFilters);
-                setItemsSelectionStore(null);
             }
         });
 
         it('loadAllCollections in PROMOTIONS_EDITOR searches without locale in path', async () => {
             const repository = createFullRepository();
             const { default: Store } = await import('../src/store.js');
-            const { setItemsSelectionStore } = await import('../src/common/items-selection-store.js');
             const originalFilters = structuredClone(Store.filters.get());
             Store.filters.set({ ...originalFilters, locale: 'en_US' });
             repository.page = { value: PAGE_NAMES.PROMOTIONS_EDITOR };
             Store.promotions.itemPickerSurface.set('acom');
             repository.searchFragmentList = sandbox.stub().resolves([]);
-            setItemsSelectionStore(Store.promotions);
             try {
-                await repository.loadAllCollections();
+                await repository.loadAllCollections(Store.promotions);
                 const searchPath = repository.searchFragmentList.firstCall.args[0].path;
                 expect(searchPath).to.equal('/content/dam/mas/acom');
                 expect(searchPath).to.not.include('en_US');
             } finally {
                 Store.filters.set(originalFilters);
                 Store.promotions.itemPickerSurface.set(null);
-                setItemsSelectionStore(null);
             }
         });
 

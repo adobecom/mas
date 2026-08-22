@@ -2,7 +2,6 @@ import { LitElement, html, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import { styles as tableStyles } from '../common/components/mas-select-items-table.css.js';
 import { promotionsItemsTableStyles } from './mas-promotions-items-table.css.js';
-import { getItemsSelectionStore } from '../common/items-selection-store.js';
 import { loadSelectedFragments, enrichPromoVariations } from '../common/utils/items-loader.js';
 import { PAGE_NAMES, TABLE_TYPE, CARD_MODEL_PATH, VARIATION_TAB_NAME } from '../constants.js';
 import { applySearchSurfaceFromPath, shouldIgnoreRowClickForSelection } from '../common/utils/render-utils.js';
@@ -11,6 +10,7 @@ import router from '../router.js';
 import { extractLocaleFromPath, extractSurfaceFromPath, showToast } from '../utils.js';
 import { getDefaultLocaleCode } from '../../../io/www/src/fragment/locales.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
+import ItemsSelectionController from '../reactivity/items-selection-controller.js';
 import Store from '../store.js';
 import { normalizeTagId } from '../aem/tag-id-utils.js';
 import { Fragment } from '../aem/fragment.js';
@@ -76,6 +76,7 @@ class MasPromotionsItemsTable extends LitElement {
     #loadedPathsKey = null;
     #processAbortController = null;
     #selectionController = null;
+    itemsSelection = new ItemsSelectionController(this);
 
     constructor() {
         super();
@@ -111,7 +112,7 @@ class MasPromotionsItemsTable extends LitElement {
     connectedCallback() {
         super.connectedCallback();
         if (this.#selectionController) return;
-        const store = getItemsSelectionStore();
+        const store = this.itemsSelection.value;
         const selectionStore =
             this.type === TABLE_TYPE.OFFERS
                 ? store.selectedOffers
@@ -140,7 +141,8 @@ class MasPromotionsItemsTable extends LitElement {
     }
 
     get selectedPaths() {
-        const store = getItemsSelectionStore();
+        const store = this.itemsSelection.value;
+        if (!store) return [];
         if (this.type === TABLE_TYPE.OFFERS) return store.selectedOffers.value;
         const paths = store[`selected${this.typeUppercased}`].value;
         return this.type === TABLE_TYPE.CARDS ? paths.filter((path) => !Fragment.isGroupedVariationPath(path)) : paths;
@@ -243,6 +245,7 @@ class MasPromotionsItemsTable extends LitElement {
                 }
             },
             getDisplayName: this.getDisplayName,
+            store: this.itemsSelection.value,
         }).finally(() => {
             if (!signal.aborted) this.viewOnlyLoading = false;
         });
@@ -272,6 +275,7 @@ class MasPromotionsItemsTable extends LitElement {
                     if (variations.length) {
                         const enrichedVariations = await enrichPromoVariations(variations, item, {
                             getDisplayName: this.getDisplayName,
+                            store: this.itemsSelection.value,
                         });
                         geosByPath.set(item.path, getUsedGeoTags(variations));
                         variationsByPath.set(item.path, enrichedVariations);
@@ -457,7 +461,7 @@ class MasPromotionsItemsTable extends LitElement {
     }
 
     #getOfferRemovalContext(selectorId) {
-        const store = getItemsSelectionStore();
+        const store = this.itemsSelection.value;
         return {
             store,
             removed: getPromotionItemsRemovedByOfferRemoval({
@@ -489,7 +493,7 @@ class MasPromotionsItemsTable extends LitElement {
     }
 
     #applyOfferRemoval(selectorId) {
-        const store = getItemsSelectionStore();
+        const store = this.itemsSelection.value;
         const remainingOffers = store.selectedOffers.value.filter((id) => id !== selectorId);
         store.selectedOffers.set(remainingOffers);
         Store.promotions.offerRecordsCache.delete(selectorId);
@@ -510,7 +514,7 @@ class MasPromotionsItemsTable extends LitElement {
             store.selectedCards.set(pruned.selectedCards);
             store.selectedCollections.set(pruned.selectedCollections);
         }
-        applyPromotionOfferProductTagsToSearch(Store.promotions.offerRecordsCache, remainingOffers);
+        applyPromotionOfferProductTagsToSearch(Store.promotions.offerRecordsCache, remainingOffers, store.filters);
         this.dispatchEvent(
             new CustomEvent('promotion-offer-removed', {
                 bubbles: true,
@@ -523,7 +527,7 @@ class MasPromotionsItemsTable extends LitElement {
         e.stopPropagation();
         const path = item?.path;
         if (!path) return;
-        const store = getItemsSelectionStore();
+        const store = this.itemsSelection.value;
         if (this.type === TABLE_TYPE.OFFERS) {
             if (this.offerRemovalDialogOpen) return;
             const selectorId = item.path || item.id;

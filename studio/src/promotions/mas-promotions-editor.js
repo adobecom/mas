@@ -33,7 +33,7 @@ import { Fragment } from '../aem/fragment.js';
 import { Promotion } from '../aem/promotion.js';
 import './mas-promotions-items-selector.js';
 import './mas-promotions-items-table.js';
-import { getItemsSelectionStore, setItemsSelectionStore } from '../common/items-selection-store.js';
+import { pushItemsSelectionStore, popItemsSelectionStore } from '../common/items-selection-store.js';
 import {
     applyPromotionItemSelectionToFragment,
     buildPromotionOffersFieldValues,
@@ -136,7 +136,7 @@ class MasPromotionsEditor extends LitElement {
     promotionId = Store.promotions.promotionId;
 
     storeController = null;
-    #itemsSelectionStoreSnapshot = null;
+    #itemsSelectionStoreToken = null;
     #cardsSnapshot = [];
     #collectionsSnapshot = [];
     #itemsPickerConfirmed = false;
@@ -167,8 +167,7 @@ class MasPromotionsEditor extends LitElement {
 
     async connectedCallback() {
         super.connectedCallback();
-        this.#itemsSelectionStoreSnapshot = getItemsSelectionStore({ allowUnset: true });
-        setItemsSelectionStore(Store.promotions);
+        this.#itemsSelectionStoreToken = pushItemsSelectionStore(Store.promotions);
         this.#boundHandleOstOfferSelect = this.#handleOstOfferSelect.bind(this);
         document.addEventListener(EVENT_OST_OFFER_SELECT, this.#boundHandleOstOfferSelect);
 
@@ -201,7 +200,7 @@ class MasPromotionsEditor extends LitElement {
                 this.repository.searchFragments();
             }
             if (this.repository?.loadAllCollections) {
-                this.repository.loadAllCollections();
+                this.repository.loadAllCollections(Store.promotions);
             }
         }
 
@@ -224,8 +223,8 @@ class MasPromotionsEditor extends LitElement {
             this.#boundHandleOstOfferSelect = null;
         }
         Store.promotions.itemPickerSurface.set(null);
-        setItemsSelectionStore(this.#itemsSelectionStoreSnapshot);
-        this.#itemsSelectionStoreSnapshot = null;
+        popItemsSelectionStore(this.#itemsSelectionStoreToken);
+        this.#itemsSelectionStoreToken = null;
     }
 
     /** @type {MasRepository} */
@@ -307,6 +306,7 @@ class MasPromotionsEditor extends LitElement {
             if (cardPaths.length && this.repository) {
                 await loadSelectedFragments(cardPaths, TABLE_TYPE.CARDS, this.repository, {
                     getDisplayName: getPromotionPickerFragmentLabel,
+                    store: Store.promotions,
                     onItems: (items) => {
                         for (const item of items) {
                             const offerId = item?.offerData?.offerId ?? item?.offerData?.offer_id;
@@ -1067,7 +1067,7 @@ class MasPromotionsEditor extends LitElement {
     };
 
     #handleOstOfferSelect = async (event) => {
-        const added = await handlePromotionOstOfferSelect(event);
+        const added = await handlePromotionOstOfferSelect(event, Store.promotions);
         if (added) {
             this.#syncPromotionSelectionFieldsToFragment();
         }
@@ -1126,7 +1126,7 @@ class MasPromotionsEditor extends LitElement {
         if (Store.promotions.allCollections.getMeta('loaded') && cachedCollections?.length) {
             Store.promotions.displayCollections.set(cachedCollections);
         } else if (this.repository?.loadAllCollections) {
-            this.repository.loadAllCollections();
+            this.repository.loadAllCollections(Store.promotions);
         }
         if (this.repository?.loadPlaceholders) this.repository.loadPlaceholders();
         return true;

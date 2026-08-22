@@ -2,8 +2,8 @@ import { LitElement, html, nothing, css } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 import StoreController from '../reactivity/store-controller.js';
+import ItemsSelectionController from '../reactivity/items-selection-controller.js';
 import Store from '../store.js';
-import { getItemsSelectionStore } from '../common/items-selection-store.js';
 import { SURFACES, TABLE_TYPE, VARIATION_TAB_NAME } from '../constants.js';
 import { toggleSidebarIcon } from '../icons.js';
 import '../common/components/mas-select-items-table.js';
@@ -76,6 +76,8 @@ class MasPromotionsItemsSelector extends LitElement {
         fragmentSurfaceOptions: { type: Array },
     };
 
+    itemsSelection = new ItemsSelectionController(this);
+
     constructor() {
         super();
         this.viewOnly = false;
@@ -91,7 +93,7 @@ class MasPromotionsItemsSelector extends LitElement {
     connectedCallback() {
         super.connectedCallback();
         this.addEventListener('sp-opened', this.#stopPropagation);
-        const s = getItemsSelectionStore();
+        const s = this.itemsSelection.value;
         this.storeController = new ReactiveController(this, [
             s.inEdit,
             s.showSelected,
@@ -108,7 +110,7 @@ class MasPromotionsItemsSelector extends LitElement {
 
     #onSelectedOffersChange = () => {
         if (!this.viewOnly) {
-            const s = getItemsSelectionStore({ allowUnset: true });
+            const s = this.itemsSelection.value;
             if (this.activeFilterOfferId && !s?.selectedOffers.value.includes(this.activeFilterOfferId)) {
                 this.activeFilterOfferId = '';
             }
@@ -120,16 +122,16 @@ class MasPromotionsItemsSelector extends LitElement {
     }
 
     get showSelected() {
-        return getItemsSelectionStore().showSelected.value;
+        return this.itemsSelection.value.showSelected.value;
     }
 
     get selectedCount() {
-        const s = getItemsSelectionStore();
+        const s = this.itemsSelection.value;
         return [...s.selectedCards.value, ...s.selectedPlaceholders.value, ...s.selectedCollections.value].length;
     }
 
     #toggleShowSelected() {
-        getItemsSelectionStore().showSelected.set(!this.showSelected);
+        this.itemsSelection.value.showSelected.set(!this.showSelected);
     }
 
     #setSearchQuery = debounce((value) => {
@@ -197,7 +199,7 @@ class MasPromotionsItemsSelector extends LitElement {
 
     #getTabLabel(tab) {
         if (this.viewOnly) {
-            const count = getItemsSelectionStore()[this.#getSelectionStoreKey(tab.value)].value.length;
+            const count = this.itemsSelection.value[this.#getSelectionStoreKey(tab.value)].value.length;
             return `${tab.label} (${count})`;
         }
         return tab.label;
@@ -233,18 +235,18 @@ class MasPromotionsItemsSelector extends LitElement {
         s.allCollections.setMeta('loaded', false);
         s.displayCollections.set([]);
         this.#syncOfferProductTagsToFragmentSearch();
-        repo?.loadAllCollections?.();
+        repo?.loadAllCollections?.(s);
         repo?.loadPlaceholders?.();
     }
 
     get #activeFilterIds() {
-        const s = getItemsSelectionStore({ allowUnset: true });
+        const s = this.itemsSelection.value;
         const all = s?.selectedOffers.value ?? [];
         return this.activeFilterOfferId ? [this.activeFilterOfferId] : all;
     }
 
     get #offerFilterOptions() {
-        const s = getItemsSelectionStore({ allowUnset: true });
+        const s = this.itemsSelection.value;
         return (s?.selectedOffers.value ?? []).map((id) => ({
             id,
             label: Store.promotions.offerRecordsCache.get(id)?.getTagTitle?.('product_code') ?? id,
@@ -263,9 +265,13 @@ class MasPromotionsItemsSelector extends LitElement {
     }
 
     #syncOfferProductTagsToFragmentSearch() {
-        const s = getItemsSelectionStore({ allowUnset: true });
+        const s = this.itemsSelection.value;
         if (!s) return [];
-        const tags = applyPromotionOfferProductTagsToSearch(Store.promotions.offerRecordsCache, this.#activeFilterIds);
+        const tags = applyPromotionOfferProductTagsToSearch(
+            Store.promotions.offerRecordsCache,
+            this.#activeFilterIds,
+            s.filters,
+        );
         const filters = this.renderRoot.querySelectorAll('mas-search-and-filters');
         filters.forEach((el) => {
             if (el.type === TABLE_TYPE.CARDS) {
@@ -284,7 +290,7 @@ class MasPromotionsItemsSelector extends LitElement {
     }
 
     render() {
-        if (!getItemsSelectionStore({ allowUnset: true })) return nothing;
+        if (!this.itemsSelection.value) return nothing;
         const count = this.selectedCount;
         const showingSelection = this.showSelected && count;
         const toggleLabel = showingSelection ? 'Hide selection' : 'Selected items';

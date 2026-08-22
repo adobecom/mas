@@ -3,7 +3,7 @@ import { repeat } from 'lit/directives/repeat.js';
 import { isVariantMatch, VARIANTS } from '../../editors/variant-picker.js';
 import { styles } from './mas-search-and-filters.css.js';
 import Store from '../../store.js';
-import { getItemsSelectionStore } from '../items-selection-store.js';
+import ItemsSelectionController from '../../reactivity/items-selection-controller.js';
 import { AEM_TAG_PATH_PRODUCT_CODE_ROOT, FILTER_TYPE, FRAGMENT_STATUS, PAGE_NAMES, TABLE_TYPE } from '../../constants.js';
 import ReactiveController from '../../reactivity/reactive-controller.js';
 import { AEM } from '../../aem/aem.js';
@@ -45,6 +45,7 @@ class MasSearchAndFilters extends LitElement {
     // (e.g. the compare-chart picker), else the global stores. Resolved at connect.
     #searchStore = Store.search;
     #filtersStore = Store.filters;
+    itemsSelection = new ItemsSelectionController(this);
 
     // Overlay open/close events from the internal filter popovers are an
     // implementation detail; stop them at the host so ancestor overlays
@@ -259,7 +260,7 @@ class MasSearchAndFilters extends LitElement {
         super.connectedCallback();
         this.addEventListener('sp-opened', this.#stopOverlayEventPropagation);
         this.addEventListener('sp-closed', this.#stopOverlayEventPropagation);
-        const selectionStore = getItemsSelectionStore();
+        const selectionStore = this.itemsSelection.value;
         this.#searchStore = selectionStore.search;
         this.#filtersStore = selectionStore.filters;
         if (this.type === TABLE_TYPE.CARDS) {
@@ -299,7 +300,7 @@ class MasSearchAndFilters extends LitElement {
         super.disconnectedCallback();
         this.removeEventListener('sp-opened', this.#stopOverlayEventPropagation);
         this.removeEventListener('sp-closed', this.#stopOverlayEventPropagation);
-        const selectionStore = getItemsSelectionStore({ allowUnset: true });
+        const selectionStore = this.itemsSelection.value;
         if (selectionStore) {
             selectionStore[`display${this.typeUppercased}`].set(selectionStore[`all${this.typeUppercased}`].value);
         }
@@ -469,7 +470,7 @@ class MasSearchAndFilters extends LitElement {
             customs: new Map(),
         };
         this.#addSelectedFilterOptions(optionMaps);
-        for (const fragment of getItemsSelectionStore()[`all${this.typeUppercased}`].value) {
+        for (const fragment of this.itemsSelection.value[`all${this.typeUppercased}`].value) {
             if (!fragment.tags) continue;
 
             for (const tag of fragment.tags) {
@@ -832,7 +833,7 @@ class MasSearchAndFilters extends LitElement {
     }
 
     #applyFilters() {
-        const source = getItemsSelectionStore()[`all${this.typeUppercased}`].value || [];
+        const source = this.itemsSelection.value[`all${this.typeUppercased}`].value || [];
         const query = this.searchQuery?.toLowerCase();
         const hasTemplate = this.templateFilter?.length > 0;
         const hasMarket = this.marketSegmentFilter?.length > 0;
@@ -904,15 +905,15 @@ class MasSearchAndFilters extends LitElement {
         if (this.type === TABLE_TYPE.CARDS) {
             result.sort((a, b) => (b.groupedVariations?.length > 0 ? 1 : 0) - (a.groupedVariations?.length > 0 ? 1 : 0));
         }
-        getItemsSelectionStore()[`display${this.typeUppercased}`].set(result);
+        this.itemsSelection.value[`display${this.typeUppercased}`].set(result);
     }
 
     renderCount() {
         return html`<div class="result-count">
             ${this.isLoading
                 ? html`<sp-progress-circle indeterminate size="s"></sp-progress-circle>`
-                : html`${getItemsSelectionStore()[`display${this.typeUppercased}`].value.length}
-                  result${getItemsSelectionStore()[`display${this.typeUppercased}`].value.length !== 1 ? 's' : ''}`}
+                : html`${this.itemsSelection.value[`display${this.typeUppercased}`].value.length}
+                  result${this.itemsSelection.value[`display${this.typeUppercased}`].value.length !== 1 ? 's' : ''}`}
         </div>`;
     }
 

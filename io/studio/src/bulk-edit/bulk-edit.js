@@ -186,6 +186,11 @@ function normalizeLocalesKey(locale) {
     return locales.length === 1 ? locales[0] : locales;
 }
 
+function normalizeLimitKey(limit) {
+    const value = Number.parseInt(limit, 10);
+    return Number.isFinite(value) && value > 0 ? value : null;
+}
+
 function buildSearchKey(params) {
     return {
         type: params.type,
@@ -197,6 +202,7 @@ function buildSearchKey(params) {
         status: params.status || null,
         locale: normalizeLocalesKey(params.locale),
         tags: Array.isArray(params.tags) ? params.tags : [],
+        limit: normalizeLimitKey(params.limit),
     };
 }
 

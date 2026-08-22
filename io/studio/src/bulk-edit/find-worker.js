@@ -50,6 +50,11 @@ async function finalizeFindExport(jobId, results, status, jobParams = {}) {
     return report;
 }
 
+function parseMatchLimit(value) {
+    const limit = Number.parseInt(value, 10);
+    return Number.isFinite(limit) && limit > 0 ? limit : null;
+}
+
 async function finalizeStop(jobId, stop, results, jobParams) {
     if (stop === 'CANCELLED') {
         await finalizeFindExport(jobId, results, 'CANCELLED', jobParams);
@@ -65,10 +70,12 @@ async function runFindWorker(jobId, { odinEndpoint, authToken, runId }) {
     const { params = {} } = job;
     const tags = Array.isArray(params.tags) ? params.tags : [];
     const paths = buildSearchPaths(params.surface, params.locale);
+    const matchLimit = parseMatchLimit(params.limit);
 
     const results = [];
     const byLocale = {};
     try {
+        let capped = false;
         for (const path of paths) {
             const query = buildSearchQuery({
                 path,
@@ -90,7 +97,13 @@ async function runFindWorker(jobId, { odinEndpoint, authToken, runId }) {
                 if (stop) return finalizeStop(jobId, stop, results, params);
                 await patchJob(jobId, { total: results.length }, JOB_RUNNING_TTL);
                 await writeReport(jobId, { total: results.length, byLocale: { ...byLocale } }, JOB_RUNNING_TTL);
+
+                if (matchLimit && results.length >= matchLimit) {
+                    capped = true;
+                    break;
+                }
             }
+            if (capped) break;
             const stop = await resolveStop(jobId, runId);
             if (stop) return finalizeStop(jobId, stop, results, params);
         }

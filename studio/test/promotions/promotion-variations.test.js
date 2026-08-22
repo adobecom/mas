@@ -38,6 +38,7 @@ describe('promotion-variations', () => {
                 fragments: {
                     getByPath: sandbox.stub(),
                     getById: sandbox.stub(),
+                    getReferencedBy: sandbox.stub().resolves({ parentReferences: [] }),
                     search: makeSearchStub(),
                     ensureFolderExists: sandbox.stub().resolves(),
                     pollCreatedFragment: sandbox.stub(),
@@ -259,11 +260,130 @@ describe('promotion-variations', () => {
             }
         });
 
-        it('throws when creating a promo variation from a grouped variation', async () => {
+        it('creates a promo variation from a grouped-variation source path, nested under its pzn folder', async () => {
             const groupedSourcePath = '/content/dam/mas/sandbox/en_US/PA-123/pzn/my-card-grouped';
+            const groupedTargetPath = '/content/dam/mas/sandbox/en_US/promotions/black-friday/PA-123/pzn/my-card-grouped';
+            const createdFragment = { id: 'new-promo-var-id', path: groupedTargetPath };
             const aem = createAemMock({
                 fragments: {
                     getById: sandbox.stub().resolves({ ...parentFragment, path: groupedSourcePath }),
+                    pollCreatedFragment: sandbox.stub().resolves(createdFragment),
+                },
+                createFragmentCopy: sandbox.stub().resolves({ id: 'new-promo-var-id' }),
+            });
+
+            const result = await createPromoVariation(aem, parentFragment.id, promoTag);
+            expect(result).to.deep.equal(createdFragment);
+        });
+
+        it('resolves the grouped-variation source effective (parent-inherited) fields before cloning', async () => {
+            const groupedSourcePath = '/content/dam/mas/sandbox/en_US/PA-123/pzn/my-card-grouped';
+            const parentPath = '/content/dam/mas/sandbox/en_US/my-card';
+            const groupedFragment = {
+                id: 'grouped-var-id',
+                path: groupedSourcePath,
+                title: 'Card title',
+                model: { id: 'model-1' },
+                fields: [{ name: 'pznTags', values: ['mas:pzn/edu'] }],
+                tags: [{ id: 'mas:product_code/cc' }],
+            };
+            const rawParentFragment = {
+                id: 'parent-id',
+                path: parentPath,
+                fields: [{ name: 'variations', values: [groupedSourcePath] }],
+            };
+            const hydratedParentFragment = {
+                ...rawParentFragment,
+                fields: [
+                    { name: 'variations', values: [groupedSourcePath] },
+                    { name: 'osi', values: ['OSI-PARENT-123'] },
+                ],
+            };
+            const createFragmentCopy = sandbox.stub().resolves({ id: 'new-promo-var-id' });
+            const aem = createAemMock({
+                fragments: {
+                    getById: sandbox.stub().callsFake((id) => {
+                        if (id === 'grouped-var-id') return Promise.resolve(groupedFragment);
+                        if (id === 'parent-id') return Promise.resolve(hydratedParentFragment);
+                        return Promise.resolve(null);
+                    }),
+                    getReferencedBy: sandbox.stub().resolves({ parentReferences: [{ path: parentPath }] }),
+                    getByPath: sandbox.stub().resolves(rawParentFragment),
+                    pollCreatedFragment: sandbox
+                        .stub()
+                        .resolves({ id: 'new-promo-var-id', path: `${promoFolder}/PA-123/pzn/my-card-grouped` }),
+                },
+                createFragmentCopy,
+            });
+
+            await createPromoVariation(aem, 'grouped-var-id', promoTag, ['mas:pzn/country/ar']);
+
+            const [fragmentForCopy] = createFragmentCopy.firstCall.args;
+            const osiField = fragmentForCopy.fields.find((field) => field.name === 'osi');
+            expect(osiField.values).to.deep.equal(['OSI-PARENT-123']);
+        });
+
+        it('preserves the grouped-variation source own pznTags and adds the selected geo tags, instead of replacing them', async () => {
+            const groupedSourcePath = '/content/dam/mas/sandbox/en_US/PA-123/pzn/my-card-grouped';
+            const createFragmentCopy = sandbox.stub().resolves({ id: 'new-promo-var-id' });
+            const aem = createAemMock({
+                fragments: {
+                    getById: sandbox.stub().resolves({
+                        ...parentFragment,
+                        path: groupedSourcePath,
+                        fields: [{ name: 'pznTags', values: ['mas:pzn/edu'] }],
+                    }),
+                    pollCreatedFragment: sandbox.stub().resolves({ id: 'new-promo-var-id', path: groupedSourcePath }),
+                },
+                createFragmentCopy,
+            });
+
+            await createPromoVariation(aem, parentFragment.id, promoTag, ['mas:pzn/country/ar']);
+
+            const [fragmentForCopy] = createFragmentCopy.firstCall.args;
+            const pznTagsField = fragmentForCopy.fields.find((field) => field.name === 'pznTags');
+            expect(pznTagsField.values).to.deep.equal(['mas:pzn/edu', 'mas:pzn/country/ar']);
+        });
+
+        it('preserves the grouped-variation source own pznTags even when no geo tags are selected', async () => {
+            const groupedSourcePath = '/content/dam/mas/sandbox/en_US/PA-123/pzn/my-card-grouped';
+            const createFragmentCopy = sandbox.stub().resolves({ id: 'new-promo-var-id' });
+            const aem = createAemMock({
+                fragments: {
+                    getById: sandbox.stub().resolves({
+                        ...parentFragment,
+                        path: groupedSourcePath,
+                        fields: [{ name: 'pznTags', values: ['mas:pzn/edu'] }],
+                    }),
+                    pollCreatedFragment: sandbox.stub().resolves({ id: 'new-promo-var-id', path: groupedSourcePath }),
+                },
+                createFragmentCopy,
+            });
+
+            await createPromoVariation(aem, parentFragment.id, promoTag, []);
+
+            const [fragmentForCopy] = createFragmentCopy.firstCall.args;
+            const pznTagsField = fragmentForCopy.fields.find((field) => field.name === 'pznTags');
+            expect(pznTagsField.values).to.deep.equal(['mas:pzn/edu']);
+        });
+
+        it('still detects a geo-less duplicate sibling for a grouped-variation source (ignoring its own preserved personalization tag)', async () => {
+            const groupedSourcePath = '/content/dam/mas/sandbox/en_US/PA-123/pzn/my-card-grouped';
+            const groupedPromoFolder = `${promoFolder}/PA-123/pzn`;
+            const siblingPath = `${groupedPromoFolder}/my-card-grouped`;
+            const search = makeSearchStub({
+                [groupedPromoFolder]: [
+                    { id: 'sibling-1', path: siblingPath, fields: [{ name: 'pznTags', values: ['mas:pzn/edu'] }] },
+                ],
+            });
+            const aem = createAemMock({
+                fragments: {
+                    getById: sandbox.stub().resolves({
+                        ...parentFragment,
+                        path: groupedSourcePath,
+                        fields: [{ name: 'pznTags', values: ['mas:pzn/edu'] }],
+                    }),
+                    search,
                 },
             });
 
@@ -271,7 +391,39 @@ describe('promotion-variations', () => {
                 await createPromoVariation(aem, parentFragment.id, promoTag);
                 expect.fail('Should have thrown');
             } catch (err) {
-                expect(err.message).to.include('Cannot create a promo variation from a grouped variation');
+                expect(err.message).to.equal('A promo variation for this grouped variation fragment already exists.');
+            }
+        });
+
+        it('still detects an overlapping geo for a grouped-variation source (ignoring its own preserved personalization tag)', async () => {
+            const groupedSourcePath = '/content/dam/mas/sandbox/en_US/PA-123/pzn/my-card-grouped';
+            const groupedPromoFolder = `${promoFolder}/PA-123/pzn`;
+            const siblingPath = `${groupedPromoFolder}/my-card-grouped`;
+            const search = makeSearchStub({
+                [groupedPromoFolder]: [
+                    {
+                        id: 'sibling-1',
+                        path: siblingPath,
+                        fields: [{ name: 'pznTags', values: ['mas:pzn/edu', 'mas:pzn/country/ar'] }],
+                    },
+                ],
+            });
+            const aem = createAemMock({
+                fragments: {
+                    getById: sandbox.stub().resolves({
+                        ...parentFragment,
+                        path: groupedSourcePath,
+                        fields: [{ name: 'pznTags', values: ['mas:pzn/edu'] }],
+                    }),
+                    search,
+                },
+            });
+
+            try {
+                await createPromoVariation(aem, parentFragment.id, promoTag, ['mas:pzn/country/ar']);
+                expect.fail('Should have thrown');
+            } catch (err) {
+                expect(err.message).to.include('mas:pzn/country/ar');
             }
         });
 
@@ -856,6 +1008,30 @@ describe('promotion-variations', () => {
             expect(card2Variations[0].path).to.equal(`${dirPromoFolder}/card-2`);
             expect(card2Variations[0].index).to.equal(1);
         });
+
+        it("includes a promo variation created from an attached fragment's own grouped variation", async () => {
+            const parentPath = '/content/dam/mas/sandbox/en_US/my-card';
+            const groupedPromoFolder = `${promoFolder}/my-card/pzn`;
+            const groupedPromoPath = `${groupedPromoFolder}/edu`;
+            const promotionFragment = {
+                getFieldValues: sandbox.stub().callsFake((name) => {
+                    if (name === 'fragments') return [parentPath];
+                    return undefined;
+                }),
+                tags: [{ id: 'mas:promotion/black-friday' }],
+            };
+            const search = makeSearchStub({
+                [promoFolder]: [],
+                [groupedPromoFolder]: [{ id: 'grouped-promo-var-id', path: groupedPromoPath, status: 'DRAFT', fields: [] }],
+            });
+            const aem = createAemMock({ fragments: { search } });
+
+            const result = await getAllAttachedPromoVariations(aem, promotionFragment);
+
+            const groupedResult = result.find((variation) => variation.id === 'grouped-promo-var-id');
+            expect(groupedResult).to.exist;
+            expect(groupedResult.parentPath).to.equal(parentPath);
+        });
     });
 
     describe('getPublishedAttachedPromoVariations', () => {
@@ -1107,6 +1283,30 @@ describe('promotion-variations', () => {
             ]);
             expect(enriched.references).to.have.lengthOf(1);
             expect(enriched.references[0].path).to.equal(promoPath);
+        });
+
+        it('also merges probed promo references for the fragment own grouped variations', async () => {
+            const defaultPath = '/content/dam/mas/sandbox/en_US/my-card';
+            const groupedPath = `${defaultPath}/pzn/edu`;
+            const promoFolder = '/content/dam/mas/sandbox/en_US/promotions/black-friday';
+            const groupedPromoFolder = `${promoFolder}/my-card/pzn`;
+            const groupedPromoPath = `${groupedPromoFolder}/edu`;
+            const search = makeSearchStub({
+                [promoFolder]: [],
+                [groupedPromoFolder]: [{ id: 'grouped-promo-1', path: groupedPromoPath, tags: [] }],
+            });
+            const aem = createAemMock({ fragments: { search } });
+            const fragmentData = {
+                path: defaultPath,
+                references: [],
+                fields: [{ name: 'variations', values: [groupedPath], multiple: true }],
+            };
+
+            const enriched = await mergePromoReferencesForDefaultFragment(aem, fragmentData, [
+                { tags: [{ id: 'mas:promotion/black-friday' }] },
+            ]);
+            expect(enriched.references).to.have.lengthOf(1);
+            expect(enriched.references[0].path).to.equal(groupedPromoPath);
         });
     });
 

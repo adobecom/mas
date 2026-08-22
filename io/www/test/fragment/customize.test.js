@@ -2107,6 +2107,23 @@ describe('customize grouped variation scoped to a promo project (no promo variat
         expect(result.body.fields.promoCode).to.equal('PROMO-CODE');
     });
 
+    it('does not stamp promoVariationProject when the pzn variation is not curated (no content was actually merged)', async function () {
+        const result = await processWithPromoProjects(
+            {
+                ...FAKE_CONTEXT,
+                fragmentPath: 'pzn-test-fragment',
+                locale: 'en_US',
+                parsedLocale: 'en_US',
+                pzn: 'EDU',
+                body: buildBodyWithPzn(),
+            },
+            buildPromoProjectsEntry(['some-other-product/pzn/other']),
+        );
+
+        expect(result.status).to.equal(200);
+        expect(result.body.promoVariationProject).to.be.undefined;
+    });
+
     it('falls back to unscoped personalization when the project has curated no grouped variations', async function () {
         const result = await processWithPromoProjects(
             {
@@ -2124,6 +2141,350 @@ describe('customize grouped variation scoped to a promo project (no promo variat
         expect(result.body.variationId).to.equal(PZN_VARIATION_ID);
         expect(result.body.fields.badge).to.equal('EDU badge');
         expect(result.body.fields.promoCode).to.equal('PROMO-CODE');
+    });
+});
+
+describe('customize grouped variation scoped to a promo project (promo variation present for the grouped variation)', function () {
+    const PZN_VARIATION_ID = 'pzn-var-edu';
+    const GROUPED_PROMO_VARIATION = {
+        id: 'grouped-promo-var-id',
+        path: '/content/dam/mas/sandbox/en_US/promotions/black-friday/PA-123/pzn/edu',
+        fields: { badge: 'GROUPED PROMO badge', pznTags: ['mas:pzn/edu'] },
+    };
+    const ROOT_PROMO_VARIATION = {
+        id: 'root-promo-var-id',
+        path: '/content/dam/mas/sandbox/en_US/promotions/black-friday/pzn-test-fragment',
+        fields: { badge: 'ROOT PROMO badge' },
+    };
+
+    function buildBodyWithPzn() {
+        return {
+            path: '/content/dam/mas/sandbox/en_US/pzn-test-fragment',
+            id: 'root-fragment',
+            title: 'Root',
+            fields: {
+                badge: 'default badge',
+                osi: 'OSI-TEST',
+                variations: [PZN_VARIATION_ID],
+            },
+            references: {
+                [PZN_VARIATION_ID]: {
+                    type: 'content-fragment',
+                    value: {
+                        path: '/content/dam/mas/sandbox/en_US/PA-123/pzn/edu',
+                        id: PZN_VARIATION_ID,
+                        title: 'EDU pricing',
+                        fields: {
+                            pznTags: ['mas:audiences/pzn/EDU'],
+                            badge: 'EDU badge',
+                        },
+                    },
+                },
+            },
+            referencesTree: [],
+        };
+    }
+
+    function buildPromoProjectsEntry(groupedVariationPaths, defaultVariations) {
+        const project = {
+            id: 'promo-proj-id',
+            path: '/content/dam/mas/promotions/black-friday',
+            fragmentPaths: ['pzn-test-fragment'],
+            defaultVariations,
+            regionVariations: {},
+        };
+        const groupedVariationReferences = new Map(
+            groupedVariationPaths.map((path) => [
+                path,
+                { id: `grouped-${path}`, path: `/content/dam/mas/sandbox/en_US/${path}`, fields: { pznTags: ['mas:pzn/edu'] } },
+            ]),
+        );
+        return [
+            {
+                project,
+                promoMap: { '*': 'PROMO-CODE' },
+                fragmentPaths: new Set(project.fragmentPaths),
+                groupedVariationPaths: new Set(groupedVariationPaths),
+                groupedVariationReferences,
+            },
+        ];
+    }
+
+    it('renders the promo variation created from the grouped variation, same as a promo variation created from the default fragment', async function () {
+        const result = await processWithPromoProjects(
+            {
+                ...FAKE_CONTEXT,
+                fragmentPath: 'pzn-test-fragment',
+                locale: 'en_US',
+                parsedLocale: 'en_US',
+                pzn: 'EDU',
+                body: buildBodyWithPzn(),
+            },
+            buildPromoProjectsEntry(['PA-123/pzn/edu'], { 'PA-123/pzn/edu': GROUPED_PROMO_VARIATION }),
+        );
+
+        expect(result.status).to.equal(200);
+        expect(result.body.variationId).to.equal('grouped-promo-var-id');
+        expect(result.body.fields.badge).to.equal('GROUPED PROMO badge');
+        expect(result.body.fields.promoCode).to.equal('PROMO-CODE');
+        expect(result.body.promoProject).to.equal('promo-proj-id');
+    });
+
+    it('prefers the grouped-variation-specific promo variation over the root-level one when both exist and pzn matches', async function () {
+        const result = await processWithPromoProjects(
+            {
+                ...FAKE_CONTEXT,
+                fragmentPath: 'pzn-test-fragment',
+                locale: 'en_US',
+                parsedLocale: 'en_US',
+                pzn: 'EDU',
+                body: buildBodyWithPzn(),
+            },
+            buildPromoProjectsEntry(['PA-123/pzn/edu'], {
+                'pzn-test-fragment': ROOT_PROMO_VARIATION,
+                'PA-123/pzn/edu': GROUPED_PROMO_VARIATION,
+            }),
+        );
+
+        expect(result.status).to.equal(200);
+        expect(result.body.variationId).to.equal('grouped-promo-var-id');
+        expect(result.body.fields.badge).to.equal('GROUPED PROMO badge');
+    });
+
+    it('falls back to the root-level promo variation when pzn does not match the grouped variation', async function () {
+        const result = await processWithPromoProjects(
+            {
+                ...FAKE_CONTEXT,
+                fragmentPath: 'pzn-test-fragment',
+                locale: 'en_US',
+                parsedLocale: 'en_US',
+                pzn: 'OTHER',
+                body: buildBodyWithPzn(),
+            },
+            buildPromoProjectsEntry(['PA-123/pzn/edu'], {
+                'pzn-test-fragment': ROOT_PROMO_VARIATION,
+                'PA-123/pzn/edu': GROUPED_PROMO_VARIATION,
+            }),
+        );
+
+        expect(result.status).to.equal(200);
+        expect(result.body.variationId).to.equal('root-promo-var-id');
+        expect(result.body.fields.badge).to.equal('ROOT PROMO badge');
+    });
+
+    it('prefers the grouped-variation promo over a matching regional-locale variation when both match', async function () {
+        const regionalVariationId = 'kw-regional-variation';
+        const bodyWithRegionalAndPzn = {
+            path: '/content/dam/mas/sandbox/en_US/pzn-test-fragment',
+            id: 'root-fragment',
+            title: 'Root',
+            fields: {
+                badge: 'default badge',
+                osi: 'OSI-TEST',
+                variations: [regionalVariationId, PZN_VARIATION_ID],
+            },
+            references: {
+                [regionalVariationId]: {
+                    type: 'content-fragment',
+                    value: {
+                        path: '/content/dam/mas/sandbox/en_KW/pzn-test-fragment',
+                        id: regionalVariationId,
+                        title: 'Kuwait regional',
+                        fields: {
+                            badge: 'Kuwait regional badge',
+                        },
+                    },
+                },
+                [PZN_VARIATION_ID]: {
+                    type: 'content-fragment',
+                    value: {
+                        path: '/content/dam/mas/sandbox/en_US/PA-123/pzn/edu',
+                        id: PZN_VARIATION_ID,
+                        title: 'EDU pricing',
+                        fields: {
+                            pznTags: ['mas:audiences/pzn/EDU'],
+                            badge: 'EDU badge',
+                        },
+                    },
+                },
+            },
+            referencesTree: [],
+        };
+
+        const result = await processWithPromoProjects(
+            {
+                ...FAKE_CONTEXT,
+                fragmentPath: 'pzn-test-fragment',
+                locale: 'en_KW',
+                parsedLocale: 'en_US',
+                pzn: 'EDU',
+                body: bodyWithRegionalAndPzn,
+            },
+            buildPromoProjectsEntry(['PA-123/pzn/edu'], { 'PA-123/pzn/edu': GROUPED_PROMO_VARIATION }),
+        );
+
+        expect(result.status).to.equal(200);
+        expect(result.body.variationId).to.equal('grouped-promo-var-id');
+        expect(result.body.fields.badge).to.equal('GROUPED PROMO badge');
+    });
+
+    it('merges the grouped-variation region promo over the grouped-variation default promo when both exist', async function () {
+        const groupedDefaultVar = {
+            id: 'grouped-default-var-id',
+            path: '/content/dam/mas/sandbox/en_US/promotions/black-friday/PA-123/pzn/edu',
+            fields: { badge: 'GROUPED DEFAULT badge', pznTags: ['mas:pzn/edu'] },
+        };
+        const groupedRegionVar = {
+            id: 'grouped-region-var-id',
+            path: '/content/dam/mas/sandbox/fr_BE/promotions/black-friday/PA-123/pzn/edu',
+            fields: { badge: 'GROUPED REGION badge', pznTags: ['mas:pzn/edu'] },
+        };
+        const promoProjectsEntry = buildPromoProjectsEntry(['PA-123/pzn/edu'], { 'PA-123/pzn/edu': groupedDefaultVar });
+        promoProjectsEntry[0].project.regionVariations = { 'PA-123/pzn/edu': groupedRegionVar };
+
+        const result = await processWithPromoProjects(
+            {
+                ...FAKE_CONTEXT,
+                fragmentPath: 'pzn-test-fragment',
+                locale: 'en_US',
+                parsedLocale: 'en_US',
+                pzn: 'EDU',
+                body: buildBodyWithPzn(),
+            },
+            promoProjectsEntry,
+        );
+
+        expect(result.status).to.equal(200);
+        expect(result.body.variationId).to.equal('grouped-default-var-id');
+        expect(result.body.fields.badge).to.equal('GROUPED REGION badge');
+    });
+
+    it('uses the grouped variation matching the requested fragment, not a sibling with an identical pzn tag', async function () {
+        const SIBLING_A_PATH = 'PA-999/pzn/edu-variant-a';
+        const SIBLING_B_PATH = 'PA-999/pzn/edu-variant-b';
+        const SIBLING_A_PROMO = {
+            id: 'sibling-a-promo-var-id',
+            path: `/content/dam/mas/sandbox/en_US/promotions/black-friday/${SIBLING_A_PATH}`,
+            fields: { badge: 'SIBLING A PROMO badge' },
+        };
+        const SIBLING_B_PROMO = {
+            id: 'sibling-b-promo-var-id',
+            path: `/content/dam/mas/sandbox/en_US/promotions/black-friday/${SIBLING_B_PATH}`,
+            fields: { badge: 'SIBLING B PROMO badge' },
+        };
+        // Map insertion order puts sibling A's entry first, so a project-wide score tie without
+        // root-scoping would pick sibling A's promo variation even though root is sibling B's fragment.
+        const groupedVariationReferences = new Map([
+            [
+                SIBLING_A_PATH,
+                {
+                    id: 'sibling-a-fragment',
+                    path: `/content/dam/mas/sandbox/en_US/${SIBLING_A_PATH}`,
+                    fields: { pznTags: ['mas:pzn/edu'] },
+                },
+            ],
+            [
+                SIBLING_B_PATH,
+                {
+                    id: 'sibling-b-fragment',
+                    path: `/content/dam/mas/sandbox/en_US/${SIBLING_B_PATH}`,
+                    fields: { pznTags: ['mas:pzn/edu'] },
+                },
+            ],
+        ]);
+        const project = {
+            id: 'promo-proj-id',
+            path: '/content/dam/mas/promotions/black-friday',
+            defaultVariations: { [SIBLING_A_PATH]: SIBLING_A_PROMO, [SIBLING_B_PATH]: SIBLING_B_PROMO },
+            regionVariations: {},
+        };
+        const promoProjectsEntry = [
+            {
+                project,
+                promoMap: { '*': 'PROMO-CODE' },
+                fragmentPaths: new Set([SIBLING_A_PATH, SIBLING_B_PATH]),
+                groupedVariationPaths: new Set([SIBLING_A_PATH, SIBLING_B_PATH]),
+                groupedVariationReferences,
+            },
+        ];
+        const root = {
+            id: 'sibling-b-fragment',
+            path: `/content/dam/mas/sandbox/en_US/${SIBLING_B_PATH}`,
+            fields: { osi: 'OSI-TEST', pznTags: ['mas:pzn/edu'] },
+            references: {},
+            referencesTree: [],
+        };
+
+        const result = await processWithPromoProjects(
+            { ...FAKE_CONTEXT, fragmentPath: SIBLING_B_PATH, locale: 'en_US', parsedLocale: 'en_US', pzn: 'EDU', body: root },
+            promoProjectsEntry,
+        );
+
+        expect(result.status).to.equal(200);
+        expect(result.body.variationId).to.equal('sibling-b-promo-var-id');
+        expect(result.body.fields.badge).to.equal('SIBLING B PROMO badge');
+    });
+
+    it("requesting a default fragment (Firefly) does not pick another card's (Photoshop) grouped variation with an identical pzn tag", async function () {
+        const FIREFLY_PATH = 'firefly-default-fragment';
+        const PHOTOSHOP_PATH = 'photoshop-default-fragment';
+        const FIREFLY_GROUPED_PATH = 'PA-111/pzn/edu';
+        const PHOTOSHOP_GROUPED_PATH = 'PA-222/pzn/edu';
+        const PHOTOSHOP_PROMO = {
+            id: 'photoshop-promo-var-id',
+            path: `/content/dam/mas/sandbox/en_US/promotions/black-friday/${PHOTOSHOP_GROUPED_PATH}`,
+            fields: { badge: 'PHOTOSHOP PROMO badge' },
+        };
+        // Photoshop's grouped variation is inserted first, so a project-wide score tie
+        // (both tagged EDU) would be won by Photoshop's entry without parent scoping.
+        const groupedVariationReferences = new Map([
+            [
+                PHOTOSHOP_GROUPED_PATH,
+                {
+                    id: 'photoshop-grouped-fragment',
+                    path: `/content/dam/mas/sandbox/en_US/${PHOTOSHOP_GROUPED_PATH}`,
+                    fields: { pznTags: ['mas:pzn/edu'] },
+                },
+            ],
+            [
+                FIREFLY_GROUPED_PATH,
+                {
+                    id: 'firefly-grouped-fragment',
+                    path: `/content/dam/mas/sandbox/en_US/${FIREFLY_GROUPED_PATH}`,
+                    fields: { pznTags: ['mas:pzn/edu'] },
+                },
+            ],
+        ]);
+        const project = {
+            id: 'promo-proj-id',
+            path: '/content/dam/mas/promotions/black-friday',
+            defaultVariations: { [PHOTOSHOP_GROUPED_PATH]: PHOTOSHOP_PROMO },
+            regionVariations: {},
+        };
+        const promoProjectsEntry = [
+            {
+                project,
+                promoMap: { '*': 'PROMO-CODE' },
+                fragmentPaths: new Set([FIREFLY_PATH, PHOTOSHOP_PATH]),
+                groupedVariationPaths: new Set([FIREFLY_GROUPED_PATH, PHOTOSHOP_GROUPED_PATH]),
+                groupedVariationReferences,
+            },
+        ];
+        const firefly = {
+            id: 'firefly-fragment',
+            path: `/content/dam/mas/sandbox/en_US/${FIREFLY_PATH}`,
+            fields: { osi: 'OSI-FIREFLY', badge: 'Firefly default badge' },
+            references: {},
+            referencesTree: [],
+        };
+
+        const result = await processWithPromoProjects(
+            { ...FAKE_CONTEXT, fragmentPath: FIREFLY_PATH, locale: 'en_US', parsedLocale: 'en_US', pzn: 'EDU', body: firefly },
+            promoProjectsEntry,
+        );
+
+        expect(result.status).to.equal(200);
+        expect(result.body.fields.badge).to.equal('Firefly default badge');
     });
 });
 

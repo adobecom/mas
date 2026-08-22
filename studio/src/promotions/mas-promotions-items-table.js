@@ -8,7 +8,7 @@ import { PAGE_NAMES, TABLE_TYPE, CARD_MODEL_PATH, VARIATION_TAB_NAME } from '../
 import { applySearchSurfaceFromPath, shouldIgnoreRowClickForSelection } from '../common/utils/render-utils.js';
 import { closePreview, openPreview } from '../mas-card-preview.js';
 import router from '../router.js';
-import { extractLocaleFromPath, extractSurfaceFromPath, showToast } from '../utils.js';
+import { extractLocaleFromPath, extractSurfaceFromPath, resolveHydratedParentFragment, showToast } from '../utils.js';
 import { getDefaultLocaleCode } from '../../../io/www/src/fragment/locales.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 import Store from '../store.js';
@@ -26,9 +26,11 @@ import {
     buildRemoveOfferConfirmationMessage,
     getPromotionItemsRemovedByOfferRemoval,
     pruneOrphanedPromotionSelectionAfterOfferRemoval,
+    pruneOrphanedGroupedVariationSelection,
 } from './promotion-editor-utils.js';
 import { isPromoVariationPath } from './promotion-model.js';
 import { getUsedGeoTags } from './promotion-variations.js';
+import { processConcurrently, VARIATIONS_CONCURRENCY_LIMIT } from '../common/utils/item-loading.js';
 import { createPromoVariation, probePromoVariationsForFragment } from './promotions-repository.js';
 import './mas-promo-variation-geos.js';
 import { openOfferSelectorTool } from '../rte/ost.js';
@@ -268,9 +270,17 @@ class MasPromotionsItemsTable extends LitElement {
             items.map(async (item) => {
                 if (signal.aborted) return;
                 try {
-                    const variations = await probePromoVariationsForFragment(this.repository.aem, item.path, promoTag);
-                    if (variations.length) {
-                        const enrichedVariations = await enrichPromoVariations(variations, item, {
+                    const groupedVariationPaths = new Fragment(item)
+                        .getVariations()
+                        .filter((path) => Fragment.isGroupedVariationPath(path));
+                    const [variations, ...groupedVariations] = await processConcurrently(
+                        [item.path, ...groupedVariationPaths],
+                        (path) => probePromoVariationsForFragment(this.repository.aem, path, promoTag),
+                        VARIATIONS_CONCURRENCY_LIMIT,
+                    );
+                    const allVariations = [...variations, ...groupedVariations.flat()];
+                    if (allVariations.length) {
+                        const enrichedVariations = await enrichPromoVariations(allVariations, item, {
                             getDisplayName: this.getDisplayName,
                         });
                         geosByPath.set(item.path, getUsedGeoTags(variations));
@@ -386,6 +396,10 @@ class MasPromotionsItemsTable extends LitElement {
             const existingVariations = await probePromoVariationsForFragment(this.repository.aem, item.path, promoTag);
             this.promoVariationDisabledGeos = getUsedGeoTags(existingVariations);
             this.fragmentHasEmptyGeosVariation = existingVariations.some((variation) => !variation.pznTags?.length);
+            if (Fragment.isGroupedVariationPath(item.path)) {
+                await this.#createPromoVariationForItem(item, [], this.fragmentHasEmptyGeosVariation);
+                return;
+            }
             this.promoVariationGeosDialogItem = item;
         } catch {
             showToast(PROMO_VARIATION_LOOKUP_FAILED_MESSAGE, 'negative');
@@ -409,17 +423,13 @@ class MasPromotionsItemsTable extends LitElement {
         });
     }
 
-    async #handlePromoVariationGeosConfirm() {
-        const item = this.promoVariationGeosDialogItem;
+    async #createPromoVariationForItem(item, geoTags, hasEmptyGeosVariation) {
         const promoTag = this.#promotionTagId;
-        const geoTags = this.promoVariationSelectedGeos;
-        const hasEmptyGeosVariation = this.fragmentHasEmptyGeosVariation;
-        this.#closePromoVariationGeosDialog();
-        if (!promoTag || !item?.id || !this.repository) return;
-
         if (!geoTags.length && hasEmptyGeosVariation) {
             showToast(
-                'A variation with no geos already exists for this project. Select one or more geos to create another variation.',
+                Fragment.isGroupedVariationPath(item.path)
+                    ? 'A promo variation for this grouped variation fragment already exists.'
+                    : 'A variation with no geos already exists for this project. Select one or more geos to create another variation.',
                 'negative',
             );
             return;
@@ -456,6 +466,16 @@ class MasPromotionsItemsTable extends LitElement {
         }
     }
 
+    async #handlePromoVariationGeosConfirm() {
+        const item = this.promoVariationGeosDialogItem;
+        const promoTag = this.#promotionTagId;
+        const geoTags = this.promoVariationSelectedGeos;
+        const hasEmptyGeosVariation = this.fragmentHasEmptyGeosVariation;
+        this.#closePromoVariationGeosDialog();
+        if (!promoTag || !item?.id || !this.repository) return;
+        await this.#createPromoVariationForItem(item, geoTags, hasEmptyGeosVariation);
+    }
+
     #getOfferRemovalContext(selectorId) {
         const store = getItemsSelectionStore();
         return {
@@ -488,7 +508,17 @@ class MasPromotionsItemsTable extends LitElement {
         });
     }
 
-    #applyOfferRemoval(selectorId) {
+    async #pruneOrphanedGroupedVariations() {
+        const store = getItemsSelectionStore();
+        const aem = this.repository?.aem;
+        if (!aem) return;
+        const pruned = await pruneOrphanedGroupedVariationSelection(store.selectedCards.value, (path) =>
+            resolveHydratedParentFragment(aem, path).then((parent) => parent?.path ?? null),
+        );
+        if (pruned !== store.selectedCards.value) store.selectedCards.set(pruned);
+    }
+
+    async #applyOfferRemoval(selectorId) {
         const store = getItemsSelectionStore();
         const remainingOffers = store.selectedOffers.value.filter((id) => id !== selectorId);
         store.selectedOffers.set(remainingOffers);
@@ -509,6 +539,7 @@ class MasPromotionsItemsTable extends LitElement {
             });
             store.selectedCards.set(pruned.selectedCards);
             store.selectedCollections.set(pruned.selectedCollections);
+            await this.#pruneOrphanedGroupedVariations();
         }
         applyPromotionOfferProductTagsToSearch(Store.promotions.offerRecordsCache, remainingOffers);
         this.dispatchEvent(
@@ -540,11 +571,12 @@ class MasPromotionsItemsTable extends LitElement {
                 }
                 if (!confirmed) return;
             }
-            this.#applyOfferRemoval(selectorId);
+            await this.#applyOfferRemoval(selectorId);
             return;
         }
         if (this.type === TABLE_TYPE.CARDS) {
             store.selectedCards.set(store.selectedCards.value.filter((p) => p !== path));
+            await this.#pruneOrphanedGroupedVariations();
         } else {
             store.selectedCollections.set(store.selectedCollections.value.filter((p) => p !== path));
         }

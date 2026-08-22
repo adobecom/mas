@@ -6,6 +6,9 @@ import {
     normalizePznTagIds,
     getTagsFieldState,
     getGroupedVariationTagsValue,
+    getPromoVariationGeoTagsValue,
+    getPromoVariationPersonalizationTagsValue,
+    getPromoVariationPersonalizationTagLabels,
     getPromotionCode,
     getVariationTabItems,
     hasAnyVariationTabItems,
@@ -60,6 +63,34 @@ describe('variation-utils', () => {
         // Mirror Fragment.isGroupedVariationPath which keys off "/pzn/" segment.
         expect(isGroupedVariationFragment({ path: '/content/dam/mas/x/pzn/y' })).to.equal(true);
         expect(isGroupedVariationFragment({ path: '/content/dam/mas/x/y' })).to.equal(false);
+    });
+
+    it('getPromoVariationGeoTagsValue keeps only geo-shaped tags', () => {
+        const fragment = {
+            getFieldValues: (name) => (name === 'pznTags' ? ['mas:pzn/edu', 'mas:pzn/country/ar'] : []),
+        };
+        expect(getPromoVariationGeoTagsValue(fragment)).to.equal('mas:pzn/country/ar');
+    });
+
+    it('getPromoVariationGeoTagsValue treats mas:locale/ tags as geo-shaped too', () => {
+        const fragment = {
+            getFieldValues: (name) => (name === 'pznTags' ? ['mas:pzn/edu', 'mas:locale/fr_FR'] : []),
+        };
+        expect(getPromoVariationGeoTagsValue(fragment)).to.equal('mas:locale/fr_FR');
+    });
+
+    it('getPromoVariationPersonalizationTagsValue keeps only non-geo tags', () => {
+        const fragment = {
+            getFieldValues: (name) => (name === 'pznTags' ? ['mas:pzn/edu', 'mas:pzn/country/ar'] : []),
+        };
+        expect(getPromoVariationPersonalizationTagsValue(fragment)).to.equal('mas:pzn/edu');
+    });
+
+    it('getPromoVariationPersonalizationTagLabels returns only the leaf value(s), not the full tag id', () => {
+        const fragment = {
+            getFieldValues: (name) => (name === 'pznTags' ? ['mas:pzn/edu', 'mas:pzn/smb', 'mas:pzn/country/ar'] : []),
+        };
+        expect(getPromoVariationPersonalizationTagLabels(fragment)).to.equal('edu, smb');
     });
 
     it('pznTagsValue joins non-empty tag values', () => {

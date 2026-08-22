@@ -33,7 +33,7 @@ import { Fragment } from '../aem/fragment.js';
 import { Promotion } from '../aem/promotion.js';
 import './mas-promotions-items-selector.js';
 import './mas-promotions-items-table.js';
-import { getItemsSelectionStore, setItemsSelectionStore } from '../common/items-selection-store.js';
+import { pushItemsSelectionStore, popItemsSelectionStore } from '../common/items-selection-store.js';
 import {
     applyPromotionItemSelectionToFragment,
     buildPromotionOffersFieldValues,
@@ -136,7 +136,7 @@ class MasPromotionsEditor extends LitElement {
     promotionId = Store.promotions.promotionId;
 
     storeController = null;
-    #itemsSelectionStoreSnapshot = null;
+    #itemsSelectionStoreToken = null;
     #cardsSnapshot = [];
     #collectionsSnapshot = [];
     #itemsPickerConfirmed = false;
@@ -167,8 +167,7 @@ class MasPromotionsEditor extends LitElement {
 
     async connectedCallback() {
         super.connectedCallback();
-        this.#itemsSelectionStoreSnapshot = getItemsSelectionStore({ allowUnset: true });
-        setItemsSelectionStore(Store.promotions);
+        this.#itemsSelectionStoreToken = pushItemsSelectionStore(Store.promotions);
         this.#boundHandleOstOfferSelect = this.#handleOstOfferSelect.bind(this);
         document.addEventListener(EVENT_OST_OFFER_SELECT, this.#boundHandleOstOfferSelect);
 
@@ -224,8 +223,8 @@ class MasPromotionsEditor extends LitElement {
             this.#boundHandleOstOfferSelect = null;
         }
         Store.promotions.itemPickerSurface.set(null);
-        setItemsSelectionStore(this.#itemsSelectionStoreSnapshot);
-        this.#itemsSelectionStoreSnapshot = null;
+        popItemsSelectionStore(this.#itemsSelectionStoreToken);
+        this.#itemsSelectionStoreToken = null;
     }
 
     /** @type {MasRepository} */

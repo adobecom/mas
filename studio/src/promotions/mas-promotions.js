@@ -26,12 +26,18 @@ import {
 import { getAllAttachedPromoVariations } from './promotions-repository.js';
 import { PROMOTION_FIELD_TYPE_MAP } from './promotion-editor-utils.js';
 
+const ENVIRONMENT_FILTER_OPTIONS = [
+    { value: 'production', label: 'Production' },
+    { value: 'test', label: 'Test' },
+];
+
 class MasPromotions extends LitElement {
     static styles = styles;
 
     static properties = {
         filter: { type: String, state: true },
         filterOptions: { type: Array, state: true },
+        environmentFilter: { type: Array, state: true },
         sortField: { type: String, state: true },
         sortDirection: { type: String, state: true },
         error: { type: String, state: true },
@@ -48,6 +54,7 @@ class MasPromotions extends LitElement {
 
         this.filter = Store.promotions?.list?.filter?.get() || 'active';
         this.filterOptions = Store.promotions?.list?.filterOptions?.get() || [];
+        this.environmentFilter = ['production'];
         this.sortField = 'key';
         this.sortDirection = 'asc';
         this.error = null;
@@ -292,11 +299,69 @@ class MasPromotions extends LitElement {
                 ></mas-promotion-duplicate-dialog>
 
                 <div class="promotions-filters-container">
-                    <div class="filters-container"><sp-icon-filter></sp-icon-filter><span>Filters:</span></div>
-                    <div class="result-count-container">${(this.promotionsData || []).length} results</div>
+                    <div class="promotions-filters-row">
+                        <div class="filters-container">
+                            <sp-icon-filter></sp-icon-filter><span>Filters:</span>
+                            ${this.renderEnvironmentFilterPicker}
+                        </div>
+                        <div class="result-count-container">${(this.promotionsData || []).length} results</div>
+                    </div>
+                    ${this.renderAppliedEnvironmentFilters()}
                 </div>
 
                 <div class="promotions-content">${this.renderPromotionsContent()}</div>
+            </div>
+        `;
+    }
+
+    get renderEnvironmentFilterPicker() {
+        const selectedCount = this.environmentFilter.length;
+        const displayLabel = selectedCount > 0 ? `Environment (${selectedCount})` : 'Environment';
+
+        return html`
+            <div class="environment-filter-picker">
+                <overlay-trigger placement="bottom-start">
+                    <sp-action-button class="environment-filter" dir="ltr" slot="trigger">
+                        ${displayLabel}
+                        <sp-icon-chevron-down slot="icon"></sp-icon-chevron-down>
+                    </sp-action-button>
+                    <sp-popover slot="click-content" class="filter-popover">
+                        <div class="checkbox-list">
+                            ${ENVIRONMENT_FILTER_OPTIONS.map(
+                                (option) => html`
+                                    <sp-checkbox
+                                        value=${option.value}
+                                        ?checked=${this.environmentFilter.includes(option.value)}
+                                        @change=${(e) => this.#handleEnvironmentCheckboxChange(option.value, e)}
+                                    >
+                                        ${option.label}
+                                    </sp-checkbox>
+                                `,
+                            )}
+                        </div>
+                    </sp-popover>
+                </overlay-trigger>
+            </div>
+        `;
+    }
+
+    renderAppliedEnvironmentFilters() {
+        if (!this.environmentFilter.length) return nothing;
+
+        return html`
+            <div class="applied-filters">
+                <sp-tags>
+                    ${repeat(
+                        this.environmentFilter,
+                        (value) => value,
+                        (value) => html`
+                            <sp-tag size="s" deletable .value=${value} @delete=${this.#handleEnvironmentTagDelete}>
+                                ${ENVIRONMENT_FILTER_OPTIONS.find((option) => option.value === value)?.label}
+                            </sp-tag>
+                        `,
+                    )}
+                </sp-tags>
+                <sp-action-button quiet @click=${this.#clearEnvironmentFilter}>Clear all</sp-action-button>
             </div>
         `;
     }
@@ -572,7 +637,35 @@ class MasPromotions extends LitElement {
             );
             this.promotionsData = filteredPromotions;
         }
+
+        if (this.environmentFilter.length) {
+            this.promotionsData = this.promotionsData.filter((promotion) =>
+                this.environmentFilter.includes(promotion.value?.promotionEnvironment),
+            );
+        }
     }
+
+    #handleEnvironmentCheckboxChange(value, e) {
+        e.stopPropagation();
+        if (e.target.checked) {
+            if (!this.environmentFilter.includes(value)) {
+                this.environmentFilter = [...this.environmentFilter, value];
+            }
+        } else {
+            this.environmentFilter = this.environmentFilter.filter((filterValue) => filterValue !== value);
+        }
+        this.#handleFilterPromotions(this.filter);
+    }
+
+    #handleEnvironmentTagDelete = ({ target: { value } }) => {
+        this.environmentFilter = this.environmentFilter.filter((filterValue) => filterValue !== value);
+        this.#handleFilterPromotions(this.filter);
+    };
+
+    #clearEnvironmentFilter = () => {
+        this.environmentFilter = [];
+        this.#handleFilterPromotions(this.filter);
+    };
 }
 
 customElements.define('mas-promotions', MasPromotions);
